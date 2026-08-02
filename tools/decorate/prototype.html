@@ -356,9 +356,10 @@
   </div>
 
   <h3>The grown tree</h3>
-  <p class="sub">Not a fractal, and not a straight pole. The skeleton is <strong>recursive</strong> — ez-tree's levels, children and per-level taper, with an upward "force" — but every branch is a gnarly stepped path <em>smoothed into a flowing Catmull-Rom curve</em>, so the trunk wanders like a bonsai (up, twist, straighten) and limbs branch to a <strong>second degree</strong>. The <strong>spine</strong> on the left is the view the tree is designed against — the centerlines and their thickness, each limb's spline in its own colour — before any blocks go on. The <strong>stems</strong> knob gives the trunk setups: one stem that forks, a double, or a triple base. The <strong>leader</strong> knob decides whether the trunk dies at the fork (low — a spreading, decurrent form) or climbs on as a single central axis through the crown, thinning and twisting with branches staggered up it (high — a birch/conifer read); the trunk no longer just stops as if sawn.</p>
+  <p class="sub">Not a fractal, and not a straight pole. The skeleton is <strong>recursive</strong> — ez-tree's levels, children and per-level taper, with an upward "force" — but every branch is a gnarly stepped path <em>smoothed into a flowing Catmull-Rom curve</em>, so the trunk wanders like a bonsai (up, twist, straighten) and limbs branch to a <strong>second degree</strong>. The <strong>spine</strong> on the left is the view the tree is designed against — the centerlines and their thickness, each limb's spline in its own colour — before any blocks go on. The <strong>stems</strong> knob gives the trunk setups: one stem that forks, a double, or a triple base. The <strong>leader</strong> knob decides whether the trunk dies at the fork (low — a spreading, decurrent form) or climbs on as a single central axis through the crown, thinning and twisting with branches staggered up it (high — a birch/conifer read); the trunk no longer just stops as if sawn. <strong>Height</strong> (shown in blocks) scales the whole tree — and with it the stem thickness at the foot and the branch count, since a short branch is terminal, so a sapling reads as a few clusters on a thin stalk rather than a shrunken big tree.</p>
   <p class="sub">The crown is placed the way a mapmaker does it by hand — because the naive sphere-with-holes is the thing that looks generated. Each branch tip gets one <strong>dense disc-shaped cluster</strong> (a flat leaf-rock, ~90% full), pushed up and out from the tip, never down toward the trunk, since leaves sit at the ends and not on the wood. Neighbouring clusters keep a <strong>seam of air</strong> between them — a cell fills only when it clearly belongs to one cluster — so every patch reads as its own branch's instead of one merged blob, which is the whole reason to keep the branch count low. A few strands hang below for a broken lower edge.</p>
   <div class="controls">
+    <div class="ctl"><label>height <b id="v_tsize">36</b></label><input id="tsize" type="range" min="10" max="100" value="75"></div>
     <div class="ctl"><label>stems <b id="v_tstems">1</b></label><input id="tstems" type="range" min="1" max="3" value="1"></div>
     <div class="ctl"><label>leader <b id="v_tleader">0.55</b></label><input id="tleader" type="range" min="0" max="100" value="55"></div>
     <div class="ctl"><label>trunk flow <b id="v_tflow">0.45</b></label><input id="tflow" type="range" min="0" max="100" value="45"></div>
@@ -373,7 +374,7 @@
   </div>
 
   <h3>Parameter sweep</h3>
-  <p class="sub">Trunk setups and flow — a near-straight single stem, a swaying one, a windswept one, then a double and triple base — the range one style enum would name.</p>
+  <p class="sub">A <strong>height</strong> gradient — a knee-high sapling up to a full tree — then a double and triple base. Height is not just a scale: a smaller tree has a thinner stem at the foot and drops branches (a short limb is terminal), so a sapling is a few clusters on a thin stalk, not a shrunken big tree.</p>
   <div class="grid g3" id="sweep"></div>
 
   <h3>A forest, not a field</h3>
@@ -836,7 +837,7 @@ function hueColor(h, a){
 // trunk never just dies at the branch point. levels / angle / taper are the ez-tree knobs.
 function buildTree(cols, rows, p, seed){
   const branches=[], tips=[]; let limbHue=0;
-  const height = rows-10;
+  const height = p.height;                                             // target tree height in blocks
   // a recursive lateral branch: sharp per-step jitter, pulled gently upright, branching to depth
   function grow(x, y, dir, len, r0, level, idx, hue){
     const steps=Math.max(3, Math.round(len/2.2));
@@ -848,7 +849,7 @@ function buildTree(cols, rows, p, seed){
     }
     const r1=Math.max(0.55, r0*p.taper);
     branches.push({path:splineOf(ctrl,6), r0, r1, level, hue});
-    if (level>=p.levels){
+    if (level>=p.levels || len < 3.5){                                 // a short branch is terminal → fewer on a small tree
       const a=ctrl[ctrl.length-2], b=ctrl[ctrl.length-1], dx=b[0]-a[0], dy=b[1]-a[1], L=Math.hypot(dx,dy)||1;
       tips.push([b[0], b[1], hue, dx/L, dy/L]); return;
     }
@@ -873,9 +874,9 @@ function buildTree(cols, rows, p, seed){
       cd += (Math.PI/2 - cd)*0.05;                                        // stays generally upright
       const st=len/steps; cx += Math.cos(cd)*st; cy += Math.sin(cd)*st; ctrl.push([cx,cy]);
     }
-    const r1=Math.max(0.7, r0*(0.42 - 0.14*p.leader));                    // thins toward the top
+    const r1=Math.max(0.5, r0*(0.42 - 0.14*p.leader));                    // thins toward the top
     branches.push({path:splineOf(ctrl,6), r0, r1, level:0, hue:-1});
-    const nlat = Math.round(3 + p.leader*2), hiF = 0.66 + 0.24*p.leader;  // more laterals, higher, as it climbs
+    const nlat = Math.max(1, Math.round(1 + p.leader*2 + p.size*2)), hiF = 0.66 + 0.24*p.leader;  // fewer laterals on a small tree
     for (let k=0;k<nlat;k++){
       const f = p.childStart + (hiF-p.childStart)*((k+0.5)/nlat);
       const ci = Math.min(ctrl.length-1, Math.max(1, Math.round(f*(ctrl.length-1))));
@@ -888,7 +889,7 @@ function buildTree(cols, rows, p, seed){
     }
     const top=ctrl[ctrl.length-1], a=ctrl[ctrl.length-2], L=Math.hypot(top[0]-a[0],top[1]-a[1])||1;
     const tdx=(top[0]-a[0])/L, tdy=(top[1]-a[1])/L, tang=Math.atan2(tdy,tdx);
-    for (let k=0;k<2;k++)                                                 // the top branches a little
+    if (len*p.lenFactor*0.5 > 2.6) for (let k=0;k<2;k++)                  // the top branches a little (skipped on a sapling)
       grow(top[0], top[1], tang+(k?1:-1)*p.angle*0.5, len*p.lenFactor*0.5, Math.max(0.6,r1*0.85), 1, sBase*91+k, limbHue++);
     tips.push([top[0], top[1], limbHue++, tdx, tdy]);                     // ...and ends in a crown cluster
   }
@@ -897,7 +898,7 @@ function buildTree(cols, rows, p, seed){
     const off = p.stems===1 ? 0 : (s/(p.stems-1)-0.5);
     leader(off*4, Math.PI/2 - off*0.55, axisLen*(p.stems===1?1:0.9), p.trunkR, 1+s*131);
   }
-  return {branches, tips};
+  return {branches, tips, size:p.size};
 }
 function stampDisc(set, cx, px, py, r){
   const R=Math.ceil(r);
@@ -911,8 +912,9 @@ function stampDisc(set, cx, px, py, r){
 // hang below. The density is high (~92%) — the airiness comes from the seams, not inner holes.
 function buildCrown(cx, cols, rows, tree, leafSz, seed){
   const leaves=new Map();
+  const sz = tree.size ?? 1;                                     // clusters shrink with the tree
   const cl = tree.tips.map((tp,i)=>{
-    const rx = 2.8 + leafSz*2.6 + unit(i,2,seed)*1.1;
+    const rx = (2.3 + leafSz*2.4)*(0.55+0.45*sz) + unit(i,2,seed)*1.0;
     const ry = rx*(0.55 + unit(i,5,seed)*0.12);                  // oblate disc, not a sphere
     const tilt = (unit(i,8,seed)-0.5)*0.6;
     const ox=tp[3]||0, oy=tp[4]||1;
@@ -983,10 +985,11 @@ function drawSpine(cv, cols, rows, tree){
   for (const tp of tree.tips){ g2.fillStyle=hueColor(tp[2],0.95); g2.beginPath(); g2.arc(X(tp[0]),Y(tp[1]),2.4,0,7); g2.fill(); }
 }
 function treeParams(){
-  const stems=+g("tstems").value, flow=+g("tflow").value/100, leader=+g("tleader").value/100, ang=+g("tang").value, levels=+g("tlevels").value, leaf=+g("tleaf").value/100, seed=+g("tseed").value;
-  g("v_tstems").textContent=stems; g("v_tflow").textContent=flow.toFixed(2); g("v_tleader").textContent=leader.toFixed(2); g("v_tang").textContent=ang+"°"; g("v_tlevels").textContent=levels; g("v_tleaf").textContent=leaf.toFixed(2); g("v_tseed").textContent=seed;
-  return { stems, flow:0.12+flow*0.5, gnarl:0.14+flow*0.28, angle:ang*Math.PI/180, levels, leader,
-           childStart:0.30, taper:0.62, childScale:0.6, lenFactor:0.62, trunkR:1.8, leaf, seed };
+  const stems=+g("tstems").value, size=+g("tsize").value/100, leader=+g("tleader").value/100, flow=+g("tflow").value/100, ang=+g("tang").value, levels=+g("tlevels").value, leaf=+g("tleaf").value/100, seed=+g("tseed").value;
+  const height = 12 + size*32;
+  g("v_tstems").textContent=stems; g("v_tsize").textContent=Math.round(height); g("v_tleader").textContent=leader.toFixed(2); g("v_tflow").textContent=flow.toFixed(2); g("v_tang").textContent=ang+"°"; g("v_tlevels").textContent=levels; g("v_tleaf").textContent=leaf.toFixed(2); g("v_tseed").textContent=seed;
+  return { stems, size, height, flow:0.12+flow*0.5, gnarl:0.14+flow*0.28, angle:ang*Math.PI/180, levels, leader,
+           childStart:0.30, taper:0.62, childScale:0.6, lenFactor:0.62, trunkR:0.7+size*1.5, leaf, seed };
 }
 function renderGrown(){
   const p=treeParams(), big = window.innerWidth<560?5:7;
@@ -997,16 +1000,16 @@ function renderGrown(){
 }
 function renderSweep(){
   const host=g("sweep"); host.innerHTML="";
-  const combos=[[1,0.0],[1,0.5],[1,1.0],[2,0.5],[3,0.55],[1,0.85]];
+  const combos=[[0.15,1],[0.38,1],[0.65,1],[1.0,1],[0.5,2],[0.8,3]];   // a size gradient, then multi-stem
   const base=treeParams(); let n=0;
-  for (const [stems,leader] of combos){
+  for (const [size,stems] of combos){
     const fig=document.createElement("figure"); fig.className="cell";
     const fr=document.createElement("div"); fr.className="canvas-frame";
     const cv=document.createElement("canvas"); cv._px=5; fr.appendChild(cv);
-    const cap=document.createElement("figcaption"); cap.innerHTML="<b>"+stems+" stem"+(stems>1?"s":"")+" · leader "+leader.toFixed(2)+"</b>";
+    const cap=document.createElement("figcaption"); cap.innerHTML="<b>height "+Math.round(12+size*32)+" · "+stems+" stem"+(stems>1?"s":"")+"</b>";
     fig.appendChild(fr); fig.appendChild(cap); host.appendChild(fig);
-    const p={...base, stems, leader, levels:2};
-    rasterBlocks(cv, 44, 52, buildTree(44,52,p,5+(n++)), 0.6, 6+n);
+    const p={...base, size, height:12+size*32, trunkR:0.7+size*1.5, stems, leader:0.5, levels:2};
+    rasterBlocks(cv, 44, 52, buildTree(44,52,p,5+(n++)), base.leaf, 6+n);
   }
 }
 function renderForest(){
@@ -1056,7 +1059,7 @@ document.querySelectorAll("#pmode button").forEach(b => b.addEventListener("clic
   b.classList.add("on"); renderPaths();
 }));
 ["rden","rsize","rseed"].forEach(id => on(id, renderRockScatter));
-["tstems","tleader","tflow","tang","tlevels","tleaf","tseed"].forEach(id => on(id, renderGrown));
+["tsize","tstems","tleader","tflow","tang","tlevels","tleaf","tseed"].forEach(id => on(id, renderGrown));
 ["gsc","gfill","gseed"].forEach(id => on(id, renderForest));
 
 function renderAll(){

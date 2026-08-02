@@ -166,8 +166,11 @@ outer tips. The trunk is a **continuous central axis**, not a stub that forks an
 sets how far it climbs — at a low leader it dissolves into a spreading fork (a decurrent oak), at a high
 leader it carries on up through the crown as one dominant spine, thinning and twisting, with branches
 staggered up its length and a small fan at the top (an excurrent birch or conifer). A **stems** knob gives
-the base setups a real tree has — one stem, a double, or a triple — and the rest (leader, trunk flow,
-branch angle, levels, leaf size) are hash-keyed so a seed always grows the same tree. This is the ez-tree lesson (Dan Greenheck) — a tree reads from **taper + curve + a canopy at the
+the base setups a real tree has — one stem, a double, or a triple. A **height** sets the tree's size in
+blocks, and it is not a uniform scale: a smaller tree carries a **thinner stem at the foot** and **fewer
+branches** (a branch shorter than a floor length is terminal, so recursion stops sooner), and its leaf
+clusters shrink with it — a sapling is a few clusters on a thin stalk, not a shrunken big tree. The rest
+(leader, trunk flow, branch angle, levels, leaf size) are hash-keyed so a seed always grows the same tree. This is the ez-tree lesson (Dan Greenheck) — a tree reads from **taper + curve + a canopy at the
 tips**, not from branch count — married to the Catmull-Rom flow a Minecraft builder draws by hand in
 Axiom's path tool. The stage renders it two ways: the **spine** (the centerlines and their thickness, each
 limb spline in its own colour) is the view the shape is designed against, and the voxelised blocks are the
