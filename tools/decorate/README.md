@@ -19,3 +19,17 @@ Open directly:
 ```
 xdg-open tools/decorate/prototype.html      # or just open the file in a browser
 ```
+
+§6 (Symmetry & fairness, G162) dresses a **real generated board** rather than a synthetic one — the
+free-scatter-vs-orbit-fanned comparison that shows why gameplay-affecting dressing must be mirrored.
+
+## `dress-map.cs`
+
+Composes a board with the real generator and emits its terrain + symmetry + objectives as `map.json`, which
+§6 of the prototype embeds. Run from the repo root:
+
+```
+dotnet run tools/decorate/dress-map.cs -- <playersPerTeam> <seed>   # defaults: 24 7 → tools/decorate/map.json
+```
+
+The committed `map.json` is 40 players / seed 2 (`rot_180`), the board §6 dresses.

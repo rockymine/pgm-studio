@@ -25,6 +25,10 @@ says so.
   symmetry re-fans, placements pinned" architecture); the cosmetic layer may be placed freely per image so the
   two halves are not eerily identical. The hash-from-cell determinism makes the free layer reproducible without
   being mirrored. **This gates the rest**: no dressing ships for competitive use until it respects the orbit.
+  *Prototyped* in `tools/decorate/prototype.html` §6 — free-scatter vs orbit-fanned tree/boulder cover on a
+  **real** board (`Composer.ComposeStages`, 40 players, `rot_180`), with a fairness check that counts cover
+  cells whose mirror image is bare: free scatter racks them up, the fanned pass is zero by construction, and
+  cosmetic flowers stay free. The board is emitted by `tools/decorate/dress-map.cs`.
 
 - **G167 — readability & playability budget** — nothing yet stops decoration from narrowing a corridor below
   the bridge-width minimum, walling a lane, burying a monument, or over-cluttering until the map is
