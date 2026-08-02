@@ -33,7 +33,11 @@ public partial class PlanThemePhase
 
     private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
     private static readonly JsonSerializerOptions Pretty = new(JsonSerializerDefaults.Web) { WriteIndented = true };
-    private static readonly string[] Steps = ["Create"];
+    // Both steps show in the flow bar; Create is this component, Apply is the host's canvas mode.
+    private static readonly string[] Steps = ["Create", "Apply"];
+
+    // Flow-bar step click: Apply (1) hands off to the canvas mode; Create (0) is where we already are.
+    private Task OnStep(int i) => i == 1 ? OnApply.InvokeAsync() : Task.CompletedTask;
 
     private const string AbsoluteBedrock = "absolute";
     private const string RelativeBedrock = "relative";

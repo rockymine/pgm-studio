@@ -9,7 +9,7 @@
 <div class="phase-body">
   <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Theme"
            Steps="@Steps" CurrentStep="0" BackEnabled="true" NextLabel="Apply →"
-           OnBack="OnBack" OnNext="OnApply" />
+           OnStep="OnStep" OnBack="OnBack" OnNext="OnApply" />
   <Workspace>
     <ContentColumn MaxWidth="720">
       @if (State is null)

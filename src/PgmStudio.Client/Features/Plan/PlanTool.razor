@@ -91,8 +91,9 @@
       <div class="phase-body" hidden="@DrawHidden">
       @if (themeApplyActive)
       {
-        <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Apply theme"
-                 BackEnabled="true" NextLabel="Done" OnBack="BackToThemes" OnNext="FinishTheme" />
+        <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Theme"
+                 Steps="ThemeSteps" CurrentStep="1" BackEnabled="true" NextLabel="Done"
+                 OnStep="OnThemeStep" OnBack="BackToThemes" OnNext="FinishTheme" />
       }
       else if (MapBacked)
       {

@@ -45,6 +45,13 @@ public partial class PlanTool
     private Task GoTheme() => SetPhase("theme");
 
     // ── theme-apply canvas mode (G157) ──────────────────────────────────────────
+    // The Theme phase's two flow-bar steps — the same list the Create step (PlanThemePhase) shows, so the
+    // stepper reads "Theme | Create Apply" whichever step is active.
+    private static readonly string[] ThemeSteps = ["Create", "Apply"];
+
+    // Flow-bar step click while in theme-apply: Create (0) drops back to the theme editor; Apply (1) is here.
+    private Task OnThemeStep(int i) => i == 0 ? BackToThemes() : Task.CompletedTask;
+
     // Enter from the Create step's "Apply →": show the shared canvas, put it in read-only theme-assignment mode
     // with the live paint overlay, and swap the sidebar for the theme-apply rail.
     private async Task EnterThemeApply()
