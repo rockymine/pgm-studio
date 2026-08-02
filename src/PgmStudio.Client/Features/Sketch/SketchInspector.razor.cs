@@ -15,6 +15,9 @@ public partial class SketchInspector
     [Parameter] public int SelectedVertexIdx { get; set; } = -1;
     [Parameter] public double SelectedVertexHeight { get; set; }
     [Parameter] public EventCallback<(string Id, int Idx, double Height)> OnSetVertexHeight { get; set; }
+    [Parameter] public IReadOnlyList<SketchSlopeControl> SlopeControls { get; set; } = [];
+    [Parameter] public EventCallback<(int Idx, double Height)> OnSlopeHeightChanged { get; set; }
+    [Parameter] public EventCallback OnApplySlope { get; set; }
     [Parameter] public EventCallback<string> OnToggleMirrors { get; set; }
     [Parameter] public EventCallback<(string Id, string Name)> OnRenameIsland { get; set; }
     [Parameter] public EventCallback<double> OnRotate { get; set; }

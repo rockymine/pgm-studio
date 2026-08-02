@@ -50,20 +50,44 @@ export class SketchEditController {
 
   #selectedId      = null;
   #selectedVertex  = -1;     // index of the click-selected vertex (for per-anchor height editing, S5b)
+  #slopeControls   = [];     // vertex indices shift-clicked as surface-slope controls (2–3), insertion order
   #rectResizeState = null;
   #vertexDragState = null;
   #bezierDragState = null;
   #ghostEl         = null;
   #hoveredEdgeIdx  = -1;
 
-  constructor(handlesLayer, getViewport, getShape, { onShapeUpdated, onVertexSelected, snapEdges } = {}) {
+  constructor(handlesLayer, getViewport, getShape, { onShapeUpdated, onVertexSelected, onSlopeControls, snapEdges } = {}) {
     this.#handlesLayer = handlesLayer;
     this.#getViewport  = getViewport;
     this.#getShape     = getShape;
-    this.#callbacks    = { onShapeUpdated, onVertexSelected, snapEdges };
+    this.#callbacks    = { onShapeUpdated, onVertexSelected, onSlopeControls, snapEdges };
   }
 
-  setSelected(id) { if (id !== this.#selectedId) this.#selectedVertex = -1; this.#selectedId = id; }
+  setSelected(id) {
+    if (id !== this.#selectedId) { this.#selectedVertex = -1; this.#slopeControls = []; }
+    this.#selectedId = id;
+  }
+
+  // Toggle a vertex in the surface-slope control set (shift-click), capped at 3 — the plane fit needs 2 or 3
+  // points. Clears the single-vertex height selection so the two modes don't fight, and reports the set up so
+  // the inspector can offer a height per control + Apply.
+  #toggleSlopeControl(shapeId, idx) {
+    const at = this.#slopeControls.indexOf(idx);
+    if (at >= 0) this.#slopeControls.splice(at, 1);
+    else if (this.#slopeControls.length < 3) this.#slopeControls.push(idx);
+    else return;   // already 3 marked — ignore until one is removed
+    this.#selectedVertex = -1;
+    this.refresh();
+    this.#callbacks.onSlopeControls?.(shapeId, [...this.#slopeControls]);
+  }
+
+  // Drop the slope control set (a plain vertex click, or clearing) and tell the host it's empty.
+  #clearSlopeControls(shapeId) {
+    if (!this.#slopeControls.length) return;
+    this.#slopeControls = [];
+    this.#callbacks.onSlopeControls?.(shapeId ?? this.#selectedId, []);
+  }
 
   /** Redraw handles for the selected shape (call after viewport changes too). */
   refresh() {
@@ -320,19 +344,26 @@ export class SketchEditController {
     shape.vertices.forEach(([wx, wz], idx) => {
       const sp = this.#toScreen(wx, wz);
       const selected = idx === this.#selectedVertex;
+      const control = this.#slopeControls.includes(idx);   // a shift-marked surface-slope control
+      const half = control ? VERTEX_HALF + 1 : VERTEX_HALF;
       const h = svgEl("rect", {
-        ...handleRectAttrs(sp.x, sp.y, VERTEX_HALF),
-        fill: selected ? "var(--accent)" : "var(--bg-deep)", stroke: selected ? "var(--accent)" : "var(--text-muted)",
-        "stroke-width": "1", style: "cursor:move",
+        ...handleRectAttrs(sp.x, sp.y, half),
+        fill: control ? "var(--warning)" : (selected ? "var(--accent)" : "var(--bg-deep)"),
+        stroke: control ? "var(--warning)" : (selected ? "var(--accent)" : "var(--text-muted)"),
+        "stroke-width": control ? "2" : "1", style: "cursor:move",
       });
       h.addEventListener("mousedown", (e) => {
         if (e.button !== 0) return;
         e.stopPropagation();
-        if (e.ctrlKey) {
+        if (e.shiftKey) {
+          this.#toggleSlopeControl(shape.id, idx);   // mark/unmark a slope control (no drag, no single-select)
+        } else if (e.ctrlKey) {
+          this.#clearSlopeControls(shape.id);
           if (!shape.controls) shape.controls = {};
           this.#bezierDragState = { shapeId: shape.id, vertexIdx: idx, handle: "out" };
         } else {
           // Track start + a movement flag so a click (no drag) selects the vertex for height editing.
+          this.#clearSlopeControls(shape.id);
           this.#vertexDragState = { shapeId: shape.id, vertexIdx: idx, sx: wx, sz: wz, moved: false };
         }
       });

@@ -24,6 +24,15 @@ public sealed record SketchLayoutDto(
     [property: JsonPropertyName("islands")] List<SketchIslandRow> Islands,
     [property: JsonPropertyName("shapes")] List<SketchShapeRow> Shapes);
 
+// One shift-marked surface-slope control vertex (from the bridge's OnSlopeControls): the vertex index +
+// the height to fit the plane at. Height is mutable so the inspector's per-control input edits it in place
+// before Apply.
+public sealed class SketchSlopeControl
+{
+    [JsonPropertyName("idx")] public int Idx { get; set; }
+    [JsonPropertyName("height")] public double Height { get; set; }
+}
+
 // A stacked layer row (from the bridge's OnLayers): identity + Y offset, for the Layers panel (S7b).
 public sealed record SketchLayerRow(
     [property: JsonPropertyName("id")] string Id,

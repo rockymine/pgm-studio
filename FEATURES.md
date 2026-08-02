@@ -2558,6 +2558,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   shapes → live islands + mirror, with select/op/override/delete/rename. Pure geometry in
   `geometry/shape.js` + `geometry/boolean.js`; canvas + draw/edit controllers + `render/sketch-render.js`;
   `bridge/sketch-bridge.js`. A sketch **is a draft map**. (S2a, S2b, S2c)
+  - **Surface slope — tilt a shape's top as a plane (S24).** Beyond plan rotation (which turns a shape in
+    x/z), the *surface angle* sets its heights: **shift-click 2–3 vertices** to mark them as controls (they
+    highlight), set a height for each in the inspector's **Surface slope** panel, and **Apply slope** fits a
+    tilted plane through them and reads every other vertex's height off it — 2 controls give a ramp (contours
+    perpendicular to the line), 3 give a fully-aimed plane. Heights round to whole blocks, so the fitted slope
+    reads as the neat straight steps of a staircase. Pure `geometry/slope.js`; the result is ordinary
+    `anchor_heights`, which the `SketchRasterizer` already TIN-interpolates and exports — no backend change.
   - **Draw tools = rectangle · polygon · lasso.** The circle was dropped — it could only be placed and
     moved, never resized or reshaped, so a Bézier-curved polygon does the same job with real control (the
     shape model keeps circle support so any already-saved circle still renders). The **lasso** is a

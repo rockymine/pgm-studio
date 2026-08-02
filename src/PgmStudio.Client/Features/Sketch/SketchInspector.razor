@@ -41,15 +41,33 @@
         </Field>
         @if (Shape.Type == "polygon" || Shape.Type == "lasso")
         {
-          @if (SelectedVertexIdx >= 0)
+          @if (SlopeControls.Count >= 2)
+          {
+            <div class="section-header section-header--ruled"><h2 class="section-title">Surface slope</h2></div>
+            @foreach (var control in SlopeControls)
+            {
+              <Field Label='@($"Vertex {control.Idx + 1} height")'>
+                <NumberField Value="control.Height" ValueChanged="(v) => OnSlopeHeightChanged.InvokeAsync((control.Idx, v))" Min="1" />
+              </Field>
+            }
+            <Button Full OnClick="() => OnApplySlope.InvokeAsync()">
+              <i data-lucide="move-3d"></i> Apply slope
+            </Button>
+            <p class="section-desc">
+              Fits a @(SlopeControls.Count == 2 ? "ramp" : "plane") through these @SlopeControls.Count points and steps
+              every other vertex onto it. Shift-click a marked vertex to unmark it.
+            </p>
+          }
+          else if (SelectedVertexIdx >= 0)
           {
             <Field Label='@($"Vertex {SelectedVertexIdx + 1} height")'>
               <NumberField Value="SelectedVertexHeight" ValueChanged="VertexHeightChanged" Min="1" />
             </Field>
+            <p class="section-desc">Shift-click 2–3 vertices to tilt the whole surface as a slope.</p>
           }
           else
           {
-            <p class="section-desc">Click a vertex to set its height (ramp/undulate).</p>
+            <p class="section-desc">Click a vertex to set its height, or shift-click 2–3 vertices to tilt the surface as a slope.</p>
           }
         }
         <Button Full Variant="danger" OnClick="() => OnDeleteShape.InvokeAsync(Shape.Id)">

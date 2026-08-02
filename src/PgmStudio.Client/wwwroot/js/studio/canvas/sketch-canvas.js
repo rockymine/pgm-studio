@@ -710,6 +710,7 @@ export class SketchCanvas extends CanvasBase {
     this.#edit = new SketchEditController(this.#screen.handles, getViewport, (id) => this.#shapes.get(id), {
       onShapeUpdated: (shape) => { this.updateShape(shape); this.#callbacks.onShapeUpdated?.(shape); },
       onVertexSelected: (shapeId, idx) => this.#callbacks.onVertexSelected?.(shapeId, idx),
+      onSlopeControls: (shapeId, indices) => this.#callbacks.onSlopeControls?.(shapeId, indices),
       snapEdges: (id, edges, alt) => this.#snapResize(id, edges, alt),
     });
 

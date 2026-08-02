@@ -8,6 +8,7 @@
 import { SketchCanvas } from "../canvas/sketch-canvas.js";
 import { computeIslands, assignShapesToIslands, computeMirrorPreview, restoreIslandMeta, shapeToMultiPoly } from "../geometry/boolean.js";
 import { rectToPolygon, translateShape, rotateShape, boundsOfShapes, splitShape } from "../geometry/shape.js";
+import { surfaceHeights } from "../geometry/slope.js";
 import { LIBRARY, instantiate, libraryMeta } from "../geometry/shape-library.js";
 import { applySymmetry, orbitAxes } from "../geometry/symmetry.js";
 import polygonClipping from "../vendor/polygon-clipping.js";
@@ -80,6 +81,15 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
       const s = canvas.getShape(shapeId);
       const h = s ? clampHeight(s.anchor_heights?.[idx] ?? s.base_height) : MIN_HEIGHT;
       fire("OnVertexSelected", shapeId ?? null, idx, h);
+    },
+    // The shift-marked surface-slope control set changed — send each control's index + its current height
+    // so the inspector can offer a height box per marked vertex + Apply.
+    onSlopeControls: (shapeId, indices) => {
+      const s = canvas.getShape(shapeId);
+      if (!s?.vertices) { fire("OnSlopeControls", shapeId ?? null, "[]"); return; }
+      const base = clampHeight(s.base_height);
+      const controls = indices.map(idx => ({ idx, height: clampHeight(s.anchor_heights?.[idx] ?? base) }));
+      fire("OnSlopeControls", shapeId ?? null, JSON.stringify(controls));
     },
   });
 
@@ -421,6 +431,23 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
         s.anchor_heights = s.vertices.map((_, i) => clampHeight(s.anchor_heights?.[i] ?? base));
       s.anchor_heights[idx] = clampHeight(h);   // a vertex is a height too — never below 1
       canvas.updateShape(s);   // re-render the vertex labels
+      pushLayout(); refreshIso(); markDirty();
+    },
+    // Fit a tilted plane through the 2–3 control vertices (each `{idx, height}`) and read every vertex's
+    // height off it → the shape's whole top becomes a flat slope (2 controls = a ramp, 3 = an aimed plane).
+    // Heights round to blocks, so a slope reads as the neat straight steps of a staircase.
+    applySlope(id, samplesJson) {
+      const s = canvas.getShape(id);
+      if (!s?.vertices) return;
+      let samples;
+      try { samples = JSON.parse(samplesJson); } catch { return; }
+      const pts = samples
+        .filter(c => c.idx >= 0 && c.idx < s.vertices.length)
+        .map(c => ({ x: s.vertices[c.idx][0], z: s.vertices[c.idx][1], h: clampHeight(c.height) }));
+      const heights = surfaceHeights(s.vertices, pts);
+      if (!heights) return;   // fewer than 2 distinct control positions — nothing to fit
+      s.anchor_heights = heights.map(clampHeight);
+      canvas.updateShape(s);
       pushLayout(); refreshIso(); markDirty();
     },
 

@@ -59,6 +59,7 @@ public partial class SketchTool
     private string? selectedIslandId;
     private int selectedVertexIdx = -1;
     private double selectedVertexHeight;
+    private List<SketchSlopeControl> slopeControls = [];   // shift-marked surface-slope controls (2–3)
 
     private SketchShapeRow? SelectedShape => shapes.FirstOrDefault(s => s.Id == selectedShapeId);
     private SketchIslandRow? SelectedIsland => islands.FirstOrDefault(i => i.Id == selectedIslandId);
@@ -180,6 +181,20 @@ public partial class SketchTool
         return handle?.InvokeVoidAsync("setVertexHeight", e.Id, e.Idx, e.Height).AsTask() ?? Task.CompletedTask;
     }
 
+    // Edit one slope control's height in place (before Apply) — no bridge call, just the local model the
+    // inspector's per-control input binds to.
+    private void SetSlopeHeight((int Idx, double Height) e)
+    {
+        var control = slopeControls.FirstOrDefault(c => c.Idx == e.Idx);
+        if (control is not null) control.Height = e.Height;
+    }
+
+    // Fit the surface plane through the marked controls (with their edited heights) and fill every vertex.
+    private Task ApplySlope()
+        => handle is null || selectedShapeId is null || slopeControls.Count < 2
+            ? Task.CompletedTask
+            : handle.InvokeVoidAsync("applySlope", selectedShapeId, JsonSerializer.Serialize(slopeControls)).AsTask();
+
     // ── Panel / inspector actions → the JS bridge ──────────────────────────────
 
     private Task SelectShape(string id) => handle?.InvokeVoidAsync("selectShape", id).AsTask() ?? Task.CompletedTask;
@@ -204,7 +219,16 @@ public partial class SketchTool
 
     /// <summary>A shape was selected on the canvas/panel (null = deselected).</summary>
     [JSInvokable]
-    public void OnShapeSelected(string? id) { selectedShapeId = id; selectedVertexIdx = -1; StateHasChanged(); }
+    public void OnShapeSelected(string? id) { selectedShapeId = id; selectedVertexIdx = -1; slopeControls = []; StateHasChanged(); }
+
+    /// <summary>The shift-marked surface-slope control set changed on the canvas — each entry is a vertex index
+    /// + its current height, which the inspector lets the author edit before fitting the plane.</summary>
+    [JSInvokable]
+    public void OnSlopeControls(string? shapeId, string json)
+    {
+        slopeControls = shapeId is null ? [] : (JsonSerializer.Deserialize<List<SketchSlopeControl>>(json) ?? []);
+        StateHasChanged();
+    }
 
     /// <summary>A polygon vertex was click-selected on the canvas (null shapeId = cleared).</summary>
     [JSInvokable]
