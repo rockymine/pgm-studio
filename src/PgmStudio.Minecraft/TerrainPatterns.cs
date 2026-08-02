@@ -25,19 +25,8 @@ public sealed record VoronoiMaterial(uint Seed, int CellSize, IReadOnlyList<Terr
     public override (int Id, int Data) Resolve(in BucketContext ctx)
     {
         if (Palette.Count == 0) return (Blocks.Stone, 0);
-        int size = Math.Max(1, CellSize);
-        int gx = (int)Math.Floor((double)ctx.X / size), gz = (int)Math.Floor((double)ctx.Z / size);
-        long bestD = long.MaxValue; int bestGX = gx, bestGZ = gz;
-        for (var dgz = -1; dgz <= 1; dgz++)
-        for (var dgx = -1; dgx <= 1; dgx++)
-        {
-            int cgx = gx + dgx, cgz = gz + dgz;
-            int sx = cgx * size + (int)(PatternNoise.Unit(cgx, cgz, Seed) * size);
-            int sz = cgz * size + (int)(PatternNoise.Unit(cgx, cgz, Seed ^ 0x9E3779B9u) * size);
-            long ddx = ctx.X - sx, ddz = ctx.Z - sz, d = ddx * ddx + ddz * ddz;
-            if (d < bestD) { bestD = d; bestGX = cgx; bestGZ = cgz; }
-        }
-        int idx = (int)(PatternNoise.Hash(bestGX, bestGZ, Seed) % (uint)Palette.Count);
+        var (gx, gz) = Voronoi.NearestSite(ctx.X, ctx.Z, Seed, CellSize);
+        int idx = (int)(PatternNoise.Hash(gx, gz, Seed) % (uint)Palette.Count);
         return Palette[idx].Resolve(in ctx);
     }
 }

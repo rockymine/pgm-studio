@@ -3,13 +3,14 @@ using System.Text.Json.Nodes;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Geometries.Utilities;
 using NetTopologySuite.Operation.Union;
+using PgmStudio.Geom.Algorithms;
 
 namespace PgmStudio.Analysis.Footprint;
 
 /// <summary>
 /// Detects "islands" — connected landmasses — from a layer scan's (x,z) footprint, with an exact
-/// block-outline polygon per island. Port of <c>layout/islands.py</c> (8-connectivity BFS →
-/// unit-square union → sort by block count). Geometry via NetTopologySuite (≡ Shapely/GEOS).
+/// block-outline polygon per island: connected components (<see cref="GridComponents"/>) → unit-square union →
+/// sort by block count. Geometry via NetTopologySuite (GEOS).
 /// </summary>
 public static class IslandDetector
 {
@@ -34,7 +35,7 @@ public static class IslandDetector
         if (cells.Count == 0) return ([], cellToId);
 
         // pair each kept component with its Island, stable-sort by block count desc, assign 1-based ids.
-        var paired = ConnectedComponents(cells, connectivity)
+        var paired = GridComponents.Label(cells, connectivity)
             .Where(comp => comp.Count >= minIslandSize)
             .Select(comp => (Cells: comp, Island: new Island(0, comp.Count, BoundsOf(comp), BlocksToPolygon(comp))))
             .OrderByDescending(p => p.Island.BlockCount)
@@ -149,44 +150,13 @@ public static class IslandDetector
         return best;
     }
 
+    // Join across a walkable surface: two adjacent columns share a component when any pair of their standable
+    // heights is within one step, so a staircase keeps a raised structure attached to the terrace it climbs from.
     private static List<List<(int X, int Z)>> StairAwareComponents(
         Dictionary<(int, int), int> baseByCell, Dictionary<(int, int), int[]> surfacesByCell,
         int connectivity, int stepTolerance)
-    {
-        (int, int)[] deltas = connectivity == 8
-            ? [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
-            : [(-1, 0), (1, 0), (0, -1), (0, 1)];
-
-        var remaining = new HashSet<(int, int)>(baseByCell.Keys);
-        var seeds = baseByCell.Keys.OrderBy(c => c.Item1).ThenBy(c => c.Item2);
-        var components = new List<List<(int X, int Z)>>();
-
-        foreach (var seed in seeds)
-        {
-            if (!remaining.Remove(seed)) continue;
-            var comp = new List<(int, int)>();
-            var queue = new Queue<(int, int)>();
-            queue.Enqueue(seed);
-            while (queue.Count > 0)
-            {
-                var (x, z) = queue.Dequeue();
-                comp.Add((x, z));
-                var sHere = surfacesByCell[(x, z)];
-                foreach (var (dx, dz) in deltas)
-                {
-                    var nb = (x + dx, z + dz);
-                    // Join across a walkable surface (a step ≤ tol between any standable heights).
-                    if (remaining.Contains(nb) && SurfacesWithin(sHere, surfacesByCell[nb], stepTolerance))
-                    {
-                        remaining.Remove(nb);
-                        queue.Enqueue(nb);
-                    }
-                }
-            }
-            components.Add(comp);
-        }
-        return components;
-    }
+        => GridComponents.Label(baseByCell.Keys, connectivity,
+            (a, b) => SurfacesWithin(surfacesByCell[a], surfacesByCell[b], stepTolerance));
 
     /// <summary>True when sorted surface lists <paramref name="a"/>/<paramref name="b"/> have a pair within
     /// <paramref name="tol"/> (a walkable step) — a two-pointer min-gap scan.</summary>
@@ -253,43 +223,12 @@ public static class IslandDetector
         return kept;
     }
 
+    // Join only across continuous terrain: two adjacent columns share a component when their Y is within
+    // tolerance, so a stark Y step (a build floating over void) breaks the link and splits off.
     private static List<List<(int X, int Z)>> HeightAwareComponents(
         Dictionary<(int, int), int> yByCell, int connectivity, int heightTolerance)
-    {
-        (int, int)[] deltas = connectivity == 8
-            ? [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
-            : [(-1, 0), (1, 0), (0, -1), (0, 1)];
-
-        var remaining = new HashSet<(int, int)>(yByCell.Keys);
-        var seeds = yByCell.Keys.OrderBy(c => c.Item1).ThenBy(c => c.Item2);
-        var components = new List<List<(int X, int Z)>>();
-
-        foreach (var seed in seeds)
-        {
-            if (!remaining.Remove(seed)) continue;
-            var comp = new List<(int, int)>();
-            var queue = new Queue<(int, int)>();
-            queue.Enqueue(seed);
-            while (queue.Count > 0)
-            {
-                var (x, z) = queue.Dequeue();
-                comp.Add((x, z));
-                var cy = yByCell[(x, z)];
-                foreach (var (dx, dz) in deltas)
-                {
-                    var nb = (x + dx, z + dz);
-                    // Join only across continuous terrain — a stark Y step breaks the link.
-                    if (remaining.Contains(nb) && Math.Abs(yByCell[nb] - cy) <= heightTolerance)
-                    {
-                        remaining.Remove(nb);
-                        queue.Enqueue(nb);
-                    }
-                }
-            }
-            components.Add(comp);
-        }
-        return components;
-    }
+        => GridComponents.Label(yByCell.Keys, connectivity,
+            (a, b) => Math.Abs(yByCell[a] - yByCell[b]) <= heightTolerance);
 
     /// <summary>Serialise islands to the <c>islands.json</c> format (GeoJSON polygons, matching Shapely's <c>mapping()</c>).</summary>
     public static string SerializeJson(IReadOnlyList<Island> islands)
@@ -306,38 +245,6 @@ public static class IslandDetector
             });
         }
         return arr.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
-    }
-
-    private static List<List<(int X, int Z)>> ConnectedComponents(HashSet<(int, int)> cells, int connectivity)
-    {
-        (int, int)[] deltas = connectivity == 8
-            ? [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
-            : [(-1, 0), (1, 0), (0, -1), (0, 1)];
-
-        var remaining = new HashSet<(int, int)>(cells);
-        // Deterministic seed order so island ids are reproducible (Python's set order is not).
-        var seeds = cells.OrderBy(c => c.Item1).ThenBy(c => c.Item2);
-        var components = new List<List<(int X, int Z)>>();
-
-        foreach (var seed in seeds)
-        {
-            if (!remaining.Remove(seed)) continue;
-            var comp = new List<(int, int)>();
-            var queue = new Queue<(int, int)>();
-            queue.Enqueue(seed);
-            while (queue.Count > 0)
-            {
-                var (x, z) = queue.Dequeue();
-                comp.Add((x, z));
-                foreach (var (dx, dz) in deltas)
-                {
-                    var nb = (x + dx, z + dz);
-                    if (remaining.Remove(nb)) queue.Enqueue(nb);
-                }
-            }
-            components.Add(comp);
-        }
-        return components;
     }
 
     private static (int, int, int, int) BoundsOf(List<(int X, int Z)> comp)

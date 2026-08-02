@@ -1,13 +1,15 @@
 namespace PgmStudio.Analysis.Playability;
 
 using PgmStudio.Analysis.Region;
+using PgmStudio.Geom.Algorithms;
 
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Objective-chain traversability (port of studio/services/traversability.py, C15): is the
-/// spawn↔wool chain connected over the navigability map (walkable surface ∪ bridgeable buildable)?
-/// 4-connectivity components via a raster-order BFS (matches scipy.ndimage.label numbering).
+/// Objective-chain traversability: is the spawn↔wool chain connected over the navigability map (walkable
+/// surface ∪ bridgeable buildable)? The navigable cells are split into 4-connected components
+/// (<see cref="GridComponents"/>) and every objective point is snapped to the component it sits in; the chain
+/// is traversable when they all share one.
 /// </summary>
 public static class Traversability
 {
@@ -136,31 +138,19 @@ public static class Traversability
         return ((int)((mnx + mxx) / 2), (int)((mnz + mxz) / 2));
     }
 
-    // ── 4-connectivity components, raster-order first-encounter numbering ──────────────
+    // A cell→component-id grid over the navigable cells: 1-based ids for navigable cells (each connected
+    // component one id), 0 for non-navigable. Only the partition matters here — which cells share a component —
+    // so any consistent numbering serves.
     private static int[] LabelComponents(bool[] navigable, int nx, int nz)
     {
+        var navCells = new List<(int X, int Z)>();
+        for (var i = 0; i < navigable.Length; i++)
+            if (navigable[i]) navCells.Add((i % nx, i / nx));
+
         var labels = new int[nx * nz];
-        var next = 0;
-        var queue = new Queue<int>();
-        for (var start = 0; start < navigable.Length; start++)
-        {
-            if (!navigable[start] || labels[start] != 0) continue;
-            next++;
-            labels[start] = next;
-            queue.Enqueue(start);
-            while (queue.Count > 0)
-            {
-                var i = queue.Dequeue();
-                int x = i % nx, z = i / nx;
-                foreach (var (dx, dz) in new[] { (-1, 0), (1, 0), (0, -1), (0, 1) })
-                {
-                    int ax = x + dx, az = z + dz;
-                    if (ax < 0 || ax >= nx || az < 0 || az >= nz) continue;
-                    var j = az * nx + ax;
-                    if (navigable[j] && labels[j] == 0) { labels[j] = next; queue.Enqueue(j); }
-                }
-            }
-        }
+        var components = GridComponents.Label(navCells, connectivity: 4);
+        for (var c = 0; c < components.Count; c++)
+            foreach (var (x, z) in components[c]) labels[z * nx + x] = c + 1;
         return labels;
     }
 

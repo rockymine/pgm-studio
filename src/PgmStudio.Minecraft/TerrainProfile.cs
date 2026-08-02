@@ -1,3 +1,5 @@
+using PgmStudio.Geom.Algorithms;
+
 namespace PgmStudio.Minecraft;
 
 /// <summary>The theme-agnostic geometric facts of one paintable terrain column
@@ -20,10 +22,6 @@ public readonly record struct ColumnProfile(int SurfaceTop, bool OpenEdge, bool 
 /// </summary>
 public sealed class TerrainProfile
 {
-    private static readonly (int dx, int dz)[] N4 = [(1, 0), (-1, 0), (0, 1), (0, -1)];
-    private static readonly (int dx, int dz)[] N8 =
-        [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)];
-
     private readonly IReadOnlyDictionary<(int X, int Z), int> _surfaceTop;
     private readonly HashSet<(int, int)> _structure = [];
     private readonly Dictionary<(int, int), int> _plateau = [];
@@ -61,7 +59,7 @@ public sealed class TerrainProfile
     {
         bool openEdge = false, closedEdge = false;
         var plateau = _plateau[(x, z)];
-        foreach (var (dx, dz) in N8)
+        foreach (var (dx, dz) in GridComponents.N8)
         {
             var (nx, nz) = (x + dx, z + dz);
             if (!InFootprint(nx, nz)) { openEdge = true; closedEdge = true; continue; }
@@ -73,7 +71,7 @@ public sealed class TerrainProfile
         // Wall lower bound: the shallowest orthogonal drop's floor. Void drops to the bedrock course (Y=1);
         // a terrain drop stops at the lower neighbour's surface. Structures are never a drop (TP6).
         int voidDrop = -1, terrainDrop = -1;
-        foreach (var (dx, dz) in N4)
+        foreach (var (dx, dz) in GridComponents.N4)
         {
             var (nx, nz) = (x + dx, z + dz);
             if (!InFootprint(nx, nz)) { voidDrop = 1; continue; }
@@ -85,30 +83,13 @@ public sealed class TerrainProfile
     }
 
     // 4-connected components of equal surface top over the whole footprint (structures included, so a plateau
-    // boundary is seen from the terrain side). Iterative flood fill — footprints run to thousands of cells.
+    // boundary is seen from the terrain side). Ids are used only for equality, so any consistent numbering does.
     private void LabelPlateaus()
     {
-        var id = 0;
-        var stack = new Stack<(int, int)>();
-        foreach (var (start, _) in _surfaceTop)
-        {
-            if (_plateau.ContainsKey(start)) continue;
-            var top = _surfaceTop[start];
-            stack.Push(start);
-            while (stack.Count > 0)
-            {
-                var cell = stack.Pop();
-                if (_plateau.ContainsKey(cell)) continue;
-                _plateau[cell] = id;
-                foreach (var (dx, dz) in N4)
-                {
-                    var nb = (cell.Item1 + dx, cell.Item2 + dz);
-                    if (InFootprint(nb.Item1, nb.Item2) && !_plateau.ContainsKey(nb) && Top(nb.Item1, nb.Item2) == top)
-                        stack.Push(nb);
-                }
-            }
-            id++;
-        }
+        var components = GridComponents.Label(_surfaceTop.Keys, connectivity: 4,
+            canJoin: (a, b) => _surfaceTop[a] == _surfaceTop[b]);
+        for (var id = 0; id < components.Count; id++)
+            foreach (var cell in components[id]) _plateau[cell] = id;
     }
 
     // The outer void-facing perimeter (TP13): split the footprint into connected landmasses (4-connected, all
@@ -118,59 +99,8 @@ public sealed class TerrainProfile
     // face lower terrain, not void) are on no outer boundary and keep -1.
     private void LabelPerimeter()
     {
-        var seen = new HashSet<(int, int)>();
-        var stack = new Stack<(int, int)>();
-        foreach (var start in _surfaceTop.Keys)
-        {
-            if (seen.Contains(start)) continue;
-            var landmass = new HashSet<(int, int)>();
-            stack.Push(start);
-            while (stack.Count > 0)
-            {
-                var cell = stack.Pop();
-                if (!seen.Add(cell)) continue;
-                landmass.Add(cell);
-                foreach (var (dx, dz) in N4)
-                {
-                    var nb = (cell.Item1 + dx, cell.Item2 + dz);
-                    if (InFootprint(nb.Item1, nb.Item2) && !seen.Contains(nb)) stack.Push(nb);
-                }
-            }
-            MooreTrace(landmass);
-        }
-    }
-
-    // Clockwise Moore-neighbour boundary tracing of one landmass (Jacob's stopping criterion), writing each outer
-    // boundary cell its 0-based arc index into _perimeterArc. Cells already indexed (a thin neck revisited) keep
-    // their first index; each landmass numbers from 0 so a run wraps its own loop.
-    private static readonly (int dx, int dz)[] Cw =
-        [(0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1)];
-    private void MooreTrace(HashSet<(int, int)> cells)
-    {
-        if (cells.Count == 0) return;
-        bool Solid(int x, int z) => cells.Contains((x, z));
-        static int Idx(int dx, int dz) { for (var i = 0; i < 8; i++) if (Cw[i].dx == dx && Cw[i].dz == dz) return i; return -1; }
-        var start = cells.OrderBy(c => c.Item2).ThenBy(c => c.Item1).First();   // on the boundary, entered from the west
-        var p = start;
-        int backIdx = Idx(-1, 0), startBack = -1, s = 0, guard = 0;
-        bool moved = false;
-        if (!_perimeterArc.ContainsKey(start)) _perimeterArc[start] = s++;
-        while (guard++ < 1_000_000)
-        {
-            int found = -1;
-            for (var k = 1; k <= 8; k++)
-            {
-                int idx = (backIdx + k) % 8;
-                if (Solid(p.Item1 + Cw[idx].dx, p.Item2 + Cw[idx].dz)) { found = idx; break; }
-            }
-            if (found < 0) break;                                       // isolated cell
-            var c = (p.Item1 + Cw[found].dx, p.Item2 + Cw[found].dz);
-            int prevIdx = (found - 1 + 8) % 8;                          // last background checked = new backtrack
-            int newBack = Idx(p.Item1 + Cw[prevIdx].dx - c.Item1, p.Item2 + Cw[prevIdx].dz - c.Item2);
-            if (moved && c == start && newBack == startBack) break;     // Jacob's stop: start reached, same entry
-            if (!moved) { moved = true; startBack = newBack; }
-            if (!_perimeterArc.ContainsKey(c)) _perimeterArc[c] = s++;
-            p = c; backIdx = newBack;
-        }
+        foreach (var landmass in GridComponents.Label(_surfaceTop.Keys, connectivity: 4))
+            foreach (var (cell, arc) in GridBoundary.TracePerimeter(landmass))
+                _perimeterArc[cell] = arc;
     }
 }
