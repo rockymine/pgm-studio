@@ -278,7 +278,31 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     const ordered = [...all.filter(s => s.box), ...all.filter(s => !s.box)];
     if (ordered.length) doc.themeScopes = ordered; else delete doc.themeScopes;
   }
-  function afterThemeChange() { normalizeScopes(); scheduleSave(); fire("OnThemes", themesState()); }
+  function afterThemeChange() {
+    normalizeScopes(); scheduleSave(); fire("OnThemes", themesState());
+    if (themeApplyOn) scheduleThemePaint();   // keep the live paint overlay current with each assignment
+  }
+
+  // ── theme-apply canvas mode (G157) ──────────────────────────────────────────
+  // The Apply step turns the plan canvas into a read-only theme-assignment surface: pick shapes, assign a
+  // theme, and see the precise paint the export would place — the server's themed render, blitted in the plan's
+  // block frame and refreshed (debounced) on every assignment. Same painter as the old static preview, now live
+  // on the interactive canvas instead of a dead panel.
+  let themeApplyOn = false, themePaintTimer = null, themePaintSeq = 0;
+  function scheduleThemePaint() {
+    if (themePaintTimer) clearTimeout(themePaintTimer);
+    themePaintTimer = setTimeout(runThemePaint, 250);
+  }
+  async function runThemePaint() {
+    const seq = ++themePaintSeq;
+    let res;
+    try { res = await fetch("/api/terrain/theme-map-preview", { method: "POST", headers: { "Content-Type": "application/json" }, body: toJson(doc) }); }
+    catch { return; }                          // offline / transient — keep the last good overlay
+    if (seq !== themePaintSeq || !res.ok) return;
+    let data; try { data = await res.json(); } catch { return; }
+    if (seq !== themePaintSeq) return;
+    canvas.setThemePaint(data.svg, { minX: data.minX, minZ: data.minZ, spanX: data.spanX, spanZ: data.spanZ });
+  }
 
   // Restore the last autosaved plan on open; fall back to a blank document.
   try { const saved = localStorage.getItem(STORAGE_KEY); if (saved) doc = fromJson(saved); } catch { doc = emptyDoc(); }
@@ -465,6 +489,20 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       if (themeId && doc.themes && doc.themes[themeId]) doc.themeScopes.push({ theme: themeId, box: boxId });
       afterThemeChange();
     },
+
+    // Enter/leave the Apply step's read-only theme-assignment canvas mode (G157): select-only pointer, the live
+    // themed-paint overlay, and a first render. Leaving clears the overlay so the draw canvas paints normally.
+    themeApply(on) {
+      themeApplyOn = !!on;
+      canvas.setSelectOnly(themeApplyOn);
+      canvas.setThemeOverlay(themeApplyOn);
+      if (themeApplyOn) { canvas.setTool("select"); canvas.clearSelection(); scheduleThemePaint(); canvas.fit(); }
+      else canvas.setThemePaint(null, null);
+    },
+    // The current Ctrl-multi-selection (box/piece) as JSON — what a theme assignment applies to.
+    getThemeSelection() { return JSON.stringify(canvas.getMultiSelection()); },
+    // Drive the canvas selection from the host (a panel row); empty kind clears.
+    selectShape(kind, id) { canvas.select(kind ? { kind, id } : null); },
 
     dispose() { if (saveTimer) clearTimeout(saveTimer); if (inspectTimer) clearTimeout(inspectTimer); inspectSeq++; canvas.dispose(); },
   };

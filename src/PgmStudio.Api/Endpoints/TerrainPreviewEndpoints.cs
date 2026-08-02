@@ -43,7 +43,11 @@ public sealed class ThemeMapPreviewEndpoint : EndpointWithoutRequest
     {
         using var reader = new StreamReader(HttpContext.Request.Body);
         var json = await reader.ReadToEndAsync(ct);
-        try { await Send.OkAsync(new { svg = TerrainPreview.MapSvg(json) }, ct); }
+        try
+        {
+            var paint = TerrainPreview.MapSvg(json);
+            await Send.OkAsync(new { svg = paint.Svg, minX = paint.MinX, minZ = paint.MinZ, spanX = paint.SpanX, spanZ = paint.SpanZ }, ct);
+        }
         catch { await Send.ResponseAsync(new { error = "could not render plan" }, 400, ct); }
     }
 }

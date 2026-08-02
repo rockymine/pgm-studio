@@ -47,21 +47,27 @@ public static class TerrainPreview
         };
     }
 
+    /// <summary>The themed-map render plus the block-space AABB it covers, so a caller can place the raster in
+    /// the plan's own world frame (the plan canvas's block coordinates) rather than only show it standalone.
+    /// <see cref="MinX"/>/<see cref="MinZ"/> is the top-left block; <see cref="SpanX"/>/<see cref="SpanZ"/> the
+    /// block extent — the image spans world rect (MinX, MinZ)–(MinX+SpanX, MinZ+SpanZ).</summary>
+    public readonly record struct MapPaint(string Svg, int MinX, int MinZ, int SpanX, int SpanZ);
+
     /// <summary>A whole plan compiled, its terrain painted (through the scoped theme resolver), and rendered
     /// top-down: each footprint cell shows its highest painted block, coloured via <see cref="BlockPalette"/>.
     /// Structures above the terrain (rooms, approach walls) show their own top; the floating observer platform
-    /// is above the scan window and excluded.</summary>
-    public static string MapSvg(string planJson)
+    /// is above the scan window and excluded. Returns the render and the block AABB it spans.</summary>
+    public static MapPaint MapSvg(string planJson)
     {
         var plan = PlanModel.Parse(planJson);
-        if (plan is null) return Empty("bad plan");
+        if (plan is null) return EmptyPaint("bad plan");
         var (layout, intent) = PlanCompiler.Compile(plan);
         var layoutJson = JsonSerializer.Serialize(layout, SketchLayout.Json);
 
         var surface = new Dictionary<(int X, int Z), int>();
         foreach (var (x, z, _, top) in SketchRasterizer.RasterizeColumns(layoutJson))
             if (!surface.TryGetValue((x, z), out var cur) || top > cur) surface[(x, z)] = top;
-        if (surface.Count == 0) return Empty("empty plan");
+        if (surface.Count == 0) return EmptyPaint("empty plan");
 
         var world = SketchWorldBuilder.Build(layoutJson, intent).World;
 
@@ -89,8 +95,10 @@ public static class TerrainPreview
             sb.Append($"<rect x='{px}' y='{py}' width='{cell}' height='{cell}' fill='{hex}'/>");
         }
         sb.Append("</svg>");
-        return sb.ToString();
+        return new MapPaint(sb.ToString(), minX, minZ, spanX, spanZ);
     }
+
+    private static MapPaint EmptyPaint(string reason) => new(Empty(reason), 0, 0, 0, 0);
 
     private static string Empty(string _) =>
         "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='40'><rect width='120' height='40' fill='#0a1120'/></svg>";
