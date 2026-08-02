@@ -357,6 +357,7 @@
 
   <h3>The grown tree</h3>
   <p class="sub">Not a fractal, and not a straight pole. The skeleton is <strong>recursive</strong> — ez-tree's levels, children and per-level taper, with an upward "force" — but every branch is a gnarly stepped path <em>smoothed into a flowing Catmull-Rom curve</em>, so the trunk wanders like a bonsai (up, twist, straighten) and limbs branch to a <strong>second degree</strong>. The <strong>spine</strong> on the left is the view the tree is designed against — the centerlines and their thickness, each limb's spline in its own colour — before any blocks go on. The <strong>stems</strong> knob gives the trunk setups: one stem that forks, a double, or a triple base.</p>
+  <p class="sub">The crown is placed the way a mapmaker does it by hand — because the naive sphere-with-holes is the thing that looks generated. Each branch tip gets one <strong>dense disc-shaped cluster</strong> (a flat leaf-rock, ~90% full), pushed up and out from the tip, never down toward the trunk, since leaves sit at the ends and not on the wood. Neighbouring clusters keep a <strong>seam of air</strong> between them — a cell fills only when it clearly belongs to one cluster — so every patch reads as its own branch's instead of one merged blob, which is the whole reason to keep the branch count low. A few strands hang below for a broken lower edge.</p>
   <div class="controls">
     <div class="ctl"><label>stems <b id="v_tstems">1</b></label><input id="tstems" type="range" min="1" max="3" value="1"></div>
     <div class="ctl"><label>trunk flow <b id="v_tflow">0.45</b></label><input id="tflow" type="range" min="0" max="100" value="45"></div>
@@ -367,7 +368,7 @@
   </div>
   <div class="grid g2">
     <figure class="cell"><div class="canvas-frame"><canvas id="c_spine"></canvas></div><figcaption><b>Spine</b>centerlines + thickness · each limb spline its own colour</figcaption></figure>
-    <figure class="cell"><div class="canvas-frame"><canvas id="c_grown"></canvas></div><figcaption><b>Voxelised</b>discs swept along the spines · canopy on the tips</figcaption></figure>
+    <figure class="cell"><div class="canvas-frame"><canvas id="c_grown"></canvas></div><figcaption><b>Voxelised</b>swept-disc limbs · a dense leaf cluster per tip, seams between them</figcaption></figure>
   </div>
 
   <h3>Parameter sweep</h3>
@@ -388,6 +389,7 @@
     <ul>
       <li><span class="tag reuse-t">reuse</span> &nbsp;the boulder's <code>DecorationStamper</code> — a tree is trunk column + leaf mask; the same <code>BlockBox</code>, <code>SurfaceYOver</code> seating and blue-noise scatter.</li>
       <li><span class="tag reuse-t">reuse</span> &nbsp;the §2 path's swept-disc as the limb primitive — a Catmull-Rom spline capsule is that fill lifted to 3-D, so the tree and the path share one rasterizer.</li>
+      <li><span class="tag reuse-t">reuse</span> &nbsp;the §3 boulder's dense disc as the leaf cluster — the crown is one carved disc per tip with air seams between clusters (nearest-cluster ownership), not a spherical brush.</li>
       <li><span class="tag reuse-t">reuse</span> &nbsp;the density-field-gated scatter from §3 for grove clumping — one low-frequency <code>Fbm</code>.</li>
       <li><span class="tag new-t">new</span> &nbsp;the species templates (data rows) and the recursive spline grower — a flowing Catmull-Rom skeleton with stems · trunk flow · branch angle · levels · leaf size — as a <code>DecorationStyle</code> variant, designed against the spine view.</li>
     </ul>
@@ -846,15 +848,19 @@ function buildTree(cols, rows, p, seed){
     }
     const r1=Math.max(0.55, r0*p.taper);
     branches.push({path:splineOf(ctrl,6), r0, r1, level, hue});
-    if (level>=p.levels){ tips.push([ctrl[ctrl.length-1][0], ctrl[ctrl.length-1][1], hue]); return; }
+    if (level>=p.levels){
+      const a=ctrl[ctrl.length-2], b=ctrl[ctrl.length-1], dx=b[0]-a[0], dy=b[1]-a[1], L=Math.hypot(dx,dy)||1;
+      tips.push([b[0], b[1], hue, dx/L, dy/L]); return;             // carry the outward direction for the crown
+    }
     const nk = level===0 ? p.stemBranches : 2;
     for (let k=0;k<nk;k++){
       const f = p.childStart + (1-p.childStart)*((k+0.6)/nk);
       const ci = Math.min(ctrl.length-1, Math.max(1, Math.round(f*(ctrl.length-1))));
       const pdir = Math.atan2(ctrl[ci][1]-ctrl[ci-1][1], ctrl[ci][0]-ctrl[ci-1][0]);
-      const side = (k%2===0?1:-1)*(1+(unit(idx+k,7,seed)-0.5)*0.4);
-      const ang = p.angle*(0.6+0.8*unit(idx*3+k,9,seed));
-      const clen = len*p.lenFactor*(0.78+0.44*unit(idx+k,4,seed));
+      const lead = level===0 && k===0;                              // one limb leads upward → the crown top
+      const side = lead ? (unit(idx,7,seed)-0.5)*0.5 : (k%2===0?1:-1)*(1+(unit(idx+k,7,seed)-0.5)*0.4);
+      const ang = (lead?p.angle*0.3:p.angle)*(0.6+0.8*unit(idx*3+k,9,seed));
+      const clen = len*p.lenFactor*(lead?1.08:1)*(0.78+0.44*unit(idx+k,4,seed));
       const cr = Math.max(0.6, (r0+(r1-r0)*f)*p.childScale);
       grow(ctrl[ci][0], ctrl[ci][1], pdir+side*ang, clen, cr, level+1, idx*4+k+1, level===0?limbHue++:hue);
     }
@@ -871,25 +877,53 @@ function stampDisc(set, cx, px, py, r){
   for (let oy=-R;oy<=R;oy++) for (let ox=-R;ox<=R;ox++)
     if (ox*ox+oy*oy <= r*r) set.add((Math.round(cx+px)+ox)+","+(Math.round(py)+oy));
 }
-function leafBlob(map, cx, px, py, R, dens, seed){
-  const Ri=Math.ceil(R);
-  for (let oy=-Ri;oy<=Ri;oy++) for (let ox=-Ri;ox<=Ri;ox++){
-    if (ox*ox+oy*oy > R*R) continue;
-    const X=Math.round(cx+px)+ox, Y=Math.round(py)+oy;
-    if (unit(X,Y,seed+13) < 0.52 + dens*0.42) map.set(X+","+Y, unit(X,Y,seed+2));
+// the crown: one dense, disc-shaped cluster per outer tip (a flat "leaf-rock"), pushed up
+// and out from the tip — never down the branch, since leaves sit at the tips, not the trunk.
+// Clusters keep a SEAM of air between them (a cell fills only when it clearly belongs to one
+// cluster), so a patch reads as its branch's instead of merging into one blob. Short strands
+// hang below. The density is high (~92%) — the airiness comes from the seams, not inner holes.
+function buildCrown(cx, cols, rows, tree, leafSz, seed){
+  const leaves=new Map();
+  const cl = tree.tips.map((tp,i)=>{
+    const rx = 2.8 + leafSz*2.6 + unit(i,2,seed)*1.1;
+    const ry = rx*(0.55 + unit(i,5,seed)*0.12);                  // oblate disc, not a sphere
+    const tilt = (unit(i,8,seed)-0.5)*0.6;
+    const ox=tp[3]||0, oy=tp[4]||1;
+    return { x: tp[0]+ox*1.6, y: tp[1]+Math.max(0,oy)*1.4 + ry*0.25,   // up & out from the tip
+             rx, ry, ct:Math.cos(tilt), st:Math.sin(tilt), i, bright:0.34+unit(i,3,seed)*0.5 };
+  });
+  if (!cl.length) return leaves;
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+  for (const c of cl){ x0=Math.min(x0,c.x-c.rx-1); x1=Math.max(x1,c.x+c.rx+1); y0=Math.min(y0,c.y-c.ry-4); y1=Math.max(y1,c.y+c.ry+1); }
+  const qOf=(c,x,y)=>{ const dx=x-c.x, dy=y-c.y, rr=dx*c.ct+dy*c.st, uu=-dx*c.st+dy*c.ct; return (rr/c.rx)**2+(uu/c.ry)**2; };
+  const bottom={};
+  for (let y=Math.floor(y0);y<=Math.ceil(y1);y++) for (let x=Math.floor(x0);x<=Math.ceil(x1);x++){
+    let q1=1e9,q2=1e9,win=null;
+    for (const c of cl){ const q=qOf(c,x,y); if(q<q1){q2=q1;q1=q;win=c;} else if(q<q2)q2=q; }
+    if (q1<1 && (q2-q1)>0.30 && unit(x,y,seed+31)<0.92){          // clearly one cluster, ~92% dense
+      leaves.set((cx+x)+","+y, win.bright*0.7 + unit(x,y,win.i*5+2)*0.3);
+      const bk=win.i+"|"+x; if (bottom[bk]===undefined||y<bottom[bk]) bottom[bk]=y;
+    }
   }
+  for (const c of cl) for (let x=Math.floor(c.x-c.rx);x<=Math.ceil(c.x+c.rx);x++){   // hanging strands
+    const by=bottom[c.i+"|"+x]; if (by===undefined) continue;
+    if (unit(x,c.i,seed+52)<0.20){
+      const len=1+Math.floor(unit(x,c.i+9,seed)*3);
+      for (let d=1;d<=len;d++) leaves.set((cx+x)+","+(by-d), c.bright*0.7 + unit(x,by-d,3)*0.3);
+    }
+  }
+  return leaves;
 }
-// blocks: discs swept along every branch spine, leaf blobs on the outer tips
+// blocks: discs swept along every branch spine, then the crown
 function rasterBlocks(cv, cols, rows, tree, leafSz, seed){
-  const cx=Math.floor(cols/2), gr=3, wood=new Set(), leaves=new Map();
+  const cx=Math.floor(cols/2), gr=3, wood=new Set();
   for (const b of tree.branches)
     for (let j=0;j<b.path.length;j++)
       stampDisc(wood, cx, b.path[j][0], b.path[j][1], b.r0+(b.r1-b.r0)*(j/(b.path.length-1)));
-  const R = 2.6 + leafSz*3.2;
-  for (const tp of tree.tips) leafBlob(leaves, cx, tp[0], tp[1], R, leafSz, seed+7);
+  const leaves = buildCrown(cx, cols, rows, tree, leafSz, seed);
   voxel(cv, cols, rows, cv._px||6, gr, (x,y) => {
     const key=x+","+y;
-    if (leaves.has(key)) return mix("#3f7a2c", "#20401a", leaves.get(key)*0.7);
+    if (leaves.has(key)) return mix("#4c8a37", "#1f4019", leaves.get(key));   // per-cluster tone → readable seams
     if (wood.has(key)) return mix("#5a4326", "#7a5a34", unit(x,y,2)*0.5);
     return null;
   });

@@ -171,6 +171,16 @@ limb spline in its own colour) is the view the shape is designed against, and th
 swept-disc fill of §4's path lifted one dimension (a capsule along a spline instead of a band along a
 stroke), so the tree and the path share one rasterization primitive.
 
+The crown is where a naive generator gives itself away — a spherical brush with holes punched in it reads as
+one blob, and you cannot tell which branch a patch of leaves belongs to. So the crown is placed the way a
+mapmaker does it by hand: **one dense disc-shaped cluster per outer tip** — a flat leaf-rock, the §5 boulder
+disc reused, ~90% full — pushed up and out from the tip, never down toward the trunk, because leaves sit at
+the branch ends and not on the wood. Neighbouring clusters keep a **seam of air** between them: a cell fills
+only when it clearly belongs to one cluster (nearest-cluster ownership, the seam where two are equidistant),
+so a viewer still reads each patch as its own branch's instead of one merged mass — which is the real reason
+to keep the branch count low. A few short strands hang below each disc for a broken lower edge. The airiness
+lives *between* the clusters, not as holes inside them.
+
 Both trees are the same stamper as the boulder: a trunk-and-limbs volume plus a leaf mask over a box.
 Placement is the same scatter, with one addition — a low-frequency density field gathers trees into groves
 with clearings between, so a forest reads as clumps rather than an even orchard. A `DR-TR` pass is a
