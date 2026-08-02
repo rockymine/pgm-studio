@@ -8,10 +8,11 @@ opaque JSON blob per map — cannot support the two things the finishing pass ac
 reusable styles** to draw from, and a **scope that survives editing** so a theme still lands where it was
 meant to after the geometry changes.
 
-**Status: part-settled, part-draft.** §3 (the theme/style tables, task **B44**) is a settled decision. §4–§6
-are **drafts recorded here so the analysis is not lost** — they are non-final and await further design input;
-nothing in them is committed until it lands its own task. Read the settled section as the plan of record and
-the drafts as a working sketch.
+**Status: part-settled, part-draft.** §3 (the theme/style tables, task **B44**) is the settled decision. §4–§6
+are **converging drafts** — the finishing pass moves onto the sketch model, its scope keys on sketch shapes,
+dressing rides the same stage, and the structural stamps stay in plan/configure as read-only context; recorded
+here so the analysis is not lost, but not yet locked. §7 is the **one open decision** (where the finishing
+stage sits relative to configure). Nothing in §4–§8 is committed until it lands its own task.
 
 ## 1. Where the data lives today
 
@@ -89,58 +90,87 @@ lifts existing inline-blob themes into styles + themes + bindings (deduping iden
 retirement of the Client↔server theme-material duplication (`ThemeVocabulary` vs the server `TerrainThemeJson`
 model) — the style/material schema becomes the one source both sides read.
 
-## 4. Cross-tool authoring — where a theme is scoped (draft)
+## 4. The finishing pass belongs on the sketch, not the plan (draft — converging)
 
-*Draft — non-final; the direction below is a working sketch, not a decision.*
+*Draft — the direction below is converging but not yet a locked decision.*
 
-The tension is genuine. The **plan** gives per-piece control — coarse rects, structural, "this hub is stone,
-that frontline is grass." The **sketch** gives varied shapes, and fuses same-level pieces into one island.
-Paint executes in the sketch world, over the sketch's *final* geometry, which is also the only geometry a
-sketch-only map has. So the finishing authoring wants to live where the geometry is final, not only where the
-structure was first drawn.
+The finishing pass belongs on the **sketch model**, for a reason that also explains why it feels misplaced
+today: the sketch rasterizer is what *makes the world*, and a generator can emit a plan but not a theme. The
+plan is the simple, rectilinear, grid-bound structural layer — the thing a generator produces and the thing
+an author reaches for first because the grid makes small rectangles for steps and staircases easy. Paint over
+that model works, but it is authored one stage before the world it paints exists, and a generator could never
+have produced it. So the plan stays structural; theming and dressing move to the sketch, where the geometry
+is final and where a sketch-only map has geometry at all.
 
-The draft direction is a **region-keyed scope resolved against final geometry**. A theme scope keys on a
-durable region — a plan piece, a sketch shape, or an island — and the export resolves a cell to a theme by
-whichever region owns it in the *built* geometry, not by a frozen rect. The plan's per-piece assignment
-becomes a **coarse seed**; the sketch is where the theme is finalized, and the only place a sketch-only map
-can be themed. When pieces fuse into one island, theming there is at island granularity — the accepted cost
-of the merge. Concretely this implies porting the Apply-step canvas UX (click a shape, Ctrl-multiselect,
-assign — G158) into the sketch tool keyed on sketch shapes, and re-deriving the theme footprint from the
-built geometry rather than the plan rect. The open parts: the exact scope key, and how a plan's per-piece
-seed maps onto post-merge islands.
+**Nothing is lost in the move — the scope target just switches.** The box and piece scopes become **sketch
+shape / island scopes**, plus the full map: the same map → collection → shape hierarchy, keyed on the sketch's
+own geometry instead of plan pieces. The merge that worried §2 is, by the author's own account, *helpful*
+here: same-level pieces fuse into one polygon (one shape to theme), pieces that differ in height survive as
+distinct islands (so the per-level distinction that matters is kept), and the sketch **cut tool** can break a
+shape down further when finer control is wanted. So the scope resolves against the built geometry, and the
+Apply-step canvas UX (click a shape, Ctrl-multiselect, assign — G158) **ports into the sketch** keyed on
+shapes. Plan-side theming drops to at most a coarse seed, and is a candidate for retirement once the sketch
+carries it.
 
-## 5. Dressing — data model and placement (draft)
+(The sketch also justifies the move by what it adds: geometry detail the plan cannot express — per-vertex
+height, and, not built today, tilting a whole shape to an angle instead of hand-configuring each vertex. That
+is a sketch-geometry feature, not part of the finishing pass, but it is why the fine authoring lives there.)
 
-*Draft — non-final.*
+## 5. Dressing rides the same finishing stage (draft)
 
-Dressing is **three data shapes, not one**, and the shape decides the tool:
+*Draft.*
 
-| Kind | Shape | Saved as |
-|---|---|---|
-| Scatter / overlay (flora, boulder fields) | parametric, seed-driven, applied to a scope | `{kind, scope, params, seed}` — theme-shaped |
-| Stroke-drawn (paths, water channels) | a drawn centerline + a style | `{kind, centerline, style, seed}` — sketch-lasso-shaped |
-| Placed props (individual boulders, trees) | hand-placed instances, or a scatter recipe | `{kind, position, shape/seed, size}` |
+Dressing is **three data shapes, not one**, and the shape decides the tool — one of which the sketch already
+has:
+
+| Kind | Shape | Tool | Saved as |
+|---|---|---|---|
+| Scatter / overlay (flora, boulder fields) | parametric, seed-driven, scoped | a brush scoped to shapes | `{kind, scope, params, seed}` — theme-shaped |
+| Stroke-drawn (paths, water channels) | a drawn centerline + a style | the sketch **lasso** (exists) | `{kind, centerline, style, seed}` |
+| Placed props (lakes, trees, boulders) | hand-placed, or a scatter recipe | a **place / stamp tool (missing)** | `{kind, position, shape/seed, size}` |
 
 A map's dressing is one **polymorphic `dressing` list**, each entry tagged by kind. Dressing *styles* (a
-gnarled-oak recipe, a cobble-path style, a meadow-flora recipe) are reusable in exactly the way terrain
-styles are, so they want the same library/snapshot treatment as §3 — a map's dressing is an application of
-library dressing styles to scopes, strokes, and points.
+gnarled-oak recipe, a cobble-path style, a meadow-flora recipe) are reusable exactly as terrain styles are, so
+they take the same library/snapshot treatment as §3. The one thing the sketch is missing is a **place/stamp
+concept**: today stamping is plan-only (the structural stamps of §6), so placing a lake or a tree accurately
+needs a new, dressing-owned stamp tool in the finishing stage. The lasso already covers strokes.
 
-Placement follows the data shape. Stroke and point dressing — paths, water, individual boulders and trees —
-is **not a per-piece concept**: it crosses piece and island boundaries and lands on specific terrain, so it
-belongs where the fine geometry and a drawing surface are, the sketch tool (or a dedicated *Dress* stage
-after it). Scatter/overlay dressing is scope-based and could be authored in either tool, but executes in the
-sketch world alongside paint, so it is natural to keep it there too. The plan's contribution to the finishing
-pass stays the coarse per-piece theme seed. Open: whether dressing is a stage of the sketch tool or its own,
-and how dressing scopes share the theme scope model of §4.
+## 6. Reconciling the structural layer — two stamp concepts, not one moved (draft)
 
-## 6. A build order (draft)
+*Draft.*
 
-*Draft — only the second item is committed.*
+The constraint that binds the whole design: the plan **already precedes the XML**. It carries the structural
+stamps — the spawn building, the wool room, the bedrock approach walls, the objective markers — and the region
+geometry (protection, build) and the volume positions, all baked into the intent and adjustable afterward in
+the configure tool. The sketch does not author these; they live in the intent/DB (and are reachable enough
+that the 3-D preview already draws the boxes and volumes).
 
-1. Region-keyed theme scopes re-derived from the built geometry — fixes the silent desync of §2 and unlocks
-   sketch-only theming.
-2. **The theme + style library tables — task B44** (the one settled piece; see §3).
-3. Port the Apply-step canvas UX into the sketch tool (extends G158), keyed on sketch shapes.
-4. Dressing as a polymorphic directive list on the same scope/library machinery, scatter recipes first (they
-   are closest to themes), then the stroke and placed kinds.
+The resolution is **not** to move them. The structural stamps and regions stay authored in plan + configure —
+they are generator-emittable and objective-defining. The finishing stage **reads them as read-only context**,
+it does not own them: the painter already touches only stone (TP6), so a spawn building or wool room is never
+painted, and a dressing stamp (a lake, a tree) places against that same world and avoids them. So there are
+**two distinct stamp concepts** — *structural* stamps (plan / configure, existing, precede the XML) and
+*dressing* stamps (the finishing stage, new) — and the finishing stage shows the structural ones as context
+the way the 3-D preview does.
+
+## 7. Where the finishing stage sits in the pipeline (open)
+
+*Open — the one decision that still needs a call.*
+
+The stages today are Plan → Sketch (geometry) → Configure (objectives / teams / regions) → export. The
+finishing pass needs the **final geometry *and* the settled regions/stamps**, so it belongs after both:
+either a **second phase of the sketch tool** that loads the configured state, or a **distinct stage after
+configure**. The working pattern to copy is the plan tool's Draw → Theme phase split (G157/G158): a
+read-only-geometry canvas plus a rail, on the same mounted canvas. The lean is a finishing *phase* that comes
+up once configure has settled the regions — but the ordering relative to configure is the open question.
+
+## 8. A build order (draft)
+
+*Draft — only the first item is committed.*
+
+1. **The theme + style library tables — task B44** (the one settled piece; see §3).
+2. Port the Apply-step canvas UX into the sketch tool, keyed on shape/island scopes (extends G158) — unlocks
+   sketch-only theming and makes the sketch the home for paint.
+3. Region-keyed scopes resolved against the built geometry, so a reshape moves the paint (fixes §2's desync).
+4. Dressing in the finishing stage: the lasso strokes first (rivers/paths — the tool exists), then the scatter
+   brush, then the new dressing place/stamp tool (§5).
