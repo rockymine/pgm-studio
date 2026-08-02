@@ -356,18 +356,18 @@
   </div>
 
   <h3>The grown tree</h3>
-  <p class="sub">A recursive brancher: from the trunk, split into limbs at an angle, shorten and repeat; leaves blob at the terminal tips. Four knobs shape everything. The jitter is hash-keyed per branch, so a given seed always grows the same tree.</p>
+  <p class="sub">Not a fractal — a fractal reads as a fractal. Instead: a few <strong>limbs</strong> from one base, each a <strong>Catmull-Rom spline</strong> swept with a disc that starts ~3 blocks thick and tapers to one within a quarter of its length (the same swept-disc as the §2 path, lifted a dimension). The limbs rise together, then diverge; each throws at most one short secondary limb — <em>no</em> deep twiggery — and leaf blobs gather on the ends. It's the Axiom path workflow (multiple splines from a shared "paste" origin), taking the ez-tree lesson that realism is taper + curve + a canopy at the tips.</p>
   <div class="controls">
-    <div class="ctl"><label>branch angle <b id="v_tang">28°</b></label><input id="tang" type="range" min="10" max="55" value="28"></div>
-    <div class="ctl"><label>depth <b id="v_tdep">6</b></label><input id="tdep" type="range" min="3" max="8" value="6"></div>
-    <div class="ctl"><label>taper <b id="v_ttap">0.74</b></label><input id="ttap" type="range" min="55" max="88" value="74"></div>
-    <div class="ctl"><label>leaf density <b id="v_tleaf">0.6</b></label><input id="tleaf" type="range" min="15" max="100" value="60"></div>
+    <div class="ctl"><label>limbs <b id="v_tlimb">4</b></label><input id="tlimb" type="range" min="3" max="6" value="4"></div>
+    <div class="ctl"><label>spread <b id="v_tspread">0.55</b></label><input id="tspread" type="range" min="20" max="90" value="55"></div>
+    <div class="ctl"><label>curve <b id="v_tcurve">0.4</b></label><input id="tcurve" type="range" min="0" max="100" value="40"></div>
+    <div class="ctl"><label>leaf size <b id="v_tleaf">0.6</b></label><input id="tleaf" type="range" min="20" max="100" value="60"></div>
     <div class="ctl"><label>seed <b id="v_tseed">5</b></label><input id="tseed" type="range" min="1" max="40" value="5"></div>
   </div>
-  <figure class="cell"><div class="canvas-frame"><canvas id="c_grown"></canvas></div><figcaption><b>Live grown tree</b>recursive L-branching · hash-keyed jitter</figcaption></figure>
+  <figure class="cell"><div class="canvas-frame"><canvas id="c_grown"></canvas></div><figcaption><b>Live grown tree</b>Catmull-Rom limb splines · disc-swept · leaf blobs on the ends</figcaption></figure>
 
   <h3>Parameter sweep</h3>
-  <p class="sub">Branch angle across, recursion depth down — the design space one enum could name.</p>
+  <p class="sub">Limb count down, spread across — from a narrow columnar poplar to a wide spreading oak, the design space one style enum would name.</p>
   <div class="grid g3" id="sweep"></div>
 
   <h3>A forest, not a field</h3>
@@ -383,8 +383,9 @@
     <p class="h">Reuses / net-new</p>
     <ul>
       <li><span class="tag reuse-t">reuse</span> &nbsp;the boulder's <code>DecorationStamper</code> — a tree is trunk column + leaf mask; the same <code>BlockBox</code>, <code>SurfaceYOver</code> seating and blue-noise scatter.</li>
+      <li><span class="tag reuse-t">reuse</span> &nbsp;the §2 path's swept-disc as the limb primitive — a Catmull-Rom spline capsule is that fill lifted to 3-D, so the tree and the path share one rasterizer.</li>
       <li><span class="tag reuse-t">reuse</span> &nbsp;the density-field-gated scatter from §3 for grove clumping — one low-frequency <code>Fbm</code>.</li>
-      <li><span class="tag new-t">new</span> &nbsp;the species templates (data rows) and the recursive grower with its knobs as a <code>DecorationStyle</code> variant.</li>
+      <li><span class="tag new-t">new</span> &nbsp;the species templates (data rows) and the spline grower — limb count, spread, curve, taper, leaf size — as a <code>DecorationStyle</code> variant.</li>
     </ul>
   </div>
 </div></section>
@@ -409,7 +410,7 @@
 </main>
 
 <footer><div class="wrap">
-  <p>Prototype figures generated in-page by the same algorithm shapes the stage would run — deterministic noise (mirroring <code>PatternNoise</code>), true distance-to-segment paths, blue-noise scatter, recursive tree growth. Nothing here is hand-drawn. The C# implementations are the authority; this is the sketch.</p>
+  <p>Prototype figures generated in-page by the same algorithm shapes the stage would run — deterministic noise (mirroring <code>PatternNoise</code>), true distance-to-segment paths, blue-noise scatter, Catmull-Rom limb splines swept with the path's own disc. Nothing here is hand-drawn. The C# implementations are the authority; this is the sketch.</p>
   <p class="muted">pgm-studio · G34 prop stamps · a decoration-stage prototype</p>
 </div></footer>
 
@@ -798,70 +799,104 @@ function renderVanilla(){
     treeVoxel(g("c_t_"+k), v.cols, v.rows, v.spec);
   }
 }
-// recursive grower → branch segments + leaf tips, rasterised to a voxel grid
-function growTree(angleDeg, depth, taper, seed){
-  const segs=[], tips=[];
-  function grow(x, y, dir, len, d, idx){
-    const nx = x + Math.cos(dir)*len, ny = y + Math.sin(dir)*len;
-    segs.push([x,y,nx,ny,d]);
-    if (d <= 0 || len < 1.2){ tips.push([nx,ny,len]); return; }
-    const jitter = (unit(idx, d, seed) - 0.5) * 0.5;
-    const a = (angleDeg*Math.PI/180) * (1 + jitter);
-    grow(nx, ny, dir - a, len*taper, d-1, idx*2+1);
-    grow(nx, ny, dir + a, len*taper, d-1, idx*2+2);
-    if (unit(idx, d+7, seed) < 0.25) grow(nx, ny, dir + jitter*0.3, len*taper*0.9, d-1, idx*2+9); // occasional 3rd
-  }
-  grow(0, 0, Math.PI/2, depth*1.35 + 3, depth, 1);
-  return { segs, tips };
+// ── the grown tree: a few limb SPLINES sharing one base, each a capsule swept along
+//    a centripetal Catmull-Rom curve — thick at the foot, ~1 block within a quarter of
+//    its length, diverging after a straight start, leaf blobs on the ends. This is the
+//    Axiom path workflow (multi-spline from a shared origin), and the swept-disc is the
+//    §2 path primitive lifted one dimension. Realism comes from taper + curve + a canopy
+//    at the tips (the ez-tree lesson), not from many thin fractal twigs.
+function catmull(p0,p1,p2,p3,t){
+  const a=0.5, kd=(u,v)=>Math.max(1e-3, Math.pow(Math.hypot(v[0]-u[0],v[1]-u[1]),a));
+  const t0=0, t1=t0+kd(p0,p1), t2=t1+kd(p1,p2), t3=t2+kd(p2,p3), tt=t1+(t2-t1)*t;
+  const L=(u,v,s)=>[u[0]+(v[0]-u[0])*s, u[1]+(v[1]-u[1])*s];
+  const A1=L(p0,p1,(tt-t0)/(t1-t0)), A2=L(p1,p2,(tt-t1)/(t2-t1)), A3=L(p2,p3,(tt-t2)/(t3-t2));
+  const B1=L(A1,A2,(tt-t0)/(t2-t0)), B2=L(A2,A3,(tt-t1)/(t3-t1));
+  return L(B1,B2,(tt-t1)/(t2-t1));
 }
-function rasterTree(cv, cols, rows, angleDeg, depth, taper, leafDens, seed){
-  const T = growTree(angleDeg, depth, taper, seed);
-  const cx = Math.floor(cols/2), gr=3;
-  const wood = new Set(), leaves = new Map();
-  // rasterise branches — thick only near the trunk, single-cell twigs out at the tips
-  for (const [ax,ay,bx,by,d] of T.segs){
-    const steps = Math.ceil(Math.hypot(bx-ax,by-ay)*1.4)+1;
-    const th = d >= 5 ? 2 : d >= 3 ? 1 : 0;
-    for (let i=0;i<=steps;i++){
-      const t=i/steps, X=Math.round(cx+ax+(bx-ax)*t), Y=Math.round(ay+(by-ay)*t);
-      for (let oy=-th;oy<=th;oy++) for (let ox=-th;ox<=th;ox++) if (ox*ox+oy*oy<=th*th) wood.add((X+ox)+","+(Y+oy));
-    }
+function splineOf(pts, per){
+  const P=[pts[0], ...pts, pts[pts.length-1]], out=[];
+  for (let i=1;i<P.length-2;i++) for (let s=0;s<per;s++) out.push(catmull(P[i-1],P[i],P[i+1],P[i+2], s/per));
+  out.push(pts[pts.length-1]); return out;
+}
+// a limb's control points — a straight-ish shared foot, then a fan out & up with wander
+function limbControls(i, n, spread, curve, height, seed){
+  const u = unit(i, 7, seed);
+  const frac = n>1 ? (i/(n-1))*2 - 1 : (u*2-1)*0.4;            // -1..1 across the fan
+  const dir = frac*spread*14 + (u-0.5)*spread*5;               // lateral target (cells)
+  const H = height*(0.82 + 0.34*unit(i,3,seed));
+  const divY = H*0.34;                                         // limbs stay together below here
+  const pts = [[0,0], [(u-0.5)*1.2, divY*0.55], [dir*0.28, divY]];
+  const mids = 2 + Math.round(unit(i,9,seed)*2);
+  for (let k=1;k<=mids;k++){
+    const tt=k/(mids+1), y=divY+(H-divY)*tt;
+    const x=dir*(0.28+0.72*tt) + (value(i*17, Math.round(y), seed, 6)-0.5)*curve*8;
+    pts.push([x,y]);
   }
-  // leaf blobs at the terminal tips — the canopy the branches hang inside
-  for (const [tx,ty,len] of T.tips){
-    const R = Math.round(2 + leafDens*2.8);
-    const X0=Math.round(cx+tx), Y0=Math.round(ty);
-    for (let oy=-R;oy<=R;oy++) for (let ox=-R;ox<=R;ox++){
-      if (ox*ox+oy*oy > R*R) continue;
-      const X=X0+ox, Y=Y0+oy;
-      if (unit(X,Y,seed+13) < 0.55 + leafDens*0.4) leaves.set(X+","+Y, unit(X,Y,seed+2));
-    }
+  pts.push([dir*1.02 + (u-0.5)*2, H]);                          // tip
+  return pts;
+}
+// thick at the foot, down to ~1 block by a quarter length, a fine taper to the tip
+function limbRadius(t, baseR){
+  return t < 0.26 ? baseR - (baseR-1.15)*(t/0.26)
+                  : Math.max(0.5, 1.15 - ((t-0.26)/0.74)*0.6);
+}
+function stampDisc(set, cx, px, py, r){
+  const R=Math.ceil(r);
+  for (let oy=-R;oy<=R;oy++) for (let ox=-R;ox<=R;ox++)
+    if (ox*ox+oy*oy <= r*r) set.add((Math.round(cx+px)+ox)+","+(Math.round(py)+oy));
+}
+function leafBlob(map, cx, px, py, R, dens, seed){
+  const Ri=Math.ceil(R);
+  for (let oy=-Ri;oy<=Ri;oy++) for (let ox=-Ri;ox<=Ri;ox++){
+    if (ox*ox+oy*oy > R*R) continue;
+    const X=Math.round(cx+px)+ox, Y=Math.round(py)+oy;
+    if (unit(X,Y,seed+13) < 0.52 + dens*0.42) map.set(X+","+Y, unit(X,Y,seed+2));
   }
-  // leaves win over branches — the canopy reads green, the trunk (no nearby tip) stays wood
+}
+function splineTree(cv, cols, rows, limbs, spread, curve, leafSz, seed){
+  const cx=Math.floor(cols/2), gr=3, height=rows-9, baseR=2.7;
+  const wood=new Set(), leaves=new Map(), tips=[];
+  for (let i=0;i<limbs;i++){
+    const path = splineOf(limbControls(i, limbs, spread, curve, height, seed), 9);
+    for (let j=0;j<path.length;j++) stampDisc(wood, cx, path[j][0], path[j][1], limbRadius(j/(path.length-1), baseR));
+    tips.push(path[path.length-1]);
+    // one sparse secondary limb off the upper half — no deep twiggery
+    if (unit(i,21,seed) < 0.6){
+      const b = path[Math.floor(path.length*(0.55+0.2*unit(i,4,seed)))];
+      const out = unit(i,5,seed)-0.5;
+      const sp = splineOf([b, [b[0]+out*7, b[1]+4], [b[0]+out*13+(unit(i,6,seed)-0.5)*4, b[1]+7+3*unit(i,8,seed)]], 7);
+      for (let j=0;j<sp.length;j++) stampDisc(wood, cx, sp[j][0], sp[j][1], Math.max(0.5, 1.05 - j/sp.length*0.55));
+      tips.push(sp[sp.length-1]);
+    }
+    if (i%2===0){ const m=path[Math.floor(path.length*0.82)]; leafBlob(leaves, cx, m[0], m[1], 2.4+leafSz*2.2, leafSz, seed+i*3); }
+  }
+  const R = 3 + leafSz*3.4;
+  for (const tp of tips) leafBlob(leaves, cx, tp[0], tp[1], R, leafSz, seed+7);
+  // leaves win over wood — the canopy reads green, the foot (no nearby tip) stays trunk
   voxel(cv, cols, rows, cv._px||6, gr, (x,y) => {
-    const key = x+","+y;
+    const key=x+","+y;
     if (leaves.has(key)) return mix("#3f7a2c", "#20401a", leaves.get(key)*0.7);
     if (wood.has(key)) return mix("#5a4326", "#7a5a34", unit(x,y,2)*0.5);
     return null;
   });
 }
 function renderGrown(){
-  const ang=+g("tang").value, dep=+g("tdep").value, tap=+g("ttap").value/100, leaf=+g("tleaf").value/100, seed=+g("tseed").value;
-  g("v_tang").textContent = ang+"°"; g("v_tdep").textContent = dep; g("v_ttap").textContent = tap.toFixed(2); g("v_tleaf").textContent = leaf.toFixed(2); g("v_tseed").textContent = seed;
+  const limbs=+g("tlimb").value, spread=+g("tspread").value/100, curve=+g("tcurve").value/100, leaf=+g("tleaf").value/100, seed=+g("tseed").value;
+  g("v_tlimb").textContent=limbs; g("v_tspread").textContent=spread.toFixed(2); g("v_tcurve").textContent=curve.toFixed(2); g("v_tleaf").textContent=leaf.toFixed(2); g("v_tseed").textContent=seed;
   const cv=g("c_grown"); cv._px = window.innerWidth<560?5:7;
-  rasterTree(cv, 60, 46, ang, dep, tap, leaf, seed);
+  splineTree(cv, 60, 50, limbs, spread, curve, leaf, seed);
 }
 function renderSweep(){
   const host = g("sweep"); host.innerHTML = "";
-  const angles=[18,30,44], depths=[5,6,7];
+  const spreads=[0.3,0.55,0.85], limbset=[3,4,5];
   let n=0;
-  for (const dp of depths) for (const an of angles){
+  for (const lm of limbset) for (const sp of spreads){
     const fig=document.createElement("figure"); fig.className="cell";
     const fr=document.createElement("div"); fr.className="canvas-frame";
-    const cv=document.createElement("canvas"); cv._px=6; fr.appendChild(cv);
-    const cap=document.createElement("figcaption"); cap.innerHTML="<b>"+an+"° · depth "+dp+"</b>";
+    const cv=document.createElement("canvas"); cv._px=5; fr.appendChild(cv);
+    const cap=document.createElement("figcaption"); cap.innerHTML="<b>"+lm+" limbs · spread "+sp.toFixed(2)+"</b>";
     fig.appendChild(fr); fig.appendChild(cap); host.appendChild(fig);
-    rasterTree(cv, 40, 40, an, dp, 0.74, 0.6, 5 + (n++));
+    splineTree(cv, 46, 48, lm, sp, 0.4, 0.62, 5 + (n++));
   }
 }
 function renderForest(){
@@ -911,7 +946,7 @@ document.querySelectorAll("#pmode button").forEach(b => b.addEventListener("clic
   b.classList.add("on"); renderPaths();
 }));
 ["rden","rsize","rseed"].forEach(id => on(id, renderRockScatter));
-["tang","tdep","ttap","tleaf","tseed"].forEach(id => on(id, renderGrown));
+["tlimb","tspread","tcurve","tleaf","tseed"].forEach(id => on(id, renderGrown));
 ["gsc","gfill","gseed"].forEach(id => on(id, renderForest));
 
 function renderAll(){

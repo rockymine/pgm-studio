@@ -153,17 +153,27 @@ calling `SetBlock`. The volume primitive is `BlockBox`; the write primitive is `
 The trivial tree copies vanilla: a trunk of a known height and a canopy of a known profile, parameterised
 per species — oak's blob, birch's tall slim crown, spruce's layered cone, acacia's leaning flat top,
 jungle's broad canopy, dark oak's two-wide trunk. Each is a parametric template (trunk height, canopy
-radius, canopy profile), not a copied schematic, and an oak grove is genuinely all most maps need. The
-interesting tree is **grown** — a recursive brancher: from the trunk, split into limbs at an angle,
-shorten by a taper and repeat to a depth; leaves blob at the terminal tips. Four knobs (branch angle,
-depth, taper, leaf density) span a design space no vanilla generator makes, and the jitter is hash-keyed
-per branch so a seed always grows the same tree.
+radius, canopy profile), not a copied schematic, and an oak grove is genuinely all most maps need.
 
-Both are the same stamper as the boulder: a tree is a trunk column plus a leaf mask over a box. Placement
-is the same scatter, with one addition — a low-frequency density field gathers trees into groves with
-clearings between, so a forest reads as clumps rather than an even orchard. A `DR-TR` pass is a
-`DecorationStyle` variant of the boulder's stamper: the species templates as data rows, the grower as a
-generator with its knobs, the grove clumping as the density-gated scatter of §5.
+The interesting tree is **grown**, and the shape that reads as a tree is not a fractal — a recursive
+brancher reads as a fractal. It is a handful of **limbs sharing one base**, each a **centripetal
+Catmull-Rom spline** swept with a disc that starts a few blocks thick and tapers to one within a quarter
+of its length, then holds fine to the tip. The limbs rise together for a short shared trunk, then diverge;
+each may throw one short secondary limb from its upper half — not the deep twiggery a fractal grows — and
+leaf blobs gather on the ends into a canopy. A few knobs (limb count, spread, curve/gnarliness, taper,
+leaf size) span a design space from a columnar poplar to a wide spreading oak, hash-keyed per limb so a
+seed always grows the same tree. This is the workflow a Minecraft builder already uses by hand in Axiom's
+Catmull-Rom path tool — several splines pasted from one origin, thickened and tapered — and the realism
+lesson from generators like ez-tree (Dan Greenheck): a tree reads from **taper + curve + a canopy at the
+tips**, not from branch count. The swept-disc limb is worth noting twice: it is the §4 path's fill lifted
+one dimension (a capsule along a spline instead of a band along a stroke), so the tree and the path share
+one rasterization primitive.
+
+Both trees are the same stamper as the boulder: a trunk-and-limbs volume plus a leaf mask over a box.
+Placement is the same scatter, with one addition — a low-frequency density field gathers trees into groves
+with clearings between, so a forest reads as clumps rather than an even orchard. A `DR-TR` pass is a
+`DecorationStyle` variant of the boulder's stamper: the species templates as data rows, the spline grower
+as a generator with its knobs, the grove clumping as the density-gated scatter of §5.
 
 ## 7. What it reuses, and what it adds
 
@@ -175,7 +185,7 @@ and lands in the same realize seam.
 | Flora overlay | `PatternNoise`; `SurfaceTop`; the `TerrainProfile` column read | the overlay pass — one `SetBlock` above the surface | `DR-FL` |
 | Paths | the lasso capture; `SketchShape.Vertices`/`Radius`; the `Skeleton` disc-scan | a `"path"` branch in `RingOf`/`RasterShape` + its `toRing` twin; the gates | `DR-PA` |
 | Boulders | `ObjectiveStamper`'s mask-in-a-box; `BlockBox`; `SurfaceYOver` | a `DecorationStamper` + `DecorationStyle`/`Dimensions`; the ellipsoid/cairn masks | `DR-SC` |
-| Trees | the boulder stamper and scatter | the species templates; the recursive grower | `DR-TR` |
+| Trees | the boulder stamper and scatter; the §4 path's swept-disc as the limb primitive | the species templates; the Catmull-Rom spline grower | `DR-TR` |
 
 Two neighbours bound the stage. G32-C (structures & elevation, the "second generator") is the sibling pass
 that gives a flat layout its heights; a boulder or tree seats on whatever surface that pass leaves, so the

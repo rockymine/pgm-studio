@@ -416,7 +416,8 @@ studio, G117/G118) is in `TODO.md`.
   radius → a `"path"` branch in `SketchRasterizer.RingOf`/`RasterShape`, swept-disc fill, worn/rough/cobble/
   stepping-stone/taper gates); **DR-SC** a `DecorationStamper` for boulders (ellipsoid mask in a `BlockBox`
   on `SurfaceYOver`, blue-noise scatter, plan protected-regions as exclusions); **DR-TR** trees (vanilla
-  species templates + a recursive grower, grove-clumped scatter) as a style on the same stamper. Naming: the
+  species templates + a Catmull-Rom limb-spline grower — thick→1-block taper, diverging limbs, leaf blobs on
+  the ends, the swept-disc being the DR-PA path primitive in 3-D — grove-clumped scatter) on the same stamper. Naming: the
   code family is **dressing** — "decorative" already means floating masses / non-objective wool here. Sits
   beside G32-C (structures & elevation) and shares G142's (roughen) noise operators.
 
