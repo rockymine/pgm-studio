@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PgmStudio.Domain\PgmStudio.Domain.csproj" />
+    <ProjectReference Include="..\PgmStudio.Geom\PgmStudio.Geom.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -248,3 +248,45 @@ path raster branch, then the `DecorationStamper` for boulders, then trees as a s
 comes with (or after) G32-C, since its carved bed is the one decoration that needs the elevation pass. Each
 is a `DR*` slice of G161, carved off G34 the way G157 was — its own rules in this file, its own pass wired
 last into `SketchWorldBuilder.Build`, after the painter.
+
+## 9. Where the code lives
+
+The organizing rule is the repo's own (`CLAUDE.md`): a unit of code lives in the lowest project that has the
+deps it needs and every consumer can reach — push pure algorithms down to the leaf, keep world-writing where
+the world is. The dressing stage straddles two projects, and splits cleanly along that line.
+
+**`PgmStudio.Geom/Algorithms` — the pure math, shared by every generator and its JS twins.** The folder was
+always meant for geometry algorithms, and the dressing math is exactly that; three of the pieces already sit
+there:
+- `CatmullRom` — centripetal spline. Smooths the tree limbs and the path/channel centerline (the same
+  algorithm the tree prototype reimplements in JS — reuse it, don't re-add it).
+- `Lane` — offsets a centerline into a strip (`Strip` fixed-width, `Ribbon` variable/tapered/organic). This
+  **is** the DR-PA/DR-WA band; its doc says it was written "so the sketch generators and any preview share
+  the exact offsets" — it is waiting, not dead. `Ribbon` gives the tapered channel and the jittered shore in
+  one call.
+- `PatternNoise` — hash/value/fbm, **migrated here from `Minecraft`** (it was pure but trapped beside the
+  terrain-paint materials). The pattern *materials* (`VoronoiMaterial`/`NoiseMaterial`/`WallRunMaterial`)
+  stay in `Minecraft` and call it. The move added the one edge that was missing, **`Minecraft → Geom`**, which
+  is what lets the dressing stamper reach any of this.
+- new leaves as the slices need them: blue-noise scatter (local-max), the ellipsoid/metaball blob mask
+  (boulders/ponds), the recursive tree-skeleton grower (abstract branch centerlines + radii + leaf-cluster
+  centres). All pure, all here.
+
+**`PgmStudio.Minecraft` — the world-writing pass.** A `Decorator`/`DecorationStamper`, sibling to
+`ObjectiveStamper` and `TerrainPainter`: it takes the Geom-produced geometry + `SurfaceTop` + a dressing
+palette and writes blocks via `SetBlock`/`AddTileEntity`. It now reaches `Geom` for the algorithms and
+`Geom.Symmetry` for the orbit fan. The dressing block palettes (plants, logs/leaves, water, path blocks)
+live here with `Blocks`/`BlockPalette`.
+
+**`PgmStudio.Api/Services` — resolution + wiring.** Mirror `TerrainThemeScope`/`TeamTerritory`: resolve
+eligibility, exclusion (objectives / spawns / lanes) and the dressing theme from `MapIntent`, plus the
+authored-unit→orbit split G162 turns on; then call `Decorator.Decorate(world, surfaceTop, …)` right after
+`TerrainPainter.Paint` in `SketchWorldBuilder.Build`.
+
+**`PgmStudio.Pgm/Sketch` — the drawn tools only.** A DR-PA path or a drawn DR-WA pond is a `SketchShape`
+(`"path"` / `"pond"`), rasterized with `Lane`+`CatmullRom` (Pgm already references Geom). Auto-placed dressing
+does not pass through here.
+
+**Symmetry (G162)** is not a place but a rule that binds at the seam where the authored unit and its orbit are
+known: gameplay-affecting dressing is generated on the unit and re-fanned through `Geom.Symmetry`; cosmetic
+dressing is free. It is the gate before any of this ships for competitive use — see `ideas.md` G162.
