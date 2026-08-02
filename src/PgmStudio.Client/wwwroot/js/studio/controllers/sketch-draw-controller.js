@@ -19,8 +19,15 @@ import { svgEl, handleRectAttrs } from "../render/svg.js";
 import { drawnBoundsFromBlocks } from "../geometry/region-convert.js";
 import { opColors } from "../render/primitive-style.js";
 import { toScreen } from "../geometry/transform.js";
+import { simplifyRing } from "../geometry/simplify.js";
 
 const HANDLE_HALF = 5;
+
+// How far (in blocks) a dropped lasso point may sit from the simplified outline. 4 is deliberately chunky:
+// it collapses the freehand staircase and hand wobble to a handful of anchors (a big round blob → ~10)
+// while real bends and sharp corners survive. Add points back by hand, or round edges with the Bézier
+// handles, if you want more detail — the raw trace is one point per block, so this is a large reduction.
+const LASSO_SIMPLIFY_TOLERANCE = 4;
 
 // The in-progress outline: the operation's colours, dashed, over a light fill — "not committed yet".
 const PREVIEW_FILL_ALPHA = 0.20;
@@ -250,13 +257,20 @@ export class SketchDrawController {
     this.#repaint();
   }
 
+  // A lasso is just a freehand way to draw a polygon with a lot of anchor points. The raw trace is one
+  // vertex per block of pointer travel — unreadable to edit — so on release it is Douglas–Peucker
+  // simplified to the points at real bends and emitted as a plain polygon (add curves back with the Bézier
+  // handles if you want rounding). The trace is already block-integer, and the simplifier only keeps
+  // existing points, so the result stays on the grid.
   #completeLasso() {
     const { vertices } = this.#drawState;
     this.#drawState = null;
     this.#repaint();
     if (vertices.length < 3) return;
+    const simplified = simplifyRing(vertices, LASSO_SIMPLIFY_TOLERANCE);
+    if (simplified.length < 3) return;
     this.#callbacks.onShapeCreated?.({
-      type: "lasso", operation: this.#activeOperation, override: false, vertices,
+      type: "polygon", operation: this.#activeOperation, override: false, vertices: simplified,
     });
   }
 }

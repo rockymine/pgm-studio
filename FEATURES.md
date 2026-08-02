@@ -2558,6 +2558,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   shapes → live islands + mirror, with select/op/override/delete/rename. Pure geometry in
   `geometry/shape.js` + `geometry/boolean.js`; canvas + draw/edit controllers + `render/sketch-render.js`;
   `bridge/sketch-bridge.js`. A sketch **is a draft map**. (S2a, S2b, S2c)
+  - **Draw tools = rectangle · polygon · lasso.** The circle was dropped — it could only be placed and
+    moved, never resized or reshaped, so a Bézier-curved polygon does the same job with real control (the
+    shape model keeps circle support so any already-saved circle still renders). The **lasso** is a
+    freehand way to draw a polygon: on release its dense per-block trace is Douglas–Peucker simplified
+    (`geometry/simplify.js`, the client twin of `Geom.PolygonSimplify`, tolerance 4) to a handful of
+    anchors — chunky by design, add points back or round edges with the Bézier handles.
 - **Sketch persistence** — the layout persists as a `SketchLayoutJson` map_artifact (outside the codec,
   like the draft bucket): `POST /api/sketch` create + `GET`/`PUT /api/map/{slug}/sketch` (debounced save +
   load-on-mount; 4 integration tests). (S2d)
