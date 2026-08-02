@@ -1,6 +1,18 @@
-/** PGM / Minecraft color palettes. */
+/**
+ * Minecraft 1.8 colour tables — Bukkit's own: org.bukkit.ChatColor (the chat/formatting colours) and
+ * org.bukkit.DyeColor (the dye/wool colours). hex is display-only; the value/name is what the wire carries.
+ *
+ * These tables are the single source of truth's JS face. The source of truth is the sibling game-colors.json,
+ * which the C# (Models/GameColors.cs) reads directly; the arrays below mirror it and are held identical by
+ * tests/js/game-colors.test.mjs (a drift check), so the two languages cannot diverge. They are inlined rather
+ * than fetched because these modules load through Blazor's JS interop, where an async (top-level-await) module
+ * is fragile — a single aborted fetch poisons it — and the data is a frozen 1.8 constant not worth that risk.
+ *
+ * Team-colour assignment below is a studio convenience, not a Bukkit thing, so it stays in code either way.
+ */
 
-export const PGM_CHAT_COLORS = [
+/** org.bukkit.ChatColor — the 16 colours Minecraft 1.8 renders in chat, in enum-ordinal order. */
+export const MINECRAFT_CHAT_COLORS = [
   { value: "black",        label: "Black",        hex: "#000000" },
   { value: "dark blue",    label: "Dark Blue",    hex: "#0000AA" },
   { value: "dark green",   label: "Dark Green",   hex: "#00AA00" },
@@ -19,6 +31,7 @@ export const PGM_CHAT_COLORS = [
   { value: "white",        label: "White",        hex: "#FFFFFF" },
 ];
 
+/** org.bukkit.DyeColor — the 16 dye/wool colours, indexed by data value (white 0 … black 15). */
 export const MINECRAFT_DYE_COLORS = [
   { value: "white",      label: "White",      hex: "#FFFFFF" },
   { value: "orange",     label: "Orange",     hex: "#D87F33" },
@@ -38,19 +51,18 @@ export const MINECRAFT_DYE_COLORS = [
   { value: "black",      label: "Black",      hex: "#191919" },
 ];
 
+const _norm = name => (name ?? "").replace(/_/g, " ").toLowerCase();
+
 export function chatColorHex(name) {
-  const n = (name ?? "").replace(/_/g, " ").toLowerCase();
-  return PGM_CHAT_COLORS.find(c => c.value === n)?.hex ?? "#475569";
+  return MINECRAFT_CHAT_COLORS.find(c => c.value === _norm(name))?.hex ?? "#475569";
 }
 
-const _normDye = name => (name ?? "").replace(/_/g, " ").toLowerCase();
-
 export function dyeColorHex(name) {
-  return MINECRAFT_DYE_COLORS.find(c => c.value === _normDye(name))?.hex ?? "#475569";
+  return MINECRAFT_DYE_COLORS.find(c => c.value === _norm(name))?.hex ?? "#475569";
 }
 
 export function dyeColorLabel(name) {
-  return MINECRAFT_DYE_COLORS.find(c => c.value === _normDye(name))?.label
+  return MINECRAFT_DYE_COLORS.find(c => c.value === _norm(name))?.label
     ?? name.replace(/_/g, " ");
 }
 
@@ -63,14 +75,12 @@ export const TEAM_COLOR_PRIORITY = [
   "dark aqua", "dark green", "dark red", "dark blue", "gray", "dark gray", "white", "black",
 ];
 
-const _normChat = name => (name ?? "").replace(/_/g, " ").toLowerCase();
-
 /** Pick the next unused team colour in priority order, or null when all 16 are
  *  taken. `usedColors` is the existing teams' colour values (any case / `_`-form). */
 export function nextTeamColor(usedColors = []) {
-  const used = new Set([...usedColors].map(_normChat));
+  const used = new Set([...usedColors].map(_norm));
   for (const value of TEAM_COLOR_PRIORITY) {
-    if (!used.has(value)) return PGM_CHAT_COLORS.find(c => c.value === value);
+    if (!used.has(value)) return MINECRAFT_CHAT_COLORS.find(c => c.value === value);
   }
   return null;
 }

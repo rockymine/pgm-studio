@@ -1,33 +1,47 @@
+using System.Text.Json;
+
 namespace PgmStudio.Client.Models;
 
-/// <summary>PGM chat / Minecraft dye colour palettes (port of shared/game-colors.js).</summary>
+/// <summary>
+/// Minecraft 1.8 colour tables from Bukkit, loaded from the shared <c>game-colors.json</c> — the same file the
+/// JS side reads (<c>render/palette.js</c>), so the two copies cannot drift. <see cref="ChatColors"/> is
+/// <c>org.bukkit.ChatColor</c> (chat / formatting colours), <see cref="DyeColors"/> is <c>org.bukkit.DyeColor</c>
+/// (dye / wool colours, indexed by data value); the hex is display-only, the value is what the wire carries.
+/// Team-colour assignment is a studio convenience, not a Bukkit thing, so its order lives here in code.
+/// </summary>
 public static class GameColors
 {
     public readonly record struct Color(string Value, string Label, string Hex);
 
-    public static readonly Color[] ChatColors =
-    [
-        new("black", "Black", "#000000"), new("dark blue", "Dark Blue", "#0000AA"),
-        new("dark green", "Dark Green", "#00AA00"), new("dark aqua", "Dark Aqua", "#00AAAA"),
-        new("dark red", "Dark Red", "#AA0000"), new("dark purple", "Dark Purple", "#AA00AA"),
-        new("gold", "Gold", "#FFAA00"), new("gray", "Gray", "#AAAAAA"),
-        new("dark gray", "Dark Gray", "#555555"), new("blue", "Blue", "#5555FF"),
-        new("green", "Green", "#55FF55"), new("aqua", "Aqua", "#55FFFF"),
-        new("red", "Red", "#FF5555"), new("light purple", "Light Purple", "#FF55FF"),
-        new("yellow", "Yellow", "#FFFF55"), new("white", "White", "#FFFFFF"),
-    ];
+    /// <summary><c>org.bukkit.ChatColor</c>, in enum-ordinal order (black 0 … white 15).</summary>
+    public static readonly Color[] ChatColors;
 
-    public static readonly Color[] DyeColors =
-    [
-        new("white", "White", "#FFFFFF"), new("orange", "Orange", "#D87F33"),
-        new("magenta", "Magenta", "#B24CD8"), new("light blue", "Light Blue", "#6699D8"),
-        new("yellow", "Yellow", "#E5E533"), new("lime", "Lime", "#7FCC19"),
-        new("pink", "Pink", "#F27FA5"), new("gray", "Gray", "#4C4C4C"),
-        new("silver", "Silver", "#999999"), new("cyan", "Cyan", "#4C7F99"),
-        new("purple", "Purple", "#7F3FB2"), new("blue", "Blue", "#334CB2"),
-        new("brown", "Brown", "#664C33"), new("green", "Green", "#667F33"),
-        new("red", "Red", "#993333"), new("black", "Black", "#191919"),
-    ];
+    /// <summary><c>org.bukkit.DyeColor</c>, indexed by data value (white 0 … black 15).</summary>
+    public static readonly Color[] DyeColors;
+
+    static GameColors()
+    {
+        var assembly = typeof(GameColors).Assembly;
+        var resource = assembly.GetManifestResourceNames()
+            .First(n => n.EndsWith("game-colors.json", StringComparison.Ordinal));
+        using var stream = assembly.GetManifestResourceStream(resource)!;
+        using var doc = JsonDocument.Parse(stream);
+        ChatColors = ReadTable(doc.RootElement.GetProperty("chat"));
+        DyeColors = ReadTable(doc.RootElement.GetProperty("dye"));
+    }
+
+    // Parse via JsonDocument rather than a typed deserialize: the WASM app disables reflection-based
+    // serialization, and this keeps the load working without a source-generated context for one small file.
+    private static Color[] ReadTable(JsonElement array)
+    {
+        var colors = new List<Color>(array.GetArrayLength());
+        foreach (var entry in array.EnumerateArray())
+            colors.Add(new Color(
+                entry.GetProperty("value").GetString()!,
+                entry.GetProperty("label").GetString()!,
+                entry.GetProperty("hex").GetString()!));
+        return [.. colors];
+    }
 
     // Auto-assign order for a new team's colour (bright, distinguishable first).
     private static readonly string[] TeamColorPriority =

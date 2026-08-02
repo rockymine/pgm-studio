@@ -13,6 +13,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The shared colour tables: served under wwwroot for the JS (render/palette.js) AND embedded so the C#
+         (Models/GameColors.cs) reads the exact same file — one source of truth, no drift. -->
+    <EmbeddedResource Include="wwwroot\js\studio\render\game-colors.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\PgmStudio.Contracts\PgmStudio.Contracts.csproj" />
     <!-- Dependency-free spatial leaf: the canonical Symmetry transforms (orbit previews + assignment). -->
     <ProjectReference Include="..\PgmStudio.Geom\PgmStudio.Geom.csproj" />
