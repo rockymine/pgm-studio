@@ -413,10 +413,11 @@
   </div>
 
   <h3>Channels</h3>
-  <p class="sub">Drag the centerline, get a watercourse. A <strong>canal</strong> holds clean banks; a <strong>natural</strong> edge wanders with the same FBM as the §2 rough path; a <strong>stream</strong> narrows and shallows into riffles. Depth darkens toward the middle; reeds line the bank; lily pads settle on the still, deep water.</p>
+  <p class="sub">Drag the centerline, get a watercourse. A <strong>canal</strong> holds clean banks; a <strong>natural</strong> edge wanders with the same FBM as the §2 rough path; a <strong>stream</strong> narrows and shallows into riffles. The <strong>shore</strong> is its own irregular pass — its width wanders, and drops to zero in places so the water meets the land with no border; the bank and bed are a <strong>pattern</strong> (sand · pale gravel · coarse dirt), and the bottom shows through the shallows. Depth is a smooth field warped off-centre, so one side runs deeper. Reeds line the bank; lily pads settle on the still, deep water.</p>
   <div class="controls">
     <div class="ctl"><label>width <b id="v_wwid">3.6</b></label><input id="wwid" type="range" min="15" max="70" value="36"></div>
     <div class="ctl"><label>depth <b id="v_wdep">0.7</b></label><input id="wdep" type="range" min="20" max="100" value="70"></div>
+    <div class="ctl"><label>shore <b id="v_wshore">2.4</b></label><input id="wshore" type="range" min="0" max="60" value="24"></div>
     <div class="ctl"><label>edge <b id="v_wedge">0.8</b></label><input id="wedge" type="range" min="0" max="25" value="8"></div>
     <div class="ctl" style="min-width:0">
       <label>form</label>
@@ -430,9 +431,10 @@
   <figure class="cell"><div class="canvas-frame"><canvas id="c_chan"></canvas></div><figcaption><b>Live channel</b>the §2 stroke, carved &amp; filled — depth · banks · reeds · lilies</figcaption></figure>
 
   <h3>Ponds</h3>
-  <p class="sub">A pond is a closed organic basin — the boulder blob with an FBM-wandering outline, read concave. Size sets the water body, edge sets how ragged the shore is, and edge-life scatters reeds around the bank and lily pads across the open water.</p>
+  <p class="sub">A pond is a closed organic basin — the boulder blob with an FBM-wandering outline, read concave. Size sets the water body; <strong>shore</strong> is the same irregular, sometimes-zero band as the channel, with a patterned bank; edge sets how ragged the outline is; and edge-life scatters reeds around the bank and lily pads across the open water. Depth runs off-centre, not a clean bowl.</p>
   <div class="controls">
     <div class="ctl"><label>size <b id="v_psz">10</b></label><input id="psz" type="range" min="4" max="16" value="10"></div>
+    <div class="ctl"><label>shore <b id="v_pshore">2.6</b></label><input id="pshore" type="range" min="0" max="60" value="26"></div>
     <div class="ctl"><label>edge <b id="v_pedge2">0.5</b></label><input id="pedge2" type="range" min="0" max="90" value="50"></div>
     <div class="ctl"><label>edge life <b id="v_plife">0.4</b></label><input id="plife" type="range" min="0" max="90" value="40"></div>
     <div class="ctl"><label>seed <b id="v_pseed2">4</b></label><input id="pseed2" type="range" min="1" max="30" value="4"></div>
@@ -1116,6 +1118,21 @@ function renderForest(){
 // ─────────────────────────────────────────────────────────────────────────────
 const W_SHAL="#5aa0d6", W_DEEP="#274f7d", BANKC="#cbb78a", REED="#3d6b2e", LILY="#57923f";
 function grassBase(x,z){ return fbm(x,z,71,20,2)>0.6 ? mix(M.grass,"#4a7a34",0.5) : M.grass; }
+// shore width wanders with a smooth noise — wide sandy stretches, and spots where it hits zero so
+// the water meets the land with no border at all
+function shoreWidth(x,z, base){ return Math.max(0, base*(1.9*value(x,z,91,6) - 0.25)); }
+// shore / bed material as a PATTERN — jittered-voronoi patches of sand, pale gravel, coarse dirt
+function shoreMat(x,z){
+  const cs=5, gx=Math.floor(x/cs), gz=Math.floor(z/cs); let bd=1e9, pick=0;
+  for (let dz=-1;dz<=1;dz++) for (let dx=-1;dx<=1;dx++){
+    const sx=(gx+dx)*cs+unit(gx+dx,gz+dz,2)*cs, sz=(gz+dz)*cs+unit(gx+dx,gz+dz,3)*cs;
+    const dd=(x-sx)**2+(z-sz)**2; if (dd<bd){ bd=dd; pick=hash(gx+dx,gz+dz,7)%3; }
+  }
+  return pick===0 ? BANKC : pick===1 ? "#c4b884" : mix(BANKC, M.earth, 0.5);
+}
+// depth is the radial falloff warped by a smooth low-frequency field → deeper on one side, in patches,
+// never a clean symmetric bowl
+function depthWarp(x,z, radial){ return Math.min(1, radial*(0.5 + 1.0*fbm(x,z,41,15,2))); }
 
 // cross-section: the same stroke as a draped path vs a carved-and-filled channel
 function drawSection(cv, cols, rows, px, carve){
@@ -1130,10 +1147,11 @@ function drawSection(cv, cols, rows, px, carve){
     for (let y=0;y<rows;y++){
       let col=null;
       if (y>=top){                                           // solid column
-        if (y===top) col = carve ? (dxc<=halfW?BANKC:M.grass) : (dxc<=halfW?M.gravel:M.grass);
+        if (y===top) col = carve ? (dxc<=halfW?shoreMat(x,y):M.grass) : (dxc<=halfW?M.gravel:M.grass);  // patterned bed
         else if (y<=top+2) col=M.earth; else col=STONE;
       } else if (carve && top>waterY && y>=waterY){          // water fills the basin to the level line
-        col = mix(W_SHAL, W_DEEP, Math.min(1,(top-y)/depth));
+        const dd=(top-y)/depth;
+        col = dd<0.22 ? mix(shoreMat(x,y), W_SHAL, 0.6) : mix(W_SHAL, W_DEEP, Math.min(1,dd));  // bottom shows in the shallows
       }
       if (col){ g2.fillStyle=col; g2.fillRect(x*px,y*px,px,px); g2.strokeStyle="rgba(0,0,0,0.12)"; g2.strokeRect(x*px+.5,y*px+.5,px-1,px-1); }
     }
@@ -1144,19 +1162,22 @@ function drawSection(cv, cols, rows, px, carve){
   }
 }
 // channels — reuse pathNearest (the §2 centerline + distance field)
-function drawChannel(cv, cols, rows, px, mode, radius, depthAmt, edge){
+function drawChannel(cv, cols, rows, px, mode, radius, depthAmt, shore, edge){
   plot(cv, cols, rows, px, (x,z) => {
     const base=grassBase(x,z);
     const n=pathNearest(x+.5,z+.5);
     let R=radius;
     if (mode==="natural") R = radius + edge*(value(x,z,5,5)*2-1);
-    if (mode==="stream")  R = radius*(0.5 + 0.5*Math.abs(Math.sin(n.arc*0.42)));
-    if (n.d > R+2.4) return base;
-    if (n.d > R){ return unit(x,z,17) < 0.13 ? REED : mix(BANKC, M.earth, unit(x,z,3)*0.4); }
-    let depth = 1 - n.d/R;
-    if (mode==="stream") depth *= 0.55;
-    const w = mix(W_SHAL, W_DEEP, Math.min(1, depth*depthAmt*1.5));
-    if (mode!=="stream" && depth>0.5 && isSite(x,z,23,3)) return LILY;    // lily pads on still, deep water
+    if (mode==="stream")  R = radius*(0.5 + 0.5*Math.abs(Math.sin(n.arc*0.42))) + edge*(value(x,z,5,5)-0.5);
+    if (n.d > R){                                            // land or (irregular) shore
+      return n.d <= R + shoreWidth(x,z,shore) ? (unit(x,z,17)<0.13 ? REED : shoreMat(x,z)) : base;
+    }
+    let depth = depthWarp(x,z, 1 - n.d/R);                   // radial falloff, warped asymmetric
+    if (mode==="stream") depth *= 0.6;
+    depth = Math.min(1, depth*depthAmt*1.5);
+    if (depth < 0.16) return mix(shoreMat(x,z), W_SHAL, 0.6);           // bottom pattern through the shallows
+    const w = mix(W_SHAL, W_DEEP, depth);
+    if (mode!=="stream" && depth>0.5 && isSite(x,z,23,3)) return LILY;  // lily pads on still, deep water
     if (mode==="stream" && depth>0.15 && unit(x,z,9)<0.09) return mix(w,"#c4dcef",0.6);   // riffle sparkle
     return w;
   });
@@ -1170,14 +1191,16 @@ function pondField(x, z, ponds, seed){
   }
   return best;
 }
-function drawPond(cv, cols, rows, px, size, edge, life, seed){
+function drawPond(cv, cols, rows, px, size, edge, shore, life, seed){
   const ponds=[{cx:cols/2, cz:rows/2, r:size, amp:edge, k:0}];
   plot(cv, cols, rows, px, (x,z) => {
     const base=grassBase(x,z);
     const f=pondField(x,z,ponds,seed);
-    if (f < -2.4) return base;
-    if (f <= 0) return unit(x,z,17) < life*0.45 ? REED : mix(BANKC, M.earth, unit(x,z,3)*0.4);
-    const depth=Math.min(1, f/(size*0.7));
+    if (f <= 0){                                             // land or (irregular) shore
+      return f > -shoreWidth(x,z,shore) ? (unit(x,z,17) < life*0.45 ? REED : shoreMat(x,z)) : base;
+    }
+    const depth=depthWarp(x,z, Math.min(1, f/(size*0.7)));
+    if (depth < 0.16) return mix(shoreMat(x,z), W_SHAL, 0.6);
     if (depth>0.4 && isSite(x,z,seed+5,3) && unit(x,z,2) < life+0.3) return LILY;
     return mix(W_SHAL, W_DEEP, depth);
   });
@@ -1191,25 +1214,28 @@ function drawWaterSystem(cv){
     const base=grassBase(x,z);
     const f=pondField(x,z,ponds,4), cd=chan(x,z);
     const inWater = f>0 || cd<3.0;
-    const nearBank = (!inWater) && ((f>-2.4 && f<=0) || (cd>=3.0 && cd<5.0));
-    if (!inWater && !nearBank) return base;
-    if (nearBank) return unit(x,z,17) < 0.15 ? REED : mix(BANKC, M.earth, unit(x,z,3)*0.4);
-    const depth=Math.max(f>0?Math.min(1,f/7):0, cd<3.0?(1-cd/3.0)*0.7:0);
+    if (!inWater){                                           // irregular shore, else grass
+      const sw=shoreWidth(x,z,2.6);
+      const nearBank = (f<=0 && f>-sw) || (cd>=3.0 && cd<3.0+sw);
+      return nearBank ? (unit(x,z,17)<0.15 ? REED : shoreMat(x,z)) : base;
+    }
+    const depth=depthWarp(x,z, Math.max(f>0?Math.min(1,f/7):0, cd<3.0?(1-cd/3.0)*0.7:0));
+    if (depth < 0.16) return mix(shoreMat(x,z), W_SHAL, 0.6);
     if (depth>0.45 && isSite(x,z,9,3)) return LILY;
     return mix(W_SHAL, W_DEEP, depth);
   }, {grid:true});
 }
 function renderWater(){
-  const wid=+g("wwid").value/10, dep=+g("wdep").value/100, edge=+g("wedge").value/10;
+  const wid=+g("wwid").value/10, dep=+g("wdep").value/100, wshore=+g("wshore").value/10, edge=+g("wedge").value/10;
   const mode=document.querySelector("#wmode .on").dataset.m;
-  g("v_wwid").textContent=wid.toFixed(1); g("v_wdep").textContent=dep.toFixed(2); g("v_wedge").textContent=edge.toFixed(1);
-  const size=+g("psz").value, pe=+g("pedge2").value/100, life=+g("plife").value/100, pseed=+g("pseed2").value;
-  g("v_psz").textContent=size; g("v_pedge2").textContent=pe.toFixed(2); g("v_plife").textContent=life.toFixed(2); g("v_pseed2").textContent=pseed;
+  g("v_wwid").textContent=wid.toFixed(1); g("v_wdep").textContent=dep.toFixed(2); g("v_wshore").textContent=wshore.toFixed(1); g("v_wedge").textContent=edge.toFixed(1);
+  const size=+g("psz").value, pe=+g("pedge2").value/100, pshore=+g("pshore").value/10, life=+g("plife").value/100, pseed=+g("pseed2").value;
+  g("v_psz").textContent=size; g("v_pedge2").textContent=pe.toFixed(2); g("v_pshore").textContent=pshore.toFixed(1); g("v_plife").textContent=life.toFixed(2); g("v_pseed2").textContent=pseed;
   const secPx = window.innerWidth<560?6:8;
   drawSection(g("c_sec_path"), 48, 20, secPx, false);
   drawSection(g("c_sec_chan"), 48, 20, secPx, true);
-  drawChannel(g("c_chan"), 66, 40, 7, mode, wid, dep, edge);
-  drawPond(g("c_pond"), 54, 42, 7, size, pe, life, pseed);
+  drawChannel(g("c_chan"), 66, 40, 7, mode, wid, dep, wshore, edge);
+  drawPond(g("c_pond"), 54, 42, 7, size, pe, pshore, life, pseed);
   drawWaterSystem(g("c_water_sys"));
 }
 
@@ -1227,7 +1253,7 @@ document.querySelectorAll("#pmode button").forEach(b => b.addEventListener("clic
 ["rden","rsize","rseed"].forEach(id => on(id, renderRockScatter));
 ["tsize","tstems","tleader","tflow","tang","tlevels","tleaf","tseed"].forEach(id => on(id, renderGrown));
 ["gsc","gfill","gseed"].forEach(id => on(id, renderForest));
-["wwid","wdep","wedge","psz","pedge2","plife","pseed2"].forEach(id => on(id, renderWater));
+["wwid","wdep","wshore","wedge","psz","pshore","pedge2","plife","pseed2"].forEach(id => on(id, renderWater));
 document.querySelectorAll("#wmode button").forEach(b => b.addEventListener("click", () => {
   document.querySelectorAll("#wmode button").forEach(x=>x.classList.remove("on"));
   b.classList.add("on"); renderWater();

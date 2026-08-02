@@ -205,9 +205,14 @@ same FBM the rough path uses. This carve-and-level step is the one piece of deco
 elevation, so it belongs with the **G32-C** elevation pass as much as with this stage: the bed is negative
 terrain, and the water surface is a fixed-Y plane, not a draped follow of the ground.
 
-The rest is the read that makes water look like water. **Depth** shades the fill — shallow and light at the
-edge, dark toward the middle — from the bed profile. A **shoreline** band (sand or dirt) rings the water
-where the bank breaks the surface, the way the path carries a coarse-dirt edge. And **edge life** reuses the
+The rest is the read that makes water look like water, and the details are where a channel stops looking
+stamped. **Depth** shades the fill — shallow and light at the edge, dark toward the middle — but the falloff
+is a smooth low-frequency field warped **off-centre**, so one bank runs deeper than the other and the bed is
+never a clean symmetric bowl. The **shoreline** is its own **irregular pass**, not a fixed-width ring: its
+width wanders with a noise field and drops to **zero** in places, so the water meets the land directly with
+no border in some stretches and spreads into a wide flat in others. The shore and the bed read as a
+**pattern**, not one flat block — jittered-voronoi patches of sand, pale gravel and coarse dirt (the terrain
+`VoronoiMaterial` idea reused) — and the bottom pattern shows through the shallows. **Edge life** reuses the
 §3 flora overlay masked to the bank and surface: reeds scattered on the shore, lily pads on the still, deep
 water (blue-noise, sparse). Channels take a **form** — a clean-banked canal, a natural FBM-wandered edge, or
 a stream that narrows and shallows into riffles — and ponds and channels compose into one watershed on a
