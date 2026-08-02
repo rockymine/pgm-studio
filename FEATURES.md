@@ -2445,11 +2445,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   pure annotation — expanded to piece ids at compile, never read at export. Authored on the plan tool's new
   **Theme** rail (`PlanThemePhase` + plan-bridge theme methods), two steps: **Create** defines named themes and
   **previews each one's materials** (rim/wall/surface/fill swatches server-rendered through the real materials +
-  `BlockPalette`, so a voronoi / noise / wall-run reads at a glance); **Apply** picks the map default, assigns
-  themes to pieces/boxes, and shows the **themed map top-down** (`TerrainPreview` compiles + paints the plan and
-  renders its top blocks). SVG previews via `TerrainPreview` + `/api/terrain/theme-preview` and
-  `/theme-map-preview`. Built from the existing design system (Section/Field/ListRow/Badge). Tested: compiler
-  bake + scope resolution. (G157)
+  `BlockPalette`, so a voronoi / noise / wall-run reads at a glance); **Apply** assigns themes on the real plan
+  canvas (its own line below). SVG bucket previews via `TerrainPreview` + `/api/terrain/theme-preview`. Built
+  from the existing design system (Section/Field/ListRow/Badge). Tested: compiler bake + scope resolution. (G157)
+- **The Apply step is the plan canvas, not a list of dropdowns (G158).** The Theme rail's second step reuses the
+  mounted plan canvas as a **read-only theme-assignment surface**: click a box, double-click to drill into a
+  piece, **Ctrl-multiselect** a set of shapes, and assign / remove a theme on the selection from a left rail
+  (map default · theme picker with its swatch preview · the selection with each shape's current theme). The
+  **precise paint** the export would place is shown live as a **world-aligned canvas overlay** — the same
+  `TerrainPreview.MapSvg` render (now returning its block-space bounds, background rect dropped so the void stays
+  transparent), blitted in the plan's own frame and refreshed on each assignment; no client voxelization.
+  `PlanThemePhase` is Create-only; Apply is a `PlanTool` mode hosting `PlanThemeApplyRail`; both flow-bar steps
+  read `Theme | Create Apply`. Verified in-app (0 console errors) + full e2e. (G158; commits 645a092 / f186c63 / 0bba711)
 - **A theme is authored as a form, not as JSON (TP14).** The Create step's textarea is gone: a theme is now
   **one section per paintable bucket** — rim, surface, wall, fill — each carrying whether it paints at all, how
   many courses it claims, and a **`MaterialEditor`** that switches the bucket between every material kind and

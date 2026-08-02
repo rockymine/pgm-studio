@@ -149,6 +149,21 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   separate.
 ## Backend, pipeline & internals (B / P / A)
 
+- [ ] **B44 — Theme + style tables: make terrain paint first-class, reusable data.** Themes are stored today
+  only as opaque JSON blobs (`plan_json`, then `map_intent_json` on `map_artifact`) with every material inlined
+  per bucket, so there is no library to browse or reuse — no way to find "every voronoi pattern," and every
+  author rebuilds the default by hand (`docs/world-export/finishing-model.md` §1, §3). Give the two things the
+  theme JSON already decomposes into their own tables: a **`style`** row — a reusable named material recipe
+  `{id, name, kind ∈ solid|layered|teamTint|voronoi|noise|wallRun, params_json}` (the nestable material subtree
+  stays in the JSON leaf, not over-normalized) — and a **`theme`** row (geometry knobs) plus a **`theme_bucket`**
+  binding `{theme_id, bucket ∈ rim|surface|wall|fill, style_id, depth, enabled}`, so a full theme is a
+  composition of styles that resolves to exactly the theme JSON the painter consumes. A map's *applied* theme is
+  a **snapshot copy** of a library theme (fork-on-apply, like the generator's plan doctrine) so later library
+  edits never silently repaint a shipped map. Includes the FluentMigrator migration lifting existing inline-blob
+  themes into styles + themes + bindings (dedupe identical materials), and retiring the Client↔server theme-material
+  duplication (`Features/Plan/ThemeVocabulary.cs` vs the server `TerrainThemeJson` model) onto the one schema.
+  The settled piece of the finishing-model design; the cross-tool scoping and dressing sections there stay draft.
+
 - [ ] **B9 — Re-import a world into an existing map (keep the authored intent).** When an author tweaks the
   terrain (e.g. adds iron inside the spawns so the renewable populates) they currently have to import the
   updated world as a *new* map and hand-copy the intent across. Add a "re-import / update world" action on
@@ -440,14 +455,12 @@ studio, G117/G118) is in `TODO.md`.
   side. The screenshot approach does **not** work for this class of bug — `page.screenshot()` forces a fresh
   raster, so a transient compositor artifact never appears in the capture; measure the handler, not the pixels.
 
-- [~] **G158 — the Theme rail's Apply step is still a column of dropdowns.** The Create step is a form now
-  (TP14, `FEATURES.md`) but Apply assigns themes through one `<select>` per piece and per box, which reads as a
-  list of ids rather than as a map. Two things would make it an authoring surface: **click-to-assign on the
-  plan canvas** (the `TeamAssignStep` pattern — pick a theme, click the pieces) instead of the per-item
-  dropdowns, and a **custom collection** target, a drawn set of pieces rather than only a box, since a theme
-  usually wants "these seven pieces" and no box groups exactly those. A handful of **ready-made theme presets**
-  belongs here too — the editor can now express a desert or a snowfield, but every author starts from the same
-  default and builds it by hand.
+- [ ] **G158 — ready-made theme presets.** The Apply step is a paint-on-the-plan-canvas surface now (click a
+  shape, Ctrl-multiselect a set, assign — the click-to-assign and "these seven pieces" custom-collection slices
+  shipped, `FEATURES.md`), but every author still starts a theme from the built-in default and builds a desert
+  or a snowfield by hand. Ship a handful of ready-made presets to start from. Folds into **B44** once the
+  theme/style library lands — a preset is just a library theme, so this becomes "seed the library with a curated
+  set" — but a small built-in set is worth having before then.
 
 - [ ] **G156 — cell-size-aware generator room sizing (WX2's generator half).** The stamped-room minimum is
   8×8 **blocks** (`docs/world-export/structures.md` WX2) but the emitters size rooms in **cells**
