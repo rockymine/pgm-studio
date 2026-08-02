@@ -77,9 +77,10 @@ public static class TerrainPreview
         int cell = Math.Clamp(600 / Math.Max(spanX, spanZ), 2, 8);
         int w = spanX * cell, h = spanZ * cell;
 
+        // No background rect: this render is blitted onto the plan canvas as an overlay, so the void between and
+        // around the painted terrain stays transparent and the canvas grid shows through rather than a black box.
         var sb = new StringBuilder();
         sb.Append($"<svg xmlns='http://www.w3.org/2000/svg' width='{w}' height='{h}' viewBox='0 0 {w} {h}' shape-rendering='crispEdges'>");
-        sb.Append($"<rect x='0' y='0' width='{w}' height='{h}' fill='#0a1120'/>");
         foreach (var (cellPos, top) in surface)
         {
             // scan a short window above the column's surface (catches an approach wall at ~+4, skips the
