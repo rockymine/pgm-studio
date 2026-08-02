@@ -273,6 +273,13 @@ export class SketchEditController {
       }
       shape.controls = shifted;
     }
+    // Keep per-vertex heights aligned: splice the new vertex's height (the mid of its two neighbours) in at
+    // the same index the vertex and Bézier controls shifted, so a sloped surface survives the insert instead
+    // of falling back to a uniform height on the now-mismatched array.
+    if (Array.isArray(shape.anchor_heights) && shape.anchor_heights.length === n) {
+      const midHeight = Math.max(1, Math.round((shape.anchor_heights[i] + shape.anchor_heights[j]) / 2));
+      shape.anchor_heights.splice(j, 0, midHeight);
+    }
     this.#callbacks.onShapeUpdated?.(shape);
     this.#vertexDragState = { shapeId, vertexIdx: j };
     this.#ghostEl = null;
