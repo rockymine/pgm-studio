@@ -8,11 +8,12 @@ opaque JSON blob per map — cannot support the two things the finishing pass ac
 reusable styles** to draw from, and a **scope that survives editing** so a theme still lands where it was
 meant to after the geometry changes.
 
-**Status: part-settled, part-draft.** §3 (the theme/style tables, task **B44**) is the settled decision. §4–§6
-are **converging drafts** — the finishing pass moves onto the sketch model, its scope keys on sketch shapes,
-dressing rides the same stage, and the structural stamps stay in plan/configure as read-only context; recorded
-here so the analysis is not lost, but not yet locked. §7 is the **one open decision** (where the finishing
-stage sits relative to configure). Nothing in §4–§8 is committed until it lands its own task.
+**Status: part-settled, part-draft.** Two tasks are committed: **B44** (§3, the theme/style library tables) and
+**S23** (§7, grid-aligning the sketch — the prerequisite that decides where finishing lives). §4–§8 are
+**converging drafts** — the finishing pass moves onto the sketch model, its scope keys on sketch shapes,
+dressing rides the same stage, the structural stamps stay in plan/configure as read-only context, and the
+finishing UI is a phase of the grid-aligned sketch. Recorded here so the analysis is not lost; the shape is
+agreed, the details past B44/S23 land task by task.
 
 ## 1. Where the data lives today
 
@@ -153,24 +154,38 @@ painted, and a dressing stamp (a lake, a tree) places against that same world an
 *dressing* stamps (the finishing stage, new) — and the finishing stage shows the structural ones as context
 the way the 3-D preview does.
 
-## 7. Where the finishing stage sits in the pipeline (open)
+## 7. The finishing stage lives on a grid-aligned sketch (draft — resolved through a prerequisite)
 
-*Open — the one decision that still needs a call.*
+The placement question turns on one fact: the finishing pass runs on the **rasterized world** — every dressing
+prototype assumes blocks. That is what decides its home, and it rules out both current candidates as-is. The
+stages today are Plan → Sketch (geometry) → Configure (objectives / teams / regions) → export. The **freeform
+sketch hides voxelization** (continuous Bézier coordinates), so dressing a river there has no blocks to land on.
+The **configure stage** shows the rasterized world top-down (and an iso view) but cannot edit the shapes — it
+only draws XML regions over them. So neither hosts finishing without a change.
 
-The stages today are Plan → Sketch (geometry) → Configure (objectives / teams / regions) → export. The
-finishing pass needs the **final geometry *and* the settled regions/stamps**, so it belongs after both:
-either a **second phase of the sketch tool** that loads the configured state, or a **distinct stage after
-configure**. The working pattern to copy is the plan tool's Draw → Theme phase split (G157/G158): a
-read-only-geometry canvas plus a rail, on the same mounted canvas. The lean is a finishing *phase* that comes
-up once configure has settled the regions — but the ordering relative to configure is the open question.
+The unlock is a **grid-aligned sketch** (task **S23**): every placed point snaps to a block centre, the preview
+shows the *rasterized* shape (curves and rounded edges still draw smoothly — the preview shows the blocks they
+voxelize into), and a shape stores as **block coordinates + heights** (cheaper than continuous, and the
+rasterization is needed downstream regardless). This is worth doing on its own — a tool that hides that
+everything voxelizes is a liability — and it is the prerequisite that makes the sketch the block-accurate
+surface the finishing pass needs.
+
+With that in place the placement resolves: **finishing is a phase of the (grid-aligned) sketch, not a stage
+after configure**, because the sketch is then the one place that is both geometry-editable *and* block-accurate
+— configure is neither. The structural elements — the spawn building, the wool room, the iron that shapes the
+XML — are shown **immutable** in the finishing phase (read as intent context, the §6 rule). What grid-align
+does *not* solve, and the finishing phase still must: **assemble the full previewable world** — the rasterized
+sketch, the structural stamps, and the theme paint — for dressing to place against.
 
 ## 8. A build order (draft)
 
-*Draft — only the first item is committed.*
+*Draft — S23 and B44 are the committed tasks; the rest await their own.*
 
-1. **The theme + style library tables — task B44** (the one settled piece; see §3).
-2. Port the Apply-step canvas UX into the sketch tool, keyed on shape/island scopes (extends G158) — unlocks
-   sketch-only theming and makes the sketch the home for paint.
-3. Region-keyed scopes resolved against the built geometry, so a reshape moves the paint (fixes §2's desync).
-4. Dressing in the finishing stage: the lasso strokes first (rivers/paths — the tool exists), then the scatter
-   brush, then the new dressing place/stamp tool (§5).
+1. **Grid-align the sketch — task S23** (block-snap + rasterized preview + block-coords storage). Independent
+   value; the prerequisite for everything below.
+2. **The theme + style library tables — task B44** (§3).
+3. Port the Apply-step canvas UX into the sketch as the **finishing phase**, keyed on shape/island scopes
+   (extends G158) — unlocks sketch-only theming; structural stamps shown immutable.
+4. Region-keyed scopes resolved against the built geometry, so a reshape moves the paint (fixes §2's desync).
+5. Dressing in the finishing phase: assemble the previewable world, then lasso strokes first (rivers/paths — the
+   tool exists), then the scatter brush, then the new dressing place/stamp tool (§5).
