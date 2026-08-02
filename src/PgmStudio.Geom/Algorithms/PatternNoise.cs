@@ -2,7 +2,7 @@ namespace PgmStudio.Geom.Algorithms;
 
 /// <summary>
 /// Deterministic value/fractal noise and lattice hashing — pure geometry math, so it lives in the
-/// dependency-free <c>Geom</c> leaf beside <see cref="CatmullRom"/> and <see cref="Lane"/> where every
+/// dependency-free <c>Geom</c> leaf beside <see cref="CatmullRom"/> and <see cref="Ribbon"/> where every
 /// generator (the terrain painter's pattern materials, the dressing stage, any preview) can reach it. The
 /// same coordinates and seed always give the same result, on any machine — never RNG, so a map exports the
 /// same pattern every time.

@@ -421,7 +421,7 @@ studio, G117/G118) is in `TODO.md`.
   **DR-WA** water (channels = the DR-PA stroke but carved+level-filled not draped; ponds = a concave DR-SC blob
   with an FBM outline; depth shading, shoreline band, reeds/lily edge life — the carve-and-level bed leans on
   G32-C elevation). **Placement decided** (`decoration.md` §9): pure algorithms in `Geom/Algorithms`
-  (`CatmullRom` + `Lane` reused for splines/bands, `PatternNoise` migrated down from `Minecraft`, new scatter/
+  (`CatmullRom` + `Ribbon` (ex-`Lane`) reused for splines/bands, `PatternNoise` migrated down from `Minecraft`, new scatter/
   blob/tree-skeleton leaves to come), the world-writing `Decorator` pass in `Minecraft` (now referencing
   `Geom`), resolution/wiring in `Api` after `TerrainPainter`, drawn tools as `SketchShape`s in `Pgm`.
   **Foundation landed:** `PatternNoise` → `Geom.Algorithms` + the `Minecraft → Geom` edge (byte-identical,

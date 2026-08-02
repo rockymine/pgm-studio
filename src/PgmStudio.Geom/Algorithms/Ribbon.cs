@@ -1,18 +1,19 @@
-namespace PgmStudio.Geom;
+namespace PgmStudio.Geom.Algorithms;
 
 /// <summary>
-/// Lane geometry: offset a centerline polyline into a strip polygon by adding points to either side of it —
-/// the "points around a spline" step. Pure (no deps) so the sketch generators and any preview share the
-/// exact offsets. A straight centerline yields a rectangle ring; a bent or smoothed one (smooth a sparse
-/// control polyline first with <see cref="Algorithms.CatmullRom.Spline"/>) yields a true (non-rectangular)
-/// strip that stays ~<c>width</c> wide through its turns.
+/// Offset a centerline polyline into a closed strip outline — the boundary you get by stroking a path with a
+/// width, the "points around a spline" step. Named for the shape it emits (a ribbon following a path); it is
+/// pure geometry, not a map-layout role. Pure (no deps) so the generators and any preview share the exact
+/// offsets. A straight centerline gives a rectangle ring; a bent or smoothed one (smooth a sparse control
+/// polyline first with <see cref="CatmullRom.Spline"/>) gives a true, non-rectangular strip that stays
+/// ~<c>width</c> wide through its turns.
 /// </summary>
-public static class Lane
+public static class Ribbon
 {
-    /// <summary>Offset <paramref name="centerline"/> by ±<paramref name="width"/>/2 into a closed ring
-    /// (left side forward, right side back). Per-vertex averaged normals keep corners ~<paramref
-    /// name="width"/> wide. Needs ≥2 points; fewer returns empty.</summary>
-    public static List<double[]> Strip(IReadOnlyList<double[]> centerline, double width)
+    /// <summary>Offset <paramref name="centerline"/> by ±<paramref name="width"/>/2 into a closed ring (left
+    /// side forward, right side back). Per-vertex averaged normals keep corners ~<paramref name="width"/>
+    /// wide. Needs ≥2 points; fewer returns empty.</summary>
+    public static List<double[]> Uniform(IReadOnlyList<double[]> centerline, double width)
     {
         var n = centerline.Count;
         if (n < 2) return [];
@@ -32,10 +33,10 @@ public static class Lane
     }
 
     /// <summary>A variable-width, possibly asymmetric strip: each centerline point is offset outward by
-    /// <paramref name="leftOffset"/>[i] along its left normal and <paramref name="rightOffset"/>[i] along
-    /// its right normal. Lets a lane taper and its outline jitter (an organic hull, not a clean rectangle).
-    /// The offset lists must match the centerline length; needs ≥2 points.</summary>
-    public static List<double[]> Ribbon(IReadOnlyList<double[]> centerline, IReadOnlyList<double> leftOffset, IReadOnlyList<double> rightOffset)
+    /// <paramref name="leftOffset"/>[i] along its left normal and <paramref name="rightOffset"/>[i] along its
+    /// right normal. Lets a strip taper and its outline jitter (an organic hull, not a clean rectangle). The
+    /// offset lists must match the centerline length; needs ≥2 points.</summary>
+    public static List<double[]> Varied(IReadOnlyList<double[]> centerline, IReadOnlyList<double> leftOffset, IReadOnlyList<double> rightOffset)
     {
         var n = centerline.Count;
         if (n < 2 || leftOffset.Count != n || rightOffset.Count != n) return [];

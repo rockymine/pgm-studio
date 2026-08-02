@@ -4,8 +4,8 @@ namespace PgmStudio.Geom.Algorithms;
 /// Centripetal Catmull-Rom spline: interpolate a sparse control polyline into a dense curve that passes
 /// through every control point. Centripetal parameterisation (knot spacing = chord-length^½) is used rather
 /// than uniform because uniform Catmull-Rom overshoots and forms cusps/loops when one segment is much
-/// shorter than the next — which, once a lane is offset into a strip, self-intersects. Pure (no deps); the
-/// offsetting that turns a spline into a strip lives in <see cref="Lane"/>.
+/// shorter than the next — which, once a centerline is offset into a strip, self-intersects. Pure (no deps);
+/// the offsetting that turns a spline into a strip lives in <see cref="Ribbon"/>.
 /// </summary>
 public static class CatmullRom
 {

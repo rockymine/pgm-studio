@@ -260,10 +260,10 @@ always meant for geometry algorithms, and the dressing math is exactly that; thr
 there:
 - `CatmullRom` — centripetal spline. Smooths the tree limbs and the path/channel centerline (the same
   algorithm the tree prototype reimplements in JS — reuse it, don't re-add it).
-- `Lane` — offsets a centerline into a strip (`Strip` fixed-width, `Ribbon` variable/tapered/organic). This
-  **is** the DR-PA/DR-WA band; its doc says it was written "so the sketch generators and any preview share
-  the exact offsets" — it is waiting, not dead. `Ribbon` gives the tapered channel and the jittered shore in
-  one call.
+- `Ribbon` — offsets a centerline into a strip outline (`Uniform` fixed-width, `Varied` variable/tapered/
+  organic). This **is** the DR-PA/DR-WA band; the code is the old orphaned `Lane` class (long-dead sketch-tool
+  approaches), kept but **renamed**, because a "lane" is a layout role (a run of pieces), not a geometry
+  primitive. `Varied` gives the tapered channel and the jittered shore in one call.
 - `PatternNoise` — hash/value/fbm, **migrated here from `Minecraft`** (it was pure but trapped beside the
   terrain-paint materials). The pattern *materials* (`VoronoiMaterial`/`NoiseMaterial`/`WallRunMaterial`)
   stay in `Minecraft` and call it. The move added the one edge that was missing, **`Minecraft → Geom`**, which
@@ -284,7 +284,7 @@ authored-unit→orbit split G162 turns on; then call `Decorator.Decorate(world, 
 `TerrainPainter.Paint` in `SketchWorldBuilder.Build`.
 
 **`PgmStudio.Pgm/Sketch` — the drawn tools only.** A DR-PA path or a drawn DR-WA pond is a `SketchShape`
-(`"path"` / `"pond"`), rasterized with `Lane`+`CatmullRom` (Pgm already references Geom). Auto-placed dressing
+(`"path"` / `"pond"`), rasterized with `Ribbon`+`CatmullRom` (Pgm already references Geom). Auto-placed dressing
 does not pass through here.
 
 **Symmetry (G162)** is not a place but a rule that binds at the seam where the authored unit and its orbit are
