@@ -30,6 +30,10 @@ Read alongside:
 - `docs/contracts/sketch-authoring.md` — the sketch model a path shape (§3) extends.
 - `docs/generator/ideas.md` — G34 (the umbrella), G32-C (structures & elevation, the sibling pass), G142
   (the roughen pass, whose noise operators the path edge borrows).
+- `docs/world-export/ideas.md` — the dressing-stage gap pool: what turns these five tools into one coherent
+  stage. **True symmetry / fairness (G162) is the priority** — this doc's tools scatter freely and must be
+  fanned across the orbit before competitive use; then the guardrail budget, vertical-surface dressing, the
+  arbitration contract, a biome theme, context-aware placement, and border/POI framing.
 
 ---
 
