@@ -8,21 +8,20 @@
 
 <div class="phase-body">
   <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Theme"
-           Steps="@Steps" CurrentStep="@step" BackEnabled="true"
-           NextLabel="@(step == 0 ? "Apply →" : "Done")"
-           OnStep="Goto" OnBack="OnBackStep" OnNext="OnNextStep" />
+           Steps="@Steps" CurrentStep="0" BackEnabled="true" NextLabel="Apply →"
+           OnBack="OnBack" OnNext="OnApply" />
   <Workspace>
     <ContentColumn MaxWidth="720">
       @if (State is null)
       {
         <Section><p class="section-desc">Loading themes…</p></Section>
       }
-      else if (step == 0)
+      else
       {
-        @* ── Create: the theme registry, then a paintbrush per bucket ── *@
+        @* ── Create: the theme registry, then a paintbrush per bucket. Apply is the next step (canvas mode). ── *@
         <Section Title="Themes">
           <p class="section-desc">A theme is a full terrain-paint recipe — one material per bucket, plus how
-            deep each reaches. Define one here, then apply it to the map in the next step.</p>
+            deep each reaches. Define one here, then apply it to the map on the canvas in the next step.</p>
 
           @foreach (var id in State.Themes.Keys)
           {
@@ -132,59 +131,6 @@
             </details>
           </Section>
         }
-      }
-      else
-      {
-        @* ── Apply: map default + assignment + the themed map top-down ── *@
-        <Section Title="Applied map">
-          <p class="section-desc">The plan's terrain, painted through the theme scopes and rendered top-down.</p>
-          <div class="theme-map-preview">
-            @if (MapLoading) { <p class="section-desc">Rendering…</p> }
-            else if (MapSvg is not null) { @((MarkupString)MapSvg) }
-            else { <p class="section-desc">No preview.</p> }
-          </div>
-          <div class="panel-actions"><Button OnClick="LoadMapPreview">Refresh</Button></div>
-        </Section>
-
-        <Section Title="Map default">
-          <p class="section-desc">The lowest layer — paints every cell no scope claims.</p>
-          <Field>
-            <select class="field-input" value="@State.MapTheme" @onchange="OnMapThemeChanged">
-              <option value="">(built-in default)</option>
-              @foreach (var id in State.Themes.Keys) { <option value="@id">@id</option> }
-            </select>
-          </Field>
-        </Section>
-
-        <Section Title="Assign to boxes">
-          <p class="section-desc">A box paints all its member pieces — the collection layer, under per-piece overrides.</p>
-          @foreach (var box in State.Boxes)
-          {
-            <Field Label="@($"{box.Id} — {box.Kind}, {box.Members.Count} pcs")" @key="box.Id">
-              <select class="field-input" value="@State.BoxThemes.GetValueOrDefault(box.Id, "")"
-                      @onchange="e => AssignBox(box.Id, (string?)e.Value)">
-                <option value="">— none —</option>
-                @foreach (var id in State.Themes.Keys) { <option value="@id">@id</option> }
-              </select>
-            </Field>
-          }
-          @if (State.Boxes.Count == 0) { <p class="section-desc">No boxes drawn.</p> }
-        </Section>
-
-        <Section Title="Assign to pieces">
-          <p class="section-desc">A per-piece theme is the top layer — it wins over the piece's box and the map default.</p>
-          @foreach (var piece in State.Pieces)
-          {
-            <Field Label="@($"{piece.Id} ({piece.Role})")" @key="piece.Id">
-              <select class="field-input" value="@State.PieceThemes.GetValueOrDefault(piece.Id, "")"
-                      @onchange="e => AssignPiece(piece.Id, (string?)e.Value)">
-                <option value="">— none —</option>
-                @foreach (var id in State.Themes.Keys) { <option value="@id">@id</option> }
-              </select>
-            </Field>
-          }
-          @if (State.Pieces.Count == 0) { <p class="section-desc">No pieces drawn.</p> }
-        </Section>
       }
     </ContentColumn>
   </Workspace>

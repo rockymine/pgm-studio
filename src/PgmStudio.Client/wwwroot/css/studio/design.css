@@ -240,6 +240,14 @@
 .theme-map-preview svg { max-width: 100%; height: auto; }
 .theme-json-details > summary { cursor: pointer; font-size: var(--font-xs); color: var(--text-muted); padding: var(--space-1) 0; }
 
+/* Theme Apply-step rail (G157): the theme's four bucket swatches in a row, and the current selection's rows. */
+.theme-apply-swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); margin-top: var(--space-2); }
+.theme-apply-swatch { margin: 0; display: flex; flex-direction: column; gap: var(--space-1); align-items: center; }
+.theme-apply-swatch figcaption { font-size: var(--font-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.theme-apply-sel-row { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1) 0; flex-wrap: wrap; }
+/* The read-only theme-apply toolbar: a hint where the draw tools would be. */
+.plan-toolbar--readonly { color: var(--text-muted); font-size: var(--font-xs); align-items: center; padding-left: var(--space-2); }
+
 /* Theme editor (G158) — one bucket per section: the material form beside the sample it paints. */
 .bucket-editor { display: grid; grid-template-columns: 1fr 120px; gap: var(--space-3); align-items: start; }
 .bucket-editor-form { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }

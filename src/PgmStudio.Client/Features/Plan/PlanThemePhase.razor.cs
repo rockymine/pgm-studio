@@ -22,6 +22,9 @@ public partial class PlanThemePhase
 {
     [Parameter] public IJSObjectReference? Handle { get; set; }
     [Parameter] public EventCallback OnBack { get; set; }
+    /// <summary>The Create step's "Apply →" — hands off to the host's canvas theme-apply mode (G157), where the
+    /// themes defined here are placed on the plan.</summary>
+    [Parameter] public EventCallback OnApply { get; set; }
     [Inject] public HttpClient Http { get; set; } = default!;
     [Inject] public IJSRuntime JS { get; set; } = default!;
 
@@ -30,12 +33,11 @@ public partial class PlanThemePhase
 
     private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
     private static readonly JsonSerializerOptions Pretty = new(JsonSerializerDefaults.Web) { WriteIndented = true };
-    private static readonly string[] Steps = ["Create", "Apply"];
+    private static readonly string[] Steps = ["Create"];
 
     private const string AbsoluteBedrock = "absolute";
     private const string RelativeBedrock = "relative";
 
-    private int step;
     private ThemesState? State;
     private string? Selected;
     private string NewName = "";
@@ -47,20 +49,10 @@ public partial class PlanThemePhase
     private JsonObject? Theme;
     private IReadOnlyList<PaintBlockDto> Blocks = [];
     private Dictionary<string, string> Swatches = new();
-    private string? MapSvg;
-    private bool MapLoading;
 
-    private sealed record ThemesState(
-        Dictionary<string, JsonElement> Themes,
-        string MapTheme,
-        List<PieceRef> Pieces,
-        List<BoxRef> Boxes,
-        Dictionary<string, string> PieceThemes,
-        Dictionary<string, string> BoxThemes);
-
-    private sealed record PieceRef(string Id, string Role);
-    private sealed record BoxRef(string Id, string Kind, List<string> Members);
-    private sealed record MapPreview(string Svg);
+    // The theme registry + map default this Create step reads (the assignment fields the payload also carries are
+    // consumed by the Apply-step rail now, not here).
+    private sealed record ThemesState(Dictionary<string, JsonElement> Themes, string MapTheme);
 
     /// <summary>One paintable bucket as the Create step shows it: what it is, whether it paints, how deep it
     /// reaches, and the material node its editor writes. Assembled per render from the theme node, so it is a
@@ -77,11 +69,9 @@ public partial class PlanThemePhase
         {
             await LoadBlocks();
             await Load();
-            if (step == 0) await LoadSwatches();
+            await LoadSwatches();
         }
     }
-
-    private Task OnBackStep() => step == 0 ? OnBack.InvokeAsync() : Goto(0);
 
     private async Task LoadBlocks()
     {
@@ -226,16 +216,6 @@ public partial class PlanThemePhase
         await LoadSwatches();
     }
 
-    // ── step navigation: each step lazily loads its preview ──
-    private async Task Goto(int i)
-    {
-        step = i;
-        if (i == 0) await LoadSwatches();
-        else await LoadMapPreview();
-    }
-
-    private Task OnNextStep() => step == 0 ? Goto(1) : OnBack.InvokeAsync();
-
     private async Task LoadSwatches()
     {
         Swatches = new();
@@ -249,21 +229,6 @@ public partial class PlanThemePhase
         }
         catch { /* leave the swatches empty on a preview failure */ }
         StateHasChanged();
-    }
-
-    private async Task LoadMapPreview()
-    {
-        if (Handle is null) return;
-        MapLoading = true; StateHasChanged();
-        try
-        {
-            var planJson = await Handle.InvokeAsync<string>("exportJson");
-            var resp = await Http.PostAsync("api/terrain/theme-map-preview",
-                new StringContent(planJson, Encoding.UTF8, "application/json"));
-            MapSvg = resp.IsSuccessStatusCode ? (await resp.Content.ReadFromJsonAsync<MapPreview>())?.Svg : null;
-        }
-        catch { MapSvg = null; }
-        MapLoading = false; StateHasChanged();
     }
 
     // ── theme registry (Create step) ──
@@ -301,30 +266,5 @@ public partial class PlanThemePhase
         JsonError = await Handle.InvokeAsync<string?>("setThemeJson", Selected, ThemeJsonText);
         if (JsonError is null) { await Load(); await LoadSwatches(); }
         else StateHasChanged();
-    }
-
-    // ── application (Apply step) ──
-    private async Task OnMapThemeChanged(ChangeEventArgs e)
-    {
-        if (Handle is null) return;
-        await Handle.InvokeVoidAsync("setMapTheme", (string?)e.Value ?? "");
-        await Load();
-        await LoadMapPreview();
-    }
-
-    private async Task AssignPiece(string pieceId, string? themeId)
-    {
-        if (Handle is null) return;
-        await Handle.InvokeVoidAsync("assignPiece", pieceId, themeId ?? "");
-        await Load();
-        await LoadMapPreview();
-    }
-
-    private async Task AssignBox(string boxId, string? themeId)
-    {
-        if (Handle is null) return;
-        await Handle.InvokeVoidAsync("assignBox", boxId, themeId ?? "");
-        await Load();
-        await LoadMapPreview();
     }
 }

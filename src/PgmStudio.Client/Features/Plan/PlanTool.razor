@@ -80,20 +80,33 @@
                        OnCellChanged="OnCell" OnSurfaceChanged="OnSurface" OnSurfaceStepChanged="OnSurfaceStep"
                        OnHeadroomChanged="OnHeadroom" OnMaxPlayersChanged="OnMaxPlayers" />
       }
-      @if (ThemeActive)
+      @* The theme Create step (theme editor). Apply moves onto the shared canvas below (theme-apply mode). *@
+      @if (ThemeCreateActive)
       {
-        <PlanThemePhase Handle="handle" OnBack="GoDraw" />
+        <PlanThemePhase Handle="handle" OnApply="EnterThemeApply" OnBack="GoDraw" />
       }
       @* Draw stays mounted (hidden, not removed) so the plan-canvas bridge + zoom survive a trip to Info
-         on a map-backed plan; SetPhase re-measures the canvas on return. The bare route has no Info phase. *@
+         on a map-backed plan; SetPhase re-measures the canvas on return. The bare route has no Info phase.
+         Theme-apply shows this same canvas as a read-only theme-assignment surface. *@
       <div class="phase-body" hidden="@DrawHidden">
-      @if (MapBacked)
+      @if (themeApplyActive)
+      {
+        <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Apply theme"
+                 BackEnabled="true" NextLabel="Done" OnBack="BackToThemes" OnNext="FinishTheme" />
+      }
+      else if (MapBacked)
       {
         <FlowBar Class="flow-bar--flush" PhaseIcon="pencil-ruler" PhaseTitle="Draw"
                  BackEnabled="true" NextLabel="Compile" OnBack="GoInfo" OnNext="OpenCompile" />
       }
       <Workspace>
-        @if (SidebarOpen)
+        @if (themeApplyActive)
+        {
+          @* The Apply-step rail sits where the sidebar does, beside the shared canvas. *@
+          <PlanThemeApplyRail Handle="handle" Shapes="SelectedThemeShapes" />
+          <div class="sidebar-handle"></div>
+        }
+        else if (SidebarOpen)
         {
         <Sidebar>
             @if (MapBacked)
@@ -306,6 +319,14 @@
 
         <div class="workspace-canvas">
           <div class="canvas-subbar">
+            @if (themeApplyActive)
+            {
+            <div class="plan-toolbar plan-toolbar--readonly">
+              <span class="section-desc">Click a shape to theme it · Ctrl-click for several · double-click a box to drill into a piece</span>
+            </div>
+            }
+            else
+            {
             <div class="plan-toolbar">
               <button class="draw-tool-btn @(tool == "select" ? "draw-tool-btn--active" : null)" title="Select / edit"
                       @onclick='() => PickTool("select")'><i data-lucide="mouse-pointer-2"></i></button>
@@ -366,9 +387,12 @@
                 </button>
               }
             </div>
+            }
             <div @ref="cursorRef" class="canvas-cursor"></div>
             <div class="canvas-subbar-right">
               <Chip Title="Fit the plan to view" OnClick="Fit"><i data-lucide="scan"></i></Chip>
+              @if (!themeApplyActive)
+              {
               <Chip Active="threeD" Disabled="@isoUnavailable"
                     Title="@(isoUnavailable ? "3-D preview needs WebGL, which isn't available in this browser" : "Isometric height preview (read-only)")"
                     OnClick="Toggle3D">3D</Chip>
@@ -380,6 +404,7 @@
               {
                 <Chip Title="Rotate the preview 90°" OnClick="RotateIso"><i data-lucide="rotate-cw"></i></Chip>
               }
+              }
               <span class="canvas-zoom">@zoomLabel</span>
             </div>
           </div>
@@ -387,8 +412,9 @@
             <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
           </div>
         </div>
+        @if (!themeApplyActive)
+        {
         <div class="sidebar-handle"></div>
-
         <Inspector>
             <Section>
               @if (sel is null)
@@ -491,6 +517,7 @@
               }
             </Section>
       </Inspector>
+        }
       </Workspace>
       </div>
 
