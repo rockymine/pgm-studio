@@ -356,10 +356,11 @@
   </div>
 
   <h3>The grown tree</h3>
-  <p class="sub">Not a fractal, and not a straight pole. The skeleton is <strong>recursive</strong> — ez-tree's levels, children and per-level taper, with an upward "force" — but every branch is a gnarly stepped path <em>smoothed into a flowing Catmull-Rom curve</em>, so the trunk wanders like a bonsai (up, twist, straighten) and limbs branch to a <strong>second degree</strong>. The <strong>spine</strong> on the left is the view the tree is designed against — the centerlines and their thickness, each limb's spline in its own colour — before any blocks go on. The <strong>stems</strong> knob gives the trunk setups: one stem that forks, a double, or a triple base.</p>
+  <p class="sub">Not a fractal, and not a straight pole. The skeleton is <strong>recursive</strong> — ez-tree's levels, children and per-level taper, with an upward "force" — but every branch is a gnarly stepped path <em>smoothed into a flowing Catmull-Rom curve</em>, so the trunk wanders like a bonsai (up, twist, straighten) and limbs branch to a <strong>second degree</strong>. The <strong>spine</strong> on the left is the view the tree is designed against — the centerlines and their thickness, each limb's spline in its own colour — before any blocks go on. The <strong>stems</strong> knob gives the trunk setups: one stem that forks, a double, or a triple base. The <strong>leader</strong> knob decides whether the trunk dies at the fork (low — a spreading, decurrent form) or climbs on as a single central axis through the crown, thinning and twisting with branches staggered up it (high — a birch/conifer read); the trunk no longer just stops as if sawn.</p>
   <p class="sub">The crown is placed the way a mapmaker does it by hand — because the naive sphere-with-holes is the thing that looks generated. Each branch tip gets one <strong>dense disc-shaped cluster</strong> (a flat leaf-rock, ~90% full), pushed up and out from the tip, never down toward the trunk, since leaves sit at the ends and not on the wood. Neighbouring clusters keep a <strong>seam of air</strong> between them — a cell fills only when it clearly belongs to one cluster — so every patch reads as its own branch's instead of one merged blob, which is the whole reason to keep the branch count low. A few strands hang below for a broken lower edge.</p>
   <div class="controls">
     <div class="ctl"><label>stems <b id="v_tstems">1</b></label><input id="tstems" type="range" min="1" max="3" value="1"></div>
+    <div class="ctl"><label>leader <b id="v_tleader">0.55</b></label><input id="tleader" type="range" min="0" max="100" value="55"></div>
     <div class="ctl"><label>trunk flow <b id="v_tflow">0.45</b></label><input id="tflow" type="range" min="0" max="100" value="45"></div>
     <div class="ctl"><label>branch angle <b id="v_tang">30°</b></label><input id="tang" type="range" min="15" max="48" value="30"></div>
     <div class="ctl"><label>levels <b id="v_tlevels">2</b></label><input id="tlevels" type="range" min="2" max="3" value="2"></div>
@@ -828,47 +829,73 @@ function hueColor(h, a){
   if (h < 0) return "rgba(210,150,95," + a + ")";                       // trunk / stems
   return "hsla(" + ((h*61+18)%360) + ",66%,60%," + a + ")";             // one hue per limb spline
 }
-// recursive grower: each branch is a gnarly stepped path (structure + wander) smoothed by
-// Catmull-Rom (flow). Levels / children / taper are the ez-tree knobs; the trunk gets a slow
-// noise sway, the limbs a sharper per-step jitter, both pulled gently upright (the "force").
+// the tree: a continuous central trunk (the leader — one long swaying, thinning spline that
+// climbs into the crown) with recursive lateral branches coming off it at intervals, each a
+// gnarly path smoothed into a flowing Catmull-Rom curve. The leader knob sets how far the trunk
+// climbs before topping out — a fork at low leader, a birch/conifer central axis at high — so the
+// trunk never just dies at the branch point. levels / angle / taper are the ez-tree knobs.
 function buildTree(cols, rows, p, seed){
   const branches=[], tips=[]; let limbHue=0;
   const height = rows-10;
+  // a recursive lateral branch: sharp per-step jitter, pulled gently upright, branching to depth
   function grow(x, y, dir, len, r0, level, idx, hue){
-    const steps=Math.max(4, Math.round(len/(level===0?2.6:2.2)));
+    const steps=Math.max(3, Math.round(len/2.2));
     const ctrl=[[x,y]]; let cx=x, cy=y, cd=dir;
     for (let s=1;s<=steps;s++){
-      const wob = level===0
-        ? (value(idx*13, Math.round(cy), seed, 9)-0.5)*p.flow            // smooth bonsai sway
-        : (unit(idx*7+s, level+1, seed)-0.5)*p.gnarl;                    // sharper limb jitter
-      cd += wob;
-      cd += (Math.PI/2 - cd)*(level===0?0.05:0.12) - 0.015*level;        // upright pull, slight droop up top
-      const st=len/steps; cx += Math.cos(cd)*st; cy += Math.sin(cd)*st;
-      ctrl.push([cx,cy]);
+      cd += (unit(idx*7+s, level+1, seed)-0.5)*p.gnarl;
+      cd += (Math.PI/2 - cd)*0.10 - 0.02*level;                          // upright pull, droop higher up
+      const st=len/steps; cx += Math.cos(cd)*st; cy += Math.sin(cd)*st; ctrl.push([cx,cy]);
     }
     const r1=Math.max(0.55, r0*p.taper);
     branches.push({path:splineOf(ctrl,6), r0, r1, level, hue});
     if (level>=p.levels){
       const a=ctrl[ctrl.length-2], b=ctrl[ctrl.length-1], dx=b[0]-a[0], dy=b[1]-a[1], L=Math.hypot(dx,dy)||1;
-      tips.push([b[0], b[1], hue, dx/L, dy/L]); return;             // carry the outward direction for the crown
+      tips.push([b[0], b[1], hue, dx/L, dy/L]); return;
     }
-    const nk = level===0 ? p.stemBranches : 2;
-    for (let k=0;k<nk;k++){
-      const f = p.childStart + (1-p.childStart)*((k+0.6)/nk);
+    for (let k=0;k<2;k++){
+      const f = p.childStart + (1-p.childStart)*((k+0.6)/2);
       const ci = Math.min(ctrl.length-1, Math.max(1, Math.round(f*(ctrl.length-1))));
       const pdir = Math.atan2(ctrl[ci][1]-ctrl[ci-1][1], ctrl[ci][0]-ctrl[ci-1][0]);
-      const lead = level===0 && k===0;                              // one limb leads upward → the crown top
-      const side = lead ? (unit(idx,7,seed)-0.5)*0.5 : (k%2===0?1:-1)*(1+(unit(idx+k,7,seed)-0.5)*0.4);
-      const ang = (lead?p.angle*0.3:p.angle)*(0.6+0.8*unit(idx*3+k,9,seed));
-      const clen = len*p.lenFactor*(lead?1.08:1)*(0.78+0.44*unit(idx+k,4,seed));
+      const side = (k%2===0?1:-1)*(1+(unit(idx+k,7,seed)-0.5)*0.4);
+      const ang = p.angle*(0.6+0.8*unit(idx*3+k,9,seed));
+      const clen = len*p.lenFactor*(0.78+0.44*unit(idx+k,4,seed));
       const cr = Math.max(0.6, (r0+(r1-r0)*f)*p.childScale);
-      grow(ctrl[ci][0], ctrl[ci][1], pdir+side*ang, clen, cr, level+1, idx*4+k+1, level===0?limbHue++:hue);
+      grow(ctrl[ci][0], ctrl[ci][1], pdir+side*ang, clen, cr, level+1, idx*4+k+1, hue);
     }
   }
-  const trunkLen = height*(p.stems===1?0.5:0.4);
+  // the trunk/leader: one long spline climbing into the crown, swaying and thinning, with
+  // laterals staggered up its length and a small fan + crown cluster at the very top
+  function leader(x0, baseDir, len, r0, sBase){
+    const steps=Math.max(6, Math.round(len/2.6));
+    const ctrl=[[x0,0]]; let cx=x0, cy=0, cd=baseDir;
+    for (let s=1;s<=steps;s++){
+      cd += (value(Math.round(cy), sBase, seed, 9)-0.5)*p.flow;          // slow sway → the trunk twists as it rises
+      cd += (Math.PI/2 - cd)*0.05;                                        // stays generally upright
+      const st=len/steps; cx += Math.cos(cd)*st; cy += Math.sin(cd)*st; ctrl.push([cx,cy]);
+    }
+    const r1=Math.max(0.7, r0*(0.42 - 0.14*p.leader));                    // thins toward the top
+    branches.push({path:splineOf(ctrl,6), r0, r1, level:0, hue:-1});
+    const nlat = Math.round(3 + p.leader*2), hiF = 0.66 + 0.24*p.leader;  // more laterals, higher, as it climbs
+    for (let k=0;k<nlat;k++){
+      const f = p.childStart + (hiF-p.childStart)*((k+0.5)/nlat);
+      const ci = Math.min(ctrl.length-1, Math.max(1, Math.round(f*(ctrl.length-1))));
+      const pdir = Math.atan2(ctrl[ci][1]-ctrl[ci-1][1], ctrl[ci][0]-ctrl[ci-1][0]);
+      const side = (k%2===0?1:-1)*(1+(unit(k+sBase,7,seed)-0.5)*0.4);
+      const ang = p.angle*(0.7+0.7*unit(k*3+sBase,9,seed));
+      const clen = len*p.lenFactor*(0.72+0.4*unit(k+sBase,4,seed))*(1-0.35*f);  // shorter higher up → tapered crown
+      const cr = Math.max(0.6, (r0+(r1-r0)*f)*p.childScale);
+      grow(ctrl[ci][0], ctrl[ci][1], pdir+side*ang, clen, cr, 1, sBase*17+k*4+1, limbHue++);
+    }
+    const top=ctrl[ctrl.length-1], a=ctrl[ctrl.length-2], L=Math.hypot(top[0]-a[0],top[1]-a[1])||1;
+    const tdx=(top[0]-a[0])/L, tdy=(top[1]-a[1])/L, tang=Math.atan2(tdy,tdx);
+    for (let k=0;k<2;k++)                                                 // the top branches a little
+      grow(top[0], top[1], tang+(k?1:-1)*p.angle*0.5, len*p.lenFactor*0.5, Math.max(0.6,r1*0.85), 1, sBase*91+k, limbHue++);
+    tips.push([top[0], top[1], limbHue++, tdx, tdy]);                     // ...and ends in a crown cluster
+  }
+  const axisLen = height*(0.5 + 0.34*p.leader);
   for (let s=0;s<p.stems;s++){
     const off = p.stems===1 ? 0 : (s/(p.stems-1)-0.5);
-    grow(off*4, 0, Math.PI/2 - off*0.55, trunkLen, p.trunkR, 0, 1+s*131, -1);   // stems are trunk-coloured
+    leader(off*4, Math.PI/2 - off*0.55, axisLen*(p.stems===1?1:0.9), p.trunkR, 1+s*131);
   }
   return {branches, tips};
 }
@@ -956,10 +983,10 @@ function drawSpine(cv, cols, rows, tree){
   for (const tp of tree.tips){ g2.fillStyle=hueColor(tp[2],0.95); g2.beginPath(); g2.arc(X(tp[0]),Y(tp[1]),2.4,0,7); g2.fill(); }
 }
 function treeParams(){
-  const stems=+g("tstems").value, flow=+g("tflow").value/100, ang=+g("tang").value, levels=+g("tlevels").value, leaf=+g("tleaf").value/100, seed=+g("tseed").value;
-  g("v_tstems").textContent=stems; g("v_tflow").textContent=flow.toFixed(2); g("v_tang").textContent=ang+"°"; g("v_tlevels").textContent=levels; g("v_tleaf").textContent=leaf.toFixed(2); g("v_tseed").textContent=seed;
-  return { stems, flow:0.12+flow*0.5, gnarl:0.14+flow*0.28, angle:ang*Math.PI/180, levels,
-           stemBranches: stems===1?3:2, childStart:0.34, taper:0.62, childScale:0.6, lenFactor:0.62, trunkR:1.8, leaf, seed };
+  const stems=+g("tstems").value, flow=+g("tflow").value/100, leader=+g("tleader").value/100, ang=+g("tang").value, levels=+g("tlevels").value, leaf=+g("tleaf").value/100, seed=+g("tseed").value;
+  g("v_tstems").textContent=stems; g("v_tflow").textContent=flow.toFixed(2); g("v_tleader").textContent=leader.toFixed(2); g("v_tang").textContent=ang+"°"; g("v_tlevels").textContent=levels; g("v_tleaf").textContent=leaf.toFixed(2); g("v_tseed").textContent=seed;
+  return { stems, flow:0.12+flow*0.5, gnarl:0.14+flow*0.28, angle:ang*Math.PI/180, levels, leader,
+           childStart:0.30, taper:0.62, childScale:0.6, lenFactor:0.62, trunkR:1.8, leaf, seed };
 }
 function renderGrown(){
   const p=treeParams(), big = window.innerWidth<560?5:7;
@@ -970,16 +997,16 @@ function renderGrown(){
 }
 function renderSweep(){
   const host=g("sweep"); host.innerHTML="";
-  const combos=[[1,0.12],[1,0.5],[1,0.85],[2,0.35],[2,0.6],[3,0.45]];
+  const combos=[[1,0.0],[1,0.5],[1,1.0],[2,0.5],[3,0.55],[1,0.85]];
   const base=treeParams(); let n=0;
-  for (const [stems,flow] of combos){
+  for (const [stems,leader] of combos){
     const fig=document.createElement("figure"); fig.className="cell";
     const fr=document.createElement("div"); fr.className="canvas-frame";
     const cv=document.createElement("canvas"); cv._px=5; fr.appendChild(cv);
-    const cap=document.createElement("figcaption"); cap.innerHTML="<b>"+stems+" stem"+(stems>1?"s":"")+" · flow "+flow.toFixed(2)+"</b>";
+    const cap=document.createElement("figcaption"); cap.innerHTML="<b>"+stems+" stem"+(stems>1?"s":"")+" · leader "+leader.toFixed(2)+"</b>";
     fig.appendChild(fr); fig.appendChild(cap); host.appendChild(fig);
-    const p={...base, stems, flow:0.12+flow*0.5, gnarl:0.14+flow*0.28, stemBranches:stems===1?3:2, levels:2};
-    rasterBlocks(cv, 44, 50, buildTree(44,50,p,5+(n++)), 0.6, 6+n);
+    const p={...base, stems, leader, levels:2};
+    rasterBlocks(cv, 44, 52, buildTree(44,52,p,5+(n++)), 0.6, 6+n);
   }
 }
 function renderForest(){
@@ -1029,7 +1056,7 @@ document.querySelectorAll("#pmode button").forEach(b => b.addEventListener("clic
   b.classList.add("on"); renderPaths();
 }));
 ["rden","rsize","rseed"].forEach(id => on(id, renderRockScatter));
-["tstems","tflow","tang","tlevels","tleaf","tseed"].forEach(id => on(id, renderGrown));
+["tstems","tleader","tflow","tang","tlevels","tleaf","tseed"].forEach(id => on(id, renderGrown));
 ["gsc","gfill","gseed"].forEach(id => on(id, renderForest));
 
 function renderAll(){

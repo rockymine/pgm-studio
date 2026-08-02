@@ -161,10 +161,13 @@ takes both halves. The skeleton is **recursive** — the ez-tree knobs of levels
 per-level radius and length taper, with a gentle upward *force* — but **every branch is a gnarly stepped
 path smoothed into a flowing Catmull-Rom curve**. The trunk carries a slow noise sway so it wanders like a
 bonsai (up, twist, straighten) rather than rising dead straight; the limbs carry a sharper per-step jitter;
-both are pulled gently upright. Limbs branch to a **second degree**, and leaf blobs gather on the outer
-tips. A **stems** knob gives the trunk setups a real tree has — one stem that forks, a double, or a triple
-base — and the rest (trunk flow, branch angle, levels, leaf size) are hash-keyed so a seed always grows the
-same tree. This is the ez-tree lesson (Dan Greenheck) — a tree reads from **taper + curve + a canopy at the
+both are pulled gently upright. Limbs branch to a **second degree**, and the leaf clusters gather on the
+outer tips. The trunk is a **continuous central axis**, not a stub that forks and stops: a **leader** knob
+sets how far it climbs — at a low leader it dissolves into a spreading fork (a decurrent oak), at a high
+leader it carries on up through the crown as one dominant spine, thinning and twisting, with branches
+staggered up its length and a small fan at the top (an excurrent birch or conifer). A **stems** knob gives
+the base setups a real tree has — one stem, a double, or a triple — and the rest (leader, trunk flow,
+branch angle, levels, leaf size) are hash-keyed so a seed always grows the same tree. This is the ez-tree lesson (Dan Greenheck) — a tree reads from **taper + curve + a canopy at the
 tips**, not from branch count — married to the Catmull-Rom flow a Minecraft builder draws by hand in
 Axiom's path tool. The stage renders it two ways: the **spine** (the centerlines and their thickness, each
 limb spline in its own colour) is the view the shape is designed against, and the voxelised blocks are the
