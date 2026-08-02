@@ -12,6 +12,25 @@ When this board drains, pull the next theme up from `BACKLOG.md`. Board rules li
 Task ids are a section letter + number (`S13`, `B10`, `G15`) — **globally unique and stable** across all
 three files. Moving a task between files never changes its id; never renumber or reuse.
 
+## Backend, pipeline & internals (B / P / A)
+
+- [ ] **B43 — Retire the Python-oracle parity harness.** The project began as a port of the Python
+  `pgm-map-studio` and still carries a parity harness that regenerates Python "oracles"
+  (`parser.parse + serializer.to_dict` over the corpus at `/media/sf_repos/pgm-map-studio` into `/tmp/pyfresh`)
+  and diffs the C# derivations against them. That reference is deprecated dead weight: the C# feature set
+  overtook it long ago (the `map.xml`-contract `--parity` was already dropped, B30), and comparing every
+  refactor against a frozen, out-of-date oracle makes safe changes look risky and blocks cleanups (it just
+  did — the grid-algorithm consolidation, fix 1). Remove the four `*Parity` modes from
+  `tools/PgmStudio.RoundTrip/Program.cs` (`--categorize` / `--buildability` / `--traversability` / `--wool`)
+  and their regenerate-from-Python scaffolding; the project-native modes (`--extract` / `--islands` /
+  `--scan-out` / `--authoring` / `--monument-slices` / …) stay. **Keep the concept — a regression / golden
+  harness — but re-home it as project-native** (C# goldens or fixtures over the corpus, no second framework).
+  Then sweep the residue: the `/media/sf_repos` + `/tmp/pyfresh` mentions and the parity paragraph in
+  `CLAUDE.md` (Verification & gotchas) and the docs, and the "Port of X.py" / "matches scipy.ndimage" attribution
+  comments in the ported C# (`Analysis/IslandDetector`, `Analysis/Traversability`, `Minecraft/BlockPalette`, …)
+  that the code-comments rule already bans. `appsettings.Development.json`'s `MapsRoots`/`Import.Root` point at
+  the reference VM but are import-only — repoint or document, don't leave dangling.
+
 ## Layout generation (G) — current focus: the generator in the studio
 
 The box pipeline is now **the** composer (the old grower path is retired — `FEATURES.md`), and the
