@@ -2570,6 +2570,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   them back on save, round-tripping without entering island detection. Making them movable (a drag writing back
   to the intent) is a deliberate later phase. Reverses `finishing-model.md` §6's "the sketch does not author
   these" for *visibility* (§6.1); authoring still stays in plan/configure.
+- **Terrain-paint theming moved onto the sketch, keyed on shapes/islands (finishing-model.md §4).** The paint
+  pass no longer lives on the plan: it is a **Theme phase** of the sketch tool, because the sketch rasterizer is
+  what makes the world and the scope target is the final geometry, not plan pieces. Two steps, ported from the
+  old plan Theme rail: **Create** authors a theme per bucket (the shared `MaterialEditor`/`BlockPicker`/
+  `ThemeVocabulary`, now under `Features/Sketch`); **Apply** is the **island tree 1:1** plus the theme controls
+  (map default · theme picker with per-bucket swatches · Apply/Remove on the selection), reusing the live canvas
+  with the draw toolbar/inspector hidden. An island themes its every member shape, a shape just itself. Storage
+  is on the layout: a `themes` registry + `mapTheme` on `SketchLayout`, a `theme` id on each `SketchShape`
+  (`sketch-bridge` round-trips them). Resolution is `TerrainThemeScope.ThemeAt(layout)` → `cell → shape → theme`
+  via `SketchRasterizer.ShapeThemeOwners` (mirror-aware, smallest-area wins), so **reshaping a shape moves its
+  paint**. Removed from the plan: the Theme rail, `PlanCompiler.BuildThemes`, and the intent's theme fields
+  (superseding the plan-side G157/G158 theming above). Unit-tested (scope resolution + reshape) and e2e'd
+  (persist + render).
 - **Sketch editor** — `/maps/{slug}/sketch` (`SketchTool` + `SketchPanel`/`SketchInspector`): draw 2-D
   shapes → live islands + mirror, with select/op/override/delete/rename. Pure geometry in
   `geometry/shape.js` + `geometry/boolean.js`; canvas + draw/edit controllers + `render/sketch-render.js`;

@@ -91,9 +91,10 @@ lifts existing inline-blob themes into styles + themes + bindings (deduping iden
 retirement of the Client↔server theme-material duplication (`ThemeVocabulary` vs the server `TerrainThemeJson`
 model) — the style/material schema becomes the one source both sides read.
 
-## 4. The finishing pass belongs on the sketch, not the plan (draft — converging)
+## 4. The finishing pass belongs on the sketch, not the plan (landed)
 
-*Draft — the direction below is converging but not yet a locked decision.*
+*Landed: theming is authored on the sketch's Theme phase and resolved from the sketch geometry at export; the
+plan Theme rail and the intent's theme fields are gone. The description below is now the built shape.*
 
 The finishing pass belongs on the **sketch model**, for a reason that also explains why it feels misplaced
 today: the sketch rasterizer is what *makes the world*, and a generator can emit a plan but not a theme. The

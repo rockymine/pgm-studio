@@ -53,6 +53,19 @@ the focus-integration polish remains.
 The Sketch depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection
 highlight); these are the parked / dormant / deferred slices.
 
+- [ ] **S26 — Sweep the now-dead plan-side theme JS.** The Theme phase moved onto the sketch (`FEATURES.md`);
+  the plan tool's Theme UI + C# theme path are gone, but the plan **JS** theme code is still present as an
+  unreachable, self-consistent island: `plan-bridge.js` theme methods (`themesState`/`assignPiece`/`assignBox`/
+  `themeApply`/`getThemes`/… + the `defaultThemeJson` import), `plan-canvas.js` theme mode
+  (`setSelectOnly`/`setThemeOverlay`/`setThemePaint`/`getMultiSelection`/`#selSet`/`#themePaint`), and
+  `plan-doc.js` theme storage (`defaultThemeJson` — now duplicated in `theme/theme-model.js` — plus the
+  `themes`/`mapTheme`/`themeScopes` normalization). Remove them together (they cross-reference), keeping the
+  generic `uniqueId`. Check whether plan-canvas multi-select (`#selSet`) has any non-theme use before dropping it.
+- [ ] **S27 — Live in-canvas paint overlay for the sketch Theme phase.** The old plan Apply step blitted a
+  server-rendered paint preview (`/api/terrain/theme-map-preview` → canvas overlay). The sketch Theme phase
+  ships without it (the export paints correctly; there's just no live in-editor preview). Add a sketch
+  `theme-map-preview` endpoint (rasterize the layout + resolve themes → SVG) and a canvas overlay layer, refreshed
+  on each assignment — the "see the paint while you assign" affordance.
 - [ ] **S25b — Make the surfaced spawn/wool pieces movable, writing the move back to the intent.** S25 landed
   the pieces as **locked** read-only rectangles (`FEATURES.md`; `role`/`intentRef` on `SketchShape`, projected
   by `PlanCompiler`, skipped by the rasterizer, rendered as labelled boxes). The next slice makes them
