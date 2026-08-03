@@ -112,14 +112,17 @@ export function paintMirror(painter, polys) {
  * smooth island outline, so a curve visibly reads as the blocky cells it becomes on export.
  */
 export function paintRaster(painter, runs) {
-  // A distinct block-coloured fill, plus a hairline round each run — the run edges are exactly the
-  // stair-stepped cell boundaries, so the voxelization reads as blocks rather than another smooth blob.
-  const style = {
-    fill: "var(--canvas-result-stroke)", fillAlpha: 0.20,
-    stroke: "var(--canvas-result-stroke)", strokeAlpha: 0.55, width: painter.screenPx(1),
-  };
-  for (const { x, z, w } of runs ?? [])
-    painter.rect({ min_x: x, max_x: x + w, min_z: z, max_z: z + 1 }, style);
+  // A block-coloured fill plus a hairline round each run — the run edges are exactly the stair-stepped cell
+  // boundaries, so the voxelization reads as blocks. A run carrying a `color` (the theme surface a themed
+  // shape paints) uses it; otherwise the neutral stone the sketch is built from by default.
+  const stone = "var(--canvas-result-stroke)";
+  const line = painter.screenPx(1);
+  for (const { x, z, w, color } of runs ?? []) {
+    const fill = color ?? stone;
+    const themed = color != null;
+    painter.rect({ min_x: x, max_x: x + w, min_z: z, max_z: z + 1 },
+      { fill, fillAlpha: themed ? 0.7 : 0.20, stroke: themed ? fill : stone, strokeAlpha: 0.55, width: line });
+  }
 }
 
 /** The working-bounds rectangle — the tight world bound of what a finish would rasterize. */

@@ -2583,6 +2583,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   paint**. Removed from the plan: the Theme rail, `PlanCompiler.BuildThemes`, and the intent's theme fields
   (superseding the plan-side G157/G158 theming above). Unit-tested (scope resolution + reshape) and e2e'd
   (persist + render).
+  - **The Blocks overlay is the paint preview.** The sketch's existing **Blocks** toggle — which showed the
+    rasterized footprint as neutral stone (the material a sketch is built from) — now colours each cell by the
+    theme that paints it: its shape's theme surface, else the map default's, else stone. `rasterize.js` gains
+    `rasterizeOwners` (cell → owning add shape) + `cellRunsColored`; `theme-model.js` resolves a theme's surface
+    block (`surfaceBlockId`/`materialBlockId`); `sketch-bridge` fetches the block-palette hexes once
+    (`api/terrain/blocks`) and hands the canvas `themeId → surface hex`. So the same toggle that proved the
+    voxelization now previews the paint — no separate overlay or server round-trip. Primary footprint only (the
+    mirror image stays a smooth polygon, as the Blocks overlay always has).
 - **Sketch editor** — `/maps/{slug}/sketch` (`SketchTool` + `SketchPanel`/`SketchInspector`): draw 2-D
   shapes → live islands + mirror, with select/op/override/delete/rename. Pure geometry in
   `geometry/shape.js` + `geometry/boolean.js`; canvas + draw/edit controllers + `render/sketch-render.js`;

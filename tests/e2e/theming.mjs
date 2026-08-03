@@ -22,7 +22,9 @@ checks.section("a themed sketch layout survives PUT → GET");
 const layout = await api(`/map/${seed.sketchSlug}/sketch`);
 const firstShapeId = layout?.layers?.[0]?.layout?.shapes?.find(s => !s.role)?.id;
 const themed = structuredClone(layout);
-themed.themes = { forest: { bedrock: { relative: false, value: 1 }, fill: { kind: "solid", id: 3 } } };
+themed.themes = { forest: { bedrock: { relative: false, value: 1 },
+  surface: { material: { kind: "solid", id: 2 }, depth: 1, enabled: true },   // grass — a green the overlay shows
+  fill: { kind: "solid", id: 3 } } };
 themed.mapTheme = "forest";
 if (firstShapeId) themed.layers[0].layout.shapes.find(s => s.id === firstShapeId).theme = "forest";
 await api(`/map/${seed.sketchSlug}/sketch`, { method: "PUT", body: themed });
@@ -65,6 +67,17 @@ try {
   const applyRendered = await page.locator("text=Map default").count() > 0
     && await page.locator('text=Theme to apply').count() > 0;
   checks.add("Theme · Apply renders (island tree + theme controls)", applyRendered);
+
+  // Select the island in the tree, apply the theme, then toggle Blocks — the overlay should now paint the
+  // footprint in the theme's surface colour (the paint preview, via the existing Blocks toggle).
+  await page.click('.geo-row:has-text("island")');
+  await page.waitForTimeout(400);
+  await page.click('button:has-text("Apply forest")');
+  await page.waitForTimeout(500);
+  await page.click('button:has-text("Blocks")');
+  await page.waitForTimeout(900);
+  await shot("theme-blocks.png");
+  checks.add("themed shape applied", await page.locator("text=forest").count() > 1);
   ok = true;
 } catch (e) {
   page.faults.push(`theme phase drive: ${String(e).split("\n")[0]}`);

@@ -57,6 +57,65 @@ export function rasterizeShapes(shapes) {
 }
 
 /**
+ * Like {@link rasterizeShapes}, but each solid cell is mapped to the id of the add shape that owns it — the
+ * smallest-area (most specific) add winning an overlap, then normal/override subtracts cutting as in the set
+ * algebra. Feeds the themed Blocks overlay: a cell's colour is its owner shape's theme surface. Role-tagged
+ * (structural, S25) shapes are skipped. Primary footprint only — mirror copies are the host's concern.
+ */
+export function rasterizeOwners(shapes) {
+  const add = new Map(), area = new Map(), oadd = new Map(), oarea = new Map();
+  const sub = new Set(), osub = new Set();
+  for (const shape of shapes ?? []) {
+    if (shape.role) continue;
+    const cells = rasterShapeCells(shape);
+    if (shape.operation === "subtract") {
+      const set = shape.override ? osub : sub;
+      for (const [x, z] of cells) set.add(key(x, z));
+    } else {
+      const [ownerMap, areaMap] = shape.override ? [oadd, oarea] : [add, area];
+      const a = cells.length;
+      for (const [x, z] of cells) {
+        const k = key(x, z);
+        if (!ownerMap.has(k) || a < areaMap.get(k)) { ownerMap.set(k, shape.id); areaMap.set(k, a); }
+      }
+    }
+  }
+  const result = new Map(add);
+  for (const k of sub) result.delete(k);
+  for (const [k, id] of oadd) result.set(k, id);
+  for (const k of osub) result.delete(k);
+  return result;
+}
+
+/**
+ * Merge an owner map (`"x,z"` → shape id) into coloured horizontal runs `{ x, z, w, color }`, splitting a run
+ * where the colour changes. `colorOf(shapeId)` returns the cell's fill (or null for the default stone).
+ */
+export function cellRunsColored(owners, colorOf) {
+  const byRow = new Map();
+  for (const [k, id] of owners) {
+    const comma = k.indexOf(",");
+    const x = parseInt(k.slice(0, comma), 10), z = parseInt(k.slice(comma + 1), 10);
+    let row = byRow.get(z);
+    if (!row) { row = []; byRow.set(z, row); }
+    row.push([x, colorOf(id) ?? null]);
+  }
+  const runs = [];
+  for (const [z, cells] of byRow) {
+    cells.sort((a, b) => a[0] - b[0]);
+    let start = cells[0][0], prev = cells[0][0], color = cells[0][1];
+    for (let i = 1; i < cells.length; i++) {
+      const [x, c] = cells[i];
+      if (x === prev + 1 && c === color) { prev = x; continue; }
+      runs.push({ x: start, z, w: prev - start + 1, color });
+      start = prev = x; color = c;
+    }
+    runs.push({ x: start, z, w: prev - start + 1, color });
+  }
+  return runs;
+}
+
+/**
  * Merge a Set of `"x,z"` cell keys into horizontal runs `{ x, z, w }` (one fillRect each), so painting the
  * footprint is a few hundred rects instead of one per block. Rows are swept left→right; a gap closes a run.
  */

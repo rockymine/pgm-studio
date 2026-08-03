@@ -48,7 +48,7 @@ import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
   paintSketchShape, paintIslands, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintPlaceGhost, paintGhostIslands, paintRaster, paintStructural,
 } from "../render/sketch-render.js";
-import { rasterizeShapes, cellRuns } from "../geometry/rasterize.js";
+import { rasterizeOwners, cellRunsColored } from "../geometry/rasterize.js";
 import { viewportWorldRect, snapOut, gridStep, paintWorkArea, renderScaleBar } from "../render/canvas-chrome.js";
 // iso-webgl is loaded lazily (on first 3-D toggle) so a missing/blocked WebGL stack — or any failure
 // to load that module — degrades to "no 3-D preview" instead of breaking the whole editor at page load.
@@ -101,6 +101,8 @@ export class SketchCanvas extends CanvasBase {
   #chunkVisible  = true;
   #blocksVisible = false;
   #rasterRuns    = null;   // cached rasterized cell runs; recomputed on shape change while blocks are shown
+  #themeHex      = {};     // themeId → surface hex, so the Blocks overlay shows the theme paint (finishing §4)
+  #mapThemeHex   = null;   // the map-default theme's surface hex, or null (unthemed cells read as stone)
 
   #draw = null;
   #edit = null;
@@ -254,7 +256,23 @@ export class SketchCanvas extends CanvasBase {
   // a shape change while the Blocks layer is on, not per frame. (Only the primary footprint; the mirror
   // copies already read as smooth polygons on their own layer.)
   #rebuildRaster() {
-    this.#rasterRuns = this.#blocksVisible ? cellRuns(rasterizeShapes([...this.#shapes.values()])) : null;
+    this.#rasterRuns = this.#blocksVisible
+      ? cellRunsColored(rasterizeOwners([...this.#shapes.values()]), id => this.#colorForShape(id))
+      : null;
+  }
+
+  // A cell's Blocks-overlay colour: its owner shape's theme surface, else the map-default surface, else null
+  // (the neutral stone the sketch is built from). So the Blocks toggle previews the terrain paint (finishing §4).
+  #colorForShape(shapeId) {
+    const theme = this.#shapes.get(shapeId)?.theme;
+    return (theme && this.#themeHex[theme]) || this.#mapThemeHex || null;
+  }
+
+  /** The per-theme surface colours (themeId → hex) + the map default's, so the Blocks overlay paints themed. */
+  setThemeColors(themeHex, mapThemeHex) {
+    this.#themeHex = themeHex ?? {};
+    this.#mapThemeHex = mapThemeHex ?? null;
+    if (this.#blocksVisible) { this.#rebuildRaster(); this.#paintWorld(); }
   }
 
   // ── isometric preview (S6) ─────────────────────────────────────────────────────

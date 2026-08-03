@@ -11,7 +11,7 @@ import { rectToPolygon, translateShape, rotateShape, boundsOfShapes, splitShape 
 import { surfaceHeights } from "../geometry/slope.js";
 import { LIBRARY, instantiate, libraryMeta } from "../geometry/shape-library.js";
 import { applySymmetry, orbitAxes } from "../geometry/symmetry.js";
-import { defaultThemeJson, uniqueThemeId } from "../theme/theme-model.js";
+import { defaultThemeJson, uniqueThemeId, surfaceBlockId } from "../theme/theme-model.js";
 import polygonClipping from "../vendor/polygon-clipping.js";
 
 // Default footprint = 2-team landscape (120×80), framed about the origin. CTW maps fit a ~120-block long
@@ -397,7 +397,28 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     for (const L of layers) for (const s of (L.shapes || [])) if (s.theme) shapeThemes[s.id] = s.theme;
     return JSON.stringify({ themes, mapTheme: mapTheme || "", shapeThemes });
   }
-  function afterThemeChange() { syncActive(); markDirty(); fire("OnThemes", themesState()); }
+  function afterThemeChange() { syncActive(); markDirty(); fire("OnThemes", themesState()); refreshThemeColors(); }
+
+  // Block-palette hex table (id → hex), fetched once, so the Blocks overlay can paint each shape in its theme's
+  // surface colour (finishing-model.md §4). Unavailable palette → overlay stays neutral stone.
+  let blockHex = {}, blockHexLoaded = false;
+  async function ensureBlockPalette() {
+    if (blockHexLoaded) return;
+    blockHexLoaded = true;
+    try {
+      const res = await fetch("/api/terrain/blocks");
+      if (res.ok) for (const b of await res.json()) if (blockHex[b.id] === undefined) blockHex[b.id] = b.hex;
+    } catch { /* leave empty — themed overlay falls back to stone */ }
+    refreshThemeColors();
+  }
+  // Resolve each theme's surface colour + the map default's, and hand them to the canvas for the Blocks overlay.
+  function refreshThemeColors() {
+    const hexOf = (t) => blockHex[surfaceBlockId(t)] || null;
+    const themeHex = {};
+    for (const [id, t] of Object.entries(themes)) { const h = hexOf(t); if (h) themeHex[id] = h; }
+    const mapHex = (mapTheme && themes[mapTheme]) ? hexOf(themes[mapTheme]) : null;
+    canvas.setThemeColors(themeHex, mapHex);
+  }
 
   // Set (or clear, with a falsy themeId) a shape's theme override — the live canvas shape so it persists on sync.
   function setShapeTheme(shapeId, themeId) {
@@ -414,6 +435,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
   // Seed the default working bounds so drawing + the mirror preview work immediately.
   applySetup(setup);
   canvas.resize();
+  ensureBlockPalette();   // fetch the block-palette hexes so the Blocks overlay can paint themes
 
   return {
     setTool(tool)      {
@@ -542,6 +564,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
       if (s.setup) applySetup(s.setup);
       themes = (s.themes && typeof s.themes === "object") ? s.themes : {};
       mapTheme = (s.mapTheme && themes[s.mapTheme]) ? s.mapTheme : "";
+      ensureBlockPalette();   // resolves theme surface colours for the Blocks overlay (idempotent)
       const raw = (s.layers && s.layers.length) ? s.layers : (s.layout ? [{ base_y: 0, layout: s.layout }] : []);
       // A layer's stored shapes are partitioned on load: role-tagged shapes are the plan's structural pieces
       // (S25) — carried as a locked render-only overlay, kept out of the drawn-shape pipeline (islands, raster,
