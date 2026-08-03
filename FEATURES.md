@@ -2611,10 +2611,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
     and team tints all read as themselves, and the rim proves it — an edge-only bucket no per-shape colour
     could produce. The island fill drops to an outline under it, since the painted blocks are the interior.
     The payload is palette-indexed (`palette` + `color_idx`, expanded client-side) because terrain is a handful
-    of blocks and a hex per cell was most of the response. Fetched only while the overlay is on, debounced
-    120 ms against the geometry stream and immediate on a theme edit; until it arrives the plain stone
-    footprint stands in, so drawing keeps its instant voxelization feedback. Primary footprint only (the mirror
-    image stays a smooth polygon, as the Blocks overlay always has).
+    of blocks and a hex per cell was most of the response. Primary footprint only (the mirror image stays a
+    smooth polygon, as the Blocks overlay always has).
+
+    **The paint is a Theme-phase preview; Draw keeps the bare voxelization.** The overlay takes both the
+    Blocks toggle and the Theme phase, because theming is a finishing pass over a finished sketch: while the
+    shapes are still being drawn, Blocks shows the thing it exists to show — the exact cells an export would
+    fill — and not a finish over the top of them. Drawing therefore issues **no paint round-trip at all**,
+    which is also why it costs the drawing loop nothing. In Theme the fetch is debounced 120 ms against the
+    geometry stream and immediate on a theme edit; until a bitmap arrives the plain stone footprint stands in.
+    One `PushCanvasMode(phase)` pushes this and the select-only restriction together, from the single place a
+    phase changes.
 
     **Only the column tops are resolved, not a whole world (S31).** Painting every block of every column into
     a `VoxelWorld` and then reading one of them back was the bulk of a preview. `TerrainPainter.ColumnBlocks`

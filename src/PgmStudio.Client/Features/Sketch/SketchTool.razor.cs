@@ -49,13 +49,18 @@ public partial class SketchTool
         tool = "select";
         StateHasChanged();
         // Redundant with SetPhase's own call — kept because this step is the one that shows the canvas, and
-        // it must be restricted by the time it does, however it was reached.
-        if (handle is not null) await handle.InvokeVoidAsync("setSelectOnly", true);
+        // it must be in the right mode by the time it does, however it was reached.
+        await PushCanvasMode("theme");
     }
     private Task BackToThemeCreate() { themeStep = "create"; StateHasChanged(); return Task.CompletedTask; }
 
     // The select tool edits as well as selects in Draw; in the Theme phase it only selects, so it says so.
     private string SelectToolTitle => ThemeApplyActive ? "Select" : "Select / edit";
+
+    // The same toggle shows the bare voxelization while drawing and the paint on top of it once theming.
+    private string BlocksChipTitle => ThemeApplyActive
+        ? "Show the blocks the export places — the rasterized footprint painted by its themes"
+        : "Show the rasterized block footprint — the exact cells the shapes voxelize into";
 
     // The shapes the current selection themes: an island's members, else the single selected shape, else none.
     private IReadOnlyList<string> ThemeTargetShapeIds =>
@@ -73,9 +78,18 @@ public partial class SketchTool
     private async Task SetPhase(string p)
     {
         active = p;
-        // Editing geometry belongs to Draw alone. Any other phase gets the canvas as a selection surface, and
-        // the switch is what enforces it, so no route into or out of Theme can leave the wrong mode behind.
-        if (handle is not null) await handle.InvokeVoidAsync("setSelectOnly", p != "draw");
+        await PushCanvasMode(p);
+    }
+
+    // What the canvas is in a given phase, pushed from the one place a phase changes so no route in or out can
+    // leave the wrong mode behind. Editing geometry belongs to Draw alone, so every other phase gets the canvas
+    // as a selection surface; and only Theme previews the finished paint, because while the shapes are still
+    // being drawn the Blocks overlay should show the voxelization it is there to show, not a finishing pass.
+    private async Task PushCanvasMode(string phase)
+    {
+        if (handle is null) return;
+        await handle.InvokeVoidAsync("setSelectOnly", phase != "draw");
+        await handle.InvokeVoidAsync("setPaintPreview", phase == "theme");
     }
 
     // Layout pushed from the bridge (OnLayout) + the current selection (OnShapeSelected/OnIslandSelected).

@@ -413,13 +413,27 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // is on, and coalesced: geometry edits fire continuously, and a paint is worth one round-trip per settle.
   // The wait is short because the paint itself is: a typical board repaints in tens of milliseconds, so this
   // is what a drag's trailing edge costs, not a cushion for slow work.
+  //
+  // It takes BOTH the Blocks toggle and the Theme phase. Theming is a finishing pass over a finished sketch,
+  // so while the shapes are still being drawn the overlay shows the plain voxelization and nothing else —
+  // that is what Blocks is for there, the exact cells an export would fill. Not painting during Draw also
+  // costs the drawing loop nothing: no round-trip fires at all.
   const PAINT_DEBOUNCE_MS = 120;
-  let paintTimer = null, paintSeq = 0, paintWanted = false;
+  let paintTimer = null, paintSeq = 0, blocksOn = false, paintPhase = false;
+  const paintWanted = () => blocksOn && paintPhase;
 
   function refreshPaint({ now = false } = {}) {
-    if (!paintWanted || !slug) return;
+    if (!paintWanted() || !slug) return;
     clearTimeout(paintTimer);
     paintTimer = setTimeout(fetchPaint, now ? 0 : PAINT_DEBOUNCE_MS);
+  }
+
+  // Bring the overlay in line with the toggle + the phase: paint when both want it, drop the bitmap when
+  // either stops, so re-entering can't flash a stale one.
+  function syncPaint() {
+    clearTimeout(paintTimer);
+    if (paintWanted()) refreshPaint({ now: true });
+    else canvas.loadPaintLayer(null);
   }
 
   async function fetchPaint() {
@@ -481,13 +495,13 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     setMirrorVisible(v){ mirrorVisible = v; canvas.setMirrorVisible(v); refreshMirror(); },
     setChunkVisible(v) { canvas.setChunkVisible(v); },
     setBlocksVisible(v){
-      canvas.setBlocksVisible(v);
-      // Painting the layout is server work, so it happens only while the overlay is actually on. Turning it
-      // on paints immediately (the user is waiting on it); turning it off drops the bitmap, so re-enabling
-      // after edits can't flash the stale one.
-      paintWanted = !!v;
-      if (paintWanted) refreshPaint({ now: true }); else canvas.loadPaintLayer(null);
+      blocksOn = !!v;
+      canvas.setBlocksVisible(blocksOn);
+      syncPaint();
     },
+    // Whether this phase previews the finished paint. Only Theme does: Draw wants the raw voxelization while
+    // the shapes are still moving, and painting the layout is server work worth not doing there at all.
+    setPaintPreview(on) { paintPhase = !!on; syncPaint(); },
     setSnap(v)         { canvas.setSnapEnabled(v); },
     setView(v)         {
       if (v !== "iso") { view = "2d"; canvas.hideIso(); return; }
