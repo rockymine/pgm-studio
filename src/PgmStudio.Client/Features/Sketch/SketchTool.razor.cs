@@ -36,6 +36,28 @@ public partial class SketchTool
     private Task GoInfo() => SetPhase("info");
     private Task GoDraw() => SetPhase("draw");
 
+    // ── Theme phase (finishing-model.md §4): two steps, Create (author themes) and Apply (assign them on the
+    //    island tree). Apply reuses the live canvas, so its body stays mounted like Draw. ──
+    private string themeStep = "create";
+    private bool ThemeCreateActive => active == "theme" && themeStep == "create";
+    private bool ThemeApplyActive => active == "theme" && themeStep == "apply";
+    private static readonly string[] ThemeSteps = ["Create", "Apply"];
+    private Task GoTheme() { themeStep = "create"; return SetPhase("theme"); }
+    private async Task EnterThemeApply()
+    {
+        themeStep = "apply";
+        tool = "select";
+        StateHasChanged();
+        if (handle is not null) await handle.InvokeVoidAsync("setTool", "select");
+    }
+    private Task BackToThemeCreate() { themeStep = "create"; StateHasChanged(); return Task.CompletedTask; }
+
+    // The shapes the current selection themes: an island's members, else the single selected shape, else none.
+    private IReadOnlyList<string> ThemeTargetShapeIds =>
+        selectedIslandId is not null ? (SelectedIsland?.ShapeIds ?? (IReadOnlyList<string>)[])
+        : selectedShapeId is not null ? new[] { selectedShapeId }
+        : [];
+
     // A freshly-created sketch lands on Info (?phase=info) to name it; opening an existing one goes
     // straight to Draw.
     protected override void OnInitialized() { if (Phase == "info") active = "info"; }
@@ -242,6 +264,10 @@ public partial class SketchTool
     /// <summary>An island was selected in the panel (null = deselected).</summary>
     [JSInvokable]
     public void OnIslandSelected(string? id) { selectedIslandId = id; StateHasChanged(); }
+
+    /// <summary>The theme registry / assignments changed on the bridge — re-render so the Apply rail refreshes.</summary>
+    [JSInvokable]
+    public void OnThemes(string json) => StateHasChanged();
 
     /// <summary>The bridge couldn't initialise the read-only 3-D preview (WebGL unavailable, or the
     /// preview module failed to load); fall back to 2-D and disable the toggle.</summary>

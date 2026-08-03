@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 
-namespace PgmStudio.Client.Features.Plan;
+namespace PgmStudio.Client.Features.Sketch;
 
 /// <summary>One block the Theme rail's picker offers — the payload of <c>GET /api/terrain/blocks</c>, which
 /// serves <c>TerrainPalette.Paintable</c>. <see cref="Hex"/> is the colour the export actually places, so a

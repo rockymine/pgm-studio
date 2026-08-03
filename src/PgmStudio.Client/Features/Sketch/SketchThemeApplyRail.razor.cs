@@ -1,0 +1,121 @@
+using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
+using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
+
+namespace PgmStudio.Client.Features.Sketch;
+
+/// <summary>
+/// The Theme phase's Apply-step controls (docs/world-export/finishing-model.md §4), shown under the island tree
+/// in the sketch sidebar. The tree is the selector — an island or one of its shapes — and this picks the theme,
+/// previews it, and applies or removes it on that selection; the map default sits under everything. It owns no
+/// state: it reads the theme registry + per-shape assignments through the sketch-bridge <see cref="Handle"/> and
+/// writes back through it (a shape override, or an island's every member). Themes are <em>created</em> in the
+/// previous step; here they are only chosen and placed.
+/// </summary>
+public partial class SketchThemeApplyRail
+{
+    [Parameter] public IJSObjectReference? Handle { get; set; }
+    /// <summary>The selected island (its every shape is themed), else null.</summary>
+    [Parameter] public string? SelectedIslandId { get; set; }
+    /// <summary>The selected single shape (themed on its own), else null.</summary>
+    [Parameter] public string? SelectedShapeId { get; set; }
+    /// <summary>The shape ids the current selection covers — for reading back its current theme.</summary>
+    [Parameter] public IReadOnlyList<string> TargetShapeIds { get; set; } = [];
+    [Inject] public HttpClient Http { get; set; } = default!;
+    [Inject] public IJSRuntime JS { get; set; } = default!;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
+
+    private List<string> Themes = [];
+    private string MapTheme = "";
+    private Dictionary<string, string> ShapeThemes = new();
+    private string? Picked;                                 // the theme selected to apply
+    private string? swatchedFor;                            // the theme the swatches currently show
+    private Dictionary<string, string> Swatches = new();
+
+    // Reload the registry + assignments whenever the selection changes; refresh swatches only when the picked
+    // theme changes (that one carries an HTTP round-trip).
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Handle is null) return;
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        var json = await Handle!.InvokeAsync<string>("getThemes");
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+        Themes = root.TryGetProperty("themes", out var th) && th.ValueKind == JsonValueKind.Object
+            ? th.EnumerateObject().Select(p => p.Name).ToList() : [];
+        MapTheme = root.TryGetProperty("mapTheme", out var mt) && mt.ValueKind == JsonValueKind.String ? mt.GetString() ?? "" : "";
+        ShapeThemes = ReadMap(root, "shapeThemes");
+        if (Picked is null || !Themes.Contains(Picked)) Picked = Themes.FirstOrDefault();
+        if (Picked != swatchedFor) await LoadPickedSwatches();
+        StateHasChanged();
+    }
+
+    private static Dictionary<string, string> ReadMap(JsonElement root, string name)
+    {
+        var map = new Dictionary<string, string>();
+        if (root.TryGetProperty(name, out var el) && el.ValueKind == JsonValueKind.Object)
+            foreach (var p in el.EnumerateObject())
+                if (p.Value.ValueKind == JsonValueKind.String) map[p.Name] = p.Value.GetString() ?? "";
+        return map;
+    }
+
+    private bool HasSelection => SelectedIslandId is not null || SelectedShapeId is not null;
+
+    // What the selection paints today: the theme shared by every target shape, "" when none, or "~mixed~" when
+    // the members disagree (an island whose shapes carry different themes).
+    private string SelectionTheme()
+    {
+        if (TargetShapeIds.Count == 0) return "";
+        var first = ShapeThemes.GetValueOrDefault(TargetShapeIds[0], "");
+        return TargetShapeIds.All(id => ShapeThemes.GetValueOrDefault(id, "") == first) ? first : "~mixed~";
+    }
+
+    private async Task Pick(string id) { Picked = id; await LoadPickedSwatches(); StateHasChanged(); }
+
+    // The picked theme's per-bucket preview, through the real materials + palette (the same render the Create
+    // step uses), so the swatch shows the paint that will land.
+    private async Task LoadPickedSwatches()
+    {
+        Swatches = new();
+        swatchedFor = Picked;
+        if (Handle is null || Picked is null) return;
+        var themesJson = await Handle.InvokeAsync<string>("getThemes");
+        using var doc = JsonDocument.Parse(themesJson);
+        if (!doc.RootElement.TryGetProperty("themes", out var th) || !th.TryGetProperty(Picked, out var node)) return;
+        try
+        {
+            var resp = await Http.PostAsync("api/terrain/theme-preview",
+                new StringContent(node.GetRawText(), Encoding.UTF8, "application/json"));
+            if (resp.IsSuccessStatusCode)
+                Swatches = await resp.Content.ReadFromJsonAsync<Dictionary<string, string>>() ?? new();
+        }
+        catch { /* leave empty on a preview failure */ }
+    }
+
+    private Task Apply() => Assign(Picked ?? "");
+    private Task Remove() => Assign("");
+
+    // Assign (or clear) the picked theme on the selection — an island writes every member shape, a shape just
+    // itself. The bridge re-derives the readout; the export resolves the shape → theme at paint time.
+    private async Task Assign(string themeId)
+    {
+        if (Handle is null) return;
+        if (SelectedIslandId is not null) await Handle.InvokeVoidAsync("assignIsland", SelectedIslandId, themeId);
+        else if (SelectedShapeId is not null) await Handle.InvokeVoidAsync("assignShape", SelectedShapeId, themeId);
+        await Load();
+    }
+
+    private async Task OnMapDefault(ChangeEventArgs e)
+    {
+        if (Handle is null) return;
+        await Handle.InvokeVoidAsync("setMapTheme", (string?)e.Value ?? "");
+        await Load();
+    }
+}

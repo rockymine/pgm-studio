@@ -29,64 +29,12 @@ public partial class PlanTool
     private string active = "draw";
     private bool InfoActive => MapBacked && active == "info";
     private bool DrawActive => MapBacked && active == "draw";
-    private bool ThemeActive => MapBacked && active == "theme";
-    // Theme-apply mode (G157): the Apply step reuses the shared plan canvas as a read-only theme-assignment
-    // surface, so the Draw workspace is shown (not hidden) while it is active even though the phase is "theme".
-    private bool themeApplyActive;
-    // The Create step is the theme editor (PlanThemePhase); Apply is the canvas mode.
-    private bool ThemeCreateActive => ThemeActive && !themeApplyActive;
-    // The Draw workspace stays mounted; it's hidden (not removed) on Info or the theme Create step — but shown
-    // for theme-apply, which drives that same canvas.
-    private bool DrawHidden => MapBacked && active != "draw" && !themeApplyActive;
+    // The Draw workspace stays mounted; it's hidden (not removed) on Info.
+    private bool DrawHidden => MapBacked && active != "draw";
     // Map-backed Draw always shows its sidebar (part of the workspace); the bare route folds it via the rail.
     private bool SidebarOpen => MapBacked || leftOpen;
-    private Task GoInfo() => LeaveTheme("info");
-    private Task GoDraw() => LeaveTheme("draw");
-    private Task GoTheme() => SetPhase("theme");
-
-    // ── theme-apply canvas mode (G157) ──────────────────────────────────────────
-    // The Theme phase's two flow-bar steps — the same list the Create step (PlanThemePhase) shows, so the
-    // stepper reads "Theme | Create Apply" whichever step is active.
-    private static readonly string[] ThemeSteps = ["Create", "Apply"];
-
-    // Flow-bar step click while in theme-apply: Create (0) drops back to the theme editor; Apply (1) is here.
-    private Task OnThemeStep(int i) => i == 0 ? BackToThemes() : Task.CompletedTask;
-
-    // Enter from the Create step's "Apply →": show the shared canvas, put it in read-only theme-assignment mode
-    // with the live paint overlay, and swap the sidebar for the theme-apply rail.
-    private async Task EnterThemeApply()
-    {
-        themeApplyActive = true;
-        if (handle is not null) await handle.InvokeVoidAsync("themeApply", true);
-        StateHasChanged();
-    }
-    // Back to the Create step (theme editor); leave the canvas mode but stay on the theme phase.
-    private async Task BackToThemes()
-    {
-        themeApplyActive = false;
-        if (handle is not null) await handle.InvokeVoidAsync("themeApply", false);
-        StateHasChanged();
-    }
-    // Done: leave the canvas mode and drop to the Draw workspace.
-    private Task FinishTheme() => LeaveTheme("draw");
-
-    // Any phase switch off the theme phase must also leave the canvas mode so the draw canvas paints normally.
-    private async Task LeaveTheme(string phase)
-    {
-        if (themeApplyActive)
-        {
-            themeApplyActive = false;
-            if (handle is not null) await handle.InvokeVoidAsync("themeApply", false);
-        }
-        await SetPhase(phase);
-    }
-
-    // The box/piece shapes a theme assignment applies to: the Ctrl-multi-set when present, else the single
-    // box/piece selection (markers/zones are not themeable, so they yield nothing).
-    private IReadOnlyList<ThemeShape> SelectedThemeShapes =>
-        sel?.Multi is { Count: > 0 } multi ? multi
-        : sel is { Kind: "box" or "piece" } ? [new ThemeShape { Kind = sel.Kind, Id = sel.Id }]
-        : [];
+    private Task GoInfo() => SetPhase("info");
+    private Task GoDraw() => SetPhase("draw");
 
     // A blank map-backed plan lands on Info (?phase=info) to name it; opening an existing one goes to Draw.
     protected override void OnInitialized() { if (Phase == "info") active = "info"; }
@@ -894,16 +842,6 @@ public partial class PlanTool
         [JsonPropertyName("boxKind")] public string BoxKind { get; set; } = "";
         [JsonPropertyName("members")] public List<string>? Members { get; set; }
         [JsonPropertyName("membersNamed")] public bool MembersNamed { get; set; }
-        // Theme-apply Ctrl-multi-selection: every box/piece the assignment applies to (the primary above is the
-        // last-clicked). Absent outside theme-apply.
-        [JsonPropertyName("multi")] public List<ThemeShape>? Multi { get; set; }
-    }
-
-    /// <summary>One selectable shape in the theme-apply canvas — a box or a piece the rail assigns a theme to.</summary>
-    public sealed class ThemeShape
-    {
-        [JsonPropertyName("kind")] public string Kind { get; set; } = "";
-        [JsonPropertyName("id")] public string Id { get; set; } = "";
     }
 
     private sealed class MetaDto

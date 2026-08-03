@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Components;
 
-namespace PgmStudio.Client.Features.Plan;
+namespace PgmStudio.Client.Features.Sketch;
 
 /// <summary>
 /// The block chooser behind every solid material in the Theme rail. A block is an (id, data) pair, and the

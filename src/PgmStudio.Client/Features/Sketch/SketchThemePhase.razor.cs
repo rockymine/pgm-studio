@@ -5,7 +5,7 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-namespace PgmStudio.Client.Features.Plan;
+namespace PgmStudio.Client.Features.Sketch;
 
 /// <summary>
 /// The Theme rail phase (docs/world-export/terrain-painting.md TP10), two steps. <b>Create</b> is the theme
@@ -18,7 +18,7 @@ namespace PgmStudio.Client.Features.Plan;
 /// being edited is the wire JSON itself as a <see cref="JsonObject"/> — the editor mutates that node and hands
 /// it back, so there is no model of a theme here to fall out of step with the painter's.</para>
 /// </summary>
-public partial class PlanThemePhase
+public partial class SketchThemePhase
 {
     [Parameter] public IJSObjectReference? Handle { get; set; }
     [Parameter] public EventCallback OnBack { get; set; }

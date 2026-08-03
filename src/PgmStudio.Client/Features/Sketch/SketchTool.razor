@@ -26,6 +26,7 @@
     <NavRail LogoHref="/" LogoTitle="Studio home">
       <NavButton Icon="book-open-text" Title="Info" Active="@InfoActive" OnClick="GoInfo" />
       <NavButton Icon="pencil-ruler" Title="Draw" Active="@DrawActive" OnClick="GoDraw" />
+      <NavButton Icon="palette" Title="Theme" Active="@(ThemeCreateActive || ThemeApplyActive)" OnClick="GoTheme" />
     </NavRail>
   </Rail>
   <ChildContent>
@@ -35,24 +36,50 @@
                          Mode="@mode" CenterX="@centerX" CenterZ="@centerZ"
                          OnModeChange="OnModeChange" OnCenterX="OnCenterX" OnCenterZ="OnCenterZ" />
       }
-      @* Draw stays mounted (hidden, not removed) so the canvas bridge + zoom/draw state survive a trip
-         to Info; [hidden] is display:none, and SetPhase re-measures the canvas on return. *@
-      <div class="phase-body" hidden="@(!DrawActive)">
-      <FlowBar Class="flow-bar--flush" PhaseIcon="pencil-ruler" PhaseTitle="Draw"
-               BackEnabled="true" NextLabel="Finish" NextEnabled="@(!finishing)"
-               OnBack="GoInfo" OnNext="Finish" />
+      @if (ThemeCreateActive)
+      {
+        <SketchThemePhase Handle="handle" OnApply="EnterThemeApply" OnBack="GoDraw" />
+      }
+      @* Draw + Theme-Apply share the one mounted canvas, so this body stays present (hidden when Info/Create
+         is up) — [hidden] is display:none, and the canvas re-measures on unhide. Theme-Apply swaps the sidebar
+         (island tree + theme controls) and hides the draw toolbar/inspector; the canvas is reused as-is. *@
+      <div class="phase-body" hidden="@(!(DrawActive || ThemeApplyActive))">
+      @if (ThemeApplyActive)
+      {
+        <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Theme"
+                 Steps="ThemeSteps" CurrentStep="1" BackEnabled="true" NextLabel="Done" NextEnabled="true"
+                 OnStep="@(i => i == 0 ? BackToThemeCreate() : Task.CompletedTask)" OnBack="BackToThemeCreate" OnNext="GoDraw" />
+      }
+      else
+      {
+        <FlowBar Class="flow-bar--flush" PhaseIcon="pencil-ruler" PhaseTitle="Draw"
+                 BackEnabled="true" NextLabel="Finish" NextEnabled="@(!finishing)"
+                 OnBack="GoInfo" OnNext="Finish" />
+      }
       <Workspace>
         <Sidebar>
+          @if (ThemeApplyActive)
+          {
+            <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="selectedShapeId" SelectedIslandId="selectedIslandId"
+                         OnSelectShape="SelectShape" OnSelectIsland="SelectIsland" />
+            <SketchThemeApplyRail Handle="handle" SelectedIslandId="selectedIslandId" SelectedShapeId="selectedShapeId"
+                                  TargetShapeIds="ThemeTargetShapeIds" />
+          }
+          else
+          {
             <SketchLayers Layers="layerRows" ActiveId="@activeLayerId" OnSelect="SelectLayer" OnAdd="AddLayer"
                           OnDelete="DeleteLayer" OnRename="RenameLayer" OnSetBaseY="SetLayerBaseY" />
             <SketchLibrary Items="libraryItems" OnArm="ArmPlace" />
             <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="selectedShapeId" SelectedIslandId="selectedIslandId"
                          OnSelectShape="SelectShape" OnSelectIsland="SelectIsland" />
+          }
         </Sidebar>
         <div class="sidebar-handle"></div>
         <div class="workspace-canvas">
           <div class="canvas-subbar">
             <div class="canvas-toolbar">
+              @if (!ThemeApplyActive)
+              {
               <button class="draw-tool-btn @(tool == "move" ? "draw-tool-btn--active" : null)" title="Move / pan"
                       @onclick='() => SetTool("move")'><i data-lucide="hand"></i></button>
               <button class="draw-tool-btn @(tool == "select" ? "draw-tool-btn--active" : null)" title="Select / edit"
@@ -71,6 +98,11 @@
                       @onclick='() => SetOperation("add")'><i data-lucide="plus"></i><span class="draw-tool-label">Add</span></button>
               <button class="draw-tool-btn @(op == "subtract" ? "draw-tool-btn--op-sub" : null)" title="Subtract — shapes carve land away"
                       @onclick='() => SetOperation("subtract")'><i data-lucide="minus"></i><span class="draw-tool-label">Sub</span></button>
+              }
+              else
+              {
+                <span class="draw-tool-hint">Select an island or shape, then apply a theme.</span>
+              }
             </div>
             <div @ref="coordsRef" class="canvas-cursor"></div>
             <div @ref="dimRef" class="canvas-dim"></div>
@@ -104,13 +136,16 @@
             <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
           </div>
         </div>
-        <div class="sidebar-handle"></div>
-        <SketchInspector Shape="SelectedShape" Island="SelectedIsland" Shapes="shapes"
-                         OnToggleOp="ToggleOp" OnToggleOverride="ToggleOverride" OnDeleteShape="DeleteShape"
-                         OnPromoteShape="PromoteShape" OnSetHeight="SetHeight" OnToggleMirrors="ToggleMirrors" OnRenameIsland="RenameIsland"
-                         OnRotate="Rotate"
-                         SelectedVertexIdx="selectedVertexIdx" SelectedVertexHeight="selectedVertexHeight" OnSetVertexHeight="SetVertexHeight"
-                         SlopeControls="slopeControls" OnSlopeHeightChanged="SetSlopeHeight" OnApplySlope="ApplySlope" />
+        @if (!ThemeApplyActive)
+        {
+          <div class="sidebar-handle"></div>
+          <SketchInspector Shape="SelectedShape" Island="SelectedIsland" Shapes="shapes"
+                           OnToggleOp="ToggleOp" OnToggleOverride="ToggleOverride" OnDeleteShape="DeleteShape"
+                           OnPromoteShape="PromoteShape" OnSetHeight="SetHeight" OnToggleMirrors="ToggleMirrors" OnRenameIsland="RenameIsland"
+                           OnRotate="Rotate"
+                           SelectedVertexIdx="selectedVertexIdx" SelectedVertexHeight="selectedVertexHeight" OnSetVertexHeight="SetVertexHeight"
+                           SlopeControls="slopeControls" OnSlopeHeightChanged="SetSlopeHeight" OnApplySlope="ApplySlope" />
+        }
       </Workspace>
       </div>
   </ChildContent>
