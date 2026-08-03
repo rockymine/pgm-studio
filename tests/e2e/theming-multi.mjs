@@ -75,17 +75,38 @@ checks.add("only the assigned shape is themed (not all)", grassed.length < terra
 // ── distinct per-shape colours in the Blocks overlay ───────────────────────────────────────────────────
 checks.section("two shapes, two colours, over stone");
 
-// Give grass a clear green surface and add a sand theme on a different shape, then reload and toggle Blocks.
+// Pick two maximally-contrasting blocks from the REAL paint palette, so both themes render a distinct,
+// in-palette surface colour (guessing a block id risks one not being offered → it falls back to stone).
+const palette = await api("/terrain/blocks");
+// Dedupe to one entry per block id, first-wins — exactly how the bridge builds its id → hex table, so the
+// colour we pick is the colour the overlay will paint.
+const byId = {};
+for (const p of palette) if (byId[p.id] === undefined) byId[p.id] = p;
+const reps = Object.values(byId);
+const rgb = (hex) => { const n = parseInt(hex.replace("#", ""), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+const dist = (x, y) => { const [r, g, bl] = rgb(x), [r2, g2, b2] = rgb(y); return (r - r2) ** 2 + (g - g2) ** 2 + (bl - b2) ** 2; };
+// Only saturated blocks: white/black/grey wash out against the light canvas + the translucent island fill,
+// so restrict to colours with real chroma and pick the two most different among those.
+const chroma = (hex) => { const [r, g, bl] = rgb(hex); return Math.max(r, g, bl) - Math.min(r, g, bl); };
+const light = (hex) => { const [r, g, bl] = rgb(hex); return (r + g + bl) / 3; };
+// Saturated AND mid-lightness — dark (netherrack) or light (snow) colours vanish against the canvas.
+const vivid = reps.filter(p => chroma(p.hex) > 60 && light(p.hex) > 90 && light(p.hex) < 205);
+const pool = vivid.length >= 2 ? vivid : reps;
+let a = pool[0], b = pool[1];
+for (const p of pool) for (const q of pool) if (p.id !== q.id && dist(p.hex, q.hex) > dist(a.hex, b.hex)) { a = p; b = q; }
+checks.add("two contrasting palette blocks", a && b && a.id !== b.id, `${a?.name} ${a?.hex} / ${b?.name} ${b?.hex}`);
+
 const shapes = terrainShapes(saved);
 const grassShape = shapes.find(s => s.theme === "grass");
 const other = shapes.find(s => !s.theme && s.id !== grassShape?.id) ?? shapes.find(s => s.id !== grassShape?.id);
 saved.themes = {
   ...(saved.themes ?? {}),
-  grass: { bedrock: { relative: false, value: 1 }, surface: { material: { kind: "solid", id: 2 }, depth: 1, enabled: true }, fill: { kind: "solid", id: 1 } },
-  sand:  { bedrock: { relative: false, value: 1 }, surface: { material: { kind: "solid", id: 12 }, depth: 1, enabled: true }, fill: { kind: "solid", id: 1 } },
+  grass: { bedrock: { relative: false, value: 1 }, surface: { material: { kind: "solid", id: a.id, data: a.data }, depth: 1, enabled: true }, fill: { kind: "solid", id: 1 } },
+  dirt:  { bedrock: { relative: false, value: 1 }, surface: { material: { kind: "solid", id: b.id, data: b.data }, depth: 1, enabled: true }, fill: { kind: "solid", id: 1 } },
 };
-if (other) other.theme = "sand";
-saved.mapTheme = "grass";   // the whole footprint reads green, the one sand-overridden shape stands out
+if (grassShape) grassShape.theme = "grass";
+if (other) other.theme = "dirt";
+saved.mapTheme = "";   // no map default — the two themed shapes read as their two colours against the stone rest
 await api(`/map/${slug}/sketch`, { method: "PUT", body: saved });
 
 let shotOk = false;
@@ -111,7 +132,7 @@ try {
 } catch (e) {
   page.faults.push(`blocks shot: ${String(e).split("\n")[0]}`);
 }
-checks.add("two shapes carry distinct themes", other?.theme === "sand" && grassShape?.theme === "grass");
+checks.add("two shapes carry distinct themes", other?.theme === "dirt" && grassShape?.theme === "grass");
 checks.add("themed Blocks overlay captured", shotOk, page.faults.slice(0, 3).join(" | "));
 
 checks.finish();
