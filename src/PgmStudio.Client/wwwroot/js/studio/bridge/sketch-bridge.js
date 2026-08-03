@@ -36,7 +36,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
   let setup = { ...DEFAULT_SETUP };
   // Stacked layers (S7b): each holds its own shapes/islands at a base_y. The canvas always edits the
   // ACTIVE layer's shapes; other layers keep cached shapes+islands for ghosting (2-D) and stacking (iso).
-  let layers = [{ id: genId(), name: "Ground", baseY: 0, shapes: [], islands: [], savedMetas: [] }];
+  let layers = [{ id: genId(), name: "Ground", baseY: 0, shapes: [], structural: [], islands: [], savedMetas: [] }];
   let active = 0;
   let islands = [];            // alias of layers[active].islands — kept current by recompute()
   let mirrorVisible = true;
@@ -301,10 +301,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     fire("OnLayers", JSON.stringify({ active: layers[active].id, layers: layers.map(L => ({ id: L.id, name: L.name, baseY: L.baseY })) }));
   }
 
-  // Load the active layer's shapes onto the canvas (after a switch/delete) and recompute.
+  // Load the active layer's shapes onto the canvas (after a switch/delete) and recompute. The active layer's
+  // locked plan pieces (S25) ride alongside as a render-only overlay — never a drawn/edited shape.
   function loadActiveToCanvas() {
     canvas.clearShapes();
     for (const sh of layers[active].shapes) canvas.addShape({ ...sh });
+    canvas.setStructural(layers[active].structural ?? []);
     selectShape(null);
     recompute();
   }
@@ -321,7 +323,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
   function addLayer() {
     syncActive();
     const baseY = Math.max(0, ...layers.map(L => L.baseY)) + 10;   // stack the new slab above by default
-    layers.push({ id: genId(), name: `Layer ${layers.length + 1}`, baseY, shapes: [], islands: [], savedMetas: [] });
+    layers.push({ id: genId(), name: `Layer ${layers.length + 1}`, baseY, shapes: [], structural: [], islands: [], savedMetas: [] });
     active = layers.length - 1;
     loadActiveToCanvas();
     markDirty();
@@ -476,20 +478,28 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
       const s = state ?? {};
       if (s.setup) applySetup(s.setup);
       const raw = (s.layers && s.layers.length) ? s.layers : (s.layout ? [{ base_y: 0, layout: s.layout }] : []);
-      layers = raw.map((L, i) => ({
-        id: L.id || genId(),
-        name: L.name || (i === 0 ? "Ground" : `Layer ${i + 1}`),
-        baseY: L.base_y ?? 0,
-        shapes: (L.layout?.shapes ?? []).map(sh => ({ ...sh })),
-        islands: [],
-        savedMetas: L.layout?.islands ?? [],
-      }));
-      if (!layers.length) layers = [{ id: genId(), name: "Ground", baseY: 0, shapes: [], islands: [], savedMetas: [] }];
+      // A layer's stored shapes are partitioned on load: role-tagged shapes are the plan's structural pieces
+      // (S25) — carried as a locked render-only overlay, kept out of the drawn-shape pipeline (islands, raster,
+      // mirror, edit) so they can neither be reshaped nor double-cover the ground. Everything else is terrain.
+      layers = raw.map((L, i) => {
+        const all = (L.layout?.shapes ?? []).map(sh => ({ ...sh }));
+        return {
+          id: L.id || genId(),
+          name: L.name || (i === 0 ? "Ground" : `Layer ${i + 1}`),
+          baseY: L.base_y ?? 0,
+          shapes: all.filter(sh => !sh.role),
+          structural: all.filter(sh => sh.role),
+          islands: [],
+          savedMetas: L.layout?.islands ?? [],
+        };
+      });
+      if (!layers.length) layers = [{ id: genId(), name: "Ground", baseY: 0, shapes: [], structural: [], islands: [], savedMetas: [] }];
       active = 0;
       // Cache the non-active layers' islands (for ghosts/iso); the active one is computed by recompute(true).
       for (let i = 0; i < layers.length; i++) if (i !== active) layers[i].islands = computeLayerIslands(layers[i].shapes, layers[i].savedMetas);
       canvas.clearShapes();
       for (const sh of layers[active].shapes) canvas.addShape({ ...sh });
+      canvas.setStructural(layers[active].structural ?? []);
       recompute(true);
       // Frame what was loaded. applySetup's fit above ran before the shapes existed, so on its own it
       // would open a saved sketch on the blank working area instead of on the drawing.
@@ -503,7 +513,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
         layers: layers.map(L => ({
           id: L.id, name: L.name, base_y: L.baseY,
           layout: {
-            shapes: L.shapes,
+            // Merge the locked plan pieces (S25) back in so they persist with the terrain they annotate.
+            shapes: [...L.shapes, ...(L.structural ?? [])],
             islands: (L.islands ?? []).map(i => ({ id: i.id, name: i.name, mirrors: i.mirrors, shapeIds: i.shapeIds })),
           },
         })),

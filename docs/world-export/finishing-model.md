@@ -136,23 +136,48 @@ they take the same library/snapshot treatment as §3. The one thing the sketch i
 concept**: today stamping is plan-only (the structural stamps of §6), so placing a lake or a tree accurately
 needs a new, dressing-owned stamp tool in the finishing stage. The lasso already covers strokes.
 
-## 6. Reconciling the structural layer — two stamp concepts, not one moved (draft)
+## 6. Reconciling the structural layer — two stamp concepts, not one moved (draft; §6.1 landed as S25)
 
-*Draft.*
+*Draft, except §6.1 which is built.*
 
 The constraint that binds the whole design: the plan **already precedes the XML**. It carries the structural
 stamps — the spawn building, the wool room, the bedrock approach walls, the objective markers — and the region
 geometry (protection, build) and the volume positions, all baked into the intent and adjustable afterward in
-the configure tool. The sketch does not author these; they live in the intent/DB (and are reachable enough
-that the 3-D preview already draws the boxes and volumes).
+the configure tool. These stay **authored** in plan + configure — they are generator-emittable and
+objective-defining; the sketch does not *author* them.
 
-The resolution is **not** to move them. The structural stamps and regions stay authored in plan + configure —
-they are generator-emittable and objective-defining. The finishing stage **reads them as read-only context**,
-it does not own them: the painter already touches only stone (TP6), so a spawn building or wool room is never
-painted, and a dressing stamp (a lake, a tree) places against that same world and avoids them. So there are
-**two distinct stamp concepts** — *structural* stamps (plan / configure, existing, precede the XML) and
-*dressing* stamps (the finishing stage, new) — and the finishing stage shows the structural ones as context
-the way the 3-D preview does.
+The resolution is **not** to move them. The structural stamps and regions stay authored in plan + configure.
+The finishing stage **reads them as read-only context**, it does not own them: the painter already touches only
+stone (TP6), so a spawn building or wool room is never painted, and a dressing stamp (a lake, a tree) places
+against that same world and avoids them. So there are **two distinct stamp concepts** — *structural* stamps
+(plan / configure, existing, precede the XML) and *dressing* stamps (the finishing stage, new) — and the
+finishing stage shows the structural ones as context.
+
+### 6.1 The sketch surfaces the structural pieces, read-only (landed — S25)
+
+An earlier draft here said "the sketch does not author these; they live in the intent/DB." That is still true
+of *authoring*, but it was wrong about *visibility*. The sketch is the fine-grained plan tool: refining a plan
+there was **blind**, because the spawn and wool-room pieces survived only in `map_intent_json`, while the
+plan→sketch step (`PlanCompiler`) fuses same-plane pieces into one island polygon — so on a single-height board
+the spawn/wool footprint dissolved into the terrain with no marker for where it was.
+
+So the compiler now **projects the intent's structural pieces into the layout as locked annotation rectangles**.
+The one fact each needs is the piece rect, and the intent already carries it (`SpawnIntent.Piece`,
+`WoolIntent.Piece`): that rectangle *is* the protection/room region, it sizes the stamped bedrock foundation,
+and the marker sits at a fixed offset inside it — so the rectangle alone re-secures the link back to the intent
+entity. Each projected shape carries a `role` (`spawn`/`woolRoom`), an `intentRef` (team id, or `owner:colour`),
+and a colour, and is rendered as a labelled box in the team/wool colour (`spawn · <team>` / `wool · <colour>`).
+
+They are **not terrain**: the rasterizer (C# `SketchRasterizer` and its `rasterize.js` twin) skips any
+role-tagged shape, so the box overlays the fused island the piece already sits on and adds nothing to the set
+algebra — no double-carve. They are **locked**: never hit-tested, selected, promoted, resized, moved, or
+sloped (slope is polygon/lasso-only, so that falls out for free). The client partitions them out of the
+drawn-shape pipeline on load and merges them back on save, so they round-trip without ever entering island
+detection or editing.
+
+Making them **movable** — where a drag writes the new rect back to the intent's `Piece` and `Protection`/
+`Room`/marker all re-derive from it — is a deliberate later phase, not v1. Until then the intent stays the sole
+source of truth and the sketch is a faithful, read-only mirror.
 
 ## 7. The finishing stage lives on a grid-aligned sketch (draft — resolved through a prerequisite)
 

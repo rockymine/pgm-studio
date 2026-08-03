@@ -2554,6 +2554,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   horizontal runs so a curve visibly reads as the stair-stepped cells it exports as, beneath its smooth outline.
   This is the prerequisite that makes the sketch the block-accurate surface the finishing pass will live on
   (`docs/world-export/finishing-model.md` §7). Parity is unit-tested both sides.
+- **The plan's spawn/wool pieces surface as locked, labelled rectangles in the sketch (S25).** Refining a
+  plan in the sketch used to be blind: `PlanCompiler` fuses same-plane pieces into one island polygon, so on a
+  single-height board the spawn and wool-room footprints — which survive only in `map_intent_json` — dissolved
+  into the terrain with no marker for where they were. The compiler now **projects the intent's structural
+  pieces into the layout** as `role`-tagged (`spawn`/`woolRoom`) rectangles, each carrying an `intentRef` (team
+  id, or `owner:colour`) and colour and rendered as a labelled box in the team/wool colour (`spawn · <team>` /
+  `wool · <colour>`). The piece rect is the whole link — it *is* the protection/room region, sizes the stamped
+  foundation, and anchors the marker — so the rectangle alone re-secures the tie to the intent. They are **not
+  terrain**: the `SketchRasterizer` and its `rasterize.js` twin skip any role-tagged shape, so a box overlays
+  the fused island without double-carving it. They are **locked** (never hit-tested, selected, promoted,
+  resized, moved, or sloped): the client partitions them out of the drawn-shape pipeline on load and merges
+  them back on save, round-tripping without entering island detection. Making them movable (a drag writing back
+  to the intent) is a deliberate later phase. Reverses `finishing-model.md` §6's "the sketch does not author
+  these" for *visibility* (§6.1); authoring still stays in plan/configure.
 - **Sketch editor** — `/maps/{slug}/sketch` (`SketchTool` + `SketchPanel`/`SketchInspector`): draw 2-D
   shapes → live islands + mirror, with select/op/override/delete/rename. Pure geometry in
   `geometry/shape.js` + `geometry/boolean.js`; canvas + draw/edit controllers + `render/sketch-render.js`;

@@ -102,4 +102,14 @@ public sealed class SketchShape
     [JsonPropertyName("base_height")]    public double? BaseHeight { get; set; }
     [JsonPropertyName("anchor_heights")] public double[]? AnchorHeights { get; set; }
     [JsonPropertyName("floor")]          public double? Floor { get; set; }
+
+    // Structural annotation (S25). A shape carrying a Role is not terrain the author drew — it is the spawn
+    // or wool-room piece the plan already placed, projected in from the map intent so it stays visible while
+    // a plan is refined. Role-tagged shapes are locked (read-only) and contribute nothing to the terrain:
+    // the rasterizer skips them, so they never carve or double-cover the ground the fused island already
+    // holds. IntentRef links back to the intent entity (a team id for a spawn, owner:colour for a wool);
+    // Colour is the dye/team slug the client fills the labelled box with.
+    [JsonPropertyName("role")]       public string? Role { get; set; }
+    [JsonPropertyName("intentRef")]  public string? IntentRef { get; set; }
+    [JsonPropertyName("color")]      public string? Color { get; set; }
 }

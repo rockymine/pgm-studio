@@ -12,35 +12,6 @@ When this board drains, pull the next theme up from `BACKLOG.md`. Board rules li
 Task ids are a section letter + number (`S13`, `B10`, `G15`) — **globally unique and stable** across all
 three files. Moving a task between files never changes its id; never renumber or reuse.
 
-## Sketch tool (S)
-
-- [ ] **S25 — Surface the plan's spawn/wool as labeled, intent-linked rectangles in the sketch.** When you
-  add detail to a plan in the sketch tool, the structural elements the plan already placed — the **spawn**
-  and the **wool room** first — must stay **visible**, not merely survive invisibly in the DB. Today they
-  don't: `PlanCompiler.Compile` writes two blobs — `sketch_layout_json` (pure geometry) and
-  `map_intent_json` (the semantics: `SpawnIntent.Piece`/`.Point`/`.Protection`, `WoolIntent.Room`/`.Piece`,
-  all `Rect` footprints) — and the sketch model (`SketchShape`, `PgmStudio.Pgm/Sketch/SketchLayout.cs`) has
-  no notion the intent exists. So opening a plan-derived map in the sketch shows land with **no marker for
-  where the spawn or wool is**, and detail work is blind — the info survives (shared DB) but isn't shown.
-  **Decision — this deliberately revises `docs/world-export/finishing-model.md` §6**, which had settled on
-  "the sketch does not author these; they live in the intent/DB." The reason to reverse: the sketch *is* the
-  fine-grained plan tool, so when you refine a plan the spawn/wool must be legible in it, not lost. Render
-  the spawn/wool footprints as **`rectangle` sketch shapes that are labeled** (`spawn · <team>`,
-  `wool · <colour>`) **and linked to their intent entity** — displayed distinctly, and by construction
-  **not promotable to polygon, single height, no slope** (slope is already polygon/lasso-only, verified, so
-  that constraint falls out for free — no work). The linking already has a home: a map's plan / sketch /
-  intent are separate rows on the same map, so the sketch can read `map_intent_json` and project these in.
-  **Locked for now** (read-only placeholders); making them *movable* — which must write the move back to the
-  intent so sketch and intent don't diverge — is a deliberate **later phase**, not v1. Update
-  `finishing-model.md` §6 in the same commit when this lands (doc follows the build, not ahead of it).
-  **Blocking design points, to settle at the start (author will detail these in a fresh session):**
-  (1) representation + link mechanism — a new `role`/`intentRef` on `SketchShape` merged from the intent at
-  load, vs. a read-only overlay the sketch draws but never stores — and how it stays in sync as the
-  plan/intent changes; (2) which intent entities in v1 (spawn + wool room are the ask; protection / build /
-  monuments / iron come later); (3) the distinct render treatment; (4) if/when they become editable and how
-  the move writes back to the intent. (The plan→sketch route already exists: compiling a plan can reach the
-  sketch, and a compiled map need not land straight in configure.)
-
 ## Backend, pipeline & internals (B / P / A)
 
 - [ ] **B43 — Retire the Python-oracle parity harness.** The project began as a port of the Python

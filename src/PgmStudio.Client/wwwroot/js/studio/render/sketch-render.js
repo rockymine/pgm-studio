@@ -8,6 +8,7 @@
 
 import { paintShape } from "./shape-render.js";
 import { primitiveStyle, opColors } from "./primitive-style.js";
+import { dyeColorHex, dyeColorLabel } from "./palette.js";
 
 function shapeStyle(shape, selected) {
   const { fill, stroke } = opColors(shape.operation);
@@ -34,6 +35,34 @@ export function paintSketchShape(painter, shape, { selected = false, alpha = 1 }
 /** Ghost preview of a library item being placed — the (already world-positioned) shape specs, faded. */
 export function paintPlaceGhost(painter, specs) {
   for (const spec of specs ?? []) paintSketchShape(painter, spec, { alpha: 0.55 });
+}
+
+// Human-readable kind word for a structural role (S25). Wool rooms read as "wool"; spawn stays "spawn".
+const STRUCT_KIND = { spawn: "spawn", woolRoom: "wool" };
+
+/**
+ * The plan's structural pieces (S25) — the spawn buildings and wool rooms the plan already placed, projected
+ * from the map intent as **locked, labelled** rectangles so they stay visible while a plan is refined. They
+ * are not terrain (the rasterizer skips them; the ground under them is the fused island): a filled box in the
+ * team/wool colour, a solid border, and a centred `spawn · <team>` / `wool · <colour>` label sized to fit.
+ * Read-only — never hit-tested or edited, so no selection chrome.
+ */
+export function paintStructural(painter, shapes) {
+  for (const s of shapes ?? []) {
+    if (s.type !== "rectangle") continue;
+    const hex = dyeColorHex(s.color);
+    painter.rect({ min_x: s.min_x, min_z: s.min_z, max_x: s.max_x, max_z: s.max_z },
+      { fill: hex, fillAlpha: 0.3, stroke: hex, strokeAlpha: 0.95, width: 2 });
+
+    const kind = STRUCT_KIND[s.role] ?? s.role ?? "";
+    const who  = s.role === "spawn" ? (s.intentRef ?? "") : dyeColorLabel(s.color);
+    const text = `${kind} · ${who}`;
+    // World-space label, sized to fit inside the box in either axis so it never spills the footprint.
+    const w = s.max_x - s.min_x, h = s.max_z - s.min_z;
+    const size = Math.max(2, Math.min(h * 0.4, w / (0.62 * Math.max(1, text.length))));
+    painter.text(text, (s.min_x + s.max_x) / 2, (s.min_z + s.max_z) / 2,
+      { fill: "var(--canvas-ink)", halo: "var(--bg-canvas)", haloWidth: 3, size, weight: 600 });
+  }
 }
 
 /** The computed island result polygons (exterior + holes). */

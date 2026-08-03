@@ -36,8 +36,46 @@ public static class PlanCompiler
         var d = ContactGraph.Build(declared);
         var layout = BuildLayout(declared, d);
         var intent = BuildIntent(declared, d, layout);
+        AppendStructuralShapes(layout, intent);
         return (layout, intent);
     }
+
+    // Project the plan's placed structural pieces — spawn buildings and wool rooms — into the layout as
+    // locked annotation rectangles (S25), so refining a plan in the sketch keeps them visible instead of
+    // letting them dissolve into the fused island polygon. The intent's piece rect is the whole story: it is
+    // the protection/room region, it sizes the stamped foundation, and the marker sits relative to it, so the
+    // rectangle alone re-secures the link back to the intent entity. Role-tagged, so the rasterizer skips them
+    // (no terrain contribution — the ground under them is already the island) and the sketch renders them
+    // read-only. Only pieces with a role rect are projected: a plain-piece or hand-authored spawn/wool has no
+    // Piece and keeps nothing to surface here.
+    private static void AppendStructuralShapes(SketchLayout layout, MapIntent intent)
+    {
+        var shapes = layout.Layout?.Shapes;
+        if (shapes is null) return;
+        var teamColor = (intent.Teams ?? []).ToDictionary(t => t.Id, t => t.Color);
+
+        foreach (var s in intent.Spawns)
+            if (s.Piece is { } rect)
+                shapes.Add(StructureShape($"spawn-{s.Team}", "spawn", s.Team, teamColor.GetValueOrDefault(s.Team, s.Team), rect));
+
+        foreach (var w in intent.Wools ?? [])
+            if (w.Piece is { } rect)
+            {
+                var color = !string.IsNullOrEmpty(w.Color) ? w.Color : teamColor.GetValueOrDefault(w.Owner, w.Owner);
+                shapes.Add(StructureShape($"wool-{w.Owner}-{color}", "woolRoom", $"{w.Owner}:{color}", color, rect));
+            }
+    }
+
+    private static SketchShape StructureShape(string id, string role, string intentRef, string color, Rect rect) => new()
+    {
+        Id = id,
+        Type = "rectangle",
+        Operation = "add",
+        Role = role,
+        IntentRef = intentRef,
+        Color = color,
+        MinX = rect.MinX, MinZ = rect.MinZ, MaxX = rect.MaxX, MaxZ = rect.MaxZ,
+    };
 
     // ── layout: unioned shapes + mirror islands + framing ───────────────────────────────────────────────
 

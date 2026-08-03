@@ -51,13 +51,18 @@ internal static class PlanTestSupport
         return string.Join(";", Enumerable.Range(0, pts.Count).Select(i => pts[(start + i) % pts.Count]));
     }
 
-    /// <summary>The normalised ring for every shape in a layout, as a set of strings.</summary>
-    public static HashSet<string> ShapeRings(SketchLayout layout) =>
-        (layout.Layout?.Shapes ?? []).Select(s => NormRing(s.Vertices ?? [])).ToHashSet();
+    // Only the terrain shapes are polygon rings; the plan's structural annotations (S25) are locked
+    // rectangles with no vertices and are compared elsewhere, so the ring helpers skip them.
+    private static IEnumerable<SketchShape> TerrainShapes(SketchLayout layout) =>
+        (layout.Layout?.Shapes ?? []).Where(s => s.Role is null);
 
-    /// <summary>Map each shape's normalised ring to its base height, for structural comparison.</summary>
+    /// <summary>The normalised ring for every terrain shape in a layout, as a set of strings.</summary>
+    public static HashSet<string> ShapeRings(SketchLayout layout) =>
+        TerrainShapes(layout).Select(s => NormRing(s.Vertices ?? [])).ToHashSet();
+
+    /// <summary>Map each terrain shape's normalised ring to its base height, for structural comparison.</summary>
     public static Dictionary<string, double> RingHeights(SketchLayout layout) =>
-        (layout.Layout?.Shapes ?? []).ToDictionary(s => NormRing(s.Vertices ?? []), s => s.BaseHeight ?? 0);
+        TerrainShapes(layout).ToDictionary(s => NormRing(s.Vertices ?? []), s => s.BaseHeight ?? 0);
 
     public static (double X, double Y, double Z) T(Pt p) => (Math.Round(p.X), Math.Round(p.Y), Math.Round(p.Z));
 

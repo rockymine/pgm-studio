@@ -39,6 +39,7 @@ function rasterShapeCells(shape) {
 export function rasterizeShapes(shapes) {
   const add = new Set(), sub = new Set(), oadd = new Set(), osub = new Set();
   for (const shape of shapes ?? []) {
+    if (shape.role) continue;   // structural annotation (S25) — not terrain, never rasterized
     const cells = rasterShapeCells(shape);
     if (shape.operation === "subtract") {
       const set = shape.override ? osub : sub;

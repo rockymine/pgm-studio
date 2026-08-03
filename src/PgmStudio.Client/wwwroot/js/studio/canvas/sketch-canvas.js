@@ -46,7 +46,7 @@ const ROTATE_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(ROTATE_ICON)
 import { SketchDrawController } from "../controllers/sketch-draw-controller.js";
 import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
-  paintSketchShape, paintIslands, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintPlaceGhost, paintGhostIslands, paintRaster,
+  paintSketchShape, paintIslands, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintPlaceGhost, paintGhostIslands, paintRaster, paintStructural,
 } from "../render/sketch-render.js";
 import { rasterizeShapes, cellRuns } from "../geometry/rasterize.js";
 import { viewportWorldRect, snapOut, gridStep, paintWorkArea, renderScaleBar } from "../render/canvas-chrome.js";
@@ -89,6 +89,7 @@ export class SketchCanvas extends CanvasBase {
   #mode    = "rot_180";
 
   #shapes      = new Map();   // id → shape (source for paint / hit-test / edit)
+  #structural  = [];          // locked plan pieces (S25) — render-only, never hit-tested/edited/rasterized
   #selectedId  = null;        // drilled/single-member shape (drives the edit-controller handles)
   #selectedIslandId = null;   // selected island (drives the island bbox chrome + whole-island drag)
   #islands     = [];          // [{ id, shapeIds, exterior, holes }] from the bridge
@@ -484,6 +485,9 @@ export class SketchCanvas extends CanvasBase {
     painter.layer("raster",    () => { if (this.#blocksVisible) paintRaster(painter, this.#rasterRuns); });
     painter.layer("island",    () => paintIslands(painter, this.#islands));
     painter.layer("shapes",    () => this.#paintShapes());
+    // Structural pieces (S25) are locked plan context, not drawn primitives — always shown (like the island
+    // outlines), not behind the Shapes toggle, so they stay visible while a plan is refined.
+    painter.layer("structural", () => paintStructural(painter, this.#structural));
     painter.layer("selection", () => this.#paintSelectionHighlight());
     painter.layer("draw",      () => this.#draw?.paint(painter));
     painter.layer("measure",   () => this.#paintMeasure());
@@ -503,6 +507,9 @@ export class SketchCanvas extends CanvasBase {
     for (const shape of this.#shapes.values())
       paintSketchShape(this.#painter, shape, { selected: shape.id === this.#selectedId });
   }
+
+  /** The locked plan pieces (S25) — follow the Shapes toggle, but are drawn read-only (no selection chrome). */
+  setStructural(shapes) { this.#structural = shapes ?? []; this.#paintWorld(); }
 
   #paintPlaceGhost() {
     if (!this.#placeSpecs || !this.#placeAt) return;

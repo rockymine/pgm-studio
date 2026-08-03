@@ -93,6 +93,7 @@ public static class SketchRasterizer
         HashSet<(int, int)> sub = [], osub = [];
         foreach (var s in shapes)
         {
+            if (s.Role is not null) continue;   // structural annotation (S25) — not terrain, never rasterized
             if (s.Operation == "subtract")
             {
                 var set = s.Override ? osub : sub;

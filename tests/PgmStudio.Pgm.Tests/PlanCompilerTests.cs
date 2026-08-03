@@ -177,6 +177,53 @@ public sealed class PlanCompilerTests
         await Assert.That(layout.Layout!.Islands[0].Mirrors).IsTrue();
     }
 
+    // A spawn-role piece abutting a wool-room-role piece at one surface — S25's motivating case, since the
+    // single-height generator fuses same-plane pieces into one polygon.
+    private const string StructuralUnit = """
+        { "plan":1, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
+          "pieces":[ {"id":"sp","role":"spawn","rect":[0,0,2,2]}, {"id":"wr","role":"wool-room","rect":[2,0,2,2]} ],
+          "placements":{ "spawns":[ {"piece":"sp","at":[1,1],"facing":"front"} ],
+                         "wools":[ {"piece":"wr","at":[1,1]} ] } }
+        """;
+
+    [Test]
+    public async Task Structural_pieces_surface_as_locked_role_rectangles_distinct_from_the_fused_terrain()
+    {
+        var (layout, _) = PlanCompiler.Compile(Plan(StructuralUnit));
+        var shapes = layout.Layout!.Shapes;
+        var spawns  = shapes.Where(s => s.Role == "spawn").ToList();
+        var wools   = shapes.Where(s => s.Role == "woolRoom").ToList();
+        var terrain = shapes.Where(s => s.Role is null).ToList();
+
+        // Both teams' spawn + wool room surface as their own labelled rectangles, linked + coloured for the
+        // sketch (spawn keyed by team, wool by owner:colour).
+        await Assert.That(spawns.Count).IsEqualTo(2);
+        await Assert.That(wools.Count).IsEqualTo(2);
+        await Assert.That(spawns.All(s => s.Type == "rectangle")).IsTrue();
+        await Assert.That(spawns.Select(s => s.IntentRef!)).IsEquivalentTo(new[] { "red", "blue" });
+        await Assert.That(spawns.Single(s => s.IntentRef == "red").Color).IsEqualTo("red");
+        await Assert.That(wools.Select(w => w.IntentRef!)).IsEquivalentTo(new[] { "red:red", "blue:blue" });
+
+        // The terrain the pieces sit on has fused to fewer polygons than there are structural pieces — the very
+        // case the annotation exists to survive.
+        await Assert.That(terrain.Count).IsLessThan(spawns.Count + wools.Count);
+    }
+
+    [Test]
+    public async Task Structural_role_shapes_contribute_no_terrain_cells()
+    {
+        var (layout, _) = PlanCompiler.Compile(Plan(StructuralUnit));
+        var withRoles = SketchRasterizer.Rasterize(layout.ToJson()).ToHashSet();
+
+        // Strip the structural shapes and rasterize again — an identical footprint proves the rasterizer never
+        // turned a locked annotation into ground (they overlap the fused terrain but add nothing to it).
+        layout.Layout!.Shapes.RemoveAll(s => s.Role is not null);
+        var terrainOnly = SketchRasterizer.Rasterize(layout.ToJson()).ToHashSet();
+
+        await Assert.That(terrainOnly.Count).IsGreaterThan(0);
+        await Assert.That(withRoles.SetEquals(terrainOnly)).IsTrue();
+    }
+
     [Test]
     public async Task Disjoint_same_surface_patches_bridged_by_another_surface_each_get_a_shape()
     {

@@ -53,6 +53,14 @@ the focus-integration polish remains.
 The Sketch depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection
 highlight); these are the parked / dormant / deferred slices.
 
+- [ ] **S25b — Make the surfaced spawn/wool pieces movable, writing the move back to the intent.** S25 landed
+  the pieces as **locked** read-only rectangles (`FEATURES.md`; `role`/`intentRef` on `SketchShape`, projected
+  by `PlanCompiler`, skipped by the rasterizer, rendered as labelled boxes). The next slice makes them
+  draggable: a move writes the new rect back to the intent's `Piece`, from which `Protection`/`Room`/marker
+  re-derive, so the sketch and the intent don't diverge. **Resize stays deferred** even here — a spawn/wool's
+  `at` is a fractional offset into the piece rect, so resizing shifts the marker and needs its own handling.
+  Needs a write path (sketch → intent); the read projection already exists. Then extend beyond spawn/wool to
+  the other intent entities (protection / build / monuments / iron) as they each earn a sketch surface.
 - [ ] **S9b — Angle/parallel snapping + droppable guide lines (parked).** S9 landed **position** alignment
   (edges/centres snap to other shapes + the symmetry centre, with guides). The remaining picture-editor bits:
   **angle/parallel** snapping (rotate a shape so its edges run parallel to another's — "hold two lanes
