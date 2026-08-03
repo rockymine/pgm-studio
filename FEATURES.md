@@ -2559,8 +2559,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   single-height board the spawn and wool-room footprints — which survive only in `map_intent_json` — dissolved
   into the terrain with no marker for where they were. The compiler now **projects the intent's structural
   pieces into the layout** as `role`-tagged (`spawn`/`woolRoom`) rectangles, each carrying an `intentRef` (team
-  id, or `owner:colour`) and colour and rendered as a labelled box in the team/wool colour (`spawn · <team>` /
-  `wool · <colour>`). The piece rect is the whole link — it *is* the protection/room region, sizes the stamped
+  id, or `owner:colour`) and colour and rendered as a labelled box in the **plan tool's role colour** (purple
+  spawn / green wool, `plan-doc.js` `ROLE_COLORS`), the colour carrying the role and the label the identity
+  (`spawn · <team>` / `wool · <colour> · <team>`). The piece rect is the whole link — it *is* the
+  protection/room region, sizes the stamped
   foundation, and anchors the marker — so the rectangle alone re-secures the tie to the intent. They are **not
   terrain**: the `SketchRasterizer` and its `rasterize.js` twin skip any role-tagged shape, so a box overlays
   the fused island without double-carving it. They are **locked** (never hit-tested, selected, promoted,

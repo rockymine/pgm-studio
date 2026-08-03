@@ -8,7 +8,7 @@
 
 import { paintShape } from "./shape-render.js";
 import { primitiveStyle, opColors } from "./primitive-style.js";
-import { dyeColorHex, dyeColorLabel } from "./palette.js";
+import { dyeColorLabel } from "./palette.js";
 
 function shapeStyle(shape, selected) {
   const { fill, stroke } = opColors(shape.operation);
@@ -40,26 +40,35 @@ export function paintPlaceGhost(painter, specs) {
 // Human-readable kind word for a structural role (S25). Wool rooms read as "wool"; spawn stays "spawn".
 const STRUCT_KIND = { spawn: "spawn", woolRoom: "wool" };
 
+// Plan-tool role colours (the canonical set is plan/plan-doc.js ROLE_COLORS — purple spawn, green wool room),
+// so the surfaced pieces read in the same colours the plan drew them in. Kept as two local constants rather
+// than importing the plan module into the render leaf; if the plan palette changes these, mirror them here.
+const ROLE_FILL = { spawn: "#8f7bd6", woolRoom: "#3fae74" };
+
 /**
  * The plan's structural pieces (S25) — the spawn buildings and wool rooms the plan already placed, projected
  * from the map intent as **locked, labelled** rectangles so they stay visible while a plan is refined. They
  * are not terrain (the rasterizer skips them; the ground under them is the fused island): a filled box in the
- * team/wool colour, a solid border, and a centred `spawn · <team>` / `wool · <colour>` label sized to fit.
+ * plan's role colour (purple spawn / green wool), a solid border, and a centred label sized to fit. The colour
+ * carries the role, so the label carries the identity — a spawn's team, a wool's dye colour + owning team.
  * Read-only — never hit-tested or edited, so no selection chrome.
  */
 export function paintStructural(painter, shapes) {
   for (const s of shapes ?? []) {
     if (s.type !== "rectangle") continue;
-    const hex = dyeColorHex(s.color);
+    const hex = ROLE_FILL[s.role] ?? "#8892a0";
     painter.rect({ min_x: s.min_x, min_z: s.min_z, max_x: s.max_x, max_z: s.max_z },
-      { fill: hex, fillAlpha: 0.3, stroke: hex, strokeAlpha: 0.95, width: 2 });
+      { fill: hex, fillAlpha: 0.32, stroke: hex, strokeAlpha: 0.95, width: 2 });
 
     const kind = STRUCT_KIND[s.role] ?? s.role ?? "";
-    const who  = s.role === "spawn" ? (s.intentRef ?? "") : dyeColorLabel(s.color);
-    const text = `${kind} · ${who}`;
+    // A wool's intentRef is "<owner>:<colour>"; a spawn's is just the team. Spawn shows its team; a wool shows
+    // its dye colour and owning team, since the box colour no longer distinguishes either.
+    const text = s.role === "spawn"
+      ? `${kind} · ${s.intentRef ?? ""}`
+      : `${kind} · ${dyeColorLabel(s.color)} · ${(s.intentRef ?? "").split(":")[0]}`;
     // World-space label, sized to fit inside the box in either axis so it never spills the footprint.
     const w = s.max_x - s.min_x, h = s.max_z - s.min_z;
-    const size = Math.max(2, Math.min(h * 0.4, w / (0.62 * Math.max(1, text.length))));
+    const size = Math.max(2, Math.min(h * 0.4, w / (0.6 * Math.max(1, text.length))));
     painter.text(text, (s.min_x + s.max_x) / 2, (s.min_z + s.max_z) / 2,
       { fill: "var(--canvas-ink)", halo: "var(--bg-canvas)", haloWidth: 3, size, weight: 600 });
   }
