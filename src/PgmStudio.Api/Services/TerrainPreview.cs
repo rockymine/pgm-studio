@@ -1,6 +1,8 @@
 using System.Text;
 using System.Text.Json;
+using PgmStudio.Data.Features;
 using PgmStudio.Minecraft;
+using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
 
@@ -97,6 +99,37 @@ public static class TerrainPreview
         }
         sb.Append("</svg>");
         return new MapPaint(sb.ToString(), minX, minZ, spanX, spanZ);
+    }
+
+    /// <summary>The terrain paint a sketch layout exports, one entry per footprint cell: the block seen from
+    /// directly above, with its data value. The real export path produces it — rasterise the columns, build the
+    /// terrain, then run <see cref="TerrainPainter"/> through <see cref="TerrainThemeScope"/>'s per-cell resolver
+    /// and <see cref="TeamTerritory"/>'s ownership — so a cell carries the block the export actually places,
+    /// patterns and team tints included, rather than one representative colour per theme. Empty when nothing is
+    /// drawn. The caller shapes these into the block-pixel payload the canvas block overlays blit.</summary>
+    public static IReadOnlyList<SurfaceCell> SketchPaintCells(string layoutJson, MapIntent intent)
+    {
+        var terrain = SketchTerrainBuilder.Build(SketchRasterizer.RasterizeColumns(layoutJson));
+        var surface = terrain.SurfaceTop;
+        if (surface.Count == 0) return [];
+
+        TerrainPainter.Paint(terrain.World, surface, TerrainThemeScope.ThemeAt(layoutJson),
+            TeamTerritory.DamageAt(surface.Keys, intent));
+
+        var cells = new List<SurfaceCell>(surface.Count);
+        foreach (var (cell, top) in surface)
+        {
+            // SurfaceTop is the first air Y above the column, so the block seen from above is the one under it;
+            // scan down from there for the first solid, which a painted rim or a carved column can push lower.
+            for (var y = Math.Min(top, VoxelWorld.MaxHeight - 1); y >= 0; y--)
+            {
+                var (id, data) = terrain.World.GetBlock(cell.X, y, cell.Z);
+                if (id == 0) continue;
+                cells.Add(new SurfaceCell(cell.X, cell.Z, id, data));
+                break;
+            }
+        }
+        return cells;
     }
 
     private static MapPaint EmptyPaint(string reason) => new(Empty(reason), 0, 0, 0, 0);

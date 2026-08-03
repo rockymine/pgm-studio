@@ -5,6 +5,7 @@ using FastEndpoints;
 using LinqToDB;
 using LinqToDB.Async;
 using PgmStudio.Analysis.Footprint;
+using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
@@ -158,6 +159,32 @@ public sealed class SketchPutEndpoint(MapRepository repo, PgmDb db) : EndpointWi
 
         await SketchStore.SaveAsync(db, map.Id, bytes, ct);
         await Send.OkAsync(new { ok = true }, ct);
+    }
+}
+
+/// <summary>POST /api/map/{slug}/sketch/paint — the sketch's terrain paint as a palette-indexed block-pixel
+/// payload (<c>xs</c>/<c>zs</c>/<c>palette</c>/<c>color_idx</c> + bounds), which the client expands into the
+/// <c>colors</c> array the block-overlay bitmap path already decodes (finishing-model.md §4). The body is the <em>live</em> layout — the
+/// bridge's <c>getState()</c>, not the stored blob — so the overlay tracks unsaved edits; the stored intent
+/// supplies team ownership, which is what a team-tinted material reads. Empty payload when nothing is
+/// drawn; 400 on unparseable JSON.</summary>
+public sealed class SketchPaintEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/map/{slug}/sketch/paint"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
+        if (map is null) { await Send.NotFoundAsync(ct); return; }
+
+        using var reader = new StreamReader(HttpContext.Request.Body);
+        var layoutJson = await reader.ReadToEndAsync(ct);
+
+        IReadOnlyList<SurfaceCell> cells;
+        try { cells = TerrainPreview.SketchPaintCells(layoutJson, await IntentStore.LoadAsync(db, map.Id, ct)); }
+        catch { await Send.ResponseAsync(new { error = "could not paint layout" }, 400, ct); return; }
+
+        await Send.OkAsync(cells.Count == 0 ? LayerData.EmptyPixels() : LayerData.PalettePixels(cells), ct);
     }
 }
 

@@ -91,7 +91,7 @@ public partial class SketchTool
         await JS.InvokeVoidAsync("studio.icons");
         if (!firstRender) return;
         selfRef = DotNetObjectReference.Create(this);
-        handle = await JS.InvokeAsync<IJSObjectReference>("studio.mountSketch", svgRef, wrapRef, coordsRef, zoomRef, dimRef, selfRef);
+        handle = await JS.InvokeAsync<IJSObjectReference>("studio.mountSketch", svgRef, wrapRef, coordsRef, zoomRef, dimRef, selfRef, Slug);
         try { libraryItems = await handle.InvokeAsync<List<LibraryItem>>("getLibrary"); StateHasChanged(); } catch { /* palette stays empty */ }
         // Restore the saved layout (empty {} for a fresh sketch); the bridge handles an empty state.
         try

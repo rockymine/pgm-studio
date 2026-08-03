@@ -21,27 +21,6 @@ export function defaultThemeJson() {
   };
 }
 
-/** The representative block id of a material — what a top-down cell reads as. Recurses composites to their
- *  first/base entry; falls back to stone (1). Used to colour the Blocks overlay by a theme's surface. */
-export function materialBlockId(mat) {
-  if (!mat || typeof mat !== "object") return 1;
-  switch (mat.kind) {
-    case "solid":    return mat.id ?? 1;
-    case "layered":  return materialBlockId(mat.layers?.[0]?.material);
-    case "teamTint": return mat.blockId ?? materialBlockId(mat.neutral);
-    case "voronoi":  return materialBlockId(mat.palette?.[0]?.material ?? mat.palette?.[0]);
-    case "noise":    return materialBlockId(mat.stops?.[0]?.material ?? mat.stops?.[0]);
-    case "wallRun":  return materialBlockId(mat.stripes?.[0]?.material ?? mat.stripes?.[0]);
-    default:         return mat.id ?? mat.blockId ?? 1;
-  }
-}
-
-/** A theme's surface block id — the material a cell shows from the top (surface bucket, else the whole node). */
-export function surfaceBlockId(theme) {
-  const surface = theme?.surface;
-  return materialBlockId(surface?.material ?? surface);
-}
-
 /** A slug-safe id unique among `existing`: the trimmed base slug, then base-2, base-3, … */
 export function uniqueThemeId(existing, base) {
   const taken = new Set(existing);

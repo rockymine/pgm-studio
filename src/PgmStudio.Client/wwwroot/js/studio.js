@@ -105,9 +105,9 @@ window.studio = {
 
   // Mount the Sketch tool's Layout canvas (S2): draw 2-D shapes → live island computation + mirror
   // preview. dotnetRef receives OnShapeSelected(id) / OnDirty(); the handle drives tool/operation/mode.
-  async mountSketch(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
+  async mountSketch(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, slug) {
     const mod = await import("/js/studio/bridge/sketch-bridge.js");
-    return mod.mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef);
+    return mod.mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, slug);
   },
 
   // Mount the plan editor's canvas (the seed studio): a cell grid with rect pieces/zones + markers and a

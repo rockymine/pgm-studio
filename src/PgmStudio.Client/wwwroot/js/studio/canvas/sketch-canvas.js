@@ -48,7 +48,8 @@ import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
   paintSketchShape, paintIslands, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintPlaceGhost, paintGhostIslands, paintRaster, paintStructural,
 } from "../render/sketch-render.js";
-import { rasterizeOwners, cellRunsColored } from "../geometry/rasterize.js";
+import { rasterizeShapes, cellRuns } from "../geometry/rasterize.js";
+import { loadBlockImage, blockImageBounds } from "../render/block-render.js";
 import { viewportWorldRect, snapOut, gridStep, paintWorkArea, renderScaleBar } from "../render/canvas-chrome.js";
 // iso-webgl is loaded lazily (on first 3-D toggle) so a missing/blocked WebGL stack — or any failure
 // to load that module — degrades to "no 3-D preview" instead of breaking the whole editor at page load.
@@ -101,8 +102,8 @@ export class SketchCanvas extends CanvasBase {
   #chunkVisible  = true;
   #blocksVisible = false;
   #rasterRuns    = null;   // cached rasterized cell runs; recomputed on shape change while blocks are shown
-  #themeHex      = {};     // themeId → surface hex, so the Blocks overlay shows the theme paint (finishing §4)
-  #mapThemeHex   = null;   // the map-default theme's surface hex, or null (unthemed cells read as stone)
+  #paintData     = null;   // the server's block-pixel payload for the terrain paint (finishing-model.md §4)
+  #paintImage    = null;   // that payload decoded — a canvas blits a bitmap, not a data URL
 
   #draw = null;
   #edit = null;
@@ -256,23 +257,26 @@ export class SketchCanvas extends CanvasBase {
   // a shape change while the Blocks layer is on, not per frame. (Only the primary footprint; the mirror
   // copies already read as smooth polygons on their own layer.)
   #rebuildRaster() {
-    this.#rasterRuns = this.#blocksVisible
-      ? cellRunsColored(rasterizeOwners([...this.#shapes.values()]), id => this.#colorForShape(id))
-      : null;
+    this.#rasterRuns = this.#blocksVisible ? cellRuns(rasterizeShapes([...this.#shapes.values()])) : null;
   }
 
-  // A cell's Blocks-overlay colour: its owner shape's theme surface, else the map-default surface, else null
-  // (the neutral stone the sketch is built from). So the Blocks toggle previews the terrain paint (finishing §4).
-  #colorForShape(shapeId) {
-    const theme = this.#shapes.get(shapeId)?.theme;
-    return (theme && this.#themeHex[theme]) || this.#mapThemeHex || null;
-  }
-
-  /** The per-theme surface colours (themeId → hex) + the map default's, so the Blocks overlay paints themed. */
-  setThemeColors(themeHex, mapThemeHex) {
-    this.#themeHex = themeHex ?? {};
-    this.#mapThemeHex = mapThemeHex ?? null;
-    if (this.#blocksVisible) { this.#rebuildRaster(); this.#paintWorld(); }
+  /**
+   * The terrain paint as a block-pixel payload (`{xs, zs, colors, min_x, min_z, max_x, max_z}` — the shape the
+   * top-surface overlay returns), decoded once into a bitmap the Blocks layer blits: one opaque pixel per
+   * block, the colour of the block the export places there. This is the whole theme — voronoi cells, noise
+   * fields, wall runs, rims, team tints — because the server paints it through the real painter rather than
+   * the client approximating a theme by one representative colour. A falsy payload drops back to the plain
+   * stone footprint.
+   */
+  loadPaintLayer(data) {
+    this.#paintData = (data && data.xs?.length) ? data : null;
+    this.#paintImage = null;
+    if (!this.#paintData) { this.#paintWorld(); return; }
+    loadBlockImage(this.#paintData, (image) => {
+      if (this.#paintData !== data) return;   // a newer payload arrived while this one decoded
+      this.#paintImage = image;
+      this.#paintWorld();
+    });
   }
 
   // ── isometric preview (S6) ─────────────────────────────────────────────────────
@@ -500,8 +504,17 @@ export class SketchCanvas extends CanvasBase {
     painter.layer("axis",      () => paintAxis(painter, this.#gridBounds(), this.#center, this.#mode));
     painter.layer("mirror",    () => { if (this.#mirrorVisible) paintMirror(painter, this.#mirrorPolys); });
     painter.layer("ghost",     () => paintGhostIslands(painter, this.#ghostPolys));
-    painter.layer("raster",    () => { if (this.#blocksVisible) paintRaster(painter, this.#rasterRuns); });
-    painter.layer("island",    () => paintIslands(painter, this.#islands));
+    // The Blocks layer is the terrain paint when the server has sent it, and the plain stone footprint until
+    // then — so drawing keeps its immediate voxelization feedback while the painted blocks are in flight.
+    const painted = this.#blocksVisible && this.#paintImage;
+    painter.layer("raster",    () => {
+      if (!this.#blocksVisible) return;
+      if (painted) painter.image(this.#paintImage, blockImageBounds(this.#paintData));
+      else paintRaster(painter, this.#rasterRuns);
+    });
+    // The island fill would tint every painted block towards the result purple, so under the paint the
+    // island contributes its outline only.
+    painter.layer("island",    () => paintIslands(painter, this.#islands, { filled: !painted }));
     painter.layer("shapes",    () => this.#paintShapes());
     // Structural pieces (S25) are locked plan context, not drawn primitives — always shown (like the island
     // outlines), not behind the Shapes toggle, so they stay visible while a plan is refined.

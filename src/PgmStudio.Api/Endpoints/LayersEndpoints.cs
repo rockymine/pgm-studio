@@ -39,6 +39,50 @@ internal static class LayerData
         };
     }
 
+    /// <summary>The payload for no cells at all — a degenerate zero-span box, so a client can decode it with
+    /// the same code path and simply blit nothing rather than branch on a null.</summary>
+    public static Dict EmptyPixels() => new()
+    {
+        ["xs"] = Array.Empty<int>(), ["zs"] = Array.Empty<int>(), ["colors"] = Array.Empty<string>(),
+        ["min_x"] = 0, ["min_z"] = 0, ["max_x"] = -1, ["max_z"] = -1,
+    };
+
+    /// <summary>
+    /// <see cref="Pixels"/> with the colours indirected through a palette: <c>palette</c> holds each distinct
+    /// hex once and <c>color_idx</c> indexes into it per cell. Terrain is built from a handful of blocks, so
+    /// repeating an 8-character hex string per cell is most of the response — a 200×200 footprint sends 657 KB
+    /// of which 440 KB is the same few strings over and over. The caller expands the palette back to a
+    /// <c>colors</c> array before decoding, so the bitmap path itself is unchanged.
+    /// </summary>
+    public static Dict PalettePixels(IReadOnlyList<SurfaceCell> cells)
+    {
+        var colorCache = new Dictionary<(int, int), int>();
+        var palette = new List<string>();
+        var xs = new int[cells.Count];
+        var zs = new int[cells.Count];
+        var idx = new int[cells.Count];
+        int minX = int.MaxValue, minZ = int.MaxValue, maxX = int.MinValue, maxZ = int.MinValue;
+        for (var i = 0; i < cells.Count; i++)
+        {
+            var c = cells[i];
+            xs[i] = c.X; zs[i] = c.Z;
+            var key = (c.BlockId, c.BlockData);
+            if (!colorCache.TryGetValue(key, out var slot))
+            {
+                colorCache[key] = slot = palette.Count;
+                palette.Add(BlockPalette.Hex(c.BlockId, c.BlockData));
+            }
+            idx[i] = slot;
+            if (c.X < minX) minX = c.X; if (c.X > maxX) maxX = c.X;
+            if (c.Z < minZ) minZ = c.Z; if (c.Z > maxZ) maxZ = c.Z;
+        }
+        return new Dict
+        {
+            ["xs"] = xs, ["zs"] = zs, ["palette"] = palette, ["color_idx"] = idx,
+            ["min_x"] = minX, ["min_z"] = minZ, ["max_x"] = maxX, ["max_z"] = maxZ,
+        };
+    }
+
     /// <summary>One entry per distinct block_id (count summed across data variants, colour/name from
     /// the dominant variant), sorted by count desc. Port of <c>_block_types_from_parquet</c>.</summary>
     public static List<Dict> BlockTypes(IReadOnlyList<SurfaceCell> cells)

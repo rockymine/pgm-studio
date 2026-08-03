@@ -53,6 +53,19 @@ the focus-integration polish remains.
 The Sketch depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection
 highlight); these are the parked / dormant / deferred slices.
 
+- [ ] **S31 — Paint only the column tops the Blocks overlay reads.** The overlay's round-trip is now entirely
+  server compute — the client parses, expands, encodes the PNG and blits in about 5 ms total, while the paint
+  itself runs 40 ms on a typical board and ~410 ms on a 200×200 one. Of that, `TerrainPainter.Paint` writes
+  **every block of every column** into a `VoxelWorld` (~118 ms at 40k cells) and the overlay then reads back
+  one block per column; resolving just the topmost band instead measures **~14 ms** for the same answer, since
+  `TerrainPainter.Resolve` already returns the bands top-last and the material only needs the top Y. The reason
+  it is not simply done: a second paint path could disagree with the export, which is the whole value of the
+  preview. So the shape of the fix is to make the top-only resolve *the same code the full paint runs per
+  column* — one column-level entry point the paint loop and the preview both call — rather than a parallel
+  implementation. `TerrainProfile` construction (~87 ms at 40k) stays either way, and would be the next target.
+  Also still per-cell on the wire: `xs`/`zs` are two ints each (345 KB at 40k cells) where the payload is a
+  dense footprint that could ship as bounds + a mask.
+
 - [ ] **S26 — Sweep the now-dead plan-side theme JS.** The Theme phase moved onto the sketch (`FEATURES.md`);
   the plan tool's Theme UI + C# theme path are gone, but the plan **JS** theme code is still present as an
   unreachable, self-consistent island: `plan-bridge.js` theme methods (`themesState`/`assignPiece`/`assignBox`/

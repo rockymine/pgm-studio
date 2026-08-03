@@ -109,7 +109,7 @@ if (other) other.theme = "dirt";
 saved.mapTheme = "";   // no map default — the two themed shapes read as their two colours against the stone rest
 await api(`/map/${slug}/sketch`, { method: "PUT", body: saved });
 
-let shotOk = false;
+let shotOk = false, painted = null;
 try {
   clearFaults(page);
   await page.goto(`${BASE}/maps/${slug}/sketch`, { waitUntil: "networkidle", timeout: 30000 });
@@ -128,10 +128,47 @@ try {
   const blocksOn = await isOn();
   await page.screenshot({ path: `${OUT}theme-multi-blocks.png`, fullPage: false });
   checks.add("Blocks overlay is on for the shot", blocksOn);
+
+  // The check the earlier screenshot-only version could not make: the canvas actually carries the two
+  // themes' block colours, at full opacity. The overlay once painted translucent stroked runs over the
+  // island fill, which composited both colours away to a striped grey — every structural assertion above
+  // still passed while nothing recognisable was on screen. Read the pixels.
+  painted = await page.evaluate(() => {
+    const canvas = document.querySelector("canvas.world-canvas-2d");
+    if (!canvas) return null;
+    const d = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+    const hist = {};
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < 250) continue;   // opaque only — a painted block is not blended with anything
+      const hex = "#" + [d[i], d[i + 1], d[i + 2]].map(v => v.toString(16).padStart(2, "0")).join("");
+      hist[hex] = (hist[hex] ?? 0) + 1;
+    }
+    return hist;
+  });
   shotOk = true;
 } catch (e) {
   page.faults.push(`blocks shot: ${String(e).split("\n")[0]}`);
 }
+// Two halves, asserted separately, because they fail in different ways.
+//
+// The paint itself: the server runs the real painter over the layout, so BOTH themes must appear in what it
+// returns — that is theme scope (each shape's override resolved per cell) plus the painter, end to end.
+const paint = await api(`/map/${slug}/sketch/paint`, { method: "POST", body: saved });
+// The payload indexes each cell into a palette of the distinct blocks, the way the client expands it.
+const paintedColors = (paint.color_idx ?? []).map(i => paint.palette?.[i]);
+const cellsOf = (hex) => paintedColors.filter(c => c?.toLowerCase() === hex.toLowerCase()).length;
+checks.add(`theme "grass" is painted (${a.hex})`, cellsOf(a.hex) > 0, `${cellsOf(a.hex)} cells`);
+checks.add(`theme "dirt" is painted (${b.hex})`, cellsOf(b.hex) > 0, `${cellsOf(b.hex)} cells`);
+
+// The render: those colours must reach the canvas EXACTLY and OPAQUE. The overlay once drew translucent
+// stroked runs over the island fill, so every colour arrived composited towards the result purple and banded
+// by a hairline per row — a striped grey. Every structural assertion above still passed. Only a pixel read
+// catches it, and only an exact-hex one: "some colour is there" is exactly what a wash would satisfy.
+// Framed to whatever the default view shows, so this asserts on the dominant theme, not on cell counts.
+const px = (hex) => painted?.[hex.toLowerCase()] ?? 0;
+const onCanvas = [a, b].filter(blk => px(blk.hex) > 0);
+checks.add("a theme's exact surface hex is on the canvas, unblended",
+  onCanvas.length > 0, onCanvas.map(blk => `${blk.hex} ×${px(blk.hex)}`).join(", ") || "none of either theme's hex");
 checks.add("two shapes carry distinct themes", other?.theme === "dirt" && grassShape?.theme === "grass");
 checks.add("themed Blocks overlay captured", shotOk, page.faults.slice(0, 3).join(" | "));
 

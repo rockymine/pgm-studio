@@ -11,7 +11,7 @@ import { rectToPolygon, translateShape, rotateShape, boundsOfShapes, splitShape 
 import { surfaceHeights } from "../geometry/slope.js";
 import { LIBRARY, instantiate, libraryMeta } from "../geometry/shape-library.js";
 import { applySymmetry, orbitAxes } from "../geometry/symmetry.js";
-import { defaultThemeJson, uniqueThemeId, surfaceBlockId } from "../theme/theme-model.js";
+import { defaultThemeJson, uniqueThemeId } from "../theme/theme-model.js";
 import polygonClipping from "../vendor/polygon-clipping.js";
 
 // Default footprint = 2-team landscape (120×80), framed about the origin. CTW maps fit a ~120-block long
@@ -33,7 +33,7 @@ function dimLabel(s) {
   return `${s.vertices?.length ?? 0} v`;
 }
 
-export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
+export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, slug) {
   let setup = { ...DEFAULT_SETUP };
   // Stacked layers (S7b): each holds its own shapes/islands at a base_y. The canvas always edits the
   // ACTIVE layer's shapes; other layers keep cached shapes+islands for ghosting (2-D) and stacking (iso).
@@ -220,6 +220,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     pushLayout();
     pushLayers();
     refreshIso();
+    refreshPaint();   // the geometry moved, so the paint on it has too (no-op unless the overlay is on)
   }
 
   // Build the iso "solids" for every layer: one solid PER SHAPE so per-shape heights are visible (a
@@ -397,27 +398,40 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     for (const L of layers) for (const s of (L.shapes || [])) if (s.theme) shapeThemes[s.id] = s.theme;
     return JSON.stringify({ themes, mapTheme: mapTheme || "", shapeThemes });
   }
-  function afterThemeChange() { syncActive(); markDirty(); fire("OnThemes", themesState()); refreshThemeColors(); }
+  // A theme edit is a discrete action the author is waiting on the result of, so it repaints at once; only
+  // the continuous geometry stream (drag, resize) is worth coalescing.
+  function afterThemeChange() { syncActive(); markDirty(); fire("OnThemes", themesState()); refreshPaint({ now: true }); }
 
-  // Block-palette hex table (id → hex), fetched once, so the Blocks overlay can paint each shape in its theme's
-  // surface colour (finishing-model.md §4). Unavailable palette → overlay stays neutral stone.
-  let blockHex = {}, blockHexLoaded = false;
-  async function ensureBlockPalette() {
-    if (blockHexLoaded) return;
-    blockHexLoaded = true;
-    try {
-      const res = await fetch("/api/terrain/blocks");
-      if (res.ok) for (const b of await res.json()) if (blockHex[b.id] === undefined) blockHex[b.id] = b.hex;
-    } catch { /* leave empty — themed overlay falls back to stone */ }
-    refreshThemeColors();
+  // ── the painted Blocks overlay ─────────────────────────────────────────────
+  // The Blocks toggle shows the blocks the export places, not an approximation of them: the live layout goes
+  // to `sketch/paint`, which runs the real painter over it and returns one colour per footprint cell, and the
+  // canvas blits that as a bitmap. So a voronoi reads as its cells and a noise field as its patches — a
+  // client-side "one representative colour per theme" could never show either. Only fetched while the overlay
+  // is on, and coalesced: geometry edits fire continuously, and a paint is worth one round-trip per settle.
+  // The wait is short because the paint itself is: a typical board repaints in tens of milliseconds, so this
+  // is what a drag's trailing edge costs, not a cushion for slow work.
+  const PAINT_DEBOUNCE_MS = 120;
+  let paintTimer = null, paintSeq = 0, paintWanted = false;
+
+  function refreshPaint({ now = false } = {}) {
+    if (!paintWanted || !slug) return;
+    clearTimeout(paintTimer);
+    paintTimer = setTimeout(fetchPaint, now ? 0 : PAINT_DEBOUNCE_MS);
   }
-  // Resolve each theme's surface colour + the map default's, and hand them to the canvas for the Blocks overlay.
-  function refreshThemeColors() {
-    const hexOf = (t) => blockHex[surfaceBlockId(t)] || null;
-    const themeHex = {};
-    for (const [id, t] of Object.entries(themes)) { const h = hexOf(t); if (h) themeHex[id] = h; }
-    const mapHex = (mapTheme && themes[mapTheme]) ? hexOf(themes[mapTheme]) : null;
-    canvas.setThemeColors(themeHex, mapHex);
+
+  async function fetchPaint() {
+    const seq = ++paintSeq;
+    try {
+      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/sketch/paint`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(handle.getState()),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      // The wire form indexes each cell into a palette (terrain is a handful of blocks, so sending a hex per
+      // cell is most of the response); the bitmap decoder wants a colour per cell, so expand it here.
+      if (data.palette) data.colors = data.color_idx.map(i => data.palette[i]);
+      if (seq === paintSeq) canvas.loadPaintLayer(data);   // ignore a reply overtaken by a newer edit
+    } catch { /* offline or mid-navigation — the overlay keeps the stone footprint */ }
   }
 
   // Set (or clear, with a falsy themeId) a shape's theme override — the live canvas shape so it persists on sync.
@@ -435,9 +449,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
   // Seed the default working bounds so drawing + the mirror preview work immediately.
   applySetup(setup);
   canvas.resize();
-  ensureBlockPalette();   // fetch the block-palette hexes so the Blocks overlay can paint themes
 
-  return {
+  const handle = {
     setTool(tool)      {
       canvas.setActiveTool(tool === "select" ? "select" : tool);
       // Leaving select mode clears the selection — otherwise arrow-nudge keeps moving a shape that's no
@@ -451,7 +464,14 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     setShapesVisible(v){ canvas.setShapesVisible(v); },
     setMirrorVisible(v){ mirrorVisible = v; canvas.setMirrorVisible(v); refreshMirror(); },
     setChunkVisible(v) { canvas.setChunkVisible(v); },
-    setBlocksVisible(v){ canvas.setBlocksVisible(v); },
+    setBlocksVisible(v){
+      canvas.setBlocksVisible(v);
+      // Painting the layout is server work, so it happens only while the overlay is actually on. Turning it
+      // on paints immediately (the user is waiting on it); turning it off drops the bitmap, so re-enabling
+      // after edits can't flash the stale one.
+      paintWanted = !!v;
+      if (paintWanted) refreshPaint({ now: true }); else canvas.loadPaintLayer(null);
+    },
     setSnap(v)         { canvas.setSnapEnabled(v); },
     setView(v)         {
       if (v !== "iso") { view = "2d"; canvas.hideIso(); return; }
@@ -564,11 +584,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
       if (s.setup) applySetup(s.setup);
       themes = (s.themes && typeof s.themes === "object") ? s.themes : {};
       mapTheme = (s.mapTheme && themes[s.mapTheme]) ? s.mapTheme : "";
-      // Fetch the palette if we haven't, and resolve the overlay colours NOW against the just-loaded themes —
-      // the fetch may have already completed with an empty registry (it races the layout load), so a direct
-      // refresh here is what actually paints a reloaded themed sketch.
-      ensureBlockPalette();
-      refreshThemeColors();
       const raw = (s.layers && s.layers.length) ? s.layers : (s.layout ? [{ base_y: 0, layout: s.layout }] : []);
       // A layer's stored shapes are partitioned on load: role-tagged shapes are the plan's structural pieces
       // (S25) — carried as a locked render-only overlay, kept out of the drawn-shape pipeline (islands, raster,
@@ -619,6 +634,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     islandCount() { return islands.length; },
     fitToBbox() { canvas.fitToBbox(); },
     resize() { canvas.resize(); },
-    dispose() { document.removeEventListener("keydown", onKey); canvas.dispose(); },
+    dispose() { clearTimeout(paintTimer); document.removeEventListener("keydown", onKey); canvas.dispose(); },
   };
+  return handle;
 }

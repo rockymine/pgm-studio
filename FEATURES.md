@@ -2588,14 +2588,27 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   paint**. Removed from the plan: the Theme rail, `PlanCompiler.BuildThemes`, and the intent's theme fields
   (superseding the plan-side G157/G158 theming above). Unit-tested (scope resolution + reshape) and e2e'd
   (persist + render).
-  - **The Blocks overlay is the paint preview.** The sketch's existing **Blocks** toggle — which showed the
-    rasterized footprint as neutral stone (the material a sketch is built from) — now colours each cell by the
-    theme that paints it: its shape's theme surface, else the map default's, else stone. `rasterize.js` gains
-    `rasterizeOwners` (cell → owning add shape) + `cellRunsColored`; `theme-model.js` resolves a theme's surface
-    block (`surfaceBlockId`/`materialBlockId`); `sketch-bridge` fetches the block-palette hexes once
-    (`api/terrain/blocks`) and hands the canvas `themeId → surface hex`. So the same toggle that proved the
-    voxelization now previews the paint — no separate overlay or server round-trip. Primary footprint only (the
-    mirror image stays a smooth polygon, as the Blocks overlay always has).
+  - **The Blocks overlay shows the blocks the export places (S30).** The sketch's **Blocks** toggle — which
+    showed the rasterized footprint as neutral stone — is the terrain paint. `POST /api/map/{slug}/sketch/paint`
+    takes the *live* layout and runs the export's own path over it (`TerrainPreview.SketchPaintCells`: rasterise
+    the columns, build the terrain, paint it through `TerrainThemeScope` + `TeamTerritory`), then returns the
+    top block of every footprint cell as the block-pixel payload the editor's block overlays already blit —
+    one opaque pixel per block, `image-rendering: pixelated`, decoded once and blitted per frame
+    (`render/block-render.js`). So the preview is the real paint: voronoi cells, noise fields, wall runs, rims
+    and team tints all read as themselves, and the rim proves it — an edge-only bucket no per-shape colour
+    could produce. The island fill drops to an outline under it, since the painted blocks are the interior.
+    The payload is palette-indexed (`palette` + `color_idx`, expanded client-side) because terrain is a handful
+    of blocks and a hex per cell was most of the response. Fetched only while the overlay is on, debounced
+    120 ms against the geometry stream and immediate on a theme edit; until it arrives the plain stone
+    footprint stands in, so drawing keeps its instant voxelization feedback. Primary footprint only (the mirror
+    image stays a smooth polygon, as the Blocks overlay always has).
+
+    This replaced a client-side approximation that resolved each theme to **one representative block colour**
+    and painted it as translucent stroked runs. It could not show a pattern or a bucket even in principle, and
+    what reached the screen was worse: at `fillAlpha 0.7` over the island fill every colour composited towards
+    the result purple (`#a05a28` arrived as `rgb(140,91,95)`), and the hairline stroked round each one-cell-tall
+    run banded it — a striped grey. The e2e passed throughout, because it screenshotted without reading a pixel;
+    it now asserts exact palette hexes at full opacity, on both the payload and the canvas.
 - **Sketch editor** — `/maps/{slug}/sketch` (`SketchTool` + `SketchPanel`/`SketchInspector`): draw 2-D
   shapes → live islands + mirror, with select/op/override/delete/rename. Pure geometry in
   `geometry/shape.js` + `geometry/boolean.js`; canvas + draw/edit controllers + `render/sketch-render.js`;

@@ -74,12 +74,16 @@ export function paintStructural(painter, shapes) {
   }
 }
 
-/** The computed island result polygons (exterior + holes). */
-export function paintIslands(painter, islands) {
+/**
+ * The computed island result polygons (exterior + holes). `filled` off draws the outline alone — what the
+ * Blocks overlay needs, because the painted blocks under it *are* the island's interior and a translucent
+ * fill on top would tint every block colour towards the result purple.
+ */
+export function paintIslands(painter, islands, { filled = true } = {}) {
   for (const island of islands ?? []) {
     if (!island?.exterior?.length) continue;
     painter.poly({ exterior: island.exterior, holes: island.holes ?? [] }, {
-      fill: "var(--canvas-result-fill)", fillAlpha: 0.22,
+      ...(filled ? { fill: "var(--canvas-result-fill)", fillAlpha: 0.22 } : {}),
       stroke: "var(--canvas-result-stroke)", width: 1.5,
     });
   }
@@ -108,20 +112,18 @@ export function paintMirror(painter, polys) {
 
 /**
  * The rasterized block footprint (S23) — the exact cells the shapes voxelize into, as merged horizontal
- * runs `{ x, z, w }` (see geometry/rasterize.cellRuns). Painted as a faint block-coloured fill beneath the
- * smooth island outline, so a curve visibly reads as the blocky cells it becomes on export.
+ * runs `{ x, z, w }` (see geometry/rasterize.cellRuns). Painted as a faint stone fill beneath the smooth
+ * island outline, so a curve visibly reads as the blocky cells it becomes on export. This is the geometry
+ * preview only; the *paint* those cells receive is the block bitmap the canvas blits over it.
  */
 export function paintRaster(painter, runs) {
-  // A block-coloured fill plus a hairline round each run — the run edges are exactly the stair-stepped cell
-  // boundaries, so the voxelization reads as blocks. A run carrying a `color` (the theme surface a themed
-  // shape paints) uses it; otherwise the neutral stone the sketch is built from by default.
+  // A faint fill plus a hairline round each run — the run edges are exactly the stair-stepped cell
+  // boundaries, so the voxelization reads as blocks — in the neutral stone a sketch is built from.
   const stone = "var(--canvas-result-stroke)";
   const line = painter.screenPx(1);
-  for (const { x, z, w, color } of runs ?? []) {
-    const fill = color ?? stone;
-    const themed = color != null;
+  for (const { x, z, w } of runs ?? []) {
     painter.rect({ min_x: x, max_x: x + w, min_z: z, max_z: z + 1 },
-      { fill, fillAlpha: themed ? 0.7 : 0.20, stroke: themed ? fill : stone, strokeAlpha: 0.55, width: line });
+      { fill: stone, fillAlpha: 0.20, stroke: stone, strokeAlpha: 0.55, width: line });
   }
 }
 
