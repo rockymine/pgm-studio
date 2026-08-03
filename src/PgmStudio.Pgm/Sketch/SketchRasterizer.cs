@@ -42,6 +42,52 @@ public static class SketchRasterizer
         return output;
     }
 
+    /// <summary>Maps every cell a themed shape covers to that shape's id — the primary footprint plus each
+    /// mirroring island's orbit copies (which keep the shape id), the smallest-area shape winning an overlap
+    /// (the most specific scope). Feeds <c>TerrainThemeScope</c>: a cell's theme is its owning shape's theme,
+    /// else the map default. Only add shapes carrying a theme are considered; subtracts and role-tagged
+    /// (structural) shapes are skipped — they place no themed terrain. Void cells that no surface stands on are
+    /// harmless: the painter only reads owners where a column is solid.</summary>
+    public static Dictionary<(int X, int Z), string> ShapeThemeOwners(string layoutJson)
+    {
+        var state = SketchLayout.Parse(layoutJson);
+        var cx = state?.Setup?.Center?.Cx ?? 0;
+        var cz = state?.Setup?.Center?.Cz ?? 0;
+        var axes = Symmetry.OrbitAxes(state?.Setup?.MirrorMode ?? "rot_180");
+
+        var owner = new Dictionary<(int, int), string>();
+        var areaOf = new Dictionary<(int, int), long>();
+
+        void Claim(SketchShape s)
+        {
+            if (s.Theme is null || s.Operation == "subtract" || s.Role is not null) return;
+            var cells = RasterShape(s).Select(c => (c.X, c.Z)).ToList();
+            long area = cells.Count;
+            foreach (var cell in cells)
+                if (!owner.ContainsKey(cell) || area < areaOf[cell]) { owner[cell] = s.Id; areaOf[cell] = area; }
+        }
+
+        foreach (var (layout, _) in ResolveLayers(state))
+        {
+            var shapes = layout?.Shapes ?? [];
+            foreach (var s in shapes) Claim(s);                             // primary footprint
+
+            var metas = layout?.Islands ?? [];
+            if (metas.Count == 0)
+            {
+                foreach (var axis in axes) foreach (var s in shapes) Claim(MirrorShape(s, axis, cx, cz));
+            }
+            else
+            {
+                var byId = shapes.GroupBy(s => s.Id).ToDictionary(g => g.Key, g => g.First());
+                foreach (var meta in metas.Where(m => m.Mirrors))
+                    foreach (var id in meta.ShapeIds.Where(byId.ContainsKey))
+                        foreach (var axis in axes) Claim(MirrorShape(byId[id], axis, cx, cz));
+            }
+        }
+        return owner;
+    }
+
     // Layers to rasterize: the S7 `layers` array, else the legacy single `layout` at base_y 0.
     private static List<(SketchShapes Layout, double BaseY)> ResolveLayers(SketchLayout? state)
     {
@@ -255,6 +301,7 @@ public static class SketchRasterizer
             {
                 Id = s.Id, Type = s.Type, Operation = s.Operation, Override = s.Override,
                 Vertices = nv, Controls = nc, AnchorHeights = s.AnchorHeights, BaseHeight = s.BaseHeight, Floor = s.Floor,
+                Theme = s.Theme,
             };
         }
         // Rectangle/circle: flatten the transformed footprint to a polygon (uniform height carried).
@@ -262,7 +309,7 @@ public static class SketchRasterizer
         return new SketchShape
         {
             Id = s.Id, Type = "polygon", Operation = s.Operation, Override = s.Override,
-            Vertices = ring, BaseHeight = s.BaseHeight, Floor = s.Floor,
+            Vertices = ring, BaseHeight = s.BaseHeight, Floor = s.Floor, Theme = s.Theme,
         };
     }
 

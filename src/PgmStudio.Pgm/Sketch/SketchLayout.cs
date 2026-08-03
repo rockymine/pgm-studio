@@ -15,6 +15,13 @@ public sealed class SketchLayout
     [JsonPropertyName("layout")] public SketchShapes? Layout { get; set; }   // legacy single-layer (pre-S7)
     [JsonPropertyName("layers")] public List<SketchLayer>? Layers { get; set; }
 
+    // Terrain-paint theming lives on the sketch model (docs/world-export/finishing-model.md §4): a registry of
+    // named themes (id → the theme JSON the painter deserializes) and the map-default id covering every cell no
+    // shape scope claims. A shape's own theme override rides on SketchShape.Theme; a cell resolves shape → map
+    // default at export (TerrainThemeScope). Absent on a plain/unthemed sketch, which paints the built-in default.
+    [JsonPropertyName("themes")]   public Dictionary<string, JsonElement>? Themes { get; set; }
+    [JsonPropertyName("mapTheme")] public string? MapTheme { get; set; }
+
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     public string ToJson() => JsonSerializer.Serialize(this, Json);
@@ -112,4 +119,9 @@ public sealed class SketchShape
     [JsonPropertyName("role")]       public string? Role { get; set; }
     [JsonPropertyName("intentRef")]  public string? IntentRef { get; set; }
     [JsonPropertyName("color")]      public string? Color { get; set; }
+
+    // Terrain-paint theme override (finishing-model.md §4): the id (into SketchLayout.Themes) of the theme this
+    // shape paints; null falls to the map default. The scope is the shape, so a reshape moves the paint. Island
+    // and full-map assignment are UI conveniences that write this per member shape / the map default.
+    [JsonPropertyName("theme")]      public string? Theme { get; set; }
 }

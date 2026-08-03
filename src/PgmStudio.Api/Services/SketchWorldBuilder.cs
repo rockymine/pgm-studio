@@ -121,12 +121,12 @@ public static class SketchWorldBuilder
         var resolvedDestroyables = StampDestroyables(world, terrain.SurfaceTop, intent.Destroyables);
         var resolvedCores = StampCores(world, terrain.SurfaceTop, intent.Cores);
 
-        // ── Terrain finish (G157) — dress the raw stone: team-tinted clay walls, quartz rims, grass surface.
+        // ── Terrain finish — dress the raw stone: team-tinted clay walls, quartz rims, grass surface.
         // Runs last so it reads the finished world; touches only stone, so bedrock and every stamp above stay
-        // untouched. The theme is resolved per cell through TerrainThemeScope (a piece override, its collection,
-        // else the map default — TP10); team ownership is read through TeamTerritory — the canonical islands_json
-        // decomposition plus the stored/pre-filled IslandTeams — so the tint agrees with what configure assigned.
-        TerrainPainter.Paint(world, terrain.SurfaceTop, TerrainThemeScope.ThemeAt(intent), TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent));
+        // untouched. The theme is resolved per cell through TerrainThemeScope (a shape override, else the map
+        // default — finishing-model.md §4); team ownership is read through TeamTerritory — the canonical
+        // islands_json decomposition plus the stored/pre-filled IslandTeams — so the tint agrees with configure.
+        TerrainPainter.Paint(world, terrain.SurfaceTop, TerrainThemeScope.ThemeAt(layoutJson), TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent));
 
         // ── Observer platform (floating at the authored Y) ───────────────────────────────────────────
         int spawnX, spawnY, spawnZ;

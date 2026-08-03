@@ -65,31 +65,10 @@ public sealed class MapIntent
     /// across the symmetry orbit); null on hand-authored / imported intents, which behave exactly as before.</summary>
     public StructureIntent? Structures { get; init; }
 
-    /// <summary>Terrain-paint theme registry (docs/world-export/terrain-painting.md TP10): <c>themeId → theme
-    /// JSON</c> (the serialized <c>TerrainTheme</c>, opaque here — this project doesn't reference the world
-    /// package that owns the type). Baked by the plan compiler from the plan's authored themes; the world-export
-    /// path deserializes each and paints the scope that references it. Empty → the built-in default theme.</summary>
-    public Dictionary<string, string> Themes { get; init; } = new();
-
-    /// <summary>The map-default theme id (into <see cref="Themes"/>), the lowest-priority layer covering every
-    /// cell no piece scope claims (TP10). Null → the built-in default theme.</summary>
-    public string? MapTheme { get; init; }
-
-    /// <summary>Per-piece terrain-paint override (TP10): <c>pieceId → themeId</c>, the priority stack already
-    /// resolved and any box/collection already expanded to member pieces by the compiler. A cell in a listed
-    /// piece paints that theme; every other cell falls to <see cref="MapTheme"/>. Empty → the map default
-    /// everywhere.</summary>
-    public Dictionary<string, string> PieceThemes { get; init; } = new();
-
-    /// <summary>The plan pieces' fanned world footprints (TP10) — the one plan fact the painter needs to map a
-    /// cell to its piece for scoped theming. One entry per piece per symmetry-orbit image; the smallest
-    /// footprint wins a cell it shares. Empty on hand-authored intents (no scoping — the map default paints).</summary>
-    public List<PieceFootprint> PieceFootprints { get; init; } = new();
+    // Terrain-paint theming is no longer carried on the intent: it lives on the sketch model (a theme registry
+    // + per-shape override on SketchLayout), resolved at export by TerrainThemeScope from the sketch geometry
+    // (docs/world-export/finishing-model.md §4).
 }
-
-/// <summary>One plan piece's fanned world footprint for scoped theming (TP10): the stable (team-0) piece id and
-/// its block rect for one symmetry-orbit image.</summary>
-public readonly record struct PieceFootprint(string PieceId, Rect Block);
 
 /// <summary>The plan-compiled layout structures, in absolute world block coordinates already fanned across the
 /// symmetry orbit (docs/generator/rules.md ST1–ST4). Consumed by the sketch world-export path.</summary>
