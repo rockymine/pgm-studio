@@ -53,13 +53,14 @@ the focus-integration polish remains.
 The Sketch depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection
 highlight); these are the parked / dormant / deferred slices.
 
-- [ ] **S33 — Ship the sketch-paint footprint as bounds + a mask, not a cell list.** With the paint itself cut
-  down (S31, `FEATURES.md`) and the colours palette-indexed, what is left on the wire is `xs`/`zs` — two ints
-  per cell, 345 KB on a 200×200 board — describing a dense footprint that a bounds rect plus a per-cell mask
-  would carry in a fraction of it. Worth doing with the other remaining server cost: `TerrainProfile`
-  construction is now the largest single term in a paint (~87 ms at 40k cells, against ~40 ms for the tops),
-  and its plateau labelling + perimeter trace + N8 classification all re-run from scratch on every keystroke of
-  a drag even though only the edited shape's neighbourhood changed.
+- [ ] **S34 — Reuse a sketch paint's column classification across the edits of one drag.** `TerrainProfile`
+  construction is what a paint now costs — ~60 ms of the ~164 ms a 40k-cell board takes (S33, `FEATURES.md`),
+  and roughly 35 ms of that is its two `GridComponents.Label` passes: one flood fill for plateaus, a second for
+  landmasses, each sorting its seeds and hashing a coordinate pair per neighbour edge. They re-run from
+  scratch on every step of a drag, though only the moved shape's neighbourhood changed and the plateau
+  components are already a refinement of the landmass ones (equal-top cells are 4-connected), so the second
+  pass could be merged out of the first. Whether the rest is worth an incremental cache depends on a number
+  nobody has: a typical board is ~93 ms end to end now, so this is the 200×200 case, not the common one.
 
 - [ ] **S26 — Sweep the now-dead plan-side theme JS.** The Theme phase moved onto the sketch (`FEATURES.md`);
   the plan tool's Theme UI + C# theme path are gone, but the plan **JS** theme code is still present as an

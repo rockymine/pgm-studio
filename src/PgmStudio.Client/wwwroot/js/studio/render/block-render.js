@@ -12,9 +12,19 @@
 import { svgEl } from "./svg.js";
 
 /**
- * Convert a block layer payload into a PNG data URL.
+ * Convert a block layer payload into a PNG data URL. Two encodings are accepted, because the two things that
+ * produce these payloads have opposite shapes:
+ *
+ *   cells  { xs, zs, colors }            one entry per painted cell — a scanned world's surface, arbitrary
+ *   runs   { palette, runs }             row-major [paletteIndex, length, …] over the whole bounding box,
+ *                                        -1 for a cell outside the footprint — a painted sketch, which is
+ *                                        patches of a few blocks and long stretches of void
+ *
+ * A sketch board emits well under one run per painted cell, so the run form is several times smaller on the
+ * wire; the sender picks whichever is smaller and this decodes both into the same bitmap.
  */
-export function blockDataToDataUrl({ xs, zs, colors, min_x, min_z, max_x, max_z }) {
+export function blockDataToDataUrl(payload) {
+  const { min_x, min_z, max_x, max_z } = payload;
   const imgW = max_x - min_x + 1;
   const imgH = max_z - min_z + 1;
   const offscreen = document.createElement("canvas");
@@ -23,14 +33,29 @@ export function blockDataToDataUrl({ xs, zs, colors, min_x, min_z, max_x, max_z 
   const ctx2d  = offscreen.getContext("2d");
   const pixels = ctx2d.createImageData(imgW, imgH);
   const data   = pixels.data;
-  for (let i = 0; i < xs.length; i++) {
-    const rgb      = parseInt(colors[i].slice(1), 16);
-    const pixelIdx = ((zs[i] - min_z) * imgW + (xs[i] - min_x)) * 4;
+
+  const write = (pixelIdx, hex) => {
+    const rgb = parseInt(hex.slice(1), 16);
     data[pixelIdx]     = (rgb >> 16) & 0xff;
     data[pixelIdx + 1] = (rgb >> 8)  & 0xff;
     data[pixelIdx + 2] =  rgb        & 0xff;
     data[pixelIdx + 3] = 255;
+  };
+
+  if (payload.runs) {
+    const { runs, palette } = payload;
+    let cell = 0;
+    for (let i = 0; i < runs.length; i += 2) {
+      const index = runs[i], length = runs[i + 1];
+      if (index < 0) { cell += length; continue; }        // void — leave those pixels transparent
+      const hex = palette[index];
+      for (let end = cell + length; cell < end; cell++) write(cell * 4, hex);
+    }
+  } else {
+    const { xs, zs, colors } = payload;
+    for (let i = 0; i < xs.length; i++) write(((zs[i] - min_z) * imgW + (xs[i] - min_x)) * 4, colors[i]);
   }
+
   ctx2d.putImageData(pixels, 0, 0);
   return offscreen.toDataURL("image/png");
 }

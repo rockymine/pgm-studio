@@ -286,7 +286,7 @@ export class SketchCanvas extends CanvasBase {
    * stone footprint.
    */
   loadPaintLayer(data) {
-    this.#paintData = (data && data.xs?.length) ? data : null;
+    this.#paintData = (data && (data.runs?.length || data.xs?.length)) ? data : null;   // either wire form
     this.#paintImage = null;
     if (!this.#paintData) { this.#paintWorld(); return; }
     loadBlockImage(this.#paintData, (image) => {

@@ -46,7 +46,14 @@ public static class GridComponents
                 foreach (var (dx, dz) in deltas)
                 {
                     var nb = (cell.X + dx, cell.Z + dz);
-                    if (remaining.Contains(nb) && (canJoin is null || canJoin(cell, nb)))
+                    // Unconditional joining claims the neighbour with the lookup that tests it — Remove
+                    // reports whether it was there. With a predicate the membership test has to come first,
+                    // because a neighbour the predicate rejects must stay available to another component.
+                    if (canJoin is null)
+                    {
+                        if (remaining.Remove(nb)) queue.Enqueue(nb);
+                    }
+                    else if (remaining.Contains(nb) && canJoin(cell, nb))
                     {
                         remaining.Remove(nb);
                         queue.Enqueue(nb);

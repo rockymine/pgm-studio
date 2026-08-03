@@ -22,28 +22,36 @@ public readonly record struct ColumnProfile(int SurfaceTop, bool OpenEdge, bool 
 /// </summary>
 public sealed class TerrainProfile
 {
-    private readonly IReadOnlyDictionary<(int X, int Z), int> _surfaceTop;
-    private readonly HashSet<(int, int)> _structure = [];
-    private readonly Dictionary<(int, int), int> _plateau = [];
+    /// <summary>Everything the classifier asks about one cell, answered by a single lookup. Kept together
+    /// because the pass reads a dozen neighbours per cell and the lookups, not the work between them, are the
+    /// cost: held as three separate tables this was three or four hashes of the same coordinate pair per
+    /// neighbour.</summary>
+    private readonly record struct CellFacts(int Top, bool IsStructure, int Plateau);
+
+    private readonly Dictionary<(int, int), CellFacts> _facts;
     private readonly Dictionary<(int, int), int> _perimeterArc = [];
     private readonly Dictionary<(int, int), ColumnProfile> _columns = [];
 
     public TerrainProfile(VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop)
     {
-        _surfaceTop = surfaceTop;
-
         // A column is a structure (not paintable) when it has no stone to paint — its surface block is not
         // stone (a stamp's bedrock/wool/obsidian sits there or the column is a bare bedrock course).
+        var structures = new HashSet<(int, int)>();
         foreach (var (cell, top) in surfaceTop)
-            if (top <= 1 || world.GetBlock(cell.X, top - 1, cell.Z).Id != Blocks.Stone) _structure.Add(cell);
+            if (top <= 1 || world.GetBlock(cell.X, top - 1, cell.Z).Id != Blocks.Stone) structures.Add(cell);
 
-        LabelPlateaus();
-        LabelPerimeter();
+        var plateaus = LabelPlateaus(surfaceTop);
 
+        _facts = new Dictionary<(int, int), CellFacts>(surfaceTop.Count);
         foreach (var (cell, top) in surfaceTop)
+            _facts[cell] = new CellFacts(top, structures.Contains(cell), plateaus[cell]);
+
+        LabelPerimeter(surfaceTop.Keys);
+
+        foreach (var (cell, facts) in _facts)
         {
-            if (_structure.Contains(cell)) continue;    // structures are never painted (TP6)
-            _columns[cell] = Classify(cell.X, cell.Z, top);
+            if (facts.IsStructure) continue;    // structures are never painted (TP6)
+            _columns[cell] = Classify(cell.Item1, cell.Item2, facts);
         }
     }
 
@@ -56,21 +64,15 @@ public sealed class TerrainProfile
     /// per cell, whether the painter has an opinion about it.</summary>
     public bool TryGetColumn((int X, int Z) cell, out ColumnProfile column) => _columns.TryGetValue(cell, out column);
 
-    private bool InFootprint(int x, int z) => _surfaceTop.ContainsKey((x, z));
-    private bool IsStructure(int x, int z) => _structure.Contains((x, z));
-    private int Top(int x, int z) => _surfaceTop[(x, z)];
-
-    private ColumnProfile Classify(int x, int z, int top)
+    private ColumnProfile Classify(int x, int z, CellFacts self)
     {
         bool openEdge = false, closedEdge = false;
-        var plateau = _plateau[(x, z)];
         foreach (var (dx, dz) in GridComponents.N8)
         {
-            var (nx, nz) = (x + dx, z + dz);
-            if (!InFootprint(nx, nz)) { openEdge = true; closedEdge = true; continue; }
-            if (IsStructure(nx, nz)) { closedEdge = true; continue; }
-            if (Top(nx, nz) < top) openEdge = true;                 // a drop — base rim + wall
-            if (_plateau[(nx, nz)] != plateau) closedEdge = true;    // any plateau boundary — closed rim
+            if (!_facts.TryGetValue((x + dx, z + dz), out var n)) { openEdge = true; closedEdge = true; continue; }
+            if (n.IsStructure) { closedEdge = true; continue; }
+            if (n.Top < self.Top) openEdge = true;                   // a drop — base rim + wall
+            if (n.Plateau != self.Plateau) closedEdge = true;         // any plateau boundary — closed rim
         }
 
         // Wall lower bound: the shallowest orthogonal drop's floor. Void drops to the bedrock course (Y=1);
@@ -78,23 +80,24 @@ public sealed class TerrainProfile
         int voidDrop = -1, terrainDrop = -1;
         foreach (var (dx, dz) in GridComponents.N4)
         {
-            var (nx, nz) = (x + dx, z + dz);
-            if (!InFootprint(nx, nz)) { voidDrop = 1; continue; }
-            if (IsStructure(nx, nz)) continue;
-            var nt = Top(nx, nz);
-            if (nt < top) terrainDrop = terrainDrop < 0 ? nt : Math.Min(terrainDrop, nt);
+            if (!_facts.TryGetValue((x + dx, z + dz), out var n)) { voidDrop = 1; continue; }
+            if (n.IsStructure) continue;
+            if (n.Top < self.Top) terrainDrop = terrainDrop < 0 ? n.Top : Math.Min(terrainDrop, n.Top);
         }
-        return new ColumnProfile(top, openEdge, closedEdge, voidDrop, terrainDrop, _perimeterArc.GetValueOrDefault((x, z), -1));
+        return new ColumnProfile(self.Top, openEdge, closedEdge, voidDrop, terrainDrop,
+            _perimeterArc.GetValueOrDefault((x, z), -1));
     }
 
     // 4-connected components of equal surface top over the whole footprint (structures included, so a plateau
     // boundary is seen from the terrain side). Ids are used only for equality, so any consistent numbering does.
-    private void LabelPlateaus()
+    private static Dictionary<(int, int), int> LabelPlateaus(IReadOnlyDictionary<(int X, int Z), int> surfaceTop)
     {
-        var components = GridComponents.Label(_surfaceTop.Keys, connectivity: 4,
-            canJoin: (a, b) => _surfaceTop[a] == _surfaceTop[b]);
+        var plateaus = new Dictionary<(int, int), int>(surfaceTop.Count);
+        var components = GridComponents.Label(surfaceTop.Keys, connectivity: 4,
+            canJoin: (a, b) => surfaceTop[a] == surfaceTop[b]);
         for (var id = 0; id < components.Count; id++)
-            foreach (var cell in components[id]) _plateau[cell] = id;
+            foreach (var cell in components[id]) plateaus[cell] = id;
+        return plateaus;
     }
 
     // The outer void-facing perimeter (TP13): split the footprint into connected landmasses (4-connected, all
@@ -102,9 +105,9 @@ public sealed class TerrainProfile
     // boundary, numbering its boundary cells 0..n-1 around the loop. A wall-run reads this arc so its stripes
     // wrap the whole perimeter continuously, corners included. Interior cells and internal elevation steps (which
     // face lower terrain, not void) are on no outer boundary and keep -1.
-    private void LabelPerimeter()
+    private void LabelPerimeter(IEnumerable<(int X, int Z)> footprint)
     {
-        foreach (var landmass in GridComponents.Label(_surfaceTop.Keys, connectivity: 4))
+        foreach (var landmass in GridComponents.Label(footprint, connectivity: 4))
             foreach (var (cell, arc) in GridBoundary.TracePerimeter(landmass))
                 _perimeterArc[cell] = arc;
     }

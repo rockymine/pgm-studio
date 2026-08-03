@@ -444,9 +444,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       });
       if (!res.ok) return;
       const data = await res.json();
-      // The wire form indexes each cell into a palette (terrain is a handful of blocks, so sending a hex per
-      // cell is most of the response); the bitmap decoder wants a colour per cell, so expand it here.
-      if (data.palette) data.colors = data.color_idx.map(i => data.palette[i]);
+      // Two wire forms, both palette-indexed: row-major runs (what a painted board almost always is), or a
+      // per-cell list. The bitmap decoder reads runs directly; the cell list needs its colours expanded.
+      if (!data.runs && data.color_idx) data.colors = data.color_idx.map(i => data.palette[i]);
       if (seq === paintSeq) canvas.loadPaintLayer(data);   // ignore a reply overtaken by a newer edit
     } catch { /* offline or mid-navigation — the overlay keeps the stone footprint */ }
   }

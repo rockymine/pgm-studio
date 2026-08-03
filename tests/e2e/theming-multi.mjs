@@ -154,9 +154,18 @@ try {
 // The paint itself: the server runs the real painter over the layout, so BOTH themes must appear in what it
 // returns — that is theme scope (each shape's override resolved per cell) plus the painter, end to end.
 const paint = await api(`/map/${slug}/sketch/paint`, { method: "POST", body: saved });
-// The payload indexes each cell into a palette of the distinct blocks, the way the client expands it.
-const paintedColors = (paint.color_idx ?? []).map(i => paint.palette?.[i]);
-const cellsOf = (hex) => paintedColors.filter(c => c?.toLowerCase() === hex.toLowerCase()).length;
+// Both wire forms are palette-indexed; count through whichever came back, the way the canvas decodes it.
+// Runs are [paletteIndex, length, …] row-major over the bounding box, -1 for a cell outside the footprint.
+const cellsOf = (hex) => {
+  const target = hex.toLowerCase();
+  const hits = (index) => paint.palette?.[index]?.toLowerCase() === target;
+  if (paint.runs) {
+    let painted = 0;
+    for (let i = 0; i < paint.runs.length; i += 2) if (hits(paint.runs[i])) painted += paint.runs[i + 1];
+    return painted;
+  }
+  return (paint.color_idx ?? []).filter(hits).length;
+};
 checks.add(`theme "grass" is painted (${a.hex})`, cellsOf(a.hex) > 0, `${cellsOf(a.hex)} cells`);
 checks.add(`theme "dirt" is painted (${b.hex})`, cellsOf(b.hex) > 0, `${cellsOf(b.hex)} cells`);
 

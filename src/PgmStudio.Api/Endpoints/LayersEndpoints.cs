@@ -48,13 +48,78 @@ internal static class LayerData
     };
 
     /// <summary>
-    /// <see cref="Pixels"/> with the colours indirected through a palette: <c>palette</c> holds each distinct
-    /// hex once and <c>color_idx</c> indexes into it per cell. Terrain is built from a handful of blocks, so
-    /// repeating an 8-character hex string per cell is most of the response — a 200×200 footprint sends 657 KB
-    /// of which 440 KB is the same few strings over and over. The caller expands the palette back to a
-    /// <c>colors</c> array before decoding, so the bitmap path itself is unchanged.
+    /// A painted footprint in whichever of the two block-pixel encodings is smaller for it — the client decodes
+    /// both, so the choice is free and self-tuning.
+    /// <para><b>Runs</b> (<c>palette</c> + <c>runs</c>) walk the bounding box row by row as
+    /// <c>[paletteIndex, length, …]</c> with <c>-1</c> for a cell outside the footprint. This is what terrain
+    /// actually looks like — measured over the sketch corpus a board emits <b>0.05 to 0.27 runs per painted
+    /// cell</b>, because even a voronoi paints in patches and the void between islands is one long run — so it
+    /// beats a per-cell list several times over, and a plain dense mask by more (real footprints fill only
+    /// 17–40% of their own bounding box, so most of a mask would be void).</para>
+    /// <para><b>Cells</b> (<c>xs</c>/<c>zs</c>/<c>color_idx</c>) is the fallback, for a footprint so scattered
+    /// that its runs cost more than its cells, or one whose bounding box is too large to raster at all.</para>
     /// </summary>
     public static Dict PalettePixels(IReadOnlyList<SurfaceCell> cells)
+    {
+        var byCell = CellPixels(cells);
+        var asRuns = RunPixels(cells);
+        return asRuns is not null && ((int[])asRuns["runs"]!).Length < 3 * cells.Count ? asRuns : byCell;
+    }
+
+    // The largest bounding box worth rastering to find runs. A footprint is normally compact, but nothing stops
+    // two shapes being drawn a world apart, and that box must not become the allocation.
+    private const long MaxRunRasterCells = 4_000_000;
+
+    /// <summary>The run encoding, or null when the footprint's bounding box is too large to raster.</summary>
+    private static Dict? RunPixels(IReadOnlyList<SurfaceCell> cells)
+    {
+        int minX = int.MaxValue, minZ = int.MaxValue, maxX = int.MinValue, maxZ = int.MinValue;
+        foreach (var c in cells)
+        {
+            if (c.X < minX) minX = c.X; if (c.X > maxX) maxX = c.X;
+            if (c.Z < minZ) minZ = c.Z; if (c.Z > maxZ) maxZ = c.Z;
+        }
+        long width = (long)maxX - minX + 1, height = (long)maxZ - minZ + 1;
+        if (width * height > MaxRunRasterCells) return null;
+
+        var colorCache = new Dictionary<(int, int), int>();
+        var palette = new List<string>();
+        var slot = new int[width * height];
+        Array.Fill(slot, -1);
+        foreach (var c in cells)
+        {
+            var key = (c.BlockId, c.BlockData);
+            if (!colorCache.TryGetValue(key, out var index))
+            {
+                colorCache[key] = index = palette.Count;
+                palette.Add(BlockPalette.Hex(c.BlockId, c.BlockData));
+            }
+            slot[(c.Z - minZ) * width + (c.X - minX)] = index;
+        }
+
+        var runs = new List<int>();
+        var value = slot[0];
+        var length = 0;
+        foreach (var s in slot)
+        {
+            if (s == value) { length++; continue; }
+            runs.Add(value); runs.Add(length);
+            value = s; length = 1;
+        }
+        runs.Add(value); runs.Add(length);
+
+        return new Dict
+        {
+            ["palette"] = palette, ["runs"] = runs.ToArray(),
+            ["min_x"] = minX, ["min_z"] = minZ, ["max_x"] = maxX, ["max_z"] = maxZ,
+        };
+    }
+
+    /// <summary>One entry per painted cell: parallel <c>xs</c>/<c>zs</c> plus a <c>color_idx</c> into the shared
+    /// palette. Terrain is built from a handful of blocks, so repeating an 8-character hex per cell was most of
+    /// the response before the palette went in — 657 KB on a 200×200 board, 440 KB of it the same few strings.
+    /// </summary>
+    private static Dict CellPixels(IReadOnlyList<SurfaceCell> cells)
     {
         var colorCache = new Dictionary<(int, int), int>();
         var palette = new List<string>();

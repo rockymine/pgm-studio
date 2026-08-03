@@ -2634,6 +2634,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
     end (369 ms → 238 ms on a 38k-cell board), and unit-tested as the invariant it is: every column's
     `TopBlock` equals what `Paint` writes on top of that column.
 
+    **The footprint ships as runs, and the classifier reads each neighbour once (S33).** A painted board is
+    patches of a few blocks separated by long stretches of void, so it is sent that way: `palette` plus
+    row-major `runs` of `[paletteIndex, length, …]` over the bounding box, `-1` for a cell outside the
+    footprint. Measured across the sketch corpus a board emits **0.05–0.27 runs per painted cell**, which
+    beats the per-cell list several times over and a dense mask by more — real footprints fill only 17–40% of
+    their own bounding box, so most of a mask would be void. `blockDataToDataUrl` decodes either form into the
+    same bitmap and the server sends whichever is smaller, so a pathologically scattered footprint (or one
+    whose bounding box is too large to raster) still has the cell list to fall back on. Alongside it,
+    `TerrainProfile` now answers all of a neighbour's questions from one `CellFacts` lookup where three tables
+    meant three or four hashes of the same coordinate pair, twelve neighbours deep per cell, and
+    `GridComponents.Label` claims an unconditionally-joined neighbour with the same lookup that tests it.
+    Together: **122 KB → 7.1 KB** and **176 ms → 93 ms** on a typical 14k-cell board, 345 KB → 18.7 KB and
+    291 ms → 230 ms on a 200×200 one (warm medians; this VM varies about ±30 ms).
+
     This replaced a client-side approximation that resolved each theme to **one representative block colour**
     and painted it as translucent stroked runs. It could not show a pattern or a bucket even in principle, and
     what reached the screen was worse: at `fillAlpha 0.7` over the island fill every colour composited towards
