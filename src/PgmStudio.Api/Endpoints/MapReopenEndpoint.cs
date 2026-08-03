@@ -18,31 +18,34 @@ namespace PgmStudio.Api.Endpoints;
 /// </summary>
 internal static class MapReopen
 {
-    /// <summary>The stage a map with these artifacts reopens into, or null when it has no authored source.
-    /// A map that was planned and then sketched holds both blobs and reopens into the Sketch tool: the
-    /// sketch is the later record, and the plan is reachable from its own stage once there.</summary>
-    public static string? TargetFor(bool hasSketchLayout, bool hasPlan) =>
-        hasSketchLayout ? MapStage.Sketch
-        : hasPlan ? MapStage.Plan
-        : null;
+    /// <summary>The stage a map with these artifacts reopens into, or null when there is nowhere to go.
+    /// The sketch layout is the later record, so it is offered first; a map already sitting in that stage
+    /// reopens into the other source it kept. A plan built onto its own map row holds both blobs, and that
+    /// is what lets it reach both tools — from Configuring back to the sketch, and from the sketch back to
+    /// the plan it was compiled from.</summary>
+    public static string? TargetFor(bool hasSketchLayout, bool hasPlan, string? currentStage)
+    {
+        string?[] authored = [hasSketchLayout ? MapStage.Sketch : null, hasPlan ? MapStage.Plan : null];
+        return authored.FirstOrDefault(stage => stage is not null && stage != currentStage);
+    }
 
     /// <summary>The reopen target of one map, read from its artifact rows.</summary>
-    public static async Task<string?> TargetForMapAsync(PgmDb db, long mapId, CancellationToken ct)
+    public static async Task<string?> TargetForMapAsync(PgmDb db, long mapId, string currentStage, CancellationToken ct)
     {
         var kinds = await db.Artifacts
             .Where(a => a.MapId == mapId
                         && (a.Kind == ArtifactKind.SketchLayoutJson || a.Kind == ArtifactKind.PlanJson))
             .Select(a => a.Kind).Distinct().ToListAsync(ct);
-        return TargetFor(kinds.Contains(ArtifactKind.SketchLayoutJson), kinds.Contains(ArtifactKind.PlanJson));
+        return TargetFor(kinds.Contains(ArtifactKind.SketchLayoutJson), kinds.Contains(ArtifactKind.PlanJson), currentStage);
     }
 }
 
-/// <summary>POST /api/map/{slug}/reopen — send a map back to the authoring stage it was drawn in, so it
-/// lists (and opens) there again. Only a map that kept an authoring source can go back: a sketch layout
-/// reopens into <c>sketch</c>, a plan blob into <c>plan</c>, and an imported world into neither (422).
-/// The stage pointer is all that moves — the geometry, intent and document rows stay as they are, and
-/// finishing the sketch again advances it back to <c>configure</c>. Returns
-/// <c>{slug, stage, url, reopened}</c>, with <c>reopened=false</c> for a map already at its target stage.</summary>
+/// <summary>POST /api/map/{slug}/reopen — send a map back to an authoring stage it was drawn in, so it
+/// lists (and opens) there again. Only a map that kept an authoring source can go: a sketch layout
+/// reopens into <c>sketch</c>, a plan blob into <c>plan</c>, and a map with neither left to move to — an
+/// imported world, or one already sitting in its only authored stage — is refused (422). The stage
+/// pointer is all that moves: the geometry, intent and document rows stay as they are, and finishing the
+/// sketch again advances it back to <c>configure</c>. Returns <c>{slug, stage, url}</c>.</summary>
 public sealed class MapReopenEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
 {
     public override void Configure() { Post("/map/{slug}/reopen"); AllowAnonymous(); }
@@ -52,16 +55,15 @@ public sealed class MapReopenEndpoint(MapRepository repo, PgmDb db) : EndpointWi
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
         if (map is null) { await Send.NotFoundAsync(ct); return; }
 
-        var target = await MapReopen.TargetForMapAsync(db, map.Id, ct);
+        var target = await MapReopen.TargetForMapAsync(db, map.Id, map.Stage, ct);
         if (target is null)
         {
             await Send.ResponseAsync(
-                new { error = "This map has no sketch or plan to reopen — it was imported, not drawn." }, 422, ct);
+                new { error = "This map has no sketch or plan to reopen into." }, 422, ct);
             return;
         }
 
-        var reopened = map.Stage != target;
-        if (reopened) await repo.SetStageAsync(map.Id, target, ct);
-        await Send.OkAsync(new { slug = map.Slug, stage = target, url = $"/maps/{map.Slug}/{target}", reopened }, ct);
+        await repo.SetStageAsync(map.Id, target, ct);
+        await Send.OkAsync(new { slug = map.Slug, stage = target, url = $"/maps/{map.Slug}/{target}" }, ct);
     }
 }

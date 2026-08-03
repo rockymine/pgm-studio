@@ -49,10 +49,23 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   as before. Eligibility is the **authoring artifact**, not the stage, because the stage cannot say where
   a map came from: `sketch_layout_json` reopens into `sketch`, `plan_json` into `plan`, and a map holding
   neither is refused (422) — which is what keeps an imported world out, its derived `island_sketch_json`
-  outline not being an authored source. `GET /api/maps` carries the verdict per row
-  (`MapSummary.ReopenStage`), so the overview renders a *Reopen in Sketch* / *Reopen in Plan* row action
-  only where it applies, and opens the map in that tool. `ListRow` gained a `Trailing` slot for it (the
-  action renders beside the row's link, never inside it — `.list-row-pair`).
+  outline not being an authored source. A map holding both (a plan built onto its own row) takes the
+  later record **minus where it already is**, so it alternates: the sketch from Configuring, the plan once
+  standing in the sketch. `GET /api/maps` carries the verdict per row (`MapSummary.ReopenStage`), so the
+  overview renders a *Reopen in Sketch* / *Reopen in Plan* row action only where it applies, and opens the
+  map in that tool. `ListRow` gained a `Trailing` slot for it (the action renders beside the row's link,
+  never inside it — `.list-row-pair`).
+- **A plan builds onto its own map row (C32).** The plan editor's *Create draft* posted `/api/sketch` and
+  minted a **new** map every run, so a plan compiled four times left four near-identical maps whose only
+  relationship was a slug suffix (`-2`, `-3`, `-4`) — no lineage column, and `plan_source_id` never
+  applied, being the fork link into the generator *candidate pool*, written only by *Author this plan*.
+  A map-backed plan (`/maps/{slug}/plan`) now builds onto the row already open: layout, rasterize and
+  intent all land on it, so one map carries `plan → configure` and re-compiling refreshes it in place.
+  Identity follows for free — the compiled intent carries the plan's name, which the intent write applies
+  to the document. The built row keeps its `plan_json` beside the new `sketch_layout_json`, which is what
+  lets **reopen** (S35) reach both of its tools. The bare `/plan-editor` (a generator candidate, no map
+  row) still originates one: there the build *is* the map's creation. Contract: `plan-as-map.md`
+  §Lifecycle, whose "the row advances" claim this makes true.
 - **Plan editor entry on the landing** — the studio landing (`/`) leads with a featured *Plan a
   layout* origin card (author a coarse cell-grid seed → compile straight into a sketch draft), set
   above a labelled `or work a map through its stages` divider from the three lifecycle cards; the

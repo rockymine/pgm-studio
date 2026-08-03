@@ -61,6 +61,13 @@ keeps an imported world out — it never carried a drawn source, and the `island
 derived from its geometry is not one. `GET /api/maps` carries the same verdict per row as
 `MapSummary.ReopenStage`, so the overview renders the action only on the maps that can take it.
 
+A map can hold both sources — a plan built onto its own row (`plan-as-map.md`) keeps its plan blob beside
+the layout it compiled into — so the target is the later record, the sketch, **minus wherever the map
+already is**. From Configuring that reopens the sketch; standing in the sketch it reopens the plan the
+sketch was compiled from. A map sitting in its only authored stage therefore has nowhere to go and is
+refused like an imported one, which is why the Sketches list shows no action on a map that was never
+planned.
+
 ## Landing & exits
 
 - **Landing (`/`)** replaces the old bare redirect: a hero over three **cards** (Sketch · Configure ·

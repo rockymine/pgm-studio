@@ -37,7 +37,6 @@ public sealed class MapReopenEndpointTests
         var body = await reopen.Content.ReadFromJsonAsync<JsonElement>();
         await Assert.That(body.GetProperty("stage").GetString()).IsEqualTo(MapStage.Sketch);
         await Assert.That(body.GetProperty("url").GetString()).IsEqualTo($"/maps/{slug}/sketch");
-        await Assert.That(body.GetProperty("reopened").GetBoolean()).IsTrue();
 
         // It is selectable in the Sketch tool again, and gone from Configuring.
         var sketches = (await client.GetFromJsonAsync<List<MapSummary>>("/api/maps?stage=sketch"))!;
@@ -103,7 +102,7 @@ public sealed class MapReopenEndpointTests
     }
 
     [Test]
-    public async Task Reopening_a_map_already_in_its_authoring_stage_changes_nothing()
+    public async Task A_map_in_its_only_authoring_stage_has_nowhere_to_reopen_into()
     {
         await ApiTestFactory.ResetSchemaAsync();
         await using var factory = new ApiTestFactory();
@@ -112,11 +111,44 @@ public sealed class MapReopenEndpointTests
         var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Still Drawing" }))
             .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
 
+        // It is already open in the tool that owns its one source, so the list offers no action …
+        var sketches = (await client.GetFromJsonAsync<List<MapSummary>>("/api/maps?stage=sketch"))!;
+        await Assert.That(sketches.Single(m => m.Slug == slug).ReopenStage).IsNull();
+        // … and the endpoint says the same.
         var reopen = await client.PostAsync($"/api/map/{slug}/reopen", null);
-        await Assert.That(reopen.IsSuccessStatusCode).IsTrue();
-        var body = await reopen.Content.ReadFromJsonAsync<JsonElement>();
-        await Assert.That(body.GetProperty("stage").GetString()).IsEqualTo(MapStage.Sketch);
-        await Assert.That(body.GetProperty("reopened").GetBoolean()).IsFalse();
+        await Assert.That((int)reopen.StatusCode).IsEqualTo(422);
+    }
+
+    [Test]
+    public async Task A_plan_built_onto_its_own_map_reaches_both_of_its_tools()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        // A plan map that was built in place: it keeps its plan blob and gains the layout it compiled
+        // into, which is what the plan editor's map-backed build leaves behind.
+        var slug = (await (await client.PostAsJsonAsync("/api/plan", new { name = "Built In Place" }))
+            .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
+        await SketchLayoutAsync(client, slug);
+        await Assert.That((await client.PostAsync($"/api/map/{slug}/sketch/finish", null)).IsSuccessStatusCode).IsTrue();
+
+        // From Configuring the sketch is the way back — the later of its two sources.
+        var configuring = (await client.GetFromJsonAsync<List<MapSummary>>("/api/maps?stage=configure"))!;
+        await Assert.That(configuring.Single(m => m.Slug == slug).ReopenStage).IsEqualTo(MapStage.Sketch);
+        var toSketch = await client.PostAsync($"/api/map/{slug}/reopen", null);
+        await Assert.That((await toSketch.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("stage").GetString()).IsEqualTo(MapStage.Sketch);
+
+        // Standing in the sketch, the plan it was compiled from is the one left to go back to.
+        var sketches = (await client.GetFromJsonAsync<List<MapSummary>>("/api/maps?stage=sketch"))!;
+        await Assert.That(sketches.Single(m => m.Slug == slug).ReopenStage).IsEqualTo(MapStage.Plan);
+        var toPlan = await client.PostAsync($"/api/map/{slug}/reopen", null);
+        await Assert.That((await toPlan.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("stage").GetString()).IsEqualTo(MapStage.Plan);
+
+        var plans = (await client.GetFromJsonAsync<List<MapSummary>>("/api/maps?stage=plan"))!;
+        await Assert.That(plans.Any(m => m.Slug == slug)).IsTrue();
     }
 
     [Test]
@@ -137,6 +169,15 @@ public sealed class MapReopenEndpointTests
         var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Drawn" }))
             .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
 
+        await SketchLayoutAsync(client, slug);
+        var finish = await client.PostAsync($"/api/map/{slug}/sketch/finish", null);
+        await Assert.That(finish.IsSuccessStatusCode).IsTrue();
+        return slug;
+    }
+
+    /// <summary>Write a two-island layout onto a map, whatever stage it is in.</summary>
+    private static async Task SketchLayoutAsync(HttpClient client, string slug)
+    {
         await client.PutAsJsonAsync($"/api/map/{slug}/sketch", new
         {
             setup = new { mirror_mode = "mirror_x", center = new { cx = 0, cz = 0 } },
@@ -154,8 +195,5 @@ public sealed class MapReopenEndpointTests
                 },
             },
         });
-        var finish = await client.PostAsync($"/api/map/{slug}/sketch/finish", null);
-        await Assert.That(finish.IsSuccessStatusCode).IsTrue();
-        return slug;
     }
 }

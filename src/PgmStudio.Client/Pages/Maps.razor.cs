@@ -64,11 +64,12 @@ public partial class Maps
         creatingSketch = false;
     }
 
-    // Reopen: send a map back to the tool it was drawn in (POST /api/map/{slug}/reopen), then open it
-    // there. Offered only where the map kept an authoring source — MapSummary.ReopenStage names the
-    // stage, and is null for an imported world, which has nothing to go back to. A map already listed
-    // in its own authoring stage has nowhere to go, so the action is hidden there too.
-    private static bool CanReopen(MapSummary map) => map.ReopenStage is not null && map.ReopenStage != map.Stage;
+    // Reopen: send a map back to a tool it was drawn in (POST /api/map/{slug}/reopen), then open it
+    // there. MapSummary.ReopenStage names the stage the server will move it to and is null when there is
+    // none — an imported world kept no drawn source, and a map already sitting in its only authored
+    // stage has nowhere to go. A plan built onto its own map keeps both sources, so it alternates: the
+    // sketch from Configuring, the plan from the sketch.
+    private static bool CanReopen(MapSummary map) => map.ReopenStage is not null;
 
     private static string ReopenLabel(MapSummary map) =>
         map.ReopenStage == MapStage.Plan ? "Reopen in Plan" : "Reopen in Sketch";

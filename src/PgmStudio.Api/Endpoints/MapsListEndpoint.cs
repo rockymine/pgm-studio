@@ -44,7 +44,7 @@ public sealed class MapsListEndpoint(MapRepository repo, PgmDb db) : EndpointWit
             maps.Select(m => new MapSummary(
                 m.Slug, m.Name, gamemodes.GetValueOrDefault(m.Id, []),
                 m.Version, m.Objective, m.Stage, withSurface.Contains(m.Id),
-                MapReopen.TargetFor(withSketch.Contains(m.Id), withPlan.Contains(m.Id)))).ToList(), ct);
+                MapReopen.TargetFor(withSketch.Contains(m.Id), withPlan.Contains(m.Id), m.Stage))).ToList(), ct);
     }
 }
 

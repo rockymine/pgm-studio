@@ -687,8 +687,14 @@ public partial class PlanTool
         await JS.InvokeVoidAsync("studio.downloadText", $"{slug}.{compileTab}.json", text, "application/json");
     }
 
-    // Drive the existing draft pipeline from a successful compile: create a draft, push the compiled layout,
-    // rasterize it, then push the compiled intent. Any non-2xx step aborts with a message naming that step.
+    // Drive the draft pipeline from a successful compile: push the compiled layout, rasterize it, then push
+    // the compiled intent. Any non-2xx step aborts with a message naming that step.
+    //
+    // A map-backed plan builds onto its OWN row: one map carries plan → sketch → configure, keeps its plan
+    // blob beside the layout it compiled into, and re-running refreshes it in place instead of leaving a
+    // trail of near-identical maps. The intent write carries the plan's name, so the map's identity follows
+    // the plan without a second call. Only the candidate pool (the bare /plan-editor, which has no map row)
+    // still originates one — there the build IS the map's creation.
     private async Task CreateDraft()
     {
         if (compiledLayoutRaw is null || compiledIntentRaw is null) return;
@@ -696,11 +702,15 @@ public partial class PlanTool
 
         try
         {
-            draftStep = "Creating draft"; StateHasChanged();
-            using var createResp = await Http.PostAsJsonAsync("api/sketch", new { name = planName });
-            if (!await Ok(createResp, "create draft")) return;
-            var slug = (await createResp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString();
-            if (string.IsNullOrEmpty(slug)) { draftError = "create draft: no slug returned"; return; }
+            var slug = Slug;
+            if (!MapBacked)
+            {
+                draftStep = "Creating draft"; StateHasChanged();
+                using var createResp = await Http.PostAsJsonAsync("api/sketch", new { name = planName });
+                if (!await Ok(createResp, "create draft")) return;
+                slug = (await createResp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString();
+                if (string.IsNullOrEmpty(slug)) { draftError = "create draft: no slug returned"; return; }
+            }
 
             draftStep = "Saving layout"; StateHasChanged();
             using var layoutResp = await Http.PutAsync($"api/map/{slug}/sketch", new StringContent(compiledLayoutRaw, Encoding.UTF8, "application/json"));

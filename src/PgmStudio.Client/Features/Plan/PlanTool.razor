@@ -541,15 +541,21 @@
     </Body>
     <Footer>
       <div class="plan-compile-draft">
+        @* A map-backed plan builds onto the map already open — it advances that row rather than
+           originating a second one, so the label and the result name what actually happened. *@
         @if (draftSlug is null)
         {
           <Button Variant="primary" Full Disabled="@(compiledLayout is null || draftBusy)" OnClick="CreateDraft">
-            @if (draftBusy) { <span>@draftStep…</span> } else { <span><i data-lucide="hammer"></i> Create draft</span> }
+            @if (draftBusy) { <span>@draftStep…</span> } else { <span><i data-lucide="hammer"></i> @(MapBacked ? "Build draft" : "Create draft")</span> }
           </Button>
         }
         else
         {
-          <div class="plan-lint-ok"><i data-lucide="check-circle-2"></i> Draft <strong>@draftSlug</strong> created</div>
+          <div class="plan-lint-ok">
+            <i data-lucide="check-circle-2"></i>
+            @if (MapBacked) { <text>Built on this map — <strong>@draftSlug</strong></text> }
+            else { <text>Draft <strong>@draftSlug</strong> created</text> }
+          </div>
           <Button Full Href="@($"/maps/{draftSlug}/sketch")" target="_blank" rel="noopener">
             <i data-lucide="external-link"></i> Open in sketch editor
           </Button>
