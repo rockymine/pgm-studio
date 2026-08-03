@@ -49,6 +49,18 @@ Transitions (each set by the endpoint that performs the step):
   Configure wizard's **Export** (today a stub — `M0004` backfilled existing rows by the rule above:
   intent-authored or geometry-without-regions → `configure`, sketch-only → `sketch`, else `edit`).
 
+Every transition above moves the map forward, which leaves a finished draft unreachable from the tool
+that drew it: the stage is a single pointer, so once sketch-finish advances a map to `configure` it is
+listed only under Configuring, and the Sketch tool cannot select it. **Reopen is the one backward
+transition** (`POST /api/map/{slug}/reopen`, S35). It moves the pointer back to the stage the map was
+authored in and nothing else — the geometry, intent and document rows are untouched, and finishing the
+sketch again advances it forward exactly as before. Because the stage itself cannot say where a map came
+from, eligibility is read from the **authoring artifact the map kept**: a `sketch_layout_json` reopens
+into `sketch`, a `plan_json` into `plan`, and a map holding neither is refused with 422. That is what
+keeps an imported world out — it never carried a drawn source, and the `island_sketch_json` outline
+derived from its geometry is not one. `GET /api/maps` carries the same verdict per row as
+`MapSummary.ReopenStage`, so the overview renders the action only on the maps that can take it.
+
 ## Landing & exits
 
 - **Landing (`/`)** replaces the old bare redirect: a hero over three **cards** (Sketch · Configure ·

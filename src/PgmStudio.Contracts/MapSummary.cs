@@ -5,7 +5,10 @@ namespace PgmStudio.Contracts;
 /// is available — e.g. as a reference backdrop for tracing.
 /// <para><paramref name="Gamemodes"/> is derived from the map's objective modules, not read off its
 /// <c>&lt;gamemode&gt;</c> label. It is a set because CTW/DTM/DTC coexist, and it is empty for a map
-/// carrying no objective we read — which is a fact about the map, not missing data.</para></summary>
+/// carrying no objective we read — which is a fact about the map, not missing data.</para>
+/// <para><paramref name="ReopenStage"/> is the authoring stage the map can be sent back to (POST
+/// /api/map/{slug}/reopen), or null when there is nothing to go back to — an imported world has no
+/// drawn source, so it can only move forward. The list renders the row's reopen action from it.</para></summary>
 public sealed record MapSummary(
     string Slug,
     string Name,
@@ -13,7 +16,8 @@ public sealed record MapSummary(
     string? Version,
     string? Objective,
     string Stage,
-    bool HasSurface = false);
+    bool HasSurface = false,
+    string? ReopenStage = null);
 
 /// <summary>Per-stage map counts for the dashboard landing cards (GET /api/maps/stage-counts).</summary>
 public sealed record MapStageCounts(int Sketch, int Configure, int Edit);

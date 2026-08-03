@@ -101,7 +101,8 @@ nothing new is invented. `✅` = already a component; everything else is C12 sco
 
 - `SectionHeader` ← `section-header(--ruled|--list)` + `section-title` + optional right-slot action
 - `ListRow` ← the 373-use row: `list-row(--selected|--compact)` + swatch + `list-label` + `list-tag` +
-  `list-go` arrow · `PanelList` ← the `panel-list` container
+  `list-go` arrow, plus a `Trailing` slot for a control the row carries (rendered beside the row inside
+  `list-row-pair`, never nested in its link) · `PanelList` ← the `panel-list` container
 - `CoordRow` ← `ctrl-row` of 2–3 `CoordField` (X/Y/Z) · `FieldRow` ← `field-row`
 - `Callout` ← `callout` · `PanelWarning` ← `panel-warning` · `EmptyMessage` ←
   `panel-empty-msg`/`list-empty` · `StepRow` ← `step-row`/`step-dot`

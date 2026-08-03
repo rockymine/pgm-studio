@@ -16,6 +16,7 @@ public partial class Maps
     private string? loadedStage;   // guards against refetching the same stage on every parameter set
     private bool creatingSketch;
     private bool creatingPlan;
+    private string? reopening;   // slug being reopened — one at a time, since it navigates away
 
     // New plan: create a blank authored plan (a stage=plan map row) and open the plan editor on it. Mirrors
     // NewSketch — the plan editor is the plan's home once it's a map row.
@@ -61,6 +62,38 @@ public partial class Maps
         }
         catch { /* fall through — button re-enables so the user can retry */ }
         creatingSketch = false;
+    }
+
+    // Reopen: send a map back to the tool it was drawn in (POST /api/map/{slug}/reopen), then open it
+    // there. Offered only where the map kept an authoring source — MapSummary.ReopenStage names the
+    // stage, and is null for an imported world, which has nothing to go back to. A map already listed
+    // in its own authoring stage has nowhere to go, so the action is hidden there too.
+    private static bool CanReopen(MapSummary map) => map.ReopenStage is not null && map.ReopenStage != map.Stage;
+
+    private static string ReopenLabel(MapSummary map) =>
+        map.ReopenStage == MapStage.Plan ? "Reopen in Plan" : "Reopen in Sketch";
+
+    private static string ReopenTitle(MapSummary map) =>
+        map.ReopenStage == MapStage.Plan
+            ? "Move this map back to the Plan editor. Its geometry and configuration stay as they are."
+            : "Move this map back to the Sketch tool. Its geometry and configuration stay as they are; "
+              + "finishing the sketch again brings it back here.";
+
+    private async Task Reopen(MapSummary map)
+    {
+        if (reopening is not null || map.ReopenStage is null) return;
+        reopening = map.Slug;
+        try
+        {
+            var resp = await Http.PostAsync($"api/map/{map.Slug}/reopen", null);
+            if (resp.IsSuccessStatusCode)
+            {
+                Nav.NavigateTo($"maps/{map.Slug}/{map.ReopenStage}");
+                return;
+            }
+        }
+        catch { /* fall through — the button re-enables so the user can retry */ }
+        reopening = null;
     }
 
     private string CurrentStage => MapStage.IsValid(Stage) ? Stage! : MapStage.Edit;

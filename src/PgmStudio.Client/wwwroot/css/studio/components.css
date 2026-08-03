@@ -201,6 +201,28 @@
   font-style: italic;
 }
 
+/* A row that carries its own inline action: the row takes the free width and the action sits beside
+   it, so the control is never nested inside the row's link. */
+.list-row-pair { display: flex; align-items: center; gap: var(--space-2); }
+.list-row-pair > .list-row { flex: 1; min-width: 0; }
+
+/* A list of action-carrying rows. One grid whose second column is sized to the widest action and
+   shared by every row, so a row that has no action still lays its content out at the same width as one
+   that does — the rows' labels are flex-sized, so an unreserved column ragged-edges the whole list.
+   Each pair dissolves into the grid (display: contents) to put both of its parts in that grid. Every
+   row must still emit its action cell, empty or not, or auto-placement takes the column. */
+.panel-list--actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: var(--space-2);
+}
+.panel-list--actions > .list-row-pair { display: contents; }
+.panel-list--actions > .list-empty { grid-column: 1 / -1; }
+
+/* The map overview's action cell — right-aligned in the reserved column, empty on an imported map. */
+.map-row-action { display: flex; justify-content: flex-end; }
+
 /* Container for a vertical stack of .list-row elements inside a panel */
 .panel-list { padding: 4px 0; }
 

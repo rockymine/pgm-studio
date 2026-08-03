@@ -42,6 +42,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   dashboard has a **Plans** stage (`/maps?stage=plan`, *New plan* action); the generator's card action is
   **Author this plan** → begins the lifecycle. The generator's many candidates stay `plan` rows (a
   separate pool). Contract: `docs/contracts/plan-as-map.md`. (C27)
+- **Reopen — the one backward stage transition (S35).** A map's stage only ever moved forward, so a
+  finished draft became unreachable from the tool that drew it: sketch-finish files it under Configuring
+  and the Sketch tool can no longer select it. `POST /api/map/{slug}/reopen` moves the pointer back and
+  nothing else — the geometry, intent and document rows stay put, and finishing again advances it exactly
+  as before. Eligibility is the **authoring artifact**, not the stage, because the stage cannot say where
+  a map came from: `sketch_layout_json` reopens into `sketch`, `plan_json` into `plan`, and a map holding
+  neither is refused (422) — which is what keeps an imported world out, its derived `island_sketch_json`
+  outline not being an authored source. `GET /api/maps` carries the verdict per row
+  (`MapSummary.ReopenStage`), so the overview renders a *Reopen in Sketch* / *Reopen in Plan* row action
+  only where it applies, and opens the map in that tool. `ListRow` gained a `Trailing` slot for it (the
+  action renders beside the row's link, never inside it — `.list-row-pair`).
 - **Plan editor entry on the landing** — the studio landing (`/`) leads with a featured *Plan a
   layout* origin card (author a coarse cell-grid seed → compile straight into a sketch draft), set
   above a labelled `or work a map through its stages` divider from the three lifecycle cards; the

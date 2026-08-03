@@ -9,8 +9,10 @@ namespace PgmStudio.Api.Endpoints;
 
 /// <summary>GET /api/maps[?stage=sketch|configure|edit] — the dashboard map list, optionally one stage.
 /// Each entry carries <see cref="MapSummary.HasSurface"/>, set from the maps that own a cached surface-layer
-/// artifact (a top-down block render is available for those), and <see cref="MapSummary.Gamemodes"/>,
-/// derived from the objective rows rather than the <c>&lt;gamemode&gt;</c> label.</summary>
+/// artifact (a top-down block render is available for those), <see cref="MapSummary.Gamemodes"/>,
+/// derived from the objective rows rather than the <c>&lt;gamemode&gt;</c> label, and
+/// <see cref="MapSummary.ReopenStage"/>, the authoring stage the map can be sent back to
+/// (see <see cref="MapReopen"/>). One artifact query serves all three.</summary>
 public sealed class MapsListEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<List<MapSummary>>
 {
     public override void Configure()
@@ -25,14 +27,24 @@ public sealed class MapsListEndpoint(MapRepository repo, PgmDb db) : EndpointWit
         var maps = MapStage.IsValid(stage)
             ? await repo.ListByStageAsync(stage!, ct)
             : await repo.ListAsync(ct);
-        var withSurface = (await db.Artifacts
-            .Where(a => a.Kind == ArtifactKind.LayerParquet)
-            .Select(a => a.MapId).Distinct().ToListAsync(ct)).ToHashSet();
+        var owned = await db.Artifacts
+            .Where(a => a.Kind == ArtifactKind.LayerParquet
+                        || a.Kind == ArtifactKind.SketchLayoutJson
+                        || a.Kind == ArtifactKind.PlanJson)
+            .Select(a => new { a.MapId, a.Kind }).Distinct().ToListAsync(ct);
+        var owners = owned.GroupBy(a => a.Kind)
+            .ToDictionary(g => g.Key, g => g.Select(a => a.MapId).ToHashSet());
+        HashSet<long> Owners(string kind) => owners.GetValueOrDefault(kind, []);
+        var withSurface = Owners(ArtifactKind.LayerParquet);
+        var withSketch = Owners(ArtifactKind.SketchLayoutJson);
+        var withPlan = Owners(ArtifactKind.PlanJson);
+
         var gamemodes = await repo.GamemodesAsync(ct);
         await Send.OkAsync(
             maps.Select(m => new MapSummary(
                 m.Slug, m.Name, gamemodes.GetValueOrDefault(m.Id, []),
-                m.Version, m.Objective, m.Stage, withSurface.Contains(m.Id))).ToList(), ct);
+                m.Version, m.Objective, m.Stage, withSurface.Contains(m.Id),
+                MapReopen.TargetFor(withSketch.Contains(m.Id), withPlan.Contains(m.Id)))).ToList(), ct);
     }
 }
 

@@ -2,15 +2,36 @@
 
 @* One selectable/navigable list row — the .list-row shell with its state modifiers (Selected /
    Compact). Renders an <a> when Href is set, else a clickable <div>. The row's contents (swatch,
-   label, tag, badge, go-arrow) are ChildContent; @key the component in a loop. *@
+   label, tag, badge, go-arrow) are ChildContent; @key the component in a loop.
 
-@if (Href is not null)
+   Trailing holds a control the row carries alongside its own activation (an inline action button).
+   It renders as a SIBLING of the row inside a .list-row-pair: a button nested in the row's <a> is
+   invalid markup and its click would also follow the link. *@
+
+@if (Trailing is null)
 {
-    <a class="@Cls" href="@Href" @attributes="Extra">@ChildContent</a>
+    @if (Href is not null)
+    {
+        <a class="@Cls" href="@Href" @attributes="Extra">@ChildContent</a>
+    }
+    else
+    {
+        <div class="@Cls" @onclick="OnClick" @attributes="Extra">@ChildContent</div>
+    }
 }
 else
 {
-    <div class="@Cls" @onclick="OnClick" @attributes="Extra">@ChildContent</div>
+    <div class="list-row-pair">
+        @if (Href is not null)
+        {
+            <a class="@Cls" href="@Href" @attributes="Extra">@ChildContent</a>
+        }
+        else
+        {
+            <div class="@Cls" @onclick="OnClick" @attributes="Extra">@ChildContent</div>
+        }
+        @Trailing
+    </div>
 }
 
 @code {
@@ -20,6 +41,7 @@ else
     [Parameter] public string? Class { get; set; }
     [Parameter] public EventCallback OnClick { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? Trailing { get; set; }
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Extra { get; set; }
 
     private string Cls => string.Join(' ', new[]

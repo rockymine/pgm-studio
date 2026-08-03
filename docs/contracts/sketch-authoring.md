@@ -67,6 +67,14 @@ Each PATCH **validates then persists the partial payload** (the reference's `_re
 against the schema, store the raw partial so PATCH stays partial). Setup/layout live in the artifact;
 overview maps to real `map`/`author` columns (identity is queryable there already).
 
+Finish is reversible. It advances the map's stage to `configure`, which takes it out of the Sketch
+tool's list, so `POST /api/map/{slug}/reopen` sends it back (S35): the stage pointer returns to
+`sketch` and the map is selectable — and openable — in the tool again, with the `SketchLayoutJson` it
+was drawn from still in place. Only the pointer moves, so the geometry artifacts finish wrote stay
+until the next finish overwrites them. The artifact is also the gate: a map that never carried a
+`SketchLayoutJson` (an imported world) has no sketch to reopen and is refused. `routing-and-ia.md`
+carries the transition itself.
+
 ---
 
 ## 2. Persistence shape — `SketchLayoutJson` (the wire/stored contract)
