@@ -167,8 +167,8 @@ The one fact each needs is the piece rect, and the intent already carries it (`S
 and the marker sits at a fixed offset inside it — so the rectangle alone re-secures the link back to the intent
 entity. Each projected shape carries a `role` (`spawn`/`woolRoom`), an `intentRef` (team id, or `owner:colour`),
 and a colour, and is rendered as a labelled box in the **plan tool's role colour** (purple spawn / green wool,
-matching `plan-doc.js` `ROLE_COLORS`) — the colour carries the role, the label the identity (`spawn · <team>`
-/ `wool · <colour> · <team>`).
+matching `plan-doc.js` `ROLE_COLORS`) — the colour carries the role, the label the identity (`<team> spawn`
+/ `<colour> wool`).
 
 They are **not terrain**: the rasterizer (C# `SketchRasterizer` and its `rasterize.js` twin) skips any
 role-tagged shape, so the box overlays the fused island the piece already sits on and adds nothing to the set

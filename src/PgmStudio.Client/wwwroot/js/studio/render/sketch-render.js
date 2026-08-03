@@ -61,11 +61,11 @@ export function paintStructural(painter, shapes) {
       { fill: hex, fillAlpha: 0.32, stroke: hex, strokeAlpha: 0.95, width: 2 });
 
     const kind = STRUCT_KIND[s.role] ?? s.role ?? "";
-    // A wool's intentRef is "<owner>:<colour>"; a spawn's is just the team. Spawn shows its team; a wool shows
-    // its dye colour and owning team, since the box colour no longer distinguishes either.
-    const text = s.role === "spawn"
-      ? `${kind} · ${s.intentRef ?? ""}`
-      : `${kind} · ${dyeColorLabel(s.color)} · ${(s.intentRef ?? "").split(":")[0]}`;
+    // The box colour carries the role, so the label carries the identity as "<who> <role>": a spawn by its
+    // team ("blue spawn"), a wool by its dye colour ("blue wool", "light blue wool"). A spawn's intentRef is
+    // the team id; a wool's colour slug is its dye.
+    const who = s.role === "spawn" ? (s.intentRef ?? "") : dyeColorLabel(s.color).toLowerCase();
+    const text = `${who} ${kind}`;
     // World-space label, sized to fit inside the box in either axis so it never spills the footprint.
     const w = s.max_x - s.min_x, h = s.max_z - s.min_z;
     const size = Math.max(2, Math.min(h * 0.4, w / (0.6 * Math.max(1, text.length))));
