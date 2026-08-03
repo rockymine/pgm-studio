@@ -78,12 +78,14 @@
         <div class="workspace-canvas">
           <div class="canvas-subbar">
             <div class="canvas-toolbar">
-              @if (!ThemeApplyActive)
-              {
+              @* Move and select are the entire toolbar in a select-only phase (Theme): getting around the
+                 canvas, and picking what to paint. Every tool below them authors geometry, which is Draw's. *@
               <button class="draw-tool-btn @(tool == "move" ? "draw-tool-btn--active" : null)" title="Move / pan"
                       @onclick='() => SetTool("move")'><i data-lucide="hand"></i></button>
-              <button class="draw-tool-btn @(tool == "select" ? "draw-tool-btn--active" : null)" title="Select / edit"
+              <button class="draw-tool-btn @(tool == "select" ? "draw-tool-btn--active" : null)" title="@SelectToolTitle"
                       @onclick='() => SetTool("select")'><i data-lucide="mouse-pointer-2"></i></button>
+              @if (!ThemeApplyActive)
+              {
               <button class="draw-tool-btn @(tool == "rectangle" ? "draw-tool-btn--active" : null)" title="Rectangle"
                       @onclick='() => SetTool("rectangle")'><i data-lucide="rectangle-horizontal"></i></button>
               <button class="draw-tool-btn @(tool == "polygon" ? "draw-tool-btn--active" : null)" title="Polygon (click vertices, double-click to close)"
@@ -98,10 +100,6 @@
                       @onclick='() => SetOperation("add")'><i data-lucide="plus"></i><span class="draw-tool-label">Add</span></button>
               <button class="draw-tool-btn @(op == "subtract" ? "draw-tool-btn--op-sub" : null)" title="Subtract — shapes carve land away"
                       @onclick='() => SetOperation("subtract")'><i data-lucide="minus"></i><span class="draw-tool-label">Sub</span></button>
-              }
-              else
-              {
-                <span class="draw-tool-hint">Select an island or shape, then apply a theme.</span>
               }
             </div>
             <div @ref="coordsRef" class="canvas-cursor"></div>

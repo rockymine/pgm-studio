@@ -48,9 +48,14 @@ public partial class SketchTool
         themeStep = "apply";
         tool = "select";
         StateHasChanged();
-        if (handle is not null) await handle.InvokeVoidAsync("setTool", "select");
+        // Redundant with SetPhase's own call — kept because this step is the one that shows the canvas, and
+        // it must be restricted by the time it does, however it was reached.
+        if (handle is not null) await handle.InvokeVoidAsync("setSelectOnly", true);
     }
     private Task BackToThemeCreate() { themeStep = "create"; StateHasChanged(); return Task.CompletedTask; }
+
+    // The select tool edits as well as selects in Draw; in the Theme phase it only selects, so it says so.
+    private string SelectToolTitle => ThemeApplyActive ? "Select" : "Select / edit";
 
     // The shapes the current selection themes: an island's members, else the single selected shape, else none.
     private IReadOnlyList<string> ThemeTargetShapeIds =>
@@ -65,10 +70,12 @@ public partial class SketchTool
     // Switching phases only flips which body renders: the canvas observes its own wrap and re-measures
     // (and runs a deferred fit) when Draw un-hides. Nudging it from here would run against the still-
     // hidden DOM — this method returns before the phase div is re-rendered.
-    private Task SetPhase(string p)
+    private async Task SetPhase(string p)
     {
         active = p;
-        return Task.CompletedTask;
+        // Editing geometry belongs to Draw alone. Any other phase gets the canvas as a selection surface, and
+        // the switch is what enforces it, so no route into or out of Theme can leave the wrong mode behind.
+        if (handle is not null) await handle.InvokeVoidAsync("setSelectOnly", p != "draw");
     }
 
     // Layout pushed from the bridge (OnLayout) + the current selection (OnShapeSelected/OnIslandSelected).

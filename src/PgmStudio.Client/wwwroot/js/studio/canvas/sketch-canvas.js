@@ -104,6 +104,7 @@ export class SketchCanvas extends CanvasBase {
   #rasterRuns    = null;   // cached rasterized cell runs; recomputed on shape change while blocks are shown
   #paintData     = null;   // the server's block-pixel payload for the terrain paint (finishing-model.md §4)
   #paintImage    = null;   // that payload decoded — a canvas blits a bitmap, not a data URL
+  #selectOnly    = false;  // Theme phase: pick islands/shapes and pan/zoom, edit nothing
 
   #draw = null;
   #edit = null;
@@ -261,6 +262,22 @@ export class SketchCanvas extends CanvasBase {
   }
 
   /**
+   * Make the canvas a selection surface: islands and shapes can be picked (and the view panned and zoomed),
+   * but nothing can be moved, resized, rotated, reshaped or given a vertex. The Theme phase runs in this
+   * mode — it assigns paint to geometry the Draw phase owns, so offering an edit there would let an author
+   * change the map from a rail that has no undo, no snapping and no height controls to make sense of it.
+   *
+   * Restricted at the source rather than by ignoring the results: the edit controller draws no handles, the
+   * island chrome draws no rotate/scale grips, and `_hitMovable` reports nothing draggable — so a drag has
+   * nothing to begin on, instead of beginning and being discarded.
+   */
+  setSelectOnly(on) {
+    this.#selectOnly = !!on;
+    this.#edit?.setEnabled(!this.#selectOnly);
+    this.#renderIslandChrome();
+  }
+
+  /**
    * The terrain paint as a block-pixel payload (`{xs, zs, colors, min_x, min_z, max_x, max_z}` — the shape the
    * top-surface overlay returns), decoded once into a bitmap the Blocks layer blits: one opaque pixel per
    * block, the colour of the block the export places there. This is the whole theme — voronoi cells, noise
@@ -358,7 +375,7 @@ export class SketchCanvas extends CanvasBase {
   #isIslandHandle(h) { return !!(h && typeof h === "object" && h.islandId); }
 
   _hitMovable(world) {
-    if (this._isoOn) return null;
+    if (this._isoOn || this.#selectOnly) return null;   // Theme phase: a selected thing is not draggable
     // Island selected → drag the whole island when the point is inside its footprint.
     if (this.#selectedIslandId) {
       const isl = this.#islands.find(i => i.id === this.#selectedIslandId);
@@ -613,6 +630,11 @@ export class SketchCanvas extends CanvasBase {
       x: l, y: t, width: r - l, height: bot - t,
       fill: "none", stroke: "var(--accent)", "stroke-width": "1.5", "stroke-dasharray": "5 3", "pointer-events": "none",
     }));
+    // In select-only mode the dashed box is the whole chrome: it says what is selected, which the Theme
+    // phase needs, while every grabbable part below it — rotate zones, scale handles — is an edit
+    // affordance and is not drawn at all, so there is nothing to take hold of.
+    if (this.#selectOnly) return;
+
     const HALF = 4, OUT = 9, ZONE = 9;   // anchor half-size · rotate-zone offset outward · rotate-zone half
     // Rotate zones just outside the four corners (all islands; transparent fill so they still hit-test).
     for (const [ax, ay, sx, sy] of [[l, t, -1, -1], [r, t, 1, -1], [r, bot, 1, 1], [l, bot, -1, 1]]) {

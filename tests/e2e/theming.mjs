@@ -85,5 +85,38 @@ try {
 checks.add("Theme phase drove without error", ok);
 checks.add("sketch tool is clean under theming", page.faults.length === 0, page.faults.slice(0, 3).join(" | "));
 
+// ── 3. the Theme phase is selection-only ──────────────────────────────────────────────────────────────
+// Editing geometry belongs to the Draw phase. Theme assigns paint to shapes it does not own, so its canvas
+// offers exactly two things: pick something, and move the view. The toolbar is the visible half of that
+// contract and a drag on a selected island is the load-bearing half — a canvas that still moved geometry
+// here would let an author reshape the map from a rail with no undo, no snapping and no height controls.
+checks.section("the Theme phase edits nothing");
+
+clearFaults(page);
+let restricted = false, tools = [];
+try {
+  // Still in the Apply step from above, with the island selected.
+  tools = await page.locator(".canvas-toolbar .draw-tool-btn").evaluateAll(
+    els => els.map(el => el.getAttribute("title")));
+
+  // A drag across the selected island must pan the view, not move the island.
+  const before = JSON.stringify(await api(`/map/${seed.sketchSlug}/sketch`));
+  const box = await page.locator("canvas").boundingBox();
+  const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  await page.mouse.move(cx + 90, cy + 60, { steps: 12 });
+  await page.mouse.up();
+  await page.waitForTimeout(1800);   // past the autosave debounce
+  const after = JSON.stringify(await api(`/map/${seed.sketchSlug}/sketch`));
+  checks.add("dragging a selection moves no geometry", before === after,
+    before === after ? "layout byte-identical" : "the layout changed under a Theme-phase drag");
+  restricted = true;
+} catch (e) {
+  page.faults.push(`select-only: ${String(e).split("\n")[0]}`);
+}
+checks.add("the toolbar offers move + select only", tools.length === 2, tools.join(" | ") || "(no toolbar)");
+checks.add("select-only checks ran", restricted, page.faults.slice(0, 3).join(" | "));
+
 checks.finish();
 await browser.close();

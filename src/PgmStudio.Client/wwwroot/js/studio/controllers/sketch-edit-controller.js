@@ -48,6 +48,7 @@ export class SketchEditController {
   #getShape;
   #callbacks;
 
+  #enabled         = true;   // off in the Theme phase: selection only, no editing affordance at all
   #selectedId      = null;
   #selectedVertex  = -1;     // index of the click-selected vertex (for per-anchor height editing, S5b)
   #slopeControls   = [];     // vertex indices shift-clicked as surface-slope controls (2–3), insertion order
@@ -93,12 +94,25 @@ export class SketchEditController {
     this.#callbacks.onSlopeControls?.(shapeId ?? this.#selectedId, []);
   }
 
+  /**
+   * Turn every editing affordance off (the Theme phase, where the canvas is a selection surface and shapes
+   * are read-only). Disabled means the handle layer stays empty and the pointer hooks decline everything —
+   * there is no resize handle, vertex, tangent or midpoint ghost to grab, so nothing can start a drag. Any
+   * drag already in flight is dropped rather than left mid-edit.
+   */
+  setEnabled(on) {
+    this.#enabled = !!on;
+    if (!this.#enabled) { this.#rectResizeState = null; this.#vertexDragState = null; this.#bezierDragState = null; }
+    this.refresh();
+  }
+
   /** Redraw handles for the selected shape (call after viewport changes too). */
   refresh() {
     if (!this.#handlesLayer) return;
     while (this.#handlesLayer.firstChild) this.#handlesLayer.removeChild(this.#handlesLayer.firstChild);
     this.#ghostEl = null;
     this.#hoveredEdgeIdx = -1;
+    if (!this.#enabled) return;
     if (!this.#selectedId) return;
     const shape = this.#getShape(this.#selectedId);
     if (!shape) return;
@@ -108,6 +122,7 @@ export class SketchEditController {
 
   /** Document mousemove during a resize / vertex / bezier drag. Returns true if consumed. */
   onResizeMove(wx, wz, altKey = false) {
+    if (!this.#enabled) return false;
     if (this.#bezierDragState) {
       const { shapeId, vertexIdx, handle } = this.#bezierDragState;
       const shape = this.#getShape(shapeId);
@@ -179,7 +194,7 @@ export class SketchEditController {
 
   /** Canvas mousemove (select/move mode only): show a midpoint ghost near a polygon edge. */
   onPointerMove(wx, wz, activeTool) {
-    const isEditMode = !activeTool || activeTool === "select";
+    const isEditMode = this.#enabled && (!activeTool || activeTool === "select");
     if (!isEditMode || this.#vertexDragState || this.#bezierDragState || this.#rectResizeState || !this.#selectedId) {
       this.#clearGhost();
       return;
@@ -206,6 +221,7 @@ export class SketchEditController {
 
   /** Document mouseup to finish a resize / vertex / bezier drag. Returns true if consumed. */
   onResizeUp() {
+    if (!this.#enabled) return false;
     if (this.#bezierDragState) {
       const { shapeId } = this.#bezierDragState;
       this.#bezierDragState = null;

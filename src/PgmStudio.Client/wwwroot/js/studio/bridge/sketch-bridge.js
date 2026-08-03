@@ -48,6 +48,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // rides on the shape (`shape.theme`), assigned via the Theme phase and resolved at export.
   let themes = {};
   let mapTheme = "";
+  // Theme phase: the canvas is a selection surface only. Geometry is the Draw phase's to edit.
+  let selectOnly = false;
 
   const fire = (name, ...args) => { try { dotnetRef?.invokeMethodAsync(name, ...args); } catch { /* host may not wire it */ } };
   const markDirty = () => fire("OnDirty", islands.length);
@@ -355,6 +357,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     if (wrapEl?.offsetParent == null) return;
     if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
     if (e.key === "Escape" && cancelPlace()) { e.preventDefault(); return; }
+    if (selectOnly) return;   // Theme phase: the arrows are a move, and moving belongs to Draw
     const step = e.shiftKey ? 16 : 1;
     let dx = 0, dz = 0;
     if (e.key === "ArrowLeft") dx = -step; else if (e.key === "ArrowRight") dx = step;
@@ -455,7 +458,20 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       canvas.setActiveTool(tool === "select" ? "select" : tool);
       // Leaving select mode clears the selection — otherwise arrow-nudge keeps moving a shape that's no
       // longer visibly selected (you've switched to panning/drawing). Arrow-move is a select-mode action.
-      if (tool !== "select") selectShape(null);
+      // Not so in select-only mode: nothing there moves the selection, and the selection is what the phase
+      // is *for*, so reaching for the hand tool to pan must not throw away what you picked.
+      if (tool !== "select" && !selectOnly) selectShape(null);
+    },
+    // Selection-only: the Theme phase picks islands and shapes to paint but edits none of them. Forcing the
+    // select tool is part of the restriction — a draw tool left armed would add geometry, which is equally
+    // the Draw phase's job. Lifting it only lifts it; the tool stays where it is, which is what the Draw
+    // toolbar is already showing.
+    setSelectOnly(on)  {
+      selectOnly = !!on;
+      canvas.setSelectOnly(selectOnly);
+      // An armed library item survives a tool change on its own, so disarm it rather than leave a placement
+      // primed to drop a shape on the first click into the phase.
+      if (selectOnly) { cancelPlace(); canvas.setActiveTool("select"); }
     },
     setOperation(op)   { canvas.setOperation(op); },
     setMode(mode)      { applySetup({ mirror_mode: mode }); markDirty(); },

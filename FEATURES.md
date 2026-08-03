@@ -2581,13 +2581,26 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   old plan Theme rail: **Create** authors a theme per bucket (the shared `MaterialEditor`/`BlockPicker`/
   `ThemeVocabulary`, now under `Features/Sketch`); **Apply** is the **island tree 1:1** plus the theme controls
   (map default · theme picker with per-bucket swatches · Apply/Remove on the selection), reusing the live canvas
-  with the draw toolbar/inspector hidden. An island themes its every member shape, a shape just itself. Storage
+  with the inspector hidden. An island themes its every member shape, a shape just itself. Storage
   is on the layout: a `themes` registry + `mapTheme` on `SketchLayout`, a `theme` id on each `SketchShape`
   (`sketch-bridge` round-trips them). Resolution is `TerrainThemeScope.ThemeAt(layout)` → `cell → shape → theme`
   via `SketchRasterizer.ShapeThemeOwners` (mirror-aware, smallest-area wins), so **reshaping a shape moves its
   paint**. Removed from the plan: the Theme rail, `PlanCompiler.BuildThemes`, and the intent's theme fields
   (superseding the plan-side G157/G158 theming above). Unit-tested (scope resolution + reshape) and e2e'd
   (persist + render).
+  - **The Theme canvas is selection-only (S32).** Editing geometry belongs to the Draw phase, so the Apply
+    step offers exactly two things: pick an island or shape, and move the view. Its toolbar carries the
+    **move and select tools alone** — the tools that author geometry are simply absent, in place of the hint
+    that used to sit there restating the rail beside it. Everything else is withheld at the source rather
+    than ignored downstream: `SketchEditController.setEnabled(false)` draws no resize handle, vertex, Bézier
+    tangent or midpoint ghost and declines every pointer hook; the island chrome keeps its dashed selection
+    box but drops the rotate zones and scale grips; `_hitMovable` reports nothing draggable; the arrow-key
+    nudge is off; and an armed library item is disarmed on entry. A drag therefore has nothing to begin on,
+    rather than beginning and being discarded. The phase switch owns the mode, so no route in or out can
+    leave the wrong one behind, and the selection now survives reaching for the hand tool — a tool change
+    drops it only in Draw, where arrow-nudge would otherwise move something no longer visibly selected.
+    e2e'd: the toolbar holds those two tools, and a drag across a selected island leaves the layout
+    byte-identical.
   - **The Blocks overlay shows the blocks the export places (S30).** The sketch's **Blocks** toggle — which
     showed the rasterized footprint as neutral stone — is the terrain paint. `POST /api/map/{slug}/sketch/paint`
     takes the *live* layout and runs the export's own path over it (`TerrainPreview.SketchPaintCells`: rasterise
