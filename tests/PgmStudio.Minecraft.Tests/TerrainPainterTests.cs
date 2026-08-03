@@ -290,4 +290,39 @@ public sealed class TerrainPainterTests
         // to the void otherwise, keeps a grass surface rather than a clay riser toward the structure.
         await Assert.That(w.GetBlock(2, 8, 1)).IsEqualTo((Blocks.Grass, 0));
     }
+
+    /// <summary>
+    /// The whole point of routing both callers through <see cref="TerrainPainter.ColumnBlocks"/>: a top-down
+    /// preview that resolves only each column's top block must name the same block the full paint writes
+    /// there. If these two ever diverge, the preview stops being a preview — so the agreement is asserted over
+    /// a board with rims, walls, plateau steps and a team tint, on every cell rather than a sample.
+    /// </summary>
+    [Test]
+    public async Task A_columns_top_block_is_what_the_full_paint_writes_on_top()
+    {
+        // Two plateaus side by side, so the board carries void rims, a terrain step and interiors at once.
+        var columns = new List<(int, int, int, int)>();
+        for (var x = 0; x < 12; x++)
+        for (var z = 0; z < 12; z++)
+            columns.Add((x, z, 1, x < 6 ? 9 : 14));
+        var terrain = SketchTerrainBuilder.Build(columns);
+        int TeamAt(int x, int z) => x < 6 ? 14 : 11;   // a tint that differs across the two plateaus
+
+        var profile = new TerrainProfile(terrain.World, terrain.SurfaceTop);
+        var tops = profile.PaintableColumns().ToDictionary(
+            c => c.Cell,
+            c => TerrainPainter.TopBlock(c.Cell.X, c.Cell.Z, c.Profile, TerrainTheme.Default, TeamAt(c.Cell.X, c.Cell.Z)));
+
+        TerrainPainter.Paint(terrain.World, terrain.SurfaceTop, TerrainTheme.Default, TeamAt);
+
+        await Assert.That(tops.Count).IsGreaterThan(100);   // the whole board, not a corner of it
+        foreach (var (cell, top) in tops)
+        {
+            await Assert.That(top).IsNotNull();
+            await Assert.That(terrain.World.GetBlock(cell.X, top!.Value.Y, cell.Z))
+                .IsEqualTo((top.Value.Id, top.Value.Data));
+            // and it really is the column's top: nothing solid sits above it.
+            await Assert.That(terrain.World.GetBlock(cell.X, top.Value.Y + 1, cell.Z).Id).IsEqualTo(0);
+        }
+    }
 }

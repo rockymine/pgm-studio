@@ -103,24 +103,36 @@ public static class TerrainPreview
 
     /// <summary>The terrain paint a sketch layout exports, one entry per footprint cell: the block seen from
     /// directly above, with its data value. The real export path produces it — rasterise the columns, build the
-    /// terrain, then run <see cref="TerrainPainter"/> through <see cref="TerrainThemeScope"/>'s per-cell resolver
+    /// terrain, classify it into <see cref="TerrainProfile"/> columns, then take each column's top block from
+    /// <see cref="TerrainPainter.TopBlock"/>, resolved through <see cref="TerrainThemeScope"/>'s per-cell theme
     /// and <see cref="TeamTerritory"/>'s ownership — so a cell carries the block the export actually places,
-    /// patterns and team tints included, rather than one representative colour per theme. Empty when nothing is
-    /// drawn. The caller shapes these into the block-pixel payload the canvas block overlays blit.</summary>
+    /// patterns and team tints included. Empty when nothing is drawn. The caller shapes these into the
+    /// block-pixel payload the canvas block overlays blit.
+    /// <para>Only the tops are resolved, not the whole world: painting every block of every column and then
+    /// reading one of them back was the bulk of this call. It is the same painter either way —
+    /// <see cref="TerrainPainter.ColumnBlocks"/> is the single place a band becomes blocks, and the full paint
+    /// walks the sequence this stops after the first element of.</para></summary>
     public static IReadOnlyList<SurfaceCell> SketchPaintCells(string layoutJson, MapIntent intent)
     {
         var terrain = SketchTerrainBuilder.Build(SketchRasterizer.RasterizeColumns(layoutJson));
         var surface = terrain.SurfaceTop;
         if (surface.Count == 0) return [];
 
-        TerrainPainter.Paint(terrain.World, surface, TerrainThemeScope.ThemeAt(layoutJson),
-            TeamTerritory.DamageAt(surface.Keys, intent));
+        var themeAt = TerrainThemeScope.ThemeAt(layoutJson);
+        var teamAt = TeamTerritory.DamageAt(surface.Keys, intent);
+        var profile = new TerrainProfile(terrain.World, surface);
 
         var cells = new List<SurfaceCell>(surface.Count);
         foreach (var (cell, top) in surface)
         {
-            // SurfaceTop is the first air Y above the column, so the block seen from above is the one under it;
-            // scan down from there for the first solid, which a painted rim or a carved column can push lower.
+            if (profile.TryGetColumn(cell, out var column)
+                && TerrainPainter.TopBlock(cell.X, cell.Z, column, themeAt(cell.X, cell.Z), teamAt(cell.X, cell.Z)) is { } painted)
+            {
+                cells.Add(new SurfaceCell(cell.X, cell.Z, painted.Id, painted.Data));
+                continue;
+            }
+            // Not paintable (a bare bedrock course): the terrain's own block stands. SurfaceTop is the first
+            // air Y above the column, so scan down from just under it for the first solid.
             for (var y = Math.Min(top, VoxelWorld.MaxHeight - 1); y >= 0; y--)
             {
                 var (id, data) = terrain.World.GetBlock(cell.X, y, cell.Z);

@@ -53,18 +53,13 @@ the focus-integration polish remains.
 The Sketch depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection
 highlight); these are the parked / dormant / deferred slices.
 
-- [ ] **S31 — Paint only the column tops the Blocks overlay reads.** The overlay's round-trip is now entirely
-  server compute — the client parses, expands, encodes the PNG and blits in about 5 ms total, while the paint
-  itself runs 40 ms on a typical board and ~410 ms on a 200×200 one. Of that, `TerrainPainter.Paint` writes
-  **every block of every column** into a `VoxelWorld` (~118 ms at 40k cells) and the overlay then reads back
-  one block per column; resolving just the topmost band instead measures **~14 ms** for the same answer, since
-  `TerrainPainter.Resolve` already returns the bands top-last and the material only needs the top Y. The reason
-  it is not simply done: a second paint path could disagree with the export, which is the whole value of the
-  preview. So the shape of the fix is to make the top-only resolve *the same code the full paint runs per
-  column* — one column-level entry point the paint loop and the preview both call — rather than a parallel
-  implementation. `TerrainProfile` construction (~87 ms at 40k) stays either way, and would be the next target.
-  Also still per-cell on the wire: `xs`/`zs` are two ints each (345 KB at 40k cells) where the payload is a
-  dense footprint that could ship as bounds + a mask.
+- [ ] **S33 — Ship the sketch-paint footprint as bounds + a mask, not a cell list.** With the paint itself cut
+  down (S31, `FEATURES.md`) and the colours palette-indexed, what is left on the wire is `xs`/`zs` — two ints
+  per cell, 345 KB on a 200×200 board — describing a dense footprint that a bounds rect plus a per-cell mask
+  would carry in a fraction of it. Worth doing with the other remaining server cost: `TerrainProfile`
+  construction is now the largest single term in a paint (~87 ms at 40k cells, against ~40 ms for the tops),
+  and its plateau labelling + perimeter trace + N8 classification all re-run from scratch on every keystroke of
+  a drag even though only the edited shape's neighbourhood changed.
 
 - [ ] **S26 — Sweep the now-dead plan-side theme JS.** The Theme phase moved onto the sketch (`FEATURES.md`);
   the plan tool's Theme UI + C# theme path are gone, but the plan **JS** theme code is still present as an

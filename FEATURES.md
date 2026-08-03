@@ -2616,6 +2616,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
     footprint stands in, so drawing keeps its instant voxelization feedback. Primary footprint only (the mirror
     image stays a smooth polygon, as the Blocks overlay always has).
 
+    **Only the column tops are resolved, not a whole world (S31).** Painting every block of every column into
+    a `VoxelWorld` and then reading one of them back was the bulk of a preview. `TerrainPainter.ColumnBlocks`
+    is now the single place a resolved band becomes blocks — it yields a column's blocks **top cell first**,
+    the full paint walks the whole sequence and writes it, and `TopBlock` takes the first element and stops.
+    Neither caller can resolve a cell differently from the other, which a parallel top-only implementation
+    could not have promised; the preview pays one material resolve per column instead of one per block.
+    Verified cell-for-cell identical to the paint-and-read-back path over solid, layered, voronoi, noise and
+    team-tint themes with rims, walls, plateau steps, subtracts and mirror orbits — 1.2–1.6× faster end to
+    end (369 ms → 238 ms on a 38k-cell board), and unit-tested as the invariant it is: every column's
+    `TopBlock` equals what `Paint` writes on top of that column.
+
     This replaced a client-side approximation that resolved each theme to **one representative block colour**
     and painted it as translucent stroked runs. It could not show a pattern or a bucket even in principle, and
     what reached the screen was worse: at `fillAlpha 0.7` over the island fill every colour composited towards

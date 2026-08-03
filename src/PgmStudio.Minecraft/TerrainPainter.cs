@@ -32,19 +32,48 @@ public static class TerrainPainter
         var profile = new TerrainProfile(world, surfaceTop);
         foreach (var (cell, column) in profile.PaintableColumns())
         {
-            var theme = themeAt(cell.X, cell.Z);
-            var teamData = team(cell.X, cell.Z);
-            foreach (var band in Resolve(column, theme))
+            foreach (var (y, id, data) in ColumnBlocks(cell.X, cell.Z, column, themeAt(cell.X, cell.Z), team(cell.X, cell.Z)))
             {
-                var material = band.Bucket == TerrainBucket.Bedrock ? Bedrock : theme.MaterialFor(band.Bucket);
-                for (var y = band.LoY; y < band.HiY; y++)
-                {
-                    if (world.GetBlock(cell.X, y, cell.Z).Id != Blocks.Stone) continue;   // stone-only invariant
-                    var (id, data) = material.Resolve(new BucketContext(cell.X, y, cell.Z, band.Bucket, band.HiY - 1 - y, teamData, column.PerimeterArc));
-                    if (id != Blocks.Stone || data != 0) world.SetBlock(cell.X, y, cell.Z, id, data);
-                }
+                if (world.GetBlock(cell.X, y, cell.Z).Id != Blocks.Stone) continue;   // stone-only invariant
+                if (id != Blocks.Stone || data != 0) world.SetBlock(cell.X, y, cell.Z, id, data);
             }
         }
+    }
+
+    /// <summary>
+    /// The blocks one column paints, <b>top cell first</b>, as <c>(y, id, data)</c>. This is where a resolved
+    /// band becomes actual blocks, and it is deliberately the only such place: <see cref="Paint"/> walks the
+    /// whole sequence and writes it into the world, while a top-down preview takes the first element and
+    /// stops. Neither can resolve a cell differently from the other, and the preview pays one material
+    /// resolve per column rather than one per block — the difference between reading a footprint's surface
+    /// and building its every block to read one of them.
+    /// <para>What the world already holds is not consulted here: the caller applies the stone-only invariant,
+    /// because whether a cell may be overwritten is a fact about the world, not about the column.</para>
+    /// </summary>
+    public static IEnumerable<(int Y, int Id, int Data)> ColumnBlocks(
+        int x, int z, ColumnProfile column, TerrainTheme theme, int teamDamage = -1)
+    {
+        var bands = Resolve(column, theme);
+        for (var i = bands.Count - 1; i >= 0; i--)   // top band first — the preview wants only its top cell
+        {
+            var band = bands[i];
+            var material = band.Bucket == TerrainBucket.Bedrock ? Bedrock : theme.MaterialFor(band.Bucket);
+            for (var y = band.HiY - 1; y >= band.LoY; y--)
+            {
+                var (id, data) = material.Resolve(
+                    new BucketContext(x, y, z, band.Bucket, band.HiY - 1 - y, teamDamage, column.PerimeterArc));
+                yield return (y, id, data);
+            }
+        }
+    }
+
+    /// <summary>The block a column shows from directly above — <see cref="ColumnBlocks"/>'s first entry, which
+    /// is the top cell of the topmost band. Null only for a column that paints nothing at all.</summary>
+    public static (int Y, int Id, int Data)? TopBlock(
+        int x, int z, ColumnProfile column, TerrainTheme theme, int teamDamage = -1)
+    {
+        foreach (var block in ColumnBlocks(x, z, column, theme, teamDamage)) return block;
+        return null;
     }
 
     private static readonly TerrainMaterial Bedrock = new SolidMaterial(Blocks.Bedrock);

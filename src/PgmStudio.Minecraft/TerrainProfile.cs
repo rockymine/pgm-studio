@@ -51,6 +51,11 @@ public sealed class TerrainProfile
     public IEnumerable<((int X, int Z) Cell, ColumnProfile Profile)> PaintableColumns()
         => _columns.Select(kv => (kv.Key, kv.Value));
 
+    /// <summary>One cell's facts, or false where the cell is not paintable (off the footprint, or a structure
+    /// column the paint leaves alone — TP6). For a caller that walks the footprint itself and needs to know,
+    /// per cell, whether the painter has an opinion about it.</summary>
+    public bool TryGetColumn((int X, int Z) cell, out ColumnProfile column) => _columns.TryGetValue(cell, out column);
+
     private bool InFootprint(int x, int z) => _surfaceTop.ContainsKey((x, z));
     private bool IsStructure(int x, int z) => _structure.Contains((x, z));
     private int Top(int x, int z) => _surfaceTop[(x, z)];
