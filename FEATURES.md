@@ -2443,7 +2443,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Terrain-paint patterns + theme JSON (TP13).** Any bucket's material can be a **pattern** at the same seam as
   a solid: `VoronoiMaterial` (jittered-grid regions, N-material palette), `NoiseMaterial` (fractal/value-noise
   field through an N-stop ramp), and `WallRunMaterial` (N stripes of any widths that wrap the **void-facing
-  perimeter**, reading a per-column arc from `TerrainProfile`'s Moore boundary walk over each landmass);
+  perimeter**, reading a per-column arc from `TerrainProfile`'s Moore boundary walk over each landmass — a walk
+  that now stops when its loop closes, detected as the first repeat of a (cell, entry-direction) state rather
+  than by agreeing on which state means "back at the start". The earlier Jacob's criterion never fired on a
+  plain filled square: every trace ran to a millionth-iteration backstop, charging a flat ~110 ms per landmass
+  whatever its size while still returning the correct ring, which made it invisible to every output assertion
+  and the largest single cost in terrain painting);
   vertical wall bands are `LayeredMaterial`. All deterministic (hashed from a seed + cell, no RNG) and nesting —
   a pattern entry can be a team tint or another pattern. The whole theme serializes through **`TerrainThemeJson`**
   (one `kind` discriminator per material), closing the material model for the scoped-theming step. (G157)

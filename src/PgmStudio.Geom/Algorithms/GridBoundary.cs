@@ -29,10 +29,17 @@ public static class GridBoundary
 
         var start = cells.OrderBy(c => c.Item2).ThenBy(c => c.Item1).First();   // on the boundary, entered from the west
         var p = start;
-        int backIdx = Idx(-1, 0), startBack = -1, s = 0, guard = 0;
-        bool moved = false;
+        int backIdx = Idx(-1, 0), s = 0;
+        // The walk is fully determined by its state — the cell it stands on plus the direction it came from —
+        // so the first repeated state is the point where the loop has closed and nothing new can be found.
+        // That is the termination condition: it is reached in at most 8 steps per cell, and it needs no
+        // agreement about which state counts as "back at the beginning". (Jacob's criterion — stop on
+        // re-entering the start cell from the original direction — was the earlier rule here, and on a plain
+        // filled square it never fired at all: every trace ran to a millionth-iteration backstop instead, a
+        // flat ~110 ms per landmass whatever its size, while still returning the correct ring.)
+        var walked = new HashSet<((int, int) Cell, int Back)>();
         if (!arc.ContainsKey(start)) arc[start] = s++;
-        while (guard++ < 1_000_000)
+        while (walked.Add((p, backIdx)))
         {
             int found = -1;
             for (var k = 1; k <= 8; k++)
@@ -44,8 +51,6 @@ public static class GridBoundary
             var c = (p.Item1 + Cw[found].dx, p.Item2 + Cw[found].dz);
             int prevIdx = (found - 1 + 8) % 8;                          // last background checked = new backtrack
             int newBack = Idx(p.Item1 + Cw[prevIdx].dx - c.Item1, p.Item2 + Cw[prevIdx].dz - c.Item2);
-            if (moved && c == start && newBack == startBack) break;     // Jacob's stop: start reached, same entry
-            if (!moved) { moved = true; startBack = newBack; }
             if (!arc.ContainsKey(c)) arc[c] = s++;
             p = c; backIdx = newBack;
         }
