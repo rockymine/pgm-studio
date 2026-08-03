@@ -564,7 +564,11 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
       if (s.setup) applySetup(s.setup);
       themes = (s.themes && typeof s.themes === "object") ? s.themes : {};
       mapTheme = (s.mapTheme && themes[s.mapTheme]) ? s.mapTheme : "";
-      ensureBlockPalette();   // resolves theme surface colours for the Blocks overlay (idempotent)
+      // Fetch the palette if we haven't, and resolve the overlay colours NOW against the just-loaded themes —
+      // the fetch may have already completed with an empty registry (it races the layout load), so a direct
+      // refresh here is what actually paints a reloaded themed sketch.
+      ensureBlockPalette();
+      refreshThemeColors();
       const raw = (s.layers && s.layers.length) ? s.layers : (s.layout ? [{ base_y: 0, layout: s.layout }] : []);
       // A layer's stored shapes are partitioned on load: role-tagged shapes are the plan's structural pieces
       // (S25) — carried as a locked render-only overlay, kept out of the drawn-shape pipeline (islands, raster,

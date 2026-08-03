@@ -85,6 +85,7 @@ saved.themes = {
   sand:  { bedrock: { relative: false, value: 1 }, surface: { material: { kind: "solid", id: 12 }, depth: 1, enabled: true }, fill: { kind: "solid", id: 1 } },
 };
 if (other) other.theme = "sand";
+saved.mapTheme = "grass";   // the whole footprint reads green, the one sand-overridden shape stands out
 await api(`/map/${slug}/sketch`, { method: "PUT", body: saved });
 
 let shotOk = false;
@@ -92,16 +93,20 @@ try {
   clearFaults(page);
   await page.goto(`${BASE}/maps/${slug}/sketch`, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForSelector("canvas", { timeout: 20000 });
-  await page.waitForTimeout(1500);
-  // Screenshot inside the Theme phase's Apply step (the island tree + theme controls), with Blocks on so the
-  // two shapes read in their two theme colours.
+  await page.waitForTimeout(2000);   // WASM boot + the async block-palette fetch that colours the overlay
+  // Into the Theme phase's Apply step (the island tree + theme controls), and settle before toggling.
   await page.click('button[title="Theme"]');
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(700);
   await page.click('button:has-text("Apply →")');
-  await page.waitForTimeout(600);
-  await page.click('button:has-text("Blocks")');
-  await page.waitForTimeout(1200);
+  await page.waitForTimeout(1500);
+  // Turn Blocks on *here* (so the raster paints while the canvas is visible) and confirm it took.
+  const blocks = page.locator('button.filter-chip:has-text("Blocks")');
+  const isOn = async () => blocks.evaluate(el => el.classList.contains("filter-chip--active"));
+  if (!(await isOn())) await blocks.click();
+  await page.waitForTimeout(2500);   // let the coloured raster render
+  const blocksOn = await isOn();
   await page.screenshot({ path: `${OUT}theme-multi-blocks.png`, fullPage: false });
+  checks.add("Blocks overlay is on for the shot", blocksOn);
   shotOk = true;
 } catch (e) {
   page.faults.push(`blocks shot: ${String(e).split("\n")[0]}`);
