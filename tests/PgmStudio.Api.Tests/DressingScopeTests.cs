@@ -140,6 +140,64 @@ public sealed class DressingScopeTests
     }
 
     [Test]
+    public async Task Every_card_in_a_set_is_cropped_the_same_way_so_their_floors_line_up()
+    {
+        // Cropping each card to its own content puts every floor at a different height once they sit in a
+        // grid, and makes a spruce and an acacia look the same size. One crop per set fixes both: the tallest
+        // option decides the top, the ground decides the bottom, and the heights compare honestly.
+        var species = DressingPreview.SpeciesCards(TerrainTheme.Default);
+        var forms = DressingPreview.BoulderFormCards(new BoulderProp { Size = 3, Seed = 3 }, TerrainTheme.Default);
+
+        await Assert.That(species.Select(card => Height(card.Svg)).Distinct().Count()).IsEqualTo(1);
+        await Assert.That(forms.Select(card => Height(card.Svg)).Distinct().Count()).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task The_side_view_is_a_projection_so_a_crown_reads_whole_rather_than_speckled()
+    {
+        // A cut through one row meets a crown wherever that row falls — as often through the air between leaf
+        // clusters as through them. Projecting every row is what makes the silhouette the shape it is.
+        var tree = DressingPreview.Views(new TreeProp { Species = "oak", Height = 20, Seed = 5 }, TerrainTheme.Default);
+
+        // Depth shades a block without repainting it, so a projected crown is many shades of the one leaf
+        // colour — where a cut would give one flat shade with holes through it.
+        var front = BlockPalette.Hex(DressingPalette.Leaves, DressingPalette.LeafNoDecay, 0);
+        var crown = Fills(tree.Section).Where(hex => IsShadeOf(hex, front)).ToList();
+        await Assert.That(crown.Count).IsGreaterThan(3);
+        // And every one of them is still that leaf, darkened: no shade is brighter than the block's own.
+        await Assert.That(crown.All(hex => Green(hex) <= Green(front))).IsTrue();
+
+        static int Green(string hex) => Convert.ToInt32(hex[3..5], 16);
+
+        // Shading scales all three channels by one factor, so a shade of a colour is the colour with the same
+        // channels at zero and the same channel dominant — which is what separates crown from ground here.
+        static bool IsShadeOf(string hex, string of)
+        {
+            for (var channel = 1; channel < 7; channel += 2)
+            {
+                var (one, other) = (Convert.ToInt32(hex[channel..(channel + 2)], 16),
+                                    Convert.ToInt32(of[channel..(channel + 2)], 16));
+                if (one == 0 != (other == 0)) return false;
+            }
+            return true;
+        }
+    }
+
+    [Test]
+    public async Task Both_views_look_inside_the_sample_rather_than_at_the_wall_around_it()
+    {
+        // The painter finishes a footprint's perimeter as an edge — a rim course over a wall — so the sample's
+        // outermost ring is its own boundary, not ground. Seen from the side that ring is the entire front
+        // face, and a preview that included it showed a tree standing behind a wall instead of in the grass
+        // the plan view plainly draws under it. Both views carry the same ground.
+        var tree = DressingPreview.Views(new TreeProp { Species = "oak", Height = 20, Seed = 5 }, TerrainTheme.Default);
+
+        var ground = BlockPalette.Hex(Blocks.Grass, 0);
+        await Assert.That(Fills(tree.Plan)).Contains(ground);
+        await Assert.That(Fills(tree.Section)).Contains(ground);
+    }
+
+    [Test]
     public async Task Every_picker_offers_exactly_what_the_pass_can_build()
     {
         // The cards are the real algorithm at card size, so a picker can never promise a look the export does

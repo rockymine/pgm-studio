@@ -232,6 +232,21 @@ public static class BlockPalette
         return $"#{c.R:x2}{c.G:x2}{c.B:x2}";
     }
 
+    /// <summary>How much of its colour the block at the very back of a side view keeps. Enough darkening to
+    /// read as distance, not so much that oak leaves at the back stop being green.</summary>
+    private const double BackShade = 0.42;
+
+    /// <summary>Hex for a block seen at a distance: the block's own colour, darkened towards the back of the
+    /// view. <paramref name="depth"/> runs 0 (front plane) to 1 (back), so a flat projection still reads as a
+    /// volume without any of it being repainted grey — the shading carries the depth and the colour stays the
+    /// export's own.</summary>
+    public static string Hex(int blockId, int blockData, double depth)
+    {
+        var color = Color(blockId, blockData);
+        var keep = 1 - (1 - BackShade) * Math.Clamp(depth, 0, 1);
+        return $"#{(int)(color.R * keep):x2}{(int)(color.G * keep):x2}{(int)(color.B * keep):x2}";
+    }
+
     /// <summary>Human-readable name for a block ID + data value.</summary>
     public static string Name(int blockId, int blockData)
     {

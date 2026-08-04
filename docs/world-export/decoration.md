@@ -333,6 +333,25 @@ is no scope to resolve — a prop is not a recipe applied to a footprint, so rea
 `Decorator` — and draws every picker's cards the same way, so a picker can never offer a look the export does
 not produce.
 
+The side view is a **projection**, not a cut. `Minecraft.BlockSideView` looks through every row and keeps the
+nearest block, shading it by how far back it stands; a single row through a crown meets it wherever that row
+happens to fall — as often through the air between leaf clusters as through them — so a cut comes out
+speckled and missing pieces that are plainly there. It is the model `Analysis.SideView` already draws a whole
+map with for the build-height step, with one difference: that one projects vertical *segments*, which carry
+no block identity, so its picture is a stone-grey ramp; this projects a real world and keeps the block, so
+the colours stay the export's own and only the shading comes from depth. Depth is measured against the
+projected box rather than against the depths the view happened to reach, so a block's shade says where that
+block is and nothing else — stretching the scale to fit the content would let one block moving back re-shade
+every other block in the picture.
+
+Both views look **inside** the sample's outermost ring. The painter reads a footprint's perimeter as its edge
+and finishes it as one, a rim course over a wall, so that ring is the sample's own boundary rather than
+ground a prop could stand on; seen from the side it is the entire front face, and a tree that stands in grass
+was drawn standing behind a wall. Within one picker every card is drawn on one patch, sized to the widest
+option, and cropped to the same courses — the tallest option decides the top and the ground decides the
+bottom — so the cards sit in a grid with their floors on one line and their heights honestly compared, and a
+two-block rock is not four pixels in a sample cut for a tree.
+
 **`PgmStudio.Pgm/Sketch` — storage only.** `SketchLayout.Dressing` is the stored blob and nothing here reads
 into it. A path was briefly a `SketchShape` and is not one: it places no terrain, so putting it in the
 rasterizer meant the geometry model carried a kind that never contributed a cell.
