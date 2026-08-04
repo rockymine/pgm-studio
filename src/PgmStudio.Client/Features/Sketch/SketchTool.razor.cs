@@ -238,6 +238,9 @@ public partial class SketchTool
     private Task SetHeight((string Id, double Base, double Floor) e)
         => handle?.InvokeVoidAsync("setHeight", e.Id, e.Base, e.Floor).AsTask() ?? Task.CompletedTask;
 
+    private Task SetPathBand((string Id, double Radius, string Edge, int Seed) e)
+        => handle?.InvokeVoidAsync("setPathBand", e.Id, e.Radius, e.Edge, e.Seed).AsTask() ?? Task.CompletedTask;
+
     private Task SetVertexHeight((string Id, int Idx, double Height) e)
     {
         // Keep the inspector's bound value in sync (the bridge doesn't echo it back) so the field shows

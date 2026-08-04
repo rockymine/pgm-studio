@@ -111,6 +111,8 @@
                       @onclick='() => SetTool("polygon")'><i data-lucide="pentagon"></i></button>
               <button class="draw-tool-btn @(tool == "lasso" ? "draw-tool-btn--active" : null)" title="Lasso (hold and trace)"
                       @onclick='() => SetTool("lasso")'><i data-lucide="lasso"></i></button>
+              <button class="draw-tool-btn @(tool == "path" ? "draw-tool-btn--active" : null)" title="Path (click a route, double-click to end — width and edge are on the shape)"
+                      @onclick='() => SetTool("path")'><i data-lucide="spline"></i></button>
               <button class="draw-tool-btn @(tool == "measure" ? "draw-tool-btn--active" : null)" title="Measure (drag across a void gap to read its length in blocks)"
                       @onclick='() => SetTool("measure")'><i data-lucide="ruler"></i></button>
               <button class="draw-tool-btn @(tool == "split" ? "draw-tool-btn--active" : null)" title="Split (click two points to slice a shape in two along the line)"
@@ -159,7 +161,7 @@
           <SketchInspector Shape="SelectedShape" Island="SelectedIsland" Shapes="shapes"
                            OnToggleOp="ToggleOp" OnToggleOverride="ToggleOverride" OnDeleteShape="DeleteShape"
                            OnPromoteShape="PromoteShape" OnSetHeight="SetHeight" OnToggleMirrors="ToggleMirrors" OnRenameIsland="RenameIsland"
-                           OnRotate="Rotate"
+                           OnRotate="Rotate" OnSetPathBand="SetPathBand"
                            SelectedVertexIdx="selectedVertexIdx" SelectedVertexHeight="selectedVertexHeight" OnSetVertexHeight="SetVertexHeight"
                            SlopeControls="slopeControls" OnSlopeHeightChanged="SetSlopeHeight" OnApplySlope="ApplySlope" />
         }

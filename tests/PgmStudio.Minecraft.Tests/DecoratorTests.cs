@@ -171,6 +171,27 @@ public sealed class DecoratorTests
     }
 
     [Test]
+    public async Task A_tree_may_lean_its_crown_over_a_drop_but_never_over_something_protected()
+    {
+        // Two different footprints answer two different questions. What a prop *rests* on needs ground; what
+        // it merely occupies does not, or no tree could ever grow within a crown's reach of a shoreline —
+        // which is exactly where one leaning out over the drop is the point. Protection is the opposite: it
+        // covers the whole volume, because a canopy over a monument reads as badly as a trunk on one.
+        var stand = new TreeSpec(Density: 0.9, GroveThreshold: 1.0, Species: ["oak"]);
+
+        var (edge, edgeTop) = Plateau(14);
+        var overhang = Decorator.Decorate(edge, Context(edgeTop, new DressingRecipe { Trees = stand }));
+        await Assert.That(overhang.Trees).IsGreaterThan(0);
+
+        // The same patch with everything but its middle protected: the trunk has ground, but the crown reaches
+        // across cells the map is played through, so nothing is placed.
+        var (fenced, fencedTop) = Plateau(14);
+        var walled = Decorator.Decorate(fenced, Context(fencedTop, new DressingRecipe { Trees = stand },
+            isProtected: (x, z) => x is < 6 or > 7 || z is < 6 or > 7));
+        await Assert.That(walled.Trees).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task Every_leaf_carries_the_no_decay_bit()
     {
         // A built map has no growing tree behind its leaves; without this flag the whole crown vanishes

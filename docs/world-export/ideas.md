@@ -1,11 +1,11 @@
 # Map decoration — the idea pool (dressing-stage gaps)
 
-The dressing stage (G161, `decoration.md`) shipped five tools as prototypes — flora, paths, boulders, trees,
-water. Each works on its own. This file is the pool of what turns them from five soloists into one coherent
-stage: the correctness constraints a competitive map cannot skip, the connective tissue between the passes,
-and the axes the flat-plane prototypes never touch. One idea per few lines, grouped, **ids in the G track**
-(continuing G157/G161), **preserved** — an id here is never reused; pull one onto `BACKLOG.md` when it
-becomes the focus. Same discipline as `docs/generator/ideas.md`, for the world-export/dressing track.
+The dressing stage (G161, `decoration.md`) ships four tools — flora, paths, boulders and trees — each
+authored in the sketch tool's Dressing phase and run over the realized world. This file is the pool of what
+turns them from four soloists into one coherent stage: the connective tissue between the passes, the axes
+the flat-plane model never touches, and the fifth tool. One idea per few lines, grouped, **ids in the G
+track** (continuing G157/G161), **preserved** — an id here is never reused; pull one onto `BACKLOG.md` when
+it becomes the focus. Same discipline as `docs/generator/ideas.md`, for the world-export/dressing track.
 
 Everything here is **designed, not built** — the prototype is `tools/decorate/prototype.html`, and the model
 is `decoration.md`. Where an idea depends on a pass that does not exist yet (the elevation pass, G32-C), it
@@ -13,22 +13,15 @@ says so.
 
 ## Correctness — a competitive map cannot ship without these
 
-- **G162 — true symmetry / fairness** *(priority)* — the dressing prototypes scatter freely; the studio fans
-  **everything else** across the symmetry orbit (`Geom.Symmetry`, the orbit machinery in
-  `docs/contracts/new-map-authoring.md`). For a competitive map that is a correctness bug, not a style choice:
-  cover, sightlines and movement must be identical per team, or one spawn approach having a boulder for cover
-  and a treeline blocking a sightline the mirror lacks decides fights unfairly. The fix is a
-  **cosmetic-vs-gameplay split** — every prop declares whether it affects play (trees, boulders, water
-  bodies, tall grass = collision / cover / vision) or is purely visual (flowers, lily pads, ground pattern,
-  reeds). Gameplay-affecting dressing is generated on the **authored unit only** and re-fanned through
-  `Geom.Symmetry` like the layout itself (the roughen pass G142 already states this "authored unit only,
-  symmetry re-fans, placements pinned" architecture); the cosmetic layer may be placed freely per image so the
-  two halves are not eerily identical. The hash-from-cell determinism makes the free layer reproducible without
-  being mirrored. **This gates the rest**: no dressing ships for competitive use until it respects the orbit.
-  *Prototyped* in `tools/decorate/prototype.html` §6 — free-scatter vs orbit-fanned tree/boulder cover on a
-  **real** board (`Composer.ComposeStages`, 40 players, `rot_180`), with a fairness check that counts cover
-  cells whose mirror image is bare: free scatter racks them up, the fanned pass is zero by construction, and
-  cosmetic flowers stay free. The board is emitted by `tools/decorate/dress-map.cs`.
+- **G162 — fairness at the symmetry axis** — the cosmetic-vs-gameplay split and the generate-on-the-
+  representative fan shipped with G161 (`decoration.md` §2), and a gameplay prop is now identical per team by
+  construction. What it does not yet handle is the **axis itself**: a prop whose orbit images overlap — a
+  boulder sitting on or within a radius of the mirror line — is stamped twice into the same cells, so the two
+  copies fuse into one shape that is neither's. It reads as a lump, and on a `rot_180` map it is exactly
+  where the centre objective usually sits. Three candidate answers: refuse a representative whose prop
+  bounds cross the axis, place one prop *on* the axis built symmetric in its own frame, or merge the images
+  and accept the fused mass as intentional. Cheap to detect (the prop's own bounds against the axis), and
+  cheap to test — the fairness check that counts unmirrored cover cells already exists.
 
 - **G167 — readability & playability budget** — nothing yet stops decoration from narrowing a corridor below
   the bridge-width minimum, walling a lane, burying a monument, or over-cluttering until the map is
@@ -84,3 +77,13 @@ says so.
   should **frame** the important places rather than bury them: a clearing around a monument, flowers marking a
   spawn, a path leading to a wool room — POIs as things the dressing emphasizes, not merely exclusion holes.
   Both lean on the affinity fields of G166 (distance-to-border, distance-to-objective).
+
+## The fifth tool
+
+- **G169 — water: ponds and channels (`DR-WA`)** — the one tool of `decoration.md` that is still only a
+  design (§7 there carries the whole model). Water cannot drape on a surface the way gravel can: laid on a
+  slope it reads as blue paint, so it needs a **carved bed** and a fill to a **level plane**. That carve is
+  an elevation change, which is the one thing every other part of the stage refuses to do — which is why it
+  waits on G32-C rather than being a fifth `DressingRecipe` part today. Everything above the bed is reuse: a
+  channel is the §4 path stroke, a pond the §5 blob read concave with an FBM-wandered outline, the reeds and
+  lily pads the §3 flora overlay masked to the bank.

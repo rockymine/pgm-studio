@@ -2591,6 +2591,46 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   terrain the world actually placed; the areas arrive already fanned, so the marker is symmetric with them. The
   sixteen zones of `tools/seeds/teaching/build-region-examples.plan.json` are the authored expectations, drawn
   by `tools/deriver/build-marker-check.cs` (`--svg` for the picture). (G155, ST5)
+- **Dressing — what stands on the terrain, not what it is made of (G161).** The world's last pass, after
+  `TerrainPainter`: where the painter can only change what a stone cell becomes, the `Decorator`
+  (`PgmStudio.Minecraft/Dressing`, `docs/world-export/decoration.md` `DR*`) adds cells — plants in the air above
+  the surface, half-buried rock, grown trees. It runs last because the one fact it needs is what the paint just
+  decided: soil takes flora, quartz takes none, and a column whose top block is a stamp takes nothing at all.
+  Four tools, authored as one **recipe**: **DR-FL** flora (a `PatternNoise` density field over `SurfaceTop`,
+  a second low-frequency field gathering flowers into meadows, species mixed by share), **DR-PA** paths (below),
+  **DR-SC** boulders (`Blob`-eroded quadric lobes in four forms, half below the surface, `BlueNoise`-scattered
+  at a spacing the prop's own size floors so a rock field cannot fuse into one mass), and **DR-TR** trees
+  (`TreeSkeleton` growing limbs as Catmull-Rom splines with a leader knob, upward pull and per-step jitter;
+  `SweptVolume` filling each as a capsule; `TreeCrown` placing one dense cluster per outer tip with a seam of
+  air between neighbours, so a viewer still reads each patch as its own branch's).
+- **Fairness is structural, not a filter (G162).** Every prop declares a `PropClass`. Cosmetic props —
+  one-block plants — scatter freely; a flower one team has and the other does not decides nothing. Gameplay
+  props are generated **once**, on the orbit's canonical representative, in the prop's own local frame, then
+  stamped at every image with each offset **turned** by that image's transform. Fanning the site alone is not
+  enough and that is the whole point: mirroring only the anchor leaves both teams the same unmirrored prop
+  shape, so a boulder with a lobe to its east has one to its east on both halves of the map. The turn is a
+  plain rotation with no half-cell correction — an offset is a delta between cells, and the delta between two
+  mirrored cells is just the mirrored delta, the anchor having already been corrected. A stamp is
+  all-or-nothing per image, so a prop whose mirror lands on missing or protected ground places on neither side.
+  Measured on a `rot_180` board: free scatter left 361 cover cells whose mirror was bare, the fanned pass zero.
+- **Paths — draw a route, get a band (DR-PA).** A fourth sketch draw tool. A path is stored as the **open**
+  line the author clicked plus a half-width; `Geom.PathBand` derives the closed band by smoothing the points
+  into a centripetal Catmull-Rom curve and offsetting that to both sides (`Ribbon`), in that order — offsetting
+  the drawn points would corner the band at every click. Because the result is a ring, island detection, the
+  orbit fan, per-anchor height and the world export all consume it with no new code. Three edges: solid, rough
+  (the width wandered by a seeded noise field, each side reading it far apart so the band erodes rather than
+  breathes) and tapered. Its finish is a terrain theme like any other shape's, and it claims itself as bare
+  ground even undressed — a meadow growing over the road drawn through it is the one thing an author who drew a
+  road did not ask for. The canvas twin is `geometry/path.js`, pinned to the C# side by a parity test that
+  checks the lattice hash bit for bit.
+- **Scoping and the preview.** `DressingScope` resolves a recipe per cell the way paint resolves a theme — a
+  registry on the sketch document, a map default, a per-shape override, the smallest shape winning an overlap —
+  plus what must be left bare: spawns and their margin, wool spawns, rooms and monuments, anchors, structure
+  floors and walls, and every column a stamp already stands on. `DressingPreview` draws a recipe by **growing**
+  it: a sample patch painted with a theme and run through the real `Decorator`, so a knob that does nothing in
+  the export does nothing in the picture. Two views, because dressing varies on two axes — from above the
+  density fields read, from the side the props' own shapes do — and the section crops to what is there, so
+  ground cover and a forest read at the same scale instead of one green line under thirty courses of sky.
 - **Export endpoint** — `SketchWorldBuilder` assembles the world from a map's sketch layout + intent and
   returns a resolved intent (integer-snapped spawns + monument locations derived from the world air cells,
   capturers defaulted to every non-owner team) so the XML agrees with the world. `GET /api/map/{slug}/export`

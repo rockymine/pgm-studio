@@ -32,6 +32,9 @@ const clampFloor  = (f) => Math.max(0, f ?? 0);
 function dimLabel(s) {
   if (s.type === "rectangle") return `${s.max_x - s.min_x}×${s.max_z - s.min_z}`;
   if (s.type === "circle")    return `r=${s.radius}`;
+  // A path reads as how wide it is, not how many points it took to draw — the width is the knob an author
+  // reaches for, and the point count is already visible as handles on the canvas.
+  if (s.type === "path")      return `${(s.radius ?? 0) * 2} wide`;
   return `${s.vertices?.length ?? 0} v`;
 }
 
@@ -306,7 +309,11 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   // Push the island→shape tree to the Blazor panel (compact — render fields + a precomputed dim label).
   function pushLayout() {
-    const shapes = canvas.getShapes().map(s => ({ id: s.id, type: s.type, operation: s.operation, override: !!s.override, dim: dimLabel(s), baseHeight: clampHeight(s.base_height), floor: clampFloor(s.floor) }));
+    const shapes = canvas.getShapes().map(s => ({
+      id: s.id, type: s.type, operation: s.operation, override: !!s.override, dim: dimLabel(s),
+      baseHeight: clampHeight(s.base_height), floor: clampFloor(s.floor),
+      radius: s.radius ?? 0, pathEdge: s.path_edge ?? "", pathSeed: s.path_seed ?? 0,
+    }));
     const isl = islands.map(i => ({ id: i.id, name: i.name, mirrors: i.mirrors, shapeIds: i.shapeIds }));
     fire("OnLayout", JSON.stringify({ islands: isl, shapes }));
   }
@@ -573,6 +580,18 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       s.anchor_heights = heights.map(clampHeight);
       canvas.updateShape(s);
       pushLayout(); refreshIso(); markDirty();
+    },
+
+    // The band a path stands for: its half-width, how its edges are drawn, and the seed a rough edge wanders
+    // by. All three are stored on the shape and the ring is derived, so each lands as a reshape.
+    setPathBand(id, radius, edge, seed) {
+      const s = canvas.getShape(id);
+      if (s?.type !== "path") return;
+      if (radius !== null && radius !== undefined) s.radius = Math.max(1, Math.round(radius));
+      if (edge) s.path_edge = edge;
+      if (seed !== null && seed !== undefined) s.path_seed = Math.max(0, Math.round(seed));
+      canvas.updateShape(s);
+      recompute(); pushLayout(); refreshIso(); markDirty();
     },
 
     // Panel-driven edits.

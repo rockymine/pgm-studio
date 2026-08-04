@@ -255,17 +255,27 @@ public static class Decorator
         return placed;
     }
 
-    /// <summary>Whether a prop can stand at an anchor, and the Y its own origin sits at. A prop seats on the
-    /// <b>lowest</b> column it covers, so it never floats over a drop; ground that is missing or protected
-    /// refuses it outright rather than letting it be clipped.</summary>
+    /// <summary>Whether a prop can stand at an anchor, and the Y its own origin sits at.
+    ///
+    /// <para>Two different questions about two different footprints, which is the whole of this method. Ground
+    /// is required only where the prop <b>rests</b> — the cells at its lowest level, a trunk's few blocks or a
+    /// boulder's buried underside — and it seats on the lowest column among those, so it sits into a slope
+    /// rather than floating over its low side. What is above may overhang nothing at all: demanding ground
+    /// under a whole volume would ban every tree from a shoreline or an island edge, which is exactly where a
+    /// tree leaning out over the drop is the point.</para>
+    ///
+    /// <para>Protection is the opposite: it covers every cell the prop occupies, at any height. A canopy over
+    /// a monument reads as badly as a trunk on top of one.</para></summary>
     private static bool Seats(DressingContext context, (int X, int Z) anchor, List<PropCell> prop, out int baseY)
     {
         baseY = int.MaxValue;
+        var restsAt = prop.Count == 0 ? 0 : prop.Min(cell => cell.Y);
         foreach (var cell in prop)
         {
             var ground = (X: anchor.X + cell.X, Z: anchor.Z + cell.Z);
-            if (!context.SurfaceTop.TryGetValue(ground, out var top)) return false;
             if (context.IsProtected(ground.X, ground.Z)) return false;
+            if (cell.Y != restsAt) continue;
+            if (!context.SurfaceTop.TryGetValue(ground, out var top)) return false;
             baseY = Math.Min(baseY, top);
         }
         return baseY != int.MaxValue;

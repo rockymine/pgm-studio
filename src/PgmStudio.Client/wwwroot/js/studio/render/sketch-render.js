@@ -7,6 +7,7 @@
  */
 
 import { paintShape } from "./shape-render.js";
+import { toRing } from "../geometry/shape.js";
 import { primitiveStyle, opColors } from "./primitive-style.js";
 import { dyeColorLabel } from "./palette.js";
 
@@ -27,6 +28,10 @@ export function paintSketchShape(painter, shape, { selected = false, alpha = 1 }
       min_x: shape.center_x - shape.radius, max_x: shape.center_x + shape.radius,
       min_z: shape.center_z - shape.radius, max_z: shape.center_z + shape.radius,
     }, style);
+  } else if (shape.type === "path") {
+    // The band, not the line — a path is filled by what it covers, the same as every other primitive.
+    const ring = toRing(shape);
+    if (ring.length >= 3) painter.ring(ring, { ...style, fillRule: "evenodd" });
   } else if ((shape.type === "polygon" || shape.type === "lasso") && (shape.vertices?.length ?? 0) >= 3) {
     painter.ring(shape.vertices, { ...style, fillRule: "evenodd" }, shape.controls || {});
   }

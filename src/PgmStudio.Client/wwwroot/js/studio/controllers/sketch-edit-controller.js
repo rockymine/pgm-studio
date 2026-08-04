@@ -1,6 +1,7 @@
 /**
- * SketchEditController — 8-point rectangle resize, polygon/lasso vertex drag, cubic-Bézier tangent
- * handles, and midpoint-insert for SketchCanvas. Mirrors the editor edit controller's contract
+ * SketchEditController — 8-point rectangle resize, vertex drag for every shape stored as vertices
+ * (polygon/lasso, and a path's centerline), cubic-Bézier tangent handles, and midpoint-insert for
+ * SketchCanvas. Mirrors the editor edit controller's contract
  * (onResizeMove/onResizeUp consume hooks + onPointerMove for the edge-ghost). Mutates the shape and
  * reports via onShapeUpdated; the host triggers the island recompute.
  *
@@ -22,6 +23,12 @@ const GHOST_R            = 4;
 const EDGE_THRESHOLD     = 10;  // screen px — hover distance to show midpoint ghost
 const BEZIER_R           = 3;   // bezier tangent handle radius (px)
 const BEZIER_COLLAPSE_PX = 5;   // screen px — collapse the handle when this close to the vertex
+
+// The shapes an author edits point by point. A path joins them because it is stored as the line it was
+// drawn as — dragging one of its points moves the line, and the band follows. Its line is **open**, so the
+// wrap-around edge every closed ring has does not exist for it; `closedVertices` is what says so.
+const vertexEdited = (shape) => shape?.type === "polygon" || shape?.type === "lasso" || shape?.type === "path";
+const closedVertices = (shape) => shape?.type !== "path";
 
 function distToSegment(px, py, ax, ay, bx, by) {
   const dx = bx - ax, dy = by - ay;
@@ -117,7 +124,7 @@ export class SketchEditController {
     const shape = this.#getShape(this.#selectedId);
     if (!shape) return;
     if (shape.type === "rectangle") this.#renderRectHandles(shape);
-    else if (shape.type === "polygon" || shape.type === "lasso") this.#renderVertexHandles(shape);
+    else if (vertexEdited(shape)) this.#renderVertexHandles(shape);
   }
 
   /** Document mousemove during a resize / vertex / bezier drag. Returns true if consumed. */
@@ -153,7 +160,7 @@ export class SketchEditController {
       st.moved = true;
       const { shapeId, vertexIdx } = st;
       const shape = this.#getShape(shapeId);
-      if (shape?.type === "polygon" || shape?.type === "lasso") {
+      if (vertexEdited(shape)) {
         const [oldX, oldZ] = shape.vertices[vertexIdx];
         const dx = wx - oldX, dz = wz - oldZ;
         shape.vertices[vertexIdx] = [wx, wz];
@@ -200,15 +207,16 @@ export class SketchEditController {
       return;
     }
     const shape = this.#getShape(this.#selectedId);
-    if (!shape || (shape.type !== "polygon" && shape.type !== "lasso") || !shape.vertices?.length) {
+    if (!vertexEdited(shape) || !shape.vertices?.length) {
       this.#clearGhost();
       return;
     }
     const sp    = this.#toScreen(wx, wz);
     const verts = shape.vertices;
     const n     = verts.length;
+    const edges = closedVertices(shape) ? n : n - 1;   // an open line has no wrap-around edge to insert into
     let bestDist = EDGE_THRESHOLD, bestIdx = -1, bestMx = 0, bestMy = 0;
-    for (let i = 0; i < n; i++) {
+    for (let i = 0; i < edges; i++) {
       const j = (i + 1) % n;
       const a = this.#toScreen(verts[i][0], verts[i][1]);
       const b = this.#toScreen(verts[j][0], verts[j][1]);

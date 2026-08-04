@@ -1,4 +1,5 @@
 using PgmStudio.Geom;
+using PgmStudio.Geom.Algorithms;
 
 namespace PgmStudio.Pgm.Sketch;
 
@@ -47,19 +48,16 @@ public static class SketchRasterizer
     public static Dictionary<(int X, int Z), string> ShapeThemeOwners(string layoutJson)
         => ShapeScopeOwners(layoutJson, shape => shape.Theme);
 
-    /// <summary>Maps every cell a <em>dressed</em> shape covers to that shape's id — the same scope for what
-    /// grows on a cell as <see cref="ShapeThemeOwners"/> is for what it is made of.</summary>
-    public static Dictionary<(int X, int Z), string> ShapeDressingOwners(string layoutJson)
-        => ShapeScopeOwners(layoutJson, shape => shape.Dressing);
-
     /// <summary>Maps every cell a scoped shape covers to that shape's id — the primary footprint plus each
     /// mirroring island's orbit copies (which keep the shape id), the smallest-area shape winning an overlap
     /// (the most specific scope). <paramref name="scopeOf"/> says which annotation makes a shape a scope, so
     /// paint and planting resolve through one traversal rather than two that could disagree about which shape
-    /// owns a contested cell. Only add shapes carrying that annotation are considered; subtracts and role-tagged
-    /// (structural) shapes are skipped — they place no terrain of their own. Void cells that no surface stands
-    /// on are harmless: a consumer only reads owners where a column is solid.</summary>
-    private static Dictionary<(int X, int Z), string> ShapeScopeOwners(string layoutJson, Func<SketchShape, string?> scopeOf)
+    /// owns a contested cell — and each caller keeps its own rule for what counts, since what makes a shape a
+    /// paint scope and what makes it a planting one are not the same question. Only add shapes the predicate
+    /// answers for are considered; subtracts and role-tagged (structural) shapes are skipped — they place no
+    /// terrain of their own. Void cells that no surface stands on are harmless: a consumer only reads owners
+    /// where a column is solid.</summary>
+    public static Dictionary<(int X, int Z), string> ShapeScopeOwners(string layoutJson, Func<SketchShape, string?> scopeOf)
     {
         var state = SketchLayout.Parse(layoutJson);
         var cx = state?.Setup?.Center?.Cx ?? 0;
@@ -221,8 +219,18 @@ public static class SketchRasterizer
         "rectangle" => [[s.MinX ?? 0, s.MinZ ?? 0], [s.MaxX ?? 0, s.MinZ ?? 0], [s.MaxX ?? 0, s.MaxZ ?? 0], [s.MinX ?? 0, s.MaxZ ?? 0]],
         "circle"    => CircleRing(s.CenterX ?? 0, s.CenterZ ?? 0, s.Radius ?? 0),
         "polygon" or "lasso" => PolygonRing(s.Vertices, s.Controls),
+        "path" => PathRing(s),
         _ => [],
     };
+
+    // A path stores the line the author drew; the band around it is derived here, so the ring the rasterizer,
+    // the mirror and the export all consume is the one the drawn line currently implies.
+    private static List<double[]> PathRing(SketchShape s)
+    {
+        if (s.Vertices is not { Length: >= 2 } verts) return [];
+        var edge = Enum.TryParse<PathEdge>(s.PathEdge, ignoreCase: true, out var parsed) ? parsed : PathEdge.Solid;
+        return PathBand.Ring(verts, s.Radius ?? 2, edge, (uint)(s.PathSeed ?? 0));
+    }
 
     private static List<double[]> CircleRing(double cx, double cz, double r)
     {
@@ -312,7 +320,7 @@ public static class SketchRasterizer
             {
                 Id = s.Id, Type = s.Type, Operation = s.Operation, Override = s.Override,
                 Vertices = nv, Controls = nc, AnchorHeights = s.AnchorHeights, BaseHeight = s.BaseHeight, Floor = s.Floor,
-                Theme = s.Theme,
+                Theme = s.Theme, Dressing = s.Dressing,
             };
         }
         // Rectangle/circle: flatten the transformed footprint to a polygon (uniform height carried).
@@ -320,7 +328,7 @@ public static class SketchRasterizer
         return new SketchShape
         {
             Id = s.Id, Type = "polygon", Operation = s.Operation, Override = s.Override,
-            Vertices = ring, BaseHeight = s.BaseHeight, Floor = s.Floor, Theme = s.Theme,
+            Vertices = ring, BaseHeight = s.BaseHeight, Floor = s.Floor, Theme = s.Theme, Dressing = s.Dressing,
         };
     }
 

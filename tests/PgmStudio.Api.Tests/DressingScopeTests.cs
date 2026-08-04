@@ -16,10 +16,10 @@ public sealed class DressingScopeTests
     private const string Meadow = """{"flora":{"coverage":0.6}}""";
     private const string Scree = """{"boulders":{"density":0.5}}""";
 
-    private static string Layout(string body) => $$"""
+    private static string Layout(string body) => $$$"""
         {"setup":{"bbox":{"min_x":-40,"max_x":40,"min_z":-40,"max_z":40},
                   "center":{"cx":0,"cz":0},"mirror_mode":"rot_180"},
-         {{body}}}
+         {{{body}}}}
         """;
 
     // ── which recipe governs a cell ────────────────────────────────────────────────────────────────
@@ -36,8 +36,8 @@ public sealed class DressingScopeTests
     [Test]
     public async Task A_shapes_own_dressing_wins_over_the_map_default()
     {
-        var recipeAt = DressingScope.RecipeAt(Layout($$"""
-            "dressings":{"meadow":{{Meadow}},"scree":{{Scree}}},
+        var recipeAt = DressingScope.RecipeAt(Layout($$$"""
+            "dressings":{"meadow":{{{Meadow}}},"scree":{{{Scree}}}},
             "mapDressing":"meadow",
             "layers":[{"base_y":0,"layout":{"shapes":[
               {"id":"ground","type":"rectangle","min_x":-30,"min_z":-30,"max_x":30,"max_z":30},
@@ -53,8 +53,8 @@ public sealed class DressingScopeTests
     [Test]
     public async Task The_map_default_covers_every_cell_no_shape_claims()
     {
-        var recipeAt = DressingScope.RecipeAt(Layout($$"""
-            "dressings":{"meadow":{{Meadow}}}, "mapDressing":"meadow",
+        var recipeAt = DressingScope.RecipeAt(Layout($$$"""
+            "dressings":{"meadow":{{{Meadow}}}}, "mapDressing":"meadow",
             "layers":[{"base_y":0,"layout":{"shapes":[]}}]
             """));
         await Assert.That(recipeAt(0, 0).Flora).IsNotNull();

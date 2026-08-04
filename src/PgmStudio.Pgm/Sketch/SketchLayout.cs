@@ -109,6 +109,14 @@ public sealed class SketchShape
     [JsonPropertyName("vertices")] public double[][]? Vertices { get; set; }
     [JsonPropertyName("controls")] public Dictionary<string, SketchControl>? Controls { get; set; }
 
+    // Path (docs/world-export/decoration.md §4). A path is drawn as an open line and stored as one: Vertices is
+    // its centerline (>= 2 points, not a closed outline) and Radius its half-width, both reused rather than
+    // added. The band around that line is derived at rasterize time (Geom.PathBand), so a reshape of the line
+    // moves the band and nothing downstream holds a stale outline. Edge names how the two long sides are drawn
+    // and Seed fixes the wander of a rough one, so a map re-exports identically.
+    [JsonPropertyName("path_edge")] public string? PathEdge { get; set; }
+    [JsonPropertyName("path_seed")] public int? PathSeed { get; set; }
+
     // Height. Floor = the shape's elevation (where its base sits), BaseHeight = its thickness: the column
     // spans [Floor, Floor + BaseHeight]. For a polygon/lasso whose AnchorHeights line up with its Vertices,
     // the thickness varies per vertex (TIN-interpolated across the footprint). All optional; absent = the

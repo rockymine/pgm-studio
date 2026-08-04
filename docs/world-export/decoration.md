@@ -7,15 +7,15 @@ soil, a worn path dragged across it, boulders and trees seated on top. It is the
 theming work parked as G34: G157 carved out the terrain slice ("no new geometry, only materials"); this is
 the **prop-stamps** slice, and it is the opposite by construction — it exists to add geometry.
 
-**Status: designed, not built.** Nothing here ships yet; the pass, the stamper and the raster branch below
-are the G161 proposal, and every type named in the future tense is unbuilt until its task lands. The model
-was worked out against a live prototype — `tools/decorate/prototype.html`, one self-contained page whose
-every figure (the noise fields, the path variants, the boulder elevations, the grown tree, the forest
-scatter) is emitted by the real algorithm the stage would run, not hand-drawn. Read it alongside this doc
-the way `showcase.cs` reads alongside `model.md`: when prose and prototype disagree, suspect the prose.
-Rule ids here are `DR*` (dressing), local to this file the way `structures.md` owns `WX*` and
-`terrain-painting.md` owns `TP*` — `rules.md` is compose-scoped and frozen, so decoration law lives in the
-world-export docs, not there.
+**Four of the five tools ship (G161): flora, paths, boulders and trees.** Water (§7) is the exception and is
+still a proposal — its carved bed is an elevation change, which is the one thing the rest of the stage does
+not do; it is filed as `G169`. The model was worked out against a live prototype —
+`tools/decorate/prototype.html`, one self-contained page whose every figure (the noise fields, the path
+variants, the boulder elevations, the grown tree, the forest scatter) is emitted by the real algorithm,
+not hand-drawn. Read it alongside this doc the way `showcase.cs` reads alongside `model.md`: when prose and
+prototype disagree, suspect the prose. Rule ids here are `DR*` (dressing), local to this file the way
+`structures.md` owns `WX*` and `terrain-painting.md` owns `TP*` — `rules.md` is compose-scoped and frozen,
+so decoration law lives in the world-export docs, not there.
 
 A note on the name. In this codebase **"decorative"** already means two settled things — the non-playable
 floating masses the island detector prunes (dragons, birds), and the non-objective wool a map places for
@@ -27,13 +27,13 @@ Read alongside:
 
 - `docs/world-export/terrain-painting.md` — the pass this one runs immediately after; the surface it reads.
 - `docs/world-export/structures.md` §6.4 — the preset seam (style-as-data). A dressing style attaches here.
-- `docs/contracts/sketch-authoring.md` — the sketch model a path shape (§3) extends.
+- `docs/contracts/sketch-authoring.md` §2 — the sketch model a path shape (§4) extends.
 - `docs/generator/ideas.md` — G34 (the umbrella), G32-C (structures & elevation, the sibling pass), G142
   (the roughen pass, whose noise operators the path edge borrows).
-- `docs/world-export/ideas.md` — the dressing-stage gap pool: what turns these five tools into one coherent
-  stage. **True symmetry / fairness (G162) is the priority** — this doc's tools scatter freely and must be
-  fanned across the orbit before competitive use; then the guardrail budget, vertical-surface dressing, the
-  arbitration contract, a biome theme, context-aware placement, and border/POI framing.
+- `docs/world-export/ideas.md` — the dressing-stage gap pool: what turns these tools into one coherent
+  stage. The fairness rule (G162) is answered here in §2; what remains is the guardrail budget,
+  vertical-surface dressing, the arbitration contract, a biome theme, context-aware placement, and
+  border/POI framing.
 
 ---
 
@@ -62,8 +62,8 @@ non-stone freely without the painter overwriting it.
 
 ## 2. What every part shares
 
-The four concepts below read as four features but run on four primitives, which is the argument for one
-stage rather than four:
+The parts below read as four features but run on the same handful of primitives, which is the argument for
+one stage rather than four:
 
 - **Noise.** The same deterministic `PatternNoise` (`Hash`/`Unit`/`Value`/`Fbm`) the terrain patterns are
   built from. A density field decides where flora goes; a low-frequency field gathers flowers into meadows
@@ -75,9 +75,23 @@ stage rather than four:
 - **Scatter.** Even, non-touching placement for rocks and trees — blue-noise sites taken as local maxima
   of a hash field over a disc, the same `dx²+dz² ≤ r²` scan `Skeleton.Anchored` already runs. Gate the
   sites by a density field and the even scatter becomes clumped groves.
-- **Stamp.** A 3-D volume seated on `SurfaceTop` via `PositionSnap.SurfaceYOver` (which samples the whole
-  footprint, so a prop sits level on uneven ground and survives the symmetry fan) and written cell-by-cell
-  with `SetBlock` — the shape-mask-in-a-box `ObjectiveStamper` already uses for destroyables and cores.
+- **Stamp.** A 3-D volume seated on `SurfaceTop` and written cell-by-cell with `SetBlock` — the
+  shape-mask-in-a-box `ObjectiveStamper` already uses for destroyables and cores. A prop seats on the
+  *lowest* column of its own footprint, so it sits into a slope rather than floating over the low side, and
+  it refuses ground that is missing or protected rather than half-placing itself.
+- **The fan (G162).** Every prop declares a `PropClass`. **Cosmetic** props — one-block plants — scatter
+  freely: a flower one team has and the other does not changes nothing. **Gameplay** props — anything that
+  blocks a step or breaks a sight line — are generated **once**, on the orbit's canonical representative
+  (`OrbitScatter.Canonical`), in the prop's own local frame, and then stamped at every image of that orbit
+  with each offset **turned** by that image's transform.
+
+  Fanning the *site* alone is not enough and this is the mistake worth naming: mirroring only the anchor
+  leaves both teams with the same unmirrored prop shape, so a boulder with a lobe to its east has a lobe to
+  its east on both sides of the map. The prop has to be built as offsets from an anchor and the offsets
+  turned, which is why every generator here answers in a local frame. An offset is a delta between cells,
+  and the delta between two mirrored cells is just the mirrored delta — so the turn is a plain rotation with
+  no half-cell correction, which the anchor's own mirroring has already applied. A stamp is all-or-nothing
+  per image: if one image's ground is missing or protected, that image is skipped rather than clipped.
 
 ## 3. Flora overlay — the paint-aware overlay (`DR-FL`)
 
@@ -95,10 +109,18 @@ what: a second, low-frequency field paints flower *fields* — poppies and dande
 so the map gets meadows of colour instead of confetti, with grass and fern filling the rest by a share
 noise. A cell that the density field rejects simply stays air; that air is the "70%".
 
-A `DR-FL` pass would iterate `SurfaceTop`, and for each cell whose top block is soil and whose density
-field clears the threshold, `SetBlock` a plant into the air cell at `SurfaceTop`. It adds one block per
-cell and never touches the ground — the lightest of the four passes, and the one that reuses the most
-(`PatternNoise` verbatim, the surface grid verbatim, only the placement loop new).
+`DR-FL` iterates `SurfaceTop`, and for each cell whose top block is soil and whose density field clears the
+threshold, sets a plant into the air cell at `SurfaceTop`. It adds one block per cell and never touches the
+ground — the lightest of the four passes, and the one that reuses the most (`PatternNoise` verbatim, the
+surface grid verbatim, only the placement loop new). `FloraSpec` carries the knobs: `Coverage` against the
+density field, `Scale`/`Octaves` shaping it, and `FernShare`/`FlowerShare`/`FlowerScale`/`TallShare` mixing
+the species. `DressingPalette.SoilShare` is the eligibility read — sand takes a fraction of what grass does,
+quartz none.
+
+The split that matters here is not a species one. Grass, fern and flowers are one block tall and walked
+straight through, so they are **cosmetic** and scatter freely; the two-block `TallGrass` and `LargeFern`
+break a sight line and are marked **gameplay**, which routes them through the fan of §2. A plant's
+`PropClass` is declared on the palette row, not inferred at placement.
 
 ## 4. Paths — drag a line, replace the finish (`DR-PA`)
 
@@ -110,28 +132,37 @@ nearest segment, a swept-disc (capsule) union — is the "Voronoi radius" a Worl
 hand, and the disc-scan primitive it needs already exists in `Skeleton.Anchored`. The centerline reuses
 `SketchShape.Vertices`; the half-width reuses the `Radius` field the circle shape already carries.
 
-The single solid band is the boring case; the imperfect paths are the point, and each is the same distance
-field with one extra gate:
+A path is a `SketchShape` of type `"path"`: `Vertices` is the open route the author clicked and `Radius` its
+half-width, and `Geom.PathBand` derives the closed band from those two — smoothing the drawn points into a
+dense centripetal Catmull-Rom curve (which cannot cusp on a tight bend), then offsetting that curve to both
+sides with `Ribbon`. The order matters: offsetting the drawn points would corner the band at every click.
+`SketchRasterizer.RingOf` gets one `"path"` branch and `geometry/shape.js` `toRing` its twin, kept in
+lock-step by a parity constant the way `CirclePoints`/`BezierSamples` are. Because the result is a band
+*ring*, every downstream system — island detection, mirror/orbit, per-anchor height, world export — works
+with zero new code, the `sketch-tool-improvements.md` §8a reuse principle. Its ends are cut square: a path
+in a map arrives somewhere, and a flat end meets a plaza or a bridge mouth cleanly where a round cap bulges
+past it.
 
-- **Solid** — `dist ≤ R`, a clean utility road with a coarse-dirt edge ring.
-- **Worn** — and a per-cell `Unit` dice below a coverage threshold: gravel scattered thin, a trail rather
-  than a road.
-- **Rough edge** — `R` perturbed by an `Fbm` sample, so the band's outline is organic, not ruled. This is
-  the same operator family as the G142 roughen pass's edge displacement.
-- **Voronoi cobble** — the band tiled by a jittered grid of sites, each cell taking its site's shade: the
-  cobbled read of `VoronoiMaterial`, applied to a footprint instead of a colour.
-- **Stepping stones** — discs sampled at intervals along the centerline's **arc length**, with gaps
-  between: the disconnected path, stones across a void.
-- **Tapered** — `R` varied along the arc length (fat middle, thin ends, or a one-way narrowing).
+The single solid band is the boring case; the imperfect paths are the point. Three of them are a width that
+varies along the stroke, so they are the same ring with a different `Widths` function and nothing else:
 
-The cheapest place for this is a new `"path"` branch in `SketchRasterizer.RingOf`/`RasterShape` (expand the
-centerline+radius into a closed band ring, or fill by the capsule test directly) with its twin in
-`geometry/shape.js` `toRing`, kept in lock-step by a parity constant the way `CirclePoints`/`BezierSamples`
-are. Emit a band ring and every downstream system — island detection, mirror/orbit, per-anchor height,
-world export — works with zero new code, the `sketch-tool-improvements.md` §8a reuse principle. A path is
-then a paint operation on a stroke: it changes the surface finish, so it can run in the sketch layer at
-rasterize time or as a `DR-PA` recolour in the dressing pass; running it in the pass lets its cells become
-the flora exclusion mask of §3 for free.
+- **Solid** — one width the whole way, a clean utility road.
+- **Rough edge** — the width wandered by a `PatternNoise` sample, so the outline is organic, not ruled. The
+  two sides read the field far apart, or the band would merely breathe in and out symmetrically instead of
+  eroding. A seed on the shape fixes the wander, so a map exports identically. Same operator family as the
+  G142 roughen pass's edge displacement.
+- **Tapered** — the width varied along the arc: fat in the middle, thin at the ends.
+
+Two more variants are **not** a ring at all, and are filed rather than faked: **worn** (a per-cell dice
+below a coverage threshold — gravel scattered thin) and **stepping stones** (discs at intervals along the
+arc, with gaps between) both gate *cells*, not the outline, so they need a footprint the shape model cannot
+carry as one closed ring. They are `S37`. The **voronoi cobble** read is not a path variant at all: a path
+is a shape, so it takes a terrain theme, and `VoronoiMaterial` on that theme is the cobbling.
+
+What a path grows is decided by the same shape scope planting always uses, with one rule of its own: a path
+claims itself as **bare** even when no dressing is assigned to it, because a meadow growing over the road
+drawn through it is the one thing an author who drew a road did not ask for. Dressing it explicitly still
+wins — a verge of long grass down a track is a real intent.
 
 ## 5. Boulders — half-buried, scattered (`DR-SC`)
 
@@ -144,13 +175,15 @@ noise sample for an angular, weathered read; stack two or three lobes for a cair
 outcrop. The finish is a material and a micro-mask: stone, andesite, mossy cobble, blackstone — and moss
 creeping onto the top-lit faces, itself a tiny `Unit` mask, so the finish carries its own micro-flora.
 
-Placement is the shared scatter: blue-noise sites for even spacing, a size field to vary them, and the
-plan's protected regions — spawns, objectives, the paths of §4 — as exclusion masks so no rock lands where
-it blocks play. A `DR-SC` pass is a new `DecorationStamper` mirroring `ObjectiveStamper`: a
-`DecorationStyle` enum, a `Dimensions(style)` table (style-as-data, the `structures.md` §6.4 seam), a
-`DecorationBox(surfaceTop, anchorX, anchorZ, style)`, and a `Stamp` that loops the box under the mask
-calling `SetBlock`. The volume primitive is `BlockBox`; the write primitive is `SetBlock`;
-`AnvilRegionWriter.Write` serializes the result — all already in hand.
+Placement is the shared scatter: `BlueNoise` sites for even spacing, a size field to vary them, and the
+protected set of §2 as an exclusion mask so no rock lands where it blocks play. `BoulderSpec` carries
+`Density`, `SizeSpread`, a `BoulderForm` (round, angular, outcrop, cairn), the finish block and a moss flag;
+`BoulderShapes.Of(form, size)` answers with the lobes, and `Geom.Blob` fills them — a quadric eroded by a
+noise field sampled in the lobe's own frame, which is what makes an angular rock angular rather than a
+dented sphere. Spacing is the one place a spec's own size overrides its density: a boulder field of large
+rocks at a low spacing merges into one mass, so `BoulderSpec.Spacing` takes the larger of the density
+spacing and the prop's own diameter. A boulder is a solid volume standing on the ground, so it is
+**gameplay**, not cosmetic.
 
 ## 6. Trees — copied and grown (`DR-TR`)
 
@@ -192,12 +225,19 @@ to keep the branch count low. A few short strands hang below each disc for a bro
 lives *between* the clusters, not as holes inside them.
 
 Both trees are the same stamper as the boulder: a trunk-and-limbs volume plus a leaf mask over a box.
-Placement is the same scatter, with one addition — a low-frequency density field gathers trees into groves
-with clearings between, so a forest reads as clumps rather than an even orchard. A `DR-TR` pass is a
-`DecorationStyle` variant of the boulder's stamper: the species templates as data rows, the recursive
-spline grower as a generator with its knobs, the grove clumping as the density-gated scatter of §5.
+`TreeSkeleton.Grow` answers the limbs and tips from a `TreeShape`, `SweptVolume` fills each limb as a
+capsule along its spline, and `TreeCrown` places the clusters and answers which one owns a cell. Placement
+is the same scatter, with one addition — a low-frequency density field gathers trees into groves with
+clearings between, so a forest reads as clumps rather than an even orchard (`TreeSpec.GroveScale`/
+`GroveThreshold`). Species are data rows (`TreeSpecies`: log and leaf blocks plus the shape knobs), so a
+stand of mixed oak and birch is a list, not a branch. A tree is the largest thing the stage places, so it is
+**gameplay**.
 
-## 7. Water — ponds and channels (`DR-WA`)
+## 7. Water — ponds and channels (`DR-WA`, unbuilt: `G169`)
+
+Nothing in this section exists yet. It is here because water is the fifth tool the stage is aimed at and its
+shape is already decided; it waits on the elevation pass, since it is the one decoration that changes the
+ground rather than standing on it.
 
 A channel begins exactly where the §4 path does — a dragged centerline and a radius, the same swept-disc
 band. What makes water its own tool is that it **cannot drape on the surface** the way gravel can: laid on
@@ -231,9 +271,9 @@ and lands in the same realize seam.
 | Concept | Reuses | Net-new | Rule family |
 |---|---|---|---|
 | Flora overlay | `PatternNoise`; `SurfaceTop`; the `TerrainProfile` column read | the overlay pass — one `SetBlock` above the surface | `DR-FL` |
-| Paths | the lasso capture; `SketchShape.Vertices`/`Radius`; the `Skeleton` disc-scan | a `"path"` branch in `RingOf`/`RasterShape` + its `toRing` twin; the gates | `DR-PA` |
-| Boulders | `ObjectiveStamper`'s mask-in-a-box; `BlockBox`; `SurfaceYOver` | a `DecorationStamper` + `DecorationStyle`/`Dimensions`; the ellipsoid/cairn masks | `DR-SC` |
-| Trees | the boulder stamper and scatter; the §4 path's swept-disc as the limb primitive | the species templates; the Catmull-Rom spline grower | `DR-TR` |
+| Paths | `CatmullRom`; `Ribbon`; `SketchShape.Vertices`/`Radius`; the ring every consumer already reads | `PathBand` + its `geometry/path.js` twin; a `"path"` branch in `RingOf`/`toRing` | `DR-PA` |
+| Boulders | `SurfaceTop`; the squared-distance masks the objective stampers fill by | `Blob`; `BoulderShapes`; the scatter's size-aware spacing | `DR-SC` |
+| Trees | the boulder's seating and scatter; `CatmullRom` for the limb splines | `TreeSkeleton`; `TreeCrown`; `SweptVolume`; the species rows | `DR-TR` |
 | Water | the §4 path stroke (channels); the §5 boulder blob + FBM edge (ponds); the §3 flora overlay (reeds) | the carve-and-level bed (with G32-C); depth shading; the shoreline band | `DR-WA` |
 
 Two neighbours bound the stage. G32-C (structures & elevation, the "second generator") is the sibling pass
@@ -242,12 +282,6 @@ two compose but do not depend on each other — except water, whose carved bed *
 so leans on G32-C directly. G142 (the roughen pass) shares this stage's architecture —
 last in realize, over the authored unit, symmetry re-fanned — and its edge-displacement operator is the
 path's rough edge; if both land, they share the noise operators rather than duplicating them.
-
-The build order follows the reuse gradient: flora first (it adds the least and reuses the most), then the
-path raster branch, then the `DecorationStamper` for boulders, then trees as a style on top of it; water
-comes with (or after) G32-C, since its carved bed is the one decoration that needs the elevation pass. Each
-is a `DR*` slice of G161, carved off G34 the way G157 was — its own rules in this file, its own pass wired
-last into `SketchWorldBuilder.Build`, after the painter.
 
 ## 9. Where the code lives
 
@@ -268,25 +302,30 @@ there:
   terrain-paint materials). The pattern *materials* (`VoronoiMaterial`/`NoiseMaterial`/`WallRunMaterial`)
   stay in `Minecraft` and call it. The move added the one edge that was missing, **`Minecraft → Geom`**, which
   is what lets the dressing stamper reach any of this.
-- new leaves as the slices need them: blue-noise scatter (local-max), the ellipsoid/metaball blob mask
-  (boulders/ponds), the recursive tree-skeleton grower (abstract branch centerlines + radii + leaf-cluster
-  centres). All pure, all here.
+- `BlueNoise` — even, non-touching scatter sites as strict local maxima of a hash field over a disc, and the
+  canonical-representative form the fan of §2 asks for.
+- `Blob` — the eroded quadric a boulder lobe is; `SweptVolume` — the capsule a tree limb is; `Polyline` —
+  the distance field a stroke of any width is filled by.
+- `TreeSkeleton` and `TreeCrown` — the grower and the crown placement, as abstract limb centerlines, radii
+  and leaf-cluster centres. No block ever appears in either.
+- `PathBand` — the band a drawn line stands for, and the one C# side of the `geometry/path.js` parity pair.
+- `OrbitScatter` — which cell of an orbit is its representative, the answer §2's fan is built on.
 
-**`PgmStudio.Minecraft` — the world-writing pass.** A `Decorator`/`DecorationStamper`, sibling to
-`ObjectiveStamper` and `TerrainPainter`: it takes the Geom-produced geometry + `SurfaceTop` + a dressing
-palette and writes blocks via `SetBlock`/`AddTileEntity`. It now reaches `Geom` for the algorithms and
-`Geom.Symmetry` for the orbit fan. The dressing block palettes (plants, logs/leaves, water, path blocks)
-live here with `Blocks`/`BlockPalette`.
+**`PgmStudio.Minecraft/Dressing` — the world-writing pass.** `Decorator`, sibling to `ObjectiveStamper` and
+`TerrainPainter`: it takes a `DressingContext` (the surface, the per-cell recipe, the protected set, the
+symmetry) and writes blocks via `SetBlock`. It reaches `Geom` for the algorithms and `DressingSymmetry` for
+the orbit fan. The specs (`FloraSpec`, `BoulderSpec`, `TreeSpec`, and the `DressingRecipe` that holds them)
+and the block palette live here beside `Blocks`/`BlockPalette`.
 
-**`PgmStudio.Api/Services` — resolution + wiring.** Mirror `TerrainThemeScope`/`TeamTerritory`: resolve
-eligibility, exclusion (objectives / spawns / lanes) and the dressing theme from `MapIntent`, plus the
-authored-unit→orbit split G162 turns on; then call `Decorator.Decorate(world, surfaceTop, …)` right after
-`TerrainPainter.Paint` in `SketchWorldBuilder.Build`.
+**`PgmStudio.Api/Services` — resolution + wiring.** `DressingScope` mirrors `TerrainThemeScope`: which
+recipe governs a cell, how the map is mirrored, and what must be left bare, all resolved from the sketch
+layout and the `MapIntent`. `SketchWorldBuilder.Build` then calls `Decorator.Decorate` immediately after
+`TerrainPainter.Paint`. `DressingPreview` draws a recipe by growing it — a sample patch painted with a
+theme and run through the real `Decorator`, so a knob that does nothing in the export does nothing in the
+picture either.
 
-**`PgmStudio.Pgm/Sketch` — the drawn tools only.** A DR-PA path or a drawn DR-WA pond is a `SketchShape`
-(`"path"` / `"pond"`), rasterized with `Ribbon`+`CatmullRom` (Pgm already references Geom). Auto-placed dressing
-does not pass through here.
+**`PgmStudio.Pgm/Sketch` — the drawn tools only.** A `DR-PA` path is a `SketchShape` of type `"path"`,
+ringed by `PathBand` (Pgm already references Geom). Auto-placed dressing does not pass through here; a
+shape's `Dressing` annotation, which scopes it, does.
 
-**Symmetry (G162)** is not a place but a rule that binds at the seam where the authored unit and its orbit are
-known: gameplay-affecting dressing is generated on the unit and re-fanned through `Geom.Symmetry`; cosmetic
-dressing is free. It is the gate before any of this ships for competitive use — see `ideas.md` G162.
+**Symmetry (G162)** is not a place but a rule, and §2 is where it binds.

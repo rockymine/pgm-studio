@@ -101,7 +101,17 @@ canonical `xml_data.json`). One new `ArtifactKind` constant `SketchLayoutJson` �
 - `rectangle`: `min_x/min_z/max_x/max_z`
 - `circle`: `center_x/center_z/radius`
 - `polygon` | `lasso`: `vertices: [[x,z],…]`, optional `controls`
+- `path`: `vertices: [[x,z],…]` (an **open** centerline, ≥2 points), `radius` (half-width),
+  `path_edge` (`"solid"|"rough"|"tapered"`), `path_seed`
 - all: `operation` (`"add"|"subtract"`), `override: bool`, `id`
+
+A path is the one shape stored as something other than its own outline. Its `vertices` are the route the
+author drew and its `radius` how far the band reaches to each side; the closed ring every consumer below
+reads — island detection, the orbit fan, per-anchor height, the world export — is derived from those two
+(`Geom.PathBand`, twinned in `geometry/path.js`). That is what keeps a path editable as the line it was
+drawn as while nothing downstream learns a new shape. `path_edge` names how its two long sides are drawn
+and `path_seed` fixes the wander of a rough one, so a map exports identically every time. Its *finish* is
+not stored here at all: a path is a shape, so it takes a terrain theme like any other.
 
 **Bézier control model (lock-step with `render/svg.js ringToPath` + the rasterizer):** `controls` is a
 dict **keyed by stringified vertex index** (`"0"`,`"1"`,…), each `{ in?: [x,z], out?: [x,z] }`. For

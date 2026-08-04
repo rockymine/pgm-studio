@@ -53,6 +53,19 @@ the focus-integration polish remains.
 The Sketch depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection
 highlight); these are the parked / dormant / deferred slices.
 
+- [ ] **S37 — The two path footprints a single ring cannot carry: worn and stepping stones.** A path
+  (`decoration.md` §4, DR-PA) is stored as a line plus a width and derived into one closed band ring, which is
+  what lets island detection, the orbit fan, per-anchor height and the export all consume it with no new code.
+  Three of the doc's variants are a width that varies along the stroke and shipped as exactly that; two are
+  not. **Worn** gates individual cells inside the band by a per-cell dice below a coverage threshold — gravel
+  scattered thin, a trail rather than a road — and **stepping stones** samples discs at intervals along the arc
+  with gaps between them, which is several disjoint footprints, not one outline. Both need a shape that can
+  answer "which cells" rather than "which outline". Two candidate seams: let a `SketchShape` carry more than
+  one ring (the boolean layer already unions rings, so a stepping-stone path is a list of discs), or move the
+  gate out of the shape entirely and make it a dressing part that thins an existing path's surface after the
+  paint — the doc's own "run it in the pass" option, which also gets the cell mask for free. Decide which
+  before building either; they are the same question asked twice.
+
 - [ ] **S34 — Reuse a sketch paint's column classification across the edits of one drag.** `TerrainProfile`
   construction is what a paint now costs — ~60 ms of the ~164 ms a 40k-cell board takes (S33, `FEATURES.md`),
   and roughly 35 ms of that is its two `GridComponents.Label` passes: one flood fill for plateaus, a second for
@@ -450,29 +463,6 @@ longer exists — is condensed into **`docs/generator/ideas.md`**: one idea per 
 by theme, **ids preserved** (never reuse one). Pull an idea back onto the board by id when it becomes the
 focus; the full original task text is in this file's git history. The current focus (the generator in the
 studio, G117/G118) is in `TODO.md`.
-
-- [ ] **G161 — the dressing pass (G34's prop-stamps slice): flora, paths, boulders, trees.** The second
-  half of G34, carved off the way G157 carved the terrain slice — a pass over the realized world, last in
-  `SketchWorldBuilder.Build` after `TerrainPainter`, adding geometry where the painter only changed
-  materials. Designed in `docs/world-export/decoration.md` (rules `DR*`) and prototyped end-to-end in
-  `tools/decorate/prototype.html` (every figure emitted by the real algorithm). Four `DR*` slices, in
-  reuse-order: **DR-FL** a paint-aware flora overlay (`PatternNoise` density/species fields over `SurfaceTop`,
-  masked by the top block — the lightest, reuses the most); **DR-PA** a path tool (open lasso centerline +
-  radius → a `"path"` branch in `SketchRasterizer.RingOf`/`RasterShape`, swept-disc fill, worn/rough/cobble/
-  stepping-stone/taper gates); **DR-SC** a `DecorationStamper` for boulders (ellipsoid mask in a `BlockBox`
-  on `SurfaceYOver`, blue-noise scatter, plan protected-regions as exclusions); **DR-TR** trees (vanilla
-  species templates + a Catmull-Rom limb-spline grower — thick→1-block taper, diverging limbs, leaf blobs on
-  the ends, the swept-disc being the DR-PA path primitive in 3-D — grove-clumped scatter) on the same stamper;
-  **DR-WA** water (channels = the DR-PA stroke but carved+level-filled not draped; ponds = a concave DR-SC blob
-  with an FBM outline; depth shading, shoreline band, reeds/lily edge life — the carve-and-level bed leans on
-  G32-C elevation). **Placement decided** (`decoration.md` §9): pure algorithms in `Geom/Algorithms`
-  (`CatmullRom` + `Ribbon` (ex-`Lane`) reused for splines/bands, `PatternNoise` migrated down from `Minecraft`, new scatter/
-  blob/tree-skeleton leaves to come), the world-writing `Decorator` pass in `Minecraft` (now referencing
-  `Geom`), resolution/wiring in `Api` after `TerrainPainter`, drawn tools as `SketchShape`s in `Pgm`.
-  **Foundation landed:** `PatternNoise` → `Geom.Algorithms` + the `Minecraft → Geom` edge (byte-identical,
-  Minecraft tests green). Naming: the
-  code family is **dressing** — "decorative" already means floating masses / non-objective wool here. Sits
-  beside G32-C (structures & elevation) and shares G142's (roughen) noise operators.
 
 - [ ] **CV16 — the authoring canvases have no frame budget, only habits.** The zoom stall (fixed in
   `FEATURES.md`) was two unrelated per-event costs that happened to land on the same handler, and neither was

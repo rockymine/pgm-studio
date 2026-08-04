@@ -795,10 +795,15 @@ export class SketchCanvas extends CanvasBase {
       }
       if ((e.key === "p" || e.key === "P") && this.#selectedId) this.#callbacks.onShapePromote?.(this.#selectedId);
     });
-    // Double-click closes a polygon while drawing; in select mode it drills into the member shape under
-    // the cursor (Figma group model — single-click picks the island, double-click enters a member).
+    // Double-click ends a click-by-click draw — closing a polygon, leaving a path open; in select mode it
+    // drills into the member shape under the cursor (Figma group model — single-click picks the island,
+    // double-click enters a member).
     this._svg.addEventListener("dblclick", (e) => {
-      if (this._activeTool === "polygon") { e.stopPropagation(); this.#draw.onDblClick(); return; }
+      if (this._activeTool === "polygon" || this._activeTool === "path") {
+        e.stopPropagation();
+        this.#draw.onDblClick();
+        return;
+      }
       if (this._isoOn || (this._activeTool !== null && this._activeTool !== "select")) return;
       const p = this._clientToSvg(e.clientX, e.clientY);
       const shapeId = this.#hitTest(p.x, p.y);

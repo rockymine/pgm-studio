@@ -1,5 +1,5 @@
 /**
- * SketchDrawController — the three sketch draw tools (rectangle, polygon, lasso) for
+ * SketchDrawController — the four sketch draw tools (rectangle, polygon, lasso, path) for
  * SketchCanvas. Same controller contract as the world draw controller (onMouseDown→bool, onMouseMove,
  * onMouseUp, cancel). Completed shapes are reported via onShapeCreated; the host assigns an id and
  * triggers the island recompute.
@@ -20,6 +20,7 @@ import { drawnBoundsFromBlocks } from "../geometry/region-convert.js";
 import { opColors } from "../render/primitive-style.js";
 import { toScreen } from "../geometry/transform.js";
 import { simplifyRing } from "../geometry/simplify.js";
+import { pathRing, pathCenterline } from "../geometry/path.js";
 
 const HANDLE_HALF = 5;
 
@@ -28,6 +29,11 @@ const HANDLE_HALF = 5;
 // while real bends and sharp corners survive. Add points back by hand, or round edges with the Bézier
 // handles, if you want more detail — the raw trace is one point per block, so this is a large reduction.
 const LASSO_SIMPLIFY_TOLERANCE = 4;
+
+// What a freshly drawn path starts as: wide enough to walk two abreast, clean-edged, and a fixed seed so a
+// path is identical on every export until an author rerolls it. Width, edge and seed are all editable after.
+const PATH_DEFAULT_RADIUS = 3;
+const PATH_DEFAULT_SEED   = 0;
 
 // The in-progress outline: the operation's colours, dashed, over a light fill — "not committed yet".
 const PREVIEW_FILL_ALPHA = 0.20;
@@ -71,6 +77,10 @@ export class SketchDrawController {
   onMouseDown(bx, bz, activeTool) {
     if (activeTool === "rectangle") { this.#startRect(bx, bz); return true; }
     if (activeTool === "lasso")     { this.#startLasso(bx, bz); return true; }
+    if (activeTool === "path") {
+      if (!this.#drawState) this.#startPath(bx, bz); else this.#addPolygonVertex(bx, bz);
+      return true;
+    }
     if (activeTool === "polygon") {
       if (!this.#drawState) {
         this.#startPolygon(bx, bz);
@@ -92,7 +102,7 @@ export class SketchDrawController {
     if (!this.#drawState) return;
     const type = this.#drawState.type;
     if (type === "rectangle")    this.#updateRectPreview(bx, bz);
-    else if (type === "polygon") this.#updatePolygonPreview(bx, bz);
+    else if (type === "polygon" || type === "path") this.#updatePolygonPreview(bx, bz);
     else if (type === "lasso")   this.#addLassoPoint(bx, bz);
   }
 
@@ -104,16 +114,18 @@ export class SketchDrawController {
     return false;
   }
 
-  /** Close polygon on double-click; trims a duplicate trailing vertex. */
+  /** Finish a polygon (closing it) or a path (leaving it open) on double-click; trims a duplicate trailing
+   *  vertex either way, since the dblclick's own mousedown already dropped one where the cursor sat. */
   onDblClick() {
-    if (this.#drawState?.type !== "polygon") return;
+    const type = this.#drawState?.type;
+    if (type !== "polygon" && type !== "path") return;
     const ds = this.#drawState;
     if (ds.vertices.length > 1) {
       const last = ds.vertices[ds.vertices.length - 1];
       const prev = ds.vertices[ds.vertices.length - 2];
       if (last[0] === prev[0] && last[1] === prev[1]) ds.vertices.pop();
     }
-    this.#closePolygon();
+    if (type === "path") this.#completePath(); else this.#closePolygon();
   }
 
   /**
@@ -137,6 +149,18 @@ export class SketchDrawController {
       // The rubber-band run to the cursor is dashed, so the edge not yet committed reads as pending.
       const last = ds.vertices[ds.vertices.length - 1];
       painter.line(last[0], last[1], ds.cursorX ?? last[0], ds.cursorZ ?? last[1], { ...guide, dash: [4, 3] });
+    } else if (ds.type === "path") {
+      // The band, live — a path's width is most of what the author is deciding, so previewing only the line
+      // would hide it until the shape was committed. The cursor's pending point is included, so the band
+      // grows with the pointer, and the centerline is stroked over it as the thing being edited.
+      const pending = [...ds.vertices, [ds.cursorX ?? ds.vertices[0][0], ds.cursorZ ?? ds.vertices[0][1]]];
+      const ring = pathRing({ vertices: pending, radius: PATH_DEFAULT_RADIUS });
+      if (ring.length >= 3) painter.ring(ring.slice(0, -1), { ...style, fillRule: "evenodd" });
+      const curve = pathCenterline(pending);
+      const runs = [];
+      for (let i = 1; i < curve.length; i++)
+        runs.push({ x1: curve[i - 1][0], z1: curve[i - 1][1], x2: curve[i][0], z2: curve[i][1] });
+      painter.segments(runs, guide);
     } else if (ds.type === "lasso" && ds.vertices.length >= 2) {
       painter.ring(ds.vertices, { ...style, fillRule: "evenodd" });
     }
@@ -240,6 +264,29 @@ export class SketchDrawController {
     if (saved.vertices.length < 3) return;
     this.#callbacks.onShapeCreated?.({
       type: "polygon", operation: this.#activeOperation, override: false, vertices: saved.vertices,
+    });
+  }
+
+  // Path (click points along a route, dblclick to end) ─────────────────────────
+  // Points are added by the polygon's own handler: a path is drawn exactly like a polygon and differs only
+  // in that it never closes, so sharing the add keeps the two from drifting apart under the cursor.
+  #startPath(bx, bz) {
+    this.#drawHandleData = [{ wx: bx, wz: bz, isFirst: true }];
+    this.refreshDrawHandles();
+    this.#drawState = { type: "path", vertices: [[bx, bz]], cursorX: bx, cursorZ: bz };
+    this.#repaint();
+  }
+
+  #completePath() {
+    this.#drawHandleData = [];
+    this.refreshDrawHandles();
+    const saved = this.#drawState;
+    this.#drawState = null;
+    this.#repaint();
+    if (saved.vertices.length < 2) return;   // a path needs somewhere to go
+    this.#callbacks.onShapeCreated?.({
+      type: "path", operation: this.#activeOperation, override: false, vertices: saved.vertices,
+      radius: PATH_DEFAULT_RADIUS, path_edge: "solid", path_seed: PATH_DEFAULT_SEED,
     });
   }
 

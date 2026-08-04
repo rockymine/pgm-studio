@@ -31,14 +31,28 @@ public static class DressingScope
         var shapeRecipe = new Dictionary<string, DressingRecipe>();
         foreach (var shapes in ShapeLists(layout))
             foreach (var shape in shapes)
-                if (shape.Dressing is { } id && recipes.TryGetValue(id, out var recipe)) shapeRecipe[shape.Id] = recipe;
+                if (Claimed(shape, recipes) is { } recipe) shapeRecipe[shape.Id] = recipe;
 
         if (shapeRecipe.Count == 0) return (_, _) => mapDefault;
 
-        var cellToShape = SketchRasterizer.ShapeDressingOwners(layoutJson);
+        var cellToShape = SketchRasterizer.ShapeScopeOwners(layoutJson, shape => Claims(shape) ? shape.Id : null);
         return (x, z) => cellToShape.TryGetValue((x, z), out var shapeId)
             && shapeRecipe.TryGetValue(shapeId, out var recipe) ? recipe : mapDefault;
     }
+
+    /// <summary>The recipe a shape imposes on the cells it covers, or null to let the map default through.
+    /// A <b>path</b> claims itself even with no dressing assigned: a route is a cleared strip, and a meadow
+    /// growing over the road drawn through it is the one thing an author who drew a road did not ask for.
+    /// Dressing it explicitly still wins — a verge of long grass down a track is a real intent.</summary>
+    private static DressingRecipe? Claimed(SketchShape shape, IReadOnlyDictionary<string, DressingRecipe> recipes)
+        => shape.Dressing is { } id && recipes.TryGetValue(id, out var recipe) ? recipe
+            : Claims(shape) ? DressingRecipe.Bare
+            : null;
+
+    /// <summary>Whether a shape is its own planting scope at all — what the cell traversal asks, and the one
+    /// place the rule is written. A shape naming a dressing that no longer exists still claims itself and
+    /// grows nothing, rather than quietly inheriting whatever the map default happens to be.</summary>
+    private static bool Claims(SketchShape shape) => shape.Dressing is not null || shape.Type == "path";
 
     /// <summary>The map's symmetry, as the dressing pass reads it — the frame gameplay-affecting props are
     /// generated on and fanned through.</summary>
