@@ -262,7 +262,7 @@ public partial class SketchDressingInspector
         new Dictionary<string, (string, string, string)>
         {
             [PropKinds.Path] = ("spline", "Path", "A route across the ground. It swaps the surface it crosses rather than building on it, and nothing grows on what it covers."),
-            [PropKinds.Flora] = ("flower", "Ground cover", "Grass, fern and flowers over the soil inside the area you drew. Masked by the paint beneath — nothing grows on a plaza's quartz."),
+            [PropKinds.Flora] = ("flower", "Cover", "Grass, fern and flowers over the soil inside the area you drew. Masked by the paint beneath — nothing grows on a plaza's quartz."),
             [PropKinds.Tree] = ("trees", "Tree", "One grown tree, standing where you put it. Mirrored across the map's symmetry, so both teams get the same cover."),
             [PropKinds.Boulder] = ("mountain", "Boulder", "One rock, half-buried where you put it. Mirrored across the map's symmetry, so both teams get the same cover."),
         };

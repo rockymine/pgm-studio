@@ -138,6 +138,12 @@ that model works, but it is authored one stage before the world it paints exists
 have produced it. So the plan stays structural; theming and dressing move to the sketch, where the geometry
 is final and where a sketch-only map has geometry at all.
 
+The two then part ways, and the difference is worth stating because it took a rewrite to find. Theming is a
+**scope** problem — a recipe authored once and applied to a footprint — which is what the rest of this
+document is about. Dressing is not: a tree is cover, so where it stands decides how the map plays, and that
+is a placement rather than an assignment. It ended up as its own canvas with its own placing tools
+(`decoration.md`), sharing this document's storage seam and none of its scope machinery.
+
 **Nothing is lost in the move — the scope target just switches.** The box and piece scopes become **sketch
 shape / island scopes**, plus the full map: the same map → collection → shape hierarchy, keyed on the sketch's
 own geometry instead of plan pieces. The merge that worried §2 is, by the author's own account, *helpful*

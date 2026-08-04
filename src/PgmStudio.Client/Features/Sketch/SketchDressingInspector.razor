@@ -91,7 +91,7 @@
           <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
                  value="@((int)(Spec(SpecFields.FlowerShare, 0.18) * 100))"
                  @oninput="e => SetSpec(SpecFields.FlowerShare, JsonValue.Create(Share(e)))" /></ChildContent></Field>
-        <Field Label="Tall grass"><LabelHint>the one part of the cover that hides a player, so it is mirrored</LabelHint>
+        <Field Label="Tall grass"><LabelHint><span class="text-muted text-sm">hides a player, so it is mirrored</span></LabelHint>
           <LabelEnd><strong>@($"{Spec(SpecFields.TallShare, 0) * 100:0}%")</strong></LabelEnd>
           <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
                  value="@((int)(Spec(SpecFields.TallShare, 0) * 100))"
@@ -116,7 +116,7 @@
         <Field Label="Stems"><LabelEnd><strong>@($"{Num(PropFields.Stems, 1):0}")</strong></LabelEnd>
           <ChildContent><input type="range" class="field-range" min="1" max="3" step="1"
                  value="@((int)Num(PropFields.Stems, 1))" @oninput="e => Set(PropFields.Stems, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
-        <Field Label="Leader"><LabelHint>low spreads like an oak, high spires like a birch</LabelHint>
+        <Field Label="Leader"><LabelHint><span class="text-muted text-sm">oak low, birch high</span></LabelHint>
           <LabelEnd><strong>@($"{Num(PropFields.Leader, 0.55):0.00}")</strong></LabelEnd>
           <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
                  value="@((int)(Num(PropFields.Leader, 0.55) * 100))" @oninput="e => Set(PropFields.Leader, JsonValue.Create(Share(e)))" /></ChildContent></Field>
