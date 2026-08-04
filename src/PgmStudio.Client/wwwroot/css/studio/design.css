@@ -287,7 +287,10 @@
 
 /* Dressing phase (G161) — the two views of a recipe side by side: the patch from above and the same patch
    cut open. Side by side because they answer different questions and an author reads both at once. */
-.dressing-views { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+/* Plan beside section. The section crops to what the recipe grew, so its height carries meaning — a meadow
+   is a few courses and a forest is thirty. `start` lets each figure keep its own height instead of both
+   stretching to the taller one, which would sit a thin strip in the middle of an empty box. */
+.dressing-views { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); align-items: start; }
 .dressing-views .theme-section-figure { margin: 0; }
 .dressing-views svg { max-width: 100%; }
 @media (max-width: 720px) { .dressing-views { grid-template-columns: 1fr; } }
