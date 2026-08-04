@@ -445,6 +445,33 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   /api/themes/{id}/json` reassembles a library theme back into the exact painter JSON, and `POST
   /api/themes/import` lifts a whole theme JSON in as one style per bucket + a theme binding them (400, never 500,
   on malformed JSON). Import-then-compose is byte-for-byte identity, proven end-to-end through the real database.
+- **The library is a page you author in, and the sketch draws from it (B44).** `/library` is the studio's
+  fourth entry point, on the shape catalog's browse layout (a filter rail, a grid of pictures, a rail for the
+  one you picked — now one `lib-*` namespace both pages share). Its **Styles** half filters by kind, starts one
+  of each kind from a default that shows what the kind does, edits it with the very `MaterialEditor` the
+  sketch's theme phase uses (a style *is* a material — one form, no second way to author one), and saves,
+  duplicates or deletes it; deleting one a theme still binds is refused with the names of the themes that would
+  break, not a foreign-key error. Its **Themes** half composes: a style per bucket picked from the library, the
+  bucket's depth and toggle, the bedrock/rim/wall knobs, and a live preview of what the composition paints
+  (`POST /api/themes/preview` composes a draft without saving any of it). A bucket left unbound keeps the
+  built-in finish, so a theme overrides only what it changes — bind a rim and a fill once, vary the surface and
+  the wall. The sketch's Theme phase bridges both ways: copy a library theme into the sketch (a snapshot —
+  editing it there leaves the library's copy alone) or save the open one back out as one style per bucket.
+  `PUT /api/themes/{id}` replaces a theme's knobs and its whole set of bindings in one transaction.
+- **Every library row carries its own picture, and a layer stack finally has one (B44).** A named JSON blob is
+  not browsable, so a style ships the view that shows its kind something: patterns and tints read from above,
+  and a **layer stack reads as a section** — sampled one course from above it was one flat colour, which is why
+  it had no preview at all. A theme's picture is a sample plateau painted with it and cut open, classified by
+  the real `TerrainProfile` and painted by `TerrainPainter.ColumnBlocks`, so rim depth, a switched-off wall and
+  the bedrock floor move the picture exactly as they move the world. `SvgRaster` keeps them small enough to
+  travel with the row — one rect per *rectangle* of one colour, merged along a row then down the rows that
+  repeat it, so a solid swatch is one rect rather than 576 (the plan overlay render takes the same win).
+- **A block the paint shortlist omits is typed, not unreachable (B44).** `BlockPalette` now names and colours
+  the numeric format's data-variant blocks — andesite is stone `1:5`, and granite, diorite, podzol, red sand,
+  the plank species, the stone-brick and quartz and prismarine variants are all their own entries — and
+  `TerrainPalette` offers each beside the block it shares an id with. The picker tells the two meanings of a
+  data value apart: a sixteen-shade family collapses to one line plus a colour row, a variant is listed under
+  its own name, and the `(id, data)` pair underneath is editable for anything the shortlist still omits.
 - **A plan must carry a map before it can become one — the compile gate asks two questions, not one (B38, B39).**
   `PlanValidator` only ever asked whether what a plan *said* was coherent, so a plan that said **nothing**
   passed: an empty document compiled `200` into an empty layout and a spawn-less intent — a map that cannot

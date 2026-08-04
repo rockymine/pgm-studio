@@ -1,81 +1,23 @@
-/* Shape catalog (G144) — the generation vocabulary as cards: a filter rail, a grid of server-rendered
-   shapes, and a reach badge per card. Its own namespace rather than the generator's, because the two grids
-   hold different things (a whole fanned board vs one box's fill) and size their figures differently. */
+/* Shape catalog (G144) — the generation vocabulary as cards. The shell (filter rail, card grid, right rail) is
+   the shared browse-library layout in library.css; what is catalog-specific is the reach a card reports, which
+   it says twice: as a badge and in the card's own edge, so a scan of the grid separates the tiers. */
 
-.cat-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
-
-.cat-filters {
-  flex-shrink: 0; width: 240px; padding: var(--space-3);
-  border-right: 1px solid var(--border); overflow-y: auto;
-  display: flex; flex-direction: column; gap: var(--space-3);
-}
-
-.cat-main { flex: 1; min-width: 0; overflow-y: auto; padding: var(--space-3); }
-.cat-intro { margin: 0 0 var(--space-3); max-width: 62ch; font-size: var(--font-sm); color: var(--text-secondary); }
-.cat-count { margin: 0 0 var(--space-2); font-size: var(--font-xs); color: var(--text-secondary); }
-.cat-status { text-align: center; color: var(--text-secondary); font-size: var(--font-sm); padding: var(--space-3); }
-
-.cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: var(--space-3); }
-
-.cat-card {
-  position: relative; display: flex; flex-direction: column; overflow: hidden;
-  background: var(--bg-panel, var(--bg)); border: 1px solid var(--border); border-radius: var(--radius-sm);
-}
-/* the reach reads on the card edge as well as the badge, so a scan of the grid separates the tiers */
 .cat-card--reachable { border-style: dashed; }
 .cat-card--emitter-only { border-style: dotted; opacity: .82; }
 
-.cat-card-fig { flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px; background: var(--canvas); }
-.cat-card-fig svg { width: 100%; height: auto; max-height: 180px; display: block; margin: 0 auto; }
-
-.cat-card-badges {
-  position: absolute; top: 6px; left: 6px; z-index: 2; pointer-events: none;
-  display: flex; flex-wrap: wrap; gap: 3px; max-width: calc(100% - 12px);
-}
-.cat-badge {
-  padding: 1px 6px; font-size: 10px; font-family: ui-monospace, monospace; text-transform: lowercase;
-  background: var(--bg-panel, var(--bg)); color: var(--text-secondary);
-  border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: 0 1px 2px rgba(0, 0, 0, .18);
-}
 .cat-badge--family { color: var(--accent-lighter, var(--accent)); }
 .cat-badge--in-mix { color: var(--text-secondary); }
 .cat-badge--reachable { color: var(--warn, #d9a441); border-color: var(--warn, #d9a441); }
 .cat-badge--emitter-only { color: var(--text-muted, var(--text-secondary)); border-style: dashed; }
 
-.cat-card-foot {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
-  padding: 6px 8px; border-top: 1px solid var(--border);
-}
-.cat-card-meta { font-family: ui-monospace, monospace; font-size: var(--font-xs); color: var(--text-secondary); }
 .cat-knob {
   padding: 0 5px; font-size: 10px; font-family: ui-monospace, monospace;
   color: var(--text-secondary); background: var(--bg-selected); border-radius: var(--radius-sm);
 }
-.cat-card-note {
-  margin: 0; padding: 6px 8px; font-size: var(--font-xs); line-height: 1.45;
-  color: var(--text-secondary); border-top: 1px solid var(--border);
-}
 
-/* the knob panel — a third rail on the right: the live emission, its refusal if it has one, and the knobs */
-.cat-probe {
-  flex-shrink: 0; width: 300px; padding: var(--space-3);
-  border-left: 1px solid var(--border); overflow-y: auto;
-  display: flex; flex-direction: column; gap: var(--space-3);
-}
-.cat-probe-head { display: flex; align-items: center; justify-content: space-between; }
-.cat-probe-title { font-size: var(--font-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--text-secondary); }
-.cat-probe-x { width: 24px; height: 24px; display: grid; place-items: center; background: transparent; color: var(--text-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; }
-.cat-probe-x:hover { color: var(--text-bright); border-color: var(--accent); }
-.cat-probe-x i { width: 13px; height: 13px; }
-
-.cat-probe-fig {
-  display: flex; align-items: center; justify-content: center; min-height: 150px;
-  padding: 10px; background: var(--canvas); border: 1px solid var(--border); border-radius: var(--radius-sm);
-}
-.cat-probe-fig svg { width: 100%; height: auto; max-height: 260px; display: block; }
+/* The knob panel's own additions: an emission that was refused, in the emitter's words. */
 .cat-probe-fig--refused { border-style: dashed; border-color: var(--warn, #d9a441); }
 .cat-probe-none { font-size: var(--font-xs); color: var(--text-secondary); }
-
 .cat-probe-reject { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .cat-probe-code {
   padding: 1px 6px; font-size: 10px; font-family: ui-monospace, monospace;

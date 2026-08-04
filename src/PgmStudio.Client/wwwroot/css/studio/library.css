@@ -1,0 +1,68 @@
+/* The browse-library layout, shared by every page that is "a filter rail, a grid of pictures, and a rail on the
+   right for the one you picked": the shape catalog (G144) and the style/theme library (B44). It is the same
+   surface asking about different things, so the shell is one namespace and each page adds only the badges and
+   controls its own subject needs (catalog.css, style-library.css). */
+
+.lib-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+
+.lib-filters {
+  flex-shrink: 0; width: 240px; padding: var(--space-3);
+  border-right: 1px solid var(--border); overflow-y: auto;
+  display: flex; flex-direction: column; gap: var(--space-3);
+}
+
+.lib-main { flex: 1; min-width: 0; overflow-y: auto; padding: var(--space-3); }
+.lib-intro { margin: 0 0 var(--space-3); max-width: 62ch; font-size: var(--font-sm); color: var(--text-secondary); }
+.lib-count { margin: 0 0 var(--space-2); font-size: var(--font-xs); color: var(--text-secondary); }
+.lib-status { text-align: center; color: var(--text-secondary); font-size: var(--font-sm); padding: var(--space-3); }
+
+.lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: var(--space-3); }
+
+.lib-card {
+  position: relative; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--bg-panel, var(--bg)); border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+
+.lib-card-fig { flex: 1; min-height: 130px; display: flex; align-items: center; justify-content: center; padding: 10px; background: var(--canvas); }
+.lib-card-fig svg { width: 100%; height: auto; max-height: 180px; display: block; margin: 0 auto; }
+
+.lib-card-badges {
+  position: absolute; top: 6px; left: 6px; z-index: 2; pointer-events: none;
+  display: flex; flex-wrap: wrap; gap: 3px; max-width: calc(100% - 12px);
+}
+.lib-badge {
+  padding: 1px 6px; font-size: 10px; font-family: ui-monospace, monospace; text-transform: lowercase;
+  background: var(--bg-panel, var(--bg)); color: var(--text-secondary);
+  border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: 0 1px 2px rgba(0, 0, 0, .18);
+}
+
+.lib-card-foot {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
+  padding: 6px 8px; border-top: 1px solid var(--border);
+}
+.lib-card-meta { font-family: ui-monospace, monospace; font-size: var(--font-xs); color: var(--text-secondary); }
+.lib-card-note {
+  margin: 0; padding: 6px 8px; font-size: var(--font-xs); line-height: 1.45;
+  color: var(--text-secondary); border-top: 1px solid var(--border);
+}
+
+/* The right rail — what the picked card is, in detail, and the knobs that change it. */
+.lib-rail {
+  flex-shrink: 0; width: 320px; padding: var(--space-3);
+  border-left: 1px solid var(--border); overflow-y: auto;
+  display: flex; flex-direction: column; gap: var(--space-3);
+}
+/* The rail scrolls, so its children must keep their own height: a flex column shrinks its items to fit
+   before it will overflow, which squashes the header under a tall editor rather than scrolling past it. */
+.lib-rail > * { flex-shrink: 0; }
+.lib-rail-head { display: flex; align-items: center; justify-content: space-between; }
+.lib-rail-title { font-size: var(--font-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--text-secondary); }
+.lib-rail-x { width: 24px; height: 24px; display: grid; place-items: center; background: transparent; color: var(--text-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; }
+.lib-rail-x:hover { color: var(--text-bright); border-color: var(--accent); }
+.lib-rail-x i { width: 13px; height: 13px; }
+
+.lib-fig {
+  display: flex; align-items: center; justify-content: center; min-height: 150px;
+  padding: 10px; background: var(--canvas); border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+.lib-fig svg { width: 100%; height: auto; max-height: 260px; display: block; }

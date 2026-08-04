@@ -22,7 +22,11 @@ const ROUTES = [
   { path: "/design",                              name: "design system",  expect: "body" },
   { path: "/generator",                           name: "generator",      expect: "body" },
   // the catalog proves itself by its cards: an empty grid is a dead enumerator, not a slow page
-  { path: "/catalog",                             name: "shape catalog",  expect: ".cat-grid .cat-card" },
+  { path: "/catalog",                             name: "shape catalog",  expect: ".lib-grid .lib-card" },
+  // the library's two halves render from the database, so an empty one is still a live page — its filter
+  // rail is the proof, since that is what a dead component would take down with it
+  { path: "/library",                             name: "style library",  expect: ".lib-body .lib-filters" },
+  { path: "/library/themes",                      name: "theme library",  expect: ".lib-body .lib-filters" },
   { path: "/plan-editor",                         name: "plan editor (bare)", expect: ".map-canvas-svg" },
   { path: `/maps/${seed.planSlug}/plan`,          name: "plan tool",      expect: "body" },
   { path: `/maps/${seed.sketchSlug}/sketch`,      name: "sketch tool",    expect: "body" },

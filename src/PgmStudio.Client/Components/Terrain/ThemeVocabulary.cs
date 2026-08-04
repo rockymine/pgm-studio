@@ -1,41 +1,14 @@
 using System.Text.Json.Nodes;
+using PgmStudio.Contracts;
 
-namespace PgmStudio.Client.Features.Sketch;
-
-/// <summary>One block the Theme rail's picker offers — the payload of <c>GET /api/terrain/blocks</c>, which
-/// serves <c>TerrainPalette.Paintable</c>. <see cref="Hex"/> is the colour the export actually places, so a
-/// swatch cannot promise a block a different colour.</summary>
-public sealed record PaintBlockDto(int Id, int Data, string Name, string Group, string Hex);
-
-/// <summary>The <c>kind</c> discriminator of every terrain-paint material, with the label the editor offers it
-/// under (docs/world-export/terrain-painting.md §3). Const strings so a Razor <c>switch</c> can case on them.</summary>
-public static class MaterialKinds
-{
-    public const string Solid = "solid";
-    public const string Layered = "layered";
-    public const string TeamTint = "teamTint";
-    public const string Voronoi = "voronoi";
-    public const string Noise = "noise";
-    public const string WallRun = "wallRun";
-
-    /// <summary>The kinds in offer order — plain blocks first, then the composites, then the patterns.</summary>
-    public static readonly (string Id, string Name)[] All =
-    [
-        (Solid, "Solid block"),
-        (Layered, "Layer stack"),
-        (TeamTint, "Team tint"),
-        (Voronoi, "Voronoi patches"),
-        (Noise, "Noise ramp"),
-        (WallRun, "Wall stripes"),
-    ];
-
-    public static string NameOf(string kind) => All.FirstOrDefault(k => k.Id == kind).Name ?? kind;
-}
+namespace PgmStudio.Client.Components;
 
 /// <summary>
 /// The theme JSON's property names and per-kind defaults, in one place. The theme node <b>is</b> the wire
 /// format the painter deserializes, so the editor writes it directly rather than through a second model that
-/// could drift; naming every field once here is what keeps that safe.
+/// could drift; naming every field once here is what keeps that safe. The <c>kind</c> and bucket vocabularies
+/// themselves are <see cref="MaterialKind"/> / <see cref="ThemeBuckets"/> in the contracts, shared with the
+/// column that stores them and the HTTP surface that carries them.
 /// </summary>
 public static class ThemeFields
 {
@@ -57,17 +30,17 @@ public static class ThemeFields
     public const string Scale = "scale";
     public const string Octaves = "octaves";
 
-    // theme
+    // theme — the four bucket properties are named by the bucket ids themselves
     public const string Bedrock = "bedrock";
     public const string Relative = "relative";
     public const string Value = "value";
     public const string Closed = "closed";
     public const string WallOnTerrainFaces = "wallOnTerrainFaces";
-    public const string Rim = "rim";
-    public const string Surface = "surface";
-    public const string Wall = "wall";
+    public const string Rim = ThemeBuckets.Rim;
+    public const string Surface = ThemeBuckets.Surface;
+    public const string Wall = ThemeBuckets.Wall;
     public const string WallEnabled = "wallEnabled";
-    public const string Fill = "fill";
+    public const string Fill = ThemeBuckets.Fill;
     public const string Depth = "depth";
     public const string Enabled = "enabled";
 
@@ -76,35 +49,35 @@ public static class ThemeFields
     /// happen to share a colour, as stone and cobblestone do — renders flat and reads as broken.</summary>
     public static JsonObject NewMaterial(string kind) => kind switch
     {
-        MaterialKinds.Layered => new JsonObject
+        MaterialKind.Layered => new JsonObject
         {
-            [Kind] = MaterialKinds.Layered,
+            [Kind] = MaterialKind.Layered,
             [Layers] = new JsonArray(Layer(Solid(2), 1), Layer(Solid(3), 2)),
         },
-        MaterialKinds.TeamTint => new JsonObject
+        MaterialKind.TeamTint => new JsonObject
         {
-            [Kind] = MaterialKinds.TeamTint,
+            [Kind] = MaterialKind.TeamTint,
             [BlockId] = 159,
             [Neutral] = Solid(159, 8),
         },
-        MaterialKinds.Voronoi => new JsonObject
+        MaterialKind.Voronoi => new JsonObject
         {
-            [Kind] = MaterialKinds.Voronoi,
+            [Kind] = MaterialKind.Voronoi,
             [Seed] = 1,
             [CellSize] = 8,
             [Palette] = new JsonArray(Solid(1), Solid(24)),
         },
-        MaterialKinds.Noise => new JsonObject
+        MaterialKind.Noise => new JsonObject
         {
-            [Kind] = MaterialKinds.Noise,
+            [Kind] = MaterialKind.Noise,
             [Seed] = 1,
             [Scale] = 16,
             [Octaves] = 3,
             [Stops] = new JsonArray(Solid(2), Solid(12)),
         },
-        MaterialKinds.WallRun => new JsonObject
+        MaterialKind.WallRun => new JsonObject
         {
-            [Kind] = MaterialKinds.WallRun,
+            [Kind] = MaterialKind.WallRun,
             [Runs] = new JsonArray(Stripe(Solid(155), 3), Stripe(Solid(159, 8), 2)),
         },
         _ => Solid(1),
@@ -121,10 +94,46 @@ public static class ThemeFields
 
     /// <summary>A solid-block material node — the leaf every other kind bottoms out in.</summary>
     public static JsonObject Solid(int id, int data = 0)
-        => new() { [Kind] = MaterialKinds.Solid, [Id] = id, [Data] = data };
+        => new() { [Kind] = MaterialKind.Solid, [Id] = id, [Data] = data };
 
     private static JsonObject Layer(JsonNode material, int thickness) => new() { [Material] = material, [Thickness] = thickness };
     private static JsonObject Stripe(JsonNode material, int width) => new() { [Material] = material, [Width] = width };
+}
+
+/// <summary>
+/// What a themeable bucket is, in the words an authoring surface shows. The sketch's theme editor lays the four
+/// out as sections and the library's theme composer lays them out as bindings, but they describe the same four
+/// buckets — so they describe them the same way, from here.
+/// </summary>
+/// <param name="Id">The bucket's wire id (<see cref="ThemeBuckets"/>).</param>
+/// <param name="Title">Its heading.</param>
+/// <param name="Blurb">What it claims, in one sentence.</param>
+/// <param name="FallsTo">Where its blocks go when it is switched off.</param>
+/// <param name="CanDisable">Whether it may be switched off at all — the fill is the base and never can be.</param>
+public sealed record ThemeBucketInfo(string Id, string Title, string Blurb, string FallsTo, bool CanDisable)
+{
+    /// <summary>Whether the bucket claims a configurable number of top courses.</summary>
+    public bool HasDepth => ThemeBuckets.HasDepth(Id);
+
+    /// <summary>The four buckets in the order an editor lays them out — the cap, the interior stack under it,
+    /// the riser it sits on, then the body everything else falls to.</summary>
+    public static readonly IReadOnlyList<ThemeBucketInfo> All =
+    [
+        new(ThemeBuckets.Rim, "Rim",
+            "The cap on the top course of every edge column — what the ground reads as from across the void.",
+            "the surface", CanDisable: true),
+        new(ThemeBuckets.Surface, "Surface",
+            "The stack finishing the top of interior columns, claimed downward — grass over two dirt.",
+            "the fill", CanDisable: true),
+        new(ThemeBuckets.Wall, "Wall",
+            "The exposed riser under the rim, down to the shallowest drop. A team tint here is what makes a team's ground read as theirs.",
+            "the fill", CanDisable: true),
+        new(ThemeBuckets.Fill, "Fill",
+            "Every block no other bucket claimed — the body of the terrain, under the surface and behind the wall.",
+            "nothing", CanDisable: false),
+    ];
+
+    public static ThemeBucketInfo Of(string bucket) => All.First(info => info.Id == bucket);
 }
 
 /// <summary>Reading and writing the theme node without a second model of it: every accessor tolerates a
@@ -133,7 +142,7 @@ public static class ThemeFields
 public static class ThemeNode
 {
     public static string KindOf(JsonObject? node)
-        => node?[ThemeFields.Kind]?.GetValue<string>() ?? MaterialKinds.Solid;
+        => node?[ThemeFields.Kind]?.GetValue<string>() ?? MaterialKind.Solid;
 
     public static int Int(JsonObject? node, string field, int fallback)
     {

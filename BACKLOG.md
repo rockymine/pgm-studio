@@ -174,17 +174,25 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   separate.
 ## Backend, pipeline & internals (B / P / A)
 
-- [~] **B44 — Theme + style library: wire the new tables into the app.** The tables, store and HTTP surface
-  shipped (see `FEATURES.md` — `M0011` `style`/`theme`/`theme_bucket`, `ThemeStore`, `TerrainThemeComposer`,
-  the `styles`/`themes`/import/compose endpoints); what remains is making the app *use* the library instead of
-  inline blobs. Three slices: **(1)** a client library-browser UI — list/search styles by kind, list themes,
-  save the theme open in the finishing rail as a reusable library theme, start a new theme from a library one;
-  **(2)** apply-as-snapshot — a map's *applied* theme is a **snapshot copy** of a library theme (fork-on-apply,
-  like the generator's plan doctrine) so later library edits never silently repaint a shipped map; **(3)** a
-  data migration lifting the existing inline-blob themes (`plan_json`, `map_intent_json` on `map_artifact`) into
-  styles + themes + bindings, deduping identical materials, and retiring the Client↔server theme-material
-  duplication (`Features/Plan/ThemeVocabulary.cs` vs the server `TerrainThemeJson` model) onto the one schema.
-  The cross-tool scoping and dressing sections of `docs/world-export/finishing-model.md` stay draft.
+- [~] **B44 — Theme + style library: the map's applied theme is still an inline blob.** The tables, the HTTP
+  surface, the `/library` page and the sketch's pull/push bridge all shipped (`FEATURES.md`); two slices
+  remain. **(1) Apply-as-snapshot** — a map's *applied* theme is still the sketch document's own registry, so
+  "the library holds the reusable copy, the map holds a frozen one" is true only by convention: pulling a
+  library theme into a sketch copies its JSON and nothing links them, but there is no snapshot record saying
+  *which* library theme a map's paint came from, and no way to re-pull one when the library moves on. Give the
+  map's scope store a forked instance with a `parent_id` back-reference, the same doctrine the generator's plan
+  persistence uses. **(2) A data migration** lifting existing inline-blob themes (`plan_json`,
+  `map_intent_json` on `map_artifact`) into styles + themes + bindings, deduping identical materials — today
+  every map authored before the library keeps its blob and the library cannot see it. The cross-tool scoping
+  and dressing sections of `docs/world-export/finishing-model.md` stay draft.
+
+- [ ] **B47 — The library has no search, and the sketch's theme names are its own.** Two small gaps the
+  library page left open, worth doing once it has enough rows to hurt. The style browser filters by kind but
+  not by name, so a library of forty styles is a scroll; the theme half has no filter at all. And a theme
+  pulled into a sketch takes the library's name as its sketch-side id, which the bridge uniquifies — pull the
+  same theme twice and the second is `meadow-2` with nothing saying they are the same theme. A name search box
+  on both halves, and a note on the pulled theme recording where it came from (which slots into B44's
+  snapshot record rather than duplicating it).
 
 - [ ] **B9 — Re-import a world into an existing map (keep the authored intent).** When an author tweaks the
   terrain (e.g. adds iron inside the spawns so the renewable populates) they currently have to import the
@@ -477,12 +485,13 @@ studio, G117/G118) is in `TODO.md`.
   side. The screenshot approach does **not** work for this class of bug — `page.screenshot()` forces a fresh
   raster, so a transient compositor artifact never appears in the capture; measure the handler, not the pixels.
 
-- [ ] **G158 — ready-made theme presets.** The Apply step is a paint-on-the-plan-canvas surface now (click a
-  shape, Ctrl-multiselect a set, assign — the click-to-assign and "these seven pieces" custom-collection slices
-  shipped, `FEATURES.md`), but every author still starts a theme from the built-in default and builds a desert
-  or a snowfield by hand. Ship a handful of ready-made presets to start from. Folds into **B44** once the
-  theme/style library lands — a preset is just a library theme, so this becomes "seed the library with a curated
-  set" — but a small built-in set is worth having before then.
+- [ ] **G158 — seed the library with a curated set.** An author can now build a style once and reuse it, and a
+  theme that binds only the buckets it changes (`FEATURES.md`), but a fresh install's library is empty — so the
+  first desert or snowfield is still built by hand. Ship a curated set of styles and themes as seed rows: the
+  shipping finish decomposed, plus a handful of biomes (desert, tundra, mesa, nether) each reusing the same rim
+  and fill. A preset is just a library theme, so this is a seeding step, not a second mechanism — the open
+  question is only *when* it seeds (a migration, or a "restore the starter set" action that cannot clobber
+  edits).
 
 - [ ] **G156 — cell-size-aware generator room sizing (WX2's generator half).** The stamped-room minimum is
   8×8 **blocks** (`docs/world-export/structures.md` WX2) but the emitters size rooms in **cells**

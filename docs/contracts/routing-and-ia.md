@@ -98,6 +98,8 @@ The **map is the resource → it lives in the path**; the **mode is a trailing s
 | `/maps/{id}/sketch`      | **Sketch**  | sketch tool — draw geometry                       | `SketchTool`       | live   |
 | `/maps/new-sketch`       | *(entry)*   | originate a sketch: blank frame or generated layout | `SketchCreate`   | live   |
 | `/maps/new`              | *(entry)*   | originate a map: **Import** a world folder        | `ConfigureTool` (Import phase) | live‡ |
+| `/library`               | *(entry)*   | style library — reusable material recipes         | `LibraryTool`      | live   |
+| `/library/themes`        | *(entry)*   | theme library — styles composed into finishes     | `LibraryTool`      | live   |
 | `/concepts`              | —           | the authoring concept mock (`Authoring.razor`)    | `Authoring.razor`  | live   |
 | `/design`                | **Design**  | design-system showcase                            | `Design.razor`     | live   |
 | `/not-found`             | —           | 404                                               | `NotFound.razor`   | live   |

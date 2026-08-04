@@ -43,14 +43,62 @@
           </Field>
         </Section>
 
+        @* ── the library bridge: start from a saved theme, or save this one for the next map ── *@
+        <Section Title="From the library">
+          <Actions>
+            <Button Href="/library/themes" Icon="library" Title="Open the style &amp; theme library">Library</Button>
+          </Actions>
+          <ChildContent>
+            <p class="section-desc">Themes built in the library are reusable across maps. Copying one in takes a
+              snapshot — editing it here leaves the library's copy alone, and the other way round.</p>
+            @if (LibraryThemes.Count == 0)
+            {
+              <p class="section-desc">The library has no themes yet. Build one there, or save this map's below.</p>
+            }
+            else
+            {
+              <Field Label="Copy one in">
+                <div class="panel-actions">
+                  <select class="field-input" value="@LibraryPick" @onchange="PickLibraryTheme">
+                    <option value="0">(pick a library theme)</option>
+                    @foreach (var theme in LibraryThemes) { <option value="@theme.Id">@theme.Name</option> }
+                  </select>
+                  <Button Icon="download" Disabled="@(LibraryPick == 0)" OnClick="PullFromLibrary">Copy in</Button>
+                </div>
+              </Field>
+              @if (PickedLibraryTheme is { } picked)
+              {
+                <div class="theme-section-figure">@((MarkupString)picked.Preview)</div>
+              }
+            }
+            @if (Selected is not null)
+            {
+              <Field Label="Save this one">
+                <div class="panel-actions">
+                  <Button Icon="upload" OnClick="PushToLibrary">Save @Selected to the library</Button>
+                </div>
+              </Field>
+            }
+            @if (LibraryNote is not null) { <p class="section-desc">@LibraryNote</p> }
+          </ChildContent>
+        </Section>
+
         @if (Selected is not null && Theme is not null)
         {
+          @* what the whole theme finishes terrain into, before the four brushes that make it up *@
+          <Section Title="What it paints">
+            <p class="section-desc">A sample plateau painted with this theme and cut open — the rim capping each
+              edge, the wall under it, the surface band, the fill body and the bedrock floor. The right half of
+              the ground belongs to a team, so a team tint shows beside its neutral fallback.</p>
+            <div class="theme-section-figure">@((MarkupString)(Preview?.Section ?? ""))</div>
+          </Section>
+
           @* the four paintbrushes: a toggle, a depth, a material, and what that material paints like *@
           @foreach (var bucket in Buckets)
           {
-            <Section Title="@bucket.Title" @key="bucket.Id">
+            <Section Title="@bucket.Info.Title" @key="bucket.Id">
               <Actions>
-                @if (bucket.CanDisable)
+                @if (bucket.Info.CanDisable)
                 {
                   <Chip Active="@bucket.Enabled" OnClick="@bucket.Toggle">@(bucket.Enabled ? "Painting" : "Off")</Chip>
                 }
@@ -60,12 +108,12 @@
                 }
               </Actions>
               <ChildContent>
-                <p class="section-desc">@bucket.Blurb</p>
+                <p class="section-desc">@bucket.Info.Blurb</p>
                 @if (bucket.Enabled)
                 {
                   <div class="bucket-editor">
                     <div class="bucket-editor-form">
-                      @if (bucket.HasDepth)
+                      @if (bucket.Info.HasDepth)
                       {
                         <Field Label="Courses deep">
                           <input class="field-input field-input--slim" type="number" min="1" step="1"
@@ -75,14 +123,14 @@
                       <MaterialEditor Node="@bucket.Material" Blocks="Blocks" OnChanged="ThemeEdited" />
                     </div>
                     <figure class="bucket-editor-swatch">
-                      <div class="theme-swatch-img">@((MarkupString)(Swatches.GetValueOrDefault(bucket.Id) ?? ""))</div>
+                      <div class="theme-swatch-img">@((MarkupString)Swatch(bucket.Id))</div>
                       <figcaption>neutral · team</figcaption>
                     </figure>
                   </div>
                 }
                 else
                 {
-                  <p class="section-desc">Off — its blocks fall through to @bucket.FallsTo.</p>
+                  <p class="section-desc">Off — its blocks fall through to @bucket.Info.FallsTo.</p>
                 }
               </ChildContent>
             </Section>

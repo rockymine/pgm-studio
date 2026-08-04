@@ -1,8 +1,8 @@
-using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using PgmStudio.Client.Components;
+using PgmStudio.Contracts;
 
 namespace PgmStudio.Client.Features.Sketch;
 
@@ -23,7 +23,7 @@ public partial class SketchThemeApplyRail
     [Parameter] public string? SelectedShapeId { get; set; }
     /// <summary>The shape ids the current selection covers — for reading back its current theme.</summary>
     [Parameter] public IReadOnlyList<string> TargetShapeIds { get; set; } = [];
-    [Inject] public HttpClient Http { get; set; } = default!;
+    [Inject] public TerrainLibraryClient Library { get; set; } = default!;
     [Inject] public IJSRuntime JS { get; set; } = default!;
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
@@ -32,8 +32,8 @@ public partial class SketchThemeApplyRail
     private string MapTheme = "";
     private Dictionary<string, string> ShapeThemes = new();
     private string? Picked;                                 // the theme selected to apply
-    private string? swatchedFor;                            // the theme the swatches currently show
-    private Dictionary<string, string> Swatches = new();
+    private string? previewedFor;                           // the theme the preview currently shows
+    private ThemePreviewDto? Preview;
 
     // Reload the registry + assignments whenever the selection changes; refresh swatches only when the picked
     // theme changes (that one carries an HTTP round-trip).
@@ -53,7 +53,7 @@ public partial class SketchThemeApplyRail
         MapTheme = root.TryGetProperty("mapTheme", out var mt) && mt.ValueKind == JsonValueKind.String ? mt.GetString() ?? "" : "";
         ShapeThemes = ReadMap(root, "shapeThemes");
         if (Picked is null || !Themes.Contains(Picked)) Picked = Themes.FirstOrDefault();
-        if (Picked != swatchedFor) await LoadPickedSwatches();
+        if (Picked != previewedFor) await LoadPickedPreview();
         StateHasChanged();
     }
 
@@ -77,27 +77,22 @@ public partial class SketchThemeApplyRail
         return TargetShapeIds.All(id => ShapeThemes.GetValueOrDefault(id, "") == first) ? first : "~mixed~";
     }
 
-    private async Task Pick(string id) { Picked = id; await LoadPickedSwatches(); StateHasChanged(); }
+    private async Task Pick(string id) { Picked = id; await LoadPickedPreview(); StateHasChanged(); }
 
-    // The picked theme's per-bucket preview, through the real materials + palette (the same render the Create
-    // step uses), so the swatch shows the paint that will land.
-    private async Task LoadPickedSwatches()
+    // The picked theme's preview, through the real materials + palette (the same render the Create step uses),
+    // so what the rail shows is the paint that will land.
+    private async Task LoadPickedPreview()
     {
-        Swatches = new();
-        swatchedFor = Picked;
+        Preview = null;
+        previewedFor = Picked;
         if (Handle is null || Picked is null) return;
         var themesJson = await Handle.InvokeAsync<string>("getThemes");
         using var doc = JsonDocument.Parse(themesJson);
         if (!doc.RootElement.TryGetProperty("themes", out var th) || !th.TryGetProperty(Picked, out var node)) return;
-        try
-        {
-            var resp = await Http.PostAsync("api/terrain/theme-preview",
-                new StringContent(node.GetRawText(), Encoding.UTF8, "application/json"));
-            if (resp.IsSuccessStatusCode)
-                Swatches = await resp.Content.ReadFromJsonAsync<Dictionary<string, string>>() ?? new();
-        }
-        catch { /* leave empty on a preview failure */ }
+        Preview = await Library.ThemePreviewAsync(node.GetRawText());
     }
+
+    private string Swatch(string bucket) => Preview?.Buckets.GetValueOrDefault(bucket) ?? "";
 
     private Task Apply() => Assign(Picked ?? "");
     private Task Remove() => Assign("");

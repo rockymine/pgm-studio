@@ -236,6 +236,9 @@
 .theme-swatch-img { width: 100%; aspect-ratio: 1; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; background: var(--bg-deep); }
 .theme-swatch-img svg { width: 100%; height: 100%; display: block; }
 .theme-swatch figcaption { font-size: var(--font-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+/* The cut-open sample plateau: one picture of a whole theme, so it gets the width a swatch grid doesn't. */
+.theme-section-figure { display: flex; justify-content: center; padding: var(--space-2); background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.theme-section-figure svg { width: 100%; max-width: 320px; height: auto; display: block; image-rendering: pixelated; }
 .theme-map-preview { display: flex; justify-content: center; padding: var(--space-3); background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: auto; }
 .theme-map-preview svg { max-width: 100%; height: auto; }
 .theme-json-details > summary { cursor: pointer; font-size: var(--font-xs); color: var(--text-muted); padding: var(--space-1) 0; }
@@ -277,3 +280,7 @@
 .block-swatch { width: 1.25rem; height: 1.25rem; padding: 0; border-radius: var(--radius-sm); border: 1px solid var(--border); cursor: pointer; }
 .block-swatch:hover { outline: 1px solid var(--text-muted); }
 .block-swatch--on { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* The (id, data) pair under the list: a readout of what is set, and the way in for a block the list omits. */
+.block-picker-ids { gap: var(--space-3); }
+.block-picker-id { display: flex; align-items: center; gap: var(--space-1); font-size: var(--font-xs); color: var(--text-muted); }
+.block-picker-ids .block-picker-num { flex: 0 0 4.5rem; }

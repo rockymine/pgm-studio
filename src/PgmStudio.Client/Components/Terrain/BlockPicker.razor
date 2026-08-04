@@ -1,13 +1,19 @@
-@namespace PgmStudio.Client.Features.Sketch
+@namespace PgmStudio.Client.Components
 
 @* Picks the block a solid material places. The sixteen-colour families (stained clay, wool, stained glass)
    are one entry in the list plus a row of colour swatches, so choosing "red stained clay" is a colour click
-   rather than a hunt through forty-eight dropdown lines. Swatch colours come from the export's own palette. *@
+   rather than a hunt through forty-eight dropdown lines. Swatch colours come from the export's own palette.
+   The id/data pair underneath is the block itself, editable: the offered list is a curated shortlist, not the
+   set of legal blocks, so a variant it does not carry (andesite, 1:5) is typed rather than unreachable. *@
 
 <div class="block-picker">
   <div class="block-picker-row">
     <span class="block-chip" style="background:@Hex" title="@Name"></span>
     <select class="field-input field-input--slim" value="@SelectedKey" @onchange="ChooseBlock">
+      @if (IsOffList)
+      {
+        <option value="@SelectedKey">@Name</option>
+      }
       @foreach (var group in Groups)
       {
         <optgroup label="@group.Key" @key="group.Key">
@@ -31,4 +37,20 @@
       }
     </div>
   }
+
+  <div class="block-picker-row block-picker-ids">
+    <label class="block-picker-id">
+      <span>id</span>
+      <input class="field-input field-input--slim block-picker-num" type="number" min="0" step="1"
+             value="@Id" @onchange="SetId" />
+    </label>
+    @if (ShowColors)
+    {
+      <label class="block-picker-id">
+        <span>data</span>
+        <input class="field-input field-input--slim block-picker-num" type="number" min="0" max="15" step="1"
+               value="@Data" @onchange="SetData" />
+      </label>
+    }
+  </div>
 </div>

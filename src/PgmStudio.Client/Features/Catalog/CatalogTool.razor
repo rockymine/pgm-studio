@@ -14,8 +14,8 @@
     </Topbar>
   </Bar>
   <ChildContent>
-  <div class="cat-body">
-    <aside class="cat-filters">
+  <div class="lib-body">
+    <aside class="lib-filters">
       <Section Title="Filters">
 
         <Field Label="Box kind">
@@ -63,30 +63,30 @@
       </Section>
     </aside>
 
-    <main class="cat-main">
-      <p class="cat-intro">
+    <main class="lib-main">
+      <p class="lib-intro">
         Every shape the pipeline can put in a box, emitted once and drawn mouth-up. The composer docks all
         four box edges; the other three orientations are the same shape turned, so only one is shown. Both
         handednesses are kept — a flip is an authored variant, not a viewing angle.
       </p>
 
-      @if (error is not null) { <p class="cat-status">@error</p> }
-      else if (loading) { <p class="cat-status">Emitting the catalog…</p> }
+      @if (error is not null) { <p class="lib-status">@error</p> }
+      else if (loading) { <p class="lib-status">Emitting the catalog…</p> }
       else
       {
-        <p class="cat-count">@Shown.Count of @total shape@(total == 1 ? string.Empty : "s")</p>
-        <div class="cat-grid">
+        <p class="lib-count">@Shown.Count of @total shape@(total == 1 ? string.Empty : "s")</p>
+        <div class="lib-grid">
           @foreach (var shape in Shown)
           {
-            <div class="cat-card cat-card--@shape.Tier">
-              <div class="cat-card-badges">
-                <span class="cat-badge cat-badge--family">@shape.Family</span>
-                <span class="cat-badge cat-badge--@shape.Tier" title="@TierHint(shape.Tier)">@TierLabel(shape.Tier)</span>
+            <div class="lib-card cat-card--@shape.Tier">
+              <div class="lib-card-badges">
+                <span class="lib-badge cat-badge--family">@shape.Family</span>
+                <span class="lib-badge cat-badge--@shape.Tier" title="@TierHint(shape.Tier)">@TierLabel(shape.Tier)</span>
               </div>
-              <button class="cat-card-fig" @onclick="() => OpenProbe(shape)"
+              <button class="lib-card-fig" @onclick="() => OpenProbe(shape)"
                       title="Open in the knob panel">@((MarkupString)shape.Svg)</button>
-              <div class="cat-card-foot">
-                <span class="cat-card-meta">@shape.BoxW×@shape.BoxH · w@(shape.CorridorCells)</span>
+              <div class="lib-card-foot">
+                <span class="lib-card-meta">@shape.BoxW×@shape.BoxH · w@(shape.CorridorCells)</span>
                 @foreach (var knob in shape.Knobs)
                 {
                   <span class="cat-knob">@knob</span>
@@ -94,24 +94,24 @@
               </div>
               @if (shape.Note is not null)
               {
-                <p class="cat-card-note">@shape.Note</p>
+                <p class="lib-card-note">@shape.Note</p>
               }
             </div>
           }
         </div>
-        @if (Shown.Count == 0) { <p class="cat-status">No shape matches these filters.</p> }
+        @if (Shown.Count == 0) { <p class="lib-status">No shape matches these filters.</p> }
       }
     </main>
 
     @if (probeOpen)
     {
-      <aside class="cat-probe">
-        <div class="cat-probe-head">
-          <span class="cat-probe-title">Knob panel</span>
-          <button class="cat-probe-x" @onclick="CloseProbe" title="Close"><i data-lucide="x" @key="@("probe-x")"></i></button>
+      <aside class="lib-rail">
+        <div class="lib-rail-head">
+          <span class="lib-rail-title">Knob panel</span>
+          <button class="lib-rail-x" @onclick="CloseProbe" title="Close"><i data-lucide="x" @key="@("probe-x")"></i></button>
         </div>
 
-        <div class="cat-probe-fig @(probe?.Rejection is null ? null : "cat-probe-fig--refused")">
+        <div class="lib-fig @(probe?.Rejection is null ? null : "cat-probe-fig--refused")">
           @if (probe?.Svg is { } svg) { @((MarkupString)svg) }
           else { <span class="cat-probe-none">no shape</span> }
         </div>

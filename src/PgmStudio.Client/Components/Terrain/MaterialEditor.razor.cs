@@ -1,7 +1,8 @@
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Components;
+using PgmStudio.Contracts;
 
-namespace PgmStudio.Client.Features.Sketch;
+namespace PgmStudio.Client.Components;
 
 /// <summary>
 /// The form behind one terrain-paint material (docs/world-export/terrain-painting.md §3). It reads and writes

@@ -61,7 +61,10 @@ One minor leak: the resolved intent that `SketchWorldBuilder` re-projects into t
 theme fields. This is harmless for painting — the paint already happened over the world using the input intent
 — but the re-projected intent no longer advertises the theme data it was built from.
 
-## 3. Persistence — themes and styles as first-class data (settled: B44)
+## 3. Persistence — themes and styles as first-class data (landed: B44)
+
+*Landed: the tables, the HTTP surface and the library page. The description below is the built shape; what
+remains of B44 is apply-as-snapshot (§3.2) and the data migration lifting existing inline blobs.*
 
 **Two concerns are currently conflated into one blob.** There is the theme a map *uses* — the per-region
 scopes, map-specific, rightly stored with the map — and the *library* of reusable themes and styles to draw
@@ -81,15 +84,40 @@ A full theme is a theme row plus its four bindings, resolving to exactly the the
 consumes. This is the schema rule the rest of the map contract follows: real tables for entities that are
 listed and edited, JSON for the polymorphic leaves.
 
-**Apply is a snapshot, not a reference.** A map's applied theme copies the library theme at apply time, so a
-later library edit does not silently repaint a shipped map — the same "editing forks a copy" doctrine the
-generator's plan persistence uses. Authoring and browsing happen in the library; the map carries a frozen
-instance in its own scope store.
+### 3.1 Browsing a library means seeing it
 
-This is task **B44**: the `style` and `theme`/`theme_bucket` tables, the read/write path, a migration that
-lifts existing inline-blob themes into styles + themes + bindings (deduping identical materials), and the
-retirement of the Client↔server theme-material duplication (`ThemeVocabulary` vs the server `TerrainThemeJson`
-model) — the style/material schema becomes the one source both sides read.
+A library of named JSON blobs is not browsable, so every entry carries a picture rendered through the real
+painter and the export's own block palette. One picture does not serve every kind, because a material varies
+along two axes and no single view shows both: a voronoi, a noise field and a wall run vary **across the
+ground**, so they read from above; a layer stack varies **with depth**, so from above it is one flat colour
+and only a section shows its layers at all. A style card takes the view that shows its kind something, and the
+editor shows both.
+
+A theme needs neither view, because a theme is a geometry decision as much as a set of materials — which
+bucket claims which course. Its picture is a **sample plateau painted with it and cut open**: two ground
+levels with void either side, the outer columns void-facing edges (a rim capping a full-height wall), the step
+between them a terrain-facing edge, the interiors surface over fill, the bottom course bedrock. The sample is
+classified by the real `TerrainProfile` and painted by `TerrainPainter.ColumnBlocks`, so a rim depth, a
+switched-off wall or a bedrock floor moves the picture exactly as it moves the world. Its right half is
+team-owned, so a tint shows beside its neutral fallback.
+
+Because the pictures travel with the rows they describe, they have to be small: the raster emits one rect per
+**rectangle** of one colour rather than one per cell, merging along a row and then down the rows that repeat
+it. A solid style is one rect, a stack one per layer, a wall run one per stripe.
+
+### 3.2 A theme overrides the buckets it names
+
+A theme binds the buckets it wants to change and leaves the rest: an unbound bucket keeps the built-in finish
+rather than being unpaintable. That is the shape the library exists for — a rim and a fill bound once and
+reused, with only the surface and the wall differing between a map's themes.
+
+### 3.3 Apply is a snapshot, not a reference (open)
+
+A map's applied theme copies the library theme at apply time, so a later library edit does not silently
+repaint a shipped map — the same "editing forks a copy" doctrine the generator's plan persistence uses. The
+sketch's Theme phase already works this way in both directions: pulling a library theme in copies its JSON
+into a sketch theme, and pushing one out lifts it into the library as one style per bucket. What remains is
+the map's own applied scope store carrying a frozen instance rather than the sketch document's registry.
 
 ## 4. The finishing pass belongs on the sketch, not the plan (landed)
 

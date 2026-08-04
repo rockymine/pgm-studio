@@ -1,0 +1,19 @@
+/* Style & theme library (B44) — the browse-library shell (library.css) plus what this subject needs: a card
+   that reads as picked while its editor is open, a wider cell for the theme cross-sections, and the bucket
+   binding row (a style select with the style's own picture beside it). */
+
+.lib-card--picked { border-color: var(--accent); }
+
+/* A style swatch is square and a theme's cut-open plateau is wide, so the theme grid takes the wider cell. */
+.lib-grid--wide { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+
+/* The section view is short and wide; letting it fill the rail's height would stretch a 13-course figure. */
+.lib-fig--section svg { max-height: 160px; }
+
+.lib-bind { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.lib-bind .field-input { flex: 1 1 auto; min-width: 0; }
+.lib-bind-swatch {
+  flex: 0 0 auto; width: 2.25rem; height: 2.25rem; overflow: hidden;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--canvas);
+}
+.lib-bind-swatch svg { width: 100%; height: 100%; display: block; }

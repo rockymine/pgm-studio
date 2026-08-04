@@ -30,11 +30,12 @@
     }
     @if (Picked is not null)
     {
+      <div class="theme-section-figure">@((MarkupString)(Preview?.Section ?? ""))</div>
       <div class="theme-apply-swatches">
-        @foreach (var bucket in new[] { "surface", "wall", "rim", "fill" })
+        @foreach (var bucket in ThemeBuckets.All)
         {
           <figure class="theme-apply-swatch">
-            <div class="theme-swatch-img">@((MarkupString)(Swatches.GetValueOrDefault(bucket) ?? ""))</div>
+            <div class="theme-swatch-img">@((MarkupString)Swatch(bucket))</div>
             <figcaption>@bucket</figcaption>
           </figure>
         }

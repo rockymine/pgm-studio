@@ -1,0 +1,104 @@
+@namespace PgmStudio.Client.Features.Library
+
+@* The library's style half: every reusable material recipe as a card of what it paints, filtered by kind, with
+   the picked one open in the rail on the right. The editor is the same <MaterialEditor> the sketch's theme
+   phase uses — a style IS a material, so there is one form for both and no second way to author one. *@
+
+<div class="lib-body">
+  <aside class="lib-filters">
+    <Section Title="Kind">
+      <p class="section-desc">What the material varies by. A style is browsed by kind because that is the
+        question an author starts from — "show me every voronoi".</p>
+      <div class="filter-group-options">
+        @foreach (var (id, name) in MaterialKind.All)
+        {
+          <Chip Active="kindFilter.Contains(id)" @key="id" OnClick="() => ToggleKind(id)">
+            @name<span class="filter-chip-n">@CountOf(id)</span>
+          </Chip>
+        }
+      </div>
+      @if (kindFilter.Count > 0)
+      {
+        <Button Full OnClick="ClearKinds">Clear filters</Button>
+      }
+    </Section>
+
+    <Section Title="New style">
+      <p class="section-desc">Start one of each kind from a default that shows what the kind does, then edit it
+        in the rail and save.</p>
+      <div class="filter-group-options">
+        @foreach (var (id, name) in MaterialKind.All)
+        {
+          <Chip @key="@($"new-{id}")" OnClick="() => StartNew(id)">@name</Chip>
+        }
+      </div>
+    </Section>
+  </aside>
+
+  <main class="lib-main">
+    <p class="lib-intro">
+      A style is one named material recipe — a solid block, a layer stack, a team tint or one of the patterns —
+      and it is the unit a theme reuses. Each card shows the style rendered through the real painter and the
+      export's own palette, so the picture is the paint that will land.
+    </p>
+
+    @if (error is not null) { <p class="lib-status">@error</p> }
+    else if (loading) { <p class="lib-status">Reading the library…</p> }
+    else
+    {
+      <p class="lib-count">@Shown.Count of @styles.Count style@(styles.Count == 1 ? string.Empty : "s")</p>
+      <div class="lib-grid">
+        @foreach (var style in Shown)
+        {
+          <div class="lib-card @(style.Id == editingId ? "lib-card--picked" : null)" @key="style.Id">
+            <div class="lib-card-badges">
+              <span class="lib-badge">@MaterialKind.NameOf(style.Kind)</span>
+            </div>
+            <button class="lib-card-fig" @onclick="() => Edit(style)" title="Open in the editor">
+              @((MarkupString)style.Preview)
+            </button>
+            <div class="lib-card-foot">
+              <span class="lib-card-meta">@style.Name</span>
+            </div>
+          </div>
+        }
+      </div>
+      @if (Shown.Count == 0 && styles.Count > 0) { <p class="lib-status">No style of that kind yet.</p> }
+      @if (styles.Count == 0) { <p class="lib-status">The library is empty — start a style on the left.</p> }
+    }
+  </main>
+
+  @if (draft is not null)
+  {
+    <aside class="lib-rail">
+      <div class="lib-rail-head">
+        <span class="lib-rail-title">@(editingId is null ? "New style" : "Edit style")</span>
+        <button class="lib-rail-x" @onclick="Close" title="Close"><i data-lucide="x" @key="@("style-x")"></i></button>
+      </div>
+
+      <figure class="lib-fig">@((MarkupString)(preview?.Plan ?? ""))</figure>
+      <figure class="lib-fig lib-fig--section">@((MarkupString)(preview?.Section ?? ""))</figure>
+      <p class="section-desc">Above: one course from above, the left half of the ground neutral and the right
+        half a team's. Below: the same material cut open downward, one row per course.</p>
+
+      <Field Label="Name">
+        <input class="field-input" placeholder="a name you will recognise" @bind="draftName" @bind:event="oninput" />
+      </Field>
+
+      <MaterialEditor Node="draft" Blocks="blocks" OnChanged="DraftEdited" />
+
+      @if (note is not null) { <p class="section-desc">@note</p> }
+
+      <div class="panel-actions">
+        <Button Variant="primary" Icon="save" Disabled="@(!CanSave)" OnClick="Save">
+          @(editingId is null ? "Add to library" : "Save changes")
+        </Button>
+        @if (editingId is not null)
+        {
+          <Button Icon="copy" OnClick="SaveAsCopy">Save as copy</Button>
+          <Button Variant="danger" Icon="trash-2" OnClick="Delete">Delete</Button>
+        }
+      </div>
+    </aside>
+  }
+</div>

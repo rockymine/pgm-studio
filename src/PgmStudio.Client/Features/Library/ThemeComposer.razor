@@ -1,0 +1,154 @@
+@namespace PgmStudio.Client.Features.Library
+
+@* The library's theme half: a theme is four buckets bound to styles plus the geometry knobs, so it is composed
+   rather than drawn — pick a style per bucket, and the card is the sample plateau that composition finishes. *@
+
+<div class="lib-body">
+  <aside class="lib-filters">
+    <Section Title="New theme">
+      <p class="section-desc">A theme starts bound to nothing and paints the built-in finish. Bind the buckets
+        you want to change and leave the rest — an unbound bucket keeps the default.</p>
+      <div class="panel-actions">
+        <input class="field-input" placeholder="name" @bind="newName" @bind:event="oninput" />
+        <Button Icon="plus" Disabled="@(string.IsNullOrWhiteSpace(newName))" OnClick="StartNew">Add</Button>
+      </div>
+    </Section>
+
+    <Section Title="Styles">
+      <p class="section-desc">A theme can only bind styles the library already holds — @styles.Count saved.</p>
+      <Button Full Href="/library/styles" Icon="paintbrush">Author a style</Button>
+    </Section>
+  </aside>
+
+  <main class="lib-main">
+    <p class="lib-intro">
+      A theme is the whole finish: one style per bucket — the rim capping every edge, the wall on the riser
+      under it, the surface band, the fill body — plus how deep the bedrock floor reaches and which faces count
+      as an edge. Each card is a sample plateau painted with the theme and cut open.
+    </p>
+
+    @if (loading) { <p class="lib-status">Reading the library…</p> }
+    else
+    {
+      <p class="lib-count">@themes.Count theme@(themes.Count == 1 ? string.Empty : "s")</p>
+      <div class="lib-grid lib-grid--wide">
+        @foreach (var theme in themes)
+        {
+          <div class="lib-card @(theme.Id == editingId ? "lib-card--picked" : null)" @key="theme.Id">
+            <button class="lib-card-fig" @onclick="() => Edit(theme.Id)" title="Open in the editor">
+              @((MarkupString)theme.Preview)
+            </button>
+            <div class="lib-card-foot">
+              <span class="lib-card-meta">@theme.Name</span>
+            </div>
+          </div>
+        }
+      </div>
+      @if (themes.Count == 0) { <p class="lib-status">No themes yet — start one on the left.</p> }
+    }
+  </main>
+
+  @if (draft is not null)
+  {
+    <aside class="lib-rail">
+      <div class="lib-rail-head">
+        <span class="lib-rail-title">@(editingId is null ? "New theme" : "Edit theme")</span>
+        <button class="lib-rail-x" @onclick="Close" title="Close"><i data-lucide="x" @key="@("theme-x")"></i></button>
+      </div>
+
+      <figure class="lib-fig lib-fig--section">@((MarkupString)(preview?.Section ?? ""))</figure>
+      <p class="section-desc">The sample plateau this composition finishes: two ground levels with void either
+        side, the right half owned by a team so a tint shows beside its neutral fallback.</p>
+
+      <Field Label="Name">
+        <input class="field-input" @bind="draftName" @bind:event="oninput" />
+      </Field>
+
+      @foreach (var bucket in ThemeBucketInfo.All)
+      {
+        var binding = Binding(bucket.Id);
+        <Section Title="@bucket.Title" Variant="list" @key="bucket.Id">
+          <Actions>
+            @if (bucket.CanDisable && binding.StyleId != 0)
+            {
+              <Chip Active="binding.Enabled" OnClick="() => ToggleBucket(bucket.Id)">
+                @(binding.Enabled ? "Painting" : "Off")
+              </Chip>
+            }
+            else if (!bucket.CanDisable)
+            {
+              <Badge Kind="dim">always paints</Badge>
+            }
+          </Actions>
+          <ChildContent>
+            <p class="section-desc">@bucket.Blurb</p>
+            <div class="lib-bind">
+              <select class="field-input field-input--slim" value="@binding.StyleId"
+                      @onchange="e => BindStyle(bucket.Id, e)">
+                <option value="0">(built-in default)</option>
+                @foreach (var group in StylesByKind)
+                {
+                  <optgroup label="@MaterialKind.NameOf(group.Key)" @key="group.Key">
+                    @foreach (var style in group) { <option value="@style.Id">@style.Name</option> }
+                  </optgroup>
+                }
+              </select>
+              @if (StyleOf(binding.StyleId) is { } bound)
+              {
+                <span class="lib-bind-swatch">@((MarkupString)bound.Preview)</span>
+              }
+            </div>
+            @if (bucket.HasDepth && binding.StyleId != 0)
+            {
+              <Field Label="Courses deep">
+                <input class="field-input field-input--slim" type="number" min="1" step="1"
+                       value="@binding.Depth" @onchange="e => SetDepth(bucket.Id, e)" />
+              </Field>
+            }
+            @if (binding.StyleId != 0 && !binding.Enabled)
+            {
+              <p class="section-desc">Off — its blocks fall through to @bucket.FallsTo.</p>
+            }
+          </ChildContent>
+        </Section>
+      }
+
+      <Section Title="Ground and edges" Variant="list">
+        <p class="section-desc">How far down the paint reaches, and which faces count as an edge worth capping.</p>
+        <Field Label="Bedrock floor">
+          <div class="panel-actions">
+            <select class="field-input field-input--slim" value="@BedrockMode" @onchange="SetBedrockMode">
+              <option value="@AbsoluteBedrock">blocks up from the bottom</option>
+              <option value="@RelativeBedrock">everything under the painted depth</option>
+            </select>
+            <input class="field-input field-input--slim" type="number" min="0" step="1"
+                   value="@draft.BedrockValue" @onchange="SetBedrockValue" />
+          </div>
+        </Field>
+        <Field Label="Where the rim runs">
+          <Chip Active="draft.Closed" OnClick="ToggleClosed">
+            @(draft.Closed ? "Every plateau boundary" : "Only where the ground drops")
+          </Chip>
+        </Field>
+        <Field Label="Where the wall runs">
+          <Chip Active="draft.WallOnTerrainFaces" OnClick="ToggleWallFaces">
+            @(draft.WallOnTerrainFaces ? "Terrain and void risers" : "Only risers facing the void")
+          </Chip>
+        </Field>
+      </Section>
+
+      @if (note is not null) { <p class="section-desc">@note</p> }
+
+      <div class="panel-actions">
+        <Button Variant="primary" Icon="save" Disabled="@(string.IsNullOrWhiteSpace(draftName))" OnClick="Save">
+          @(editingId is null ? "Add to library" : "Save changes")
+        </Button>
+        @if (editingId is not null)
+        {
+          <Button Icon="copy" OnClick="SaveAsCopy">Save as copy</Button>
+          <Button Variant="danger" Icon="trash-2" OnClick="Delete">Delete</Button>
+        }
+      </div>
+    </aside>
+  }
+</div>

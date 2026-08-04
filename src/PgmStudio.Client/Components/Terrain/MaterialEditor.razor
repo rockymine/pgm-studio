@@ -1,4 +1,4 @@
-@namespace PgmStudio.Client.Features.Sketch
+@namespace PgmStudio.Client.Components
 
 @* One terrain-paint material, edited as a form (docs/world-export/terrain-painting.md §3). A material is
    recursive — a pattern's palette entry, a tint's neutral fallback, a stack's layer are themselves materials —
@@ -9,7 +9,7 @@
   <div class="material-editor-head">
     @if (Label is not null) { <span class="material-editor-label">@Label</span> }
     <select class="field-input field-input--slim" value="@Kind" @onchange="ChangeKind">
-      @foreach (var kind in MaterialKinds.All)
+      @foreach (var kind in MaterialKind.All)
       {
         <option value="@kind.Id" @key="kind.Id">@kind.Name</option>
       }
@@ -23,18 +23,18 @@
   <div class="material-editor-body">
     @switch (Kind)
     {
-      case MaterialKinds.Solid:
+      case MaterialKind.Solid:
         <BlockPicker Blocks="Blocks" Id="@Int(ThemeFields.Id, 1)" Data="@Int(ThemeFields.Data, 0)" OnPick="PickSolid" />
         break;
 
-      case MaterialKinds.TeamTint:
+      case MaterialKind.TeamTint:
         <p class="material-editor-note">Takes the owning team's colour on the same 0–15 scale as wool, so the
           block has to be one that colours by damage. Land with no team falls through to the neutral material.</p>
         <BlockPicker Blocks="Blocks" Id="@Int(ThemeFields.BlockId, 159)" Data="0" ShowColors="false" OnPick="PickTintBlock" />
         <MaterialEditor Nested Label="Neutral land" Blocks="Blocks" Node="Neutral" OnChanged="Changed" />
         break;
 
-      case MaterialKinds.Layered:
+      case MaterialKind.Layered:
         <p class="material-editor-note">A stack claimed downward from the top of the band — grass over two
           dirt. The last layer repeats past the bottom of the stack, so a deeper band never falls through.</p>
         @foreach (var layer in List(ThemeFields.Layers))
@@ -51,7 +51,7 @@
         <Button Icon="plus" OnClick="AddLayer">Add layer</Button>
         break;
 
-      case MaterialKinds.Voronoi:
+      case MaterialKind.Voronoi:
         <p class="material-editor-note">Irregular patches roughly one patch-size across, each taking a material
           from the palette. Deterministic — the same seed always paints the same regions.</p>
         <div class="material-editor-scalars">
@@ -72,7 +72,7 @@
         <Button Icon="plus" OnClick="AddPaletteEntry">Add patch material</Button>
         break;
 
-      case MaterialKinds.Noise:
+      case MaterialKind.Noise:
         <p class="material-editor-note">A smooth fractal field mapped through the stops in order — the first
           stop takes the lowest band of the field. More octaves give a cloudier, finer-grained result.</p>
         <div class="material-editor-scalars">
@@ -97,7 +97,7 @@
         <Button Icon="plus" OnClick="AddStop">Add stop</Button>
         break;
 
-      case MaterialKinds.WallRun:
+      case MaterialKind.WallRun:
         <p class="material-editor-note">Stripes running along the wall that wrap the whole void-facing
           perimeter, corners included. Widths are in wall cells and the stripes repeat in order.</p>
         @foreach (var run in List(ThemeFields.Runs))
