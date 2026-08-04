@@ -64,12 +64,12 @@ theme fields. This is harmless for painting — the paint already happened over 
 ## 3. Persistence — themes and styles as first-class data (landed: B44)
 
 *Landed: the tables, the HTTP surface and the library page. The description below is the built shape; what
-remains of B44 is apply-as-snapshot (§3.2) and the data migration lifting existing inline blobs.*
+remains of B44 is apply-as-snapshot (§3.3) and the data migration lifting existing inline blobs.*
 
-**Two concerns are currently conflated into one blob.** There is the theme a map *uses* — the per-region
-scopes, map-specific, rightly stored with the map — and the *library* of reusable themes and styles to draw
-from — cross-map, browsable. Today both are the same JSON, so the library does not exist: there is no way to
-find "every voronoi pattern," and every author rebuilds the built-in default by hand.
+**Two concerns, two homes.** There is the theme a map *uses* — the per-region scopes, map-specific, stored
+with the map — and the *library* of reusable themes and styles to draw from, which is cross-map and browsable.
+Collapsing both into one JSON blob is what made "every voronoi pattern" unaskable and left every author
+rebuilding the built-in default by hand, so the library is relational and the map's use of it is not.
 
 **A style is the reusable unit.** The theme JSON already contains the decomposition — a theme binds a material
 to each of its four buckets, and a material is the polymorphic, nestable leaf. Lifting the material into its
@@ -110,6 +110,12 @@ it. A solid style is one rect, a stack one per layer, a wall run one per stripe.
 A theme binds the buckets it wants to change and leaves the rest: an unbound bucket keeps the built-in finish
 rather than being unpaintable. That is the shape the library exists for — a rim and a fill bound once and
 reused, with only the surface and the wall differing between a map's themes.
+
+Authoring happens at `/library`, in two halves that match the two rows. Styles are filtered by kind and edited
+through the same material form the sketch's Theme phase uses, since a style *is* a material and a second way to
+author one is a second thing to keep in step. Themes are composed rather than drawn: a style per bucket, its
+depth and toggle, the geometry knobs, and a preview of the composition that goes through the same request the
+save would — so the picture cannot promise a theme the save would not produce.
 
 ### 3.3 Apply is a snapshot, not a reference (open)
 

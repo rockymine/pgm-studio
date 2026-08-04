@@ -26,7 +26,6 @@ public partial class StyleBrowser
     private IReadOnlyList<PaintBlockDto> blocks = [];
     private readonly HashSet<string> kindFilter = [];
     private bool loading = true;
-    private string? error;
     private string? note;
 
     /// <summary>The material node open in the rail, or null when nothing is being edited. Null id = a style
@@ -58,7 +57,6 @@ public partial class StyleBrowser
         loading = true;
         styles = await Library.StylesAsync();
         loading = false;
-        error = null;
         StateHasChanged();
     }
 

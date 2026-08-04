@@ -42,8 +42,7 @@
       export's own palette, so the picture is the paint that will land.
     </p>
 
-    @if (error is not null) { <p class="lib-status">@error</p> }
-    else if (loading) { <p class="lib-status">Reading the library…</p> }
+    @if (loading) { <p class="lib-status">Reading the library…</p> }
     else
     {
       <p class="lib-count">@Shown.Count of @styles.Count style@(styles.Count == 1 ? string.Empty : "s")</p>
