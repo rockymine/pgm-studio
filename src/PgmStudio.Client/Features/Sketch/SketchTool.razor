@@ -27,6 +27,7 @@
       <NavButton Icon="book-open-text" Title="Info" Active="@InfoActive" OnClick="GoInfo" />
       <NavButton Icon="pencil-ruler" Title="Draw" Active="@DrawActive" OnClick="GoDraw" />
       <NavButton Icon="palette" Title="Theme" Active="@(ThemeCreateActive || ThemeApplyActive)" OnClick="GoTheme" />
+      <NavButton Icon="trees" Title="Dressing" Active="@(DressingCreateActive || DressingApplyActive)" OnClick="GoDressing" />
     </NavRail>
   </Rail>
   <ChildContent>
@@ -40,15 +41,25 @@
       {
         <SketchThemePhase Handle="handle" OnApply="EnterThemeApply" OnBack="GoDraw" />
       }
+      @if (DressingCreateActive)
+      {
+        <SketchDressingPhase Handle="handle" OnApply="EnterDressingApply" OnBack="GoDraw" />
+      }
       @* Draw + Theme-Apply share the one mounted canvas, so this body stays present (hidden when Info/Create
          is up) — [hidden] is display:none, and the canvas re-measures on unhide. Theme-Apply swaps the sidebar
          (island tree + theme controls) and hides the draw toolbar/inspector; the canvas is reused as-is. *@
-      <div class="phase-body" hidden="@(!(DrawActive || ThemeApplyActive))">
+      <div class="phase-body" hidden="@(!(DrawActive || ScopeApplyActive))">
       @if (ThemeApplyActive)
       {
         <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Theme"
                  Steps="ThemeSteps" CurrentStep="1" BackEnabled="true" NextLabel="Done" NextEnabled="true"
                  OnStep="@(i => i == 0 ? BackToThemeCreate() : Task.CompletedTask)" OnBack="BackToThemeCreate" OnNext="GoDraw" />
+      }
+      else if (DressingApplyActive)
+      {
+        <FlowBar Class="flow-bar--flush" PhaseIcon="trees" PhaseTitle="Dressing"
+                 Steps="DressingSteps" CurrentStep="1" BackEnabled="true" NextLabel="Done" NextEnabled="true"
+                 OnStep="@(i => i == 0 ? BackToDressingCreate() : Task.CompletedTask)" OnBack="BackToDressingCreate" OnNext="GoDraw" />
       }
       else
       {
@@ -58,12 +69,20 @@
       }
       <Workspace>
         <Sidebar>
-          @if (ThemeApplyActive)
+          @if (ScopeApplyActive)
           {
             <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="selectedShapeId" SelectedIslandId="selectedIslandId"
                          OnSelectShape="SelectShape" OnSelectIsland="SelectIsland" />
-            <SketchThemeApplyRail Handle="handle" SelectedIslandId="@selectedIslandId" SelectedShapeId="@selectedShapeId"
-                                  TargetShapeIds="ThemeTargetShapeIds" />
+            @if (ThemeApplyActive)
+            {
+              <SketchThemeApplyRail Handle="handle" SelectedIslandId="@selectedIslandId" SelectedShapeId="@selectedShapeId"
+                                    TargetShapeIds="ScopeTargetShapeIds" />
+            }
+            else
+            {
+              <SketchDressingApplyRail Handle="handle" SelectedIslandId="@selectedIslandId" SelectedShapeId="@selectedShapeId"
+                                       TargetShapeIds="ScopeTargetShapeIds" />
+            }
           }
           else
           {
@@ -84,7 +103,7 @@
                       @onclick='() => SetTool("move")'><i data-lucide="hand"></i></button>
               <button class="draw-tool-btn @(tool == "select" ? "draw-tool-btn--active" : null)" title="@SelectToolTitle"
                       @onclick='() => SetTool("select")'><i data-lucide="mouse-pointer-2"></i></button>
-              @if (!ThemeApplyActive)
+              @if (!ScopeApplyActive)
               {
               <button class="draw-tool-btn @(tool == "rectangle" ? "draw-tool-btn--active" : null)" title="Rectangle"
                       @onclick='() => SetTool("rectangle")'><i data-lucide="rectangle-horizontal"></i></button>
@@ -134,7 +153,7 @@
             <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
           </div>
         </div>
-        @if (!ThemeApplyActive)
+        @if (!ScopeApplyActive)
         {
           <div class="sidebar-handle"></div>
           <SketchInspector Shape="SelectedShape" Island="SelectedIsland" Shapes="shapes"

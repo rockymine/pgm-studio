@@ -130,18 +130,18 @@ public partial class SketchThemePhase
 
     private Bucket TopBand(ThemeBucketInfo info)
     {
-        var band = ThemeNode.Child(Theme!, info.Id, () => new JsonObject
+        var band = JsonEdit.Child(Theme!, info.Id, () => new JsonObject
         {
             [ThemeFields.Material] = ThemeFields.Solid(1),
             [ThemeFields.Depth] = 1,
             [ThemeFields.Enabled] = true,
         });
         return new Bucket(
-            info, ThemeNode.Bool(band, ThemeFields.Enabled, true),
+            info, JsonEdit.Bool(band, ThemeFields.Enabled, true),
             EventCallback.Factory.Create(this, () => ToggleBand(band)),
-            ThemeNode.Int(band, ThemeFields.Depth, 1),
+            JsonEdit.Int(band, ThemeFields.Depth, 1),
             EventCallback.Factory.Create<ChangeEventArgs>(this, e => SetBandDepth(band, e)),
-            ThemeNode.Child(band, ThemeFields.Material, () => ThemeFields.Solid(1)));
+            JsonEdit.Child(band, ThemeFields.Material, () => ThemeFields.Solid(1)));
     }
 
     // The wall's depth is the riser it finds and the fill takes what is left, so neither carries one; the wall's
@@ -151,27 +151,27 @@ public partial class SketchThemePhase
         !info.CanDisable || Flag(ThemeFields.WallEnabled, true),
         info.CanDisable ? EventCallback.Factory.Create(this, ToggleWall) : EventCallback.Empty,
         Depth: 0, EventCallback.Factory.Create<ChangeEventArgs>(this, _ => Task.CompletedTask),
-        ThemeNode.Child(Theme, info.Id, () => ThemeFields.Solid(1)));
+        JsonEdit.Child(Theme, info.Id, () => ThemeFields.Solid(1)));
 
     private Task ToggleBand(JsonObject band)
     {
-        ThemeNode.Set(band, ThemeFields.Enabled, !ThemeNode.Bool(band, ThemeFields.Enabled, true));
+        JsonEdit.Set(band, ThemeFields.Enabled, !JsonEdit.Bool(band, ThemeFields.Enabled, true));
         return ThemeEdited();
     }
 
     private Task SetBandDepth(JsonObject band, ChangeEventArgs e)
     {
-        ThemeNode.Set(band, ThemeFields.Depth, Math.Max(1, ParseInt(e, 1)));
+        JsonEdit.Set(band, ThemeFields.Depth, Math.Max(1, ParseInt(e, 1)));
         return ThemeEdited();
     }
 
     // ── theme-level knobs ──────────────────────────────────────────────────────────────────────────
-    private bool Flag(string field, bool fallback) => ThemeNode.Bool(Theme, field, fallback);
+    private bool Flag(string field, bool fallback) => JsonEdit.Bool(Theme, field, fallback);
 
     private Task ToggleFlag(string field, bool fallback)
     {
         if (Theme is null) return Task.CompletedTask;
-        ThemeNode.Set(Theme, field, !ThemeNode.Bool(Theme, field, fallback));
+        JsonEdit.Set(Theme, field, !JsonEdit.Bool(Theme, field, fallback));
         return ThemeEdited();
     }
 
@@ -179,25 +179,25 @@ public partial class SketchThemePhase
     private Task ToggleClosed() => ToggleFlag(ThemeFields.Closed, false);
     private Task ToggleWallFaces() => ToggleFlag(ThemeFields.WallOnTerrainFaces, true);
 
-    private JsonObject BedrockNode => ThemeNode.Child(Theme!, ThemeFields.Bedrock,
+    private JsonObject BedrockNode => JsonEdit.Child(Theme!, ThemeFields.Bedrock,
         () => new JsonObject { [ThemeFields.Relative] = false, [ThemeFields.Value] = 1 });
 
     private string BedrockMode =>
-        Theme is not null && ThemeNode.Bool(BedrockNode, ThemeFields.Relative, false) ? RelativeBedrock : AbsoluteBedrock;
+        Theme is not null && JsonEdit.Bool(BedrockNode, ThemeFields.Relative, false) ? RelativeBedrock : AbsoluteBedrock;
 
-    private int BedrockValue => Theme is null ? 1 : ThemeNode.Int(BedrockNode, ThemeFields.Value, 1);
+    private int BedrockValue => Theme is null ? 1 : JsonEdit.Int(BedrockNode, ThemeFields.Value, 1);
 
     private Task SetBedrockMode(ChangeEventArgs e)
     {
         if (Theme is null) return Task.CompletedTask;
-        ThemeNode.Set(BedrockNode, ThemeFields.Relative, (string?)e.Value == RelativeBedrock);
+        JsonEdit.Set(BedrockNode, ThemeFields.Relative, (string?)e.Value == RelativeBedrock);
         return ThemeEdited();
     }
 
     private Task SetBedrockValue(ChangeEventArgs e)
     {
         if (Theme is null) return Task.CompletedTask;
-        ThemeNode.Set(BedrockNode, ThemeFields.Value, Math.Max(0, ParseInt(e, 1)));
+        JsonEdit.Set(BedrockNode, ThemeFields.Value, Math.Max(0, ParseInt(e, 1)));
         return ThemeEdited();
     }
 

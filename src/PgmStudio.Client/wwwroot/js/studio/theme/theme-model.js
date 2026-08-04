@@ -21,10 +21,12 @@ export function defaultThemeJson() {
   };
 }
 
-/** A slug-safe id unique among `existing`: the trimmed base slug, then base-2, base-3, … */
-export function uniqueThemeId(existing, base) {
+/** A slug-safe id unique among `existing`: the trimmed base slug, then base-2, base-3, … Shared by every
+ *  named scope a sketch carries — themes and dressings alike — since the slugging is the same question and a
+ *  second copy would drift on the first edge case (an empty name, a name of only punctuation). */
+export function uniqueScopeId(existing, base) {
   const taken = new Set(existing);
-  const slug = ((base || "theme").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")) || "theme";
+  const slug = ((base || "scope").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")) || "scope";
   if (!taken.has(slug)) return slug;
   for (let i = 2; ; i++) { const candidate = `${slug}-${i}`; if (!taken.has(candidate)) return candidate; }
 }

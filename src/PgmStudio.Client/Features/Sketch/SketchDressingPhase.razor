@@ -1,0 +1,219 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* Dressing (docs/world-export/decoration.md), two steps. Create defines named dressings — the ground cover,
+   the boulders and the trees a stretch of land grows, each previewed by growing it. Apply picks the map
+   default and assigns dressings to islands and shapes on the canvas. Edits go through the sketch-bridge onto
+   the sketch document, which the export runs the pass from. *@
+
+<div class="phase-body">
+  <FlowBar Class="flow-bar--flush" PhaseIcon="trees" PhaseTitle="Dressing"
+           Steps="@Steps" CurrentStep="0" BackEnabled="true" NextLabel="Apply →"
+           OnStep="OnStep" OnBack="OnBack" OnNext="OnApply" />
+  <Workspace>
+    <ContentColumn MaxWidth="720">
+      @if (State is null)
+      {
+        <Section><p class="section-desc">Loading dressings…</p></Section>
+      }
+      else
+      {
+        <Section Title="Dressings">
+          <p class="section-desc">A dressing is what a stretch of ground <em>grows</em> — the life on top of
+            the finish the theme gave it. Define one here, then place it on the map in the next step.</p>
+
+          @foreach (var id in State.Dressings.Keys)
+          {
+            <ListRow Compact Selected="@(id == Selected)" @key="id" OnClick="() => Select(id)">
+              <span class="list-label list-label--mono">@id</span>
+              @if (State.MapDressing == id) { <Badge Kind="neutral">map default</Badge> }
+            </ListRow>
+          }
+          @if (State.Dressings.Count == 0)
+          {
+            <p class="section-desc">No dressings yet — the map's terrain exports bare.</p>
+          }
+
+          <Field Label="New dressing">
+            <div class="panel-actions">
+              <input class="field-input" placeholder="name" @bind="NewName" @bind:event="oninput" />
+              <Button Icon="plus" OnClick="AddDressing">Add</Button>
+            </div>
+          </Field>
+        </Section>
+
+        @if (Selected is not null && Dressing is not null)
+        {
+          <Section Title="What it grows">
+            <p class="section-desc">A sample patch actually grown by the pass — from above, where the density
+              fields read, and cut open, where a tree's silhouette and a boulder's burial do. It grows on the
+              map's default finish, because what the paint leaves on top is what decides whether anything
+              grows at all.</p>
+            <div class="dressing-views">
+              <figure class="theme-section-figure">@((MarkupString)(Preview?.Plan ?? ""))</figure>
+              <figure class="theme-section-figure">@((MarkupString)(Preview?.Section ?? ""))</figure>
+            </div>
+            @if (Preview?.Counts is { } counts)
+            {
+              <p class="section-desc">@counts.Plants plants · @counts.Boulders boulders · @counts.Trees trees
+                on a @SampleLabel patch.</p>
+            }
+          </Section>
+
+          @foreach (var part in DressingPartInfo.All)
+          {
+            var on = JsonEdit.Has(Dressing, part.Id);
+            <Section Title="@part.Title" @key="part.Id">
+              <Actions>
+                @if (part.Affects) { <Badge Kind="warning">affects play</Badge> }
+                else { <Badge Kind="dim">cosmetic</Badge> }
+                <Chip Active="on" OnClick="() => TogglePart(part)">@(on ? "Growing" : "Off")</Chip>
+              </Actions>
+              <ChildContent>
+                <p class="section-desc">@part.Blurb</p>
+                @if (part.Affects)
+                {
+                  <p class="section-desc">Mirrored across the map's symmetry: the same cover for every team,
+                    by construction rather than by luck.</p>
+                }
+                @if (on)
+                {
+                  var node = JsonEdit.Child(Dressing, part.Id, part.New);
+                  @if (part.Id == DressingFields.Flora) { @FloraForm(node) }
+                  else if (part.Id == DressingFields.Boulders) { @BoulderForm(node) }
+                  else { @TreeForm(node) }
+                }
+              </ChildContent>
+            </Section>
+          }
+
+          <Section Title="This dressing">
+            <Field Label="Rename">
+              <div class="panel-actions">
+                <input class="field-input" placeholder="@Selected" @bind="RenameTo" />
+                <Button OnClick="RenameDressing">Rename</Button>
+                <Button Variant="danger" Icon="trash-2" OnClick="DeleteSelected">Delete</Button>
+              </div>
+            </Field>
+            <details class="theme-json-details">
+              <summary>Dressing JSON</summary>
+              <Field Error="@JsonError">
+                <textarea class="field-input theme-json" spellcheck="false" @bind="DressingJsonText"></textarea>
+              </Field>
+              <div class="panel-actions">
+                <Button Variant="primary" OnClick="ApplyDressingJson">Apply JSON</Button>
+              </div>
+            </details>
+          </Section>
+        }
+      }
+    </ContentColumn>
+  </Workspace>
+</div>
+
+@* ── the three part forms ──────────────────────────────────────────────────────────────────────────── *@
+
+@code {
+    private RenderFragment FloraForm(System.Text.Json.Nodes.JsonObject node) =>@<text>
+      <div class="material-editor-scalars">
+        <Field Label="Coverage"><LabelEnd><strong>@Pct(node, DressingFields.Coverage, 0.45)</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 value="@Slider(node, DressingFields.Coverage, 0.45)" @oninput="e => SetShare(node, DressingFields.Coverage, e)" /></ChildContent></Field>
+        <Field Label="Patch size"><LabelEnd><strong>@JsonEdit.Int(node, DressingFields.Scale, 12)</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="2" max="48" step="1"
+                 value="@JsonEdit.Int(node, DressingFields.Scale, 12)" @oninput="e => SetCount(node, DressingFields.Scale, e, 2, 48)" /></ChildContent></Field>
+      </div>
+      <div class="material-editor-scalars">
+        <Field Label="Fern share"><LabelEnd><strong>@Pct(node, DressingFields.FernShare, 0.25)</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 value="@Slider(node, DressingFields.FernShare, 0.25)" @oninput="e => SetShare(node, DressingFields.FernShare, e)" /></ChildContent></Field>
+        <Field Label="Flower fields"><LabelEnd><strong>@Pct(node, DressingFields.FlowerShare, 0.18)</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 value="@Slider(node, DressingFields.FlowerShare, 0.18)" @oninput="e => SetShare(node, DressingFields.FlowerShare, e)" /></ChildContent></Field>
+      </div>
+      <Field Label="Tall grass">
+        <LabelHint><span class="text-xs text-muted">@TallHint</span></LabelHint>
+        <ChildContent>
+          <input type="range" class="field-range" min="0" max="100" step="1"
+                 value="@Slider(node, DressingFields.TallShare, 0)" @oninput="e => SetShare(node, DressingFields.TallShare, e)" />
+        </ChildContent>
+        <LabelEnd><strong>@Pct(node, DressingFields.TallShare, 0)</strong></LabelEnd>
+      </Field>
+      @SeedField(node, 7)
+    </text>;
+
+    private RenderFragment BoulderForm(System.Text.Json.Nodes.JsonObject node) =>@<text>
+      <Field Label="Shape">
+        <div class="filter-group-options">
+          @foreach (var form in DressingFields.Forms)
+          {
+            <Chip Active="@(JsonEdit.Text(node, DressingFields.Form, "round") == form.Id)" @key="form.Id"
+                  OnClick="() => SetText(node, DressingFields.Form, form.Id)">@form.Name</Chip>
+          }
+        </div>
+      </Field>
+      <div class="material-editor-scalars">
+        <Field Label="How many"><LabelEnd><strong>@Pct(node, DressingFields.Density, 0.35)</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 value="@Slider(node, DressingFields.Density, 0.35)" @oninput="e => SetShare(node, DressingFields.Density, e)" /></ChildContent></Field>
+        <Field Label="Size spread"><LabelEnd><strong>@Pct(node, DressingFields.SizeSpread, 0.5)</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 value="@Slider(node, DressingFields.SizeSpread, 0.5)" @oninput="e => SetShare(node, DressingFields.SizeSpread, e)" /></ChildContent></Field>
+      </div>
+      <Field Label="Rock">
+        <BlockPicker Blocks="Blocks" Id="@JsonEdit.Int(node, DressingFields.BlockId, 1)"
+                     Data="@JsonEdit.Int(node, DressingFields.BlockData, 0)" OnPick="b => PickRock(node, b)" />
+      </Field>
+      <Field Label="Moss">
+        <Chip Active="@JsonEdit.Bool(node, DressingFields.Mossy, true)" OnClick="() => ToggleFlag(node, DressingFields.Mossy, true)">
+          @(JsonEdit.Bool(node, DressingFields.Mossy, true) ? "On the sky-lit faces" : "Bare rock")
+        </Chip>
+      </Field>
+      @SeedField(node, 17)
+    </text>;
+
+    private RenderFragment TreeForm(System.Text.Json.Nodes.JsonObject node) =>@<text>
+      <div class="material-editor-scalars">
+        <Field Label="How many"><LabelEnd><strong>@Pct(node, DressingFields.Density, 0.3)</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 value="@Slider(node, DressingFields.Density, 0.3)" @oninput="e => SetShare(node, DressingFields.Density, e)" /></ChildContent></Field>
+        <Field Label="Size spread"><LabelEnd><strong>@Pct(node, DressingFields.SizeSpread, 0.4)</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 value="@Slider(node, DressingFields.SizeSpread, 0.4)" @oninput="e => SetShare(node, DressingFields.SizeSpread, e)" /></ChildContent></Field>
+      </div>
+      <div class="material-editor-scalars">
+        <Field Label="Grove size"><LabelEnd><strong>@JsonEdit.Int(node, DressingFields.GroveScale, 28)</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="6" max="64" step="1"
+                 value="@JsonEdit.Int(node, DressingFields.GroveScale, 28)" @oninput="e => SetCount(node, DressingFields.GroveScale, e, 6, 64)" /></ChildContent></Field>
+        <Field Label="How much is wooded"><LabelEnd><strong>@Pct(node, DressingFields.GroveThreshold, 0.45)</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 value="@Slider(node, DressingFields.GroveThreshold, 0.45)" @oninput="e => SetShare(node, DressingFields.GroveThreshold, e)" /></ChildContent></Field>
+      </div>
+      <Field Label="Species">
+        <LabelHint><span class="text-xs text-muted">@SpeciesHint</span></LabelHint>
+        <ChildContent>
+        <div class="filter-group-options">
+          @foreach (var species in Species)
+          {
+            <Chip Active="@JsonEdit.Texts(node, DressingFields.Species).Contains(species.Name)" @key="species.Name"
+                  OnClick="() => ToggleSpecies(node, species.Name)">@species.Name</Chip>
+          }
+        </div>
+        </ChildContent>
+      </Field>
+      @SeedField(node, 23)
+    </text>;
+
+    private RenderFragment SeedField(System.Text.Json.Nodes.JsonObject node, int fallback) =>@<text>
+      <Field Label="Seed">
+        <LabelHint><span class="text-xs text-muted">@SeedHint</span></LabelHint>
+        <ChildContent>
+        <div class="panel-actions">
+          <input class="field-input field-input--slim" type="number" min="0" step="1"
+                 value="@JsonEdit.Int(node, DressingFields.Seed, fallback)"
+                 @onchange="e => SetCount(node, DressingFields.Seed, e, 0, int.MaxValue)" />
+          <Button Icon="refresh-cw" Title="Another arrangement, same knobs" OnClick="() => Reroll(node)">Reroll</Button>
+        </div>
+        </ChildContent>
+      </Field>
+    </text>;
+}

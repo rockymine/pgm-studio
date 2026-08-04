@@ -28,6 +28,17 @@ public sealed class TerrainLibraryClient(HttpClient http)
     public Task<ThemePreviewDto?> ThemePreviewAsync(string themeJson)
         => PostJsonDocument<ThemePreviewDto>("api/terrain/theme-preview", themeJson);
 
+    /// <summary>The tree species a dressing may draw from.</summary>
+    public async Task<IReadOnlyList<TreeSpeciesDto>> SpeciesAsync()
+        => await GetOrDefault<List<TreeSpeciesDto>>("api/terrain/species") ?? [];
+
+    /// <summary>A sample patch grown from a dressing recipe, from above and cut open. The theme is passed
+    /// because what the paint leaves on top is what decides whether flora grows at all — previewing against
+    /// the built-in default would promise a meadow the map's own finish would refuse.</summary>
+    public async Task<DressingPreviewDto?> DressingPreviewAsync(string dressingJson, string? themeJson)
+        => await ReadOrNull<DressingPreviewDto>(await http.PostAsJsonAsync(
+            "api/terrain/dressing-preview", new DressingPreviewRequest(dressingJson, themeJson)));
+
     // ── styles ──────────────────────────────────────────────────────────────────
     /// <summary>The style library, newest first; <paramref name="kind"/> narrows it to one material kind.</summary>
     public async Task<IReadOnlyList<StyleDto>> StylesAsync(string? kind = null)

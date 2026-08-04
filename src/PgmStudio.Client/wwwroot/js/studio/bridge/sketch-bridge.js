@@ -11,7 +11,9 @@ import { rectToPolygon, translateShape, rotateShape, boundsOfShapes, splitShape 
 import { surfaceHeights } from "../geometry/slope.js";
 import { LIBRARY, instantiate, libraryMeta } from "../geometry/shape-library.js";
 import { applySymmetry, orbitAxes } from "../geometry/symmetry.js";
-import { defaultThemeJson, uniqueThemeId } from "../theme/theme-model.js";
+import { defaultThemeJson, uniqueScopeId } from "../theme/theme-model.js";
+import { defaultDressingJson } from "../theme/dressing-model.js";
+import { fireTo } from "./fire.js";
 import polygonClipping from "../vendor/polygon-clipping.js";
 
 // Default footprint = 2-team landscape (120×80), framed about the origin. CTW maps fit a ~120-block long
@@ -48,10 +50,15 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // rides on the shape (`shape.theme`), assigned via the Theme phase and resolved at export.
   let themes = {};
   let mapTheme = "";
+  // Dressing (decoration.md) rides beside theming with the same shape: a map-global registry + default, and a
+  // per-shape override on `shape.dressing`. Two registries because the two are authored and reused apart — a
+  // desert's paint outlives the scrub growing on it.
+  let dressings = {};
+  let mapDressing = "";
   // Theme phase: the canvas is a selection surface only. Geometry is the Draw phase's to edit.
   let selectOnly = false;
 
-  const fire = (name, ...args) => { try { dotnetRef?.invokeMethodAsync(name, ...args); } catch { /* host may not wire it */ } };
+  const fire = (name, ...args) => fireTo(dotnetRef, name, ...args);
   const markDirty = () => fire("OnDirty", islands.length);
   const syncActive = () => { if (layers[active]) layers[active].shapes = canvas.getShapes(); };
 
@@ -405,6 +412,25 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // the continuous geometry stream (drag, resize) is worth coalescing.
   function afterThemeChange() { syncActive(); markDirty(); fire("OnThemes", themesState()); refreshPaint({ now: true }); }
 
+  // ── dressing (decoration.md) ────────────────────────────────────────────────
+  // The same three facts the Theme phase reads, for what grows on the ground rather than what it is made of.
+  function dressingsState() {
+    const shapeDressings = {};
+    syncActive();
+    for (const L of layers) for (const s of (L.shapes || [])) if (s.dressing) shapeDressings[s.id] = s.dressing;
+    return JSON.stringify({ dressings, mapDressing: mapDressing || "", shapeDressings });
+  }
+  // Unlike a theme edit, this does not repaint: the Blocks overlay shows the painter's surface colours, and
+  // dressing adds blocks *above* that surface which the overlay does not read.
+  function afterDressingChange() { syncActive(); markDirty(); fire("OnDressings", dressingsState()); }
+
+  // Set (or clear, with a falsy id) a shape's dressing override — the live canvas shape, so it persists on sync.
+  function setShapeDressing(shapeId, dressingId) {
+    const s = canvas.getShape(shapeId);
+    if (!s) return;
+    if (dressingId && dressings[dressingId]) s.dressing = dressingId; else delete s.dressing;
+  }
+
   // ── the painted Blocks overlay ─────────────────────────────────────────────
   // The Blocks toggle shows the blocks the export places, not an approximation of them: the live layout goes
   // to `sketch/paint`, which runs the real painter over it and returns one colour per footprint cell, and the
@@ -572,13 +598,13 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // ── terrain-paint themes (finishing-model.md §4) ──
     getThemes() { return themesState(); },
     defineTheme(name) {
-      const id = uniqueThemeId(Object.keys(themes), name || "theme");
+      const id = uniqueScopeId(Object.keys(themes), name || "theme");
       themes[id] = defaultThemeJson();
       afterThemeChange(); return id;
     },
     renameTheme(oldId, newId) {
       if (!themes[oldId]) return oldId;
-      const id = uniqueThemeId(Object.keys(themes).filter(k => k !== oldId), newId || oldId);
+      const id = uniqueScopeId(Object.keys(themes).filter(k => k !== oldId), newId || oldId);
       if (id === oldId) return oldId;
       themes[id] = themes[oldId]; delete themes[oldId];
       if (mapTheme === oldId) mapTheme = id;
@@ -608,12 +634,51 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       afterThemeChange();
     },
 
+    // ── dressing (decoration.md) ──
+    getDressings() { return dressingsState(); },
+    defineDressing(name) {
+      const id = uniqueScopeId(Object.keys(dressings), name || "dressing");
+      dressings[id] = defaultDressingJson();
+      afterDressingChange(); return id;
+    },
+    renameDressing(oldId, newId) {
+      if (!dressings[oldId]) return oldId;
+      const id = uniqueScopeId(Object.keys(dressings).filter(k => k !== oldId), newId || oldId);
+      if (id === oldId) return oldId;
+      dressings[id] = dressings[oldId]; delete dressings[oldId];
+      if (mapDressing === oldId) mapDressing = id;
+      for (const L of layers) for (const s of (L.shapes || [])) if (s.dressing === oldId) s.dressing = id;
+      afterDressingChange(); return id;
+    },
+    deleteDressing(id) {
+      if (!dressings[id]) return;
+      delete dressings[id];
+      if (mapDressing === id) mapDressing = "";
+      for (const L of layers) for (const s of (L.shapes || [])) if (s.dressing === id) delete s.dressing;
+      afterDressingChange();
+    },
+    // Replace a dressing's recipe JSON. Returns an error string on invalid JSON, else null.
+    setDressingJson(id, text) {
+      if (!dressings[id]) return "No such dressing.";
+      let parsed; try { parsed = JSON.parse(text); } catch (e) { return e?.message || "Invalid JSON"; }
+      dressings[id] = parsed; afterDressingChange(); return null;
+    },
+    setMapDressing(id) { mapDressing = (id && dressings[id]) ? id : ""; afterDressingChange(); },
+    assignShapeDressing(shapeId, dressingId) { setShapeDressing(shapeId, dressingId); afterDressingChange(); },
+    assignIslandDressing(islandId, dressingId) {
+      const isl = islandById(islandId); if (!isl) return;
+      for (const sid of (isl.shapeIds || [])) setShapeDressing(sid, dressingId);
+      afterDressingChange();
+    },
+
     // Load a persisted layout: setup + the layers[] array (or a legacy single layout → one layer at base_y 0).
     load(state) {
       const s = state ?? {};
       if (s.setup) applySetup(s.setup);
       themes = (s.themes && typeof s.themes === "object") ? s.themes : {};
       mapTheme = (s.mapTheme && themes[s.mapTheme]) ? s.mapTheme : "";
+      dressings = (s.dressings && typeof s.dressings === "object") ? s.dressings : {};
+      mapDressing = (s.mapDressing && dressings[s.mapDressing]) ? s.mapDressing : "";
       const raw = (s.layers && s.layers.length) ? s.layers : (s.layout ? [{ base_y: 0, layout: s.layout }] : []);
       // A layer's stored shapes are partitioned on load: role-tagged shapes are the plan's structural pieces
       // (S25) — carried as a locked render-only overlay, kept out of the drawn-shape pipeline (islands, raster,
@@ -651,6 +716,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         // own override rides on the shape below. Omitted when empty so an unthemed sketch serialises as before.
         themes: Object.keys(themes).length ? themes : undefined,
         mapTheme: mapTheme || undefined,
+        // Dressing rides the same way, and is likewise omitted when empty so an undressed sketch serialises
+        // exactly as it did before the phase existed.
+        dressings: Object.keys(dressings).length ? dressings : undefined,
+        mapDressing: mapDressing || undefined,
         layers: layers.map(L => ({
           id: L.id, name: L.name, base_y: L.baseY,
           layout: {

@@ -51,6 +51,20 @@ public static class BlockPalette
         [(168, 2)] = ("Dark Prismarine", new(51, 91, 75)),
         [(179, 1)] = ("Chiselled Red Sandstone", new(170, 92, 40)),
         [(179, 2)] = ("Smooth Red Sandstone", new(175, 98, 44)),
+
+        // Plants. Their base ids are all one generic plant-green, which makes a field of poppies and a field of
+        // dandelions the same picture — and the whole point of a flower field is its colour, so each shade of
+        // the flower blocks gets its own.
+        [(31, 1)] = ("Tall Grass", new(94, 156, 62)),
+        [(31, 2)] = ("Fern", new(72, 128, 54)),
+        [(37, 0)] = ("Dandelion", new(226, 205, 62)),
+        [(38, 0)] = ("Poppy", new(198, 62, 52)),
+        [(38, 1)] = ("Blue Orchid", new(84, 168, 214)),
+        [(38, 2)] = ("Allium", new(178, 138, 210)),
+        [(38, 3)] = ("Azure Bluet", new(214, 224, 232)),
+        [(38, 8)] = ("Oxeye Daisy", new(232, 236, 220)),
+        [(175, 2)] = ("Double Tall Grass", new(102, 164, 66)),
+        [(175, 3)] = ("Large Fern", new(78, 134, 58)),
     };
 
     /// <summary>Every (id, data) pair that names a variant block rather than a shade — what a picker offers so

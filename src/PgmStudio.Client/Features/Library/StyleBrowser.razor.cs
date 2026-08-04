@@ -42,7 +42,7 @@ public partial class StyleBrowser
 
     // The kind is whatever the material node says it is — the editor's kind switch rewrites the node wholesale,
     // so reading it back is the only way the two cannot disagree.
-    private string DraftKind => ThemeNode.KindOf(draft);
+    private string DraftKind => JsonEdit.KindOf(draft);
 
     private bool CanSave => draft is not null && !string.IsNullOrWhiteSpace(draftName);
 

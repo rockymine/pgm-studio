@@ -22,11 +22,11 @@ public partial class MaterialEditor
     /// <summary>Set only where the material is one entry of a list the author may shorten.</summary>
     [Parameter] public EventCallback OnRemove { get; set; }
 
-    private string Kind => ThemeNode.KindOf(Node);
-    private int Int(string field, int fallback) => ThemeNode.Int(Node, field, fallback);
+    private string Kind => JsonEdit.KindOf(Node);
+    private int Int(string field, int fallback) => JsonEdit.Int(Node, field, fallback);
     private Task Changed() => OnChanged.InvokeAsync();
 
-    private JsonObject Neutral => ThemeNode.Child(Node, ThemeFields.Neutral, () => ThemeFields.Solid(159, 8));
+    private JsonObject Neutral => JsonEdit.Child(Node, ThemeFields.Neutral, () => ThemeFields.Solid(159, 8));
 
     /// <summary>One entry of a material's child list, with everything the markup binds to. A pattern's entry
     /// is a bare material; a layer or a stripe wraps one with the extent it claims, which is what
@@ -45,20 +45,20 @@ public partial class MaterialEditor
 
     private IEnumerable<Entry> List(string field)
     {
-        var array = ThemeNode.Array(Node, field);
+        var array = JsonEdit.Array(Node, field);
         var extentField = ExtentField(field);
         for (var i = 0; i < array.Count; i++)
         {
             var node = array[i];
             if (node is null) continue;
-            var wrapper = ThemeNode.AsObject(node);
+            var wrapper = JsonEdit.AsObject(node);
             var material = extentField is null
                 ? wrapper
-                : ThemeNode.Child(wrapper, ThemeFields.Material, () => ThemeFields.Solid(1));
+                : JsonEdit.Child(wrapper, ThemeFields.Material, () => ThemeFields.Solid(1));
             var index = i;
             yield return new Entry(
                 node, index, material,
-                extentField is null ? 0 : ThemeNode.Int(wrapper, extentField, 1),
+                extentField is null ? 0 : JsonEdit.Int(wrapper, extentField, 1),
                 EventCallback.Factory.Create(this, () => Remove(field, index)),
                 EventCallback.Factory.Create<ChangeEventArgs>(this, e => SetExtent(wrapper, extentField, e)));
         }
@@ -85,14 +85,14 @@ public partial class MaterialEditor
 
     private Task PickSolid(PaintBlockDto block)
     {
-        ThemeNode.Set(Node, ThemeFields.Id, block.Id);
-        ThemeNode.Set(Node, ThemeFields.Data, block.Data);
+        JsonEdit.Set(Node, ThemeFields.Id, block.Id);
+        JsonEdit.Set(Node, ThemeFields.Data, block.Data);
         return Changed();
     }
 
     private Task PickTintBlock(PaintBlockDto block)
     {
-        ThemeNode.Set(Node, ThemeFields.BlockId, block.Id);
+        JsonEdit.Set(Node, ThemeFields.BlockId, block.Id);
         return Changed();
     }
 
@@ -103,14 +103,14 @@ public partial class MaterialEditor
 
     private Task SetScalar(string field, ChangeEventArgs e, int fallback, int min)
     {
-        ThemeNode.Set(Node, field, Math.Max(min, Parse(e, fallback)));
+        JsonEdit.Set(Node, field, Math.Max(min, Parse(e, fallback)));
         return Changed();
     }
 
     private Task SetExtent(JsonObject wrapper, string? field, ChangeEventArgs e)
     {
         if (field is null) return Task.CompletedTask;
-        ThemeNode.Set(wrapper, field, Math.Max(1, Parse(e, 1)));
+        JsonEdit.Set(wrapper, field, Math.Max(1, Parse(e, 1)));
         return Changed();
     }
 
@@ -124,13 +124,13 @@ public partial class MaterialEditor
 
     private Task Add(string field)
     {
-        ThemeNode.Array(Node, field).Add(ThemeFields.NewEntry(field));
+        JsonEdit.Array(Node, field).Add(ThemeFields.NewEntry(field));
         return Changed();
     }
 
     private Task Remove(string field, int index)
     {
-        var array = ThemeNode.Array(Node, field);
+        var array = JsonEdit.Array(Node, field);
         // A pattern with nothing left resolves to bare stone, so the last entry stays put.
         if (index >= 0 && index < array.Count && array.Count > 1) array.RemoveAt(index);
         return Changed();

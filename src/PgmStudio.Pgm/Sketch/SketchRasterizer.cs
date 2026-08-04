@@ -42,13 +42,24 @@ public static class SketchRasterizer
         return output;
     }
 
-    /// <summary>Maps every cell a themed shape covers to that shape's id — the primary footprint plus each
-    /// mirroring island's orbit copies (which keep the shape id), the smallest-area shape winning an overlap
-    /// (the most specific scope). Feeds <c>TerrainThemeScope</c>: a cell's theme is its owning shape's theme,
-    /// else the map default. Only add shapes carrying a theme are considered; subtracts and role-tagged
-    /// (structural) shapes are skipped — they place no themed terrain. Void cells that no surface stands on are
-    /// harmless: the painter only reads owners where a column is solid.</summary>
+    /// <summary>Maps every cell a <em>themed</em> shape covers to that shape's id — the scope
+    /// <c>TerrainThemeScope</c> resolves a cell's paint through.</summary>
     public static Dictionary<(int X, int Z), string> ShapeThemeOwners(string layoutJson)
+        => ShapeScopeOwners(layoutJson, shape => shape.Theme);
+
+    /// <summary>Maps every cell a <em>dressed</em> shape covers to that shape's id — the same scope for what
+    /// grows on a cell as <see cref="ShapeThemeOwners"/> is for what it is made of.</summary>
+    public static Dictionary<(int X, int Z), string> ShapeDressingOwners(string layoutJson)
+        => ShapeScopeOwners(layoutJson, shape => shape.Dressing);
+
+    /// <summary>Maps every cell a scoped shape covers to that shape's id — the primary footprint plus each
+    /// mirroring island's orbit copies (which keep the shape id), the smallest-area shape winning an overlap
+    /// (the most specific scope). <paramref name="scopeOf"/> says which annotation makes a shape a scope, so
+    /// paint and planting resolve through one traversal rather than two that could disagree about which shape
+    /// owns a contested cell. Only add shapes carrying that annotation are considered; subtracts and role-tagged
+    /// (structural) shapes are skipped — they place no terrain of their own. Void cells that no surface stands
+    /// on are harmless: a consumer only reads owners where a column is solid.</summary>
+    private static Dictionary<(int X, int Z), string> ShapeScopeOwners(string layoutJson, Func<SketchShape, string?> scopeOf)
     {
         var state = SketchLayout.Parse(layoutJson);
         var cx = state?.Setup?.Center?.Cx ?? 0;
@@ -60,7 +71,7 @@ public static class SketchRasterizer
 
         void Claim(SketchShape s)
         {
-            if (s.Theme is null || s.Operation == "subtract" || s.Role is not null) return;
+            if (scopeOf(s) is null || s.Operation == "subtract" || s.Role is not null) return;
             var cells = RasterShape(s).Select(c => (c.X, c.Z)).ToList();
             long area = cells.Count;
             foreach (var cell in cells)

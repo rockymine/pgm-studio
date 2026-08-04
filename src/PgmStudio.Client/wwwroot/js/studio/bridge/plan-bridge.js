@@ -10,6 +10,7 @@ import {
   planIsoSolids, viewBounds, markerList, MARKER_KINDS, boxMembers, defaultThemeJson,
 } from "../plan/plan-doc.js";
 import { parseOverlays } from "../plan/plan-inspect.js";
+import { fireTo } from "./fire.js";
 
 const STORAGE_KEY = "pgm-plan-editor";
 const OVERLAY_KEY = "pgm-plan-overlays";
@@ -18,14 +19,7 @@ const SURFACESTEP_KEY = "pgm-plan-surface-step";
 
 export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   let doc = emptyDoc();
-  // Fire-and-forget into the host. A handler the host doesn't wire rejects the InvokeAsync promise
-  // asynchronously, which the surrounding try/catch (synchronous) can't see — so swallow it on the promise
-  // too, or an unwired feed (e.g. OnThemes, whose C# side pulls via getThemes instead) becomes an unhandled
-  // rejection that faults the page.
-  const fire = (name, ...args) => {
-    try { dotnetRef?.invokeMethodAsync(name, ...args)?.catch(() => { /* host may not wire it */ }); }
-    catch { /* host may not wire it */ }
-  };
+  const fire = (name, ...args) => fireTo(dotnetRef, name, ...args);
 
   // Read-only 3-D height preview (G27): "2d" | "iso", with a user-rotatable yaw. Rebuilt from the plan
   // pieces/surfaces whenever the document changes while the preview is showing. The stamped structures

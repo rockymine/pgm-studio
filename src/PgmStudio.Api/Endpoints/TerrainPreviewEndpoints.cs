@@ -3,6 +3,7 @@ using FastEndpoints;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Dressing;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -57,6 +58,42 @@ public sealed class ThemePreviewEndpoint : EndpointWithoutRequest
         var json = await RawBody.ReadAsync(HttpContext, ct);
         try { await Send.OkAsync(StylePreview.ThemeViews(json), ct); }
         catch (JsonException) { await Send.ResponseAsync(new { error = "invalid theme JSON" }, 400, ct); }
+    }
+}
+
+/// <summary>GET /api/terrain/species — the tree species a dressing may draw from, so the editor's picker
+/// cannot name one the grower does not know.</summary>
+public sealed class TreeSpeciesEndpoint : EndpointWithoutRequest<List<TreeSpeciesDto>>
+{
+    public override void Configure() { Get("/terrain/species"); AllowAnonymous(); }
+
+    public override Task HandleAsync(CancellationToken ct)
+        => Send.OkAsync(DressingPalette.Species.Select(s => new TreeSpeciesDto(s.Name)).ToList(), ct);
+}
+
+/// <summary>POST /api/terrain/dressing-preview — a dressing recipe and the terrain finish it grows on; returns
+/// a sample patch actually grown by the pass, from above and cut open. The theme is part of the request
+/// because what the paint leaves on top is what decides whether flora grows at all.</summary>
+public sealed class DressingPreviewEndpoint : Endpoint<DressingPreviewRequest, DressingPreviewDto>
+{
+    public override void Configure() { Post("/terrain/dressing-preview"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(DressingPreviewRequest req, CancellationToken ct)
+    {
+        DressingRecipe recipe;
+        TerrainTheme theme;
+        try
+        {
+            recipe = DressingJson.Deserialize(req.DressingJson);
+            theme = string.IsNullOrWhiteSpace(req.ThemeJson) ? TerrainTheme.Default : TerrainThemeJson.Deserialize(req.ThemeJson);
+        }
+        catch (JsonException)
+        {
+            AddError("The dressing or theme JSON could not be read.");
+            await Send.ErrorsAsync(400, ct);
+            return;
+        }
+        await Send.OkAsync(DressingPreview.Views(recipe, theme), ct);
     }
 }
 

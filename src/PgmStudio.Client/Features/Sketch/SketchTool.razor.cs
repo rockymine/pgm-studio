@@ -54,16 +54,36 @@ public partial class SketchTool
     }
     private Task BackToThemeCreate() { themeStep = "create"; StateHasChanged(); return Task.CompletedTask; }
 
+    // ── Dressing phase (decoration.md): the same two steps as Theme, for what grows on the ground rather than
+    //    what it is made of. Apply reuses the live canvas, so its body stays mounted like Draw. ──
+    private string dressingStep = "create";
+    private bool DressingCreateActive => active == "dressing" && dressingStep == "create";
+    private bool DressingApplyActive => active == "dressing" && dressingStep == "apply";
+    private static readonly string[] DressingSteps = ["Create", "Apply"];
+    private Task GoDressing() { dressingStep = "create"; return SetPhase("dressing"); }
+    private async Task EnterDressingApply()
+    {
+        dressingStep = "apply";
+        tool = "select";
+        StateHasChanged();
+        await PushCanvasMode("dressing");
+    }
+    private Task BackToDressingCreate() { dressingStep = "create"; StateHasChanged(); return Task.CompletedTask; }
+
+    /// <summary>Whether the canvas is being used to place a scope rather than to draw — Theme's apply step and
+    /// Dressing's, which share the same selection behaviour and the same read-only toolbar.</summary>
+    private bool ScopeApplyActive => ThemeApplyActive || DressingApplyActive;
+
     // The select tool edits as well as selects in Draw; in the Theme phase it only selects, so it says so.
-    private string SelectToolTitle => ThemeApplyActive ? "Select" : "Select / edit";
+    private string SelectToolTitle => ScopeApplyActive ? "Select" : "Select / edit";
 
     // The same toggle shows the bare voxelization while drawing and the paint on top of it once theming.
-    private string BlocksChipTitle => ThemeApplyActive
+    private string BlocksChipTitle => ScopeApplyActive
         ? "Show the blocks the export places — the rasterized footprint painted by its themes"
         : "Show the rasterized block footprint — the exact cells the shapes voxelize into";
 
     // The shapes the current selection themes: an island's members, else the single selected shape, else none.
-    private IReadOnlyList<string> ThemeTargetShapeIds =>
+    private IReadOnlyList<string> ScopeTargetShapeIds =>
         selectedIslandId is not null ? (SelectedIsland?.ShapeIds ?? (IReadOnlyList<string>)[])
         : selectedShapeId is not null ? new[] { selectedShapeId }
         : [];
@@ -89,7 +109,9 @@ public partial class SketchTool
     {
         if (handle is null) return;
         await handle.InvokeVoidAsync("setSelectOnly", phase != "draw");
-        await handle.InvokeVoidAsync("setPaintPreview", phase == "theme");
+        // Both finishing phases show the paint: Theme is authoring it, and Dressing is deciding what grows on
+        // it, which is a judgement about the finish as much as about the planting.
+        await handle.InvokeVoidAsync("setPaintPreview", phase is "theme" or "dressing");
     }
 
     // Layout pushed from the bridge (OnLayout) + the current selection (OnShapeSelected/OnIslandSelected).

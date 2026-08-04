@@ -136,10 +136,10 @@ public sealed record ThemeBucketInfo(string Id, string Title, string Blurb, stri
     public static ThemeBucketInfo Of(string bucket) => All.First(info => info.Id == bucket);
 }
 
-/// <summary>Reading and writing the theme node without a second model of it: every accessor tolerates a
+/// <summary>Reading and writing a wire-format JSON node without a second model of it: every accessor tolerates a
 /// missing or wrong-typed property and answers the caller's default, so a hand-edited theme can never throw
 /// the editor — it simply shows the default until the field is set.</summary>
-public static class ThemeNode
+public static class JsonEdit
 {
     public static string KindOf(JsonObject? node)
         => node?[ThemeFields.Kind]?.GetValue<string>() ?? MaterialKind.Solid;
@@ -155,8 +155,41 @@ public static class ThemeNode
     public static bool Bool(JsonObject? node, string field, bool fallback)
         => node?[field] is JsonValue value && value.TryGetValue<bool>(out var b) ? b : fallback;
 
+    public static double Double(JsonObject? node, string field, double fallback)
+    {
+        if (node?[field] is not JsonValue value) return fallback;
+        return value.TryGetValue<double>(out var d) ? d
+            : value.TryGetValue<int>(out var i) ? i
+            : fallback;
+    }
+
+    public static string Text(JsonObject? node, string field, string fallback)
+        => node?[field] is JsonValue value && value.TryGetValue<string>(out var s) ? s : fallback;
+
     public static void Set(JsonObject node, string field, int value) => node[field] = value;
     public static void Set(JsonObject node, string field, bool value) => node[field] = value;
+    public static void Set(JsonObject node, string field, double value) => node[field] = value;
+    public static void Set(JsonObject node, string field, string value) => node[field] = value;
+
+    /// <summary>Add or remove a child object — how a part of a recipe is switched on and off, since the pass
+    /// reads an absent part as "grow none of this" rather than needing a flag of its own.</summary>
+    public static void Toggle(JsonObject node, string field, Func<JsonObject> ifAdding)
+    {
+        if (node[field] is JsonObject) node.Remove(field);
+        else node[field] = ifAdding();
+    }
+
+    /// <summary>Whether a node carries a child object at all.</summary>
+    public static bool Has(JsonObject? node, string field) => node?[field] is JsonObject;
+
+    /// <summary>A string array's members, as a set the caller can test and toggle against.</summary>
+    public static HashSet<string> Texts(JsonObject? node, string field)
+        => node?[field] is JsonArray array
+            ? [.. array.OfType<JsonValue>().Select(v => v.TryGetValue<string>(out var s) ? s : null).OfType<string>()]
+            : [];
+
+    public static void SetTexts(JsonObject node, string field, IEnumerable<string> values)
+        => node[field] = new JsonArray([.. values.Select(v => (JsonNode)JsonValue.Create(v)!)]);
 
     /// <summary>Replace a child, detaching the incoming node first — a <see cref="JsonNode"/> may have only
     /// one parent, so anything reused has to be cloned.</summary>
