@@ -46,15 +46,20 @@ function subdivide(from, to) {
 }
 
 /**
- * The **closed** outline of the band `radius` blocks to each side of a path shape's centerline (closed to
- * the `toRing` convention — last point repeats the first). `[]` for a line of fewer than two points.
+ * The **closed** outline of the band `radius` blocks to each side of a path prop's route (closed to the
+ * `toRing` convention — last point repeats the first). `[]` for a route of fewer than two points.
+ *
+ * The outline is what a canvas strokes to show where a route runs; what the export actually paves is
+ * `Geom.PathStroke`, and the two deliberately differ. An outline cannot draw a gap, so a stepping-stone path
+ * shows here as the corridor its stones fall along — which is the right thing to see while placing it.
  */
-export function pathRing(shape) {
-  const centerline = pathCenterline(shape.vertices);
-  const radius = shape.radius ?? 2;
+export function pathRing(prop) {
+  const centerline = pathCenterline(prop.points);
+  const radius = prop.radius ?? 2;
   if (centerline.length < 2 || radius <= 0) return [];
-  const edge = shape.path_edge ?? "solid";
-  const seed = shape.path_seed ?? 0;
+  // Only the two styles that vary a width change the outline; the rest gate cells inside it.
+  const edge = prop.style === "tapered" || prop.style === "rough" ? prop.style : "solid";
+  const seed = prop.seed ?? 0;
 
   const ring = edge === "solid"
     ? ribbonUniform(centerline, radius * 2)

@@ -1,7 +1,7 @@
 # Map decoration — the idea pool (dressing-stage gaps)
 
-The dressing stage (G161, `decoration.md`) ships four tools — flora, paths, boulders and trees — each
-authored in the sketch tool's Dressing phase and run over the realized world. This file is the pool of what
+The dressing stage (G161, `decoration.md`) ships four tools — paths, ground cover, boulders and trees — each
+*placed* on the sketch tool's Dressing canvas and run over the realized world. This file is the pool of what
 turns them from four soloists into one coherent stage: the connective tissue between the passes, the axes
 the flat-plane model never touches, and the fifth tool. One idea per few lines, grouped, **ids in the G
 track** (continuing G157/G161), **preserved** — an id here is never reused; pull one onto `BACKLOG.md` when
@@ -13,9 +13,9 @@ says so.
 
 ## Correctness — a competitive map cannot ship without these
 
-- **G162 — fairness at the symmetry axis** — the cosmetic-vs-gameplay split and the generate-on-the-
-  representative fan shipped with G161 (`decoration.md` §2), and a gameplay prop is now identical per team by
-  construction. What it does not yet handle is the **axis itself**: a prop whose orbit images overlap — a
+- **G162 — fairness at the symmetry axis** — the fan shipped with G161 (`decoration.md` §2): every prop is
+  placed once and stamped at each image of its orbit, turned, so a prop is identical per team by construction
+  and the canvas shows the images as ghosts while placing. What it does not yet handle is the **axis itself**: a prop whose orbit images overlap — a
   boulder sitting on or within a radius of the mirror line — is stamped twice into the same cells, so the two
   copies fuse into one shape that is neither's. It reads as a lump, and on a `rot_180` map it is exactly
   where the centre objective usually sits. Three candidate answers: refuse a representative whose prop
@@ -61,7 +61,11 @@ says so.
 
 ## Placement intelligence — the "grew vs scattered" gap
 
-- **G166 — context-aware placement (the affinity model)** — placement today is context-free blue-noise plus a
+- **G166 — context-aware placement (the affinity model)** — placement today is by hand, which is right for the
+  props that decide a fight and tedious for the ones that only fill a hillside. What is missing is the
+  *optional* half: a brush that scatters cosmetic dressing over an area by affinity rather than one at a time.
+  The original text below still describes what that affinity model would read; the blue-noise scatter it needs
+  is already in `Geom` and unused. Placement was context-free blue-noise plus a
   density field; a believable map keys placement on **context**. Give each prop an **affinity** over derivable
   fields — slope, height / elevation, distance-to-water, border proximity, canopy cover, distance-to-lane — so
   trees thin along lanes and thicken at the edges, boulders follow cliff bases and ridgelines, water settles

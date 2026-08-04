@@ -2594,15 +2594,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Dressing — what stands on the terrain, not what it is made of (G161).** The world's last pass, after
   `TerrainPainter`: where the painter can only change what a stone cell becomes, the `Decorator`
   (`PgmStudio.Minecraft/Dressing`, `docs/world-export/decoration.md` `DR*`) adds cells — plants in the air above
-  the surface, half-buried rock, grown trees. It runs last because the one fact it needs is what the paint just
-  decided: soil takes flora, quartz takes none, and a column whose top block is a stamp takes nothing at all.
-  Four tools, authored as one **recipe**: **DR-FL** flora (a `PatternNoise` density field over `SurfaceTop`,
-  a second low-frequency field gathering flowers into meadows, species mixed by share), **DR-PA** paths (below),
-  **DR-SC** boulders (`Blob`-eroded quadric lobes in four forms, half below the surface, `BlueNoise`-scattered
-  at a spacing the prop's own size floors so a rock field cannot fuse into one mass), and **DR-TR** trees
-  (`TreeSkeleton` growing limbs as Catmull-Rom splines with a leader knob, upward pull and per-step jitter;
-  `SweptVolume` filling each as a capsule; `TreeCrown` placing one dense cluster per outer tip with a seam of
-  air between neighbours, so a viewer still reads each patch as its own branch's).
+  the surface, half-buried rock, grown trees — and repaints the ones a route crosses. It runs last because the
+  one fact it needs is what the paint just decided: soil takes cover, quartz takes none, and a column whose top
+  block is a stamp takes nothing at all.
+  **Everything is placed, not sprinkled.** A tree is cover and a boulder is a wall, so where each one stands
+  decides how the map plays, and that decision belongs to the author rather than to a density field. Four tools
+  on the Dressing phase's own canvas, two interactions between them: a **route** (DR-PA) and an **area of
+  cover** (DR-FL) are dragged — press, trace, release, so there is no separate way to finish and no way to get
+  stuck mid-draw — while a **tree** (DR-TR) and a **boulder** (DR-SC) are clicked into place. Each carries its
+  own knobs, edited where it stands; the tool remembers the last ones, so a stand of ten oaks is ten clicks
+  rather than ten forms. The fields that remain are the ones *inside* a drawn area — which blade of grass,
+  which cobble — where placing them one at a time would be data entry.
+  Behind them: `TreeSkeleton` growing limbs as Catmull-Rom splines with a leader knob, upward pull and
+  per-step jitter; `SweptVolume` filling each as a capsule; `TreeCrown` placing one dense cluster per outer tip
+  with a seam of air between neighbours, so a viewer reads each patch as its own branch's; `Blob`-eroded
+  quadric lobes in four rock forms, half below the surface.
 - **Fairness is structural, not a filter (G162).** Every prop declares a `PropClass`. Cosmetic props —
   one-block plants — scatter freely; a flower one team has and the other does not decides nothing. Gameplay
   props are generated **once**, on the orbit's canonical representative, in the prop's own local frame, then
@@ -2613,24 +2619,25 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   mirrored cells is just the mirrored delta, the anchor having already been corrected. A stamp is
   all-or-nothing per image, so a prop whose mirror lands on missing or protected ground places on neither side.
   Measured on a `rot_180` board: free scatter left 361 cover cells whose mirror was bare, the fanned pass zero.
-- **Paths — draw a route, get a band (DR-PA).** A fourth sketch draw tool. A path is stored as the **open**
-  line the author clicked plus a half-width; `Geom.PathBand` derives the closed band by smoothing the points
-  into a centripetal Catmull-Rom curve and offsetting that to both sides (`Ribbon`), in that order — offsetting
-  the drawn points would corner the band at every click. Because the result is a ring, island detection, the
-  orbit fan, per-anchor height and the world export all consume it with no new code. Three edges: solid, rough
-  (the width wandered by a seeded noise field, each side reading it far apart so the band erodes rather than
-  breathes) and tapered. Its finish is a terrain theme like any other shape's, and it claims itself as bare
-  ground even undressed — a meadow growing over the road drawn through it is the one thing an author who drew a
-  road did not ask for. The canvas twin is `geometry/path.js`, pinned to the C# side by a parity test that
-  checks the lattice hash bit for bit.
-- **Scoping and the preview.** `DressingScope` resolves a recipe per cell the way paint resolves a theme — a
-  registry on the sketch document, a map default, a per-shape override, the smallest shape winning an overlap —
-  plus what must be left bare: spawns and their margin, wool spawns, rooms and monuments, anchors, structure
-  floors and walls, and every column a stamp already stands on. `DressingPreview` draws a recipe by **growing**
-  it: a sample patch painted with a theme and run through the real `Decorator`, so a knob that does nothing in
-  the export does nothing in the picture. Two views, because dressing varies on two axes — from above the
-  density fields read, from the side the props' own shapes do — and the section crops to what is there, so
-  ground cover and a forest read at the same scale instead of one green line under thirty courses of sky.
+- **Paths — drag a route, and the ground remembers it (DR-PA).** A path **repaints** the surface it crosses
+  rather than adding a cell, so it runs over a slope without becoming a ramp and a bridge over a void stays the
+  draw phase's job; its cells become bare ground as they are laid, so nothing grows through the road. All six
+  styles of the model exist, because being a *fill* rather than an outline is what makes them expressible:
+  solid, worn (a per-cell dice), rough edge (the width wandered by a seeded noise field, each side reading it
+  far apart so the band erodes rather than breathes), cobbled (the band tiled by a jittered grid across the
+  path's own blocks), stepping stones (discs along the arc, with gaps) and tapered. `Geom.PathStroke` is the
+  six gates on one distance field; `Geom.PathBand` is the outline the canvas strokes, twinned in
+  `geometry/path.js` and pinned to the C# side by a parity test that checks the lattice hash bit for bit.
+- **Every picker is drawn by the pass.** The six path styles, the four rock forms and every species are
+  rendered at card size by the real algorithm over the map's own finish (`/api/terrain/path-styles`,
+  `/boulder-forms`, `/species`) — a dropdown of six words cannot say what separates a worn path from stepping
+  stones, and a hand-drawn icon can promise a look the export does not produce. A species card carries its
+  proportions too, so picking "spruce" takes a spruce's shape and the client keeps no second copy of the
+  species table. The inspector's own picture is the same thing at full size: `DressingPreview` **places** the
+  prop on a sample patch and draws the result, from above and cut open, cropped to what is there so a path and
+  a tree read at the same scale. `DressingScope` answers what the pass needs from the map — what was placed,
+  how it is mirrored, and what must stay bare: spawns and their margin, wool spawns, rooms and monuments,
+  anchors, structure floors and walls, and every column a stamp already stands on.
 - **Export endpoint** — `SketchWorldBuilder` assembles the world from a map's sketch layout + intent and
   returns a resolved intent (integer-snapped spawns + monument locations derived from the world air cells,
   capturers defaulted to every non-owner team) so the XML agrees with the world. `GET /api/map/{slug}/export`

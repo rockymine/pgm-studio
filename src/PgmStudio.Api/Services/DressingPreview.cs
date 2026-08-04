@@ -30,16 +30,19 @@ public static class DressingPreview
     /// happens to stand.</summary>
     public static DressingPreviewDto Views(PlacedProp prop, TerrainTheme theme, int cell = 5)
     {
-        var (world, tally) = Dressed([Centred(prop, Span / 2, Span / 2)], theme);
-        var row = Span / 2;
+        // A marker is a few blocks across and an area is dozens, so one sample size would draw either a rock
+        // as four pixels or a meadow cropped to a corner. The patch is sized to the prop.
+        var span = SpanFor(prop);
+        var (world, tally) = Dressed([Centred(prop, span / 2, span / 2)], theme, span);
+        var row = span / 2;
 
         // From above: each cell's highest block, so paving, plants, rock and canopy all show where they fall.
-        var plan = SvgRaster.Raster(Span, Span, cell, (x, z) => Highest(world, x, z));
+        var plan = SvgRaster.Raster(span, span, cell, (x, z) => Highest(world, x, z));
 
         // Cut open along its middle row. Cropped to what is actually there — a fixed sky would draw a path as
         // one grey line under forty courses of nothing, and the point of the view is the prop's proportions.
-        var (from, to) = SectionRange(world, row, Span);
-        var section = SvgRaster.Raster(Span, to - from + 1, cell, (x, screenRow) =>
+        var (from, to) = SectionRange(world, row, span);
+        var section = SvgRaster.Raster(span, to - from + 1, cell, (x, screenRow) =>
         {
             var (id, data) = world.GetBlock(x, to - screenRow, row);   // the raster runs down, a course runs up
             return id == Blocks.Air ? null : BlockPalette.Hex(id, data);
@@ -93,6 +96,15 @@ public static class DressingPreview
 
     // A bent stroke, so a card shows what a style does through a turn as well as along a straight.
     private static readonly double[][] CardStroke = [[4, 14], [14, 8], [26, 16], [36, 10]];
+
+    /// <summary>How wide a sample a prop needs to read: enough ground around a marker to see its shape and its
+    /// footing, and enough of an area to see its density field do anything.</summary>
+    private static int SpanFor(PlacedProp prop) => prop switch
+    {
+        TreeProp tree => Math.Max(24, (int)tree.Height + 8),
+        BoulderProp boulder => Math.Max(16, (int)(boulder.Size * 5)),
+        _ => Span,
+    };
 
     private static string? Highest(VoxelWorld world, int x, int z)
     {

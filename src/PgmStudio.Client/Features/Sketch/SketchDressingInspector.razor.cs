@@ -44,6 +44,7 @@ public partial class SketchDressingInspector
     private IReadOnlyList<PropOptionDto> pathStyles = [];
     private IReadOnlyList<PropOptionDto> boulderForms = [];
     private IReadOnlyList<PropOptionDto> species = [];
+    private IReadOnlyList<PaintBlockDto> blocks = [];
     // The map's own default finish. A preview drawn on the built-in grass would promise a meadow a desert map
     // would refuse, so the picture is grown on what this map actually paints.
     private string? themeJson;
@@ -108,6 +109,9 @@ public partial class SketchDressingInspector
 
     private async Task LoadOptions()
     {
+        // The block picker's offered list is the export's own palette, so a path and a rock cannot be paved
+        // with something the painter has no colour for.
+        if (blocks.Count == 0 && kind is PropKinds.Path or PropKinds.Boulder) blocks = await Library.BlocksAsync();
         if (kind == PropKinds.Path && pathStyles.Count == 0) pathStyles = await Library.PathStylesAsync(BlockSpec());
         if (kind == PropKinds.Boulder && boulderForms.Count == 0) boulderForms = await Library.BoulderFormsAsync();
         if (kind == PropKinds.Tree && species.Count == 0) species = await Library.SpeciesAsync();

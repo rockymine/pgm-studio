@@ -9,8 +9,8 @@ import assert from "node:assert/strict";
 import { pathRing, pathCenterline, valueNoise, SMOOTH_SAMPLES }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/path.js";
 
-const line = (radius, extra = {}) => ({ type: "path", vertices: [[0, 0], [40, 0]], radius, ...extra });
-const bent = (extra = {}) => ({ type: "path", vertices: [[0, 0], [20, 0], [30, 20], [50, 24]], radius: 5, ...extra });
+const line = (radius, extra = {}) => ({ points: [[0, 0], [40, 0]], radius, ...extra });
+const bent = (extra = {}) => ({ points: [[0, 0], [20, 0], [30, 20], [50, 24]], radius: 5, ...extra });
 
 // ── the band ──────────────────────────────────────────────────────────────────
 test("a straight line becomes a closed band of the width asked for", () => {
@@ -24,7 +24,7 @@ test("a straight line becomes a closed band of the width asked for", () => {
 });
 
 test("a line with nowhere to go is no band", () => {
-  assert.deepEqual(pathRing({ type: "path", vertices: [[5, 5]], radius: 3 }), []);
+  assert.deepEqual(pathRing({ points: [[5, 5]], radius: 3 }), []);
   assert.deepEqual(pathRing(line(0)), []);
 });
 
@@ -49,16 +49,16 @@ const widthAcross = (ring, x) => {
 };
 
 test("a tapered path is widest in the middle and thinnest at its ends", () => {
-  const ring = pathRing(line(6, { path_edge: "tapered" }));
+  const ring = pathRing(line(6, { style: "tapered" }));
   assert.ok(widthAcross(ring, 20) > widthAcross(ring, 2));
   assert.ok(widthAcross(ring, 20) > widthAcross(ring, 38));
   assert.ok(Math.abs(widthAcross(ring, 20) - 12) < 0.2);
 });
 
 test("a rough edge wanders, and the same seed always wanders the same way", () => {
-  const rough = pathRing(line(5, { path_edge: "rough", path_seed: 11 }));
-  const again = pathRing(line(5, { path_edge: "rough", path_seed: 11 }));
-  const other = pathRing(line(5, { path_edge: "rough", path_seed: 12 }));
+  const rough = pathRing(line(5, { style: "rough", seed: 11 }));
+  const again = pathRing(line(5, { style: "rough", seed: 11 }));
+  const other = pathRing(line(5, { style: "rough", seed: 12 }));
   assert.deepEqual(rough, again);
   assert.notDeepEqual(rough, other);
 
@@ -71,7 +71,7 @@ test("a rough edge wanders, and the same seed always wanders the same way", () =
 
 test("a bend does not pinch the band", () => {
   const ring = pathRing(bent());
-  for (const [px, pz] of pathCenterline(bent().vertices)) {
+  for (const [px, pz] of pathCenterline(bent().points)) {
     const nearest = Math.min(...ring.map(([x, z]) => Math.hypot(x - px, z - pz)));
     assert.ok(nearest > 4, `pinched to ${nearest} at ${px},${pz}`);
   }
