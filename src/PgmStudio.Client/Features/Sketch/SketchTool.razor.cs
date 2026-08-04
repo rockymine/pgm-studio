@@ -54,25 +54,17 @@ public partial class SketchTool
     }
     private Task BackToThemeCreate() { themeStep = "create"; StateHasChanged(); return Task.CompletedTask; }
 
-    // ── Dressing phase (decoration.md): the same two steps as Theme, for what grows on the ground rather than
-    //    what it is made of. Apply reuses the live canvas, so its body stays mounted like Draw. ──
-    private string dressingStep = "create";
-    private bool DressingCreateActive => active == "dressing" && dressingStep == "create";
-    private bool DressingApplyActive => active == "dressing" && dressingStep == "apply";
-    private static readonly string[] DressingSteps = ["Create", "Apply"];
-    private Task GoDressing() { dressingStep = "create"; return SetPhase("dressing"); }
-    private async Task EnterDressingApply()
-    {
-        dressingStep = "apply";
-        tool = "select";
-        StateHasChanged();
-        await PushCanvasMode("dressing");
-    }
-    private Task BackToDressingCreate() { dressingStep = "create"; StateHasChanged(); return Task.CompletedTask; }
+    // ── Dressing phase (decoration.md) ──
+    // One step, not two. Dressing has nothing to define up front: every part of it is a thing put somewhere,
+    // so the phase is the canvas with its own placing tools and an inspector for whatever is under the cursor.
+    // The Theme phase keeps its create/apply split because a theme genuinely is a recipe authored once.
+    private bool DressingActive => active == "dressing";
+    private string dressingJson = "";
+    private Task GoDressing() { tool = DressingTools.Tree; return SetPhase("dressing"); }
 
-    /// <summary>Whether the canvas is being used to place a scope rather than to draw — Theme's apply step and
-    /// Dressing's, which share the same selection behaviour and the same read-only toolbar.</summary>
-    private bool ScopeApplyActive => ThemeApplyActive || DressingApplyActive;
+    /// <summary>Whether the canvas is being used to place a scope rather than to draw — today only Theme's
+    /// apply step, which selects shapes it does not edit.</summary>
+    private bool ScopeApplyActive => ThemeApplyActive;
 
     // The select tool edits as well as selects in Draw; in the Theme phase it only selects, so it says so.
     private string SelectToolTitle => ScopeApplyActive ? "Select" : "Select / edit";
@@ -108,10 +100,13 @@ public partial class SketchTool
     private async Task PushCanvasMode(string phase)
     {
         if (handle is null) return;
-        await handle.InvokeVoidAsync("setSelectOnly", phase != "draw");
-        // Both finishing phases show the paint: Theme is authoring it, and Dressing is deciding what grows on
-        // it, which is a judgement about the finish as much as about the planting.
+        // Geometry is Draw's alone. Dressing places props rather than shapes, so it is not select-only in the
+        // theme sense — its own tools are armed instead, and the shape tools are simply not offered.
+        await handle.InvokeVoidAsync("setSelectOnly", phase == "theme");
+        // Both finishing phases show the paint: Theme is authoring it, and Dressing is placing things on it,
+        // which is a judgement about the finish as much as about the planting.
         await handle.InvokeVoidAsync("setPaintPreview", phase is "theme" or "dressing");
+        await handle.InvokeVoidAsync("setDressingMode", phase == "dressing");
     }
 
     // Layout pushed from the bridge (OnLayout) + the current selection (OnShapeSelected/OnIslandSelected).
@@ -314,6 +309,11 @@ public partial class SketchTool
     /// <summary>The theme registry / assignments changed on the bridge — re-render so the Apply rail refreshes.</summary>
     [JSInvokable]
     public void OnThemes(string json) => StateHasChanged();
+
+    /// <summary>The placed dressing or its selection changed on the canvas — the props, the selected id, and
+    /// the selected prop itself, which is what the inspector and the list both read.</summary>
+    [JSInvokable]
+    public void OnDressing(string json) { dressingJson = json; StateHasChanged(); }
 
     /// <summary>The bridge couldn't initialise the read-only 3-D preview (WebGL unavailable, or the
     /// preview module failed to load); fall back to 2-D and disable the toggle.</summary>

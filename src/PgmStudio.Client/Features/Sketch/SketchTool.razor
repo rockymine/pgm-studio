@@ -27,7 +27,7 @@
       <NavButton Icon="book-open-text" Title="Info" Active="@InfoActive" OnClick="GoInfo" />
       <NavButton Icon="pencil-ruler" Title="Draw" Active="@DrawActive" OnClick="GoDraw" />
       <NavButton Icon="palette" Title="Theme" Active="@(ThemeCreateActive || ThemeApplyActive)" OnClick="GoTheme" />
-      <NavButton Icon="trees" Title="Dressing" Active="@(DressingCreateActive || DressingApplyActive)" OnClick="GoDressing" />
+      <NavButton Icon="trees" Title="Dressing" Active="@DressingActive" OnClick="GoDressing" />
     </NavRail>
   </Rail>
   <ChildContent>
@@ -41,25 +41,20 @@
       {
         <SketchThemePhase Handle="handle" OnApply="EnterThemeApply" OnBack="GoDraw" />
       }
-      @if (DressingCreateActive)
-      {
-        <SketchDressingPhase Handle="handle" OnApply="EnterDressingApply" OnBack="GoDraw" />
-      }
       @* Draw + Theme-Apply share the one mounted canvas, so this body stays present (hidden when Info/Create
          is up) — [hidden] is display:none, and the canvas re-measures on unhide. Theme-Apply swaps the sidebar
          (island tree + theme controls) and hides the draw toolbar/inspector; the canvas is reused as-is. *@
-      <div class="phase-body" hidden="@(!(DrawActive || ScopeApplyActive))">
+      <div class="phase-body" hidden="@(!(DrawActive || ThemeApplyActive || DressingActive))">
       @if (ThemeApplyActive)
       {
         <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Theme"
                  Steps="ThemeSteps" CurrentStep="1" BackEnabled="true" NextLabel="Done" NextEnabled="true"
                  OnStep="@(i => i == 0 ? BackToThemeCreate() : Task.CompletedTask)" OnBack="BackToThemeCreate" OnNext="GoDraw" />
       }
-      else if (DressingApplyActive)
+      else if (DressingActive)
       {
         <FlowBar Class="flow-bar--flush" PhaseIcon="trees" PhaseTitle="Dressing"
-                 Steps="DressingSteps" CurrentStep="1" BackEnabled="true" NextLabel="Done" NextEnabled="true"
-                 OnStep="@(i => i == 0 ? BackToDressingCreate() : Task.CompletedTask)" OnBack="BackToDressingCreate" OnNext="GoDraw" />
+                 BackEnabled="true" NextLabel="Done" NextEnabled="true" OnBack="GoDraw" OnNext="GoDraw" />
       }
       else
       {
@@ -69,20 +64,18 @@
       }
       <Workspace>
         <Sidebar>
-          @if (ScopeApplyActive)
+          @if (ThemeApplyActive)
           {
             <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="selectedShapeId" SelectedIslandId="selectedIslandId"
                          OnSelectShape="SelectShape" OnSelectIsland="SelectIsland" />
-            @if (ThemeApplyActive)
-            {
-              <SketchThemeApplyRail Handle="handle" SelectedIslandId="@selectedIslandId" SelectedShapeId="@selectedShapeId"
-                                    TargetShapeIds="ScopeTargetShapeIds" />
-            }
-            else
-            {
-              <SketchDressingApplyRail Handle="handle" SelectedIslandId="@selectedIslandId" SelectedShapeId="@selectedShapeId"
-                                       TargetShapeIds="ScopeTargetShapeIds" />
-            }
+            <SketchThemeApplyRail Handle="handle" SelectedIslandId="@selectedIslandId" SelectedShapeId="@selectedShapeId"
+                                  TargetShapeIds="ScopeTargetShapeIds" />
+          }
+          else if (DressingActive)
+          {
+            @* Dressing places things on the map rather than assigning recipes to shapes, so its sidebar is the
+               list of what is placed — the island tree would only offer a selection nothing here acts on. *@
+            <SketchDressingList StateJson="@dressingJson" Handle="handle" />
           }
           else
           {
@@ -103,7 +96,16 @@
                       @onclick='() => SetTool("move")'><i data-lucide="hand"></i></button>
               <button class="draw-tool-btn @(tool == "select" ? "draw-tool-btn--active" : null)" title="@SelectToolTitle"
                       @onclick='() => SetTool("select")'><i data-lucide="mouse-pointer-2"></i></button>
-              @if (!ScopeApplyActive)
+              @if (DressingActive)
+              {
+                @foreach (var placer in DressingTools.All)
+                {
+                  <button class="draw-tool-btn @(tool == placer.Tool ? "draw-tool-btn--active" : null)"
+                          title="@placer.Title" @key="placer.Tool"
+                          @onclick="() => SetTool(placer.Tool)"><i data-lucide="@placer.Icon"></i></button>
+                }
+              }
+              @if (!ScopeApplyActive && !DressingActive)
               {
               <button class="draw-tool-btn @(tool == "rectangle" ? "draw-tool-btn--active" : null)" title="Rectangle"
                       @onclick='() => SetTool("rectangle")'><i data-lucide="rectangle-horizontal"></i></button>
@@ -111,8 +113,6 @@
                       @onclick='() => SetTool("polygon")'><i data-lucide="pentagon"></i></button>
               <button class="draw-tool-btn @(tool == "lasso" ? "draw-tool-btn--active" : null)" title="Lasso (hold and trace)"
                       @onclick='() => SetTool("lasso")'><i data-lucide="lasso"></i></button>
-              <button class="draw-tool-btn @(tool == "path" ? "draw-tool-btn--active" : null)" title="Path (click a route, double-click to end — width and edge are on the shape)"
-                      @onclick='() => SetTool("path")'><i data-lucide="spline"></i></button>
               <button class="draw-tool-btn @(tool == "measure" ? "draw-tool-btn--active" : null)" title="Measure (drag across a void gap to read its length in blocks)"
                       @onclick='() => SetTool("measure")'><i data-lucide="ruler"></i></button>
               <button class="draw-tool-btn @(tool == "split" ? "draw-tool-btn--active" : null)" title="Split (click two points to slice a shape in two along the line)"
@@ -155,7 +155,12 @@
             <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
           </div>
         </div>
-        @if (!ScopeApplyActive)
+        @if (DressingActive)
+        {
+          <div class="sidebar-handle"></div>
+          <SketchDressingInspector Handle="handle" ActiveTool="@tool" StateJson="@dressingJson" />
+        }
+        else if (!ScopeApplyActive)
         {
           <div class="sidebar-handle"></div>
           <SketchInspector Shape="SelectedShape" Island="SelectedIsland" Shapes="shapes"

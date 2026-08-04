@@ -58,6 +58,13 @@ public static class Polyline
     /// cell — a rough or tapered edge is that function, not a different traversal.</summary>
     public static IEnumerable<(int X, int Z)> Band(
         IReadOnlyList<double[]> centerline, double radius, Func<int, int, PathHit, double>? radiusAt = null)
+        => Hits(centerline, radius, radiusAt).Select(found => (found.X, found.Z));
+
+    /// <summary>As <see cref="Band"/>, but each cell keeps the hit that admitted it. A caller that gates cells
+    /// <em>inside</em> the band — a worn surface, stones spaced down the arc — needs the same measurement the
+    /// traversal already took, and computing it twice is the whole cost of the scan done again.</summary>
+    public static IEnumerable<(int X, int Z, PathHit Hit)> Hits(
+        IReadOnlyList<double[]> centerline, double radius, Func<int, int, PathHit, double>? radiusAt = null)
     {
         if (centerline.Count < 2 || radius <= 0) yield break;
 
@@ -74,7 +81,7 @@ public static class Polyline
         {
             var hit = Nearest(centerline, x + 0.5, z + 0.5);
             var here = radiusAt is null ? radius : radiusAt(x, z, hit);
-            if (hit.Distance <= here) yield return (x, z);
+            if (hit.Distance <= here) yield return (x, z, hit);
         }
     }
 

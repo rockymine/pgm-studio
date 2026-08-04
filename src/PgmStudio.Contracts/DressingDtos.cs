@@ -1,20 +1,28 @@
 namespace PgmStudio.Contracts;
 
-/// <summary>What a sample patch grew, so an author can tell a recipe that is doing nothing from one whose
-/// props are simply off-screen — a picture at card size cannot always say.</summary>
-public sealed record DressingCountsDto(int Plants, int Boulders, int Trees);
+/// <summary>What a prop's preview patch placed, so an author can tell a knob that is doing nothing from one
+/// whose effect is simply too small to read at card size.</summary>
+public sealed record DressingCountsDto(int Plants, int Boulders, int Trees, int PathCells);
 
-/// <summary>Both views of a dressing recipe (POST /api/terrain/dressing-preview), grown by the real pass over a
-/// sample patch. <paramref name="Plan"/> is the patch from above, where the density fields read — clearings,
-/// flower patches, how far apart the groves fall; <paramref name="Section"/> is the same patch cut open, the
-/// only view a tree's silhouette or a boulder's half-buried profile is visible in.</summary>
+/// <summary>Both views of one placed prop (POST /api/terrain/prop-preview), produced by running the real pass
+/// over a sample patch. <paramref name="Plan"/> is the patch from above, which is where a path's paving and an
+/// area's density read; <paramref name="Section"/> is the same patch cut open, the only view a tree's
+/// silhouette or a boulder's half-buried profile is visible in.</summary>
 public sealed record DressingPreviewDto(string Plan, string Section, DressingCountsDto Counts);
 
-/// <summary>A dressing previewed against a theme (POST /api/terrain/dressing-preview): the recipe, and the
-/// terrain finish it grows on — what the paint leaves on top is exactly what decides whether flora grows at
-/// all, so a preview that ignored the theme would promise a meadow on a quartz plaza.</summary>
-public sealed record DressingPreviewRequest(string DressingJson, string? ThemeJson);
+/// <summary>A prop previewed against a theme (POST /api/terrain/prop-preview): the prop's own JSON, and the
+/// terrain finish it stands on — what the paint leaves on top is exactly what decides whether flora grows at
+/// all and what a path may repaint, so a preview that ignored the theme would promise a meadow on a plaza.
+/// <para>The prop arrives at whatever position it was placed at; the preview re-centres it on the sample, so a
+/// card shows the prop rather than the empty corner of the map it happens to sit in.</para></summary>
+public sealed record PropPreviewRequest(string PropJson, string? ThemeJson);
 
-/// <summary>One tree species the dressing editor offers (GET /api/terrain/species) — the palette's rows, so
-/// the picker cannot name a species the grower does not know.</summary>
-public sealed record TreeSpeciesDto(string Name);
+/// <summary>One option a prop's picker offers, drawn rather than described (GET /api/terrain/path-styles,
+/// /boulder-forms, /species). <paramref name="Key"/> is the value the prop stores, <paramref name="Label"/>
+/// what an author reads, and <paramref name="Svg"/> the same algorithm the export runs, at card size — so a
+/// picker can never offer a look the pass does not produce.
+/// <para><paramref name="Defaults"/> is the rest of the prop the option implies, as a JSON patch: picking
+/// "spruce" has to take a spruce's proportions too, or the tree is named one thing and shaped another. It
+/// travels with the card rather than being tabulated in the client, so the species table stays stated once —
+/// on the server, where the grower reads it.</para></summary>
+public sealed record PropOptionDto(string Key, string Label, string Svg, string? Defaults = null);

@@ -1,5 +1,4 @@
 using PgmStudio.Geom;
-using PgmStudio.Geom.Algorithms;
 
 namespace PgmStudio.Pgm.Sketch;
 
@@ -219,18 +218,8 @@ public static class SketchRasterizer
         "rectangle" => [[s.MinX ?? 0, s.MinZ ?? 0], [s.MaxX ?? 0, s.MinZ ?? 0], [s.MaxX ?? 0, s.MaxZ ?? 0], [s.MinX ?? 0, s.MaxZ ?? 0]],
         "circle"    => CircleRing(s.CenterX ?? 0, s.CenterZ ?? 0, s.Radius ?? 0),
         "polygon" or "lasso" => PolygonRing(s.Vertices, s.Controls),
-        "path" => PathRing(s),
         _ => [],
     };
-
-    // A path stores the line the author drew; the band around it is derived here, so the ring the rasterizer,
-    // the mirror and the export all consume is the one the drawn line currently implies.
-    private static List<double[]> PathRing(SketchShape s)
-    {
-        if (s.Vertices is not { Length: >= 2 } verts) return [];
-        var edge = Enum.TryParse<PathEdge>(s.PathEdge, ignoreCase: true, out var parsed) ? parsed : PathEdge.Solid;
-        return PathBand.Ring(verts, s.Radius ?? 2, edge, (uint)(s.PathSeed ?? 0));
-    }
 
     private static List<double[]> CircleRing(double cx, double cz, double r)
     {
@@ -320,7 +309,7 @@ public static class SketchRasterizer
             {
                 Id = s.Id, Type = s.Type, Operation = s.Operation, Override = s.Override,
                 Vertices = nv, Controls = nc, AnchorHeights = s.AnchorHeights, BaseHeight = s.BaseHeight, Floor = s.Floor,
-                Theme = s.Theme, Dressing = s.Dressing,
+                Theme = s.Theme,
             };
         }
         // Rectangle/circle: flatten the transformed footprint to a polygon (uniform height carried).
@@ -328,7 +317,7 @@ public static class SketchRasterizer
         return new SketchShape
         {
             Id = s.Id, Type = "polygon", Operation = s.Operation, Override = s.Override,
-            Vertices = ring, BaseHeight = s.BaseHeight, Floor = s.Floor, Theme = s.Theme, Dressing = s.Dressing,
+            Vertices = ring, BaseHeight = s.BaseHeight, Floor = s.Floor, Theme = s.Theme,
         };
     }
 

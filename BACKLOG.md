@@ -53,19 +53,6 @@ the focus-integration polish remains.
 The Sketch depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection
 highlight); these are the parked / dormant / deferred slices.
 
-- [ ] **S37 — The two path footprints a single ring cannot carry: worn and stepping stones.** A path
-  (`decoration.md` §4, DR-PA) is stored as a line plus a width and derived into one closed band ring, which is
-  what lets island detection, the orbit fan, per-anchor height and the export all consume it with no new code.
-  Three of the doc's variants are a width that varies along the stroke and shipped as exactly that; two are
-  not. **Worn** gates individual cells inside the band by a per-cell dice below a coverage threshold — gravel
-  scattered thin, a trail rather than a road — and **stepping stones** samples discs at intervals along the arc
-  with gaps between them, which is several disjoint footprints, not one outline. Both need a shape that can
-  answer "which cells" rather than "which outline". Two candidate seams: let a `SketchShape` carry more than
-  one ring (the boolean layer already unions rings, so a stepping-stone path is a list of discs), or move the
-  gate out of the shape entirely and make it a dressing part that thins an existing path's surface after the
-  paint — the doc's own "run it in the pass" option, which also gets the cell mask for free. Decide which
-  before building either; they are the same question asked twice.
-
 - [ ] **S34 — Reuse a sketch paint's column classification across the edits of one drag.** `TerrainProfile`
   construction is what a paint now costs — ~60 ms of the ~164 ms a 40k-cell board takes (S33, `FEATURES.md`),
   and roughly 35 ms of that is its two `GridComponents.Label` passes: one flood fill for plateaus, a second for

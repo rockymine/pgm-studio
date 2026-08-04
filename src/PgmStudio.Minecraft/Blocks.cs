@@ -10,7 +10,13 @@ public static class Blocks
     public const int Stone = 1;
     public const int Grass = 2;
     public const int Dirt = 3;
+    public const int Cobblestone = 4;
     public const int Bedrock = 7;
+    public const int Sand = 12;
+    public const int Gravel = 13;
+    public const int Sandstone = 24;
+    public const int Clay = 82;
+    public const int HardenedClay = 172;
     public const int QuartzBlock = 155;
     public const int Lava = 10;              // flowing; a core's interior is stationary lava
     public const int StationaryLava = 11;

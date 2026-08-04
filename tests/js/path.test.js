@@ -1,15 +1,13 @@
 // The band a drawn line stands for (geometry/path.js) — and, above all, that it is the same band the C#
-// side builds. The two implementations exist because the canvas rebuilds the outline on every pointer move
-// and a round trip per frame is not a preview; the moment they disagree, the shape an author drags stops
-// being the shape the map exports. So the parity numbers below are pinned against the C# constants and the
-// lattice hash is checked bit for bit.
+// side builds. The two implementations exist because the canvas redraws a path's outline on every pointer
+// move and a round trip per frame is not a preview; the moment they disagree, the route an author drags
+// stops matching the route the map paves. So the parity numbers below are pinned against the C# constants
+// and the lattice hash is checked bit for bit.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { pathRing, pathCenterline, valueNoise, SMOOTH_SAMPLES }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/path.js";
-import { toRing, toBounds, containsPoint, scaleShape, snapShape }
-  from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/shape.js";
 
 const line = (radius, extra = {}) => ({ type: "path", vertices: [[0, 0], [40, 0]], radius, ...extra });
 const bent = (extra = {}) => ({ type: "path", vertices: [[0, 0], [20, 0], [30, 20], [50, 24]], radius: 5, ...extra });
@@ -42,21 +40,6 @@ test("two drawn points are densified along the line they drew", () => {
 test("three drawn points smooth into SMOOTH_SAMPLES per segment", () => {
   const curve = pathCenterline([[0, 0], [20, 0], [30, 20]]);
   assert.equal(curve.length, 2 * SMOOTH_SAMPLES + 1);        // two segments sampled, plus the final point
-});
-
-// ── how a path plugs into the shape model ─────────────────────────────────────
-test("toRing / toBounds / containsPoint all read the band, not the line", () => {
-  const shape = line(4);
-  assert.deepEqual(toRing(shape), pathRing(shape));
-  assert.deepEqual(toBounds(shape), { min_x: 0, min_z: -4, max_x: 40, max_z: 4 });
-  assert.ok(containsPoint(shape, 20, 3));                    // beside the line, inside the band
-  assert.ok(!containsPoint(shape, 20, 6));                   // past its edge
-});
-
-test("scaling a path scales its width, and snapping keeps it a whole block", () => {
-  assert.equal(scaleShape(line(4), 2, 2, [0, 0]).radius, 8);
-  assert.equal(snapShape({ ...line(4), radius: 3.4 }).radius, 3);
-  assert.equal(snapShape({ ...line(4), radius: 0.2 }).radius, 1);   // a path is never zero-width
 });
 
 // ── edges ─────────────────────────────────────────────────────────────────────

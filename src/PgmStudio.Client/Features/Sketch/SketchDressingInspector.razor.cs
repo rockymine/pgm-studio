@@ -1,0 +1,340 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
+using PgmStudio.Client.Components;
+using PgmStudio.Contracts;
+
+namespace PgmStudio.Client.Features.Sketch;
+
+/// <summary>
+/// The Dressing phase's inspector: the knobs of the thing under the cursor, and a picture of what they make.
+///
+/// <para>There is no separate step where dressing is defined. A tree is a decision about a spot on the map, so
+/// it is placed on the map and configured where it stands — the same way a spawn or an iron cube is placed in
+/// the plan. What this shows therefore follows the canvas: the selected prop's own knobs when one is selected,
+/// and the active tool's <em>starting</em> knobs when none is, so the next thing placed can be aimed before it
+/// is placed rather than corrected after.</para>
+///
+/// <para>Every picker is drawn by the pass itself (<c>/api/terrain/path-styles</c>, <c>/boulder-forms</c>,
+/// <c>/species</c>) rather than described in words or icons. A path's six styles differ in ways no label
+/// captures — where the gaps fall, how the edge wanders — and a picker that could offer a look the export does
+/// not produce is worse than no picker.</para>
+/// </summary>
+public partial class SketchDressingInspector
+{
+    [Parameter] public IJSObjectReference? Handle { get; set; }
+    /// <summary>The tool the toolbar has armed (<c>dress:tree</c>, …), which is whose starting knobs are shown
+    /// when nothing is selected.</summary>
+    [Parameter] public string? ActiveTool { get; set; }
+    /// <summary>The dressing state pushed by the bridge (<c>OnDressing</c>) — props, the selection, and the
+    /// selected prop itself.</summary>
+    [Parameter] public string? StateJson { get; set; }
+
+    [Inject] public TerrainLibraryClient Library { get; set; } = default!;
+    [Inject] public IJSRuntime JS { get; set; } = default!;
+
+    private JsonObject? prop;                 // what is being edited: the selection, else the tool's settings
+    private bool editingSelection;
+    private int propCount;
+    private string kind = "";
+
+    private DressingPreviewDto? preview;
+    private string previewedFor = "";
+    private IReadOnlyList<PropOptionDto> pathStyles = [];
+    private IReadOnlyList<PropOptionDto> boulderForms = [];
+    private IReadOnlyList<PropOptionDto> species = [];
+    // The map's own default finish. A preview drawn on the built-in grass would promise a meadow a desert map
+    // would refuse, so the picture is grown on what this map actually paints.
+    private string? themeJson;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
+
+    protected override async Task OnParametersSetAsync()
+    {
+        ReadState();
+        await LoadTheme();
+        await LoadOptions();
+        await RefreshPreview();
+    }
+
+    // The bridge pushes one document; which half of it is being edited depends on whether anything is selected.
+    private void ReadState()
+    {
+        prop = null;
+        editingSelection = false;
+        kind = DressingTools.KindOf(ActiveTool) ?? "";
+        propCount = 0;
+
+        if (string.IsNullOrWhiteSpace(StateJson)) return;
+        JsonNode? root;
+        try { root = JsonNode.Parse(StateJson); } catch (JsonException) { return; }
+        if (root is not JsonObject state) return;
+
+        propCount = (state["props"] as JsonArray)?.Count ?? 0;
+        if (state["selected"] is JsonObject selected)
+        {
+            prop = (JsonObject)selected.DeepClone();
+            kind = prop["kind"]?.GetValue<string>() ?? "";
+            editingSelection = true;
+        }
+    }
+
+    /// <summary>The tool's starting values, fetched when nothing is selected. Kept out of
+    /// <see cref="ReadState"/> because it is a round trip and the state push is not.</summary>
+    private async Task LoadToolSettings()
+    {
+        if (Handle is null || string.IsNullOrEmpty(kind)) return;
+        var json = await Handle.InvokeAsync<string>("getPropSettings", kind);
+        try { prop = JsonNode.Parse(json) as JsonObject; } catch (JsonException) { prop = null; }
+    }
+
+    private async Task LoadTheme()
+    {
+        if (Handle is null || themeJson is not null) return;
+        try
+        {
+            var json = await Handle.InvokeAsync<string>("getThemes");
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            var mapTheme = root.TryGetProperty("mapTheme", out var name) ? name.GetString() : null;
+            themeJson = !string.IsNullOrEmpty(mapTheme)
+                && root.TryGetProperty("themes", out var themes)
+                && themes.TryGetProperty(mapTheme, out var theme)
+                ? theme.GetRawText() : "";
+        }
+        catch (JsonException) { themeJson = ""; }
+    }
+
+    private async Task LoadOptions()
+    {
+        if (kind == PropKinds.Path && pathStyles.Count == 0) pathStyles = await Library.PathStylesAsync(BlockSpec());
+        if (kind == PropKinds.Boulder && boulderForms.Count == 0) boulderForms = await Library.BoulderFormsAsync();
+        if (kind == PropKinds.Tree && species.Count == 0) species = await Library.SpeciesAsync();
+        if (!editingSelection && prop is null) await LoadToolSettings();
+    }
+
+    // "13:0,4:0" — the blocks a path is paved with, so the style cards show *this* path rather than a stock one.
+    private string? BlockSpec()
+    {
+        if (prop?[PropFields.Blocks] is not JsonArray blocks) return null;
+        return string.Join(',', blocks.OfType<JsonObject>()
+            .Select(block => $"{block["id"]?.GetValue<int>() ?? 1}:{block["data"]?.GetValue<int>() ?? 0}"));
+    }
+
+    /// <summary>Redraw the picture, but only when the prop actually changed — the preview is a round trip that
+    /// runs the real pass, so re-issuing it on every render would make a slider feel like treacle.</summary>
+    private async Task RefreshPreview()
+    {
+        if (prop is null) { preview = null; previewedFor = ""; return; }
+        var json = prop.ToJsonString();
+        if (json == previewedFor) return;
+        previewedFor = json;
+        preview = await Library.PropPreviewAsync(json, themeJson);
+        StateHasChanged();
+    }
+
+    // ── editing ────────────────────────────────────────────────────────────────
+    /// <summary>Write one field and push it. A selected prop is patched in place; with nothing selected the
+    /// same edit lands on the tool's starting values, so the next prop placed already carries it.</summary>
+    private async Task Set(string field, JsonNode? value)
+    {
+        if (prop is null || Handle is null) return;
+        prop[field] = value;
+        var patch = new JsonObject { [field] = value?.DeepClone() };
+        if (editingSelection) await Handle.InvokeVoidAsync("updateProp", patch.ToJsonString());
+        else await Handle.InvokeVoidAsync("setPropSettings", kind, patch.ToJsonString());
+        await RefreshPreview();
+    }
+
+    /// <summary>Write one field of the flora spec — the one prop whose knobs live a level down, because the
+    /// spec is the shared recipe the pass and the preview both read.</summary>
+    private async Task SetSpec(string field, JsonNode? value)
+    {
+        if (prop is null || Handle is null) return;
+        if (prop["spec"] is not JsonObject spec) prop["spec"] = spec = new JsonObject();
+        spec[field] = value;
+        var patch = new JsonObject { ["spec"] = spec.DeepClone() };
+        if (editingSelection) await Handle.InvokeVoidAsync("updateProp", patch.ToJsonString());
+        else await Handle.InvokeVoidAsync("setPropSettings", kind, patch.ToJsonString());
+        await RefreshPreview();
+    }
+
+    private Task Delete() => Handle is null ? Task.CompletedTask : Handle.InvokeVoidAsync("deleteProp").AsTask();
+
+    /// <summary>A new seed for the same knobs — the one control that changes the result without changing the
+    /// recipe, so an author who likes the shape but not this particular rock can roll again.</summary>
+    private Task Reroll() => Set(PropFields.Seed, JsonValue.Create(Number(prop) + 1));
+
+    private static int Number(JsonObject? prop)
+        => prop?["seed"]?.GetValue<int>() ?? 0;
+
+    // ── reading ────────────────────────────────────────────────────────────────
+    private double Num(string field, double fallback = 0)
+        => prop?[field] is { } node && double.TryParse(node.ToString(), out var value) ? value : fallback;
+
+    private double Spec(string field, double fallback = 0)
+        => prop?["spec"]?[field] is { } node && double.TryParse(node.ToString(), out var value) ? value : fallback;
+
+    private string Text(string field, string fallback = "")
+        => prop?[field]?.GetValue<string>() ?? fallback;
+
+    private bool Flag(string field)
+        => prop?[field]?.GetValue<bool>() ?? false;
+
+    // A slider stores 0–100 and the model stores 0–1, so every share crosses here rather than at each caller.
+    private static double Share(ChangeEventArgs e)
+        => double.TryParse(e.Value?.ToString(), out var value) ? Math.Clamp(value / 100, 0, 1) : 0;
+
+    private static double Whole(ChangeEventArgs e)
+        => double.TryParse(e.Value?.ToString(), out var value) ? value : 0;
+
+    /// <summary>The blocks a path is paved with, as a list the form can index. One is a plain surface; several
+    /// are what a cobbled path tiles between, which is why this is a list and not a single picker.</summary>
+    private List<(int Id, int Data)> PaveBlocks
+        => prop?[PropFields.Blocks] is JsonArray blocks && blocks.Count > 0
+            ? [.. blocks.OfType<JsonObject>().Select(block => (
+                Id: block["id"]?.GetValue<int>() ?? 1,
+                Data: block["data"]?.GetValue<int>() ?? 0))]
+            : [(13, 0)];
+
+    private Task SetPaveBlock(int at, int id, int data)
+    {
+        var blocks = PaveBlocks;
+        if (at >= blocks.Count) return Task.CompletedTask;
+        blocks[at] = (id, data);
+        return WritePaveBlocks(blocks);
+    }
+
+    private Task AddPaveBlock()
+    {
+        var blocks = PaveBlocks;
+        blocks.Add(blocks[^1]);
+        return WritePaveBlocks(blocks);
+    }
+
+    private Task RemovePaveBlock()
+    {
+        var blocks = PaveBlocks;
+        if (blocks.Count <= 1) return Task.CompletedTask;
+        blocks.RemoveAt(blocks.Count - 1);
+        return WritePaveBlocks(blocks);
+    }
+
+    private async Task WritePaveBlocks(List<(int Id, int Data)> blocks)
+    {
+        var array = new JsonArray();
+        foreach (var (id, data) in blocks) array.Add(new JsonObject { ["id"] = id, ["data"] = data });
+        await Set(PropFields.Blocks, array);
+        // The style cards show this path's own paving, so they are stale the moment its blocks change.
+        pathStyles = await Library.PathStylesAsync(BlockSpec());
+    }
+
+    private async Task SetRock(int id, int data)
+    {
+        await Set(PropFields.BlockId, JsonValue.Create(id));
+        await Set(PropFields.BlockData, JsonValue.Create(data));
+    }
+
+    /// <summary>Apply an option — its key, plus whatever else the option implies. A species is a starting
+    /// shape rather than only a pair of blocks, so picking "spruce" and keeping an oak's proportions would name
+    /// a tree it is not; the card carries those proportions so the client keeps no second species table.</summary>
+    private async Task Pick(string field, PropOptionDto option)
+    {
+        await Set(field, JsonValue.Create(option.Key));
+        if (string.IsNullOrWhiteSpace(option.Defaults) || prop is null || Handle is null) return;
+
+        JsonNode? implied;
+        try { implied = JsonNode.Parse(option.Defaults); } catch (JsonException) { return; }
+        if (implied is not JsonObject patch) return;
+
+        foreach (var entry in patch) prop[entry.Key] = entry.Value?.DeepClone();
+        if (editingSelection) await Handle.InvokeVoidAsync("updateProp", patch.ToJsonString());
+        else await Handle.InvokeVoidAsync("setPropSettings", kind, patch.ToJsonString());
+        await RefreshPreview();
+    }
+
+    private static readonly IReadOnlyDictionary<string, (string Icon, string Title, string Blurb)> KindInfo =
+        new Dictionary<string, (string, string, string)>
+        {
+            [PropKinds.Path] = ("spline", "Path", "A route across the ground. It swaps the surface it crosses rather than building on it, and nothing grows on what it covers."),
+            [PropKinds.Flora] = ("flower", "Ground cover", "Grass, fern and flowers over the soil inside the area you drew. Masked by the paint beneath — nothing grows on a plaza's quartz."),
+            [PropKinds.Tree] = ("trees", "Tree", "One grown tree, standing where you put it. Mirrored across the map's symmetry, so both teams get the same cover."),
+            [PropKinds.Boulder] = ("mountain", "Boulder", "One rock, half-buried where you put it. Mirrored across the map's symmetry, so both teams get the same cover."),
+        };
+
+    private (string Icon, string Title, string Blurb) Info
+        => KindInfo.TryGetValue(kind, out var info) ? info : ("shapes", "Dressing", "");
+}
+
+/// <summary>The prop field names, as constants. Two reasons rather than one: a Razor markup lambda cannot
+/// contain a string literal at all, and naming the wire fields once means the form and the model cannot drift
+/// apart over a typo that would silently write a field nothing reads.</summary>
+public static class PropKinds
+{
+    public const string Path = "path";
+    public const string Flora = "flora";
+    public const string Tree = "tree";
+    public const string Boulder = "boulder";
+}
+
+/// <summary>A prop's own fields (see <see cref="PropKinds"/> for why these are constants).</summary>
+public static class PropFields
+{
+    public const string Radius = "radius";
+    public const string Style = "style";
+    public const string Coverage = "coverage";
+    public const string Blocks = "blocks";
+    public const string Species = "species";
+    public const string Height = "height";
+    public const string Stems = "stems";
+    public const string Leader = "leader";
+    public const string Flow = "flow";
+    public const string BranchAngle = "branchAngle";
+    public const string Levels = "levels";
+    public const string LeafSize = "leafSize";
+    public const string Form = "form";
+    public const string Size = "size";
+    public const string BlockId = "blockId";
+    public const string BlockData = "blockData";
+    public const string Mossy = "mossy";
+    public const string Seed = "seed";
+
+    /// <summary>The values a fresh prop starts at, for the reads that need a fallback.</summary>
+    public const string SolidStyle = "solid";
+    public const string RoundForm = "round";
+    public const string OakSpecies = "oak";
+    public const string WornStyle = "worn";
+}
+
+/// <summary>The flora spec's fields — one level down from a prop, because the spec is the shared recipe the
+/// pass and the preview both read.</summary>
+public static class SpecFields
+{
+    public const string Coverage = "coverage";
+    public const string Scale = "scale";
+    public const string FernShare = "fernShare";
+    public const string FlowerShare = "flowerShare";
+    public const string TallShare = "tallShare";
+}
+
+/// <summary>The dressing toolbar's tools, named once. The canvas routes on these strings, so the button, the
+/// inspector and the controller all have to agree on them.</summary>
+public static class DressingTools
+{
+    public const string Path = "dress:path";
+    public const string Flora = "dress:flora";
+    public const string Tree = "dress:tree";
+    public const string Boulder = "dress:boulder";
+
+    public static readonly (string Tool, string Kind, string Icon, string Title)[] All =
+    [
+        (Path, PropKinds.Path, "spline", "Path — drag a route; it paves the ground it crosses"),
+        (Flora, PropKinds.Flora, "flower", "Ground cover — drag an area; grass and flowers grow inside it"),
+        (Tree, PropKinds.Tree, "trees", "Tree — click to place one"),
+        (Boulder, PropKinds.Boulder, "mountain", "Boulder — click to place one"),
+    ];
+
+    /// <summary>The kind of prop a tool places, or null when the tool places none.</summary>
+    public static string? KindOf(string? tool) => All.FirstOrDefault(entry => entry.Tool == tool).Kind;
+}

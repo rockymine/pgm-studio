@@ -1,12 +1,11 @@
 /**
- * The Dressing phase on the sketch tool (decoration.md) — the pass that adds what stands on the terrain,
- * authored beside the Theme phase and stored the same way.
+ * The Dressing phase on the sketch tool (decoration.md) — the pass that places what stands on the terrain.
  *
- *   1. API round-trip — a sketch layout carrying a dressing registry, a map default, a per-shape override
- *      and a path shape survives PUT → GET through the real sketch endpoint.
- *   2. Preview — the endpoint the phase draws with grows the recipe rather than illustrating it, so the
- *      counts move with the knobs and the theme decides whether anything grows at all.
- *   3. UI — the phase renders (Create and Apply), and the Draw toolbar offers the path tool.
+ *   1. API round-trip — a sketch layout carrying placed props (a path, an area, a tree, a boulder) survives
+ *      PUT → GET through the real sketch endpoint, each read back as the kind it was written as.
+ *   2. Pickers + preview — the option cards are drawn by the pass itself, and the preview's counts move with
+ *      the knobs, which is the only thing that makes "the picture is the real pass" worth claiming.
+ *   3. UI — the phase renders with its four placing tools, and dragging on the canvas actually places a prop.
  */
 
 import { openBrowser, newPage, clearFaults, Checks, readSeed, api, BASE } from "./lib/harness.mjs";
@@ -17,73 +16,70 @@ const checks = new Checks("dressing (decoration.md)");
 const OUT = new URL("../../.tmp/", import.meta.url).pathname;
 await mkdir(OUT, { recursive: true });
 
-// ── 1. a dressed sketch layout round-trips ────────────────────────────────────────────────────────────
-checks.section("a dressed sketch layout survives PUT → GET");
-
-// A sketch is stored either as one layout or as a stack of layers; the phase writes to whichever it finds,
-// so the spec reads it the same way rather than assuming the shape of the seed.
-const shapesOf = (doc) => doc?.layers?.[0]?.layout?.shapes ?? doc?.layout?.shapes;
+// ── 1. placed props round-trip ────────────────────────────────────────────────────────────────────────
+checks.section("placed dressing survives PUT → GET");
 
 const layout = await api(`/map/${seed.sketchSlug}/sketch`);
-const firstShapeId = shapesOf(layout)?.find(s => !s.role)?.id;
 const dressed = structuredClone(layout);
-dressed.dressings = {
-  meadow: { flora: { coverage: 0.5, flowerShare: 0.3, seed: 7 } },
-  scree: { boulders: { density: 0.3, form: "angular", seed: 17 } },
+dressed.dressing = {
+  props: [
+    { kind: "path", id: "p1", points: [[0, 0], [24, 6], [40, 24]], radius: 3, style: "stones", seed: 5,
+      blocks: [{ id: 4, data: 0 }] },
+    { kind: "flora", id: "f1", points: [[0, 0], [20, 0], [20, 20]], spec: { coverage: 0.8 }, seed: 7 },
+    { kind: "tree", id: "t1", x: 10, z: 12, species: "birch", height: 22, seed: 9 },
+    { kind: "boulder", id: "b1", x: -8, z: 4, form: "cairn", size: 4, seed: 11 },
+  ],
 };
-dressed.mapDressing = "meadow";
-if (firstShapeId) shapesOf(dressed).find(s => s.id === firstShapeId).dressing = "scree";
-// A path is stored as the open line it was drawn as plus a half-width — the band is derived, never stored.
-shapesOf(dressed)?.push({
-  id: "e2e-path", type: "path", operation: "add", override: false,
-  vertices: [[0, 0], [24, 6], [40, 24]], radius: 3, path_edge: "rough", path_seed: 5,
-});
 await api(`/map/${seed.sketchSlug}/sketch`, { method: "PUT", body: dressed });
 
 const back = await api(`/map/${seed.sketchSlug}/sketch`);
-checks.add("dressing registry persisted", back.dressings?.meadow != null, JSON.stringify(Object.keys(back.dressings ?? {})));
-checks.add("map default persisted", back.mapDressing === "meadow", `mapDressing=${back.mapDressing}`);
-checks.add("per-shape override persisted",
-  !firstShapeId || shapesOf(back)?.find(s => s.id === firstShapeId)?.dressing === "scree",
-  firstShapeId ? `shape ${firstShapeId}` : "(no terrain shape to dress)");
+const props = back.dressing?.props ?? [];
+checks.add("every prop persisted", props.length === 4, `${props.length} props`);
+checks.add("each kept its kind", props.map(p => p.kind).join(",") === "path,flora,tree,boulder",
+  props.map(p => p.kind).join(","));
+checks.add("a path kept its route, width and style",
+  props[0]?.points?.length === 3 && props[0]?.radius === 3 && props[0]?.style === "stones",
+  JSON.stringify(props[0] ?? null));
+checks.add("a marker kept its cell", props[2]?.x === 10 && props[2]?.z === 12, JSON.stringify(props[2] ?? null));
 
-const path = shapesOf(back)?.find(s => s.id === "e2e-path");
-checks.add("a path keeps its line, width and edge",
-  path?.vertices?.length === 3 && path?.radius === 3 && path?.path_edge === "rough" && path?.path_seed === 5,
-  JSON.stringify(path ?? null));
+// ── 2. the pickers are drawn, and the preview places ──────────────────────────────────────────────────
+checks.section("every option is drawn by the pass");
 
-// ── 2. the preview grows the recipe ───────────────────────────────────────────────────────────────────
-// The picture is the real pass run over a sample patch, so a knob that does nothing in the export does
-// nothing here — which is only worth having if the numbers actually move.
-checks.section("the preview grows what the recipe says");
+const styles = await api("/terrain/path-styles");
+const forms = await api("/terrain/boulder-forms");
+const species = await api("/terrain/species");
+
+checks.add("six path styles, each drawn", styles.length === 6 && styles.every(s => s.svg?.includes("<rect")),
+  styles.map(s => s.key).join(" "));
+checks.add("four boulder forms, each drawn", forms.length === 4 && forms.every(f => f.svg?.includes("<rect")),
+  forms.map(f => f.key).join(" "));
+checks.add("every species drawn, and carrying its own proportions",
+  species.length >= 6 && species.every(s => s.svg?.includes("<rect") && s.defaults?.includes("height")),
+  species.map(s => s.key).join(" "));
+
+checks.section("the preview places what the prop says");
 
 const grassTheme = JSON.stringify({ surface: { material: { kind: "solid", id: 2 }, depth: 1, enabled: true } });
-const preview = (dressingJson) =>
-  api("/terrain/dressing-preview", { method: "POST", body: { dressingJson, themeJson: grassTheme } });
+const preview = (prop) => api("/terrain/prop-preview", {
+  method: "POST", body: { propJson: JSON.stringify(prop), themeJson: grassTheme },
+});
 
-const sparse = await preview(JSON.stringify({ flora: { coverage: 0.2, seed: 7 } }));
-const lush = await preview(JSON.stringify({ flora: { coverage: 0.9, seed: 7 } }));
-const rocky = await preview(JSON.stringify({ boulders: { density: 0.5, seed: 17 } }));
+const sparse = await preview({ kind: "flora", points: [[0, 0], [40, 0], [40, 40], [0, 40]], spec: { coverage: 0.2 }, seed: 7 });
+const lush = await preview({ kind: "flora", points: [[0, 0], [40, 0], [40, 40], [0, 40]], spec: { coverage: 0.9 }, seed: 7 });
+const road = await preview({ kind: "path", points: [[0, 20], [40, 20]], radius: 3, seed: 5, blocks: [{ id: 13, data: 0 }] });
+const trail = await preview({ kind: "path", points: [[0, 20], [40, 20]], radius: 3, style: "stones", seed: 5, blocks: [{ id: 13, data: 0 }] });
+const tree = await preview({ kind: "tree", x: 0, z: 0, species: "spruce", height: 24, seed: 5 });
 
 checks.add("coverage moves the plant count", lush.counts.plants > sparse.counts.plants,
   `${sparse.counts.plants} → ${lush.counts.plants}`);
-checks.add("boulders grow rock and not plants", rocky.counts.boulders > 0 && rocky.counts.plants === 0,
-  JSON.stringify(rocky.counts));
-checks.add("both views are drawn", (lush.plan?.length ?? 0) > 100 && (lush.section?.length ?? 0) > 100,
-  `plan ${lush.plan?.length} · section ${lush.section?.length}`);
+checks.add("stepping stones pave less than a road", trail.counts.pathCells < road.counts.pathCells && trail.counts.pathCells > 0,
+  `${road.counts.pathCells} → ${trail.counts.pathCells}`);
+checks.add("one tree is one tree", tree.counts.trees === 1, JSON.stringify(tree.counts));
+checks.add("both views are drawn", (tree.plan?.length ?? 0) > 100 && (tree.section?.length ?? 0) > 100,
+  `plan ${tree.plan?.length} · section ${tree.section?.length}`);
 
-// Quartz takes no flora — the theme underneath is what decides whether anything grows.
-const paved = await api("/terrain/dressing-preview", {
-  method: "POST",
-  body: {
-    dressingJson: JSON.stringify({ flora: { coverage: 0.9, seed: 7 } }),
-    themeJson: JSON.stringify({ surface: { material: { kind: "solid", id: 155 }, depth: 1, enabled: true } }),
-  },
-});
-checks.add("nothing grows on quartz", paved.counts.plants === 0, `${paved.counts.plants} plants`);
-
-// ── 3. the phase renders, and the path tool is on the Draw toolbar ────────────────────────────────────
-checks.section("the sketch Dressing phase renders");
+// ── 3. the phase places on the canvas ─────────────────────────────────────────────────────────────────
+checks.section("the sketch Dressing phase places things");
 
 const browser = await openBrowser();
 const page = await newPage(browser, { width: 1600, height: 1000 });
@@ -96,25 +92,39 @@ try {
   await page.waitForSelector("canvas", { timeout: 20000 });
   await page.waitForTimeout(1500);
 
+  await page.click('button[title="Dressing"]', { timeout: 8000 });
+  await page.waitForTimeout(1500);
+
   tools = await page.locator(".canvas-toolbar .draw-tool-btn").evaluateAll(
     els => els.map(el => el.getAttribute("title")));
-  checks.add("the Draw toolbar offers the path tool", tools.some(t => t?.startsWith("Path")), tools.join(" | "));
+  const placing = tools.filter(t => /^(Path|Ground cover|Tree|Boulder)/.test(t ?? ""));
+  checks.add("the phase offers its four placing tools", placing.length === 4, tools.join(" | "));
+  // The draw tools are Draw's: dressing places props, it does not author geometry.
+  checks.add("and none of the shape tools", !tools.some(t => /^(Rectangle|Polygon|Lasso)/.test(t ?? "")),
+    tools.join(" | "));
 
-  await page.click('button[title="Dressing"]', { timeout: 8000 });
-  await page.waitForTimeout(1200);
-  await shot("dressing-create.png");
-  checks.add("Dressing · Create renders", await page.locator("text=What it grows").count() > 0);
+  await shot("dressing-phase.png");
 
-  await page.fill('input[placeholder="name"]', "meadow");
-  await page.click('button:has-text("Add")');
-  await page.waitForTimeout(1200);
-  await shot("dressing-parts.png");
-  checks.add("a new dressing grows ground cover", await page.locator("text=Ground cover").count() > 0);
+  // Drop a tree by clicking, which is the whole interaction.
+  const box = await page.locator("svg.map-canvas-svg").boundingBox();
+  await page.click('button[title^="Tree"]');
+  await page.mouse.click(box.x + box.width * 0.45, box.y + box.height * 0.45);
+  await page.waitForTimeout(1500);
+  checks.add("a click places a tree", await page.locator("text=Species").count() > 0);
+  await shot("dressing-tree.png");
 
-  await page.click('button:has-text("Apply →")');
-  await page.waitForTimeout(800);
-  await shot("dressing-apply.png");
-  checks.add("Dressing · Apply renders", await page.locator("text=Map default").count() > 0);
+  // Drag a route: press, trace, release — no separate way to finish, which is the bug the rework fixes.
+  await page.click('button[title^="Path"]');
+  await page.mouse.move(box.x + box.width * 0.25, box.y + box.height * 0.65);
+  await page.mouse.down();
+  for (const step of [0.35, 0.45, 0.55, 0.65]) {
+    await page.mouse.move(box.x + box.width * step, box.y + box.height * (0.65 - (step - 0.25)));
+    await page.waitForTimeout(60);
+  }
+  await page.mouse.up();
+  await page.waitForTimeout(1500);
+  checks.add("a drag places a path, and releasing ends it", await page.locator("text=Style").count() > 0);
+  await shot("dressing-path.png");
   ok = true;
 } catch (e) {
   page.faults.push(`dressing phase drive: ${String(e).split("\n")[0]}`);

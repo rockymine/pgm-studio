@@ -1,0 +1,27 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* What is placed on the map, as a list. The canvas is the primary way to reach a prop, but a small marker in a
+   dense corner is hard to hit, and a list is the one view that says how much has been placed at all. *@
+
+<Section Title="Placed">
+  @if (rows.Count == 0)
+  {
+    <p class="section-desc">Nothing placed yet. Pick a tool and drag a route or an area, or click to drop a tree
+      or a boulder.</p>
+  }
+  else
+  {
+    <div class="region-tree">
+      @foreach (var row in rows)
+      {
+        <div class="geo-row @(row.Id == selectedId ? "geo-row--selected" : null)" @key="row.Id"
+             @onclick="() => Select(row.Id)">
+          <span class="geo-indent"></span>
+          <span class="geo-type-icon"><i data-lucide="@row.Icon"></i></span>
+          <span class="geo-label">@row.Label</span>
+          <span class="list-tag">@row.Where</span>
+        </div>
+      }
+    </div>
+  }
+</Section>

@@ -5,7 +5,7 @@
  * not declare fails *asynchronously* — `invokeMethodAsync` returns a rejected promise — so guarding only the
  * synchronous throw leaves an unhandled rejection, which surfaces as a console error and, in the e2e sweep,
  * as a faulted page. Not every feed has a listener by design: a phase that pulls its state on demand
- * (`getThemes`, `getDressings`) needs the bridge to announce a change without caring whether anyone is
+ * (`getThemes`, `getDressing`) needs the bridge to announce a change without caring whether anyone is
  * listening yet.
  *
  * One helper because both bridges need exactly this and had drifted — one guarded both, one only the throw,

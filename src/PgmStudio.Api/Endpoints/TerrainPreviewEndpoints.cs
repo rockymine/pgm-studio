@@ -61,40 +61,87 @@ public sealed class ThemePreviewEndpoint : EndpointWithoutRequest
     }
 }
 
-/// <summary>GET /api/terrain/species — the tree species a dressing may draw from, so the editor's picker
-/// cannot name one the grower does not know.</summary>
-public sealed class TreeSpeciesEndpoint : EndpointWithoutRequest<List<TreeSpeciesDto>>
+/// <summary>POST /api/terrain/prop-preview — one placed prop and the terrain finish it stands on; returns a
+/// sample patch the pass actually dressed, from above and cut open. The theme is part of the request because
+/// what the paint leaves on top is what decides whether flora grows at all and what a path may repaint.</summary>
+public sealed class PropPreviewEndpoint : Endpoint<PropPreviewRequest, DressingPreviewDto>
+{
+    public override void Configure() { Post("/terrain/prop-preview"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(PropPreviewRequest req, CancellationToken ct)
+    {
+        var prop = DressingJson.DeserializeProp(req.PropJson);
+        if (prop is null)
+        {
+            AddError("The prop JSON could not be read.");
+            await Send.ErrorsAsync(400, ct);
+            return;
+        }
+
+        TerrainTheme theme;
+        try { theme = PropOptionEndpoints.ThemeOf(req.ThemeJson); }
+        catch (JsonException)
+        {
+            AddError("The theme JSON could not be read.");
+            await Send.ErrorsAsync(400, ct);
+            return;
+        }
+        await Send.OkAsync(DressingPreview.Views(prop, theme), ct);
+    }
+}
+
+/// <summary>The three pickers a prop inspector offers, each drawn by the pass rather than described: GET
+/// /api/terrain/path-styles, /api/terrain/boulder-forms, /api/terrain/species. Every card is the real
+/// algorithm at card size, so a picker can never offer a look the export does not produce.
+/// <para>Each takes the theme as a query parameter for the same reason the preview takes it in its body — a
+/// gravel path on grass and the same path on sand are different pictures.</para></summary>
+internal static class PropOptionEndpoints
+{
+    public static TerrainTheme ThemeOf(string? json)
+        => string.IsNullOrWhiteSpace(json) ? TerrainTheme.Default : TerrainThemeJson.Deserialize(json);
+}
+
+/// <summary>GET /api/terrain/path-styles — the six ways a stroke paves the ground it crosses, each drawn.</summary>
+public sealed class PathStyleCardsEndpoint : EndpointWithoutRequest<List<PropOptionDto>>
+{
+    public override void Configure() { Get("/terrain/path-styles"); AllowAnonymous(); }
+
+    public override Task HandleAsync(CancellationToken ct)
+    {
+        var blocks = Query<string>("blocks", isRequired: false);
+        var template = new PathProp { Radius = 3, Seed = 5, Blocks = PaveBlocks(blocks) };
+        return Send.OkAsync([.. DressingPreview.PathStyleCards(template, TerrainTheme.Default)], ct);
+    }
+
+    // "13:0,4:0" — the blocks the author already picked, so the cards show their path rather than a stock one.
+    private static List<PaveBlock> PaveBlocks(string? spec)
+    {
+        var parsed = (spec ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(pair => pair.Split(':'))
+            .Where(parts => int.TryParse(parts[0], out _))
+            .Select(parts => new PaveBlock(int.Parse(parts[0]), parts.Length > 1 && int.TryParse(parts[1], out var d) ? d : 0))
+            .ToList();
+        return parsed.Count > 0 ? parsed : [new PaveBlock(Blocks.Gravel, 0)];
+    }
+}
+
+/// <summary>GET /api/terrain/boulder-forms — the four rock shapes, each an actual rock.</summary>
+public sealed class BoulderFormCardsEndpoint : EndpointWithoutRequest<List<PropOptionDto>>
+{
+    public override void Configure() { Get("/terrain/boulder-forms"); AllowAnonymous(); }
+
+    public override Task HandleAsync(CancellationToken ct)
+        => Send.OkAsync([.. DressingPreview.BoulderFormCards(
+            new BoulderProp { Size = 3, Seed = 3 }, TerrainTheme.Default)], ct);
+}
+
+/// <summary>GET /api/terrain/species — every tree the grower knows, each grown.</summary>
+public sealed class TreeSpeciesEndpoint : EndpointWithoutRequest<List<PropOptionDto>>
 {
     public override void Configure() { Get("/terrain/species"); AllowAnonymous(); }
 
     public override Task HandleAsync(CancellationToken ct)
-        => Send.OkAsync(DressingPalette.Species.Select(s => new TreeSpeciesDto(s.Name)).ToList(), ct);
-}
-
-/// <summary>POST /api/terrain/dressing-preview — a dressing recipe and the terrain finish it grows on; returns
-/// a sample patch actually grown by the pass, from above and cut open. The theme is part of the request
-/// because what the paint leaves on top is what decides whether flora grows at all.</summary>
-public sealed class DressingPreviewEndpoint : Endpoint<DressingPreviewRequest, DressingPreviewDto>
-{
-    public override void Configure() { Post("/terrain/dressing-preview"); AllowAnonymous(); }
-
-    public override async Task HandleAsync(DressingPreviewRequest req, CancellationToken ct)
-    {
-        DressingRecipe recipe;
-        TerrainTheme theme;
-        try
-        {
-            recipe = DressingJson.Deserialize(req.DressingJson);
-            theme = string.IsNullOrWhiteSpace(req.ThemeJson) ? TerrainTheme.Default : TerrainThemeJson.Deserialize(req.ThemeJson);
-        }
-        catch (JsonException)
-        {
-            AddError("The dressing or theme JSON could not be read.");
-            await Send.ErrorsAsync(400, ct);
-            return;
-        }
-        await Send.OkAsync(DressingPreview.Views(recipe, theme), ct);
-    }
+        => Send.OkAsync([.. DressingPreview.SpeciesCards(TerrainTheme.Default)], ct);
 }
 
 /// <summary>POST /api/terrain/theme-map-preview — body is a plan JSON; compiles it, paints the terrain through

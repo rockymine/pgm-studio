@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using PgmStudio.Api.Services;
+using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Pgm.Authoring;
@@ -7,66 +8,49 @@ using PgmStudio.Pgm.Authoring;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// The dressing stage's map-facing half (G161): resolving which recipe governs a cell, what the pass must
-/// leave bare, and how the map is mirrored — plus the preview, which is asserted by what it <em>grew</em>
-/// rather than by the bytes it drew.
+/// The dressing stage's map-facing half (G161): reading what an author placed, what the pass must leave bare,
+/// and how the map is mirrored — plus the preview, which is asserted by what it <em>placed</em> rather than by
+/// the bytes it drew.
 /// </summary>
 public sealed class DressingScopeTests
 {
-    private const string Meadow = """{"flora":{"coverage":0.6}}""";
-    private const string Scree = """{"boulders":{"density":0.5}}""";
-
     private static string Layout(string body) => $$$"""
         {"setup":{"bbox":{"min_x":-40,"max_x":40,"min_z":-40,"max_z":40},
                   "center":{"cx":0,"cz":0},"mirror_mode":"rot_180"},
-         {{{body}}}}
+         "layers":[{"base_y":0,"layout":{"shapes":[]}}]{{{body}}}}
         """;
 
-    // ── which recipe governs a cell ────────────────────────────────────────────────────────────────
+    // ── what the author placed ─────────────────────────────────────────────────────────────────────
     [Test]
-    public async Task An_undressed_sketch_grows_nothing_anywhere()
+    public async Task An_undressed_sketch_places_nothing()
     {
-        var recipeAt = DressingScope.RecipeAt(Layout("""
-            "layers":[{"base_y":0,"layout":{"shapes":[{"id":"a","type":"rectangle","min_x":0,"min_z":0,"max_x":20,"max_z":20}]}}]
-            """));
         // The map that never opened the phase exports exactly as it did before the stage existed.
-        await Assert.That(recipeAt(5, 5).IsBare).IsTrue();
+        await Assert.That(DressingScope.PropsOf(Layout(""))).IsEmpty();
     }
 
     [Test]
-    public async Task A_shapes_own_dressing_wins_over_the_map_default()
+    public async Task Every_kind_of_prop_is_read_back_as_the_kind_it_was_written_as()
     {
-        var recipeAt = DressingScope.RecipeAt(Layout($$$"""
-            "dressings":{"meadow":{{{Meadow}}},"scree":{{{Scree}}}},
-            "mapDressing":"meadow",
-            "layers":[{"base_y":0,"layout":{"shapes":[
-              {"id":"ground","type":"rectangle","min_x":-30,"min_z":-30,"max_x":30,"max_z":30},
-              {"id":"rocks","type":"rectangle","min_x":0,"min_z":0,"max_x":10,"max_z":10,"dressing":"scree"}]}}]
+        var props = DressingScope.PropsOf(Layout("""
+            ,"dressing":{"props":[
+              {"kind":"path","id":"p","points":[[0,0],[20,10]],"radius":3,"style":"stones","seed":5,
+               "blocks":[{"id":4,"data":0}]},
+              {"kind":"tree","id":"t","x":10,"z":12,"species":"birch","height":22,"seed":9},
+              {"kind":"boulder","id":"b","x":-8,"z":4,"form":"cairn","size":4,"seed":11},
+              {"kind":"flora","id":"f","points":[[0,0],[10,0],[10,10]],"spec":{"coverage":0.8},"seed":13}]}
             """));
 
-        await Assert.That(recipeAt(5, 5).Boulders).IsNotNull();     // inside the scree shape
-        await Assert.That(recipeAt(5, 5).Flora).IsNull();
-        await Assert.That(recipeAt(-20, -20).Flora).IsNotNull();    // outside it, the map default
-        await Assert.That(recipeAt(-20, -20).Boulders).IsNull();
-    }
-
-    [Test]
-    public async Task The_map_default_covers_every_cell_no_shape_claims()
-    {
-        var recipeAt = DressingScope.RecipeAt(Layout($$$"""
-            "dressings":{"meadow":{{{Meadow}}}}, "mapDressing":"meadow",
-            "layers":[{"base_y":0,"layout":{"shapes":[]}}]
-            """));
-        await Assert.That(recipeAt(0, 0).Flora).IsNotNull();
-        await Assert.That(recipeAt(999, -999).Flora).IsNotNull();
+        await Assert.That(props.Count).IsEqualTo(4);
+        await Assert.That(((PathProp)props[0]).Style).IsEqualTo(PathStyle.Stones);
+        await Assert.That(((TreeProp)props[1]).Species).IsEqualTo("birch");
+        await Assert.That(((BoulderProp)props[2]).Form).IsEqualTo(BoulderForm.Cairn);
+        await Assert.That(((FloraProp)props[3]).Spec.Coverage).IsEqualTo(0.8);
     }
 
     [Test]
     public async Task The_maps_symmetry_is_what_the_pass_fans_props_through()
     {
-        var symmetry = DressingScope.SymmetryOf(Layout("""
-            "layers":[{"base_y":0,"layout":{"shapes":[]}}]
-            """));
+        var symmetry = DressingScope.SymmetryOf(Layout(""));
         await Assert.That(symmetry.Mode).IsEqualTo("rot_180");
         await Assert.That(symmetry.Order).IsEqualTo(2);
         await Assert.That(symmetry.ImageCell(3, 4, 1)).IsEqualTo((-4, -5));
@@ -105,11 +89,15 @@ public sealed class DressingScopeTests
     private static HashSet<string> Fills(string svg)
         => Regex.Matches(svg, "fill='(#[0-9a-f]{6})'").Select(m => m.Groups[1].Value).ToHashSet();
 
+    private static int Height(string svg)
+        => int.Parse(Regex.Match(svg, "height='(\\d+)'").Groups[1].Value);
+
     [Test]
-    public async Task The_preview_grows_the_recipe_rather_than_drawing_an_impression_of_it()
+    public async Task The_preview_places_the_prop_rather_than_drawing_an_impression_of_it()
     {
         var views = DressingPreview.Views(
-            new DressingRecipe { Flora = new FloraSpec(Coverage: 0.7, FlowerShare: 0.4) }, TerrainTheme.Default);
+            new FloraProp { Points = [[0, 0], [40, 0], [40, 40], [0, 40]], Spec = new FloraSpec(Coverage: 0.9, FlowerShare: 0.5), Seed = 7 },
+            TerrainTheme.Default);
 
         await Assert.That(views.Counts.Plants).IsGreaterThan(100);
         await Assert.That(views.Counts.Trees).IsEqualTo(0);
@@ -120,9 +108,17 @@ public sealed class DressingScopeTests
     }
 
     [Test]
-    public async Task The_theme_the_preview_grows_on_is_what_decides_whether_anything_grows()
+    public async Task A_prop_is_re_centred_on_the_sample_so_a_card_shows_it_wherever_it_was_placed()
     {
-        var meadow = new DressingRecipe { Flora = new FloraSpec(Coverage: 0.8) };
+        // A tree placed at (900, -400) on a real map must still be the thing in the middle of its own card.
+        var far = DressingPreview.Views(new TreeProp { X = 900, Z = -400, Species = "oak", Seed = 5 }, TerrainTheme.Default);
+        await Assert.That(far.Counts.Trees).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task The_theme_underneath_is_what_decides_whether_anything_grows()
+    {
+        var meadow = new FloraProp { Points = [[0, 0], [40, 0], [40, 40], [0, 40]], Spec = new FloraSpec(Coverage: 0.8), Seed = 7 };
         var paved = TerrainTheme.Default with { Surface = new TopBand(new SolidMaterial(Blocks.QuartzBlock), 1) };
 
         await Assert.That(DressingPreview.Views(meadow, TerrainTheme.Default).Counts.Plants).IsGreaterThan(0);
@@ -130,16 +126,38 @@ public sealed class DressingScopeTests
     }
 
     [Test]
-    public async Task The_section_crops_to_what_is_there_so_ground_cover_and_a_forest_read_at_the_same_scale()
+    public async Task The_section_crops_to_what_is_there_so_a_path_and_a_tree_read_at_the_same_scale()
     {
-        // A fixed sky would draw a meadow as one green line under thirty courses of nothing.
-        var meadow = DressingPreview.Views(new DressingRecipe { Flora = new FloraSpec() }, TerrainTheme.Default);
-        var forest = DressingPreview.Views(
-            new DressingRecipe { Trees = new TreeSpec(Density: 0.8, GroveThreshold: 1.0) }, TerrainTheme.Default);
+        // A fixed sky would draw a path as one grey line under forty courses of nothing.
+        var path = DressingPreview.Views(new PathProp
+        {
+            Points = [[0, 20], [40, 20]], Radius = 3, Seed = 5, Blocks = [new PaveBlock(Blocks.Gravel, 0)],
+        }, TerrainTheme.Default);
+        var tree = DressingPreview.Views(new TreeProp { Species = "spruce", Height = 24, Seed = 5 }, TerrainTheme.Default);
 
-        await Assert.That(Height(forest.Section)).IsGreaterThan(Height(meadow.Section));
+        await Assert.That(path.Counts.PathCells).IsGreaterThan(50);
+        await Assert.That(Height(tree.Section)).IsGreaterThan(Height(path.Section));
     }
 
-    private static int Height(string svg)
-        => int.Parse(Regex.Match(svg, "height='(\\d+)'").Groups[1].Value);
+    [Test]
+    public async Task Every_picker_offers_exactly_what_the_pass_can_build()
+    {
+        // The cards are the real algorithm at card size, so a picker can never promise a look the export does
+        // not produce — which is only true if every option actually draws something.
+        var styles = DressingPreview.PathStyleCards(
+            new PathProp { Radius = 3, Seed = 5, Blocks = [new PaveBlock(Blocks.Gravel, 0)] }, TerrainTheme.Default);
+        var forms = DressingPreview.BoulderFormCards(new BoulderProp { Size = 3, Seed = 3 }, TerrainTheme.Default);
+        var species = DressingPreview.SpeciesCards(TerrainTheme.Default);
+
+        await Assert.That(styles.Select(card => card.Key))
+            .IsEquivalentTo(Enum.GetValues<PathStyle>().Select(style => style.ToString().ToLowerInvariant()));
+        await Assert.That(forms.Count).IsEqualTo(4);
+        await Assert.That(species.Select(card => card.Key)).IsEquivalentTo(DressingPalette.Species.Select(row => row.Name));
+
+        foreach (var card in styles.Concat(forms).Concat(species))
+        {
+            await Assert.That(card.Svg).Contains("<rect");
+            await Assert.That(card.Label).IsNotEmpty();
+        }
+    }
 }

@@ -44,6 +44,10 @@ const SCALE_HANDLES = [
 const ROTATE_ICON = "<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 24 24' fill='none' stroke-linecap='round' stroke-linejoin='round'><g stroke='white' stroke-width='4'><path d='M21 12a9 9 0 1 1-3-6.7'/><path d='M21 3v5h-5'/></g><g stroke='black' stroke-width='2'><path d='M21 12a9 9 0 1 1-3-6.7'/><path d='M21 3v5h-5'/></g></svg>";
 const ROTATE_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(ROTATE_ICON)}") 13 13, crosshair`;
 import { SketchDrawController } from "../controllers/sketch-draw-controller.js";
+import { DressingController } from "../controllers/dressing-controller.js";
+import { DressingDoc } from "../dressing/dressing-doc.js";
+import { paintDressing } from "../render/dressing-render.js";
+import { orbitAxes, applySymmetry } from "../geometry/symmetry.js";
 import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
   paintSketchShape, paintIslands, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintPlaceGhost, paintGhostIslands, paintRaster, paintStructural,
@@ -96,6 +100,12 @@ export class SketchCanvas extends CanvasBase {
   #islands     = [];          // [{ id, shapeIds, exterior, holes }] from the bridge
   #mirrorPolys = [];
   #ghostPolys  = [];          // other layers' island outlines (S7)
+
+  // Placed dressing (decoration.md). The document lives here rather than in the bridge because the canvas is
+  // where a prop is put, moved and picked; the bridge asks for it when it saves.
+  #dressingDoc = new DressingDoc();
+  #dressing    = null;
+  #dressingOn  = false;      // only the Dressing phase draws and edits props
 
   #shapesVisible = false;
   #mirrorVisible = true;
@@ -248,6 +258,12 @@ export class SketchCanvas extends CanvasBase {
   setIslands(islands)        { this.#islands = islands ?? []; this.#paintWorld(); this.#renderIslandChrome(); }
   setGhostIslands(polys)     { this.#ghostPolys = polys ?? []; this.#paintWorld(); }
   setMirrorPolygons(polys)   { this.#mirrorPolys = polys ?? []; this.#renderSetup(); }
+  /** Show and edit placed dressing — on for the Dressing phase, off everywhere else. */
+  setDressingMode(on) { this.#dressingOn = !!on; if (!on) this.#dressing?.cancel(); this.#paintWorld(); }
+  setDressing(stored) { this.#dressingDoc = DressingDoc.from(stored); this.#dressing?.setDoc(this.#dressingDoc); this.#paintWorld(); }
+  get dressing()      { return this.#dressingDoc; }
+  get dressingTools() { return this.#dressing; }
+
   setShapesVisible(v) { this.#shapesVisible = v; this.#paintWorld(); }
   setMirrorVisible(v) { this.#mirrorVisible = v; this.#paintWorld(); }
   setChunkVisible(v)  { this.#chunkVisible = v; this.#paintWorld(); }
@@ -322,6 +338,7 @@ export class SketchCanvas extends CanvasBase {
     if (this._activeTool === "place") { if (this.#placeSpecs) this.#callbacks.onPlace?.(bx, bz); return; }
     if (this._activeTool === "measure") { this.#measure = { ax: bx, az: bz, bx, bz, live: true }; this.#renderMeasure(); this.#updateDim(); return; }
     if (this._activeTool === "split") { this.#onSplitClick(bx, bz); return; }
+    if (this.#dressingOn && this.#dressing?.onMouseDown(bx, bz, this._activeTool)) return;
     this.#draw?.onMouseDown(bx, bz, this._activeTool);
   }
 
@@ -334,6 +351,8 @@ export class SketchCanvas extends CanvasBase {
       if (this.#measure?.live) { this.#measure.bx = bx; this.#measure.bz = bz; this.#renderMeasure(); }
     } else if (this._activeTool === "split") {
       if (this.#split) { this.#split.bx = bx; this.#split.bz = bz; this.#paintWorld(); }
+    } else if (this.#dressingOn && this.#dressing?.onMouseMove(bx, bz, this._activeTool)) {
+      // consumed by a trace, a marker ghost or a prop being dragged
     } else {
       this.#draw?.onMouseMove(bx, bz);
     }
@@ -343,6 +362,7 @@ export class SketchCanvas extends CanvasBase {
 
   _onToolMouseup(e, svgPt) {
     if (this._activeTool === "measure") { if (this.#measure) this.#measure.live = false; return; }
+    if (this.#dressingOn && this.#dressing?.onMouseUp()) return;
     this.#draw?.onMouseUp();
   }
 
@@ -537,6 +557,7 @@ export class SketchCanvas extends CanvasBase {
     // outlines), not behind the Shapes toggle, so they stay visible while a plan is refined.
     painter.layer("structural", () => paintStructural(painter, this.#structural));
     painter.layer("selection", () => this.#paintSelectionHighlight());
+    painter.layer("dressing",  () => this.#paintDressing(painter));
     painter.layer("draw",      () => this.#draw?.paint(painter));
     painter.layer("measure",   () => this.#paintMeasure());
     painter.layer("place",     () => this.#paintPlaceGhost());
@@ -594,6 +615,20 @@ export class SketchCanvas extends CanvasBase {
     if (!this.#selectedIslandId) return;
     const isl = this.#islands.find(i => i.id === this.#selectedIslandId);
     if (isl?.exterior?.length >= 3) this.#painter.poly({ exterior: isl.exterior, holes: isl.holes ?? [] }, style);
+  }
+
+  // Placed dressing, plus each prop's mirror images — a prop is fanned across the orbit at export, so an
+  // author who cannot see the other half is placing cover blind. Only while the phase is up: on the draw
+  // canvas the props are context that would only crowd the geometry being edited.
+  #paintDressing(painter) {
+    if (!this.#dressingOn) return;
+    const axes = orbitAxes(this.#mode);
+    paintDressing(painter, this.#dressingDoc.props, {
+      selectedId: this.#dressing?.selectedId ?? null,
+      order: axes.length + 1,
+      mirrorPoint: (x, z, k) => applySymmetry(x, z, axes[k - 1], this.#center.cx, this.#center.cz),
+    });
+    this.#dressing?.paint(painter);
   }
 
   // The ruler line in world coords (so it pans/zooms with the map); the live distance rides the line
@@ -765,6 +800,14 @@ export class SketchCanvas extends CanvasBase {
     const getViewport = () => ({ scale: this._scale, panX: this._panX, panY: this._panY });
     this.#draw = new SketchDrawController(this.#screen.drawHandles, getViewport, {
       onShapeCreated: (partial) => this.#callbacks.onShapeCreated?.(partial),
+      onPreviewChanged: () => this.#paintWorld(),
+    });
+    // Dressing places props on the same canvas the shapes are drawn on, because a tree's position is a
+    // decision about the map's geometry and belongs next to it. Its own controller, so the draw tools and the
+    // placing tools never have to know about each other.
+    this.#dressing = new DressingController(this.#dressingDoc, {
+      onChanged: () => { this.#paintWorld(); this.#callbacks.onDressingChanged?.(); },
+      onSelected: (id) => this.#callbacks.onPropSelected?.(id),
       onPreviewChanged: () => this.#paintWorld(),
     });
     this.#edit = new SketchEditController(this.#screen.handles, getViewport, (id) => this.#shapes.get(id), {

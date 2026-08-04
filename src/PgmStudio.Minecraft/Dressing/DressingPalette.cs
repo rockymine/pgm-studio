@@ -53,11 +53,25 @@ public static class DressingPalette
     {
         Blocks.Grass => 1.0,
         Blocks.Dirt => blockData == 2 ? 0.8 : 1.0,   // podzol takes a little less than dirt or coarse dirt
-        12 => 0.35,                                   // sand
-        13 => 0.3,                                    // gravel
-        110 => 0.9,                                   // mycelium
+        Blocks.Sand => 0.35,
+        Blocks.Gravel => 0.3,
+        Mycelium => 0.9,
         _ => 0,
     };
+
+    private const int Mycelium = 110;
+
+    /// <summary>Whether a block on top of a column was <em>stamped</em> there — a room floor, an approach wall,
+    /// a monument, an objective — rather than left by the painter. The painter only ever writes terrain
+    /// materials, so anything else standing on a surface belongs to something the map is played through, and
+    /// neither a path's paving nor a prop's footing may take it.
+    ///
+    /// <para>Stated once, here, because two passes ask it: the dressing pass, to decide what it may repaint or
+    /// stand on, and the scope resolver, to decide which columns are off limits entirely. Two lists would drift
+    /// and the drift would show as a road eating a monument.</para></summary>
+    public static bool IsStamp(int blockId) => blockId
+        is Blocks.Bedrock or Blocks.Obsidian or Blocks.Wool or Blocks.GoldBlock or Blocks.IronBlock
+        or Blocks.EmeraldBlock or Blocks.Chest or Blocks.StainedGlass or Blocks.StainedGlassPane or Blocks.Air;
 
     // ── trees ───────────────────────────────────────────────────────────────────
     public const int Log = 17;                 // data 0 oak · 1 spruce · 2 birch · 3 jungle

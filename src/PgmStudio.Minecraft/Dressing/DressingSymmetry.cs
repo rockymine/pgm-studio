@@ -44,6 +44,19 @@ public sealed record DressingSymmetry(string? Mode = null, double CenterX = 0, d
     public (double X, double Z) TurnOffset(double dx, double dz, int k)
         => k == 0 ? (dx, dz) : Symmetry.Point(dx, dz, Mode, 0, 0, k);
 
+    /// <summary>The <paramref name="k"/>-th image of a drawn outline, point by point. An area is mirrored as
+    /// the shape it is rather than cell by cell: mirroring its cells one at a time rounds each of them
+    /// independently, which frays an edge that the author drew as a clean line.</summary>
+    public List<double[]> ImageRing(IReadOnlyList<double[]> ring, int k)
+    {
+        if (k == 0) return [.. ring.Select(point => new[] { point[0], point[1] })];
+        return [.. ring.Select(point =>
+        {
+            var (x, z) = Symmetry.Point(point[0], point[1], Mode, CenterX, CenterZ, k);
+            return new[] { x, z };
+        })];
+    }
+
     /// <summary>The <paramref name="k"/>-th image of a prop-local block offset.
     /// <para>Deliberately <b>not</b> corrected by half a cell the way <see cref="ImageCell"/> is. The anchor
     /// already carries that correction, and a prop's world cell is anchor + offset — so correcting the offset

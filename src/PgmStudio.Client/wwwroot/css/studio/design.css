@@ -294,3 +294,21 @@
 .dressing-views .theme-section-figure { margin: 0; }
 .dressing-views svg { max-width: 100%; }
 @media (max-width: 720px) { .dressing-views { grid-template-columns: 1fr; } }
+
+/* ── a prop picker's drawn options (decoration.md) ─────────────────────────────────────────────────
+   Every option is a picture the pass itself produced, so the card is mostly art with a small label under it.
+   A grid rather than a select, because what separates a worn path from stepping stones is what they look
+   like — a dropdown of six words says nothing an author can act on. */
+.prop-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-1); margin-bottom: var(--space-2); }
+.prop-cards--tall { grid-template-columns: repeat(3, 1fr); }
+.prop-card {
+  display: flex; flex-direction: column; align-items: stretch; gap: 2px;
+  padding: 4px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg-subtle); cursor: pointer; overflow: hidden;
+}
+.prop-card:hover { border-color: var(--accent); }
+.prop-card--active { border-color: var(--accent); background: var(--accent-subtle); }
+.prop-card-art { display: block; line-height: 0; overflow: hidden; }
+.prop-card-art svg { width: 100%; height: auto; display: block; }
+.prop-card-label { font-size: 10px; color: var(--text-muted); text-align: center; }
+.prop-card--active .prop-card-label { color: var(--accent); }

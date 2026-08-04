@@ -22,12 +22,12 @@ public sealed class SketchLayout
     [JsonPropertyName("themes")]   public Dictionary<string, JsonElement>? Themes { get; set; }
     [JsonPropertyName("mapTheme")] public string? MapTheme { get; set; }
 
-    // Dressing (docs/world-export/decoration.md) rides beside theming and resolves the same way: a registry of
-    // named recipes (id → the recipe JSON the dressing pass deserializes) and the map-default id covering every
-    // cell no shape claims, with a shape's own override on SketchShape.Dressing. Two registries rather than one
-    // because the two are authored and reused independently — a desert's paint outlives the scrub growing on it.
-    [JsonPropertyName("dressings")]   public Dictionary<string, JsonElement>? Dressings { get; set; }
-    [JsonPropertyName("mapDressing")] public string? MapDressing { get; set; }
+    // Dressing (docs/world-export/decoration.md) does NOT ride beside theming, and the difference is the point.
+    // A theme is a recipe applied to a footprint, so it is named, stored once and referenced; a prop was placed
+    // somewhere, so what is stored is the placement itself. This is the list of what the author put on the map —
+    // paths, trees, boulders, areas of cover — each carrying its own position and its own knobs. Absent on a
+    // sketch that never opened the phase, which dresses nothing.
+    [JsonPropertyName("dressing")] public JsonElement? Dressing { get; set; }
 
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
@@ -109,14 +109,6 @@ public sealed class SketchShape
     [JsonPropertyName("vertices")] public double[][]? Vertices { get; set; }
     [JsonPropertyName("controls")] public Dictionary<string, SketchControl>? Controls { get; set; }
 
-    // Path (docs/world-export/decoration.md §4). A path is drawn as an open line and stored as one: Vertices is
-    // its centerline (>= 2 points, not a closed outline) and Radius its half-width, both reused rather than
-    // added. The band around that line is derived at rasterize time (Geom.PathBand), so a reshape of the line
-    // moves the band and nothing downstream holds a stale outline. Edge names how the two long sides are drawn
-    // and Seed fixes the wander of a rough one, so a map re-exports identically.
-    [JsonPropertyName("path_edge")] public string? PathEdge { get; set; }
-    [JsonPropertyName("path_seed")] public int? PathSeed { get; set; }
-
     // Height. Floor = the shape's elevation (where its base sits), BaseHeight = its thickness: the column
     // spans [Floor, Floor + BaseHeight]. For a polygon/lasso whose AnchorHeights line up with its Vertices,
     // the thickness varies per vertex (TIN-interpolated across the footprint). All optional; absent = the
@@ -140,8 +132,4 @@ public sealed class SketchShape
     // and full-map assignment are UI conveniences that write this per member shape / the map default.
     [JsonPropertyName("theme")]      public string? Theme { get; set; }
 
-    /// <summary>The dressing this shape grows (an id into <see cref="SketchLayout.Dressings"/>); null falls to
-    /// the map default. Scoped on the shape for the same reason its theme is — reshape it and its planting
-    /// moves with it.</summary>
-    [JsonPropertyName("dressing")]   public string? Dressing { get; set; }
 }

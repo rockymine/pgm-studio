@@ -130,13 +130,13 @@ public static class SketchWorldBuilder
         TerrainPainter.Paint(world, terrain.SurfaceTop, TerrainThemeScope.ThemeAt(layoutJson), TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent));
 
         // ── Dressing — the terrain's life on top of its finish: flora over the soil, boulders half-buried in
-        // it, trees seated on it (docs/world-export/decoration.md). Runs after the painter because the one fact
-        // it needs is what the surface now *is* — soil takes flora, a plaza's quartz does not — and the painter
-        // has just decided that per cell. Anything that gives cover is generated on the authored unit and fanned
-        // across the symmetry orbit, so two teams face the same rock; flowers stay free.
+        // it, trees standing on it (docs/world-export/decoration.md). Runs after the painter because the one
+        // fact it needs is what the surface now *is* — soil takes flora, a plaza's quartz does not — and the
+        // painter has just decided that per cell. Everything here was placed by hand and every prop is fanned
+        // across the symmetry orbit, so two teams face the same rock from the same side.
         Decorator.Decorate(world, new DressingContext(
             terrain.SurfaceTop,
-            DressingScope.RecipeAt(layoutJson),
+            DressingScope.PropsOf(layoutJson),
             DressingScope.ProtectedAt(world, terrain.SurfaceTop, intent),
             DressingScope.SymmetryOf(layoutJson)));
 

@@ -1,17 +1,19 @@
+using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft.Dressing;
 
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>
 /// The dressing pass (G161, docs/world-export/decoration.md): the third walk over a realized world, adding the
-/// terrain's life on top of the paint. The cases that matter are the ones a preview cannot show — that the
-/// paint underneath is really what gates flora, that protected ground is really left alone, that leaves carry
-/// the no-decay bit, and above all that gameplay-affecting props land identically for every team.
+/// terrain's life on top of the paint. The cases that matter are the ones a preview cannot show — that a prop
+/// lands where it was placed and nowhere else, that a path repaints rather than builds, that the paint
+/// underneath really gates flora, that protected ground is really left alone, and above all that a prop lands
+/// identically for every team.
 /// </summary>
 public sealed class DecoratorTests
 {
-    /// <summary>A flat painted plateau: <paramref name="size"/> square of grass over dirt over stone, its first
-    /// air course at y = 8 — the same shape the painter hands the pass in a real export.</summary>
+    /// <summary>A flat painted plateau: <paramref name="size"/> square of grass over stone, its first air
+    /// course at y = 8 — the same shape the painter hands the pass in a real export.</summary>
     private static (VoxelWorld World, Dictionary<(int X, int Z), int> SurfaceTop) Plateau(
         int size = 40, int surfaceBlock = Blocks.Grass, int from = 0)
     {
@@ -28,10 +30,9 @@ public sealed class DecoratorTests
     }
 
     private static DressingContext Context(
-        Dictionary<(int X, int Z), int> top, DressingRecipe recipe,
+        Dictionary<(int X, int Z), int> top, IReadOnlyList<PlacedProp> props,
         Func<int, int, bool>? isProtected = null, string? symmetry = null, double centerX = 0, double centerZ = 0)
-        => new(top, (_, _) => recipe, isProtected ?? ((_, _) => false),
-            new DressingSymmetry(symmetry, centerX, centerZ));
+        => new(top, props, isProtected ?? ((_, _) => false), new DressingSymmetry(symmetry, centerX, centerZ));
 
     private static IEnumerable<(int X, int Y, int Z, int Id, int Data)> Placed(
         VoxelWorld world, IEnumerable<(int X, int Z)> cells, int fromY, int toY)
@@ -44,257 +45,329 @@ public sealed class DecoratorTests
         }
     }
 
+    // A square area covering the whole plateau — what "grow cover here" looks like when the case under test is
+    // about something other than where the area's edge falls.
+    private static double[][] AreaOver(int size) => [[0, 0], [size - 1, 0], [size - 1, size - 1], [0, size - 1]];
+
     // ── nothing by default ─────────────────────────────────────────────────────────────────────────
     [Test]
-    public async Task A_bare_recipe_places_nothing_at_all()
+    public async Task An_undressed_map_is_left_exactly_as_the_painter_left_it()
     {
         var (world, top) = Plateau();
-        var tally = Decorator.Decorate(world, Context(top, DressingRecipe.Bare));
+        var tally = Decorator.Decorate(world, Context(top, []));
 
-        await Assert.That(tally).IsEqualTo(new DressingTally(0, 0, 0));
-        // The map a author never dressed exports exactly as it did before the stage existed.
-        await Assert.That(Placed(world, top.Keys, 8, 40).Any()).IsFalse();
+        await Assert.That(tally).IsEqualTo(new DressingTally());
+        await Assert.That(Placed(world, top.Keys, 8, 40)).IsEmpty();
     }
 
-    // ── flora (DR-FL) ──────────────────────────────────────────────────────────────────────────────
+    // ── a prop stands where it was placed ──────────────────────────────────────────────────────────
     [Test]
-    public async Task Flora_grows_in_the_air_above_the_soil_and_leaves_the_ground_alone()
+    public async Task A_tree_grows_where_it_was_placed_and_nowhere_else()
     {
+        // The whole point of the rework: dressing is authored, so a tree is at (14, 20) because someone put it
+        // there. Nothing anywhere else on a forty-block plateau.
         var (world, top) = Plateau();
-        var tally = Decorator.Decorate(world, Context(top, new DressingRecipe { Flora = new FloraSpec(Coverage: 0.6) }));
+        var tally = Decorator.Decorate(world, Context(top,
+            [new TreeProp { Id = "t", X = 14, Z = 20, Species = "oak", Height = 16, Seed = 5 }]));
 
-        await Assert.That(tally.Plants).IsGreaterThan(50);
-        foreach (var (x, _, z, _, _) in Placed(world, top.Keys, 8, 12))
-            await Assert.That(world.GetBlock(x, 7, z).Id).IsEqualTo(Blocks.Grass);   // the ground is untouched
+        await Assert.That(tally.Trees).IsEqualTo(1);
+        var logs = Placed(world, top.Keys, 8, 40).Where(b => b.Id == DressingPalette.Log).ToList();
+        await Assert.That(logs).IsNotEmpty();
+        await Assert.That(logs.Min(b => b.Y)).IsEqualTo(8);                  // seated on the surface, not sunk
+        // and standing at its own cell: limbs reach out, but the whole tree is within a crown's radius of
+        // where it was put, not somewhere else on a forty-block plateau.
+        await Assert.That(logs.Max(b => Math.Abs(b.X - 14))).IsLessThan(9);
+        await Assert.That(logs.Max(b => Math.Abs(b.Z - 20))).IsLessThan(9);
     }
 
-    [Test]
-    public async Task The_paint_underneath_is_what_decides_whether_flora_grows()
-    {
-        // The reason the pass runs after the painter at all: a plaza's quartz takes nothing, and no separate
-        // mask had to be derived to know that.
-        var flora = new DressingRecipe { Flora = new FloraSpec(Coverage: 0.9) };
-
-        var (grass, grassTop) = Plateau(surfaceBlock: Blocks.Grass);
-        var (quartz, quartzTop) = Plateau(surfaceBlock: Blocks.QuartzBlock);
-        var (sand, sandTop) = Plateau(surfaceBlock: 12);
-
-        var onGrass = Decorator.Decorate(grass, Context(grassTop, flora)).Plants;
-        var onQuartz = Decorator.Decorate(quartz, Context(quartzTop, flora)).Plants;
-        var onSand = Decorator.Decorate(sand, Context(sandTop, flora)).Plants;
-
-        await Assert.That(onQuartz).IsEqualTo(0);
-        await Assert.That(onSand).IsGreaterThan(0);
-        await Assert.That(onSand).IsLessThan(onGrass);   // sand accepts flora, but sparsely
-    }
-
-    [Test]
-    public async Task A_two_block_plant_is_placed_as_a_pair_with_its_top_half_flagged()
-    {
-        // Placed without the upper-half flag, a double plant drops as an item on the first block update.
-        var (world, top) = Plateau();
-        Decorator.Decorate(world, Context(top, new DressingRecipe
-        { Flora = new FloraSpec(Coverage: 0.9, TallShare: 1.0) }));
-
-        var lower = Placed(world, top.Keys, 8, 8).Where(b => b.Id == DressingPalette.DoublePlant).ToList();
-        await Assert.That(lower.Count).IsGreaterThan(20);
-        foreach (var (x, _, z, _, _) in lower)
-            await Assert.That(world.GetBlock(x, 9, z)).IsEqualTo((DressingPalette.DoublePlant, DressingPalette.DoublePlantUpper));
-    }
-
-    [Test]
-    public async Task Flora_never_lands_on_protected_ground()
-    {
-        var (world, top) = Plateau();
-        // A spawn box in one corner — nothing may grow inside it.
-        Decorator.Decorate(world, Context(top, new DressingRecipe { Flora = new FloraSpec(Coverage: 0.95) },
-            isProtected: (x, z) => x < 10 && z < 10));
-
-        await Assert.That(Placed(world, top.Keys.Where(c => c.X < 10 && c.Z < 10), 8, 12).Any()).IsFalse();
-        await Assert.That(Placed(world, top.Keys.Where(c => c.X >= 10), 8, 12).Any()).IsTrue();
-    }
-
-    // ── boulders (DR-SC) ───────────────────────────────────────────────────────────────────────────
     [Test]
     public async Task A_boulder_is_half_buried_so_it_reads_as_emerging_from_the_ground()
     {
-        var (world, top) = Plateau(60);
-        var tally = Decorator.Decorate(world, Context(top, new DressingRecipe
-        { Boulders = new BoulderSpec(Density: 0.9, SizeSpread: 0.2, Form: BoulderForm.Round) }));
+        var (world, top) = Plateau();
+        var tally = Decorator.Decorate(world, Context(top,
+            [new BoulderProp { Id = "b", X = 20, Z = 20, Size = 3, Mossy = false, Seed = 3 }]));
 
-        await Assert.That(tally.Boulders).IsGreaterThan(3);
-        // Rock stands above the old surface …
-        await Assert.That(Placed(world, top.Keys, 8, 20).Any(b => b.Id is Blocks.Stone or 48)).IsTrue();
-        // … and has replaced ground below it, which is what "buried" means.
-        var buried = top.Keys.Count(cell => world.GetBlock(cell.X, 7, cell.Z).Id != Blocks.Grass);
-        await Assert.That(buried).IsGreaterThan(0);
-    }
-
-    [Test]
-    public async Task Boulders_do_not_pile_on_top_of_one_another()
-    {
-        var (world, top) = Plateau(60);
-        Decorator.Decorate(world, Context(top, new DressingRecipe { Boulders = new BoulderSpec(Density: 1.0) }));
-
-        // The scatter is a local maximum over a disc, so however dense the spec asks for, sites stay spaced.
-        var rock = Placed(world, top.Keys, 9, 30).Select(b => (b.X, b.Z)).Distinct().Count();
-        await Assert.That(rock).IsLessThan(top.Count / 2);
-    }
-
-    [Test]
-    public async Task A_boulder_that_would_overhang_the_void_is_refused_rather_than_clipped()
-    {
-        // A strip one cell wide: no boulder's footprint fits on it, so none is placed. A prop half over the
-        // edge would read as floating.
-        var world = new VoxelWorld();
-        var top = new Dictionary<(int X, int Z), int>();
-        for (var x = 0; x < 60; x++) { world.SetBlock(x, 7, 0, Blocks.Grass); top[(x, 0)] = 8; }
-
-        var tally = Decorator.Decorate(world, Context(top, new DressingRecipe { Boulders = new BoulderSpec(Density: 1.0) }));
-        await Assert.That(tally.Boulders).IsEqualTo(0);
-    }
-
-    // ── trees (DR-TR) ──────────────────────────────────────────────────────────────────────────────
-    [Test]
-    public async Task A_tree_stands_on_the_surface_with_a_trunk_under_its_leaves()
-    {
-        var (world, top) = Plateau(60);
-        var tally = Decorator.Decorate(world, Context(top, new DressingRecipe
-        { Trees = new TreeSpec(Density: 0.9, GroveThreshold: 1.0, Species: ["oak"]) }));
-
-        await Assert.That(tally.Trees).IsGreaterThan(2);
-        var logs = Placed(world, top.Keys, 8, 60).Where(b => b.Id == DressingPalette.Log).ToList();
-        var leaves = Placed(world, top.Keys, 8, 60).Where(b => b.Id == DressingPalette.Leaves).ToList();
-        await Assert.That(logs.Count).IsGreaterThan(10);
-        await Assert.That(leaves.Count).IsGreaterThan(logs.Count);          // a crown outweighs its wood
-        await Assert.That(logs.Min(b => b.Y)).IsEqualTo(8);                 // seated on the surface, not sunk
-    }
-
-    [Test]
-    public async Task A_tree_may_lean_its_crown_over_a_drop_but_never_over_something_protected()
-    {
-        // Two different footprints answer two different questions. What a prop *rests* on needs ground; what
-        // it merely occupies does not, or no tree could ever grow within a crown's reach of a shoreline —
-        // which is exactly where one leaning out over the drop is the point. Protection is the opposite: it
-        // covers the whole volume, because a canopy over a monument reads as badly as a trunk on one.
-        var stand = new TreeSpec(Density: 0.9, GroveThreshold: 1.0, Species: ["oak"]);
-
-        var (edge, edgeTop) = Plateau(14);
-        var overhang = Decorator.Decorate(edge, Context(edgeTop, new DressingRecipe { Trees = stand }));
-        await Assert.That(overhang.Trees).IsGreaterThan(0);
-
-        // The same patch with everything but its middle protected: the trunk has ground, but the crown reaches
-        // across cells the map is played through, so nothing is placed.
-        var (fenced, fencedTop) = Plateau(14);
-        var walled = Decorator.Decorate(fenced, Context(fencedTop, new DressingRecipe { Trees = stand },
-            isProtected: (x, z) => x is < 6 or > 7 || z is < 6 or > 7));
-        await Assert.That(walled.Trees).IsEqualTo(0);
+        await Assert.That(tally.Boulders).IsEqualTo(1);
+        var rock = Placed(world, top.Keys, 4, 20).Where(b => b.Id == Blocks.Stone && b.Y >= 7).ToList();
+        await Assert.That(rock.Any(b => b.Y >= 9)).IsTrue();                 // it stands above the ground
+        await Assert.That(world.GetBlock(20, 6, 20).Id).IsEqualTo(Blocks.Stone);   // and reaches into it
     }
 
     [Test]
     public async Task Every_leaf_carries_the_no_decay_bit()
     {
-        // A built map has no growing tree behind its leaves; without this flag the whole crown vanishes
-        // shortly after the map loads.
-        var (world, top) = Plateau(60);
-        Decorator.Decorate(world, Context(top, new DressingRecipe
-        { Trees = new TreeSpec(Density: 0.9, GroveThreshold: 1.0) }));
+        // A leaf placed without the flag is checked for decay and the crown falls apart the moment a player
+        // joins — a built map has no growing tree behind it.
+        var (world, top) = Plateau();
+        Decorator.Decorate(world, Context(top, [new TreeProp { Id = "t", X = 20, Z = 20, Seed = 5 }]));
 
-        var leaves = Placed(world, top.Keys, 8, 60)
-            .Where(b => b.Id is DressingPalette.Leaves or DressingPalette.Leaves2).ToList();
-        await Assert.That(leaves.Count).IsGreaterThan(0);
-        foreach (var leaf in leaves)
-            await Assert.That(leaf.Data & DressingPalette.LeafNoDecay).IsEqualTo(DressingPalette.LeafNoDecay);
+        var leaves = Placed(world, top.Keys, 8, 40).Where(b => b.Id == DressingPalette.Leaves).ToList();
+        await Assert.That(leaves).IsNotEmpty();
+        await Assert.That(leaves.All(b => (b.Data & DressingPalette.LeafNoDecay) != 0)).IsTrue();
+    }
+
+    // ── paths repaint, they do not build ───────────────────────────────────────────────────────────
+    [Test]
+    public async Task A_path_swaps_the_surface_it_crosses_and_adds_no_cell()
+    {
+        // The distinction the phase is built on: terrain is the draw phase's, a finish is dressing's. A path
+        // that added a cell would lift itself into a kerb and would belong in the other phase.
+        var (world, top) = Plateau();
+        var tally = Decorator.Decorate(world, Context(top, [new PathProp
+        {
+            Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5,
+            Blocks = [new PaveBlock(Blocks.Gravel, 0)],
+        }]));
+
+        await Assert.That(tally.PathCells).IsGreaterThan(60);
+        await Assert.That(Placed(world, top.Keys, 8, 40)).IsEmpty();          // nothing above the surface
+        await Assert.That(world.GetBlock(20, 7, 20).Id).IsEqualTo(Blocks.Gravel);
+        await Assert.That(world.GetBlock(20, 7, 30).Id).IsEqualTo(Blocks.Grass);   // clear of the stroke
     }
 
     [Test]
-    public async Task Groves_clump_rather_than_covering_the_map_evenly()
+    public async Task The_style_is_what_separates_a_road_from_a_trail_from_stones()
     {
-        var (world, top) = Plateau(80);
-        var sparse = Decorator.Decorate(world, Context(top, new DressingRecipe
-        { Trees = new TreeSpec(Density: 0.8, GroveThreshold: 0.25) })).Trees;
+        // Three gates on one distance field. Solid paves its whole band; worn thins it; stones leave the gaps
+        // that make them stones — which is exactly what a single closed outline could not express.
+        int Paved(PathStyle style, double coverage = 0.7)
+        {
+            var (world, top) = Plateau();
+            return Decorator.Decorate(world, Context(top, [new PathProp
+            {
+                Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Style = style, Coverage = coverage, Seed = 5,
+                Blocks = [new PaveBlock(Blocks.Gravel, 0)],
+            }])).PathCells;
+        }
 
-        var (world2, top2) = Plateau(80);
-        var full = Decorator.Decorate(world2, Context(top2, new DressingRecipe
-        { Trees = new TreeSpec(Density: 0.8, GroveThreshold: 1.0) })).Trees;
+        var solid = Paved(PathStyle.Solid);
+        await Assert.That(Paved(PathStyle.Worn, 0.5)).IsLessThan(solid);
+        await Assert.That(Paved(PathStyle.Stones)).IsLessThan(solid);
+        await Assert.That(Paved(PathStyle.Stones)).IsGreaterThan(0);
+        await Assert.That(Paved(PathStyle.Tapered)).IsLessThan(solid);       // thin at both ends
+    }
 
-        await Assert.That(sparse).IsLessThan(full);
+    [Test]
+    public async Task A_cobbled_path_spends_every_block_it_was_given()
+    {
+        var (world, top) = Plateau();
+        Decorator.Decorate(world, Context(top, [new PathProp
+        {
+            Id = "p", Points = [[4, 20], [35, 20]], Radius = 3, Style = PathStyle.Cobble, Seed = 5,
+            Blocks = [new PaveBlock(Blocks.Cobblestone, 0), new PaveBlock(Blocks.Gravel, 0), new PaveBlock(Blocks.Stone, 0)],
+        }]));
+
+        var paved = top.Keys.Select(cell => world.GetBlock(cell.X, 7, cell.Z).Id).ToHashSet();
+        await Assert.That(paved).Contains(Blocks.Cobblestone);
+        await Assert.That(paved).Contains(Blocks.Gravel);
+        await Assert.That(paved).Contains(Blocks.Stone);
+    }
+
+    [Test]
+    public async Task A_path_does_not_eat_what_the_map_is_played_through()
+    {
+        // A monument's wool standing on a column the stroke crosses. The painter skips a stamped surface for
+        // the same reason, and a route has even less claim on one.
+        var (world, top) = Plateau();
+        world.SetBlock(20, 7, 20, Blocks.Wool, 14);
+
+        Decorator.Decorate(world, Context(top, [new PathProp
+        {
+            Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5, Blocks = [new PaveBlock(Blocks.Gravel, 0)],
+        }]));
+
+        await Assert.That(world.GetBlock(20, 7, 20).Id).IsEqualTo(Blocks.Wool);
+    }
+
+    [Test]
+    public async Task Nothing_grows_through_a_road()
+    {
+        // The one ordering rule the pass has: paths go down first and their cells become bare ground.
+        var (world, top) = Plateau();
+        Decorator.Decorate(world, Context(top,
+        [
+            new PathProp { Id = "p", Points = [[4, 20], [35, 20]], Radius = 3, Seed = 5, Blocks = [new PaveBlock(Blocks.Gravel, 0)] },
+            new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(Coverage: 1.0), Seed = 7 },
+        ]));
+
+        var overRoad = Placed(world, [(20, 20), (18, 20), (24, 20)], 8, 10).ToList();
+        await Assert.That(overRoad).IsEmpty();
+    }
+
+    // ── areas of cover ─────────────────────────────────────────────────────────────────────────────
+    [Test]
+    public async Task Cover_grows_inside_the_drawn_area_and_stops_at_its_edge()
+    {
+        var (world, top) = Plateau();
+        var tally = Decorator.Decorate(world, Context(top,
+            [new FloraProp { Id = "f", Points = [[4, 4], [16, 4], [16, 16], [4, 16]], Spec = new FloraSpec(Coverage: 1.0), Seed = 7 }]));
+
+        await Assert.That(tally.Plants).IsGreaterThan(50);
+        await Assert.That(Placed(world, [(10, 10)], 8, 9)).IsNotEmpty();      // inside
+        await Assert.That(Placed(world, [(30, 30), (2, 2), (25, 10)], 8, 9)).IsEmpty();   // outside
+    }
+
+    [Test]
+    public async Task The_paint_underneath_is_what_decides_whether_cover_grows()
+    {
+        var lush = Plateau(20, Blocks.Grass);
+        var paved = Plateau(20, Blocks.QuartzBlock);
+        var area = new FloraProp { Id = "f", Points = AreaOver(20), Spec = new FloraSpec(Coverage: 1.0), Seed = 7 };
+
+        await Assert.That(Decorator.Decorate(lush.World, Context(lush.SurfaceTop, [area])).Plants).IsGreaterThan(50);
+        await Assert.That(Decorator.Decorate(paved.World, Context(paved.SurfaceTop, [area])).Plants).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task A_two_block_plant_is_placed_as_a_pair_with_its_top_half_flagged()
+    {
+        // Without the upper-half flag a double plant drops as an item on the first block update.
+        var (world, top) = Plateau();
+        Decorator.Decorate(world, Context(top,
+            [new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(Coverage: 1.0, TallShare: 1.0, FlowerShare: 0), Seed = 7 }]));
+
+        var tall = Placed(world, top.Keys, 8, 8).Where(b => b.Id == DressingPalette.DoublePlant).ToList();
+        await Assert.That(tall).IsNotEmpty();
+        foreach (var stem in tall.Take(20))
+            await Assert.That(world.GetBlock(stem.X, stem.Y + 1, stem.Z))
+                .IsEqualTo((DressingPalette.DoublePlant, DressingPalette.DoublePlantUpper));
+    }
+
+    // ── what must be left bare ─────────────────────────────────────────────────────────────────────
+    [Test]
+    public async Task Nothing_is_placed_on_ground_the_map_is_played_through()
+    {
+        var (world, top) = Plateau();
+        var tally = Decorator.Decorate(world, Context(top,
+        [
+            new TreeProp { Id = "t", X = 20, Z = 20, Seed = 5 },
+            new BoulderProp { Id = "b", X = 20, Z = 20, Size = 3, Seed = 3 },
+            new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(Coverage: 1.0), Seed = 7 },
+        ], isProtected: (x, z) => Math.Abs(x - 20) < 8 && Math.Abs(z - 20) < 8));
+
+        await Assert.That(tally.Trees).IsEqualTo(0);
+        await Assert.That(tally.Boulders).IsEqualTo(0);
+        await Assert.That(Placed(world, [(20, 20), (16, 18)], 8, 40)).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_tree_may_lean_its_crown_over_a_drop_but_never_over_something_protected()
+    {
+        // Two different footprints answer two different questions. What a prop *rests* on needs ground; what it
+        // merely occupies does not, or no tree could grow within a crown's reach of a shoreline. Protection is
+        // the opposite: it covers the whole volume, because a canopy over a monument reads as badly as a trunk.
+        var stand = new TreeProp { Id = "t", X = 7, Z = 7, Species = "oak", Seed = 5 };
+
+        var (edge, edgeTop) = Plateau(14);
+        await Assert.That(Decorator.Decorate(edge, Context(edgeTop, [stand])).Trees).IsEqualTo(1);
+
+        var (fenced, fencedTop) = Plateau(14);
+        var walled = Decorator.Decorate(fenced, Context(fencedTop, [stand],
+            isProtected: (x, z) => x is < 6 or > 8 || z is < 6 or > 8));
+        await Assert.That(walled.Trees).IsEqualTo(0);
     }
 
     // ── fairness (G162) ────────────────────────────────────────────────────────────────────────────
     [Test]
-    public async Task Gameplay_props_land_identically_for_every_team()
+    public async Task A_prop_lands_identically_for_every_team()
     {
-        // The correctness rule the whole stage is gated on: cover a team has, its mirror has too. The plateau
-        // is centred on the origin so rot_180 maps it onto itself.
-        var (world, top) = Plateau(60, from: -30);
-        Decorator.Decorate(world, Context(top,
-            new DressingRecipe { Boulders = new BoulderSpec(Density: 0.8), Trees = new TreeSpec(Density: 0.6, GroveThreshold: 1.0) },
+        // Fanning the *position* is not enough and this is the case that shows it: a rock whose lobe points
+        // east must point west on the mirrored half, or the cover each team gets differs cell by cell.
+        var (world, top) = Plateau(80, from: -40);
+        var tally = Decorator.Decorate(world, Context(top,
+            [new BoulderProp { Id = "b", X = 12, Z = 9, Form = BoulderForm.Cairn, Size = 3, Mossy = false, Seed = 3 }],
             symmetry: "rot_180"));
 
-        var cover = top.Keys.Where(cell => world.GetBlock(cell.X, 9, cell.Z).Id != Blocks.Air).ToHashSet();
-        await Assert.That(cover.Count).IsGreaterThan(20);
+        await Assert.That(tally.Boulders).IsEqualTo(2);
+        var unmirrored = top.Keys.Count(cell =>
+            Solid(world, cell) != Solid(world, (-cell.X - 1, -cell.Z - 1)));
+        await Assert.That(unmirrored).IsEqualTo(0);
 
-        var unmirrored = cover.Count(cell => !cover.Contains((-cell.X - 1, -cell.Z - 1)));
+        static bool Solid(VoxelWorld world, (int X, int Z) cell)
+        {
+            for (var y = 8; y < 20; y++) if (world.GetBlock(cell.X, y, cell.Z).Id != Blocks.Air) return true;
+            return false;
+        }
+    }
+
+    [Test]
+    public async Task A_path_is_mirrored_as_a_whole_route_rather_than_cell_by_cell()
+    {
+        var (world, top) = Plateau(80, from: -40);
+        var tally = Decorator.Decorate(world, Context(top, [new PathProp
+        {
+            Id = "p", Points = [[6, 6], [20, 14], [30, 8]], Radius = 2, Seed = 5,
+            Blocks = [new PaveBlock(Blocks.Gravel, 0)],
+        }], symmetry: "rot_180"));
+
+        await Assert.That(tally.PathCells).IsGreaterThan(80);
+        var paved = top.Keys.Where(cell => world.GetBlock(cell.X, 7, cell.Z).Id == Blocks.Gravel).ToHashSet();
+        var unmirrored = paved.Count(cell => !paved.Contains((-cell.X - 1, -cell.Z - 1)));
         await Assert.That(unmirrored).IsEqualTo(0);
     }
 
     [Test]
-    public async Task Without_symmetry_the_same_scatter_is_free()
+    public async Task Without_symmetry_a_prop_is_placed_once()
     {
-        // The same recipe on an unmirrored map is not forced into pairs — the fan is a property of the map's
-        // symmetry, not a cost every dressing pays.
-        var (world, top) = Plateau(60, from: -30);
-        Decorator.Decorate(world, Context(top, new DressingRecipe { Boulders = new BoulderSpec(Density: 0.8) }));
+        var (world, top) = Plateau(80, from: -40);
+        var tally = Decorator.Decorate(world, Context(top,
+            [new BoulderProp { Id = "b", X = 12, Z = 9, Size = 3, Seed = 3 }]));
 
-        var cover = top.Keys.Where(cell => world.GetBlock(cell.X, 9, cell.Z).Id != Blocks.Air).ToHashSet();
-        await Assert.That(cover.Count(cell => !cover.Contains((-cell.X - 1, -cell.Z - 1)))).IsGreaterThan(0);
+        await Assert.That(tally.Boulders).IsEqualTo(1);
+    }
+
+    // ── determinism & the wire format ──────────────────────────────────────────────────────────────
+    [Test]
+    public async Task The_same_props_dress_the_same_world_the_same_way()
+    {
+        PlacedProp[] props =
+        [
+            new PathProp { Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Style = PathStyle.Worn, Seed = 5, Blocks = [new PaveBlock(Blocks.Gravel, 0)] },
+            new TreeProp { Id = "t", X = 12, Z = 12, Seed = 5 },
+            new BoulderProp { Id = "b", X = 28, Z = 28, Seed = 3 },
+            new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(), Seed = 7 },
+        ];
+
+        var first = Plateau();
+        var again = Plateau();
+        var one = Decorator.Decorate(first.World, Context(first.SurfaceTop, props));
+        var two = Decorator.Decorate(again.World, Context(again.SurfaceTop, props));
+
+        await Assert.That(one).IsEqualTo(two);
+        await Assert.That(Placed(first.World, first.SurfaceTop.Keys, 1, 40))
+            .IsEquivalentTo(Placed(again.World, again.SurfaceTop.Keys, 1, 40));
     }
 
     [Test]
-    public async Task Cosmetic_flora_stays_free_even_on_a_mirrored_map()
+    public async Task Every_kind_of_prop_round_trips_through_its_json()
     {
-        // Two identical flower beds read as a rendering artefact, and a flower decides nothing — so the orbit
-        // fan deliberately does not reach them.
-        var (world, top) = Plateau(60, from: -30);
-        Decorator.Decorate(world, Context(top,
-            new DressingRecipe { Flora = new FloraSpec(Coverage: 0.5) }, symmetry: "rot_180"));
-
-        var plants = top.Keys.Where(cell => world.GetBlock(cell.X, 8, cell.Z).Id != Blocks.Air).ToHashSet();
-        await Assert.That(plants.Count(cell => !plants.Contains((-cell.X - 1, -cell.Z - 1)))).IsGreaterThan(0);
-    }
-
-    // ── determinism + serialization ────────────────────────────────────────────────────────────────
-    [Test]
-    public async Task The_same_recipe_dresses_the_same_world_the_same_way()
-    {
-        var recipe = new DressingRecipe
-        { Flora = new FloraSpec(), Boulders = new BoulderSpec(), Trees = new TreeSpec(GroveThreshold: 0.8) };
-
-        var (first, firstTop) = Plateau(50);
-        var (again, againTop) = Plateau(50);
-        Decorator.Decorate(first, Context(firstTop, recipe));
-        Decorator.Decorate(again, Context(againTop, recipe));
-
-        foreach (var cell in firstTop.Keys)
-        for (var y = 7; y < 40; y++)
-            await Assert.That(first.GetBlock(cell.X, y, cell.Z)).IsEqualTo(again.GetBlock(cell.X, y, cell.Z));
-    }
-
-    [Test]
-    public async Task A_recipe_round_trips_through_its_json()
-    {
-        var recipe = new DressingRecipe
+        // One list holds four different shapes of thing, so the discriminator is what makes the wire format
+        // readable at all — and a prop that lost its kind on the way back would be silently dropped.
+        var doc = new DressingDoc
         {
-            Flora = new FloraSpec(Coverage: 0.6, TallShare: 0.2) { Seed = 99 },
-            Boulders = new BoulderSpec(Form: BoulderForm.Cairn, BlockId: 1, BlockData: 5),
-            Trees = new TreeSpec(GroveScale: 40, Species: ["birch", "spruce"]),
+            Props =
+            [
+                new PathProp { Id = "p", Points = [[1, 2], [3, 4]], Radius = 4, Style = PathStyle.Cobble, Seed = 5, Blocks = [new PaveBlock(4, 0), new PaveBlock(13, 0)] },
+                new TreeProp { Id = "t", X = 5, Z = 6, Species = "birch", Height = 22, Stems = 2, Seed = 9 },
+                new BoulderProp { Id = "b", X = 7, Z = 8, Form = BoulderForm.Cairn, Size = 4, Seed = 11 },
+                new FloraProp { Id = "f", Points = [[0, 0], [8, 0], [8, 8]], Spec = new FloraSpec(Coverage: 0.9), Seed = 13 },
+            ],
         };
-        var json = DressingJson.Serialize(recipe);
 
-        await Assert.That(json).Contains("cairn");    // enums read as names, not ordinals
-        await Assert.That(DressingJson.Deserialize(json)).IsEqualTo(recipe);
-        await Assert.That(DressingJson.Serialize(DressingJson.Deserialize(json))).IsEqualTo(json);
-        await Assert.That(DressingJson.Deserialize(DressingJson.Serialize(DressingRecipe.Bare)).IsBare).IsTrue();
+        var back = DressingJson.Deserialize(DressingJson.Serialize(doc));
+
+        await Assert.That(back.Props.Select(prop => prop.GetType().Name))
+            .IsEquivalentTo(doc.Props.Select(prop => prop.GetType().Name));
+        await Assert.That(((PathProp)back.Props[0]).Style).IsEqualTo(PathStyle.Cobble);
+        await Assert.That(((TreeProp)back.Props[1]).Species).IsEqualTo("birch");
+        await Assert.That(((BoulderProp)back.Props[2]).Form).IsEqualTo(BoulderForm.Cairn);
+        await Assert.That(((FloraProp)back.Props[3]).Spec.Coverage).IsEqualTo(0.9);
+    }
+
+    [Test]
+    public async Task A_blob_of_json_the_reader_cannot_parse_dresses_nothing_rather_than_failing_an_export()
+    {
+        await Assert.That(DressingJson.Deserialize("{ not json").Props).IsEmpty();
+        await Assert.That(DressingJson.DeserializeProp("{\"kind\":\"unicorn\"}")).IsNull();
     }
 }

@@ -1,5 +1,5 @@
 /**
- * Unified primitive-shape model — the one vocabulary for rectangle / circle / polygon / lasso / path,
+ * Unified primitive-shape model — the one vocabulary for rectangle / circle / polygon / lasso,
  * used by the sketch tool. (The world canvas hit-tests and renders regions via AABB + `polygon_2d`,
  * not this shape model.) Pure math, NO DOM.
  *
@@ -21,7 +21,6 @@
 
 import { pointInRing } from "./polygon.js";
 import { splitPiece } from "./decompose-cut.js";
-import { pathRing } from "./path.js";
 
 // Parity constants — must match the C# rasterizer / export (docs/contracts/sketch-authoring.md §6).
 export const CIRCLE_POINTS  = 64;   // vertices approximating a circle
@@ -43,9 +42,6 @@ export function toRing(shape) {
     }
     case "circle":
       return circleToRing(shape.center_x, shape.center_z, shape.radius);
-    case "path":
-      // A path is stored as the line it was drawn as; its ring is the band that line implies (path.js).
-      return pathRing(shape);
     case "polygon":
     case "lasso": {
       const verts = shape.vertices;
@@ -190,9 +186,6 @@ export function scaleShape(shape, sx, sz, anchor) {
   if (!shape.vertices) return { ...shape };
   const moved = { ...shape, vertices: shape.vertices.map(([x, z]) => sc(x, z)) };
   if (shape.controls) moved.controls = scaleControls(shape.controls, sc);
-  // A path's width is geometry too — scale it the way a circle's radius scales, or a stretched path keeps
-  // its old width and stops matching what the rest of the drawing did.
-  if (shape.type === "path") moved.radius = shape.radius * Math.sqrt(Math.abs(sx * sz));
   return moved;
 }
 
@@ -229,7 +222,6 @@ export function snapShape(shape) {
   if (shape.vertices) {
     const snapped = { ...shape, vertices: shape.vertices.map(([x, z]) => [rnd(x), rnd(z)]) };
     if (shape.controls) snapped.controls = snapControls(shape.controls, rnd);
-    if (shape.type === "path") snapped.radius = Math.max(1, rnd(shape.radius));
     return snapped;
   }
   return { ...shape };
@@ -341,14 +333,6 @@ export function toBounds(shape) {
       return { min_x: center_x - radius, min_z: center_z - radius,
                max_x: center_x + radius, max_z: center_z + radius };
     }
-    case "path": {
-      // The band, not the line: a path's width is as much of its footprint as its length.
-      const ring = pathRing(shape);
-      if (!ring.length) return null;
-      const rx = ring.map(([x]) => x), rz = ring.map(([, z]) => z);
-      return { min_x: Math.min(...rx), min_z: Math.min(...rz),
-               max_x: Math.max(...rx), max_z: Math.max(...rz) };
-    }
     case "polygon":
     case "lasso": {
       const verts = shape.vertices;
@@ -387,7 +371,6 @@ export function containsPoint(shape, x, z) {
       return x >= shape.min_x && x <= shape.max_x && z >= shape.min_z && z <= shape.max_z;
     case "circle":
       return Math.hypot(x - shape.center_x, z - shape.center_z) <= shape.radius;
-    case "path":
     case "polygon":
     case "lasso": {
       const ring = toRing(shape);

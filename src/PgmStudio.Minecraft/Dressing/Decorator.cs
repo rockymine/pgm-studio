@@ -3,34 +3,34 @@ using PgmStudio.Geom.Algorithms;
 
 namespace PgmStudio.Minecraft.Dressing;
 
-/// <summary>What the dressing pass is allowed to touch, and how the map is mirrored — everything the
+/// <summary>What the dressing pass places, what it may not touch, and how the map is mirrored — everything the
 /// <see cref="Decorator"/> needs about the world beyond the world itself.</summary>
 /// <param name="SurfaceTop">The first air Y above each column, the same grid the painter and every stamper
 /// read.</param>
-/// <param name="RecipeAt">The dressing governing a cell — a shape override, else the map default.</param>
-/// <param name="IsProtected">Cells nothing may be placed on: spawns, objectives, structures, paths. A prop
-/// that landed here would break play or read wrong, so the mask is consulted before anything else.</param>
-/// <param name="Symmetry">How the map is mirrored, which decides where gameplay-affecting props may be
-/// generated and how each one is turned for its other images.</param>
+/// <param name="Props">What the author placed, in the order they were placed.</param>
+/// <param name="IsProtected">Cells nothing may be placed on: spawns, objectives, structures. A prop that landed
+/// here would break play or read wrong, so the mask is consulted before anything else.</param>
+/// <param name="Symmetry">How the map is mirrored, which decides where every prop's other images go and how
+/// each one is turned to get there.</param>
 public sealed record DressingContext(
     IReadOnlyDictionary<(int X, int Z), int> SurfaceTop,
-    Func<int, int, DressingRecipe> RecipeAt,
+    IReadOnlyList<PlacedProp> Props,
     Func<int, int, bool> IsProtected,
     DressingSymmetry Symmetry)
 {
-    public DressingContext(IReadOnlyDictionary<(int X, int Z), int> surfaceTop, DressingRecipe recipe)
-        : this(surfaceTop, (_, _) => recipe, (_, _) => false, DressingSymmetry.None) { }
+    public DressingContext(IReadOnlyDictionary<(int X, int Z), int> surfaceTop, IReadOnlyList<PlacedProp> props)
+        : this(surfaceTop, props, (_, _) => false, DressingSymmetry.None) { }
 }
 
 /// <summary>What one pass placed, for a caller that wants to report or preview it rather than only write it.
-/// Props are counted as placed, images included — two mirrored boulders are two boulders.</summary>
-public readonly record struct DressingTally(int Plants, int Boulders, int Trees);
+/// Counted as placed, images included — two mirrored boulders are two boulders.</summary>
+public readonly record struct DressingTally(int Plants, int Boulders, int Trees, int PathCells);
 
 /// <summary>
 /// The dressing pass: the third and last walk over a realized world (docs/world-export/decoration.md). The
 /// structure stampers seat rooms and objectives on raw stone; the painter rewrites that stone's surface into
-/// grass, quartz and clay; this adds the terrain's life on top — plants in the air above the soil, rock
-/// half-buried in it, trees seated on it.
+/// grass, quartz and clay; this adds the terrain's life on top — a route worn across it, rock half-buried in
+/// it, trees standing on it, cover growing over it.
 ///
 /// <para>Running <b>after</b> the painter is what makes it tractable rather than merely conventional. The one
 /// fact every part of it needs is what the surface now <em>is</em> — soil takes flora, a plaza's quartz does
@@ -38,63 +38,124 @@ public readonly record struct DressingTally(int Plants, int Boulders, int Trees)
 /// reads the top block and never re-derives a thing. It is also why it can place non-stone freely: the painter
 /// is stone-only and has already run, so nothing written here will be overwritten.</para>
 ///
-/// <para>The break from the painter is geometry. A material can only answer <em>which block</em> a stone cell
-/// becomes; it cannot add one. Flora, boulders and trees are added cells, so this is a sibling pass that calls
-/// <see cref="VoxelWorld.SetBlock"/> above the surface rather than a new kind of material.</para>
+/// <para><b>Everything here was placed by hand.</b> A tree is cover and a boulder is a wall, so where each one
+/// stands decides how the map plays, and that decision belongs to the author rather than to a density field.
+/// The fields that remain are the ones inside a drawn area — which blade of grass, which cobble — where
+/// nobody would want to place them one at a time.</para>
 ///
-/// <para><b>Fairness is structural here, not a filter.</b> Anything that gives cover or breaks a sightline is
-/// generated only on the authored unit and then stamped at every image of its orbit, turned by that image's
-/// own transform (<see cref="DressingSymmetry"/>). Two teams therefore face the same rock from the same side.
-/// Flowers go through none of that, because they decide nothing and two identical beds read as a glitch.</para>
+/// <para><b>Fairness is structural, not a filter.</b> Every prop is generated once, in its own local frame,
+/// and then stamped at each image of its orbit, turned by that image's own transform
+/// (<see cref="DressingSymmetry"/>). Two teams therefore face the same rock from the same side. Fanning only
+/// the position would not do it: mirroring the anchor of a boulder whose lobe points east leaves the lobe
+/// pointing east on both halves of the map.</para>
 /// </summary>
 public static class Decorator
 {
-    /// <summary>Dress the footprint. Returns what it placed. A bare recipe everywhere is a no-op, so a map that
+    /// <summary>Place everything the author placed, and report what landed. No props is a no-op, so a map that
     /// never opened the dressing phase exports byte-for-byte as it did before.</summary>
     public static DressingTally Decorate(VoxelWorld world, DressingContext context)
     {
-        // Order matters: the big props go down first and become exclusions for the small ones, so flora does
-        // not sprout through a boulder and a tree does not grow out of another tree's trunk.
+        // Order is what keeps the parts from growing through each other. Paths go first and become bare ground
+        // for everything after them — a route with a tree in the middle of it is not a route. Then the big
+        // props, each becoming an exclusion for the small ones, and cover last, into whatever is left.
         var taken = new HashSet<(int X, int Z)>();
-        var boulders = PlaceBoulders(world, context, taken);
-        var trees = PlaceTrees(world, context, taken);
-        var plants = PlaceFlora(world, context, taken);
-        return new DressingTally(plants, boulders, trees);
+        var tally = new DressingTally();
+
+        foreach (var prop in context.Props.OfType<PathProp>())
+            tally = tally with { PathCells = tally.PathCells + PlacePath(world, context, prop, taken) };
+        foreach (var prop in context.Props.OfType<BoulderProp>())
+            tally = tally with { Boulders = tally.Boulders + PlaceBoulder(world, context, prop, taken) };
+        foreach (var prop in context.Props.OfType<TreeProp>())
+            tally = tally with { Trees = tally.Trees + PlaceTree(world, context, prop, taken) };
+        foreach (var prop in context.Props.OfType<FloraProp>())
+            tally = tally with { Plants = tally.Plants + PlaceFlora(world, context, prop, taken) };
+
+        return tally;
     }
 
-    // ── flora (DR-FL) ───────────────────────────────────────────────────────────
-    // One block per cell, in the air above the surface, and only where the paint beneath accepts it. A plant
-    // occupies its own cell and nothing around it, so it needs no local frame and no turning: deciding it on
-    // the orbit representative is already enough to make it identical for every team.
-    private static int PlaceFlora(VoxelWorld world, DressingContext context, HashSet<(int X, int Z)> taken)
+    // ── paths (DR-PA) ───────────────────────────────────────────────────────────
+    /// <summary>Repaint the ground a stroke covers. A path adds no cell: it swaps the top block of each column
+    /// it crosses, which is why it can run over a slope without becoming a ramp and why a bridge is still the
+    /// draw phase's job. Its cells become bare ground, so nothing grows through the road.</summary>
+    private static int PlacePath(VoxelWorld world, DressingContext context, PathProp path, HashSet<(int X, int Z)> taken)
     {
+        if (path.Points.Count < 2 || path.Blocks.Count == 0) return 0;
         var placed = 0;
-        foreach (var (cell, top) in context.SurfaceTop)
+        var stroke = PathStroke.Cells(path.Points, path.Radius, path.Style, path.Coverage, path.Seed, path.Blocks.Count)
+            .ToList();
+
+        for (var k = 0; k < context.Symmetry.Order; k++)
+        foreach (var cell in stroke)
         {
-            if (taken.Contains(cell) || context.IsProtected(cell.X, cell.Z)) continue;
-            if (context.RecipeAt(cell.X, cell.Z).Flora is not { } flora) continue;
-            if (world.GetBlock(cell.X, top, cell.Z).Id != Blocks.Air) continue;   // something is already there
+            var (x, z) = context.Symmetry.ImageCell(cell.X, cell.Z, k);
+            if (context.IsProtected(x, z)) continue;
+            if (!context.SurfaceTop.TryGetValue((x, z), out var top) || top < 1) continue;
 
-            var (groundId, groundData) = world.GetBlock(cell.X, top - 1, cell.Z);
-            var share = DressingPalette.SoilShare(groundId, groundData);
-            if (share <= 0) continue;
+            // A stamp's own block is not a road's to take: the painter only writes terrain, so anything else
+            // on top of a column belongs to something the map is played through.
+            if (DressingPalette.IsStamp(world.GetBlock(x, top - 1, z).Id)) continue;
 
-            if (PickPlant(flora, cell.X, cell.Z, share, context.Symmetry) is not { } plant) continue;
-            world.SetBlock(cell.X, top, cell.Z, plant.Id, plant.Data);
-            if (plant.Tall && top + 1 < VoxelWorld.MaxHeight)
-                world.SetBlock(cell.X, top + 1, cell.Z, plant.Id, DressingPalette.DoublePlantUpper);
+            var block = path.Blocks[cell.Shade % path.Blocks.Count];
+            world.SetBlock(x, top - 1, z, block.Id, block.Data);
+            taken.Add((x, z));
             placed++;
         }
         return placed;
     }
 
+    // ── flora (DR-FL) ───────────────────────────────────────────────────────────
+    /// <summary>Grow cover inside a drawn area. One block per cell, in the air above the surface, and only
+    /// where the paint beneath accepts it — a plant occupies its own cell and nothing around it, so it needs no
+    /// local frame and no turning.</summary>
+    private static int PlaceFlora(VoxelWorld world, DressingContext context, FloraProp area, HashSet<(int X, int Z)> taken)
+    {
+        if (area.Points.Count < 3) return 0;
+        var ring = area.Points.Select(point => new[] { point[0], point[1] }).ToList();
+        var placed = 0;
+
+        for (var k = 0; k < context.Symmetry.Order; k++)
+        foreach (var (x, z) in Inside(ring, context.Symmetry, k))
+        {
+            if (taken.Contains((x, z)) || context.IsProtected(x, z)) continue;
+            if (!context.SurfaceTop.TryGetValue((x, z), out var top)) continue;
+            if (world.GetBlock(x, top, z).Id != Blocks.Air) continue;   // something is already there
+
+            var (groundId, groundData) = world.GetBlock(x, top - 1, z);
+            var share = DressingPalette.SoilShare(groundId, groundData);
+            if (share <= 0) continue;
+
+            if (PickPlant(area.Spec, area.Seed, x, z, share, context.Symmetry) is not { } plant) continue;
+            world.SetBlock(x, top, z, plant.Id, plant.Data);
+            if (plant.Tall && top + 1 < VoxelWorld.MaxHeight)
+                world.SetBlock(x, top + 1, z, plant.Id, DressingPalette.DoublePlantUpper);
+            placed++;
+        }
+        return placed;
+    }
+
+    // The cells of one image of a drawn ring. The ring is mirrored point by point rather than the cells being
+    // mirrored one at a time, so an area's image is the same area seen from the other side.
+    private static IEnumerable<(int X, int Z)> Inside(List<double[]> ring, DressingSymmetry symmetry, int image)
+    {
+        var turned = symmetry.ImageRing(ring, image);
+        double minX = double.MaxValue, maxX = double.MinValue, minZ = double.MaxValue, maxZ = double.MinValue;
+        foreach (var point in turned)
+        {
+            minX = Math.Min(minX, point[0]); maxX = Math.Max(maxX, point[0]);
+            minZ = Math.Min(minZ, point[1]); maxZ = Math.Max(maxZ, point[1]);
+        }
+        for (var z = (int)Math.Floor(minZ); z <= (int)Math.Ceiling(maxZ); z++)
+        for (var x = (int)Math.Floor(minX); x <= (int)Math.Ceiling(maxX); x++)
+            if (Polygon.PointInRing(x + 0.5, z + 0.5, turned)) yield return (x, z);
+    }
+
     /// <summary>What grows in one cell, or null for bare ground. Two fields decide it: a density field says
     /// whether anything grows at all — which is what turns an even speckle into meadows and clearings — and a
-    /// second, coarser field paints flowers in <em>patches</em>, so a map gets fields of one colour rather than
-    /// confetti.</summary>
-    private static Plant? PickPlant(FloraSpec flora, int x, int z, double soilShare, DressingSymmetry symmetry)
+    /// second, coarser field paints flowers in <em>patches</em>, so an area gets fields of one colour rather
+    /// than confetti.</summary>
+    private static Plant? PickPlant(FloraSpec flora, uint seed, int x, int z, double soilShare, DressingSymmetry symmetry)
     {
-        var density = PatternNoise.Fbm(x, z, flora.Seed, flora.Scale, flora.Octaves);
+        var density = PatternNoise.Fbm(x, z, seed, flora.Scale, flora.Octaves);
         if (density < 1 - flora.Coverage * soilShare) return null;
 
         // Tall cover hides a crouching player, so its cell is decided on the orbit representative — the same
@@ -102,42 +163,31 @@ public static class Decorator
         if (flora.TallShare > 0)
         {
             var (rx, rz) = symmetry.Canonical(x, z);
-            if (PatternNoise.Unit(rx, rz, flora.Seed + 61) < flora.TallShare)
-                return PatternNoise.Unit(rx, rz, flora.Seed + 62) < flora.FernShare
+            if (PatternNoise.Unit(rx, rz, seed + 61) < flora.TallShare)
+                return PatternNoise.Unit(rx, rz, seed + 62) < flora.FernShare
                     ? DressingPalette.LargeFern : DressingPalette.TallGrass;
         }
 
-        var flowerField = PatternNoise.Fbm(x, z, flora.Seed + 33, flora.FlowerScale, 2);
-        if (flowerField > 1 - flora.FlowerShare && PatternNoise.Unit(x, z, flora.Seed + 44) < 0.7)
+        var flowerField = PatternNoise.Fbm(x, z, seed + 33, flora.FlowerScale, 2);
+        if (flowerField > 1 - flora.FlowerShare && PatternNoise.Unit(x, z, seed + 44) < 0.7)
         {
-            var pick = PatternNoise.Unit(x, z, flora.Seed + 88);
+            var pick = PatternNoise.Unit(x, z, seed + 88);
             return DressingPalette.Flowers[(int)(pick * DressingPalette.Flowers.Length) % DressingPalette.Flowers.Length];
         }
-        return PatternNoise.Unit(x, z, flora.Seed + 21) < flora.FernShare
+        return PatternNoise.Unit(x, z, seed + 21) < flora.FernShare
             ? DressingPalette.Fern : DressingPalette.Grass;
     }
 
     // ── boulders (DR-SC) ────────────────────────────────────────────────────────
-    private static int PlaceBoulders(VoxelWorld world, DressingContext context, HashSet<(int X, int Z)> taken)
+    private static int PlaceBoulder(VoxelWorld world, DressingContext context, BoulderProp boulder, HashSet<(int X, int Z)> taken)
     {
-        var placed = 0;
-        foreach (var (site, spec) in Sites(context, recipe => recipe.Boulders, spec => spec.Seed, spec => spec.Spacing))
-        {
-            // Shape and finish are keyed on the site, and the site is a representative — so every image of this
-            // rock is the same rock, not another rock of the same size.
-            var noise = spec.Seed ^ PatternNoise.Hash(site.X, site.Z, spec.Seed + 71);
-            var size = 1.4 + spec.SizeSpread * 3.2 * PatternNoise.Unit(site.X, site.Z, spec.Seed + 17);
-            var lobes = BoulderShapes.Of(spec.Form, size);
-
-            var prop = BoulderCells(lobes, spec, noise);
-            if (Fan(world, context, site, prop, taken) is var images && images > 0) placed += images;
-        }
-        return placed;
+        var lobes = BoulderShapes.Of(boulder.Form, Math.Max(1, boulder.Size));
+        return Fan(world, context, (boulder.X, boulder.Z), BoulderCells(lobes, boulder), taken);
     }
 
     /// <summary>A boulder as offsets from its own anchor, before it knows where on the map it goes. The mossy
     /// finish is decided here too, so a rock's sky-lit faces stay its sky-lit faces when it is turned.</summary>
-    private static List<PropCell> BoulderCells(IReadOnlyList<BlobLobe> lobes, BoulderSpec spec, uint noise)
+    private static List<PropCell> BoulderCells(IReadOnlyList<BlobLobe> lobes, BoulderProp boulder)
     {
         var cells = new List<PropCell>();
         var (min, max) = Blob.Bounds(lobes);
@@ -145,10 +195,10 @@ public static class Decorator
         for (var z = (int)Math.Floor(min.Z); z <= (int)Math.Ceiling(max.Z); z++)
         for (var x = (int)Math.Floor(min.X); x <= (int)Math.Ceiling(max.X); x++)
         {
-            if (!Blob.Contains(lobes, new Vec3(x, y, z), noise)) continue;
-            var lit = y >= 0 && !Blob.Contains(lobes, new Vec3(x, y + 1, z), noise);
-            var mossy = spec.Mossy && lit && PatternNoise.Unit(x, z, noise + 3) < 0.55;
-            var (id, data) = mossy ? (MossyCobblestone, 0) : (spec.BlockId, spec.BlockData);
+            if (!Blob.Contains(lobes, new Vec3(x, y, z), boulder.Seed)) continue;
+            var lit = y >= 0 && !Blob.Contains(lobes, new Vec3(x, y + 1, z), boulder.Seed);
+            var mossy = boulder.Mossy && lit && PatternNoise.Unit(x, z, boulder.Seed + 3) < 0.55;
+            var (id, data) = mossy ? (MossyCobblestone, 0) : (boulder.BlockId, boulder.BlockData);
             // A cell below the anchor is buried and may replace ground; one above it must find air.
             cells.Add(new PropCell(x, y, z, id, data, Buried: y < 0));
         }
@@ -156,32 +206,17 @@ public static class Decorator
     }
 
     // ── trees (DR-TR) ───────────────────────────────────────────────────────────
-    private static int PlaceTrees(VoxelWorld world, DressingContext context, HashSet<(int X, int Z)> taken)
+    private static int PlaceTree(VoxelWorld world, DressingContext context, TreeProp tree, HashSet<(int X, int Z)> taken)
     {
-        var placed = 0;
-        foreach (var (site, spec) in Sites(context, recipe => recipe.Trees, spec => spec.Seed, spec => spec.Spacing))
-        {
-            // Groves, not an orchard: a coarse field gates the scatter so stands clump with clearings between.
-            if (PatternNoise.Fbm(site.X, site.Z, spec.Seed + 5, spec.GroveScale, 3) < 1 - spec.GroveThreshold) continue;
-
-            var species = PickSpecies(spec, site.X, site.Z);
-            var scale = 1 - spec.SizeSpread * PatternNoise.Unit(site.X, site.Z, spec.Seed + 11);
-            var shape = new TreeShape(
-                Height: Math.Max(5, species.Height * scale), Levels: species.Levels,
-                BranchAngle: species.BranchAngle, Leader: species.Leader);
-            var treeSeed = spec.Seed ^ PatternNoise.Hash(site.X, site.Z, spec.Seed + 71);
-
-            var prop = TreeCells(shape, species, treeSeed);
-            if (Fan(world, context, site, prop, taken) is var images && images > 0) placed += images;
-        }
-        return placed;
+        var species = DressingPalette.SpeciesNamed(tree.Species);
+        return Fan(world, context, (tree.X, tree.Z), TreeCells(tree.Shape, species, tree.LeafSize, tree.Seed), taken);
     }
 
     /// <summary>A tree as offsets from the block it stands on. Wood is swept from the limbs and leaves are
     /// owned cluster by cluster; wood wins where they meet, so a trunk is never hollowed by its own foliage.
     /// Every leaf carries the no-decay bit — a built map has no growing tree behind its crown, and without the
     /// flag the whole thing disappears shortly after the map loads.</summary>
-    private static List<PropCell> TreeCells(TreeShape shape, TreeSpecies species, uint seed)
+    private static List<PropCell> TreeCells(TreeShape shape, TreeSpecies species, double leafSize, uint seed)
     {
         var tree = TreeSkeleton.Grow(shape, seed);
         var wood = new HashSet<(int X, int Y, int Z)>();
@@ -192,7 +227,7 @@ public static class Decorator
         var cells = new List<PropCell>(wood.Count * 3);
         foreach (var (x, y, z) in wood) cells.Add(new PropCell(x, y, z, species.LogId, species.LogData, Buried: false));
 
-        var clusters = TreeCrown.Clusters(tree.Tips, species.LeafSize, shape.Size, seed);
+        var clusters = TreeCrown.Clusters(tree.Tips, leafSize, shape.Size, seed);
         var (min, max) = TreeCrown.Bounds(clusters);
         var leafData = species.LeafData | DressingPalette.LeafNoDecay;
         for (var y = (int)Math.Floor(min.Y); y <= (int)Math.Ceiling(max.Y); y++)
@@ -204,15 +239,6 @@ public static class Decorator
             cells.Add(new PropCell(x, y, z, species.LeafId, leafData, Buried: false));
         }
         return cells;
-    }
-
-    private static TreeSpecies PickSpecies(TreeSpec spec, int x, int z)
-    {
-        var names = spec.SpeciesNames;
-        var pick = PatternNoise.Unit(x, z, spec.Seed + 3);
-        return names.Count == 0
-            ? DressingPalette.Species[(int)(pick * DressingPalette.Species.Count) % DressingPalette.Species.Count]
-            : DressingPalette.SpeciesNamed(names[(int)(pick * names.Count) % names.Count]);
     }
 
     // ── the shared prop pipeline ────────────────────────────────────────────────
@@ -279,32 +305,5 @@ public static class Decorator
             baseY = Math.Min(baseY, top);
         }
         return baseY != int.MaxValue;
-    }
-
-    /// <summary>Every scatter site for one kind of prop, with the spec governing it. Sites are the
-    /// <b>representatives</b> of their orbits and nothing else, because a prop is generated once and fanned —
-    /// generating at every image would roll the shape twice and give two teams different rocks.</summary>
-    private static IEnumerable<((int X, int Z) Cell, TSpec Spec)> Sites<TSpec>(
-        DressingContext context, Func<DressingRecipe, TSpec?> specOf, Func<TSpec, uint> seedOf, Func<TSpec, int> spacingOf)
-        where TSpec : class
-    {
-        // Spacing is a property of the spec and a map may carry several, so the scatter runs once per distinct
-        // spec over the cells that spec governs rather than once with a spacing that fits none.
-        var byCell = new Dictionary<TSpec, List<(int X, int Z)>>();
-        foreach (var cell in context.SurfaceTop.Keys)
-        {
-            if (context.IsProtected(cell.X, cell.Z)) continue;
-            if (!context.Symmetry.IsCanonical(cell.X, cell.Z)) continue;
-            if (specOf(context.RecipeAt(cell.X, cell.Z)) is not { } spec) continue;
-            if (!byCell.TryGetValue(spec, out var cells)) byCell[spec] = cells = [];
-            cells.Add(cell);
-        }
-
-        foreach (var (spec, cells) in byCell)
-        {
-            cells.Sort(static (a, b) => a.Z != b.Z ? a.Z - b.Z : a.X - b.X);   // a stable walk, so a re-export matches
-            foreach (var cell in BlueNoise.Sites(cells, seedOf(spec), spacingOf(spec)))
-                yield return (cell, spec);
-        }
     }
 }

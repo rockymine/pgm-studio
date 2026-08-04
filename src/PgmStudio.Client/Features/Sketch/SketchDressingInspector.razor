@@ -1,0 +1,180 @@
+@namespace PgmStudio.Client.Features.Sketch
+@using System.Text.Json.Nodes
+
+@* The Dressing phase's inspector: the knobs of the prop under the cursor, and a picture of what they make.
+   With nothing selected the same form edits the active tool's starting values, so the next prop placed is
+   already aimed. Every picker is drawn by the pass itself, never by an icon. *@
+
+<Inspector>
+  <Section>
+    @if (prop is null)
+    {
+      <p class="section-desc">
+        Pick a tool and place something: drag a <strong>route</strong> or an <strong>area</strong>, click to drop
+        a <strong>tree</strong> or a <strong>boulder</strong>. Click a placed prop to change it.
+      </p>
+      <p class="section-desc">@propCount placed on this map.</p>
+    }
+    else
+    {
+      <DetailHeader Icon="@Info.Icon" Label="@Info.Title">
+        <span class="detail-header-badges">
+          @if (editingSelection) { <Badge Kind="neutral">selected</Badge> }
+          else { <Badge Kind="dim">next one</Badge> }
+          @if (kind is PropKinds.Tree or PropKinds.Boulder) { <Badge Kind="warning">affects play</Badge> }
+          else if (kind == PropKinds.Flora) { <Badge Kind="dim">cosmetic</Badge> }
+        </span>
+      </DetailHeader>
+      <p class="section-desc">@Info.Blurb</p>
+
+      @* ── what it makes ───────────────────────────────────────────────────────────────────────── *@
+      @if (preview is not null)
+      {
+        <div class="dressing-views">
+          <figure class="theme-section-figure">@((MarkupString)preview.Plan)</figure>
+          <figure class="theme-section-figure">@((MarkupString)preview.Section)</figure>
+        </div>
+      }
+
+      @* ── the knobs, by kind ──────────────────────────────────────────────────────────────────── *@
+      @if (kind == PropKinds.Path)
+      {
+        <Field Label="Width (blocks)">
+          <NumberField Value="Num(PropFields.Radius, 3) * 2" ValueChanged="v => Set(PropFields.Radius, JsonValue.Create(Math.Max(1, v / 2)))" Min="2" Step="2" />
+        </Field>
+        <div class="section-header section-header--ruled"><h2 class="section-title">Style</h2></div>
+        <div class="prop-cards">
+          @foreach (var option in pathStyles)
+          {
+            <button class="prop-card @(Text(PropFields.Style, PropFields.SolidStyle) == option.Key ? "prop-card--active" : null)"
+                    title="@option.Label" @onclick="() => Pick(PropFields.Style, option)">
+              <span class="prop-card-art">@((MarkupString)option.Svg)</span>
+              <span class="prop-card-label">@option.Label</span>
+            </button>
+          }
+        </div>
+        @if (Text(PropFields.Style, PropFields.SolidStyle) == "worn")
+        {
+          <Field Label="How much of it is paved"><LabelEnd><strong>@($"{Num(PropFields.Coverage, 0.7) * 100:0}%")</strong></LabelEnd>
+            <ChildContent><input type="range" class="field-range" min="10" max="100" step="1"
+                   value="@((int)(Num(PropFields.Coverage, 0.7) * 100))"
+                   @oninput="e => Set(PropFields.Coverage, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+        }
+        <div class="section-header section-header--ruled"><h2 class="section-title">Paving</h2></div>
+        <p class="section-desc">One block is a plain surface. Add more and a cobbled path tiles between them.</p>
+        @for (var i = 0; i < PaveBlocks.Count; i++)
+        {
+          var at = i;
+          <BlockPicker Id="PaveBlocks[at].Id" Data="PaveBlocks[at].Data"
+                       Changed="v => SetPaveBlock(at, v.Id, v.Data)" @key="at" />
+        }
+        <div class="panel-actions">
+          <Button OnClick="AddPaveBlock"><i data-lucide="plus"></i> Add a block</Button>
+          @if (PaveBlocks.Count > 1) { <Button Variant="danger" OnClick="RemovePaveBlock">Remove last</Button> }
+        </div>
+      }
+      else if (kind == PropKinds.Flora)
+      {
+        <Field Label="Coverage"><LabelEnd><strong>@($"{Spec(SpecFields.Coverage, 0.45) * 100:0}%")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 value="@((int)(Spec(SpecFields.Coverage, 0.45) * 100))"
+                 @oninput="e => SetSpec(SpecFields.Coverage, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+        <Field Label="Patch size"><LabelEnd><strong>@($"{Spec(SpecFields.Scale, 12):0}")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="4" max="30" step="1"
+                 value="@((int)Spec(SpecFields.Scale, 12))"
+                 @oninput="e => SetSpec(SpecFields.Scale, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
+        <Field Label="Fern share"><LabelEnd><strong>@($"{Spec(SpecFields.FernShare, 0.25) * 100:0}%")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 value="@((int)(Spec(SpecFields.FernShare, 0.25) * 100))"
+                 @oninput="e => SetSpec(SpecFields.FernShare, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+        <Field Label="Flower fields"><LabelEnd><strong>@($"{Spec(SpecFields.FlowerShare, 0.18) * 100:0}%")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 value="@((int)(Spec(SpecFields.FlowerShare, 0.18) * 100))"
+                 @oninput="e => SetSpec(SpecFields.FlowerShare, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+        <Field Label="Tall grass"><LabelHint>the one part of the cover that hides a player, so it is mirrored</LabelHint>
+          <LabelEnd><strong>@($"{Spec(SpecFields.TallShare, 0) * 100:0}%")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 value="@((int)(Spec(SpecFields.TallShare, 0) * 100))"
+                 @oninput="e => SetSpec(SpecFields.TallShare, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+      }
+      else if (kind == PropKinds.Tree)
+      {
+        <div class="section-header section-header--ruled"><h2 class="section-title">Species</h2></div>
+        <div class="prop-cards prop-cards--tall">
+          @foreach (var option in species)
+          {
+            <button class="prop-card @(Text(PropFields.Species, PropFields.OakSpecies) == option.Key ? "prop-card--active" : null)"
+                    title="@option.Label" @onclick="() => Pick(PropFields.Species, option)">
+              <span class="prop-card-art">@((MarkupString)option.Svg)</span>
+              <span class="prop-card-label">@option.Label</span>
+            </button>
+          }
+        </div>
+        <Field Label="Height (blocks)"><LabelEnd><strong>@($"{Num(PropFields.Height, 16):0}")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="5" max="40" step="1"
+                 value="@((int)Num(PropFields.Height, 16))" @oninput="e => Set(PropFields.Height, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
+        <Field Label="Stems"><LabelEnd><strong>@($"{Num(PropFields.Stems, 1):0}")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="1" max="3" step="1"
+                 value="@((int)Num(PropFields.Stems, 1))" @oninput="e => Set(PropFields.Stems, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
+        <Field Label="Leader"><LabelHint>low spreads like an oak, high spires like a birch</LabelHint>
+          <LabelEnd><strong>@($"{Num(PropFields.Leader, 0.55):0.00}")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 value="@((int)(Num(PropFields.Leader, 0.55) * 100))" @oninput="e => Set(PropFields.Leader, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+        <Field Label="Trunk flow"><LabelEnd><strong>@($"{Num(PropFields.Flow, 0.45):0.00}")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 value="@((int)(Num(PropFields.Flow, 0.45) * 100))" @oninput="e => Set(PropFields.Flow, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+        <Field Label="Branch angle"><LabelEnd><strong>@($"{Num(PropFields.BranchAngle, 0.55) * 57:0}°")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="20" max="120" step="1"
+                 value="@((int)(Num(PropFields.BranchAngle, 0.55) * 100))" @oninput="e => Set(PropFields.BranchAngle, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+        <Field Label="Levels"><LabelEnd><strong>@($"{Num(PropFields.Levels, 2):0}")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="2" max="3" step="1"
+                 value="@((int)Num(PropFields.Levels, 2))" @oninput="e => Set(PropFields.Levels, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
+        <Field Label="Leaf size"><LabelEnd><strong>@($"{Num(PropFields.LeafSize, 0.6):0.00}")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="20" max="100" step="1"
+                 value="@((int)(Num(PropFields.LeafSize, 0.6) * 100))" @oninput="e => Set(PropFields.LeafSize, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+      }
+      else if (kind == PropKinds.Boulder)
+      {
+        <div class="section-header section-header--ruled"><h2 class="section-title">Shape</h2></div>
+        <div class="prop-cards">
+          @foreach (var option in boulderForms)
+          {
+            <button class="prop-card @(Text(PropFields.Form, PropFields.RoundForm) == option.Key ? "prop-card--active" : null)"
+                    title="@option.Label" @onclick="() => Pick(PropFields.Form, option)">
+              <span class="prop-card-art">@((MarkupString)option.Svg)</span>
+              <span class="prop-card-label">@option.Label</span>
+            </button>
+          }
+        </div>
+        <Field Label="Size (blocks)"><LabelEnd><strong>@($"{Num(PropFields.Size, 2.5):0.0}")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="10" max="70" step="1"
+                 value="@((int)(Num(PropFields.Size, 2.5) * 10))"
+                 @oninput="e => Set(PropFields.Size, JsonValue.Create(Whole(e) / 10.0))" /></ChildContent></Field>
+        <Field Label="Rock">
+          <BlockPicker Id="(int)Num(PropFields.BlockId, 1)" Data="(int)Num(PropFields.BlockData, 0)"
+                       Changed="v => SetRock(v.Id, v.Data)" />
+        </Field>
+        <Field Label="Moss">
+          <Chip Active="Flag(PropFields.Mossy)" OnClick="() => Set(PropFields.Mossy, JsonValue.Create(!Flag(PropFields.Mossy)))">
+            @(Flag(PropFields.Mossy) ? "On the sky-lit faces" : "None")
+          </Chip>
+        </Field>
+      }
+
+      @* ── seed + delete ───────────────────────────────────────────────────────────────────────── *@
+      <div class="section-header section-header--ruled"><h2 class="section-title">This one</h2></div>
+      <Field Label="Seed"><LabelHint>the same seed always makes the same thing, so a map exports identically</LabelHint>
+        <ChildContent>
+          <div class="panel-actions">
+            <NumberField Value="Num(PropFields.Seed)" ValueChanged="v => Set(PropFields.Seed, JsonValue.Create((int)v))" Min="0" />
+            <Button OnClick="Reroll"><i data-lucide="refresh-cw"></i> Reroll</Button>
+          </div>
+        </ChildContent>
+      </Field>
+      @if (editingSelection)
+      {
+        <Button Full Variant="danger" OnClick="Delete"><i data-lucide="trash-2"></i> Delete</Button>
+      }
+    }
+  </Section>
+</Inspector>

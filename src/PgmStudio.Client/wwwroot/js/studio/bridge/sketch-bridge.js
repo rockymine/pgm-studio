@@ -12,7 +12,6 @@ import { surfaceHeights } from "../geometry/slope.js";
 import { LIBRARY, instantiate, libraryMeta } from "../geometry/shape-library.js";
 import { applySymmetry, orbitAxes } from "../geometry/symmetry.js";
 import { defaultThemeJson, uniqueScopeId } from "../theme/theme-model.js";
-import { defaultDressingJson } from "../theme/dressing-model.js";
 import { fireTo } from "./fire.js";
 import polygonClipping from "../vendor/polygon-clipping.js";
 
@@ -53,11 +52,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // rides on the shape (`shape.theme`), assigned via the Theme phase and resolved at export.
   let themes = {};
   let mapTheme = "";
-  // Dressing (decoration.md) rides beside theming with the same shape: a map-global registry + default, and a
-  // per-shape override on `shape.dressing`. Two registries because the two are authored and reused apart — a
-  // desert's paint outlives the scrub growing on it.
-  let dressings = {};
-  let mapDressing = "";
+  // Dressing (decoration.md) does NOT ride beside theming. A theme is a recipe named once and applied to many
+  // footprints; a prop was put somewhere, so the canvas owns the placements and this owns only the load/save.
   // Theme phase: the canvas is a selection surface only. Geometry is the Draw phase's to edit.
   let selectOnly = false;
 
@@ -90,6 +86,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     onShapeUpdated: () => { recompute(); markDirty(); },
     onShapeSelected: (id) => selectShape(id),
     onIslandSelected: (id) => selectIsland(id),
+    // Placing, moving and picking a prop all happen on the canvas; the bridge only has to relay the result.
+    onDressingChanged: () => afterDressingChange(),
+    onPropSelected:    () => fire("OnDressing", dressingState()),
     onShapeDeleted:  (id) => { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); },
     onShapePromote:  (id) => promoteShape(id),
     onSplit:         (a, b) => splitAt(a, b),
@@ -420,23 +419,20 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   function afterThemeChange() { syncActive(); markDirty(); fire("OnThemes", themesState()); refreshPaint({ now: true }); }
 
   // ── dressing (decoration.md) ────────────────────────────────────────────────
-  // The same three facts the Theme phase reads, for what grows on the ground rather than what it is made of.
-  function dressingsState() {
-    const shapeDressings = {};
-    syncActive();
-    for (const L of layers) for (const s of (L.shapes || [])) if (s.dressing) shapeDressings[s.id] = s.dressing;
-    return JSON.stringify({ dressings, mapDressing: mapDressing || "", shapeDressings });
+  // Placed props live on the canvas (it is where they are put, moved and picked); the bridge announces changes
+  // and carries them in and out of the stored document. Unlike a theme edit this does not repaint the Blocks
+  // overlay: that shows the painter's surface colours, and dressing adds blocks *above* the surface.
+  function dressingState() {
+    const tools = canvas.dressingTools;
+    const selectedId = tools?.selectedId ?? null;
+    return JSON.stringify({
+      props: canvas.dressing.props,
+      selectedId,
+      selected: selectedId ? canvas.dressing.byId(selectedId) : null,
+    });
   }
-  // Unlike a theme edit, this does not repaint: the Blocks overlay shows the painter's surface colours, and
-  // dressing adds blocks *above* that surface which the overlay does not read.
-  function afterDressingChange() { syncActive(); markDirty(); fire("OnDressings", dressingsState()); }
 
-  // Set (or clear, with a falsy id) a shape's dressing override — the live canvas shape, so it persists on sync.
-  function setShapeDressing(shapeId, dressingId) {
-    const s = canvas.getShape(shapeId);
-    if (!s) return;
-    if (dressingId && dressings[dressingId]) s.dressing = dressingId; else delete s.dressing;
-  }
+  function afterDressingChange() { markDirty(); fire("OnDressing", dressingState()); }
 
   // ── the painted Blocks overlay ─────────────────────────────────────────────
   // The Blocks toggle shows the blocks the export places, not an approximation of them: the live layout goes
@@ -654,40 +650,24 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     },
 
     // ── dressing (decoration.md) ──
-    getDressings() { return dressingsState(); },
-    defineDressing(name) {
-      const id = uniqueScopeId(Object.keys(dressings), name || "dressing");
-      dressings[id] = defaultDressingJson();
-      afterDressingChange(); return id;
+    // Placing is the canvas's; the bridge exposes reading the document, editing the selection, and the
+    // per-kind settings a newly placed prop starts from.
+    getDressing() { return dressingState(); },
+    setDressingMode(on) { canvas.setDressingMode(!!on); if (on) fire("OnDressing", dressingState()); },
+    selectProp(id) { canvas.dressingTools?.select(id || null); },
+    deleteProp() { if (canvas.dressingTools?.deleteSelected()) afterDressingChange(); },
+    /** Patch the selected prop. `patchJson` is a partial prop; returns an error string on bad JSON, else null. */
+    updateProp(patchJson) {
+      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "Invalid JSON"; }
+      canvas.dressingTools?.updateSelected(patch);
+      afterDressingChange(); return null;
     },
-    renameDressing(oldId, newId) {
-      if (!dressings[oldId]) return oldId;
-      const id = uniqueScopeId(Object.keys(dressings).filter(k => k !== oldId), newId || oldId);
-      if (id === oldId) return oldId;
-      dressings[id] = dressings[oldId]; delete dressings[oldId];
-      if (mapDressing === oldId) mapDressing = id;
-      for (const L of layers) for (const s of (L.shapes || [])) if (s.dressing === oldId) s.dressing = id;
-      afterDressingChange(); return id;
-    },
-    deleteDressing(id) {
-      if (!dressings[id]) return;
-      delete dressings[id];
-      if (mapDressing === id) mapDressing = "";
-      for (const L of layers) for (const s of (L.shapes || [])) if (s.dressing === id) delete s.dressing;
-      afterDressingChange();
-    },
-    // Replace a dressing's recipe JSON. Returns an error string on invalid JSON, else null.
-    setDressingJson(id, text) {
-      if (!dressings[id]) return "No such dressing.";
-      let parsed; try { parsed = JSON.parse(text); } catch (e) { return e?.message || "Invalid JSON"; }
-      dressings[id] = parsed; afterDressingChange(); return null;
-    },
-    setMapDressing(id) { mapDressing = (id && dressings[id]) ? id : ""; afterDressingChange(); },
-    assignShapeDressing(shapeId, dressingId) { setShapeDressing(shapeId, dressingId); afterDressingChange(); },
-    assignIslandDressing(islandId, dressingId) {
-      const isl = islandById(islandId); if (!isl) return;
-      for (const sid of (isl.shapeIds || [])) setShapeDressing(sid, dressingId);
-      afterDressingChange();
+    /** The starting values the next prop of a kind takes — what the inspector edits with nothing selected. */
+    getPropSettings(kind) { return JSON.stringify(canvas.dressingTools?.settingsFor(kind) ?? {}); },
+    setPropSettings(kind, patchJson) {
+      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "Invalid JSON"; }
+      canvas.dressingTools?.setSettings(kind, patch);
+      fire("OnDressing", dressingState()); return null;
     },
 
     // Load a persisted layout: setup + the layers[] array (or a legacy single layout → one layer at base_y 0).
@@ -696,8 +676,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (s.setup) applySetup(s.setup);
       themes = (s.themes && typeof s.themes === "object") ? s.themes : {};
       mapTheme = (s.mapTheme && themes[s.mapTheme]) ? s.mapTheme : "";
-      dressings = (s.dressings && typeof s.dressings === "object") ? s.dressings : {};
-      mapDressing = (s.mapDressing && dressings[s.mapDressing]) ? s.mapDressing : "";
+      canvas.setDressing(s.dressing && typeof s.dressing === "object" ? s.dressing : null);
       const raw = (s.layers && s.layers.length) ? s.layers : (s.layout ? [{ base_y: 0, layout: s.layout }] : []);
       // A layer's stored shapes are partitioned on load: role-tagged shapes are the plan's structural pieces
       // (S25) — carried as a locked render-only overlay, kept out of the drawn-shape pipeline (islands, raster,
@@ -737,8 +716,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         mapTheme: mapTheme || undefined,
         // Dressing rides the same way, and is likewise omitted when empty so an undressed sketch serialises
         // exactly as it did before the phase existed.
-        dressings: Object.keys(dressings).length ? dressings : undefined,
-        mapDressing: mapDressing || undefined,
+        dressing: canvas.dressing.isEmpty ? undefined : canvas.dressing.toJSON(),
         layers: layers.map(L => ({
           id: L.id, name: L.name, base_y: L.baseY,
           layout: {

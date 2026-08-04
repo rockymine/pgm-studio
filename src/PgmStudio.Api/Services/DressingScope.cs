@@ -6,56 +6,24 @@ using PgmStudio.Pgm.Sketch;
 namespace PgmStudio.Api.Services;
 
 /// <summary>
-/// Resolves the three things the dressing pass needs from a map rather than from a world: which recipe governs
-/// each cell, which cells nothing may be placed on, and how the map is mirrored. The sibling of
-/// <see cref="TerrainThemeScope"/> — dressing is scoped on the sketch geometry for the same reason paint is,
-/// so reshaping a shape moves its planting with it.
+/// What the dressing pass needs from a map rather than from a world: what the author placed, how the map is
+/// mirrored, and which cells nothing may be placed on.
+///
+/// <para>Unlike <see cref="TerrainThemeScope"/>, there is no scope to resolve here — a prop is not a recipe
+/// applied to a footprint, it is a thing standing at a position, so reading it is reading a list. The work
+/// that remains is the mask: everything the map is played through has to come back bare.</para>
 /// </summary>
 public static class DressingScope
 {
-    /// <summary>The per-cell recipe resolver. Returns a constant map-default resolver when nothing is dressed,
-    /// so the common path allocates nothing per cell and a map that never opened the phase dresses nothing.</summary>
-    public static Func<int, int, DressingRecipe> RecipeAt(string layoutJson)
+    /// <summary>Everything the author placed. An empty list is what a map that never opened the phase carries,
+    /// and it makes the pass a no-op.</summary>
+    public static IReadOnlyList<PlacedProp> PropsOf(string layoutJson)
     {
-        var layout = SketchLayout.Parse(layoutJson);
-
-        var recipes = new Dictionary<string, DressingRecipe>();
-        foreach (var (id, json) in layout?.Dressings ?? new())
-            recipes[id] = DressingJson.Deserialize(json.GetRawText());
-
-        var mapDefault = layout?.MapDressing is { } md && recipes.TryGetValue(md, out var mapRecipe)
-            ? mapRecipe : DressingRecipe.Bare;
-
-        if (recipes.Count == 0) return (_, _) => mapDefault;
-
-        var shapeRecipe = new Dictionary<string, DressingRecipe>();
-        foreach (var shapes in ShapeLists(layout))
-            foreach (var shape in shapes)
-                if (Claimed(shape, recipes) is { } recipe) shapeRecipe[shape.Id] = recipe;
-
-        if (shapeRecipe.Count == 0) return (_, _) => mapDefault;
-
-        var cellToShape = SketchRasterizer.ShapeScopeOwners(layoutJson, shape => Claims(shape) ? shape.Id : null);
-        return (x, z) => cellToShape.TryGetValue((x, z), out var shapeId)
-            && shapeRecipe.TryGetValue(shapeId, out var recipe) ? recipe : mapDefault;
+        var dressing = SketchLayout.Parse(layoutJson)?.Dressing;
+        return dressing is null ? [] : DressingJson.Deserialize(dressing.Value.GetRawText()).Props;
     }
 
-    /// <summary>The recipe a shape imposes on the cells it covers, or null to let the map default through.
-    /// A <b>path</b> claims itself even with no dressing assigned: a route is a cleared strip, and a meadow
-    /// growing over the road drawn through it is the one thing an author who drew a road did not ask for.
-    /// Dressing it explicitly still wins — a verge of long grass down a track is a real intent.</summary>
-    private static DressingRecipe? Claimed(SketchShape shape, IReadOnlyDictionary<string, DressingRecipe> recipes)
-        => shape.Dressing is { } id && recipes.TryGetValue(id, out var recipe) ? recipe
-            : Claims(shape) ? DressingRecipe.Bare
-            : null;
-
-    /// <summary>Whether a shape is its own planting scope at all — what the cell traversal asks, and the one
-    /// place the rule is written. A shape naming a dressing that no longer exists still claims itself and
-    /// grows nothing, rather than quietly inheriting whatever the map default happens to be.</summary>
-    private static bool Claims(SketchShape shape) => shape.Dressing is not null || shape.Type == "path";
-
-    /// <summary>The map's symmetry, as the dressing pass reads it — the frame gameplay-affecting props are
-    /// generated on and fanned through.</summary>
+    /// <summary>The map's symmetry, as the dressing pass reads it — the frame every prop is fanned through.</summary>
     public static DressingSymmetry SymmetryOf(string layoutJson)
     {
         var setup = SketchLayout.Parse(layoutJson)?.Setup;
@@ -116,20 +84,8 @@ public static class DressingScope
         // A column whose top block is not terrain is a stamp — a room floor, an approach wall, a monument. The
         // painter skips those for the same reason (TP6), and the dressing pass has even less business there.
         foreach (var (cell, top) in surfaceTop)
-            if (top <= 1 || IsStructureBlock(world.GetBlock(cell.X, top - 1, cell.Z).Id)) Keep(cell.X, cell.Z);
+            if (top <= 1 || DressingPalette.IsStamp(world.GetBlock(cell.X, top - 1, cell.Z).Id)) Keep(cell.X, cell.Z);
 
         return (x, z) => blocked.Contains((x, z));
-    }
-
-    // The painter leaves only its own materials on a terrain column; anything else standing there was stamped.
-    private static bool IsStructureBlock(int blockId) => blockId is Blocks.Bedrock or Blocks.Obsidian
-        or Blocks.Wool or Blocks.GoldBlock or Blocks.IronBlock or Blocks.EmeraldBlock or Blocks.Chest
-        or Blocks.StainedGlass or Blocks.StainedGlassPane or Blocks.Air;
-
-    private static IEnumerable<List<SketchShape>> ShapeLists(SketchLayout? layout)
-    {
-        if (layout?.Layers is { Count: > 0 } layers)
-            foreach (var layer in layers) yield return layer.Layout?.Shapes ?? [];
-        else if (layout?.Layout is { } single) yield return single.Shapes;
     }
 }
