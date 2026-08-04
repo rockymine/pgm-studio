@@ -20,17 +20,21 @@ await mkdir(OUT, { recursive: true });
 // ── 1. a dressed sketch layout round-trips ────────────────────────────────────────────────────────────
 checks.section("a dressed sketch layout survives PUT → GET");
 
+// A sketch is stored either as one layout or as a stack of layers; the phase writes to whichever it finds,
+// so the spec reads it the same way rather than assuming the shape of the seed.
+const shapesOf = (doc) => doc?.layers?.[0]?.layout?.shapes ?? doc?.layout?.shapes;
+
 const layout = await api(`/map/${seed.sketchSlug}/sketch`);
-const firstShapeId = layout?.layers?.[0]?.layout?.shapes?.find(s => !s.role)?.id;
+const firstShapeId = shapesOf(layout)?.find(s => !s.role)?.id;
 const dressed = structuredClone(layout);
 dressed.dressings = {
   meadow: { flora: { coverage: 0.5, flowerShare: 0.3, seed: 7 } },
   scree: { boulders: { density: 0.3, form: "angular", seed: 17 } },
 };
 dressed.mapDressing = "meadow";
-if (firstShapeId) dressed.layers[0].layout.shapes.find(s => s.id === firstShapeId).dressing = "scree";
+if (firstShapeId) shapesOf(dressed).find(s => s.id === firstShapeId).dressing = "scree";
 // A path is stored as the open line it was drawn as plus a half-width — the band is derived, never stored.
-dressed.layers[0].layout.shapes.push({
+shapesOf(dressed)?.push({
   id: "e2e-path", type: "path", operation: "add", override: false,
   vertices: [[0, 0], [24, 6], [40, 24]], radius: 3, path_edge: "rough", path_seed: 5,
 });
@@ -40,10 +44,10 @@ const back = await api(`/map/${seed.sketchSlug}/sketch`);
 checks.add("dressing registry persisted", back.dressings?.meadow != null, JSON.stringify(Object.keys(back.dressings ?? {})));
 checks.add("map default persisted", back.mapDressing === "meadow", `mapDressing=${back.mapDressing}`);
 checks.add("per-shape override persisted",
-  !firstShapeId || back.layers[0].layout.shapes.find(s => s.id === firstShapeId)?.dressing === "scree",
+  !firstShapeId || shapesOf(back)?.find(s => s.id === firstShapeId)?.dressing === "scree",
   firstShapeId ? `shape ${firstShapeId}` : "(no terrain shape to dress)");
 
-const path = back.layers?.[0]?.layout?.shapes?.find(s => s.id === "e2e-path");
+const path = shapesOf(back)?.find(s => s.id === "e2e-path");
 checks.add("a path keeps its line, width and edge",
   path?.vertices?.length === 3 && path?.radius === 3 && path?.path_edge === "rough" && path?.path_seed === 5,
   JSON.stringify(path ?? null));
