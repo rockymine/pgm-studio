@@ -1,0 +1,58 @@
+using PgmStudio.Geom;
+using PgmStudio.Geom.Algorithms;
+
+namespace PgmStudio.Minecraft.Dressing;
+
+/// <summary>
+/// How a map is mirrored, and the two things the dressing pass does about it.
+///
+/// <para>Fanning a <em>site</em> across the orbit is not enough, and the difference is the whole of G162. Place
+/// the same boulder at a cell and at its mirror and the two rocks occupy mirrored <em>positions</em> but the
+/// same <em>shape</em> — so one team's rock bulges east and the other's bulges east too, and the cover each
+/// gives differs cell by cell. What has to be fanned is the prop: generated once on the authored unit, then
+/// placed at each image <b>turned by that image's transform</b>, exactly as the layout's own geometry is. That
+/// is <see cref="TurnOffset"/>, and it is why a prop is built in its own local frame first.</para>
+/// </summary>
+/// <param name="Mode">The map's symmetry mode (<c>rot_180</c>, <c>mirror_x</c>, …), or null for none.</param>
+public sealed record DressingSymmetry(string? Mode = null, double CenterX = 0, double CenterZ = 0)
+{
+    /// <summary>Nothing is mirrored — every prop is placed once, where it was generated.</summary>
+    public static DressingSymmetry None { get; } = new();
+
+    /// <summary>How many images an orbit has, this one included.</summary>
+    public int Order => Symmetry.Order(Mode);
+
+    /// <summary>The cell whose scatter decides for a whole orbit. Generating only on representatives is what
+    /// makes the fan a copy rather than a second, independent roll.</summary>
+    public (int X, int Z) Canonical(int x, int z) => OrbitScatter.Canonical(x, z, Mode, CenterX, CenterZ);
+
+    /// <summary>Whether a cell is the representative of its own orbit — the test a generator loops on.</summary>
+    public bool IsCanonical(int x, int z) => Canonical(x, z) == (x, z);
+
+    /// <summary>The <paramref name="k"/>-th image of a cell, as a cell. Positions are mirrored about the cell's
+    /// middle, since a cell's corner lands on the boundary between two cells.</summary>
+    public (int X, int Z) ImageCell(int x, int z, int k)
+    {
+        if (k == 0) return (x, z);
+        var (px, pz) = Symmetry.Point(x + 0.5, z + 0.5, Mode, CenterX, CenterZ, k);
+        return ((int)Math.Floor(px), (int)Math.Floor(pz));
+    }
+
+    /// <summary>The <paramref name="k"/>-th image of an offset from a prop's own anchor: the same turn, taken
+    /// about the origin rather than the map's centre, because an offset is a direction and a direction has no
+    /// position to mirror. This is what turns the prop instead of merely moving it.</summary>
+    public (double X, double Z) TurnOffset(double dx, double dz, int k)
+        => k == 0 ? (dx, dz) : Symmetry.Point(dx, dz, Mode, 0, 0, k);
+
+    /// <summary>The <paramref name="k"/>-th image of a prop-local block offset.
+    /// <para>Deliberately <b>not</b> corrected by half a cell the way <see cref="ImageCell"/> is. The anchor
+    /// already carries that correction, and a prop's world cell is anchor + offset — so correcting the offset
+    /// too shifts every image of every prop one block past its mirror. An offset is a delta between cells, and
+    /// the delta between two mirrored cells is just the mirrored delta.</para></summary>
+    public (int X, int Z) TurnCell(int dx, int dz, int k)
+    {
+        if (k == 0) return (dx, dz);
+        var (px, pz) = TurnOffset(dx, dz, k);
+        return ((int)Math.Round(px), (int)Math.Round(pz));
+    }
+}

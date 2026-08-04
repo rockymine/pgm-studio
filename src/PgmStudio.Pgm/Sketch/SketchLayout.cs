@@ -22,6 +22,13 @@ public sealed class SketchLayout
     [JsonPropertyName("themes")]   public Dictionary<string, JsonElement>? Themes { get; set; }
     [JsonPropertyName("mapTheme")] public string? MapTheme { get; set; }
 
+    // Dressing (docs/world-export/decoration.md) rides beside theming and resolves the same way: a registry of
+    // named recipes (id → the recipe JSON the dressing pass deserializes) and the map-default id covering every
+    // cell no shape claims, with a shape's own override on SketchShape.Dressing. Two registries rather than one
+    // because the two are authored and reused independently — a desert's paint outlives the scrub growing on it.
+    [JsonPropertyName("dressings")]   public Dictionary<string, JsonElement>? Dressings { get; set; }
+    [JsonPropertyName("mapDressing")] public string? MapDressing { get; set; }
+
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     public string ToJson() => JsonSerializer.Serialize(this, Json);
@@ -124,4 +131,9 @@ public sealed class SketchShape
     // shape paints; null falls to the map default. The scope is the shape, so a reshape moves the paint. Island
     // and full-map assignment are UI conveniences that write this per member shape / the map default.
     [JsonPropertyName("theme")]      public string? Theme { get; set; }
+
+    /// <summary>The dressing this shape grows (an id into <see cref="SketchLayout.Dressings"/>); null falls to
+    /// the map default. Scoped on the shape for the same reason its theme is — reshape it and its planting
+    /// moves with it.</summary>
+    [JsonPropertyName("dressing")]   public string? Dressing { get; set; }
 }

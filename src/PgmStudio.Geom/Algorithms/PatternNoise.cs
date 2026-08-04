@@ -20,8 +20,44 @@ public static class PatternNoise
         }
     }
 
+    /// <summary>The same lattice hash over three axes — what a volume needs. Folding y in through its own
+    /// mixing round rather than into one of the plan axes keeps a vertical stack of cells as unrelated as a
+    /// horizontal run of them, which is the whole point of a hash field: a boulder eroded by a field that
+    /// repeated up its height would read as a fluted column.</summary>
+    public static uint Hash(int x, int y, int z, uint seed)
+    {
+        unchecked
+        {
+            uint h = Hash(x, z, seed);
+            h ^= (uint)y * 0x9E3779B1u; h = (h << 11) | (h >> 21); h *= 0x85EBCA77u;
+            h ^= h >> 16; return h;
+        }
+    }
+
     /// <summary>A hashed unit value in [0,1) for a lattice point.</summary>
     public static double Unit(int x, int z, uint seed) => (Hash(x, z, seed) & 0xFFFFFF) / (double)0x1000000;
+
+    /// <summary>A hashed unit value in [0,1) for a lattice point in a volume.</summary>
+    public static double Unit(int x, int y, int z, uint seed) => (Hash(x, y, z, seed) & 0xFFFFFF) / (double)0x1000000;
+
+    /// <summary>Smooth value noise over a volume — the three-axis <see cref="Value(int,int,uint,int)"/>,
+    /// trilinearly interpolated.</summary>
+    public static double Value(int x, int y, int z, uint seed, int scale)
+    {
+        int sc = Math.Max(1, scale);
+        double fx = (double)x / sc, fy = (double)y / sc, fz = (double)z / sc;
+        int x0 = (int)Math.Floor(fx), y0 = (int)Math.Floor(fy), z0 = (int)Math.Floor(fz);
+        double sx = Smooth(fx - x0), sy = Smooth(fy - y0), sz = Smooth(fz - z0);
+
+        double Corner(int dy) =>
+            Lerp(Lerp(Unit(x0, y0 + dy, z0, seed), Unit(x0 + 1, y0 + dy, z0, seed), sx),
+                 Lerp(Unit(x0, y0 + dy, z0 + 1, seed), Unit(x0 + 1, y0 + dy, z0 + 1, seed), sx), sz);
+
+        return Lerp(Corner(0), Corner(1), sy);
+    }
+
+    private static double Smooth(double t) => t * t * (3 - 2 * t);
+    private static double Lerp(double a, double b, double t) => a + (b - a) * t;
 
     /// <summary>Smooth (smoothstep-interpolated) value noise at a scale, in [0,1).</summary>
     public static double Value(int x, int z, uint seed, int scale)
