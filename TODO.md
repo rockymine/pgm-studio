@@ -27,7 +27,7 @@ three files. Moving a task between files never changes its id; never renumber or
   harness — but re-home it as project-native** (C# goldens or fixtures over the corpus, no second framework).
   Then sweep the residue: the `/media/sf_repos` + `/tmp/pyfresh` mentions and the parity paragraph in
   `CLAUDE.md` (Verification & gotchas) and the docs, and the "Port of X.py" / "matches scipy.ndimage" attribution
-  comments in the ported C# (`Analysis/IslandDetector`, `Analysis/Traversability`, `Minecraft/BlockPalette`, …)
+  comments in the ported C# (`Analysis/IslandDetector`, `Analysis/Traversability`, …)
   that the code-comments rule already bans. `appsettings.Development.json`'s `MapsRoots`/`Import.Root` point at
   the reference VM but are import-only — repoint or document, don't leave dangling.
 

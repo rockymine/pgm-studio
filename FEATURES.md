@@ -433,6 +433,31 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   Plan-specific. Audit + design: `docs/contracts/primitive-styles.md`; canvas-interaction.md §10. (CV9)
 
 ## Backend / API (B)
+- **The block palette is metadata-aware and texture-derived, not the in-game map colour (B45).** The surface
+  render, the layer overlays, the terrain-paint picker and the monument slice dump all read one table, and it
+  was Minecraft's own `MapColor` enum keyed on `(id, -1)`: every wood one tan, every stone variant one grey,
+  every dye family one ramp, and any metadata at all ignored. The rewrite splits into three units.
+  **`BlockVariants`** answers which nibble bits are a block's sub-type and which are placement state — the
+  step that makes an exact match possible at all, since an east-west oak log is `17:8` and a persistent leaf
+  block `18:4`; twenty-eight ids carry a mask, and the anvil (damage in the high bits), the quartz pillar
+  (three axes, one texture) and the double plant (an upper half that does not record its plant) need
+  arithmetic a mask cannot express. **`BlockPaletteData`** is the colour/name catalog for the whole 1.8 range,
+  ids 0–197 plus every sub-type within them, expanded from one declaration per family so the six woods reach
+  their planks, slabs, saplings, logs, leaves, stairs, fences, gates and doors without restatement — which is
+  what had left the spruce door birch-coloured and the acacia door spruce-coloured. Colours are alpha-masked
+  texture means taken from the face a top-down render sees, with three deliberate departures: biome-tinted
+  blocks carry a fixed temperate tint, ores take their accent rather than the four-fifths stone matrix they
+  average to, and **wool, stained glass and stained clay are three ramps** (one dye, three materials) rather
+  than the single ramp that printed a brown-clay floor as brown wool. **`BlockPalette`** is the lookup:
+  normalize → exact `(id, meta)` → block base → deterministic hash, over flat arrays keyed
+  `(blockId << 4) | meta`, so a per-cell lookup is two array reads with no hashing, no tuple key and no
+  allocation — hex strings are formatted once and returned interned (`PackedRgb` skips the string entirely),
+  which retires the per-request colour cache in `LayerData.Pixels`. Contract:
+  `docs/contracts/block-palette.md`. `tools/palette/texture-average.cs` decodes 1.8 block PNGs with no image
+  dependency and dumps/emits/diffs the means the table is authored from (`--check` is non-zero on drift).
+  Tested: sub-type distinctness per family, one colour per wood across all nine of its ids, masking of axis /
+  decay / half / growth bits, the three dye ramps, base fallback, ore separation, accessor agreement, and
+  that no id in 0–197 reaches the unknown-block fallback.
 - **Terrain paint is first-class, reusable data — a style/theme library, not just inline blobs (B44).** The two
   things a painter theme decomposes into now have their own tables (`M0011`): a **`style`** row is one reusable
   named material recipe `{name, kind ∈ solid|layered|teamTint|voronoi|noise|wallRun, params_json}` — the nestable
