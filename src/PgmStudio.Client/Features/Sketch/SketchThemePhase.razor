@@ -1,10 +1,12 @@
 @namespace PgmStudio.Client.Features.Sketch
 
-@* Terrain-paint theming (docs/world-export/terrain-painting.md TP10), two steps: Create defines named themes
-   — a paintbrush per bucket, each switchable between a solid, a stack, a team tint and the patterns, previewed
-   as it is edited; Apply picks the map default, assigns themes to pieces/boxes, and shows the themed map
-   top-down. Edits funnel through the plan-bridge onto the plan doc (compiled into the intent's theme scopes and
-   painted at export); previews are server-rendered SVG through the real materials + palette. *@
+@* Terrain-paint theming (docs/world-export/terrain-painting.md TP10), two steps: Create defines this sketch's
+   named themes — a paintbrush per bucket, each switchable between a solid, a stack, a team tint and the
+   patterns, previewed as it is edited; Apply picks the map default, assigns themes to shapes and islands, and
+   shows the themed map top-down. Edits funnel through the sketch-bridge onto the sketch document, which the
+   export resolves paint from. A theme can also be copied in from the style/theme library, or saved out to it —
+   both as the painter's theme JSON, so neither side learns how the other stores one. Previews are server-
+   rendered SVG through the real materials + palette. *@
 
 <div class="phase-body">
   <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Theme"
