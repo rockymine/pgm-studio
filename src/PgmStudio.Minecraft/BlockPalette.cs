@@ -20,6 +20,44 @@ public static class BlockPalette
         [15] = new( 25,  25,  25),
     };
 
+    /// <summary>A block that shares its id with another and is told apart only by its data value — the stone,
+    /// dirt, plank, sandstone, stone-brick, quartz and prismarine families of the numeric format. Unlike the
+    /// sixteen-colour stained families, the data value here names a different block rather than a shade of one,
+    /// so each carries its own name and colour.</summary>
+    private static readonly Dictionary<(int Id, int Data), (string Name, Rgb Rgb)> Variants = new()
+    {
+        [(1, 1)] = ("Granite", new(149, 103, 85)),
+        [(1, 2)] = ("Polished Granite", new(159, 114, 96)),
+        [(1, 3)] = ("Diorite", new(190, 190, 190)),
+        [(1, 4)] = ("Polished Diorite", new(200, 200, 202)),
+        [(1, 5)] = ("Andesite", new(136, 136, 136)),
+        [(1, 6)] = ("Polished Andesite", new(146, 148, 148)),
+        [(3, 1)] = ("Coarse Dirt", new(134, 96, 67)),
+        [(3, 2)] = ("Podzol", new(91, 60, 25)),
+        [(5, 1)] = ("Spruce Planks", new(114, 84, 48)),
+        [(5, 2)] = ("Birch Planks", new(192, 175, 121)),
+        [(5, 3)] = ("Jungle Planks", new(160, 115, 80)),
+        [(5, 4)] = ("Acacia Planks", new(168, 90, 50)),
+        [(5, 5)] = ("Dark Oak Planks", new(66, 43, 20)),
+        [(12, 1)] = ("Red Sand", new(190, 102, 33)),
+        [(24, 1)] = ("Chiselled Sandstone", new(226, 196, 138)),
+        [(24, 2)] = ("Smooth Sandstone", new(234, 208, 154)),
+        [(98, 1)] = ("Mossy Stone Brick", new(115, 121, 105)),
+        [(98, 2)] = ("Cracked Stone Brick", new(118, 117, 114)),
+        [(98, 3)] = ("Chiselled Stone Brick", new(122, 122, 122)),
+        [(155, 1)] = ("Chiselled Quartz", new(232, 227, 212)),
+        [(155, 2)] = ("Quartz Pillar", new(236, 232, 219)),
+        [(168, 1)] = ("Prismarine Bricks", new(99, 171, 158)),
+        [(168, 2)] = ("Dark Prismarine", new(51, 91, 75)),
+        [(179, 1)] = ("Chiselled Red Sandstone", new(170, 92, 40)),
+        [(179, 2)] = ("Smooth Red Sandstone", new(175, 98, 44)),
+    };
+
+    /// <summary>Every (id, data) pair that names a variant block rather than a shade — what a picker offers so
+    /// andesite is a list entry instead of a number an author has to know.</summary>
+    public static IEnumerable<(int Id, int Data)> VariantBlocks
+        => Variants.Keys.OrderBy(block => block.Id).ThenBy(block => block.Data);
+
     // Keyed by (blockId, blockData); blockData -1 = "any". Mirrors the _bc(...) calls in colors.py.
     private static readonly Dictionary<(int, int), Rgb> Table = BuildTable();
 
@@ -154,6 +192,10 @@ public static class BlockPalette
             foreach (var (meta, rgb) in StainColors) t[(bid, meta)] = rgb;
             t[(bid, -1)] = StainColors[0];
         }
+
+        // Variants: one block id, several distinct blocks (andesite is stone, 1:5). Their own entries, so a
+        // (id, data) exact lookup finds the variant rather than falling through to the base block's colour.
+        foreach (var (block, variant) in Variants) t[block] = variant.Rgb;
         return t;
     }
 
@@ -179,6 +221,7 @@ public static class BlockPalette
     /// <summary>Human-readable name for a block ID + data value.</summary>
     public static string Name(int blockId, int blockData)
     {
+        if (Variants.TryGetValue((blockId, blockData), out var variant)) return variant.Name;
         if (StainBlockBaseNames.TryGetValue(blockId, out var baseName))
         {
             var color = blockData is >= 0 and < 16 ? StainColorNames[blockData % 16] : "";

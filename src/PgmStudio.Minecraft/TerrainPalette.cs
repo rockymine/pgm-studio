@@ -47,7 +47,16 @@ public static class TerrainPalette
         }
 
         foreach (var (group, ids) in Plain)
-            foreach (var id in ids) Offer(id, 0, group);
+        {
+            foreach (var id in ids)
+            {
+                Offer(id, 0, group);
+                // A variant is a different block that happens to share an id — andesite is stone, 1:5. Offered
+                // beside its base block, since an author reaching for the base is the one who wants them.
+                foreach (var (variantId, data) in BlockPalette.VariantBlocks)
+                    if (variantId == id) Offer(id, data, group);
+            }
+        }
         foreach (var (group, id) in Stained)
             for (var data = 0; data < 16; data++) Offer(id, data, group);
         return blocks;

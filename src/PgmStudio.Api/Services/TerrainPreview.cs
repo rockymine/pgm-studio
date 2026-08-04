@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using PgmStudio.Data.Features;
 using PgmStudio.Minecraft;
@@ -9,46 +8,14 @@ using PgmStudio.Pgm.Sketch;
 namespace PgmStudio.Api.Services;
 
 /// <summary>
-/// Top-down SVG previews for the Theme rail (docs/world-export/terrain-painting.md TP10). Both reuse the real
-/// terrain-paint materials and <see cref="BlockPalette"/> (the block-id → colour table), so a preview shows the
-/// same blocks the export would place — no second implementation of the patterns. <see cref="MaterialSvg"/> is a
-/// per-material swatch over a sample grid (so a voronoi / noise / wall-run reads at a glance); <see cref="MapSvg"/>
-/// paints a whole plan's terrain and renders its top blocks from above.
+/// Whole-map terrain previews (docs/world-export/terrain-painting.md TP10): what a plan or a sketch actually
+/// looks like once its terrain is painted. Both go through the real painter and <see cref="BlockPalette"/> (the
+/// block-id → colour table), so a preview shows the blocks the export would place rather than a second guess at
+/// them. The library's per-material and per-theme pictures are <see cref="StylePreview"/>'s — sampling one
+/// material over a sample grid is a different question from painting a map.
 /// </summary>
 public static class TerrainPreview
 {
-    /// <summary>A material rendered to an <paramref name="n"/>×<paramref name="n"/> top-down swatch. The left
-    /// half samples a neutral cell, the right half a team cell, so a team tint shows both; the perimeter arc is
-    /// the x column, so a wall-run's stripes read across the swatch.</summary>
-    public static string MaterialSvg(TerrainMaterial material, TerrainBucket bucket, int n = 40, int cell = 4)
-    {
-        var sb = new StringBuilder();
-        int size = n * cell;
-        sb.Append($"<svg xmlns='http://www.w3.org/2000/svg' width='{size}' height='{size}' viewBox='0 0 {size} {size}' shape-rendering='crispEdges'>");
-        for (var z = 0; z < n; z++)
-        for (var x = 0; x < n; x++)
-        {
-            int team = x < n / 2 ? -1 : 14;   // neutral | a sample team (red), so a tint shows its fallback + colour
-            var (id, data) = material.Resolve(new BucketContext(x, 0, z, bucket, 0, team, x));
-            sb.Append($"<rect x='{x * cell}' y='{z * cell}' width='{cell}' height='{cell}' fill='{BlockPalette.Hex(id, data)}'/>");
-        }
-        sb.Append("</svg>");
-        return sb.ToString();
-    }
-
-    /// <summary>One swatch per themeable bucket for a serialized theme (rim / wall / surface / fill).</summary>
-    public static Dictionary<string, string> ThemeSwatches(string themeJson)
-    {
-        var theme = TerrainThemeJson.Deserialize(themeJson);
-        return new()
-        {
-            ["rim"] = MaterialSvg(theme.MaterialFor(TerrainBucket.Rim), TerrainBucket.Rim),
-            ["wall"] = MaterialSvg(theme.MaterialFor(TerrainBucket.Wall), TerrainBucket.Wall),
-            ["surface"] = MaterialSvg(theme.MaterialFor(TerrainBucket.Surface), TerrainBucket.Surface),
-            ["fill"] = MaterialSvg(theme.MaterialFor(TerrainBucket.Fill), TerrainBucket.Fill),
-        };
-    }
-
     /// <summary>The themed-map render plus the block-space AABB it covers, so a caller can place the raster in
     /// the plan's own world frame (the plan canvas's block coordinates) rather than only show it standalone.
     /// <see cref="MinX"/>/<see cref="MinZ"/> is the top-left block; <see cref="SpanX"/>/<see cref="SpanZ"/> the
@@ -77,28 +44,26 @@ public static class TerrainPreview
         int minZ = surface.Keys.Min(c => c.Z), maxZ = surface.Keys.Max(c => c.Z);
         int spanX = maxX - minX + 1, spanZ = maxZ - minZ + 1;
         int cell = Math.Clamp(600 / Math.Max(spanX, spanZ), 2, 8);
-        int w = spanX * cell, h = spanZ * cell;
 
-        // No background rect: this render is blitted onto the plan canvas as an overlay, so the void between and
-        // around the painted terrain stays transparent and the canvas grid shows through rather than a black box.
-        var sb = new StringBuilder();
-        sb.Append($"<svg xmlns='http://www.w3.org/2000/svg' width='{w}' height='{h}' viewBox='0 0 {w} {h}' shape-rendering='crispEdges'>");
+        var seenFromAbove = new Dictionary<(int X, int Z), string>(surface.Count);
         foreach (var (cellPos, top) in surface)
         {
             // scan a short window above the column's surface (catches an approach wall at ~+4, skips the
             // observer platform at ~+15) down to the first solid block.
-            string? hex = null;
             for (var y = top + 5; y >= 1; y--)
             {
                 var (id, data) = world.GetBlock(cellPos.X, y, cellPos.Z);
-                if (id != 0) { hex = BlockPalette.Hex(id, data); break; }
+                if (id == 0) continue;
+                seenFromAbove[cellPos] = BlockPalette.Hex(id, data);
+                break;
             }
-            if (hex is null) continue;
-            int px = (cellPos.X - minX) * cell, py = (cellPos.Z - minZ) * cell;
-            sb.Append($"<rect x='{px}' y='{py}' width='{cell}' height='{cell}' fill='{hex}'/>");
         }
-        sb.Append("</svg>");
-        return new MapPaint(sb.ToString(), minX, minZ, spanX, spanZ);
+
+        // A cell with no block emits no rect: this render is blitted onto the plan canvas as an overlay, so the
+        // void between and around the painted terrain stays transparent and the canvas grid shows through.
+        var svg = SvgRaster.Raster(spanX, spanZ, cell,
+            (x, z) => seenFromAbove.GetValueOrDefault((minX + x, minZ + z)));
+        return new MapPaint(svg, minX, minZ, spanX, spanZ);
     }
 
     /// <summary>The terrain paint a sketch layout exports, one entry per footprint cell: the block seen from

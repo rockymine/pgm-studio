@@ -24,7 +24,7 @@ public sealed record VoronoiMaterial(uint Seed, int CellSize, IReadOnlyList<Terr
 {
     public override (int Id, int Data) Resolve(in BucketContext ctx)
     {
-        if (Palette.Count == 0) return (Blocks.Stone, 0);
+        if (Palette is not { Count: > 0 }) return (Blocks.Stone, 0);
         var (gx, gz) = Voronoi.NearestSite(ctx.X, ctx.Z, Seed, CellSize);
         int idx = (int)(PatternNoise.Hash(gx, gz, Seed) % (uint)Palette.Count);
         return Palette[idx].Resolve(in ctx);
@@ -41,7 +41,7 @@ public sealed record NoiseMaterial(uint Seed, int Scale, int Octaves, IReadOnlyL
 {
     public override (int Id, int Data) Resolve(in BucketContext ctx)
     {
-        if (Stops.Count == 0) return (Blocks.Stone, 0);
+        if (Stops is not { Count: > 0 }) return (Blocks.Stone, 0);
         double v = PatternNoise.Fbm(ctx.X, ctx.Z, Seed, Scale, Octaves);
         int idx = Math.Clamp((int)(v * Stops.Count), 0, Stops.Count - 1);
         return Stops[idx].Resolve(in ctx);
@@ -59,7 +59,7 @@ public sealed record WallRunMaterial(IReadOnlyList<WallStripe> Runs) : TerrainMa
 {
     public override (int Id, int Data) Resolve(in BucketContext ctx)
     {
-        if (Runs.Count == 0) return (Blocks.Stone, 0);
+        if (Runs is not { Count: > 0 }) return (Blocks.Stone, 0);
         int total = 0;
         foreach (var run in Runs) total += Math.Max(1, run.Width);
         int s = ctx.PerimeterArc < 0 ? 0 : ctx.PerimeterArc;

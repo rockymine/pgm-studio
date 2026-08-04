@@ -23,6 +23,15 @@ public sealed class ThemeStore(PgmDb db)
     public Task<StyleRow?> GetStyleAsync(long id, CancellationToken ct = default)
         => db.Styles.FirstOrDefaultAsync(s => s.Id == id, ct);
 
+    /// <summary>The styles behind a set of ids, in one read — what composing a theme's bindings needs.</summary>
+    public Task<List<StyleRow>> GetStylesAsync(IEnumerable<long> ids, CancellationToken ct = default)
+    {
+        var wanted = ids.Distinct().ToArray();
+        return wanted.Length == 0
+            ? Task.FromResult(new List<StyleRow>())
+            : db.Styles.Where(s => wanted.Contains(s.Id)).ToListAsync(ct);
+    }
+
     public Task<long> CreateStyleAsync(StyleRow row, CancellationToken ct = default)
     {
         row.CreatedAt = DateTime.UtcNow;
@@ -36,6 +45,16 @@ public sealed class ThemeStore(PgmDb db)
 
     public Task<int> DeleteStyleAsync(long id, CancellationToken ct = default)
         => db.Styles.Where(s => s.Id == id).DeleteAsync(ct);
+
+    /// <summary>The names of the themes still binding a style, newest first — empty when nothing does. A style
+    /// is shared, so a caller asks this before deleting one and can say which themes would break instead of
+    /// letting the binding's foreign key answer.</summary>
+    public Task<List<string>> ThemesUsingStyleAsync(long styleId, CancellationToken ct = default)
+        => (from b in db.ThemeBuckets
+            join t in db.Themes on b.ThemeId equals t.Id
+            where b.StyleId == styleId
+            orderby t.Id descending
+            select t.Name).Distinct().ToListAsync(ct);
 
     // ── themes ──────────────────────────────────────────────────────────────────
     public Task<List<ThemeRow>> ListThemesAsync(CancellationToken ct = default)
@@ -58,6 +77,17 @@ public sealed class ThemeStore(PgmDb db)
         return rows.Select(r => (r.b, r.s)).ToList();
     }
 
+    /// <summary>Every theme's bucket bindings joined to their styles, in one read — what a caller recomposing
+    /// the <em>whole</em> library needs. Listing themes with a picture of each is the normal case, and asking
+    /// per theme turns one list into a query per row.</summary>
+    public async Task<List<(ThemeBucketRow Bucket, StyleRow Style)>> GetAllBucketStylesAsync(CancellationToken ct = default)
+    {
+        var rows = await (from b in db.ThemeBuckets
+                          join s in db.Styles on b.StyleId equals s.Id
+                          select new { b, s }).ToListAsync(ct);
+        return rows.Select(r => (r.b, r.s)).ToList();
+    }
+
     /// <summary>Create a theme with its bucket bindings in one transaction, returning the new theme id.</summary>
     public async Task<long> CreateThemeAsync(ThemeRow theme, IEnumerable<ThemeBucketRow> buckets, CancellationToken ct = default)
     {
@@ -71,6 +101,33 @@ public sealed class ThemeStore(PgmDb db)
         }
         await tx.CommitAsync(ct);
         return id;
+    }
+
+    /// <summary>Replace a theme's knobs and its whole set of bucket bindings in one transaction, returning false
+    /// when the theme id is unknown. The bindings are rewritten rather than merged: a bucket may be rebound to a
+    /// different style, and the set itself is what the caller edited, so a diff would only be a slower way to
+    /// arrive at the same rows.</summary>
+    public async Task<bool> UpdateThemeAsync(long id, ThemeRow theme, IEnumerable<ThemeBucketRow> buckets,
+        CancellationToken ct = default)
+    {
+        await using var tx = await db.BeginTransactionAsync(ct);
+        var updated = await db.Themes.Where(t => t.Id == id)
+            .Set(t => t.Name, theme.Name)
+            .Set(t => t.BedrockRelative, theme.BedrockRelative)
+            .Set(t => t.BedrockValue, theme.BedrockValue)
+            .Set(t => t.Closed, theme.Closed)
+            .Set(t => t.WallOnTerrainFaces, theme.WallOnTerrainFaces)
+            .UpdateAsync(ct);
+        if (updated == 0) return false;
+
+        await db.ThemeBuckets.Where(b => b.ThemeId == id).DeleteAsync(ct);
+        foreach (var bucket in buckets)
+        {
+            bucket.ThemeId = id;
+            await db.InsertAsync(bucket, token: ct);
+        }
+        await tx.CommitAsync(ct);
+        return true;
     }
 
     public Task<int> DeleteThemeAsync(long id, CancellationToken ct = default)

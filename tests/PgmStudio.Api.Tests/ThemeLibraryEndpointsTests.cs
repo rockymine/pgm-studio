@@ -94,6 +94,105 @@ public sealed class ThemeLibraryEndpointsTests
     }
 
     [Test]
+    public async Task A_style_carries_the_picture_it_is_browsed_by()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        var stack = TerrainThemeJson.Serialize(new LayeredMaterial(
+            [new MaterialLayer(new SolidMaterial(Blocks.Grass), 1), new MaterialLayer(new SolidMaterial(Blocks.Dirt), 2)]));
+        await client.PostAsJsonAsync("/api/styles", new StyleSaveRequest("meadow top", MaterialKind.Layered, stack));
+
+        var styles = await client.GetFromJsonAsync<List<StyleDto>>("/api/styles");
+        // A stack is browsed by its section view, which is where its layers are — both blocks have to be in it.
+        await Assert.That(styles![0].Preview).Contains(BlockPalette.Hex(Blocks.Grass, 0));
+        await Assert.That(styles[0].Preview).Contains(BlockPalette.Hex(Blocks.Dirt, 0));
+    }
+
+    [Test]
+    public async Task A_theme_is_updated_in_place_bindings_and_all()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        var quartz = await CreateStyle(client, "quartz", new SolidMaterial(Blocks.QuartzBlock));
+        var stone = await CreateStyle(client, "stone", new SolidMaterial(Blocks.Stone));
+
+        var created = await (await client.PostAsJsonAsync("/api/themes", new ThemeSaveRequest(
+            "meadow", BedrockRelative: false, BedrockValue: 1, Closed: false, WallOnTerrainFaces: true,
+            [new ThemeBucketDto(ThemeBuckets.Rim, quartz, Depth: 1, Enabled: true)])))
+            .Content.ReadFromJsonAsync<ThemeDetail>();
+
+        var put = await client.PutAsJsonAsync($"/api/themes/{created!.Id}", new ThemeSaveRequest(
+            "meadow at dusk", BedrockRelative: true, BedrockValue: 4, Closed: true, WallOnTerrainFaces: false,
+            [new ThemeBucketDto(ThemeBuckets.Fill, stone, Depth: 0, Enabled: true)]));
+        await Assert.That(put.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var reread = await client.GetFromJsonAsync<ThemeDetail>($"/api/themes/{created.Id}");
+        await Assert.That(reread!.Name).IsEqualTo("meadow at dusk");
+        await Assert.That(reread.Closed).IsTrue();
+        await Assert.That(reread.Buckets.Count).IsEqualTo(1);
+        await Assert.That(reread.Buckets[0].Bucket).IsEqualTo(ThemeBuckets.Fill);
+
+        // The rim it no longer binds falls back to the shipping default rather than to nothing.
+        var composed = await client.GetFromJsonAsync<ThemeJsonResponse>($"/api/themes/{created.Id}/json");
+        await Assert.That(TerrainThemeJson.Deserialize(composed!.ThemeJson).Rim.Material)
+            .IsEqualTo(TerrainTheme.Default.Rim.Material);
+
+        await Assert.That((await client.PutAsJsonAsync("/api/themes/9999", new ThemeSaveRequest(
+            "nowhere", false, 1, false, true, []))).StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+    }
+
+    [Test]
+    public async Task A_style_a_theme_still_binds_cannot_be_deleted_and_the_refusal_names_the_theme()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        var bound = await CreateStyle(client, "quartz", new SolidMaterial(Blocks.QuartzBlock));
+        var loose = await CreateStyle(client, "stone", new SolidMaterial(Blocks.Stone));
+        await client.PostAsJsonAsync("/api/themes", new ThemeSaveRequest(
+            "meadow", false, 1, false, true, [new ThemeBucketDto(ThemeBuckets.Rim, bound, 1, true)]));
+
+        var refused = await client.DeleteAsync($"/api/styles/{bound}");
+        await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.Conflict);
+        await Assert.That((await refused.Content.ReadFromJsonAsync<StyleInUseDto>())!.Themes).Contains("meadow");
+
+        // The unbound one goes without argument.
+        await Assert.That((await client.DeleteAsync($"/api/styles/{loose}")).StatusCode).IsEqualTo(HttpStatusCode.NoContent);
+    }
+
+    [Test]
+    public async Task A_draft_theme_previews_before_any_of_it_is_saved()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        var gold = await CreateStyle(client, "gold", new SolidMaterial(Blocks.GoldBlock));
+
+        // A draft that binds only the fill: the picture shows that fill, and the buckets it leaves unbound keep
+        // the built-in finish — which is what makes "reuse a rim, vary the surface" expressible at all.
+        var preview = await (await client.PostAsJsonAsync("/api/themes/preview", new ThemeSaveRequest(
+            "draft", false, 1, false, true, [new ThemeBucketDto(ThemeBuckets.Fill, gold, 0, true)])))
+            .Content.ReadFromJsonAsync<ThemePreviewDto>();
+
+        await Assert.That(preview!.Section).Contains(BlockPalette.Hex(Blocks.GoldBlock, 0));
+        await Assert.That(preview.Buckets[ThemeBuckets.Fill]).Contains(BlockPalette.Hex(Blocks.GoldBlock, 0));
+        await Assert.That(preview.Buckets[ThemeBuckets.Rim]).Contains(BlockPalette.Hex(Blocks.QuartzBlock, 0));
+
+        await Assert.That((await client.GetFromJsonAsync<List<ThemeSummary>>("/api/themes"))!.Count).IsEqualTo(0);
+    }
+
+    private static async Task<long> CreateStyle(HttpClient client, string name, TerrainMaterial material)
+        => (await (await client.PostAsJsonAsync("/api/styles", new StyleSaveRequest(
+            name, TerrainThemeComposer.KindOf(material), TerrainThemeJson.Serialize(material))))
+            .Content.ReadFromJsonAsync<StyleDto>())!.Id;
+
+    [Test]
     public async Task A_malformed_theme_import_is_400_not_500()
     {
         await ApiTestFactory.ResetSchemaAsync();

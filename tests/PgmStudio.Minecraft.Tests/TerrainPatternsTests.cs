@@ -130,4 +130,15 @@ public sealed class TerrainPatternsTests
         // the interior surface is still the default grass — the wall pattern touched only the wall bucket.
         await Assert.That(terrain.World.GetBlock(2, 8, 2)).IsEqualTo((Blocks.Grass, 0));
     }
+
+    [Test]
+    public async Task A_pattern_with_no_entries_paints_stone_rather_than_throwing()
+    {
+        // The theme JSON is a hand-editable leaf, so a pattern whose entry list is simply absent is a thing an
+        // author can write — and a preview or an export that reads one must answer, not fall over.
+        var context = new BucketContext(3, 4, 5, TerrainBucket.Surface, DepthFromTop: 0);
+        await Assert.That(new VoronoiMaterial(1, 8, null!).Resolve(in context)).IsEqualTo((Blocks.Stone, 0));
+        await Assert.That(new NoiseMaterial(1, 16, 3, null!).Resolve(in context)).IsEqualTo((Blocks.Stone, 0));
+        await Assert.That(new WallRunMaterial(null!).Resolve(in context)).IsEqualTo((Blocks.Stone, 0));
+    }
 }

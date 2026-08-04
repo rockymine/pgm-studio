@@ -433,7 +433,7 @@ public static class PlanOrigin
 }
 
 /// <summary>A reusable terrain-paint <see cref="Style"/> — one named material recipe (see M0011). <see cref="Kind"/>
-/// is the material discriminator (<see cref="StyleKind"/>); <see cref="Params"/> is one serialized
+/// is the material discriminator (<c>MaterialKind</c>); <see cref="Params"/> is one serialized
 /// <c>TerrainMaterial</c>, the polymorphic subtree kept in the leaf. The unit a library is browsed and reused by.</summary>
 [Table("style")]
 public sealed class StyleRow
@@ -460,7 +460,7 @@ public sealed class ThemeRow
 }
 
 /// <summary>One bucket binding of a <see cref="ThemeRow"/> (see M0011): the themeable bucket
-/// (<see cref="ThemeBucket"/>), the <see cref="StyleRow"/> that fills it, and the bucket's depth (rim/surface)
+/// (<c>ThemeBuckets</c>), the <see cref="StyleRow"/> that fills it, and the bucket's depth (rim/surface)
 /// and toggle. Unique per (theme, bucket); cascades with its theme, restricts its style.</summary>
 [Table("theme_bucket")]
 public sealed class ThemeBucketRow
@@ -473,22 +473,6 @@ public sealed class ThemeBucketRow
     [Column("enabled")] public bool Enabled { get; set; }
 }
 
-/// <summary>Well-known <see cref="StyleRow.Kind"/> values — the <c>TerrainMaterial</c> discriminator set.</summary>
-public static class StyleKind
-{
-    public const string Solid = "solid";
-    public const string Layered = "layered";
-    public const string TeamTint = "teamTint";
-    public const string Voronoi = "voronoi";
-    public const string Noise = "noise";
-    public const string WallRun = "wallRun";
-}
-
-/// <summary>Well-known <see cref="ThemeBucketRow.Bucket"/> values — the four themeable buckets (bedrock is fixed).</summary>
-public static class ThemeBucket
-{
-    public const string Rim = "rim";
-    public const string Surface = "surface";
-    public const string Wall = "wall";
-    public const string Fill = "fill";
-}
+// The well-known values of style.kind and theme_bucket.bucket are PgmStudio.Contracts' MaterialKind and
+// ThemeBuckets. They are not restated here: the same six strings have to satisfy the column, the wire and the
+// client's editor, and a second copy next to the column is exactly how they would come to disagree.

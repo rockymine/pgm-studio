@@ -43,6 +43,24 @@ public sealed class TerrainPaletteTests
     }
 
     [Test]
+    public async Task A_data_variant_is_offered_as_its_own_block_with_its_own_name_and_colour()
+    {
+        // Andesite is stone with a data value of 5, and until it was offered it could only be reached by
+        // hand-writing the pair. It is a different block from stone, so it carries its own name and colour.
+        var andesite = TerrainPalette.Paintable.Single(block => block is { Id: Blocks.Stone, Data: 5 });
+        await Assert.That(andesite.Name).IsEqualTo("Andesite");
+        await Assert.That(andesite.Hex).IsNotEqualTo(BlockPalette.Hex(Blocks.Stone, 0));
+
+        // Every variant sits in the same picker group as the block it shares an id with.
+        foreach (var (id, data) in BlockPalette.VariantBlocks)
+        {
+            var variant = TerrainPalette.Paintable.SingleOrDefault(block => block.Id == id && block.Data == data);
+            if (variant.Name is null) continue;   // a variant whose base block is not on the paint shortlist
+            await Assert.That(variant.Group).IsEqualTo(TerrainPalette.Paintable.First(block => block.Id == id).Group);
+        }
+    }
+
+    [Test]
     public async Task The_default_theme_is_built_from_blocks_the_picker_offers()
     {
         var offered = TerrainPalette.Paintable.Select(b => (b.Id, b.Data)).ToHashSet();
