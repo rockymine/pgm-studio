@@ -39,6 +39,8 @@ public sealed class PgmDb : DataConnection
     public ITable<StyleRow> Styles => this.GetTable<StyleRow>();
     public ITable<ThemeRow> Themes => this.GetTable<ThemeRow>();
     public ITable<ThemeBucketRow> ThemeBuckets => this.GetTable<ThemeBucketRow>();
+    public ITable<RoomStyleRow> RoomStyles => this.GetTable<RoomStyleRow>();
+    public ITable<RoomStyleCourseRow> RoomStyleCourses => this.GetTable<RoomStyleCourseRow>();
 }
 
 /// <summary>Builds linq2db <see cref="DataOptions"/> for the MariaDB/MySqlConnector provider.</summary>

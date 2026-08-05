@@ -1,0 +1,166 @@
+@namespace PgmStudio.Client.Features.Library
+
+@* The library's room half: a shell's floor, walls and roof are each a stack of styles, so a room style is
+   composed the way a theme is — with one difference that is the whole point. A theme binds one style per
+   bucket; a part takes an ordered several, because a wall is a band over bedrock over a slit. *@
+
+<div class="lib-body">
+  <aside class="lib-filters">
+    <Section Title="New room style">
+      <p class="section-desc">A room style starts with no courses bound and stamps the built-in shell. Bind the
+        parts you want to change and leave the rest — an unbound part keeps the default.</p>
+      <div class="panel-actions">
+        <input class="field-input" placeholder="name" @bind="newName" @bind:event="oninput" />
+        <Button Icon="plus" Disabled="@(string.IsNullOrWhiteSpace(newName))" OnClick="StartNew">Add</Button>
+      </div>
+    </Section>
+
+    <Section Title="Styles">
+      <p class="section-desc">A course can only bind a style the library already holds — @styles.Count saved.
+        Rooms and themes draw from the same shelf.</p>
+      <Button Full Href="/library/styles" Icon="paintbrush">Author a style</Button>
+    </Section>
+  </aside>
+
+  <main class="lib-main">
+    <p class="lib-intro">
+      A room style finishes a wool cage or a spawn cube without touching its size — the footprint always comes
+      from the piece it sits on. Each card is the sample shell cut open: the course stack, the doorway through
+      it, and the roof over it.
+    </p>
+
+    @if (loading) { <p class="lib-status">Reading the library…</p> }
+    else
+    {
+      <p class="lib-count">@rooms.Count room style@(rooms.Count == 1 ? string.Empty : "s")</p>
+      <div class="lib-grid lib-grid--wide">
+        @foreach (var room in rooms)
+        {
+          <div class="lib-card @(room.Id == editingId ? "lib-card--picked" : null)" @key="room.Id">
+            <button class="lib-card-fig" @onclick="() => Edit(room.Id)" title="Open in the editor">
+              @((MarkupString)room.Preview)
+            </button>
+            <div class="lib-card-foot">
+              <span class="lib-card-meta">@room.Name</span>
+            </div>
+          </div>
+        }
+      </div>
+      @if (rooms.Count == 0) { <p class="lib-status">No room styles yet — start one on the left.</p> }
+    }
+  </main>
+
+  @if (draft is not null)
+  {
+    <aside class="lib-rail">
+      <div class="lib-rail-head">
+        <span class="lib-rail-title">@(editingId is null ? "New room style" : "Edit room style")</span>
+        <button class="lib-rail-x" @onclick="Close" title="Close"><i data-lucide="x" @key="@("room-x")"></i></button>
+      </div>
+
+      <div class="dressing-views">
+        <figure class="theme-section-figure">@((MarkupString)(preview?.Plan ?? ""))</figure>
+        <figure class="theme-section-figure">@((MarkupString)(preview?.Section ?? ""))</figure>
+      </div>
+      <p class="section-desc">The sample shell from above and cut open: the roof and its eave read in the first,
+        the course stack and the doorway in the second.</p>
+
+      <Field Label="Name">
+        <input class="field-input" @bind="draftName" @bind:event="oninput" />
+      </Field>
+
+      @foreach (var part in RoomPartInfo.All)
+      {
+        <Section Title="@part.Title" Variant="list" @key="part.Id">
+          <Actions>
+            <Badge Kind="dim">@Courses(part.Id).Count course@(Courses(part.Id).Count == 1 ? string.Empty : "s")</Badge>
+          </Actions>
+          <ChildContent>
+            <p class="section-desc">@part.Blurb</p>
+
+            <Field Label="@part.ExtentLabel">
+              <input class="field-input field-input--slim" type="number" min="1" step="1"
+                     value="@Extent(part.Id)" @onchange="e => SetExtent(part.Id, e)" />
+            </Field>
+
+            @foreach (var course in Courses(part.Id))
+            {
+              <div class="lib-bind" @key="@($"{part.Id}-{course.Ordinal}")">
+                <select class="field-input field-input--slim" value="@course.StyleId"
+                        @onchange="e => BindCourse(part.Id, course.Ordinal, e)">
+                  @foreach (var group in StylesByKind)
+                  {
+                    <optgroup label="@MaterialKind.NameOf(group.Key)" @key="group.Key">
+                      @foreach (var style in group) { <option value="@style.Id">@style.Name</option> }
+                    </optgroup>
+                  }
+                </select>
+                <input class="field-input field-input--slim" type="number" min="1" step="1"
+                       title="How many courses this one runs"
+                       value="@course.Height" @onchange="e => SetCourseHeight(part.Id, course.Ordinal, e)" />
+                @if (StyleOf(course.StyleId) is { } bound)
+                {
+                  <span class="lib-bind-swatch">@((MarkupString)bound.Preview)</span>
+                }
+                <Button Icon="trash-2" Title="Remove this course"
+                        OnClick="() => RemoveCourse(part.Id, course.Ordinal)" />
+              </div>
+            }
+
+            @if (Courses(part.Id).Count == 0)
+            {
+              <p class="section-desc">Unbound — keeps the built-in finish.</p>
+            }
+
+            <div class="panel-actions">
+              <Button Icon="plus" Disabled="@(styles.Count == 0)" OnClick="() => AddCourse(part.Id)">Add a course</Button>
+            </div>
+
+            @* The roof's two non-material knobs belong to the roof, so they sit in its own section rather
+               than in a second one competing for the same heading. *@
+            @if (part.Id == RoomParts.Roof)
+            {
+              <Field Label="Eave">
+                <Chip Active="@(draft.Eave == RoomEaves.Overlap)" OnClick="ToggleEave">
+                  @(draft.Eave == RoomEaves.Overlap ? "One block past the walls" : "Flush with the walls")
+                </Chip>
+              </Field>
+              <Field Label="Hole">
+                <Chip Active="draft.RoofHole" OnClick="ToggleHole">
+                  @(draft.RoofHole ? "Open in the middle" : "Sealed — an unlit room")
+                </Chip>
+              </Field>
+            }
+          </ChildContent>
+        </Section>
+      }
+
+      <Section Title="Doorway" Variant="list">
+        <p class="section-desc">A closed set: only these can be broken by an attacker, so only these open a
+          cage. A spawn's door is always open, whatever is chosen here.</p>
+        <Field Label="Made of">
+          <select class="field-input field-input--slim" value="@draft.Door" @onchange="SetDoor">
+            @foreach (var door in doors) { <option value="@door.Slug" @key="door.Slug">@door.Label</option> }
+          </select>
+        </Field>
+        <Field Label="Courses tall">
+          <input class="field-input field-input--slim" type="number" min="1" step="1"
+                 value="@draft.DoorHeight" @onchange="SetDoorHeight" />
+        </Field>
+      </Section>
+
+      @if (note is not null) { <p class="section-desc">@note</p> }
+
+      <div class="panel-actions">
+        <Button Variant="primary" Icon="save" Disabled="@(string.IsNullOrWhiteSpace(draftName))" OnClick="Save">
+          @(editingId is null ? "Add to library" : "Save changes")
+        </Button>
+        @if (editingId is not null)
+        {
+          <Button Icon="copy" OnClick="SaveAsCopy">Save as copy</Button>
+          <Button Variant="danger" Icon="trash-2" OnClick="Delete">Delete</Button>
+        }
+      </div>
+    </aside>
+  }
+</div>

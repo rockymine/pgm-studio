@@ -32,18 +32,21 @@ public static class DoorMaterials
 {
     /// <summary>One door choice. <paramref name="Coloured"/> takes the room's colour as its damage value;
     /// <paramref name="PgmMaterial"/> is null for <see cref="DoorMaterial.Air"/> alone — an opening is
-    /// already open, so there is nothing for the filter to permit.</summary>
+    /// already open, so there is nothing for the filter to permit. <paramref name="Label"/> is the name a
+    /// picker offers it under, here rather than in the client for the reason the rest of the row is: the set
+    /// is served, never restated.</summary>
     public readonly record struct DoorChoice(
-        DoorMaterial Material, string Slug, int BlockId, bool Coloured, string? PgmMaterial, string? FilterId);
+        DoorMaterial Material, string Slug, string Label, int BlockId, bool Coloured,
+        string? PgmMaterial, string? FilterId);
 
     /// <summary>Every choice, in enum order — the authoring vocabulary, and the order the wool-room filter
     /// emits its breakable leaves in.</summary>
     public static readonly IReadOnlyList<DoorChoice> All =
     [
-        new(DoorMaterial.Air, "air", 0, Coloured: false, null, null),
-        new(DoorMaterial.Web, "web", 30, Coloured: false, "web", "__wr-web"),
-        new(DoorMaterial.StainedGlass, "stained-glass", 95, Coloured: true, "stained glass", "__wr-glass"),
-        new(DoorMaterial.StainedGlassPane, "stained-glass-pane", 160, Coloured: true, "stained glass pane", "__wr-pane"),
+        new(DoorMaterial.Air, "air", "Open", 0, Coloured: false, null, null),
+        new(DoorMaterial.Web, "web", "Cobweb", 30, Coloured: false, "web", "__wr-web"),
+        new(DoorMaterial.StainedGlass, "stained-glass", "Stained glass", 95, Coloured: true, "stained glass", "__wr-glass"),
+        new(DoorMaterial.StainedGlassPane, "stained-glass-pane", "Glass panes", 160, Coloured: true, "stained glass pane", "__wr-pane"),
     ];
 
     /// <summary>The choices the wool-room block filter has to whitelist — every one that places a block.</summary>

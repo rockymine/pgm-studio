@@ -2593,6 +2593,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   **and** by `WoolGenerator` for the PGM material its block whitelist must name — a door the filter does not
   name would seal the cage. A spawn's door is pinned to air. The shipped styles rebuild the shipped shell
   block for block, held by a golden over the whole volume. (G34a)
+- **Room-style library — the third tab.** A room style is a browsable row composed from the same `style`
+  shelf a theme composes from (M0012 `room_style` + `room_style_course`, `/api/room-styles`, authored at
+  `/library/rooms` — `docs/world-export/structures.md` §8). One difference in shape carries the distinction: a
+  `theme_bucket` binds one style to a bucket, a `room_style_course` binds one to a part **at a position in
+  that part's stack**, since a wall is a band over bedrock over a slit. The stack is stored under a unique
+  (room, part, ordinal) index and rewritten wholesale on save; a part with no courses keeps the built-in
+  finish, as an unbound bucket does. Both card pictures are stamped by the real `CubeStamper` over a sample
+  frame and read back (`RoomStylePreview`) — the roof and its eave read from above, the course stack and the
+  doorway from the side as a `BlockSideView` projection — so a card cannot promise a shell the export would
+  not build. The door picker is served from `Domain.DoorMaterials` rather than restated in the client, which
+  is the one way a door could be offered that the wool-room filter never whitelists. A style bound by a room
+  is named in the 409 that refuses to forget it, beside the themes. (G34b)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds

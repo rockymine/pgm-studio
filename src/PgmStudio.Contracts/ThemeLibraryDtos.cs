@@ -46,6 +46,40 @@ public sealed record MaterialPreviewDto(string Plan, string Section);
 /// top-down swatch per themeable bucket, keyed by <see cref="ThemeBuckets"/>.</summary>
 public sealed record ThemePreviewDto(string Section, IReadOnlyDictionary<string, string> Buckets);
 
-/// <summary>Why a style could not be forgotten (DELETE /api/styles/{id}, 409): the themes still binding it. A
-/// style is shared, so the refusal names what would break instead of surfacing a foreign-key error.</summary>
+/// <summary>Why a style could not be forgotten (DELETE /api/styles/{id}, 409): the themes and room styles still
+/// binding it. A style is shared, so the refusal names what would break instead of surfacing a foreign-key
+/// error.</summary>
 public sealed record StyleInUseDto(string Error, IReadOnlyList<string> Themes);
+
+// ── room styles ───────────────────────────────────────────────────────────────
+// A room style is composed the way a theme is — library styles bound to the parts of a thing — but a part takes
+// an ordered *stack* of them rather than one, because that is what a shell's floor, wall and roof are.
+
+/// <summary>One course of a room style's part: which <see cref="RoomParts"/> it belongs to, where it sits in
+/// that part's stack (0 = the course nearest the part's own base), the style it resolves through, and how many
+/// courses it runs.</summary>
+public sealed record RoomCourseDto(string Part, int Ordinal, long StyleId, int Height);
+
+/// <summary>One row in the room-style library list (GET /api/room-styles), with the shell it stamps.</summary>
+public sealed record RoomStyleSummary(long Id, string Name, string Preview);
+
+/// <summary>A full room style (GET /api/room-styles/{id}) — the per-part extents and knobs plus the courses
+/// bound to each part. A part with no courses keeps the built-in finish, the way an unbound theme bucket
+/// does.</summary>
+public sealed record RoomStyleDetail(
+    long Id, string Name,
+    int FloorDepth, int WallHeight, int RoofThickness,
+    string Eave, bool RoofHole, string Door, int DoorHeight,
+    IReadOnlyList<RoomCourseDto> Courses);
+
+/// <summary>Create or replace a room style (POST /api/room-styles, PUT /api/room-styles/{id}).</summary>
+public sealed record RoomStyleSaveRequest(
+    string Name,
+    int FloorDepth, int WallHeight, int RoofThickness,
+    string Eave, bool RoofHole, string Door, int DoorHeight,
+    IReadOnlyList<RoomCourseDto> Courses);
+
+/// <summary>A room style previewed (POST /api/room-styles/preview): the shell it stamps, from above and cut
+/// open. Both are drawn by the real <c>CubeStamper</c> over a sample frame, so a card cannot promise a shell
+/// the export would not build.</summary>
+public sealed record RoomStylePreviewDto(string Plan, string Section);

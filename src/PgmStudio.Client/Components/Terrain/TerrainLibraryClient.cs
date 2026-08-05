@@ -55,6 +55,31 @@ public sealed class TerrainLibraryClient(HttpClient http)
         => await ReadOrNull<DressingPreviewDto>(await http.PostAsJsonAsync(
             "api/terrain/prop-preview", new PropPreviewRequest(propJson, themeJson)));
 
+    // ── room styles ─────────────────────────────────────────────────────────────
+    // The same shape as the theme half below: a library list carrying each row's picture, one detail read, a
+    // draft preview that composes exactly as a save would, and the write/forget pair.
+    public async Task<IReadOnlyList<RoomStyleSummary>> RoomStylesAsync()
+        => await GetOrDefault<List<RoomStyleSummary>>("api/room-styles") ?? [];
+
+    /// <summary>The doors a room may be stamped with. Served, never restated here: the authoritative list is
+    /// the table the wool-room block filter is built from.</summary>
+    public async Task<IReadOnlyList<DoorOptionDto>> RoomDoorsAsync()
+        => await GetOrDefault<List<DoorOptionDto>>("api/room-styles/doors") ?? [];
+
+    public Task<RoomStyleDetail?> RoomStyleAsync(long id)
+        => GetOrDefault<RoomStyleDetail>($"api/room-styles/{id}");
+
+    public async Task<RoomStylePreviewDto?> RoomStyleDraftPreviewAsync(RoomStyleSaveRequest draft)
+        => await ReadOrNull<RoomStylePreviewDto>(await http.PostAsJsonAsync("api/room-styles/preview", draft));
+
+    public async Task<RoomStyleDetail?> CreateRoomStyleAsync(RoomStyleSaveRequest request)
+        => await ReadOrNull<RoomStyleDetail>(await http.PostAsJsonAsync("api/room-styles", request));
+
+    public async Task<RoomStyleDetail?> UpdateRoomStyleAsync(long id, RoomStyleSaveRequest request)
+        => await ReadOrNull<RoomStyleDetail>(await http.PutAsJsonAsync($"api/room-styles/{id}", request));
+
+    public Task DeleteRoomStyleAsync(long id) => http.DeleteAsync($"api/room-styles/{id}");
+
     // ── styles ──────────────────────────────────────────────────────────────────
     /// <summary>The style library, newest first; <paramref name="kind"/> narrows it to one material kind.</summary>
     public async Task<IReadOnlyList<StyleDto>> StylesAsync(string? kind = null)

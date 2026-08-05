@@ -473,6 +473,41 @@ public sealed class ThemeBucketRow
     [Column("enabled")] public bool Enabled { get; set; }
 }
 
-// The well-known values of style.kind and theme_bucket.bucket are PgmStudio.Contracts' MaterialKind and
-// ThemeBuckets. They are not restated here: the same six strings have to satisfy the column, the wire and the
-// client's editor, and a second copy next to the column is exactly how they would come to disagree.
+/// <summary>A room shell's finish (see M0012): the per-part extents plus the knobs that are not materials —
+/// the eave, the roof hole, and the door. The materials live in <see cref="RoomStyleCourseRow"/>, because a
+/// shell's part is a stack of them rather than one.</summary>
+[Table("room_style")]
+public sealed class RoomStyleRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("name"), NotNull] public string Name { get; set; } = "";
+    [Column("floor_depth")] public int FloorDepth { get; set; } = 1;
+    [Column("wall_height")] public int WallHeight { get; set; } = 7;
+    [Column("roof_thickness")] public int RoofThickness { get; set; } = 1;
+    [Column("eave"), NotNull] public string Eave { get; set; } = "flush";
+    [Column("roof_hole")] public bool RoofHole { get; set; } = true;
+    [Column("door"), NotNull] public string Door { get; set; } = "stained-glass-pane";
+    [Column("door_height")] public int DoorHeight { get; set; } = 3;
+    [Column("created_at")] public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>One course of a <see cref="RoomStyleRow"/>'s part (see M0012): which part, where in that part's
+/// stack (<see cref="Ordinal"/> 0 = nearest the part's own base), the <see cref="StyleRow"/> it resolves
+/// through, and how many courses it runs. Unique per (room style, part, ordinal); cascades with its room
+/// style, restricts its style.</summary>
+[Table("room_style_course")]
+public sealed class RoomStyleCourseRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("room_style_id"), NotNull] public long RoomStyleId { get; set; }
+    [Column("part"), NotNull] public string Part { get; set; } = "";
+    [Column("ordinal")] public int Ordinal { get; set; }
+    [Column("style_id"), NotNull] public long StyleId { get; set; }
+    [Column("height")] public int Height { get; set; } = 1;
+}
+
+// The well-known values of style.kind, theme_bucket.bucket, room_style_course.part and room_style.eave are
+// PgmStudio.Contracts' MaterialKind, ThemeBuckets, RoomParts and RoomEaves; room_style.door is
+// PgmStudio.Domain's DoorMaterials. They are not restated here: the same strings have to satisfy the column,
+// the wire and the client's editor, and a second copy next to the column is exactly how they would come to
+// disagree.

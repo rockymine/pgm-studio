@@ -218,3 +218,30 @@ has to walk straight out, and the spawn protection rule already keeps enemies fr
 
 What a style never touches: the **platform** under a room (`StampRoomFloor`'s bedrock column, ST1) and
 the **entrance redstone line** (ST1) belong to the plan-derived structures, not to a shell.
+
+## 8. The library
+
+A room style is a **library row**, browsed and composed the way a terrain theme is (M0012, `room_style` +
+`room_style_course`, served at `/api/room-styles`, authored on the `/library/rooms` tab). It binds the same
+`style` shelf a theme binds — a `RoomCourse`'s material *is* a `TerrainMaterial`, so the two libraries share
+their leaf rather than each keeping one — and the third tab exists because what is composed out of styles
+differs: a theme composes a terrain finish, a room style a shell.
+
+One difference in shape carries the whole distinction. A `theme_bucket` binds **one** style to a bucket; a
+`room_style_course` binds one style to a part **at a position in that part's stack**, because a wall is a band
+over bedrock over a slit and that is a stack rather than a material. The stack is stored under a unique
+(room style, part, ordinal) index and rewritten wholesale on save — the courses are what the author edited, so
+a diff would only be a slower way to the same rows.
+
+A part with **no** courses keeps the built-in finish rather than resolving to nothing, exactly as an unbound
+theme bucket does. That is what makes the library worth having for a style that only changes its roof.
+
+Both pictures on a card are stamped by the real `CubeStamper` over a sample frame and read back
+(`RoomStylePreview`), so a card cannot promise a shell the export would not build. From **above** the roof
+reads — its hole, and whether its eave oversails the walls; from the **side** everything else does, as a
+`BlockSideView` projection so the near wall's doorway does not hide the wall behind it. The list card is the
+section, because the course stack is what a room style *is*.
+
+The door picker is **served, never restated** (`/api/room-styles/doors` from `Domain.DoorMaterials`). A
+client-side copy of the four choices is the one way a door could come to be offered that the wool-room filter
+never whitelists, which §7 explains would seal the cage.

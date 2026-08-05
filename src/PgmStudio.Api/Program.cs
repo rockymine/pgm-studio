@@ -34,6 +34,8 @@ builder.Services.AddScoped<MapRepository>();
 builder.Services.AddScoped<PgmStudio.Data.Plan.PlanStore>();
 builder.Services.AddScoped<PgmStudio.Data.Theme.ThemeStore>();
 builder.Services.AddScoped<PgmStudio.Api.Services.ThemeLibrary>();
+builder.Services.AddScoped<PgmStudio.Data.Theme.RoomStyleStore>();
+builder.Services.AddScoped<PgmStudio.Api.Services.RoomStyleLibrary>();
 builder.Services.AddScoped<MapReader>();
 builder.Services.AddScoped<MapWriter>();
 builder.Services.AddScoped<WorldFeatureWriter>();

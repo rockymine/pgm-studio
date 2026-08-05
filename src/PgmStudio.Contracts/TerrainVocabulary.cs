@@ -49,6 +49,33 @@ public static class ThemeBuckets
     public static bool HasDepth(string bucket) => bucket is Rim or Surface;
 }
 
+/// <summary>The three parts of a room shell a style binds courses to (the pad and the doorway are stamped over
+/// them and are never a part). Same reasoning as <see cref="ThemeBuckets"/>: the <c>room_style_course.part</c>
+/// column, the courses on the wire and the client's editor all name the same three.</summary>
+public static class RoomParts
+{
+    public const string Floor = "floor";
+    public const string Wall = "wall";
+    public const string Roof = "roof";
+
+    /// <summary>The parts bottom-up, the order a shell is stamped in.</summary>
+    public static readonly string[] All = [Floor, Wall, Roof];
+}
+
+/// <summary>Where a roof ends — flush with the walls, or one block past them. Wire vocabulary for
+/// <c>RoofEdge</c>.</summary>
+public static class RoomEaves
+{
+    public const string Flush = "flush";
+    public const string Overlap = "overlap";
+}
+
+/// <summary>One door a room may be stamped with (<c>GET /api/room-styles/doors</c>). Served rather than
+/// restated in the client, because the authoritative list is <c>Domain.DoorMaterials</c> — the same table the
+/// wool-room block filter is built from, and a second copy here is exactly how a door could come to be offered
+/// that the filter never whitelists.</summary>
+public sealed record DoorOptionDto(string Slug, string Label);
+
 /// <summary>One block a terrain-paint material may resolve to, as the block picker receives it
 /// (<c>GET /api/terrain/blocks</c>). <see cref="Hex"/> is the colour the export actually places, so a swatch
 /// cannot promise a block a different colour.</summary>

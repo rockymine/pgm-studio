@@ -451,14 +451,6 @@ by theme, **ids preserved** (never reuse one). Pull an idea back onto the board 
 focus; the full original task text is in this file's git history. The current focus (the generator in the
 studio, G117/G118) is in `TODO.md`.
 
-- [ ] **G34b — A room style is a library row, drawn by the stamper.** The model shipped (`FEATURES.md` — the room-style
-  model) but nothing authors one: `RoomStyle.Cage`/`Spawn` are the only two, written in C#. Give a room style
-  the shape a terrain theme already has — a library row binding one style per part (floor · wall · roof) plus
-  the roof and door knobs — as a third tab beside Styles and Themes, since a `RoomPart` course is a
-  `TerrainMaterial` and the style library is exactly a named material with its picture. Cards are drawn by
-  the real `CubeStamper`, plan view plus a cut-open section (`BlockSideView`), so a picker can never promise
-  a shell the export does not build — the discipline the dressing and theme pickers already hold.
-
 - [ ] **G34c — Bind room styles to a map.** `roomStyles: { cage, spawn }` in the sketch layout beside
   `themes`/`mapTheme`, resolved by a scope the way `TerrainThemeScope` resolves a theme, with a per-room
   override once the map-wide binding reads well. Two consumers stop being static when it lands:

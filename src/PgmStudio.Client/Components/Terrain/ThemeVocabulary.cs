@@ -220,3 +220,30 @@ public static class JsonEdit
     /// <summary>An array element as an object — the shape every entry in these lists has.</summary>
     public static JsonObject AsObject(JsonNode? entry) => entry as JsonObject ?? [];
 }
+
+/// <summary>
+/// What each part of a room shell is, in the words the editor offers it in — the sibling of
+/// <see cref="ThemeBucketInfo"/> for the room-style composer.
+/// </summary>
+/// <param name="Id">The part's wire id (<see cref="RoomParts"/>).</param>
+/// <param name="Title">Its heading.</param>
+/// <param name="Blurb">What it is and which way its stack is read, in one sentence.</param>
+/// <param name="ExtentLabel">What that part's extent means — a floor's depth is not a wall's height.</param>
+public sealed record RoomPartInfo(string Id, string Title, string Blurb, string ExtentLabel)
+{
+    /// <summary>The three parts bottom-up, the order a shell is stamped in.</summary>
+    public static readonly IReadOnlyList<RoomPartInfo> All =
+    [
+        new(RoomParts.Floor, "Floor",
+            "Read downward from the course players stand on, so a deeper floor digs into the platform rather than lifting the room off it. The wool pad is stamped over it and is never a course.",
+            "Courses deep"),
+        new(RoomParts.Wall, "Walls",
+            "The perimeter ring, read upward from the floor. A coloured course takes the room's own colour, and a course of air is the light slit. The last course repeats, so a taller wall grows in whatever tops it.",
+            "Courses tall"),
+        new(RoomParts.Roof, "Roof",
+            "The plane over the walls, read upward. Its hole is measured on the shell it covers, so an overhanging eave does not move it.",
+            "Courses thick"),
+    ];
+
+    public static RoomPartInfo Of(string part) => All.First(info => info.Id == part);
+}

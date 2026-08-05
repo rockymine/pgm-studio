@@ -88,19 +88,21 @@ public sealed class StyleUpdateEndpoint(ThemeStore store) : Endpoint<StyleSaveRe
     }
 }
 
-/// <summary>DELETE /api/styles/{id} — forget a style. Refused with 409 and the names of the themes still binding
-/// it, since a style is shared and its bindings are what the foreign key would otherwise complain about.</summary>
-public sealed class StyleDeleteEndpoint(ThemeStore store) : EndpointWithoutRequest
+/// <summary>DELETE /api/styles/{id} — forget a style. Refused with 409 and the names of the themes and room
+/// styles still binding it, since a style is shared by both libraries and its bindings are what the foreign key
+/// would otherwise complain about.</summary>
+public sealed class StyleDeleteEndpoint(ThemeStore store, RoomStyleStore rooms) : EndpointWithoutRequest
 {
     public override void Configure() { Delete("/styles/{id}"); AllowAnonymous(); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
         var id = Route<long>("id");
-        var users = await store.ThemesUsingStyleAsync(id, ct);
+        var users = (await store.ThemesUsingStyleAsync(id, ct))
+            .Concat(await rooms.UsingStyleAsync(id, ct)).ToList();
         if (users.Count > 0)
         {
-            await Send.ResponseAsync(new StyleInUseDto("The style is bound by a theme.", users), 409, ct);
+            await Send.ResponseAsync(new StyleInUseDto("The style is bound by a theme or room style.", users), 409, ct);
             return;
         }
         await store.DeleteStyleAsync(id, ct);

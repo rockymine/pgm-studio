@@ -2,9 +2,9 @@
 @page "/library/{Tab}"
 @layout StudioLayout
 
-@* The style & theme library (B44): where terrain paint is authored once and reused. Two halves, because the
-   two things a theme decomposes into are browsed differently — styles by what they look like and what kind
-   they are, themes by the finish they compose to. The host owns only the shell and which half is showing. *@
+@* The style library (B44, G34b): where materials are authored once and reused. Three halves, because a style
+   is browsed by what it looks like while the two things built out of styles are browsed by what they compose
+   to — a terrain finish, or a room shell. The host owns only the shell and which one is showing. *@
 
 <PageTitle>Style library — PGM Studio</PageTitle>
 
@@ -13,18 +13,21 @@
     <Topbar HomeHref="/" HomeLabel="Studio" HomeTitle="Studio home">
       <Crumbs>
         <Crumb Dim>Style library</Crumb>
-        <Crumb>@(OnThemes ? "Themes" : "Styles")</Crumb>
+        <Crumb>@TabName</Crumb>
       </Crumbs>
       <Right>
-        <Button Href="@($"/library/{StylesTab}")" Variant="@(OnThemes ? null : "primary")"
+        <Button Href="@($"/library/{StylesTab}")" Variant="@(On(StylesTab) ? "primary" : null)"
                 Icon="paintbrush" Title="Every reusable material recipe">Styles</Button>
-        <Button Href="@($"/library/{ThemesTab}")" Variant="@(OnThemes ? "primary" : null)"
-                Icon="layers" Title="Styles composed into whole finishes">Themes</Button>
+        <Button Href="@($"/library/{ThemesTab}")" Variant="@(On(ThemesTab) ? "primary" : null)"
+                Icon="layers" Title="Styles composed into whole terrain finishes">Themes</Button>
+        <Button Href="@($"/library/{RoomsTab}")" Variant="@(On(RoomsTab) ? "primary" : null)"
+                Icon="box" Title="Styles composed into wool-cage and spawn shells">Rooms</Button>
       </Right>
     </Topbar>
   </Bar>
   <ChildContent>
-    @if (OnThemes) { <ThemeComposer /> }
+    @if (On(ThemesTab)) { <ThemeComposer /> }
+    else if (On(RoomsTab)) { <RoomStyleComposer /> }
     else { <StyleBrowser /> }
   </ChildContent>
 </StudioShell>
