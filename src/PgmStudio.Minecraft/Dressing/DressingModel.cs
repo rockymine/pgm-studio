@@ -56,18 +56,53 @@ public enum BoulderForm
     Cairn,
 }
 
-/// <summary>A tree species as data: which log and leaf blocks it places, and the growth knobs that give it its
-/// silhouette. A species is a row, not a class — the same grower builds all of them.</summary>
-/// <param name="Leader">How far the central axis climbs — low spreads like an oak, high spires like a birch.</param>
+/// <summary>
+/// Which of the two trees a <see cref="TreeProp"/> is. They are different things, not settings of one thing.
+///
+/// <para>A <see cref="Template"/> is the vanilla tree: a trunk of a known height under a canopy of a known
+/// profile, per species. It is what a player reads as "an oak", and it is what most maps want.
+/// <see cref="Grown"/> is the recursive skeleton — a wandering spline trunk with foliage gathered at its tips
+/// — which makes shapes no vanilla generator does, but makes only <em>that</em> family of shapes: it has no
+/// notched conifer and no flat umbrella in it. Six named presets of the grower would therefore offer six
+/// silhouettes and build one, so the species live on the template and the grown tree takes a
+/// <see cref="TreeWood"/> instead.</para>
+/// </summary>
+public enum TreeForm
+{
+    /// <summary>The vanilla tree of a named species.</summary>
+    Template,
+    /// <summary>The grown skeleton, in a chosen wood.</summary>
+    Grown,
+}
+
+/// <summary>What a tree is made of: the log and leaf blocks, named once. It is separate from the species
+/// because both trees need it and only one has a species — a grown tree is a shape the author designed, so
+/// the only thing left to choose about its material is which wood it is cut from.</summary>
+public sealed record TreeWood(string Name, int LogId, int LogData, int LeafId, int LeafData);
+
+/// <summary>A vanilla tree species as data: its wood and its proportions. A species is a row, not a class —
+/// the profile is a radius table (<see cref="Geom.Algorithms.CanopyProfiles"/>), so adding one adds no code.</summary>
+/// <param name="Height">The species' natural height in blocks: trunk plus canopy. A prop scales from it.</param>
 public sealed record TreeSpecies(
     string Name,
-    int LogId, int LogData,
-    int LeafId, int LeafData,
-    double Height = 18,
-    double Leader = 0.5,
-    double BranchAngle = 0.75,
-    int Levels = 2,
-    double LeafSize = 0.5);
+    TreeWood Wood,
+    Geom.Algorithms.CanopyProfile Profile,
+    double Height,
+    double CanopyRadius,
+    double Lean = 0,
+    bool WideTrunk = false)
+{
+    /// <summary>This species' proportions at <paramref name="height"/> blocks tall. Height scales the canopy
+    /// with the trunk, so a small oak is a small oak rather than a full canopy on a stump — and the trunk is
+    /// then whatever is left under a canopy of that size, so the tree really is the height it was asked for.</summary>
+    public Geom.Algorithms.TemplateShape ShapeAt(double height)
+    {
+        var wanted = Math.Clamp(height, 4, 60);
+        var radius = CanopyRadius * (wanted / Height);
+        var trunk = Math.Max(1, wanted - Geom.Algorithms.CanopyProfiles.Rise(Profile, radius));
+        return new Geom.Algorithms.TemplateShape(trunk, radius, Profile, Lean * (wanted / Height), WideTrunk);
+    }
+}
 
 /// <summary>The lobe lists behind <see cref="BoulderForm"/> — style-as-data, the same seam the structure
 /// presets use. A form is a shape, so it is a table rather than a branch.</summary>

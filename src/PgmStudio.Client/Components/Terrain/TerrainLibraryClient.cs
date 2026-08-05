@@ -42,6 +42,12 @@ public sealed class TerrainLibraryClient(HttpClient http)
     public async Task<IReadOnlyList<PropOptionDto>> SpeciesAsync()
         => await GetOrDefault<List<PropOptionDto>>("api/terrain/species") ?? [];
 
+    /// <summary>The woods a grown tree can be cut from, drawn on the tree the author is editing —
+    /// <paramref name="knobs"/> is that tree's shape as a query string.</summary>
+    public async Task<IReadOnlyList<PropOptionDto>> WoodsAsync(string? knobs = null)
+        => await GetOrDefault<List<PropOptionDto>>(
+            string.IsNullOrEmpty(knobs) ? "api/terrain/woods" : $"api/terrain/woods?{knobs}") ?? [];
+
     /// <summary>A sample patch the pass actually dressed with one prop, from above and cut open. The theme is
     /// passed because what the paint leaves on top is what decides whether flora grows and what a path may
     /// repaint — previewing against the built-in default would promise a meadow the map's finish would refuse.</summary>

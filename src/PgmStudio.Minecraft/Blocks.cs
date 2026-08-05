@@ -34,4 +34,13 @@ public static class Blocks
     public const int EmeraldBlock = 133;
     public const int StainedClay = 159;
     public const int StainedGlassPane = 160;
+
+    /// <summary>Log and leaf, in the two id pairs the numeric format splits the six woods across: the low two
+    /// data bits are the wood (log 0–3 oak · spruce · birch · jungle, log2 0–1 acacia · dark oak), and the bits
+    /// above them are the log's placement axis and the leaf's decay flags. Here rather than beside the dressing
+    /// pass because <see cref="BlockPalette"/> has to know them too, and a block id is not a feature's.</summary>
+    public const int Log = 17;
+    public const int Leaves = 18;
+    public const int Leaves2 = 161;
+    public const int Log2 = 162;
 }

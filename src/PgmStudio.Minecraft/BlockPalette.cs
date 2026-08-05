@@ -40,6 +40,19 @@ public static class BlockPalette
         [(5, 4)] = ("Acacia Planks", new(168, 90, 50)),
         [(5, 5)] = ("Dark Oak Planks", new(66, 43, 20)),
         [(12, 1)] = ("Red Sand", new(190, 102, 33)),
+
+        // Logs and leaves. Six woods share two ids between them, so without these a birch and a dark oak are
+        // one picture — and the tree pickers exist precisely to show which wood a tree is cut from. The bark
+        // takes its plank's colour so a wood reads the same wherever it appears, and the leaf a green of its
+        // own: a spruce's blue-dark needles and a birch's pale yellow-green are most of what names them.
+        // The log's low two bits are the wood; the upper bits carry the axis it was placed along.
+        [(17, 1)] = ("Spruce Log", new(114, 84, 48)),
+        [(17, 2)] = ("Birch Log", new(192, 175, 121)),
+        [(17, 3)] = ("Jungle Log", new(160, 115, 80)),
+        [(18, 1)] = ("Spruce Leaves", new(38, 92, 56)),
+        [(18, 2)] = ("Birch Leaves", new(128, 167, 85)),
+        [(18, 3)] = ("Jungle Leaves", new(42, 140, 30)),
+
         [(24, 1)] = ("Chiselled Sandstone", new(226, 196, 138)),
         [(24, 2)] = ("Smooth Sandstone", new(234, 208, 154)),
         [(98, 1)] = ("Mossy Stone Brick", new(115, 121, 105)),
@@ -47,6 +60,8 @@ public static class BlockPalette
         [(98, 3)] = ("Chiselled Stone Brick", new(122, 122, 122)),
         [(155, 1)] = ("Chiselled Quartz", new(232, 227, 212)),
         [(155, 2)] = ("Quartz Pillar", new(236, 232, 219)),
+        [(161, 1)] = ("Dark Oak Leaves", new(28, 88, 30)),
+        [(162, 1)] = ("Dark Oak Log", new(66, 43, 20)),
         [(168, 1)] = ("Prismarine Bricks", new(99, 171, 158)),
         [(168, 2)] = ("Dark Prismarine", new(51, 91, 75)),
         [(179, 1)] = ("Chiselled Red Sandstone", new(170, 92, 40)),
@@ -93,8 +108,8 @@ public static class BlockPalette
         [0] = "Air", [1] = "Stone", [2] = "Grass", [3] = "Dirt",
         [4] = "Cobblestone", [7] = "Bedrock", [8] = "Water", [9] = "Water",
         [10] = "Lava", [11] = "Lava", [12] = "Sand", [13] = "Gravel",
-        [14] = "Gold Ore", [15] = "Iron Ore", [16] = "Coal Ore", [17] = "Wood",
-        [18] = "Leaves", [19] = "Sponge", [20] = "Glass", [21] = "Lapis Ore",
+        [14] = "Gold Ore", [15] = "Iron Ore", [16] = "Coal Ore", [17] = "Oak Wood",
+        [18] = "Oak Leaves", [19] = "Sponge", [20] = "Glass", [21] = "Lapis Ore",
         [22] = "Lapis Block", [24] = "Sandstone", [25] = "Note Block", [26] = "Bed",
         [30] = "Cobweb", [31] = "Tall Grass", [36] = "Piston Head", [41] = "Gold Block",
         [42] = "Iron Block", [43] = "Double Slab", [44] = "Slab", [45] = "Brick",
@@ -170,8 +185,9 @@ public static class BlockPalette
         Bc(130, 143, 100, 50); Bc(131, 143, 119, 72); Bc(133, 0, 200, 60); Bc(134, 110, 80, 50);
         Bc(135, 143, 119, 72); Bc(136, 120, 80, 40); Bc(138, 80, 220, 240); Bc(139, 112, 112, 112);
         Bc(143, 143, 119, 72); Bc(144, 100, 100, 100); Bc(145, 200, 200, 210); Bc(146, 143, 100, 50);
-        Bc(148, 200, 200, 210); Bc(155, 240, 235, 220); Bc(156, 240, 235, 220); Bc(161, 0, 124, 0);
-        Bc(162, 143, 119, 72); Bc(163, 110, 80, 50); Bc(164, 110, 60, 30); Bc(165, 200, 220, 80);
+        Bc(148, 200, 200, 210); Bc(155, 240, 235, 220); Bc(156, 240, 235, 220);
+        // Data 0 of these two ids is acacia, so their base colour is acacia's rather than a second oak.
+        Bc(161, 106, 140, 60); Bc(162, 168, 90, 50); Bc(163, 110, 80, 50); Bc(164, 110, 60, 30); Bc(165, 200, 220, 80);
         Bc(166, 255, 0, 0); Bc(167, 200, 200, 210); Bc(168, 66, 140, 120); Bc(169, 80, 220, 240);
         Bc(170, 215, 185, 35); Bc(172, 160, 90, 40); Bc(173, 25, 25, 25); Bc(174, 200, 220, 255);
         Bc(179, 230, 200, 140); Bc(180, 230, 200, 140); Bc(181, 230, 200, 140); Bc(182, 230, 200, 140);
@@ -213,9 +229,17 @@ public static class BlockPalette
         return t;
     }
 
+    /// <summary>The data value a block is looked up under. Almost every block uses its own, but a log's upper
+    /// bits carry the axis it was placed along and a leaf's carry its decay flags — neither says anything about
+    /// what the block <em>is</em>, and an exact lookup on the raw value misses the table and paints every birch
+    /// as an oak. Stated once here so a block's name and its colour can never disagree about it.</summary>
+    private static int Variant(int blockId, int blockData)
+        => blockId is Blocks.Log or Blocks.Leaves or Blocks.Log2 or Blocks.Leaves2 ? blockData & 3 : blockData;
+
     /// <summary>(r, g, b) for a block ID + data value, with a deterministic fallback for unknowns.</summary>
     public static Rgb Color(int blockId, int blockData)
     {
+        blockData = Variant(blockId, blockData);
         if (Table.TryGetValue((blockId, blockData), out var exact)) return exact;
         if (Table.TryGetValue((blockId, -1), out var anyData)) return anyData;
         // Deterministic fallback for unknown blocks. NOTE: not byte-parity with colors.py — the
@@ -250,7 +274,7 @@ public static class BlockPalette
     /// <summary>Human-readable name for a block ID + data value.</summary>
     public static string Name(int blockId, int blockData)
     {
-        if (Variants.TryGetValue((blockId, blockData), out var variant)) return variant.Name;
+        if (Variants.TryGetValue((blockId, Variant(blockId, blockData)), out var variant)) return variant.Name;
         if (StainBlockBaseNames.TryGetValue(blockId, out var baseName))
         {
             var color = blockData is >= 0 and < 16 ? StainColorNames[blockData % 16] : "";

@@ -228,13 +228,24 @@ so a viewer still reads each patch as its own branch's instead of one merged mas
 to keep the branch count low. A few short strands hang below each disc for a broken lower edge. The airiness
 lives *between* the clusters, not as holes inside them.
 
-Both trees are the same stamper as the boulder: a trunk-and-limbs volume plus a leaf mask over a box.
-`TreeSkeleton.Grow` answers the limbs and tips from a `TreeShape`, `SweptVolume` fills each limb as a
-capsule along its spline, and `TreeCrown` places the clusters and answers which one owns a cell. A
-`TreeProp` is placed at a cell and carries the whole shape — species, height, stems, leader, flow, branch
-angle, levels, leaf size, seed — so a stand is authored tree by tree and no two need be the same. Species
-are data rows (`TreeSpecies`: log and leaf blocks plus the shape knobs), and picking one takes its
-proportions with it, which is why the picker's cards carry them.
+Both trees are the same stamper as the boulder: a trunk-and-limbs volume plus a leaf mask over a box, and
+both end at one place that turns those cells into blocks — so the wood, and the no-decay bit every leaf
+carries, are decided once. `TreeTemplate.Build` answers the vanilla tree's wood and leaves from a
+`TemplateShape`, its canopy a radius per course from `CanopyProfiles` (profile-as-data, the same seam
+`BoulderShapes` uses for a rock's form). `TreeSkeleton.Grow` answers the grown tree's limbs and tips from a
+`TreeShape`, `SweptVolume` fills each limb as a capsule along its spline, and `TreeCrown` places the
+clusters and answers which one owns a cell.
+
+A `TreeProp` is placed at a cell and names which of the two it is. **The forms are two trees, not two
+settings of one**, and collapsing them is a mistake worth naming because it was made: six presets of the
+grower, one per species, offer six silhouettes and build one. The grower has no notched cone and no flat
+umbrella in it — there is no knob for a canopy that steps in as it rises — so a "spruce" preset is the
+grower's own crown wearing spruce blocks, which is exactly the promise a drawn picker exists to refuse.
+So a template tree names a **species** (`TreeSpecies`: its wood, its canopy profile, its proportions) and
+scales it by height, while a grown tree names a **wood** (`TreeWood`: the log and leaf blocks) and is shaped
+by the knobs above. Wood is the one thing neither form decides for the other, which is why it is its own
+row and why the grown tree's picker is six cards of the same tree in six colours — where the species
+picker's six cards must differ in shape, or they are one tree wearing six palettes.
 
 A grove is therefore a handful of trees an author placed rather than a density field, and that is the
 intended trade: a forest that clumps by itself is quicker to get and impossible to aim, and a treeline
@@ -313,6 +324,8 @@ there:
   the distance field a stroke of any width is filled by.
 - `TreeSkeleton` and `TreeCrown` — the grower and the crown placement, as abstract limb centerlines, radii
   and leaf-cluster centres. No block ever appears in either.
+- `TreeTemplate` and `CanopyProfiles` — the other tree: a trunk under a canopy whose profile is a radius per
+  course. It is a sibling of the grower rather than a mode of it, because the two build different shapes.
 - `PathStroke` — which cells a stroke paves, one gate per style; `PathBand` — the outline the canvas draws
   it as, and the one C# side of the `geometry/path.js` parity pair.
 - `OrbitScatter` — which cell of an orbit is its representative, the answer §2's fan is built on.

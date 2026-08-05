@@ -57,6 +57,19 @@ checks.add("every species drawn, and carrying its own proportions",
   species.length >= 6 && species.every(s => s.svg?.includes("<rect") && s.defaults?.includes("height")),
   species.map(s => s.key).join(" "));
 
+// The two tree forms are two trees. A species has to differ from its neighbours in shape, and a wood only in
+// colour — six species that draw the same tree, or six woods that draw different ones, means the pickers have
+// swapped the claim they are each making.
+const woods = await api("/terrain/woods");
+const blocks = (svg) => (svg.match(/<rect/g) ?? []).length;
+checks.add("six woods, one tree, six colours",
+  woods.length === 6 && new Set(woods.map(w => blocks(w.svg))).size === 1
+    && new Set(woods.map(w => w.svg)).size === 6,
+  woods.map(w => w.key).join(" "));
+checks.add("the species differ in shape, not just in wood",
+  new Set(species.map(s => blocks(s.svg))).size >= 5,
+  species.map(s => `${s.key}:${blocks(s.svg)}`).join(" "));
+
 checks.section("the preview places what the prop says");
 
 const grassTheme = JSON.stringify({ surface: { material: { kind: "solid", id: 2 }, depth: 1, enabled: true } });
@@ -112,6 +125,17 @@ try {
   await page.waitForTimeout(1500);
   checks.add("a click places a tree", await page.locator("text=Species").count() > 0);
   await shot("dressing-tree.png");
+
+  // The tree is two trees, and the inspector has to be able to say which.
+  await page.locator('.choice-tile:has-text("Grown")').click();
+  await page.waitForTimeout(2500);
+  checks.add("switching to grown swaps the species picker for a wood picker",
+    await page.locator("text=Wood").count() > 0 && await page.locator("text=Branch angle").count() > 0);
+  await shot("dressing-tree-grown.png");
+  await page.locator('.choice-tile:has-text("Vanilla")').click();
+  await page.waitForTimeout(2000);
+  checks.add("and back to vanilla leaves only the species and its height",
+    await page.locator("text=Species").count() > 0 && await page.locator("text=Branch angle").count() === 0);
 
   // Drag a route: press, trace, release — no separate way to finish, which is the bug the rework fixes.
   await page.click('button[title^="Path"]');

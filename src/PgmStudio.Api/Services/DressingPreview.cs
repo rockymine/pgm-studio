@@ -85,24 +85,31 @@ public static class DressingPreview
             Prop: (PlacedProp)(template with { Form = form }),
             Defaults: (string?)null))]);
 
-    /// <summary>Every species the grower knows, each grown at card size — so a picker cannot name a tree the
-    /// pass could not build. The card carries the shape it drew, so picking a species takes its proportions
-    /// and the client never has to keep a second copy of the species table.</summary>
+    /// <summary>Every vanilla species, built at card size — so a picker cannot name a tree the pass could not
+    /// build. The card carries the proportions it drew, so picking a species takes its natural height and the
+    /// client never has to keep a second copy of the species table.</summary>
     public static IReadOnlyList<PropOptionDto> SpeciesCards(TerrainTheme theme, int cell = 2)
         => SectionCards(theme, cell, [.. DressingPalette.Species.Select(species => (
             Key: species.Name,
             Label: species.Name,
             Prop: (PlacedProp)new TreeProp
             {
-                Species = species.Name, Height = species.Height, Leader = species.Leader,
-                BranchAngle = species.BranchAngle, Levels = species.Levels, LeafSize = species.LeafSize,
-                Seed = 5,
+                Form = TreeForm.Template, Species = species.Name, Height = species.Height, Seed = 5,
             },
             Defaults: (string?)new JsonObject
             {
-                ["species"] = species.Name, ["height"] = species.Height, ["leader"] = species.Leader,
-                ["branchAngle"] = species.BranchAngle, ["levels"] = species.Levels, ["leafSize"] = species.LeafSize,
+                ["species"] = species.Name, ["height"] = species.Height,
             }.ToJsonString()))]);
+
+    /// <summary>The six woods, each shown as the <em>same</em> grown tree. A wood is a material and nothing
+    /// else, so the cards differ only in colour — which is precisely the claim being made, and the reason
+    /// these are not the species picker: a grown tree has no species.</summary>
+    public static IReadOnlyList<PropOptionDto> WoodCards(TreeProp template, TerrainTheme theme, int cell = 2)
+        => SectionCards(theme, cell, [.. DressingPalette.Woods.Select(wood => (
+            Key: wood.Name,
+            Label: wood.Name,
+            Prop: (PlacedProp)(template with { Form = TreeForm.Grown, Wood = wood.Name }),
+            Defaults: (string?)null))]);
 
     private static readonly IReadOnlyDictionary<PathStyle, string> PathStyleLabels = new Dictionary<PathStyle, string>
     {

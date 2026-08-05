@@ -207,38 +207,54 @@ public static class Decorator
 
     // ── trees (DR-TR) ───────────────────────────────────────────────────────────
     private static int PlaceTree(VoxelWorld world, DressingContext context, TreeProp tree, HashSet<(int X, int Z)> taken)
+        => Fan(world, context, (tree.X, tree.Z), TreeCells(tree), taken);
+
+    /// <summary>A tree as offsets from the block it stands on. Both forms end here: each produces the cells
+    /// that are wood and the cells that are leaf, and this turns those into blocks. Wood wins where they
+    /// overlap, so a trunk is never hollowed by its own foliage, and every leaf carries the no-decay bit — a
+    /// built map has no growing tree behind its crown, and without the flag the whole thing disappears shortly
+    /// after the map loads.</summary>
+    private static List<PropCell> TreeCells(TreeProp tree)
     {
-        var species = DressingPalette.SpeciesNamed(tree.Species);
-        return Fan(world, context, (tree.X, tree.Z), TreeCells(tree.Shape, species, tree.LeafSize, tree.Seed), taken);
+        var (wood, leaves) = tree.Form == TreeForm.Template ? TemplateTree(tree) : GrownTree(tree);
+        var timber = tree.Timber;
+        var leafData = timber.LeafData | DressingPalette.LeafNoDecay;
+
+        var cells = new List<PropCell>(wood.Count + leaves.Count);
+        foreach (var (x, y, z) in wood) cells.Add(new PropCell(x, y, z, timber.LogId, timber.LogData, Buried: false));
+        foreach (var (x, y, z) in leaves)
+        {
+            if (wood.Contains((x, y, z))) continue;
+            cells.Add(new PropCell(x, y, z, timber.LeafId, leafData, Buried: false));
+        }
+        return cells;
     }
 
-    /// <summary>A tree as offsets from the block it stands on. Wood is swept from the limbs and leaves are
-    /// owned cluster by cluster; wood wins where they meet, so a trunk is never hollowed by its own foliage.
-    /// Every leaf carries the no-decay bit — a built map has no growing tree behind its crown, and without the
-    /// flag the whole thing disappears shortly after the map loads.</summary>
-    private static List<PropCell> TreeCells(TreeShape shape, TreeSpecies species, double leafSize, uint seed)
+    /// <summary>The vanilla tree: its species' proportions scaled to the prop's height.</summary>
+    private static (HashSet<(int X, int Y, int Z)> Wood, IReadOnlyList<(int X, int Y, int Z)> Leaves) TemplateTree(TreeProp tree)
     {
-        var tree = TreeSkeleton.Grow(shape, seed);
+        var built = TreeTemplate.Build(DressingPalette.SpeciesNamed(tree.Species).ShapeAt(tree.Height), tree.Seed);
+        return ([.. built.Wood], built.Leaves);
+    }
+
+    /// <summary>The grown tree: wood swept from the limb splines, leaves owned cluster by cluster.</summary>
+    private static (HashSet<(int X, int Y, int Z)> Wood, IReadOnlyList<(int X, int Y, int Z)> Leaves) GrownTree(TreeProp tree)
+    {
+        var shape = tree.Shape;
+        var grown = TreeSkeleton.Grow(shape, tree.Seed);
         var wood = new HashSet<(int X, int Y, int Z)>();
-        foreach (var limb in tree.Limbs)
+        foreach (var limb in grown.Limbs)
             foreach (var cell in SweptVolume.Sweep(limb.Path, limb.StartRadius, limb.EndRadius))
                 wood.Add(cell);
 
-        var cells = new List<PropCell>(wood.Count * 3);
-        foreach (var (x, y, z) in wood) cells.Add(new PropCell(x, y, z, species.LogId, species.LogData, Buried: false));
-
-        var clusters = TreeCrown.Clusters(tree.Tips, leafSize, shape.Size, seed);
+        var clusters = TreeCrown.Clusters(grown.Tips, tree.LeafSize, shape.Size, tree.Seed);
         var (min, max) = TreeCrown.Bounds(clusters);
-        var leafData = species.LeafData | DressingPalette.LeafNoDecay;
+        var leaves = new List<(int X, int Y, int Z)>();
         for (var y = (int)Math.Floor(min.Y); y <= (int)Math.Ceiling(max.Y); y++)
         for (var z = (int)Math.Floor(min.Z); z <= (int)Math.Ceiling(max.Z); z++)
         for (var x = (int)Math.Floor(min.X); x <= (int)Math.Ceiling(max.X); x++)
-        {
-            if (wood.Contains((x, y, z))) continue;
-            if (TreeCrown.OwnerAt(clusters, new Vec3(x, y, z), seed) is null) continue;
-            cells.Add(new PropCell(x, y, z, species.LeafId, leafData, Buried: false));
-        }
-        return cells;
+            if (TreeCrown.OwnerAt(clusters, new Vec3(x, y, z), tree.Seed) is not null) leaves.Add((x, y, z));
+        return (wood, leaves);
     }
 
     // ── the shared prop pipeline ────────────────────────────────────────────────

@@ -161,7 +161,7 @@ public sealed class DressingScopeTests
 
         // Depth shades a block without repainting it, so a projected crown is many shades of the one leaf
         // colour — where a cut would give one flat shade with holes through it.
-        var front = BlockPalette.Hex(DressingPalette.Leaves, DressingPalette.LeafNoDecay, 0);
+        var front = BlockPalette.Hex(Blocks.Leaves, DressingPalette.LeafNoDecay, 0);
         var crown = Fills(tree.Section).Where(hex => IsShadeOf(hex, front)).ToList();
         await Assert.That(crown.Count).IsGreaterThan(3);
         // And every one of them is still that leaf, darkened: no shade is brighter than the block's own.
@@ -195,6 +195,33 @@ public sealed class DressingScopeTests
         var ground = BlockPalette.Hex(Blocks.Grass, 0);
         await Assert.That(Fills(tree.Plan)).Contains(ground);
         await Assert.That(Fills(tree.Section)).Contains(ground);
+    }
+
+    [Test]
+    public async Task The_wood_cards_change_the_colour_and_nothing_else()
+    {
+        // A wood is a material, so six wood cards are one tree six times. If they differed in shape the picker
+        // would be claiming the wood decides the silhouette, which is the claim the species picker makes and
+        // this one must not.
+        var woods = DressingPreview.WoodCards(new TreeProp { Form = TreeForm.Grown, Height = 18, Seed = 5 }, TerrainTheme.Default);
+
+        await Assert.That(woods.Select(card => card.Key)).IsEquivalentTo(DressingPalette.Woods.Select(wood => wood.Name));
+        await Assert.That(woods.Select(card => Cells(card.Svg)).Distinct().Count()).IsEqualTo(1);
+        await Assert.That(woods.Select(card => card.Svg).Distinct().Count()).IsEqualTo(woods.Count);
+
+        // How many blocks a card draws — the same tree in another wood fills the same cells.
+        static int Cells(string svg) => Regex.Matches(svg, "<rect").Count;
+    }
+
+    [Test]
+    public async Task A_species_is_a_silhouette_and_not_a_colour()
+    {
+        // The inverse claim, and the reason the two pickers are two pickers: the species cards must differ in
+        // shape, or six of them are one tree wearing six palettes.
+        var species = DressingPreview.SpeciesCards(TerrainTheme.Default);
+
+        await Assert.That(species.Select(card => Regex.Matches(card.Svg, "<rect").Count).Distinct().Count())
+            .IsGreaterThan(4);
     }
 
     [Test]

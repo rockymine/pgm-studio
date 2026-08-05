@@ -81,6 +81,10 @@
 
 .field-label { font-size: var(--font-sm); color: var(--text-secondary); user-select: none; }
 .field-required { color: var(--color-error); }
+/* A muted note after the label ("hides a player, so it is mirrored"). The margin is the separator rather
+   than a space in the markup: Razor drops whitespace between an expression and the code block that follows
+   it, so a hint written as bare text renders flush against its label. */
+.field-hint { margin-left: var(--space-1); font-size: var(--font-xs); color: var(--text-muted); }
 /* Split label row — label text left, a live value readout right (range sliders, counters). */
 .field-label--split { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
 .field-label--split strong { color: var(--text-bright); }

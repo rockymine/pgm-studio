@@ -71,13 +71,95 @@ public sealed class DecoratorTests
             [new TreeProp { Id = "t", X = 14, Z = 20, Species = "oak", Height = 16, Seed = 5 }]));
 
         await Assert.That(tally.Trees).IsEqualTo(1);
-        var logs = Placed(world, top.Keys, 8, 40).Where(b => b.Id == DressingPalette.Log).ToList();
+        var logs = Placed(world, top.Keys, 8, 40).Where(b => b.Id == Blocks.Log).ToList();
         await Assert.That(logs).IsNotEmpty();
         await Assert.That(logs.Min(b => b.Y)).IsEqualTo(8);                  // seated on the surface, not sunk
         // and standing at its own cell: limbs reach out, but the whole tree is within a crown's radius of
         // where it was put, not somewhere else on a forty-block plateau.
         await Assert.That(logs.Max(b => Math.Abs(b.X - 14))).IsLessThan(9);
         await Assert.That(logs.Max(b => Math.Abs(b.Z - 20))).IsLessThan(9);
+    }
+
+    [Test]
+    public async Task The_two_tree_forms_build_two_different_trees()
+    {
+        // They are different things, not settings of one thing. A vanilla spruce is a notched cone on a
+        // straight trunk; the grower has no such profile in it, and asking it for one gets its own crown in
+        // spruce blocks. Six grower presets named after species is exactly what this rules out.
+        var (vanilla, vanillaTop) = Plateau();
+        Decorator.Decorate(vanilla, Context(vanillaTop,
+            [new TreeProp { Id = "t", X = 20, Z = 20, Form = TreeForm.Template, Species = "spruce", Height = 15, Seed = 5 }]));
+
+        var (grown, grownTop) = Plateau();
+        Decorator.Decorate(grown, Context(grownTop,
+            [new TreeProp { Id = "t", X = 20, Z = 20, Form = TreeForm.Grown, Wood = "spruce", Height = 15, Seed = 5 }]));
+
+        // Same wood in both — the material is the one thing a form does not decide.
+        var vanillaLogs = Logs(vanilla, vanillaTop);
+        var grownLogs = Logs(grown, grownTop);
+        await Assert.That(vanillaLogs.All(b => b.Data == 1)).IsTrue();
+        await Assert.That(grownLogs.All(b => b.Data == 1)).IsTrue();
+
+        // A vanilla trunk is one straight column; a grown one wanders and throws limbs, so it occupies many.
+        await Assert.That(Columns(vanillaLogs)).IsEqualTo(1);
+        await Assert.That(Columns(grownLogs)).IsGreaterThan(3);
+
+        static List<(int X, int Y, int Z, int Id, int Data)> Logs(
+            VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> top)
+            => [.. Placed(world, top.Keys, 8, 40).Where(b => b.Id == Blocks.Log)];
+        static int Columns(List<(int X, int Y, int Z, int Id, int Data)> logs)
+            => logs.Select(b => (b.X, b.Z)).Distinct().Count();
+    }
+
+    [Test]
+    public async Task Every_vanilla_species_builds_a_silhouette_of_its_own()
+    {
+        // The picker offers six species, so six crowns have to come out — and what separates them is where a
+        // crown carries its width. A conifer is widest where it meets the trunk and ends in a spire; an acacia
+        // is a flat disc, wider than anything else and only a few courses deep; a blob is widest in between.
+        var spruce = Crown("spruce");
+        var acacia = Crown("acacia");
+        var oak = Crown("oak");
+
+        await Assert.That(spruce[0]).IsEqualTo(spruce.Max());
+        await Assert.That(spruce[^1]).IsLessThan(spruce[0]);
+
+        await Assert.That(acacia.Count).IsLessThanOrEqualTo(3);
+        await Assert.That(acacia.Max()).IsGreaterThan(oak.Max());
+
+        await Assert.That(oak[0]).IsLessThan(oak.Max());
+        await Assert.That(oak[^1]).IsLessThan(oak.Max());
+
+        // How wide the crown is at each of its courses, bottom first.
+        List<int> Crown(string name)
+        {
+            var species = DressingPalette.Species.First(row => row.Name == name);
+            var (world, top) = Plateau();
+            Decorator.Decorate(world, Context(top,
+                [new TreeProp { Id = "t", X = 20, Z = 20, Species = name, Height = species.Height, Seed = 5 }]));
+
+            return [.. Placed(world, top.Keys, 8, 40).Where(b => b.Id is Blocks.Leaves or Blocks.Leaves2)
+                .GroupBy(b => b.Y).OrderBy(course => course.Key)
+                .Select(course => course.Max(b => b.X) - course.Min(b => b.X) + 1)];
+        }
+    }
+
+    [Test]
+    public async Task A_vanilla_tree_comes_out_the_height_it_was_asked_for()
+    {
+        // Height is the number in the inspector, so a tree that overshot it would make the slider a lie — and
+        // a tree's height is a sightline, which is a thing about how the map plays.
+        foreach (var species in DressingPalette.Species)
+        foreach (var height in (double[])[8, 14, 22])
+        {
+            var (world, top) = Plateau();
+            Decorator.Decorate(world, Context(top,
+                [new TreeProp { Id = "t", X = 20, Z = 20, Species = species.Name, Height = height, Seed = 5 }]));
+
+            var tree = Placed(world, top.Keys, 8, 40).ToList();
+            var courses = tree.Max(b => b.Y) - 8 + 1;
+            await Assert.That(Math.Abs(courses - height)).IsLessThanOrEqualTo(2);
+        }
     }
 
     [Test]
@@ -101,7 +183,7 @@ public sealed class DecoratorTests
         var (world, top) = Plateau();
         Decorator.Decorate(world, Context(top, [new TreeProp { Id = "t", X = 20, Z = 20, Seed = 5 }]));
 
-        var leaves = Placed(world, top.Keys, 8, 40).Where(b => b.Id == DressingPalette.Leaves).ToList();
+        var leaves = Placed(world, top.Keys, 8, 40).Where(b => b.Id == Blocks.Leaves).ToList();
         await Assert.That(leaves).IsNotEmpty();
         await Assert.That(leaves.All(b => (b.Data & DressingPalette.LeafNoDecay) != 0)).IsTrue();
     }

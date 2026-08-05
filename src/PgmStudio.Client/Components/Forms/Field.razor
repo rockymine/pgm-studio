@@ -9,7 +9,9 @@
     @if (!string.IsNullOrEmpty(Label) || LabelEnd is not null || LabelHint is not null)
     {
         <label class="@LabelCls" for="@For">
-            <span>@Label @if (Required) { <span class="field-required">*</span> } @LabelHint</span>
+            @* The hint is spaced and muted here rather than at each call site — see .field-hint for why the
+               separator is a margin and not a space. *@
+            <span>@Label @if (Required) { <span class="field-required">*</span> }@if (LabelHint is not null) { <span class="field-hint">@LabelHint</span> }</span>
             @if (LabelEnd is not null) { @LabelEnd }
         </label>
     }

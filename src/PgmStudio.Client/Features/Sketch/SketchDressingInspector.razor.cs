@@ -44,6 +44,8 @@ public partial class SketchDressingInspector
     private IReadOnlyList<PropOptionDto> pathStyles = [];
     private IReadOnlyList<PropOptionDto> boulderForms = [];
     private IReadOnlyList<PropOptionDto> species = [];
+    private IReadOnlyList<PropOptionDto> woods = [];
+    private string woodedFor = "";
     private IReadOnlyList<PaintBlockDto> blocks = [];
     // The map's own default finish. A preview drawn on the built-in grass would promise a meadow a desert map
     // would refuse, so the picture is grown on what this map actually paints.
@@ -116,7 +118,28 @@ public partial class SketchDressingInspector
         if (kind == PropKinds.Boulder && boulderForms.Count == 0) boulderForms = await Library.BoulderFormsAsync();
         if (kind == PropKinds.Tree && species.Count == 0) species = await Library.SpeciesAsync();
         if (!editingSelection && prop is null) await LoadToolSettings();
+        if (kind == PropKinds.Tree && IsGrown) await LoadWoods();
     }
+
+    /// <summary>Whether the tree being edited is the grown one rather than a vanilla template.</summary>
+    private bool IsGrown => Text(PropFields.Form, PropFields.TemplateForm) == PropFields.GrownForm;
+
+    /// <summary>The wood cards, drawn on the tree the author is actually shaping — so the picker answers "what
+    /// would <em>mine</em> look like in that wood". Refetched only when the shape changes, for the same reason
+    /// the preview is: every card is a real grow.</summary>
+    private async Task LoadWoods()
+    {
+        var knobs = KnobSpec();
+        if (knobs == woodedFor && woods.Count > 0) return;
+        woodedFor = knobs;
+        woods = await Library.WoodsAsync(knobs);
+    }
+
+    private string KnobSpec()
+        => $"height={Num(PropFields.Height, 12):0.##}&stems={Num(PropFields.Stems, 1):0}" +
+           $"&leader={Num(PropFields.Leader, 0.55):0.##}&flow={Num(PropFields.Flow, 0.45):0.##}" +
+           $"&branchAngle={Num(PropFields.BranchAngle, 0.55):0.##}&levels={Num(PropFields.Levels, 2):0}" +
+           $"&leafSize={Num(PropFields.LeafSize, 0.6):0.##}";
 
     // "13:0,4:0" — the blocks a path is paved with, so the style cards show *this* path rather than a stock one.
     private string? BlockSpec()
@@ -243,6 +266,14 @@ public partial class SketchDressingInspector
     /// <summary>Apply an option — its key, plus whatever else the option implies. A species is a starting
     /// shape rather than only a pair of blocks, so picking "spruce" and keeping an oak's proportions would name
     /// a tree it is not; the card carries those proportions so the client keeps no second species table.</summary>
+    /// <summary>Switch a tree between its two forms. The wood cards are drawn on the tree being shaped, so
+    /// they are fetched after the switch rather than before it.</summary>
+    private async Task SetForm(string form)
+    {
+        await Set(PropFields.Form, JsonValue.Create(form));
+        if (form == PropFields.GrownForm) await LoadWoods();
+    }
+
     private async Task Pick(string field, PropOptionDto option)
     {
         await Set(field, JsonValue.Create(option.Key));
@@ -263,12 +294,23 @@ public partial class SketchDressingInspector
         {
             [PropKinds.Path] = ("spline", "Path", "A route across the ground. It swaps the surface it crosses rather than building on it, and nothing grows on what it covers."),
             [PropKinds.Flora] = ("flower", "Cover", "Grass, fern and flowers over the soil inside the area you drew. Masked by the paint beneath — nothing grows on a plaza's quartz."),
-            [PropKinds.Tree] = ("trees", "Tree", "One grown tree, standing where you put it. Mirrored across the map's symmetry, so both teams get the same cover."),
+            [PropKinds.Tree] = ("trees", "Tree", "One tree, standing where you put it. Mirrored across the map's symmetry, so both teams get the same cover."),
             [PropKinds.Boulder] = ("mountain", "Boulder", "One rock, half-buried where you put it. Mirrored across the map's symmetry, so both teams get the same cover."),
         };
 
     private (string Icon, string Title, string Blurb) Info
-        => KindInfo.TryGetValue(kind, out var info) ? info : ("shapes", "Dressing", "");
+    {
+        get
+        {
+            if (!KindInfo.TryGetValue(kind, out var info)) return ("shapes", "Dressing", "");
+            // A tree is two trees, and which one is being edited changes what the sentence should say.
+            return kind == PropKinds.Tree
+                ? info with { Blurb = info.Blurb + (IsGrown
+                    ? " Grown from a branch skeleton you shape, in the wood you choose."
+                    : " A vanilla tree of its species: trunk, canopy, proportions.") }
+                : info;
+        }
+    }
 }
 
 /// <summary>The prop field names, as constants. Two reasons rather than one: a Razor markup lambda cannot
@@ -297,6 +339,9 @@ public static class PropFields
     public const string BranchAngle = "branchAngle";
     public const string Levels = "levels";
     public const string LeafSize = "leafSize";
+    public const string Wood = "wood";
+    /// <summary>Which shape a prop takes — a boulder's rock family, a tree's vanilla-or-grown. One wire name
+    /// because the two never share an object; the distinction lives in their C# types.</summary>
     public const string Form = "form";
     public const string Size = "size";
     public const string BlockId = "blockId";
@@ -308,6 +353,9 @@ public static class PropFields
     public const string SolidStyle = "solid";
     public const string RoundForm = "round";
     public const string OakSpecies = "oak";
+    public const string OakWood = "oak";
+    public const string TemplateForm = "template";
+    public const string GrownForm = "grown";
     public const string WornStyle = "worn";
 }
 

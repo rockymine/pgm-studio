@@ -1,3 +1,5 @@
+using PgmStudio.Geom.Algorithms;
+
 namespace PgmStudio.Minecraft.Dressing;
 
 /// <summary>One plant the flora overlay may place: the block, and whether standing in it changes anything for
@@ -74,25 +76,39 @@ public static class DressingPalette
         or Blocks.EmeraldBlock or Blocks.Chest or Blocks.StainedGlass or Blocks.StainedGlassPane or Blocks.Air;
 
     // ── trees ───────────────────────────────────────────────────────────────────
-    public const int Log = 17;                 // data 0 oak · 1 spruce · 2 birch · 3 jungle
-    public const int Log2 = 162;               // data 0 acacia · 1 dark oak
-    public const int Leaves = 18;
-    public const int Leaves2 = 161;
     /// <summary>The bit that stops the game checking a leaf block for decay. A built map has no growing tree
     /// behind its leaves, so without this the whole crown disappears shortly after the map loads.</summary>
     public const int LeafNoDecay = 4;
 
-    /// <summary>The species a stand draws from when its spec names none.</summary>
+    /// <summary>The six woods a tree of either form can be cut from.</summary>
+    public static readonly IReadOnlyList<TreeWood> Woods =
+    [
+        new("oak", Blocks.Log, 0, Blocks.Leaves, 0),
+        new("birch", Blocks.Log, 2, Blocks.Leaves, 2),
+        new("spruce", Blocks.Log, 1, Blocks.Leaves, 1),
+        new("jungle", Blocks.Log, 3, Blocks.Leaves, 3),
+        new("acacia", Blocks.Log2, 0, Blocks.Leaves2, 0),
+        new("dark oak", Blocks.Log2, 1, Blocks.Leaves2, 1),
+    ];
+
+    public static TreeWood WoodNamed(string name)
+        => Woods.FirstOrDefault(wood => wood.Name == name) ?? Woods[0];
+
+    /// <summary>The vanilla species: each its own wood, canopy profile and proportions. The profiles are what
+    /// separate them — a notched cone is a spruce and a flat umbrella on a leaning trunk is an acacia, and
+    /// neither is a knob setting of the other.</summary>
     public static readonly IReadOnlyList<TreeSpecies> Species =
     [
-        new("oak", Log, 0, Leaves, 0, Height: 16, Leader: 0.35, BranchAngle: 0.85),
-        new("birch", Log, 2, Leaves, 2, Height: 20, Leader: 0.85, BranchAngle: 0.55, LeafSize: 0.4),
-        new("spruce", Log, 1, Leaves, 1, Height: 24, Leader: 0.95, BranchAngle: 0.5, Levels: 1, LeafSize: 0.45),
-        new("jungle", Log, 3, Leaves, 3, Height: 26, Leader: 0.6, BranchAngle: 0.7, LeafSize: 0.6),
-        new("acacia", Log2, 0, Leaves2, 0, Height: 14, Leader: 0.2, BranchAngle: 1.0, LeafSize: 0.55),
-        new("dark oak", Log2, 1, Leaves2, 1, Height: 18, Leader: 0.3, BranchAngle: 0.9, LeafSize: 0.6),
+        // The heights are the vanilla ones, which are shorter than they feel: how much bare trunk a tree shows
+        // is its height less its canopy's courses, so a species listed two blocks too tall grows a stalk.
+        new("oak", Woods[0], CanopyProfile.Blob, Height: 8, CanopyRadius: 2.6),
+        new("birch", Woods[1], CanopyProfile.Blob, Height: 9, CanopyRadius: 2.2),
+        new("spruce", Woods[2], CanopyProfile.Cone, Height: 13, CanopyRadius: 3.0),
+        new("jungle", Woods[3], CanopyProfile.Blob, Height: 13, CanopyRadius: 3.2),
+        new("acacia", Woods[4], CanopyProfile.Umbrella, Height: 8, CanopyRadius: 4.0, Lean: 3),
+        new("dark oak", Woods[5], CanopyProfile.Blob, Height: 9, CanopyRadius: 3.4, WideTrunk: true),
     ];
 
     public static TreeSpecies SpeciesNamed(string name)
-        => Species.FirstOrDefault(s => s.Name == name) ?? Species[0];
+        => Species.FirstOrDefault(species => species.Name == name) ?? Species[0];
 }

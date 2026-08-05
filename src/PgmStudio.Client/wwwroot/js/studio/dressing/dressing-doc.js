@@ -23,7 +23,10 @@ export function defaultProp(kind, seed) {
     case "flora":
       return { ...base, points: [], spec: { coverage: 0.45, scale: 12, octaves: 3, fernShare: 0.25, flowerShare: 0.18, flowerScale: 18, tallShare: 0 } };
     case "tree":
-      return { ...base, x: 0, z: 0, species: "oak", height: 16, stems: 1, leader: 0.55, flow: 0.45, branchAngle: 0.55, levels: 2, leafSize: 0.6 };
+      // Vanilla, because that is the tree a map is mostly made of; the grown one is what an author reaches
+      // for when a spot wants a shape no vanilla generator makes.
+      return { ...base, x: 0, z: 0, form: "template", species: "oak", wood: "oak", height: 12,
+               stems: 1, leader: 0.55, flow: 0.45, branchAngle: 0.55, levels: 2, leafSize: 0.6 };
     case "boulder":
       return { ...base, x: 0, z: 0, form: "round", size: 2.5, blockId: 1, blockData: 0, mossy: true };
     default:

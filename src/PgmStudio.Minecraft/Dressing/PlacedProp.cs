@@ -58,42 +58,63 @@ public sealed record PathProp : PlacedProp
 /// <summary>One block a path may be paved with.</summary>
 public readonly record struct PaveBlock(int Id, int Data);
 
-/// <summary>One tree, standing where it was placed. Its species picks the wood and the default silhouette; the
-/// knobs below then bend that one tree, so a stand can be varied without becoming a different species.</summary>
+/// <summary>
+/// One tree, standing where it was placed — and one of <b>two</b> trees, which <see cref="Form"/> picks.
+///
+/// <para>A <see cref="TreeForm.Template"/> tree is vanilla: <see cref="Species"/> names its wood, its canopy
+/// profile and its proportions, and <see cref="Height"/> scales the lot. A <see cref="TreeForm.Grown"/> tree
+/// is the recursive skeleton: <see cref="Wood"/> names what it is cut from and the knobs below shape it. Each
+/// form reads only its own fields, so the ones it does not read are inert rather than wrong — the same way a
+/// <see cref="PathProp"/> spends <see cref="PathProp.Coverage"/> only when it is worn.</para>
+/// </summary>
 public sealed record TreeProp : PlacedProp
 {
     public int X { get; init; }
     public int Z { get; init; }
 
-    /// <summary>A row in <see cref="DressingPalette.Species"/> — which log and leaf blocks it places.</summary>
+    public TreeForm Form { get; init; } = TreeForm.Template;
+
+    /// <summary>Template only — a row in <see cref="DressingPalette.Species"/>: the wood, the canopy profile
+    /// and the proportions of one vanilla species.</summary>
     public string Species { get; init; } = "oak";
 
-    /// <summary>Overall height in blocks. Not a uniform scale: a smaller tree also carries a thinner stem and
-    /// fewer branches, so a sapling reads as a sapling rather than as a shrunken tree.</summary>
-    public double Height { get; init; } = 18;
+    /// <summary>Grown only — a row in <see cref="DressingPalette.Woods"/>. A grown tree's shape is the
+    /// author's, so its wood is all that is left to name.</summary>
+    public string Wood { get; init; } = "oak";
 
-    /// <summary>1–3 stems at the base.</summary>
+    /// <summary>Overall height in blocks. Template: it scales the species' proportions. Grown: not a uniform
+    /// scale — a smaller tree also carries a thinner stem and fewer branches, so a sapling reads as a sapling
+    /// rather than as a shrunken tree.</summary>
+    public double Height { get; init; } = 12;
+
+    /// <summary>Grown only — 1–3 stems at the base.</summary>
     public int Stems { get; init; } = 1;
 
-    /// <summary>How far the central axis climbs: low spreads like an oak, high spires like a birch.</summary>
+    /// <summary>Grown only — how far the central axis climbs: low spreads, high spires.</summary>
     public double Leader { get; init; } = 0.55;
 
-    /// <summary>How much the trunk wanders on its way up.</summary>
+    /// <summary>Grown only — how much the trunk wanders on its way up.</summary>
     public double Flow { get; init; } = 0.45;
 
-    /// <summary>How far a branch leaves its parent, in radians.</summary>
+    /// <summary>Grown only — how far a branch leaves its parent, in radians.</summary>
     public double BranchAngle { get; init; } = 0.55;
 
-    /// <summary>Branching depth — 2 is a tree, 3 a denser one.</summary>
+    /// <summary>Grown only — branching depth: 2 is a tree, 3 a denser one.</summary>
     public int Levels { get; init; } = 2;
 
-    /// <summary>How big each tip's leaf cluster is.</summary>
+    /// <summary>Grown only — how big each tip's leaf cluster is.</summary>
     public double LeafSize { get; init; } = 0.6;
 
-    /// <summary>This tree's growth parameters, as the grower wants them.</summary>
+    /// <summary>This tree's growth parameters, as the grower wants them. Read only when it is grown.</summary>
     public TreeShape Shape => new(
         Height: Math.Max(5, Height), Stems: Math.Clamp(Stems, 1, 3), Levels: Math.Clamp(Levels, 2, 3),
         BranchAngle: BranchAngle, Flow: Flow, Leader: Leader);
+
+    /// <summary>The blocks this tree is made of, whichever form it is: a template takes its species' wood, a
+    /// grown tree the one it was given.</summary>
+    public TreeWood Timber => Form == TreeForm.Template
+        ? DressingPalette.SpeciesNamed(Species).Wood
+        : DressingPalette.WoodNamed(Wood);
 }
 
 /// <summary>One boulder, half-buried where it was placed.</summary>

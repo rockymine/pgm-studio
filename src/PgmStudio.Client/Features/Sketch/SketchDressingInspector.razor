@@ -91,7 +91,7 @@
           <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
                  value="@((int)(Spec(SpecFields.FlowerShare, 0.18) * 100))"
                  @oninput="e => SetSpec(SpecFields.FlowerShare, JsonValue.Create(Share(e)))" /></ChildContent></Field>
-        <Field Label="Tall grass"><LabelHint><span class="text-muted text-sm">hides a player, so it is mirrored</span></LabelHint>
+        <Field Label="Tall grass"><LabelHint>hides a player, so it is mirrored</LabelHint>
           <LabelEnd><strong>@($"{Spec(SpecFields.TallShare, 0) * 100:0}%")</strong></LabelEnd>
           <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
                  value="@((int)(Spec(SpecFields.TallShare, 0) * 100))"
@@ -99,39 +99,75 @@
       }
       else if (kind == PropKinds.Tree)
       {
-        <div class="section-header section-header--ruled"><h2 class="section-title">Species</h2></div>
-        <div class="prop-cards prop-cards--tall">
-          @foreach (var option in species)
-          {
-            <button class="prop-card @(Text(PropFields.Species, PropFields.OakSpecies) == option.Key ? "prop-card--active" : null)"
-                    title="@option.Label" @onclick="() => Pick(PropFields.Species, option)">
-              <span class="prop-card-art">@((MarkupString)option.Svg)</span>
-              <span class="prop-card-label">@option.Label</span>
-            </button>
-          }
+        @* Two trees, not one tree with a species knob. A vanilla template is a trunk under a canopy of a known
+           profile — the only thing that reads as a spruce or an acacia. The grown tree is the recursive
+           skeleton, which makes shapes no vanilla generator does but only ever that one family, so it takes a
+           wood rather than a species. *@
+        <div class="choice-row">
+          <button class="choice-tile @(IsGrown ? null : "choice-tile--active")"
+                  title="A vanilla tree of a named species" @onclick="() => SetForm(PropFields.TemplateForm)">
+            <i data-lucide="trees"></i><span class="choice-name">Vanilla</span>
+          </button>
+          <button class="choice-tile @(IsGrown ? "choice-tile--active" : null)"
+                  title="Grown from a branch skeleton you shape" @onclick="() => SetForm(PropFields.GrownForm)">
+            <i data-lucide="split"></i><span class="choice-name">Grown</span>
+          </button>
         </div>
-        <Field Label="Height (blocks)"><LabelEnd><strong>@($"{Num(PropFields.Height, 16):0}")</strong></LabelEnd>
-          <ChildContent><input type="range" class="field-range" min="5" max="40" step="1"
-                 value="@((int)Num(PropFields.Height, 16))" @oninput="e => Set(PropFields.Height, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
-        <Field Label="Stems"><LabelEnd><strong>@($"{Num(PropFields.Stems, 1):0}")</strong></LabelEnd>
-          <ChildContent><input type="range" class="field-range" min="1" max="3" step="1"
-                 value="@((int)Num(PropFields.Stems, 1))" @oninput="e => Set(PropFields.Stems, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
-        <Field Label="Leader"><LabelHint><span class="text-muted text-sm">oak low, birch high</span></LabelHint>
-          <LabelEnd><strong>@($"{Num(PropFields.Leader, 0.55):0.00}")</strong></LabelEnd>
-          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
-                 value="@((int)(Num(PropFields.Leader, 0.55) * 100))" @oninput="e => Set(PropFields.Leader, JsonValue.Create(Share(e)))" /></ChildContent></Field>
-        <Field Label="Trunk flow"><LabelEnd><strong>@($"{Num(PropFields.Flow, 0.45):0.00}")</strong></LabelEnd>
-          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
-                 value="@((int)(Num(PropFields.Flow, 0.45) * 100))" @oninput="e => Set(PropFields.Flow, JsonValue.Create(Share(e)))" /></ChildContent></Field>
-        <Field Label="Branch angle"><LabelEnd><strong>@($"{Num(PropFields.BranchAngle, 0.55) * 57:0}°")</strong></LabelEnd>
-          <ChildContent><input type="range" class="field-range" min="20" max="120" step="1"
-                 value="@((int)(Num(PropFields.BranchAngle, 0.55) * 100))" @oninput="e => Set(PropFields.BranchAngle, JsonValue.Create(Share(e)))" /></ChildContent></Field>
-        <Field Label="Levels"><LabelEnd><strong>@($"{Num(PropFields.Levels, 2):0}")</strong></LabelEnd>
-          <ChildContent><input type="range" class="field-range" min="2" max="3" step="1"
-                 value="@((int)Num(PropFields.Levels, 2))" @oninput="e => Set(PropFields.Levels, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
-        <Field Label="Leaf size"><LabelEnd><strong>@($"{Num(PropFields.LeafSize, 0.6):0.00}")</strong></LabelEnd>
-          <ChildContent><input type="range" class="field-range" min="20" max="100" step="1"
-                 value="@((int)(Num(PropFields.LeafSize, 0.6) * 100))" @oninput="e => Set(PropFields.LeafSize, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+
+        @if (!IsGrown)
+        {
+          <div class="section-header section-header--ruled"><h2 class="section-title">Species</h2></div>
+          <div class="prop-cards prop-cards--tall">
+            @foreach (var option in species)
+            {
+              <button class="prop-card @(Text(PropFields.Species, PropFields.OakSpecies) == option.Key ? "prop-card--active" : null)"
+                      title="@option.Label" @onclick="() => Pick(PropFields.Species, option)">
+                <span class="prop-card-art">@((MarkupString)option.Svg)</span>
+                <span class="prop-card-label">@option.Label</span>
+              </button>
+            }
+          </div>
+          <Field Label="Height (blocks)"><LabelHint>scales the whole tree</LabelHint>
+            <LabelEnd><strong>@($"{Num(PropFields.Height, 12):0}")</strong></LabelEnd>
+            <ChildContent><input type="range" class="field-range" min="5" max="30" step="1"
+                   value="@((int)Num(PropFields.Height, 12))" @oninput="e => Set(PropFields.Height, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
+        }
+        else
+        {
+          <div class="section-header section-header--ruled"><h2 class="section-title">Wood</h2></div>
+          <div class="prop-cards prop-cards--tall">
+            @foreach (var option in woods)
+            {
+              <button class="prop-card @(Text(PropFields.Wood, PropFields.OakWood) == option.Key ? "prop-card--active" : null)"
+                      title="@option.Label" @onclick="() => Pick(PropFields.Wood, option)">
+                <span class="prop-card-art">@((MarkupString)option.Svg)</span>
+                <span class="prop-card-label">@option.Label</span>
+              </button>
+            }
+          </div>
+          <Field Label="Height (blocks)"><LabelEnd><strong>@($"{Num(PropFields.Height, 12):0}")</strong></LabelEnd>
+            <ChildContent><input type="range" class="field-range" min="5" max="40" step="1"
+                   value="@((int)Num(PropFields.Height, 12))" @oninput="e => Set(PropFields.Height, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
+          <Field Label="Stems"><LabelEnd><strong>@($"{Num(PropFields.Stems, 1):0}")</strong></LabelEnd>
+            <ChildContent><input type="range" class="field-range" min="1" max="3" step="1"
+                   value="@((int)Num(PropFields.Stems, 1))" @oninput="e => Set(PropFields.Stems, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
+          <Field Label="Leader"><LabelHint>low spreads, high spires</LabelHint>
+            <LabelEnd><strong>@($"{Num(PropFields.Leader, 0.55):0.00}")</strong></LabelEnd>
+            <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                   value="@((int)(Num(PropFields.Leader, 0.55) * 100))" @oninput="e => Set(PropFields.Leader, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+          <Field Label="Trunk flow"><LabelEnd><strong>@($"{Num(PropFields.Flow, 0.45):0.00}")</strong></LabelEnd>
+            <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                   value="@((int)(Num(PropFields.Flow, 0.45) * 100))" @oninput="e => Set(PropFields.Flow, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+          <Field Label="Branch angle"><LabelEnd><strong>@($"{Num(PropFields.BranchAngle, 0.55) * 57:0}°")</strong></LabelEnd>
+            <ChildContent><input type="range" class="field-range" min="20" max="120" step="1"
+                   value="@((int)(Num(PropFields.BranchAngle, 0.55) * 100))" @oninput="e => Set(PropFields.BranchAngle, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+          <Field Label="Levels"><LabelEnd><strong>@($"{Num(PropFields.Levels, 2):0}")</strong></LabelEnd>
+            <ChildContent><input type="range" class="field-range" min="2" max="3" step="1"
+                   value="@((int)Num(PropFields.Levels, 2))" @oninput="e => Set(PropFields.Levels, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
+          <Field Label="Leaf size"><LabelEnd><strong>@($"{Num(PropFields.LeafSize, 0.6):0.00}")</strong></LabelEnd>
+            <ChildContent><input type="range" class="field-range" min="20" max="100" step="1"
+                   value="@((int)(Num(PropFields.LeafSize, 0.6) * 100))" @oninput="e => Set(PropFields.LeafSize, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+        }
       }
       else if (kind == PropKinds.Boulder)
       {

@@ -58,8 +58,8 @@ public sealed class BlockSideViewTests
         // Two blocks a row apart, the way a crown's clusters sit: a cut through either row sees one of them
         // and calls the other empty. Every projected column that carries something is what the eye would see.
         var world = new VoxelWorld();
-        world.SetBlock(2, 12, 1, DressingPalette.Leaves);
-        world.SetBlock(3, 12, 4, DressingPalette.Leaves);
+        world.SetBlock(2, 12, 1, Blocks.Leaves);
+        world.SetBlock(3, 12, 4, Blocks.Leaves);
 
         var view = BlockSideView.Project(world, 0, 7, 0, 7, 8, 14);
         await Assert.That(view.At(2, 12)).IsNotNull();
@@ -71,7 +71,7 @@ public sealed class BlockSideViewTests
     {
         var world = new VoxelWorld();
         world.SetBlock(1, 9, 0, Blocks.Stone);
-        world.SetBlock(1, 17, 0, DressingPalette.Leaves);
+        world.SetBlock(1, 17, 0, Blocks.Leaves);
 
         await Assert.That(BlockSideView.Project(world, 0, 3, 0, 3, 8, 30).Highest()).IsEqualTo(17);
         await Assert.That(BlockSideView.Project(new VoxelWorld(), 0, 3, 0, 3, 8, 30).Highest()).IsNull();

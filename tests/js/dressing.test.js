@@ -26,7 +26,10 @@ function drag(tools, tool, points) {
 test("a fresh prop of each kind starts at the same numbers the server does", () => {
   assert.equal(defaultProp("path").radius, 3);
   assert.equal(defaultProp("path").style, "solid");
+  // A tree starts vanilla — the two forms are two trees, and the vanilla one is what a map is mostly made of.
+  assert.equal(defaultProp("tree").form, "template");
   assert.equal(defaultProp("tree").species, "oak");
+  assert.equal(defaultProp("tree").wood, "oak");
   assert.equal(defaultProp("boulder").form, "round");
   assert.equal(defaultProp("flora").spec.coverage, 0.45);
   assert.throws(() => defaultProp("unicorn"));

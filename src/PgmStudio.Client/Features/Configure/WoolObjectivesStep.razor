@@ -73,7 +73,7 @@
               </div>
             </Field>
             <Field Label="Owning team">
-              <LabelHint><span class="text-muted text-sm">(defends it)</span></LabelHint>
+              <LabelHint>(defends it)</LabelHint>
               <ChildContent>
                 <div class="field-pick-row">
                   <span class="field-swatch" style="background:@(string.IsNullOrEmpty(sel.Owner) ? "transparent" : W.Hex(TeamColorOf(sel.Owner)))"></span>
@@ -91,7 +91,7 @@
             @if (sel.Signed && !string.IsNullOrEmpty(sel.Evidence))
             {
               <Field Label="Evidence">
-                <LabelHint><span class="text-muted text-sm">· sign</span></LabelHint>
+                <LabelHint>· sign</LabelHint>
                 <ChildContent>
                   <div class="field-value" style="white-space:pre-line">@sel.Evidence.Replace("\n", " ")</div>
                   <div class="meter" style="margin-top:var(--space-1)"><div class="meter-fill" style="width:@((int)(sel.Confidence * 100))%"></div></div>
@@ -106,7 +106,7 @@
               </div>
             </Field>
             <Field Label="Monuments">
-              <LabelHint><span class="text-muted text-sm">(captured by)</span></LabelHint>
+              <LabelHint>(captured by)</LabelHint>
               <ChildContent>
                 <div class="field-value">
                   @if (sel.Monuments.Count == 0) { <text>none detected — place in the Monuments step</text> }
