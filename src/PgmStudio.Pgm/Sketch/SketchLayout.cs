@@ -22,6 +22,16 @@ public sealed class SketchLayout
     [JsonPropertyName("themes")]   public Dictionary<string, JsonElement>? Themes { get; set; }
     [JsonPropertyName("mapTheme")] public string? MapTheme { get; set; }
 
+    // The finish of the map's stamped rooms (docs/world-export/structures.md §9): one style for every wool cage
+    // and one for every spawn cube. Two snapshots rather than a registry-and-id, because there are exactly two
+    // bindings and nothing references them individually — a room style is map-wide on purpose. A cage that
+    // differed between teams would be a sightline that differed between teams, and the rooms are fanned across
+    // the symmetry orbit precisely so both sides face the same building.
+    // Snapshots, not library ids: editing a library row must never rebuild a shipped map's spawn rooms, the
+    // same rule the applied terrain theme follows. Absent on a sketch that never picked one, which stamps the
+    // built-in shells.
+    [JsonPropertyName("roomStyles")] public SketchRoomStyles? RoomStyles { get; set; }
+
     // Dressing (docs/world-export/decoration.md) does NOT ride beside theming, and the difference is the point.
     // A theme is a recipe applied to a footprint, so it is named, stored once and referenced; a prop was placed
     // somewhere, so what is stored is the placement itself. This is the list of what the author put on the map —
@@ -33,6 +43,16 @@ public sealed class SketchLayout
 
     public string ToJson() => JsonSerializer.Serialize(this, Json);
     public static SketchLayout? Parse(string json) => JsonSerializer.Deserialize<SketchLayout>(json, Json);
+}
+
+/// <summary>The two room-style snapshots a map binds: the shell every wool cage is stamped with, and the one
+/// every spawn cube is. Held as raw JSON because a layout cannot know the stamper's model — the same reason a
+/// theme rides here as a <see cref="JsonElement"/> — and read back by the export's scope. Either may be absent,
+/// which stamps that kind's built-in shell.</summary>
+public sealed class SketchRoomStyles
+{
+    [JsonPropertyName("cage")]  public JsonElement? Cage { get; set; }
+    [JsonPropertyName("spawn")] public JsonElement? Spawn { get; set; }
 }
 
 /// <summary>A stacked slab (S7): its shapes/islands at a Y offset. The whole 2-D editor authors one layer;

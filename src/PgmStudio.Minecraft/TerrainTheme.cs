@@ -58,6 +58,26 @@ public sealed record LayeredMaterial(IReadOnlyList<MaterialLayer> Layers) : Terr
         }
         return Layers.Count > 0 ? Layers[^1].Material.Resolve(in ctx) : (Blocks.Stone, 0);
     }
+
+    /// <summary>Layer for layer, not list for list: the generated equality compares the collection by
+    /// reference, so two stacks of the same materials — one built here, one read back from JSON — would come
+    /// out different.</summary>
+    public bool Equals(LayeredMaterial? other) => other is not null && Layers.SequenceEqual(other.Layers);
+
+    public override int GetHashCode() => MaterialHash.Of(Layers);
+}
+
+/// <summary>The hash a material holding a collection needs, once its equality walks that collection. Written
+/// once because three materials do it and a per-site copy is how two of them end up disagreeing with their own
+/// <c>Equals</c>.</summary>
+internal static class MaterialHash
+{
+    public static int Of<T>(IEnumerable<T> items)
+    {
+        var hash = new HashCode();
+        foreach (var item in items) hash.Add(item);
+        return hash.ToHashCode();
+    }
 }
 
 /// <summary>The bucket's block tinted by the team that owns the cell — the same 0–15 damage scale wool uses,

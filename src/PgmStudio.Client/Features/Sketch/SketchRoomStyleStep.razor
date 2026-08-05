@@ -1,0 +1,71 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* The Theme phase's Rooms step (structures.md §9): which shell this map's wool cages and spawn cubes are
+   stamped with. Two bindings and no more — a cage that differed between teams would be a sightline that
+   differed between teams, and the rooms are fanned across the symmetry orbit so both sides face the same
+   building. Picking one takes a snapshot, so editing the library's copy later leaves this map alone. *@
+
+<div class="phase-body">
+  <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Theme"
+           Steps="@Steps" CurrentStep="2" BackEnabled="true" NextLabel="Done" NextEnabled="true"
+           OnStep="OnStep" OnBack="OnBack" OnNext="OnBack" />
+  <Workspace>
+    <ContentColumn MaxWidth="720">
+      <Section Title="Room shells">
+        <Actions>
+          <Button Href="/library/rooms" Icon="library" Title="Open the room-style library">Library</Button>
+        </Actions>
+        <ChildContent>
+          <p class="section-desc">
+            A room style finishes the wool cages and spawn cubes this map stamps — their floor, walls and roof —
+            without touching their size, which always comes from the piece each one sits on. One shell for every
+            cage and one for every spawn: both are mirrored across the map's symmetry, so a shell that differed
+            between teams would be a difference in what each team can see.
+          </p>
+          <p class="section-desc">
+            Picking one takes a <strong>snapshot</strong>. Editing it in the library afterwards leaves this map
+            alone, and the other way round.
+          </p>
+
+          @foreach (var kind in RoomKindInfo.All)
+          {
+            <Section Title="@kind.Title" Variant="list" @key="kind.Id">
+              <Actions>
+                @if (Bound(kind.Id) is null) { <Badge Kind="dim">built-in</Badge> }
+                else { <Badge Kind="neutral">bound</Badge> }
+              </Actions>
+              <ChildContent>
+                <p class="section-desc">@kind.Blurb</p>
+                <div class="lib-bind">
+                  <select class="field-input field-input--slim" value="@Picked(kind.Id)"
+                          @onchange="e => Bind(kind.Id, e)">
+                    <option value="0">(the built-in shell)</option>
+                    @foreach (var room in rooms) { <option value="@room.Id" @key="room.Id">@room.Name</option> }
+                  </select>
+                  @if (Bound(kind.Id) is not null)
+                  {
+                    <Button Icon="x" Title="Go back to the built-in shell"
+                            OnClick="() => Clear(kind.Id)">Unbind</Button>
+                  }
+                </div>
+                @if (Preview(kind.Id) is { } views)
+                {
+                  <div class="dressing-views">
+                    <figure class="theme-section-figure">@((MarkupString)views.Plan)</figure>
+                    <figure class="theme-section-figure">@((MarkupString)views.Section)</figure>
+                  </div>
+                }
+              </ChildContent>
+            </Section>
+          }
+
+          @if (rooms.Count == 0)
+          {
+            <p class="section-desc">The library has no room styles yet — build one there and it shows up here.</p>
+          }
+          @if (note is not null) { <p class="section-desc">@note</p> }
+        </ChildContent>
+      </Section>
+    </ContentColumn>
+  </Workspace>
+</div>

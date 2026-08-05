@@ -26,7 +26,7 @@
     <NavRail LogoHref="/" LogoTitle="Studio home">
       <NavButton Icon="book-open-text" Title="Info" Active="@InfoActive" OnClick="GoInfo" />
       <NavButton Icon="pencil-ruler" Title="Draw" Active="@DrawActive" OnClick="GoDraw" />
-      <NavButton Icon="palette" Title="Theme" Active="@(ThemeCreateActive || ThemeApplyActive)" OnClick="GoTheme" />
+      <NavButton Icon="palette" Title="Theme" Active="@(ThemeCreateActive || ThemeApplyActive || ThemeRoomsActive)" OnClick="GoTheme" />
       <NavButton Icon="trees" Title="Dressing" Active="@DressingActive" OnClick="GoDressing" />
     </NavRail>
   </Rail>
@@ -39,7 +39,11 @@
       }
       @if (ThemeCreateActive)
       {
-        <SketchThemePhase Handle="handle" OnApply="EnterThemeApply" OnBack="GoDraw" />
+        <SketchThemePhase Handle="handle" OnApply="EnterThemeApply" OnRooms="GoThemeRooms" OnBack="GoDraw" />
+      }
+      @if (ThemeRoomsActive)
+      {
+        <SketchRoomStyleStep Handle="handle" OnGoStep="GoThemeStep" OnBack="GoDraw" />
       }
       @* Draw + Theme-Apply share the one mounted canvas, so this body stays present (hidden when Info/Create
          is up) — [hidden] is display:none, and the canvas re-measures on unhide. Theme-Apply swaps the sidebar
@@ -49,7 +53,7 @@
       {
         <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Theme"
                  Steps="ThemeSteps" CurrentStep="1" BackEnabled="true" NextLabel="Done" NextEnabled="true"
-                 OnStep="@(i => i == 0 ? BackToThemeCreate() : Task.CompletedTask)" OnBack="BackToThemeCreate" OnNext="GoDraw" />
+                 OnStep="GoThemeStep" OnBack="BackToThemeCreate" OnNext="GoDraw" />
       }
       else if (DressingActive)
       {

@@ -245,3 +245,31 @@ section, because the course stack is what a room style *is*.
 The door picker is **served, never restated** (`/api/room-styles/doors` from `Domain.DoorMaterials`). A
 client-side copy of the four choices is the one way a door could come to be offered that the wool-room filter
 never whitelists, which §7 explains would seal the cage.
+
+## 9. What a map binds
+
+A map binds **two** styles, one per kind: the shell every wool cage is stamped with, and the shell every spawn
+cube is. They may be the same style; nothing else is offered. There is no per-room override, and the reason is
+§1's: a room is fanned across the symmetry orbit, so one team's cage and the other's are the same building seen
+from the other side. A shell that differed between them would be a sightline one team has and the other does
+not — a fairness break of exactly the kind the orbit exists to prevent, and one an author would have no way to
+see while choosing it.
+
+The binding lives on the **sketch layout**, under a `roomStyles` key beside the geometry, because that is what
+the export reads: `SketchWorldBuilder` is handed the layout JSON and nothing else about the map. It is a
+**snapshot**, not a library reference (finishing-model.md §3.3) — picking a style copies its JSON in, so editing
+that library row later cannot rebuild a shipped map's rooms. The `style_id` a map picked from is not stored,
+which is the point: there is no reference to go stale, and the Rooms step's "from *Slate cage*" caption is a
+note on the session rather than a fact about the map.
+
+`RoomStyleScope` is the read side, `TerrainThemeScope`'s sibling — with one shape difference that says the
+whole thing. A theme resolves **per cell**, because a theme is scoped to a footprint; a room style resolves
+**per map**, so `StylesOf` takes a layout and returns the pair. There is no `StyleAt`, and there is nothing for
+one to take.
+
+An **absent or unreadable** snapshot falls back to the built-in shell for its kind. A map that never opened the
+step exports byte-identical to how it did before the step existed, and a hand-edited layout that broke its
+snapshot loses its chosen shell rather than its export.
+
+The step is **Theme's third**, after Create and Apply, because a room shell is finishing: it is what the map is
+*made of*, decided once for the whole map, next to the terrain finish that is decided the same way.

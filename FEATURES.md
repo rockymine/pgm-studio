@@ -2605,6 +2605,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   not build. The door picker is served from `Domain.DoorMaterials` rather than restated in the client, which
   is the one way a door could be offered that the wool-room filter never whitelists. A style bound by a room
   is named in the 409 that refuses to forget it, beside the themes. (G34b)
+- **A map binds its two room shells — the Theme phase's Rooms step.** A sketch snapshots one cage shell and
+  one spawn shell into its layout under `roomStyles` (`docs/world-export/structures.md` §9), picked from the
+  library on a third Theme step beside Create and Apply, since a shell is what the map is *made of* and is
+  decided once for the whole map. There is **no per-room override**: a room is fanned across the symmetry
+  orbit, so a shell that differed between the teams' cages would be a sightline one team has and the other
+  does not. The binding is a **snapshot, not a reference** (finishing-model.md §3.3) — no `style_id` is
+  stored, so a later library edit cannot rebuild a shipped map's rooms. `RoomStyleScope` is the read side,
+  `TerrainThemeScope`'s sibling with the one shape difference that says the whole thing: a theme resolves per
+  cell, a room style per map, so there is no `StyleAt` and nothing for one to take. An absent or unreadable
+  snapshot falls back to the built-in shell, so a map that never opened the step exports exactly as it did
+  before the step existed. Serializing a style also forced structural equality onto every material holding a
+  collection (`RoomPart`, `LayeredMaterial`, the three patterns) — record equality compares a collection
+  member by reference, so a stack read back from JSON had never equalled the one that wrote it. (G34c)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds

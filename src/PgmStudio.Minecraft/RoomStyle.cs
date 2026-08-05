@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using PgmStudio.Domain;
 
 namespace PgmStudio.Minecraft;
@@ -33,6 +34,20 @@ public sealed record RoomPart(IReadOnlyList<RoomCourse> Courses, int Extent)
 
     /// <summary>A part of one material, <paramref name="extent"/> courses deep — the common case.</summary>
     public static RoomPart Of(TerrainMaterial material, int extent = 1) => new([new RoomCourse(material)], extent);
+
+    /// <summary>Two parts are the same part when their stacks match course for course. The generated equality
+    /// would compare the course lists by <em>reference</em>, so a style read back from its snapshot could never
+    /// equal the style it was written from — which is the comparison a round trip is made of.</summary>
+    public bool Equals(RoomPart? other)
+        => other is not null && Extent == other.Extent && Courses.SequenceEqual(other.Courses);
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(Extent);
+        foreach (var course in Courses) hash.Add(course);
+        return hash.ToHashCode();
+    }
 
     private static readonly TerrainMaterial Air = new SolidMaterial(Blocks.Air);
 }
@@ -86,7 +101,8 @@ public sealed record RoomStyle
     public int DoorHeight { get; init; } = 3;
 
     /// <summary>The highest course the shell writes, as a layer above the floor — what a caller reserves
-    /// headroom for and what a preview draws to.</summary>
+    /// headroom for and what a preview draws to. Derived, so a snapshot does not carry it.</summary>
+    [JsonIgnore]
     public int TopLayer => Wall.Extent + Roof.Extent;
 
     /// <summary>The shipped wool cage: bedrock, a wool band at the fourth course, a light slit at the sixth,

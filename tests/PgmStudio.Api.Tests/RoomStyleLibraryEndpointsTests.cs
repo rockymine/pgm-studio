@@ -128,8 +128,8 @@ public sealed class RoomStyleLibraryEndpointsTests
         await using var factory = new ApiTestFactory();
         using var client = factory.CreateClient();
 
-        var doors = await client.GetFromJsonAsync<List<DoorOptionDto>>("/api/room-styles/doors");
-        await Assert.That(doors!.Select(d => d.Slug))
+        var doors = await client.GetFromJsonAsync<List<DoorOptionDto>>("/api/room-styles/doors") ?? [];
+        await Assert.That(doors.Select(d => d.Slug))
             .IsEquivalentTo(new[] { "air", "web", "stained-glass", "stained-glass-pane" });
         await Assert.That(doors.All(d => !string.IsNullOrWhiteSpace(d.Label))).IsTrue();
     }

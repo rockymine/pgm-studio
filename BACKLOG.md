@@ -451,12 +451,6 @@ by theme, **ids preserved** (never reuse one). Pull an idea back onto the board 
 focus; the full original task text is in this file's git history. The current focus (the generator in the
 studio, G117/G118) is in `TODO.md`.
 
-- [ ] **G34c — Bind room styles to a map.** `roomStyles: { cage, spawn }` in the sketch layout beside
-  `themes`/`mapTheme`, resolved by a scope the way `TerrainThemeScope` resolves a theme, with a per-room
-  override once the map-wide binding reads well. Two consumers stop being static when it lands:
-  `PlanStructurePreview.CubeHeight` and `SketchWorldBuilder.MaxCubeFloor` read `RoomStyle.MaxTopLayer` today
-  because the shipped styles share a height, and both become a per-room read.
-
 - [ ] **CV16 — the authoring canvases have no frame budget, only habits.** The zoom stall (fixed in
   `FEATURES.md`) was two unrelated per-event costs that happened to land on the same handler, and neither was
   visible until measured: a grid rebuild whose memo was written for pan, and a `.NET` interop call per wheel

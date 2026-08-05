@@ -52,6 +52,11 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // rides on the shape (`shape.theme`), assigned via the Theme phase and resolved at export.
   let themes = {};
   let mapTheme = "";
+  // The two room-style snapshots the map binds (structures.md §9): the shell every wool cage is stamped with
+  // and the one every spawn cube is. Snapshots rather than library ids, so a library edit never rebuilds a
+  // shipped map's rooms — and map-wide rather than per room, because a cage that differed between teams would
+  // be a sightline that differed between teams.
+  let roomStyles = { cage: null, spawn: null };
   // Dressing (decoration.md) does NOT ride beside theming. A theme is a recipe named once and applied to many
   // footprints; a prop was put somewhere, so the canvas owns the placements and this owns only the load/save.
   // Theme phase: the canvas is a selection surface only. Geometry is the Draw phase's to edit.
@@ -416,6 +421,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
   // A theme edit is a discrete action the author is waiting on the result of, so it repaints at once; only
   // the continuous geometry stream (drag, resize) is worth coalescing.
+  function roomStylesState() { return JSON.stringify(roomStyles); }
+
   function afterThemeChange() { syncActive(); markDirty(); fire("OnThemes", themesState()); refreshPaint({ now: true }); }
 
   // ── dressing (decoration.md) ────────────────────────────────────────────────
@@ -612,6 +619,16 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
     // ── terrain-paint themes (finishing-model.md §4) ──
     getThemes() { return themesState(); },
+    getRoomStyles() { return roomStylesState(); },
+    // A snapshot as its JSON text, or null/"" to fall back to that kind's built-in shell.
+    setRoomStyle(kind, styleJson) {
+      if (kind !== "cage" && kind !== "spawn") return;
+      let parsed = null;
+      if (styleJson) { try { parsed = JSON.parse(styleJson); } catch { parsed = null; } }
+      roomStyles = { ...roomStyles, [kind]: parsed };
+      markDirty();
+      fire("OnRoomStyles", roomStylesState());
+    },
     defineTheme(name) {
       const id = uniqueScopeId(Object.keys(themes), name || "theme");
       themes[id] = defaultThemeJson();
@@ -676,6 +693,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (s.setup) applySetup(s.setup);
       themes = (s.themes && typeof s.themes === "object") ? s.themes : {};
       mapTheme = (s.mapTheme && themes[s.mapTheme]) ? s.mapTheme : "";
+      roomStyles = {
+        cage: s.roomStyles?.cage ?? null,
+        spawn: s.roomStyles?.spawn ?? null,
+      };
       canvas.setDressing(s.dressing && typeof s.dressing === "object" ? s.dressing : null);
       const raw = (s.layers && s.layers.length) ? s.layers : (s.layout ? [{ base_y: 0, layout: s.layout }] : []);
       // A layer's stored shapes are partitioned on load: role-tagged shapes are the plan's structural pieces
@@ -714,6 +735,11 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         // own override rides on the shape below. Omitted when empty so an unthemed sketch serialises as before.
         themes: Object.keys(themes).length ? themes : undefined,
         mapTheme: mapTheme || undefined,
+        // The bound room shells, omitted when neither is picked so a sketch that never opened the step
+        // serialises exactly as it did before it existed.
+        roomStyles: (roomStyles.cage || roomStyles.spawn)
+          ? { cage: roomStyles.cage ?? undefined, spawn: roomStyles.spawn ?? undefined }
+          : undefined,
         // Dressing rides the same way, and is likewise omitted when empty so an undressed sketch serialises
         // exactly as it did before the phase existed.
         dressing: canvas.dressing.isEmpty ? undefined : canvas.dressing.toJSON(),

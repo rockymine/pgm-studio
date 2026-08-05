@@ -39,7 +39,9 @@ public readonly record struct StructureBox(
 public static class PlanStructurePreview
 {
     // A cube spans layer 0 (its floor) through its style's top layer inclusive — hence the +1 to an exclusive
-    // top. The shipped styles share a height; it becomes a per-room read once a map binds its own.
+    // top. The built-in styles, deliberately: this draws a *plan*, and a plan carries no room-style binding —
+    // the compiler builds its layout from the plan, and the binding rides a sketch's layout (structures.md §9).
+    // A plan editor showing a bound shell would need the plan to carry one first.
     private static readonly int CubeHeight = RoomStyle.MaxTopLayer + 1;
 
     /// <summary>The structure boxes for <paramref name="plan"/>, or an empty list when it compiles to none.</summary>

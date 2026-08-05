@@ -1,9 +1,11 @@
+using System.Text.Json;
 using FastEndpoints;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Schema;
 using PgmStudio.Data.Theme;
 using PgmStudio.Domain;
+using PgmStudio.Minecraft;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -95,6 +97,36 @@ public sealed class RoomStyleDraftPreviewEndpoint(RoomStyleLibrary library)
 
     public override async Task HandleAsync(RoomStyleSaveRequest req, CancellationToken ct)
         => await Send.OkAsync(RoomStylePreview.Views(await library.ComposeDraftAsync(req, ct)), ct);
+}
+
+/// <summary>GET /api/room-styles/{id}/json — the room style assembled into the stamper's own JSON: the form
+/// the export consumes and the form a map snapshots when it binds one.</summary>
+public sealed class RoomStyleJsonEndpoint(RoomStyleLibrary library) : EndpointWithoutRequest
+{
+    public override void Configure() { Get("/room-styles/{id}/json"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var style = await library.ComposeAsync(Route<long>("id"), ct);
+        if (style is null) { await Send.NotFoundAsync(ct); return; }
+        await Send.OkAsync(new { styleJson = RoomStyleJson.Serialize(style) }, ct);
+    }
+}
+
+/// <summary>POST /api/room-styles/preview-snapshot — body is a serialized <c>RoomStyle</c>; returns the shell
+/// it stamps. What a map's <b>bound</b> style is previewed through: the binding is a snapshot rather than a
+/// library id (structures.md §9), so the picture has to come from the snapshot too — reading the library row
+/// would show what that row looks like now, which is exactly the drift the snapshot exists to prevent.</summary>
+public sealed class RoomStyleSnapshotPreviewEndpoint : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/room-styles/preview-snapshot"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var json = await RawBody.ReadAsync(HttpContext, ct);
+        try { await Send.OkAsync(RoomStylePreview.Views(RoomStyleJson.Deserialize(json)), ct); }
+        catch (JsonException) { await Send.ResponseAsync(new { error = "invalid room style JSON" }, 400, ct); }
+    }
 }
 
 /// <summary>DELETE /api/room-styles/{id} — forget a room style (its courses cascade; the styles stay).</summary>

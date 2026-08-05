@@ -30,6 +30,9 @@ public partial class SketchThemePhase
     /// <summary>The Create step's "Apply →" — hands off to the host's canvas theme-apply mode (G157), where the
     /// themes defined here are placed on the plan.</summary>
     [Parameter] public EventCallback OnApply { get; set; }
+    /// <summary>The Rooms step — the shells the map's stamped cages and spawns take (structures.md §9). Part of
+    /// the same phase because a room shell is a finish, like the paint these two steps author.</summary>
+    [Parameter] public EventCallback OnRooms { get; set; }
     [Inject] public TerrainLibraryClient Library { get; set; } = default!;
     [Inject] public IJSRuntime JS { get; set; } = default!;
 
@@ -39,10 +42,15 @@ public partial class SketchThemePhase
     private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
     private static readonly JsonSerializerOptions Pretty = new(JsonSerializerDefaults.Web) { WriteIndented = true };
     // Both steps show in the flow bar; Create is this component, Apply is the host's canvas mode.
-    private static readonly string[] Steps = ["Create", "Apply"];
+    private static readonly string[] Steps = ["Create", "Apply", "Rooms"];
 
     // Flow-bar step click: Apply (1) hands off to the canvas mode; Create (0) is where we already are.
-    private Task OnStep(int i) => i == 1 ? OnApply.InvokeAsync() : Task.CompletedTask;
+    private Task OnStep(int i) => i switch
+    {
+        1 => OnApply.InvokeAsync(),
+        2 => OnRooms.InvokeAsync(),
+        _ => Task.CompletedTask,
+    };
 
     private const string AbsoluteBedrock = "absolute";
     private const string RelativeBedrock = "relative";

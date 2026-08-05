@@ -80,6 +80,18 @@ public sealed class TerrainLibraryClient(HttpClient http)
 
     public Task DeleteRoomStyleAsync(long id) => http.DeleteAsync($"api/room-styles/{id}");
 
+    /// <summary>A library room style composed into the stamper's JSON — the form a map snapshots when it binds
+    /// one, so the map keeps what it picked rather than a pointer at a row that may move.</summary>
+    public async Task<string?> RoomStyleJsonAsync(long id)
+        => (await GetOrDefault<RoomStyleJsonResponse>($"api/room-styles/{id}/json"))?.StyleJson;
+
+    /// <summary>The shell a <em>bound</em> style stamps. Previewed from the snapshot the map holds, never from
+    /// the library row it came from — the row may have moved on since.</summary>
+    public Task<RoomStylePreviewDto?> RoomStyleSnapshotPreviewAsync(string styleJson)
+        => PostJsonDocument<RoomStylePreviewDto>("api/room-styles/preview-snapshot", styleJson);
+
+    private sealed record RoomStyleJsonResponse(string StyleJson);
+
     // ── styles ──────────────────────────────────────────────────────────────────
     /// <summary>The style library, newest first; <paramref name="kind"/> narrows it to one material kind.</summary>
     public async Task<IReadOnlyList<StyleDto>> StylesAsync(string? kind = null)

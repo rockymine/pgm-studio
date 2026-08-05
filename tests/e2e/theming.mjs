@@ -118,5 +118,53 @@ try {
 checks.add("the toolbar offers move + select only", tools.length === 2, tools.join(" | ") || "(no toolbar)");
 checks.add("select-only checks ran", restricted, page.faults.slice(0, 3).join(" | "));
 
+// ── 4. the Rooms step binds a shell to the map ────────────────────────────────────────────────────────
+// The phase's third step (structures.md §9): one shell for every wool cage and one for every spawn cube,
+// snapshotted into the layout rather than referenced. What has to survive is the snapshot itself — the
+// export reads the layout and nothing else, so a binding that did not come back from GET would silently
+// stamp the built-in shell.
+checks.section("the Rooms step binds a shell");
+
+// A library row to bind. Made here rather than assumed, since a fresh database ships no room styles — and
+// given a wall height no built-in shell has, so finding it in the layout says the snapshot travelled rather
+// than that a default happened to match. No courses: a part with none keeps the built-in finish, which is
+// what makes a style that only changes its geometry a legal one.
+const style = await api("/room-styles", { method: "POST", body: {
+  name: "e2e-tall", floorDepth: 1, wallHeight: 11, roofThickness: 1,
+  eave: "flush", roofHole: true, door: "stained-glass-pane", doorHeight: 3, courses: [] } });
+checks.add("a room style exists to bind", style?.id > 0, `id=${style?.id}`);
+
+clearFaults(page);
+let bound = false;
+try {
+  await page.click('.flow-step:has-text("Rooms")', { timeout: 8000 });
+  await page.waitForTimeout(1000);
+  await shot("theme-rooms.png");
+  checks.add("Theme · Rooms renders", await page.locator("text=Wool cages").count() > 0
+    && await page.locator("text=Spawn cubes").count() > 0);
+
+  const picker = page.locator(".lib-bind select").first();
+  await picker.selectOption(String(style.id));
+  await page.waitForTimeout(2000);   // past the autosave debounce
+
+  const doc = await api(`/map/${seed.sketchSlug}/sketch`);
+  const cage = doc?.roomStyles?.cage;
+  checks.add("the cage binding survives PUT → GET", cage != null,
+    JSON.stringify(Object.keys(doc?.roomStyles ?? {})));
+  // A snapshot, not a reference: what came back is the style itself, carrying the wall this one was given
+  // and no library id to go stale.
+  checks.add("what is stored is the style, not its id",
+    cage?.wall?.extent === 11 && cage.styleId == null && cage.id == null,
+    JSON.stringify(Object.keys(cage ?? {})));
+  // The other kind is untouched — the two bind independently.
+  checks.add("binding the cage leaves the spawn on its built-in shell", doc.roomStyles.spawn == null);
+  await shot("theme-rooms-bound.png");
+  bound = true;
+} catch (e) {
+  page.faults.push(`rooms step: ${String(e).split("\n")[0]}`);
+}
+checks.add("Rooms step drove without error", bound, page.faults.slice(0, 3).join(" | "));
+checks.add("sketch tool is clean under the Rooms step", page.faults.length === 0, page.faults.slice(0, 3).join(" | "));
+
 checks.finish();
 await browser.close();

@@ -28,6 +28,8 @@ public static class SketchWorldBuilder
 
         var teams = intent.Teams ?? [];
         var wools = intent.Wools ?? [];
+        // The shells this map is finished with — one for every cage, one for every spawn (structures.md §9).
+        var (cageStyle, spawnStyle) = RoomStyleScope.StylesOf(layoutJson);
 
         // ── Wool cages (framed by their plan piece + entries, or the marker-anchored default) ────────
         var resolvedWools = new List<WoolIntent>(wools.Count);
@@ -38,8 +40,8 @@ public static class SketchWorldBuilder
             var w = wools[i];
             var slug = ColorSlug(w, teams);
             var frame = WoolFrame(w);
-            var fy = FrameFloor(frame, terrain.SurfaceTop);
-            WoolCageStamper.Stamp(world, frame, fy, BlockColors.BlockDamage(slug));
+            var fy = FrameFloor(frame, terrain.SurfaceTop, cageStyle);
+            WoolCageStamper.Stamp(world, frame, fy, BlockColors.BlockDamage(slug), cageStyle);
             woolFrame[i] = frame;
             woolFloor[i] = fy;
             resolvedWools.Add(w);   // monuments filled in below, once spawn cubes place them
@@ -53,12 +55,12 @@ public static class SketchWorldBuilder
         {
             var room = SpawnRoom(s);
             var frame = room.Frame;
-            var fy = FrameFloor(frame, terrain.SurfaceTop);
+            var fy = FrameFloor(frame, terrain.SurfaceTop, spawnStyle);
 
             var captured = wools.Select((w, i) => (w, i))
                 .Where(x => Capturers(x.w, teams).Contains(s.Team)).ToList();
             var placed = SpawnCubeStamper.Stamp(world, frame, fy, WoolDataForTeam(s.Team, teams),
-                [.. captured.Select(x => ColorSlug(x.w, teams))]);
+                [.. captured.Select(x => ColorSlug(x.w, teams))], spawnStyle);
 
             for (var k = 0; k < placed.Count && k < captured.Count; k++)
                 monLoc[(captured[k].i, s.Team)] = new Pt(placed[k].X, placed[k].Y, placed[k].Z);
@@ -278,14 +280,16 @@ public static class SketchWorldBuilder
 
     // A shell's roof sits at floorY + its style's top layer, so the floor must leave that much headroom below
     // the world ceiling — clamp every structure floor here so an author-elevated island can't push a stamp
-    // past 255.
-    private static readonly int MaxCubeFloor = VoxelWorld.MaxHeight - RoomStyle.MaxTopLayer - 1;
-    internal static int SafeFloor(int y) => Math.Clamp(y, 1, MaxCubeFloor);
+    // past 255. A taller shell clamps lower, which is why the style is read rather than assumed.
+    internal static int SafeFloor(int y, RoomStyle? style = null)
+        => Math.Clamp(y, 1, VoxelWorld.MaxHeight - (style?.TopLayer ?? RoomStyle.MaxTopLayer) - 1);
 
     /// <summary>The floor a room shell rests on: the highest surface over the columns its footprint spans —
     /// not the one at its marker, which is a grid line whose side does not survive the symmetry orbit.</summary>
-    public static int FrameFloor(RoomFrame frame, IReadOnlyDictionary<(int X, int Z), int> surfaceTop)
-        => SafeFloor(PositionSnap.SurfaceYOver(surfaceTop, frame.MinX, frame.MinZ, frame.MaxX - 1, frame.MaxZ - 1, 1));
+    public static int FrameFloor(
+        RoomFrame frame, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, RoomStyle? style = null)
+        => SafeFloor(
+            PositionSnap.SurfaceYOver(surfaceTop, frame.MinX, frame.MinZ, frame.MaxX - 1, frame.MaxZ - 1, 1), style);
 
     /// <summary>The frame the export stamps for a wool: resolved from its plan piece + entry interfaces when
     /// it compiled from a plan (WX1/WX6), else the legacy marker-anchored default. Shared with the structure

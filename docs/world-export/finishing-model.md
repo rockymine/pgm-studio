@@ -125,6 +125,11 @@ sketch's Theme phase already works this way in both directions: pulling a librar
 into a sketch theme, and pushing one out lifts it into the library as one style per bucket. What remains is
 the map's own applied scope store carrying a frozen instance rather than the sketch document's registry.
 
+A **room style** already binds this way and is worth reading as the settled case: a map snapshots one cage
+shell and one spawn shell into its sketch layout, holding no `style_id` at all, and resolves them through
+`RoomStyleScope` — per map rather than per cell, because a shell is fanned across the symmetry orbit
+(`structures.md` §9).
+
 ## 4. The finishing pass belongs on the sketch, not the plan (landed)
 
 *Landed: theming is authored on the sketch's Theme phase and resolved from the sketch geometry at export; the

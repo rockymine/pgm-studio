@@ -29,6 +29,13 @@ public sealed record VoronoiMaterial(uint Seed, int CellSize, IReadOnlyList<Terr
         int idx = (int)(PatternNoise.Hash(gx, gz, Seed) % (uint)Palette.Count);
         return Palette[idx].Resolve(in ctx);
     }
+
+    // Palette for palette — the generated equality would compare the list by reference (see LayeredMaterial).
+    public bool Equals(VoronoiMaterial? other)
+        => other is not null && Seed == other.Seed && CellSize == other.CellSize
+        && Palette.SequenceEqual(other.Palette);
+
+    public override int GetHashCode() => HashCode.Combine(Seed, CellSize, MaterialHash.Of(Palette));
 }
 
 /// <summary>
@@ -46,6 +53,12 @@ public sealed record NoiseMaterial(uint Seed, int Scale, int Octaves, IReadOnlyL
         int idx = Math.Clamp((int)(v * Stops.Count), 0, Stops.Count - 1);
         return Stops[idx].Resolve(in ctx);
     }
+
+    public bool Equals(NoiseMaterial? other)
+        => other is not null && Seed == other.Seed && Scale == other.Scale && Octaves == other.Octaves
+        && Stops.SequenceEqual(other.Stops);
+
+    public override int GetHashCode() => HashCode.Combine(Seed, Scale, Octaves, MaterialHash.Of(Stops));
 }
 
 /// <summary>
@@ -72,4 +85,8 @@ public sealed record WallRunMaterial(IReadOnlyList<WallStripe> Runs) : TerrainMa
         }
         return Runs[^1].Material.Resolve(in ctx);
     }
+
+    public bool Equals(WallRunMaterial? other) => other is not null && Runs.SequenceEqual(other.Runs);
+
+    public override int GetHashCode() => MaterialHash.Of(Runs);
 }

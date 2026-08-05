@@ -112,6 +112,12 @@ prop was put somewhere and what is worth storing is the placement. `PgmStudio.Mi
 deserializes this blob directly, so the canvas writes the pass's own wire format
 (`docs/world-export/decoration.md`).
 
+**`roomStyles`** also sits beside `layout`, and is the smallest of the three: `{"cage": {…}, "spawn": {…}}`,
+each value a whole `RoomStyle` snapshot rather than a library id. It is a **flat pair, not a registry and not a
+placement** — a room shell is fanned across the symmetry orbit, so a map has one cage shell and one spawn
+shell, and there is nothing for a scope to key on. Either key may be absent, and an absent one keeps the
+built-in shell (`docs/world-export/structures.md` §9).
+
 **Bézier control model (lock-step with `render/svg.js ringToPath` + the rasterizer):** `controls` is a
 dict **keyed by stringified vertex index** (`"0"`,`"1"`,…), each `{ in?: [x,z], out?: [x,z] }`. For
 edge *i→j* the cubic is `(p_i, controls[i].out, controls[j].in, p_j)`; a missing handle falls back to

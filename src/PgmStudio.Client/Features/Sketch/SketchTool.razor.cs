@@ -36,13 +36,25 @@ public partial class SketchTool
     private Task GoInfo() => SetPhase("info");
     private Task GoDraw() => SetPhase("draw");
 
-    // ── Theme phase (finishing-model.md §4): two steps, Create (author themes) and Apply (assign them on the
-    //    island tree). Apply reuses the live canvas, so its body stays mounted like Draw. ──
+    // ── Theme phase: the map's whole finish, in three steps. Create (author terrain themes) and Apply (assign
+    //    them on the island tree) are the paint; Rooms binds the shells the stamped wool cages and spawn cubes
+    //    take (structures.md §9). Apply reuses the live canvas, so its body stays mounted like Draw; the other
+    //    two are their own bodies. ──
     private string themeStep = "create";
     private bool ThemeCreateActive => active == "theme" && themeStep == "create";
     private bool ThemeApplyActive => active == "theme" && themeStep == "apply";
-    private static readonly string[] ThemeSteps = ["Create", "Apply"];
+    private bool ThemeRoomsActive => active == "theme" && themeStep == "rooms";
+    private static readonly string[] ThemeSteps = ["Create", "Apply", "Rooms"];
     private Task GoTheme() { themeStep = "create"; return SetPhase("theme"); }
+    private Task GoThemeRooms() { themeStep = "rooms"; StateHasChanged(); return Task.CompletedTask; }
+    /// <summary>A step click from a body other than the one it names: 1 is the canvas mode, 2 the rooms body,
+    /// anything else Create.</summary>
+    private Task GoThemeStep(int step) => step switch
+    {
+        1 => EnterThemeApply(),
+        2 => GoThemeRooms(),
+        _ => BackToThemeCreate(),
+    };
     private async Task EnterThemeApply()
     {
         themeStep = "apply";
