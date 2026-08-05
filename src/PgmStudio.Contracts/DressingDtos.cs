@@ -2,7 +2,7 @@ namespace PgmStudio.Contracts;
 
 /// <summary>What a prop's preview patch placed, so an author can tell a knob that is doing nothing from one
 /// whose effect is simply too small to read at card size.</summary>
-public sealed record DressingCountsDto(int Plants, int Boulders, int Trees, int PathCells);
+public sealed record DressingCountsDto(int Plants, int Boulders, int Trees, int PathCells, int WaterCells);
 
 /// <summary>Both views of one placed prop (POST /api/terrain/prop-preview), produced by running the real pass
 /// over a sample patch. <paramref name="Plan"/> is the patch from above, which is where a path's paving and an

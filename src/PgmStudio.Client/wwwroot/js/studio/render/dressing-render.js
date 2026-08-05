@@ -18,6 +18,7 @@ import { isMarker, propAnchor, propReach } from "../dressing/dressing-doc.js";
 // One colour family per kind, so a glance separates a route from a stand of trees without reading a label.
 const KIND_STYLE = {
   path:    { fill: "#8d8378", stroke: "#6f6459" },
+  water:   { fill: "#4a86c4", stroke: "#2f5f92" },
   flora:   { fill: "#5aa64a", stroke: "#3f7f33" },
   tree:    { fill: "#2f7d46", stroke: "#1f5a31" },
   boulder: { fill: "#8a8f96", stroke: "#5f656d" },
@@ -49,14 +50,14 @@ export function paintDressing(painter, props, { selectedId = null, mirrorPoint =
         alpha: k === 0 ? 1 : 0.7,
       });
     }
-    // The line an author dragged, over the band it implies — a path is edited as its route, so the route has
-    // to stay visible inside its own paving.
-    if (prop.kind === "path" && (prop.points?.length ?? 0) >= 2) {
+    // The line an author dragged, over the band it implies — a path and a water channel are edited as their
+    // route, so the route has to stay visible inside its own band.
+    if ((prop.kind === "path" || prop.kind === "water") && (prop.points?.length ?? 0) >= 2) {
       const curve = pathCenterline(prop.points);
       const runs = [];
       for (let i = 1; i < curve.length; i++)
         runs.push({ x1: curve[i - 1][0], z1: curve[i - 1][1], x2: curve[i][0], z2: curve[i][1] });
-      painter.segments(runs, { stroke: KIND_STYLE.path.stroke, width: 1 });
+      painter.segments(runs, { stroke: (KIND_STYLE[prop.kind] ?? KIND_STYLE.path).stroke, width: 1 });
     }
   }
 }
@@ -66,7 +67,7 @@ export function paintDressingPreview(painter, kind, points, radius) {
   if (!points || points.length < 2) return;
   const kindStyle = KIND_STYLE[kind] ?? KIND_STYLE.boulder;
   const style = { fill: kindStyle.fill, fillAlpha: 0.2, stroke: kindStyle.stroke, width: 1, dash: [5, 3], fillRule: "evenodd" };
-  const ring = kind === "path" ? pathRing({ points, radius }) : [...points, points[0]];
+  const ring = (kind === "path" || kind === "water") ? pathRing({ points, radius }) : [...points, points[0]];
   if (ring.length >= 3) painter.ring(ring.slice(0, -1), style);
 }
 
@@ -86,7 +87,7 @@ function footprint(prop, image, mirrorPoint) {
     const [ax, az] = mirror(...propAnchor(prop));
     return disc(ax, az, propReach(prop));
   }
-  if (prop.kind === "path") {
+  if (prop.kind === "path" || prop.kind === "water") {
     const ring = pathRing(prop);
     return ring.length ? ring.slice(0, -1).map(([x, z]) => mirror(x, z)) : [];
   }

@@ -19,7 +19,7 @@ import { douglasPeucker, simplifyRing } from "../geometry/simplify.js";
 
 /** Tool name → the kind of prop it places. The canvas passes tool names through, so this is also the test for
  *  "is a dressing tool active at all". */
-export const DRESSING_TOOLS = { "dress:path": "path", "dress:flora": "flora", "dress:tree": "tree", "dress:boulder": "boulder" };
+export const DRESSING_TOOLS = { "dress:path": "path", "dress:water": "water", "dress:flora": "flora", "dress:tree": "tree", "dress:boulder": "boulder" };
 
 // A dragged trace is one point per block of pointer travel — unreadable to edit and pointless to store, so it
 // is simplified to the points at real bends on release. The same tolerance the lasso uses, for the same reason.
@@ -46,7 +46,7 @@ export class DressingController {
   constructor(doc, callbacks = {}) {
     this.#doc = doc;
     this.#callbacks = callbacks;
-    for (const kind of ["path", "flora", "tree", "boulder"]) this.#settings[kind] = defaultProp(kind, seedFor(kind));
+    for (const kind of ["path", "water", "flora", "tree", "boulder"]) this.#settings[kind] = defaultProp(kind, seedFor(kind));
   }
 
   setDoc(doc) { this.#doc = doc; this.#selectedId = null; }
@@ -181,12 +181,14 @@ export class DressingController {
   #finishTrace(kind, points) {
     // A route is an open line and an area is a closed one, and they simplify differently: the ring simplifier
     // splits at the two farthest points and walks both ways round, which is right for an outline and would
-    // reorder a route. So a path keeps its direction through the plain open simplifier.
-    const simplified = kind === "path"
+    // reorder a route. So the open-line props (a path, a water channel) keep their direction through the plain
+    // open simplifier.
+    const openLine = kind === "path" || kind === "water";
+    const simplified = openLine
       ? douglasPeucker(points, TRACE_SIMPLIFY_TOLERANCE)
       : simplifyRing(points, TRACE_SIMPLIFY_TOLERANCE);
-    // A path needs somewhere to go; an area needs to enclose something. Below that the drag was a misfire.
-    const enough = kind === "path" ? 2 : 3;
+    // An open line needs somewhere to go; an area needs to enclose something. Below that the drag was a misfire.
+    const enough = openLine ? 2 : 3;
     if (simplified.length < enough) { this.#callbacks.onPreviewChanged?.(); return; }
 
     const placed = this.#doc.add({ ...this.#settings[kind], points: simplified, seed: this.#nextSeed(kind) });
@@ -215,7 +217,7 @@ export class DressingController {
 }
 
 // A distinct starting seed per kind, so a map's first path and its first tree do not share a field.
-function seedFor(kind) { return { path: 5, flora: 7, tree: 23, boulder: 17 }[kind] ?? 1; }
+function seedFor(kind) { return { path: 5, water: 11, flora: 7, tree: 23, boulder: 17 }[kind] ?? 1; }
 
 // How far an area prop reaches from its own middle — its bounding radius, which is what a click is measured
 // against. Coarse on purpose: picking is about reaching the thing, not about its exact edge.

@@ -20,6 +20,7 @@ namespace PgmStudio.Minecraft.Dressing;
 /// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
 [JsonDerivedType(typeof(PathProp), "path")]
+[JsonDerivedType(typeof(WaterProp), "water")]
 [JsonDerivedType(typeof(TreeProp), "tree")]
 [JsonDerivedType(typeof(BoulderProp), "boulder")]
 [JsonDerivedType(typeof(FloraProp), "flora")]
@@ -57,6 +58,31 @@ public sealed record PathProp : PlacedProp
 
 /// <summary>One block a path may be paved with.</summary>
 public readonly record struct PaveBlock(int Id, int Data);
+
+/// <summary>A channel of water: the line the author drew, and how wide and deep a bed is cut under it. Unlike a
+/// <see cref="PathProp"/>, which repaints the surface and adds no cell, water is the one prop that changes the
+/// ground — it takes material <em>out</em> to a carved bed and fills that bed to a level water line, because
+/// water laid flat on a surface reads as blue paint rather than water. It only ever cuts existing terrain: the
+/// carve stops at the surface it crosses and never fills what was already air.</summary>
+public sealed record WaterProp : PlacedProp
+{
+    /// <summary>The drawn centerline, as <c>[x, z]</c> pairs. Two points or more.</summary>
+    public IReadOnlyList<double[]> Points { get; init; } = [];
+
+    /// <summary>Half the channel's width, in blocks.</summary>
+    public double Radius { get; init; } = 3;
+
+    /// <summary>How deep the bed is cut below the water line on the centerline, in blocks. The bed rises to a
+    /// single block at the shore, so the fill sits in a bowl rather than a walled trench.</summary>
+    public double Depth { get; init; } = 2;
+
+    public ChannelForm Form { get; init; } = ChannelForm.Canal;
+
+    /// <summary>The block the carved bed floor is laid with — a sandy or gravelly bottom that shows through the
+    /// shallows.</summary>
+    public int BedId { get; init; } = Minecraft.Blocks.Sand;
+    public int BedData { get; init; }
+}
 
 /// <summary>
 /// One tree, standing where it was placed — and one of <b>two</b> trees, which <see cref="Form"/> picks.

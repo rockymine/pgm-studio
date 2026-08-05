@@ -84,10 +84,13 @@ says so.
 
 ## The fifth tool
 
-- **G169 — water: ponds and channels (`DR-WA`)** — the one tool of `decoration.md` that is still only a
-  design (§7 there carries the whole model). Water cannot drape on a surface the way gravel can: laid on a
-  slope it reads as blue paint, so it needs a **carved bed** and a fill to a **level plane**. That carve is
-  an elevation change, which is the one thing every other part of the stage refuses to do — which is why it
-  waits on G32-C rather than being a fifth `DressingRecipe` part today. Everything above the bed is reuse: a
-  channel is the §4 path stroke, a pond the §5 blob read concave with an FBM-wandered outline, the reeds and
-  lily pads the §3 flora overlay masked to the bank.
+- **G169 — water: the richer reads and ponds (`DR-WA`)** — the **channel** shipped (the fifth tool: a
+  dragged centerline that cuts a U-bed and fills it to a level line, three forms, `Geom.WaterBed` +
+  `Decorator.PlaceWater`; see `decoration.md` §7 and `FEATURES.md`). What remains is the read that takes a
+  channel from "a filled cut" to "water that looks like water," and the closed form. **Depth shading** warped
+  off-centre so one bank runs deeper than the other; an **irregular shoreline** whose width wanders to zero in
+  places; a **voronoi-patterned** bed and shore (sand, pale gravel, coarse dirt) showing through the shallows;
+  **edge life** reusing the §3 flora overlay masked to the bank (reeds, lily pads); and **ponds** — the closed
+  version, the §5 blob read concave with an FBM-wandered outline, scattered onto low ground and joined to
+  channels into one watershed. The bed carve reads best once the **G32-C** elevation pass gives layouts their
+  heights, so a channel becomes a cut valley rather than a trench in a flat.

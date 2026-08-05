@@ -73,6 +73,34 @@
           @if (PaveBlocks.Count > 1) { <Button Variant="danger" OnClick="RemovePaveBlock">Remove last</Button> }
         </div>
       }
+      else if (kind == PropKinds.Water)
+      {
+        <Field Label="Width (blocks)">
+          <NumberField Value="Num(PropFields.Radius, 3) * 2" ValueChanged="v => Set(PropFields.Radius, JsonValue.Create(Math.Max(1, v / 2)))" Min="2" Step="2" />
+        </Field>
+        <Field Label="Depth (blocks)"><LabelHint>cut on the centerline; the bed rises to the banks</LabelHint>
+          <LabelEnd><strong>@($"{Num(PropFields.Depth, 2):0}")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="1" max="8" step="1"
+                 value="@((int)Num(PropFields.Depth, 2))"
+                 @oninput="e => Set(PropFields.Depth, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
+        <div class="section-header section-header--ruled"><h2 class="section-title">Form</h2></div>
+        <div class="prop-cards">
+          @foreach (var option in waterForms)
+          {
+            <button class="prop-card @(Text(PropFields.Form, PropFields.CanalForm) == option.Key ? "prop-card--active" : null)"
+                    title="@option.Label" @onclick="() => Pick(PropFields.Form, option)">
+              <span class="prop-card-art">@((MarkupString)option.Svg)</span>
+              <span class="prop-card-label">@option.Label</span>
+            </button>
+          }
+        </div>
+        <div class="section-header section-header--ruled"><h2 class="section-title">Bed</h2></div>
+        <p class="section-desc">The floor the shallows show through.</p>
+        <Field Label="Bed block">
+          <BlockPicker Blocks="blocks" Id="(int)Num(PropFields.BedId, 12)" Data="(int)Num(PropFields.BedData, 0)"
+                       OnPick="v => SetBed(v.Id, v.Data)" />
+        </Field>
+      }
       else if (kind == PropKinds.Flora)
       {
         <Field Label="Coverage"><LabelEnd><strong>@($"{Spec(SpecFields.Coverage, 0.45) * 100:0}%")</strong></LabelEnd>

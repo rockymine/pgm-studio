@@ -53,6 +53,7 @@ public partial class SketchDressingList
             "tree" => new Row(id, "trees", Species(prop), Cell(prop)),
             "boulder" => new Row(id, "mountain", $"{Field(prop, "form", "round")} boulder", Cell(prop)),
             "path" => new Row(id, "spline", $"{Field(prop, "style", "solid")} path", Span(prop)),
+            "water" => new Row(id, "droplet", $"{Field(prop, "form", "canal")} channel", Span(prop)),
             "flora" => new Row(id, "flower", "ground cover", Span(prop)),
             _ => new Row(id, "shapes", kind, ""),
         };

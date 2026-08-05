@@ -26,6 +26,9 @@ function drag(tools, tool, points) {
 test("a fresh prop of each kind starts at the same numbers the server does", () => {
   assert.equal(defaultProp("path").radius, 3);
   assert.equal(defaultProp("path").style, "solid");
+  // Water is drawn like a path but cuts a bed and fills it: a plain canal is what the other forms vary on.
+  assert.equal(defaultProp("water").form, "canal");
+  assert.equal(defaultProp("water").depth, 2);
   // A tree starts vanilla — the two forms are two trees, and the vanilla one is what a map is mostly made of.
   assert.equal(defaultProp("tree").form, "template");
   assert.equal(defaultProp("tree").species, "oak");
@@ -83,6 +86,17 @@ test("a drag places one route, and releasing is what ends it", () => {
   assert.ok(doc.props[0].points.length >= 2);
   assert.deepEqual(doc.props[0].points[0], [0, 0]);
   assert.deepEqual(doc.props[0].points.at(-1), [20, 8]);
+});
+
+test("a water channel is dragged as an open line, the same way a path is", () => {
+  // Water shares the path's press-trace-release: an open route kept in draw order, not a closed ring.
+  const { doc, tools } = controller();
+  drag(tools, "dress:water", [[0, 0], [6, 3], [12, 2], [20, 6]]);
+  assert.equal(doc.props.length, 1);
+  assert.equal(doc.props[0].kind, "water");
+  assert.ok(doc.props[0].points.length >= 2);
+  assert.deepEqual(doc.props[0].points[0], [0, 0]);
+  assert.deepEqual(doc.props[0].points.at(-1), [20, 6]);
 });
 
 test("a route keeps its direction; an area is simplified as an outline", () => {

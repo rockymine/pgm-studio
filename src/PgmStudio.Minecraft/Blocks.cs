@@ -12,6 +12,8 @@ public static class Blocks
     public const int Dirt = 3;
     public const int Cobblestone = 4;
     public const int Bedrock = 7;
+    public const int Water = 8;              // flowing; a filled channel bed is stationary water
+    public const int StationaryWater = 9;
     public const int Sand = 12;
     public const int Gravel = 13;
     public const int Sandstone = 24;

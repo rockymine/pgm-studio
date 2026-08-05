@@ -39,6 +39,9 @@ public sealed class TerrainLibraryClient(HttpClient http)
     public async Task<IReadOnlyList<PropOptionDto>> BoulderFormsAsync()
         => await GetOrDefault<List<PropOptionDto>>("api/terrain/boulder-forms") ?? [];
 
+    public async Task<IReadOnlyList<PropOptionDto>> WaterFormsAsync()
+        => await GetOrDefault<List<PropOptionDto>>("api/terrain/water-forms") ?? [];
+
     public async Task<IReadOnlyList<PropOptionDto>> SpeciesAsync()
         => await GetOrDefault<List<PropOptionDto>>("api/terrain/species") ?? [];
 

@@ -2668,9 +2668,23 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   path's own blocks), stepping stones (discs along the arc, with gaps) and tapered. `Geom.PathStroke` is the
   six gates on one distance field; `Geom.PathBand` is the outline the canvas strokes, twinned in
   `geometry/path.js` and pinned to the C# side by a parity test that checks the lattice hash bit for bit.
-- **Every picker is drawn by the pass.** The six path styles, the four rock forms and every species are
-  rendered at card size by the real algorithm over the map's own finish (`/api/terrain/path-styles`,
-  `/boulder-forms`, `/species`) — a dropdown of six words cannot say what separates a worn path from stepping
+- **Water channels — the one prop that takes the ground away (DR-WA, G169).** A channel is drawn like a path
+  — a dragged centerline and a width, the same swept-disc band — but water cannot drape on a surface (laid flat
+  it reads as blue paint), so it **cuts a bed and fills it**: a shallow U deepest on the centerline and one
+  block at the shore, filled to a single **water line** (the lowest surface the channel crosses, so the fill
+  never floats above ground it did not cut), a sandy bed floor showing through the shallows, and any bank above
+  the line cut back to air so the channel runs open. It **only ever replaces existing terrain** — the carve
+  stops at each column's old surface and skips a column the surface map does not carry, so a channel keeps a
+  hollow it crosses and leaves any stamp (a monument's wool) alone. Three forms — **canal** (uniform), **natural**
+  (FBM-wandered width), **stream** (narrows and shallows into riffles at its ends) — and like every prop it is
+  fanned across the symmetry orbit, so both teams get the same water from the same side. `Geom.WaterBed` is the
+  bed profile (depth per cell, reusing `PathBand`/`Polyline`); `Decorator.PlaceWater` is the carve-and-fill;
+  the form picker is drawn by the pass (`/api/terrain/water-forms`). The richer reads and ponds stay open under
+  G169 (`docs/world-export/decoration.md` §7).
+- **Every picker is drawn by the pass.** The six path styles, the three channel forms, the four rock forms and
+  every species are rendered at card size by the real algorithm over the map's own finish
+  (`/api/terrain/path-styles`, `/water-forms`, `/boulder-forms`, `/species`) — a dropdown of six words cannot
+  say what separates a worn path from stepping
   stones, and a hand-drawn icon can promise a look the export does not produce. A species card carries its
   proportions too, so picking "spruce" takes a spruce's shape and the client keeps no second copy of the
   species table. The inspector's own picture is the same thing at full size: `DressingPreview` **places** the

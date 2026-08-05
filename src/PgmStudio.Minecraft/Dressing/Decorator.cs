@@ -24,7 +24,7 @@ public sealed record DressingContext(
 
 /// <summary>What one pass placed, for a caller that wants to report or preview it rather than only write it.
 /// Counted as placed, images included — two mirrored boulders are two boulders.</summary>
-public readonly record struct DressingTally(int Plants, int Boulders, int Trees, int PathCells);
+public readonly record struct DressingTally(int Plants, int Boulders, int Trees, int PathCells, int WaterCells);
 
 /// <summary>
 /// The dressing pass: the third and last walk over a realized world (docs/world-export/decoration.md). The
@@ -55,12 +55,15 @@ public static class Decorator
     /// never opened the dressing phase exports byte-for-byte as it did before.</summary>
     public static DressingTally Decorate(VoxelWorld world, DressingContext context)
     {
-        // Order is what keeps the parts from growing through each other. Paths go first and become bare ground
-        // for everything after them — a route with a tree in the middle of it is not a route. Then the big
-        // props, each becoming an exclusion for the small ones, and cover last, into whatever is left.
+        // Order is what keeps the parts from growing through each other. Water goes first because it is the one
+        // prop that carves the ground — everything after it seats on what it leaves. Then paths, which become
+        // bare ground for the props above them (a route with a tree in the middle of it is not a route), then
+        // the big props, each an exclusion for the small ones, and cover last, into whatever is left.
         var taken = new HashSet<(int X, int Z)>();
         var tally = new DressingTally();
 
+        foreach (var prop in context.Props.OfType<WaterProp>())
+            tally = tally with { WaterCells = tally.WaterCells + PlaceWater(world, context, prop, taken) };
         foreach (var prop in context.Props.OfType<PathProp>())
             tally = tally with { PathCells = tally.PathCells + PlacePath(world, context, prop, taken) };
         foreach (var prop in context.Props.OfType<BoulderProp>())
@@ -99,6 +102,61 @@ public static class Decorator
             world.SetBlock(x, top - 1, z, block.Id, block.Data);
             taken.Add((x, z));
             placed++;
+        }
+        return placed;
+    }
+
+    // ── water (DR-WA) ───────────────────────────────────────────────────────────
+    /// <summary>Cut a channel and fill it. Water is the one prop that changes the ground rather than standing on
+    /// it: laid flat it reads as blue paint, so it has to sit in a carved bed and fill to a level plane. The bed
+    /// is a bowl deepest on the centerline; the fill is one water line across the whole run.
+    ///
+    /// <para><b>Only existing terrain is ever touched.</b> The carve runs from just above the bed floor up to the
+    /// column's old surface and no higher, so nothing is written into what was already air — a channel dug across
+    /// a hollow keeps the hollow. The water line is the lowest surface the channel crosses, which is what keeps
+    /// the fill from floating above ground it did not cut: every column's surface is at or above the line, so
+    /// every block written sits at or below terrain that was there before.</para></summary>
+    private static int PlaceWater(VoxelWorld world, DressingContext context, WaterProp water, HashSet<(int X, int Z)> taken)
+    {
+        if (water.Points.Count < 2 || water.Radius <= 0 || water.Depth <= 0) return 0;
+        var bed = WaterBed.Cells(water.Points, water.Radius, water.Depth, water.Form, water.Seed).ToList();
+        if (bed.Count == 0) return 0;
+
+        var placed = 0;
+        for (var image = 0; image < context.Symmetry.Order; image++)
+        {
+            // First pass over this image's cells: keep the ones that land on carvable terrain, and find the
+            // lowest surface among them — that is the water line the whole channel fills to.
+            var cells = new List<(int X, int Z, int SurfaceSolid, int Depth)>(bed.Count);
+            var waterLevel = int.MaxValue;
+            foreach (var cell in bed)
+            {
+                var (x, z) = context.Symmetry.ImageCell(cell.X, cell.Z, image);
+                if (context.IsProtected(x, z)) continue;
+                if (!context.SurfaceTop.TryGetValue((x, z), out var top) || top < 2) continue;
+                var surfaceSolid = top - 1;
+                // Water no more takes a stamp's own block than a path does: the painter writes only terrain, so
+                // anything else on a surface belongs to something the map is played through.
+                if (DressingPalette.IsStamp(world.GetBlock(x, surfaceSolid, z).Id)) continue;
+
+                cells.Add((x, z, surfaceSolid, cell.Depth));
+                waterLevel = Math.Min(waterLevel, surfaceSolid);
+            }
+            if (cells.Count == 0) continue;
+
+            foreach (var (x, z, surfaceSolid, depth) in cells)
+            {
+                var bedFloor = Math.Max(0, waterLevel - depth);
+                // Take the material out and fill it: water up to the level line, air above it (a bank cut higher
+                // than the water stands open, not roofed over). The loop never rises past the old surface, so it
+                // only ever replaces terrain that was already there.
+                for (var y = bedFloor + 1; y <= surfaceSolid; y++)
+                    world.SetBlock(x, y, z, y <= waterLevel ? Blocks.StationaryWater : Blocks.Air);
+                // A sandy bed floor the shallows show through, laid where terrain already stood.
+                if (bedFloor >= 1) world.SetBlock(x, bedFloor, z, water.BedId, water.BedData);
+                taken.Add((x, z));
+                placed++;
+            }
         }
         return placed;
     }

@@ -8,8 +8,8 @@
  * deserializes, with the same `kind` discriminator, so there is no second model of a prop.
  */
 
-/** The four things that can be placed, in the order their tools sit on the toolbar. */
-export const PROP_KINDS = ["path", "flora", "tree", "boulder"];
+/** The things that can be placed, in the order their tools sit on the toolbar. */
+export const PROP_KINDS = ["path", "water", "flora", "tree", "boulder"];
 
 /** A fresh prop of each kind, before the author has touched a knob. The numbers mirror the C# record defaults,
  *  so a prop drawn on the canvas and one deserialized from an empty object are the same prop. */
@@ -20,6 +20,10 @@ export function defaultProp(kind, seed) {
       // Gravel, three blocks to a side, clean-edged: a plain route, which is the one every other style is a
       // variation on.
       return { ...base, points: [], radius: 3, style: "solid", coverage: 0.7, blocks: [{ id: 13, data: 0 }] };
+    case "water":
+      // A three-block-wide canal, cut two deep, over a sand bed: the plain channel every other form is a
+      // variation on. Numbers mirror the C# WaterProp defaults.
+      return { ...base, points: [], radius: 3, depth: 2, form: "canal", bedId: 12, bedData: 0 };
     case "flora":
       return { ...base, points: [], spec: { coverage: 0.45, scale: 12, octaves: 3, fernShare: 0.25, flowerShare: 0.18, flowerScale: 18, tallShare: 0 } };
     case "tree":

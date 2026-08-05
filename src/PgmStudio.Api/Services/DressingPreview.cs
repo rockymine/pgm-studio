@@ -65,7 +65,7 @@ public static class DressingPreview
         var section = SectionSvg(view, TopCourse(view), cell);
 
         return new DressingPreviewDto(plan, section,
-            new DressingCountsDto(tally.Plants, tally.Boulders, tally.Trees, tally.PathCells));
+            new DressingCountsDto(tally.Plants, tally.Boulders, tally.Trees, tally.PathCells, tally.WaterCells));
     }
 
     /// <summary>The six path styles at card size, each drawn by paving the same stroke — a picker showing
@@ -75,6 +75,15 @@ public static class DressingPreview
             Key: style.ToString().ToLowerInvariant(),
             Label: PathStyleLabels[style],
             Prop: (PlacedProp)(template with { Style = style, Points = CardStroke }),
+            Defaults: (string?)null))]);
+
+    /// <summary>The three channel forms at card size, each an actual dug channel seen from above — where its
+    /// banks run clean, wander or taper reads in the outline, which is what the picker is choosing between.</summary>
+    public static IReadOnlyList<PropOptionDto> WaterFormCards(WaterProp template, TerrainTheme theme, int cell = 3)
+        => PlanCards(theme, cell, [.. Enum.GetValues<ChannelForm>().Select(form => (
+            Key: form.ToString().ToLowerInvariant(),
+            Label: form.ToString(),
+            Prop: (PlacedProp)(template with { Form = form, Points = CardStroke }),
             Defaults: (string?)null))]);
 
     /// <summary>The four boulder forms at card size, each an actual rock.</summary>
@@ -193,6 +202,7 @@ public static class DressingPreview
         TreeProp tree => tree with { X = x, Z = z },
         BoulderProp boulder => boulder with { X = x, Z = z },
         PathProp path => path with { Points = Recentre(path.Points, x, z) },
+        WaterProp water => water with { Points = Recentre(water.Points, x, z) },
         FloraProp area => area with { Points = Recentre(area.Points, x, z) },
         _ => prop,
     };

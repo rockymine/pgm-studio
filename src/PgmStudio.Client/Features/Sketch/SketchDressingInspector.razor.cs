@@ -42,6 +42,7 @@ public partial class SketchDressingInspector
     private DressingPreviewDto? preview;
     private string previewedFor = "";
     private IReadOnlyList<PropOptionDto> pathStyles = [];
+    private IReadOnlyList<PropOptionDto> waterForms = [];
     private IReadOnlyList<PropOptionDto> boulderForms = [];
     private IReadOnlyList<PropOptionDto> species = [];
     private IReadOnlyList<PropOptionDto> woods = [];
@@ -113,8 +114,9 @@ public partial class SketchDressingInspector
     {
         // The block picker's offered list is the export's own palette, so a path and a rock cannot be paved
         // with something the painter has no colour for.
-        if (blocks.Count == 0 && kind is PropKinds.Path or PropKinds.Boulder) blocks = await Library.BlocksAsync();
+        if (blocks.Count == 0 && kind is PropKinds.Path or PropKinds.Boulder or PropKinds.Water) blocks = await Library.BlocksAsync();
         if (kind == PropKinds.Path && pathStyles.Count == 0) pathStyles = await Library.PathStylesAsync(BlockSpec());
+        if (kind == PropKinds.Water && waterForms.Count == 0) waterForms = await Library.WaterFormsAsync();
         if (kind == PropKinds.Boulder && boulderForms.Count == 0) boulderForms = await Library.BoulderFormsAsync();
         if (kind == PropKinds.Tree && species.Count == 0) species = await Library.SpeciesAsync();
         if (!editingSelection && prop is null) await LoadToolSettings();
@@ -263,6 +265,12 @@ public partial class SketchDressingInspector
         await Set(PropFields.BlockData, JsonValue.Create(data));
     }
 
+    private async Task SetBed(int id, int data)
+    {
+        await Set(PropFields.BedId, JsonValue.Create(id));
+        await Set(PropFields.BedData, JsonValue.Create(data));
+    }
+
     /// <summary>Apply an option — its key, plus whatever else the option implies. A species is a starting
     /// shape rather than only a pair of blocks, so picking "spruce" and keeping an oak's proportions would name
     /// a tree it is not; the card carries those proportions so the client keeps no second species table.</summary>
@@ -293,6 +301,7 @@ public partial class SketchDressingInspector
         new Dictionary<string, (string, string, string)>
         {
             [PropKinds.Path] = ("spline", "Path", "A route across the ground. It swaps the surface it crosses rather than building on it, and nothing grows on what it covers."),
+            [PropKinds.Water] = ("droplet", "Water", "A channel of water. It cuts a bed into the ground and fills it to a level line — the one prop that takes terrain away rather than standing on it. Only existing ground is cut, and it is mirrored across the map's symmetry."),
             [PropKinds.Flora] = ("flower", "Cover", "Grass, fern and flowers over the soil inside the area you drew. Masked by the paint beneath — nothing grows on a plaza's quartz."),
             [PropKinds.Tree] = ("trees", "Tree", "One tree, standing where you put it. Mirrored across the map's symmetry, so both teams get the same cover."),
             [PropKinds.Boulder] = ("mountain", "Boulder", "One rock, half-buried where you put it. Mirrored across the map's symmetry, so both teams get the same cover."),
@@ -319,6 +328,7 @@ public partial class SketchDressingInspector
 public static class PropKinds
 {
     public const string Path = "path";
+    public const string Water = "water";
     public const string Flora = "flora";
     public const string Tree = "tree";
     public const string Boulder = "boulder";
@@ -331,6 +341,9 @@ public static class PropFields
     public const string Style = "style";
     public const string Coverage = "coverage";
     public const string Blocks = "blocks";
+    public const string Depth = "depth";
+    public const string BedId = "bedId";
+    public const string BedData = "bedData";
     public const string Species = "species";
     public const string Height = "height";
     public const string Stems = "stems";
@@ -357,6 +370,7 @@ public static class PropFields
     public const string TemplateForm = "template";
     public const string GrownForm = "grown";
     public const string WornStyle = "worn";
+    public const string CanalForm = "canal";
 }
 
 /// <summary>The flora spec's fields — one level down from a prop, because the spec is the shared recipe the
@@ -375,6 +389,7 @@ public static class SpecFields
 public static class DressingTools
 {
     public const string Path = "dress:path";
+    public const string Water = "dress:water";
     public const string Flora = "dress:flora";
     public const string Tree = "dress:tree";
     public const string Boulder = "dress:boulder";
@@ -382,6 +397,7 @@ public static class DressingTools
     public static readonly (string Tool, string Kind, string Icon, string Title)[] All =
     [
         (Path, PropKinds.Path, "spline", "Path — drag a route; it paves the ground it crosses"),
+        (Water, PropKinds.Water, "droplet", "Water — drag a channel; it cuts a bed and fills it"),
         (Flora, PropKinds.Flora, "flower", "Ground cover — drag an area; grass and flowers grow inside it"),
         (Tree, PropKinds.Tree, "trees", "Tree — click to place one"),
         (Boulder, PropKinds.Boulder, "mountain", "Boulder — click to place one"),

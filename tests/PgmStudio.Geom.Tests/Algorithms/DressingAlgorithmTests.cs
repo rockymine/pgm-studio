@@ -275,4 +275,58 @@ public sealed class DressingAlgorithmTests
         var filled = inside.Count(p => TreeCrown.OwnerAt(one, p, 7) is not null);
         await Assert.That(filled / (double)inside.Count).IsGreaterThan(0.85);
     }
+
+    // ── the channel bed ────────────────────────────────────────────────────────────────────────────
+    private static readonly double[][] Straight = [[4, 20], [36, 20]];
+
+    [Test]
+    public async Task A_channel_bed_is_a_bowl_deepest_on_the_centerline()
+    {
+        // The whole reason water needs its own carve rather than the path's flat repaint: the fill has to sit
+        // in a U, so the deepest cut is on the line the author drew and it rises to a single block at the shore.
+        var cells = WaterBed.Cells(Straight, radius: 4, depth: 4, ChannelForm.Canal, seed: 5).ToList();
+        await Assert.That(cells).IsNotEmpty();
+
+        // Somewhere along the run, the centerline is cut to the full depth and the band's outermost cells to one.
+        var onLine = cells.Where(cell => cell.Z == 20).ToList();
+        await Assert.That(onLine.Max(cell => cell.Depth)).IsEqualTo(4);
+        await Assert.That(cells.Min(cell => cell.Depth)).IsEqualTo(1);
+
+        // At a fixed x the bed only ever shallows towards either bank — a bowl, never a wall.
+        foreach (var column in cells.GroupBy(cell => cell.X))
+        {
+            var ordered = column.OrderBy(cell => cell.Z).ToList();
+            var peak = ordered.Select(cell => cell.Depth).ToList().IndexOf(ordered.Max(cell => cell.Depth));
+            for (var i = 1; i <= peak; i++) await Assert.That(ordered[i].Depth).IsGreaterThanOrEqualTo(ordered[i - 1].Depth);
+            for (var i = peak + 1; i < ordered.Count; i++) await Assert.That(ordered[i].Depth).IsLessThanOrEqualTo(ordered[i - 1].Depth);
+        }
+    }
+
+    [Test]
+    public async Task A_deeper_channel_cuts_a_deeper_centerline()
+    {
+        int Centre(double depth)
+            => WaterBed.Cells(Straight, radius: 3, depth, ChannelForm.Canal, seed: 5).Where(cell => cell.Z == 20).Max(cell => cell.Depth);
+
+        await Assert.That(Centre(6)).IsGreaterThan(Centre(2));
+    }
+
+    [Test]
+    public async Task A_stream_shallows_towards_its_ends()
+    {
+        // A stream runs out into riffles, so its ends are cut shallower than its middle — where a canal of the
+        // same depth is still on the bottom.
+        var stream = WaterBed.Cells(Straight, radius: 3, depth: 5, ChannelForm.Stream, seed: 5).Where(cell => cell.Z == 20).ToList();
+        var middle = stream.Where(cell => Math.Abs(cell.X - 20) <= 1).Max(cell => cell.Depth);
+        var end = stream.Where(cell => cell.X <= 7).Max(cell => cell.Depth);
+        await Assert.That(end).IsLessThan(middle);
+    }
+
+    [Test]
+    public async Task The_same_channel_carves_the_same_bed()
+    {
+        var one = WaterBed.Cells(Straight, radius: 3, depth: 3, ChannelForm.Natural, seed: 5).ToList();
+        var two = WaterBed.Cells(Straight, radius: 3, depth: 3, ChannelForm.Natural, seed: 5).ToList();
+        await Assert.That(one).IsEquivalentTo(two);
+    }
 }

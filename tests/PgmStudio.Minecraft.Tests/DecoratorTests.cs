@@ -276,6 +276,85 @@ public sealed class DecoratorTests
         await Assert.That(overRoad).IsEmpty();
     }
 
+    // ── water carves and fills ─────────────────────────────────────────────────────────────────────
+    [Test]
+    public async Task A_channel_cuts_a_bed_and_fills_it_with_water()
+    {
+        // The distinction water is built on: a path repaints the surface, water takes the surface *out*. So the
+        // centerline is water down through several courses, over a bed floor — not a single repainted block.
+        var (world, top) = Plateau();
+        var tally = Decorator.Decorate(world, Context(top, [new WaterProp
+        {
+            Id = "w", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Seed = 5, BedId = Blocks.Sand,
+        }]));
+
+        await Assert.That(tally.WaterCells).IsGreaterThan(60);
+        await Assert.That(world.GetBlock(20, 7, 20).Id).IsEqualTo(Blocks.StationaryWater);   // the old surface, now water
+        await Assert.That(world.GetBlock(20, 6, 20).Id).IsEqualTo(Blocks.StationaryWater);   // cut deeper on the line
+        await Assert.That(world.GetBlock(20, 4, 20).Id).IsEqualTo(Blocks.Sand);              // a sand bed under it
+        await Assert.That(world.GetBlock(20, 7, 30).Id).IsEqualTo(Blocks.Grass);             // clear of the channel
+    }
+
+    [Test]
+    public async Task Water_replaces_only_existing_terrain_and_never_floats()
+    {
+        // The rule the tool has to keep: it lowers the ground and fills the hollow, but it writes nothing into
+        // what was already air. So there is no water above the old surface anywhere on the plateau.
+        var (world, top) = Plateau();
+        Decorator.Decorate(world, Context(top, [new WaterProp
+        {
+            Id = "w", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Seed = 5,
+        }]));
+
+        await Assert.That(Placed(world, top.Keys, 8, 40)).IsEmpty();   // nothing stands above the surface
+    }
+
+    [Test]
+    public async Task A_channel_over_a_void_leaves_the_void_alone()
+    {
+        // A column the surface map does not carry is a hole the terrain left, and water fills a bed cut into
+        // ground — not one hung across a gap. The cell is skipped rather than floored with water.
+        var (world, top) = Plateau();
+        top.Remove((20, 20));
+        Decorator.Decorate(world, Context(top, [new WaterProp
+        {
+            Id = "w", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Seed = 5,
+        }]));
+
+        for (var y = 0; y <= 20; y++)
+            await Assert.That(world.GetBlock(20, y, 20).Id).IsNotEqualTo(Blocks.StationaryWater);
+    }
+
+    [Test]
+    public async Task Water_does_not_eat_what_the_map_is_played_through()
+    {
+        // A monument's wool on a column the channel crosses. Water has no more claim on a stamp than a path does.
+        var (world, top) = Plateau();
+        world.SetBlock(20, 7, 20, Blocks.Wool, 14);
+
+        Decorator.Decorate(world, Context(top, [new WaterProp
+        {
+            Id = "w", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Seed = 5,
+        }]));
+
+        await Assert.That(world.GetBlock(20, 7, 20).Id).IsEqualTo(Blocks.Wool);
+    }
+
+    [Test]
+    public async Task A_channel_is_mirrored_as_a_whole_route_for_every_team()
+    {
+        var (world, top) = Plateau(80, from: -40);
+        var tally = Decorator.Decorate(world, Context(top, [new WaterProp
+        {
+            Id = "w", Points = [[6, 6], [20, 14], [30, 8]], Radius = 3, Depth = 3, Seed = 5,
+        }], symmetry: "rot_180"));
+
+        await Assert.That(tally.WaterCells).IsGreaterThan(80);
+        var wet = top.Keys.Where(cell => world.GetBlock(cell.X, 7, cell.Z).Id == Blocks.StationaryWater).ToHashSet();
+        var unmirrored = wet.Count(cell => !wet.Contains((-cell.X - 1, -cell.Z - 1)));
+        await Assert.That(unmirrored).IsEqualTo(0);
+    }
+
     // ── areas of cover ─────────────────────────────────────────────────────────────────────────────
     [Test]
     public async Task Cover_grows_inside_the_drawn_area_and_stops_at_its_edge()

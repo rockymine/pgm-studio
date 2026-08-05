@@ -125,6 +125,16 @@ public sealed class PathStyleCardsEndpoint : EndpointWithoutRequest<List<PropOpt
     }
 }
 
+/// <summary>GET /api/terrain/water-forms — the three channel forms, each an actual dug channel seen from above.</summary>
+public sealed class WaterFormCardsEndpoint : EndpointWithoutRequest<List<PropOptionDto>>
+{
+    public override void Configure() { Get("/terrain/water-forms"); AllowAnonymous(); }
+
+    public override Task HandleAsync(CancellationToken ct)
+        => Send.OkAsync([.. DressingPreview.WaterFormCards(
+            new WaterProp { Radius = 3, Depth = 2, Seed = 5 }, TerrainTheme.Default)], ct);
+}
+
 /// <summary>GET /api/terrain/boulder-forms — the four rock shapes, each an actual rock.</summary>
 public sealed class BoulderFormCardsEndpoint : EndpointWithoutRequest<List<PropOptionDto>>
 {

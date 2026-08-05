@@ -7,9 +7,9 @@ soil, a worn path dragged across it, boulders and trees seated on top. It is the
 theming work parked as G34: G157 carved out the terrain slice ("no new geometry, only materials"); this is
 the **prop-stamps** slice, and it is the opposite by construction — it exists to add geometry.
 
-**Four of the five tools ship (G161): paths, ground cover, boulders and trees.** Water (§7) is the exception
-and is still a proposal — its carved bed is an elevation change, which is the one thing the rest of the stage
-does not do; it is filed as `G169`.
+**All five tools ship: paths, ground cover, boulders and trees (G161), and water channels (G169, §7).** Water
+is the one that changes the ground rather than standing on it — its carved bed is an elevation change the rest
+of the stage never makes — so only its richer reads and the closed pond form remain open under `G169`.
 
 **Dressing is placed, not sprinkled.** This is the stage's central decision and it took a rewrite to reach:
 the first cut authored *recipes* — named density fields assigned to shapes, the way a terrain theme is — and
@@ -251,35 +251,38 @@ A grove is therefore a handful of trees an author placed rather than a density f
 intended trade: a forest that clumps by itself is quicker to get and impossible to aim, and a treeline
 across a lane is exactly the thing worth aiming.
 
-## 7. Water — ponds and channels (`DR-WA`, unbuilt: `G169`)
-
-Nothing in this section exists yet. It is here because water is the fifth tool the stage is aimed at and its
-shape is already decided; it waits on the elevation pass, since it is the one decoration that changes the
-ground rather than standing on it.
+## 7. Water — channels (`DR-WA`)
 
 A channel begins exactly where the §4 path does — a dragged centerline and a radius, the same swept-disc
-band. What makes water its own tool is that it **cannot drape on the surface** the way gravel can: laid on
-a slope it reads as blue paint. Water has to sit in a **carved bed** and fill to a **level plane**. So a
-channel lowers `SurfaceTop` in its footprint to a bed (a shallow U-profile — deepest at the centerline,
-rising to the banks), and fills water from the bed up to one water height across the whole run; a pond is
-the closed version — an organic **basin**, the §5 boulder blob read concave, its outline wandered by the
-same FBM the rough path uses. This carve-and-level step is the one piece of decoration that changes
-elevation, so it belongs with the **G32-C** elevation pass as much as with this stage: the bed is negative
-terrain, and the water surface is a fixed-Y plane, not a draped follow of the ground.
+band (`Geom.WaterBed` reuses `PathBand.Centerline` and `Polyline`'s distance field). What makes water its own
+tool is that it **cannot drape on the surface** the way gravel can: laid on a slope it reads as blue paint.
+Water has to sit in a **carved bed** and fill to a **level plane**, so water is the one prop that takes the
+ground *out* rather than standing on it.
 
-The rest is the read that makes water look like water, and the details are where a channel stops looking
-stamped. **Depth** shades the fill — shallow and light at the edge, dark toward the middle — but the falloff
-is a smooth low-frequency field warped **off-centre**, so one bank runs deeper than the other and the bed is
-never a clean symmetric bowl. The **shoreline** is its own **irregular pass**, not a fixed-width ring: its
-width wanders with a noise field and drops to **zero** in places, so the water meets the land directly with
-no border in some stretches and spreads into a wide flat in others. The shore and the bed read as a
-**pattern**, not one flat block — jittered-voronoi patches of sand, pale gravel and coarse dirt (the terrain
-`VoronoiMaterial` idea reused) — and the bottom pattern shows through the shallows. **Edge life** reuses the
-§3 flora overlay masked to the bank and surface: reeds scattered on the shore, lily pads on the still, deep
-water (blue-noise, sparse). Channels take a **form** — a clean-banked canal, a natural FBM-wandered edge, or
-a stream that narrows and shallows into riffles — and ponds and channels compose into one watershed on a
-single water level: basins joined by a watercourse, banked and planted throughout. Placement of standalone
-ponds is the §5 scatter aimed at low ground, with the plan's protected regions as exclusions.
+The carve is a shallow U — deepest on the centerline, rising to a single block at the band's edge — so the
+fill sits in a bowl rather than a walled trench. `WaterBed` yields a depth per cell from that parabolic law;
+the dressing pass (`Decorator.PlaceWater`) turns each depth into a cut against the surface the cell actually
+crosses. The fill is one **water line** for the whole run: the lowest surface the channel crosses. That level
+is what keeps the water from floating — every column's surface is at or above it, so the pass fills from just
+above the bed floor up to the line with stationary water and cuts any bank *above* the line back to air,
+leaving the channel open. A **sandy bed floor** is laid under the water, so the shallows read as shallow. The
+carve **only ever touches existing terrain**: it never rises past a column's old surface and skips any column
+the surface map does not carry, so a channel dug across a hollow keeps the hollow and one dug over a stamp
+leaves the stamp — the same exclusion a path respects. Like every prop, a channel is **fanned across the
+symmetry orbit**, so both teams get the same water from the same side.
+
+Channels take a **form** — a clean-banked **canal** (uniform width), a **natural** edge (the width wandered by
+the same FBM the rough path uses), or a **stream** that narrows and shallows towards its ends into riffles.
+The carve leans toward the **G32-C** elevation pass rather than depending on it: the bed is negative terrain
+laid straight into the realized world, so a channel works on the flat layouts the sketch tool builds today and
+will read as a cut valley once that pass gives a layout its heights.
+
+**Still to come (`G169`).** The reads that take a channel from "a filled cut" to "water that looks like
+water," and the closed form: **depth shading** warped off-centre so one bank runs deeper than the other; an
+**irregular shoreline** whose width wanders to zero in places; a **voronoi-patterned** bed and shore (sand,
+pale gravel, coarse dirt) showing through the shallows; **edge life** reusing the §3 flora overlay masked to
+the bank (reeds, lily pads); and **ponds** — the closed version, an organic basin (the §5 boulder blob read
+concave), scattered onto low ground and joined to channels into one watershed on a single water level.
 
 ## 8. What it reuses, and what it adds
 
@@ -292,12 +295,13 @@ and lands in the same realize seam.
 | Paths | `CatmullRom`; `Ribbon`; `Polyline`'s distance field; the lasso's own press-trace-release | `PathStroke`'s six gates; `PathBand` + its `geometry/path.js` twin for the drawn outline | `DR-PA` |
 | Boulders | `SurfaceTop`; the squared-distance masks the objective stampers fill by | `Blob`; `BoulderShapes` | `DR-SC` |
 | Trees | the boulder's seating; `CatmullRom` for the limb splines | `TreeSkeleton`; `TreeCrown`; `SweptVolume`; the species rows | `DR-TR` |
-| Water | the §4 path stroke (channels); the §5 boulder blob + FBM edge (ponds); the §3 flora overlay (reeds) | the carve-and-level bed (with G32-C); depth shading; the shoreline band | `DR-WA` |
+| Water | the §4 path stroke's band (channels); the §5 boulder blob + FBM edge (ponds); the §3 flora overlay (reeds) | `WaterBed` + `Decorator.PlaceWater` — the carve-and-level bed (shipped); depth shading, the shoreline band, ponds (G169) | `DR-WA` |
 
 Two neighbours bound the stage. G32-C (structures & elevation, the "second generator") is the sibling pass
 that gives a flat layout its heights; a boulder or tree seats on whatever surface that pass leaves, so the
-two compose but do not depend on each other — except water, whose carved bed **is** an elevation change and
-so leans on G32-C directly. G142 (the roughen pass) shares this stage's architecture —
+two compose but do not depend on each other — and water, whose carved bed **is** an elevation change, cuts
+its bed straight into the realized world, so it works on today's flat layouts and simply reads as a cut valley
+once G32-C gives a layout its heights. G142 (the roughen pass) shares this stage's architecture —
 last in realize, over the authored unit, symmetry re-fanned — and its edge-displacement operator is the
 path's rough edge; if both land, they share the noise operators rather than duplicating them.
 
@@ -327,7 +331,8 @@ there:
 - `TreeTemplate` and `CanopyProfiles` — the other tree: a trunk under a canopy whose profile is a radius per
   course. It is a sibling of the grower rather than a mode of it, because the two build different shapes.
 - `PathStroke` — which cells a stroke paves, one gate per style; `PathBand` — the outline the canvas draws
-  it as, and the one C# side of the `geometry/path.js` parity pair.
+  it as, and the one C# side of the `geometry/path.js` parity pair; `WaterBed` — the same swept-disc band read
+  as a carve, a bed depth per cell (deepest on the line, one at the shore) for the three channel forms.
 - `OrbitScatter` — which cell of an orbit is its representative, the answer §2's fan is built on.
 - `BlueNoise` — even, non-touching scatter sites. Nothing in the shipped stage places by it any more, since
   everything is placed by hand; it stays for the auto-placement ideas of `ideas.md`, which will want it.
@@ -335,7 +340,7 @@ there:
 **`PgmStudio.Minecraft/Dressing` — the world-writing pass.** `Decorator`, sibling to `ObjectiveStamper` and
 `TerrainPainter`: it takes a `DressingContext` (the surface, the placed props, the protected set, the
 symmetry) and writes blocks via `SetBlock`. It reaches `Geom` for the algorithms and `DressingSymmetry` for
-the orbit fan. The props themselves (`PathProp`, `FloraProp`, `TreeProp`, `BoulderProp` under one
+the orbit fan. The props themselves (`PathProp`, `WaterProp`, `FloraProp`, `TreeProp`, `BoulderProp` under one
 `PlacedProp` discriminator) and the block palette live here beside `Blocks`/`BlockPalette`.
 
 **`PgmStudio.Api/Services` — reading + wiring.** `DressingScope` answers the three things the pass needs from
@@ -370,7 +375,7 @@ into it. A path was briefly a `SketchShape` and is not one: it places no terrain
 rasterizer meant the geometry model carried a kind that never contributed a cell.
 
 **`PgmStudio.Client` — the placing tools.** `dressing/dressing-doc.js` is the document (the same wire format,
-so there is no second model of a prop), `controllers/dressing-controller.js` the four tools, and
+so there is no second model of a prop), `controllers/dressing-controller.js` the five tools, and
 `render/dressing-render.js` how a placed prop and its mirror images look on the canvas. The inspector is
 Blazor and owns no state: it reads the bridge's pushed document and writes patches back.
 
