@@ -276,9 +276,10 @@ public static class SketchWorldBuilder
         return footprints;
     }
 
-    // A cube's roof sits at floorY + RoofLayer, so the floor must leave that much headroom below the world
-    // ceiling — clamp every structure floor here so an author-elevated island can't push a stamp past 255.
-    private const int MaxCubeFloor = VoxelWorld.MaxHeight - CubeStamper.RoofLayer - 1;
+    // A shell's roof sits at floorY + its style's top layer, so the floor must leave that much headroom below
+    // the world ceiling — clamp every structure floor here so an author-elevated island can't push a stamp
+    // past 255.
+    private static readonly int MaxCubeFloor = VoxelWorld.MaxHeight - RoomStyle.MaxTopLayer - 1;
     internal static int SafeFloor(int y) => Math.Clamp(y, 1, MaxCubeFloor);
 
     /// <summary>The floor a room shell rests on: the highest surface over the columns its footprint spans —

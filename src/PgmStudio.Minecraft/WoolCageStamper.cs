@@ -9,9 +9,9 @@ namespace PgmStudio.Minecraft;
 /// </summary>
 public static class WoolCageStamper
 {
-    public static void Stamp(VoxelWorld world, RoomFrame frame, int floorY, int color)
+    public static void Stamp(VoxelWorld world, RoomFrame frame, int floorY, int color, RoomStyle? style = null)
     {
-        CubeStamper.Stamp(world, frame, floorY, color, CubeKind.WoolCage);
+        CubeStamper.Stamp(world, frame, floorY, color, style ?? RoomStyle.Cage);
         WoolCageChests.Stamp(world, frame, floorY);
     }
 }

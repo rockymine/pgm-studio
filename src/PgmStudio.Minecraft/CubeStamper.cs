@@ -2,58 +2,89 @@ using PgmStudio.Domain;
 
 namespace PgmStudio.Minecraft;
 
-/// <summary>Which structure variant a room shell is — differs only in door material/height, the colour-strip
-/// material, and its contents (chests vs monuments, stamped separately).</summary>
-public enum CubeKind { WoolCage, SpawnCube }
-
 /// <summary>
-/// Stamps the hollow-bedrock room shell used by wool cages and spawn cubes, sized by its
-/// <see cref="RoomFrame"/> (docs/world-export/structures.md WX1–WX7; the shipped 10×10 piece yields the
-/// original 8×8 shell). Layers are floor-indexed (floor = 0, roof = 8): the floor is bedrock with the
-/// frame's wool <see cref="RoomPad"/>, walls are bedrock except a coloured strip at layer 4 (wool for
-/// cages, stained clay for spawns) and a missing course at layer 6 (light slit), and the roof is bedrock
-/// with a centred hole that follows the shell (capped at 4×4). Doors start at layer 1, cut where the
-/// frame's entry interfaces are: stained-glass panes 3 tall for a wool cage, open air 4 tall for a spawn.
+/// Stamps the room shell wool cages and spawn cubes share, sized by its <see cref="RoomFrame"/>
+/// (docs/world-export/structures.md WX1–WX7) and finished by its <see cref="RoomStyle"/>.
+///
+/// <para>The shell is three parts and two overrides. Floor, walls and roof are each a course stack the style
+/// supplies — which is what lets a band and a light slit be courses rather than hard-coded layer indices, and
+/// what makes a wool cage and a spawn cube two bound styles rather than a branch in here. Over them go the
+/// two things a style may not decide: the <b>pad</b>, because it is the exported wool/spawn point (WX5), and
+/// the <b>doorway</b>, because it is the entry contract (WX6/WX7).</para>
+///
+/// <para>A part's air course is a <em>gap left open</em> and is skipped rather than written, so a stack can
+/// never erase what a stamp already placed. A doorway's air is an <em>opening cut</em> and is written, which
+/// is what carves the door out of the wall this pass just built.</para>
 /// </summary>
 public static class CubeStamper
 {
-    public const int RoofLayer = 8;        // top course (bedrock + centre hole) — also the highest layer written
-    public const int SlitLayer = 6;        // missing course — the light slit
-    public const int StripLayer = 4;       // coloured strip (wool / stained clay)
-    public const int WoolDoorHeight = 3;   // stained-glass pane door, layers 1–3
-    public const int SpawnDoorHeight = 4;  // open-air door, layers 1–4
-
-    public static void Stamp(VoxelWorld world, RoomFrame frame, int floorY, int color, CubeKind kind)
+    public static void Stamp(VoxelWorld world, RoomFrame frame, int floorY, int color, RoomStyle style)
     {
+        var roofFrom = floorY + style.Wall.Extent + 1;
+        var eave = style.Eave == RoofEdge.Overlap ? 1 : 0;
+
         for (var x = frame.MinX; x < frame.MaxX; x++)
         for (var z = frame.MinZ; z < frame.MaxZ; z++)
         {
-            // Floor (layer 0): bedrock, with the frame's pad in wool.
-            var onPad = x >= frame.Pad.MinX && x < frame.Pad.MinX + frame.Pad.Size
-                && z >= frame.Pad.MinZ && z < frame.Pad.MinZ + frame.Pad.Size;
-            world.SetBlock(x, floorY, z, onPad ? Blocks.Wool : Blocks.Bedrock, onPad ? color : 0);
+            // Floor: downward from the course players stand on.
+            for (var step = 0; step < style.Floor.Extent; step++)
+                Write(world, style.Floor, step, x, floorY - step, z, color, frame);
 
-            // Roof (top layer): bedrock with the centred hole left as air.
-            if (!InRoofHole(frame, x, z)) world.SetBlock(x, floorY + RoofLayer, z, Blocks.Bedrock);
-
-            // Walls: perimeter cells only, layers 1..RoofLayer-1.
-            var onRing = x == frame.MinX || x == frame.MaxX - 1 || z == frame.MinZ || z == frame.MaxZ - 1;
-            if (!onRing) continue;
-            for (var layer = 1; layer < RoofLayer; layer++)
-            {
-                if (layer == SlitLayer) continue;   // light slit — no block
-                if (layer == StripLayer)
-                    world.SetBlock(x, floorY + layer, z, kind == CubeKind.WoolCage ? Blocks.Wool : Blocks.StainedClay, color);
-                else
-                    world.SetBlock(x, floorY + layer, z, Blocks.Bedrock);
-            }
+            // Walls: the perimeter ring only, upward from the floor.
+            if (x != frame.MinX && x != frame.MaxX - 1 && z != frame.MinZ && z != frame.MaxZ - 1) continue;
+            for (var step = 0; step < style.Wall.Extent; step++)
+                Write(world, style.Wall, step, x, floorY + 1 + step, z, color, frame);
         }
 
-        foreach (var door in frame.Doors)
-            StampDoor(world, frame, floorY, door,
-                kind == CubeKind.WoolCage ? Blocks.StainedGlassPane : Blocks.Air,
-                kind == CubeKind.WoolCage ? color : 0,
-                kind == CubeKind.WoolCage ? WoolDoorHeight : SpawnDoorHeight);
+        // Roof: the plane over the walls, reaching a block further out when the style overlaps.
+        for (var x = frame.MinX - eave; x < frame.MaxX + eave; x++)
+        for (var z = frame.MinZ - eave; z < frame.MaxZ + eave; z++)
+        {
+            if (style.RoofHole && InRoofHole(frame, x, z)) continue;
+            for (var step = 0; step < style.Roof.Extent; step++)
+                Write(world, style.Roof, step, x, roofFrom + step, z, color, frame);
+        }
+
+        StampPad(world, frame, floorY, color);
+        foreach (var door in frame.Doors) StampDoor(world, frame, floorY, door, style, color);
+    }
+
+    /// <summary>The pad: the wool square the room's point sits on (WX3/WX5), over whatever the floor style
+    /// laid. It is the one part of the floor a style cannot repaint — the exported location is derived from
+    /// it, so painting over it would stop the world and the XML agreeing.</summary>
+    private static void StampPad(VoxelWorld world, RoomFrame frame, int floorY, int color)
+    {
+        for (var x = frame.Pad.MinX; x < frame.Pad.MinX + frame.Pad.Size; x++)
+        for (var z = frame.Pad.MinZ; z < frame.Pad.MinZ + frame.Pad.Size; z++)
+            world.SetBlock(x, floorY, z, Blocks.Wool, color);
+    }
+
+    /// <summary>One cell of a part, resolved through its stack. Air is a gap: nothing is written, so the cell
+    /// keeps whatever was there — which above a shell's own footprint is air anyway, and below it is the
+    /// platform the room stands on.</summary>
+    private static void Write(
+        VoxelWorld world, RoomPart part, int step, int x, int y, int z, int color, RoomFrame frame)
+    {
+        if (y is < 1 or >= VoxelWorld.MaxHeight) return;
+        var (material, depth) = part.At(step);
+        // Fill is the neutral bucket: no material reads one, and a room part is not one of terrain's five.
+        var (id, data) = material.Resolve(
+            new BucketContext(x, y, z, TerrainBucket.Fill, depth, color, PerimeterArc(frame, x, z)));
+        if (id == Blocks.Air) return;
+        world.SetBlock(x, y, z, id, data);
+    }
+
+    /// <summary>How far round the shell's perimeter a cell sits, clockwise from its −x/−z corner, or −1 off
+    /// the ring. A room wall is a closed ring, so a wall-run pattern reads it exactly as it reads a plateau's
+    /// outer edge — one material stripes both.</summary>
+    private static int PerimeterArc(RoomFrame frame, int x, int z)
+    {
+        int width = frame.Width, depth = frame.Depth;
+        if (z == frame.MinZ) return x - frame.MinX;                                  // −z edge, corners included
+        if (x == frame.MaxX - 1) return width - 1 + (z - frame.MinZ);                // +x edge
+        if (z == frame.MaxZ - 1) return width + depth - 2 + (frame.MaxX - 1 - x);    // +z edge, back along x
+        if (x == frame.MinX) return 2 * width + depth - 3 + (frame.MaxZ - 1 - z);    // −x edge, back along z
+        return -1;
     }
 
     /// <summary>The roof hole's span over a shell <paramref name="shellSpan"/> wide: proportional (span − 4,
@@ -66,6 +97,8 @@ public static class CubeStamper
         return Math.Min(cap, Math.Max(shellSpan - 4, floor));
     }
 
+    /// <summary>The hole is centred and measured on the <b>shell</b>, never on the roof plane: it lights the
+    /// interior, and an overlapping roof grows symmetrically, so the centre is the same either way.</summary>
     private static bool InRoofHole(RoomFrame frame, int x, int z)
     {
         var holeW = RoofHoleSpan(frame.Width);
@@ -75,9 +108,11 @@ public static class CubeStamper
         return x >= holeMinX && x < holeMinX + holeW && z >= holeMinZ && z < holeMinZ + holeD;
     }
 
-    private static void StampDoor(VoxelWorld world, RoomFrame frame, int floorY, RoomDoor door, int id, int data, int height)
+    private static void StampDoor(
+        VoxelWorld world, RoomFrame frame, int floorY, RoomDoor door, RoomStyle style, int color)
     {
-        for (var layer = 1; layer <= height; layer++)
+        var choice = DoorMaterials.Of(style.Door);
+        for (var layer = 1; layer <= style.DoorHeight; layer++)
         for (var along = door.Lo; along < door.Lo + door.Width; along++)
         {
             var (x, z) = door.Edge switch
@@ -87,7 +122,7 @@ public static class CubeStamper
                 RoomEdge.NegX => (frame.MinX, along),
                 _ => (frame.MaxX - 1, along),
             };
-            world.SetBlock(x, floorY + layer, z, id, data);
+            world.SetBlock(x, floorY + layer, z, choice.BlockId, choice.Coloured ? color : 0);
         }
     }
 }

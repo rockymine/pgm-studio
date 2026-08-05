@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Pgm.Authoring;
 
 namespace PgmStudio.Pgm.Tests;
@@ -96,6 +97,28 @@ public sealed class WoolGeneratorTests
             await Assert.That(mats).Contains(m);
         // water is player-caused (an <all> of cause=player + the water materials)
         await Assert.That(f.Values.OfType<Dict>().Any(x => x.GetValueOrDefault("type") as string == "cause" && x.GetValueOrDefault("cause") as string == "player")).IsTrue();
+    }
+
+    [Test]
+    public async Task Every_door_a_room_can_be_stamped_with_is_one_the_filter_lets_an_attacker_break()
+    {
+        // The filter and the stamper read one table (Domain.DoorMaterials), and this is what that buys: a
+        // door choice the whitelist did not name would stamp a cage nobody can open, which nothing else in
+        // the pipeline would catch. Asserted against the vocabulary rather than a copy of the list, so adding
+        // a door without whitelisting it fails here.
+        var doc = Map();
+        WoolGenerator.Apply(doc, Intent());
+        var f = Filters(doc);
+
+        var whitelisted = f.Values.OfType<Dict>()
+            .Where(x => x.GetValueOrDefault("type") as string == "material")
+            .Select(x => x["material"] as string).ToList();
+
+        foreach (var choice in DoorMaterials.Breakable)
+        {
+            await Assert.That(whitelisted).Contains(choice.PgmMaterial);
+            await Assert.That(f.ContainsKey(choice.FilterId!)).IsTrue();
+        }
     }
 
     [Test]

@@ -38,8 +38,9 @@ public readonly record struct StructureBox(
 /// </summary>
 public static class PlanStructurePreview
 {
-    // A cube spans layer 0 (its floor) through CubeStamper.RoofLayer inclusive — hence the +1 to an exclusive top.
-    private const int CubeHeight = CubeStamper.RoofLayer + 1;
+    // A cube spans layer 0 (its floor) through its style's top layer inclusive — hence the +1 to an exclusive
+    // top. The shipped styles share a height; it becomes a per-room read once a map binds its own.
+    private static readonly int CubeHeight = RoomStyle.MaxTopLayer + 1;
 
     /// <summary>The structure boxes for <paramref name="plan"/>, or an empty list when it compiles to none.</summary>
     public static IReadOnlyList<StructureBox> Build(PlanModel plan)

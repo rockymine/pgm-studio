@@ -1,4 +1,4 @@
-# Adaptive structure stamping — footprints, pads, presets (G31)
+# Adaptive structure stamping — footprints, pads, styles (G31)
 
 This folder holds the contracts for the **realized world** — what the export writes into the Anvil
 world beyond raw terrain — the sibling of `docs/generator/` (which owns the layout) and
@@ -104,8 +104,8 @@ marker is never freely placeable.
   width: the wool cage's shipped 2-wide doors widen to 4 wherever the room affords it. The
   invariant behind the numbers: the door is always at least one block narrower than the interior on
   each side (width ≤ interior − 2), so the door-wall corner cells — where a spawn cube seats
-  monuments — are never exposed to the outside. Door *height* is untouched; room height stays out
-  of G31's scope entirely.
+  monuments — are never exposed to the outside. Door *height* and room height are the style's, not
+  the frame's — §7.
 
 ## 5. Iron and placeability
 
@@ -143,7 +143,7 @@ structure, and structures never fuse.
   resolver produces — the currency pairwise separation rules and the preview read —
   never a common stamper interface. `IronResolution` is that record's first instance.
 
-## 6. The code shape — frame, shell, furnishers, presets
+## 6. The code shape — frame, shell, furnishers, style
 
 The layering follows the destroyable/core precedent — one box function that the world build **and**
 the preview both call, so the stamped volume, the emitted region and the drawn box cannot disagree
@@ -156,19 +156,65 @@ the preview both call, so the stamped volume, the emitted region and the drawn b
    derivation — the preview cannot lie. The floor is the highest surface over the footprint
    (`SketchWorldBuilder.FrameFloor`), which is its own mirror, so orbit images rest level.
 2. **The shell template** — `CubeStamper` stamps the frame's footprint: floor + perimeter walls +
-   roof, the strip/slit/roof layers at fixed heights, the roof hole proportional with a cap
-   (`RoofHoleSpan` — the 8-wide shell keeps its 4×4 hole), doors cut per the frame.
+   roof, each a course stack its `RoomStyle` supplies (§7), the roof hole proportional with a cap
+   (`RoofHoleSpan` — the 8-wide shell keeps its 4×4 hole), then the pad and the doors stamped over
+   them.
 3. **The furnishers** — `RoomFrames.InteriorCorners` seats the chest stacks and
    `RoomFrames.MonumentSlots` the monuments (door-wall corners, back-wall corners, then the walls
    fill, skipping the door opening). A larger spawn room gains monument capacity from its longer
    walls with no new rules; the validator refuses a plan whose captured-wool count exceeds the
    seats.
-4. **The preset** — a named style choosing shell materials and decoration, **never the footprint**;
-   the footprint always comes from the piece, which is what makes every preset adaptive. Today's
-   bedrock-with-colour-strip shell is the one preset; further presets stay simple data rows on the
-   `DestroyableStyle` model — no schematic format. Theming and material palettes (G34) attach at
-   this seam.
+4. **The style** — `RoomStyle`, choosing shell materials and decoration, **never the footprint**; the
+   footprint always comes from the piece, which is what makes every style adaptive. §7 is the model.
 
-Out of scope for G31: height presets (taller shells — trivial later through the frame), and the
-destroyable/core stampers themselves — they already follow the style-as-data pattern and stay
-anchor-based on purpose, a point structure rather than a room.
+Out of scope for G31: the destroyable/core stampers themselves — they already follow the
+style-as-data pattern and stay anchor-based on purpose, a point structure rather than a room.
+
+## 7. The room style
+
+A shell is **three parts and two overrides**. Floor, walls and roof are each a `RoomPart`: a stack of
+`RoomCourse` (material + how many courses it runs) plus an `Extent` saying how far the part goes. Over
+them go the two things a style may not decide — the **pad**, because the exported wool/spawn location
+is derived from it (WX5), and the **doorway**, because it is the entry contract (WX6/WX7).
+
+A stack is read from its part's own base outward: a floor **downward** from the course players stand
+on, a wall and a roof **upward**. The direction is the load-bearing part of the model. A floor that
+grew upward would lift the pad and move the exported point; walls indexed from the floor are what keep
+a band at eye level and a slit near the top when the room's height changes, where the layer indices
+they replace would have slid.
+
+The **last course repeats** past the end of the stack, the rule `LayeredMaterial` already holds, so
+`Extent` moves without the stack being re-authored: a taller wall grows in whatever its top course is.
+That is what makes height a knob at all — §4's note that room height stays out of G31 is answered here
+rather than through the frame.
+
+Three fixed layers became ordinary courses, and that is the whole simplification. The coloured band
+was layer 4 and is now a `TeamTintedMaterial` course; the light slit was a skipped layer 6 and is now
+a course of air; and `CubeKind` — which existed to branch the band material, the door material and the
+door height — is gone, because a wool cage and a spawn cube are two bound styles rather than two code
+paths. The room's colour reaches a tinted course through `BucketContext.TeamData`, the tint channel, so
+one material paints the wool's colour in a cage and the team's in a spawn.
+
+**Air is a gap, not a block.** A part's air course is skipped rather than written, so no style can
+erase what another stamp already placed. A doorway's air *is* written — it cuts the opening out of the
+wall the same pass just built. The two are different operations and the code keeps them apart.
+
+The roof carries three knobs of its own beyond its stack. Its **thickness** is its extent. Its
+**hole** is optional — off is a sealed, unlit room, a real style worth choosing rather than getting by
+accident — and is measured and centred on the **shell**, never on the roof plane, because it lights the
+interior. And its **eave** is either flush with the walls or one block past them. The overlap needs no
+rule of its own: a shell is its piece inset by one block (WX1), so an eave lands exactly on the piece
+boundary, and under WX8 — where an iron cube pulls a shell edge back — it lands strictly inside it. The
+ring an eave covers is always the room's own.
+
+**The door is a closed set, and the reason is in the XML.** `Domain.DoorMaterials` names the four
+choices (air, cobweb, stained glass, stained-glass panes) and, for each, both the block the stamper
+places and the PGM material the wool-room block rule must whitelist. The wool room's `block` rule is a
+whitelist (`WoolGenerator`), so a door made of anything it does not name cannot be broken — the cage
+would be stamped with an entrance nobody can open, and nothing else in the pipeline would catch it. One
+row read by both sides is what prevents that; `Pgm` and `Minecraft` are siblings, so `Domain` is the
+lowest place both reach. A spawn's door is pinned to air whatever its style says: a player spawning in
+has to walk straight out, and the spawn protection rule already keeps enemies from walking in.
+
+What a style never touches: the **platform** under a room (`StampRoomFloor`'s bedrock column, ST1) and
+the **entrance redstone line** (ST1) belong to the plan-derived structures, not to a shell.

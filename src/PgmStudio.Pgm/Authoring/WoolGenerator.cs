@@ -1,5 +1,6 @@
 namespace PgmStudio.Pgm.Authoring;
 
+using PgmStudio.Domain;
 using PgmStudio.Pgm.Editing;
 using Dict = Dictionary<string, object?>;
 
@@ -26,8 +27,13 @@ public static class WoolGenerator
 
     // The synthetic leaf/compound filters that make up the shared woolrooms-filter (all start with "__" so
     // the serializer inlines them).
+    // The entrance ids come from the same table the filter is built from, so a door choice added there is
+    // cleared here too rather than left behind by a regenerate.
     private static readonly string[] WoolroomsSynthetics =
-        ["__wr-web", "__wr-glass", "__wr-pane", "__wr-wood", "__wr-clay", "__wr-water", "__wr-swater", "__wr-water-any", "__wr-cause-player", "__wr-water-all"];
+    [
+        .. DoorMaterials.Breakable.Select(choice => choice.FilterId!),
+        "__wr-wood", "__wr-clay", "__wr-water", "__wr-swater", "__wr-water-any", "__wr-cause-player", "__wr-water-all",
+    ];
 
     // wool block damage = dye id (1.8 metadata), keyed by the WoolEditor colour slug.
     private static readonly Dictionary<string, int> DyeDamage = new()
@@ -191,15 +197,24 @@ public static class WoolGenerator
     }
 
     // The shared whitelist of materials editable in any wool room: place the spawn-kit blocks (wood, the
-    // team-coloured clay) + water (player-caused), break the entrance decoration (cobweb, stained glass +
-    // panes). One <any> of synthetic leaves so the serializer inlines it.
+    // team-coloured clay) + water (player-caused), break the entrance decoration. One <any> of synthetic
+    // leaves so the serializer inlines it.
+    //
+    // The entrance leaves come from DoorMaterials rather than a list written out here, and that is the point
+    // of the table: a door made of something this filter does not name cannot be broken, so a cage would be
+    // stamped with an entrance nobody can open. One row, read by the stamper for its block and by this for
+    // its material, is what stops the two from ever disagreeing.
     private static void EnsureWoolroomsFilter(Dict doc)
     {
         if (DocAccess.Filters(doc).ContainsKey(WoolroomsFilter)) return;
         void Mat(string id, string material) => EnsureFilter(doc, id, new Dict { ["type"] = "material", ["material"] = material });
-        Mat("__wr-web", "web");
-        Mat("__wr-glass", "stained glass");
-        Mat("__wr-pane", "stained glass pane");
+
+        var entrance = new List<object?>();
+        foreach (var choice in DoorMaterials.Breakable)
+        {
+            Mat(choice.FilterId!, choice.PgmMaterial!);
+            entrance.Add(choice.FilterId);
+        }
         Mat("__wr-wood", "wood");
         Mat("__wr-clay", "stained clay");
         Mat("__wr-water", "water");
@@ -209,7 +224,8 @@ public static class WoolGenerator
         EnsureFilter(doc, "__wr-water-all", new Dict { ["type"] = "all", ["children"] = new List<object?> { "__wr-cause-player", "__wr-water-any" } });
         EnsureFilter(doc, WoolroomsFilter, new Dict
         {
-            ["type"] = "any", ["children"] = new List<object?> { "__wr-web", "__wr-glass", "__wr-pane", "__wr-wood", "__wr-clay", "__wr-water-all" },
+            ["type"] = "any",
+            ["children"] = new List<object?>(entrance) { "__wr-wood", "__wr-clay", "__wr-water-all" },
         });
     }
 

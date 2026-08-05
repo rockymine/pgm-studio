@@ -39,13 +39,17 @@ footprint, never embedded in or floating above it.
 
 ---
 
-## 2. Room shell template (shared hollow-bedrock shell)
+## 2. Room shell template (the shipped styles)
 
-Both the **wool cage** and the **spawn cube** are a hollow **bedrock** shell whose footprint comes from the
-room's resolved frame — its plan piece inset one block, or the 8×8 marker-anchored default
-(`docs/world-export/structures.md`, WX1: the shipped 10×10 piece yields the original 8×8 shell). Layers are
-numbered **from the floor** (floor = layer 0, roof = layer 8). The two variants differ **only** in door
-material/height and contents (chests vs monuments) — the colour-strip course is identical:
+Both the **wool cage** and the **spawn cube** are one shell whose footprint comes from the room's resolved
+frame — its plan piece inset one block, or the 8×8 marker-anchored default
+(`docs/world-export/structures.md`, WX1: the shipped 10×10 piece yields the original 8×8 shell) — finished by
+a `RoomStyle` (that file's §7: a course stack per part, plus the pad and doorway stamped over them). Layers
+are numbered **from the floor** (floor = layer 0, roof = layer 8).
+
+What follows is the two **shipped** styles, not a law about shells: a cage and a spawn differ only in their
+band material, their door and their contents (chests vs monuments), and everything below is one course stack
+away from being something else.
 
 | Layer (from floor) | Wool cage | Spawn cube |
 |---|---|---|
@@ -63,8 +67,11 @@ material/height and contents (chests vs monuments) — the colour-strip course i
 the 4-across minimum):
 - **Wool cage:** one door per **entry interface** (a land seam or an abutting build zone — WX6), **3 tall**
   (layers 1–3), made of **stained-glass panes (id 160) in the room's wool colour**. The marker-anchored
-  default cage keeps a door per wall.
-- **Spawn cube:** a **single door, 4 tall** (layers 1–4) on the yaw-derived wall, **open (air)** — no glass.
+  default cage keeps a door per wall. The material is one of the four `Domain.DoorMaterials` choices — air,
+  cobweb, stained glass, panes — and no more: the wool room's block rule is a whitelist, so a door it does
+  not name cannot be broken (`structures.md` §7).
+- **Spawn cube:** a **single door, 4 tall** (layers 1–4) on the yaw-derived wall, **open (air)** — pinned
+  there whatever the style says, since a player spawning in has to be able to walk straight out.
 
 Colour: the layer-4 strip + the 2×2 floor wool follow the **room colour** (wool cage: wool, **no stained clay**)
 / **team colour** (spawn cube: clay strip, wool floor). Dye slug → data nibble (0–15) via `BlockColors`

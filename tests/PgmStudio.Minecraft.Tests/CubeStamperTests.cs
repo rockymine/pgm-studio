@@ -22,7 +22,7 @@ public sealed class CubeStamperTests
     public async Task Wool_cage_shell_places_floor_roof_slit_strip_and_a_seam_door()
     {
         var w = new VoxelWorld();
-        CubeStamper.Stamp(w, Baseline(), floorY: 64, color: Red, CubeKind.WoolCage);
+        CubeStamper.Stamp(w, Baseline(), floorY: 64, color: Red, style: RoomStyle.Cage);
 
         // Floor (y=64): 2×2 wool pad at world {-1,0}×{-1,0}, bedrock elsewhere.
         await Assert.That(w.GetBlock(-1, 64, -1)).IsEqualTo((Blocks.Wool, Red));
@@ -52,7 +52,7 @@ public sealed class CubeStamperTests
     public async Task Spawn_cube_uses_clay_strip_and_a_single_open_air_door()
     {
         var w = new VoxelWorld();
-        CubeStamper.Stamp(w, Baseline(RoomEdge.NegZ), floorY: 64, color: Red, CubeKind.SpawnCube);
+        CubeStamper.Stamp(w, Baseline(RoomEdge.NegZ), floorY: 64, color: Red, style: RoomStyle.Spawn);
 
         // Colour strip is stained clay.
         await Assert.That(w.GetBlock(-4, 68, -1)).IsEqualTo((Blocks.StainedClay, Red));
@@ -72,7 +72,7 @@ public sealed class CubeStamperTests
         // A 9×9 piece with a cell-centre marker: shell [1,8) (span 7), interior 5 across.
         var frame = RoomFrames.Resolve(0, 0, 9, 9, 4.5, 4.5, [(0, 0, 9, 0)], null, out _)!;
         var w = new VoxelWorld();
-        CubeStamper.Stamp(w, frame, floorY: 64, color: Red, CubeKind.WoolCage);
+        CubeStamper.Stamp(w, frame, floorY: 64, color: Red, style: RoomStyle.Cage);
 
         // 3×3 pad centred on block 4 (cells 3..5).
         await Assert.That(w.GetBlock(3, 64, 3)).IsEqualTo((Blocks.Wool, Red));
@@ -95,7 +95,7 @@ public sealed class CubeStamperTests
         // The WX2 floor: an 8×8 piece → 6×6 shell, 4×4 interior → a 2-wide door.
         var frame = RoomFrames.Resolve(0, 0, 8, 8, 4, 4, [], RoomEdge.NegZ, out _)!;
         var w = new VoxelWorld();
-        CubeStamper.Stamp(w, frame, floorY: 64, color: Red, CubeKind.SpawnCube);
+        CubeStamper.Stamp(w, frame, floorY: 64, color: Red, style: RoomStyle.Spawn);
 
         // Door columns {3,4} at z=1 are open; the wall cells beside them are not.
         await Assert.That(w.GetBlock(3, 65, 1)).IsEqualTo((Blocks.Air, 0));

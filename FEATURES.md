@@ -2553,8 +2553,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   sections; gzipped `level.dat` with world spawn + a real creation timestamp), the mirror of the read-only
   `AnvilRegion`. Write→read round-trip tested. (P9a, P9b)
 - **World synthesis + stampers** — `SketchTerrainBuilder` (bedrock floor at y=0 + stone fill from the sketch
-  columns, reporting each column's surface top), the shared `CubeStamper` hollow-bedrock room shell (roof
-  hole, layer-6 light slit, layer-4 colour strip, floor wool pad, glass-pane / open doors), `WoolCageStamper`
+  columns, reporting each column's surface top), the shared `CubeStamper` room shell (floor · walls · roof,
+  then the pad and doorway over them), `WoolCageStamper`
   + `WoolCageChests` (two-chest corner loadout), `SpawnCubeStamper` (spawn cube + auto-wired monuments:
   bedrock pedestal · air cell · wool-colour glass cap · label sign, placed by captured-wool count),
   `ObserverPlatformStamper` (solid 6×6 platform + four inward info boards), plus `SignBuilder`/`ChestBuilder`
@@ -2578,6 +2578,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   footprints; an unfittable marker resolves **unplaceable** (WX9) — the room stamps alone, the preview
   draws nothing for it, and the WX8 lint flags the marker with the clearance requirement. Placeability is
   the general contract the objective-separation rules reuse (B37). (G31, WX1–WX9)
+- **Room styles — the shell is a course stack, the piece is still the footprint.** `RoomStyle`
+  (`docs/world-export/structures.md` §7) finishes a shell without touching its geometry: floor, walls and
+  roof are each a `RoomPart` — a stack of `RoomCourse` materials plus how far the part runs, read from the
+  part's own base outward (a floor **downward** so the pad and its exported point never move, walls and roof
+  upward) with the last course repeating, so height, floor depth and roof thickness are knobs rather than
+  fixed layer indices. The band and the light slit became ordinary courses (a `TeamTintedMaterial` one and an
+  air one), which retired `CubeKind`: a wool cage and a spawn cube are two bound styles, not two code paths.
+  A part's air course is a **gap** (skipped, so no style can erase another stamp) while a doorway's air is an
+  **opening** (written, cutting the door out of the wall). The roof adds a thickness, an optional centred hole
+  measured on the shell, and a flush-or-overlapping **eave** — free of any new rule, since a shell is its
+  piece inset one block (WX1) so an eave lands exactly on the piece boundary. Doors are the closed
+  `Domain.DoorMaterials` set (air · cobweb · stained glass · panes), one row read by the stamper for its block
+  **and** by `WoolGenerator` for the PGM material its block whitelist must name — a door the filter does not
+  name would seal the cage. A spawn's door is pinned to air. The shipped styles rebuild the shipped shell
+  block for block, held by a golden over the whole volume. (G34a)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds

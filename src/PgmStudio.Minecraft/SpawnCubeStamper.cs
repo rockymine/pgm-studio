@@ -18,9 +18,13 @@ public sealed record PlacedMonument(string WoolSlug, int X, int Y, int Z);
 public static class SpawnCubeStamper
 {
     public static IReadOnlyList<PlacedMonument> Stamp(
-        VoxelWorld world, RoomFrame frame, int floorY, int teamColor, IReadOnlyList<string> capturedWools)
+        VoxelWorld world, RoomFrame frame, int floorY, int teamColor, IReadOnlyList<string> capturedWools,
+        RoomStyle? style = null)
     {
-        CubeStamper.Stamp(world, frame, floorY, teamColor, CubeKind.SpawnCube);
+        // A spawn's doorway is always open, whatever the bound style says: a player spawning in has to be able
+        // to walk straight out, and the spawn protection rule already keeps enemies from walking in.
+        CubeStamper.Stamp(world, frame, floorY, teamColor,
+            (style ?? RoomStyle.Spawn) with { Door = DoorMaterial.Air });
 
         var slots = RoomFrames.MonumentSlots(frame, frame.Doors[0]);
         var placed = new List<PlacedMonument>();
