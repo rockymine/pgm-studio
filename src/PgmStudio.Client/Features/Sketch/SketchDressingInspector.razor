@@ -88,6 +88,11 @@
           <ChildContent><input type="range" class="field-range" min="0" max="8" step="1"
                  value="@((int)Num(PropFields.Shore, 2))"
                  @oninput="e => Set(PropFields.Shore, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
+        <Field Label="Bank roughness"><LabelHint>how far a natural or stream edge wanders; a canal ignores it</LabelHint>
+          <LabelEnd><strong>@($"{Num(PropFields.Edge, 0.8):0.0}")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="25" step="1"
+                 value="@((int)(Num(PropFields.Edge, 0.8) * 10))"
+                 @oninput="e => Set(PropFields.Edge, JsonValue.Create(Whole(e) / 10.0))" /></ChildContent></Field>
         <div class="section-header section-header--ruled"><h2 class="section-title">Form</h2></div>
         <div class="prop-cards">
           @foreach (var option in waterForms)

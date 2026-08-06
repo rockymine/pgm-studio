@@ -119,9 +119,9 @@ public static class Decorator
     private static int PlaceWater(VoxelWorld world, DressingContext context, WaterProp water, HashSet<(int X, int Z)> taken)
     {
         if (water.Points.Count < 2 || water.Radius <= 0 || water.Depth <= 0) return 0;
-        var bed = WaterBed.Cells(water.Points, water.Radius, water.Depth, water.Form, water.Seed).ToList();
+        var bed = WaterBed.Cells(water.Points, water.Radius, water.Depth, water.Form, water.Edge, water.Seed).ToList();
         if (bed.Count == 0) return 0;
-        var shore = WaterBed.ShoreCells(water.Points, water.Radius, water.Form, water.Shore, water.Seed).ToList();
+        var shore = WaterBed.ShoreCells(water.Points, water.Radius, water.Form, water.Shore, water.Edge, water.Seed).ToList();
 
         // The bank is a full terrain material, so the bed floor and the beach are a voronoi patchwork or any
         // pattern the painter offers, resolved cell by cell exactly as the painter resolves a surface.

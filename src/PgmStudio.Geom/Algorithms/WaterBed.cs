@@ -9,8 +9,9 @@ public enum ChannelForm
     Canal,
     /// <summary>The band with its width wandered by a noise field, so the shoreline is organic, not ruled.</summary>
     Natural,
-    /// <summary>The band narrowing and shallowing towards its two ends — a watercourse that runs out into
-    /// riffles rather than stopping square.</summary>
+    /// <summary>A watercourse that beads along its length — the width pinches and swells on a fixed beat down the
+    /// arc (never wider than the nominal, pinching to half it), and the water runs shallower throughout, so it
+    /// reads as a stream running out into a string of riffles rather than one even channel.</summary>
     Stream,
 }
 
@@ -31,33 +32,36 @@ public readonly record struct WaterCell(int X, int Z, int Depth);
 /// </summary>
 public static class WaterBed
 {
-    private const double NaturalSwing = 0.4;   // how much of the width a natural edge may gain or lose
-    private const int NaturalScale = 7;        // blocks per wander of a natural edge
-    private const double StreamEnds = 0.4;     // what is left of the width and depth where a stream runs out
+    // These are the decoration prototype's own channel constants (tools/decorate/prototype.html §5). Parity with
+    // it is the contract: the width and shore laws below are its `drawChannel`/`shoreWidth`, so the bed and beach
+    // the export cuts are the ones the prototype draws.
+    private const double StreamBeat = 0.42;    // radians of the width sine per block of arc — a pinch every ~π/beat ≈ 7.5 blocks
+    private const double StreamDepth = 0.6;    // a stream runs this much of a canal's depth throughout
+    private const int WidthNoiseScale = 5;     // blocks per wander of the natural/stream edge wobble
     private const int ShoreScale = 6;          // blocks per wander of the shore's own width field
 
     /// <summary>The cells the channel through <paramref name="points"/> carves, each with the depth its bed is
-    /// cut to below the water line. <paramref name="radius"/> is the nominal half-width and
-    /// <paramref name="depth"/> the deepest cut, on the centerline.</summary>
+    /// cut to below the water line. <paramref name="radius"/> is the nominal half-width, <paramref name="depth"/>
+    /// the deepest cut on the centerline, and <paramref name="edge"/> the amplitude of the width wobble a natural
+    /// or stream form carries (in blocks).</summary>
     public static IEnumerable<WaterCell> Cells(
-        IReadOnlyList<double[]> points, double radius, double depth, ChannelForm form, uint seed)
+        IReadOnlyList<double[]> points, double radius, double depth, ChannelForm form, double edge, uint seed)
     {
         var centerline = PathBand.Centerline(points);
         if (centerline.Count < 2 || radius <= 0 || depth <= 0) yield break;
 
-        var reach = (int cx, int cz, PathHit hit) => WidthAt(form, radius, cx, cz, hit, seed);
-        foreach (var (x, z, hit) in Polyline.Hits(centerline, radius, reach))
+        var reach = (int cx, int cz, PathHit hit) => WidthAt(form, radius, edge, cx, cz, hit, seed);
+        foreach (var (x, z, hit) in Polyline.Hits(centerline, radius + Math.Max(0, edge) + 1, reach))
         {
-            var here = WidthAt(form, radius, x, z, hit, seed);
-            if (here <= 0) continue;
+            var here = WidthAt(form, radius, edge, x, z, hit, seed);
+            if (here <= 0 || hit.Distance > here) continue;
 
             // How far this cell sits from the centerline, as a fraction of the local half-width: 0 on the line,
-            // 1 at the shore. The bowl is deepest at 0 and one block deep at 1.
+            // 1 at the shore. The bowl is deepest at 0 and one block deep at 1 — the prototype's cross-section.
             var offset = Math.Clamp(hit.Distance / here, 0, 1);
             var bowl = 1 - offset * offset;
-            // A stream shallows towards its ends as well as narrowing, so its riffles are ankle-deep where a
-            // canal of the same depth would still be cut to the bottom.
-            var run = form == ChannelForm.Stream ? StreamEnds + (1 - StreamEnds) * Math.Sin(Math.PI * hit.Along) : 1.0;
+            // A stream runs shallow throughout, not just at its ends — its whole length is a riffle.
+            var run = form == ChannelForm.Stream ? StreamDepth : 1.0;
 
             var cellDepth = (int)Math.Round(1 + (depth - 1) * bowl * run);
             yield return new WaterCell(x, z, Math.Max(1, cellDepth));
@@ -69,46 +73,43 @@ public static class WaterBed
     /// directly in some stretches and spreads into a flat in others. The bank material is laid on these cells'
     /// surface; the water never reaches them, so they carry no depth.
     ///
-    /// <para>How wide the beach runs is the channel's own read: a <see cref="ChannelForm.Canal"/> keeps a narrow,
-    /// even bank, a <see cref="ChannelForm.Stream"/> spreads into wide flats, and a <see cref="ChannelForm.Natural"/>
-    /// wanders between — the same distinction the water width already draws, carried out onto the land.</para></summary>
+    /// <para>The shore width is one law for every form — the difference in how a beach reads between a canal and a
+    /// stream comes not from the shore but from the <em>water</em>: the shore rides just outside the water edge, so
+    /// where a stream's width pinches and swells the beach pinches and swells with it.</para></summary>
     public static IEnumerable<(int X, int Z)> ShoreCells(
-        IReadOnlyList<double[]> points, double radius, ChannelForm form, double shoreWidth, uint seed)
+        IReadOnlyList<double[]> points, double radius, ChannelForm form, double shoreWidth, double edge, uint seed)
     {
         if (shoreWidth <= 0) yield break;
         var centerline = PathBand.Centerline(points);
         if (centerline.Count < 2 || radius <= 0) yield break;
 
-        var scan = radius * 1.5 + shoreWidth * 2 + 1;
-        var reach = (int cx, int cz, PathHit hit) => WidthAt(form, radius, cx, cz, hit, seed) + ShoreAt(form, shoreWidth, cx, cz, seed);
+        var scan = radius + Math.Max(0, edge) + shoreWidth * 2 + 1;
+        var reach = (int cx, int cz, PathHit hit) => WidthAt(form, radius, edge, cx, cz, hit, seed) + ShoreAt(shoreWidth, cx, cz, seed);
         foreach (var (x, z, hit) in Polyline.Hits(centerline, scan, reach))
         {
-            var water = WidthAt(form, radius, x, z, hit, seed);
+            var water = WidthAt(form, radius, edge, x, z, hit, seed);
             if (hit.Distance <= water) continue;   // inside the water — that is the bed's, not the beach's
-            if (hit.Distance <= water + ShoreAt(form, shoreWidth, x, z, seed)) yield return (x, z);
+            if (hit.Distance <= water + ShoreAt(shoreWidth, x, z, seed)) yield return (x, z);
         }
     }
 
-    // The half-width the band reaches at a cell. Canal holds the nominal radius; a natural edge wanders it with
-    // a noise field; a stream tapers it along the run. The same shape the path stroke's rough and tapered edges
-    // take, so the two tools' bands read as one idea.
-    private static double WidthAt(ChannelForm form, double radius, int x, int z, PathHit hit, uint seed) => form switch
+    // The half-width the water reaches at a cell, the prototype's `drawChannel` R. A canal holds the nominal
+    // radius. A natural edge wobbles it by an absolute amount (a value field, ±edge blocks). A stream beads: the
+    // width runs a rectified sine along the arc — pinching to half the radius and swelling back to it on a fixed
+    // beat — with the same small wobble on top, so it narrows and widens down its length rather than tapering once.
+    private static double WidthAt(ChannelForm form, double radius, double edge, int x, int z, PathHit hit, uint seed)
     {
-        ChannelForm.Natural => radius * (1 - NaturalSwing + 2 * NaturalSwing * PatternNoise.Fbm(x, z, seed + 5, NaturalScale, 2)),
-        ChannelForm.Stream  => radius * (StreamEnds + (1 - StreamEnds) * Math.Sin(Math.PI * hit.Along)),
-        _                   => radius,
-    };
-
-    // How far the beach reaches past the water at a cell: a per-form base width, wandered by a smooth field that
-    // drops it to zero across much of its range so the shore is a broken flat, not a fixed-width ring.
-    private static double ShoreAt(ChannelForm form, double shoreWidth, int x, int z, uint seed)
-    {
-        var baseWidth = shoreWidth * form switch
+        var wobble = edge * (PatternNoise.Value(x, z, seed + 5, WidthNoiseScale) - 0.5);
+        return form switch
         {
-            ChannelForm.Canal  => 0.55,   // clean-banked: a narrow, even beach
-            ChannelForm.Stream => 1.6,    // spreads into wide flats
-            _                  => 1.0,    // wanders between
+            ChannelForm.Natural => radius + 2 * wobble,
+            ChannelForm.Stream  => radius * (0.5 + 0.5 * Math.Abs(Math.Sin(hit.Arc * StreamBeat))) + wobble,
+            _                   => radius,
         };
-        return Math.Max(0, baseWidth * (1.8 * PatternNoise.Value(x, z, seed + 91, ShoreScale) - 0.3));
     }
+
+    // How far the beach reaches past the water at a cell — the prototype's `shoreWidth`: a smooth field scaled so
+    // it drops to zero across much of its range, leaving the shore a broken flat rather than a fixed-width ring.
+    private static double ShoreAt(double shoreWidth, int x, int z, uint seed)
+        => Math.Max(0, shoreWidth * (1.9 * PatternNoise.Value(x, z, seed + 91, ShoreScale) - 0.25));
 }

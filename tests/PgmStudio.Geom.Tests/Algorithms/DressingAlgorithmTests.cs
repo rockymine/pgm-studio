@@ -284,7 +284,7 @@ public sealed class DressingAlgorithmTests
     {
         // The whole reason water needs its own carve rather than the path's flat repaint: the fill has to sit
         // in a U, so the deepest cut is on the line the author drew and it rises to a single block at the shore.
-        var cells = WaterBed.Cells(Straight, radius: 4, depth: 4, ChannelForm.Canal, seed: 5).ToList();
+        var cells = WaterBed.Cells(Straight, radius: 4, depth: 4, ChannelForm.Canal, edge: 0, seed: 5).ToList();
         await Assert.That(cells).IsNotEmpty();
 
         // Somewhere along the run, the centerline is cut to the full depth and the band's outermost cells to one.
@@ -306,48 +306,63 @@ public sealed class DressingAlgorithmTests
     public async Task A_deeper_channel_cuts_a_deeper_centerline()
     {
         int Centre(double depth)
-            => WaterBed.Cells(Straight, radius: 3, depth, ChannelForm.Canal, seed: 5).Where(cell => cell.Z == 20).Max(cell => cell.Depth);
+            => WaterBed.Cells(Straight, radius: 3, depth, ChannelForm.Canal, edge: 0, seed: 5).Where(cell => cell.Z == 20).Max(cell => cell.Depth);
 
         await Assert.That(Centre(6)).IsGreaterThan(Centre(2));
     }
 
     [Test]
-    public async Task A_stream_shallows_towards_its_ends()
+    public async Task A_stream_beads_along_its_arc_where_a_canal_holds_one_width()
     {
-        // A stream runs out into riffles, so its ends are cut shallower than its middle — where a canal of the
-        // same depth is still on the bottom.
-        var stream = WaterBed.Cells(Straight, radius: 3, depth: 5, ChannelForm.Stream, seed: 5).Where(cell => cell.Z == 20).ToList();
-        var middle = stream.Where(cell => Math.Abs(cell.X - 20) <= 1).Max(cell => cell.Depth);
-        var end = stream.Where(cell => cell.X <= 7).Max(cell => cell.Depth);
-        await Assert.That(end).IsLessThan(middle);
+        // Parity with the decoration prototype's `drawChannel`: a stream is not one taper end-to-end, it beads —
+        // its width pinches to half the radius and swells back on a fixed beat down the run, and never exceeds
+        // the nominal width. A canal holds one width the whole way. The half-width per column across the run is
+        // what shows it, on the interior columns so an end-cap disc doesn't read as a pinch.
+        List<int> HalfWidths(ChannelForm form) => [.. WaterBed.Cells(Straight, radius: 5, depth: 4, form, edge: 0, seed: 5)
+            .Where(cell => cell.X is >= 10 and <= 30).GroupBy(cell => cell.X).OrderBy(group => group.Key)
+            .Select(group => group.Max(cell => Math.Abs(cell.Z - 20)))];
+
+        var canal = HalfWidths(ChannelForm.Canal);
+        var stream = HalfWidths(ChannelForm.Stream);
+
+        await Assert.That(canal.Max() - canal.Min()).IsLessThanOrEqualTo(1);          // one width the whole way
+        await Assert.That(stream.Max() - stream.Min()).IsGreaterThanOrEqualTo(2);     // pinches and swells
+        await Assert.That(stream.Max()).IsLessThanOrEqualTo(5);                       // never past the nominal
+    }
+
+    [Test]
+    public async Task A_stream_runs_shallower_than_a_canal_of_the_same_depth()
+    {
+        // The other half of the prototype's stream: it runs shallow throughout, a whole length of riffle.
+        int Deepest(ChannelForm form)
+            => WaterBed.Cells(Straight, radius: 5, depth: 6, form, edge: 0, seed: 5).Max(cell => cell.Depth);
+        await Assert.That(Deepest(ChannelForm.Stream)).IsLessThan(Deepest(ChannelForm.Canal));
     }
 
     [Test]
     public async Task The_same_channel_carves_the_same_bed()
     {
-        var one = WaterBed.Cells(Straight, radius: 3, depth: 3, ChannelForm.Natural, seed: 5).ToList();
-        var two = WaterBed.Cells(Straight, radius: 3, depth: 3, ChannelForm.Natural, seed: 5).ToList();
+        var one = WaterBed.Cells(Straight, radius: 3, depth: 3, ChannelForm.Natural, edge: 0.8, seed: 5).ToList();
+        var two = WaterBed.Cells(Straight, radius: 3, depth: 3, ChannelForm.Natural, edge: 0.8, seed: 5).ToList();
         await Assert.That(one).IsEquivalentTo(two);
     }
 
     [Test]
-    public async Task The_beach_lies_outside_the_water_and_a_stream_spreads_a_wider_one_than_a_canal()
+    public async Task The_beach_lies_just_outside_the_water_never_on_it()
     {
-        // The shore is the band past the water — none of its cells are ones the bed carves — and how wide it
-        // runs is the channel's own read: a stream spreads into flats where a canal keeps a clean, narrow bank.
-        var water = WaterBed.Cells(Straight, radius: 4, depth: 3, ChannelForm.Canal, seed: 5)
+        // The shore rides just past the water edge — none of its cells are ones the bed carves — so where a
+        // channel's width pinches or swells the beach rides in and out with it (one shore law, the water drives).
+        var water = WaterBed.Cells(Straight, radius: 4, depth: 3, ChannelForm.Stream, edge: 0.8, seed: 5)
             .Select(cell => (cell.X, cell.Z)).ToHashSet();
-        var canalShore = WaterBed.ShoreCells(Straight, radius: 4, ChannelForm.Canal, shoreWidth: 3, seed: 5).ToList();
-        var streamShore = WaterBed.ShoreCells(Straight, radius: 4, ChannelForm.Stream, shoreWidth: 3, seed: 5).ToList();
+        var shore = WaterBed.ShoreCells(Straight, radius: 4, ChannelForm.Stream, shoreWidth: 3, edge: 0.8, seed: 5).ToList();
 
-        await Assert.That(canalShore).IsNotEmpty();
-        await Assert.That(canalShore.Any(cell => water.Contains(cell))).IsFalse();   // never the bed's cells
-        await Assert.That(streamShore.Count).IsGreaterThan(canalShore.Count);        // a stream's flats are wider
+        await Assert.That(shore).IsNotEmpty();
+        await Assert.That(shore.Any(cell => water.Contains(cell))).IsFalse();
     }
 
     [Test]
     public async Task No_beach_width_is_no_beach()
     {
-        await Assert.That(WaterBed.ShoreCells(Straight, radius: 4, ChannelForm.Natural, shoreWidth: 0, seed: 5)).IsEmpty();
+        await Assert.That(WaterBed.ShoreCells(Straight, radius: 4, ChannelForm.Natural, shoreWidth: 0, edge: 0.8, seed: 5)).IsEmpty();
     }
 }

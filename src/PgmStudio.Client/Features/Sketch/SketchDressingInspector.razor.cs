@@ -350,6 +350,7 @@ public static class PropFields
     public const string Coverage = "coverage";
     public const string Blocks = "blocks";
     public const string Depth = "depth";
+    public const string Edge = "edge";
     public const string Shore = "shore";
     public const string Bank = "bank";
     public const string Species = "species";

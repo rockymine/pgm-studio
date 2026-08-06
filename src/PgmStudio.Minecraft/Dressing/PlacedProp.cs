@@ -85,6 +85,10 @@ public sealed record WaterProp : PlacedProp
 
     public ChannelForm Form { get; init; } = ChannelForm.Canal;
 
+    /// <summary>How far a <see cref="ChannelForm.Natural"/> or <see cref="ChannelForm.Stream"/> edge wobbles its
+    /// width off the nominal, in blocks — the roughness of the bank. A canal ignores it.</summary>
+    public double Edge { get; init; } = 0.8;
+
     /// <summary>How wide a beach the water meets the land through, in blocks — the widest the shore band reaches
     /// before a noise field wanders it, dropping it to nothing in places so the water meets the land directly in
     /// some stretches and spreads into a flat in others. 0 gives no beach: the water meets the grass at its edge.</summary>

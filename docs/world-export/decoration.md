@@ -278,12 +278,18 @@ by default a jittered-voronoi patchwork of sand, pale gravel and coarse dirt, th
 and edited by the same `MaterialEditor`. So the floor the shallows show through and the shore the water meets
 read as one ground, drawn from one palette.
 
-Channels take a **form**, and it drives both the water and the land. A clean-banked **canal** holds a uniform
-width and a narrow, even beach; a **natural** edge wanders its width (the FBM the rough path uses) and its
-shore with it; a **stream** narrows and shallows towards its ends into riffles and spreads into wide shore
-flats. The carve leans toward the **G32-C** elevation pass rather than depending on it: the bed is negative
-terrain laid straight into the realized world, so a channel works on the flat layouts the sketch tool builds
-today and will read as a cut valley once that pass gives a layout its heights.
+Channels take a **form**, and it drives both the water and the land. The three laws are the decoration
+prototype's own (`tools/decorate/prototype.html` §5 `drawChannel`), carried into `WaterBed` verbatim so the bed
+and beach the export cuts are the ones the prototype draws. A clean-banked **canal** holds a uniform width. A
+**natural** edge wobbles its width off the nominal by a value field (± the *bank roughness* knob, in blocks). A
+**stream beads**: its width runs a rectified sine along the *arc* — pinching to half the radius and swelling
+back to it on a fixed beat, never wider than the nominal — so it narrows and widens down its length into a
+string of riffles rather than tapering once, and it runs shallower throughout. The **shore** is one law for
+every form; the difference in how a beach reads comes from the water, since the shore rides just outside the
+water edge — where a stream pinches, the beach pinches with it. The carve leans toward the **G32-C** elevation
+pass rather than depending on it: the bed is negative terrain laid straight into the realized world, so a
+channel works on the flat layouts the sketch tool builds today and will read as a cut valley once that pass
+gives a layout its heights.
 
 **Still to come (`G169`).** The reads that take a channel from "a filled cut" to "water that looks like
 water," and the closed form: **depth shading** warped off-centre so one bank runs deeper than the other; an
