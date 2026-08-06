@@ -500,7 +500,11 @@ the stat corpus.
 - **ST4 [corpus]** *Pre-built wall*: 2 blocks thick, full seam width, top = approach side +4,
   down to y=0. Corpus pattern (11 walls over 5 seeds): walls sit on **gentle seams** — every
   marked interface has Δ ∈ {0, ±2} and border 10–15; nobody walls a cliff. Narrow seams are
-  legal wall carriers.
+  legal wall carriers. Each wall carries a **defence chest** set into each of its two faces
+  (`WallDefenseChest`): the chest replaces the one bedrock block at the approach's ground level and
+  the block above it is carved to air so the lid opens — a niche, not a box in front of the wall.
+  A full 27-slot half-stack loadout, one per team: dark-oak + spruce planks and crafting tables to
+  build with, end stone + a redstone block to reinforce, and two Efficiency II iron pickaxes.
 - **ST5 [author]** *Build-region outline*: the build region is marked in the world by an **unpowered
   redstone line at y=1**, one air block clear of the region — so two blocks out from its edge — and
   holding that same one-block clearance from terrain. Only the **void-facing** edges carry a line: an

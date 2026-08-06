@@ -190,7 +190,10 @@ public static class SketchWorldBuilder
         foreach (var f in s.RoomFloors)
             StructureStamper.StampRoomFloor(world, surface, (int)f.MinX, (int)f.MinZ, (int)f.MaxX, (int)f.MaxZ);
         foreach (var w in s.Walls)
+        {
             StructureStamper.StampWall(world, w.MinX, w.MinZ, w.MaxX, w.MaxZ, w.TopY);
+            WallDefenseChest.Stamp(world, surface, w.MinX, w.MinZ, w.MaxX, w.MaxZ, w.TopY);
+        }
         foreach (var ic in s.IronCubes)
             StructureStamper.StampIronCube(world, surface, ic.X, ic.Z);
         foreach (var line in s.RedstoneLines)

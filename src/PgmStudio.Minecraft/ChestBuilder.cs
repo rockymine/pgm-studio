@@ -22,14 +22,28 @@ public static class ChestBuilder
         return item;
     }
 
+    /// <summary>An item stack carrying an <c>ench</c> list — the given <c>(enchantId, level)</c> pairs (e.g.
+    /// Efficiency = 32, Power = 48, Infinity = 51). The base game reads levels above the vanilla cap fine.</summary>
+    public static NbtCompound Enchanted(string id, int count, int damage, params (int Id, int Level)[] enchants)
+    {
+        var ench = new NbtList("ench", NbtTagType.Compound);
+        foreach (var (eid, lvl) in enchants)
+            ench.Add(new NbtCompound { new NbtShort("id", (short)eid), new NbtShort("lvl", (short)lvl) });
+        return Item(id, count, damage, new NbtCompound("tag") { ench });
+    }
+
     /// <summary>A <c>bow</c> with the given enchantments (<c>(enchantId, level)</c> pairs — e.g. Power = 48,
     /// Infinity = 51).</summary>
     public static NbtCompound EnchantedBow(params (int Id, int Level)[] enchants)
+        => Enchanted("minecraft:bow", 1, 0, enchants);
+
+    /// <summary>Split a total item count into stacks of at most <paramref name="perSlot"/>, each built by
+    /// <paramref name="stack"/> from its own count — how a bulk supply (384 planks) spreads across several
+    /// slots. <paramref name="stack"/> takes the count so a partial last stack carries the remainder.</summary>
+    public static IEnumerable<NbtCompound> Stacks(int total, int perSlot, Func<int, NbtCompound> stack)
     {
-        var ench = new NbtList("ench", NbtTagType.Compound);
-        foreach (var (id, lvl) in enchants)
-            ench.Add(new NbtCompound { new NbtShort("id", (short)id), new NbtShort("lvl", (short)lvl) });
-        return Item("minecraft:bow", 1, 0, new NbtCompound("tag") { ench });
+        var per = Math.Max(1, perSlot);
+        for (var left = total; left > 0; left -= per) yield return stack(Math.Min(per, left));
     }
 
     /// <summary>A <c>Chest</c> tile entity at <paramref name="x"/>/<paramref name="y"/>/<paramref name="z"/>
