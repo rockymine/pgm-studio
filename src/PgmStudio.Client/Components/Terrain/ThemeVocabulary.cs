@@ -27,6 +27,10 @@ public static class ThemeFields
     public const string Width = "width";
     public const string Seed = "seed";
     public const string CellSize = "cellSize";
+    /// <summary>A voronoi pattern's cell-wall material and how thick (in blocks) it runs. The wall key is the same
+    /// string as the theme's rim bucket (<see cref="Rim"/>), but it lives inside a voronoi material object, so the
+    /// two never meet — a voronoi's rim is its honeycomb walls, not the theme's edge course.</summary>
+    public const string RimWidth = "rimWidth";
     public const string Scale = "scale";
     public const string Octaves = "octaves";
 
@@ -66,6 +70,11 @@ public static class ThemeFields
             [Seed] = 1,
             [CellSize] = 8,
             [Palette] = new JsonArray(Solid(1), Solid(24)),
+            // A cellular pattern by default — dirt-walled stone and sandstone cells — because filled patches with
+            // no walls read as blobs rather than a voronoi. The rim contrasts with both fills so the honeycomb
+            // shows; wall thickness 0 turns the walls off for the plain patch look.
+            [Rim] = Solid(3),
+            [RimWidth] = 2,
         },
         MaterialKind.Noise => new JsonObject
         {

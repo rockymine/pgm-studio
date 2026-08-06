@@ -19,23 +19,33 @@ public readonly record struct WallStripe(TerrainMaterial Material, int Width);
 /// is nearest — irregular patches roughly <paramref name="CellSize"/> across. Pure per cell (nearest of the 3×3
 /// grid-cell neighbourhood), no global precompute. The region hashes into <paramref name="Palette"/>, which may
 /// hold any number of materials.
+///
+/// <para>With a <paramref name="Rim"/> set the pattern reads as a <b>cellular</b> one — a honeycomb — rather than
+/// flat patches: a cell within <paramref name="RimWidth"/> of a region boundary takes the rim material and the
+/// inside of each cell takes its palette fill. The boundary is the Worley <c>F2 − F1</c> edge (the gap between
+/// the two nearest sites), so <paramref name="RimWidth"/> is roughly the wall thickness in blocks. Rim unset or
+/// <paramref name="RimWidth"/> ≤ 0 is the plain filled-region pattern.</para>
 /// </summary>
-public sealed record VoronoiMaterial(uint Seed, int CellSize, IReadOnlyList<TerrainMaterial> Palette) : TerrainMaterial
+public sealed record VoronoiMaterial(uint Seed, int CellSize, IReadOnlyList<TerrainMaterial> Palette,
+    TerrainMaterial? Rim = null, int RimWidth = 0) : TerrainMaterial
 {
     public override (int Id, int Data) Resolve(in BucketContext ctx)
     {
         if (Palette is not { Count: > 0 }) return (Blocks.Stone, 0);
-        var (gx, gz) = Voronoi.NearestSite(ctx.X, ctx.Z, Seed, CellSize);
+        var (d1, d2, gx, gz) = Voronoi.NearestTwo(ctx.X, ctx.Z, Seed, CellSize);
+        // A cell wall: near enough to the boundary with the next region that the two nearest sites are within
+        // RimWidth of each other. Everything further in is the cell's fill.
+        if (Rim is not null && RimWidth > 0 && d2 - d1 < RimWidth) return Rim.Resolve(in ctx);
         int idx = (int)(PatternNoise.Hash(gx, gz, Seed) % (uint)Palette.Count);
         return Palette[idx].Resolve(in ctx);
     }
 
-    // Palette for palette — the generated equality would compare the list by reference (see LayeredMaterial).
+    // Palette (and Rim) by value — the generated equality would compare the list by reference (see LayeredMaterial).
     public bool Equals(VoronoiMaterial? other)
         => other is not null && Seed == other.Seed && CellSize == other.CellSize
-        && Palette.SequenceEqual(other.Palette);
+        && RimWidth == other.RimWidth && Equals(Rim, other.Rim) && Palette.SequenceEqual(other.Palette);
 
-    public override int GetHashCode() => HashCode.Combine(Seed, CellSize, MaterialHash.Of(Palette));
+    public override int GetHashCode() => HashCode.Combine(Seed, CellSize, MaterialHash.Of(Palette), Rim, RimWidth);
 }
 
 /// <summary>

@@ -345,7 +345,11 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
   material so a pattern nests a team tint or another pattern. **`VoronoiMaterial`** tiles the footprint with a
   jittered grid (one deterministic seed point per grid cell of period `CellSize`) and each block takes the
   material of the nearest region — irregular patches from an N-material palette, pure per cell (no global
-  precompute). **`NoiseMaterial`** maps a fractal-noise field through an ordered ramp of N stops: `Octaves = 1`
+  precompute). Given a `Rim` and a `RimWidth` it reads as a **cellular** pattern rather than flat patches: a
+  block within `RimWidth` of a region boundary takes the rim material and the inside of each cell takes its
+  palette fill — the Worley `F2 − F1` edge (the gap between the two nearest sites), so `RimWidth` is roughly the
+  wall thickness in blocks, and a honeycomb of walled cells is the result. `RimWidth = 0` (or no rim) is the
+  plain filled-patch look. **`NoiseMaterial`** maps a fractal-noise field through an ordered ramp of N stops: `Octaves = 1`
   is single-octave value noise, more octaves give the cloudier fractal look — the surface/fill area pattern.
   **`WallRunMaterial`** is the wall pattern: a list of `(material, width)` runs that repeat in order along the
   **void-facing perimeter**, reading the arc index the profile assigns each outer-wall column, so any number of

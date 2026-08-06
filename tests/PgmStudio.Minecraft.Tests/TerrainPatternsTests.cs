@@ -1,3 +1,5 @@
+using PgmStudio.Geom.Algorithms;
+
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>
@@ -86,6 +88,52 @@ public sealed class TerrainPatternsTests
             ids.Add(id);
         }
         await Assert.That(ids.Count).IsGreaterThan(1);
+    }
+
+    [Test]
+    public async Task A_rimmed_voronoi_walls_its_cells_where_a_plain_one_only_fills_them()
+    {
+        // The cellular read: with a rim, cell boundaries take the rim material and the insides take the fill, so
+        // both show up — a honeycomb. Without a rim (or a zero width) the rim block never appears, only fills.
+        var fill = new TerrainMaterial[] { new SolidMaterial(1), new SolidMaterial(2) };
+        var rim = new SolidMaterial(50);   // a block that is in neither fill palette
+        var walled = new VoronoiMaterial(7u, 6, fill, Rim: rim, RimWidth: 2);
+        var plain = new VoronoiMaterial(7u, 6, fill);
+
+        var walledIds = new HashSet<int>();
+        var plainIds = new HashSet<int>();
+        for (var x = 0; x < 48; x++)
+        for (var z = 0; z < 48; z++)
+        {
+            walledIds.Add(walled.Resolve(At(x, z)).Id);
+            plainIds.Add(plain.Resolve(At(x, z)).Id);
+        }
+
+        await Assert.That(walledIds).Contains(50);   // the walls are drawn
+        await Assert.That(walledIds).Contains(1);     // and the cells are still filled
+        await Assert.That(walledIds).Contains(2);
+        await Assert.That(plainIds.Contains(50)).IsFalse();   // a plain voronoi never draws a wall
+    }
+
+    [Test]
+    public async Task A_voronoi_rim_walls_the_boundaries_and_leaves_the_cells_filled()
+    {
+        // The honeycomb read: the walls trace the region boundaries (the F2−F1 edge, where the two nearest sites
+        // are close), so a block deep inside a cell — where its own site is far nearer than the next — is always
+        // fill, never wall; and the walls are a minority, not a smear that fills the footprint.
+        var walled = new VoronoiMaterial(3u, 8, [new SolidMaterial(1)], Rim: new SolidMaterial(50), RimWidth: 2);
+        int wall = 0, total = 0;
+        for (var x = 0; x < 64; x++)
+        for (var z = 0; z < 64; z++)
+        {
+            total++;
+            var isWall = walled.Resolve(At(x, z)).Id == 50;
+            if (isWall) wall++;
+            var (d1, d2, _, _) = Voronoi.NearestTwo(x, z, 3u, 8);
+            if (d2 - d1 > 4) await Assert.That(isWall).IsFalse();   // deep inside a cell is fill, never a wall
+        }
+        await Assert.That(wall).IsGreaterThan(0);                    // the walls are drawn
+        await Assert.That((double)wall / total).IsLessThan(0.6);     // but they do not fill the footprint
     }
 
     // ── the new geometry: the outer void-facing perimeter arc ────────────────────────────────────────────

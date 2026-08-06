@@ -52,24 +52,33 @@
         break;
 
       case MaterialKind.Voronoi:
-        <p class="material-editor-note">Irregular patches roughly one patch-size across, each taking a material
-          from the palette. Deterministic — the same seed always paints the same regions.</p>
+        <p class="material-editor-note">Cells roughly one patch-size across. With <strong>wall thickness</strong>
+          above zero it reads as a honeycomb — a rim material tracing the cell boundaries, each cell filled from
+          the palette; at zero it is plain filled patches. Deterministic — the same seed always paints it.</p>
         <div class="material-editor-scalars">
           <Field Label="Patch size">
             <input class="field-input field-input--slim" type="number" min="1" step="1"
                    value="@Int(ThemeFields.CellSize, 8)" @onchange="SetCellSize" />
+          </Field>
+          <Field Label="Wall thickness">
+            <input class="field-input field-input--slim" type="number" min="0" step="1"
+                   value="@Int(ThemeFields.RimWidth, 0)" @onchange="SetRimWidth" />
           </Field>
           <Field Label="Seed">
             <input class="field-input field-input--slim" type="number" min="0" step="1"
                    value="@Int(ThemeFields.Seed, 0)" @onchange="SetSeed" />
           </Field>
         </div>
+        @if (Int(ThemeFields.RimWidth, 0) > 0)
+        {
+          <MaterialEditor Nested Label="Cell walls" Blocks="Blocks" Node="Rim" OnChanged="Changed" />
+        }
         @foreach (var entry in List(ThemeFields.Palette))
         {
-          <MaterialEditor Nested Label="@($"Patch {entry.Index + 1}")" Blocks="Blocks" @key="entry.Node"
+          <MaterialEditor Nested Label="@($"Cell fill {entry.Index + 1}")" Blocks="Blocks" @key="entry.Node"
                           Node="@entry.Material" OnChanged="Changed" OnRemove="@entry.Remove" />
         }
-        <Button Icon="plus" OnClick="AddPaletteEntry">Add patch material</Button>
+        <Button Icon="plus" OnClick="AddPaletteEntry">Add cell material</Button>
         break;
 
       case MaterialKind.Noise:

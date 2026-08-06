@@ -28,6 +28,9 @@ public partial class MaterialEditor
 
     private JsonObject Neutral => JsonEdit.Child(Node, ThemeFields.Neutral, () => ThemeFields.Solid(159, 8));
 
+    /// <summary>A voronoi's cell-wall material, created the first time the walls are turned on.</summary>
+    private JsonObject Rim => JsonEdit.Child(Node, ThemeFields.Rim, () => ThemeFields.Solid(3));
+
     /// <summary>One entry of a material's child list, with everything the markup binds to. A pattern's entry
     /// is a bare material; a layer or a stripe wraps one with the extent it claims, which is what
     /// <see cref="Extent"/> and <see cref="SetExtent"/> reach — 0 where the list has no extent.</summary>
@@ -98,6 +101,17 @@ public partial class MaterialEditor
 
     private Task SetSeed(ChangeEventArgs e) => SetScalar(ThemeFields.Seed, e, 0, 0);
     private Task SetCellSize(ChangeEventArgs e) => SetScalar(ThemeFields.CellSize, e, 8, 1);
+
+    /// <summary>Set the wall thickness, and mint a default wall material the same edit if the walls are being
+    /// turned on and none exists yet — so the pattern serializes with its rim rather than a width that reads
+    /// nothing.</summary>
+    private Task SetRimWidth(ChangeEventArgs e)
+    {
+        var width = Math.Max(0, Parse(e, 0));
+        JsonEdit.Set(Node, ThemeFields.RimWidth, width);
+        if (width > 0 && Node[ThemeFields.Rim] is null) Node[ThemeFields.Rim] = ThemeFields.Solid(3);
+        return Changed();
+    }
     private Task SetScale(ChangeEventArgs e) => SetScalar(ThemeFields.Scale, e, 16, 1);
     private Task SetOctaves(ChangeEventArgs e) => SetScalar(ThemeFields.Octaves, e, 3, 1);
 

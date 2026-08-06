@@ -28,8 +28,10 @@ public sealed class TerrainThemeJsonTests
             ]),
             // a fractal-noise surface ramp
             Surface = TerrainTheme.Default.Surface with { Material = new NoiseMaterial(42u, 12, 4, [new SolidMaterial(Blocks.Grass), new SolidMaterial(Blocks.Dirt)]) },
-            // a voronoi rim
-            Rim = TerrainTheme.Default.Rim with { Material = new VoronoiMaterial(7u, 6, [new SolidMaterial(Blocks.QuartzBlock), new SolidMaterial(Blocks.Wool, 0)]) },
+            // a cellular voronoi rim — walled cells, so the rim material and width round-trip too
+            Rim = TerrainTheme.Default.Rim with { Material = new VoronoiMaterial(7u, 6,
+                [new SolidMaterial(Blocks.QuartzBlock), new SolidMaterial(Blocks.Wool, 0)],
+                Rim: new SolidMaterial(Blocks.StainedClay, 15), RimWidth: 2) },
             Bedrock = BedrockSpec.TerrainRelative(4),
         };
 
