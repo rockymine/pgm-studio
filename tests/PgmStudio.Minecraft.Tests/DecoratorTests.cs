@@ -94,11 +94,12 @@ public sealed class DecoratorTests
         Decorator.Decorate(grown, Context(grownTop,
             [new TreeProp { Id = "t", X = 20, Z = 20, Form = TreeForm.Grown, Wood = "spruce", Height = 15, Seed = 5 }]));
 
-        // Same wood in both — the material is the one thing a form does not decide.
+        // Same wood in both — the material is the one thing a form does not decide. The wood is the low two data
+        // bits; the rest carry the all-bark orientation, so it is masked off to read the species.
         var vanillaLogs = Logs(vanilla, vanillaTop);
         var grownLogs = Logs(grown, grownTop);
-        await Assert.That(vanillaLogs.All(b => b.Data == 1)).IsTrue();
-        await Assert.That(grownLogs.All(b => b.Data == 1)).IsTrue();
+        await Assert.That(vanillaLogs.All(b => (b.Data & 3) == 1)).IsTrue();
+        await Assert.That(grownLogs.All(b => (b.Data & 3) == 1)).IsTrue();
 
         // A vanilla trunk is one straight column; a grown one wanders and throws limbs, so it occupies many.
         await Assert.That(Columns(vanillaLogs)).IsEqualTo(1);
@@ -186,6 +187,21 @@ public sealed class DecoratorTests
         var leaves = Placed(world, top.Keys, 8, 40).Where(b => b.Id == Blocks.Leaves).ToList();
         await Assert.That(leaves).IsNotEmpty();
         await Assert.That(leaves.All(b => (b.Data & DressingPalette.LeafNoDecay) != 0)).IsTrue();
+    }
+
+    [Test]
+    public async Task Every_log_is_the_all_bark_variant()
+    {
+        // A built tree's wood is scenery, so it wears bark on every face rather than the pale end grain of an
+        // upright log wherever a limb turns. The wood the log paints as still reads through the low two bits.
+        var (world, top) = Plateau();
+        Decorator.Decorate(world, Context(top,
+            [new TreeProp { Id = "t", X = 20, Z = 20, Form = TreeForm.Grown, Wood = "birch", Height = 16, Seed = 5 }]));
+
+        var logs = Placed(world, top.Keys, 8, 40).Where(b => b.Id == Blocks.Log).ToList();
+        await Assert.That(logs).IsNotEmpty();
+        await Assert.That(logs.All(b => (b.Data & DressingPalette.LogAllBark) == DressingPalette.LogAllBark)).IsTrue();
+        await Assert.That(logs.All(b => (b.Data & 3) == 2)).IsTrue();   // still birch
     }
 
     // ── paths repaint, they do not build ───────────────────────────────────────────────────────────

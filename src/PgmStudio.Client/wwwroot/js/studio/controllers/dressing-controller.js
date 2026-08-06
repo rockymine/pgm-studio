@@ -38,14 +38,16 @@ export class DressingController {
   #drag = null;           // moving an already-placed prop
   #selectedId = null;
   #settings = {};         // per-kind starting values for the next prop placed
+  #onTerrain;             // (bx, bz) → is this cell on the rasterized terrain a marker can seat on?
 
   /**
    * @param doc        DressingDoc — the placed props (mutated through its own methods)
-   * @param callbacks  { onChanged, onSelected, onPreviewChanged }
+   * @param callbacks  { onChanged, onSelected, onPreviewChanged, onTerrain }
    */
   constructor(doc, callbacks = {}) {
     this.#doc = doc;
     this.#callbacks = callbacks;
+    this.#onTerrain = callbacks.onTerrain ?? (() => true);
     for (const kind of ["path", "water", "flora", "tree", "boulder"]) this.#settings[kind] = defaultProp(kind, seedFor(kind));
   }
 
@@ -118,16 +120,20 @@ export class DressingController {
       if (!prop) { this.#drag = null; return false; }
       const dx = bx - this.#drag.fromX, dz = bz - this.#drag.fromZ;
       if (!this.#drag.moved && dx === 0 && dz === 0) return true;
+      // A marker can only be dragged across the terrain: over the void the drag simply doesn't follow, so the
+      // prop stays on the last real cell it was over rather than being carried off the map.
+      if (isMarker(prop) && !this.#onTerrain(bx, bz)) return true;
       this.#drag.moved = true;
       this.#drag.fromX = bx; this.#drag.fromZ = bz;
       this.#doc.update(prop.id, translateProp(prop, dx, dz));
       this.#callbacks.onPreviewChanged?.();
       return true;
     }
-    // A marker tool shows where its prop would land, so a click is aimed rather than guessed.
+    // A marker tool shows where its prop would land, so a click is aimed rather than guessed — and whether the
+    // spot will take it, so the void reads as off-limits before the click that does nothing.
     const kind = DRESSING_TOOLS[activeTool];
     if (kind && isMarker(kind)) {
-      this.#cursor = { kind, x: bx, z: bz };
+      this.#cursor = { kind, x: bx, z: bz, valid: this.#onTerrain(bx, bz) };
       this.#callbacks.onPreviewChanged?.();
       return false;
     }
@@ -166,12 +172,15 @@ export class DressingController {
     }
     if (this.#cursor) {
       const settings = this.#settings[this.#cursor.kind];
-      paintMarkerGhost(painter, this.#cursor.kind, this.#cursor.x, this.#cursor.z, propReach(settings));
+      paintMarkerGhost(painter, this.#cursor.kind, this.#cursor.x, this.#cursor.z, propReach(settings), this.#cursor.valid !== false);
     }
   }
 
   // ── private ────────────────────────────────────────────────────────────────
   #place(kind, bx, bz) {
+    // A marker seats on the ground, so it can only be dropped where there is ground. The void — a gap between
+    // shapes, the space off the map — takes nothing; the click is consumed but nothing is placed.
+    if (!this.#onTerrain(bx, bz)) { this.#callbacks.onPreviewChanged?.(); return; }
     const placed = this.#doc.add({ ...this.#settings[kind], x: bx, z: bz, seed: this.#nextSeed(kind) });
     this.#cursor = null;
     this.select(placed.id);

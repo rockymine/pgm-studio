@@ -81,6 +81,19 @@ test("a click drops one marker where it was clicked", () => {
   assert.equal(doc.props[0].kind, "tree");
 });
 
+test("a marker cannot be dropped into the void — it must land on terrain", () => {
+  // A tree seats on the ground; the export refuses one placed on nothing, so the canvas refuses it first. The
+  // terrain predicate the canvas supplies here says only the right half is land.
+  const doc = new DressingDoc();
+  const tools = new DressingController(doc, { onTerrain: (bx) => bx >= 0 });
+
+  tools.onMouseDown(-10, 5, "dress:tree");     // over the void
+  assert.equal(doc.props.length, 0);           // nothing placed
+  tools.onMouseDown(10, 5, "dress:boulder");   // over the land
+  assert.equal(doc.props.length, 1);
+  assert.deepEqual([doc.props[0].x, doc.props[0].z], [10, 5]);
+});
+
 test("a drag places one route, and releasing is what ends it", () => {
   // The bug this replaced: a click-by-click path had no way to stop. Here the pointer-up *is* the end.
   const { doc, tools } = controller();

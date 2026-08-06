@@ -84,11 +84,16 @@ one stage rather than four:
 - **Placement.** A **point** for the props that stand somewhere (a tree, a boulder) and a **drawn outline**
   for the ones that cover a stretch (a route along a line, cover inside a ring). Two interactions, and the
   split is the model's: a marker is a click because a spot is a click, and an area is a drag because tracing
-  is how a stretch of ground is described.
+  is how a stretch of ground is described. A marker seats on the ground, so it can only be dropped **on the
+  rasterized terrain** — the canvas refuses a click over a gap or off the map (a red ghost, no drop), because
+  the stamp below would refuse it anyway. An **area** has no such limit: a route or a channel may be drawn
+  across a void, and only its cells that land on real ground do anything.
 - **Stamp.** A 3-D volume seated on `SurfaceTop` and written cell-by-cell with `SetBlock` — the
   shape-mask-in-a-box `ObjectiveStamper` already uses for destroyables and cores. A prop seats on the
   *lowest* column of its own footprint, so it sits into a slope rather than floating over the low side, and
-  it refuses ground that is missing or protected rather than half-placing itself.
+  it refuses ground that is missing or protected rather than half-placing itself. What it *rests* on needs
+  real ground; what it merely reaches over does not — a crown or a boulder lobe may overhang a drop or a void,
+  which is why a marker can seat at an island's edge and still lean out past it.
 - **The fan (G162).** Every prop is placed once and stamped at **every image of its orbit**, in the prop's own
   local frame, with each offset **turned** by that image's transform. An author draws one half of a map and
   gets a fair one, which is the contract the layout itself has had all along — and the canvas draws the
@@ -229,8 +234,11 @@ to keep the branch count low. A few short strands hang below each disc for a bro
 lives *between* the clusters, not as holes inside them.
 
 Both trees are the same stamper as the boulder: a trunk-and-limbs volume plus a leaf mask over a box, and
-both end at one place that turns those cells into blocks — so the wood, and the no-decay bit every leaf
-carries, are decided once. `TreeTemplate.Build` answers the vanilla tree's wood and leaves from a
+both end at one place that turns those cells into blocks — so the wood, the no-decay bit every leaf carries,
+and the all-bark orientation every log carries, are decided once. A built tree's wood is scenery rather than a
+felled trunk and its limbs run every way, so each log takes the all-bark variant (`LogAllBark`, bark on all
+six faces) instead of the pale end grain an upright log shows where a branch turns; the wood it paints as still
+reads through the low two data bits. `TreeTemplate.Build` answers the vanilla tree's wood and leaves from a
 `TemplateShape`, its canopy a radius per course from `CanopyProfiles` (profile-as-data, the same seam
 `BoulderShapes` uses for a rock's form). `TreeSkeleton.Grow` answers the grown tree's limbs and tips from a
 `TreeShape`, `SweptVolume` fills each limb as a capsule along its spline, and `TreeCrown` places the

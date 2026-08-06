@@ -299,9 +299,10 @@ public static class Decorator
         var (wood, leaves) = tree.Form == TreeForm.Template ? TemplateTree(tree) : GrownTree(tree);
         var timber = tree.Timber;
         var leafData = timber.LeafData | DressingPalette.LeafNoDecay;
+        var logData = timber.LogData | DressingPalette.LogAllBark;
 
         var cells = new List<PropCell>(wood.Count + leaves.Count);
-        foreach (var (x, y, z) in wood) cells.Add(new PropCell(x, y, z, timber.LogId, timber.LogData, Buried: false));
+        foreach (var (x, y, z) in wood) cells.Add(new PropCell(x, y, z, timber.LogId, logData, Buried: false));
         foreach (var (x, y, z) in leaves)
         {
             if (wood.Contains((x, y, z))) continue;

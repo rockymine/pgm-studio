@@ -255,6 +255,16 @@ export class SketchCanvas extends CanvasBase {
   get selectedId() { return this.#selectedId; }
   #islandOfShape(shapeId) { return this.#islands.find(i => i.shapeIds?.includes(shapeId)) ?? null; }
 
+  // Whether a cell centre sits on the rasterized terrain — inside some island's footprint and clear of its
+  // holes. The same exterior-minus-holes test the island hit-test uses, at the cell's own centre so it agrees
+  // with the rasterizer's membership rule (a cell is terrain when its centre is inside a shape).
+  #cellOnTerrain(bx, bz) {
+    const cx = bx + 0.5, cz = bz + 0.5;
+    return this.#islands.some(isl => (isl.exterior?.length ?? 0) >= 4
+      && pointInRing(cx, cz, isl.exterior)
+      && !(isl.holes ?? []).some(hole => pointInRing(cx, cz, hole)));
+  }
+
   setIslands(islands)        { this.#islands = islands ?? []; this.#paintWorld(); this.#renderIslandChrome(); }
   setGhostIslands(polys)     { this.#ghostPolys = polys ?? []; this.#paintWorld(); }
   setMirrorPolygons(polys)   { this.#mirrorPolys = polys ?? []; this.#renderSetup(); }
@@ -809,6 +819,9 @@ export class SketchCanvas extends CanvasBase {
       onChanged: () => { this.#paintWorld(); this.#callbacks.onDressingChanged?.(); },
       onSelected: (id) => this.#callbacks.onPropSelected?.(id),
       onPreviewChanged: () => this.#paintWorld(),
+      // A marker (a tree, a boulder) may only land on the rasterized terrain — the export refuses one seated on
+      // nothing, so the canvas refuses to drop it there in the first place.
+      onTerrain: (bx, bz) => this.#cellOnTerrain(bx, bz),
     });
     this.#edit = new SketchEditController(this.#screen.handles, getViewport, (id) => this.#shapes.get(id), {
       onShapeUpdated: (shape) => { this.updateShape(shape); this.#callbacks.onShapeUpdated?.(shape); },

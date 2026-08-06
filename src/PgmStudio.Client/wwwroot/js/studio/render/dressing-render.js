@@ -71,11 +71,13 @@ export function paintDressingPreview(painter, kind, points, radius) {
   if (ring.length >= 3) painter.ring(ring.slice(0, -1), style);
 }
 
-/** Where a marker will be dropped, before the click that drops it. */
-export function paintMarkerGhost(painter, kind, x, z, reach) {
+/** Where a marker will be dropped, before the click that drops it. Over the void it reads as refused — a red
+ *  ring — because a marker seats on the ground and there is none there to take it. */
+export function paintMarkerGhost(painter, kind, x, z, reach, valid = true) {
   const kindStyle = KIND_STYLE[kind] ?? KIND_STYLE.boulder;
+  const colour = valid ? kindStyle : { fill: "#c0392b", stroke: "#c0392b" };
   painter.ring(disc(x, z, reach), {
-    fill: kindStyle.fill, fillAlpha: 0.2, stroke: kindStyle.stroke, width: 1, dash: [5, 3],
+    fill: colour.fill, fillAlpha: valid ? 0.2 : 0.12, stroke: colour.stroke, width: valid ? 1 : 1.5, dash: [5, 3],
   });
 }
 

@@ -80,6 +80,13 @@ public static class DressingPalette
     /// behind its leaves, so without this the whole crown disappears shortly after the map loads.</summary>
     public const int LeafNoDecay = 4;
 
+    /// <summary>The log-orientation bits that give the <b>all-bark</b> variant: bark on all six faces, no cut-grain
+    /// end caps. A built tree's wood is scenery, not a felled trunk, and its limbs run in every direction — so the
+    /// wood reads as bark all over rather than showing the pale end grain of an upright log wherever a branch turns.
+    /// OR'd onto a wood's two type bits; the colour lookup masks it off (<c>data &amp; 3</c>), so it never disturbs
+    /// which wood a log paints as.</summary>
+    public const int LogAllBark = 12;
+
     /// <summary>The six woods a tree of either form can be cut from.</summary>
     public static readonly IReadOnlyList<TreeWood> Woods =
     [
