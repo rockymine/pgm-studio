@@ -29,6 +29,7 @@ test("a fresh prop of each kind starts at the same numbers the server does", () 
   // Water is drawn like a path but cuts a bed and fills it: a plain canal is what the other forms vary on.
   assert.equal(defaultProp("water").form, "canal");
   assert.equal(defaultProp("water").depth, 2);
+  assert.equal(defaultProp("water").shoreWander, true);
   // Its bank (bed floor + beach) is a full terrain material, not one block — a voronoi patchwork by default.
   assert.equal(defaultProp("water").bank.kind, "voronoi");
   assert.equal(defaultProp("water").bank.palette.length, 3);

@@ -354,15 +354,47 @@ public sealed class DressingAlgorithmTests
         // channel's width pinches or swells the beach rides in and out with it (one shore law, the water drives).
         var water = WaterBed.Cells(Straight, radius: 4, depth: 3, ChannelForm.Stream, edge: 0.8, seed: 5)
             .Select(cell => (cell.X, cell.Z)).ToHashSet();
-        var shore = WaterBed.ShoreCells(Straight, radius: 4, ChannelForm.Stream, shoreWidth: 3, edge: 0.8, seed: 5).ToList();
+        var shore = WaterBed.ShoreCells(Straight, radius: 4, ChannelForm.Stream, shoreWidth: 3, edge: 0.8, wander: true, seed: 5).ToList();
 
         await Assert.That(shore).IsNotEmpty();
         await Assert.That(shore.Any(cell => water.Contains(cell))).IsFalse();
     }
 
     [Test]
+    public async Task The_beach_wraps_the_water_symmetrically_rather_than_drifting_onto_one_bank()
+    {
+        // The fix for a beach that read as a shifted gravel path: the width is parameterised along the arc, so at
+        // each x down a straight run both banks carry the same beach — the outer beach edge is as far above the
+        // water as below it. A per-cell spatial field would open one bank and close the other.
+        var shore = WaterBed.ShoreCells(Straight, radius: 4, ChannelForm.Canal, shoreWidth: 3, edge: 0, wander: true, seed: 5).ToList();
+        var lopsided = 0;
+        foreach (var column in shore.GroupBy(cell => cell.X))
+        {
+            var above = column.Where(cell => cell.Z > 20).Select(cell => cell.Z - 20).DefaultIfEmpty(0).Max();
+            var below = column.Where(cell => cell.Z < 20).Select(cell => 20 - cell.Z).DefaultIfEmpty(0).Max();
+            if (Math.Abs(above - below) > 1) lopsided++;
+        }
+        await Assert.That(lopsided).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task An_even_beach_holds_one_width_on_both_banks_the_whole_way()
+    {
+        // Wander off: the beach is a clean band of the full width hugging the water on both banks — every column
+        // the water crosses carries the same beach above and below, with no drop-outs.
+        var even = WaterBed.ShoreCells(Straight, radius: 4, ChannelForm.Canal, shoreWidth: 3, edge: 0, wander: false, seed: 5).ToList();
+        foreach (var column in even.Where(cell => cell.X is >= 12 and <= 28).GroupBy(cell => cell.X))
+        {
+            var above = column.Count(cell => cell.Z > 20);
+            var below = column.Count(cell => cell.Z < 20);
+            await Assert.That(above).IsEqualTo(below);   // the same even beach on each bank
+            await Assert.That(above).IsGreaterThan(0);   // and it never drops out
+        }
+    }
+
+    [Test]
     public async Task No_beach_width_is_no_beach()
     {
-        await Assert.That(WaterBed.ShoreCells(Straight, radius: 4, ChannelForm.Natural, shoreWidth: 0, edge: 0.8, seed: 5)).IsEmpty();
+        await Assert.That(WaterBed.ShoreCells(Straight, radius: 4, ChannelForm.Natural, shoreWidth: 0, edge: 0.8, wander: true, seed: 5)).IsEmpty();
     }
 }

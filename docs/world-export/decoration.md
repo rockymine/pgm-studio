@@ -284,9 +284,13 @@ and beach the export cuts are the ones the prototype draws. A clean-banked **can
 **natural** edge wobbles its width off the nominal by a value field (± the *bank roughness* knob, in blocks). A
 **stream beads**: its width runs a rectified sine along the *arc* — pinching to half the radius and swelling
 back to it on a fixed beat, never wider than the nominal — so it narrows and widens down its length into a
-string of riffles rather than tapering once, and it runs shallower throughout. The **shore** is one law for
-every form; the difference in how a beach reads comes from the water, since the shore rides just outside the
-water edge — where a stream pinches, the beach pinches with it. The carve leans toward the **G32-C** elevation
+string of riffles rather than tapering once, and it runs shallower throughout. The **shore** rides just outside the water edge — a beach cell's inner
+edge *is* the water's, so the bank hugs the water whatever shape it takes. Its width is read along the channel's
+**arc**, not the plan grid, so at a point down the run both banks take the same width and the beach stays
+symmetric about the water, widening into a flat here and closing to nothing there *along* the channel rather than
+drifting onto one bank the way a plain spatial field does on a bend (the prototype's `shoreWidth` sampled the
+grid; carrying it to the arc is the one deliberate departure, and it is what makes the beach fit the water). A
+**beach edge** toggle switches that wander off for a clean, even band of the full width the whole way. The carve leans toward the **G32-C** elevation
 pass rather than depending on it: the bed is negative terrain laid straight into the realized world, so a
 channel works on the flat layouts the sketch tool builds today and will read as a cut valley once that pass
 gives a layout its heights.

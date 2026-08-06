@@ -83,11 +83,16 @@
           <ChildContent><input type="range" class="field-range" min="1" max="8" step="1"
                  value="@((int)Num(PropFields.Depth, 2))"
                  @oninput="e => Set(PropFields.Depth, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
-        <Field Label="Beach (blocks)"><LabelHint>the shore wanders and drops to nothing in places</LabelHint>
+        <Field Label="Beach (blocks)"><LabelHint>the bank the water meets the land through</LabelHint>
           <LabelEnd><strong>@($"{Num(PropFields.Shore, 2):0}")</strong></LabelEnd>
           <ChildContent><input type="range" class="field-range" min="0" max="8" step="1"
                  value="@((int)Num(PropFields.Shore, 2))"
                  @oninput="e => Set(PropFields.Shore, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
+        <Field Label="Beach edge">
+          <Chip Active="Flag(PropFields.ShoreWander, true)" OnClick="() => Set(PropFields.ShoreWander, JsonValue.Create(!Flag(PropFields.ShoreWander, true)))">
+            @(Flag(PropFields.ShoreWander, true) ? "Wanders — widens and closes along the run" : "Even — one width the whole way")
+          </Chip>
+        </Field>
         <Field Label="Bank roughness"><LabelHint>how far a natural or stream edge wanders; a canal ignores it</LabelHint>
           <LabelEnd><strong>@($"{Num(PropFields.Edge, 0.8):0.0}")</strong></LabelEnd>
           <ChildContent><input type="range" class="field-range" min="0" max="25" step="1"

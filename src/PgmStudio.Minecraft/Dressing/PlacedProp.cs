@@ -94,6 +94,11 @@ public sealed record WaterProp : PlacedProp
     /// some stretches and spreads into a flat in others. 0 gives no beach: the water meets the grass at its edge.</summary>
     public double Shore { get; init; } = 2;
 
+    /// <summary>Whether the beach width opens and closes along the run (a smooth field wandered to nothing in
+    /// places), or holds one even width the whole way. Either way it hugs the water; this is only how ragged its
+    /// outer edge is.</summary>
+    public bool ShoreWander { get; init; } = true;
+
     /// <summary>The bank the bed floor and the shore beach are laid with — a full terrain material, not one
     /// block, so it can be a solid, a voronoi patchwork or any pattern the painter offers. The shallows show it
     /// through the water, and the beach is the same material meeting the land.</summary>

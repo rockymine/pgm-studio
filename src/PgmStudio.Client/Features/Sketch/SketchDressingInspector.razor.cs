@@ -208,8 +208,8 @@ public partial class SketchDressingInspector
     private string Text(string field, string fallback = "")
         => prop?[field]?.GetValue<string>() ?? fallback;
 
-    private bool Flag(string field)
-        => prop?[field]?.GetValue<bool>() ?? false;
+    private bool Flag(string field, bool fallback = false)
+        => prop?[field]?.GetValue<bool>() ?? fallback;
 
     // A slider stores 0–100 and the model stores 0–1, so every share crosses here rather than at each caller.
     private static double Share(ChangeEventArgs e)
@@ -352,6 +352,7 @@ public static class PropFields
     public const string Depth = "depth";
     public const string Edge = "edge";
     public const string Shore = "shore";
+    public const string ShoreWander = "shoreWander";
     public const string Bank = "bank";
     public const string Species = "species";
     public const string Height = "height";

@@ -68,28 +68,30 @@ public static class WaterBed
         }
     }
 
-    /// <summary>The beach cells the channel meets the land through — the band <em>outside</em> the water, out to
-    /// a shore width that wanders with a noise field and drops to nothing in places, so the water meets the grass
-    /// directly in some stretches and spreads into a flat in others. The bank material is laid on these cells'
-    /// surface; the water never reaches them, so they carry no depth.
+    /// <summary>The beach cells the channel meets the land through — the band <em>outside</em> the water. It rides
+    /// just past the water edge, so a beach cell's inner edge <em>is</em> the water's: the shore always hugs the
+    /// water, whatever shape the water takes. The bank material is laid on these cells' surface; the water never
+    /// reaches them, so they carry no depth.
     ///
-    /// <para>The shore width is one law for every form — the difference in how a beach reads between a canal and a
-    /// stream comes not from the shore but from the <em>water</em>: the shore rides just outside the water edge, so
-    /// where a stream's width pinches and swells the beach pinches and swells with it.</para></summary>
+    /// <para>How wide the beach runs is parameterised along the channel's <b>arc</b>, not the plan grid: at a point
+    /// down the run both banks take the same width, so the beach is symmetric about the water and widens and narrows
+    /// <em>with</em> it — a flat here, meeting the grass directly there — rather than drifting onto one bank the way
+    /// a plain spatial field does on a bend. With <paramref name="wander"/> off the beach is an even band the whole
+    /// way; with it on, a smooth field along the arc opens and closes it, dropping it to nothing in places.</para></summary>
     public static IEnumerable<(int X, int Z)> ShoreCells(
-        IReadOnlyList<double[]> points, double radius, ChannelForm form, double shoreWidth, double edge, uint seed)
+        IReadOnlyList<double[]> points, double radius, ChannelForm form, double shoreWidth, double edge, bool wander, uint seed)
     {
         if (shoreWidth <= 0) yield break;
         var centerline = PathBand.Centerline(points);
         if (centerline.Count < 2 || radius <= 0) yield break;
 
-        var scan = radius + Math.Max(0, edge) + shoreWidth * 2 + 1;
-        var reach = (int cx, int cz, PathHit hit) => WidthAt(form, radius, edge, cx, cz, hit, seed) + ShoreAt(shoreWidth, cx, cz, seed);
+        var scan = radius + Math.Max(0, edge) + shoreWidth + 1;
+        var reach = (int cx, int cz, PathHit hit) => WidthAt(form, radius, edge, cx, cz, hit, seed) + ShoreAt(shoreWidth, wander, hit, seed);
         foreach (var (x, z, hit) in Polyline.Hits(centerline, scan, reach))
         {
             var water = WidthAt(form, radius, edge, x, z, hit, seed);
             if (hit.Distance <= water) continue;   // inside the water — that is the bed's, not the beach's
-            if (hit.Distance <= water + ShoreAt(shoreWidth, x, z, seed)) yield return (x, z);
+            if (hit.Distance <= water + ShoreAt(shoreWidth, wander, hit, seed)) yield return (x, z);
         }
     }
 
@@ -108,8 +110,12 @@ public static class WaterBed
         };
     }
 
-    // How far the beach reaches past the water at a cell — the prototype's `shoreWidth`: a smooth field scaled so
-    // it drops to zero across much of its range, leaving the shore a broken flat rather than a fixed-width ring.
-    private static double ShoreAt(double shoreWidth, int x, int z, uint seed)
-        => Math.Max(0, shoreWidth * (1.9 * PatternNoise.Value(x, z, seed + 91, ShoreScale) - 0.25));
+    // How far the beach reaches past the water at a cell. Off: the full width, an even band. On: a smooth field
+    // read along the arc — the same rescaling the prototype's `shoreWidth` uses to drop a shore to nothing in
+    // places — but sampled by arc position so both banks share one width and the beach stays wrapped to the water
+    // rather than a spatial field that opens on one bank and closes on the other around a bend.
+    private static double ShoreAt(double shoreWidth, bool wander, PathHit hit, uint seed)
+        => wander
+            ? Math.Max(0, shoreWidth * (1.9 * PatternNoise.Value((int)Math.Round(hit.Arc), 0, seed + 91, ShoreScale) - 0.25))
+            : shoreWidth;
 }

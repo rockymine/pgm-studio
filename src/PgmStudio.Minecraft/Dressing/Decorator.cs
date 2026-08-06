@@ -121,7 +121,7 @@ public static class Decorator
         if (water.Points.Count < 2 || water.Radius <= 0 || water.Depth <= 0) return 0;
         var bed = WaterBed.Cells(water.Points, water.Radius, water.Depth, water.Form, water.Edge, water.Seed).ToList();
         if (bed.Count == 0) return 0;
-        var shore = WaterBed.ShoreCells(water.Points, water.Radius, water.Form, water.Shore, water.Edge, water.Seed).ToList();
+        var shore = WaterBed.ShoreCells(water.Points, water.Radius, water.Form, water.Shore, water.Edge, water.ShoreWander, water.Seed).ToList();
 
         // The bank is a full terrain material, so the bed floor and the beach are a voronoi patchwork or any
         // pattern the painter offers, resolved cell by cell exactly as the painter resolves a surface.
