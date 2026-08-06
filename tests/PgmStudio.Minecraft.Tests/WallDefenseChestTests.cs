@@ -4,9 +4,9 @@ using PgmStudio.Minecraft;
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>
-/// The bedrock wall's defence chest: one set into each of the wall's two faces, a full 27-slot supply, with a
-/// single air block above so the lid opens — round-tripped through a region file so the tile entities and items
-/// actually serialise.
+/// The bedrock wall's defence chest: one or two set into a single face (by lane width), a full 27-slot supply
+/// each, with an air block above so the lid opens and bedrock left behind so the wall still stands — round-tripped
+/// through a region file so the tile entities and items actually serialise.
 /// </summary>
 public sealed class WallDefenseChestTests
 {
@@ -20,31 +20,59 @@ public sealed class WallDefenseChestTests
         return surface;
     }
 
-    [Test]
-    public async Task A_chest_is_set_into_each_face_with_an_air_block_above()
+    private static int ChestCount(VoxelWorld world, int minX, int minZ, int maxX, int maxZ, int loY, int hiY)
     {
-        var world = new VoxelWorld();
-        var surface = Flat(-2, -2, 3, 12);
-        // A wall thin across X (faces at x=0 and x=1), long along Z, up to y=20.
-        StructureStamper.StampWall(world, 0, 0, 2, 12, 20);
-        WallDefenseChest.Stamp(world, surface, 0, 0, 2, 12, 20);
-
-        // zMid = (0 + 12 - 1) / 2 = 5. A chest in each face at the ground line, facing out.
-        await Assert.That(world.GetBlock(0, 8, 5)).IsEqualTo((Blocks.Chest, 4));   // -X face → west
-        await Assert.That(world.GetBlock(1, 8, 5)).IsEqualTo((Blocks.Chest, 5));   // +X face → east
-        // The one carved air block above each, so the lid can open — the wall was solid bedrock there.
-        await Assert.That(world.GetBlock(0, 9, 5).Id).IsEqualTo(Blocks.Air);
-        await Assert.That(world.GetBlock(1, 9, 5).Id).IsEqualTo(Blocks.Air);
-        // and still bedrock above the pocket — a one-block niche, not an open shaft.
-        await Assert.That(world.GetBlock(0, 10, 5).Id).IsEqualTo(Blocks.Bedrock);
+        var count = 0;
+        for (var x = minX; x < maxX; x++)
+        for (var z = minZ; z < maxZ; z++)
+        for (var y = loY; y <= hiY; y++)
+            if (world.GetBlock(x, y, z).Id == Blocks.Chest) count++;
+        return count;
     }
 
     [Test]
-    public async Task Both_chests_carry_the_full_defence_loadout()
+    public async Task Only_one_face_is_opened_so_a_full_bedrock_wall_stands_behind_the_chest()
     {
         var world = new VoxelWorld();
-        StructureStamper.StampWall(world, 0, 0, 2, 12, 20);
-        WallDefenseChest.Stamp(world, Flat(-2, -2, 3, 12), 0, 0, 2, 12, 20);
+        // A wall thin across X (columns x=0 near face, x=1 back), lane 8 (→ one chest), up to y=20.
+        StructureStamper.StampWall(world, 0, 0, 2, 8, 20);
+        WallDefenseChest.Stamp(world, Flat(-2, -2, 3, 8), 0, 0, 2, 8, 20);
+
+        // Lane 8 → one chest, set into the near face (x=0) at the ground line, facing out (west).
+        await Assert.That(ChestCount(world, 0, 0, 2, 8, 0, 20)).IsEqualTo(1);
+        await Assert.That(world.GetBlock(0, 8, 4)).IsEqualTo((Blocks.Chest, 4));
+        await Assert.That(world.GetBlock(0, 9, 4).Id).IsEqualTo(Blocks.Air);      // the one air block, to open the lid
+        await Assert.That(world.GetBlock(0, 10, 4).Id).IsEqualTo(Blocks.Bedrock); // pocket closed above
+
+        // The wall still stands: the column behind the chest is bedrock, and the back face is solid its whole
+        // height — break the chest and you meet bedrock, not a way through.
+        await Assert.That(world.GetBlock(1, 8, 4).Id).IsEqualTo(Blocks.Bedrock);
+        await Assert.That(world.GetBlock(1, 9, 4).Id).IsEqualTo(Blocks.Bedrock);
+        for (var y = 0; y <= 20; y++)
+            await Assert.That(world.GetBlock(1, y, 4).Id).IsEqualTo(Blocks.Bedrock);
+    }
+
+    [Test]
+    public async Task A_narrow_lane_gets_one_chest_a_wide_lane_two()
+    {
+        var narrow = new VoxelWorld();
+        StructureStamper.StampWall(narrow, 0, 0, 2, WallDefenseChest.SingleChestMaxLane, 20);
+        WallDefenseChest.Stamp(narrow, Flat(-2, -2, 3, WallDefenseChest.SingleChestMaxLane), 0, 0, 2, WallDefenseChest.SingleChestMaxLane, 20);
+        await Assert.That(ChestCount(narrow, 0, 0, 2, WallDefenseChest.SingleChestMaxLane, 0, 20)).IsEqualTo(1);
+
+        var wide = new VoxelWorld();
+        var wideLane = WallDefenseChest.SingleChestMaxLane + 4;
+        StructureStamper.StampWall(wide, 0, 0, 2, wideLane, 20);
+        WallDefenseChest.Stamp(wide, Flat(-2, -2, 3, wideLane), 0, 0, 2, wideLane, 20);
+        await Assert.That(ChestCount(wide, 0, 0, 2, wideLane, 0, 20)).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task A_defence_chest_carries_the_full_loadout()
+    {
+        var world = new VoxelWorld();
+        StructureStamper.StampWall(world, 0, 0, 2, 8, 20);
+        WallDefenseChest.Stamp(world, Flat(-2, -2, 3, 8), 0, 0, 2, 8, 20);
 
         var dir = Path.Combine(Path.GetTempPath(), "walldef_" + Guid.NewGuid().ToString("N"));
         try
@@ -56,11 +84,10 @@ public sealed class WallDefenseChestTests
                     if (chunk.Level.Get<NbtList>("TileEntities") is { } te)
                         tiles.AddRange(te.OfType<NbtCompound>());
 
-            var chests = tiles.Where(t => t.Get<NbtString>("id")?.Value == "Chest").ToList();
-            await Assert.That(chests.Count).IsEqualTo(2);                                    // one per face
-            await Assert.That(chests.All(c => c.Get<NbtList>("Items")!.Count == 27)).IsTrue();  // a full chest
+            var chest = tiles.Single(t => t.Get<NbtString>("id")?.Value == "Chest");
+            var items = chest.Get<NbtList>("Items")!.OfType<NbtCompound>().ToList();
+            await Assert.That(items.Count).IsEqualTo(27);                  // a full single chest
 
-            var items = chests[0].Get<NbtList>("Items")!.OfType<NbtCompound>().ToList();
             int Total(string id, int? damage = null) => items
                 .Where(i => i.Get<NbtString>("id")!.Value == id && (damage is null || i.Get<NbtShort>("Damage")!.Value == damage))
                 .Sum(i => i.Get<NbtByte>("Count")!.Value);
@@ -78,8 +105,7 @@ public sealed class WallDefenseChestTests
             await Assert.That(ench.Get<NbtShort>("id")!.Value).IsEqualTo((short)32);   // efficiency
             await Assert.That(ench.Get<NbtShort>("lvl")!.Value).IsEqualTo((short)2);
 
-            // Every stackable slot is a half-stack (32); no slot exceeds it.
-            await Assert.That(items.All(i => i.Get<NbtByte>("Count")!.Value <= 32)).IsTrue();
+            await Assert.That(items.All(i => i.Get<NbtByte>("Count")!.Value <= 32)).IsTrue();   // half-stacks
         }
         finally
         {

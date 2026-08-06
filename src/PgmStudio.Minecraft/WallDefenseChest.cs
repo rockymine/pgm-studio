@@ -4,15 +4,16 @@ namespace PgmStudio.Minecraft;
 
 /// <summary>
 /// The defence chest a bedrock approach wall (ST4) carries: a full 27-slot supply of building material and the
-/// tools to place it, embedded in each of the wall's two long faces so both teams get the same. The wall is a
-/// team's line to hold, and a chest at it turns the wall from a bare slab into a place a defence is built —
-/// planks and crafting tables to wall up, end stone and a redstone block to reinforce, and a pair of Efficiency
-/// pickaxes to cut back through when the line moves.
+/// tools to place it, set into <b>one</b> face of the wall. The wall is a team's line to hold, and a chest at it
+/// turns the wall from a bare slab into a place a defence is built — planks and crafting tables to wall up, end
+/// stone and a redstone block to reinforce, and a pair of Efficiency pickaxes to cut back through when the line
+/// moves.
 ///
-/// <para>Each chest is <b>set into the face</b> with a single air block above it: the chest replaces the one
-/// bedrock block at the approach's ground level, and the block over it is carved to air so the chest opens
-/// (a solid block directly above a chest blocks its lid). The result reads as a niche in the wall rather than a
-/// box sitting in front of it, and it cannot be pushed off or walled in.</para>
+/// <para>Only one face is touched, so the wall stays a wall. The chest replaces the one bedrock block at the
+/// approach's ground level and the block over it is carved to air so the lid opens (a solid block directly above
+/// a chest blocks it) — a niche, not a box in front. Crucially the column <em>behind</em> the chest is left as
+/// bedrock, and so is the whole far face, so a full vertical bedrock wall still stands: break the chest and you
+/// meet bedrock, not a way through. One or two chests ride the face by how wide the lane is.</para>
 /// </summary>
 public static class WallDefenseChest
 {
@@ -24,35 +25,48 @@ public static class WallDefenseChest
     private const int DarkOakPlanks = 5;     // minecraft:planks damage — dark oak
     private const int SprucePlanks = 1;      // minecraft:planks damage — spruce
 
-    /// <summary>Embed a defence chest in each long face of the wall over <c>[minX, maxX) × [minZ, maxZ)</c>,
-    /// resting at the approach's own ground level (the surface just outside the face). The wall is thin across
-    /// the seam and long along it; the two faces are its long sides, one per team.</summary>
+    /// <summary>A lane this wide or narrower carries one chest; a wider one carries two.</summary>
+    public const int SingleChestMaxLane = 10;
+
+    /// <summary>Set one or two defence chests into a single face of the wall over <c>[minX, maxX) × [minZ, maxZ)</c>,
+    /// resting at the approach's own ground level. The wall is thin across the seam and long along it (the lane);
+    /// the number of chests follows the lane width, and only the near face is opened so a full bedrock wall stands
+    /// behind them. A wall thinner than two blocks across is left whole — there would be no bedrock to back a
+    /// chest with.</summary>
     public static void Stamp(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
         int minX, int minZ, int maxX, int maxZ, int topY)
     {
         if (maxX <= minX || maxZ <= minZ) return;
 
-        // The seam runs along the wall's long axis; the faces are the two ends of its short (across-seam) axis.
-        if (maxX - minX <= maxZ - minZ)
-        {
-            var zMid = (minZ + maxZ - 1) / 2;
-            Embed(world, surfaceTop, minX, zMid, dirX: -1, dirZ: 0, topY);
-            Embed(world, surfaceTop, maxX - 1, zMid, dirX: +1, dirZ: 0, topY);
-        }
+        var thinAlongX = maxX - minX <= maxZ - minZ;
+        var thickness = thinAlongX ? maxX - minX : maxZ - minZ;
+        if (thickness < 2) return;   // one block thick — a chest anywhere would breach it, so place none
+
+        var laneWidth = thinAlongX ? maxZ - minZ : maxX - minX;
+        var count = laneWidth <= SingleChestMaxLane ? 1 : 2;
+
+        // One face only — the near (min-side) one — so the far face and the column behind each chest stay solid.
+        if (thinAlongX)
+            foreach (var z in Positions(minZ, laneWidth, count))
+                Embed(world, surfaceTop, minX, z, dirX: -1, dirZ: 0);
         else
-        {
-            var xMid = (minX + maxX - 1) / 2;
-            Embed(world, surfaceTop, xMid, minZ, dirX: 0, dirZ: -1, topY);
-            Embed(world, surfaceTop, xMid, maxZ - 1, dirX: 0, dirZ: +1, topY);
-        }
+            foreach (var x in Positions(minX, laneWidth, count))
+                Embed(world, surfaceTop, x, minZ, dirX: 0, dirZ: -1);
+    }
+
+    // Where the chests sit along the lane: evenly spaced, so one lands mid-wall and two split it into thirds.
+    private static IEnumerable<int> Positions(int lo, int length, int count)
+    {
+        for (var i = 0; i < count; i++) yield return lo + (int)((long)(i + 1) * length / (count + 1));
     }
 
     // Set a chest into the face column (faceX, faceZ), fronting the approach (the direction dirX/dirZ points).
-    // It sits at the approach's ground Y, with the block above carved to air so the lid can open.
+    // It sits at the approach's ground Y, with the block above carved to air so the lid can open. Only this
+    // column is touched, so the column behind it (deeper into the wall) stays bedrock.
     private static void Embed(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
-        int faceX, int faceZ, int dirX, int dirZ, int topY)
+        int faceX, int faceZ, int dirX, int dirZ)
     {
         // The approach column is one block out from the face; its first air is the Y a player stands on, and the
         // height the chest sits at so it is reached from the ground rather than the middle of the wall.
