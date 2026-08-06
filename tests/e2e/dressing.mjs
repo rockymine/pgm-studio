@@ -46,11 +46,14 @@ checks.add("a marker kept its cell", props[2]?.x === 10 && props[2]?.z === 12, J
 checks.section("every option is drawn by the pass");
 
 const styles = await api("/terrain/path-styles");
+const waterFormCards = await api("/terrain/water-forms");
 const forms = await api("/terrain/boulder-forms");
 const species = await api("/terrain/species");
 
 checks.add("six path styles, each drawn", styles.length === 6 && styles.every(s => s.svg?.includes("<rect")),
   styles.map(s => s.key).join(" "));
+checks.add("three channel forms, each drawn", waterFormCards.length === 3 && waterFormCards.every(f => f.svg?.includes("<rect")),
+  waterFormCards.map(f => f.key).join(" "));
 checks.add("four boulder forms, each drawn", forms.length === 4 && forms.every(f => f.svg?.includes("<rect")),
   forms.map(f => f.key).join(" "));
 checks.add("every species drawn, and carrying its own proportions",
@@ -82,11 +85,16 @@ const lush = await preview({ kind: "flora", points: [[0, 0], [40, 0], [40, 40], 
 const road = await preview({ kind: "path", points: [[0, 20], [40, 20]], radius: 3, seed: 5, blocks: [{ id: 13, data: 0 }] });
 const trail = await preview({ kind: "path", points: [[0, 20], [40, 20]], radius: 3, style: "stones", seed: 5, blocks: [{ id: 13, data: 0 }] });
 const tree = await preview({ kind: "tree", x: 0, z: 0, species: "spruce", height: 24, seed: 5 });
+const shallow = await preview({ kind: "water", points: [[0, 20], [40, 20]], radius: 4, depth: 1, seed: 5 });
+const deep = await preview({ kind: "water", points: [[0, 20], [40, 20]], radius: 4, depth: 5, seed: 5 });
 
 checks.add("coverage moves the plant count", lush.counts.plants > sparse.counts.plants,
   `${sparse.counts.plants} → ${lush.counts.plants}`);
 checks.add("stepping stones pave less than a road", trail.counts.pathCells < road.counts.pathCells && trail.counts.pathCells > 0,
   `${road.counts.pathCells} → ${trail.counts.pathCells}`);
+checks.add("a channel carves and fills, and a deeper one is drawn no shorter", deep.counts.waterCells > 0
+  && shallow.counts.waterCells > 0 && (deep.section?.length ?? 0) > 100,
+  `shallow ${shallow.counts.waterCells} · deep ${deep.counts.waterCells} · section ${deep.section?.length}`);
 checks.add("one tree is one tree", tree.counts.trees === 1, JSON.stringify(tree.counts));
 checks.add("both views are drawn", (tree.plan?.length ?? 0) > 100 && (tree.section?.length ?? 0) > 100,
   `plan ${tree.plan?.length} · section ${tree.section?.length}`);
@@ -110,8 +118,8 @@ try {
 
   tools = await page.locator(".canvas-toolbar .draw-tool-btn").evaluateAll(
     els => els.map(el => el.getAttribute("title")));
-  const placing = tools.filter(t => /^(Path|Ground cover|Tree|Boulder)/.test(t ?? ""));
-  checks.add("the phase offers its four placing tools", placing.length === 4, tools.join(" | "));
+  const placing = tools.filter(t => /^(Path|Water|Ground cover|Tree|Boulder)/.test(t ?? ""));
+  checks.add("the phase offers its five placing tools", placing.length === 5, tools.join(" | "));
   // The draw tools are Draw's: dressing places props, it does not author geometry.
   checks.add("and none of the shape tools", !tools.some(t => /^(Rectangle|Polygon|Lasso)/.test(t ?? "")),
     tools.join(" | "));
@@ -149,6 +157,21 @@ try {
   await page.waitForTimeout(1500);
   checks.add("a drag places a path, and releasing ends it", await page.locator("text=Style").count() > 0);
   await shot("dressing-path.png");
+
+  // Drag a water channel: the same press-trace-release, but its inspector is the water one — a depth and a
+  // form, the knobs a channel has and a path does not.
+  await page.click('button[title^="Water"]');
+  await page.mouse.move(box.x + box.width * 0.25, box.y + box.height * 0.35);
+  await page.mouse.down();
+  for (const step of [0.35, 0.45, 0.55, 0.65, 0.75]) {
+    await page.mouse.move(box.x + box.width * step, box.y + box.height * (0.35 + (step - 0.25) * 0.4));
+    await page.waitForTimeout(60);
+  }
+  await page.mouse.up();
+  await page.waitForTimeout(2000);
+  checks.add("a drag places a water channel, with its own depth + form knobs",
+    await page.locator("text=Depth").count() > 0 && await page.locator("text=Form").count() > 0);
+  await shot("dressing-water.png");
   ok = true;
 } catch (e) {
   page.faults.push(`dressing phase drive: ${String(e).split("\n")[0]}`);
