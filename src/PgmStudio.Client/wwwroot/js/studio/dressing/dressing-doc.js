@@ -21,9 +21,13 @@ export function defaultProp(kind, seed) {
       // variation on.
       return { ...base, points: [], radius: 3, style: "solid", coverage: 0.7, blocks: [{ id: 13, data: 0 }] };
     case "water":
-      // A three-block-wide canal, cut two deep, over a sand bed: the plain channel every other form is a
-      // variation on. Numbers mirror the C# WaterProp defaults.
-      return { ...base, points: [], radius: 3, depth: 2, form: "canal", bedId: 12, bedData: 0 };
+      // A three-block-wide canal, cut two deep, meeting the land through a shore beach, over a bank of
+      // jittered sand / gravel / coarse dirt. The bank is a full terrain material, not one block — the same
+      // pattern the painter tiles. Numbers + the material mirror the C# WaterProp defaults.
+      return { ...base, points: [], radius: 3, depth: 2, form: "canal", shore: 2, bank: {
+        kind: "voronoi", seed: 1, cellSize: 5, palette: [
+          { kind: "solid", id: 12, data: 0 }, { kind: "solid", id: 13, data: 0 }, { kind: "solid", id: 3, data: 1 },
+        ] } };
     case "flora":
       return { ...base, points: [], spec: { coverage: 0.45, scale: 12, octaves: 3, fernShare: 0.25, flowerShare: 0.18, flowerScale: 18, tallShare: 0 } };
     case "tree":

@@ -121,12 +121,18 @@ public static class Decorator
         if (water.Points.Count < 2 || water.Radius <= 0 || water.Depth <= 0) return 0;
         var bed = WaterBed.Cells(water.Points, water.Radius, water.Depth, water.Form, water.Seed).ToList();
         if (bed.Count == 0) return 0;
+        var shore = WaterBed.ShoreCells(water.Points, water.Radius, water.Form, water.Shore, water.Seed).ToList();
 
+        // The bank is a full terrain material, so the bed floor and the beach are a voronoi patchwork or any
+        // pattern the painter offers, resolved cell by cell exactly as the painter resolves a surface.
+        (int Id, int Data) Bank(int x, int y, int z) => water.Bank.Resolve(new BucketContext(x, y, z, TerrainBucket.Surface, 0));
+
+        // The water first, every image: carve each bed and fill it to that image's own level line. The columns
+        // it wets are remembered so the beach, which comes after, never lays sand over open water where the two
+        // overlap across the symmetry fan.
         var placed = 0;
         for (var image = 0; image < context.Symmetry.Order; image++)
         {
-            // First pass over this image's cells: keep the ones that land on carvable terrain, and find the
-            // lowest surface among them — that is the water line the whole channel fills to.
             var cells = new List<(int X, int Z, int SurfaceSolid, int Depth)>(bed.Count);
             var waterLevel = int.MaxValue;
             foreach (var cell in bed)
@@ -152,11 +158,27 @@ public static class Decorator
                 // only ever replaces terrain that was already there.
                 for (var y = bedFloor + 1; y <= surfaceSolid; y++)
                     world.SetBlock(x, y, z, y <= waterLevel ? Blocks.StationaryWater : Blocks.Air);
-                // A sandy bed floor the shallows show through, laid where terrain already stood.
-                if (bedFloor >= 1) world.SetBlock(x, bedFloor, z, water.BedId, water.BedData);
+                // The bank floor the shallows show through, laid where terrain already stood.
+                if (bedFloor >= 1) { var (id, data) = Bank(x, bedFloor, z); world.SetBlock(x, bedFloor, z, id, data); }
                 taken.Add((x, z));
                 placed++;
             }
+        }
+
+        // Then the beach, every image: the bank material on the surface just past the water, wherever the water
+        // met carvable land. A shore column that a channel elsewhere already filled with water is left as water.
+        for (var image = 0; image < context.Symmetry.Order; image++)
+        foreach (var cell in shore)
+        {
+            var (x, z) = context.Symmetry.ImageCell(cell.X, cell.Z, image);
+            if (taken.Contains((x, z)) || context.IsProtected(x, z)) continue;
+            if (!context.SurfaceTop.TryGetValue((x, z), out var top) || top < 1) continue;
+            var surfaceSolid = top - 1;
+            if (DressingPalette.IsStamp(world.GetBlock(x, surfaceSolid, z).Id)) continue;
+
+            var (id, data) = Bank(x, surfaceSolid, z);
+            world.SetBlock(x, surfaceSolid, z, id, data);
+            taken.Add((x, z));
         }
         return placed;
     }

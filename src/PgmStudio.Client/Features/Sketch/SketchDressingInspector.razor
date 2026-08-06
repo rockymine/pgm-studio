@@ -83,6 +83,11 @@
           <ChildContent><input type="range" class="field-range" min="1" max="8" step="1"
                  value="@((int)Num(PropFields.Depth, 2))"
                  @oninput="e => Set(PropFields.Depth, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
+        <Field Label="Beach (blocks)"><LabelHint>the shore wanders and drops to nothing in places</LabelHint>
+          <LabelEnd><strong>@($"{Num(PropFields.Shore, 2):0}")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="8" step="1"
+                 value="@((int)Num(PropFields.Shore, 2))"
+                 @oninput="e => Set(PropFields.Shore, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
         <div class="section-header section-header--ruled"><h2 class="section-title">Form</h2></div>
         <div class="prop-cards">
           @foreach (var option in waterForms)
@@ -94,12 +99,12 @@
             </button>
           }
         </div>
-        <div class="section-header section-header--ruled"><h2 class="section-title">Bed</h2></div>
-        <p class="section-desc">The floor the shallows show through.</p>
-        <Field Label="Bed block">
-          <BlockPicker Blocks="blocks" Id="(int)Num(PropFields.BedId, 12)" Data="(int)Num(PropFields.BedData, 0)"
-                       OnPick="v => SetBed(v.Id, v.Data)" />
-        </Field>
+        <div class="section-header section-header--ruled"><h2 class="section-title">Bank</h2></div>
+        <p class="section-desc">The bed floor and the beach — a full material, the same the shallows show through and the shore meets the land with.</p>
+        @if (Bank is not null)
+        {
+          <MaterialEditor Node="Bank" Blocks="blocks" OnChanged="BankChanged" />
+        }
       }
       else if (kind == PropKinds.Flora)
       {

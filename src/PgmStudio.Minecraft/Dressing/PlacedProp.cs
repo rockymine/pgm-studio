@@ -66,10 +66,17 @@ public readonly record struct PaveBlock(int Id, int Data);
 /// carve stops at the surface it crosses and never fills what was already air.</summary>
 public sealed record WaterProp : PlacedProp
 {
+    /// <summary>The default bank: a jittered-voronoi patchwork of sand, pale gravel and coarse dirt — the same
+    /// pattern idea the terrain painter's <see cref="VoronoiMaterial"/> tiles, so a bed reads like ground the
+    /// map is finished with rather than one flat block.</summary>
+    private static readonly TerrainMaterial DefaultBank = new VoronoiMaterial(1, 5,
+        [new SolidMaterial(Minecraft.Blocks.Sand), new SolidMaterial(Minecraft.Blocks.Gravel),
+         new SolidMaterial(Minecraft.Blocks.Dirt, 1)]);
+
     /// <summary>The drawn centerline, as <c>[x, z]</c> pairs. Two points or more.</summary>
     public IReadOnlyList<double[]> Points { get; init; } = [];
 
-    /// <summary>Half the channel's width, in blocks.</summary>
+    /// <summary>Half the channel's water width, in blocks.</summary>
     public double Radius { get; init; } = 3;
 
     /// <summary>How deep the bed is cut below the water line on the centerline, in blocks. The bed rises to a
@@ -78,10 +85,15 @@ public sealed record WaterProp : PlacedProp
 
     public ChannelForm Form { get; init; } = ChannelForm.Canal;
 
-    /// <summary>The block the carved bed floor is laid with — a sandy or gravelly bottom that shows through the
-    /// shallows.</summary>
-    public int BedId { get; init; } = Minecraft.Blocks.Sand;
-    public int BedData { get; init; }
+    /// <summary>How wide a beach the water meets the land through, in blocks — the widest the shore band reaches
+    /// before a noise field wanders it, dropping it to nothing in places so the water meets the land directly in
+    /// some stretches and spreads into a flat in others. 0 gives no beach: the water meets the grass at its edge.</summary>
+    public double Shore { get; init; } = 2;
+
+    /// <summary>The bank the bed floor and the shore beach are laid with — a full terrain material, not one
+    /// block, so it can be a solid, a voronoi patchwork or any pattern the painter offers. The shallows show it
+    /// through the water, and the beach is the same material meeting the land.</summary>
+    public TerrainMaterial Bank { get; init; } = DefaultBank;
 }
 
 /// <summary>

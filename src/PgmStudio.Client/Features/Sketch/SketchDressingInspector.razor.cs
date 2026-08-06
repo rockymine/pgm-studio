@@ -265,10 +265,18 @@ public partial class SketchDressingInspector
         await Set(PropFields.BlockData, JsonValue.Create(data));
     }
 
-    private async Task SetBed(int id, int data)
+    /// <summary>The bank material node — the bed floor and the beach the channel is laid with, a full terrain
+    /// material edited by the same <c>MaterialEditor</c> the theme phase uses. The editor mutates this node in
+    /// place, so persisting it is pushing the node back as a patch.</summary>
+    private JsonObject? Bank => prop?[PropFields.Bank] as JsonObject;
+
+    private async Task BankChanged()
     {
-        await Set(PropFields.BedId, JsonValue.Create(id));
-        await Set(PropFields.BedData, JsonValue.Create(data));
+        if (prop is null || Handle is null || Bank is null) return;
+        var patch = new JsonObject { [PropFields.Bank] = Bank.DeepClone() };
+        if (editingSelection) await Handle.InvokeVoidAsync("updateProp", patch.ToJsonString());
+        else await Handle.InvokeVoidAsync("setPropSettings", kind, patch.ToJsonString());
+        await RefreshPreview();
     }
 
     /// <summary>Apply an option — its key, plus whatever else the option implies. A species is a starting
@@ -342,8 +350,8 @@ public static class PropFields
     public const string Coverage = "coverage";
     public const string Blocks = "blocks";
     public const string Depth = "depth";
-    public const string BedId = "bedId";
-    public const string BedData = "bedData";
+    public const string Shore = "shore";
+    public const string Bank = "bank";
     public const string Species = "species";
     public const string Height = "height";
     public const string Stems = "stems";

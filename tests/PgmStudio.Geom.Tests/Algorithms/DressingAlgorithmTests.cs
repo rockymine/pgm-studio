@@ -329,4 +329,25 @@ public sealed class DressingAlgorithmTests
         var two = WaterBed.Cells(Straight, radius: 3, depth: 3, ChannelForm.Natural, seed: 5).ToList();
         await Assert.That(one).IsEquivalentTo(two);
     }
+
+    [Test]
+    public async Task The_beach_lies_outside_the_water_and_a_stream_spreads_a_wider_one_than_a_canal()
+    {
+        // The shore is the band past the water — none of its cells are ones the bed carves — and how wide it
+        // runs is the channel's own read: a stream spreads into flats where a canal keeps a clean, narrow bank.
+        var water = WaterBed.Cells(Straight, radius: 4, depth: 3, ChannelForm.Canal, seed: 5)
+            .Select(cell => (cell.X, cell.Z)).ToHashSet();
+        var canalShore = WaterBed.ShoreCells(Straight, radius: 4, ChannelForm.Canal, shoreWidth: 3, seed: 5).ToList();
+        var streamShore = WaterBed.ShoreCells(Straight, radius: 4, ChannelForm.Stream, shoreWidth: 3, seed: 5).ToList();
+
+        await Assert.That(canalShore).IsNotEmpty();
+        await Assert.That(canalShore.Any(cell => water.Contains(cell))).IsFalse();   // never the bed's cells
+        await Assert.That(streamShore.Count).IsGreaterThan(canalShore.Count);        // a stream's flats are wider
+    }
+
+    [Test]
+    public async Task No_beach_width_is_no_beach()
+    {
+        await Assert.That(WaterBed.ShoreCells(Straight, radius: 4, ChannelForm.Natural, shoreWidth: 0, seed: 5)).IsEmpty();
+    }
 }

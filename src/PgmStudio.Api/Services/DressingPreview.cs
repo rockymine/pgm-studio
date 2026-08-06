@@ -126,8 +126,10 @@ public static class DressingPreview
         [PathStyle.Cobble] = "Cobbled", [PathStyle.Stones] = "Stepping stones", [PathStyle.Tapered] = "Tapered",
     };
 
-    // A bent stroke, so a card shows what a style does through a turn as well as along a straight.
-    private static readonly double[][] CardStroke = [[4, 14], [14, 8], [26, 16], [36, 10]];
+    // A bent stroke, so a card shows what a style does through a turn as well as along a straight. Centred on
+    // the patch's own middle (z ≈ CardSpan/2), because the card samples the middle band of the patch — a stroke
+    // drawn near the top edge is cropped rather than shown.
+    private static readonly double[][] CardStroke = [[4, 22], [14, 16], [26, 24], [36, 18]];
 
     /// <summary>How wide a sample a prop needs to read: enough ground around a marker to see its shape and its
     /// footing, and enough of an area to see its density field do anything.</summary>

@@ -285,14 +285,53 @@ public sealed class DecoratorTests
         var (world, top) = Plateau();
         var tally = Decorator.Decorate(world, Context(top, [new WaterProp
         {
-            Id = "w", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Seed = 5, BedId = Blocks.Sand,
+            Id = "w", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Seed = 5, Shore = 0,
+            Bank = new SolidMaterial(Blocks.Sand),
         }]));
 
         await Assert.That(tally.WaterCells).IsGreaterThan(60);
         await Assert.That(world.GetBlock(20, 7, 20).Id).IsEqualTo(Blocks.StationaryWater);   // the old surface, now water
         await Assert.That(world.GetBlock(20, 6, 20).Id).IsEqualTo(Blocks.StationaryWater);   // cut deeper on the line
         await Assert.That(world.GetBlock(20, 4, 20).Id).IsEqualTo(Blocks.Sand);              // a sand bed under it
-        await Assert.That(world.GetBlock(20, 7, 30).Id).IsEqualTo(Blocks.Grass);             // clear of the channel
+        await Assert.That(world.GetBlock(20, 7, 34).Id).IsEqualTo(Blocks.Grass);             // clear of the channel + its beach
+    }
+
+    [Test]
+    public async Task A_channels_bank_is_a_material_the_shallows_and_the_beach_share()
+    {
+        // The bed floor and the shore are one material, not one block — a voronoi of sand, gravel and coarse
+        // dirt by default. So the floor under the water and the beach beside it are drawn from the same palette.
+        var (world, top) = Plateau();
+        var bank = new HashSet<int> { Blocks.Sand, Blocks.Gravel, Blocks.Dirt };
+        Decorator.Decorate(world, Context(top, [new WaterProp
+        {
+            Id = "w", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Shore = 4, Seed = 5,
+        }]));
+
+        // The bed floor under the centerline is one of the bank's blocks.
+        await Assert.That(bank).Contains(world.GetBlock(20, 4, 20).Id);
+        // A beach was laid: some grass columns off the water became bank material on the surface, and the water
+        // itself is untouched grass nowhere near it.
+        var beach = top.Keys.Count(cell => bank.Contains(world.GetBlock(cell.X, 7, cell.Z).Id)
+            && world.GetBlock(cell.X, 7, cell.Z).Id != Blocks.StationaryWater);
+        await Assert.That(beach).IsGreaterThan(0);
+    }
+
+    [Test]
+    public async Task With_no_beach_the_water_meets_the_grass_at_its_edge()
+    {
+        // Shore 0 is a valid channel: a hard bank, no sand. Nothing but water and the bed is written, so the
+        // grass runs right up to the water.
+        var (world, top) = Plateau();
+        Decorator.Decorate(world, Context(top, [new WaterProp
+        {
+            Id = "w", Points = [[4, 20], [35, 20]], Radius = 3, Depth = 3, Shore = 0, Seed = 5,
+            Bank = new SolidMaterial(Blocks.Sand),
+        }]));
+
+        // No sand on the surface anywhere — the bank only ever appears as the bed floor, below the water.
+        var surfaceSand = top.Keys.Count(cell => world.GetBlock(cell.X, 7, cell.Z).Id == Blocks.Sand);
+        await Assert.That(surfaceSand).IsEqualTo(0);
     }
 
     [Test]

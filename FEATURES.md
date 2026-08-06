@@ -2672,15 +2672,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   — a dragged centerline and a width, the same swept-disc band — but water cannot drape on a surface (laid flat
   it reads as blue paint), so it **cuts a bed and fills it**: a shallow U deepest on the centerline and one
   block at the shore, filled to a single **water line** (the lowest surface the channel crosses, so the fill
-  never floats above ground it did not cut), a sandy bed floor showing through the shallows, and any bank above
-  the line cut back to air so the channel runs open. It **only ever replaces existing terrain** — the carve
-  stops at each column's old surface and skips a column the surface map does not carry, so a channel keeps a
-  hollow it crosses and leaves any stamp (a monument's wool) alone. Three forms — **canal** (uniform), **natural**
-  (FBM-wandered width), **stream** (narrows and shallows into riffles at its ends) — and like every prop it is
-  fanned across the symmetry orbit, so both teams get the same water from the same side. `Geom.WaterBed` is the
-  bed profile (depth per cell, reusing `PathBand`/`Polyline`); `Decorator.PlaceWater` is the carve-and-fill;
-  the form picker is drawn by the pass (`/api/terrain/water-forms`). The richer reads and ponds stay open under
-  G169 (`docs/world-export/decoration.md` §7).
+  never floats above ground it did not cut), and any bank above the line cut back to air so the channel runs
+  open. It **only ever replaces existing terrain** — the carve stops at each column's old surface and skips a
+  column the surface map does not carry, so a channel keeps a hollow it crosses and leaves any stamp (a
+  monument's wool) alone. The water meets the land through a **beach** — a shore band outside the water whose
+  width wanders with a noise field and drops to nothing in places (`WaterBed.ShoreCells`). Both the beach and
+  the bed floor are laid with the channel's **bank**, which is a full `TerrainMaterial` (a solid, or by default
+  a jittered-voronoi patchwork of sand/gravel/coarse-dirt) edited by the same `MaterialEditor` the theme phase
+  uses — not one block. Three **forms** drive water *and* land: **canal** (uniform, narrow even bank),
+  **natural** (FBM-wandered width and shore), **stream** (narrows and shallows into riffles, spreads into wide
+  flats). Like every prop it is fanned across the symmetry orbit, so both teams get the same water from the same
+  side. `Geom.WaterBed` is the bed profile + shore band (reusing `PathBand`/`Polyline`); `Decorator.PlaceWater`
+  is the carve-and-fill + beach; the form picker is drawn by the pass (`/api/terrain/water-forms`). Depth
+  shading, edge life (reeds/lily pads) and ponds stay open under G169 (`docs/world-export/decoration.md` §7).
 - **Every picker is drawn by the pass.** The six path styles, the three channel forms, the four rock forms and
   every species are rendered at card size by the real algorithm over the map's own finish
   (`/api/terrain/path-styles`, `/water-forms`, `/boulder-forms`, `/species`) — a dropdown of six words cannot

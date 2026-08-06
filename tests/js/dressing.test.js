@@ -29,6 +29,9 @@ test("a fresh prop of each kind starts at the same numbers the server does", () 
   // Water is drawn like a path but cuts a bed and fills it: a plain canal is what the other forms vary on.
   assert.equal(defaultProp("water").form, "canal");
   assert.equal(defaultProp("water").depth, 2);
+  // Its bank (bed floor + beach) is a full terrain material, not one block — a voronoi patchwork by default.
+  assert.equal(defaultProp("water").bank.kind, "voronoi");
+  assert.equal(defaultProp("water").bank.palette.length, 3);
   // A tree starts vanilla — the two forms are two trees, and the vanilla one is what a map is mostly made of.
   assert.equal(defaultProp("tree").form, "template");
   assert.equal(defaultProp("tree").species, "oak");

@@ -265,17 +265,25 @@ the dressing pass (`Decorator.PlaceWater`) turns each depth into a cut against t
 crosses. The fill is one **water line** for the whole run: the lowest surface the channel crosses. That level
 is what keeps the water from floating — every column's surface is at or above it, so the pass fills from just
 above the bed floor up to the line with stationary water and cuts any bank *above* the line back to air,
-leaving the channel open. A **sandy bed floor** is laid under the water, so the shallows read as shallow. The
-carve **only ever touches existing terrain**: it never rises past a column's old surface and skips any column
-the surface map does not carry, so a channel dug across a hollow keeps the hollow and one dug over a stamp
-leaves the stamp — the same exclusion a path respects. Like every prop, a channel is **fanned across the
-symmetry orbit**, so both teams get the same water from the same side.
+leaving the channel open. The carve **only ever touches existing terrain**: it never rises past a column's old
+surface and skips any column the surface map does not carry, so a channel dug across a hollow keeps the hollow
+and one dug over a stamp leaves the stamp — the same exclusion a path respects. Like every prop, a channel is
+**fanned across the symmetry orbit**, so both teams get the same water from the same side.
 
-Channels take a **form** — a clean-banked **canal** (uniform width), a **natural** edge (the width wandered by
-the same FBM the rough path uses), or a **stream** that narrows and shallows towards its ends into riffles.
-The carve leans toward the **G32-C** elevation pass rather than depending on it: the bed is negative terrain
-laid straight into the realized world, so a channel works on the flat layouts the sketch tool builds today and
-will read as a cut valley once that pass gives a layout its heights.
+The water meets the land through a **beach**. The shore is its own pass — the band *outside* the water, out to
+a width that wanders with a noise field and drops to nothing in places, so the water meets the grass directly
+in some stretches and spreads into a flat in others (`WaterBed.ShoreCells`). Both the beach and the bed floor
+are laid with the channel's **bank**, and the bank is not a block but a full **`TerrainMaterial`** — a solid, or
+by default a jittered-voronoi patchwork of sand, pale gravel and coarse dirt, the same pattern the painter tiles
+and edited by the same `MaterialEditor`. So the floor the shallows show through and the shore the water meets
+read as one ground, drawn from one palette.
+
+Channels take a **form**, and it drives both the water and the land. A clean-banked **canal** holds a uniform
+width and a narrow, even beach; a **natural** edge wanders its width (the FBM the rough path uses) and its
+shore with it; a **stream** narrows and shallows towards its ends into riffles and spreads into wide shore
+flats. The carve leans toward the **G32-C** elevation pass rather than depending on it: the bed is negative
+terrain laid straight into the realized world, so a channel works on the flat layouts the sketch tool builds
+today and will read as a cut valley once that pass gives a layout its heights.
 
 **Still to come (`G169`).** The reads that take a channel from "a filled cut" to "water that looks like
 water," and the closed form: **depth shading** warped off-centre so one bank runs deeper than the other; an
