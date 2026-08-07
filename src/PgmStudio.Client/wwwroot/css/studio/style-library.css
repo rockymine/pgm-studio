@@ -12,6 +12,9 @@
 
 .lib-bind { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
 .lib-bind .field-input { flex: 1 1 auto; min-width: 0; }
+/* A course's height is two digits beside a style name that is a sentence — sharing the slack evenly left
+   the name unreadable and the number three times wider than anything it can hold. */
+.lib-bind .field-input[type="number"] { flex: 0 0 5rem; }
 .lib-bind-swatch {
   flex: 0 0 auto; width: 2.25rem; height: 2.25rem; overflow: hidden;
   border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--canvas);

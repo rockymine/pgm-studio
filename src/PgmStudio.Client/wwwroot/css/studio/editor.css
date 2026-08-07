@@ -390,6 +390,10 @@
   flex-direction: column;
   overflow: hidden;
 }
+/* An inspector that hosts a whole material form rather than a property list — the dressing phase's, which
+   embeds the same editor the style library opens in its rail. It starts at a width that form is readable
+   at; the resize handle still takes it anywhere in [MIN_WIDTH, MAX_WIDTH]. */
+.workspace-inspector--wide { width: 420px; }
 
 /* Scrollable inner content area of a sidebar — holds .panel-section blocks */
 .workspace-scroll {

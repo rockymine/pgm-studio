@@ -510,6 +510,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   map-backed topbar is down to Save. The bare `/plan-editor` route has no flow bar and keeps its full bar
   (New · Import · Export · Save · Open · Compile). (C35)
 
+- **The library's editor rail is wide enough to edit in (C36).** The rail was a fixed 320px while the grid
+  beside it — which only picks what to work on — took everything else. At that width a material's own row
+  could not hold a kind select, the extent it claims and a remove button at once, so the remove button fell
+  to its own line, the extent sat unaligned beneath the style it belonged to, and the panel grew a
+  horizontal scrollbar. The rail now takes `clamp(360px, 32vw, 560px)`; the extent moved into the material's
+  row through a new `MaterialEditor.HeadExtra` slot (it belongs to the list that owns the entry, not to the
+  material, but it reads as one row), which retires the `.material-entry` wrapper; `.panel-actions` wraps, so
+  save · copy · delete never run off the edge. The sketch's Dressing inspector — the same editor embedded —
+  starts at 420px, and the resize handle's range is `[260, 680]` rather than `[200, 560]`. (C36)
+
 ## Backend / API (B)
 - **The wire is dot-separated on every machine, in every country (B48).** Query, route and form values bind
   through a converter that reads the ambient culture, so on a comma-decimal host `?leader=0.55` arrived as

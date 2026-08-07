@@ -5,7 +5,9 @@
    With nothing selected the same form edits the active tool's starting values, so the next prop placed is
    already aimed. Every picker is drawn by the pass itself, never by an icon. *@
 
-<Inspector>
+@* Wide: this inspector hosts a whole MaterialEditor (a path's paving, a boulder's rock), not a property
+   list, so it starts at the width that form is readable at rather than the shared inspector default. *@
+<Inspector Class="workspace-inspector--wide">
   <Section>
     @if (prop is null)
     {

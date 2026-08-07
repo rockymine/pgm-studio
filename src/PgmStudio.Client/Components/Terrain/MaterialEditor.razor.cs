@@ -18,6 +18,10 @@ public partial class MaterialEditor
     [Parameter] public string? Label { get; set; }
     /// <summary>Renders inside another material — indented and ruled, rather than as a top-level block.</summary>
     [Parameter] public bool Nested { get; set; }
+    /// <summary>Extra controls for the material's own row, between the kind and the remove button. Set by a
+    /// list that gives its entries an extent (a layer's courses, a band's depth, a stripe's width): the
+    /// number belongs to the entry, not to the material, but it reads as part of the same row.</summary>
+    [Parameter] public RenderFragment? HeadExtra { get; set; }
     [Parameter] public EventCallback OnChanged { get; set; }
     /// <summary>Set only where the material is one entry of a list the author may shorten.</summary>
     [Parameter] public EventCallback OnRemove { get; set; }

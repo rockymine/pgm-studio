@@ -261,15 +261,16 @@
 /* A material and, indented under it, the materials it is made of — the nesting IS the structure. */
 .material-editor { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
 .material-editor--nested { padding-left: var(--space-3); border-left: 2px solid var(--border); }
+/* One row: the entry's name, its kind, the extent it claims (HeadExtra), and the way to remove it. The
+   kind select takes the slack so the row is one line at any panel width worth editing in. */
 .material-editor-head { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.material-editor-head > select { flex: 1 1 8rem; min-width: 0; }
 .material-editor-label { font-size: var(--font-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; min-width: 5rem; }
 .material-editor-body { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
 .material-editor-note { margin: 0; font-size: var(--font-xs); color: var(--text-muted); line-height: 1.5; }
 .material-editor-scalars { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 .material-editor-scalars .field { flex: 1 1 6rem; }
-.material-entry { display: flex; gap: var(--space-2); align-items: flex-start; }
-.material-entry > .material-editor { flex: 1 1 auto; min-width: 0; }
-.material-entry-scalar { flex: 0 0 6rem; }
+.material-entry-scalar { flex: 0 0 5.5rem; }
 
 /* Block picker — the swatch says what the export will actually place. */
 .block-picker { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }

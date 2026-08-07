@@ -50,8 +50,12 @@
    split is what makes the rail usable: the picture of what is being edited is pinned at the top, and only
    the knobs under it scroll. Every edit in the rail is judged by that picture, so scrolling to the control
    that changes it must not take it off screen. */
+/* The rail is where the work happens — the grid beside it only picks what to work on, and it reflows to
+   whatever is left. At 320px a material's own row could not hold a kind select, a course count and a remove
+   button at once, so every one of them wrapped and the panel scrolled sideways. It takes a share of the
+   window instead, bounded so a wide monitor does not hand it half the screen. */
 .lib-rail {
-  flex-shrink: 0; width: 320px;
+  flex-shrink: 0; width: clamp(360px, 32vw, 560px);
   border-left: 1px solid var(--border); overflow: hidden;
   display: flex; flex-direction: column;
 }

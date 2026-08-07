@@ -6,6 +6,9 @@
    painter deserializes, so there is no second model of a material to drift from it. *@
 
 <div class="material-editor @(Nested ? "material-editor--nested" : null)">
+  @* One row per material: what it is called, what kind it is, how far it reaches, and the way to remove it.
+     The extent belongs to the list that owns the entry rather than to the material, so it arrives as
+     HeadExtra — on its own line under the row it belonged to, it read as a second unrelated control. *@
   <div class="material-editor-head">
     @if (Label is not null) { <span class="material-editor-label">@Label</span> }
     <select class="field-input field-input--slim" value="@Kind" @onchange="ChangeKind">
@@ -14,6 +17,7 @@
         <option value="@kind.Id" @key="kind.Id">@kind.Name</option>
       }
     </select>
+    @HeadExtra
     @if (OnRemove.HasDelegate)
     {
       <Button Variant="icon" Icon="trash-2" Title="Remove" OnClick="OnRemove" />
@@ -39,14 +43,15 @@
           dirt. The last layer repeats past the bottom of the stack, so a deeper band never falls through.</p>
         @foreach (var layer in List(ThemeFields.Layers))
         {
-          <div class="material-entry" @key="layer.Node">
-            <MaterialEditor Nested Label="@($"Layer {layer.Index + 1}")" Blocks="Blocks"
-                            Node="@layer.Material" OnChanged="Changed" OnRemove="@layer.Remove" />
-            <Field Label="Courses" Class="material-entry-scalar">
-              <input class="field-input field-input--slim" type="number" min="1" step="1"
-                     value="@layer.Extent" @onchange="@layer.SetExtent" />
-            </Field>
-          </div>
+          <MaterialEditor Nested Label="@($"Layer {layer.Index + 1}")" Blocks="Blocks" @key="layer.Node"
+                          Node="@layer.Material" OnChanged="Changed" OnRemove="@layer.Remove">
+            <HeadExtra>
+              <Field Label="Courses" Class="material-entry-scalar">
+                <input class="field-input field-input--slim" type="number" min="1" step="1"
+                       value="@layer.Extent" @onchange="@layer.SetExtent" />
+              </Field>
+            </HeadExtra>
+          </MaterialEditor>
         }
         <Button Icon="plus" OnClick="AddLayer">Add layer</Button>
         break;
@@ -74,14 +79,15 @@
         </div>
         @foreach (var band in List(ThemeFields.Bands))
         {
-          <div class="material-entry" @key="band.Node">
-            <MaterialEditor Nested Label="@BandLabel(band.Index)" Blocks="Blocks"
-                            Node="@band.Material" OnChanged="Changed" OnRemove="@band.Remove" />
-            <Field Label="Blocks in" Class="material-entry-scalar">
-              <input class="field-input field-input--slim" type="number" min="1" step="1"
-                     value="@band.Extent" @onchange="@band.SetExtent" />
-            </Field>
-          </div>
+          <MaterialEditor Nested Label="@BandLabel(band.Index)" Blocks="Blocks" @key="band.Node"
+                          Node="@band.Material" OnChanged="Changed" OnRemove="@band.Remove">
+            <HeadExtra>
+              <Field Label="Blocks in" Class="material-entry-scalar">
+                <input class="field-input field-input--slim" type="number" min="1" step="1"
+                       value="@band.Extent" @onchange="@band.SetExtent" />
+              </Field>
+            </HeadExtra>
+          </MaterialEditor>
         }
         <Button Icon="plus" OnClick="AddBand">Add a band</Button>
         break;
@@ -161,14 +167,15 @@
           perimeter, corners included. Widths are in wall cells and the stripes repeat in order.</p>
         @foreach (var run in List(ThemeFields.Runs))
         {
-          <div class="material-entry" @key="run.Node">
-            <MaterialEditor Nested Label="@($"Stripe {run.Index + 1}")" Blocks="Blocks"
-                            Node="@run.Material" OnChanged="Changed" OnRemove="@run.Remove" />
-            <Field Label="Cells wide" Class="material-entry-scalar">
-              <input class="field-input field-input--slim" type="number" min="1" step="1"
-                     value="@run.Extent" @onchange="@run.SetExtent" />
-            </Field>
-          </div>
+          <MaterialEditor Nested Label="@($"Stripe {run.Index + 1}")" Blocks="Blocks" @key="run.Node"
+                          Node="@run.Material" OnChanged="Changed" OnRemove="@run.Remove">
+            <HeadExtra>
+              <Field Label="Cells wide" Class="material-entry-scalar">
+                <input class="field-input field-input--slim" type="number" min="1" step="1"
+                       value="@run.Extent" @onchange="@run.SetExtent" />
+              </Field>
+            </HeadExtra>
+          </MaterialEditor>
         }
         <Button Icon="plus" OnClick="AddStripe">Add stripe</Button>
         break;

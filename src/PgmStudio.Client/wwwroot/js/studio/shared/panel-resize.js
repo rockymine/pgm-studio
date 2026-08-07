@@ -6,8 +6,10 @@
 // overriding the shared `--sidebar-width` / `--inspector-width` token, and clamped to [MIN, MAX] so a panel
 // can neither collapse to nothing nor crowd out the canvas. Read-only chrome — no persistence.
 
-const MIN_WIDTH = 200;
-const MAX_WIDTH = 560;
+// 200px could not hold a material's own row — a kind select, the extent it claims and a remove button —
+// so every panel carrying one wrapped and scrolled sideways at the bottom of its range.
+const MIN_WIDTH = 260;
+const MAX_WIDTH = 680;
 
 // The panel a handle controls, plus the sign mapping a rightward drag to a width delta: a left sidebar grows
 // as the handle moves right (+1); a right inspector shrinks (−1). null when the handle borders no panel.

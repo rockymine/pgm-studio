@@ -366,7 +366,9 @@
 .text-muted { color: var(--text-muted); }
 
 .section-footer,
-.panel-actions { display: flex; align-items: center; gap: var(--space-3); padding-top: var(--space-1); }
+/* Wraps: an action row is as wide as the panel it sits in, and a third button (save · copy · delete) in a
+   narrow one has to go somewhere other than off the right edge. */
+.panel-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); padding-top: var(--space-1); }
 .section-footer--end { justify-content: flex-end; }
 .section-footer--separated { margin-top: var(--space-1); }
 .panel-save-status { font-size: var(--font-base); color: var(--text-secondary); }
