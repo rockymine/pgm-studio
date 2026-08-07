@@ -945,6 +945,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   dragged into a block or mid-air — a vertical run offers each of its floors; a region's Y stays free. The
   slice line tracks a Y that changes on its own, without refetching the depth map.
   (`ColumnFloor`, `SpawnStep`, `WoolSpawnStep`, `WoolObjectivesStep`, `SliceView`, `sideview-canvas.js`; N11)
+- **A Configure step keeps the keys it does not model (N13).** The spawn, protection and wool steps each
+  rebuilt their intent entry from the handful of fields they edit, which deleted everything else on it. What
+  else was on it was the plan compiler's: a spawn's `piece` and `iron`, a wool's `piece` and `entries` — the
+  rects that size the stamped room, place its renewable ore and cut the cage's doors. Touching one control in
+  Configure was enough, and the loss was invisible until the export, where a 25×15 authored spawn came back
+  as the marker-anchored **8×8** default with no ore beside it at all. Each step now rewrites the entry it is
+  replacing and overwrites only its own fields (`IntentSlice.Carrier`, matched on team for a spawn and on
+  colour for a wool), which also retires the hand-written `protection` carry-through that patched the same
+  hole one field at a time. **And the ore itself now places:** a marker on a grid line in one axis and a
+  block centre in the other centres no square cube, and `RoomFrames.PlaceIron` refused it outright — so three
+  iron markers down one side of a spawn piece, on an odd cell grid, produced three lints and nothing in the
+  world. Such a marker now takes the whole size ladder (4·3·2) and settles on the nearest block lattice, half
+  a block off centre on the odd axis, placed by away-from-zero rounding so the orbit image covers the images
+  of the same cells (WX8/WX9, `structures.md`). Verified on a 25×15 spawn piece: a 16×13 shell — the piece
+  minus the strip it yields — and all three 4×4 cubes stamped, mirror-consistently. (N13)
 - **Wools · Monuments sub-step (N04)** — each wool needs **N−1** monuments (one per enemy team), modelled
   as the expected capturers; the scan pre-fills the signed pedestals. **Box** a cluster → `monument-suggestions`
   routes each hit to its colour's wool (capturing team = its island); an empty box drops a manual monument;

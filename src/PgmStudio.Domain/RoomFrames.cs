@@ -27,9 +27,10 @@ public readonly record struct RoomPad(int MinX, int MinZ, int Size, bool Shifted
 public readonly record struct MonumentSlot(int X, int Z, RoomEdge Wall);
 
 /// <summary>One iron marker's resolution beside a spawn room (WX8/WX9): the cube footprint min corner and
-/// <see cref="Size"/> (4 or 2 on a grid-line marker, 3 on a block centre), or — when no legal strip exists
-/// even after the room yields and the cube degrades — an unplaceable marker (<see cref="Placeable"/>
-/// false): nothing stamps, the marker stays on the board, and validation flags it.</summary>
+/// <see cref="Size"/> (4 or 2 on a grid-line marker, 3 on a block centre, any of the three on a marker whose
+/// axes disagree), or — when no legal strip exists even after the room yields and the cube degrades — an
+/// unplaceable marker (<see cref="Placeable"/> false): nothing stamps, the marker stays on the board, and
+/// validation flags it.</summary>
 public readonly record struct IronResolution(double MarkerX, double MarkerZ, int MinX, int MinZ, int Size, bool Placeable);
 
 /// <summary>A room resolution: the <see cref="Frame"/> (whose shell may have yielded to iron) plus the
@@ -199,22 +200,26 @@ public static class RoomFrames
     public const int IronGap = 1;
 
     // Resolve one iron marker against the current shell, shrinking the shell in place when a legal yield
-    // exists. Size ladder by parity: a grid-line marker centres 4 then 2, a block-centre marker centres 3;
-    // mixed parity centres nothing and is unplaceable outright. A shrink candidate pulls exactly one shell
-    // edge back to clear the cube plus gap, and is legal while the shell holds WX2 and the room marker
-    // stays inside the interior; the largest retained area wins, ties broken toward moving the edge
-    // farthest from the room marker — a marker-relative choice, so orbit images shrink mirror-consistently.
+    // exists. Size ladder by parity: a grid-line marker centres 4 then 2, a block-centre marker centres 3,
+    // and a marker that is a grid line on one axis and a block centre on the other centres no square at all,
+    // so it takes the whole ladder and settles half a block off centre on the odd axis. A shrink candidate
+    // pulls exactly one shell edge back to clear the cube plus gap, and is legal while the shell holds WX2
+    // and the room marker stays inside the interior; the largest retained area wins, ties broken toward
+    // moving the edge farthest from the room marker — a marker-relative choice, so orbit images shrink
+    // mirror-consistently.
     private static IronResolution PlaceIron(
         double ironX, double ironZ, int pieceMinX, int pieceMinZ, int pieceMaxX, int pieceMaxZ,
         double markerX, double markerZ, ref int minX, ref int minZ, ref int maxX, ref int maxZ)
     {
-        if (IsGridLine(ironX) != IsGridLine(ironZ))
-            return new IronResolution(ironX, ironZ, 0, 0, 0, Placeable: false);
-
-        int[] sizes = IsGridLine(ironX) ? [4, 2] : [3];
+        int[] sizes = IsGridLine(ironX) == IsGridLine(ironZ)
+            ? IsGridLine(ironX) ? [4, 2] : [3]
+            : [4, 3, 2];
         foreach (var size in sizes)
         {
-            int Lo(double marker) => IsGridLine(marker) ? (int)marker - size / 2 : (int)Math.Floor(marker) - (size - 1) / 2;
+            // The cube's low corner: the marker less half its span, put back on the block lattice. Rounding
+            // away from zero is what keeps a half-block landing symmetric — an orbit image of the cube covers
+            // the images of its cells rather than a row one block off.
+            int Lo(double marker) => (int)Math.Round(marker - size / 2.0, MidpointRounding.AwayFromZero);
             int cubeMinX = Lo(ironX), cubeMinZ = Lo(ironZ);
             int cubeMaxX = cubeMinX + size, cubeMaxZ = cubeMinZ + size;
             if (cubeMinX < pieceMinX || cubeMinZ < pieceMinZ || cubeMaxX > pieceMaxX || cubeMaxZ > pieceMaxZ)

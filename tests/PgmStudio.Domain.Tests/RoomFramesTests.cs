@@ -180,11 +180,45 @@ public sealed class RoomFramesTests
     }
 
     [Test]
-    public async Task Mixed_parity_iron_is_unplaceable_outright()
+    public async Task Iron_whose_axes_disagree_settles_half_a_block_off_centre()
     {
-        // A grid line in x but a block centre in z centres no square cube — same square law as the pad.
+        // A grid line in x but a block centre in z centres no square cube. Rather than refuse it, the ladder
+        // runs and the cube lands on the nearest block lattice — the whole 4×4, half a block south of the mark.
         var room = RoomFrames.ResolveRoom(0, 0, 10, 15, 5, 5, [], RoomEdge.NegZ, [(5, 12.5)], out _)!;
-        await Assert.That(room.Iron[0].Placeable).IsFalse();
+        var iron = room.Iron[0];
+        await Assert.That(iron.Placeable).IsTrue();
+        await Assert.That((iron.MinX, iron.MinZ, iron.Size)).IsEqualTo((3, 11, 4));
+        await Assert.That((room.Frame.MinX, room.Frame.MinZ, room.Frame.MaxX, room.Frame.MaxZ))
+            .IsEqualTo((1, 1, 9, 10));
+    }
+
+    [Test]
+    public async Task A_column_of_iron_down_one_side_stamps_every_cube()
+    {
+        // The authoring case the refusal ate: three markers in a line down the long side of a 25×15 spawn
+        // piece, on a cell grid whose odd size puts them on a grid line in x and a block centre in z. The
+        // shell yields once, on the axis that has room, and every cube is placed.
+        var room = RoomFrames.ResolveRoom(30, -130, 55, -115, 45, -125, [], RoomEdge.PosZ,
+            [(35, -127.5), (35, -122.5), (35, -117.5)], out var refusal)!;
+        await Assert.That(refusal).IsNull();
+        await Assert.That(room.Iron.All(i => i.Placeable)).IsTrue();
+        await Assert.That(room.Iron.Select(i => i.Size).Distinct().Single()).IsEqualTo(4);
+        // The room kept the far side of the piece rather than falling back to a default shell.
+        await Assert.That(room.Frame.MinX).IsGreaterThanOrEqualTo(38);
+        await Assert.That((room.Frame.MaxX, room.Frame.MinZ, room.Frame.MaxZ)).IsEqualTo((54, -129, -116));
+    }
+
+    [Test]
+    public async Task Iron_whose_axes_disagree_is_still_mirror_consistent()
+    {
+        // The same half-block landing has to reflect: away-from-zero rounding is what makes an orbit image of
+        // the cube cover the images of its cells, instead of a row one block off.
+        var west = RoomFrames.ResolveRoom(0, 0, 20, 8, 4.5, 3.5, [], RoomEdge.NegZ, [(14, 3.5)], out _)!;
+        var east = RoomFrames.ResolveRoom(0, 0, 20, 8, 15.5, 3.5, [], RoomEdge.NegZ, [(6, 3.5)], out _)!;
+        await Assert.That(west.Iron[0].Placeable).IsTrue();
+        await Assert.That(east.Iron[0].Placeable).IsTrue();
+        await Assert.That(20 - (east.Iron[0].MinX + east.Iron[0].Size)).IsEqualTo(west.Iron[0].MinX);
+        await Assert.That((20 - east.Frame.MaxX, 20 - east.Frame.MinX)).IsEqualTo((west.Frame.MinX, west.Frame.MaxX));
     }
 
     [Test]

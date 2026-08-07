@@ -120,10 +120,13 @@ structure, and structures never fuse.
   the interior (the pad may still clamp with a WX4 shift); among legal shrinks the largest retained
   area wins, ties breaking toward the edge farthest from the spawn marker, so orbit images shrink
   mirror-consistently. The cube itself degrades by marker parity — a **grid-line** marker centres
-  **4×4**, falling back to **2×2**; a **block-centre** marker centres **3×3**; mixed parity centres
-  nothing (the same square law as the pad). The renewables wiring covers exactly the resolved
-  footprints. `RoomFrames.ResolveRoom` owns the negotiation; `Composer`-emitted plans and authored
-  plans go through the same resolver.
+  **4×4**, falling back to **2×2**; a **block-centre** marker centres **3×3**. A marker whose two axes
+  disagree centres no square at all, so it takes the whole ladder (**4×4 · 3×3 · 2×2**) and settles half
+  a block off centre on the odd axis; refusing it instead is what turned a column of three iron markers
+  down one side of a spawn piece into three lints and no ore. The low corner is always the marker less
+  half the span, rounded away from zero, which is what keeps a half-block landing symmetric across the
+  orbit. The renewables wiring covers exactly the resolved footprints. `RoomFrames.ResolveRoom` owns the
+  negotiation; `Composer`-emitted plans and authored plans go through the same resolver.
 
 - **WX9** *Placeability is an attribute, not an exception.* Every structure marker resolves to
   **placeable or not** (`IronResolution.Placeable`). An unplaceable marker stamps **nothing** — the

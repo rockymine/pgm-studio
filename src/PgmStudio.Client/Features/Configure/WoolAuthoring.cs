@@ -120,19 +120,23 @@ public static class WoolAuthoring
 
     public static void WriteWools(JsonObject intent, IEnumerable<Wool> wools)
     {
+        // Colour is the wool's identity across all four steps, so it is what a rewritten entry is matched on.
+        // The four steps between them model owner / colour / spawn / monuments / room and nothing else; the
+        // plan compiler's `piece` and `entries` (which size the stamped cage and cut its doors) ride through
+        // on the entry being replaced rather than being dropped by a from-scratch rebuild (IntentSlice).
+        var carry = IntentSlice.Carrier(intent, "wools", w => w["color"]?.GetValue<string>());
+
         intent["wools"] = new JsonArray(wools.Select(w =>
         {
-            var o = new JsonObject
+            var o = carry(w.Color);
+            o["owner"] = w.Owner;
+            o["color"] = w.Color;
+            o["spawn"] = new JsonObject { ["x"] = w.SpawnX, ["y"] = w.SpawnY, ["z"] = w.SpawnZ };
+            o["monuments"] = new JsonArray(w.Monuments.Select(m => (JsonNode)new JsonObject
             {
-                ["owner"] = w.Owner,
-                ["color"] = w.Color,
-                ["spawn"] = new JsonObject { ["x"] = w.SpawnX, ["y"] = w.SpawnY, ["z"] = w.SpawnZ },
-                ["monuments"] = new JsonArray(w.Monuments.Select(m => (JsonNode)new JsonObject
-                {
-                    ["team"] = m.Team,
-                    ["location"] = new JsonObject { ["x"] = m.X, ["y"] = m.Y, ["z"] = m.Z },
-                }).ToArray()),
-            };
+                ["team"] = m.Team,
+                ["location"] = new JsonObject { ["x"] = m.X, ["y"] = m.Y, ["z"] = m.Z },
+            }).ToArray());
             o["room"] = new JsonArray(w.Rooms.Select(RectNode).ToArray());
             return (JsonNode)o;
         }).ToArray());

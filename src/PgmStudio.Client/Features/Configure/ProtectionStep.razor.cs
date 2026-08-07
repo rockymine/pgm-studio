@@ -183,19 +183,22 @@ public partial class ProtectionStep
 
     private void WriteProtection()
     {
+        // Only the protection union is this step's; the point, the yaw and the plan's `piece` / `iron` ride
+        // through on the entry each spawn is rewritten onto (IntentSlice).
+        var carry = IntentSlice.Carrier(Wizard.Intent, "spawns", s => s["team"]?.GetValue<string>());
+
         Wizard.Intent["spawns"] = new JsonArray(spawns.Select(s =>
         {
             IEnumerable<Rect> rects =
                 s.Team == authoredTeam ? authored.Select(r => new Rect(r.MinX, r.MinZ, r.MaxX, r.MaxZ))
                 : ghosts.TryGetValue(s.Team, out var g) ? g
                 : Enumerable.Empty<Rect>();
-            return (JsonNode)new JsonObject
-            {
-                ["team"] = s.Team,
-                ["point"] = new JsonObject { ["x"] = s.X, ["y"] = s.Y, ["z"] = s.Z },
-                ["protection"] = new JsonArray(rects.Select(RectNode).ToArray()),
-                ["yaw"] = SpawnYaw(s.Team),
-            };
+            var o = carry(s.Team);
+            o["team"] = s.Team;
+            o["point"] = new JsonObject { ["x"] = s.X, ["y"] = s.Y, ["z"] = s.Z };
+            o["protection"] = new JsonArray(rects.Select(RectNode).ToArray());
+            o["yaw"] = SpawnYaw(s.Team);
+            return (JsonNode)o;
         }).ToArray());
         Wizard.MarkDirty();
     }
