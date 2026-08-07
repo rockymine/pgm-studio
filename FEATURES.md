@@ -487,6 +487,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `WoolMonuments`' `square` become the canonical `point → dot`. Plan's surface-tint + hatch stay
   Plan-specific. Audit + design: `docs/contracts/primitive-styles.md`; canvas-interaction.md §10. (CV9)
 
+- **The Button variants are painted (C33).** `<Button Variant="primary|danger|warn">` emitted
+  `action-btn--primary` / `--danger` / `--warn` and no stylesheet defined any of the three, so 47 buttons
+  across the studio declared a meaning that rendered as the plain default — a destructive confirm looked
+  exactly like the Cancel beside it. Each variant now takes the tinted-fill + coloured-edge treatment the
+  studio already marks a state with (`.filter-chip--active`, `.draw-tool-btn--active`) in that meaning's own
+  token, so no new colour enters the palette. (C33)
+
 ## Backend / API (B)
 - **The wire is dot-separated on every machine, in every country (B48).** Query, route and form values bind
   through a converter that reads the ambient culture, so on a comma-decimal host `?leader=0.55` arrived as
