@@ -502,6 +502,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   drawer and scrolls inside that cap, and the header never shrinks; the two confirm buttons share one row
   (`Fill`, not `Full`) instead of stacking. (C34)
 
+- **One place to compile a map-backed plan, and one place to read its files out (C35).** The plan editor's
+  topbar repeated what the surfaces under it already offered: **Compile** duplicated the flow bar's Next
+  (which *is* Compile), and **Export** was a lesser copy of the compile drawer's own Download. The drawer
+  now carries a **Plan** tab beside Layout and Intent — the plan document itself, kept whatever the compile
+  answers, so a plan that will not compile is still the one an author can take a copy of — and the
+  map-backed topbar is down to Save. The bare `/plan-editor` route has no flow bar and keeps its full bar
+  (New · Import · Export · Save · Open · Compile). (C35)
+
 ## Backend / API (B)
 - **The wire is dot-separated on every machine, in every country (B48).** Query, route and form values bind
   through a converter that reads the ambient culture, so on a comma-decimal host `?leader=0.55` arrived as

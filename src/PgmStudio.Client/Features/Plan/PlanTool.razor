@@ -20,14 +20,12 @@
         <Crumb>@Slug!.Replace('-', ' ')</Crumb>
         <Crumb Dim>Plan</Crumb>
       </Crumbs>
+      @* Save only. A map-backed plan runs under the flow bar, whose Next IS Compile, and the drawer that
+         opens carries every download — a second copy of either in the bar says the same thing twice. *@
       <Right>
         @if (importError is not null) { <span class="topbar-crumb topbar-crumb--dim">@importError</span> }
         @if (saveState is not null) { <span class="topbar-crumb topbar-crumb--dim">@saveState</span> }
-        <Button OnClick="ExportPlan" Title="Download this plan as *.plan.json">Export</Button>
         <Button OnClick="SavePlan" Disabled="@saving" Title="Save this plan">@(saving ? "Saving…" : "Save")</Button>
-        <Button Variant="primary" OnClick="OpenCompile" Title="Compile the plan into a layout + intent, then create a draft">
-          <i data-lucide="play"></i> Compile
-        </Button>
       </Right>
     </Topbar>
     }
@@ -494,27 +492,27 @@
       {
         <p class="section-desc">Compiling…</p>
       }
-      else if (compileErrors.Count > 0)
+      else
       {
-        <div class="plan-compile-errors">
-          <p class="section-desc">Fix these structural errors before compiling (lint alone never blocks):</p>
-          @foreach (var f in compileErrors)
-          {
-            <div class="plan-lint-row plan-lint-row--static">
-              <span class="plan-lint-dot plan-lint-dot--error"></span>
-              @if (!string.IsNullOrEmpty(f.Rule)) { <span class="plan-lint-chip">@f.Rule</span> }
-              <span class="plan-lint-msg">@f.Message</span>
-            </div>
-          }
-        </div>
-      }
-      else if (compileError is not null)
-      {
-        <div class="plan-compile-errors"><p class="section-desc">@compileError</p></div>
-      }
-      else if (compiledLayout is not null)
-      {
-        @if (compileWarnings.Count > 0)
+        @if (compileErrors.Count > 0)
+        {
+          <div class="plan-compile-errors">
+            <p class="section-desc">Fix these structural errors before compiling (lint alone never blocks):</p>
+            @foreach (var f in compileErrors)
+            {
+              <div class="plan-lint-row plan-lint-row--static">
+                <span class="plan-lint-dot plan-lint-dot--error"></span>
+                @if (!string.IsNullOrEmpty(f.Rule)) { <span class="plan-lint-chip">@f.Rule</span> }
+                <span class="plan-lint-msg">@f.Message</span>
+              </div>
+            }
+          </div>
+        }
+        else if (compileError is not null)
+        {
+          <div class="plan-compile-errors"><p class="section-desc">@compileError</p></div>
+        }
+        else if (compileWarnings.Count > 0)
         {
           <div class="plan-compile-warnings">
             <p class="section-desc">Compiled, but worth a look:</p>
@@ -528,15 +526,25 @@
             }
           </div>
         }
-        <div class="plan-compile-tabs">
-          <button class="draw-tool-btn @(compileTab == "layout" ? "draw-tool-btn--active" : null)" @onclick='() => compileTab = "layout"'>Layout</button>
-          <button class="draw-tool-btn @(compileTab == "intent" ? "draw-tool-btn--active" : null)" @onclick='() => compileTab = "intent"'>Intent</button>
-          <div class="plan-compile-tab-actions">
-            <Button Title="Copy to clipboard" OnClick="CopyTab"><i data-lucide="clipboard"></i> @(copied ? "Copied" : "Copy")</Button>
-            <Button Title="Download this file" OnClick="DownloadTab"><i data-lucide="download"></i> Download</Button>
+
+        @* Every file this plan can be read out of, in one place: the plan document itself, and — once the
+           compile lands — the pair it compiled into. The plan tab stands whether or not the compile
+           succeeded, because a plan that will not compile is exactly the one worth having a copy of. *@
+        @if (compiledPlan is not null)
+        {
+          <div class="plan-compile-tabs">
+            @foreach (var (id, label) in CompileTabs)
+            {
+              <button class="draw-tool-btn @(compileTab == id ? "draw-tool-btn--active" : null)"
+                      @key="id" @onclick="() => compileTab = id">@label</button>
+            }
+            <div class="plan-compile-tab-actions">
+              <Button Title="Copy to clipboard" OnClick="CopyTab"><i data-lucide="clipboard"></i> @(copied ? "Copied" : "Copy")</Button>
+              <Button Title="Download this file" OnClick="DownloadTab"><i data-lucide="download"></i> Download</Button>
+            </div>
           </div>
-        </div>
-        <pre class="plan-compile-json">@(compileTab == "layout" ? compiledLayout : compiledIntent)</pre>
+          <pre class="plan-compile-json">@TabText</pre>
+        }
       }
     </Body>
     <Footer>

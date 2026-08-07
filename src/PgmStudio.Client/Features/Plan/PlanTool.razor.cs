@@ -56,8 +56,9 @@ public partial class PlanTool
     // structural errors when the compile is blocked, and the walk-test loop's per-step draft state.
     private bool showCompile;
     private bool compiling;
-    private string compileTab = "layout";
+    private string compileTab = PlanTabId;
     private bool copied;
+    private string? compiledPlan;                     // the plan document this compile was run on
     private string? compiledLayout, compiledIntent;   // pretty-printed for the preview panes
     private string? compiledLayoutRaw, compiledIntentRaw;   // verbatim, posted to the draft pipeline
     private string? compileError;                     // a malformed / transport failure message
@@ -667,13 +668,17 @@ public partial class PlanTool
         compileError = null;
         compileErrors = [];
         compileWarnings = [];
-        compiledLayout = compiledIntent = compiledLayoutRaw = compiledIntentRaw = null;
+        compiledPlan = compiledLayout = compiledIntent = compiledLayoutRaw = compiledIntentRaw = null;
+        compileTab = PlanTabId;
         draftSlug = null; draftError = null; draftBusy = false;
         StateHasChanged();
 
         try
         {
             var planJson = await handle.InvokeAsync<string>("exportJson");
+            // Kept whatever the compile answers: the plan is the one file that exists either way, and a plan
+            // that will not compile is the one an author most needs a copy of.
+            compiledPlan = Reindent(planJson);
             using var resp = await Http.PostAsync("api/plan/compile", new StringContent(planJson, Encoding.UTF8, "application/json"));
             if (resp.IsSuccessStatusCode)
             {
@@ -687,6 +692,7 @@ public partial class PlanTool
                 compileWarnings = doc.TryGetProperty("warnings", out var w)
                     ? JsonSerializer.Deserialize<List<InspectFinding>>(w.GetRawText()) ?? []
                     : [];
+                compileTab = LayoutTabId;
             }
             else if ((int)resp.StatusCode == 422)
             {
@@ -705,18 +711,50 @@ public partial class PlanTool
         StateHasChanged();
     }
 
+    // ── the drawer's files ───────────────────────────────────────────────────────
+    // Every file a plan can be read out of is offered from the one drawer: the plan document, and the pair
+    // it compiled into once there is one. The tab id doubles as the downloaded file's middle extension
+    // (`<name>.plan.json`, `.layout.json`, `.intent.json`).
+
+    private const string PlanTabId = "plan";
+    private const string LayoutTabId = "layout";
+    private const string IntentTabId = "intent";
+
+    private IEnumerable<(string Id, string Label)> CompileTabs
+    {
+        get
+        {
+            yield return (PlanTabId, "Plan");
+            if (compiledLayout is null) yield break;
+            yield return (LayoutTabId, "Layout");
+            yield return (IntentTabId, "Intent");
+        }
+    }
+
+    private string? TabText => compileTab switch
+    {
+        LayoutTabId => compiledLayout,
+        IntentTabId => compiledIntent,
+        _ => compiledPlan,
+    };
+
+    /// <summary>The plan document as the panes show every other file — the bridge exports it compact.</summary>
+    private static string Reindent(string json)
+    {
+        try { return JsonSerializer.Serialize(JsonDocument.Parse(json).RootElement, Pretty); }
+        catch (JsonException) { return json; }
+    }
+
     private async Task CopyTab()
     {
-        var text = compileTab == "layout" ? compiledLayout : compiledIntent;
-        if (text is null) return;
+        if (TabText is not { } text) return;
         copied = await JS.InvokeAsync<bool>("studio.copyText", text);
         StateHasChanged();
     }
 
     private async Task DownloadTab()
     {
-        var text = compileTab == "layout" ? compiledLayout : compiledIntent;
-        if (text is null) return;
+        if (TabText is not { } text) return;
         var slug = string.IsNullOrWhiteSpace(planName) ? "plan" : planName.Trim().ToLowerInvariant().Replace(' ', '-');
         await JS.InvokeVoidAsync("studio.downloadText", $"{slug}.{compileTab}.json", text, "application/json");
     }
