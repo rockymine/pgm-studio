@@ -243,14 +243,23 @@ New page `Features/Plan/PlanTool.razor` (+ `js/studio/plan/`), reusing the studi
 - **Panels:** the **Score** panel — the evaluator's live cost + every fired rule (structural errors +
   rule lint via the STRUCT / PC-C / G2 / G5 terms, then soft feel), each click-to-**isolate** its
   evidence on the canvas (the single validation surface; there is no separate lint list); plan JSON
-  import/export (file download/upload — seeds live in git); autosave to localStorage.
+  import/export (file download/upload — seeds live in git). **No client-side document cache:** the
+  document's store is the database — a map's `plan_json` artifact, or a `plan` row — and a copy in
+  localStorage could only disagree with it. The editor restored that copy at mount, before any
+  route-specific load ran, so a map with no stored plan yet showed whatever the browser last drew, which is
+  why New opened a board nobody made and why the same map differed between browsers (G152). Unsaved work is
+  lost on reload; the three keys that remain — overlay chips, height-map fill, surface stepper — are UI
+  preferences, not documents.
 - **Compile & test:** tabs previewing the compiled `layout.json` / `intent.json`; a **Create
   draft** button that runs the existing chain (`POST /api/sketch` → `PUT sketch` → `POST finish`
   → `PUT intent`) and surfaces the `GET /map/{slug}/export` link — draw → compile → walk the
   world in one sitting.
 
-No new server endpoints in v1; the page drives existing ones. Plan persistence server-side (a
-`map_artifact` beside the sketch blob) is deferred until generated-map drafts need it.
+No new server endpoints in v1; the page drives existing ones. Plan persistence server-side has since
+landed as the `plan_json` `map_artifact` beside the sketch blob (`GET`/`PUT /api/map/{slug}/plan`) plus the
+`plan` row pool the generator hands candidates off as. Compiling a draft writes the plan onto the map it
+builds, so a map's layout and the document it was compiled from live on the same row and either tool can
+reopen it.
 
 ## 6. Milestones
 

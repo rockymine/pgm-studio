@@ -1,8 +1,15 @@
 // plan-bridge.js — JS-interop bridge for the plan editor (the seed studio). Owns the plan document and
 // drives PlanCanvas; Blazor owns the toolbar / globals form / inspector chrome and persistence UI. The
 // canvas reports selection + edits back here (onSelect / onCreate / onDelete / onChange); this bridge
-// mutates the document, mints ids, debounces a localStorage autosave, and pushes the selection JSON to
-// the Blazor inspector. Import/export round-trip the plan wire format via plan-doc.
+// mutates the document, mints ids, runs the live feeds and pushes the selection JSON to the Blazor
+// inspector. Import/export round-trip the plan wire format via plan-doc.
+//
+// The document is NOT cached client-side. The database is its store — a map's `plan_json` artifact, or a
+// `plan` row — and a second copy in localStorage could only ever disagree with it: the editor restored that
+// copy at mount, before any route-specific load ran, so a map with no stored plan yet rendered whatever the
+// browser last had cached. That is why the same three maps showed one drawing in one browser and another in
+// the next, and why "New plan" opened someone else's board. The three keys that remain are UI preferences —
+// overlay chips, the height-map fill, the surface stepper — which are about this browser, not about a plan.
 
 import { PlanCanvas } from "../canvas/plan-canvas.js";
 import {
@@ -12,7 +19,6 @@ import {
 import { parseOverlays } from "../plan/plan-inspect.js";
 import { fireTo } from "./fire.js";
 
-const STORAGE_KEY = "pgm-plan-editor";
 const OVERLAY_KEY = "pgm-plan-overlays";
 const HEIGHTMAP_KEY = "pgm-plan-heightmap";
 const SURFACESTEP_KEY = "pgm-plan-surface-step";
@@ -35,7 +41,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     onSelect: (sel) => fire("OnSelect", sel ? JSON.stringify(sel) : null),
     onZoom: (pct) => fire("OnZoom", pct),
     onTool: (t) => fire("OnTool", t),
-    onChange: () => scheduleSave(),
+    onChange: () => afterEdit(),
     onCreate: (kind, rect) => createRect(kind, rect),
     onDelete: (sel) => deleteSelection(sel),
     onToggleWall: (a, b) => toggleWallMark(a, b),
@@ -66,7 +72,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       canvas.setDoc(doc);
       canvas.select({ kind: "piece", id });
     }
-    scheduleSave();
+    afterEdit();
   }
 
   // Toggle a wall mark on a land-interface piece pair, then re-run the live feeds immediately so the heavy bar
@@ -74,7 +80,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   function toggleWallMark(a, b) {
     toggleWall(doc, a, b);
     canvas.setDoc(doc);
-    scheduleSave();
+    afterEdit();
     runLive();
   }
 
@@ -108,7 +114,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     }
     canvas.clearSelection();
     canvas.setDoc(doc);
-    scheduleSave();
+    afterEdit();
   }
 
   // Role armed for the next drawn piece, and kind armed for the next drawn box (both mirrored in the canvas
@@ -116,12 +122,11 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   let canvasRole = "piece";
   let canvasBoxKind = "hub";
 
-  // ── autosave (debounced localStorage) ───────────────────────────────────────
+  // ── what every edit does ────────────────────────────────────────────────────
+  // One call at the end of each mutation, so no edit can reach the canvas without the derived views
+  // following it. Persistence is not among them: saving is the host's, on the author's word.
 
-  let saveTimer = null;
-  function scheduleSave() {
-    if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => { try { localStorage.setItem(STORAGE_KEY, toJson(doc)); } catch { /* private mode */ } }, 600);
+  function afterEdit() {
     scheduleInspect();
     refreshIso();   // keep the read-only 3-D preview current with inspector-driven surface/geometry edits
   }
@@ -242,7 +247,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     if (fit) canvas.fit();
     fire("OnMeta", metaJson());
     fire("OnThemes", themesState());
-    scheduleSave();
+    afterEdit();
     paintReference().then(painted => { if (fit && painted) canvas.fit(); });
   }
 
@@ -273,7 +278,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     if (ordered.length) doc.themeScopes = ordered; else delete doc.themeScopes;
   }
   function afterThemeChange() {
-    normalizeScopes(); scheduleSave(); fire("OnThemes", themesState());
+    normalizeScopes(); afterEdit(); fire("OnThemes", themesState());
     if (themeApplyOn) scheduleThemePaint();   // keep the live paint overlay current with each assignment
   }
 
@@ -298,8 +303,8 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     canvas.setThemePaint(data.svg, { minX: data.minX, minZ: data.minZ, spanX: data.spanX, spanZ: data.spanZ });
   }
 
-  // Restore the last autosaved plan on open; fall back to a blank document.
-  try { const saved = localStorage.getItem(STORAGE_KEY); if (saved) doc = fromJson(saved); } catch { doc = emptyDoc(); }
+  // A fresh mount opens the blank document `doc` already is. What fills it is the host's route-specific
+  // load — a map's artifact, or a plan row — and nothing else, so the editor shows the plan it names.
   for (const k of Object.keys(overlays)) canvas.setOverlayVisible(k, overlays[k]);
   canvas.setHeightMap(heightMap);
   canvas.setDoc(doc);
@@ -334,14 +339,14 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
 
     // Reference (tracing) backdrop: pick a real map to trace over, nudge its placement, or clear it.
     async setReferenceMap(slug) {
-      if (!slug) { delete doc.reference; canvas.setReference(null, null); fire("OnMeta", metaJson()); scheduleSave(); return null; }
+      if (!slug) { delete doc.reference; canvas.setReference(null, null); fire("OnMeta", metaJson()); afterEdit(); return null; }
       const data = await fetchSurface(slug);
       if (!data) return "That map has no cached surface render.";
       doc.reference = defaultReference(slug);
       canvas.setReference(data, { offset: doc.reference.offset, scale: doc.reference.scale, opacity: doc.reference.opacity });
       canvas.fit();
       fire("OnMeta", metaJson());
-      scheduleSave();
+      afterEdit();
       return null;
     },
     setReferenceParam(key, value) {
@@ -352,7 +357,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       else if (key === "offsetZ") ref.offset[1] = Number(value) || 0;
       else return;
       canvas.updateReference({ offset: ref.offset, scale: ref.scale, opacity: ref.opacity });
-      scheduleSave();
+      afterEdit();
     },
     recenterReference() {
       const ref = doc.reference; if (!ref) return;
@@ -360,18 +365,18 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       canvas.updateReference({ offset: ref.offset, scale: ref.scale, opacity: ref.opacity });
       canvas.fit();
       fire("OnMeta", metaJson());
-      scheduleSave();
+      afterEdit();
     },
-    clearReference() { delete doc.reference; canvas.setReference(null, null); fire("OnMeta", metaJson()); scheduleSave(); },
+    clearReference() { delete doc.reference; canvas.setReference(null, null); fire("OnMeta", metaJson()); afterEdit(); },
 
-    setName(name) { doc.meta.name = name || "Untitled plan"; scheduleSave(); },
+    setName(name) { doc.meta.name = name || "Untitled plan"; afterEdit(); },
     setGlobal(key, value) {
       const g = doc.globals;
       if (key === "symmetry") g.symmetry = value;
       else g[key] = Number(value);
       canvas.setDoc(doc);
       if (key === "cell") canvas.fit();
-      scheduleSave();
+      afterEdit();
     },
 
     // Inspector edits on the current selection.
@@ -382,30 +387,30 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       for (const c of [...(doc.cliffs || []), ...(doc.walls || [])]) { if (c.a === oldId) c.a = id; if (c.b === oldId) c.b = id; }
       for (const b of doc.boxes || []) if (Array.isArray(b.members)) b.members = b.members.map(m => (m === oldId ? id : m));
       p.id = id;
-      canvas.setDoc(doc); canvas.select({ kind: "piece", id }); scheduleSave();
+      canvas.setDoc(doc); canvas.select({ kind: "piece", id }); afterEdit();
     },
-    setPieceRole(id, role) { const p = doc.pieces.find(x => x.id === id); if (!p) return; p.role = role; canvas.setDoc(doc); canvas.select({ kind: "piece", id }); scheduleSave(); },
+    setPieceRole(id, role) { const p = doc.pieces.find(x => x.id === id); if (!p) return; p.role = role; canvas.setDoc(doc); canvas.select({ kind: "piece", id }); afterEdit(); },
     stepPieceSurface(id, delta) {
       const p = doc.pieces.find(x => x.id === id); if (!p) return;
       const next = (p.surface ?? doc.globals.surface) + delta;
       if (next === doc.globals.surface) delete p.surface; else p.surface = next;
-      canvas.setDoc(doc); canvas.select({ kind: "piece", id }); scheduleSave();
+      canvas.setDoc(doc); canvas.select({ kind: "piece", id }); afterEdit();
     },
-    togglePieceMirrors(id) { const p = doc.pieces.find(x => x.id === id); if (!p) return; if (p.mirrors === false) delete p.mirrors; else p.mirrors = false; canvas.setDoc(doc); canvas.select({ kind: "piece", id }); scheduleSave(); },
+    togglePieceMirrors(id) { const p = doc.pieces.find(x => x.id === id); if (!p) return; if (p.mirrors === false) delete p.mirrors; else p.mirrors = false; canvas.setDoc(doc); canvas.select({ kind: "piece", id }); afterEdit(); },
     setZoneId(oldId, newId) {
       const z = doc.zones.find(x => x.id === oldId); if (!z || !newId || newId === oldId) return;
       z.id = uniqueId(doc.zones.filter(x => x !== z).map(x => x.id), newId);
-      canvas.setDoc(doc); canvas.select({ kind: "zone", id: z.id }); scheduleSave();
+      canvas.setDoc(doc); canvas.select({ kind: "zone", id: z.id }); afterEdit();
     },
     setBoxId(oldId, newId) {
       const b = (doc.boxes || []).find(x => x.id === oldId); if (!b || !newId || newId === oldId) return;
       b.id = uniqueId(doc.boxes.filter(x => x !== b).map(x => x.id), newId);
-      canvas.setDoc(doc); canvas.select({ kind: "box", id: b.id }); scheduleSave();
+      canvas.setDoc(doc); canvas.select({ kind: "box", id: b.id }); afterEdit();
     },
     setBoxKind(id, kind) {
       const b = (doc.boxes || []).find(x => x.id === id); if (!b || !BOX_KINDS.includes(kind)) return;
       b.kind = kind;
-      canvas.setDoc(doc); canvas.select({ kind: "box", id }); scheduleSave();
+      canvas.setDoc(doc); canvas.select({ kind: "box", id }); afterEdit();
     },
     // Freeze a containment-grouped box's membership as an explicit list (or release it back to containment),
     // so an envelope that must own an unusual set of pieces can say so.
@@ -413,9 +418,9 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       const b = (doc.boxes || []).find(x => x.id === id); if (!b) return;
       if (Array.isArray(b.members) && b.members.length) delete b.members;
       else { const m = boxMembers(doc, b).map(p => p.id); if (m.length) b.members = m; }
-      canvas.setDoc(doc); canvas.select({ kind: "box", id }); scheduleSave();
+      canvas.setDoc(doc); canvas.select({ kind: "box", id }); afterEdit();
     },
-    cycleFacing(index) { const m = doc.placements.spawns[index]; if (!m) return; const o = ["front", "right", "back", "left"]; m.facing = o[(o.indexOf(m.facing) + 1) % 4]; canvas.setDoc(doc); canvas.select({ kind: "marker", markerKind: "spawn", index }); scheduleSave(); },
+    cycleFacing(index) { const m = doc.placements.spawns[index]; if (!m) return; const o = ["front", "right", "back", "left"]; m.facing = o[(o.indexOf(m.facing) + 1) % 4]; canvas.setDoc(doc); canvas.select({ kind: "marker", markerKind: "spawn", index }); afterEdit(); },
     deleteSelected() { deleteSelection(canvas.getSelection()); },
 
     // Derived-structure overlays: toggle a layer (persisted) and pulse a finding's subjects on click.

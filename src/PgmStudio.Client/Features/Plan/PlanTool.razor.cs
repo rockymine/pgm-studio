@@ -560,6 +560,8 @@ public partial class PlanTool
 
     // Load a map-backed plan's artifact (GET /api/map/{slug}/plan). An empty {} body means the map has no
     // stored plan yet — a fresh blank plan; the editor keeps its default doc rather than importing garbage.
+    // That default is now genuinely blank: the bridge no longer restores a cached document at mount, so
+    // "no stored plan" renders an empty board instead of whatever this browser last drew.
     private async Task LoadFromMap(string slug)
     {
         if (handle is null) return;
@@ -695,9 +697,14 @@ public partial class PlanTool
     // trail of near-identical maps. The intent write carries the plan's name, so the map's identity follows
     // the plan without a second call. Only the candidate pool (the bare /plan-editor, which has no map row)
     // still originates one — there the build IS the map's creation.
+    //
+    // Either way the plan itself is written to the map first, so the map carries the document its layout was
+    // compiled from. Without it a map built from the bare route held a layout whose source was nowhere: it
+    // could not be reopened in the plan editor, and opening it there showed a blank document over a board
+    // that plainly came from one.
     private async Task CreateDraft()
     {
-        if (compiledLayoutRaw is null || compiledIntentRaw is null) return;
+        if (handle is null || compiledLayoutRaw is null || compiledIntentRaw is null) return;
         draftBusy = true; draftError = null; draftSlug = null;
 
         try
@@ -711,6 +718,11 @@ public partial class PlanTool
                 slug = (await createResp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString();
                 if (string.IsNullOrEmpty(slug)) { draftError = "create draft: no slug returned"; return; }
             }
+
+            draftStep = "Recording the plan"; StateHasChanged();
+            var planJson = await handle.InvokeAsync<string>("exportJson");
+            using var planResp = await Http.PutAsync($"api/map/{slug}/plan", new StringContent(planJson, Encoding.UTF8, "application/json"));
+            if (!await Ok(planResp, "record the plan")) return;
 
             draftStep = "Saving layout"; StateHasChanged();
             using var layoutResp = await Http.PutAsync($"api/map/{slug}/sketch", new StringContent(compiledLayoutRaw, Encoding.UTF8, "application/json"));

@@ -64,8 +64,21 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   Identity follows for free — the compiled intent carries the plan's name, which the intent write applies
   to the document. The built row keeps its `plan_json` beside the new `sketch_layout_json`, which is what
   lets **reopen** (S35) reach both of its tools. The bare `/plan-editor` (a generator candidate, no map
-  row) still originates one: there the build *is* the map's creation. Contract: `plan-as-map.md`
-  §Lifecycle, whose "the row advances" claim this makes true.
+  row) still originates one: there the build *is* the map's creation — and it now writes the plan onto that
+  map too, so a board built from the bare route also carries the document its layout was compiled from and
+  can be reopened in the plan editor rather than holding a layout whose source is nowhere (G152). Contract:
+  `plan-as-map.md` §Lifecycle, whose "the row advances" claim this makes true.
+- **The plan editor shows the plan it names (G152).** Opening a map-backed plan could display a drawing
+  belonging to no plan at all: the same three maps showed one picture in one browser and another in the
+  next, and every plan "created" appeared to contain a board made once, long ago. `LoadFromMap` treats an
+  empty `{}` artifact as "no stored plan yet" and keeps the editor's current document — correct reasoning
+  about the wrong premise, because that document was not blank: `plan-bridge` restored the last autosaved
+  **localStorage** copy at mount, before any route-specific load ran. So New, and any map without a stored
+  plan, rendered whatever that browser last had cached. The fix is a deletion: **the document cache is
+  gone.** The database is the store — a map's `plan_json` artifact or a `plan` row — and a client-side copy
+  of a document the database also holds can only ever disagree with it. The three keys that remain (overlay
+  chips, height-map fill, surface stepper) are UI preferences about this browser, not documents claiming to
+  be the plan. Accepted consequence: unsaved work is lost on reload.
 - **Plan editor entry on the landing** — the studio landing (`/`) leads with a featured *Plan a
   layout* origin card (author a coarse cell-grid seed → compile straight into a sketch draft), set
   above a labelled `or work a map through its stages` divider from the three lifecycle cards; the

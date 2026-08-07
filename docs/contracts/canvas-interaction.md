@@ -163,8 +163,8 @@ by design: **hot paths stay in JS** — cursor coordinates and zoom percentages 
 label elements per mousemove — and only decisions cross to C# (`OnSelect`, `OnRegionDraw`,
 `OnCanvasIslandSelect`, …).
 
-`world-bridge` mounts `WorldCanvas`, `plan-bridge` `PlanCanvas` (and owns the plan document, id minting
-and the debounced autosave), `sketch-bridge` `SketchCanvas`, `sideview-bridge` `SideviewCanvas`, and
+`world-bridge` mounts `WorldCanvas`, `plan-bridge` `PlanCanvas` (and owns the plan document and id minting;
+it persists nothing — saving is the host's, on the author's word), `sketch-bridge` `SketchCanvas`, `sideview-bridge` `SideviewCanvas`, and
 `scan-bridge` the non-interactive `ConfigureRenderer`. `fetch-json.js` is the shared no-store fetch. The
 bridges look repetitive but are not: each owns different document semantics. What they genuinely share is
 only the invoke wrapper, which is inconsistent today (**CV15**).
