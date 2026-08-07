@@ -559,9 +559,11 @@
                   <span><strong>Keeps</strong> your terrain themes, room shells and placed dressing, and the map's authors.</span></li>
               </ul>
               <p class="section-desc">Anything you changed in Configure about the teams, spawns or wools is written over.</p>
+              @* Fill, not Full: two full-width buttons wrap onto two rows, which pushed the one that
+                 actually rebuilds furthest from where the eye lands. *@
               <div class="ctrl-row">
-                <Button Full OnClick="CancelRebuild">Cancel</Button>
-                <Button Variant="danger" Full Disabled="@draftBusy" OnClick="BuildRequested">
+                <Button Fill OnClick="CancelRebuild">Cancel</Button>
+                <Button Variant="danger" Fill Disabled="@draftBusy" OnClick="BuildRequested">
                   <i data-lucide="hammer"></i> Rebuild anyway
                 </Button>
               </div>

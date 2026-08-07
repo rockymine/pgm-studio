@@ -763,15 +763,23 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
   box-shadow: -8px 0 24px rgba(0, 0, 0, 0.3);
 }
 .side-drawer-head {
+  flex: 0 0 auto;
   display: flex; align-items: center; justify-content: space-between;
   padding: var(--space-3); border-bottom: 1px solid var(--border);
 }
+/* The body is the only part that gives ground. A footer holds actions, so it must never be what overflows
+   the drawer — a footer that grew past the room left (a confirmation stated above its buttons) pushed those
+   buttons off the bottom of the screen with no way to reach them. Capping it at half the drawer bounds what
+   it can claim, its own scroll takes anything past that, and the body absorbs the rest. */
 .side-drawer-body {
-  flex: 1; min-height: 0; overflow: auto;
+  flex: 1 1 0; min-height: 0; overflow: auto;
   display: flex; flex-direction: column; gap: var(--space-2);
   padding: var(--space-3);
 }
-.side-drawer-foot { padding: var(--space-3); border-top: 1px solid var(--border); }
+.side-drawer-foot {
+  flex: 0 0 auto; max-height: 50%; overflow-y: auto;
+  padding: var(--space-3); border-top: 1px solid var(--border);
+}
 .detail-icon--muted { color: var(--text-muted); }
 
 

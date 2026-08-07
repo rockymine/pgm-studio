@@ -494,6 +494,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   studio already marks a state with (`.filter-chip--active`, `.draw-tool-btn--active`) in that meaning's own
   token, so no new colour enters the palette. (C33)
 
+- **A drawer footer can no longer push its own actions off screen (C34).** `SideDrawer`'s body took a flex
+  basis of 0, which in a fixed-height column means it absorbs none of a negative free space — so a footer
+  that outgrew the room left overflowed the drawer instead. The plan editor's rebuild confirmation states
+  what a second build trades *above* its buttons, which put **Rebuild anyway** below the bottom of the
+  viewport with no way to scroll to it. The body now takes the shrink, the footer is capped at half the
+  drawer and scrolls inside that cap, and the header never shrinks; the two confirm buttons share one row
+  (`Fill`, not `Full`) instead of stacking. (C34)
+
 ## Backend / API (B)
 - **The wire is dot-separated on every machine, in every country (B48).** Query, route and form values bind
   through a converter that reads the ambient culture, so on a comma-decimal host `?leader=0.55` arrived as
