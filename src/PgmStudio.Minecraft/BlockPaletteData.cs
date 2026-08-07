@@ -40,10 +40,12 @@ internal static class BlockPaletteData
     // The three dye families do NOT share a colour ramp: wool is the dye applied to a fibrous white,
     // stained glass is the saturated dye itself, and stained clay is that dye burnt into terracotta —
     // which is why the old single ramp printed a brown-clay floor the same colour as brown wool.
+    // All three are texture means, not the dye-item ramp: those two ramps exist side by side in the game
+    // and are not the same numbers, and the one an item is tinted with is not the one a placed block shows.
     private static readonly uint[] WoolRgb =
     [
-        0xDDDDDD, 0xEB8844, 0xC354CD, 0x6689D3, 0xDECF2A, 0x41CD34, 0xD88198, 0x434343,
-        0xABABAB, 0x287697, 0x7B2FBE, 0x253192, 0x51301A, 0x3B511A, 0xB3312C, 0x1A1A1A,
+        0xDDDDDD, 0xDB7D3E, 0xB350BC, 0x6A8AC9, 0xB1A627, 0x41AE38, 0xD08499, 0x404040,
+        0x9AA1A1, 0x2E6E89, 0x7E3DB5, 0x2E388D, 0x4F321F, 0x35461B, 0x963430, 0x191616,
     ];
 
     private static readonly uint[] StainedGlassRgb =
@@ -65,10 +67,10 @@ internal static class BlockPaletteData
     [
         new("Oak",      0xA2814E, 0x9C7F4E, 0x48782E, 0x4E6F37, 0x86653A),
         new("Spruce",   0x725430, 0x6C4D2D, 0x33582F, 0x3F5A32, 0x5E4429),
-        new("Birch",    0xC4B078, 0xC7B47D, 0x6E8C49, 0x7F9B62, 0xC0AD79),
-        new("Jungle",   0xA87C5C, 0x9A7248, 0x3E7B23, 0x386E2A, 0x9C7355),
-        new("Acacia",   0xA95C33, 0xA9622E, 0x55772C, 0x77872E, 0xA05730),
-        new("Dark Oak", 0x422B14, 0x5E4629, 0x3E6E26, 0x40602A, 0x3E2812),
+        new("Birch",    0xC4B078, 0xB8A679, 0x6E8C49, 0x7F9B62, 0xC6BD8D),
+        new("Jungle",   0x9A6E4D, 0x9A7248, 0x3E7B23, 0x386E2A, 0x9C7355),
+        new("Acacia",   0xA95C33, 0x9A5B40, 0x55772C, 0x77872E, 0xA05730),
+        new("Dark Oak", 0x422B14, 0x4E3E29, 0x3E6E26, 0x40602A, 0x3E2812),
     ];
 
     // Per-wood ids, in the Woods order. Fences and gates run …jungle, dark oak, acacia; doors run
@@ -80,8 +82,8 @@ internal static class BlockPaletteData
 
     private static readonly (string Name, uint Rgb)[] StoneKinds =
     [
-        ("Stone", 0x7E7E7E), ("Granite", 0x9A6752), ("Polished Granite", 0x9C6C5B), ("Diorite", 0xACACAE),
-        ("Polished Diorite", 0xC4C4C7), ("Andesite", 0x8A8A8D), ("Polished Andesite", 0x8E8E91),
+        ("Stone", 0x7E7E7E), ("Granite", 0x997162), ("Polished Granite", 0x9C6C5B), ("Diorite", 0xACACAE),
+        ("Polished Diorite", 0xB7B7B9), ("Andesite", 0x8A8A8D), ("Polished Andesite", 0x8E8E91),
     ];
 
     private static readonly (string Name, uint Rgb)[] StoneBrickKinds =
@@ -214,7 +216,7 @@ internal static class BlockPaletteData
         Variant(3, 2, "Podzol", 0x5D421F);
         Block(13, "Gravel", 0x837F7E);
         Variant(12, 0, "Sand", 0xDBD3A0);
-        Variant(12, 1, "Red Sand", 0xBE6621);
+        Variant(12, 1, "Red Sand", 0xA95821);
         Block(60, "Farmland", 0x6A4A2C);
         Block(82, "Clay", 0xA4A8B8);
         Block(110, "Mycelium", 0x6F6265);
@@ -224,12 +226,12 @@ internal static class BlockPaletteData
         Variant(24, 1, "Chiseled Sandstone", 0xD6CB9C);
         Variant(24, 2, "Smooth Sandstone", 0xD8CEA0);
         Block(128, "Sandstone Stairs", 0xD9CFA1);
-        Variant(179, 0, "Red Sandstone", 0xBA6A28);
-        Variant(179, 1, "Chiseled Red Sandstone", 0xB96827);
-        Variant(179, 2, "Smooth Red Sandstone", 0xBA6A28);
-        Block(180, "Red Sandstone Stairs", 0xBA6A28);
-        Block(181, "Double Red Sandstone Slab", 0xBA6A28);
-        Block(182, "Red Sandstone Slab", 0xBA6A28);
+        Variant(179, 0, "Red Sandstone", 0xA5541D);
+        Variant(179, 1, "Chiseled Red Sandstone", 0xA2521B);
+        Variant(179, 2, "Smooth Red Sandstone", 0xA8551E);
+        Block(180, "Red Sandstone Stairs", 0xA5541D);
+        Block(181, "Double Red Sandstone Slab", 0xA5541D);
+        Block(182, "Red Sandstone Slab", 0xA5541D);
 
         // ---- Liquids, ice and snow -------------------------------------------------------------------
         Block(8, "Water", 0x3F76E4);
@@ -239,7 +241,7 @@ internal static class BlockPaletteData
         Block(78, "Snow Layer", 0xF5FAFA);
         Block(79, "Ice", 0x91B7FB);
         Block(80, "Snow Block", 0xF5FAFA);
-        Block(174, "Packed Ice", 0x8EB9E8);
+        Block(174, "Packed Ice", 0xA5C2F5);
 
         // ---- Ores and mineral blocks -----------------------------------------------------------------
         // Accent-weighted: the raw texture mean of any ore is the stone it is embedded in.
@@ -253,10 +255,10 @@ internal static class BlockPaletteData
         Block(129, "Emerald Ore", 0x17C25A);
         Block(153, "Nether Quartz Ore", 0xA5665E);
         Block(22, "Lapis Lazuli Block", 0x1E438C);
-        Block(41, "Gold Block", 0xF9DE4E);
+        Block(41, "Gold Block", 0xF9EC4E);
         Block(42, "Iron Block", 0xDBDBDB);
         Block(57, "Diamond Block", 0x62DBD6);
-        Block(133, "Emerald Block", 0x2CD965);
+        Block(133, "Emerald Block", 0x51D975);
         Block(152, "Redstone Block", 0xA81E12);
         Block(173, "Coal Block", 0x191919);
 
@@ -284,7 +286,7 @@ internal static class BlockPaletteData
         Block(83, "Sugar Cane", 0x82B563);
         Block(86, "Pumpkin", 0xC07615);
         Block(91, "Jack o'Lantern", 0xC98A21);
-        Block(103, "Melon", 0x6E8C21);
+        Block(103, "Melon", 0x979924);
         Block(104, "Pumpkin Stem", 0x74923D);
         Block(105, "Melon Stem", 0x74923D);
         Block(106, "Vines", 0x416F26);
@@ -324,7 +326,7 @@ internal static class BlockPaletteData
         Block(108, "Brick Stairs", 0x96604D);
         Block(46, "TNT", 0xA03B2E);
         Block(47, "Bookshelf", 0x6E563A);
-        Block(89, "Glowstone", 0xAB8354);
+        Block(89, "Glowstone", 0x8F7645);
         Block(101, "Iron Bars", 0xA5A5A5);
         Block(112, "Nether Bricks", 0x2D171B);
         Block(113, "Nether Brick Fence", 0x2D171B);
@@ -337,7 +339,7 @@ internal static class BlockPaletteData
         Variant(155, 2, "Quartz Pillar", 0xECE9E1);
         Block(156, "Quartz Stairs", 0xECE9E2);
         Variant(168, 0, "Prismarine", 0x63AB9E);
-        Variant(168, 1, "Prismarine Bricks", 0x6BB5A6);
+        Variant(168, 1, "Prismarine Bricks", 0x63A08F);
         Variant(168, 2, "Dark Prismarine", 0x345A4F);
         Block(169, "Sea Lantern", 0xACC7BE);
         Block(165, "Slime Block", 0x78C05A);
@@ -358,7 +360,7 @@ internal static class BlockPaletteData
         Block(52, "Mob Spawner", 0x1E2A34);
         Block(54, "Chest", 0xA2763C);
         Block(55, "Redstone Wire", 0xA01A0F);
-        Block(58, "Crafting Table", 0x7C5634);
+        Block(58, "Crafting Table", 0x6B472A);
         Block(61, "Furnace", 0x6F6F6F);
         Block(62, "Furnace", 0x6F6F6F);
         Block(63, "Sign", 0xA2814E);
@@ -399,7 +401,7 @@ internal static class BlockPaletteData
         Variant(145, 1, "Chipped Anvil", 0x494949);
         Variant(145, 2, "Damaged Anvil", 0x464646);
         Block(146, "Trapped Chest", 0xA2763C);
-        Block(147, "Weighted Pressure Plate (Light)", 0xF9DE4E);
+        Block(147, "Weighted Pressure Plate (Light)", 0xF9EC4E);
         Block(148, "Weighted Pressure Plate (Heavy)", 0xDBDBDB);
         Block(149, "Comparator (off)", 0xA8A8A8);
         Block(150, "Comparator", 0xB4A8A8);
