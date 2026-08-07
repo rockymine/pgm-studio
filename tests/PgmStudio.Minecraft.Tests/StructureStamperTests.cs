@@ -78,13 +78,25 @@ public sealed class StructureStamperTests
         StructureStamper.StampWall(w, minX: -30, minZ: 39, maxX: -20, maxZ: 41, topY: 13);
 
         await Assert.That(w.GetBlock(-30, 0, 39).Id).IsEqualTo(Blocks.Bedrock);    // reaches the floor
-        await Assert.That(w.GetBlock(-25, 13, 40).Id).IsEqualTo(Blocks.Bedrock);   // top course
-        await Assert.That(w.GetBlock(-25, 14, 40).Id).IsEqualTo(Blocks.Air);       // nothing above the top
+        await Assert.That(w.GetBlock(-25, 13, 40).Id).IsEqualTo(Blocks.Bedrock);   // top bedrock course
         // 2 thick across the seam (z 39,40); z=41 is the exclusive bound.
         await Assert.That(w.GetBlock(-25, 5, 40).Id).IsEqualTo(Blocks.Bedrock);
         await Assert.That(w.GetBlock(-25, 5, 41).Id).IsEqualTo(Blocks.Air);
         // full width across x, exclusive at maxX.
         await Assert.That(w.GetBlock(-21, 5, 39).Id).IsEqualTo(Blocks.Bedrock);
         await Assert.That(w.GetBlock(-20, 5, 39).Id).IsEqualTo(Blocks.Air);
+    }
+
+    [Test]
+    public async Task Wall_is_capped_by_one_course_of_cobweb_over_its_whole_footprint()
+    {
+        var w = new VoxelWorld();
+        StructureStamper.StampWall(w, minX: -30, minZ: 39, maxX: -20, maxZ: 41, topY: 13);
+
+        for (var x = -30; x < -20; x++)
+        for (var z = 39; z < 41; z++)
+            await Assert.That(w.GetBlock(x, 14, z).Id).IsEqualTo(Blocks.Cobweb);
+        await Assert.That(w.GetBlock(-25, 15, 40).Id).IsEqualTo(Blocks.Air);   // one course, and nothing above it
+        await Assert.That(w.GetBlock(-20, 14, 39).Id).IsEqualTo(Blocks.Air);   // exclusive at maxX, like the bedrock
     }
 }

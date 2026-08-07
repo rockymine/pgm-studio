@@ -90,14 +90,20 @@ public static class StructureStamper
     }
 
     /// <summary>Raise a solid bedrock wall over a seam footprint from y=0 up to <paramref name="topY"/>
-    /// inclusive (ST4). Footprint is min-inclusive, max-exclusive; it is two blocks thick across the seam and
-    /// spans the full shared-interface width along it.</summary>
+    /// inclusive, and lay one course of cobweb over it (ST4). Footprint is min-inclusive, max-exclusive; it is
+    /// two blocks thick across the seam and spans the full shared-interface width along it.
+    /// <para>The web is the wall's last course, not decoration on it: a bedrock line a team cannot break is
+    /// also a line they cannot see over, so an attacker who bridges to the top meets a course that costs time
+    /// to cross and can be cut away with the shears every kit carries. It is why the bedrock itself is short —
+    /// the barrier is three courses of stone and one of web, not five of stone.</para></summary>
     public static void StampWall(VoxelWorld world, int minX, int minZ, int maxX, int maxZ, int topY)
     {
         var top = Math.Clamp(topY, 0, VoxelWorld.MaxHeight - 1);
         for (var x = minX; x < maxX; x++)
         for (var z = minZ; z < maxZ; z++)
-        for (var y = 0; y <= top; y++)
-            world.SetBlock(x, y, z, Blocks.Bedrock);
+        {
+            for (var y = 0; y <= top; y++) world.SetBlock(x, y, z, Blocks.Bedrock);
+            if (top + 1 < VoxelWorld.MaxHeight) world.SetBlock(x, top + 1, z, Blocks.Cobweb);
+        }
     }
 }

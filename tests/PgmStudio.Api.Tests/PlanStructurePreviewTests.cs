@@ -66,16 +66,21 @@ public sealed class PlanStructurePreviewTests
     }
 
     [Test]
-    public async Task Wall_box_is_filled_with_bedrock_and_is_tight()
+    public async Task Wall_box_covers_the_bedrock_and_the_cobweb_that_caps_it_and_is_tight()
     {
         var (boxes, w) = Build();
         var box = First(boxes, "wall");
 
+        // The drawn box is the whole barrier, so its last course is the web and the one under it the last
+        // stone — a box that stopped at the bedrock would draw a wall shorter than the one a player meets.
         for (var x = box.MinX; x < box.MaxX; x++)
         for (var z = box.MinZ; z < box.MaxZ; z++)
-            await Assert.That(w.GetBlock(x, box.Top - 1, z).Id).IsEqualTo(Blocks.Bedrock);
+        {
+            await Assert.That(w.GetBlock(x, box.Top - 1, z).Id).IsEqualTo(Blocks.Cobweb);
+            await Assert.That(w.GetBlock(x, box.Top - 2, z).Id).IsEqualTo(Blocks.Bedrock);
+        }
 
-        await Assert.That(w.GetBlock(box.MinX, box.Top, box.MinZ).Id).IsNotEqualTo(Blocks.Bedrock);
+        await Assert.That(w.GetBlock(box.MinX, box.Top, box.MinZ).Id).IsEqualTo(Blocks.Air);
     }
 
     [Test]

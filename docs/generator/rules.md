@@ -497,17 +497,27 @@ the stat corpus.
   generated XML (load-bearing for gameplay); lint: when a spawn piece exists, iron markers belong
   inside it. Spawns have no redstone line.
 - **ST3 [expert]** *Iron structure*: an iron marker stamps a **4×4×4 iron-block cube**.
-- **ST4 [corpus]** *Pre-built wall*: 2 blocks thick, full seam width, top = approach side +4,
-  down to y=0. Corpus pattern (11 walls over 5 seeds): walls sit on **gentle seams** — every
-  marked interface has Δ ∈ {0, ±2} and border 10–15; nobody walls a cliff. Narrow seams are
-  legal wall carriers. Each wall carries a **defence chest** set into **one** face
-  (`WallDefenseChest`): the chest replaces the one bedrock block at the approach's ground level and
-  the block above it is carved to air so the lid opens — a niche, not a box in front of the wall.
-  Only the near face is opened, and the column **behind** each chest is left as bedrock, so a full
-  vertical bedrock wall still stands: breaking the chest meets bedrock, not a way through. One chest
-  on a lane ≤ 10 wide, two on a wider one, evenly spaced along it. A full 27-slot half-stack loadout
-  each: dark-oak + spruce planks and crafting tables to build with, end stone + a redstone block to
-  reinforce, and two Efficiency II iron pickaxes.
+- **ST4 [corpus]** *Pre-built wall*: 2 blocks thick, full seam width, **three courses of bedrock**
+  above the approach side (top = approach surface +2) over solid bedrock down to y=0, capped by
+  **one course of cobweb**. The web is part of the barrier, not decoration on it: it costs an
+  attacker who bridges the top real time to cross and is cut with the shears every kit carries,
+  which is what lets the stone itself be short enough that both halves of the lane still read as
+  one place. Corpus pattern (11 walls over 5 seeds): walls sit on **gentle seams** — every marked
+  interface has Δ ∈ {0, ±2} and border 10–15; nobody walls a cliff. Narrow seams are legal wall
+  carriers. Each wall carries a **defence chest** set into **one** face (`WallDefenseChest`): the
+  chest replaces the one bedrock block at the approach's ground level and the block above it is
+  carved to air so the lid opens — a niche, not a box in front of the wall. Only that one face is
+  opened, and the column **behind** each chest is left as bedrock, so a full vertical bedrock wall
+  still stands: breaking the chest meets bedrock, not a way through. **Which face opens is
+  authored**, because it is the same thing as which side of the line the supply is for: the plan's
+  wall mark carries a `side` naming one of the seam's two pieces (`PlanWall.Side`, defaulting to
+  its `a`), and the compiler resolves it to a face per orbit image — a reflection swaps which face
+  has the smaller coordinate, so only the piece it looks out at survives the fan. In the plan editor
+  the wall tool cycles a seam through *no wall → chests facing a → chests facing b → no wall*, and
+  the open face is drawn as an amber bar just off the seam. One chest on a lane ≤ 10 wide, two on a
+  wider one, evenly spaced along it. A full 27-slot half-stack loadout each: dark-oak + spruce
+  planks and crafting tables to build with, end stone + a redstone block to reinforce, and two
+  Efficiency II iron pickaxes.
 - **ST5 [author]** *Build-region outline*: the build region is marked in the world by an **unpowered
   redstone line at y=1**, one air block clear of the region — so two blocks out from its edge — and
   holding that same one-block clearance from terrain. Only the **void-facing** edges carry a line: an

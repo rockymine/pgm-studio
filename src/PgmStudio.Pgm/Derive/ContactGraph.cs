@@ -40,10 +40,12 @@ public sealed record BuildRegion(IReadOnlyList<string> ZoneIds, IReadOnlyList<Bl
 /// <summary>An edge/point contact between two pieces resolved to a block-space segment: the shared border for a
 /// land/narrow contact (a line), or the touch point for a corner (a degenerate segment). <see cref="Length"/>
 /// is the border length in blocks (0 for a corner). <see cref="WoolRoom"/> flags a terrain↔wool-room land seam
-/// (rendered red); <see cref="Wall"/> flags a land interface marked as a pre-built approach wall.</summary>
+/// (rendered red); <see cref="Wall"/> flags a land interface marked as a pre-built approach wall, and
+/// <see cref="WallChestPiece"/> names the piece that wall's chest face looks out at (null when it is not a
+/// wall) — the one thing about a wall an author picks, so the overlay has to be able to draw it.</summary>
 public sealed record InterfaceSegment(
     string A, string B, ContactKind Kind, int X1, int Z1, int X2, int Z2, int Length,
-    bool WoolRoom = false, bool Wall = false);
+    bool WoolRoom = false, bool Wall = false, string? WallChestPiece = null);
 
 /// <summary>A piece edge facing a build zone, as a block-space segment (the computed frontline geometry).</summary>
 public sealed record FrontlineEdge(string Piece, string Zone, int X1, int Z1, int X2, int Z2);
@@ -114,7 +116,7 @@ public sealed class ContactGraph
         Components = ComputeComponents(Pieces, Contacts);
         BuildRegions = ComputeBuildRegions(plan, Cell);
         GapLinks = ComputeGapLinks(BuildRegions, Pieces, Components);
-        InterfaceSegments = BuildInterfaceSegments(_byId, Contacts, wallPairs);
+        InterfaceSegments = BuildInterfaceSegments(_byId, Contacts, plan.Walls);
         FrontlineEdges = ComputeFrontlineEdges(plan, Cell, Pieces);
     }
 
@@ -357,7 +359,7 @@ public sealed class ContactGraph
     // ── overlay geometry (block-space segments the editor draws) ────────────────────────────────────────
 
     private static List<InterfaceSegment> BuildInterfaceSegments(
-        Dictionary<string, DerivedPiece> byId, IReadOnlyList<Contact> contacts, IReadOnlyList<(string A, string B)> wallPairs)
+        Dictionary<string, DerivedPiece> byId, IReadOnlyList<Contact> contacts, IReadOnlyList<PlanWall> walls)
     {
         var list = new List<InterfaceSegment>();
         foreach (var c in contacts)
@@ -369,12 +371,20 @@ public sealed class ContactGraph
             // across a narrow step is legal.
             bool woolRoom = IsLandInterface(c.Kind)
                 && (byId[c.A].Role == PlanRoles.WoolRoom) != (byId[c.B].Role == PlanRoles.WoolRoom);
-            bool wall = IsLandInterface(c.Kind)
-                && (wallPairs.Contains((c.A, c.B)) || wallPairs.Contains((c.B, c.A)));
-            list.Add(new InterfaceSegment(c.A, c.B, c.Kind, x1, z1, x2, z2, c.BorderLength, woolRoom, wall));
+            var mark = IsLandInterface(c.Kind) ? WallMark(walls, c.A, c.B) : null;
+            list.Add(new InterfaceSegment(
+                c.A, c.B, c.Kind, x1, z1, x2, z2, c.BorderLength, woolRoom, mark is not null, mark?.ChestPiece));
         }
         return list;
     }
+
+    /// <summary>The piece an approach wall's chest face looks out at (ST4): the one its plan mark names, else
+    /// the mark's own <c>a</c>. A contact's A/B ordering is derived, not the author's, so the mark is matched
+    /// on the unordered pair — the compiler and the overlay must not disagree about which face opens.</summary>
+    public string WallChestPiece(Contact c) => WallMark(Plan.Walls, c.A, c.B)?.ChestPiece ?? c.A;
+
+    private static PlanWall? WallMark(IReadOnlyList<PlanWall> walls, string a, string b) =>
+        walls.FirstOrDefault(w => (w.A == a && w.B == b) || (w.A == b && w.B == a));
 
     /// <summary>The shared-border segment of two edge/corner-touching rects: a vertical or horizontal line for a
     /// land/narrow contact, or the single touch point (a degenerate segment) for a corner.</summary>

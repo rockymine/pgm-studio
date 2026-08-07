@@ -96,8 +96,12 @@ Author feedback after building the first real seed reshapes the role model:
 - **Two optional intent-bearing roles remain**: `wool-room` (the full room region → bedrock column
   floor, redstone entrance line, red terrain↔room interfaces in the editor) and `spawn` (the spawn
   region → iron inside it auto-renews in the XML; lint keeps iron markers inside it). ST1–ST3.
-- **Interface marks**: beside `cliffs`, a `walls` list (piece-id pairs) marks pre-built approach
-  walls (ST4). Marker `at` offsets are half-cell doubles (markers are stamp centres).
+- **Interface marks**: beside `cliffs`, a `walls` list marks pre-built approach walls (ST4). An entry
+  is a piece-id pair plus a `side` naming which of the two the wall's defence chests face (`"a"` or
+  `"b"`, defaulting to `"a"`) — the wall is two blocks thick so exactly one face opens, and that face
+  is which side of the line the supply is for. The wall tool cycles a seam through *none → chests
+  facing `a` → chests facing `b` → none*, and the overlay draws the open face as an amber bar just off
+  the seam. Marker `at` offsets are half-cell doubles (markers are stamp centres).
 
 ## 2. Derived structure (computed, never stored)
 

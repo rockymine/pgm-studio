@@ -13,7 +13,7 @@
 
 import { PlanCanvas } from "../canvas/plan-canvas.js";
 import {
-  emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, toggleWall, defaultReference, ROLES, BOX_KINDS,
+  emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, cycleWall, defaultReference, ROLES, BOX_KINDS,
   planIsoSolids, viewBounds, markerList, MARKER_KINDS, boxMembers, defaultThemeJson,
 } from "../plan/plan-doc.js";
 import { parseOverlays } from "../plan/plan-inspect.js";
@@ -44,7 +44,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     onChange: () => afterEdit(),
     onCreate: (kind, rect) => createRect(kind, rect),
     onDelete: (sel) => deleteSelection(sel),
-    onToggleWall: (a, b) => toggleWallMark(a, b),
+    onCycleWall: (a, b) => cycleWallMark(a, b),
   });
 
   // ── document mutations (canvas + inspector edits funnel here) ───────────────
@@ -75,10 +75,11 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     afterEdit();
   }
 
-  // Toggle a wall mark on a land-interface piece pair, then re-run the live feeds immediately so the heavy bar
-  // (and the "not an interface" error, if the pair stops sharing a seam) refreshes without waiting on the debounce.
-  function toggleWallMark(a, b) {
-    toggleWall(doc, a, b);
+  // Cycle a wall mark on a land-interface piece pair (none → chests facing a → chests facing b → none), then
+  // re-run the live feeds immediately so the heavy bar and its chest-face tick (and the "not an interface"
+  // error, if the pair stops sharing a seam) refresh without waiting on the debounce.
+  function cycleWallMark(a, b) {
+    cycleWall(doc, a, b);
     canvas.setDoc(doc);
     afterEdit();
     runLive();

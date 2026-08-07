@@ -56,7 +56,7 @@ the riser must not paint behind. The set the painter consults splits by how a st
 - **Interface-relative** — the **bedrock approach wall** (`StructureStamper.StampWall`, from
   `StructureIntent.Walls`; rule ST4). Not a piece but a **seam barrier**: two blocks thick across the shared
   edge between two pieces, the interface width along it, filled with bedrock from y=0 up to
-  `approach.Surface + 4` — so it stands **above** the terrain on both sides.
+  `approach.Surface + 2` and capped by one course of cobweb — so it stands **above** the terrain on both sides.
 
 - **TP6** *A stamped structure is height-bearing, and the painter reads it as a wall, never as a drop.* For
   every rule below, a neighbour that is a structure — a room plateau or an approach-wall barrier — is

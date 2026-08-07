@@ -107,9 +107,10 @@ public static class PlanStructurePreview
                 baseY, baseY + StructureStamper.IronCubeSize));
         }
 
-        // Walls: the footprint is already max-exclusive; TopY is inclusive, so +1.
+        // Walls: the footprint is already max-exclusive; TopY is inclusive, and the stamper lays one course of
+        // cobweb over it, so the drawn box tops out two above.
         foreach (var w in st.Walls)
-            boxes.Add(new StructureBox("wall", null, w.MinX, w.MinZ, w.MaxX, w.MaxZ, 0, w.TopY + 1));
+            boxes.Add(new StructureBox("wall", null, w.MinX, w.MinZ, w.MaxX, w.MaxZ, 0, w.TopY + 2));
 
         return boxes;
     }

@@ -321,4 +321,13 @@ public sealed class PlanWall
 {
     [JsonPropertyName("a")] public string A { get; set; } = "";
     [JsonPropertyName("b")] public string B { get; set; } = "";
+
+    /// <summary>Which of the wall's two faces carries its defence chests, named by the piece that face looks
+    /// out at: <c>"a"</c> or <c>"b"</c>. The wall is two blocks thick so one face can be opened while the
+    /// other stays solid, and this is the only thing that decides which side of the line can reach the
+    /// supply. Absent means <c>"a"</c>, the piece the author marked the wall from.</summary>
+    [JsonPropertyName("side")] public string? Side { get; set; }
+
+    /// <summary>The chest face as a piece id — <see cref="B"/> when the wall says so, else <see cref="A"/>.</summary>
+    public string ChestPiece => string.Equals(Side, "b", StringComparison.OrdinalIgnoreCase) ? B : A;
 }

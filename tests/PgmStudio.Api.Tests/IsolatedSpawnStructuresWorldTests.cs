@@ -74,12 +74,13 @@ public sealed class IsolatedSpawnStructuresWorldTests
         await Assert.That(w.GetBlock(iron.MinX + iron.Size - 1, ibase + iron.Size - 1, iron.MinZ + iron.Size - 1).Id)
             .IsEqualTo(Blocks.IronBlock);
 
-        // ST4 — the approach wall rises to its top height, nothing above it.
+        // ST4 — the approach wall rises to its top bedrock course, one course of cobweb caps it, nothing above.
         var wall = s.Walls[0];
         int wx = wall.MinX, wz = wall.MinZ;
         await Assert.That(w.GetBlock(wx, 0, wz).Id).IsEqualTo(Blocks.Bedrock);
         await Assert.That(w.GetBlock(wx, wall.TopY, wz).Id).IsEqualTo(Blocks.Bedrock);
-        await Assert.That(w.GetBlock(wx, wall.TopY + 1, wz).Id).IsEqualTo(Blocks.Air);
+        await Assert.That(w.GetBlock(wx, wall.TopY + 1, wz).Id).IsEqualTo(Blocks.Cobweb);
+        await Assert.That(w.GetBlock(wx, wall.TopY + 2, wz).Id).IsEqualTo(Blocks.Air);
     }
 
     [Test]

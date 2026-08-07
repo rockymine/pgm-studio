@@ -34,17 +34,17 @@ public sealed class WallDefenseChestTests
     public async Task Only_one_face_is_opened_so_a_full_bedrock_wall_stands_behind_the_chest()
     {
         var world = new VoxelWorld();
-        // A wall thin across X (columns x=0 near face, x=1 back), lane 8 (→ one chest), up to y=20.
+        // A wall thin across X (columns x=0 min face, x=1 max face), lane 8 (→ one chest), up to y=20.
         StructureStamper.StampWall(world, 0, 0, 2, 8, 20);
-        WallDefenseChest.Stamp(world, Flat(-2, -2, 3, 8), 0, 0, 2, 8, 20);
+        WallDefenseChest.Stamp(world, Flat(-2, -2, 3, 8), 0, 0, 2, 8, onMinFace: true);
 
-        // Lane 8 → one chest, set into the near face (x=0) at the ground line, facing out (west).
+        // Lane 8 → one chest, set into the min face (x=0) at the ground line, facing out (west).
         await Assert.That(ChestCount(world, 0, 0, 2, 8, 0, 20)).IsEqualTo(1);
         await Assert.That(world.GetBlock(0, 8, 4)).IsEqualTo((Blocks.Chest, 4));
         await Assert.That(world.GetBlock(0, 9, 4).Id).IsEqualTo(Blocks.Air);      // the one air block, to open the lid
         await Assert.That(world.GetBlock(0, 10, 4).Id).IsEqualTo(Blocks.Bedrock); // pocket closed above
 
-        // The wall still stands: the column behind the chest is bedrock, and the back face is solid its whole
+        // The wall still stands: the column behind the chest is bedrock, and the far face is solid its whole
         // height — break the chest and you meet bedrock, not a way through.
         await Assert.That(world.GetBlock(1, 8, 4).Id).IsEqualTo(Blocks.Bedrock);
         await Assert.That(world.GetBlock(1, 9, 4).Id).IsEqualTo(Blocks.Bedrock);
@@ -53,17 +53,34 @@ public sealed class WallDefenseChestTests
     }
 
     [Test]
+    public async Task The_authored_side_decides_which_face_is_opened()
+    {
+        // The same wall with the chest side flipped: it moves to the far column and turns to face the other
+        // approach, and the column it left is bedrock again. Which team can reach the supply is the whole
+        // point of the choice, so nothing about it may fall out of the footprint's coordinates.
+        var world = new VoxelWorld();
+        StructureStamper.StampWall(world, 0, 0, 2, 8, 20);
+        WallDefenseChest.Stamp(world, Flat(-2, -2, 3, 8), 0, 0, 2, 8, onMinFace: false);
+
+        await Assert.That(ChestCount(world, 0, 0, 2, 8, 0, 20)).IsEqualTo(1);
+        await Assert.That(world.GetBlock(1, 8, 4)).IsEqualTo((Blocks.Chest, 5));   // east-facing, in the max face
+        await Assert.That(world.GetBlock(1, 9, 4).Id).IsEqualTo(Blocks.Air);
+        for (var y = 0; y <= 20; y++)
+            await Assert.That(world.GetBlock(0, y, 4).Id).IsEqualTo(Blocks.Bedrock);
+    }
+
+    [Test]
     public async Task A_narrow_lane_gets_one_chest_a_wide_lane_two()
     {
         var narrow = new VoxelWorld();
         StructureStamper.StampWall(narrow, 0, 0, 2, WallDefenseChest.SingleChestMaxLane, 20);
-        WallDefenseChest.Stamp(narrow, Flat(-2, -2, 3, WallDefenseChest.SingleChestMaxLane), 0, 0, 2, WallDefenseChest.SingleChestMaxLane, 20);
+        WallDefenseChest.Stamp(narrow, Flat(-2, -2, 3, WallDefenseChest.SingleChestMaxLane), 0, 0, 2, WallDefenseChest.SingleChestMaxLane, onMinFace: true);
         await Assert.That(ChestCount(narrow, 0, 0, 2, WallDefenseChest.SingleChestMaxLane, 0, 20)).IsEqualTo(1);
 
         var wide = new VoxelWorld();
         var wideLane = WallDefenseChest.SingleChestMaxLane + 4;
         StructureStamper.StampWall(wide, 0, 0, 2, wideLane, 20);
-        WallDefenseChest.Stamp(wide, Flat(-2, -2, 3, wideLane), 0, 0, 2, wideLane, 20);
+        WallDefenseChest.Stamp(wide, Flat(-2, -2, 3, wideLane), 0, 0, 2, wideLane, onMinFace: true);
         await Assert.That(ChestCount(wide, 0, 0, 2, wideLane, 0, 20)).IsEqualTo(2);
     }
 
@@ -72,7 +89,7 @@ public sealed class WallDefenseChestTests
     {
         var world = new VoxelWorld();
         StructureStamper.StampWall(world, 0, 0, 2, 8, 20);
-        WallDefenseChest.Stamp(world, Flat(-2, -2, 3, 8), 0, 0, 2, 8, 20);
+        WallDefenseChest.Stamp(world, Flat(-2, -2, 3, 8), 0, 0, 2, 8, onMinFace: true);
 
         var dir = Path.Combine(Path.GetTempPath(), "walldef_" + Guid.NewGuid().ToString("N"));
         try

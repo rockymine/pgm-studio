@@ -339,7 +339,7 @@
                   <i data-lucide="flame"></i>
                 </button>
               }
-              <button class="draw-tool-btn @(tool == "wall" ? "draw-tool-btn--active" : null)" title="Toggle a pre-built wall on the land interface you click" @onclick='() => PickTool("wall")'>
+              <button class="draw-tool-btn @(tool == "wall" ? "draw-tool-btn--active" : null)" title="Raise a pre-built wall on the land interface you click · click again to move its defence chests to the other side, once more to remove it" @onclick='() => PickTool("wall")'>
                 <i data-lucide="brick-wall"></i>
               </button>
               <span class="plan-tool-sep"></span>

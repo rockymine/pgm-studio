@@ -101,8 +101,16 @@ public readonly record struct RedstoneLine(int X1, int Z1, int X2, int Z2);
 public readonly record struct IronCube(int X, int Z, bool Renew);
 
 /// <summary>A pre-built bedrock approach wall: a min-inclusive/max-exclusive footprint (two thick across the
-/// seam, full interface width along it) rising from y=0 up to <see cref="TopY"/> inclusive (ST4).</summary>
-public readonly record struct WallStructure(int MinX, int MinZ, int MaxX, int MaxZ, int TopY);
+/// seam, full interface width along it) rising from y=0 up to <see cref="TopY"/> inclusive, capped by one
+/// course of cobweb (ST4).
+/// <para><see cref="ChestOnMinFace"/> picks which of the wall's two faces its defence chests are set into —
+/// the low-coordinate one across the seam, or the high one. The wall is two blocks thick precisely so one
+/// face can be opened while the other stays solid bedrock, and which face that is decides which team can
+/// reach the supply, so it is authored (<c>PlanWall.Side</c>) rather than left to whichever piece happened to
+/// have the smaller coordinate. Recomputed per orbit image, because a reflection swaps the two faces.</para>
+/// </summary>
+public readonly record struct WallStructure(
+    int MinX, int MinZ, int MaxX, int MaxZ, int TopY, bool ChestOnMinFace = true);
 
 /// <summary>The confirmed map symmetry: a <see cref="Mode"/> (<c>mirror_x</c>/<c>mirror_z</c>/
 /// <c>mirror_d1</c>/<c>mirror_d2</c>/<c>rot_180</c>/<c>rot_90</c>) about the centre (<see cref="CenterX"/>,

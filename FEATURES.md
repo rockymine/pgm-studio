@@ -1379,6 +1379,23 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   seed carries the authored intent (spawn/wool-room roles, an in-spawn iron marker, wall marks on the two
   elevation seams). Pgm 234 / Minecraft 49 tests green; end-to-end world round-trip in Api.Tests reads the
   stamped block ids back. (G23)
+- **The approach wall is three courses and a web, and the author picks which face opens (G170).** ST4's wall
+  stood **five** courses of bedrock over the ground it barred, which is a fence between two halves of one
+  lane rather than a line inside it. It is now **three** courses capped by **one course of cobweb** — the web
+  is part of the barrier, not decoration on it: an attacker who bridges the top spends real time crossing it,
+  and cuts it with the shears every kit already carries, which is what lets the stone be short enough that
+  both halves still read as one place. The wall's other decision is now the author's too. It is two blocks
+  thick precisely so one face can be opened for the defence chests while the other stays solid, and which
+  face that is *is* which side of the line the supply is for — previously it fell out of whichever piece
+  happened to have the smaller coordinate. A plan's wall mark carries a **`side`** naming one of the seam's
+  two pieces (`PlanWall.Side`, default `"a"`), and the compiler resolves it to a face **per orbit image**,
+  because a reflection swaps which face has the smaller coordinate and only the piece it looks out at
+  survives the fan. In the plan editor the wall tool cycles a seam through *no wall → chests facing a →
+  chests facing b → no wall* — the spawn marker's click-to-turn idiom, so the wall stays an annotation on a
+  seam rather than gaining its own selection — and the open face is drawn as an amber bar just off it,
+  without which a second click looks like it did nothing. (`StructureStamper.StampWall`, `WallDefenseChest`,
+  `PlanCompiler`, `ContactGraph.WallChestPiece`, `plan-doc.cycleWall`; rules.md ST4) (G170)
+
 - **The seed corpus — twelve author plans with honest player counts (rules v3 frozen)** — ten
   authored seeds + the real-map trace (`big-board-…-parallel-mid`, parallel mid, 30/team) +
   `mirror-tiny-map-cliff` (5/team, `mirror_z`, sub-base palette 3–7, the axis-spanning Δ6 mid

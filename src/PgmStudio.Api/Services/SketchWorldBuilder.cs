@@ -192,7 +192,7 @@ public static class SketchWorldBuilder
         foreach (var w in s.Walls)
         {
             StructureStamper.StampWall(world, w.MinX, w.MinZ, w.MaxX, w.MaxZ, w.TopY);
-            WallDefenseChest.Stamp(world, surface, w.MinX, w.MinZ, w.MaxX, w.MaxZ, w.TopY);
+            WallDefenseChest.Stamp(world, surface, w.MinX, w.MinZ, w.MaxX, w.MaxZ, w.ChestOnMinFace);
         }
         foreach (var ic in s.IronCubes)
             StructureStamper.StampIronCube(world, surface, ic.X, ic.Z);

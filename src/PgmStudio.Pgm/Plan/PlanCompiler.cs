@@ -422,18 +422,31 @@ public static class PlanCompiler
         foreach (var c in d.WallInterfaces)
         {
             var (approach, _) = ApproachSide(d, dist, c);
-            var (minX, minZ, maxX, maxZ) = WallFootprint(d.Piece(c.A)!.Value, d.Piece(c.B)!.Value);
-            var topY = approach.Surface + 4;
+            var pieceA = d.Piece(c.A)!.Value;
+            var pieceB = d.Piece(c.B)!.Value;
+            var (minX, minZ, maxX, maxZ) = WallFootprint(pieceA, pieceB);
+            var topY = approach.Surface + BedrockCourses - 1;
+            // The chest face is authored as a piece id, so it survives the orbit: a reflection swaps which of
+            // the wall's two faces has the smaller coordinate, and only the piece it looks out at is invariant.
+            var chestRect = (d.WallChestPiece(c) == c.B ? pieceB : pieceA).Rect;
             for (var k = 0; k < d.Order; k++)
             {
                 var r = d.FanRect(new BlockRect(minX, minZ, maxX, maxZ), k);
-                if (wallSeen.Add((r.MinX, r.MinZ, r.MaxX, r.MaxZ)))
-                    s.Walls.Add(new WallStructure(r.MinX, r.MinZ, r.MaxX, r.MaxZ, topY));
+                if (!wallSeen.Add((r.MinX, r.MinZ, r.MaxX, r.MaxZ))) continue;
+                var face = d.FanRect(chestRect, k);
+                var thinAlongX = r.MaxX - r.MinX <= r.MaxZ - r.MinZ;
+                var onMinFace = thinAlongX ? face.MaxX <= r.MinX + 1 : face.MaxZ <= r.MinZ + 1;
+                s.Walls.Add(new WallStructure(r.MinX, r.MinZ, r.MaxX, r.MaxZ, topY, onMinFace));
             }
         }
 
         return s;
     }
+
+    /// <summary>Courses of bedrock an approach wall stands above the ground it bars (ST4). Three, plus the
+    /// cobweb course the stamper caps it with — tall enough to stop a player walking or jumping the line,
+    /// short enough that both halves of the lane still read as one place.</summary>
+    private const int BedrockCourses = 3;
 
     // The redstone row: one block inside the wool room, running the entry-interface width, with the two
     // endpoints (where the torches sit). The segment lies on the room piece's boundary — a piece↔piece

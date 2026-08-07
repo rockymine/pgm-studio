@@ -30,12 +30,13 @@ public static class WallDefenseChest
 
     /// <summary>Set one or two defence chests into a single face of the wall over <c>[minX, maxX) × [minZ, maxZ)</c>,
     /// resting at the approach's own ground level. The wall is thin across the seam and long along it (the lane);
-    /// the number of chests follows the lane width, and only the near face is opened so a full bedrock wall stands
-    /// behind them. A wall thinner than two blocks across is left whole — there would be no bedrock to back a
-    /// chest with.</summary>
+    /// the number of chests follows the lane width, and only one face is opened so a full bedrock wall stands
+    /// behind them. <paramref name="onMinFace"/> is which face that is — the low-coordinate side across the seam,
+    /// or the high one — and it is the map's answer to which team the supply is for. A wall thinner than two
+    /// blocks across is left whole: there would be no bedrock to back a chest with.</summary>
     public static void Stamp(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
-        int minX, int minZ, int maxX, int maxZ, int topY)
+        int minX, int minZ, int maxX, int maxZ, bool onMinFace)
     {
         if (maxX <= minX || maxZ <= minZ) return;
 
@@ -46,13 +47,14 @@ public static class WallDefenseChest
         var laneWidth = thinAlongX ? maxZ - minZ : maxX - minX;
         var count = laneWidth <= SingleChestMaxLane ? 1 : 2;
 
-        // One face only — the near (min-side) one — so the far face and the column behind each chest stay solid.
+        // One face only, so the other face and the column behind each chest stay solid. A chest fronts the
+        // approach it serves: outward from the wall, away from the seam.
         if (thinAlongX)
             foreach (var z in Positions(minZ, laneWidth, count))
-                Embed(world, surfaceTop, minX, z, dirX: -1, dirZ: 0);
+                Embed(world, surfaceTop, onMinFace ? minX : maxX - 1, z, dirX: onMinFace ? -1 : 1, dirZ: 0);
         else
             foreach (var x in Positions(minX, laneWidth, count))
-                Embed(world, surfaceTop, x, minZ, dirX: 0, dirZ: -1);
+                Embed(world, surfaceTop, x, onMinFace ? minZ : maxZ - 1, dirX: 0, dirZ: onMinFace ? -1 : 1);
     }
 
     // Where the chests sit along the lane: evenly spaced, so one lands mid-wall and two split it into thirds.

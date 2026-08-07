@@ -78,11 +78,37 @@ public sealed class PlanStructuresTests
     public async Task Wall_top_comes_from_the_attack_side_the_lower_farther_lane()
     {
         var s = Structures();
-        // approach = 'far' (distance 2 to the wool) over 'mid' (distance 1); far surface 9 → top 9+4=13.
-        await Assert.That(s.Walls.All(w => w.TopY == 13)).IsTrue();
-        // not the defence side 'mid' (surface 11 → would be 15).
-        await Assert.That(s.Walls.Any(w => w.TopY == 15)).IsFalse();
+        // approach = 'far' (distance 2 to the wool) over 'mid' (distance 1); far surface 9 → three courses
+        // of bedrock standing over it, so the last one is at 9+2=11 (the stamper caps that with cobweb).
+        await Assert.That(s.Walls.All(w => w.TopY == 11)).IsTrue();
+        // not the defence side 'mid' (surface 11 → would be 13).
+        await Assert.That(s.Walls.Any(w => w.TopY == 13)).IsFalse();
         // 2 thick across the z-seam at z=10 (footprint z ∈ [9, 11)).
         await Assert.That(s.Walls.Any(w => w.MinZ == 9 && w.MaxZ == 11)).IsTrue();
+    }
+
+    [Test]
+    public async Task The_authored_chest_side_names_a_piece_and_the_orbit_follows_it()
+    {
+        // side "a" = 'mid', which lies on the high-z side of the seam at z=10, so the team-0 wall opens its
+        // max face. Its rot_180 image sits at negative z with 'mid' now on the LOW side, so that wall must
+        // open its min face — the same piece, the other face. Reading a face off the footprint's coordinates
+        // instead would open both walls toward opposite teams.
+        var s = Structures();
+        await Assert.That(s.Walls.Count).IsEqualTo(2);
+        await Assert.That(s.Walls.Single(w => w.MinZ == 9).ChestOnMinFace).IsFalse();
+        await Assert.That(s.Walls.Single(w => w.MinZ == -11).ChestOnMinFace).IsTrue();
+    }
+
+    [Test]
+    public async Task Naming_the_other_side_opens_the_other_face_of_every_orbit_image()
+    {
+        var flipped = PlanModel.Parse(Json.Replace(
+            """{ "a": "mid", "b": "far" }""",
+            """{ "a": "mid", "b": "far", "side": "b" }"""))!;
+        var (_, intent) = PlanCompiler.Compile(flipped);
+        var walls = intent.Structures!.Walls;
+        await Assert.That(walls.Single(w => w.MinZ == 9).ChestOnMinFace).IsTrue();
+        await Assert.That(walls.Single(w => w.MinZ == -11).ChestOnMinFace).IsFalse();
     }
 }

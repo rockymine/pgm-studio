@@ -657,7 +657,26 @@ export class PlanCanvas extends CanvasBase {
                         : ["#123d26", "#4ade80", casing];
         painter.line(it.x1, it.z1, it.x2, it.z2, { stroke: casingColor, width: casingWidth, cap: "round" });
         painter.line(it.x1, it.z1, it.x2, it.z2, { stroke: coreColor, width: core, cap: "round" });
+        if (it.wall) this.#paintWallChestFace(it, cell);
       }
+  }
+
+  // The open face of an approach wall: a bar drawn just off the seam, on the side the defence chests are set
+  // into. Only one of a wall's two faces opens, so the side is the author's single decision about it and the
+  // one thing the heavy black bar cannot show — without the tick, clicking the wall tool again looks like it
+  // did nothing. The side comes from the feed as the piece the face looks out at, which is what survives the
+  // symmetry orbit; the offset direction is read off that piece's own rect.
+  #paintWallChestFace(it, cell) {
+    const piece = (this.#doc?.pieces || []).find(p => p.id === it.wallChest);
+    if (!piece) return;
+    const [px, pz, pw, ph] = piece.rect;
+    const vertical = it.x1 === it.x2;
+    const centre = vertical ? (px + pw / 2) * cell : (pz + ph / 2) * cell;
+    const away = Math.sign(centre - (vertical ? it.x1 : it.z1)) || 1;
+    const offset = away * cell * 0.28;
+    const [dx, dz] = vertical ? [offset, 0] : [0, offset];
+    this.#painter.line(it.x1 + dx, it.z1 + dz, it.x2 + dx, it.z2 + dz,
+      { stroke: "#f0a63a", width: 3, cap: "round" });
   }
 
   // Evaluator-evidence overlay (world space, non-interactive): every fired rule's cell-space evidence painted
@@ -877,7 +896,7 @@ export class PlanCanvas extends CanvasBase {
     const [cx, cz] = cellOfWorld(svgPt.x, svgPt.y, cell);
     if (this.#selectOnly) return this.#selectDown(svgPt, cx, cz, e);   // theme-apply: pick only, never draw/move
     if (this.#tool === "select") return this.#selectDown(svgPt, cx, cz, e);
-    if (this.#tool === "wall") return this.#toggleWallAt(svgPt.x, svgPt.y);
+    if (this.#tool === "wall") return this.#cycleWallAt(svgPt.x, svgPt.y);
     if (this.#tool === "piece" || this.#tool === "zone" || this.#tool === "box") { this.#drag = { mode: "draw", kind: this.#tool, a: [cx, cz], b: [cx, cz] }; this.#paintWorld(); return; }
     // Markers snap to the half-cell lattice — feed the fractional cell coordinate, not the floored cell.
     if (MARKER_KINDS.includes(this.#tool)) this.#placeMarker(this.#tool, svgPt.x / cell, svgPt.y / cell);
@@ -1021,13 +1040,14 @@ export class PlanCanvas extends CanvasBase {
     this.render(); this.#cb.onChange?.(); this.#fireSelect();
   }
 
-  // Wall tool: toggle a wall mark on the land interface nearest the click (within one cell). The mark rides
-  // the piece pair; the bridge mutates doc.walls and re-inspects so the heavy bar renders from the feed. The
-  // wall tool stays armed for repeated toggling.
-  #toggleWallAt(wx, wz) {
+  // Wall tool: cycle the wall mark on the land interface nearest the click (within one cell) — none, then a
+  // wall whose defence chests face the seam's first piece, then one whose chests face the second, then none
+  // again. The mark rides the piece pair; the bridge mutates doc.walls and re-inspects so the heavy bar and
+  // its chest-face tick render from the feed. The wall tool stays armed for repeated clicking.
+  #cycleWallAt(wx, wz) {
     const cell = this.#doc.globals.cell;
     const it = nearestInterface(this.#inspect.interfaces, wx, wz, cell);
-    if (it) this.#cb.onToggleWall?.(it.a, it.b);
+    if (it) this.#cb.onCycleWall?.(it.a, it.b);
   }
 
   #paintPreview() {
