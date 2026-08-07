@@ -29,6 +29,9 @@ public partial class RoomStyleComposer
     private bool loading = true;
     private string? note;
 
+    /// <summary>Whether the "?" beside the rail's title is showing what the pinned sample is.</summary>
+    private bool figureHelp;
+
     /// <summary>The room style open in the rail, or null when nothing is. Null id = not in the library yet.</summary>
     private RoomStyleSaveRequest? draft;
     private long? editingId;

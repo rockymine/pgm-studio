@@ -17,11 +17,11 @@
   </aside>
 
   <main class="lib-main">
-    <HelpNote Title="What a room style is">
+    <p class="lib-intro">
       A room style finishes a wool cage or a spawn cube without touching its size — the footprint always comes
       from the piece it sits on. Each card is the sample shell cut open: the course stack, the doorway through
       it, and the roof over it.
-    </HelpNote>
+    </p>
 
     @if (loading) { <p class="lib-status">Reading the library…</p> }
     else
@@ -51,9 +51,18 @@
          scrolling to a part must not take the picture off screen. *@
       <div class="lib-rail-pin">
         <div class="lib-rail-head">
-          <span class="lib-rail-title">@(editingId is null ? "New room style" : "Edit room style")</span>
+          <div class="section-heading">
+            <span class="lib-rail-title">@(editingId is null ? "New room style" : "Edit room style")</span>
+            <HelpMark Open="figureHelp" Title="What the two views show"
+                      OnClick="() => figureHelp = !figureHelp" />
+          </div>
           <button class="lib-rail-x" @onclick="Close" title="Close"><i data-lucide="x" @key="@("room-x")"></i></button>
         </div>
+        @if (figureHelp)
+        {
+          <div class="help-note-body">The sample shell from above and cut open: the roof and its eave read in
+            the first, the course stack and the doorway in the second.</div>
+        }
         <div class="dressing-views">
           <figure class="theme-section-figure">@((MarkupString)(preview?.Plan ?? ""))</figure>
           <figure class="theme-section-figure">@((MarkupString)(preview?.Section ?? ""))</figure>
@@ -61,22 +70,19 @@
       </div>
 
       <div class="lib-rail-body">
-      <HelpNote Title="What the two views show">The sample shell from above and cut open: the roof and its
-        eave read in the first, the course stack and the doorway in the second.</HelpNote>
-
       <Field Label="Name">
         <input class="field-input" @bind="draftName" @bind:event="oninput" />
       </Field>
 
       @foreach (var part in RoomPartInfo.All)
       {
-        <Section Title="@part.Title" Variant="list" @key="part.Id">
+        <Section Title="@part.Title" Variant="list" @key="part.Id"
+                 HelpTitle="@($"What the {part.Title.ToLowerInvariant()} is")">
+          <Help>@part.Blurb</Help>
           <Actions>
             <Badge Kind="dim">@Courses(part.Id).Count course@(Courses(part.Id).Count == 1 ? string.Empty : "s")</Badge>
           </Actions>
           <ChildContent>
-            <HelpNote Title="@($"What the {part.Title.ToLowerInvariant()} is")">@part.Blurb</HelpNote>
-
             <Field Label="@part.ExtentLabel">
               <input class="field-input field-input--slim" type="number" min="1" step="1"
                      value="@Extent(part.Id)" @onchange="e => SetExtent(part.Id, e)" />
@@ -134,9 +140,10 @@
         </Section>
       }
 
-      <Section Title="Doorway" Variant="list">
-        <HelpNote Title="Why the list is short">A closed set: only these can be broken by an attacker, so only
-          these open a cage. A spawn's door is always open, whatever is chosen here.</HelpNote>
+      <Section Title="Doorway" Variant="list" HelpTitle="Why the list is short">
+        <Help>A closed set: only these can be broken by an attacker, so only these open a cage. A spawn's door
+          is always open, whatever is chosen here.</Help>
+        <ChildContent>
         <Field Label="Made of">
           <select class="field-input field-input--slim" value="@draft.Door" @onchange="SetDoor">
             @foreach (var door in doors) { <option value="@door.Slug" @key="door.Slug">@door.Label</option> }
@@ -146,6 +153,7 @@
           <input class="field-input field-input--slim" type="number" min="1" step="1"
                  value="@draft.DoorHeight" @onchange="SetDoorHeight" />
         </Field>
+        </ChildContent>
       </Section>
 
       @if (note is not null) { <p class="section-desc">@note</p> }

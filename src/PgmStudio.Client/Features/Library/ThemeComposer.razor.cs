@@ -39,6 +39,9 @@ public partial class ThemeComposer
     private bool loading = true;
     private string? note;
 
+    /// <summary>Whether the "?" beside the rail's title is showing what the pinned sample is.</summary>
+    private bool figureHelp;
+
     /// <summary>The theme open in the rail, or null when nothing is. Null id = not in the library yet.</summary>
     private ThemeSaveRequest? draft;
     private long? editingId;

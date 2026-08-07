@@ -723,22 +723,20 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
   line-height: 1.6; margin-bottom: var(--space-2);
 }
 
-/* <HelpNote> — the "?" that stands where a paragraph of explanation stood, and the paragraph behind it.
-   Native disclosure, so Blazor never renders or touches the `open` attribute (same as .panel-accordion).
-   The body flows in place: a floating one would be clipped by the scrolling panel it opens in. */
-.help-note { align-self: flex-start; }
-.help-note > summary {
-  display: inline-grid; place-items: center; width: 17px; height: 17px;
-  list-style: none; cursor: pointer; user-select: none;
-  font-size: var(--font-xs); font-weight: 700; line-height: 1;
+/* <HelpMark> — the "?" that sits in a heading row or beside the control it explains, and the note the row's
+   owner renders under it. The two are separate elements on purpose: a note has to run the full width of the
+   panel, which it cannot do from inside the flex row the mark lives in. */
+.help-mark {
+  flex: 0 0 auto;
+  display: inline-grid; place-items: center; width: 17px; height: 17px; padding: 0;
+  cursor: pointer; font-size: var(--font-xs); font-weight: 700; line-height: 1; font-family: inherit;
   color: var(--text-muted); background: var(--bg-panel);
   border: 1px solid var(--border); border-radius: 50%;
 }
-.help-note > summary::-webkit-details-marker { display: none; }
-.help-note > summary:hover,
-.help-note[open] > summary { color: var(--accent-lighter); border-color: var(--accent); }
+.help-mark:hover,
+.help-mark--on { color: var(--accent-lighter); border-color: var(--accent); }
 .help-note-body {
-  margin-top: var(--space-2); padding-left: var(--space-3);
+  margin: var(--space-1) 0 var(--space-2); padding-left: var(--space-3);
   border-left: 2px solid var(--border);
   font-size: var(--font-xs); line-height: 1.55; color: var(--text-muted);
 }

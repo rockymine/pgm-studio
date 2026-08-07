@@ -5,9 +5,17 @@
    inspector (border-bottom) · list = left-panel list header (outer padding) · plain = neither. *@
 
 <div class="@Cls">
-    @if (!string.IsNullOrEmpty(Title))
+    @if (!string.IsNullOrEmpty(Title) || TitleEnd is not null)
     {
-        <h2 class="section-title">@Title @if (Required) { <span class="field-required">*</span> }</h2>
+        @* The heading and anything that belongs TO the heading (a HelpMark) stay together on the left; the
+           right slot is pushed away from them by the header's space-between. *@
+        <div class="section-heading">
+            @if (!string.IsNullOrEmpty(Title))
+            {
+                <h2 class="section-title">@Title @if (Required) { <span class="field-required">*</span> }</h2>
+            }
+            @TitleEnd
+        </div>
     }
     @ChildContent
 </div>
@@ -16,6 +24,7 @@
     [Parameter] public string? Title { get; set; }
     [Parameter] public string? Variant { get; set; } = "ruled";   // ruled | list | plain
     [Parameter] public bool Required { get; set; }                // appends the field-required asterisk
+    [Parameter] public RenderFragment? TitleEnd { get; set; }     // hugs the title (a HelpMark), not the right slot
     [Parameter] public string? Class { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
 

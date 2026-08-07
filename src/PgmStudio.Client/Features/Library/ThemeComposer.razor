@@ -17,13 +17,13 @@
   </aside>
 
   <main class="lib-main">
-    <HelpNote Title="What a theme is">
+    <p class="lib-intro">
       A theme is the whole finish: one style per bucket — the rim capping every edge, the wall on the riser
       under it, the surface band, the fill body — plus how deep the bedrock floor reaches and which faces count
       as an edge. Only the fill is required: a surface over it is already a finish, and the rim and the wall are
       each switched off with the chip beside their heading. Each card is a sample plateau painted with the theme
       and cut open.
-    </HelpNote>
+    </p>
 
     @if (loading) { <p class="lib-status">Reading the library…</p> }
     else
@@ -53,17 +53,22 @@
          so scrolling to a bucket must not take the picture off screen. *@
       <div class="lib-rail-pin">
         <div class="lib-rail-head">
-          <span class="lib-rail-title">@(editingId is null ? "New theme" : "Edit theme")</span>
+          <div class="section-heading">
+            <span class="lib-rail-title">@(editingId is null ? "New theme" : "Edit theme")</span>
+            <HelpMark Open="figureHelp" Title="What the sample shows"
+                      OnClick="() => figureHelp = !figureHelp" />
+          </div>
           <button class="lib-rail-x" @onclick="Close" title="Close"><i data-lucide="x" @key="@("theme-x")"></i></button>
         </div>
+        @if (figureHelp)
+        {
+          <div class="help-note-body">The sample plateau this composition finishes: two ground levels with
+            void either side, the right half owned by a team so a tint shows beside its neutral fallback.</div>
+        }
         <figure class="lib-fig lib-fig--section">@((MarkupString)(preview?.Section ?? ""))</figure>
       </div>
 
       <div class="lib-rail-body">
-      <HelpNote Title="What the sample shows">The sample plateau this composition finishes: two ground levels
-        with void either side, the right half owned by a team so a tint shows beside its neutral
-        fallback.</HelpNote>
-
       <Field Label="Name">
         <input class="field-input" @bind="draftName" @bind:event="oninput" />
       </Field>
@@ -71,7 +76,9 @@
       @foreach (var bucket in ThemeBucketInfo.All)
       {
         var binding = Binding(bucket.Id);
-        <Section Title="@bucket.Title" Variant="list" @key="bucket.Id">
+        <Section Title="@bucket.Title" Variant="list" @key="bucket.Id"
+                 HelpTitle="@($"What the {bucket.Title.ToLowerInvariant()} is")">
+          <Help>@bucket.Blurb</Help>
           <Actions>
             @* A bucket switches off whether or not it is bound: a theme needs neither a rim nor a wall, and
                asking for a material first would be asking which colour the thing you do not want should be. *@
@@ -87,7 +94,6 @@
             }
           </Actions>
           <ChildContent>
-            <HelpNote Title="@($"What the {bucket.Title.ToLowerInvariant()} is")">@bucket.Blurb</HelpNote>
             @if (binding.Enabled)
             {
               <div class="lib-bind">
@@ -122,9 +128,9 @@
         </Section>
       }
 
-      <Section Title="Ground and edges" Variant="list">
-        <HelpNote Title="What these decide">How far down the paint reaches, and which faces count as an edge
-          worth capping.</HelpNote>
+      <Section Title="Ground and edges" Variant="list" HelpTitle="What these decide">
+        <Help>How far down the paint reaches, and which faces count as an edge worth capping.</Help>
+        <ChildContent>
         <Field Label="Bedrock floor">
           <div class="panel-actions">
             <select class="field-input field-input--slim" value="@BedrockMode" @onchange="SetBedrockMode">
@@ -148,6 +154,7 @@
             @(draft.WallOnTerrainFaces ? "Terrain and void risers" : "Only risers facing the void")
           </Chip>
         </Field>
+        </ChildContent>
       </Section>
 
       @if (note is not null) { <p class="section-desc">@note</p> }

@@ -26,6 +26,10 @@ public partial class MaterialEditor
     /// <summary>Set only where the material is one entry of a list the author may shorten.</summary>
     [Parameter] public EventCallback OnRemove { get; set; }
 
+    /// <summary>Whether the "?" beside the kind is showing its note. Top-level only — a nested material
+    /// never renders the mark, so it never carries the state either.</summary>
+    private bool helpOpen;
+
     private string Kind => JsonEdit.KindOf(Node);
     private int Int(string field, int fallback) => JsonEdit.Int(Node, field, fallback);
     private Task Changed() => OnChanged.InvokeAsync();

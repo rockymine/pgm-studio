@@ -1,0 +1,25 @@
+@namespace PgmStudio.Client.Components
+
+@* The "?" that opens a note about the thing beside it — a section's heading, or the dropdown naming a
+   material's kind. It is a marker, not a container: the note itself is rendered by whoever owns that row,
+   directly beneath it, which is the only way a note can run the full width of a panel and still be attached
+   to something. A "?" floating on a line of its own says nothing about what it would explain, so there is
+   no way to place one that is not next to its subject.
+
+   The note goes to the thing's own place, not to every reuse of it: a voronoi is explained where a voronoi
+   is authored, and a layer stack that embeds three of them explains the stack. *@
+
+<button type="button" class="@Cls" title="@Title" aria-expanded="@(Open ? "true" : "false")"
+        @onclick="OnClick" @onclick:stopPropagation="true">?</button>
+
+@code {
+    /// <summary>Whether the note this opens is showing — the mark reads as picked while it is.</summary>
+    [Parameter] public bool Open { get; set; }
+
+    /// <summary>What the note is about, in a few words. The mark's hover title.</summary>
+    [Parameter] public string Title { get; set; } = "What this is";
+
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    private string Cls => Open ? "help-mark help-mark--on" : "help-mark";
+}

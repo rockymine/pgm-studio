@@ -28,6 +28,9 @@ public partial class StyleBrowser
     private bool loading = true;
     private string? note;
 
+    /// <summary>Whether the "?" beside the rail's title is showing what the two pinned views are.</summary>
+    private bool figureHelp;
+
     /// <summary>The material node open in the rail, or null when nothing is being edited. Null id = a style
     /// that is not in the library yet.</summary>
     private JsonObject? draft;

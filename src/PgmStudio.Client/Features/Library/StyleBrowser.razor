@@ -12,9 +12,10 @@
        was a way in at all, and read as a second set of filters under the first. *@
     <Button Full Variant="primary" Icon="plus" OnClick="StartNew">New style</Button>
 
-    <Section Title="Filters">
-      <HelpNote Title="Why a style is browsed by kind">What the material varies by. A style is browsed by kind
-        because that is the question an author starts from — "show me every voronoi".</HelpNote>
+    <Section Title="Filters" HelpTitle="Why a style is browsed by kind">
+      <Help>What the material varies by. A style is browsed by kind because that is the question an author
+        starts from — "show me every voronoi".</Help>
+      <ChildContent>
       <Field Label="Kind">
         <div class="filter-group-options">
           @foreach (var (id, name) in MaterialKind.All)
@@ -29,15 +30,16 @@
       {
         <Button Full OnClick="ClearKinds">Clear filters</Button>
       }
+      </ChildContent>
     </Section>
   </aside>
 
   <main class="lib-main">
-    <HelpNote Title="What a style is">
+    <p class="lib-intro">
       A style is one named material recipe — a solid block, a layer stack, a team tint or one of the patterns —
       and it is the unit a theme reuses. Each card shows the style rendered through the real painter and the
       export's own palette, so the picture is the paint that will land.
-    </HelpNote>
+    </p>
 
     @if (loading) { <p class="lib-status">Reading the library…</p> }
     else
@@ -71,18 +73,23 @@
          one must not take the picture off screen. *@
       <div class="lib-rail-pin">
         <div class="lib-rail-head">
-          <span class="lib-rail-title">@(editingId is null ? "New style" : "Edit style")</span>
+          <div class="section-heading">
+            <span class="lib-rail-title">@(editingId is null ? "New style" : "Edit style")</span>
+            <HelpMark Open="figureHelp" Title="What the two views show"
+                      OnClick="() => figureHelp = !figureHelp" />
+          </div>
           <button class="lib-rail-x" @onclick="Close" title="Close"><i data-lucide="x" @key="@("style-x")"></i></button>
         </div>
+        @if (figureHelp)
+        {
+          <div class="help-note-body">Above: one course from above, the left half of the ground neutral and
+            the right half a team's. Below: the same material cut open downward, one row per course.</div>
+        }
         <figure class="lib-fig">@((MarkupString)(preview?.Plan ?? ""))</figure>
         <figure class="lib-fig lib-fig--section">@((MarkupString)(preview?.Section ?? ""))</figure>
       </div>
 
       <div class="lib-rail-body">
-      <HelpNote Title="What the two views show">Above: one course from above, the left half of the ground
-        neutral and the right half a team's. Below: the same material cut open downward, one row per
-        course.</HelpNote>
-
       <Field Label="Name">
         <input class="field-input" placeholder="a name you will recognise" @bind="draftName" @bind:event="oninput" />
       </Field>
