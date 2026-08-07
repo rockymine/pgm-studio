@@ -1,3 +1,4 @@
+using System.Globalization;
 using LinqToDB;
 using LinqToDB.Async;
 using LinqToDB.Data;
@@ -7,6 +8,15 @@ using PgmStudio.Data.Schema;
 using PgmStudio.Import;
 using PgmStudio.Migrations;
 using PgmStudio.Pgm;
+
+// Numbers are dot-separated whatever the host's regional settings say — the same pin the API and the client
+// hold. This process reads map.xml coordinates and writes them into the database, so a comma-decimal locale
+// would ingest the corpus with a different contract than the one that serves it back.
+var invariant = CultureInfo.InvariantCulture;
+CultureInfo.DefaultThreadCurrentCulture = invariant;
+CultureInfo.DefaultThreadCurrentUICulture = invariant;
+CultureInfo.CurrentCulture = invariant;
+CultureInfo.CurrentUICulture = invariant;
 
 // Importer: processed map output dirs → MariaDB.
 //   dotnet run --project src/PgmStudio.Import [outputRoot]

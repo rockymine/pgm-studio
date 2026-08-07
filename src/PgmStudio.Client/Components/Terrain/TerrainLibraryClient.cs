@@ -54,9 +54,8 @@ public sealed class TerrainLibraryClient(HttpClient http)
     /// <summary>A sample patch the pass actually dressed with one prop, from above and cut open. The theme is
     /// passed because what the paint leaves on top is what decides whether flora grows and what a path may
     /// repaint — previewing against the built-in default would promise a meadow the map's finish would refuse.</summary>
-    public async Task<DressingPreviewDto?> PropPreviewAsync(string propJson, string? themeJson)
-        => await ReadOrNull<DressingPreviewDto>(await http.PostAsJsonAsync(
-            "api/terrain/prop-preview", new PropPreviewRequest(propJson, themeJson)));
+    public Task<DressingPreviewDto?> PropPreviewAsync(string propJson, string? themeJson)
+        => PostOrNull<DressingPreviewDto>("api/terrain/prop-preview", new PropPreviewRequest(propJson, themeJson));
 
     // ── room styles ─────────────────────────────────────────────────────────────
     // The same shape as the theme half below: a library list carrying each row's picture, one detail read, a
@@ -72,14 +71,14 @@ public sealed class TerrainLibraryClient(HttpClient http)
     public Task<RoomStyleDetail?> RoomStyleAsync(long id)
         => GetOrDefault<RoomStyleDetail>($"api/room-styles/{id}");
 
-    public async Task<RoomStylePreviewDto?> RoomStyleDraftPreviewAsync(RoomStyleSaveRequest draft)
-        => await ReadOrNull<RoomStylePreviewDto>(await http.PostAsJsonAsync("api/room-styles/preview", draft));
+    public Task<RoomStylePreviewDto?> RoomStyleDraftPreviewAsync(RoomStyleSaveRequest draft)
+        => PostOrNull<RoomStylePreviewDto>("api/room-styles/preview", draft);
 
-    public async Task<RoomStyleDetail?> CreateRoomStyleAsync(RoomStyleSaveRequest request)
-        => await ReadOrNull<RoomStyleDetail>(await http.PostAsJsonAsync("api/room-styles", request));
+    public Task<RoomStyleDetail?> CreateRoomStyleAsync(RoomStyleSaveRequest request)
+        => PostOrNull<RoomStyleDetail>("api/room-styles", request);
 
-    public async Task<RoomStyleDetail?> UpdateRoomStyleAsync(long id, RoomStyleSaveRequest request)
-        => await ReadOrNull<RoomStyleDetail>(await http.PutAsJsonAsync($"api/room-styles/{id}", request));
+    public Task<RoomStyleDetail?> UpdateRoomStyleAsync(long id, RoomStyleSaveRequest request)
+        => PutOrNull<RoomStyleDetail>($"api/room-styles/{id}", request);
 
     public Task DeleteRoomStyleAsync(long id) => http.DeleteAsync($"api/room-styles/{id}");
 
@@ -101,11 +100,11 @@ public sealed class TerrainLibraryClient(HttpClient http)
         => await GetOrDefault<List<StyleDto>>(
             string.IsNullOrEmpty(kind) ? "api/styles" : $"api/styles?kind={kind}") ?? [];
 
-    public async Task<StyleDto?> CreateStyleAsync(StyleSaveRequest request)
-        => await ReadOrNull<StyleDto>(await http.PostAsJsonAsync("api/styles", request));
+    public Task<StyleDto?> CreateStyleAsync(StyleSaveRequest request)
+        => PostOrNull<StyleDto>("api/styles", request);
 
-    public async Task<StyleDto?> UpdateStyleAsync(long id, StyleSaveRequest request)
-        => await ReadOrNull<StyleDto>(await http.PutAsJsonAsync($"api/styles/{id}", request));
+    public Task<StyleDto?> UpdateStyleAsync(long id, StyleSaveRequest request)
+        => PutOrNull<StyleDto>($"api/styles/{id}", request);
 
     /// <summary>Forget a style, or report the themes that still bind it — a shared style is not deletable while
     /// something composes it, and the caller shows which themes those are rather than a bare failure.</summary>
@@ -124,17 +123,17 @@ public sealed class TerrainLibraryClient(HttpClient http)
 
     public Task<ThemeDetail?> ThemeAsync(long id) => GetOrDefault<ThemeDetail>($"api/themes/{id}");
 
-    public async Task<ThemeDetail?> CreateThemeAsync(ThemeSaveRequest request)
-        => await ReadOrNull<ThemeDetail>(await http.PostAsJsonAsync("api/themes", request));
+    public Task<ThemeDetail?> CreateThemeAsync(ThemeSaveRequest request)
+        => PostOrNull<ThemeDetail>("api/themes", request);
 
-    public async Task<ThemeDetail?> UpdateThemeAsync(long id, ThemeSaveRequest request)
-        => await ReadOrNull<ThemeDetail>(await http.PutAsJsonAsync($"api/themes/{id}", request));
+    public Task<ThemeDetail?> UpdateThemeAsync(long id, ThemeSaveRequest request)
+        => PutOrNull<ThemeDetail>($"api/themes/{id}", request);
 
     public Task DeleteThemeAsync(long id) => http.DeleteAsync($"api/themes/{id}");
 
     /// <summary>What a set of bindings composes to, previewed without saving — the theme editor's live picture.</summary>
-    public async Task<ThemePreviewDto?> ThemeDraftPreviewAsync(ThemeSaveRequest draft)
-        => await ReadOrNull<ThemePreviewDto>(await http.PostAsJsonAsync("api/themes/preview", draft));
+    public Task<ThemePreviewDto?> ThemeDraftPreviewAsync(ThemeSaveRequest draft)
+        => PostOrNull<ThemePreviewDto>("api/themes/preview", draft);
 
     /// <summary>A library theme assembled into the painter's theme JSON — what a map takes a copy of when it
     /// applies the theme.</summary>
@@ -144,18 +143,32 @@ public sealed class TerrainLibraryClient(HttpClient http)
     /// <summary>Lift a whole theme JSON into the library as one style per bucket plus a theme binding them.
     /// Returns the new theme's id, or null when the JSON was refused.</summary>
     public async Task<long?> ImportThemeAsync(string name, string themeJson)
-        => (await ReadOrNull<ImportedTheme>(
-            await http.PostAsJsonAsync("api/themes/import", new ThemeImportRequest(name, themeJson))))?.Id;
+        => (await PostOrNull<ImportedTheme>("api/themes/import", new ThemeImportRequest(name, themeJson)))?.Id;
 
     private sealed record ThemeJsonResponse(string ThemeJson);
     private sealed record ImportedTheme(long Id);
 
     // ── plumbing ────────────────────────────────────────────────────────────────
-    // Every read answers null rather than throwing: these surfaces degrade to "no picture / no list" on a
-    // failure, which is a state they can render, and a thrown request from a render path is not.
+    // Every call answers null rather than throwing: these surfaces degrade to "no picture / no list" on a
+    // failure, which is a state they can render, and a thrown request from a render path is not. The send
+    // has to be inside the guard, not just the read — a request that never completes (the connection
+    // dropped, the browser gave up) throws from PostAsJsonAsync itself, and one escaping an inspector's
+    // OnParametersSetAsync takes down the whole app, not the picture it was drawing.
     private async Task<T?> GetOrDefault<T>(string url)
     {
         try { return await http.GetFromJsonAsync<T>(url); }
+        catch { return default; }
+    }
+
+    private async Task<T?> PostOrNull<T>(string url, object body)
+    {
+        try { return await ReadOrNull<T>(await http.PostAsJsonAsync(url, body)); }
+        catch { return default; }
+    }
+
+    private async Task<T?> PutOrNull<T>(string url, object body)
+    {
+        try { return await ReadOrNull<T>(await http.PutAsJsonAsync(url, body)); }
         catch { return default; }
     }
 

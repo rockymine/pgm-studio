@@ -586,4 +586,57 @@ public sealed class DecoratorTests
         await Assert.That(DressingJson.Deserialize("{ not json").Props).IsEmpty();
         await Assert.That(DressingJson.DeserializeProp("{\"kind\":\"unicorn\"}")).IsNull();
     }
+
+    // ── knobs out of range ─────────────────────────────────────────────────────────────────────────
+    /// <summary>A prop's cost is superlinear in its reach, so an out-of-range knob is not a strange picture
+    /// but a build that never returns — the failure a mis-parsed query value produced. The bounded readings
+    /// are what every builder and preview uses, and they hold whatever the stored value says.</summary>
+    [Test]
+    public async Task A_tree_knob_outside_its_range_is_held_to_the_range()
+    {
+        var absurd = new TreeProp
+        {
+            Form = TreeForm.Grown, Height = 999, Stems = 99, Levels = 99,
+            Leader = 55, Flow = 45, BranchAngle = 55, LeafSize = 60,
+        };
+
+        await Assert.That(absurd.Reach).IsEqualTo(40);
+        await Assert.That(absurd.LeafCluster).IsEqualTo(1);
+        var shape = absurd.Shape;
+        await Assert.That(shape.Height).IsEqualTo(40);
+        await Assert.That(shape.Stems).IsEqualTo(3);
+        await Assert.That(shape.Levels).IsEqualTo(3);
+        await Assert.That(shape.Leader).IsEqualTo(1);
+        await Assert.That(shape.Flow).IsEqualTo(1);
+        await Assert.That(shape.BranchAngle).IsEqualTo(1.2);
+
+        // and the other way: a knob below its range is lifted rather than left to build nothing
+        var tiny = new TreeProp { Form = TreeForm.Grown, Height = -10, Leader = -5, LeafSize = 0 };
+        await Assert.That(tiny.Reach).IsEqualTo(5);
+        await Assert.That(tiny.Shape.Leader).IsEqualTo(0);
+        await Assert.That(tiny.LeafCluster).IsEqualTo(0.2);
+    }
+
+    [Test]
+    public async Task A_boulder_size_outside_its_range_is_held_to_the_range()
+    {
+        await Assert.That(new BoulderProp { Size = 999 }.Reach).IsEqualTo(7);
+        await Assert.That(new BoulderProp { Size = 0 }.Reach).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task A_tree_stored_with_absurd_knobs_still_builds_a_tree()
+    {
+        // The bound is not merely arithmetic: the pass has to finish and place wood on the plateau it was
+        // given, which is what a runaway shape did not do.
+        var (world, top) = Plateau();
+        Decorator.Decorate(world, Context(top, [new TreeProp
+        {
+            Form = TreeForm.Grown, X = 20, Z = 20, Seed = 3,
+            Height = 999, Stems = 99, Levels = 99, Leader = 55, Flow = 45, BranchAngle = 55, LeafSize = 60,
+        }]));
+
+        var logs = Placed(world, top.Keys, 8, 60).Where(block => block.Id == Blocks.Log).ToList();
+        await Assert.That(logs).IsNotEmpty().Because("a bounded tree is still a tree");
+    }
 }

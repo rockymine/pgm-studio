@@ -132,11 +132,17 @@ public static class DressingPreview
     private static readonly double[][] CardStroke = [[4, 22], [14, 16], [26, 24], [36, 18]];
 
     /// <summary>How wide a sample a prop needs to read: enough ground around a marker to see its shape and its
-    /// footing, and enough of an area to see its density field do anything.</summary>
+    /// footing, and enough of an area to see its density field do anything.
+    ///
+    /// <para>Sized from the prop's <em>bounded</em> reach rather than its raw field. The patch is built column
+    /// by column and then painted, so its cost is quadratic in this number: a height that arrived out of range
+    /// would cut a sample a thousand blocks across, which is a preview that never returns rather than an odd
+    /// picture. Every other reader of these knobs bounds them, and the sample has to agree or the bound is
+    /// only half applied.</para></summary>
     private static int SpanFor(PlacedProp prop) => prop switch
     {
-        TreeProp tree => Math.Max(24, (int)tree.Height + 8),
-        BoulderProp boulder => Math.Max(16, (int)(boulder.Size * 5)),
+        TreeProp tree => Math.Max(24, (int)tree.Reach + 8),
+        BoulderProp boulder => Math.Max(16, (int)(boulder.Reach * 5)),
         _ => Span,
     };
 

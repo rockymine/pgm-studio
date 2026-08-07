@@ -1,7 +1,22 @@
+using System.Globalization;
 using FastEndpoints;
+using PgmStudio.Api.Http;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+
+// Every number this process reads or writes is dot-separated, whatever the host's regional settings say.
+// The server has no user-facing text to localise, but it does parse and format numbers on three boundaries
+// that must agree with the client byte for byte — query/route values, map.xml attributes and SVG geometry —
+// and each of those defaults to the ambient culture. Under a comma-decimal locale that silently reinterprets
+// a dot as a group separator, so "0.55" becomes 55: a valid number, a hundred times too large, and correct
+// again the moment the same build runs on a dot-decimal machine. The client pins itself the same way, which
+// is what makes the two ends one wire format rather than two locale-dependent ones.
+var invariant = CultureInfo.InvariantCulture;
+CultureInfo.DefaultThreadCurrentCulture = invariant;
+CultureInfo.DefaultThreadCurrentUICulture = invariant;
+CultureInfo.CurrentCulture = invariant;
+CultureInfo.CurrentUICulture = invariant;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -93,8 +108,14 @@ if (app.Environment.IsDevelopment())
 }
 app.UseStaticFiles(staticFileOptions);
 
-// All API endpoints live under /api (mirrors the Python app's /api/... surface).
-app.UseFastEndpoints(c => c.Endpoints.RoutePrefix = "api");
+// All API endpoints live under /api.
+app.UseFastEndpoints(c =>
+{
+    c.Endpoints.RoutePrefix = "api";
+    // Query/route/form values bind through the ambient culture unless told otherwise; this makes the
+    // wire boundary itself invariant rather than leaning on the process-wide pin above.
+    c.Binding.UseInvariantNumbers();
+});
 
 // SPA fallback: anything not matched by an API route or a static file serves the Blazor host page.
 app.MapFallbackToFile("index.html");

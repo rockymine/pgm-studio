@@ -1,5 +1,15 @@
+using System.Globalization;
 using PgmStudio.Pgm;
 using JP = System.Text.Json.Serialization.JsonPropertyNameAttribute;
+
+// Numbers are dot-separated whatever the host's regional settings say — the same pin the API and the client
+// hold. A harness that compared derivations under a comma-decimal locale would report differences that are
+// the locale's, not the code's, and its numeric CLI arguments (tolerances) would parse a hundredfold out.
+var invariant = CultureInfo.InvariantCulture;
+CultureInfo.DefaultThreadCurrentCulture = invariant;
+CultureInfo.DefaultThreadCurrentUICulture = invariant;
+CultureInfo.CurrentCulture = invariant;
+CultureInfo.CurrentUICulture = invariant;
 
 // Corpus round-trip fidelity harness (C# port of tools/roundtrip_check.py).
 //

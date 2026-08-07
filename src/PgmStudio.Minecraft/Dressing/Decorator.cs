@@ -261,7 +261,7 @@ public static class Decorator
     // ── boulders (DR-SC) ────────────────────────────────────────────────────────
     private static int PlaceBoulder(VoxelWorld world, DressingContext context, BoulderProp boulder, HashSet<(int X, int Z)> taken)
     {
-        var lobes = BoulderShapes.Of(boulder.Form, Math.Max(1, boulder.Size));
+        var lobes = BoulderShapes.Of(boulder.Form, boulder.Reach);
         return Fan(world, context, (boulder.X, boulder.Z), BoulderCells(lobes, boulder), taken);
     }
 
@@ -314,7 +314,7 @@ public static class Decorator
     /// <summary>The vanilla tree: its species' proportions scaled to the prop's height.</summary>
     private static (HashSet<(int X, int Y, int Z)> Wood, IReadOnlyList<(int X, int Y, int Z)> Leaves) TemplateTree(TreeProp tree)
     {
-        var built = TreeTemplate.Build(DressingPalette.SpeciesNamed(tree.Species).ShapeAt(tree.Height), tree.Seed);
+        var built = TreeTemplate.Build(DressingPalette.SpeciesNamed(tree.Species).ShapeAt(tree.Reach), tree.Seed);
         return ([.. built.Wood], built.Leaves);
     }
 
@@ -328,7 +328,7 @@ public static class Decorator
             foreach (var cell in SweptVolume.Sweep(limb.Path, limb.StartRadius, limb.EndRadius))
                 wood.Add(cell);
 
-        var clusters = TreeCrown.Clusters(grown.Tips, tree.LeafSize, shape.Size, tree.Seed);
+        var clusters = TreeCrown.Clusters(grown.Tips, tree.LeafCluster, shape.Size, tree.Seed);
         var (min, max) = TreeCrown.Bounds(clusters);
         var leaves = new List<(int X, int Y, int Z)>();
         for (var y = (int)Math.Floor(min.Y); y <= (int)Math.Ceiling(max.Y); y++)

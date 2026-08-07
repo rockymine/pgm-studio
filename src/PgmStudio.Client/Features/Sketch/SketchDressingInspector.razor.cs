@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Components;
@@ -137,11 +138,17 @@ public partial class SketchDressingInspector
         woods = await Library.WoodsAsync(knobs);
     }
 
+    /// <summary>The tree's shape as query parameters. Formatted invariantly rather than by the ambient
+    /// culture: this is a wire format, and a comma-decimal locale would write "leader=0,55" — where the comma
+    /// separates parameters, not digits.</summary>
     private string KnobSpec()
-        => $"height={Num(PropFields.Height, 12):0.##}&stems={Num(PropFields.Stems, 1):0}" +
-           $"&leader={Num(PropFields.Leader, 0.55):0.##}&flow={Num(PropFields.Flow, 0.45):0.##}" +
-           $"&branchAngle={Num(PropFields.BranchAngle, 0.55):0.##}&levels={Num(PropFields.Levels, 2):0}" +
-           $"&leafSize={Num(PropFields.LeafSize, 0.6):0.##}";
+        => $"height={Knob(PropFields.Height, 12)}&stems={Knob(PropFields.Stems, 1, "0")}" +
+           $"&leader={Knob(PropFields.Leader, 0.55)}&flow={Knob(PropFields.Flow, 0.45)}" +
+           $"&branchAngle={Knob(PropFields.BranchAngle, 0.55)}&levels={Knob(PropFields.Levels, 2, "0")}" +
+           $"&leafSize={Knob(PropFields.LeafSize, 0.6)}";
+
+    private string Knob(string field, double fallback, string format = "0.##")
+        => Num(field, fallback).ToString(format, CultureInfo.InvariantCulture);
 
     // "13:0,4:0" — the blocks a path is paved with, so the style cards show *this* path rather than a stock one.
     private string? BlockSpec()

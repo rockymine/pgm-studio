@@ -151,10 +151,28 @@ public sealed record TreeProp : PlacedProp
     /// <summary>Grown only — how big each tip's leaf cluster is.</summary>
     public double LeafSize { get; init; } = 0.6;
 
-    /// <summary>This tree's growth parameters, as the grower wants them. Read only when it is grown.</summary>
+    /// <summary>How tall this tree is built, held to the range the inspector offers — the bounded reading of
+    /// <see cref="Height"/> that every builder and every preview uses.
+    ///
+    /// <para>The bounds on this and the knobs below are load-bearing rather than tidiness. A tree's cost is
+    /// superlinear in its reach — the sample patch a preview cuts is quadratic in it, a grown crown is filled
+    /// by testing every cell of its bounding box — while the knobs that set that reach are plain multipliers.
+    /// A <see cref="Leader"/> of 55 rather than 0.55 therefore does not draw a strange tree, it asks for a
+    /// volume hundreds of blocks on a side and never returns. Holding the values here covers every caller —
+    /// the inspector's preview, the picker cards and the world export — instead of each guarding its own
+    /// input, and means a stored prop that is out of range still builds something.</para></summary>
+    public double Reach => Math.Clamp(Height, 5, 40);
+
+    /// <summary>This tree's growth parameters, as the grower wants them, each bounded like
+    /// <see cref="Reach"/>. Read only when it is grown.</summary>
     public TreeShape Shape => new(
-        Height: Math.Max(5, Height), Stems: Math.Clamp(Stems, 1, 3), Levels: Math.Clamp(Levels, 2, 3),
-        BranchAngle: BranchAngle, Flow: Flow, Leader: Leader);
+        Height: Reach, Stems: Math.Clamp(Stems, 1, 3), Levels: Math.Clamp(Levels, 2, 3),
+        BranchAngle: Math.Clamp(BranchAngle, 0.2, 1.2), Flow: Math.Clamp(Flow, 0, 1),
+        Leader: Math.Clamp(Leader, 0, 1));
+
+    /// <summary>How big each tip's leaf cluster is, bounded like <see cref="Reach"/>: it scales the crown, and
+    /// the crown is filled cell by cell.</summary>
+    public double LeafCluster => Math.Clamp(LeafSize, 0.2, 1);
 
     /// <summary>The blocks this tree is made of, whichever form it is: a template takes its species' wood, a
     /// grown tree the one it was given.</summary>
@@ -172,6 +190,11 @@ public sealed record BoulderProp : PlacedProp
 
     /// <summary>How far the rock reaches from its centre, in blocks.</summary>
     public double Size { get; init; } = 2.5;
+
+    /// <summary>That reach held to the range the inspector offers, for the reason
+    /// <see cref="TreeProp.Reach"/> holds a tree's: it sizes both the lobes built and the sample patch a
+    /// preview cuts, so an out-of-range value asks for a patch thousands of blocks across.</summary>
+    public double Reach => Math.Clamp(Size, 1, 7);
 
     public int BlockId { get; init; } = Minecraft.Blocks.Stone;
     public int BlockData { get; init; }

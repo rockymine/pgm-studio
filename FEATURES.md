@@ -433,6 +433,22 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   Plan-specific. Audit + design: `docs/contracts/primitive-styles.md`; canvas-interaction.md §10. (CV9)
 
 ## Backend / API (B)
+- **The wire is dot-separated on every machine, in every country (B48).** Query, route and form values bind
+  through a converter that reads the ambient culture, so on a comma-decimal host `?leader=0.55` arrived as
+  fifty-five — a valid number, a hundredfold out, silent, and correct again on the next developer's machine.
+  It made the dressing phase's grown-tree wood picker ask for a tree hundreds of blocks tall, which never
+  returned; the browser abandoned the request, and the failed fetch escaped an inspector's render path and
+  took the whole client down with it, so the export button that "also broke" was pressing on a dead app.
+  Three separate guarantees now hold it. `InvariantNumberBinding` registers invariant parsers for every
+  numeric type on the model binder, making the wire boundary itself culture-independent rather than leaning
+  on ambient state any library may change; the API, importer and round-trip harness each pin the process to
+  the invariant culture at startup, as the client already did, so formatting agrees end to end; and a tree's
+  and a boulder's knobs are bounded where they are read (`TreeProp.Reach`/`Shape`/`LeafCluster`,
+  `BoulderProp.Reach`), because a prop's cost is superlinear in its reach and a value from outside the
+  inspector's range is not a strange picture but a build that never finishes. Every send in
+  `TerrainLibraryClient` now sits inside its own guard, so a failed preview leaves the picture blank — which
+  is what the class always promised and one method did not do. Gated under an explicitly hostile `de-DE`
+  culture, moved *after* the host boots so the assertion cannot pass on the startup pin alone.
 - **Terrain paint is first-class, reusable data — a style/theme library, not just inline blobs (B44).** The two
   things a painter theme decomposes into now have their own tables (`M0011`): a **`style`** row is one reusable
   named material recipe `{name, kind ∈ solid|layered|teamTint|voronoi|noise|wallRun, params_json}` — the nestable
