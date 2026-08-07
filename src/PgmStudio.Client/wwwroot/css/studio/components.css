@@ -224,8 +224,32 @@
 .panel-list--actions > .list-row-pair { display: contents; }
 .panel-list--actions > .list-empty { grid-column: 1 / -1; }
 
-/* The map overview's action cell — right-aligned in the reserved column, empty on an imported map. */
+/* The map overview's layer cell — one link per authoring layer the map holds, right-aligned in the
+   reserved column. An imported world has only Configure; a planned, sketched, configured map has all
+   three, and each goes straight to that tool. --now marks the layer the map's stage currently names, so a
+   row says where the map stands as well as where it can be opened. */
 .map-row-action { display: flex; justify-content: flex-end; }
+
+.map-layers { display: flex; justify-content: flex-end; gap: var(--space-1); flex-wrap: wrap; }
+
+.map-layer {
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color .12s, border-color .12s, background .12s;
+}
+
+.map-layer:hover { color: var(--text-bright); border-color: var(--text-muted); }
+
+.map-layer--now {
+  color: var(--text-bright);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
 
 /* Container for a vertical stack of .list-row elements inside a panel */
 .panel-list { padding: 4px 0; }

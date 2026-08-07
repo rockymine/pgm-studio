@@ -71,8 +71,8 @@
 
             <input class="field-input" placeholder="Search…" @bind="filter" @bind:event="oninput" style="margin-top: var(--space-3);" />
 
-            @* --actions: every row reserves the reopen column, so the list keeps one aligned edge
-               whether or not a given map can be reopened. *@
+            @* --actions: every row reserves the layer column, so the list keeps one aligned edge whatever
+               a given map has been through. *@
             <div class="panel-list panel-list--actions" style="margin-top: var(--space-3);">
               @if (maps is null) { <div class="list-empty">Loading…</div> }
               else if (!Filtered.Any()) { <div class="list-empty">@EmptyMessage</div> }
@@ -80,7 +80,7 @@
               {
                 @foreach (var m in Filtered)
                 {
-                  <ListRow Href="@($"maps/{m.Slug}/{RowMode}")" Selected="m.Slug == Just" @key="m.Slug">
+                  <ListRow Href="@($"maps/{m.Slug}/{m.Stage}")" Selected="m.Slug == Just" @key="m.Slug">
                     <ChildContent>
                       <span class="list-label list-label--mono">@m.Slug</span>
                       <span class="list-label">@m.Name</span>
@@ -93,15 +93,16 @@
                       }
                       <span class="list-go"><i data-lucide="arrow-right"></i></span>
                     </ChildContent>
-                    @* A map that was drawn rather than imported can go back to the tool it was drawn in;
-                       the action appears only where that stage differs from the one being listed. The
-                       column is reserved on every row so the labels stay aligned across the list. *@
+                    @* Every layer the map holds, each a direct link into that tool. A map keeps its plan and
+                       its sketch after it has been built and configured, so this is where they stay
+                       reachable — the row's own link goes wherever the map has got to, and the one matching
+                       that carries --now. The column is reserved on every row so the labels stay aligned. *@
                     <Trailing>
-                      <span class="map-row-action">
-                        @if (CanReopen(m))
+                      <span class="map-layers">
+                        @foreach (var (id, label) in Layers(m))
                         {
-                          <Button Icon="rotate-ccw" Title="@ReopenTitle(m)" Disabled="@(reopening is not null)"
-                                  OnClick="@(() => Reopen(m))">@ReopenLabel(m)</Button>
+                          <a class="map-layer @(m.Stage == id ? "map-layer--now" : null)"
+                             href="@($"maps/{m.Slug}/{id}")" title="@LayerTitle(m, id)">@label</a>
                         }
                       </span>
                     </Trailing>

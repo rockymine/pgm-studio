@@ -29,44 +29,63 @@ Sketch  ──▶  Configure  ──▶  Edit
 > "new" to separate them is the trap. The real axes are **artifact** (geometry vs config) and
 > **lifecycle** (no XML yet vs has XML). That is why the labels are verbs, not "New Map".
 
-## Stage — the lifecycle marker (how a map is filed)
+## Layers and stage — two different questions about a map
 
-The lifecycle above is **stored**, not inferred: `map.stage` ∈ `{sketch, configure, edit}`
-(`Contracts.MapStage`). It's the discriminator that lets a user re-open a draft, so each surface lists
-**only its own** maps. Deriving it from artifacts was rejected — a sketch-in-progress *is* cleanly
-derivable (`sketch_layout_json` with no `layer_parquet`), but **Configure and Edit are not
-distinguishable from data**: the intent wizard regenerates real `region`/`team` rows on every save, and
-the `map_intent_json` artifact never clears, so a half-configured map and a finished one look identical.
-A stored marker is unambiguous and a trivial `WHERE stage = ?`.
+A map is one row that accumulates **authoring layers**, and it keeps every layer it has ever had. A plan
+built into a world still holds its `plan_json`; a sketch configured into a `map.xml` still holds its
+`sketch_layout_json`. So *what a map is made of* is a set, not a position:
 
-Transitions (each set by the endpoint that performs the step):
+| Layer | Artifact | Tool |
+|---|---|---|
+| Plan | `plan_json` | `/maps/{id}/plan` |
+| Sketch | `sketch_layout_json` | `/maps/{id}/sketch` |
+| World | `layer_parquet` (the rasterized geometry) | `/maps/{id}/configure` |
 
+**Stage answers a different question — how far the map has got**, and it is **stored**, not inferred:
+`map.stage` ∈ `{plan, sketch, configure, edit}` (`Contracts.MapStage`). Deriving it from artifacts was
+rejected and still is — a sketch-in-progress *is* cleanly derivable (`sketch_layout_json` with no
+`layer_parquet`), but **Configure and Edit are not distinguishable from data**: the intent wizard
+regenerates real `region`/`team` rows on every save and the `map_intent_json` artifact never clears, so a
+half-configured map and a finished one look identical.
+
+Transitions (each set by the endpoint that performs the step), and stage **only ever moves forward**:
+
+- **plan** — seeded by `POST /api/plan` and `POST /api/plan/{id}/author`.
 - **sketch** — seeded by `POST /api/sketch` (sketch-create).
 - **configure** — set when a world gains geometry but not a finished `map.xml`: `import-folder` /
-  `import-url`, and **sketch-finish** (`POST /api/map/{slug}/sketch/finish`) which advances
-  `sketch → configure`.
+  `import-url`, and **sketch-finish** (`POST /api/map/{slug}/sketch/finish`).
 - **edit** — the default (full-XML corpus import); the eventual `configure → edit` step lands with the
   Configure wizard's **Export** (today a stub — `M0004` backfilled existing rows by the rule above:
   intent-authored or geometry-without-regions → `configure`, sketch-only → `sketch`, else `edit`).
 
-Every transition above moves the map forward, which leaves a finished draft unreachable from the tool
-that drew it: the stage is a single pointer, so once sketch-finish advances a map to `configure` it is
-listed only under Configuring, and the Sketch tool cannot select it. **Reopen is the one backward
-transition** (`POST /api/map/{slug}/reopen`, S35). It moves the pointer back to the stage the map was
-authored in and nothing else — the geometry, intent and document rows are untouched, and finishing the
-sketch again advances it forward exactly as before. Because the stage itself cannot say where a map came
-from, eligibility is read from the **authoring artifact the map kept**: a `sketch_layout_json` reopens
-into `sketch`, a `plan_json` into `plan`, and a map holding neither is refused with 422. That is what
-keeps an imported world out — it never carried a drawn source, and the `island_sketch_json` outline
-derived from its geometry is not one. `GET /api/maps` carries the same verdict per row as
-`MapSummary.ReopenStage`, so the overview renders the action only on the maps that can take it.
+### Why there is no backward transition
 
-A map can hold both sources — a plan built onto its own row (`plan-as-map.md`) keeps its plan blob beside
-the layout it compiled into — so the target is the later record, the sketch, **minus wherever the map
-already is**. From Configuring that reopens the sketch; standing in the sketch it reopens the plan the
-sketch was compiled from. A map sitting in its only authored stage therefore has nowhere to go and is
-refused like an imported one, which is why the Sketches list shows no action on a map that was never
-planned.
+There used to be one. Stage was doing two jobs — *how far the map has got* **and** *which list it appears
+in* — so a finished draft vanished from the tool that drew it, and `POST /api/map/{slug}/reopen` (S35)
+existed to move the pointer back one hop so it would reappear. That hop carried a hard-coded preference
+(the sketch first, then the plan, minus wherever the map already stood), which made reaching a built map's
+plan a two-step walk through two different lists whose second step only became visible after the first.
+
+**Stage no longer decides listing, so nothing has to move to reach a tool.** The layer lists key off the
+layers a map holds, every row links each of its layers directly (`GET /api/maps` carries `HasPlan` /
+`HasSketch` / `HasSurface`), and no route gates on stage — `/maps/{id}/plan` opens the plan of a map
+standing at `configure`. Reopen and `MapReopen` are deleted; visiting a layer changes nothing at all,
+which is the point, because the visit used to be indistinguishable from the rebuild.
+
+### What each list is
+
+`?stage=` selects a collection, and the four are not all the same kind of thing:
+
+| List | Shows | Because |
+|---|---|---|
+| **Plans** (`?stage=plan`) | every map holding a `plan_json` | a built plan is still a plan |
+| **Sketches** (`?stage=sketch`) | every map holding a `sketch_layout_json` | a configured sketch is still a sketch |
+| **Configuring** (`?stage=configure`) | maps standing at `configure` | "what still needs configuring" is a position |
+| **Maps** (`/maps`) | maps standing at `edit` | as above |
+
+A map therefore appears in more than one list, which is correct — it *has* more than one layer — and the
+landing's Sketch count follows its own list (maps holding a sketch), so a card and the page it opens
+cannot disagree.
 
 ## Landing & exits
 

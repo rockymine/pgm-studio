@@ -75,7 +75,7 @@ checks.add("the identity checks ran", drove, page.faults.slice(0, 3).join(" | ")
 
 // ── a built map carries the plan it was built from ────────────────────────────────────────────────────
 // The seed's plan is a real composed board, so compiling it is a compile that succeeds. Building it from a
-// map-backed route puts layout, intent AND plan on the one row — which is what lets reopen reach both tools.
+// map-backed route puts layout, intent AND plan on the one row — which is what lets the overview offer both tools.
 checks.section("building a draft records the plan on the map");
 
 let built = false;
@@ -94,7 +94,7 @@ try {
   checks.add("the built map still holds its plan", pieceCount(plan) > 0, `${pieceCount(plan)} pieces`);
   const layout = await api(`/map/${target}/sketch`);
   checks.add("…beside the layout it compiled into", (layout?.layers ?? layout?.layout) != null,
-    "both blobs on the one row — what lets reopen reach either tool");
+    "both blobs on the one row — what lets the overview link either tool");
   built = true;
 } catch (e) {
   page.faults.push(`build: ${String(e).split("\n")[0]}`);

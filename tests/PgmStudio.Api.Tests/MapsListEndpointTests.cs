@@ -11,9 +11,10 @@ using PgmStudio.Migrations;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// The staged map collection: GET /api/maps?stage=… filters by lifecycle stage and GET
-/// /api/maps/stage-counts tallies it, while the originating/finishing endpoints set the stage
-/// (sketch-create → sketch, sketch-finish → configure). Runs against the <c>pgm_studio_test</c>
+/// The staged map collection: GET /api/maps?stage=… selects a collection — <c>plan</c> and <c>sketch</c>
+/// by the authoring layer a map holds, <c>configure</c> and <c>edit</c> by the stage it stands at — and GET
+/// /api/maps/stage-counts tallies each the same way, while the originating/finishing endpoints move the
+/// stage (sketch-create → sketch, sketch-finish → configure). Runs against the <c>pgm_studio_test</c>
 /// schema (override with <c>PGM_STUDIO_TEST_DB</c>); each test resets the schema, so they run serially.
 /// </summary>
 [NotInParallel("api-db")]
@@ -45,7 +46,7 @@ public sealed class MapsListEndpointTests
     }
 
     [Test]
-    public async Task Finishing_a_sketch_advances_it_to_configure()
+    public async Task Finishing_a_sketch_advances_its_stage_and_keeps_its_sketch_layer()
     {
         await ApiTestFactory.ResetSchemaAsync();
         await using var factory = new ApiTestFactory();
@@ -70,11 +71,23 @@ public sealed class MapsListEndpointTests
         var finish = await client.PostAsync($"/api/map/{slug}/sketch/finish", null);
         await Assert.That(finish.IsSuccessStatusCode).IsTrue();
 
-        var sketches = await client.GetFromJsonAsync<JsonElement[]>("/api/maps?stage=sketch");
-        await Assert.That(sketches!.Length).IsEqualTo(0);
+        // The stage moved: it stands in Configuring now.
         var configuring = await client.GetFromJsonAsync<JsonElement[]>("/api/maps?stage=configure");
         await Assert.That(configuring!.Length).IsEqualTo(1);
         await Assert.That(configuring[0].GetProperty("slug").GetString()).IsEqualTo(slug);
+
+        // The layer did not: Sketches lists what a map holds, so the drawing stays reachable from the tool
+        // that made it instead of disappearing the moment it was finished.
+        var sketches = await client.GetFromJsonAsync<JsonElement[]>("/api/maps?stage=sketch");
+        await Assert.That(sketches!.Length).IsEqualTo(1);
+        await Assert.That(sketches[0].GetProperty("stage").GetString()).IsEqualTo("configure");
+        await Assert.That(sketches[0].GetProperty("hasSketch").GetBoolean()).IsTrue();
+        await Assert.That(sketches[0].GetProperty("hasSurface").GetBoolean()).IsTrue();
+
+        // The count follows the list it labels.
+        var counts = await client.GetFromJsonAsync<JsonElement>("/api/maps/stage-counts");
+        await Assert.That(counts.GetProperty("sketch").GetInt32()).IsEqualTo(1);
+        await Assert.That(counts.GetProperty("configure").GetInt32()).IsEqualTo(1);
     }
 
     [Test]

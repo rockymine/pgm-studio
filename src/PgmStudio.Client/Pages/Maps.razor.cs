@@ -16,7 +16,6 @@ public partial class Maps
     private string? loadedStage;   // guards against refetching the same stage on every parameter set
     private bool creatingSketch;
     private bool creatingPlan;
-    private string? reopening;   // slug being reopened — one at a time, since it navigates away
 
     // New plan: create a blank authored plan (a stage=plan map row) and open the plan editor on it. Mirrors
     // NewSketch — the plan editor is the plan's home once it's a map row.
@@ -64,41 +63,26 @@ public partial class Maps
         creatingSketch = false;
     }
 
-    // Reopen: send a map back to a tool it was drawn in (POST /api/map/{slug}/reopen), then open it
-    // there. MapSummary.ReopenStage names the stage the server will move it to and is null when there is
-    // none — an imported world kept no drawn source, and a map already sitting in its only authored
-    // stage has nowhere to go. A plan built onto its own map keeps both sources, so it alternates: the
-    // sketch from Configuring, the plan from the sketch.
-    private static bool CanReopen(MapSummary map) => map.ReopenStage is not null;
-
-    private static string ReopenLabel(MapSummary map) =>
-        map.ReopenStage == MapStage.Plan ? "Reopen in Plan" : "Reopen in Sketch";
-
-    private static string ReopenTitle(MapSummary map) =>
-        map.ReopenStage == MapStage.Plan
-            ? "Move this map back to the Plan editor. Its geometry and configuration stay as they are."
-            : "Move this map back to the Sketch tool. Its geometry and configuration stay as they are; "
-              + "finishing the sketch again brings it back here.";
-
-    private async Task Reopen(MapSummary map)
+    // The authoring layers a map holds, in pipeline order — each a direct link into that tool. A map keeps
+    // every layer it has ever had (a built plan still has its plan; a configured sketch still has its
+    // sketch), so this is the whole of a map's history and all of it is one click away. There is no
+    // walking a map back a stage at a time to reach the tool that drew it: opening a layer opens it, and
+    // the stage pointer — which only ever says how far the map has got — is left alone.
+    private static IEnumerable<(string Id, string Label)> Layers(MapSummary map)
     {
-        if (reopening is not null || map.ReopenStage is null) return;
-        reopening = map.Slug;
-        try
-        {
-            var resp = await Http.PostAsync($"api/map/{map.Slug}/reopen", null);
-            if (resp.IsSuccessStatusCode)
-            {
-                Nav.NavigateTo($"maps/{map.Slug}/{map.ReopenStage}");
-                return;
-            }
-        }
-        catch { /* fall through — the button re-enables so the user can retry */ }
-        reopening = null;
+        if (map.HasPlan) yield return (MapStage.Plan, "Plan");
+        if (map.HasSketch) yield return (MapStage.Sketch, "Sketch");
+        if (map.HasSurface) yield return (MapStage.Configure, "Configure");
     }
 
+    private static string LayerTitle(MapSummary map, string layer) => layer switch
+    {
+        MapStage.Plan => "Open the plan this map was compiled from. Nothing is rebuilt by looking.",
+        MapStage.Sketch => "Open the sketch this map's geometry was drawn in. Nothing is rebuilt by looking.",
+        _ => "Open the Configure wizard on this map's world.",
+    };
+
     private string CurrentStage => MapStage.IsValid(Stage) ? Stage! : MapStage.Edit;
-    private string RowMode => CurrentStage;   // /maps/{slug}/{sketch|configure|edit}
     private MapSummary? JustMap => Just is null ? null : maps?.FirstOrDefault(m => m.Slug == Just);
 
     private string StageTitle => CurrentStage switch
@@ -109,10 +93,13 @@ public partial class Maps
         _ => "Maps",
     };
 
+    // Plans and Sketches list every map holding that layer, whatever it has since become; Configuring and
+    // Maps list the maps standing at that stage. The blurbs say which, because "every map with a plan" and
+    // "every map at the plan stage" are different collections and the difference is the point.
     private string StageBlurb => CurrentStage switch
     {
-        MapStage.Plan => "Coarse layout plans you're authoring. Open one to keep planning, or start a new one.",
-        MapStage.Sketch => "Draft layouts you're drawing. Open one to keep sketching, or start a new one.",
+        MapStage.Plan => "Every map that holds a plan — including ones already built and configured. Open one to keep planning.",
+        MapStage.Sketch => "Every map that holds a drawn sketch — including ones already configured. Open one to keep sketching.",
         MapStage.Configure => "Worlds with terrain but no finished map.xml — sketched or imported. Open one to keep configuring.",
         _ => "Maps with a finished map.xml. Open one to refine its regions, teams, wools and objectives.",
     };

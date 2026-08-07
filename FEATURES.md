@@ -42,19 +42,24 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   dashboard has a **Plans** stage (`/maps?stage=plan`, *New plan* action); the generator's card action is
   **Author this plan** → begins the lifecycle. The generator's many candidates stay `plan` rows (a
   separate pool). Contract: `docs/contracts/plan-as-map.md`. (C27)
-- **Reopen — the one backward stage transition (S35).** A map's stage only ever moved forward, so a
-  finished draft became unreachable from the tool that drew it: sketch-finish files it under Configuring
-  and the Sketch tool can no longer select it. `POST /api/map/{slug}/reopen` moves the pointer back and
-  nothing else — the geometry, intent and document rows stay put, and finishing again advances it exactly
-  as before. Eligibility is the **authoring artifact**, not the stage, because the stage cannot say where
-  a map came from: `sketch_layout_json` reopens into `sketch`, `plan_json` into `plan`, and a map holding
-  neither is refused (422) — which is what keeps an imported world out, its derived `island_sketch_json`
-  outline not being an authored source. A map holding both (a plan built onto its own row) takes the
-  later record **minus where it already is**, so it alternates: the sketch from Configuring, the plan once
-  standing in the sketch. `GET /api/maps` carries the verdict per row (`MapSummary.ReopenStage`), so the
-  overview renders a *Reopen in Sketch* / *Reopen in Plan* row action only where it applies, and opens the
-  map in that tool. `ListRow` gained a `Trailing` slot for it (the action renders beside the row's link,
-  never inside it — `.list-row-pair`).
+- **A map shows every layer it holds, and each one is one click (S38).** A map is one row that accumulates
+  authoring layers and keeps every one it has ever had — a built plan still holds its plan, a configured
+  sketch still holds its sketch. The overview did not say so: `map.stage` was doing two jobs at once, *how
+  far the map has got* **and** *which list it appears in*, so each map was filed under exactly one stage
+  and nothing anywhere revealed the rest. A planned, sketched, configured map showed up only under
+  Configuring, its own plan was absent from the Plans list entirely, and reaching that plan meant two
+  backward hops through two different lists whose second step only became visible after taking the first.
+  Now **stage means progress only.** `GET /api/maps` carries the layers per row (`HasPlan` / `HasSketch` /
+  `HasSurface` — the plan blob, the sketch layout, the rasterized world), and every row renders them as
+  direct links into those tools, the one matching the map's stage marked as where it stands. The lists
+  follow the same split: **Plans and Sketches list every map holding that layer** whatever it has since
+  become, while **Configuring and Maps list the maps standing there** — so a map appears in more than one,
+  which is correct, and the landing's Sketch count counts its own list. **Reopen is deleted**, not
+  reworked: it existed to move a pointer so a map would reappear in a tool's list, and with listing off the
+  pointer there is nothing to move. No route ever gated on stage, so `/maps/{id}/plan` already opened the
+  plan of a configured map — the two-hop walk was purely a listing artifact. Visiting a layer now changes
+  nothing at all, which matters because the visit used to be indistinguishable from the rebuild.
+  (`MapsListEndpoint`, `MapSummary`, `Maps.razor`, `.map-layer`; e2e `map-layers`) (S38)
 - **A plan builds onto its own map row (C32).** The plan editor's *Create draft* posted `/api/sketch` and
   minted a **new** map every run, so a plan compiled four times left four near-identical maps whose only
   relationship was a slug suffix (`-2`, `-3`, `-4`) — no lineage column, and `plan_source_id` never
@@ -63,7 +68,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   intent all land on it, so one map carries `plan → configure` and re-compiling refreshes it in place.
   Identity follows for free — the compiled intent carries the plan's name, which the intent write applies
   to the document. The built row keeps its `plan_json` beside the new `sketch_layout_json`, which is what
-  lets **reopen** (S35) reach both of its tools. The bare `/plan-editor` (a generator candidate, no map
+  lets the overview link both of its tools (S38). The bare `/plan-editor` (a generator candidate, no map
   row) still originates one: there the build *is* the map's creation — and it now writes the plan onto that
   map too, so a board built from the bare route also carries the document its layout was compiled from and
   can be reopened in the plan editor rather than holding a layout whose source is nowhere (G152). Contract:
@@ -88,9 +93,9 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   holds onto the freshly compiled one (`SketchLayout.CarryFinish`) — a null on the incoming layout reads as
   absent, since the typed model spells every property out. The sketch editor's own `PUT …/sketch` still
   replaces verbatim, which is what lets deleting a theme or the last prop stick. Moving a map *backwards*
-  never rebuilt it in the first place: **reopen** (S35) moves the stage pointer alone, and
-  `POST …/sketch/finish` re-rasterizes the stored layout without touching the intent, so *reopen → finish* is
-  the round trip out of Configuring and back. Compiling replaces the intent outright and is for when the plan
+  never rebuilt it in the first place: opening a layer from the overview touches nothing (S38), and
+  `POST …/sketch/finish` re-rasterizes the stored layout without touching the intent, so *open the sketch →
+  finish* is the round trip out of Configuring and back. Compiling replaces the intent outright and is for when the plan
   itself has changed. `plan-as-map.md` §"What a rebuild keeps, and what it replaces".
 - **Plan editor entry on the landing** — the studio landing (`/`) leads with a featured *Plan a
   layout* origin card (author a coarse cell-grid seed → compile straight into a sketch draft), set

@@ -167,8 +167,17 @@ public sealed class SketchEndpointTests
         // Rasterize → geometry written → the draft has advanced into the Configure wizard.
         var configureStaged = await client.GetFromJsonAsync<List<MapSummary>>("/api/maps?stage=configure");
         await Assert.That(configureStaged!.Any(m => m.Slug == slug)).IsTrue();
+
+        // And it stays in the Sketches list, because it still holds the sketch it was drawn in. Finishing
+        // moves where the map stands, not what it is made of — dropping it out of Sketches is what used to
+        // leave the drawing unreachable from the tool that made it.
         var stillSketch = await client.GetFromJsonAsync<List<MapSummary>>("/api/maps?stage=sketch");
-        await Assert.That(stillSketch!.Any(m => m.Slug == slug)).IsFalse();
+        var entry = stillSketch!.SingleOrDefault(m => m.Slug == slug);
+        await Assert.That(entry).IsNotNull();
+        await Assert.That(entry!.Stage).IsEqualTo("configure");
+        await Assert.That(entry.HasSketch).IsTrue();
+        await Assert.That(entry.HasSurface).IsTrue();   // the world the wizard configures
+        await Assert.That(entry.HasPlan).IsFalse();     // this one was drawn, not planned
     }
 
     [Test]
