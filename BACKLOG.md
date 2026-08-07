@@ -174,6 +174,20 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   separate.
 ## Backend, pipeline & internals (B / P / A)
 
+- [ ] **B54 — A rebuild has no undo.** The rebuild now carries the finish and the credits across (B49, B52)
+  and says what it trades before it runs (S39), so what it still replaces is replaced *on purpose*: the
+  board, and the teams/spawns/wools/build zones the plan states. What is missing is a way back from a
+  deliberate press that turns out to have been wrong. The mechanism is cheap, because both authored blobs
+  are already rows in `map_artifact` keyed by a 64-char `kind` with no unique constraint: before each
+  from-plan write, copy the current blob to a `…_prior` kind, and add a restore that puts both back and
+  re-runs the pipeline from them (restore layout → `sketch/finish` → restore intent, the same chain the
+  build uses, so the world cannot end up disagreeing with the layout). The finish step wants extracting out
+  of `SketchFinishEndpoint` first so both callers share it. Surface it where the loss would be noticed: a
+  one-shot *Undo this rebuild* in the plan editor's success panel. Deliberately not built with S39 — with
+  the carries landed, the remaining exposure is a mis-click rather than silent data loss, and the
+  confirmation already covers a mis-click at a fraction of the cost. This is the belt to that pair of
+  braces, worth having once the studio is used by someone who did not write it.
+
 - [ ] **B53 — `SymmetryExpander.Expand` drops four slices of the intent it rebuilds.** It returns a
   `new MapIntent { … }` listing eight properties (`SymmetryExpander.cs:42`) and the type has more:
   `Destroyables`, `Cores`, `IslandTeams` and `Structures` are silently absent from the result. So any intent
