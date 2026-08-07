@@ -161,26 +161,25 @@ public sealed class DressingScopeTests
 
         // Depth shades a block without repainting it, so a projected crown is many shades of the one leaf
         // colour — where a cut would give one flat shade with holes through it.
+        //
+        // A crown fill is recognised by asking the palette to produce it: a shade the view can emit is
+        // Hex(leaf, depth) for some depth, so reproducing the fill from the shade function IS the membership
+        // test. Guessing instead — "green-dominant, same channels at zero" — reads the ground as crown the
+        // moment grass and oak leaves are near hues, which is what a colour table sharpened against the real
+        // textures made them.
         var front = BlockPalette.Hex(Blocks.Leaves, DressingPalette.LeafNoDecay, 0);
-        var crown = Fills(tree.Section).Where(hex => IsShadeOf(hex, front)).ToList();
+        var leafShades = Enumerable.Range(0, 1001)
+            .Select(step => BlockPalette.Hex(Blocks.Leaves, DressingPalette.LeafNoDecay, step / 1000.0))
+            .ToHashSet();
+
+        var crown = Fills(tree.Section).Where(leafShades.Contains).ToList();
         await Assert.That(crown.Count).IsGreaterThan(3);
         // And every one of them is still that leaf, darkened: no shade is brighter than the block's own.
         await Assert.That(crown.All(hex => Green(hex) <= Green(front))).IsTrue();
+        // The ground is not the crown: grass shares the leaf's hue but no shade of a leaf is ever that bright.
+        await Assert.That(crown).DoesNotContain(BlockPalette.Hex(Blocks.Grass, 0));
 
         static int Green(string hex) => Convert.ToInt32(hex[3..5], 16);
-
-        // Shading scales all three channels by one factor, so a shade of a colour is the colour with the same
-        // channels at zero and the same channel dominant — which is what separates crown from ground here.
-        static bool IsShadeOf(string hex, string of)
-        {
-            for (var channel = 1; channel < 7; channel += 2)
-            {
-                var (one, other) = (Convert.ToInt32(hex[channel..(channel + 2)], 16),
-                                    Convert.ToInt32(of[channel..(channel + 2)], 16));
-                if (one == 0 != (other == 0)) return false;
-            }
-            return true;
-        }
     }
 
     [Test]
