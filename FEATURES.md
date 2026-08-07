@@ -95,8 +95,22 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   replaces verbatim, which is what lets deleting a theme or the last prop stick. Moving a map *backwards*
   never rebuilt it in the first place: opening a layer from the overview touches nothing (S38), and
   `POST …/sketch/finish` re-rasterizes the stored layout without touching the intent, so *open the sketch →
-  finish* is the round trip out of Configuring and back. Compiling replaces the intent outright and is for when the plan
-  itself has changed. `plan-as-map.md` §"What a rebuild keeps, and what it replaces".
+  finish* is the round trip out of Configuring and back. Compiling is for when the plan itself has changed.
+  `plan-as-map.md` §"What a rebuild keeps, and what it replaces".
+- **A rebuild keeps the credits, and says why it keeps nothing else (B52).** The layout half of a rebuild
+  carries a map's finish across (B49); the intent half replaced the stored intent outright, and the compiler
+  writes `"authors": []`, so every build wiped the author list off a map that had been through Configure.
+  The build's intent write now goes through **`PUT /api/map/{slug}/intent/from-plan`**, which carries the
+  authors and contributors over before projecting exactly as a plain PUT does (`IntentCarry`, one shared
+  `IntentWrite.StoreAndProjectAsync` so an edit and a rebuild cannot regenerate a map differently). The
+  boundary is the deliverable: teams, spawns, wools, build zones and the ST1–ST4 structures are the plan's
+  and are meant to be replaced, and the two remaining slices are refused **with reasons**. `islandTeams` is
+  a derivation the compile endpoint pre-fills from the geometry it just built, and island ids are positional
+  — a stored assignment may name a different island once the board changes, so carrying it would relabel
+  territory rather than preserve a decision. `symmetry` is absent from a compiled intent *on purpose*: that
+  intent is already fanned across the orbit and the field is what switches `SymmetryExpander` on, which
+  rebuilds the intent from a fixed property set that drops the structure directives (the hole is filed as
+  B53 — refusing to carry the field is what keeps it unreachable). (B52)
 - **Plan editor entry on the landing** — the studio landing (`/`) leads with a featured *Plan a
   layout* origin card (author a coarse cell-grid seed → compile straight into a sketch draft), set
   above a labelled `or work a map through its stages` divider from the three lifecycle cards; the

@@ -174,16 +174,17 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   separate.
 ## Backend, pipeline & internals (B / P / A)
 
-- [ ] **B52 — Rebuilding from a plan still replaces the whole intent.** The layout side of the build now
-  carries a map's finish across a recompile (B49, `FEATURES.md`); the intent side does not. `CreateDraft`
-  PUTs the compiled intent verbatim, and the compiler writes `Meta.Authors = []` and no `IslandTeams` or
-  `Symmetry` at all — none of which a plan can state. So pressing **Build draft** on a map that has been
-  through Configure drops its author list, its island→team assignments and its confirmed symmetry, in the
-  same click that used to drop its theming. The fix has the same shape and the same seam: a merge of the
-  slices Configure owns onto the compiled intent, at the intent write. What needs deciding first is the
-  boundary — teams, spawns, wools and build zones are genuinely the plan's and *should* be replaced, so the
-  carried set is exactly the slices the compiler leaves empty, and that set has to be written down rather
-  than inferred from what happens to be null on the day.
+- [ ] **B53 — `SymmetryExpander.Expand` drops four slices of the intent it rebuilds.** It returns a
+  `new MapIntent { … }` listing eight properties (`SymmetryExpander.cs:42`) and the type has more:
+  `Destroyables`, `Cores`, `IslandTeams` and `Structures` are silently absent from the result. So any intent
+  carrying a `Symmetry` loses its DTM/DTC objectives, its island→team assignments and its ST1–ST4 structure
+  directives the moment it is projected. It has not bitten yet only because the two producers do not
+  overlap: Configure sets `Symmetry` but authors none of the four, and the plan compiler fills all four but
+  deliberately sets no `Symmetry` (it fans the orbit itself). That is a coincidence, not a design, and it is
+  why `IntentCarry` refuses to carry `symmetry` onto a compiled intent — doing so would have made the hole
+  reachable in one line. Fix by carrying every property through the expander (and asserting it: a test that
+  round-trips a full intent with a symmetry set and compares property by property, so the next field added
+  to `MapIntent` cannot be forgotten here).
 
 - [~] **B44 — Theme + style library: the map's applied theme is still an inline blob.** The tables, the HTTP
   surface, the `/library` page and the sketch's pull/push bridge all shipped (`FEATURES.md`); two slices

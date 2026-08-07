@@ -703,10 +703,12 @@ public partial class PlanTool
     // could not be reopened in the plan editor, and opening it there showed a blank document over a board
     // that plainly came from one.
     //
-    // The layout goes through the from-plan route, not the sketch PUT: a compiled layout is the board and
-    // nothing else, so a straight replace would drop the themes, room shells and dressing the sketch holds
-    // (SketchLayout.CarryFinish). Rebuilding a finished map from its plan must change the ground under the
-    // theming, not strip it.
+    // Both writes go through their from-plan route rather than the plain PUT, for the same reason: a
+    // compiled pair states what the plan states and nothing else, so a straight replace deleted everything
+    // the map had accumulated on top. The layout carries its finish across (SketchLayout.CarryFinish — the
+    // themes, room shells and dressing) and the intent carries its authored slices (IntentCarry — the
+    // authors, island team assignments and confirmed symmetry). Rebuilding changes the board and the
+    // structure the plan describes; it is not an answer to anything else about the map.
     private async Task CreateDraft()
     {
         if (handle is null || compiledLayoutRaw is null || compiledIntentRaw is null) return;
@@ -738,7 +740,7 @@ public partial class PlanTool
             if (!await Ok(finishResp, "finish (rasterize)")) return;
 
             draftStep = "Applying intent"; StateHasChanged();
-            using var intentResp = await Http.PutAsync($"api/map/{slug}/intent", new StringContent(compiledIntentRaw, Encoding.UTF8, "application/json"));
+            using var intentResp = await Http.PutAsync($"api/map/{slug}/intent/from-plan", new StringContent(compiledIntentRaw, Encoding.UTF8, "application/json"));
             if (!await Ok(intentResp, "apply intent")) return;
 
             draftSlug = slug;

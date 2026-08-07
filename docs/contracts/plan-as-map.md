@@ -38,9 +38,19 @@ therefore replaced a finished map with bare stone, which is why the build writes
 (`SketchLayout.CarryFinish`). The sketch editor's own `PUT …/sketch` still replaces the blob verbatim —
 deleting a theme or the last prop has to stick.
 
-The **intent** is replaced outright, and that is the part to know before pressing build: the compiled
-intent is the plan's whole statement of teams, spawns, wools and build zones, so anything Configure added
-to those slices is overwritten by it.
+The **intent** goes the same way, through `PUT /api/map/{slug}/intent/from-plan`, and the boundary there is
+narrower on purpose. The compiled intent is the plan's whole statement of teams, spawns, wools, build zones
+and stamped structures, so anything Configure added to *those* slices is meant to be overwritten by it. What
+rides across is the map's **authors and contributors** — the compiler writes `"authors": []`, so a rebuild
+used to wipe the credits off a map that had been through Configure (`IntentCarry`).
+
+Two slices are deliberately left out, and the reasons are the boundary. **`islandTeams`** is a derivation,
+not a decision: the compile endpoint pre-fills it from the geometry it just built, and island ids are
+positional, so a stored assignment made about the old board may name a different island on the new one —
+carrying it would relabel territory rather than preserve an answer. **`symmetry`** is absent from a compiled
+intent on purpose, because that intent is already fanned across the orbit and the field is what switches
+`SymmetryExpander` on; setting it would re-run a fill the map does not need and drop the structure directives
+with it.
 
 **Moving a map backwards does not rebuild it.** Reopen (`POST /api/map/{slug}/reopen`) moves the stage
 pointer and nothing else, and `POST …/sketch/finish` re-rasterizes the stored layout without touching the
@@ -60,6 +70,8 @@ plan itself has changed.
 - `PUT /api/map/{slug}/plan` — replace the plan blob.
 - `PUT /api/map/{slug}/sketch/from-plan` — write a compiled layout as the map's sketch, carrying its
   existing finish onto it. The build path's layout write.
+- `PUT /api/map/{slug}/intent/from-plan` — write a compiled intent, carrying the map's authored credits onto
+  it, then project it exactly as a plain intent PUT does. The build path's intent write.
 
 ## Sequencing
 Backend first (migration + endpoints, curl-verified), then `PlanTool` on `/maps/{slug}/plan`
