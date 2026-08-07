@@ -1,0 +1,22 @@
+@namespace PgmStudio.Client.Components
+
+@* A "?" standing where a paragraph of explanation used to stand, with that paragraph behind it. Prose that
+   sits open under the control it explains is restated once per copy of that control — a stack of three
+   voronoi layers said what a voronoi is three times over, and pushed the knobs off the bottom of the panel.
+   The words are unchanged; they are one click away.
+
+   A native <details>, so there is no script and no state to keep, and the body flows in place rather than
+   floating — a popover in a scrolling panel is clipped by it. Every note shares one `name`, which makes the
+   group exclusive: opening one closes the last, so the panel never fills up with open explanations. *@
+
+<details class="help-note" name="studio-help">
+  <summary title="@Title">?</summary>
+  <div class="help-note-body">@ChildContent</div>
+</details>
+
+@code {
+    /// <summary>The hover title on the "?" — what the note is about, in a few words.</summary>
+    [Parameter] public string Title { get; set; } = "What this is";
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

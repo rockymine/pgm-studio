@@ -267,7 +267,6 @@
 .material-editor-head > select { flex: 1 1 8rem; min-width: 0; }
 .material-editor-label { font-size: var(--font-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; min-width: 5rem; }
 .material-editor-body { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
-.material-editor-note { margin: 0; font-size: var(--font-xs); color: var(--text-muted); line-height: 1.5; }
 .material-editor-scalars { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 .material-editor-scalars .field { flex: 1 1 6rem; }
 .material-entry-scalar { flex: 0 0 5.5rem; }

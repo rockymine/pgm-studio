@@ -65,8 +65,9 @@
       </div>
 
       <div class="lib-rail-body">
-      <p class="section-desc">The sample plateau this composition finishes: two ground levels with void either
-        side, the right half owned by a team so a tint shows beside its neutral fallback.</p>
+      <HelpNote Title="What the sample shows">The sample plateau this composition finishes: two ground levels
+        with void either side, the right half owned by a team so a tint shows beside its neutral
+        fallback.</HelpNote>
 
       <Field Label="Name">
         <input class="field-input" @bind="draftName" @bind:event="oninput" />
@@ -91,7 +92,7 @@
             }
           </Actions>
           <ChildContent>
-            <p class="section-desc">@bucket.Blurb</p>
+            <HelpNote Title="@($"What the {bucket.Title.ToLowerInvariant()} is")">@bucket.Blurb</HelpNote>
             @if (binding.Enabled)
             {
               <div class="lib-bind">
@@ -127,7 +128,8 @@
       }
 
       <Section Title="Ground and edges" Variant="list">
-        <p class="section-desc">How far down the paint reaches, and which faces count as an edge worth capping.</p>
+        <HelpNote Title="What these decide">How far down the paint reaches, and which faces count as an edge
+          worth capping.</HelpNote>
         <Field Label="Bedrock floor">
           <div class="panel-actions">
             <select class="field-input field-input--slim" value="@BedrockMode" @onchange="SetBedrockMode">

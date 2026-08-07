@@ -63,9 +63,9 @@
                    @oninput="e => Set(PropFields.Coverage, JsonValue.Create(Share(e)))" /></ChildContent></Field>
         }
         <div class="section-header section-header--ruled"><h2 class="section-title">Paving</h2></div>
-        <p class="section-desc">What the band is laid with — a full material, so a road can be one block, a
-          cobbled fabric of several, or any pattern the theme offers. The style above shapes the band; this
-          decides what fills it.</p>
+        <HelpNote Title="What the paving is">What the band is laid with — a full material, so a road can be
+          one block, a cobbled fabric of several, or any pattern the theme offers. The style above shapes the
+          band; this decides what fills it.</HelpNote>
         @if (Material(PropFields.Pave) is { } pave)
         {
           <MaterialEditor Node="pave" Blocks="blocks" OnChanged="() => MaterialChanged(PropFields.Pave)" />
@@ -108,7 +108,8 @@
           }
         </div>
         <div class="section-header section-header--ruled"><h2 class="section-title">Bank</h2></div>
-        <p class="section-desc">The bed floor and the beach — a full material, the same the shallows show through and the shore meets the land with.</p>
+        <HelpNote Title="What the bank is">The bed floor and the beach — a full material, the same the
+          shallows show through and the shore meets the land with.</HelpNote>
         @if (Material(PropFields.Bank) is { } bank)
         {
           <MaterialEditor Node="bank" Blocks="blocks" OnChanged="() => MaterialChanged(PropFields.Bank)" />
@@ -228,9 +229,9 @@
                  value="@((int)(Num(PropFields.Size, 2.5) * 10))"
                  @oninput="e => Set(PropFields.Size, JsonValue.Create(Whole(e) / 10.0))" /></ChildContent></Field>
         <div class="section-header section-header--ruled"><h2 class="section-title">Rock</h2></div>
-        <p class="section-desc">What the boulder is cut from. It is resolved in the rock's own frame rather
-          than the map's, so a pattern's patch size is read against a few blocks — and every mirrored image of
-          the rock comes out identical.</p>
+        <HelpNote Title="What the rock is">What the boulder is cut from. It is resolved in the rock's own
+          frame rather than the map's, so a pattern's patch size is read against a few blocks — and every
+          mirrored image of the rock comes out identical.</HelpNote>
         @if (Material(PropFields.Rock) is { } rock)
         {
           <MaterialEditor Node="rock" Blocks="blocks" OnChanged="() => MaterialChanged(PropFields.Rock)" />
@@ -250,7 +251,8 @@
           <Button OnClick="Reroll"><i data-lucide="refresh-cw"></i> Reroll</Button>
         </div>
       </Field>
-      <p class="section-desc">The same seed always makes the same thing, so a map exports identically.</p>
+      <HelpNote Title="What the seed does">The same seed always makes the same thing, so a map exports
+        identically.</HelpNote>
       @if (editingSelection)
       {
         <Button Full Variant="danger" OnClick="Delete"><i data-lucide="trash-2"></i> Delete</Button>

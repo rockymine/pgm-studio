@@ -520,6 +520,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   save · copy · delete never run off the edge. The sketch's Dressing inspector — the same editor embedded —
   starts at 420px, and the resize handle's range is `[260, 680]` rather than `[200, 560]`. (C36)
 
+- **Explanations live behind a "?" (C37).** Every blurb in the library rails and the material form sat open
+  under the control it explained, which meant it was restated once per copy of that control: a layer stack of
+  three voronoi layers said what a voronoi is three times over, and the knobs it belonged to fell off the
+  bottom of the panel. `<HelpNote>` — a native `<details>` whose summary is a "?" — takes the paragraph's
+  place; the prose is unchanged and one click away. Every note shares one `name`, so the group is exclusive
+  and opening one closes the last. Adopted by `MaterialEditor` (all six kind blurbs), the style / theme /
+  room rails (their sample-figure captions, the per-bucket and per-part blurbs, the ground-and-edges and
+  doorway notes) and the sketch Dressing inspector (paving · bank · rock · seed). (C37)
+
 ## Backend / API (B)
 - **The wire is dot-separated on every machine, in every country (B48).** Query, route and form values bind
   through a converter that reads the ambient culture, so on a comma-decimal host `?leader=0.55` arrived as

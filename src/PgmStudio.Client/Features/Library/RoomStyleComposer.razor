@@ -67,8 +67,8 @@
       </div>
 
       <div class="lib-rail-body">
-      <p class="section-desc">The sample shell from above and cut open: the roof and its eave read in the first,
-        the course stack and the doorway in the second.</p>
+      <HelpNote Title="What the two views show">The sample shell from above and cut open: the roof and its
+        eave read in the first, the course stack and the doorway in the second.</HelpNote>
 
       <Field Label="Name">
         <input class="field-input" @bind="draftName" @bind:event="oninput" />
@@ -81,7 +81,7 @@
             <Badge Kind="dim">@Courses(part.Id).Count course@(Courses(part.Id).Count == 1 ? string.Empty : "s")</Badge>
           </Actions>
           <ChildContent>
-            <p class="section-desc">@part.Blurb</p>
+            <HelpNote Title="@($"What the {part.Title.ToLowerInvariant()} is")">@part.Blurb</HelpNote>
 
             <Field Label="@part.ExtentLabel">
               <input class="field-input field-input--slim" type="number" min="1" step="1"
@@ -141,8 +141,8 @@
       }
 
       <Section Title="Doorway" Variant="list">
-        <p class="section-desc">A closed set: only these can be broken by an attacker, so only these open a
-          cage. A spawn's door is always open, whatever is chosen here.</p>
+        <HelpNote Title="Why the list is short">A closed set: only these can be broken by an attacker, so only
+          these open a cage. A spawn's door is always open, whatever is chosen here.</HelpNote>
         <Field Label="Made of">
           <select class="field-input field-input--slim" value="@draft.Door" @onchange="SetDoor">
             @foreach (var door in doors) { <option value="@door.Slug" @key="door.Slug">@door.Label</option> }
