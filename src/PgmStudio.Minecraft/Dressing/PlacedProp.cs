@@ -36,7 +36,7 @@ public abstract record PlacedProp
 
 /// <summary>A route across the ground: the line the author drew and how wide a strip of it is paved. A path
 /// replaces the surface it crosses rather than adding to it — it is a finish, not terrain — which is why it
-/// carries blocks rather than a height, and why nothing grows on what it covers.</summary>
+/// carries a material rather than a height, and why nothing grows on what it covers.</summary>
 public sealed record PathProp : PlacedProp
 {
     /// <summary>The drawn centerline, as <c>[x, z]</c> pairs. Two points or more.</summary>
@@ -50,14 +50,11 @@ public sealed record PathProp : PlacedProp
     /// <summary>0–1; what a <see cref="PathStyle.Worn"/> path keeps. Every other style paves its whole band.</summary>
     public double Coverage { get; init; } = 0.7;
 
-    /// <summary>The blocks the path is paved with. One is a plain surface; several are what a
-    /// <see cref="PathStyle.Cobble"/> path tiles between, which is the only style that spends more than the
-    /// first.</summary>
-    public IReadOnlyList<PaveBlock> Blocks { get; init; } = [new PaveBlock(Minecraft.Blocks.Gravel, 0)];
+    /// <summary>What the path is paved with — a full terrain material, so a road is a solid, a cobbled fabric,
+    /// a noise ramp or any pattern the painter offers. The style above shapes the <em>band</em>; this decides
+    /// what fills it, and the two are independent: a worn cobble and a solid cobble are both sayable.</summary>
+    public TerrainMaterial Pave { get; init; } = new SolidMaterial(Minecraft.Blocks.Gravel);
 }
-
-/// <summary>One block a path may be paved with.</summary>
-public readonly record struct PaveBlock(int Id, int Data);
 
 /// <summary>A channel of water: the line the author drew, and how wide and deep a bed is cut under it. Unlike a
 /// <see cref="PathProp"/>, which repaints the surface and adds no cell, water is the one prop that changes the
@@ -200,10 +197,15 @@ public sealed record BoulderProp : PlacedProp
     /// preview cuts, so an out-of-range value asks for a patch thousands of blocks across.</summary>
     public double Reach => Math.Clamp(Size, 1, 7);
 
-    public int BlockId { get; init; } = Minecraft.Blocks.Stone;
-    public int BlockData { get; init; }
+    /// <summary>What the rock is cut from — a full terrain material, resolved in the boulder's <em>own</em>
+    /// frame rather than the map's, so a mottled rock carries the same mottling to every image of its orbit
+    /// instead of sampling whatever the world pattern happens to say where each image landed. Its coordinates
+    /// are therefore small (a boulder is a few blocks across), which is what a pattern's patch size has to be
+    /// read against here.</summary>
+    public TerrainMaterial Rock { get; init; } = new SolidMaterial(Minecraft.Blocks.Stone);
 
-    /// <summary>Whether moss creeps onto the sky-lit faces — the rock's own micro-flora.</summary>
+    /// <summary>Whether moss creeps onto the sky-lit faces — the rock's own micro-flora, laid over whatever
+    /// <see cref="Rock"/> resolved.</summary>
     public bool Mossy { get; init; } = true;
 }
 

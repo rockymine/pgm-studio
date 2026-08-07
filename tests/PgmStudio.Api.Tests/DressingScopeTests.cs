@@ -131,7 +131,7 @@ public sealed class DressingScopeTests
         // A fixed sky would draw a path as one grey line under forty courses of nothing.
         var path = DressingPreview.Views(new PathProp
         {
-            Points = [[0, 20], [40, 20]], Radius = 3, Seed = 5, Blocks = [new PaveBlock(Blocks.Gravel, 0)],
+            Points = [[0, 20], [40, 20]], Radius = 3, Seed = 5, Pave = new SolidMaterial(Blocks.Gravel),
         }, TerrainTheme.Default);
         var tree = DressingPreview.Views(new TreeProp { Species = "spruce", Height = 24, Seed = 5 }, TerrainTheme.Default);
 
@@ -229,7 +229,7 @@ public sealed class DressingScopeTests
         // The cards are the real algorithm at card size, so a picker can never promise a look the export does
         // not produce — which is only true if every option actually draws something.
         var styles = DressingPreview.PathStyleCards(
-            new PathProp { Radius = 3, Seed = 5, Blocks = [new PaveBlock(Blocks.Gravel, 0)] }, TerrainTheme.Default);
+            new PathProp { Radius = 3, Seed = 5, Pave = new SolidMaterial(Blocks.Gravel) }, TerrainTheme.Default);
         var forms = DressingPreview.BoulderFormCards(new BoulderProp { Size = 3, Seed = 3 }, TerrainTheme.Default);
         var species = DressingPreview.SpeciesCards(TerrainTheme.Default);
 

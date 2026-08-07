@@ -116,9 +116,9 @@ public partial class SketchDressingInspector
         // The block picker's offered list is the export's own palette, so a path and a rock cannot be paved
         // with something the painter has no colour for.
         if (blocks.Count == 0 && kind is PropKinds.Path or PropKinds.Boulder or PropKinds.Water) blocks = await Library.BlocksAsync();
-        if (kind == PropKinds.Path && pathStyles.Count == 0) pathStyles = await Library.PathStylesAsync(BlockSpec());
+        if (kind == PropKinds.Path && pathStyles.Count == 0) pathStyles = await Library.PathStylesAsync(Spec(PropFields.Pave));
         if (kind == PropKinds.Water && waterForms.Count == 0) waterForms = await Library.WaterFormsAsync();
-        if (kind == PropKinds.Boulder && boulderForms.Count == 0) boulderForms = await Library.BoulderFormsAsync();
+        if (kind == PropKinds.Boulder && boulderForms.Count == 0) boulderForms = await Library.BoulderFormsAsync(Spec(PropFields.Rock));
         if (kind == PropKinds.Tree && species.Count == 0) species = await Library.SpeciesAsync();
         if (!editingSelection && prop is null) await LoadToolSettings();
         if (kind == PropKinds.Tree && IsGrown) await LoadWoods();
@@ -150,13 +150,9 @@ public partial class SketchDressingInspector
     private string Knob(string field, double fallback, string format = "0.##")
         => Num(field, fallback).ToString(format, CultureInfo.InvariantCulture);
 
-    // "13:0,4:0" — the blocks a path is paved with, so the style cards show *this* path rather than a stock one.
-    private string? BlockSpec()
-    {
-        if (prop?[PropFields.Blocks] is not JsonArray blocks) return null;
-        return string.Join(',', blocks.OfType<JsonObject>()
-            .Select(block => $"{block["id"]?.GetValue<int>() ?? 1}:{block["data"]?.GetValue<int>() ?? 0}"));
-    }
+    /// <summary>One of the prop's materials as a query parameter, so a shape card is drawn in the material the
+    /// author actually chose rather than a stock one.</summary>
+    private string? Spec(string field) => Material(field)?.ToJsonString();
 
     /// <summary>Redraw the picture, but only when the prop actually changed — the preview is a round trip that
     /// runs the real pass, so re-issuing it on every render would make a slider feel like treacle.</summary>
@@ -225,64 +221,20 @@ public partial class SketchDressingInspector
     private static double Whole(ChangeEventArgs e)
         => double.TryParse(e.Value?.ToString(), out var value) ? value : 0;
 
-    /// <summary>The blocks a path is paved with, as a list the form can index. One is a plain surface; several
-    /// are what a cobbled path tiles between, which is why this is a list and not a single picker.</summary>
-    private List<(int Id, int Data)> PaveBlocks
-        => prop?[PropFields.Blocks] is JsonArray blocks && blocks.Count > 0
-            ? [.. blocks.OfType<JsonObject>().Select(block => (
-                Id: block["id"]?.GetValue<int>() ?? 1,
-                Data: block["data"]?.GetValue<int>() ?? 0))]
-            : [(13, 0)];
+    /// <summary>One of this prop's material nodes — a path's paving, a boulder's rock, a channel's bank. Each
+    /// is a full terrain material edited by the same <c>MaterialEditor</c> the theme phase uses, and the editor
+    /// mutates the node in place, so persisting it is pushing the node back as a patch.</summary>
+    private JsonObject? Material(string field) => prop?[field] as JsonObject;
 
-    private Task SetPaveBlock(int at, int id, int data)
+    private async Task MaterialChanged(string field)
     {
-        var blocks = PaveBlocks;
-        if (at >= blocks.Count) return Task.CompletedTask;
-        blocks[at] = (id, data);
-        return WritePaveBlocks(blocks);
-    }
-
-    private Task AddPaveBlock()
-    {
-        var blocks = PaveBlocks;
-        blocks.Add(blocks[^1]);
-        return WritePaveBlocks(blocks);
-    }
-
-    private Task RemovePaveBlock()
-    {
-        var blocks = PaveBlocks;
-        if (blocks.Count <= 1) return Task.CompletedTask;
-        blocks.RemoveAt(blocks.Count - 1);
-        return WritePaveBlocks(blocks);
-    }
-
-    private async Task WritePaveBlocks(List<(int Id, int Data)> blocks)
-    {
-        var array = new JsonArray();
-        foreach (var (id, data) in blocks) array.Add(new JsonObject { ["id"] = id, ["data"] = data });
-        await Set(PropFields.Blocks, array);
-        // The style cards show this path's own paving, so they are stale the moment its blocks change.
-        pathStyles = await Library.PathStylesAsync(BlockSpec());
-    }
-
-    private async Task SetRock(int id, int data)
-    {
-        await Set(PropFields.BlockId, JsonValue.Create(id));
-        await Set(PropFields.BlockData, JsonValue.Create(data));
-    }
-
-    /// <summary>The bank material node — the bed floor and the beach the channel is laid with, a full terrain
-    /// material edited by the same <c>MaterialEditor</c> the theme phase uses. The editor mutates this node in
-    /// place, so persisting it is pushing the node back as a patch.</summary>
-    private JsonObject? Bank => prop?[PropFields.Bank] as JsonObject;
-
-    private async Task BankChanged()
-    {
-        if (prop is null || Handle is null || Bank is null) return;
-        var patch = new JsonObject { [PropFields.Bank] = Bank.DeepClone() };
+        if (prop is null || Handle is null || Material(field) is not { } material) return;
+        var patch = new JsonObject { [field] = material.DeepClone() };
         if (editingSelection) await Handle.InvokeVoidAsync("updateProp", patch.ToJsonString());
         else await Handle.InvokeVoidAsync("setPropSettings", kind, patch.ToJsonString());
+        // The shape cards are drawn in the prop's own material, so they are stale the moment it changes.
+        if (field == PropFields.Pave) pathStyles = await Library.PathStylesAsync(Spec(field));
+        if (field == PropFields.Rock) boulderForms = await Library.BoulderFormsAsync(Spec(field));
         await RefreshPreview();
     }
 
@@ -355,7 +307,8 @@ public static class PropFields
     public const string Radius = "radius";
     public const string Style = "style";
     public const string Coverage = "coverage";
-    public const string Blocks = "blocks";
+    /// <summary>What a path is paved with — a full terrain material, not a block list.</summary>
+    public const string Pave = "pave";
     public const string Depth = "depth";
     public const string Edge = "edge";
     public const string Shore = "shore";
@@ -374,8 +327,8 @@ public static class PropFields
     /// because the two never share an object; the distinction lives in their C# types.</summary>
     public const string Form = "form";
     public const string Size = "size";
-    public const string BlockId = "blockId";
-    public const string BlockData = "blockData";
+    /// <summary>What a boulder is cut from — a full terrain material, resolved in the rock's own frame.</summary>
+    public const string Rock = "rock";
     public const string Mossy = "mossy";
     public const string Seed = "seed";
 

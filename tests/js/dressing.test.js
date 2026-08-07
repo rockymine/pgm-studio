@@ -32,9 +32,12 @@ test("a fresh prop of each kind starts at the same numbers the server does", () 
   assert.equal(defaultProp("water").form, "canal");
   assert.equal(defaultProp("water").depth, 2);
   assert.equal(defaultProp("water").shoreWander, true);
-  // Its bank (bed floor + beach) is a full terrain material, not one block — a voronoi patchwork by default.
+  // Its bank (bed floor + beach) is a full terrain material, not one block — a cellular voronoi by default.
   assert.equal(defaultProp("water").bank.kind, "voronoi");
-  assert.equal(defaultProp("water").bank.palette.length, 3);
+  assert.equal(defaultProp("water").bank.bands.length, 3);
+  // So are a path's paving and a boulder's rock, which is what lets either take a pattern.
+  assert.equal(defaultProp("path").pave.kind, "solid");
+  assert.equal(defaultProp("boulder").rock.kind, "solid");
   // A tree starts vanilla — the two forms are two trees, and the vanilla one is what a map is mostly made of.
   assert.equal(defaultProp("tree").form, "template");
   assert.equal(defaultProp("tree").species, "oak");
@@ -150,11 +153,11 @@ test("editing the selection carries into the next one placed", () => {
   // The whole point of the tool having settings: widen one path and the next is already that wide.
   const { doc, tools } = controller();
   drag(tools, "dress:path", [[0, 0], [10, 0], [20, 0]]);
-  tools.updateSelected({ radius: 6, style: "cobble" });
+  tools.updateSelected({ radius: 6, style: "rough" });
 
   drag(tools, "dress:path", [[0, 40], [10, 40], [20, 40]]);
   assert.equal(doc.props[1].radius, 6);
-  assert.equal(doc.props[1].style, "cobble");
+  assert.equal(doc.props[1].style, "rough");
 });
 
 test("a click picks the prop under it, and the smallest one wins an overlap", () => {

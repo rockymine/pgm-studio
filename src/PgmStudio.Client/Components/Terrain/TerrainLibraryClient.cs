@@ -32,12 +32,19 @@ public sealed class TerrainLibraryClient(HttpClient http)
     // Every option a prop inspector offers is drawn by the pass itself rather than described, so a picker can
     // never promise a look the export does not produce. Empty on failure: a picker with no cards still edits
     // the value underneath.
-    public async Task<IReadOnlyList<PropOptionDto>> PathStylesAsync(string? blocks = null)
-        => await GetOrDefault<List<PropOptionDto>>(
-            string.IsNullOrEmpty(blocks) ? "api/terrain/path-styles" : $"api/terrain/path-styles?blocks={blocks}") ?? [];
+    /// <summary>The path-shape cards, drawn in <paramref name="paveJson"/> — the material the author already
+    /// chose — so the picker answers "what would <em>mine</em> look like shaped that way".</summary>
+    public async Task<IReadOnlyList<PropOptionDto>> PathStylesAsync(string? paveJson = null)
+        => await GetOrDefault<List<PropOptionDto>>(Card("api/terrain/path-styles", "pave", paveJson)) ?? [];
 
-    public async Task<IReadOnlyList<PropOptionDto>> BoulderFormsAsync()
-        => await GetOrDefault<List<PropOptionDto>>("api/terrain/boulder-forms") ?? [];
+    /// <summary>The rock-shape cards, drawn in the author's own rock material, for the same reason.</summary>
+    public async Task<IReadOnlyList<PropOptionDto>> BoulderFormsAsync(string? rockJson = null)
+        => await GetOrDefault<List<PropOptionDto>>(Card("api/terrain/boulder-forms", "rock", rockJson)) ?? [];
+
+    // A material is JSON, so it has to be escaped into the query rather than pasted in — braces and quotes
+    // would otherwise arrive as a different document or as none.
+    private static string Card(string route, string field, string? json)
+        => string.IsNullOrEmpty(json) ? route : $"{route}?{field}={Uri.EscapeDataString(json)}";
 
     public async Task<IReadOnlyList<PropOptionDto>> WaterFormsAsync()
         => await GetOrDefault<List<PropOptionDto>>("api/terrain/water-forms") ?? [];

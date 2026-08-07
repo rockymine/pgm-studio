@@ -10,17 +10,15 @@ public enum PathStyle
     Worn,
     /// <summary>The band with its width wandered by a noise field, so the outline is organic, not ruled.</summary>
     Rough,
-    /// <summary>The whole band, tiled by a jittered grid so neighbouring patches take different blocks — the
-    /// cobbled read, which is why this is the one style that needs more than one material.</summary>
-    Cobble,
     /// <summary>Discs at intervals along the stroke's arc, with gaps between them — stones across a void.</summary>
     Stones,
     /// <summary>The band with its width varied along the arc: fat in the middle, thin at the ends.</summary>
     Tapered,
 }
 
-/// <summary>One cell a stroke claims: where it is, and which of the stroke's materials it takes.</summary>
-public readonly record struct StrokeCell(int X, int Z, int Shade);
+/// <summary>One cell a stroke claims. What is laid on it is the caller's material, resolved at the cell —
+/// a stroke decides the shape of the band and nothing about its finish.</summary>
+public readonly record struct StrokeCell(int X, int Z);
 
 /// <summary>
 /// The ground a drawn line covers. A path is not the outline of a shape but the set of cells within a radius
@@ -38,14 +36,11 @@ public static class PathStroke
     private const int RoughScale = 7;            // blocks per wander of a rough edge
     private const double TaperEnds = 0.35;       // what is left of the width where a tapered path runs out
     private const double StoneGap = 1.9;         // stone spacing as a multiple of the stone's own width
-    private const int CobbleGrid = 3;            // blocks per cobble patch
 
-    /// <summary>The cells the stroke through <paramref name="points"/> paves, each tagged with the material it
-    /// takes. <paramref name="coverage"/> is what a worn path keeps (1 paves everything); <paramref name="shades"/>
-    /// is how many materials the caller offers, which only <see cref="PathStyle.Cobble"/> spends.</summary>
+    /// <summary>The cells the stroke through <paramref name="points"/> paves. <paramref name="coverage"/> is
+    /// what a worn path keeps; every other style paves its whole band.</summary>
     public static IEnumerable<StrokeCell> Cells(
-        IReadOnlyList<double[]> points, double radius, PathStyle style,
-        double coverage, uint seed, int shades = 1)
+        IReadOnlyList<double[]> points, double radius, PathStyle style, double coverage, uint seed)
     {
         var centerline = PathBand.Centerline(points);
         if (centerline.Count < 2 || radius <= 0) yield break;
@@ -59,7 +54,7 @@ public static class PathStroke
         foreach (var (x, z, hit) in Polyline.Hits(centerline, radius, reach))
         {
             if (!Paves(style, stoneRadius, period, coverage, x, z, hit, seed)) continue;
-            yield return new StrokeCell(x, z, ShadeAt(style, x, z, seed, shades));
+            yield return new StrokeCell(x, z);
         }
     }
 
@@ -91,14 +86,5 @@ public static class PathStroke
     {
         var offset = hit.Arc - Math.Round(hit.Arc / period) * period;
         return offset * offset + hit.Distance * hit.Distance <= stoneRadius * stoneRadius;
-    }
-
-    // Which material a cell takes. Only a cobbled path spends more than one: its patches come from the same
-    // jittered grid the terrain's voronoi material is tiled by, so the two read as the same idea at two scales.
-    private static int ShadeAt(PathStyle style, int x, int z, uint seed, int shades)
-    {
-        if (style != PathStyle.Cobble || shades <= 1) return 0;
-        var (gx, gz) = Voronoi.NearestSite(x, z, seed + 29, CobbleGrid);
-        return (int)(PatternNoise.Hash(gx, gz, seed + 31) % (uint)shades);
     }
 }

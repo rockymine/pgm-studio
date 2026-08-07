@@ -7,11 +7,16 @@ namespace PgmStudio.Geom.Algorithms;
 /// single point falls in by checking only the 3×3 grid-cell neighbourhood, which is enough because a seed point
 /// never leaves its own grid cell. Site jitter and the region id are hashes of the grid cell (via
 /// <see cref="PatternNoise"/>), so the tiling is stable for a given seed.
+///
+/// <para>Every entry point has a <b>volume</b> form that tiles space rather than the plane, at its own vertical
+/// period. The plane form is not a special case of it — it searches nine sites where the volume searches
+/// twenty-seven — so both are kept and a caller takes the one whose answer it needs.</para>
 /// </summary>
 public static class Voronoi
 {
-    // A second, independent hash stream for the z jitter, so a site's x and z offsets are uncorrelated.
+    // Independent hash streams for the jitter of each axis after the first, so a site's offsets are uncorrelated.
     private const uint ZitterSalt = 0x9E3779B9u;
+    private const uint YitterSalt = 0x7FEB352Du;
 
     /// <summary>The grid cell of the seed point nearest to <paramref name="x"/>,<paramref name="z"/> — the
     /// stable id of the Voronoi region that owns the point. A caller turns it into content by hashing it (e.g.
@@ -20,6 +25,14 @@ public static class Voronoi
     {
         var (_, _, gx, gz) = NearestTwo(x, z, seed, cellSize, jitter);
         return (gx, gz);
+    }
+
+    /// <summary>The grid cell of the seed point nearest to a point in a <em>volume</em> — the three-axis
+    /// <see cref="NearestSite(int,int,uint,int,double)"/>, with its own vertical period.</summary>
+    public static (int Gx, int Gy, int Gz) NearestSite(int x, int y, int z, uint seed, int cellSize, int rise, double jitter = 1)
+    {
+        var (_, _, gx, gy, gz) = NearestTwo(x, y, z, seed, cellSize, rise, jitter);
+        return (gx, gy, gz);
     }
 
     /// <summary>The distances to the two nearest seed points and the grid cell of the nearest one. The gap
@@ -49,5 +62,46 @@ public static class Voronoi
             else if (d < second) second = d;
         }
         return (Math.Sqrt(best), Math.Sqrt(second), bestGx, bestGz);
+    }
+
+    /// <summary>
+    /// The three-axis <see cref="NearestTwo(int,int,uint,int,double)"/>: the same jittered grid extended into a
+    /// volume, so the regions are cells rather than columns and <c>D2 - D1</c> falls off towards a cell's top
+    /// and bottom as well as its sides. This is what gives a pattern on a wall face something other than the
+    /// vertical stripes a plane diagram necessarily paints there.
+    ///
+    /// <para><paramref name="rise"/> is the vertical period, separate from <paramref name="cellSize"/>, because
+    /// terrain is a slab: cells as tall as they are wide would put barely one layer of them in a wall. It costs
+    /// a 3×3×3 neighbourhood — three times the sites of the plane search — which is why it is reached only when
+    /// a caller asks for a volume.</para>
+    /// </summary>
+    public static (double D1, double D2, int Gx, int Gy, int Gz) NearestTwo(
+        int x, int y, int z, uint seed, int cellSize, int rise, double jitter = 1)
+    {
+        int size = Math.Max(1, cellSize), height = Math.Max(1, rise);
+        double spread = Math.Clamp(jitter, 0, 1);
+        int gx = (int)Math.Floor((double)x / size), gy = (int)Math.Floor((double)y / height),
+            gz = (int)Math.Floor((double)z / size);
+        long best = long.MaxValue, second = long.MaxValue;
+        int bestGx = gx, bestGy = gy, bestGz = gz;
+        for (var dgy = -1; dgy <= 1; dgy++)
+        for (var dgz = -1; dgz <= 1; dgz++)
+        for (var dgx = -1; dgx <= 1; dgx++)
+        {
+            int cgx = gx + dgx, cgy = gy + dgy, cgz = gz + dgz;
+            int sx = cgx * size + (int)((0.5 + (PatternNoise.Unit(cgx, cgy, cgz, seed) - 0.5) * spread) * size);
+            int sy = cgy * height + (int)((0.5 + (PatternNoise.Unit(cgx, cgy, cgz, seed ^ YitterSalt) - 0.5) * spread) * height);
+            int sz = cgz * size + (int)((0.5 + (PatternNoise.Unit(cgx, cgy, cgz, seed ^ ZitterSalt) - 0.5) * spread) * size);
+            long ddx = x - sx, ddy = y - sy, ddz = z - sz;
+            // The vertical axis is measured in cells rather than blocks, so a flat cell's gap grows at the same
+            // rate in every direction: without it a rise of 4 under a cellSize of 10 would make every boundary
+            // a horizontal one and the pattern would read as layers, not cells.
+            double stretch = (double)size / height;
+            long scaled = (long)Math.Round(ddy * stretch);
+            long d = ddx * ddx + scaled * scaled + ddz * ddz;
+            if (d < best) { second = best; best = d; bestGx = cgx; bestGy = cgy; bestGz = cgz; }
+            else if (d < second) second = d;
+        }
+        return (Math.Sqrt(best), Math.Sqrt(second), bestGx, bestGy, bestGz);
     }
 }

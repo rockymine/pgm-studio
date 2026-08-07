@@ -41,11 +41,13 @@ public static class PatternNoise
     public static double Unit(int x, int y, int z, uint seed) => (Hash(x, y, z, seed) & 0xFFFFFF) / (double)0x1000000;
 
     /// <summary>Smooth value noise over a volume — the three-axis <see cref="Value(int,int,uint,int)"/>,
-    /// trilinearly interpolated.</summary>
-    public static double Value(int x, int y, int z, uint seed, int scale)
+    /// trilinearly interpolated. The vertical period is its own parameter because terrain is a slab: a map is
+    /// hundreds of blocks across and a dozen tall, so a field at one isotropic scale either repeats far too
+    /// fast across the ground or never turns over at all within a wall's height.</summary>
+    public static double Value(int x, int y, int z, uint seed, int scale, int rise)
     {
-        int sc = Math.Max(1, scale);
-        double fx = (double)x / sc, fy = (double)y / sc, fz = (double)z / sc;
+        int sc = Math.Max(1, scale), sr = Math.Max(1, rise);
+        double fx = (double)x / sc, fy = (double)y / sr, fz = (double)z / sc;
         int x0 = (int)Math.Floor(fx), y0 = (int)Math.Floor(fy), z0 = (int)Math.Floor(fz);
         double sx = Smooth(fx - x0), sy = Smooth(fy - y0), sz = Smooth(fz - z0);
 
@@ -95,10 +97,16 @@ public static class PatternNoise
 
     // Mean and standard deviation of a single octave of each shape, measured over the smoothed value field.
     // They are what Field cancels to leave a distribution that does not depend on the shape or the octave count.
-    private static (double Mean, double Deviation) OctaveStats(NoiseShape shape) => shape switch
+    // A volume octave has its own pair: trilinear interpolation averages eight lattice corners where bilinear
+    // averages four, so the same noise comes out visibly narrower and a plane's numbers would push a volume's
+    // outer bands towards nothing — the very collapse this normalisation exists to prevent.
+    private static (double Mean, double Deviation) OctaveStats(NoiseShape shape, bool volume) => (shape, volume) switch
     {
-        NoiseShape.Billow => (0.3639, 0.2373),
-        NoiseShape.Ridge => (0.4609, 0.2836),
+        (NoiseShape.Billow, false) => (0.3639, 0.2373),
+        (NoiseShape.Ridge, false) => (0.4609, 0.2836),
+        (NoiseShape.Billow, true) => (0.3061, 0.2136),
+        (NoiseShape.Ridge, true) => (0.5271, 0.2735),
+        (_, true) => (0.4996, 0.1866),
         _ => (0.5114, 0.2169),
     };
 
@@ -118,13 +126,24 @@ public static class PatternNoise
     /// so raising the octave count adds detail without quietly deleting the first and last material.</para>
     /// </summary>
     public static double Field(int x, int z, uint seed, int scale, int octaves, NoiseShape shape)
+        => Field(x, 0, z, seed, scale, 0, octaves, shape);
+
+    /// <summary>The same field over a volume when <paramref name="rise"/> is positive: the octaves are sampled
+    /// from the three-axis noise at a vertical period of <paramref name="rise"/> blocks, so a column no longer
+    /// resolves to one value all the way up. A rise of 0 is the plane — the y coordinate is not read at all,
+    /// and the field is the cheaper two-axis one.</summary>
+    public static double Field(int x, int y, int z, uint seed, int scale, int rise, int octaves, NoiseShape shape)
     {
-        var (mean, deviation) = OctaveStats(shape);
-        double sum = 0, amp = 1, square = 0; int sc = Math.Max(1, scale);
+        var (mean, deviation) = OctaveStats(shape, rise > 0);
+        double sum = 0, amp = 1, square = 0;
+        int sc = Math.Max(1, scale), sr = Math.Max(1, rise);
         for (var o = 0; o < Math.Max(1, octaves); o++)
         {
-            sum += amp * (Shape(Value(x, z, seed + (uint)o * 7919u, sc), shape) - mean);
-            square += amp * amp; amp *= 0.5; sc = Math.Max(1, sc / 2);
+            var octave = rise > 0
+                ? Value(x, y, z, seed + (uint)o * 7919u, sc, sr)
+                : Value(x, z, seed + (uint)o * 7919u, sc);
+            sum += amp * (Shape(octave, shape) - mean);
+            square += amp * amp; amp *= 0.5; sc = Math.Max(1, sc / 2); sr = Math.Max(1, sr / 2);
         }
         if (square <= 0) return 0.5;
         double normalised = 0.5 + sum / (Math.Sqrt(square) * deviation) * FieldSpread;

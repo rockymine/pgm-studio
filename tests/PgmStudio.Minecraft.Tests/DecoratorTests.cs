@@ -214,7 +214,7 @@ public sealed class DecoratorTests
         var tally = Decorator.Decorate(world, Context(top, [new PathProp
         {
             Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5,
-            Blocks = [new PaveBlock(Blocks.Gravel, 0)],
+            Pave = new SolidMaterial(Blocks.Gravel),
         }]));
 
         await Assert.That(tally.PathCells).IsGreaterThan(60);
@@ -234,7 +234,7 @@ public sealed class DecoratorTests
             return Decorator.Decorate(world, Context(top, [new PathProp
             {
                 Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Style = style, Coverage = coverage, Seed = 5,
-                Blocks = [new PaveBlock(Blocks.Gravel, 0)],
+                Pave = new SolidMaterial(Blocks.Gravel),
             }])).PathCells;
         }
 
@@ -246,13 +246,18 @@ public sealed class DecoratorTests
     }
 
     [Test]
-    public async Task A_cobbled_path_spends_every_block_it_was_given()
+    public async Task A_patterned_pave_spends_every_material_it_was_given()
     {
+        // The paving is a terrain material, resolved cell by cell — so a cobbled road is a cell pattern at a
+        // small patch size rather than a mode of the stroke, and every material in it reaches the ground.
         var (world, top) = Plateau();
         Decorator.Decorate(world, Context(top, [new PathProp
         {
-            Id = "p", Points = [[4, 20], [35, 20]], Radius = 3, Style = PathStyle.Cobble, Seed = 5,
-            Blocks = [new PaveBlock(Blocks.Cobblestone, 0), new PaveBlock(Blocks.Gravel, 0), new PaveBlock(Blocks.Stone, 0)],
+            Id = "p", Points = [[4, 20], [35, 20]], Radius = 3, Seed = 5,
+            Pave = new CellMaterial(5, 3, 100, 0,
+            [
+                new SolidMaterial(Blocks.Cobblestone), new SolidMaterial(Blocks.Gravel), new SolidMaterial(Blocks.Stone),
+            ]),
         }]));
 
         var paved = top.Keys.Select(cell => world.GetBlock(cell.X, 7, cell.Z).Id).ToHashSet();
@@ -271,7 +276,7 @@ public sealed class DecoratorTests
 
         Decorator.Decorate(world, Context(top, [new PathProp
         {
-            Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5, Blocks = [new PaveBlock(Blocks.Gravel, 0)],
+            Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5, Pave = new SolidMaterial(Blocks.Gravel),
         }]));
 
         await Assert.That(world.GetBlock(20, 7, 20).Id).IsEqualTo(Blocks.Wool);
@@ -284,7 +289,7 @@ public sealed class DecoratorTests
         var (world, top) = Plateau();
         Decorator.Decorate(world, Context(top,
         [
-            new PathProp { Id = "p", Points = [[4, 20], [35, 20]], Radius = 3, Seed = 5, Blocks = [new PaveBlock(Blocks.Gravel, 0)] },
+            new PathProp { Id = "p", Points = [[4, 20], [35, 20]], Radius = 3, Seed = 5, Pave = new SolidMaterial(Blocks.Gravel) },
             new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(Coverage: 1.0), Seed = 7 },
         ]));
 
@@ -513,7 +518,7 @@ public sealed class DecoratorTests
         var tally = Decorator.Decorate(world, Context(top, [new PathProp
         {
             Id = "p", Points = [[6, 6], [20, 14], [30, 8]], Radius = 2, Seed = 5,
-            Blocks = [new PaveBlock(Blocks.Gravel, 0)],
+            Pave = new SolidMaterial(Blocks.Gravel),
         }], symmetry: "rot_180"));
 
         await Assert.That(tally.PathCells).IsGreaterThan(80);
@@ -538,7 +543,7 @@ public sealed class DecoratorTests
     {
         PlacedProp[] props =
         [
-            new PathProp { Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Style = PathStyle.Worn, Seed = 5, Blocks = [new PaveBlock(Blocks.Gravel, 0)] },
+            new PathProp { Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Style = PathStyle.Worn, Seed = 5, Pave = new SolidMaterial(Blocks.Gravel) },
             new TreeProp { Id = "t", X = 12, Z = 12, Seed = 5 },
             new BoulderProp { Id = "b", X = 28, Z = 28, Seed = 3 },
             new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(), Seed = 7 },
@@ -563,7 +568,8 @@ public sealed class DecoratorTests
         {
             Props =
             [
-                new PathProp { Id = "p", Points = [[1, 2], [3, 4]], Radius = 4, Style = PathStyle.Cobble, Seed = 5, Blocks = [new PaveBlock(4, 0), new PaveBlock(13, 0)] },
+                new PathProp { Id = "p", Points = [[1, 2], [3, 4]], Radius = 4, Style = PathStyle.Rough, Seed = 5,
+                               Pave = new CellMaterial(5, 3, 100, 0, [new SolidMaterial(4), new SolidMaterial(13)]) },
                 new TreeProp { Id = "t", X = 5, Z = 6, Species = "birch", Height = 22, Stems = 2, Seed = 9 },
                 new BoulderProp { Id = "b", X = 7, Z = 8, Form = BoulderForm.Cairn, Size = 4, Seed = 11 },
                 new FloraProp { Id = "f", Points = [[0, 0], [8, 0], [8, 8]], Spec = new FloraSpec(Coverage: 0.9), Seed = 13 },
@@ -574,10 +580,116 @@ public sealed class DecoratorTests
 
         await Assert.That(back.Props.Select(prop => prop.GetType().Name))
             .IsEquivalentTo(doc.Props.Select(prop => prop.GetType().Name));
-        await Assert.That(((PathProp)back.Props[0]).Style).IsEqualTo(PathStyle.Cobble);
+        await Assert.That(((PathProp)back.Props[0]).Style).IsEqualTo(PathStyle.Rough);
+        await Assert.That(((PathProp)back.Props[0]).Pave).IsEqualTo(((PathProp)doc.Props[0]).Pave);
         await Assert.That(((TreeProp)back.Props[1]).Species).IsEqualTo("birch");
         await Assert.That(((BoulderProp)back.Props[2]).Form).IsEqualTo(BoulderForm.Cairn);
         await Assert.That(((FloraProp)back.Props[3]).Spec.Coverage).IsEqualTo(0.9);
+    }
+
+    // ── a path and a rock are finished with a material, like everything else ──────────────────────────
+    /// <summary>A boulder's material is resolved in the boulder's <em>own</em> frame — offsets from its anchor,
+    /// before it knows where on the map it goes. That is what makes a mirrored pair the same rock: resolving
+    /// against map coordinates would give two teams the same shape in different colours, which is the thing the
+    /// whole fan exists to prevent.</summary>
+    [Test]
+    public async Task A_mirrored_pair_of_patterned_rocks_are_the_same_rock()
+    {
+        var (world, top) = Plateau(80, from: -40);
+        var rock = new CellMaterial(9, 3, 100, 0,
+            [new SolidMaterial(Blocks.Gravel), new SolidMaterial(Blocks.Cobblestone), new SolidMaterial(Blocks.Sand)]);
+        var tally = Decorator.Decorate(world, Context(top,
+            [new BoulderProp { Id = "b", X = 12, Z = 9, Size = 3, Mossy = false, Seed = 3, Rock = rock }],
+            symmetry: "rot_180"));
+
+        await Assert.That(tally.Boulders).IsEqualTo(2);
+
+        // The pattern actually varies over the rock — otherwise the comparison below would hold for a solid too.
+        var first = Rock(world, 12, 9);
+        await Assert.That(first.Select(cell => cell.Id).Distinct().Count()).IsGreaterThan(1);
+        // The turn maps a cell to -x-1, -z-1, so the image stands on (-13, -10) with both its axes reversed.
+        await Assert.That(Rock(world, -13, -10, turned: true)).IsEquivalentTo(first);
+    }
+
+    /// <summary>Depth on a rock is measured from the rock's own crust, not the map's surface, so a layer stack
+    /// reads as a weathered skin over a core rather than as the terrain bands it names anywhere else.</summary>
+    [Test]
+    public async Task A_layered_rock_weathers_its_crust_and_not_the_ground_it_sits_in()
+    {
+        var (world, top) = Plateau();
+        Decorator.Decorate(world, Context(top, [new BoulderProp
+        {
+            Id = "b", X = 20, Z = 20, Size = 3, Mossy = false, Seed = 3,
+            Rock = new LayeredMaterial([
+                new MaterialLayer(new SolidMaterial(Blocks.Cobblestone), 1),
+                new MaterialLayer(new SolidMaterial(Blocks.Stone), 1)]),
+        }]));
+
+        var column = Column(world, 20, 20);
+        await Assert.That(column.Count).IsGreaterThanOrEqualTo(2);
+        await Assert.That(column[^1].Id).IsEqualTo(Blocks.Cobblestone);      // the crust, one course
+        await Assert.That(column[^2].Id).IsEqualTo(Blocks.Stone);            // the core under it
+    }
+
+    /// <summary>A boulder that stored one block, from before a rock was a material, keeps that block. A silent
+    /// repaint on the next export is worse than a refusal, because nothing says it happened.</summary>
+    [Test]
+    public async Task A_boulder_written_before_the_rock_material_keeps_the_block_it_named()
+    {
+        var prop = (BoulderProp)DressingJson.DeserializeProp(
+            "{\"kind\":\"boulder\",\"id\":\"b\",\"x\":1,\"z\":2,\"blockId\":4,\"blockData\":3}")!;
+        await Assert.That(prop.Rock).IsEqualTo((TerrainMaterial)new SolidMaterial(4, 3));
+    }
+
+    /// <summary>A cobbled path stored its blocks and a style that tiled them over a jittered grid. The style is
+    /// gone — the tiling is what the cell pattern does — so the stored one becomes that pattern, over the same
+    /// grid it was already tiled by, and its style falls back to the band it always paved.</summary>
+    [Test]
+    public async Task A_cobbled_path_written_before_the_pave_material_keeps_its_tiling()
+    {
+        var prop = (PathProp)DressingJson.DeserializeProp(
+            "{\"kind\":\"path\",\"id\":\"p\",\"seed\":5,\"style\":\"cobble\","
+            + "\"blocks\":[{\"id\":4,\"data\":0},{\"id\":13,\"data\":0}]}")!;
+
+        await Assert.That(prop.Style).IsEqualTo(PathStyle.Solid);
+        await Assert.That(prop.Pave).IsEqualTo((TerrainMaterial)new CellMaterial(34, 3, 100, 0,
+            [new SolidMaterial(4), new SolidMaterial(13)]));
+
+        // A path of any other style spent only its first block, so that is the solid it becomes.
+        var plain = (PathProp)DressingJson.DeserializeProp(
+            "{\"kind\":\"path\",\"id\":\"p\",\"seed\":5,\"blocks\":[{\"id\":13,\"data\":0}]}")!;
+        await Assert.That(plain.Pave).IsEqualTo((TerrainMaterial)new SolidMaterial(13));
+    }
+
+    // The part of one column standing above the plateau's surface, bottom-up — the half of a boulder that is
+    // the boulder rather than the ground it is set into, and so the half a block id identifies unambiguously.
+    private static List<(int Id, int Data)> Column(VoxelWorld world, int x, int z)
+    {
+        var column = new List<(int Id, int Data)>();
+        for (var y = 8; y <= 20; y++)
+        {
+            var (id, data) = world.GetBlock(x, y, z);
+            if (id != Blocks.Air) column.Add((id, data));
+        }
+        return column;
+    }
+
+    /// <summary>A whole rock as its blocks against their offsets from its own anchor. Two images of one boulder
+    /// have to agree on exactly this, and comparing two positions on the map cannot say it —
+    /// <paramref name="turned"/> reads an image the half-turn reversed both axes of.</summary>
+    private static List<(int X, int Y, int Z, int Id, int Data)> Rock(
+        VoxelWorld world, int anchorX, int anchorZ, bool turned = false)
+    {
+        var facing = turned ? -1 : 1;
+        var cells = new List<(int, int, int, int, int)>();
+        for (var dx = -6; dx <= 6; dx++)
+        for (var dz = -6; dz <= 6; dz++)
+        for (var y = 8; y <= 20; y++)
+        {
+            var (id, data) = world.GetBlock(anchorX + dx, y, anchorZ + dz);
+            if (id != Blocks.Air) cells.Add((dx * facing, y, dz * facing, id, data));
+        }
+        return cells;
     }
 
     [Test]

@@ -37,6 +37,9 @@ public static class ThemeFields
     public const string Warp = "warp";
     public const string Scale = "scale";
     public const string Octaves = "octaves";
+    /// <summary>The vertical period of an area pattern's field, in blocks — 0 keeps it flat, so every block in
+    /// a column takes the same answer and the pattern shows only on the ground.</summary>
+    public const string Rise = "rise";
 
     // theme — the four bucket properties are named by the bucket ids themselves
     public const string Bedrock = "bedrock";
@@ -79,6 +82,7 @@ public static class ThemeFields
             // read as cells at all. One band would be a flat wash and would tell an author nothing about what
             // the list is for; three show that it runs inward and that the last one takes the rest.
             [Bands] = new JsonArray(Band(Solid(155), 1), Band(Solid(3), 2), Band(Solid(1), 1)),
+            [Rise] = 0,
         },
         MaterialKind.Cell => new JsonObject
         {
@@ -88,6 +92,7 @@ public static class ThemeFields
             [Jitter] = 50,
             [Warp] = 4,
             [Palette] = new JsonArray(Solid(1), Solid(24), Solid(3, 1)),
+            [Rise] = 0,
         },
         MaterialKind.Noise => Field(MaterialKind.Noise),
         MaterialKind.Turbulence => Field(MaterialKind.Turbulence),
@@ -120,6 +125,7 @@ public static class ThemeFields
         [Scale] = 16,
         [Octaves] = 3,
         [Stops] = new JsonArray(Solid(1), Solid(2), Solid(3), Solid(24)),
+        [Rise] = 0,
     };
 
     /// <summary>A solid-block material node — the leaf every other kind bottoms out in.</summary>

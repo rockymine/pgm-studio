@@ -82,10 +82,9 @@ public static class Decorator
     /// draw phase's job. Its cells become bare ground, so nothing grows through the road.</summary>
     private static int PlacePath(VoxelWorld world, DressingContext context, PathProp path, HashSet<(int X, int Z)> taken)
     {
-        if (path.Points.Count < 2 || path.Blocks.Count == 0) return 0;
+        if (path.Points.Count < 2) return 0;
         var placed = 0;
-        var stroke = PathStroke.Cells(path.Points, path.Radius, path.Style, path.Coverage, path.Seed, path.Blocks.Count)
-            .ToList();
+        var stroke = PathStroke.Cells(path.Points, path.Radius, path.Style, path.Coverage, path.Seed).ToList();
 
         for (var k = 0; k < context.Symmetry.Order; k++)
         foreach (var cell in stroke)
@@ -98,8 +97,10 @@ public static class Decorator
             // on top of a column belongs to something the map is played through.
             if (DressingPalette.IsStamp(world.GetBlock(x, top - 1, z).Id)) continue;
 
-            var block = path.Blocks[cell.Shade % path.Blocks.Count];
-            world.SetBlock(x, top - 1, z, block.Id, block.Data);
+            // The pave is a full terrain material, resolved at the cell the way the painter resolves a surface,
+            // so a cobbled road is a cell pattern at a small patch size rather than a mode of the stroke.
+            var (id, data) = path.Pave.Resolve(new BucketContext(x, top - 1, z, TerrainBucket.Surface, 0));
+            world.SetBlock(x, top - 1, z, id, data);
             taken.Add((x, z));
             placed++;
         }
@@ -265,24 +266,40 @@ public static class Decorator
         return Fan(world, context, (boulder.X, boulder.Z), BoulderCells(lobes, boulder), taken);
     }
 
-    /// <summary>A boulder as offsets from its own anchor, before it knows where on the map it goes. The mossy
-    /// finish is decided here too, so a rock's sky-lit faces stay its sky-lit faces when it is turned.</summary>
+    /// <summary>A boulder as offsets from its own anchor, before it knows where on the map it goes. The rock's
+    /// material and its mossy finish are both decided here, in the boulder's own frame, so a patterned or
+    /// weathered rock stays the same rock at every image of its orbit — resolving either against map
+    /// coordinates would give two teams the same shape in different colours.</summary>
     private static List<PropCell> BoulderCells(IReadOnlyList<BlobLobe> lobes, BoulderProp boulder)
     {
         var cells = new List<PropCell>();
         var (min, max) = Blob.Bounds(lobes);
-        for (var y = (int)Math.Floor(min.Y); y <= (int)Math.Ceiling(max.Y); y++)
+        int top = (int)Math.Ceiling(max.Y);
+        for (var y = (int)Math.Floor(min.Y); y <= top; y++)
         for (var z = (int)Math.Floor(min.Z); z <= (int)Math.Ceiling(max.Z); z++)
         for (var x = (int)Math.Floor(min.X); x <= (int)Math.Ceiling(max.X); x++)
         {
             if (!Blob.Contains(lobes, new Vec3(x, y, z), boulder.Seed)) continue;
             var lit = y >= 0 && !Blob.Contains(lobes, new Vec3(x, y + 1, z), boulder.Seed);
             var mossy = boulder.Mossy && lit && PatternNoise.Unit(x, z, boulder.Seed + 3) < 0.55;
-            var (id, data) = mossy ? (MossyCobblestone, 0) : (boulder.BlockId, boulder.BlockData);
+            // Depth is measured down from the rock's own crust, not the map's surface, so a layer stack reads
+            // as a weathered skin over a core rather than as the terrain bands it would name anywhere else.
+            var depth = Crust(lobes, boulder, x, y, z, top);
+            var (id, data) = mossy
+                ? (MossyCobblestone, 0)
+                : boulder.Rock.Resolve(new BucketContext(x, y, z, TerrainBucket.Surface, depth));
             // A cell below the anchor is buried and may replace ground; one above it must find air.
             cells.Add(new PropCell(x, y, z, id, data, Buried: y < 0));
         }
         return cells;
+    }
+
+    /// <summary>How many rock cells stand directly above this one — the depth a layered material reads.</summary>
+    private static int Crust(IReadOnlyList<BlobLobe> lobes, BoulderProp boulder, int x, int y, int z, int top)
+    {
+        var depth = 0;
+        while (y + depth + 1 <= top && Blob.Contains(lobes, new Vec3(x, y + depth + 1, z), boulder.Seed)) depth++;
+        return depth;
     }
 
     // ── trees (DR-TR) ───────────────────────────────────────────────────────────

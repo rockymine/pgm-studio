@@ -19,14 +19,17 @@ export function defaultProp(kind, seed) {
     case "path":
       // Gravel, three blocks to a side, clean-edged: a plain route, which is the one every other style is a
       // variation on.
-      return { ...base, points: [], radius: 3, style: "solid", coverage: 0.7, blocks: [{ id: 13, data: 0 }] };
+      return { ...base, points: [], radius: 3, style: "solid", coverage: 0.7,
+               pave: { kind: "solid", id: 13, data: 0 } };
     case "water":
       // A three-block-wide canal, cut two deep, meeting the land through a shore beach, over a bank of
-      // jittered sand / gravel / coarse dirt. The bank is a full terrain material, not one block — the same
+      // cellular gravel / coarse dirt / sand. The bank is a full terrain material, not one block — the same
       // pattern the painter tiles. Numbers + the material mirror the C# WaterProp defaults.
       return { ...base, points: [], radius: 3, depth: 2, form: "canal", edge: 0.8, shore: 2, shoreWander: true, bank: {
-        kind: "voronoi", seed: 1, cellSize: 5, palette: [
-          { kind: "solid", id: 12, data: 0 }, { kind: "solid", id: 13, data: 0 }, { kind: "solid", id: 3, data: 1 },
+        kind: "voronoi", seed: 1, cellSize: 5, rise: 0, bands: [
+          { material: { kind: "solid", id: 13, data: 0 }, depth: 2 },
+          { material: { kind: "solid", id: 3, data: 1 }, depth: 1 },
+          { material: { kind: "solid", id: 12, data: 0 }, depth: 1 },
         ] } };
     case "flora":
       return { ...base, points: [], spec: { coverage: 0.45, scale: 12, octaves: 3, fernShare: 0.25, flowerShare: 0.18, flowerScale: 18, tallShare: 0 } };
@@ -36,7 +39,8 @@ export function defaultProp(kind, seed) {
       return { ...base, x: 0, z: 0, form: "template", species: "oak", wood: "oak", height: 12,
                stems: 1, leader: 0.55, flow: 0.45, branchAngle: 0.55, levels: 2, leafSize: 0.6 };
     case "boulder":
-      return { ...base, x: 0, z: 0, form: "round", size: 2.5, blockId: 1, blockData: 0, mossy: true };
+      return { ...base, x: 0, z: 0, form: "round", size: 2.5, mossy: true,
+               rock: { kind: "solid", id: 1, data: 0 } };
     default:
       throw new Error(`Unknown prop kind: ${kind}`);
   }

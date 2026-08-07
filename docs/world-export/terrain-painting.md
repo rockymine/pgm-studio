@@ -6,7 +6,7 @@ objectives onto the terrain, this pass dresses the terrain **itself**: the raw s
 becomes a stone body walled in clay, lipped in quartz, and topped in grass. It reads the terrain the
 world builder already placed and rewrites its surface — no new geometry, only materials.
 
-**Status: the whole model — TP1–TP13, including scoped per-piece theming (TP10) — is built and shipped.**
+**Status: the whole model — TP1–TP15, including scoped per-piece theming (TP10) — is built and shipped.**
 `TerrainPainter` (`PgmStudio.Minecraft`) paints every sketch export, wired last into `SketchWorldBuilder.Build`;
 the four-stage architecture of §5 is in place. A theme is resolved **per cell** through `TerrainThemeScope` (a
 piece override, its box/collection, else the map default); themes are authored on the plan tool's **Theme** rail
@@ -374,6 +374,20 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
   dividing by the amplitude total averages independent samples, so the field crowded towards its middle and the
   first and last material an author named all but vanished (measured at 1.0% each at five stops, three octaves).
 
+  Every area pattern — both region patterns and all three field patterns — carries a **`Rise`**: the vertical
+  period of its field in blocks, or 0 for none. A pattern of the plane answers a whole column at once, so it
+  decides the ground and leaves a wall face as vertical stripes, which is what a wall-run draws on purpose and
+  what an area pattern drew by accident. A positive rise samples the field over the *volume* instead, at that
+  vertical period, so a wall carries the same fabric its surface does. The period is separate from `CellSize`
+  or `Scale` because terrain is a slab — hundreds of blocks across and a dozen tall — so cells as tall as they
+  are wide would put barely one layer of them in a wall. It defaults to 0 for two reasons: it is the more
+  expensive field (a volume voronoi searches the 3×3×3 neighbourhood, three times the sites of the plane
+  search, and measures 3.4× the plane's wall-clock over a whole board's paint — 1114 ms against 331 ms), and on a surface one to three courses deep
+  there is nothing for it to vary. It earns its cost on the buckets that are tall, which are the wall and the
+  fill. A volume octave is measurably narrower than a plane one — trilinear interpolation averages eight
+  lattice corners where bilinear averages four — so a risen field carries its own mean and deviation, without
+  which its outer stops would starve exactly as the un-normalised fBm's did.
+
   **`WallRunMaterial`** is the wall's own: a list of `(material, width)` runs that repeat in order along the
   **void-facing perimeter**, reading the arc index the profile assigns each outer-wall column, so any number of
   stripes of any widths cycle continuously around every corner (a cell off the outer wall reads as arc 0, the
@@ -401,3 +415,4 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
 | **TP12** | Surface, rim and wall are toggleable; fill is required and claims the rest. Rim off → surface, then fill; wall/surface off → fill. |
 | **TP13** | Buckets take patterns, not just a block. Region: `VoronoiMaterial` (bands inward from the cell boundary — band 0 is the grid line, the last is the middle, a small cell never reaches it), `CellMaterial` (one material per warped region). Field: `NoiseMaterial` · `TurbulenceMaterial` · `ElectricMaterial` (an N-stop ramp over a fractal field, bent plain / folded / ridged; spread held constant across octave counts). Wall: `WallRunMaterial` (N stripes wrapping the void-facing perimeter arc). All deterministic, and each entry nests any material. |
 | **TP14** | A theme is authored as a form, not as JSON: one section per bucket carrying its toggle, its depth and a material editor that switches the bucket between every kind and recurses into the materials a composite nests. Blocks are picked from `TerrainPalette` — the curated offer list, named and coloured by `BlockPalette`, so a swatch cannot promise a colour the export will not place — with the sixteen-colour families offered as a colour row rather than forty-eight dropdown lines. The editor writes the theme node itself, so there is no second model of a material; every edit re-renders the server swatch through the real materials. |
+| **TP15** | Every area pattern carries a `Rise`: the vertical period of its field in blocks, 0 for the plane. At 0 a column resolves to one block and the pattern decides only the ground; above it the field is sampled over the volume, so the wall and the fill carry the pattern too. Off by default — it is the more expensive field and a three-course surface has nothing to vary. A volume field carries its own octave statistics, so its outer stops hold. |

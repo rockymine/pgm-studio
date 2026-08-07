@@ -79,6 +79,21 @@ public sealed class TerrainThemeJsonTests
     }
 
     [Test]
+    public async Task A_pattern_written_before_the_rise_stays_flat()
+    {
+        // The rise decides whether a pattern varies with depth, so a stored theme that never named one must
+        // keep painting the columns it painted — an absent rise is 0, the plane, and not a repaint.
+        var flat = TerrainThemeJson.DeserializeMaterial(
+            "{\"kind\":\"voronoi\",\"seed\":1,\"cellSize\":8,\"bands\":[{\"material\":{\"kind\":\"solid\",\"id\":1},\"depth\":1}]}");
+        await Assert.That(((VoronoiMaterial)flat).Rise).IsEqualTo(0);
+
+        var risen = new NoiseMaterial(1u, 12, 2, [new SolidMaterial(1), new SolidMaterial(2)], Rise: 6);
+        var json = TerrainThemeJson.Serialize(risen);
+        await Assert.That(json).Contains("\"rise\":6");
+        await Assert.That(TerrainThemeJson.DeserializeMaterial(json)).IsEqualTo((TerrainMaterial)risen);
+    }
+
+    [Test]
     public async Task Material_carries_its_kind_discriminator()
     {
         var json = TerrainThemeJson.Serialize(new WallRunMaterial([new WallStripe(new SolidMaterial(1), 2)]));

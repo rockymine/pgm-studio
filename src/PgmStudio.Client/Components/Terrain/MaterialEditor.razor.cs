@@ -37,6 +37,13 @@ public partial class MaterialEditor
         _ => "A smooth fractal field — cloudy regions fading into one another.",
     };
 
+    /// <summary>What the rise does, shared by every area pattern because it means the same thing in all of
+    /// them: at 0 the field is of the plane, so a column resolves to one block all the way down and the pattern
+    /// only ever decides the ground.</summary>
+    private const string RiseNote =
+        "A rise of 0 paints the ground and leaves every wall face striped; give it a vertical period in blocks "
+        + "and the pattern carries through the depth of the terrain instead.";
+
     /// <summary>What a voronoi band is, by where it sits: the first draws the grid, the last takes whatever is
     /// left of the cell, and the ones between are rings working inward.</summary>
     private string BandLabel(int index)
@@ -119,6 +126,7 @@ public partial class MaterialEditor
     private Task SetCellSize(ChangeEventArgs e) => SetScalar(ThemeFields.CellSize, e, 10, 1);
     private Task SetWarp(ChangeEventArgs e) => SetScalar(ThemeFields.Warp, e, 4, 0);
     private Task SetScale(ChangeEventArgs e) => SetScalar(ThemeFields.Scale, e, 16, 1);
+    private Task SetRise(ChangeEventArgs e) => SetScalar(ThemeFields.Rise, e, 0, 0);
 
     /// <summary>Jitter is a percentage, so it clamps at both ends rather than only below.</summary>
     private Task SetJitter(ChangeEventArgs e)

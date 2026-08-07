@@ -55,7 +55,7 @@ public static class TerrainThemeJson
     /// and inventing depths for materials that never had any would be a different picture presented as the same
     /// one. Applied at every depth, since a voronoi nests inside stacks and other patterns.</para>
     /// </summary>
-    private static void Upgrade(JsonNode? node)
+    internal static void Upgrade(JsonNode? node)
     {
         if (node is JsonArray array)
         {

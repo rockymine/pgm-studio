@@ -160,20 +160,25 @@ route is a finish laid over ground that already exists, so it can run over a slo
 and a bridge across a void stays the draw phase's job. Its cells become bare ground as they are laid, so
 nothing grows through the road.
 
-The single solid band is the boring case; the imperfect paths are the point, and all six of them are the same
+The single solid band is the boring case; the imperfect paths are the point, and all five of them are the same
 distance field with one extra gate (`Geom.PathStroke`):
 
 - **Solid** — `dist ≤ R`, a clean utility road.
 - **Worn** — and a per-cell dice below a coverage threshold: gravel scattered thin, a trail rather than a road.
 - **Rough edge** — `R` perturbed by an `Fbm` sample, so the band's outline is organic, not ruled. The same
   operator family as the G142 roughen pass's edge displacement.
-- **Cobbled** — the band tiled by a jittered grid, each patch taking one of the path's blocks: the cobbled
-  read of `VoronoiMaterial` at a footprint's scale, and the one style that spends more than the first block.
 - **Stepping stones** — discs sampled at intervals along the centerline's **arc length**, with gaps between:
   the disconnected path, stones across a void.
 - **Tapered** — `R` varied along the arc (fat middle, thin ends).
 
-Being a *fill* rather than an *outline* is what makes all six possible. An earlier cut made a path a
+What a style decides is the **band**; what fills it is the path's **pave**, and the pave is a full
+`TerrainMaterial` — a solid, a cell fabric, a noise ramp, any pattern the painter offers, edited by the same
+`MaterialEditor` a theme bucket is. The two are independent, so a worn cobble and a solid cobble are both
+sayable, which they were not while the tiling was a mode of the stroke. A cobbled road is now a `CellMaterial`
+at a three-block patch size — the same jittered grid the old style tiled by, said in the vocabulary every other
+finish already used.
+
+Being a *fill* rather than an *outline* is what makes all five possible. An earlier cut made a path a
 `SketchShape` whose closed ring was rasterized as terrain, and two of these could not be expressed that way
 at all — worn and stepping stones gate cells, not a boundary — so they had to be filed rather than built.
 Placing the path in the pass instead costs nothing and gets them back, because the pass was already writing
@@ -194,8 +199,13 @@ noise sample for an angular, weathered read; stack two or three lobes for a cair
 outcrop. The finish is a material and a micro-mask: stone, andesite, mossy cobble, blackstone — and moss
 creeping onto the top-lit faces, itself a tiny `Unit` mask, so the finish carries its own micro-flora.
 
-A `BoulderProp` is placed at a cell and carries its own form (round, angular, outcrop, cairn), size, finish
-block, moss flag and seed. `BoulderShapes.Of(form, size)` answers with the lobes and `Geom.Blob` fills them
+A `BoulderProp` is placed at a cell and carries its own form (round, angular, outcrop, cairn), size, rock
+material, moss flag and seed. The rock is a full `TerrainMaterial` like the path's pave and the channel's bank,
+resolved in the boulder's **own frame** rather than the map's — offsets from its anchor, before it knows where
+on the map it goes. That is what keeps a mirrored pair one rock: resolving against map coordinates would give
+two teams the same shape in different colours, which is the thing the whole fan exists to prevent. Depth is
+measured down from the rock's own crust, so a layer stack reads as a weathered skin over a core rather than as
+the terrain bands it names anywhere else, and the moss mask is laid over whatever the material resolved. `BoulderShapes.Of(form, size)` answers with the lobes and `Geom.Blob` fills them
 — a quadric eroded by a noise field sampled in the lobe's own frame, which is what makes an angular rock
 angular rather than a dented sphere. A boulder is a solid volume standing on the ground, so where it stands
 is cover, which is why it is placed rather than scattered.
@@ -288,7 +298,7 @@ The water meets the land through a **beach**. The shore is its own pass — the 
 a width that wanders with a noise field and drops to nothing in places, so the water meets the grass directly
 in some stretches and spreads into a flat in others (`WaterBed.ShoreCells`). Both the beach and the bed floor
 are laid with the channel's **bank**, and the bank is not a block but a full **`TerrainMaterial`** — a solid, or
-by default a jittered-voronoi patchwork of sand, pale gravel and coarse dirt, the same pattern the painter tiles
+by default a cellular voronoi of gravel, coarse dirt and sand, the same pattern the painter tiles
 and edited by the same `MaterialEditor`. So the floor the shallows show through and the shore the water meets
 read as one ground, drawn from one palette.
 
@@ -353,7 +363,7 @@ there:
   approaches), kept but **renamed**, because a "lane" is a layout role (a run of pieces), not a geometry
   primitive. `Varied` gives the tapered channel and the jittered shore in one call.
 - `PatternNoise` — hash/value/fbm, **migrated here from `Minecraft`** (it was pure but trapped beside the
-  terrain-paint materials). The pattern *materials* (`VoronoiMaterial`/`NoiseMaterial`/`WallRunMaterial`)
+  terrain-paint materials). The pattern *materials* (`VoronoiMaterial`/`CellMaterial`/`NoiseMaterial`/`WallRunMaterial`)
   stay in `Minecraft` and call it. The move added the one edge that was missing, **`Minecraft → Geom`**, which
   is what lets the dressing stamper reach any of this.
 - `Blob` — the eroded quadric a boulder lobe is; `SweptVolume` — the capsule a tree limb is; `Polyline` —

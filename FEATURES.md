@@ -2578,6 +2578,42 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   vertical wall bands are `LayeredMaterial`. All deterministic (hashed from a seed + cell, no RNG) and nesting —
   a pattern entry can be a team tint or another pattern. The whole theme serializes through **`TerrainThemeJson`**
   (one `kind` discriminator per material), closing the material model for the scoped-theming step. (G157)
+- **Area patterns carry a rise, so a wall is not a stripe (TP15, S35).** Every area pattern — both region
+  patterns and all three field ones — gained a **`Rise`**: the vertical period of its field in blocks, or 0 for
+  none. A pattern of the plane answers a whole column at once, so it decided the ground and left every wall face
+  as vertical stripes — which is what a wall-run draws on purpose and what an area pattern drew by accident. A
+  positive rise samples the field over the **volume** instead, so the wall and the fill carry the fabric the
+  surface does, and a room shell, a boulder and a water bank get it too (all three already pass a real Y).
+  `Voronoi` gained a volume form searching the 3×3×3 neighbourhood, with the vertical axis measured in cells so
+  a flat cell's gap grows at the same rate in every direction rather than making every boundary a horizontal one;
+  `PatternNoise.Value` became anisotropic (its own vertical period, because terrain is a slab — hundreds of
+  blocks across and a dozen tall) and `Field` grew a volume form. **A volume octave carries its own mean and
+  deviation** (measured: plain 0.4996/0.1866, billow 0.3061/0.2136, ridge 0.5271/0.2735) — trilinear
+  interpolation averages eight lattice corners where bilinear averages four, so reading a volume through the
+  plane's numbers would crowd it towards its middle and starve the outer stops, exactly the collapse the
+  normalisation exists to prevent. **Off by default**, and a stored theme therefore repaints identically: it is
+  the more expensive field (measured over 480,000 resolves, one whole board's paint: a volume voronoi
+  **1114 ms** against the plane's **331 ms**, a three-octave volume field **266 ms** against **128 ms**) and a
+  one-to-three-course surface has nothing to vary, so it earns its cost on the buckets that are tall. Authored
+  as one more scalar beside patch size and seed; the section preview, which already varies Y, now shows it. Tested: a flat pattern varies nowhere in a column and a risen one varies
+  everywhere, a risen field keeps every stop above 4% at one octave and at five, a risen voronoi still cuts to a
+  connected grid at any height, and a rise changes what a material *is*.
+- **A path and a boulder are finished with a material, like everything else (S36).** `PathProp.Blocks` (a raw
+  `(id, data)` list) and `BoulderProp.BlockId`/`BlockData` are now a single **`TerrainMaterial`** each —
+  `Pave` and `Rock` — edited by the same `MaterialEditor` a theme bucket and a water bank already were, so a
+  road can be a cell fabric or a noise ramp and a rock can be mottled. A boulder's rock is resolved in the
+  **boulder's own frame** (offsets from its anchor), which is what keeps a mirrored pair one rock: resolving
+  against map coordinates would hand two teams the same shape in different colours. Its depth is measured down
+  from the rock's own crust, so a layer stack reads as a weathered skin over a core. **`PathStyle.Cobble` is
+  retired** — it tiled a path's several blocks over a jittered grid, which is precisely `CellMaterial`, so it had
+  become a mode of the stroke saying what the material vocabulary already said; `StrokeCell` lost its shade
+  channel and a stroke now decides the shape of the band and nothing about its finish. Stored dressing upgrades
+  on read (`DressingJson`, the sibling of `TerrainThemeJson.Upgrade` and delegating to it for the materials): a
+  boulder's block pair becomes the solid it always was, a cobbled path becomes a `CellMaterial` over the *same*
+  grid and salt it was already tiled by with its style falling back to `solid`, and any other path takes the
+  first block it actually spent. The shape cards are now drawn in the author's own material (`?pave=` / `?rock=`
+  carry it), so a picker answers "what would mine look like shaped that way". Tested: the mirrored pair is
+  identical block for block at every offset, a layered rock weathers its crust, and both upgrades land.
 - **Scoped per-piece theming + the Theme rail (TP10).** The terrain paint is resolved **per cell** instead of
   one theme map-wide: a piece override, its box/collection, else the map default — winner-takes-all (whole
   theme). Mirrors the team-ownership shape: the plan carries a theme registry + `mapTheme` + ordered scope

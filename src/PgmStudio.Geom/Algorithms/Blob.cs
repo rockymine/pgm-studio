@@ -32,7 +32,7 @@ public static class Blob
         if (lobe.Erosion > 0)
         {
             // Sampled at three times the block rate so the bite is per-block-ish rather than a smooth bulge.
-            var noise = PatternNoise.Value((int)Math.Round(d.X * 3), (int)Math.Round(d.Y * 3), (int)Math.Round(d.Z * 3), seed, 3);
+            var noise = PatternNoise.Value((int)Math.Round(d.X * 3), (int)Math.Round(d.Y * 3), (int)Math.Round(d.Z * 3), seed, 3, 3);
             quadric += (noise - 0.5) * lobe.Erosion;
         }
         return quadric <= 1;

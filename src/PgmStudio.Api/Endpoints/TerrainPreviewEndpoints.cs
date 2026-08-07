@@ -99,29 +99,29 @@ internal static class PropOptionEndpoints
 {
     public static TerrainTheme ThemeOf(string? json)
         => string.IsNullOrWhiteSpace(json) ? TerrainTheme.Default : TerrainThemeJson.Deserialize(json);
+
+    /// <summary>The material the author already chose for the prop, so a card shows <em>their</em> road or rock
+    /// rather than a stock one. A blob that will not parse falls back rather than failing the picker: a card is
+    /// a picture of a shape, and a shape is still worth showing in the wrong colour.</summary>
+    public static TerrainMaterial MaterialOf(string? json, TerrainMaterial fallback)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return fallback;
+        try { return TerrainThemeJson.DeserializeMaterial(json); }
+        catch (JsonException) { return fallback; }
+    }
 }
 
-/// <summary>GET /api/terrain/path-styles — the six ways a stroke paves the ground it crosses, each drawn.</summary>
+/// <summary>GET /api/terrain/path-styles — the five ways a stroke paves the ground it crosses, each drawn.</summary>
 public sealed class PathStyleCardsEndpoint : EndpointWithoutRequest<List<PropOptionDto>>
 {
     public override void Configure() { Get("/terrain/path-styles"); AllowAnonymous(); }
 
     public override Task HandleAsync(CancellationToken ct)
     {
-        var blocks = Query<string>("blocks", isRequired: false);
-        var template = new PathProp { Radius = 3, Seed = 5, Blocks = PaveBlocks(blocks) };
+        var pave = PropOptionEndpoints.MaterialOf(
+            Query<string>("pave", isRequired: false), new SolidMaterial(Blocks.Gravel));
+        var template = new PathProp { Radius = 3, Seed = 5, Pave = pave };
         return Send.OkAsync([.. DressingPreview.PathStyleCards(template, TerrainTheme.Default)], ct);
-    }
-
-    // "13:0,4:0" — the blocks the author already picked, so the cards show their path rather than a stock one.
-    private static List<PaveBlock> PaveBlocks(string? spec)
-    {
-        var parsed = (spec ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Select(pair => pair.Split(':'))
-            .Where(parts => int.TryParse(parts[0], out _))
-            .Select(parts => new PaveBlock(int.Parse(parts[0]), parts.Length > 1 && int.TryParse(parts[1], out var d) ? d : 0))
-            .ToList();
-        return parsed.Count > 0 ? parsed : [new PaveBlock(Blocks.Gravel, 0)];
     }
 }
 
@@ -141,8 +141,12 @@ public sealed class BoulderFormCardsEndpoint : EndpointWithoutRequest<List<PropO
     public override void Configure() { Get("/terrain/boulder-forms"); AllowAnonymous(); }
 
     public override Task HandleAsync(CancellationToken ct)
-        => Send.OkAsync([.. DressingPreview.BoulderFormCards(
-            new BoulderProp { Size = 3, Seed = 3 }, TerrainTheme.Default)], ct);
+    {
+        var rock = PropOptionEndpoints.MaterialOf(
+            Query<string>("rock", isRequired: false), new SolidMaterial(Blocks.Stone));
+        return Send.OkAsync([.. DressingPreview.BoulderFormCards(
+            new BoulderProp { Size = 3, Seed = 3, Rock = rock }, TerrainTheme.Default)], ct);
+    }
 }
 
 /// <summary>GET /api/terrain/species — every vanilla species, each built.</summary>

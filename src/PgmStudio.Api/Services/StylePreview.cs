@@ -66,7 +66,7 @@ public static class StylePreview
     /// <summary>Both views of one material, for an editor previewing an edit as it is made.</summary>
     public static MaterialPreviewDto Views(TerrainMaterial material)
         => IsAreaPattern(TerrainThemeComposer.KindOf(material))
-            ? new(PlanSvg(material, columns: 72, cell: 2), SectionSvg(material, columns: 72, cell: 2))
+            ? new(PlanSvg(material, columns: 72, cell: 2), SectionSvg(material, columns: 72, courses: 24, cell: 2))
             : new(PlanSvg(material), SectionSvg(material));
 
     /// <summary>Both views of a serialized material.</summary>

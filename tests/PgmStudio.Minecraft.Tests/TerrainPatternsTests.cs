@@ -283,6 +283,101 @@ public sealed class TerrainPatternsTests
         await Assert.That(billow.Equals((object)ridge)).IsFalse();
     }
 
+    // ── rise: the same patterns over a volume rather than a plane ─────────────────────────────────────────
+    /// <summary>The defect the rise exists to fix. A pattern of the plane answers a whole column at once, so it
+    /// decides the ground and leaves every wall face as vertical stripes — which is what a wall-run draws on
+    /// purpose and what a pattern drew by accident. Given a vertical period, the same pattern varies with depth
+    /// and a wall carries the fabric its surface does.</summary>
+    [Test]
+    public async Task A_flat_pattern_answers_a_whole_column_at_once_and_a_risen_one_does_not()
+    {
+        TerrainMaterial[] palette = [new SolidMaterial(1), new SolidMaterial(2), new SolidMaterial(3)];
+        var flatCell = new CellMaterial(4u, 8, 60, 3, palette);
+        var risenCell = flatCell with { Rise = 4 };
+        var flatField = new NoiseMaterial(4u, 12, 3, palette);
+        var risenField = flatField with { Rise = 4 };
+        var flatVoronoi = new VoronoiMaterial(4u, 8, [Band(155, 1), Band(3, 2), Band(1, 1)]);
+        var risenVoronoi = flatVoronoi with { Rise = 4 };
+
+        // How many of a column's twenty courses differ from its top one.
+        int Varies(TerrainMaterial material)
+        {
+            var varied = 0;
+            for (var x = 0; x < 24; x++)
+            for (var z = 0; z < 24; z++)
+            {
+                var top = material.Resolve(Deep(x, 20, z));
+                for (var y = 0; y < 20; y++) if (material.Resolve(Deep(x, y, z)) != top) varied++;
+            }
+            return varied;
+        }
+
+        await Assert.That(Varies(flatCell)).IsEqualTo(0);
+        await Assert.That(Varies(flatField)).IsEqualTo(0);
+        await Assert.That(Varies(flatVoronoi)).IsEqualTo(0);
+        await Assert.That(Varies(risenCell)).IsGreaterThan(1000);
+        await Assert.That(Varies(risenField)).IsGreaterThan(1000);
+        await Assert.That(Varies(risenVoronoi)).IsGreaterThan(1000);
+    }
+
+    /// <summary>A risen field is still a ramp. The band shares are what the field's normalisation exists to
+    /// hold, and a volume octave is measurably narrower than a plane one — so reading a volume through the
+    /// plane's numbers would crowd it towards the middle and starve the first and last stop, which is exactly
+    /// the collapse the flat field was fixed for.</summary>
+    [Test]
+    public async Task A_risen_field_keeps_every_stop_it_was_given()
+    {
+        TerrainMaterial[] stops = [new SolidMaterial(1), new SolidMaterial(2), new SolidMaterial(3), new SolidMaterial(4)];
+        foreach (var octaves in (int[])[1, 5])
+        {
+            var counts = new int[4];
+            var field = new NoiseMaterial(7u, 16, octaves, stops, Rise: 5);
+            for (var x = 0; x < 60; x++)
+            for (var y = 0; y < 20; y++)
+            for (var z = 0; z < 60; z++)
+                counts[field.Resolve(Deep(x, y, z)).Id - 1]++;
+
+            var total = (double)counts.Sum();
+            foreach (var count in counts) await Assert.That(count / total).IsGreaterThan(0.04);
+        }
+    }
+
+    /// <summary>A risen voronoi is still a voronoi: cut it at any height and the grid band is one connected
+    /// network of lines, the property that makes the pattern read as cells rather than as speckle.</summary>
+    [Test]
+    public async Task A_risen_voronoi_still_draws_a_grid_on_the_slice_it_is_cut_at()
+    {
+        const int size = 90;
+        var voronoi = new VoronoiMaterial(3u, 12, [Band(155, 1), Band(1, 1)], Rise: 6);
+        foreach (var y in (int[])[0, 7])
+        {
+            var grid = new bool[size, size];
+            for (var x = 0; x < size; x++)
+            for (var z = 0; z < size; z++)
+                grid[x, z] = voronoi.Resolve(Deep(x, y, z)).Id == 155;
+
+            var (components, largest, total) = Components(grid, size);
+            await Assert.That(total).IsGreaterThan(0);
+            await Assert.That(largest / (double)total).IsGreaterThan(0.9);
+            await Assert.That(components).IsLessThan(6);
+        }
+    }
+
+    [Test]
+    public async Task A_pattern_and_the_same_pattern_risen_are_two_materials()
+    {
+        // The rise changes what a theme paints, so it has to change what a theme *is* — otherwise a cached
+        // preview or a deduplicated style would answer for the wrong one.
+        var flat = new VoronoiMaterial(1u, 8, [Band(1, 1), Band(2, 1)]);
+        await Assert.That(flat.Equals(flat with { Rise = 4 })).IsFalse();
+        await Assert.That(new NoiseMaterial(1u, 8, 2, [new SolidMaterial(1)])
+            .Equals(new NoiseMaterial(1u, 8, 2, [new SolidMaterial(1)], Rise: 3))).IsFalse();
+    }
+
+    /// <summary>A block at a real height, which is what every writer passes and what a risen pattern reads.</summary>
+    private static BucketContext Deep(int x, int y, int z)
+        => new(x, y, z, TerrainBucket.Fill, DepthFromTop: 0);
+
     private static VoronoiBand Band(int id, int depth) => new(new SolidMaterial(id), depth);
 
     /// <summary>Connected components of a boolean mask (8-connected, since a diagonal grid line is still one

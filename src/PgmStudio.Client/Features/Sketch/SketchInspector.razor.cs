@@ -46,8 +46,8 @@ public partial class SketchInspector
         _           => "square",
     };
 
-    // How a path's two long sides are drawn. Its finish — gravel, cobble, the voronoi shading of a cobbled
-    // road — is a theme assigned to the shape, so what is offered here is only the shape of the band.
+    // How a path's two long sides are drawn. Its finish — gravel, a cell fabric, any pattern at all — is a
+    // theme assigned to the shape, so what is offered here is only the shape of the band.
     private static readonly (string Key, string Label)[] PathEdges =
     [
         ("solid",   "Solid — one width the whole way"),

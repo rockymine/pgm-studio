@@ -123,7 +123,7 @@ public static class DressingPreview
     private static readonly IReadOnlyDictionary<PathStyle, string> PathStyleLabels = new Dictionary<PathStyle, string>
     {
         [PathStyle.Solid] = "Solid", [PathStyle.Worn] = "Worn", [PathStyle.Rough] = "Rough edge",
-        [PathStyle.Cobble] = "Cobbled", [PathStyle.Stones] = "Stepping stones", [PathStyle.Tapered] = "Tapered",
+        [PathStyle.Stones] = "Stepping stones", [PathStyle.Tapered] = "Tapered",
     };
 
     // A bent stroke, so a card shows what a style does through a turn as well as along a straight. Centred on

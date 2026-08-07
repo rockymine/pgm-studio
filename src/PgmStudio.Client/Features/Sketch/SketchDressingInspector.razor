@@ -61,17 +61,13 @@
                    @oninput="e => Set(PropFields.Coverage, JsonValue.Create(Share(e)))" /></ChildContent></Field>
         }
         <div class="section-header section-header--ruled"><h2 class="section-title">Paving</h2></div>
-        <p class="section-desc">One block is a plain surface. Add more and a cobbled path tiles between them.</p>
-        @for (var i = 0; i < PaveBlocks.Count; i++)
+        <p class="section-desc">What the band is laid with — a full material, so a road can be one block, a
+          cobbled fabric of several, or any pattern the theme offers. The style above shapes the band; this
+          decides what fills it.</p>
+        @if (Material(PropFields.Pave) is { } pave)
         {
-          var at = i;
-          <BlockPicker Blocks="blocks" Id="PaveBlocks[at].Id" Data="PaveBlocks[at].Data"
-                       OnPick="v => SetPaveBlock(at, v.Id, v.Data)" @key="at" />
+          <MaterialEditor Node="pave" Blocks="blocks" OnChanged="() => MaterialChanged(PropFields.Pave)" />
         }
-        <div class="panel-actions">
-          <Button OnClick="AddPaveBlock"><i data-lucide="plus"></i> Add a block</Button>
-          @if (PaveBlocks.Count > 1) { <Button Variant="danger" OnClick="RemovePaveBlock">Remove last</Button> }
-        </div>
       }
       else if (kind == PropKinds.Water)
       {
@@ -111,9 +107,9 @@
         </div>
         <div class="section-header section-header--ruled"><h2 class="section-title">Bank</h2></div>
         <p class="section-desc">The bed floor and the beach — a full material, the same the shallows show through and the shore meets the land with.</p>
-        @if (Bank is not null)
+        @if (Material(PropFields.Bank) is { } bank)
         {
-          <MaterialEditor Node="Bank" Blocks="blocks" OnChanged="BankChanged" />
+          <MaterialEditor Node="bank" Blocks="blocks" OnChanged="() => MaterialChanged(PropFields.Bank)" />
         }
       }
       else if (kind == PropKinds.Flora)
@@ -229,10 +225,14 @@
           <ChildContent><input type="range" class="field-range" min="10" max="70" step="1"
                  value="@((int)(Num(PropFields.Size, 2.5) * 10))"
                  @oninput="e => Set(PropFields.Size, JsonValue.Create(Whole(e) / 10.0))" /></ChildContent></Field>
-        <Field Label="Rock">
-          <BlockPicker Blocks="blocks" Id="(int)Num(PropFields.BlockId, 1)" Data="(int)Num(PropFields.BlockData, 0)"
-                       OnPick="v => SetRock(v.Id, v.Data)" />
-        </Field>
+        <div class="section-header section-header--ruled"><h2 class="section-title">Rock</h2></div>
+        <p class="section-desc">What the boulder is cut from. It is resolved in the rock's own frame rather
+          than the map's, so a pattern's patch size is read against a few blocks — and every mirrored image of
+          the rock comes out identical.</p>
+        @if (Material(PropFields.Rock) is { } rock)
+        {
+          <MaterialEditor Node="rock" Blocks="blocks" OnChanged="() => MaterialChanged(PropFields.Rock)" />
+        }
         <Field Label="Moss">
           <Chip Active="Flag(PropFields.Mossy)" OnClick="() => Set(PropFields.Mossy, JsonValue.Create(!Flag(PropFields.Mossy)))">
             @(Flag(PropFields.Mossy) ? "On the sky-lit faces" : "None")

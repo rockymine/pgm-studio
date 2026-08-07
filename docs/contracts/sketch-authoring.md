@@ -105,8 +105,8 @@ canonical `xml_data.json`). One new `ArtifactKind` constant `SketchLayoutJson` â
 
 **`dressing`** sits beside `layout`/`layers` and holds what the author *placed* rather than drew:
 `{"props": [...]}`, each prop a `kind`-discriminated object â€” a `path` (an open route plus a half-width, a
-style and its paving blocks), a `flora` area (a drawn outline plus a density spec), a `tree` and a `boulder`
-(a cell plus that one prop's own shape knobs). It is deliberately **not** a registry the way `themes` is: a
+band style and the terrain material it is paved with), a `flora` area (a drawn outline plus a density spec), a
+`tree` and a `boulder` (a cell plus that one prop's own shape knobs, the boulder's rock a terrain material too). It is deliberately **not** a registry the way `themes` is: a
 theme is a recipe named once and applied to many footprints, so it is stored by name and referenced, while a
 prop was put somewhere and what is worth storing is the placement. `PgmStudio.Minecraft.Dressing`
 deserializes this blob directly, so the canvas writes the pass's own wire format
