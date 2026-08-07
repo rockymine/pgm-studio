@@ -140,7 +140,7 @@ public sealed class CoreWorldTests
 
         var reparsed = MapParser.ParseXmlString(xml);
         await Assert.That(reparsed.Cores.Count).IsEqualTo(2);
-        await Assert.That(reparsed.Cores.Select(c => c.Owner)).IsEquivalentTo(new[] { "red", "blue" });
+        await Assert.That(reparsed.Cores.Select(c => c.Owner)).IsEquivalentTo(new[] { "red-team", "blue-team" });
         // Nothing declares a <gamemode>; the map reads as DTC off its modules alone.
         await Assert.That(reparsed.Gamemodes).IsEquivalentTo(new[] { Gamemodes.Dtc });
     }

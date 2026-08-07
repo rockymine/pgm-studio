@@ -64,7 +64,7 @@ public static class WoolGenerator
             WoolEditor.AddWool(doc, new Dict { ["color"] = colorSlug });
             var update = new Dict
             {
-                ["team"] = w.Owner,
+                ["team"] = IntentNaming.TeamId(w.Owner),
                 ["location"] = new Dict { ["x"] = Floor(w.Spawn.X), ["y"] = Floor(w.Spawn.Y), ["z"] = Floor(w.Spawn.Z) },
             };
             if (w.Room.Count > 0) update["wool_room_region"] = roomId;
@@ -82,7 +82,7 @@ public static class WoolGenerator
                 monumentBlockIds.Add(monBlockId);
                 WoolEditor.AddMonument(doc, colorSlug, new Dict
                 {
-                    ["team"] = m.Team,
+                    ["team"] = IntentNaming.TeamId(m.Team),
                     ["location"] = new Dict { ["x"] = m.Location.X, ["y"] = m.Location.Y, ["z"] = m.Location.Z },
                     ["monument_region"] = monBlockId,
                 });
@@ -107,7 +107,7 @@ public static class WoolGenerator
             roomsByOwner[ownerSlug].Add(roomId);
 
             // only-<owner> team filter (reused from spawn protection if present) — the child of not-<owner>.
-            EnsureFilter(doc, $"only-{ownerSlug}", new Dict { ["type"] = "team", ["team"] = w.Owner });
+            EnsureFilter(doc, $"only-{ownerSlug}", new Dict { ["type"] = "team", ["team"] = IntentNaming.TeamId(w.Owner) });
         }
 
         SubtractMonumentsFromSpawns(doc, monumentBlockIds);   // independent of rooms — monuments exist either way
@@ -279,11 +279,14 @@ public static class WoolGenerator
         return color.Trim().ToLowerInvariant().Replace(' ', '_');
     }
 
+    // The intent's team id and the document's differ by the -team suffix (IntentNaming), so the lookup is by
+    // the document form — matching the raw intent id would find nothing and colour every wool white.
     private static string TeamColor(Dict doc, string teamId)
     {
+        var docTeamId = IntentNaming.TeamId(teamId);
         if (doc.GetValueOrDefault("teams") is List<object?> teams)
             foreach (var t in teams.OfType<Dict>())
-                if (t.GetValueOrDefault("id") as string == teamId)
+                if (t.GetValueOrDefault("id") as string == docTeamId)
                     return t.GetValueOrDefault("color") as string ?? "white";
         return "white";
     }

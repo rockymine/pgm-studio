@@ -51,7 +51,7 @@ public sealed class DestroyableGeneratorTests
     {
         var doc = Generate(Sample(new BlockBox(10, 16, 20, 10, 18, 20)));
         var d = (Dict)Destroyables(doc)[0]!;
-        await Assert.That((string)d["owner"]!).IsEqualTo("red");
+        await Assert.That((string)d["owner"]!).IsEqualTo("red-team");
         await Assert.That((string)d["name"]!).IsEqualTo("Red Monument");
         await Assert.That((string)d["materials"]!).IsEqualTo("obsidian");
         await Assert.That((string)d["region"]!).IsEqualTo($"{(string)d["id"]!}-region");

@@ -969,6 +969,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (anchors = the wool spawns), accumulating across wools so a team that defends several wools gets each room
   (authored editable, orbit copies ghost). Shows the generator's **Auto-wiring (derived)** preview
   (`enter`/`block`=`not-<owner>` + `capture ×N`). (`WoolRoomStep`; N04)
+- **A team id says team (B50).** The generated document's `<team>` ids were the bare colour — `id="red"`,
+  `<team id="only-red">red</team>` — which is what the `color` attribute beside it already says, so nothing
+  in the file named the team as a thing. They now read `red-team` / `blue-team`, and every reference the
+  generators emit follows: the spawn link, the team filter's body, a wool's capturing team, a destroyable's
+  and a core's owner. One helper owns the form (`IntentNaming.TeamId`), and `IntentNaming.Slug` still strips
+  the suffix, so the region and filter ids named from a team are untouched — `red-spawn-point`, `only-red`,
+  `reds-woolrooms` read the same whichever form the intent carries, and an intent whose ids already end in
+  `-team` compiles to exactly the same document. (B50)
 - **WoolGenerator multi-wool-per-team + partial-intent fixes (N04)** — (1) `not-<owner>` / `only-<owner>`
   room filters are per-team, not per-wool, so a team defending several wools now **shares** them (both
   creations guarded); a second same-owner wool previously collided on the filter id (HTTP 409). (2)

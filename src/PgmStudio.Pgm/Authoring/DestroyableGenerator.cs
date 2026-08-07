@@ -32,7 +32,7 @@ public static class DestroyableGenerator
             {
                 ["id"] = id,
                 ["name"] = b.Name,
-                ["owner"] = b.Owner,
+                ["owner"] = IntentNaming.TeamId(b.Owner),
                 ["region"] = regionId,
                 ["materials"] = b.Materials,
             });

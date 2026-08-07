@@ -39,7 +39,7 @@ public static class TeamsGenerator
         foreach (var t in intent.Teams!)
             TeamEditor.AddTeam(doc, new Dict
             {
-                ["id"] = t.Id,
+                ["id"] = IntentNaming.TeamId(t.Id),
                 ["name"] = string.IsNullOrEmpty(t.Name) ? t.Id : t.Name,
                 ["color"] = t.Color,
                 ["max_players"] = intent.MaxPlayers,
@@ -143,7 +143,7 @@ public static class TeamsGenerator
             });
             SpawnEditor.AddSpawnLink(doc, new Dict
             {
-                ["region_id"] = pointId, ["team"] = sp.Team, ["kit"] = SpawnKitId, ["yaw"] = sp.Yaw,
+                ["region_id"] = pointId, ["team"] = IntentNaming.TeamId(sp.Team), ["kit"] = SpawnKitId, ["yaw"] = sp.Yaw,
             });
 
             if (sp.Protection.Count > 0)
@@ -152,7 +152,7 @@ public static class TeamsGenerator
                 var protId = $"{slug}-spawn";
                 EmitRectUnion(doc, protId, "spawn", sp.Protection);
                 var fid = $"only-{slug}";
-                FilterEditor.CreateFilter(doc, new Dict { ["id"] = fid, ["type"] = "team", ["team"] = sp.Team });
+                FilterEditor.CreateFilter(doc, new Dict { ["id"] = fid, ["type"] = "team", ["team"] = IntentNaming.TeamId(sp.Team) });
                 // keep enemies out, per team (enter=only-<team>); the block protection is shared, on the spawns union.
                 ApplyRuleEditor.CreateApplyRule(doc, new Dict
                 {

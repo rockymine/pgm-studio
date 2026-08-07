@@ -39,7 +39,7 @@ public static class CoreGenerator
                 // `owner` is the doc-tree's name for it everywhere; only the XML spells it `team`, and
                 // XmlWriter does that translation at the boundary (OB1). Writing `team` here instead would
                 // read back as an unowned core.
-                ["owner"] = c.Owner,
+                ["owner"] = IntentNaming.TeamId(c.Owner),
                 ["region"] = regionId,
             };
             if (c.Name.Length > 0) entry["name"] = c.Name;

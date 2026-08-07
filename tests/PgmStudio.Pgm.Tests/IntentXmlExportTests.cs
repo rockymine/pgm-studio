@@ -128,4 +128,36 @@ public sealed class IntentXmlExportTests
         await Assert.That(regions.ContainsKey("build-hole-1")).IsTrue();
         await Assert.That(((List<object?>)((Dict)regions["not-build-area"]!)["children"]!).Single()).IsEqualTo("buildable");
     }
+
+    [Test]
+    public async Task A_team_id_says_team_while_every_other_id_keeps_the_bare_colour()
+    {
+        // An intent whose team ids are bare colours — what the plan compiler emits. The document's own team
+        // ids take the -team suffix, and so does every reference to them (the spawn link, the team filter's
+        // body, the wool's owner, its monument). Region and filter ids are named from the slug, so they are
+        // untouched: `red-spawn-point`, `only-red`, `red-wool` read the same either way.
+        var doc = BaseDoc();
+        IntentGenerator.Apply(doc, new MapIntent
+        {
+            Meta = new MetaIntent { Name = "Bare" },
+            Teams = [new TeamDef { Id = "red", Name = "Red", Color = "red" }, new TeamDef { Id = "blue", Name = "Blue", Color = "blue" }],
+            Spawns = [new SpawnIntent { Team = "red", Point = new(10, 12, 10), Protection = [new(0, 0, 20, 20)] }],
+            Wools = [new WoolIntent { Owner = "red", Room = [new(5, 5, 15, 15)], Spawn = new(10.5, 13, 10.5),
+                Monuments = [new MonumentIntent { Team = "blue", Location = new(-10, 13, -10) }] }],
+        });
+
+        var xml = XmlWriter.ToXml(Deserializer.FromDict(doc));
+        await Assert.That(xml).Contains("<team id=\"red-team\" color=\"red\"");
+        await Assert.That(xml).Contains("<spawn team=\"red-team\"");
+        await Assert.That(xml).Contains("<team id=\"only-red\">red-team</team>");
+        // A <wool> is written once per capturing team, so its `team` is the monument's, not the owner's.
+        await Assert.That(xml).Contains("<wool team=\"blue-team\" color=\"red\"");
+        await Assert.That(xml).Contains("id=\"red-spawn-point\"");
+        await Assert.That(xml).Contains("id=\"red-wool\"");
+
+        // Re-parsing agrees: the team the spawn names is a team the map declares.
+        var map = MapParser.ParseXmlString(xml);
+        await Assert.That(map.Teams.Select(t => t.Id)).Contains("red-team");
+        await Assert.That(map.Spawns.Select(s => s.Team)).Contains("red-team");
+    }
 }

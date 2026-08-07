@@ -47,13 +47,13 @@ public sealed class CoreGeneratorTests
         // OB1's `team` spelling is the XML's alone; the doc tree says `owner` like everything else, and the
         // writer translates at the boundary. Emitting `team` here parses back as an unowned core.
         var d = (Dict)Cores(Generate(Sample(Box)))[0]!;
-        await Assert.That((string)d["owner"]!).IsEqualTo("red");
+        await Assert.That((string)d["owner"]!).IsEqualTo("red-team");
         await Assert.That(d.ContainsKey("team")).IsFalse();
 
         // The claim that matters: the owner survives the whole doc → MapXml → XML trip.
         var xml = Pgm.XmlWriter.ToXml(Pgm.Deserializer.FromDict(Generate(Sample(Box))));
-        await Assert.That(xml).Contains("team=\"red\"");
-        await Assert.That(Pgm.MapParser.ParseXmlString(xml).Cores[0].Owner).IsEqualTo("red");
+        await Assert.That(xml).Contains("team=\"red-team\"");
+        await Assert.That(Pgm.MapParser.ParseXmlString(xml).Cores[0].Owner).IsEqualTo("red-team");
     }
 
     [Test]
