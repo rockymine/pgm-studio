@@ -13,7 +13,11 @@ using Dict = Dictionary<string, object?>;
 /// with <c>enter=not-&lt;owner&gt;</c> (defenders kept out) and a <c>block</c> rule whose filter
 /// <c>&lt;owner&gt;s-woolrooms-filter = all(not-&lt;owner&gt;, woolrooms-filter)</c> lets attackers edit only
 /// the shared <c>woolrooms-filter</c> materials — placing spawn-kit blocks + water and breaking the
-/// entrance decoration (cobweb, stained glass + panes) — rather than forbidding everything.
+/// entrance decoration (cobweb, stained glass + panes) — rather than forbidding everything. A third rule
+/// denies the <em>owner</em> the use of a chest inside their own rooms
+/// (<c>use="deny(all(only-&lt;owner&gt;, chest-filter))"</c>): the enter rule stops them standing in the room,
+/// which is not the same as stopping them reaching a chest at its edge, and the supply in there is the
+/// attackers'.
 /// <para>The wool's <c>location</c> is the int-floored <see cref="WoolIntent.Spawn"/> point. Mirror of
 /// <c>RegionCategorizer</c>: the room reads back as <c>wool/room</c>, the spawn point as <c>wool/spawner</c>.
 /// Idempotent clear-then-build.</para>
@@ -24,6 +28,7 @@ public static class WoolGenerator
     private const string EditMessage = "You may not edit the wool room!";
     private const string SpawnDelay = "1.5s";
     private const string WoolroomsFilter = "woolrooms-filter";
+    private const string ChestFilter = "chest-filter";
 
     // The synthetic leaf/compound filters that make up the shared woolrooms-filter (all start with "__" so
     // the serializer inlines them).
@@ -114,6 +119,9 @@ public static class WoolGenerator
 
         if (roomsByOwner.Count == 0) return;
         EnsureWoolroomsFilter(doc);
+        // Named, not synthetic: the chest-deny rules below reference it by id from inside a filter expression,
+        // where an inlined "__" filter would have nowhere to be inlined to.
+        EnsureFilter(doc, ChestFilter, new Dict { ["type"] = "material", ["material"] = "chest" });
 
         var ownerUnions = new List<string>();
         foreach (var ownerSlug in ownerOrder)
@@ -130,6 +138,16 @@ public static class WoolGenerator
 
             ApplyRuleEditor.CreateApplyRule(doc, new Dict { ["enter"] = not, ["region"] = union, ["message"] = EnterMessage });
             ApplyRuleEditor.CreateApplyRule(doc, new Dict { ["block"] = roomFilter, ["region"] = union, ["message"] = EditMessage });
+            // The defenders' own chests stay shut. A wool room holds a supply chest for the attackers who
+            // reach it; without this the defending team can walk to the edge of their own room and empty it,
+            // which is the one thing the enter rule above cannot stop — entering is denied, using a block
+            // across the boundary is not. Written as an inline filter expression rather than a named filter
+            // because it is a two-term composition used once per team, and spelling it out at the apply is
+            // where a reader of the XML will look for it.
+            ApplyRuleEditor.CreateApplyRule(doc, new Dict
+            {
+                ["use"] = $"deny(all(only-{ownerSlug},{ChestFilter}))", ["region"] = union,
+            });
         }
         // top-level union of all the per-team room unions
         AddUnion(doc, "woolrooms", ownerUnions);
@@ -260,6 +278,7 @@ public static class WoolGenerator
 
         regions.Remove("woolrooms");
         filters.Remove(WoolroomsFilter);
+        filters.Remove(ChestFilter);
         foreach (var syn in WoolroomsSynthetics) filters.Remove(syn);
         foreach (var o in owners)
         {

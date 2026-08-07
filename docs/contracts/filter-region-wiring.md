@@ -35,7 +35,7 @@ Full matrices: `filter-use-cases.md` A.2 (event × filter-type) and A.5 (event �
 
 ## v1 templates (suggest + confirm)
 
-Four templates, grounded in the corpus's most common shapes. Each is **suggested from a map signal**
+Five templates, grounded in the corpus's most common shapes. Each is **suggested from a map signal**
 and **confirmed by the author** — never auto-applied or silently mutated. Each emits standard
 `Filter` + `ApplyRule` entries (no special persisted form).
 
@@ -45,6 +45,13 @@ and **confirmed by the author** — never auto-applied or silently mutated. Each
 | 2 | **Spawn protection** | a team spawn region (`spawns[].region`) | on the protection zone, apply `enter=only-<team>` **and** `block=never` (anti-grief; `never` is built-in — no new filter); optionally `use=only-<team>` | Cluster 1.1 |
 | 3 | **Wool-room defense** | a wool-room region with a derived owner (§6 owner) | apply `enter=not-<owner>` (defender excluded) | Cluster 1.2 |
 | 4 | **Wool-room build/break** | a wool-room region | apply `block=<team>-woolrooms-filter` (team check + material whitelist) | Cluster 2.2 |
+| 5 | **Wool-room chest lockout** | a wool-room region with a derived owner | apply `use=deny(all(only-<owner>,chest-filter))` — the defenders cannot open the attackers' supply chest in their own room | Cluster 1.2 |
+
+Template 5 exists because template 3 does not cover it. Denying *entry* is not denying *use*: a
+defender standing at the room's edge is outside the region but within reach of a chest inside it, and
+the supply in a wool room is for the team attacking it. The rule is written as an inline filter
+expression rather than a named filter — it is a two-term composition used once per team, and at the
+apply is where a reader of the XML looks for it.
 
 Template 1 is the canonical *suggest + confirm* flow: detect the positive build regions, propose
 "auto-group and apply the void filter to the complement?", let the author confirm/adjust/decline.

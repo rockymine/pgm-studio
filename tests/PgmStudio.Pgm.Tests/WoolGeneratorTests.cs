@@ -84,6 +84,28 @@ public sealed class WoolGeneratorTests
     }
 
     [Test]
+    public async Task The_owner_cannot_open_a_chest_inside_their_own_wool_rooms()
+    {
+        var doc = Map();
+        WoolGenerator.Apply(doc, Intent());
+
+        // A named material filter, because the deny expression references it by id.
+        var chest = (Dict)Filters(doc)["chest-filter"]!;
+        await Assert.That(chest["type"]).IsEqualTo("material");
+        await Assert.That(chest["material"]).IsEqualTo("chest");
+
+        var deny = Rules(doc).OfType<Dict>()
+            .Single(r => r.GetValueOrDefault("region") as string == "reds-woolrooms"
+                         && r.ContainsKey("use"));
+        await Assert.That(deny["use"]).IsEqualTo("deny(all(only-red,chest-filter))");
+
+        // It reaches the XML intact — the expression is an attribute value, not an id to resolve.
+        var xml = Pgm.XmlWriter.ToXml(Pgm.Deserializer.FromDict(doc));
+        await Assert.That(xml).Contains("<material id=\"chest-filter\">chest</material>");
+        await Assert.That(xml).Contains("<apply use=\"deny(all(only-red,chest-filter))\" region=\"reds-woolrooms\"/>");
+    }
+
+    [Test]
     public async Task Woolrooms_filter_whitelists_the_kit_blocks_water_and_breakable_decor()
     {
         var doc = Map();
@@ -155,7 +177,7 @@ public sealed class WoolGeneratorTests
 
         await Assert.That(Wools(doc).Count).IsEqualTo(1);
         await Assert.That(Spawners(doc).Count).IsEqualTo(1);
-        await Assert.That(Rules(doc).Count).IsEqualTo(2);
+        await Assert.That(Rules(doc).Count).IsEqualTo(3);
         await Assert.That(Regions(doc).Keys.Count(k => k.StartsWith("red-wool"))).IsEqualTo(2);
     }
 

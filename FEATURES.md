@@ -977,6 +977,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the suffix, so the region and filter ids named from a team are untouched — `red-spawn-point`, `only-red`,
   `reds-woolrooms` read the same whichever form the intent carries, and an intent whose ids already end in
   `-team` compiles to exactly the same document. (B50)
+- **The defenders cannot empty their own wool-room chests (B51).** A wool room holds a supply chest for the
+  team attacking it, and the room's `enter=not-<owner>` rule does not protect it: denying entry is not denying
+  *use*, and a defender standing at the room's edge is outside the region with a chest inside it within reach.
+  Each per-team room union now also carries
+  `<apply use="deny(all(only-<owner>,chest-filter))" region="<owner>s-woolrooms"/>` over a named
+  `<material id="chest-filter">chest</material>`. Written as an inline filter expression rather than a fifth
+  named filter — it is a two-term composition used once per team, and at the apply is where a reader of the
+  XML looks for it; the apply-rule editor already passes a non-simple reference through unresolved.
+  `filter-region-wiring.md` template 5. (B51)
 - **WoolGenerator multi-wool-per-team + partial-intent fixes (N04)** — (1) `not-<owner>` / `only-<owner>`
   room filters are per-team, not per-wool, so a team defending several wools now **shares** them (both
   creations guarded); a second same-owner wool previously collided on the filter id (HTTP 409). (2)
