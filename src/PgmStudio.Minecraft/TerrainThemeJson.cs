@@ -20,7 +20,24 @@ public static class TerrainThemeJson
     };
 
     public static string Serialize(TerrainTheme theme) => JsonSerializer.Serialize(theme, Options);
-    public static TerrainTheme Deserialize(string json) => JsonSerializer.Deserialize<TerrainTheme>(json, Options)!;
+
+    /// <summary>Read a theme, honouring the two-value <c>closed</c> knob <see cref="TerrainTheme.RimEdges"/>
+    /// replaced. A theme written before the void-only mode existed says <c>closed: true</c> for what is now
+    /// <see cref="RimEdges.Boundary"/> and nothing for <see cref="RimEdges.Drop"/>; without this a stored map
+    /// would quietly repaint to the default rim on its next export. Only consulted when the theme names no
+    /// <c>rimEdges</c> of its own, so a current theme costs nothing but the parse.</summary>
+    public static TerrainTheme Deserialize(string json)
+    {
+        var theme = JsonSerializer.Deserialize<TerrainTheme>(json, Options)!;
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+        if (root.ValueKind == JsonValueKind.Object
+            && !root.TryGetProperty("rimEdges", out _)
+            && root.TryGetProperty("closed", out var closed)
+            && closed.ValueKind == JsonValueKind.True)
+            return theme with { RimEdges = RimEdges.Boundary };
+        return theme;
+    }
     public static string Serialize(TerrainMaterial material) => JsonSerializer.Serialize(material, Options);
     public static TerrainMaterial DeserializeMaterial(string json) => JsonSerializer.Deserialize<TerrainMaterial>(json, Options)!;
 }

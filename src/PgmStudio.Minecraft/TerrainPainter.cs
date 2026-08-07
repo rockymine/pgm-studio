@@ -93,7 +93,13 @@ public static class TerrainPainter
         if (paintFloor >= top) return bands;
 
         // The top course: the rim on an edge (else it falls to the surface, TP12), the surface on an interior.
-        var isRim = theme.Closed ? column.ClosedEdge : column.OpenEdge;
+        // Which edges count is the theme's (TP3) — the void alone, every drop, or every plateau boundary.
+        var isRim = theme.RimEdges switch
+        {
+            RimEdges.Void => column.VoidEdge,
+            RimEdges.Boundary => column.ClosedEdge,
+            _ => column.OpenEdge,
+        };
         TerrainBucket topBucket;
         int topDepth;
         if (isRim && theme.Rim.Enabled) { topBucket = TerrainBucket.Rim; topDepth = Math.Max(1, theme.Rim.Depth); }

@@ -7,10 +7,12 @@ namespace PgmStudio.Minecraft.Tests;
 /// </summary>
 public sealed class TerrainPainterTests
 {
-    private static ColumnProfile VoidEdge(int top) => new(top, OpenEdge: true, ClosedEdge: true, VoidDrop: 1, TerrainDrop: -1);
-    private static ColumnProfile Interior(int top) => new(top, OpenEdge: false, ClosedEdge: false, VoidDrop: -1, TerrainDrop: -1);
-    // an edge whose only drop is onto lower terrain `dropTo` blocks below its own surface
-    private static ColumnProfile TerrainStep(int top, int neighbourTop) => new(top, true, true, -1, neighbourTop);
+    private static ColumnProfile VoidEdge(int top) => new(top, VoidEdge: true, OpenEdge: true, ClosedEdge: true, VoidDrop: 1, TerrainDrop: -1);
+    private static ColumnProfile Interior(int top) => new(top, VoidEdge: false, OpenEdge: false, ClosedEdge: false, VoidDrop: -1, TerrainDrop: -1);
+    // an edge whose only drop is onto lower terrain `neighbourTop` — a plateau standing on a plateau, never
+    // touching the void, which is what the three rim modes disagree about.
+    private static ColumnProfile TerrainStep(int top, int neighbourTop)
+        => new(top, VoidEdge: false, OpenEdge: true, ClosedEdge: true, VoidDrop: -1, TerrainDrop: neighbourTop);
 
     // ── the resolver (pure) ────────────────────────────────────────────────────────────────────────────
 
@@ -124,14 +126,63 @@ public sealed class TerrainPainterTests
     }
 
     [Test]
-    public async Task Closed_rim_lips_a_structure_facing_edge_that_open_leaves_bare()
+    public async Task Boundary_rim_lips_a_structure_facing_edge_that_drop_leaves_bare()
     {
-        // a cell facing only a structure (closed edge, not open, no drop): open ⇒ surface top, closed ⇒ rim.
-        var facingStructure = new ColumnProfile(9, OpenEdge: false, ClosedEdge: true, VoidDrop: -1, TerrainDrop: -1);
-        var open = TerrainPainter.Resolve(facingStructure, TerrainTheme.Default);
-        var closed = TerrainPainter.Resolve(facingStructure, TerrainTheme.Default with { Closed = true });
-        await Assert.That(open[^1].Bucket).IsEqualTo(TerrainBucket.Surface);
-        await Assert.That(closed[^1].Bucket).IsEqualTo(TerrainBucket.Rim);
+        // a cell facing only a structure (a plateau boundary, no drop): drop ⇒ surface top, boundary ⇒ rim.
+        var facingStructure = new ColumnProfile(9, VoidEdge: false, OpenEdge: false, ClosedEdge: true, VoidDrop: -1, TerrainDrop: -1);
+        var drop = TerrainPainter.Resolve(facingStructure, TerrainTheme.Default);
+        var boundary = TerrainPainter.Resolve(facingStructure, TerrainTheme.Default with { RimEdges = RimEdges.Boundary });
+        await Assert.That(drop[^1].Bucket).IsEqualTo(TerrainBucket.Surface);
+        await Assert.That(boundary[^1].Bucket).IsEqualTo(TerrainBucket.Rim);
+    }
+
+    [Test]
+    public async Task A_void_only_rim_caps_the_outside_and_leaves_every_tread_of_a_staircase_bare()
+    {
+        // The case the mode exists for: shapes stacked into a staircase are open-edged at every tread, so the
+        // default rim draws a lip on each one. Void-only asks the narrower question and finds only the outside.
+        var theme = TerrainTheme.Default with { RimEdges = RimEdges.Void };
+        var tread = TerrainPainter.Resolve(TerrainStep(9, 5), theme);
+        var outside = TerrainPainter.Resolve(VoidEdge(9), theme);
+
+        await Assert.That(tread[^1].Bucket).IsEqualTo(TerrainBucket.Surface);   // the tread keeps its surface
+        await Assert.That(outside[^1].Bucket).IsEqualTo(TerrainBucket.Rim);     // the true outside is capped
+        // The wall is the rim's own question, so the tread's riser is walled either way.
+        await Assert.That(tread.Any(band => band.Bucket == TerrainBucket.Wall)).IsTrue();
+    }
+
+    [Test]
+    public async Task Every_rim_mode_caps_the_void_because_the_edge_tests_nest()
+    {
+        foreach (var mode in new[] { RimEdges.Void, RimEdges.Drop, RimEdges.Boundary })
+        {
+            var bands = TerrainPainter.Resolve(VoidEdge(9), TerrainTheme.Default with { RimEdges = mode });
+            await Assert.That(bands[^1].Bucket).IsEqualTo(TerrainBucket.Rim);
+        }
+    }
+
+    [Test]
+    public async Task A_staircase_of_stacked_plateaus_is_void_edged_only_around_its_outside()
+    {
+        // The profile half of the same claim, over a real world rather than a hand-built column: three treads,
+        // each a block taller than the last, with void all around. Every tread edge is an open edge; only the
+        // footprint's own border touches the void.
+        var columns = new List<(int, int, int, int)>();
+        for (var x = 0; x < 9; x++)
+        for (var z = 0; z < 9; z++)
+            columns.Add((x, z, 1, 9 + x / 3));       // three 3-wide treads at 9, 10 and 11
+        var terrain = SketchTerrainBuilder.Build(columns);
+        var profile = new TerrainProfile(terrain.World, terrain.SurfaceTop);
+
+        // The high side of the step between the first and second tread (x = 3, looking down onto x = 2) —
+        // well inside the board, so its only edge is the drop.
+        await Assert.That(profile.TryGetColumn((3, 4), out var tread)).IsTrue();
+        await Assert.That(tread.OpenEdge).IsTrue();
+        await Assert.That(tread.VoidEdge).IsFalse();
+
+        // The board's own border.
+        await Assert.That(profile.TryGetColumn((0, 4), out var border)).IsTrue();
+        await Assert.That(border.VoidEdge).IsTrue();
     }
 
     // ── bucket toggles (TP12): fill is the required fallback down the chain ──────────────────────────────

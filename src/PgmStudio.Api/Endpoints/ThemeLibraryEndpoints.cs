@@ -16,8 +16,9 @@ internal static class ThemeLibraryMapping
     public static StyleDto ToDto(StyleRow row) => new(row.Id, row.Name, row.Kind, row.Params, PreviewOf(row));
 
     public static ThemeDetail ToDetail(ThemeRow row, IReadOnlyList<ThemeBucketRow> buckets) =>
-        new(row.Id, row.Name, row.BedrockRelative, row.BedrockValue, row.Closed, row.WallOnTerrainFaces,
-            buckets.Select(b => new ThemeBucketDto(b.Bucket, b.StyleId, b.Depth, b.Enabled)).ToList());
+        new(row.Id, row.Name, row.BedrockRelative, row.BedrockValue, RimEdgeModes.Canonical(row.RimEdges),
+            row.WallOnTerrainFaces,
+            buckets.Select(b => new ThemeBucketDto(b.Bucket, b.StyleId ?? 0, b.Depth, b.Enabled)).ToList());
 
     /// <summary>A style's card picture, or an empty string for params that do not form a material this build can
     /// draw. Deliberately catches everything: <c>params_json</c> is a hand-editable leaf, so it can be malformed
@@ -145,20 +146,22 @@ public sealed class ThemeCreateEndpoint(ThemeStore store) : Endpoint<ThemeSaveRe
     public override async Task HandleAsync(ThemeSaveRequest req, CancellationToken ct)
     {
         var id = await store.CreateThemeAsync(ThemeRowOf(req), BucketRowsOf(req), ct);
-        await Send.OkAsync(new ThemeDetail(id, req.Name, req.BedrockRelative, req.BedrockValue, req.Closed,
-            req.WallOnTerrainFaces, req.Buckets), ct);
+        await Send.OkAsync(new ThemeDetail(id, req.Name, req.BedrockRelative, req.BedrockValue,
+            RimEdgeModes.Canonical(req.RimEdges), req.WallOnTerrainFaces, req.Buckets), ct);
     }
 
     internal static ThemeRow ThemeRowOf(ThemeSaveRequest req) => new()
     {
         Name = req.Name,
         BedrockRelative = req.BedrockRelative, BedrockValue = req.BedrockValue,
-        Closed = req.Closed, WallOnTerrainFaces = req.WallOnTerrainFaces,
+        RimEdges = RimEdgeModes.Canonical(req.RimEdges), WallOnTerrainFaces = req.WallOnTerrainFaces,
     };
 
+    // Style id 0 on the wire is "bound to nothing": the column takes null, and the row survives to carry the
+    // bucket's depth and toggle.
     internal static IEnumerable<ThemeBucketRow> BucketRowsOf(ThemeSaveRequest req)
         => req.Buckets.Select(b => new ThemeBucketRow
-        { Bucket = b.Bucket, StyleId = b.StyleId, Depth = b.Depth, Enabled = b.Enabled });
+        { Bucket = b.Bucket, StyleId = b.StyleId == 0 ? null : b.StyleId, Depth = b.Depth, Enabled = b.Enabled });
 }
 
 /// <summary>PUT /api/themes/{id} — replace a theme's knobs and its whole set of bucket bindings.</summary>
@@ -172,8 +175,8 @@ public sealed class ThemeUpdateEndpoint(ThemeStore store) : Endpoint<ThemeSaveRe
         var updated = await store.UpdateThemeAsync(
             id, ThemeCreateEndpoint.ThemeRowOf(req), ThemeCreateEndpoint.BucketRowsOf(req), ct);
         if (!updated) { await Send.NotFoundAsync(ct); return; }
-        await Send.OkAsync(new ThemeDetail(id, req.Name, req.BedrockRelative, req.BedrockValue, req.Closed,
-            req.WallOnTerrainFaces, req.Buckets), ct);
+        await Send.OkAsync(new ThemeDetail(id, req.Name, req.BedrockRelative, req.BedrockValue,
+            RimEdgeModes.Canonical(req.RimEdges), req.WallOnTerrainFaces, req.Buckets), ct);
     }
 }
 

@@ -75,7 +75,7 @@ public sealed class ThemeLibraryEndpointsTests
             .Content.ReadFromJsonAsync<StyleDto>();
 
         var save = new ThemeSaveRequest(
-            "meadow", BedrockRelative: true, BedrockValue: 1, Closed: false, WallOnTerrainFaces: false,
+            "meadow", BedrockRelative: true, BedrockValue: 1, RimEdges: RimEdgeModes.Drop, WallOnTerrainFaces: false,
             new[]
             {
                 new ThemeBucketDto("rim", rim!.Id, Depth: 1, Enabled: true),
@@ -121,18 +121,18 @@ public sealed class ThemeLibraryEndpointsTests
         var stone = await CreateStyle(client, "stone", new SolidMaterial(Blocks.Stone));
 
         var created = await (await client.PostAsJsonAsync("/api/themes", new ThemeSaveRequest(
-            "meadow", BedrockRelative: false, BedrockValue: 1, Closed: false, WallOnTerrainFaces: true,
+            "meadow", BedrockRelative: false, BedrockValue: 1, RimEdges: RimEdgeModes.Drop, WallOnTerrainFaces: true,
             [new ThemeBucketDto(ThemeBuckets.Rim, quartz, Depth: 1, Enabled: true)])))
             .Content.ReadFromJsonAsync<ThemeDetail>();
 
         var put = await client.PutAsJsonAsync($"/api/themes/{created!.Id}", new ThemeSaveRequest(
-            "meadow at dusk", BedrockRelative: true, BedrockValue: 4, Closed: true, WallOnTerrainFaces: false,
+            "meadow at dusk", BedrockRelative: true, BedrockValue: 4, RimEdges: RimEdgeModes.Boundary, WallOnTerrainFaces: false,
             [new ThemeBucketDto(ThemeBuckets.Fill, stone, Depth: 0, Enabled: true)]));
         await Assert.That(put.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         var reread = await client.GetFromJsonAsync<ThemeDetail>($"/api/themes/{created.Id}");
         await Assert.That(reread!.Name).IsEqualTo("meadow at dusk");
-        await Assert.That(reread.Closed).IsTrue();
+        await Assert.That(reread.RimEdges).IsEqualTo(RimEdgeModes.Boundary);
         await Assert.That(reread.Buckets.Count).IsEqualTo(1);
         await Assert.That(reread.Buckets[0].Bucket).IsEqualTo(ThemeBuckets.Fill);
 
@@ -142,7 +142,7 @@ public sealed class ThemeLibraryEndpointsTests
             .IsEqualTo(TerrainTheme.Default.Rim.Material);
 
         await Assert.That((await client.PutAsJsonAsync("/api/themes/9999", new ThemeSaveRequest(
-            "nowhere", false, 1, false, true, []))).StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+            "nowhere", false, 1, RimEdgeModes.Drop, true, []))).StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
 
     [Test]
@@ -155,7 +155,7 @@ public sealed class ThemeLibraryEndpointsTests
         var bound = await CreateStyle(client, "quartz", new SolidMaterial(Blocks.QuartzBlock));
         var loose = await CreateStyle(client, "stone", new SolidMaterial(Blocks.Stone));
         await client.PostAsJsonAsync("/api/themes", new ThemeSaveRequest(
-            "meadow", false, 1, false, true, [new ThemeBucketDto(ThemeBuckets.Rim, bound, 1, true)]));
+            "meadow", false, 1, RimEdgeModes.Drop, true, [new ThemeBucketDto(ThemeBuckets.Rim, bound, 1, true)]));
 
         var refused = await client.DeleteAsync($"/api/styles/{bound}");
         await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.Conflict);
@@ -177,7 +177,7 @@ public sealed class ThemeLibraryEndpointsTests
         // A draft that binds only the fill: the picture shows that fill, and the buckets it leaves unbound keep
         // the built-in finish — which is what makes "reuse a rim, vary the surface" expressible at all.
         var preview = await (await client.PostAsJsonAsync("/api/themes/preview", new ThemeSaveRequest(
-            "draft", false, 1, false, true, [new ThemeBucketDto(ThemeBuckets.Fill, gold, 0, true)])))
+            "draft", false, 1, RimEdgeModes.Drop, true, [new ThemeBucketDto(ThemeBuckets.Fill, gold, 0, true)])))
             .Content.ReadFromJsonAsync<ThemePreviewDto>();
 
         await Assert.That(preview!.Section).Contains(BlockPalette.Hex(Blocks.GoldBlock, 0));
@@ -185,6 +185,62 @@ public sealed class ThemeLibraryEndpointsTests
         await Assert.That(preview.Buckets[ThemeBuckets.Rim]).Contains(BlockPalette.Hex(Blocks.QuartzBlock, 0));
 
         await Assert.That((await client.GetFromJsonAsync<List<ThemeSummary>>("/api/themes"))!.Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task A_bucket_switches_off_without_being_bound_a_style_first()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        var gold = await CreateStyle(client, "gold", new SolidMaterial(Blocks.GoldBlock));
+
+        // Surface over fill is a whole finish. The rim and the wall are switched off with no style named for
+        // either — asking for one would be asking which colour the thing being refused should be.
+        var save = new ThemeSaveRequest("bare", false, 1, RimEdgeModes.Drop, true,
+        [
+            new ThemeBucketDto(ThemeBuckets.Fill, gold, 0, Enabled: true),
+            new ThemeBucketDto(ThemeBuckets.Rim, StyleId: 0, Depth: 1, Enabled: false),
+            new ThemeBucketDto(ThemeBuckets.Wall, StyleId: 0, Depth: 0, Enabled: false),
+        ]);
+        var created = await (await client.PostAsJsonAsync("/api/themes", save)).Content.ReadFromJsonAsync<ThemeDetail>();
+
+        // The refusals survive the round-trip: a styleless binding is a row, not an omission.
+        var reread = await client.GetFromJsonAsync<ThemeDetail>($"/api/themes/{created!.Id}");
+        var rim = reread!.Buckets.Single(b => b.Bucket == ThemeBuckets.Rim);
+        await Assert.That(rim.StyleId).IsEqualTo(0L);
+        await Assert.That(rim.Enabled).IsFalse();
+        await Assert.That(reread.Buckets.Single(b => b.Bucket == ThemeBuckets.Wall).Enabled).IsFalse();
+
+        // And the composed theme paints neither, over a gold body.
+        var composed = TerrainThemeJson.Deserialize(
+            (await client.GetFromJsonAsync<ThemeJsonResponse>($"/api/themes/{created.Id}/json"))!.ThemeJson);
+        await Assert.That(composed.Rim.Enabled).IsFalse();
+        await Assert.That(composed.WallEnabled).IsFalse();
+        await Assert.That(composed.Fill).IsEqualTo((TerrainMaterial)new SolidMaterial(Blocks.GoldBlock));
+
+        // The sample plateau shows it: with no rim and no wall the edge column is body all the way up.
+        var preview = await (await client.PostAsJsonAsync("/api/themes/preview", save))
+            .Content.ReadFromJsonAsync<ThemePreviewDto>();
+        await Assert.That(preview!.Section).DoesNotContain(BlockPalette.Hex(Blocks.QuartzBlock, 0));
+    }
+
+    [Test]
+    public async Task A_void_only_rim_survives_the_library_round_trip()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        var created = await (await client.PostAsJsonAsync("/api/themes", new ThemeSaveRequest(
+            "outside only", false, 1, RimEdgeModes.Void, true, [])))
+            .Content.ReadFromJsonAsync<ThemeDetail>();
+
+        await Assert.That((await client.GetFromJsonAsync<ThemeDetail>($"/api/themes/{created!.Id}"))!.RimEdges)
+            .IsEqualTo(RimEdgeModes.Void);
+        var composed = await client.GetFromJsonAsync<ThemeJsonResponse>($"/api/themes/{created.Id}/json");
+        await Assert.That(TerrainThemeJson.Deserialize(composed!.ThemeJson).RimEdges).IsEqualTo(RimEdges.Void);
     }
 
     private static async Task<long> CreateStyle(HttpClient client, string name, TerrainMaterial material)

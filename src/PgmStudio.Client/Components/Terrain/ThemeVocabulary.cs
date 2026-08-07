@@ -38,7 +38,8 @@ public static class ThemeFields
     public const string Bedrock = "bedrock";
     public const string Relative = "relative";
     public const string Value = "value";
-    public const string Closed = "closed";
+    /// <summary>Which edges the rim caps — one of <see cref="RimEdgeModes"/>. Absent means the default.</summary>
+    public const string RimEdges = "rimEdges";
     public const string WallOnTerrainFaces = "wallOnTerrainFaces";
     public const string Rim = ThemeBuckets.Rim;
     public const string Surface = ThemeBuckets.Surface;

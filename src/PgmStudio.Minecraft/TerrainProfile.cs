@@ -3,14 +3,20 @@ using PgmStudio.Geom.Algorithms;
 namespace PgmStudio.Minecraft;
 
 /// <summary>The theme-agnostic geometric facts of one paintable terrain column
-/// (docs/world-export/terrain-painting.md §5, stage 1). <see cref="OpenEdge"/> fires on a void or lower
-/// neighbour (the base rim), <see cref="ClosedEdge"/> on any plateau boundary (void, a structure, or a
-/// different plateau — TP3). <see cref="VoidDrop"/>/<see cref="TerrainDrop"/> are the shallowest exposed
+/// (docs/world-export/terrain-painting.md §5, stage 1). Three nested edge tests, widest last:
+/// <see cref="VoidEdge"/> fires only where the column borders the void — the landmass's true outside;
+/// <see cref="OpenEdge"/> adds a lower neighbour, so any drop counts (the base rim); <see cref="ClosedEdge"/>
+/// adds every other plateau boundary (a structure, or a different plateau at the same height — TP3). A
+/// staircase of stacked plateaus is open-edged and closed-edged all the way up its treads, and void-edged only
+/// at its outer face, which is the distinction a rim mode picks between.
+/// <see cref="VoidDrop"/>/<see cref="TerrainDrop"/> are the shallowest exposed
 /// drop's floor Y toward the void / toward lower terrain, or -1 when there is none — the wall's lower bound,
 /// split so the TP9 toggle can take the void one alone. <see cref="PerimeterArc"/> is the column's arc index
 /// along its landmass's outer void-facing perimeter (0-based around the loop), or -1 when the column is not on
 /// an outer boundary — what a wall-run pattern reads to wrap the perimeter (TP13).</summary>
-public readonly record struct ColumnProfile(int SurfaceTop, bool OpenEdge, bool ClosedEdge, int VoidDrop, int TerrainDrop, int PerimeterArc = -1);
+public readonly record struct ColumnProfile(
+    int SurfaceTop, bool VoidEdge, bool OpenEdge, bool ClosedEdge, int VoidDrop, int TerrainDrop,
+    int PerimeterArc = -1);
 
 /// <summary>
 /// The shared core of terrain painting (docs/world-export/terrain-painting.md §5, stage 1): classifies every
@@ -66,10 +72,12 @@ public sealed class TerrainProfile
 
     private ColumnProfile Classify(int x, int z, CellFacts self)
     {
-        bool openEdge = false, closedEdge = false;
+        bool voidEdge = false, openEdge = false, closedEdge = false;
         foreach (var (dx, dz) in GridComponents.N8)
         {
-            if (!_facts.TryGetValue((x + dx, z + dz), out var n)) { openEdge = true; closedEdge = true; continue; }
+            // Off the footprint is the void, and the void is an edge under every test — it is the only one a
+            // plateau standing on other plateaus never has.
+            if (!_facts.TryGetValue((x + dx, z + dz), out var n)) { voidEdge = true; openEdge = true; closedEdge = true; continue; }
             if (n.IsStructure) { closedEdge = true; continue; }
             if (n.Top < self.Top) openEdge = true;                   // a drop — base rim + wall
             if (n.Plateau != self.Plateau) closedEdge = true;         // any plateau boundary — closed rim
@@ -84,7 +92,7 @@ public sealed class TerrainProfile
             if (n.IsStructure) continue;
             if (n.Top < self.Top) terrainDrop = terrainDrop < 0 ? n.Top : Math.Min(terrainDrop, n.Top);
         }
-        return new ColumnProfile(self.Top, openEdge, closedEdge, voidDrop, terrainDrop,
+        return new ColumnProfile(self.Top, voidEdge, openEdge, closedEdge, voidDrop, terrainDrop,
             _perimeterArc.GetValueOrDefault((x, z), -1));
     }
 

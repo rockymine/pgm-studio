@@ -70,7 +70,7 @@ public sealed class ThemeStoreTests
 
         // The rim is rebound to another style, the fill is new, and the knobs move — one call, one transaction.
         var updated = await store.UpdateThemeAsync(themeId,
-            new ThemeRow { Name = "meadow at dusk", BedrockRelative = true, BedrockValue = 4, Closed = true },
+            new ThemeRow { Name = "meadow at dusk", BedrockRelative = true, BedrockValue = 4, RimEdges = RimEdgeModes.Boundary },
             [
                 new ThemeBucketRow { Bucket = ThemeBuckets.Rim, StyleId = stone, Depth = 2, Enabled = false },
                 new ThemeBucketRow { Bucket = ThemeBuckets.Fill, StyleId = stone, Depth = 0, Enabled = true },
@@ -80,7 +80,7 @@ public sealed class ThemeStoreTests
         var row = await store.GetThemeAsync(themeId);
         await Assert.That(row!.Name).IsEqualTo("meadow at dusk");
         await Assert.That(row.BedrockRelative).IsTrue();
-        await Assert.That(row.Closed).IsTrue();
+        await Assert.That(row.RimEdges).IsEqualTo(RimEdgeModes.Boundary);
 
         var buckets = await store.GetBucketsAsync(themeId);
         await Assert.That(buckets.Count).IsEqualTo(2);

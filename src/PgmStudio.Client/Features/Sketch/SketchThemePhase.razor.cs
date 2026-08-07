@@ -184,8 +184,18 @@ public partial class SketchThemePhase
     }
 
     private Task ToggleWall() => ToggleFlag(ThemeFields.WallEnabled, true);
-    private Task ToggleClosed() => ToggleFlag(ThemeFields.Closed, false);
     private Task ToggleWallFaces() => ToggleFlag(ThemeFields.WallOnTerrainFaces, true);
+
+    // Which edges the rim caps — three answers, so a word rather than a flag. An absent or unrecognised one
+    // reads as the default, the same tolerance every other field here gets.
+    private string RimEdges => RimEdgeModes.Canonical(JsonEdit.Text(Theme, ThemeFields.RimEdges, RimEdgeModes.Drop));
+
+    private Task SetRimEdges(ChangeEventArgs e)
+    {
+        if (Theme is null) return Task.CompletedTask;
+        JsonEdit.Set(Theme, ThemeFields.RimEdges, RimEdgeModes.Canonical((string?)e.Value));
+        return ThemeEdited();
+    }
 
     private JsonObject BedrockNode => JsonEdit.Child(Theme!, ThemeFields.Bedrock,
         () => new JsonObject { [ThemeFields.Relative] = false, [ThemeFields.Value] = 1 });

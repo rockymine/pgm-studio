@@ -454,21 +454,23 @@ public sealed class ThemeRow
     [Column("name"), NotNull] public string Name { get; set; } = "";
     [Column("bedrock_relative")] public bool BedrockRelative { get; set; }
     [Column("bedrock_value")] public int BedrockValue { get; set; }
-    [Column("closed")] public bool Closed { get; set; }
+    [Column("rim_edges"), NotNull] public string RimEdges { get; set; } = "drop";   // void | drop | boundary
     [Column("wall_on_terrain_faces")] public bool WallOnTerrainFaces { get; set; }
     [Column("created_at")] public DateTime CreatedAt { get; set; }
 }
 
 /// <summary>One bucket binding of a <see cref="ThemeRow"/> (see M0011): the themeable bucket
 /// (<c>ThemeBuckets</c>), the <see cref="StyleRow"/> that fills it, and the bucket's depth (rim/surface)
-/// and toggle. Unique per (theme, bucket); cascades with its theme, restricts its style.</summary>
+/// and toggle. A null <see cref="StyleId"/> binds no style (M0013): the bucket keeps the built-in material
+/// and the row is carried for its depth and toggle alone, which is how a theme stores "no rim".
+/// Unique per (theme, bucket); cascades with its theme, restricts its style.</summary>
 [Table("theme_bucket")]
 public sealed class ThemeBucketRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("theme_id"), NotNull] public long ThemeId { get; set; }
     [Column("bucket"), NotNull] public string Bucket { get; set; } = "";
-    [Column("style_id"), NotNull] public long StyleId { get; set; }
+    [Column("style_id")] public long? StyleId { get; set; }
     [Column("depth")] public int Depth { get; set; }
     [Column("enabled")] public bool Enabled { get; set; }
 }

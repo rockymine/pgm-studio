@@ -66,26 +66,26 @@ public sealed class ThemeStore(PgmDb db)
     public Task<List<ThemeBucketRow>> GetBucketsAsync(long themeId, CancellationToken ct = default)
         => db.ThemeBuckets.Where(b => b.ThemeId == themeId).OrderBy(b => b.Bucket).ToListAsync(ct);
 
-    /// <summary>A theme's bucket bindings joined to the styles they reference — the full read a caller needs to
-    /// recompose the theme's material graph.</summary>
-    public async Task<List<(ThemeBucketRow Bucket, StyleRow Style)>> GetBucketStylesAsync(long themeId, CancellationToken ct = default)
-    {
-        var rows = await (from b in db.ThemeBuckets
-                          join s in db.Styles on b.StyleId equals s.Id
-                          where b.ThemeId == themeId
-                          select new { b, s }).ToListAsync(ct);
-        return rows.Select(r => (r.b, r.s)).ToList();
-    }
+    /// <summary>A theme's bucket bindings with the styles they reference — the full read a caller needs to
+    /// recompose the theme's material graph. The style is <b>null</b> for a binding that names none (M0013):
+    /// such a row carries only its depth and its toggle, and dropping it — which an inner join would — is how
+    /// a theme with the rim switched off would come back with the rim on.</summary>
+    public Task<List<(ThemeBucketRow Bucket, StyleRow? Style)>> GetBucketStylesAsync(long themeId, CancellationToken ct = default)
+        => BucketStylesAsync(db.ThemeBuckets.Where(b => b.ThemeId == themeId), ct);
 
-    /// <summary>Every theme's bucket bindings joined to their styles, in one read — what a caller recomposing
-    /// the <em>whole</em> library needs. Listing themes with a picture of each is the normal case, and asking
-    /// per theme turns one list into a query per row.</summary>
-    public async Task<List<(ThemeBucketRow Bucket, StyleRow Style)>> GetAllBucketStylesAsync(CancellationToken ct = default)
+    /// <summary>Every theme's bucket bindings with their styles, in one read — what a caller recomposing the
+    /// <em>whole</em> library needs. Listing themes with a picture of each is the normal case, and asking per
+    /// theme turns one list into a query per row.</summary>
+    public Task<List<(ThemeBucketRow Bucket, StyleRow? Style)>> GetAllBucketStylesAsync(CancellationToken ct = default)
+        => BucketStylesAsync(db.ThemeBuckets, ct);
+
+    private async Task<List<(ThemeBucketRow Bucket, StyleRow? Style)>> BucketStylesAsync(
+        IQueryable<ThemeBucketRow> buckets, CancellationToken ct)
     {
-        var rows = await (from b in db.ThemeBuckets
-                          join s in db.Styles on b.StyleId equals s.Id
+        var rows = await (from b in buckets
+                          from s in db.Styles.LeftJoin(s => s.Id == b.StyleId)
                           select new { b, s }).ToListAsync(ct);
-        return rows.Select(r => (r.b, r.s)).ToList();
+        return rows.Select(row => (row.b, (StyleRow?)row.s)).ToList();
     }
 
     /// <summary>Create a theme with its bucket bindings in one transaction, returning the new theme id.</summary>
@@ -115,7 +115,7 @@ public sealed class ThemeStore(PgmDb db)
             .Set(t => t.Name, theme.Name)
             .Set(t => t.BedrockRelative, theme.BedrockRelative)
             .Set(t => t.BedrockValue, theme.BedrockValue)
-            .Set(t => t.Closed, theme.Closed)
+            .Set(t => t.RimEdges, theme.RimEdges)
             .Set(t => t.WallOnTerrainFaces, theme.WallOnTerrainFaces)
             .UpdateAsync(ct);
         if (updated == 0) return false;

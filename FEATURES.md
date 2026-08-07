@@ -496,7 +496,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   bucket's depth and toggle, the bedrock/rim/wall knobs, and a live preview of what the composition paints
   (`POST /api/themes/preview` composes a draft without saving any of it). A bucket left unbound keeps the
   built-in finish, so a theme overrides only what it changes — bind a rim and a fill once, vary the surface and
-  the wall. The sketch's Theme phase bridges both ways: copy a library theme into the sketch (a snapshot —
+  the wall. Bound and switched **off** are different answers and either is given without the other: a theme
+  needs neither a rim nor a wall — surface over fill is a whole finish — so the toggle is offered whether or not
+  a style is bound, and a styleless refusal persists as a binding of its own (`theme_bucket.style_id` is
+  nullable, `M0013`). Only an unbound bucket that still paints is dropped on save, because that one really does
+  say nothing. The sketch's Theme phase bridges both ways: copy a library theme into the sketch (a snapshot —
   editing it there leaves the library's copy alone) or save the open one back out as one style per bucket.
   `PUT /api/themes/{id}` replaces a theme's knobs and its whole set of bindings in one transaction.
 - **Every library row carries its own picture, and a layer stack finally has one (B44).** A named JSON blob is
@@ -2531,7 +2535,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   neighbours but never painted (TP6). Every per-column knob is themeable: **rim/surface depth** live on each
   bucket's `TopBand` (TP7/TP11 — the default surface is grass over two dirt, three deep), **bedrock thickness**
   is absolute or terrain-relative (TP8), **wall-on-terrain-faces** and the **rim/wall/surface toggles** route
-  down the fill fallback chain (TP9/TP12).
+  down the fill fallback chain (TP9/TP12), and **`rimEdges`** picks which of the three nested edge tests the rim
+  caps (TP3): `void` — only where the footprint meets the void — `drop` (the default: void or lower), or
+  `boundary` (the whole plateau outline, a face against a structure included). `void` is what a body built out
+  of stacked shapes wants: a staircase of plateaus is a drop at every tread, so the default lips each one and
+  the body reads as five plateaus that touch, while `void` caps the outside alone and it reads as one body.
+  The wall is unaffected — it asks its own face question — so a tread's riser is still walled.
 - **Terrain-paint patterns + theme JSON (TP13).** Any bucket's material can be a **pattern** at the same seam as
   a solid: `VoronoiMaterial` (jittered-grid regions, N-material palette), `NoiseMaterial` (fractal/value-noise
   field through an N-stop ramp), and `WallRunMaterial` (N stripes of any widths that wrap the **void-facing

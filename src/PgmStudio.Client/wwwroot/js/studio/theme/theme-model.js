@@ -11,7 +11,7 @@
 export function defaultThemeJson() {
   return {
     bedrock: { relative: false, value: 1 },
-    closed: false,
+    rimEdges: "drop",          // void | drop | boundary — which edges the rim caps
     wallOnTerrainFaces: true,
     rim: { material: { kind: "solid", id: 155 }, depth: 1, enabled: true },
     surface: { material: { kind: "layered", layers: [{ material: { kind: "solid", id: 2 }, thickness: 1 }, { material: { kind: "solid", id: 3 }, thickness: 2 }] }, depth: 3, enabled: true },

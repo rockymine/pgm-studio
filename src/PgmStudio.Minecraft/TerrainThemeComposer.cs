@@ -8,14 +8,18 @@ namespace PgmStudio.Minecraft;
 /// it round-trips losslessly to and from the <see cref="TerrainTheme"/> the painter consumes.
 /// </summary>
 public sealed record DecomposedTheme(
-    bool BedrockRelative, int BedrockValue, bool Closed, bool WallOnTerrainFaces,
+    bool BedrockRelative, int BedrockValue, RimEdges RimEdges, bool WallOnTerrainFaces,
     IReadOnlyList<ThemeStyleBinding> Buckets);
 
 /// <summary>One bucket's binding in a <see cref="DecomposedTheme"/>: which bucket, the material as a
 /// serialized style (its <see cref="Kind"/> discriminator and the <see cref="MaterialJson"/> a <c>style</c> row
 /// stores), and the bucket's depth and toggle. <see cref="Depth"/> is meaningful for the top-claiming buckets
-/// (rim/surface); wall and fill carry 0. <see cref="Enabled"/> is the rim/surface/wall toggle (fill is always on).</summary>
-public sealed record ThemeStyleBinding(TerrainBucket Bucket, string Kind, string MaterialJson, int Depth, bool Enabled);
+/// (rim/surface); wall and fill carry 0. <see cref="Enabled"/> is the rim/surface/wall toggle (fill is always on).
+/// <para>A <b>null</b> <see cref="MaterialJson"/> is a binding to no style: the bucket keeps the built-in
+/// material and the binding is carried only for its depth and its toggle. That is what lets a theme say "no
+/// rim" — switching the rim off needs no material for it, and demanding one to store the refusal would be
+/// asking an author to pick the colour of something they have just said they do not want.</para></summary>
+public sealed record ThemeStyleBinding(TerrainBucket Bucket, string? Kind, string? MaterialJson, int Depth, bool Enabled);
 
 /// <summary>
 /// Splits a <see cref="TerrainTheme"/> into its reusable library pieces and puts it back together — the pure
@@ -50,7 +54,7 @@ public static class TerrainThemeComposer
             => new(bucket, KindOf(material), TerrainThemeJson.Serialize(material), depth, enabled);
 
         return new DecomposedTheme(
-            theme.Bedrock.Relative, theme.Bedrock.Value, theme.Closed, theme.WallOnTerrainFaces,
+            theme.Bedrock.Relative, theme.Bedrock.Value, theme.RimEdges, theme.WallOnTerrainFaces,
             [
                 Bind(TerrainBucket.Rim, theme.Rim.Material, theme.Rim.Depth, theme.Rim.Enabled),
                 Bind(TerrainBucket.Surface, theme.Surface.Material, theme.Surface.Depth, theme.Surface.Enabled),
@@ -59,13 +63,16 @@ public static class TerrainThemeComposer
             ]);
     }
 
-    /// <summary>Rebuild the theme the painter consumes from a decomposed one. A missing bucket falls back to the
-    /// shipping default for that bucket, so a partial decomposition never throws.</summary>
+    /// <summary>Rebuild the theme the painter consumes from a decomposed one. A missing bucket — and a bucket
+    /// bound to no style — falls back to the shipping default for that bucket, so a partial decomposition never
+    /// throws. The difference between the two is the depth and the toggle: a missing bucket has none to apply,
+    /// a styleless one still carries both, which is how "no rim" is stored.</summary>
     public static TerrainTheme Compose(DecomposedTheme decomposed)
     {
         var byBucket = decomposed.Buckets.ToDictionary(b => b.Bucket);
         ThemeStyleBinding? Get(TerrainBucket bucket) => byBucket.TryGetValue(bucket, out var b) ? b : null;
-        TerrainMaterial Material(ThemeStyleBinding? b) => b is null ? null! : TerrainThemeJson.DeserializeMaterial(b.MaterialJson);
+        TerrainMaterial? Material(ThemeStyleBinding? binding)
+            => binding?.MaterialJson is { } json ? TerrainThemeJson.DeserializeMaterial(json) : null;
 
         var def = TerrainTheme.Default;
         var rim = Get(TerrainBucket.Rim);
@@ -76,13 +83,13 @@ public static class TerrainThemeComposer
         return new TerrainTheme
         {
             Bedrock = new BedrockSpec(decomposed.BedrockRelative, decomposed.BedrockValue),
-            Closed = decomposed.Closed,
+            RimEdges = decomposed.RimEdges,
             WallOnTerrainFaces = decomposed.WallOnTerrainFaces,
-            Rim = rim is null ? def.Rim : new TopBand(Material(rim), rim.Depth, rim.Enabled),
-            Surface = surface is null ? def.Surface : new TopBand(Material(surface), surface.Depth, surface.Enabled),
-            Wall = wall is null ? def.Wall : Material(wall),
+            Rim = rim is null ? def.Rim : new TopBand(Material(rim) ?? def.Rim.Material, rim.Depth, rim.Enabled),
+            Surface = surface is null ? def.Surface : new TopBand(Material(surface) ?? def.Surface.Material, surface.Depth, surface.Enabled),
+            Wall = Material(wall) ?? def.Wall,
             WallEnabled = wall?.Enabled ?? def.WallEnabled,
-            Fill = fill is null ? def.Fill : Material(fill),
+            Fill = Material(fill) ?? def.Fill,
         };
     }
 }

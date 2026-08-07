@@ -13,6 +13,11 @@ namespace PgmStudio.Client.Features.Library;
 /// <para>An unbound bucket is one the theme does not override: it is simply left out of the bindings and keeps
 /// the built-in finish. That is what makes the library worth having for the case it was asked for — a rim and a
 /// fill bound once and reused, with only the surface and the wall differing between themes.</para>
+///
+/// <para>Bound and switched off are different answers, and a bucket gives either without the other. A theme
+/// needs neither a rim nor a wall — surface over fill is a complete finish — so the toggle is offered whether
+/// or not a style is bound, and an unbound bucket that is off keeps its binding on save. Only an unbound bucket
+/// that still paints is dropped, because that one really does say nothing.</para>
 /// </summary>
 public partial class ThemeComposer
 {
@@ -59,7 +64,7 @@ public partial class ThemeComposer
     // ── the draft ──────────────────────────────────────────────────────────────────────────────────
     // Every bucket is present in the draft so the rail can show all four; the unbound ones are dropped on save.
     private static ThemeSaveRequest EmptyDraft(string name) => new(
-        name, BedrockRelative: false, BedrockValue: 1, Closed: false, WallOnTerrainFaces: true,
+        name, BedrockRelative: false, BedrockValue: 1, RimEdges: RimEdgeModes.Drop, WallOnTerrainFaces: true,
         ThemeBucketInfo.All.Select(info => new ThemeBucketDto(info.Id, Unbound, Depth: 1, Enabled: true)).ToList());
 
     private ThemeBucketDto Binding(string bucket)
@@ -86,7 +91,7 @@ public partial class ThemeComposer
         // The stored theme names only the buckets it overrides; the rail shows all four, so the ones it does not
         // name come back as unbound.
         draft = new ThemeSaveRequest(
-            detail.Name, detail.BedrockRelative, detail.BedrockValue, detail.Closed, detail.WallOnTerrainFaces,
+            detail.Name, detail.BedrockRelative, detail.BedrockValue, detail.RimEdges, detail.WallOnTerrainFaces,
             ThemeBucketInfo.All.Select(info =>
                 detail.Buckets.FirstOrDefault(binding => binding.Bucket == info.Id)
                 ?? new ThemeBucketDto(info.Id, Unbound, Depth: 1, Enabled: true)).ToList());
@@ -131,7 +136,7 @@ public partial class ThemeComposer
 
     private Task SetBedrockMode(ChangeEventArgs e) => Knob(d => d with { BedrockRelative = (string?)e.Value == RelativeBedrock });
     private Task SetBedrockValue(ChangeEventArgs e) => Knob(d => d with { BedrockValue = Math.Max(0, Parse(e, d.BedrockValue)) });
-    private Task ToggleClosed() => Knob(d => d with { Closed = !d.Closed });
+    private Task SetRimEdges(ChangeEventArgs e) => Knob(d => d with { RimEdges = RimEdgeModes.Canonical((string?)e.Value) });
     private Task ToggleWallFaces() => Knob(d => d with { WallOnTerrainFaces = !d.WallOnTerrainFaces });
 
     private Task Knob(Func<ThemeSaveRequest, ThemeSaveRequest> edit)
@@ -152,10 +157,13 @@ public partial class ThemeComposer
         StateHasChanged();
     }
 
+    // An unbound bucket that still paints says nothing — it is stored by being left out, which is what "keeps
+    // the built-in finish" means. An unbound bucket that is *off* says a great deal, so its binding is kept:
+    // the row carries the toggle alone, and the theme paints no rim at all.
     private ThemeSaveRequest Saveable(ThemeSaveRequest current) => current with
     {
         Name = string.IsNullOrWhiteSpace(draftName) ? current.Name : draftName.Trim(),
-        Buckets = current.Buckets.Where(binding => binding.StyleId != Unbound).ToList(),
+        Buckets = current.Buckets.Where(binding => binding.StyleId != Unbound || !binding.Enabled).ToList(),
     };
 
     private async Task Save()

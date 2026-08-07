@@ -103,9 +103,9 @@ public static class StylePreview
     /// The terrain every theme preview is cut from: two plateaus at different heights, void on both sides, five
     /// rows deep so the middle row's neighbours are real. That is the smallest shape in which all five buckets
     /// appear at once — the outer columns are void-facing edges (rim capping a full-height wall), the step
-    /// between the plateaus is a terrain-facing edge (the <c>wallOnTerrainFaces</c> and <c>closed</c> knobs are
-    /// visible there and nowhere else), the plateau interiors are surface over fill, and the bottom course is
-    /// bedrock. The profile is classified once by the real <see cref="TerrainProfile"/> rather than asserted, so
+    /// between the plateaus is a terrain-facing edge (the <c>wallOnTerrainFaces</c> and <c>rimEdges</c> knobs
+    /// are visible there and nowhere else: a void-only rim caps the outer columns and leaves the step bare),
+    /// the plateau interiors are surface over fill, and the bottom course is bedrock. The profile is classified once by the real <see cref="TerrainProfile"/> rather than asserted, so
     /// the preview's geometry is the export's; it is theme-agnostic, so one instance serves every theme.
     /// </summary>
     private static class SampleTerrain

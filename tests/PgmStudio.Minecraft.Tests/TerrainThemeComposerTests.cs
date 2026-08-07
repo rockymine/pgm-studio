@@ -42,6 +42,36 @@ public sealed class TerrainThemeComposerTests
     }
 
     [Test]
+    public async Task A_binding_that_names_no_style_still_switches_its_bucket_off()
+    {
+        // What a theme with no rim decomposes to: a binding carrying the toggle and nothing else. The bucket
+        // keeps the built-in material — it simply never paints it — so the refusal costs no style.
+        var decomposed = new DecomposedTheme(BedrockRelative: false, BedrockValue: 1, RimEdges.Drop,
+            WallOnTerrainFaces: true,
+            [
+                new ThemeStyleBinding(TerrainBucket.Rim, Kind: null, MaterialJson: null, Depth: 1, Enabled: false),
+                new ThemeStyleBinding(TerrainBucket.Wall, Kind: null, MaterialJson: null, Depth: 0, Enabled: false),
+            ]);
+        var theme = TerrainThemeComposer.Compose(decomposed);
+
+        await Assert.That(theme.Rim.Enabled).IsFalse();
+        await Assert.That(theme.WallEnabled).IsFalse();
+        await Assert.That(theme.Rim.Material).IsEqualTo(TerrainTheme.Default.Rim.Material);
+        await Assert.That(theme.Wall).IsEqualTo(TerrainTheme.Default.Wall);
+        // The buckets it names nothing about are untouched — a missing binding is still "keep the default".
+        await Assert.That(theme.Surface.Enabled).IsTrue();
+        await Assert.That(theme.Fill).IsEqualTo(TerrainTheme.Default.Fill);
+    }
+
+    [Test]
+    public async Task The_rim_edge_mode_survives_the_trip()
+    {
+        var theme = TerrainTheme.Default with { RimEdges = RimEdges.Void };
+        var recomposed = TerrainThemeComposer.Compose(TerrainThemeComposer.Decompose(theme));
+        await Assert.That(recomposed.RimEdges).IsEqualTo(RimEdges.Void);
+    }
+
+    [Test]
     public async Task A_pattern_material_survives_the_trip()
     {
         var theme = TerrainTheme.Default with

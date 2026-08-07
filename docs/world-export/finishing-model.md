@@ -25,7 +25,7 @@ stored as one blob: `plan_json` on `map_artifact` for a map-backed plan, or `pla
 `map_intent_json`, on `map_artifact`. No `theme`, `style`, `material` or `pattern` table exists in any
 migration.
 
-A theme is a **monolith**. The theme JSON is a set of geometry knobs (`bedrock`, `closed`,
+A theme is a **monolith**. The theme JSON is a set of geometry knobs (`bedrock`, `rimEdges`,
 `wallOnTerrainFaces`) plus four themeable buckets — `rim`, `surface`, `wall`, `fill` — each carrying a
 polymorphic material node keyed by `kind` ∈ {`solid`, `layered`, `teamTint`, `voronoi`, `noise`, `wallRun`},
 recursively nestable (a pattern's palette entries are themselves materials). Every material is inlined into

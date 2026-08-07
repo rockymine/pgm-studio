@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace PgmStudio.Minecraft;
@@ -5,6 +6,19 @@ namespace PgmStudio.Minecraft;
 /// <summary>The five buckets every paintable terrain block sorts into (docs/world-export/terrain-painting.md
 /// §3). <see cref="Fill"/> is the required base — it claims whatever no other bucket took.</summary>
 public enum TerrainBucket { Bedrock, Fill, Wall, Surface, Rim }
+
+/// <summary>Which edges the rim caps (TP3) — the three nested edge tests a <see cref="ColumnProfile"/> answers,
+/// narrowest first. <see cref="Void"/> caps only the landmass's true outside, so a staircase of stacked
+/// plateaus reads as one body with a rim around it rather than a lip on every tread; <see cref="Drop"/> caps
+/// wherever the ground falls away, tread edges included; <see cref="Boundary"/> caps every plateau boundary,
+/// including a face against a structure or against level ground the paint calls a different plateau.</summary>
+[JsonConverter(typeof(RimEdgesConverter))]
+public enum RimEdges { Void, Drop, Boundary }
+
+/// <summary>Writes <see cref="RimEdges"/> as the lowercase word the column, the wire DTO and both authoring
+/// surfaces already spell it — one spelling for the mode wherever it is stored, rather than a JSON that says
+/// <c>Boundary</c> beside a database that says <c>boundary</c>.</summary>
+public sealed class RimEdgesConverter() : JsonStringEnumConverter<RimEdges>(JsonNamingPolicy.CamelCase);
 
 /// <summary>Where a block sits for the material resolver: its world coordinate, its bucket, its depth below
 /// the top of that bucket's band (0 = the band's top course) — the parameter a layered material (grass over
@@ -123,7 +137,7 @@ public sealed record BedrockSpec(bool Relative, int Value)
 /// A terrain-paint theme (docs/world-export/terrain-painting.md §5): the geometry knobs plus a material — and,
 /// for the top-claiming buckets, a depth and toggle (<see cref="TopBand"/>) — per bucket. The default is the
 /// shipping finish: a one-block quartz rim, a team-tinted stained-clay wall, a grass-over-two-dirt surface
-/// three blocks deep, and stone left as fill, over a one-block bedrock floor with the open rim. Every field has
+/// three blocks deep, and stone left as fill, over a one-block bedrock floor, capping every drop. Every field has
 /// a base default, so <see cref="Default"/> is complete and any single knob can be overridden alone.
 /// </summary>
 public sealed record TerrainTheme
@@ -135,8 +149,9 @@ public sealed record TerrainTheme
     // ── geometry ──
     /// <summary>The bedrock floor thickness (TP8). Default one block.</summary>
     public BedrockSpec Bedrock { get; init; } = BedrockSpec.Absolute(1);
-    /// <summary>Trace the full plateau outline, not only drops (TP3). Default off.</summary>
-    public bool Closed { get; init; } = false;
+    /// <summary>Which edges the rim caps (TP3). Default <see cref="RimEdges.Drop"/> — wherever the ground
+    /// falls away.</summary>
+    public RimEdges RimEdges { get; init; } = RimEdges.Drop;
     /// <summary>Paint wall on terrain-to-terrain faces, not only void-facing ones (TP9). Default on.</summary>
     public bool WallOnTerrainFaces { get; init; } = true;
 

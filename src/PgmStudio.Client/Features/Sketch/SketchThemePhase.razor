@@ -151,9 +151,12 @@
               </div>
             </Field>
             <Field Label="Where the rim runs">
-              <Chip Active="@Flag(ThemeFields.Closed, false)" OnClick="ToggleClosed">
-                @(Flag(ThemeFields.Closed, false) ? "Every plateau boundary" : "Only where the ground drops")
-              </Chip>
+              <select class="field-input field-input--slim" value="@RimEdges" @onchange="SetRimEdges">
+                @foreach (var mode in RimEdgeModes.All)
+                {
+                  <option value="@mode" @key="mode">@RimEdgeModes.LabelOf(mode)</option>
+                }
+              </select>
             </Field>
             <Field Label="Where the wall runs">
               <Chip Active="@Flag(ThemeFields.WallOnTerrainFaces, true)" OnClick="ToggleWallFaces">

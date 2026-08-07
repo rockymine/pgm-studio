@@ -49,6 +49,33 @@ public static class ThemeBuckets
     public static bool HasDepth(string bucket) => bucket is Rim or Surface;
 }
 
+/// <summary>Which edges a theme's rim caps — the wire words for the painter's <c>RimEdges</c>, shared by the
+/// <c>theme.rim_edges</c> column, the theme JSON a map snapshots, and both authoring surfaces.
+/// <see cref="Void"/> caps only where the ground borders the void, so a staircase of stacked plateaus takes
+/// one rim around its outside rather than a lip on every tread; <see cref="Drop"/> caps wherever the ground
+/// falls away; <see cref="Boundary"/> caps every plateau boundary, a face against a structure included.</summary>
+public static class RimEdgeModes
+{
+    public const string Void = "void";
+    public const string Drop = "drop";
+    public const string Boundary = "boundary";
+
+    /// <summary>The modes narrowest first — how many edges each one calls a rim.</summary>
+    public static readonly string[] All = [Void, Drop, Boundary];
+
+    /// <summary>What each mode caps, in the words an authoring surface offers it in.</summary>
+    public static string LabelOf(string mode) => mode switch
+    {
+        Void => "Only where the ground meets the void",
+        Boundary => "Every plateau boundary",
+        _ => "Wherever the ground drops",
+    };
+
+    /// <summary>Fold an unknown or absent mode down to the default, so a hand-edited theme shows a rim rather
+    /// than throwing the editor.</summary>
+    public static string Canonical(string? mode) => All.Contains(mode) ? mode! : Drop;
+}
+
 /// <summary>The three parts of a room shell a style binds courses to (the pad and the doorway are stamped over
 /// them and are never a part). Same reasoning as <see cref="ThemeBuckets"/>: the <c>room_style_course.part</c>
 /// column, the courses on the wire and the client's editor all name the same three.</summary>

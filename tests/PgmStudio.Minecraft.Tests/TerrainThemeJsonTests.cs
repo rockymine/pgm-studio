@@ -49,6 +49,33 @@ public sealed class TerrainThemeJsonTests
     }
 
     [Test]
+    public async Task The_rim_edge_mode_is_a_word_on_the_wire()
+    {
+        var json = TerrainThemeJson.Serialize(TerrainTheme.Default with { RimEdges = RimEdges.Void });
+        await Assert.That(json).Contains("\"rimEdges\":\"void\"");
+        await Assert.That(TerrainThemeJson.Deserialize(json).RimEdges).IsEqualTo(RimEdges.Void);
+    }
+
+    [Test]
+    public async Task A_theme_written_before_the_void_mode_keeps_the_rim_its_closed_flag_asked_for()
+    {
+        // `closed` was the two-value predecessor of `rimEdges`. A map that stored one must repaint the same way
+        // it always did, so the old flag is still read when the theme names no mode of its own.
+        var boundary = TerrainThemeJson.Serialize(TerrainTheme.Default)
+            .Replace("\"rimEdges\":\"drop\"", "\"closed\":true");
+        await Assert.That(TerrainThemeJson.Deserialize(boundary).RimEdges).IsEqualTo(RimEdges.Boundary);
+
+        var drop = TerrainThemeJson.Serialize(TerrainTheme.Default)
+            .Replace("\"rimEdges\":\"drop\"", "\"closed\":false");
+        await Assert.That(TerrainThemeJson.Deserialize(drop).RimEdges).IsEqualTo(RimEdges.Drop);
+
+        // A current theme is read by its own word, whatever a stale `closed` beside it says.
+        var voidTheme = TerrainThemeJson.Serialize(TerrainTheme.Default with { RimEdges = RimEdges.Void });
+        var both = "{\"closed\":true," + voidTheme[1..];
+        await Assert.That(TerrainThemeJson.Deserialize(both).RimEdges).IsEqualTo(RimEdges.Void);
+    }
+
+    [Test]
     public async Task Material_carries_its_kind_discriminator()
     {
         var json = TerrainThemeJson.Serialize(new WallRunMaterial([new WallStripe(new SolidMaterial(1), 2)]));

@@ -61,7 +61,7 @@ the riser must not paint behind. The set the painter consults splits by how a st
   every rule below, a neighbour that is a structure — a room plateau or an approach-wall barrier — is
   treated as **taller-or-equal terrain that seals the face**: it is never a drop (so it never opens an
   open-rim lip and never paints a clay riser toward the structure — the barrier already covers that seam),
-  and it always counts as a boundary for the **closed** rim (the plateau's outline turns at it, TP3). This
+  and it always counts as a boundary for the **`boundary`** rim (the plateau's outline turns at it, TP3). This
   is one rule for both anchorings; the approach wall enters the model through exactly the same door as the
   room piece. The clean way to get it is to read the **finished** world — a neighbour column whose top solid
   is not stone is a structure, and its height is that column's top — so no separate registry is needed,
@@ -87,14 +87,20 @@ top-most block, when it is an edge), the **wall** (the exposed riser below the r
   neighbours close it. The addition is exactly the reentrant corner cells — a straight edge and a convex
   corner are identical under either test — so the rule thickens nothing, it only completes the turn.
 
-- **TP3** *`closed` extends the lip to the full outline of the plateau.* The base (open) rim lips only
-  **drops** — a neighbour that is void or lower — so it stops wherever a plateau runs **up** into a room, an
-  approach wall, or a taller piece. The `closed` bool traces the whole plateau boundary instead: a column is
-  rim when any 8-neighbour is void, **a structure** (room or approach wall, TP6), or **a different plateau**
-  (higher as well as lower). The difference is precisely the edges that face something that increases
-  height — the ring of grass abutting a wool room, the seam a bedrock approach wall seals, the edge where a
-  low body meets a raised step from below. `closed` is off by default; the open rim is the base every map
-  wants, and the full outline is the opt-in.
+- **TP3** *`rimEdges` picks how wide a net the lip casts — three nested tests, narrowest first.* The base
+  answer, **`drop`**, lips only **drops**: a neighbour that is void or lower. It stops wherever a plateau runs
+  **up** into a room, an approach wall, or a taller piece.
+  **`boundary`** traces the whole plateau outline instead: a column is rim when any 8-neighbour is void, **a
+  structure** (room or approach wall, TP6), or **a different plateau** (higher as well as lower). The
+  difference is precisely the edges that face something that increases height — the ring of grass abutting a
+  wool room, the seam a bedrock approach wall seals, the edge where a low body meets a raised step from below.
+  **`void`** narrows instead of widening: a column is rim only where a neighbour is **off the footprint
+  entirely**. That is the landmass's true outside, and it is the answer a body built out of stacked plateaus
+  wants. A staircase of five shapes each a block above the last is a drop at every tread, so `drop` draws a
+  lip on each one and the body reads as five plateaus that happen to touch; `void` caps the outside and leaves
+  every tread bare, so it reads as one body with a rim around it. The rim is the only thing that changes — the
+  wall has its own face question (TP9) and answers it independently, so a tread's riser is still walled.
+  `drop` is the default; the outline and the outside are both opt-in.
 
 ### Wall — the exposed riser
 
@@ -213,15 +219,16 @@ are already non-stone columns, so "consult the stamps" is just "read the finishe
 
 1. **Profile — the shared core (theme-agnostic).** Classify every stone column into neutral geometric facts
    (`ColumnProfile`): its `surfaceTop`, its plateau, whether each face drops (to void, to lower terrain, or is
-   sealed by a structure — TP6), its open- and closed-rim membership, its void/terrain drop floors, and its
+   sealed by a structure — TP6), its membership of all three nested rim-edge tests (void · open · closed, the
+   three a theme's `rimEdges` chooses between), its void/terrain drop floors, and its
    **perimeter arc** — the index around its landmass's outer void-facing boundary that a wall-run reads (TP13).
    The arc comes from splitting the footprint into connected landmasses and Moore-tracing each one's outline; it
    is the only geometric fact the patterns added. Nothing here depends on a theme, so the same `TerrainProfile`
    serves every theme, scope and pattern. **This is the shared core**, and it is the only stage that touches
    geometry.
 
-2. **Theme resolution — the scope layer.** A `Theme` is a data row: the bedrock mode and `closed`/wall-face
-   toggles, plus a `TopBand` per top bucket (its material, depth and toggle) and a material for the wall and
+2. **Theme resolution — the scope layer.** A `Theme` is a data row: the bedrock mode, the `rimEdges` and
+   wall-face knobs, plus a `TopBand` per top bucket (its material, depth and toggle) and a material for the wall and
    fill — each bucket's depth living with its bucket, not as a loose scalar. Scoping (TP10) resolves the theme
    **per cell**: `TerrainThemeScope` picks the **whole** theme of the highest-priority scope over a cell —
    piece › collection › map default, winner-takes-all, not a field merge — reading the plan-baked piece
@@ -366,7 +373,7 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
 |---|---|
 | **TP1** | The rim is one block — the top of an edge column, at `surfaceTop − 1`. |
 | **TP2** | Edges are found over the 8 neighbours (void or lower), so a reentrant corner never gaps. |
-| **TP3** | `closed` extends the rim to the full plateau outline — also lipping edges facing a room or a taller plateau. Default off. |
+| **TP3** | `rimEdges` picks the edge test: `void` (only where the footprint meets the void — no lip on the treads of a stacked body), `drop` (the default — void or lower), `boundary` (the full plateau outline, also lipping edges facing a room or a taller plateau). |
 | **TP4** | The wall is the exposed riser, `y ∈ [drop, surfaceTop − 2]`; buried stone and the y=0 bedrock course are left. |
 | **TP5** | The interior is the grass top of every non-edge column. |
 | **TP6** | A stamped structure (piece-relative room/cube, or the interface-relative bedrock approach wall) is height-bearing: never painted, never a drop (no open lip, no clay behind it), always a closed-rim edge. |

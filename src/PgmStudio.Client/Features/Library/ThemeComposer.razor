@@ -7,7 +7,8 @@
   <aside class="lib-filters">
     <Section Title="New theme">
       <p class="section-desc">A theme starts bound to nothing and paints the built-in finish. Bind the buckets
-        you want to change and leave the rest — an unbound bucket keeps the default.</p>
+        you want to change and leave the rest — an unbound bucket keeps the default, and one switched off
+        paints nothing at all.</p>
       <div class="panel-actions">
         <input class="field-input" placeholder="name" @bind="newName" @bind:event="oninput" />
         <Button Icon="plus" Disabled="@(string.IsNullOrWhiteSpace(newName))" OnClick="StartNew">Add</Button>
@@ -24,7 +25,9 @@
     <p class="lib-intro">
       A theme is the whole finish: one style per bucket — the rim capping every edge, the wall on the riser
       under it, the surface band, the fill body — plus how deep the bedrock floor reaches and which faces count
-      as an edge. Each card is a sample plateau painted with the theme and cut open.
+      as an edge. Only the fill is required: a surface over it is already a finish, and the rim and the wall are
+      each switched off with the chip beside their heading. Each card is a sample plateau painted with the theme
+      and cut open.
     </p>
 
     @if (loading) { <p class="lib-status">Reading the library…</p> }
@@ -74,43 +77,48 @@
         var binding = Binding(bucket.Id);
         <Section Title="@bucket.Title" Variant="list" @key="bucket.Id">
           <Actions>
-            @if (bucket.CanDisable && binding.StyleId != 0)
+            @* A bucket switches off whether or not it is bound: a theme needs neither a rim nor a wall, and
+               asking for a material first would be asking which colour the thing you do not want should be. *@
+            @if (bucket.CanDisable)
             {
               <Chip Active="binding.Enabled" OnClick="() => ToggleBucket(bucket.Id)">
                 @(binding.Enabled ? "Painting" : "Off")
               </Chip>
             }
-            else if (!bucket.CanDisable)
+            else
             {
               <Badge Kind="dim">always paints</Badge>
             }
           </Actions>
           <ChildContent>
             <p class="section-desc">@bucket.Blurb</p>
-            <div class="lib-bind">
-              <select class="field-input field-input--slim" value="@binding.StyleId"
-                      @onchange="e => BindStyle(bucket.Id, e)">
-                <option value="0">(built-in default)</option>
-                @foreach (var group in StylesByKind)
-                {
-                  <optgroup label="@MaterialKind.NameOf(group.Key)" @key="group.Key">
-                    @foreach (var style in group) { <option value="@style.Id">@style.Name</option> }
-                  </optgroup>
-                }
-              </select>
-              @if (StyleOf(binding.StyleId) is { } bound)
-              {
-                <span class="lib-bind-swatch">@((MarkupString)bound.Preview)</span>
-              }
-            </div>
-            @if (bucket.HasDepth && binding.StyleId != 0)
+            @if (binding.Enabled)
             {
-              <Field Label="Courses deep">
-                <input class="field-input field-input--slim" type="number" min="1" step="1"
-                       value="@binding.Depth" @onchange="e => SetDepth(bucket.Id, e)" />
-              </Field>
+              <div class="lib-bind">
+                <select class="field-input field-input--slim" value="@binding.StyleId"
+                        @onchange="e => BindStyle(bucket.Id, e)">
+                  <option value="0">(built-in default)</option>
+                  @foreach (var group in StylesByKind)
+                  {
+                    <optgroup label="@MaterialKind.NameOf(group.Key)" @key="group.Key">
+                      @foreach (var style in group) { <option value="@style.Id">@style.Name</option> }
+                    </optgroup>
+                  }
+                </select>
+                @if (StyleOf(binding.StyleId) is { } bound)
+                {
+                  <span class="lib-bind-swatch">@((MarkupString)bound.Preview)</span>
+                }
+              </div>
+              @if (bucket.HasDepth && binding.StyleId != 0)
+              {
+                <Field Label="Courses deep">
+                  <input class="field-input field-input--slim" type="number" min="1" step="1"
+                         value="@binding.Depth" @onchange="e => SetDepth(bucket.Id, e)" />
+                </Field>
+              }
             }
-            @if (binding.StyleId != 0 && !binding.Enabled)
+            else
             {
               <p class="section-desc">Off — its blocks fall through to @bucket.FallsTo.</p>
             }
@@ -131,9 +139,12 @@
           </div>
         </Field>
         <Field Label="Where the rim runs">
-          <Chip Active="draft.Closed" OnClick="ToggleClosed">
-            @(draft.Closed ? "Every plateau boundary" : "Only where the ground drops")
-          </Chip>
+          <select class="field-input field-input--slim" value="@draft.RimEdges" @onchange="SetRimEdges">
+            @foreach (var mode in RimEdgeModes.All)
+            {
+              <option value="@mode" @key="mode">@RimEdgeModes.LabelOf(mode)</option>
+            }
+          </select>
         </Field>
         <Field Label="Where the wall runs">
           <Chip Active="draft.WallOnTerrainFaces" OnClick="ToggleWallFaces">

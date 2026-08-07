@@ -38,21 +38,23 @@ public sealed class ThemeLibrary(ThemeStore store)
     }
 
     /// <summary>The theme a set of bindings composes to without any of it being saved — what a theme editor
-    /// previews while it is being assembled. A bucket the draft does not bind (or binds to a style this library
-    /// no longer holds) keeps the built-in finish, which is the composer's own fallback: a theme overrides the
-    /// buckets it names and leaves the rest alone.</summary>
+    /// previews while it is being assembled. A bucket bound to no style (or to one this library no longer
+    /// holds) keeps the built-in material, which is the composer's own fallback — but its depth and its toggle
+    /// still apply, so a preview shows the rim switched off without a rim material having been chosen.</summary>
     public async Task<TerrainTheme> ComposeDraftAsync(ThemeSaveRequest draft, CancellationToken ct = default)
     {
         var styles = (await store.GetStylesAsync(draft.Buckets.Select(b => b.StyleId), ct))
             .ToDictionary(style => style.Id);
         var bindings = draft.Buckets
-            .Where(binding => styles.ContainsKey(binding.StyleId))
-            .Select(binding => new ThemeStyleBinding(
-                ToBucket(binding.Bucket), styles[binding.StyleId].Kind, styles[binding.StyleId].Params,
-                binding.Depth, binding.Enabled))
+            .Select(binding =>
+            {
+                var style = styles.GetValueOrDefault(binding.StyleId);
+                return new ThemeStyleBinding(
+                    ToBucket(binding.Bucket), style?.Kind, style?.Params, binding.Depth, binding.Enabled);
+            })
             .ToList();
         return TerrainThemeComposer.Compose(new DecomposedTheme(
-            draft.BedrockRelative, draft.BedrockValue, draft.Closed, draft.WallOnTerrainFaces, bindings));
+            draft.BedrockRelative, draft.BedrockValue, ToRimEdges(draft.RimEdges), draft.WallOnTerrainFaces, bindings));
     }
 
     /// <summary>Decompose a whole theme JSON into the library: one style per bucket (named
@@ -65,8 +67,12 @@ public sealed class ThemeLibrary(ThemeStore store)
         foreach (var binding in decomposed.Buckets)
         {
             var bucketName = FromBucket(binding.Bucket);
-            var styleId = await store.CreateStyleAsync(
-                new StyleRow { Name = $"{name} · {bucketName}", Kind = binding.Kind, Params = binding.MaterialJson }, ct);
+            // A binding that names no material makes no style: there is nothing to save and nothing to reuse,
+            // and the binding's depth and toggle are the whole of what it says.
+            long? styleId = binding is { Kind: { } kind, MaterialJson: { } material }
+                ? await store.CreateStyleAsync(
+                    new StyleRow { Name = $"{name} · {bucketName}", Kind = kind, Params = material }, ct)
+                : null;
             buckets.Add(new ThemeBucketRow { Bucket = bucketName, StyleId = styleId, Depth = binding.Depth, Enabled = binding.Enabled });
         }
 
@@ -74,21 +80,38 @@ public sealed class ThemeLibrary(ThemeStore store)
         {
             Name = name,
             BedrockRelative = decomposed.BedrockRelative, BedrockValue = decomposed.BedrockValue,
-            Closed = decomposed.Closed, WallOnTerrainFaces = decomposed.WallOnTerrainFaces,
+            RimEdges = FromRimEdges(decomposed.RimEdges), WallOnTerrainFaces = decomposed.WallOnTerrainFaces,
         };
         return await store.CreateThemeAsync(themeRow, buckets, ct);
     }
 
-    private static TerrainTheme Compose(ThemeRow theme, IReadOnlyList<(ThemeBucketRow Bucket, StyleRow Style)> bindings)
+    private static TerrainTheme Compose(ThemeRow theme, IReadOnlyList<(ThemeBucketRow Bucket, StyleRow? Style)> bindings)
     {
         var styleBindings = bindings
             .Select(binding => new ThemeStyleBinding(
-                ToBucket(binding.Bucket.Bucket), binding.Style.Kind, binding.Style.Params,
+                ToBucket(binding.Bucket.Bucket), binding.Style?.Kind, binding.Style?.Params,
                 binding.Bucket.Depth, binding.Bucket.Enabled))
             .ToList();
         return TerrainThemeComposer.Compose(new DecomposedTheme(
-            theme.BedrockRelative, theme.BedrockValue, theme.Closed, theme.WallOnTerrainFaces, styleBindings));
+            theme.BedrockRelative, theme.BedrockValue, ToRimEdges(theme.RimEdges), theme.WallOnTerrainFaces,
+            styleBindings));
     }
+
+    // The stored / wire rim-edge word (RimEdgeModes.*) ↔ the painter's RimEdges enum. An unknown word reads as
+    // the default rather than throwing, the same tolerance every other hand-editable vocabulary gets.
+    internal static RimEdges ToRimEdges(string? mode) => RimEdgeModes.Canonical(mode) switch
+    {
+        RimEdgeModes.Void => RimEdges.Void,
+        RimEdgeModes.Boundary => RimEdges.Boundary,
+        _ => RimEdges.Drop,
+    };
+
+    internal static string FromRimEdges(RimEdges edges) => edges switch
+    {
+        RimEdges.Void => RimEdgeModes.Void,
+        RimEdges.Boundary => RimEdgeModes.Boundary,
+        _ => RimEdgeModes.Drop,
+    };
 
     // The stored bucket string (ThemeBuckets.*) ↔ the painter's TerrainBucket enum.
     private static TerrainBucket ToBucket(string bucket) => bucket switch

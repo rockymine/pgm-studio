@@ -11,7 +11,9 @@ public sealed record StyleDto(long Id, string Name, string Kind, string Params, 
 public sealed record StyleSaveRequest(string Name, string Kind, string Params);
 
 /// <summary>One bucket binding of a theme (<see cref="ThemeBuckets"/>): the style that fills it, and the
-/// bucket's depth (rim/surface) and toggle.</summary>
+/// bucket's depth (rim/surface) and toggle. <paramref name="StyleId"/> 0 binds no style — the bucket keeps the
+/// built-in material and the binding carries only its depth and its toggle, which is how a theme says "no
+/// rim" without first being made to choose a rim material.</summary>
 public sealed record ThemeBucketDto(string Bucket, long StyleId, int Depth, bool Enabled);
 
 /// <summary>One row in the theme library list (GET /api/themes), with the sample plateau the theme finishes —
@@ -22,14 +24,14 @@ public sealed record ThemeSummary(long Id, string Name, string Preview);
 /// painter-ready JSON is served separately at GET /api/themes/{id}/json (assembled through the styles).</summary>
 public sealed record ThemeDetail(
     long Id, string Name,
-    bool BedrockRelative, int BedrockValue, bool Closed, bool WallOnTerrainFaces,
+    bool BedrockRelative, int BedrockValue, string RimEdges, bool WallOnTerrainFaces,
     IReadOnlyList<ThemeBucketDto> Buckets);
 
 /// <summary>Create or replace a theme built from existing styles (POST /api/themes, PUT /api/themes/{id}): the
 /// knobs plus the bucket→style bindings.</summary>
 public sealed record ThemeSaveRequest(
     string Name,
-    bool BedrockRelative, int BedrockValue, bool Closed, bool WallOnTerrainFaces,
+    bool BedrockRelative, int BedrockValue, string RimEdges, bool WallOnTerrainFaces,
     IReadOnlyList<ThemeBucketDto> Buckets);
 
 /// <summary>Import a whole theme JSON into the library (POST /api/themes/import): the painter's theme JSON is
