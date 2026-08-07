@@ -120,10 +120,15 @@
                       @onclick='() => SetTool("measure")'><i data-lucide="ruler"></i></button>
               <button class="draw-tool-btn @(tool == "split" ? "draw-tool-btn--active" : null)" title="Split (click two points to slice a shape in two along the line)"
                       @onclick='() => SetTool("split")'><i data-lucide="scissors"></i></button>
-              <button class="draw-tool-btn @(op == "add" ? "draw-tool-btn--op-add" : null)" title="Add — shapes build land"
-                      @onclick='() => SetOperation("add")'><i data-lucide="plus"></i><span class="draw-tool-label">Add</span></button>
-              <button class="draw-tool-btn @(op == "subtract" ? "draw-tool-btn--op-sub" : null)" title="Subtract — shapes carve land away"
-                      @onclick='() => SetOperation("subtract")'><i data-lucide="minus"></i><span class="draw-tool-label">Sub</span></button>
+              @* What a drawn shape does to the land is not a sibling of the tool that draws it, so it is not
+                 another square icon button in this row: a rule separates it, and it is one pill that names
+                 the mode it is in and flips to the other when clicked. *@
+              <span class="subbar-sep"></span>
+              @* A word and a colour, no icon: every other control in this strip is a glyph, so the one that is
+                 not reads as the different kind of thing it is — and a lucide glyph is swapped in once at
+                 mount, so an icon that changed with the mode would go stale on the first click. *@
+              <button class="op-pill op-pill--@(Carving ? "carve" : "build") @(DrawToolActive ? null : "op-pill--inert")"
+                      title="@OpTitle" aria-pressed="@Carving" @onclick="ToggleOperation">@(Carving ? "Carve" : "Build")</button>
               }
             </div>
             <div @ref="coordsRef" class="canvas-cursor"></div>

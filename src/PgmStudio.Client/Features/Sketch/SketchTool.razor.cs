@@ -81,6 +81,25 @@ public partial class SketchTool
     // The select tool edits as well as selects in Draw; in the Theme phase it only selects, so it says so.
     private string SelectToolTitle => ScopeApplyActive ? "Select" : "Select / edit";
 
+    /// <summary>The tools that make a shape, and so the only ones the operation decides anything for. Measure
+    /// reads, split cuts what is already there, and move/select do not draw at all — with one of those armed
+    /// the operation is set but idle, which is what the pill dims to say.</summary>
+    private static readonly string[] DrawTools = ["rectangle", "polygon", "lasso"];
+
+    private bool DrawToolActive => DrawTools.Contains(tool);
+
+    private bool Carving => op == "subtract";
+
+    // The operation is a property of what is about to be drawn, so the control names what the next shape will
+    // do rather than naming the set operation — and it is one control showing one state, not a pair of them
+    // showing the same state twice.
+    private string OpTitle =>
+        (Carving ? "Carving — the next shape cuts land away. Click to build instead."
+                 : "Building — the next shape adds land. Click to carve instead.")
+        + (DrawToolActive ? "" : " Applies once a rectangle, polygon or lasso is armed.");
+
+    private Task ToggleOperation() => SetOperation(Carving ? "add" : "subtract");
+
     // The same toggle shows the bare voxelization while drawing and the paint on top of it once theming.
     private string BlocksChipTitle => ScopeApplyActive
         ? "Show the blocks the export places — the rasterized footprint painted by its themes"

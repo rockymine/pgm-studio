@@ -195,7 +195,10 @@
 .sideview-canvas { width: 100%; height: 100%; display: block; }
 
 /* subbar separator */
-.subbar-sep { width: 1px; height: 16px; background: var(--border); flex-shrink: 0; }
+.subbar-sep { width: 1px; height: 16px; background: var(--border); flex-shrink: 0; align-self: center; }
+/* Inside the tool row the rule separates groups rather than sitting between strips, so it needs the breathing
+   room the row's own 2px gap does not give it. */
+.canvas-toolbar .subbar-sep { margin: 0 6px; }
 
 /* layer toggle item */
 .layer-item {
@@ -230,26 +233,39 @@
   color: var(--accent-light);
 }
 /*
- * Operation mode toggle — used in the sketch draw toolbar for Add / Subtract.
- * Visually identical to .draw-tool-btn--active but coloured by operation so the
- * active operation is always distinguishable from the active draw tool.
- * Add an icon + <span class="draw-tool-label"> inside the button for the text label.
+ * The operation pill — what a drawn shape does to the land, Build or Carve.
+ *
+ * It is deliberately not a .draw-tool-btn. The operation is a property of what is about to be drawn, not a
+ * sibling of the tool that draws it, and rendering it as two more square icon buttons in the same row made
+ * the most destructive state in the editor the least legible: drawing a carve where a build was meant is the
+ * classic mistake in a boolean editor, and the only persistent signal was one of nine identical boxes being
+ * tinted. One capsule, ruled off from the tools, naming the mode it is in and coloured the way the canvas
+ * fills it — and the toolbar is one control shorter than it was, because a two-state thing needs one button.
  */
-.draw-tool-btn--op-add {
-  background: color-mix(in oklch, var(--canvas-add-fill) 13%, transparent);
-  border-color: var(--canvas-add-fill);
+.op-pill {
+  flex-shrink: 0;
+  padding: 3px 11px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+}
+/* Armed but idle: the tool in hand does not draw, so the operation decides nothing until one that does is
+   picked. Dimmed rather than disabled — setting it before reaching for a tool is a reasonable order to work in. */
+.op-pill--inert { opacity: 0.45; }
+.op-pill--build {
+  background: color-mix(in oklch, var(--canvas-add-fill) 15%, transparent);
+  border-color: color-mix(in oklch, var(--canvas-add-fill) 55%, transparent);
   color: var(--canvas-add-fill);
 }
-.draw-tool-btn--op-sub {
-  background: color-mix(in oklch, var(--canvas-sub-fill) 13%, transparent);
-  border-color: var(--canvas-sub-fill);
+.op-pill--carve {
+  background: color-mix(in oklch, var(--canvas-sub-fill) 15%, transparent);
+  border-color: color-mix(in oklch, var(--canvas-sub-fill) 55%, transparent);
   color: var(--canvas-sub-fill);
 }
-.draw-tool-label {
-  font-size: var(--font-sm);
-  margin-left: 3px;
-  user-select: none;
-}
+.op-pill:hover:not(.op-pill--inert) { background: color-mix(in oklch, currentColor 26%, transparent); }
 
 /* ── NAV RAIL ── */
 .nav-rail {

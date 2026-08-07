@@ -83,11 +83,11 @@ highlight); these are the parked / dormant / deferred slices.
   **angle/parallel** snapping (rotate a shape so its edges run parallel to another's — "hold two lanes
   parallel"), and **manually droppable** guide lines shapes snap to (vs the current auto-from-shapes). Both
   are their own work; park until needed.
-- [ ] **S12 — Pin the Islands tree to the top of the sketch sidebar (UI polish, parked).** The residual weight
-  above **Islands** is the **Layers** panel + the 12-tile **Library** palette. Collapse both behind `<details>`
-  accordions (Library default-collapsed once the map has shapes), or move the Library to a toolbar popover (it's a
-  "reach for a primitive" action, not persistent state). (`docs/sketch-tool-ux-review.md` P0#1;
-  `docs/contracts/sketch-creation-flow.md` follow-on.)
+- [ ] **S12 — Pin the Islands tree to the top of the sketch sidebar (UI polish, parked).** Most of the weight
+  the review named is gone: the shape palette was retired outright and Setup moved into its own Info phase, so
+  the only panel still above **Islands** is **Layers**. Collapse it behind a `<details>` accordion, or pin the
+  tree above it — the tree is read on every edit and the layer list is set once. (`docs/sketch-tool-ux-review.md`
+  P0#1; `docs/contracts/sketch-creation-flow.md` follow-on.)
 
 ## Editor & canvas infrastructure (C / CV)
 

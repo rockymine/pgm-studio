@@ -13,6 +13,12 @@ The Sketch tool is genuinely well-engineered and the recent depth pass (height, 
 
 ## Top issues (prioritized)
 
+> **Two of the findings below have since been acted on, and the code they describe has moved. The
+> add/subtract P0 is fixed (`FEATURES.md`, S37): the operation is now one ruled-off pill that names its mode
+> and flips on click, which leaves the strip a control shorter. The sidebar P0 is most of the way there —
+> the shape palette was retired outright and Setup moved into its own Info phase, so what remains above the
+> island tree is the Layers panel alone (`BACKLOG.md`, S12). Everything else stands as written.**
+
 ### P0 — Left sidebar is a single overloaded scroll column; the island tree is unreachable
 `SketchEditor.razor:34-78` stacks Setup (1 select + 5 number/select fields), `SketchLayers`, `SketchLibrary` (a 13-item 4-col grid + two help paragraphs), and `SketchPanel` (the island tree) into one `workspace-scroll` at a fixed `--sidebar-width: 280px` (`tokens.css:116`). The island tree — the live structural view you reference on every edit — is *last*, below ~6 form fields, a layer list, and the entire palette. On any normal viewport it's scrolled out of sight.
 

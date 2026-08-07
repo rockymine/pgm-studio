@@ -2578,6 +2578,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   vertical wall bands are `LayeredMaterial`. All deterministic (hashed from a seed + cell, no RNG) and nesting —
   a pattern entry can be a team tint or another pattern. The whole theme serializes through **`TerrainThemeJson`**
   (one `kind` discriminator per material), closing the material model for the scoped-theming step. (G157)
+- **Build / Carve is one control (S37).** Which way a drawn shape goes was two square icon buttons in a row
+  of nine, tinted when active — a visual peer of the tool that draws rather than a property of what is about
+  to be drawn, which made the most destructive state in the editor the least legible. It is now **one pill**,
+  ruled off from the tool group, that names the mode it is in and flips to the other when clicked, coloured
+  the way the canvas fills that operation. The strip therefore ends up **one control shorter** than it was: a
+  two-state thing needs one button, and a toolbar this dense cannot afford a second copy of anything. No
+  icon — every other control there is a glyph, so the one that is not reads as the different kind of thing it
+  is, and a lucide glyph is swapped in once at mount, so an icon that changed with the mode would go stale on
+  the first click. It dims when the tool in hand does not draw (rather than disabling — setting the operation
+  before reaching for a tool is a reasonable order to work in). The wire words are untouched
+  (`add`/`subtract`); only the label changed, because it should say what the next shape does to the land
+  rather than name a set operation. The dead `.draw-tool-label` / `.draw-tool-btn--op-*` rules are gone and
+  the separator is the subbar's own `.subbar-sep` rather than a twin of it. Shown in the `/design` catalog and
+  gated by a new e2e spec (`tests/e2e/draw-tools.mjs`, 11 checks: exactly one operation control with nothing
+  else repeating its state, dimmed on move and measure, awake on rectangle, a click flipping it each way, and
+  the mode surviving a tool change). (`docs/sketch-tool-ux-review.md` P0#2)
 - **Area patterns carry a rise, so a wall is not a stripe (TP15, S35).** Every area pattern — both region
   patterns and all three field ones — gained a **`Rise`**: the vertical period of its field in blocks, or 0 for
   none. A pattern of the plane answers a whole column at once, so it decided the ground and left every wall face
