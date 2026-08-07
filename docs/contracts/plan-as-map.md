@@ -28,6 +28,25 @@ advance, so building one there originates the map. Since the built row keeps its
 `sketch_layout_json`, **reopen** (`routing-and-ia.md`) alternates between the two: the sketch from
 Configuring, and the plan it was compiled from once standing in the sketch.
 
+## What a rebuild keeps, and what it replaces
+
+Rebuilding is not free, because a map accumulates work its plan cannot state. The plan says where the
+ground is; the sketch says what the ground *looks like* — its terrain themes and the map default, the two
+bound room shells, and every prop the author placed. Writing a compiled layout straight over the stored one
+therefore replaced a finished map with bare stone, which is why the build writes through
+`PUT /api/map/{slug}/sketch/from-plan`: geometry comes from the compile, and the finish keys ride across
+(`SketchLayout.CarryFinish`). The sketch editor's own `PUT …/sketch` still replaces the blob verbatim —
+deleting a theme or the last prop has to stick.
+
+The **intent** is replaced outright, and that is the part to know before pressing build: the compiled
+intent is the plan's whole statement of teams, spawns, wools and build zones, so anything Configure added
+to those slices is overwritten by it.
+
+**Moving a map backwards does not rebuild it.** Reopen (`POST /api/map/{slug}/reopen`) moves the stage
+pointer and nothing else, and `POST …/sketch/finish` re-rasterizes the stored layout without touching the
+intent. So the safe round trip out of Configuring and back is *reopen → finish*; compiling is for when the
+plan itself has changed.
+
 ## Consequences
 - Plan **name + authors** reuse the map-metadata endpoint (like sketch); the C27 Plan phase-model slice
   becomes "it's just a map."
@@ -39,6 +58,8 @@ Configuring, and the plan it was compiled from once standing in the sketch.
   + `plan_source_id`; returns `{ slug }`.
 - `GET /api/map/{slug}/plan` — the stored plan blob (or `{}` when absent).
 - `PUT /api/map/{slug}/plan` — replace the plan blob.
+- `PUT /api/map/{slug}/sketch/from-plan` — write a compiled layout as the map's sketch, carrying its
+  existing finish onto it. The build path's layout write.
 
 ## Sequencing
 Backend first (migration + endpoints, curl-verified), then `PlanTool` on `/maps/{slug}/plan`

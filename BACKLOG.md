@@ -174,6 +174,17 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   separate.
 ## Backend, pipeline & internals (B / P / A)
 
+- [ ] **B52 — Rebuilding from a plan still replaces the whole intent.** The layout side of the build now
+  carries a map's finish across a recompile (B49, `FEATURES.md`); the intent side does not. `CreateDraft`
+  PUTs the compiled intent verbatim, and the compiler writes `Meta.Authors = []` and no `IslandTeams` or
+  `Symmetry` at all — none of which a plan can state. So pressing **Build draft** on a map that has been
+  through Configure drops its author list, its island→team assignments and its confirmed symmetry, in the
+  same click that used to drop its theming. The fix has the same shape and the same seam: a merge of the
+  slices Configure owns onto the compiled intent, at the intent write. What needs deciding first is the
+  boundary — teams, spawns, wools and build zones are genuinely the plan's and *should* be replaced, so the
+  carried set is exactly the slices the compiler leaves empty, and that set has to be written down rather
+  than inferred from what happens to be null on the day.
+
 - [~] **B44 — Theme + style library: the map's applied theme is still an inline blob.** The tables, the HTTP
   surface, the `/library` page and the sketch's pull/push bridge all shipped (`FEATURES.md`); two slices
   remain. **(1) Apply-as-snapshot** — a map's *applied* theme is still the sketch document's own registry, so

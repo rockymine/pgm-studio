@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace PgmStudio.Pgm.Sketch;
@@ -43,6 +44,42 @@ public sealed class SketchLayout
 
     public string ToJson() => JsonSerializer.Serialize(this, Json);
     public static SketchLayout? Parse(string json) => JsonSerializer.Deserialize<SketchLayout>(json, Json);
+
+    /// <summary>The keys that hold a map's finish rather than its shape: the terrain-theme registry and the
+    /// map default, the two bound room shells, and every placed prop. A plan states where the ground is and
+    /// nothing about how it looks, so a layout compiled from one carries none of them.</summary>
+    public static readonly string[] FinishKeys = ["themes", "mapTheme", "roomStyles", "dressing"];
+
+    /// <summary>
+    /// A freshly compiled layout with the finish of the layout the map already holds carried onto it.
+    /// Geometry always comes from <paramref name="compiledJson"/> — that is the point of recompiling — but a
+    /// plain replace would also drop every <see cref="FinishKeys">finish key</see>, because a plan cannot
+    /// express one and the compiler therefore never writes one. Rebuilding a themed, dressed map from its
+    /// plan would strip it back to bare stone; this keeps the theming while the board underneath it changes.
+    /// <para>Only the compile path merges. The sketch editor's own save replaces the blob verbatim, which is
+    /// what lets an author delete a theme or the last prop and have the deletion stick.</para>
+    /// </summary>
+    public static string CarryFinish(string compiledJson, string? storedJson)
+    {
+        if (string.IsNullOrWhiteSpace(storedJson)) return compiledJson;
+        JsonNode? compiled, stored;
+        try { compiled = JsonNode.Parse(compiledJson); stored = JsonNode.Parse(storedJson); }
+        catch (JsonException) { return compiledJson; }
+        if (compiled is not JsonObject target || stored is not JsonObject source) return compiledJson;
+
+        // An explicit null counts as absent, not as a stated empty finish: the compiler's layout is serialized
+        // from a typed model that writes every property, so it arrives carrying `"dressing": null` rather than
+        // no dressing key at all, and a plain ContainsKey test would decide the finish had already been spoken
+        // for and carry nothing.
+        var carried = false;
+        foreach (var key in FinishKeys)
+            if (target[key] is null && source[key] is { } value)
+            {
+                target[key] = value.DeepClone();
+                carried = true;
+            }
+        return carried ? target.ToJsonString(Json) : compiledJson;
+    }
 }
 
 /// <summary>The two room-style snapshots a map binds: the shell every wool cage is stamped with, and the one

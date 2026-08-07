@@ -79,6 +79,19 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   of a document the database also holds can only ever disagree with it. The three keys that remain (overlay
   chips, height-map fill, surface stepper) are UI preferences about this browser, not documents claiming to
   be the plan. Accepted consequence: unsaved work is lost on reload.
+- **A rebuild changes the ground, not the finish (B49).** Building a plan onto its own map row wrote the
+  compiled layout straight over the stored one — and a compiled layout is the board and nothing else. The
+  keys a sketch accumulates on top of it (`themes`, `mapTheme`, `roomStyles`, `dressing`) have no
+  representation in a plan, so the compiler never writes one, and a themed, dressed map recompiled after any
+  plan edit came back as bare stone with every placed prop gone. The build now writes through
+  **`PUT /api/map/{slug}/sketch/from-plan`**, which carries those four keys from the layout the map already
+  holds onto the freshly compiled one (`SketchLayout.CarryFinish`) — a null on the incoming layout reads as
+  absent, since the typed model spells every property out. The sketch editor's own `PUT …/sketch` still
+  replaces verbatim, which is what lets deleting a theme or the last prop stick. Moving a map *backwards*
+  never rebuilt it in the first place: **reopen** (S35) moves the stage pointer alone, and
+  `POST …/sketch/finish` re-rasterizes the stored layout without touching the intent, so *reopen → finish* is
+  the round trip out of Configuring and back. Compiling replaces the intent outright and is for when the plan
+  itself has changed. `plan-as-map.md` §"What a rebuild keeps, and what it replaces".
 - **Plan editor entry on the landing** — the studio landing (`/`) leads with a featured *Plan a
   layout* origin card (author a coarse cell-grid seed → compile straight into a sketch draft), set
   above a labelled `or work a map through its stages` divider from the three lifecycle cards; the
@@ -1351,7 +1364,6 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   seed carries the authored intent (spawn/wool-room roles, an in-spawn iron marker, wall marks on the two
   elevation seams). Pgm 234 / Minecraft 49 tests green; end-to-end world round-trip in Api.Tests reads the
   stamped block ids back. (G23)
-
 - **The seed corpus — twelve author plans with honest player counts (rules v3 frozen)** — ten
   authored seeds + the real-map trace (`big-board-…-parallel-mid`, parallel mid, 30/team) +
   `mirror-tiny-map-cliff` (5/team, `mirror_z`, sub-base palette 3–7, the axis-spanning Δ6 mid

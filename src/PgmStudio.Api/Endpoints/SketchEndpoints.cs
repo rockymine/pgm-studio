@@ -162,6 +162,32 @@ public sealed class SketchPutEndpoint(MapRepository repo, PgmDb db) : EndpointWi
     }
 }
 
+/// <summary>PUT /api/map/{slug}/sketch/from-plan — replace the stored layout with one a plan compiled,
+/// carrying the map's existing finish onto it (<see cref="SketchLayout.CarryFinish"/>). The plan owns the
+/// board; the sketch owns its themes, room shells and dressing, and a plan cannot express any of those — so
+/// the compile path merges where <see cref="SketchPutEndpoint"/> replaces. Rebuilding a themed map from its
+/// plan used to hand back bare stone.</summary>
+public sealed class SketchFromPlanEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+{
+    public override void Configure() { Put("/map/{slug}/sketch/from-plan"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
+        if (map is null) { await Send.NotFoundAsync(ct); return; }
+
+        using var reader = new StreamReader(HttpContext.Request.Body);
+        var compiled = await reader.ReadToEndAsync(ct);
+        try { using var _ = JsonDocument.Parse(compiled); }   // reject non-JSON; don't store garbage
+        catch { await Send.ResponseAsync(new { error = "invalid JSON" }, 400, ct); return; }
+
+        var stored = await SketchStore.LoadAsync(db, map.Id, ct);
+        var merged = SketchLayout.CarryFinish(compiled, stored is null ? null : Encoding.UTF8.GetString(stored));
+        await SketchStore.SaveAsync(db, map.Id, Encoding.UTF8.GetBytes(merged), ct);
+        await Send.OkAsync(new { ok = true }, ct);
+    }
+}
+
 /// <summary>POST /api/map/{slug}/sketch/paint — the sketch's terrain paint as a palette-indexed block-pixel
 /// payload (<c>xs</c>/<c>zs</c>/<c>palette</c>/<c>color_idx</c> + bounds), which the client expands into the
 /// <c>colors</c> array the block-overlay bitmap path already decodes (finishing-model.md §4). The body is the <em>live</em> layout — the
