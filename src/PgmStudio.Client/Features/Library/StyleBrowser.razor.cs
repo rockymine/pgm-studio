@@ -69,12 +69,15 @@ public partial class StyleBrowser
     private void ClearKinds() => kindFilter.Clear();
 
     // ── the rail ───────────────────────────────────────────────────────────────────────────────────
-    private async Task StartNew(string kind)
+    /// <summary>Open the rail on a style that is not in the library yet. It starts as a solid because a solid
+    /// is the one kind that needs no explanation to read; the editor's kind dropdown rewrites it into any of
+    /// the nine, which is the same control that reads a saved style's kind back.</summary>
+    private async Task StartNew()
     {
         editingId = null;
         draftName = "";
         note = null;
-        draft = ThemeFields.NewMaterial(kind);
+        draft = ThemeFields.NewMaterial(MaterialKind.Solid);
         await Preview();
     }
 

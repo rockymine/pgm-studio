@@ -6,41 +6,38 @@
 
 <div class="lib-body">
   <aside class="lib-filters">
-    <Section Title="Kind">
-      <p class="section-desc">What the material varies by. A style is browsed by kind because that is the
-        question an author starts from — "show me every voronoi".</p>
-      <div class="filter-group-options">
-        @foreach (var (id, name) in MaterialKind.All)
-        {
-          <Chip Active="kindFilter.Contains(id)" @key="id" OnClick="() => ToggleKind(id)">
-            @name<span class="filter-chip-n">@CountOf(id)</span>
-          </Chip>
-        }
-      </div>
+    @* Every library tab starts a new thing the same way: this button, then the rail, where the name and
+       everything else about it is filled in. A kind is picked from the editor's own dropdown, which shows
+       all nine and reads them back — a row of chips that had to be clicked to mean anything did not say it
+       was a way in at all, and read as a second set of filters under the first. *@
+    <Button Full Variant="primary" Icon="plus" OnClick="StartNew">New style</Button>
+
+    <Section Title="Filters">
+      <HelpNote Title="Why a style is browsed by kind">What the material varies by. A style is browsed by kind
+        because that is the question an author starts from — "show me every voronoi".</HelpNote>
+      <Field Label="Kind">
+        <div class="filter-group-options">
+          @foreach (var (id, name) in MaterialKind.All)
+          {
+            <Chip Active="kindFilter.Contains(id)" @key="id" OnClick="() => ToggleKind(id)">
+              @name<span class="filter-chip-n">@CountOf(id)</span>
+            </Chip>
+          }
+        </div>
+      </Field>
       @if (kindFilter.Count > 0)
       {
         <Button Full OnClick="ClearKinds">Clear filters</Button>
       }
     </Section>
-
-    <Section Title="New style">
-      <p class="section-desc">Start one of each kind from a default that shows what the kind does, then edit it
-        in the rail and save.</p>
-      <div class="filter-group-options">
-        @foreach (var (id, name) in MaterialKind.All)
-        {
-          <Chip @key="@($"new-{id}")" OnClick="() => StartNew(id)">@name</Chip>
-        }
-      </div>
-    </Section>
   </aside>
 
   <main class="lib-main">
-    <p class="lib-intro">
+    <HelpNote Title="What a style is">
       A style is one named material recipe — a solid block, a layer stack, a team tint or one of the patterns —
       and it is the unit a theme reuses. Each card shows the style rendered through the real painter and the
       export's own palette, so the picture is the paint that will land.
-    </p>
+    </HelpNote>
 
     @if (loading) { <p class="lib-status">Reading the library…</p> }
     else
@@ -63,7 +60,7 @@
         }
       </div>
       @if (Shown.Count == 0 && styles.Count > 0) { <p class="lib-status">No style of that kind yet.</p> }
-      @if (styles.Count == 0) { <p class="lib-status">The library is empty — start a style on the left.</p> }
+      @if (styles.Count == 0) { <p class="lib-status">The library is empty — start one with <strong>New style</strong>.</p> }
     }
   </main>
 

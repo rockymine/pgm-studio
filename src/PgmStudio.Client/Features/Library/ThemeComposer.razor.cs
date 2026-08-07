@@ -37,7 +37,6 @@ public partial class ThemeComposer
     private IReadOnlyList<ThemeSummary> themes = [];
     private IReadOnlyList<StyleDto> styles = [];
     private bool loading = true;
-    private string newName = "";
     private string? note;
 
     /// <summary>The theme open in the rail, or null when nothing is. Null id = not in the library yet.</summary>
@@ -70,12 +69,12 @@ public partial class ThemeComposer
     private ThemeBucketDto Binding(string bucket)
         => draft!.Buckets.First(binding => binding.Bucket == bucket);
 
+    /// <summary>Open the rail on a theme that is not in the library yet. It is unnamed: the name is the
+    /// rail's first field, the same as a style's, and the save stays disabled until it is filled in.</summary>
     private async Task StartNew()
     {
-        if (string.IsNullOrWhiteSpace(newName)) return;
         editingId = null;
-        draftName = newName.Trim();
-        newName = "";
+        draftName = "";
         note = null;
         draft = EmptyDraft(draftName);
         await Preview();

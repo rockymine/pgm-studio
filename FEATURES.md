@@ -529,6 +529,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   room rails (their sample-figure captions, the per-bucket and per-part blurbs, the ground-and-edges and
   doorway notes) and the sketch Dressing inspector (paving · bank · rock · seed). (C37)
 
+- **One way to start a style, a theme or a room style (C38).** The three library tabs each invented their
+  own: styles offered a second row of chips under the Kind filter (clicking one *created* a style, which the
+  chips gave no sign of, and which read as a second set of filters), while themes and rooms asked for a name
+  in the sidebar behind an **+ Add** button before the rail would open — so a theme was half-created in two
+  places. All three now open the rail from one primary **New …** button at the top of the left rail, and the
+  rail's Name field is where the name goes; the save stays disabled until it is filled in. A style starts as a
+  solid and takes its kind from the editor's own dropdown, which is the same control that reads a saved
+  style's kind back. The styles rail's filter section is titled **Filters** with a *Kind* field under it, the
+  shape catalog's shape. (C38)
+
 ## Backend / API (B)
 - **The wire is dot-separated on every machine, in every country (B48).** Query, route and form values bind
   through a converter that reads the ambient culture, so on a comma-decimal host `?leader=0.55` arrived as
