@@ -86,7 +86,7 @@ try {
 
   await page.click('button:has-text("Compile")');
   await page.waitForSelector(".plan-compile-json", { timeout: 20000 });
-  await page.click('button:has-text("Build draft")');
+  await page.click('button:has-text("Build the map")');   // a first build — no rebuild confirmation
   // Scoped to the drawer: the Score panel uses the same class for "No rules fired".
   await page.waitForSelector(".plan-compile-draft .plan-lint-ok", { timeout: 90000 });
 

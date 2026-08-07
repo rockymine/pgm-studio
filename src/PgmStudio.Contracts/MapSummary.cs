@@ -26,3 +26,9 @@ public sealed record MapSummary(
 /// counts maps that <em>hold a sketch layer</em>, matching what the Sketches list shows; the other two count
 /// maps sitting at that stage, which is what those lists show.</summary>
 public sealed record MapStageCounts(int Sketch, int Configure, int Edit);
+
+/// <summary>Which authoring layers one map holds (GET /api/map/{slug}/layers) — the same four facts
+/// <see cref="MapSummary"/> carries per row, asked about a single map. A tool uses it to know whether an
+/// action of its own would land on work that already exists: the plan editor's build is an origination on a
+/// map with no <see cref="Sketch"/> or <see cref="World"/>, and a rebuild on one that has them.</summary>
+public sealed record MapLayers(bool Plan, bool Sketch, bool World, bool Intent);

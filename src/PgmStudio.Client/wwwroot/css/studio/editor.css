@@ -987,3 +987,20 @@ body.dashboard-page { overflow: hidden; }
 .plan-compile-draft { display: flex; flex-direction: column; gap: var(--space-2); }
 .plan-compile-draft a.action-btn { text-decoration: none; justify-content: center; }
 .plan-compile-draft-error { color: var(--color-error); }
+
+/* The rebuild confirmation: what a second build trades, said before it happens rather than discovered
+   after. Two marked lines — what goes, what stays — so the shape of the answer is readable at a glance. */
+.plan-rebuild-warn {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-md);
+  background: var(--color-warning-bg);
+}
+
+.plan-rebuild-list { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.plan-rebuild-list li { display: flex; align-items: flex-start; gap: var(--space-2); font-size: var(--font-sm); color: var(--text-secondary); }
+.plan-rebuild-mark { flex-shrink: 0; display: flex; margin-top: 1px; }
+.plan-rebuild-mark i { width: 15px; height: 15px; }
+.plan-rebuild-mark--drop i { color: var(--color-warning); }
+.plan-rebuild-mark--keep i { color: var(--color-success); }

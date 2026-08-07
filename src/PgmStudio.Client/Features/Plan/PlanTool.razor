@@ -545,9 +545,34 @@
            originating a second one, so the label and the result name what actually happened. *@
         @if (draftSlug is null)
         {
-          <Button Variant="primary" Full Disabled="@(compiledLayout is null || draftBusy)" OnClick="CreateDraft">
-            @if (draftBusy) { <span>@draftStep…</span> } else { <span><i data-lucide="hammer"></i> @(MapBacked ? "Build draft" : "Create draft")</span> }
-          </Button>
+          @* Rebuilding a map someone has since worked on is a different act from originating one, and the
+             difference is invisible in the button. So the map says what it is about to trade before it
+             does it — replaced, kept, and nothing else. *@
+          @if (confirmingRebuild)
+          {
+            <div class="plan-rebuild-warn">
+              <p class="section-desc"><strong>This map already has a board.</strong> Rebuilding it from the plan:</p>
+              <ul class="plan-rebuild-list">
+                <li><span class="plan-rebuild-mark plan-rebuild-mark--drop"><i data-lucide="refresh-cw"></i></span>
+                  <span><strong>Replaces</strong> the terrain and islands, and the teams, spawns, wools and build zones — everything the plan states.</span></li>
+                <li><span class="plan-rebuild-mark plan-rebuild-mark--keep"><i data-lucide="check"></i></span>
+                  <span><strong>Keeps</strong> your terrain themes, room shells and placed dressing, and the map's authors.</span></li>
+              </ul>
+              <p class="section-desc">Anything you changed in Configure about the teams, spawns or wools is written over.</p>
+              <div class="ctrl-row">
+                <Button Full OnClick="CancelRebuild">Cancel</Button>
+                <Button Variant="danger" Full Disabled="@draftBusy" OnClick="BuildRequested">
+                  <i data-lucide="hammer"></i> Rebuild anyway
+                </Button>
+              </div>
+            </div>
+          }
+          else
+          {
+            <Button Variant="primary" Full Disabled="@(compiledLayout is null || draftBusy)" OnClick="BuildRequested">
+              @if (draftBusy) { <span>@draftStep…</span> } else { <span><i data-lucide="hammer"></i> @BuildLabel</span> }
+            </Button>
+          }
         }
         else
         {

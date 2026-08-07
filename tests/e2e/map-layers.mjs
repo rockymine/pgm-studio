@@ -87,5 +87,45 @@ try {
 }
 checks.add("the layer checks ran", drove, page.faults.slice(0, 3).join(" | "));
 
+// ── the build says which of the two things it is about to do ──────────────────────────────────────────
+checks.section("a rebuild asks; a first build does not");
+
+let asked = false;
+try {
+  // Standing in the plan of the already-built map from above: the same button now means "replace the board
+  // someone has been working on", so it states the trade instead of just doing it.
+  await page.click('button:has-text("Compile")');
+  await page.waitForSelector(".plan-compile-json", { timeout: 20000 });
+
+  const label = (await page.locator(".plan-compile-draft button").first().textContent()).trim();
+  checks.add("the button names a rebuild, not a build", label.includes("Rebuild this map"), label);
+
+  await page.click('button:has-text("Rebuild this map")');
+  await page.waitForSelector(".plan-rebuild-warn", { timeout: 5000 });
+  const warn = await page.locator(".plan-rebuild-warn").textContent();
+  checks.add("it names what is replaced", /Replaces/.test(warn) && /terrain/.test(warn), "board + structure");
+  checks.add("…and what is kept", /Keeps/.test(warn) && /themes/.test(warn) && /authors/.test(warn),
+    "themes, room shells, dressing, authors");
+
+  // Cancelling is a real exit, not a shrug: the map is untouched and the button is back.
+  await page.click('button:has-text("Cancel")');
+  await page.waitForSelector(".plan-rebuild-warn", { state: "detached", timeout: 5000 });
+  const untouched = find(await api("/maps?stage=configure"));
+  checks.add("cancelling rebuilds nothing", untouched != null && untouched.stage === "configure",
+    "the map is where it was");
+
+  // A plan that was never built has nothing to lose, so it is not interrupted.
+  await page.goto(`${BASE}/maps/${seed.planSlug}/plan`, { waitUntil: "networkidle" });
+  await page.waitForSelector(".map-canvas-svg", { timeout: 15000 });
+  await page.click('button:has-text("Compile")');
+  await page.waitForSelector(".plan-compile-json", { timeout: 20000 });
+  const first = (await page.locator(".plan-compile-draft button").first().textContent()).trim();
+  checks.add("a first build is offered plainly", first.includes("Build the map"), first);
+  asked = true;
+} catch (e) {
+  page.faults.push(`confirm: ${String(e).split("\n")[0]}`);
+}
+checks.add("the confirmation checks ran", asked, page.faults.slice(0, 3).join(" | "));
+
 await browser.close();
 checks.finish();

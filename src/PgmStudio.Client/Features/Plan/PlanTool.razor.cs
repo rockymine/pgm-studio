@@ -69,6 +69,24 @@ public partial class PlanTool
     private string draftStep = "";
     private string? draftError;
 
+    // What the open map already holds, so the build can tell an origination from a rebuild before it runs.
+    // A map with a sketch or a world has downstream work that the build replaces, which is worth saying
+    // out loud once rather than discovering afterwards; a plan that has never been built has nothing to
+    // lose and gets no interruption. Null until the fetch lands, and on the bare /plan-editor route, where
+    // there is no map to ask about.
+    private MapLayers? layers;
+    private bool confirmingRebuild;
+
+    private bool Rebuilds => layers is { } l && (l.Sketch || l.World);
+    private string BuildLabel => Rebuilds ? "Rebuild this map" : MapBacked ? "Build the map" : "Create draft";
+
+    private async Task LoadLayersAsync()
+    {
+        if (!MapBacked) { layers = null; return; }
+        try { layers = await Http.GetFromJsonAsync<MapLayers>($"api/map/{Slug}/layers"); }
+        catch { layers = null; }   // unreachable / not a map row → treat as a first build, never block one
+    }
+
     private string tool = "select";
     private string role = "piece";
     private string zoomLabel = "—";
@@ -620,10 +638,24 @@ public partial class PlanTool
     private async Task OpenCompile()
     {
         showCompile = true;
+        confirmingRebuild = false;
+        await LoadLayersAsync();   // re-read on open: a build in this session changes the answer
         await Compile();
     }
 
-    private void CloseCompile() => showCompile = false;
+    private void CloseCompile() { showCompile = false; confirmingRebuild = false; }
+
+    // The build button. On a map that already holds a sketch or a world it asks first, because the same
+    // click means two different things — originating the map, or replacing a board someone has since been
+    // working on — and only the second is worth a sentence.
+    private async Task BuildRequested()
+    {
+        if (Rebuilds && !confirmingRebuild) { confirmingRebuild = true; return; }
+        confirmingRebuild = false;
+        await CreateDraft();
+    }
+
+    private void CancelRebuild() => confirmingRebuild = false;
 
     // Post the current plan to /api/plan/compile. A 422 renders its structural findings in place of the JSON;
     // a 400 (malformed) / transport failure shows a message. A 200 stores the compiled pair for preview + the
@@ -744,6 +776,7 @@ public partial class PlanTool
             if (!await Ok(intentResp, "apply intent")) return;
 
             draftSlug = slug;
+            await LoadLayersAsync();   // the map now holds a sketch and a world — the next build is a rebuild
         }
         catch (Exception ex) { draftError = ex.Message; }
         finally { draftBusy = false; StateHasChanged(); }

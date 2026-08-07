@@ -111,6 +111,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   intent is already fanned across the orbit and the field is what switches `SymmetryExpander` on, which
   rebuilds the intent from a fixed property set that drops the structure directives (the hole is filed as
   B53 — refusing to carry the field is what keeps it unreachable). (B52)
+- **The build says which of the two things it is about to do (S39).** One button meant both *originate this
+  map* and *replace a board someone has since been working on*, and read the same either way. It now reads
+  the map first (`GET /api/map/{slug}/layers` → the four layer facts for one map, the per-map form of what
+  the list carries): a plan with no sketch and no world offers **Build the map** and runs; a map that has
+  both offers **Rebuild this map** and states the trade before doing it — *replaces* the terrain and islands
+  plus the teams, spawns, wools and build zones the plan states; *keeps* the terrain themes, room shells,
+  placed dressing and the map's authors. That list is not decoration: it is exactly what B49 and B52 made
+  true, so the sentence and the behaviour are the same fact. Cancel is a real exit, and a first build is
+  never interrupted — there is nothing to lose, and a confirmation that always fires is one nobody reads.
+  (`MapLayers`, `MapLayersEndpoint`, `PlanTool`, `.plan-rebuild-warn`; e2e `map-layers`) (S39)
 - **Plan editor entry on the landing** — the studio landing (`/`) leads with a featured *Plan a
   layout* origin card (author a coarse cell-grid seed → compile straight into a sketch draft), set
   above a labelled `or work a map through its stages` divider from the three lifecycle cards; the
