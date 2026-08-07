@@ -37,11 +37,6 @@ export function paintSketchShape(painter, shape, { selected = false, alpha = 1 }
   }
 }
 
-/** Ghost preview of a library item being placed — the (already world-positioned) shape specs, faded. */
-export function paintPlaceGhost(painter, specs) {
-  for (const spec of specs ?? []) paintSketchShape(painter, spec, { alpha: 0.55 });
-}
-
 // Human-readable kind word for a structural role (S25). Wool rooms read as "wool"; spawn stays "spawn".
 const STRUCT_KIND = { spawn: "spawn", woolRoom: "wool" };
 

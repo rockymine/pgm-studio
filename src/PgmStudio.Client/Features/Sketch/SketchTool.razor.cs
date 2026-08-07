@@ -124,7 +124,6 @@ public partial class SketchTool
     // Layout pushed from the bridge (OnLayout) + the current selection (OnShapeSelected/OnIslandSelected).
     private List<SketchIslandRow> islands = [];
     private List<SketchShapeRow> shapes = [];
-    private List<LibraryItem> libraryItems = [];
     private List<SketchLayerRow> layerRows = [];
     private string? activeLayerId;
     private string? selectedShapeId;
@@ -142,7 +141,6 @@ public partial class SketchTool
         if (!firstRender) return;
         selfRef = DotNetObjectReference.Create(this);
         handle = await JS.InvokeAsync<IJSObjectReference>("studio.mountSketch", svgRef, wrapRef, coordsRef, zoomRef, dimRef, selfRef, Slug);
-        try { libraryItems = await handle.InvokeAsync<List<LibraryItem>>("getLibrary"); StateHasChanged(); } catch { /* palette stays empty */ }
         // Restore the saved layout (empty {} for a fresh sketch); the bridge handles an empty state.
         try
         {
@@ -279,7 +277,6 @@ public partial class SketchTool
     private Task ToggleOverride(string id) => handle?.InvokeVoidAsync("toggleOverride", id).AsTask() ?? Task.CompletedTask;
     private Task DeleteShape(string id) => handle?.InvokeVoidAsync("deleteShape", id).AsTask() ?? Task.CompletedTask;
     private Task PromoteShape(string id) => handle?.InvokeVoidAsync("promoteShape", id).AsTask() ?? Task.CompletedTask;
-    private Task ArmPlace(string itemId) => handle?.InvokeVoidAsync("armPlace", itemId).AsTask() ?? Task.CompletedTask;
 
     // ── Layer panel actions (S7b) ──────────────────────────────────────────────
     private Task SelectLayer(string id) => handle?.InvokeVoidAsync("switchLayer", id).AsTask() ?? Task.CompletedTask;

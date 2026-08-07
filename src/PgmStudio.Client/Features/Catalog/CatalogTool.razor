@@ -106,16 +106,20 @@
     @if (probeOpen)
     {
       <aside class="lib-rail">
-        <div class="lib-rail-head">
-          <span class="lib-rail-title">Knob panel</span>
-          <button class="lib-rail-x" @onclick="CloseProbe" title="Close"><i data-lucide="x" @key="@("probe-x")"></i></button>
+        @* The emitted shape stays pinned: every knob below it is judged by what it does to that shape, so
+           scrolling to one must not take the shape off screen. *@
+        <div class="lib-rail-pin">
+          <div class="lib-rail-head">
+            <span class="lib-rail-title">Knob panel</span>
+            <button class="lib-rail-x" @onclick="CloseProbe" title="Close"><i data-lucide="x" @key="@("probe-x")"></i></button>
+          </div>
+          <div class="lib-fig @(probe?.Rejection is null ? null : "cat-probe-fig--refused")">
+            @if (probe?.Svg is { } svg) { @((MarkupString)svg) }
+            else { <span class="cat-probe-none">no shape</span> }
+          </div>
         </div>
 
-        <div class="lib-fig @(probe?.Rejection is null ? null : "cat-probe-fig--refused")">
-          @if (probe?.Svg is { } svg) { @((MarkupString)svg) }
-          else { <span class="cat-probe-none">no shape</span> }
-        </div>
-
+        <div class="lib-rail-body">
         @if (probe?.Rejection is { } rejection)
         {
           <div class="cat-probe-reject">
@@ -199,6 +203,7 @@
           Emitted through <code>BoxFiller</code>, so the profile check and the docking gate run exactly as they
           do in composition. A refusal is an answer, not an error — it is the emitter's own words.
         </p>
+        </div>
       </aside>
     }
   </div>

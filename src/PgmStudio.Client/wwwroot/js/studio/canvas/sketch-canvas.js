@@ -50,7 +50,7 @@ import { paintDressing } from "../render/dressing-render.js";
 import { orbitAxes, applySymmetry } from "../geometry/symmetry.js";
 import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
-  paintSketchShape, paintIslands, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintPlaceGhost, paintGhostIslands, paintRaster, paintStructural,
+  paintSketchShape, paintIslands, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintGhostIslands, paintRaster, paintStructural,
 } from "../render/sketch-render.js";
 import { rasterizeShapes, cellRuns } from "../geometry/rasterize.js";
 import { loadBlockImage, blockImageBounds } from "../render/block-render.js";
@@ -106,6 +106,10 @@ export class SketchCanvas extends CanvasBase {
   #dressingDoc = new DressingDoc();
   #dressing    = null;
   #dressingOn  = false;      // only the Dressing phase draws and edits props
+  // A placement hands the canvas back to select mid-press, so the click that finished it would arrive with
+  // select already active and be read as "pick the island under the cursor" — deselecting the prop just put
+  // down. This marks that click as spent. Cleared on the next press, so it can only ever swallow its own.
+  #placementClick = false;
 
   #shapesVisible = false;
   #mirrorVisible = true;
@@ -124,8 +128,6 @@ export class SketchCanvas extends CanvasBase {
   #dimEl     = null;
   #measure   = null;   // { ax, az, bx, bz, live } — the ruler measurement (drag across a void gap)
   #split     = null;   // { ax, az, bx, bz } — the first cut point (S14) + the cursor, awaiting the second click
-  #placeSpecs = null;  // library item being placed: shape specs centred at origin, awaiting a drop point
-  #placeAt    = null;  // where the cursor last was, so the placement ghost has somewhere to be drawn
   #guides     = { x: null, z: null };   // alignment guide lines drawn during a snapped move/resize
   #dragStartShape = null;  // snapshot of the grabbed shape at drag start (absolute snap-aware move, S9)
   #dragStartShapes = null; // id→snapshot of every member when body-dragging a whole island (S20)
@@ -178,6 +180,7 @@ export class SketchCanvas extends CanvasBase {
     this.#painter.resize(w, h);   // the backing store follows the box, and re-reads the pixel ratio
     this.#paintWorld();           // a bigger/smaller viewport shows more/less grid
     this.#edit?.refresh();
+    this.#dressing?.refreshHandles();
     this.#refreshCenter();
   }
 
@@ -191,16 +194,10 @@ export class SketchCanvas extends CanvasBase {
     this.#draw?.cancel();
     if (this._activeTool === "measure" && tool !== "measure") this.#clearMeasure();
     if (this._activeTool === "split" && tool !== "split") this.#clearSplit();
-    if (this._activeTool === "place" && tool !== "place") this.disarmPlace();
     this._activeTool = tool;
     const isDraw = tool !== null && tool !== "move" && tool !== "select";
     this._svg.style.cursor = isDraw ? "crosshair" : (tool === "select" ? "default" : "");
   }
-
-  // Arm placement of a library item (shape specs centred at origin) — enters "place" mode; the next
-  // canvas click drops them (translated to the click) via onPlace. Esc / a tool change disarms.
-  armPlace(specs) { this.#placeSpecs = specs ?? null; this.setActiveTool("place"); }
-  disarmPlace()   { this.#placeSpecs = null; this.#placeAt = null; this.#paintWorld(); }
 
   // addShape / updateShape are the single chokepoint through which every drawn, moved, resized, rotated,
   // scaled or vertex-edited shape reaches the stored map — so snapping here (S23) makes "shapes are
@@ -269,7 +266,12 @@ export class SketchCanvas extends CanvasBase {
   setGhostIslands(polys)     { this.#ghostPolys = polys ?? []; this.#paintWorld(); }
   setMirrorPolygons(polys)   { this.#mirrorPolys = polys ?? []; this.#renderSetup(); }
   /** Show and edit placed dressing — on for the Dressing phase, off everywhere else. */
-  setDressingMode(on) { this.#dressingOn = !!on; if (!on) this.#dressing?.cancel(); this.#paintWorld(); }
+  setDressingMode(on) {
+    this.#dressingOn = !!on;
+    if (!on) { this.#dressing?.cancel(); this.#dressing?.select(null); }
+    this.#dressing?.refreshHandles();
+    this.#paintWorld();
+  }
   setDressing(stored) { this.#dressingDoc = DressingDoc.from(stored); this.#dressing?.setDoc(this.#dressingDoc); this.#paintWorld(); }
   get dressing()      { return this.#dressingDoc; }
   get dressingTools() { return this.#dressing; }
@@ -333,19 +335,19 @@ export class SketchCanvas extends CanvasBase {
   _onIsoEnter() { this.#draw?.cancel(); }
   // What the preview covers: the painted world, the (inert) viewport group, and every screen-space overlay.
   _isoLayers() {
-    const { handles, center, drawHandles, measureLabel, islandChrome } = this.#screen;
-    return [this.#canvasEl, this._viewportG, handles, center, drawHandles, measureLabel, islandChrome];
+    const { handles, dressingHandles, center, drawHandles, measureLabel, islandChrome } = this.#screen;
+    return [this.#canvasEl, this._viewportG, handles, dressingHandles, center, drawHandles, measureLabel, islandChrome];
   }
 
   // ── CanvasBase hooks ───────────────────────────────────────────────────────────
 
-  _onViewportChanged() { this.#paintWorld(); this.#edit?.refresh(); this.#refreshCenter(); this.#draw?.refreshDrawHandles(); this.#renderMeasureLabel(); this.#renderIslandChrome(); }
+  _onViewportChanged() { this.#paintWorld(); this.#edit?.refresh(); this.#dressing?.refreshHandles(); this.#refreshCenter(); this.#draw?.refreshDrawHandles(); this.#renderMeasureLabel(); this.#renderIslandChrome(); }
   _onZoom(scale)       { if (this.#zoomEl) this.#zoomEl.textContent = `${Math.round(scale * 100)}%`; }
 
   _onToolMousedown(e, svgPt) {
     if (this._isoOn) return;   // iso preview is read-only
+    this.#placementClick = false;
     const bx = Math.floor(svgPt.x), bz = Math.floor(svgPt.y);
-    if (this._activeTool === "place") { if (this.#placeSpecs) this.#callbacks.onPlace?.(bx, bz); return; }
     if (this._activeTool === "measure") { this.#measure = { ax: bx, az: bz, bx, bz, live: true }; this.#renderMeasure(); this.#updateDim(); return; }
     if (this._activeTool === "split") { this.#onSplitClick(bx, bz); return; }
     if (this.#dressingOn && this.#dressing?.onMouseDown(bx, bz, this._activeTool)) return;
@@ -355,9 +357,7 @@ export class SketchCanvas extends CanvasBase {
   _onPointerMove(e, svgPt) {
     const bx = Math.floor(svgPt.x), bz = Math.floor(svgPt.y);
     if (this.#cursorEl) this.#cursorEl.textContent = `X ${bx}  Z ${bz}`;
-    if (this._activeTool === "place") {
-      if (this.#placeSpecs) { this.#placeAt = { bx, bz }; this.#paintWorld(); }
-    } else if (this._activeTool === "measure") {
+    if (this._activeTool === "measure") {
       if (this.#measure?.live) { this.#measure.bx = bx; this.#measure.bz = bz; this.#renderMeasure(); }
     } else if (this._activeTool === "split") {
       if (this.#split) { this.#split.bx = bx; this.#split.bz = bz; this.#paintWorld(); }
@@ -379,12 +379,17 @@ export class SketchCanvas extends CanvasBase {
   // Single-click selects the containing ISLAND (null = deselect); double-click drills to the shape (below).
   _onCanvasClick(e, svgPt) {
     if (this._isoOn) return;
+    if (this.#placementClick) { this.#placementClick = false; return; }
     this.#callbacks.onIslandSelected?.(this.#hitIsland(svgPt.x, svgPt.y));
   }
 
   _onMouseleave() { if (this.#cursorEl) this.#cursorEl.textContent = ""; this.#updateDim(); }
 
   _onResizeMove(e) {
+    if (this.#dressing) {
+      const p = this._clientToSvg(e.clientX, e.clientY);
+      if (this.#dressing.onHandleMove(p.x, p.y)) return true;
+    }
     if (this.#rotateState) { const p = this._clientToSvg(e.clientX, e.clientY); this.#rotateMove(p.x, p.y, e.shiftKey); return true; }
     if (this.#scaleState)  { const p = this._clientToSvg(e.clientX, e.clientY); this.#scaleMove(p.x, p.y, e.shiftKey, e.altKey); return true; }
     if (!this.#edit) return false;
@@ -392,6 +397,7 @@ export class SketchCanvas extends CanvasBase {
     return this.#edit.onResizeMove(p.x, p.y, e.altKey);
   }
   _onResizeUp(e) {
+    if (e.button === 0 && this.#dressing?.onHandleUp()) return true;
     if (this.#rotateState) { if (e.button !== 0) return false; this.#rotateState = null; return true; }
     if (this.#scaleState)  { if (e.button !== 0) return false; this.#scaleState = null; return true; }
     const consumed = e.button === 0 ? (this.#edit?.onResizeUp() ?? false) : false;
@@ -570,7 +576,6 @@ export class SketchCanvas extends CanvasBase {
     painter.layer("dressing",  () => this.#paintDressing(painter));
     painter.layer("draw",      () => this.#draw?.paint(painter));
     painter.layer("measure",   () => this.#paintMeasure());
-    painter.layer("place",     () => this.#paintPlaceGhost());
     painter.layer("guide",     () => this.#paintGuides());
     // The scale bar is screen-space chrome and stays in the svg, but it reads the zoom, so it is
     // refreshed on the same beat as the world.
@@ -589,12 +594,6 @@ export class SketchCanvas extends CanvasBase {
 
   /** The locked plan pieces (S25) — follow the Shapes toggle, but are drawn read-only (no selection chrome). */
   setStructural(shapes) { this.#structural = shapes ?? []; this.#paintWorld(); }
-
-  #paintPlaceGhost() {
-    if (!this.#placeSpecs || !this.#placeAt) return;
-    const { bx, bz } = this.#placeAt;
-    paintPlaceGhost(this.#painter, this.#placeSpecs.map(s => translateShape(s, bx, bz)));
-  }
 
   #paintGuides() {
     const { min_x, max_x, min_z, max_z } = this.#gridBounds();   // guides run the full visible width/height
@@ -797,6 +796,7 @@ export class SketchCanvas extends CanvasBase {
     this.#screen = layerStack(this._svg, {
       islandChrome: null,                          // island bbox (inert) + interactive rotate zones
       handles:      null,
+      dressingHandles: null,                       // the selected prop's point grips (Dressing phase)
       center:       INERT,
       drawHandles:  INERT,
       measureLabel: INERT,
@@ -815,10 +815,13 @@ export class SketchCanvas extends CanvasBase {
     // Dressing places props on the same canvas the shapes are drawn on, because a tree's position is a
     // decision about the map's geometry and belongs next to it. Its own controller, so the draw tools and the
     // placing tools never have to know about each other.
-    this.#dressing = new DressingController(this.#dressingDoc, {
+    this.#dressing = new DressingController(this.#dressingDoc, this.#screen.dressingHandles, getViewport, {
       onChanged: () => { this.#paintWorld(); this.#callbacks.onDressingChanged?.(); },
       onSelected: (id) => this.#callbacks.onPropSelected?.(id),
       onPreviewChanged: () => this.#paintWorld(),
+      // A finished placement hands the canvas back, the same as a finished draw tool: the prop just put down
+      // is the one to move or tune, and select is the mode that does either.
+      onPlaced: () => { this.#placementClick = true; this.#callbacks.onDressingPlaced?.(); },
       // A marker (a tree, a boulder) may only land on the rasterized terrain — the export refuses one seated on
       // nothing, so the canvas refuses to drop it there in the first place.
       onTerrain: (bx, bz) => this.#cellOnTerrain(bx, bz),

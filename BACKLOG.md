@@ -718,10 +718,6 @@ long-tail so they stop competing with real work. Re-evaluate (or delete) when th
   rectangle's corner to sprout a Bézier handle that *implicitly* converts it to a polygon, it needs rect
   vertex/tangent handles in `sketch-edit-controller.js` (a UX decision on resize-handles vs vertex-handles).
   Low priority — explicit promotion already covers the need.
-- [ ] **S16 — Resize library primitives after placement (mostly resolved; deferred).** `S21`'s island scale
-  handles now resize a **placed** polyomino / n-gon — a single non-rectangle member gets the 8 bbox scale handles —
-  so the after-placement resize is **covered**. The only remaining slice is optional **drag-to-size during
-  placement** (`geometry/shape-library.js` `instantiate` drops at a fixed `defaultCell`). Low priority.
 - [ ] **P8 — Pipeline re-run on config change (parked escape hatch, world-present only).** A
   parameterized re-scan honouring a bespoke `scan_layer`/`exclude_blocks` → re-detect islands → rewrite
   **layer-tagged** `layer.parquet` / `islands.json`. The per-map scan-layer + custom block-exclusion UI

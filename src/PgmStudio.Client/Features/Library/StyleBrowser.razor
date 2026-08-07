@@ -70,13 +70,18 @@
   @if (draft is not null)
   {
     <aside class="lib-rail">
-      <div class="lib-rail-head">
-        <span class="lib-rail-title">@(editingId is null ? "New style" : "Edit style")</span>
-        <button class="lib-rail-x" @onclick="Close" title="Close"><i data-lucide="x" @key="@("style-x")"></i></button>
+      @* The two views stay pinned: every control below them is judged by what they show, so scrolling to
+         one must not take the picture off screen. *@
+      <div class="lib-rail-pin">
+        <div class="lib-rail-head">
+          <span class="lib-rail-title">@(editingId is null ? "New style" : "Edit style")</span>
+          <button class="lib-rail-x" @onclick="Close" title="Close"><i data-lucide="x" @key="@("style-x")"></i></button>
+        </div>
+        <figure class="lib-fig">@((MarkupString)(preview?.Plan ?? ""))</figure>
+        <figure class="lib-fig lib-fig--section">@((MarkupString)(preview?.Section ?? ""))</figure>
       </div>
 
-      <figure class="lib-fig">@((MarkupString)(preview?.Plan ?? ""))</figure>
-      <figure class="lib-fig lib-fig--section">@((MarkupString)(preview?.Section ?? ""))</figure>
+      <div class="lib-rail-body">
       <p class="section-desc">Above: one course from above, the left half of the ground neutral and the right
         half a team's. Below: the same material cut open downward, one row per course.</p>
 
@@ -97,6 +102,7 @@
           <Button Icon="copy" OnClick="SaveAsCopy">Save as copy</Button>
           <Button Variant="danger" Icon="trash-2" OnClick="Delete">Delete</Button>
         }
+      </div>
       </div>
     </aside>
   }

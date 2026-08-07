@@ -88,6 +88,12 @@ one stage rather than four:
   rasterized terrain** — the canvas refuses a click over a gap or off the map (a red ghost, no drop), because
   the stamp below would refuse it anyway. An **area** has no such limit: a route or a channel may be drawn
   across a void, and only its cells that land on real ground do anything.
+- **Reshaping.** A placement ends its tool: the prop is selected and the canvas returns to select, so the next
+  click picks the thing just put down rather than dropping a second one beside it. A selected prop wears one
+  square grip per point — per traced point on a route or an area, on the anchor for a marker — and dragging one
+  moves that point alone, block-snapped, with the band or the outline following it. A marker's grip obeys the
+  same terrain rule its click does. Reshaping never changes how many points a prop has: a route drawn once is
+  corrected in place rather than retraced.
 - **Stamp.** A 3-D volume seated on `SurfaceTop` and written cell-by-cell with `SetBlock` — the
   shape-mask-in-a-box `ObjectiveStamper` already uses for destroyables and cores. A prop seats on the
   *lowest* column of its own footprint, so it sits into a slope rather than floating over the low side, and

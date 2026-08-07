@@ -51,12 +51,17 @@
   @if (draft is not null)
   {
     <aside class="lib-rail">
-      <div class="lib-rail-head">
-        <span class="lib-rail-title">@(editingId is null ? "New theme" : "Edit theme")</span>
-        <button class="lib-rail-x" @onclick="Close" title="Close"><i data-lucide="x" @key="@("theme-x")"></i></button>
+      @* The sample plateau stays pinned: every binding below it is judged by what it does to that picture,
+         so scrolling to a bucket must not take the picture off screen. *@
+      <div class="lib-rail-pin">
+        <div class="lib-rail-head">
+          <span class="lib-rail-title">@(editingId is null ? "New theme" : "Edit theme")</span>
+          <button class="lib-rail-x" @onclick="Close" title="Close"><i data-lucide="x" @key="@("theme-x")"></i></button>
+        </div>
+        <figure class="lib-fig lib-fig--section">@((MarkupString)(preview?.Section ?? ""))</figure>
       </div>
 
-      <figure class="lib-fig lib-fig--section">@((MarkupString)(preview?.Section ?? ""))</figure>
+      <div class="lib-rail-body">
       <p class="section-desc">The sample plateau this composition finishes: two ground levels with void either
         side, the right half owned by a team so a tint shows beside its neutral fallback.</p>
 
@@ -148,6 +153,7 @@
           <Button Icon="copy" OnClick="SaveAsCopy">Save as copy</Button>
           <Button Variant="danger" Icon="trash-2" OnClick="Delete">Delete</Button>
         }
+      </div>
       </div>
     </aside>
   }

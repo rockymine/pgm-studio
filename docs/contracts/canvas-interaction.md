@@ -83,7 +83,7 @@ canvas layer can then reuse or test it.
 | `geometry/decompose-cut.js` | lane decomposition: lasso enclosure, edge markers, splitting a piece at two seams |
 | `geometry/symmetry.js` | the JS twin of `PgmStudio.Geom.Symmetry` (see the warning in `CLAUDE.md`) |
 | `geometry/triangulation.js` | ear clipping — the JS twin of `Geom.Triangulation.EarClip` |
-| `geometry/islands.js`, `region-convert.js`, `shape-library.js` | GeoJSON coercion; PGM `+1`-rule bounds conversions; drag-on primitives |
+| `geometry/islands.js`, `region-convert.js` | GeoJSON coercion; PGM `+1`-rule bounds conversions |
 | `plan/plan-doc.js` | the plan document model + its geometry (pure; the wire format lives here) |
 | `plan/plan-inspect.js` | derived-structure overlay helpers for the plan inspect layer |
 | `render/svg.js` | the retained dialect: the element factory for the screen-space overlays and the fixed-fit previews, plus the path builders both dialects share |

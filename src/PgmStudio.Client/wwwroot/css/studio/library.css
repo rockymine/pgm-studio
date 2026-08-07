@@ -46,15 +46,26 @@
   color: var(--text-secondary); border-top: 1px solid var(--border);
 }
 
-/* The right rail — what the picked card is, in detail, and the knobs that change it. */
+/* The right rail — what the picked card is, in detail, and the knobs that change it. Two parts, and the
+   split is what makes the rail usable: the picture of what is being edited is pinned at the top, and only
+   the knobs under it scroll. Every edit in the rail is judged by that picture, so scrolling to the control
+   that changes it must not take it off screen. */
 .lib-rail {
-  flex-shrink: 0; width: 320px; padding: var(--space-3);
-  border-left: 1px solid var(--border); overflow-y: auto;
+  flex-shrink: 0; width: 320px;
+  border-left: 1px solid var(--border); overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.lib-rail-pin {
+  flex-shrink: 0; padding: var(--space-3); border-bottom: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: var(--space-2);
+}
+.lib-rail-body {
+  flex: 1; min-height: 0; overflow-y: auto; padding: var(--space-3);
   display: flex; flex-direction: column; gap: var(--space-3);
 }
-/* The rail scrolls, so its children must keep their own height: a flex column shrinks its items to fit
-   before it will overflow, which squashes the header under a tall editor rather than scrolling past it. */
-.lib-rail > * { flex-shrink: 0; }
+/* The body scrolls, so its children must keep their own height: a flex column shrinks its items to fit
+   before it will overflow, which squashes a section under a tall editor rather than scrolling past it. */
+.lib-rail-body > * { flex-shrink: 0; }
 .lib-rail-head { display: flex; align-items: center; justify-content: space-between; }
 .lib-rail-title { font-size: var(--font-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--text-secondary); }
 .lib-rail-x { width: 24px; height: 24px; display: grid; place-items: center; background: transparent; color: var(--text-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; }
@@ -66,3 +77,9 @@
   padding: 10px; background: var(--canvas); border: 1px solid var(--border); border-radius: var(--radius-sm);
 }
 .lib-fig svg { width: 100%; height: auto; max-height: 260px; display: block; }
+
+/* A pinned figure is measured against the viewport, not its own drawing: it never scrolls away, so on a
+   short window a fixed pixel height would take the rail and leave the knobs a slit to scroll in. */
+.lib-rail-pin .lib-fig { min-height: 0; }
+.lib-rail-pin .lib-fig svg,
+.lib-rail-pin .theme-section-figure svg { max-height: min(180px, 20vh); }

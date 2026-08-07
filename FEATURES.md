@@ -2684,7 +2684,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   cover** (DR-FL) are dragged — press, trace, release, so there is no separate way to finish and no way to get
   stuck mid-draw — while a **tree** (DR-TR) and a **boulder** (DR-SC) are clicked into place. Each carries its
   own knobs, edited where it stands; the tool remembers the last ones, so a stand of ten oaks is ten clicks
-  rather than ten forms. The fields that remain are the ones *inside* a drawn area — which blade of grass,
+  rather than ten forms. A placement ends its tool the way a finished draw tool does — the prop is selected and
+  the canvas is back in select — because the thing just put down is the thing to move or tune, and a
+  still-armed tool turns that first click into a second tree. What is selected then wears the same square
+  grips a sketch polygon wears: one per traced point on a route or an area, one on a marker's anchor, each
+  dragged to reshape in place. A path that runs two blocks wide of a bridge is a point to move, not a route to
+  trace again. The fields that remain are the ones *inside* a drawn area — which blade of grass,
   which cobble — where placing them one at a time would be data entry.
   Behind them: `TreeSkeleton` growing limbs as Catmull-Rom splines with a leader knob, upward pull and
   per-step jitter; `SweptVolume` filling each as a capsule; `TreeCrown` placing one dense cluster per outer tip
@@ -2904,15 +2909,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Rectangle → polygon promotion** — an inspector **Convert to polygon** button (and the `P` shortcut)
   turns the selected rectangle into a 4-corner polygon (id / operation / override **and the height fields**
   `base_height`/`floor`/`anchor_heights` preserved — a promoted box keeps its column instead of resetting to
-  the 1-block default), opening vertex-drag · midpoint-insert · Bézier editing. Pure `rectToPolygon`
+  the default), opening vertex-drag · midpoint-insert · Bézier editing. Pure `rectToPolygon`
   (`geometry/shape.js`); `promoteShape` in the bridge; the 8-handle rectangle resize is unchanged until you
   promote. (S4, S15) §2.
-- **Shape library (drag-in primitives)** — a left-sidebar palette (above the island tree) of pure-geometry
-  primitives: n-gons {3,5,6,8}, polyominoes (L · U · T · I-bar · scythe · cross · line-with-branch), and a
-  hole-square add+sub composite. Click a thumbnail → a ghost follows the cursor → click the canvas to place
-  (Esc cancels); each entry instantiates ordinary `SketchShape`s, centred + block-snapped at a default cell
-  size — so islands/mirror/rasterizer need no new code. Catalog + `instantiate`/`libraryMeta` in
-  `geometry/shape-library.js`; `armPlace` + canvas place-mode/ghost; the `SketchLibrary` component. (S8) §8.
 - **Per-shape & per-anchor height (rasterization)** — `SketchShape` gains `base_height` / `anchor_heights` /
   `floor`; `SketchRasterizer.RasterizeColumns` carries each cell's `[YFloor, YTop]` through the 4-step algebra
   (taller add wins on overlap), with a per-vertex **TIN** surface (`Geom.Triangulation` ear-clip + barycentric)
@@ -2933,7 +2932,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the slope (a raised corner ramps down across the footprint — verified `0→14` gradient in `layer_segment`),
   visible in Configure's height side-view. Click-vs-drag split by a movement threshold
   (`sketch-edit-controller`). (S5b) §3.
-- **Height editing field + isometric 3-D preview** — the sketch inspector gains **Height (thickness)**
+- **Height editing field + isometric 3-D preview** — a freshly drawn shape stands **9 blocks** tall, the
+  plan document's surface height, so a sketch and a plan of the same board start at the same elevation; the
+  sketch inspector gains **Height (thickness)**
   (`base_height`) + **Floor (elevation)** fields on the selected shape; a **3D** toggle swaps the top-down
   canvas for a read-only **WebGL
   isometric** view (`render/iso-webgl.js`). Each shape becomes

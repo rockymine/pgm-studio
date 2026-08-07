@@ -9,7 +9,6 @@ import { SketchCanvas } from "../canvas/sketch-canvas.js";
 import { computeIslands, assignShapesToIslands, computeMirrorPreview, restoreIslandMeta, shapeToMultiPoly } from "../geometry/boolean.js";
 import { rectToPolygon, translateShape, rotateShape, boundsOfShapes, splitShape } from "../geometry/shape.js";
 import { surfaceHeights } from "../geometry/slope.js";
-import { LIBRARY, instantiate, libraryMeta } from "../geometry/shape-library.js";
 import { applySymmetry, orbitAxes } from "../geometry/symmetry.js";
 import { defaultThemeJson, uniqueScopeId } from "../theme/theme-model.js";
 import { fireTo } from "./fire.js";
@@ -27,6 +26,11 @@ const genId = () => `s${Date.now()}_${_seq++}`;
 const MIN_HEIGHT = 1;
 const clampHeight = (h) => Math.max(MIN_HEIGHT, h ?? MIN_HEIGHT);
 const clampFloor  = (f) => Math.max(0, f ?? 0);
+
+// What a freshly drawn shape stands at — the plan document's surface height, so a sketch and a plan of the
+// same board are the same height before either is touched. Distinct from MIN_HEIGHT, which is the floor a
+// stored value is clamped to and stays 1: a one-block shape an author asked for is still valid.
+const NEW_SHAPE_HEIGHT = 9;
 
 function dimLabel(s) {
   if (s.type === "rectangle") return `${s.max_x - s.min_x}×${s.max_z - s.min_z}`;
@@ -80,7 +84,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   const canvas = new SketchCanvas(svgEl, wrapEl, {
     cursorEl: coordsEl, zoomEl, dimEl,
     onShapeCreated: (partial) => {
-      const shape = { ...partial, id: genId(), override: partial.override ?? false, base_height: clampHeight(partial.base_height), floor: clampFloor(partial.floor) };
+      const shape = { ...partial, id: genId(), override: partial.override ?? false, base_height: clampHeight(partial.base_height ?? NEW_SHAPE_HEIGHT), floor: clampFloor(partial.floor) };
       canvas.addShape(shape);
       recompute();
       canvas.setActiveTool("select");
@@ -94,10 +98,11 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // Placing, moving and picking a prop all happen on the canvas; the bridge only has to relay the result.
     onDressingChanged: () => afterDressingChange(),
     onPropSelected:    () => fire("OnDressing", dressingState()),
+    // A placed prop ends its tool, the same as a completed draw: the toolbar follows the canvas back to select.
+    onDressingPlaced:  () => { canvas.setActiveTool("select"); fire("OnToolChanged", "select"); },
     onShapeDeleted:  (id) => { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); },
     onShapePromote:  (id) => promoteShape(id),
     onSplit:         (a, b) => splitAt(a, b),
-    onPlace:         (bx, bz) => placeAt(bx, bz),
     onVertexSelected: (shapeId, idx) => {
       const s = canvas.getShape(shapeId);
       const h = s ? clampHeight(s.anchor_heights?.[idx] ?? s.base_height) : MIN_HEIGHT;
@@ -113,43 +118,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       fire("OnSlopeControls", shapeId ?? null, JSON.stringify(controls));
     },
   });
-
-  let placeSpecs = null;   // the armed library item's shapes (centred at origin), awaiting a drop point
-
-  // Arm a library item for placement: instantiate it centred at origin, hand the ghost to the canvas.
-  function armPlace(itemId) {
-    const item = LIBRARY.find(i => i.id === itemId);
-    if (!item) return;
-    placeSpecs = instantiate(item, 0, 0);
-    canvas.armPlace(placeSpecs);
-  }
-
-  // Drop the armed item at (bx,bz): translate each spec there, add as a real shape, then return to select.
-  function placeAt(bx, bz) {
-    if (!placeSpecs) return;
-    const created = [];
-    for (const spec of placeSpecs) {
-      const shape = { ...translateShape(spec, bx, bz), id: genId(), override: spec.override ?? false, base_height: clampHeight(spec.base_height), floor: clampFloor(spec.floor) };
-      canvas.addShape(shape);
-      created.push(shape.id);
-    }
-    placeSpecs = null;
-    canvas.disarmPlace();
-    recompute();
-    canvas.setActiveTool("select");
-    fire("OnToolChanged", "select");
-    if (created.length) selectShape(created[created.length - 1]);
-    markDirty();
-  }
-
-  function cancelPlace() {
-    if (!placeSpecs) return false;
-    placeSpecs = null;
-    canvas.disarmPlace();
-    canvas.setActiveTool("select");
-    fire("OnToolChanged", "select");
-    return true;
-  }
 
   // Promote a rectangle to a polygon (keeps id, so its island membership + selection survive); a no-op
   // for any other type. After promotion the shape edits as a polygon (vertex/midpoint/Bézier).
@@ -374,7 +342,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   const onKey = (e) => {
     if (wrapEl?.offsetParent == null) return;
     if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
-    if (e.key === "Escape" && cancelPlace()) { e.preventDefault(); return; }
     if (selectOnly) return;   // Theme phase: the arrows are a move, and moving belongs to Draw
     const step = e.shiftKey ? 16 : 1;
     let dx = 0, dz = 0;
@@ -519,9 +486,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     setSelectOnly(on)  {
       selectOnly = !!on;
       canvas.setSelectOnly(selectOnly);
-      // An armed library item survives a tool change on its own, so disarm it rather than leave a placement
-      // primed to drop a shape on the first click into the phase.
-      if (selectOnly) { cancelPlace(); canvas.setActiveTool("select"); }
+      if (selectOnly) canvas.setActiveTool("select");
     },
     setOperation(op)   { canvas.setOperation(op); },
     setMode(mode)      { applySetup({ mirror_mode: mode }); markDirty(); },
@@ -603,8 +568,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     rotateSelected(deg){ rotateSelected(deg); },
     deleteShape(id)    { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); },
     promoteShape(id)   { promoteShape(id ?? canvas.selectedId); },
-    getLibrary()       { return libraryMeta(); },
-    armPlace(itemId)   { armPlace(itemId); },
     toggleOp(id)       { const s = canvas.getShape(id); if (!s) return; s.operation = s.operation === "subtract" ? "add" : "subtract"; canvas.updateShape(s); recompute(); markDirty(); },
     toggleOverride(id) { const s = canvas.getShape(id); if (!s) return; s.override = !s.override; canvas.updateShape(s); recompute(); markDirty(); },
     toggleMirrors(islandId) { const i = islandById(islandId); if (!i) return; i.mirrors = !i.mirrors; refreshMirror(); pushLayout(); markDirty(); },

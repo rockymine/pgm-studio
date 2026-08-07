@@ -57,9 +57,7 @@ adds its own hatch patterns and objective markers.
 Per-editor type coverage:
 
 - **Sketch** (`sketch-render.js:33-56`): `rectangle`→rect, `circle`→ellipse, `polygon`/`lasso`→inline
-  `<path>` (Bézier-capable, bypasses `renderShape`). Library primitives (`shape-library.js:36-52`)
-  are **not** new types — `instantiate()` emits plain `rectangle`/`polygon` specs (n-gons and
-  polyominoes are polygons; the `I` bar is a rectangle; `holesquare` is add-rect + subtract-rect).
+  `<path>` (Bézier-capable, bypasses `renderShape`).
 - **Edit / Configure** (`world-canvas.js:976-1003`): `rectangle`/`cuboid`→rect, radial→ellipse,
   and **`point` with `marker:true`** is intercepted *before* `renderShape` and drawn as a fixed-size
   `<circle>` (`world-canvas.js:986-997`). Composite/transform types (`union`/`intersect`/`negative`/

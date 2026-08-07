@@ -10,9 +10,11 @@ import { DressingDoc, defaultProp, isMarker, propAnchor, translateProp }
 import { DressingController, DRESSING_TOOLS }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/controllers/dressing-controller.js";
 
-const controller = () => {
+// No handle layer and no viewport: the point grips are the one DOM-bearing part of the controller, and
+// `refreshHandles` is a no-op without a layer — so everything below exercises the interaction, not the SVG.
+const controller = (callbacks = {}) => {
   const doc = new DressingDoc();
-  return { doc, tools: new DressingController(doc) };
+  return { doc, tools: new DressingController(doc, null, null, callbacks) };
 };
 
 // A drag: press, trace, release — the whole interaction, and the reason there is no way to get stuck.
@@ -85,7 +87,7 @@ test("a marker cannot be dropped into the void — it must land on terrain", () 
   // A tree seats on the ground; the export refuses one placed on nothing, so the canvas refuses it first. The
   // terrain predicate the canvas supplies here says only the right half is land.
   const doc = new DressingDoc();
-  const tools = new DressingController(doc, { onTerrain: (bx) => bx >= 0 });
+  const tools = new DressingController(doc, null, null, { onTerrain: (bx) => bx >= 0 });
 
   tools.onMouseDown(-10, 5, "dress:tree");     // over the void
   assert.equal(doc.props.length, 0);           // nothing placed
@@ -178,6 +180,68 @@ test("dragging a placed prop moves it, and a press with nothing under it clears 
 
   tools.onMouseDown(200, 200, "select");
   assert.equal(tools.selectedId, null);
+});
+
+test("a placement ends its tool, so the next click picks the prop instead of dropping another", () => {
+  // The bug this replaced: the tree tool stayed armed, so clicking the tree you just placed planted a second
+  // one on top of it and there was no obvious way to pick one up.
+  let placed = 0;
+  const { tools } = controller({ onPlaced: () => placed++ });
+  tools.onMouseDown(4, 4, "dress:tree");
+  assert.equal(placed, 1);
+  drag(tools, "dress:path", [[0, 0], [10, 0], [20, 0]]);
+  assert.equal(placed, 2);
+  tools.updateSelected({ radius: 5 });        // a knob edit is not a placement
+  assert.equal(placed, 2);
+});
+
+test("a route's points are draggable one at a time — the band follows the line", () => {
+  const { doc, tools } = controller();
+  drag(tools, "dress:path", [[0, 0], [10, 0], [20, 0]]);
+  const id = tools.selectedId;
+  const before = doc.byId(id).points.length;
+
+  assert.ok(tools.beginPointDrag(id, 1));
+  tools.onHandleMove(10.4, 7.6);
+  assert.ok(tools.onHandleUp());
+  assert.deepEqual(doc.byId(id).points[1], [10, 8]);   // block-snapped where the cursor was
+  assert.equal(doc.byId(id).points.length, before);    // dragging a point never adds or drops one
+  assert.ok(!tools.onHandleUp());                      // the drag is over — nothing left to release
+});
+
+test("an area's outline is reshaped the same way, so a ground cover can be corrected in place", () => {
+  const { doc, tools } = controller();
+  drag(tools, "dress:flora", [[0, 0], [20, 0], [20, 20], [0, 20]]);
+  const id = tools.selectedId;
+
+  tools.beginPointDrag(id, 0);
+  tools.onHandleMove(-12, -9);
+  tools.onHandleUp();
+  assert.deepEqual(doc.byId(id).points[0], [-12, -9]);
+});
+
+test("a marker's grip drags it, and stops at the terrain edge like every other way of moving one", () => {
+  const doc = new DressingDoc();
+  const tools = new DressingController(doc, null, null, { onTerrain: (bx) => bx >= 0 });
+  tools.onMouseDown(10, 10, "dress:tree");
+  const id = tools.selectedId;
+
+  tools.beginPointDrag(id, -1);      // -1 is the anchor: a marker has one point and it is where it stands
+  tools.onHandleMove(24, 18);
+  assert.deepEqual([doc.byId(id).x, doc.byId(id).z], [24, 18]);
+  tools.onHandleMove(-30, 18);       // over the void — the drag simply doesn't follow
+  assert.deepEqual([doc.byId(id).x, doc.byId(id).z], [24, 18]);
+  tools.onHandleUp();
+});
+
+test("a point drag on a prop that is gone releases instead of throwing", () => {
+  const { tools } = controller();
+  tools.onMouseDown(0, 0, "dress:tree");
+  const id = tools.selectedId;
+  tools.beginPointDrag(id, -1);
+  tools.deleteSelected();
+  assert.ok(!tools.onHandleMove(5, 5));
+  assert.ok(!tools.onHandleUp());
 });
 
 test("delete removes the selection and nothing else", () => {

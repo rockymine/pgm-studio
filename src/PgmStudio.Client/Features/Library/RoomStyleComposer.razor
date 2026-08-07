@@ -53,15 +53,20 @@
   @if (draft is not null)
   {
     <aside class="lib-rail">
-      <div class="lib-rail-head">
-        <span class="lib-rail-title">@(editingId is null ? "New room style" : "Edit room style")</span>
-        <button class="lib-rail-x" @onclick="Close" title="Close"><i data-lucide="x" @key="@("room-x")"></i></button>
+      @* The sample shell stays pinned: every course below it is judged by what it does to that picture, so
+         scrolling to a part must not take the picture off screen. *@
+      <div class="lib-rail-pin">
+        <div class="lib-rail-head">
+          <span class="lib-rail-title">@(editingId is null ? "New room style" : "Edit room style")</span>
+          <button class="lib-rail-x" @onclick="Close" title="Close"><i data-lucide="x" @key="@("room-x")"></i></button>
+        </div>
+        <div class="dressing-views">
+          <figure class="theme-section-figure">@((MarkupString)(preview?.Plan ?? ""))</figure>
+          <figure class="theme-section-figure">@((MarkupString)(preview?.Section ?? ""))</figure>
+        </div>
       </div>
 
-      <div class="dressing-views">
-        <figure class="theme-section-figure">@((MarkupString)(preview?.Plan ?? ""))</figure>
-        <figure class="theme-section-figure">@((MarkupString)(preview?.Section ?? ""))</figure>
-      </div>
+      <div class="lib-rail-body">
       <p class="section-desc">The sample shell from above and cut open: the roof and its eave read in the first,
         the course stack and the doorway in the second.</p>
 
@@ -160,6 +165,7 @@
           <Button Icon="copy" OnClick="SaveAsCopy">Save as copy</Button>
           <Button Variant="danger" Icon="trash-2" OnClick="Delete">Delete</Button>
         }
+      </div>
       </div>
     </aside>
   }
