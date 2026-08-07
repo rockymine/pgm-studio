@@ -76,7 +76,8 @@ public sealed class TerrainThemeComposerTests
     {
         var theme = TerrainTheme.Default with
         {
-            Surface = new TopBand(new VoronoiMaterial(7, 8, [new SolidMaterial(1), new SolidMaterial(24)]), Depth: 2),
+            Surface = new TopBand(new VoronoiMaterial(7, 8,
+                [new VoronoiBand(new SolidMaterial(1), 1), new VoronoiBand(new SolidMaterial(24), 1)]), Depth: 2),
         };
         var decomposed = TerrainThemeComposer.Decompose(theme);
         await Assert.That(decomposed.Buckets.First(b => b.Bucket == TerrainBucket.Surface).Kind).IsEqualTo("voronoi");

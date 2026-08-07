@@ -28,8 +28,23 @@ public partial class MaterialEditor
 
     private JsonObject Neutral => JsonEdit.Child(Node, ThemeFields.Neutral, () => ThemeFields.Solid(159, 8));
 
-    /// <summary>A voronoi's cell-wall material, created the first time the walls are turned on.</summary>
-    private JsonObject Rim => JsonEdit.Child(Node, ThemeFields.Rim, () => ThemeFields.Solid(3));
+    /// <summary>What the three field patterns are, in one sentence each — the rest of their blurb is shared,
+    /// because everything except the bend is.</summary>
+    private string FieldBlurb => Kind switch
+    {
+        MaterialKind.Turbulence => "A field folded at every crossing, so it creases: billowed, marbled bands.",
+        MaterialKind.Electric => "A field whose crossings are thin branching filaments, everything else falling away from them.",
+        _ => "A smooth fractal field — cloudy regions fading into one another.",
+    };
+
+    /// <summary>What a voronoi band is, by where it sits: the first draws the grid, the last takes whatever is
+    /// left of the cell, and the ones between are rings working inward.</summary>
+    private string BandLabel(int index)
+    {
+        var count = JsonEdit.Array(Node, ThemeFields.Bands).Count;
+        if (index == 0) return "Grid line";
+        return index == count - 1 ? "Middle" : $"Band {index}";
+    }
 
     /// <summary>One entry of a material's child list, with everything the markup binds to. A pattern's entry
     /// is a bare material; a layer or a stripe wraps one with the extent it claims, which is what
@@ -43,6 +58,7 @@ public partial class MaterialEditor
     {
         ThemeFields.Layers => ThemeFields.Thickness,
         ThemeFields.Runs => ThemeFields.Width,
+        ThemeFields.Bands => ThemeFields.Depth,
         _ => null,
     };
 
@@ -100,19 +116,16 @@ public partial class MaterialEditor
     }
 
     private Task SetSeed(ChangeEventArgs e) => SetScalar(ThemeFields.Seed, e, 0, 0);
-    private Task SetCellSize(ChangeEventArgs e) => SetScalar(ThemeFields.CellSize, e, 8, 1);
+    private Task SetCellSize(ChangeEventArgs e) => SetScalar(ThemeFields.CellSize, e, 10, 1);
+    private Task SetWarp(ChangeEventArgs e) => SetScalar(ThemeFields.Warp, e, 4, 0);
+    private Task SetScale(ChangeEventArgs e) => SetScalar(ThemeFields.Scale, e, 16, 1);
 
-    /// <summary>Set the wall thickness, and mint a default wall material the same edit if the walls are being
-    /// turned on and none exists yet — so the pattern serializes with its rim rather than a width that reads
-    /// nothing.</summary>
-    private Task SetRimWidth(ChangeEventArgs e)
+    /// <summary>Jitter is a percentage, so it clamps at both ends rather than only below.</summary>
+    private Task SetJitter(ChangeEventArgs e)
     {
-        var width = Math.Max(0, Parse(e, 0));
-        JsonEdit.Set(Node, ThemeFields.RimWidth, width);
-        if (width > 0 && Node[ThemeFields.Rim] is null) Node[ThemeFields.Rim] = ThemeFields.Solid(3);
+        JsonEdit.Set(Node, ThemeFields.Jitter, Math.Clamp(Parse(e, 50), 0, 100));
         return Changed();
     }
-    private Task SetScale(ChangeEventArgs e) => SetScalar(ThemeFields.Scale, e, 16, 1);
     private Task SetOctaves(ChangeEventArgs e) => SetScalar(ThemeFields.Octaves, e, 3, 1);
 
     private Task SetScalar(string field, ChangeEventArgs e, int fallback, int min)
@@ -132,6 +145,7 @@ public partial class MaterialEditor
         => int.TryParse((string?)e.Value, out var value) ? value : fallback;
 
     private Task AddLayer() => Add(ThemeFields.Layers);
+    private Task AddBand() => Add(ThemeFields.Bands);
     private Task AddStripe() => Add(ThemeFields.Runs);
     private Task AddPaletteEntry() => Add(ThemeFields.Palette);
     private Task AddStop() => Add(ThemeFields.Stops);

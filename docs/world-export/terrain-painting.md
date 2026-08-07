@@ -13,7 +13,8 @@ piece override, its box/collection, else the map default); themes are authored o
 and baked into the intent at `/plan/compile`. Depth is a per-bucket knob (`TopBand`
 carries a bucket's material, depth and toggle), so a theme sets the rim depth and the surface stack
 independently; the default surface is grass over two dirt, three blocks deep (TP11). Any bucket's material can
-be a pattern — voronoi or fractal/value noise (area), or wall-runs that wrap the void-facing perimeter (TP13) —
+be a pattern — voronoi or cell regions, a fractal / turbulence / electric field, or wall-runs that wrap the
+void-facing perimeter (TP13) —
 and the whole theme serializes to the theme JSON (`TerrainThemeJson`), the data a TP10 scope will attach to a
 piece. The model was first validated by a
 scratch prototype's figures (two real seeds — `mirror-tiny-map-cliff`, `isolated-spawn` — compiled through
@@ -136,8 +137,8 @@ the blocks each bucket resolves to are a **preset** — the same style-as-data s
 A bucket's material is a **spec** (`TerrainMaterial`), not necessarily a single id. Its forms: a single block
 (`SolidMaterial`); a **vertical layer stack** (`LayeredMaterial` — surface's grass-over-dirt, or a wall's banded
 riser, a run of materials each with a depth); the **team tint** (`TeamTintedMaterial`, below); and the
-**patterns** that vary the block across the bucket's cells (`VoronoiMaterial`, `NoiseMaterial`, `WallRunMaterial`
-— TP13, §6). Each nests any material, so a pattern can embed a tint or another pattern. The quartz / clay /
+**patterns** that vary the block across the bucket's cells (`VoronoiMaterial`, `CellMaterial`, `NoiseMaterial`,
+`TurbulenceMaterial`, `ElectricMaterial`, `WallRunMaterial` — TP13, §6). Each nests any material, so a pattern can embed a tint or another pattern. The quartz / clay /
 grass / stone in this document and the prototype are **examples**, chosen only to tell the buckets apart on
 sight — none is canonical.
 
@@ -348,17 +349,32 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
   bucket if enabled, else the next treatment down that chain, else fill.
 
 - **TP13** *(built)* *Buckets take patterns, not just a block.* A bucket's material can be a **pattern** that
-  varies the block across the bucket's cells, at the same seam as a solid — three specs, each entry itself a
-  material so a pattern nests a team tint or another pattern. **`VoronoiMaterial`** tiles the footprint with a
-  jittered grid (one deterministic seed point per grid cell of period `CellSize`) and each block takes the
-  material of the nearest region — irregular patches from an N-material palette, pure per cell (no global
-  precompute). Given a `Rim` and a `RimWidth` it reads as a **cellular** pattern rather than flat patches: a
-  block within `RimWidth` of a region boundary takes the rim material and the inside of each cell takes its
-  palette fill — the Worley `F2 − F1` edge (the gap between the two nearest sites), so `RimWidth` is roughly the
-  wall thickness in blocks, and a honeycomb of walled cells is the result. `RimWidth = 0` (or no rim) is the
-  plain filled-patch look. **`NoiseMaterial`** maps a fractal-noise field through an ordered ramp of N stops: `Octaves = 1`
-  is single-octave value noise, more octaves give the cloudier fractal look — the surface/fill area pattern.
-  **`WallRunMaterial`** is the wall pattern: a list of `(material, width)` runs that repeat in order along the
+  varies the block across the bucket's cells, at the same seam as a solid — each entry itself a material, so a
+  pattern nests a team tint or another pattern. Six of them, in two families plus the wall's own.
+
+  The **region** patterns tile the footprint with a jittered grid — one deterministic seed point per grid cell
+  of period `CellSize`, every block belonging to the nearest region, pure per cell with no global precompute —
+  and differ in what they do with that tiling. **`VoronoiMaterial`** takes an ordered list of `Bands` measured
+  **inward from the cell boundary**: band 0 sits on the boundary and so draws the grid as one connected network
+  of lines, each later band is a concentric ring further in, and the last takes the middle. A cell too small to
+  reach a band never shows it, which is what gives cell size a meaning — small cells come out filled by whichever
+  band they did reach. Depth is the Worley `F2 − F1` gap, whose contours are hyperbolic rather than straight, so
+  the inner bands round off the cell's corners while the outline stays sharp. **`CellMaterial`** takes the same
+  regions and gives each *whole* region one material from a palette, having first displaced the lookup position
+  by a noise field of its own (`Warp`) and loosened the sites off their grid squares (`Jitter`). Where a voronoi
+  draws a diagram, a cell draws a fabric: flat organic patches, any two of which may meet.
+
+  The **field** patterns cut a fractal field into bands by an ordered ramp of N `Stops`, so `n` stops give `n`
+  materials and only neighbouring stops ever share a boundary. They differ in one thing: how each octave is bent
+  before the sum. **`NoiseMaterial`** leaves it alone — cloudy regions fading into one another.
+  **`TurbulenceMaterial`** takes its distance from the midpoint, folding the field at every crossing into a
+  crease: billowed, marbled bands. **`ElectricMaterial`** inverts that fold and squares it, so the crossings
+  become thin branching filaments with everything else falling away from them. The sum is normalised by its own
+  deviation rather than by its amplitude total, which is what keeps the spread constant as `Octaves` rises —
+  dividing by the amplitude total averages independent samples, so the field crowded towards its middle and the
+  first and last material an author named all but vanished (measured at 1.0% each at five stops, three octaves).
+
+  **`WallRunMaterial`** is the wall's own: a list of `(material, width)` runs that repeat in order along the
   **void-facing perimeter**, reading the arc index the profile assigns each outer-wall column, so any number of
   stripes of any widths cycle continuously around every corner (a cell off the outer wall reads as arc 0, the
   first run). A wall's *vertical* bands up the riser are the existing `LayeredMaterial`. Every choice is a
@@ -383,5 +399,5 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
 | **TP10** | Theming is scoped: map default › collection › piece, winner-takes-all (whole theme). A registry + a plan-baked `pieceId → themeId` + piece footprints in the intent; a per-cell `themeAt` resolver (`TerrainThemeScope`, the `TeamTerritory` shape) at export. Authored on the plan tool's Theme rail. Resolves at interfaces with no special case; boxes stay annotation (expanded to piece ids). |
 | **TP11** | The surface is a layered stack to a configured depth (`Surface.Depth`; grass over two dirt by default), clamped by the bedrock floor. |
 | **TP12** | Surface, rim and wall are toggleable; fill is required and claims the rest. Rim off → surface, then fill; wall/surface off → fill. |
-| **TP13** | Buckets take patterns, not just a block: `VoronoiMaterial` / `NoiseMaterial` (area, N-material palette/ramp) for any bucket, `WallRunMaterial` (N stripes wrapping the void-facing perimeter arc) for walls; deterministic, and each entry nests any material. |
+| **TP13** | Buckets take patterns, not just a block. Region: `VoronoiMaterial` (bands inward from the cell boundary — band 0 is the grid line, the last is the middle, a small cell never reaches it), `CellMaterial` (one material per warped region). Field: `NoiseMaterial` · `TurbulenceMaterial` · `ElectricMaterial` (an N-stop ramp over a fractal field, bent plain / folded / ridged; spread held constant across octave counts). Wall: `WallRunMaterial` (N stripes wrapping the void-facing perimeter arc). All deterministic, and each entry nests any material. |
 | **TP14** | A theme is authored as a form, not as JSON: one section per bucket carrying its toggle, its depth and a material editor that switches the bucket between every kind and recurses into the materials a composite nests. Blocks are picked from `TerrainPalette` — the curated offer list, named and coloured by `BlockPalette`, so a swatch cannot promise a colour the export will not place — with the sixteen-colour families offered as a colour row rather than forty-eight dropdown lines. The editor writes the theme node itself, so there is no second model of a material; every edit re-renders the server swatch through the real materials. |

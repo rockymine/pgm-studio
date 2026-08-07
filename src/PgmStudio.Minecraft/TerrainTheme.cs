@@ -41,7 +41,10 @@ public readonly record struct BucketContext(int X, int Y, int Z, TerrainBucket B
 [JsonDerivedType(typeof(LayeredMaterial), "layered")]
 [JsonDerivedType(typeof(TeamTintedMaterial), "teamTint")]
 [JsonDerivedType(typeof(VoronoiMaterial), "voronoi")]
+[JsonDerivedType(typeof(CellMaterial), "cell")]
 [JsonDerivedType(typeof(NoiseMaterial), "noise")]
+[JsonDerivedType(typeof(TurbulenceMaterial), "turbulence")]
+[JsonDerivedType(typeof(ElectricMaterial), "electric")]
 [JsonDerivedType(typeof(WallRunMaterial), "wallRun")]
 public abstract record TerrainMaterial
 {

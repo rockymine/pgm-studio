@@ -13,62 +13,149 @@ namespace PgmStudio.Minecraft;
 /// <summary>One stripe of a <see cref="WallRunMaterial"/>: a material and how many arc cells wide it runs.</summary>
 public readonly record struct WallStripe(TerrainMaterial Material, int Width);
 
+/// <summary>One band of a <see cref="VoronoiMaterial"/>: a material and how many blocks inward from the cell
+/// boundary it runs. The last band's depth is ignored — it takes whatever is left of the cell.</summary>
+public readonly record struct VoronoiBand(TerrainMaterial Material, int Depth);
+
 /// <summary>
 /// A voronoi area pattern (TP13): the footprint is tiled by a jittered grid of period <paramref name="CellSize"/>,
-/// one deterministic seed point per grid cell, and each block takes the material of the region whose seed point
-/// is nearest — irregular patches roughly <paramref name="CellSize"/> across. Pure per cell (nearest of the 3×3
-/// grid-cell neighbourhood), no global precompute. The region hashes into <paramref name="Palette"/>, which may
-/// hold any number of materials.
+/// one deterministic seed point per grid cell, and every block belongs to the region whose seed point is nearest —
+/// straight-edged convex cells roughly <paramref name="CellSize"/> across. Pure per cell (nearest two of the 3×3
+/// grid-cell neighbourhood), no global precompute.
 ///
-/// <para>With a <paramref name="Rim"/> set the pattern reads as a <b>cellular</b> one — a honeycomb — rather than
-/// flat patches: a cell within <paramref name="RimWidth"/> of a region boundary takes the rim material and the
-/// inside of each cell takes its palette fill. The boundary is the Worley <c>F2 − F1</c> edge (the gap between
-/// the two nearest sites), so <paramref name="RimWidth"/> is roughly the wall thickness in blocks. Rim unset or
-/// <paramref name="RimWidth"/> ≤ 0 is the plain filled-region pattern.</para>
+/// <para><paramref name="Bands"/> is a <b>ramp measured inward from the cell boundary</b>, not a set of fills to
+/// pick between. Band 0 sits on the boundary itself, so it draws the grid — one connected network of lines, which
+/// is what makes the pattern read as cells at all. Each later band is a concentric ring further in, and the last
+/// takes the middle. A cell too small to reach a band simply never shows it, so small cells come out filled by
+/// whichever band they did reach — the ramp gives size a meaning instead of making every cell look alike.</para>
+///
+/// <para>Depth is the Worley <c>F2 − F1</c> gap: zero where two sites are equidistant, growing towards the
+/// middle. Its contours are hyperbolic rather than straight, so the inner bands round off the cell's corners
+/// while the outline stays sharp — a stone whose edges have been worn.</para>
 /// </summary>
-public sealed record VoronoiMaterial(uint Seed, int CellSize, IReadOnlyList<TerrainMaterial> Palette,
-    TerrainMaterial? Rim = null, int RimWidth = 0) : TerrainMaterial
+public sealed record VoronoiMaterial(uint Seed, int CellSize, IReadOnlyList<VoronoiBand> Bands) : TerrainMaterial
 {
     public override (int Id, int Data) Resolve(in BucketContext ctx)
     {
-        if (Palette is not { Count: > 0 }) return (Blocks.Stone, 0);
-        var (d1, d2, gx, gz) = Voronoi.NearestTwo(ctx.X, ctx.Z, Seed, CellSize);
-        // A cell wall: near enough to the boundary with the next region that the two nearest sites are within
-        // RimWidth of each other. Everything further in is the cell's fill.
-        if (Rim is not null && RimWidth > 0 && d2 - d1 < RimWidth) return Rim.Resolve(in ctx);
-        int idx = (int)(PatternNoise.Hash(gx, gz, Seed) % (uint)Palette.Count);
-        return Palette[idx].Resolve(in ctx);
+        if (Bands is not { Count: > 0 }) return (Blocks.Stone, 0);
+        var (d1, d2, _, _) = Voronoi.NearestTwo(ctx.X, ctx.Z, Seed, CellSize);
+        double depth = d2 - d1, edge = 0;
+        for (var i = 0; i < Bands.Count - 1; i++)
+        {
+            edge += Math.Max(1, Bands[i].Depth);
+            if (depth < edge) return Bands[i].Material.Resolve(in ctx);
+        }
+        return Bands[^1].Material.Resolve(in ctx);
     }
 
-    // Palette (and Rim) by value — the generated equality would compare the list by reference (see LayeredMaterial).
+    // Bands by value — the generated equality would compare the list by reference (see LayeredMaterial).
     public bool Equals(VoronoiMaterial? other)
-        => other is not null && Seed == other.Seed && CellSize == other.CellSize
-        && RimWidth == other.RimWidth && Equals(Rim, other.Rim) && Palette.SequenceEqual(other.Palette);
+        => other is not null && Seed == other.Seed && CellSize == other.CellSize && Bands.SequenceEqual(other.Bands);
 
-    public override int GetHashCode() => HashCode.Combine(Seed, CellSize, MaterialHash.Of(Palette), Rim, RimWidth);
+    public override int GetHashCode() => HashCode.Combine(Seed, CellSize, MaterialHash.Of(Bands));
 }
 
 /// <summary>
-/// A noise area pattern (TP13): a fractal-noise field over the footprint mapped through an ordered ramp of
-/// <paramref name="Stops"/> — the value in [0,1) selects a band, so <c>n</c> stops give <c>n</c> materials.
-/// <paramref name="Octaves"/> = 1 is single-octave value noise; more octaves give the cloudier fractal look.
-/// Same seam as voronoi, a smoothly varying field instead of hard cells.
+/// A cell area pattern (TP13): the same jittered-grid regions a <see cref="VoronoiMaterial"/> is built from, but
+/// each whole region takes one material from <paramref name="Palette"/> and the sampled position is warped before
+/// the region is looked up. Where voronoi draws a diagram — a grid of lines with the cells reading off it — this
+/// draws a <b>fabric</b>: flat patches of colour, any two of which may meet.
+///
+/// <para><paramref name="Jitter"/> (0–100%) is how far a site may sit from the middle of its grid cell: at 0 the
+/// regions are the grid squares, at 100 they are shards. <paramref name="Warp"/> is how many blocks the boundary
+/// wanders, and it is what separates a cell from a voronoi — a straight-edged diagram becomes organic patches
+/// once the lookup position is displaced by a noise field of its own.</para>
 /// </summary>
-public sealed record NoiseMaterial(uint Seed, int Scale, int Octaves, IReadOnlyList<TerrainMaterial> Stops) : TerrainMaterial
+public sealed record CellMaterial(uint Seed, int CellSize, int Jitter, int Warp,
+    IReadOnlyList<TerrainMaterial> Palette) : TerrainMaterial
 {
+    // Independent hash streams for the two warp axes, so the displacement is a direction rather than a diagonal.
+    private const uint WarpX = 0x68BC21EBu;
+    private const uint WarpZ = 0x02E5BE93u;
+
+    public override (int Id, int Data) Resolve(in BucketContext ctx)
+    {
+        if (Palette is not { Count: > 0 }) return (Blocks.Stone, 0);
+        int x = ctx.X, z = ctx.Z;
+        if (Warp > 0)
+        {
+            int period = Math.Max(2, CellSize);
+            x += (int)Math.Round((PatternNoise.Value(ctx.X, ctx.Z, Seed ^ WarpX, period) - 0.5) * 2 * Warp);
+            z += (int)Math.Round((PatternNoise.Value(ctx.X, ctx.Z, Seed ^ WarpZ, period) - 0.5) * 2 * Warp);
+        }
+        var (gx, gz) = Voronoi.NearestSite(x, z, Seed, CellSize, Math.Clamp(Jitter, 0, 100) / 100.0);
+        return Palette[(int)(PatternNoise.Hash(gx, gz, Seed) % (uint)Palette.Count)].Resolve(in ctx);
+    }
+
+    public bool Equals(CellMaterial? other)
+        => other is not null && Seed == other.Seed && CellSize == other.CellSize && Jitter == other.Jitter
+        && Warp == other.Warp && Palette.SequenceEqual(other.Palette);
+
+    public override int GetHashCode() => HashCode.Combine(Seed, CellSize, Jitter, Warp, MaterialHash.Of(Palette));
+}
+
+/// <summary>
+/// The shared shape of the three <b>field</b> patterns (TP13): a fractal field over the footprint cut into bands
+/// by <paramref name="Stops"/> — the value in [0,1) selects a band, so <c>n</c> stops give <c>n</c> materials in
+/// order. Only neighbouring bands can share a boundary, which is what makes a stop list read as a ramp from one
+/// material to the next rather than as a set of patches; and the band areas fall off towards the ends, so the
+/// first and last stop are accents and the middle ones are the body.
+///
+/// <para><paramref name="Octaves"/> adds finer detail without narrowing the field — see
+/// <see cref="PatternNoise.Field"/> — so raising it no longer starves the outer stops. The three patterns differ
+/// in one thing only: which <see cref="PatternNoise.NoiseShape"/> each octave takes.</para>
+/// </summary>
+public abstract record FieldPatternMaterial(uint Seed, int Scale, int Octaves,
+    IReadOnlyList<TerrainMaterial> Stops) : TerrainMaterial
+{
+    /// <summary>How each octave is bent before the sum — the whole difference between the three.</summary>
+    protected abstract PatternNoise.NoiseShape Shape { get; }
+
     public override (int Id, int Data) Resolve(in BucketContext ctx)
     {
         if (Stops is not { Count: > 0 }) return (Blocks.Stone, 0);
-        double v = PatternNoise.Fbm(ctx.X, ctx.Z, Seed, Scale, Octaves);
+        double v = PatternNoise.Field(ctx.X, ctx.Z, Seed, Scale, Octaves, Shape);
         int idx = Math.Clamp((int)(v * Stops.Count), 0, Stops.Count - 1);
         return Stops[idx].Resolve(in ctx);
     }
 
-    public bool Equals(NoiseMaterial? other)
-        => other is not null && Seed == other.Seed && Scale == other.Scale && Octaves == other.Octaves
-        && Stops.SequenceEqual(other.Stops);
+    /// <summary>Value equality for the shared fields, including the stop list, and only between two of the same
+    /// pattern — a turbulence and an electric with identical numbers are still different materials.</summary>
+    protected bool SameField(FieldPatternMaterial? other)
+        => other is not null && GetType() == other.GetType() && Seed == other.Seed && Scale == other.Scale
+        && Octaves == other.Octaves && Stops.SequenceEqual(other.Stops);
 
-    public override int GetHashCode() => HashCode.Combine(Seed, Scale, Octaves, MaterialHash.Of(Stops));
+    protected int FieldHash() => HashCode.Combine(GetType(), Seed, Scale, Octaves, MaterialHash.Of(Stops));
+}
+
+/// <summary>The plain fractal field: cloudy, rounded regions that fade into one another. The base every other
+/// field pattern is a bend of.</summary>
+public sealed record NoiseMaterial(uint Seed, int Scale, int Octaves, IReadOnlyList<TerrainMaterial> Stops)
+    : FieldPatternMaterial(Seed, Scale, Octaves, Stops)
+{
+    protected override PatternNoise.NoiseShape Shape => PatternNoise.NoiseShape.Plain;
+    public bool Equals(NoiseMaterial? other) => SameField(other);
+    public override int GetHashCode() => FieldHash();
+}
+
+/// <summary>The field folded at every zero crossing, so it creases instead of fading: billowed, marbled bands
+/// that swirl round one another. The same stops as a noise ramp, laid out like smoke rather than cloud.</summary>
+public sealed record TurbulenceMaterial(uint Seed, int Scale, int Octaves, IReadOnlyList<TerrainMaterial> Stops)
+    : FieldPatternMaterial(Seed, Scale, Octaves, Stops)
+{
+    protected override PatternNoise.NoiseShape Shape => PatternNoise.NoiseShape.Billow;
+    public bool Equals(TurbulenceMaterial? other) => SameField(other);
+    public override int GetHashCode() => FieldHash();
+}
+
+/// <summary>The fold inverted and sharpened, so the crossings become thin branching filaments and everything
+/// else falls away from them — veins through a body rather than bands across one.</summary>
+public sealed record ElectricMaterial(uint Seed, int Scale, int Octaves, IReadOnlyList<TerrainMaterial> Stops)
+    : FieldPatternMaterial(Seed, Scale, Octaves, Stops)
+{
+    protected override PatternNoise.NoiseShape Shape => PatternNoise.NoiseShape.Ridge;
+    public bool Equals(ElectricMaterial? other) => SameField(other);
+    public override int GetHashCode() => FieldHash();
 }
 
 /// <summary>

@@ -72,7 +72,9 @@ public static class PatternNoise
     }
 
     /// <summary>Fractional Brownian motion: <paramref name="octaves"/> octaves of value noise summed at halving
-    /// scale and amplitude, normalised to [0,1). One octave is plain value noise; more octaves add finer detail.</summary>
+    /// scale and amplitude, normalised to [0,1). One octave is plain value noise; more octaves add finer detail.
+    /// <para>Kept for callers that want the raw sum — the path roughness reads it. A field that is going to be
+    /// <em>cut into bands</em> wants <see cref="Field"/> instead, which holds its spread constant.</para></summary>
     public static double Fbm(int x, int z, uint seed, int scale, int octaves)
     {
         double sum = 0, amp = 1, norm = 0; int sc = Math.Max(1, scale);
@@ -83,4 +85,56 @@ public static class PatternNoise
         }
         return norm > 0 ? sum / norm : 0;
     }
+
+    /// <summary>What one octave is bent into before the sum — the whole difference between the three field
+    /// patterns. <see cref="Plain"/> is the noise itself, so the sum is ordinary cloudy fBm.
+    /// <see cref="Billow"/> takes its distance from the midpoint, folding the field at every zero crossing into
+    /// a crease, which reads as billowed or marbled. <see cref="Ridge"/> inverts that fold and squares it, so
+    /// the crossings become thin bright filaments with everything else falling away from them.</summary>
+    public enum NoiseShape { Plain, Billow, Ridge }
+
+    // Mean and standard deviation of a single octave of each shape, measured over the smoothed value field.
+    // They are what Field cancels to leave a distribution that does not depend on the shape or the octave count.
+    private static (double Mean, double Deviation) OctaveStats(NoiseShape shape) => shape switch
+    {
+        NoiseShape.Billow => (0.3639, 0.2373),
+        NoiseShape.Ridge => (0.4609, 0.2836),
+        _ => (0.5114, 0.2169),
+    };
+
+    /// <summary>How much of [0,1) one standard deviation of a <see cref="Field"/> spans. Chosen so a field cut
+    /// into four or five bands puts a few percent in each outer band rather than nothing: it is what makes the
+    /// last material an author names actually appear.</summary>
+    private const double FieldSpread = 0.21;
+
+    /// <summary>
+    /// A fractal field in [0,1) built to be <b>cut into bands</b>: <paramref name="octaves"/> octaves of the
+    /// given <paramref name="shape"/> summed at halving scale and amplitude, then normalised by the sum's own
+    /// deviation rather than by its amplitude total.
+    ///
+    /// <para>That normalisation is the point. Summing octaves and dividing by the amplitude sum averages
+    /// independent samples, so the spread narrows as octaves are added — the field crowds towards its middle
+    /// and the outermost bands starve. Dividing by <c>sqrt(Σ amplitude²)</c> instead holds the spread constant,
+    /// so raising the octave count adds detail without quietly deleting the first and last material.</para>
+    /// </summary>
+    public static double Field(int x, int z, uint seed, int scale, int octaves, NoiseShape shape)
+    {
+        var (mean, deviation) = OctaveStats(shape);
+        double sum = 0, amp = 1, square = 0; int sc = Math.Max(1, scale);
+        for (var o = 0; o < Math.Max(1, octaves); o++)
+        {
+            sum += amp * (Shape(Value(x, z, seed + (uint)o * 7919u, sc), shape) - mean);
+            square += amp * amp; amp *= 0.5; sc = Math.Max(1, sc / 2);
+        }
+        if (square <= 0) return 0.5;
+        double normalised = 0.5 + sum / (Math.Sqrt(square) * deviation) * FieldSpread;
+        return Math.Clamp(normalised, 0, 0.9999999);
+    }
+
+    private static double Shape(double value, NoiseShape shape) => shape switch
+    {
+        NoiseShape.Billow => Math.Abs(2 * value - 1),
+        NoiseShape.Ridge => (1 - Math.Abs(2 * value - 1)) * (1 - Math.Abs(2 * value - 1)),
+        _ => value,
+    };
 }

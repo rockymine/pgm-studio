@@ -3,7 +3,7 @@ namespace PgmStudio.Contracts;
 /// <summary>
 /// The <c>kind</c> discriminator of every terrain-paint material — the value a style is tagged, stored and
 /// browsed by ("show every voronoi"). It lives here because it is wire vocabulary: the client's editor, the
-/// HTTP surface and the <c>style.kind</c> column all have to agree on the same six strings, and this is the one
+/// HTTP surface and the <c>style.kind</c> column all have to agree on the same strings, and this is the one
 /// leaf all three can reach. The painter's own polymorphic attributes carry the same strings by necessity.
 /// </summary>
 public static class MaterialKind
@@ -12,7 +12,10 @@ public static class MaterialKind
     public const string Layered = "layered";
     public const string TeamTint = "teamTint";
     public const string Voronoi = "voronoi";
+    public const string Cell = "cell";
     public const string Noise = "noise";
+    public const string Turbulence = "turbulence";
+    public const string Electric = "electric";
     public const string WallRun = "wallRun";
 
     /// <summary>The kinds in offer order — plain blocks first, then the composites, then the patterns.</summary>
@@ -21,8 +24,11 @@ public static class MaterialKind
         (Solid, "Solid block"),
         (Layered, "Layer stack"),
         (TeamTint, "Team tint"),
-        (Voronoi, "Voronoi patches"),
-        (Noise, "Noise ramp"),
+        (Voronoi, "Voronoi cells"),
+        (Cell, "Cell patches"),
+        (Noise, "Fractal field"),
+        (Turbulence, "Turbulence"),
+        (Electric, "Electric"),
         (WallRun, "Wall stripes"),
     ];
 

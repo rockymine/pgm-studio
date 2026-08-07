@@ -27,10 +27,14 @@ public static class ThemeFields
     public const string Width = "width";
     public const string Seed = "seed";
     public const string CellSize = "cellSize";
-    /// <summary>A voronoi pattern's cell-wall material and how thick (in blocks) it runs. The wall key is the same
-    /// string as the theme's rim bucket (<see cref="Rim"/>), but it lives inside a voronoi material object, so the
-    /// two never meet — a voronoi's rim is its honeycomb walls, not the theme's edge course.</summary>
-    public const string RimWidth = "rimWidth";
+    /// <summary>A voronoi's ordered bands, measured inward from the cell boundary — band 0 draws the grid, the
+    /// last takes the middle. Each entry is a material plus its <see cref="Depth"/> in blocks.</summary>
+    public const string Bands = "bands";
+    /// <summary>How far a cell pattern's sites may sit from the middle of their grid square, 0–100%.</summary>
+    public const string Jitter = "jitter";
+    /// <summary>How many blocks a cell pattern's boundaries wander — what makes its patches organic rather than
+    /// the straight-edged diagram a voronoi draws.</summary>
+    public const string Warp = "warp";
     public const string Scale = "scale";
     public const string Octaves = "octaves";
 
@@ -46,6 +50,7 @@ public static class ThemeFields
     public const string Wall = ThemeBuckets.Wall;
     public const string WallEnabled = "wallEnabled";
     public const string Fill = ThemeBuckets.Fill;
+    /// <summary>How deep a claim runs: courses for a theme's top band, blocks inward for a voronoi's band.</summary>
     public const string Depth = "depth";
     public const string Enabled = "enabled";
 
@@ -69,22 +74,24 @@ public static class ThemeFields
         {
             [Kind] = MaterialKind.Voronoi,
             [Seed] = 1,
-            [CellSize] = 8,
-            [Palette] = new JsonArray(Solid(1), Solid(24)),
-            // A cellular pattern by default — dirt-walled stone and sandstone cells — because filled patches with
-            // no walls read as blobs rather than a voronoi. The rim contrasts with both fills so the honeycomb
-            // shows; wall thickness 0 turns the walls off for the plain patch look.
-            [Rim] = Solid(3),
-            [RimWidth] = 2,
+            [CellSize] = 10,
+            // A grid line, a thin course just inside it, then the body — the shape a voronoi has to arrive in to
+            // read as cells at all. One band would be a flat wash and would tell an author nothing about what
+            // the list is for; three show that it runs inward and that the last one takes the rest.
+            [Bands] = new JsonArray(Band(Solid(155), 1), Band(Solid(3), 2), Band(Solid(1), 1)),
         },
-        MaterialKind.Noise => new JsonObject
+        MaterialKind.Cell => new JsonObject
         {
-            [Kind] = MaterialKind.Noise,
+            [Kind] = MaterialKind.Cell,
             [Seed] = 1,
-            [Scale] = 16,
-            [Octaves] = 3,
-            [Stops] = new JsonArray(Solid(2), Solid(12)),
+            [CellSize] = 10,
+            [Jitter] = 50,
+            [Warp] = 4,
+            [Palette] = new JsonArray(Solid(1), Solid(24), Solid(3, 1)),
         },
+        MaterialKind.Noise => Field(MaterialKind.Noise),
+        MaterialKind.Turbulence => Field(MaterialKind.Turbulence),
+        MaterialKind.Electric => Field(MaterialKind.Electric),
         MaterialKind.WallRun => new JsonObject
         {
             [Kind] = MaterialKind.WallRun,
@@ -94,12 +101,25 @@ public static class ThemeFields
     };
 
     /// <summary>A fresh entry for one of a material's child lists — a bare material for a pattern's palette or
-    /// stops, a material plus its extent for a layer stack or a wall run.</summary>
+    /// stops, a material plus its extent for a layer stack, a wall run or a voronoi band.</summary>
     public static JsonNode NewEntry(string field) => field switch
     {
         Layers => Layer(Solid(1), 1),
         Runs => Stripe(Solid(1), 2),
+        Bands => Band(Solid(1), 1),
         _ => Solid(1),
+    };
+
+    /// <summary>A fresh field pattern — the three share every knob and differ only in how the field is bent, so
+    /// they start from the same numbers and the same four-stop ramp. Four stops rather than two because the
+    /// point of a ramp is that the ends are accents, which one boundary cannot show.</summary>
+    private static JsonObject Field(string kind) => new()
+    {
+        [Kind] = kind,
+        [Seed] = 1,
+        [Scale] = 16,
+        [Octaves] = 3,
+        [Stops] = new JsonArray(Solid(1), Solid(2), Solid(3), Solid(24)),
     };
 
     /// <summary>A solid-block material node — the leaf every other kind bottoms out in.</summary>
@@ -108,6 +128,7 @@ public static class ThemeFields
 
     private static JsonObject Layer(JsonNode material, int thickness) => new() { [Material] = material, [Thickness] = thickness };
     private static JsonObject Stripe(JsonNode material, int width) => new() { [Material] = material, [Width] = width };
+    private static JsonObject Band(JsonNode material, int depth) => new() { [Material] = material, [Depth] = depth };
 }
 
 /// <summary>

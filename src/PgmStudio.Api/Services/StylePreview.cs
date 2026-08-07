@@ -48,16 +48,26 @@ public static class StylePreview
             return BlockPalette.Hex(id, data);
         });
 
+    /// <summary>An area pattern is a <em>field</em>, so a swatch has to be wide enough to hold several of
+    /// whatever it repeats — a voronoi with ten-block cells shown over twenty blocks is two cells and reads as a
+    /// blotch. These sample four times the ground at half the pixel size, which keeps the picture the same size
+    /// on the card while showing enough of the pattern to recognise it.</summary>
+    private static bool IsAreaPattern(string kind) =>
+        kind is MaterialKind.Voronoi or MaterialKind.Cell
+             or MaterialKind.Noise or MaterialKind.Turbulence or MaterialKind.Electric;
+
     /// <summary>The one view that shows a given kind what it does: a layer stack only varies with depth, so it
     /// gets the section; every other kind varies across the ground, so it gets the plan view.</summary>
     public static string CardSvg(string kind, TerrainMaterial material)
-        => kind == MaterialKind.Layered
-            ? SectionSvg(material, columns: 24, courses: 12, cell: 5)
-            : PlanSvg(material, columns: 24, cell: 5);
+        => kind == MaterialKind.Layered ? SectionSvg(material, columns: 24, courses: 12, cell: 5)
+         : IsAreaPattern(kind) ? PlanSvg(material, columns: 60, cell: 2)
+         : PlanSvg(material, columns: 24, cell: 5);
 
     /// <summary>Both views of one material, for an editor previewing an edit as it is made.</summary>
     public static MaterialPreviewDto Views(TerrainMaterial material)
-        => new(PlanSvg(material), SectionSvg(material));
+        => IsAreaPattern(TerrainThemeComposer.KindOf(material))
+            ? new(PlanSvg(material, columns: 72, cell: 2), SectionSvg(material, columns: 72, cell: 2))
+            : new(PlanSvg(material), SectionSvg(material));
 
     /// <summary>Both views of a serialized material.</summary>
     public static MaterialPreviewDto Views(string materialJson)

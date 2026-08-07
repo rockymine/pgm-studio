@@ -76,8 +76,9 @@ public sealed class TerrainPaletteTests
         // a tint places its block in all sixteen shades, so the family has to be offered whole
         TeamTintedMaterial tint => Enumerable.Range(0, 16).Select(data => (tint.BlockId, data)).Concat(BlocksOf(tint.Neutral)),
         LayeredMaterial layered => layered.Layers.SelectMany(layer => BlocksOf(layer.Material)),
-        VoronoiMaterial voronoi => voronoi.Palette.SelectMany(BlocksOf),
-        NoiseMaterial noise => noise.Stops.SelectMany(BlocksOf),
+        VoronoiMaterial voronoi => voronoi.Bands.SelectMany(band => BlocksOf(band.Material)),
+        CellMaterial cell => cell.Palette.SelectMany(BlocksOf),
+        FieldPatternMaterial field => field.Stops.SelectMany(BlocksOf),
         WallRunMaterial run => run.Runs.SelectMany(stripe => BlocksOf(stripe.Material)),
         _ => [],
     };

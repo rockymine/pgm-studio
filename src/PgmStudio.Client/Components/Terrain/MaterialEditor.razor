@@ -52,38 +52,73 @@
         break;
 
       case MaterialKind.Voronoi:
-        <p class="material-editor-note">Cells roughly one patch-size across. With <strong>wall thickness</strong>
-          above zero it reads as a honeycomb — a rim material tracing the cell boundaries, each cell filled from
-          the palette; at zero it is plain filled patches. Deterministic — the same seed always paints it.</p>
+        <p class="material-editor-note">Cells roughly one patch-size across, drawn as a <strong>ramp inward from
+          the cell boundary</strong>. The first band sits on the boundary itself, so it draws the grid; each one
+          after it is a ring further in, and the last takes the middle. A cell too small to reach a band never
+          shows it, so small cells come out filled by whichever band they did reach. Deterministic — the same
+          seed always paints it.</p>
         <div class="material-editor-scalars">
           <Field Label="Patch size">
             <input class="field-input field-input--slim" type="number" min="1" step="1"
-                   value="@Int(ThemeFields.CellSize, 8)" @onchange="SetCellSize" />
-          </Field>
-          <Field Label="Wall thickness">
-            <input class="field-input field-input--slim" type="number" min="0" step="1"
-                   value="@Int(ThemeFields.RimWidth, 0)" @onchange="SetRimWidth" />
+                   value="@Int(ThemeFields.CellSize, 10)" @onchange="SetCellSize" />
           </Field>
           <Field Label="Seed">
             <input class="field-input field-input--slim" type="number" min="0" step="1"
                    value="@Int(ThemeFields.Seed, 0)" @onchange="SetSeed" />
           </Field>
         </div>
-        @if (Int(ThemeFields.RimWidth, 0) > 0)
+        @foreach (var band in List(ThemeFields.Bands))
         {
-          <MaterialEditor Nested Label="Cell walls" Blocks="Blocks" Node="Rim" OnChanged="Changed" />
+          <div class="material-entry" @key="band.Node">
+            <MaterialEditor Nested Label="@BandLabel(band.Index)" Blocks="Blocks"
+                            Node="@band.Material" OnChanged="Changed" OnRemove="@band.Remove" />
+            <Field Label="Blocks in" Class="material-entry-scalar">
+              <input class="field-input field-input--slim" type="number" min="1" step="1"
+                     value="@band.Extent" @onchange="@band.SetExtent" />
+            </Field>
+          </div>
         }
+        <Button Icon="plus" OnClick="AddBand">Add a band</Button>
+        break;
+
+      case MaterialKind.Cell:
+        <p class="material-editor-note">Patches of one material each, any two of which may meet — the fabric a
+          voronoi's diagram is not. <strong>Jitter</strong> is how far a patch's seed strays from its grid
+          square (0% is the grid itself, 100% is shards); <strong>edge wander</strong> is how many blocks the
+          boundaries wobble, which is what makes the patches organic rather than straight-edged.</p>
+        <div class="material-editor-scalars">
+          <Field Label="Patch size">
+            <input class="field-input field-input--slim" type="number" min="1" step="1"
+                   value="@Int(ThemeFields.CellSize, 10)" @onchange="SetCellSize" />
+          </Field>
+          <Field Label="Jitter %">
+            <input class="field-input field-input--slim" type="number" min="0" max="100" step="5"
+                   value="@Int(ThemeFields.Jitter, 50)" @onchange="SetJitter" />
+          </Field>
+          <Field Label="Edge wander">
+            <input class="field-input field-input--slim" type="number" min="0" step="1"
+                   value="@Int(ThemeFields.Warp, 4)" @onchange="SetWarp" />
+          </Field>
+          <Field Label="Seed">
+            <input class="field-input field-input--slim" type="number" min="0" step="1"
+                   value="@Int(ThemeFields.Seed, 0)" @onchange="SetSeed" />
+          </Field>
+        </div>
         @foreach (var entry in List(ThemeFields.Palette))
         {
-          <MaterialEditor Nested Label="@($"Cell fill {entry.Index + 1}")" Blocks="Blocks" @key="entry.Node"
+          <MaterialEditor Nested Label="@($"Patch {entry.Index + 1}")" Blocks="Blocks" @key="entry.Node"
                           Node="@entry.Material" OnChanged="Changed" OnRemove="@entry.Remove" />
         }
-        <Button Icon="plus" OnClick="AddPaletteEntry">Add cell material</Button>
+        <Button Icon="plus" OnClick="AddPaletteEntry">Add a patch material</Button>
         break;
 
       case MaterialKind.Noise:
-        <p class="material-editor-note">A smooth fractal field mapped through the stops in order — the first
-          stop takes the lowest band of the field. More octaves give a cloudier, finer-grained result.</p>
+      case MaterialKind.Turbulence:
+      case MaterialKind.Electric:
+        <p class="material-editor-note">@FieldBlurb Cut into bands by the stops in order — the first takes the
+          lowest slice of the field. Only neighbouring stops ever share a boundary, and the outermost two are
+          accents rather than halves, so a stop list reads as a ramp from one material to the next. More octaves
+          add finer detail without narrowing the field.</p>
         <div class="material-editor-scalars">
           <Field Label="Scale">
             <input class="field-input field-input--slim" type="number" min="1" step="1"

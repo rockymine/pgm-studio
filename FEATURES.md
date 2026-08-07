@@ -2555,8 +2555,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the body reads as five plateaus that touch, while `void` caps the outside alone and it reads as one body.
   The wall is unaffected — it asks its own face question — so a tread's riser is still walled.
 - **Terrain-paint patterns + theme JSON (TP13).** Any bucket's material can be a **pattern** at the same seam as
-  a solid: `VoronoiMaterial` (jittered-grid regions, N-material palette), `NoiseMaterial` (fractal/value-noise
-  field through an N-stop ramp), and `WallRunMaterial` (N stripes of any widths that wrap the **void-facing
+  a solid, in two families plus the wall's own. **Region:** `VoronoiMaterial` takes an ordered list of bands
+  measured **inward from the cell boundary** — band 0 sits on the boundary and draws the grid as one connected
+  network, each later band is a ring further in, the last takes the middle, and a cell too small to reach a band
+  never shows it, which is what gives cell size a meaning. (Depth is the Worley `F2 − F1` gap, whose contours are
+  hyperbolic, so the inner bands round off the cell's corners while the outline stays sharp.) `CellMaterial`
+  takes the same regions and gives each *whole* region one material, having warped the lookup and loosened the
+  sites off their grid — a fabric of organic patches where voronoi draws a diagram. **Field:** `NoiseMaterial`,
+  `TurbulenceMaterial` and `ElectricMaterial` cut a fractal field into an N-stop ramp and differ only in how
+  each octave is bent — left alone (cloudy), folded at every crossing (billowed, marbled) or ridged (thin
+  branching filaments). Only neighbouring stops share a boundary, so a stop list reads as a ramp rather than a
+  set of patches. The sum is normalised by its own deviation rather than its amplitude total, which holds the
+  spread constant as octaves rise: dividing by the total averages samples, so the field used to crowd towards
+  its middle and the first and last material an author named all but vanished (1.0% each at five stops, three
+  octaves). **Wall:** `WallRunMaterial` (N stripes of any widths that wrap the **void-facing
   perimeter**, reading a per-column arc from `TerrainProfile`'s Moore boundary walk over each landmass — a walk
   that now stops when its loop closes, detected as the first repeat of a (cell, entry-direction) state rather
   than by agreeing on which state means "back at the start". The earlier Jacob's criterion never fired on a

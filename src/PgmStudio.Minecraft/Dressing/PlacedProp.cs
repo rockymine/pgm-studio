@@ -66,11 +66,15 @@ public readonly record struct PaveBlock(int Id, int Data);
 /// carve stops at the surface it crosses and never fills what was already air.</summary>
 public sealed record WaterProp : PlacedProp
 {
-    /// <summary>The default bank: a cellular voronoi — sand and coarse-dirt cells walled by gravel rims — so a
-    /// bed reads like patterned ground the map is finished with rather than one flat block or a smear of patches.</summary>
+    /// <summary>The default bank: a cellular voronoi — gravel picking out the cell edges, coarse dirt just
+    /// inside them, sand in the middle — so a bed reads like patterned ground the map is finished with rather
+    /// than one flat block or a smear of patches.</summary>
     private static readonly TerrainMaterial DefaultBank = new VoronoiMaterial(1, 5,
-        [new SolidMaterial(Minecraft.Blocks.Sand), new SolidMaterial(Minecraft.Blocks.Dirt, 1)],
-        Rim: new SolidMaterial(Minecraft.Blocks.Gravel), RimWidth: 2);
+    [
+        new VoronoiBand(new SolidMaterial(Minecraft.Blocks.Gravel), 2),
+        new VoronoiBand(new SolidMaterial(Minecraft.Blocks.Dirt, 1), 1),
+        new VoronoiBand(new SolidMaterial(Minecraft.Blocks.Sand), 1),
+    ]);
 
     /// <summary>The drawn centerline, as <c>[x, z]</c> pairs. Two points or more.</summary>
     public IReadOnlyList<double[]> Points { get; init; } = [];
