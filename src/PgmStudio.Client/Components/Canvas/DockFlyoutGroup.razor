@@ -10,8 +10,13 @@
    is what makes the collapse cost nothing — the tool being used is the tool being shown.
 
    The flyout opens upward, because the dock is at the bottom of the canvas and a downward menu would open
-   off it. It is icon-only: a label on every option would give back exactly the width the collapse saves, so
-   the name lives in the tooltip.
+   off it, and it hangs from the chevron's left edge — the chevron is what opened it, so that is where it
+   comes from. It lists the whole family, the option in the slot included, in three columns: a tick for the
+   one that is armed, the glyph or swatch, and the option's name. A name rather than a bare glyph because a
+   flyout shows one family with nothing around it to say which family, and five unlabelled swatches are five
+   colours with no meaning. A row keeps the browser's own title for the longer explanation: it already shows
+   its name, so what is left to say is a sentence, and a caption drawn above a menu row would cover the row
+   above it — which is the reverse of the problem data-tip solves for the dock's own buttons.
 
    Which group is open is the host's state, not the group's — only one may be open at a time, and a group
    cannot close a sibling it does not know about. *@
@@ -26,20 +31,42 @@
      subtree whose <i data-lucide> studio.icons then converts. *@
   <DockButton @key="Active.Key" Icon="@Active.Icon" Swatch="@Active.Swatch" SwatchClass="@Active.SwatchClass"
               Title="@Active.Title" Active="@Armed" OnClick="() => OnPick.InvokeAsync(Active.Key)" />
-  <button class="canvas-dock-chevron" type="button" title="@ChevronTitle" aria-expanded="@Open"
-          @onclick="OnToggleOpen">
-    <i data-lucide="chevron-up" @key="@("chevron-up")"></i>
-  </button>
-  @if (Open)
-  {
-    <div class="canvas-dock-flyout">
-      @foreach (var item in Items.Where(i => i.Key != Active.Key))
-      {
-        <DockButton Icon="@item.Icon" Swatch="@item.Swatch" SwatchClass="@item.SwatchClass" @key="item.Key"
-                    Title="@item.Title" OnClick="() => OnPick.InvokeAsync(item.Key)" />
-      }
-    </div>
-  }
+  @* The chevron is the flyout's anchor, not just its trigger — the menu hangs from this box's left edge. *@
+  <span class="canvas-dock-chevron-anchor">
+    <button class="canvas-dock-chevron" type="button" aria-label="@ChevronTitle" data-tip="@ChevronTitle"
+            aria-expanded="@Open" @onclick="OnToggleOpen">
+      <i data-lucide="chevron-up" @key="@("chevron-up")"></i>
+    </button>
+    @if (Open)
+    {
+      <div class="canvas-dock-flyout">
+        @foreach (var item in Items)
+        {
+          <button class="canvas-dock-flyout-row" type="button" @key="item.Key" title="@item.Title"
+                  aria-current="@(item.Key == Active.Key ? "true" : null)"
+                  @onclick="() => OnPick.InvokeAsync(item.Key)">
+            <span class="canvas-dock-flyout-check">
+              @if (item.Key == Active.Key)
+              {
+                <i data-lucide="check" @key="@("check")"></i>
+              }
+            </span>
+            <span class="canvas-dock-flyout-mark">
+              @if (item.Swatch is not null || item.SwatchClass is not null)
+              {
+                <span class="@SwatchCls(item)" style="@SwatchStyle(item)"></span>
+              }
+              else if (!string.IsNullOrEmpty(item.Icon))
+              {
+                <i data-lucide="@item.Icon" @key="item.Icon"></i>
+              }
+            </span>
+            <span class="canvas-dock-flyout-label">@(item.Label ?? item.Title)</span>
+          </button>
+        }
+      </div>
+    }
+  </span>
 </div>
 
 @code {
@@ -62,4 +89,10 @@
         Items.FirstOrDefault(i => i.Key == ActiveKey) ?? Items[0];
 
     private string ChevronTitle => Label is null ? "More options" : $"More {Label} options";
+
+    private static string SwatchCls(DockItem item) =>
+        item.SwatchClass is null ? "canvas-dock-swatch" : $"canvas-dock-swatch {item.SwatchClass}";
+
+    private static string? SwatchStyle(DockItem item) =>
+        item.Swatch is null ? null : $"--swatch-color:{item.Swatch}";
 }

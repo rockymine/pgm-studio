@@ -8,7 +8,9 @@
 
    Clicking it flips to the other mode; a two-state thing needs one button, not two. *@
 
-<button class="canvas-dock-mode" type="button" title="@Title" aria-pressed="@Pressed" @onclick="OnClick">@ChildContent</button>
+@* data-tip, not title — see DockButton: a native tooltip on a control this close to the bottom of the
+   canvas opens downward, off the edge. *@
+<button class="canvas-dock-mode" type="button" data-tip="@Title" aria-pressed="@Pressed" @onclick="OnClick">@ChildContent</button>
 
 @code {
     /// <summary>Whether the non-default mode is armed (carve, hole) — the accessible half of the colour.</summary>

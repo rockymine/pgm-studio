@@ -681,9 +681,45 @@ svg.lucide { width: var(--icon-md); height: var(--icon-md); }
   border: 1.5px dashed var(--swatch-color, var(--text-muted));
 }
 
+/* A dock control names itself ABOVE itself.
+   The browser's own tooltip renders below the pointer, and every control in here is a few pixels off the
+   bottom of the canvas — so the native one lands on the viewport edge or outside it entirely. These carry
+   the name as data-tip (with aria-label for the accessible name a glyph-only button would otherwise lack)
+   and CSS draws it upward. It appears on a delay, so crossing the dock on the way somewhere does not trail
+   a caption. */
+.canvas-dock [data-tip] { position: relative; }
+.canvas-dock [data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 9px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  width: max-content;
+  max-width: 210px;
+  padding: 4px 9px;
+  border-radius: var(--radius-md);
+  background: var(--canvas-float-bg);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--canvas-float-border);
+  box-shadow: var(--canvas-float-shadow);
+  color: var(--text-primary);
+  font-size: var(--font-sm);
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast);
+}
+.canvas-dock [data-tip]:hover::after,
+.canvas-dock [data-tip]:focus-visible::after { opacity: 1; transition-delay: 0.35s; }
+
 /* ── a collapsed group: the option in hand, a chevron, and a flyout above ── */
-.canvas-dock-collapsed { position: relative; display: flex; align-items: center; gap: 1px; }
-/* Narrow and shorter than the option beside it — it is the handle on that button, not a tool of its own. */
+.canvas-dock-collapsed { display: flex; align-items: center; gap: 1px; }
+/* Narrow and shorter than the option beside it — it is the handle on that button, not a tool of its own.
+   It is also the flyout's anchor: the menu hangs from the box that opened it. */
+.canvas-dock-chevron-anchor { position: relative; display: flex; align-items: center; }
 .canvas-dock-chevron {
   width: 13px;
   height: 26px;
@@ -702,24 +738,52 @@ svg.lucide { width: var(--icon-md); height: var(--icon-md); }
 .canvas-dock-chevron svg { width: 11px; height: 11px; }
 .canvas-dock-chevron:hover { color: var(--text-bright); background: color-mix(in oklch, var(--text-muted) 22%, transparent); }
 
-/* Opens upward: the dock sits at the bottom of the canvas, so a downward menu would open off it. */
+/* Opens upward (the dock is at the bottom of the canvas, so a downward menu would open off it) and from the
+   chevron's left edge — the chevron is what opened it, so that is where it comes from. */
 .canvas-dock-flyout {
   position: absolute;
   bottom: calc(100% + 8px);
-  left: 50%;
+  left: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 3px;
+  align-items: stretch;
+  gap: 1px;
+  min-width: max-content;
   padding: 4px;
   border-radius: 10px;
-  transform: translateX(-50%);
   animation: dock-flyout-rise var(--transition-fast);
 }
 @keyframes dock-flyout-rise {
-  from { opacity: 0; transform: translate(-50%, 6px); }
-  to   { opacity: 1; transform: translate(-50%, 0); }
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
+
+/* One option: a tick for the one that is armed, its glyph or swatch, its name. Three columns and not two,
+   so the names line up whatever is or is not ticked beside them. */
+.canvas-dock-flyout-row {
+  display: grid;
+  grid-template-columns: 14px 16px 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 9px 5px 6px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: var(--font-sm);
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+.canvas-dock-flyout-row:hover { color: var(--text-bright); background: color-mix(in oklch, var(--text-muted) 20%, transparent); }
+.canvas-dock-flyout-row[aria-current="true"] { color: var(--accent-lighter); }
+.canvas-dock-flyout-check,
+.canvas-dock-flyout-mark { display: flex; align-items: center; justify-content: center; }
+.canvas-dock-flyout-check svg { width: 12px; height: 12px; }
+.canvas-dock-flyout-mark svg { width: 15px; height: 15px; }
 /* Catches the click that dismisses an open flyout, so it cannot instead start a drag on the map the author
    could not see past the menu. Below the chrome (z-index 3), above the canvas. */
 .canvas-dock-scrim { position: absolute; inset: 0; z-index: 2; }

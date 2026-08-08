@@ -117,7 +117,7 @@ try {
   await page.waitForTimeout(1500);
 
   tools = await page.locator(".canvas-dock .canvas-dock-btn").evaluateAll(
-    els => els.map(el => el.getAttribute("title")));
+    els => els.map(el => el.getAttribute("aria-label")));
   const placing = tools.filter(t => /^(Path|Water|Ground cover|Tree|Boulder)/.test(t ?? ""));
   checks.add("the phase offers its five placing tools", placing.length === 5, tools.join(" | "));
   // The draw tools are Draw's: dressing places props, it does not author geometry.
@@ -128,7 +128,7 @@ try {
 
   // Drop a tree by clicking, which is the whole interaction.
   const box = await page.locator("svg.map-canvas-svg").boundingBox();
-  await page.click('button[title^="Tree"]');
+  await page.click('button[aria-label^="Tree"]');
   await page.mouse.click(box.x + box.width * 0.45, box.y + box.height * 0.45);
   await page.waitForTimeout(1500);
   checks.add("a click places a tree", await page.locator("text=Species").count() > 0);
@@ -146,7 +146,7 @@ try {
     await page.locator("text=Species").count() > 0 && await page.locator("text=Branch angle").count() === 0);
 
   // Drag a route: press, trace, release — no separate way to finish, which is the bug the rework fixes.
-  await page.click('button[title^="Path"]');
+  await page.click('button[aria-label^="Path"]');
   await page.mouse.move(box.x + box.width * 0.25, box.y + box.height * 0.65);
   await page.mouse.down();
   for (const step of [0.35, 0.45, 0.55, 0.65]) {
@@ -160,7 +160,7 @@ try {
 
   // Drag a water channel: the same press-trace-release, but its inspector is the water one — a depth and a
   // form, the knobs a channel has and a path does not.
-  await page.click('button[title^="Water"]');
+  await page.click('button[aria-label^="Water"]');
   await page.mouse.move(box.x + box.width * 0.25, box.y + box.height * 0.35);
   await page.mouse.down();
   for (const step of [0.35, 0.45, 0.55, 0.65, 0.75]) {

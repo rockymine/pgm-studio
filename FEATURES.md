@@ -589,7 +589,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   the group fades its contents (not its box) while the tool in hand is not one the mode applies to. Two
   mode toggles moved onto the dock this way: Sketch's Build/Carve out of the tool strip, and the buildable
   layer's Bridge/Hole out of the Configure sidebar (supplied as a `DrawMode` slot, so the canvas owns the
-  shape and the step owns what the shape means). Plan's Interfaces/Frontline/Labels/Heights overlays came
+  shape and the step owns what the shape means). A dock control names itself **upward**: the browser's own
+  tooltip renders below the pointer, and every control here is a few pixels off the bottom of the canvas, so
+  the native one landed on the viewport edge or outside it. They carry the name as `data-tip` (with
+  `aria-label` for the accessible name a glyph-only button would otherwise lack) and CSS draws it above, on
+  a delay so crossing the dock does not trail a caption. Plan's Interfaces/Frontline/Labels/Heights overlays came
   out of the Settings panel onto the canvas they annotate. `tests/e2e/draw-tools.mjs` gates the operation
   contract: one control, colouring the three tools it decides for, dimmed when it decides nothing. The
   retired `.canvas-subbar` draw vocabulary (`.op-pill`, `.subbar-sep`, `.canvas-dim`, `.canvas-zoom`,
@@ -603,10 +607,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   so a family collapses to a `DockFlyoutGroup`: the option in its slot plus a chevron, Figma's shape-tool
   flyout. Click the option to arm it, click the chevron for the rest, pick one and it takes the slot — the
   last pick stays visible, which is what makes the collapse cost nothing. Six buttons remain. The flyout
-  opens upward (a downward menu would open off the canvas) and is icon-only, since a label on every option
-  gives back exactly the width the collapse saves. Which family is open is the host's state, so opening one
-  closes the others, and a scrim catches the dismissing click so it cannot instead start a drag on the map
-  hidden behind the menu. The promoted option's button is `@key`ed on the option: a lucide glyph **cannot**
+  opens **upward** (a downward menu would open off the canvas) and **from the chevron's left edge** — the
+  chevron is what opened it, so that is where it comes from. It lists the **whole** family, the option in
+  the slot included, in three columns: a tick on the one that is armed, the glyph or swatch, and the
+  option's name. A name and not a bare glyph because a flyout shows one family with nothing around it to
+  say which family, and five unlabelled swatches are five colours with no meaning; the name says which
+  family where the word collides across them ("Wool marker", "Wool box", "Wool room") and stands alone
+  where it does not (Buffer, Connector, Destroyable, Core). A row keeps the browser's own title for the
+  longer sentence, since it already shows its name and a caption drawn above a menu row would cover the row
+  above it. Which family is open is the host's state, so opening one closes the others, and a scrim catches
+  the dismissing click so it cannot instead start a drag on the map hidden behind the menu. The promoted option's button is `@key`ed on the option: a lucide glyph **cannot**
   be swapped in place, because lucide replaces the `<i data-lucide>` with an `<svg>` after every render, so
   there is no `<i>` left for Blazor to re-point — it patches a node it no longer owns, which showed as a
   promoted "destroyable" still wearing the flag icon and, on a flyout switch, as the reconciler taking

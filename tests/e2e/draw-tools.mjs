@@ -33,7 +33,7 @@ checks.add("it leads a group of its own, holding the three tools it decides for"
   await drawGroup.locator(".canvas-dock-btn").count() === 3,
   `${await drawGroup.locator(".canvas-dock-btn").count()}`);
 checks.add("and getting around the canvas is a different box",
-  await page.locator('.canvas-dock-group:not(:has(.canvas-dock-mode)) button[title="Move / pan"]').count() === 1);
+  await page.locator('.canvas-dock-group:not(:has(.canvas-dock-mode)) button[aria-label="Move / pan"]').count() === 1);
 
 // ── idle until a tool that draws is in hand ────────────────────────────────────────────────────────────
 checks.section("it goes quiet when nothing it decides is about to happen");
@@ -41,14 +41,14 @@ checks.section("it goes quiet when nothing it decides is about to happen");
 // The sketch opens on move, which does not draw.
 checks.add("on move the group is dimmed", await idle());
 
-await page.click('button[title="Measure (drag across a void gap to read its length in blocks)"]');
+await page.click('button[aria-label="Measure (drag across a void gap to read its length in blocks)"]');
 await page.waitForTimeout(120);
 checks.add("measure does not draw either, so it stays dimmed", await idle());
 
 // ── armed, it names its mode and flips ────────────────────────────────────────────────────────────────
 checks.section("armed, it names its mode, colours its tools, and one click flips it");
 
-await page.click('button[title="Rectangle"]');
+await page.click('button[aria-label="Rectangle"]');
 await page.waitForTimeout(120);
 checks.add("a draw tool wakes it", !(await idle()));
 checks.add("and a sketch starts building",
@@ -67,7 +67,7 @@ checks.add("and clicking again goes back", await label() === "Build", await labe
 
 // The operation survives a tool change — it is a property of the next shape, not of the tool in hand.
 await mode.click();
-await page.click('button[title="Lasso (hold and trace)"]');
+await page.click('button[aria-label="Lasso (hold and trace)"]');
 await page.waitForTimeout(120);
 checks.add("it is remembered across a tool change",
   await label() === "Carve" && !(await idle()), await label());

@@ -8,7 +8,12 @@
    changes (the flyout group promotes a picked tool into the main slot) has to recreate the node rather than
    patch one the reconciler no longer owns. *@
 
-<button class="@Cls" type="button" title="@Title" disabled="@Disabled" aria-pressed="@Active" @onclick="OnClick">
+@* The name is aria-label + data-tip rather than title: the dock sits at the bottom of the canvas, and the
+   browser's own tooltip renders BELOW the pointer, so on every one of these buttons it lands on the canvas
+   edge or off it. data-tip is drawn by CSS above the button instead. aria-label keeps the accessible name a
+   glyph-only button would otherwise not have. *@
+<button class="@Cls" type="button" aria-label="@Title" data-tip="@Title" disabled="@Disabled"
+        aria-pressed="@Active" @onclick="OnClick">
   @if (Swatch is not null || SwatchClass is not null)
   {
     <span class="@SwatchCls" style="@SwatchStyle"></span>

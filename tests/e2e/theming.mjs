@@ -97,7 +97,7 @@ let restricted = false, tools = [];
 try {
   // Still in the Apply step from above, with the island selected.
   tools = await page.locator(".canvas-dock .canvas-dock-btn").evaluateAll(
-    els => els.map(el => el.getAttribute("title")));
+    els => els.map(el => el.getAttribute("aria-label")));
 
   // A drag across the selected island must pan the view, not move the island.
   const before = JSON.stringify(await api(`/map/${seed.sketchSlug}/sketch`));
