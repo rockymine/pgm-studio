@@ -15,7 +15,7 @@
  *   marker     a fixed-size point dot — a spawn / wool source. `primary` = the authored one (brighter, larger).
  *   sketch     a terrain shape in the boolean vocabulary — add/subtract colour supplied; `override` → dashed.
  *   terrain    solid opaque fill — a plan generating piece (colour tinted by surface by the caller). Ghost variant.
- *   technical  hatched fill — a plan buffer/connector annotation (the hatch pattern supplied as `fill`). Ghost variant.
+ *   technical  hatched fill — a plan buffer annotation (the hatch pattern supplied as `fill`). Ghost variant.
  *   zone       translucent accent — a plan build zone. Ghost variant.
  */
 

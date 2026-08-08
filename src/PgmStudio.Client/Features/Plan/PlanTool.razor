@@ -334,30 +334,30 @@
              separate less than the pairs already do. *@
           <CanvasDock FlyoutOpen="@(openFlyout is not null)" OnDismissFlyout="CloseFlyouts">
             <DockGroup>
-              <DockButton Icon="mouse-pointer-2" Title="Select / edit" Active="@(tool == "select")"
+              <DockButton Icon="mouse-pointer-2" Title="Select" Active="@(tool == "select")"
                           OnClick='() => PickTool("select")' />
-              <DockButton Icon="hand" Title="Move / pan" Active="@(tool == "pan")"
+              <DockButton Icon="hand" Title="Move" Active="@(tool == "pan")"
                           OnClick='() => PickTool("pan")' />
             </DockGroup>
             <DockGroup>
               @* The land — the roles that produce terrain. *@
-              <DockFlyoutGroup Items="TerrainItems" ActiveKey="@terrainActive" Label="piece"
+              <DockFlyoutGroup Items="TerrainItems" ActiveKey="@terrainActive" Label="Pieces"
                                Armed="@(tool == "piece" && role == terrainActive)"
                                Open="@(openFlyout == "terrain")" OnToggleOpen='() => ToggleFlyout("terrain")'
                                OnPick="PickTerrain" />
               @* The build area and the annotations that reserve or connect — none of them generate terrain. *@
-              <DockFlyoutGroup Items="TechnicalItems" ActiveKey="@technicalActive" Label="annotation"
+              <DockFlyoutGroup Items="TechnicalItems" ActiveKey="@technicalActive" Label="Zones"
                                Armed="@TechnicalArmed"
                                Open="@(openFlyout == "technical")" OnToggleOpen='() => ToggleFlyout("technical")'
                                OnPick="PickTechnical" />
               @* What is put on the land. *@
-              <DockFlyoutGroup Items="MarkerItems" ActiveKey="@markerActive" Label="marker"
+              <DockFlyoutGroup Items="MarkerItems" ActiveKey="@markerActive" Label="Markers"
                                Armed="@(tool == markerActive)"
                                Open="@(openFlyout == "markers")" OnToggleOpen='() => ToggleFlyout("markers")'
                                OnPick="PickMarker" />
               @* Box envelopes: drawing one states what the pieces inside it realize. Annotation only — a box
                  never compiles, and dragging it carries its members. *@
-              <DockFlyoutGroup Items="BoxItems" ActiveKey="@boxActive" Label="box kind"
+              <DockFlyoutGroup Items="BoxItems" ActiveKey="@boxActive" Label="Boxes"
                                Armed="@(tool == "box" && boxKind == boxActive)"
                                Open="@(openFlyout == "boxes")" OnToggleOpen='() => ToggleFlyout("boxes")'
                                OnPick="PickBox" />

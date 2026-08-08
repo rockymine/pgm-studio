@@ -364,13 +364,15 @@ public static class DressingTools
     public const string Tree = "dress:tree";
     public const string Boulder = "dress:boulder";
 
-    public static readonly (string Tool, string Kind, string Icon, string Title)[] All =
+    /// <summary>Tool id, the prop kind it places, its glyph, and what it is called. The name names the tool
+    /// and does not explain it — a dock tooltip is a label, not a manual.</summary>
+    public static readonly (string Tool, string Kind, string Icon, string Name)[] All =
     [
-        (Path, PropKinds.Path, "spline", "Path — drag a route; it paves the ground it crosses"),
-        (Water, PropKinds.Water, "droplet", "Water — drag a channel; it cuts a bed and fills it"),
-        (Flora, PropKinds.Flora, "flower", "Ground cover — drag an area; grass and flowers grow inside it"),
-        (Tree, PropKinds.Tree, "trees", "Tree — click to place one"),
-        (Boulder, PropKinds.Boulder, "mountain", "Boulder — click to place one"),
+        (Path, PropKinds.Path, "spline", "Path"),
+        (Water, PropKinds.Water, "droplet", "Water"),
+        (Flora, PropKinds.Flora, "flower", "Ground cover"),
+        (Tree, PropKinds.Tree, "trees", "Tree"),
+        (Boulder, PropKinds.Boulder, "mountain", "Boulder"),
     ];
 
     /// <summary>The kind of prop a tool places, or null when the tool places none.</summary>

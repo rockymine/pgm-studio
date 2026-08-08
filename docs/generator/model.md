@@ -254,10 +254,10 @@ not built, and they stand as schema waiting for it.
 
 The authored roles are worth naming exactly, because a second taxonomy sits next to them and the two
 must never be mixed. A **role** is a *map-level* label on a piece in the plan, and the authored set is
-closed: `piece` — anonymous, the default — plus `wool-room`, `spawn`, `buffer` and `connector`. The
-first three are **generating** roles that make terrain; the last two are **annotation** roles that
-mark something informational and produce no terrain, no graph effect and no export. Everything else
-that sounds like a role — frontline, hub, lane, mid — is **derived and never authored**. A **slot**,
+closed: `piece` — anonymous, the default — plus `wool-room`, `spawn` and `buffer`. The first three are
+**generating** roles that make terrain; `buffer` is an **annotation** role that marks something
+informational and produces no terrain, no graph effect and no export. Everything else that sounds like a
+role — frontline, hub, lane, mid, connector — is **derived and never authored**. A **slot**,
 by contrast, is a *shape-internal* label naming a rectangle's position inside one approach, and it
 lives only during composition. One is what a piece *is on the map*; the other is what it *does inside
 its shape*.

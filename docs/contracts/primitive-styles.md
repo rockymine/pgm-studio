@@ -84,7 +84,7 @@ into a small, consistent vocabulary:
 |---|---|---|---|---|
 | **solid, opaque** | real buildable terrain / real region | role/dye/team colour, `fill-opacity 0.7–0.85` | solid, same colour | Plan generating pieces (`plan-canvas.js:442-457`) |
 | **translucent, dashed** | a region / an area (not solid ground) | colour @ `0.20` (Edit/Configure) / accent @ `0.22` (Plan zone) | dashed (`4,2` region · `7 4` zone) | `world-canvas.js:1012-1016`; `plan-canvas.js:402-421` |
-| **hatched, dashed** | technical / visualization-only (teaches behaviour: intended holes, dock points) | diagonal/crossed hatch pattern | dashed, same colour (`5 4`) | Plan buffer/connector (`plan-canvas.js:429-440,303-321`) |
+| **hatched, dashed** | technical / visualization-only (teaches behaviour: intended holes) | diagonal hatch pattern | dashed, same colour (`5 4`) | Plan buffer (`plan-canvas.js`) |
 | **boolean-tinted** | terrain add vs subtract | teal (add) / red (sub) @ `0.28`; `6 3` dash if override | solid | Sketch (`sketch-render.js:19-27`) |
 | **fixed-size marker** | a point objective (spawn / wool source) | team/dye/marker colour @ `0.85–1.0`, radius **fixed** (not zoom-scaled) | ink/`marker-stroke` | `world-canvas.js:986-997`; `plan-canvas.js:461-478` |
 | **ghost / derived** | a non-editable symmetry-orbited or cross-layer preview | colour @ `0.06–0.08`, finer dash | faint | `world-canvas.js:1008-1011`; `plan-canvas.js:360-400`; sketch `sketch-render.js:85-109` |
@@ -110,7 +110,7 @@ The exact style knobs, per editor:
 | **Edit** | **none** — real tree regions carry no `color`; `region.color ?? var(--canvas-region)` always falls back to slate (`world-canvas.js:978`, `--canvas-region` `tokens.css:99,197`). Every Edit region is uniform slate. |
 | **Configure** | **team / dye hex** — every dummy node is tinted `GameColors.ChatHex(team)` or `DyeHex(color)` (`ProtectionStep.razor.cs:218-234`, `SpawnStep.razor.cs:291-297`, `WoolRoomStep.razor.cs:192-209`, …). |
 | **Sketch** | **operation** — add teal `--canvas-add-*`, subtract red `--canvas-sub-*` (`tokens.css:68-71`). |
-| **Plan** | **role** — `ROLE_COLORS` (piece grey, spawn purple, wool-room green, buffer orange, connector teal; `plan-doc.js:21`), lightened by surface height. |
+| **Plan** | **role** — `ROLE_COLORS` (piece grey, spawn purple, wool-room green, buffer orange; `plan-doc.js`), lightened by surface height. |
 
 ---
 
@@ -138,7 +138,7 @@ The point-markers are the hotspot: they render as circles but their sidebar icon
 - **Add/sub colour constants x3**: `sketch-render.js:12-15` (committed), `sketch-draw-controller.js:19-22`
   (previews), plus raw tokens in `components.css`. A recolour needs all three.
 - **Plan role colours x2**: `plan-doc.js:21` (`ROLE_COLORS`) and `PlanEditor.razor.cs:100-112`
-  (toolbar/inspector palette) — two hand-kept copies of the same five hexes.
+  (dock/inspector palette) — two hand-kept copies of the same hexes.
 - **Two style functions that are 90% the same**: `#regionAttrs` (Edit/Configure) and `shapeAttrs`
   (Sketch) differ only in fill-opacity (0.20 vs 0.28), dash pattern, and colour source.
 

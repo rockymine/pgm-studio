@@ -25,14 +25,13 @@ public static class BoardDeriver
             foreach (var c in FanCells(p.Rect, axes, order))
             {
                 if (p.Role == PlanRoles.Buffer) declaredVoid.Add(c);
-                else if (p.Role == PlanRoles.Connector) { /* annotation: no terrain */ }
                 else filled[c] = (p.Id, 0);   // K unused post-fan; kept for clarity
             }
         // re-tag with image K so marker hosting resolves per image
         filled.Clear();
         foreach (var p in plan.Pieces)
         {
-            if (p.Role is PlanRoles.Buffer or PlanRoles.Connector) continue;
+            if (p.Role == PlanRoles.Buffer) continue;
             for (var k = 0; k < order; k++)
                 foreach (var c in FanCellsK(p.Rect, axes, k)) filled[c] = (p.Id, k);
         }
@@ -364,7 +363,7 @@ public static class BoardDeriver
         var filledK0 = new Dictionary<(int, int), (string PieceId, int K)>();
         foreach (var p in plan.Pieces)
         {
-            if (p.Role is PlanRoles.Buffer or PlanRoles.Connector) continue;
+            if (p.Role == PlanRoles.Buffer) continue;
             foreach (var c in FanCellsK(p.Rect, axes, 0)) filledK0[c] = (p.Id, 0);
         }
         var woolShapes = new List<(string Shape, int Width)>();

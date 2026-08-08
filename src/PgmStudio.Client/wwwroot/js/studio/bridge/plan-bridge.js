@@ -66,7 +66,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     } else {
       const role = canvasRole;
       const base = role === "wool-room" ? "wool" : role === "spawn" ? "spawn"
-        : role === "buffer" ? "buffer" : role === "connector" ? "connector" : "piece";
+        : role === "buffer" ? "buffer" : "piece";
       const id = uniqueId(doc.pieces.map(p => p.id), base);
       doc.pieces.push({ id, role, rect });
       canvas.setDoc(doc);
@@ -267,7 +267,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     return JSON.stringify({
       themes: doc.themes || {},
       mapTheme: doc.mapTheme || "",
-      pieces: (doc.pieces || []).filter(p => p.role !== "buffer" && p.role !== "connector").map(p => ({ id: p.id, role: p.role })),
+      pieces: (doc.pieces || []).filter(p => p.role !== "buffer").map(p => ({ id: p.id, role: p.role })),
       boxes: (doc.boxes || []).map(b => ({ id: b.id, kind: b.kind, members: boxMembers(doc, b).map(p => p.id) })),
       pieceThemes, boxThemes,
     });

@@ -206,7 +206,6 @@ public partial class PlanTool
     private static readonly RolePalette[] TechnicalRoles =
     [
         new("buffer", "Buffer", "#f2792b"),
-        new("connector", "Connector", "#2dd4bf"),
     ];
     // Every assignable role, for the inspector's role dropdown (a piece can become any of them).
     private static readonly RolePalette[] Roles = [.. GeneratingRoles, .. TechnicalRoles];
@@ -314,40 +313,35 @@ public partial class PlanTool
 
     private void CloseFlyouts() => openFlyout = null;
 
-    // A flyout shows one family with nothing around it to say which family, so a label that collides across
+    // A flyout shows one family with nothing around it to say which family, so a name that collides across
     // families says which it is: a piece role, a marker and a box kind can all be called "spawn". Where a
-    // name is unique in the whole dock (buffer, connector, destroyable, core) it stands alone.
+    // name is unique in the whole dock (buffer, destroyable, core) it stands alone.
     private static DockItem[] TerrainItems =>
-        [.. GeneratingRoles.Select(r => new DockItem(r.Id, $"Draw a {r.Label} piece",
-                                                     Label: PieceLabel(r), Swatch: r.Color))];
+        [.. GeneratingRoles.Select(r => new DockItem(r.Id, PieceName(r), Swatch: r.Color))];
 
-    private static string PieceLabel(RolePalette role) => role.Id switch
+    private static string PieceName(RolePalette role) => role.Id switch
     {
         "piece" => "Piece",
         "wool-room" => "Wool room",
         _ => $"{role.Label} piece",
     };
 
-    // The build area leads: it is the thing the technical annotations are drawn in and around, and it is the
-    // one of the three an author reaches for first.
+    // The build area leads: it is the thing the buffer is drawn in and around, and it is the one of the two
+    // an author reaches for first.
     private static DockItem[] TechnicalItems =>
     [
-        new("zone", "Draw a build area", Label: "Build zone", SwatchClass: "canvas-dock-swatch--build"),
-        .. TechnicalRoles.Select(r => new DockItem(r.Id, $"Draw a {r.Label} annotation",
-                                                   Label: r.Label,
-                                                   SwatchClass: $"canvas-dock-swatch--{r.Id}")),
+        new("zone", "Build zone", SwatchClass: "canvas-dock-swatch--build"),
+        .. TechnicalRoles.Select(r => new DockItem(r.Id, r.Label, SwatchClass: $"canvas-dock-swatch--{r.Id}")),
     ];
 
     private static readonly DockItem[] AllMarkerItems =
     [
-        new("spawn", "Place a spawn marker · click a placed spawn to cycle its facing",
-            Label: "Spawn marker", Icon: "flag"),
-        new("wool", "Place a wool goal marker", Label: "Wool marker", Icon: "square"),
-        new("iron", "Place an iron marker", Label: "Iron marker", Icon: "pickaxe"),
-        new("destroyable", "Place a destroyable (DTM) marker", Label: "Destroyable", Icon: "gem"),
-        new("core", "Place a core (DTC) marker", Label: "Core", Icon: "flame"),
-        new("wall", "Raise a pre-built wall on the land interface you click · click again to move its defence "
-                  + "chests to the other side, once more to remove it", Label: "Wall", Icon: "brick-wall"),
+        new("spawn", "Spawn marker", Icon: "flag"),
+        new("wool", "Wool marker", Icon: "square"),
+        new("iron", "Iron marker", Icon: "pickaxe"),
+        new("destroyable", "Destroyable", Icon: "gem"),
+        new("core", "Core", Icon: "flame"),
+        new("wall", "Wall", Icon: "brick-wall"),
     ];
 
     /// <summary>The markers this plan may place. A destroyable is defended by one team and broken by the
@@ -359,7 +353,7 @@ public partial class PlanTool
         : [.. AllMarkerItems.Where(m => m.Key is not ("destroyable" or "core"))];
 
     private static DockItem[] BoxItems =>
-        [.. BoxKinds.Select(k => new DockItem(k.Id, $"Draw a {k.Label} box", Label: $"{k.Label} box",
+        [.. BoxKinds.Select(k => new DockItem(k.Id, $"{k.Label} box",
                                               Swatch: k.Color, SwatchClass: "canvas-dock-swatch--box"))];
 
     /// <summary>Whether the technical family's option is the armed tool. The build area is its own tool;

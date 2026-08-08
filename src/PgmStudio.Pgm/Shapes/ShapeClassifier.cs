@@ -38,7 +38,7 @@ public enum LaneRead { I, L, Z, Complex, Plaza, None }
 public static class ShapeClassifier
 {
     /// <summary>Classify the approach the piece <paramref name="terminalPieceId"/> caps in <paramref name="plan"/>
-    /// (buffers/connectors excluded from the terrain).</summary>
+    /// (buffers excluded from the terrain).</summary>
     public static (ShapeFamily Family, int Width) Classify(PlanModel plan, string terminalPieceId)
     {
         var (filled, terminal) = CellSets(plan, terminalPieceId);
@@ -262,13 +262,13 @@ public static class ShapeClassifier
         _ => "none",
     };
 
-    // filled terrain (buffers/connectors excluded) + the terminal piece's cells (null when the piece is absent).
+    // filled terrain (buffers excluded) + the terminal piece's cells (null when the piece is absent).
     private static (HashSet<(int, int)> Filled, HashSet<(int, int)>? Terminal) CellSets(PlanModel plan, string terminalPieceId)
     {
         var filled = new HashSet<(int, int)>();
         foreach (var p in plan.Pieces)
         {
-            if (p.Role is PlanRoles.Buffer or PlanRoles.Connector) continue;
+            if (p.Role == PlanRoles.Buffer) continue;
             for (var x = p.Rect.X; x < p.Rect.X + p.Rect.Width; x++)
                 for (var z = p.Rect.Z; z < p.Rect.Z + p.Rect.Height; z++) filled.Add((x, z));
         }

@@ -411,8 +411,7 @@ export class PlanCanvas extends CanvasBase {
    * hatch stays proportional to pieces — and rebuilt only when the cell moves, since building it
    * rasterizes a tile.
    *
-   * Buffer is a single diagonal (a reserved gap); connector crosses it (an attachment point), so the two
-   * read apart at a glance while both stay clearly "not terrain".
+   * Buffer is a single diagonal — a reserved gap, clearly "not terrain".
    */
   #ensureHatch() {
     const cell = this.#doc?.globals.cell || 5;
@@ -424,7 +423,7 @@ export class PlanCanvas extends CanvasBase {
     // The tile is rasterized at a fixed pixel size and scaled back to world units by the pattern matrix,
     // so the hatch keeps its density however far the board is zoomed.
     const TILE_PX = 16;
-    const build = (color, backdropAlpha, crossed) => {
+    const build = (color, backdropAlpha) => {
       const tile = document.createElement("canvas");
       tile.width = TILE_PX; tile.height = TILE_PX;
       const tctx = tile.getContext("2d");
@@ -436,7 +435,6 @@ export class PlanCanvas extends CanvasBase {
       tctx.lineWidth = Math.max(1, (strokeWidth / step) * TILE_PX);
       tctx.beginPath();
       tctx.moveTo(0, 0); tctx.lineTo(0, TILE_PX);
-      if (crossed) { tctx.moveTo(0, 0); tctx.lineTo(TILE_PX, 0); }
       tctx.stroke();
       const pattern = ctx.createPattern(tile, "repeat");
       // World units per tile pixel, then the 45° turn the SVG version got from patternTransform.
@@ -445,10 +443,7 @@ export class PlanCanvas extends CanvasBase {
       pattern?.setTransform?.({ a: cos, b: sin, c: -sin, d: cos, e: 0, f: 0 });
       return pattern;
     };
-    this.#hatch = {
-      buffer:    build(ROLE_COLORS.buffer, 0.12, false),
-      connector: build(ROLE_COLORS.connector, 0.14, true),
-    };
+    this.#hatch = { buffer: build(ROLE_COLORS.buffer, 0.12) };
   }
 
   // The working area, in blocks: the default region (never absent, so a blank plan still says how big a

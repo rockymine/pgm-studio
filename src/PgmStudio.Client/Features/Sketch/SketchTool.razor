@@ -135,9 +135,9 @@
             @* Getting around the canvas and picking what is already on it — the whole dock in a select-only
                phase (Theme). Every group after this one authors something, which is Draw's and Dressing's. *@
             <DockGroup>
-              <DockButton Icon="mouse-pointer-2" Title="@SelectToolTitle" Active="@(tool == "select")"
+              <DockButton Icon="mouse-pointer-2" Title="Select" Active="@(tool == "select")"
                           OnClick='() => SetTool("select")' />
-              <DockButton Icon="hand" Title="Move / pan" Active="@(tool == "move")"
+              <DockButton Icon="hand" Title="Move" Active="@(tool == "move")"
                           OnClick='() => SetTool("move")' />
             </DockGroup>
             @if (DressingActive)
@@ -145,7 +145,7 @@
               <DockGroup>
                 @foreach (var placer in DressingTools.All)
                 {
-                  <DockButton Icon="@placer.Icon" Title="@placer.Title" @key="placer.Tool"
+                  <DockButton Icon="@placer.Icon" Title="@placer.Name" @key="placer.Tool"
                               Active="@(tool == placer.Tool)" OnClick="() => SetTool(placer.Tool)" />
                 }
               </DockGroup>
@@ -160,18 +160,16 @@
                 <DockModeButton Pressed="@Carving" Title="@OpTitle" OnClick="ToggleOperation">@(Carving ? "Carve" : "Build")</DockModeButton>
                 <DockButton Icon="rectangle-horizontal" Title="Rectangle" Active="@(tool == "rectangle")"
                             OnClick='() => SetTool("rectangle")' />
-                <DockButton Icon="pentagon" Title="Polygon (click vertices, double-click to close)" Active="@(tool == "polygon")"
+                <DockButton Icon="pentagon" Title="Polygon" Active="@(tool == "polygon")"
                             OnClick='() => SetTool("polygon")' />
-                <DockButton Icon="lasso" Title="Lasso (hold and trace)" Active="@(tool == "lasso")"
+                <DockButton Icon="lasso" Title="Lasso" Active="@(tool == "lasso")"
                             OnClick='() => SetTool("lasso")' />
               </DockGroup>
               @* Reads and cuts what is already drawn — neither makes land, so neither takes the operation
                  colour and both sit in their own box. *@
               <DockGroup>
-                <DockButton Icon="ruler" Title="Measure (drag across a void gap to read its length in blocks)"
-                            Active="@(tool == "measure")" OnClick='() => SetTool("measure")' />
-                <DockButton Icon="scissors" Title="Split (click two points to slice a shape in two along the line)"
-                            Active="@(tool == "split")" OnClick='() => SetTool("split")' />
+                <DockButton Icon="ruler" Title="Measure" Active="@(tool == "measure")" OnClick='() => SetTool("measure")' />
+                <DockButton Icon="scissors" Title="Split" Active="@(tool == "split")" OnClick='() => SetTool("split")' />
               </DockGroup>
             }
           </CanvasDock>

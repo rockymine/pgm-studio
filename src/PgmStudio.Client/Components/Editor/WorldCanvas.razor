@@ -48,9 +48,9 @@
 
   <CanvasDock>
     <DockGroup>
-      <DockButton Icon="mouse-pointer-2" Title="Select (S)" Active="@(tool == "select")"
+      <DockButton Icon="mouse-pointer-2" Title="Select" Active="@(tool == "select")"
                   OnClick='() => SetTool("select")' />
-      <DockButton Icon="hand" Title="Move (M)" Active="@(tool == "move")"
+      <DockButton Icon="hand" Title="Move" Active="@(tool == "move")"
                   OnClick='() => SetTool("move")' />
     </DockGroup>
     @if (DrawCategory is not null)
@@ -66,7 +66,7 @@
                     OnClick='() => SetTool("cylinder")' />
         <DockButton Icon="circle" Title="Circle" Active="@(tool == "circle")"
                     OnClick='() => SetTool("circle")' />
-        <DockButton Icon="square" Title="Block (single block)" Active="@(tool == "block")"
+        <DockButton Icon="square" Title="Block" Active="@(tool == "block")"
                     OnClick='() => SetTool("block")' />
         <DockButton Icon="dot" Title="Point" Active="@(tool == "point")"
                     OnClick='() => SetTool("point")' />
@@ -75,7 +75,7 @@
     else if (PointPick)
     {
       <DockGroup>
-        <DockButton Icon="dot" Title="Point — place a spawn" Active="@(tool == "point")"
+        <DockButton Icon="dot" Title="Point" Active="@(tool == "point")"
                     OnClick='() => SetTool("point")' />
       </DockGroup>
     }
@@ -86,7 +86,7 @@
          step owns what the shape means. *@
       <DockGroup Accent="@DrawAccent">
         @DrawMode
-        <DockButton Icon="rectangle-horizontal" Title="@RectDrawTitle" Active="@(tool == "rectangle")"
+        <DockButton Icon="rectangle-horizontal" Title="Rectangle" Active="@(tool == "rectangle")"
                     OnClick='() => SetTool("rectangle")' />
       </DockGroup>
     }

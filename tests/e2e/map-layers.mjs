@@ -117,6 +117,9 @@ try {
   // A plan that was never built has nothing to lose, so it is not interrupted.
   await page.goto(`${BASE}/maps/${seed.planSlug}/plan`, { waitUntil: "networkidle" });
   await page.waitForSelector(".map-canvas-svg", { timeout: 15000 });
+  // The svg exists before the plan document has been fetched into it, and compiling an empty plan is a 422
+  // refusal by design — so settle before asking, or the drawer this step reads never opens.
+  await page.waitForTimeout(1500);
   await page.click('button:has-text("Compile")');
   await page.waitForSelector(".plan-compile-json", { timeout: 20000 });
   const first = (await page.locator(".plan-compile-draft button").first().textContent()).trim();

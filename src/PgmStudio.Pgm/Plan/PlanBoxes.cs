@@ -8,7 +8,7 @@ namespace PgmStudio.Pgm.Plan;
 ///
 /// <para>Two modes, in order: a box that <b>names</b> its members (<see cref="PlanBox.Members"/> — what a
 /// composed partition writes) owns exactly those, and a box that names none takes every <b>generating</b>
-/// piece wholly inside its rect. Annotations (buffer / connector) are never members: a reserved gap drawn
+/// piece wholly inside its rect. Annotations (buffer) are never members: a reserved gap drawn
 /// inside a box documents the box's spacing, it is not part of what the box realizes.</para>
 /// </summary>
 public static class PlanBoxes

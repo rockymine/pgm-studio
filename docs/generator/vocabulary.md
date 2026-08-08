@@ -128,7 +128,7 @@ The **plan** is the author-intent layer (§4): only what a machine cannot recove
 |---|---|
 | `PlanModel` | The whole **plan**: the pieces, their roles and heights, the deliberate voids, and the objective/spawn markers — the upstream artifact the whole pipeline compiles from. |
 | `PlanPiece` | **One piece** in the plan: its rectangle (proxy cells), its role, its height. |
-| `PlanRoles` | The **map-level piece roles** (the *role* taxonomy, distinct from slots): `piece` (anonymous) · `wool-room` · `spawn` · `buffer` · `connector`. `piece`/`wool-room`/`spawn` make terrain; `buffer`/`connector` are annotations. |
+| `PlanRoles` | The **map-level piece roles** (the *role* taxonomy, distinct from slots): `piece` (anonymous) · `wool-room` · `spawn` · `buffer`. `piece`/`wool-room`/`spawn` make terrain; `buffer` is the one annotation. |
 | `PlanZone` | A **build region** in the plan (the mid band, a bridge) and its declared **holes** — the negative-space the author asserts is deliberate. |
 | `PlanBox` · `PlanBoxKinds` · `PlanBoxes` | The **authored box annotation**: a typed envelope (`spawn`/`hub`/`wool`/`frontline`/`mid`) grouping the pieces that realize one part of the partition, the kind vocabulary, and the membership rule (named members, else containment). Authoring-only — ignored by the compiler, validator and derivers, like the tracing `reference`. `PlanBoxAnnotation` writes a composed unit's partition into it when a generated board is kept. |
 | `PlanPlacements` · `SpawnPlacement` · `WoolPlacement` · `IronPlacement` … | Where each **objective/spawn marker** sits (piece + offset + facing). |

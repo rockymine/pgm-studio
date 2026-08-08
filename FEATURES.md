@@ -593,7 +593,9 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   tooltip renders below the pointer, and every control here is a few pixels off the bottom of the canvas, so
   the native one landed on the viewport edge or outside it. They carry the name as `data-tip` (with
   `aria-label` for the accessible name a glyph-only button would otherwise lack) and CSS draws it above, on
-  a delay so crossing the dock does not trail a caption. Plan's Interfaces/Frontline/Labels/Heights overlays came
+  a delay so crossing the dock does not trail a caption. It is the tool's **name**, not its manual: a lasso
+  and a polygon explain themselves, and a sentence in every tooltip is a sentence in the way. The two mode
+  buttons already print the state they are in, so theirs names the destination instead ("Switch to Carve"). Plan's Interfaces/Frontline/Labels/Heights overlays came
   out of the Settings panel onto the canvas they annotate. `tests/e2e/draw-tools.mjs` gates the operation
   contract: one control, colouring the three tools it decides for, dimmed when it decides nothing. The
   retired `.canvas-subbar` draw vocabulary (`.op-pill`, `.subbar-sep`, `.canvas-dim`, `.canvas-zoom`,
@@ -613,15 +615,26 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   option's name. A name and not a bare glyph because a flyout shows one family with nothing around it to
   say which family, and five unlabelled swatches are five colours with no meaning; the name says which
   family where the word collides across them ("Wool marker", "Wool box", "Wool room") and stands alone
-  where it does not (Buffer, Connector, Destroyable, Core). A row keeps the browser's own title for the
-  longer sentence, since it already shows its name and a caption drawn above a menu row would cover the row
-  above it. Which family is open is the host's state, so opening one closes the others, and a scrim catches
-  the dismissing click so it cannot instead start a drag on the map hidden behind the menu. The promoted option's button is `@key`ed on the option: a lucide glyph **cannot**
+  where it does not (Buffer, Destroyable, Core). A row carries no tooltip — it is already showing its name.
+  The chevron's tooltip is the family's own plural (Pieces · Zones · Markers · Boxes), which is the only
+  thing a control that opens a family has to say. Which family is open is the host's state, so opening one
+  closes the others, and a scrim catches the dismissing click so it cannot instead start a drag on the map
+  hidden behind the menu. The promoted option's button is `@key`ed on the option: a lucide glyph **cannot**
   be swapped in place, because lucide replaces the `<i data-lucide>` with an `<svg>` after every render, so
   there is no `<i>` left for Blazor to re-point — it patches a node it no longer owns, which showed as a
   promoted "destroyable" still wearing the flag icon and, on a flyout switch, as the reconciler taking
   `insertBefore` into a null parent. Keying moves the swap up to the button, which is still Blazor's to
   replace whole. (C42)
+- **The `connector` role is retired (C43).** It was the second annotation role — an attachment-point mark
+  for composing reusable lane/spawn *fragments*, whose dangling edge had nothing to derive a plug-point
+  from. The composer works by box intersection, which makes the attachment point derivable everywhere, so
+  the mark was never reached for and never would be. Gone from `PlanRoles` (the annotation set is now
+  `buffer` alone), from `BoardDeriver`/`ShapeClassifier`/`PlanBoxes`, from `plan-doc.js`'s `ROLES` /
+  `ROLE_COLORS` / `TECHNICAL_ROLES`, from the plan canvas's crossed hatch and the dock's swatch. A stored
+  plan naming it loads as a plain `piece`, the same fold `lane`/`hub`/`mid` take — there is no migration
+  because nothing authored one. `tools/compose/wool-lane-study.cs` and its six fixtures are deleted with it:
+  the study was a rendering of connector-based authoring and could not outlive its subject. The generator
+  docs (`model.md`, `vocabulary.md`, `evaluator.md`) and `primitive-styles.md` follow. (C43)
 
 ## Backend / API (B)
 - **The wire is dot-separated on every machine, in every country (B48).** Query, route and form values bind
@@ -2238,7 +2251,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   resorts the palette into three labelled kinds — Pieces (piece/spawn/wool-room + build), Markers
   (wool/spawn/iron/wall), Technical (buffer/connector). 53 Geom + 323 Pgm + 121 JS + 48 Api tests green. A
   study of six hand-authored wool-lane templates (`tools/compose/wool-lane-study/` + `wool-lane-study.cs`)
-  showcases multi-access, buffer spacing, and land/build-zone attachment points. (G46 · G47 · G48)
+  showcases multi-access, buffer spacing, and land/build-zone attachment points. **`connector` and that
+  study are retired (C43)** — a composed layout attaches by box intersection, so the attachment point is
+  derivable everywhere and the mark had nothing left to say. (G46 · G47 · G48)
 
 - **Plan model — the `buffer` annotation piece (non-generating design tile)** — `PgmStudio.Pgm/Plan/` +
   `Client/Pages/Plan/`: a new annotation-role class (`PlanRoles.IsAnnotation`/`IsGenerating`) whose first

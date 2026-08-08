@@ -120,15 +120,14 @@ not a liability the tile model must swallow.
 - height-roles — tower / raised-room / climb (§6).
 
 **Roles stay minimal [decided].** `plan.json` roles are: anonymous `piece`; the intent-bearing
-`wool-room` / `spawn`; the annotations `buffer` / `connector`. The retired legacy roles `lane` / `hub` /
-`mid` / `frontline` **must not come back** — they are derived, so they must not live in the file. A
+`wool-room` / `spawn`; the annotation `buffer`. The retired role names `lane` / `hub` / `mid` /
+`frontline` / `connector` **must not come back** — they are derived, so they must not live in the file. A
 minimal role set is the correct expression of "derive structure," not a gap.
 
-The **`connector`** role is a *template-composition* concept, not an evaluator one: in a full layout the
-attachment point is derivable (where a marker branch meets the rest of the island); a `connector` only
-earns its keep for a *fragment* (a reusable lane template with a dangling edge that has nothing to derive
-its plug-point from). It stays out of the full-layout labeling loop; it returns if a stamp-templates
-generator is built (§8).
+`connector` was a second annotation role, a template-composition mark for a reusable *fragment* with a
+dangling edge that had nothing to derive its plug-point from. It is retired: a composed layout attaches
+by box intersection, so the attachment point is derivable everywhere and the mark had nothing left to
+say.
 
 ## 5. The deriver — structure from markers + geometry
 

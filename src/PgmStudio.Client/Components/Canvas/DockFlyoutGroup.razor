@@ -14,9 +14,7 @@
    comes from. It lists the whole family, the option in the slot included, in three columns: a tick for the
    one that is armed, the glyph or swatch, and the option's name. A name rather than a bare glyph because a
    flyout shows one family with nothing around it to say which family, and five unlabelled swatches are five
-   colours with no meaning. A row keeps the browser's own title for the longer explanation: it already shows
-   its name, so what is left to say is a sentence, and a caption drawn above a menu row would cover the row
-   above it — which is the reverse of the problem data-tip solves for the dock's own buttons.
+   colours with no meaning. A row carries no tooltip of its own — it is already showing its name.
 
    Which group is open is the host's state, not the group's — only one may be open at a time, and a group
    cannot close a sibling it does not know about. *@
@@ -30,10 +28,10 @@
      one element in here that is still Blazor's: it removes the button, svg and all, and inserts a fresh
      subtree whose <i data-lucide> studio.icons then converts. *@
   <DockButton @key="Active.Key" Icon="@Active.Icon" Swatch="@Active.Swatch" SwatchClass="@Active.SwatchClass"
-              Title="@Active.Title" Active="@Armed" OnClick="() => OnPick.InvokeAsync(Active.Key)" />
+              Title="@Active.Name" Active="@Armed" OnClick="() => OnPick.InvokeAsync(Active.Key)" />
   @* The chevron is the flyout's anchor, not just its trigger — the menu hangs from this box's left edge. *@
   <span class="canvas-dock-chevron-anchor">
-    <button class="canvas-dock-chevron" type="button" aria-label="@ChevronTitle" data-tip="@ChevronTitle"
+    <button class="canvas-dock-chevron" type="button" aria-label="@Label" data-tip="@Label"
             aria-expanded="@Open" @onclick="OnToggleOpen">
       <i data-lucide="chevron-up" @key="@("chevron-up")"></i>
     </button>
@@ -42,7 +40,7 @@
       <div class="canvas-dock-flyout">
         @foreach (var item in Items)
         {
-          <button class="canvas-dock-flyout-row" type="button" @key="item.Key" title="@item.Title"
+          <button class="canvas-dock-flyout-row" type="button" @key="item.Key"
                   aria-current="@(item.Key == Active.Key ? "true" : null)"
                   @onclick="() => OnPick.InvokeAsync(item.Key)">
             <span class="canvas-dock-flyout-check">
@@ -61,7 +59,7 @@
                 <i data-lucide="@item.Icon" @key="item.Icon"></i>
               }
             </span>
-            <span class="canvas-dock-flyout-label">@(item.Label ?? item.Title)</span>
+            <span class="canvas-dock-flyout-label">@item.Name</span>
           </button>
         }
       </div>
@@ -82,13 +80,12 @@
     [Parameter] public EventCallback OnToggleOpen { get; set; }
     /// <summary>Fired with the picked option's key — for the slot's own button too, which re-arms it.</summary>
     [Parameter] public EventCallback<string> OnPick { get; set; }
-    /// <summary>Names the family in the chevron's tooltip ("More marker options").</summary>
+    /// <summary>The family's own name, plural — "Pieces", "Markers". It is the chevron's whole tooltip: the
+    /// chevron opens the family, so the family's name is the only thing it has to say.</summary>
     [Parameter] public string? Label { get; set; }
 
     private DockItem Active =>
         Items.FirstOrDefault(i => i.Key == ActiveKey) ?? Items[0];
-
-    private string ChevronTitle => Label is null ? "More options" : $"More {Label} options";
 
     private static string SwatchCls(DockItem item) =>
         item.SwatchClass is null ? "canvas-dock-swatch" : $"canvas-dock-swatch {item.SwatchClass}";
