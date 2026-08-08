@@ -1,0 +1,20 @@
+@namespace PgmStudio.Client.Components
+
+@* Which projection the canvas is in, in the very corner of the layer bar. A word, not a glyph: it names the
+   state it is in ("2D" / "3D") the way the operation pill in the dock does, and it is the one control on the
+   canvas whose click changes what every other control means — in 3-D the layer chips have nothing to toggle
+   and the fit button becomes a rotate. Colour follows the mode so the state survives a glance. *@
+
+<button class="@Cls" type="button" title="@Title" disabled="@Disabled" aria-pressed="@ThreeD" @onclick="OnClick">
+  @(ThreeD ? "3D" : "2D")
+</button>
+
+@code {
+    /// <summary>Whether the canvas is showing the isometric preview.</summary>
+    [Parameter] public bool ThreeD { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    private string Cls => ThreeD ? "canvas-mode-toggle canvas-mode-toggle--3d" : "canvas-mode-toggle";
+}

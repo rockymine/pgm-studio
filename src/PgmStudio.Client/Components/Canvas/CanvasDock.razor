@@ -1,0 +1,14 @@
+@namespace PgmStudio.Client.Components
+
+@* Everything the pointer can do to the map, floating at the bottom centre where the pointer already is.
+
+   The dock holds groups, never loose buttons: a group is one question the tool answers (how do I get around ·
+   what do I draw · what do I measure with), and the gaps between them are the only grouping a row of equal
+   glyphs can carry. Groups wrap upward on a narrow viewport rather than scrolling sideways, so the last group
+   is never the one that disappears. *@
+
+<div class="canvas-dock">@ChildContent</div>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

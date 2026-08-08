@@ -1,0 +1,14 @@
+@namespace PgmStudio.Client.Components
+
+@* What the canvas shows, top-right and floating: the layer chips, then the view controls that end the row
+   (fit / rotate), then the 2-D/3-D toggle in the very corner. Order is the row's meaning — a toggle that
+   changes which layers exist at all sits outermost, past the layers it governs.
+
+   It wraps rather than scrolls, so a narrow viewport stacks the chips upward instead of hiding the corner
+   toggle behind an overflow. *@
+
+<div class="canvas-layer-bar">@ChildContent</div>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

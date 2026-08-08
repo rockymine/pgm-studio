@@ -456,6 +456,212 @@ svg.lucide { width: var(--icon-md); height: var(--icon-md); }
 /* Compact select sized to sit among the subbar chips (overrides .field-input's panel sizing). */
 .canvas-island-select { width: auto; min-width: 0; padding: 2px 8px; font-size: var(--font-sm); }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   CANVAS CHROME — the controls that float ON the viewport
+
+   One bar above a canvas has to hold everything at once: what the pointer does, what is drawn, where the
+   camera is, and how big the thing under it is. Across a dozen icons that row overlaps itself on a narrow
+   screen, and it puts the drawing tools at the far edge of the surface they draw on. So the bar is gone and
+   its contents are placed by what they are:
+
+     top-left     what the canvas IS       — cursor position, live size, zoom. Read-only, pointer-transparent.
+     top-right    what the canvas SHOWS    — layer chips, then fit/rotate, then the 2-D/3-D toggle in the corner.
+     bottom-centre what the pointer DOES   — the dock: grouped tools, near the hand that uses them.
+
+   Every surface here shares one look (.canvas-float): panel-coloured glass, a hairline border and a lift
+   shadow, so a control reads as a control over terrain of any colour without hiding the terrain. The
+   viewport is themed (dark by default, light under [data-theme=light]) and every colour below is a token,
+   so the chrome follows it.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* The shared floating surface. Composed into the chip / round button / dock group rules below rather than
+   applied as a second class in markup, so a component's markup names one thing. */
+.canvas-chip,
+.canvas-round-btn,
+.canvas-mode-toggle,
+.canvas-dock-group,
+.canvas-dock-flyout {
+  background: var(--canvas-float-bg);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--canvas-float-border);
+  box-shadow: var(--canvas-float-shadow);
+}
+
+/* ── top-left: the readout ── */
+.canvas-readout {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;   /* informational — a drag that crosses it must not stall */
+  user-select: none;
+}
+.canvas-readout-item {
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklch, var(--bg-canvas) 55%, transparent);
+  border: 1px solid var(--canvas-float-border);
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* An item with nothing to report takes no room — the cursor before the pointer enters, the size between
+   measurements. The cluster is then only as wide as it has something to say. */
+.canvas-readout-item:empty { display: none; }
+/* The live size — what is being drawn or measured right now. Accented, because it is the one readout that
+   answers a question the author is actively asking. */
+.canvas-readout-item--size { color: var(--accent-light); font-weight: 600; }
+
+/* ── top-right: the layer bar ── */
+.canvas-layer-bar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 20px);
+}
+.canvas-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 5px 11px;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+}
+.canvas-chip svg { width: 13px; height: 13px; flex: none; }
+.canvas-chip:hover:not(:disabled) { color: var(--text-bright); border-color: var(--text-muted); }
+.canvas-chip--on {
+  color: var(--accent-lighter);
+  border-color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 26%, var(--canvas-float-bg));
+}
+.canvas-chip:disabled { opacity: 0.4; cursor: default; }
+
+.canvas-round-btn {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+.canvas-round-btn svg { width: 15px; height: 15px; }
+.canvas-round-btn:hover:not(:disabled) { color: var(--text-bright); border-color: var(--text-muted); }
+.canvas-round-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* The projection toggle — the corner control. Wider than the round buttons because it carries a word, and
+   coloured by the mode it is in: accent in 2-D, the symmetry violet in 3-D, which is the colour the
+   isometric preview itself is drawn against. */
+.canvas-mode-toggle {
+  flex: none;
+  padding: 6px 13px;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-sm);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  color: var(--accent-light);
+  border-color: color-mix(in oklch, var(--accent) 55%, transparent);
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+.canvas-mode-toggle--3d {
+  color: var(--canvas-axis);
+  border-color: color-mix(in oklch, var(--canvas-axis) 55%, transparent);
+}
+.canvas-mode-toggle:disabled { opacity: 0.4; cursor: default; }
+
+/* ── bottom-centre: the dock ── */
+.canvas-dock {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  /* wrap-reverse so a viewport too narrow for every group stacks them UPWARD and the first group — always
+     select/move — stays on the bottom row under the pointer. */
+  flex-wrap: wrap-reverse;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: calc(100% - 20px);
+}
+.canvas-dock-group {
+  position: relative;   /* anchors a group's flyout */
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 10px;
+}
+.canvas-dock-btn {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  /* --dock-accent is the armed mode's colour, set on the group. A group without one stays neutral. */
+  color: var(--dock-accent, var(--text-muted));
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+}
+.canvas-dock-btn svg { width: 15px; height: 15px; }
+.canvas-dock-btn:hover:not(:disabled) { background: color-mix(in oklch, var(--text-muted) 22%, transparent); }
+.canvas-dock-btn:disabled { opacity: 0.35; cursor: default; }
+.canvas-dock-btn--active {
+  border-color: var(--dock-accent, var(--accent));
+  background: color-mix(in oklch, var(--dock-accent, var(--accent)) 22%, transparent);
+  color: var(--dock-accent, var(--accent-lighter));
+}
+
+/* A tool told apart by the colour it draws in rather than by an outline. --swatch-color carries the fill. */
+.canvas-dock-swatch {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border-radius: 3px;
+  background: var(--swatch-color, var(--text-muted));
+}
+
+/* The mode word — Build/Carve, Bridge/Hole. Wears the group's accent as text, fill and border at once. */
+.canvas-dock-mode {
+  flex: none;
+  height: 30px;
+  padding: 0 11px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-sm);
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--dock-accent, var(--text-muted));
+  background: color-mix(in oklch, var(--dock-accent, var(--text-muted)) 15%, transparent);
+  border: 1px solid color-mix(in oklch, var(--dock-accent, var(--text-muted)) 50%, transparent);
+  transition: background var(--transition-fast);
+}
+.canvas-dock-mode:hover { background: color-mix(in oklch, var(--dock-accent, var(--text-muted)) 28%, transparent); }
+
 /* Layers panel (S7b) — active row highlight + inline delete. */
 .list-row--active { background: var(--accent-light); border-left: 2px solid var(--accent); }
 .list-row-btn { margin-left: auto; display: inline-flex; align-items: center; background: none; border: none;

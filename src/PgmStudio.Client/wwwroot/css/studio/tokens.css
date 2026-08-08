@@ -95,6 +95,14 @@
   /* Canvas SVG area background */
   --canvas-bg: var(--bg-canvas);   /* alias — the viewport background (follows the theme) */
 
+  /* Floating canvas chrome — the readout, layer bar and dock that sit ON the viewport rather than in a
+     bar above it. They are panel-coloured but never opaque: a control that hides the map it is about is
+     worse than one that is slightly harder to read, so the surface is blurred glass and the elevation
+     comes from the shadow. */
+  --canvas-float-bg:     color-mix(in oklch, var(--bg-panel) 88%, transparent);
+  --canvas-float-border: color-mix(in oklch, var(--border) 85%, transparent);
+  --canvas-float-shadow: 0 6px 20px oklch(0% 0 0 / 0.42);
+
   /* Region shapes — editor canvas (all types share one colour; runtime supplies per-region value) */
   --canvas-region: #94a3b8;   /* slate-400 — fallback / design-doc placeholder */
 
@@ -212,6 +220,7 @@
   /* ── Canvas / map viewport — light too (the rest of --canvas-* are saturated
        mid-tones that read on both backgrounds and are left at their dark values). ── */
   --bg-canvas:     #e2e8f0;   /* slate-200 — light viewport (recessed under white panels) */
+  --canvas-float-shadow: 0 6px 20px rgb(15 23 42 / 0.16);   /* the floating chrome, softer on light */
   --canvas-ink:    #0f172a;   /* slate-900 — dark lines/outlines over the light canvas */
   --canvas-axis:   #7c3aed;   /* violet-600 — axis/crosshair, darker for light bg */
   --canvas-region: #64748b;   /* slate-500 — region fallback, darker for light bg */

@@ -1,0 +1,26 @@
+@namespace PgmStudio.Client.Components
+
+@* One canvas layer, on or off — a floating capsule in the top-right bar. Distinct from the panel Chip it
+   replaces on a canvas: this one carries a glyph beside its word, because a row of floating capsules over a
+   drawing has no panel around it to say what kind of control it is, and it is legible against terrain of any
+   colour only if it brings its own surface. *@
+
+<button class="@Cls" type="button" title="@Title" disabled="@Disabled" aria-pressed="@Active" @onclick="OnClick">
+  @if (!string.IsNullOrEmpty(Icon))
+  {
+    <i data-lucide="@Icon" @key="@Icon"></i>
+  }
+  @ChildContent
+</button>
+
+@code {
+    [Parameter] public bool Active { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    /// <summary>Lucide glyph shown before the label.</summary>
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string Cls => Active ? "canvas-chip canvas-chip--on" : "canvas-chip";
+}

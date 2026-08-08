@@ -1,0 +1,18 @@
+@namespace PgmStudio.Client.Components
+
+@* One question the dock asks, as its own floating box.
+
+   A group may carry an Accent — the colour of the mode its buttons are armed in. It reaches the buttons as
+   --dock-accent, so every control in the box states the same thing at once (the operation pill names it,
+   the shape buttons wear it) and an armed carve cannot be read as an armed build. A group with no accent
+   leaves its buttons in the neutral tool colours. *@
+
+<div class="canvas-dock-group" style="@Style">@ChildContent</div>
+
+@code {
+    /// <summary>Colour every control in the group takes — the armed mode's colour. Null leaves them neutral.</summary>
+    [Parameter] public string? Accent { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string? Style => Accent is null ? null : $"--dock-accent:{Accent}";
+}

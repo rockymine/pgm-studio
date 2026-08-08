@@ -1,0 +1,46 @@
+@namespace PgmStudio.Client.Components
+
+@* What the canvas currently is, top-left and floating: the pointer's world position, the size of what is
+   being drawn or measured, and the zoom. Read-only, so the whole cluster is pointer-transparent and the
+   drag underneath it never stalls on a readout.
+
+   Cursor and size are written by the canvas JS straight into the elements captured here (the hot path
+   updates them per mousemove, which is far too often to round-trip through a Blazor render). A host whose
+   zoom is C# state passes ZoomText instead; one whose JS writes the zoom leaves it at its placeholder,
+   which Blazor then never diffs away. An item with nothing in it collapses (see .canvas-readout-item:empty),
+   so the cluster is only as wide as it has something to say. *@
+
+<div class="canvas-readout">
+  @if (ShowCursor)
+  {
+    <span @ref="cursorRef" class="canvas-readout-item"></span>
+  }
+  @if (ShowSize)
+  {
+    <span @ref="sizeRef" class="canvas-readout-item canvas-readout-item--size"></span>
+  }
+  <span @ref="zoomRef" class="canvas-readout-item">@ZoomText</span>
+  @ChildContent
+</div>
+
+@code {
+    /// <summary>Show the world-position item (canvases whose JS reports a cursor position).</summary>
+    [Parameter] public bool ShowCursor { get; set; } = true;
+    /// <summary>Show the accented live-size item — the active draw's W×D, a selection's extent, or a ruler
+    /// distance. Written by the canvas JS; empty between measurements.</summary>
+    [Parameter] public bool ShowSize { get; set; }
+    /// <summary>Zoom text for a host that holds it in C#. Left at the placeholder when the canvas JS
+    /// writes the element directly.</summary>
+    [Parameter] public string? ZoomText { get; set; } = "—";
+    /// <summary>Extra readout items (e.g. a "no WebGL" note) appended after the zoom.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private ElementReference cursorRef, sizeRef, zoomRef;
+
+    /// <summary>The element the canvas JS writes the cursor position into.</summary>
+    public ElementReference Cursor => cursorRef;
+    /// <summary>The element the canvas JS writes the live size into.</summary>
+    public ElementReference Size => sizeRef;
+    /// <summary>The element the canvas JS writes the zoom percentage into.</summary>
+    public ElementReference Zoom => zoomRef;
+}

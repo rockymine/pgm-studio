@@ -1,0 +1,19 @@
+@namespace PgmStudio.Client.Components
+
+@* The mode the group beside it is armed in — Build/Carve, Bridge/Hole. A word, not a glyph, and the first
+   control in its box: every other control there is a square glyph, so the one that is not reads as the
+   different kind of thing it is. It takes the group's --dock-accent, which is the same colour the canvas
+   fills with, so the most destructive state in the editor states itself twice — in the word and in the
+   colour every shape button beside it is wearing.
+
+   Clicking it flips to the other mode; a two-state thing needs one button, not two. *@
+
+<button class="canvas-dock-mode" type="button" title="@Title" aria-pressed="@Pressed" @onclick="OnClick">@ChildContent</button>
+
+@code {
+    /// <summary>Whether the non-default mode is armed (carve, hole) — the accessible half of the colour.</summary>
+    [Parameter] public bool Pressed { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

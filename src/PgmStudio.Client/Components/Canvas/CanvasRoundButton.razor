@@ -1,0 +1,16 @@
+@namespace PgmStudio.Client.Components
+
+@* A view action that moves the camera and nothing else — fit, rotate. Round, so it reads apart from the
+   capsule layer chips it sits beside: those state what is drawn, this one only changes where it is watched
+   from. *@
+
+<button class="canvas-round-btn" type="button" title="@Title" disabled="@Disabled" @onclick="OnClick">
+  <i data-lucide="@Icon" @key="@Icon"></i>
+</button>
+
+@code {
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+}
