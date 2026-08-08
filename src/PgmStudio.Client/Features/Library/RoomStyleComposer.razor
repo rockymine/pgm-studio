@@ -107,7 +107,9 @@
                 {
                   <span class="lib-bind-swatch">@((MarkupString)bound.Preview)</span>
                 }
-                <Button Icon="trash-2" Title="Remove this course"
+                @* Icon variant: the button carries a glyph and no label, which is what that variant is —
+                   as a plain action-btn it kept the text padding and drew a wide box in a row of square ones. *@
+                <Button Variant="icon" Icon="trash-2" Title="Remove this course"
                         OnClick="() => RemoveCourse(part.Id, course.Ordinal)" />
               </div>
             }

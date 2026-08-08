@@ -549,10 +549,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   (`COURSES 1` · `BLOCKS 2` · `CELLS 3`). And `BlockPicker` put the (id, data) pair on a second row below the
   name, reading as a separate setting rather than as the same one said exactly — chip, name and pair now
   share one row as `[Stone ▾] [ID 1] [DATA 0]`. All three rows (`.material-editor-head`,
-  `.block-picker-row`, `.lib-bind`) align **stretch** rather than centre: a select, a coord-field and an icon
-  button resolve to 31 / 29 / 26 px for the same type size, so the tallest sets the row and the rest take it
-  — no pinned number to break when the type scale moves. `.material-entry-scalar`, `.block-picker-ids`,
-  `.block-picker-id` and `.block-picker-num` retire. (C39)
+  `.block-picker-row`, `.lib-bind`) give every control **`--control-height`**: a select, a coord-field and an
+  icon button land on 31 / 29 / 26 px for the same type size, so the row states the height once instead of
+  taking each element's own. Stating it is also what makes the height *definite*, which is what lets the
+  square controls — the icon button, the colour chip, the bound-style swatch — read their width off it with
+  `aspect-ratio: 1` and come out square rather than stretched into pills. (`align-items: stretch` is not a
+  definite cross size: given nothing to measure, the ratio collapsed the chip to its borders.) The room
+  composer's remove-course button takes `Variant="icon"`, which is what it always was.
+  `.material-entry-scalar`, `.block-picker-ids`, `.block-picker-id` and `.block-picker-num` retire. (C39)
 
 ## Backend / API (B)
 - **The wire is dot-separated on every machine, in every country (B48).** Query, route and form values bind

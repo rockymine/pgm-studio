@@ -275,8 +275,11 @@
 }
 .action-btn:hover           { background: var(--border); color: var(--text-bright); }
 .action-btn:disabled        { opacity: 0.35; cursor: default; }
-/* Icon-only variant — equal padding on all sides so the button stays square */
-.action-btn--icon           { padding: 4px; }
+/* Icon-only variant — equal padding on all sides, and a 1:1 box so it stays square wherever it lands. The
+   padding alone only squared it in a row that sized to content: in a stretching row the height comes from
+   the row and the width stayed padding + glyph, which drew it as a tall pill. With the ratio the width is
+   read off whatever height the row settles on, so it tracks the row rather than a pinned number. */
+.action-btn--icon           { padding: 4px; aspect-ratio: 1; justify-content: center; }
 .action-btn--fill         { flex: 1; justify-content: center; }
 .action-btn--push-end     { margin-left: auto; }
 .action-btn--full         { width: 100%; justify-content: center; }

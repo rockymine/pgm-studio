@@ -116,6 +116,15 @@
   --sidebar-width:   280px;   /* left panels — list / form content */
   --inspector-width: 280px;   /* right panels — detail / property view */
 
+  /* ── Control height ──────────────────────────────────────────────────── */
+  /* One control tall — what a .field-input select resolves to at --font-md. A select, a text input and an
+   * icon button each land on a different intrinsic height for the same type size (31 / 29 / 26px), so a row
+   * that mixes them states the height once and every control in it takes that. The square ones (an icon
+   * button, a colour chip, a style swatch) then read their WIDTH off it, which only works against a height
+   * that is definite — `align-items: stretch` alone is not, and an aspect-ratio given nothing to measure
+   * collapses the box instead. */
+  --control-height: 31px;
+
   /* ── Spacing scale ───────────────────────────────────────────────────── */
   --space-1: 4px;
   --space-2: 8px;

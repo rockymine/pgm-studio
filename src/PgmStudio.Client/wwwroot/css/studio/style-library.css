@@ -10,16 +10,19 @@
 /* The section view is short and wide; letting it fill the rail's height would stretch a 13-course figure. */
 .lib-fig--section svg { max-height: 160px; }
 
-/* stretch, for the same reason the material rows do it: the select, the number, the swatch and the remove
-   button each resolve to a different intrinsic height, and the tallest one setting the row is what makes the
-   four read as one control rather than four sizes. */
-.lib-bind { display: flex; align-items: stretch; gap: var(--space-2); min-width: 0; }
+/* One --control-height per control, for the same reason the material rows state it: the select, the number,
+   the swatch and the remove button each land on a different intrinsic height, and four heights on one line
+   is what made the row read as four things rather than one. */
+.lib-bind { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.lib-bind > * { height: var(--control-height); }
 .lib-bind .field-input { flex: 1 1 auto; min-width: 0; }
 /* A course's height is two digits beside a style name that is a sentence — sharing the slack evenly left
    the name unreadable and the number three times wider than anything it can hold. */
 .lib-bind .field-input[type="number"] { flex: 0 0 5rem; }
+/* Same rule as the block chip: the row's height, and a width read off it, so the picture of the bound style
+   sits in the band at the size of the controls it belongs to. */
 .lib-bind-swatch {
-  flex: 0 0 auto; width: 2.25rem; overflow: hidden;
+  flex: 0 0 auto; aspect-ratio: 1; overflow: hidden;
   border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--canvas);
 }
 .lib-bind-swatch svg { width: 100%; height: 100%; display: block; }

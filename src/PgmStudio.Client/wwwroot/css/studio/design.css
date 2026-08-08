@@ -265,12 +265,13 @@
    control tall, so a stack of entries reads as a column of aligned selects. The name heads the block above
    the row rather than sharing it. The kind select takes the slack; the extent is a coord-field, sized to
    its own prefix + a two-digit number. */
-/* stretch, not center: a select, a coord-field and an icon button each resolve to a different intrinsic
-   height for the same type size (31 / 29 / 26 px), and three boxes of three heights on one line is the whole
-   of the visual tension. Stretching makes the tallest — the select — set the row, and the rest take it,
-   which tracks whatever that height turns out to be instead of pinning a number that a type-scale change
-   would silently break. Anything that must keep its own shape opts out with align-self below. */
-.material-editor-head { display: flex; align-items: stretch; gap: var(--space-2); flex-wrap: wrap; }
+/* Every control in the row is one --control-height tall, stated rather than left to each element's own
+   intrinsic height (a select, a coord-field and an icon button land on 31 / 29 / 26px for the same type
+   size, and three heights on one line is the whole of the visual tension). Stating it also makes the height
+   DEFINITE, which is what lets the square controls read their width off it. The help mark is a round mark,
+   not a control, so it keeps its own size. */
+.material-editor-head { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.material-editor-head > *:not(.help-mark) { height: var(--control-height); }
 .material-editor-head > select { flex: 1 1 8rem; min-width: 0; }
 .material-editor-head .coord-field { flex: 0 0 auto; }
 .material-editor-head .coord-field .coord-input { width: 2.75rem; flex: 0 0 auto; }
@@ -286,12 +287,15 @@
    pair that IS that name share one row; the pair's coord-fields hold their size so the name takes the slack,
    and the row wraps rather than overflowing in the narrowest panel that hosts one. */
 .block-picker { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
-.block-picker-row { display: flex; align-items: stretch; gap: var(--space-2); min-width: 0; flex-wrap: wrap; }
+.block-picker-row { display: flex; align-items: center; gap: var(--space-2); min-width: 0; flex-wrap: wrap; }
+.block-picker-row > * { height: var(--control-height); }
 .block-picker-row > select { flex: 1 1 5rem; min-width: 0; }
 .block-picker-row .coord-field { flex: 0 0 auto; }
 .block-picker-row .coord-field .coord-input { width: 2.75rem; flex: 0 0 auto; }
-/* The colour chip is a square reading of one block — it centres in the row rather than stretching into a bar. */
-.block-chip { flex: 0 0 auto; align-self: center; width: 1.35rem; height: 1.35rem; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+/* The colour chip is a square reading of one block. It takes the row's height like everything else in the
+   band and its width from that height, so it stands the same size as the controls beside it instead of a
+   couple of pixels short of them — and stays square rather than stretching into a bar. */
+.block-chip { flex: 0 0 auto; aspect-ratio: 1; border-radius: var(--radius-sm); border: 1px solid var(--border); }
 .block-picker-colors { display: flex; flex-wrap: wrap; gap: 3px; }
 .block-swatch { width: 1.25rem; height: 1.25rem; padding: 0; border-radius: var(--radius-sm); border: 1px solid var(--border); cursor: pointer; }
 .block-swatch:hover { outline: 1px solid var(--text-muted); }
