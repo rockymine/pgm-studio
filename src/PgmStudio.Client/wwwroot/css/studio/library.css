@@ -74,7 +74,7 @@
 .lib-rail-title { font-size: var(--font-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--text-secondary); }
 .lib-rail-x { width: 24px; height: 24px; display: grid; place-items: center; background: transparent; color: var(--text-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; }
 .lib-rail-x:hover { color: var(--text-bright); border-color: var(--accent); }
-.lib-rail-x i { width: 13px; height: 13px; }
+.lib-rail-x svg { width: var(--icon-xs); height: var(--icon-xs); }
 
 .lib-fig {
   display: flex; align-items: center; justify-content: center; min-height: 150px;

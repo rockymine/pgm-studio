@@ -6,6 +6,17 @@
  */
 
 /* ══════════════════════════════════════════════════════════════════════════
+   ICONS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Every lucide glyph is --icon-md unless the context it sits in says otherwise. It stands FIRST in this
+   file on purpose: a context rule is `.thing svg`, the same specificity as this one, so only source order
+   decides — and every one of them is either later in this file or in a stylesheet loaded after it.
+   `svg.lucide` and not a bare `svg`: the server-rendered previews (a style swatch, a plateau section) are
+   pictures, not glyphs, and size themselves. */
+svg.lucide { width: var(--icon-md); height: var(--icon-md); }
+
+/* ══════════════════════════════════════════════════════════════════════════
    SECTIONS & HEADERS
    ══════════════════════════════════════════════════════════════════════════ */
 
@@ -319,7 +330,7 @@
   color: var(--accent-light);
   line-height: 0;
 }
-.smart-suggestion__icon svg { width: 15px; height: 15px; }
+.smart-suggestion__icon svg { width: var(--icon-md); height: var(--icon-md); }
 .smart-suggestion__title {
   flex: 1;
   min-width: 0;
@@ -633,7 +644,7 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 }
 /* Divider only when steps follow — a single-step phase (Map Info) shows the name alone. */
 .flow-bar-phase:has(+ .flow-steps) { padding-right: var(--space-4); border-right: 1px solid var(--border); }
-.flow-bar-phase svg { width: 15px; height: 15px; color: var(--accent); }
+.flow-bar-phase svg { width: var(--icon-md); height: var(--icon-md); color: var(--accent); }
 .flow-bar-actions { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; }
 .flow-steps { display: flex; align-items: center; gap: var(--space-5); height: 100%; }
 .flow-step {
@@ -647,7 +658,7 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 .flow-step:hover         { color: var(--text-bright); }
 .flow-step:disabled      { opacity: 0.35; cursor: default; }
 .flow-step:disabled:hover { color: var(--text-muted); }
-.flow-step svg           { width: 13px; height: 13px; }
+.flow-step svg           { width: var(--icon-xs); height: var(--icon-xs); }
 .flow-step--done         { color: var(--text-secondary); }
 .flow-step--done svg     { color: var(--color-success); }
 .flow-step--active       { color: var(--text-strong); }
@@ -949,7 +960,7 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
   transition: color var(--transition-fast), background var(--transition-fast);
 }
 .topbar-icon-btn:hover { color: var(--text-strong); background: var(--bg-vis-hover); }
-.topbar-icon-btn svg { width: 16px; height: 16px; }
+.topbar-icon-btn svg { width: var(--icon-md); height: var(--icon-md); }
 
 /* Theme toggle — show the icon for the CURRENT theme: moon while dark, sun while light.
    Driven by <html data-theme>. */
@@ -990,7 +1001,7 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
   background: var(--bg-selected);
   color: var(--accent-light);
 }
-.card-icon svg { width: 20px; height: 20px; }
+.card-icon svg { width: var(--icon-lg); height: var(--icon-lg); }
 .card-title { font-size: var(--font-lg); font-weight: 600; color: var(--text-bright); }
 .card-step {
   margin-left: auto;
@@ -1057,7 +1068,7 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
   height: auto;
 }
 .landing-plan .card-icon { width: 44px; height: 44px; }
-.landing-plan .card-icon svg { width: 24px; height: 24px; }
+.landing-plan .card-icon svg { width: var(--icon-xl); height: var(--icon-xl); }
 .landing-plan-body { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
 .landing-plan-body .card-title { font-size: var(--font-lg); }
 .landing-plan-body .card-desc { margin: 0; }
@@ -1091,10 +1102,10 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 }
 .card-foot-count { color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .card-foot-go { display: inline-flex; align-items: center; gap: 4px; color: var(--accent-light); }
-.card-foot-go svg { width: 14px; height: 14px; transition: transform 0.12s ease; }
+.card-foot-go svg { width: var(--icon-sm); height: var(--icon-sm); transition: transform 0.12s ease; }
 .card--action:hover .card-foot-go svg { transform: translateX(3px); }
 
 /* Trailing arrow on a navigable list row — muted, brightens with the row. */
 .list-go { flex: none; display: inline-flex; color: var(--text-muted); opacity: 0; transition: opacity 0.12s ease; }
-.list-go svg { width: 16px; height: 16px; }
+.list-go svg { width: var(--icon-md); height: var(--icon-md); }
 .list-row:hover .list-go { opacity: 1; color: var(--accent-light); }

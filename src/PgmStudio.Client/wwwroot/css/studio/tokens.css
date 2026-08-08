@@ -116,6 +116,17 @@
   --sidebar-width:   280px;   /* left panels — list / form content */
   --inspector-width: 280px;   /* right panels — detail / property view */
 
+  /* ── Icon sizes ──────────────────────────────────────────────────────── */
+  /* A lucide glyph's box. The app named eight sizes (11 · 13 · 14 · 15 · 16 · 20 · 22 · 24px) across twenty
+   * rules with no scale behind them; these are the five they collapse to. --icon-md is the default, applied
+   * to every glyph by the `svg.lucide` rule in components.css — studio.js sets the same number as an
+   * attribute so a glyph is never briefly lucide's own 24px before the stylesheet lands. */
+  --icon-xs: 13px;   /* dense chrome — a close ✕, a step chip, a search adornment */
+  --icon-sm: 14px;   /* inline with a line of text — tray labels, footer links */
+  --icon-md: 16px;   /* the default — buttons, toolbars, headings */
+  --icon-lg: 20px;   /* a standalone affordance — card heads, the nav rail */
+  --icon-xl: 24px;   /* hero — the landing cards */
+
   /* ── Control height ──────────────────────────────────────────────────── */
   /* One control tall — what a .field-input select resolves to at --font-md. A select, a text input and an
    * icon button each land on a different intrinsic height for the same type size (31 / 29 / 26px), so a row

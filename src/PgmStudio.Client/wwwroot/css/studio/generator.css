@@ -27,7 +27,7 @@
   border: 1px solid var(--border); border-radius: var(--radius-sm);
 }
 .gen-tray-label { flex-shrink: 0; font-size: var(--font-sm); color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
-.gen-tray-label i { width: 14px; height: 14px; }
+.gen-tray-label svg { width: var(--icon-sm); height: var(--icon-sm); }
 .gen-tray-items { display: flex; gap: var(--space-2); overflow-x: auto; }
 .gen-tray-chip { flex-shrink: 0; width: 96px; display: flex; flex-direction: column; align-items: center; gap: 2px; position: relative; }
 .gen-tray-fig {
@@ -40,7 +40,7 @@
   position: absolute; top: 2px; right: 2px; width: 18px; height: 18px;
   display: grid; place-items: center; background: rgba(0, 0, 0, .5); color: #fff; border: none; border-radius: 50%; cursor: pointer;
 }
-.gen-tray-x i { width: 11px; height: 11px; }
+.gen-tray-x svg { width: var(--icon-xs); height: var(--icon-xs); }
 /* A held board an older composer made: its stored plan is intact, so the marker is an annotation on the
    thumbnail rather than anything that blocks opening it. */
 .gen-tray-fig--stale { border-color: #d9a441; }
@@ -79,7 +79,7 @@
 .gen-pin { width: 26px; height: 26px; display: grid; place-items: center; background: transparent; color: var(--text-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; }
 .gen-pin:hover { color: var(--text-bright); border-color: var(--accent); }
 .gen-pin--on { color: var(--accent); background: var(--bg-selected); border-color: var(--accent); }
-.gen-pin i { width: 14px; height: 14px; }
+.gen-pin svg { width: var(--icon-sm); height: var(--icon-sm); }
 
 .gen-status { text-align: center; color: var(--text-secondary); font-size: var(--font-sm); padding: var(--space-3); }
 .gen-sentinel { height: 1px; }

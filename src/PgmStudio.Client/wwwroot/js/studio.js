@@ -1,7 +1,11 @@
-// studio.js — small JS-interop helpers for the ported studio UI.
-// The reference renders Lucide icons from `<i data-lucide="...">` placeholders; we re-run the
-// icon factory after Blazor renders so new/updated icons appear. Matches the reference attrs.
+// studio.js — small JS-interop helpers for the studio UI.
+// Lucide icons come from `<i data-lucide="...">` placeholders; the factory re-runs after Blazor renders
+// so new/updated icons appear.
 window.studio = {
+  // The width/height here are a pre-paint fallback, not the source of truth: the stylesheet sizes every
+  // glyph through `svg.lucide { width: var(--icon-md) }`, and these attributes only stop an icon being
+  // briefly lucide's own 24px before it lands. They must stay equal to --icon-md (tokens.css) — a
+  // presentation attribute loses to any CSS rule, so a mismatch shows only as that first-paint jump.
   icons() {
     if (window.lucide && typeof window.lucide.createIcons === "function") {
       window.lucide.createIcons({ attrs: { "stroke-width": "1.5", width: "16", height: "16" } });

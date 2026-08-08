@@ -558,6 +558,20 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   composer's remove-course button takes `Variant="icon"`, which is what it always was.
   `.material-entry-scalar`, `.block-picker-ids`, `.block-picker-id` and `.block-picker-num` retire. (C39)
 
+- **An icon scale, and a gate under the control row (C40).** Glyph sizes were eight arbitrary numbers
+  (11 · 13 · 14 · 15 · 16 · 20 · 22 · 24px) across twenty rules with no scale behind them — and **six of
+  those rules were dead**: they selected `i`, which the vendored shim *replaces* with an `<svg>`, so
+  `.lib-rail-x i { width: 13px }` had never applied and that ✕ rendered at the JS default 16. Two of the
+  dead ones were meant to colour the plan drawer's warning and success marks, which had therefore never
+  been coloured. The five-step `--icon-xs/sm/md/lg/xl` scale replaces all twenty, the dead selectors are
+  live, `svg.lucide` carries the default so the stylesheet owns the size (studio.js's attribute is now
+  only a pre-paint fallback), and `.nav-rail`'s `!important` — which outranked nothing — is gone.
+  `tests/e2e/controls.mjs` gates both this and `--control-height`: every control in a library row is one
+  height, every square control is square, and every rendered glyph lands on a scale step. Its load-bearing
+  check is the one the token did *not* produce — an unconstrained `select.field-input` must still measure
+  `--control-height`, which is what ties the token to the type scale rather than to itself. Verified by
+  mutation: a wrong token and an off-scale glyph both fail the run. (C40)
+
 ## Backend / API (B)
 - **The wire is dot-separated on every machine, in every country (B48).** Query, route and form values bind
   through a converter that reads the ambient culture, so on a comma-decimal host `?leader=0.55` arrived as
