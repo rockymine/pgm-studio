@@ -699,6 +699,49 @@ svg.lucide { width: var(--icon-md); height: var(--icon-md); }
   border: 1.5px dashed var(--swatch-color, var(--text-muted));
 }
 
+/* ── a collapsed group: the option in hand, a chevron, and a flyout above ── */
+.canvas-dock-collapsed { position: relative; display: flex; align-items: center; gap: 1px; }
+/* Narrow and shorter than the option beside it — it is the handle on that button, not a tool of its own. */
+.canvas-dock-chevron {
+  width: 13px;
+  height: 26px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+.canvas-dock-chevron svg { width: 11px; height: 11px; }
+.canvas-dock-chevron:hover { color: var(--text-bright); background: color-mix(in oklch, var(--text-muted) 22%, transparent); }
+
+/* Opens upward: the dock sits at the bottom of the canvas, so a downward menu would open off it. */
+.canvas-dock-flyout {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 4px;
+  border-radius: 10px;
+  transform: translateX(-50%);
+  animation: dock-flyout-rise var(--transition-fast);
+}
+@keyframes dock-flyout-rise {
+  from { opacity: 0; transform: translate(-50%, 6px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+/* Catches the click that dismisses an open flyout, so it cannot instead start a drag on the map the author
+   could not see past the menu. Below the chrome (z-index 3), above the canvas. */
+.canvas-dock-scrim { position: absolute; inset: 0; z-index: 2; }
+
 /* The mode word — Build/Carve, Bridge/Hole. Wears the group's accent as text, fill and border at once. */
 .canvas-dock-mode {
   flex: none;

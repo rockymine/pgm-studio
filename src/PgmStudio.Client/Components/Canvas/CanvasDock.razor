@@ -5,10 +5,22 @@
    The dock holds groups, never loose buttons: a group is one question the tool answers (how do I get around ·
    what do I draw · what do I measure with), and the gaps between them are the only grouping a row of equal
    glyphs can carry. Groups wrap upward on a narrow viewport rather than scrolling sideways, so the last group
-   is never the one that disappears. *@
+   is never the one that disappears.
 
+   While a group's flyout is open the dock lays a scrim over the canvas, so the click that dismisses the
+   flyout is the same click anywhere else — and it lands on the scrim rather than starting a drag on the map
+   the author could not see past the menu. *@
+
+@if (FlyoutOpen)
+{
+  <div class="canvas-dock-scrim" @onclick="OnDismissFlyout"></div>
+}
 <div class="canvas-dock">@ChildContent</div>
 
 @code {
+    /// <summary>Whether one of the dock's collapsed groups is showing its flyout.</summary>
+    [Parameter] public bool FlyoutOpen { get; set; }
+    /// <summary>Fired when a click lands outside the open flyout.</summary>
+    [Parameter] public EventCallback OnDismissFlyout { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
 }

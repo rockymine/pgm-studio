@@ -291,6 +291,96 @@ public partial class PlanTool
         if (handle is not null) { await handle.InvokeVoidAsync("armBoxKind", k); await handle.InvokeVoidAsync("setTool", "box"); }
     }
 
+    // ── the dock's four collapsed families ─────────────────────────────────────
+    //
+    // Every drawing tool here is one of four questions — which piece role · which technical annotation ·
+    // which marker · which box kind — and within a family only one is ever armed. So each family shows the
+    // option last picked from it and keeps the rest behind a chevron. These four fields ARE that memory; the
+    // canvas's own armed state (tool / role / boxKind) says which family is live, not which option each one
+    // would offer if it were.
+    //
+    // Keys are per-family, not global: "spawn" is a piece role in one and a marker in another, and each
+    // family's pick handler knows which it means.
+
+    private string terrainActive = "piece";
+    private string technicalActive = "zone";
+    private string markerActive = "spawn";
+    private string boxActive = "hub";
+
+    /// <summary>Which family has its flyout showing — at most one, so opening a second closes the first.</summary>
+    private string? openFlyout;
+
+    private void ToggleFlyout(string family) => openFlyout = openFlyout == family ? null : family;
+
+    private void CloseFlyouts() => openFlyout = null;
+
+    private static DockItem[] TerrainItems =>
+        [.. GeneratingRoles.Select(r => new DockItem(r.Id, $"Draw a {r.Label} piece", Swatch: r.Color))];
+
+    // The build area leads: it is the thing the technical annotations are drawn in and around, and it is the
+    // one of the three an author reaches for first.
+    private static DockItem[] TechnicalItems =>
+    [
+        new("zone", "Draw a build area", SwatchClass: "canvas-dock-swatch--build"),
+        .. TechnicalRoles.Select(r => new DockItem(r.Id, $"Draw a {r.Label} annotation",
+                                                   SwatchClass: $"canvas-dock-swatch--{r.Id}")),
+    ];
+
+    private static readonly DockItem[] AllMarkerItems =
+    [
+        new("spawn", "Place a spawn marker · click a placed spawn to cycle its facing", Icon: "flag"),
+        new("wool", "Place a wool goal marker", Icon: "square"),
+        new("iron", "Place an iron marker", Icon: "pickaxe"),
+        new("destroyable", "Place a destroyable (DTM) marker", Icon: "gem"),
+        new("core", "Place a core (DTC) marker", Icon: "flame"),
+        new("wall", "Raise a pre-built wall on the land interface you click · click again to move its defence "
+                  + "chests to the other side, once more to remove it", Icon: "brick-wall"),
+    ];
+
+    /// <summary>The markers this plan may place. A destroyable is defended by one team and broken by the
+    /// others, which only means something when there are two: at four teams PGM treats every goal as shared,
+    /// and what that should play like is undecided. So the two are offered for the 2-team symmetries only
+    /// (OB14).</summary>
+    private DockItem[] MarkerItems => ObjectivesOfferable
+        ? AllMarkerItems
+        : [.. AllMarkerItems.Where(m => m.Key is not ("destroyable" or "core"))];
+
+    private static DockItem[] BoxItems =>
+        [.. BoxKinds.Select(k => new DockItem(k.Id, $"Draw a {k.Label} box",
+                                              Swatch: k.Color, SwatchClass: "canvas-dock-swatch--box"))];
+
+    /// <summary>Whether the technical family's option is the armed tool. The build area is its own tool;
+    /// the other two are piece roles, so the test differs by which one is in the slot.</summary>
+    private bool TechnicalArmed => technicalActive == "zone" ? tool == "zone" : tool == "piece" && role == technicalActive;
+
+    private async Task PickTerrain(string key)
+    {
+        terrainActive = key;
+        openFlyout = null;
+        await PickRole(key);
+    }
+
+    private async Task PickTechnical(string key)
+    {
+        technicalActive = key;
+        openFlyout = null;
+        if (key == "zone") await PickTool("zone"); else await PickRole(key);
+    }
+
+    private async Task PickMarker(string key)
+    {
+        markerActive = key;
+        openFlyout = null;
+        await PickTool(key);
+    }
+
+    private async Task PickBox(string key)
+    {
+        boxActive = key;
+        openFlyout = null;
+        await PickBoxKind(key);
+    }
+
     private Task Fit() => handle?.InvokeVoidAsync("fit").AsTask() ?? Task.CompletedTask;
 
     // ── 3-D height preview (G27) ─────────────────────────────────────────────────
@@ -409,8 +499,13 @@ public partial class PlanTool
     private async Task OnSymmetryChanged(string v)
     {
         symmetry = v;
-        // Leaving a hidden tool armed would let the next click place a marker the plan may not carry.
-        if (!ObjectivesOfferable && tool is "destroyable" or "core") await PickTool("select");
+        // Leaving a hidden tool armed would let the next click place a marker the plan may not carry — and
+        // leaving one in the marker family's slot would show a tool the family no longer offers.
+        if (!ObjectivesOfferable)
+        {
+            if (tool is "destroyable" or "core") await PickTool("select");
+            if (markerActive is "destroyable" or "core") markerActive = "spawn";
+        }
         if (handle is not null) await handle.InvokeVoidAsync("setGlobal", "symmetry", symmetry);
     }
 

@@ -325,60 +325,42 @@
 
           @if (!threeD)
           {
-          <CanvasDock>
+          @* Four families, four slots. Every drawing tool the plan editor has is one of four questions —
+             which piece role · which technical annotation · which marker · which box kind — and within a
+             family only one is ever armed, so each shows the option in hand and keeps the rest a chevron
+             away. Nineteen buttons become six, and the six that remain say what was last drawn with.
+
+             They share one box: with each family down to an option and a chevron, a rule between them would
+             separate less than the pairs already do. *@
+          <CanvasDock FlyoutOpen="@(openFlyout is not null)" OnDismissFlyout="CloseFlyouts">
             <DockGroup>
               <DockButton Icon="mouse-pointer-2" Title="Select / edit" Active="@(tool == "select")"
                           OnClick='() => PickTool("select")' />
               <DockButton Icon="hand" Title="Move / pan" Active="@(tool == "pan")"
                           OnClick='() => PickTool("pan")' />
             </DockGroup>
-            @* The land: the roles that produce terrain, plus the build area they are laid out around. *@
             <DockGroup>
-              @foreach (var r in GeneratingRoles)
-              {
-                <DockButton Swatch="@r.Color" Title="@($"Draw a {r.Label} piece")" @key="r.Id"
-                            Active="@(tool == "piece" && role == r.Id)" OnClick="() => PickRole(r.Id)" />
-              }
-              <DockButton SwatchClass="canvas-dock-swatch--build" Title="Draw a build area"
-                          Active="@(tool == "zone")" OnClick='() => PickTool("zone")' />
-            </DockGroup>
-            @* What is put on the land — one glyph per thing placed. *@
-            <DockGroup>
-              <DockButton Icon="flag" Title="Place a spawn marker · click a placed spawn to cycle its facing"
-                          Active="@(tool == "spawn")" OnClick='() => PickTool("spawn")' />
-              <DockButton Icon="square" Title="Place a wool goal marker"
-                          Active="@(tool == "wool")" OnClick='() => PickTool("wool")' />
-              <DockButton Icon="pickaxe" Title="Place an iron marker"
-                          Active="@(tool == "iron")" OnClick='() => PickTool("iron")' />
-              @* A destroyable is defended by one team and broken by the others, which only means something
-                 when there are two: at four teams PGM treats every goal as shared, and what that should play
-                 like is undecided. So the tool is offered for the 2-team symmetries only (OB14). *@
-              @if (ObjectivesOfferable)
-              {
-                <DockButton Icon="gem" Title="Place a destroyable (DTM) marker"
-                            Active="@(tool == "destroyable")" OnClick='() => PickTool("destroyable")' />
-                <DockButton Icon="flame" Title="Place a core (DTC) marker"
-                            Active="@(tool == "core")" OnClick='() => PickTool("core")' />
-              }
-              <DockButton Icon="brick-wall" Title="Raise a pre-built wall on the land interface you click · click again to move its defence chests to the other side, once more to remove it"
-                          Active="@(tool == "wall")" OnClick='() => PickTool("wall")' />
-            </DockGroup>
-            @* Annotations that reserve or connect rather than produce — they never generate terrain. *@
-            <DockGroup>
-              @foreach (var r in TechnicalRoles)
-              {
-                <DockButton SwatchClass="@($"canvas-dock-swatch--{r.Id}")" Title="@($"Draw a {r.Label} annotation")" @key="r.Id"
-                            Active="@(tool == "piece" && role == r.Id)" OnClick="() => PickRole(r.Id)" />
-              }
-            </DockGroup>
-            @* Box envelopes: one tool per typed kind, so drawing one states what the pieces inside it
-               realize. Annotation only — a box never compiles, and dragging it carries its members. *@
-            <DockGroup>
-              @foreach (var k in BoxKinds)
-              {
-                <DockButton Swatch="@k.Color" SwatchClass="canvas-dock-swatch--box" Title="@($"Draw a {k.Label} box")" @key="k.Id"
-                            Active="@(tool == "box" && boxKind == k.Id)" OnClick="() => PickBoxKind(k.Id)" />
-              }
+              @* The land — the roles that produce terrain. *@
+              <DockFlyoutGroup Items="TerrainItems" ActiveKey="@terrainActive" Label="piece"
+                               Armed="@(tool == "piece" && role == terrainActive)"
+                               Open="@(openFlyout == "terrain")" OnToggleOpen='() => ToggleFlyout("terrain")'
+                               OnPick="PickTerrain" />
+              @* The build area and the annotations that reserve or connect — none of them generate terrain. *@
+              <DockFlyoutGroup Items="TechnicalItems" ActiveKey="@technicalActive" Label="annotation"
+                               Armed="@TechnicalArmed"
+                               Open="@(openFlyout == "technical")" OnToggleOpen='() => ToggleFlyout("technical")'
+                               OnPick="PickTechnical" />
+              @* What is put on the land. *@
+              <DockFlyoutGroup Items="MarkerItems" ActiveKey="@markerActive" Label="marker"
+                               Armed="@(tool == markerActive)"
+                               Open="@(openFlyout == "markers")" OnToggleOpen='() => ToggleFlyout("markers")'
+                               OnPick="PickMarker" />
+              @* Box envelopes: drawing one states what the pieces inside it realize. Annotation only — a box
+                 never compiles, and dragging it carries its members. *@
+              <DockFlyoutGroup Items="BoxItems" ActiveKey="@boxActive" Label="box kind"
+                               Armed="@(tool == "box" && boxKind == boxActive)"
+                               Open="@(openFlyout == "boxes")" OnToggleOpen='() => ToggleFlyout("boxes")'
+                               OnPick="PickBox" />
             </DockGroup>
           </CanvasDock>
           }

@@ -1,0 +1,65 @@
+@namespace PgmStudio.Client.Components
+
+@* A family of tools that shows only the one in hand.
+
+   The plan tool draws nineteen different things, and nineteen buttons is not a palette — it is a wall that
+   wraps to two rows and forces a hunt for the swatch that was used a minute ago. But the nineteen are four
+   families of one question each ("which piece role?", "which marker?"), and within a family only one is ever
+   armed. So a family collapses to the option currently in its slot plus a chevron: click the option to arm
+   it, click the chevron to see the rest, pick one and it takes the slot. The last pick stays visible, which
+   is what makes the collapse cost nothing — the tool being used is the tool being shown.
+
+   The flyout opens upward, because the dock is at the bottom of the canvas and a downward menu would open
+   off it. It is icon-only: a label on every option would give back exactly the width the collapse saves, so
+   the name lives in the tooltip.
+
+   Which group is open is the host's state, not the group's — only one may be open at a time, and a group
+   cannot close a sibling it does not know about. *@
+
+<div class="canvas-dock-collapsed">
+  @* Keyed on the option, so promoting one REPLACES this button rather than patching it.
+     A glyph cannot be swapped in place here: lucide replaces the <i data-lucide> with an <svg> after every
+     render, so by the time the slot changes there is no <i> left for Blazor to re-point — it patches a node
+     it no longer owns and the button keeps the old icon while its tooltip and armed state say otherwise
+     (a promoted "destroyable" that still showed a flag). Keying the whole button moves the swap up to the
+     one element in here that is still Blazor's: it removes the button, svg and all, and inserts a fresh
+     subtree whose <i data-lucide> studio.icons then converts. *@
+  <DockButton @key="Active.Key" Icon="@Active.Icon" Swatch="@Active.Swatch" SwatchClass="@Active.SwatchClass"
+              Title="@Active.Title" Active="@Armed" OnClick="() => OnPick.InvokeAsync(Active.Key)" />
+  <button class="canvas-dock-chevron" type="button" title="@ChevronTitle" aria-expanded="@Open"
+          @onclick="OnToggleOpen">
+    <i data-lucide="chevron-up" @key="@("chevron-up")"></i>
+  </button>
+  @if (Open)
+  {
+    <div class="canvas-dock-flyout">
+      @foreach (var item in Items.Where(i => i.Key != Active.Key))
+      {
+        <DockButton Icon="@item.Icon" Swatch="@item.Swatch" SwatchClass="@item.SwatchClass" @key="item.Key"
+                    Title="@item.Title" OnClick="() => OnPick.InvokeAsync(item.Key)" />
+      }
+    </div>
+  }
+</div>
+
+@code {
+    /// <summary>Every option the family offers, in the order the flyout lists them.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<DockItem> Items { get; set; } = [];
+    /// <summary>The option in the visible slot — the last one picked. Falls back to the first offered when
+    /// it names something the family no longer has (a marker withdrawn by the team count, say).</summary>
+    [Parameter] public string? ActiveKey { get; set; }
+    /// <summary>Whether this family's tool is the one currently armed on the canvas.</summary>
+    [Parameter] public bool Armed { get; set; }
+    /// <summary>Whether the flyout is showing. Held by the host so opening one closes the others.</summary>
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public EventCallback OnToggleOpen { get; set; }
+    /// <summary>Fired with the picked option's key — for the slot's own button too, which re-arms it.</summary>
+    [Parameter] public EventCallback<string> OnPick { get; set; }
+    /// <summary>Names the family in the chevron's tooltip ("More marker options").</summary>
+    [Parameter] public string? Label { get; set; }
+
+    private DockItem Active =>
+        Items.FirstOrDefault(i => i.Key == ActiveKey) ?? Items[0];
+
+    private string ChevronTitle => Label is null ? "More options" : $"More {Label} options";
+}
