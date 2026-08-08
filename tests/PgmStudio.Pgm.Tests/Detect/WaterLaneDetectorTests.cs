@@ -41,6 +41,23 @@ public sealed class WaterLaneDetectorTests
         await Assert.That(lanes[0].Form).IsEqualTo(WaterLaneForm.Include);
         await Assert.That(lanes[0].RegionId).IsEqualTo("water-lanes");
         await Assert.That(lanes[0].Footprint.Count).IsEqualTo(2);
+        // The fragment owns the timing but exposes it as a fallback constant, so a map that names none
+        // still has a knowable answer: the fragment's default.
+        await Assert.That(lanes[0].Trigger).IsEqualTo(WaterLaneDetector.LaneTimerDefault);
+    }
+
+    [Test]
+    public async Task A_map_that_sets_the_lane_timer_overrides_the_fragment_default()
+    {
+        // `water-lane-timer` is declared `fallback` by the fragment, so the map's own value wins — and the
+        // map never interpolates it, which is why the constant has to survive substitution to be seen at all.
+        var lanes = Detect("""
+          <include id="water-lanes"/>
+          <constants><constant id="water-lane-timer">30m</constant></constants>
+          <regions><cuboid id="water-lanes" min="0,0,0" max="10,1,10"/></regions>
+          """);
+
+        await Assert.That(lanes.Single().Trigger).IsEqualTo("30m");
     }
 
     [Test]

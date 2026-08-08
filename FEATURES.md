@@ -653,16 +653,33 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   and emits one `y=0` cuboid union under the agreed id with the include paired to it at export. It is
   deliberately kept **out** of the buildable region — that is what leaves it closed at kickoff — and out of
   every derivation describing the starting board, since a lane is not a route until it opens.
-  `--water-lanes` sweeps a corpus; `WL1` lints a lane drawn over terrain. (B28,
+  `--water-lanes` sweeps a corpus; `WL1` lints a lane drawn over terrain. When a lane opens is read from the
+  map in every form, the include one included: the fragment declares `water-lane-timer` as an overridable
+  `fallback` constant, so a map's own value wins and its absence means the fragment's 45m. (B28,
   `docs/contracts/water-lanes.md`)
-- **`<include>` is read, recorded, and reported as unresolved rather than ignored (B29).** The element was
-  skipped outright, so 93% of corpus `ctw/` maps were analysed as if rules they pull in did not exist.
-  `MapXml.Includes` now carries every id a map references, `MapValidity` warns once per id — a warning and
-  never an error, because an unresolved include is a map PGM loads perfectly and the studio reads
-  incompletely — and `--includes` dumps the per-map ids plus a corpus histogram, so the size of the unread
-  surface is visible. The bodies stay unread: PGM resolves a fragment from the server's includes directory,
-  which ships with neither the map nor the corpus. One id needs no body — `water-lanes`, whose presence
-  beside its region is the whole signal (B28). (B29)
+- **`<include>` is read, resolved, and the two readings are kept apart (B29).** The element was skipped
+  outright, so 198 of 208 corpus `ctw/` maps (95%) were analysed as if rules they pull in did not exist.
+  `MapXml.Includes` records every referenced id (so it still round-trips), `MapValidity` warns per
+  unresolved one — a warning, never an error, since an unresolved include is a map PGM loads perfectly and
+  the studio reads incompletely — and `--includes` reports the corpus histogram. `IncludeLibrary` then
+  resolves the bodies from a **configured directory**, which is what PGM itself does
+  (`config.getIncludesDirectory()`); nothing is vendored, because the fragments are another project's source
+  and a copy would go stale in silence. Resolution is recursive, splices `global` into every map the way PGM
+  does, and tolerates a cycle or a missing id by leaving the document as it was.
+  **The two readings are deliberately separate**: `Parse(path)` reads the map as written and is what export
+  uses; `Parse(path, library)` reads it as played and must never be written back, because the references are
+  still emitted and the content would be applied twice. Three seams had to move for it. The supported-range
+  gates run **before** the splice — a module arriving from a fragment round-trips through its reference and
+  cannot be silently lost, so gating after would have rejected 82 maps that export perfectly. Constants
+  survive substitution, because a fragment declares its knobs as `fallback` constants and a map tunes it by
+  declaring one it never interpolates. And `<filters>`/`<regions>`/`<kits>` now merge across **every** block
+  rather than the first — with `global` always spliced ahead, reading the first block silently dropped the
+  map's own, which is the bug `--resolve-includes` was written to catch and did.
+  Measured: **367 of 563 maps change** when resolved, filters most (345), then regions and fills (68 each),
+  apply rules (55) and kits (28); every corpus id resolves. Two negative results are load-bearing — no map
+  gains a gamemode (`<score>`/`<flags>` have no parser: `B56`), and no water-lane verdict changes, because
+  that signal is the reference and the region rather than the behaviour behind them. (B29,
+  `docs/contracts/include-resolution.md`)
 - **The wire is dot-separated on every machine, in every country (B48).** Query, route and form values bind
   through a converter that reads the ambient culture, so on a comma-decimal host `?leader=0.55` arrived as
   fifty-five — a valid number, a hundredfold out, silent, and correct again on the next developer's machine.

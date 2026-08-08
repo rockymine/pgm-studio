@@ -9,21 +9,34 @@ namespace PgmStudio.Pgm;
 public sealed partial class MapParser
 {
     private readonly XElement _root;
+    private readonly IncludeLibrary? _includes;
     private readonly RegionParser _regionParser = new();
     private readonly FilterParser _filterParser = new();
 
-    private MapParser(XElement root) => _root = root;
+    private MapParser(XElement root, IncludeLibrary? includes = null) => (_root, _includes) = (root, includes);
 
-    public static MapXml Parse(string xmlPath)
+    /// <summary>
+    /// Parse a <c>map.xml</c>. With no <paramref name="includes"/> library the map is read exactly as it is
+    /// written, and whatever its <c>&lt;include&gt;</c> references define stays outside the document
+    /// (<see cref="MapXml.Includes"/> records them; <see cref="MapValidity"/> warns).
+    ///
+    /// <para>With a library, the fragments are spliced in first, so the result describes the map <b>as the
+    /// server plays it</b> rather than as its author wrote it. That is an <b>analysis</b> read and must not be
+    /// re-exported: the include references are still recorded and still emitted, so writing a resolved map back
+    /// out would emit the fragments' content inline <i>and</i> reference them again. Export parses without a
+    /// library, which is the default.</para>
+    /// </summary>
+    public static MapXml Parse(string xmlPath, IncludeLibrary? includes = null)
     {
         var doc = XDocument.Load(xmlPath, LoadOptions.None);
-        return new MapParser(doc.Root!).ParseInternal();
+        return new MapParser(doc.Root!, includes).ParseInternal();
     }
 
-    public static MapXml ParseXmlString(string xml)
+    /// <inheritdoc cref="Parse(string, IncludeLibrary?)"/>
+    public static MapXml ParseXmlString(string xml, IncludeLibrary? includes = null)
     {
         var doc = XDocument.Parse(xml, LoadOptions.None);
-        return new MapParser(doc.Root!).ParseInternal();
+        return new MapParser(doc.Root!, includes).ParseInternal();
     }
 
     // The studio targets PGM's id-based regions/filters/kits, introduced in proto 1.4.0, and reads
@@ -90,7 +103,18 @@ public sealed partial class MapParser
 
     private MapXml ParseInternal()
     {
+        // The supported-range gates read the map's OWN body, before any fragment is spliced. A module arriving
+        // from an include is not at risk of being lost on round-trip — the export re-emits the reference, and
+        // the server resolves it again — so the unread-objective gate, which exists to stop exactly that silent
+        // loss, has nothing to catch there. Gating after the splice would reject 82 corpus maps that today
+        // parse and re-export perfectly.
         EnsureSupported();
+
+        // The referenced ids are recorded before splicing removes the elements, so a resolved map still knows
+        // (and still re-emits) what it pulled in.
+        var referenced = ParseIncludes();
+        var resolved = _includes?.Splice(_root) ?? [];
+
         ResolveVariants(_root);
         ResolveConstants(_root);
 
@@ -106,14 +130,22 @@ public sealed partial class MapParser
         };
         (data.Spawns, data.ObserverSpawn) = ParseSpawns();
 
-        var filtersElem = _root.Elements("filters").FirstOrDefault();
-        data.Filters = filtersElem is not null ? _filterParser.ParseFiltersElem(filtersElem) : _filterParser.Registry();
+        // EVERY <filters>/<regions> block, not the first. A map written by hand has one of each, but a
+        // resolved one has the fragments' blocks beside its own, and reading only the first would silently
+        // drop whichever lost the race — the map's own, when a fragment was spliced ahead of it. Both parsers
+        // accumulate into one registry, so repeated blocks merge the way PGM merges them, and apply rules
+        // concatenate in document order because PGM stops at the first rule that decides.
+        data.Filters = _filterParser.Registry();
+        foreach (var filtersElem in _root.Elements("filters"))
+            data.Filters = _filterParser.ParseFiltersElem(filtersElem);
 
-        var regionsElem = _root.Elements("regions").FirstOrDefault();
-        if (regionsElem is not null)
-            (data.Regions, data.ApplyRules) = _regionParser.ParseRegionsElem(regionsElem);
-        else
-            data.Regions = _regionParser.Registry();
+        data.Regions = _regionParser.Registry();
+        foreach (var regionsElem in _root.Elements("regions"))
+        {
+            var (regions, applyRules) = _regionParser.ParseRegionsElem(regionsElem);
+            data.Regions = regions;
+            data.ApplyRules.AddRange(applyRules);
+        }
 
         ResolveSpawnRegions(data);
 
@@ -125,8 +157,10 @@ public sealed partial class MapParser
         data.Renewables = ParseRenewables();
         data.BlockDropRules = ParseBlockDropRules();
         data.MaxBuildHeight = ParseMaxBuildHeight();
-        data.Includes = ParseIncludes();
+        data.Includes = referenced;
+        data.ResolvedIncludes = [.. resolved];
         data.Fills = ParseFills();
+        data.Constants = _constants;
         return data;
     }
 
@@ -212,9 +246,14 @@ public sealed partial class MapParser
         }
     }
 
-    private static void ResolveConstants(XElement root)
+    // The constants declared in the document, id → value, in the order the resolver read them. Retained past
+    // substitution: a map that declares a constant it never interpolates is tuning a rule an include owns.
+    private Dictionary<string, string> _constants = new(StringComparer.Ordinal);
+
+    private void ResolveConstants(XElement root)
     {
-        var constants = new Dictionary<string, string>();
+        var constants = new Dictionary<string, string>(StringComparer.Ordinal);
+        _constants = constants;
         foreach (var elem in root.Descendants("constant"))
         {
             var cid = Xml.Get(elem, "id", "").Trim();
@@ -289,10 +328,7 @@ public sealed partial class MapParser
     private List<Kit> ParseKits()
     {
         var kits = new List<Kit>();
-        var kitsElem = _root.Elements("kits").FirstOrDefault();
-        if (kitsElem is null) return kits;
-
-        foreach (var kitElem in kitsElem.Elements("kit"))
+        foreach (var kitElem in _root.Elements("kits").SelectMany(block => block.Elements("kit")))
         {
             var kitId = Xml.Get(kitElem, "id", "");
             if (kitId.Length == 0) continue;

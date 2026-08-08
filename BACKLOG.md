@@ -396,17 +396,26 @@ import diagnostic (`B24e`), detection (`B26`), and the island-floor work the pha
   which is the failure mode in the other direction). The plumbing is the real work, not the rule:
   `LayerExtractors` (`PgmStudio.Minecraft`) runs with no map context today, so the phantom regions have to
   reach it. Pairs with `G9`/`G12`. (OB16, `destroyables-and-cores.md` §2)
-- [ ] **B29 — Obtain the include library, then splice fragments at preprocess time.** Reading includes has
-  landed as far as it can without their bodies (`FEATURES.md`): every referenced id is recorded and every one
-  is reported unresolved. What remains needs the fragments themselves, and **that is a fetch, not a code
-  change** — PGM resolves an include from `config.getIncludesDirectory()`, a server directory that ships with
-  neither the map nor the corpus, and it additionally splices a `global` include into every map that no
-  `map.xml` mentions (`MapIncludeProcessorImpl.getGlobalInclude`). Blocked on obtaining that library from the
-  source server config. Once it exists: splice at preprocess time next to `ResolveVariants`/`ResolveConstants`
-  (matching `MapFilePreprocessor.preprocessChildren`) so every downstream parser sees one flat document, and
-  drop the unresolved-include warning to the ids that genuinely fail to resolve. Corpus scale, from
-  `--includes`: `gapple-kill-reward` alone appears 815 times across both corpora. Water lanes do **not** wait
-  on this — the `water-lanes` fragment's presence is its own signal (`docs/contracts/water-lanes.md` §5).
+- [ ] **B55 — Decide which API paths read a map *as played*, then wire `Includes:Root`.** `IncludeLibrary`
+  and the resolved parse are in and gated by tests (`FEATURES.md`), and the harness uses them
+  (`--resolve-includes`, `--water-lanes --includes-dir`). The API does not, because which reading each
+  endpoint wants is a real question and the wrong answer corrupts data: **a resolved document must never be
+  written back** (the include references are still emitted, so the fragments' content would be applied
+  twice). Safe by construction today — nothing in the API passes a library — and the work is to choose per
+  path rather than flip a global. Rule-level analysis (region categorisation, filter wiring, apply-rule
+  order) wants resolved; anything that saves, exports or re-emits a document wants written; geometry
+  (islands, layout, the seed corpus) does not care, since maps declare their own regions. Add
+  `Includes:Root` beside `MapsRoots` in `Program.cs`, thread it only to the chosen paths, and make the
+  distinction unmissable at the call site. (`docs/contracts/include-resolution.md` §2)
+
+- [ ] **B56 — Parse `<score>` and `<flags>` so an include-supplied objective is actually read.** Include
+  resolution landed (`FEATURES.md`) and measured its own limit: **82 corpus maps take their objective from a
+  fragment** (`bridge`, `touchdown`, `ffb`, `flag-battles`, `5cp`), and resolving them changes nothing about
+  what the studio reports, because `<score>` (TDM) and `<flags>` (CTF) have no parser here. Splicing is not
+  what closes that; a parser is. Until one exists those maps read as objective-less — which the
+  supported-range gate deliberately tolerates, since a module arriving from a fragment round-trips through the
+  include reference and cannot be silently lost. Add each tag to `ParsedObjectiveModules` as its parser lands.
+  (`docs/contracts/include-resolution.md` §4)
 
 - [ ] **B26 — Detect destroyables + cores from a world scan (later).** The `MonumentSuggester` move applied to
   the **easier** problem: scan the world, propose the objectives, let the author confirm which is a destroyable

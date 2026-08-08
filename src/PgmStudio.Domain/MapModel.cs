@@ -313,9 +313,23 @@ public sealed class MapXml
     /// </summary>
     public List<string> Includes = [];
 
+    /// <summary>The include ids actually resolved into this document, empty when the map was parsed without a
+    /// library (the default) or when nothing referenced could be found. Non-empty marks an <b>analysis</b>
+    /// read: the document describes the map as played and must not be re-exported, because the fragments'
+    /// content is now inline while <see cref="Includes"/> still references them.</summary>
+    public List<string> ResolvedIncludes = [];
+
     /// <summary>The <c>&lt;fill&gt;</c> actions the map scripts, flattened out of <c>&lt;actions&gt;</c>.
     /// Read-only (see <see cref="FillAction"/>) — parsed for analysis, never emitted.</summary>
     public List<FillAction> Fills = [];
+
+    /// <summary>
+    /// The map's <c>&lt;constant&gt;</c> declarations, id → value. Kept after substitution because a constant
+    /// is not only a text macro: a shared fragment declares its knobs as <c>fallback</c> constants, and a map
+    /// tunes the fragment by declaring one of them itself. So a constant the map never interpolates is still
+    /// meaningful — it is the setting handed to a rule that lives outside the document.
+    /// </summary>
+    public Dictionary<string, string> Constants = new(StringComparer.Ordinal);
 
     // Standard CTW boilerplate (added to generated maps at export; see CtwStandards). Not round-tripped
     // from corpus maps, so these stay empty for parsed maps.

@@ -33,8 +33,10 @@ public enum WaterLaneForm
 /// <param name="Form">Which of the four wirings carries this lane.</param>
 /// <param name="RegionId">The region the mechanism names. Empty when the lane's region was declared inline
 /// (a destroyable may hold its cuboids directly rather than reference an id).</param>
-/// <param name="Trigger">When the lane opens, in the map's own words — a mode's <c>after</c> duration, the
-/// filter a fill's trigger reads, or empty when the shared fragment owns the timing.</param>
+/// <param name="Trigger">When the lane opens — a mode's <c>after</c> duration, the filter or countdown a
+/// fill's trigger reads, or for the shared fragment the <c>water-lane-timer</c> constant the map set, falling
+/// back to the fragment's own default. Empty only when the map states the condition in a form this parser
+/// does not read.</param>
 /// <param name="Footprint">The <c>y=0</c> rectangles the lane covers, in map coordinates.</param>
 /// <param name="Evidence">The element that carried the verdict (a mode id, a fill id/region, the include).</param>
 public sealed record WaterLane(
@@ -70,6 +72,16 @@ public static class WaterLaneDetector
     /// resolved server-side out of the includes directory, so this string is the whole of the contract
     /// between a map and the behaviour it pulls in.</summary>
     public const string LaneInclude = "water-lanes";
+
+    /// <summary>The constant the shared fragment exposes for when its lanes open. It declares the knob as a
+    /// <c>fallback</c>, so a map that names it overrides the fragment; a map that does not gets
+    /// <see cref="LaneTimerDefault"/>.</summary>
+    public const string LaneTimerConstant = "water-lane-timer";
+
+    /// <summary>The fragment's own default for <see cref="LaneTimerConstant"/>. It lives in the fragment
+    /// rather than here, so this is a copy of a value the studio does not own — reported as the default it is,
+    /// never as something the map said.</summary>
+    public const string LaneTimerDefault = "45m";
 
     // The lane naming convention, as the corpus writes it: `water-lanes`, `water-lane-regions`,
     // `blue-water-lanes`, `orange-water-lane`. Matching on "water" + "lane" together keeps `wool-lanes` and
@@ -148,8 +160,14 @@ public static class WaterLaneDetector
         if (!map.Includes.Contains(LaneInclude, StringComparer.Ordinal)) yield break;
         if (!map.Regions.TryGetValue(LaneInclude, out var region)) yield break;
 
-        yield return new WaterLane(WaterLaneForm.Include, LaneInclude, "",
-                                   VoidLayerRects(map.Regions, region), $"include:{LaneInclude}");
+        // The fragment owns the timing but exposes it as an overridable constant, so the answer is in the
+        // document after all: the map's own value when it declares one, the fragment's default otherwise.
+        var stated = map.Constants.GetValueOrDefault(LaneTimerConstant);
+        var opens = string.IsNullOrWhiteSpace(stated) ? LaneTimerDefault : stated.Trim();
+        var evidence = stated is null ? $"include:{LaneInclude} (default)" : $"include:{LaneInclude}";
+
+        yield return new WaterLane(WaterLaneForm.Include, LaneInclude, opens,
+                                   VoidLayerRects(map.Regions, region), evidence);
     }
 
     private static IEnumerable<WaterLane> FromFills(MapXml map)

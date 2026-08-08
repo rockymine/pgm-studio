@@ -178,6 +178,12 @@ if (afIdx >= 0)
 if (args.Contains("--includes"))
     return RunIncludes(defaultRoots, args, verbose);
 
+// --resolve-includes <includesDir>: parse every map twice — as written, and with the fragments spliced —
+// and report what resolving them changes.
+var riIdx = Array.IndexOf(args, "--resolve-includes");
+if (riIdx >= 0 && riIdx + 1 < args.Length)
+    return RunResolveIncludes(defaultRoots, args[riIdx + 1], verbose);
+
 // --water-lanes: run WaterLaneDetector over the corpus and report every lane by form.
 if (args.Contains("--water-lanes"))
     return RunWaterLanes(defaultRoots, args, verbose);
@@ -258,10 +264,78 @@ static int RunIncludes(string[] corpusRoots, string[] args, bool verbose)
     return 0;
 }
 
+// What resolving the shared fragments changes, per map and in total. Each map is parsed twice — as written,
+// and with the library spliced in — because the difference IS the answer: everything the studio was reading
+// past when it treated an <include> as absent.
+static int RunResolveIncludes(string[] corpusRoots, string includesDir, bool verbose)
+{
+    var library = IncludeLibrary.Open(includesDir);
+    if (library is null) { Console.Error.WriteLine($"no include library at '{includesDir}'"); return 2; }
+    Console.WriteLine($"library: {library.AvailableIds.Count()} fragment(s) at {includesDir}\n");
+
+    var maps = CorpusMaps(corpusRoots);
+    int changed = 0, gainedGamemode = 0, unresolvable = 0, unreadable = 0;
+    var missingIds = new SortedSet<string>(StringComparer.Ordinal);
+
+    foreach (var (slug, xmlPath) in maps)
+    {
+        MapXml plain, resolvedMap;
+        try
+        {
+            plain = MapParser.Parse(xmlPath);
+            resolvedMap = MapParser.Parse(xmlPath, library);
+        }
+        catch (UnsupportedMapException) { unreadable++; continue; }
+
+        var unresolved = plain.Includes.Except(resolvedMap.ResolvedIncludes, StringComparer.Ordinal).ToList();
+        if (unresolved.Count > 0) { unresolvable++; foreach (var id in unresolved) missingIds.Add(id); }
+
+        var deltas = new List<string>();
+        void Delta(string label, int before, int after)
+        {
+            if (before != after) deltas.Add($"{label} {before}->{after}");
+        }
+        Delta("regions", plain.Regions.Count, resolvedMap.Regions.Count);
+        Delta("filters", plain.Filters.Count, resolvedMap.Filters.Count);
+        Delta("apply", plain.ApplyRules.Count, resolvedMap.ApplyRules.Count);
+        Delta("kits", plain.Kits.Count, resolvedMap.Kits.Count);
+        Delta("kill-rewards", plain.KillRewards.Count, resolvedMap.KillRewards.Count);
+        Delta("modes", plain.Modes.Count, resolvedMap.Modes.Count);
+        Delta("fills", plain.Fills.Count, resolvedMap.Fills.Count);
+
+        var before2 = string.Join("+", plain.Gamemodes);
+        var after2 = string.Join("+", resolvedMap.Gamemodes);
+        if (before2 != after2)
+        {
+            deltas.Add($"gamemode [{(before2.Length == 0 ? "none" : before2)}]->[{(after2.Length == 0 ? "none" : after2)}]");
+            gainedGamemode++;
+        }
+
+        if (deltas.Count == 0) continue;
+        changed++;
+        if (verbose || deltas.Any(d => d.StartsWith("gamemode")))
+            Console.WriteLine($"  {slug,-34} {string.Join("  ", deltas)}");
+    }
+
+    Console.WriteLine();
+    Console.WriteLine($"resolving changes {changed} of {maps.Count} maps ({unreadable} outside the supported range); "
+                      + $"{gainedGamemode} gain a gamemode they were read as not having");
+    if (missingIds.Count > 0)
+        Console.WriteLine($"{unresolvable} map(s) reference {missingIds.Count} id(s) the library does not hold: "
+                          + string.Join(", ", missingIds));
+    return 0;
+}
+
 // Every water lane the corpus authors, by form. A lane is a route that opens mid-match, so the report is
 // grouped by the wiring that opens it — the newest form is one include plus one region.
 static int RunWaterLanes(string[] corpusRoots, string[] args, bool verbose)
 {
+    // Optional: run against maps with their fragments spliced in, which is what the server plays. The verdicts
+    // must not change — the include form outranks the fill the fragment brings, and both name one region.
+    var libIdx = Array.IndexOf(args, "--includes-dir");
+    var library = libIdx >= 0 && libIdx + 1 < args.Length ? IncludeLibrary.Open(args[libIdx + 1]) : null;
+    if (library is not null) Console.WriteLine("(reading maps with their includes resolved)\n");
+
     var maps = CorpusMaps(corpusRoots);
     var byForm = new Dictionary<WaterLaneForm, List<string>>();
     int lanesTotal = 0, mapsWithLanes = 0, unreadable = 0;
@@ -269,7 +343,7 @@ static int RunWaterLanes(string[] corpusRoots, string[] args, bool verbose)
     foreach (var (slug, xmlPath) in maps)
     {
         MapXml map;
-        try { map = MapParser.Parse(xmlPath); }
+        try { map = MapParser.Parse(xmlPath, library); }
         catch (UnsupportedMapException) { unreadable++; continue; }
 
         var lanes = WaterLaneDetector.Detect(map);

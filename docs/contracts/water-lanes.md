@@ -105,6 +105,15 @@ zero `<apply>` on `water-lanes` / `blue-lanes` / `red-lanes` across the whole se
 fill, no destroyable and no mode at all. The fragment carries the entire mechanism, keyed by the
 region id alone.
 
+What it carries is more than a fill. Resolved, the fragment adds five apply rules to the lane region
+and a mode to fire it: it denies sponge placement, denies a long blacklist of blocks in the parts of
+the lane that were previously air (anything that breaks by proxy without a block-break event —
+ladders, doors, rails, plants, redstone), denies breaking the water with a bucket, blocks pistons
+pushing into it, and replaces broken lane blocks with stationary water via `<block-drops>`. The fill
+itself is on a 15-minute `<pulse>`, so a lane drained by players refills. The timer is
+`water-lane-timer`, declared `fallback` — the fragment's default is 45m and a map overrides it by
+declaring the constant itself, which `rushers_vs_defenders` does at 30m.
+
 **Static — the name without the behaviour.** A region under the lane naming convention that nothing
 fills, swaps or applies, appearing only inside the negative that the void rule denies. It opens
 nothing. The water already stands in those columns, and the id keeps the void rule *off* them so that
@@ -148,6 +157,11 @@ near-identical name, which is one lane described twice).
 A transform is its own place, not a second visit to its source — reflecting a lane produces a second
 lane somewhere else — so a `<mirror>` contributes its own derived footprint rather than collapsing
 onto the region it reflects.
+
+When a lane opens is read from the map in every form, the include one included: the fragment declares
+`water-lane-timer` as a `fallback` constant, so the map's own value wins and its absence means the
+fragment's 45m. That is why `MapXml.Constants` survives substitution — a constant a map never
+interpolates is not dead text, it is the setting handed to a rule living outside the document.
 
 Run it over a corpus with `dotnet run --project tools/PgmStudio.RoundTrip -- --water-lanes`.
 
@@ -216,21 +230,18 @@ already committed to the map they read at the first tick.
 
 ---
 
-## 5. What the include's body would add, and why it is not needed
+## 5. Resolving the fragment, and why neither half of this document waits on it
 
-The fragment's content is unread and unreadable here: PGM resolves an include from
-`config.getIncludesDirectory()`, a server directory that ships with neither the map nor the corpus.
-Whatever `water-lanes` defines — the timer, the fill, the messages — has never entered a document this
-studio has analysed.
+The body is resolvable when a library is configured (`IncludeLibrary`, `include-resolution.md`), and
+reading it is where §2's account of the fragment's five apply rules and 15-minute refill pulse comes
+from. Neither half of this document depends on that, though, and it is worth being exact about why.
 
-That gap is real and belongs to the include problem generally, not to lanes: **198 of 208 `ctw/` maps
-(95%)** reference an include, `gapple-kill-reward` alone accounts for 304 of the 371 referencing maps
-across all gamemodes, and PGM splices a `global` include into every map at the root that no `map.xml`
-mentions. `MapXml.Includes` records every id a map
-references and `MapValidity` warns per unresolved id, so an analysis that is reading an incomplete map
-says so. Closing it is a fetch — obtaining the include library — not a code change.
+Detection needs the include's *presence*, not its body: `<include id="water-lanes"/>` plus the matching
+region is the signal, and the corpus verdicts are **identical read resolved or unresolved** — the
+ranking puts the include form above the fill the fragment brings, and both name the same region.
+Authoring needs less still, because the server does the resolving; the studio emits an id and a region.
+Even the timing, the one thing that genuinely lives in the fragment, reaches the map as an overridable
+constant.
 
-It gates neither half of this document. Detection needs the include's *presence*, not its body:
-`<include id="water-lanes"/>` plus the matching region is the signal. Authoring needs even less,
-because the server does the resolving. What the body would add is the one thing neither needs — the
-lane's timing, which an `Include`-form lane reports as unknown rather than guessing.
+What resolution changes for a lane map is the surrounding picture rather than the lane: ad_astra reads
+as 22 filters and 11 apply rules as written, and 95 filters and 17 apply rules as played.
