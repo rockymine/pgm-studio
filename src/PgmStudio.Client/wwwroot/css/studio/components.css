@@ -727,7 +727,8 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
    owner renders under it. The two are separate elements on purpose: a note has to run the full width of the
    panel, which it cannot do from inside the flex row the mark lives in. */
 .help-mark {
-  flex: 0 0 auto;
+  /* A round mark, never a stretched pill — it opts out of a stretching row's height. */
+  flex: 0 0 auto; align-self: center;
   display: inline-grid; place-items: center; width: 17px; height: 17px; padding: 0;
   cursor: pointer; font-size: var(--font-xs); font-weight: 700; line-height: 1; font-family: inherit;
   color: var(--text-muted); background: var(--bg-panel);

@@ -261,29 +261,41 @@
 /* A material and, indented under it, the materials it is made of — the nesting IS the structure. */
 .material-editor { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
 .material-editor--nested { padding-left: var(--space-3); border-left: 2px solid var(--border); }
-/* One row: the entry's name, its kind, the extent it claims (HeadExtra), and the way to remove it. The
-   kind select takes the slack so the row is one line at any panel width worth editing in. */
-.material-editor-head { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+/* One row of controls: the kind, the extent it claims (HeadExtra), and the way to remove it — all one
+   control tall, so a stack of entries reads as a column of aligned selects. The name heads the block above
+   the row rather than sharing it. The kind select takes the slack; the extent is a coord-field, sized to
+   its own prefix + a two-digit number. */
+/* stretch, not center: a select, a coord-field and an icon button each resolve to a different intrinsic
+   height for the same type size (31 / 29 / 26 px), and three boxes of three heights on one line is the whole
+   of the visual tension. Stretching makes the tallest — the select — set the row, and the rest take it,
+   which tracks whatever that height turns out to be instead of pinning a number that a type-scale change
+   would silently break. Anything that must keep its own shape opts out with align-self below. */
+.material-editor-head { display: flex; align-items: stretch; gap: var(--space-2); flex-wrap: wrap; }
 .material-editor-head > select { flex: 1 1 8rem; min-width: 0; }
-.material-editor-label { font-size: var(--font-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; min-width: 5rem; }
+.material-editor-head .coord-field { flex: 0 0 auto; }
+.material-editor-head .coord-field .coord-input { width: 2.75rem; flex: 0 0 auto; }
+/* The number reads beside the select's own text, so it takes the same size the select's does. */
+.material-editor-head .coord-field .coord-input,
+.block-picker-row .coord-field .coord-input { font-size: var(--font-md); }
+.material-editor-label { font-size: var(--font-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
 .material-editor-body { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
 .material-editor-scalars { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 .material-editor-scalars .field { flex: 1 1 6rem; }
-.material-entry-scalar { flex: 0 0 5.5rem; }
 
-/* Block picker — the swatch says what the export will actually place. */
+/* Block picker — the swatch says what the export will actually place. The chip, the name and the (id, data)
+   pair that IS that name share one row; the pair's coord-fields hold their size so the name takes the slack,
+   and the row wraps rather than overflowing in the narrowest panel that hosts one. */
 .block-picker { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
-.block-picker-row { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
-.block-picker-row .field-input { flex: 1 1 auto; min-width: 0; }
-.block-chip { flex: 0 0 auto; width: 1.35rem; height: 1.35rem; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+.block-picker-row { display: flex; align-items: stretch; gap: var(--space-2); min-width: 0; flex-wrap: wrap; }
+.block-picker-row > select { flex: 1 1 5rem; min-width: 0; }
+.block-picker-row .coord-field { flex: 0 0 auto; }
+.block-picker-row .coord-field .coord-input { width: 2.75rem; flex: 0 0 auto; }
+/* The colour chip is a square reading of one block — it centres in the row rather than stretching into a bar. */
+.block-chip { flex: 0 0 auto; align-self: center; width: 1.35rem; height: 1.35rem; border-radius: var(--radius-sm); border: 1px solid var(--border); }
 .block-picker-colors { display: flex; flex-wrap: wrap; gap: 3px; }
 .block-swatch { width: 1.25rem; height: 1.25rem; padding: 0; border-radius: var(--radius-sm); border: 1px solid var(--border); cursor: pointer; }
 .block-swatch:hover { outline: 1px solid var(--text-muted); }
 .block-swatch--on { outline: 2px solid var(--accent); outline-offset: 1px; }
-/* The (id, data) pair under the list: a readout of what is set, and the way in for a block the list omits. */
-.block-picker-ids { gap: var(--space-3); }
-.block-picker-id { display: flex; align-items: center; gap: var(--space-1); font-size: var(--font-xs); color: var(--text-muted); }
-.block-picker-ids .block-picker-num { flex: 0 0 4.5rem; }
 
 /* Dressing phase (G161) — the two views of a recipe side by side: the patch from above and the same patch
    cut open. Side by side because they answer different questions and an author reads both at once. */

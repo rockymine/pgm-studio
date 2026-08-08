@@ -541,6 +541,19 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   style's kind back. The styles rail's filter section is titled **Filters** with a *Kind* field under it, the
   shape catalog's shape. (C38)
 
+- **A material's row is one row of one height (C39).** Three separate misalignments in the same strip. The
+  entry's name (`GRID LINE`, `LAYER 1`) shared the row with the controls, competing for its width and
+  pushing the kind select out of line with every other kind select in the stack — it heads the block now.
+  The extent arrived as a labelled `Field`, whose label stacked above its input and left the number sitting
+  lower than the select beside it — it is a `CoordField`, carrying its unit inside the box
+  (`COURSES 1` · `BLOCKS 2` · `CELLS 3`). And `BlockPicker` put the (id, data) pair on a second row below the
+  name, reading as a separate setting rather than as the same one said exactly — chip, name and pair now
+  share one row as `[Stone ▾] [ID 1] [DATA 0]`. All three rows (`.material-editor-head`,
+  `.block-picker-row`, `.lib-bind`) align **stretch** rather than centre: a select, a coord-field and an icon
+  button resolve to 31 / 29 / 26 px for the same type size, so the tallest sets the row and the rest take it
+  — no pinned number to break when the type scale moves. `.material-entry-scalar`, `.block-picker-ids`,
+  `.block-picker-id` and `.block-picker-num` retire. (C39)
+
 ## Backend / API (B)
 - **The wire is dot-separated on every machine, in every country (B48).** Query, route and form values bind
   through a converter that reads the ambient culture, so on a comma-decimal host `?leader=0.55` arrived as

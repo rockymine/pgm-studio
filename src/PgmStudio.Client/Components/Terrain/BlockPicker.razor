@@ -7,6 +7,9 @@
    set of legal blocks, so a variant it does not carry (andesite, 1:5) is typed rather than unreachable. *@
 
 <div class="block-picker">
+  @* Chip, name and pair on one row: the pair IS the block the name stands for, so a second row for it read
+     as a separate setting rather than as the same one said exactly. Each half is a CoordField, which carries
+     its own label inside the box — the only way two numbers fit beside a name without a heading each. *@
   <div class="block-picker-row">
     <span class="block-chip" style="background:@Hex" title="@Name"></span>
     <select class="field-input field-input--slim" value="@SelectedKey" @onchange="ChooseBlock">
@@ -24,6 +27,13 @@
         </optgroup>
       }
     </select>
+    <CoordField Prefix="id" Type="number" Value="@Id" OnChange="SetId"
+                min="0" step="1" title="The block id this material places" />
+    @if (ShowColors)
+    {
+      <CoordField Prefix="data" Type="number" Value="@Data" OnChange="SetData"
+                  min="0" max="15" step="1" title="The block's data value — its shade, where it has one" />
+    }
   </div>
 
   @if (ShowColors && Family is not null)
@@ -37,20 +47,4 @@
       }
     </div>
   }
-
-  <div class="block-picker-row block-picker-ids">
-    <label class="block-picker-id">
-      <span>id</span>
-      <input class="field-input field-input--slim block-picker-num" type="number" min="0" step="1"
-             value="@Id" @onchange="SetId" />
-    </label>
-    @if (ShowColors)
-    {
-      <label class="block-picker-id">
-        <span>data</span>
-        <input class="field-input field-input--slim block-picker-num" type="number" min="0" max="15" step="1"
-               value="@Data" @onchange="SetData" />
-      </label>
-    }
-  </div>
 </div>

@@ -10,8 +10,8 @@ namespace PgmStudio.Client.Components;
 /// click rather than a hunt through forty-eight dropdown lines; everywhere else it names a <em>different</em>
 /// block (andesite is stone, 1:5), so those are listed under their own names.
 /// <para>The offered list is a curated shortlist, not the set of legal blocks — a material may name any id — so
-/// the pair itself stays editable underneath, and a block the list does not carry is typed instead of being
-/// unreachable.</para>
+/// the pair itself stays editable beside the name, and a block the list does not carry is typed instead of
+/// being unreachable.</para>
 /// <see cref="ShowColors"/> is off where the shade is not the author's to set: a team tint takes it from the
 /// team that owns the cell.
 /// </summary>
