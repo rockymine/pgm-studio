@@ -637,6 +637,32 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) and `primitive-styles.md` follow. (C43)
 
 ## Backend / API (B)
+- **Water lanes: all four wirings detected, the newest one authored (B28).** A water lane is a gap that
+  becomes bridgeable part-way through a match, and the mechanism is PGM's void filter read *live*: a column
+  is void iff `(x, 0, z)` is air, evaluated at query time, so anything landing at `y=0` opens the whole
+  column from that instant. That single fact is the detector's discriminator — `WaterLaneDetector` accepts
+  only a region reaching the void layer, which is what separates a lane from a decorative pool or a
+  flag-status indicator no matter what either is called. Four wirings, ranked so one lane reports once:
+  the shared `<include id="water-lanes"/>` plus its matching region, a `<fill material="water">` on a
+  trigger, a `show="false"` destroyable swapped by a water mode (the phantom B24/B31 made legible), and a
+  lane-named region nothing drives — which opens nothing and is reported as its own form rather than
+  miscounted as a route. Over 563 corpus maps it finds 19 lanes across 15, including two nobody predicted:
+  cannonquad_ii is **blitz** and hearts_of_atlantis is **DTCM**, because a lane is a property of the void
+  filter and belongs to no gamemode. Authoring is the include form, which needs no fragment body since the
+  server resolves it: a `water-lane` zone kind in the plan compiles to `WaterLaneIntent`, fans by symmetry,
+  and emits one `y=0` cuboid union under the agreed id with the include paired to it at export. It is
+  deliberately kept **out** of the buildable region — that is what leaves it closed at kickoff — and out of
+  every derivation describing the starting board, since a lane is not a route until it opens.
+  `--water-lanes` sweeps a corpus; `WL1` lints a lane drawn over terrain. (B28,
+  `docs/contracts/water-lanes.md`)
+- **`<include>` is read, recorded, and reported as unresolved rather than ignored (B29).** The element was
+  skipped outright, so 93% of corpus `ctw/` maps were analysed as if rules they pull in did not exist.
+  `MapXml.Includes` now carries every id a map references, `MapValidity` warns once per id — a warning and
+  never an error, because an unresolved include is a map PGM loads perfectly and the studio reads
+  incompletely — and `--includes` dumps the per-map ids plus a corpus histogram, so the size of the unread
+  surface is visible. The bodies stay unread: PGM resolves a fragment from the server's includes directory,
+  which ships with neither the map nor the corpus. One id needs no body — `water-lanes`, whose presence
+  beside its region is the whole signal (B28). (B29)
 - **The wire is dot-separated on every machine, in every country (B48).** Query, route and form values bind
   through a converter that reads the ambient culture, so on a comma-decimal host `?leader=0.55` arrived as
   fifty-five — a valid number, a hundredfold out, silent, and correct again on the next developer's machine.

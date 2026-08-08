@@ -224,6 +224,9 @@ public partial class PlanTool
     // The kind armed for the box tool (the last one drawn), mirrored into the bridge.
     private string boxKind = "hub";
 
+    // The kind armed for the zone tool — build (open from the first tick) or water-lane (opens mid-match).
+    private string zoneKind = "build";
+
     private string BoxKindColor => BoxKinds.FirstOrDefault(k => k.Id == boxKind)?.Color ?? "#9aa7b4";
 
     private string OffsetLabel => sel?.At is { Length: 2 } a ? $"{a[0]}, {a[1]}" : "";
@@ -326,11 +329,13 @@ public partial class PlanTool
         _ => $"{role.Label} piece",
     };
 
-    // The build area leads: it is the thing the buffer is drawn in and around, and it is the one of the two
-    // an author reaches for first.
+    // The build area leads: it is the thing the buffer is drawn in and around, and it is the one an author
+    // reaches for first. The water lane sits next to it because it is the same drawing — a rect over the void
+    // — differing only in when it opens.
     private static DockItem[] TechnicalItems =>
     [
         new("zone", "Build zone", SwatchClass: "canvas-dock-swatch--build"),
+        new("water-lane", "Water lane", SwatchClass: "canvas-dock-swatch--water-lane"),
         .. TechnicalRoles.Select(r => new DockItem(r.Id, r.Label, SwatchClass: $"canvas-dock-swatch--{r.Id}")),
     ];
 
@@ -356,9 +361,15 @@ public partial class PlanTool
         [.. BoxKinds.Select(k => new DockItem(k.Id, $"{k.Label} box",
                                               Swatch: k.Color, SwatchClass: "canvas-dock-swatch--box"))];
 
-    /// <summary>Whether the technical family's option is the armed tool. The build area is its own tool;
-    /// the other two are piece roles, so the test differs by which one is in the slot.</summary>
-    private bool TechnicalArmed => technicalActive == "zone" ? tool == "zone" : tool == "piece" && role == technicalActive;
+    /// <summary>Whether the technical family's option is the armed tool. The two zone kinds share the zone
+    /// tool and differ by the armed kind; the rest are piece roles, so the test differs by which is in the
+    /// slot.</summary>
+    private bool TechnicalArmed => technicalActive switch
+    {
+        "zone" => tool == "zone" && zoneKind == "build",
+        "water-lane" => tool == "zone" && zoneKind == "water-lane",
+        _ => tool == "piece" && role == technicalActive,
+    };
 
     private async Task PickTerrain(string key)
     {
@@ -371,7 +382,17 @@ public partial class PlanTool
     {
         technicalActive = key;
         openFlyout = null;
-        if (key == "zone") await PickTool("zone"); else await PickRole(key);
+        if (key is "zone" or "water-lane") await PickZoneKind(key == "water-lane" ? "water-lane" : "build");
+        else await PickRole(key);
+    }
+
+    /// <summary>Arm the zone tool for one kind. Both draw the same rect, so the kind is armed alongside the
+    /// tool rather than being a tool of its own.</summary>
+    private async Task PickZoneKind(string kind)
+    {
+        zoneKind = kind;
+        if (handle is not null) await handle.InvokeVoidAsync("setZoneKind", kind);
+        await PickTool("zone");
     }
 
     private async Task PickMarker(string key)
@@ -1046,6 +1067,7 @@ public partial class PlanTool
         [JsonPropertyName("at")] public double[]? At { get; set; }
         [JsonPropertyName("facing")] public string Facing { get; set; } = "";
         [JsonPropertyName("boxKind")] public string BoxKind { get; set; } = "";
+        [JsonPropertyName("zoneKind")] public string ZoneKind { get; set; } = "";
         [JsonPropertyName("members")] public List<string>? Members { get; set; }
         [JsonPropertyName("membersNamed")] public bool MembersNamed { get; set; }
     }

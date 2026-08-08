@@ -46,6 +46,7 @@ public static class SymmetryExpander
             Spawns = FillSpawns(intent.Spawns, teams, sym, order),
             Observer = intent.Observer,
             Build = OrbitBuild(intent.Build, sym, order),
+            WaterLanes = OrbitWaterLanes(intent.WaterLanes, sym, order),
             Wools = FillWools(intent.Wools, teams, sym, order),
             Meta = intent.Meta,
             Symmetry = intent.Symmetry,
@@ -81,6 +82,14 @@ public static class SymmetryExpander
     {
         if (build is not { } b || b.Areas.Count == 0) return build;
         return new BuildIntent { MaxHeight = b.MaxHeight, Areas = OrbitRects(b.Areas, sym, order), Holes = OrbitRects(b.Holes, sym, order) };
+    }
+
+    // Lanes orbit exactly as build areas do — same rects, same dedup — so a lane drawn on one side opens on
+    // every side at once. A lane straddling the axis maps onto itself and collapses to one.
+    private static WaterLaneIntent? OrbitWaterLanes(WaterLaneIntent? lanes, SymmetryIntent sym, int order)
+    {
+        if (lanes is not { Rects.Count: > 0 } l) return lanes;
+        return new WaterLaneIntent { Rects = OrbitRects(l.Rects, sym, order) };
     }
 
     private static List<Rect> OrbitRects(List<Rect> rects, SymmetryIntent sym, int order)

@@ -228,6 +228,32 @@ public sealed class BlockDropRule
     public List<BlockDropItem> Items = [];
 }
 
+/// <summary>
+/// A <c>&lt;fill&gt;</c> action — writing <see cref="Material"/> over every block of <see cref="RegionId"/>
+/// when the action fires. Read-only: the studio parses the region/material pair so an imported map's scripted
+/// world changes are visible, but authors nothing through it and does not round-trip the enclosing
+/// <c>&lt;actions&gt;</c> tree (the trigger, the filter, the event map).
+/// <para>What makes it worth reading at all is that a fill over a <c>y=0</c> region is the whole of a
+/// second-generation water lane: the columns stop being void the instant the fill lands, so a gap that was
+/// unbridgeable becomes buildable (see <c>docs/contracts/water-lanes.md</c>).</para>
+/// </summary>
+public sealed class FillAction
+{
+    public string Id = "";
+    public string RegionId = "";
+    public string Material = "";
+
+    /// <summary>The fill's own <c>filter</c> — a guard on which blocks it may overwrite (<c>only-air</c> keeps
+    /// a fill off terrain). It says nothing about when the fill runs.</summary>
+    public string FilterId = "";
+
+    /// <summary>When the fill runs, as the map states it: the <c>filter</c> of the <c>&lt;trigger&gt;</c> that
+    /// fires it, or the <c>duration</c> of an inline <c>&lt;after&gt;</c>. Empty when the trigger states the
+    /// condition in a form this parser does not read — an unknown time is left blank rather than filled in
+    /// with the block guard, which is a different question.</summary>
+    public string Trigger = "";
+}
+
 /// <summary>A <c>&lt;kill-reward&gt;</c> — items granted to a player for a kill.</summary>
 public sealed class KillReward
 {
@@ -275,9 +301,24 @@ public sealed class MapXml
     public Dictionary<string, Region> Regions = new();
     public List<ApplyRule> ApplyRules = [];
 
+    /// <summary>
+    /// The <c>&lt;include id="…"/&gt;</c> ids the map pulls in, in document order. Both directions use this
+    /// list: a parsed map records what it references, and a generated map states what it wants spliced (see
+    /// <c>CtwStandards</c>).
+    /// <para>An id is all we hold. PGM resolves a fragment out of <c>config.getIncludesDirectory()</c> — a
+    /// server directory that ships with neither the map nor the corpus — so the body is unavailable and the
+    /// rules it defines never enter the document analysed here. <see cref="MapValidity"/> warns for exactly
+    /// that reason; <c>docs/contracts/water-lanes.md</c> §3 covers the one id whose meaning is known without
+    /// the body.</para>
+    /// </summary>
+    public List<string> Includes = [];
+
+    /// <summary>The <c>&lt;fill&gt;</c> actions the map scripts, flattened out of <c>&lt;actions&gt;</c>.
+    /// Read-only (see <see cref="FillAction"/>) — parsed for analysis, never emitted.</summary>
+    public List<FillAction> Fills = [];
+
     // Standard CTW boilerplate (added to generated maps at export; see CtwStandards). Not round-tripped
     // from corpus maps, so these stay empty for parsed maps.
-    public List<string> Includes = [];        // <include id="…"/> — shared server-defined snippets
     public List<string> ItemKeep = [];        // materials kept on death
     public List<string> ItemRemove = [];      // materials removed on death (team-coloured armor)
     public List<string> ToolRepair = [];      // tool/weapon materials auto-repaired

@@ -165,7 +165,7 @@ public sealed class ContactGraph
     private static HashSet<string> ComputeFrontline(PlanModel plan, int cell, IReadOnlyList<DerivedPiece> pieces)
     {
         var front = new HashSet<string>();
-        foreach (var z in plan.Zones)
+        foreach (var z in plan.BuildZones)
         {
             var zr = ToBlock(z.Rect, cell);
             foreach (var p in pieces)
@@ -309,13 +309,14 @@ public sealed class ContactGraph
 
     private static List<BuildRegion> ComputeBuildRegions(PlanModel plan, int cell)
     {
-        var rects = plan.Zones.Select(z => ToBlock(z.Rect, cell)).ToList();
+        var zones = plan.BuildZones.ToList();
+        var rects = zones.Select(z => ToBlock(z.Rect, cell)).ToList();
         var regions = new List<BuildRegion>();
         foreach (var group in MergeGroups(rects))
         {
-            var ids = group.Select(i => plan.Zones[i].Id).ToList();
+            var ids = group.Select(i => zones[i].Id).ToList();
             var groupRects = group.Select(i => rects[i]).ToList();
-            var holes = group.SelectMany(i => plan.Zones[i].Holes.Select(h => ToBlock(h, cell))).ToList();
+            var holes = group.SelectMany(i => zones[i].Holes.Select(h => ToBlock(h, cell))).ToList();
             regions.Add(new BuildRegion(ids, groupRects, holes));
         }
         return regions;
@@ -417,7 +418,7 @@ public sealed class ContactGraph
     private static List<FrontlineEdge> ComputeFrontlineEdges(PlanModel plan, int cell, IReadOnlyList<DerivedPiece> pieces)
     {
         var list = new List<FrontlineEdge>();
-        foreach (var z in plan.Zones)
+        foreach (var z in plan.BuildZones)
         {
             var zr = ToBlock(z.Rect, cell);
             foreach (var p in pieces)

@@ -125,7 +125,64 @@ public sealed partial class MapParser
         data.Renewables = ParseRenewables();
         data.BlockDropRules = ParseBlockDropRules();
         data.MaxBuildHeight = ParseMaxBuildHeight();
+        data.Includes = ParseIncludes();
+        data.Fills = ParseFills();
         return data;
+    }
+
+    // <include id="…"/> — the id only. The fragment's body lives in the server's includes directory, so
+    // recording the reference is the most that can be known here; what the map means by it stays unread.
+    // PGM also splices a `global` include into every map that no map.xml mentions, and that one is invisible
+    // from the document too.
+    private List<string> ParseIncludes() =>
+        [.. _root.Descendants("include")
+              .Select(e => Xml.Get(e, "id"))
+              .Where(id => id.Length > 0)];
+
+    // <fill> leaves anywhere under <actions>, which nests them under <action> or lists them directly.
+    private List<FillAction> ParseFills()
+    {
+        var actionBlocks = _root.Elements("actions").ToList();
+        // <trigger action="id" filter="…"/> fires an action declared elsewhere, so the condition has to be
+        // carried back to the fills inside that action rather than read from where they sit.
+        var triggerByAction = actionBlocks
+            .SelectMany(a => a.Descendants("trigger"))
+            .Where(t => Xml.Get(t, "action").Length > 0)
+            .GroupBy(t => Xml.Get(t, "action"))
+            .ToDictionary(g => g.Key, g => TriggerCondition(g.First()));
+
+        return [.. actionBlocks
+            .SelectMany(a => a.Descendants("fill"))
+            .Select(f => new FillAction
+            {
+                Id = Xml.Get(f, "id"),
+                RegionId = Xml.Get(f, "region"),
+                Material = Xml.Get(f, "material"),
+                FilterId = Xml.Get(f, "filter"),
+                Trigger = FillTrigger(f, triggerByAction),
+            })];
+    }
+
+    // The condition a fill runs under, looked up from the outside in: the trigger that encloses it, else the
+    // trigger that names the action it sits in. Empty when neither states one in a form read here.
+    private static string FillTrigger(XElement fill, IReadOnlyDictionary<string, string> triggerByAction)
+    {
+        foreach (var ancestor in fill.Ancestors())
+        {
+            if (ancestor.Name.LocalName == "trigger") return TriggerCondition(ancestor);
+            if (ancestor.Name.LocalName == "action" && Xml.Get(ancestor, "id") is { Length: > 0 } actionId)
+                return triggerByAction.GetValueOrDefault(actionId, "");
+        }
+        return "";
+    }
+
+    // A trigger states its condition either as a filter reference or as an inline <after duration="…">
+    // countdown, and the duration is the more useful of the two when both are present.
+    private static string TriggerCondition(XElement trigger)
+    {
+        if (trigger.Descendants("after").FirstOrDefault() is { } after
+            && Xml.Get(after, "duration") is { Length: > 0 } duration) return duration;
+        return Xml.Get(trigger, "filter");
     }
 
     // ── variant / constant preprocessing ────────────────────────────────────────────

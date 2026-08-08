@@ -21,6 +21,7 @@ public static class MapXmlComposer
         if (isIntent)
         {
             CtwStandards.Apply(mx, surfaceBlockIds);
+            WaterLaneGenerator.EnsureInclude(mx);
             ResourceRenewables.Apply(mx, resources);
             if (renewableCubes is { Count: > 0 }) StructureRenewables.Apply(mx, renewableCubes);
 

@@ -22,7 +22,14 @@ public static class MapValidity
         public IEnumerable<Issue> Errors => Issues.Where(i => i.Severity == "error");
     }
 
-    public static Result Check(Dict doc)
+    public static Result Check(Dict doc) => Check(doc, null);
+
+    /// <summary>
+    /// Check a document, optionally alongside the <c>&lt;include&gt;</c> ids the map references. The includes
+    /// are passed in rather than read from <paramref name="doc"/> because the document tree carries no key for
+    /// them — they live on the parsed <c>MapXml</c>.
+    /// </summary>
+    public static Result Check(Dict doc, IReadOnlyList<string>? includes)
     {
         var issues = new List<Issue>();
         foreach (var wool in Wools(doc))
@@ -33,8 +40,24 @@ public static class MapValidity
                 issues.Add(new Issue("wool_monument", color, "error",
                     $"Wool '{color}' has no monument — PGM requires a monument per wool (the block where a capturing team places the wool)."));
         }
+        issues.AddRange(UnresolvedIncludes(includes));
         return new Result(issues.All(i => i.Severity != "error"), issues);
     }
+
+    /// <summary>
+    /// One warning per <c>&lt;include&gt;</c> the map references, because none of them can be resolved: PGM
+    /// reads a fragment out of the server's includes directory, which ships with neither the map nor the
+    /// corpus. Whatever rules the fragment defines are therefore absent from every analysis run over this
+    /// document.
+    /// <para>A warning, never an error, and the category difference matters: an unresolved include is a map
+    /// that PGM loads perfectly and this studio reads incompletely. Saying so is the honest report; blocking
+    /// the export over it would be the studio refusing a map that works.</para>
+    /// </summary>
+    private static IEnumerable<Issue> UnresolvedIncludes(IReadOnlyList<string>? includes) =>
+        (includes ?? []).Distinct(StringComparer.Ordinal).Select(id => new Issue(
+            "unresolved_include", id, "warning",
+            $"Include '{id}' is referenced but not resolved — its body lives in the server's includes directory, "
+            + "so any rules it defines are missing from this map as read here."));
 
     // Capturable iff at least one monument resolves to a block — an inline location or a
     // monument_region reference (the two forms PGM's required <monument> accepts).

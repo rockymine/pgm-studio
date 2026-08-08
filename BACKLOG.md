@@ -364,7 +364,8 @@ its rule ids (`OB*`/`DT*`/`DC*`) are cited below. Filed here (not `N`/`G`) becau
 pipeline — parser, writer, schema, intent, stamper — with the plan-editor placement as the last mile.
 **Both objectives now author end to end** (`FEATURES.md`): parse/write/codec, the schema, the world stamps,
 and plan → intent → world → `map.xml` for destroyables (`B24`) and cores (`B25`). What is left below is the
-import diagnostic (`B24e`), detection (`B26`), and the work the phantom classifier unblocked (`B31`, `B28`).
+import diagnostic (`B24e`), detection (`B26`), and the island-floor work the phantom classifier unblocked
+(`B31`). The other thing it unblocked — water lanes — has shipped (`FEATURES.md`, `docs/contracts/water-lanes.md`).
 
 - [ ] **B24e — Flag an *imported* map whose objective region holds none of its material (a warning, not a
   gate).** Scoped down: the authored half of this is **already covered by tests** — `DestroyableWorldTests`
@@ -395,49 +396,18 @@ import diagnostic (`B24e`), detection (`B26`), and the work the phantom classifi
   which is the failure mode in the other direction). The plumbing is the real work, not the rule:
   `LayerExtractors` (`PgmStudio.Minecraft`) runs with no map context today, so the phantom regions have to
   reach it. Pairs with `G9`/`G12`. (OB16, `destroyables-and-cores.md` §2)
-- [ ] **B29 — `<include>` is silently ignored, and 93% of the corpus uses it.** `MapParser` preprocesses
-  `<if>`/`<unless>` (`ResolveVariants`) and `${constants}` (`ResolveConstants`) but has **no `<include>`
-  handling at all** — the element is skipped and its content never enters the document, so every rule the
-  fragment defines is invisible to us. **334 of our 358 `ctw/` maps (93%) use it**; `gapple-kill-reward` alone
-  appears 815 times across both corpora, and PGM splices a **`global` include into every map** at the root
-  (`MapIncludeProcessorImpl.getGlobalInclude` → `MapFilePreprocessor.preprocessChildren`). PGM resolves an
-  include by id from **`config.getIncludesDirectory()` — a server directory, not the map folder** — so the
-  bodies **are not in the corpus** and cannot be recovered from it: this task is blocked on obtaining the
-  include library (the source PGM server config), which is a fetch, not a code change. Until then the honest
-  move is to **flag** a map whose `<include>` we cannot resolve rather than parse it as complete — the same
-  reasoning as `B22`. Once resolvable, splice at preprocess time (matching `MapFilePreprocessor`) so every
-  downstream parser sees one flat document. **Reading ≠ emitting** — we already emit includes
-  (`XmlWriter.cs:112`, `CtwStandards.cs:104`), so this is about *analysing imported maps* only and **gates
-  nothing in `B28`**. First diagnostic: dump the distinct include ids per map, so the size of the unknown is at
-  least visible.
-- [ ] **B28 — Water lanes (CTW): detect all three forms, author the newest.** A **route that opens mid-match** —
-  a gap between islands becomes bridgeable, adding a late-game way to reach the wool. A CTW feature, filed
-  here only because its legacy form *is* a destroyable — no longer blocked, since destroyables and their
-  phantom classification now parse. **The mechanic is `VoidFilter`, and it reads
-  y=0 live:** a column is void iff `(x,0,z)` is air and wasn't a block-36 marker, and `getBlockAt` is evaluated
-  **at query time, not load** — so filling y=0 with water at 15m makes the whole column non-void and
-  `deny(void)` stops applying. Players then bridge a route that did not exist. (Same y=0 rule explains the
-  block-36 marker and the stained-glass build floor — see `B31`.) **Three generations, detect all:** *Gen 1* =
-  a fake destroyable with `materials="air"` at y=0 swapped to water by a mode (vesuvius 20m, newgen_classic 15m,
-  dominion 10m, piorun 5m — ownership vestigial, split per-team only because `owner` is required); *Gen 2* =
-  `<action><fill region="…" material="water" filter="only-air"/></action>` on a time `<trigger>`, no destroyable
-  and no mode (`lupa`, `tulip_mania_ii` — which names its region `water-lane-fill-regions` —
-  `icecream_sandwiched_ii`, `malupa`); *Gen 3* = **`<include id="water-lanes"/>` + a `<union id="water-lanes">`
-  of y=0 cuboids and nothing else** — the behaviour factored into a shared fragment, keyed by the matching
-  region id (`bridgid_ii`, `ad_astra`, `rushers_vs_defenders`, `araxa`, `turf_wars`, `royal_garden_ctw`; **5 of
-  the 6 contain no fill, destroyable or mode at all, and none applies anything to its lane regions** — the
-  include supplies 100% of the behaviour, keyed by the matching region id). **Author Gen 3, and it is nearly
-  free.** We do not need the include's body to emit it — the server resolves it at load. `MapXml.Includes` +
-  `XmlWriter.cs:112` already exist and `CtwStandards.cs:104` already ships `gapple-kill-reward` on every
-  generated map via `m.Includes.Insert(0, …)`; a water lane is the same move — emit `<union id="water-lanes">`
-  and add `"water-lanes"` to `Includes`. **One string and a region**: no `<actions>`/`<fill>`/`<trigger>` parser
-  (that is Gen-2-only, and we have none of it today), no fake destroyable. Detection is likewise two facts —
-  `<include id="water-lanes"/>` + the matching region — so **`B29` gates neither authoring nor detection here**.
-  The authored primitive is **a set of y=0 rects** (a union of cuboids spanning y=0..1), not a path — straights
-  and corners are both just rects; "bridgeable" is the authors' own word. Note the water bucket is **unrelated**
-  (a universal movement tool for cancelling fall damage: 163 of 358 `ctw/` maps carry one, 157 of them with no
-  lanes). Gen 1 detection is already unblocked — a fake lane is a `BlockSwap` phantom, which
-  `Destroyable.Phantom` now classifies. (`destroyables-and-cores.md` §14)
+- [ ] **B29 — Obtain the include library, then splice fragments at preprocess time.** Reading includes has
+  landed as far as it can without their bodies (`FEATURES.md`): every referenced id is recorded and every one
+  is reported unresolved. What remains needs the fragments themselves, and **that is a fetch, not a code
+  change** — PGM resolves an include from `config.getIncludesDirectory()`, a server directory that ships with
+  neither the map nor the corpus, and it additionally splices a `global` include into every map that no
+  `map.xml` mentions (`MapIncludeProcessorImpl.getGlobalInclude`). Blocked on obtaining that library from the
+  source server config. Once it exists: splice at preprocess time next to `ResolveVariants`/`ResolveConstants`
+  (matching `MapFilePreprocessor.preprocessChildren`) so every downstream parser sees one flat document, and
+  drop the unresolved-include warning to the ids that genuinely fail to resolve. Corpus scale, from
+  `--includes`: `gapple-kill-reward` alone appears 815 times across both corpora. Water lanes do **not** wait
+  on this — the `water-lanes` fragment's presence is its own signal (`docs/contracts/water-lanes.md` §5).
+
 - [ ] **B26 — Detect destroyables + cores from a world scan (later).** The `MonumentSuggester` move applied to
   the **easier** problem: scan the world, propose the objectives, let the author confirm which is a destroyable
   and which is a core. Wool monuments are a design free-for-all (96.6% precision / 57.8% recall, recall capped

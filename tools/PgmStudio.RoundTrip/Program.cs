@@ -1,5 +1,7 @@
 using System.Globalization;
 using PgmStudio.Pgm;
+using PgmStudio.Domain;
+using PgmStudio.Pgm.Detect;
 using JP = System.Text.Json.Serialization.JsonPropertyNameAttribute;
 
 // Numbers are dot-separated whatever the host's regional settings say — the same pin the API and the client
@@ -170,6 +172,16 @@ var afIdx = Array.IndexOf(args, "--authoring-fixture");
 if (afIdx >= 0)
     return RunAuthoringFixture(args, defaultRoots);
 
+// --includes: the distinct <include> ids per map plus a corpus histogram. The bodies live in the server's
+// includes directory and ship with neither the map nor the corpus, so this measures the size of what the
+// studio cannot read rather than resolving any of it.
+if (args.Contains("--includes"))
+    return RunIncludes(defaultRoots, args, verbose);
+
+// --water-lanes: run WaterLaneDetector over the corpus and report every lane by form.
+if (args.Contains("--water-lanes"))
+    return RunWaterLanes(defaultRoots, args, verbose);
+
 // --dump <map.xml>: print canonical ToDict(parse) as indented JSON for diffing against Python.
 var dumpIdx = Array.IndexOf(args, "--dump");
 if (dumpIdx >= 0 && dumpIdx + 1 < args.Length)
@@ -211,6 +223,92 @@ if (failures.Count > 0)
     if (!verbose && failed > 20) Console.WriteLine($"  ... and {failed - 20} more (use --verbose)");
 }
 return failed == 0 ? 0 : 1;
+
+// Every <include> id the corpus references, per map and as a histogram. The studio holds the id and nothing
+// else — PGM resolves a fragment out of its own includes directory, which no map folder carries — so this
+// measures the unread surface rather than closing it.
+static int RunIncludes(string[] corpusRoots, string[] args, bool verbose)
+{
+    var maps = CorpusMaps(corpusRoots);
+    var histogram = new Dictionary<string, int>(StringComparer.Ordinal);
+    int withIncludes = 0, unreadable = 0;
+
+    foreach (var (slug, xmlPath) in maps)
+    {
+        MapXml map;
+        try { map = MapParser.Parse(xmlPath); }
+        catch (UnsupportedMapException) { unreadable++; continue; }
+
+        var ids = map.Includes.Distinct(StringComparer.Ordinal).OrderBy(i => i, StringComparer.Ordinal).ToList();
+        if (ids.Count == 0) continue;
+        withIncludes++;
+        foreach (var id in map.Includes) histogram[id] = histogram.GetValueOrDefault(id) + 1;
+        if (verbose) Console.WriteLine($"  {slug,-34} {string.Join(", ", ids)}");
+    }
+
+    Console.WriteLine();
+    Console.WriteLine($"includes: {withIncludes} of {maps.Count} maps reference one "
+                      + $"({(maps.Count == 0 ? 0 : 100.0 * withIncludes / maps.Count):F0}%); "
+                      + $"{histogram.Count} distinct id(s); {unreadable} map(s) outside the supported range");
+    foreach (var (id, count) in histogram.OrderByDescending(kv => kv.Value).ThenBy(kv => kv.Key, StringComparer.Ordinal))
+        Console.WriteLine($"  {count,5}  {id}");
+    Console.WriteLine();
+    Console.WriteLine("Every body above is unresolved: fragments live in the server's includes directory, so");
+    Console.WriteLine("whatever rules they define are absent from the documents this studio analyses.");
+    return 0;
+}
+
+// Every water lane the corpus authors, by form. A lane is a route that opens mid-match, so the report is
+// grouped by the wiring that opens it — the newest form is one include plus one region.
+static int RunWaterLanes(string[] corpusRoots, string[] args, bool verbose)
+{
+    var maps = CorpusMaps(corpusRoots);
+    var byForm = new Dictionary<WaterLaneForm, List<string>>();
+    int lanesTotal = 0, mapsWithLanes = 0, unreadable = 0;
+
+    foreach (var (slug, xmlPath) in maps)
+    {
+        MapXml map;
+        try { map = MapParser.Parse(xmlPath); }
+        catch (UnsupportedMapException) { unreadable++; continue; }
+
+        var lanes = WaterLaneDetector.Detect(map);
+        if (lanes.Count == 0) continue;
+        mapsWithLanes++;
+        lanesTotal += lanes.Count;
+
+        Console.WriteLine($"  {slug}");
+        foreach (var lane in lanes)
+        {
+            if (!byForm.TryGetValue(lane.Form, out var slugs)) byForm[lane.Form] = slugs = [];
+            if (!slugs.Contains(slug)) slugs.Add(slug);
+
+            var when = lane.Trigger.Length > 0 ? lane.Trigger : "(fragment)";
+            Console.WriteLine($"      {lane.Form,-8} region={lane.RegionId,-24} opens={when,-12} "
+                              + $"rects={lane.Footprint.Count} via {lane.Evidence}");
+            if (verbose)
+                foreach (var rect in lane.Footprint)
+                    Console.WriteLine($"          [{rect.MinX},{rect.MinZ}] .. [{rect.MaxX},{rect.MaxZ}]");
+        }
+    }
+
+    Console.WriteLine();
+    Console.WriteLine($"water lanes: {lanesTotal} lane(s) across {mapsWithLanes} of {maps.Count} maps "
+                      + $"({unreadable} outside the supported range)");
+    foreach (var form in Enum.GetValues<WaterLaneForm>())
+        Console.WriteLine($"  {form,-8} {byForm.GetValueOrDefault(form)?.Count ?? 0,3}  "
+                          + string.Join(" ", byForm.GetValueOrDefault(form) ?? []));
+    return 0;
+}
+
+// Every map.xml under the corpus roots, slug-keyed. Roots hold one directory per map.
+static List<(string Slug, string XmlPath)> CorpusMaps(string[] corpusRoots) =>
+    [.. corpusRoots
+        .Where(Directory.Exists)
+        .SelectMany(Directory.GetDirectories)
+        .Select(d => (Slug: Path.GetFileName(d)!, XmlPath: Path.Combine(d, "map.xml")))
+        .Where(m => File.Exists(m.XmlPath))
+        .OrderBy(m => m.Slug, StringComparer.Ordinal)];
 
 static int RunCategorizeParity(string pyfreshDir, string pyfacetsDir, bool verbose)
 {

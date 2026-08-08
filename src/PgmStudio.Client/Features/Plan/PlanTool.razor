@@ -409,12 +409,18 @@
               }
               else if (sel.Kind == "zone")
               {
-                <DetailHeader Icon="square-dashed" Label="Build area" />
+                var lane = sel.ZoneKind == "water-lane";
+                <DetailHeader Icon="@(lane ? "droplet" : "square-dashed")" Label="@(lane ? "Water lane" : "Build area")" />
                 <Field Label="Id">
                   <input class="field-input" value="@sel.Id" @onchange="OnZoneId" />
                 </Field>
+                <Field Label="Opens">
+                  <div class="plan-readout">
+                    @(lane ? "mid-match, when the shared water-lanes fragment floods it" : "from the first tick")
+                  </div>
+                </Field>
                 <Button Full Variant="danger" OnClick="DeleteSelected">
-                  <i data-lucide="trash-2"></i> Delete build area
+                  <i data-lucide="trash-2"></i> @(lane ? "Delete water lane" : "Delete build area")
                 </Button>
               }
               else if (sel.Kind == "box")

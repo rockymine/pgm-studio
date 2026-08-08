@@ -33,11 +33,11 @@ public static class PlanBoardSvg
             if (PlanRoles.IsAnnotation(p.Role)) continue;
             for (var k = 0; k < order; k++) pieces.Add((Fan(p.Rect, axes, k), p.Id, p.Role, k));
         }
-        var zones = new List<CellRect>();
+        var zones = new List<(CellRect Rect, bool Lane)>();
         foreach (var z in plan.Zones)
-            for (var k = 0; k < order; k++) zones.Add(Fan(z.Rect, axes, k));
+            for (var k = 0; k < order; k++) zones.Add((Fan(z.Rect, axes, k), z.IsWaterLane));
 
-        var rects = pieces.Select(f => f.Rect).Concat(zones).ToList();
+        var rects = pieces.Select(f => f.Rect).Concat(zones.Select(z => z.Rect)).ToList();
         if (rects.Count == 0)
             return $"<svg viewBox='0 0 {2 * pad} {2 * pad}' width='{2 * pad}' height='{2 * pad}' xmlns='http://www.w3.org/2000/svg'></svg>";
 
@@ -52,9 +52,15 @@ public static class PlanBoardSvg
         var svg = new StringBuilder();
         svg.Append($"<svg viewBox='0 0 {vw} {vh}' width='{vw}' height='{vh}' xmlns='http://www.w3.org/2000/svg' role='img'>");
 
-        foreach (var b in zones)
+        // A water lane is drawn deeper and denser than a build zone: both are gaps players cross, and the
+        // only thing separating them on a still image is which one is open yet.
+        foreach (var (b, lane) in zones)
+        {
+            var col = lane ? "#2563eb" : "#38bdf8";
             svg.Append($"<rect x='{N(X(b.X))}' y='{N(Z(b.Z))}' width='{N(b.Width * scale)}' height='{N(b.Height * scale)}' "
-                + "fill='#38bdf8' fill-opacity='0.18' stroke='#38bdf8' stroke-opacity='0.5' stroke-width='1' stroke-dasharray='3 2'/>");
+                + $"fill='{col}' fill-opacity='{(lane ? "0.32" : "0.18")}' stroke='{col}' stroke-opacity='0.5' "
+                + $"stroke-width='1' stroke-dasharray='{(lane ? "1 2" : "3 2")}'/>");
+        }
 
         foreach (var (r, id, role, k) in pieces)
         {

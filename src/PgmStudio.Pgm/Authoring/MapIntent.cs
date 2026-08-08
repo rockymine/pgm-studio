@@ -28,6 +28,10 @@ public sealed class MapIntent
     /// areas/bridges where building is allowed. The generator unions them and wires the void boundary.</summary>
     public BuildIntent? Build { get; init; }
 
+    /// <summary>The water lanes — the gaps that open mid-match (docs/contracts/water-lanes.md). Null/empty
+    /// leaves them untouched, which is every map that has none.</summary>
+    public WaterLaneIntent? WaterLanes { get; init; }
+
     /// <summary>The objective wools. One per defending team on a symmetric map; each is captured by the
     /// other N−1 teams (one monument each). Null/empty leaves objectives untouched.</summary>
     public List<WoolIntent>? Wools { get; init; }
@@ -155,6 +159,21 @@ public sealed class BuildIntent
     /// <summary>No-build cutouts subtracted from the area union (emitted as a <c>complement</c>). Empty →
     /// no holes (plain union). Orbited alongside <see cref="Areas"/> on symmetric maps.</summary>
     public List<Rect> Holes { get; init; } = new();
+}
+
+/// <summary>
+/// The water lanes (docs/contracts/water-lanes.md): gaps that become bridgeable part-way through the match,
+/// adding a late route to the wool. <see cref="Rects"/> are the footprints, and they carry no Y because a lane
+/// is always the single block layer at <c>y=0</c> — the one PGM's void filter reads.
+/// <para>Deliberately separate from <see cref="BuildIntent.Areas"/>, which it is the opposite of: a build area
+/// is open from the first tick, and a lane is closed until it opens. The generator emits the region and the
+/// shared include, and nothing else — the fragment the server resolves supplies the whole mechanism, so
+/// authoring one is naming a place under an agreed id.</para>
+/// </summary>
+public sealed class WaterLaneIntent
+{
+    /// <summary>The lane footprints in map coordinates, orbited on symmetric maps. Empty → no lanes.</summary>
+    public List<Rect> Rects { get; init; } = new();
 }
 
 /// <summary>A team to generate. <see cref="Id"/> is the stable identifier rules/spawns reference and the

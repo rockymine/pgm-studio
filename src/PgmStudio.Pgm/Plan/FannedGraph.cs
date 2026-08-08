@@ -36,7 +36,7 @@ public sealed class FannedGraph
                 if (seen.Add(key)) nodes.Add(new Node(k, p.Id, d.FanRect(p.Rect, k)));
             }
 
-        var zones = d.Plan.Zones
+        var zones = d.Plan.BuildZones
             .SelectMany(z => Enumerable.Range(0, d.Order).Select(k => d.FanRect(ContactGraph.ToBlock(z.Rect, d.Cell), k)))
             .ToList();
 

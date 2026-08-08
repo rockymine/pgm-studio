@@ -16,7 +16,7 @@ import { layerStack, INERT } from "../render/layer-stack.js";
 import { CanvasPainter } from "../render/canvas-painter.js";
 import { blockDataToDataUrl } from "../render/block-render.js";
 import {
-  ROLE_COLORS, BOX_COLORS, FACING_DIR, nextFacing, rectCellsToBlocks, cellOfWorld, rectFromCells,
+  ROLE_COLORS, BOX_COLORS, ZONE_COLORS, isWaterLane, canonicalZoneKind, FACING_DIR, nextFacing, rectCellsToBlocks, cellOfWorld, rectFromCells,
   markerCell, attachMarker, markerAt, markerList, MARKER_KINDS, allMarkers, viewBounds, pickAtWorld, sameSelection,
   pieceSurface, surfaceRange, surfaceFraction, isAnnotationRole, boxById, boxMembers, boxOfPiece, rectContainsCell,
   pieceMirrorImages, zoneMirrorImages, boxMirrorImages, markerMirrorImages, nearestInterface,
@@ -97,6 +97,7 @@ export class PlanCanvas extends CanvasBase {
   #pieceRole = "piece";             // role armed for the piece tool
   #boxKind = "hub";                 // kind armed for the box tool
   #sel = null;                      // { kind:'piece'|'zone'|'box', id } | { kind:'marker', markerKind, index }
+  #zoneKind = "build";              // which kind the zone tool draws — build (open now) | water-lane (opens later)
   #drag = null;                     // { mode:'move'|'draw', ... } live pointer op
   #resize = null;                   // { handle, id, kind } while dragging a resize handle
   #cb = {};
@@ -167,6 +168,9 @@ export class PlanCanvas extends CanvasBase {
   }
   setPieceRole(role) { this.#pieceRole = role; }
   setBoxKind(kind) { this.#boxKind = kind; }
+
+  /** Arm which kind the zone tool draws — build (open now) or water-lane (opens mid-match). */
+  setZoneKind(kind) { this.#zoneKind = canonicalZoneKind(kind); }
 
   // Derived-structure feed (block coords, already fanned-out excluded — authored unit only). Redraw the layer.
   setInspect(data) {
@@ -549,11 +553,16 @@ export class PlanCanvas extends CanvasBase {
     const cell = this.#doc.globals.cell;
     const accent = "var(--accent, #5b9cff)";
     for (const z of this.#doc.zones) {
+      // A water lane reads as a denser, tighter-dashed version of the build zone it sits beside: the same
+      // kind of thing (a gap players cross) drawn as the closed one, since on a still canvas the only
+      // difference between them is which is open yet.
+      const lane = isWaterLane(z);
+      const color = lane ? ZONE_COLORS["water-lane"] : accent;
       this.#painter.rect(rectCellsToBlocks(z.rect, cell),
-        { fill: accent, fillAlpha: 0.12, stroke: accent, width: 1.4, dash: [5, 4] });
+        { fill: color, fillAlpha: lane ? 0.3 : 0.12, stroke: color, width: 1.4, dash: lane ? [2, 3] : [5, 4] });
       for (const h of z.holes)
         this.#painter.rect(rectCellsToBlocks(h, cell),
-          { fill: "var(--bg-canvas, #080f1a)", fillAlpha: 0.6, stroke: accent, width: 0.8, dash: [3, 3] });
+          { fill: "var(--bg-canvas, #080f1a)", fillAlpha: 0.6, stroke: color, width: 0.8, dash: [3, 3] });
     }
   }
 
@@ -877,7 +886,7 @@ export class PlanCanvas extends CanvasBase {
       kind: "box", id: item.id, boxKind: item.kind, rect: item.rect,
       members: boxMembers(this.#doc, item).map(p => p.id), membersNamed: Array.isArray(item.members) && item.members.length > 0, multi,
     });
-    else cb({ kind: "zone", id: item.id, rect: item.rect, multi });
+    else cb({ kind: "zone", id: item.id, zoneKind: canonicalZoneKind(item.kind), rect: item.rect, multi });
   }
 
   // ── CanvasBase hooks ────────────────────────────────────────────────────────
@@ -1055,7 +1064,9 @@ export class PlanCanvas extends CanvasBase {
       return;
     }
     const isAnnotation = this.#drag.kind === "piece" && isAnnotationRole(this.#pieceRole);
-    const color = this.#drag.kind === "zone" ? "var(--accent, #5b9cff)" : ROLE_COLORS[this.#pieceRole];
+    const color = this.#drag.kind === "zone"
+      ? (this.#zoneKind === "water-lane" ? ZONE_COLORS["water-lane"] : "var(--accent, #5b9cff)")
+      : ROLE_COLORS[this.#pieceRole];
     this.#painter.rect(b, {
       fill: isAnnotation ? this.#hatchFill(this.#pieceRole) : color,
       fillAlpha: isAnnotation ? 0.6 : 0.2,

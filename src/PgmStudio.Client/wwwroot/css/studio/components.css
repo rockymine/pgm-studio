@@ -661,13 +661,19 @@ svg.lucide { width: var(--icon-md); height: var(--icon-md); }
 }
 
 /* Swatches for the tools whose canvas fill is a pattern, not a flat colour — so the dock reads like the
-   drawing. Build = the dashed, translucent accent zone; buffer = its single-diagonal reserved-gap hatch;
+   drawing. Build = the dashed, translucent accent zone; water lane = the same rect in its deeper blue; buffer = its single-diagonal reserved-gap hatch;
    a box is unfilled with a dashed border in its kind's colour. The hatch is inline SVG rather than a
    repeating gradient: a gradient's stripe phase is anchored to a box corner, so its lines cannot be centred
    in the swatch. Its colour is the fixed role hex (buffer orange), matching the RolePalette. */
 .canvas-dock-swatch--build {
   background: color-mix(in oklch, var(--accent) 22%, transparent);
   border: 1px dashed var(--accent);
+}
+/* A water lane is the build zone's closed twin — the same dashed rect over the void, drawn denser and in the
+   deeper blue the canvas paints it, because the difference between them is when they open, not what they are. */
+.canvas-dock-swatch--water-lane {
+  background: color-mix(in oklch, #2563eb 40%, transparent);
+  border: 1px dashed #2563eb;
 }
 .canvas-dock-swatch--buffer {
   background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'><rect x='.7' y='.7' width='12.6' height='12.6' rx='2' fill='%23f2792b' fill-opacity='.18'/><g stroke='%23f2792b' stroke-width='1.2' stroke-linecap='round'><line x1='1' y1='9.5' x2='9.5' y2='1'/><line x1='4.5' y1='13' x2='13' y2='4.5'/></g><rect x='.7' y='.7' width='12.6' height='12.6' rx='2' fill='none' stroke='%23f2792b' stroke-dasharray='2 1.4'/></svg>") center / 100% 100% no-repeat;

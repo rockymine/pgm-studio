@@ -51,8 +51,11 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
 
   function createRect(kind, rect) {
     if (kind === "zone") {
-      const id = uniqueId(doc.zones.map(z => z.id), "zone");
-      doc.zones.push({ id, rect, holes: [] });
+      // The id says which kind it is, because a plan carries both and an author reads the list before the
+      // canvas. The default kind is left off the object entirely, so a plan of build zones is unchanged.
+      const lane = zoneKind === "water-lane";
+      const id = uniqueId(doc.zones.map(z => z.id), lane ? "lane" : "zone");
+      doc.zones.push(lane ? { id, kind: "water-lane", rect, holes: [] } : { id, rect, holes: [] });
       canvas.setDoc(doc);
       canvas.select({ kind: "zone", id });
     } else if (kind === "box") {
@@ -122,6 +125,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   // so the draw preview's colour matches what will be created).
   let canvasRole = "piece";
   let canvasBoxKind = "hub";
+  let zoneKind = "build";       // which kind the zone tool draws — build (open now) | water-lane (opens later)
 
   // ── what every edit does ────────────────────────────────────────────────────
   // One call at the end of each mutation, so no edit can reach the canvas without the derived views
@@ -398,6 +402,8 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       canvas.setDoc(doc); canvas.select({ kind: "piece", id }); afterEdit();
     },
     togglePieceMirrors(id) { const p = doc.pieces.find(x => x.id === id); if (!p) return; if (p.mirrors === false) delete p.mirrors; else p.mirrors = false; canvas.setDoc(doc); canvas.select({ kind: "piece", id }); afterEdit(); },
+    /** Arm the zone kind the palette drew from; the canvas mirrors it for the draw preview. */
+    setZoneKind(kind) { zoneKind = kind === "water-lane" ? "water-lane" : "build"; canvas.setZoneKind(zoneKind); },
     setZoneId(oldId, newId) {
       const z = doc.zones.find(x => x.id === oldId); if (!z || !newId || newId === oldId) return;
       z.id = uniqueId(doc.zones.filter(x => x !== z).map(x => x.id), newId);

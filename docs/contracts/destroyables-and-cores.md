@@ -130,7 +130,7 @@ Four consequences, and they reach further than this document:
 The community's own word for these is **fake** — dominion ships the comment
 `<!-- TODO: replace fake lanes destroyables with fill actions -->`, and piorun separates its two
 `<destroyables>` blocks with `<!-- actual monument -->`, opting the real one out via
-`mode-changes="false"` so the swap mode cannot touch it. That TODO points at §14.
+`mode-changes="false"` so the swap mode cannot touch it. That TODO points at `water-lanes.md`.
 
 ---
 
@@ -642,123 +642,13 @@ world.
 
 ---
 
-## 14. Water lanes — a CTW feature this work unlocks
+## 14. Water lanes — see `water-lanes.md`
 
-> **Scope note:** water lanes are a **CTW** feature, not DTM/DTC. They are documented here because
-> their legacy implementation *is* a destroyable (OB16), so nothing can detect or author one until
-> this work lands. Expect this section to graduate to its own contract doc when it is built.
+Water lanes have their own contract: **`docs/contracts/water-lanes.md`**. It owns the mechanism (PGM's
+void filter, read live at `y=0`), the four wirings the corpus authors them in, detection, and the
+authored form.
 
-A **water lane** is a route that opens **mid-match**: a gap between islands becomes bridgeable, adding
-a new way to reach the wool late in the game. Three separate authors name the mechanic in their own
-boss-bar text, and "bridgeable" is the word they all reach for:
-
-| Map | Fires | The author's message |
-|---|---|---|
-| piorun | 5m | ``Middle lane will become bridgeable`` |
-| dominion | 10m | ``Crescent Void gaps will be bridgeable in`` |
-| newgen_classic | 15m | *(none)* |
-| vesuvius | 20m | ``Farlanes will become bridgeable`` |
-| tulip_mania_ii | 30s | ``Water Lanes will spawn in {0}`` → ``Water lanes have been added!`` |
-
-**WL-A — the mechanic is `VoidFilter`, and it reads y=0 live.** From
-`filters/matcher/block/VoidFilter.java`:
-
-```java
-return block.getY() == 0
-    || (!WorldProblemListener.wasBlock36(world, x, 0, z)
-        && world.getBlockAt(x, 0, z).getType() == Material.AIR);
-```
-
-A column is **void** iff the block at **`(x, 0, z)` is air** and was not a block-36 marker — so
-`<apply block="deny(void)">` denies building in that whole column. Crucially `getBlockAt` is
-evaluated **at query time, not at load**. Put *any* non-air block at y=0 and the column stops being
-void from that instant. That is the entire trick: **fill y=0 with water at 15m and the gap becomes
-buildable**, so players bridge a route that did not exist before. (This same y=0 rule is why a
-stained-glass slab at the world floor reads as a build region, and why `wasBlock36` exists at all —
-the invisible marker declares "buildable" without placing a visible block.)
-
-**WL-B — there are three generations, and only the newest is worth authoring.**
-
-*Gen 1 — fake destroyable* (vesuvius, piorun, dominion, newgen_classic). `materials="air"` blocks at
-y=0 swapped to water by a mode. Ownership is vestigial: authors split one lane into per-team halves
-purely because `owner` is required (piorun's `mid-blue` / `mid-red` share an edge and form one
-straight lane). This is the form OB16 catches.
-
-*Gen 2 — inline fill action* (`lupa`, `tulip_mania_ii`, `icecream_sandwiched_ii`, `malupa`). An
-`<action>` containing `<fill>`, on a time `<trigger>`. No destroyable, no mode:
-
-```xml
-<actions>
-  <trigger scope="match" filter="add-side-lanes">
-    <action><fill region="lanes" material="water" filter="only-air"/></action>
-  </trigger>
-</actions>
-```
-
-`FillAction` takes `region` + `material` (+ optional `filter`, `update`, `events`) and writes the
-blocks directly. `tulip_mania_ii` names its region `water-lane-fill-regions` and passes
-`filter="only-air"` so the fill cannot overwrite terrain. dominion's `<!-- TODO: replace fake lanes
-destroyables with fill actions -->` is an author migrating Gen 1 → Gen 2 in-place.
-
-*Gen 3 — a shared include + a conventional region id* (`bridgid_ii`, `ad_astra`,
-`rushers_vs_defenders`, `araxa`, `turf_wars`, `royal_garden_ctw`). **The behaviour is factored out
-entirely.** The map declares only *where* the lanes are, under an agreed id, and pulls the rule in:
-
-```xml
-<include id="water-lanes"/>          <!-- the shared fragment: what a water lane DOES -->
-...
-<union id="water-lanes">             <!-- the map: only WHERE, under the matching id -->
-  <union id="blue-lanes">
-    <cuboid id="build-area-6" min="40,0,25" max="55,2,40"/>
-    <cuboid id="build-area-8" min="20,0,10" max="40,2,25"/>
-  </union>
-  <union id="red-lanes"> … </union>
-</union>
-```
-
-All six follow it identically, and **five of the six contain no `<fill>`, no `<destroyables>` and no
-`<modes>` at all** — proof the include carries the whole mechanism, keyed by the region id alone.
-This is the cleanest factoring of the three and the one to author: emit a `water-lanes` region and
-the include, not a hand-rolled copy of the rule.
-
-**WL-D — the include supplies 100% of a Gen-3 lane, and Gen 3 is therefore free for us.** Not one of
-the six maps applies anything to its lane regions — **zero** `<apply>` on `water-lanes` /
-`blue-lanes` / `red-lanes` across all six. The map contributes geometry and an id; the fragment
-contributes everything else. Two consequences, and both cut *for* Gen 3:
-
-- **Authoring is one line.** We do not need the include's body to emit it — the server resolves it at
-  load. `MapXml.Includes` and `XmlWriter.cs:112` already exist, and `CtwStandards.cs:104` already
-  uses them (`m.Includes.Insert(0, KillRewardInclude)`) to ship `gapple-kill-reward` on every
-  generated map. A water lane is the same move: emit `<union id="water-lanes">` + add `"water-lanes"`
-  to `Includes`. **Gen 3 costs one string and a region** — no `<actions>`/`<fill>`/`<trigger>` parser,
-  no fake destroyable.
-- **Detection is two facts.** `<include id="water-lanes"/>` + a `<union id="water-lanes">` *is* the
-  signal. Reading the body (WL-E) would tell us what a lane does; it is not needed to know that the
-  map has one.
-
-**The water bucket is not part of this — it is a red herring, and a well-camouflaged one.** It is a
-universal CTW movement tool (place water under yourself to cancel fall damage), present in **163 of
-358 `ctw/` maps — of which 157 have no water lanes at all**. At a ~46% base rate, "4 of the 6 lane
-maps carry a bucket in slot 7" is precisely what noise looks like. Read nothing into it.
-
-**WL-E — reading an include ≠ emitting one; only the reading is a gap, and it does not gate Gen 3.**
-We already **emit** includes (WL-D). What we do not do is **resolve** them: `MapParser` preprocesses
-`<if>`/`<unless>` (`ResolveVariants`) and `${constants}` (`ResolveConstants`) but has **no
-`<include>` handling**, so a fragment's content never enters the document we analyse. **334 of our
-358 `ctw/` maps (93%) use `<include>`**; `gapple-kill-reward` alone appears 815 times across the
-corpora, and PGM additionally splices a `global` include into *every* map at the root
-(`MapIncludeProcessorImpl.getGlobalInclude`). Whatever those fragments define — kill rewards, lane
-rules, bulk crafting — we have never seen it, so any analysis that assumes it is reading a complete
-map is wrong.
-
-That is a real fidelity gap and its own problem, but keep it in proportion: it is about **analysing
-imported maps**, not about authoring, and it blocks neither authoring nor detecting a water lane.
-Bodies live in `config.getIncludesDirectory()` on the server, not in map folders, so closing it is a
-**fetch** (obtain the include library), not a code change.
-
-**WL-C — the lane is a flat y=0 footprint, one or more rectangles.** Every instance is a union of
-cuboids spanning `y = 0..1` (i.e. the single y=0 layer, OB13). Shapes vary: vesuvius unions a
-`right` and `left` lane (~33×17 and ~17×34 — elongated straights); newgen_classic unions four
-compact ~7×8 patches, one per team, each hand-commented with its colour. A corner/L lane is expressed
-the same way — a union of rectangles — so the authored primitive is **a set of y=0 rects**, not a
-path. Detection is correspondingly cheap: the region is authored, not inferred from the world.
+The connection to this document is the oldest wiring. A first-generation lane *is* a destroyable —
+`show="false"`, materials `air`, swapped to water by a mode — so it is a **phantom** (OB16), not a
+goal, and nothing could tell one from a DTM objective until the phantom classification here landed.
+`Destroyable.Phantom` reporting `BlockSwap` is what `WaterLaneDetector` reads for that form.

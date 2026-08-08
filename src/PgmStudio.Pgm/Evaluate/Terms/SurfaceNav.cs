@@ -18,7 +18,8 @@ internal static class SurfaceNav
         foreach (var p in ctx.Plan.Pieces)
             if (!PlanRoles.IsAnnotation(p.Role))   // buffers are reserved empty space, never walkable
                 AddRect(walkable, p.Rect);
-        foreach (var z in ctx.Plan.Zones)
+        // A water lane is closed at the tick the gate measures, so it is not walkable ground yet.
+        foreach (var z in ctx.Plan.BuildZones)
             AddRect(walkable, z.Rect);
         return walkable;
     }

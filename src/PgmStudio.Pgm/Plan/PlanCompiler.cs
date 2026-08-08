@@ -314,9 +314,17 @@ public static class PlanCompiler
         var build = new BuildIntent
         {
             MaxHeight = maxHeight,
-            Areas = FanRects(plan.Zones.Select(z => z.Rect), d),
-            Holes = FanRects(plan.Zones.SelectMany(z => z.Holes), d),
+            Areas = FanRects(plan.BuildZones.Select(z => z.Rect), d),
+            Holes = FanRects(plan.BuildZones.SelectMany(z => z.Holes), d),
         };
+
+        // Water lanes fan the same way build areas do, and stay out of the build intent on purpose: a lane
+        // that reached the buildable region would be open from the first tick, which is the one thing a lane
+        // must not be (docs/contracts/water-lanes.md). A lane's holes are dropped rather than carried — the
+        // shared fragment fills a flat region and has nowhere to put a cutout, so honouring one would promise
+        // something the export cannot deliver.
+        var laneRects = FanRects(plan.WaterLanes.Select(z => z.Rect), d);
+        var waterLanes = laneRects.Count > 0 ? new WaterLaneIntent { Rects = laneRects } : null;
 
         var observerY = plan.Globals.ObserverY ?? plan.Globals.Surface + 15;
 
@@ -332,6 +340,7 @@ public static class PlanCompiler
             Cores = cores.Count > 0 ? cores : null,
             Observer = new ObserverIntent { Point = new Pt(0, observerY, 0), Yaw = 0 },
             Build = build,
+            WaterLanes = waterLanes,
             Meta = new MetaIntent { Name = plan.Meta?.Name ?? "", Authors = [] },
             Structures = structures.IsEmpty ? null : structures,
         };

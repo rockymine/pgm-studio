@@ -270,7 +270,7 @@ public static class PlanValidator
     /// <summary>The lint table — one entry per checked rule; add a rule by appending a delegate.</summary>
     public static readonly IReadOnlyList<Func<PlanModel, ContactGraph, IEnumerable<PlanFinding>>> LintRules =
     [
-        LintPcC, LintG2, LintG5, LintSp2, LintBz5, LintEl1, LintEl3, LintSt2, LintWx4, LintWx8,
+        LintPcC, LintG2, LintG5, LintSp2, LintBz5, LintEl1, LintEl3, LintSt2, LintWx4, LintWx8, LintWl1,
     ];
 
     private static PlanFinding Lint(string rule, string msg, params string[] subjects) =>
@@ -341,16 +341,33 @@ public static class PlanValidator
         }
     }
 
-    // BZ5 — build zones never touch a spawn piece.
+    // BZ5 — zones never touch a spawn piece. Both kinds: a water lane reaching a spawn is the same fault
+    // arriving later, and later is worse, because the defenders have already committed to the map they read
+    // at the first tick.
     private static IEnumerable<PlanFinding> LintBz5(PlanModel plan, ContactGraph d)
     {
         var spawnPieces = plan.Placements.Spawns.Select(s => s.Piece).ToHashSet();
         foreach (var z in plan.Zones)
         {
             var zr = ContactGraph.ToBlock(z.Rect, d.Cell);
+            var what = z.IsWaterLane ? "water lane" : "build zone";
             foreach (var p in d.Pieces)
                 if (spawnPieces.Contains(p.Id) && Touches(p.Rect, zr))
-                    yield return Lint("BZ5", $"build zone '{z.Id}' touches spawn piece '{p.Id}'", z.Id, p.Id);
+                    yield return Lint("BZ5", $"{what} '{z.Id}' touches spawn piece '{p.Id}'", z.Id, p.Id);
+        }
+    }
+
+    // WL1 — a water lane covers void, never terrain. The lane opens because water at y=0 stops the columns
+    // reading as void; over a piece the columns already hold terrain, so that part of the lane changes nothing
+    // and the drawn rect overstates the route it adds.
+    private static IEnumerable<PlanFinding> LintWl1(PlanModel plan, ContactGraph d)
+    {
+        foreach (var z in plan.WaterLanes)
+        {
+            var zr = ContactGraph.ToBlock(z.Rect, d.Cell);
+            foreach (var p in d.Pieces)
+                if (PlanRoles.IsGenerating(p.Role) && Overlaps(p.Rect, zr))
+                    yield return Lint("WL1", $"water lane '{z.Id}' covers terrain piece '{p.Id}' — a lane opens void, and this part of it is already land", z.Id, p.Id);
         }
     }
 
@@ -509,4 +526,10 @@ public static class PlanValidator
         int iz = Math.Min(a.MaxZ, b.MaxZ) - Math.Max(a.MinZ, b.MinZ);
         return ix >= 0 && iz >= 0 && !(ix == 0 && iz == 0);
     }
+
+    // Shared area, not a shared edge: a zone abutting a piece is the normal case (that is how a route meets
+    // land), and only a genuine overlap covers ground.
+    private static bool Overlaps(BlockRect a, BlockRect b) =>
+        Math.Min(a.MaxX, b.MaxX) > Math.Max(a.MinX, b.MinX)
+        && Math.Min(a.MaxZ, b.MaxZ) > Math.Max(a.MinZ, b.MinZ);
 }

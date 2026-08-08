@@ -40,7 +40,9 @@ to the symmetry centre); heights are blocks. One team's unit is authored; symmet
   "zones": [
     // build zones: plain rects, MAY overlap terrain (FR1+FR2); holes for the 4-team ring (BZ4)
     { "id": "mid-band", "rect": [-3, -5, 6, 10], "holes": [] },
-    { "id": "bridge-e", "rect": [3, 7, 2, 2] }
+    { "id": "bridge-e", "rect": [3, 7, 2, 2] },
+    // a water lane opens mid-match instead of at the first tick (water-lanes.md); default kind omitted
+    { "id": "lane-e", "kind": "water-lane", "rect": [3, -2, 2, 4] }
   ],
   "placements": {
     // authored for team 0 only; the compiler fans orbit images. Positions are piece-relative cells.
@@ -68,6 +70,11 @@ Notes:
   `true` and are authored once (MD1/MD3).
 - **No explicit interface objects.** `land` interfaces are *derived* from rect abutment; `gap`
   connectivity is *derived* from zones (§2). The author never draws a connection.
+- **Zone `kind`** (default `build`, omitted when default): a `water-lane` zone is a rect over the void
+  that opens **mid-match**, when the shared `water-lanes` fragment floods it at `y=0`
+  (`water-lanes.md`). It compiles to `WaterLaneIntent`, never to `BuildIntent.Areas`, and takes no part
+  in the derivations that describe the starting board (§2's gap connectivity, frontline, walkable
+  surface) — it is not a route until it opens. Lints `WL1` if drawn over terrain.
 - Wool colours are not authored: one wool → the team colour, several → distinct dyes (the
   existing `LaneMapGenerator` convention). Team palette from the shared slot list.
 - **Optional `boxes` section** (authoring annotation): the typed envelopes grouping pieces into the

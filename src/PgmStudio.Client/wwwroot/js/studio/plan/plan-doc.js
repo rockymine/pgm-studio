@@ -36,6 +36,21 @@ export const BOX_KINDS = ["hub", "wool", "spawn", "frontline", "mid"];
 export const BOX_COLORS = { hub: "#4ea3d8", wool: "#3fae74", spawn: "#8f7bd6", frontline: "#e0714a", mid: "#9aa7b4" };
 export const BOX_LABELS = { hub: "Hub", wool: "Wool", spawn: "Spawn", frontline: "Frontline", mid: "Mid" };
 
+// Zone kinds — both are a rect over the void saying where players may bridge; they differ in *when*. A build
+// zone is open from the first tick. A water lane is closed at the first tick and opens mid-match, when the
+// shared `water-lanes` fragment floods it at y=0 and the columns stop reading as void — so it is deliberately
+// left out of the buildable region, and out of every derivation that describes the starting board. The default
+// is not stored: a build zone writes no `kind` at all.
+export const ZONE_KINDS = ["build", "water-lane"];
+export const ZONE_COLORS = { build: "#5b9cff", "water-lane": "#2563eb" };
+export const ZONE_LABELS = { build: "Build zone", "water-lane": "Water lane" };
+
+/** Fold a raw (possibly absent or unknown) zone kind down to a canonical one; anything unrecognised → build. */
+export function canonicalZoneKind(kind) { return ZONE_KINDS.includes(kind) ? kind : "build"; }
+
+/** True when a zone opens mid-match rather than at the first tick. */
+export function isWaterLane(zone) { return canonicalZoneKind(zone?.kind) === "water-lane"; }
+
 /** Fold a raw (possibly unknown) box kind down to a canonical one; anything unrecognised → the unclassified `mid`. */
 export function canonicalBoxKind(kind) { return BOX_KINDS.includes(kind) ? kind : "mid"; }
 
@@ -102,7 +117,12 @@ export function normalizeDoc(d) {
       if (p.mirrors != null) o.mirrors = p.mirrors;
       return o;
     }),
-    zones: (src.zones || []).map(z => ({ id: z.id ?? "", rect: [...(z.rect || [0, 0, 1, 1])], holes: (z.holes || []).map(h => [...h]) })),
+    zones: (src.zones || []).map(z => {
+      const zone = { id: z.id ?? "", rect: [...(z.rect || [0, 0, 1, 1])], holes: (z.holes || []).map(h => [...h]) };
+      // The default kind stays absent so a plan of build zones serialises exactly as it did before the field.
+      if (isWaterLane(z)) zone.kind = "water-lane";
+      return zone;
+    }),
     placements: {
       spawns: (src.placements?.spawns || []).map(s => ({ piece: s.piece ?? "", at: [...(s.at || [0, 0])], facing: s.facing ?? "front" })),
       wools: (src.placements?.wools || []).map(w => { const o = { piece: w.piece ?? "", at: [...(w.at || [0, 0])] }; if (w.color) o.color = w.color; return o; }),

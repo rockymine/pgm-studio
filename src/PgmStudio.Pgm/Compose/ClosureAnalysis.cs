@@ -57,7 +57,7 @@ public static class ClosureAnalysis
             if (PlanRoles.IsAnnotation(p.Role)) continue;
             Add(p.Rect, p.Id);
         }
-        foreach (var z in plan.Zones) Add(z.Rect, null);
+        foreach (var z in plan.BuildZones) Add(z.Rect, null);
         if (solids.Count == 0) return ([], false);
 
         // rasterize with a one-cell void margin so the outside flood reaches around everything; each solid cell

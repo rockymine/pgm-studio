@@ -35,7 +35,7 @@ public static class BoardDeriver
             for (var k = 0; k < order; k++)
                 foreach (var c in FanCellsK(p.Rect, axes, k)) filled[c] = (p.Id, k);
         }
-        foreach (var z in plan.Zones)
+        foreach (var z in plan.BuildZones)
         {
             foreach (var c in FanCells(z.Rect, axes, order)) build.Add(c);
             foreach (var h in z.Holes) foreach (var c in FanCells(h, axes, order)) declaredVoid.Add(c);

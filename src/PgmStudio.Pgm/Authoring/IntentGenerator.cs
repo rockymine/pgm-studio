@@ -20,6 +20,9 @@ public static class IntentGenerator
         WoolGenerator.Apply(doc, intent);
         DestroyableGenerator.Apply(doc, intent);
         CoreGenerator.Apply(doc, intent);
+        // Water lanes before build: a lane is geometry the build slice must not see, and emitting it first
+        // keeps the region ordering stable regardless of how many lanes a plan carries.
+        WaterLaneGenerator.Apply(doc, intent);
         // Build last: its broad not-build-area "no-void" rule ALLOWs editing any solid block, and PGM stops
         // at the first apply rule that decides — so it must come *after* the spawn/wool-room protections
         // (which sit outside the build area) or it short-circuits them. Matches docs/template.xml ordering.

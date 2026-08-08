@@ -108,6 +108,15 @@ public sealed class PlanModel
     /// compiled layout/intent. Absent for genuinely new (untraced) plans.</summary>
     [JsonPropertyName("reference")]  public PlanReference? Reference { get; set; }
 
+    /// <summary>The zones open from the first tick. Everything that asks where players may build, which
+    /// pieces front a gap, or how the board is connected reads this rather than <see cref="Zones"/> — a water
+    /// lane is none of those things until it opens.</summary>
+    [JsonIgnore] public IEnumerable<PlanZone> BuildZones => Zones.Where(z => z.IsBuild);
+
+    /// <summary>The zones that open mid-match — the authored water lanes (<c>docs/contracts/water-lanes.md</c>).
+    /// They export as the lane region plus the shared include, and take no part in the starting board.</summary>
+    [JsonIgnore] public IEnumerable<PlanZone> WaterLanes => Zones.Where(z => z.IsWaterLane);
+
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = true,
@@ -125,11 +134,12 @@ public sealed class PlanModel
 
     /// <summary>Fold legacy/unknown piece roles down to their canonical value, so plans authored under the
     /// earlier role model (<c>lane</c>/<c>hub</c>/<c>mid</c>) load cleanly as anonymous pieces, and unknown
-    /// box kinds down to theirs.</summary>
+    /// box kinds and zone kinds down to theirs.</summary>
     private void Normalize()
     {
         foreach (var p in Pieces) p.Role = PlanRoles.Canonical(p.Role);
         foreach (var b in Boxes) b.Kind = PlanBoxKinds.Canonical(b.Kind);
+        foreach (var z in Zones) z.Kind = PlanZoneKinds.Stored(z.Kind);
     }
 }
 
@@ -178,13 +188,52 @@ public sealed class PlanPiece
     [JsonIgnore] public bool MirrorsOrDefault => Mirrors ?? true;
 }
 
-/// <summary>A build zone: a plain rect (<c>[x, z, w, h]</c> cells) where building is allowed, with optional
-/// no-build <see cref="Holes"/> (a rect list in the same units).</summary>
+/// <summary>The kinds a <see cref="PlanZone"/> may be. Both are a rect over the void that says where players
+/// may bridge; they differ in <b>when</b>. A <see cref="Build"/> zone is open from the first tick — the
+/// generator adds it to the buildable region. A <see cref="WaterLane"/> is closed at the first tick and opens
+/// mid-match, so it is deliberately left <i>out</i> of the buildable region: PGM's void rule keeps players out
+/// of it until water lands at <c>y=0</c> and the columns stop reading as void.</summary>
+public static class PlanZoneKinds
+{
+    public const string Build = "build";
+    public const string WaterLane = "water-lane";
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string> { Build, WaterLane };
+
+    /// <summary>The canonical kind for a raw value. Absent or unknown folds to <see cref="Build"/> — every
+    /// zone authored before the kind existed is a build zone, so the default keeps those plans reading
+    /// exactly as they did.</summary>
+    public static string Canonical(string? kind) =>
+        kind is not null && All.Contains(kind) ? kind : Build;
+
+    /// <summary>The value a kind is stored as: <c>null</c> for the default, so it is left out of the JSON
+    /// entirely. Folding an unknown kind to <c>null</c> here is what makes a reload idempotent.</summary>
+    public static string? Stored(string? kind) => Canonical(kind) == Build ? null : Canonical(kind);
+}
+
+/// <summary>A zone: a plain rect (<c>[x, z, w, h]</c> cells) over the void where players may bridge, with
+/// optional no-build <see cref="Holes"/> (a rect list in the same units).
+///
+/// <para><see cref="Kind"/> says when it opens (see <see cref="PlanZoneKinds"/>). A build zone is buildable
+/// from the start and is what the gap-connectivity derivation reads; a water lane opens part-way through the
+/// match, so it contributes a late route rather than a starting one and is left out of that derivation
+/// entirely — treating it as a connection would tell the lint a map is joined up at a tick when it is
+/// not.</para></summary>
 public sealed class PlanZone
 {
     [JsonPropertyName("id")]    public string Id { get; set; } = "";
     [JsonPropertyName("rect")]  public CellRect Rect { get; set; }
     [JsonPropertyName("holes")] public List<CellRect> Holes { get; set; } = [];
+
+    /// <summary>The authored kind, absent for the default. A build zone writes no <c>kind</c> at all, so a plan
+    /// of build zones serialises byte-for-byte as it did before the field existed — which matters because a
+    /// composed plan's JSON is its identity (<see cref="Compose.ComposerFingerprint"/>), and a field that
+    /// appeared on every zone would read as a geometry change in every board.</summary>
+    [JsonPropertyName("kind")]  public string? Kind { get; set; }
+
+    [JsonIgnore] public string KindOrDefault => PlanZoneKinds.Canonical(Kind);
+    [JsonIgnore] public bool IsWaterLane => KindOrDefault == PlanZoneKinds.WaterLane;
+    [JsonIgnore] public bool IsBuild => !IsWaterLane;
 }
 
 /// <summary>A <b>box</b>: the typed envelope grouping the pieces that realize one part of the partition —
