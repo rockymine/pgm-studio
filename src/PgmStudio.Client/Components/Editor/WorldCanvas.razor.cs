@@ -55,7 +55,10 @@ public partial class WorldCanvas
     /// e.g., show the legend only while it's on).</summary>
     [Parameter] public EventCallback<bool> OnBuildableToggled { get; set; }
 
-    private ElementReference svgRef, wrapRef, coordsRef, zoomRef;
+    private ElementReference svgRef, wrapRef;
+    /// <summary>The floating top-left readout. Its cursor and zoom elements are handed to the canvas on
+    /// mount, which then writes them directly — per mousemove, far too often to render.</summary>
+    private CanvasReadout? readout;
     private IJSObjectReference? handle;
     private DotNetObjectReference<WorldCanvas>? selfRef;
     private string tool = "move";
@@ -106,7 +109,7 @@ public partial class WorldCanvas
         {
             selfRef = DotNetObjectReference.Create(this);
             handle = await JS.InvokeAsync<IJSObjectReference>(
-                "studio.mountCanvas", svgRef, wrapRef, coordsRef, zoomRef, selfRef, Slug, Category, DraftStep);
+                "studio.mountCanvas", svgRef, wrapRef, readout!.Cursor, readout.Zoom, selfRef, Slug, Category, DraftStep);
             if (IslandSelect)
             {
                 await handle.InvokeVoidAsync("setIslandSelect", true);

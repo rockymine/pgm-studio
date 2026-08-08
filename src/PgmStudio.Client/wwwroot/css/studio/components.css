@@ -479,6 +479,7 @@ svg.lucide { width: var(--icon-md); height: var(--icon-md); }
 .canvas-chip,
 .canvas-round-btn,
 .canvas-mode-toggle,
+.canvas-select,
 .canvas-dock-group,
 .canvas-dock-flyout {
   background: var(--canvas-float-bg);
@@ -551,6 +552,26 @@ svg.lucide { width: var(--icon-md); height: var(--icon-md); }
   background: color-mix(in oklch, var(--accent) 26%, var(--canvas-float-bg));
 }
 .canvas-chip:disabled { opacity: 0.4; cursor: default; }
+
+/* A choice among many in the layer bar — which island to fit. A chip states one thing and toggles it; a
+   list of twenty islands is not a row of chips, so it stays a native <select> and only takes the floating
+   surface. Sized to sit at chip height rather than at .field-input's panel height. */
+.canvas-select {
+  flex: none;
+  max-width: 140px;
+  padding: 4px 8px;
+  border-radius: var(--radius-pill);
+  font-family: inherit;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  outline: none;
+}
+.canvas-select:hover { color: var(--text-bright); border-color: var(--text-muted); }
+.canvas-select:focus { border-color: var(--accent); }
+/* The options drop into the browser's own menu, which has no glass behind it — give them the panel. */
+.canvas-select option { background: var(--bg-panel); color: var(--text-primary); }
 
 /* A plain word in the layer bar — why a control beside it can't do its job ("no WebGL"). Not a chip: there
    is nothing to press. */
