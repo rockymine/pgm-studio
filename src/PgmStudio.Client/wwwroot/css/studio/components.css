@@ -552,6 +552,17 @@ svg.lucide { width: var(--icon-md); height: var(--icon-md); }
 }
 .canvas-chip:disabled { opacity: 0.4; cursor: default; }
 
+/* A plain word in the layer bar — why a control beside it can't do its job ("no WebGL"). Not a chip: there
+   is nothing to press. */
+.canvas-note {
+  flex: none;
+  padding: 0 4px;
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  white-space: nowrap;
+  user-select: none;
+}
+
 .canvas-round-btn {
   width: 30px;
   height: 30px;

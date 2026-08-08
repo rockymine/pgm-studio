@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using PgmStudio.Client.Components;
 
 namespace PgmStudio.Client.Features.Sketch;
 
@@ -9,7 +10,10 @@ public partial class SketchTool
 {
     [Parameter] public string Slug { get; set; } = "";
 
-    private ElementReference svgRef, wrapRef, coordsRef, zoomRef, dimRef;
+    private ElementReference svgRef, wrapRef;
+    /// <summary>The floating top-left readout. Its three elements are handed to the canvas on mount, which
+    /// then writes cursor / size / zoom into them directly — per mousemove, far too often to render.</summary>
+    private CanvasReadout? readout;
     private IJSObjectReference? handle;
     private DotNetObjectReference<SketchTool>? selfRef;
 
@@ -100,6 +104,13 @@ public partial class SketchTool
 
     private Task ToggleOperation() => SetOperation(Carving ? "add" : "subtract");
 
+    /// <summary>The colour the draw group wears — the same fill the canvas gives a shape of that operation, so
+    /// the palette states what the drawing will look like. Dimmed while the armed tool draws nothing: the
+    /// operation is set but decides nothing until a rectangle, polygon or lasso is in hand.</summary>
+    private string OpAccent => DrawToolActive
+        ? (Carving ? "var(--canvas-sub-fill)" : "var(--canvas-add-fill)")
+        : $"color-mix(in oklch, var(--canvas-{(Carving ? "sub" : "add")}-fill) 45%, var(--text-muted))";
+
     // The same toggle shows the bare voxelization while drawing and the paint on top of it once theming.
     private string BlocksChipTitle => ScopeApplyActive
         ? "Show the blocks the export places — the rasterized footprint painted by its themes"
@@ -159,7 +170,8 @@ public partial class SketchTool
         await JS.InvokeVoidAsync("studio.icons");
         if (!firstRender) return;
         selfRef = DotNetObjectReference.Create(this);
-        handle = await JS.InvokeAsync<IJSObjectReference>("studio.mountSketch", svgRef, wrapRef, coordsRef, zoomRef, dimRef, selfRef, Slug);
+        handle = await JS.InvokeAsync<IJSObjectReference>(
+            "studio.mountSketch", svgRef, wrapRef, readout!.Cursor, readout.Zoom, readout.Size, selfRef, Slug);
         // Restore the saved layout (empty {} for a fresh sketch); the bridge handles an empty state.
         try
         {

@@ -91,77 +91,91 @@
         </Sidebar>
         <div class="sidebar-handle"></div>
         <div class="workspace-canvas">
-          <div class="canvas-subbar">
-            <div class="canvas-toolbar">
-              @* Move and select are the entire toolbar in a select-only phase (Theme): getting around the
-                 canvas, and picking what to paint. Every tool below them authors geometry, which is Draw's. *@
-              <button class="draw-tool-btn @(tool == "move" ? "draw-tool-btn--active" : null)" title="Move / pan"
-                      @onclick='() => SetTool("move")'><i data-lucide="hand"></i></button>
-              <button class="draw-tool-btn @(tool == "select" ? "draw-tool-btn--active" : null)" title="@SelectToolTitle"
-                      @onclick='() => SetTool("select")'><i data-lucide="mouse-pointer-2"></i></button>
-              @if (DressingActive)
-              {
-                @foreach (var placer in DressingTools.All)
-                {
-                  <button class="draw-tool-btn @(tool == placer.Tool ? "draw-tool-btn--active" : null)"
-                          title="@placer.Title" @key="placer.Tool"
-                          @onclick="() => SetTool(placer.Tool)"><i data-lucide="@placer.Icon"></i></button>
-                }
-              }
-              @if (!ScopeApplyActive && !DressingActive)
-              {
-              <button class="draw-tool-btn @(tool == "rectangle" ? "draw-tool-btn--active" : null)" title="Rectangle"
-                      @onclick='() => SetTool("rectangle")'><i data-lucide="rectangle-horizontal"></i></button>
-              <button class="draw-tool-btn @(tool == "polygon" ? "draw-tool-btn--active" : null)" title="Polygon (click vertices, double-click to close)"
-                      @onclick='() => SetTool("polygon")'><i data-lucide="pentagon"></i></button>
-              <button class="draw-tool-btn @(tool == "lasso" ? "draw-tool-btn--active" : null)" title="Lasso (hold and trace)"
-                      @onclick='() => SetTool("lasso")'><i data-lucide="lasso"></i></button>
-              <button class="draw-tool-btn @(tool == "measure" ? "draw-tool-btn--active" : null)" title="Measure (drag across a void gap to read its length in blocks)"
-                      @onclick='() => SetTool("measure")'><i data-lucide="ruler"></i></button>
-              <button class="draw-tool-btn @(tool == "split" ? "draw-tool-btn--active" : null)" title="Split (click two points to slice a shape in two along the line)"
-                      @onclick='() => SetTool("split")'><i data-lucide="scissors"></i></button>
-              @* What a drawn shape does to the land is not a sibling of the tool that draws it, so it is not
-                 another square icon button in this row: a rule separates it, and it is one pill that names
-                 the mode it is in and flips to the other when clicked. *@
-              <span class="subbar-sep"></span>
-              @* A word and a colour, no icon: every other control in this strip is a glyph, so the one that is
-                 not reads as the different kind of thing it is — and a lucide glyph is swapped in once at
-                 mount, so an icon that changed with the mode would go stale on the first click. *@
-              <button class="op-pill op-pill--@(Carving ? "carve" : "build") @(DrawToolActive ? null : "op-pill--inert")"
-                      title="@OpTitle" aria-pressed="@Carving" @onclick="ToggleOperation">@(Carving ? "Carve" : "Build")</button>
-              }
-            </div>
-            <div @ref="coordsRef" class="canvas-cursor"></div>
-            <div @ref="dimRef" class="canvas-dim"></div>
-            <div class="canvas-subbar-right">
-              <Chip Active="mirrorOn" Title="Show the mirrored copies"
-                    OnClick="ToggleMirror">Mirror</Chip>
-              <Chip Active="shapesOn" Title="Show the draw primitives over the islands"
-                    OnClick="ToggleShapes">Shapes</Chip>
-              <Chip Active="chunksOn" Title="Show the 16-block chunk grid"
-                    OnClick="ToggleChunks">Chunks</Chip>
-              <Chip Active="blocksOn" Title="@BlocksChipTitle"
-                    OnClick="ToggleBlocks">Blocks</Chip>
-              <Chip Active="snapOn" Title="Snap shapes to other shapes' edges while dragging (Alt bypasses)"
-                    OnClick="ToggleSnap">Snap</Chip>
-              <Chip Title="Fit the working bounds" OnClick="OnFit"><i data-lucide="scan"></i></Chip>
-              <Chip Active="threeD" Disabled="@isoUnavailable"
-                    Title="@(isoUnavailable ? "3-D preview needs WebGL, which isn't available in this browser" : "Isometric height preview (read-only)")"
-                    OnClick="Toggle3D">3D</Chip>
-              @if (isoUnavailable)
-              {
-                <span class="canvas-zoom" title="The 3-D height preview needs WebGL, which this browser can't provide.">no WebGL</span>
-              }
-              @if (threeD)
-              {
-                <Chip Title="Rotate the preview 90°" OnClick="RotateIso"><i data-lucide="rotate-cw"></i></Chip>
-              }
-              <span @ref="zoomRef" class="canvas-zoom">—</span>
-            </div>
-          </div>
           <div @ref="wrapRef" class="svg-area">
             <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
           </div>
+
+          <CanvasReadout @ref="readout" ShowSize />
+
+          @* In 3-D the layer chips have nothing to toggle — the isometric preview is one rendering of the
+             finished heights, not a stack of overlays — so the row collapses to the two controls that still
+             mean something there: the rotate that replaces fit, and the toggle back out. *@
+          <CanvasLayerBar>
+            @if (!threeD)
+            {
+              <LayerChip Icon="shapes" Active="shapesOn" Title="Show the draw primitives over the islands"
+                         OnClick="ToggleShapes">Shapes</LayerChip>
+              <LayerChip Icon="flip-horizontal-2" Active="mirrorOn" Title="Show the mirrored copies"
+                         OnClick="ToggleMirror">Mirror</LayerChip>
+              <LayerChip Icon="grid" Active="chunksOn" Title="Show the 16-block chunk grid"
+                         OnClick="ToggleChunks">Chunks</LayerChip>
+              <LayerChip Icon="box" Active="blocksOn" Title="@BlocksChipTitle"
+                         OnClick="ToggleBlocks">Blocks</LayerChip>
+              <LayerChip Icon="magnet" Active="snapOn" Title="Snap shapes to other shapes' edges while dragging (Alt bypasses)"
+                         OnClick="ToggleSnap">Snap</LayerChip>
+              <CanvasRoundButton Icon="scan" Title="Fit the working bounds" OnClick="OnFit" />
+            }
+            else
+            {
+              <CanvasRoundButton Icon="rotate-cw" Title="Rotate the preview 90°" OnClick="RotateIso" />
+            }
+            @if (isoUnavailable)
+            {
+              <span class="canvas-note" title="The 3-D height preview needs WebGL, which this browser can't provide.">no WebGL</span>
+            }
+            <ViewModeToggle ThreeD="threeD" Disabled="@isoUnavailable"
+                            Title="@(isoUnavailable ? "3-D preview needs WebGL, which isn't available in this browser" : "Isometric height preview (read-only)")"
+                            OnClick="Toggle3D" />
+          </CanvasLayerBar>
+
+          @* Nothing is drawn in the isometric preview, so the dock goes with the tools it holds. *@
+          @if (!threeD)
+          {
+          <CanvasDock>
+            @* Getting around the canvas and picking what is already on it — the whole dock in a select-only
+               phase (Theme). Every group after this one authors something, which is Draw's and Dressing's. *@
+            <DockGroup>
+              <DockButton Icon="mouse-pointer-2" Title="@SelectToolTitle" Active="@(tool == "select")"
+                          OnClick='() => SetTool("select")' />
+              <DockButton Icon="hand" Title="Move / pan" Active="@(tool == "move")"
+                          OnClick='() => SetTool("move")' />
+            </DockGroup>
+            @if (DressingActive)
+            {
+              <DockGroup>
+                @foreach (var placer in DressingTools.All)
+                {
+                  <DockButton Icon="@placer.Icon" Title="@placer.Title" @key="placer.Tool"
+                              Active="@(tool == placer.Tool)" OnClick="() => SetTool(placer.Tool)" />
+                }
+              </DockGroup>
+            }
+            else if (!ScopeApplyActive)
+            {
+              @* The three tools that make a shape, and the operation the shape will perform, in one box wearing
+                 one colour — so an armed carve cannot be read as an armed build. What a drawn shape does to
+                 the land is not a sibling of the tool that draws it, so the word leads the group rather than
+                 being a fourth glyph in it. *@
+              <DockGroup Accent="@OpAccent">
+                <DockModeButton Pressed="@Carving" Title="@OpTitle" OnClick="ToggleOperation">@(Carving ? "Carve" : "Build")</DockModeButton>
+                <DockButton Icon="rectangle-horizontal" Title="Rectangle" Active="@(tool == "rectangle")"
+                            OnClick='() => SetTool("rectangle")' />
+                <DockButton Icon="pentagon" Title="Polygon (click vertices, double-click to close)" Active="@(tool == "polygon")"
+                            OnClick='() => SetTool("polygon")' />
+                <DockButton Icon="lasso" Title="Lasso (hold and trace)" Active="@(tool == "lasso")"
+                            OnClick='() => SetTool("lasso")' />
+              </DockGroup>
+              @* Reads and cuts what is already drawn — neither makes land, so neither takes the operation
+                 colour and both sit in their own box. *@
+              <DockGroup>
+                <DockButton Icon="ruler" Title="Measure (drag across a void gap to read its length in blocks)"
+                            Active="@(tool == "measure")" OnClick='() => SetTool("measure")' />
+                <DockButton Icon="scissors" Title="Split (click two points to slice a shape in two along the line)"
+                            Active="@(tool == "split")" OnClick='() => SetTool("split")' />
+              </DockGroup>
+            }
+          </CanvasDock>
+          }
         </div>
         @if (DressingActive)
         {
