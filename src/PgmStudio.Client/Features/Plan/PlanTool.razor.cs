@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.JSInterop;
+using PgmStudio.Client.Components;
 using PgmStudio.Geom;
 using PgmStudio.Contracts;
 
@@ -48,7 +49,10 @@ public partial class PlanTool
         return Task.CompletedTask;
     }
 
-    private ElementReference svgRef, wrapRef, cursorRef;
+    private ElementReference svgRef, wrapRef;
+    /// <summary>The floating top-left readout. Its cursor element is handed to the canvas on mount,
+    /// which then writes the world position into it directly — per mousemove, far too often to render.</summary>
+    private CanvasReadout? readout;
     private IJSObjectReference? handle;
     private DotNetObjectReference<PlanTool>? selfRef;
 
@@ -230,7 +234,7 @@ public partial class PlanTool
         await JS.InvokeVoidAsync("studio.icons");
         if (!firstRender) return;
         selfRef = DotNetObjectReference.Create(this);
-        handle = await JS.InvokeAsync<IJSObjectReference>("studio.mountPlan", svgRef, wrapRef, cursorRef, selfRef);
+        handle = await JS.InvokeAsync<IJSObjectReference>("studio.mountPlan", svgRef, wrapRef, readout!.Cursor, selfRef);
         await handle.InvokeVoidAsync("setRole", role);
         try { SyncMeta(await handle.InvokeAsync<string>("getMeta")); } catch { /* start with defaults */ }
         try { SyncOverlays(await handle.InvokeAsync<string>("getOverlays")); } catch { /* keep defaults */ }

@@ -165,19 +165,6 @@
               <p class="section-desc">Trace a real map's top-down render to build a plan from it. The backdrop is saved with the plan as provenance and never affects the compiled output.</p>
             </Section>
 
-            <Section Title="Overlays">
-              <div class="plan-overlay-toggles">
-                <Chip Active="overlayInterfaces" Title="Land interfaces (green, slimmer core if narrow) · corner contacts (red)"
-                      OnClick='() => ToggleOverlay("interfaces")'>Interfaces</Chip>
-                <Chip Active="overlayFrontline" Title="Piece edges facing a build area"
-                      OnClick='() => ToggleOverlay("frontline")'>Frontline</Chip>
-                <Chip Active="overlayLabels" Title="Piece / build-area id labels and build-area gap links with hop distance"
-                      OnClick='() => ToggleOverlay("labels")'>Labels</Chip>
-                <Chip Active="heightMap" Title="Colour pieces by island height (surface y)"
-                      OnClick="ToggleHeightMap">Heights</Chip>
-              </div>
-              <p class="section-desc">Toggle the derived-structure overlays and the height ramp drawn on the canvas.</p>
-            </Section>
             }
             else if (leftPanel == "feasibility")
             {
@@ -298,87 +285,103 @@
         }
 
         <div class="workspace-canvas">
-          <div class="canvas-subbar">
-            <div class="plan-toolbar">
-              <button class="draw-tool-btn @(tool == "select" ? "draw-tool-btn--active" : null)" title="Select / edit"
-                      @onclick='() => PickTool("select")'><i data-lucide="mouse-pointer-2"></i></button>
-              <button class="draw-tool-btn @(tool == "pan" ? "draw-tool-btn--active" : null)" title="Move / pan"
-                      @onclick='() => PickTool("pan")'><i data-lucide="hand"></i></button>
-              <span class="plan-tool-sep"></span>
+          <div @ref="wrapRef" class="svg-area">
+            <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+          </div>
+
+          <CanvasReadout @ref="readout" ZoomText="@zoomLabel" />
+
+          @* The derived-structure overlays used to live in the Settings panel, three clicks and a scroll from
+             the drawing they annotate. They are what the canvas shows, so they are chips on the canvas. In
+             3-D there is nothing to overlay — the isometric preview is one rendering of the finished heights
+             — so the row collapses to the rotate and the toggle back out. *@
+          <CanvasLayerBar>
+            @if (!threeD)
+            {
+              <LayerChip Icon="spline" Active="overlayInterfaces"
+                         Title="Land interfaces (green, slimmer core if narrow) · corner contacts (red)"
+                         OnClick='() => ToggleOverlay("interfaces")'>Interfaces</LayerChip>
+              <LayerChip Icon="shield" Active="overlayFrontline" Title="Piece edges facing a build area"
+                         OnClick='() => ToggleOverlay("frontline")'>Frontline</LayerChip>
+              <LayerChip Icon="type" Active="overlayLabels"
+                         Title="Piece / build-area id labels and build-area gap links with hop distance"
+                         OnClick='() => ToggleOverlay("labels")'>Labels</LayerChip>
+              <LayerChip Icon="mountain" Active="heightMap" Title="Colour pieces by island height (surface y)"
+                         OnClick="ToggleHeightMap">Heights</LayerChip>
+              <CanvasRoundButton Icon="scan" Title="Fit the plan to view" OnClick="Fit" />
+            }
+            else
+            {
+              <CanvasRoundButton Icon="rotate-cw" Title="Rotate the preview 90°" OnClick="RotateIso" />
+            }
+            @if (isoUnavailable)
+            {
+              <span class="canvas-note" title="The 3-D height preview needs WebGL, which this browser can't provide.">no WebGL</span>
+            }
+            <ViewModeToggle ThreeD="threeD" Disabled="@isoUnavailable"
+                            Title="@(isoUnavailable ? "3-D preview needs WebGL, which isn't available in this browser" : "Isometric height preview (read-only)")"
+                            OnClick="Toggle3D" />
+          </CanvasLayerBar>
+
+          @if (!threeD)
+          {
+          <CanvasDock>
+            <DockGroup>
+              <DockButton Icon="mouse-pointer-2" Title="Select / edit" Active="@(tool == "select")"
+                          OnClick='() => PickTool("select")' />
+              <DockButton Icon="hand" Title="Move / pan" Active="@(tool == "pan")"
+                          OnClick='() => PickTool("pan")' />
+            </DockGroup>
+            @* The land: the roles that produce terrain, plus the build area they are laid out around. *@
+            <DockGroup>
               @foreach (var r in GeneratingRoles)
               {
-                <button class="draw-tool-btn @(tool == "piece" && role == r.Id ? "draw-tool-btn--active" : null)"
-                        style="--role-color:@r.Color" title="Draw a @r.Label piece" @onclick="() => PickRole(r.Id)">
-                  <span class="plan-role-swatch"></span>
-                </button>
+                <DockButton Swatch="@r.Color" Title="@($"Draw a {r.Label} piece")" @key="r.Id"
+                            Active="@(tool == "piece" && role == r.Id)" OnClick="() => PickRole(r.Id)" />
               }
-              <button class="draw-tool-btn @(tool == "zone" ? "draw-tool-btn--active" : null)" title="Draw a build area" @onclick='() => PickTool("zone")'>
-                <span class="plan-role-swatch plan-role-swatch--build"></span>
-              </button>
-              <span class="plan-tool-sep"></span>
-              <button class="draw-tool-btn @(tool == "spawn" ? "draw-tool-btn--active" : null)" title="Place a spawn marker · click a placed spawn to cycle its facing" @onclick='() => PickTool("spawn")'>
-                <i data-lucide="flag"></i>
-              </button>
-              <button class="draw-tool-btn @(tool == "wool" ? "draw-tool-btn--active" : null)" title="Place a wool goal marker" @onclick='() => PickTool("wool")'>
-                <i data-lucide="square"></i>
-              </button>
-              <button class="draw-tool-btn @(tool == "iron" ? "draw-tool-btn--active" : null)" title="Place an iron marker" @onclick='() => PickTool("iron")'>
-                <i data-lucide="pickaxe"></i>
-              </button>
+              <DockButton SwatchClass="canvas-dock-swatch--build" Title="Draw a build area"
+                          Active="@(tool == "zone")" OnClick='() => PickTool("zone")' />
+            </DockGroup>
+            @* What is put on the land — one glyph per thing placed. *@
+            <DockGroup>
+              <DockButton Icon="flag" Title="Place a spawn marker · click a placed spawn to cycle its facing"
+                          Active="@(tool == "spawn")" OnClick='() => PickTool("spawn")' />
+              <DockButton Icon="square" Title="Place a wool goal marker"
+                          Active="@(tool == "wool")" OnClick='() => PickTool("wool")' />
+              <DockButton Icon="pickaxe" Title="Place an iron marker"
+                          Active="@(tool == "iron")" OnClick='() => PickTool("iron")' />
               @* A destroyable is defended by one team and broken by the others, which only means something
                  when there are two: at four teams PGM treats every goal as shared, and what that should play
                  like is undecided. So the tool is offered for the 2-team symmetries only (OB14). *@
               @if (ObjectivesOfferable)
               {
-                <button class="draw-tool-btn @(tool == "destroyable" ? "draw-tool-btn--active" : null)" title="Place a destroyable (DTM) marker" @onclick='() => PickTool("destroyable")'>
-                  <i data-lucide="gem"></i>
-                </button>
-                <button class="draw-tool-btn @(tool == "core" ? "draw-tool-btn--active" : null)" title="Place a core (DTC) marker" @onclick='() => PickTool("core")'>
-                  <i data-lucide="flame"></i>
-                </button>
+                <DockButton Icon="gem" Title="Place a destroyable (DTM) marker"
+                            Active="@(tool == "destroyable")" OnClick='() => PickTool("destroyable")' />
+                <DockButton Icon="flame" Title="Place a core (DTC) marker"
+                            Active="@(tool == "core")" OnClick='() => PickTool("core")' />
               }
-              <button class="draw-tool-btn @(tool == "wall" ? "draw-tool-btn--active" : null)" title="Raise a pre-built wall on the land interface you click · click again to move its defence chests to the other side, once more to remove it" @onclick='() => PickTool("wall")'>
-                <i data-lucide="brick-wall"></i>
-              </button>
-              <span class="plan-tool-sep"></span>
+              <DockButton Icon="brick-wall" Title="Raise a pre-built wall on the land interface you click · click again to move its defence chests to the other side, once more to remove it"
+                          Active="@(tool == "wall")" OnClick='() => PickTool("wall")' />
+            </DockGroup>
+            @* Annotations that reserve or connect rather than produce — they never generate terrain. *@
+            <DockGroup>
               @foreach (var r in TechnicalRoles)
               {
-                <button class="draw-tool-btn @(tool == "piece" && role == r.Id ? "draw-tool-btn--active" : null)"
-                        style="--role-color:@r.Color" title="Draw a @r.Label annotation" @onclick="() => PickRole(r.Id)">
-                  <span class="plan-role-swatch plan-role-swatch--@r.Id"></span>
-                </button>
+                <DockButton SwatchClass="@($"canvas-dock-swatch--{r.Id}")" Title="@($"Draw a {r.Label} annotation")" @key="r.Id"
+                            Active="@(tool == "piece" && role == r.Id)" OnClick="() => PickRole(r.Id)" />
               }
-              @* Box envelopes: one tool per typed kind, so drawing one states what the pieces inside it
-                 realize. Annotation only — a box never compiles, and dragging it carries its members. *@
-              <span class="plan-tool-sep"></span>
+            </DockGroup>
+            @* Box envelopes: one tool per typed kind, so drawing one states what the pieces inside it
+               realize. Annotation only — a box never compiles, and dragging it carries its members. *@
+            <DockGroup>
               @foreach (var k in BoxKinds)
               {
-                <button class="draw-tool-btn @(tool == "box" && boxKind == k.Id ? "draw-tool-btn--active" : null)"
-                        style="--role-color:@k.Color" title="Draw a @k.Label box" @onclick="() => PickBoxKind(k.Id)">
-                  <span class="plan-role-swatch plan-role-swatch--box"></span>
-                </button>
+                <DockButton Swatch="@k.Color" SwatchClass="canvas-dock-swatch--box" Title="@($"Draw a {k.Label} box")" @key="k.Id"
+                            Active="@(tool == "box" && boxKind == k.Id)" OnClick="() => PickBoxKind(k.Id)" />
               }
-            </div>
-            <div @ref="cursorRef" class="canvas-cursor"></div>
-            <div class="canvas-subbar-right">
-              <Chip Title="Fit the plan to view" OnClick="Fit"><i data-lucide="scan"></i></Chip>
-              <Chip Active="threeD" Disabled="@isoUnavailable"
-                    Title="@(isoUnavailable ? "3-D preview needs WebGL, which isn't available in this browser" : "Isometric height preview (read-only)")"
-                    OnClick="Toggle3D">3D</Chip>
-              @if (isoUnavailable)
-              {
-                <span class="canvas-zoom" title="The 3-D height preview needs WebGL, which this browser can't provide.">no WebGL</span>
-              }
-              @if (threeD)
-              {
-                <Chip Title="Rotate the preview 90°" OnClick="RotateIso"><i data-lucide="rotate-cw"></i></Chip>
-              }
-              <span class="canvas-zoom">@zoomLabel</span>
-            </div>
-          </div>
-          <div @ref="wrapRef" class="svg-area">
-            <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
-          </div>
+            </DockGroup>
+          </CanvasDock>
+          }
         </div>
         <div class="sidebar-handle"></div>
         <Inspector>
