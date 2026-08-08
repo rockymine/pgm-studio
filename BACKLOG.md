@@ -384,18 +384,18 @@ import diagnostic (`B24e`), detection (`B26`), and the island-floor work the pha
   different severities of truth; do not blur them into one list without saying which is which. World access
   is **not** the blocker it was originally filed as — 14 test files already read blocks out of a built
   world. (OB3, OB11, OB12)
-- [ ] **B31 — Island detection still guesses at the build floor a parsed phantom now states exactly.**
-  `LayerExtractors.CleanBaseExclude` excludes stained glass (95) as a "build-floor marker removed pre-game
-  via a `destroyables` mode-change" — a **material guess** ("glass as the lowest solid must be a build
-  floor") that stands in for the phantom pattern because the parser could not see the mode. The phantom
-  classifier removed that excuse: a `BlockSwap` phantom's region + its mode state **precisely which blocks
-  vanish before play**,
-  per map, with no material heuristic. Replace the guess with the fact — feed the phantom regions of a map
-  into the scan so the cleaned base subtracts exactly what the mode erases, and drop 95 from the blanket
-  exclusion once it does (the guess also silently eats decorative glass floors that are *not* build markers,
-  which is the failure mode in the other direction). The plumbing is the real work, not the rule:
-  `LayerExtractors` (`PgmStudio.Minecraft`) runs with no map context today, so the phantom regions have to
-  reach it. Pairs with `G9`/`G12`. (OB16, `destroyables-and-cores.md` §2)
+- [ ] **B57 — `layer_segment` counts a build-region marker as solid ground.** Island detection now separates
+  terrain from markers and from what a map erases before play (`FEATURES.md`,
+  `docs/contracts/terrain-ground-truth.md`), but that runs on `CleanColumns` → `islands_json` only. The other
+  ingest derivation, `FeatureExtractors.Segments` → `layer_segment`, has its own exclusion set and applies
+  neither rule, so a floor sheet at `y=0` persists as a solid span. Everything reading it at query time
+  (`SegmentIndex.BaseColumns` → `IslandDetector.CleanedBaseFootprint`) therefore walks on a marker. Narrower
+  than it sounds — that path feeds kit-reach, not the island picture the configure tool draws — which is why
+  it is filed rather than fixed alongside. The two derivations should agree on what ground is, and the fix is
+  to route the floor-marker rule through both. **Blocked in practice by re-import**: `layer_segment` is
+  written once at ingest from a world that is then discarded, so changing it reaches existing maps only when
+  a map can be re-imported.
+
 - [ ] **B55 — Decide which API paths read a map *as played*, then wire `Includes:Root`.** `IncludeLibrary`
   and the resolved parse are in and gated by tests (`FEATURES.md`), and the harness uses them
   (`--resolve-includes`, `--water-lanes --includes-dir`). The API does not, because which reading each

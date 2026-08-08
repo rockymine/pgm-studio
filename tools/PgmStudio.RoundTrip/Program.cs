@@ -2,6 +2,8 @@ using System.Globalization;
 using PgmStudio.Pgm;
 using PgmStudio.Domain;
 using PgmStudio.Pgm.Detect;
+using PgmStudio.Minecraft;
+using PgmStudio.Analysis.Footprint;
 using JP = System.Text.Json.Serialization.JsonPropertyNameAttribute;
 
 // Numbers are dot-separated whatever the host's regional settings say — the same pin the API and the client
@@ -178,6 +180,10 @@ if (afIdx >= 0)
 if (args.Contains("--includes"))
     return RunIncludes(defaultRoots, args, verbose);
 
+// --island-erasure: island detection with the stained-glass guess vs with the map's stated phantom erasure.
+if (args.Contains("--island-erasure"))
+    return RunIslandErasure(defaultRoots, verbose);
+
 // --resolve-includes <includesDir>: parse every map twice — as written, and with the fragments spliced —
 // and report what resolving them changes.
 var riIdx = Array.IndexOf(args, "--resolve-includes");
@@ -229,6 +235,51 @@ if (failures.Count > 0)
     if (!verbose && failed > 20) Console.WriteLine($"  ... and {failed - 20} more (use --verbose)");
 }
 return failed == 0 ? 0 : 1;
+
+// What dropping the stained-glass guess and honouring a map's stated phantom erasure does to island
+// detection, measured on the real worlds. Each map is scanned twice — once as the blanket exclusion read it,
+// once as the map states it — and the difference is the answer. A build-floor sheet that vanishes before play
+// must not merge islands; a decorative glass floor that stays must not be deleted.
+static int RunIslandErasure(string[] corpusRoots, bool verbose)
+{
+    var maps = CorpusMaps(corpusRoots)
+        .Where(m => Directory.Exists(Path.Combine(Path.GetDirectoryName(m.XmlPath)!, "region")))
+        .ToList();
+
+    int changed = 0, withErasure = 0, scanned = 0, unreadable = 0;
+    foreach (var (slug, xmlPath) in maps)
+    {
+        PhantomErasure erased;
+        try { erased = PhantomErasure.From(MapParser.Parse(xmlPath)); }
+        catch (UnsupportedMapException) { unreadable++; continue; }
+
+        var regionDir = Path.Combine(Path.GetDirectoryName(xmlPath)!, "region");
+        List<AnvilRegion.Chunk> chunks;
+        try { chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(AnvilRegion.ReadChunks).ToList(); }
+        catch (Exception ex) { Console.WriteLine($"  {slug,-30} unreadable world: {ex.GetType().Name}"); continue; }
+        scanned++;
+        if (!erased.IsEmpty) withErasure++;
+
+        // The old reading: stained glass excluded in every map, phantoms unread.
+        var guessExclude = new HashSet<int>(LayerExtractors.CleanBaseExclude) { 95 };
+        var before = IslandDetector.DetectCleanedStairAware(
+            LayerExtractors.CleanColumns(chunks, PhantomErasure.None, guessExclude)
+                .Select(c => (c.WorldX, c.WorldZ, c.BaseY, c.Surfaces)).ToList(), []);
+        var after = IslandDetector.DetectCleanedStairAware(
+            LayerExtractors.CleanColumns(chunks, erased)
+                .Select(c => (c.WorldX, c.WorldZ, c.BaseY, c.Surfaces)).ToList(), []);
+
+        if (before.Count == after.Count && !verbose) continue;
+        changed += before.Count == after.Count ? 0 : 1;
+        Console.WriteLine($"  {slug,-30} islands {before.Count}->{after.Count}"
+                          + (erased.IsEmpty ? "" : $"   (erases {erased.Boxes.Count} box(es))"));
+    }
+
+    Console.WriteLine();
+    Console.WriteLine($"island count changed on {changed} of {scanned} scanned map(s); "
+                      + $"{withErasure} state a pre-play erasure; {unreadable} outside the supported range");
+    return 0;
+}
 
 // Every <include> id the corpus references, per map and as a histogram. The studio holds the id and nothing
 // else — PGM resolves a fragment out of its own includes directory, which no map folder carries — so this

@@ -2,6 +2,8 @@ using FastEndpoints;
 using PgmStudio.Api.Services;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
+using PgmStudio.Domain;
+using PgmStudio.Pgm;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -30,7 +32,16 @@ public sealed class ScanWorldEndpoint(MapRepository repo, WorldFeatureWriter wri
             return;
         }
 
-        var c = await writer.WriteAsync(map.Id, regionDir, ct);
+        // A corpus map states what it deletes before play; island detection subtracts exactly that instead of
+        // guessing at a build floor by material. A map with no XML (every zip/folder import) erases nothing.
+        var erased = PhantomErasure.None;
+        if (roots.MapXmlPath(slug) is { } mapXml)
+        {
+            try { erased = PhantomErasure.From(MapParser.Parse(mapXml)); }
+            catch (UnsupportedMapException) { /* unreadable XML states nothing; read the world as it sits */ }
+        }
+
+        var c = await writer.WriteAsync(map.Id, regionDir, erased, ct);
         await Send.OkAsync(new Dict
         {
             ["ok"] = true,

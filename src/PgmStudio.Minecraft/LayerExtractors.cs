@@ -1,3 +1,5 @@
+using PgmStudio.Domain;
+
 namespace PgmStudio.Minecraft;
 
 /// <summary>A surface-scan cell: the chosen block of a column at world (x,z).</summary>
@@ -18,29 +20,63 @@ public static class LayerExtractors
     private static readonly HashSet<int> DefaultBaseExclude = [36];
 
     /// <summary>
-    /// The "cleaned base" exclude set for new-map island detection (ND2 §6a / A5). The bottom-up base
-    /// scan "looks up" into anything over the terrain, so on decorated worlds it catches connected masses
-    /// that destabilise the island picture. This set is the corpus-derived noise the reference project's
-    /// per-map `map_layouts.json` hand-excluded — water/lava (the usual island *bridge*), foliage
-    /// (overlapping leaves/logs/canopy), redstone lines, and cobweb — unioned with the {36} marker and the
-    /// stained-glass build-floor marker. (Specks like a lone cobweb never form an island anyway;
-    /// <see cref="IslandDetector"/>'s min-size prune drops them. This set targets the *connected* masses.)
-    /// <para>Stained glass (95) joins {36}: a low stained-glass slab is a build-region floor — PGM
-    /// auto-detects it as buildable like the invisible block-36 marker, and such maps remove it pre-game via
-    /// a <c>destroyables</c> mode-change while defining their build region explicitly with a void filter.
-    /// Excluding it only affects columns where glass is the *lowest* solid (a glass floor), so decorative
-    /// glass walls/windows above other blocks are untouched; it un-merges floors that bridge the teams
-    /// (e.g. abstract) without regressing the tested corpus.</para>
+    /// The "cleaned base" exclude set for island detection. The bottom-up base scan "looks up" into anything
+    /// over the terrain, so on decorated worlds it catches connected masses that destabilise the island
+    /// picture. Everything here is <b>noise that is never ground</b>, whatever map it is in: water and lava
+    /// (the usual island <i>bridge</i>), foliage (overlapping leaves/logs/canopy), redstone lines, cobweb, and
+    /// the invisible block-36 marker. Specks like a lone cobweb never form an island anyway
+    /// (<see cref="IslandDetector"/>'s min-size prune drops them); this set targets the <i>connected</i> masses.
+    /// <para><b>Stained glass (95) is deliberately not here</b> — it moved to <see cref="FloorMarkerIds"/>,
+    /// which applies only at the world floor. It sat here as a blanket exclusion, and that was two mistakes in
+    /// one: it deleted glass wherever glass was lowest, which on the_high_seas meant a 30,872-column glass sea
+    /// at y=58, and on rock_the_casbah 17,369 columns at y≈60–77. Neither is a marker; both are the map.</para>
     /// </summary>
     public static readonly IReadOnlySet<int> CleanBaseExclude = new HashSet<int>
     {
         36,                                 // piston_moving_piece (the existing Base default)
-        95,                                 // stained glass — low build-floor marker (removed pre-game)
         8, 9, 10, 11,                       // water (flow/still), lava (flow/still) — the bridge
         6, 17, 18, 31, 32, 106, 111, 161, 162, // sapling, log, leaves, tallgrass, deadbush, vine, lily_pad, leaves2, log2
         55, 75, 76, 131, 132,               // redstone wire, redstone torch (off/on), tripwire hook, tripwire (string)
         30,                                 // cobweb
     };
+
+    /// <summary>
+    /// Blocks that are a <b>build-region marker</b> rather than ground, and only where a marker can do its job:
+    /// the world floor. PGM's void filter reads <c>(x, 0, z)</c> and nothing else, so a sheet laid there makes
+    /// the whole column buildable — which is why authors lay one, and why it is not terrain. The same sheet at
+    /// y=58 is a glass roof over the sea.
+    /// <para>The invisible block-36 marker needs no height rule (it is noise anywhere and lives in
+    /// <see cref="CleanBaseExclude"/>); stained glass does, because it is also a building material. Measured on
+    /// the corpus: every map whose glass floor bridges its islands lays it at y=0 — newgen, outlyne and
+    /// rushers_vs_defenders at 100% — while the maps the blanket rule damaged carry theirs at y≥4.</para>
+    /// </summary>
+    public static readonly IReadOnlySet<int> FloorMarkerIds = new HashSet<int> { 95 };
+
+    /// <summary>The highest Y a <see cref="FloorMarkerIds"/> block counts as a marker. A marker sheet spans the
+    /// single floor layer, which maps write as a cuboid <c>y = 0..1</c>.</summary>
+    public const int FloorMarkerMaxY = 1;
+
+    /// <summary>Columns whose lowest non-air block is stained glass, with that block's Y — the measurement
+    /// behind <see cref="FloorMarkerMaxY"/>, kept because the rule is only as good as that distribution.</summary>
+    public static IEnumerable<(int X, int Z, int Y)> BaseGlassColumns(IEnumerable<AnvilRegion.Chunk> chunks)
+    {
+        foreach (var chunk in chunks)
+        {
+            var (ids, _) = BuildVolume(chunk);
+            for (var lz = 0; lz < 16; lz++)
+                for (var lx = 0; lx < 16; lx++)
+                {
+                    var col = (lz << 4) | lx;
+                    for (var y = 0; y <= 255; y++)
+                    {
+                        int id = ids[(y << 8) | col];
+                        if (id == 0) continue;
+                        if (id == 95) yield return (chunk.ChunkX * 16 + lx, chunk.ChunkZ * 16 + lz, y);
+                        break;
+                    }
+                }
+        }
+    }
 
     /// <summary>The Base extractor with the cleaned-base noise exclusion (<see cref="CleanBaseExclude"/>) —
     /// the detection layer for new-map authoring (ND2 §6a). Carries per-cell <c>WorldY</c> for the
@@ -61,8 +97,22 @@ public static class LayerExtractors
     /// foliage/water reads at its high floor and detaches from the terrace), this also reports the
     /// intermediate stair/ledge surfaces, so stair-aware detection can keep a walkable structure attached.
     /// </summary>
-    public static IEnumerable<CleanColumn> CleanColumns(IEnumerable<AnvilRegion.Chunk> chunks)
+    /// <inheritdoc cref="CleanColumns(IEnumerable{AnvilRegion.Chunk}, PhantomErasure)"/>
+    public static IEnumerable<CleanColumn> CleanColumns(IEnumerable<AnvilRegion.Chunk> chunks) =>
+        CleanColumns(chunks, PhantomErasure.None);
+
+    /// <param name="erased">What the map deletes before the first tick (<see cref="PhantomErasure"/>). Those
+    /// blocks are skipped as if they were air, because at the moment the match starts that is what they are:
+    /// a build-floor sheet laid to satisfy the void filter is gone before anyone plays, and counting it as
+    /// ground merges the islands it bridges. <see cref="PhantomErasure.None"/> reads the world as it sits.</param>
+    /// <inheritdoc cref="CleanColumns(IEnumerable{AnvilRegion.Chunk})"/>
+    /// <param name="excludeIds">The noise set, defaulting to <see cref="CleanBaseExclude"/>. A parameter for the
+    /// same reason <see cref="Base"/>'s is: a measurement that compares two readings of one world has to be able
+    /// to state both.</param>
+    public static IEnumerable<CleanColumn> CleanColumns(IEnumerable<AnvilRegion.Chunk> chunks, PhantomErasure erased,
+                                                       IReadOnlySet<int>? excludeIds = null)
     {
+        var exclude = excludeIds ?? CleanBaseExclude;
         foreach (var chunk in chunks)
         {
             var (ids, _) = BuildVolume(chunk);
@@ -72,17 +122,26 @@ public static class LayerExtractors
                 for (var lx = 0; lx < 16; lx++)
                 {
                     var col = (lz << 4) | lx;
+                    var worldX = baseX + lx;
+                    var worldZ = baseZ + lz;
                     int baseY = -1;
                     var surfaces = new List<int>();
-                    for (var y = 0; y <= 255; y++)
+
+                    bool Solid(int y)
                     {
                         int id = ids[(y << 8) | col];
-                        if (id == 0 || CleanBaseExclude.Contains(id)) continue;   // air / cleaned-out noise
-                        if (baseY < 0) baseY = y;
-                        int above = y < 255 ? ids[((y + 1) << 8) | col] : 0;
-                        if (above == 0 || CleanBaseExclude.Contains(above)) surfaces.Add(y);   // standable top
+                        if (id == 0 || exclude.Contains(id)) return false;
+                        if (y <= FloorMarkerMaxY && FloorMarkerIds.Contains(id)) return false;   // build-region marker
+                        return !erased.Erases(worldX, y, worldZ, id);
                     }
-                    if (baseY >= 0) yield return new CleanColumn(baseX + lx, baseZ + lz, baseY, surfaces);
+
+                    for (var y = 0; y <= 255; y++)
+                    {
+                        if (!Solid(y)) continue;                                  // air / noise / erased pre-game
+                        if (baseY < 0) baseY = y;
+                        if (y == 255 || !Solid(y + 1)) surfaces.Add(y);           // standable top
+                    }
+                    if (baseY >= 0) yield return new CleanColumn(worldX, worldZ, baseY, surfaces);
                 }
         }
     }

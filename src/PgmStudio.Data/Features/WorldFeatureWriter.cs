@@ -4,6 +4,7 @@ using LinqToDB.Data;
 using Parquet.Serialization;
 using PgmStudio.Analysis.Footprint;
 using PgmStudio.Data.Schema;
+using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 
 namespace PgmStudio.Data.Features;
@@ -27,8 +28,16 @@ public sealed class WorldFeatureWriter(PgmDb db)
         [System.Text.Json.Serialization.JsonPropertyName("block_data")] public int BlockData { get; set; }
     }
 
-    /// <summary>Read every <c>.mca</c> in <paramref name="regionDir"/> and write its features for <paramref name="mapId"/>.</summary>
-    public async Task<Counts> WriteAsync(long mapId, string regionDir, CancellationToken ct = default)
+    /// <inheritdoc cref="WriteAsync(long, string, PhantomErasure, CancellationToken)"/>
+    public Task<Counts> WriteAsync(long mapId, string regionDir, CancellationToken ct = default) =>
+        WriteAsync(mapId, regionDir, PhantomErasure.None, ct);
+
+    /// <summary>Read every <c>.mca</c> in <paramref name="regionDir"/> and write its features for
+    /// <paramref name="mapId"/>.</summary>
+    /// <param name="erased">What the map deletes before play (<see cref="PhantomErasure"/>), so island
+    /// detection subtracts it rather than reading it as ground. Only a map that already has an XML can state
+    /// this; a freshly imported world has none, and passes <see cref="PhantomErasure.None"/>.</param>
+    public async Task<Counts> WriteAsync(long mapId, string regionDir, PhantomErasure erased, CancellationToken ct = default)
     {
         // Materialise once — the region files are re-enumerated by each extractor.
         var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(AnvilRegion.ReadChunks).ToList();
@@ -64,7 +73,7 @@ public sealed class WorldFeatureWriter(PgmDb db)
         var monuments = MonumentSuggester.Gather(chunks, WorldBox(chunks));
         var monCount = await MonumentCandidateStore.WriteAsync(db, mapId, monuments, ct);
 
-        var islands = await WriteArtifactsAsync(mapId, chunks, ct);
+        var islands = await WriteArtifactsAsync(mapId, chunks, erased, ct);
         return new Counts(wool.Count, res.Count, chests.Count, spawners.Count, segs.Count, islands, monCount);
     }
 
@@ -122,7 +131,8 @@ public sealed class WorldFeatureWriter(PgmDb db)
     /// top-down render), island detection on the <b>cleaned Base</b> (ND2 §6a — height-aware, with a deferred
     /// y0/bedrock fallback for degenerate reads) → islands.json, and the initial map_config.json. Returns the
     /// island count. (Symmetry is derived from islands.json on demand by the B7 endpoint.)</summary>
-    private async Task<int> WriteArtifactsAsync(long mapId, IReadOnlyList<AnvilRegion.Chunk> chunks, CancellationToken ct)
+    private async Task<int> WriteArtifactsAsync(long mapId, IReadOnlyList<AnvilRegion.Chunk> chunks,
+                                                PhantomErasure erased, CancellationToken ct)
     {
         var surface = LayerExtractors.Surface(chunks).ToList();
 
@@ -130,7 +140,7 @@ public sealed class WorldFeatureWriter(PgmDb db)
         // Stair-aware: each column carries every standable surface, so a walkable structure stays attached
         // to the terrace it climbs from. Fallback layers are lazy — only scanned on a degenerate read.
         static (int X, int Z, int Y) Cell(SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
-        var columns = LayerExtractors.CleanColumns(chunks)
+        var columns = LayerExtractors.CleanColumns(chunks, erased)
             .Select(c => (c.WorldX, c.WorldZ, c.BaseY, c.Surfaces)).ToList();
         var fallbacks = new[] { LayerExtractors.Y0(chunks).Select(Cell), LayerExtractors.Bedrock(chunks).Select(Cell) };
         var islands = IslandDetector.DetectCleanedStairAware(columns, fallbacks);

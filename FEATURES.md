@@ -637,6 +637,21 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) and `primitive-styles.md` follow. (C43)
 
 ## Backend / API (B)
+- **Island detection tells terrain, markers and erased blocks apart (B31).** A bottom-up scan asks "where does
+  the ground start", and a Minecraft world holds three kinds of solid block with only one of them ground. They
+  are now separated by three rules, each grounded in a different authority. **Noise** (water, lava, foliage,
+  redstone, cobweb, block-36) is never ground anywhere and stays a flat exclusion. **Markers** are ground-shaped
+  but exist to be read: PGM's void filter reads `(x, 0, z)` and nothing else, so a sheet at the world floor
+  declares a column buildable without being walkable — excluded, but **only at the floor**. **Erasure** is what
+  the map itself states vanishes: a hidden destroyable whose mode replaces it with air at `0s`
+  (`PhantomErasure`), read from the region and materials rather than inferred, and failing closed on anything it
+  cannot state exactly.
+  The height bound is the finding. Stained glass sat in the flat noise set, deleted wherever it was a column's
+  lowest solid — which erased **30,872 columns of glass sea at y=58 on the_high_seas** and 17,369 at y≈60–77 on
+  rock_the_casbah, while the maps whose glass genuinely bridges islands lay it at `y=0`, 100% of the time.
+  Scoping to the floor preserves those exactly (newgen, outlyne, rushers_vs_defenders and ad_infinitum do not
+  move) and returns terrain to 16 corpus maps carrying glass above it. Measured with `--island-erasure` over 398
+  worlds. (B31, OB16, `docs/contracts/terrain-ground-truth.md`)
 - **Water lanes: all four wirings detected, the newest one authored (B28).** A water lane is a gap that
   becomes bridgeable part-way through a match, and the mechanism is PGM's void filter read *live*: a column
   is void iff `(x, 0, z)` is air, evaluated at query time, so anything landing at `y=0` opens the whole
