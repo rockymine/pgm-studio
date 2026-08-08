@@ -747,13 +747,14 @@ a.piece:hover { border-color: var(--accent); background: var(--panel); }
     <div class="va-hero">
       <div class="va-head">
         <span class="wordmark" style="font-size:20px"><b>pgm</b><span>STUDIO</span></span>
-        <h1 class="va-h1">Author a Capture-the-Wool map on a grid. <em>Compile it into a world.</em></h1>
-        <p class="va-lead">Lay a board out in coarse cells — pieces, lanes, wool rooms, spawns —
-          and one team is all you draw: symmetry fans the rest. From there the studio builds the
-          terrain, wires the objectives and writes a valid <code>map.xml</code>.</p>
+        <h1 class="va-h1">Design Capture-the-Wool maps on a <em>coarse grid</em>.</h1>
+        <p class="va-lead">A layout is authored as a grid of typed cells — pieces, connectors, wool
+          rooms and spawns. Only one team's half is drawn; the selected symmetry generates the
+          remaining teams. Compiling that layout realizes the terrain, places the objectives and
+          exports a valid <code>map.xml</code>.</p>
         <div class="va-cta">
-          <a class="btn btn-primary" href="#">Start a plan <span class="arrow">→</span></a>
-          <a class="btn btn-ghost" href="#">Open a map</a>
+          <a class="btn btn-primary" href="#">Create a plan <span class="arrow">→</span></a>
+          <a class="btn btn-ghost" href="#">Browse maps</a>
         </div>
       </div>
 
@@ -770,21 +771,21 @@ a.piece:hover { border-color: var(--accent); background: var(--panel); }
         </div>
         <div class="fig-frame">
           <div data-fig="sketch"></div>
-          <div class="fig-cap"><span>Sketch · themed &amp; dressed</span><span>140 × 95 blocks</span></div>
+          <div class="fig-cap"><span>Sketch · themed and dressed</span><span>140 × 95 blocks</span></div>
         </div>
       </div>
     </div>
 
     <div class="va-rail-head">
-      <h2>Five stages, one direction</h2>
-      <span class="eyebrow">nothing later reopens what something earlier settled</span>
+      <h2>The authoring pipeline</h2>
+      <span class="eyebrow">each stage is fixed before the next begins</span>
     </div>
 
     <div class="va-rail" data-stages="a"></div>
 
     <div class="va-rail-head" style="margin-top:56px">
-      <h2>And beside the line</h2>
-      <span class="eyebrow">tools that feed any stage</span>
+      <h2>Supporting tools</h2>
+      <span class="eyebrow">available at any stage</span>
     </div>
     <div class="va-tools" data-tools="a"></div>
 
@@ -815,14 +816,14 @@ a.piece:hover { border-color: var(--accent); background: var(--panel); }
 
       <div class="vb-hero">
         <div class="vb-head">
-          <span class="eyebrow">Capture-the-Wool authoring &amp; analysis</span>
-          <h1 class="vb-h1">Every map starts as<em>twenty rectangles.</em></h1>
-          <p class="vb-lead">A plan is a coarse cell grid: which piece is a spawn, which is a wool room,
-            where the lanes run, where the mid is. Compile it and the studio realizes the geometry,
-            paints the terrain, places the objectives and exports a playable
-            <code>map.xml</code> — with every map in the database, not on a disk somewhere.</p>
+          <span class="eyebrow">Capture-the-Wool authoring and analysis</span>
+          <h1 class="vb-h1">Map layouts begin as<em>a grid of typed rectangles.</em></h1>
+          <p class="vb-lead">A plan assigns a role to every rectangle — spawn, wool room, connector,
+            buffer — and defines the lanes, the mid and the build zones. Compiling it produces the
+            island geometry, the terrain paint, the objective placements and an exportable
+            <code>map.xml</code>. All map data is held in the database rather than in loose files.</p>
           <div class="vb-cta">
-            <a class="btn btn-primary" href="#">Start a plan <span class="arrow">→</span></a>
+            <a class="btn btn-primary" href="#">Create a plan <span class="arrow">→</span></a>
             <a class="btn btn-ghost" href="#">Browse generated layouts</a>
           </div>
           <div class="facts" data-facts style="margin-top:12px"></div>
@@ -831,7 +832,7 @@ a.piece:hover { border-color: var(--accent); background: var(--panel); }
         <div class="vb-stack">
           <div class="fig-frame">
             <div data-fig="plan"></div>
-            <div class="fig-cap"><span>The plan you author</span><span>8 pieces · 1 zone</span></div>
+            <div class="fig-cap"><span>Authored plan</span><span>8 pieces · 1 zone</span></div>
           </div>
           <div class="seam">
             <span class="seam-rule"></span>
@@ -841,7 +842,7 @@ a.piece:hover { border-color: var(--accent); background: var(--panel); }
           </div>
           <div class="fig-frame">
             <div data-fig="sketch"></div>
-            <div class="fig-cap"><span>The world it builds</span><span>themed · dressed</span></div>
+            <div class="fig-cap"><span>Compiled world</span><span>themed · dressed</span></div>
           </div>
         </div>
       </div>
@@ -849,8 +850,8 @@ a.piece:hover { border-color: var(--accent); background: var(--panel); }
       <div class="vb-body">
         <div>
           <div class="vb-sec-head">
-            <span class="eyebrow">the lifecycle</span>
-            <h2>One map row travels the whole way</h2>
+            <span class="eyebrow">lifecycle</span>
+            <h2>A single map record advances through every stage</h2>
           </div>
           <div class="vb-spine" data-stages="b"></div>
         </div>
@@ -859,22 +860,22 @@ a.piece:hover { border-color: var(--accent); background: var(--panel); }
           <div>
             <div class="vb-sec-head">
               <span class="eyebrow">also in the studio</span>
-              <h2>Beside the line</h2>
+              <h2>Supporting tools</h2>
             </div>
             <div class="vb-shelf" data-tools="b"></div>
           </div>
 
           <div class="vb-note">
-            <b>A map keeps every layer it has ever had.</b> A configured map still holds its
-            sketch; a built map still holds its plan. Each one is a click from the map list —
-            and opening a layer changes nothing until you rebuild.
+            <b>Every authoring layer is retained.</b> A configured map retains its sketch; a built
+            map retains its plan. Each layer is reachable directly from the map list, and opening
+            one does not modify it — a layer is replaced only by an explicit rebuild.
           </div>
         </aside>
       </div>
 
       <div class="foot">
         <span class="mono">ASP.NET Core · Blazor WebAssembly · MariaDB · PGM proto 1.4.0+</span>
-        <span class="mono" style="margin-left:auto">350-map corpus, round-tripped losslessly</span>
+        <span class="mono" style="margin-left:auto">350-map reference corpus, round-tripped without loss</span>
       </div>
     </div>
   </div>
@@ -896,13 +897,13 @@ a.piece:hover { border-color: var(--accent); background: var(--panel); }
       <div class="vc-hero">
         <div class="vc-hero-grid">
           <div class="vc-head">
-            <h1 class="vc-h1">The whole map fits <em>on one grid.</em></h1>
-            <p class="vc-lead">Draw one team's half in coarse cells. Symmetry fans the rest, the
-              compiler realizes the terrain, and what comes out the far end is a playable
-              <code>map.xml</code>.</p>
+            <h1 class="vc-h1">A complete map layout on <em>a single coarse grid.</em></h1>
+            <p class="vc-lead">One team's half is authored in coarse cells. The selected symmetry
+              generates the remaining teams, the compiler realizes the terrain, and the pipeline
+              exports a valid <code>map.xml</code>.</p>
             <div class="vc-cta">
-              <a class="btn btn-primary" href="#">Start a plan <span class="arrow">→</span></a>
-              <a class="btn btn-ghost" href="#">Open a map</a>
+              <a class="btn btn-primary" href="#">Create a plan <span class="arrow">→</span></a>
+              <a class="btn btn-ghost" href="#">Browse maps</a>
             </div>
           </div>
           <div class="vc-diptych">
@@ -927,7 +928,7 @@ a.piece:hover { border-color: var(--accent); background: var(--panel); }
       <div class="vc-sec">
         <div class="vc-sec-head">
           <span class="eyebrow">pieces</span>
-          <h2>The pipeline, seated left to right</h2>
+          <h2>Pipeline stages</h2>
           <span class="rule"></span>
         </div>
         <div class="vc-board" data-stages="c"></div>
@@ -936,7 +937,7 @@ a.piece:hover { border-color: var(--accent); background: var(--panel); }
       <div class="vc-sec">
         <div class="vc-sec-head">
           <span class="eyebrow">zones</span>
-          <h2>Overlapping the line</h2>
+          <h2>Supporting tools</h2>
           <span class="rule"></span>
         </div>
         <div class="vc-zones" data-tools="c"></div>
@@ -1080,7 +1081,7 @@ function figPlan() {
   g.push(`<path d="M ${ox - 7} ${oy - 8} a 11 11 0 0 1 15 3" fill="none" stroke="var(--symmetry)" stroke-width="1.4"/>`);
   g.push(`<path d="M ${ox + 8} ${oy - 6.5} l 1.5 4.5 l -4.5 -1" fill="var(--symmetry)"/>`);
 
-  return frame(g.join(""), "The plan: a coarse cell grid of typed pieces, one team authored and mirrored about the centre.");
+  return frame(g.join(""), "Plan: a coarse cell grid of typed pieces, with one team authored and mirrored about the centre.");
 }
 
 /* ── the sketch: the plan realized as themed, dressed terrain ─────────────── */
@@ -1148,7 +1149,7 @@ function figSketch() {
   g.push(terrain(uid));
   g.push(dressing());
   g.push(structural(true));
-  return frame(g.join(""), "The sketch: the same board realized as themed terrain with dressing, the spawn and wool rooms still locked in place.");
+  return frame(g.join(""), "Sketch: the same layout realized as themed terrain with dressing, the spawn and wool rooms retained in place.");
 }
 
 /* ── configure: the objectives get wired onto the world ──────────────────── */
@@ -1179,7 +1180,7 @@ function figConfigure() {
       g.push(`<path d="M ${mx} ${my - 5} L ${mx + 5} ${my} L ${mx} ${my + 5} L ${mx - 5} ${my} z" fill="var(--figure-bg)" fill-opacity="0.75" stroke="${col}" stroke-width="1.5"/>`);
     }
   }
-  return frame(g.join(""), "Configure: spawns, wool blocks and monuments wired onto the built world, with the mid marked as a build zone.");
+  return frame(g.join(""), "Configure: spawns, wool blocks and monuments placed on the built world, with the mid marked as a build zone.");
 }
 
 /* ── edit: regions, selection, handles ───────────────────────────────────── */
@@ -1204,7 +1205,7 @@ function figEdit() {
       g.push(`<text x="${cx}" y="${py(r[1]) - 6}" text-anchor="middle" font-family="ui-monospace, monospace" font-size="8" fill="var(--accent-pale)">red-magenta-wool</text>`);
     }
   }
-  return frame(g.join(""), "Edit: the finished map's regions outlined on the canvas, one selected with resize handles.");
+  return frame(g.join(""), "Edit: the completed map's regions outlined on the canvas, with one selected and showing resize handles.");
 }
 
 const FIGS = { plan: figPlan, sketch: figSketch, configure: figConfigure, edit: figEdit };
@@ -1219,28 +1220,28 @@ const XML = `<pre><span class="a">&lt;</span><span class="t">wools</span> <span 
 
 const STAGES = [
   {
-    n: "01", name: "Plan", fig: "plan", go: "New plan",
-    text: "Author a coarse cell grid — pieces, lanes, wool rooms, build zones. One team is all you draw; the symmetry you pick fans the rest of the orbit.",
+    n: "01", name: "Plan", fig: "plan", go: "Create a plan",
+    text: "Define the layout as a coarse cell grid: typed pieces, connectors, wool rooms and build zones. Only one team's half is authored — the selected symmetry generates the remaining teams.",
     cell: "[10,-2,4,4]", role: "spawn",
   },
   {
     n: "02", name: "Sketch", fig: "sketch", go: "Open sketch",
-    text: "The compiled board becomes real geometry: islands you can reshape with booleans and mirrors, terrain themes to paint them, dressing to place on top. Then it rasterizes into a world.",
+    text: "The compiled layout becomes editable geometry: island outlines refined with boolean operations and mirroring, terrain themes applied, dressing placed. The result rasterizes to a world.",
     cell: "[6,-4,4,8]", role: "piece",
   },
   {
     n: "03", name: "Configure", fig: "configure", go: "Continue",
-    text: "A guided wizard turns a world that has terrain but no map.xml into a playable one — teams, spawns and protection, wool rooms, monuments, build regions and the max build height.",
+    text: "A guided wizard converts a world that has terrain but no map.xml into a playable map — teams, spawns and spawn protection, wool rooms, monuments, build regions and the maximum build height.",
     cell: "[7,-8,3,4]", role: "wool-room",
   },
   {
     n: "04", name: "Edit", fig: "edit", go: "Open editor",
-    text: "The full editor over a finished map: the region tree, the inspector and the canvas, with objectives, filters and kits all editable in place.",
+    text: "The full editor for a completed map: a region tree, a property inspector and a canvas, with objectives, filters and kits editable in place.",
     cell: "[3,-7,4,3]", role: "connector",
   },
   {
     n: "05", name: "Export", code: XML, go: "Export map.xml",
-    text: "Write valid PGM XML. The codec round-trips the whole 350-map corpus losslessly, so a map that goes in comes back out unchanged.",
+    text: "Produces valid PGM XML. The codec round-trips the 350-map reference corpus without loss, so an imported map exports unchanged.",
     cell: "[1,1,2,2]", role: "buffer",
   },
 ];
@@ -1254,21 +1255,21 @@ const ICONS = {
 };
 
 const TOOLS = [
-  { icon: ICONS.spark, name: "Generate layouts", cell: "[-3,-9,6,19]", role: "connector",
-    text: "The composer builds whole boards from a player count, a team count and a symmetry. Filter by size and score, pin the keepers, author any one into a plan." },
+  { icon: ICONS.spark, name: "Layout generation", cell: "[-3,-9,6,19]", role: "connector",
+    text: "The composer produces complete layouts from a player count, a team count and a symmetry. Results can be filtered by size and score, retained for comparison, and opened in the plan editor." },
   { icon: ICONS.shapes, name: "Shape catalog", cell: "[-8,4,4,3]", role: "piece",
-    text: "Every approach family and body form the generator can build, drawn and badged with how far each one actually gets." },
-  { icon: ICONS.brush, name: "Style & theme library", cell: "[-12,-6,4,4]", role: "wool-room",
-    text: "Author terrain paint once — solid, layered, team-tinted, voronoi, noise, wall-run — and compose it into themes any sketch can pick up." },
+    text: "Every approach family and body form available to the generator, rendered and annotated with its current status in the pipeline." },
+  { icon: ICONS.brush, name: "Style and theme library", cell: "[-12,-6,4,4]", role: "wool-room",
+    text: "Terrain paint is authored once — solid, layered, team-tinted, voronoi, noise and wall-run styles — and composed into themes that any sketch can apply." },
   { icon: ICONS.scan, name: "Analysis", cell: "[-5,-2,3,4]", role: "buffer",
-    text: "Categorize every region, measure buildability and traversability, detect the symmetry, and trace each wool back to the chest that supplies it." },
+    text: "Region categorization, buildability and traversability measurement, symmetry detection, and tracing of each wool back to its supplying chest." },
 ];
 
 const FACTS = [
-  ["350", "maps in the corpus, round-tripped losslessly"],
-  ["1 of 2", "team halves authored — symmetry fans the rest"],
-  ["5 blocks", "to one plan cell"],
-  ["60", "attempts before a compose admits nothing fits"],
+  ["350", "maps in the reference corpus, round-tripped without loss"],
+  ["1 of 2", "team halves authored; symmetry generates the remainder"],
+  ["5 blocks", "per plan cell"],
+  ["60", "composition attempts before a layout request is rejected"],
 ];
 
 /* ── mount ───────────────────────────────────────────────────────────────── */
