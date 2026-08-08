@@ -9,14 +9,9 @@
   <Sidebar>
       <Section Title="Buildable Layer">
         <p class="section-desc">With the <strong>rectangle tool</strong>, drag the bridges and platforms over
-          the void where players may build — the islands' terrain is already buildable. Add <strong>holes</strong>
-          to carve no-build cutouts back out. The <strong>select tool</strong> picks a shape to resize it.</p>
-        <Field Label="Drawing">
-          <div class="ctrl-row">
-            <Chip Active='drawMode == "area"' OnClick='() => drawMode = "area"'>Bridge</Chip>
-            <Chip Active='drawMode == "hole"' OnClick='() => drawMode = "hole"'>Hole</Chip>
-          </div>
-        </Field>
+          the void where players may build — the islands' terrain is already buildable. Switch the tool to
+          <strong>Hole</strong> to carve no-build cutouts back out. The <strong>select tool</strong> picks a
+          shape to resize it.</p>
         <div class="panel-list">
           @if (boxes.Count == 0) { <div class="list-empty">Nothing drawn yet — pick a tool and drag a rectangle.</div> }
           @foreach (var b in boxes)
@@ -62,10 +57,19 @@
   <div class="sidebar-handle"></div>
 
   @* Reused edit canvas in rectangle-draw mode — draws report to the intent (no region is created); the
-     bridges/holes render as dummy regions. Category is non-matching so the generated tree stays hidden. *@
+     bridges/holes render as dummy regions. Category is non-matching so the generated tree stays hidden.
+     Which of the two a drag makes is armed on the canvas dock rather than in this sidebar: it decides what
+     the very next drag does, so it belongs beside the tool that drags, wearing the colour the rectangle will
+     take — the same reading Sketch's Build/Carve gives. *@
   <WorldCanvas @ref="canvas" Slug="@Slug" RectDraw="true" Category="__build_authoring__" ShowBuildable="true"
+                DrawAccent="@(HoleMode ? HoleColor : AreaColor)"
+                RectDrawTitle="@(HoleMode ? "Rectangle — drag a no-build hole" : "Rectangle — drag a bridge over the void")"
                 OnBuildableToggled="OnBuildableToggled"
-                OnRectDrawn="OnRectDrawn" OnGeometrySaved="OnGeometrySaved" OnSelect="OnCanvasSelect" OnReady="OnCanvasReady" />
+                OnRectDrawn="OnRectDrawn" OnGeometrySaved="OnGeometrySaved" OnSelect="OnCanvasSelect" OnReady="OnCanvasReady">
+    <DrawMode>
+      <DockModeButton Pressed="@HoleMode" Title="@DrawModeTitle" OnClick="ToggleDrawMode">@(HoleMode ? "Hole" : "Bridge")</DockModeButton>
+    </DrawMode>
+  </WorldCanvas>
 
   <div class="sidebar-handle"></div>
 

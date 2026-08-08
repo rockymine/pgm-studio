@@ -27,6 +27,16 @@ public partial class BuildLayerStep
     private WorldCanvas? canvas;
     private string? symMode; private double symCx, symCz;
 
+    /// <summary>Whether the next rectangle carves rather than bridges. The mode is armed on the canvas dock,
+    /// where the tool it decides for is.</summary>
+    private bool HoleMode => drawMode == "hole";
+
+    private string DrawModeTitle => HoleMode
+        ? "Hole — the next rectangle carves a no-build cutout out of the bridges. Click to drag bridges instead."
+        : "Bridge — the next rectangle makes open void buildable. Click to carve holes instead.";
+
+    private void ToggleDrawMode() => drawMode = HoleMode ? "area" : "hole";
+
     private string Slug => Wizard.Slug;
     private Box? Selected => selectedId is { } id ? boxes.FirstOrDefault(b => b.Id == id) : null;
     private string Label(Box b) => $"{(b.Hole ? "hole" : "bridge")}-{boxes.Where(x => x.Hole == b.Hole).ToList().IndexOf(b) + 1}";

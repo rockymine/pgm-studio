@@ -81,8 +81,12 @@
     }
     else if (RectDraw)
     {
-      <DockGroup>
-        <DockButton Icon="rectangle-horizontal" Title="Rectangle — draw a protection zone" Active="@(tool == "rectangle")"
+      @* A host that draws two kinds of rectangle (the buildable layer's bridge and hole) supplies the word
+         that names which, and the colour the group wears while it is armed. The canvas owns the shape; the
+         step owns what the shape means. *@
+      <DockGroup Accent="@DrawAccent">
+        @DrawMode
+        <DockButton Icon="rectangle-horizontal" Title="@RectDrawTitle" Active="@(tool == "rectangle")"
                     OnClick='() => SetTool("rectangle")' />
       </DockGroup>
     }

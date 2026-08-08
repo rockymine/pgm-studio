@@ -44,6 +44,15 @@ public partial class WorldCanvas
     [Parameter] public bool RectDraw { get; set; }
     /// <summary>Fired with a drawn rectangle's footprint (RectDraw mode); the host persists it to intent.</summary>
     [Parameter] public EventCallback<(double MinX, double MinZ, double MaxX, double MaxZ)> OnRectDrawn { get; set; }
+    /// <summary>RectDraw mode: the word naming which kind of rectangle the next drag makes — a
+    /// <see cref="DockModeButton"/> the host supplies, since only the host knows the two kinds apart. It
+    /// leads the draw group, ahead of the rectangle button.</summary>
+    [Parameter] public RenderFragment? DrawMode { get; set; }
+    /// <summary>The colour the draw group wears while <see cref="DrawMode"/>'s mode is armed — the same
+    /// colour the drawn rectangle takes on the canvas.</summary>
+    [Parameter] public string? DrawAccent { get; set; }
+    /// <summary>Tooltip for the rectangle button in RectDraw mode — what this canvas's rectangle draws.</summary>
+    [Parameter] public string RectDrawTitle { get; set; } = "Rectangle";
     /// <summary>Fired once the canvas is mounted + the map is loaded, so a host can apply initial state
     /// (e.g. the excluded-island set) that only takes effect after the islands are rendered.</summary>
     [Parameter] public EventCallback OnReady { get; set; }
