@@ -104,12 +104,10 @@ public partial class SketchTool
 
     private Task ToggleOperation() => SetOperation(Carving ? "add" : "subtract");
 
-    /// <summary>The colour the draw group wears — the same fill the canvas gives a shape of that operation, so
-    /// the palette states what the drawing will look like. Dimmed while the armed tool draws nothing: the
-    /// operation is set but decides nothing until a rectangle, polygon or lasso is in hand.</summary>
-    private string OpAccent => DrawToolActive
-        ? (Carving ? "var(--canvas-sub-fill)" : "var(--canvas-add-fill)")
-        : $"color-mix(in oklch, var(--canvas-{(Carving ? "sub" : "add")}-fill) 45%, var(--text-muted))";
+    /// <summary>The colour the draw group wears — the same fill the canvas gives a shape of that operation,
+    /// so the palette states what the drawing will look like. The group fades itself (DockGroup.Idle) when
+    /// the armed tool draws nothing; the colour is the mode either way.</summary>
+    private string OpAccent => Carving ? "var(--canvas-sub-fill)" : "var(--canvas-add-fill)";
 
     // The same toggle shows the bare voxelization while drawing and the paint on top of it once theming.
     private string BlocksChipTitle => ScopeApplyActive

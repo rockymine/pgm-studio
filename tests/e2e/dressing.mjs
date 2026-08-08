@@ -116,7 +116,7 @@ try {
   await page.click('button[title="Dressing"]', { timeout: 8000 });
   await page.waitForTimeout(1500);
 
-  tools = await page.locator(".canvas-toolbar .draw-tool-btn").evaluateAll(
+  tools = await page.locator(".canvas-dock .canvas-dock-btn").evaluateAll(
     els => els.map(el => el.getAttribute("title")));
   const placing = tools.filter(t => /^(Path|Water|Ground cover|Tree|Boulder)/.test(t ?? ""));
   checks.add("the phase offers its five placing tools", placing.length === 5, tools.join(" | "));

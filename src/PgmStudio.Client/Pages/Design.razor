@@ -319,20 +319,26 @@
             </Sidebar>
             <div class="sidebar-handle"></div>
             <div class="workspace-canvas">
-              <div class="canvas-subbar">
-                <div class="canvas-toolbar">
-                  <button class="draw-tool-btn draw-tool-btn--active"><i data-lucide="hand"></i></button>
-                  <button class="draw-tool-btn"><i data-lucide="mouse-pointer-2"></i></button>
-                  <button class="draw-tool-btn"><i data-lucide="rectangle-horizontal"></i></button>
-                </div>
-                <span class="canvas-cursor">X 128 · Z -64</span>
-                <div class="canvas-subbar-right"><span class="canvas-zoom">100%</span></div>
-              </div>
               <div class="canvas-surface ds-canvas-sample">
                 <span class="ds-axis ds-axis-x"></span>
                 <span class="ds-axis ds-axis-z"></span>
                 <span class="ds-region-sample"></span>
               </div>
+              <CanvasReadout ZoomText="100%"><span class="canvas-readout-item">X 128 Z -64</span></CanvasReadout>
+              <CanvasLayerBar>
+                <LayerChip Icon="box" Active>Blocks</LayerChip>
+                <CanvasRoundButton Icon="scan" Title="Fit" />
+              </CanvasLayerBar>
+              <CanvasDock>
+                <DockGroup>
+                  <DockButton Icon="mouse-pointer-2" Title="Select" Active />
+                  <DockButton Icon="hand" Title="Move" />
+                </DockGroup>
+                <DockGroup Accent="var(--canvas-add-fill)">
+                  <DockModeButton>Build</DockModeButton>
+                  <DockButton Icon="rectangle-horizontal" Title="Rectangle" Active />
+                </DockGroup>
+              </CanvasDock>
             </div>
             <div class="sidebar-handle"></div>
             <Inspector>
@@ -356,21 +362,69 @@
       <div class="ds-section-heading">
         <div>
           <p class="ds-kicker">05</p>
-          <h2>Canvas subbar</h2>
+          <h2>Canvas chrome</h2>
         </div>
-        <p>Keep tools left, transient coordinates centered, and persistent status right.</p>
+        <p>A canvas control floats on the map, placed by what it is — never in a bar above it.</p>
       </div>
-      <div class="ds-canvas-bar-example canvas-subbar">
-        <div class="canvas-toolbar">
-          <button class="draw-tool-btn draw-tool-btn--active" title="Pan"><i data-lucide="hand"></i></button>
-          <button class="draw-tool-btn" title="Select"><i data-lucide="mouse-pointer-2"></i></button>
-          <button class="draw-tool-btn" title="Rectangle"><i data-lucide="rectangle-horizontal"></i></button>
-          <button class="draw-tool-btn" title="Circle"><i data-lucide="circle"></i></button>
-          <span class="subbar-sep"></span>
-          <button class="op-pill op-pill--build">Build</button>
+      <p class="ds-theming-note">Three positions, and each answers one question. <strong>Top-left</strong>
+         is what the canvas <em>is</em> — cursor position, the live size of what is being drawn or measured,
+         zoom (<code>CanvasReadout</code>). It is read-only and pointer-transparent, so a drag that crosses
+         it never stalls, and an item with nothing to report collapses. <strong>Top-right</strong> is what
+         the canvas <em>shows</em> (<code>CanvasLayerBar</code>): the layer chips, then the view actions that
+         only move the camera (<code>CanvasRoundButton</code> — fit, rotate), then <code>ViewModeToggle</code>
+         in the very corner, outermost because it decides what every other control in the row means.
+         <strong>Bottom-centre</strong> is what the pointer <em>does</em> (<code>CanvasDock</code>), where
+         the pointer already is.</p>
+      <div class="ds-canvas-bar-example ds-canvas-sample">
+        <span class="ds-axis ds-axis-x"></span>
+        <span class="ds-axis ds-axis-z"></span>
+        <CanvasReadout ZoomText="100%"><span class="canvas-readout-item">X 128 Z -64</span><span class="canvas-readout-item canvas-readout-item--size">48 × 32</span></CanvasReadout>
+        <CanvasLayerBar>
+          <LayerChip Icon="grid" Active>Chunks</LayerChip>
+          <LayerChip Icon="box">Blocks</LayerChip>
+          <CanvasRoundButton Icon="scan" Title="Fit the working bounds" />
+          <ViewModeToggle Title="Isometric height preview" />
+        </CanvasLayerBar>
+        <CanvasDock>
+          <DockGroup>
+            <DockButton Icon="mouse-pointer-2" Title="Select" Active />
+            <DockButton Icon="hand" Title="Move" />
+          </DockGroup>
+          <DockGroup Accent="var(--canvas-add-fill)">
+            <DockModeButton>Build</DockModeButton>
+            <DockButton Icon="rectangle-horizontal" Title="Rectangle" Active />
+            <DockButton Icon="pentagon" Title="Polygon" />
+            <DockButton Icon="lasso" Title="Lasso" />
+          </DockGroup>
+          <DockGroup>
+            <DockButton Icon="ruler" Title="Measure" />
+            <DockButton Icon="scissors" Title="Split" />
+          </DockGroup>
+        </CanvasDock>
+      </div>
+
+      <div class="ds-subsection" style="margin-top:var(--space-5)">
+        <h3>Dock groups</h3>
+        <p class="ds-theming-note">The dock holds <code>DockGroup</code>s, never loose buttons: a group is
+           one question the tool answers, and the gaps between them are the only grouping a row of equal
+           glyphs can carry. A group may carry an <strong>accent</strong> — the colour of the mode it is
+           armed in — which reaches every control inside it as <code>--dock-accent</code>, so a
+           <code>DockModeButton</code>'s word and the shape buttons beside it state the same thing at once
+           and an armed carve cannot be read as an armed build. A family with too many options to lay out
+           collapses into a <code>DockFlyoutGroup</code>: the option in hand plus a chevron, the rest in a
+           flyout that opens upward, and picking one promotes it into the slot.</p>
+        <div class="ds-state-row">
+          <DockGroup Accent="var(--canvas-sub-fill)">
+            <DockModeButton Pressed>Carve</DockModeButton>
+            <DockButton Icon="rectangle-horizontal" Title="Rectangle" Active />
+            <DockButton Icon="pentagon" Title="Polygon" />
+          </DockGroup>
+          <DockGroup>
+            <DockButton Swatch="#3fae74" Title="Wool room" Active />
+            <DockButton SwatchClass="canvas-dock-swatch--build" Title="Build zone" />
+            <DockButton Swatch="#4ea3d8" SwatchClass="canvas-dock-swatch--box" Title="Hub box" />
+          </DockGroup>
         </div>
-        <span class="canvas-cursor">X 128 · Z -64</span>
-        <div class="canvas-subbar-right"><span class="canvas-zoom">100%</span></div>
       </div>
 
       <div class="ds-subsection" style="margin-top:var(--space-5)">
@@ -380,8 +434,8 @@
            phase's icon + name), then flat-text step labels with an accent underline on the active one
            (a status icon on completed ones is deferred to ND4, where step status gets meaning), then
            Back/Next on the right (Back disabled at the first step). It is its <strong>own strip</strong>
-           (<code>FlowBar</code>) above the workspace — never inside the <code>canvas-subbar</code>, which
-           keeps its draw toolbar. Used by the Configure wizard and Edit's stepped phases (Setup, Build).</p>
+           (<code>FlowBar</code>) above the workspace — never on the canvas, whose chrome is the readout,
+           layer bar and dock above. Used by the Configure wizard and Edit's stepped phases (Setup, Build).</p>
         <FlowBar PhaseIcon="goal" PhaseTitle="Wools" Steps="@(new[] { "Colours", "Spawn & room", "Monuments" })"
                  CurrentStep="1" BackEnabled="true" />
       </div>

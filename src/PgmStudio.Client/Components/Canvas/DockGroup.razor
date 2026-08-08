@@ -7,12 +7,19 @@
    the shape buttons wear it) and an armed carve cannot be read as an armed build. A group with no accent
    leaves its buttons in the neutral tool colours. *@
 
-<div class="canvas-dock-group" style="@Style">@ChildContent</div>
+<div class="@Cls" style="@Style">@ChildContent</div>
 
 @code {
     /// <summary>Colour every control in the group takes — the armed mode's colour. Null leaves them neutral.</summary>
     [Parameter] public string? Accent { get; set; }
+    /// <summary>The group is armed but decides nothing right now — a mode is set, but the tool in hand is
+    /// not one it applies to. Fades the controls without fading the box they sit in, so the group is still
+    /// legibly there and still reachable: setting a mode before reaching for a tool is a reasonable order
+    /// to work in.</summary>
+    [Parameter] public bool Idle { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string Cls => Idle ? "canvas-dock-group canvas-dock-group--idle" : "canvas-dock-group";
 
     private string? Style => Accent is null ? null : $"--dock-accent:{Accent}";
 }

@@ -87,7 +87,7 @@ checks.add("sketch tool is clean under theming", page.faults.length === 0, page.
 
 // ── 3. the Theme phase is selection-only ──────────────────────────────────────────────────────────────
 // Editing geometry belongs to the Draw phase. Theme assigns paint to shapes it does not own, so its canvas
-// offers exactly two things: pick something, and move the view. The toolbar is the visible half of that
+// offers exactly two things: pick something, and move the view. The dock is the visible half of that
 // contract and a drag on a selected island is the load-bearing half — a canvas that still moved geometry
 // here would let an author reshape the map from a rail with no undo, no snapping and no height controls.
 checks.section("the Theme phase edits nothing");
@@ -96,7 +96,7 @@ clearFaults(page);
 let restricted = false, tools = [];
 try {
   // Still in the Apply step from above, with the island selected.
-  tools = await page.locator(".canvas-toolbar .draw-tool-btn").evaluateAll(
+  tools = await page.locator(".canvas-dock .canvas-dock-btn").evaluateAll(
     els => els.map(el => el.getAttribute("title")));
 
   // A drag across the selected island must pan the view, not move the island.
@@ -115,7 +115,7 @@ try {
 } catch (e) {
   page.faults.push(`select-only: ${String(e).split("\n")[0]}`);
 }
-checks.add("the toolbar offers move + select only", tools.length === 2, tools.join(" | ") || "(no toolbar)");
+checks.add("the dock offers select + move only", tools.length === 2, tools.join(" | ") || "(no dock)");
 checks.add("select-only checks ran", restricted, page.faults.slice(0, 3).join(" | "));
 
 // ── 4. the Rooms step binds a shell to the map ────────────────────────────────────────────────────────

@@ -194,12 +194,6 @@
    from this element's client box, so it must have real dimensions (no padding shrink surprises). */
 .sideview-canvas { width: 100%; height: 100%; display: block; }
 
-/* subbar separator */
-.subbar-sep { width: 1px; height: 16px; background: var(--border); flex-shrink: 0; align-self: center; }
-/* Inside the tool row the rule separates groups rather than sitting between strips, so it needs the breathing
-   room the row's own 2px gap does not give it. */
-.canvas-toolbar .subbar-sep { margin: 0 6px; }
-
 /* layer toggle item */
 .layer-item {
   display: flex;
@@ -232,41 +226,6 @@
   border-color: var(--accent);
   color: var(--accent-light);
 }
-/*
- * The operation pill — what a drawn shape does to the land, Build or Carve.
- *
- * It is deliberately not a .draw-tool-btn. The operation is a property of what is about to be drawn, not a
- * sibling of the tool that draws it, and rendering it as two more square icon buttons in the same row made
- * the most destructive state in the editor the least legible: drawing a carve where a build was meant is the
- * classic mistake in a boolean editor, and the only persistent signal was one of nine identical boxes being
- * tinted. One capsule, ruled off from the tools, naming the mode it is in and coloured the way the canvas
- * fills it — and the toolbar is one control shorter than it was, because a two-state thing needs one button.
- */
-.op-pill {
-  flex-shrink: 0;
-  padding: 3px 11px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-pill);
-  font-size: var(--font-sm);
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
-}
-/* Armed but idle: the tool in hand does not draw, so the operation decides nothing until one that does is
-   picked. Dimmed rather than disabled — setting it before reaching for a tool is a reasonable order to work in. */
-.op-pill--inert { opacity: 0.45; }
-.op-pill--build {
-  background: color-mix(in oklch, var(--canvas-add-fill) 15%, transparent);
-  border-color: color-mix(in oklch, var(--canvas-add-fill) 55%, transparent);
-  color: var(--canvas-add-fill);
-}
-.op-pill--carve {
-  background: color-mix(in oklch, var(--canvas-sub-fill) 15%, transparent);
-  border-color: color-mix(in oklch, var(--canvas-sub-fill) 55%, transparent);
-  color: var(--canvas-sub-fill);
-}
-.op-pill:hover:not(.op-pill--inert) { background: color-mix(in oklch, currentColor 26%, transparent); }
-
 /* ── NAV RAIL ── */
 .nav-rail {
   width: 56px;
@@ -823,65 +782,6 @@ body.dashboard-page { overflow: hidden; }
 /* ══════════════════════════════════════════════════════════════════════════
    PLAN EDITOR (the seed studio)
    ══════════════════════════════════════════════════════════════════════════ */
-
-/* Canvas-toolbar palette — the draw tools (pieces / build / markers / technical) as compact horizontal
-   buttons in the plan editor's canvas sub-bar. Scrolls rather than overflowing when space is tight. */
-.plan-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: thin;
-}
-.plan-tool-sep { flex-shrink: 0; width: 1px; height: 20px; margin: 0 4px; background: var(--border); }
-/* Palette tools reuse the .draw-tool-btn box — icon-only, same 16px glyphs as select / move. Pieces and
-   technical annotations show their role colour swatch in place of a glyph, sized to match the icons. */
-.plan-toolbar .draw-tool-btn { flex-shrink: 0; }
-.plan-toolbar .plan-role-swatch { width: 14px; height: 14px; }
-
-/* Custom swatches for the tools whose canvas fill is a pattern, not a flat colour — so the palette reads
-   like the canvas. Build = the dashed, translucent accent zone; buffer = its single-diagonal reserved-gap
-   hatch; connector = its crossed attachment hatch. --role-color carries the annotation colour (buffer
-   orange / connector teal); the build zone is accent-coloured on the canvas, so it reads --accent. */
-.plan-toolbar .plan-role-swatch--build {
-  background: color-mix(in oklch, var(--accent) 22%, transparent);
-  border: 1px dashed var(--accent);
-  border-radius: 2px;
-}
-/* Buffer / connector carry an inline SVG (fill + dashed border + hatch) rather than a repeating gradient:
-   a gradient's stripe phase is anchored to a box corner, so its lines can't be centred in the swatch. The
-   SVG places the lines symmetric about the 14-unit centre — 2 diagonals for buffer, a crossed 4 for
-   connector. Colours are the fixed role hexes (buffer orange / connector teal, matching the RolePalette). */
-.plan-toolbar .plan-role-swatch--buffer {
-  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'><rect x='.7' y='.7' width='12.6' height='12.6' rx='2' fill='%23f2792b' fill-opacity='.18'/><g stroke='%23f2792b' stroke-width='1.2' stroke-linecap='round'><line x1='1' y1='9.5' x2='9.5' y2='1'/><line x1='4.5' y1='13' x2='13' y2='4.5'/></g><rect x='.7' y='.7' width='12.6' height='12.6' rx='2' fill='none' stroke='%23f2792b' stroke-dasharray='2 1.4'/></svg>") center / 100% 100% no-repeat;
-}
-.plan-toolbar .plan-role-swatch--connector {
-  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'><rect x='.7' y='.7' width='12.6' height='12.6' rx='2' fill='%232dd4bf' fill-opacity='.18'/><g stroke='%232dd4bf' stroke-width='1.2' stroke-linecap='round'><line x1='1' y1='9.5' x2='9.5' y2='1'/><line x1='4.5' y1='13' x2='13' y2='4.5'/><line x1='1' y1='4.5' x2='9.5' y2='13'/><line x1='4.5' y1='1' x2='13' y2='9.5'/></g><rect x='.7' y='.7' width='12.6' height='12.6' rx='2' fill='none' stroke='%232dd4bf' stroke-dasharray='2 1.4'/></svg>") center / 100% 100% no-repeat;
-}
-
-/* Box envelope — unfilled with a dashed border, exactly as it draws on the canvas, tinted by the kind's
-   --role-color so the five kinds read apart in the palette. */
-.plan-toolbar .plan-role-swatch--box {
-  background: color-mix(in oklch, var(--role-color, var(--text-muted)) 12%, transparent);
-  border: 1.5px dashed var(--role-color, var(--text-muted));
-  border-radius: 2px;
-}
-
-/* Overlays section (settings panel) — the derived-structure visibility toggles, wrapped. */
-.plan-overlay-toggles { display: flex; flex-wrap: wrap; gap: var(--space-1); }
-
-/* Draw-phase sidebar (map-backed plans) — the Settings/Validation panel switch, atop the panel body. */
-.plan-panel-switch { display: flex; gap: var(--space-1); margin-bottom: var(--space-3); }
-
-/* Role colour swatch — the piece fill colour, passed in via the --role-color custom property. */
-.plan-role-swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-  flex-shrink: 0;
-  background: var(--role-color, var(--text-muted));
-}
 
 /* Inspector stepper / readout value. */
 .plan-stepper-value {

@@ -129,8 +129,9 @@ nothing new is invented. `✅` = already a component; everything else is C12 sco
 
 Every surface maps cleanly: sidebars → `Sidebar`/`Section`; workspace canvas-or-content →
 `Workspace`/`ContentColumn`; the homeless start-page cards → `CardGrid`; the `?stage=` lists →
-`ListRow` + `ContentColumn`; the activity rail → `ActivityRail`; toolbars → `CanvasSubbar` +
-`DrawToolButton`; inspectors → `Inspector` + `DetailHeader`; the canvas → `WorldCanvas` (already one).
+`ListRow` + `ContentColumn`; the activity rail → `ActivityRail`; canvas controls → the floating chrome
+(`CanvasReadout` · `CanvasLayerBar` + `LayerChip` · `CanvasDock` + `DockGroup`/`DockButton`); inspectors →
+`Inspector` + `DetailHeader`; the canvas → `WorldCanvas` (already one).
 
 ---
 

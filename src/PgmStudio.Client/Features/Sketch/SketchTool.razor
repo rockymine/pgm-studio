@@ -156,7 +156,7 @@
                  one colour — so an armed carve cannot be read as an armed build. What a drawn shape does to
                  the land is not a sibling of the tool that draws it, so the word leads the group rather than
                  being a fourth glyph in it. *@
-              <DockGroup Accent="@OpAccent">
+              <DockGroup Accent="@OpAccent" Idle="@(!DrawToolActive)">
                 <DockModeButton Pressed="@Carving" Title="@OpTitle" OnClick="ToggleOperation">@(Carving ? "Carve" : "Build")</DockModeButton>
                 <DockButton Icon="rectangle-horizontal" Title="Rectangle" Active="@(tool == "rectangle")"
                             OnClick='() => SetTool("rectangle")' />

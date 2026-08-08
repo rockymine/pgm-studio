@@ -388,8 +388,8 @@ imprecise. New-map authoring needs **per-side focus** — zoom/fit to one team's
 restricted view-box while defining that team's regions, since the author works one orbit unit at a
 time. This is an independent canvas capability and can land before the generator.
 
-**Landed — canvas focus controls.** The world canvas toolbar has a **Fit island** dropdown (zooms to
-an island's bbox) and a **reset-zoom** button (whole-map view), so the author can frame one side while
+**Landed — canvas focus controls.** The world canvas layer bar has a **Fit island** dropdown (zooms to
+an island's bbox) and a **fit** button (whole-map view), so the author can frame one side while
 working it.
 
 **Landed — the side-view slice (setting Y on a flat map).** The plan canvas is top-down, so a drawn
@@ -481,8 +481,8 @@ pre-flight checks, and phase locking actually live.
    `0 Map Info · 1 World · 2 Teams · 3 Build · 4 Wools · 5 Review & Export`. A completed phase carries
    a green dot, the current one a left bar, a locked one is dimmed. The rail **logo returns to the
    landing screen**. Jump to any *unlocked* phase here.
-2. **Flow bar** — its **own strip above the workspace** (never inside the canvas sub-bar, which keeps
-   its draw toolbar). Left-to-right: a **phase-identity cluster** (the current phase's icon + name,
+2. **Flow bar** — its **own strip above the workspace** (never on the canvas, whose own chrome — the
+   readout, the layer bar and the dock — floats on it). Left-to-right: a **phase-identity cluster** (the current phase's icon + name,
    so the strip always names where you are) · the phase's **sub-steps** (check = done, accent
    underline = current; a **single-step phase shows no sub-steps** — just the phase name, e.g. Map
    Info) · **Back / Next** on the right, **always present**, with **Back disabled at the first step**.

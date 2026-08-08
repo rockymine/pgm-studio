@@ -571,6 +571,47 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   check is the one the token did *not* produce — an unconstrained `select.field-input` must still measure
   `--control-height`, which is what ties the token to the type scale rather than to itself. Verified by
   mutation: a wrong token and an off-scale glyph both fail the run. (C40)
+- **The canvas controls float on the map, placed by what they are (C41).** One 36-px bar above the canvas
+  held everything at once — the draw tools, the layer chips, an island picker, fit, the 3-D toggle, the
+  cursor, the live size and the zoom. Across a dozen icons that row overlaps itself the moment the canvas
+  column is narrow, which is most of the time with both rails open, and it put the drawing tools at the far
+  edge of the surface they draw on. The bar is gone from every drawing canvas (Sketch, Edit, Configure,
+  Plan) and its contents are placed by what each control **is**: `CanvasReadout` top-left is what the canvas
+  *is* (cursor, live size, zoom — read-only, pointer-transparent so a drag across it cannot stall, and each
+  item collapses when it has nothing to report); `CanvasLayerBar` top-right is what it *shows*
+  (`LayerChip`s, then the `CanvasRoundButton` view actions, then `ViewModeToggle` in the very corner,
+  outermost because it decides what every other control in the row means — in 3-D the chips have nothing to
+  toggle and fit becomes rotate); `CanvasDock` bottom-centre is what the pointer *does*, where the pointer
+  already is. Surfaces share one blurred-glass look through `--canvas-float-*`, tokens that follow the theme.
+  The dock holds `DockGroup`s, never loose buttons, and a group may carry an **accent** — the colour of the
+  mode it is armed in — which reaches its controls as `--dock-accent`, so a `DockModeButton`'s word and the
+  shape buttons beside it state the same thing at once and an armed carve cannot be read as an armed build;
+  the group fades its contents (not its box) while the tool in hand is not one the mode applies to. Two
+  mode toggles moved onto the dock this way: Sketch's Build/Carve out of the tool strip, and the buildable
+  layer's Bridge/Hole out of the Configure sidebar (supplied as a `DrawMode` slot, so the canvas owns the
+  shape and the step owns what the shape means). Plan's Interfaces/Frontline/Labels/Heights overlays came
+  out of the Settings panel onto the canvas they annotate. `tests/e2e/draw-tools.mjs` gates the operation
+  contract: one control, colouring the three tools it decides for, dimmed when it decides nothing. The
+  retired `.canvas-subbar` draw vocabulary (`.op-pill`, `.subbar-sep`, `.canvas-dim`, `.canvas-zoom`,
+  `.canvas-island-select`, the whole `.plan-toolbar` palette) is deleted; `.canvas-subbar` itself survives
+  only on the two surfaces that are not drawing canvases (the build-height side view, the import preview).
+  Shown as its own section in the `/design` catalog. (C41)
+- **A plan tool family shows the tool in hand and keeps the rest a chevron away (C42).** The plan editor
+  laid out all nineteen of its drawing tools at once — a wall that wrapped to two rows and forced a hunt
+  for the swatch used a minute ago. The nineteen are four families of one question each (which piece role ·
+  which technical annotation · which marker · which box kind), and within a family only one is ever armed,
+  so a family collapses to a `DockFlyoutGroup`: the option in its slot plus a chevron, Figma's shape-tool
+  flyout. Click the option to arm it, click the chevron for the rest, pick one and it takes the slot — the
+  last pick stays visible, which is what makes the collapse cost nothing. Six buttons remain. The flyout
+  opens upward (a downward menu would open off the canvas) and is icon-only, since a label on every option
+  gives back exactly the width the collapse saves. Which family is open is the host's state, so opening one
+  closes the others, and a scrim catches the dismissing click so it cannot instead start a drag on the map
+  hidden behind the menu. The promoted option's button is `@key`ed on the option: a lucide glyph **cannot**
+  be swapped in place, because lucide replaces the `<i data-lucide>` with an `<svg>` after every render, so
+  there is no `<i>` left for Blazor to re-point — it patches a node it no longer owns, which showed as a
+  promoted "destroyable" still wearing the flag icon and, on a flyout switch, as the reconciler taking
+  `insertBefore` into a null parent. Keying moves the swap up to the button, which is still Blazor's to
+  replace whole. (C42)
 
 ## Backend / API (B)
 - **The wire is dot-separated on every machine, in every country (B48).** Query, route and form values bind

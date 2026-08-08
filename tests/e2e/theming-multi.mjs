@@ -121,8 +121,8 @@ try {
   await page.click('button:has-text("Apply →")');
   await page.waitForTimeout(1500);
   // Turn Blocks on *here* (so the raster paints while the canvas is visible) and confirm it took.
-  const blocks = page.locator('button.filter-chip:has-text("Blocks")');
-  const isOn = async () => blocks.evaluate(el => el.classList.contains("filter-chip--active"));
+  const blocks = page.locator('button.canvas-chip:has-text("Blocks")');
+  const isOn = async () => blocks.evaluate(el => el.classList.contains("canvas-chip--on"));
   if (!(await isOn())) await blocks.click();
   await page.waitForTimeout(2500);   // let the coloured raster render
   const blocksOn = await isOn();

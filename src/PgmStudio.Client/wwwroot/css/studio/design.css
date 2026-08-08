@@ -147,7 +147,11 @@
   border: 1px solid var(--canvas-result-stroke);
   background: color-mix(in oklch, var(--canvas-result-fill) 45%, transparent);
 }
+/* The canvas-chrome specimen: a scrap of map for the floating controls to sit on, tall enough that the
+   readout, the layer bar and the dock are not stacked on top of each other. */
 .ds-canvas-bar-example {
+  position: relative;
+  height: 260px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
 }
@@ -248,8 +252,6 @@
 .theme-apply-swatch { margin: 0; display: flex; flex-direction: column; gap: var(--space-1); align-items: center; }
 .theme-apply-swatch figcaption { font-size: var(--font-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
 .theme-apply-sel-row { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1) 0; flex-wrap: wrap; }
-/* The read-only theme-apply toolbar: a hint where the draw tools would be. */
-.plan-toolbar--readonly { color: var(--text-muted); font-size: var(--font-xs); align-items: center; padding-left: var(--space-2); }
 
 /* Theme editor (G158) — one bucket per section: the material form beside the sample it paints. */
 .bucket-editor { display: grid; grid-template-columns: 1fr 120px; gap: var(--space-3); align-items: start; }
