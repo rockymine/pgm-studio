@@ -124,13 +124,15 @@ export function normalizeDoc(d) {
       return zone;
     }),
     placements: {
-      spawns: (src.placements?.spawns || []).map(s => ({ piece: s.piece ?? "", at: [...(s.at || [0, 0])], facing: s.facing ?? "front" })),
-      wools: (src.placements?.wools || []).map(w => { const o = { piece: w.piece ?? "", at: [...(w.at || [0, 0])] }; if (w.color) o.color = w.color; return o; }),
-      iron: (src.placements?.iron || []).map(i => ({ piece: i.piece ?? "", at: [...(i.at || [0, 0])] })),
+      // `id` leads each marker: a marker is a thing the document can refer to, the way a piece and a zone are.
+      // A document written before markers had one gets it minted below, so it self-heals on load.
+      spawns: (src.placements?.spawns || []).map(s => ({ id: s.id ?? "", piece: s.piece ?? "", at: [...(s.at || [0, 0])], facing: s.facing ?? "front" })),
+      wools: (src.placements?.wools || []).map(w => { const o = { id: w.id ?? "", piece: w.piece ?? "", at: [...(w.at || [0, 0])] }; if (w.color) o.color = w.color; return o; }),
+      iron: (src.placements?.iron || []).map(i => ({ id: i.id ?? "", piece: i.piece ?? "", at: [...(i.at || [0, 0])] })),
       // Every structure field is optional — the compiler defaults them — so each is kept only when authored,
-      // leaving a plain marker as the bare { piece, at } it was written as.
+      // leaving a plain marker as the { id, piece, at } it was written as.
       destroyables: (src.placements?.destroyables || []).map(b => {
-        const o = { piece: b.piece ?? "", at: [...(b.at || [0, 0])] };
+        const o = { id: b.id ?? "", piece: b.piece ?? "", at: [...(b.at || [0, 0])] };
         if (b.style) o.style = b.style;
         if (b.materials) o.materials = b.materials;
         if (b.float != null) o.float = b.float;
@@ -138,7 +140,7 @@ export function normalizeDoc(d) {
         return o;
       }),
       cores: (src.placements?.cores || []).map(c => {
-        const o = { piece: c.piece ?? "", at: [...(c.at || [0, 0])] };
+        const o = { id: c.id ?? "", piece: c.piece ?? "", at: [...(c.at || [0, 0])] };
         for (const k of ["size", "height", "shell", "float", "leak"]) if (c[k] != null) o[k] = c[k];
         if (c.openTop != null) o.openTop = c.openTop;
         if (c.name) o.name = c.name;
@@ -178,7 +180,7 @@ export function normalizeDoc(d) {
       opacity: r.opacity == null ? 0.5 : Math.max(0, Math.min(1, Number(r.opacity))),
     };
   }
-  return out;
+  return mintMarkerIds(out);
 }
 
 /** Default reference block for a freshly picked source map (auto-centred, half-strength backdrop). */
@@ -481,7 +483,27 @@ export function viewBounds(doc) {
   return b;
 }
 
-/** Flatten the placements into `{ kind, index, marker }` records (spawn/wool/iron), for iteration. */
+/**
+ * Give every marker an id, keeping the ones the document already carries. The same rule the server mints by
+ * (PlanModel.MintMarkerIds): unique across the whole placement set rather than per kind, so a finding naming
+ * one is unambiguous, and `<kind>-<n>` counting from 1 in `allMarkers` order.
+ */
+export function mintMarkerIds(doc) {
+  const taken = new Set();
+  for (const { marker } of allMarkers(doc))
+    if (marker.id && taken.has(marker.id)) marker.id = "";     // a duplicate is not an id
+    else if (marker.id) taken.add(marker.id);
+  for (const { kind, marker } of allMarkers(doc)) {
+    if (marker.id) continue;
+    let next = 1;
+    while (taken.has(`${kind}-${next}`)) next++;
+    marker.id = `${kind}-${next}`;
+    taken.add(marker.id);
+  }
+  return doc;
+}
+
+/** Flatten the placements into `{ kind, index, marker }` records, in id-minting order, for iteration. */
 export function allMarkers(doc) {
   const out = [];
   doc.placements.spawns.forEach((m, i) => out.push({ kind: "spawn", index: i, marker: m }));

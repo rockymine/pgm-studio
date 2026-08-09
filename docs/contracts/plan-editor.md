@@ -46,8 +46,9 @@ to the symmetry centre); heights are blocks. One team's unit is authored; symmet
   ],
   "placements": {
     // authored for team 0 only; the compiler fans orbit images. Positions are piece-relative cells.
-    "spawns": [ { "piece": "bar-e", "at": [1, 5], "facing": "front" } ],
-    "wools":  [ { "piece": "bar-w", "at": [1, 8] }, { "piece": "wl2", "at": [3, 1] } ],
+    // "id" is minted on load when absent, so a hand-written placement may omit it.
+    "spawns": [ { "id": "spawn-1", "piece": "bar-e", "at": [1, 5], "facing": "front" } ],
+    "wools":  [ { "id": "wool-1", "piece": "bar-w", "at": [1, 8] }, { "piece": "wl2", "at": [3, 1] } ],
     "iron":   [ { "piece": "bar-e", "at": [0, 4] } ],     // SP7; optional in v1
     // DTM goals (OB14: two-team symmetries only). style/materials/float/name are all optional —
     // the compiler defaults them to pillar-3 · obsidian · 4 · "<Team> Monument".

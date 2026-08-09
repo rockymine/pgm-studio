@@ -1283,6 +1283,26 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   refusal with no cause. (`ObjectiveFootprint`; `PlanValidator`; `PlanValidatorObjectivePlacementTests`
   covers each case firing, the one-block structure that legally stands where a wide one may not, and the
   straddle of two abutting pieces. OB17 · B37)
+- **A marker can be referred to, not only drawn (`B59`).** A piece has an id and a zone has an id; a marker
+  had only its position in a list, which is enough to paint one and not enough to *name* one. The gap showed
+  up the moment a rule had something to say about a particular marker: `OB17` could report that a goal stood
+  in a spawn but not which goal, and an agent holding "the second core" loses that reference the instant a
+  different core is deleted. Every placement now carries a persisted `id` — one `IPlanMarker` across spawn,
+  wool, iron, destroyable and core — minted on load from the kind and a counter (`core-1`, `spawn-2`) and
+  unique across the **whole** placement set rather than per kind, so a finding naming one is unambiguous.
+  Minting on load is what makes the change free for documents already written: a plan from before markers had
+  identity reads cleanly and gains ids, the same self-healing a piece id gets, and a duplicate id in a
+  hand-edited document is dropped and re-minted rather than trusted. The C# model and `plan-doc.js` mint by
+  the same rule, since either side may be the one that loads a plan first. Downstream, `PlanValidator`
+  findings name the marker in both message and subjects, so a `B21` agent is told *which* goal to move
+  rather than which piece to inspect, and `pulseSubjects` now resolves a marker subject to a ring on its
+  cell alongside the piece and zone rects it already drew. That last part is capability, not yet a visible
+  behaviour: nothing calls the canvas highlight today (compile findings render as static rows and their
+  subjects go unread — a gap that predates this and covers pieces and zones equally), which is `C44`.
+  `ComposerVersion` moves to `marker-id-1` and all 72 board fingerprints with it: the ids are new bytes in
+  the plan document, so every digest moves while no geometry does — 72 moved, 0 new, which is what a
+  serialisation-only change should look like and the check that it was one. (`IPlanMarker`;
+  `PlanModel.MintMarkerIds`; `PlanMarkerIdTests`; `tests/js/plan-doc.test.js`. B59 · B21 · B37)
 - **An objective marker states the structure it builds (`G160`).** A core and a destroyable are placed as
   bare markers and take the generator's defaults; the knobs that vary them — a casing's footprint, height,
   wall thickness, capped-or-flush lava and float/leak pair, a destroyable's design, material and float — had

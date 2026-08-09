@@ -127,9 +127,11 @@ public static class PlanValidator
         //   wool   — a wool room carries its own enter/block rules for its owner; a second objective sharing
         //            that ground inherits them and reads as part of the room besides.
         //
-        // Reported per structure with the piece as the subject, so an agent driving the compile endpoint is
-        // refused for every one of the three rather than silently building an unwinnable map (B21).
-        foreach (var (kind, pieceId, at, width, depth) in ObjectiveFootprints(plan, d))
+        // Reported per structure, naming the marker before the ground it stands on, so the reader is pointed
+        // at the one goal that is wrong rather than at everything sharing its piece. An agent driving the
+        // compile endpoint is refused for every one of the three rather than silently building an unwinnable
+        // map (B21).
+        foreach (var (kind, id, pieceId, at, width, depth) in ObjectiveFootprints(plan, d))
         {
             var piece = d.Piece(pieceId);
             if (piece is null) continue;   // CheckInside already reported the dangling reference
@@ -139,16 +141,17 @@ public static class PlanValidator
             var footprint = new BlockRect(box.MinX, box.MinZ, box.MaxX + 1, box.MaxZ + 1);
 
             if (!CoveredByLand(footprint, d))
-                Error($"{kind} on '{pieceId}' is {width}×{depth} and overhangs the void — the build slice "
-                    + "denies breaking blocks out there, so the goal could never be completed", pieceId);
+                Error($"{kind} '{id}' on '{pieceId}' is {width}×{depth} and overhangs the void — the build "
+                    + "slice denies breaking blocks out there, so the goal could never be completed",
+                    id, pieceId);
 
             foreach (var (roomKind, roomPiece, frame) in ObjectiveRooms(plan, d))
                 if (Overlaps(footprint, frame))
                 {
-                    Error($"{kind} on '{pieceId}' is {width}×{depth} and reaches into the {roomKind} on "
-                        + $"'{roomPiece}' — {(roomKind == "spawn"
+                    Error($"{kind} '{id}' on '{pieceId}' is {width}×{depth} and reaches into the {roomKind} "
+                        + $"on '{roomPiece}' — {(roomKind == "spawn"
                             ? "spawn protection denies breaking blocks to every team, so the goal could never be broken"
-                            : "the room's own rules would cover the goal")}", pieceId, roomPiece);
+                            : "the room's own rules would cover the goal")}", id, pieceId, roomPiece);
                     break;
                 }
         }
@@ -558,7 +561,7 @@ public static class PlanValidator
     /// <summary>Every objective's plan-view extent, in the units the rule compares: the marker's piece and
     /// offset, plus the width and depth the structure will actually cover. Both kinds resolve their unset
     /// fields to the same defaults the compiler would, so the rule judges the structure that gets built.</summary>
-    private static IEnumerable<(string Kind, string Piece, double[] At, int Width, int Depth)> ObjectiveFootprints(
+    private static IEnumerable<(string Kind, string Id, string Piece, double[] At, int Width, int Depth)> ObjectiveFootprints(
         PlanModel plan, ContactGraph d)
     {
         foreach (var b in plan.Placements.Destroyables)
@@ -566,12 +569,12 @@ public static class PlanValidator
             // An unknown style is its own error; size it as the default rather than reporting twice.
             DestroyableStyles.TryParse(string.IsNullOrEmpty(b.Style) ? null : b.Style, out var style);
             var (width, _, depth) = ObjectiveFootprint.Destroyable(style);
-            yield return ("destroyable", b.Piece, b.At, width, depth);
+            yield return ("destroyable", b.Id, b.Piece, b.At, width, depth);
         }
         foreach (var c in plan.Placements.Cores)
         {
             var (width, depth) = ObjectiveFootprint.Core(c.Size ?? ObjectiveDefaults.CoreSize);
-            yield return ("core", c.Piece, c.At, width, depth);
+            yield return ("core", c.Id, c.Piece, c.At, width, depth);
         }
     }
 

@@ -723,7 +723,9 @@ export class PlanCanvas extends CanvasBase {
   }
 
   /**
-   * A transient highlight pulse on the pieces/zones a clicked lint finding implicates (self-clearing).
+   * A transient highlight pulse on the pieces, zones and markers a clicked lint finding implicates
+   * (self-clearing). A subject is matched by id against all three, so a finding about one goal outlines that
+   * goal rather than the whole piece under it.
    * An SVG `<animate>` ran itself; a painted frame has no such thing, so the pulse drives its own repaints
    * for as long as it lasts and the opacity is a function of elapsed time (`#pulseAlpha`).
    */
@@ -759,8 +761,20 @@ export class PlanCanvas extends CanvasBase {
     const cell = this.#doc.globals.cell;
     for (const id of this.#pulseIds) {
       const item = this.#doc.pieces.find(p => p.id === id) || this.#doc.zones.find(z => z.id === id);
-      if (!item) continue;
-      this.#painter.rect(rectCellsToBlocks(item.rect, cell),
+      if (item) {
+        this.#painter.rect(rectCellsToBlocks(item.rect, cell),
+          { stroke: "var(--accent, #5b9cff)", width: 3, alpha });
+        continue;
+      }
+      // A finding may name a marker as readily as a piece — a goal refused for where it stands is about the
+      // marker, and pulsing the whole piece under it says the wrong thing about which one is wrong. A marker
+      // has no rect, so the ring is a box centred on its point, sized just outside the glyph drawn there. An
+      // orphaned marker (its piece deleted) has no point at all and pulses nothing.
+      const found = allMarkers(this.#doc).find(entry => entry.marker.id === id);
+      const point = found && markerCell(this.#doc, found.marker);
+      if (!point) continue;
+      const cx = point[0] * cell, cz = point[1] * cell, reach = cell * 0.6;
+      this.#painter.rect({ min_x: cx - reach, min_z: cz - reach, max_x: cx + reach, max_z: cz + reach },
         { stroke: "var(--accent, #5b9cff)", width: 3, alpha });
     }
   }
@@ -879,7 +893,7 @@ export class PlanCanvas extends CanvasBase {
       // The structure fields ride along so the inspector can offer them. Each is absent on a marker whose
       // author never changed it — the host fills the default in rather than the document carrying one.
       cb({
-        kind: "marker", markerKind: this.#sel.markerKind, index: this.#sel.index,
+        kind: "marker", markerKind: this.#sel.markerKind, index: this.#sel.index, id: m?.id,
         piece: m?.piece, at: m?.at, cell: c, facing: m?.facing, name: m?.name,
         style: m?.style, materials: m?.materials,
         size: m?.size, height: m?.height, shell: m?.shell,

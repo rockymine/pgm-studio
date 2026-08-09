@@ -398,7 +398,7 @@ test("fromJson → toJson round-trips a seed plan's data", () => {
   assert.equal(doc.pieces.length, 8);
   assert.deepEqual(doc.pieces.find(p => p.id === "piece-2").rect, [-3, 4, 2, 7]);
   assert.equal(doc.pieces.find(p => p.id === "wool").role, "wool-room");
-  assert.deepEqual(doc.placements.spawns[0], { piece: "spawn", at: [1, 1], facing: "front" });
+  assert.deepEqual(doc.placements.spawns[0], { id: "spawn-1", piece: "spawn", at: [1, 1], facing: "front" });
   assert.equal(doc.placements.wools.length, 2);
 });
 
@@ -429,10 +429,11 @@ test("a destroyable placement round-trips, keeping only its authored fields", ()
       ],
     },
   });
-  // A bare marker stays bare: the compiler owns the defaults, so the plan must not bake them in.
-  assert.deepEqual(doc.placements.destroyables[0], { piece: "bar-w", at: [2, 3] });
+  // An unvaried marker carries only its identity and its position: the compiler owns the structure defaults,
+  // so the plan must not bake them in. The id is not one of those — it is what the marker IS.
+  assert.deepEqual(doc.placements.destroyables[0], { id: "destroyable-1", piece: "bar-w", at: [2, 3] });
   assert.deepEqual(doc.placements.destroyables[1], {
-    piece: "bar-e", at: [1, 1], style: "cube-4", materials: "gold block", float: 7, name: "The Vault",
+    id: "destroyable-2", piece: "bar-e", at: [1, 1], style: "cube-4", materials: "gold block", float: 7, name: "The Vault",
   });
   assert.deepEqual(JSON.parse(toJson(doc)).placements.destroyables, doc.placements.destroyables);
 });
@@ -455,10 +456,10 @@ test("a core placement round-trips, keeping only its authored knobs", () => {
       ],
     },
   });
-  // A bare marker stays bare — the compiler owns the DC1/DC2 defaults, so the plan must not bake them in.
-  assert.deepEqual(doc.placements.cores[0], { piece: "mid", at: [2, 2] });
+  // An unvaried marker carries only its identity and its position — the compiler owns the DC1/DC2 defaults.
+  assert.deepEqual(doc.placements.cores[0], { id: "core-1", piece: "mid", at: [2, 2] });
   assert.deepEqual(doc.placements.cores[1], {
-    piece: "mid", at: [1, 1], size: 7, height: 7, shell: 2, float: 3, leak: 4, openTop: true, name: "The Heart",
+    id: "core-2", piece: "mid", at: [1, 1], size: 7, height: 7, shell: 2, float: 3, leak: 4, openTop: true, name: "The Heart",
   });
   assert.deepEqual(JSON.parse(toJson(doc)).placements.cores, doc.placements.cores);
 });
@@ -585,4 +586,46 @@ test("the shifted-frontline exemplars carry their partition as typed boxes", () 
   const owned = doc.boxes.flatMap(b => boxMembers(doc, b).map(p => p.id));
   assert.equal(new Set(owned).size, owned.length, "no piece belongs to two boxes");
   assert.equal(owned.length, doc.pieces.length, "every piece belongs to a box");
+});
+
+// ── marker identity ─────────────────────────────────────────────────────────
+test("every marker is minted an id, counting per kind across the whole set", () => {
+  const doc = normalizeDoc({
+    plan: 1,
+    placements: {
+      spawns: [{ piece: "home", at: [1, 1] }],
+      cores: [{ piece: "mid", at: [0, 0] }, { piece: "mid", at: [2, 2] }],
+    },
+  });
+  assert.equal(doc.placements.spawns[0].id, "spawn-1");
+  assert.deepEqual(doc.placements.cores.map(c => c.id), ["core-1", "core-2"]);
+});
+
+test("an authored id is kept, and a later marker mints around it", () => {
+  // Identity is the author's to set — an id that means something to them must survive a load, and the mint
+  // has to route around it rather than issue the same name twice.
+  const doc = normalizeDoc({
+    plan: 1,
+    placements: { cores: [{ id: "core-2", piece: "mid", at: [0, 0] }, { piece: "mid", at: [2, 2] }] },
+  });
+  assert.deepEqual(doc.placements.cores.map(c => c.id), ["core-2", "core-1"]);
+});
+
+test("a duplicate id is not an id — the later marker is re-minted", () => {
+  // Two markers answering to one name is worse than no name: a finding or an agent naming it would resolve
+  // to whichever came first, silently.
+  const doc = normalizeDoc({
+    plan: 1,
+    placements: { cores: [{ id: "heart", piece: "mid", at: [0, 0] }, { id: "heart", piece: "mid", at: [2, 2] }] },
+  });
+  assert.equal(doc.placements.cores[0].id, "heart");
+  assert.equal(doc.placements.cores[1].id, "core-1");
+});
+
+test("ids are unique across kinds, not merely within one", () => {
+  const doc = normalizeDoc({
+    plan: 1,
+    placements: { wools: [{ id: "core-1", piece: "vault", at: [0, 0] }], cores: [{ piece: "mid", at: [0, 0] }] },
+  });
+  assert.equal(doc.placements.cores[0].id, "core-2");
 });

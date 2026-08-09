@@ -140,6 +140,27 @@ public sealed class PlanModel
         foreach (var p in Pieces) p.Role = PlanRoles.Canonical(p.Role);
         foreach (var b in Boxes) b.Kind = PlanBoxKinds.Canonical(b.Kind);
         foreach (var z in Zones) z.Kind = PlanZoneKinds.Stored(z.Kind);
+        MintMarkerIds();
+    }
+
+    /// <summary>
+    /// Give every marker an id, keeping the ones a document already carries. Minting on load is what lets a
+    /// plan written before markers had identity read cleanly and gain it — the same self-healing a piece id
+    /// gets. Ids are unique across the whole placement set, not per kind, so a finding naming one is
+    /// unambiguous about which marker it means.
+    /// </summary>
+    private void MintMarkerIds()
+    {
+        var taken = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (_, marker) in Placements.All())
+            if (marker.Id.Length > 0 && !taken.Add(marker.Id)) marker.Id = "";   // a duplicate is not an id
+        foreach (var (kind, marker) in Placements.All())
+        {
+            if (marker.Id.Length > 0) continue;
+            var next = 1;
+            while (!taken.Add($"{kind}-{next}")) next++;
+            marker.Id = $"{kind}-{next}";
+        }
     }
 }
 
@@ -257,6 +278,20 @@ public sealed class PlanBox
     [JsonPropertyName("members")] public List<string>? Members { get; set; }
 }
 
+/// <summary>
+/// What every placement has in common: an <see cref="Id"/> that names it, the piece it stands on, and where
+/// on that piece. Markers were the one thing in a plan without identity — a piece and a zone each have an id,
+/// and a marker was addressed only by its index in a list. That is enough to draw one and not enough to
+/// <em>refer</em> to one: a validator finding could name only the piece a marker sat on, and an agent holding
+/// "the second core" loses its reference the moment a different core is deleted.
+/// </summary>
+public interface IPlanMarker
+{
+    string Id { get; set; }
+    string Piece { get; }
+    double[] At { get; }
+}
+
 /// <summary>The team-0 unit's objective markers; the compiler fans orbit images. Positions are piece-relative
 /// cells.</summary>
 public sealed class PlanPlacements
@@ -266,6 +301,17 @@ public sealed class PlanPlacements
     [JsonPropertyName("iron")]         public List<IronPlacement> Iron { get; set; } = [];
     [JsonPropertyName("destroyables")] public List<DestroyablePlacement> Destroyables { get; set; } = [];
     [JsonPropertyName("cores")]        public List<CorePlacement> Cores { get; set; } = [];
+
+    /// <summary>Every marker with the word for its kind — the order ids are minted in, and the one place a
+    /// pass over "all the markers" is written.</summary>
+    public IEnumerable<(string Kind, IPlanMarker Marker)> All()
+    {
+        foreach (var spawn in Spawns) yield return ("spawn", spawn);
+        foreach (var wool in Wools) yield return ("wool", wool);
+        foreach (var iron in Iron) yield return ("iron", iron);
+        foreach (var destroyable in Destroyables) yield return ("destroyable", destroyable);
+        foreach (var core in Cores) yield return ("core", core);
+    }
 }
 
 /// <summary>A spawn on <see cref="Piece"/> at piece-relative cell offset <see cref="At"/>, facing
@@ -273,8 +319,9 @@ public sealed class PlanPlacements
 /// <c>right</c>=+x), fanned per orbit image. The offset
 /// is in cells on a half-cell lattice (0.5 steps) so a marker can sit at the middle of a 2×2-cell block; whole
 /// integers (the common case) round-trip verbatim.</summary>
-public sealed class SpawnPlacement
+public sealed class SpawnPlacement : IPlanMarker
 {
+    [JsonPropertyName("id")]     public string Id { get; set; } = "";
     [JsonPropertyName("piece")]  public string Piece { get; set; } = "";
     [JsonPropertyName("at")]     public double[] At { get; set; } = [0, 0];
     [JsonPropertyName("facing")] public string Facing { get; set; } = "front";
@@ -282,16 +329,18 @@ public sealed class SpawnPlacement
 
 /// <summary>A wool on <see cref="Piece"/> at half-cell offset <see cref="At"/>. <see cref="Color"/> is optional;
 /// empty = auto (the team's first wool takes the team colour, later wools take distinct dyes).</summary>
-public sealed class WoolPlacement
+public sealed class WoolPlacement : IPlanMarker
 {
+    [JsonPropertyName("id")]     public string Id { get; set; } = "";
     [JsonPropertyName("piece")] public string Piece { get; set; } = "";
     [JsonPropertyName("at")]    public double[] At { get; set; } = [0, 0];
     [JsonPropertyName("color")] public string? Color { get; set; }
 }
 
 /// <summary>An iron (resource) marker on <see cref="Piece"/> at half-cell offset <see cref="At"/>.</summary>
-public sealed class IronPlacement
+public sealed class IronPlacement : IPlanMarker
 {
+    [JsonPropertyName("id")]     public string Id { get; set; } = "";
     [JsonPropertyName("piece")] public string Piece { get; set; } = "";
     [JsonPropertyName("at")]    public double[] At { get; set; } = [0, 0];
 }
@@ -304,8 +353,9 @@ public sealed class IronPlacement
 /// <para>Every structure parameter is optional and defaulted by the compiler, because the defaults are the
 /// corpus's own centre of mass — a bare <c>{ piece, at }</c> is a valid, typical destroyable.</para>
 /// </summary>
-public sealed class DestroyablePlacement
+public sealed class DestroyablePlacement : IPlanMarker
 {
+    [JsonPropertyName("id")]     public string Id { get; set; } = "";
     [JsonPropertyName("piece")]     public string Piece { get; set; } = "";
     [JsonPropertyName("at")]        public double[] At { get; set; } = [0, 0];
     /// <summary>pillar-1|2|3 · cube-3 · cube-4 · column-plus; empty = pillar-3.</summary>
@@ -327,8 +377,9 @@ public sealed class DestroyablePlacement
 /// players must dig — <c>max(0, leak − float)</c>. Setting one without the other says nothing, so authoring
 /// either requires both.</para>
 /// </summary>
-public sealed class CorePlacement
+public sealed class CorePlacement : IPlanMarker
 {
+    [JsonPropertyName("id")]     public string Id { get; set; } = "";
     [JsonPropertyName("piece")]    public string Piece { get; set; } = "";
     [JsonPropertyName("at")]       public double[] At { get; set; } = [0, 0];
     /// <summary>Casing width/depth in blocks; null = 5, the dominant corpus casing.</summary>

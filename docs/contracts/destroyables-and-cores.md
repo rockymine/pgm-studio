@@ -575,6 +575,12 @@ the endpoint is stopped for every one of the three rather than shipping a map th
 The test against the *room frame* rather than the piece holding it matters — a spawn piece is often far
 larger than the room stamped on it, and refusing a goal at its far corner would be a refusal with no cause.
 
+Each finding names the offending marker by its **id** (`core-1`, `destroyable-2`) ahead of the piece it
+stands on, and carries both as subjects. A refusal that named only the piece is ambiguous the moment two
+goals share one — and the id is what makes the answer actionable to a caller that must then move a specific
+marker, rather than merely diagnostic. The canvas can resolve that subject to a highlight ring on the
+marker's cell; wiring the findings list to ask for it is `C44`.
+
 ---
 
 ## 11. Persistence
