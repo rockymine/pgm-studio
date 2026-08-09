@@ -422,14 +422,20 @@ import diagnostic (`B24e`), detection (`B26`), and the island-floor work the pha
   **Cores are gathered and stored** (`FEATURES.md`); what remains on that side is the **confirm-in-UI flow** —
   the configure tool has no step that reads `core_candidate` and turns a chosen suggestion into a `CoreIntent`.
   The backend half is done, so this is UI work against a table that is already populated at import.
-  **Destroyables are detectable and the ranker is two filters away from useful.** The measured facts: 98% of
-  declared structures are a standalone connected cluster, 95% have a same-material same-size partner at the
-  rotational image of the objective centre, and the centre is recoverable without the XML by letting candidate
-  pairs vote for it. A per-map ranking on material prior + symmetry pairing + air exposure already puts a
-  declared structure in the top 5 for 47.6% of cases at a median 11 candidates per map. **The ceiling is the
-  candidate filter, not the ranking**: 34% of declared structures never enter the set, dropped by `size > 128`
-  and by `air faces == 0`, and real destroyables are sometimes both large and fully enclosed. Loosen those two
-  against the measured true distribution before touching the score, then re-measure recall@5.
+  **Destroyables: the discriminating signals are measured, the detector is not written.** They are not
+  identified by anything about the structure — size spans 1 to 31,105 blocks and fill is uninformative — but by
+  their **neighbourhood**, dumped 10 blocks outward and down to `y=0` for all 614 declared structures.
+  *Isolation*: a declared destroyable has a median of 6 same-material blocks within 10, against 65+ for a false
+  cluster, because decoration repeats and a goal is placed once. *Elevation*: it sits a median +5 blocks above
+  the surrounding terrain, against −2 for false clusters. Together, with **no size cap and no air-face test**
+  (both of which were discarding truth), `same ≤ 8 & elevation ≥ +2` keeps 553 of 1,062 true clusters against
+  600 false — 48% precision at 52% recall, a four-fold precision gain on the previous best. `same ≤ 0 &
+  elevation ≥ +2` reaches 65.6% precision if a stricter list is wanted.
+  Build the detector at those operating points, gather at ingest into a `destroyable_candidate` table beside
+  `core_candidate`, and validate the same two ways cores are (corpus + a composed plan). **Scope honestly to
+  84%**: obsidian, emerald, gold and ender stone carry that share of declared destroyables, and the wool /
+  stained-clay / stained-glass remainder must stay out — admitting wool takes the candidate set from 15,488
+  clusters to 439,440, because a CTW map is made of wool.
 
 - [ ] **CV16 — the authoring canvases have no frame budget, only habits.** The zoom stall (fixed in
   `FEATURES.md`) was two unrelated per-event costs that happened to land on the same handler, and neither was

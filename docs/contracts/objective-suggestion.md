@@ -3,9 +3,9 @@
 An imported world arrives with no `map.xml`; the configure tool's job is to help an author produce one. For
 wool monuments that help is `MonumentSuggester` (`monument-suggestion.md`). This document covers the same move
 applied to the other two objectives. Both are detectable; they are not detectable the same way. A core has a
-signature nothing else produces and is proposed outright. A destroyable has no local signature at all — it is
-one to three ordinary blocks — and is reachable only by ranking candidates against each other, using the
-symmetry that a two-team goal implies.
+signature nothing else produces and is proposed outright. A destroyable has no signature *in itself* — it is
+ordinary blocks in ordinary shapes — and is identified by its **neighbourhood**: what surrounds it, and how
+far it sits above the ground around it.
 
 Both halves were measured before either was built, against ground truth the corpus gives away for free — a map
 that declares an objective says exactly where it is, so the world can be scanned and the proposals scored
@@ -47,55 +47,71 @@ geometry rather than defaulted, which is what lets a suggestion arrive as a core
 `<region>` a confirmed core needs is the authoring side's exact structure box (OB8) — a human's slack is an
 artifact the studio does not reproduce.
 
-## 3. Destroyables — detectable, and the first measurement of them was wrong
+## 3. Destroyables — what the neighbourhood shows
 
-The first pass concluded that a destroyable cannot be found from a world scan. That conclusion came from a
-flawed measurement and is retracted here, because the correction changes the answer rather than the margin.
+Two earlier passes got this wrong in opposite directions, and both errors came from measuring too little of
+the world. The first pooled all four materials into one flood fill, so a gold block touching obsidian terrain
+became one cluster and everything incidental entered the candidate set; it concluded, wrongly, that a
+destroyable is undetectable. The second measured only the structure and its immediate faces, which is not
+enough to tell a goal from a decoration that happens to look like one.
 
-**The error was clustering across the material vocabulary pooled.** A destroyable is a connected mass of *one*
-material — obsidian, or emerald, or gold, or ender stone, rarely a mixture — but the probe flooded all four
-together, so a gold block touching obsidian terrain became a single cluster and every incidental block in the
-vocabulary entered the candidate set. Clustering per material cuts the candidates from 39,716 to 15,480 before
-any other change.
+The measurement that settles it dumps **every declared destroyable together with its neighbourhood** — ten
+blocks outward on each horizontal axis, ten up, and **all the way down to `y=0`** — with nothing dropped for
+being large. 614 structures across 223 maps.
 
-**Corrected, a declared destroyable is a standalone object 98% of the time.** Of 571 structures resolved to a
-single material, 561 are *exactly* their connected cluster — the declared blocks are the whole mass, with
-nothing of that material attached. Only 10 fuse into something larger. That is the number which decides
-whether detection is possible at all, because a detector sees clusters: obsidian 298/298 standalone, emerald
-108/108, gold 40/40, ender stone 65/67. The ceiling is 98%, not the obstacle.
+### The structure alone says little
 
-**Symmetry pairs them, and the pairing is findable without the XML.** 538 of 564 declared structures (95%) have
-a same-material, same-size partner at the rotational image of the objective set's centre — which follows from
-OB14, since a destroyable is a two-team goal. The centre itself does not need to be known in advance: every
-same-material same-size pair of candidates proposes the midpoint it would be symmetric about, and the true
-centre is the one the most pairs agree on.
+Size spans four orders of magnitude: median 8 blocks, p90 120, and a 31,105-block maximum that is a real,
+declared destroyable. Any size cap throws away truth, and the earlier 128-block cap was discarding the top
+tenth. Fill is likewise uninformative — median 100%, but so is the median false cluster's, because a single
+block fills its own bounding box perfectly.
 
-**What the false positives are, grouped by why they are not destroyables.** Of 14,418 false clusters:
+**Support is bimodal, which retires "destroyables float" as a rule.** Reading every footprint column down to
+`y=0`: **353 of 614 rest fully on something**, 163 hover with nothing beneath any column, and 98 are partly
+supported. The median air gap directly beneath is 0. DT3's "float 3–5 blocks" describes the generator's
+default, not the corpus.
 
-| Count | Reason |
-|---|---|
-| 4,985 | fully buried — not one face touches air |
-| 3,632 | embedded in terrain — under 25% of faces on air |
-| 945 | submerged, or touching a fluid |
-| 573 | sprawling — a bounding-box dimension over 8 |
-| 373 | too large — over 64 blocks |
-| 105 | not solid — under 50% of its own bounding box |
-| 3,805 | survives all of the above |
+### The neighbourhood says a great deal
 
-The survivors concentrate in a handful of maps that use these materials architecturally — embers_2 alone
-contributes 866 ender-stone clusters, warzone 442 obsidian — which is exactly the "used, but as large sections
-or hidden in terrain" pattern, arriving as many small clusters rather than one big one.
+Two properties separate a goal from decoration, and neither is visible from the structure itself.
 
-**Ranking beats gating, and is the right shape for the flow anyway.** A confirm-in-UI step does not need a
-candidate set that is mostly right; it needs the right ones at the top. Scoring candidates by material prior
-(emerald runs nearly 1:1 true:false, obsidian nearly 1:22), symmetry pairing, air exposure and compactness, and
-ranking per map, places a declared structure in the map's **top 5 for 47.6%** and top 10 for 54.6%, at a median
-of 11 candidates per map and a median rank of 3.
+**Isolation.** A declared destroyable is typically the only thing of its material anywhere near: the median
+count of same-material blocks within 10 is **6 for true structures and 65+ (the measuring cap) for false
+ones**. Decoration is repeated by nature — a material chosen for a wall or a floor appears again immediately —
+while a goal is placed once. This is the property that dissolves the pathological maps: embers_2's 866
+ender-stone clusters are surrounded by each other.
 
-That is an assist, not a detector, and it is not shipped yet — because 34% of declared structures are not even
-reaching the candidate set, and the reason is known: the current filters drop anything over 128 blocks or with
-no air face at all, and a real destroyable is sometimes both. Those two filters are worth more recall than the
-whole ranking is worth precision, and fixing them is where the next work goes (`B58`).
+**Elevation.** Measured against the terrain height in the ring around it, a declared structure sits a median
+of **+5 blocks above local ground**, and 544 of 610 sit at or above it. False clusters sit at −2. A destroyable
+does not have to float, but it is put somewhere prominent; decoration is level with what it decorates.
+
+### Where that lands
+
+Both signals together, with **no size cap and no air-face requirement**, over 15,488 per-material clusters
+(1,062 overlapping a declared structure):
+
+| same-material ≤ | elevation ≥ | true kept | false kept | precision |
+|---|---|---|---|---|
+| 0 | +2 | 355 / 1062 | 186 | **65.6%** |
+| 0 | 0 | 389 / 1062 | 244 | 61.5% |
+| 2 | +2 | 425 / 1062 | 266 | 61.5% |
+| 8 | +2 | 553 / 1062 | 600 | 48.0% |
+| 8 | −∞ | 642 / 1062 | 1452 | 30.7% |
+
+Against the earlier best of 28% recall at roughly 15% precision, isolation and elevation are a four-fold
+improvement in precision at higher recall. A confirm-in-UI flow wants the `same ≤ 8, elevation ≥ +2` row —
+about one true proposal in two — rather than the strictest one.
+
+### The material set is four, and it is four for a reason
+
+Obsidian, emerald, gold and ender stone carry **84%** of declared destroyables. Wool, stained clay and stained
+glass carry another 8% between them and must still be excluded: admitting wool takes the candidate set from
+15,488 clusters to **439,440**, because a CTW map is largely made of wool. A material a map is built from
+cannot mark a goal inside it, so those destroyables are unreachable by this method and that is the honest
+ceiling — 84%, not 100%.
+
+Nothing is shipped yet. The signals and their operating points are measured; what remains is the detector
+itself and the confirm flow (`B58`).
 
 ## 4. Gather at ingest, or not at all
 
