@@ -1265,6 +1265,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   no `Symmetry`" — and named that a coincidence rather than a design. It was: giving Configure a Cores phase
   (`N12`) made Configure a producer of one of the four, and the coincidence stopped holding in the same
   commit that relied on it. (`SymmetryExpanderCarryTests`; B53 · G160)
+- **A goal cannot be placed where the map's own rules would make it unbreakable (`OB17`).** A destroyable
+  and a core sit more freely than a wool — no room, no per-team monument — so what bounds them is where they
+  would stop working, and there are exactly three such places. **Over the void**, the build slice's
+  `block_place=deny(void)` means the blocks cannot be broken. **Inside a spawn**, protection emits
+  `block="never"` over the spawns union, which denies *everyone* including the attacking team: a map that
+  cannot be won, and nothing downstream says so — PGM loads it and the round never ends. **Inside a wool
+  room**, the room's own rules cover the goal. `PlanValidator` refuses all three as compile-blocking errors,
+  so an agent driving the endpoint is stopped rather than shipping an unwinnable map (`B21`).
+  Each is decided by the structure's **footprint**, not its marker — a marker legally inside its piece can
+  still put a 5×5 casing two columns past the edge — and the footprint comes from `ObjectiveFootprint` in
+  `Domain`, below both the plan layer and the world stamper, which now derive it from the one table. A
+  validator sizing structures its own way would pass a plan the stamper then builds one block wider. The
+  void test reads every block of the footprint against **all** pieces, so land assembled from abutting
+  pieces counts as one surface; the room tests read the resolved **frame** rather than the piece holding it,
+  since a spawn piece is often far larger than its room and refusing a goal at the far corner would be a
+  refusal with no cause. (`ObjectiveFootprint`; `PlanValidator`; `PlanValidatorObjectivePlacementTests`
+  covers each case firing, the one-block structure that legally stands where a wide one may not, and the
+  straddle of two abutting pieces. OB17 · B37)
 - **An objective marker states the structure it builds (`G160`).** A core and a destroyable are placed as
   bare markers and take the generator's defaults; the knobs that vary them — a casing's footprint, height,
   wall thickness, capped-or-flush lava and float/leak pair, a destroyable's design, material and float — had

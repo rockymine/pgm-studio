@@ -24,16 +24,6 @@ public static class ObjectiveStamper
     // ── destroyables ────────────────────────────────────────────────────────────────
 
     /// <summary>The footprint and height of a style, as (width, height, depth) in blocks.</summary>
-    public static (int Width, int Height, int Depth) Dimensions(DestroyableStyle style, int columnHeight = 3) => style switch
-    {
-        DestroyableStyle.Pillar1 => (1, 1, 1),
-        DestroyableStyle.Pillar2 => (1, 2, 1),
-        DestroyableStyle.Pillar3 => (1, 3, 1),
-        DestroyableStyle.Cube3 => (3, 3, 3),
-        DestroyableStyle.Cube4 => (4, 4, 4),
-        DestroyableStyle.ColumnPlus => (3, columnHeight, 3),
-        _ => (1, 1, 1),
-    };
 
     /// <summary>
     /// The box a destroyable occupies: its footprint centred on the anchor, floating
@@ -45,9 +35,8 @@ public static class ObjectiveStamper
         IReadOnlyDictionary<(int X, int Z), int> surfaceTop, int anchorX, int anchorZ,
         DestroyableStyle style, int floatBlocks = DefaultDestroyableFloat, int columnHeight = 3)
     {
-        var (w, h, d) = Dimensions(style, columnHeight);
-        var (minX, minZ) = (anchorX - (w - 1) / 2, anchorZ - (d - 1) / 2);
-        var (maxX, maxZ) = (minX + w - 1, minZ + d - 1);
+        var (w, h, d) = ObjectiveFootprint.Destroyable(style, columnHeight);
+        var (minX, minZ, maxX, maxZ) = ObjectiveFootprint.Centred(anchorX, anchorZ, w, d);
         var baseY = PositionSnap.SurfaceYOver(surfaceTop, minX, minZ, maxX, maxZ, 1) + floatBlocks;
         return new BlockBox(minX, baseY, minZ, maxX, baseY + h - 1, maxZ);
     }
@@ -92,8 +81,8 @@ public static class ObjectiveStamper
         IReadOnlyDictionary<(int X, int Z), int> surfaceTop, int anchorX, int anchorZ,
         int size = DefaultCoreSize, int height = DefaultCoreHeight, int floatBlocks = DefaultCoreFloat)
     {
-        var (minX, minZ) = (anchorX - (size - 1) / 2, anchorZ - (size - 1) / 2);
-        var (maxX, maxZ) = (minX + size - 1, minZ + size - 1);
+        var (width, depth) = ObjectiveFootprint.Core(size);
+        var (minX, minZ, maxX, maxZ) = ObjectiveFootprint.Centred(anchorX, anchorZ, width, depth);
         var baseY = PositionSnap.SurfaceYOver(surfaceTop, minX, minZ, maxX, maxZ, 1) + floatBlocks;
         return new BlockBox(minX, baseY, minZ, maxX, baseY + height - 1, maxZ);
     }

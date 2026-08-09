@@ -259,7 +259,16 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   Three pieces landed since that make the record cheaper to build: `BlockBox` is now the one inclusive AABB
   (`B33`), a core's footprint is genuinely variable so a rule may no longer assume 5×5 (`G160`), and
   `CoreIntent.Box`/`DestroyableIntent.Box` are populated on **both** orbit images (`B53`), so a rule reading
-  the expanded intent sees the real pair.
+  the expanded intent sees the real pair. **The objective half of the separation rules has since shipped as
+  `OB17`** (`FEATURES.md`) — void, spawn room and wool room, as compile-blocking errors over a shared
+  `ObjectiveFootprint`. What that leaves for B37 is the part it was really about: the uniform
+  resolved-stamp record every family's resolver produces (`OB17` computes footprints inline rather than
+  through one), the objective↔objective and objective↔monument minimum distances still to be drawn from the
+  corpus, `StructureBox` consuming the record instead of assembling its own, and the editor half — an
+  unplaceable marker outlined on the plan canvas, which needs two things that do not exist yet: a finding
+  may only name a piece or a zone (`plan-canvas.js #paintPulse` resolves nothing else, and a marker has no
+  id in the plan document at all), and structural findings do not run in the live feed (`G161`), so today a
+  refusal appears at Compile rather than as the marker is dragged.
 
 - [ ] **B34 — The two map-list endpoints disagree on sort order, and the dashboard gets the noisy one.**
   `MapsListEndpoint` branches on the `stage` query param onto two differently-ordered repository methods:
@@ -450,6 +459,17 @@ import diagnostic (`B24e`), detection (`B26`), and the island-floor work the pha
   a wool room or spawn its own export refuses. Make the room depth/width floors cell-size-aware — enough
   cells to reach the block minimum — through `MinBox` and the spawn profile; the composer's cell-5 boards
   already clear it by construction, so this binds only when boards go small-cell.
+
+- [ ] **G163 — `map-layers`' rebuild-confirmation step flakes about one run in three.** The step drives
+  Compile on a freshly-opened plan and reads the drawer; when the plan document has not reached the client
+  yet it compiles an empty plan, which is a 422 by design, so the drawer never opens and the following
+  `page.click` times out at 30s. The spec guards it with a fixed `waitForTimeout(1500)` — a duration
+  standing in for a condition, and the wrong guess about a third of the time. Measured 1-in-3 both with and
+  without the `OB17` rule, so it is timing rather than validation. Waiting on the first piece id label
+  (`.map-canvas-svg text`, the overlay's proof the document arrived) was tried and did **not** fix it, so
+  the stall is later than the document load — most likely the drawer's own render. Diagnose which of the
+  four clicks in that block times out before choosing the wait; a flake in the browser gate costs more than
+  the step is worth, because it makes every unrelated run ambiguous.
 
 - [ ] **G161 — the casing panel lets an author build a core the compiler will refuse.** `G160` put the
   casing knobs in the plan's marker panel, clamped independently — size 1..64, shell 1..16 — so a 5×5 casing

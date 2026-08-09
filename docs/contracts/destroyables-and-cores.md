@@ -548,6 +548,33 @@ Anything stricter would reject most of the corpus.
 
 `MapValidity` currently owns exactly one rule ("every wool needs a monument"). These join it there.
 
+**OB17 — a goal may stand almost anywhere, and there are exactly three places it may not.** A
+destroyable and a core are unlike a wool in how freely they sit: no room, no per-team monument, nothing
+that binds them to a particular piece. What bounds them is where the map's own rules would make them
+unbreakable, and all three cases are decided by the structure's **footprint** rather than by its marker —
+which is why a marker legally inside its piece can still be wrong, and why the check needs the same
+footprint the stamper builds (`ObjectiveFootprint`, below both the plan layer and the stamper for exactly
+that reason).
+
+*Over the void.* The build slice applies `block_place=deny(void)` to the complement of the build areas, so
+blocks hanging off the land cannot be broken and the objective can never be completed. A one-block pillar
+at the very edge of an island is fine; the 4×4 cube centred on the same block is not.
+
+*Inside a spawn.* Spawn protection emits `block="never"` over the shared `spawns` union — not "enemies may
+not break" but **nobody** may, the attacking team included. A goal there is a map that cannot be won, and
+nothing downstream reports it: PGM loads the map and the round simply never ends. The wool path avoids this
+by construction (`WoolGenerator` folds each monument block out of the union so capturing a wool does not
+trip the rule); a destroyable or a core has no such fold and is refused instead, because a goal inside a
+spawn is a design error rather than a case to work around.
+
+*Inside a wool room.* The room carries its own enter/block rules for its owner, which a second objective
+sharing that ground inherits — and it reads as part of the room besides.
+
+The refusals are **errors, not lint**: the compile gate answers 422 on errors alone, so an agent driving
+the endpoint is stopped for every one of the three rather than shipping a map that cannot be won (`B21`).
+The test against the *room frame* rather than the piece holding it matters — a spawn piece is often far
+larger than the room stamped on it, and refusing a goal at its far corner would be a refusal with no cause.
+
 ---
 
 ## 11. Persistence
