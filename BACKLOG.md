@@ -247,6 +247,19 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   type from `BlockBox` — exclusive maxes plus `Kind`/`Color`, a drawing frame rather than a volume). Stamp only placeable structures, flag the rest with the same
   marker-stays-visible discipline. Editor half: surface unplaceable markers on the plan canvas (the
   highlight ring the validation tab already uses for pieces), not only in the findings list.
+  **Measured since filing.** The unwinnable case is worse than "unbreakable by the enemy": spawn protection
+  emits `block="never"` on the shared `spawns` union (`TeamsGenerator`), so an objective inside it cannot be
+  broken by *anyone*, the attacking team included. The wool path already solves exactly this —
+  `WoolGenerator.SubtractMonumentsFromSpawns` folds each monument block out of the union so capturing a wool
+  does not trip the rule — and cores and destroyables have no equivalent, which is why they need the
+  separation rule rather than a fold: a goal inside enemy spawn is a design error, not a case to work
+  around. `Placeable` still exists only on `IronResolution` (four consumers, all iron), and **preflight
+  checks round-trip, mirror, buildability and traversability only** — so the Configure path, which can now
+  author a core (`N12`), has no separation check at all while the plan path at least errors at compile.
+  Three pieces landed since that make the record cheaper to build: `BlockBox` is now the one inclusive AABB
+  (`B33`), a core's footprint is genuinely variable so a rule may no longer assume 5×5 (`G160`), and
+  `CoreIntent.Box`/`DestroyableIntent.Box` are populated on **both** orbit images (`B53`), so a rule reading
+  the expanded intent sees the real pair.
 
 - [ ] **B34 — The two map-list endpoints disagree on sort order, and the dashboard gets the noisy one.**
   `MapsListEndpoint` branches on the `stage` query param onto two differently-ordered repository methods:
@@ -437,6 +450,16 @@ import diagnostic (`B24e`), detection (`B26`), and the island-floor work the pha
   a wool room or spawn its own export refuses. Make the room depth/width floors cell-size-aware — enough
   cells to reach the block minimum — through `MinBox` and the spawn profile; the composer's cell-5 boards
   already clear it by construction, so this binds only when boards go small-cell.
+
+- [ ] **G161 — the casing panel lets an author build a core the compiler will refuse.** `G160` put the
+  casing knobs in the plan's marker panel, clamped independently — size 1..64, shell 1..16 — so a 5×5 casing
+  with a shell of 3 is one keystroke away and leaves `size − 2·shell = −1`, a solid block of obsidian that
+  can never leak. `PlanValidator` catches it with a good message, but only at the **compile** gate (422):
+  the live inspect/evaluate feed does not run `Validate`, so the author sets the number, sees nothing, and
+  finds out a phase later. Either state the interior in the panel as the two numbers move (it is the honest
+  readout — "3×3×3 lava inside", or the reason there is none), or run the structural findings in the live
+  feed so every rule reports where the edit happened. The second is the general fix and covers the
+  destroyable style and float/leak rules too.
 
 - [ ] **G150 — stamp a catalog shape into a drawn box.** The plan editor can draw a typed box and then ask
   whether the composer could have produced what is in it (G125's feasibility panel), but there is no way to
