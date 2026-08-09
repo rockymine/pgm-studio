@@ -63,6 +63,12 @@ if both survive. Counting the connected components of the minimum cut is **not**
 answers in both directions — an uncuttable door cell inside a single barrier splits it into two fragments
 with no second route anywhere, and a genuine second way is missed whenever the cheapest cut lies elsewhere.
 
+**Interference.** Two routes belonging to opposing sides, and how much ground they share. A single route
+says nothing about tension; tension is two corridors laid over each other, so the measure is the fraction of
+one team's lane that the other team's lane also covers. This is the quantity behind §4.8, and it is not the
+same as either route's proximity to a box — two routes can collide for their whole length without either
+one entering a third box at all.
+
 ---
 
 ## 3. The generator's vocabulary, in flow terms
@@ -235,21 +241,39 @@ route** becomes the live one. A player holding the captured room builds a stairc
 the already-connected sky, to harass the defenders as they respawn; that pressure is what lets the rest of
 the team make progress on the remaining wool.
 
-Whether that route runs past the spawn is decided by the dock arrangement, and the two arrangements differ
-sharply:
+### 4.9 Why the second wool is contested before it is reached
 
-| | canonical (spawn *back*) | lopsided |
-|---|---|---|
-| rotation passes through the spawn box | 25% | 0% |
-| rotation comes within 10 blocks of it | 63% | 2% |
-| median gap, route to spawn box | 10 blocks | 30 blocks |
-| cost of detouring through the spawn | 1.36× | 2.69× |
+The tension in that phase is not that the rotation touches the spawn. It is that two routes collide: the
+attacker pushing from the captured room toward the remaining wool, and the defender travelling from spawn to
+the same wool. Both are heading for one objective from different origins, and the ground they cross is
+shared.
 
-On the canonical arrangement the rotation runs right past the spawn — within ten blocks on nearly two
-thirds of boards, which is inside engagement range — and the harassment described above is a natural
-consequence of the geometry rather than a detour. On the lopsided arrangement it is thirty blocks away and
-routing through the spawn costs 2.7× the direct distance, so the same play becomes a deliberate and
-expensive choice. This is a difference the generator creates, not a difference in how players behave.
+That collision is universal on generated boards. Measuring the fraction of the defender's spawn-to-wool
+corridor that the attacker's wool-to-wool corridor also covers, across 453 two-wool boards: the median is
+**34%**, half or more on 27% of boards, and — the load-bearing figure — **no board has zero overlap**. There
+is no generated layout on which the two routes miss each other.
+
+An attacker therefore passes the defenders' reinforcement lane as a matter of course, unless the hub
+encloses a void and the long way round is taken. That choice is worth its distance:
+
+| attacker's route across a holed hub | share of the defender's lane it covers |
+|---|---|
+| near side (the short way) | 76% |
+| far side (the long way) | 37% |
+
+The far side measurably reduces the collision on **74%** of the boards that offer one, which is the clearest
+statement of what a void in the hub actually buys: not a shortcut, and not merely rotation, but the option
+to reach an objective without spending the whole approach inside the enemy's reinforcement lane. Solid hubs
+have no such option. Dock arrangement (§3.3) still decides how close the rotation passes to the spawn point
+itself, but interference is the more fundamental quantity and it never falls to nothing.
+
+The collision is also vertical, and asymmetric. A player arriving from the captured room travels on the sky
+network at the build cap; a defender who has just died arrives at the spawn point on the ground, because
+spawns sit on the terrain surface. On generated boards the surface is y = 9 and the cap is y = 20, so a
+respawning defender has **eleven blocks of staircase to climb** before reaching the layer the attacker is
+already standing on — and climbs it while that attacker holds height over them and while the attacker's own
+teammates approach the same wool from the middle of the map. That is the shape of the pressure: not one
+route crossing another on a flat plan, but one team above the other at the moment the other is weakest.
 
 ---
 
@@ -288,7 +312,10 @@ confined to land plus the band.
 | ways across the hub | ring 163/224 spawn-to-wool, 203/209 wool-to-wool; solid and branched hubs never |
 | dock arrangement | canonical 27%, lopsided 73%; imbalance 0.18 against 0.40 |
 | defender contest at the choke | defender starts farther than the attacker on 44% of objectives |
-| rotation past the spawn | canonical 63% within 10 blocks; lopsided 2% |
+| route interference, second phase | attacker's rotation covers a median 34% of the defender's lane; zero on no board |
+| what a hub void buys | 76% interference on the near side against 37% on the far side; the far side helps on 74% |
+| rotation past the spawn point | canonical 63% within 10 blocks; lopsided 2% |
+| climb from spawn to the sky | 11 blocks (surface y = 9, cap y = 20) |
 
 ## 7. What a plan cannot answer
 
@@ -307,9 +334,15 @@ today. An **interception** term must be relative — the defender-versus-attacke
 because absolute return distance describes a walk to an empty doorway, which is the one situation that
 never occurs.
 
+An **interference** term is the one this account adds that was not previously on the list, and it is the
+term that gives a hub void its worth. Ways-round-a-void counts alternatives; interference says what the
+alternative is *for*, which is reaching an objective without spending the approach inside the enemy's
+reinforcement lane. A layout offering two ways that both collide equally has not bought anything.
+
 Two seating rules fall out directly. When a hub encloses a void, seating the two docks on opposite sides of
-it converts a decorative hole into two ways across. And preferring the canonical arrangement — spawn
-opposite the frontline, wools flanking — roughly halves the spawn-distance imbalance and restores the
+it converts a decorative hole into two ways across — and, by the interference figures, into one low-collision
+way and one high-collision way, which is the pair worth having. And preferring the canonical arrangement —
+spawn opposite the frontline, wools flanking — roughly halves the spawn-distance imbalance and restores the
 rotation-past-spawn dynamic that the lopsided arrangement removes.
 
 Dock arrangement belongs in `StructureSummary.Canonical()` beside `hub:` and `wools:`, which also makes it a
