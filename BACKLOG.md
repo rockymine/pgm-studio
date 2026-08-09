@@ -450,6 +450,26 @@ import diagnostic (`B24e`), detection (`B26`), and the island-floor work the pha
   cells to reach the block minimum — through `MinBox` and the spawn profile; the composer's cell-5 boards
   already clear it by construction, so this binds only when boards go small-cell.
 
+- [ ] **G160 — a core or destroyable marker has variants nobody can pick.** Every knob exists and is
+  honoured end to end — `CorePlacement` carries `size`/`height`/`shell`/`openTop`/`float`/`leak`/`name`,
+  `DestroyablePlacement` carries `style`/`materials`/`float`/`name` over the six designs in
+  `DestroyableStyles` (`pillar-1|2|3`, `cube-3`, `cube-4`, `column-plus`), `plan-doc.js` round-trips all of
+  them and keeps each optional, `PlanCompiler` reads them and the stamper builds them. What is missing is the
+  only part an author can reach: the plan tool's marker inspector shows **On piece**, spawn **Facing**, and
+  **Delete**, and nothing else, so every core placed there is a capped 5×5×5 shell-1 float-6 leak-5 and every
+  destroyable a floating obsidian `pillar-3`. The variants are reachable today only by hand-editing the plan
+  JSON through import/export.
+  **Scope:** carry the fields on `PlanSelection` (JS `select()` payload → the C# DTO), add one generic
+  bridge mutator beside `cycleFacing` — `setMarkerField(kind, index, key, value)`, deleting the key when the
+  value returns to the default so a plain marker stays the bare `{piece, at}` `plan-doc` normalises it to —
+  and give the marker inspector a per-kind body: a **style picker** for a destroyable (the six designs, plus
+  materials and float) and the **casing** controls for a core (footprint · height · wall · capped-or-flush ·
+  float/leak with the dig depth spelled out). The core half already has a worked twin in Configure's
+  `CoreCasingStep`, so the wording and the field set can be lifted rather than re-invented. Open question
+  worth settling first: whether the plan tool becomes the single home for these (Configure then reads what
+  the plan states) or both surfaces stay editable — the plan owns structure, but a core confirmed from a
+  world scan has no plan behind it, so probably both, with the plan as the default source.
+
 - [ ] **G150 — stamp a catalog shape into a drawn box.** The plan editor can draw a typed box and then ask
   whether the composer could have produced what is in it (G125's feasibility panel), but there is no way to
   go the other direction and *place* something known-producible: nothing in `Features/Plan/` references the
