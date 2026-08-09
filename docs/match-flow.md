@@ -355,10 +355,25 @@ not a constant, and locating it per board is unfinished work.
 
 ### 6.2 The wall stands where the map lets it, and the pit goes in front
 
-The defensive line is visible without any block log. Joining ground positions to the map's *original*
-terrain height and asking how far below it players stand finds the excavated band directly: **57 of 67 maps
-show a distinct pit**, at a map-specific 5 to 65 blocks with a median of 28, peaking corpus-wide at 15–30
-blocks where 44% of ground samples sit three or more blocks under the shipped terrain.
+Excavation is visible without any block log, but only under two conditions that a naive height-below-surface
+test fails. A position counts toward a cell's floor only if it sits **below that cell's own surface**;
+otherwise the measure picks up where players stood on the ground and reads its one-block wobble as digging,
+which reports 91% of a map's cells as excavated against 17% when the filter is applied. And a cell is being
+dug only if its floor **varies between matches** — a cell whose floor is identical every time is static map
+geometry, a room interior or a ravine, however far below the surface it lies. Neither gate is a sample
+count. Depth is then measured per cell rather than per sample, so it is not weighted by how much players
+milled about inside the hole.
+
+Read that way, **32% of the cells that ever see a sub-surface position are actively dug**, and the profile
+runs against distance from the wool-room face. Normalised for how much diggable ground each column has —
+surface down to the bedrock ceiling — **completeness peaks at 10–19 blocks from the room face at 0.83 and
+falls to 0.70 by 80 blocks out**. Raw depth rises with distance instead, which is an artifact of deeper
+bedrock further from the objective and not a statement about where the digging happens.
+
+The excavation is a process, not a state. Taking the median time a cell is first dug: **5.5 minutes at the
+room face, 6.5 at 10–19 blocks, 7.4 at 20–29 and 8.2 at 30–39**. Digging starts at the room and works
+outward from it, which is why a ground push that needs the whole approach opened up takes a long time to
+become possible.
 
 Where the line falls is decided by what the map offers. Scanning all 94 worlds for straight bedrock runs
 standing in front of a wool room finds one on **59 maps**, median outermost line 20 blocks from the wool or
@@ -368,11 +383,34 @@ its base and a wall on the room cannot. Measured from the room face, holding pos
 it run **6.3% on maps with a bedrock line against 18.1% on maps without**, and wall-building 6.3% against
 16.0%, with the line seven blocks closer. On `kanto` the mechanism is legible block by block: bedrock walls
 seven and twenty-one blocks in front of each room, cobweb along the outer wall's crenellations and plugging
-the room mouth, and the excavation peaking at 25–29 blocks — immediately in front of the outer wall.
+the room mouth.
 
 The material choice is a hardness choice. Crafting tables, redstone blocks and iron bars appear in hand at
 the base of these structures; they are 2.5 and 5 on the hardness scale against 2 for planks and 0.3 for
 glass, so the expensive block goes where the wall is attacked.
+
+### 6.2b An early wool falls onto ground nobody has touched
+
+The two halves of &sect;6.2 meet in a single measure: how dug the ground around a room is at the moment its
+wool is taken, counted over every diggable cell within 25 blocks and scoring an untouched cell as zero.
+
+| when the wool fell | captures | completeness of the ground around it |
+|---|---|---|
+| inside 5 minutes | 1 029 | **0.010** |
+| 5–10 minutes | 554 | 0.018 |
+| 10–20 minutes | 263 | 0.038 |
+| 20–40 minutes | 60 | 0.151 |
+| past 40 minutes | 35 | **0.336** |
+
+Within a map the same ordering holds on **42 of 43** maps carrying captures on both sides of the ten-minute
+line. A wool taken in the opening minutes is taken across ground that is one per cent excavated — no pit, no
+wall, nothing built. A wool held past forty minutes falls only after a third of the ground around it has
+been dug out. On `outback`, where the contrast is sharpest, the rooms that fall inside ten minutes end at
+0.14 completeness and the two that are contested to the end reach 0.91.
+
+That is what makes the first capture a different event from the second rather than an earlier one. Nothing
+structural stands between an attacker and a wool in the opening window, so what decides it is only where the
+other team's players happen to be — which is &sect;6.5's subject.
 
 ### 6.3 Getting onto the sky, and whether a map builds a staircase
 
@@ -436,6 +474,29 @@ compares two equal numbers, and the discriminator is the **flank**: the first wo
 side of the attacker's advance in **81%** of frames, and on 41 of 44 maps both teams favour the same hand
 relative to their own direction of travel. Declaration order in `map.xml` is not the mechanism — the
 first-declared wool falls first 49.1% of the time, which is chance.
+
+The flank is not a habit, it is where the bodies are not. Measured on the attacking travel inside the enemy
+half before the first capture, **both teams take the same hand in their own frame on 67.8% of 935 matches**
+— 74.1% on `rot_180` boards. Same hand in each team's own frame means *opposite physical flanks*, so each
+rush arrives where the other team's players are not.
+
+What that buys is not fewer collisions on the way. Deaths in the middle third of the axis before the first
+capture sit at a median of **zero** under either arrangement, on all 26 maps with enough matches to compare
+— the two rushes never meet there regardless. What it buys is a thinner reception: in the ninety seconds
+before the first wool falls, defenders are **34.9% of the players standing within 40 blocks of it when the
+flanks are opposite against 43.1% when they are shared**, thinner on 18 of 25 maps. And the wool falls
+sooner for it — **0.79 minutes sooner** within a map, faster on 18 of 26.
+
+Match population does not explain it. Concurrent players on a long match climb from a median 26 at the
+start to 44 by the hour, and early population predicts capture time hard on its own — 1.77 minutes with
+under ten present, 3.67 with twenty or more. But the flank effect survives inside each band, at −0.23
+minutes at 10–19 present and −0.93 at 20+, and same-hand matches carry slightly *higher* early population
+than opposite-hand ones, so the confound runs against the effect rather than producing it.
+
+The reason a flank preference can decide anything is &sect;6.2b: in that window the ground is one per cent
+dug and nothing is built, so position is the only variable there is. Once a room survives it, the digging
+and the wall begin and the second wool becomes a structural problem instead — which is why the effect
+appears in the first capture and nowhere afterwards.
 
 Some maps settle it outright. `sanctum_wasser` has two cheap objectives and two fortresses: across all six
 recorded matches the same two wools fall in the first minutes and the survivor is always one of the other
