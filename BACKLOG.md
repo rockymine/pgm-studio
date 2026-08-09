@@ -680,6 +680,63 @@ What stays here is the concrete non-design work on *imported* maps (island detec
   today's `Traversability.Check` only tests connectivity, **not** spawn-protection-as-wall, so it passes maps
   the generator's Python validator would fail. Feed it into the `NVAL` / preflight gate.
 
+- [ ] **G164 — interference: how much of one side's route the other side's route covers.** Every flow
+  measure so far reads one traversal at a time, and a single route cannot express tension. Tension is two
+  corridors laid over each other: the attacker pushing from a captured wool room toward the remaining
+  objective, and the defender travelling from spawn to the same objective. The measurable is the fraction of
+  the defender's corridor that the attacker's corridor also covers, computed on the cell mask the same way
+  the corridors already are. Measured over 453 two-wool boards at `marker-id-1`: median **34%**, half or more
+  on 27%, and **no board reaches zero** — passing the reinforcement lane is unavoidable on generated output.
+  This is the term that gives a hub void a purpose the ways-round-a-void count cannot: on a holed hub the
+  near way leaves 76% interference and the far way 37%, and the far way measurably reduces the collision on
+  74% of the boards offering one, so a layout whose two ways collide equally has bought nothing. Derive side
+  belongs beside `BoardDeriver`; the term belongs in `Evaluate/Terms`. It reads a pair of routes rather than
+  one, so the origin "a captured wool room" comes from G168's post-capture state — until that exists,
+  computing it once per wool treated as captured is the honest stand-in. Background and the full numbers:
+  `docs/match-flow.md` §2, §4.9.
+
+- [ ] **G165 — dock arrangement belongs in the structure summary.** Which face of the hub each box seats on
+  is a board property with measured consequences and no representation anywhere: it is not the hub's body
+  form and not the approach family. With the compass rotated so the frontline is *front*, generated boards
+  split **canonical** (spawn *back*, wools *left*+*right*) 27% against **lopsided** (spawn lateral, one wool
+  on *back*) 73%, and the split predicts two things — the median spawn-distance imbalance is 0.18 against
+  0.40, and the second-wool rotation runs within ten blocks of the spawn on 63% of canonical boards against
+  2% of lopsided ones. The faces fall straight out of the mouth positions the box read already computes, so
+  the work is small: add them to `StructureSummary` and to `StructureSummary.Canonical()`, which makes the
+  arrangement a browse-sieve filter and a verdict/duel bucket key for free. **Land it before verdicts
+  accumulate**: `Canonical()` is persisted on a pinned plan as that bucket key, so extending the string
+  reshapes every bucket already stored, and a later change needs a key version rather than an edit.
+
+- [ ] **G166 — seating should prefer the canonical arrangement.** `UnitSeating` chooses which hub edge each
+  neighbour request seats on, and takes no view on the combination; the result is that three boards in four
+  come out lopsided (G165). Prefer the spawn on the edge opposite the frontline with the wools on the two
+  lateral edges — the arrangement built maps converge on. The measured payoff is the imbalance halving (0.40
+  → 0.18) and the restoration of the rotation-past-spawn dynamic that the lopsided arrangement removes. This
+  changes where boxes sit, so it is a geometry change: composer version bump, re-recorded fingerprints, and a
+  before/after gallery. Constraining the seat choice can only raise the rejection rate, so measure that
+  alongside the arrangement split rather than assuming it stays flat.
+
+- [ ] **G167 — a holed hub should seat its docks across the hole.** A ring, double-hole, P or G hub only
+  offers two ways across when the two docks straddle its void, and today that is left to chance: ring hubs
+  deliver two ways on 163 of 224 spawn-to-wool crossings, and the ones that do not are dead by seating rather
+  than by shape — the same body form with both docks on one side is a wide room with a decorative hole in it.
+  When the sampled hub body encloses a void, prefer opposite walls for the two docks. The value is not the
+  extra distance but what G164 measures: the far way round drops interference from 76% to 37%, which is
+  the difference between an alternative and an alternative worth taking. Geometry change, so the same
+  fingerprint and gallery costs as G166, and the two should land together or in a known order since both
+  touch the same seat choice.
+
+- [ ] **G168 — a board is worth evaluating in two game states.** A two-wool map is not one arrangement but
+  two in sequence: before the first capture both objectives are defended from the spawn, and after it one
+  room is the attacking team's forward node — a place worth travelling to for the chest gear the generator
+  emits — and the wool-to-wool route becomes the live one. Terms that are vacuous in the first state carry
+  the whole second phase, so evaluating only the opening scores half a match. This is a change to the
+  evaluator's shape rather than a new term: `EvalContext` carries which state is being read, and the terms
+  that only apply post-capture (G164's interference, rotation between objectives) declare it. Decide
+  early whether the two states produce two scores or one combined figure — a single number that averages a
+  strong opening against a hopeless second phase describes neither. The played account is in
+  `docs/match-flow.md` §4.8.
+
 ## Lower priority / parked
 
 Existing-Edit (`/maps/{id}/edit`) authoring features — **not** used by the intent generator (which
