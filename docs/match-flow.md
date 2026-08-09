@@ -493,6 +493,22 @@ under ten present, 3.67 with twenty or more. But the flank effect survives insid
 minutes at 10–19 present and −0.93 at 20+, and same-hand matches carry slightly *higher* early population
 than opposite-hand ones, so the confound runs against the effect rather than producing it.
 
+Four things decide the first capture, and they are not four independent causes. Two are **conditions** of
+the opening window: the ground is one per cent excavated (&sect;6.2b), so nothing structural stands in the
+way; and the board is sometimes thinly populated, because a match starts at a median 72% of the players it
+will eventually hold and climbs from 26 to 44 over an hour. That second one is intermittent rather than
+constant — it depends on how filled the server happens to be at kickoff — but where it applies it is a cause
+in its own right, not merely a confound: with under ten players present the first wool falls at a median
+**1.77 minutes** against **3.67** with twenty or more, and a thin board also makes a single wool easier to
+hold, because the attack it faces is smaller too.
+
+The third is the **mechanism** — the flank choice — and the fourth is that mechanism's effect, the thin
+reception at the wool. Both teams taking their own hand is what puts the defenders elsewhere; the 34.9%
+against 43.1% is the consequence, not a separate reason. A model of the opening phase therefore needs two
+inputs the plan does not carry — how dug the ground is, and how many players are on it — and one the plan
+partly does, which is whether its symmetry gives both teams the same coordinate for the flank the other
+side is not on.
+
 The reason a flank preference can decide anything is &sect;6.2b: in that window the ground is one per cent
 dug and nothing is built, so position is the only variable there is. Once a room survives it, the digging
 and the wall begin and the second wool becomes a structural problem instead — which is why the effect
