@@ -119,6 +119,39 @@ filter CRUD, apply-rules, spawns, wools, monuments, kits) using two engines that
 - **Symmetry-fill (orbit).** The confirmed symmetry (`GET /symmetry`, `POST /regions/{id}/orbit`)
   rotates/mirrors the authored unit into every orbit position. Already used for single drawn regions
   (F3); here it's applied to whole authored units.
+
+### Where orbit happens, and why it happens in more than one place
+
+Every orbit in the studio computes the same transform through the same leaf (`PgmStudio.Geom.Symmetry`),
+but it is asked three different questions, and conflating them is what makes the map look scattered.
+
+**The plan fans.** A plan *is* one orbit unit by definition — the author draws half a board — so
+`PlanCompiler` reads each placement once and emits one per orbit image, taking the team from the orbit
+index. Every kind fans there: spawns, wools, iron, destroyables, cores, build zones, walls. Nothing about a
+plan is ambiguous, because the plan is authored in the frame the orbit is defined in.
+
+**Configure assigns by coverage.** An imported world is not authored half-first; the author drops a spawn on
+a real island. Which team an orbit image belongs to is then a *spatial* question — the island it lands on —
+and only the client has the islands. So `SpawnStep`, `ProtectionStep`, `WoolSpawnStep` and `WoolRoomStep`
+compute the orbit through `OrbitAssignment` and **store the copies as real intent entries**, keyed by the
+anchor each image covers rather than by orbit order. Storing rather than deriving is deliberate: the
+assignment is a judgement, so it must be visible and hand-correctable.
+
+**Generation fills what is still missing.** `SymmetryExpander` runs at the top of every projection and
+completes an intent that carries only one unit — the property that makes "a symmetry plus one spawn" a whole
+map. It maps orbit position to team *in list order*, which is the weaker rule, so it never overwrites: an
+authored or already-assigned team is left alone. On a plan-built or fully-configured map it therefore does
+nothing at all.
+
+**The canvases only draw.** The JS ghosts (`plan-doc` mirror images, the sketch mirror layer, the editor's
+`setAuthorMirror`) are previews. They store nothing and decide nothing.
+
+The rule that keeps this coherent is that **coverage is a property of the entity, not of the tier**. Every
+objective orbits in all three, or the answer to "is this map fair?" changes depending on which tool the
+author happened to use. That rule was broken once and cost a whole class of map: `Expand` rebuilt the intent
+by naming its fields, so the four slices added after it was written — destroyables, cores, island teams and
+the plan's stamped structures — were deleted on any intent carrying a symmetry, silently. It now expands
+with `intent with { … }`, so carrying is the default and only a transform is spelled out.
 - **Wiring templates (F1, `filter-region-wiring.md`).** The four catalog templates are the generator's
   building blocks:
   1. **Build/void** — union the positive build areas, apply `block_place=deny(void)` to the complement.

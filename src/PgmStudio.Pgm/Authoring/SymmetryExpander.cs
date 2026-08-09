@@ -1,5 +1,6 @@
 namespace PgmStudio.Pgm.Authoring;
 
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 
 /// <summary>
@@ -39,17 +40,18 @@ public static class SymmetryExpander
         var teams = intent.Teams is { Count: > 0 } provided ? provided : SynthesizeTeams(intent, order);
         if (teams.Count <= 1) return intent;
 
-        return new MapIntent
+        // `with`, never a fresh MapIntent: a rebuild that names its fields drops every slice added after it
+        // was written, which is exactly what happened — destroyables, cores, island teams and the plan's
+        // stamped structures were all deleted here, silently, on any intent carrying a symmetry.
+        return intent with
         {
             Teams = teams,
-            MaxPlayers = intent.MaxPlayers,
             Spawns = FillSpawns(intent.Spawns, teams, sym, order),
-            Observer = intent.Observer,
             Build = OrbitBuild(intent.Build, sym, order),
             WaterLanes = OrbitWaterLanes(intent.WaterLanes, sym, order),
             Wools = FillWools(intent.Wools, teams, sym, order),
-            Meta = intent.Meta,
-            Symmetry = intent.Symmetry,
+            Destroyables = FillDestroyables(intent.Destroyables, teams, sym, order),
+            Cores = FillCores(intent.Cores, teams, sym, order),
         };
     }
 
@@ -118,7 +120,7 @@ public static class SymmetryExpander
             {
                 var target = teams[(i + k) % teams.Count].Id;
                 if (!have.Add(target)) continue;   // authored or already filled — keep the existing one
-                result.Add(new SpawnIntent
+                result.Add(src with
                 {
                     Team = target,
                     Point = TransformPt(src.Point, sym, k),
@@ -144,22 +146,97 @@ public static class SymmetryExpander
             {
                 var owner = teams[(i + k) % teams.Count];
                 if (!have.Add(owner.Id)) continue;
-                result.Add(new WoolIntent
+                result.Add(src with
                 {
                     Owner = owner.Id,
                     Color = "",   // orbit copies default to the new owner team's colour (WoolGenerator.ColorSlug)
                     Room = src.Room.Select(r => TransformRect(r, sym, k)).ToList(),
                     Spawn = TransformPt(src.Spawn, sym, k),
-                    Monuments = src.Monuments.Select(m => new MonumentIntent
+                    Monuments = [.. src.Monuments.Select(m => m with
                     {
                         // shift the capturing team by the same orbit step; transform its capture block
                         Team = RemapTeam(teams, m.Team, k),
                         Location = TransformPt(m.Location, sym, k),
-                    }).ToList(),
+                    })],
                 });
             }
         }
         return result;
+    }
+
+    // ── destroyables + cores ─────────────────────────────────────────────────────────────
+    // The wool fill without the parts a wool has and these do not: no colour, and no per-capturing-team
+    // monuments, because every other team breaks the same structure. What does carry is the whole shape of
+    // it — style, material, casing size and the float/leak pair — so a goal authored once is the same goal
+    // for every team. A map whose two cores differ is not a symmetric map.
+    //
+    // The resolved box orbits with the anchor. It is the region the goal is scoped by (OB8), and on a
+    // symmetric world the mirrored structure stands in the mirrored volume; leaving it unmapped would scope
+    // one team's goal to the other team's blocks.
+
+    private static List<DestroyableIntent>? FillDestroyables(
+        List<DestroyableIntent>? authored, List<TeamDef> teams, SymmetryIntent sym, int order)
+    {
+        if (authored is null) return null;
+        var result = new List<DestroyableIntent>(authored);
+        var have = new HashSet<string>(authored.Select(d => d.Owner));
+        foreach (var src in authored)
+        {
+            var index = IndexOfTeam(teams, src.Owner);
+            if (index < 0) continue;
+            for (var k = 1; k < order; k++)
+            {
+                var owner = teams[(index + k) % teams.Count];
+                if (!have.Add(owner.Id)) continue;
+                result.Add(src with
+                {
+                    Owner = owner.Id,
+                    // PGM rejects a nameless destroyable, and one name for both teams reads as one goal —
+                    // so the copy takes its new owner's, the same form the plan compiler mints.
+                    Name = $"{owner.Name} Monument",
+                    Anchor = TransformPt(src.Anchor, sym, k),
+                    Box = TransformBox(src.Box, sym, k),
+                });
+            }
+        }
+        return result;
+    }
+
+    private static List<CoreIntent>? FillCores(
+        List<CoreIntent>? authored, List<TeamDef> teams, SymmetryIntent sym, int order)
+    {
+        if (authored is null) return null;
+        var result = new List<CoreIntent>(authored);
+        var have = new HashSet<string>(authored.Select(core => core.Owner));
+        foreach (var src in authored)
+        {
+            var index = IndexOfTeam(teams, src.Owner);
+            if (index < 0) continue;
+            for (var k = 1; k < order; k++)
+            {
+                var owner = teams[(index + k) % teams.Count];
+                if (!have.Add(owner.Id)) continue;
+                // The name rides through as authored: PGM names a core per team itself, so an empty one is
+                // correct and a chosen one is the author's word for the pair.
+                result.Add(src with
+                {
+                    Owner = owner.Id,
+                    Anchor = TransformPt(src.Anchor, sym, k),
+                    Box = TransformBox(src.Box, sym, k),
+                });
+            }
+        }
+        return result;
+    }
+
+    /// <summary>Orbit a resolved block volume: its footprint reflects/rotates, its height does not.</summary>
+    private static BlockBox? TransformBox(BlockBox? box, SymmetryIntent sym, int k)
+    {
+        if (box is not { } source) return null;
+        var (minX, minZ, maxX, maxZ) =
+            Symmetry.Rect(source.MinX, source.MinZ, source.MaxX, source.MaxZ, sym.Mode, sym.CenterX, sym.CenterZ, k);
+        return new BlockBox((int)Math.Round(minX), source.MinY, (int)Math.Round(minZ),
+                            (int)Math.Round(maxX), source.MaxY, (int)Math.Round(maxZ));
     }
 
     // ── geometry (exact reflect/rotate, matching PGM MirroredRegion) ──────────────────────────────────

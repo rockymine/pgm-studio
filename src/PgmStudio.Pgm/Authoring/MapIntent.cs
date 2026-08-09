@@ -9,8 +9,13 @@ namespace PgmStudio.Pgm.Authoring;
 /// <c>map_intent_json</c> artifact, outside the entity-replace codec (like the draft sidecar).
 /// <para>Teams slice: teams, per-team spawns + protection, and the observer (<c>&lt;default&gt;</c>)
 /// spawn. Build/wools slices extend this record later.</para>
+/// <para>A <b>record</b> so a pass that rewrites part of an intent can say <c>intent with { … }</c> and
+/// carry the rest. Rebuilding it by naming every field is how <see cref="SymmetryExpander"/> silently
+/// deleted the four slices added after it was written: a whole map's cores and destroyables vanished from
+/// the export, and nothing said so. Carrying is the default; transforming is the thing that must be
+/// spelled out.</para>
 /// </summary>
-public sealed class MapIntent
+public sealed record MapIntent
 {
     /// <summary>Teams to generate. Null leaves the doc's existing teams untouched (e.g. a map that was
     /// pre-seeded with teams); a non-empty list replaces them.</summary>
@@ -76,7 +81,7 @@ public sealed class MapIntent
 
 /// <summary>The plan-compiled layout structures, in absolute world block coordinates already fanned across the
 /// symmetry orbit (docs/generator/rules.md ST1–ST4). Consumed by the sketch world-export path.</summary>
-public sealed class StructureIntent
+public sealed record StructureIntent
 {
     /// <summary>Wool-room footprints stamped as solid bedrock from y=0 to the surface (ST1).</summary>
     public List<Rect> RoomFloors { get; init; } = new();
@@ -120,7 +125,7 @@ public readonly record struct WallStructure(
 /// <c>mirror_d1</c>/<c>mirror_d2</c>/<c>rot_180</c>/<c>rot_90</c>) about the centre (<see cref="CenterX"/>,
 /// <see cref="CenterZ"/>) in world XZ. Drives orbit-fill and the suggested team count
 /// (<c>rot_90</c>→4, everything else→2).</summary>
-public sealed class SymmetryIntent
+public sealed record SymmetryIntent
 {
     public string Mode { get; init; } = "";
     public double CenterX { get; init; }
@@ -129,14 +134,14 @@ public sealed class SymmetryIntent
 
 /// <summary>An authored author/contributor: a Minecraft <b>username</b> plus an optional contribution
 /// note; the endpoint resolves the username to a uuid via <c>MojangClient</c> before saving.</summary>
-public sealed class AuthorIntent
+public sealed record AuthorIntent
 {
     public string Name { get; init; } = "";
     public string? Contribution { get; init; }
 }
 
 /// <summary>Authored map identity.</summary>
-public sealed class MetaIntent
+public sealed record MetaIntent
 {
     public string Name { get; init; } = "";
     public List<AuthorIntent> Authors { get; init; } = new();
@@ -148,7 +153,7 @@ public sealed class MetaIntent
 /// see new-map-authoring.md §6); they're unioned and the void boundary is wired automatically.
 /// <see cref="Holes"/> are no-build cutouts subtracted from that union (PGM <c>complement</c>) — genuine
 /// authored intent, unlike incidental union overlaps (which PGM ignores).</summary>
-public sealed class BuildIntent
+public sealed record BuildIntent
 {
     /// <summary>Y cap above which no block placement is allowed (null = no ceiling).</summary>
     public int? MaxHeight { get; init; }
@@ -170,7 +175,7 @@ public sealed class BuildIntent
 /// shared include, and nothing else — the fragment the server resolves supplies the whole mechanism, so
 /// authoring one is naming a place under an agreed id.</para>
 /// </summary>
-public sealed class WaterLaneIntent
+public sealed record WaterLaneIntent
 {
     /// <summary>The lane footprints in map coordinates, orbited on symmetric maps. Empty → no lanes.</summary>
     public List<Rect> Rects { get; init; } = new();
@@ -178,7 +183,7 @@ public sealed class WaterLaneIntent
 
 /// <summary>A team to generate. <see cref="Id"/> is the stable identifier rules/spawns reference and the
 /// source of the naming slug; <see cref="Color"/> is the display colour (may be multi-word, e.g. "dark red").</summary>
-public sealed class TeamDef
+public sealed record TeamDef
 {
     public string Id { get; init; } = "";
     public string Name { get; init; } = "";
@@ -188,7 +193,7 @@ public sealed class TeamDef
 /// <summary>One team's spawn: where players materialise (<see cref="Point"/>) and, optionally, the
 /// anti-grief zone around it (<see cref="Protection"/>). The kit is the fixed Standard preset
 /// (not author-selectable yet — see <c>TeamsGenerator</c>), so it isn't part of the intent.</summary>
-public sealed class SpawnIntent
+public sealed record SpawnIntent
 {
     public string Team { get; init; } = "";
     public Pt Point { get; init; }
@@ -213,7 +218,7 @@ public sealed class SpawnIntent
 }
 
 /// <summary>The observer/default spawn point.</summary>
-public sealed class ObserverIntent
+public sealed record ObserverIntent
 {
     public Pt Point { get; init; }
     public double Yaw { get; init; }
@@ -222,7 +227,7 @@ public sealed class ObserverIntent
 /// <summary>One objective wool: defended by <see cref="Owner"/> in its <see cref="Room"/>, dispensed at
 /// <see cref="Spawn"/> (a point — the wool's <c>location</c> is the int-floored version), and captured by
 /// the teams in <see cref="Monuments"/> (one each, the non-owners).</summary>
-public sealed class WoolIntent
+public sealed record WoolIntent
 {
     public string Owner { get; init; } = "";
     /// <summary>Dye colour (slug, e.g. <c>light_blue</c>). Empty → defaults to the owner team's colour.</summary>
@@ -250,7 +255,7 @@ public sealed class WoolIntent
 }
 
 /// <summary>A capture point: the team that captures this wool, and where they place it.</summary>
-public sealed class MonumentIntent
+public sealed record MonumentIntent
 {
     public string Team { get; init; } = "";
     public Pt Location { get; init; }
@@ -264,7 +269,7 @@ public sealed class MonumentIntent
 /// structure's corner: the box is centred on it and floats <see cref="Float"/> blocks above the surface its
 /// footprint spans, so its Y is a function of the terrain rather than an authored number.</para>
 /// </summary>
-public sealed class DestroyableIntent
+public sealed record DestroyableIntent
 {
     /// <summary>The DEFENDING team — the same meaning as <see cref="WoolIntent.Owner"/>.</summary>
     public string Owner { get; init; } = "";
@@ -298,7 +303,7 @@ public sealed class DestroyableIntent
 /// <para><see cref="Float"/> and <see cref="Leak"/> are one knob (DC2) — together they state how far players
 /// must dig under the core to make its lava leak (<see cref="DigDepth"/>). Neither means anything alone.</para>
 /// </summary>
-public sealed class CoreIntent
+public sealed record CoreIntent
 {
     /// <summary>The DEFENDING team. Emitted as the XML's <c>team</c> attribute, not <c>owner</c> — a PGM
     /// inconsistency we mirror in the XML while naming the field for what it means.</summary>

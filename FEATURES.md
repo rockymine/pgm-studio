@@ -1247,6 +1247,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (anchors = the wool spawns), accumulating across wools so a team that defends several wools gets each room
   (authored editable, orbit copies ghost). Shows the generator's **Auto-wiring (derived)** preview
   (`enter`/`block`=`not-<owner>` + `capture ×N`). (`WoolRoomStep`; N04)
+- **Orbit-fill stopped deleting the slices it had never been taught about (`G160`).** `SymmetryExpander`
+  rebuilt the intent by naming its fields, so the four added to `MapIntent` after it was written —
+  `Destroyables`, `Cores`, `IslandTeams`, `Structures` — were **dropped on every intent carrying a
+  symmetry**. A map configured with a core exported with no core, and nothing said so; only the plan path
+  escaped, because a compiled intent leaves `Symmetry` null and the expander returns early. Every intent
+  slice is now a record and the expansion is `intent with { … }`, so carrying is the default and a transform
+  is the thing that must be spelled out. Destroyables and cores also **orbit** now, the wool fill without a
+  colour or per-capturing-team monuments: a goal authored once is the same goal for the other team, casing
+  knobs and all, with its resolved box mapped so the region still scopes the mirrored structure (OB8). The
+  regression test asks the *type* rather than a list of names — a slice nobody teaches the expander about
+  fails there instead of vanishing from someone's map. `new-map-authoring.md` §4 now states which tier
+  orbits what and why there is more than one. (`SymmetryExpanderCarryTests`; G160)
 - **An objective marker states the structure it builds (`G160`).** A core and a destroyable are placed as
   bare markers and take the generator's defaults; the knobs that vary them — a casing's footprint, height,
   wall thickness, capped-or-flush lava and float/leak pair, a destroyable's design, material and float — had
