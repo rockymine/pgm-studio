@@ -38,15 +38,15 @@ the focus-integration polish remains.
   a spawn (team or wool) via the **coord inputs** rewrites X/Z without re-snapping Y to the new column, so
   only the point tool re-seats. Pairs with `N08` (monument Y editing) and `CV11` (the side-view clamp side
   of the same problem).
-- [ ] **N12 — Configure only authors wool objectives; the intent and the plan tool already do all three.**
-  `MapIntent` carries `Wools`, `Destroyables` and `Cores`, and `WoolGenerator`/`DestroyableGenerator`/
-  `CoreGenerator` all emit their `map.xml` — the backend is complete. The **plan tool** places all three.
-  Configure has only the wool path (`WoolObjectivesStep`, `WoolMonumentsStep`, `WoolRoomStep`,
-  `WoolSpawnStep`, and the wool phase in `ConfigurePhases`), so a DTM or DTC map authored in the plan tool
-  can be configured — the other objectives ride through untouched — but its objective cannot be *seen* or
-  edited there, and a map that arrives without one can only be given a wool. Add the destroyable and core
-  steps (both are simpler than wool: one region per defending team, no per-capturing-team monuments), and
-  make the objective phase branch on which kind the map carries rather than assuming CTW.
+- [~] **N12 — Configure has no destroyable phase.** Wools and Cores each have one and the objective phases
+  are a group sharing one gate (`FEATURES.md`), so this is now the third phase slotting into machinery that
+  already exists: add `destroyables` to `ConfigurePhases` + `IsObjective`, a `DestroyableAuthoring` slice
+  beside `CoreAuthoring`, and the steps. A destroyable is the core's shape with a different structure — one
+  region per defending team, no per-capturing-team monuments — but its knobs are style/materials/float
+  rather than a casing. A DTM map authored in the plan tool can already be configured (the slice rides
+  through untouched); what it cannot be is *seen* or edited there. Detection is a separate question and is
+  `B58`: unlike a core, a destroyable has no signature of its own, so the phase should offer manual
+  placement first and adopt candidates when that ranker lands.
 
 ## Sketch tool (S) — parked slices
 
@@ -406,11 +406,9 @@ import diagnostic (`B24e`), detection (`B26`), and the island-floor work the pha
   include reference and cannot be silently lost. Add each tag to `ParsedObjectiveModules` as its parser lands.
   (`docs/contracts/include-resolution.md` §4)
 
-- [ ] **B58 — Offer cores in the configure tool, and finish the destroyable ranker.** Two halves, both now
-  well-defined by measurement (`docs/contracts/objective-suggestion.md`).
-  **Cores are gathered and stored** (`FEATURES.md`); what remains on that side is the **confirm-in-UI flow** —
-  the configure tool has no step that reads `core_candidate` and turns a chosen suggestion into a `CoreIntent`.
-  The backend half is done, so this is UI work against a table that is already populated at import.
+- [~] **B58 — Finish the destroyable ranker.** The core half has shipped — gathered at ingest, stored in
+  `core_candidate`, and confirmed in the Cores phase (`FEATURES.md`). What remains is the other objective,
+  and it is measured but unbuilt (`docs/contracts/objective-suggestion.md`).
   **Destroyables: the discriminating signals are measured, the detector is not written.** They are not
   identified by anything about the structure — size spans 1 to 31,105 blocks and fill is uninformative — but by
   their **neighbourhood**, dumped 10 blocks outward and down to `y=0` for all 614 declared structures.

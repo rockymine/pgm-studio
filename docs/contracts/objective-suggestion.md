@@ -128,6 +128,33 @@ is delete-then-insert per map, and deleting a map cascades its candidates away.
 The counts surface on all three ingest responses beside `monument_candidates`, so an import says how many
 cores it found without a second call.
 
+## 5. Confirming a core — the Cores phase
+
+The configure wizard reads the stored proposals through `GET /map/{slug}/core-suggestions`, which returns
+the rows as suggestions and takes an optional `box` to narrow them to the area an author drew. No scoring
+runs and no world is touched; the row is already the suggestion.
+
+Confirming one writes a `CoreIntent` whose **`Box` is the casing the detector measured**. That field is what
+decides whether anything is emitted at all — `CoreGenerator` writes the core's `<region>` straight from it
+and skips a core that has none (OB8) — so a confirmed proposal exports the structure that is genuinely in
+the world rather than a box computed around it. Footprint and height are read off the same box, which is why
+a confirmed core states a 7×4 casing when that is what was built instead of the generator's 5×5 default. The
+defending team comes from the island the casing sits on, and the author corrects it like any other guess.
+
+Two things the world cannot supply are defaulted rather than invented. `leak` is a rule, not a structure —
+nothing about the blocks says how far the lava must fall — so it takes PGM's own default and pairs with the
+measured `float` to give the dig depth. And a core the detector missed (about one in four) is placed by
+drawing its casing footprint: its base sits `float` blocks above the ground under that footprint, the
+world-export stamper's own rule, and the resulting base Y is an editable number in the Casing step, because
+a derived height nobody can see is a height nobody can correct.
+
+A **plan-authored** core keeps no box here. Its casing is stamped against terrain that does not exist until
+the world is built, so the field rides through untouched and the step says so instead of resolving it early.
+
+The phase itself is additive. A PGM map may carry wools, destroyables and cores at once, so Cores is its own
+phase beside Wools rather than a branch that replaces it, and the objective phases share one completeness
+gate — the map needs an objective, not one of each (`new-map-authoring.md` §12).
+
 Validation runs from both ends. The corpus gives external truth at scale but only for maps someone else
 authored; **a composed plan gives truth by construction** — a plan states a core at an anchor with a chosen
 casing, the pipeline builds the world, and the detector has to propose that core at that casing with those

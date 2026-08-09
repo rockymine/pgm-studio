@@ -7,6 +7,10 @@ public partial class ConfigureLayout
     [Parameter] public string? MapName { get; set; }
     [Parameter] public string Crumb { get; set; } = "Configure";
     [Parameter] public string ActivePhaseId { get; set; } = "";
+    /// <summary>The rail's phases, in order. Supplied by the page rather than read off the catalog, because
+    /// a map's phase list is its own — the landing shows the full set, a configured map shows the phases it
+    /// actually has. <see cref="Furthest"/> indexes into this list.</summary>
+    [Parameter] public IReadOnlyList<ConfigurePhase> Phases { get; set; } = ConfigurePhases.All;
     /// <summary>Highest phase index reached — phases past it are locked/dimmed. Use -1 to lock all (landing).</summary>
     [Parameter] public int Furthest { get; set; }
 

@@ -16,7 +16,7 @@
 }
 else
 {
-<ConfigureLayout MapName="@mapName" Crumb="Configure" ActivePhaseId="@Phase.Id" Furthest="@furthest"
+<ConfigureLayout MapName="@mapName" Crumb="Configure" ActivePhaseId="@Phase.Id" Phases="@phases" Furthest="@furthest"
               PhaseIcon="@Phase.Icon" PhaseTitle="@Phase.Title"
               Steps="@Phase.Steps" CurrentStep="@step" SaveStatus="@SaveStatus"
               BackEnabled="@BackEnabled" NextEnabled="@NextEnabled" NextLabel="@NextLabel"
@@ -86,6 +86,14 @@ else
   else if (Phase.Id == "wools" && StepLabel == "Room")
   {
     <WoolRoomStep @key="@("wools-room")" />
+  }
+  else if (Phase.Id == "cores" && step == 0)
+  {
+    <CoreObjectivesStep @key="@("cores-objectives")" />
+  }
+  else if (Phase.Id == "cores" && step == 1)
+  {
+    <CoreCasingStep @key="@("cores-casing")" />
   }
   else if (Phase.Id == "review" && step == 0)
   {

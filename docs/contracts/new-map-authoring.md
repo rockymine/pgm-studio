@@ -477,10 +477,19 @@ pre-flight checks, and phase locking actually live.
 
 **Three-level navigation**
 
-1. **Activity rail** (left, unchanged from the existing editor) — the **six phases**:
-   `0 Map Info · 1 World · 2 Teams · 3 Build · 4 Wools · 5 Review & Export`. A completed phase carries
-   a green dot, the current one a left bar, a locked one is dimmed. The rail **logo returns to the
-   landing screen**. Jump to any *unlocked* phase here.
+1. **Activity rail** (left, unchanged from the existing editor) — the phases:
+   `0 Map Info · 1 World · 2 Teams · 3 Build · 4 Wools · 5 Cores · 6 Review & Export`. A completed phase
+   carries a green dot, the current one a left bar, a locked one is dimmed. The rail **logo returns to the
+   landing screen**. Jump to any *unlocked* phase here. The rail renders **the map's own phase list**, not
+   the catalog, so a phase can be dropped for a map without the indices behind locking and navigation
+   meaning something different from one map to the next.
+
+**The objective phases are a group, not a choice.** A PGM map may carry wools, destroyables and cores at
+once, in any combination — a CTW map with a core to breach is an ordinary map, not an exotic one — so each
+objective kind is **its own phase** and every one of them is offered on every map. An author adds a gamemode
+by filling a phase in, which is the only way a map that arrived with one objective can gain a second. They
+share a **single completeness gate**: the map needs *an* objective, not one of each, so a DTC map is never
+held up by an empty wool slice and a CTW map is never held up by an empty core one.
 2. **Flow bar** — its **own strip above the workspace** (never on the canvas, whose own chrome — the
    readout, the layer bar and the dock — floats on it). Left-to-right: a **phase-identity cluster** (the current phase's icon + name,
    so the strip always names where you are) · the phase's **sub-steps** (check = done, accent
@@ -499,8 +508,8 @@ Map Info needs a name + an author), so you fill a phase in before you can progre
 **purely slice-derived** (no session "furthest"), so you can't skip ahead by clicking through. Editing a
 phase marks it **dirty**; leaving while dirty saves, leaving clean is a no-op (no needless regenerate). Save state is a **single text indicator in the topbar** — **Saved · Saving… · Unsaved**, no
 icons — global so it reads the same in every phase. **Per-phase "done" is the rail's green dot**, backed
-by the phase's intent slice being present (`meta` · `symmetry` · `teams` · `build` · `wools`); there is
-**no per-sub-step checkmark** (intent slices are per-phase, not per-sub-step, so the flow bar marks only
+by the phase's intent slice being present (`meta` · `symmetry` · `teams` · `build`, plus the one gate the
+objective phases share); there is **no per-sub-step checkmark** (intent slices are per-phase, not per-sub-step, so the flow bar marks only
 the current sub-step). On entry the wizard loads the stored intent (`GET /map/{slug}/intent`) and derives
 both the unlocked range and the done dots from it, so revisiting a part-authored map opens exactly the
 phases it has reached — progress lives in the intent, not in session state.
@@ -523,7 +532,7 @@ panel-only. The sub-steps:
    suggested team count, plus the world features the scan already found (wools / resources / chests /
    spawners). This is the **seed of the guidance model**: exactly what the author *confirms* in the phases
    that follow (e.g. the detected island count → team count in World/Teams). Nothing here is final.
-3. **Plan — the flow + Start.** The six-phase overview (each phase, its one-line purpose, the
+3. **Plan — the flow + Start.** The phase overview (each phase, its one-line purpose, the
    Build⇄Traversability caveat) and a **Start authoring → Map Info** action (the `Next` on this last
    sub-step, like Review's XML→Export).
 
@@ -563,8 +572,9 @@ depends on exists; you may always jump *back* to any **done** phase to edit it:
 | 1 World | map exists (Map Info saved) |
 | 2 Teams | World symmetry **confirmed** (seeds team count/positions) |
 | 3 Build | Teams defined (spawns placed) |
-| 4 Wools | Build slice exists — **build must precede wools** (traversability is computed over the build geometry, §6) |
-| 5 Review | all required slices present (teams + build + wools) — i.e. there is a complete map to check |
+| 4 Wools | Build slice exists — **build must precede the objectives** (traversability is computed over the build geometry, §6) |
+| 5 Cores | as Wools — the objective phases are peers, so either order is fine |
+| 6 Review | all required slices present (teams + build + **an** objective) — i.e. there is a complete map to check |
 
 **"Review needs a connected map" is the *export gate*, not the phase lock.** Review unlocks on
 *completeness*; the **connectivity** requirement is enforced at export: `GET /map/{slug}/xml` runs

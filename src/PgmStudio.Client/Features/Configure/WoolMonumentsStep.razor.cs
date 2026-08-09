@@ -9,6 +9,7 @@ using PgmStudio.Client.Components;
 namespace PgmStudio.Client.Features.Configure;
 
 using W = WoolAuthoring;
+using Ctx = AuthoringContext;
 
 // Wools · monuments step. Each wool is captured by every team except its owner (N−1 monuments). The
 // objectives scan usually pre-fills them (signed pedestals); here the author confirms them and fills any
@@ -24,10 +25,10 @@ public partial class WoolMonumentsStep
     [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
-    private readonly List<W.Team> teams = new();
+    private readonly List<Ctx.Team> teams = new();
     private List<W.Wool> wools = new();
     private string? symMode; private double symCx, symCz;
-    private List<W.Island> islands = new();
+    private List<Ctx.Island> islands = new();
     private readonly Dictionary<string, string> islandTeams = new();
     private string? selectedColor;
     private bool detecting;
@@ -35,21 +36,21 @@ public partial class WoolMonumentsStep
 
     private string Slug => Wizard.Slug;
     private W.Wool? Selected => wools.FirstOrDefault(w => w.Color == selectedColor);
-    private W.Team? TeamOf(string id) => teams.FirstOrDefault(t => t.Id == id);
+    private Ctx.Team? TeamOf(string id) => teams.FirstOrDefault(t => t.Id == id);
     private string TeamName(string id) => TeamOf(id)?.Name ?? id;
     private string TeamColorOf(string id) => TeamOf(id)?.Color ?? "";
     private int Expected => Math.Max(0, teams.Count - 1);
-    private IEnumerable<W.Team> Capturers(W.Wool w) => teams.Where(t => t.Id != w.Owner);
+    private IEnumerable<Ctx.Team> Capturers(W.Wool w) => teams.Where(t => t.Id != w.Owner);
     private W.Monument? MonumentFor(W.Wool w, string team) => w.Monuments.FirstOrDefault(m => m.Team == team);
 
     protected override async Task OnInitializedAsync()
     {
-        teams.AddRange(W.LoadTeams(Wizard.Intent));
-        (symMode, symCx, symCz) = W.Sym(Wizard.Intent);
-        foreach (var kv in W.LoadIslandTeams(Wizard.Intent)) islandTeams[kv.Key] = kv.Value;
+        teams.AddRange(Ctx.LoadTeams(Wizard.Intent));
+        (symMode, symCx, symCz) = Ctx.Sym(Wizard.Intent);
+        foreach (var kv in Ctx.LoadIslandTeams(Wizard.Intent)) islandTeams[kv.Key] = kv.Value;
         wools = W.ParseWools(Wizard.Intent);
         selectedColor = wools.FirstOrDefault()?.Color;
-        islands = await W.LoadIslandsAsync(Http, Slug);
+        islands = await Ctx.LoadIslandsAsync(Http, Slug);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -71,7 +72,7 @@ public partial class WoolMonumentsStep
 
     private async Task DetectMapWide()
     {
-        var (minX, minZ, maxX, maxZ) = W.MapBox(islands);
+        var (minX, minZ, maxX, maxZ) = Ctx.MapBox(islands);
         await DetectInBox(minX, minZ, maxX, maxZ);
     }
 
@@ -95,7 +96,7 @@ public partial class WoolMonumentsStep
                     var wool = wools.FirstOrDefault(w => w.Color == color);
                     if (wool is null) continue;
                     double x = Dbl(m, "x"), y = Dbl(m, "y"), z = Dbl(m, "z");
-                    var team = W.IslandTeamAt(x, z, islands, islandTeams) ?? "";
+                    var team = Ctx.IslandTeamAt(x, z, islands, islandTeams) ?? "";
                     if (team == wool.Owner) continue;                       // can't capture your own wool
                     if (AddMonument(wool, team, x, y, z)) added++;
                 }
@@ -105,7 +106,7 @@ public partial class WoolMonumentsStep
         if (added == 0 && Selected is { } sel)                              // empty box → manual placement
         {
             double cx = (minX + maxX) / 2.0, cz = (minZ + maxZ) / 2.0;
-            var team = W.IslandTeamAt(cx, cz, islands, islandTeams)
+            var team = Ctx.IslandTeamAt(cx, cz, islands, islandTeams)
                        ?? Capturers(sel).FirstOrDefault(t => MonumentFor(sel, t.Id) is null)?.Id ?? "";
             if (team != sel.Owner) AddMonument(sel, team, Math.Floor(cx), 0, Math.Floor(cz));
         }

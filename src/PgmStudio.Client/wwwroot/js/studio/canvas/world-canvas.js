@@ -346,8 +346,7 @@ export class WorldCanvas extends CanvasBase {
     if (!this.#toSvg || !bbox) return;
     const { min_x, max_x, min_z, max_z } = bbox;
     if (![min_x, max_x, min_z, max_z].every(Number.isFinite)) return;
-    const w  = this._wrap.clientWidth  - 24;
-    const h  = this._wrap.clientHeight - 24;
+    const { w, h } = this._size();
     const p1 = this.#toSvg(min_x, min_z);
     const p2 = this.#toSvg(max_x, max_z);
     const sx1 = Math.min(p1.x, p2.x), sx2 = Math.max(p1.x, p2.x);
@@ -609,11 +608,10 @@ export class WorldCanvas extends CanvasBase {
    */
   #rebuild() {
     this.#drawCtrl.cancel();
-    const w = this._wrap.clientWidth  - 24;
-    const h = this._wrap.clientHeight - 24;
-    this._svg.setAttribute("width",   w);
-    this._svg.setAttribute("height",  h);
-    this._svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    // Through the base's own measurement, which carries the fallback for a wrap that has no box yet.
+    // Measuring here directly wrote width="-24" (0 minus the padding) whenever a host mounted the canvas
+    // before layout settled, and the browser rejects a negative width/height/viewBox outright.
+    const { w, h } = this._resizeSvg();
     this.#painter.resize(w, h);
 
     // An xml-only / not-fully-pipelined map has no bounding_box yet: there is nothing to fit a

@@ -86,17 +86,24 @@ public partial class ConfigureTool
     };
 
     // A phase is "done" once its intent slice is present — the rail's green dot, and the prerequisite that
-    // unlocks the next phase. Slices are per-phase (new-map-authoring.md §12): meta · symmetry · teams ·
-    // build · wools; Review has no slice of its own.
-    private bool PhaseDone(int i) => i switch
+    // unlocks the next phase. Keyed by phase id, not by position: the objective phases are a variable-length
+    // group, so an index would silently mean a different phase the moment one is added.
+    //
+    // The objective phases share ONE gate — the map carries at least one objective, of any kind. A map may be
+    // CTW, DTM, DTC or any mix of them, so requiring a wool would block every map that has a core instead,
+    // and requiring both would block every map that has one.
+    private bool PhaseDone(ConfigurePhase phase) => phase.Id switch
     {
-        0 => MetaValid(),
-        1 => Obj("symmetry") is not null,
-        2 => NonEmptyArray("teams"),
-        3 => Obj("build") is not null,
-        4 => NonEmptyArray("wools"),
+        "info" => MetaValid(),
+        "world" => Obj("symmetry") is not null,
+        "teams" => NonEmptyArray("teams"),
+        "build" => Obj("build") is not null,
+        _ when ConfigurePhases.IsObjective(phase.Id) => HasObjective(),
         _ => false,
     };
+
+    /// <summary>Whether the map states any objective at all — the shared gate behind every objective phase.</summary>
+    private bool HasObjective() => ConfigurePhases.ObjectiveSlices.Any(NonEmptyArray);
 
     // Identity's slice is complete once it has a name and at least one (non-blank) author — the minimum
     // the generator needs (new-map-authoring.md §0/§12). Authors are {name, contribution?} objects.
@@ -112,7 +119,7 @@ public partial class ConfigureTool
     private int SliceFurthest()
     {
         var n = 0;
-        while (n < ConfigurePhases.All.Length && PhaseDone(n)) n++;
+        while (n < phases.Length && PhaseDone(phases[n])) n++;
         return n;
     }
 
@@ -226,7 +233,8 @@ public partial class ConfigureTool
 
     private async Task JumpPhase(string id)
     {
-        var i = ConfigurePhases.IndexOf(id);
+        // Index into THIS map's phase list, not the catalog — they are the same length today and need not be.
+        var i = Array.FindIndex(phases, p => p.Id == id);
         if (i < 0 || i > furthest || i == phaseIndex) return;   // locked / no-op
         await SaveIfDirtyAsync();   // leaving the current phase
         phaseIndex = i;
@@ -252,7 +260,7 @@ public partial class ConfigureTool
     private async Task Next()
     {
         if (step < LastStep) { step++; return; }
-        if (phaseIndex < ConfigurePhases.All.Length - 1)
+        if (phaseIndex < phases.Length - 1)
         {
             await SaveIfDirtyAsync();   // crossing a phase boundary persists the slice; that unlocks the next phase
             phaseIndex++;

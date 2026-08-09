@@ -26,9 +26,9 @@
   </Bar>
   <Rail>
     <NavRail LogoHref="/maps/new" LogoTitle="New-map landing">
-      @for (var i = 0; i < ConfigurePhases.All.Length; i++)
+      @for (var i = 0; i < Phases.Count; i++)
       {
-        var p = ConfigurePhases.All[i];
+        var p = Phases[i];
         // The current phase is never locked — you can walk one step past the slice-derived frontier
         // (a not-yet-completed phase) and still see where you are; only forward jumps stay gated.
         var locked = i > Furthest && p.Id != ActivePhaseId;

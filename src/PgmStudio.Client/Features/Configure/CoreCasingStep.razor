@@ -1,0 +1,134 @@
+@namespace PgmStudio.Client.Features.Configure
+
+@* Cores · casing: the obsidian box itself — footprint, height, wall thickness, capped or open — and the
+   float/leak pair that decides whether breaching the casing is enough or players must dig under it. *@
+
+<Workspace>
+
+  <Sidebar>
+      <Section Title="Casings">
+        <p class="section-desc">Pick a core to shape its casing. The <strong>region</strong> the map exports
+          is exactly this box, so the numbers here are the structure — not a hint at it.</p>
+        <div class="panel-list">
+          @if (cores.Count == 0) { <div class="list-empty">No cores — confirm or place one first.</div> }
+          @for (var i = 0; i < cores.Count; i++)
+          {
+            var index = i;
+            var core = cores[index];
+            <ListRow Compact Selected="selected == index" @key="index" OnClick="() => Select(index)">
+              <span class="geo-type-icon" style="color:@TeamHex(core.Owner)"><i data-lucide="flame"></i></span>
+              <span class="list-label">@(string.IsNullOrEmpty(core.Name) ? "Core" : core.Name)</span>
+              <Badge Kind="dim">@core.Size×@core.Height</Badge>
+            </ListRow>
+          }
+        </div>
+      </Section>
+  </Sidebar>
+
+  <div class="sidebar-handle"></div>
+
+  <WorldCanvas @ref="canvas" Slug="@Slug" Category="__cores__"
+                OnSelect="OnCanvasSelect" OnReady="OnCanvasReady" />
+
+  <div class="sidebar-handle"></div>
+
+  <Inspector>
+      @if (Selected is { } sel)
+      {
+        <Section @key="selected">
+          <DetailHeader Icon="flame" IconStyle="@($"color:{TeamHex(sel.Owner)}")" Label="@(string.IsNullOrEmpty(sel.Name) ? "Core" : sel.Name)">
+            <Badge Kind="@(string.IsNullOrEmpty(sel.Owner) ? "dim" : "neutral")">@(string.IsNullOrEmpty(sel.Owner) ? "no team" : TeamName(sel.Owner))</Badge>
+          </DetailHeader>
+          <div class="section-body">
+
+            <Field Label="Footprint">
+              <LabelHint>(width &amp; depth, blocks)</LabelHint>
+              <ChildContent>
+                <input class="field-input" type="number" min="1" max="64" value="@sel.Size"
+                       @onchange="@(e => SetSize(sel, Num(e.Value, sel.Size)))" />
+              </ChildContent>
+            </Field>
+            <Field Label="Height">
+              <input class="field-input" type="number" min="1" max="64" value="@sel.Height"
+                     @onchange="@(e => SetHeight(sel, Num(e.Value, sel.Height)))" />
+            </Field>
+            <Field Label="Wall thickness">
+              <LabelHint>(obsidian shell)</LabelHint>
+              <ChildContent>
+                <input class="field-input" type="number" min="1" max="16" value="@sel.Shell"
+                       @onchange="@(e => SetShell(sel, Num(e.Value, sel.Shell)))" />
+              </ChildContent>
+            </Field>
+
+            <Field Label="Lava">
+              <label class="ctrl-row" style="cursor:pointer">
+                <input type="checkbox" class="control-input control-input--hidden" checked="@sel.OpenTop"
+                       @onchange="@(e => SetOpenTop(sel, e.Value is true))" />
+                <span class="field-value">@(sel.OpenTop ? "flush with the rim (open top)" : "capped by the casing")</span>
+              </label>
+            </Field>
+
+            <Field Label="Float">
+              <LabelHint>(air under the casing)</LabelHint>
+              <ChildContent>
+                <input class="field-input" type="number" min="0" max="64" value="@sel.Float"
+                       @onchange="@(e => SetFloat(sel, Num(e.Value, sel.Float)))" />
+              </ChildContent>
+            </Field>
+            <Field Label="Leak">
+              <LabelHint>(fall before it counts)</LabelHint>
+              <ChildContent>
+                <input class="field-input" type="number" min="0" max="64" value="@sel.Leak"
+                       @onchange="@(e => SetLeak(sel, Num(e.Value, sel.Leak)))" />
+              </ChildContent>
+            </Field>
+            <p class="section-desc">
+              @if (sel.DigDepth > 0)
+              {
+                <text>Capturing means breaching the casing <strong>and</strong> digging @sel.DigDepth block@(sel.DigDepth == 1 ? "" : "s") out of the ground beneath it.</text>
+              }
+              else
+              {
+                <text>The lava leaks as soon as the casing is breached — no digging.</text>
+              }
+            </p>
+
+            @if (sel.Volume is { } vol)
+            {
+              <Field Label="Base Y">
+                <LabelHint>(the casing floor)</LabelHint>
+                <ChildContent>
+                  <input class="field-input" type="number" min="0" max="255" value="@vol.MinY"
+                         @onchange="@(e => SetBaseY(sel, Num(e.Value, vol.MinY)))" />
+                </ChildContent>
+              </Field>
+              <Field Label="Region">
+                <div class="field-value list-label--mono">@vol.MinX, @vol.MinY, @vol.MinZ → @vol.MaxX, @vol.MaxY, @vol.MaxZ</div>
+              </Field>
+            }
+            else
+            {
+              <Field Label="Region">
+                <div class="field-value">Stamped when the world is built — this core came from a plan, so its
+                  casing is placed against terrain that does not exist yet.</div>
+              </Field>
+            }
+
+          </div>
+        </Section>
+      }
+      else
+      {
+        <Section>
+          <DetailHeader Icon="flame" IconMuted Label="Casing" />
+          <p class="section-desc">Select a core to shape its casing.</p>
+        </Section>
+      }
+  </Inspector>
+
+</Workspace>
+
+@code {
+    private static int Num(object? value, int fallback)
+        => int.TryParse(value?.ToString(), out var n) ? n : fallback;
+}

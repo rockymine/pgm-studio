@@ -1,0 +1,148 @@
+@namespace PgmStudio.Client.Features.Configure
+@using C = PgmStudio.Client.Features.Configure.CoreAuthoring
+
+@* Cores · objectives: the ingest scan proposed this map's cores from their lava-in-obsidian signature.
+   Confirm a proposal to make it an objective, or box a casing on the canvas to author one the scan missed. *@
+
+<Workspace>
+
+  <Sidebar>
+      <Section Title="Cores">
+        <Actions><Badge Class="@(cores.Count > 0 ? "badge--success" : "badge--dim")">@cores.Count core@(cores.Count == 1 ? "" : "s")</Badge></Actions>
+        <ChildContent>
+        <p class="section-desc">A core is defended by one team and breached by the others. Confirm a
+          <strong>proposed</strong> core to adopt the casing the scan measured, or <strong>box</strong> a
+          casing footprint on the canvas to place one it missed.</p>
+
+        @if (loading)
+        {
+          <div class="list-empty">Reading the scan…</div>
+        }
+        else
+        {
+          <div class="panel-list">
+            @if (cores.Count == 0) { <div class="list-empty">No cores yet.</div> }
+            @for (var i = 0; i < cores.Count; i++)
+            {
+              var index = i;
+              var core = cores[index];
+              <ListRow Compact Selected="selected == index" @key="index" OnClick="() => Select(index)">
+                <span class="geo-type-icon" style="color:@TeamHex(core.Owner)"><i data-lucide="flame"></i></span>
+                <span class="list-label">@(string.IsNullOrEmpty(core.Name) ? "Core" : core.Name)</span>
+                <Badge Kind="@(string.IsNullOrEmpty(core.Owner) ? "dim" : "neutral")">@(string.IsNullOrEmpty(core.Owner) ? "no team" : TeamName(core.Owner))</Badge>
+              </ListRow>
+            }
+          </div>
+
+          var proposals = Unconfirmed.ToList();
+          @if (proposals.Count > 0)
+          {
+            <p class="section-desc" style="margin-top:var(--space-3)">
+              <strong>@proposals.Count</strong> proposed core@(proposals.Count == 1 ? "" : "s") not yet confirmed.
+            </p>
+            <div class="panel-list">
+              @foreach (var proposal in proposals)
+              {
+                <ListRow Compact @key="proposal" OnClick="() => Confirm(proposal)">
+                  <span class="geo-type-icon text-muted"><i data-lucide="scan-search"></i></span>
+                  <span class="list-label list-label--mono">@Where(proposal)</span>
+                  <Badge Kind="dim">@proposal.Lava lava</Badge>
+                </ListRow>
+              }
+            </div>
+            <Button Full Class="action-btn--separated" Variant="primary" OnClick="ConfirmAll">
+              <i data-lucide="check"></i> Confirm all @proposals.Count
+            </Button>
+          }
+
+          <Button Full Class="action-btn--separated" Disabled="@loading" OnClick="DetectMapWide">
+            <i data-lucide="scan-search"></i> Re-read the scan (whole map)
+          </Button>
+        }
+        </ChildContent>
+      </Section>
+  </Sidebar>
+
+  <div class="sidebar-handle"></div>
+
+  <WorldCanvas @ref="canvas" Slug="@Slug" RectDraw="true" Category="__cores__"
+                OnRectDrawn="OnBoxDrawn" OnSelect="OnCanvasSelect" OnReady="OnCanvasReady" />
+
+  <div class="sidebar-handle"></div>
+
+  <Inspector>
+      @if (Selected is { } sel)
+      {
+        <Section @key="selected">
+          <DetailHeader Icon="flame" IconStyle="@($"color:{TeamHex(sel.Owner)}")" Label="@(string.IsNullOrEmpty(sel.Name) ? "Core" : sel.Name)">
+            <Badge Class="@(sel.Volume is null ? "badge--warning" : "badge--success")">@(sel.Volume is null ? "casing unresolved" : "casing resolved")</Badge>
+          </DetailHeader>
+          <div class="section-body">
+            <Field Label="Defending team">
+              <LabelHint>(the others breach it)</LabelHint>
+              <ChildContent>
+                <div class="field-pick-row">
+                  <span class="field-swatch" style="background:@(string.IsNullOrEmpty(sel.Owner) ? "transparent" : TeamHex(sel.Owner))"></span>
+                  <select class="field-input" @onchange="@(e => SetOwner(sel, e.Value?.ToString() ?? string.Empty))">
+                    <option value="" selected="@string.IsNullOrEmpty(sel.Owner)">— pick —</option>
+                    @foreach (var t in teams)
+                    {
+                      <option value="@t.Id" selected="@(t.Id == sel.Owner)">@t.Name</option>
+                    }
+                  </select>
+                </div>
+              </ChildContent>
+            </Field>
+
+            <Field Label="Name">
+              <LabelHint>(optional — PGM names a core itself)</LabelHint>
+              <ChildContent>
+                <input class="field-input" value="@sel.Name" placeholder="Core"
+                       @onchange="@(e => SetName(sel, e.Value?.ToString() ?? string.Empty))" />
+              </ChildContent>
+            </Field>
+
+            <Field Label="Casing">
+              <div class="field-value">
+                @if (sel.Volume is { } vol)
+                {
+                  <text>@vol.Width×@vol.Height×@vol.Depth at @vol.MinX, @vol.MinY, @vol.MinZ</text>
+                }
+                else
+                {
+                  <text>resolved when the world is built — set it in the Casing step to export from here</text>
+                }
+              </div>
+            </Field>
+            @if (sel.Lava > 0)
+            {
+              <Field Label="Evidence">
+                <LabelHint>· scan</LabelHint>
+                <ChildContent>
+                  <div class="field-value">@sel.Lava lava block@(sel.Lava == 1 ? "" : "s") sealed in obsidian</div>
+                </ChildContent>
+              </Field>
+            }
+
+            <div class="ctrl-row" style="margin-top:var(--space-2)">
+              <Button Fill OnClick="() => Remove(sel)" Title="Remove this core"><i data-lucide="trash-2"></i> Remove</Button>
+            </div>
+          </div>
+        </Section>
+      }
+      else
+      {
+        <Section>
+          <DetailHeader Icon="flame" IconMuted Label="Core" />
+          <p class="section-desc">Select a core to set the team defending it. Cores are independent of the
+            map's other objectives — a map may carry wools and cores at once.</p>
+        </Section>
+      }
+  </Inspector>
+
+</Workspace>
+
+@code {
+    private static string Where(C.Core core) =>
+        core.Volume is { } v ? $"{v.MinX}, {v.MinY}, {v.MinZ}" : "unplaced";
+}

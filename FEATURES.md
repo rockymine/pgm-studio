@@ -1247,6 +1247,39 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (anchors = the wool spawns), accumulating across wools so a team that defends several wools gets each room
   (authored editable, orbit copies ghost). Shows the generator's **Auto-wiring (derived)** preview
   (`enter`/`block`=`not-<owner>` + `capture ×N`). (`WoolRoomStep`; N04)
+- **A world canvas that mounts before layout no longer writes a negative size (`N12`).** `WorldCanvas`'s
+  rebuild measured its wrap directly (`clientWidth - 24`) and set the result on the `<svg>`, so a host that
+  mounted it before the wrap had a box wrote `width="-24"` / `viewBox="0 0 -24 -24"` — which the browser
+  rejects outright, three console errors per occurrence. It measures through the base's `_size()` now, which
+  has carried the fallback all along; `fitBounds` reads the same measurement rather than its own copy. The
+  bug was timing-dependent and predates the Cores phase — every canvas host could hit it — and it surfaced
+  because a phase that mounts a canvas and paints immediately hits it often enough to fail a browser gate.
+- **Cores are a phase of their own, and the objective phases are a group (`N12`, `B58`).** A PGM map may
+  carry wools, destroyables and cores at once, so Configure gained a **Cores** phase beside Wools rather than
+  a branch that swaps one for the other — an author adds a gamemode by filling a phase in, which is the only
+  way a map that arrived with one objective can gain a second. The objective phases share **one** completeness
+  gate (the map has *an* objective, not one of each), so a DTC map is no longer held behind an empty wool
+  slice, and the wizard now indexes the rail, the unlocked range and Next into **the map's own phase list**
+  instead of the catalog — three places where adding a phase would otherwise have meant something different
+  from one map to the next.
+  **Cores · Objectives** confirms what the ingest scan already found: `GET /core-suggestions`
+  (`CoreSuggestionsEndpoint`) reads `core_candidate` with an optional box filter, and confirming a proposal
+  writes a `CoreIntent` whose `Box` is the casing the detector measured — the field that decides whether
+  anything is emitted at all, since `CoreGenerator` writes the `<region>` straight from it and skips a core
+  that has none (OB8). Footprint and height come off that box, so a confirmed core states the 7×4 casing that
+  is actually built rather than the 5×5 default. A core the detector missed is placed by drawing its
+  footprint, its base `float` blocks above the ground under it — the world-export stamper's own rule.
+  **Cores · Casing** owns the structure: footprint, height, wall thickness, capped-or-flush lava, and the
+  float/leak pair, whose difference it spells out as the dig ("breach the casing **and** dig 3 blocks out
+  from under it"). Every edit re-derives the volume, so the numbers and the exported region can never
+  disagree; a plan-authored core keeps no volume and says why. The casing defaults are **served** by the
+  endpoint rather than copied client-side, because `ObjectiveDefaults` must not drift from the stamper.
+  The map context the steps share (teams, symmetry, islands, island→team) moved out of `WoolAuthoring` into
+  `AuthoringContext`, since a core step needs the same teams and the same orbit.
+  (`ConfigurePhases`/`ConfigureTool`/`ConfigureLayout`; `CoreObjectivesStep`, `CoreCasingStep`,
+  `CoreAuthoring`, `AuthoringContext`; `CoreSuggestionsEndpoint`; `CoreIntentWireTests` pins the JSON the
+  wizard writes against `CoreIntent`, and `tests/e2e/configure-objectives.mjs` drives both claims in a
+  browser. N12 · B58)
 - **A team id says team (B50).** The generated document's `<team>` ids were the bare colour — `id="red"`,
   `<team id="only-red">red</team>` — which is what the `color` attribute beside it already says, so nothing
   in the file named the team as a thing. They now read `red-team` / `blue-team`, and every reference the

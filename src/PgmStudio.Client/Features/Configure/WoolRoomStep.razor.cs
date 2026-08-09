@@ -6,6 +6,7 @@ using PgmStudio.Client.Components;
 namespace PgmStudio.Client.Features.Configure;
 
 using W = WoolAuthoring;
+using Ctx = AuthoringContext;
 
 // Wools · room step: draw the rectangle(s) a wool lives in. A room is a union of rectangles, listed flat
 // (one row per rectangle, with the generated region name + an authored/orbit badge, like the Spawn-points
@@ -22,7 +23,7 @@ public partial class WoolRoomStep
     // A list row: a rectangle (authored or orbit), its canvas region id, owning wool colour, and generated name.
     private sealed record Row(string RegionId, string Color, bool Authored, double MinX, double MinZ, double MaxX, double MaxZ, string Name);
 
-    private readonly List<W.Team> teams = new();
+    private readonly List<Ctx.Team> teams = new();
     private List<W.Wool> wools = new();
     private string? symMode; private double symCx, symCz;
     private string anchorTeam = "";
@@ -33,7 +34,7 @@ public partial class WoolRoomStep
     private WorldCanvas? canvas;
 
     private string Slug => Wizard.Slug;
-    private W.Team? TeamOf(string id) => teams.FirstOrDefault(t => t.Id == id);
+    private Ctx.Team? TeamOf(string id) => teams.FirstOrDefault(t => t.Id == id);
     private string TeamName(string id) => TeamOf(id)?.Name ?? id;
     private bool IsAuthored(W.Wool w) => w.Owner == anchorTeam;
     private W.Wool? WoolOf(string color) => wools.FirstOrDefault(w => w.Color == color);
@@ -78,8 +79,8 @@ public partial class WoolRoomStep
 
     protected override void OnInitialized()
     {
-        teams.AddRange(W.LoadTeams(Wizard.Intent));
-        (symMode, symCx, symCz) = W.Sym(Wizard.Intent);
+        teams.AddRange(Ctx.LoadTeams(Wizard.Intent));
+        (symMode, symCx, symCz) = Ctx.Sym(Wizard.Intent);
         anchorTeam = teams.FirstOrDefault()?.Id ?? "";
         wools = W.ParseWools(Wizard.Intent);
         authored.Clear(); ghosts.Clear(); nextId = 1; selectedRegionId = null;

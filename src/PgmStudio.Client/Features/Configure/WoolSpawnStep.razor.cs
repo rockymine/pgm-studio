@@ -7,6 +7,7 @@ using PgmStudio.Client.Components;
 namespace PgmStudio.Client.Features.Configure;
 
 using W = WoolAuthoring;
+using Ctx = AuthoringContext;
 
 // Wools · spawn step: confirm/adjust where each wool dispenses (the <wool location> + spawner spawn point),
 // seeded by the objectives step's detected source centroid. The point tool moves the selected wool's
@@ -18,7 +19,7 @@ public partial class WoolSpawnStep
     [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
-    private readonly List<W.Team> teams = new();
+    private readonly List<Ctx.Team> teams = new();
     private List<W.Wool> wools = new();
     private string? symMode; private double symCx, symCz;
     private string anchorTeam = "";
@@ -27,15 +28,15 @@ public partial class WoolSpawnStep
 
     private string Slug => Wizard.Slug;
     private W.Wool? Selected => wools.FirstOrDefault(w => w.Color == selectedColor);
-    private W.Team? TeamOf(string id) => teams.FirstOrDefault(t => t.Id == id);
+    private Ctx.Team? TeamOf(string id) => teams.FirstOrDefault(t => t.Id == id);
     private string TeamName(string id) => TeamOf(id)?.Name ?? id;
     private string TeamColorOf(string id) => TeamOf(id)?.Color ?? "";
     private bool IsAuthored(W.Wool w) => w.Owner == anchorTeam;
 
     protected override void OnInitialized()
     {
-        teams.AddRange(W.LoadTeams(Wizard.Intent));
-        (symMode, symCx, symCz) = W.Sym(Wizard.Intent);
+        teams.AddRange(Ctx.LoadTeams(Wizard.Intent));
+        (symMode, symCx, symCz) = Ctx.Sym(Wizard.Intent);
         anchorTeam = teams.FirstOrDefault()?.Id ?? "";
         wools = W.ParseWools(Wizard.Intent);
         selectedColor = wools.FirstOrDefault()?.Color;
@@ -53,7 +54,7 @@ public partial class WoolSpawnStep
         // column's topmost surface. Read before X/Z move, and re-seat before the partners are re-derived,
         // since they copy the authored wool's Y.
         var refY = (int)Math.Floor(w.SpawnY);
-        w.SpawnX = W.Snap(p.X); w.SpawnZ = W.Snap(p.Z);
+        w.SpawnX = Ctx.Snap(p.X); w.SpawnZ = Ctx.Snap(p.Z);
         if (await ColumnFloor.RestingYAsync(Http, Slug, w.SpawnX, w.SpawnZ, refY) is { } y) w.SpawnY = y;
         if (IsAuthored(w)) ReDerivePartners(w);
         Write();
@@ -97,10 +98,10 @@ public partial class WoolSpawnStep
     // mirrored point. Position-only — colour/owner are untouched (green's mirror stays yellow, never "blue").
     private IEnumerable<W.Wool> Partners(W.Wool authored)
     {
-        var order = W.OrbitOrder(symMode);
+        var order = Ctx.OrbitOrder(symMode);
         for (var k = 1; k < order; k++)
         {
-            var (mx, mz) = W.Orbit(authored.SpawnX, authored.SpawnZ, symMode, symCx, symCz, k);
+            var (mx, mz) = Ctx.Orbit(authored.SpawnX, authored.SpawnZ, symMode, symCx, symCz, k);
             var partner = wools.Where(o => o != authored && o.Owner != anchorTeam)
                 .OrderBy(o => (o.SpawnX - mx) * (o.SpawnX - mx) + (o.SpawnZ - mz) * (o.SpawnZ - mz))
                 .FirstOrDefault();
@@ -110,10 +111,10 @@ public partial class WoolSpawnStep
 
     private void ReDerivePartners(W.Wool authored)
     {
-        var order = W.OrbitOrder(symMode);
+        var order = Ctx.OrbitOrder(symMode);
         for (var k = 1; k < order; k++)
         {
-            var (mx, mz) = W.Orbit(authored.SpawnX, authored.SpawnZ, symMode, symCx, symCz, k);
+            var (mx, mz) = Ctx.Orbit(authored.SpawnX, authored.SpawnZ, symMode, symCx, symCz, k);
             var partner = wools.Where(o => o != authored && o.Owner != anchorTeam)
                 .OrderBy(o => (o.SpawnX - mx) * (o.SpawnX - mx) + (o.SpawnZ - mz) * (o.SpawnZ - mz))
                 .FirstOrDefault();

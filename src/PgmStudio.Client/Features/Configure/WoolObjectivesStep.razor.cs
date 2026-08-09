@@ -11,6 +11,7 @@ using PgmStudio.Client.Components;
 namespace PgmStudio.Client.Features.Configure;
 
 using W = WoolAuthoring;
+using Ctx = AuthoringContext;
 
 // Wools · objectives step. On entry the world is scanned: signed monuments ("Place the X Wool here!")
 // name the objective colours and give each capturing team (the island the monument sits on) → the wool's
@@ -44,9 +45,9 @@ public partial class WoolObjectivesStep
         public string? ExcludeReason;   // why it's excluded by default (null when included)
     }
 
-    private readonly List<W.Team> teams = new();
+    private readonly List<Ctx.Team> teams = new();
     private string? symMode; private double symCx, symCz;
-    private List<W.Island> islands = new();
+    private List<Ctx.Island> islands = new();
     private readonly Dictionary<string, string> islandTeams = new();
     private readonly Dictionary<string, Rect> protection = new();   // team → spawn-protection rect
     private readonly List<Candidate> candidates = new();
@@ -56,14 +57,14 @@ public partial class WoolObjectivesStep
 
     private string Slug => Wizard.Slug;
     private Candidate? Selected => candidates.FirstOrDefault(c => c.Color == selectedColor);
-    private W.Team? TeamOf(string id) => teams.FirstOrDefault(t => t.Id == id);
+    private Ctx.Team? TeamOf(string id) => teams.FirstOrDefault(t => t.Id == id);
     private string TeamName(string id) => TeamOf(id)?.Name ?? id;
     private int Included => candidates.Count(c => c.Included);
 
     protected override async Task OnInitializedAsync()
     {
         LoadContext();
-        islands = await W.LoadIslandsAsync(Http, Slug);
+        islands = await Ctx.LoadIslandsAsync(Http, Slug);
         await DetectAsync();
         Reconcile();
         loading = false;
@@ -74,21 +75,21 @@ public partial class WoolObjectivesStep
 
     private void LoadContext()
     {
-        teams.Clear(); teams.AddRange(W.LoadTeams(Wizard.Intent));
-        (symMode, symCx, symCz) = W.Sym(Wizard.Intent);
-        foreach (var kv in W.LoadIslandTeams(Wizard.Intent)) islandTeams[kv.Key] = kv.Value;
+        teams.Clear(); teams.AddRange(Ctx.LoadTeams(Wizard.Intent));
+        (symMode, symCx, symCz) = Ctx.Sym(Wizard.Intent);
+        foreach (var kv in Ctx.LoadIslandTeams(Wizard.Intent)) islandTeams[kv.Key] = kv.Value;
         protection.Clear();
         if (Wizard.Intent["spawns"] is JsonArray sp)
             foreach (var s in sp.OfType<JsonObject>())
                 if (s["protection"] is JsonObject pr)
-                    protection[W.S(s, "team")] = new Rect(W.D(pr, "minX"), W.D(pr, "minZ"), W.D(pr, "maxX"), W.D(pr, "maxZ"));
+                    protection[Ctx.S(s, "team")] = new Rect(Ctx.D(pr, "minX"), Ctx.D(pr, "minZ"), Ctx.D(pr, "maxX"), Ctx.D(pr, "maxZ"));
     }
 
     // ── detection + combine (monuments authoritative, terrain wool = source/dedupe) ───────
     private async Task DetectAsync()
     {
         candidates.Clear();
-        var (minX, minZ, maxX, maxZ) = W.MapBox(islands);
+        var (minX, minZ, maxX, maxZ) = Ctx.MapBox(islands);
 
         // monuments: signed "place the X wool here" → objective colour + capturing team (its island)
         var monByColor = new Dictionary<string, List<W.Monument>>();
@@ -103,7 +104,7 @@ public partial class WoolObjectivesStep
                     var color = W.NormColor(Str(m, "color"));
                     if (color.Length == 0) continue;
                     double x = Dbl(m, "x"), y = Dbl(m, "y"), z = Dbl(m, "z");
-                    var cap = W.IslandTeamAt(x, z, islands, islandTeams) ?? "";
+                    var cap = Ctx.IslandTeamAt(x, z, islands, islandTeams) ?? "";
                     monByColor.TryAdd(color, new());
                     monByColor[color].Add(new W.Monument { Team = cap, X = x, Y = y, Z = z });
                     if (Str(m, "source") == "sign") signed.Add(color);
@@ -145,7 +146,7 @@ public partial class WoolObjectivesStep
             var capturers = mons.Select(m => m.Team).Where(t => t.Length > 0).ToHashSet();
             var byComplement = teams.Select(t => t.Id).Where(t => !capturers.Contains(t)).ToList();
             var owner = byComplement.Count == 1 ? byComplement[0]
-                : (hasSrc ? W.IslandTeamAt(src.x, src.z, islands, islandTeams) : null) ?? "";
+                : (hasSrc ? Ctx.IslandTeamAt(src.x, src.z, islands, islandTeams) : null) ?? "";
 
             var cand = new Candidate
             {
@@ -186,17 +187,17 @@ public partial class WoolObjectivesStep
     {
         if (Wizard.Intent["wools"] is JsonArray arr && arr.Count > 0)
         {
-            var saved = arr.OfType<JsonObject>().ToDictionary(w => W.NormColor(W.S(w, "owner")) + "/" + W.NormColor(W.S(w, "color")), w => w);
-            var savedColors = arr.OfType<JsonObject>().Select(w => W.NormColor(W.S(w, "color"))).ToHashSet();
+            var saved = arr.OfType<JsonObject>().ToDictionary(w => W.NormColor(Ctx.S(w, "owner")) + "/" + W.NormColor(Ctx.S(w, "color")), w => w);
+            var savedColors = arr.OfType<JsonObject>().Select(w => W.NormColor(Ctx.S(w, "color"))).ToHashSet();
             foreach (var c in candidates) c.Included = savedColors.Contains(c.Color);
             // any saved wool not in the detected pool (hand-added previously) → add it back as a candidate
             foreach (var w in arr.OfType<JsonObject>())
             {
-                var color = W.NormColor(W.S(w, "color"));
+                var color = W.NormColor(Ctx.S(w, "color"));
                 if (candidates.Any(c => c.Color == color)) continue;
                 var sp = w["spawn"] as JsonObject;
-                candidates.Add(new Candidate { Color = color, Owner = W.S(w, "owner"), Included = true,
-                    X = W.D(sp, "x"), Y = W.D(sp, "y"), Z = W.D(sp, "z") });
+                candidates.Add(new Candidate { Color = color, Owner = Ctx.S(w, "owner"), Included = true,
+                    X = Ctx.D(sp, "x"), Y = Ctx.D(sp, "y"), Z = Ctx.D(sp, "z") });
             }
         }
         else PersistAndPaint();   // first visit — auto-confirm the detected objectives

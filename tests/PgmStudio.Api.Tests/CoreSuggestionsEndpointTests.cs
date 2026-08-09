@@ -1,0 +1,115 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using LinqToDB;
+using LinqToDB.Async;
+using Microsoft.Extensions.DependencyInjection;
+using PgmStudio.Data.Features;
+using PgmStudio.Data.Schema;
+using PgmStudio.Domain;
+using PgmStudio.Minecraft;
+
+namespace PgmStudio.Api.Tests;
+
+/// <summary>
+/// GET /api/map/{slug}/core-suggestions — the configure tool's read of the cores the ingest scan proposed.
+/// It is the only way back to them: the world is deleted after import, so a suggestion the gather stored is
+/// all the tier ever sees. What is asserted here is that every measured parameter survives that read, that a
+/// drawn box narrows the list, and that the casing defaults ride along — the client has no other source for
+/// them and would otherwise carry a second copy of <see cref="ObjectiveDefaults"/>.
+/// </summary>
+[NotInParallel("api-db")]
+public sealed class CoreSuggestionsEndpointTests
+{
+    private static async Task<(ApiTestFactory Factory, HttpClient Client, string Slug, long MapId)> SetUpAsync()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        var factory = new ApiTestFactory();
+        var client = factory.CreateClient();
+
+        var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Core Map" }))
+            .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PgmDb>();
+        var mapId = await db.Maps.Where(m => m.Slug == slug).Select(m => m.Id).FirstAsync();
+        return (factory, client, slug, mapId);
+    }
+
+    private static async Task WriteAsync(ApiTestFactory factory, long mapId, params CoreSuggestion[] cores)
+    {
+        using var scope = factory.Services.CreateScope();
+        await CoreCandidateStore.WriteAsync(scope.ServiceProvider.GetRequiredService<PgmDb>(), mapId, cores);
+    }
+
+    private static CoreSuggestion Core(int x, int z, int size = 5, int shell = 1, int rise = 6, bool openTop = false)
+        => new(new BlockBox(x, 20, z, x + size - 1, 24, z + size - 1), 27, shell, rise, openTop);
+
+    [Test]
+    public async Task Every_measured_parameter_survives_the_read()
+    {
+        var (factory, client, slug, mapId) = await SetUpAsync();
+        await using var _ = factory;
+        await WriteAsync(factory, mapId, Core(100, 200, size: 7, shell: 2, rise: 9, openTop: true));
+
+        var body = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/core-suggestions");
+        var core = body.GetProperty("cores").EnumerateArray().Single();
+
+        var box = core.GetProperty("box");
+        await Assert.That(box.GetProperty("minX").GetInt32()).IsEqualTo(100);
+        await Assert.That(box.GetProperty("minY").GetInt32()).IsEqualTo(20);
+        await Assert.That(box.GetProperty("maxZ").GetInt32()).IsEqualTo(206);
+        // Footprint and height are read off the box, so a confirmed suggestion states the casing that is
+        // actually there rather than the generator's default.
+        await Assert.That(core.GetProperty("size").GetInt32()).IsEqualTo(7);
+        await Assert.That(core.GetProperty("height").GetInt32()).IsEqualTo(5);
+        await Assert.That(core.GetProperty("shell").GetInt32()).IsEqualTo(2);
+        await Assert.That(core.GetProperty("float").GetInt32()).IsEqualTo(9);
+        await Assert.That(core.GetProperty("openTop").GetBoolean()).IsTrue();
+        await Assert.That(core.GetProperty("lava").GetInt32()).IsEqualTo(27);
+    }
+
+    [Test]
+    public async Task A_drawn_box_narrows_the_list_to_the_casings_it_touches()
+    {
+        var (factory, client, slug, mapId) = await SetUpAsync();
+        await using var _ = factory;
+        await WriteAsync(factory, mapId, Core(0, 0), Core(500, 500));
+
+        var all = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/core-suggestions");
+        await Assert.That(all.GetProperty("cores").GetArrayLength()).IsEqualTo(2);
+
+        var boxed = await client.GetFromJsonAsync<JsonElement>(
+            $"/api/map/{slug}/core-suggestions?box=-20,0,-20,20,255,20");
+        var only = boxed.GetProperty("cores").EnumerateArray().Single();
+        await Assert.That(only.GetProperty("box").GetProperty("minX").GetInt32()).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task The_casing_defaults_come_back_even_when_nothing_was_found()
+    {
+        // A map with no proposals still needs them: a core placed by hand takes its size, shell, float and
+        // leak from here, and the client cannot reach ObjectiveDefaults.
+        var (factory, client, slug, _) = await SetUpAsync();
+        await using var __ = factory;
+
+        var body = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/core-suggestions");
+        await Assert.That(body.GetProperty("cores").GetArrayLength()).IsEqualTo(0);
+
+        var defaults = body.GetProperty("defaults");
+        await Assert.That(defaults.GetProperty("size").GetInt32()).IsEqualTo(ObjectiveDefaults.CoreSize);
+        await Assert.That(defaults.GetProperty("height").GetInt32()).IsEqualTo(ObjectiveDefaults.CoreHeight);
+        await Assert.That(defaults.GetProperty("shell").GetInt32()).IsEqualTo(ObjectiveDefaults.CoreShell);
+        await Assert.That(defaults.GetProperty("float").GetInt32()).IsEqualTo(ObjectiveDefaults.CoreFloat);
+        await Assert.That(defaults.GetProperty("leak").GetInt32()).IsEqualTo(ObjectiveDefaults.CoreLeak);
+    }
+
+    [Test]
+    public async Task An_unknown_map_is_not_found()
+    {
+        var (factory, client, _, _) = await SetUpAsync();
+        await using var __ = factory;
+        var resp = await client.GetAsync("/api/map/no-such-map/core-suggestions");
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+    }
+}

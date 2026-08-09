@@ -1,4 +1,4 @@
-// lucide v1.27.0 (ISC) — VENDORED subset: the 124 icons this app names, plus lucide's
+// lucide v1.27.0 (ISC) — VENDORED subset: the 125 icons this app names, plus lucide's
 // render path. Replaces the cdn.jsdelivr.net "@latest" script tag, which pinned nothing and is
 // unreachable from any egress-restricted environment (no icon rendered at all there).
 //
@@ -10,6 +10,7 @@
   "use strict";
 
   var icons = {
+  "anchor": [["path",{"d":"M12 6v16"}],["path",{"d":"m19 13 2-1a9 9 0 0 1-18 0l2 1"}],["path",{"d":"M9 11h6"}],["circle",{"cx":"12","cy":"4","r":"2"}]],
   "archive": [["rect",{"width":"20","height":"5","x":"2","y":"3","rx":"1"}],["path",{"d":"M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"}],["path",{"d":"M10 12h4"}]],
   "arrow-right": [["path",{"d":"M5 12h14"}],["path",{"d":"m12 5 7 7-7 7"}]],
   "arrows-up-from-line": [["path",{"d":"m4 6 3-3 3 3"}],["path",{"d":"M7 17V3"}],["path",{"d":"m14 6 3-3 3 3"}],["path",{"d":"M17 17V3"}],["path",{"d":"M4 21h16"}]],
