@@ -428,6 +428,19 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       canvas.setDoc(doc); canvas.select({ kind: "box", id }); afterEdit();
     },
     cycleFacing(index) { const m = doc.placements.spawns[index]; if (!m) return; const o = ["front", "right", "back", "left"]; m.facing = o[(o.indexOf(m.facing) + 1) % 4]; canvas.setDoc(doc); canvas.select({ kind: "marker", markerKind: "spawn", index }); afterEdit(); },
+
+    // Set one structure field on an objective marker — the casing knobs on a core, the design and material
+    // on a destroyable. A null value REMOVES the key, which is what keeps a marker the author never varied
+    // the bare `{ piece, at }` that plan-doc normalises it to: the host passes null when a field returns to
+    // its default, so an unchanged plan does not grow a copy of every default it agreed with.
+    setMarkerField(kind, index, key, value) {
+      const m = markerList(doc, kind)?.[index];
+      if (!m) return;
+      if (value === null || value === undefined || value === "") delete m[key]; else m[key] = value;
+      canvas.setDoc(doc);
+      canvas.select({ kind: "marker", markerKind: kind, index });
+      afterEdit();
+    },
     deleteSelected() { deleteSelection(canvas.getSelection()); },
 
     // Derived-structure overlays: toggle a layer (persisted) and pulse a finding's subjects on click.

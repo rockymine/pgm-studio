@@ -8,16 +8,21 @@ namespace PgmStudio.Client.Features.Configure;
 using C = CoreAuthoring;
 using Ctx = AuthoringContext;
 
-// Cores · casing. What the Objectives step settles is which team defends a core and roughly where; this step
-// settles what the structure is: the obsidian box's footprint and height, how thick its wall is, whether the
-// lava is capped or flush with the rim, and the pair that decides how it is captured — float (air under the
-// casing) and leak (how far the lava must fall to count). Their difference is the dig: leak greater than
-// float means breaching the casing is not enough and players must cut the ground out from under it.
+// Cores · casing — what the structure is, and the one thing about it this tool may change.
 //
-// Every edit re-derives the casing volume from the anchor, so the numbers and the box can never disagree —
-// the region the generator emits is that box (OB8), and a box that drifted from the numbers would scope a
-// goal the world does not contain. A plan-authored core keeps no volume here: the world-export path stamps
-// it against terrain that does not exist until the build runs.
+// Configure writes map.xml and never touches the world. That is what decides which of a core's fields are
+// editable here. Footprint, height, wall thickness, capped-or-flush lava and float describe blocks: on an
+// imported map they are measurements of obsidian that already exists, and editing them would recompute a
+// region that no longer scopes it — the exact failure OB8 exists to prevent, since the goal is built from the
+// blocks matching the material INSIDE the region. On a plan-built map they are what the world-export stamper
+// is about to place, which is the plan's statement to make, not this tool's. So they are read out, not set;
+// the plan tool's marker panel is where a casing is shaped.
+//
+// Leak is the exception, and it is the exception for a reason: it is a rule, not a structure. Nothing in the
+// world says how far the lava must fall before the core counts as breached — it is an attribute on the
+// <core> element and nowhere else, so it belongs to the tool that authors the element. Paired with the
+// measured float it gives the dig: leak greater than float means breaching the casing is not enough and
+// players must cut the ground out from under it.
 public partial class CoreCasingStep
 {
     [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
@@ -55,38 +60,13 @@ public partial class CoreCasingStep
 
     private void Select(int i) => selected = i;
 
-    // ── the casing numbers ─────────────────────────────────────────────────────────────
-    private void SetSize(C.Core core, int value) => Apply(core, () => core.Size = Math.Clamp(value, 1, 64));
-    private void SetHeight(C.Core core, int value) => Apply(core, () => core.Height = Math.Clamp(value, 1, 64));
-    private void SetShell(C.Core core, int value) => Apply(core, () => core.Shell = Math.Clamp(value, 1, 16));
-    private void SetFloat(C.Core core, int value) => Apply(core, () => core.Float = Math.Clamp(value, 0, 64));
-    private void SetLeak(C.Core core, int value) => Apply(core, () => core.Leak = Math.Clamp(value, 0, 64));
-    private void SetOpenTop(C.Core core, bool value) => Apply(core, () => core.OpenTop = value);
-    private void SetBaseY(C.Core core, int value) => Apply(core, () => core.AnchorY = Math.Clamp(value, 0, 255) - core.Float);
-
-    private void Apply(C.Core core, Action edit)
+    /// <summary>How far the lava must fall to count as leaked — the one field here that is a rule rather than
+    /// a structure, and so the one this step may set.</summary>
+    private void SetLeak(C.Core core, int value)
     {
-        edit();
-        Resolve(core);
+        core.Leak = Math.Clamp(value, 0, 64);
         C.WriteCores(Wizard.Intent, cores);
         Wizard.MarkDirty();
-        _ = Paint();
-    }
-
-    /// <summary>The casing base — <c>float</c> blocks of air above the ground the anchor rests on, which is
-    /// the height the world-export stamper builds at. Null while the core has no resolved volume.</summary>
-    private static int? BaseY(C.Core core) => core.Volume?.MinY;
-
-    // Re-derive the volume from the anchor and the numbers. A core with no resolved volume stays that way:
-    // its box belongs to the world build, and inventing one here would export a region over terrain nobody
-    // has generated yet.
-    private static void Resolve(C.Core core)
-    {
-        if (core.Volume is null) return;
-        var minX = (int)Math.Floor(core.AnchorX) - (core.Size - 1) / 2;
-        var minZ = (int)Math.Floor(core.AnchorZ) - (core.Size - 1) / 2;
-        var minY = Math.Max(0, (int)Math.Round(core.AnchorY) + core.Float);
-        core.Volume = new C.Box(minX, minY, minZ, minX + core.Size - 1, minY + core.Height - 1, minZ + core.Size - 1);
     }
 
     private async Task Paint()

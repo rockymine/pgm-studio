@@ -17,10 +17,10 @@ using Ctx = AuthoringContext;
 // casing the detector measured becomes the core's own <region> (OB8).
 //
 // A proposal is not always there (the detector finds about three in four), so a core can also be placed by
-// drawing its casing footprint. That core's volume is derived from the terrain the same way the world-export
-// stamper derives one — float blocks of air above the ground under the footprint — and the Casing step shows
-// the resulting base Y as an editable number, because a derived height nobody can see is a height nobody can
-// correct.
+// drawing its casing footprint over the obsidian the author can see. That is still description rather than
+// construction — the blocks are already in the imported world — and the volume is derived the way the
+// world-export stamper derives one, float blocks of air above the ground under the footprint, so a core
+// described here and one built from a plan sit at the same height over the same terrain.
 public partial class CoreObjectivesStep
 {
     [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;

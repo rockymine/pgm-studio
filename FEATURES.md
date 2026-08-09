@@ -1247,6 +1247,28 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (anchors = the wool spawns), accumulating across wools so a team that defends several wools gets each room
   (authored editable, orbit copies ghost). Shows the generator's **Auto-wiring (derived)** preview
   (`enter`/`block`=`not-<owner>` + `capture ×N`). (`WoolRoomStep`; N04)
+- **An objective marker states the structure it builds (`G160`).** A core and a destroyable are placed as
+  bare markers and take the generator's defaults; the knobs that vary them — a casing's footprint, height,
+  wall thickness, capped-or-flush lava and float/leak pair, a destroyable's design, material and float — had
+  existed in `CorePlacement`/`DestroyablePlacement`, in `plan-doc.js`, in the compiler and in the stamper
+  since each was written, reachable only by hand-editing the plan JSON. They are now the panel that opens
+  when a marker is selected, so every core the tool placed is no longer a capped 5×5×5 and every destroyable
+  no longer a floating obsidian `pillar-3`.
+  It lives **in the plan** and only there: the plan states a map's gameplay against the terrain it also lays
+  down, and a core's marker sits on the piece its casing floats over. Configure writes `map.xml` and never
+  touches the world, so it reads these out rather than setting them — its one editable field is `leak`, which
+  is an attribute on the `<core>` element and nothing about the blocks.
+  What is stored is only what differs: setting a field back to its default passes null through the one new
+  bridge mutator (`setMarkerField`), which deletes the key, so a plan the author never varied stays the bare
+  `{piece, at}` markers it was written as and a default that later moves moves for every plan that never
+  disagreed with it. The vocabulary and those defaults are **served** (`GET /api/objectives/vocabulary`) —
+  the Blazor client cannot reach `ObjectiveDefaults`, and a picker showing a default the stamper does not
+  build is exactly what that one home exists to prevent. The material list is now one list for the same
+  reason: `DestroyableMaterials` is both what the picker offers and what `SketchWorldBuilder` resolves, so a
+  material cannot be offered that silently stamps obsidian while the XML names emerald.
+  (`PlanTool` inspector; `plan-canvas.js` selection payload, `plan-bridge.js setMarkerField`;
+  `ObjectiveVocabularyEndpoint`; `DestroyableMaterials`; `tests/e2e/plan-objective-variants.mjs` places a
+  core and a destroyable and varies both in a browser. G160)
 - **A world canvas that mounts before layout no longer writes a negative size (`N12`).** `WorldCanvas`'s
   rebuild measured its wrap directly (`clientWidth - 24`) and set the result on the `<svg>`, so a host that
   mounted it before the wrap had a box wrote `width="-24"` / `viewBox="0 0 -24 -24"` — which the browser
@@ -1269,10 +1291,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   that has none (OB8). Footprint and height come off that box, so a confirmed core states the 7×4 casing that
   is actually built rather than the 5×5 default. A core the detector missed is placed by drawing its
   footprint, its base `float` blocks above the ground under it — the world-export stamper's own rule.
-  **Cores · Casing** owns the structure: footprint, height, wall thickness, capped-or-flush lava, and the
-  float/leak pair, whose difference it spells out as the dig ("breach the casing **and** dig 3 blocks out
-  from under it"). Every edit re-derives the volume, so the numbers and the exported region can never
-  disagree; a plan-authored core keeps no volume and says why. The casing defaults are **served** by the
+  **Cores · Casing** reads the structure out — footprint, height, wall, capped-or-flush lava, float, and the
+  region those scope — and sets the one field that is a rule rather than a structure: `leak`, whose distance
+  over the measured float it spells out as the dig ("breach the casing **and** dig 3 blocks out from under
+  it"). A plan-authored core has no volume yet and says why. The casing defaults are **served** by the
   endpoint rather than copied client-side, because `ObjectiveDefaults` must not drift from the stamper.
   The map context the steps share (teams, symmetry, islands, island→team) moved out of `WoolAuthoring` into
   `AuthoringContext`, since a core step needs the same teams and the same orbit.

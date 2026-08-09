@@ -876,7 +876,16 @@ export class PlanCanvas extends CanvasBase {
     if (this.#sel.kind === "marker") {
       const m = markerAt(this.#doc, this.#sel.markerKind, this.#sel.index);
       const c = m && markerCell(this.#doc, m);
-      cb({ kind: "marker", markerKind: this.#sel.markerKind, index: this.#sel.index, piece: m?.piece, at: m?.at, cell: c, facing: m?.facing, multi });
+      // The structure fields ride along so the inspector can offer them. Each is absent on a marker whose
+      // author never changed it — the host fills the default in rather than the document carrying one.
+      cb({
+        kind: "marker", markerKind: this.#sel.markerKind, index: this.#sel.index,
+        piece: m?.piece, at: m?.at, cell: c, facing: m?.facing, name: m?.name,
+        style: m?.style, materials: m?.materials,
+        size: m?.size, height: m?.height, shell: m?.shell,
+        float: m?.float, leak: m?.leak, openTop: m?.openTop,
+        multi,
+      });
       return;
     }
     const item = this.#selItem();

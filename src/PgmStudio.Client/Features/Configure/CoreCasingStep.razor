@@ -1,14 +1,15 @@
 @namespace PgmStudio.Client.Features.Configure
 
-@* Cores · casing: the obsidian box itself — footprint, height, wall thickness, capped or open — and the
-   float/leak pair that decides whether breaching the casing is enough or players must dig under it. *@
+@* Cores · casing: what each core's structure is, read off the world that holds it or the plan that will
+   build it, and the one attribute that lives only in the XML — how far the lava must fall to count. *@
 
 <Workspace>
 
   <Sidebar>
       <Section Title="Casings">
-        <p class="section-desc">Pick a core to shape its casing. The <strong>region</strong> the map exports
-          is exactly this box, so the numbers here are the structure — not a hint at it.</p>
+        <p class="section-desc">Pick a core to see the casing its <strong>region</strong> scopes. The shape
+          itself is authored in the plan, or measured from an imported world — this tool writes the
+          <code>map.xml</code> and leaves the blocks alone.</p>
         <div class="panel-list">
           @if (cores.Count == 0) { <div class="list-empty">No cores — confirm or place one first.</div> }
           @for (var i = 0; i < cores.Count; i++)
@@ -41,40 +42,31 @@
           </DetailHeader>
           <div class="section-body">
 
-            <Field Label="Footprint">
-              <LabelHint>(width &amp; depth, blocks)</LabelHint>
+            <Field Label="Casing">
+              <LabelHint>(the structure, not a setting)</LabelHint>
               <ChildContent>
-                <input class="field-input" type="number" min="1" max="64" value="@sel.Size"
-                       @onchange="@(e => SetSize(sel, Num(e.Value, sel.Size)))" />
-              </ChildContent>
-            </Field>
-            <Field Label="Height">
-              <input class="field-input" type="number" min="1" max="64" value="@sel.Height"
-                     @onchange="@(e => SetHeight(sel, Num(e.Value, sel.Height)))" />
-            </Field>
-            <Field Label="Wall thickness">
-              <LabelHint>(obsidian shell)</LabelHint>
-              <ChildContent>
-                <input class="field-input" type="number" min="1" max="16" value="@sel.Shell"
-                       @onchange="@(e => SetShell(sel, Num(e.Value, sel.Shell)))" />
+                <div class="field-value">
+                  @sel.Size×@sel.Size×@sel.Height, wall @sel.Shell,
+                  @(sel.OpenTop ? "lava flush with the rim" : "lava capped by the casing"),
+                  floating @sel.Float
+                </div>
               </ChildContent>
             </Field>
 
-            <Field Label="Lava">
-              <label class="ctrl-row" style="cursor:pointer">
-                <input type="checkbox" class="control-input control-input--hidden" checked="@sel.OpenTop"
-                       @onchange="@(e => SetOpenTop(sel, e.Value is true))" />
-                <span class="field-value">@(sel.OpenTop ? "flush with the rim (open top)" : "capped by the casing")</span>
-              </label>
-            </Field>
-
-            <Field Label="Float">
-              <LabelHint>(air under the casing)</LabelHint>
+            <Field Label="Region">
               <ChildContent>
-                <input class="field-input" type="number" min="0" max="64" value="@sel.Float"
-                       @onchange="@(e => SetFloat(sel, Num(e.Value, sel.Float)))" />
+                @if (sel.Volume is { } vol)
+                {
+                  <div class="field-value list-label--mono">@vol.MinX, @vol.MinY, @vol.MinZ → @vol.MaxX, @vol.MaxY, @vol.MaxZ</div>
+                }
+                else
+                {
+                  <div class="field-value">Stamped when the world is built — this core came from a plan, so its
+                    casing is placed against terrain that does not exist yet.</div>
+                }
               </ChildContent>
             </Field>
+
             <Field Label="Leak">
               <LabelHint>(fall before it counts)</LabelHint>
               <ChildContent>
@@ -92,27 +84,9 @@
                 <text>The lava leaks as soon as the casing is breached — no digging.</text>
               }
             </p>
-
-            @if (sel.Volume is { } vol)
-            {
-              <Field Label="Base Y">
-                <LabelHint>(the casing floor)</LabelHint>
-                <ChildContent>
-                  <input class="field-input" type="number" min="0" max="255" value="@vol.MinY"
-                         @onchange="@(e => SetBaseY(sel, Num(e.Value, vol.MinY)))" />
-                </ChildContent>
-              </Field>
-              <Field Label="Region">
-                <div class="field-value list-label--mono">@vol.MinX, @vol.MinY, @vol.MinZ → @vol.MaxX, @vol.MaxY, @vol.MaxZ</div>
-              </Field>
-            }
-            else
-            {
-              <Field Label="Region">
-                <div class="field-value">Stamped when the world is built — this core came from a plan, so its
-                  casing is placed against terrain that does not exist yet.</div>
-              </Field>
-            }
+            <p class="section-desc">To change the casing itself — its footprint, wall, cap or float — edit the
+              core marker in the <strong>plan</strong>, which is where the structure and the terrain under it
+              are authored together.</p>
 
           </div>
         </Section>
@@ -121,7 +95,7 @@
       {
         <Section>
           <DetailHeader Icon="flame" IconMuted Label="Casing" />
-          <p class="section-desc">Select a core to shape its casing.</p>
+          <p class="section-desc">Select a core to see its casing and set how far its lava must fall.</p>
         </Section>
       }
   </Inspector>

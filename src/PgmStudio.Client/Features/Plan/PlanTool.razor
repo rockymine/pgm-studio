@@ -455,7 +455,7 @@
               }
               else
               {
-                <DetailHeader Icon="flag" Label="@sel.MarkerKind" />
+                <DetailHeader Icon="@MarkerIcon(sel.MarkerKind)" Label="@sel.MarkerKind" />
                 <Field Label="On piece">
                   <div class="plan-readout">@sel.Piece &nbsp; <span class="list-tag">at @OffsetLabel</span></div>
                 </Field>
@@ -467,6 +467,98 @@
                       <Button Variant="icon" OnClick="CycleFacing" Title="Cycle facing"><i data-lucide="rotate-cw"></i></Button>
                     </div>
                   </Field>
+                }
+                @* An objective marker states the structure it builds. Only what differs from the generator's
+                   default is stored, so a marker left alone stays the bare { piece, at } it was placed as. *@
+                @if (sel.MarkerKind is "destroyable" or "core")
+                {
+                  <Field Label="Name">
+                    <LabelHint>@(sel.MarkerKind == "core" ? "(optional — PGM names a core itself)" : "(optional — defaults to the owner's)")</LabelHint>
+                    <ChildContent>
+                      <input class="field-input" value="@sel.Name" placeholder="@(sel.MarkerKind == "core" ? "Core" : "Red Monument")"
+                             @onchange="@(e => SetMarkerText("name", e.Value?.ToString(), string.Empty))" />
+                    </ChildContent>
+                  </Field>
+                }
+                @if (sel.MarkerKind == "destroyable")
+                {
+                  <Field Label="Design">
+                    <select class="field-input" value="@DestroyableStyle"
+                            @onchange="@(e => SetMarkerText("style", e.Value?.ToString(), vocabulary.Destroyable.Style))">
+                      @foreach (var design in vocabulary.Destroyable.Styles)
+                      {
+                        <option value="@design" selected="@(design == DestroyableStyle)">@design</option>
+                      }
+                    </select>
+                  </Field>
+                  <Field Label="Material">
+                    <select class="field-input" value="@DestroyableMaterials"
+                            @onchange="@(e => SetMarkerText("materials", e.Value?.ToString(), vocabulary.Destroyable.Materials))">
+                      @foreach (var material in vocabulary.Destroyable.MaterialChoices)
+                      {
+                        <option value="@material" selected="@(material == DestroyableMaterials)">@material</option>
+                      }
+                    </select>
+                  </Field>
+                  <Field Label="Float">
+                    <LabelHint>(air under it)</LabelHint>
+                    <ChildContent>
+                      <input class="field-input" type="number" min="0" max="64" value="@DestroyableFloat"
+                             @onchange="@(e => SetMarkerNumber("float", Num(e.Value, DestroyableFloat), vocabulary.Destroyable.Float))" />
+                    </ChildContent>
+                  </Field>
+                }
+                else if (sel.MarkerKind == "core")
+                {
+                  <Field Label="Footprint">
+                    <LabelHint>(width &amp; depth)</LabelHint>
+                    <ChildContent>
+                      <input class="field-input" type="number" min="1" max="64" value="@CoreSize"
+                             @onchange="@(e => SetMarkerNumber("size", Num(e.Value, CoreSize), vocabulary.Core.Size))" />
+                    </ChildContent>
+                  </Field>
+                  <Field Label="Height">
+                    <input class="field-input" type="number" min="1" max="64" value="@CoreHeight"
+                           @onchange="@(e => SetMarkerNumber("height", Num(e.Value, CoreHeight), vocabulary.Core.Height))" />
+                  </Field>
+                  <Field Label="Wall thickness">
+                    <LabelHint>(obsidian shell)</LabelHint>
+                    <ChildContent>
+                      <input class="field-input" type="number" min="1" max="16" value="@CoreShell"
+                             @onchange="@(e => SetMarkerNumber("shell", Num(e.Value, CoreShell), vocabulary.Core.Shell))" />
+                    </ChildContent>
+                  </Field>
+                  <Field Label="Lava">
+                    <label class="ctrl-row" style="cursor:pointer">
+                      <input type="checkbox" class="control-input control-input--hidden" checked="@CoreOpenTop"
+                             @onchange="@(e => SetMarkerField("openTop", e.Value is true ? true : null))" />
+                      <span class="plan-readout">@(CoreOpenTop ? "flush with the rim (open top)" : "capped by the casing")</span>
+                    </label>
+                  </Field>
+                  <Field Label="Float">
+                    <LabelHint>(air under the casing)</LabelHint>
+                    <ChildContent>
+                      <input class="field-input" type="number" min="0" max="64" value="@CoreFloat"
+                             @onchange="@(e => SetMarkerNumber("float", Num(e.Value, CoreFloat), vocabulary.Core.Float))" />
+                    </ChildContent>
+                  </Field>
+                  <Field Label="Leak">
+                    <LabelHint>(fall before it counts)</LabelHint>
+                    <ChildContent>
+                      <input class="field-input" type="number" min="0" max="64" value="@CoreLeak"
+                             @onchange="@(e => SetMarkerNumber("leak", Num(e.Value, CoreLeak), vocabulary.Core.Leak))" />
+                    </ChildContent>
+                  </Field>
+                  <p class="section-desc">
+                    @if (CoreDigDepth > 0)
+                    {
+                      <text>Capturing means breaching the casing <strong>and</strong> digging @CoreDigDepth block@(CoreDigDepth == 1 ? "" : "s") out of the ground beneath it.</text>
+                    }
+                    else
+                    {
+                      <text>The lava leaks as soon as the casing is breached — no digging.</text>
+                    }
+                  </p>
                 }
                 <Button Full Variant="danger" OnClick="DeleteSelected">
                   <i data-lucide="trash-2"></i> Delete marker

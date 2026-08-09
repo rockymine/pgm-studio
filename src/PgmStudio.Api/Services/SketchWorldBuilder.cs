@@ -221,7 +221,7 @@ public static class SketchWorldBuilder
             if (!DestroyableStyles.TryParse(b.Style, out var style)) continue;
             var (ax, az) = PositionSnap.SnapXZ(b.Anchor.X, b.Anchor.Z);
             var box = ObjectiveStamper.DestroyableBox(surface, ax, az, style, b.Float);
-            ObjectiveStamper.StampDestroyable(world, box, style, MaterialId(b.Materials));
+            ObjectiveStamper.StampDestroyable(world, box, style, DestroyableMaterials.BlockId(b.Materials));
             resolved.Add(new DestroyableIntent
             {
                 Owner = b.Owner, Name = b.Name, Style = b.Style, Materials = b.Materials,
@@ -253,16 +253,6 @@ public static class SketchWorldBuilder
         }
         return resolved;
     }
-
-    // The block a destroyable's `materials` names. The closed four-material vocabulary the corpus uses for
-    // DTM goals; anything else falls back to obsidian, which is over half of them.
-    private static int MaterialId(string materials) => materials.Trim().ToLowerInvariant() switch
-    {
-        "emerald block" or "emerald_block" => Blocks.EmeraldBlock,
-        "gold block" or "gold_block" => Blocks.GoldBlock,
-        "ender stone" or "end_stone" or "ender_stone" => Blocks.EndStone,
-        _ => Blocks.Obsidian,
-    };
 
     /// <summary>The XZ footprints (min/max inclusive) of the renewable iron cubes — the regions the map.xml
     /// renewables wiring covers so the mined ore regrows (ST2): every placeable spawn-side cube (WX8) plus

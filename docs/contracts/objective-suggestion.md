@@ -145,11 +145,21 @@ Two things the world cannot supply are defaulted rather than invented. `leak` is
 nothing about the blocks says how far the lava must fall — so it takes PGM's own default and pairs with the
 measured `float` to give the dig depth. And a core the detector missed (about one in four) is placed by
 drawing its casing footprint: its base sits `float` blocks above the ground under that footprint, the
-world-export stamper's own rule, and the resulting base Y is an editable number in the Casing step, because
-a derived height nobody can see is a height nobody can correct.
+world-export stamper's own rule, so a core described here and one built from a plan sit at the same height
+over the same terrain. Drawing that footprint is description, not construction: the obsidian is already in
+the imported world and the author is saying where it is.
 
 A **plan-authored** core keeps no box here. Its casing is stamped against terrain that does not exist until
 the world is built, so the field rides through untouched and the step says so instead of resolving it early.
+
+**Which fields the phase may set follows from what it writes.** Configure produces `map.xml` and never
+touches the world, so the casing's footprint, height, wall thickness, cap and float are read out rather than
+edited: on an imported map they measure obsidian that already exists, and changing them would recompute a
+region that no longer scopes it — the failure OB8 exists to prevent, since PGM builds the goal from the
+blocks matching the material *inside* the region. On a plan-built map they are what the stamper is about to
+place, which the plan states. `leak` is the exception and is one for a reason: nothing in the world says how
+far the lava must fall, because it is an attribute on the `<core>` element and nowhere else. Shaping a casing
+belongs to the plan tool's marker panel, where the structure and the terrain under it are authored together.
 
 The phase itself is additive. A PGM map may carry wools, destroyables and cores at once, so Cores is its own
 phase beside Wools rather than a branch that replaces it, and the objective phases share one completeness

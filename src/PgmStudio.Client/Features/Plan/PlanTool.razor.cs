@@ -231,6 +231,15 @@ public partial class PlanTool
 
     private string OffsetLabel => sel?.At is { Length: 2 } a ? $"{a[0]}, {a[1]}" : "";
 
+    /// <summary>The inspector's glyph for a marker kind — the same icon its dock item wears, so the panel
+    /// and the tool that placed it read as one thing.</summary>
+    private static string MarkerIcon(string kind) =>
+        AllMarkerItems.FirstOrDefault(item => item.Key == kind)?.Icon ?? "flag";
+
+    /// <summary>Parse a number input, keeping the current value when the box is left unreadable.</summary>
+    private static int Num(object? value, int fallback)
+        => int.TryParse(value?.ToString(), out var parsed) ? parsed : fallback;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await JS.InvokeVoidAsync("studio.icons");
@@ -250,6 +259,7 @@ public partial class PlanTool
             traceMaps = all?.Where(m => m.HasSurface).OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase).ToList() ?? [];
         }
         catch { /* picker just stays empty */ }
+        await LoadObjectiveVocabularyAsync();
         // A map-backed plan (/maps/{slug}/plan) loads its artifact; the bare route honours the generator
         // hand-off (?plan=<id> loads that candidate).
         if (MapBacked) await LoadFromMap(Slug!);
@@ -585,6 +595,82 @@ public partial class PlanTool
 
     private Task CycleFacing()
         => sel is not null && handle is not null ? handle.InvokeVoidAsync("cycleFacing", sel.Index).AsTask() : Task.CompletedTask;
+
+    // ── objective markers: the structure each one builds ─────────────────────────────────────────
+    //
+    // A core and a destroyable are placed as a bare marker and take the generator's defaults; these are the
+    // knobs that vary them. The plan is where they belong, because a plan states the gameplay against the
+    // terrain it also lays down — the marker's piece is the ground its structure floats over.
+    //
+    // What is stored is only what differs. Setting a field back to its default passes null, which removes
+    // the key, so a plan the author never varied stays the bare markers it was written as and a default that
+    // later moves moves for every plan that never disagreed with it.
+
+    /// <summary>The objective vocabulary + defaults (<c>GET /api/objectives/vocabulary</c>). Fetched rather
+    /// than hardcoded: the client cannot reach <c>ObjectiveDefaults</c>, and a second copy of these numbers
+    /// would show an author a structure the stamper does not build.</summary>
+    private ObjectiveVocabulary vocabulary = ObjectiveVocabulary.Empty;
+
+    private async Task LoadObjectiveVocabularyAsync()
+    {
+        try { vocabulary = await Http.GetFromJsonAsync<ObjectiveVocabulary>("api/objectives/vocabulary") ?? ObjectiveVocabulary.Empty; }
+        catch { /* keep the built-in fallback — the inspector still renders, showing the same defaults */ }
+    }
+
+    private Task SetMarkerField(string key, object? value)
+        => sel is not null && handle is not null
+            ? handle.InvokeVoidAsync("setMarkerField", sel.MarkerKind, sel.Index, key, value).AsTask()
+            : Task.CompletedTask;
+
+    /// <summary>Store a number, or clear it when it equals the default it would fall back to anyway.</summary>
+    private Task SetMarkerNumber(string key, int value, int fallback)
+        => SetMarkerField(key, value == fallback ? null : value);
+
+    private Task SetMarkerText(string key, string? value, string fallback)
+        => SetMarkerField(key, string.IsNullOrWhiteSpace(value) || value.Trim() == fallback ? null : value.Trim());
+
+    // ── the effective value of each knob: what the author set, else what the generator will use ──
+    private string DestroyableStyle => sel?.Style ?? vocabulary.Destroyable.Style;
+    private string DestroyableMaterials => sel?.Materials ?? vocabulary.Destroyable.Materials;
+    private int DestroyableFloat => sel?.Float ?? vocabulary.Destroyable.Float;
+
+    private int CoreSize => sel?.Size ?? vocabulary.Core.Size;
+    private int CoreHeight => sel?.Height ?? vocabulary.Core.Height;
+    private int CoreShell => sel?.Shell ?? vocabulary.Core.Shell;
+    private int CoreFloat => sel?.Float ?? vocabulary.Core.Float;
+    private int CoreLeak => sel?.Leak ?? vocabulary.Core.Leak;
+    private bool CoreOpenTop => sel?.OpenTop ?? vocabulary.Core.OpenTop;
+
+    /// <summary>How far players must dig under the casing before its lava can leak — the whole point of the
+    /// float/leak pair, which says nothing when either is read alone.</summary>
+    private int CoreDigDepth => Math.Max(0, CoreLeak - CoreFloat);
+
+    private sealed class ObjectiveVocabulary
+    {
+        [JsonPropertyName("destroyable")] public DestroyableVocabulary Destroyable { get; set; } = new();
+        [JsonPropertyName("core")] public CoreVocabulary Core { get; set; } = new();
+
+        public static readonly ObjectiveVocabulary Empty = new();
+    }
+
+    private sealed class DestroyableVocabulary
+    {
+        [JsonPropertyName("styles")] public List<string> Styles { get; set; } = [];
+        [JsonPropertyName("materialChoices")] public List<string> MaterialChoices { get; set; } = [];
+        [JsonPropertyName("style")] public string Style { get; set; } = "";
+        [JsonPropertyName("materials")] public string Materials { get; set; } = "";
+        [JsonPropertyName("float")] public int Float { get; set; }
+    }
+
+    private sealed class CoreVocabulary
+    {
+        [JsonPropertyName("size")] public int Size { get; set; }
+        [JsonPropertyName("height")] public int Height { get; set; }
+        [JsonPropertyName("shell")] public int Shell { get; set; }
+        [JsonPropertyName("float")] public int Float { get; set; }
+        [JsonPropertyName("leak")] public int Leak { get; set; }
+        [JsonPropertyName("openTop")] public bool OpenTop { get; set; }
+    }
 
     private Task DeleteSelected() => handle?.InvokeVoidAsync("deleteSelected").AsTask() ?? Task.CompletedTask;
 
@@ -1066,6 +1152,17 @@ public partial class PlanTool
         [JsonPropertyName("piece")] public string Piece { get; set; } = "";
         [JsonPropertyName("at")] public double[]? At { get; set; }
         [JsonPropertyName("facing")] public string Facing { get; set; } = "";
+        // Objective-marker structure fields. Null means the author never set it, so the inspector shows the
+        // generator's default — a marker states only what it varies.
+        [JsonPropertyName("name")] public string? Name { get; set; }
+        [JsonPropertyName("style")] public string? Style { get; set; }
+        [JsonPropertyName("materials")] public string? Materials { get; set; }
+        [JsonPropertyName("size")] public int? Size { get; set; }
+        [JsonPropertyName("height")] public int? Height { get; set; }
+        [JsonPropertyName("shell")] public int? Shell { get; set; }
+        [JsonPropertyName("float")] public int? Float { get; set; }
+        [JsonPropertyName("leak")] public int? Leak { get; set; }
+        [JsonPropertyName("openTop")] public bool? OpenTop { get; set; }
         [JsonPropertyName("boxKind")] public string BoxKind { get; set; } = "";
         [JsonPropertyName("zoneKind")] public string ZoneKind { get; set; } = "";
         [JsonPropertyName("members")] public List<string>? Members { get; set; }
