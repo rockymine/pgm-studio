@@ -103,6 +103,15 @@ whole ranking is worth precision, and fixing them is where the next work goes (`
 `MonumentSuggester.Gather` does. The world is discarded after import and there is no re-import path, so a
 suggestion not captured during that pass cannot be recovered.
 
+What it gathers lands in **`core_candidate`** (`M0014`, `CoreCandidateStore`) — one row per proposed core,
+carrying the casing box and every measured parameter. That is a different shape from `monument_candidate`,
+which stores *evidence* for a scoring pass to weigh later: a core's signature is unambiguous enough that the
+gather pass already knows the structure, so the row is the suggestion rather than an input to one. A re-scan
+is delete-then-insert per map, and deleting a map cascades its candidates away.
+
+The counts surface on all three ingest responses beside `monument_candidates`, so an import says how many
+cores it found without a second call.
+
 Validation runs from both ends. The corpus gives external truth at scale but only for maps someone else
 authored; **a composed plan gives truth by construction** — a plan states a core at an anchor with a chosen
 casing, the pipeline builds the world, and the detector has to propose that core at that casing with those

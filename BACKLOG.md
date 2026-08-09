@@ -417,12 +417,11 @@ import diagnostic (`B24e`), detection (`B26`), and the island-floor work the pha
   include reference and cannot be silently lost. Add each tag to `ParsedObjectiveModules` as its parser lands.
   (`docs/contracts/include-resolution.md` §4)
 
-- [ ] **B58 — Persist core suggestions at ingest, and finish the destroyable ranker.** Two halves, both now
+- [ ] **B58 — Offer cores in the configure tool, and finish the destroyable ranker.** Two halves, both now
   well-defined by measurement (`docs/contracts/objective-suggestion.md`).
-  **Cores need wiring, not work.** `CoreSuggester` ships at 82%/77% but nothing calls it: it reads `.mca`, so
-  it must run inside `WorldFeatureWriter.WriteAsync` beside `MonumentSuggester.Gather`, into a
-  `core_candidate` table mirroring `monument_candidate` (`M0002`), with the confirm-in-UI flow. Until that
-  lands the detector cannot be used — the world is discarded after import and there is no re-import path.
+  **Cores are gathered and stored** (`FEATURES.md`); what remains on that side is the **confirm-in-UI flow** —
+  the configure tool has no step that reads `core_candidate` and turns a chosen suggestion into a `CoreIntent`.
+  The backend half is done, so this is UI work against a table that is already populated at import.
   **Destroyables are detectable and the ranker is two filters away from useful.** The measured facts: 98% of
   declared structures are a standalone connected cluster, 95% have a same-material same-size partner at the
   rotational image of the objective centre, and the centre is recoverable without the XML by letting candidate

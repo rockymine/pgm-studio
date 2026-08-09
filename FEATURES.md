@@ -660,6 +660,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   filters that are known to be too tight (`B58`). One corpus claim was corrected on the way: DT3's "destroyables
   float 3–5 blocks" describes the generator, not the corpus — measured on the declared blocks, 424 of 571 rest
   directly on something.
+  **Gathered and stored at ingest**: `CoreSuggester` runs inside the one world pass beside
+  `MonumentSuggester.Gather`, and its output lands in `core_candidate` (`M0014`) carrying the casing box and
+  every measured parameter — a different shape from `monument_candidate`, which stores evidence for a later
+  scoring pass, because a core's signature is unambiguous enough that the row *is* the suggestion. Re-scan is
+  delete-then-insert; deleting a map cascades. That storage is what makes the detector usable at all, since the
+  `.mca` files are discarded straight after import and cannot be read again.
   Validated from both ends: the corpus for external truth at scale, and a **composed plan for truth by
   construction** — a plan states a core at an anchor, the pipeline builds the world, and the detector must
   propose that core with that casing, shell and cap. (B26, OB12/OB14, `docs/contracts/objective-suggestion.md`)

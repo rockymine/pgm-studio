@@ -295,6 +295,26 @@ public sealed class SpawnerBlockRow
     [Column("max_nearby_entities")] public int? MaxNearbyEntities { get; set; }
 }
 
+/// <summary>A proposed DTC core (<c>core_candidate</c>) — the ingest output of <c>CoreSuggester.Gather</c>,
+/// stored because the world it was read from is discarded straight afterwards. Mirrors
+/// <c>CoreSuggestion</c> (PgmStudio.Minecraft) plus its map.</summary>
+[Table("core_candidate")]
+public sealed class CoreCandidateRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("min_x"), NotNull] public int MinX { get; set; }
+    [Column("min_y"), NotNull] public int MinY { get; set; }
+    [Column("min_z"), NotNull] public int MinZ { get; set; }
+    [Column("max_x"), NotNull] public int MaxX { get; set; }
+    [Column("max_y"), NotNull] public int MaxY { get; set; }
+    [Column("max_z"), NotNull] public int MaxZ { get; set; }
+    [Column("lava_blocks"), NotNull] public int LavaBlocks { get; set; }
+    [Column("shell"), NotNull] public int Shell { get; set; }
+    [Column("float_blocks"), NotNull] public int FloatBlocks { get; set; }
+    [Column("open_top"), NotNull] public bool OpenTop { get; set; }
+}
+
 /// <summary>A gathered monument candidate (F9, <c>monument_candidate</c>) — the style-agnostic ingest
 /// output of <c>MonumentSuggester.Gather</c>; the authoring <c>Score</c> reads these back per map + box.
 /// Mirrors <c>MonumentCandidate</c> (PgmStudio.Minecraft) minus <c>Id</c>/<c>MapId</c>.</summary>

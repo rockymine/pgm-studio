@@ -83,6 +83,7 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
                 ["ok"] = true, ["slug"] = slug, ["mca_files"] = mca,
                 ["wool_blocks"] = c.WoolBlocks, ["resource_blocks"] = c.ResourceBlocks, ["chest_items"] = c.ChestItems,
                 ["spawner_blocks"] = c.SpawnerBlocks, ["islands"] = c.Islands, ["monument_candidates"] = c.MonumentCandidates,
+                ["core_candidates"] = c.CoreCandidates,
             }, ct);
         }
         catch (Exception ex)
@@ -245,6 +246,8 @@ public sealed class ImportFolderEndpoint(MapRepository repo, WorldFeatureWriter 
             {
                 ["ok"] = true, ["slug"] = slug, ["wool_blocks"] = c.WoolBlocks, ["resource_blocks"] = c.ResourceBlocks,
                 ["chest_items"] = c.ChestItems, ["spawner_blocks"] = c.SpawnerBlocks, ["islands"] = c.Islands, ["monument_candidates"] = c.MonumentCandidates,
+                ["core_candidates"] = c.CoreCandidates,
+                ["core_candidates"] = c.CoreCandidates,
             }, ct);
         }
         catch (Exception ex)

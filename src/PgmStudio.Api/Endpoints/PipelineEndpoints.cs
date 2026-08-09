@@ -54,6 +54,7 @@ public sealed class ScanWorldEndpoint(MapRepository repo, WorldFeatureWriter wri
             ["layer_segments"] = c.LayerSegments,
             ["islands"] = c.Islands,
             ["monument_candidates"] = c.MonumentCandidates,
+            ["core_candidates"] = c.CoreCandidates,
         }, ct);
     }
 }

@@ -59,6 +59,7 @@ public sealed class MapImporter(PgmDb db)
     public async Task<int> ImportMonumentCandidatesAsync(long mapId, string dir)
     {
         await db.MonumentCandidates.Where(x => x.MapId == mapId).DeleteAsync();
+        await db.CoreCandidates.Where(x => x.MapId == mapId).DeleteAsync();
         var path = Path.Combine(dir, "monument_candidates.parquet");
         if (!File.Exists(path)) return 0;
         var rows = (await ParquetIo.ReadRowsAsync(path)).Select(r => new MonumentCandidateRow

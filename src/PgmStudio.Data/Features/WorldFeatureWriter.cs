@@ -16,7 +16,7 @@ namespace PgmStudio.Data.Features;
 /// </summary>
 public sealed class WorldFeatureWriter(PgmDb db)
 {
-    public readonly record struct Counts(int WoolBlocks, int ResourceBlocks, int ChestItems, int SpawnerBlocks, int LayerSegments, int Islands, int MonumentCandidates);
+    public readonly record struct Counts(int WoolBlocks, int ResourceBlocks, int ChestItems, int SpawnerBlocks, int LayerSegments, int Islands, int MonumentCandidates, int CoreCandidates);
 
     /// <summary>One surface-scan row (layer.parquet schema); column names match the Python output.</summary>
     private sealed class LayerRow
@@ -73,8 +73,13 @@ public sealed class WorldFeatureWriter(PgmDb db)
         var monuments = MonumentSuggester.Gather(chunks, WorldBox(chunks));
         var monCount = await MonumentCandidateStore.WriteAsync(db, mapId, monuments, ct);
 
+        // Cores are gathered in the same pass and for the same reason: the signature needs block materials,
+        // which nothing persisted afterwards carries.
+        var cores = CoreSuggester.Gather(chunks);
+        var coreCount = await CoreCandidateStore.WriteAsync(db, mapId, cores, ct);
+
         var islands = await WriteArtifactsAsync(mapId, chunks, erased, ct);
-        return new Counts(wool.Count, res.Count, chests.Count, spawners.Count, segs.Count, islands, monCount);
+        return new Counts(wool.Count, res.Count, chests.Count, spawners.Count, segs.Count, islands, monCount, coreCount);
     }
 
     /// <summary>

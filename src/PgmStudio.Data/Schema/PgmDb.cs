@@ -32,6 +32,7 @@ public sealed class PgmDb : DataConnection
     public ITable<ChestItemRow> ChestItems => this.GetTable<ChestItemRow>();
     public ITable<SpawnerBlockRow> SpawnerBlocks => this.GetTable<SpawnerBlockRow>();
     public ITable<MonumentCandidateRow> MonumentCandidates => this.GetTable<MonumentCandidateRow>();
+    public ITable<CoreCandidateRow> CoreCandidates => this.GetTable<CoreCandidateRow>();
     public ITable<LayerSegmentRow> LayerSegments => this.GetTable<LayerSegmentRow>();
     public ITable<MapArtifactRow> Artifacts => this.GetTable<MapArtifactRow>();
     public ITable<SymmetryRow> Symmetries => this.GetTable<SymmetryRow>();
