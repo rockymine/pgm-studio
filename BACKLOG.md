@@ -95,16 +95,6 @@ Shared infra for **both** the Configure wizard (`/maps/{id}/configure`) and the 
 (`/maps/{id}/edit`). `C12`/`C14` are cross-cutting (serve both surfaces); `C9`/`C11`
 are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 
-- [ ] **C44 — A compile finding does not point at what it is about.** `PlanCanvas.pulseSubjects` paints a
-  self-clearing highlight over the subjects a finding names — pieces, zones and, since `B59`, markers — and
-  `plan-bridge.js` exposes it as `highlightSubjects`. **Nothing calls it.** The plan tool parses each
-  finding's `subjects` into `PlanTool.razor.cs` and never reads the field, and compile errors render as
-  `plan-lint-row--static`, a div rather than a button, so there is nothing to click. The rule-violation list
-  above it *is* clickable but goes through `focusViolation(index)`, a different mechanism that filters the
-  evidence overlay rather than highlighting a subject. So a reader told a core "reaches into the spawn on
-  'bar-e'" has to find that core by eye. Make the finding rows buttons and call `highlightSubjects` with the
-  finding's subjects — the paint side is built and unused on both ends. This is the editor half `B37` wants
-  for unplaceable markers, and it lands for every rule at once rather than for `OB17` alone.
 - [ ] **C9 — Kits editing UI (Teams) + per-activity status dots.** Spawn `kit` is read/sent but has no
   edit UI; there is no status-dot system. *(Two sub-items — split if priorities diverge.)*
 - [ ] **C11 — Wire + verify inspector edits across activities.** `OnDelete`/`OnRename` are wired only
@@ -275,11 +265,10 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   resolved-stamp record every family's resolver produces (`OB17` computes footprints inline rather than
   through one), the objective↔objective and objective↔monument minimum distances still to be drawn from the
   corpus, `StructureBox` consuming the record instead of assembling its own, and the editor half — an
-  unplaceable marker outlined on the plan canvas. **The thing that half was blocked on now exists**: markers
-  carry a persisted `id`, a finding may name one, and `#paintPulse` resolves it to a ring on the marker cell
-  (`B59`). Two gaps remain either side of it — nothing calls the canvas highlight at all (`C44`, which is
-  not marker-specific: pieces and zones are equally unwired), and structural findings do not run in the live
-  feed (`G161`), so a refusal still appears at Compile rather than as the marker is dragged.
+  unplaceable marker outlined on the plan canvas — **which has since shipped end to end** (`B59`, `C44`,
+  `FEATURES.md`): markers carry a persisted id, a finding names one, and clicking that finding rings the
+  marker on the board. What is left of the editor half is only its timing: structural findings do not run in
+  the live feed (`G161`), so a refusal appears at Compile rather than as the marker is dragged.
 
 - [ ] **B34 — The two map-list endpoints disagree on sort order, and the dashboard gets the noisy one.**
   `MapsListEndpoint` branches on the `stage` query param onto two differently-ordered repository methods:
@@ -478,9 +467,15 @@ import diagnostic (`B24e`), detection (`B26`), and the island-floor work the pha
   standing in for a condition, and the wrong guess about a third of the time. Measured 1-in-3 both with and
   without the `OB17` rule, so it is timing rather than validation. Waiting on the first piece id label
   (`.map-canvas-svg text`, the overlay's proof the document arrived) was tried and did **not** fix it, so
-  the stall is later than the document load — most likely the drawer's own render. Diagnose which of the
-  four clicks in that block times out before choosing the wait; a flake in the browser gate costs more than
-  the step is worth, because it makes every unrelated run ambiguous.
+  the stall is later than the document load. **A caught failure now names the click, and it is not the one
+  the paragraph above blames.** The step got as far as reading the drawer's button label ("the button names
+  a rebuild" passed on `Rebuild this map`) and then timed out on `page.click("Rebuild this map")` — the
+  *second* click, on a compile that answered 200, long before the empty-plan compile the 1500ms guard is
+  aimed at. The recorded 422 is an earlier fault on the same page, not this one. A 30s timeout on a button
+  whose text was just read means the element was found but never became actionable, which points at a
+  drawer that keeps re-rendering rather than at a document that has not arrived — so the fix is a wait on
+  the drawer settling, and the 1500ms guard may be guarding nothing. A flake in the browser gate costs more
+  than the step is worth, because it makes every unrelated run ambiguous.
 
 - [ ] **G161 — the casing panel lets an author build a core the compiler will refuse.** `G160` put the
   casing knobs in the plan's marker panel, clamped independently — size 1..64, shell 1..16 — so a 5×5 casing

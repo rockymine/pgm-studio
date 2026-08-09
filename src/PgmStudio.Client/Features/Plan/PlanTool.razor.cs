@@ -859,6 +859,27 @@ public partial class PlanTool
 
     private void CloseCompile() { showCompile = false; confirmingRebuild = false; }
 
+    // A finding can point at what it is about only if it named something: a rule about the plan as a whole
+    // (or one whose subject the canvas cannot draw) has nothing to show.
+    private static bool HasSubjects(InspectFinding finding) => finding.Subjects is { Length: > 0 };
+
+    private static string? ShowFindingTitle(InspectFinding finding)
+        => HasSubjects(finding) ? "Show this on the canvas" : null;
+
+    // Click a compile finding to see what it is about. A finding names its subjects — pieces, zones, markers —
+    // and the canvas can pulse them, but the compile drawer is modal and dims the board behind it, so the
+    // drawer closes first: the click means "show me", and the answer is on the canvas rather than in the list.
+    private async Task ShowFinding(InspectFinding finding)
+    {
+        if (handle is null || !HasSubjects(finding)) return;
+        CloseCompile();
+        // Render the closed drawer before the pulse starts, so the whole 1.6s ramp plays on a board the
+        // author can actually see rather than beginning under the backdrop.
+        StateHasChanged();
+        await Task.Yield();
+        await handle.InvokeVoidAsync("highlightSubjects", JsonSerializer.Serialize(finding.Subjects));
+    }
+
     // The build button. On a map that already holds a sketch or a world it asks first, because the same
     // click means two different things — originating the map, or replacing a board someone has since been
     // working on — and only the second is worth a sentence.

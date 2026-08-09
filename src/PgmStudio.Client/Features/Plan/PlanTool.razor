@@ -583,11 +583,16 @@
             <p class="section-desc">Fix these structural errors before compiling (lint alone never blocks):</p>
             @foreach (var f in compileErrors)
             {
-              <div class="plan-lint-row plan-lint-row--static">
+              var finding = f;
+              @* A finding with subjects is clickable — it can point at what it is about; one without has
+                 nothing to show, so it stays a static row rather than offering a click that does nothing. *@
+              <button class="plan-lint-row @(HasSubjects(finding) ? null : "plan-lint-row--static")"
+                      disabled="@(!HasSubjects(finding))" title="@ShowFindingTitle(finding)"
+                      @onclick="() => ShowFinding(finding)">
                 <span class="plan-lint-dot plan-lint-dot--error"></span>
-                @if (!string.IsNullOrEmpty(f.Rule)) { <span class="plan-lint-chip">@f.Rule</span> }
-                <span class="plan-lint-msg">@f.Message</span>
-              </div>
+                @if (!string.IsNullOrEmpty(finding.Rule)) { <span class="plan-lint-chip">@finding.Rule</span> }
+                <span class="plan-lint-msg">@finding.Message</span>
+              </button>
             }
           </div>
         }
@@ -601,11 +606,14 @@
             <p class="section-desc">Compiled, but worth a look:</p>
             @foreach (var f in compileWarnings)
             {
-              <div class="plan-lint-row plan-lint-row--static">
+              var finding = f;
+              <button class="plan-lint-row @(HasSubjects(finding) ? null : "plan-lint-row--static")"
+                      disabled="@(!HasSubjects(finding))" title="@ShowFindingTitle(finding)"
+                      @onclick="() => ShowFinding(finding)">
                 <span class="plan-lint-dot plan-lint-dot--lint"></span>
-                @if (!string.IsNullOrEmpty(f.Rule)) { <span class="plan-lint-chip">@f.Rule</span> }
-                <span class="plan-lint-msg">@f.Message</span>
-              </div>
+                @if (!string.IsNullOrEmpty(finding.Rule)) { <span class="plan-lint-chip">@finding.Rule</span> }
+                <span class="plan-lint-msg">@finding.Message</span>
+              </button>
             }
           </div>
         }

@@ -1283,6 +1283,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   refusal with no cause. (`ObjectiveFootprint`; `PlanValidator`; `PlanValidatorObjectivePlacementTests`
   covers each case firing, the one-block structure that legally stands where a wide one may not, and the
   straddle of two abutting pieces. OB17 · B37)
+- **A refusal points at what it is about (`C44`).** A compile finding names its subjects and the canvas can
+  pulse them, and for as long as both were true nothing joined them: the findings rendered as static divs,
+  `PlanTool` parsed each finding's `subjects` and dropped the field, and `highlightSubjects` sat on the
+  bridge with no caller. An author told a core overhangs the void had to find that core by eye. A finding row
+  is now a button that pulses its subjects — and only when it has some, since a rule about the plan as a
+  whole has nothing to point at and an inert row is more honest than a click that does nothing. Clicking
+  **closes the compile drawer first**: it is modal and dims the board behind it, so a highlight painted under
+  it would answer "which core?" with a ring nobody can see. The wiring is per-subject rather than per-rule,
+  so it covers every finding the validator can raise rather than `OB17` alone, and it lands the editor half
+  `B37` wanted for unplaceable markers. (`PlanTool.ShowFinding`; `tests/e2e/plan-findings.mjs` builds a plan
+  refused for one specific reason and asserts the drawer yields, the board repaints, and the pulse clears
+  itself — the last of which is also what proves the repaint was the highlight. C44 · B59 · B37)
 - **A marker can be referred to, not only drawn (`B59`).** A piece has an id and a zone has an id; a marker
   had only its position in a list, which is enough to paint one and not enough to *name* one. The gap showed
   up the moment a rule had something to say about a particular marker: `OB17` could report that a goal stood
@@ -1295,10 +1307,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   hand-edited document is dropped and re-minted rather than trusted. The C# model and `plan-doc.js` mint by
   the same rule, since either side may be the one that loads a plan first. Downstream, `PlanValidator`
   findings name the marker in both message and subjects, so a `B21` agent is told *which* goal to move
-  rather than which piece to inspect, and `pulseSubjects` now resolves a marker subject to a ring on its
-  cell alongside the piece and zone rects it already drew. That last part is capability, not yet a visible
-  behaviour: nothing calls the canvas highlight today (compile findings render as static rows and their
-  subjects go unread — a gap that predates this and covers pieces and zones equally), which is `C44`.
+  rather than which piece to inspect, and `pulseSubjects` resolves a marker subject to a ring on its cell
+  alongside the piece and zone rects it already drew — the paint side of `C44`, which wires it to a click.
   `ComposerVersion` moves to `marker-id-1` and all 72 board fingerprints with it: the ids are new bytes in
   the plan document, so every digest moves while no geometry does — 72 moved, 0 new, which is what a
   serialisation-only change should look like and the check that it was one. (`IPlanMarker`;
