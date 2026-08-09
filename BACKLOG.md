@@ -417,19 +417,20 @@ import diagnostic (`B24e`), detection (`B26`), and the island-floor work the pha
   include reference and cannot be silently lost. Add each tag to `ParsedObjectiveModules` as its parser lands.
   (`docs/contracts/include-resolution.md` §4)
 
-- [ ] **B58 — Persist core suggestions at ingest, and try symmetry for destroyables.** `CoreSuggester` ships
-  and is corpus- and plan-validated (`FEATURES.md`, `docs/contracts/objective-suggestion.md`), but nothing
-  calls it yet: it reads `.mca`, so it must run inside `WorldFeatureWriter.WriteAsync` beside
-  `MonumentSuggester.Gather`, and its output needs a `core_candidate` table mirroring `monument_candidate`
-  (`M0002`) plus the confirm-in-UI flow. Until that lands the detector cannot be used at all — the world is
-  discarded after import and there is no re-import path, so a suggestion not captured during the one pass is
-  gone.
-  **The destroyable half needs different evidence, not a better threshold.** Measurement killed the local
-  signature outright: 39,716 candidates for 726 declared, a true median cluster of 2 blocks, a true median
-  float of 0, and a best gate of ~28% recall at ~15% precision. What is untried is the **global** constraint —
-  a destroyable is a two-team objective (OB14), so its mirror across the map's symmetry is another
-  destroyable, and a candidate whose partner is also a candidate is far more likely real than one standing
-  alone. `SymmetryDetector` already derives the axis. Measure that pairing before building anything.
+- [ ] **B58 — Persist core suggestions at ingest, and finish the destroyable ranker.** Two halves, both now
+  well-defined by measurement (`docs/contracts/objective-suggestion.md`).
+  **Cores need wiring, not work.** `CoreSuggester` ships at 82%/77% but nothing calls it: it reads `.mca`, so
+  it must run inside `WorldFeatureWriter.WriteAsync` beside `MonumentSuggester.Gather`, into a
+  `core_candidate` table mirroring `monument_candidate` (`M0002`), with the confirm-in-UI flow. Until that
+  lands the detector cannot be used — the world is discarded after import and there is no re-import path.
+  **Destroyables are detectable and the ranker is two filters away from useful.** The measured facts: 98% of
+  declared structures are a standalone connected cluster, 95% have a same-material same-size partner at the
+  rotational image of the objective centre, and the centre is recoverable without the XML by letting candidate
+  pairs vote for it. A per-map ranking on material prior + symmetry pairing + air exposure already puts a
+  declared structure in the top 5 for 47.6% of cases at a median 11 candidates per map. **The ceiling is the
+  candidate filter, not the ranking**: 34% of declared structures never enter the set, dropped by `size > 128`
+  and by `air faces == 0`, and real destroyables are sometimes both large and fully enclosed. Loosen those two
+  against the measured true distribution before touching the score, then re-measure recall@5.
 
 - [ ] **CV16 — the authoring canvases have no frame budget, only habits.** The zoom stall (fixed in
   `FEATURES.md`) was two unrelated per-event costs that happened to land on the same handler, and neither was

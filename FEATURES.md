@@ -647,12 +647,19 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   proposes is the structure — casing box, enclosed lava, shell thickness grown layer by layer, float, open-top
   — every parameter read off the geometry rather than defaulted, and never a `<region>`, which is a human's
   loose box (OB12) and is not in the world.
-  **The destroyable half was measured and dropped**, which is the more useful half of the result. A DTM
-  structure is 1–3 obsidian blocks: scanning the same corpus produced 39,716 candidates for 726 declared, the
-  true median cluster is **2 blocks** against 34,789 false clusters of ≤8, and the contract's "they float"
-  premise is wrong — the true median air gap is **0**. The best gate in the grid reaches 28% recall at ~15%
-  precision, so proposing five wrong objectives per right one would turn a confirm step into a search. Local
-  block evidence does not identify a destroyable; the untried lead is symmetry pairing (`B58`).
+  **The destroyable half is measured, not shipped, and the first measurement of it was wrong.** That pass
+  clustered across the four objective materials *pooled*, so a gold block touching obsidian terrain became one
+  cluster and every incidental block entered the candidate set — 39,716 of them. Clustering per material, as a
+  destroyable is actually built, cuts that to 15,480 and reverses the verdict: **98% of declared structures are
+  a standalone connected cluster** (obsidian 298/298, emerald 108/108, gold 40/40, ender stone 65/67), and
+  **95% have a same-material same-size partner** at the rotational image of the objective centre — a centre
+  recoverable without the XML by letting candidate pairs vote for it. The false positives group cleanly by why
+  they are not goals: 4,985 fully buried, 3,632 embedded in terrain, 945 submerged, 573 sprawling, 373 too
+  large. Ranking rather than gating puts a declared structure in a map's top 5 for 47.6% of cases at a median
+  11 candidates per map. It is not shipped because 34% never reach the candidate set at all, dropped by two
+  filters that are known to be too tight (`B58`). One corpus claim was corrected on the way: DT3's "destroyables
+  float 3–5 blocks" describes the generator, not the corpus — measured on the declared blocks, 424 of 571 rest
+  directly on something.
   Validated from both ends: the corpus for external truth at scale, and a **composed plan for truth by
   construction** — a plan states a core at an anchor, the pipeline builds the world, and the detector must
   propose that core with that casing, shell and cap. (B26, OB12/OB14, `docs/contracts/objective-suggestion.md`)

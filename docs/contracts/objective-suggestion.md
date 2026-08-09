@@ -2,8 +2,10 @@
 
 An imported world arrives with no `map.xml`; the configure tool's job is to help an author produce one. For
 wool monuments that help is `MonumentSuggester` (`monument-suggestion.md`). This document covers the same move
-applied to the other two objectives, and its main result is that **the two do not behave alike**: a core is
-detectable and a destroyable is not.
+applied to the other two objectives. Both are detectable; they are not detectable the same way. A core has a
+signature nothing else produces and is proposed outright. A destroyable has no local signature at all — it is
+one to three ordinary blocks — and is reachable only by ranking candidates against each other, using the
+symmetry that a two-team goal implies.
 
 Both halves were measured before either was built, against ground truth the corpus gives away for free — a map
 that declares an objective says exactly where it is, so the world can be scanned and the proposals scored
@@ -45,40 +47,55 @@ geometry rather than defaulted, which is what lets a suggestion arrive as a core
 `<region>` a confirmed core needs is the authoring side's exact structure box (OB8) — a human's slack is an
 artifact the studio does not reproduce.
 
-## 3. Destroyables — measured, and not shippable
+## 3. Destroyables — detectable, and the first measurement of them was wrong
 
-The plan was the same: a destroyable is a material outlier in a closed vocabulary (obsidian, emerald, gold,
-ender stone), mostly a 1–3 block obsidian pillar, and both objectives are said to float above the terrain. Each
-of those is true and none of them separates.
+The first pass concluded that a destroyable cannot be found from a world scan. That conclusion came from a
+flawed measurement and is retracted here, because the correction changes the answer rather than the margin.
 
-Scanning 302 maps for connected clusters in that vocabulary produced **39,716 candidates against 726 declared
-destroyables**. The reason no threshold rescues it is that the true structures are *also* tiny: the median true
-cluster is **2 blocks**, and 34,789 false clusters are 8 blocks or fewer. Size cannot separate a two-block goal
-from a two-block decoration.
+**The error was clustering across the material vocabulary pooled.** A destroyable is a connected mass of *one*
+material — obsidian, or emerald, or gold, or ender stone, rarely a mixture — but the probe flooded all four
+together, so a gold block touching obsidian terrain became a single cluster and every incidental block in the
+vocabulary entered the candidate set. Clustering per material cuts the candidates from 39,716 to 15,480 before
+any other change.
 
-Float does not either, and this corrects a claim in `destroyables-and-cores.md` §6: **the median true
-destroyable has an air gap of 0** beneath it. Gating on any float at all keeps 259 of 1,036 true clusters while
-still admitting 3,475 false ones.
+**Corrected, a declared destroyable is a standalone object 98% of the time.** Of 571 structures resolved to a
+single material, 561 are *exactly* their connected cluster — the declared blocks are the whole mass, with
+nothing of that material attached. Only 10 fuse into something larger. That is the number which decides
+whether detection is possible at all, because a detector sees clusters: obsidian 298/298 standalone, emerald
+108/108, gold 40/40, ender stone 65/67. The ceiling is 98%, not the obstacle.
 
-Isolation is the best of a weak set — true clusters expose a median 40% of their faces to air against 0% for
-false ones — but the whole gate grid tops out around 28% recall at roughly 15% precision:
+**Symmetry pairs them, and the pairing is findable without the XML.** 538 of 564 declared structures (95%) have
+a same-material, same-size partner at the rotational image of the objective set's centre — which follows from
+OB14, since a destroyable is a two-team goal. The centre itself does not need to be known in advance: every
+same-material same-size pair of candidates proposes the midpoint it would be symmetric about, and the true
+centre is the one the most pairs agree on.
 
-| max size | min exposure | true kept | false kept |
-|---|---|---|---|
-| 8 | 55% | 288 / 1036 | 1,562 |
-| 16 | 55% | 326 / 1036 | 1,704 |
-| 32 | 40% | 475 / 1036 | 4,648 |
-| 8 | 70% | 110 / 1036 | 899 |
+**What the false positives are, grouped by why they are not destroyables.** Of 14,418 false clusters:
 
-Proposing five wrong objectives for every right one is worse than proposing none: it turns a confirm step into
-a search. **No destroyable detector ships**, and the honest reason is that local block evidence does not
-identify one.
+| Count | Reason |
+|---|---|
+| 4,985 | fully buried — not one face touches air |
+| 3,632 | embedded in terrain — under 25% of faces on air |
+| 945 | submerged, or touching a fluid |
+| 573 | sprawling — a bounding-box dimension over 8 |
+| 373 | too large — over 64 blocks |
+| 105 | not solid — under 50% of its own bounding box |
+| 3,805 | survives all of the above |
 
-The next thing to try is not a better threshold but a different kind of evidence — **symmetry**. A destroyable
-is a two-team objective (OB14), so its mirror image across the map's symmetry is another destroyable, and a
-candidate whose partner is also a candidate is enormously more likely to be real than one that stands alone.
-The studio already derives the symmetry (`SymmetryDetector`). That is a global constraint rather than a local
-one, which is exactly what this measurement says is missing (`B58`).
+The survivors concentrate in a handful of maps that use these materials architecturally — embers_2 alone
+contributes 866 ender-stone clusters, warzone 442 obsidian — which is exactly the "used, but as large sections
+or hidden in terrain" pattern, arriving as many small clusters rather than one big one.
+
+**Ranking beats gating, and is the right shape for the flow anyway.** A confirm-in-UI step does not need a
+candidate set that is mostly right; it needs the right ones at the top. Scoring candidates by material prior
+(emerald runs nearly 1:1 true:false, obsidian nearly 1:22), symmetry pairing, air exposure and compactness, and
+ranking per map, places a declared structure in the map's **top 5 for 47.6%** and top 10 for 54.6%, at a median
+of 11 candidates per map and a median rank of 3.
+
+That is an assist, not a detector, and it is not shipped yet — because 34% of declared structures are not even
+reaching the candidate set, and the reason is known: the current filters drop anything over 128 blocks or with
+no air face at all, and a real destroyable is sometimes both. Those two filters are worth more recall than the
+whole ranking is worth precision, and fixing them is where the next work goes (`B58`).
 
 ## 4. Gather at ingest, or not at all
 

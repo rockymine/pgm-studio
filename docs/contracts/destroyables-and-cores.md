@@ -367,8 +367,14 @@ non-pillar block count.
 
 ### DT3 — float
 
-Destroyables float **3–5 blocks**; default `float = 4`. A `pillar-1` floating alone is the norm, not
-an error.
+The **generator** floats a destroyable 3–5 blocks; default `float = 4`, and a `pillar-1` floating alone
+is a normal output, not an error.
+
+**The corpus does not do this**, and the difference is worth stating because a detector that expects a
+gap will miss most real structures. Measured on the declared blocks themselves (not the cluster
+containing them), across 571 single-material structures: the median air gap beneath is **0**, and
+**424 of 571 rest directly on something**. Only 68 float 3–5. The floating pillar is the authored
+ideal; the corpus overwhelmingly seats its destroyables on terrain, a pedestal or a build.
 
 ### DC1 — the core structure (default 5×5×5, shell 1, lava 3×3×3)
 

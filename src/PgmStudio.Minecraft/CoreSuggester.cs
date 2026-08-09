@@ -41,11 +41,11 @@ public sealed record CoreSuggestion(BlockBox Casing, int LavaBlocks, int Shell, 
 /// pass, beside <see cref="MonumentSuggester.Gather"/>. The world is discarded afterwards, so a suggestion not
 /// captured then cannot be recovered without re-importing the map.</para>
 ///
-/// <para>Destroyables are deliberately absent. A DTM structure is 1–3 obsidian blocks with a corpus-median
-/// cluster size of 2 and a median float of 0, which is indistinguishable from the thousands of incidental
-/// obsidian, gold and emerald blocks a map contains: the best size-and-isolation gate measured reaches 28%
-/// recall at roughly 15% precision. Local block evidence does not identify a destroyable, so none is proposed
-/// (see <c>docs/contracts/objective-suggestion.md</c>).</para>
+/// <para>Destroyables are not proposed here, and not because they are undetectable — 98% of declared ones are
+/// a standalone connected mass, and 95% have a symmetric partner. They have no <i>local</i> signature: a DTM
+/// structure is one to three ordinary blocks, so it is separated by ranking candidates against each other
+/// rather than by any test a single cluster can pass. That is a different shape of detector and lives apart
+/// from this one (<c>docs/contracts/objective-suggestion.md</c> §3).</para>
 /// </summary>
 public static class CoreSuggester
 {
