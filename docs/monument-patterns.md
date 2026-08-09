@@ -134,7 +134,7 @@ the suggestion's evidence.
 
 ## Implemented backend: `MonumentSuggester`
 
-`Suggest(chunks, ScanBox, MonumentStyle)` returns ranked `MonumentSuggestion`s (air block + inferred
+`Suggest(chunks, BlockBox, MonumentStyle)` returns ranked `MonumentSuggestion`s (air block + inferred
 wool colour + confidence + evidence). `MonumentStyle` has three dimensions — **`PedestalKind`** (below),
 **`LabelKind`** (sign-below / sign-above / armour stand / none), **`CapKind`** (above). It inverts the
 learned facing geometry, runs the text classifier (`IsMonumentLabel`), requires the declared pedestal

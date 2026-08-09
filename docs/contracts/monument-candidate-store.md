@@ -52,11 +52,11 @@ Target API:
 
 ```csharp
 // ingest — over the whole world (or buildable footprint); style-agnostic, permissive
-List<MonumentCandidate> MonumentSuggester.Gather(IEnumerable<AnvilRegion.Chunk> chunks, ScanBox world);
+List<MonumentCandidate> MonumentSuggester.Gather(IEnumerable<AnvilRegion.Chunk> chunks, BlockBox world);
 
 // authoring — pure; box-scoped (the author marks the area they built in)
 List<MonumentSuggestion> MonumentSuggester.Score(IEnumerable<MonumentCandidate> candidates,
-                                                 ScanBox box, MonumentStyle style);
+                                                 BlockBox box, MonumentStyle style);
 
 // live path (parity guard, harness) stays identical in behaviour:
 Suggest(chunks, box, style)  ==  Score(Gather(chunks, box.Expand(2)), box, style)
@@ -240,7 +240,7 @@ ingest): `Confidence`, the final resolved `Color`, and the pass/fail of the pede
      bedrock+glass monuments). Anchored maps and the `Label=Any` path are unchanged (**TP=1010 / FP=35**).
 
 2. **Box-scoped, author-driven — the box is the mode.** The mapmaker *knows* where they placed the
-   monument, so the UX is: the author **marks the area** (a required `ScanBox`) and optionally declares the
+   monument, so the UX is: the author **marks the area** (a required `BlockBox`) and optionally declares the
    style; `Score(candidates, box, style)` filters the pre-gathered candidates to that box and ranks them.
    Displaying *every* candidate on the map is explicitly **not** the model — it's noise. `Gather` is still
    whole-world at ingest (the box isn't known then); the box is a `WHERE cand_* BETWEEN …` / in-memory

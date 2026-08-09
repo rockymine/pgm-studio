@@ -637,6 +637,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) and `primitive-styles.md` follow. (C43)
 
 ## Backend / API (B)
+- **One block volume, one type (`B33`).** `BlockBox` (`PgmStudio.Domain`) is the single inclusive integer
+  AABB for every role a block volume plays — the region an author boxes for a scan, the volume a stamper
+  fills, the casing `CoreSuggester` proposes — carrying the union of the helpers the two former copies had
+  (`Width`/`Height`/`Depth`/`CuboidMax` + `Contains`/`Expand`/`IntersectsChunk`). `MonumentSuggester`'s
+  `ScanBox` is gone; `Suggest`/`Gather`/`Score` take `BlockBox`. `Api.Services.StructureBox` stays separate
+  and is not a third copy: exclusive maxes plus `Kind`/`Color` make it a drawing frame, a different
+  convention for a different job. `MonumentSuggester.Gather` is bit-identical across the change — the same
+  633 candidates over 40 corpus worlds hash to the same digest before and after
+  (`tools/objective-probe/gather-digest.cs`), which is what lets a 96.6%-precision detector be re-typed
+  without re-validating it.
 - **DTC cores are proposed from a world scan; DTM destroyables measurably cannot be (B26).** An imported world
   arrives with no XML, and `CoreSuggester` finds the one signature effectively nothing else in a map produces:
   a lava volume whose every non-lava neighbour is obsidian. Maps are full of both, but a *sealed* container is

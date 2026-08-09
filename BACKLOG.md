@@ -255,8 +255,8 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   record** — kind, footprint box, `Placeable`, source marker — the uniform currency the pairwise separation
   rules run over (minimum distances to be decided from the corpus). `IronResolution` is the first instance;
   the preview's `StructureBox` is the drawing-side proof of the shape and would consume the record instead
-  of assembling its own (placeability then reaches the iso view for free; mind B33 — the drawing frame
-  stays a separate type). Stamp only placeable structures, flag the rest with the same
+  of assembling its own (placeability then reaches the iso view for free; `StructureBox` stays a separate
+  type from `BlockBox` — exclusive maxes plus `Kind`/`Color`, a drawing frame rather than a volume). Stamp only placeable structures, flag the rest with the same
   marker-stays-visible discipline. Editor half: surface unplaceable markers on the plan canvas (the
   highlight ring the validation tab already uses for pieces), not only in the findings list.
 
@@ -273,17 +273,6 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   Preferred fix: slug order for the Edit stage, recency for the other three (one line); alternatives are
   slug everywhere, or leave it and let recency come good once maps are edited in the studio. Cosmetic — no
   data is wrong, and both orders are deterministic.
-- [ ] **B33 — Three box types, two of them the same shape.** `PgmStudio.Minecraft` now holds two identical
-  inclusive integer AABBs — `ScanBox` (`MonumentSuggester`: the region the author boxed, with
-  `Contains`/`Expand`/`IntersectsChunk`) and `BlockBox` (`ObjectiveStamper`: a stamped structure's volume,
-  with `Width`/`Height`/`Depth`/`CuboidMax`). Same six fields, same convention, different method sets —
-  they're one value type wearing two role names. (`Api.Services.StructureBox` is **not** a third copy and
-  should stay separate: it is a *drawing* frame with exclusive maxes plus `Kind`/`Color`, a different
-  convention for a different job — the collision with it is what surfaced this.) Unify the two into one
-  inclusive AABB with the union of the helpers. Deliberately **not** done inside `B24d`: it means editing
-  `MonumentSuggester`'s 15 call sites, and that detector is corpus-validated at 96.6% precision — not
-  something to churn as a drive-by during unrelated work. Low priority: unlike the symmetry duplication this
-  is a value record, so there is no algorithm here that can silently drift.
 - [ ] **B40 — The three dock styles are implicit; make them a type.** `Seat` picks between three seating
   rules using three *different discriminators* — `d.Wool is { } rich && Overhangs(rich.Family)` (shape
   family), `d.Kind == BoxKind.Frontline` (box kind), and falling through (everything else) — so there is

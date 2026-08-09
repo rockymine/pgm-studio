@@ -1,5 +1,6 @@
 using System.Text;
 using fNbt;
+using PgmStudio.Domain;
 using static PgmStudio.Minecraft.Nbt;
 
 namespace PgmStudio.Minecraft;
@@ -24,20 +25,6 @@ public enum CapKind { Any, Open, StainedGlass, StainedClay, Bedrock, Slab, Barri
 /// — and a colour-encoding cap (stained glass/clay) also yields the wool colour for label-free maps.</summary>
 public readonly record struct MonumentStyle(
     PedestalKind Pedestal = PedestalKind.Any, LabelKind Label = LabelKind.Any, CapKind Cap = CapKind.Any);
-
-/// <summary>The world region the author boxed (inclusive, world coords). Bounds both the scan and the
-/// candidate sign anchors — cheap and the dominant false-positive filter (off-site team/wool-room signs
-/// fall outside it).</summary>
-public readonly record struct ScanBox(int MinX, int MinY, int MinZ, int MaxX, int MaxY, int MaxZ)
-{
-    public bool Contains(int x, int y, int z) => x >= MinX && x <= MaxX && y >= MinY && y <= MaxY && z >= MinZ && z <= MaxZ;
-    public ScanBox Expand(int m) => new(MinX - m, MinY - m, MinZ - m, MaxX + m, MaxY + m, MaxZ + m);
-    public bool IntersectsChunk(int chunkX, int chunkZ)
-    {
-        int x0 = chunkX * 16, z0 = chunkZ * 16;
-        return x0 + 15 >= MinX && x0 <= MaxX && z0 + 15 >= MinZ && z0 <= MaxZ;
-    }
-}
 
 /// <summary>A suggested monument: the (air) placement block, an inferred wool colour, a confidence and
 /// the evidence it was derived from. Returned highest-confidence first for the authoring UI to confirm.</summary>
@@ -123,7 +110,7 @@ public static class MonumentSuggester
     /// (the same composition the candidate store serves from the DB; this guards the factoring against the
     /// corpus parity harness). Chunks outside the box (+2 margin) are skipped.</summary>
     public static List<MonumentSuggestion> Suggest(
-        IEnumerable<AnvilRegion.Chunk> chunks, ScanBox box, MonumentStyle style) =>
+        IEnumerable<AnvilRegion.Chunk> chunks, BlockBox box, MonumentStyle style) =>
         Score(Gather(chunks, box.Expand(2)), box, style);
 
     /// <summary>
@@ -136,7 +123,7 @@ public static class MonumentSuggester
     /// monument count. <paramref name="world"/> is the gather region (the whole world at ingest; the
     /// box+2 on the live path).
     /// </summary>
-    public static List<MonumentCandidate> Gather(IEnumerable<AnvilRegion.Chunk> chunks, ScanBox world)
+    public static List<MonumentCandidate> Gather(IEnumerable<AnvilRegion.Chunk> chunks, BlockBox world)
     {
         var (blocks, tileList, entityList) = RegionScan.Read(chunks, world.Contains, world.IntersectsChunk);
         var signs = tileList
@@ -303,7 +290,7 @@ public static class MonumentSuggester
     /// old <c>Suggest</c> exactly: <c>Suggest == Score(Gather(box+2), box, style)</c>.
     /// </summary>
     public static List<MonumentSuggestion> Score(
-        IEnumerable<MonumentCandidate> candidates, ScanBox? box, MonumentStyle style)
+        IEnumerable<MonumentCandidate> candidates, BlockBox? box, MonumentStyle style)
     {
         var byCell = new Dictionary<(int, int, int), MonumentSuggestion>();
         // Cell-merge: keep the strongest candidate per cell (a cell can still get both a sign and a stand;
