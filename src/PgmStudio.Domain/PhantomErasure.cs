@@ -68,7 +68,7 @@ public sealed class PhantomErasure
             if (ids.Count == 0) continue;                  // an unreadable material erases nothing
 
             if (!map.Regions.TryGetValue(destroyable.RegionId, out var region)) continue;
-            foreach (var box in Boxes3d(map.Regions, region)) volumes.Add((box, ids));
+            foreach (var box in RegionBoxes.Of(map.Regions, region)) volumes.Add((box, ids));
         }
         return volumes.Count == 0 ? None : new PhantomErasure(volumes);
     }
@@ -84,56 +84,5 @@ public sealed class PhantomErasure
         var text = after.Trim().TrimStart('P', 'T').TrimEnd('s', 'S', 'm', 'M', 'h', 'H', 'd', 'D');
         return text.Length == 0 || (double.TryParse(text, System.Globalization.NumberStyles.Float,
             System.Globalization.CultureInfo.InvariantCulture, out var value) && value == 0);
-    }
-
-    // The block boxes a region covers. Composites contribute their additive children; a shape that does not
-    // reduce to a box contributes nothing, so an erasure is never larger than what can be stated exactly.
-    private static IEnumerable<BlockBox> Boxes3d(IReadOnlyDictionary<string, Region> registry, Region region,
-                                                 HashSet<string>? path = null)
-    {
-        path ??= [];
-        if (region.Id.Length > 0 && !path.Add(region.Id)) yield break;
-
-        switch (region.Type)
-        {
-            case "cuboid":
-                // PGM cuboid bounds are [min, max) on every axis, so the last block is one inside max.
-                if (Box(region.MinX, region.MinY, region.MinZ, region.MaxX, region.MaxY, region.MaxZ) is { } cuboid)
-                    yield return cuboid;
-                break;
-
-            case "block":
-                if (region.PosX is { } bx && region.PosY is { } by && region.PosZ is { } bz)
-                    yield return new BlockBox((int)Math.Floor(bx), (int)Math.Floor(by), (int)Math.Floor(bz),
-                                              (int)Math.Floor(bx), (int)Math.Floor(by), (int)Math.Floor(bz));
-                break;
-
-            case "union" or "intersect" or "complement" or "negative":
-                var children = region.Children ?? [];
-                var additive = region.Type is "union" or "intersect" ? children : children.Take(1);
-                foreach (var childId in additive)
-                    if (registry.TryGetValue(childId, out var child))
-                        foreach (var box in Boxes3d(registry, child, [.. path])) yield return box;
-                break;
-        }
-    }
-
-    private static BlockBox? Box(double? minX, double? minY, double? minZ, double? maxX, double? maxY, double? maxZ)
-    {
-        if (minX is null || minZ is null || maxX is null || maxZ is null) return null;
-        // A cuboid with no Y is unbounded vertically; erasing a whole column on a shape that never said so
-        // would delete terrain, so it is left alone.
-        if (minY is null || maxY is null) return null;
-        if (double.IsInfinity(minX.Value) || double.IsInfinity(maxX.Value)
-            || double.IsInfinity(minY.Value) || double.IsInfinity(maxY.Value)
-            || double.IsInfinity(minZ.Value) || double.IsInfinity(maxZ.Value)) return null;
-
-        static (int Lo, int Hi) Span(double a, double b)
-            => ((int)Math.Floor(Math.Min(a, b)), (int)Math.Ceiling(Math.Max(a, b)) - 1);
-
-        var (loX, hiX) = Span(minX.Value, maxX.Value);
-        var (loY, hiY) = Span(minY.Value, maxY.Value);
-        var (loZ, hiZ) = Span(minZ.Value, maxZ.Value);
-        return hiX < loX || hiY < loY || hiZ < loZ ? null : new BlockBox(loX, loY, loZ, hiX, hiY, hiZ);
     }
 }

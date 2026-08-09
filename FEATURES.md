@@ -637,6 +637,25 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) and `primitive-styles.md` follow. (C43)
 
 ## Backend / API (B)
+- **DTC cores are proposed from a world scan; DTM destroyables measurably cannot be (B26).** An imported world
+  arrives with no XML, and `CoreSuggester` finds the one signature effectively nothing else in a map produces:
+  a lava volume whose every non-lava neighbour is obsidian. Maps are full of both, but a *sealed* container is
+  deliberate and the only reason to build one is a core. The rim is the single permitted opening — a minority
+  style leaves the lava flush with the casing top, so the cells above it may be all obsidian or all air but
+  never a mixture, which is a spill; reading that is worth four points of recall. **267 candidates over 302
+  corpus maps, 219 of them a declared core: 82% precision at 77% recall** against 284 declared. What it
+  proposes is the structure — casing box, enclosed lava, shell thickness grown layer by layer, float, open-top
+  — every parameter read off the geometry rather than defaulted, and never a `<region>`, which is a human's
+  loose box (OB12) and is not in the world.
+  **The destroyable half was measured and dropped**, which is the more useful half of the result. A DTM
+  structure is 1–3 obsidian blocks: scanning the same corpus produced 39,716 candidates for 726 declared, the
+  true median cluster is **2 blocks** against 34,789 false clusters of ≤8, and the contract's "they float"
+  premise is wrong — the true median air gap is **0**. The best gate in the grid reaches 28% recall at ~15%
+  precision, so proposing five wrong objectives per right one would turn a confirm step into a search. Local
+  block evidence does not identify a destroyable; the untried lead is symmetry pairing (`B58`).
+  Validated from both ends: the corpus for external truth at scale, and a **composed plan for truth by
+  construction** — a plan states a core at an anchor, the pipeline builds the world, and the detector must
+  propose that core with that casing, shell and cap. (B26, OB12/OB14, `docs/contracts/objective-suggestion.md`)
 - **Island detection tells terrain, markers and erased blocks apart (B31).** A bottom-up scan asks "where does
   the ground start", and a Minecraft world holds three kinds of solid block with only one of them ground. They
   are now separated by three rules, each grounded in a different authority. **Noise** (water, lava, foliage,

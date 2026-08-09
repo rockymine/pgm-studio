@@ -417,44 +417,19 @@ import diagnostic (`B24e`), detection (`B26`), and the island-floor work the pha
   include reference and cannot be silently lost. Add each tag to `ParsedObjectiveModules` as its parser lands.
   (`docs/contracts/include-resolution.md` §4)
 
-- [ ] **B26 — Detect destroyables + cores from a world scan (later).** The `MonumentSuggester` move applied to
-  the **easier** problem: scan the world, propose the objectives, let the author confirm which is a destroyable
-  and which is a core. Wool monuments are a design free-for-all (96.6% precision / 57.8% recall, recall capped
-  by unlabelled maps); these are far more standardised. **A core is obsidian enclosing lava** — a signature
-  effectively nothing else in a map produces, so bounds and material fall out geometrically, not heuristically.
-  **A destroyable is a material outlier** — a small isolated cluster in a closed four-material vocabulary
-  (obsidian / emerald / gold / ender stone), 56% of them a 1–3 block obsidian pillar. The families predict their
-  own parameters, so a detector can propose `leak` / `completion` / style, not just a box. Reuses the existing
-  scan plumbing, the candidate-store shape (`monument_candidate`, `monument-candidate-store.md`) and the
-  confirm-in-UI flow — only the classifier changes. **Trap (OB12):** propose the **structure's** bounding box
-  and emit a region around it; the region itself is a human's loose box, is not in the world, and cannot be
-  detected. **Never propose a phantom as an objective** — a marker is not a monument; `Destroyable.Phantom`
-  already names the distinction, so respect it rather than re-deriving it. The parse/schema half it writes
-  into has landed, and so have `B24`/`B25`'s authoring slices — a confirmed suggestion now has somewhere to
-  go, so this is unblocked.
-  **Test it against authored plans, not (only) the corpus — the ground truth is free.** Author a plan with a
-  destroyable/core at a known anchor, compile it, build the world, run the detector, and assert it proposes
-  that objective *at the anchor the plan named*, with the style/size the plan asked for. The whole loop is
-  already in place (`DestroyableWorldTests`/`CoreWorldTests` build the world; the plan is the label), so this
-  is a fixture generator, not a harness.
-  **Why this matters more than it looks:** `MonumentSuggester`'s corpus recall is capped at **57.8% largely
-  because ~⅓ of maps are unlabelled** — there is no ground truth to score against without hand-labelling. A
-  generated world has ground truth *by construction*: we know exactly where we put the core, so precision and
-  recall are both computable for free, over as many synthetic cases as we care to emit (every style, every
-  casing size, on a slope, at a terrain edge). Corpus sweeps stay the reality check — synthetic worlds only
-  contain the structures we know how to build, so they can confirm the detector finds ours and can never tell
-  us what real authors do that we don't model. Use both, and expect the corpus to be the one that surprises.
-  This also **subsumes what `B24e` was going to gate for authored maps**: a detector that finds the core where
-  the plan put it has proved the blocks are there.
-
-## Layout generation (G)
-
-**The design long tail moved out of the board.** With the old grower path retired and the box pipeline
-now the one composer (`FEATURES.md`), the ~40-task G backlog — much of it describing machinery that no
-longer exists — is condensed into **`docs/generator/ideas.md`**: one idea per few lines, grouped
-by theme, **ids preserved** (never reuse one). Pull an idea back onto the board by id when it becomes the
-focus; the full original task text is in this file's git history. The current focus (the generator in the
-studio, G117/G118) is in `TODO.md`.
+- [ ] **B58 — Persist core suggestions at ingest, and try symmetry for destroyables.** `CoreSuggester` ships
+  and is corpus- and plan-validated (`FEATURES.md`, `docs/contracts/objective-suggestion.md`), but nothing
+  calls it yet: it reads `.mca`, so it must run inside `WorldFeatureWriter.WriteAsync` beside
+  `MonumentSuggester.Gather`, and its output needs a `core_candidate` table mirroring `monument_candidate`
+  (`M0002`) plus the confirm-in-UI flow. Until that lands the detector cannot be used at all — the world is
+  discarded after import and there is no re-import path, so a suggestion not captured during the one pass is
+  gone.
+  **The destroyable half needs different evidence, not a better threshold.** Measurement killed the local
+  signature outright: 39,716 candidates for 726 declared, a true median cluster of 2 blocks, a true median
+  float of 0, and a best gate of ~28% recall at ~15% precision. What is untried is the **global** constraint —
+  a destroyable is a two-team objective (OB14), so its mirror across the map's symmetry is another
+  destroyable, and a candidate whose partner is also a candidate is far more likely real than one standing
+  alone. `SymmetryDetector` already derives the axis. Measure that pairing before building anything.
 
 - [ ] **CV16 — the authoring canvases have no frame budget, only habits.** The zoom stall (fixed in
   `FEATURES.md`) was two unrelated per-event costs that happened to land on the same handler, and neither was
