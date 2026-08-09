@@ -108,9 +108,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   a derivation the compile endpoint pre-fills from the geometry it just built, and island ids are positional
   — a stored assignment may name a different island once the board changes, so carrying it would relabel
   territory rather than preserve a decision. `symmetry` is absent from a compiled intent *on purpose*: that
-  intent is already fanned across the orbit and the field is what switches `SymmetryExpander` on, which
-  rebuilds the intent from a fixed property set that drops the structure directives (the hole is filed as
-  B53 — refusing to carry the field is what keeps it unreachable). (B52)
+  intent is already fanned across the orbit, so switching `SymmetryExpander` on would ask it to fill units
+  that are already there. (At the time this landed, refusing the field was also what kept `B53`'s
+  property-dropping hole out of reach; that hole is closed now, but the reason above stands on its own.)
+  (B52)
 - **The build says which of the two things it is about to do (S39).** One button meant both *originate this
   map* and *replace a board someone has since been working on*, and read the same either way. It now reads
   the map first (`GET /api/map/{slug}/layers` → the four layer facts for one map, the per-map form of what
@@ -1247,7 +1248,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (anchors = the wool spawns), accumulating across wools so a team that defends several wools gets each room
   (authored editable, orbit copies ghost). Shows the generator's **Auto-wiring (derived)** preview
   (`enter`/`block`=`not-<owner>` + `capture ×N`). (`WoolRoomStep`; N04)
-- **Orbit-fill stopped deleting the slices it had never been taught about (`G160`).** `SymmetryExpander`
+- **Orbit-fill stopped deleting the slices it had never been taught about (`B53`, `G160`).** `SymmetryExpander`
   rebuilt the intent by naming its fields, so the four added to `MapIntent` after it was written —
   `Destroyables`, `Cores`, `IslandTeams`, `Structures` — were **dropped on every intent carrying a
   symmetry**. A map configured with a core exported with no core, and nothing said so; only the plan path
@@ -1258,7 +1259,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   knobs and all, with its resolved box mapped so the region still scopes the mirrored structure (OB8). The
   regression test asks the *type* rather than a list of names — a slice nobody teaches the expander about
   fails there instead of vanishing from someone's map. `new-map-authoring.md` §4 now states which tier
-  orbits what and why there is more than one. (`SymmetryExpanderCarryTests`; G160)
+  orbits what and why there is more than one.
+  The hole was filed as `B53`, which judged it unreachable — "the two producers do not overlap: Configure
+  sets `Symmetry` but authors none of the four, and the plan compiler fills all four but deliberately sets
+  no `Symmetry`" — and named that a coincidence rather than a design. It was: giving Configure a Cores phase
+  (`N12`) made Configure a producer of one of the four, and the coincidence stopped holding in the same
+  commit that relied on it. (`SymmetryExpanderCarryTests`; B53 · G160)
 - **An objective marker states the structure it builds (`G160`).** A core and a destroyable are placed as
   bare markers and take the generator's defaults; the knobs that vary them — a casing's footprint, height,
   wall thickness, capped-or-flush lava and float/leak pair, a destroyable's design, material and float — had

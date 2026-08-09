@@ -188,18 +188,6 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   confirmation already covers a mis-click at a fraction of the cost. This is the belt to that pair of
   braces, worth having once the studio is used by someone who did not write it.
 
-- [ ] **B53 — `SymmetryExpander.Expand` drops four slices of the intent it rebuilds.** It returns a
-  `new MapIntent { … }` listing eight properties (`SymmetryExpander.cs:42`) and the type has more:
-  `Destroyables`, `Cores`, `IslandTeams` and `Structures` are silently absent from the result. So any intent
-  carrying a `Symmetry` loses its DTM/DTC objectives, its island→team assignments and its ST1–ST4 structure
-  directives the moment it is projected. It has not bitten yet only because the two producers do not
-  overlap: Configure sets `Symmetry` but authors none of the four, and the plan compiler fills all four but
-  deliberately sets no `Symmetry` (it fans the orbit itself). That is a coincidence, not a design, and it is
-  why `IntentCarry` refuses to carry `symmetry` onto a compiled intent — doing so would have made the hole
-  reachable in one line. Fix by carrying every property through the expander (and asserting it: a test that
-  round-trips a full intent with a symmetry set and compares property by property, so the next field added
-  to `MapIntent` cannot be forgotten here).
-
 - [~] **B44 — Theme + style library: the map's applied theme is still an inline blob.** The tables, the HTTP
   surface, the `/library` page and the sketch's pull/push bridge all shipped (`FEATURES.md`); two slices
   remain. **(1) Apply-as-snapshot** — a map's *applied* theme is still the sketch document's own registry, so
