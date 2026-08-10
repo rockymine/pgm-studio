@@ -1167,7 +1167,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   **outcome, not proportion** — a world with six trees and four hundred structural logs uses all-bark for every
   trunk it has while all-bark is a few per cent of its wood, so a share threshold reads it backwards; asking the
   sharper test first and falling back only when it finds no stems needs no threshold at all.
-  **Species is read from the canopy, not the trunk**, since an
+  Each tree's **canopy width** is measured by giving every leaf to its nearest
+  trunk, because a fixed radius around a trunk reports the radius rather than the crown; the same assignment
+  keeps neighbours apart, since two canopies standing close without overlapping leave every leaf unambiguously
+  nearer one trunk, and where they do overlap the boundary falls midway and understates both rather than
+  merging them. **Species is read from the canopy, not the trunk**, since an
   author may pair any wood with any leaf (alpine_mining_ii's pines are acacia trunks under birch leaves), and
   the trunk material is recorded rather than trusted. **A tree is a rooted all-bark run, not a connected lump
   of wood**: counting components shatters a detailed oak whose limbs meet its trunk diagonally and fuses

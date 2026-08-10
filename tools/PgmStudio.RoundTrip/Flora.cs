@@ -70,7 +70,15 @@ internal static class Flora
     /// <summary>One tree: the stems it stands on and the canopy that names it.</summary>
     public sealed record Tree(string Species, string Trunk, int Stems, int TrunkLogs, int LeafCount,
                               int MinX, int MaxX, int MinZ, int MaxZ, int BaseY, int TopY,
-                              IReadOnlyList<(int X, int Y, int Z)> Wood);
+                              IReadOnlyList<(int X, int Y, int Z)> Wood)
+    {
+        /// <summary>Widest span of the canopy in plan, in blocks. Measured over the leaves assigned to this
+        /// tree rather than a fixed radius around its trunk, so it reports the crown the author drew.</summary>
+        public int CanopyWidth { get; set; }
+
+        /// <summary>Leaves assigned to this tree by nearest trunk.</summary>
+        public int Canopy { get; set; }
+    }
 
     public sealed record Result(IReadOnlyList<Tree> Trees, IReadOnlyList<Tree> Bare, int StructuralLogs,
                                 int UnrootedWood);
@@ -206,7 +214,61 @@ internal static class Flora
         var bareBark = leftover.Count(cell => IsAllBark(logs[cell].Id, logs[cell].Data));
 
         var bare = trees.Where(tree => tree.LeafCount == 0).ToList();
+        MeasureCanopies(trees, leaves);
         return new Result([.. trees.Where(tree => tree.LeafCount > 0)], bare,
             leftover.Count - bareBark, bareBark);
+    }
+
+    /// <summary>How far from a trunk a leaf may still belong to it. Beyond this a leaf is nobody's.</summary>
+    private const int CanopySearch = 12;
+
+    /// <summary>Gives every leaf to the nearest trunk and measures each crown from what it was given.
+    ///
+    /// <para>A fixed radius around a trunk cannot measure a canopy, since what it reports is the radius.
+    /// Nearest-trunk assignment reports the crown instead, and it is also what keeps neighbouring trees apart:
+    /// where two canopies stand close without overlapping, every leaf is unambiguously nearer one trunk than
+    /// the other and each keeps its own width. Where they do overlap the boundary falls midway, which
+    /// understates both rather than merging them into one.</para></summary>
+    private static void MeasureCanopies(List<Tree> trees, Dictionary<(int X, int Y, int Z), (int Id, int Data)> leaves)
+    {
+        var owner = new Dictionary<(int X, int Z), int>();
+        for (var index = 0; index < trees.Count; index++)
+            foreach (var log in trees[index].Wood) owner.TryAdd((log.X, log.Z), index);
+
+        var spanX = new Dictionary<int, (int Min, int Max)>();
+        var spanZ = new Dictionary<int, (int Min, int Max)>();
+        var counts = new Dictionary<int, int>();
+
+        foreach (var leaf in leaves.Keys)
+        {
+            var best = -1;
+            var bestDistance = int.MaxValue;
+            for (var radius = 0; radius <= CanopySearch && best < 0; radius++)
+                for (var dx = -radius; dx <= radius; dx++)
+                    for (var dz = -radius; dz <= radius; dz++)
+                    {
+                        if (Math.Max(Math.Abs(dx), Math.Abs(dz)) != radius) continue;
+                        if (!owner.TryGetValue((leaf.X + dx, leaf.Z + dz), out var tree)) continue;
+                        var distance = dx * dx + dz * dz;
+                        if (distance >= bestDistance) continue;
+                        bestDistance = distance;
+                        best = tree;
+                    }
+            if (best < 0) continue;
+
+            counts[best] = counts.GetValueOrDefault(best) + 1;
+            spanX[best] = spanX.TryGetValue(best, out var sx)
+                ? (Math.Min(sx.Min, leaf.X), Math.Max(sx.Max, leaf.X)) : (leaf.X, leaf.X);
+            spanZ[best] = spanZ.TryGetValue(best, out var sz)
+                ? (Math.Min(sz.Min, leaf.Z), Math.Max(sz.Max, leaf.Z)) : (leaf.Z, leaf.Z);
+        }
+
+        for (var index = 0; index < trees.Count; index++)
+        {
+            trees[index].Canopy = counts.GetValueOrDefault(index);
+            if (!spanX.TryGetValue(index, out var sx)) continue;
+            var sz = spanZ[index];
+            trees[index].CanopyWidth = Math.Max(sx.Max - sx.Min, sz.Max - sz.Min) + 1;
+        }
     }
 }

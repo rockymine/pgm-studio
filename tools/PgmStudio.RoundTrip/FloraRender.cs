@@ -205,16 +205,19 @@ internal static class FloraRender
     {
         Console.WriteLine($"\n=== trees ({flora.Trees.Count}, one per rooted stem cluster) ===");
         Console.WriteLine($"trunk marker read from the world: {Flora.Convention}");
-        Console.WriteLine($"{"species",-10} {"trees",6} {"per side",9} {"stems",6} {"trunk h",8} {"leaves",7}  trunk wood");
+        Console.WriteLine($"{"species",-10} {"trees",6} {"per side",9} {"trunk h",8} {"canopy width",22} {"leaves/tree",11}  trunk wood");
         foreach (var group in flora.Trees.GroupBy(tree => tree.Species).OrderByDescending(group => group.Count()))
         {
             var trees = group.ToList();
             var heights = trees.Select(tree => tree.TopY - tree.BaseY + 1).OrderBy(height => height).ToList();
-            var stems = trees.Sum(tree => tree.Stems) / (double)trees.Count;
             var trunks = trees.GroupBy(tree => tree.Trunk).OrderByDescending(inner => inner.Count())
                 .Select(inner => $"{inner.Key} {inner.Count() * 100 / trees.Count}%").Take(2);
-            Console.WriteLine($"{group.Key,-10} {trees.Count,6} {trees.Count / 2.0,9:0.0} {stems,6:0.0} " +
-                $"{$"{heights[0]}..{heights[^1]}",8} {trees.Sum(tree => tree.LeafCount),7}  {string.Join(", ", trunks)}");
+            var widths = trees.Select(tree => tree.CanopyWidth).Where(width => width > 0).OrderBy(width => width).ToList();
+            var canopy = widths.Count == 0 ? "—"
+                : $"{widths[widths.Count / 2]} typical ({widths[0]}..{widths[^1]})";
+            Console.WriteLine($"{group.Key,-10} {trees.Count,6} {trees.Count / 2.0,9:0.0} " +
+                $"{$"{heights[0]}..{heights[^1]}",8} {canopy,22} {trees.Average(tree => tree.Canopy),11:0} " +
+                $" {string.Join(", ", trunks)}");
         }
         // Trunk against canopy, because the pairing is what a tree type actually is. A wood that appears
         // under only one canopy is a species of tree; one that appears under several is a post that happened
