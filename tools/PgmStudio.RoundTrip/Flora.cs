@@ -18,6 +18,17 @@ namespace PgmStudio.RoundTrip;
 /// Stems are then grouped by plan adjacency, so a trunk two blocks square is one tree rather than four, which
 /// is what lets a detailed oak count the same as a single-stem spruce.</para>
 ///
+/// <para><b>What marks the run is read off the map, not assumed.</b> Where an author faces trunks in all-bark
+/// wood, that facing is the sharpest trunk marker there is — it separates a trunk from its own branches, which
+/// are ordinary rotated logs. Where no all-bark wood is used at all, demanding it finds nothing, so the run
+/// falls back to logs standing upright: still a vertical column of one species, just marked by its axis rather
+/// than its facing. The choice is made once from the share of all-bark wood in the world, because the two
+/// tests disagree on a map that uses the convention — a map framing its buildings in upright timber would
+/// return every post as a tree under the fallback. The choice is made on <b>outcome, not proportion</b>: a
+/// world with six trees and four hundred structural logs uses all-bark for every trunk it has while all-bark
+/// is a few per cent of its wood, so any share threshold reads it backwards. Asking the sharper test first
+/// and falling back only when it finds nothing needs no threshold at all.</para>
+///
 /// <para><b>Species is read from the canopy, not the trunk.</b> An author is free to pair any wood with any
 /// leaf — a pine built from acacia log under birch leaves is exactly such a pairing — so the leaves standing
 /// around a stem decide its species and the trunk material is recorded rather than trusted.</para>
@@ -35,6 +46,9 @@ internal static class Flora
 
     /// <summary>How tall a rooted column must be to be a trunk rather than a branch touching down.</summary>
     private const int MinimumStem = 3;
+
+    /// <summary>Which trunk marker this world was read as using. Set by <see cref="Classify"/>.</summary>
+    public static string Convention { get; private set; } = "";
 
     /// <summary>How far from the trunk a leaf still names its tree.</summary>
     private const int CanopyReach = 3;
@@ -65,7 +79,8 @@ internal static class Flora
     {
         var logs = new Dictionary<(int X, int Y, int Z), (int Id, int Data)>();
         var leaves = new Dictionary<(int X, int Y, int Z), (int Id, int Data)>();
-        var rooted = new List<((int X, int Y, int Z) Cell, int Run)>();
+        List<((int X, int Y, int Z) Cell, int Run)> rooted;
+        var footings = new List<(int X, int Y, int Z)>();
 
         foreach (var chunk in chunks)
         {
@@ -92,28 +107,40 @@ internal static class Flora
                         logs[(worldX, y, worldZ)] = (id, data[(y << 8) | col]);
 
                         var under = y > 0 ? ids[((y - 1) << 8) | col] : 0;
-                        if (under == 0 || IsLog(under) || IsLeaf(under)) continue;
-                        // The run must be all-bark. A trunk shows no cut end for its whole height, while a
-                        // branch is rotated wood the moment it leaves the stem — so an oriented log rooted
-                        // on the ground is a limb touching down, not a second tree.
-                        var run = 0;
-                        var woods = new HashSet<string>();
-                        while (y + run < 256)
-                        {
-                            int runId = ids[((y + run) << 8) | col], runData = data[((y + run) << 8) | col];
-                            if (!IsAllBark(runId, runData)) break;
-                            woods.Add(LogSpecies(runId, runData));
-                            run++;
-                        }
-                        // A tree grows one wood. A column that changes species partway up is a built shaft
-                        // faced in bark — an author stacking two timbers gives the giveaway no leaf count
-                        // can, since such a tower stands among real trees and borrows their canopy.
-                        if (run >= MinimumStem && woods.Count == 1) rooted.Add(((worldX, y, worldZ), run));
+                        if (under != 0 && !IsLog(under) && !IsLeaf(under)) footings.Add((worldX, y, worldZ));
                     }
                 }
         }
 
-        // Stems that share a footprint are one tree: a trunk two blocks square roots four times.
+        // Which facing marks a trunk on this world, decided by asking the sharper test first. All-bark is the
+        // better marker wherever it is used, because a branch leaving a trunk is rotated and drops out on its
+        // own. A world that never uses it yields no stems at all under it, and upright logs are what remain.
+        List<((int X, int Y, int Z) Cell, int Run)> Stems(Func<int, int, bool> isTrunkWood)
+        {
+            var found = new List<((int X, int Y, int Z) Cell, int Run)>();
+            foreach (var footing in footings)
+            {
+                var (id, data) = logs[footing];
+                if (!isTrunkWood(id, data)) continue;
+                var species = LogSpecies(id, data);
+                var run = 0;
+                while (logs.TryGetValue((footing.X, footing.Y + run, footing.Z), out var above)
+                       && isTrunkWood(above.Id, above.Data) && LogSpecies(above.Id, above.Data) == species) run++;
+                if (run >= MinimumStem) found.Add((footing, run));
+            }
+            return found;
+        }
+
+        rooted = Stems(IsAllBark);
+        var allBark = logs.Count(entry => IsAllBark(entry.Value.Id, entry.Value.Data));
+        if (rooted.Count > 0)
+            Convention = $"all-bark ({rooted.Count} stems; {allBark} of {logs.Count} logs carry it)";
+        else
+        {
+            rooted = Stems((id, data) => (data >> 2 & 3) == 0);
+            Convention = $"upright logs (all-bark yielded no stems from {allBark} such blocks)";
+        }
+
         var trees = new List<Tree>();
         var claimed = new HashSet<(int X, int Y, int Z)>();
         var pending = new Dictionary<(int X, int Y, int Z), int>(rooted.Select(entry =>

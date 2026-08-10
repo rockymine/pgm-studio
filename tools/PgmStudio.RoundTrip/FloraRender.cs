@@ -204,6 +204,7 @@ internal static class FloraRender
     private static void ReportTrees(Flora.Result flora)
     {
         Console.WriteLine($"\n=== trees ({flora.Trees.Count}, one per rooted stem cluster) ===");
+        Console.WriteLine($"trunk marker read from the world: {Flora.Convention}");
         Console.WriteLine($"{"species",-10} {"trees",6} {"per side",9} {"stems",6} {"trunk h",8} {"leaves",7}  trunk wood");
         foreach (var group in flora.Trees.GroupBy(tree => tree.Species).OrderByDescending(group => group.Count()))
         {

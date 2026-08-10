@@ -1161,7 +1161,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   that split**: an all-bark log is the natural trunk, but a tree's branches are ordinary rotated logs growing
   out of one, so the per-block rule discards a large part of every branched conifer. Connectivity decides
   instead — a log component is a tree if it holds an all-bark log *or* touches leaves, and branches arrive with
-  their trunk because they are attached to it. **Species is read from the canopy, not the trunk**, since an
+  their trunk because they are attached to it. **The trunk marker is read off the world, not assumed**: all-bark facing is the sharper
+  test wherever an author uses it, since a branch leaving a trunk is rotated and drops out on its own, but a
+  world that never uses it yields nothing under that test and falls back to upright logs. The choice is made on
+  **outcome, not proportion** — a world with six trees and four hundred structural logs uses all-bark for every
+  trunk it has while all-bark is a few per cent of its wood, so a share threshold reads it backwards; asking the
+  sharper test first and falling back only when it finds no stems needs no threshold at all.
+  **Species is read from the canopy, not the trunk**, since an
   author may pair any wood with any leaf (alpine_mining_ii's pines are acacia trunks under birch leaves), and
   the trunk material is recorded rather than trusted. **A tree is a rooted all-bark run, not a connected lump
   of wood**: counting components shatters a detailed oak whose limbs meet its trunk diagonally and fuses
