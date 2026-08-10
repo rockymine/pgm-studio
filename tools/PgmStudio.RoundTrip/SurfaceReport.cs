@@ -118,6 +118,15 @@ internal static class SurfaceReport
             }
     }
 
+    /// <summary>The identity a row is counted under, which must be the one it is printed under.
+    ///
+    /// <para>Block data carries a stair's facing and a wire's charge alongside a material's variant, and the
+    /// palette already resolves all of them to one name. Counting the raw pair therefore splits one material
+    /// across rows that read identically, divides its share between them, and — where the grouping also feeds
+    /// a measurement — divides the measurement too: two stairs laid side by side in different facings are not
+    /// each other's neighbours, so a staircase reports as random scatter.</para></summary>
+    private static string Material(int id, int data) => BlockPalette.Name(id, data);
+
     private static void ReportMaterials(Dictionary<(int X, int Z), Cell> columns,
                                         Dictionary<(int X, int Z), (int Id, int Data)> ground, int top)
     {
@@ -125,8 +134,9 @@ internal static class SurfaceReport
             $"{columns.Count(entry => entry.Value.Built)} carry structure, " +
             $"{columns.Count(entry => entry.Value.Shaded && !entry.Value.Built)} stand under a canopy and are counted, " +
             $"{columns.Count(entry => entry.Value.Depth > 0)} lie under liquid) ===");
-        foreach (var group in ground.Values.GroupBy(entry => entry).OrderByDescending(group => group.Count()).Take(top))
-            Console.WriteLine($"  {BlockPalette.Name(group.Key.Id, group.Key.Data),-26} {group.Count(),7} " +
+        foreach (var group in ground.Values.GroupBy(entry => Material(entry.Id, entry.Data))
+                     .OrderByDescending(group => group.Count()).Take(top))
+            Console.WriteLine($"  {group.Key,-26} {group.Count(),7} " +
                 $"{group.Count() * 100.0 / ground.Count,5:0.0}%");
     }
 
@@ -136,8 +146,9 @@ internal static class SurfaceReport
         foreach (var group in ground.Values.GroupBy(entry => ToneName(entry.Id, entry.Data))
                      .OrderByDescending(group => group.Count()))
         {
-            var members = group.GroupBy(entry => entry).OrderByDescending(inner => inner.Count()).Take(4)
-                .Select(inner => $"{BlockPalette.Name(inner.Key.Id, inner.Key.Data)} {inner.Count() * 100 / group.Count()}%");
+            var members = group.GroupBy(entry => Material(entry.Id, entry.Data))
+                .OrderByDescending(inner => inner.Count()).Take(4)
+                .Select(inner => $"{inner.Key} {inner.Count() * 100 / group.Count()}%");
             Console.WriteLine($"  {group.Key,-12} {group.Count(),7} {group.Count() * 100.0 / ground.Count,5:0.0}%   " +
                 $"{string.Join(", ", members)}");
         }
@@ -206,13 +217,13 @@ internal static class SurfaceReport
         if (decorated.Count == 0) return;
         Console.WriteLine($"\n=== decoration ({decorated.Count} columns, " +
             $"{decorated.Count * 100.0 / columns.Count:0.0}% of the map) and the soil under each ===");
-        foreach (var group in decorated.GroupBy(cell => (cell.Decor, cell.DecorData))
+        foreach (var group in decorated.GroupBy(cell => Material(cell.Decor, cell.DecorData))
                      .OrderByDescending(group => group.Count()).Take(8))
         {
-            var soils = group.GroupBy(cell => (cell.Ground, cell.GroundData))
+            var soils = group.GroupBy(cell => Material(cell.Ground, cell.GroundData))
                 .OrderByDescending(inner => inner.Count()).Take(3)
-                .Select(inner => $"{BlockPalette.Name(inner.Key.Ground, inner.Key.GroundData)} {inner.Count() * 100 / group.Count()}%");
-            Console.WriteLine($"  {BlockPalette.Name(group.Key.Decor, group.Key.DecorData),-24} {group.Count(),6}  on {string.Join(", ", soils)}");
+                .Select(inner => $"{inner.Key} {inner.Count() * 100 / group.Count()}%");
+            Console.WriteLine($"  {group.Key,-24} {group.Count(),6}  on {string.Join(", ", soils)}");
         }
     }
 
@@ -223,9 +234,9 @@ internal static class SurfaceReport
         var depths = flooded.Select(cell => cell.Depth).OrderBy(depth => depth).ToList();
         Console.WriteLine($"\n=== what lies under the water ({flooded.Count} columns, depth " +
             $"{depths[0]}..{depths[^1]}, {depths[depths.Count / 2]} typical) ===");
-        foreach (var group in flooded.GroupBy(cell => (cell.Bed, cell.BedData))
+        foreach (var group in flooded.GroupBy(cell => Material(cell.Bed, cell.BedData))
                      .OrderByDescending(group => group.Count()).Take(8))
-            Console.WriteLine($"  {BlockPalette.Name(group.Key.Bed, group.Key.BedData),-26} {group.Count(),6} " +
+            Console.WriteLine($"  {group.Key,-26} {group.Count(),6} " +
                 $"{group.Count() * 100.0 / flooded.Count,5:0.0}%   depth " +
                 $"{group.Select(cell => cell.Depth).OrderBy(depth => depth).ElementAt(group.Count() / 2)} typical");
     }
@@ -236,7 +247,8 @@ internal static class SurfaceReport
         Console.WriteLine($"\n=== is it scattered or laid in fields? ===");
         Console.WriteLine($"  {"material",-26} {"share",6} {"own neighbours",15} {"vs chance",10} {"patches",8} {"median",7}");
 
-        foreach (var group in ground.GroupBy(entry => entry.Value).OrderByDescending(group => group.Count()).Take(top))
+        foreach (var group in ground.GroupBy(entry => Material(entry.Value.Id, entry.Value.Data))
+                     .OrderByDescending(group => group.Count()).Take(top))
         {
             var cells = new HashSet<(int X, int Z)>(group.Select(entry => entry.Key));
             var share = cells.Count / (double)ground.Count;
@@ -248,7 +260,7 @@ internal static class SurfaceReport
             var neighbourly = same / (4.0 * cells.Count);
 
             var sizes = Components(cells).OrderBy(size => size).ToList();
-            Console.WriteLine($"  {BlockPalette.Name(group.Key.Id, group.Key.Data),-26} {share * 100,5:0.0}% " +
+            Console.WriteLine($"  {group.Key,-26} {share * 100,5:0.0}% " +
                 $"{neighbourly * 100,14:0.0}% {neighbourly / Math.Max(1e-9, share),9:0.0}x {sizes.Count,8} " +
                 $"{sizes[sizes.Count / 2],7}");
         }
