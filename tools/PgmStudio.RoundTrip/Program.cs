@@ -190,6 +190,29 @@ if (structIdx >= 0 && structIdx + 2 < args.Length)
         areaSlot >= 0 && areaSlot + 1 < args.Length && int.TryParse(args[areaSlot + 1], out var minArea) ? Math.Max(1, minArea) : 12);
 }
 
+// --flora <regionDir> <outPng> --path <id[:data],...> [--scale N]: trees separated from structural timber by
+// log connectivity and named by their canopy, plus the paved routes traced as connected surface components.
+// The path palette is per map — the same block is a road on one world and bulk terrain on another.
+var floraIdx = Array.IndexOf(args, "--flora");
+if (floraIdx >= 0 && floraIdx + 2 < args.Length)
+{
+    var pathAt = Array.IndexOf(args, "--path");
+    var pathSpec = new List<(int Id, int Data)>();
+    if (pathAt >= 0 && pathAt + 1 < args.Length)
+        foreach (var token in args[pathAt + 1].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var parts = token.Split(':');
+            if (!int.TryParse(parts[0], out var blockId)) continue;
+            pathSpec.Add((blockId, parts.Length > 1 && int.TryParse(parts[1], out var blockData) ? blockData : -1));
+        }
+    if (pathSpec.Count == 0) { Console.Error.WriteLine("--flora needs --path <id[:data],...>"); return 1; }
+
+    var floraScale = Array.IndexOf(args, "--scale");
+    return PgmStudio.RoundTrip.FloraRender.Run(args[floraIdx + 1], args[floraIdx + 2],
+        floraScale >= 0 && floraScale + 1 < args.Length && int.TryParse(args[floraScale + 1], out var scaleValue) ? Math.Max(1, scaleValue) : 3,
+        pathSpec);
+}
+
 // --island-study <regionDir> <outJson> [tolerance]: cleaned-base islands with their polygons (exterior +
 // holes) both raw and Douglas-Peucker-simplified, emitted as JSON for studying real-map shapes.
 var islandStudyIdx = Array.IndexOf(args, "--island-study");

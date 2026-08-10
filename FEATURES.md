@@ -1156,6 +1156,19 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   not be read as a quality measure: a map on a mountain has steep ground under every building by construction,
   so alpine_mining_ii reads as 44 structures on 3+ uneven ground while a flat map reads as clean. Validated on
   alpine_mining_ii: 107 structures, resolving into exact mirrored pairs about the map's rot-180 centre. (B63)
+- **Trees vs timber, and paved routes (`--flora <regionDir> <out.png> --path <id[:data],…>`)** — separates a
+  world's planting from the wood built into its structures, and traces its roads. **Log orientation cannot make
+  that split**: an all-bark log is the natural trunk, but a tree's branches are ordinary rotated logs growing
+  out of one, so the per-block rule discards a large part of every branched conifer. Connectivity decides
+  instead — a log component is a tree if it holds an all-bark log *or* touches leaves, and branches arrive with
+  their trunk because they are attached to it. **Species is read from the canopy, not the trunk**, since an
+  author may pair any wood with any leaf (alpine_mining_ii's pines are acacia trunks under birch leaves), and
+  the trunk material is recorded rather than trusted. All-bark components carrying **no** canopy are returned
+  apart and neither counted as trees nor as timber — a run of them at one identical height is a structural
+  post, a scatter of short ones is landscaping. The path palette is a **required argument**, never a constant:
+  the same block is a road on one map and bulk terrain on another. Paving is traced as connected surface
+  components and the gap between the largest ones is reported, because a route can be continuous underfoot and
+  still break in material where it crosses a bridge, a ford or a floor. (B64)
 - **Supported map range (enforced in `MapParser`)** — the parser accepts **proto >= 1.4.0** only (PGM's
   id-based regions/filters/kits floor) and rejects **modern worlds** (`min-server-version >= 1.13.0`, whose
   post-"flattening" palette chunks the Anvil reader can't decode), throwing `UnsupportedMapException` with a
