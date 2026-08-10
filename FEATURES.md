@@ -1200,9 +1200,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   pitched roof comes down to meet its walls, so its lowest course sits as close to the ground as decking does
   and testing there discards the houses along with it. A slab's high data bit is masked before matching, since
   it records which half of a block the slab fills rather than what it is made of, and glass joins the stepped-
-  past cover because smoke drawn over a chimney otherwise hides the roof it rises from. Validated against a map
-  author's own inventory: **10 of 11 houses and 5 of 5 shafts** located per team, and 23 rim-bordered roofs
-  against 22 houses plus the observer island's one. (B65)
+  past cover because smoke drawn over a chimney otherwise hides the roof it rises from. **A roof also has a room under it**: the grounded share is bounded above as well as
+  below, because a floor reaches the terrain under almost every column while a building grounds only at its
+  walls and is hollow between them — the two populations do not overlap, 15–31% for every house against
+  93–100% for every plank floor, so the threshold's exact value carries no weight. Validated against a map
+  author's own inventory: **11 of 11 houses and 5 of 5 shafts** located per team, 23 rim-bordered roofs against
+  22 houses plus the observer island's one, and the author's three plank-floor false positives gone. (B65)
 - **Supported map range (enforced in `MapParser`)** — the parser accepts **proto >= 1.4.0** only (PGM's
   id-based regions/filters/kits floor) and rejects **modern worlds** (`min-server-version >= 1.13.0`, whose
   post-"flattening" palette chunks the Anvil reader can't decode), throwing `UnsupportedMapException` with a

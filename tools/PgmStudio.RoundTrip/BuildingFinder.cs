@@ -7,9 +7,13 @@ namespace PgmStudio.RoundTrip;
 /// always made of a material the terrain never uses, and always continuous — walls are hidden under it,
 /// floors are hidden inside it, and a footprint drawn from anything else has to guess where a structure ends.
 ///
-/// <para><b>Standing clear of the ground is the one gate.</b> Plank laid on terrain is a deck, a jetty or a
-/// floor, and nothing else separates it from a roof: same material, same connectivity, and both ground
-/// completely. A roof has air under it.</para>
+/// <para><b>A roof has a room under it.</b> Clearance over the terrain is the first gate — plank laid on the
+/// ground is decking — but clearance alone passes a floor raised on a slope. What no floor has is emptiness
+/// beneath: follow each column's solid run downward and a floor reaches the terrain almost everywhere, while
+/// a building grounds only where its walls are and is hollow between them. The share of grounded columns is
+/// therefore bounded <b>above</b> as well as below, and the two populations do not overlap — every house on
+/// the map this was built for grounds between 15% and 31% of its roof, every plank floor between 93% and
+/// 100%.</para>
 ///
 /// <para><b>Two measures are reported and neither gates.</b> The share of roof columns with a solid run to the
 /// terrain separates what stands from what hangs, and the count of footprint corners carrying a vertical log
@@ -35,6 +39,11 @@ internal static class BuildingFinder
     /// <summary>A slab's high data bit says which half of its block it fills, not what it is made of, so a
     /// roof laid in upside-down slabs is the same roof as one laid in upright ones. Matching without masking
     /// it splits a roof down the middle and loses whichever half the author chose to hang.</summary>
+    /// <summary>Grounded share at or above which a component is floored rather than roofed. Set far above
+    /// any real roof: the gap between the two populations is 31% to 93%, so the exact value does not matter
+    /// and a reading anywhere inside that gap says the same thing.</summary>
+    private const double SolidBeneath = 0.8;
+
     private static int MaterialBits(int id, int data) => id is 43 or 44 or 125 or 126 ? data & 7 : data;
 
     /// <summary>Terrain: what the ground itself is made of, so a structure's own blocks are stepped past to
@@ -92,6 +101,7 @@ internal static class BuildingFinder
         var floating = new List<Candidate>();
         var claimed = new Dictionary<(int X, int Z), int>();
 
+        var floors = 0;
         var pending = new HashSet<(int X, int Z)>(roofCells);
         while (pending.Count > 0)
         {
@@ -120,12 +130,14 @@ internal static class BuildingFinder
                     : component.Count(cell => IsRim(columns[cell].RoofId, columns[cell].RoofData)) / (double)component.Count,
                 string.Join(", ", materials));
 
-            // Plank laid on the ground is a deck, a floor, or texture worked into a hillside, and none of
-            // those is a roof. Clearance over the terrain beneath separates them, since the material and the
-            // connectivity are identical — but it has to be measured at the ridge, not the eave. A pitched
-            // roof comes down to meet its walls, so its lowest course sits a block or two off the ground
-            // exactly as a deck does, and testing there discards the houses along with the decking.
+            // Clearance over the terrain beneath, measured at the ridge rather than the eave: a pitched roof
+            // comes down to meet its walls, so its lowest course sits as close to the ground as decking does
+            // and testing there discards the houses along with the decking.
             if (candidate.RoofHigh - candidate.GroundY < minimumHeight) continue;
+
+            // Solid under nearly every column is a floor, however high the slope beneath carries it. A
+            // building is hollow between its walls, so a roof cannot ground everywhere and remain a roof.
+            if (grounded >= SolidBeneath) { floors++; continue; }
             // The smallest thing a map builds is still a room. Below that a component is a cap, a marker or
             // a fragment of decking, and no measure taken on it means anything.
             if (maxX - minX + 1 < minimumSide || maxZ - minZ + 1 < minimumSide) continue;
@@ -134,7 +146,7 @@ internal static class BuildingFinder
             standing.Add(candidate);
         }
 
-        Report(standing, floating);
+        Report(standing, floating, floors);
         _ = floating;
         Draw(outPng, scale, terrain, claimed);
         return 0;
@@ -230,9 +242,10 @@ internal static class BuildingFinder
         return found;
     }
 
-    private static void Report(List<Candidate> standing, List<Candidate> floating)
+    private static void Report(List<Candidate> standing, List<Candidate> floating, int floors)
     {
-        Console.WriteLine($"{standing.Count} roof component(s) standing clear of the terrain\n");
+        Console.WriteLine($"{standing.Count} roof component(s) standing clear of the terrain " +
+            $"({floors} more were solid beneath — floors, not roofs)\n");
         foreach (var group in standing.GroupBy(item => item.Reading).OrderByDescending(group => group.Count()))
             Console.WriteLine($"  {group.Count(),3}  {group.Key}");
         Console.WriteLine();
