@@ -1196,9 +1196,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   enclosed by a border, so a cap that is one material all the way across was never a house roof however well it
   is framed or walled. Grounded share, corner-stem count and wall share between the posts are all reported and
   none gates; on the map this was built for the wall share is *higher* on the shaft heads than on the houses,
-  so it cannot separate them and does not try. Measured on alpine_mining_ii: 23 components — **16 rim-bordered
-  house roofs (rim 50–53%) and 7 single-material caps (rim 0%)**, a split with nothing between the two modes,
-  and stable at every threshold setting. (B65)
+  so it cannot separate them and does not try. Clearance is measured **at the ridge, not the eave** — a
+  pitched roof comes down to meet its walls, so its lowest course sits as close to the ground as decking does
+  and testing there discards the houses along with it. A slab's high data bit is masked before matching, since
+  it records which half of a block the slab fills rather than what it is made of, and glass joins the stepped-
+  past cover because smoke drawn over a chimney otherwise hides the roof it rises from. Validated against a map
+  author's own inventory: **10 of 11 houses and 5 of 5 shafts** located per team, and 23 rim-bordered roofs
+  against 22 houses plus the observer island's one. (B65)
 - **Supported map range (enforced in `MapParser`)** — the parser accepts **proto >= 1.4.0** only (PGM's
   id-based regions/filters/kits floor) and rejects **modern worlds** (`min-server-version >= 1.13.0`, whose
   post-"flattening" palette chunks the Anvil reader can't decode), throwing `UnsupportedMapException` with a

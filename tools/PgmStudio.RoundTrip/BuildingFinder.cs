@@ -21,12 +21,21 @@ namespace PgmStudio.RoundTrip;
 /// </summary>
 internal static class BuildingFinder
 {
-    /// <summary>Plant cover and small furniture, stepped past so a roof under a snow layer is still a roof.</summary>
+    /// <summary>Plant cover and small furniture, stepped past so a roof under a snow layer is still a roof.
+    /// Glass is included: it is the usual way to draw smoke over a chimney, and a roof read at the smoke stops
+    /// at a column of glass rather than at the roof it rises from. The cost is that a genuine glass roof is
+    /// seen through, which is the right trade when glass over a building is far more often weather than
+    /// shelter.</summary>
     private static readonly HashSet<int> Cover =
     [
-        0, 6, 18, 30, 31, 32, 37, 38, 39, 40, 50, 51, 55, 59, 63, 66, 68, 69, 70, 71, 72, 75, 76, 77, 78,
-        83, 104, 105, 106, 111, 115, 141, 142, 143, 157, 161, 175,
+        0, 6, 18, 20, 30, 31, 32, 37, 38, 39, 40, 50, 51, 55, 59, 63, 66, 68, 69, 70, 71, 72, 75, 76, 77, 78,
+        83, 95, 102, 104, 105, 106, 111, 115, 141, 142, 143, 157, 160, 161, 175,
     ];
+
+    /// <summary>A slab's high data bit says which half of its block it fills, not what it is made of, so a
+    /// roof laid in upside-down slabs is the same roof as one laid in upright ones. Matching without masking
+    /// it splits a roof down the middle and loses whichever half the author chose to hang.</summary>
+    private static int MaterialBits(int id, int data) => id is 43 or 44 or 125 or 126 ? data & 7 : data;
 
     /// <summary>Terrain: what the ground itself is made of, so a structure's own blocks are stepped past to
     /// find the surface it was placed on.</summary>
@@ -63,13 +72,13 @@ internal static class BuildingFinder
 
         var exact = new HashSet<(int Id, int Data)>(roofSpec.Where(entry => entry.Data >= 0));
         var anyData = new HashSet<int>(roofSpec.Where(entry => entry.Data < 0).Select(entry => entry.Id));
-        bool IsRoof(int id, int data) => anyData.Contains(id) || exact.Contains((id, data));
+        bool IsRoof(int id, int data) => anyData.Contains(id) || exact.Contains((id, MaterialBits(id, data)));
 
         // The rim is the second wood a roof is bordered with. Its presence is what tells a laid roof from a
         // cap: a house roof is a fill enclosed by a border, and a cap is one material all the way across.
         var rimExact = new HashSet<(int Id, int Data)>(rimSpec.Where(entry => entry.Data >= 0));
         var rimAny = new HashSet<int>(rimSpec.Where(entry => entry.Data < 0).Select(entry => entry.Id));
-        bool IsRim(int id, int data) => rimAny.Contains(id) || rimExact.Contains((id, data));
+        bool IsRim(int id, int data) => rimAny.Contains(id) || rimExact.Contains((id, MaterialBits(id, data)));
 
         var columns = new Dictionary<(int X, int Z), Column>();
         var terrain = new Dictionary<(int X, int Z), int>();
@@ -112,9 +121,11 @@ internal static class BuildingFinder
                 string.Join(", ", materials));
 
             // Plank laid on the ground is a deck, a floor, or texture worked into a hillside, and none of
-            // those is a roof. Clearance over the terrain beneath is what separates them, since the material
-            // and the connectivity are identical.
-            if (candidate.RoofLow - candidate.GroundY < minimumHeight) continue;
+            // those is a roof. Clearance over the terrain beneath separates them, since the material and the
+            // connectivity are identical — but it has to be measured at the ridge, not the eave. A pitched
+            // roof comes down to meet its walls, so its lowest course sits a block or two off the ground
+            // exactly as a deck does, and testing there discards the houses along with the decking.
+            if (candidate.RoofHigh - candidate.GroundY < minimumHeight) continue;
             // The smallest thing a map builds is still a room. Below that a component is a cap, a marker or
             // a fragment of decking, and no measure taken on it means anything.
             if (maxX - minX + 1 < minimumSide || maxZ - minZ + 1 < minimumSide) continue;
