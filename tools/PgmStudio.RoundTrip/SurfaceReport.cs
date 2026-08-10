@@ -30,7 +30,9 @@ internal static class SurfaceReport
     /// <para>An ore sits with the stone it is embedded in rather than in a family of its own: it is a stone
     /// with something in it and reads as that stone, so naming it apart would split one field in two. Logs are
     /// out for the reason the leaves are — bark is a tree, not ground — while the planks cut from them are in,
-    /// since a plank floor is ground a player stands on.</para>
+    /// since a plank floor is ground a player stands on. Bedrock is a full cube and still has no tone: it is
+    /// the map's floor and the shell of its walls, the one block that means the world ends here, so reading it
+    /// as a grey would call a boundary a material and invite it into terrain.</para>
     ///
     /// <para>Only <b>full cubes</b> are named. These tones are a vocabulary for building ground, and a slab, a
     /// stair, a fence or a flower is something that stands on ground rather than something ground is made of;
@@ -59,7 +61,7 @@ internal static class SurfaceReport
         ("cobble",      0x767B72, [(4, 0), (98, 2)]),
         ("mauve",       0x8A7A8E, [(110, 0), (159, 3)]),
         ("azure",       0x3B5DA8, [(35, 11), (22, 0), (159, 11)]),
-        ("slate",       0x5A6066, [(159, 9), (35, 7), (7, 0)]),
+        ("slate",       0x5A6066, [(159, 9), (35, 7)]),
         ("dark",        0x2E2B2B, [(112, 0), (159, 15), (35, 15), (173, 0), (49, 0)]),
         ("ice",         0xA9CBE0, [(79, 0), (174, 0)]),
         ("bright",      0xE8E9E4, [(80, 0), (155, 0), (155, 1)]),
