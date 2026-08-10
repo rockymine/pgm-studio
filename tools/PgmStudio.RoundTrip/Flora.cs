@@ -97,8 +97,18 @@ internal static class Flora
                         // branch is rotated wood the moment it leaves the stem — so an oriented log rooted
                         // on the ground is a limb touching down, not a second tree.
                         var run = 0;
-                        while (y + run < 256 && IsAllBark(ids[((y + run) << 8) | col], data[((y + run) << 8) | col])) run++;
-                        if (run >= MinimumStem) rooted.Add(((worldX, y, worldZ), run));
+                        var woods = new HashSet<string>();
+                        while (y + run < 256)
+                        {
+                            int runId = ids[((y + run) << 8) | col], runData = data[((y + run) << 8) | col];
+                            if (!IsAllBark(runId, runData)) break;
+                            woods.Add(LogSpecies(runId, runData));
+                            run++;
+                        }
+                        // A tree grows one wood. A column that changes species partway up is a built shaft
+                        // faced in bark — an author stacking two timbers gives the giveaway no leaf count
+                        // can, since such a tower stands among real trees and borrows their canopy.
+                        if (run >= MinimumStem && woods.Count == 1) rooted.Add(((worldX, y, worldZ), run));
                     }
                 }
         }
