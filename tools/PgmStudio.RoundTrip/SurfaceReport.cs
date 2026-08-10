@@ -27,6 +27,11 @@ internal static class SurfaceReport
     /// decision across four rows and reports the variation inside a field as though it were the field. Grass,
     /// green clay and lime clay are one surface with a texture; counted apart they look like three.
     ///
+    /// <para>Ores are not here, and neither are the infested stones: an ore is a stone with something in it
+    /// and reads as the stone, so naming it apart splits a field that is one field. Logs are out for the same
+    /// reason the leaves are — bark is a tree, not ground — with the single exception of oak, which this
+    /// author lays as earth.</para>
+    ///
     /// <para>Only <b>full cubes</b> are named. These tones are a vocabulary for building ground, and a slab, a
     /// stair, a fence or a flower is something that stands on ground rather than something ground is made of;
     /// a double slab is a full block and belongs, its single-slab sibling does not. Anything partial that turns
@@ -39,17 +44,24 @@ internal static class SurfaceReport
     /// </summary>
     private static readonly (string Tone, int Rgb, (int Id, int Data)[] Blocks)[] Tones =
     [
-        ("verdant",     0x5BA83C, [(2, -1), (159, 13), (159, 5), (35, 13), (35, 5)]),
-        ("loam",        0x6B4A2E, [(3, -1), (5, 1), (5, 5), (159, 12), (35, 12)]),
-        ("brick",       0xA85C3C, [(45, -1), (1, 1), (1, 2), (159, 14), (172, -1), (159, 1)]),
-        ("grey stone",  0x9A9A96, [(1, 0), (1, 5), (1, 6), (13, -1), (98, -1), (14, -1), (15, -1),
-                                   (16, -1), (21, -1), (56, -1), (73, -1), (129, -1), (42, -1), (159, 8)]),
-        ("cobble",      0x5F6672, [(4, -1), (48, -1)]),
-        ("pale stone",  0xD8D8D0, [(1, 3), (1, 4)]),
-        ("sand",        0xE0D2A0, [(12, 0), (24, -1), (5, 2), (17, 2), (121, -1)]),
-        ("rust",        0xB2542A, [(12, 1), (179, -1), (5, 4), (17, 4)]),
-        ("dark",        0x3A3A44, [(159, 9), (35, 7), (7, -1), (159, 15), (49, -1), (159, 7), (35, 15)]),
-        ("bright",      0xF2F6FA, [(155, -1), (80, -1), (159, 0), (35, 0)]),
+        ("verdant",     0x4E8A33, [(159, 5), (2, 0), (159, 13), (35, 13), (168, 2)]),
+        ("spring",      0x78C13A, [(165, 0), (35, 5), (133, 0)]),
+        ("turquoise",   0x3E9E8C, [(168, 0), (168, 1)]),
+        ("loam",        0x5A4126, [(3, 2), (159, 12), (88, 0), (5, 5), (35, 12)]),
+        ("dirt",        0x8A6743, [(17, 0), (5, 3), (3, 0), (3, 1), (5, 1)]),
+        ("brick",       0x9A6250, [(1, 1), (1, 2), (45, 0), (172, 0)]),
+        ("rust",        0xA85A28, [(5, 4), (159, 1), (12, 1), (179, 0), (181, 8)]),
+        ("sand",        0xD6C894, [(12, 0), (5, 2), (24, 0), (43, 9), (121, 0)]),
+        ("gold",        0xC6A62F, [(35, 4), (19, 0), (19, 1), (103, 0)]),
+        ("pale stone",  0xB4B2AE, [(1, 3), (1, 4), (99, 15)]),
+        ("ash",         0x9DA0A0, [(35, 8), (159, 8), (43, 8), (43, 0)]),
+        ("grey stone",  0x7C817A, [(1, 0), (1, 5), (1, 6), (98, 0), (13, 0)]),
+        ("cobble",      0x767B72, [(4, 0), (98, 2)]),
+        ("mauve",       0x8A7A8E, [(110, 0), (159, 3)]),
+        ("azure",       0x3B5DA8, [(35, 11), (22, 0), (159, 11)]),
+        ("slate",       0x5A6066, [(159, 9), (35, 7), (7, 0)]),
+        ("dark",        0x2E2B2B, [(112, 0), (159, 15), (35, 15), (173, 0), (49, 0)]),
+        ("bright",      0xE8E9E4, [(80, 0), (155, 0), (155, 1)]),
     ];
 
     private static readonly Dictionary<(int Id, int Data), string> ToneOf = BuildTones();
