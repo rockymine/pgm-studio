@@ -1235,10 +1235,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   in fields, so each is scored by how often it neighbours its own kind against how often it would by chance,
   with patch counts and median size giving the scale. Materials are also grouped into **tones** — the families an author
   actually reaches for, "the green", "the earth", "the grey stone" — because a per-block histogram splits one
-  decision across four rows and reports the variation inside a field as though it were the field. Unlike a path
-  or roof palette that table is a property of the blocks and not of a map (granite reads warm everywhere), so it
-  is a default rather than an argument, and an unnamed material stays unnamed instead of being forced into a
-  family. Measured on alpine_mining_ii: every material 2.5×–24× self-adjacent, nothing random; and by tone the
+  decision across four rows and reports the variation inside a field as though it were the field. Only **full cubes** are named, since the tones are a vocabulary for
+  building ground and a slab, stair, fence or flower stands on ground rather than being it — a double slab is a
+  full block and belongs, its single-slab sibling does not, and anything partial found on the surface reports as
+  unnamed, which is the honest answer. Unlike a path or roof palette that table is a property of the blocks and
+  not of a map (granite reads warm everywhere), so it is a default rather than an argument. Measured on alpine_mining_ii: every material 2.5×–24× self-adjacent, nothing random; and by tone the
   warm family resolves from 423 scattered material patches into **33 fields, the largest 1,821 cells** — the
   road network, recovered without being told its palette. (B66)
 - **Supported map range (enforced in `MapParser`)** — the parser accepts **proto >= 1.4.0** only (PGM's

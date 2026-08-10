@@ -27,6 +27,11 @@ internal static class SurfaceReport
     /// decision across four rows and reports the variation inside a field as though it were the field. Grass,
     /// green clay and lime clay are one surface with a texture; counted apart they look like three.
     ///
+    /// <para>Only <b>full cubes</b> are named. These tones are a vocabulary for building ground, and a slab, a
+    /// stair, a fence or a flower is something that stands on ground rather than something ground is made of;
+    /// a double slab is a full block and belongs, its single-slab sibling does not. Anything partial that turns
+    /// up on the surface reports as unnamed, which is the honest answer — it is not the terrain, it is on it.</para>
+    ///
     /// <para>Unlike a path or roof palette this table is a property of the blocks rather than of a map:
     /// granite reads warm on every world, podzol reads dark. It is therefore a default rather than an
     /// argument, and a material it does not name is reported as unnamed instead of being forced into a
@@ -34,17 +39,17 @@ internal static class SurfaceReport
     /// </summary>
     private static readonly (string Tone, int Rgb, (int Id, int Data)[] Blocks)[] Tones =
     [
-        ("verdant",     0x5BA83C, [(2, -1), (159, 13), (159, 5), (35, 13), (35, 5), (31, -1)]),
-        ("loam",        0x6B4A2E, [(3, -1), (5, 1), (5, 5), (159, 12), (35, 12), (60, -1)]),
+        ("verdant",     0x5BA83C, [(2, -1), (159, 13), (159, 5), (35, 13), (35, 5)]),
+        ("loam",        0x6B4A2E, [(3, -1), (5, 1), (5, 5), (159, 12), (35, 12)]),
         ("brick",       0xA85C3C, [(45, -1), (1, 1), (1, 2), (159, 14), (172, -1), (159, 1)]),
         ("grey stone",  0x9A9A96, [(1, 0), (1, 5), (1, 6), (13, -1), (98, -1), (14, -1), (15, -1),
                                    (16, -1), (21, -1), (56, -1), (73, -1), (129, -1), (42, -1), (159, 8)]),
-        ("cobble",      0x5F6672, [(4, -1), (48, -1), (139, -1), (67, -1)]),
+        ("cobble",      0x5F6672, [(4, -1), (48, -1)]),
         ("pale stone",  0xD8D8D0, [(1, 3), (1, 4)]),
-        ("sand",        0xE0D2A0, [(12, 0), (24, -1), (5, 2), (17, 2), (121, -1), (128, -1)]),
-        ("rust",        0xB2542A, [(12, 1), (179, -1), (5, 4), (17, 4), (159, 1), (180, -1)]),
+        ("sand",        0xE0D2A0, [(12, 0), (24, -1), (5, 2), (17, 2), (121, -1)]),
+        ("rust",        0xB2542A, [(12, 1), (179, -1), (5, 4), (17, 4)]),
         ("dark",        0x3A3A44, [(159, 9), (35, 7), (7, -1), (159, 15), (49, -1), (159, 7), (35, 15)]),
-        ("bright",      0xF2F6FA, [(155, -1), (80, -1), (78, -1), (159, 0), (35, 0), (43, 7), (44, 7)]),
+        ("bright",      0xF2F6FA, [(155, -1), (80, -1), (159, 0), (35, 0)]),
     ];
 
     private static readonly Dictionary<(int Id, int Data), string> ToneOf = BuildTones();
@@ -69,7 +74,7 @@ internal static class SurfaceReport
     /// <summary>Grows on the ground rather than being it. Kept, but reported as a layer over its own soil.</summary>
     private static readonly HashSet<int> Decoration =
     [
-        6, 31, 32, 37, 38, 39, 40, 59, 83, 104, 105, 106, 111, 115, 141, 142, 175,
+        6, 31, 32, 37, 38, 39, 40, 59, 78, 83, 104, 105, 106, 111, 115, 141, 142, 175,
     ];
 
     private static readonly HashSet<int> Liquid = [8, 9, 10, 11];
