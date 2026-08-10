@@ -194,36 +194,66 @@ internal static class Flora
             stands.Add((cluster, runs, trunkCells, trunkWood));
         }
 
-        var canopies = AssignLeaves([.. stands.Select(stand => stand.Trunk)], leaves);
+        // Which stems carry a canopy at all, before any leaf is shared out. A crown grows from its own trunk
+        // and touches it, so a stem with foliage against it is a tree and one standing in clear air is a post,
+        // however much foliage happens to stand nearby.
+        var wooded = stands.Where(stand => Touches(stand.Trunk, leaves)).ToList();
+        var posts = stands.Where(stand => !Touches(stand.Trunk, leaves)).ToList();
+
+        // Only trees take part in the sharing, so a post can no longer take a leaf off the tree beside it.
+        var canopies = AssignLeaves([.. wooded.Select(stand => stand.Trunk)], leaves);
 
         var trees = new List<Tree>();
-        for (var index = 0; index < stands.Count; index++)
+        for (var index = 0; index < wooded.Count; index++)
         {
-            var (cluster, runs, trunkCells, trunkWood) = stands[index];
+            var (cluster, runs, trunkCells, trunkWood) = wooded[index];
             var canopy = canopies[index];
-            // A tree with no leaves of its own keeps its trunk's name; it is a bare stem and reported as one.
             var species = canopy.Species.Count > 0
                 ? canopy.Species.OrderByDescending(entry => entry.Value).First().Key
                 : trunkWood;
 
-            trees.Add(new Tree(species, trunkWood, cluster.Count, trunkCells.Count, canopy.Leaves,
-                cluster.Min(cell => cell.X), cluster.Max(cell => cell.X),
-                cluster.Min(cell => cell.Z), cluster.Max(cell => cell.Z),
-                cluster.Min(cell => cell.Y), cluster.Min(cell => cell.Y) + runs.Max() - 1, trunkCells)
-            {
-                CanopyWidth = canopy.Leaves == 0 ? 0
-                    : Math.Max(canopy.SpanX.Max - canopy.SpanX.Min, canopy.SpanZ.Max - canopy.SpanZ.Min) + 1,
-            });
+            trees.Add(Build(species, canopy.Leaves, canopy.Leaves == 0 ? 0
+                : Math.Max(canopy.SpanX.Max - canopy.SpanX.Min, canopy.SpanZ.Max - canopy.SpanZ.Min) + 1));
+
+            Tree Build(string named, int owned, int width) =>
+                new(named, trunkWood, cluster.Count, trunkCells.Count, owned,
+                    cluster.Min(cell => cell.X), cluster.Max(cell => cell.X),
+                    cluster.Min(cell => cell.Z), cluster.Max(cell => cell.Z),
+                    cluster.Min(cell => cell.Y), cluster.Min(cell => cell.Y) + runs.Max() - 1, trunkCells)
+                { CanopyWidth = width };
         }
+
+        // A post is named for the only material it has, its own wood.
+        var bare = posts.Select(stand => new Tree(stand.Wood, stand.Wood, stand.Cluster.Count, stand.Trunk.Count, 0,
+            stand.Cluster.Min(cell => cell.X), stand.Cluster.Max(cell => cell.X),
+            stand.Cluster.Min(cell => cell.Z), stand.Cluster.Max(cell => cell.Z),
+            stand.Cluster.Min(cell => cell.Y), stand.Cluster.Min(cell => cell.Y) + stand.Runs.Max() - 1,
+            stand.Trunk)).ToList();
 
         // What the stem pass did not claim: wood that never rooted. Split by whether it carries bark, since
         // an all-bark post is a deliberate choice and plain oriented timber is a wall.
         var leftover = logs.Keys.Where(cell => !claimed.Contains(cell)).ToList();
         var bareBark = leftover.Count(cell => IsAllBark(logs[cell].Id, logs[cell].Data));
 
-        return new Result([.. trees.Where(tree => tree.LeafCount > 0)],
-            [.. trees.Where(tree => tree.LeafCount == 0)],
-            leftover.Count - bareBark, bareBark);
+        return new Result(trees, bare, leftover.Count - bareBark, bareBark);
+    }
+
+    /// <summary>Whether any leaf stands against this trunk, on any of its faces, corners included.
+    ///
+    /// <para>This is what tells a tree from a post, and it is asked before any leaf is shared out. Foliage
+    /// grows from the trunk that carries it, so a crown is in contact with its own stem; a pillar planted
+    /// among trees has air on every side of it and the nearest leaves belong to the trunk they grew from.
+    /// Distance cannot make that distinction, because a post two blocks from a tree is nearer some of that
+    /// tree's leaves than the tree itself is.</para></summary>
+    private static bool Touches(List<(int X, int Y, int Z)> trunk,
+                                Dictionary<(int X, int Y, int Z), (int Id, int Data)> leaves)
+    {
+        foreach (var log in trunk)
+            for (var dy = -1; dy <= 1; dy++)
+                for (var dz = -1; dz <= 1; dz++)
+                    for (var dx = -1; dx <= 1; dx++)
+                        if (leaves.ContainsKey((log.X + dx, log.Y + dy, log.Z + dz))) return true;
+        return false;
     }
 
     /// <summary>How far from a trunk a leaf may still belong to it. Beyond this a leaf is nobody's.</summary>
