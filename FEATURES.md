@@ -1110,6 +1110,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `dotnet run --project src/PgmStudio.Import <outRoot>` ingests the cheap files into MariaDB (including
   monument candidates), or `… <outRoot> --monuments-only` re-ingests just the monument-candidate gather for
   maps already in the DB. Verified end-to-end (row-counts + doc round-trip).
+- **Top-down world render (`--topdown <regionDir> <out.png>`)** — a world's surface as a PNG, one pixel
+  block per column, coloured by the same `BlockPalette` table the layer view and the terrain picker read, so
+  the image and the editor cannot disagree about what a block looks like. Relief comes from the step to the
+  column one row north rather than from absolute height, which marks every wall, trench and plateau lip while
+  leaving flat ground its own material colour; a flooded column is traced down to its bed and dimmed by the
+  depth standing over it, so a shoreline reads. `--map <map.xml>` overlays what the XML declares — objective
+  destroyables and cores in their owner's team colour, apply-rule regions outlined — against the terrain that
+  is actually there; `--scale N` sets pixels per block (nearest-neighbour, so a block stays a square) and
+  `--ymax Y` caps the scan below a ceiling structure. `PngWriter` emits the file directly (Up-filtered
+  scanlines through `ZLibStream`), so the harness gains no imaging dependency. (B60)
 - **Supported map range (enforced in `MapParser`)** — the parser accepts **proto >= 1.4.0** only (PGM's
   id-based regions/filters/kits floor) and rejects **modern worlds** (`min-server-version >= 1.13.0`, whose
   post-"flattening" palette chunks the Anvil reader can't decode), throwing `UnsupportedMapException` with a

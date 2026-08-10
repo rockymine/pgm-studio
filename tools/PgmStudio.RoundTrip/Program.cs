@@ -128,6 +128,22 @@ var cbrIdx = Array.IndexOf(args, "--clean-base-render");
 if (cbrIdx >= 0 && cbrIdx + 2 < args.Length)
     return RunCleanBaseRender(args[cbrIdx + 1], args[cbrIdx + 2]);
 
+// --topdown <regionDir> <outPng> [--map <map.xml>] [--scale N] [--ymax Y]: the world's surface as a
+// top-down PNG, coloured by BlockPalette with north-facing relief shading. --map overlays what the XML
+// declares (objectives, spawns, apply-rule boxes) so the geometry can be read against the terrain.
+var topIdx = Array.IndexOf(args, "--topdown");
+if (topIdx >= 0 && topIdx + 2 < args.Length)
+{
+    var mapIdx = Array.IndexOf(args, "--map");
+    var scaleIdx = Array.IndexOf(args, "--scale");
+    var yMaxIdx = Array.IndexOf(args, "--ymax");
+    return PgmStudio.RoundTrip.TopDownRender.Run(
+        args[topIdx + 1], args[topIdx + 2],
+        mapIdx >= 0 && mapIdx + 1 < args.Length ? args[mapIdx + 1] : null,
+        scaleIdx >= 0 && scaleIdx + 1 < args.Length && int.TryParse(args[scaleIdx + 1], out var topScale) ? Math.Max(1, topScale) : 3,
+        yMaxIdx >= 0 && yMaxIdx + 1 < args.Length && int.TryParse(args[yMaxIdx + 1], out var topYMax) ? topYMax : null);
+}
+
 // --island-study <regionDir> <outJson> [tolerance]: cleaned-base islands with their polygons (exterior +
 // holes) both raw and Douglas-Peucker-simplified, emitted as JSON for studying real-map shapes.
 var islandStudyIdx = Array.IndexOf(args, "--island-study");
