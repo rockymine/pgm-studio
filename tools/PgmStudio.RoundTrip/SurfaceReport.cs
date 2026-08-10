@@ -41,7 +41,7 @@ internal static class SurfaceReport
                                    (16, -1), (21, -1), (56, -1), (73, -1), (129, -1), (42, -1), (159, 8)]),
         ("cobble",      0x5F6672, [(4, -1), (48, -1), (139, -1), (67, -1)]),
         ("pale stone",  0xD8D8D0, [(1, 3), (1, 4)]),
-        ("sand",        0xE0D2A0, [(12, 0), (24, -1), (5, 2), (17, 2), (128, -1)]),
+        ("sand",        0xE0D2A0, [(12, 0), (24, -1), (5, 2), (17, 2), (121, -1), (128, -1)]),
         ("rust",        0xB2542A, [(12, 1), (179, -1), (5, 4), (17, 4), (159, 1), (180, -1)]),
         ("dark",        0x3A3A44, [(159, 9), (35, 7), (7, -1), (159, 15), (49, -1), (159, 7), (35, 15)]),
         ("bright",      0xF2F6FA, [(155, -1), (80, -1), (78, -1), (159, 0), (35, 0), (43, 7), (44, 7)]),
@@ -87,8 +87,8 @@ internal static class SurfaceReport
         or 114 or 125 or 126 or 128 or 134 or 135 or 136 or 139 or 156 or 160 or 163 or 164
         or 171 or 180 or 186 or 188 or 189 or 190 or 191 or 192 or 193 or 194 or 195 or 196 or 197;
 
-    private readonly record struct Cell(int Ground, int GroundData, int Decor, int DecorData, int Depth, int Bed,
-                                        int BedData, bool Built, bool Shaded);
+    private readonly record struct Cell(int Ground, int GroundData, int GroundY, int Decor, int DecorData,
+                                        int Depth, int Bed, int BedData, bool Built, bool Shaded);
 
     public static int Run(string regionDir, string outPng, int scale, int topMaterials)
     {
@@ -111,6 +111,7 @@ internal static class SurfaceReport
         ReportBeds(columns);
         ReportPatchiness(ground, topMaterials);
         ReportTonePatchiness(ground);
+        ReportRelief(columns);
         Draw(outPng, scale, columns, ground);
         return 0;
     }
@@ -145,7 +146,7 @@ internal static class SurfaceReport
 
                     if (depth > 0) { bed = id; bedData = data[(y << 8) | col]; }
                     columns[(chunk.ChunkX * 16 + lx, chunk.ChunkZ * 16 + lz)] =
-                        new Cell(id, data[(y << 8) | col], decor, decorData, depth, bed, bedData, built, shaded);
+                        new Cell(id, data[(y << 8) | col], y, decor, decorData, depth, bed, bedData, built, shaded);
                     break;
                 }
             }
@@ -195,6 +196,41 @@ internal static class SurfaceReport
             var sizes = Components(cells).OrderBy(size => size).ToList();
             Console.WriteLine($"  {group.Key,-12} {share * 100,5:0.0}% {neighbourly * 100,14:0.0}% " +
                 $"{neighbourly / Math.Max(1e-9, share),9:0.0}x {sizes.Count,7} {sizes[sizes.Count / 2],7} {sizes[^1],8}");
+        }
+    }
+
+    /// <summary>Where each tone sits in the landscape rather than on the plan. Height says which band of the
+    /// terrain a tone belongs to; the steepest step to a neighbour says whether it was laid on flat ground or
+    /// used to face something. A tone that marks cliffs and rocks has to show up as steep however common it
+    /// is, and one that makes the landscape has to show up as flat however rare.</summary>
+    private static void ReportRelief(Dictionary<(int X, int Z), Cell> columns)
+    {
+        var open = columns.Where(entry => !entry.Value.Built && entry.Value.Depth == 0).ToList();
+        if (open.Count == 0) return;
+        var height = open.ToDictionary(entry => entry.Key, entry => entry.Value.GroundY);
+        var all = height.Values.OrderBy(y => y).ToList();
+
+        Console.WriteLine($"\n=== where each tone sits: height band and the steepest step to a neighbour ===");
+        Console.WriteLine($"  {"tone",-12} {"height p10..p90",16} {"median",7} {"slope median",13} {"steep (3+)",11}");
+        Console.WriteLine($"  {"— whole map —",-12} {$"{all[all.Count / 10]}..{all[all.Count * 9 / 10]}",16} {all[all.Count / 2],7}");
+
+        foreach (var group in open.GroupBy(entry => ToneName(entry.Value.Ground, entry.Value.GroundData))
+                     .OrderByDescending(group => group.Count()))
+        {
+            var heights = group.Select(entry => entry.Value.GroundY).OrderBy(y => y).ToList();
+            var slopes = new List<int>();
+            foreach (var entry in group)
+            {
+                var steepest = 0;
+                foreach (var (dx, dz) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
+                    if (height.TryGetValue((entry.Key.X + dx, entry.Key.Z + dz), out var other))
+                        steepest = Math.Max(steepest, Math.Abs(other - entry.Value.GroundY));
+                slopes.Add(steepest);
+            }
+            slopes.Sort();
+            var steep = slopes.Count(slope => slope >= 3) * 100.0 / slopes.Count;
+            Console.WriteLine($"  {group.Key,-12} {$"{heights[heights.Count / 10]}..{heights[heights.Count * 9 / 10]}",16} " +
+                $"{heights[heights.Count / 2],7} {slopes[slopes.Count / 2],13} {steep,10:0.0}%");
         }
     }
 
