@@ -22,13 +22,17 @@ internal static class SurfaceReport
 {
 
     /// <summary>
-    /// The family a block reads as, or "unnamed" for one no family names. The vocabulary itself is
-    /// <see cref="TerrainPalette.Families"/> — the same table the paint picker offers, so what a report
-    /// measures and what an author paints cannot drift apart. A material outside it is reported as unnamed
-    /// rather than forced into a family, which is the honest answer: a partial block or a fixture is not the
-    /// terrain, it is something standing on it.
+    /// The family a block reads as. The vocabulary itself is <see cref="TerrainPalette.Families"/> — the same
+    /// table the paint picker offers, so what a report measures and what an author paints cannot drift apart.
+    ///
+    /// <para>A block outside it is not forced into a family, and the two ways of being outside it are told
+    /// apart because they mean different things. A <b>partial block</b> is not a failure of the vocabulary: a
+    /// stair or a slab found on the surface is something standing on the ground, and the vocabulary names only
+    /// full blocks by design. <b>Unnamed</b> is the narrower answer it leaves behind — a full block of something
+    /// no family covers, which is a gap worth looking at.</para>
     /// </summary>
-    private static string ToneName(int id, int data) => TerrainPalette.FamilyOf(id, data) ?? "unnamed";
+    private static string ToneName(int id, int data) =>
+        TerrainPalette.FamilyOf(id, data) ?? (BlockRoles.IsFullCube(id) ? "unnamed" : "partial block");
 
     /// <summary>Standing on the ground rather than being it — what grows and what an author placed. Kept, but
     /// reported as a layer over its own soil.</summary>
@@ -291,13 +295,16 @@ internal static class SurfaceReport
                 if (!columns.TryGetValue(cell, out var column)) { Raster.Set(pixels, blocksWide, col, row, 0x0E0E12); continue; }
                 if (column.Built) { Raster.Set(pixels, blocksWide, col, row, 0x2A2D33); continue; }
                 if (column.Depth > 0) { Raster.Set(pixels, blocksWide, col, row, 0x1B3A5C); continue; }
+                // A partial block gets its own colour rather than the unnamed magenta: it is not a gap in the
+                // vocabulary, it is a thing standing on ground the vocabulary would have named.
+                var tone = ToneName(column.Ground, column.GroundData);
                 Raster.Set(pixels, blocksWide, col, row,
-                    TerrainPalette.ColourOf(ToneName(column.Ground, column.GroundData)));
+                    tone == "partial block" ? 0xC08030 : TerrainPalette.ColourOf(tone));
             }
 
         var scaled = Raster.Upscale(pixels, blocksWide, blocksHigh, scale);
         PngWriter.Write(outPng, blocksWide * scale, blocksHigh * scale, scaled);
         Console.WriteLine($"\n  wrote {outPng} ({blocksWide * scale}x{blocksHigh * scale} px, {scale} px/block); " +
-            $"structure charcoal, water blue, unnamed materials magenta");
+            $"structure charcoal, water blue, partial blocks amber, unnamed materials magenta");
     }
 }

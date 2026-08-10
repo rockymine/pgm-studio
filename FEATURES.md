@@ -1241,7 +1241,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   alpine_mining_ii — buildings still 34 components split **23 house roofs / 11 caps** with 4 corner stems, trees
   still **109 acacia-birch / 95 spruce / 4 oak** at canopy widths 8/7/13 — and the point of the change shows in
   the residue: unnamed ground fell from 0.4% to **0.2%**, the mob heads and daylight sensors leaving it for the
-  decoration layer where they belong. (B68)
+  decoration layer where they belong.
+  <br>**Fullness is a separate axis** (`IsFullCube`) — shape, not role, since a dropper is decoration and fills
+  its cube while a stone slab is a material and does not, and neither answer can be read off the other. It
+  states what the ground vocabulary means by naming only full blocks, which was previously enforced by
+  hand-picking ids and re-derived a second time as a slab-bit mask in the roof finder. The surface report now
+  separates **partial block** from **unnamed**: a stair on the surface is not a gap in the vocabulary but a
+  thing standing on ground, while unnamed narrows to a full block no family covers. On alpine_mining_ii that
+  splits the last 0.2% into 28 columns of cobblestone stairs and **35 of iron block, gold block and gold ore —
+  every one a resource deposit reaching the surface**, which the resource pass names. Nothing is left
+  unexplained. Gated by ten role tests, including the two that tie the vocabularies together: every block a
+  tone family names fills its cube, and none of them stands on the ground. (B68)
 - **Resource deposits (`--resources <regionDir> <out.png>`)** — what a map gives a player to take and what it
   charges for it. **A deposit is the placement, not the block**: a seam of two hundred iron is one decision an
   author made once, so lumps are 6-connected per material and every measure is per lump — two maps with the same

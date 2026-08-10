@@ -119,6 +119,36 @@ public static class BlockRoles
         176, 177,                   // banner, wall banner
     ];
 
+    /// <summary>The materials that do not fill their cube. Only the singles are here: a double slab is a whole
+    /// block and keeps its own id, which is why 43, 125 and 181 are absent while 44, 126 and 182 are not.</summary>
+    private static readonly HashSet<int> PartialMaterials =
+    [
+        44, 126, 182,               // slabs: stone, wooden, red sandstone
+        53, 67, 108, 109, 114, 128, 134, 135, 136, 156, 163, 164, 180,   // stairs, every material
+        102, 160,                   // glass pane, stained glass pane
+    ];
+
+    /// <summary>The placed blocks that do fill their cube after all. Most decoration is thinner than its block —
+    /// a fence, a torch, a carpet — but a dropper is a solid box with a face on it, and a pass asking about
+    /// shape has to be told the difference from a pass asking about placement.</summary>
+    private static readonly HashSet<int> FullDecorations = [23, 29, 33, 52, 137, 138, 158];
+
+    /// <summary>Whether the block fills its cube. This is <b>shape, not role</b>: the two are separate questions
+    /// and a block answers them independently — a dropper is decoration and a full cube, a stone slab is a
+    /// material and is not. It is what the ground vocabulary means by naming only full blocks, and what a pass
+    /// means when it reports a partial block on the surface as something standing on the ground rather than as
+    /// the ground.
+    ///
+    /// <para>Leaves and logs fill their cube, so a tree is full; nothing that grows does, since even a cactus
+    /// stands a sixteenth short on every side.</para></summary>
+    public static bool IsFullCube(int blockId) => Of(blockId) switch
+    {
+        BlockRole.Air or BlockRole.Liquid or BlockRole.Flora => false,
+        BlockRole.Tree => true,
+        BlockRole.Decoration => FullDecorations.Contains(blockId),
+        _ => !PartialMaterials.Contains(blockId),
+    };
+
     /// <summary>The role a block plays.</summary>
     public static BlockRole Of(int blockId) =>
         blockId == 0 ? BlockRole.Air
