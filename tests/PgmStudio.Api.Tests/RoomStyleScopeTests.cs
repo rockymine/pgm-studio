@@ -48,14 +48,14 @@ public sealed class RoomStyleScopeTests
     {
         var (cage, spawn) = RoomStyleScope.StylesOf(Plain);
 
-        await Assert.That(cage).IsEqualTo(RoomStyle.Cage);
+        await Assert.That(cage).IsEqualTo(RoomStyle.Wool);
         await Assert.That(spawn).IsEqualTo(RoomStyle.Spawn);
     }
 
     [Test]
     public async Task Each_kind_is_bound_on_its_own_and_the_other_keeps_its_default()
     {
-        var tall = RoomStyle.Cage with { Wall = RoomStyle.Cage.Wall with { Extent = 11 } };
+        var tall = RoomStyle.Wool with { Wall = RoomStyle.Wool.Wall with { Extent = 11 } };
         var (cage, spawn) = RoomStyleScope.StylesOf(Bound(cage: tall));
 
         await Assert.That(cage.Wall.Extent).IsEqualTo(11);
@@ -68,7 +68,7 @@ public sealed class RoomStyleScopeTests
         var layout = Plain[..^1] + ",\"roomStyles\":{\"cage\":{\"wall\":\"not a part\"}}}";
         var (cage, spawn) = RoomStyleScope.StylesOf(layout);
 
-        await Assert.That(cage).IsEqualTo(RoomStyle.Cage);
+        await Assert.That(cage).IsEqualTo(RoomStyle.Wool);
         await Assert.That(spawn).IsEqualTo(RoomStyle.Spawn);
     }
 
@@ -78,7 +78,7 @@ public sealed class RoomStyleScopeTests
     {
         // Sandstone walls: a block no built-in shell ever places, so finding it says the binding travelled the
         // whole way rather than that a default happened to match.
-        var sandstone = RoomStyle.Cage with { Wall = RoomPart.Of(new SolidMaterial(Blocks.Sandstone), 7) };
+        var sandstone = RoomStyle.Wool with { Wall = RoomPart.Of(new SolidMaterial(Blocks.Sandstone), 7) };
         var built = SketchWorldBuilder.Build(Bound(cage: sandstone), Intent());
 
         await Assert.That(Count(built.World, -10, 10, Blocks.Sandstone)).IsGreaterThan(0);
@@ -91,7 +91,7 @@ public sealed class RoomStyleScopeTests
     {
         // The stage-one promise, held at the far end of the pipeline: the two worlds are the same world.
         var plain = SketchWorldBuilder.Build(Plain, Intent());
-        var bound = SketchWorldBuilder.Build(Bound(cage: RoomStyle.Cage, spawn: RoomStyle.Spawn), Intent());
+        var bound = SketchWorldBuilder.Build(Bound(cage: RoomStyle.Wool, spawn: RoomStyle.Spawn), Intent());
 
         for (var y = 1; y < 30; y++)
         for (var x = -25; x <= 25; x += 1)

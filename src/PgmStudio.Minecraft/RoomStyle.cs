@@ -105,11 +105,11 @@ public sealed record RoomStyle
     [JsonIgnore]
     public int TopLayer => Wall.Extent + Roof.Extent;
 
-    /// <summary>The shipped wool cage: bedrock, a wool band at the fourth course, a light slit at the sixth,
-    /// and a stained-glass-pane door.</summary>
-    public static RoomStyle Cage { get; } = new() { Wall = Banded(Blocks.Wool) };
+    /// <summary>The shipped wool structure: bedrock, a wool band at the fourth course, a light slit at the
+    /// sixth, and a stained-glass-pane door.</summary>
+    public static RoomStyle Wool { get; } = new() { Wall = Banded(Blocks.Wool) };
 
-    /// <summary>The shipped spawn cube: the cage's shell with a stained-clay band, and an open doorway a
+    /// <summary>The shipped spawn structure: the same shell with a stained-clay band, and an open doorway a
     /// player can walk straight out of.</summary>
     public static RoomStyle Spawn { get; } = new()
     {
@@ -120,7 +120,7 @@ public sealed record RoomStyle
 
     /// <summary>The tallest shell the shipped styles build — what a caller clamps a floor against so a stamp
     /// cannot run past the world ceiling. Becomes a per-room read once a map binds its own styles.</summary>
-    public static int MaxTopLayer { get; } = Math.Max(Cage.TopLayer, Spawn.TopLayer);
+    public static int MaxTopLayer { get; } = Math.Max(Wool.TopLayer, Spawn.TopLayer);
 
     /// <summary>The shipped wall: three courses of bedrock, a coloured band, bedrock, an open course, bedrock.
     /// The band and the slit are courses like any other — that they used to be a hard-coded layer index and a

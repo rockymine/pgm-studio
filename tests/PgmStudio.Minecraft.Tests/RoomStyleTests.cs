@@ -24,14 +24,14 @@ public sealed class RoomStyleTests
         // course stack is a re-description of the old stamper, so every cell it writes must match what the
         // hard-coded layers wrote — the pad, the band, the slit, the hole and the doors included.
         foreach (var (style, door, doorHeight) in ((RoomStyle Style, int Door, int Height)[])
-                 [(RoomStyle.Cage, Blocks.StainedGlassPane, 3), (RoomStyle.Spawn, Blocks.Air, 4)])
+                 [(RoomStyle.Wool, Blocks.StainedGlassPane, 3), (RoomStyle.Spawn, Blocks.Air, 4)])
         {
             var spawnDoor = style == RoomStyle.Spawn ? RoomEdge.NegZ : (RoomEdge?)null;
             var frame = Baseline(spawnDoor);
             var world = new VoxelWorld();
             CubeStamper.Stamp(world, frame, floorY: 64, color: Red, style);
 
-            var band = style == RoomStyle.Cage ? Blocks.Wool : Blocks.StainedClay;
+            var band = style == RoomStyle.Wool ? Blocks.Wool : Blocks.StainedClay;
             for (var x = frame.MinX; x < frame.MaxX; x++)
             for (var z = frame.MinZ; z < frame.MaxZ; z++)
             for (var layer = 0; layer <= 8; layer++)
@@ -107,7 +107,7 @@ public sealed class RoomStyleTests
         // band at eye level, and it has to stay there when the room gets taller rather than slide with it.
         var frame = Baseline();
         var world = new VoxelWorld();
-        var tall = RoomStyle.Cage with { Wall = RoomStyle.Cage.Wall with { Extent = 11 } };
+        var tall = RoomStyle.Wool with { Wall = RoomStyle.Wool.Wall with { Extent = 11 } };
         CubeStamper.Stamp(world, frame, floorY: 64, color: Red, tall);
 
         await Assert.That(world.GetBlock(-4, 68, -1)).IsEqualTo((Blocks.Wool, Red));    // band still at layer 4
@@ -123,7 +123,7 @@ public sealed class RoomStyleTests
         // The pad is the exported point (WX5). A thicker floor that lifted it would move the spawn.
         var world = new VoxelWorld();
         CubeStamper.Stamp(world, Baseline(), floorY: 64, color: Red,
-            RoomStyle.Cage with { Floor = RoomPart.Of(new SolidMaterial(Blocks.Stone), 3) });
+            RoomStyle.Wool with { Floor = RoomPart.Of(new SolidMaterial(Blocks.Stone), 3) });
 
         await Assert.That(world.GetBlock(-1, 64, -1)).IsEqualTo((Blocks.Wool, Red));     // pad, unmoved
         await Assert.That(world.GetBlock(-4, 64, -4)).IsEqualTo((Blocks.Stone, 0));
@@ -139,7 +139,7 @@ public sealed class RoomStyleTests
         // which is why it needs no negotiation with anything outside the room.
         var frame = Baseline();
         var world = new VoxelWorld();
-        CubeStamper.Stamp(world, frame, floorY: 64, color: Red, RoomStyle.Cage with { Eave = RoofEdge.Overlap });
+        CubeStamper.Stamp(world, frame, floorY: 64, color: Red, RoomStyle.Wool with { Eave = RoofEdge.Overlap });
 
         await Assert.That(world.GetBlock(frame.MinX - 1, 72, frame.MinZ - 1)).IsEqualTo((Blocks.Bedrock, 0));
         await Assert.That(world.GetBlock(frame.MaxX, 72, frame.MaxZ)).IsEqualTo((Blocks.Bedrock, 0));
@@ -153,7 +153,7 @@ public sealed class RoomStyleTests
     {
         var world = new VoxelWorld();
         CubeStamper.Stamp(world, Baseline(), floorY: 64, color: Red,
-            RoomStyle.Cage with { Roof = RoomPart.Of(new SolidMaterial(Blocks.Bedrock), 3) });
+            RoomStyle.Wool with { Roof = RoomPart.Of(new SolidMaterial(Blocks.Bedrock), 3) });
 
         await Assert.That(world.GetBlock(-4, 72, -4)).IsEqualTo((Blocks.Bedrock, 0));
         await Assert.That(world.GetBlock(-4, 74, -4)).IsEqualTo((Blocks.Bedrock, 0));
@@ -167,7 +167,7 @@ public sealed class RoomStyleTests
     public async Task A_style_may_close_the_roof()
     {
         var world = new VoxelWorld();
-        CubeStamper.Stamp(world, Baseline(), floorY: 64, color: Red, RoomStyle.Cage with { RoofHole = false });
+        CubeStamper.Stamp(world, Baseline(), floorY: 64, color: Red, RoomStyle.Wool with { RoofHole = false });
 
         await Assert.That(world.GetBlock(-1, 72, -1)).IsEqualTo((Blocks.Bedrock, 0));
     }
@@ -198,7 +198,7 @@ public sealed class RoomStyleTests
         // wherever a shell meets something already stamped, and it is why a style can never delete a stamp.
         var world = new VoxelWorld();
         world.SetBlock(-4, 70, -3, Blocks.GoldBlock);
-        CubeStamper.Stamp(world, Baseline(), floorY: 64, color: Red, RoomStyle.Cage);
+        CubeStamper.Stamp(world, Baseline(), floorY: 64, color: Red, RoomStyle.Wool);
 
         await Assert.That(world.GetBlock(-4, 70, -3)).IsEqualTo((Blocks.GoldBlock, 0));
     }
@@ -210,7 +210,7 @@ public sealed class RoomStyleTests
         // A room wall is a closed ring, so the perimeter arc a wall-run pattern reads is defined all the way
         // round it — which is what lets one material serve terrain edges and room walls alike.
         var world = new VoxelWorld();
-        CubeStamper.Stamp(world, Baseline(), floorY: 64, color: Red, RoomStyle.Cage with
+        CubeStamper.Stamp(world, Baseline(), floorY: 64, color: Red, RoomStyle.Wool with
         {
             Wall = RoomPart.Of(new WallRunMaterial(
                 [new WallStripe(new SolidMaterial(Blocks.Stone), 1), new WallStripe(new SolidMaterial(Blocks.Dirt), 1)]), 7),

@@ -45,18 +45,8 @@ public static class CubeStamper
                 Write(world, style.Roof, step, x, roofFrom + step, z, color, frame);
         }
 
-        StampPad(world, frame, floorY, color);
+        PadStamp.Lay(world, frame.Pad, floorY, color);
         foreach (var door in frame.Doors) StampDoor(world, frame, floorY, door, style, color);
-    }
-
-    /// <summary>The pad: the wool square the room's point sits on (WX3/WX5), over whatever the floor style
-    /// laid. It is the one part of the floor a style cannot repaint — the exported location is derived from
-    /// it, so painting over it would stop the world and the XML agreeing.</summary>
-    private static void StampPad(VoxelWorld world, RoomFrame frame, int floorY, int color)
-    {
-        for (var x = frame.Pad.MinX; x < frame.Pad.MinX + frame.Pad.Size; x++)
-        for (var z = frame.Pad.MinZ; z < frame.Pad.MinZ + frame.Pad.Size; z++)
-            world.SetBlock(x, floorY, z, Blocks.Wool, color);
     }
 
     /// <summary>One cell of a part, resolved through its stack. Air is a gap: nothing is written, so the cell

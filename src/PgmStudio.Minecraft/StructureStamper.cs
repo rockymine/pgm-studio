@@ -13,10 +13,11 @@ public static class StructureStamper
     /// <summary>Cube edge (blocks): a 4×4×4 iron structure resting on the surface.</summary>
     public const int IronCubeSize = 4;
 
-    /// <summary>Fill a wool-room footprint with solid bedrock from y=0 up to (and including) the terrain
-    /// surface block, so the room cannot be tunnelled into from below (ST1). Footprint is min-inclusive,
-    /// max-exclusive (<c>[minX, maxX) × [minZ, maxZ)</c>).</summary>
-    public static void StampRoomFloor(
+    /// <summary>Fill a footprint with solid bedrock from y=0 up to (and including) the terrain surface
+    /// block, so what stands on it cannot be tunnelled into from below (ST1). This is the ground the building
+    /// sits on, not the course a player walks on — that one is the shell's own floor part. Footprint is
+    /// min-inclusive, max-exclusive (<c>[minX, maxX) × [minZ, maxZ)</c>).</summary>
+    public static void StampFoundation(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
         int minX, int minZ, int maxX, int maxZ)
     {

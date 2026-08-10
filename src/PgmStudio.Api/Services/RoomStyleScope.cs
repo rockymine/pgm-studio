@@ -18,14 +18,14 @@ public static class RoomStyleScope
     /// <summary>The pair a map binds. Either snapshot being absent — or unreadable, since it is a hand-editable
     /// leaf — falls back to that kind's built-in shell, so a sketch that never opened the step exports exactly
     /// as it did before the step existed.</summary>
-    public static (RoomStyle Cage, RoomStyle Spawn) StylesOf(string layoutJson)
+    public static (RoomStyle Wool, RoomStyle Spawn) StylesOf(string layoutJson)
         => StylesOf(SketchLayout.Parse(layoutJson));
 
-    public static (RoomStyle Cage, RoomStyle Spawn) StylesOf(SketchLayout? layout)
+    public static (RoomStyle Wool, RoomStyle Spawn) StylesOf(SketchLayout? layout)
     {
         var bound = layout?.RoomStyles;
         return (
-            RoomStyleJson.DeserializeOr(bound?.Cage?.GetRawText(), RoomStyle.Cage),
+            RoomStyleJson.DeserializeOr(bound?.Wool?.GetRawText(), RoomStyle.Wool),
             RoomStyleJson.DeserializeOr(bound?.Spawn?.GetRawText(), RoomStyle.Spawn));
     }
 }

@@ -12,7 +12,7 @@ public sealed class RoomStyleJsonTests
     [Test]
     public async Task A_shipped_style_round_trips_through_its_json()
     {
-        foreach (var style in (RoomStyle[])[RoomStyle.Cage, RoomStyle.Spawn])
+        foreach (var style in (RoomStyle[])[RoomStyle.Wool, RoomStyle.Spawn])
         {
             var json = RoomStyleJson.Serialize(style);
             var back = RoomStyleJson.Deserialize(json);
@@ -28,10 +28,10 @@ public sealed class RoomStyleJsonTests
     {
         // The wall is the one that would tell: three bedrock, a tint, bedrock, air, bedrock. A stack that came
         // back as one flat course would still stamp a shell, just not the one that was picked.
-        var json = RoomStyleJson.Serialize(RoomStyle.Cage);
+        var json = RoomStyleJson.Serialize(RoomStyle.Wool);
         var wall = RoomStyleJson.Deserialize(json).Wall;
 
-        await Assert.That(wall.Courses.Count).IsEqualTo(RoomStyle.Cage.Wall.Courses.Count);
+        await Assert.That(wall.Courses.Count).IsEqualTo(RoomStyle.Wool.Wall.Courses.Count);
         await Assert.That(wall.Extent).IsEqualTo(7);
         await Assert.That(wall.At(3).Material).IsTypeOf<TeamTintedMaterial>();
         await Assert.That(wall.At(5).Material).IsEqualTo(new SolidMaterial(Blocks.Air));
@@ -42,7 +42,7 @@ public sealed class RoomStyleJsonTests
     {
         // A snapshot lives inside a map's layout, where it is read and diffed by people. An ordinal would say
         // nothing about which door a room has.
-        var json = RoomStyleJson.Serialize(RoomStyle.Cage with
+        var json = RoomStyleJson.Serialize(RoomStyle.Wool with
         {
             Eave = RoofEdge.Overlap, Door = DoorMaterial.Web, RoofHole = false,
         });
@@ -70,7 +70,7 @@ public sealed class RoomStyleJsonTests
         // And a difference inside a collection is still a difference.
         await Assert.That(once with { Wall = RoomPart.Of(new SolidMaterial(Blocks.Stone), 7) }).IsNotEqualTo(once);
 
-        static RoomStyle Stacked() => RoomStyle.Cage with
+        static RoomStyle Stacked() => RoomStyle.Wool with
         {
             Wall = new RoomPart(
             [
@@ -95,6 +95,6 @@ public sealed class RoomStyleJsonTests
         // chosen shell, not its export.
         await Assert.That(RoomStyleJson.DeserializeOr(null, RoomStyle.Spawn)).IsEqualTo(RoomStyle.Spawn);
         await Assert.That(RoomStyleJson.DeserializeOr("", RoomStyle.Spawn)).IsEqualTo(RoomStyle.Spawn);
-        await Assert.That(RoomStyleJson.DeserializeOr("{ not json", RoomStyle.Cage)).IsEqualTo(RoomStyle.Cage);
+        await Assert.That(RoomStyleJson.DeserializeOr("{ not json", RoomStyle.Wool)).IsEqualTo(RoomStyle.Wool);
     }
 }

@@ -84,7 +84,7 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
     private static RoomStyle Compose(
         RoomStyleRow row, IReadOnlyList<RoomStyleCourseRow> courses, IReadOnlyDictionary<long, StyleRow> bound)
     {
-        var builtIn = RoomStyle.Cage;
+        var builtIn = RoomStyle.Wool;
         return new RoomStyle
         {
             Floor = Part(RoomParts.Floor, row.FloorDepth, builtIn.Floor),

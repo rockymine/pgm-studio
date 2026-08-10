@@ -24,7 +24,7 @@ public sealed class StructureStamperTests
     {
         var w = new VoxelWorld();
         var surf = FlatSurface(0, 0, 10, 10, top: 13);
-        StructureStamper.StampRoomFloor(w, surf, minX: 2, minZ: 2, maxX: 6, maxZ: 6);
+        StructureStamper.StampFoundation(w, surf, minX: 2, minZ: 2, maxX: 6, maxZ: 6);
 
         // Solid bedrock through the whole column [0, 13); air at and above the surface top.
         await Assert.That(w.GetBlock(2, 0, 2).Id).IsEqualTo(Blocks.Bedrock);

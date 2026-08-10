@@ -71,14 +71,14 @@ gate's point→component resolver (`LabelAt`) already searches a radius-3 neighb
 ## Sketch world synthesis (P9)
 
 ### Spawn-cube monuments fill the back wall first; the door wall is unreachable at real wool counts
-`SpawnCubeStamper.Placements` iterates the back wall (`backNear`) before the door wall, six
+`SpawnStructureStamper.Placements` iterates the back wall (`backNear`) before the door wall, six
 cells per wall. The wizard clamps wools to at most 6 (`SketchEndpoints`), and a team captures at
 most the wools it doesn't own, so monuments 1–6 all land on the back wall; a door-wall cell in
 front of the opening would first be used by the **8th** monument.
 
 - *Looks wrong:* the placement sequence appears to overflow onto the door wall and block the
   cube's only exit for "5+ wools".
-- *Enforced:* the `[backNear, doorNear]` loop order in `SpawnCubeStamper.Placements` + the
+- *Enforced:* the `[backNear, doorNear]` loop order in `SpawnStructureStamper.Placements` + the
   wool-count clamp in `SketchEndpoints`.
 
 ### The export temp world directory is always cleaned up

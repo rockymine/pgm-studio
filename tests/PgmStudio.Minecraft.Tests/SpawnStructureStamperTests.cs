@@ -10,7 +10,7 @@ namespace PgmStudio.Minecraft.Tests;
 /// <see cref="RoomFrames.MonumentSlots"/> (door-wall corners first, then back-wall corners, then the walls
 /// fill). Baseline frame: 10×10 piece centred on (0,0), floor y=64, door facing -Z.
 /// </summary>
-public sealed class SpawnCubeStamperTests
+public sealed class SpawnStructureStamperTests
 {
     private static RoomFrame Baseline() => RoomFrames.Resolve(-5, -5, 5, 5, 0, 0, [], RoomEdge.NegZ, out _)!;
 
@@ -18,7 +18,7 @@ public sealed class SpawnCubeStamperTests
     public async Task One_wool_places_a_single_monument_at_a_door_wall_corner()
     {
         var w = new VoxelWorld();
-        var placed = SpawnCubeStamper.Stamp(w, Baseline(), 64, teamColor: 11 /*blue*/, ["red"]);
+        var placed = SpawnStructureStamper.Stamp(w, Baseline(), 64, teamColor: 11 /*blue*/, ["red"]);
 
         await Assert.That(placed.Count).IsEqualTo(1);
         var m = placed[0];
@@ -38,7 +38,7 @@ public sealed class SpawnCubeStamperTests
     public async Task Sign_faces_the_room_and_reads_place_the_colour_wool_here()
     {
         var w = new VoxelWorld();
-        var placed = SpawnCubeStamper.Stamp(w, Baseline(), 64, teamColor: 11, ["light_blue"]);
+        var placed = SpawnStructureStamper.Stamp(w, Baseline(), 64, teamColor: 11, ["light_blue"]);
         var m = placed[0];
 
         // Sign is one cell toward centre from the pedestal (+Z), at pedestal height, facing south (data 3).
@@ -72,7 +72,7 @@ public sealed class SpawnCubeStamperTests
     public async Task Three_wools_use_both_door_corners_and_one_back_corner()
     {
         var w = new VoxelWorld();
-        var placed = SpawnCubeStamper.Stamp(w, Baseline(), 64, teamColor: 11, ["red", "green", "yellow"]);
+        var placed = SpawnStructureStamper.Stamp(w, Baseline(), 64, teamColor: 11, ["red", "green", "yellow"]);
 
         await Assert.That(placed.Count).IsEqualTo(3);
         // Door-wall corners sit near z=-3; the third (back wall) sits near z=+2.
@@ -90,7 +90,7 @@ public sealed class SpawnCubeStamperTests
         // The 8×8-piece minimum: 4×4 interior, 2-wide door → 4 corners + 2 back-wall mids = 6 seats.
         var frame = RoomFrames.Resolve(0, 0, 8, 8, 4, 4, [], RoomEdge.NegZ, out _)!;
         var w = new VoxelWorld();
-        var placed = SpawnCubeStamper.Stamp(w, frame, 64, teamColor: 11,
+        var placed = SpawnStructureStamper.Stamp(w, frame, 64, teamColor: 11,
             ["red", "green", "yellow", "orange", "cyan", "purple", "lime"]);
 
         await Assert.That(placed.Count).IsEqualTo(6);

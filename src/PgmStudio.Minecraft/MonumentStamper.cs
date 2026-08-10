@@ -2,6 +2,10 @@ using PgmStudio.Domain;
 
 namespace PgmStudio.Minecraft;
 
+/// <summary>A stamped monument: the wool it captures + the world air-cell the wool goes in, so the exporter
+/// can wire the matching XML monument location.</summary>
+public sealed record PlacedMonument(string WoolSlug, int X, int Y, int Z);
+
 /// <summary>
 /// The monument a wool is placed on: a bedrock pedestal standing on the floor, the air cell above it the wool
 /// goes in, a cap of stained glass in the wool's own colour, and a sign beside it saying which wool it wants.

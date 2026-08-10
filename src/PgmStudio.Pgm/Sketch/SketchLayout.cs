@@ -82,13 +82,15 @@ public sealed class SketchLayout
     }
 }
 
-/// <summary>The two room-style snapshots a map binds: the shell every wool cage is stamped with, and the one
-/// every spawn cube is. Held as raw JSON because a layout cannot know the stamper's model — the same reason a
+/// <summary>The two room-style snapshots a map binds: the shell every wool structure is stamped with, and the
+/// one every spawn is. Held as raw JSON because a layout cannot know the stamper's model — the same reason a
 /// theme rides here as a <see cref="JsonElement"/> — and read back by the export's scope. Either may be absent,
 /// which stamps that kind's built-in shell.</summary>
 public sealed class SketchRoomStyles
 {
-    [JsonPropertyName("cage")]  public JsonElement? Cage { get; set; }
+    // The wire word stays "cage": it is written into stored layouts by the sketch bridge, and renaming it
+    // would leave every bound wool style silently falling back to the built-in one on load.
+    [JsonPropertyName("cage")]  public JsonElement? Wool { get; set; }
     [JsonPropertyName("spawn")] public JsonElement? Spawn { get; set; }
 }
 

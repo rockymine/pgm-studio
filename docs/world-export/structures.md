@@ -7,7 +7,7 @@ theming and material palettes, G34) belong here too.
 
 **Status: implemented (G31).** Rule ids here are `WX*` (world export); the resolver is
 `PgmStudio.Domain.RoomFrames`, and one `RoomFrame` per room feeds the stampers
-(`CubeStamper`/`SpawnCubeStamper`/`WoolCageChests`), the structure preview, and the exported points
+(`CubeStamper`/`SpawnStructureStamper`/`WoolChests`), the structure preview, and the exported points
 alike. Read alongside:
 
 - `docs/contracts/sketch-world-export.md` — the shell contract (layer scheme, chest loadouts,
@@ -219,7 +219,7 @@ row read by both sides is what prevents that; `Pgm` and `Minecraft` are siblings
 lowest place both reach. A spawn's door is pinned to air whatever its style says: a player spawning in
 has to walk straight out, and the spawn protection rule already keeps enemies from walking in.
 
-What a style never touches: the **platform** under a room (`StampRoomFloor`'s bedrock column, ST1) and
+What a style never touches: the **platform** under a room (`StampFoundation`'s bedrock column, ST1) and
 the **entrance redstone line** (ST1) belong to the plan-derived structures, not to a shell.
 
 ## 8. The library

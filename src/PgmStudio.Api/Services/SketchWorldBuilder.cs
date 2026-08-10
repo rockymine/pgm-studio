@@ -29,7 +29,7 @@ public static class SketchWorldBuilder
         var teams = intent.Teams ?? [];
         var wools = intent.Wools ?? [];
         // The shells this map is finished with — one for every cage, one for every spawn (structures.md §9).
-        var (cageStyle, spawnStyle) = RoomStyleScope.StylesOf(layoutJson);
+        var (woolStyle, spawnStyle) = RoomStyleScope.StylesOf(layoutJson);
 
         // ── Wool cages (framed by their plan piece + entries, or the marker-anchored default) ────────
         var resolvedWools = new List<WoolIntent>(wools.Count);
@@ -40,8 +40,8 @@ public static class SketchWorldBuilder
             var w = wools[i];
             var slug = ColorSlug(w, teams);
             var frame = WoolFrame(w);
-            var fy = FrameFloor(frame, terrain.SurfaceTop, cageStyle);
-            WoolCageStamper.Stamp(world, frame, fy, BlockColors.BlockDamage(slug), cageStyle);
+            var fy = FrameFloor(frame, terrain.SurfaceTop, woolStyle);
+            WoolStructureStamper.Stamp(world, frame, fy, BlockColors.BlockDamage(slug), woolStyle);
             woolFrame[i] = frame;
             woolFloor[i] = fy;
             resolvedWools.Add(w);   // monuments filled in below, once spawn cubes place them
@@ -59,7 +59,7 @@ public static class SketchWorldBuilder
 
             var captured = wools.Select((w, i) => (w, i))
                 .Where(x => Capturers(x.w, teams).Contains(s.Team)).ToList();
-            var placed = SpawnCubeStamper.Stamp(world, frame, fy, WoolDataForTeam(s.Team, teams),
+            var placed = SpawnStructureStamper.Stamp(world, frame, fy, WoolDataForTeam(s.Team, teams),
                 [.. captured.Select(x => ColorSlug(x.w, teams))], spawnStyle);
 
             for (var k = 0; k < placed.Count && k < captured.Count; k++)
@@ -188,7 +188,7 @@ public static class SketchWorldBuilder
     {
         if (s is null) return;
         foreach (var f in s.RoomFloors)
-            StructureStamper.StampRoomFloor(world, surface, (int)f.MinX, (int)f.MinZ, (int)f.MaxX, (int)f.MaxZ);
+            StructureStamper.StampFoundation(world, surface, (int)f.MinX, (int)f.MinZ, (int)f.MaxX, (int)f.MaxZ);
         foreach (var w in s.Walls)
         {
             StructureStamper.StampWall(world, w.MinX, w.MinZ, w.MaxX, w.MaxZ, w.TopY);

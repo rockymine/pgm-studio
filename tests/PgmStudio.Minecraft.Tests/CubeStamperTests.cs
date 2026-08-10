@@ -22,7 +22,7 @@ public sealed class CubeStamperTests
     public async Task Wool_cage_shell_places_floor_roof_slit_strip_and_a_seam_door()
     {
         var w = new VoxelWorld();
-        CubeStamper.Stamp(w, Baseline(), floorY: 64, color: Red, style: RoomStyle.Cage);
+        CubeStamper.Stamp(w, Baseline(), floorY: 64, color: Red, style: RoomStyle.Wool);
 
         // Floor (y=64): 2×2 wool pad at world {-1,0}×{-1,0}, bedrock elsewhere.
         await Assert.That(w.GetBlock(-1, 64, -1)).IsEqualTo((Blocks.Wool, Red));
@@ -72,7 +72,7 @@ public sealed class CubeStamperTests
         // A 9×9 piece with a cell-centre marker: shell [1,8) (span 7), interior 5 across.
         var frame = RoomFrames.Resolve(0, 0, 9, 9, 4.5, 4.5, [(0, 0, 9, 0)], null, out _)!;
         var w = new VoxelWorld();
-        CubeStamper.Stamp(w, frame, floorY: 64, color: Red, style: RoomStyle.Cage);
+        CubeStamper.Stamp(w, frame, floorY: 64, color: Red, style: RoomStyle.Wool);
 
         // 3×3 pad centred on block 4 (cells 3..5).
         await Assert.That(w.GetBlock(3, 64, 3)).IsEqualTo((Blocks.Wool, Red));

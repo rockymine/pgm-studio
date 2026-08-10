@@ -10,7 +10,7 @@ namespace PgmStudio.Minecraft;
 /// leggings, a row of Power I + Infinity bows, and a row of planks ×16. Corners come from the room's
 /// <see cref="RoomFrame"/>, so the loadout rides any footprint.
 /// </summary>
-public static class WoolCageChests
+public static class WoolChests
 {
     private const int SpeedPotion183 = 8194;   // 1.8 Potion of Swiftness (Speed I, 3:00) metadata value
     private const int EnchPower = 48;
