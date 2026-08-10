@@ -176,6 +176,20 @@ if (heightIdx >= 0 && heightIdx + 2 < args.Length)
         args.Contains("--grey"), args.Contains("--water"));
 }
 
+// --structures <regionDir> <outPng> [--scale N] [--min-area N]: built structures found by the material on
+// top of each column (not by elevation, which cannot tell a hut from a boulder), joined into components and
+// measured against the natural ground just outside their own footprint.
+var structIdx = Array.IndexOf(args, "--structures");
+if (structIdx >= 0 && structIdx + 2 < args.Length)
+{
+    var scaleSlot = Array.IndexOf(args, "--scale");
+    var areaSlot = Array.IndexOf(args, "--min-area");
+    return PgmStudio.RoundTrip.StructureFinder.Run(
+        args[structIdx + 1], args[structIdx + 2],
+        scaleSlot >= 0 && scaleSlot + 1 < args.Length && int.TryParse(args[scaleSlot + 1], out var structScale) ? Math.Max(1, structScale) : 3,
+        areaSlot >= 0 && areaSlot + 1 < args.Length && int.TryParse(args[areaSlot + 1], out var minArea) ? Math.Max(1, minArea) : 12);
+}
+
 // --island-study <regionDir> <outJson> [tolerance]: cleaned-base islands with their polygons (exterior +
 // holes) both raw and Douglas-Peucker-simplified, emitted as JSON for studying real-map shapes.
 var islandStudyIdx = Array.IndexOf(args, "--island-study");

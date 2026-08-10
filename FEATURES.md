@@ -1142,6 +1142,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   bands; every fifth emphasised) because shading shows that a slope exists and only a contour says how much it
   climbs. `--grey` drops the ramp to greyscale, `--water` tints the flooded columns, and the console reports the
   height histogram the picture cannot state. (B62)
+- **Built-structure extraction (`--structures <regionDir> <out.png>`)** — every building on a world, found and
+  drawn over the terrain it stands on. **Material, not elevation, is the test**: height cannot separate a hut
+  from the boulder beside it, and a hall on level ground has no elevation signature at all, but every building
+  has a surface the world does not generate. Each column is classified by its top block once vegetation is
+  stripped; built columns join into 8-neighbour components, one per candidate. Stone, cobblestone, andesite,
+  gravel, sand and clay are deliberately **not** built materials — all generate in the open, and including them
+  classifies every outcrop as architecture. Height is measured against a ring of natural columns just outside
+  the component, since a building hides its own ground; it is reported, never filtered on, so a paved path
+  reads as a real find that simply stands 0 blocks tall. `--min-area N` sets the size floor. Validated on
+  alpine_mining_ii: 107 structures, resolving into exact mirrored pairs about the map's rot-180 centre. (B63)
 - **Supported map range (enforced in `MapParser`)** — the parser accepts **proto >= 1.4.0** only (PGM's
   id-based regions/filters/kits floor) and rejects **modern worlds** (`min-server-version >= 1.13.0`, whose
   post-"flattening" palette chunks the Anvil reader can't decode), throwing `UnsupportedMapException` with a
