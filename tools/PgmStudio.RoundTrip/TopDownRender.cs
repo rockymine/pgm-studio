@@ -56,7 +56,7 @@ internal static class TopDownRender
         var overlays = mapXml is null ? [] : Overlays(mapXml);
         foreach (var overlay in overlays) DrawBox(pixels, blocksWide, blocksHigh, minX, minZ, overlay);
 
-        var scaled = Upscale(pixels, blocksWide, blocksHigh, scale);
+        var scaled = Raster.Upscale(pixels, blocksWide, blocksHigh, scale);
         PngWriter.Write(outPng, blocksWide * scale, blocksHigh * scale, scaled);
 
         var name = Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(regionDir)) ?? regionDir);
@@ -83,7 +83,7 @@ internal static class TopDownRender
         if (waterCells.Count == 0) return byCell;
 
         foreach (var (cell, bed, depth) in Beds(chunks, waterCells))
-            byCell[cell] = new Column(bed.Y, Dim(BlockPalette.PackedRgb(bed.BlockId, bed.BlockData),
+            byCell[cell] = new Column(bed.Y, Raster.Scale(BlockPalette.PackedRgb(bed.BlockId, bed.BlockData),
                 1 - (1 - DeepWaterKeep) * Math.Min(1.0, depth / (double)FullDepth)));
         return byCell;
     }
@@ -121,11 +121,10 @@ internal static class TopDownRender
         for (var row = 0; row < blocksHigh; row++)
             for (var col = 0; col < blocksWide; col++)
             {
-                var offset = (row * blocksWide + col) * 3;
                 if (!columns.TryGetValue((minX + col, minZ + row), out var column))
                 {
                     // Void: a flat near-black, so a hole in the world is obviously not terrain.
-                    pixels[offset] = pixels[offset + 1] = pixels[offset + 2] = 14;
+                    Raster.Set(pixels, blocksWide, col, row, 0x0E0E0E);
                     continue;
                 }
 
@@ -139,20 +138,9 @@ internal static class TopDownRender
                 }
                 keep *= 0.88 + 0.24 * ((column.SurfaceY - lowest) / (double)span);
 
-                var shaded = Dim(column.PackedRgb, keep);
-                pixels[offset] = (byte)((shaded >> 16) & 0xFF);
-                pixels[offset + 1] = (byte)((shaded >> 8) & 0xFF);
-                pixels[offset + 2] = (byte)(shaded & 0xFF);
+                Raster.Set(pixels, blocksWide, col, row, Raster.Scale(column.PackedRgb, keep));
             }
         return pixels;
-    }
-
-    private static int Dim(int packed, double keep)
-    {
-        int red = Math.Clamp((int)(((packed >> 16) & 0xFF) * keep), 0, 255);
-        int green = Math.Clamp((int)(((packed >> 8) & 0xFF) * keep), 0, 255);
-        int blue = Math.Clamp((int)((packed & 0xFF) * keep), 0, 255);
-        return (red << 16) | (green << 8) | blue;
     }
 
     private sealed record Overlay(BlockBox Box, int PackedRgb, bool Filled, string Label);
@@ -225,38 +213,7 @@ internal static class TopDownRender
             {
                 var onBorder = row == top || row == bottom || col == left || col == right;
                 if (!overlay.Filled && !onBorder) continue;
-                var weight = overlay.Filled ? (onBorder ? 0.85 : 0.55) : 0.9;
-
-                var offset = (row * blocksWide + col) * 3;
-                pixels[offset] = Blend(pixels[offset], (overlay.PackedRgb >> 16) & 0xFF, weight);
-                pixels[offset + 1] = Blend(pixels[offset + 1], (overlay.PackedRgb >> 8) & 0xFF, weight);
-                pixels[offset + 2] = Blend(pixels[offset + 2], overlay.PackedRgb & 0xFF, weight);
+                Raster.Over(pixels, blocksWide, col, row, overlay.PackedRgb, overlay.Filled ? (onBorder ? 0.85 : 0.55) : 0.9);
             }
-    }
-
-    private static byte Blend(byte under, int over, double weight) =>
-        (byte)Math.Clamp((int)(under * (1 - weight) + over * weight), 0, 255);
-
-    /// <summary>Nearest-neighbour block magnification — a block is a unit of the world, so it must stay a
-    /// crisp square; interpolating would invent terrain between two columns.</summary>
-    private static byte[] Upscale(byte[] pixels, int blocksWide, int blocksHigh, int scale)
-    {
-        if (scale <= 1) return pixels;
-        var wide = blocksWide * scale;
-        var scaled = new byte[wide * blocksHigh * scale * 3];
-        for (var row = 0; row < blocksHigh; row++)
-            for (var col = 0; col < blocksWide; col++)
-            {
-                var source = (row * blocksWide + col) * 3;
-                for (var dy = 0; dy < scale; dy++)
-                    for (var dx = 0; dx < scale; dx++)
-                    {
-                        var target = ((row * scale + dy) * wide + col * scale + dx) * 3;
-                        scaled[target] = pixels[source];
-                        scaled[target + 1] = pixels[source + 1];
-                        scaled[target + 2] = pixels[source + 2];
-                    }
-            }
-        return scaled;
     }
 }

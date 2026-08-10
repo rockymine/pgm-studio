@@ -1120,6 +1120,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   is actually there; `--scale N` sets pixels per block (nearest-neighbour, so a block stays a square) and
   `--ymax Y` caps the scan below a ceiling structure. `PngWriter` emits the file directly (Up-filtered
   scanlines through `ZLibStream`), so the harness gains no imaging dependency. (B60)
+- **Underground render (`--underground <regionDir> <out.png>`)** — the world below its own roof, which is the
+  only view in which a cave system, a ravine or a mineshaft has a shape. The roof is found **per column**, not
+  as a cutting plane: a plane slices a hillside and reports its solid interior as cavity while missing a tunnel
+  under a valley, so each column takes its own highest terrain block — vegetation and the tunnel's own torches
+  and rails do not count as terrain, or the furniture would raise the roof above the space it stands in — and
+  only what lies strictly below is enclosed. An enclosed column is shaded by the height of its topmost void, so
+  corridors at one level read as one tone, and brightened logarithmically by how much open space it holds, so a
+  ravine separates from a crawlspace without swallowing the brightness range. Rails, supports, cobweb, torches,
+  chests and spawners are painted over that in saturated colours no terrain shade reaches. `--band <yMin> <yMax>`
+  narrows the scan to one level; `--ores` adds ore bodies (off by default — coal alone speckles the image).
+  Shares `Raster` and `PngWriter` with the surface render. (B61)
 - **Supported map range (enforced in `MapParser`)** — the parser accepts **proto >= 1.4.0** only (PGM's
   id-based regions/filters/kits floor) and rejects **modern worlds** (`min-server-version >= 1.13.0`, whose
   post-"flattening" palette chunks the Anvil reader can't decode), throwing `UnsupportedMapException` with a

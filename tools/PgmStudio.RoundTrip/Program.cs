@@ -144,6 +144,23 @@ if (topIdx >= 0 && topIdx + 2 < args.Length)
         yMaxIdx >= 0 && yMaxIdx + 1 < args.Length && int.TryParse(args[yMaxIdx + 1], out var topYMax) ? topYMax : null);
 }
 
+// --underground <regionDir> <outPng> [--scale N] [--band <yMin> <yMax>] [--ores]: the world below its own
+// per-column roof — enclosed space shaded by depth, with rails/supports/cobweb/chests/spawners painted over
+// it, so a cave system or a mineshaft reads as a shape instead of as a surface.
+var underIdx = Array.IndexOf(args, "--underground");
+if (underIdx >= 0 && underIdx + 2 < args.Length)
+{
+    var scaleAt = Array.IndexOf(args, "--scale");
+    var bandAt = Array.IndexOf(args, "--band");
+    int? bandMin = null, bandMax = null;
+    if (bandAt >= 0 && bandAt + 2 < args.Length && int.TryParse(args[bandAt + 1], out var lowY) && int.TryParse(args[bandAt + 2], out var highY))
+        (bandMin, bandMax) = (Math.Min(lowY, highY), Math.Max(lowY, highY));
+    return PgmStudio.RoundTrip.UndergroundRender.Run(
+        args[underIdx + 1], args[underIdx + 2],
+        scaleAt >= 0 && scaleAt + 1 < args.Length && int.TryParse(args[scaleAt + 1], out var underScale) ? Math.Max(1, underScale) : 3,
+        bandMin, bandMax, args.Contains("--ores"));
+}
+
 // --island-study <regionDir> <outJson> [tolerance]: cleaned-base islands with their polygons (exterior +
 // holes) both raw and Douglas-Peucker-simplified, emitted as JSON for studying real-map shapes.
 var islandStudyIdx = Array.IndexOf(args, "--island-study");
