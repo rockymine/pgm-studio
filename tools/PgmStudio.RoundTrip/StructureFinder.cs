@@ -36,15 +36,13 @@ internal static class StructureFinder
 
     /// <summary>Stripped before the top block is read: plants, snow and the small furniture that would
     /// otherwise decide a column's class.</summary>
-    private static readonly HashSet<int> Skin =
-    [
-        0, 6, 18, 30, 31, 32, 37, 38, 39, 40, 50, 51, 55, 59, 63, 66, 68, 69, 70, 72, 75, 76, 77, 78, 83,
-        104, 105, 106, 111, 115, 131, 132, 141, 142, 143, 157, 161, 175,
-    ];
+    /// <summary>What a structure's outline may be read through: nothing, and everything standing on the
+    /// ground rather than being it.</summary>
+    private static bool Skin(int id) => id == 0 || BlockRoles.SeenThrough(id);
 
     /// <summary>Natural ground: everything the terrain itself is made of, so a built column's own blocks and
     /// the liquids over them are stepped past to reach it.</summary>
-    private static bool IsNaturalGround(int id) => id != 0 && !Skin.Contains(id) && !Built.Contains(id)
+    private static bool IsNaturalGround(int id) => id != 0 && !Skin(id) && !Built.Contains(id)
                                                    && id is not (8 or 9 or 10 or 11 or 17 or 162);
 
     private sealed record Structure(int MinX, int MaxX, int MinZ, int MaxZ, int Area, int RoofLow, int RoofHigh,
@@ -127,7 +125,7 @@ internal static class StructureFinder
                 for (var y = 255; y >= 0; y--)
                 {
                     var id = ids[(y << 8) | col];
-                    if (Skin.Contains(id)) continue;
+                    if (Skin(id)) continue;
                     if (!haveTop)
                     {
                         topId[cell] = id;
@@ -136,7 +134,7 @@ internal static class StructureFinder
                         // The base is where the unbroken run of built blocks under the top ends, which is
                         // the level the structure was actually seated at.
                         baseY[cell] = y;
-                        for (var below = y; below >= 0 && (Built.Contains(ids[(below << 8) | col]) || Skin.Contains(ids[(below << 8) | col])); below--)
+                        for (var below = y; below >= 0 && (Built.Contains(ids[(below << 8) | col]) || Skin(ids[(below << 8) | col])); below--)
                             baseY[cell] = below;
                         haveTop = true;
                     }

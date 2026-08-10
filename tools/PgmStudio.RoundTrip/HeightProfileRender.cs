@@ -25,14 +25,11 @@ internal static class HeightProfileRender
 {
     /// <summary>Blocks that stand on the ground rather than being it: plants, tree trunks and canopy, surface
     /// furniture, and the liquids that would hide a channel's true depth.</summary>
-    private static readonly HashSet<int> NotGround =
-    [
-        0, 6, 8, 9, 10, 11, 17, 18, 27, 28, 30, 31, 32, 37, 38, 39, 40, 50, 51, 55, 59, 63, 64, 65, 66, 68,
-        69, 70, 71, 72, 75, 76, 77, 78, 83, 85, 104, 105, 106, 111, 115, 131, 132, 139, 141, 142, 143, 157,
-        161, 162, 175,
-    ];
-
-    private static readonly int[] Liquids = [8, 9, 10, 11];
+    /// <summary>Not the ground: nothing, water, and everything standing on the ground rather than being it.
+    /// The roles are <see cref="BlockRoles"/>, so a block this render must step past is decided once for the
+    /// whole suite instead of here.</summary>
+    private static bool NotGround(int id) =>
+        id == 0 || BlockRoles.IsLiquid(id) || BlockRoles.StandsOnGround(id);
 
     /// <summary>Hypsometric stops, low to high — the convention a topographic map reads by.</summary>
     private static readonly (double At, int Rgb)[] Ramp =
@@ -125,8 +122,8 @@ internal static class HeightProfileRender
                 for (var y = 255; y >= 0; y--)
                 {
                     var id = ids[(y << 8) | col];
-                    if (waterline == int.MinValue && Liquids.Contains(id)) waterline = y;
-                    if (NotGround.Contains(id)) continue;
+                    if (waterline == int.MinValue && BlockRoles.IsLiquid(id)) waterline = y;
+                    if (NotGround(id)) continue;
                     var cell = (chunk.ChunkX * 16 + lx, chunk.ChunkZ * 16 + lz);
                     ground[cell] = y;
                     if (waterline != int.MinValue) flooded[cell] = waterline;

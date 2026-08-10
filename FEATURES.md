@@ -1224,6 +1224,24 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   inventory: **11 of 11 houses and 5 of 5 shafts** located per team, with **no false positives** — 34
   components resolving as 23 rim-bordered house roofs (22 houses plus the observer island's one) and 11 caps
   (5 shafts per team plus the island's), the caps uniform at 6×6 and one material throughout. (B65)
+- **One block vocabulary for every pass (`BlockRoles`)** — what a block is *doing* in a world (air, liquid,
+  tree, flora, decoration, material), stated once in `PgmStudio.Minecraft` beside `TerrainPalette` and
+  `DressingPalette`. It replaces **eight** per-render lists, each written as a negative ("what must I step
+  past") and local to one question, which agreed wherever a map had tested them and diverged wherever none had:
+  the wooden fences were a build material to one pass and absent from four, the rails were in five lists, two or
+  four depending on which rail, and **fifteen blocks — mob heads, anvils, daylight sensors, spawners, banners,
+  flower pots, cactus, nether brick fence — were in no list at all** and so were read as terrain by every pass
+  that met them. Each pass now composes the roles it needs instead of owning an answer. Two composites carry the
+  distinctions the old lists encoded by accident: `StandsOnGround` (tree · flora · decoration) for a pass reading
+  the ground, and **`SeenThrough`, which excludes logs**, for the three passes reading the shape of a build — an
+  author stands a log at each corner of a house as a post, and a roof finder that looks through them loses the
+  corner-stem measure. Roles are placement, not material: a carpet and a snow layer are decoration though one is
+  wool and the other is snow, because an author lays them on finished ground; full-cube furniture (furnace,
+  crafting table, bookshelf) stays material, since the ground vocabulary already names full cubes. Verified on
+  alpine_mining_ii — buildings still 34 components split **23 house roofs / 11 caps** with 4 corner stems, trees
+  still **109 acacia-birch / 95 spruce / 4 oak** at canopy widths 8/7/13 — and the point of the change shows in
+  the residue: unnamed ground fell from 0.4% to **0.2%**, the mob heads and daylight sensors leaving it for the
+  decoration layer where they belong. (B68)
 - **Resource deposits (`--resources <regionDir> <out.png>`)** — what a map gives a player to take and what it
   charges for it. **A deposit is the placement, not the block**: a seam of two hundred iron is one decision an
   author made once, so lumps are 6-connected per material and every measure is per lump — two maps with the same

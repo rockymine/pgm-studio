@@ -107,9 +107,10 @@ internal static class FloraRender
             Array.Copy(section.Data, 0, data, yStart * 256, 4096);
         }
 
-        // Plant cover and the tree itself are stepped past; liquids are not, since a paved ford is still
-        // under water and reporting the bed as the surface would invent a path through a river.
-        var cover = new HashSet<int> { 0, 6, 31, 32, 37, 38, 39, 40, 78, 106, 111, 175, 18, 161, 17, 162, 50, 55, 66 };
+        // Plant cover, the tree itself and what an author stood on the ground are stepped past; liquids are
+        // not, since a paved ford is still under water and reporting the bed as the surface would invent a
+        // path through a river.
+        bool Cover(int id) => id == 0 || BlockRoles.StandsOnGround(id);
         for (var lz = 0; lz < 16; lz++)
             for (var lx = 0; lx < 16; lx++)
             {
@@ -117,7 +118,7 @@ internal static class FloraRender
                 for (var y = 255; y >= 0; y--)
                 {
                     var id = ids[(y << 8) | col];
-                    if (cover.Contains(id)) continue;
+                    if (Cover(id)) continue;
                     var cell = (chunk.ChunkX * 16 + lx, chunk.ChunkZ * 16 + lz);
                     surface[cell] = (id, data[(y << 8) | col], y);
                     ground[cell] = y;

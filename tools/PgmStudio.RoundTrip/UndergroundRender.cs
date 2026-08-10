@@ -33,11 +33,9 @@ internal static class UndergroundRender
 
     /// <summary>Blocks that do not form a roof: air, plants, and the furniture a tunnel carries. A torch or a
     /// rail sits inside the space being measured, so counting it as terrain would hide that space.</summary>
-    private static readonly HashSet<int> NotTerrain =
-    [
-        0, 6, 18, 27, 28, 30, 31, 32, 37, 38, 39, 40, 50, 51, 55, 59, 63, 64, 65, 66, 68, 69, 70, 71, 72,
-        75, 76, 77, 78, 83, 85, 104, 105, 106, 111, 115, 131, 132, 141, 142, 143, 157, 161, 175,
-    ];
+    /// <summary>Not terrain: nothing, and everything standing on the ground rather than being it. Liquid is
+    /// terrain here — a flooded cave is a shape this render draws — so it is not excluded.</summary>
+    private static bool NotTerrain(int id) => id == 0 || BlockRoles.SeenThrough(id);
 
     /// <summary>What is worth drawing over the depth shade, most telling first — a spawner names the structure
     /// it sits in, whereas planks appear in every corridor.</summary>
@@ -145,7 +143,7 @@ internal static class UndergroundRender
 
                 var roof = -1;
                 for (var y = 255; y >= 0; y--)
-                    if (!NotTerrain.Contains(ids[(y << 8) | col])) { roof = y; break; }
+                    if (!NotTerrain(ids[(y << 8) | col])) { roof = y; break; }
                 if (roof < 0) continue;
 
                 int voidTop = -1, voidCells = 0, structureRank = -1, structureRgb = 0;

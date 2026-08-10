@@ -30,26 +30,24 @@ internal static class SurfaceReport
     /// </summary>
     private static string ToneName(int id, int data) => TerrainPalette.FamilyOf(id, data) ?? "unnamed";
 
-    /// <summary>Grows on the ground rather than being it. Kept, but reported as a layer over its own soil.</summary>
-    private static readonly HashSet<int> Decoration =
-    [
-        6, 31, 32, 37, 38, 39, 40, 59, 78, 83, 104, 105, 106, 111, 115, 141, 142, 175,
-    ];
-
-    private static readonly HashSet<int> Liquid = [8, 9, 10, 11];
+    /// <summary>Standing on the ground rather than being it — what grows and what an author placed. Kept, but
+    /// reported as a layer over its own soil.</summary>
+    private static bool IsDecoration(int id) => BlockRoles.IsFlora(id) || BlockRoles.IsDecoration(id);
 
     /// <summary>A tree standing over the ground. Stepped past like decoration and <b>not</b> counted as
     /// structure: the ground beneath a canopy is ground, and excluding it would drop a quarter of the map from
     /// the sample and cut every material into fragments wherever a wood stands over it — which would then be
     /// read as speckle rather than as the shade it is.</summary>
-    private static bool IsCanopy(int id) => id is 17 or 18 or 161 or 162;
+    private static bool IsCanopy(int id) => BlockRoles.IsTree(id);
 
     /// <summary>Neither ground nor decoration: the wood, glass and stone a structure is built from. Stepped
-    /// past so a roof does not report as terrain, and counted so the share it covers stays visible.</summary>
-    private static bool IsBuilt(int id) => id is 5 or 20 or 26 or 35 or 43 or 44 or 47 or 50 or 53
-        or 54 or 58 or 61 or 62 or 64 or 65 or 66 or 85 or 95 or 96 or 98 or 101 or 102 or 107 or 108 or 109
-        or 114 or 125 or 126 or 128 or 134 or 135 or 136 or 139 or 156 or 160 or 163 or 164
-        or 171 or 180 or 186 or 188 or 189 or 190 or 191 or 192 or 193 or 194 or 195 or 196 or 197;
+    /// past so a roof does not report as terrain, and counted so the share it covers stays visible. Only full
+    /// blocks are here — a fence, a door, a rail and a carpet are decoration, and are read as a layer over the
+    /// ground they stand on rather than as a structure covering it.</summary>
+    private static bool IsBuilt(int id) => id is 5 or 20 or 35 or 43 or 44 or 47 or 53
+        or 58 or 61 or 62 or 95 or 98 or 102 or 108 or 109
+        or 114 or 125 or 126 or 128 or 134 or 135 or 136 or 156 or 160 or 163 or 164
+        or 180;
 
     private readonly record struct Cell(int Ground, int GroundData, int GroundY, int Decor, int DecorData,
                                         int Depth, int Bed, int BedData, bool Built, bool Shaded);
@@ -104,8 +102,8 @@ internal static class SurfaceReport
                     var id = ids[(y << 8) | col];
                     if (id == 0) continue;
                     if (IsCanopy(id)) { shaded = true; continue; }
-                    if (Decoration.Contains(id)) { if (decor == 0) { decor = id; decorData = data[(y << 8) | col]; } continue; }
-                    if (Liquid.Contains(id)) { depth++; continue; }
+                    if (IsDecoration(id)) { if (decor == 0) { decor = id; decorData = data[(y << 8) | col]; } continue; }
+                    if (BlockRoles.IsLiquid(id)) { depth++; continue; }
                     if (IsBuilt(id)) { built = true; continue; }
 
                     if (depth > 0) { bed = id; bedData = data[(y << 8) | col]; }

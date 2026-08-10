@@ -30,11 +30,10 @@ internal static class BuildingFinder
     /// at a column of glass rather than at the roof it rises from. The cost is that a genuine glass roof is
     /// seen through, which is the right trade when glass over a building is far more often weather than
     /// shelter.</summary>
-    private static readonly HashSet<int> Cover =
-    [
-        0, 6, 18, 20, 30, 31, 32, 37, 38, 39, 40, 50, 51, 55, 59, 63, 66, 68, 69, 70, 71, 72, 75, 76, 77, 78,
-        83, 95, 102, 104, 105, 106, 111, 115, 141, 142, 143, 157, 160, 161, 175,
-    ];
+    /// <summary>What a roof may be seen through from above: nothing, everything standing on the ground, and
+    /// the glass a greenhouse or a skylight is glazed with — a pane over a room is not the room's cover.</summary>
+    private static bool Cover(int id) =>
+        id == 0 || BlockRoles.SeenThrough(id) || id is 20 or 95 or 102 or 160;
 
     /// <summary>A slab's high data bit says which half of its block it fills, not what it is made of, so a
     /// roof laid in upside-down slabs is the same roof as one laid in upright ones. Matching without masking
@@ -184,7 +183,7 @@ internal static class BuildingFinder
                 for (var y = 255; y >= 0; y--)
                 {
                     var id = ids[(y << 8) | col];
-                    if (Cover.Contains(id)) continue;
+                    if (Cover(id)) continue;
                     if (isRoof(id, data[(y << 8) | col])) roofY = y;
                     break;
                 }
@@ -194,7 +193,7 @@ internal static class BuildingFinder
                 // hollow interior stops one block down; a structure in the air stops far above the ground.
                 var bottom = roofY;
                 while (bottom > 0 && ids[((bottom - 1) << 8) | col] != 0 &&
-                       !Cover.Contains(ids[((bottom - 1) << 8) | col])) bottom--;
+                       !Cover(ids[((bottom - 1) << 8) | col])) bottom--;
 
                 var hasLog = false;
                 for (var y = groundY; y <= roofY && !hasLog; y++) hasLog = ids[(y << 8) | col] is 17 or 162;
@@ -205,7 +204,7 @@ internal static class BuildingFinder
                 for (var y = groundY + 1; y <= Math.Min(groundY + 3, roofY - 1) && !walled; y++)
                 {
                     var here = ids[(y << 8) | col];
-                    walled = here != 0 && !Cover.Contains(here);
+                    walled = here != 0 && !Cover(here);
                 }
 
                 columns[cell] = new Column(ids[(roofY << 8) | col], data[(roofY << 8) | col], roofY, bottom,
