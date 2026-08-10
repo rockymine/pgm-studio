@@ -1196,7 +1196,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   enclosed by a border, so a cap that is one material all the way across was never a house roof however well it
   is framed or walled. Grounded share, corner-stem count and wall share between the posts are all reported and
   none gates; on the map this was built for the wall share is *higher* on the shaft heads than on the houses,
-  so it cannot separate them and does not try. Clearance is measured **at the ridge, not the eave** — a
+  so it cannot separate them and does not try. The ground it is measured against is taken **near the top of the
+  terrain spread under the footprint, not at its middle**: a column standing over an open shaft finds no
+  terrain until the shaft's floor and contributes a depth belonging to the hole rather than to the ground, so
+  the low tail is exactly those columns and the bulk is the surface. Clearance is measured **at the ridge, not
+  the eave** — a
   pitched roof comes down to meet its walls, so its lowest course sits as close to the ground as decking does
   and testing there discards the houses along with it. A slab's high data bit is masked before matching, since
   it records which half of a block the slab fills rather than what it is made of, and glass joins the stepped-

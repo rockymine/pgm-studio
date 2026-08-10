@@ -114,16 +114,20 @@ internal static class BuildingFinder
             int minX = component.Min(cell => cell.X), maxX = component.Max(cell => cell.X);
             int minZ = component.Min(cell => cell.Z), maxZ = component.Max(cell => cell.Z);
             var roofs = component.Select(cell => columns[cell].RoofY).OrderBy(y => y).ToList();
-            // The ground to measure against is the terrain directly under the roof, not a ring outside it.
-            // On a slope the ring sits well below the footprint, which lets plank laid flat into a hillside
-            // as texture read as a roof standing several blocks clear of nothing.
+            // The ground to measure against is the terrain directly under the roof, not a ring outside it:
+            // on a slope the ring sits well below the footprint, which lets plank worked flat into a hillside
+            // read as a roof standing clear of nothing. It is taken near the top of that spread rather than
+            // at its middle, because a column over an open shaft finds no terrain until the shaft's floor and
+            // contributes a depth that belongs to the hole, not to the ground the structure sits on. The low
+            // tail is exactly those columns; the bulk is the surface.
             var below = component.Where(terrain.ContainsKey).Select(cell => terrain[cell]).OrderBy(y => y).ToList();
+            var groundLevel = below.Count > 0 ? below[(int)(below.Count * 0.9)] : roofs[0];
             var materials = component.GroupBy(cell => BlockPalette.Name(columns[cell].RoofId, columns[cell].RoofData))
                 .OrderByDescending(group => group.Count()).Take(2)
                 .Select(group => $"{group.Key} {group.Count() * 100 / component.Count}%");
 
             var candidate = new Candidate(minX, maxX, minZ, maxZ, component.Count, roofs[0], roofs[^1],
-                below.Count > 0 ? below[below.Count / 2] : roofs[0], grounded,
+                groundLevel, grounded,
                 CornerStems(minX, maxX, minZ, maxZ, columns),
                 component.Count(cell => columns[cell].WalledAtBase) / (double)component.Count,
                 rimSpec.Count == 0 ? 1.0
