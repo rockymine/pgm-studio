@@ -160,15 +160,51 @@ public partial class MaterialEditor
     private static int Parse(ChangeEventArgs e, int fallback)
         => int.TryParse((string?)e.Value, out var value) ? value : fallback;
 
-    private Task AddLayer() => Add(ThemeFields.Layers);
-    private Task AddBand() => Add(ThemeFields.Bands);
-    private Task AddStripe() => Add(ThemeFields.Runs);
-    private Task AddPaletteEntry() => Add(ThemeFields.Palette);
-    private Task AddStop() => Add(ThemeFields.Stops);
-
     private Task Add(string field)
     {
         JsonEdit.Array(Node, field).Add(ThemeFields.NewEntry(field));
+        return Changed();
+    }
+
+    /// <summary>The families the offered blocks carry, whole and in offer order — what "fill from a family"
+    /// chooses between. Derived from the block list rather than fetched beside it: a block already names the
+    /// group it belongs to and whether that group is a family, so grouping the flagged ones recovers the
+    /// families exactly, including the stained shades a family claims.</summary>
+    private IEnumerable<IGrouping<string, PaintBlockDto>> Families =>
+        Blocks.Where(block => block.InFamily).GroupBy(block => block.Group);
+
+    /// <summary>The family a list currently holds, whole and in order, or empty for one that holds anything
+    /// else. Read from the entries rather than remembered, so it stays true through a hand edit: it names the
+    /// family the moment a list is filled from one, and falls back to the offer the moment an author narrows
+    /// it — which is what narrowing a family is for.</summary>
+    private string MatchedFamily(string field)
+    {
+        var chosen = List(field)
+            .Select(entry => JsonEdit.KindOf(entry.Material) == MaterialKind.Solid
+                ? (JsonEdit.Int(entry.Material, ThemeFields.Id, -1), JsonEdit.Int(entry.Material, ThemeFields.Data, 0))
+                : (-1, -1))
+            .ToList();
+        foreach (var family in Families)
+        {
+            var blocks = family.Select(block => (block.Id, block.Data)).ToList();
+            if (blocks.Count == chosen.Count && blocks.SequenceEqual(chosen)) return family.Key;
+        }
+        return string.Empty;
+    }
+
+    /// <summary>Replaces a list with one entry per block of a family — the whole ground an author reaches for,
+    /// laid into the pattern in the family's own light-to-dark order. It replaces rather than appends because a
+    /// family <em>is</em> the palette; entries are then removed one by one to narrow it, which is a shorter road
+    /// than adding five and picking each block by hand.</summary>
+    private Task ApplyFamily(string field, ChangeEventArgs e)
+    {
+        var name = (string?)e.Value;
+        var family = Families.FirstOrDefault(group => group.Key == name);
+        if (family is null) return Task.CompletedTask;
+        var array = JsonEdit.Array(Node, field);
+        array.Clear();
+        foreach (var block in family)
+            array.Add(ThemeFields.Entry(field, ThemeFields.Solid(block.Id, block.Data)));
         return Changed();
     }
 

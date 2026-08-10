@@ -50,14 +50,67 @@ public sealed class TerrainPaletteTests
         var andesite = TerrainPalette.Paintable.Single(block => block is { Id: Blocks.Stone, Data: 5 });
         await Assert.That(andesite.Name).IsEqualTo("Andesite");
         await Assert.That(andesite.Hex).IsNotEqualTo(BlockPalette.Hex(Blocks.Stone, 0));
+    }
 
-        // Every variant sits in the same picker group as the block it shares an id with.
-        foreach (var (id, data) in BlockPalette.VariantBlocks)
+    [Test]
+    public async Task A_variant_takes_the_family_of_the_ground_it_reads_as_not_of_the_id_it_shares()
+    {
+        // Granite and andesite are both stone by id, and grouping them by that would put a warm rock in with
+        // the grey — the single thing a family exists to distinguish.
+        await Assert.That(TerrainPalette.FamilyOf(Blocks.Stone, 1)).IsEqualTo("brick");
+        await Assert.That(TerrainPalette.FamilyOf(Blocks.Stone, 5)).IsEqualTo("grey stone");
+        await Assert.That(TerrainPalette.FamilyOf(Blocks.Stone, 0)).IsEqualTo("grey stone");
+    }
+
+    [Test]
+    public async Task Every_family_is_named_coloured_and_whole()
+    {
+        await Assert.That(TerrainPalette.Families).IsNotEmpty();
+        var offered = TerrainPalette.Paintable.Select(block => (block.Id, block.Data)).ToHashSet();
+        foreach (var family in TerrainPalette.Families)
         {
-            var variant = TerrainPalette.Paintable.SingleOrDefault(block => block.Id == id && block.Data == data);
-            if (variant.Name is null) continue;   // a variant whose base block is not on the paint shortlist
-            await Assert.That(variant.Group).IsEqualTo(TerrainPalette.Paintable.First(block => block.Id == id).Group);
+            await Assert.That(family.Name).IsNotEmpty();
+            await Assert.That(family.Blocks).IsNotEmpty();
+            await Assert.That(TerrainPalette.ColourOf(family.Name, fallback: -1)).IsEqualTo(family.Rgb);
+            // A family is applied as a whole palette, so every block in it has to be one the picker can then
+            // show — a member missing from the offered list would paint but could not be re-picked.
+            foreach (var block in family.Blocks)
+            {
+                await Assert.That(offered.Contains((block.Id, block.Data))).IsTrue();
+                await Assert.That(TerrainPalette.FamilyOf(block.Id, block.Data)).IsEqualTo(family.Name);
+            }
         }
+    }
+
+    [Test]
+    public async Task No_block_belongs_to_two_families()
+    {
+        var members = TerrainPalette.Families.SelectMany(family => family.Blocks)
+            .Select(block => (block.Id, block.Data)).ToList();
+        await Assert.That(members.Count).IsEqualTo(members.Distinct().Count());
+    }
+
+    [Test]
+    public async Task A_block_is_flagged_in_a_family_exactly_when_its_group_is_one()
+    {
+        var families = TerrainPalette.Families.Select(family => family.Name).ToHashSet();
+        foreach (var block in TerrainPalette.Paintable)
+            await Assert.That(block.InFamily).IsEqualTo(families.Contains(block.Group));
+    }
+
+    [Test]
+    public async Task A_shade_a_family_claims_is_offered_under_that_family()
+    {
+        // Lime stained clay is a shade of 159 and also the light end of the green ground. It belongs to the
+        // family — the shade row reads every damage value of an id regardless of group, so the sixteen stay
+        // whole either way, and it is the family that would otherwise lose a member it needs.
+        var lime = TerrainPalette.Paintable.Single(block => block is { Id: Blocks.StainedClay, Data: 5 });
+        await Assert.That(lime.Group).IsEqualTo("verdant");
+        await Assert.That(lime.InFamily).IsTrue();
+
+        var white = TerrainPalette.Paintable.Single(block => block is { Id: Blocks.StainedClay, Data: 0 });
+        await Assert.That(white.Group).IsEqualTo("Stained clay");
+        await Assert.That(white.InFamily).IsFalse();
     }
 
     [Test]

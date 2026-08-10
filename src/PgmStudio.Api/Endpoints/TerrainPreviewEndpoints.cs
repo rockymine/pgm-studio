@@ -17,7 +17,7 @@ public sealed class TerrainBlocksEndpoint : EndpointWithoutRequest<List<PaintBlo
 
     public override Task HandleAsync(CancellationToken ct)
         => Send.OkAsync(TerrainPalette.Paintable
-            .Select(b => new PaintBlockDto(b.Id, b.Data, b.Name, b.Group, b.Hex)).ToList(), ct);
+            .Select(b => new PaintBlockDto(b.Id, b.Data, b.Name, b.Group, b.Hex, b.InFamily)).ToList(), ct);
 }
 
 /// <summary>The preview endpoints take a raw JSON document as their body rather than a wrapper DTO — the body

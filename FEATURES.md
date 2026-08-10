@@ -1233,7 +1233,8 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   forested map from the sample and cuts every material into fragments wherever trees stand, which then reads as
   speckle. **Patchiness is measured, not assumed** — a histogram cannot tell a scattered material from one laid
   in fields, so each is scored by how often it neighbours its own kind against how often it would by chance,
-  with patch counts and median size giving the scale. Materials are also grouped into **19 tone families over 72 full blocks** — the
+  with patch counts and median size giving the scale. Materials are also grouped into the **19 tone families over 72 full blocks**
+  of `TerrainPalette` (TP16), which is also the paint picker's own offer list — the
   vocabulary an author actually reaches for, "the green", "the earth", "the grey stone" — because a per-block histogram splits one
   decision across four rows and reports the variation inside a field as though it were the field. Only **full cubes** are named, since the tones are a vocabulary for
   building ground and a slab, stair, fence or flower stands on ground rather than being it — a double slab is a
@@ -3188,6 +3189,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   gated by a new e2e spec (`tests/e2e/draw-tools.mjs`, 11 checks: exactly one operation control with nothing
   else repeating its state, dimmed on move and measure, awake on rectangle, a click flipping it each way, and
   the mode surviving a tool change). (`docs/sketch-tool-ux-review.md` P0#2)
+- **The paint palette is grouped by tone family, and a family fills a pattern in one choice (TP16).**
+  `TerrainPalette`'s taxonomy groups — Rock, Earth, Wood, Mineral — were replaced by the **19 tone families over
+  72 full blocks** the surface analysis measures ground by, so one table now serves both: what an author paints
+  and what a report names cannot drift apart. A taxonomy could not do the job a pattern needs — Rock held stone,
+  obsidian and bedrock together, which is true about rock and useless as a palette for a field. Under every
+  material list (a stack's layers, a voronoi's bands, a cell pattern's patches, a field's stops, a wall's
+  stripes) sits **Fill from a family**: it lays one entry per block in the family's light-to-dark order,
+  replacing what the list held, and the author removes what that ground does not use. The select reads the
+  family a list currently holds, computed from the entries rather than remembered, so it names the family until
+  the list is narrowed and returns to an offer once it is. The three sixteen-shade colour families (stained clay,
+  wool, stained glass) stay as they were and keep their swatch row; a shade a tone family claims is offered under
+  that family, and the row still reaches all sixteen. Blocks no family names — bedrock, iron and gold blocks,
+  logs, plain glass — left the shortlist and are reached by typing the id/data pair, which the picker has always
+  accepted. Gated by six new palette tests: a variant takes the family of the ground it reads as and not of the
+  id it shares (granite is brick, andesite is grey stone), every family member is offered so a filled list can be
+  re-picked, no block belongs to two families, and the in-family flag matches the group exactly.
 - **Area patterns carry a rise, so a wall is not a stripe (TP15, S35).** Every area pattern — both region
   patterns and all three field ones — gained a **`Rise`**: the vertical period of its field in blocks, or 0 for
   none. A pattern of the plane answers a whole column at once, so it decided the ground and left every wall face

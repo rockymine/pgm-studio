@@ -27,9 +27,12 @@ public partial class BlockPicker
     /// stained families carry sixteen; the widest variant family (stone) carries seven.</summary>
     private const int FamilyShades = 8;
 
-    /// <summary>One option per offered block, with a colour family collapsed to a single line.</summary>
+    /// <summary>One option per offered block, with a colour family collapsed to a single line. A shade a tone
+    /// family claims stays listed under that family: the collapse exists so sixteen shades of one block do not
+    /// flood the list, and a family that reaches for two of them — slate is grey wool and cyan clay, and nothing
+    /// else — would otherwise have no line at all.</summary>
     private IEnumerable<IGrouping<string, PaintBlockDto>> Groups =>
-        Blocks.Where(block => !IsFamily(block) || block.Data == 0)
+        Blocks.Where(block => block.InFamily || !IsFamily(block) || block.Data == 0)
               .GroupBy(block => block.Group);
 
     /// <summary>The chosen block's shades, when it belongs to a colour family — what the swatch row offers.</summary>
@@ -88,7 +91,7 @@ public partial class BlockPicker
         => id == Id && data == Data
             ? Task.CompletedTask
             : Pick(Blocks.FirstOrDefault(block => block.Id == id && block.Data == data)
-                   ?? new PaintBlockDto(id, data, $"Block {id}:{data}", "Custom", Hex));
+                   ?? new PaintBlockDto(id, data, $"Block {id}:{data}", "Custom", Hex, InFamily: false));
 
     private static int Parse(ChangeEventArgs e, int fallback)
         => int.TryParse((string?)e.Value, out var value) && value >= 0 ? value : fallback;

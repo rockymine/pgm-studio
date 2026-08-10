@@ -116,7 +116,7 @@
             </HeadExtra>
           </MaterialEditor>
         }
-        <Button Icon="plus" OnClick="AddLayer">Add layer</Button>
+        @ListFoot(ThemeFields.Layers, "Add layer")
         break;
 
       case MaterialKind.Voronoi:
@@ -145,7 +145,7 @@
             </HeadExtra>
           </MaterialEditor>
         }
-        <Button Icon="plus" OnClick="AddBand">Add a band</Button>
+        @ListFoot(ThemeFields.Bands, "Add a band")
         break;
 
       case MaterialKind.Cell:
@@ -177,7 +177,7 @@
           <MaterialEditor Nested Label="@($"Patch {entry.Index + 1}")" Blocks="Blocks" @key="entry.Node"
                           Node="@entry.Material" OnChanged="Changed" OnRemove="@entry.Remove" />
         }
-        <Button Icon="plus" OnClick="AddPaletteEntry">Add a patch material</Button>
+        @ListFoot(ThemeFields.Palette, "Add a patch material")
         break;
 
       case MaterialKind.Noise:
@@ -207,7 +207,7 @@
           <MaterialEditor Nested Label="@($"Stop {entry.Index + 1}")" Blocks="Blocks" @key="entry.Node"
                           Node="@entry.Material" OnChanged="Changed" OnRemove="@entry.Remove" />
         }
-        <Button Icon="plus" OnClick="AddStop">Add stop</Button>
+        @ListFoot(ThemeFields.Stops, "Add stop")
         break;
 
       case MaterialKind.WallRun:
@@ -221,8 +221,30 @@
             </HeadExtra>
           </MaterialEditor>
         }
-        <Button Icon="plus" OnClick="AddStripe">Add stripe</Button>
+        @ListFoot(ThemeFields.Runs, "Add stripe")
         break;
     }
   </div>
 </div>
+
+@code {
+    @* The footer under one of a material's lists: add a single entry, or fill the list from a whole family.
+       One template rather than five copies — every list carries the same pair, and the field it acts on is the
+       only thing that differs between them. The select shows the family the list currently holds, so it reads
+       as a label until an author narrows the list and as an offer again once they have. *@
+    private RenderFragment ListFoot(string field, string addLabel) => @<div class="material-editor-foot">
+        <Button Icon="plus" OnClick="() => Add(field)">@addLabel</Button>
+        @if (Families.Any())
+        {
+            <select class="field-input field-input--slim" value="@MatchedFamily(field)"
+                    title="Fill this list with a whole family of blocks, then remove the ones this ground does not use"
+                    @onchange="e => ApplyFamily(field, e)">
+                <option value="">Fill from a family…</option>
+                @foreach (var family in Families)
+                {
+                    <option value="@family.Key" @key="family.Key">@family.Key (@family.Count())</option>
+                }
+            </select>
+        }
+    </div>;
+}

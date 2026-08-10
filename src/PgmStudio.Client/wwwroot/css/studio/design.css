@@ -284,6 +284,11 @@
 .material-editor-body { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
 .material-editor-scalars { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 .material-editor-scalars .field { flex: 1 1 6rem; }
+/* Under a material's list: the way to add one entry, and the way to fill the whole list from a family. Both
+   act on the same list, so they share its footer row rather than sitting at two different altitudes. */
+.material-editor-foot { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.material-editor-foot > * { height: var(--control-height); }
+.material-editor-foot > select { flex: 1 1 9rem; min-width: 0; }
 
 /* Block picker — the swatch says what the export will actually place. The chip, the name and the (id, data)
    pair that IS that name share one row; the pair's coord-fields hold their size so the name takes the slack,

@@ -107,12 +107,17 @@ public static class ThemeFields
 
     /// <summary>A fresh entry for one of a material's child lists — a bare material for a pattern's palette or
     /// stops, a material plus its extent for a layer stack, a wall run or a voronoi band.</summary>
-    public static JsonNode NewEntry(string field) => field switch
+    public static JsonNode NewEntry(string field) => Entry(field, Solid(1));
+
+    /// <summary>The same entry around a material already chosen — what filling a list from a family builds, one
+    /// entry per block. The extent is the list's own default, since a family names the blocks and not how far
+    /// each one reaches.</summary>
+    public static JsonNode Entry(string field, JsonObject material) => field switch
     {
-        Layers => Layer(Solid(1), 1),
-        Runs => Stripe(Solid(1), 2),
-        Bands => Band(Solid(1), 1),
-        _ => Solid(1),
+        Layers => Layer(material, 1),
+        Runs => Stripe(material, 2),
+        Bands => Band(material, 1),
+        _ => material,
     };
 
     /// <summary>A fresh field pattern — the three share every knob and differ only in how the field is bent, so

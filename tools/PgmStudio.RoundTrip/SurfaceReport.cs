@@ -22,75 +22,13 @@ internal static class SurfaceReport
 {
 
     /// <summary>
-    /// Ground materials grouped by the tone they read as. A map is not laid out one block at a time — an
-    /// author reaches for "the green", "the earth", "the grey stone" — so a per-block histogram splits one
-    /// decision across four rows and reports the variation inside a field as though it were the field. Grass,
-    /// green clay and lime clay are one surface with a texture; counted apart they look like three.
-    ///
-    /// <para>An ore sits with the stone it is embedded in rather than in a family of its own: it is a stone
-    /// with something in it and reads as that stone, so naming it apart would split one field in two. Logs are
-    /// out for the reason the leaves are — bark is a tree, not ground — while the planks cut from them are in,
-    /// since a plank floor is ground a player stands on. Bedrock is a full cube and still has no tone: it is
-    /// the map's floor and the shell of its walls, the one block that means the world ends here, so reading it
-    /// as a grey would call a boundary a material and invite it into terrain.</para>
-    ///
-    /// <para>A family is a use as much as a colour, and where the two disagree the use wins. Gravel reads grey
-    /// enough to sit with stone, but it is laid where cobble is laid — the low, wet ground at a water's edge —
-    /// and grouping it by colour buries that: with gravel and mossy cobble in the cobble family the two stone
-    /// tones separate by relief, cobble sitting low and shallow and grey stone standing high and steep, which
-    /// is the distinction the author was drawing.</para>
-    ///
-    /// <para>Only <b>full cubes</b> are named. These tones are a vocabulary for building ground, and a slab, a
-    /// stair, a fence or a flower is something that stands on ground rather than something ground is made of;
-    /// a double slab is a full block and belongs, its single-slab sibling does not. Anything partial that turns
-    /// up on the surface reports as unnamed, which is the honest answer — it is not the terrain, it is on it.</para>
-    ///
-    /// <para>Unlike a path or roof palette this table is a property of the blocks rather than of a map:
-    /// granite reads warm on every world, podzol reads dark. It is therefore a default rather than an
-    /// argument, and a material it does not name is reported as unnamed instead of being forced into a
-    /// family.</para>
+    /// The family a block reads as, or "unnamed" for one no family names. The vocabulary itself is
+    /// <see cref="TerrainPalette.Families"/> — the same table the paint picker offers, so what a report
+    /// measures and what an author paints cannot drift apart. A material outside it is reported as unnamed
+    /// rather than forced into a family, which is the honest answer: a partial block or a fixture is not the
+    /// terrain, it is something standing on it.
     /// </summary>
-    private static readonly (string Tone, int Rgb, (int Id, int Data)[] Blocks)[] Tones =
-    [
-        ("verdant",     0x4E8A33, [(159, 5), (2, 0), (159, 13), (35, 13), (168, 2)]),
-        ("spring",      0x78C13A, [(165, 0), (35, 5), (133, 0)]),
-        ("turquoise",   0x3E9E8C, [(168, 0), (168, 1)]),
-        ("loam",        0x5A4126, [(3, 2), (159, 12), (88, 0), (5, 5), (35, 12)]),
-        ("dirt",        0x8A6743, [(5, 0), (5, 3), (3, 0), (3, 1), (5, 1)]),
-        ("brick",       0x9A6250, [(1, 1), (1, 2), (45, 0), (172, 0)]),
-        ("rust",        0xA85A28, [(5, 4), (159, 1), (12, 1), (179, 0), (181, 8)]),
-        ("sand",        0xD6C894, [(12, 0), (5, 2), (24, 0), (43, 9), (121, 0)]),
-        ("gold",        0xC6A62F, [(35, 4), (19, 0), (19, 1), (103, 0)]),
-        ("pale stone",  0xB4B2AE, [(1, 3), (1, 4), (99, 15)]),
-        ("ash",         0x9DA0A0, [(35, 8), (82, 0), (43, 8), (43, 0)]),
-        ("grey stone",  0x7C817A, [(1, 0), (1, 5), (1, 6), (98, 0), (15, 0), (16, 0)]),
-        ("cobble",      0x767B72, [(13, 0), (4, 0), (98, 2), (48, 0)]),
-        ("mauve",       0x8A7A8E, [(110, 0), (159, 3)]),
-        ("azure",       0x3B5DA8, [(35, 11), (22, 0), (159, 11)]),
-        ("slate",       0x5A6066, [(159, 9), (35, 7)]),
-        ("dark",        0x2E2B2B, [(112, 0), (159, 15), (35, 15), (173, 0), (49, 0)]),
-        ("ice",         0xA9CBE0, [(79, 0), (174, 0)]),
-        ("bright",      0xE8E9E4, [(80, 0), (155, 0), (155, 1)]),
-    ];
-
-    private static readonly Dictionary<(int Id, int Data), string> ToneOf = BuildTones();
-    private static readonly Dictionary<string, int> ToneRgb =
-        Tones.ToDictionary(entry => entry.Tone, entry => entry.Rgb);
-
-    private static Dictionary<(int Id, int Data), string> BuildTones()
-    {
-        var table = new Dictionary<(int Id, int Data), string>();
-        foreach (var (tone, _, blocks) in Tones)
-            foreach (var block in blocks)
-                table[block] = tone;
-        return table;
-    }
-
-    /// <summary>The tone a block reads as, or "unnamed". An entry with data -1 claims every sub-type, so a
-    /// specific one is checked first — dirt in all its forms is loam, but sand and red sand part company.</summary>
-    private static string ToneName(int id, int data) =>
-        ToneOf.TryGetValue((id, data), out var exact) ? exact
-        : ToneOf.TryGetValue((id, -1), out var any) ? any : "unnamed";
+    private static string ToneName(int id, int data) => TerrainPalette.FamilyOf(id, data) ?? "unnamed";
 
     /// <summary>Grows on the ground rather than being it. Kept, but reported as a layer over its own soil.</summary>
     private static readonly HashSet<int> Decoration =
@@ -356,7 +294,7 @@ internal static class SurfaceReport
                 if (column.Built) { Raster.Set(pixels, blocksWide, col, row, 0x2A2D33); continue; }
                 if (column.Depth > 0) { Raster.Set(pixels, blocksWide, col, row, 0x1B3A5C); continue; }
                 Raster.Set(pixels, blocksWide, col, row,
-                    ToneRgb.TryGetValue(ToneName(column.Ground, column.GroundData), out var rgb) ? rgb : 0xC020C0);
+                    TerrainPalette.ColourOf(ToneName(column.Ground, column.GroundData)));
             }
 
         var scaled = Raster.Upscale(pixels, blocksWide, blocksHigh, scale);
