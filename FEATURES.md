@@ -1182,6 +1182,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   come with the span instead of being cut off at the shoreline. Validated against a hand-built map's own counts: 2 oak, ~46 spruce and ~51 pine per side, recovered as
   **2.0 / 47.5 / 54.5** with every trunk wood 100% pure, and its paving resolving into one connected network
   per team. (B64)
+- **Buildings from their roofs (`--buildings <regionDir> <out.png> --roof <id[:data],…>`)** — a roof is the
+  only part of a building always visible from above, always made of something terrain never uses, and always
+  continuous; walls are hidden under it and a footprint drawn from anything else guesses where a structure
+  ends. **Standing clear of the terrain is the one gate**, because plank laid on the ground is a deck or a
+  floor and nothing else separates it from a roof: same material, same connectivity, both fully grounded, but
+  a roof has air under it. Everything else is **reported, not enforced** — the share of roof columns with a
+  solid run to the ground, and how many footprint corners carry a vertical log. Groundedness looked like the
+  way to drop a floating objective and is not: it cannot tell an objective from a hollow shaft head, and what
+  it actually separates is roof tiers, so gating on it dropped structures a map author counts as buildings.
+  Measured on alpine_mining_ii: 52 components against the author's 26 structures, i.e. a component is a roof
+  **tier**, not a building. (B65)
 - **Supported map range (enforced in `MapParser`)** — the parser accepts **proto >= 1.4.0** only (PGM's
   id-based regions/filters/kits floor) and rejects **modern worlds** (`min-server-version >= 1.13.0`, whose
   post-"flattening" palette chunks the Anvil reader can't decode), throwing `UnsupportedMapException` with a
