@@ -236,6 +236,15 @@ internal static class FloraRender
                 $"{(canopies > 1 ? "this wood appears under several canopies — a post rooted beside one" : "a tree type of this map")}");
         }
 
+        if (flora.Felled.Count > 0)
+        {
+            var kinds = flora.Felled.GroupBy(stump => stump.Wood).OrderByDescending(group => group.Count())
+                .Select(group => $"{group.Key} {group.Count()}");
+            Console.WriteLine($"felled trunks: {flora.Felled.Count} cut stems " +
+                $"({flora.Felled.Min(stump => stump.Height)}..{flora.Felled.Max(stump => stump.Height)} logs tall) — " +
+                $"{string.Join(", ", kinds)}");
+        }
+
         Console.WriteLine($"structural timber: {flora.StructuralLogs} oriented log blocks that never rooted; " +
             $"{flora.UnrootedWood} all-bark blocks likewise");
         if (flora.Bare.Count > 0)

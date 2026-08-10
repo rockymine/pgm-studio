@@ -40,6 +40,11 @@ namespace PgmStudio.RoundTrip;
 /// are therefore given to their nearest trunk first and every reading — species, width, count — is taken from
 /// what a tree was given, so one canopy answers all three and no leaf votes twice.</para>
 ///
+/// <para><b>A cut trunk is neither a tree nor a post.</b> An author who fells a tree leaves its stump, and the
+/// stump says so: the wood wears bark on every side, which is what hides a sawn face, and then ends in an
+/// upright log showing one, with open sky above. Being two or three blocks tall it clears no stem threshold,
+/// so without a test of its own it is swept into the structural tally and reported as part of a building.</para>
+///
 /// <para>Wood that roots nowhere is not discarded silently: logs in a component with no all-bark and no
 /// leaves are structural timber, and all-bark wood carrying no canopy is returned apart, because an all-bark
 /// post is what an author reaches for when a pillar should show no cut end.</para>
@@ -59,6 +64,10 @@ internal static class Flora
 
 
     public static bool IsAllBark(int id, int data) => (id is OakLog or AcaciaLog) && (data >> 2 & 3) == 3;
+
+    /// <summary>Whether a log shows a sawn face upward. All-bark wood exists to hide exactly this, so a trunk
+    /// wearing bark on every side that ends in an upright log has had its top taken off.</summary>
+    public static bool IsCutEnd((int Id, int Data) log) => (log.Data >> 2 & 3) == 0;
     public static bool IsLog(int id) => id is OakLog or AcaciaLog;
     public static bool IsLeaf(int id) => id is OakLeaves or AcaciaLeaves;
 
@@ -82,8 +91,11 @@ internal static class Flora
         public int CanopyWidth { get; set; }
     }
 
-    public sealed record Result(IReadOnlyList<Tree> Trees, IReadOnlyList<Tree> Bare, int StructuralLogs,
-                                int UnrootedWood);
+    /// <summary>One felled trunk: what is left standing where a tree was cut.</summary>
+    public sealed record Stump(int X, int Z, int BaseY, int Height, string Wood);
+
+    public sealed record Result(IReadOnlyList<Tree> Trees, IReadOnlyList<Tree> Bare, IReadOnlyList<Stump> Felled,
+                                int StructuralLogs, int UnrootedWood);
 
     public static Result Classify(IEnumerable<AnvilRegion.Chunk> chunks)
     {
@@ -91,6 +103,7 @@ internal static class Flora
         var leaves = new Dictionary<(int X, int Y, int Z), (int Id, int Data)>();
         List<((int X, int Y, int Z) Cell, int Run)> rooted;
         var footings = new List<(int X, int Y, int Z)>();
+        var openTop = new HashSet<(int X, int Y, int Z)>();
 
         foreach (var chunk in chunks)
         {
@@ -118,8 +131,28 @@ internal static class Flora
 
                         var under = y > 0 ? ids[((y - 1) << 8) | col] : 0;
                         if (under != 0 && !IsLog(under) && !IsLeaf(under)) footings.Add((worldX, y, worldZ));
+                        if (y == 255 || ids[((y + 1) << 8) | col] == 0) openTop.Add((worldX, y, worldZ));
                     }
                 }
+        }
+
+        // Trunks that were cut, read before anything else, because a stump is neither a tree nor a post and
+        // being short it would otherwise fall through both tests into the structural-timber tally.
+        var felled = new List<Stump>();
+        var stumpCells = new HashSet<(int X, int Y, int Z)>();
+        foreach (var footing in footings)
+        {
+            var column = new List<(int Id, int Data)>();
+            for (var y = footing.Y; logs.TryGetValue((footing.X, y, footing.Z), out var log); y++) column.Add(log);
+            var top = footing.Y + column.Count - 1;
+            if (!openTop.Contains((footing.X, top, footing.Z))) continue;
+            if (!IsCutEnd(column[^1])) continue;
+            if (!column.Take(column.Count - 1).Any(log => IsAllBark(log.Id, log.Data))) continue;
+
+            felled.Add(new Stump(footing.X, footing.Z, footing.Y, column.Count,
+                LogSpecies(column[0].Id, column[0].Data)));
+            for (var height = 0; height < column.Count; height++)
+                stumpCells.Add((footing.X, footing.Y + height, footing.Z));
         }
 
         // Which facing marks a trunk on this world, decided by asking the sharper test first. All-bark is the
@@ -130,6 +163,7 @@ internal static class Flora
             var found = new List<((int X, int Y, int Z) Cell, int Run)>();
             foreach (var footing in footings)
             {
+                if (stumpCells.Contains(footing)) continue;
                 var (id, data) = logs[footing];
                 if (!isTrunkWood(id, data)) continue;
                 var species = LogSpecies(id, data);
@@ -230,12 +264,12 @@ internal static class Flora
             stand.Cluster.Min(cell => cell.Y), stand.Cluster.Min(cell => cell.Y) + stand.Runs.Max() - 1,
             stand.Trunk)).ToList();
 
-        // What the stem pass did not claim: wood that never rooted. Split by whether it carries bark, since
-        // an all-bark post is a deliberate choice and plain oriented timber is a wall.
-        var leftover = logs.Keys.Where(cell => !claimed.Contains(cell)).ToList();
+        // What neither pass claimed: wood that never rooted. Split by whether it carries bark, since an
+        // all-bark post is a deliberate choice and plain oriented timber is a wall.
+        var leftover = logs.Keys.Where(cell => !claimed.Contains(cell) && !stumpCells.Contains(cell)).ToList();
         var bareBark = leftover.Count(cell => IsAllBark(logs[cell].Id, logs[cell].Data));
 
-        return new Result(trees, bare, leftover.Count - bareBark, bareBark);
+        return new Result(trees, bare, felled, leftover.Count - bareBark, bareBark);
     }
 
     /// <summary>Whether any leaf stands against this trunk, on any of its faces, corners included.
