@@ -1177,10 +1177,9 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   the same block is a road on one map and bulk terrain on another. Paving is traced as connected surface
   components and the gap between the largest ones is reported, because a route can be continuous underfoot and
   still break in material where it crosses a bridge, a ford or a floor. `--bridge` names materials that seed a
-  crossing where the column **spans water or carries rail**; each seed then grows to its whole connected run,
-  so the abutments standing on dry land come with the span instead of being cut off at the shoreline. A rail
-  deck over water counts whatever it is made of, since a long span is often decked in whatever came to hand.
-  Validated against a hand-built map's own counts: 2 oak, ~46 spruce and ~51 pine per side, recovered as
+  crossing where the column **stands over water** — the same stone brick floors a building, but no floor has
+  open water beneath it — and each seed then grows to its whole connected run, so the abutments on dry land
+  come with the span instead of being cut off at the shoreline. Validated against a hand-built map's own counts: 2 oak, ~46 spruce and ~51 pine per side, recovered as
   **2.0 / 47.5 / 54.5** with every trunk wood 100% pure, and its paving resolving into one connected network
   per team. (B64)
 - **Supported map range (enforced in `MapParser`)** — the parser accepts **proto >= 1.4.0** only (PGM's

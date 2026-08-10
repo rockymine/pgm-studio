@@ -42,8 +42,7 @@ internal static class FloraRender
         var surfaceId = new Dictionary<(int X, int Z), (int Id, int Data, int Y)>();
         var ground = new Dictionary<(int X, int Z), int>();
         var overWater = new HashSet<(int X, int Z)>();
-        var underRail = new HashSet<(int X, int Z)>();
-        foreach (var chunk in chunks) ReadSurface(chunk, surfaceId, ground, overWater, underRail);
+        foreach (var chunk in chunks) ReadSurface(chunk, surfaceId, ground, overWater);
         if (ground.Count == 0) { Console.Error.WriteLine("no columns decoded"); return 1; }
 
         static Func<(int Id, int Data), bool> Matcher(IReadOnlyList<(int Id, int Data)> spec)
@@ -59,8 +58,8 @@ internal static class FloraRender
         foreach (var (cell, block) in surfaceId)
             if (isPath((block.Id, block.Data))) pathCells.Add(cell);
 
-        // A bridge material is ambiguous on its own — the same stone brick floors a building. What is not
-        // ambiguous is a span: water beneath it, or rail laid over it. Those cells seed the search, and the
+        // A bridge material is ambiguous on its own — the same stone brick floors a building. Open water
+        // beneath it is not ambiguous, and no floor has any. Those cells seed the search, and the
         // bridge is then its whole connected run of the same materials, so the abutments and ramps that
         // stand on dry land come with the crossing instead of being cut off at the shoreline.
         var bridgeCells = new HashSet<(int X, int Z)>();
@@ -68,12 +67,7 @@ internal static class FloraRender
         {
             var bridgeMaterial = new HashSet<(int X, int Z)>(surfaceId
                 .Where(entry => isBridge((entry.Value.Id, entry.Value.Data))).Select(entry => entry.Key));
-            // Rail standing over water is a crossing whatever its deck is made of. A long span is often
-            // decked in whatever came to hand, so naming its materials is hopeless where naming what it
-            // carries is exact — and no floor inside a building has open water beneath it.
-            var railSpans = underRail.Where(overWater.Contains).ToList();
-            foreach (var cell in railSpans) bridgeMaterial.Add(cell);
-            var seeds = bridgeMaterial.Where(cell => overWater.Contains(cell) || underRail.Contains(cell)).ToList();
+            var seeds = bridgeMaterial.Where(overWater.Contains).ToList();
 
             var frontier = new Queue<(int X, int Z)>(seeds);
             foreach (var seed in seeds) bridgeCells.Add(seed);
@@ -88,8 +82,8 @@ internal static class FloraRender
                             frontier.Enqueue(next);
                     }
             }
-            Console.WriteLine($"  bridges: {seeds.Count} spanning cell(s) ({railSpans.Count} of them rail over " +
-                $"water) grew to {bridgeCells.Count} including their abutments");
+            Console.WriteLine($"  bridges: {seeds.Count} cell(s) standing over water grew to {bridgeCells.Count} " +
+                $"including their abutments, in {Components(bridgeCells).Count} separate crossing(s)");
             foreach (var cell in bridgeCells) pathCells.Add(cell);
         }
 
@@ -101,8 +95,7 @@ internal static class FloraRender
     }
 
     private static void ReadSurface(AnvilRegion.Chunk chunk, Dictionary<(int X, int Z), (int Id, int Data, int Y)> surface,
-                                    Dictionary<(int X, int Z), int> ground, HashSet<(int X, int Z)> overWater,
-                                    HashSet<(int X, int Z)> underRail)
+                                    Dictionary<(int X, int Z), int> ground, HashSet<(int X, int Z)> overWater)
     {
         var ids = new ushort[256 * 256];
         var data = new byte[256 * 256];
@@ -121,16 +114,11 @@ internal static class FloraRender
             for (var lx = 0; lx < 16; lx++)
             {
                 var col = (lz << 4) | lx;
-                var railAbove = false;
                 for (var y = 255; y >= 0; y--)
                 {
                     var id = ids[(y << 8) | col];
-                    // Rail is stepped past like any cover so the deck under it is the surface, but the fact
-                    // that rail was there is kept: it is what names the lake crossing.
-                    if (id is 66 or 27 or 28 or 157) railAbove = true;
                     if (cover.Contains(id)) continue;
                     var cell = (chunk.ChunkX * 16 + lx, chunk.ChunkZ * 16 + lz);
-                    if (railAbove) underRail.Add(cell);
                     surface[cell] = (id, data[(y << 8) | col], y);
                     ground[cell] = y;
                     // Water anywhere under the surface block marks the column as spanning water, which is
