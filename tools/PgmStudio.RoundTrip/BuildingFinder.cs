@@ -11,12 +11,13 @@ namespace PgmStudio.RoundTrip;
 /// floor, and nothing else separates it from a roof: same material, same connectivity, and both ground
 /// completely. A roof has air under it.</para>
 ///
-/// <para><b>Everything else is reported, not enforced.</b> How much of a roof reaches the ground, how many
-/// footprint corners carry a vertical log — both describe a candidate against one map's conventions, and a
-/// detector that gated on either would answer for that map alone. Groundedness in particular looked like the
-/// way to drop a floating objective, and is not: an objective wearing roof material is a different structure
-/// from a house, but so is a hollow shaft head, and the measure cannot tell them apart. What it separates is
-/// roof tiers. A caller who knows the map can filter on these columns; the tool does not guess.</para>
+/// <para><b>Two measures are reported and neither gates.</b> The share of roof columns with a solid run to the
+/// terrain separates what stands from what hangs, and the count of footprint corners carrying a vertical log
+/// says how far a candidate fits a framing convention. Alone, each is ambiguous: a hollow shaft head grounds
+/// nowhere and so does a floating objective marker. <b>Together they separate cleanly</b> — the shaft head is
+/// framed at all four corners because it is built like the houses around it, and the marker is framed at none
+/// because it is not a building at all. A caller who knows the map reads the pair; the tool states them and
+/// classifies without discarding, so a wrong call stays visible instead of becoming a missing row.</para>
 /// </summary>
 internal static class BuildingFinder
 {
@@ -35,7 +36,14 @@ internal static class BuildingFinder
     private sealed record Column(int RoofId, int RoofData, int RoofY, int SolidBottom, int GroundY, bool HasLog);
 
     private sealed record Candidate(int MinX, int MaxX, int MinZ, int MaxZ, int Footprint, int RoofLow,
-                                    int RoofHigh, int GroundY, double Grounded, int Corners, string Materials);
+                                    int RoofHigh, int GroundY, double Grounded, int Corners, string Materials)
+    {
+        /// <summary>What the grounded share and the corner framing say together. Nothing is dropped on this;
+        /// it is a reading offered next to the numbers it came from.</summary>
+        public string Reading => Grounded >= 0.05 ? "stands on the terrain"
+            : Corners >= 3 ? "hollow but framed — a head over a shaft"
+            : "hangs, unframed — not a building";
+    }
 
     public static int Run(string regionDir, string outPng, int scale, IReadOnlyList<(int Id, int Data)> roofSpec,
                           int minimumArea, int minimumHeight)
@@ -73,20 +81,22 @@ internal static class BuildingFinder
             int minX = component.Min(cell => cell.X), maxX = component.Max(cell => cell.X);
             int minZ = component.Min(cell => cell.Z), maxZ = component.Max(cell => cell.Z);
             var roofs = component.Select(cell => columns[cell].RoofY).OrderBy(y => y).ToList();
-            var ring = Ring(minX, maxX, minZ, maxZ, roofCells).Where(terrain.ContainsKey)
-                .Select(cell => terrain[cell]).OrderBy(y => y).ToList();
+            // The ground to measure against is the terrain directly under the roof, not a ring outside it.
+            // On a slope the ring sits well below the footprint, which lets plank laid flat into a hillside
+            // as texture read as a roof standing several blocks clear of nothing.
+            var below = component.Where(terrain.ContainsKey).Select(cell => terrain[cell]).OrderBy(y => y).ToList();
             var materials = component.GroupBy(cell => BlockPalette.Name(columns[cell].RoofId, columns[cell].RoofData))
                 .OrderByDescending(group => group.Count()).Take(2)
                 .Select(group => $"{group.Key} {group.Count() * 100 / component.Count}%");
 
             var candidate = new Candidate(minX, maxX, minZ, maxZ, component.Count, roofs[0], roofs[^1],
-                ring.Count > 0 ? ring[ring.Count / 2] : roofs[0], grounded,
+                below.Count > 0 ? below[below.Count / 2] : roofs[0], grounded,
                 CornerStems(minX, maxX, minZ, maxZ, columns), string.Join(", ", materials));
 
-            // Plank laid on the ground is a deck, a jetty or a floor, not a roof. Requiring a roof to stand
-            // clear of the terrain is what separates the two, and no other property does: both are the same
-            // material, both are connected, and both ground completely.
-            if (candidate.RoofHigh - candidate.GroundY < minimumHeight) continue;
+            // Plank laid on the ground is a deck, a floor, or texture worked into a hillside, and none of
+            // those is a roof. Clearance over the terrain beneath is what separates them, since the material
+            // and the connectivity are identical.
+            if (candidate.RoofLow - candidate.GroundY < minimumHeight) continue;
 
             foreach (var cell in component) claimed[cell] = standing.Count;
             standing.Add(candidate);
@@ -163,17 +173,6 @@ internal static class BuildingFinder
         return component;
     }
 
-    /// <summary>Terrain columns just outside the footprint — the ground the building stands on, which its own
-    /// roof hides.</summary>
-    private static HashSet<(int X, int Z)> Ring(int minX, int maxX, int minZ, int maxZ, HashSet<(int X, int Z)> roofs)
-    {
-        var ring = new HashSet<(int X, int Z)>();
-        for (var x = minX - 3; x <= maxX + 3; x++)
-            for (var z = minZ - 3; z <= maxZ + 3; z++)
-                if ((x < minX || x > maxX || z < minZ || z > maxZ) && !roofs.Contains((x, z))) ring.Add((x, z));
-        return ring;
-    }
-
     /// <summary>How many of the four footprint corners carry a vertical log within a block or two. Reported
     /// as a fit to one map's framing convention, never used to accept or reject.</summary>
     private static int CornerStems(int minX, int maxX, int minZ, int maxZ, Dictionary<(int X, int Z), Column> columns)
@@ -193,6 +192,9 @@ internal static class BuildingFinder
     private static void Report(List<Candidate> standing, List<Candidate> floating)
     {
         Console.WriteLine($"{standing.Count} roof component(s) standing clear of the terrain\n");
+        foreach (var group in standing.GroupBy(item => item.Reading).OrderByDescending(group => group.Count()))
+            Console.WriteLine($"  {group.Count(),3}  {group.Key}");
+        Console.WriteLine();
         Console.WriteLine($"{"x range",-14} {"z range",-14} {"roof",6} {"size",8} {"y",10} {"tall",5} {"gnd",6} {"cnr",4}  materials");
         foreach (var building in standing.OrderByDescending(building => building.Footprint))
             Console.WriteLine(Line(building));
@@ -204,11 +206,12 @@ internal static class BuildingFinder
         Console.WriteLine($"corner stems: {standing.Count(building => building.Corners == 4)} of {standing.Count} " +
             $"carry a log at all four corners");
 
-        var hollow = standing.Where(item => item.Grounded < 0.05).ToList();
-        if (hollow.Count == 0) return;
-        Console.WriteLine($"\n{hollow.Count} of them have no solid run to the ground under any roof column — " +
-            $"hollow heads or detached tiers, listed for the caller to judge:");
-        foreach (var item in hollow.OrderByDescending(item => item.Footprint)) Console.WriteLine(Line(item));
+        foreach (var group in standing.Where(item => item.Grounded < 0.05)
+                     .GroupBy(item => item.Reading).OrderByDescending(group => group.Count()))
+        {
+            Console.WriteLine($"\n{group.Count()} — {group.Key}:");
+            foreach (var item in group.OrderByDescending(item => item.Footprint)) Console.WriteLine(Line(item));
+        }
     }
 
     private static string Line(Candidate item) =>

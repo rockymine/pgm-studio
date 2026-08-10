@@ -1187,12 +1187,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   continuous; walls are hidden under it and a footprint drawn from anything else guesses where a structure
   ends. **Standing clear of the terrain is the one gate**, because plank laid on the ground is a deck or a
   floor and nothing else separates it from a roof: same material, same connectivity, both fully grounded, but
-  a roof has air under it. Everything else is **reported, not enforced** — the share of roof columns with a
-  solid run to the ground, and how many footprint corners carry a vertical log. Groundedness looked like the
-  way to drop a floating objective and is not: it cannot tell an objective from a hollow shaft head, and what
-  it actually separates is roof tiers, so gating on it dropped structures a map author counts as buildings.
-  Measured on alpine_mining_ii: 52 components against the author's 26 structures, i.e. a component is a roof
-  **tier**, not a building. (B65)
+  a roof has air under it. Clearance is measured against the terrain **directly beneath the
+  footprint**, never a ring outside it — on a slope the ring sits well below, which lets plank worked flat into
+  a hillside as texture read as a roof standing clear of nothing. Two further measures are **reported and
+  neither gates**: the share of roof columns with a solid run to the terrain, and how many footprint corners
+  carry a vertical log. Alone each is ambiguous — a hollow shaft head grounds nowhere and so does a floating
+  objective marker — but **together they separate cleanly**, since the shaft head is framed at all four corners
+  like the houses around it and the marker is framed at none. Measured on alpine_mining_ii with its stair
+  roofs: 34 components — 24 standing, 7 hollow-but-framed shaft heads, 3 unframed markers sitting 30–46 blocks
+  up over the map's own destroyable regions. (B65)
 - **Supported map range (enforced in `MapParser`)** — the parser accepts **proto >= 1.4.0** only (PGM's
   id-based regions/filters/kits floor) and rejects **modern worlds** (`min-server-version >= 1.13.0`, whose
   post-"flattening" palette chunks the Anvil reader can't decode), throwing `UnsupportedMapException` with a
