@@ -1233,7 +1233,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   forested map from the sample and cuts every material into fragments wherever trees stand, which then reads as
   speckle. **Patchiness is measured, not assumed** — a histogram cannot tell a scattered material from one laid
   in fields, so each is scored by how often it neighbours its own kind against how often it would by chance,
-  with patch counts and median size giving the scale. Materials are also grouped into **18 tone families over 68 full blocks** — the
+  with patch counts and median size giving the scale. Materials are also grouped into **19 tone families over 72 full blocks** — the
   vocabulary an author actually reaches for, "the green", "the earth", "the grey stone" — because a per-block histogram splits one
   decision across four rows and reports the variation inside a field as though it were the field. Only **full cubes** are named, since the tones are a vocabulary for
   building ground and a slab, stair, fence or flower stands on ground rather than being it — a double slab is a

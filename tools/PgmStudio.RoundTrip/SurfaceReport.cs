@@ -27,10 +27,10 @@ internal static class SurfaceReport
     /// decision across four rows and reports the variation inside a field as though it were the field. Grass,
     /// green clay and lime clay are one surface with a texture; counted apart they look like three.
     ///
-    /// <para>Ores are not here, and neither are the infested stones: an ore is a stone with something in it
-    /// and reads as the stone, so naming it apart splits a field that is one field. Logs are out for the same
-    /// reason the leaves are — bark is a tree, not ground — with the single exception of oak, which this
-    /// author lays as earth.</para>
+    /// <para>An ore sits with the stone it is embedded in rather than in a family of its own: it is a stone
+    /// with something in it and reads as that stone, so naming it apart would split one field in two. Logs are
+    /// out for the reason the leaves are — bark is a tree, not ground — while the planks cut from them are in,
+    /// since a plank floor is ground a player stands on.</para>
     ///
     /// <para>Only <b>full cubes</b> are named. These tones are a vocabulary for building ground, and a slab, a
     /// stair, a fence or a flower is something that stands on ground rather than something ground is made of;
@@ -48,19 +48,20 @@ internal static class SurfaceReport
         ("spring",      0x78C13A, [(165, 0), (35, 5), (133, 0)]),
         ("turquoise",   0x3E9E8C, [(168, 0), (168, 1)]),
         ("loam",        0x5A4126, [(3, 2), (159, 12), (88, 0), (5, 5), (35, 12)]),
-        ("dirt",        0x8A6743, [(17, 0), (5, 3), (3, 0), (3, 1), (5, 1)]),
+        ("dirt",        0x8A6743, [(5, 0), (5, 3), (3, 0), (3, 1), (5, 1)]),
         ("brick",       0x9A6250, [(1, 1), (1, 2), (45, 0), (172, 0)]),
         ("rust",        0xA85A28, [(5, 4), (159, 1), (12, 1), (179, 0), (181, 8)]),
         ("sand",        0xD6C894, [(12, 0), (5, 2), (24, 0), (43, 9), (121, 0)]),
         ("gold",        0xC6A62F, [(35, 4), (19, 0), (19, 1), (103, 0)]),
         ("pale stone",  0xB4B2AE, [(1, 3), (1, 4), (99, 15)]),
-        ("ash",         0x9DA0A0, [(35, 8), (159, 8), (43, 8), (43, 0)]),
-        ("grey stone",  0x7C817A, [(1, 0), (1, 5), (1, 6), (98, 0), (13, 0)]),
+        ("ash",         0x9DA0A0, [(35, 8), (82, 0), (43, 8), (43, 0)]),
+        ("grey stone",  0x7C817A, [(1, 0), (1, 5), (1, 6), (98, 0), (13, 0), (15, 0), (16, 0)]),
         ("cobble",      0x767B72, [(4, 0), (98, 2)]),
         ("mauve",       0x8A7A8E, [(110, 0), (159, 3)]),
         ("azure",       0x3B5DA8, [(35, 11), (22, 0), (159, 11)]),
         ("slate",       0x5A6066, [(159, 9), (35, 7), (7, 0)]),
         ("dark",        0x2E2B2B, [(112, 0), (159, 15), (35, 15), (173, 0), (49, 0)]),
+        ("ice",         0xA9CBE0, [(79, 0), (174, 0)]),
         ("bright",      0xE8E9E4, [(80, 0), (155, 0), (155, 1)]),
     ];
 
