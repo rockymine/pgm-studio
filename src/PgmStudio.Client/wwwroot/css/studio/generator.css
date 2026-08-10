@@ -81,6 +81,21 @@
 .gen-pin--on { color: var(--accent); background: var(--bg-selected); border-color: var(--accent); }
 .gen-pin svg { width: var(--icon-sm); height: var(--icon-sm); }
 
+/* verdict votes (G118) — same chrome as the pin; the active state names the direction */
+.gen-vote { width: 26px; height: 26px; display: grid; place-items: center; background: transparent; color: var(--text-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; }
+.gen-vote:hover { color: var(--text-bright); border-color: var(--accent); }
+.gen-vote--up { color: var(--color-success); background: var(--color-success-bg); border-color: currentColor; }
+.gen-vote--down { color: var(--color-error); background: var(--color-error-bg); border-color: currentColor; }
+.gen-vote svg { width: var(--icon-sm); height: var(--icon-sm); }
+
+/* the drawer's annotation panel */
+.gen-verdict { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-2); padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.gen-verdict-head { display: flex; align-items: center; justify-content: space-between; }
+.gen-verdict-label { font-size: var(--font-xs); font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; }
+.gen-verdict-votes { display: flex; gap: var(--space-1); }
+.gen-verdict-note { width: 100%; resize: vertical; background: var(--bg-panel, var(--bg)); color: var(--text-bright); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 8px; font-size: var(--font-sm); font-family: inherit; }
+.gen-verdict-actions { display: flex; gap: var(--space-2); }
+
 .gen-status { text-align: center; color: var(--text-secondary); font-size: var(--font-sm); padding: var(--space-3); }
 .gen-sentinel { height: 1px; }
 .gen-more { margin-top: var(--space-3); }

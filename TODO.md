@@ -44,9 +44,8 @@ showcase (G121), the persistence foundation (G119), browse mode (G117), its stru
 (G128 — form/family filters) and the shape catalog page (G144) have shipped — see `FEATURES.md`. The
 catalog lands ahead of verdicts on purpose: it is the reference surface for the vocabulary the tags are
 written in, and its measured class counts are what make per-bucket coverage tractable later.
-**Verdicts (G118) is next**, and it now
-owns the up/down votes deferred out of browse (the browse pin is the only persistence action so far,
-and the structural bucket key it stores is G118's verdict column / G120's duel bucket). The design long tail this focus deliberately
+Verdict collection (G118) has shipped — the browse feed's up/down votes, tags and note persist with the
+evaluator snapshot (`FEATURES.md`) — so **duels (G120) is next**. The design long tail this focus deliberately
 displaced is condensed in **`docs/generator/ideas.md`** (ids preserved — pull one back here
 when it becomes the focus).
 
@@ -66,15 +65,6 @@ hold tray persists across reloads — pinned *means* persisted.
   fingerprint digests the plan JSON, so every board's digest moves, which means a `ComposerVersion` bump and a
   re-record of `tools/compose/composer-fingerprints.json`. Worth doing on the next version bump rather than
   spending one on annotation.
-
-- [ ] **G118 — Verdict collection.** Tap-chip annotation tags (large toggleable pills, multi-select —
-  never checkboxes) available on both vote directions, both optional; the tag set seeded from the
-  layout-rules vocabulary (wools-too-close · wools/spawns-should-swap · flat-front · crammed-mid ·
-  no-rotation · great-hub · …, extendable), each tag carrying its rule id where one exists — a
-  downvote tagged with a rule whose term did *not* fire is a ready-made evaluator bug report. Persist
-  {plan ref, descriptor, verdict, tags, free-text note, evaluator score + per-term snapshot, evaluator
-  version} via G119; JSONL export so the labeled examples drive rule refinement, envelope
-  regeneration, and AI-assisted analysis.
 
 - [ ] **G120 — Duel mode (the tournament).** Bucket-scoped side-by-side comparison: a **bucket** is a
   filter combination (e.g. 2 wools · F frontline · double-hole hub · one L + one donut), so both

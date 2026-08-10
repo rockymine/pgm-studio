@@ -40,8 +40,10 @@ internal static class PlanStoreMapping
         new(r.Id, r.Name, r.Origin, r.ParentId, r.Seed, r.ComposerVersion, r.CreatedAt, r.UpdatedAt, r.PlanJson);
 }
 
-/// <summary>GET /api/plans[?origin=generated|authored|imported] — the open-from-DB browser list, newest
-/// touched first. Summaries only (no plan JSON); the detail endpoint carries the document.</summary>
+/// <summary>GET /api/plans[?origin=generated|authored|imported][&amp;pinned=true|false] — the open-from-DB
+/// browser list, newest touched first. <c>pinned=true</c> is the hold tray's view: a voted-but-never-pinned
+/// generated row is persisted for the labeled corpus, not the tray. Summaries only (no plan JSON); the
+/// detail endpoint carries the document.</summary>
 public sealed class PlanListEndpoint(PlanStore store) : EndpointWithoutRequest<List<PlanSummary>>
 {
     public override void Configure() { Get("/plans"); AllowAnonymous(); }
@@ -49,7 +51,8 @@ public sealed class PlanListEndpoint(PlanStore store) : EndpointWithoutRequest<L
     public override async Task HandleAsync(CancellationToken ct)
     {
         var origin = Query<string?>("origin", isRequired: false);
-        var rows = await store.ListAsync(string.IsNullOrWhiteSpace(origin) ? null : origin, ct);
+        var pinned = Query<bool?>("pinned", isRequired: false);
+        var rows = await store.ListAsync(string.IsNullOrWhiteSpace(origin) ? null : origin, pinned, ct);
         await Send.OkAsync(rows.Select(PlanStoreMapping.ToSummary).ToList(), ct);
     }
 }
@@ -87,7 +90,8 @@ public sealed class PlanSaveEndpoint(PlanStore store) : Endpoint<PlanSaveRequest
 }
 
 /// <summary>DELETE /api/plans/{id} — forget a plan (204). Forks of it survive: the self-FK sets their
-/// <c>parent_id</c> null rather than cascading.</summary>
+/// <c>parent_id</c> null rather than cascading. A row carrying a verdict is demoted to unpinned instead of
+/// deleted — the labeled corpus outlives the tray; retract the verdict first to make the delete real.</summary>
 public sealed class PlanDeleteEndpoint(PlanStore store) : EndpointWithoutRequest
 {
     public override void Configure() { Delete("/plans/{id}"); AllowAnonymous(); }

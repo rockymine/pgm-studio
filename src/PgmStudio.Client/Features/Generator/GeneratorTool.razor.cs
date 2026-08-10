@@ -75,8 +75,16 @@ public partial class GeneratorTool : IAsyncDisposable
     private readonly HashSet<string> pinnedKeys = [];
     private readonly Dictionary<long, string> traySvg = [];
 
+    // ── verdicts (G118) — the current judgment per board, keyed by descriptor ─────
+    private readonly Dictionary<string, VerdictDto> votes = [];
+
     // ── detail dialog ─────────────────────────────────────────────────────────────
     private ComposeCard? detail;
+
+    // the annotation draft the drawer edits — seeded from the stored verdict when the drawer opens
+    private string? draftVerdict;
+    private readonly HashSet<string> draftTags = [];
+    private string draftNote = "";
 
     private static string Key(ComposeRequestDto d) => $"{d.Players}-{d.Teams}-{d.Symmetry}-{d.Cell}-{d.Seed}";
     private bool IsPinned(ComposeCard c) => pinnedKeys.Contains(Key(c.Descriptor));
@@ -87,6 +95,7 @@ public partial class GeneratorTool : IAsyncDisposable
         if (!firstRender) return;
         selfRef = DotNetObjectReference.Create(this);
         await RefreshPinned();
+        await RefreshVerdicts();
         await Reload();
         try { observer = await JS.InvokeAsync<IJSObjectReference>("studio.onScrollEnd", sentinelRef, selfRef); }
         catch { /* infinite scroll unavailable — the Load more button still works */ }
@@ -241,7 +250,7 @@ public partial class GeneratorTool : IAsyncDisposable
     {
         try
         {
-            pinned = await Http.GetFromJsonAsync<List<PlanSummary>>("api/plans?origin=generated") ?? [];
+            pinned = await Http.GetFromJsonAsync<List<PlanSummary>>("api/plans?origin=generated&pinned=true") ?? [];
             pinnedKeys.Clear();
             foreach (var p in pinned)
                 if (p.Descriptor is { } d) pinnedKeys.Add(Key(d));
@@ -287,8 +296,86 @@ public partial class GeneratorTool : IAsyncDisposable
         $"Held from composer {p.ComposerVersion ?? "(unrecorded)"}. Opens as stored; its seed no longer "
         + "re-composes to this board.";
 
+    // ── verdicts (G118) ────────────────────────────────────────────────────────────
+    // Voting persists: the endpoint re-composes the descriptor and stores the plan (unpinned) with the
+    // verdict, so the vote map is server truth reloaded on init, exactly like the pin set.
+    private async Task RefreshVerdicts()
+    {
+        try
+        {
+            var list = await Http.GetFromJsonAsync<List<VerdictDto>>("api/verdicts") ?? [];
+            votes.Clear();
+            foreach (var v in list)
+                if (v.Descriptor is { } d) votes[Key(d)] = v;
+        }
+        catch { /* the vote map stays as-is */ }
+    }
+
+    private VerdictDto? VoteOf(ComposeCard c) => votes.GetValueOrDefault(Key(c.Descriptor));
+
+    // The card's one-tap vote: cast, flip, or (same direction again) retract. A flip keeps the stored tags
+    // and note — the annotation describes the board, not the direction.
+    private Task VoteUp(ComposeCard c) => QuickVote(c, "up");
+    private Task VoteDown(ComposeCard c) => QuickVote(c, "down");
+
+    private async Task QuickVote(ComposeCard c, string direction)
+    {
+        if (VoteOf(c) is { } current && current.Verdict == direction) { await Retract(c); return; }
+        await SaveVerdict(c, direction, VoteOf(c)?.Tags ?? [], VoteOf(c)?.Note);
+    }
+
+    private async Task SaveVerdict(ComposeCard c, string direction, IReadOnlyList<string> tags, string? note)
+    {
+        try
+        {
+            var resp = await Http.PostAsJsonAsync("api/compose/verdict", new VerdictSaveRequest(c.Descriptor, direction, tags, note));
+            if (resp.IsSuccessStatusCode && await resp.Content.ReadFromJsonAsync<VerdictDto>() is { } dto)
+                votes[Key(c.Descriptor)] = dto;
+        }
+        catch { /* the vote stays uncast; the card shows it */ }
+        StateHasChanged();
+    }
+
+    private async Task Retract(ComposeCard c)
+    {
+        if (VoteOf(c) is not { } vote) return;
+        try
+        {
+            await Http.DeleteAsync($"api/verdicts/{vote.PlanId}");
+            votes.Remove(Key(c.Descriptor));
+            draftVerdict = null;
+        }
+        catch { /* the vote stays; the card shows it */ }
+        StateHasChanged();
+    }
+
+    // ── the drawer's annotation draft ─────────────────────────────────────────────
+    private bool DraftIsUp => draftVerdict == "up";
+    private bool DraftIsDown => draftVerdict == "down";
+    private void DraftUp() => draftVerdict = "up";
+    private void DraftDown() => draftVerdict = "down";
+    private void ToggleDraftTag(string token) { if (!draftTags.Remove(token)) draftTags.Add(token); }
+    private void OnDraftNote(ChangeEventArgs e) => draftNote = e.Value?.ToString() ?? "";
+
+    private Task SaveDraft(ComposeCard c) => draftVerdict is null
+        ? Task.CompletedTask
+        : SaveVerdict(c, draftVerdict, draftTags.ToList(), string.IsNullOrWhiteSpace(draftNote) ? null : draftNote);
+
+    private static string TagTitle(VerdictTag tag) => tag.RuleId is { } rule
+        ? $"{tag.Label} — indicts rule {rule}; on a downvote where its term did not fire, that is an evaluator bug report"
+        : $"{tag.Label} — no rule carries this yet";
+
     // ── detail dialog ──────────────────────────────────────────────────────────────
-    private void OpenDetail(ComposeCard c) => detail = c;
+    private void OpenDetail(ComposeCard c)
+    {
+        detail = c;
+        var vote = VoteOf(c);
+        draftVerdict = vote?.Verdict;
+        draftTags.Clear();
+        foreach (var t in vote?.Tags ?? []) draftTags.Add(t);
+        draftNote = vote?.Note ?? "";
+    }
+
     private void CloseDetail() => detail = null;
 
     private static string DescriptorJson(ComposeCard c) =>

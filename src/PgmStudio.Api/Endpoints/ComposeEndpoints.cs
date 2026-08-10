@@ -201,7 +201,7 @@ public sealed class ComposePinEndpoint(PlanStore store) : Endpoint<ComposeReques
         // A kept board carries its partition as the authored box annotation, so it opens in the editor with the
         // boxes that produced it (the browse feed stays label-free — this is the keep step, not the compose).
         PlanBoxAnnotation.Apply(stages.Plan, stages.Unit);
-        var row = await store.SaveGeneratedAsync(stages.Plan.ToJson(), ComposeDescriptor.For(request), structure, ct);
+        var row = await store.SaveGeneratedAsync(stages.Plan.ToJson(), ComposeDescriptor.For(request), structure, pinned: true, ct);
         await Send.OkAsync(PlanStoreMapping.ToDetail(row), ct);
     }
 }

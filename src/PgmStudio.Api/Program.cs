@@ -47,6 +47,7 @@ builder.Services.AddSingleton(PgmDataOptions.ForConnectionString(connectionStrin
 builder.Services.AddScoped<PgmDb>();
 builder.Services.AddScoped<MapRepository>();
 builder.Services.AddScoped<PgmStudio.Data.Plan.PlanStore>();
+builder.Services.AddScoped<PgmStudio.Data.Plan.VerdictStore>();
 builder.Services.AddScoped<PgmStudio.Data.Theme.ThemeStore>();
 builder.Services.AddScoped<PgmStudio.Api.Services.ThemeLibrary>();
 builder.Services.AddScoped<PgmStudio.Data.Theme.RoomStyleStore>();

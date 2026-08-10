@@ -182,6 +182,12 @@
               {
                 <span class="gen-card-land" title="@SpendTitle(spend)">@SpendShort(spend)</span>
               }
+              <button class="gen-vote @(VoteOf(card)?.Verdict == "up" ? "gen-vote--up" : null)"
+                      @onclick="() => VoteUp(card)"
+                      title="@(VoteOf(card)?.Verdict == "up" ? "Retract the upvote" : "Vote up — persists the board to the labeled corpus")"><i data-lucide="thumbs-up"></i></button>
+              <button class="gen-vote @(VoteOf(card)?.Verdict == "down" ? "gen-vote--down" : null)"
+                      @onclick="() => VoteDown(card)"
+                      title="@(VoteOf(card)?.Verdict == "down" ? "Retract the downvote" : "Vote down — persists the board to the labeled corpus")"><i data-lucide="thumbs-down"></i></button>
               <button class="gen-pin @(IsPinned(card) ? "gen-pin--on" : null)" @onclick="() => TogglePin(card)"
                       title="@(IsPinned(card) ? "Unpin" : "Pin to hold tray")"><i data-lucide="pin"></i></button>
             </div>
@@ -213,6 +219,39 @@
         </div>
         <div class="gen-detail-meta">
           <strong>@string.Join(", ", d.Structure.Wools)</strong> wools · hub <strong>@d.Structure.Hub</strong> · frontline <strong>@d.Structure.Frontline</strong> · seating <strong>@d.Structure.Seat</strong>
+        </div>
+
+        <div class="gen-verdict">
+          <div class="gen-verdict-head">
+            <span class="gen-verdict-label">Verdict</span>
+            <div class="gen-verdict-votes">
+              <button class="gen-vote @(DraftIsUp ? "gen-vote--up" : null)" @onclick="DraftUp" title="Good board"><i data-lucide="thumbs-up"></i></button>
+              <button class="gen-vote @(DraftIsDown ? "gen-vote--down" : null)" @onclick="DraftDown" title="Bad board"><i data-lucide="thumbs-down"></i></button>
+            </div>
+          </div>
+          <div class="filter-group-options">
+            @foreach (var tag in VerdictTags.Catalog)
+            {
+              <Chip Active="draftTags.Contains(tag.Token)" Title="@TagTitle(tag)"
+                    OnClick="() => ToggleDraftTag(tag.Token)">@tag.Label</Chip>
+            }
+          </div>
+          <textarea class="gen-verdict-note" rows="2" placeholder="Note (optional)"
+                    value="@draftNote" @oninput="OnDraftNote"></textarea>
+          <div class="gen-verdict-actions">
+            <Button Variant="primary" Disabled="@(draftVerdict is null)" OnClick="() => SaveDraft(d)">
+              @(VoteOf(d) is null ? "Save verdict" : "Update verdict")
+            </Button>
+            @if (VoteOf(d) is not null)
+            {
+              <Button OnClick="() => Retract(d)">Retract</Button>
+            }
+          </div>
+          <p class="section-desc">
+            Tags and note are optional on either direction. Voting stores this board with the evaluator's
+            reading at vote time; a downvote tagged with a rule whose term did not fire is an evaluator bug
+            report. Export the dataset from <code>/api/verdicts/export</code>.
+          </p>
         </div>
         @if (d.Spend is { } sp)
         {

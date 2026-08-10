@@ -2732,6 +2732,23 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   seating filter chips with census counts and side-spelling tooltips, a per-card badge, and the detail line.
   (G165)
 
+- **Verdict collection — the browse feed's labeled dataset** — `M0015` + `Data/Plan/VerdictStore.cs` +
+  `Api/Endpoints/VerdictEndpoints.cs` + `Client/Features/Generator/`. Up/down votes on browse boards, with
+  tap-chip annotation tags (large toggleable pills, multi-select, on either direction — seeded from the
+  layout-rules vocabulary in `Contracts.VerdictTags`, each carrying its rule id where one exists) and a
+  free-text note. **Voting is a persistence act**: POST `/api/compose/verdict` re-composes the descriptor
+  and stores the plan as a generated row — idempotent by content hash, **unpinned** (`plan.pinned`, M0015),
+  so the labeled corpus and the hold tray are separate reasons to persist; pinning later promotes the row,
+  and unpinning a voted plan demotes it instead of deleting (the label outlives the tray — retract first to
+  really delete). One verdict per plan, refined in place (direction/tags/note), keeping the evaluator
+  snapshot from the first vote: score, per-term reading, and the new `EvaluatorVersion.Current` stamp — a
+  downvote tagged with a rule whose term did not fire is an evaluator bug report the export surfaces. GET
+  `/api/verdicts` is the client's vote map; GET `/api/verdicts/export` the JSONL dataset (one line per
+  verdict with plan identity, descriptor, structure key, vote, and snapshot). Client: thumbs on every card
+  (cast / flip keeps annotation / same-direction retracts), and the detail drawer's verdict panel with the
+  tag pills and note. Duel preference pairs stay a separate dataset by design (G120). Data + Api + Pgm
+  tests green. (G118)
+
 - **Boxes as an authored plan annotation** — `Pgm/Plan/PlanModel.cs` + `Pgm/Plan/PlanBoxes.cs` +
   `Pgm/Compose/PlanBoxAnnotation.cs` + `Client/.../plan-doc.js`/`plan-canvas.js`/`plan-bridge.js` +
   `Features/Plan/PlanTool`. A typed `boxes` section in `*.plan.json` — `{ id, kind, rect, members? }` with

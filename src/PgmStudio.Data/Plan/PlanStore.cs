@@ -23,18 +23,30 @@ public sealed class PlanStore(PgmDb db)
     public Task<PlanRow?> GetByIdAsync(long id, CancellationToken ct = default)
         => db.Plans.FirstOrDefaultAsync(p => p.Id == id, ct);
 
-    /// <summary>Plans, newest-touched first, optionally one origin.</summary>
-    public Task<List<PlanRow>> ListAsync(string? origin = null, CancellationToken ct = default)
-        => (origin is null ? db.Plans : db.Plans.Where(p => p.Origin == origin))
-            .OrderByDescending(p => p.UpdatedAt).ThenByDescending(p => p.Id).ToListAsync(ct);
+    /// <summary>Plans, newest-touched first, optionally one origin and/or one pinned state (the hold tray is
+    /// <c>pinned: true</c>; a voted-but-never-pinned row is stored unpinned and stays out of it).</summary>
+    public Task<List<PlanRow>> ListAsync(string? origin = null, bool? pinned = null, CancellationToken ct = default)
+    {
+        var rows = origin is null ? db.Plans : db.Plans.Where(p => p.Origin == origin);
+        if (pinned is { } flag) rows = rows.Where(p => p.Pinned == flag);
+        return rows.OrderByDescending(p => p.UpdatedAt).ThenByDescending(p => p.Id).ToListAsync(ct);
+    }
 
     /// <summary>The first row with this content hash, optionally scoped to one origin — the dedup lookup.</summary>
     public Task<PlanRow?> GetByContentHashAsync(string hash, string? origin = null, CancellationToken ct = default)
         => (origin is null ? db.Plans : db.Plans.Where(p => p.Origin == origin))
             .OrderBy(p => p.Id).FirstOrDefaultAsync(p => p.ContentHash == hash, ct);
 
-    public Task<int> DeleteAsync(long id, CancellationToken ct = default)
-        => db.Plans.Where(p => p.Id == id).DeleteAsync(ct);
+    /// <summary>Forget a plan — with one stay of execution: a row carrying a verdict is the labeled corpus,
+    /// so deleting it (the tray's unpin, the browser's forget) demotes it to unpinned instead. Retracting the
+    /// verdict first (<see cref="VerdictStore.DeleteAsync"/>) makes the delete real.</summary>
+    public async Task<int> DeleteAsync(long id, CancellationToken ct = default)
+    {
+        if (await db.PlanVerdicts.AnyAsync(v => v.PlanId == id, ct))
+            return await db.Plans.Where(p => p.Id == id)
+                .Set(p => p.Pinned, false).Set(p => p.UpdatedAt, DateTime.UtcNow).UpdateAsync(ct);
+        return await db.Plans.Where(p => p.Id == id).DeleteAsync(ct);
+    }
 
     /// <summary>
     /// Save a plan edited in the studio. With no <paramref name="sourceId"/> this inserts a fresh authored
@@ -75,19 +87,31 @@ public sealed class PlanStore(PgmDb db)
 
     /// <summary>Persist a composer output with its canonical versioned descriptor and (optionally) its
     /// structural bucket key. Deduped against existing generated rows: identical geometry already stored
-    /// returns that row rather than a duplicate.</summary>
+    /// returns that row rather than a duplicate. <paramref name="pinned"/> is the persistence reason — a pin
+    /// holds the row in the tray, a vote (<c>false</c>) stores it for the labeled corpus only; pinning a row
+    /// that was voted first promotes it, and a vote never demotes an existing pin.</summary>
     public async Task<PlanRow> SaveGeneratedAsync(
-        string planJson, ComposeDescriptor descriptor, string? structure = null, CancellationToken ct = default)
+        string planJson, ComposeDescriptor descriptor, string? structure = null, bool pinned = true,
+        CancellationToken ct = default)
     {
         var (canonical, name, hash) = Canonicalize(planJson);
-        if (await GetByContentHashAsync(hash, PlanOrigin.Generated, ct) is { } existing) return existing;
+        if (await GetByContentHashAsync(hash, PlanOrigin.Generated, ct) is { } existing)
+        {
+            if (pinned && !existing.Pinned)
+            {
+                await db.Plans.Where(p => p.Id == existing.Id)
+                    .Set(p => p.Pinned, true).Set(p => p.UpdatedAt, DateTime.UtcNow).UpdateAsync(ct);
+                existing.Pinned = true;
+            }
+            return existing;
+        }
 
         var now = DateTime.UtcNow;
         return await InsertAsync(new PlanRow
         {
             Name = name, Origin = PlanOrigin.Generated, PlanJson = canonical, ContentHash = hash,
             RequestJson = descriptor.ToJson(), Seed = descriptor.Seed, ComposerVersion = descriptor.ComposerVersion,
-            Structure = structure, CreatedAt = now, UpdatedAt = now,
+            Structure = structure, Pinned = pinned, CreatedAt = now, UpdatedAt = now,
         });
     }
 

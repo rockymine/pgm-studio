@@ -1,5 +1,13 @@
 namespace PgmStudio.Pgm.Evaluate;
 
+/// <summary>The evaluator's version marker — stamped on persisted verdict snapshots (M0015) so a stored
+/// score and per-term reading are comparable only within the term set that produced them. Bump it when a
+/// term is added, retired, or re-banded, the same way <c>ComposerVersion</c> moves on geometry changes.</summary>
+public static class EvaluatorVersion
+{
+    public const string Current = "terms-1";
+}
+
 /// <summary>A term is either a <b>hard</b> well-formedness constraint (a violation is a large penalty a valid
 /// layout never carries) or a <b>soft</b> feel metric (a distance outside the authored envelope).</summary>
 public enum TermKind { Hard, Soft }

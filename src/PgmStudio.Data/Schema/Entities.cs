@@ -440,6 +440,7 @@ public sealed class PlanRow
     [Column("seed")] public ulong? Seed { get; set; }
     [Column("composer_version")] public string? ComposerVersion { get; set; }
     [Column("structure")] public string? Structure { get; set; }   // canonical StructureSummary bucket key (generated rows)
+    [Column("pinned")] public bool Pinned { get; set; }            // in the hold tray; a voted-only row is false
     [Column("created_at")] public DateTime CreatedAt { get; set; }
     [Column("updated_at")] public DateTime UpdatedAt { get; set; }
 }
@@ -450,6 +451,25 @@ public static class PlanOrigin
     public const string Generated = "generated";
     public const string Authored = "authored";
     public const string Imported = "imported";
+}
+
+/// <summary>The author's current judgment of one plan (see M0015): an absolute up/down vote with optional
+/// annotation tags and note, plus the evaluator's reading at vote time — score, per-term snapshot, and the
+/// evaluator version that produced them — so a stored verdict can indict a term that failed to fire. One row
+/// per plan, refined in place; the JSONL export is the dataset snapshot.</summary>
+[Table("plan_verdict")]
+public sealed class PlanVerdictRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("plan_id"), NotNull] public long PlanId { get; set; }
+    [Column("verdict"), NotNull] public string Verdict { get; set; } = "";   // up | down
+    [Column("tags_json"), NotNull] public string TagsJson { get; set; } = "[]";
+    [Column("note")] public string? Note { get; set; }
+    [Column("score")] public double Score { get; set; }
+    [Column("terms_json"), NotNull] public string TermsJson { get; set; } = "[]";
+    [Column("evaluator_version"), NotNull] public string EvaluatorVersion { get; set; } = "";
+    [Column("created_at")] public DateTime CreatedAt { get; set; }
+    [Column("updated_at")] public DateTime UpdatedAt { get; set; }
 }
 
 /// <summary>A reusable terrain-paint <see cref="Style"/> — one named material recipe (see M0011). <see cref="Kind"/>
