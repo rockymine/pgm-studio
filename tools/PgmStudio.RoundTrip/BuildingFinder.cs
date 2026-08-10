@@ -30,23 +30,31 @@ internal static class BuildingFinder
 
     /// <summary>Terrain: what the ground itself is made of, so a structure's own blocks are stepped past to
     /// find the surface it was placed on.</summary>
-    private static bool IsTerrain(int id) => id is 1 or 2 or 3 or 12 or 13 or 24 or 48 or 60 or 62 or 79
-        or 80 or 82 or 87 or 88 or 110 or 121 or 129 or 153 or 155 or 159 or 172 or 174 or 179;
+    /// <summary>Terrain: what the ground itself is made of. Cobblestone and stone brick are included because
+    /// a foundation is ground as far as a roof is concerned — a building set on a plinth still stands on the
+    /// map, and treating its plinth as structure would measure the roof's clearance from the wrong datum.</summary>
+    private static bool IsTerrain(int id) => id is 1 or 2 or 3 or 4 or 12 or 13 or 24 or 48 or 60 or 62 or 79
+        or 80 or 82 or 87 or 88 or 98 or 110 or 121 or 129 or 153 or 155 or 159 or 172 or 174 or 179;
 
-    private sealed record Column(int RoofId, int RoofData, int RoofY, int SolidBottom, int GroundY, bool HasLog);
+    private sealed record Column(int RoofId, int RoofData, int RoofY, int SolidBottom, int GroundY, bool HasLog,
+                                 bool WalledAtBase);
 
     private sealed record Candidate(int MinX, int MaxX, int MinZ, int MaxZ, int Footprint, int RoofLow,
-                                    int RoofHigh, int GroundY, double Grounded, int Corners, string Materials)
+                                    int RoofHigh, int GroundY, double Grounded, int Corners, double Walled,
+                                    double Rim, string Materials)
     {
-        /// <summary>What the grounded share and the corner framing say together. Nothing is dropped on this;
-        /// it is a reading offered next to the numbers it came from.</summary>
-        public string Reading => Grounded >= 0.05 ? "stands on the terrain"
-            : Corners >= 3 ? "hollow but framed — a head over a shaft"
-            : "hangs, unframed — not a building";
+        /// <summary>What the measures say together. The rim decides: a house roof is laid as a fill enclosed
+        /// by a border of a second wood, and a cap that is one material throughout was never a house roof
+        /// however well it is framed or walled. Nothing is dropped on this — it is a reading offered next to
+        /// the numbers it came from.</summary>
+        public string Reading => Corners < 3 && Grounded < 0.05 ? "hangs, unframed — not a building"
+            : Rim >= 0.1 ? "fill inside a rim — a house roof"
+            : "one material throughout — a cap, not a house roof";
     }
 
     public static int Run(string regionDir, string outPng, int scale, IReadOnlyList<(int Id, int Data)> roofSpec,
-                          int minimumArea, int minimumHeight)
+                          IReadOnlyList<(int Id, int Data)> rimSpec, int minimumArea, int minimumHeight,
+                          int minimumSide)
     {
         if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"no region dir: {regionDir}"); return 1; }
         if (roofSpec.Count == 0) { Console.Error.WriteLine("--buildings needs --roof <id[:data],...>"); return 1; }
@@ -56,6 +64,12 @@ internal static class BuildingFinder
         var exact = new HashSet<(int Id, int Data)>(roofSpec.Where(entry => entry.Data >= 0));
         var anyData = new HashSet<int>(roofSpec.Where(entry => entry.Data < 0).Select(entry => entry.Id));
         bool IsRoof(int id, int data) => anyData.Contains(id) || exact.Contains((id, data));
+
+        // The rim is the second wood a roof is bordered with. Its presence is what tells a laid roof from a
+        // cap: a house roof is a fill enclosed by a border, and a cap is one material all the way across.
+        var rimExact = new HashSet<(int Id, int Data)>(rimSpec.Where(entry => entry.Data >= 0));
+        var rimAny = new HashSet<int>(rimSpec.Where(entry => entry.Data < 0).Select(entry => entry.Id));
+        bool IsRim(int id, int data) => rimAny.Contains(id) || rimExact.Contains((id, data));
 
         var columns = new Dictionary<(int X, int Z), Column>();
         var terrain = new Dictionary<(int X, int Z), int>();
@@ -91,12 +105,19 @@ internal static class BuildingFinder
 
             var candidate = new Candidate(minX, maxX, minZ, maxZ, component.Count, roofs[0], roofs[^1],
                 below.Count > 0 ? below[below.Count / 2] : roofs[0], grounded,
-                CornerStems(minX, maxX, minZ, maxZ, columns), string.Join(", ", materials));
+                CornerStems(minX, maxX, minZ, maxZ, columns),
+                component.Count(cell => columns[cell].WalledAtBase) / (double)component.Count,
+                rimSpec.Count == 0 ? 1.0
+                    : component.Count(cell => IsRim(columns[cell].RoofId, columns[cell].RoofData)) / (double)component.Count,
+                string.Join(", ", materials));
 
             // Plank laid on the ground is a deck, a floor, or texture worked into a hillside, and none of
             // those is a roof. Clearance over the terrain beneath is what separates them, since the material
             // and the connectivity are identical.
             if (candidate.RoofLow - candidate.GroundY < minimumHeight) continue;
+            // The smallest thing a map builds is still a room. Below that a component is a cap, a marker or
+            // a fragment of decking, and no measure taken on it means anything.
+            if (maxX - minX + 1 < minimumSide || maxZ - minZ + 1 < minimumSide) continue;
 
             foreach (var cell in component) claimed[cell] = standing.Count;
             standing.Add(candidate);
@@ -151,8 +172,17 @@ internal static class BuildingFinder
                 var hasLog = false;
                 for (var y = groundY; y <= roofY && !hasLog; y++) hasLog = ids[(y << 8) | col] is 17 or 162;
 
+                // Anything solid standing in the first courses above the ground. A house fills the span
+                // between its corner posts with wall; a shaft head carries the same posts over open air.
+                var walled = false;
+                for (var y = groundY + 1; y <= Math.Min(groundY + 3, roofY - 1) && !walled; y++)
+                {
+                    var here = ids[(y << 8) | col];
+                    walled = here != 0 && !Cover.Contains(here);
+                }
+
                 columns[cell] = new Column(ids[(roofY << 8) | col], data[(roofY << 8) | col], roofY, bottom,
-                    groundY, hasLog);
+                    groundY, hasLog, walled);
             }
     }
 
@@ -195,7 +225,7 @@ internal static class BuildingFinder
         foreach (var group in standing.GroupBy(item => item.Reading).OrderByDescending(group => group.Count()))
             Console.WriteLine($"  {group.Count(),3}  {group.Key}");
         Console.WriteLine();
-        Console.WriteLine($"{"x range",-14} {"z range",-14} {"roof",6} {"size",8} {"y",10} {"tall",5} {"gnd",6} {"cnr",4}  materials");
+        Console.WriteLine($"{"x range",-14} {"z range",-14} {"roof",6} {"size",8} {"y",10} {"tall",5} {"gnd",6} {"cnr",4} {"wall",6} {"rim",5}  materials");
         foreach (var building in standing.OrderByDescending(building => building.Footprint))
             Console.WriteLine(Line(building));
 
@@ -217,7 +247,7 @@ internal static class BuildingFinder
     private static string Line(Candidate item) =>
         $"{$"{item.MinX}..{item.MaxX}",-14} {$"{item.MinZ}..{item.MaxZ}",-14} {item.Footprint,6} " +
         $"{$"{item.MaxX - item.MinX + 1}x{item.MaxZ - item.MinZ + 1}",8} {$"{item.RoofLow}..{item.RoofHigh}",10} " +
-        $"{item.RoofHigh - item.GroundY,5} {item.Grounded,5:0%} {item.Corners,4}  {item.Materials}";
+        $"{item.RoofHigh - item.GroundY,5} {item.Grounded,5:0%} {item.Corners,4} {item.Walled,6:0%} {item.Rim,5:0%}  {item.Materials}";
 
     private static void Draw(string outPng, int scale, Dictionary<(int X, int Z), int> terrain,
                              Dictionary<(int X, int Z), int> claimed)

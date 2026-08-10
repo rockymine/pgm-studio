@@ -1189,13 +1189,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   floor and nothing else separates it from a roof: same material, same connectivity, both fully grounded, but
   a roof has air under it. Clearance is measured against the terrain **directly beneath the
   footprint**, never a ring outside it — on a slope the ring sits well below, which lets plank worked flat into
-  a hillside as texture read as a roof standing clear of nothing. Two further measures are **reported and
-  neither gates**: the share of roof columns with a solid run to the terrain, and how many footprint corners
-  carry a vertical log. Alone each is ambiguous — a hollow shaft head grounds nowhere and so does a floating
-  objective marker — but **together they separate cleanly**, since the shaft head is framed at all four corners
-  like the houses around it and the marker is framed at none. Measured on alpine_mining_ii with its stair
-  roofs: 34 components — 24 standing, 7 hollow-but-framed shaft heads, 3 unframed markers sitting 30–46 blocks
-  up over the map's own destroyable regions. (B65)
+  a hillside as texture read as a roof standing clear of nothing. A component smaller than
+  `--min-side` (default 6) is dropped: the smallest thing a map builds is still a room, and below that a
+  component is a cap, a marker or a fragment of decking on which no measure means anything. **`--rim` names the
+  second wood a roof is bordered with, and it is the discriminator that works** — a house roof is a fill
+  enclosed by a border, so a cap that is one material all the way across was never a house roof however well it
+  is framed or walled. Grounded share, corner-stem count and wall share between the posts are all reported and
+  none gates; on the map this was built for the wall share is *higher* on the shaft heads than on the houses,
+  so it cannot separate them and does not try. Measured on alpine_mining_ii: 23 components — **16 rim-bordered
+  house roofs (rim 50–53%) and 7 single-material caps (rim 0%)**, a split with nothing between the two modes,
+  and stable at every threshold setting. (B65)
 - **Supported map range (enforced in `MapParser`)** — the parser accepts **proto >= 1.4.0** only (PGM's
   id-based regions/filters/kits floor) and rejects **modern worlds** (`min-server-version >= 1.13.0`, whose
   post-"flattening" palette chunks the Anvil reader can't decode), throwing `UnsupportedMapException` with a

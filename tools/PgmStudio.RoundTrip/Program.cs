@@ -241,14 +241,26 @@ if (buildIdx >= 0 && buildIdx + 2 < args.Length)
             roofSpec.Add((blockId, parts.Length > 1 && int.TryParse(parts[1], out var blockData) ? blockData : -1));
         }
 
+    var rimAt = Array.IndexOf(args, "--rim");
+    var rimSpec = new List<(int Id, int Data)>();
+    if (rimAt >= 0 && rimAt + 1 < args.Length)
+        foreach (var token in args[rimAt + 1].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var parts = token.Split(':');
+            if (!int.TryParse(parts[0], out var blockId)) continue;
+            rimSpec.Add((blockId, parts.Length > 1 && int.TryParse(parts[1], out var blockData) ? blockData : -1));
+        }
+
     var buildScale = Array.IndexOf(args, "--scale");
     var buildArea = Array.IndexOf(args, "--min-area");
     return PgmStudio.RoundTrip.BuildingFinder.Run(args[buildIdx + 1], args[buildIdx + 2],
         buildScale >= 0 && buildScale + 1 < args.Length && int.TryParse(args[buildScale + 1], out var roofScale) ? Math.Max(1, roofScale) : 3,
-        roofSpec,
+        roofSpec, rimSpec,
         buildArea >= 0 && buildArea + 1 < args.Length && int.TryParse(args[buildArea + 1], out var roofArea) ? Math.Max(1, roofArea) : 9,
         Array.IndexOf(args, "--min-height") is var heightAt && heightAt >= 0 && heightAt + 1 < args.Length
-            && int.TryParse(args[heightAt + 1], out var roofHeight) ? roofHeight : 3);
+            && int.TryParse(args[heightAt + 1], out var roofHeight) ? roofHeight : 3,
+        Array.IndexOf(args, "--min-side") is var sideAt && sideAt >= 0 && sideAt + 1 < args.Length
+            && int.TryParse(args[sideAt + 1], out var roofSide) ? roofSide : 6);
 }
 
 // --island-study <regionDir> <outJson> [tolerance]: cleaned-base islands with their polygons (exterior +
