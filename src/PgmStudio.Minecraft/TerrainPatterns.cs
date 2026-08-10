@@ -214,23 +214,84 @@ public sealed record ElectricMaterial(uint Seed, int Scale, int Octaves, IReadOn
 /// </summary>
 public sealed record WallRunMaterial(IReadOnlyList<WallStripe> Runs) : TerrainMaterial
 {
-    public override (int Id, int Data) Resolve(in BucketContext ctx)
-    {
-        if (Runs is not { Count: > 0 }) return (Blocks.Stone, 0);
-        int total = 0;
-        foreach (var run in Runs) total += Math.Max(1, run.Width);
-        int s = ctx.PerimeterArc < 0 ? 0 : ctx.PerimeterArc;
-        int pos = ((s % total) + total) % total;
-        foreach (var run in Runs)
-        {
-            int width = Math.Max(1, run.Width);
-            if (pos < width) return run.Material.Resolve(in ctx);
-            pos -= width;
-        }
-        return Runs[^1].Material.Resolve(in ctx);
-    }
+    public override (int Id, int Data) Resolve(in BucketContext ctx) =>
+        WallStripes.Resolve(Runs, WallStripes.Arc(in ctx), in ctx);
 
     public bool Equals(WallRunMaterial? other) => other is not null && Runs.SequenceEqual(other.Runs);
 
     public override int GetHashCode() => MaterialHash.Of(Runs);
+}
+
+/// <summary>Walking a stripe cycle at a position along the wall. Shared so a run and a diagonal differ only in
+/// the position they ask about, which is the whole of the difference between them.</summary>
+internal static class WallStripes
+{
+    /// <summary>Where round the wall a cell sits. A cell off the outer perimeter — an internal riser — has no
+    /// arc, and reads as the start of the loop rather than wrapping to the end of it.</summary>
+    public static int Arc(in BucketContext ctx) => ctx.PerimeterArc < 0 ? 0 : ctx.PerimeterArc;
+
+    public static (int Id, int Data) Resolve(IReadOnlyList<WallStripe> runs, int at, in BucketContext ctx)
+    {
+        if (runs is not { Count: > 0 }) return (Blocks.Stone, 0);
+        var total = 0;
+        foreach (var run in runs) total += Math.Max(1, run.Width);
+        var position = ((at % total) + total) % total;
+        foreach (var run in runs)
+        {
+            var width = Math.Max(1, run.Width);
+            if (position < width) return run.Material.Resolve(in ctx);
+            position -= width;
+        }
+        return runs[^1].Material.Resolve(in ctx);
+    }
+}
+
+/// <summary>
+/// A diagonal wall pattern: the stripes of a <see cref="WallRunMaterial"/> sheared, by starting each course
+/// <paramref name="Slope"/> cells further round the perimeter than the one beneath it.
+///
+/// <para>A wall-run is constant up a column, so its stripes stand vertical. Offsetting the read by the height
+/// tilts them, and the angle is the ratio of the two: at a slope of one the stripe moves one cell along for
+/// every course up, which on a square-blocked face is 45°. Larger slopes lay it flatter, a negative slope
+/// leans it the other way, and zero is the vertical run again.</para>
+///
+/// <para>The height is taken from the cell's own Y rather than from the foot of the wall, so the shear is
+/// continuous across a face that steps: two walls of different heights standing side by side meet with their
+/// diagonals in line, because both are reading the same world courses.</para>
+/// </summary>
+public sealed record WallDiagonalMaterial(IReadOnlyList<WallStripe> Runs, int Slope = 1) : TerrainMaterial
+{
+    public override (int Id, int Data) Resolve(in BucketContext ctx) =>
+        WallStripes.Resolve(Runs, WallStripes.Arc(in ctx) + ctx.Y * Slope, in ctx);
+
+    public bool Equals(WallDiagonalMaterial? other) =>
+        other is not null && Slope == other.Slope && Runs.SequenceEqual(other.Runs);
+
+    public override int GetHashCode() => HashCode.Combine(MaterialHash.Of(Runs), Slope);
+}
+
+/// <summary>
+/// A checkerboard: two materials alternating over squares <paramref name="Size"/> blocks on a side.
+///
+/// <para>The board is laid <b>in the face it paints</b>, which is what keeps it a checkerboard on both a wall
+/// and the ground. On the outer wall the two axes are the perimeter arc and height, so the squares tile the
+/// face an author is looking at; anywhere else they are the two ground axes, so the squares tile the plane
+/// underfoot. Taking world x and z everywhere would be simpler and wrong: a plane pattern gives every block in
+/// a column the same answer, and a wall painted with one comes out as vertical stripes rather than squares.</para>
+///
+/// <para>Parity is the sum of the two square indices, floored so it does not fold at the origin — the
+/// arithmetic negative of a truncating divide would put two squares of a colour together across x = 0.</para>
+/// </summary>
+public sealed record CheckerMaterial(int Size, TerrainMaterial Even, TerrainMaterial Odd) : TerrainMaterial
+{
+    public override (int Id, int Data) Resolve(in BucketContext ctx)
+    {
+        var side = Math.Max(1, Size);
+        var (along, up) = ctx.PerimeterArc >= 0 ? (ctx.PerimeterArc, ctx.Y) : (ctx.X, ctx.Z);
+        var parity = (Floor(along, side) + Floor(up, side)) & 1;
+        return (parity == 0 ? Even : Odd).Resolve(in ctx);
+    }
+
+    private static int Floor(int value, int side) =>
+        value >= 0 ? value / side : -(((-value) + side - 1) / side);
 }

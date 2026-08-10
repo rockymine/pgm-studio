@@ -37,6 +37,14 @@ public static class ThemeFields
     public const string Warp = "warp";
     public const string Scale = "scale";
     public const string Octaves = "octaves";
+    /// <summary>How many cells along the wall a diagonal's stripes move for every course up — 1 is 45°, larger
+    /// lays them flatter, negative leans them the other way, 0 is a plain vertical run.</summary>
+    public const string Slope = "slope";
+    /// <summary>The side of one checkerboard square, in blocks.</summary>
+    public const string Size = "size";
+    /// <summary>A checkerboard's two squares, by the parity they take.</summary>
+    public const string Even = "even";
+    public const string Odd = "odd";
     /// <summary>The vertical period of an area pattern's field, in blocks — 0 keeps it flat, so every block in
     /// a column takes the same answer and the pattern shows only on the ground.</summary>
     public const string Rise = "rise";

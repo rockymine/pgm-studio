@@ -36,6 +36,11 @@ public partial class MaterialEditor
 
     private JsonObject Neutral => JsonEdit.Child(Node, ThemeFields.Neutral, () => ThemeFields.Solid(159, 8));
 
+    /// <summary>A checkerboard's two squares. They default apart rather than both to stone, since a board of
+    /// one material is not a board and an author would have to change one before seeing anything.</summary>
+    private JsonObject Even => JsonEdit.Child(Node, ThemeFields.Even, () => ThemeFields.Solid(1, 0));
+    private JsonObject Odd => JsonEdit.Child(Node, ThemeFields.Odd, () => ThemeFields.Solid(159, 15));
+
     /// <summary>What the three field patterns are, in one sentence each — the rest of their blurb is shared,
     /// because everything except the bend is.</summary>
     private string FieldBlurb => Kind switch
@@ -135,6 +140,14 @@ public partial class MaterialEditor
     private Task SetWarp(ChangeEventArgs e) => SetScalar(ThemeFields.Warp, e, 4, 0);
     private Task SetScale(ChangeEventArgs e) => SetScalar(ThemeFields.Scale, e, 16, 1);
     private Task SetRise(ChangeEventArgs e) => SetScalar(ThemeFields.Rise, e, 0, 0);
+    private Task SetSize(ChangeEventArgs e) => SetScalar(ThemeFields.Size, e, 1, 1);
+
+    /// <summary>Slope is the one scalar with no floor: a negative one leans the stripes the other way.</summary>
+    private Task SetSlope(ChangeEventArgs e)
+    {
+        JsonEdit.Set(Node, ThemeFields.Slope, Parse(e, 1));
+        return Changed();
+    }
 
     /// <summary>Jitter is a percentage, so it clamps at both ends rather than only below.</summary>
     private Task SetJitter(ChangeEventArgs e)

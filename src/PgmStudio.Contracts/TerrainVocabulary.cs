@@ -17,6 +17,8 @@ public static class MaterialKind
     public const string Turbulence = "turbulence";
     public const string Electric = "electric";
     public const string WallRun = "wallRun";
+    public const string WallDiagonal = "wallDiagonal";
+    public const string Checker = "checker";
 
     /// <summary>The kinds in offer order — plain blocks first, then the composites, then the patterns.</summary>
     public static readonly (string Id, string Name)[] All =
@@ -30,6 +32,8 @@ public static class MaterialKind
         (Turbulence, "Turbulence"),
         (Electric, "Electric"),
         (WallRun, "Wall stripes"),
+        (WallDiagonal, "Diagonal stripes"),
+        (Checker, "Checkerboard"),
     ];
 
     /// <summary>The label a kind is offered under, or the raw discriminator for one this build does not know.</summary>

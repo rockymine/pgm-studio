@@ -42,8 +42,13 @@ public static class TerrainThemeComposer
         LayeredMaterial => "layered",
         TeamTintedMaterial => "teamTint",
         VoronoiMaterial => "voronoi",
+        CellMaterial => "cell",
         NoiseMaterial => "noise",
+        TurbulenceMaterial => "turbulence",
+        ElectricMaterial => "electric",
         WallRunMaterial => "wallRun",
+        WallDiagonalMaterial => "wallDiagonal",
+        CheckerMaterial => "checker",
         _ => "solid",
     };
 

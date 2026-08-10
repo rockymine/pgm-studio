@@ -46,6 +46,8 @@ public readonly record struct BucketContext(int X, int Y, int Z, TerrainBucket B
 [JsonDerivedType(typeof(TurbulenceMaterial), "turbulence")]
 [JsonDerivedType(typeof(ElectricMaterial), "electric")]
 [JsonDerivedType(typeof(WallRunMaterial), "wallRun")]
+[JsonDerivedType(typeof(WallDiagonalMaterial), "wallDiagonal")]
+[JsonDerivedType(typeof(CheckerMaterial), "checker")]
 public abstract record TerrainMaterial
 {
     public abstract (int Id, int Data) Resolve(in BucketContext ctx);

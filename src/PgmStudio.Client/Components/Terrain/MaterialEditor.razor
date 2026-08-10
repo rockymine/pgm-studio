@@ -89,6 +89,20 @@
           <p>Stripes running along the wall that wrap the whole void-facing perimeter, corners included.
             Widths are in wall cells and the stripes repeat in order.</p>
           break;
+
+        case MaterialKind.WallDiagonal:
+          <p>The same stripes, sheared: each course starts <strong>slope</strong> cells further round the
+            wall than the one below it, so they lean instead of standing. A slope of 1 moves one cell along
+            per course up, which is 45°; larger lays them flatter and a negative slope leans them the other
+            way. The shear is read off world height, so two walls of different heights standing together
+            meet with their diagonals in line.</p>
+          break;
+
+        case MaterialKind.Checker:
+          <p>Two materials alternating over squares of the given side. The board is laid <strong>in the face
+            it paints</strong> — along the wall and up it on an outer wall, across the ground everywhere
+            else — so it reads as squares on both rather than as stripes down a wall.</p>
+          break;
       }
     </div>
   }
@@ -222,6 +236,39 @@
           </MaterialEditor>
         }
         @ListFoot(ThemeFields.Runs, "Add stripe")
+        break;
+
+      case MaterialKind.WallDiagonal:
+        <div class="material-editor-scalars">
+          <Field Label="Slope">
+            <input class="field-input field-input--slim" type="number" step="1"
+                   title="Cells along the wall per course up. 1 is 45°, 0 is a vertical run."
+                   value="@Int(ThemeFields.Slope, 1)" @onchange="SetSlope" />
+          </Field>
+        </div>
+        @foreach (var run in List(ThemeFields.Runs))
+        {
+          <MaterialEditor Nested Label="@($"Stripe {run.Index + 1}")" Blocks="Blocks" @key="run.Node"
+                          Node="@run.Material" OnChanged="Changed" OnRemove="@run.Remove">
+            <HeadExtra>
+              <CoordField Prefix="Cells" Type="number" Value="@run.Extent" OnChange="@run.SetExtent"
+                          min="1" step="1" title="How many wall cells wide this stripe runs" />
+            </HeadExtra>
+          </MaterialEditor>
+        }
+        @ListFoot(ThemeFields.Runs, "Add stripe")
+        break;
+
+      case MaterialKind.Checker:
+        <div class="material-editor-scalars">
+          <Field Label="Square">
+            <input class="field-input field-input--slim" type="number" min="1" step="1"
+                   title="The side of one square, in blocks"
+                   value="@Int(ThemeFields.Size, 1)" @onchange="SetSize" />
+          </Field>
+        </div>
+        <MaterialEditor Nested Label="Light square" Blocks="Blocks" Node="Even" OnChanged="Changed" />
+        <MaterialEditor Nested Label="Dark square" Blocks="Blocks" Node="Odd" OnChanged="Changed" />
         break;
     }
   </div>

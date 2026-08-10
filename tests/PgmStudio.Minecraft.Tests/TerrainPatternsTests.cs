@@ -462,4 +462,84 @@ public sealed class TerrainPatternsTests
         await Assert.That(new NoiseMaterial(1, 16, 3, null!).Resolve(in context)).IsEqualTo((Blocks.Stone, 0));
         await Assert.That(new WallRunMaterial(null!).Resolve(in context)).IsEqualTo((Blocks.Stone, 0));
     }
+
+    // ── diagonal wall stripes: the same cycle, sheared by height ─────────────────────────────────────────
+
+    [Test]
+    public async Task Diagonal_shifts_its_stripes_one_cell_along_for_every_course_up()
+    {
+        // Two runs two wide, so the cycle is 4. At slope 1 the read is arc + y, which walks the same
+        // sequence one step further along for each course — a stripe leaning 45 degrees.
+        var diagonal = new WallDiagonalMaterial([
+            new WallStripe(new SolidMaterial(10), 2),
+            new WallStripe(new SolidMaterial(11), 2),
+        ]);
+        for (var y = 0; y < 6; y++)
+            for (var arc = 0; arc < 8; arc++)
+            {
+                var expected = ((arc + y) % 4) < 2 ? 10 : 11;
+                var cell = new BucketContext(0, y, 0, TerrainBucket.Wall, 0, -1, arc);
+                await Assert.That(diagonal.Resolve(cell)).IsEqualTo((expected, 0));
+            }
+    }
+
+    [Test]
+    public async Task Diagonal_at_slope_zero_is_a_plain_vertical_run()
+    {
+        IReadOnlyList<WallStripe> runs = [
+            new WallStripe(new SolidMaterial(10), 2), new WallStripe(new SolidMaterial(11), 3)];
+        var flat = new WallDiagonalMaterial(runs, 0);
+        var run = new WallRunMaterial(runs);
+        for (var y = 0; y < 4; y++)
+            for (var arc = 0; arc < 10; arc++)
+            {
+                var cell = new BucketContext(0, y, 0, TerrainBucket.Wall, 0, -1, arc);
+                await Assert.That(flat.Resolve(cell)).IsEqualTo(run.Resolve(cell));
+            }
+    }
+
+    // ── checkerboard: squares in the face it paints ──────────────────────────────────────────────────────
+
+    [Test]
+    public async Task Checker_alternates_along_the_wall_and_up_it()
+    {
+        var board = new CheckerMaterial(1, new SolidMaterial(10), new SolidMaterial(11));
+        for (var y = 0; y < 4; y++)
+            for (var arc = 0; arc < 4; arc++)
+            {
+                var cell = new BucketContext(0, y, 0, TerrainBucket.Wall, 0, -1, arc);
+                await Assert.That(board.Resolve(cell)).IsEqualTo(((arc + y) % 2 == 0 ? 10 : 11, 0));
+            }
+    }
+
+    [Test]
+    public async Task Checker_off_the_perimeter_lays_its_board_on_the_ground_instead()
+    {
+        // No arc, so the two axes are x and z: the board tiles the plane rather than a face, and height
+        // stops mattering — the same square whatever course it is read at.
+        var board = new CheckerMaterial(1, new SolidMaterial(10), new SolidMaterial(11));
+        foreach (var y in new[] { 0, 5 })
+            for (var x = 0; x < 4; x++)
+                for (var z = 0; z < 4; z++)
+                {
+                    var cell = new BucketContext(x, y, z, TerrainBucket.Surface, 0);
+                    await Assert.That(board.Resolve(cell)).IsEqualTo(((x + z) % 2 == 0 ? 10 : 11, 0));
+                }
+    }
+
+    [Test]
+    public async Task Checker_squares_keep_their_size_across_the_origin()
+    {
+        // A truncating divide folds at zero and puts two squares of a colour together there; the floor the
+        // pattern uses does not. Walking x across the origin must alternate every two blocks throughout.
+        var board = new CheckerMaterial(2, new SolidMaterial(10), new SolidMaterial(11));
+        var seen = new List<int>();
+        for (var x = -6; x < 6; x++)
+            seen.Add(board.Resolve(new BucketContext(x, 0, 0, TerrainBucket.Surface, 0)).Id);
+
+        for (var i = 0; i < seen.Count; i += 2)
+            await Assert.That(seen[i]).IsEqualTo(seen[i + 1]);          // squares are two wide
+        for (var i = 0; i + 2 < seen.Count; i += 2)
+            await Assert.That(seen[i]).IsNotEqualTo(seen[i + 2]);       // and neighbouring squares differ
+    }
 }
