@@ -1224,6 +1224,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   inventory: **11 of 11 houses and 5 of 5 shafts** located per team, with **no false positives** — 34
   components resolving as 23 rim-bordered house roofs (22 houses plus the observer island's one) and 11 caps
   (5 shafts per team plus the island's), the caps uniform at 6×6 and one material throughout. (B65)
+- **Ground materials, decoration and beds (`--surface <regionDir> <out.png>`)** — what a map's ground is made
+  of once what stands on it is set aside. Decoration is read as a **layer**: a fern is not what the ground is
+  made of, but which soil an author ferns is a decision worth recovering, so a column reports its material and
+  its planting separately. The same column shape answers the riverbed — water is stepped through to the first
+  solid block and the depth kept, so a bed reads as its own material instead of a sheet of blue. **Canopy is
+  shade, not structure**: the ground under a wood is ground, and counting it as built drops a quarter of a
+  forested map from the sample and cuts every material into fragments wherever trees stand, which then reads as
+  speckle. **Patchiness is measured, not assumed** — a histogram cannot tell a scattered material from one laid
+  in fields, so each is scored by how often it neighbours its own kind against how often it would by chance,
+  with patch counts and median size giving the scale. Measured on alpine_mining_ii: every material 2.5×–24×
+  self-adjacent, nothing random. (B66)
 - **Supported map range (enforced in `MapParser`)** — the parser accepts **proto >= 1.4.0** only (PGM's
   id-based regions/filters/kits floor) and rejects **modern worlds** (`min-server-version >= 1.13.0`, whose
   post-"flattening" palette chunks the Anvil reader can't decode), throwing `UnsupportedMapException` with a

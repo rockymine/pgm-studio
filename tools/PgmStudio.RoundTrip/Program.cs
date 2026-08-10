@@ -265,6 +265,19 @@ if (buildIdx >= 0 && buildIdx + 2 < args.Length)
             && int.TryParse(args[stepAt + 1], out var roofStep) ? roofStep : 4);
 }
 
+// --surface <regionDir> <outPng> [--scale N] [--top N]: what the ground is made of once decoration, water
+// and structure are set aside — the material histogram, what each decoration grows on, what lies under the
+// water, and whether each material was scattered or laid in fields.
+var surfIdx = Array.IndexOf(args, "--surface");
+if (surfIdx >= 0 && surfIdx + 2 < args.Length)
+{
+    var surfScale = Array.IndexOf(args, "--scale");
+    var surfTop = Array.IndexOf(args, "--top");
+    return PgmStudio.RoundTrip.SurfaceReport.Run(args[surfIdx + 1], args[surfIdx + 2],
+        surfScale >= 0 && surfScale + 1 < args.Length && int.TryParse(args[surfScale + 1], out var sScale) ? Math.Max(1, sScale) : 3,
+        surfTop >= 0 && surfTop + 1 < args.Length && int.TryParse(args[surfTop + 1], out var sTop) ? Math.Max(1, sTop) : 10);
+}
+
 // --island-study <regionDir> <outJson> [tolerance]: cleaned-base islands with their polygons (exterior +
 // holes) both raw and Douglas-Peucker-simplified, emitted as JSON for studying real-map shapes.
 var islandStudyIdx = Array.IndexOf(args, "--island-study");
