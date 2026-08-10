@@ -27,7 +27,8 @@ internal static class FloraRender
     private const int PathRgb = 0xF2E2C0;
     private const int PathMinorRgb = 0x9A8A6E;
 
-    public static int Run(string regionDir, string outPng, int scale, IReadOnlyList<(int Id, int Data)> pathSpec)
+    public static int Run(string regionDir, string outPng, int scale, IReadOnlyList<(int Id, int Data)> pathSpec,
+                          IReadOnlyList<(int Id, int Data)> bridgeSpec)
     {
         if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"no region dir: {regionDir}"); return 1; }
         var mcas = Directory.GetFiles(regionDir, "*.mca");
@@ -40,24 +41,40 @@ internal static class FloraRender
         // is still a path.
         var surfaceId = new Dictionary<(int X, int Z), (int Id, int Data, int Y)>();
         var ground = new Dictionary<(int X, int Z), int>();
-        foreach (var chunk in chunks) ReadSurface(chunk, surfaceId, ground);
+        var overWater = new HashSet<(int X, int Z)>();
+        foreach (var chunk in chunks) ReadSurface(chunk, surfaceId, ground, overWater);
         if (ground.Count == 0) { Console.Error.WriteLine("no columns decoded"); return 1; }
 
-        var wanted = new HashSet<(int Id, int Data)>(pathSpec);
-        var anyData = new HashSet<int>(pathSpec.Where(entry => entry.Data < 0).Select(entry => entry.Id));
-        var pathCells = new HashSet<(int X, int Z)>(surfaceId
-            .Where(entry => anyData.Contains(entry.Value.Id) || wanted.Contains((entry.Value.Id, entry.Value.Data)))
-            .Select(entry => entry.Key));
+        static Func<(int Id, int Data), bool> Matcher(IReadOnlyList<(int Id, int Data)> spec)
+        {
+            var exact = new HashSet<(int Id, int Data)>(spec.Where(entry => entry.Data >= 0));
+            var anyData = new HashSet<int>(spec.Where(entry => entry.Data < 0).Select(entry => entry.Id));
+            return block => anyData.Contains(block.Id) || exact.Contains(block);
+        }
+
+        var isPath = Matcher(pathSpec);
+        var isBridge = Matcher(bridgeSpec);
+        var pathCells = new HashSet<(int X, int Z)>();
+        var bridgeCells = new HashSet<(int X, int Z)>();
+        foreach (var (cell, block) in surfaceId)
+        {
+            if (isPath((block.Id, block.Data))) { pathCells.Add(cell); continue; }
+            // A bridge material only counts where it spans water. The same stone brick inside a building
+            // stands on dry ground, so the water beneath is what separates a crossing from a floor — and it
+            // is the author's own distinction, not a guess about which rooms are outdoors.
+            if (bridgeSpec.Count > 0 && isBridge((block.Id, block.Data)) && overWater.Contains(cell))
+            { pathCells.Add(cell); bridgeCells.Add(cell); }
+        }
 
         var routes = Components(pathCells);
-        ReportPath(routes, pathSpec, ground);
+        ReportPath(routes, pathSpec, bridgeSpec, bridgeCells, ground);
         ReportTrees(flora);
         Draw(outPng, scale, ground, routes, flora, pathCells);
         return 0;
     }
 
     private static void ReadSurface(AnvilRegion.Chunk chunk, Dictionary<(int X, int Z), (int Id, int Data, int Y)> surface,
-                                    Dictionary<(int X, int Z), int> ground)
+                                    Dictionary<(int X, int Z), int> ground, HashSet<(int X, int Z)> overWater)
     {
         var ids = new ushort[256 * 256];
         var data = new byte[256 * 256];
@@ -83,6 +100,10 @@ internal static class FloraRender
                     var cell = (chunk.ChunkX * 16 + lx, chunk.ChunkZ * 16 + lz);
                     surface[cell] = (id, data[(y << 8) | col], y);
                     ground[cell] = y;
+                    // Water anywhere under the surface block marks the column as spanning water, which is
+                    // what a bridge deck does and a floor does not.
+                    for (var below = y - 1; below >= 0; below--)
+                        if (ids[(below << 8) | col] is 8 or 9) { overWater.Add(cell); break; }
                     break;
                 }
             }
@@ -114,12 +135,16 @@ internal static class FloraRender
     }
 
     private static void ReportPath(List<List<(int X, int Z)>> routes, IReadOnlyList<(int Id, int Data)> spec,
+                                   IReadOnlyList<(int Id, int Data)> bridgeSpec, HashSet<(int X, int Z)> bridgeCells,
                                    Dictionary<(int X, int Z), int> ground)
     {
-        var materials = string.Join(", ", spec.Select(entry => entry.Data < 0
-            ? $"{entry.Id}:* {BlockPalette.Name(entry.Id, -1)}"
-            : $"{entry.Id}:{entry.Data} {BlockPalette.Name(entry.Id, entry.Data)}"));
-        Console.WriteLine($"=== paved surface ({materials}) ===");
+        static string Names(IReadOnlyList<(int Id, int Data)> spec) => string.Join(", ", spec.Select(entry =>
+            entry.Data < 0 ? $"{entry.Id}:* {BlockPalette.Name(entry.Id, -1)}"
+                           : $"{entry.Id}:{entry.Data} {BlockPalette.Name(entry.Id, entry.Data)}"));
+
+        Console.WriteLine($"=== paved surface ({Names(spec)}) ===");
+        if (bridgeSpec.Count > 0)
+            Console.WriteLine($"  plus {bridgeCells.Count} cell(s) of {Names(bridgeSpec)} standing over water");
         if (routes.Count == 0) { Console.WriteLine("  none on the surface"); return; }
 
         var total = routes.Sum(route => route.Count);
@@ -157,32 +182,40 @@ internal static class FloraRender
 
     private static void ReportTrees(Flora.Result flora)
     {
-        Console.WriteLine($"\n=== trees ({flora.Trees.Count}) ===");
-        Console.WriteLine($"{"species",-10} {"count",6} {"logs",7} {"branch%",8} {"height",8}  trunk wood");
+        Console.WriteLine($"\n=== trees ({flora.Trees.Count}, one per rooted stem cluster) ===");
+        Console.WriteLine($"{"species",-10} {"trees",6} {"per side",9} {"stems",6} {"trunk h",8} {"leaves",7}  trunk wood");
         foreach (var group in flora.Trees.GroupBy(tree => tree.Species).OrderByDescending(group => group.Count()))
         {
             var trees = group.ToList();
-            var logs = trees.Sum(tree => tree.Logs.Count);
-            var branches = trees.Sum(tree => tree.Branches);
             var heights = trees.Select(tree => tree.TopY - tree.BaseY + 1).OrderBy(height => height).ToList();
+            var stems = trees.Sum(tree => tree.Stems) / (double)trees.Count;
             var trunks = trees.GroupBy(tree => tree.Trunk).OrderByDescending(inner => inner.Count())
-                .Select(inner => $"{inner.Key} {inner.Count() * 100 / trees.Count}%");
-            Console.WriteLine($"{group.Key,-10} {trees.Count,6} {logs,7} {branches * 100.0 / Math.Max(1, logs),7:0.0}% " +
-                $"{$"{heights[0]}..{heights[^1]}",8}  {string.Join(", ", trunks)}");
+                .Select(inner => $"{inner.Key} {inner.Count() * 100 / trees.Count}%").Take(2);
+            Console.WriteLine($"{group.Key,-10} {trees.Count,6} {trees.Count / 2.0,9:0.0} {stems,6:0.0} " +
+                $"{$"{heights[0]}..{heights[^1]}",8} {trees.Sum(tree => tree.LeafCount),7}  {string.Join(", ", trunks)}");
         }
-        Console.WriteLine($"structural timber: {flora.StructuralLogs.Count} log blocks in components with " +
-            $"no all-bark and no leaves");
-
-        if (flora.Bare.Count == 0) return;
-        Console.WriteLine($"\n=== all-bark wood carrying no canopy ({flora.Bare.Count}) — read, not counted as trees ===");
-        foreach (var group in flora.Bare.GroupBy(item => item.Trunk).OrderByDescending(group => group.Count()))
+        // Trunk against canopy, because the pairing is what a tree type actually is. A wood that appears
+        // under only one canopy is a species of tree; one that appears under several is a post that happened
+        // to root near foliage and inherited it.
+        Console.WriteLine($"\n{"trunk",-10} {"canopy",-10} {"trees",6} {"per side",9}  reading");
+        foreach (var pair in flora.Trees.GroupBy(tree => (tree.Trunk, tree.Species))
+                     .OrderByDescending(group => group.Count()))
         {
-            var items = group.ToList();
-            var heights = items.Select(item => item.TopY - item.BaseY + 1).ToList();
-            var uniform = heights.Distinct().Count() == 1;
-            Console.WriteLine($"  {group.Key,-10} {items.Count,4} component(s), height {heights.Min()}..{heights.Max()}" +
-                $"   {(uniform ? "every one identical — a structural element, not planting" : "varied — likely stumps or saplings")}");
+            // Rarity is the wrong test: a map may plant only two of something. What marks a post is that
+            // its wood turns up under whatever canopy happens to stand nearby, so a trunk paired with more
+            // than one species is not a species at all.
+            var canopies = flora.Trees.Where(tree => tree.Trunk == pair.Key.Trunk)
+                .Select(tree => tree.Species).Distinct().Count();
+            Console.WriteLine($"{pair.Key.Trunk,-10} {pair.Key.Species,-10} {pair.Count(),6} {pair.Count() / 2.0,9:0.0}  " +
+                $"{(canopies > 1 ? "this wood appears under several canopies — a post rooted beside one" : "a tree type of this map")}");
         }
+
+        Console.WriteLine($"structural timber: {flora.StructuralLogs} oriented log blocks that never rooted; " +
+            $"{flora.UnrootedWood} all-bark blocks likewise");
+        if (flora.Bare.Count > 0)
+            Console.WriteLine($"rooted stems carrying no canopy: {flora.Bare.Count} " +
+                $"(heights {flora.Bare.Min(tree => tree.TopY - tree.BaseY + 1)}.." +
+                $"{flora.Bare.Max(tree => tree.TopY - tree.BaseY + 1)}) — posts, not planting");
     }
 
     private static void Draw(string outPng, int scale, Dictionary<(int X, int Z), int> ground,
@@ -214,12 +247,10 @@ internal static class FloraRender
         foreach (var tree in flora.Trees)
         {
             var accent = colors.TryGetValue(tree.Species, out var rgb) ? rgb : 0xFFFFFF;
-            foreach (var log in tree.Logs)
+            foreach (var log in tree.Wood)
             {
                 if (log.X < minX || log.X > maxX || log.Z < minZ || log.Z > maxZ) continue;
-                // The trunk is opaque, the limbs are lighter, so a tree's own spread is visible.
-                var isTrunk = tree.Logs.Count(other => other.X == log.X && other.Z == log.Z) > 1;
-                Raster.Over(pixels, blocksWide, log.X - minX, log.Z - minZ, accent, isTrunk ? 1.0 : 0.7);
+                Raster.Over(pixels, blocksWide, log.X - minX, log.Z - minZ, accent, 1.0);
             }
         }
 

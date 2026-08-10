@@ -3,23 +3,28 @@ using PgmStudio.Minecraft;
 namespace PgmStudio.RoundTrip;
 
 /// <summary>
-/// Separates a world's trees from the timber built into its structures, and names each tree's species.
+/// Counts a world's trees and names each one's species, separating them from the timber built into its
+/// structures.
 ///
-/// <para><b>Orientation alone cannot make the split.</b> A log carries its axis in the low bits of its data
-/// value, and an all-bark log — the one with no cut end showing — is the natural choice for a trunk, so it is
-/// tempting to call every oriented log structural. Branches break that immediately: a tree's limbs are
-/// ordinary rotated logs growing out of an all-bark trunk, and on a map whose spruce and pine carry real
-/// branches that rule discards a large part of every conifer.</para>
+/// <para><b>A tree is a stem, not a connected lump of wood.</b> Counting log components counts whatever the
+/// wood happens to be joined as: a detailed oak whose limbs meet the trunk only diagonally shatters into a
+/// dozen pieces, while a canopy bridging two neighbours fuses them into one. Counting every log that rests on
+/// the ground is no better — a conifer's lower branches droop until they touch, and each contact reads as
+/// another tree.</para>
 ///
-/// <para><b>Connectivity decides instead.</b> Logs are joined into components, and a component is a tree if it
-/// contains an all-bark log or touches leaves — either is enough, since a bare trunk and a leafy sapling are
-/// both trees. Branches arrive with their own trunk because they are attached to it, which is what makes the
-/// rule robust where the per-block test is not. A component with neither mark is timber, and belongs to
-/// whatever was built from it.</para>
+/// <para><b>The stable unit is a rooted vertical run.</b> A stem is a log standing on something that is not
+/// wood, carrying an unbroken column of logs above it; the run length is what separates a real trunk from a
+/// branch tip brushing the ground, since a limb angles away within a block or two and a trunk does not.
+/// Stems are then grouped by plan adjacency, so a trunk two blocks square is one tree rather than four, which
+/// is what lets a detailed oak count the same as a single-stem spruce.</para>
 ///
-/// <para><b>Species is read from the canopy, not the trunk.</b> An author is free to pair any trunk with any
-/// leaf — pine built from acacia log under birch leaves is exactly such a pairing — so the leaves adjacent to
-/// a component decide its species and the trunk material is recorded rather than trusted.</para>
+/// <para><b>Species is read from the canopy, not the trunk.</b> An author is free to pair any wood with any
+/// leaf — a pine built from acacia log under birch leaves is exactly such a pairing — so the leaves standing
+/// around a stem decide its species and the trunk material is recorded rather than trusted.</para>
+///
+/// <para>Wood that roots nowhere is not discarded silently: logs in a component with no all-bark and no
+/// leaves are structural timber, and all-bark wood carrying no canopy is returned apart, because an all-bark
+/// post is what an author reaches for when a pillar should show no cut end.</para>
 /// </summary>
 internal static class Flora
 {
@@ -28,14 +33,18 @@ internal static class Flora
     private const int OakLeaves = 18;
     private const int AcaciaLeaves = 161;
 
-    /// <summary>An all-bark log shows no cut end: both axis bits set.</summary>
-    public static bool IsAllBark(int id, int data) => (id is OakLog or AcaciaLog) && (data >> 2 & 3) == 3;
+    /// <summary>How tall a rooted column must be to be a trunk rather than a branch touching down.</summary>
+    private const int MinimumStem = 3;
 
+    /// <summary>How far from the trunk a leaf still names its tree.</summary>
+    private const int CanopyReach = 3;
+
+    public static bool IsAllBark(int id, int data) => (id is OakLog or AcaciaLog) && (data >> 2 & 3) == 3;
     public static bool IsLog(int id) => id is OakLog or AcaciaLog;
     public static bool IsLeaf(int id) => id is OakLeaves or AcaciaLeaves;
 
-    /// <summary>The species a leaf block belongs to. Only the low bits name the wood; the rest carry the
-    /// decay and permanence flags, which say nothing about what kind of tree it is.</summary>
+    /// <summary>The species a leaf belongs to. Only the low bits name the wood; the rest carry the decay and
+    /// permanence flags, which say nothing about what kind of tree it is.</summary>
     public static string LeafSpecies(int id, int data) => id == OakLeaves
         ? (data & 3) switch { 0 => "oak", 1 => "spruce", 2 => "birch", _ => "jungle" }
         : (data & 1) == 0 ? "acacia" : "dark oak";
@@ -44,83 +53,123 @@ internal static class Flora
         ? (data & 3) switch { 0 => "oak", 1 => "spruce", 2 => "birch", _ => "jungle" }
         : (data & 1) == 0 ? "acacia" : "dark oak";
 
-    public sealed record Tree(string Species, string Trunk, IReadOnlyList<(int X, int Y, int Z)> Logs,
-                              int LeafCount, int AllBark, int Branches, int MinX, int MaxX, int MinZ, int MaxZ,
-                              int BaseY, int TopY);
+    /// <summary>One tree: the stems it stands on and the canopy that names it.</summary>
+    public sealed record Tree(string Species, string Trunk, int Stems, int TrunkLogs, int LeafCount,
+                              int MinX, int MaxX, int MinZ, int MaxZ, int BaseY, int TopY,
+                              IReadOnlyList<(int X, int Y, int Z)> Wood);
 
-    /// <summary><paramref name="Bare"/> holds the components that carry all-bark wood but no canopy at all.
-    /// They are not trees and not plain timber: an all-bark post is exactly what an author reaches for when a
-    /// pillar should show no cut end, so calling them trees would inflate the count with architecture, and
-    /// calling them timber would hide a real planting choice. They are returned apart and left to be read —
-    /// a run of them at one identical height is a structural element, a scatter of stumps is landscaping.</summary>
-    public sealed record Result(IReadOnlyList<Tree> Trees, IReadOnlyList<Tree> Bare,
-                                IReadOnlySet<(int X, int Y, int Z)> StructuralLogs);
+    public sealed record Result(IReadOnlyList<Tree> Trees, IReadOnlyList<Tree> Bare, int StructuralLogs,
+                                int UnrootedWood);
 
     public static Result Classify(IEnumerable<AnvilRegion.Chunk> chunks)
     {
         var logs = new Dictionary<(int X, int Y, int Z), (int Id, int Data)>();
         var leaves = new Dictionary<(int X, int Y, int Z), (int Id, int Data)>();
+        var rooted = new List<((int X, int Y, int Z) Cell, int Run)>();
+
         foreach (var chunk in chunks)
-            foreach (var block in AnvilRegion.Blocks(chunk))
+        {
+            var ids = new ushort[256 * 256];
+            var data = new byte[256 * 256];
+            foreach (var section in AnvilRegion.Sections(chunk))
             {
-                if (IsLog(block.Id)) logs[(block.X, block.Y, block.Z)] = (block.Id, block.Data);
-                else if (IsLeaf(block.Id)) leaves[(block.X, block.Y, block.Z)] = (block.Id, block.Data);
+                var yStart = section.SectionY * 16;
+                if (yStart is < 0 or >= 256) continue;
+                Array.Copy(section.Ids, 0, ids, yStart * 256, 4096);
+                Array.Copy(section.Data, 0, data, yStart * 256, 4096);
             }
 
+            for (var lz = 0; lz < 16; lz++)
+                for (var lx = 0; lx < 16; lx++)
+                {
+                    var col = (lz << 4) | lx;
+                    int worldX = chunk.ChunkX * 16 + lx, worldZ = chunk.ChunkZ * 16 + lz;
+                    for (var y = 0; y < 256; y++)
+                    {
+                        var id = ids[(y << 8) | col];
+                        if (IsLeaf(id)) { leaves[(worldX, y, worldZ)] = (id, data[(y << 8) | col]); continue; }
+                        if (!IsLog(id)) continue;
+                        logs[(worldX, y, worldZ)] = (id, data[(y << 8) | col]);
+
+                        var under = y > 0 ? ids[((y - 1) << 8) | col] : 0;
+                        if (under == 0 || IsLog(under) || IsLeaf(under)) continue;
+                        // The run must be all-bark. A trunk shows no cut end for its whole height, while a
+                        // branch is rotated wood the moment it leaves the stem — so an oriented log rooted
+                        // on the ground is a limb touching down, not a second tree.
+                        var run = 0;
+                        while (y + run < 256 && IsAllBark(ids[((y + run) << 8) | col], data[((y + run) << 8) | col])) run++;
+                        if (run >= MinimumStem) rooted.Add(((worldX, y, worldZ), run));
+                    }
+                }
+        }
+
+        // Stems that share a footprint are one tree: a trunk two blocks square roots four times.
         var trees = new List<Tree>();
-        var bare = new List<Tree>();
-        var structural = new HashSet<(int X, int Y, int Z)>();
-        var pending = new HashSet<(int X, int Y, int Z)>(logs.Keys);
+        var claimed = new HashSet<(int X, int Y, int Z)>();
+        var pending = new Dictionary<(int X, int Y, int Z), int>(rooted.Select(entry =>
+            new KeyValuePair<(int X, int Y, int Z), int>(entry.Cell, entry.Run)));
 
         while (pending.Count > 0)
         {
-            var seed = pending.First();
-            pending.Remove(seed);
-            var component = new List<(int X, int Y, int Z)>();
+            var seed = pending.Keys.First();
+            var runs = new List<int>();
+            var cluster = new List<(int X, int Y, int Z)>();
             var queue = new Queue<(int X, int Y, int Z)>([seed]);
-            var canopy = new Dictionary<string, int>();
+            runs.Add(pending[seed]);
+            pending.Remove(seed);
 
             while (queue.Count > 0)
             {
                 var cell = queue.Dequeue();
-                component.Add(cell);
-                // Leaves are counted within one block of the wood in every direction: a branch tip sits
-                // diagonally inside its own canopy as often as it sits square against it.
-                for (var dy = -1; dy <= 1; dy++)
-                    for (var dz = -1; dz <= 1; dz++)
-                        for (var dx = -1; dx <= 1; dx++)
-                        {
-                            if (dx == 0 && dy == 0 && dz == 0) continue;
-                            var next = (cell.X + dx, cell.Y + dy, cell.Z + dz);
-                            if (leaves.TryGetValue(next, out var leaf))
-                            {
-                                var leafKind = LeafSpecies(leaf.Id, leaf.Data);
-                                canopy[leafKind] = canopy.GetValueOrDefault(leafKind) + 1;
-                            }
-                            // Wood joins only face to face, so two trunks touching at a corner stay apart.
-                            if ((dx == 0 ? 0 : 1) + (dy == 0 ? 0 : 1) + (dz == 0 ? 0 : 1) == 1 && pending.Remove(next))
-                                queue.Enqueue(next);
-                        }
+                cluster.Add(cell);
+                foreach (var other in pending.Keys.Where(other =>
+                             Math.Abs(other.X - cell.X) <= 1 && Math.Abs(other.Z - cell.Z) <= 1 &&
+                             Math.Abs(other.Y - cell.Y) <= 2).ToList())
+                {
+                    runs.Add(pending[other]);
+                    pending.Remove(other);
+                    queue.Enqueue(other);
+                }
             }
 
-            var allBark = component.Count(cell => IsAllBark(logs[cell].Id, logs[cell].Data));
-            if (allBark == 0 && canopy.Count == 0) { foreach (var cell in component) structural.Add(cell); continue; }
+            // The trunk is every log stacked over the cluster's footprint; the canopy is the leaves within
+            // reach of it, which is what names the tree.
+            var trunkCells = new List<(int X, int Y, int Z)>();
+            foreach (var root in cluster)
+                for (var y = root.Y; y < 256 && logs.ContainsKey((root.X, y, root.Z)); y++)
+                    trunkCells.Add((root.X, y, root.Z));
+            foreach (var cell in trunkCells) claimed.Add(cell);
 
-            var species = canopy.Count > 0
-                ? canopy.OrderByDescending(entry => entry.Value).First().Key
-                : LogSpecies(logs[component[0]].Id, logs[component[0]].Data);
-            var trunk = component.Where(cell => IsAllBark(logs[cell].Id, logs[cell].Data))
-                .Select(cell => LogSpecies(logs[cell].Id, logs[cell].Data))
-                .GroupBy(name => name).OrderByDescending(group => group.Count()).FirstOrDefault()?.Key
-                ?? LogSpecies(logs[component[0]].Id, logs[component[0]].Data);
+            var canopy = new Dictionary<string, int>();
+            var seen = new HashSet<(int X, int Y, int Z)>();
+            foreach (var cell in trunkCells)
+                for (var dy = -1; dy <= CanopyReach; dy++)
+                    for (var dz = -CanopyReach; dz <= CanopyReach; dz++)
+                        for (var dx = -CanopyReach; dx <= CanopyReach; dx++)
+                        {
+                            var near = (cell.X + dx, cell.Y + dy, cell.Z + dz);
+                            if (!seen.Add(near) || !leaves.TryGetValue(near, out var leaf)) continue;
+                            var kind = LeafSpecies(leaf.Id, leaf.Data);
+                            canopy[kind] = canopy.GetValueOrDefault(kind) + 1;
+                        }
 
-            var found = new Tree(species, trunk, component, canopy.Values.Sum(), allBark, component.Count - allBark,
-                component.Min(cell => cell.X), component.Max(cell => cell.X),
-                component.Min(cell => cell.Z), component.Max(cell => cell.Z),
-                component.Min(cell => cell.Y), component.Max(cell => cell.Y));
-            (canopy.Count > 0 ? trees : bare).Add(found);
+            var trunkWood = trunkCells.GroupBy(cell => LogSpecies(logs[cell].Id, logs[cell].Data))
+                .OrderByDescending(group => group.Count()).First().Key;
+            var species = canopy.Count > 0 ? canopy.OrderByDescending(entry => entry.Value).First().Key : trunkWood;
+
+            trees.Add(new Tree(species, trunkWood, cluster.Count, trunkCells.Count, canopy.Values.Sum(),
+                cluster.Min(cell => cell.X), cluster.Max(cell => cell.X),
+                cluster.Min(cell => cell.Z), cluster.Max(cell => cell.Z),
+                cluster.Min(cell => cell.Y), cluster.Min(cell => cell.Y) + runs.Max() - 1, trunkCells));
         }
 
-        return new Result(trees, bare, structural);
+        // What the stem pass did not claim: wood that never rooted. Split by whether it carries bark, since
+        // an all-bark post is a deliberate choice and plain oriented timber is a wall.
+        var leftover = logs.Keys.Where(cell => !claimed.Contains(cell)).ToList();
+        var bareBark = leftover.Count(cell => IsAllBark(logs[cell].Id, logs[cell].Data));
+
+        var bare = trees.Where(tree => tree.LeafCount == 0).ToList();
+        return new Result([.. trees.Where(tree => tree.LeafCount > 0)], bare,
+            leftover.Count - bareBark, bareBark);
     }
 }

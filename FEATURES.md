@@ -1163,12 +1163,20 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   instead — a log component is a tree if it holds an all-bark log *or* touches leaves, and branches arrive with
   their trunk because they are attached to it. **Species is read from the canopy, not the trunk**, since an
   author may pair any wood with any leaf (alpine_mining_ii's pines are acacia trunks under birch leaves), and
-  the trunk material is recorded rather than trusted. All-bark components carrying **no** canopy are returned
-  apart and neither counted as trees nor as timber — a run of them at one identical height is a structural
-  post, a scatter of short ones is landscaping. The path palette is a **required argument**, never a constant:
+  the trunk material is recorded rather than trusted. **A tree is a rooted all-bark run, not a connected lump
+  of wood**: counting components shatters a detailed oak whose limbs meet its trunk diagonally and fuses
+  neighbours whose canopies touch, while counting every log resting on the ground counts each drooping branch
+  that reaches it — so a stem is a log on non-wood carrying an unbroken all-bark column above it, and stems
+  sharing a footprint are one tree (a 2×2 oak base counts once). The **trunk×canopy pairing** is reported
+  because that pairing is what a tree type is; a wood appearing under several canopies is a post that rooted
+  beside foliage, which rarity alone cannot tell you — a map may plant only two oaks. The path palette is a
+  **required argument**, never a constant:
   the same block is a road on one map and bulk terrain on another. Paving is traced as connected surface
   components and the gap between the largest ones is reported, because a route can be continuous underfoot and
-  still break in material where it crosses a bridge, a ford or a floor. (B64)
+  still break in material where it crosses a bridge, a ford or a floor. `--bridge` names materials that count
+  as path **only where the column spans water**, which is what separates a crossing from the same stone brick
+  used as a building floor. Validated against a hand-built map's own counts: 2 oak, ~46 spruce and ~51 pine per
+  side, recovered as 2.0 / 47.5 / 54.5. (B64)
 - **Supported map range (enforced in `MapParser`)** — the parser accepts **proto >= 1.4.0** only (PGM's
   id-based regions/filters/kits floor) and rejects **modern worlds** (`min-server-version >= 1.13.0`, whose
   post-"flattening" palette chunks the Anvil reader can't decode), throwing `UnsupportedMapException` with a
