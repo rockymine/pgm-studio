@@ -48,7 +48,7 @@ internal static class StructureFinder
                                                    && id is not (8 or 9 or 10 or 11 or 17 or 162);
 
     private sealed record Structure(int MinX, int MaxX, int MinZ, int MaxZ, int Area, int RoofLow, int RoofHigh,
-                                    int GroundAround, string Materials);
+                                    int GroundAround, int GroundSpread, int BaseOffset, string Materials);
 
     public static int Run(string regionDir, string outPng, int scale, int minimumArea)
     {
@@ -57,11 +57,13 @@ internal static class StructureFinder
         if (mcas.Length == 0) { Console.Error.WriteLine($"no region files in {regionDir}"); return 1; }
 
         var topId = new Dictionary<(int X, int Z), int>();
+        var topData = new Dictionary<(int X, int Z), int>();
         var topY = new Dictionary<(int X, int Z), int>();
+        var baseY = new Dictionary<(int X, int Z), int>();
         var naturalY = new Dictionary<(int X, int Z), int>();
         foreach (var mca in mcas)
             foreach (var chunk in AnvilRegion.ReadChunks(mca))
-                Scan(chunk, topId, topY, naturalY);
+                Scan(chunk, topId, topData, topY, baseY, naturalY);
         if (topY.Count == 0) { Console.Error.WriteLine("no columns decoded"); return 1; }
 
         var builtCells = new HashSet<(int X, int Z)>(topId.Where(entry => Built.Contains(entry.Value)).Select(entry => entry.Key));
@@ -79,16 +81,22 @@ internal static class StructureFinder
             foreach (var cell in component) claimed[cell] = index;
 
             var roofs = component.Select(cell => topY[cell]).OrderBy(y => y).ToList();
+            var bases = component.Select(cell => baseY[cell]).OrderBy(y => y).ToList();
             var ring = Ring(component, builtCells).Where(naturalY.ContainsKey).Select(cell => naturalY[cell]).OrderBy(y => y).ToList();
-            var materials = component.GroupBy(cell => BlockPalette.Name(topId[cell], 0))
+            var materials = component.GroupBy(cell => BlockPalette.Name(topId[cell], topData[cell]))
                 .OrderByDescending(group => group.Count()).Take(3)
                 .Select(group => $"{group.Key} {group.Count() * 100 / component.Count}%");
+
+            var groundLevel = ring.Count > 0 ? ring[ring.Count / 2] : roofs[0];
+            // How uneven the ground it was placed on is, ignoring the tails so one boulder in the ring
+            // does not read as a slope.
+            var spread = ring.Count > 4 ? ring[(int)(ring.Count * 0.9)] - ring[(int)(ring.Count * 0.1)] : 0;
 
             structures.Add(new Structure(
                 component.Min(cell => cell.X), component.Max(cell => cell.X),
                 component.Min(cell => cell.Z), component.Max(cell => cell.Z),
                 component.Count, roofs[0], roofs[^1],
-                ring.Count > 0 ? ring[ring.Count / 2] : roofs[0], string.Join(", ", materials)));
+                groundLevel, spread, bases[bases.Count / 2] - groundLevel, string.Join(", ", materials)));
         }
 
         Report(structures);
@@ -97,14 +105,17 @@ internal static class StructureFinder
     }
 
     private static void Scan(AnvilRegion.Chunk chunk, Dictionary<(int X, int Z), int> topId,
-                             Dictionary<(int X, int Z), int> topY, Dictionary<(int X, int Z), int> naturalY)
+                             Dictionary<(int X, int Z), int> topData, Dictionary<(int X, int Z), int> topY,
+                             Dictionary<(int X, int Z), int> baseY, Dictionary<(int X, int Z), int> naturalY)
     {
         var ids = new ushort[256 * 256];
+        var data = new byte[256 * 256];
         foreach (var section in AnvilRegion.Sections(chunk))
         {
             var yStart = section.SectionY * 16;
             if (yStart is < 0 or >= 256) continue;
             Array.Copy(section.Ids, 0, ids, yStart * 256, 4096);
+            Array.Copy(section.Data, 0, data, yStart * 256, 4096);
         }
 
         for (var lz = 0; lz < 16; lz++)
@@ -117,7 +128,18 @@ internal static class StructureFinder
                 {
                     var id = ids[(y << 8) | col];
                     if (Skin.Contains(id)) continue;
-                    if (!haveTop) { topId[cell] = id; topY[cell] = y; haveTop = true; }
+                    if (!haveTop)
+                    {
+                        topId[cell] = id;
+                        topData[cell] = data[(y << 8) | col];
+                        topY[cell] = y;
+                        // The base is where the unbroken run of built blocks under the top ends, which is
+                        // the level the structure was actually seated at.
+                        baseY[cell] = y;
+                        for (var below = y; below >= 0 && (Built.Contains(ids[(below << 8) | col]) || Skin.Contains(ids[(below << 8) | col])); below--)
+                            baseY[cell] = below;
+                        haveTop = true;
+                    }
                     if (!IsNaturalGround(id)) continue;
                     naturalY[cell] = y;
                     break;
@@ -163,15 +185,27 @@ internal static class StructureFinder
     private static void Report(List<Structure> structures)
     {
         Console.WriteLine($"{structures.Count} built structure(s) of the minimum size\n");
-        Console.WriteLine($"{"x range",-14} {"z range",-14} {"area",6} {"roof y",10} {"ground",7} {"tall",5}  materials");
+        Console.WriteLine($"{"x range",-14} {"z range",-14} {"area",6} {"roof y",10} {"ground",7} {"tall",5} {"rough",6} {"seat",5}  materials");
         foreach (var structure in structures.OrderByDescending(structure => structure.Area))
             Console.WriteLine($"{$"{structure.MinX}..{structure.MaxX}",-14} {$"{structure.MinZ}..{structure.MaxZ}",-14} " +
                 $"{structure.Area,6} {$"{structure.RoofLow}..{structure.RoofHigh}",10} {structure.GroundAround,7} " +
-                $"{structure.RoofHigh - structure.GroundAround,5}  {structure.Materials}");
+                $"{structure.RoofHigh - structure.GroundAround,5} {structure.GroundSpread,6} {structure.BaseOffset,5:+0;-0;0}  {structure.Materials}");
 
-        var tall = structures.Count(structure => structure.RoofHigh - structure.GroundAround >= 3);
-        Console.WriteLine($"\n{tall} stand 3+ blocks over the ground around them; " +
-            $"{structures.Count - tall} are flat — paths, floors, plazas.");
+        var tall = structures.Where(structure => structure.RoofHigh - structure.GroundAround >= 3).ToList();
+        Console.WriteLine($"\n{tall.Count} stand 3+ blocks over the ground around them; " +
+            $"{structures.Count - tall.Count} are flat — paths, floors, plazas.");
+
+        // "rough" is how uneven the ground around a structure is; "seat" is where its lowest built block
+        // sits against that ground — 0 is flush, positive floats above it, negative is dug in. A structure
+        // dropped onto terrain nobody levelled shows up as rough ground with a non-zero seat.
+        if (tall.Count == 0) return;
+        var perched = tall.Where(structure => structure.GroundSpread >= 3 && structure.BaseOffset > 0).ToList();
+        var levelled = tall.Count(structure => structure.GroundSpread <= 1);
+        Console.WriteLine($"of those {tall.Count}: {levelled} sit on ground levelled to within 1 block, " +
+            $"{perched.Count} stand on ground uneven by 3+ with their base above it");
+        foreach (var structure in perched.OrderByDescending(structure => structure.GroundSpread).Take(8))
+            Console.WriteLine($"    x {structure.MinX}..{structure.MaxX} z {structure.MinZ}..{structure.MaxZ}: " +
+                $"ground uneven by {structure.GroundSpread}, base {structure.BaseOffset:+0;-0;0} over it");
     }
 
     /// <summary>Findings over a desaturated height profile: a structure's placement only means something

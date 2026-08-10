@@ -1150,7 +1150,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   gravel, sand and clay are deliberately **not** built materials — all generate in the open, and including them
   classifies every outcrop as architecture. Height is measured against a ring of natural columns just outside
   the component, since a building hides its own ground; it is reported, never filtered on, so a paved path
-  reads as a real find that simply stands 0 blocks tall. `--min-area N` sets the size floor. Validated on
+  reads as a real find that simply stands 0 blocks tall. `--min-area N` sets the size floor. Each structure also
+  reports **rough** (how uneven the ring's ground is) and **seat** (its lowest built block against that ground —
+  0 flush, positive floating, negative dug in). Those two describe placement; they do **not** score it, and must
+  not be read as a quality measure: a map on a mountain has steep ground under every building by construction,
+  so alpine_mining_ii reads as 44 structures on 3+ uneven ground while a flat map reads as clean. Validated on
   alpine_mining_ii: 107 structures, resolving into exact mirrored pairs about the map's rot-180 centre. (B63)
 - **Supported map range (enforced in `MapParser`)** — the parser accepts **proto >= 1.4.0** only (PGM's
   id-based regions/filters/kits floor) and rejects **modern worlds** (`min-server-version >= 1.13.0`, whose
