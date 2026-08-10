@@ -1224,6 +1224,22 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   inventory: **11 of 11 houses and 5 of 5 shafts** located per team, with **no false positives** — 34
   components resolving as 23 rim-bordered house roofs (22 houses plus the observer island's one) and 11 caps
   (5 shafts per team plus the island's), the caps uniform at 6×6 and one material throughout. (B65)
+- **Resource deposits (`--resources <regionDir> <out.png>`)** — what a map gives a player to take and what it
+  charges for it. **A deposit is the placement, not the block**: a seam of two hundred iron is one decision an
+  author made once, so lumps are 6-connected per material and every measure is per lump — two maps with the same
+  block count can be a hundred scattered pockets or two slabs, and only the lump count tells them apart. **Cost
+  is cover, not depth**: a y tells you where a deposit sits and nothing about reaching it (the same y is bedrock
+  under a mountain and open ground in a valley), so the measure is the solid blocks standing over it counted up
+  its own column, charged at its *shallowest* block, which makes a cave above it free. **Openness is asked of the
+  faces, not of the sky**: a deposit in a cave wall is visible to anyone walking past under a hundred blocks of
+  mountain, so it is the share of a lump's six-neighbour faces meeting air, with sky exposure kept apart.
+  **Balance is counted per block across the middle of the world's longer axis** — per deposit invents an
+  imbalance out of one seam lying across the line. Solid mineral blocks and ores are separate classes, since a
+  block is nine ingots and an ore is one; the ore's two readings stay intact (grey stone to the ground
+  vocabulary, which is how it looks; a deposit here, which is what it is for). Measured: alpine_mining_ii pays
+  **10,145 mineral blocks in 176 deposits** at median cover 13–15 plus 55,695 ore, cedar_crossing pays **450 iron
+  in 2 seams** at cover 0, and townside_mini **206 iron in 8 lumps** fully enclosed — three different offers, and
+  the deposit/cover pair is what separates them. (B67)
 - **Ground materials, decoration and beds (`--surface <regionDir> <out.png>`)** — what a map's ground is made
   of once what stands on it is set aside. Decoration is read as a **layer**: a fern is not what the ground is
   made of, but which soil an author ferns is a decision worth recovering, so a column reports its material and

@@ -278,6 +278,17 @@ if (surfIdx >= 0 && surfIdx + 2 < args.Length)
         surfTop >= 0 && surfTop + 1 < args.Length && int.TryParse(args[surfTop + 1], out var sTop) ? Math.Max(1, sTop) : 10);
 }
 
+// --resources <regionDir> <outPng> [--scale N]: what the map gives a player to take and what it charges —
+// mineral blocks and ores as 6-connected deposits, each with the cover standing over its shallowest block,
+// how open its faces are, and whether the two halves of the world were given the same.
+var resIdx = Array.IndexOf(args, "--resources");
+if (resIdx >= 0 && resIdx + 2 < args.Length)
+{
+    var resScale = Array.IndexOf(args, "--scale");
+    return PgmStudio.RoundTrip.ResourceReport.Run(args[resIdx + 1], args[resIdx + 2],
+        resScale >= 0 && resScale + 1 < args.Length && int.TryParse(args[resScale + 1], out var rScale) ? Math.Max(1, rScale) : 3);
+}
+
 // --island-study <regionDir> <outJson> [tolerance]: cleaned-base islands with their polygons (exterior +
 // holes) both raw and Douglas-Peucker-simplified, emitted as JSON for studying real-map shapes.
 var islandStudyIdx = Array.IndexOf(args, "--island-study");
