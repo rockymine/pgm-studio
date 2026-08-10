@@ -1131,6 +1131,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   chests and spawners are painted over that in saturated colours no terrain shade reaches. `--band <yMin> <yMax>`
   narrows the scan to one level; `--ores` adds ore bodies (off by default — coal alone speckles the image).
   Shares `Raster` and `PngWriter` with the surface render. (B61)
+- **Height profile (`--heightmap <regionDir> <out.png>`)** — terrain shape with nothing coloured by what the
+  ground is made of, which is the view a layout is judged in: where the high ground is, how a valley runs,
+  whether a route climbs. **Ground is not the topmost block** — a tree is seven blocks standing on flat grass,
+  so vegetation, trunks and surface furniture are skipped, and so are liquids, because a river read at its
+  waterline flattens the channel that gives the valley its shape. Three layers carry it: a hypsometric ramp for
+  altitude, hillshade from a north-west sun computed on a **smoothed** copy of the grid (raw block heights step
+  by whole blocks, so an unsmoothed gradient calls every one-block lip a cliff and the image turns to noise)
+  while colour and contours stay on exact heights, and contour lines every `--contour N` blocks (auto: ~12
+  bands; every fifth emphasised) because shading shows that a slope exists and only a contour says how much it
+  climbs. `--grey` drops the ramp to greyscale, `--water` tints the flooded columns, and the console reports the
+  height histogram the picture cannot state. (B62)
 - **Supported map range (enforced in `MapParser`)** — the parser accepts **proto >= 1.4.0** only (PGM's
   id-based regions/filters/kits floor) and rejects **modern worlds** (`min-server-version >= 1.13.0`, whose
   post-"flattening" palette chunks the Anvil reader can't decode), throwing `UnsupportedMapException` with a

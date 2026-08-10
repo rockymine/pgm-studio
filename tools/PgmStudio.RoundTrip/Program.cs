@@ -161,6 +161,21 @@ if (underIdx >= 0 && underIdx + 2 < args.Length)
         bandMin, bandMax, args.Contains("--ores"));
 }
 
+// --heightmap <regionDir> <outPng> [--scale N] [--contour N] [--grey] [--water]: terrain shape alone —
+// ground height (vegetation, tree trunks, surface furniture and liquids skipped) as a hypsometric ramp under
+// hillshade, with contour lines. Nothing is coloured by what the ground is made of.
+var heightIdx = Array.IndexOf(args, "--heightmap");
+if (heightIdx >= 0 && heightIdx + 2 < args.Length)
+{
+    var scaleWhere = Array.IndexOf(args, "--scale");
+    var contourWhere = Array.IndexOf(args, "--contour");
+    return PgmStudio.RoundTrip.HeightProfileRender.Run(
+        args[heightIdx + 1], args[heightIdx + 2],
+        scaleWhere >= 0 && scaleWhere + 1 < args.Length && int.TryParse(args[scaleWhere + 1], out var heightScale) ? Math.Max(1, heightScale) : 3,
+        contourWhere >= 0 && contourWhere + 1 < args.Length && int.TryParse(args[contourWhere + 1], out var interval) ? interval : 0,
+        args.Contains("--grey"), args.Contains("--water"));
+}
+
 // --island-study <regionDir> <outJson> [tolerance]: cleaned-base islands with their polygons (exterior +
 // holes) both raw and Douglas-Peucker-simplified, emitted as JSON for studying real-map shapes.
 var islandStudyIdx = Array.IndexOf(args, "--island-study");
