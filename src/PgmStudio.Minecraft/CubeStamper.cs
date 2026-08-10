@@ -68,10 +68,37 @@ public static class CubeStamper
         if (y is < 1 or >= VoxelWorld.MaxHeight) return;
         var (material, depth) = part.At(step);
         // Fill is the neutral bucket: no material reads one, and a room part is not one of terrain's five.
+        var arc = PerimeterArc(frame, x, z);
         var (id, data) = material.Resolve(
-            new BucketContext(x, y, z, TerrainBucket.Fill, depth, color, PerimeterArc(frame, x, z)));
+            new BucketContext(x, y, z, TerrainBucket.Fill, depth, color, arc, 0, PerimeterTurn(frame, arc)));
         if (id == Blocks.Air) return;
         world.SetBlock(x, y, z, id, data);
+    }
+
+    /// <summary>How sharply the shell's ring bends where a cell sits, to the same scale a painted wall reads
+    /// (<see cref="PgmStudio.Geom.Algorithms.GridBoundary.TurnAt"/>). A shell is a rectangle, so the answer is
+    /// closed-form rather than traced: a cell <c>d</c> cells from a corner has a window that straddles it by
+    /// <c>window − d</c>, and the chords make <c>atan2(window − d, d)</c> — 90° on the corner itself, then 76,
+    /// 56, 34, 14 and straight, which is the ramp a traced right angle measures.</summary>
+    private static int PerimeterTurn(RoomFrame frame, int arc)
+    {
+        if (arc < 0) return 0;
+        int width = frame.Width, depth = frame.Depth;
+        var loop = 2 * (width + depth) - 4;
+        if (loop <= 0) return 0;
+
+        // Where the ring turns: the four rectangle corners, in the order PerimeterArc numbers them.
+        int[] corners = [0, width - 1, width + depth - 2, 2 * width + depth - 3];
+        var nearest = int.MaxValue;
+        foreach (var corner in corners)
+        {
+            var apart = Math.Abs(arc - corner);
+            nearest = Math.Min(nearest, Math.Min(apart, loop - apart));
+        }
+
+        const int window = 5;
+        if (nearest >= window) return 0;
+        return (int)Math.Round(Math.Atan2(window - nearest, nearest) * 180.0 / Math.PI);
     }
 
     /// <summary>How far round the shell's perimeter a cell sits, clockwise from its −x/−z corner, or −1 off

@@ -42,6 +42,12 @@ public static class ThemeFields
     public const string Slope = "slope";
     /// <summary>The side of one checkerboard square, in blocks.</summary>
     public const string Size = "size";
+    /// <summary>How sharp a boundary turn must be, in degrees, for a wall frame to ink it as a corner. Also
+    /// sets how far the ink wraps round one, since the measured turn ramps to a vertex rather than switching
+    /// on at it. A wall frame's own courses are <see cref="Thickness"/>, its panel <see cref="Fill"/>.</summary>
+    public const string Angle = "angle";
+    public const string Edge = "edge";
+
     /// <summary>A checkerboard's two squares, by the parity they take.</summary>
     public const string Even = "even";
     public const string Odd = "odd";
@@ -109,6 +115,27 @@ public static class ThemeFields
         {
             [Kind] = MaterialKind.WallRun,
             [Runs] = new JsonArray(Stripe(Solid(155), 3), Stripe(Solid(159, 8), 2)),
+        },
+        MaterialKind.WallDiagonal => new JsonObject
+        {
+            [Kind] = MaterialKind.WallDiagonal,
+            [Slope] = 1,
+            [Runs] = new JsonArray(Stripe(Solid(155), 2), Stripe(Solid(159, 8), 2)),
+        },
+        MaterialKind.Checker => new JsonObject
+        {
+            [Kind] = MaterialKind.Checker,
+            [Size] = 1,
+            [Even] = Solid(155),
+            [Odd] = Solid(159, 15),
+        },
+        MaterialKind.WallFrame => new JsonObject
+        {
+            [Kind] = MaterialKind.WallFrame,
+            [Angle] = 45,
+            [Thickness] = 1,
+            [Edge] = Solid(159, 15),
+            [Fill] = Solid(155),
         },
         _ => Solid(1),
     };

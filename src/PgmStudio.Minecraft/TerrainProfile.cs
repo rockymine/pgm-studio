@@ -16,7 +16,7 @@ namespace PgmStudio.Minecraft;
 /// an outer boundary — what a wall-run pattern reads to wrap the perimeter (TP13).</summary>
 public readonly record struct ColumnProfile(
     int SurfaceTop, bool VoidEdge, bool OpenEdge, bool ClosedEdge, int VoidDrop, int TerrainDrop,
-    int PerimeterArc = -1);
+    int PerimeterArc = -1, int PerimeterTurn = 0);
 
 /// <summary>
 /// The shared core of terrain painting (docs/world-export/terrain-painting.md §5, stage 1): classifies every
@@ -36,6 +36,7 @@ public sealed class TerrainProfile
 
     private readonly Dictionary<(int, int), CellFacts> _facts;
     private readonly Dictionary<(int, int), int> _perimeterArc = [];
+    private readonly Dictionary<(int, int), int> _perimeterTurn = [];
     private readonly Dictionary<(int, int), ColumnProfile> _columns = [];
 
     public TerrainProfile(VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop)
@@ -93,7 +94,8 @@ public sealed class TerrainProfile
             if (n.Top < self.Top) terrainDrop = terrainDrop < 0 ? n.Top : Math.Min(terrainDrop, n.Top);
         }
         return new ColumnProfile(self.Top, voidEdge, openEdge, closedEdge, voidDrop, terrainDrop,
-            _perimeterArc.GetValueOrDefault((x, z), -1));
+            _perimeterArc.GetValueOrDefault((x, z), -1),
+            _perimeterTurn.GetValueOrDefault((x, z), 0));
     }
 
     // 4-connected components of equal surface top over the whole footprint (structures included, so a plateau
@@ -116,7 +118,17 @@ public sealed class TerrainProfile
     private void LabelPerimeter(IEnumerable<(int X, int Z)> footprint)
     {
         foreach (var landmass in GridComponents.Label(footprint, connectivity: 4))
-            foreach (var (cell, arc) in GridBoundary.TracePerimeter(landmass))
-                _perimeterArc[cell] = arc;
+        {
+            var ring = GridBoundary.TracePerimeter(landmass);
+            foreach (var (cell, arc) in ring) _perimeterArc[cell] = arc;
+            foreach (var (cell, turn) in GridBoundary.Turns(ring, CornerWindow))
+                _perimeterTurn[cell] = (int)Math.Round(turn);
+        }
     }
+
+    /// <summary>The span, in perimeter cells either side, that a bend is measured over. It is the scale at which
+    /// "corner" is a question at all: under about four the raster's own staircase reads as turning, and above it
+    /// no arc tighter than roughly that radius can still count as curved. Five sits between the two, holding a
+    /// straight shallow edge at a few degrees while leaving a right angle at ninety.</summary>
+    private const int CornerWindow = 5;
 }

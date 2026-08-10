@@ -271,6 +271,42 @@ public sealed record WallDiagonalMaterial(IReadOnlyList<WallStripe> Runs, int Sl
 }
 
 /// <summary>
+/// A frame drawn round the wall itself: <paramref name="Edge"/> along the top and bottom courses and down the
+/// shape's corners, <paramref name="Fill"/> in the panel those enclose. On a rectangle it inks the outline the
+/// way a comic panel is inked.
+///
+/// <para><b>What counts as a corner is an angle, not a change of direction.</b> A wall exists only as squares,
+/// so a boundary that is not axis-aligned is drawn as steps and its direction changes constantly — asking where
+/// the direction changed would find a corner at nearly every cell of a circle and along every shallow edge. The
+/// profile instead measures how far the boundary turns over a span of cells either side, which cancels the
+/// staircase and leaves real curvature (<see cref="PgmStudio.Geom.Algorithms.GridBoundary.TurnAt"/>). A vertex
+/// reads its exterior angle: <paramref name="Angle"/> is simply how sharp a turn has to be to be inked.</para>
+///
+/// <para>That one number decides the shape's whole character. A rectangle's corners turn 90° and are always
+/// inked; a shallow bend in a polygon is not; a circle of any reasonable radius never reaches a usable
+/// threshold, so it has <b>no corners at all</b> and the frame falls back to its top and bottom courses — a
+/// layered material, which is the right answer for a shape with nothing to pick out. A very tight arc does ink,
+/// which is also right, since a fillet a few blocks across is a corner.</para>
+///
+/// <para>The same number sets how far the ink wraps round each corner, because the measured turn ramps to a
+/// vertex rather than switching on at it — a low threshold inks a broad return, a high one only the vertex.
+/// <paramref name="Thickness"/> is the courses taken at the top and bottom, and a wall too short to hold two
+/// of them is all edge, which is what a one-course sill should be.</para>
+/// </summary>
+public sealed record WallFrameMaterial(TerrainMaterial Edge, TerrainMaterial Fill, int Angle = 45,
+                                       int Thickness = 1) : TerrainMaterial
+{
+    public override (int Id, int Data) Resolve(in BucketContext ctx)
+    {
+        var courses = Math.Max(1, Thickness);
+        var framed = ctx.DepthFromTop < courses
+            || ctx.HeightFromBottom < courses
+            || ctx.PerimeterTurn >= Math.Max(1, Angle);
+        return (framed ? Edge : Fill).Resolve(in ctx);
+    }
+}
+
+/// <summary>
 /// A checkerboard: two materials alternating over squares <paramref name="Size"/> blocks on a side.
 ///
 /// <para>The board is laid <b>in the face it paints</b>, which is what keeps it a checkerboard on both a wall

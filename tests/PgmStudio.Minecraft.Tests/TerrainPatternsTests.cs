@@ -542,4 +542,101 @@ public sealed class TerrainPatternsTests
         for (var i = 0; i + 2 < seen.Count; i += 2)
             await Assert.That(seen[i]).IsNotEqualTo(seen[i + 2]);       // and neighbouring squares differ
     }
+
+    // ── the wall frame: top, bottom and corners inked, panel between ─────────────────────────────────────
+
+    private static BucketContext Wall(int depthFromTop, int heightFromBottom, int turn) =>
+        new(0, 0, 0, TerrainBucket.Wall, depthFromTop, -1, 0, heightFromBottom, turn);
+
+    [Test]
+    public async Task A_frame_inks_its_top_and_bottom_courses_and_fills_between()
+    {
+        var frame = new WallFrameMaterial(new SolidMaterial(10), new SolidMaterial(11));
+        await Assert.That(frame.Resolve(Wall(0, 9, 0))).IsEqualTo((10, 0));   // top course
+        await Assert.That(frame.Resolve(Wall(9, 0, 0))).IsEqualTo((10, 0));   // bottom course
+        await Assert.That(frame.Resolve(Wall(4, 4, 0))).IsEqualTo((11, 0));   // the panel between
+    }
+
+    [Test]
+    public async Task A_frame_inks_a_turn_at_or_past_its_angle_and_no_shallower_one()
+    {
+        var frame = new WallFrameMaterial(new SolidMaterial(10), new SolidMaterial(11), Angle: 45);
+        await Assert.That(frame.Resolve(Wall(4, 4, 90))).IsEqualTo((10, 0));  // a right angle
+        await Assert.That(frame.Resolve(Wall(4, 4, 45))).IsEqualTo((10, 0));  // exactly the threshold
+        await Assert.That(frame.Resolve(Wall(4, 4, 44))).IsEqualTo((11, 0));  // a shallow bend is not a corner
+        await Assert.That(frame.Resolve(Wall(4, 4, 17))).IsEqualTo((11, 0));  // a wide arc still less so
+    }
+
+    [Test]
+    public async Task A_shape_with_no_corner_leaves_a_frame_reading_as_a_layer_stack()
+    {
+        // What a disc gives it: nothing ever reaches the threshold, so only the top and bottom are inked and
+        // the pattern degenerates to horizontal bands rather than drawing something arbitrary.
+        var frame = new WallFrameMaterial(new SolidMaterial(10), new SolidMaterial(11), Angle: 45);
+        for (var course = 1; course < 9; course++)
+            await Assert.That(frame.Resolve(Wall(course, 9 - course, 18))).IsEqualTo((11, 0));
+        await Assert.That(frame.Resolve(Wall(0, 9, 18))).IsEqualTo((10, 0));
+        await Assert.That(frame.Resolve(Wall(9, 0, 18))).IsEqualTo((10, 0));
+    }
+
+    [Test]
+    public async Task A_thicker_frame_claims_more_courses_at_both_ends()
+    {
+        var frame = new WallFrameMaterial(new SolidMaterial(10), new SolidMaterial(11), Angle: 45, Thickness: 2);
+        await Assert.That(frame.Resolve(Wall(1, 8, 0))).IsEqualTo((10, 0));
+        await Assert.That(frame.Resolve(Wall(8, 1, 0))).IsEqualTo((10, 0));
+        await Assert.That(frame.Resolve(Wall(2, 7, 0))).IsEqualTo((11, 0));
+    }
+
+    [Test]
+    public async Task A_wall_too_short_to_hold_two_courses_is_all_frame()
+    {
+        // One course is both the top and the bottom of its own wall, which should read as a sill rather than
+        // as a panel with no edge.
+        var frame = new WallFrameMaterial(new SolidMaterial(10), new SolidMaterial(11));
+        await Assert.That(frame.Resolve(Wall(0, 0, 0))).IsEqualTo((10, 0));
+    }
+
+    // ── the turn reaching a material through the real profile ────────────────────────────────────────────
+
+    private static TerrainProfile ProfileOf(IEnumerable<(int X, int Z)> footprint)
+    {
+        var columns = footprint.Select(cell => (cell.X, cell.Z, 1, 9)).ToList();
+        var terrain = SketchTerrainBuilder.Build(columns);
+        return new TerrainProfile(terrain.World, terrain.SurfaceTop);
+    }
+
+    [Test]
+    public async Task A_rectangles_profile_carries_a_right_angle_at_its_corners_and_nothing_along_its_edges()
+    {
+        var footprint = new List<(int X, int Z)>();
+        for (var x = 0; x < 16; x++)
+            for (var z = 0; z < 12; z++) footprint.Add((x, z));
+
+        var turn = ProfileOf(footprint).PaintableColumns().ToDictionary(p => p.Cell, p => p.Profile.PerimeterTurn);
+
+        foreach (var corner in new[] { (0, 0), (15, 0), (0, 11), (15, 11) })
+            await Assert.That(turn[corner]).IsEqualTo(90);
+        await Assert.That(turn[(8, 0)]).IsEqualTo(0);       // mid-run of the long edge
+        await Assert.That(turn[(0, 6)]).IsEqualTo(0);       // mid-run of the short edge
+        await Assert.That(turn[(8, 6)]).IsEqualTo(0);       // interior, off the perimeter entirely
+    }
+
+    [Test]
+    public async Task A_discs_profile_never_reaches_a_corner_so_a_frame_falls_back_to_its_courses()
+    {
+        const int radius = 14;
+        var footprint = new List<(int X, int Z)>();
+        for (var x = -radius; x <= radius; x++)
+            for (var z = -radius; z <= radius; z++)
+                if (x * x + z * z <= radius * radius) footprint.Add((x, z));
+
+        var turn = ProfileOf(footprint).PaintableColumns().ToDictionary(p => p.Cell, p => p.Profile.PerimeterTurn);
+        await Assert.That(turn.Values.Max()).IsLessThan(45);
+
+        // So on this shape no cell of the wall's middle is ever inked — the frame is its top and bottom only.
+        var frame = new WallFrameMaterial(new SolidMaterial(10), new SolidMaterial(11), Angle: 45);
+        foreach (var bend in turn.Values.Distinct())
+            await Assert.That(frame.Resolve(Wall(4, 4, bend))).IsEqualTo((11, 0));
+    }
 }

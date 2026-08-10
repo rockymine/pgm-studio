@@ -49,6 +49,7 @@ public static class TerrainThemeComposer
         WallRunMaterial => "wallRun",
         WallDiagonalMaterial => "wallDiagonal",
         CheckerMaterial => "checker",
+        WallFrameMaterial => "wallFrame",
         _ => "solid",
     };
 

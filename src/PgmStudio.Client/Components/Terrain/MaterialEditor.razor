@@ -103,6 +103,17 @@
             it paints</strong> — along the wall and up it on an outer wall, across the ground everywhere
             else — so it reads as squares on both rather than as stripes down a wall.</p>
           break;
+
+        case MaterialKind.WallFrame:
+          <p>Inks the wall's top and bottom courses and its corners, filling the panel between — a rectangle
+            comes out outlined the way a comic panel is. A corner is decided by <strong>how far the outline
+            turns</strong>, not by where it changes direction, so a staircased edge is not mistaken for one.
+            <strong>Angle</strong> is how sharp a turn has to be to be inked: a right angle is 90°, a shallow
+            bend far less, and a rounded shape never reaches a usable threshold — so a circle has no corners
+            at all and the frame falls back to its top and bottom, which is a layer stack. The same number
+            sets how far the ink wraps round each corner, since the turn ramps to a vertex rather than
+            switching on at it.</p>
+          break;
       }
     </div>
   }
@@ -269,6 +280,23 @@
         </div>
         <MaterialEditor Nested Label="Light square" Blocks="Blocks" Node="Even" OnChanged="Changed" />
         <MaterialEditor Nested Label="Dark square" Blocks="Blocks" Node="Odd" OnChanged="Changed" />
+        break;
+
+      case MaterialKind.WallFrame:
+        <div class="material-editor-scalars">
+          <Field Label="Corner angle">
+            <input class="field-input field-input--slim" type="number" min="1" max="180" step="1"
+                   title="How far the outline must turn to count as a corner. 90° is a right angle; a rounded shape never reaches 45."
+                   value="@Int(ThemeFields.Angle, 45)" @onchange="SetAngle" />
+          </Field>
+          <Field Label="Courses">
+            <input class="field-input field-input--slim" type="number" min="1" step="1"
+                   title="Courses inked along the top and the bottom"
+                   value="@Int(ThemeFields.Thickness, 1)" @onchange="SetThickness" />
+          </Field>
+        </div>
+        <MaterialEditor Nested Label="Frame" Blocks="Blocks" Node="Edge" OnChanged="Changed" />
+        <MaterialEditor Nested Label="Panel" Blocks="Blocks" Node="Panel" OnChanged="Changed" />
         break;
     }
   </div>

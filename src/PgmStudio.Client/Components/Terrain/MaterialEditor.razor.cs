@@ -41,6 +41,11 @@ public partial class MaterialEditor
     private JsonObject Even => JsonEdit.Child(Node, ThemeFields.Even, () => ThemeFields.Solid(1, 0));
     private JsonObject Odd => JsonEdit.Child(Node, ThemeFields.Odd, () => ThemeFields.Solid(159, 15));
 
+    /// <summary>A wall frame's ink and the panel it encloses. "Panel" rather than "fill" in the editor because
+    /// fill is already the name of a whole terrain bucket, and a material inside one is not that.</summary>
+    private JsonObject Edge => JsonEdit.Child(Node, ThemeFields.Edge, () => ThemeFields.Solid(159, 15));
+    private JsonObject Panel => JsonEdit.Child(Node, ThemeFields.Fill, () => ThemeFields.Solid(155, 0));
+
     /// <summary>What the three field patterns are, in one sentence each — the rest of their blurb is shared,
     /// because everything except the bend is.</summary>
     private string FieldBlurb => Kind switch
@@ -141,6 +146,8 @@ public partial class MaterialEditor
     private Task SetScale(ChangeEventArgs e) => SetScalar(ThemeFields.Scale, e, 16, 1);
     private Task SetRise(ChangeEventArgs e) => SetScalar(ThemeFields.Rise, e, 0, 0);
     private Task SetSize(ChangeEventArgs e) => SetScalar(ThemeFields.Size, e, 1, 1);
+    private Task SetAngle(ChangeEventArgs e) => SetScalar(ThemeFields.Angle, e, 45, 1);
+    private Task SetThickness(ChangeEventArgs e) => SetScalar(ThemeFields.Thickness, e, 1, 1);
 
     /// <summary>Slope is the one scalar with no floor: a negative one leans the stripes the other way.</summary>
     private Task SetSlope(ChangeEventArgs e)

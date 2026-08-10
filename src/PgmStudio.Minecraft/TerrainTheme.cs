@@ -25,7 +25,7 @@ public sealed class RimEdgesConverter() : JsonStringEnumConverter<RimEdges>(Json
 /// dirt) reads — the <see cref="TeamData"/> of the team that owns the cell (a 0–15 wool/clay damage nibble,
 /// -1 = neutral), and <see cref="PerimeterArc"/>, the cell's arc index along the outer void-facing wall (-1
 /// off it) that a wall-run pattern reads (TP13).</summary>
-public readonly record struct BucketContext(int X, int Y, int Z, TerrainBucket Bucket, int DepthFromTop, int TeamData = -1, int PerimeterArc = -1)
+public readonly record struct BucketContext(int X, int Y, int Z, TerrainBucket Bucket, int DepthFromTop, int TeamData = -1, int PerimeterArc = -1, int HeightFromBottom = 0, int PerimeterTurn = 0)
 {
     /// <summary>Whether the cell belongs to a team (a colour is available for a team-tinted material).</summary>
     public bool HasTeam => TeamData >= 0;
@@ -48,6 +48,7 @@ public readonly record struct BucketContext(int X, int Y, int Z, TerrainBucket B
 [JsonDerivedType(typeof(WallRunMaterial), "wallRun")]
 [JsonDerivedType(typeof(WallDiagonalMaterial), "wallDiagonal")]
 [JsonDerivedType(typeof(CheckerMaterial), "checker")]
+[JsonDerivedType(typeof(WallFrameMaterial), "wallFrame")]
 public abstract record TerrainMaterial
 {
     public abstract (int Id, int Data) Resolve(in BucketContext ctx);
