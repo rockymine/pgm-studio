@@ -3193,6 +3193,23 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   of stacked shapes wants: a staircase of plateaus is a drop at every tread, so the default lips each one and
   the body reads as five plateaus that touch, while `void` caps the outside alone and it reads as one body.
   The wall is unaffected — it asks its own face question — so a tread's riser is still walled.
+- **A house stamper, and the monument lifted out of the spawn cube (WX10, WX11).** `HouseStamper` builds a
+  shell meant to be looked at: a sill one block proud of the walls, four corner posts with infill between,
+  gable ends carried to the underside of the slope, and a gabled roof bordered by a verge, its ridge running
+  the long way. Three roof facts are enforced by tests that ask about shape rather than contents — a slope
+  climbing a whole block is laid in **whole blocks** (a slab fills half its cube and leaks while staying solid
+  to a flood fill, so `BlockRoles.IsFullCube` is the check), the **overhang is part of the slope** and falls by
+  the pitch like every other course, and a step over one course carries its own riser. Doorways are never under
+  2×3. `MonumentStamper` moves the pedestal/placement-cell/cap/sign out of `SpawnCubeStamper` unchanged, so a
+  wool room, a house or open ground can carry the same monument.
+- **A wall frame, inked by how far the outline turns (TP19).** `WallFrameMaterial` takes a wall's top and
+  bottom courses plus the corners of the shape it wraps, filling the panel between. A corner is decided by the
+  boundary's **turn** rather than by a change of direction, so a staircased edge is not mistaken for one: at
+  45° a rectangle's right angles ink, an octagon's vertices ink to a single cell each, a shallow bend does not,
+  and a disc reaches the threshold nowhere — so it has no corners and the frame falls back to a layer stack.
+  The same angle sets how far the ink wraps each corner, since the turn ramps to a vertex. `ColumnProfile`
+  carries the per-column turn and `BucketContext` a cell's height above its band's foot; a room shell answers
+  the same question closed-form as `atan2(window − d, d)`.
 - **Diagonal wall stripes and a checkerboard (TP17).** `WallDiagonalMaterial` shears a wall-run's stripe cycle
   by starting each course `Slope` cells further round the perimeter than the one beneath — slope 1 is 45° on a
   square-blocked face, larger lays it flatter, negative leans it the other way, 0 is the vertical run — reading

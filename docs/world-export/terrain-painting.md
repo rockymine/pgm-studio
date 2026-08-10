@@ -403,7 +403,12 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
   same one `Rise` answers for the area patterns — world x and z everywhere would answer a whole column at once
   and come out as stripes down a wall rather than squares on it. Square indices are floored rather than
   truncated, since a truncating divide folds at the origin and seats two squares of one colour together there.
-  Every choice is a
+  **`WallFrameMaterial`** (TP19) inks the top and bottom courses and the corners of the shape the wall wraps,
+  filling the panel between. A corner is a **turn**, not a change of direction — the profile measures each
+  boundary column's bend over a span either side (`GridBoundary.TurnAt`, TP18), which cancels the raster's
+  staircase and leaves curvature, so a vertex reads its exterior angle and one threshold separates a corner
+  from a curve. A shape drawn round reaches it nowhere and the frame becomes its two courses, which is a layer
+  stack. Every choice is a
   deterministic hash of a seed and the cell — never RNG — so a map exports the same pattern every time. The
   slice was cleanly separable exactly as planned: a pattern changes only *which block* a cell resolves to, never
   *which cells* are in the bucket, so TP1–TP12 (the geometry) were untouched — the one new geometric fact is the
