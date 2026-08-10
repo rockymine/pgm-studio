@@ -1189,8 +1189,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   floor and nothing else separates it from a roof: same material, same connectivity, both fully grounded, but
   a roof has air under it. Clearance is measured against the terrain **directly beneath the
   footprint**, never a ring outside it — on a slope the ring sits well below, which lets plank worked flat into
-  a hillside as texture read as a roof standing clear of nothing. A component smaller than
-  `--min-side` (default 6) is dropped: the smallest thing a map builds is still a room, and below that a
+  a hillside as texture read as a roof standing clear of nothing. Components are grown in plan but **bounded in height** (`--max-step`,
+  default 4): a roof is a surface, so neighbouring columns join only if their tops are within a step — a pitch
+  rises a block at a time and a tier change a few, while plank lying on the ground beside a shaft head sits ten
+  or more below the roof it touches, and joining on plan adjacency alone welds that floor to the roof and
+  returns a component that is neither. A component smaller than `--min-side` (default 6) is dropped: the smallest thing a map builds is still a room, and below that a
   component is a cap, a marker or a fragment of decking on which no measure means anything. **`--rim` names the
   second wood a roof is bordered with, and it is the discriminator that works** — a house roof is a fill
   enclosed by a border, so a cap that is one material all the way across was never a house roof however well it
@@ -1207,9 +1210,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   past cover because smoke drawn over a chimney otherwise hides the roof it rises from. **A roof also has a room under it**: the grounded share is bounded above as well as
   below, because a floor reaches the terrain under almost every column while a building grounds only at its
   walls and is hollow between them — the two populations do not overlap, 15–31% for every house against
-  93–100% for every plank floor, so the threshold's exact value carries no weight. Validated against a map
-  author's own inventory: **11 of 11 houses and 5 of 5 shafts** located per team, 23 rim-bordered roofs against
-  22 houses plus the observer island's one, and the author's three plank-floor false positives gone. (B65)
+  93–100% for every plank floor, so the threshold's exact value carries no weight. Validated against a map author's own
+  inventory: **11 of 11 houses and 5 of 5 shafts** located per team, with **no false positives** — 34
+  components resolving as 23 rim-bordered house roofs (22 houses plus the observer island's one) and 11 caps
+  (5 shafts per team plus the island's), the caps uniform at 6×6 and one material throughout. (B65)
 - **Supported map range (enforced in `MapParser`)** — the parser accepts **proto >= 1.4.0** only (PGM's
   id-based regions/filters/kits floor) and rejects **modern worlds** (`min-server-version >= 1.13.0`, whose
   post-"flattening" palette chunks the Anvil reader can't decode), throwing `UnsupportedMapException` with a

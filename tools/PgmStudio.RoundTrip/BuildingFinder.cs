@@ -72,7 +72,7 @@ internal static class BuildingFinder
 
     public static int Run(string regionDir, string outPng, int scale, IReadOnlyList<(int Id, int Data)> roofSpec,
                           IReadOnlyList<(int Id, int Data)> rimSpec, int minimumArea, int minimumHeight,
-                          int minimumSide)
+                          int minimumSide, int maximumStep)
     {
         if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"no region dir: {regionDir}"); return 1; }
         if (roofSpec.Count == 0) { Console.Error.WriteLine("--buildings needs --roof <id[:data],...>"); return 1; }
@@ -105,7 +105,7 @@ internal static class BuildingFinder
         var pending = new HashSet<(int X, int Z)>(roofCells);
         while (pending.Count > 0)
         {
-            var component = Flood(pending.First(), pending);
+            var component = Flood(pending.First(), pending, columns, maximumStep);
             if (component.Count < minimumArea) continue;
 
             var grounded = component.Count(cell =>
@@ -213,7 +213,13 @@ internal static class BuildingFinder
             }
     }
 
-    private static List<(int X, int Z)> Flood((int X, int Z) seed, HashSet<(int X, int Z)> pending)
+    /// <summary>One roof, grown in plan but bounded in height. A roof is a surface, so two neighbouring
+    /// columns belong to it only if their tops are within a step of each other: a pitch rises a block at a
+    /// time and a tier change a few, while plank lying on the ground beside a shaft head sits ten or more
+    /// below the roof it touches. Joining on adjacency alone welds that floor to the roof and hands back a
+    /// component that is neither.</summary>
+    private static List<(int X, int Z)> Flood((int X, int Z) seed, HashSet<(int X, int Z)> pending,
+                                              Dictionary<(int X, int Z), Column> columns, int maximumStep)
     {
         var component = new List<(int X, int Z)>();
         pending.Remove(seed);
@@ -224,8 +230,14 @@ internal static class BuildingFinder
             component.Add(cell);
             for (var dz = -1; dz <= 1; dz++)
                 for (var dx = -1; dx <= 1; dx++)
-                    if ((dx != 0 || dz != 0) && pending.Remove((cell.X + dx, cell.Z + dz)))
-                        queue.Enqueue((cell.X + dx, cell.Z + dz));
+                {
+                    if (dx == 0 && dz == 0) continue;
+                    var next = (cell.X + dx, cell.Z + dz);
+                    if (!pending.Contains(next)) continue;
+                    if (Math.Abs(columns[next].RoofY - columns[cell].RoofY) > maximumStep) continue;
+                    pending.Remove(next);
+                    queue.Enqueue(next);
+                }
         }
         return component;
     }

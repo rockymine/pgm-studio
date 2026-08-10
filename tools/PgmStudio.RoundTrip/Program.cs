@@ -260,7 +260,9 @@ if (buildIdx >= 0 && buildIdx + 2 < args.Length)
         Array.IndexOf(args, "--min-height") is var heightAt && heightAt >= 0 && heightAt + 1 < args.Length
             && int.TryParse(args[heightAt + 1], out var roofHeight) ? roofHeight : 3,
         Array.IndexOf(args, "--min-side") is var sideAt && sideAt >= 0 && sideAt + 1 < args.Length
-            && int.TryParse(args[sideAt + 1], out var roofSide) ? roofSide : 6);
+            && int.TryParse(args[sideAt + 1], out var roofSide) ? roofSide : 6,
+        Array.IndexOf(args, "--max-step") is var stepAt && stepAt >= 0 && stepAt + 1 < args.Length
+            && int.TryParse(args[stepAt + 1], out var roofStep) ? roofStep : 4);
 }
 
 // --island-study <regionDir> <outJson> [tolerance]: cleaned-base islands with their polygons (exterior +
