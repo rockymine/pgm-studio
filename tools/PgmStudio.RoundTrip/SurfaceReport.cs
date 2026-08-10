@@ -34,6 +34,12 @@ internal static class SurfaceReport
     /// the map's floor and the shell of its walls, the one block that means the world ends here, so reading it
     /// as a grey would call a boundary a material and invite it into terrain.</para>
     ///
+    /// <para>A family is a use as much as a colour, and where the two disagree the use wins. Gravel reads grey
+    /// enough to sit with stone, but it is laid where cobble is laid — the low, wet ground at a water's edge —
+    /// and grouping it by colour buries that: with gravel and mossy cobble in the cobble family the two stone
+    /// tones separate by relief, cobble sitting low and shallow and grey stone standing high and steep, which
+    /// is the distinction the author was drawing.</para>
+    ///
     /// <para>Only <b>full cubes</b> are named. These tones are a vocabulary for building ground, and a slab, a
     /// stair, a fence or a flower is something that stands on ground rather than something ground is made of;
     /// a double slab is a full block and belongs, its single-slab sibling does not. Anything partial that turns
@@ -57,8 +63,8 @@ internal static class SurfaceReport
         ("gold",        0xC6A62F, [(35, 4), (19, 0), (19, 1), (103, 0)]),
         ("pale stone",  0xB4B2AE, [(1, 3), (1, 4), (99, 15)]),
         ("ash",         0x9DA0A0, [(35, 8), (82, 0), (43, 8), (43, 0)]),
-        ("grey stone",  0x7C817A, [(1, 0), (1, 5), (1, 6), (98, 0), (13, 0), (15, 0), (16, 0)]),
-        ("cobble",      0x767B72, [(4, 0), (98, 2)]),
+        ("grey stone",  0x7C817A, [(1, 0), (1, 5), (1, 6), (98, 0), (15, 0), (16, 0)]),
+        ("cobble",      0x767B72, [(13, 0), (4, 0), (98, 2), (48, 0)]),
         ("mauve",       0x8A7A8E, [(110, 0), (159, 3)]),
         ("azure",       0x3B5DA8, [(35, 11), (22, 0), (159, 11)]),
         ("slate",       0x5A6066, [(159, 9), (35, 7)]),
