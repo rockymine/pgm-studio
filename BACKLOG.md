@@ -697,18 +697,6 @@ What stays here is the concrete non-design work on *imported* maps (island detec
   ways collide equally has bought nothing. Derive side belongs beside `BoardDeriver`; the term belongs in
   `Evaluate/Terms`. Background and the full numbers: `docs/match-flow.md` §2, §4.9, §6.6, §9.1.
 
-- [ ] **G165 — dock arrangement belongs in the structure summary.** Which face of the hub each box seats on
-  is a board property with measured consequences and no representation anywhere: it is not the hub's body
-  form and not the approach family. With the compass rotated so the frontline is *front*, generated boards
-  split **canonical** (spawn *back*, wools *left*+*right*) 27% against **lopsided** (spawn lateral, one wool
-  on *back*) 73%, and the split predicts two things — the median spawn-distance imbalance is 0.18 against
-  0.40, and the second-wool rotation runs within ten blocks of the spawn on 63% of canonical boards against
-  2% of lopsided ones. The faces fall straight out of the mouth positions the box read already computes, so
-  the work is small: add them to `StructureSummary` and to `StructureSummary.Canonical()`, which makes the
-  arrangement a browse-sieve filter and a verdict/duel bucket key for free. **Land it before verdicts
-  accumulate**: `Canonical()` is persisted on a pinned plan as that bucket key, so extending the string
-  reshapes every bucket already stored, and a later change needs a key version rather than an edit.
-
 - [ ] **G166 — seating should prefer the canonical arrangement.** `UnitSeating` chooses which hub edge each
   neighbour request seats on, and takes no view on the combination; the result is that three boards in four
   come out lopsided (G165). Prefer the spawn on the edge opposite the frontline with the wools on the two

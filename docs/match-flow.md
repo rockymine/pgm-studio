@@ -118,8 +118,9 @@ as the offensive one.
 
 ### 3.3 Dock arrangement
 
-Which face of the hub each box seats on is a board property in its own right, decided at seating, and it is
-absent from the vocabulary. With the compass rotated so the frontline is *front*, two arrangements occur:
+Which face of the hub each box seats on is a board property in its own right, decided at seating, and read
+back as the structure summary's dock arrangement (`DockArrangement`, G165). With the compass rotated so the
+frontline is *front*, two arrangements occur:
 
 | arrangement | boards | spawn-distance imbalance |
 |---|---|---|

@@ -2717,6 +2717,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   G120's duel bucket. `StructureSummary.WoolFamilies` promoted from the box-gallery tool (both share it);
   vocabulary row added. Data 17 + Api 72 + Pgm 688 tests green. (G128)
 
+- **Dock arrangement in the structure summary — canonical vs lopsided seating** — `Pgm/Derive/
+  StructureSummary.cs` (`DockArrangement`) + `ComposeEndpoints` + `Client/Features/Generator/`. Which hub
+  side the spawn and each wool box seat on, read in the unit's own compass: `DockArrangement.Of(unit)`
+  groups the pieces through `BoxPartition.Of`, takes each spawn/wool box's joint against the hub, and names
+  the hub edge in `UnitSide` terms — the front direction comes from `GrownSpawn.Facing` (the absolute board
+  direction toward the axis), so the read needs no symmetry string and reuses `SeatGeometry.SideEdge`
+  through the facing's inverse `Frame`. Classification is the spawn side alone: **canonical** (spawn back,
+  wools flanking — the arrangement built maps converge on, with about half the spawn-distance imbalance:
+  0.18 against 0.40, `match-flow.md` §3.3) vs **lopsided** (spawn lateral, a wool on the back). The
+  `Canonical()` bucket key gains a fourth segment (`…|seat:canonical`), so every verdict/duel bucket and
+  every newly pinned plan carries the arrangement — landed ahead of G118 on purpose, before any verdicts
+  accumulate on the three-segment key. Browse: `seat=` any-of query param sieving before the evaluator,
+  seating filter chips with census counts and side-spelling tooltips, a per-card badge, and the detail line.
+  (G165)
+
 - **Boxes as an authored plan annotation** — `Pgm/Plan/PlanModel.cs` + `Pgm/Plan/PlanBoxes.cs` +
   `Pgm/Compose/PlanBoxAnnotation.cs` + `Client/.../plan-doc.js`/`plan-canvas.js`/`plan-bridge.js` +
   `Features/Plan/PlanTool`. A typed `boxes` section in `*.plan.json` — `{ id, kind, rect, members? }` with

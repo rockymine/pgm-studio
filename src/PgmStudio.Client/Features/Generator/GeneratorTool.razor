@@ -108,6 +108,21 @@
           </ChildContent>
         </Field>
 
+        <Field Label="Seating">
+          <LabelEnd><span class="text-xs text-muted">any of</span></LabelEnd>
+          <ChildContent>
+            <div class="filter-group-options">
+              @foreach (var s in SeatChips)
+              {
+                <Chip Active="seatFilter.Contains(s.Token)"
+                      Class="@(Unseen(seenSeats, s.Token) ? "filter-chip--unseen" : null)"
+                      Title="@SeatTitle(s.Token, s.Label)"
+                      OnClick="() => ToggleSeat(s.Token)">@s.Label@if (censusBoards > 0) { <span class="filter-chip-n">@(seenSeats.GetValueOrDefault(s.Token))</span> }</Chip>
+              }
+            </div>
+          </ChildContent>
+        </Field>
+
       </Section>
     </aside>
 
@@ -152,6 +167,10 @@
               }
               <span class="gen-badge gen-badge--hub">@card.Structure.Hub</span>
               <span class="gen-badge gen-badge--front">@card.Structure.Frontline</span>
+              @if (card.Structure.Seat != "none")
+              {
+                <span class="gen-badge gen-badge--seat">@card.Structure.Seat</span>
+              }
             </div>
             <button class="gen-card-fig" @onclick="() => OpenDetail(card)" title="Open details">
               @((MarkupString)card.Svg)
@@ -193,7 +212,7 @@
           @d.Descriptor.Players players · @d.Descriptor.Symmetry · seed @d.Descriptor.Seed
         </div>
         <div class="gen-detail-meta">
-          <strong>@string.Join(", ", d.Structure.Wools)</strong> wools · hub <strong>@d.Structure.Hub</strong> · frontline <strong>@d.Structure.Frontline</strong>
+          <strong>@string.Join(", ", d.Structure.Wools)</strong> wools · hub <strong>@d.Structure.Hub</strong> · frontline <strong>@d.Structure.Frontline</strong> · seating <strong>@d.Structure.Seat</strong>
         </div>
         @if (d.Spend is { } sp)
         {

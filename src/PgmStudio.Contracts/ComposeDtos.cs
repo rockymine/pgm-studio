@@ -17,12 +17,15 @@ public sealed record ComposeRequestDto(
 public sealed record TermContribDto(string TermId, string RuleId, double Contribution);
 
 /// <summary>A board's structural read — the sieve/bucket vocabulary as display tokens: the sorted wool
-/// approach families, the hub body form, and the frontline form (<c>none</c> when the unit has no frontline).
-/// The tokens double as the card badges and the filter values.</summary>
+/// approach families, the hub body form, the frontline form (<c>none</c> when the unit has no frontline), and
+/// the dock arrangement <paramref name="Seat"/> (<c>canonical</c> = spawn back with the wools flanking,
+/// <c>lopsided</c> = spawn lateral with a wool on the back). The tokens double as the card badges and the
+/// filter values.</summary>
 public sealed record StructureSummaryDto(
     IReadOnlyList<string> Wools,
     string Hub,
-    string Frontline);
+    string Frontline,
+    string Seat = "none");
 
 /// <summary>What one kind of box spent, summed over every box of that kind in the team unit.
 /// <paramref name="Boxes"/> is how many there were (two wools read as one row of two).
@@ -71,7 +74,8 @@ public sealed record ObservedForms(
     int Boards,
     IReadOnlyDictionary<string, int> Wools,
     IReadOnlyDictionary<string, int> Hubs,
-    IReadOnlyDictionary<string, int> Frontlines);
+    IReadOnlyDictionary<string, int> Frontlines,
+    IReadOnlyDictionary<string, int>? Seats = null);
 
 /// <summary>A page of browse cards. <paramref name="NextSeed"/> is the seed cursor to resume from (feed
 /// forward for infinite scroll); <paramref name="Exhausted"/> is true when the per-request scan budget was

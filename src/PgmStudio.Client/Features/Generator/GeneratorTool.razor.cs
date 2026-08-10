@@ -51,11 +51,14 @@ public partial class GeneratorTool : IAsyncDisposable
         [("bar", "Bar"), ("single", "Single"), ("twin", "Twin"), ("ring", "Ring"), ("g", "G"), ("p", "P"), ("double-hole", "Double-hole")];
     private static readonly (string Token, string Label)[] FrontChips =
         [("none", "None"), ("bar", "Bar"), ("single", "Single"), ("twin", "Twin")];
+    private static readonly (string Token, string Label)[] SeatChips =
+        [("canonical", "Canonical"), ("lopsided", "Lopsided")];
 
-    // Selected structural filters: wools are must-include (each present), hub/front are any-of.
+    // Selected structural filters: wools are must-include (each present), hub/front/seat are any-of.
     private readonly HashSet<string> woolFilter = [];
     private readonly HashSet<string> hubFilter = [];
     private readonly HashSet<string> frontFilter = [];
+    private readonly HashSet<string> seatFilter = [];
 
     // ── feed ─────────────────────────────────────────────────────────────────────
     private readonly List<ComposeCard> cards = [];
@@ -64,7 +67,8 @@ public partial class GeneratorTool : IAsyncDisposable
     private bool loading, exhausted;
     private string? feedError;
 
-    private bool StructuralActive => woolFilter.Count > 0 || hubFilter.Count > 0 || frontFilter.Count > 0;
+    private bool StructuralActive =>
+        woolFilter.Count > 0 || hubFilter.Count > 0 || frontFilter.Count > 0 || seatFilter.Count > 0;
 
     // ── hold tray (persisted generated plans, keyed by descriptor) ────────────────
     private List<PlanSummary> pinned = [];
@@ -98,6 +102,7 @@ public partial class GeneratorTool : IAsyncDisposable
         if (woolFilter.Count > 0) q += $"&wools={string.Join(",", woolFilter)}";
         if (hubFilter.Count > 0) q += $"&hub={string.Join(",", hubFilter)}";
         if (frontFilter.Count > 0) q += $"&front={string.Join(",", frontFilter)}";
+        if (seatFilter.Count > 0) q += $"&seat={string.Join(",", seatFilter)}";
         return q;
     }
 
@@ -140,7 +145,7 @@ public partial class GeneratorTool : IAsyncDisposable
     // ── the structural census (what this request actually produces) ──────────────────────────────────
     // Accumulated across pages because one page is a small sample: a form absent from 48 boards may simply not
     // have come up, while one absent from several hundred is telling you the request cannot make it.
-    private readonly Dictionary<string, int> seenWools = [], seenHubs = [], seenFronts = [];
+    private readonly Dictionary<string, int> seenWools = [], seenHubs = [], seenFronts = [], seenSeats = [];
     private int censusBoards;
     private string censusKey = "";
 
@@ -148,7 +153,7 @@ public partial class GeneratorTool : IAsyncDisposable
 
     private void ResetCensus()
     {
-        seenWools.Clear(); seenHubs.Clear(); seenFronts.Clear();
+        seenWools.Clear(); seenHubs.Clear(); seenFronts.Clear(); seenSeats.Clear();
         censusBoards = 0;
         censusKey = RequestKey;
     }
@@ -164,6 +169,7 @@ public partial class GeneratorTool : IAsyncDisposable
         foreach (var (k, v) in o.Wools) seenWools[k] = seenWools.GetValueOrDefault(k) + v;
         foreach (var (k, v) in o.Hubs) seenHubs[k] = seenHubs.GetValueOrDefault(k) + v;
         foreach (var (k, v) in o.Frontlines) seenFronts[k] = seenFronts.GetValueOrDefault(k) + v;
+        foreach (var (k, v) in o.Seats ?? new Dictionary<string, int>()) seenSeats[k] = seenSeats.GetValueOrDefault(k) + v;
     }
 
     private bool CensusIsTelling => censusBoards >= CensusConfidence;
@@ -193,6 +199,7 @@ public partial class GeneratorTool : IAsyncDisposable
         foreach (var t in woolFilter) yield return (seenWools, t, Label(WoolChips.Select(w => (w.Token, w.Label)), t));
         foreach (var t in hubFilter) yield return (seenHubs, t, Label(HubChips, t));
         foreach (var t in frontFilter) yield return (seenFronts, t, Label(FrontChips, t));
+        foreach (var t in seatFilter) yield return (seenSeats, t, Label(SeatChips, t));
     }
 
     private static string Label(IEnumerable<(string Token, string Label)> chips, string token) =>
@@ -207,10 +214,21 @@ public partial class GeneratorTool : IAsyncDisposable
             : $"{label} — none yet in {censusBoards} board{(censusBoards == 1 ? "" : "s")} scanned";
     }
 
+    /// <summary>The seat chip's tooltip: what the arrangement is, then the same census line every other chip
+    /// carries — the tokens are opaque without the sides spelled out.</summary>
+    private string SeatTitle(string token, string label)
+    {
+        var meaning = token == "canonical"
+            ? "spawn on the back, wools flanking left and right"
+            : "spawn on a lateral side, a wool on the back";
+        return $"{ChipTitle(seenSeats, token, label)} — {meaning}";
+    }
+
     // ── structural filters (chips + card badges; toggling re-sieves the feed immediately) ────────────
     private Task ToggleWool(string t) { Toggle(woolFilter, t); return Reload(); }
     private Task ToggleHub(string t) { Toggle(hubFilter, t); return Reload(); }
     private Task ToggleFront(string t) { Toggle(frontFilter, t); return Reload(); }
+    private Task ToggleSeat(string t) { Toggle(seatFilter, t); return Reload(); }
 
     private static void Toggle(HashSet<string> set, string t) { if (!set.Remove(t)) set.Add(t); }
 

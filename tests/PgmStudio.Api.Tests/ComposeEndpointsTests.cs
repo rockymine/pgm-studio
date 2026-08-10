@@ -61,6 +61,13 @@ public sealed class ComposeEndpointsTests
         var ring = await client.GetFromJsonAsync<ComposePage>(
             "/api/compose?players=20&symmetry=rot_180&seedStart=0&count=3&hub=ring");
         await Assert.That(ring!.Cards.All(c => c.Structure.Hub == "ring")).IsTrue();
+
+        // seat=canonical → every card seats its spawn on the back with the wools flanking, and the census
+        // still counts both arrangements (every board reads one)
+        var seat = await client.GetFromJsonAsync<ComposePage>(
+            "/api/compose?players=20&symmetry=rot_180&seedStart=0&count=3&seat=canonical");
+        await Assert.That(seat!.Cards.All(c => c.Structure.Seat == "canonical")).IsTrue();
+        await Assert.That(seat.Observed!.Seats!.Values.Sum()).IsEqualTo(seat.Observed.Boards);
     }
 
     /// <summary>The census the filter chips read: counted over the boards a page <b>composed</b>, not the ones

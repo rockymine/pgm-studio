@@ -43,6 +43,7 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest
         var woolReq = Csv("wools");    // approach families — must-include (each named present at least once)
         var hubReq = Csv("hub");       // hub form — any-of
         var frontReq = Csv("front");   // frontline form — any-of
+        var seatReq = Csv("seat");     // dock arrangement — any-of (canonical / lopsided)
 
         if (!Supported.Contains(symmetry))
         {
@@ -51,7 +52,7 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest
         }
 
         var profile = EvaluationProfile.Default;
-        var structural = woolReq.Count > 0 || hubReq.Count > 0 || frontReq.Count > 0;
+        var structural = woolReq.Count > 0 || hubReq.Count > 0 || frontReq.Count > 0 || seatReq.Count > 0;
         var cards = new List<ComposeCard>();
         // the structural census over every board composed here, tallied before the sieve — a filter must not
         // hide the forms it is filtering against, or the chips would read as dead the moment one was picked
@@ -76,7 +77,7 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest
 
             var summary = StructureSummary.Derive(stages.Unit);
             observed.Add(summary);
-            if (!StructuralPass(summary, woolReq, hubReq, frontReq)) continue;   // structural reject: no evaluate, no render
+            if (!StructuralPass(summary, woolReq, hubReq, frontReq, seatReq)) continue;   // structural reject: no evaluate, no render
 
             var eval = LayoutEvaluator.Evaluate(stages.Plan, profile);
             var woolCount = stages.Plan.Placements.Wools.Count;
@@ -131,8 +132,9 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest
         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
         .Select(x => x.ToLowerInvariant()).ToList();
 
-    // structural sieve: wools must-include (each named family present ≥ once), hub/front any-of the named forms
-    private static bool StructuralPass(StructureSummary s, List<string> wools, List<string> hub, List<string> front)
+    // structural sieve: wools must-include (each named family present ≥ once), hub/front/seat any-of the
+    // named tokens
+    private static bool StructuralPass(StructureSummary s, List<string> wools, List<string> hub, List<string> front, List<string> seat)
     {
         if (wools.Count > 0)
         {
@@ -141,6 +143,7 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest
         }
         if (hub.Count > 0 && !hub.Contains(StructureNames.Form(s.Hub))) return false;
         if (front.Count > 0 && !front.Contains(StructureNames.Form(s.Frontline))) return false;
+        if (seat.Count > 0 && !seat.Contains(StructureNames.Seat(s.Seats))) return false;
         return true;
     }
 
@@ -148,13 +151,14 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest
         new(d.PlayersPerTeam, d.Teams, d.Symmetry, d.Cell, d.Seed, d.ComposerVersion, d.Schema);
 
     internal static StructureSummaryDto ToDto(StructureSummary s) =>
-        new(s.Wools.Select(StructureNames.Family).ToList(), StructureNames.Form(s.Hub), StructureNames.Form(s.Frontline));
+        new(s.Wools.Select(StructureNames.Family).ToList(), StructureNames.Form(s.Hub),
+            StructureNames.Form(s.Frontline), StructureNames.Seat(s.Seats));
 
     /// <summary>Counts each structural token as boards go by. A wool family counts once per board however many
     /// approaches of it the board has, so every tally reads against the same denominator.</summary>
     private sealed class ObservedTally
     {
-        private readonly Dictionary<string, int> wools = [], hubs = [], fronts = [];
+        private readonly Dictionary<string, int> wools = [], hubs = [], fronts = [], seats = [];
         private int boards;
 
         public void Add(StructureSummary s)
@@ -163,9 +167,10 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest
             foreach (var family in s.Wools.Select(StructureNames.Family).Distinct()) Bump(wools, family);
             Bump(hubs, StructureNames.Form(s.Hub));
             Bump(fronts, StructureNames.Form(s.Frontline));
+            Bump(seats, StructureNames.Seat(s.Seats));
         }
 
-        public ObservedForms ToDto() => new(boards, wools, hubs, fronts);
+        public ObservedForms ToDto() => new(boards, wools, hubs, fronts, seats);
 
         private static void Bump(Dictionary<string, int> into, string key) =>
             into[key] = into.GetValueOrDefault(key) + 1;
