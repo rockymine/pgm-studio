@@ -13,8 +13,9 @@ piece override, its box/collection, else the map default); themes are authored o
 and baked into the intent at `/plan/compile`. Depth is a per-bucket knob (`TopBand`
 carries a bucket's material, depth and toggle), so a theme sets the rim depth and the surface stack
 independently; the default surface is grass over two dirt, three blocks deep (TP11). Any bucket's material can
-be a pattern — voronoi or cell regions, a fractal / turbulence / electric field, or wall-runs that wrap the
-void-facing perimeter (TP13) —
+be a pattern — voronoi or cell regions, a fractal / turbulence / electric field, wall-runs that wrap the
+void-facing perimeter (TP13), those runs sheared onto the diagonal, or a checkerboard laid in the face it
+paints (TP17) —
 and the whole theme serializes to the theme JSON (`TerrainThemeJson`), the data a TP10 scope will attach to a
 piece. The model was first validated by a
 scratch prototype's figures (two real seeds — `mirror-tiny-map-cliff`, `isolated-spawn` — compiled through
@@ -391,7 +392,18 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
   **`WallRunMaterial`** is the wall's own: a list of `(material, width)` runs that repeat in order along the
   **void-facing perimeter**, reading the arc index the profile assigns each outer-wall column, so any number of
   stripes of any widths cycle continuously around every corner (a cell off the outer wall reads as arc 0, the
-  first run). A wall's *vertical* bands up the riser are the existing `LayeredMaterial`. Every choice is a
+  first run). A wall's *vertical* bands up the riser are the existing `LayeredMaterial`.
+  **`WallDiagonalMaterial`** (TP17) is that same cycle sheared: each course begins `Slope` cells further round
+  the loop than the one beneath, so at a slope of one a stripe travels one cell along per course up — 45° on a
+  square-blocked face — while larger slopes lay it flatter, a negative slope leans it the other way, and zero is
+  the vertical run again. The shear reads world height rather than height above the footing, so two walls of
+  unequal height standing together meet with their diagonals in line.
+  **`CheckerMaterial`** (TP17) alternates two materials over squares `Size` on a side, laid **in the face it
+  paints**: the perimeter arc and height on an outer wall, the two ground axes anywhere else. That choice is the
+  same one `Rise` answers for the area patterns — world x and z everywhere would answer a whole column at once
+  and come out as stripes down a wall rather than squares on it. Square indices are floored rather than
+  truncated, since a truncating divide folds at the origin and seats two squares of one colour together there.
+  Every choice is a
   deterministic hash of a seed and the cell — never RNG — so a map exports the same pattern every time. The
   slice was cleanly separable exactly as planned: a pattern changes only *which block* a cell resolves to, never
   *which cells* are in the bucket, so TP1–TP12 (the geometry) were untouched — the one new geometric fact is the

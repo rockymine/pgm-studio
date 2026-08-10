@@ -3193,6 +3193,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   of stacked shapes wants: a staircase of plateaus is a drop at every tread, so the default lips each one and
   the body reads as five plateaus that touch, while `void` caps the outside alone and it reads as one body.
   The wall is unaffected — it asks its own face question — so a tread's riser is still walled.
+- **Diagonal wall stripes and a checkerboard (TP17).** `WallDiagonalMaterial` shears a wall-run's stripe cycle
+  by starting each course `Slope` cells further round the perimeter than the one beneath — slope 1 is 45° on a
+  square-blocked face, larger lays it flatter, negative leans it the other way, 0 is the vertical run — reading
+  world height so unequal walls meet with their diagonals in line. `CheckerMaterial` alternates two materials
+  over squares laid **in the face it paints** (arc × height on an outer wall, x × z elsewhere), floored rather
+  than truncated so the squares keep their size across the origin. Both are offered in the picker with their own
+  panels. Same commit fixed `TerrainThemeComposer.KindOf`, which named only six of the nine kinds — a cell, a
+  turbulence and an electric each fell through to the default and filed themselves in the `style.kind` column as
+  `solid`, the one column a style library is queried by.
 - **Terrain-paint patterns + theme JSON (TP13).** Any bucket's material can be a **pattern** at the same seam as
   a solid, in two families plus the wall's own. **Region:** `VoronoiMaterial` takes an ordered list of bands
   measured **inward from the cell boundary** — band 0 sits on the boundary and draws the grid as one connected
