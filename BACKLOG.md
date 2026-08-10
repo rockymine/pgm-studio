@@ -680,20 +680,22 @@ What stays here is the concrete non-design work on *imported* maps (island detec
   today's `Traversability.Check` only tests connectivity, **not** spawn-protection-as-wall, so it passes maps
   the generator's Python validator would fail. Feed it into the `NVAL` / preflight gate.
 
-- [ ] **G164 — interference: how much of one side's route the other side's route covers.** Every flow
+- [ ] **G164 — interference: how much of the defender's lane the attack's route covers.** Every flow
   measure so far reads one traversal at a time, and a single route cannot express tension. Tension is two
-  corridors laid over each other: the attacker pushing from a captured wool room toward the remaining
-  objective, and the defender travelling from spawn to the same objective. The measurable is the fraction of
-  the defender's corridor that the attacker's corridor also covers, computed on the cell mask the same way
-  the corridors already are. Measured over 453 two-wool boards at `marker-id-1`: median **34%**, half or more
-  on 27%, and **no board reaches zero** — passing the reinforcement lane is unavoidable on generated output.
-  This is the term that gives a hub void a purpose the ways-round-a-void count cannot: on a holed hub the
-  near way leaves 76% interference and the far way 37%, and the far way measurably reduces the collision on
-  74% of the boards offering one, so a layout whose two ways collide equally has bought nothing. Derive side
-  belongs beside `BoardDeriver`; the term belongs in `Evaluate/Terms`. It reads a pair of routes rather than
-  one, so the origin "a captured wool room" comes from G168's post-capture state — until that exists,
-  computing it once per wool treated as captured is the honest stand-in. Background and the full numbers:
-  `docs/match-flow.md` §2, §4.9.
+  corridors laid over each other: the attacker's approach to an objective, and the defender travelling from
+  spawn to the same objective. The measurable is the fraction of the defender's corridor that the attacker's
+  corridor also covers, computed on the cell mask the same way the corridors already are. **The attack's
+  origin is the attacking spawn in both game states** — the corpus puts four fifths of the players who reach
+  the second objective at their own spawn, not at the captured room (`docs/match-flow.md` §6.4), so the term
+  needs no post-capture route graph and does not wait on G168. Measured over 453 two-wool boards at
+  `marker-id-1`: median **34%**, half or more on 27%, and **no board reaches zero**; recorded traffic answers
+  a median of 28.6%, so the term measures what it claims — but **18% of real team-frames have zero overlap**,
+  which means built maps offer an approach that misses the lane entirely and generated boards do not.
+  Surfacing whatever produces that option (the far side of a hub void is one candidate, an outer flank
+  another) is what the term is for: on a holed hub the near way leaves 76% interference and the far way 37%,
+  and the far way measurably reduces the collision on 74% of the boards offering one, so a layout whose two
+  ways collide equally has bought nothing. Derive side belongs beside `BoardDeriver`; the term belongs in
+  `Evaluate/Terms`. Background and the full numbers: `docs/match-flow.md` §2, §4.9, §6.6, §9.1.
 
 - [ ] **G165 — dock arrangement belongs in the structure summary.** Which face of the hub each box seats on
   is a board property with measured consequences and no representation anywhere: it is not the hub's body
@@ -728,14 +730,70 @@ What stays here is the concrete non-design work on *imported* maps (island detec
 
 - [ ] **G168 — a board is worth evaluating in two game states.** A two-wool map is not one arrangement but
   two in sequence: before the first capture both objectives are defended from the spawn, and after it one
-  room is the attacking team's forward node — a place worth travelling to for the chest gear the generator
-  emits — and the wool-to-wool route becomes the live one. Terms that are vacuous in the first state carry
-  the whole second phase, so evaluating only the opening scores half a match. This is a change to the
-  evaluator's shape rather than a new term: `EvalContext` carries which state is being read, and the terms
-  that only apply post-capture (G164's interference, rotation between objectives) declare it. Decide
-  early whether the two states produce two scores or one combined figure — a single number that averages a
-  strong opening against a hopeless second phase describes neither. The played account is in
-  `docs/match-flow.md` §4.8.
+  room is the attacking team's held forward position and the defence has one thing left to cover. **The
+  second state is a change in pressure and coverage, not in the route graph**: no new route opens, because
+  the wool-to-wool rotation is not taken — the approach to the remaining objective is the same approach as
+  to the first, from the same spawn (`docs/match-flow.md` §6.4, §9.2). A post-capture state defined as
+  "rotation between objectives becomes available" would model something that does not happen. What does
+  change is that the captured room produces attrition for the attacker and the defence concentrates on one
+  objective instead of splitting over two. This is a change to the evaluator's shape rather than a new term:
+  `EvalContext` carries which state is being read, and terms that only apply post-capture declare it. On a
+  mirror-seated pair the plan cannot know which wool falls first — the discriminator is a flank preference
+  the board is symmetric under (§6.5) — so **both post-capture states have to be scored**; a material
+  asymmetry between the pair makes the survivor roughly two-to-one predictable and halves that cost, a
+  seating trade currently made by default and worth making deliberately. Decide early whether the two states
+  produce two scores or one combined figure — a single number that averages a strong opening against a
+  hopeless second phase describes neither.
+
+- [ ] **G171 — seating: interpose the defending spawn between the two objectives it defends.** The third
+  arrangement rule from the corpus, more specific than G166/G167. Built two-wool maps put the defending
+  team's spawn on the segment between its two wool rooms on 62 of 87 — median 11 blocks off the line,
+  clustered on its midpoint — and keep doing it on 73.7% of the maps whose wool pairs are genuinely
+  asymmetric, so the midpoint half is the mirror pair's artifact and the **interposition** is the
+  convention. It is also what kills the wool-to-wool rotation: the route runs through the enemy respawn
+  point, and the traverse rate triples (5.4% → 16.4%) on the maps that seat the spawn off the line. One
+  defensive body covers both objectives; the attacker's lateral rotation is denied. Two slices: the check
+  is cheap (three anchors and a projection — a `StructureSummary` fact and a browse-sieve filter), and the
+  seating *preference* is a geometry change with G166's costs (composer version bump, re-recorded
+  fingerprints), so it should land in the same bump as G166/G167. Source: `docs/match-flow.md` §6.4, §9.1.
+
+- [ ] **G172 — two shape measures for the structure summary: width profile and co-presence concentration.**
+  Match length is mostly player count and objective count (`docs/match-flow.md` §6.10); what separates maps
+  of the same format is shape, and two measures carry it where scalars cannot. The **width profile** — land
+  width along the approach as a function of distance from the objective — tells a frontloaded map from a
+  uniformly narrow one: outback runs 72 blocks wide at 50–59 out and collapses to 16 by 30–39, while
+  sanctum_wasser never opens past 12–16 inside 40. The **co-presence concentration** — the share of
+  contested ground held by the busiest cells — separates a map where every route joins at one place from
+  one with independent lanes. Both are computable on a plan with the cell machinery the derivers already
+  carry, and both are absent from `StructureSummary`. **A single funnel-width scalar must not be added in
+  their place** — it is the number that calls outback wide. The traced plans (`tools/seeds/traced/`) are
+  the validation set: the same code must read a traced board and a generated one, which is what makes
+  built and generated layouts comparable on identical terms (§6.11). Source: §6.10, §9.1.
+
+- [ ] **G173 — ways-round-a-void needs a companion: credit an option, not a route taken.** The topological
+  count says an alternative exists; the corpus says existence is not use — 63% of recorded objectives are
+  reached by a single corridor end to end, a second way in at the objective exists on 9%, and the same void
+  class is rotated around in 5 of 97 skirting approaches on one map against 22 of 101 on another. Whatever
+  separates a used void from a decorative one is not the class, the size or the distance to the objective;
+  **exposure is the standing hypothesis** — outback's corner gaps sit far out on a flank with nothing to
+  trade for the detour — and no current term measures it. Until one does, a hub void should be credited
+  with an *option* rather than a route being taken, and any evaluator term built on ways-round-a-void
+  inherits that ceiling. The concrete slice: derive an exposure measure for a void (what the detour costs
+  against what it buys, G164's interference being the natural "buys"), and check its ordering against the
+  measured rotation rates in §6.8 before letting it move a score. Source: `docs/match-flow.md` §6.7, §6.8,
+  §9.1.
+
+- [ ] **G174 — the wall line: stamp the defensive bedrock at the measured stand-off.** The sky terminus is
+  a measurable the plan does not carry: nothing in the model says how close to an objective a bridge gets
+  before the ground game takes over, and the corpus puts the answer at the defensive wall — median 13
+  blocks in front of the wool-room face where the world offers a bedrock line to build on (59 of 94 maps),
+  and back against the room where it does not: holding positions within ten blocks of the face run 18.1%
+  against 6.3%, and the median wall-building distance moves seven blocks in. `BuildGenerator` already
+  stamps a bedrock wall where a plan declares a wall interface; what the corpus adds is **the distance to
+  stamp it at** and the fact that roughly two thirds of built maps offer one at all — on the rest the
+  defence picks its own line and digs. Check the emitted stand-off against the measured 13, and make
+  wall-or-no-wall a deliberate board property rather than an accident of the plan's interfaces. Source:
+  `docs/match-flow.md` §6.2, §9.1.
 
 ## Lower priority / parked
 
