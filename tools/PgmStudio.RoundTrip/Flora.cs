@@ -33,6 +33,13 @@ namespace PgmStudio.RoundTrip;
 /// leaf — a pine built from acacia log under birch leaves is exactly such a pairing — so the leaves standing
 /// around a stem decide its species and the trunk material is recorded rather than trusted.</para>
 ///
+/// <para><b>The canopy that names a tree is the one assigned to it, not the one within reach of it.</b> A
+/// fixed box around a trunk holds whatever stands nearby, so on a densely planted world it holds the
+/// neighbour's foliage: where trunks sit three blocks apart a box of that radius reaches the next tree and
+/// votes with its leaves, and the species it returns is the denser neighbour's rather than the tree's. Leaves
+/// are therefore given to their nearest trunk first and every reading — species, width, count — is taken from
+/// what a tree was given, so one canopy answers all three and no leaf votes twice.</para>
+///
 /// <para>Wood that roots nowhere is not discarded silently: logs in a component with no all-bark and no
 /// leaves are structural timber, and all-bark wood carrying no canopy is returned apart, because an all-bark
 /// post is what an author reaches for when a pillar should show no cut end.</para>
@@ -50,8 +57,6 @@ internal static class Flora
     /// <summary>Which trunk marker this world was read as using. Set by <see cref="Classify"/>.</summary>
     public static string Convention { get; private set; } = "";
 
-    /// <summary>How far from the trunk a leaf still names its tree.</summary>
-    private const int CanopyReach = 3;
 
     public static bool IsAllBark(int id, int data) => (id is OakLog or AcaciaLog) && (data >> 2 & 3) == 3;
     public static bool IsLog(int id) => id is OakLog or AcaciaLog;
@@ -75,9 +80,6 @@ internal static class Flora
         /// <summary>Widest span of the canopy in plan, in blocks. Measured over the leaves assigned to this
         /// tree rather than a fixed radius around its trunk, so it reports the crown the author drew.</summary>
         public int CanopyWidth { get; set; }
-
-        /// <summary>Leaves assigned to this tree by nearest trunk.</summary>
-        public int Canopy { get; set; }
     }
 
     public sealed record Result(IReadOnlyList<Tree> Trees, IReadOnlyList<Tree> Bare, int StructuralLogs,
@@ -149,7 +151,10 @@ internal static class Flora
             Convention = $"upright logs (all-bark yielded no stems from {allBark} such blocks)";
         }
 
-        var trees = new List<Tree>();
+        // Every stem cluster is resolved into a trunk before a single leaf is named, because a tree is named
+        // from the leaves it is given and nothing can be given out until all the claimants are known.
+        var stands = new List<(List<(int X, int Y, int Z)> Cluster, List<int> Runs,
+                               List<(int X, int Y, int Z)> Trunk, string Wood)>();
         var claimed = new HashSet<(int X, int Y, int Z)>();
         var pending = new Dictionary<(int X, int Y, int Z), int>(rooted.Select(entry =>
             new KeyValuePair<(int X, int Y, int Z), int>(entry.Cell, entry.Run)));
@@ -177,35 +182,38 @@ internal static class Flora
                 }
             }
 
-            // The trunk is every log stacked over the cluster's footprint; the canopy is the leaves within
-            // reach of it, which is what names the tree.
+            // The trunk is every log stacked over the cluster's footprint.
             var trunkCells = new List<(int X, int Y, int Z)>();
             foreach (var root in cluster)
                 for (var y = root.Y; y < 256 && logs.ContainsKey((root.X, y, root.Z)); y++)
                     trunkCells.Add((root.X, y, root.Z));
             foreach (var cell in trunkCells) claimed.Add(cell);
 
-            var canopy = new Dictionary<string, int>();
-            var seen = new HashSet<(int X, int Y, int Z)>();
-            foreach (var cell in trunkCells)
-                for (var dy = -1; dy <= CanopyReach; dy++)
-                    for (var dz = -CanopyReach; dz <= CanopyReach; dz++)
-                        for (var dx = -CanopyReach; dx <= CanopyReach; dx++)
-                        {
-                            var near = (cell.X + dx, cell.Y + dy, cell.Z + dz);
-                            if (!seen.Add(near) || !leaves.TryGetValue(near, out var leaf)) continue;
-                            var kind = LeafSpecies(leaf.Id, leaf.Data);
-                            canopy[kind] = canopy.GetValueOrDefault(kind) + 1;
-                        }
-
             var trunkWood = trunkCells.GroupBy(cell => LogSpecies(logs[cell].Id, logs[cell].Data))
                 .OrderByDescending(group => group.Count()).First().Key;
-            var species = canopy.Count > 0 ? canopy.OrderByDescending(entry => entry.Value).First().Key : trunkWood;
+            stands.Add((cluster, runs, trunkCells, trunkWood));
+        }
 
-            trees.Add(new Tree(species, trunkWood, cluster.Count, trunkCells.Count, canopy.Values.Sum(),
+        var canopies = AssignLeaves([.. stands.Select(stand => stand.Trunk)], leaves);
+
+        var trees = new List<Tree>();
+        for (var index = 0; index < stands.Count; index++)
+        {
+            var (cluster, runs, trunkCells, trunkWood) = stands[index];
+            var canopy = canopies[index];
+            // A tree with no leaves of its own keeps its trunk's name; it is a bare stem and reported as one.
+            var species = canopy.Species.Count > 0
+                ? canopy.Species.OrderByDescending(entry => entry.Value).First().Key
+                : trunkWood;
+
+            trees.Add(new Tree(species, trunkWood, cluster.Count, trunkCells.Count, canopy.Leaves,
                 cluster.Min(cell => cell.X), cluster.Max(cell => cell.X),
                 cluster.Min(cell => cell.Z), cluster.Max(cell => cell.Z),
-                cluster.Min(cell => cell.Y), cluster.Min(cell => cell.Y) + runs.Max() - 1, trunkCells));
+                cluster.Min(cell => cell.Y), cluster.Min(cell => cell.Y) + runs.Max() - 1, trunkCells)
+            {
+                CanopyWidth = canopy.Leaves == 0 ? 0
+                    : Math.Max(canopy.SpanX.Max - canopy.SpanX.Min, canopy.SpanZ.Max - canopy.SpanZ.Min) + 1,
+            });
         }
 
         // What the stem pass did not claim: wood that never rooted. Split by whether it carries bark, since
@@ -213,33 +221,58 @@ internal static class Flora
         var leftover = logs.Keys.Where(cell => !claimed.Contains(cell)).ToList();
         var bareBark = leftover.Count(cell => IsAllBark(logs[cell].Id, logs[cell].Data));
 
-        var bare = trees.Where(tree => tree.LeafCount == 0).ToList();
-        MeasureCanopies(trees, leaves);
-        return new Result([.. trees.Where(tree => tree.LeafCount > 0)], bare,
+        return new Result([.. trees.Where(tree => tree.LeafCount > 0)],
+            [.. trees.Where(tree => tree.LeafCount == 0)],
             leftover.Count - bareBark, bareBark);
     }
 
     /// <summary>How far from a trunk a leaf may still belong to it. Beyond this a leaf is nobody's.</summary>
     private const int CanopySearch = 12;
 
-    /// <summary>Gives every leaf to the nearest trunk and measures each crown from what it was given.
+    /// <summary>How far below its lowest log, and above its highest, a trunk still reaches foliage. A crown sits
+    /// on a trunk: it may close a little above the last log and droop a block past the root, but foliage
+    /// standing well under the root belongs to whatever grows down there, not to the stem above it.</summary>
+    private const int CanopyDroop = 1;
+    private const int CanopyCrown = 3;
+
+    /// <summary>The leaves one trunk was given: how many, which species among them, and the plan box they
+    /// cover.</summary>
+    private readonly record struct Canopy(int Leaves, Dictionary<string, int> Species,
+                                          (int Min, int Max) SpanX, (int Min, int Max) SpanZ);
+
+    /// <summary>Gives every leaf to the nearest trunk, so each tree is read from the crown it owns.
     ///
-    /// <para>A fixed radius around a trunk cannot measure a canopy, since what it reports is the radius.
-    /// Nearest-trunk assignment reports the crown instead, and it is also what keeps neighbouring trees apart:
-    /// where two canopies stand close without overlapping, every leaf is unambiguously nearer one trunk than
-    /// the other and each keeps its own width. Where they do overlap the boundary falls midway, which
-    /// understates both rather than merging them into one.</para></summary>
-    private static void MeasureCanopies(List<Tree> trees, Dictionary<(int X, int Y, int Z), (int Id, int Data)> leaves)
+    /// <para>A fixed radius around a trunk cannot measure a canopy, since what it reports is the radius, and it
+    /// cannot name one either: on a world planted at three-block spacing that radius reaches the next trunk and
+    /// the neighbour's foliage outvotes the tree's own. Nearest-trunk assignment reports the crown instead, and
+    /// it is also what keeps neighbouring trees apart: where two canopies stand close without overlapping,
+    /// every leaf is unambiguously nearer one trunk than the other and each keeps its own. Where they do
+    /// overlap the boundary falls midway, which divides the shared leaves rather than counting them twice.</para>
+    ///
+    /// <para>Nearness in plan alone is not enough to own a leaf, because a stem is a column and a search over
+    /// x and z cannot tell which part of that column it is looking at. A pillar standing on a structure eight
+    /// blocks above a canopy is the nearest thing in plan to every leaf in it, and would take the lot. A trunk
+    /// therefore only reaches foliage its own height admits, which leaves such a pillar owning nothing and
+    /// reported as the bare stem it is.</para>
+    /// </summary>
+    private static Canopy[] AssignLeaves(List<List<(int X, int Y, int Z)>> trunks,
+                                         Dictionary<(int X, int Y, int Z), (int Id, int Data)> leaves)
     {
         var owner = new Dictionary<(int X, int Z), int>();
-        for (var index = 0; index < trees.Count; index++)
-            foreach (var log in trees[index].Wood) owner.TryAdd((log.X, log.Z), index);
+        var reach = new (int Low, int High)[trunks.Count];
+        for (var index = 0; index < trunks.Count; index++)
+        {
+            foreach (var log in trunks[index]) owner.TryAdd((log.X, log.Z), index);
+            reach[index] = (trunks[index].Min(log => log.Y) - CanopyDroop,
+                            trunks[index].Max(log => log.Y) + CanopyCrown);
+        }
 
         var spanX = new Dictionary<int, (int Min, int Max)>();
         var spanZ = new Dictionary<int, (int Min, int Max)>();
         var counts = new Dictionary<int, int>();
+        var species = new Dictionary<int, Dictionary<string, int>>();
 
-        foreach (var leaf in leaves.Keys)
+        foreach (var (leaf, block) in leaves)
         {
             var best = -1;
             var bestDistance = int.MaxValue;
@@ -249,6 +282,7 @@ internal static class Flora
                     {
                         if (Math.Max(Math.Abs(dx), Math.Abs(dz)) != radius) continue;
                         if (!owner.TryGetValue((leaf.X + dx, leaf.Z + dz), out var tree)) continue;
+                        if (leaf.Y < reach[tree].Low || leaf.Y > reach[tree].High) continue;
                         var distance = dx * dx + dz * dz;
                         if (distance >= bestDistance) continue;
                         bestDistance = distance;
@@ -257,18 +291,20 @@ internal static class Flora
             if (best < 0) continue;
 
             counts[best] = counts.GetValueOrDefault(best) + 1;
+            var kind = LeafSpecies(block.Id, block.Data);
+            var tally = species.TryGetValue(best, out var found) ? found : species[best] = [];
+            tally[kind] = tally.GetValueOrDefault(kind) + 1;
             spanX[best] = spanX.TryGetValue(best, out var sx)
                 ? (Math.Min(sx.Min, leaf.X), Math.Max(sx.Max, leaf.X)) : (leaf.X, leaf.X);
             spanZ[best] = spanZ.TryGetValue(best, out var sz)
                 ? (Math.Min(sz.Min, leaf.Z), Math.Max(sz.Max, leaf.Z)) : (leaf.Z, leaf.Z);
         }
 
-        for (var index = 0; index < trees.Count; index++)
-        {
-            trees[index].Canopy = counts.GetValueOrDefault(index);
-            if (!spanX.TryGetValue(index, out var sx)) continue;
-            var sz = spanZ[index];
-            trees[index].CanopyWidth = Math.Max(sx.Max - sx.Min, sz.Max - sz.Min) + 1;
-        }
+        var canopies = new Canopy[trunks.Count];
+        for (var index = 0; index < trunks.Count; index++)
+            canopies[index] = new Canopy(counts.GetValueOrDefault(index),
+                species.TryGetValue(index, out var tally) ? tally : [],
+                spanX.GetValueOrDefault(index), spanZ.GetValueOrDefault(index));
+        return canopies;
     }
 }

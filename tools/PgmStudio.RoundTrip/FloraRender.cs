@@ -217,7 +217,7 @@ internal static class FloraRender
             var canopy = widths.Count == 0 ? "—"
                 : $"{widths[widths.Count / 2]} typical ({widths[0]}..{widths[^1]})";
             Console.WriteLine($"{group.Key,-10} {trees.Count,6} {trees.Count / 2.0,9:0.0} " +
-                $"{$"{heights[0]}..{heights[^1]}",8} {canopy,22} {trees.Average(tree => tree.Canopy),11:0} " +
+                $"{$"{heights[0]}..{heights[^1]}",8} {canopy,22} {trees.Average(tree => tree.LeafCount),11:0} " +
                 $" {string.Join(", ", trunks)}");
         }
         // Trunk against canopy, because the pairing is what a tree type actually is. A wood that appears
