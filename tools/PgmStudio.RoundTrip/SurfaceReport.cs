@@ -20,6 +20,52 @@ namespace PgmStudio.RoundTrip;
 /// </summary>
 internal static class SurfaceReport
 {
+
+    /// <summary>
+    /// Ground materials grouped by the tone they read as. A map is not laid out one block at a time — an
+    /// author reaches for "the green", "the earth", "the grey stone" — so a per-block histogram splits one
+    /// decision across four rows and reports the variation inside a field as though it were the field. Grass,
+    /// green clay and lime clay are one surface with a texture; counted apart they look like three.
+    ///
+    /// <para>Unlike a path or roof palette this table is a property of the blocks rather than of a map:
+    /// granite reads warm on every world, podzol reads dark. It is therefore a default rather than an
+    /// argument, and a material it does not name is reported as unnamed instead of being forced into a
+    /// family.</para>
+    /// </summary>
+    private static readonly (string Tone, int Rgb, (int Id, int Data)[] Blocks)[] Tones =
+    [
+        ("verdant",     0x5BA83C, [(2, -1), (159, 13), (159, 5), (35, 13), (35, 5), (31, -1)]),
+        ("loam",        0x6B4A2E, [(3, -1), (5, 1), (5, 5), (159, 12), (35, 12), (60, -1)]),
+        ("brick",       0xA85C3C, [(45, -1), (1, 1), (1, 2), (159, 14), (172, -1), (159, 1)]),
+        ("grey stone",  0x9A9A96, [(1, 0), (1, 5), (1, 6), (13, -1), (98, -1), (14, -1), (15, -1),
+                                   (16, -1), (21, -1), (56, -1), (73, -1), (129, -1), (42, -1), (159, 8)]),
+        ("cobble",      0x5F6672, [(4, -1), (48, -1), (139, -1), (67, -1)]),
+        ("pale stone",  0xD8D8D0, [(1, 3), (1, 4)]),
+        ("sand",        0xE0D2A0, [(12, 0), (24, -1), (5, 2), (17, 2), (128, -1)]),
+        ("rust",        0xB2542A, [(12, 1), (179, -1), (5, 4), (17, 4), (159, 1), (180, -1)]),
+        ("dark",        0x3A3A44, [(159, 9), (35, 7), (7, -1), (159, 15), (49, -1), (159, 7), (35, 15)]),
+        ("bright",      0xF2F6FA, [(155, -1), (80, -1), (78, -1), (159, 0), (35, 0), (43, 7), (44, 7)]),
+    ];
+
+    private static readonly Dictionary<(int Id, int Data), string> ToneOf = BuildTones();
+    private static readonly Dictionary<string, int> ToneRgb =
+        Tones.ToDictionary(entry => entry.Tone, entry => entry.Rgb);
+
+    private static Dictionary<(int Id, int Data), string> BuildTones()
+    {
+        var table = new Dictionary<(int Id, int Data), string>();
+        foreach (var (tone, _, blocks) in Tones)
+            foreach (var block in blocks)
+                table[block] = tone;
+        return table;
+    }
+
+    /// <summary>The tone a block reads as, or "unnamed". An entry with data -1 claims every sub-type, so a
+    /// specific one is checked first — dirt in all its forms is loam, but sand and red sand part company.</summary>
+    private static string ToneName(int id, int data) =>
+        ToneOf.TryGetValue((id, data), out var exact) ? exact
+        : ToneOf.TryGetValue((id, -1), out var any) ? any : "unnamed";
+
     /// <summary>Grows on the ground rather than being it. Kept, but reported as a layer over its own soil.</summary>
     private static readonly HashSet<int> Decoration =
     [
@@ -60,10 +106,12 @@ internal static class SurfaceReport
             .ToDictionary(entry => entry.Key, entry => (entry.Value.Ground, entry.Value.GroundData));
 
         ReportMaterials(columns, ground, topMaterials);
+        ReportTones(ground);
         ReportDecoration(columns);
         ReportBeds(columns);
         ReportPatchiness(ground, topMaterials);
-        Draw(outPng, scale, columns, ground, topMaterials);
+        ReportTonePatchiness(ground);
+        Draw(outPng, scale, columns, ground);
         return 0;
     }
 
@@ -113,6 +161,41 @@ internal static class SurfaceReport
         foreach (var group in ground.Values.GroupBy(entry => entry).OrderByDescending(group => group.Count()).Take(top))
             Console.WriteLine($"  {BlockPalette.Name(group.Key.Id, group.Key.Data),-26} {group.Count(),7} " +
                 $"{group.Count() * 100.0 / ground.Count,5:0.0}%");
+    }
+
+    private static void ReportTones(Dictionary<(int X, int Z), (int Id, int Data)> ground)
+    {
+        Console.WriteLine($"\n=== the same ground by tone ===");
+        foreach (var group in ground.Values.GroupBy(entry => ToneName(entry.Id, entry.Data))
+                     .OrderByDescending(group => group.Count()))
+        {
+            var members = group.GroupBy(entry => entry).OrderByDescending(inner => inner.Count()).Take(4)
+                .Select(inner => $"{BlockPalette.Name(inner.Key.Id, inner.Key.Data)} {inner.Count() * 100 / group.Count()}%");
+            Console.WriteLine($"  {group.Key,-12} {group.Count(),7} {group.Count() * 100.0 / ground.Count,5:0.0}%   " +
+                $"{string.Join(", ", members)}");
+        }
+    }
+
+    /// <summary>The same clustering question asked of tones rather than blocks. A field of one tone laid in
+    /// four textures scores as four scattered materials and one solid field; only the second is the layout.</summary>
+    private static void ReportTonePatchiness(Dictionary<(int X, int Z), (int Id, int Data)> ground)
+    {
+        Console.WriteLine($"\n=== the fields themselves, once texture within a tone stops counting as a boundary ===");
+        Console.WriteLine($"  {"tone",-12} {"share",6} {"own neighbours",15} {"vs chance",10} {"fields",7} {"median",7} {"largest",8}");
+        foreach (var group in ground.GroupBy(entry => ToneName(entry.Value.Id, entry.Value.Data))
+                     .OrderByDescending(group => group.Count()))
+        {
+            var cells = new HashSet<(int X, int Z)>(group.Select(entry => entry.Key));
+            var share = cells.Count / (double)ground.Count;
+            var same = 0;
+            foreach (var cell in cells)
+                foreach (var (dx, dz) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
+                    if (cells.Contains((cell.X + dx, cell.Z + dz))) same++;
+            var neighbourly = same / (4.0 * cells.Count);
+            var sizes = Components(cells).OrderBy(size => size).ToList();
+            Console.WriteLine($"  {group.Key,-12} {share * 100,5:0.0}% {neighbourly * 100,14:0.0}% " +
+                $"{neighbourly / Math.Max(1e-9, share),9:0.0}x {sizes.Count,7} {sizes[sizes.Count / 2],7} {sizes[^1],8}");
+        }
     }
 
     private static void ReportDecoration(Dictionary<(int X, int Z), Cell> columns)
@@ -196,17 +279,8 @@ internal static class SurfaceReport
     /// realistic — the question this render answers is where one material stops and the next begins, and a
     /// palette of true block colours renders podzol, dirt and coarse dirt as three browns.</summary>
     private static void Draw(string outPng, int scale, Dictionary<(int X, int Z), Cell> columns,
-                             Dictionary<(int X, int Z), (int Id, int Data)> ground, int top)
+                             Dictionary<(int X, int Z), (int Id, int Data)> ground)
     {
-        int[] accents =
-        [
-            0xE6444A, 0x3FA9F5, 0x4CD964, 0xFFD400, 0xB86BFF, 0xFF8A1F, 0x00C2B2, 0xFF5FA2,
-            0x9BE564, 0x7A5CFF, 0xD4A017, 0x5AC8FA,
-        ];
-        var order = ground.Values.GroupBy(entry => entry).OrderByDescending(group => group.Count())
-            .Take(top).Select((group, index) => (group.Key, index))
-            .ToDictionary(entry => entry.Key, entry => entry.index);
-
         int minX = columns.Keys.Min(cell => cell.X), maxX = columns.Keys.Max(cell => cell.X);
         int minZ = columns.Keys.Min(cell => cell.Z), maxZ = columns.Keys.Max(cell => cell.Z);
         int blocksWide = maxX - minX + 1, blocksHigh = maxZ - minZ + 1;
@@ -220,12 +294,12 @@ internal static class SurfaceReport
                 if (column.Built) { Raster.Set(pixels, blocksWide, col, row, 0x2A2D33); continue; }
                 if (column.Depth > 0) { Raster.Set(pixels, blocksWide, col, row, 0x1B3A5C); continue; }
                 Raster.Set(pixels, blocksWide, col, row,
-                    order.TryGetValue((column.Ground, column.GroundData), out var index) ? accents[index % accents.Length] : 0x6E7278);
+                    ToneRgb.TryGetValue(ToneName(column.Ground, column.GroundData), out var rgb) ? rgb : 0xC020C0);
             }
 
         var scaled = Raster.Upscale(pixels, blocksWide, blocksHigh, scale);
         PngWriter.Write(outPng, blocksWide * scale, blocksHigh * scale, scaled);
         Console.WriteLine($"\n  wrote {outPng} ({blocksWide * scale}x{blocksHigh * scale} px, {scale} px/block); " +
-            $"structure dark grey, water dark blue, other materials mid grey");
+            $"structure charcoal, water blue, unnamed materials magenta");
     }
 }

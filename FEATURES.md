@@ -1233,8 +1233,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   forested map from the sample and cuts every material into fragments wherever trees stand, which then reads as
   speckle. **Patchiness is measured, not assumed** — a histogram cannot tell a scattered material from one laid
   in fields, so each is scored by how often it neighbours its own kind against how often it would by chance,
-  with patch counts and median size giving the scale. Measured on alpine_mining_ii: every material 2.5×–24×
-  self-adjacent, nothing random. (B66)
+  with patch counts and median size giving the scale. Materials are also grouped into **tones** — the families an author
+  actually reaches for, "the green", "the earth", "the grey stone" — because a per-block histogram splits one
+  decision across four rows and reports the variation inside a field as though it were the field. Unlike a path
+  or roof palette that table is a property of the blocks and not of a map (granite reads warm everywhere), so it
+  is a default rather than an argument, and an unnamed material stays unnamed instead of being forced into a
+  family. Measured on alpine_mining_ii: every material 2.5×–24× self-adjacent, nothing random; and by tone the
+  warm family resolves from 423 scattered material patches into **33 fields, the largest 1,821 cells** — the
+  road network, recovered without being told its palette. (B66)
 - **Supported map range (enforced in `MapParser`)** — the parser accepts **proto >= 1.4.0** only (PGM's
   id-based regions/filters/kits floor) and rejects **modern worlds** (`min-server-version >= 1.13.0`, whose
   post-"flattening" palette chunks the Anvil reader can't decode), throwing `UnsupportedMapException` with a
