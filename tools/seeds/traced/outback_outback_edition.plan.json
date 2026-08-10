@@ -1,0 +1,482 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "outback_outback_edition"
+  },
+  "globals": {
+    "cell": 5,
+    "symmetry": "rot_180",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "piece",
+      "role": "piece",
+      "rect": [
+        -10,
+        -4,
+        4,
+        2
+      ]
+    },
+    {
+      "id": "piece-2",
+      "role": "piece",
+      "rect": [
+        -3,
+        -4,
+        2,
+        8
+      ]
+    },
+    {
+      "id": "piece-3",
+      "role": "piece",
+      "rect": [
+        6,
+        -4,
+        4,
+        2
+      ]
+    },
+    {
+      "id": "piece-4",
+      "role": "piece",
+      "rect": [
+        -10,
+        -14,
+        4,
+        7
+      ]
+    },
+    {
+      "id": "piece-5",
+      "role": "piece",
+      "rect": [
+        -14,
+        -18,
+        8,
+        4
+      ]
+    },
+    {
+      "id": "piece-6",
+      "role": "piece",
+      "rect": [
+        -14,
+        -24,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "piece-7",
+      "role": "piece",
+      "rect": [
+        -11,
+        -26,
+        5,
+        3
+      ]
+    },
+    {
+      "id": "piece-8",
+      "role": "piece",
+      "rect": [
+        -9,
+        -22,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "piece-9",
+      "role": "piece",
+      "rect": [
+        -9,
+        -23,
+        3,
+        1
+      ]
+    },
+    {
+      "id": "piece-10",
+      "role": "piece",
+      "rect": [
+        -6,
+        -18,
+        12,
+        4
+      ]
+    },
+    {
+      "id": "piece-11",
+      "role": "piece",
+      "rect": [
+        -2,
+        -20,
+        4,
+        2
+      ]
+    },
+    {
+      "id": "piece-12",
+      "role": "piece",
+      "rect": [
+        -2,
+        -14,
+        4,
+        5
+      ]
+    },
+    {
+      "id": "piece-13",
+      "role": "piece",
+      "rect": [
+        1,
+        -9,
+        3,
+        1
+      ]
+    },
+    {
+      "id": "piece-14",
+      "role": "piece",
+      "rect": [
+        2,
+        -11,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-15",
+      "role": "piece",
+      "rect": [
+        -4,
+        -11,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-16",
+      "role": "piece",
+      "rect": [
+        -4,
+        -9,
+        3,
+        1
+      ]
+    },
+    {
+      "id": "piece-17",
+      "role": "piece",
+      "rect": [
+        6,
+        -14,
+        4,
+        7
+      ]
+    },
+    {
+      "id": "piece-18",
+      "role": "piece",
+      "rect": [
+        6,
+        -18,
+        8,
+        4
+      ]
+    },
+    {
+      "id": "piece-19",
+      "role": "piece",
+      "rect": [
+        6,
+        -22,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "piece-20",
+      "role": "piece",
+      "rect": [
+        6,
+        -23,
+        3,
+        1
+      ]
+    },
+    {
+      "id": "piece-21",
+      "role": "piece",
+      "rect": [
+        6,
+        -26,
+        5,
+        3
+      ]
+    },
+    {
+      "id": "piece-22",
+      "role": "piece",
+      "rect": [
+        11,
+        -24,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "wool",
+      "role": "wool-room",
+      "rect": [
+        -14,
+        -27,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "wool-2",
+      "role": "wool-room",
+      "rect": [
+        11,
+        -27,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "spawn",
+      "role": "spawn",
+      "rect": [
+        -2,
+        -24,
+        4,
+        4
+      ]
+    },
+    {
+      "id": "buffer",
+      "role": "buffer",
+      "rect": [
+        -6,
+        -14,
+        4,
+        3
+      ]
+    },
+    {
+      "id": "buffer-2",
+      "role": "buffer",
+      "rect": [
+        -1,
+        -9,
+        2,
+        5
+      ]
+    },
+    {
+      "id": "buffer-3",
+      "role": "buffer",
+      "rect": [
+        2,
+        -14,
+        4,
+        3
+      ]
+    },
+    {
+      "id": "buffer-4",
+      "role": "buffer",
+      "rect": [
+        -11,
+        -23,
+        2,
+        5
+      ]
+    },
+    {
+      "id": "buffer-5",
+      "role": "buffer",
+      "rect": [
+        9,
+        -23,
+        2,
+        5
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone",
+      "rect": [
+        11,
+        -22,
+        3,
+        4
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-2",
+      "rect": [
+        -10,
+        -11,
+        9,
+        22
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-3",
+      "rect": [
+        -1,
+        -4,
+        2,
+        8
+      ],
+      "holes": []
+    }
+  ],
+  "placements": {
+    "spawns": [
+      {
+        "id": "spawn-1",
+        "piece": "spawn",
+        "at": [
+          2,
+          1.5
+        ],
+        "facing": "back"
+      }
+    ],
+    "wools": [
+      {
+        "id": "wool-1",
+        "piece": "wool",
+        "at": [
+          1.5,
+          1.5
+        ]
+      },
+      {
+        "id": "wool-2",
+        "piece": "wool-2",
+        "at": [
+          1.5,
+          1.5
+        ]
+      }
+    ],
+    "iron": [
+      {
+        "id": "iron-1",
+        "piece": "spawn",
+        "at": [
+          2,
+          3
+        ]
+      }
+    ],
+    "destroyables": [],
+    "cores": []
+  },
+  "cliffs": [],
+  "walls": [
+    {
+      "a": "piece-8",
+      "b": "piece-9"
+    },
+    {
+      "a": "piece-19",
+      "b": "piece-20"
+    }
+  ],
+  "boxes": [
+    {
+      "id": "hub-box",
+      "kind": "hub",
+      "rect": [
+        -14,
+        -22,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "hub-box-2",
+      "kind": "hub",
+      "rect": [
+        -6,
+        -18,
+        12,
+        4
+      ]
+    },
+    {
+      "id": "frontline-box",
+      "kind": "frontline",
+      "rect": [
+        -10,
+        -14,
+        20,
+        7
+      ]
+    },
+    {
+      "id": "wool-box",
+      "kind": "wool",
+      "rect": [
+        -14,
+        -27,
+        8,
+        13
+      ]
+    },
+    {
+      "id": "wool-box-2",
+      "kind": "wool",
+      "rect": [
+        6,
+        -27,
+        8,
+        13
+      ]
+    },
+    {
+      "id": "spawn-box",
+      "kind": "spawn",
+      "rect": [
+        -2,
+        -24,
+        4,
+        6
+      ]
+    },
+    {
+      "id": "mid-box",
+      "kind": "mid",
+      "rect": [
+        -10,
+        -7,
+        20,
+        7
+      ]
+    }
+  ],
+  "reference": {
+    "map": "outback_outback_edition",
+    "offset": [
+      0,
+      0
+    ],
+    "scale": 1,
+    "opacity": 0.5
+  }
+}

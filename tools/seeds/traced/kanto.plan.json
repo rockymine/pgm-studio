@@ -1,0 +1,330 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "kanto"
+  },
+  "globals": {
+    "cell": 5,
+    "symmetry": "rot_180",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "piece",
+      "role": "piece",
+      "rect": [
+        -7,
+        -13,
+        2,
+        6
+      ]
+    },
+    {
+      "id": "piece-2",
+      "role": "piece",
+      "rect": [
+        -5,
+        -7,
+        3,
+        5
+      ]
+    },
+    {
+      "id": "piece-3",
+      "role": "piece",
+      "rect": [
+        2,
+        -7,
+        3,
+        5
+      ]
+    },
+    {
+      "id": "piece-4",
+      "role": "piece",
+      "rect": [
+        -5,
+        -10,
+        10,
+        3
+      ]
+    },
+    {
+      "id": "piece-5",
+      "role": "piece",
+      "rect": [
+        5,
+        -13,
+        2,
+        6
+      ]
+    },
+    {
+      "id": "piece-6",
+      "role": "piece",
+      "rect": [
+        -2,
+        -13,
+        4,
+        3
+      ]
+    },
+    {
+      "id": "piece-7",
+      "role": "piece",
+      "rect": [
+        -6,
+        -16,
+        12,
+        3
+      ]
+    },
+    {
+      "id": "spawn",
+      "role": "spawn",
+      "rect": [
+        -3,
+        -24,
+        6,
+        8
+      ]
+    },
+    {
+      "id": "piece-8",
+      "role": "piece",
+      "rect": [
+        -9,
+        -16,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "piece-9",
+      "role": "piece",
+      "rect": [
+        6,
+        -16,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "piece-10",
+      "role": "piece",
+      "rect": [
+        -9,
+        -19,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "piece-11",
+      "role": "piece",
+      "rect": [
+        6,
+        -19,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "wool",
+      "role": "wool-room",
+      "rect": [
+        6,
+        -22,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "wool-2",
+      "role": "wool-room",
+      "rect": [
+        -9,
+        -22,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "buffer",
+      "role": "buffer",
+      "rect": [
+        -2,
+        -7,
+        4,
+        14
+      ]
+    },
+    {
+      "id": "buffer-2",
+      "role": "buffer",
+      "rect": [
+        -5,
+        -13,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "buffer-3",
+      "role": "buffer",
+      "rect": [
+        2,
+        -13,
+        3,
+        3
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone",
+      "rect": [
+        -5,
+        -2,
+        3,
+        4
+      ],
+      "holes": []
+    }
+  ],
+  "placements": {
+    "spawns": [
+      {
+        "id": "spawn-1",
+        "piece": "spawn",
+        "at": [
+          3,
+          1.5
+        ],
+        "facing": "back"
+      }
+    ],
+    "wools": [
+      {
+        "id": "wool-1",
+        "piece": "wool-2",
+        "at": [
+          1.5,
+          1.5
+        ]
+      },
+      {
+        "id": "wool-2",
+        "piece": "wool",
+        "at": [
+          1.5,
+          1.5
+        ]
+      }
+    ],
+    "iron": [
+      {
+        "id": "iron-1",
+        "piece": "spawn",
+        "at": [
+          1,
+          6
+        ]
+      },
+      {
+        "id": "iron-2",
+        "piece": "spawn",
+        "at": [
+          5,
+          6
+        ]
+      }
+    ],
+    "destroyables": [],
+    "cores": []
+  },
+  "cliffs": [],
+  "walls": [
+    {
+      "a": "piece-9",
+      "b": "piece-11"
+    },
+    {
+      "a": "piece-8",
+      "b": "piece-10"
+    }
+  ],
+  "boxes": [
+    {
+      "id": "wool-box",
+      "kind": "wool",
+      "rect": [
+        -9,
+        -22,
+        3,
+        9
+      ]
+    },
+    {
+      "id": "wool-box-2",
+      "kind": "wool",
+      "rect": [
+        6,
+        -22,
+        3,
+        9
+      ]
+    },
+    {
+      "id": "spawn-box",
+      "kind": "spawn",
+      "rect": [
+        -3,
+        -24,
+        6,
+        8
+      ]
+    },
+    {
+      "id": "hub-box",
+      "kind": "hub",
+      "rect": [
+        -7,
+        -16,
+        14,
+        9
+      ]
+    },
+    {
+      "id": "frontline-box",
+      "kind": "frontline",
+      "rect": [
+        -5,
+        -7,
+        10,
+        5
+      ]
+    },
+    {
+      "id": "mid-box",
+      "kind": "mid",
+      "rect": [
+        -5,
+        -2,
+        10,
+        2
+      ]
+    }
+  ],
+  "reference": {
+    "map": "kanto",
+    "offset": [
+      0,
+      0
+    ],
+    "scale": 1,
+    "opacity": 0.5
+  }
+}

@@ -1,0 +1,342 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "sanctum wasser"
+  },
+  "globals": {
+    "cell": 4,
+    "symmetry": "rot_180",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "piece",
+      "role": "piece",
+      "rect": [
+        6,
+        -9,
+        2,
+        6
+      ]
+    },
+    {
+      "id": "piece-2",
+      "role": "piece",
+      "rect": [
+        2,
+        -9,
+        4,
+        2
+      ]
+    },
+    {
+      "id": "piece-3",
+      "role": "piece",
+      "rect": [
+        5,
+        0,
+        6,
+        3
+      ]
+    },
+    {
+      "id": "piece-4",
+      "role": "piece",
+      "rect": [
+        15,
+        0,
+        8,
+        3
+      ]
+    },
+    {
+      "id": "piece-5",
+      "role": "piece",
+      "rect": [
+        16,
+        3,
+        3,
+        7
+      ]
+    },
+    {
+      "id": "piece-6",
+      "role": "piece",
+      "rect": [
+        3,
+        7,
+        13,
+        3
+      ]
+    },
+    {
+      "id": "piece-7",
+      "role": "piece",
+      "rect": [
+        6,
+        10,
+        3,
+        16
+      ]
+    },
+    {
+      "id": "piece-8",
+      "role": "piece",
+      "rect": [
+        -3,
+        22,
+        9,
+        4
+      ]
+    },
+    {
+      "id": "piece-9",
+      "role": "piece",
+      "rect": [
+        0,
+        20,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "piece-10",
+      "role": "piece",
+      "rect": [
+        0,
+        13,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "piece-11",
+      "role": "piece",
+      "rect": [
+        0,
+        6,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "wool",
+      "role": "wool-room",
+      "rect": [
+        23,
+        0,
+        5,
+        3
+      ]
+    },
+    {
+      "id": "wool-2",
+      "role": "wool-room",
+      "rect": [
+        -8,
+        22,
+        5,
+        4
+      ]
+    },
+    {
+      "id": "piece-12",
+      "role": "piece",
+      "rect": [
+        -3,
+        -3,
+        6,
+        6
+      ]
+    },
+    {
+      "id": "piece-13",
+      "role": "piece",
+      "rect": [
+        12,
+        10,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "piece-14",
+      "role": "piece",
+      "rect": [
+        9,
+        13,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "spawn",
+      "role": "spawn",
+      "rect": [
+        12,
+        13,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "buffer",
+      "role": "buffer",
+      "rect": [
+        8,
+        3,
+        8,
+        4
+      ]
+    },
+    {
+      "id": "buffer-2",
+      "role": "buffer",
+      "rect": [
+        3,
+        10,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "buffer-3",
+      "role": "buffer",
+      "rect": [
+        3,
+        16,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "buffer-4",
+      "role": "buffer",
+      "rect": [
+        9,
+        10,
+        3,
+        3
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone",
+      "rect": [
+        3,
+        13,
+        3,
+        3
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-2",
+      "rect": [
+        0,
+        16,
+        3,
+        4
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-3",
+      "rect": [
+        0,
+        10,
+        3,
+        3
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-4",
+      "rect": [
+        11,
+        0,
+        4,
+        3
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-5",
+      "rect": [
+        -8,
+        -9,
+        16,
+        18
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-6",
+      "rect": [
+        3,
+        20,
+        3,
+        2
+      ],
+      "holes": []
+    }
+  ],
+  "placements": {
+    "spawns": [
+      {
+        "id": "spawn-1",
+        "piece": "spawn",
+        "at": [
+          1.5,
+          1.5
+        ],
+        "facing": "front"
+      }
+    ],
+    "wools": [
+      {
+        "id": "wool-1",
+        "piece": "wool-2",
+        "at": [
+          2,
+          2
+        ]
+      },
+      {
+        "id": "wool-2",
+        "piece": "wool",
+        "at": [
+          2.5,
+          1.5
+        ]
+      }
+    ],
+    "iron": [
+      {
+        "id": "iron-1",
+        "piece": "spawn",
+        "at": [
+          2.5,
+          2.5
+        ]
+      }
+    ],
+    "destroyables": [],
+    "cores": []
+  },
+  "cliffs": [],
+  "walls": [],
+  "boxes": [],
+  "reference": {
+    "map": "sanctum_wasser",
+    "offset": [
+      0,
+      0
+    ],
+    "scale": 1,
+    "opacity": 0.5
+  }
+}

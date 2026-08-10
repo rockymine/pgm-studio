@@ -600,6 +600,72 @@ of the time and is at the build ceiling for 34.3% of its samples, while the home
 on foot 40.8% of the time and winning 33%. **An asymmetry between mirrored halves of a recorded map is not
 evidence of an unfair layout; it is what one side taking control looks like.**
 
+### 6.10 What sets match length
+
+Match length is the outcome the generator would most like a handle on, and the corpus answers it only
+partly. Ranking 133 maps by median duration against everything measurable:
+
+| | rank correlation |
+|---|---|
+| median players | **+0.78** |
+| spawn-to-spawn distance | +0.66 |
+| attacker-to-wool distance | +0.63 |
+| total blocks | +0.63 |
+| wools per team | +0.45 |
+| funnel width on the route actually taken | +0.43 |
+| traffic concentration | +0.38 |
+| enclosed voids | +0.20 |
+
+Two of those are clean. Population dominates everything, and the objective count is next: **one wool per
+team runs a median 3.1 minutes, two runs 7.8, three runs 10.2**. A defender who starts close to the wool
+also makes a long match — matches where the defender's distance is under a quarter of the attacker's run
+7.6 minutes against 3.9 where it is over 0.6.
+
+The deflating part is that **within a fixed format almost all of it collapses**. Across two-wool maps only,
+players fall to +0.51 and everything else to noise: spawn distance +0.21, voids +0.19, funnel +0.17,
+concentration +0.16, the defender ratio −0.02. Match length is mostly how many people are playing and how
+many objectives the map asks for; the scalar geometry available today adds little on top.
+
+What a scalar misses is shape. Land width along the route, bucketed by distance from the objective, splits
+maps that share a median: `outback` runs 72 blocks wide at 50–59 blocks out and collapses to 16 by 30–39 —
+frontloaded terrain, thin at the objective — while `sanctum_wasser` never opens beyond 12–16 blocks from
+40 blocks in. And a map either concentrates contact or spreads it: the twenty busiest cells used by *both*
+teams hold **23.8%** of all co-presence on `sanctum_wasser`, in one cluster 59–72 blocks from the nearest
+wool, against **15.6%** on `outback` spread over a mirrored pair. Those two quantities describe what the
+funnel-width median cannot, and neither is derived today.
+
+### 6.11 The traced plans, read against the traffic
+
+Four maps — `kanto`, `townside`, `outback` and `sanctum_wasser` — have been traced by hand into the plan
+model and live in `tools/seeds/traced/`. They are deliberately not generator output: they favour fidelity to
+the real map over what the composer can emit, they carry no height, and their piece counts are kept near the
+map's own. Fitting them to the world takes an identity transform for `kanto` and `outback`, which trace at
+1:1 in blocks and land within a few blocks on every spawn and wool anchor, and a translation of
+(−38, +130) for `sanctum_wasser`, whose grid is the least regular of the four.
+
+Every piece the author identified as dead reads as dead in the traffic. On `outback`, `zone-3` — the mid
+rotation point — carries **0.59%** of all position samples, which is the same connector measured
+independently at 0.57% and crossed by none of the 97 approaches that reached a wool. `zone`, the build zone
+leading to a wool, carries **0.72%**. The big central `zone-2` carries **36.3%**. On `sanctum_wasser`,
+`piece-10` together with `zone-2` and `zone-3` maps to the world strip at `x −38…−26, z 170…210` — the same
+ten-by-forty-three corridor found from the build regions — and those three pieces carry **9.7% of all
+traffic on the map** inside a twelve-by-forty sliver. Its outward islands, `piece` and `piece-2`, carry 1.8%
+and 2.6%.
+
+One thing falls out of the alignment that neither the traffic nor the plan showed alone. `piece-5` and
+`piece-18` on `outback` are the same size, 40 by 20 blocks, at mirror positions. Taken with their `rot_180`
+images, `piece-18` carries **8.62%** of all traffic and `piece-5` **0.79%** — an eleven-fold difference
+between mirrored pieces. The wall pieces repeat it: `piece-19` at 6.18% against `piece-8` at 1.08%. So the
+team halves are not two parallel lanes but **one diagonal pair**, with the opposite diagonal near-dead. That
+is &sect;6.5's flank preference expressed in the map's own vocabulary: both teams taking their own hand on a
+`rot_180` board means exactly one diagonal carries both attacks.
+
+The wider point is that the plan vocabulary describes these maps well enough to test claims against, even
+where the generator could not produce them. A traced plan is therefore usable as a measurement frame — the
+width profile, the co-presence concentration and the piece-level traffic shares above are all computable on
+a generated board by the same code, which is what would let a generated layout and a built one be compared
+on identical terms.
+
 ## 7. What a plan answers today
 
 | Measure | Reading |
@@ -698,6 +764,21 @@ same class of void rotated around in 5 of 97 approaches on one map and 22 of 101
 separates them is not the class, the size or the distance to the objective — exposure is the standing
 hypothesis and it is unmeasured. Until it is, a hub void should be credited with an option rather than with
 a route being taken.
+
+**Two shape measures are worth deriving, and one scalar is not.** §6.10 puts match length mostly down to
+player count and objective count, with the plan's own geometry adding little once those are held. What does
+separate maps of the same format is shape: the **width profile** along the approach — width as a function of
+distance from the objective, which tells a frontloaded map from a uniformly narrow one where a median cannot
+— and the **co-presence concentration**, the share of contested ground held by its busiest cells, which
+separates a map where every route joins at one place from one with independent lanes. Both are computable on
+a plan, and both are absent from `StructureSummary` today. A single funnel-width number should not be added
+in their place; it is the quantity that misreports `outback` as wide when its 72-block shelf collapses to 16
+at the objective.
+
+**A traced plan is a measurement frame.** §6.11 shows the model describing four real maps closely enough to
+test claims on, including maps the composer could not emit. That makes generated and built layouts
+comparable on identical measures rather than by eye, which is the precondition for asking whether a
+generated board behaves like a good map rather than merely resembling one.
 
 ### 9.2 Evaluating a board twice, corrected
 
