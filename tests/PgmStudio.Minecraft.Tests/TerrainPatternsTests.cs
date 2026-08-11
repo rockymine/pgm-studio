@@ -639,4 +639,76 @@ public sealed class TerrainPatternsTests
         foreach (var bend in turn.Values.Distinct())
             await Assert.That(frame.Resolve(Wall(4, 4, bend))).IsEqualTo((11, 0));
     }
+
+    // ── the log checkerboard ────────────────────────────────────────────────────────────────────────
+    private const int Acacia = 162, Upright = 0, AlongX = 4, AlongZ = 8;
+
+    [Test]
+    public async Task A_log_checker_alternates_the_turn_of_one_log_rather_than_two_blocks()
+    {
+        // The whole point: one block id everywhere, and what changes square to square is its axis.
+        var board = new LogCheckerMaterial(1, Acacia);
+        for (var y = 0; y < 4; y++)
+            for (var arc = 0; arc < 4; arc++)
+            {
+                var (id, data) = board.Resolve(
+                    new BucketContext(0, y, 0, TerrainBucket.Wall, 0, -1, arc,
+                        PerimeterRun: GridBoundary.RunAlongX));
+                await Assert.That(id).IsEqualTo(Acacia);
+                await Assert.That(data).IsEqualTo((arc + y) % 2 == 0 ? Upright : AlongX);
+            }
+    }
+
+    [Test]
+    [Arguments(GridBoundary.RunAlongX, AlongX)]
+    [Arguments(GridBoundary.RunAlongZ, AlongZ)]
+    public async Task A_log_on_its_side_lies_along_the_wall_so_its_bark_faces_out(int run, int expected)
+    {
+        // The rule read off alpine_mining_ii: on a z-facing wall every horizontal log is axis-x and never
+        // axis-z. A log laid across the wall instead points a sawn end straight at the viewer.
+        var board = new LogCheckerMaterial(1, Acacia);
+        var odd = new BucketContext(0, 0, 0, TerrainBucket.Wall, 0, -1, PerimeterArc: 1, PerimeterRun: run);
+        await Assert.That(board.Resolve(odd)).IsEqualTo((Acacia, expected));
+    }
+
+    [Test]
+    public async Task A_log_checker_keeps_the_species_it_was_given_and_supplies_only_the_axis()
+    {
+        // Data is the wood in the low two bits; the two above it are the axis and belong to the pattern.
+        const int DarkOak = 1;
+        var board = new LogCheckerMaterial(1, Acacia, DarkOak);
+        var even = new BucketContext(0, 0, 0, TerrainBucket.Wall, 0, -1, PerimeterArc: 0,
+                                     PerimeterRun: GridBoundary.RunAlongX);
+        var odd = even with { PerimeterArc = 1 };
+        await Assert.That(board.Resolve(even)).IsEqualTo((Acacia, DarkOak | Upright));
+        await Assert.That(board.Resolve(odd)).IsEqualTo((Acacia, DarkOak | AlongX));
+    }
+
+    [Test]
+    public async Task A_log_at_a_corner_stands_up_whichever_square_it_lands_on()
+    {
+        // A corner is on two faces at right angles, and no log lying down shows bark to both. So it stands —
+        // and it stands on the odd square too, where the board would otherwise have laid it down.
+        var board = new LogCheckerMaterial(1, Acacia);
+        foreach (var arc in new[] { 0, 1 })
+        {
+            var corner = new BucketContext(0, 0, 0, TerrainBucket.Wall, 0, -1, arc,
+                                           PerimeterRun: GridBoundary.RunsBothWays);
+            await Assert.That(board.Resolve(corner)).IsEqualTo((Acacia, Upright));
+        }
+    }
+
+    [Test]
+    public async Task A_log_checker_off_a_wall_lays_its_board_on_the_ground()
+    {
+        // No face to protect, so the squares read as bark against sawn end — what a log floor is.
+        var board = new LogCheckerMaterial(1, Acacia);
+        for (var x = 0; x < 4; x++)
+            for (var z = 0; z < 4; z++)
+            {
+                var (id, data) = board.Resolve(new BucketContext(x, 0, z, TerrainBucket.Surface, 0));
+                await Assert.That(id).IsEqualTo(Acacia);
+                await Assert.That(data).IsEqualTo((x + z) % 2 == 0 ? Upright : AlongX);
+            }
+    }
 }

@@ -100,4 +100,19 @@ public sealed class TerrainThemeJsonTests
         await Assert.That(json).Contains("\"kind\":\"wallRun\"");
         await Assert.That(json).Contains("\"kind\":\"solid\"");   // the nested stripe material tags too
     }
+
+    [Test]
+    public async Task A_log_checkerboard_round_trips_with_its_log_and_its_square()
+    {
+        // One block and a square size on the wire — no second material, because the two squares are the same
+        // log turned two ways.
+        var theme = TerrainTheme.Default with { Wall = new LogCheckerMaterial(2, Blocks.Log2, 0) };
+        var json = TerrainThemeJson.Serialize(theme);
+
+        await Assert.That(json).Contains("\"kind\":\"logChecker\"");
+        await Assert.That(TerrainThemeJson.Deserialize(json).Wall).IsEqualTo(theme.Wall);
+        // The composer names it the same word the wire does. Contracts is not reachable from here (Minecraft
+        // sits below it), so the string is spelled out — which is the thing that has to match anyway.
+        await Assert.That(TerrainThemeComposer.KindOf(theme.Wall)).IsEqualTo("logChecker");
+    }
 }

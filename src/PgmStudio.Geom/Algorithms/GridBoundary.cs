@@ -132,4 +132,49 @@ public static class GridBoundary
         for (var index = 0; index < loop.Length; index++) turns[loop[index]] = TurnAt(loop, index, window);
         return turns;
     }
+
+    /// <summary>
+    /// Which axis the loop <b>runs along</b> where it passes this cell — <see cref="RunAlongX"/> or
+    /// <see cref="RunAlongZ"/>, taken from the chord across the same window <see cref="TurnAt"/> measures its
+    /// bend over.
+    ///
+    /// <para>The turn says how sharply the edge bends; this says which way it is going, which is the other
+    /// thing a face-aware material needs. A block whose geometry has a direction — a log lying on its side —
+    /// has to lie <em>along</em> the wall, because a log laid across it points its cut end at whoever is
+    /// looking. On a diagonal the chord is neither axis and the dominant one is taken: a raster diagonal is a
+    /// staircase of short runs, and the longer leg is the one the eye reads the wall as following.</para>
+    /// </summary>
+    public static int RunAt(IReadOnlyList<(int X, int Z)> loop, int index, int window)
+    {
+        var count = loop.Count;
+        if (count < 2) return RunAlongX;
+
+        var reach = Math.Max(1, Math.Min(window, (count - 1) / 2));
+        var behind = loop[((index - reach) % count + count) % count];
+        var ahead = loop[((index + reach) % count + count) % count];
+        return Math.Abs(ahead.X - behind.X) >= Math.Abs(ahead.Z - behind.Z) ? RunAlongX : RunAlongZ;
+    }
+
+    /// <summary>The loop runs east–west here, so a block with a direction lies along x.</summary>
+    public const int RunAlongX = 1;
+
+    /// <summary>The loop runs north–south here, so a block with a direction lies along z.</summary>
+    public const int RunAlongZ = 2;
+
+    /// <summary>The loop turns here, so the cell has an exposed face on <em>both</em> axes — a corner. No
+    /// horizontal direction can face outward on two faces at right angles, so a block with a direction of its
+    /// own has to stand upright at one. <see cref="RunAt"/> never answers this: on a traced outline a corner is
+    /// a staircase of short runs rather than a cell, and only a caller that knows its shape exactly (a
+    /// rectangular footprint) can name one.</summary>
+    public const int RunsBothWays = 3;
+
+    /// <summary>Every boundary cell mapped to its <see cref="RunAt"/>, the companion to <see cref="Turns"/>.</summary>
+    public static Dictionary<(int X, int Z), int> Runs(IReadOnlyDictionary<(int X, int Z), int> perimeter,
+                                                       int window)
+    {
+        var loop = Loop(perimeter);
+        var runs = new Dictionary<(int X, int Z), int>(loop.Length);
+        for (var index = 0; index < loop.Length; index++) runs[loop[index]] = RunAt(loop, index, window);
+        return runs;
+    }
 }

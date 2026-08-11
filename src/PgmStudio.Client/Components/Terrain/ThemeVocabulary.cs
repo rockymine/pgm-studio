@@ -129,6 +129,15 @@ public static class ThemeFields
             [Even] = Solid(155),
             [Odd] = Solid(159, 15),
         },
+        // One log and a square size. Acacia laid upright against acacia on its side is the timbering the
+        // corpus houses use, so it is what a fresh one offers.
+        MaterialKind.LogChecker => new JsonObject
+        {
+            [Kind] = MaterialKind.LogChecker,
+            [Size] = 1,
+            [Id] = 162,
+            [Data] = 0,
+        },
         MaterialKind.WallFrame => new JsonObject
         {
             [Kind] = MaterialKind.WallFrame,

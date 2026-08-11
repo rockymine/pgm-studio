@@ -14,8 +14,8 @@ and baked into the intent at `/plan/compile`. Depth is a per-bucket knob (`TopBa
 carries a bucket's material, depth and toggle), so a theme sets the rim depth and the surface stack
 independently; the default surface is grass over two dirt, three blocks deep (TP11). Any bucket's material can
 be a pattern — voronoi or cell regions, a fractal / turbulence / electric field, wall-runs that wrap the
-void-facing perimeter (TP13), those runs sheared onto the diagonal, or a checkerboard laid in the face it
-paints (TP17) —
+void-facing perimeter (TP13), those runs sheared onto the diagonal, a checkerboard laid in the face it
+paints (TP17), or that same board turning one log upright and on its side (TP20) —
 and the whole theme serializes to the theme JSON (`TerrainThemeJson`), the data a TP10 scope will attach to a
 piece. The model was first validated by a
 scratch prototype's figures (two real seeds — `mirror-tiny-map-cliff`, `isolated-spawn` — compiled through
@@ -403,6 +403,20 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
   same one `Rise` answers for the area patterns — world x and z everywhere would answer a whole column at once
   and come out as stripes down a wall rather than squares on it. Square indices are floored rather than
   truncated, since a truncating divide folds at the origin and seats two squares of one colour together there.
+  **`LogCheckerMaterial`** (TP20) lays that same board with **one** log and varies how it is turned rather than
+  what it is made of: upright on one square, on its side on the next, so the grain runs vertically and then
+  across and a single block reads as a woven board. It is its own material rather than a checker over two
+  solids because the two squares are one block and two orientations, and an orientation is not something a
+  solid can carry — a log's data nibble *is* its axis, so a material resolving that nibble from the cell's
+  coordinates would turn every log the same way and paint a flat patch of wall. **A log on its side lies along
+  the wall, never across it**: the axis decides which two of its six faces are the sawn ends, and a log laid
+  across a wall puts one of them straight out at the viewer. The wall's own run answers that — the third
+  perimeter fact beside the arc and the turn (`GridBoundary.RunAt`), taken from the chord over the same window
+  the turn is measured on. A **corner** has faces on both axes and no lying log shows bark to both, so it
+  stands, which is what a timbered corner post is anyway. Off a wall there is no face to protect and the
+  squares read as bark against sawn end, which is a log floor. The pattern is the timbering nearly every
+  hand-built house on the corpus uses; `alpine_mining_ii` does it in acacia, and the rule that a horizontal
+  log runs along the wall was read off its walls rather than guessed.
   **`WallFrameMaterial`** (TP19) inks the top and bottom courses and the corners of the shape the wall wraps,
   filling the panel between. A corner is a **turn**, not a change of direction — the profile measures each
   boundary column's bend over a span either side (`GridBoundary.TurnAt`, TP18), which cancels the raster's

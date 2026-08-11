@@ -321,13 +321,57 @@ public sealed record WallFrameMaterial(TerrainMaterial Edge, TerrainMaterial Fil
 public sealed record CheckerMaterial(int Size, TerrainMaterial Even, TerrainMaterial Odd) : TerrainMaterial
 {
     public override (int Id, int Data) Resolve(in BucketContext ctx)
+        => (Parity(in ctx, Size) == 0 ? Even : Odd).Resolve(in ctx);
+
+    /// <summary>Which of the two squares a cell falls on, in the face the board is laid in. Shared with
+    /// <see cref="LogCheckerMaterial"/>, which lays the same board and varies a log's axis over it rather than
+    /// two materials — one board, described once.</summary>
+    internal static int Parity(in BucketContext ctx, int size)
     {
-        var side = Math.Max(1, Size);
+        var side = Math.Max(1, size);
         var (along, up) = ctx.PerimeterArc >= 0 ? (ctx.PerimeterArc, ctx.Y) : (ctx.X, ctx.Z);
-        var parity = (Floor(along, side) + Floor(up, side)) & 1;
-        return (parity == 0 ? Even : Odd).Resolve(in ctx);
+        return (Floor(along, side) + Floor(up, side)) & 1;
     }
 
     private static int Floor(int value, int side) =>
         value >= 0 ? value / side : -(((-value) + side - 1) / side);
+}
+
+/// <summary>
+/// A checkerboard of <b>one</b> log, alternating the way it is turned rather than what it is made of: standing
+/// upright on one square, lying on its side on the next. The grain runs vertically on the first and across on
+/// the second, so a wall reads as a woven board out of a single block — the timbering nearly every hand-built
+/// house on the corpus uses (`alpine_mining_ii` does it in acacia).
+///
+/// <para>It is its own material rather than a <see cref="CheckerMaterial"/> over two solids because the two
+/// squares are not two blocks. They are one block and two orientations, and an orientation is not something a
+/// solid can carry: a log's data nibble <em>is</em> its axis, so a material that resolved the nibble from the
+/// cell's coordinates would turn every log the same way and paint a flat patch of wall.</para>
+///
+/// <para><b>A log on its side lies along the wall, never across it.</b> The axis a log is laid on decides which
+/// two of its six faces are the sawn ends, and a log laid across a wall puts one of them straight out at the
+/// viewer — the one thing the pattern must not do. The wall's own run answers that
+/// (<see cref="BucketContext.PerimeterRun"/>): the log takes the axis the wall is going. Off a wall there is no
+/// face to protect and the flat squares read as bark against sawn end, which is what a log floor is.</para>
+/// </summary>
+public sealed record LogCheckerMaterial(int Size, int Id, int Data = 0) : TerrainMaterial
+{
+    /// <summary>The two bits of a log's data that carry its axis, above the two that carry its species.</summary>
+    private const int Upright = 0, AlongX = 4, AlongZ = 8;
+
+    public override (int Id, int Data) Resolve(in BucketContext ctx)
+    {
+        // The data a log carries is its species in the low two bits and its axis in the two above, so the
+        // author names the wood and the pattern supplies the turn — the rule a window's block already follows.
+        var wood = Data & 3;
+        // A corner is on two faces at right angles and no log lying down can show bark to both, so it stands —
+        // which is what a corner of a timbered building is anyway.
+        if (ctx.PerimeterRun == GridBoundary.RunsBothWays) return (Id, wood | Upright);
+        if (CheckerMaterial.Parity(in ctx, Size) == 0) return (Id, wood | Upright);
+
+        // Along the wall where there is one. Off a wall either axis shows bark upward, and x is taken so a
+        // floor's grain is at least consistent rather than deciding itself per cell.
+        var axis = ctx.PerimeterRun == GridBoundary.RunAlongZ ? AlongZ : AlongX;
+        return (Id, wood | axis);
+    }
 }

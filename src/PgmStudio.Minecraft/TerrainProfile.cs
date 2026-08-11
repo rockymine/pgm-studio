@@ -16,7 +16,7 @@ namespace PgmStudio.Minecraft;
 /// an outer boundary — what a wall-run pattern reads to wrap the perimeter (TP13).</summary>
 public readonly record struct ColumnProfile(
     int SurfaceTop, bool VoidEdge, bool OpenEdge, bool ClosedEdge, int VoidDrop, int TerrainDrop,
-    int PerimeterArc = -1, int PerimeterTurn = 0);
+    int PerimeterArc = -1, int PerimeterTurn = 0, int PerimeterRun = 0);
 
 /// <summary>
 /// The shared core of terrain painting (docs/world-export/terrain-painting.md §5, stage 1): classifies every
@@ -37,6 +37,7 @@ public sealed class TerrainProfile
     private readonly Dictionary<(int, int), CellFacts> _facts;
     private readonly Dictionary<(int, int), int> _perimeterArc = [];
     private readonly Dictionary<(int, int), int> _perimeterTurn = [];
+    private readonly Dictionary<(int, int), int> _perimeterRun = [];
     private readonly Dictionary<(int, int), ColumnProfile> _columns = [];
 
     public TerrainProfile(VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop)
@@ -95,7 +96,8 @@ public sealed class TerrainProfile
         }
         return new ColumnProfile(self.Top, voidEdge, openEdge, closedEdge, voidDrop, terrainDrop,
             _perimeterArc.GetValueOrDefault((x, z), -1),
-            _perimeterTurn.GetValueOrDefault((x, z), 0));
+            _perimeterTurn.GetValueOrDefault((x, z), 0),
+            _perimeterRun.GetValueOrDefault((x, z), 0));
     }
 
     // 4-connected components of equal surface top over the whole footprint (structures included, so a plateau
@@ -123,6 +125,10 @@ public sealed class TerrainProfile
             foreach (var (cell, arc) in ring) _perimeterArc[cell] = arc;
             foreach (var (cell, turn) in GridBoundary.Turns(ring, CornerWindow))
                 _perimeterTurn[cell] = (int)Math.Round(turn);
+            // Which way the face is going as well as how sharply it bends — what a block with a direction of
+            // its own is laid along, measured over the same window so the two agree about the same stretch.
+            foreach (var (cell, run) in GridBoundary.Runs(ring, CornerWindow))
+                _perimeterRun[cell] = run;
         }
     }
 

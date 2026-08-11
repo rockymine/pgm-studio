@@ -25,7 +25,12 @@ public sealed class RimEdgesConverter() : JsonStringEnumConverter<RimEdges>(Json
 /// dirt) reads — the <see cref="TeamData"/> of the team that owns the cell (a 0–15 wool/clay damage nibble,
 /// -1 = neutral), and <see cref="PerimeterArc"/>, the cell's arc index along the outer void-facing wall (-1
 /// off it) that a wall-run pattern reads (TP13).</summary>
-public readonly record struct BucketContext(int X, int Y, int Z, TerrainBucket Bucket, int DepthFromTop, int TeamData = -1, int PerimeterArc = -1, int HeightFromBottom = 0, int PerimeterTurn = 0)
+/// <param name="PerimeterRun">Which axis the wall runs along where this cell sits
+/// (<see cref="PgmStudio.Geom.Algorithms.GridBoundary.RunAlongX"/> or <c>RunAlongZ</c>), or 0 off a wall. The
+/// arc says how far round the face a cell is and the turn how sharply the face bends; this says which way the
+/// face is <em>going</em>, which is what a block with a direction of its own needs. A log laid across a wall
+/// rather than along it points its cut end at whoever is looking.</param>
+public readonly record struct BucketContext(int X, int Y, int Z, TerrainBucket Bucket, int DepthFromTop, int TeamData = -1, int PerimeterArc = -1, int HeightFromBottom = 0, int PerimeterTurn = 0, int PerimeterRun = 0)
 {
     /// <summary>Whether the cell belongs to a team (a colour is available for a team-tinted material).</summary>
     public bool HasTeam => TeamData >= 0;
@@ -48,6 +53,7 @@ public readonly record struct BucketContext(int X, int Y, int Z, TerrainBucket B
 [JsonDerivedType(typeof(WallRunMaterial), "wallRun")]
 [JsonDerivedType(typeof(WallDiagonalMaterial), "wallDiagonal")]
 [JsonDerivedType(typeof(CheckerMaterial), "checker")]
+[JsonDerivedType(typeof(LogCheckerMaterial), "logChecker")]
 [JsonDerivedType(typeof(WallFrameMaterial), "wallFrame")]
 public abstract record TerrainMaterial
 {

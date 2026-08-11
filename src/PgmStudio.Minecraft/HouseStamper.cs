@@ -1,4 +1,5 @@
 using PgmStudio.Domain;
+using PgmStudio.Geom.Algorithms;
 
 namespace PgmStudio.Minecraft;
 
@@ -64,7 +65,7 @@ public static class HouseStamper
             // is. Without them every cell of the wall answers as arc 0 and a striped wall comes out flat.
             var arc = ring.Arc(x, z);
             var (id, data) = material.Resolve(new BucketContext(
-                x, y, z, TerrainBucket.Fill, depth, color, arc, 0, ring.Turn(arc)));
+                x, y, z, TerrainBucket.Fill, depth, color, arc, 0, ring.Turn(arc), ring.Run(x, z)));
             if (id == Blocks.Air) return;
             world.SetBlock(x, y, z, id, data);
         }
@@ -496,6 +497,17 @@ public static class HouseStamper
         /// outside. What the floor's zones are cut by.</summary>
         public int Ring(int x, int z)
             => Math.Min(Math.Min(x - MinX, MaxX - x), Math.Min(z - MinZ, MaxZ - z));
+
+        /// <summary>Which axis the wall runs along at this cell — what a block with a direction of its own is
+        /// laid along, so a log on its side shows bark to the outside rather than its sawn end. A rectangle
+        /// answers it exactly where a traced outline has to measure it: the ±z walls run along x and the ±x
+        /// walls along z. A corner belongs to both, and takes the x wall's answer for the same reason the arc
+        /// counts it there.</summary>
+        public int Run(int x, int z)
+            => OnCorner(x, z) ? GridBoundary.RunsBothWays
+                : z == MinZ || z == MaxZ ? GridBoundary.RunAlongX
+                : x == MinX || x == MaxX ? GridBoundary.RunAlongZ
+                : 0;
 
         /// <summary>How far round the perimeter a cell sits, clockwise from the −x/−z corner, or −1 off the
         /// ring. A wall is a closed loop, so a wall-run pattern reads this exactly as it reads a plateau's

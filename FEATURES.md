@@ -3210,6 +3210,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   The same angle sets how far the ink wraps each corner, since the turn ramps to a vertex. `ColumnProfile`
   carries the per-column turn and `BucketContext` a cell's height above its band's foot; a room shell answers
   the same question closed-form as `atan2(window − d, d)`.
+- **A log checkerboard (TP20).** `LogCheckerMaterial` lays a checkerboard with **one** log and varies how it is
+  turned rather than what it is made of — upright on one square, on its side on the next — so the grain runs
+  vertically and then across and a single block reads as a woven board. Its own kind rather than a checker over
+  two solids because the two squares are one block and two orientations, and an orientation is not something a
+  solid can carry: a log's data nibble *is* its axis, so a material resolving that nibble from the cell's
+  coordinates turns every log the same way and paints a flat patch of wall. **A log on its side lies along the
+  wall, never across it** — the axis decides which two of its six faces are sawn, and a log laid across a wall
+  puts one straight out at the viewer. That needed a third perimeter fact beside the arc and the turn: the
+  **run** (`GridBoundary.RunAt` / `RunsBothWays`, carried on `ColumnProfile` and `BucketContext`), the axis the
+  wall is going where a cell sits, taken from the chord over the same window the turn is measured on. A corner
+  has faces on both axes and no lying log shows bark to both, so it stands — which is what a timbered corner
+  post is anyway. Off a wall the squares read as bark against sawn end, which is a log floor. The rule was read
+  off `alpine_mining_ii` rather than guessed: every horizontal acacia log in its z-facing house walls is axis-x
+  and none is axis-z.
 - **Diagonal wall stripes and a checkerboard (TP17).** `WallDiagonalMaterial` shears a wall-run's stripe cycle
   by starting each course `Slope` cells further round the perimeter than the one beneath — slope 1 is 45° on a
   square-blocked face, larger lays it flatter, negative leans it the other way, 0 is the vertical run — reading

@@ -104,6 +104,14 @@
             else — so it reads as squares on both rather than as stripes down a wall.</p>
           break;
 
+        case MaterialKind.LogChecker:
+          <p>One log alternating over squares of the given side: <strong>upright on one, on its side on the
+            next</strong>. The grain runs vertically on one and across on the other, so a single block reads
+            as a woven board — the timbering the hand-built houses on the corpus use. A log on its side is
+            always laid <strong>along</strong> the wall, never across it, since a log laid across a wall
+            points its sawn end at whoever is looking.</p>
+          break;
+
         case MaterialKind.WallFrame:
           <p>Inks the wall's top and bottom courses and its corners, filling the panel between — a rectangle
             comes out outlined the way a comic panel is. A corner is decided by <strong>how far the outline
@@ -280,6 +288,19 @@
         </div>
         <MaterialEditor Nested Label="Light square" Blocks="Blocks" Node="Even" OnChanged="Changed" />
         <MaterialEditor Nested Label="Dark square" Blocks="Blocks" Node="Odd" OnChanged="Changed" />
+        break;
+
+      case MaterialKind.LogChecker:
+        <div class="material-editor-scalars">
+          <Field Label="Square">
+            <input class="field-input field-input--slim" type="number" min="1" step="1"
+                   title="The side of one square, in blocks"
+                   value="@Int(ThemeFields.Size, 1)" @onchange="SetSize" />
+          </Field>
+        </div>
+        @* The block is picked whole and only its species is kept: the two bits above it are the axis, and
+           the axis is what this pattern is turning. *@
+        <BlockPicker Blocks="Blocks" Id="@Int(ThemeFields.Id, 162)" Data="@Int(ThemeFields.Data, 0)" OnPick="PickSolid" />
         break;
 
       case MaterialKind.WallFrame:
