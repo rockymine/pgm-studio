@@ -20,7 +20,8 @@ public sealed class RoomStyleLibraryEndpointsTests
         RoofForms.Flat, Pitch: 1, Overhang: 0, RoofHole: true, RidgeCap: false,
         BorderWidth: 1, InlayInset: 2, Storeys: 1, StoreyClear: 0,
         Windows: new RoomWindowDto(WindowForms.None, Blocks.GlassPane, 0, 2, 2, 2, 3), Porch: null,
-        Door: "stained-glass-pane", DoorHeight: 3, Courses: courses);
+        Door: "stained-glass-pane", DoorHeight: 3,
+        RoofStyleId: null, PorchStyleId: null, StoreyStack: [], Courses: courses);
 
     private static async Task<long> StyleAsync(HttpClient client, string name, int blockId)
     {

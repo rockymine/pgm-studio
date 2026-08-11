@@ -1,0 +1,32 @@
+@namespace PgmStudio.Client.Components
+
+@* The four pictures of a building, shown wherever one is being composed — a room style, a roof, a storey, a
+   porch. One component because the four views are the building rather than the editor: an isometric of what it
+   looks like, a plan of what the roof does, a section through the course stack, and a cutaway of one plane at
+   the scale of the pieces in it. Every one is stamped by the real HouseStamper and read back out of the world,
+   so none can promise a building the export would not put down.
+
+   A library *card* deliberately carries only the section. These four are for the one thing an editor has open:
+   an isometric runs tens of kilobytes, which is nothing once and megabytes in a grid. *@
+
+@if (Preview is not null)
+{
+  <figure class="house-views__iso">@((MarkupString)Preview.Iso)</figure>
+  <div class="dressing-views">
+    <figure class="theme-section-figure">@((MarkupString)Preview.Plan)</figure>
+    <figure class="theme-section-figure">@((MarkupString)Preview.Section)</figure>
+  </div>
+  @if (ShowCutaway)
+  {
+    <figure class="house-views__cut">@((MarkupString)Preview.Cutaway)</figure>
+  }
+}
+
+@code {
+    [Parameter] public RoomStylePreviewDto? Preview { get; set; }
+
+    /// <summary>Whether to draw the sub-block cutaway. On by default: it is the only view that shows a stair
+    /// lattice as the opening it is, and the only one that shows a storey's slab, the clear under it and the
+    /// ladder through it at once.</summary>
+    [Parameter] public bool ShowCutaway { get; set; } = true;
+}

@@ -27,6 +27,12 @@ public partial class RoomStyleComposer
     private IReadOnlyList<StyleDto> styles = [];
     private IReadOnlyList<DoorOptionDto> doors = [];
 
+    // The parts this house may be composed from (B71). Names and ids only: the rail binds one by picking it,
+    // and what it looks like is the picture the Parts tab already draws.
+    private IReadOnlyList<RoofStyleSummary> roofs = [];
+    private IReadOnlyList<StoreyStyleSummary> storeys = [];
+    private IReadOnlyList<PorchStyleSummary> porches = [];
+
     /// <summary>The block shortlist the window and rail pickers offer. Windows and railings are chosen as a
     /// block rather than as a bound style: their metadata is geometry — which way a stair climbs, which half a
     /// slab fills — and a material would resolve that from where the cell sits.</summary>
@@ -60,6 +66,9 @@ public partial class RoomStyleComposer
         loading = true;
         rooms = await Library.RoomStylesAsync();
         styles = await Library.StylesAsync();
+        roofs = await Library.RoofStylesAsync();
+        storeys = await Library.StoreyStylesAsync();
+        porches = await Library.PorchStylesAsync();
         loading = false;
         StateHasChanged();
     }
@@ -73,7 +82,8 @@ public partial class RoomStyleComposer
         RoofForm: RoofForms.Flat, Pitch: 1, Overhang: 0, RoofHole: true, RidgeCap: false,
         BorderWidth: 1, InlayInset: 2, Storeys: 1, StoreyClear: 0,
         Windows: NoWindows, Porch: null,
-        Door: doors.FirstOrDefault()?.Slug ?? "", DoorHeight: 3, Courses: []);
+        Door: doors.FirstOrDefault()?.Slug ?? "", DoorHeight: 3,
+        RoofStyleId: null, PorchStyleId: null, StoreyStack: [], Courses: []);
 
     private static readonly RoomWindowDto NoWindows =
         new(WindowForms.None, Block: 102, Data: 0, Sill: 2, Width: 2, Height: 2, Spacing: 3);
@@ -106,7 +116,8 @@ public partial class RoomStyleComposer
             detail.RoofForm, detail.Pitch, detail.Overhang, detail.RoofHole, detail.RidgeCap,
             detail.BorderWidth, detail.InlayInset, detail.Storeys, detail.StoreyClear,
             detail.Windows, detail.Porch,
-            detail.Door, detail.DoorHeight, detail.Courses);
+            detail.Door, detail.DoorHeight,
+            detail.RoofStyleId, detail.PorchStyleId, detail.StoreyStack, detail.Courses);
         await Preview();
     }
 
@@ -207,7 +218,66 @@ public partial class RoomStyleComposer
     private Task SetInlayInset(ChangeEventArgs e) =>
         Knob(d => d with { InlayInset = Math.Clamp(Parse(e, d.InlayInset), 1, 8) });
 
-    // ── the storeys ────────────────────────────────────────────────────────────────────────────────
+    // ── the parts this house binds ─────────────────────────────────────────────────────────────────
+    /// <summary>Bind a roof, or unbind it. Unbound is not "no roof" — it is this house describing its own,
+    /// which is what every room style did before there were parts.</summary>
+    private Task BindRoofStyle(ChangeEventArgs e) => Knob(d => d with { RoofStyleId = Picked(e) });
+
+    private Task BindPorchStyle(ChangeEventArgs e) => Knob(d => d with { PorchStyleId = Picked(e) });
+
+    private static long? Picked(ChangeEventArgs e)
+        => long.TryParse((string?)e.Value, out var id) && id > 0 ? id : null;
+
+    /// <summary>Add a storey on top. The stack reads ground-first, so a new one lands at the end — a building
+    /// grows upward, and an author adding a floor is adding the one above the last.</summary>
+    private Task AddStorey()
+        => storeys.Count == 0
+            ? Task.CompletedTask
+            : WriteStack([.. draft!.StoreyStack, new RoomStoreyDto(storeys[0].Id, 0)]);
+
+    private Task RemoveStorey(int index)
+        => WriteStack([.. draft!.StoreyStack.Where((_, at) => at != index)]);
+
+    private Task BindStorey(int index, ChangeEventArgs e)
+        => EditStorey(index, storey => storey with
+        {
+            StoreyStyleId = long.TryParse((string?)e.Value, out var id) ? id : storey.StoreyStyleId,
+        });
+
+    /// <summary>The clear this storey takes <em>here</em>. Zero keeps the storey style's own, which is what
+    /// lets one preset be a tall ground floor in one house and an ordinary room in another.</summary>
+    private Task SetStoreyStackClear(int index, ChangeEventArgs e)
+        => EditStorey(index, storey => storey with { Clear = Math.Clamp(Parse(e, storey.Clear), 0, 16) });
+
+    private Task EditStorey(int index, Func<RoomStoreyDto, RoomStoreyDto> edit)
+        => WriteStack([.. draft!.StoreyStack.Select((storey, at) => at == index ? edit(storey) : storey)]);
+
+    /// <summary>Move a storey one place through the building. The list <em>is</em> the order, so this is the
+    /// whole of reordering — there is no ordinal to renumber.</summary>
+    private Task MoveStorey(int index, int by)
+    {
+        var stack = draft!.StoreyStack.ToList();
+        var to = index + by;
+        if (to < 0 || to >= stack.Count) return Task.CompletedTask;
+        (stack[index], stack[to]) = (stack[to], stack[index]);
+        return WriteStack(stack);
+    }
+
+    private Task WriteStack(IReadOnlyList<RoomStoreyDto> stack) => Knob(d => d with { StoreyStack = stack });
+
+    /// <summary>Courses of wall the bound stack spends: each storey's clear, plus one for the slab under every
+    /// storey but the ground. Computed here rather than asked for, since the caption is about the stack the
+    /// author is holding and the summary already carries every clear it needs.</summary>
+    private int StackCourses => draft!.StoreyStack
+        .Select(storey => Math.Max(3, storey.Clear > 0 ? storey.Clear : ClearOf(storey.StoreyStyleId)))
+        .Sum() + Math.Max(0, draft.StoreyStack.Count - 1);
+
+    /// <summary>A bound storey style's own clear, or the three a room is at least where the binding names one
+    /// this library no longer holds.</summary>
+    private int ClearOf(long storeyStyleId)
+        => storeys.FirstOrDefault(storey => storey.Id == storeyStyleId)?.Clear ?? 3;
+
+    // ── the storeys the house counts for itself ────────────────────────────────────────────────────
     /// <summary>How many storeys are stacked inside. One is the building every style was before there were
     /// storeys, so the whole feature starts switched off.</summary>
     private Task SetStoreys(ChangeEventArgs e) =>

@@ -1,6 +1,7 @@
 using PgmStudio.Contracts;
 using PgmStudio.Domain;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Views;
 
 namespace PgmStudio.Api.Services;
 
@@ -9,11 +10,16 @@ namespace PgmStudio.Api.Services;
 /// sample <see cref="RoomFrame"/> and reading the blocks back, so a card cannot promise a shell the export
 /// would not build — the discipline the dressing pickers and the theme cards already hold.
 ///
-/// <para>Two views, because a shell varies along two axes. From <b>above</b> the roof reads: its hole, and
-/// whether its eave overhangs the walls. From the <b>side</b> everything else does — the course stack that is
-/// the whole point of a style, the doorway cut through it, the floor's depth. The section is a
-/// <see cref="BlockSideView"/> projection rather than a cut, so a doorway on the near wall does not hide the
-/// wall behind it.</para>
+/// <para>Four views, because a building varies along more axes than one picture holds. The <b>isometric</b> is
+/// what it looks like. From <b>above</b> the roof reads: its hole, and whether its eave overhangs the walls.
+/// The <b>section</b> is the course stack and the doorway through it — a <see cref="BlockSideView"/>
+/// projection rather than a cut, so a doorway on the near wall does not hide the wall behind it. The
+/// <b>cutaway</b> is one plane at the scale of the pieces in it, which is the only view that draws a stair
+/// lattice as the opening it is and the only one that shows a storey's slab, the clear under it and the
+/// ladder through it at once.</para>
+///
+/// <para>A card takes the section alone. The full set is drawn for the <em>open editor</em> only: an isometric
+/// runs tens of kilobytes, which is nothing for one picture and megabytes for a grid of them.</para>
 /// </summary>
 public static class RoomStylePreview
 {
@@ -29,10 +35,25 @@ public static class RoomStylePreview
 
     private const int FloorY = 16;
 
+    /// <summary>How far outside the shell a picture reaches: enough to show an eave overhanging it, and the
+    /// ground it stands on either side.</summary>
+    private const int Margin = 2;
+
+    /// <summary>The one picture a library card carries. Kept apart from <see cref="Views"/> so listing the
+    /// library does not draw an isometric per row.</summary>
+    public static string Card(HouseStyle style, int cell = 6)
+        => WorldViews.Section(Stamped(style), Outer(style), cell);
+
+    /// <summary>Every view of the sample room, for the one style an editor has open.</summary>
     public static RoomStylePreviewDto Views(HouseStyle style, int cell = 6)
     {
         var world = Stamped(style);
-        return new RoomStylePreviewDto(PlanSvg(world, style, cell), SectionSvg(world, style, cell));
+        var box = Outer(style);
+        return new RoomStylePreviewDto(
+            WorldViews.Plan(world, box, cell),
+            WorldViews.Section(world, box, cell),
+            WorldViews.Isometric(world, box, Math.Max(4, cell)),
+            WorldViews.Elevation(world, Inner(style), CutawayPlane(world, Inner(style)), Math.Max(8, cell * 2)));
     }
 
     /// <summary>The sample room stamped with <paramref name="style"/>, over ground that reaches the shell's
@@ -53,38 +74,28 @@ public static class RoomStylePreview
         return world;
     }
 
-    /// <summary>How far outside the shell a picture reaches: enough to show an eave overhanging it, and the
-    /// ground it stands on either side.</summary>
-    private const int Margin = 2;
+    /// <summary>The box the outward views are taken over: the shell plus its margin of ground, from under the
+    /// deepest floor to over the highest course of roof.</summary>
+    private static ViewBox Outer(HouseStyle style) => new(
+        Sample.MinX - Margin, FloorY - style.Floor.Extent, Sample.MinZ - Margin,
+        Sample.MaxX + Margin - 1, FloorY + style.TopLayerOver(Sample.Width, Sample.Depth), Sample.MaxZ + Margin - 1);
 
-    /// <summary>From above: the highest block of each column. What the roof does — its hole, and whether it
-    /// oversails the walls — reads here and nowhere else.</summary>
-    private static string PlanSvg(VoxelWorld world, HouseStyle style, int cell)
+    /// <summary>The box the cutaway is drawn over — the shell itself, since a slice through the ground beside
+    /// it is a slice through stone.</summary>
+    private static ViewBox Inner(HouseStyle style) => new(
+        Sample.MinX, FloorY - 1, Sample.MinZ,
+        Sample.MaxX, FloorY + style.TopLayerOver(Sample.Width, Sample.Depth), Sample.MaxZ);
+
+    /// <summary>The plane the cutaway is taken on: the one the ladder stands in where the building has
+    /// storeys, since that is where the slab, the clear under it and the way through it are all visible at
+    /// once — else one block inside the front wall, the busiest plane a single-storey shell has. Found by
+    /// looking for the ladder rather than by working out where it ought to be.</summary>
+    private static int CutawayPlane(VoxelWorld world, ViewBox box)
     {
-        var top = FloorY + style.TopLayerOver(Sample.Width, Sample.Depth);
-        return SvgRaster.Raster(Sample.Width + Margin * 2, Sample.Depth + Margin * 2, cell, (x, z) =>
-        {
-            for (var y = top; y >= 1; y--)
-            {
-                var (id, data) = world.GetBlock(Sample.MinX - Margin + x, y, Sample.MinZ - Margin + z);
-                if (id != Blocks.Air) return BlockPalette.Hex(id, data);
-            }
-            return null;
-        });
-    }
-
-    /// <summary>From the side, looking at the door wall: the course stack the style is, depth-shaded so a
-    /// doorway reads as an opening rather than as a hole in the picture.</summary>
-    private static string SectionSvg(VoxelWorld world, HouseStyle style, int cell)
-    {
-        var (fromX, toX) = (Sample.MinX - Margin, Sample.MaxX + Margin - 1);
-        var (fromY, toY) = (FloorY - style.Floor.Extent, FloorY + style.TopLayerOver(Sample.Width, Sample.Depth));
-        var view = BlockSideView.Project(
-            world, fromX, toX, Sample.MinZ - Margin, Sample.MaxZ + Margin - 1, fromY, toY);
-
-        return SvgRaster.Raster(view.Columns, toY - fromY + 1, cell, (column, screenRow) =>
-            view.At(view.FromX + column, toY - screenRow) is { } block
-                ? BlockPalette.Hex(block.Id, block.Data, block.Depth)
-                : null);
+        for (var z = box.MinZ; z <= box.MaxZ; z++)
+            for (var x = box.MinX; x <= box.MaxX; x++)
+                for (var y = box.MinY; y <= box.MaxY; y++)
+                    if (world.GetBlock(x, y, z).Id == Blocks.Ladder) return z;
+        return Sample.MinZ + 1;
     }
 }

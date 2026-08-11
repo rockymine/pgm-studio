@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Views;
 
 namespace PgmStudio.Api.Tests;
 

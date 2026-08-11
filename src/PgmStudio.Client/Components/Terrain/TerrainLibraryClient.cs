@@ -101,6 +101,60 @@ public sealed class TerrainLibraryClient(HttpClient http)
 
     private sealed record RoomStyleJsonResponse(string StyleJson);
 
+    // ── house parts ─────────────────────────────────────────────────────────────
+    // Roofs, storeys and porches: the same five calls each, because they are the same kind of thing — a part
+    // authored once and bound by the houses that want it, exactly as a style is by a theme.
+    public async Task<IReadOnlyList<RoofStyleSummary>> RoofStylesAsync()
+        => await GetOrDefault<List<RoofStyleSummary>>("api/roof-styles") ?? [];
+
+    public Task<RoofStyleDetail?> RoofStyleAsync(long id)
+        => GetOrDefault<RoofStyleDetail>($"api/roof-styles/{id}");
+
+    public Task<RoomStylePreviewDto?> RoofStyleDraftPreviewAsync(RoofStyleSaveRequest draft)
+        => PostOrNull<RoomStylePreviewDto>("api/roof-styles/preview", draft);
+
+    public Task<RoofStyleDetail?> CreateRoofStyleAsync(RoofStyleSaveRequest request)
+        => PostOrNull<RoofStyleDetail>("api/roof-styles", request);
+
+    public Task<RoofStyleDetail?> UpdateRoofStyleAsync(long id, RoofStyleSaveRequest request)
+        => PutOrNull<RoofStyleDetail>($"api/roof-styles/{id}", request);
+
+    public Task<HttpResponseMessage> DeleteRoofStyleAsync(long id) => http.DeleteAsync($"api/roof-styles/{id}");
+
+    public async Task<IReadOnlyList<StoreyStyleSummary>> StoreyStylesAsync()
+        => await GetOrDefault<List<StoreyStyleSummary>>("api/storey-styles") ?? [];
+
+    public Task<StoreyStyleDetail?> StoreyStyleAsync(long id)
+        => GetOrDefault<StoreyStyleDetail>($"api/storey-styles/{id}");
+
+    public Task<RoomStylePreviewDto?> StoreyStyleDraftPreviewAsync(StoreyStyleSaveRequest draft)
+        => PostOrNull<RoomStylePreviewDto>("api/storey-styles/preview", draft);
+
+    public Task<StoreyStyleDetail?> CreateStoreyStyleAsync(StoreyStyleSaveRequest request)
+        => PostOrNull<StoreyStyleDetail>("api/storey-styles", request);
+
+    public Task<StoreyStyleDetail?> UpdateStoreyStyleAsync(long id, StoreyStyleSaveRequest request)
+        => PutOrNull<StoreyStyleDetail>($"api/storey-styles/{id}", request);
+
+    public Task<HttpResponseMessage> DeleteStoreyStyleAsync(long id) => http.DeleteAsync($"api/storey-styles/{id}");
+
+    public async Task<IReadOnlyList<PorchStyleSummary>> PorchStylesAsync()
+        => await GetOrDefault<List<PorchStyleSummary>>("api/porch-styles") ?? [];
+
+    public Task<PorchStyleDetail?> PorchStyleAsync(long id)
+        => GetOrDefault<PorchStyleDetail>($"api/porch-styles/{id}");
+
+    public Task<RoomStylePreviewDto?> PorchStyleDraftPreviewAsync(PorchStyleSaveRequest draft)
+        => PostOrNull<RoomStylePreviewDto>("api/porch-styles/preview", draft);
+
+    public Task<PorchStyleDetail?> CreatePorchStyleAsync(PorchStyleSaveRequest request)
+        => PostOrNull<PorchStyleDetail>("api/porch-styles", request);
+
+    public Task<PorchStyleDetail?> UpdatePorchStyleAsync(long id, PorchStyleSaveRequest request)
+        => PutOrNull<PorchStyleDetail>($"api/porch-styles/{id}", request);
+
+    public Task<HttpResponseMessage> DeletePorchStyleAsync(long id) => http.DeleteAsync($"api/porch-styles/{id}");
+
     // ── styles ──────────────────────────────────────────────────────────────────
     /// <summary>The style library, newest first; <paramref name="kind"/> narrows it to one material kind.</summary>
     public async Task<IReadOnlyList<StyleDto>> StylesAsync(string? kind = null)

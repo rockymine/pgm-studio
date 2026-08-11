@@ -3506,6 +3506,37 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   compares the new storey list by reference, which a round trip cannot survive — with a test naming its
   members so one added later cannot silently drop out of every comparison. `storeys`/`storey_clear` on
   `room_style` (M0017) carry a uniform stack from the composer. (G34g)
+- **A house is composed from parts — roofs, storeys and porches as library rows (B71).** A room style held
+  every knob of a whole building, so a **part** had no identity: a shingled roof with its pitch, its overhang
+  and its capped ridge could not be reused, only re-entered house by house, and a stack of storeys could only
+  be a count of identical ones. `roof_style`, `storey_style` and `porch_style` (M0018) are the level
+  `style` → `theme` already had, applied to buildings — each owning the knobs of its part plus that part's
+  course stacks — and a `room_style` becomes what binds them: its foundation and its door, one roof, an
+  optional porch, and an **ordered** stack of storeys through `room_style_storey`. The split is by what owns a
+  coherent set of decisions, not by nameable piece: a porch carries no courses at all, because its deck is the
+  house's floor and its canopy the roof's material, and the remaining parts are one material each, which a row
+  wrapping a style would only rename. A bound part **replaces the house's own columns for that part and only
+  those**, so a house binding nothing is exactly the building it always was and no stored row had to move. The
+  stack slot's own clear overrides the storey style's, so one preset is a tall ground floor in one house and an
+  ordinary room in another — a shop under two flats is two presets bound three times. The ordinal is assigned
+  from list position rather than trusted from the caller, since a caller free to number it could save a house
+  with two ground floors and no first. Roofs and storeys keep separate course tables so each has a real foreign
+  key to its owner, but resolving a course is written once (`PartCourses`) — duplicated schema shape is cheap,
+  duplicated resolution logic is how two libraries come to disagree. A part a house still wears refuses its
+  delete with the buildings wearing it. Authored on a new **Parts** tab whose one composer reads
+  `PartKindInfo` for which parts and knobs each kind has, so three editors cannot drift. (B71)
+- **The studio and the showcase draw buildings with the same renderers (B71).** The isometric, plan, section
+  and sub-block elevation written for `tools/compose/house-showcase.cs` moved down to
+  `PgmStudio.Minecraft.Views`, the lowest project both it and `PgmStudio.Api` reach — `SvgRaster` with them,
+  and the showcase's private copies replaced by thin local names over the one implementation. The two have to
+  agree about what a building looks like, and a picture one gets right and the other gets wrong is worse than
+  either being wrong alone. `BlockShapes` came down as its own thing: what fraction of its cube a block fills
+  is read out of legacy metadata, which is block knowledge rather than drawing knowledge, and it is what lets
+  the elevation draw a stair lattice as the opening it is instead of a solid 2×2 patch. The room-style editor
+  now shows all four views, including a **cutaway** taken on the plane the ladder stands in — the only view
+  that shows a storey's slab, the clear under it and the way through it at once. Library **cards** keep the
+  cheap run-merged section alone: an isometric is tens of kilobytes, which is nothing for one open editor and
+  megabytes for a grid. (B71)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds

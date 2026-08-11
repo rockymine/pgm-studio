@@ -3,6 +3,7 @@ using PgmStudio.Contracts;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Dressing;
+using PgmStudio.Minecraft.Views;
 
 namespace PgmStudio.Api.Services;
 

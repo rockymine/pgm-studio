@@ -14,11 +14,14 @@ public partial class LibraryTool
 
     internal const string StylesTab = "styles";
     internal const string ThemesTab = "themes";
+    internal const string PartsTab = "parts";
     internal const string RoomsTab = "rooms";
 
+    /// <summary>Styles is the one with no segment of its own, so it is what nothing else claims.</summary>
     private bool On(string tab) => tab == StylesTab
-        ? !On(ThemesTab) && !On(RoomsTab)
+        ? !On(ThemesTab) && !On(PartsTab) && !On(RoomsTab)
         : string.Equals(Tab, tab, StringComparison.OrdinalIgnoreCase);
 
-    private string TabName => On(ThemesTab) ? "Themes" : On(RoomsTab) ? "Rooms" : "Styles";
+    private string TabName =>
+        On(ThemesTab) ? "Themes" : On(PartsTab) ? "House parts" : On(RoomsTab) ? "Rooms" : "Styles";
 }

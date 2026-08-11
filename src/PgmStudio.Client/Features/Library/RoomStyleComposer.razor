@@ -60,19 +60,82 @@
         </div>
         @if (figureHelp)
         {
-          <div class="help-note-body">The sample shell from above and cut open: the roof and its eave read in
-            the first, the course stack and the doorway in the second.</div>
+          <div class="help-note-body">The sample shell four ways: what it looks like, what its roof does seen
+            from above, the course stack and doorway projected onto its front, and one plane cut through at the
+            scale of the pieces in it — which is where a window reads as an opening and a storey's ladder as a
+            way up.</div>
         }
-        <div class="dressing-views">
-          <figure class="theme-section-figure">@((MarkupString)(preview?.Plan ?? ""))</figure>
-          <figure class="theme-section-figure">@((MarkupString)(preview?.Section ?? ""))</figure>
-        </div>
+        <HouseViews Preview="preview" />
       </div>
 
       <div class="lib-rail-body">
       <Field Label="Name">
         <input class="field-input" @bind="draftName" @bind:event="oninput" />
       </Field>
+
+      @* What the house is composed from. First in the rail because a bound part takes over the sections below
+         it: binding a roof is answering the roof section, and leaving it unbound is answering it here. *@
+      <Section Title="Composed from" Variant="list" HelpTitle="Parts, and the knobs they replace">
+        <Help>A roof, a porch and a stack of storeys are each authored once in <strong>Parts</strong> and bound
+          here — the level a theme already has over a style. A bound part <em>replaces</em> the sections below
+          that describe the same thing; unbound, this house keeps describing it itself, which is what every
+          room style did before parts existed.</Help>
+        <ChildContent>
+          <Field Label="Roof">
+            <select class="field-input field-input--slim" value="@(draft.RoofStyleId ?? 0)"
+                    @onchange="BindRoofStyle">
+              <option value="0">Unbound — the roof section below</option>
+              @foreach (var part in roofs) { <option value="@part.Id" @key="part.Id">@part.Name</option> }
+            </select>
+          </Field>
+          <Field Label="Porch">
+            <select class="field-input field-input--slim" value="@(draft.PorchStyleId ?? 0)"
+                    @onchange="BindPorchStyle">
+              <option value="0">Unbound — the porch section below</option>
+              @foreach (var part in porches) { <option value="@part.Id" @key="part.Id">@part.Name</option> }
+            </select>
+          </Field>
+
+          @* The stack is an order, so it is a list with the ground at the top and no ordinal to type: moving a
+             row is moving a storey. *@
+          <Field Label="Storeys">
+            <Badge Kind="dim">@(draft.StoreyStack.Count == 0
+              ? "Unbound — the wall section below" : $"{draft.StoreyStack.Count} bound")</Badge>
+          </Field>
+          @for (var at = 0; at < draft.StoreyStack.Count; at++)
+          {
+            var index = at;
+            var storey = draft.StoreyStack[index];
+            <div class="lib-bind" @key="@($"storey-{index}")">
+              <select class="field-input field-input--slim" value="@storey.StoreyStyleId"
+                      @onchange="e => BindStorey(index, e)">
+                @foreach (var part in storeys) { <option value="@part.Id" @key="part.Id">@part.Name</option> }
+              </select>
+              <input class="field-input field-input--slim" type="number" min="0" max="16" step="1"
+                     title="The clear this storey takes here. 0 keeps the storey style's own."
+                     value="@storey.Clear" @onchange="e => SetStoreyStackClear(index, e)" />
+              <Button Variant="icon" Icon="chevron-up" Title="Move down the building"
+                      Disabled="@(index == 0)" OnClick="() => MoveStorey(index, -1)" />
+              <Button Variant="icon" Icon="chevron-down" Title="Move up the building"
+                      Disabled="@(index == draft.StoreyStack.Count - 1)" OnClick="() => MoveStorey(index, 1)" />
+              <Button Variant="icon" Icon="trash-2" Title="Remove this storey"
+                      OnClick="() => RemoveStorey(index)" />
+            </div>
+          }
+          @if (draft.StoreyStack.Count > 0)
+          {
+            <p class="section-desc">Ground floor first. @StackCourses courses of wall, with a ladder up the door
+              wall between each pair.</p>
+          }
+          <div class="panel-actions">
+            <Button Icon="plus" Disabled="@(storeys.Count == 0)" OnClick="AddStorey">Add a storey</Button>
+            @if (storeys.Count == 0)
+            {
+              <Button Href="/library/parts" Icon="blocks">Author a storey</Button>
+            }
+          </div>
+        </ChildContent>
+      </Section>
 
       @foreach (var part in RoomPartInfo.All)
       {

@@ -51,6 +51,7 @@ public static class HouseStamper
         var wallTop = floorY + style.WallCourses;                  // the eave course sits on this
         var topWall = levels[^1].Wall ?? style.Wall;               // what a gable end climbs in
         var groundWall = levels[0].Wall ?? style.Wall;             // what a porch post falls back to
+        var groundPost = levels[0].Post ?? style.Post;             // and what it takes where there is one
 
         // Air resolved out of a material is a gap left open, never a hole punched in what is already there:
         // a stack whose fourth course is air is a light slit, and skipping it keeps the pass from erasing a
@@ -102,13 +103,14 @@ public static class HouseStamper
         {
             var storey = levels[level];
             var wall = storey.Wall ?? style.Wall;
+            var corner = storey.Post ?? style.Post;
             for (var course = 1; course <= storey.Courses(level == levels.Count - 1); course++)
                 for (var x = body.MinX; x <= body.MaxX; x++)
                     for (var z = body.MinZ; z <= body.MaxZ; z++)
                     {
                         if (!body.OnPerimeter(x, z)) continue;
                         var y = floorY + bases[level] + course;
-                        if (body.OnCorner(x, z) && style.Post is { } post) Put(x, y, z, post, body);
+                        if (body.OnCorner(x, z) && corner is { } post) Put(x, y, z, post, body);
                         else PutPart(x, y, z, wall, course - 1, body);
                     }
         }
@@ -259,7 +261,7 @@ public static class HouseStamper
 
             // A post stands on the deck, so it takes the ground storey's wall where the style names no post —
             // the storey it is actually beside, not the one at the top of the building.
-            var postMaterial = style.Post ?? groundWall.At(groundWall.Extent - 1).Material;
+            var postMaterial = groundPost ?? groundWall.At(groundWall.Extent - 1).Material;
             foreach (var (x, z) in PorchPosts(porch, outer))
                 for (var y = floorY + 1; y < canopy.Underside(x, z); y++)
                     Put(x, y, z, postMaterial, porch);

@@ -136,6 +136,12 @@ public sealed record Storey
     /// height is its <see cref="Clear"/>, and the courses are counted from that.</summary>
     public RoomPart? Wall { get; init; }
 
+    /// <summary>The four corner columns of this storey, or null for corners that are wall like the rest of it.
+    /// Per storey rather than per building because a storey is the unit an author composes: a timbered ground
+    /// floor under plain rooms is one preset beside another, and a post that belonged to the building could
+    /// not be part of either.</summary>
+    public TerrainMaterial? Post { get; init; }
+
     /// <summary>The windows through that wall, or none.</summary>
     public WindowStyle? Windows { get; init; }
 
@@ -242,10 +248,15 @@ public sealed record HouseStyle
         ? [.. Storeys.Select(storey => storey with
         {
             Wall = storey.Wall ?? Wall,
+            Post = storey.Post ?? Post,
             Windows = storey.Windows ?? Windows,
             Surface = storey.Surface ?? Surface,
         })]
-        : [new Storey { Shell = true, Clear = Wall.Extent, Wall = Wall, Windows = Windows, Surface = Surface }];
+        : [new Storey
+        {
+            Shell = true, Clear = Wall.Extent,
+            Wall = Wall, Post = Post, Windows = Windows, Surface = Surface,
+        }];
 
     /// <summary>Courses of wall from the floor to the eave — every storey's headroom, plus one slab course
     /// between each pair of them.</summary>

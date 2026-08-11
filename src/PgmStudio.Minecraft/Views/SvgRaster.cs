@@ -1,11 +1,11 @@
 using System.Text;
 
-namespace PgmStudio.Api.Services;
+namespace PgmStudio.Minecraft.Views;
 
 /// <summary>
 /// Emits a grid of coloured cells as an SVG, one <c>&lt;rect&gt;</c> per <b>rectangle</b> of one colour rather
 /// than one per cell: cells merge along a row into runs, and a row whose runs repeat the row above extends that
-/// row's rects downward instead of restating them. Every terrain preview is a raster of block colours and the
+/// row's rects downward instead of restating them. Every block preview is a raster of block colours and the
 /// ones that read best are exactly the ones with the most structure — a solid is one rect, a layer stack one per
 /// layer, a wall run one per stripe — so the per-cell form spent kilobytes repeating a colour the picture says
 /// once. The merges carry the same pixels, so only the payload changes.

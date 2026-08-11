@@ -1,5 +1,6 @@
 using PgmStudio.Contracts;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Views;
 
 namespace PgmStudio.Api.Services;
 

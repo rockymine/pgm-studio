@@ -77,6 +77,58 @@ public sealed record RoomWindowDto(
 /// stand on the whole of it. <paramref name="RailBlock"/> 0 leaves the deck open to step off anywhere.</summary>
 public sealed record RoomPorchDto(int Depth, int Inset, string Edge, string Roof, int RailBlock);
 
+// ── the parts a house is composed from (B71) ─────────────────────────────────────────────────────────
+// A roof, a storey and a porch are each their own library row for the reason a style is: the level exists so
+// a part can be authored once and reused, which a knob living on the house cannot be. Each carries the knobs
+// of its part and — where the part has materials of its own — that part's course stacks, in the same
+// RoomCourseDto shape the house uses, so one editor draws all of them.
+
+/// <summary>One row in the roof library, with the roof it stamps.</summary>
+public sealed record RoofStyleSummary(long Id, string Name, string Preview);
+
+/// <summary>A roof style: everything above the eave. Its courses are the <c>roof</c>, <c>verge</c> and
+/// <c>gable</c> parts.</summary>
+public sealed record RoofStyleDetail(
+    long Id, string Name, string Form, int Thickness, int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
+    IReadOnlyList<RoomCourseDto> Courses);
+
+public sealed record RoofStyleSaveRequest(
+    string Name, string Form, int Thickness, int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
+    IReadOnlyList<RoomCourseDto> Courses);
+
+/// <summary>One row in the storey library, with the room it stamps. <paramref name="Clear"/> rides along
+/// because a house binding a stack of these has to say how tall the stack comes out, and asking the server
+/// per keystroke for a number it already sent would be a round trip for an integer.</summary>
+public sealed record StoreyStyleSummary(long Id, string Name, int Clear, string Preview);
+
+/// <summary>A storey style: one room. <paramref name="Clear"/> is the air a player stands in — never under
+/// three, because a room has to be stood up in — and the courses are the <c>wall</c>, <c>post</c> and the
+/// three floor zones.</summary>
+public sealed record StoreyStyleDetail(
+    long Id, string Name, int Clear, int BorderWidth, int InlayInset, RoomWindowDto Windows,
+    IReadOnlyList<RoomCourseDto> Courses);
+
+public sealed record StoreyStyleSaveRequest(
+    string Name, int Clear, int BorderWidth, int InlayInset, RoomWindowDto Windows,
+    IReadOnlyList<RoomCourseDto> Courses);
+
+/// <summary>One row in the porch library, with the porch it stamps.</summary>
+public sealed record PorchStyleSummary(long Id, string Name, string Preview);
+
+/// <summary>A porch style: the strip of footprint the walls give up, and what stands on it. No courses — a
+/// porch's deck is the house's floor and its canopy the roof's material, so what is left to it is its
+/// shape.</summary>
+public sealed record PorchStyleDetail(
+    long Id, string Name, int Depth, int Inset, string Edge, string Roof, int RailBlock);
+
+public sealed record PorchStyleSaveRequest(
+    string Name, int Depth, int Inset, string Edge, string Roof, int RailBlock);
+
+/// <summary>One storey of a house: which storey style fills it, and the clear it takes <em>here</em> —
+/// 0 for the storey style's own. The position in the list is the position in the building, ground first, so
+/// there is no ordinal on the wire: reordering the list is reordering the house.</summary>
+public sealed record RoomStoreyDto(long StoreyStyleId, int Clear);
+
 /// <summary>A full room style (GET /api/room-styles/{id}) — the per-part extents and knobs plus the courses
 /// bound to each part. A part with no courses keeps the built-in finish, the way an unbound theme bucket
 /// does.</summary>
@@ -88,6 +140,7 @@ public sealed record RoomStyleDetail(
     int Storeys, int StoreyClear,
     RoomWindowDto Windows, RoomPorchDto? Porch,
     string Door, int DoorHeight,
+    long? RoofStyleId, long? PorchStyleId, IReadOnlyList<RoomStoreyDto> StoreyStack,
     IReadOnlyList<RoomCourseDto> Courses);
 
 /// <summary>Create or replace a room style (POST /api/room-styles, PUT /api/room-styles/{id}).</summary>
@@ -99,9 +152,11 @@ public sealed record RoomStyleSaveRequest(
     int Storeys, int StoreyClear,
     RoomWindowDto Windows, RoomPorchDto? Porch,
     string Door, int DoorHeight,
+    long? RoofStyleId, long? PorchStyleId, IReadOnlyList<RoomStoreyDto> StoreyStack,
     IReadOnlyList<RoomCourseDto> Courses);
 
-/// <summary>A room style previewed (POST /api/room-styles/preview): the shell it stamps, from above and cut
-/// open. Both are drawn by the real <c>HouseStamper</c> over a sample frame, so a card cannot promise a shell
-/// the export would not build.</summary>
-public sealed record RoomStylePreviewDto(string Plan, string Section);
+/// <summary>The four pictures of a room style: from above, projected onto its front, in isometric, and one
+/// plane drawn at the scale of the pieces in it. A library <em>card</em> carries the section alone — the
+/// isometric is tens of kilobytes, which is nothing for the one style an editor has open and megabytes for a
+/// grid of them.</summary>
+public sealed record RoomStylePreviewDto(string Plan, string Section, string Iso, string Cutaway);

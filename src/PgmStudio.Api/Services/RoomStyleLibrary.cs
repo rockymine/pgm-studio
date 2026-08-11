@@ -15,8 +15,13 @@ namespace PgmStudio.Api.Services;
 /// <para>A part with no courses keeps the built-in finish rather than resolving to nothing: a room style
 /// overrides the parts it names and leaves the rest, which is what makes the library worth having for a style
 /// that only changes its roof.</para>
+///
+/// <para>Since B71 a house may also <b>bind a part style</b> — a roof, a porch, and an ordered stack of
+/// storeys. A bound part takes over from the columns on the house that describe the same part, and only
+/// those. That is what keeps the level free: a house that binds nothing is exactly the building its own
+/// columns always described, so no stored row had to move to gain it.</para>
 /// </summary>
-public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
+public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts, ThemeStore styles)
 {
     /// <summary>A library room style assembled into the one the stamper consumes, or null when unknown.</summary>
     public async Task<HouseStyle?> ComposeAsync(long id, CancellationToken ct = default)
@@ -24,7 +29,9 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
         var row = await rooms.GetAsync(id, ct);
         if (row is null) return null;
         var courses = await rooms.GetCoursesAsync(id, ct);
-        return Compose(row, courses, await StylesOf(courses, ct));
+        return await Bind(
+            Compose(row, courses, await StylesOf(courses, ct)),
+            row, await rooms.GetStoreysAsync(id, ct), ct);
     }
 
     /// <summary>Every library room style with the shell it composes to, newest first — the whole library in
@@ -34,13 +41,17 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
         var rows = await rooms.ListAsync(ct);
         if (rows.Count == 0) return [];
         var byRoom = (await rooms.GetAllCourseStylesAsync(ct)).ToLookup(entry => entry.Course.RoomStyleId);
-        return rows.Select(row =>
+        var stacks = (await rooms.GetAllStoreysAsync(ct)).ToLookup(storey => storey.RoomStyleId);
+        var composed = new List<(RoomStyleRow Row, HouseStyle Style)>(rows.Count);
+        foreach (var row in rows)
         {
             var entries = byRoom[row.Id].ToList();
             var bound = entries.GroupBy(entry => entry.Course.StyleId)
                 .ToDictionary(group => group.Key, group => group.First().Style);
-            return (row, Compose(row, entries.Select(entry => entry.Course).ToList(), bound));
-        }).ToList();
+            var house = Compose(row, entries.Select(entry => entry.Course).ToList(), bound);
+            composed.Add((row, await Bind(house, row, [.. stacks[row.Id]], ct)));
+        }
+        return composed;
     }
 
     /// <summary>The shell a draft composes to without any of it being saved — what the editor re-renders as
@@ -49,8 +60,60 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
     public async Task<HouseStyle> ComposeDraftAsync(RoomStyleSaveRequest draft, CancellationToken ct = default)
     {
         var courses = CourseRowsOf(draft).ToList();
-        return Compose(RowOf(draft), courses, await StylesOf(courses, ct));
+        var row = RowOf(draft);
+        return await Bind(Compose(row, courses, await StylesOf(courses, ct)), row, StoreyRowsOf(draft), ct);
     }
+
+    /// <summary>The house with its bound parts laid over it: the roof it names, the porch it names, and the
+    /// storeys it stacks. Each replaces the house's own columns for that part and nothing else, so a house
+    /// that binds none is untouched by any of this.</summary>
+    private async Task<HouseStyle> Bind(
+        HouseStyle house, RoomStyleRow row, IReadOnlyList<RoomStyleStoreyRow> stack, CancellationToken ct)
+    {
+        if (row.RoofStyleId is { } roofId && await parts.GetRoofAsync(roofId, ct) is { } roof)
+        {
+            var courses = await parts.GetRoofCoursesAsync(roofId, ct);
+            house = HousePartLibrary.RoofOver(
+                roof, PartCourses.Of(courses, await StyleMap(courses.Select(c => c.StyleId), ct)), house);
+        }
+
+        if (row.PorchStyleId is { } porchId && await parts.GetPorchAsync(porchId, ct) is { } porch)
+            house = house with { Porch = HousePartLibrary.PorchOf(porch) };
+
+        if (stack.Count > 0) house = house with { Storeys = await StoreysOf(stack, ct) };
+        return house;
+    }
+
+    /// <summary>The stack a house binds, ground first — each storey style resolved, with the house's own clear
+    /// for that position where it states one. A binding naming a storey style the library no longer holds is
+    /// dropped, the way an unresolvable course is; an empty stack leaves the house's own storey count in
+    /// force.</summary>
+    private async Task<IReadOnlyList<Storey>> StoreysOf(
+        IReadOnlyList<RoomStyleStoreyRow> stack, CancellationToken ct)
+    {
+        var storeys = new List<Storey>(stack.Count);
+        foreach (var binding in stack.OrderBy(s => s.Ordinal))
+        {
+            if (await parts.GetStoreyAsync(binding.StoreyStyleId, ct) is not { } row) continue;
+            var courses = await parts.GetStoreyCoursesAsync(binding.StoreyStyleId, ct);
+            var storey = HousePartLibrary.StoreyOf(
+                row, PartCourses.Of(courses, await StyleMap(courses.Select(c => c.StyleId), ct)));
+            storeys.Add(binding.Clear > 0 ? storey with { Clear = Math.Max(3, binding.Clear) } : storey);
+        }
+        return storeys;
+    }
+
+    private async Task<Dictionary<long, StyleRow>> StyleMap(IEnumerable<long> ids, CancellationToken ct)
+        => (await styles.GetStylesAsync(ids, ct)).ToDictionary(style => style.Id);
+
+    /// <summary>The stack rows a save request describes, in the order it listed them.</summary>
+    public static List<RoomStyleStoreyRow> StoreyRowsOf(RoomStyleSaveRequest req)
+        => [.. req.StoreyStack.Select((storey, at) => new RoomStyleStoreyRow
+        {
+            Ordinal = at,
+            StoreyStyleId = storey.StoreyStyleId,
+            Clear = Math.Clamp(storey.Clear, 0, 16),
+        })];
 
     /// <summary>The row a save request describes — shared by create, update and the draft preview, so the three
     /// cannot disagree about what a request means.</summary>
@@ -84,6 +147,8 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
         PorchEdge = PorchEdges.Canonical(req.Porch?.Edge),
         PorchRoof = RoofForms.Canonical(req.Porch?.Roof ?? RoofForms.Shed),
         PorchRailBlock = Math.Max(0, req.Porch?.RailBlock ?? Blocks.OakFence),
+        RoofStyleId = req.RoofStyleId,
+        PorchStyleId = req.PorchStyleId,
     };
 
     public static IEnumerable<RoomStyleCourseRow> CourseRowsOf(RoomStyleSaveRequest req)
@@ -104,33 +169,34 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
     private static HouseStyle Compose(
         RoomStyleRow row, IReadOnlyList<RoomStyleCourseRow> courses, IReadOnlyDictionary<long, StyleRow> bound)
     {
+        var stack = PartCourses.Of(courses, bound);
         // Built from the shipped shell rather than from a bare style, so a row inherits what a shell is —
         // flat-roofed, unframed, no sill — and names only what it changes. A fresh HouseStyle would default
         // to a gable, which a stored row has no way to ask for and no way to describe.
         var builtIn = HouseStyle.Wool;
         return builtIn with
         {
-            Floor = Part(RoomParts.Floor, row.FloorDepth, builtIn.Floor),
-            Wall = Part(RoomParts.Wall, row.WallHeight, builtIn.Wall),
+            Floor = stack.Stack(RoomParts.Floor, row.FloorDepth, builtIn.Floor),
+            Wall = stack.Stack(RoomParts.Wall, row.WallHeight, builtIn.Wall),
             // A roof is one course, so its stack contributes only its first material and the stored thickness
             // is ignored. The eave was a two-valued overhang all along: flush is none, overlap is one block.
-            Roof = Material(RoomParts.Roof, builtIn.Roof),
+            Roof = stack.Material(RoomParts.Roof, builtIn.Roof),
             // A house's three: unbound they stay what a shell is — corners that are wall like the rest of it,
             // no footing, and a rim in the roof's own material.
-            Post = Bound(RoomParts.Post),
+            Post = stack.Bound(RoomParts.Post),
             // Unbound the gable is the wall's top course carried up, which is what every stored style was
             // before the face had a name of its own.
-            Gable = Bound(RoomParts.Gable),
-            Sill = Material(RoomParts.Sill, builtIn.Sill),
-            Verge = Material(RoomParts.Verge, Material(RoomParts.Roof, builtIn.Roof)),
+            Gable = stack.Bound(RoomParts.Gable),
+            Sill = stack.Material(RoomParts.Sill, builtIn.Sill),
+            Verge = stack.Material(RoomParts.Verge, stack.Material(RoomParts.Roof, builtIn.Roof)),
             // The floor's top course in plan. Each zone is unbound until a course names it, and an unbound
             // zone is not a zone: the floor part shows through, which is what every stored style was.
             Surface = new FloorSurface
             {
-                Field = Bound(RoomParts.Field),
-                Border = Bound(RoomParts.Border),
+                Field = stack.Bound(RoomParts.Field),
+                Border = stack.Bound(RoomParts.Border),
                 BorderWidth = Math.Max(1, row.BorderWidth),
-                Inlay = Bound(RoomParts.Inlay),
+                Inlay = stack.Bound(RoomParts.Inlay),
                 InlayInset = Math.Max(1, row.InlayInset),
             },
             Windows = WindowOf(row),
@@ -144,35 +210,11 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
             Door = DoorMaterials.TryParse(row.Door, out var door) ? door : DoorMaterial.StainedGlassPane,
             DoorHeight = Math.Max(1, row.DoorHeight),
         };
-
-        // A part that takes one material rather than a stack: its first bound course, or the fallback.
-        TerrainMaterial Material(string part, TerrainMaterial fallback) => Bound(part) ?? fallback;
-
-        TerrainMaterial? Bound(string part) => courses
-            .Where(course => course.Part == part)
-            .OrderBy(course => course.Ordinal)
-            .Select(course => MaterialOf(course, bound))
-            .FirstOrDefault(material => material is not null);
-
-        RoomPart Part(string part, int extent, RoomPart fallback)
-        {
-            var stack = courses
-                .Where(course => course.Part == part)
-                .OrderBy(course => course.Ordinal)
-                .Select(course => MaterialOf(course, bound) is { } material
-                    ? new RoomCourse(material, Math.Max(1, course.Height))
-                    : (RoomCourse?)null)
-                .OfType<RoomCourse>()
-                .ToList();
-            return stack.Count == 0
-                ? fallback with { Extent = Math.Max(1, extent) }
-                : new RoomPart(stack, Math.Max(1, extent));
-        }
     }
 
     /// <summary>The stored word for a roof as the stamper's own form. Unknown words are the flat lid, the same
     /// fold <see cref="RoofForms.Canonical"/> makes, so a hand-edited row still stamps.</summary>
-    private static RoofForm FormOf(string? form) => RoofForms.Canonical(form) switch
+    public static RoofForm FormOf(string? form) => RoofForms.Canonical(form) switch
     {
         RoofForms.Gable => RoofForm.Gable,
         RoofForms.Hip => RoofForm.Hip,
@@ -228,14 +270,4 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
         RailBlock = Math.Max(0, row.PorchRailBlock),
     };
 
-    /// <summary>The material a course resolves through, or null when it names a style the library no longer
-    /// holds or one whose params this build cannot read. Deliberately forgiving for the reason a style's card
-    /// picture is: <c>params_json</c> is a hand-editable leaf, and a room that draws without one bad course is
-    /// more use than a library that refuses to list.</summary>
-    private static TerrainMaterial? MaterialOf(RoomStyleCourseRow course, IReadOnlyDictionary<long, StyleRow> bound)
-    {
-        if (!bound.TryGetValue(course.StyleId, out var style)) return null;
-        try { return TerrainThemeJson.DeserializeMaterial(style.Params); }
-        catch { return null; }
-    }
 }

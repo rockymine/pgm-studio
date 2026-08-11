@@ -1,0 +1,273 @@
+using FastEndpoints;
+using PgmStudio.Api.Services;
+using PgmStudio.Contracts;
+using PgmStudio.Data.Schema;
+using PgmStudio.Data.Theme;
+
+namespace PgmStudio.Api.Endpoints;
+
+/// <summary>Row ↔ wire-DTO mapping for the house-part library (B71), <see cref="RoomStyleMapping"/>'s sibling
+/// one level down.</summary>
+internal static class HousePartMapping
+{
+    public static RoofStyleDetail ToDetail(RoofStyleRow row, IReadOnlyList<RoofStyleCourseRow> courses) =>
+        new(row.Id, row.Name, row.Form, row.Thickness, row.Pitch, row.Overhang, row.RoofHole, row.RidgeCap,
+            [.. courses.Select(c => new RoomCourseDto(c.Part, c.Ordinal, c.StyleId, c.Height))]);
+
+    /// <summary>What a saved roof comes back as — read off the <em>row</em> it composes to rather than off the
+    /// request, so the clamps the row applies are the numbers the editor is handed back.</summary>
+    public static RoofStyleDetail ToDetail(long id, RoofStyleSaveRequest req)
+    {
+        var row = HousePartLibrary.RowOf(req);
+        row.Id = id;
+        return ToDetail(row, [.. HousePartLibrary.RoofCourseRowsOf(req)]);
+    }
+
+    public static StoreyStyleDetail ToDetail(StoreyStyleRow row, IReadOnlyList<StoreyStyleCourseRow> courses) =>
+        new(row.Id, row.Name, row.Clear, row.BorderWidth, row.InlayInset,
+            new RoomWindowDto(row.WindowForm, row.WindowBlock, row.WindowData, row.WindowSill,
+                row.WindowWidth, row.WindowHeight, row.WindowSpacing),
+            [.. courses.Select(c => new RoomCourseDto(c.Part, c.Ordinal, c.StyleId, c.Height))]);
+
+    public static StoreyStyleDetail ToDetail(long id, StoreyStyleSaveRequest req)
+    {
+        var row = HousePartLibrary.RowOf(req);
+        row.Id = id;
+        return ToDetail(row, [.. HousePartLibrary.StoreyCourseRowsOf(req)]);
+    }
+
+    public static PorchStyleDetail ToDetail(PorchStyleRow row) =>
+        new(row.Id, row.Name, row.Depth, row.Inset, row.Edge, row.RoofForm, row.RailBlock);
+
+    public static PorchStyleDetail ToDetail(long id, PorchStyleSaveRequest req)
+    {
+        var row = HousePartLibrary.RowOf(req);
+        row.Id = id;
+        return ToDetail(row);
+    }
+}
+
+// ── roofs ─────────────────────────────────────────────────────────────────────────────────────────────
+/// <summary>GET /api/roof-styles — the roof library, newest first, each on the sample building it tops.</summary>
+public sealed class RoofStyleListEndpoint(HousePartLibrary library) : EndpointWithoutRequest<List<RoofStyleSummary>>
+{
+    public override void Configure() { Get("/roof-styles"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+        => await Send.OkAsync((await library.ComposeRoofsAsync(ct))
+            .Select(entry => new RoofStyleSummary(entry.Row.Id, entry.Row.Name, RoomStylePreview.Card(entry.Style)))
+            .ToList(), ct);
+}
+
+/// <summary>GET /api/roof-styles/{id} — one roof with its per-part courses.</summary>
+public sealed class RoofStyleGetEndpoint(HousePartStore store) : EndpointWithoutRequest<RoofStyleDetail>
+{
+    public override void Configure() { Get("/roof-styles/{id}"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var id = Route<long>("id");
+        var row = await store.GetRoofAsync(id, ct);
+        if (row is null) { await Send.NotFoundAsync(ct); return; }
+        await Send.OkAsync(HousePartMapping.ToDetail(row, await store.GetRoofCoursesAsync(id, ct)), ct);
+    }
+}
+
+public sealed class RoofStyleCreateEndpoint(HousePartStore store) : Endpoint<RoofStyleSaveRequest, RoofStyleDetail>
+{
+    public override void Configure() { Post("/roof-styles"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(RoofStyleSaveRequest req, CancellationToken ct)
+    {
+        var id = await store.CreateRoofAsync(
+            HousePartLibrary.RowOf(req), HousePartLibrary.RoofCourseRowsOf(req), ct);
+        await Send.OkAsync(HousePartMapping.ToDetail(id, req), ct);
+    }
+}
+
+public sealed class RoofStyleUpdateEndpoint(HousePartStore store) : Endpoint<RoofStyleSaveRequest, RoofStyleDetail>
+{
+    public override void Configure() { Put("/roof-styles/{id}"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(RoofStyleSaveRequest req, CancellationToken ct)
+    {
+        var id = Route<long>("id");
+        var updated = await store.UpdateRoofAsync(
+            id, HousePartLibrary.RowOf(req), HousePartLibrary.RoofCourseRowsOf(req), ct);
+        if (!updated) { await Send.NotFoundAsync(ct); return; }
+        await Send.OkAsync(HousePartMapping.ToDetail(id, req), ct);
+    }
+}
+
+/// <summary>POST /api/roof-styles/preview — the building a draft roof tops, previewed without saving it.</summary>
+public sealed class RoofStyleDraftPreviewEndpoint(HousePartLibrary library)
+    : Endpoint<RoofStyleSaveRequest, RoomStylePreviewDto>
+{
+    public override void Configure() { Post("/roof-styles/preview"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(RoofStyleSaveRequest req, CancellationToken ct)
+        => await Send.OkAsync(RoomStylePreview.Views(await library.ComposeRoofDraftAsync(req, ct)), ct);
+}
+
+/// <summary>DELETE /api/roof-styles/{id} — forget a roof, unless a house still wears it. A part bound by a
+/// building is one the library must refuse to forget, the answer a style already gives a theme.</summary>
+public sealed class RoofStyleDeleteEndpoint(HousePartStore store) : EndpointWithoutRequest
+{
+    public override void Configure() { Delete("/roof-styles/{id}"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var id = Route<long>("id");
+        var used = await store.UsingRoofAsync(id, ct);
+        if (used.Count > 0) { await Send.ResponseAsync(new { error = "in use", used }, 409, ct); return; }
+        await store.DeleteRoofAsync(id, ct);
+        await Send.NoContentAsync(ct);
+    }
+}
+
+// ── storeys ───────────────────────────────────────────────────────────────────────────────────────────
+/// <summary>GET /api/storey-styles — the storey library, newest first, each as the one-storey building it
+/// makes.</summary>
+public sealed class StoreyStyleListEndpoint(HousePartLibrary library)
+    : EndpointWithoutRequest<List<StoreyStyleSummary>>
+{
+    public override void Configure() { Get("/storey-styles"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+        => await Send.OkAsync((await library.ComposeStoreysAsync(ct))
+            .Select(entry => new StoreyStyleSummary(
+                entry.Row.Id, entry.Row.Name, entry.Row.Clear, RoomStylePreview.Card(entry.Style)))
+            .ToList(), ct);
+}
+
+public sealed class StoreyStyleGetEndpoint(HousePartStore store) : EndpointWithoutRequest<StoreyStyleDetail>
+{
+    public override void Configure() { Get("/storey-styles/{id}"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var id = Route<long>("id");
+        var row = await store.GetStoreyAsync(id, ct);
+        if (row is null) { await Send.NotFoundAsync(ct); return; }
+        await Send.OkAsync(HousePartMapping.ToDetail(row, await store.GetStoreyCoursesAsync(id, ct)), ct);
+    }
+}
+
+public sealed class StoreyStyleCreateEndpoint(HousePartStore store)
+    : Endpoint<StoreyStyleSaveRequest, StoreyStyleDetail>
+{
+    public override void Configure() { Post("/storey-styles"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(StoreyStyleSaveRequest req, CancellationToken ct)
+    {
+        var id = await store.CreateStoreyAsync(
+            HousePartLibrary.RowOf(req), HousePartLibrary.StoreyCourseRowsOf(req), ct);
+        await Send.OkAsync(HousePartMapping.ToDetail(id, req), ct);
+    }
+}
+
+public sealed class StoreyStyleUpdateEndpoint(HousePartStore store)
+    : Endpoint<StoreyStyleSaveRequest, StoreyStyleDetail>
+{
+    public override void Configure() { Put("/storey-styles/{id}"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(StoreyStyleSaveRequest req, CancellationToken ct)
+    {
+        var id = Route<long>("id");
+        var updated = await store.UpdateStoreyAsync(
+            id, HousePartLibrary.RowOf(req), HousePartLibrary.StoreyCourseRowsOf(req), ct);
+        if (!updated) { await Send.NotFoundAsync(ct); return; }
+        await Send.OkAsync(HousePartMapping.ToDetail(id, req), ct);
+    }
+}
+
+public sealed class StoreyStyleDraftPreviewEndpoint(HousePartLibrary library)
+    : Endpoint<StoreyStyleSaveRequest, RoomStylePreviewDto>
+{
+    public override void Configure() { Post("/storey-styles/preview"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(StoreyStyleSaveRequest req, CancellationToken ct)
+        => await Send.OkAsync(RoomStylePreview.Views(await library.ComposeStoreyDraftAsync(req, ct)), ct);
+}
+
+public sealed class StoreyStyleDeleteEndpoint(HousePartStore store) : EndpointWithoutRequest
+{
+    public override void Configure() { Delete("/storey-styles/{id}"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var id = Route<long>("id");
+        var used = await store.UsingStoreyAsync(id, ct);
+        if (used.Count > 0) { await Send.ResponseAsync(new { error = "in use", used }, 409, ct); return; }
+        await store.DeleteStoreyAsync(id, ct);
+        await Send.NoContentAsync(ct);
+    }
+}
+
+// ── porches ───────────────────────────────────────────────────────────────────────────────────────────
+/// <summary>GET /api/porch-styles — the porch library, newest first, each fronting the sample building.</summary>
+public sealed class PorchStyleListEndpoint(HousePartLibrary library)
+    : EndpointWithoutRequest<List<PorchStyleSummary>>
+{
+    public override void Configure() { Get("/porch-styles"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+        => await Send.OkAsync((await library.ComposePorchesAsync(ct))
+            .Select(entry => new PorchStyleSummary(entry.Row.Id, entry.Row.Name, RoomStylePreview.Card(entry.Style)))
+            .ToList(), ct);
+}
+
+public sealed class PorchStyleGetEndpoint(HousePartStore store) : EndpointWithoutRequest<PorchStyleDetail>
+{
+    public override void Configure() { Get("/porch-styles/{id}"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var row = await store.GetPorchAsync(Route<long>("id"), ct);
+        if (row is null) { await Send.NotFoundAsync(ct); return; }
+        await Send.OkAsync(HousePartMapping.ToDetail(row), ct);
+    }
+}
+
+public sealed class PorchStyleCreateEndpoint(HousePartStore store) : Endpoint<PorchStyleSaveRequest, PorchStyleDetail>
+{
+    public override void Configure() { Post("/porch-styles"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(PorchStyleSaveRequest req, CancellationToken ct)
+        => await Send.OkAsync(
+            HousePartMapping.ToDetail(await store.CreatePorchAsync(HousePartLibrary.RowOf(req), ct), req), ct);
+}
+
+public sealed class PorchStyleUpdateEndpoint(HousePartStore store) : Endpoint<PorchStyleSaveRequest, PorchStyleDetail>
+{
+    public override void Configure() { Put("/porch-styles/{id}"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(PorchStyleSaveRequest req, CancellationToken ct)
+    {
+        var id = Route<long>("id");
+        if (!await store.UpdatePorchAsync(id, HousePartLibrary.RowOf(req), ct)) { await Send.NotFoundAsync(ct); return; }
+        await Send.OkAsync(HousePartMapping.ToDetail(id, req), ct);
+    }
+}
+
+public sealed class PorchStyleDraftPreviewEndpoint : Endpoint<PorchStyleSaveRequest, RoomStylePreviewDto>
+{
+    public override void Configure() { Post("/porch-styles/preview"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(PorchStyleSaveRequest req, CancellationToken ct)
+        => await Send.OkAsync(RoomStylePreview.Views(HousePartLibrary.ComposePorchDraft(req)), ct);
+}
+
+public sealed class PorchStyleDeleteEndpoint(HousePartStore store) : EndpointWithoutRequest
+{
+    public override void Configure() { Delete("/porch-styles/{id}"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var id = Route<long>("id");
+        var used = await store.UsingPorchAsync(id, ct);
+        if (used.Count > 0) { await Send.ResponseAsync(new { error = "in use", used }, 409, ct); return; }
+        await store.DeletePorchAsync(id, ct);
+        await Send.NoContentAsync(ct);
+    }
+}

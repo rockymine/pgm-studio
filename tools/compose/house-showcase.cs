@@ -4,10 +4,10 @@
 // porch comes from, and what its windows are made of. Every figure is stamped by the real HouseStamper and
 // read back out of the VoxelWorld, so a picture cannot promise a building the export would not put down.
 // Run from the repo root: dotnet run tools/compose/house-showcase.cs  →  tools/compose/out/house-showcase.html
-using System.Globalization;
 using System.Text;
 using PgmStudio.Domain;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Views;
 
 const int FloorY = 64;
 
@@ -25,217 +25,30 @@ VoxelWorld Build(int width, int depth, HouseStyle style)
     return world;
 }
 
-// ── the isometric render ──────────────────────────────────────────────────────────────────────────────
-// A block world seen from above one corner. The camera stands off the building's −z side, which is the wall a
-// house fronts on — its door, its porch and most of its windows are there, and a view of the back of a house
-// is a view of a box. Reading z from the far side and walking it toward the camera is what turns the picture
-// round; nothing else in the projection changes.
-//
-// The view direction is then (−1, −1, +1), so a cell is nearer the camera the larger x + y − z is, which is
-// the paint order — and each of the three faces that can possibly face the camera is drawn only when the
-// neighbour it points at is air. Face culling rather than block culling is what keeps the page small: a wall
-// shows one face per block rather than three, and a building's interior draws nothing at all.
-//
-// Consecutive faces of one colour then coalesce into a single <path>, because a house is a few materials
-// repeated thousands of times and a per-face fill attribute is most of the bytes. Consecutive rather than
-// all-of-one-colour: a nearer face still has to paint over a farther one — an eave over the wall behind it —
-// so the depth order is what the emission follows and the colour run is only how far it can be carried.
-// Scale is even and every projected coordinate a multiple of half a tile, so the whole picture is integer
-// arithmetic and no coordinate carries a decimal point.
+// ── the renders ───────────────────────────────────────────────────────────────────────────────────────
+// Thin names over PgmStudio.Minecraft.Views, which the studio's library previews draw with too. The page and
+// the studio have to agree about what a building looks like — a picture one gets right and the other gets
+// wrong is worse than either being wrong alone — so there is one implementation and these are its local
+// spellings, taking the loose bounds the figures below are written in.
 string Iso(VoxelWorld world, int minX, int minZ, int maxX, int maxZ, int minY, int maxY, int scale = 10)
-{
-    int halfWide = scale, halfTall = scale / 2, side = scale;   // a 2:1 tile, one cell tall
-
-    int ScreenX(int x, int z) => (x - z) * halfWide;
-    int ScreenY(int x, int y, int z) => (x + z) * halfTall - y * side;
-
-    // The drawn extent, so the viewBox fits the building rather than the block box it was read out of.
-    int left = (minX - maxZ) * halfWide - halfWide, right = (maxX - minZ) * halfWide + halfWide;
-    int top = ScreenY(minX, maxY, minZ), bottom = ScreenY(maxX, minY, maxZ) + 2 * halfTall + side;
-
-    var faces = new List<(int Depth, string Color, string Path)>();
-    for (var x = minX; x <= maxX; x++)
-        for (var z = minZ; z <= maxZ; z++)
-            for (var y = minY; y <= maxY; y++)
-            {
-                var (id, data) = Block(x, y, z);
-                if (id == Blocks.Air) continue;
-                var rgb = BlockPalette.Color(id, data);
-                int px = ScreenX(x, z) - left, py = ScreenY(x, y, z) - top;
-
-                // Three faces, three shades: the top full, the +z face three-quarters, the +x face half.
-                // Depth in a flat picture has to come from the light, and a single fill turns a roof into a
-                // silhouette.
-                if (!Opaque(x, y + 1, z))
-                    Face(x + y + z, rgb, 1.0, px, py, px + halfWide, py + halfTall, px, py + 2 * halfTall, px - halfWide, py + halfTall);
-                if (!Opaque(x, y, z + 1))
-                    Face(x + y + z, rgb, 0.74, px - halfWide, py + halfTall, px, py + 2 * halfTall, px, py + 2 * halfTall + side, px - halfWide, py + halfTall + side);
-                if (!Opaque(x + 1, y, z))
-                    Face(x + y + z, rgb, 0.52, px, py + 2 * halfTall, px + halfWide, py + halfTall, px + halfWide, py + halfTall + side, px, py + 2 * halfTall + side);
-            }
-
-    // Nearer last, and stably, so the three faces of one block keep the order they were built in.
-    var ordered = faces.OrderBy(face => face.Depth).ToList();
-
-    var svg = new StringBuilder();
-    int width = right - left, height = bottom - top;
-    svg.Append($"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {width} {height}' ")
-       .Append($"width='{width}' height='{height}' role='img'>");
-    for (var at = 0; at < ordered.Count;)
-    {
-        var run = new StringBuilder(ordered[at].Path);
-        var color = ordered[at].Color;
-        var next = at + 1;
-        while (next < ordered.Count && ordered[next].Color == color) run.Append(ordered[next++].Path);
-        svg.Append($"<path fill='{color}' d='{run}'/>");
-        at = next;
-    }
-    svg.Append("</svg>");
-    return svg.ToString();
-
-    // The one mirror: a drawn cell at z reads the world at its reflection, so the −z wall is the one facing
-    // out of the page.
-    (int Id, int Data) Block(int x, int y, int z) => world.GetBlock(x, y, minZ + maxZ - z);
-
-    bool Opaque(int x, int y, int z) => Block(x, y, z).Id != Blocks.Air;
-
-    void Face(int depth, BlockPalette.Rgb rgb, double shade, params int[] points)
-        => faces.Add((depth, Shade(rgb, shade),
-            $"M{points[0]} {points[1]}L{points[2]} {points[3]}L{points[4]} {points[5]}L{points[6]} {points[7]}Z"));
-}
-
-string Shade(BlockPalette.Rgb rgb, double factor) => Invariant(
-    $"#{(int)Math.Round(rgb.R * factor):x2}{(int)Math.Round(rgb.G * factor):x2}{(int)Math.Round(rgb.B * factor):x2}");
-
-// ── the flat renders ──────────────────────────────────────────────────────────────────────────────────
-// A grid of coloured cells, one <rect> per run of one colour along a row. The two orthogonal reads an
-// isometric cannot give: what the roof does, seen from above, and what the courses are, seen from the side.
-string Raster(int columns, int rows, int cell, Func<int, int, string?> colorAt)
-{
-    var svg = new StringBuilder();
-    svg.Append($"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {columns * cell} {rows * cell}' ")
-       .Append($"width='{columns * cell}' height='{rows * cell}' shape-rendering='crispEdges' role='img'>");
-    for (var row = 0; row < rows; row++)
-    {
-        var from = 0;
-        string? color = null;
-        for (var column = 0; column <= columns; column++)
-        {
-            var next = column < columns ? colorAt(column, row) : null;
-            if (column < columns && next == color) continue;
-            if (color is not null)
-                svg.Append($"<rect x='{from * cell}' y='{row * cell}' width='{(column - from) * cell}' ")
-                   .Append($"height='{cell}' fill='{color}'/>");
-            (from, color) = (column, next);
-        }
-    }
-    svg.Append("</svg>");
-    return svg.ToString();
-}
+    => WorldViews.Isometric(world, new ViewBox(minX, minY, minZ, maxX, maxY, maxZ), scale);
 
 /// The highest block of each column — what the roof does, its hole and its eave, and nothing else.
-string Plan(VoxelWorld world, int minX, int minZ, int maxX, int maxZ, int top, int cell = 9) =>
-    Raster(maxX - minX + 1, maxZ - minZ + 1, cell, (column, row) =>
-    {
-        for (var y = top; y >= FloorY - 1; y--)
-        {
-            var (id, data) = world.GetBlock(minX + column, y, minZ + row);
-            if (id != Blocks.Air) return BlockPalette.Hex(id, data);
-        }
-        return null;
-    });
+string Plan(VoxelWorld world, int minX, int minZ, int maxX, int maxZ, int top, int cell = 9)
+    => WorldViews.Plan(world, new ViewBox(minX, FloorY - 1, minZ, maxX, top, maxZ), cell);
 
 /// The floor's own course seen from above — the one plan a roof would otherwise hide.
-string FloorPlan(VoxelWorld world, int minX, int minZ, int maxX, int maxZ, int cell = 9) =>
-    Raster(maxX - minX + 1, maxZ - minZ + 1, cell, (column, row) =>
-    {
-        var (id, data) = world.GetBlock(minX + column, FloorY, minZ + row);
-        return id == Blocks.Air ? null : BlockPalette.Hex(id, data);
-    });
+string FloorPlan(VoxelWorld world, int minX, int minZ, int maxX, int maxZ, int cell = 9)
+    => WorldViews.Slice(world, new ViewBox(minX, FloorY, minZ, maxX, FloorY, maxZ), FloorY, cell);
 
-/// The building projected onto its front, nearest block first, shaded by how far back it stands — so a
-/// doorway reads as an opening rather than as a hole in the picture.
+/// The building projected onto its front, nearest block first and shaded by how far back it stands.
 string Section(VoxelWorld world, int minX, int minZ, int maxX, int maxZ, int top, int cell = 9)
-{
-    var view = BlockSideView.Project(world, minX, maxX, minZ, maxZ, FloorY - 2, top);
-    return Raster(view.Columns, top - (FloorY - 2) + 1, cell, (column, row) =>
-        view.At(view.FromX + column, top - row) is { } block
-            ? Shade(BlockPalette.Color(block.Id, block.Data), 1.0 - 0.45 * block.Depth)
-            : null);
-}
+    => WorldViews.Section(world, new ViewBox(minX, FloorY - 2, minZ, maxX, top, maxZ), cell);
 
-// ── the elevation ─────────────────────────────────────────────────────────────────────────────────────
-// One wall drawn at the scale of the pieces in it, and the only render on the page that draws a block as its
-// own shape rather than as a cube. It has to: a stair lattice's whole trick is the quarter each of its four
-// stairs is missing, and a renderer that draws every block as a cube shows that window as a solid 2×2 patch —
-// exactly the picture the window is designed not to be. The shapes are read out of the block's metadata, so
-// the drawing follows the world rather than a second opinion about it.
+/// One wall at the scale of the pieces in it — the only render that draws a block as its own shape.
 string Elevation(VoxelWorld world, int fromX, int toX, int fromY, int toY, int z, int cell = 22)
-{
-    var svg = new StringBuilder();
-    int columns = toX - fromX + 1, rows = toY - fromY + 1;
-    svg.Append($"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {columns * cell} {rows * cell}' ")
-       .Append($"width='{columns * cell}' height='{rows * cell}' shape-rendering='crispEdges' role='img'>");
+    => WorldViews.Elevation(world, new ViewBox(fromX, fromY, z, toX, toY, z), z, cell);
 
-    for (var y = toY; y >= fromY; y--)
-        for (var x = fromX; x <= toX; x++)
-        {
-            var (id, data) = world.GetBlock(x, y, z);
-            if (id == Blocks.Air) continue;
-            int column = x - fromX, row = toY - y;
-            var fill = BlockPalette.Hex(id, data);
-            foreach (var (left, top, wide, tall, glass) in Pieces(id, data))
-                svg.Append(Invariant(
-                    $"<rect x='{(column + left) * cell:0.##}' y='{(row + top) * cell:0.##}' ") +
-                    Invariant($"width='{wide * cell:0.##}' height='{tall * cell:0.##}' fill='{fill}'") +
-                    (glass ? " opacity='0.55'/>" : "/>"));
-        }
-
-    svg.Append("</svg>");
-    return svg.ToString();
-
-    // What of its cube a block actually fills, in unit squares measured from the cell's top-left. A slab
-    // fills one half, a stair a half plus a quarter on the side it climbs toward, a pane a sheet you see
-    // through, and everything else the whole cube.
-    static IEnumerable<(double Left, double Top, double Wide, double Tall, bool Glass)> Pieces(int id, int data)
-    {
-        const int oakStairs = 53, cobbleStairs = 67;
-        int[] stairs = [oakStairs, cobbleStairs, 108, 109, 114, 128, 134, 135, 136, 163, 164, 180];
-        int[] slabs = [44, 126, 182];
-
-        if (stairs.Contains(id))
-        {
-            var upsideDown = (data & Blocks.StairUpsideDown) != 0;
-            // The raised half is on the side the stair climbs toward: east is +x, and x runs rightward here.
-            var rightward = (data & 3) is Blocks.StairEast or Blocks.StairSouth;
-            yield return (0, upsideDown ? 0 : 0.5, 1, 0.5, false);          // the full half
-            yield return (rightward ? 0.5 : 0, upsideDown ? 0.5 : 0, 0.5, 0.5, false);   // the step
-            yield break;
-        }
-        if (slabs.Contains(id))
-        {
-            yield return (0, (data & Blocks.SlabUpperHalf) != 0 ? 0 : 0.5, 1, 0.5, false);
-            yield break;
-        }
-        if (id is Blocks.GlassPane or Blocks.StainedGlassPane or Blocks.Glass or Blocks.StainedGlass)
-        {
-            yield return (0, 0, 1, 1, true);
-            yield break;
-        }
-        // Two rails and a rung, because a ladder drawn as a cube is a wall, and a cutaway whose whole subject
-        // is the way up between two storeys cannot afford to draw the way up as the thing blocking it.
-        if (id == Blocks.Ladder)
-        {
-            yield return (0.14, 0, 0.14, 1, false);
-            yield return (0.72, 0, 0.14, 1, false);
-            yield return (0.14, 0.4, 0.72, 0.2, false);
-            yield break;
-        }
-        yield return (0, 0, 1, 1, false);
-    }
-}
-
-static string Invariant(FormattableString text) => text.ToString(CultureInfo.InvariantCulture);
 
 // ── the styles the page is about ──────────────────────────────────────────────────────────────────────
 // One base house every figure varies from, so a difference in a picture is the knob and never the fixture.

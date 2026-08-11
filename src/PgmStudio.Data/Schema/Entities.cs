@@ -541,7 +541,111 @@ public sealed class RoomStyleRow
     [Column("porch_roof"), NotNull] public string PorchRoof { get; set; } = "shed";
     [Column("porch_rail_block")] public int PorchRailBlock { get; set; } = 85;
 
+    // The part styles this house is composed from (M0018). Each is optional and each, when bound, takes over
+    // from the columns above that describe the same part — so an unbound house is exactly the building its own
+    // columns always described, and no row had to be migrated to gain the level.
+    [Column("roof_style_id")] public long? RoofStyleId { get; set; }
+    [Column("porch_style_id")] public long? PorchStyleId { get; set; }
+
     [Column("created_at")] public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>Everything above the eave (M0018): which form the roof takes, how steeply it climbs, how far it
+/// oversails and whether it carries a hole or a capped ridge. Its materials — the roof body, the verge and
+/// the gable face — are courses in <see cref="RoofStyleCourseRow"/>.</summary>
+[Table("roof_style")]
+public sealed class RoofStyleRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("name"), NotNull] public string Name { get; set; } = "";
+    [Column("form"), NotNull] public string Form { get; set; } = "gable";
+    [Column("thickness")] public int Thickness { get; set; } = 1;
+    [Column("pitch")] public int Pitch { get; set; } = 1;
+    [Column("overhang")] public int Overhang { get; set; } = 1;
+    [Column("roof_hole")] public bool RoofHole { get; set; }
+    [Column("ridge_cap")] public bool RidgeCap { get; set; }
+    [Column("created_at")] public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>One room (M0018): the air a player stands in, the windows through its walls and how its own floor
+/// is divided in plan. Its materials — the wall stack, the corner posts and the three floor zones — are
+/// courses in <see cref="StoreyStyleCourseRow"/>. A house stacks these through
+/// <see cref="RoomStyleStoreyRow"/>.</summary>
+[Table("storey_style")]
+public sealed class StoreyStyleRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("name"), NotNull] public string Name { get; set; } = "";
+    [Column("clear")] public int Clear { get; set; } = 3;
+    [Column("border_width")] public int BorderWidth { get; set; } = 1;
+    [Column("inlay_inset")] public int InlayInset { get; set; } = 2;
+    [Column("window_form"), NotNull] public string WindowForm { get; set; } = "none";
+    [Column("window_block")] public int WindowBlock { get; set; } = 102;
+    [Column("window_data")] public int WindowData { get; set; }
+    [Column("window_sill")] public int WindowSill { get; set; } = 2;
+    [Column("window_width")] public int WindowWidth { get; set; } = 2;
+    [Column("window_height")] public int WindowHeight { get; set; } = 2;
+    [Column("window_spacing")] public int WindowSpacing { get; set; } = 3;
+    [Column("created_at")] public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>The strip of footprint the walls give up (M0018): how deep, how far in from each end, which wall,
+/// what the canopy over it is shaped like and what the rail along its open edges is made of. No course table —
+/// a porch stands on the house's own floor and under a canopy in the roof's own material, so what is left to
+/// it is its shape.</summary>
+[Table("porch_style")]
+public sealed class PorchStyleRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("name"), NotNull] public string Name { get; set; } = "";
+    [Column("depth")] public int Depth { get; set; } = 2;
+    [Column("inset")] public int Inset { get; set; }
+    [Column("edge"), NotNull] public string Edge { get; set; } = "front";
+    [Column("roof_form"), NotNull] public string RoofForm { get; set; } = "shed";
+    [Column("rail_block")] public int RailBlock { get; set; } = 85;
+    [Column("created_at")] public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>One course of a <see cref="RoofStyleRow"/>'s part (M0018) — <c>roof</c>, <c>verge</c> or
+/// <c>gable</c>. <see cref="RoomStyleCourseRow"/>'s shape exactly; its own table so it keeps a real foreign
+/// key to the roof it belongs to and dies with it.</summary>
+[Table("roof_style_course")]
+public sealed class RoofStyleCourseRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("roof_style_id"), NotNull] public long RoofStyleId { get; set; }
+    [Column("part"), NotNull] public string Part { get; set; } = "";
+    [Column("ordinal")] public int Ordinal { get; set; }
+    [Column("style_id"), NotNull] public long StyleId { get; set; }
+    [Column("height")] public int Height { get; set; } = 1;
+}
+
+/// <summary>One course of a <see cref="StoreyStyleRow"/>'s part (M0018) — <c>wall</c>, <c>post</c>,
+/// <c>field</c>, <c>border</c> or <c>inlay</c>.</summary>
+[Table("storey_style_course")]
+public sealed class StoreyStyleCourseRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("storey_style_id"), NotNull] public long StoreyStyleId { get; set; }
+    [Column("part"), NotNull] public string Part { get; set; } = "";
+    [Column("ordinal")] public int Ordinal { get; set; }
+    [Column("style_id"), NotNull] public long StyleId { get; set; }
+    [Column("height")] public int Height { get; set; } = 1;
+}
+
+/// <summary>One storey of a house (M0018): which <see cref="StoreyStyleRow"/> fills it and where in the stack
+/// it sits, <see cref="Ordinal"/> 0 being the ground. <see cref="Clear"/> overrides the storey style's own
+/// where it is set, so one preset is a tall ground floor in one house and an ordinary room in another without
+/// a second row of it. Unique per (room style, ordinal); cascades with its house, restricts its storey
+/// style.</summary>
+[Table("room_style_storey")]
+public sealed class RoomStyleStoreyRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("room_style_id"), NotNull] public long RoomStyleId { get; set; }
+    [Column("ordinal")] public int Ordinal { get; set; }
+    [Column("storey_style_id"), NotNull] public long StoreyStyleId { get; set; }
+    [Column("clear")] public int Clear { get; set; }
 }
 
 /// <summary>One course of a <see cref="RoomStyleRow"/>'s part (see M0012): which part, where in that part's
@@ -559,8 +663,8 @@ public sealed class RoomStyleCourseRow
     [Column("height")] public int Height { get; set; } = 1;
 }
 
-// The well-known values of style.kind, theme_bucket.bucket, room_style_course.part and room_style.eave are
-// PgmStudio.Contracts' MaterialKind, ThemeBuckets, RoomParts and RoofForms; room_style.door is
+// The well-known values of style.kind, theme_bucket.bucket, the three *_course.part columns and the roof-form
+// columns are PgmStudio.Contracts' MaterialKind, ThemeBuckets, RoomParts and RoofForms; room_style.door is
 // PgmStudio.Domain's DoorMaterials. They are not restated here: the same strings have to satisfy the column,
 // the wire and the client's editor, and a second copy next to the column is exactly how they would come to
 // disagree.

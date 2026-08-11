@@ -13,7 +13,9 @@ namespace PgmStudio.Api.Endpoints;
 /// <see cref="ThemeLibraryMapping"/>.</summary>
 internal static class RoomStyleMapping
 {
-    public static RoomStyleDetail ToDetail(RoomStyleRow row, IReadOnlyList<RoomStyleCourseRow> courses) =>
+    public static RoomStyleDetail ToDetail(
+        RoomStyleRow row, IReadOnlyList<RoomStyleCourseRow> courses,
+        IReadOnlyList<RoomStyleStoreyRow>? stack = null) =>
         new(row.Id, row.Name, row.FloorDepth, row.WallHeight, row.RoofThickness,
             row.RoofForm, row.Pitch, row.Overhang, row.RoofHole, row.RidgeCap,
             row.BorderWidth, row.InlayInset, row.Storeys, row.StoreyClear,
@@ -25,6 +27,9 @@ internal static class RoomStyleMapping
                 ? null
                 : new RoomPorchDto(row.PorchDepth, row.PorchInset, row.PorchEdge, row.PorchRoof, row.PorchRailBlock),
             row.Door, row.DoorHeight,
+            row.RoofStyleId, row.PorchStyleId,
+            [.. (stack ?? []).OrderBy(s => s.Ordinal)
+                .Select(s => new RoomStoreyDto(s.StoreyStyleId, s.Clear))],
             courses.Select(c => new RoomCourseDto(c.Part, c.Ordinal, c.StyleId, c.Height)).ToList());
 
     /// <summary>What a saved request comes back as — read off the <em>row</em> it composes to rather than off
@@ -33,7 +38,7 @@ internal static class RoomStyleMapping
     {
         var row = RoomStyleLibrary.RowOf(req);
         row.Id = id;
-        return ToDetail(row, [.. RoomStyleLibrary.CourseRowsOf(req)]);
+        return ToDetail(row, [.. RoomStyleLibrary.CourseRowsOf(req)], RoomStyleLibrary.StoreyRowsOf(req));
     }
 }
 
@@ -45,7 +50,7 @@ public sealed class RoomStyleListEndpoint(RoomStyleLibrary library) : EndpointWi
     public override async Task HandleAsync(CancellationToken ct)
         => await Send.OkAsync((await library.ComposeAllAsync(ct))
             .Select(entry => new RoomStyleSummary(
-                entry.Row.Id, entry.Row.Name, RoomStylePreview.Views(entry.Style).Section))
+                entry.Row.Id, entry.Row.Name, RoomStylePreview.Card(entry.Style)))
             .ToList(), ct);
 }
 
@@ -70,7 +75,8 @@ public sealed class RoomStyleGetEndpoint(RoomStyleStore store) : EndpointWithout
         var id = Route<long>("id");
         var row = await store.GetAsync(id, ct);
         if (row is null) { await Send.NotFoundAsync(ct); return; }
-        await Send.OkAsync(RoomStyleMapping.ToDetail(row, await store.GetCoursesAsync(id, ct)), ct);
+        await Send.OkAsync(RoomStyleMapping.ToDetail(
+            row, await store.GetCoursesAsync(id, ct), await store.GetStoreysAsync(id, ct)), ct);
     }
 }
 
@@ -82,7 +88,8 @@ public sealed class RoomStyleCreateEndpoint(RoomStyleStore store) : Endpoint<Roo
     public override async Task HandleAsync(RoomStyleSaveRequest req, CancellationToken ct)
     {
         var id = await store.CreateAsync(
-            RoomStyleLibrary.RowOf(req), RoomStyleLibrary.CourseRowsOf(req), ct);
+            RoomStyleLibrary.RowOf(req), RoomStyleLibrary.CourseRowsOf(req),
+            RoomStyleLibrary.StoreyRowsOf(req), ct);
         await Send.OkAsync(RoomStyleMapping.ToDetail(id, req), ct);
     }
 }
@@ -96,7 +103,8 @@ public sealed class RoomStyleUpdateEndpoint(RoomStyleStore store) : Endpoint<Roo
     {
         var id = Route<long>("id");
         var updated = await store.UpdateAsync(
-            id, RoomStyleLibrary.RowOf(req), RoomStyleLibrary.CourseRowsOf(req), ct);
+            id, RoomStyleLibrary.RowOf(req), RoomStyleLibrary.CourseRowsOf(req),
+            RoomStyleLibrary.StoreyRowsOf(req), ct);
         if (!updated) { await Send.NotFoundAsync(ct); return; }
         await Send.OkAsync(RoomStyleMapping.ToDetail(id, req), ct);
     }

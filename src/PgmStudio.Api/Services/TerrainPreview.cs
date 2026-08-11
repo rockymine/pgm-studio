@@ -1,6 +1,7 @@
 using System.Text.Json;
 using PgmStudio.Data.Features;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Views;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;

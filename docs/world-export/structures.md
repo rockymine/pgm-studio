@@ -391,15 +391,65 @@ a diff would only be a slower way to the same rows.
 A part with **no** courses keeps the built-in finish rather than resolving to nothing, exactly as an unbound
 theme bucket does. That is what makes the library worth having for a style that only changes its roof.
 
-Both pictures on a card are stamped by the real `CubeStamper` over a sample frame and read back
-(`RoomStylePreview`), so a card cannot promise a shell the export would not build. From **above** the roof
-reads — its hole, and whether its eave oversails the walls; from the **side** everything else does, as a
-`BlockSideView` projection so the near wall's doorway does not hide the wall behind it. The list card is the
-section, because the course stack is what a room style *is*.
+Every picture is stamped by the real `HouseStamper` over a sample frame and read back (`RoomStylePreview`), so
+a card cannot promise a shell the export would not build. There are four, because a building varies along more
+axes than one picture holds: an **isometric** of what it looks like, a **plan** of what the roof does (its hole,
+and whether its eave oversails the walls), a **section** of the course stack and the doorway through it — a
+`BlockSideView` projection rather than a cut, so the near wall's doorway does not hide the wall behind it — and
+a **cutaway** of one plane drawn at the scale of the pieces in it.
+
+The cutaway is the one that earns its place twice over. It is the only view that draws a block as its own shape
+rather than as a cube, read out of the block's own metadata (`BlockShapes`), so a stair lattice appears as the
+opening it is instead of as a solid patch of wall; and, taken on the plane the ladder stands in, it is the only
+view that shows a storey's slab, the clear under it and the way through it at once.
+
+A library **card** carries the section alone, because the course stack is what a room style *is* — and because
+an isometric runs tens of kilobytes, which is nothing for the one style an editor has open and megabytes for a
+grid of them. The four views are drawn for the open editor only.
+
+The renderers themselves live in `PgmStudio.Minecraft.Views`, below both things that draw with them: the
+studio's library previews and `tools/compose/house-showcase.cs`. They have to agree about what a building looks
+like, and a picture one gets right and the other gets wrong is worse than either being wrong alone.
 
 The door picker is **served, never restated** (`/api/room-styles/doors` from `Domain.DoorMaterials`). A
 client-side copy of the four choices is the one way a door could come to be offered that the wool-room filter
 never whitelists, which §7 explains would seal the cage.
+
+### 8.1 A house is composed from parts
+
+The level above a style and below a house (M0018, `/library/parts`). A room style holding every knob of a whole
+building gave a **part** no identity: a shingled roof with its pitch, its overhang and its capped ridge could
+not be reused, only re-entered house by house, and a stack of storeys could only be a count of identical ones.
+Three rows fix that — a `roof_style`, a `storey_style` and a `porch_style`, each owning the knobs of its part
+plus that part's course stacks, and a `room_style` becomes the thing that binds them.
+
+The split is by **what owns a coherent set of decisions**, not by what happens to be a nameable piece. A roof
+is everything above the eave: the form and its numbers, and the body, the verge and the gable face. A storey is
+one room: its clear, its wall, its corner posts, its windows and how its own floor is divided in plan. A porch
+is the strip of footprint the walls give up, and it carries no courses at all — a porch's deck is the house's
+own floor and its canopy is laid in the roof's material, so what is left to it is its shape. The rest of a
+house's parts are a single material each, and a row wrapping one style would add a name and nothing else.
+
+What the house keeps is what belongs to no part: its foundation — the sill and the floor's depth — and its
+door. Everything else it names is a **fallback**. A bound part takes over from the columns on the house that
+describe the same part, and only those, which is what made the level free to add: a house that binds nothing is
+exactly the building its own columns always described, so no stored row had to move.
+
+The stack is where the ordering lives. `room_style_storey` carries (house, ordinal, storey style, clear), the
+ordinal assigned from the position in the list rather than trusted from the caller — the stack *is* an order,
+and a caller free to number it could save a house with two ground floors and no first. Its `clear` overrides
+the storey style's own where it is set, so one preset is a tall ground floor in one house and an ordinary room
+in another without a second row of it: a shop under two flats is two presets bound three times.
+
+Roofs and storeys keep **their own course tables** rather than sharing one polymorphic table, so each keeps a
+real foreign key to the row it belongs to and dies with it. A course means the same thing in all three, though,
+so the act of resolving one is written once (`PartCourses`) and the three tables convert into it. That is the
+line: duplicated *schema shape* is cheap and duplicated *resolution logic* is how two libraries come to
+disagree about what a stack means.
+
+A part a building still wears cannot be forgotten — the delete answers 409 with the names of the houses wearing
+it — which is the answer a style already gives a theme, and for the same reason: forgetting it would silently
+change every one of them.
 
 ## 9. What a map binds
 

@@ -2,9 +2,10 @@
 @page "/library/{Tab}"
 @layout StudioLayout
 
-@* The style library (B44, G34b): where materials are authored once and reused. Three halves, because a style
-   is browsed by what it looks like while the two things built out of styles are browsed by what they compose
-   to — a terrain finish, or a room shell. The host owns only the shell and which one is showing. *@
+@* The style library (B44, G34b, B71): where materials are authored once and reused. Four halves, in the order
+   they compose — a style is one material, a theme is a terrain finish made of styles, a house part is a roof, a
+   storey or a porch made of styles, and a room is a building made of parts. A style is browsed by what it looks
+   like; everything above it by what it composes to. The host owns only the shell and which one is showing. *@
 
 <PageTitle>Style library — PGM Studio</PageTitle>
 
@@ -20,13 +21,16 @@
                 Icon="paintbrush" Title="Every reusable material recipe">Styles</Button>
         <Button Href="@($"/library/{ThemesTab}")" Variant="@(On(ThemesTab) ? "primary" : null)"
                 Icon="layers" Title="Styles composed into whole terrain finishes">Themes</Button>
+        <Button Href="@($"/library/{PartsTab}")" Variant="@(On(PartsTab) ? "primary" : null)"
+                Icon="blocks" Title="Roofs, storeys and porches a house is composed from">Parts</Button>
         <Button Href="@($"/library/{RoomsTab}")" Variant="@(On(RoomsTab) ? "primary" : null)"
-                Icon="box" Title="Styles composed into wool-cage and spawn shells">Rooms</Button>
+                Icon="box" Title="Parts and styles composed into whole buildings">Rooms</Button>
       </Right>
     </Topbar>
   </Bar>
   <ChildContent>
     @if (On(ThemesTab)) { <ThemeComposer /> }
+    else if (On(PartsTab)) { <HousePartComposer /> }
     else if (On(RoomsTab)) { <RoomStyleComposer /> }
     else { <StyleBrowser /> }
   </ChildContent>

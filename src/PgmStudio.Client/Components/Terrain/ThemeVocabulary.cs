@@ -359,3 +359,42 @@ public sealed record RoomPartInfo(string Id, string Title, string Blurb, string?
     public static RoomPartInfo Of(string part)
         => All.Concat(FloorZones).Concat(Trim).First(info => info.Id == part);
 }
+
+/// <summary>
+/// One kind of house part a library row can be (B71): a roof, a storey or a porch. What differs between the
+/// three editors is which parts take a course stack, which take a single material, and which knobs are on
+/// offer — so it is stated once as data here and one composer reads it, rather than three near-identical
+/// editors drifting apart.
+/// </summary>
+public sealed record PartKindInfo(
+    string Id, string Singular, string Plural, string Icon, string Intro, string FigureNote,
+    IReadOnlyList<RoomPartInfo> Stacked, IReadOnlyList<RoomPartInfo> Single)
+{
+    public const string Roof = "roofs";
+    public const string Storey = "storeys";
+    public const string Porch = "porches";
+
+    public static readonly IReadOnlyList<PartKindInfo> All =
+    [
+        new(Roof, "roof", "Roofs", "triangle",
+            "Everything above the eave: which form the roof takes, how steeply it climbs, how far it oversails, and what its body, its edge and its gable face are made of. Bound by a house, so a roof authored once tops every building that wants it.",
+            "The roof is drawn on a plain five-course building.",
+            [RoomPartInfo.Of(RoomParts.Roof)],
+            [RoomPartInfo.Of(RoomParts.Verge), RoomPartInfo.Of(RoomParts.Gable)]),
+
+        new(Storey, "storey", "Storeys", "layers",
+            "One room: the air a player stands in, the wall around it, the windows through that wall and how its own floor is divided. A house stacks these in order, so a shop under two flats is three bindings of two presets.",
+            "The storey is drawn as the one-storey building it makes.",
+            [RoomPartInfo.Of(RoomParts.Wall)],
+            [RoomPartInfo.Of(RoomParts.Post), RoomPartInfo.Of(RoomParts.Field),
+             RoomPartInfo.Of(RoomParts.Border), RoomPartInfo.Of(RoomParts.Inlay)]),
+
+        new(Porch, "porch", "Porches", "door-open",
+            "The strip of footprint the walls give up, and what stands on it. A porch has no materials of its own — its deck is the house's floor and its canopy the roof's material — so what is left to it is its shape.",
+            "The porch fronts a plain gabled building.",
+            [], []),
+    ];
+
+    public static PartKindInfo Of(string? id)
+        => All.FirstOrDefault(kind => kind.Id == id) ?? All[0];
+}

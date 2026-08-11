@@ -1,0 +1,244 @@
+using PgmStudio.Contracts;
+using PgmStudio.Data.Schema;
+using PgmStudio.Data.Theme;
+using PgmStudio.Domain;
+using PgmStudio.Minecraft;
+
+namespace PgmStudio.Api.Services;
+
+/// <summary>
+/// The composition-root half of the house-part library (B71): it bridges <see cref="HousePartStore"/> and the
+/// stamper's own model. <see cref="RoomStyleLibrary"/>'s sibling one level down, and the same discipline — a
+/// draft composes exactly as a saved row does, so what an editor previews is what the save would build.
+///
+/// <para>A part composes to a <em>fragment</em> of a <see cref="HouseStyle"/> rather than to a whole one,
+/// since a roof is not a building. The fragment is applied over a house by <see cref="RoomStyleLibrary"/>;
+/// to draw a part on its own the library gives it a sample building to sit on, which is what
+/// <see cref="OnSample"/> is for — a roof with no walls under it is a picture of nothing.</para>
+/// </summary>
+public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
+{
+    // ── roofs ─────────────────────────────────────────────────────────────────────────────────────────
+    public async Task<HouseStyle?> ComposeRoofAsync(long id, CancellationToken ct = default)
+    {
+        var row = await parts.GetRoofAsync(id, ct);
+        if (row is null) return null;
+        return RoofOver(row, await CoursesOf(await parts.GetRoofCoursesAsync(id, ct), ct), Sample);
+    }
+
+    /// <summary>Every roof with the building it composes to, newest first — the whole library in two reads.</summary>
+    public async Task<List<(RoofStyleRow Row, HouseStyle Style)>> ComposeRoofsAsync(CancellationToken ct = default)
+    {
+        var rows = await parts.ListRoofsAsync(ct);
+        if (rows.Count == 0) return [];
+        var all = await parts.GetAllRoofCoursesAsync(ct);
+        var bound = await StylesOf(all.Select(course => course.StyleId), ct);
+        var byRoof = all.ToLookup(course => course.RoofStyleId);
+        return [.. rows.Select(row => (row, RoofOver(row, PartCourses.Of(byRoof[row.Id], bound), Sample)))];
+    }
+
+    public async Task<HouseStyle> ComposeRoofDraftAsync(RoofStyleSaveRequest draft, CancellationToken ct = default)
+        => RoofOver(RowOf(draft), await CoursesOf(PartCourses.Accepted(draft.Courses), ct), Sample);
+
+    /// <summary>What a roof style says about a building: the form and its numbers, and the three materials
+    /// above the eave. Applied over <paramref name="basis"/>, so a house keeps everything a roof has no
+    /// opinion about.</summary>
+    public static HouseStyle RoofOver(RoofStyleRow row, PartCourses courses, HouseStyle? basis = null)
+    {
+        var house = basis ?? HouseStyle.Wool;
+        var body = courses.Material(RoomParts.Roof, house.Roof);
+        return house with
+        {
+            Roof = body,
+            // Unbound, the verge is the roof's own material — a roof laid in one thing, which is what a plain
+            // lid is — and the gable is the wall's top course carried up, which is what a wall with no gable
+            // named was before the face had a name.
+            Verge = courses.Material(RoomParts.Verge, body),
+            Gable = courses.Bound(RoomParts.Gable),
+            Form = RoomStyleLibrary.FormOf(row.Form),
+            Pitch = Math.Max(1, row.Pitch),
+            Overhang = Math.Max(0, row.Overhang),
+            RoofHole = row.RoofHole,
+            RidgeCap = row.RidgeCap,
+        };
+    }
+
+    public static RoofStyleRow RowOf(RoofStyleSaveRequest req) => new()
+    {
+        Name = req.Name,
+        Form = RoofForms.Canonical(req.Form),
+        Thickness = Math.Max(1, req.Thickness),
+        Pitch = Math.Clamp(req.Pitch, 1, 4),
+        Overhang = Math.Clamp(req.Overhang, 0, 4),
+        RoofHole = req.RoofHole,
+        RidgeCap = req.RidgeCap,
+    };
+
+    public static IEnumerable<RoofStyleCourseRow> RoofCourseRowsOf(RoofStyleSaveRequest req)
+        => PartCourses.Accepted(req.Courses).Select(course => new RoofStyleCourseRow
+        {
+            Part = course.Part, Ordinal = course.Ordinal, StyleId = course.StyleId, Height = course.Height,
+        });
+
+    // ── storeys ───────────────────────────────────────────────────────────────────────────────────────
+    public async Task<HouseStyle?> ComposeStoreyAsync(long id, CancellationToken ct = default)
+    {
+        var row = await parts.GetStoreyAsync(id, ct);
+        if (row is null) return null;
+        return OnSample(StoreyOf(row, await CoursesOf(await parts.GetStoreyCoursesAsync(id, ct), ct)));
+    }
+
+    public async Task<List<(StoreyStyleRow Row, HouseStyle Style)>> ComposeStoreysAsync(CancellationToken ct = default)
+    {
+        var rows = await parts.ListStoreysAsync(ct);
+        if (rows.Count == 0) return [];
+        var all = await parts.GetAllStoreyCoursesAsync(ct);
+        var bound = await StylesOf(all.Select(course => course.StyleId), ct);
+        var byStorey = all.ToLookup(course => course.StoreyStyleId);
+        return [.. rows.Select(row => (row, OnSample(StoreyOf(row, PartCourses.Of(byStorey[row.Id], bound)))))];
+    }
+
+    public async Task<HouseStyle> ComposeStoreyDraftAsync(
+        StoreyStyleSaveRequest draft, CancellationToken ct = default)
+        => OnSample(StoreyOf(RowOf(draft), await CoursesOf(PartCourses.Accepted(draft.Courses), ct)));
+
+    /// <summary>One storey of a building: its clear, its wall, its corner posts, its windows and how its own
+    /// floor is divided. Everything the stamper needs to lay one room and nothing about the building around
+    /// it.</summary>
+    public static Storey StoreyOf(StoreyStyleRow row, PartCourses courses) => new()
+    {
+        Clear = Math.Max(3, row.Clear),
+        // The extent is the storey's clear rather than a stored height: a storey's courses follow from its
+        // air, and a wall stack that disagreed with it would be a second answer to a settled question.
+        Wall = courses.Stack(RoomParts.Wall, Math.Max(3, row.Clear), HouseStyle.Wool.Wall),
+        Post = courses.Bound(RoomParts.Post),
+        Windows = WindowOf(row),
+        Surface = new FloorSurface
+        {
+            Field = courses.Bound(RoomParts.Field),
+            Border = courses.Bound(RoomParts.Border),
+            BorderWidth = Math.Max(1, row.BorderWidth),
+            Inlay = courses.Bound(RoomParts.Inlay),
+            InlayInset = Math.Max(1, row.InlayInset),
+        },
+    };
+
+    public static StoreyStyleRow RowOf(StoreyStyleSaveRequest req) => new()
+    {
+        Name = req.Name,
+        Clear = Math.Clamp(req.Clear, 3, 16),
+        BorderWidth = Math.Clamp(req.BorderWidth, 1, 4),
+        InlayInset = Math.Clamp(req.InlayInset, 1, 8),
+        WindowForm = WindowForms.Canonical(req.Windows?.Form),
+        WindowBlock = Math.Max(0, req.Windows?.Block ?? Blocks.GlassPane),
+        WindowData = Math.Clamp(req.Windows?.Data ?? 0, 0, 15),
+        WindowSill = Math.Clamp(req.Windows?.Sill ?? 2, 1, 16),
+        WindowWidth = Math.Clamp(req.Windows?.Width ?? 2, 1, 8),
+        WindowHeight = Math.Clamp(req.Windows?.Height ?? 2, 1, 8),
+        WindowSpacing = Math.Clamp(req.Windows?.Spacing ?? 3, 0, 16),
+    };
+
+    public static IEnumerable<StoreyStyleCourseRow> StoreyCourseRowsOf(StoreyStyleSaveRequest req)
+        => PartCourses.Accepted(req.Courses).Select(course => new StoreyStyleCourseRow
+        {
+            Part = course.Part, Ordinal = course.Ordinal, StyleId = course.StyleId, Height = course.Height,
+        });
+
+    private static WindowStyle WindowOf(StoreyStyleRow row) => new()
+    {
+        Form = WindowForms.Canonical(row.WindowForm) switch
+        {
+            WindowForms.StairLattice => WindowForm.StairLattice,
+            WindowForms.SlabBanded => WindowForm.SlabBanded,
+            WindowForms.Pane => WindowForm.Pane,
+            _ => WindowForm.None,
+        },
+        Block = row.WindowBlock,
+        Data = row.WindowData,
+        Sill = Math.Max(1, row.WindowSill),
+        Width = Math.Max(1, row.WindowWidth),
+        Height = Math.Max(1, row.WindowHeight),
+        Spacing = Math.Max(0, row.WindowSpacing),
+    };
+
+    // ── porches ───────────────────────────────────────────────────────────────────────────────────────
+    public async Task<HouseStyle?> ComposePorchAsync(long id, CancellationToken ct = default)
+        => await parts.GetPorchAsync(id, ct) is { } row ? OnSample(PorchOf(row)) : null;
+
+    public async Task<List<(PorchStyleRow Row, HouseStyle Style)>> ComposePorchesAsync(
+        CancellationToken ct = default)
+        => [.. (await parts.ListPorchesAsync(ct)).Select(row => (row, OnSample(PorchOf(row))))];
+
+    public static HouseStyle ComposePorchDraft(PorchStyleSaveRequest draft) => OnSample(PorchOf(RowOf(draft)));
+
+    public static PorchStyle PorchOf(PorchStyleRow row) => new()
+    {
+        Depth = Math.Max(1, row.Depth),
+        Inset = Math.Max(0, row.Inset),
+        Edge = PorchEdges.Canonical(row.Edge) switch
+        {
+            PorchEdges.NegZ => RoomEdge.NegZ,
+            PorchEdges.PosZ => RoomEdge.PosZ,
+            PorchEdges.NegX => RoomEdge.NegX,
+            PorchEdges.PosX => RoomEdge.PosX,
+            _ => null,
+        },
+        Roof = RoomStyleLibrary.FormOf(row.RoofForm),
+        RailBlock = Math.Max(0, row.RailBlock),
+    };
+
+    public static PorchStyleRow RowOf(PorchStyleSaveRequest req) => new()
+    {
+        Name = req.Name,
+        Depth = Math.Clamp(req.Depth, 1, 8),
+        Inset = Math.Clamp(req.Inset, 0, 8),
+        Edge = PorchEdges.Canonical(req.Edge),
+        RoofForm = RoofForms.Canonical(req.Roof),
+        RailBlock = Math.Max(0, req.RailBlock),
+    };
+
+    // ── drawing a part on its own ─────────────────────────────────────────────────────────────────────
+    /// <summary>The sample building a part is previewed on. A part is not a building, so a picture of one has
+    /// to stand it on something — and that something is deliberately plain, so what differs between two cards
+    /// is the part and never the house around it.</summary>
+    private static readonly HouseStyle Sample = HouseStyle.Wool with
+    {
+        Wall = RoomPart.Of(new SolidMaterial(Blocks.Planks, 1), 5),
+        Sill = new SolidMaterial(Blocks.Cobblestone),
+        Floor = RoomPart.Of(new SolidMaterial(Blocks.Planks)),
+        Form = RoofForm.Gable,
+        Roof = new SolidMaterial(Blocks.Planks, 1),
+        Verge = new SolidMaterial(Blocks.Planks, 5),
+        RoofHole = false,
+        Overhang = 1,
+        Door = DoorMaterial.Air,
+    };
+
+    private static HouseStyle OnSample(Storey storey)
+        => Sample with { Storeys = [storey] };
+
+    private static HouseStyle OnSample(PorchStyle porch)
+        => Sample with { Porch = porch };
+
+    // ── shared plumbing ───────────────────────────────────────────────────────────────────────────────
+    private async Task<PartCourses> CoursesOf(IEnumerable<RoofStyleCourseRow> rows, CancellationToken ct)
+    {
+        var list = rows.ToList();
+        return PartCourses.Of(list, await StylesOf(list.Select(course => course.StyleId), ct));
+    }
+
+    private async Task<PartCourses> CoursesOf(IEnumerable<StoreyStyleCourseRow> rows, CancellationToken ct)
+    {
+        var list = rows.ToList();
+        return PartCourses.Of(list, await StylesOf(list.Select(course => course.StyleId), ct));
+    }
+
+    private async Task<PartCourses> CoursesOf(IEnumerable<PartCourse> courses, CancellationToken ct)
+    {
+        var list = courses.ToList();
+        return new PartCourses(list, await StylesOf(list.Select(course => course.StyleId), ct));
+    }
+
+    private async Task<Dictionary<long, StyleRow>> StylesOf(IEnumerable<long> ids, CancellationToken ct)
+        => (await styles.GetStylesAsync(ids, ct)).ToDictionary(style => style.Id);
+}
