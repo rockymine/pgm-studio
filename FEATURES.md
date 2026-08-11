@@ -3210,6 +3210,27 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   The same angle sets how far the ink wraps each corner, since the turn ramps to a vertex. `ColumnProfile`
   carries the per-column turn and `BucketContext` a cell's height above its band's foot; a room shell answers
   the same question closed-form as `atan2(window − d, d)`.
+- **Beam ends past the corners, and the laid-log course they belong to.** Where two storeys meet, a
+  `BeamStyle` runs log ends out past each of the four corners — two per corner, one along each axis, eight in
+  all — each showing its **sawn end**, which is the one place on a building where a cut face outward is the
+  point rather than the mistake. In plan the seam reads as a hash with the walls as its middle: a building made
+  by laying logs against each other. The course *inside* the wall is a separate thing and needs no new
+  machinery — it is an ordinary course of the wall's stack laid in the new `LaidLogMaterial`, a log that
+  follows the wall's own run so its bark faces out and stands upright only at a corner, where no lying log
+  could show bark to two faces at once. Keeping the two apart lets a beam course run in one material and its
+  ends in another. It is also **the one thing a house writes outside its own footprint**, which is why a style
+  has to ask for it.
+- **A roof that climbs half a block at a time (B69).** `RoofField` is measured in **halves** rather than
+  courses: a whole-course roof simply steps two at a time, so the six forms' arithmetic is untouched and a roof
+  laid in cubes answers exactly what it always did. Naming a `RoofSlab` on the style puts the roof on half
+  courses — it climbs half a block per block travelled and lays that slab on every odd step, with the style's
+  own `Roof` filling the cubes between. It is the gentler slope a slab is actually for: at a whole block of
+  rise a course of slabs leaves an open half between every pair and the roof can be seen straight through. A
+  block id rather than a material, for the reason a window's is — which half of its cube a slab fills is
+  geometry. The eave needed floor division rather than truncation, since its rise goes negative below the base
+  plane and a truncating halve lifts the overhang clear of the slope it belongs to.
+- **A window that is just an opening (`WindowForm.Open`).** Cut and left, distinct from `None`, which cuts
+  none at all. Its size is entirely the author's, since no form is imposing one.
 - **A log checkerboard (TP20).** `LogCheckerMaterial` lays a checkerboard with **one** log and varies how it is
   turned rather than what it is made of — upright on one square, on its side on the next — so the grain runs
   vertically and then across and a single block reads as a woven board. Its own kind rather than a checker over

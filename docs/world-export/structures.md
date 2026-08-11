@@ -204,11 +204,11 @@ code keeps them apart.
 ### 7.1 The roof is a height field
 
 Every roof — `Flat`, `Gable`, `Hip`, `Gambrel`, `Shed`, `Saltbox` — is one `RoofField`: for each cell of the
-roof's plan, the course that column tops out at, and how many courses it writes to close the step down to its
-neighbours. The stamper walks that plan once. The forms differ in a single formula over the same two
+roof's plan, how far the roof's own surface stands above its base there, and how many courses that column
+writes to close the step down to its neighbours. The stamper walks that plan once. The forms differ in a single formula over the same two
 distances — how far the cell stands from each wall line — and in nothing else:
 
-| Form | Crown over a cell |
+| Form | Rise over a cell, per block travelled |
 |---|---|
 | `Flat` | the base course, everywhere |
 | `Gable` | the smaller distance across the building's **shorter** side, times the pitch |
@@ -264,6 +264,18 @@ in a slope is a leak rather than a light — and its **ridge cap**, the line the
 rather than in the roof's own material. The hole is measured and centred on the **shell**, never on the roof
 plane, because it lights the interior.
 
+**The field is measured in halves, and that is what a slab roof is.** A roof laid in cubes steps two halves per
+block travelled, which is the whole of the difference: naming a **roof slab** on the style puts it on one, so it
+climbs half a block per block and lays that slab on every odd step with the roof's own material filling the
+cubes between. It is the slope a slab is actually for — at a whole block of rise a course of slabs leaves an
+open half between every pair and the roof can be seen straight through, which is why the roof's own material
+documents stairs and slabs as different roofs. Measuring in halves rather than branching is what leaves the six
+forms untouched: they answer in blocks travelled and the roof decides what a block travelled is worth, so a
+roof laid in cubes answers exactly what it always did. The halving has to **floor** rather than truncate, since
+the eave's rise goes negative below the base plane and rounding those cells back up lifts the overhang clear of
+the slope it belongs to. The slab is a block id rather than a material, for the reason a window's is: which
+half of its cube a slab fills is geometry.
+
 A roof has **no thickness knob**, and the height field is why: a column writes as many courses as the step down
 to its neighbours needs, so how deep the roof runs at a given cell is answered by the slope rather than by a
 number beside it. A flat lid is one course because a flat lid has no step to close. The `roof_thickness` and
@@ -312,13 +324,14 @@ top and the doorway it fronts left open to the sky twenty courses below.
 
 ### 7.4 Windows are cut, and chosen as a block
 
-Three forms. A **stair lattice** is four stairs in a 2×2 hole, each with its raised half toward the outside of
+Four forms. A **stair lattice** is four stairs in a 2×2 hole, each with its raised half toward the outside of
 the group, so the quarter each is missing meets in the middle and the window is open — there is no glass in
 it. A **slab band** is a slab sill, an upside-down slab lintel and the course between them cut clean through;
 the two half-blocks make the opening read taller than the one course actually removed. **Panes** are the
-ordinary glazed window. Size belongs to the form as much as to the author: a lattice is 2×2 because the four
+ordinary glazed window. **Open** is the hole and nothing in it — cut and left, which is not the same as asking
+for no windows at all. Size belongs to the form as much as to the author: a lattice is 2×2 because the four
 missing quarters are the whole trick, and a band is three courses because a sill and a lintel with nothing
-between them is not a window.
+between them is not a window; an open one is entirely the author's, since no form is imposing a shape on it.
 
 Seating is the half that has to be right, because a window is cut out of a wall that already stands. Each wall
 is seated on the run **between its two corner posts**, the windows are spread evenly and centred on that run —
@@ -326,6 +339,20 @@ a wall reads as symmetric rather than as windows starting at one end and stoppin
 seat that would meet a doorway, or the block of wall either side of it, is **dropped rather than shifted**.
 Shifting one would break the spacing of every window after it to save it, and the gap where a door is reads as
 intended. An opening that will not fit between the sill and the wall's last course is not cut at all.
+
+**A window may also belong to a material rather than only to a wall.** Where the wall is one thing the two are
+the same question and spacing seats a window well enough. Where it bands — a run of acacia logs against a run
+of planks — they come apart: a seat chosen by spacing lands half in one band and half in the next, and an
+opening cut across that seam reads as damage rather than as a window. A style may therefore name a **host
+block**, and then the material divides the run instead of the spacing doing it: the seater walks the wall,
+finds each unbroken panel of the host, and centres a window in every panel wide enough to hold one. On a wall
+whose bands are four cells and whose spacing is five, the two almost never agree on their own.
+
+The seater is told none of this. It takes the host as a **question** — may a window be cut at this cell? — and
+the stamper answers by resolving the wall exactly as the pass that laid it did, same course, same arc, same
+run. So the rule works for any pattern that puts the block there, a stripe or a checker or a noise stop, and
+the seater keeps knowing only where a window goes rather than what a wall is made of. Naming a band the wall
+never resolves to seats nothing, rather than seating it somewhere else.
 
 A window's material is a **block id**, not a bound style, and it is the one place a shell departs from the
 library's shape. A stair's metadata is which way it climbs and a slab's is which half it fills; the four
@@ -346,6 +373,17 @@ to walk straight out, and the spawn protection rule already keeps enemies from w
 Windows are deliberately **not** on that list, and the distinction is worth stating. A door is the way an
 attacker gets in and so is governed by a filter; a window is a hole a player can see through and, in a
 lattice's case, shoot through, but it is never the entrance the block rule is about.
+
+Neither is the **head**, the beam that carries the wall over the opening. An arched one puts an upside-down
+stair in each corner of the doorway's top course, raised half outward so the quarter each is missing faces
+into the opening and the two of them round its top off — the upper half of a stair lattice doing the same
+trick for a different hole. Where the opening is wider than its two corners the middle is spanned, by an
+upside-down slab that keeps the head reading as one line or by a whole cube for a head that wants weight. It
+is dressing *on* the opening rather than a change *to* it: the doorway is cut as it always was and the head is
+written into its top course, which is why it is only laid on an opening at least two wide and three tall.
+Below that it would take the last of the clear and leave a doorway nobody walks through. And it is a knob on
+the style rather than on the door, because the door is what fills the opening — the closed set above — while
+the head is what stands over it and is never walked through.
 
 ### 7.6 A building is a stack of storeys
 
@@ -390,6 +428,27 @@ the doorway is a ladder in the way.
 
 Storeys are not a house-only feature. A wool room takes a `HouseStyle` like any other building, so a
 multi-storey wool room is the same stack with a monument in it.
+
+### 7.7 The beams a seam leaves long
+
+Where two storeys meet there is a course the floor is carried on, and a building made by laying logs against
+each other leaves the ends of it long. A **beam style** runs log ends out past each of the four corners — two
+per corner, one along each axis, eight in all — and each shows its **sawn end** rather than its bark, because
+that is what the end of a log is. It is the one place on a building where a cut face pointing outward is the
+point rather than the mistake. In plan the seam then reads as a **hash**: the walls are the square in the
+middle of it and the eight ends stand outside.
+
+The course *inside* the wall is a different thing and needs no machinery of its own. It is an ordinary course
+of the wall's own stack, laid in a material that lies a log **along** the wall — the log checkerboard with one
+of its two states taken away, reading the same wall run, so the sawn ends are buried in the neighbouring wall
+blocks and only bark shows. At a corner it stands upright, since no lying log can show bark to two faces at
+once. Keeping the course and the ends apart is what lets a beam run in one material and its ends in another,
+and lets a building have either without the other.
+
+The ends are **the one thing a house writes outside its own footprint**. Everything else a style lays falls
+inside the walls plus the roof's overhang, which is what makes a shell safe to stamp onto finished terrain — so
+these are asked for rather than assumed, and a style naming none leaves the ring around the building exactly as
+it found it.
 
 What a style never touches: the **platform** under a room (`StampFoundation`'s bedrock column, ST1) and the
 **entrance redstone line** (ST1) belong to the plan-derived structures, not to a shell.

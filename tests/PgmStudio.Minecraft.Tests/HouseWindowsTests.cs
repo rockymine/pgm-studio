@@ -135,4 +135,143 @@ public sealed class HouseWindowsTests
     {
         await Assert.That(Seats(new WindowStyle())).IsEmpty();
     }
+
+    // ── a window that belongs to a band ─────────────────────────────────────────────────────────────
+
+    /// <summary>A wall that bands in fours: two cells of host, two of something else, repeating.</summary>
+    private static bool Banded(RoomEdge edge, int along) => ((along % 4) + 4) % 4 is 0 or 1;
+
+    [Test]
+    public async Task A_window_with_a_host_sits_wholly_inside_one_panel_of_it()
+    {
+        // The failure this exists for: seats spread by spacing alone land half in one band and half in the
+        // next, and an opening cut across that seam reads as damage rather than as a window.
+        var style = new WindowStyle
+        {
+            Form = WindowForm.Pane, Width = 2, Height = 2, Sill = 2, Spacing = 1,
+            HostBlock = 5, HostData = 1,
+        };
+        var seats = HouseWindows.Seats(style, 0, 0, 20, 20, 7, null, Banded);
+
+        await Assert.That(seats).IsNotEmpty();
+        foreach (var seat in seats)
+            for (var step = 0; step < seat.Width; step++)
+                await Assert.That(Banded(seat.Edge, seat.Lo + step)).IsTrue();
+    }
+
+    [Test]
+    public async Task The_first_panel_of_a_wall_is_not_skipped()
+    {
+        // A sentinel "nothing placed yet" coordinate far enough below the run to clear any spacing is also far
+        // enough to overflow the subtraction that tests it, which silently refuses the first window on every
+        // wall — the whole building came out blank.
+        var style = new WindowStyle
+        {
+            Form = WindowForm.Pane, Width = 2, Height = 2, Sill = 2, Spacing = 1,
+            HostBlock = 5, HostData = 1,
+        };
+        var seats = HouseWindows.Seats(style, 0, 0, 8, 8, 7, null, Banded);
+        await Assert.That(seats.Count(seat => seat.Edge == RoomEdge.NegZ)).IsGreaterThan(0);
+    }
+
+    [Test]
+    public async Task A_host_a_wall_never_resolves_to_seats_nothing_rather_than_seating_anywhere()
+    {
+        // Naming a band the wall does not have is a style that asked for something it cannot have; it gets no
+        // windows, not windows in the wrong place.
+        var style = new WindowStyle
+        {
+            Form = WindowForm.Pane, Width = 2, Height = 2, Sill = 2, HostBlock = 5, HostData = 1,
+        };
+        await Assert.That(HouseWindows.Seats(style, 0, 0, 20, 20, 7, null, (_, _) => false)).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_style_naming_no_host_is_seated_by_spacing_as_before()
+    {
+        // The host is an addition, not a change: a style that names none is spread exactly as it always was,
+        // and the predicate is not even consulted.
+        var style = new WindowStyle { Form = WindowForm.Pane, Width = 2, Height = 2, Sill = 2, Spacing = 3 };
+        await Assert.That(HouseWindows.Seats(style, 0, 0, 14, 10, 7, null, (_, _) => false))
+            .IsEquivalentTo(Seats(style));
+    }
+
+    // ── the beam over a doorway ─────────────────────────────────────────────────────────────────────
+
+    private const int BirchStairs = 135, BirchSlab = 2;
+
+    private static DoorHeadStyle Arch => new()
+    {
+        Form = DoorHeadForm.Arched, Block = BirchStairs,
+        Fill = DoorHeadFill.UpperSlab, FillBlock = Blocks.WoodenSlab, FillData = BirchSlab,
+    };
+
+    [Test]
+    public async Task An_arched_head_turns_its_two_stairs_toward_the_opening_it_rounds()
+    {
+        // The upper half of a stair lattice doing the same trick for a different hole: each corner keeps its
+        // raised half outward, so the quarter it is missing faces in and the two of them round the top off.
+        await Assert.That(Arch.Piece(alongX: true, step: 0, width: 2))
+            .IsEqualTo((BirchStairs, Blocks.StairWest | Blocks.StairUpsideDown));
+        await Assert.That(Arch.Piece(alongX: true, step: 1, width: 2))
+            .IsEqualTo((BirchStairs, Blocks.StairEast | Blocks.StairUpsideDown));
+
+        // On a wall running the other way the pair turns with it, or both corners face along the wall's face.
+        await Assert.That(Arch.Piece(alongX: false, step: 0, width: 2))
+            .IsEqualTo((BirchStairs, Blocks.StairNorth | Blocks.StairUpsideDown));
+    }
+
+    [Test]
+    public async Task A_wider_opening_is_spanned_between_its_corners()
+    {
+        // Five wide: a stair at each end and the middle carried across, since two corners do not reach.
+        for (var step = 1; step <= 3; step++)
+            await Assert.That(Arch.Piece(alongX: true, step, width: 5))
+                .IsEqualTo((Blocks.WoodenSlab, BirchSlab | Blocks.SlabUpperHalf));
+
+        await Assert.That(Arch.Piece(alongX: true, step: 4, width: 5))
+            .IsEqualTo((BirchStairs, Blocks.StairEast | Blocks.StairUpsideDown));
+
+        // A solid fill is the same beam with weight — the whole cube rather than its upper half.
+        var beam = Arch with { Fill = DoorHeadFill.Solid, FillBlock = Blocks.Planks, FillData = 2 };
+        await Assert.That(beam.Piece(alongX: true, step: 2, width: 5)).IsEqualTo((Blocks.Planks, 2));
+    }
+
+    [Test]
+    [Arguments(2, 3, true)]
+    [Arguments(5, 4, true)]
+    [Arguments(1, 3, false)]     // one cell cannot hold two corners
+    [Arguments(2, 2, false)]     // the head would take the last of the clear
+    public async Task A_head_is_only_laid_where_the_opening_can_spare_the_course(int width, int height, bool fits)
+    {
+        await Assert.That(Arch.Fits(width, height)).IsEqualTo(fits);
+        await Assert.That(new DoorHeadStyle().Fits(width, height)).IsFalse();   // naming no form lays none
+    }
+
+    [Test]
+    public async Task No_window_sits_against_a_corner_post()
+    {
+        // Clearing the corner cell is not enough: an opening starting in the very next cell still meets the
+        // post, and a window against the post reads as a hole knocked through the frame. The post wants a
+        // block of wall beside it before anything is taken out.
+        foreach (var (width, depth) in new[] { (9, 7), (15, 11), (11, 11) })
+        {
+            var seats = Seats(WindowStyle.Glazed, width, depth);
+            await Assert.That(seats).IsNotEmpty();
+            foreach (var seat in seats)
+            {
+                var span = seat.Edge is RoomEdge.NegZ or RoomEdge.PosZ ? width : depth;
+                await Assert.That(seat.Lo).IsGreaterThanOrEqualTo(2);
+                await Assert.That(seat.Lo + seat.Width - 1).IsLessThanOrEqualTo(span - 3);
+            }
+        }
+    }
+
+    [Test]
+    public async Task A_wall_with_no_room_for_the_margin_takes_no_window()
+    {
+        // Five across leaves one cell once both margins are kept, so a two-wide window does not fit — and the
+        // wall is left whole rather than the margin being quietly given up to seat one.
+        await Assert.That(Seats(WindowStyle.Glazed, width: 5, depth: 5)).IsEmpty();
+    }
 }

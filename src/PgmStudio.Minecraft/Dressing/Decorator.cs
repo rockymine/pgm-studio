@@ -332,7 +332,13 @@ public static class Decorator
     {
         var alongSpan = front is RoomEdge.NegZ or RoomEdge.PosZ ? plan.Width : plan.Depth;
         var alongMin = front is RoomEdge.NegZ or RoomEdge.PosZ ? plan.MinX : plan.MinZ;
-        var width = Math.Clamp(Math.Max(2, style.DoorWidth), 1, Math.Max(1, alongSpan - 2));
+
+        // A block of wall clear of each corner post, the rule the stamper's own doors keep: an opening in the
+        // very next cell still meets the post, and a door against the post reads as a hole knocked through the
+        // frame. Four blocks of the face go to the margins, so the opening narrows on a face that cannot spare
+        // the width asked for rather than growing back into them.
+        var seat = Math.Max(1, alongSpan - 4);
+        var width = Math.Clamp(Math.Max(2, style.DoorWidth), 1, seat);
         return [new RoomDoor(front, alongMin + (alongSpan - width) / 2, width)];
     }
 

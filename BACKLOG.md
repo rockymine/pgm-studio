@@ -183,15 +183,6 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   separate.
 ## Backend, pipeline & internals (B / P / A)
 
-- [ ] **B69 — A roof that rises half a block at a time.** A slope's pitch is whole courses, so a roof is laid
-  in whole blocks: a course of slabs stepping up a full block leaves an open half between every pair and the
-  roof can be seen straight through (the reason `HouseStyle.Roof` documents stairs and slabs as different
-  roofs). The gentler roof a slab actually suits — half a block of rise per block travelled — needs the
-  height field to carry half-courses and the layer to know that a cell's top half is a slab rather than a
-  cube. `RoofField` is the right seam: a crown in half-courses, with `Riser` and `Underside` in the same
-  unit, leaves every form's formula untouched. Worth doing when a style wants a shallow roof over a wide
-  span, where a whole-block pitch is already too steep to read.
-
 - [~] **B70 — The room-style *card* cannot show a porch or a window.** The open editor draws four views now
   (B71), the cutaway among them, so a style's porch and its windows read there. A library **card** still
   carries the section alone, and a section projected onto the front wall shows a window as a patch of the same

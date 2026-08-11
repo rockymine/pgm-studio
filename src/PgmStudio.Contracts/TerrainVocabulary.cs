@@ -20,6 +20,7 @@ public static class MaterialKind
     public const string WallDiagonal = "wallDiagonal";
     public const string Checker = "checker";
     public const string LogChecker = "logChecker";
+    public const string LaidLog = "laidLog";
     public const string WallFrame = "wallFrame";
 
     /// <summary>The kinds in offer order — plain blocks first, then the composites, then the patterns.</summary>
@@ -37,6 +38,7 @@ public static class MaterialKind
         (WallDiagonal, "Diagonal stripes"),
         (Checker, "Checkerboard"),
         (LogChecker, "Log checkerboard"),
+        (LaidLog, "Laid log beam"),
         (WallFrame, "Wall frame"),
     ];
 

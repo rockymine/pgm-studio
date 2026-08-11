@@ -25,8 +25,10 @@ public sealed class RoomStyleJsonTests
 
         await Assert.That(members).IsEquivalentTo(new[]
         {
-            "Door", "DoorHeight", "DoorWidth", "Floor", "Form", "Gable", "Overhang", "Pitch", "Porch",
-            "Post", "RidgeCap", "Roof", "RoofHole", "Sill", "Storeys", "Surface", "Verge", "Wall", "Windows",
+            "Beams", "Door", "DoorHead", "DoorHeight", "DoorWidth", "Floor", "Form", "Gable",
+            "GableWindows", "Overhang", "Pitch",
+            "Porch", "Post", "RidgeCap", "Roof", "RoofHole", "RoofSlab", "RoofSlabData", "Sill", "Storeys",
+            "Surface", "Verge", "Wall", "Windows",
         }.Order().ToList());
     }
 

@@ -495,4 +495,177 @@ public sealed class HouseStamperTests
         await Assert.That(open.Select(cell => cell.X).Distinct().Count()).IsEqualTo(2);
         await Assert.That(open.Select(cell => cell.Y).Distinct().Count()).IsEqualTo(3);
     }
+
+    [Test]
+    public async Task The_beams_run_two_log_ends_out_of_every_corner()
+    {
+        // In plan the seam reads as a hash: the walls are the square in the middle and eight ends stand
+        // outside it, one along each axis at each of the four corners. Each shows its sawn end, which is what
+        // the end of a log is.
+        var style = new HouseStyle
+        {
+            Storeys = [new Storey { Clear = 3 }, new Storey { Clear = 3 }],
+            Beams = new BeamStyle { Block = Blocks.Log, Data = 0, Reach = 1 },
+        };
+        var world = House(7, 9, style);
+        var seam = FloorY + 4;                                  // three clear plus the slab over them
+
+        var ends = 0;
+        for (var x = -2; x < 9; x++)
+            for (var z = -2; z < 11; z++)
+            {
+                var outside = x is < 0 or > 6 || z is < 0 or > 8;
+                if (world.GetBlock(x, seam, z).Id != Blocks.Log || !outside) continue;
+                ends++;
+                // Lying along the axis it runs out on, so the face pointing away from the building is sawn.
+                var axis = world.GetBlock(x, seam, z).Data >> 2;
+                await Assert.That(axis).IsEqualTo(x is < 0 or > 6 ? 1 : 2);
+            }
+        await Assert.That(ends).IsEqualTo(8);
+    }
+
+    [Test]
+    public async Task A_building_that_asks_for_no_beams_writes_nothing_outside_its_walls()
+    {
+        // The beams are the one thing a house lays past its own footprint, so a style naming none has to leave
+        // the ring around it exactly as it found it — that is the invariant the rest of the stamper keeps.
+        var style = new HouseStyle { Storeys = [new Storey { Clear = 3 }, new Storey { Clear = 3 }], Overhang = 0 };
+        var world = House(7, 9, style);
+
+        for (var x = -1; x < 8; x++)
+            for (var z = -1; z < 10; z++)
+                if (x is < 0 or > 6 || z is < 0 or > 8)
+                    for (var y = FloorY + 1; y < FloorY + 20; y++)
+                        await Assert.That(world.GetBlock(x, y, z).Id).IsEqualTo(Blocks.Air);
+    }
+
+    [Test]
+    public async Task A_gable_window_is_cut_once_per_face_and_only_where_there_is_a_gable_to_cut()
+    {
+        // A gable is a triangle, so the middle is the one place a window certainly fits — one per face and
+        // centred, where a wall takes as many as its run will hold.
+        var style = new HouseStyle
+        {
+            Form = RoofForm.Gable, Pitch = 2, Wall = RoomPart.Of(new SolidMaterial(Blocks.Planks), 5),
+            GableWindows = new WindowStyle { Form = WindowForm.Pane, Block = Blocks.GlassPane, Width = 2, Height = 2, Sill = 1 },
+        };
+        var world = House(11, 9, style);
+        var wallTop = FloorY + 5;
+
+        // The slope is taken across the shorter side, which here is z — so the two z walls are the eaves, the
+        // ridge runs along x, and the gable triangles stand on the two x walls. A pane on an eave wall would
+        // be a window cut into thin air above it.
+        var onGables = Panes(world, RoomEdge.NegX, 11, 9, wallTop) + Panes(world, RoomEdge.PosX, 11, 9, wallTop);
+        var onSlopes = Panes(world, RoomEdge.NegZ, 11, 9, wallTop) + Panes(world, RoomEdge.PosZ, 11, 9, wallTop);
+
+        await Assert.That(onGables).IsEqualTo(8);      // two faces, 2x2 each
+        await Assert.That(onSlopes).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task A_small_gable_takes_a_small_window_and_refuses_a_larger_one()
+    {
+        // A gable narrows as it rises, so a window that technically lands on gable can still run hard into the
+        // slope above it and leave the face as a hole with a rim. This face is five cells at its base and three
+        // a course up: it carries one cell in the middle and not a two-by-two.
+        var wall = RoomPart.Of(new SolidMaterial(Blocks.Planks), 5);
+        var open = new WindowStyle { Form = WindowForm.Open, Width = 1, Height = 1, Sill = 2 };
+        var wallTop = FloorY + 5;
+
+        var small = House(7, 9, new HouseStyle { Form = RoofForm.Gable, Pitch = 1, Wall = wall, GableWindows = open });
+        var large = House(7, 9, new HouseStyle
+        {
+            Form = RoofForm.Gable, Pitch = 1, Wall = wall,
+            GableWindows = open with { Width = 2, Height = 2, Sill = 1 },
+        });
+
+        // The one cell it does carry, dead centre of the triangle with gable either side of it.
+        await Assert.That(small.GetBlock(3, wallTop + 2, 0).Id).IsEqualTo(Blocks.Air);
+        await Assert.That(small.GetBlock(2, wallTop + 2, 0).Id).IsNotEqualTo(Blocks.Air);
+        await Assert.That(small.GetBlock(4, wallTop + 2, 0).Id).IsNotEqualTo(Blocks.Air);
+
+        // And the one it does not: the face is left whole rather than opened at all.
+        foreach (var along in new[] { 3, 4 })
+            foreach (var course in new[] { 1, 2 })
+                await Assert.That(large.GetBlock(along, wallTop + course, 0).Id).IsNotEqualTo(Blocks.Air);
+    }
+
+    [Test]
+    public async Task A_gable_too_shallow_to_hold_the_window_is_left_whole()
+    {
+        // Asking for one on a hip, which leaves no gable anywhere, cuts nothing rather than cutting a hole in
+        // the wall below where the gable would have been.
+        var style = new HouseStyle
+        {
+            Form = RoofForm.Hip, Pitch = 1, Wall = RoomPart.Of(new SolidMaterial(Blocks.Planks), 5),
+            GableWindows = new WindowStyle { Form = WindowForm.Pane, Block = Blocks.GlassPane, Width = 2, Height = 2, Sill = 1 },
+        };
+        var world = House(11, 9, style);
+        var wallTop = FloorY + 5;
+        foreach (var edge in new[] { RoomEdge.NegZ, RoomEdge.PosZ, RoomEdge.NegX, RoomEdge.PosX })
+            await Assert.That(Panes(world, edge, 11, 9, wallTop)).IsEqualTo(0);
+    }
+
+    /// <summary>How many panes stand in one face above the wall top — the gable's own courses.</summary>
+    private static int Panes(VoxelWorld world, RoomEdge edge, int width, int depth, int wallTop)
+    {
+        var found = 0;
+        for (var along = 0; along < (edge is RoomEdge.NegZ or RoomEdge.PosZ ? width : depth); along++)
+            for (var y = wallTop + 1; y < wallTop + 12; y++)
+            {
+                var (x, z) = edge switch
+                {
+                    RoomEdge.NegZ => (along, 0),
+                    RoomEdge.PosZ => (along, depth - 1),
+                    RoomEdge.NegX => (0, along),
+                    _ => (width - 1, along),
+                };
+                if (world.GetBlock(x, y, z).Id == Blocks.GlassPane) found++;
+            }
+        return found;
+    }
+
+    [Test]
+    public async Task A_self_cut_door_keeps_a_block_of_wall_clear_of_both_posts()
+    {
+        // A door hard against the corner post reads as a hole knocked through the frame rather than a way in.
+        var world = House(9, 7, new HouseStyle { Post = new SolidMaterial(Blocks.Log), DoorWidth = 2 });
+
+        // The door is cut on a long side, so it runs along x. Its cells are air; the two beside the posts are
+        // not.
+        var open = Enumerable.Range(0, 9).Where(x => world.GetBlock(x, FloorY + 1, 0).Id == Blocks.Air).ToList();
+        await Assert.That(open).IsNotEmpty();
+        await Assert.That(open.Min()).IsGreaterThanOrEqualTo(2);
+        await Assert.That(open.Max()).IsLessThanOrEqualTo(6);
+    }
+
+    [Test]
+    public async Task A_face_too_narrow_for_a_two_wide_door_narrows_the_door_rather_than_the_margin()
+    {
+        // Five across leaves one cell once both margins are kept, so the opening narrows to it. The door is
+        // what gives way, never the block of wall carrying the post — a narrow shed says it is narrow.
+        var world = House(5, 5, new HouseStyle { DoorWidth = 2 });
+        var open = Enumerable.Range(0, 5).Where(x => world.GetBlock(x, FloorY + 1, 0).Id == Blocks.Air).ToList();
+
+        await Assert.That(open).IsEquivalentTo(new[] { 2 });
+    }
+
+    [Test]
+    public async Task A_door_on_a_narrow_wall_still_clears_the_post()
+    {
+        // The case that started this: a two-wide door on a five-wide face used to sit at cells 2 and 3, and
+        // cell 3 is hard against the post at 4.
+        // Depth five so every width here is the long side and the house fronts on z — a house fronts on its
+        // longer side, and a door on the other wall would simply not be at z = 0 to look for.
+        foreach (var width in new[] { 5, 6, 7, 9, 11 })
+        {
+            var world = House(width, 5, new HouseStyle { DoorWidth = 2 });
+            var open = Enumerable.Range(0, width)
+                .Where(x => world.GetBlock(x, FloorY + 1, 0).Id == Blocks.Air).ToList();
+
+            await Assert.That(open).IsNotEmpty();
+            await Assert.That(open.Min()).IsGreaterThanOrEqualTo(2);
+            await Assert.That(open.Max()).IsLessThanOrEqualTo(width - 3);
+        }
+    }
 }

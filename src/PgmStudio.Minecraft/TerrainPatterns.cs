@@ -338,6 +338,30 @@ public sealed record CheckerMaterial(int Size, TerrainMaterial Even, TerrainMate
 }
 
 /// <summary>
+/// A log <b>laid along the wall</b>, everywhere — the course that reads as a beam running through the masonry.
+///
+/// <para>It is the log checkerboard with one of its two states taken away, and it exists for the same reason
+/// that one does: a log's data nibble is its axis, so a solid cannot lie a log down and a material resolving
+/// the nibble from the cell would point half of them out of the wall. The wall's own run answers it
+/// (<see cref="BucketContext.PerimeterRun"/>), and the log takes the axis the wall is going, so the sawn ends
+/// are buried in the neighbouring wall blocks and only bark shows.</para>
+///
+/// <para>At a <b>corner</b> the wall has faces on both axes and a laid log would show a sawn end on one of
+/// them, so the log stands up there — which is what a corner post is, and what the checkerboard does for the
+/// same reason. A beam that wants to carry on <em>past</em> the corner and show its end is a different thing
+/// and belongs to the building rather than to the wall (<see cref="HouseStyle.Beams"/>).</para>
+/// </summary>
+public sealed record LaidLogMaterial(int Id, int Data = 0) : TerrainMaterial
+{
+    public override (int Id, int Data) Resolve(in BucketContext ctx)
+    {
+        var wood = Data & 3;
+        if (ctx.PerimeterRun == GridBoundary.RunsBothWays) return (Id, wood);          // upright at a corner
+        return (Id, wood | (ctx.PerimeterRun == GridBoundary.RunAlongZ ? 8 : 4));
+    }
+}
+
+/// <summary>
 /// A checkerboard of <b>one</b> log, alternating the way it is turned rather than what it is made of: standing
 /// upright on one square, lying on its side on the next. The grain runs vertically on the first and across on
 /// the second, so a wall reads as a woven board out of a single block — the timbering nearly every hand-built

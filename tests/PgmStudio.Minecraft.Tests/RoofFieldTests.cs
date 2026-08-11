@@ -145,4 +145,52 @@ public sealed class RoofFieldTests
         if (form == RoofForm.Flat) return;
         await Assert.That(eaved.Trough).IsLessThan(flush.Trough);
     }
+
+    // ── a roof that climbs half a block at a time ───────────────────────────────────────────────────
+
+    [Test]
+    public async Task A_slab_roof_climbs_one_half_per_block_and_a_cube_roof_is_untouched()
+    {
+        // Half courses are the whole of it: the same gable, one stepping two halves per block and the other
+        // stepping one. The cube roof must answer exactly what it always did, which is what lets the field be
+        // measured in halves at all.
+        var cubes = new RoofField(RoofForm.Gable, 0, 0, 10, 8, 0, 20, 1, RoomEdge.NegZ);
+        var slabs = new RoofField(RoofForm.Gable, 0, 0, 10, 8, 0, 20, 1, RoomEdge.NegZ, inHalves: true);
+
+        // Across the short side, distance 0..4 from the wall line. The cube roof lifts a course a step; the
+        // slab roof lifts half of one, so its cells go cube, slab, cube, slab — the crown rising on the odd
+        // step because that is where the slab sits on top of the cube below it.
+        int[] crowns = [20, 21, 21, 22, 22];
+        for (var step = 0; step <= 4; step++)
+        {
+            await Assert.That(cubes.Crown(5, step)).IsEqualTo(20 + step);
+            await Assert.That(cubes.Half(5, step)).IsFalse();
+
+            await Assert.That(slabs.Crown(5, step)).IsEqualTo(crowns[step]);
+            await Assert.That(slabs.Half(5, step)).IsEqualTo(step % 2 == 1);
+        }
+    }
+
+    [Test]
+    public async Task A_slab_roof_stands_half_as_tall_as_the_cube_roof_of_the_same_pitch()
+    {
+        var cubes = new RoofField(RoofForm.Hip, 0, 0, 6, 6, 1, 20, 1, RoomEdge.NegZ);
+        var slabs = new RoofField(RoofForm.Hip, 0, 0, 6, 6, 1, 20, 1, RoomEdge.NegZ, inHalves: true);
+        // Half the rise, rounded up: the topmost half-step still needs a cell to sit in.
+        await Assert.That(slabs.Peak - 20).IsEqualTo((cubes.Peak - 20 + 1) / 2);
+    }
+
+    [Test]
+    public async Task The_eave_of_a_slab_roof_falls_below_its_base_rather_than_rounding_back_up_to_it()
+    {
+        // The overhang is part of the slope and its rise goes negative, so halving it has to round down. A
+        // truncating divide lifts those cells back to the base plane and the eave floats clear of the roof.
+        var slabs = new RoofField(RoofForm.Gable, 0, 0, 10, 8, 3, 20, 1, RoomEdge.NegZ, inHalves: true);
+        await Assert.That(slabs.Crown(5, -1)).IsEqualTo(20);       // half a block down: a slab in the base cell
+        await Assert.That(slabs.Half(5, -1)).IsTrue();
+        await Assert.That(slabs.Crown(5, -2)).IsEqualTo(19);       // a full block down
+        await Assert.That(slabs.Half(5, -2)).IsFalse();
+        await Assert.That(slabs.Crown(5, -3)).IsEqualTo(19);
+        await Assert.That(slabs.Half(5, -3)).IsTrue();
+    }
 }

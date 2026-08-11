@@ -22,6 +22,11 @@ public enum WindowForm
 
     /// <summary>Panes filling the opening — the ordinary window, glazed rather than open.</summary>
     Pane,
+
+    /// <summary>The hole and nothing in it. Distinct from <see cref="None"/>, which cuts no window at all: this
+    /// one is cut and left, which is what a warm-weather house does and what a wall wants where the light
+    /// matters more than the weather. Its size is entirely the author's, since no form is imposing one.</summary>
+    Open,
 }
 
 /// <summary>
@@ -38,6 +43,21 @@ public sealed record WindowStyle
     /// metadata is <b>geometry</b> here — which way a stair climbs, which half a slab fills — and a material
     /// resolves its data from where the cell sits, which would turn every stair in the wall the same way.</summary>
     public int Block { get; init; } = Blocks.GlassPane;
+
+    /// <summary>The block a window may be cut <em>into</em>, or -1 to cut wherever one fits.
+    ///
+    /// <para><b>A window belongs to a material, not only to a wall.</b> Where the wall is one thing the two
+    /// questions are the same and spacing alone seats a window well. Where it bands — a run of acacia against
+    /// a run of planks — they come apart: a seat chosen by spacing lands half in one band and half in the
+    /// other, and an opening cut across that seam reads as damage rather than as a window. Naming the block
+    /// the wall has to resolve to lets the panel decide, and the wall answers by being asked rather than by
+    /// the seater knowing which patterns exist.</para>
+    ///
+    /// <para>Matched against what the wall <em>resolves</em> to at the cell, so it works for any pattern that
+    /// puts the block there — a stripe, a checker, a noise stop — without naming the pattern.</para></summary>
+    public int HostBlock { get; init; } = -1;
+
+    public int HostData { get; init; }
 
     /// <summary>The block's own variant nibble — which wood, which stone, which dye. The geometry bits are the
     /// stamper's and are added to this.</summary>
@@ -81,6 +101,88 @@ public sealed record WindowStyle
     };
 }
 
+/// <summary>How the top course of a doorway is dressed.</summary>
+public enum DoorHeadForm
+{
+    /// <summary>Nothing — the doorway is a plain rectangle, which is what every opening was.</summary>
+    None,
+
+    /// <summary>An upside-down stair in each corner of the head, raised half outward, so the quarter each is
+    /// missing faces into the opening and the two of them round its top corners off. It is the upper half of a
+    /// stair lattice doing the same trick for a different hole: a beam that carries the wall over the door and
+    /// takes the squareness out of it.</summary>
+    Arched,
+}
+
+/// <summary>What spans the middle of an arched head on a doorway wider than its two corners.</summary>
+public enum DoorHeadFill
+{
+    /// <summary>An upside-down slab: a half block at the top of its cube, so the middle of the beam sits at the
+    /// same height as the raised halves either side of it and the head reads as one line.</summary>
+    UpperSlab,
+
+    /// <summary>The whole cube. A beam rather than a moulding, for a head that wants weight.</summary>
+    Solid,
+}
+
+/// <summary>
+/// The beam over a doorway: an <see cref="DoorHeadForm.Arched"/> head puts an upside-down stair in each corner
+/// of the opening's top course and spans whatever is between them.
+///
+/// <para><b>It is dressing on the opening, not a change to it.</b> The doorway is cut as it always was and the
+/// head is written into its top course, so a three-course door keeps two clear courses to walk through — which
+/// is why a head is only laid on an opening at least three tall. Below that there is nothing to spare.</para>
+///
+/// <para>Blocks rather than materials, for the reason a window's are: the data on a stair is which way it
+/// climbs and on a slab which half it fills, and a material resolving that from the cell would turn both
+/// corners the same way and lay a solid lintel instead of an arch.</para>
+/// </summary>
+public sealed record DoorHeadStyle
+{
+    public DoorHeadForm Form { get; init; } = DoorHeadForm.None;
+
+    /// <summary>The stair at each corner of the head. Which wood it is, is which block it is — a stair's data
+    /// value is entirely geometry, so it carries no variant of its own.</summary>
+    public int Block { get; init; } = Blocks.OakStairs;
+
+    /// <summary>What spans the middle where the opening is wider than two.</summary>
+    public DoorHeadFill Fill { get; init; } = DoorHeadFill.UpperSlab;
+
+    public int FillBlock { get; init; } = Blocks.WoodenSlab;
+
+    public int FillData { get; init; }
+
+    /// <summary>The narrowest opening a head is worth laying in: two corners and nothing else is already the
+    /// whole of it, and one cell cannot hold two corners.</summary>
+    public const int LeastWidth = 2;
+
+    /// <summary>The shortest opening one may be laid in — under three courses the head would take the last of
+    /// the clear and leave a doorway nobody walks through.</summary>
+    public const int LeastHeight = 3;
+
+    /// <summary>Whether this head is laid on an opening of the given size at all.</summary>
+    public bool Fits(int width, int height)
+        => Form != DoorHeadForm.None && width >= LeastWidth && height >= LeastHeight;
+
+    /// <summary>The block one cell of the head takes: a stair turned outward at each end, and the fill
+    /// between. <paramref name="step"/> counts from the opening's low end.</summary>
+    public (int Id, int Data) Piece(bool alongX, int step, int width)
+    {
+        if (step > 0 && step < width - 1)
+            return Fill == DoorHeadFill.Solid
+                ? (FillBlock, FillData & 0xF)
+                : (FillBlock, (FillData & 0x7) | Blocks.SlabUpperHalf);
+
+        // A stair's whole data value is geometry — two bits of facing and the upside-down flag — so there is no
+        // variant nibble to carry and <see cref="Data"/> is the fill's alone. Which wood a stair is, is which
+        // block it is.
+        var toward = alongX
+            ? step == 0 ? Blocks.StairWest : Blocks.StairEast
+            : step == 0 ? Blocks.StairNorth : Blocks.StairSouth;
+        return (Block, toward | Blocks.StairUpsideDown);
+    }
+}
+
 /// <summary>One window's place in a wall: the <see cref="Edge"/> it is cut through, the low along-axis block
 /// coordinate (x for a Z edge, z for an X edge), and its size in blocks. <see cref="Sill"/> counts courses up
 /// from the floor, so it is the same number a style asked for.</summary>
@@ -101,9 +203,13 @@ public static class HouseWindows
     /// <summary>Every window seat on the four walls of a footprint, in edge order. Empty when the style asks
     /// for none, when the wall is too short to hold one clear of its corners, or when the opening would not fit
     /// between the floor and the wall's last course.</summary>
+    /// <param name="hosts">Whether the wall at one cell of a run is a block the window may be cut into, or
+    /// null where the style names no host and any cell will do. Passed as a question rather than as the wall
+    /// itself: the seater decides <em>where</em> a window goes and has no business knowing what a wall is made
+    /// of, and the caller that does know can answer by resolving it.</param>
     public static List<WindowSeat> Seats(
         WindowStyle style, int minX, int minZ, int maxX, int maxZ,
-        int wallExtent, IReadOnlyList<RoomDoor>? doors)
+        int wallExtent, IReadOnlyList<RoomDoor>? doors, Func<RoomEdge, int, bool>? hosts = null)
     {
         var seats = new List<WindowSeat>();
         if (style.Form == WindowForm.None) return seats;
@@ -116,11 +222,55 @@ public static class HouseWindows
         {
             var alongMin = edge is RoomEdge.NegZ or RoomEdge.PosZ ? minX : minZ;
             var alongMax = edge is RoomEdge.NegZ or RoomEdge.PosZ ? maxX : maxZ;
-            foreach (var lo in Spread(alongMin + 1, alongMax - 1, width, Math.Max(0, style.Spacing)))
+            // Two blocks in from each end rather than one: clearing the corner cell still leaves an opening
+            // hard against the corner post, and a window meeting the post reads as a hole knocked through the
+            // frame. The post wants a block of wall beside it before anything is taken out.
+            int seatLo = alongMin + 2, seatHi = alongMax - 2;
+            var placed = style.HostBlock >= 0 && hosts is not null
+                ? Panels(seatLo, seatHi, width, Math.Max(0, style.Spacing), along => hosts(edge, along))
+                : Spread(seatLo, seatHi, width, Math.Max(0, style.Spacing));
+            foreach (var lo in placed)
                 if (!MeetsDoor(doors, edge, lo, width))
                     seats.Add(new WindowSeat(edge, lo, width, sill, height));
         }
         return seats;
+    }
+
+    /// <summary>The low coordinates of the windows a <b>banded</b> wall takes: one centred in each unbroken
+    /// panel of the host block that is wide enough to hold it, skipping a panel that stands closer than
+    /// <paramref name="spacing"/> to the window already placed.
+    ///
+    /// <para>Where <see cref="Spread"/> divides the run and lets the material fall where it may, this lets the
+    /// material divide the run. It is the difference between a window that happens to land on planks and a
+    /// window that is <em>in</em> the planks — and on a wall whose bands are four cells and whose spacing is
+    /// five, the first almost never happens.</para></summary>
+    private static IEnumerable<int> Panels(int runLo, int runHi, int width, int spacing, Func<int, bool> hosts)
+    {
+        // Tracked as "is there one yet" rather than as a sentinel coordinate: a sentinel far enough below the
+        // run to always clear the spacing is also far enough to overflow the subtraction that tests it, which
+        // silently refuses the first window on every wall.
+        var placed = false;
+        var lastEnd = 0;
+        for (var at = runLo; at <= runHi; at++)
+        {
+            if (!hosts(at)) continue;
+            var end = at;
+            while (end + 1 <= runHi && hosts(end + 1)) end++;
+
+            // The panel, centred — what is left over is split between its two ends, so a window sits in the
+            // middle of its band rather than hard against whichever edge the walk reached first.
+            var span = end - at + 1;
+            if (span >= width)
+            {
+                var lo = at + (span - width) / 2;
+                if (!placed || lo - lastEnd > spacing)
+                {
+                    yield return lo;
+                    (placed, lastEnd) = (true, lo + width - 1);
+                }
+            }
+            at = end;
+        }
     }
 
     /// <summary>The low coordinates of as many <paramref name="width"/>-wide windows as fit between
@@ -204,7 +354,7 @@ public static class HouseWindows
             case WindowForm.Pane:
                 return (style.Block, style.Data & 0xF);
             default:
-                return (Blocks.Air, 0);
+                return (Blocks.Air, 0);      // Open, and the air a slab band leaves between its two halves
         }
     }
 }

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using PatternMap;
 using PgmStudio.Api.Services;
+using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Pgm;
@@ -20,7 +21,8 @@ var (plateaus, themes) = Plateaus.Themed();
 // ── the layout: what an author drew ──────────────────────────────────────────────────────────────────────
 
 var layout = Shapes.Layout(plateaus, themes, mapTheme: plateaus[0].ThemeId);
-layout.Dressing = JsonDocument.Parse(DressingJson.Serialize(new DressingDoc { Props = Trees() })).RootElement;
+layout.Dressing = JsonDocument.Parse(
+    DressingJson.Serialize(new DressingDoc { Props = [.. Trees(), .. Buildings()] })).RootElement;
 
 // The shell every wool room is stamped with, bound onto the layout the way the studio's room-style step
 // binds one. A gabled oak house rather than the shipped bedrock lid — which a stored style could not have
@@ -77,6 +79,28 @@ static List<PlacedProp> Trees()
                     Height = 9 + (index + slot) % 6,
                 });
         }
+    }
+    return props;
+}
+
+// One building per house style, on the row of islands after the pattern plateaus. They go down as dressing
+// props rather than as rooms: a prop's footprint is a rectangle someone dragged and it carries no objective,
+// which is exactly what a house standing on a plateau to be looked at is. The rectangle is stored as two
+// opposite corners, the way the canvas stores a drag.
+static List<PlacedProp> Buildings()
+{
+    var props = new List<PlacedProp>();
+    for (var slot = 0; slot < Houses.All.Count; slot++)
+    {
+        var house = Houses.All[slot];
+        var (ox, oz) = Shapes.Origin(Plateaus.All.Count + slot);
+        double minX = ox - house.Width / 2, minZ = oz - house.Depth / 2;
+        props.Add(new HouseProp
+        {
+            Points = [[minX, minZ], [minX + house.Width - 1, minZ + house.Depth - 1]],
+            Front = RoomEdge.NegZ,
+            Style = house.Style,
+        });
     }
     return props;
 }
@@ -192,7 +216,7 @@ var doc = new Dict();
 IntentGenerator.Apply(doc, built.ResolvedIntent);
 doc["name"] = "Pattern Test";
 doc["version"] = "1.0.0";
-doc["objective"] = "Walk the twenty-five plateaus and look at the walls.";
+doc["objective"] = "Walk the twenty-five plateaus and look at the walls, then the house row after them.";
 var xml = XmlWriter.ToXml(Deserializer.FromDict(doc));
 
 // ── write it ─────────────────────────────────────────────────────────────────────────────────────────────

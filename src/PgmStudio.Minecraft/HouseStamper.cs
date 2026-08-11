@@ -16,7 +16,9 @@ namespace PgmStudio.Minecraft;
 /// is the gable's two ends, the shed's back wall and triangular flanks, and nothing at all under a hip.</para>
 ///
 /// <para>Nothing is written outside the footprint plus its overhang, and nothing below the sill, so a house may
-/// be stamped onto finished terrain without reaching into it.</para>
+/// be stamped onto finished terrain without reaching into it — with one exception a style has to ask for: the
+/// log ends of a <see cref="BeamStyle"/> run a block past each corner, which is what makes them read as beams
+/// rather than as a course of the wall.</para>
 /// </summary>
 public static class HouseStamper
 {
@@ -126,7 +128,8 @@ public static class HouseStamper
             var windows = storey.Windows ?? style.Windows;
             var seats = HouseWindows.Seats(
                 windows, body.MinX, body.MinZ, body.MaxX, body.MaxZ,
-                storey.Headroom, level == 0 ? openings : null);
+                storey.Headroom, level == 0 ? openings : null,
+                Hosts(storey.Wall ?? style.Wall, windows, bases[level]));
             foreach (var seat in seats)
                 HouseWindows.Cut(
                     world, seat with { Sill = seat.Sill + bases[level] }, windows, floorY,
@@ -135,9 +138,35 @@ public static class HouseStamper
 
         StampLevels();
 
+        // Whether the wall at one cell of one storey resolves to the block a window wants to be cut into. The
+        // wall is asked rather than inspected: it is resolved exactly as the pass that laid it resolved it,
+        // same course, same arc, same run — so whatever pattern put a block there, a window finds it.
+        Func<RoomEdge, int, bool>? Hosts(RoomPart wall, WindowStyle windows, int storeyBase)
+        {
+            if (windows.HostBlock < 0) return null;
+            var course = Math.Max(1, windows.Sill);
+            var (material, depth) = wall.At(course - 1);
+            return (edge, along) =>
+            {
+                var (x, z) = edge switch
+                {
+                    RoomEdge.NegZ => (along, body.MinZ),
+                    RoomEdge.PosZ => (along, body.MaxZ),
+                    RoomEdge.NegX => (body.MinX, along),
+                    _ => (body.MaxX, along),
+                };
+                var arc = body.Arc(x, z);
+                var (id, data) = material.Resolve(new BucketContext(
+                    x, floorY + storeyBase + course, z, TerrainBucket.Fill, depth, color,
+                    arc, 0, body.Turn(arc), body.Run(x, z)));
+                return id == windows.HostBlock && data == windows.HostData;
+            };
+        }
+
         // ── the roof ──────────────────────────────────────────────────────────────────────────────────
         var roof = new RoofField(
-            style.Form, body.MinX, body.MinZ, body.MaxX, body.MaxZ, overhang, wallTop + 1, pitch, front);
+            style.Form, body.MinX, body.MinZ, body.MaxX, body.MaxZ, overhang, wallTop + 1, pitch, front,
+            style.RoofInHalves);
         var hole = RoofHole(style, body);
 
         for (var x = roof.MinX; x <= roof.MaxX; x++)
@@ -160,10 +189,58 @@ public static class HouseStamper
                     else PutPart(x, fill, z, topWall, topWall.Extent - 1, body);
             }
 
+        StampGableWindows(roof);
         StampDoors();
 
         if (deck is { } porchDeck && style.Porch is { } porchStyle) StampPorch(porchDeck, porchStyle);
         return;
+
+        // ── the window in the gable ───────────────────────────────────────────────────────────────────
+        // One per face and centred, where a wall takes as many as its run will hold. A gable is a triangle:
+        // its height runs out toward both ends, so the middle is the one place a window certainly fits, and
+        // spreading them along the run would put half of them where there is no wall to cut.
+        void StampGableWindows(RoofField field)
+        {
+            var windows = style.GableWindows;
+            if (windows.Form == WindowForm.None) return;
+            var (width, height) = windows.Normalized();
+            var sill = Math.Max(1, windows.Sill);
+
+            foreach (var edge in new[] { RoomEdge.NegZ, RoomEdge.PosZ, RoomEdge.NegX, RoomEdge.PosX })
+            {
+                var (lo, hi) = Seat(body, edge);                     // a block clear of both corners
+                var start = lo + (hi - lo + 1 - width) / 2;          // centred the way a wall's windows are
+                if (start < lo || start + width - 1 > hi) continue;
+
+                // <b>The gable has to keep material round the opening.</b> A triangle narrows as it rises, so
+                // testing only the cells the window occupies lets a window that technically lands on gable run
+                // hard into the slope above it and leave the face as a hole with a rim — which reads as damage
+                // rather than as a window. Every course the opening takes must therefore have gable a cell
+                // either side of it as well, which is what makes a small gable admit only a small window and a
+                // hip, having no gable at all, admit none.
+                var fits = true;
+                for (var course = sill; course < sill + height && fits; course++)
+                    for (var along = start - 1; along <= start + width && fits; along++)
+                    {
+                        var (x, z) = edge switch
+                        {
+                            RoomEdge.NegZ => (along, body.MinZ),
+                            RoomEdge.PosZ => (along, body.MaxZ),
+                            RoomEdge.NegX => (body.MinX, along),
+                            _ => (body.MaxX, along),
+                        };
+                        fits = along >= lo - 1 && along <= hi + 1
+                               && field.Underside(x, z) > wallTop + course;
+                    }
+                if (!fits) continue;
+
+                // Seated from the wall top, which is the course the gable starts at and the datum an author is
+                // looking at when they place one — the floor is storeys away by then.
+                HouseWindows.Cut(
+                    world, new WindowSeat(edge, start, width, sill, height), windows, wallTop,
+                    body.MinX, body.MinZ, body.MaxX, body.MaxZ);
+            }
+        }
 
         // ── the storeys above the ground ──────────────────────────────────────────────────────────────
         // Each storey but the last carries a slab over it, and each slab a way through: a hole with a ladder
@@ -198,6 +275,36 @@ public static class HouseStamper
                 for (var y = floorY + bases[level] + 1; y <= slabY; y++)
                     if (y is > 0 and < VoxelWorld.MaxHeight)
                         world.SetBlock(climb.X, y, climb.Z, Blocks.Ladder, LadderFacing(front));
+
+                LayBeams(slabY);
+            }
+        }
+
+        // The log ends that run out past the corners where two storeys meet. In plan the seam reads as a hash:
+        // the walls are its middle and eight ends carry on outward, two from each corner. Each shows its sawn
+        // end, which is the one place on a building where a cut face outward is the point — it is the end of a
+        // log, and a log building leaves them long.
+        void LayBeams(int y)
+        {
+            if (!style.Beams.Any || y is < 1 or >= VoxelWorld.MaxHeight) return;
+            var reach = Math.Max(1, style.Beams.Reach);
+            var wood = style.Beams.Data & 3;
+
+            foreach (var (cornerX, cornerZ) in new[]
+                     {
+                         (body.MinX, body.MinZ), (body.MaxX, body.MinZ),
+                         (body.MinX, body.MaxZ), (body.MaxX, body.MaxZ),
+                     })
+            {
+                var awayX = cornerX == body.MinX ? -1 : 1;
+                var awayZ = cornerZ == body.MinZ ? -1 : 1;
+                for (var step = 1; step <= reach; step++)
+                {
+                    // Lying along the axis it runs out on, so the face pointing away from the building is the
+                    // sawn one. Data 4 is the x axis and 8 the z axis, the same nibbles a laid log takes.
+                    world.SetBlock(cornerX + awayX * step, y, cornerZ, style.Beams.Block, wood | 4);
+                    world.SetBlock(cornerX, y, cornerZ + awayZ * step, style.Beams.Block, wood | 8);
+                }
             }
         }
 
@@ -209,7 +316,15 @@ public static class HouseStamper
             var material = field.OnBorder(x, z) || (style.RidgeCap && field.OnRidge(x, z))
                 ? style.Verge
                 : style.Roof;
-            for (var y = field.Underside(x, z); y <= crown; y++) Put(x, y, z, material, ring);
+
+            // On a half course the topmost cell is a slab rather than a cube — written straight, the way a
+            // window's pieces are, because which half it fills is geometry and not something a material may
+            // resolve. The cubes under it are the roof's own material like any other course.
+            var slab = field.Half(x, z);
+            for (var y = field.Underside(x, z); y <= (slab ? crown - 1 : crown); y++)
+                Put(x, y, z, material, ring);
+            if (slab && crown is > 0 and < VoxelWorld.MaxHeight)
+                world.SetBlock(x, crown, z, style.RoofSlab, style.RoofSlabData & 0x7);
         }
 
         // A doorway cut after the walls so it is a hole in them, and never through a corner post, which is
@@ -219,9 +334,15 @@ public static class HouseStamper
         {
             var choice = DoorMaterials.Of(style.Door);
             foreach (var door in openings)
+            {
+                // The head takes the opening's <em>top</em> course where the style names one and the opening
+                // is big enough to spare it, so a three-course door becomes two of clear under a beam.
+                var head = style.DoorHead.Fits(door.Width, doorHeight) ? doorHeight : 0;
+                var alongX = door.Edge is RoomEdge.NegZ or RoomEdge.PosZ;
                 for (var course = 1; course <= doorHeight; course++)
-                    for (var along = door.Lo; along < door.Lo + door.Width; along++)
+                    for (var step = 0; step < door.Width; step++)
                     {
+                        var along = door.Lo + step;
                         var (x, z) = door.Edge switch
                         {
                             RoomEdge.NegZ => (along, body.MinZ),
@@ -229,9 +350,12 @@ public static class HouseStamper
                             RoomEdge.NegX => (body.MinX, along),
                             _ => (body.MaxX, along),
                         };
-                        world.SetBlock(x, floorY + course, z,
-                            choice.BlockId, choice.Coloured && color >= 0 ? color : 0);
+                        var (id, data) = course == head
+                            ? style.DoorHead.Piece(alongX, step, door.Width)
+                            : (choice.BlockId, choice.Coloured && color >= 0 ? color : 0);
+                        world.SetBlock(x, floorY + course, z, id, data);
                     }
+            }
         }
 
         // ── the porch ─────────────────────────────────────────────────────────────────────────────────
@@ -242,7 +366,8 @@ public static class HouseStamper
             // house stands behind the deck and the weather is in front of it.
             var outer = front;
             var seated = new RoofField(
-                porchStyle.Roof, porch.MinX, porch.MinZ, porch.MaxX, porch.MaxZ, overhang, 0, pitch, outer);
+                porchStyle.Roof, porch.MinX, porch.MinZ, porch.MaxX, porch.MaxZ, overhang, 0, pitch, outer,
+                style.RoofInHalves);
 
             // The canopy is seated by its own *lowest* course rather than by its ridge: that course has to
             // clear the doorway the porch fronts, and where it lands the ridge follows by however far the form
@@ -393,21 +518,45 @@ public static class HouseStamper
             return carried;
         }
 
-        var (lo, hi) = Run(body, front);
-        var asked = Math.Max(2, style.DoorWidth);
+        // Clear of both posts, and the door <b>narrows</b> rather than the margin giving way: a face too tight
+        // for the width asked for gets a narrower opening, not one that meets the frame. Two blocks is what a
+        // door wants and one is what a narrow shed can have, which is the building saying it is narrow. Only a
+        // face with no seat at all — three across, where the margins leave nothing — falls back to the run
+        // between the corners, because a building nobody can walk into is worse than one with a tight door.
+        var (seatLo, seatHi) = Seat(body, front);
+        var (lo, hi) = seatHi >= seatLo ? (seatLo, seatHi) : Run(body, front);
+        var asked = Math.Min(Math.Max(2, style.DoorWidth), hi - lo + 1);
+        if (asked < 1) return [];
+
         var centre = front is RoomEdge.NegZ or RoomEdge.PosZ
             ? (body.MinX + body.MaxX) / 2
             : (body.MinZ + body.MaxZ) / 2;
-        var start = Math.Max(lo, centre - (asked - 1) / 2);
-        var end = Math.Min(hi, start + asked - 1);
-        return end < start ? [] : [new RoomDoor(front, start, end - start + 1)];
+        var start = Math.Clamp(centre - (asked - 1) / 2, lo, hi - asked + 1);
+        return [new RoomDoor(front, start, asked)];
     }
 
-    /// <summary>The stretch of a wall between its two corner posts — where a door or a window may be cut.</summary>
+    /// <summary>The stretch of a wall between its two corner posts.</summary>
     private static (int Lo, int Hi) Run(Footprint body, RoomEdge edge)
         => edge is RoomEdge.NegZ or RoomEdge.PosZ
             ? (body.MinX + 1, body.MaxX - 1)
             : (body.MinZ + 1, body.MaxZ - 1);
+
+    /// <summary>Where an opening may actually be cut: the run between the corners, <b>one block further in at
+    /// each end</b>.
+    ///
+    /// <para>Clearing the corner cell is not enough. An opening that starts in the very next cell still meets
+    /// the corner post, and a door hard against the post reads as a hole knocked through the frame rather than
+    /// as a way in — the post is what carries the building, and it wants a block of wall beside it before
+    /// anything is taken out. The same margin is what keeps a window off the corner.</para>
+    ///
+    /// <para>It costs four blocks of wall, so a five-wide face has one cell left and cannot carry a two-wide
+    /// door: that is a building too narrow for the door it asked for, and the answer is a wider building.</para>
+    /// </summary>
+    private static (int Lo, int Hi) Seat(Footprint body, RoomEdge edge)
+    {
+        var (lo, hi) = Run(body, edge);
+        return (lo + 1, hi - 1);
+    }
 
     /// <summary>The deck's posts: one at each outer corner, and enough between them that no span of the eave
     /// runs more than five blocks unsupported.</summary>

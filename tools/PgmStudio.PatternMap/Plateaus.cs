@@ -119,7 +119,11 @@ public static class Plateaus
         var plateaus = new List<(string, string, string)>();
         var themes = new Dictionary<string, JsonElement>();
 
-        var all = All;
+        // The pattern plateaus, then the house row after them — one island per house, plain underfoot, since
+        // on that row the plateau is not the thing being shown.
+        var all = (IReadOnlyList<(string Name, string Kind, TerrainMaterial Wall, TerrainMaterial? Surface)>)
+            [.. All, .. Houses.All.Select(house =>
+                (house.Name, "rectangle", One("grey stone"), (TerrainMaterial?)Grass))];
         for (var index = 0; index < all.Count; index++)
         {
             var (name, kind, wall, surface) = all[index];

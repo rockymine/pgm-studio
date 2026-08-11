@@ -27,6 +27,7 @@ public sealed class RoofField
     private readonly RoofForm form;
     private readonly int wallMinX, wallMinZ, wallMaxX, wallMaxZ;
     private readonly int overhang, baseY, pitch;
+    private readonly bool inHalves;
     private readonly RoomEdge front;
 
     /// <summary>Whether the slopes are taken across Z — a gable's ridge runs the length of a building, so the
@@ -41,18 +42,23 @@ public sealed class RoofField
     /// <param name="form">Which roof this is.</param>
     /// <param name="overhang">How far past the walls the roof reaches, in blocks.</param>
     /// <param name="baseY">The course the roof stands at over the wall line — one above the wall's last.</param>
-    /// <param name="pitch">Courses of rise per block travelled inward.</param>
+    /// <param name="pitch">Rise per block travelled inward — in whole courses, or in <em>half</em> courses when
+    /// <paramref name="inHalves"/> is set.</param>
     /// <param name="front">The wall a shed falls to and a saltbox turns its steep side toward. Every other form
     /// ignores it: a gable and a hip are symmetric, and a flat lid has no slope to point.</param>
+    /// <param name="inHalves">Whether the roof climbs in half blocks, laying a slab on every odd step. The
+    /// field is measured in halves either way; a whole-course roof is simply one that steps two at a time, so
+    /// the forms' arithmetic is untouched and a roof laid in cubes answers exactly what it always did.</param>
     public RoofField(
         RoofForm form, int wallMinX, int wallMinZ, int wallMaxX, int wallMaxZ,
-        int overhang, int baseY, int pitch, RoomEdge front)
+        int overhang, int baseY, int pitch, RoomEdge front, bool inHalves = false)
     {
         this.form = form;
         (this.wallMinX, this.wallMinZ, this.wallMaxX, this.wallMaxZ) = (wallMinX, wallMinZ, wallMaxX, wallMaxZ);
         this.overhang = Math.Max(0, overhang);
         this.baseY = baseY;
         this.pitch = Math.Max(1, pitch);
+        this.inHalves = inHalves;
         this.front = front;
         acrossZ = wallMaxZ - wallMinZ <= wallMaxX - wallMinX;
         shortSpan = Math.Max(1, Math.Min(wallMaxZ - wallMinZ, wallMaxX - wallMinX) + 1);
@@ -73,7 +79,7 @@ public sealed class RoofField
     /// by where its plane starts, and the ridge's offset from the base is what the form decides, so the base is
     /// solved for after the field is built rather than guessed before it.</summary>
     public RoofField Raised(int courses) =>
-        new(form, wallMinX, wallMinZ, wallMaxX, wallMaxZ, overhang, baseY + courses, pitch, front);
+        new(form, wallMinX, wallMinZ, wallMaxX, wallMaxZ, overhang, baseY + courses, pitch, front, inHalves);
 
     /// <summary>The plan rectangle the roof draws over: the walls plus the overhang on every side.</summary>
     public int MinX => wallMinX - overhang;
@@ -88,8 +94,25 @@ public sealed class RoofField
 
     public bool Covers(int x, int z) => x >= MinX && x <= MaxX && z >= MinZ && z <= MaxZ;
 
-    /// <summary>The course the column at this cell tops out at.</summary>
-    public int Crown(int x, int z)
+    /// <summary>The course the column at this cell tops out at. Where that top block is a
+    /// <see cref="Half"/> it is the cell the slab sits in, so the roof's surface is the middle of it rather
+    /// than the top.</summary>
+    public int Crown(int x, int z) => baseY + FloorHalf(1 + Rise(x, z));
+
+    /// <summary>Whether the block at the <see cref="Crown"/> is a <b>slab</b> — the odd half-step of a roof
+    /// that climbs half a block at a time. A roof laid in whole courses never answers yes: it steps two halves
+    /// at once and so is never caught between them.</summary>
+    public bool Half(int x, int z) => inHalves && (((Rise(x, z) % 2) + 2) % 2) == 1;
+
+    /// <summary>How far the roof's own surface stands above its base plane at this cell, in <b>half</b> blocks.
+    /// Every form answers here, and the only difference a slab roof makes is that it travels one half per block
+    /// where a cube roof travels two.
+    ///
+    /// <para>Halves rather than blocks because a slope of half a block per block is the roof a slab is actually
+    /// for: laid in cubes it would step a whole block at a time and want stairs, and laid in slabs at a whole
+    /// block of rise it leaves an open half between every pair that the roof can be seen straight through.</para>
+    /// </summary>
+    private int Rise(int x, int z)
     {
         int westward = x - wallMinX, eastward = wallMaxX - x;
         int northward = z - wallMinZ, southward = wallMaxZ - z;
@@ -103,12 +126,16 @@ public sealed class RoofField
             _ => (eastward, westward),
         };
 
-        return baseY + form switch
+        // Whole courses are two halves at a time; a slab roof travels one. Applying the step here rather than
+        // inside each form is what leaves the six formulas untouched — they answer in blocks travelled and the
+        // roof decides what a block travelled is worth.
+        var step = inHalves ? pitch : 2 * pitch;
+        return form switch
         {
             RoofForm.Flat => 0,
-            RoofForm.Shed => Reach(fromFront) * pitch,
-            RoofForm.Hip => Math.Min(Math.Min(westward, eastward), Math.Min(northward, southward)) * pitch,
-            RoofForm.Gambrel => Gambrel(Math.Min(acrossLow, acrossHigh)),
+            RoofForm.Shed => Reach(fromFront) * step,
+            RoofForm.Hip => Math.Min(Math.Min(westward, eastward), Math.Min(northward, southward)) * step,
+            RoofForm.Gambrel => Gambrel(Math.Min(acrossLow, acrossHigh), step),
             // Both slopes rise from their own eave, and the ridge is simply where they meet: at one rate they
             // meet in the middle and it is a gable, at two different rates the steeper side reaches the other
             // first and the ridge slides toward it, which is the whole of a saltbox.
@@ -117,11 +144,16 @@ public sealed class RoofField
             // steep one and nothing about how high the roof stands. Measuring it from the front instead lets
             // both slopes run the length of a hall, where each saturates on its own and they never meet — the
             // ridge is then the long side's, which is the one thing no roof's height may be.
-            RoofForm.Saltbox => Math.Min(SteepSide(acrossLow, acrossHigh) * (pitch + 1),
-                                         ShallowSide(acrossLow, acrossHigh) * pitch),
-            _ => Math.Min(acrossLow, acrossHigh) * pitch,
+            RoofForm.Saltbox => Math.Min(SteepSide(acrossLow, acrossHigh) * (step + 1),
+                                         ShallowSide(acrossLow, acrossHigh) * step),
+            _ => Math.Min(acrossLow, acrossHigh) * step,
         };
     }
+
+    /// <summary>Halve, rounding <b>down</b> rather than toward zero. The eave falls below the roof's own base
+    /// plane, so the rise goes negative there, and a truncating divide would round those cells back up and lift
+    /// the overhang half a block clear of the slope it belongs to.</summary>
+    private static int FloorHalf(int halves) => halves >= 0 ? halves / 2 : -((-halves + 1) / 2);
 
     /// <summary>How far a slope that falls toward the <em>front</em> is allowed to climb: the short side's own
     /// run, whatever the run it actually has.
@@ -172,11 +204,11 @@ public sealed class RoofField
     /// <summary>A barn roof: steep for the first courses in from the eave, then shallow to the ridge. The break
     /// sits a quarter of the span in, so the steep skirt is half of each slope and the shallow cap the other
     /// half — the proportion that reads as a gambrel rather than as a gable with a kink.</summary>
-    private int Gambrel(int inward)
+    private int Gambrel(int inward, int step)
     {
         var span = (acrossZ ? wallMaxZ - wallMinZ : wallMaxX - wallMinX) + 1;
         var brk = Math.Max(1, span / 4);
-        var steep = pitch + 1;
-        return inward <= brk ? inward * steep : brk * steep + (inward - brk) * pitch;
+        var steep = step + 1;
+        return inward <= brk ? inward * steep : brk * steep + (inward - brk) * step;
     }
 }

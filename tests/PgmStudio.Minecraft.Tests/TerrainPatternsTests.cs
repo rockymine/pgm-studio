@@ -711,4 +711,24 @@ public sealed class TerrainPatternsTests
                 await Assert.That(data).IsEqualTo((x + z) % 2 == 0 ? Upright : AlongX);
             }
     }
+
+    [Test]
+    public async Task A_laid_log_follows_the_wall_and_stands_up_only_at_a_corner()
+    {
+        // The beam course: a log lying along the wall everywhere, so the sawn ends are buried in its
+        // neighbours and only bark shows. At a corner there are faces on both axes and no lying log can show
+        // bark to both, so it stands — the same answer the checkerboard gives.
+        var beam = new LaidLogMaterial(Blocks.Log, 0);
+        await Assert.That(beam.Resolve(new BucketContext(0, 0, 0, TerrainBucket.Wall, 0,
+            PerimeterRun: GridBoundary.RunAlongX))).IsEqualTo((Blocks.Log, AlongX));
+        await Assert.That(beam.Resolve(new BucketContext(0, 0, 0, TerrainBucket.Wall, 0,
+            PerimeterRun: GridBoundary.RunAlongZ))).IsEqualTo((Blocks.Log, AlongZ));
+        await Assert.That(beam.Resolve(new BucketContext(0, 0, 0, TerrainBucket.Wall, 0,
+            PerimeterRun: GridBoundary.RunsBothWays))).IsEqualTo((Blocks.Log, Upright));
+
+        // The species is the author's and the axis is the pattern's, as everywhere a block carries geometry.
+        var spruce = new LaidLogMaterial(Blocks.Log, 1);
+        await Assert.That(spruce.Resolve(new BucketContext(0, 0, 0, TerrainBucket.Wall, 0,
+            PerimeterRun: GridBoundary.RunAlongX))).IsEqualTo((Blocks.Log, 1 | AlongX));
+    }
 }

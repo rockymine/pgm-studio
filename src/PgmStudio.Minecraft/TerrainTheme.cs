@@ -54,6 +54,7 @@ public readonly record struct BucketContext(int X, int Y, int Z, TerrainBucket B
 [JsonDerivedType(typeof(WallDiagonalMaterial), "wallDiagonal")]
 [JsonDerivedType(typeof(CheckerMaterial), "checker")]
 [JsonDerivedType(typeof(LogCheckerMaterial), "logChecker")]
+[JsonDerivedType(typeof(LaidLogMaterial), "laidLog")]
 [JsonDerivedType(typeof(WallFrameMaterial), "wallFrame")]
 public abstract record TerrainMaterial
 {

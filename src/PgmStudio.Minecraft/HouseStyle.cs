@@ -113,6 +113,39 @@ public sealed record PorchStyle
 }
 
 /// <summary>
+/// The logs that run <b>out past the corners</b> where two storeys meet — the ends of the beams that carry the
+/// floor, left long the way a log building leaves them.
+///
+/// <para>In plan the seam reads as a <b>hash</b>: the walls are the square in the middle of it, and at each of
+/// the four corners two log ends carry on outward, one along each axis. Eight in all, and each shows its
+/// <em>sawn end</em> rather than its bark, because that is what the end of a log is — the one place in the
+/// building where a cut face outward is the point rather than the mistake.</para>
+///
+/// <para>The course <em>inside</em> the wall is not this. That is an ordinary course of the wall's own stack,
+/// laid in a <see cref="LaidLogMaterial"/> so the log follows the wall and shows bark; this is only what
+/// happens where the wall stops. Keeping them apart is what lets a beam course run in one material and its
+/// ends in another, and lets a building have the course without the ends or the other way about.</para>
+///
+/// <para><b>It is the one thing a house writes outside its own footprint.</b> Every other block a style lays
+/// falls inside the walls plus the roof's overhang; these reach one block past each corner, which is why they
+/// are asked for rather than assumed.</para>
+/// </summary>
+public sealed record BeamStyle
+{
+    /// <summary>The log the ends are cut from, or -1 for a building whose storeys meet without them.</summary>
+    public int Block { get; init; } = -1;
+
+    /// <summary>That log's own species nibble. Which way it lies is the stamper's.</summary>
+    public int Data { get; init; }
+
+    /// <summary>How far past each corner the ends run.</summary>
+    public int Reach { get; init; } = 1;
+
+    /// <summary>Whether this building has them at all.</summary>
+    public bool Any => Block >= 0 && Reach > 0;
+}
+
+/// <summary>
 /// One storey of a building: the air a player stands in, the walls around it, the windows through them and
 /// how its own floor is divided.
 ///
@@ -231,6 +264,15 @@ public sealed record HouseStyle
     /// <summary>The windows cut through the walls, or none.</summary>
     public WindowStyle Windows { get; init; } = new();
 
+    /// <summary>The window cut through each <see cref="Gable"/> face, or none.
+    ///
+    /// <para>Its own style rather than the walls', because a gable is not a wall: it is a triangle, its height
+    /// runs out toward both ends, and the one place a window certainly fits is the middle. So one is cut per
+    /// face and centred, where a wall takes as many as its run will hold. Its <see cref="WindowStyle.Sill"/> is
+    /// counted from the <b>wall top</b> — the course the gable starts at — since that is the datum an author is
+    /// looking at when they place it, and the floor is storeys away by then.</para></summary>
+    public WindowStyle GableWindows { get; init; } = new();
+
     /// <summary>The storeys stacked inside the building, or empty for the single storey <see cref="Wall"/>,
     /// <see cref="Windows"/> and <see cref="Surface"/> describe on their own.
     ///
@@ -304,11 +346,42 @@ public sealed record HouseStyle
     /// leaves the wall to carry the weather.</summary>
     public int Overhang { get; init; } = 1;
 
-    /// <summary>How steep the slope climbs: courses of rise per block travelled inward. One is the vanilla
-    /// pitch; two is a steep alpine roof.</summary>
+    /// <summary>How steep the slope climbs per block travelled inward — courses on a roof laid in cubes, and
+    /// <em>half</em> courses on one that names a <see cref="RoofSlab"/>. One is the vanilla pitch; two is a
+    /// steep alpine roof, or on a slab roof the same 45° a cube roof gets at one.</summary>
     public int Pitch { get; init; } = 1;
 
+    /// <summary>The logs that run out past the corners where two storeys meet, or none.</summary>
+    public BeamStyle Beams { get; init; } = new();
+
+    /// <summary>The slab a roof steps in, or -1 for a roof laid in whole blocks.
+    ///
+    /// <para>Naming one puts the roof on <b>half courses</b>: it climbs half a block per block travelled and
+    /// lays this slab on every odd step, with the style's own <see cref="Roof"/> filling the cubes between. It
+    /// is the gentler slope a slab is actually for — at a whole block of rise a course of slabs leaves an open
+    /// half between every pair and the roof can be seen straight through, which is why
+    /// <see cref="Roof"/> documents stairs and slabs as different roofs.</para>
+    ///
+    /// <para>A block id rather than a material, for the reason a window's is: which half of its cube a slab
+    /// fills is <b>geometry</b>, and a material resolving that from where the cell sits would lay half of them
+    /// upside down.</para></summary>
+    public int RoofSlab { get; init; } = -1;
+
+    /// <summary>That slab's own variant nibble — which wood, which stone. The half it fills is the stamper's
+    /// and is not part of this.</summary>
+    public int RoofSlabData { get; init; }
+
+    /// <summary>Whether the roof climbs half a block at a time.</summary>
+    [JsonIgnore]
+    public bool RoofInHalves => RoofSlab >= 0;
+
     public DoorMaterial Door { get; init; } = DoorMaterial.Air;
+
+    /// <summary>The beam over the doorway, or a plain rectangular opening where it names no form. Separate
+    /// from <see cref="Door"/> because they answer different questions: the door is what fills the opening and
+    /// is a closed set the wool room's break rule has to whitelist, while the head is what carries the wall
+    /// over it and is never something a player goes through.</summary>
+    public DoorHeadStyle DoorHead { get; init; } = new();
 
     /// <summary>The doorway, which is never smaller than two blocks wide by three tall however it is set. A
     /// single-width opening is a gap in a wall rather than a door, and a room a player carries an objective
@@ -333,23 +406,28 @@ public sealed record HouseStyle
            && Sill == other.Sill && Wall == other.Wall && Post == other.Post && Gable == other.Gable
            && Roof == other.Roof && Verge == other.Verge && Floor == other.Floor
            && Surface == other.Surface && Windows == other.Windows
+           && GableWindows == other.GableWindows
            && Storeys.SequenceEqual(other.Storeys)
            && Porch == other.Porch && Form == other.Form
            && RidgeCap == other.RidgeCap && RoofHole == other.RoofHole
            && Overhang == other.Overhang && Pitch == other.Pitch
-           && Door == other.Door && DoorWidth == other.DoorWidth && DoorHeight == other.DoorHeight;
+           && RoofSlab == other.RoofSlab && RoofSlabData == other.RoofSlabData
+           && Beams == other.Beams
+           && Door == other.Door && DoorHead == other.DoorHead
+           && DoorWidth == other.DoorWidth && DoorHeight == other.DoorHeight;
 
     public override int GetHashCode()
     {
         var hash = new HashCode();
         hash.Add(Sill); hash.Add(Wall); hash.Add(Post); hash.Add(Gable);
         hash.Add(Roof); hash.Add(Verge); hash.Add(Floor);
-        hash.Add(Surface); hash.Add(Windows);
+        hash.Add(Surface); hash.Add(Windows); hash.Add(GableWindows);
         foreach (var storey in Storeys) hash.Add(storey);
         hash.Add(Porch); hash.Add(Form);
         hash.Add(RidgeCap); hash.Add(RoofHole);
-        hash.Add(Overhang); hash.Add(Pitch);
-        hash.Add(Door); hash.Add(DoorWidth); hash.Add(DoorHeight);
+        hash.Add(Overhang); hash.Add(Pitch); hash.Add(RoofSlab); hash.Add(RoofSlabData);
+        hash.Add(Beams);
+        hash.Add(Door); hash.Add(DoorHead); hash.Add(DoorWidth); hash.Add(DoorHeight);
         return hash.ToHashCode();
     }
 
@@ -420,7 +498,7 @@ public static class HouseHeights
         var field = new RoofField(
             style.Form, 0, 0, Math.Max(0, width - 1), Math.Max(0, depth - 1),
             Math.Max(0, style.Overhang), wallTop + 1, Math.Max(1, style.Pitch),
-            front ?? HouseStamper.DefaultFront(width, depth));
+            front ?? HouseStamper.DefaultFront(width, depth), style.RoofInHalves);
         return field.Peak;
     }
 }

@@ -50,6 +50,7 @@ public static class TerrainThemeComposer
         WallDiagonalMaterial => "wallDiagonal",
         CheckerMaterial => "checker",
         LogCheckerMaterial => "logChecker",
+        LaidLogMaterial => "laidLog",
         WallFrameMaterial => "wallFrame",
         _ => "solid",
     };
