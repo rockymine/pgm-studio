@@ -249,9 +249,11 @@ var eastX = Origin(14).X;
 // A 45 degree slope, so the roof is whole blocks: a slab there fills half its cube and the slope leaks.
 var oak = new HouseStyle
 {
-    Sill = new SolidMaterial(4), Wall = new SolidMaterial(5, 1), Post = new SolidMaterial(17, 0),
-    Roof = new SolidMaterial(5, 1), Verge = new SolidMaterial(5, 5), Floor = new SolidMaterial(5, 0),
-    WallHeight = 5, Overhang = 1, Pitch = 1, DoorWidth = 2, DoorHeight = 3,
+    Sill = new SolidMaterial(4), Post = new SolidMaterial(17, 0),
+    Wall = RoomPart.Of(new SolidMaterial(5, 1), 5),
+    Floor = RoomPart.Of(new SolidMaterial(5, 0)),
+    Roof = new SolidMaterial(5, 1), Verge = new SolidMaterial(5, 5),
+    Overhang = 1, Pitch = 1, DoorWidth = 2, DoorHeight = 3,
 };
 
 // The wool is the pad the room stamper has always laid: a flat square set into the floor rather than standing

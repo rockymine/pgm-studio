@@ -161,7 +161,7 @@ public sealed class HouseStamperTests
                 {
                     var id = world.GetBlock(x, y, z).Id;
                     if (id == Blocks.Air) continue;
-                    if (y <= FloorY + new HouseStyle().WallHeight) continue;      // walls and gable, not roof
+                    if (y <= FloorY + new HouseStyle().Wall.Extent) continue;      // walls and gable, not roof
                     await Assert.That(BlockRoles.IsFullCube(id)).IsTrue();
                 }
     }

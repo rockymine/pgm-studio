@@ -44,7 +44,7 @@ public static class WoolSpawnStamper
 
 /// <summary>The blocks both pads are: one square of coloured wool at the floor course. Shared because the
 /// geometry really is the same; what differs is only what the map calls it.</summary>
-internal static class PadStamp
+public static class PadStamp
 {
     public static void Lay(VoxelWorld world, RoomPad pad, int floorY, int color)
     {

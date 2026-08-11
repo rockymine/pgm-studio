@@ -122,6 +122,30 @@ public sealed record RoomStyle
     /// cannot run past the world ceiling. Becomes a per-room read once a map binds its own styles.</summary>
     public static int MaxTopLayer { get; } = Math.Max(Wool.TopLayer, Spawn.TopLayer);
 
+    /// <summary>This style as the building it describes: a flat-roofed house.
+    ///
+    /// <para>A room style is the <b>stored</b> shape — it is what a map snapshots into its layout and what a
+    /// hand-editable leaf has to keep parsing — while a house style is the <b>stamping</b> shape, free to grow
+    /// a roof form or a pitch without any of that reaching the wire. This is the one place the two meet, so
+    /// the shell a room is stamped with can change without a stored layout noticing.</para>
+    ///
+    /// <para>A shell has no corner posts and no verge: its corners are wall like the rest of it and its lid is
+    /// one material throughout, which is exactly what leaving those unset and equal says.</para></summary>
+    public HouseStyle AsHouse() => new()
+    {
+        Form = RoofForm.Flat,
+        Wall = Wall,
+        Floor = Floor,
+        Post = null,
+        Roof = Roof.At(0).Material,
+        Verge = Roof.At(0).Material,
+        Sill = new SolidMaterial(Blocks.Air),
+        RoofHole = RoofHole,
+        Overhang = Eave == RoofEdge.Overlap ? 1 : 0,
+        Door = Door,
+        DoorHeight = DoorHeight,
+    };
+
     /// <summary>The shipped wall: three courses of bedrock, a coloured band, bedrock, an open course, bedrock.
     /// The band and the slit are courses like any other — that they used to be a hard-coded layer index and a
     /// skipped one is exactly what this stack replaces.</summary>
