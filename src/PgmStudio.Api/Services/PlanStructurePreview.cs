@@ -42,7 +42,7 @@ public static class PlanStructurePreview
     // top. The built-in styles, deliberately: this draws a *plan*, and a plan carries no room-style binding —
     // the compiler builds its layout from the plan, and the binding rides a sketch's layout (structures.md §9).
     // A plan editor showing a bound shell would need the plan to carry one first.
-    private static readonly int CubeHeight = RoomStyle.MaxTopLayer + 1;
+    private static readonly int CubeHeight = HouseStyle.MaxTopLayer + 1;
 
     /// <summary>The structure boxes for <paramref name="plan"/>, or an empty list when it compiles to none.</summary>
     public static IReadOnlyList<StructureBox> Build(PlanModel plan)

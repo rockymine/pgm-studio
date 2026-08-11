@@ -109,11 +109,11 @@ public sealed class RoomStyleJsonEndpoint(RoomStyleLibrary library) : EndpointWi
     {
         var style = await library.ComposeAsync(Route<long>("id"), ct);
         if (style is null) { await Send.NotFoundAsync(ct); return; }
-        await Send.OkAsync(new { styleJson = RoomStyleJson.Serialize(style) }, ct);
+        await Send.OkAsync(new { styleJson = HouseStyleJson.Serialize(style) }, ct);
     }
 }
 
-/// <summary>POST /api/room-styles/preview-snapshot — body is a serialized <c>RoomStyle</c>; returns the shell
+/// <summary>POST /api/room-styles/preview-snapshot — body is a serialized <c>HouseStyle</c>; returns the shell
 /// it stamps. What a map's <b>bound</b> style is previewed through: the binding is a snapshot rather than a
 /// library id (structures.md §9), so the picture has to come from the snapshot too — reading the library row
 /// would show what that row looks like now, which is exactly the drift the snapshot exists to prevent.</summary>
@@ -124,7 +124,7 @@ public sealed class RoomStyleSnapshotPreviewEndpoint : EndpointWithoutRequest
     public override async Task HandleAsync(CancellationToken ct)
     {
         var json = await RawBody.ReadAsync(HttpContext, ct);
-        try { await Send.OkAsync(RoomStylePreview.Views(RoomStyleJson.Deserialize(json)), ct); }
+        try { await Send.OkAsync(RoomStylePreview.Views(HouseStyleJson.Deserialize(json)), ct); }
         catch (JsonException) { await Send.ResponseAsync(new { error = "invalid room style JSON" }, 400, ct); }
     }
 }

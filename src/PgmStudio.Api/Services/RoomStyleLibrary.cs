@@ -8,7 +8,7 @@ namespace PgmStudio.Api.Services;
 
 /// <summary>
 /// The composition-root half of the room-style library (G34b): it bridges the row store
-/// (<see cref="RoomStyleStore"/>) and the stamper's own model (<see cref="RoomStyle"/>), which live in
+/// (<see cref="RoomStyleStore"/>) and the stamper's own model (<see cref="HouseStyle"/>), which live in
 /// different layers. <see cref="ThemeLibrary"/>'s sibling, and the same discipline — a draft composes exactly
 /// as a saved row does, so what an editor previews is what the save would build.
 ///
@@ -19,7 +19,7 @@ namespace PgmStudio.Api.Services;
 public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
 {
     /// <summary>A library room style assembled into the one the stamper consumes, or null when unknown.</summary>
-    public async Task<RoomStyle?> ComposeAsync(long id, CancellationToken ct = default)
+    public async Task<HouseStyle?> ComposeAsync(long id, CancellationToken ct = default)
     {
         var row = await rooms.GetAsync(id, ct);
         if (row is null) return null;
@@ -29,7 +29,7 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
 
     /// <summary>Every library room style with the shell it composes to, newest first — the whole library in
     /// two reads, so listing rooms with a picture of each does not cost a query per row.</summary>
-    public async Task<List<(RoomStyleRow Row, RoomStyle Style)>> ComposeAllAsync(CancellationToken ct = default)
+    public async Task<List<(RoomStyleRow Row, HouseStyle Style)>> ComposeAllAsync(CancellationToken ct = default)
     {
         var rows = await rooms.ListAsync(ct);
         if (rows.Count == 0) return [];
@@ -46,7 +46,7 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
     /// <summary>The shell a draft composes to without any of it being saved — what the editor re-renders as
     /// courses are bound and knobs are turned. A course naming a style the library no longer holds is dropped,
     /// the way an unresolvable theme binding is.</summary>
-    public async Task<RoomStyle> ComposeDraftAsync(RoomStyleSaveRequest draft, CancellationToken ct = default)
+    public async Task<HouseStyle> ComposeDraftAsync(RoomStyleSaveRequest draft, CancellationToken ct = default)
     {
         var courses = CourseRowsOf(draft).ToList();
         return Compose(RowOf(draft), courses, await StylesOf(courses, ct));
@@ -81,16 +81,22 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
             .ToDictionary(style => style.Id);
 
     /// <summary>Rows to the stamper's model: each part's courses in stack order, with its extent and knobs.</summary>
-    private static RoomStyle Compose(
+    private static HouseStyle Compose(
         RoomStyleRow row, IReadOnlyList<RoomStyleCourseRow> courses, IReadOnlyDictionary<long, StyleRow> bound)
     {
-        var builtIn = RoomStyle.Wool;
-        return new RoomStyle
+        // Built from the shipped shell rather than from a bare style, so a row inherits what a shell is —
+        // flat-roofed, unframed, no sill — and names only what it changes. A fresh HouseStyle would default
+        // to a gable, which a stored row has no way to ask for and no way to describe.
+        var builtIn = HouseStyle.Wool;
+        return builtIn with
         {
             Floor = Part(RoomParts.Floor, row.FloorDepth, builtIn.Floor),
             Wall = Part(RoomParts.Wall, row.WallHeight, builtIn.Wall),
-            Roof = Part(RoomParts.Roof, row.RoofThickness, builtIn.Roof),
-            Eave = row.Eave == RoomEaves.Overlap ? RoofEdge.Overlap : RoofEdge.Flush,
+            // A roof is one course, so its stack contributes only its first material and the stored thickness
+            // is ignored. The eave was a two-valued overhang all along: flush is none, overlap is one block.
+            Roof = Part(RoomParts.Roof, 1, RoomPart.Of(builtIn.Roof)).At(0).Material,
+            Verge = Part(RoomParts.Roof, 1, RoomPart.Of(builtIn.Verge)).At(0).Material,
+            Overhang = row.Eave == RoomEaves.Overlap ? 1 : 0,
             RoofHole = row.RoofHole,
             Door = DoorMaterials.TryParse(row.Door, out var door) ? door : DoorMaterial.StainedGlassPane,
             DoorHeight = Math.Max(1, row.DoorHeight),

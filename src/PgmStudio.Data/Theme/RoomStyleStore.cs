@@ -9,7 +9,7 @@ namespace PgmStudio.Data.Theme;
 /// Persistence for the room-style library (the M0012 tables, G34b). <see cref="ThemeStore"/>'s sibling and
 /// deliberately its shape: a <see cref="RoomStyleRow"/> plus its <see cref="RoomStyleCourseRow"/> bindings is
 /// a composition of the same <see cref="StyleRow"/> library a theme composes from. It stays row-level —
-/// turning courses into the <c>RoomStyle</c> the stamper consumes needs the material model, so it happens a
+/// turning courses into the <c>HouseStyle</c> the stamper consumes needs the material model, so it happens a
 /// layer up.
 /// </summary>
 public sealed class RoomStyleStore(PgmDb db)

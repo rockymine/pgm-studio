@@ -13,7 +13,7 @@ namespace PgmStudio.Minecraft;
 /// edit must never silently rebuild a shipped map's spawn rooms. Nothing consumed it while a room style was
 /// only a library row, which is why it lands with the binding rather than before it.</para>
 /// </summary>
-public static class RoomStyleJson
+public static class HouseStyleJson
 {
     /// <summary>Canonical options: camelCase names, compact, enums as their camelCase names — so
     /// <c>eave</c> reads <c>"flush"</c> and <c>door</c> reads <c>"stainedGlassPane"</c> rather than an
@@ -25,14 +25,14 @@ public static class RoomStyleJson
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
     };
 
-    public static string Serialize(RoomStyle style) => JsonSerializer.Serialize(style, Options);
+    public static string Serialize(HouseStyle style) => JsonSerializer.Serialize(style, Options);
 
-    public static RoomStyle Deserialize(string json) => JsonSerializer.Deserialize<RoomStyle>(json, Options)!;
+    public static HouseStyle Deserialize(string json) => JsonSerializer.Deserialize<HouseStyle>(json, Options)!;
 
     /// <summary>A stored style, or <paramref name="fallback"/> when the text is absent or cannot be read. A
     /// snapshot is a hand-editable leaf inside a map's layout, so a malformed one is a map that exports with
     /// the built-in shell rather than a map that refuses to export.</summary>
-    public static RoomStyle DeserializeOr(string? json, RoomStyle fallback)
+    public static HouseStyle DeserializeOr(string? json, HouseStyle fallback)
     {
         if (string.IsNullOrWhiteSpace(json)) return fallback;
         try { return Deserialize(json) ?? fallback; }

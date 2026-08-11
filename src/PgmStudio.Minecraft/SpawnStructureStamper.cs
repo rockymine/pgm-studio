@@ -33,7 +33,7 @@ public sealed record SpawnStructure
 
     /// <summary>The building around the spawn, or null for a spawn on open ground. A house style rather than
     /// a room style, for the reason a wool structure's is: this is the stamping shape.</summary>
-    public HouseStyle? Shell { get; init; } = RoomStyle.Spawn.AsHouse();
+    public HouseStyle? Shell { get; init; } = HouseStyle.Spawn;
 }
 
 /// <summary>What one spawn structure placed: where the team comes in, and every monument it carries.</summary>

@@ -14,9 +14,9 @@ public sealed class RoomShellStampTests
     private const int Red = 14;
 
     /// <summary>The room a style describes: its shell, and the pad the structure stampers lay over it.</summary>
-    private static void Shell(VoxelWorld world, RoomFrame frame, int floorY, RoomStyle style)
+    private static void Shell(VoxelWorld world, RoomFrame frame, int floorY, HouseStyle style)
     {
-        HouseStamper.Stamp(world, frame, floorY, style.AsHouse(), Red);
+        HouseStamper.Stamp(world, frame, floorY, style, Red);
         PadStamp.Lay(world, frame.Pad, floorY, Red);
     }
 
@@ -29,7 +29,7 @@ public sealed class RoomShellStampTests
     public async Task Wool_cage_shell_places_floor_roof_slit_strip_and_a_seam_door()
     {
         var w = new VoxelWorld();
-        Shell(w, Baseline(), 64, RoomStyle.Wool);
+        Shell(w, Baseline(), 64, HouseStyle.Wool);
 
         // Floor (y=64): 2×2 wool pad at world {-1,0}×{-1,0}, bedrock elsewhere.
         await Assert.That(w.GetBlock(-1, 64, -1)).IsEqualTo((Blocks.Wool, Red));
@@ -59,7 +59,7 @@ public sealed class RoomShellStampTests
     public async Task Spawn_cube_uses_clay_strip_and_a_single_open_air_door()
     {
         var w = new VoxelWorld();
-        Shell(w, Baseline(RoomEdge.NegZ), 64, RoomStyle.Spawn);
+        Shell(w, Baseline(RoomEdge.NegZ), 64, HouseStyle.Spawn);
 
         // Colour strip is stained clay.
         await Assert.That(w.GetBlock(-4, 68, -1)).IsEqualTo((Blocks.StainedClay, Red));
@@ -79,7 +79,7 @@ public sealed class RoomShellStampTests
         // A 9×9 piece with a cell-centre marker: shell [1,8) (span 7), interior 5 across.
         var frame = RoomFrames.Resolve(0, 0, 9, 9, 4.5, 4.5, [(0, 0, 9, 0)], null, out _)!;
         var w = new VoxelWorld();
-        Shell(w, frame, 64, RoomStyle.Wool);
+        Shell(w, frame, 64, HouseStyle.Wool);
 
         // 3×3 pad centred on block 4 (cells 3..5).
         await Assert.That(w.GetBlock(3, 64, 3)).IsEqualTo((Blocks.Wool, Red));
@@ -102,7 +102,7 @@ public sealed class RoomShellStampTests
         // The WX2 floor: an 8×8 piece → 6×6 shell, 4×4 interior → a 2-wide door.
         var frame = RoomFrames.Resolve(0, 0, 8, 8, 4, 4, [], RoomEdge.NegZ, out _)!;
         var w = new VoxelWorld();
-        Shell(w, frame, 64, RoomStyle.Spawn);
+        Shell(w, frame, 64, HouseStyle.Spawn);
 
         // Door columns {3,4} at z=1 are open; the wall cells beside them are not.
         await Assert.That(w.GetBlock(3, 65, 1)).IsEqualTo((Blocks.Air, 0));

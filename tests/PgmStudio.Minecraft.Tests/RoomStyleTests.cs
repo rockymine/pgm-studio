@@ -15,9 +15,9 @@ public sealed class RoomStyleTests
     /// <summary>The room this style describes: the shell as the flat-roofed house it is, and the pad the
     /// structure stampers lay over it. The shell no longer lays its own pad — a spawn point and a wool are
     /// their own stampers now — so what used to be one call is two, and these tests are about both.</summary>
-    private static void Shell(VoxelWorld world, RoomFrame frame, int floorY, RoomStyle style)
+    private static void Shell(VoxelWorld world, RoomFrame frame, int floorY, HouseStyle style)
     {
-        HouseStamper.Stamp(world, frame, floorY, style.AsHouse(), Red);
+        HouseStamper.Stamp(world, frame, floorY, style, Red);
         PadStamp.Lay(world, frame.Pad, floorY, Red);
     }
 
@@ -32,15 +32,15 @@ public sealed class RoomStyleTests
         // A golden over the whole volume rather than a handful of probes: the point of stage one is that a
         // course stack is a re-description of the old stamper, so every cell it writes must match what the
         // hard-coded layers wrote — the pad, the band, the slit, the hole and the doors included.
-        foreach (var (style, door, doorHeight) in ((RoomStyle Style, int Door, int Height)[])
-                 [(RoomStyle.Wool, Blocks.StainedGlassPane, 3), (RoomStyle.Spawn, Blocks.Air, 4)])
+        foreach (var (style, door, doorHeight) in ((HouseStyle Style, int Door, int Height)[])
+                 [(HouseStyle.Wool, Blocks.StainedGlassPane, 3), (HouseStyle.Spawn, Blocks.Air, 4)])
         {
-            var spawnDoor = style == RoomStyle.Spawn ? RoomEdge.NegZ : (RoomEdge?)null;
+            var spawnDoor = style == HouseStyle.Spawn ? RoomEdge.NegZ : (RoomEdge?)null;
             var frame = Baseline(spawnDoor);
             var world = new VoxelWorld();
             Shell(world, frame, 64, style);
 
-            var band = style == RoomStyle.Wool ? Blocks.Wool : Blocks.StainedClay;
+            var band = style == HouseStyle.Wool ? Blocks.Wool : Blocks.StainedClay;
             for (var x = frame.MinX; x < frame.MaxX; x++)
             for (var z = frame.MinZ; z < frame.MaxZ; z++)
             for (var layer = 0; layer <= 8; layer++)
@@ -116,7 +116,7 @@ public sealed class RoomStyleTests
         // band at eye level, and it has to stay there when the room gets taller rather than slide with it.
         var frame = Baseline();
         var world = new VoxelWorld();
-        var tall = RoomStyle.Wool with { Wall = RoomStyle.Wool.Wall with { Extent = 11 } };
+        var tall = HouseStyle.Wool with { Wall = HouseStyle.Wool.Wall with { Extent = 11 } };
         Shell(world, frame, 64, tall);
 
         await Assert.That(world.GetBlock(-4, 68, -1)).IsEqualTo((Blocks.Wool, Red));    // band still at layer 4
@@ -131,7 +131,7 @@ public sealed class RoomStyleTests
     {
         // The pad is the exported point (WX5). A thicker floor that lifted it would move the spawn.
         var world = new VoxelWorld();
-        Shell(world, Baseline(), 64, RoomStyle.Wool with { Floor = RoomPart.Of(new SolidMaterial(Blocks.Stone), 3) });
+        Shell(world, Baseline(), 64, HouseStyle.Wool with { Floor = RoomPart.Of(new SolidMaterial(Blocks.Stone), 3) });
 
         await Assert.That(world.GetBlock(-1, 64, -1)).IsEqualTo((Blocks.Wool, Red));     // pad, unmoved
         await Assert.That(world.GetBlock(-4, 64, -4)).IsEqualTo((Blocks.Stone, 0));
@@ -143,11 +143,12 @@ public sealed class RoomStyleTests
     [Test]
     public async Task An_overlapping_roof_reaches_the_piece_edge_and_no_further()
     {
-        // The shell is its piece inset by one block (WX1), so the eave lands exactly on the piece boundary —
-        // which is why it needs no negotiation with anything outside the room.
+        // The shell is its piece inset by one block (WX1), so an overhang of one lands exactly on the piece
+        // boundary — which is why it needs no negotiation with anything outside the room. What used to be a
+        // two-valued eave is that number: flush is none, overlap is one.
         var frame = Baseline();
         var world = new VoxelWorld();
-        Shell(world, frame, 64, RoomStyle.Wool with { Eave = RoofEdge.Overlap });
+        Shell(world, frame, 64, HouseStyle.Wool with { Overhang = 1 });
 
         await Assert.That(world.GetBlock(frame.MinX - 1, 72, frame.MinZ - 1)).IsEqualTo((Blocks.Bedrock, 0));
         await Assert.That(world.GetBlock(frame.MaxX, 72, frame.MaxZ)).IsEqualTo((Blocks.Bedrock, 0));
@@ -159,11 +160,10 @@ public sealed class RoomStyleTests
     [Test]
     public async Task A_roof_is_one_course_however_thick_its_part_is_written()
     {
-        // Roof depth is gone: a lid is one course, the way a slope's tread is. The knob is still on the stored
-        // style because a layout carries it, and it is ignored rather than honoured — so a style asking for
-        // three courses gets one, and nothing stands where the second would have been.
+        // A lid is one course, the way a slope's tread is: a roof is a material now, not a stack, so there is
+        // no thickness left to ask for and nothing stands where a second course would have been.
         var world = new VoxelWorld();
-        Shell(world, Baseline(), 64, RoomStyle.Wool with { Roof = RoomPart.Of(new SolidMaterial(Blocks.Bedrock), 3) });
+        Shell(world, Baseline(), 64, HouseStyle.Wool with { Roof = new SolidMaterial(Blocks.Bedrock) });
 
         await Assert.That(world.GetBlock(-4, 72, -4)).IsEqualTo((Blocks.Bedrock, 0));
         await Assert.That(world.GetBlock(-4, 73, -4)).IsEqualTo((Blocks.Air, 0));
@@ -174,7 +174,7 @@ public sealed class RoomStyleTests
     public async Task A_style_may_close_the_roof()
     {
         var world = new VoxelWorld();
-        Shell(world, Baseline(), 64, RoomStyle.Wool with { RoofHole = false });
+        Shell(world, Baseline(), 64, HouseStyle.Wool with { RoofHole = false });
 
         await Assert.That(world.GetBlock(-1, 72, -1)).IsEqualTo((Blocks.Bedrock, 0));
     }
@@ -186,7 +186,7 @@ public sealed class RoomStyleTests
         // Both are contract, not finish: the pad is the exported point (WX5) and the doorway is the entry
         // (WX6). A style that could take either would make the world disagree with the XML, or seal the room.
         var world = new VoxelWorld();
-        Shell(world, Baseline(), 64, new RoomStyle
+        Shell(world, Baseline(), 64, new HouseStyle
         {
             Floor = RoomPart.Of(new SolidMaterial(Blocks.Obsidian)),
             Wall = RoomPart.Of(new SolidMaterial(Blocks.Obsidian), 7),
@@ -205,7 +205,7 @@ public sealed class RoomStyleTests
         // wherever a shell meets something already stamped, and it is why a style can never delete a stamp.
         var world = new VoxelWorld();
         world.SetBlock(-4, 70, -3, Blocks.GoldBlock);
-        Shell(world, Baseline(), 64, RoomStyle.Wool);
+        Shell(world, Baseline(), 64, HouseStyle.Wool);
 
         await Assert.That(world.GetBlock(-4, 70, -3)).IsEqualTo((Blocks.GoldBlock, 0));
     }
@@ -217,7 +217,7 @@ public sealed class RoomStyleTests
         // A room wall is a closed ring, so the perimeter arc a wall-run pattern reads is defined all the way
         // round it — which is what lets one material serve terrain edges and room walls alike.
         var world = new VoxelWorld();
-        Shell(world, Baseline(), 64, RoomStyle.Wool with
+        Shell(world, Baseline(), 64, HouseStyle.Wool with
         {
             Wall = RoomPart.Of(new WallRunMaterial(
                 [new WallStripe(new SolidMaterial(Blocks.Stone), 1), new WallStripe(new SolidMaterial(Blocks.Dirt), 1)]), 7),

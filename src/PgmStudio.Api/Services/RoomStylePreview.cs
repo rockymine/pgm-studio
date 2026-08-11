@@ -29,7 +29,7 @@ public static class RoomStylePreview
 
     private const int FloorY = 16;
 
-    public static RoomStylePreviewDto Views(RoomStyle style, int cell = 6)
+    public static RoomStylePreviewDto Views(HouseStyle style, int cell = 6)
     {
         var world = Stamped(style);
         return new RoomStylePreviewDto(PlanSvg(world, style, cell), SectionSvg(world, style, cell));
@@ -37,7 +37,7 @@ public static class RoomStylePreview
 
     /// <summary>The sample room stamped with <paramref name="style"/>, over ground that reaches the shell's
     /// footprint — so the floor has something to sit on and a deep one has something to sink into.</summary>
-    private static VoxelWorld Stamped(RoomStyle style)
+    private static VoxelWorld Stamped(HouseStyle style)
     {
         var world = new VoxelWorld();
         for (var x = Sample.MinX - Margin; x < Sample.MaxX + Margin; x++)
@@ -45,7 +45,7 @@ public static class RoomStylePreview
         for (var y = 1; y < FloorY; y++)
             world.SetBlock(x, y, z, Blocks.Stone);
 
-        HouseStamper.Stamp(world, Sample, FloorY, style.AsHouse(), SampleColor);
+        HouseStamper.Stamp(world, Sample, FloorY, style, SampleColor);
         // The pad belongs to the structure stampers rather than the shell, but a preview is of the room and
         // not of the shell alone — and it is what a plan view sees through the roof hole, so without it a
         // holed roof and a sealed one draw the same picture.
@@ -59,7 +59,7 @@ public static class RoomStylePreview
 
     /// <summary>From above: the highest block of each column. What the roof does — its hole, and whether it
     /// oversails the walls — reads here and nowhere else.</summary>
-    private static string PlanSvg(VoxelWorld world, RoomStyle style, int cell)
+    private static string PlanSvg(VoxelWorld world, HouseStyle style, int cell)
     {
         var top = FloorY + style.TopLayer;
         return SvgRaster.Raster(Sample.Width + Margin * 2, Sample.Depth + Margin * 2, cell, (x, z) =>
@@ -75,7 +75,7 @@ public static class RoomStylePreview
 
     /// <summary>From the side, looking at the door wall: the course stack the style is, depth-shaded so a
     /// doorway reads as an opening rather than as a hole in the picture.</summary>
-    private static string SectionSvg(VoxelWorld world, RoomStyle style, int cell)
+    private static string SectionSvg(VoxelWorld world, HouseStyle style, int cell)
     {
         var (fromX, toX) = (Sample.MinX - Margin, Sample.MaxX + Margin - 1);
         var (fromY, toY) = (FloorY - style.Floor.Extent, FloorY + style.TopLayer);

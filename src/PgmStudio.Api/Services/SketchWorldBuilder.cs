@@ -43,7 +43,7 @@ public static class SketchWorldBuilder
             var fy = FrameFloor(frame, terrain.SurfaceTop, woolStyle);
             WoolStructureStamper.Stamp(world, new WoolStructure
             {
-                Frame = frame, FloorY = fy, WoolSlug = slug, Ground = terrain.SurfaceTop, Shell = woolStyle.AsHouse(),
+                Frame = frame, FloorY = fy, WoolSlug = slug, Ground = terrain.SurfaceTop, Shell = woolStyle,
             });
             woolFrame[i] = frame;
             woolFloor[i] = fy;
@@ -65,7 +65,7 @@ public static class SketchWorldBuilder
             var placed = SpawnStructureStamper.Stamp(world, new SpawnStructure
             {
                 Frame = frame, FloorY = fy, TeamColor = WoolDataForTeam(s.Team, teams),
-                CapturedWools = [.. captured.Select(x => ColorSlug(x.w, teams))], Shell = spawnStyle.AsHouse(),
+                CapturedWools = [.. captured.Select(x => ColorSlug(x.w, teams))], Shell = spawnStyle,
             }).Monuments;
 
             for (var k = 0; k < placed.Count && k < captured.Count; k++)
@@ -280,8 +280,8 @@ public static class SketchWorldBuilder
     // A shell's roof sits at floorY + its style's top layer, so the floor must leave that much headroom below
     // the world ceiling — clamp every structure floor here so an author-elevated island can't push a stamp
     // past 255. A taller shell clamps lower, which is why the style is read rather than assumed.
-    internal static int SafeFloor(int y, RoomStyle? style = null)
-        => Math.Clamp(y, 1, VoxelWorld.MaxHeight - (style?.TopLayer ?? RoomStyle.MaxTopLayer) - 1);
+    internal static int SafeFloor(int y, HouseStyle? style = null)
+        => Math.Clamp(y, 1, VoxelWorld.MaxHeight - (style?.TopLayer ?? HouseStyle.MaxTopLayer) - 1);
 
     /// <summary>The floor a room shell rests on: the highest surface over the columns its footprint spans —
     /// not the one at its marker, which is a grid line whose side does not survive the symmetry orbit.
@@ -294,7 +294,7 @@ public static class SketchWorldBuilder
     /// the bedrock foundation included, because the foundation is what the building stands on and the floor is
     /// what stands on the foundation.</para></summary>
     public static int FrameFloor(
-        RoomFrame frame, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, RoomStyle? style = null)
+        RoomFrame frame, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, HouseStyle? style = null)
         => SafeFloor(
             PositionSnap.SurfaceYOver(surfaceTop, frame.MinX, frame.MinZ, frame.MaxX - 1, frame.MaxZ - 1, 1) - 1,
             style);

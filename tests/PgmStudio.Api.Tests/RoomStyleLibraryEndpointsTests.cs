@@ -106,8 +106,10 @@ public sealed class RoomStyleLibraryEndpointsTests
         // A shell that grows upward is a taller picture — the section is cropped to the shell it drew.
         await Assert.That(Height((await Preview(client, plain with { WallHeight = 11 })).Section))
             .IsGreaterThan(Height(baseline.Section));
+        // A roof is one course, so its stored thickness changes nothing — the column is still carried by the
+        // row and still offered by the form, and the shell ignores it.
         await Assert.That(Height((await Preview(client, plain with { RoofThickness = 3 })).Section))
-            .IsGreaterThan(Height(baseline.Section));
+            .IsEqualTo(Height(baseline.Section));
         // And one that grows downward: a deeper floor is drawn from further down.
         await Assert.That(Height((await Preview(client, plain with { FloorDepth = 4 })).Section))
             .IsGreaterThan(Height(baseline.Section));
