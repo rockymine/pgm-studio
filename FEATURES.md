@@ -3487,6 +3487,25 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   string, so it needed no migration. Documented against its neighbour in the same figure: the **verge** is the
   roof's own outermost ring, which on a flush roof is the raking edge directly over the gable and under an eave
   moves out to the overhang, leaving plain roof along the wall line. (G34f)
+- **A building is a stack of storeys (G34g).** A house's height was a wall height; it is now a stack of rooms.
+  A `Storey` states its **clear** — the blocks of air a player stands in — and the courses follow: one more
+  than the clear where something stands over it, for the slab that carries the next, and none on the top
+  storey, because the roof is its lid. Three storeys of three is eleven courses, not nine. Measuring the air
+  rather than the masonry makes the number the author decides the number that is true, and is why three is the
+  least a room may be. Walls and windows are laid **in each storey's own frame**, counting from that storey's
+  floor, so a band or a sill of two lands at the same place on every storey and a taller ground floor moves the
+  one above it whole instead of sliding its windows up the wall; only the ground storey is told about the
+  doorway. Each storey but the last is closed by a slab across its interior, zoned by the storey **above** it,
+  since that slab is the upper floor rather than the lower ceiling. The way through it is a **ladder** on the
+  door wall one cell along from an interior corner — chests and monuments fill the corners and then the far
+  wall inward, so with six wools the ceiling in practice that cell is free — moving to the wall's other end
+  where the doorway reaches it. A style naming no storeys resolves to the single one its wall describes, and
+  that fallback is marked a **shell** so a wall height stays literal: a two-course shed is two courses, not the
+  three a room would need, and every style saved before storeys existed builds exactly what it always did.
+  `HouseStyle` gained a hand-written equality for the same reason `RoomPart` has one — the generated one
+  compares the new storey list by reference, which a round trip cannot survive — with a test naming its
+  members so one added later cannot silently drop out of every comparison. `storeys`/`storey_clear` on
+  `room_style` (M0017) carry a uniform stack from the composer. (G34g)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds

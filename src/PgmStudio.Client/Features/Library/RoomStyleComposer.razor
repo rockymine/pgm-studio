@@ -199,6 +199,28 @@
               }
             }
 
+            @if (part.Id == RoomParts.Wall)
+            {
+              @* Storeys belong to the wall: they are how the wall is divided up, and the courses each one
+                 spends come out of the same height. *@
+              <Field Label="Storeys">
+                <input class="field-input field-input--slim" type="number" min="1" max="8" step="1"
+                       title="How many floors are stacked inside. Each but the top carries a slab and a ladder."
+                       value="@draft.Storeys" @onchange="SetStoreys" />
+              </Field>
+              @if (draft.Storeys > 1)
+              {
+                <Field Label="Clear per storey">
+                  <input class="field-input field-input--slim" type="number" min="0" max="16" step="1"
+                         title="Blocks of air in each storey. 0 uses the wall height above. Never below 3 — a room has to be stood up in."
+                         value="@draft.StoreyClear" @onchange="SetStoreyClear" />
+                </Field>
+                <p class="section-desc">@draft.Storeys storeys of @EffectiveClear clear
+                  — @(draft.Storeys * EffectiveClear + draft.Storeys - 1) courses of wall, with a ladder up the
+                  door wall.</p>
+              }
+            }
+
             @if (part.Id == RoomParts.Roof)
             {
               <Field Label="Shape">

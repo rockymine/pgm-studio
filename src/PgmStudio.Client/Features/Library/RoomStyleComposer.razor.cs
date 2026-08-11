@@ -71,7 +71,7 @@ public partial class RoomStyleComposer
     private RoomStyleSaveRequest EmptyDraft(string name) => new(
         name, FloorDepth: 1, WallHeight: 7, RoofThickness: 1,
         RoofForm: RoofForms.Flat, Pitch: 1, Overhang: 0, RoofHole: true, RidgeCap: false,
-        BorderWidth: 1, InlayInset: 2,
+        BorderWidth: 1, InlayInset: 2, Storeys: 1, StoreyClear: 0,
         Windows: NoWindows, Porch: null,
         Door: doors.FirstOrDefault()?.Slug ?? "", DoorHeight: 3, Courses: []);
 
@@ -104,7 +104,8 @@ public partial class RoomStyleComposer
         draft = new RoomStyleSaveRequest(
             detail.Name, detail.FloorDepth, detail.WallHeight, detail.RoofThickness,
             detail.RoofForm, detail.Pitch, detail.Overhang, detail.RoofHole, detail.RidgeCap,
-            detail.BorderWidth, detail.InlayInset, detail.Windows, detail.Porch,
+            detail.BorderWidth, detail.InlayInset, detail.Storeys, detail.StoreyClear,
+            detail.Windows, detail.Porch,
             detail.Door, detail.DoorHeight, detail.Courses);
         await Preview();
     }
@@ -205,6 +206,21 @@ public partial class RoomStyleComposer
 
     private Task SetInlayInset(ChangeEventArgs e) =>
         Knob(d => d with { InlayInset = Math.Clamp(Parse(e, d.InlayInset), 1, 8) });
+
+    // ── the storeys ────────────────────────────────────────────────────────────────────────────────
+    /// <summary>How many storeys are stacked inside. One is the building every style was before there were
+    /// storeys, so the whole feature starts switched off.</summary>
+    private Task SetStoreys(ChangeEventArgs e) =>
+        Knob(d => d with { Storeys = Math.Clamp(Parse(e, d.Storeys), 1, 8) });
+
+    /// <summary>The air in each storey. Zero defers to the wall height, so a style that never touches this
+    /// stacks storeys as tall as its wall already was.</summary>
+    private Task SetStoreyClear(ChangeEventArgs e) =>
+        Knob(d => d with { StoreyClear = Math.Clamp(Parse(e, d.StoreyClear), 0, 16) });
+
+    /// <summary>The clear height each storey actually builds at — what the caption reports, since a stored 0
+    /// means "the wall height" and an author reading "0 blocks of air" would have to work that out.</summary>
+    private int EffectiveClear => Math.Max(3, draft!.StoreyClear > 0 ? draft.StoreyClear : draft.WallHeight);
 
     // ── the windows ────────────────────────────────────────────────────────────────────────────────
     private RoomWindowDto Windows => draft?.Windows ?? NoWindows;

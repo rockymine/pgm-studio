@@ -9,6 +9,27 @@ namespace PgmStudio.Minecraft.Tests;
 /// </summary>
 public sealed class RoomStyleJsonTests
 {
+    /// <summary>The round trip is only as good as the equality it is asserted with, and
+    /// <see cref="HouseStyle.Equals(HouseStyle)"/> is written out by hand — a member added to the style and
+    /// not to it would drop out of every comparison in this file without failing one of them. So the members
+    /// are named here too: adding one fails this test, which is the reminder to go and add it there.</summary>
+    [Test]
+    public async Task The_style_has_no_member_the_hand_written_equality_forgot()
+    {
+        var members = typeof(HouseStyle)
+            .GetProperties()
+            .Where(property => property.SetMethod is not null)
+            .Select(property => property.Name)
+            .Order()
+            .ToList();
+
+        await Assert.That(members).IsEquivalentTo(new[]
+        {
+            "Door", "DoorHeight", "DoorWidth", "Floor", "Form", "Gable", "Overhang", "Pitch", "Porch",
+            "Post", "RidgeCap", "Roof", "RoofHole", "Sill", "Storeys", "Surface", "Verge", "Wall", "Windows",
+        }.Order().ToList());
+    }
+
     [Test]
     public async Task A_shipped_style_round_trips_through_its_json()
     {

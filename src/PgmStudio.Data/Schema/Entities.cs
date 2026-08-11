@@ -511,6 +511,11 @@ public sealed class RoomStyleRow
     [Column("overhang")] public int Overhang { get; set; }
     [Column("roof_hole")] public bool RoofHole { get; set; } = true;
     [Column("ridge_cap")] public bool RidgeCap { get; set; }
+
+    // The storeys stacked inside (M0017). One is the building every row was before there were storeys;
+    // storey_clear 0 defers to wall_height, so a single-storey row is untouched by either column.
+    [Column("storeys")] public int Storeys { get; set; } = 1;
+    [Column("storey_clear")] public int StoreyClear { get; set; }
     [Column("door"), NotNull] public string Door { get; set; } = "stained-glass-pane";
     [Column("door_height")] public int DoorHeight { get; set; } = 3;
 

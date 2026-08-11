@@ -54,6 +54,7 @@ public static class Blocks
     public const int CobblestoneStairs = 67;
     public const int OakFence = 85;
     public const int GlassPane = 102;
+    public const int Ladder = 65;
     public const int WoodenSlab = 126;
 
     /// <summary>The bit a slab's data carries when it sits in the <em>upper</em> half of its cube — the lintel

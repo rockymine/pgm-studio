@@ -16,7 +16,7 @@ internal static class RoomStyleMapping
     public static RoomStyleDetail ToDetail(RoomStyleRow row, IReadOnlyList<RoomStyleCourseRow> courses) =>
         new(row.Id, row.Name, row.FloorDepth, row.WallHeight, row.RoofThickness,
             row.RoofForm, row.Pitch, row.Overhang, row.RoofHole, row.RidgeCap,
-            row.BorderWidth, row.InlayInset,
+            row.BorderWidth, row.InlayInset, row.Storeys, row.StoreyClear,
             new RoomWindowDto(row.WindowForm, row.WindowBlock, row.WindowData, row.WindowSill,
                 row.WindowWidth, row.WindowHeight, row.WindowSpacing),
             // A depth of nothing is the row's way of saying no porch, so it comes back as an absent one rather

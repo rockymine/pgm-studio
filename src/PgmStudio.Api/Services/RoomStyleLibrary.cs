@@ -65,6 +65,8 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
         Overhang = Math.Clamp(req.Overhang, 0, 4),
         RoofHole = req.RoofHole,
         RidgeCap = req.RidgeCap,
+        Storeys = Math.Clamp(req.Storeys, 1, 8),
+        StoreyClear = Math.Clamp(req.StoreyClear, 0, 16),
         Door = DoorMaterials.IsKnown(req.Door) ? req.Door : DoorMaterials.Slug(DoorMaterial.StainedGlassPane),
         DoorHeight = Math.Max(1, req.DoorHeight),
         BorderWidth = Math.Clamp(req.BorderWidth, 1, 4),
@@ -132,6 +134,7 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
                 InlayInset = Math.Max(1, row.InlayInset),
             },
             Windows = WindowOf(row),
+            Storeys = StoreysOf(row),
             Porch = PorchOf(row),
             Form = FormOf(row.RoofForm),
             Pitch = Math.Max(1, row.Pitch),
@@ -178,6 +181,17 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
         RoofForms.Saltbox => RoofForm.Saltbox,
         _ => RoofForm.Flat,
     };
+
+    /// <summary>The storeys a row stacks, or none for the single storey every style was before there were any.
+    /// Each storey names only its height: the wall, the windows and the floor zones it leaves unset fall back
+    /// to the style's own, so a stack of identical storeys is a count rather than a description repeated.</summary>
+    private static IReadOnlyList<Storey> StoreysOf(RoomStyleRow row)
+    {
+        var count = Math.Clamp(row.Storeys, 1, 8);
+        if (count <= 1) return [];
+        var clear = row.StoreyClear > 0 ? row.StoreyClear : row.WallHeight;
+        return [.. Enumerable.Repeat(new Storey { Clear = clear }, count)];
+    }
 
     private static WindowStyle WindowOf(RoomStyleRow row) => new()
     {

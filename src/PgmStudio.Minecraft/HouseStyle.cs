@@ -113,6 +113,56 @@ public sealed record PorchStyle
 }
 
 /// <summary>
+/// One storey of a building: the air a player stands in, the walls around it, the windows through them and
+/// how its own floor is divided.
+///
+/// <para>A storey is measured by its <see cref="Clear"/> — the blocks of air, not the courses of wall — because
+/// that is the number an author is actually deciding and the only one with a floor under it: a room a player
+/// cannot stand up in is not a room, so three is the least it may be. The courses follow from it. A storey with
+/// another above it spends one more course on the slab that separates them, and the top storey spends none,
+/// because the roof is its lid.</para>
+///
+/// <para>Windows are the storey's own and are seated in its own frame, so a sill of two is two blocks above
+/// <em>this</em> floor whichever storey it is. The seater needed no changes for that: it already takes a sill
+/// and a wall height, and a storey is just a smaller wall.</para>
+/// </summary>
+public sealed record Storey
+{
+    /// <summary>Blocks of air between this floor and the next thing over it. Three is the floor — the room has
+    /// to be stood up in — and there is no ceiling.</summary>
+    public int Clear { get; init; } = 3;
+
+    /// <summary>The wall around it, read upward from this storey's own floor. Its extent is ignored: a storey's
+    /// height is its <see cref="Clear"/>, and the courses are counted from that.</summary>
+    public RoomPart? Wall { get; init; }
+
+    /// <summary>The windows through that wall, or none.</summary>
+    public WindowStyle? Windows { get; init; }
+
+    /// <summary>How this storey's floor is divided in plan.</summary>
+    public FloorSurface? Surface { get; init; }
+
+    /// <summary>The slab laid over this storey to carry the next, or null for the floor part's own top course.
+    /// The top storey has none: the roof is what closes it.</summary>
+    public TerrainMaterial? Ceiling { get; init; }
+
+    /// <summary>Set only on the storey a plain shell resolves to — a building described by a wall height rather
+    /// than by rooms. The distinction is real: a wall height is literal, so a two-course shed is two courses,
+    /// while a room's clear is not, because a room has to be stood up in. Marking the fallback rather than
+    /// branching lets the stamper walk one list whichever it was given.</summary>
+    [JsonIgnore]
+    public bool Shell { get; init; }
+
+    /// <summary>The air a player stands in — never less than the three blocks a room needs, unless this is the
+    /// <see cref="Shell"/> storey, whose height was stated as a wall and is taken as stated.</summary>
+    public int Headroom => Shell ? Math.Max(1, Clear) : Math.Max(3, Clear);
+
+    /// <summary>How many courses of wall this storey spends: its headroom, plus the course its slab sits in
+    /// when something stands above it.</summary>
+    public int Courses(bool topmost) => Headroom + (topmost ? 0 : 1);
+}
+
+/// <summary>
 /// How a house is finished: a part or a material per piece of it, and the few numbers that decide its
 /// proportions.
 ///
@@ -175,6 +225,56 @@ public sealed record HouseStyle
     /// <summary>The windows cut through the walls, or none.</summary>
     public WindowStyle Windows { get; init; } = new();
 
+    /// <summary>The storeys stacked inside the building, or empty for the single storey <see cref="Wall"/>,
+    /// <see cref="Windows"/> and <see cref="Surface"/> describe on their own.
+    ///
+    /// <para>Empty is not a missing answer, it is the ordinary one — a house is one storey until it is told
+    /// otherwise, and every style saved before storeys existed reads as exactly the building it always was.
+    /// <see cref="Levels"/> is what the stamper walks, so nothing downstream has to know which of the two it
+    /// was given.</para></summary>
+    public IReadOnlyList<Storey> Storeys { get; init; } = [];
+
+    /// <summary>The storeys this building actually has, bottom up — the list where one was given, else the
+    /// single storey the flat parts describe. A storey that names no wall, windows or floor of its own falls
+    /// back to the building's, so a stack of identical storeys is a count rather than a repeated description.</summary>
+    [JsonIgnore]
+    public IReadOnlyList<Storey> Levels => Storeys.Count > 0
+        ? [.. Storeys.Select(storey => storey with
+        {
+            Wall = storey.Wall ?? Wall,
+            Windows = storey.Windows ?? Windows,
+            Surface = storey.Surface ?? Surface,
+        })]
+        : [new Storey { Shell = true, Clear = Wall.Extent, Wall = Wall, Windows = Windows, Surface = Surface }];
+
+    /// <summary>Courses of wall from the floor to the eave — every storey's headroom, plus one slab course
+    /// between each pair of them.</summary>
+    [JsonIgnore]
+    public int WallCourses
+    {
+        get
+        {
+            var levels = Levels;
+            var total = 0;
+            for (var at = 0; at < levels.Count; at++) total += levels[at].Courses(at == levels.Count - 1);
+            return Math.Max(1, total);
+        }
+    }
+
+    /// <summary>The course each storey's own floor sits at, as a layer above the building's floor — 0 for the
+    /// ground storey, and the slab course for every storey over it.</summary>
+    [JsonIgnore]
+    public IReadOnlyList<int> LevelBases
+    {
+        get
+        {
+            var levels = Levels;
+            var bases = new List<int>(levels.Count) { 0 };
+            for (var at = 0; at < levels.Count - 1; at++) bases.Add(bases[at] + levels[at].Courses(false));
+            return bases;
+        }
+    }
+
     /// <summary>The strip of footprint given up to a porch, or null for a building whose walls stand on the
     /// whole of it.</summary>
     public PorchStyle? Porch { get; init; }
@@ -210,7 +310,37 @@ public sealed record HouseStyle
     /// footprint it spans, so ask <see cref="HouseHeights.TopLayerOver"/> for one of those. Derived, so a
     /// snapshot does not carry it.</summary>
     [JsonIgnore]
-    public int TopLayer => Wall.Extent + 1;
+    public int TopLayer => WallCourses + 1;
+
+    /// <summary>Two styles are the same style when every piece of them matches, the storey stack included
+    /// <b>course for course</b>. Spelled out for the same reason <see cref="RoomPart.Equals(RoomPart)"/> is:
+    /// the generated equality compares <see cref="Storeys"/> by <em>reference</em>, so a style read back from
+    /// its snapshot could never equal the style it was written from — which is the comparison a round trip is
+    /// made of, and a whole shell's worth of members would silently ride on it.</summary>
+    public bool Equals(HouseStyle? other)
+        => other is not null
+           && Sill == other.Sill && Wall == other.Wall && Post == other.Post && Gable == other.Gable
+           && Roof == other.Roof && Verge == other.Verge && Floor == other.Floor
+           && Surface == other.Surface && Windows == other.Windows
+           && Storeys.SequenceEqual(other.Storeys)
+           && Porch == other.Porch && Form == other.Form
+           && RidgeCap == other.RidgeCap && RoofHole == other.RoofHole
+           && Overhang == other.Overhang && Pitch == other.Pitch
+           && Door == other.Door && DoorWidth == other.DoorWidth && DoorHeight == other.DoorHeight;
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(Sill); hash.Add(Wall); hash.Add(Post); hash.Add(Gable);
+        hash.Add(Roof); hash.Add(Verge); hash.Add(Floor);
+        hash.Add(Surface); hash.Add(Windows);
+        foreach (var storey in Storeys) hash.Add(storey);
+        hash.Add(Porch); hash.Add(Form);
+        hash.Add(RidgeCap); hash.Add(RoofHole);
+        hash.Add(Overhang); hash.Add(Pitch);
+        hash.Add(Door); hash.Add(DoorWidth); hash.Add(DoorHeight);
+        return hash.ToHashCode();
+    }
 
     /// <summary>The shipped wool structure: a flat bedrock shell, a wool band at the fourth course, a light
     /// slit at the sixth, and a stained-glass-pane door. No posts and no sill — a shell's corners are wall
@@ -267,7 +397,7 @@ public static class HouseHeights
 {
     public static int TopLayerOver(this HouseStyle style, int width, int depth)
     {
-        var wallTop = Math.Max(1, style.Wall.Extent);
+        var wallTop = style.WallCourses;
         if (style.Form == RoofForm.Flat) return wallTop + 1;
         var field = new RoofField(
             style.Form, 0, 0, Math.Max(0, width - 1), Math.Max(0, depth - 1),

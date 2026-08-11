@@ -222,6 +222,15 @@ string Elevation(VoxelWorld world, int fromX, int toX, int fromY, int toY, int z
             yield return (0, 0, 1, 1, true);
             yield break;
         }
+        // Two rails and a rung, because a ladder drawn as a cube is a wall, and a cutaway whose whole subject
+        // is the way up between two storeys cannot afford to draw the way up as the thing blocking it.
+        if (id == Blocks.Ladder)
+        {
+            yield return (0.14, 0, 0.14, 1, false);
+            yield return (0.72, 0, 0.14, 1, false);
+            yield return (0.14, 0.4, 0.72, 0.2, false);
+            yield break;
+        }
         yield return (0, 0, 1, 1, false);
     }
 }
@@ -389,7 +398,61 @@ foreach (var (windows, name, blurb) in new (WindowStyle Windows, string Name, st
         .Append($"<p>{blurb}</p></article>");
 }
 
-// ── figure 6: one house wearing all of it ─────────────────────────────────────────────────────────────
+// ── figure 6: the storeys ─────────────────────────────────────────────────────────────────────────────
+// A building's height is a stack of rooms rather than a wall height, so the figures are about the air: how
+// much of it each storey has, what closes it, and how a player gets to the one above.
+var storeyFigures = new StringBuilder();
+var storeyBasis = basis with
+{
+    Form = RoofForm.Gable,
+    RidgeCap = true,
+    Overhang = 1,
+    Windows = WindowStyle.Glazed with { Block = Blocks.GlassPane, Sill = 2, Spacing = 4 },
+};
+
+foreach (var (storeys, name, blurb) in new (Storey[] Storeys, string Name, string Blurb)[]
+         {
+             ([new Storey { Clear = 3 }], "One storey",
+                 "Three blocks of air and the roof on top of them. The same building a style with no storeys at all resolves to."),
+             ([new Storey { Clear = 3 }, new Storey { Clear = 3 }, new Storey { Clear = 3 }], "Three of them",
+                 "Eleven courses, not nine: each storey but the top one spends one more course than its clear on the slab that carries the next. The windows repeat because each storey seats its own in its own frame."),
+             ([new Storey { Clear = 6 }, new Storey { Clear = 3 }], "A tall ground floor",
+                 "A storey's courses are counted from its own floor, so raising the one below moves the storey above it whole rather than sliding its windows up the wall."),
+         })
+{
+    var style = storeyBasis with { Storeys = storeys };
+    var world = Build(13, 11, style);
+    var top = FloorY + style.TopLayerOver(13, 11);
+    storeyFigures.Append($"<article class='card'><h3>{name}</h3>")
+        .Append($"<div class='fig fig--iso'>{Iso(world, -2, -2, 14, 12, FloorY - 1, top, 10)}</div>")
+        .Append($"<p>{blurb}</p></article>");
+}
+
+// The cutaway: a slice down the plane the ladder stands in, which is the only view that shows all three of a
+// slab, the clear under it and the way through it at once. The plane is found by looking for the ladder in
+// the world rather than by working out where it ought to be.
+{
+    var style = storeyBasis with { Storeys = [new Storey { Clear = 3 }, new Storey { Clear = 4 }, new Storey { Clear = 3 }] };
+    var world = Build(13, 11, style);
+    var top = FloorY + style.TopLayerOver(13, 11);
+    var climb = (
+        from x in Enumerable.Range(0, 13)
+        from z in Enumerable.Range(0, 11)
+        from y in Enumerable.Range(FloorY, top - FloorY)
+        where world.GetBlock(x, y, z).Id == Blocks.Ladder
+        select (x, z)).First();
+
+    storeyFigures.Append("<article class='card card--wide'><h3>Cut through the way up</h3>")
+        .Append("<figure><div class='fig'>")
+        .Append(Elevation(world, -1, 13, FloorY - 1, top, climb.z, 15))
+        .Append($"</div><figcaption>The plane at z={climb.z}, the one the ladder stands in</figcaption></figure>")
+        .Append("<p>Three storeys of three, four and three. Each slab covers the interior only — the perimeter ")
+        .Append("is wall already — and each carries a hole with a ladder standing in it, reaching the slab so a ")
+        .Append("player steps off onto the new floor rather than into its underside. Without one an upper ")
+        .Append("storey is a sealed volume: a picture of a house rather than a house.</p></article>");
+}
+
+// ── figure 7: one house wearing all of it ─────────────────────────────────────────────────────────────
 var finished = basis with
 {
     Form = RoofForm.Saltbox,
@@ -483,6 +546,8 @@ section { padding-top: 60px; display: grid; gap: 22px; }
 .card h3 { color: var(--accent); }
 .card p { font-size: .93rem; color: var(--ink-soft); }
 .card--tight { gap: 10px; }
+/* A cutaway is as wide as the building it slices, so it takes the whole row rather than a column of it. */
+.card--wide { grid-column: 1 / -1; }
 
 .fig {
   background: var(--sunk); border-radius: 2px; padding: 12px;
@@ -618,6 +683,22 @@ page.Append("<section><div class='section-head'><span class='label'>Five</span><
     .Append("same way — a solid 2×2 patch of wall rather than a window.</p></div>")
     .Append($"<div class='grid grid--wide'>{windowFigures}</div></section>");
 
+page.Append("<section><div class='section-head'><span class='label'>Six</span><h2>A height is a stack of rooms</h2>")
+    .Append("<p>A storey states the <strong>clear</strong> — the blocks of air a player stands in — and the ")
+    .Append("courses follow from it: one more than the clear where something stands over it, for the slab that ")
+    .Append("separates the two, and none on the top storey, because the roof is its lid. Measuring the air ")
+    .Append("rather than the masonry is what makes the number an author decides the number that is true, and it ")
+    .Append("is why three is the least a room may be. A style that names no storeys resolves to the single one ")
+    .Append("its wall describes, so a wall height stays a wall height and every shell built before storeys ")
+    .Append("existed is the building it always was.</p></div>")
+    .Append($"<div class='grid grid--wide'>{storeyFigures}</div>")
+    .Append("<p class='note'>The ladder hangs on the <strong>door wall</strong>, one cell along from an interior ")
+    .Append("corner, and both halves of that are about what else claims those cells. Chests and wool monuments ")
+    .Append("fill a room's corners first and then the far wall inward, so the door wall is untouched until a ")
+    .Append("room carries more monuments than a team ever captures — six wools is the ceiling in practice. The ")
+    .Append("corner itself is always taken, which is why the ladder sits one along from it; where the doorway ")
+    .Append("reaches that end it takes the other one instead.</p></section>");
+
 page.Append("""
 <section><div class='section-head'><span class='label'>Reference</span><h2>What a style now carries</h2></div>
 <div class='table-wrap'><table>
@@ -632,6 +713,7 @@ page.Append("""
 <tr><td>Surface</td><td>The floor's top course in plan: Border and its width, Field, Inlay and its inset.</td></tr>
 <tr><td>Windows</td><td>Form, block, sill, size and spacing. StairLattice is 2×2 and SlabBanded three courses, because that is what makes each one work.</td></tr>
 <tr><td>Porch</td><td>Depth, inset, which wall, the canopy's own form, and the rail block. Depth 0 is no porch.</td></tr>
+<tr><td>Storeys</td><td>The rooms stacked inside, each by its clear — never under three — with its own wall, windows and floor zoning where it wants them. Empty is the one storey the flat parts describe.</td></tr>
 </tbody></table></div>
 </section>
 <footer>Every figure stamped by <code>PgmStudio.Minecraft.HouseStamper</code> and read back out of the

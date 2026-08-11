@@ -200,6 +200,16 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   footprint and a third view at the scale of the pieces — the elevation `tools/compose/house-showcase.cs`
   draws, which reads a block's own metadata and so shows a stair lattice as the opening it is.
 
+- [ ] **B71 — Storeys are a count, not a set of presets.** The stamper takes a list of `Storey`, each free to
+  name its own wall, windows, floor zoning and ceiling, but the library can only say *how many* and
+  *how tall*: `room_style.storeys`/`storey_clear` build N identical ones. So a shop under two flats — the
+  case a stack is worth having for — is sayable to `HouseStamper` and not to an author. What it wants is a
+  **storey preset as its own library row** (`storey_style`, its parts in the same `room_style_course` shape)
+  and a join carrying the order (`room_style_storey`: room style, ordinal, storey style, clear), so a stack is
+  composed the way a room style already composes styles. Modelling each storey inline in the composer instead
+  is the thing to avoid — the rail is already tall, and a repeated storey would be described once per copy.
+  The cheap half is the join; the preset row is what makes the second storey free.
+
 - [ ] **B54 — A rebuild has no undo.** The rebuild now carries the finish and the credits across (B49, B52)
   and says what it trades before it runs (S39), so what it still replaces is replaced *on purpose*: the
   board, and the teams/spawns/wools/build zones the plan states. What is missing is a way back from a

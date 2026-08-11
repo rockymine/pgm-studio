@@ -41,12 +41,16 @@ public static class HouseStamper
         var (body, deck) = SplitPorch(ground, style.Porch, front);
         var doorHeight = Math.Min(
             doors is { Count: > 0 } ? style.DoorHeight : Math.Max(3, style.DoorHeight),
-            Math.Max(1, style.Wall.Extent));
+            Math.Max(1, style.Levels[0].Headroom));
         var openings = Doorways(doors, style, body, wallsMoved: deck is not null, front);
 
         var overhang = Math.Max(0, style.Overhang);
         var pitch = Math.Max(1, style.Pitch);
-        var wallTop = floorY + Math.Max(1, style.Wall.Extent);     // the eave course sits on this
+        var levels = style.Levels;
+        var bases = style.LevelBases;
+        var wallTop = floorY + style.WallCourses;                  // the eave course sits on this
+        var topWall = levels[^1].Wall ?? style.Wall;               // what a gable end climbs in
+        var groundWall = levels[0].Wall ?? style.Wall;             // what a porch post falls back to
 
         // Air resolved out of a material is a gap left open, never a hole punched in what is already there:
         // a stack whose fourth course is air is a light slit, and skipping it keeps the pass from erasing a
@@ -91,20 +95,42 @@ public static class HouseStamper
                         Put(x, floorY, z, surface, body);
 
         // ── the walls ─────────────────────────────────────────────────────────────────────────────────
-        // The course index runs up from the floor, so a band written at the fourth course stays there whatever
-        // the wall's height becomes. The four corners take their own material.
-        for (var course = 1; course <= style.Wall.Extent; course++)
-            for (var x = body.MinX; x <= body.MaxX; x++)
-                for (var z = body.MinZ; z <= body.MaxZ; z++)
-                {
-                    if (!body.OnPerimeter(x, z)) continue;
-                    if (body.OnCorner(x, z) && style.Post is { } post) Put(x, floorY + course, z, post, body);
-                    else PutPart(x, floorY + course, z, style.Wall, course - 1, body);
-                }
+        // Storey by storey, each counting its own courses up from its own floor — so a band written at a
+        // storey's fourth course is at the fourth course of every storey, and a taller ground floor does not
+        // slide the one above it. The four corners take their own material.
+        for (var level = 0; level < levels.Count; level++)
+        {
+            var storey = levels[level];
+            var wall = storey.Wall ?? style.Wall;
+            for (var course = 1; course <= storey.Courses(level == levels.Count - 1); course++)
+                for (var x = body.MinX; x <= body.MaxX; x++)
+                    for (var z = body.MinZ; z <= body.MaxZ; z++)
+                    {
+                        if (!body.OnPerimeter(x, z)) continue;
+                        var y = floorY + bases[level] + course;
+                        if (body.OnCorner(x, z) && style.Post is { } post) Put(x, y, z, post, body);
+                        else PutPart(x, y, z, wall, course - 1, body);
+                    }
+        }
 
-        foreach (var seat in HouseWindows.Seats(
-                     style.Windows, body.MinX, body.MinZ, body.MaxX, body.MaxZ, style.Wall.Extent, openings))
-            HouseWindows.Cut(world, seat, style.Windows, floorY, body.MinX, body.MinZ, body.MaxX, body.MaxZ);
+        // Windows, storey by storey and in each storey's own frame — a sill of two is two blocks above *this*
+        // floor whichever storey it is. The seater takes a sill and a wall height and asks nothing about which
+        // storey it is seating, so a storey is simply a smaller wall to it. Only the ground storey knows about
+        // the doorway; there is no door to avoid on the ones above.
+        for (var level = 0; level < levels.Count; level++)
+        {
+            var storey = levels[level];
+            var windows = storey.Windows ?? style.Windows;
+            var seats = HouseWindows.Seats(
+                windows, body.MinX, body.MinZ, body.MaxX, body.MaxZ,
+                storey.Headroom, level == 0 ? openings : null);
+            foreach (var seat in seats)
+                HouseWindows.Cut(
+                    world, seat with { Sill = seat.Sill + bases[level] }, windows, floorY,
+                    body.MinX, body.MinZ, body.MaxX, body.MaxZ);
+        }
+
+        StampLevels();
 
         // ── the roof ──────────────────────────────────────────────────────────────────────────────────
         var roof = new RoofField(
@@ -128,13 +154,49 @@ public static class HouseStamper
                 if (!body.OnPerimeter(x, z)) continue;
                 for (var fill = wallTop + 1; fill < roof.Underside(x, z); fill++)
                     if (style.Gable is { } gable) Put(x, fill, z, gable, body);
-                    else PutPart(x, fill, z, style.Wall, style.Wall.Extent - 1, body);
+                    else PutPart(x, fill, z, topWall, topWall.Extent - 1, body);
             }
 
         StampDoors();
 
         if (deck is { } porchDeck && style.Porch is { } porchStyle) StampPorch(porchDeck, porchStyle);
         return;
+
+        // ── the storeys above the ground ──────────────────────────────────────────────────────────────
+        // Each storey but the last carries a slab over it, and each slab a way through: a hole with a ladder
+        // standing in it. Without one an upper storey is a sealed volume — a building with a room nobody can
+        // reach, which is a picture of a house rather than a house.
+        void StampLevels()
+        {
+            // One cell for the whole stack, so the way up is a single shaft rather than a ladder that moves
+            // from storey to storey and leaves a player to find the next one.
+            var climb = LadderCell(body, front, openings);
+
+            for (var level = 0; level < levels.Count - 1; level++)
+            {
+                var storey = levels[level];
+                var slabY = floorY + bases[level] + storey.Courses(topmost: false);
+
+                // The slab: the storey's ceiling across the interior only, since the perimeter is wall. Its
+                // top course is zoned by the storey above it, so an upper floor takes a border and an inlay
+                // exactly as the ground one does.
+                var above = levels[level + 1];
+                var ceiling = storey.Ceiling ?? style.Floor.At(0).Material;
+                for (var x = body.MinX + 1; x < body.MaxX; x++)
+                    for (var z = body.MinZ + 1; z < body.MaxZ; z++)
+                    {
+                        if ((x, z) == climb) continue;            // the way up
+                        var surface = above.Surface?.At(body.Ring(x, z));
+                        Put(x, slabY, z, surface ?? ceiling, body);
+                    }
+
+                // The ladder: it stands in the storey below the hole and reaches the floor above, so a player
+                // steps off it onto the new floor rather than into its underside.
+                for (var y = floorY + bases[level] + 1; y <= slabY; y++)
+                    if (y is > 0 and < VoxelWorld.MaxHeight)
+                        world.SetBlock(climb.X, y, climb.Z, Blocks.Ladder, LadderFacing(front));
+            }
+        }
 
         // One column of a roof: its tread and whatever riser it needs under it, bordered on the roof's own
         // outermost ring and capped along the ridge when the style asks for a capped one.
@@ -195,7 +257,9 @@ public static class HouseStamper
                     if (!body.Holds(x, z))                    // the house roofs its own footprint
                         Lay(canopy, x, z, porch);
 
-            var postMaterial = style.Post ?? style.Wall.At(style.Wall.Extent - 1).Material;
+            // A post stands on the deck, so it takes the ground storey's wall where the style names no post —
+            // the storey it is actually beside, not the one at the top of the building.
+            var postMaterial = style.Post ?? groundWall.At(groundWall.Extent - 1).Material;
             foreach (var (x, z) in PorchPosts(porch, outer))
                 for (var y = floorY + 1; y < canopy.Underside(x, z); y++)
                     Put(x, y, z, postMaterial, porch);
@@ -220,6 +284,51 @@ public static class HouseStamper
             }
         }
     }
+
+    /// <summary>Where a ladder stands: against the <b>door wall</b>, one cell along from an interior corner.
+    ///
+    /// <para>The door wall rather than any wall, because that is the least contested cell in a room. A wool
+    /// cage seats its chest stacks at the four interior corners and a spawn room seats its monuments corners
+    /// first, then filling the <em>far</em> wall inward — so the door wall is untouched until a room carries
+    /// more monuments than a team ever captures. One along from the corner rather than in it for the same
+    /// reason: the corner itself is always taken.</para>
+    ///
+    /// <para>The low end of the wall unless the doorway reaches it, in which case the high end — a ladder in
+    /// the doorway is a ladder in the way.</para></summary>
+    private static (int X, int Z) LadderCell(Footprint body, RoomEdge front, IReadOnlyList<RoomDoor> doors)
+    {
+        var alongX = front is RoomEdge.NegZ or RoomEdge.PosZ;
+        var (lo, hi) = alongX ? (body.MinX + 1, body.MaxX - 1) : (body.MinZ + 1, body.MaxZ - 1);
+        var along = Math.Min(lo + 1, hi);
+        if (doors.Any(door => door.Edge == front && along >= door.Lo - 1 && along < door.Lo + door.Width + 1))
+            along = Math.Max(hi - 1, lo);
+
+        var inward = front switch
+        {
+            RoomEdge.NegZ => (X: 0, Z: 1),
+            RoomEdge.PosZ => (X: 0, Z: -1),
+            RoomEdge.NegX => (X: 1, Z: 0),
+            _ => (X: -1, Z: 0),
+        };
+        var (wallX, wallZ) = front switch
+        {
+            RoomEdge.NegZ => (along, body.MinZ),
+            RoomEdge.PosZ => (along, body.MaxZ),
+            RoomEdge.NegX => (body.MinX, along),
+            _ => (body.MaxX, along),
+        };
+        return (wallX + inward.X, wallZ + inward.Z);
+    }
+
+    /// <summary>The metadata a ladder on a wall takes: it faces <em>away</em> from the wall it hangs on, since
+    /// the block behind it is what holds it up.</summary>
+    private static int LadderFacing(RoomEdge wall) => wall switch
+    {
+        RoomEdge.NegZ => 3,      // hung on the −z wall, facing +z
+        RoomEdge.PosZ => 2,
+        RoomEdge.NegX => 5,
+        _ => 4,
+    };
 
     /// <summary>The wall a house fronts on: the one its doors are cut through, or — with none given — the long
     /// side the building would cut its own through.</summary>

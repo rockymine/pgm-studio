@@ -85,6 +85,7 @@ public sealed record RoomStyleDetail(
     int FloorDepth, int WallHeight, int RoofThickness,
     string RoofForm, int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
     int BorderWidth, int InlayInset,
+    int Storeys, int StoreyClear,
     RoomWindowDto Windows, RoomPorchDto? Porch,
     string Door, int DoorHeight,
     IReadOnlyList<RoomCourseDto> Courses);
@@ -95,6 +96,7 @@ public sealed record RoomStyleSaveRequest(
     int FloorDepth, int WallHeight, int RoofThickness,
     string RoofForm, int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
     int BorderWidth, int InlayInset,
+    int Storeys, int StoreyClear,
     RoomWindowDto Windows, RoomPorchDto? Porch,
     string Door, int DoorHeight,
     IReadOnlyList<RoomCourseDto> Courses);

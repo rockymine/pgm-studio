@@ -323,6 +323,50 @@ Windows are deliberately **not** on that list, and the distinction is worth stat
 attacker gets in and so is governed by a filter; a window is a hole a player can see through and, in a
 lattice's case, shoot through, but it is never the entrance the block rule is about.
 
+### 7.6 A building is a stack of storeys
+
+A building's height is not a wall height but a stack of rooms, and the two are different numbers. A `Storey`
+states its **clear** — the blocks of air a player stands in — and the courses follow from it: a storey carries
+one more course than its clear when something stands over it, for the slab that separates the two, and the top
+storey carries none, because the roof is its lid. Three storeys of three clear is eleven courses of wall, not
+nine. Measuring by the air rather than by the masonry is what makes the number an author decides the number
+that is true: three is the least a room may be, because a room a player cannot stand up in is not a room, and
+a clear asked for under three is read as three.
+
+A plain shell is the same building said differently, and `Levels` is where the two meet. A style that names no
+storeys resolves to the single one its wall, windows and floor describe, so nothing downstream has to know
+which of the two it was handed. That fallback storey is marked as a **shell**, and the mark matters: a wall
+height is literal where a clear is not, so a two-course shed stays two courses instead of being rounded up to
+the three a room would need. Every style saved before storeys existed is therefore exactly the building it
+always was.
+
+What a storey owns, it owns in **its own frame**. The walls are laid storey by storey, each counting its
+courses up from its own floor, so a band written at a storey's fourth course lands at the fourth course of
+every storey and a taller ground floor does not slide the one above it. Windows are seated the same way: a
+sill of two is two blocks over *this* floor whichever storey it is, and the seater needed nothing new for
+that, because it already takes a sill and a wall height and a storey is simply a shorter wall to it. Only the
+ground storey is told about the doorway; there is no door to avoid on the ones above. A storey may name its
+own wall, windows and floor zoning, and falls back to the building's where it does not — a stack of identical
+storeys is a count rather than a repeated description.
+
+Each storey but the last is closed by a **slab** across its interior only, the perimeter being wall already.
+The slab's top course is zoned by the storey **above** it, so an upper floor takes a border and an inlay
+exactly as the ground one does — it is that storey's floor, not the ceiling of the one below, and the author
+who divided the ground floor into a bordered field means the same thing one storey up.
+
+A slab needs a way through it or an upper storey is a sealed volume — a picture of a house rather than a
+house. That way is a **ladder**, standing in the storey below and reaching the slab, so a player steps off it
+onto the new floor rather than into its underside. It hangs on the **door wall**, one cell along from an
+interior corner, and both halves of that are about what else claims those cells. The chests and the wool
+monuments fill a room's corners first and then the far wall inward (`MonumentSlots`), so the door wall is
+untouched until a room carries more monuments than a team ever captures — six wools is the ceiling in
+practice, and one cell off the door wall's corner is free. The corner itself is not, which is why the ladder
+sits one along from it. Where the doorway reaches that end the ladder takes the other one instead: a ladder in
+the doorway is a ladder in the way.
+
+Storeys are not a house-only feature. A wool room takes a `HouseStyle` like any other building, so a
+multi-storey wool room is the same stack with a monument in it.
+
 What a style never touches: the **platform** under a room (`StampFoundation`'s bedrock column, ST1) and the
 **entrance redstone line** (ST1) belong to the plan-derived structures, not to a shell.
 
