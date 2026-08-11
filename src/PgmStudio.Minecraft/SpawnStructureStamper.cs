@@ -31,8 +31,9 @@ public sealed record SpawnStructure
     /// back wall filling inward and the door wall — so capacity scales with the interior perimeter.</summary>
     public IReadOnlyList<string> CapturedWools { get; init; } = [];
 
-    /// <summary>The building around the spawn, or null for a spawn on open ground.</summary>
-    public RoomStyle? Shell { get; init; } = RoomStyle.Spawn;
+    /// <summary>The building around the spawn, or null for a spawn on open ground. A house style rather than
+    /// a room style, for the reason a wool structure's is: this is the stamping shape.</summary>
+    public HouseStyle? Shell { get; init; } = RoomStyle.Spawn.AsHouse();
 }
 
 /// <summary>What one spawn structure placed: where the team comes in, and every monument it carries.</summary>
@@ -49,7 +50,7 @@ public static class SpawnStructureStamper
 
         if (room.Shell is { } shell)
             HouseStamper.Stamp(world, frame, room.FloorY,
-                (shell with { Door = DoorMaterial.Air }).AsHouse(), room.TeamColor);
+                shell with { Door = DoorMaterial.Air }, room.TeamColor);
 
         // After the shell, so the pad is the floor the spawn point sits on rather than whatever a style laid.
         var point = PlayerSpawnStamper.Place(world, frame.Pad, room.FloorY, room.TeamColor);

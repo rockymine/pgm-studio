@@ -36,8 +36,11 @@ public sealed record WoolStructure
     /// <summary>The entrance row, as a pair of block ends sharing an axis.</summary>
     public (int X1, int Z1, int X2, int Z2)? Entrance { get; init; }
 
-    /// <summary>The building around the wool, or null for wool on open ground.</summary>
-    public RoomStyle? Shell { get; init; } = RoomStyle.Wool;
+    /// <summary>The building around the wool, or null for wool on open ground. A house style rather than a
+    /// room style, because this is the stamping shape: a stored room style reaches it through
+    /// <see cref="RoomStyle.AsHouse"/>, and a caller that wants a gabled roof over its wool can simply say
+    /// so.</summary>
+    public HouseStyle? Shell { get; init; } = RoomStyle.Wool.AsHouse();
 
     public bool Chests { get; init; } = true;
 }
@@ -51,7 +54,7 @@ public static class WoolStructureStamper
         StructureStamper.StampFoundation(world, room.Ground, frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ);
 
         if (room.Shell is { } shell)
-            HouseStamper.Stamp(world, frame, room.FloorY, shell.AsHouse(), BlockColors.BlockDamage(room.WoolSlug));
+            HouseStamper.Stamp(world, frame, room.FloorY, shell, BlockColors.BlockDamage(room.WoolSlug));
 
         // After the shell, so the pad is the floor the room's point sits on rather than whatever a style laid.
         var placed = WoolSpawnStamper.Place(world, frame.Pad, room.FloorY, room.WoolSlug);

@@ -171,14 +171,19 @@ public static class HouseStamper
             var holeW = RoofHoleSpan(width);
             var holeD = RoofHoleSpan(depth);
             int holeMinX = minX + (width - holeW) / 2, holeMinZ = minZ + (depth - holeD) / 2;
+            int lidMinX = minX - overhang, lidMaxX = maxX + overhang;
+            int lidMinZ = minZ - overhang, lidMaxZ = maxZ + overhang;
 
-            for (var x = minX - overhang; x <= maxX + overhang; x++)
-                for (var z = minZ - overhang; z <= maxZ + overhang; z++)
+            for (var x = lidMinX; x <= lidMaxX; x++)
+                for (var z = lidMinZ; z <= lidMaxZ; z++)
                 {
                     if (style.RoofHole && x >= holeMinX && x < holeMinX + holeW
                                        && z >= holeMinZ && z < holeMinZ + holeD) continue;
-                    var border = x < minX || x > maxX || z < minZ || z > maxZ;
-                    Put(x, lid, z, border ? style.Verge : style.Roof);
+                    // The rim is the roof's own outermost ring, not the part of it that oversails the wall:
+                    // a roof ending flush still has an edge, and it is the edge that is trimmed. Keying this
+                    // to the overhang instead leaves a flush roof with no rim at all.
+                    var rim = x == lidMinX || x == lidMaxX || z == lidMinZ || z == lidMaxZ;
+                    Put(x, lid, z, rim ? style.Verge : style.Roof);
                 }
             StampDoors();
             return;
