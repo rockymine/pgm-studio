@@ -90,9 +90,9 @@ static List<PlacedProp> Trees()
 static List<PlacedProp> Buildings()
 {
     var props = new List<PlacedProp>();
-    for (var slot = 0; slot < Houses.All.Count; slot++)
+    for (var slot = 0; slot < HousePresets.All.Count; slot++)
     {
-        var house = Houses.All[slot];
+        var house = HousePresets.All[slot];
         var (ox, oz) = Shapes.Origin(Plateaus.All.Count + slot);
         double minX = ox - house.Width / 2, minZ = oz - house.Depth / 2;
         props.Add(new HouseProp

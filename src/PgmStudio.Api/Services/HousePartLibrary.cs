@@ -136,6 +136,8 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
         WindowWidth = Math.Clamp(req.Windows?.Width ?? 2, 1, 8),
         WindowHeight = Math.Clamp(req.Windows?.Height ?? 2, 1, 8),
         WindowSpacing = Math.Clamp(req.Windows?.Spacing ?? 3, 0, 16),
+        WindowHostBlock = req.Windows?.HostBlock ?? -1,
+        WindowHostData = Math.Clamp(req.Windows?.HostData ?? 0, 0, 15),
     };
 
     public static IEnumerable<StoreyStyleCourseRow> StoreyCourseRowsOf(StoreyStyleSaveRequest req)
@@ -146,13 +148,9 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
 
     private static WindowStyle WindowOf(StoreyStyleRow row) => new()
     {
-        Form = WindowForms.Canonical(row.WindowForm) switch
-        {
-            WindowForms.StairLattice => WindowForm.StairLattice,
-            WindowForms.SlabBanded => WindowForm.SlabBanded,
-            WindowForms.Pane => WindowForm.Pane,
-            _ => WindowForm.None,
-        },
+        Form = RoomStyleLibrary.WindowFormOf(row.WindowForm),
+        HostBlock = row.WindowHostBlock,
+        HostData = row.WindowHostData,
         Block = row.WindowBlock,
         Data = row.WindowData,
         Sill = Math.Max(1, row.WindowSill),

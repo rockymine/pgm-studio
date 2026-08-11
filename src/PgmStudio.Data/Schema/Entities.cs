@@ -544,6 +544,24 @@ public sealed class RoomStyleRow
     // The part styles this house is composed from (M0018). Each is optional and each, when bound, takes over
     // from the columns above that describe the same part — so an unbound house is exactly the building its own
     // columns always described, and no row had to be migrated to gain the level.
+    [Column("beam_block")] public int BeamBlock { get; set; } = -1;
+    [Column("beam_data")] public int BeamData { get; set; }
+    [Column("beam_reach")] public int BeamReach { get; set; } = 1;
+    [Column("roof_slab")] public int RoofSlab { get; set; } = -1;
+    [Column("roof_slab_data")] public int RoofSlabData { get; set; }
+    [Column("gable_window_form"), NotNull] public string GableWindowForm { get; set; } = "none";
+    [Column("gable_window_block")] public int GableWindowBlock { get; set; } = 102;
+    [Column("gable_window_data")] public int GableWindowData { get; set; }
+    [Column("gable_window_sill")] public int GableWindowSill { get; set; } = 1;
+    [Column("gable_window_width")] public int GableWindowWidth { get; set; } = 1;
+    [Column("gable_window_height")] public int GableWindowHeight { get; set; } = 1;
+    [Column("door_head_form"), NotNull] public string DoorHeadForm { get; set; } = "none";
+    [Column("door_head_block")] public int DoorHeadBlock { get; set; } = 53;
+    [Column("door_head_fill"), NotNull] public string DoorHeadFill { get; set; } = "upperSlab";
+    [Column("door_head_fill_block")] public int DoorHeadFillBlock { get; set; } = 126;
+    [Column("door_head_fill_data")] public int DoorHeadFillData { get; set; }
+    [Column("window_host_block")] public int WindowHostBlock { get; set; } = -1;
+    [Column("window_host_data")] public int WindowHostData { get; set; }
     [Column("roof_style_id")] public long? RoofStyleId { get; set; }
     [Column("porch_style_id")] public long? PorchStyleId { get; set; }
 
@@ -586,6 +604,8 @@ public sealed class StoreyStyleRow
     [Column("window_width")] public int WindowWidth { get; set; } = 2;
     [Column("window_height")] public int WindowHeight { get; set; } = 2;
     [Column("window_spacing")] public int WindowSpacing { get; set; } = 3;
+    [Column("window_host_block")] public int WindowHostBlock { get; set; } = -1;
+    [Column("window_host_data")] public int WindowHostData { get; set; }
     [Column("created_at")] public DateTime CreatedAt { get; set; }
 }
 

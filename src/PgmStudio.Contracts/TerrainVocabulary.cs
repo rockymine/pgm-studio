@@ -193,13 +193,17 @@ public static class WindowForms
     public const string SlabBanded = "slabBanded";
     public const string Pane = "pane";
 
-    public static readonly string[] All = [None, StairLattice, SlabBanded, Pane];
+    /// <summary>The hole and nothing in it — cut and left, which is not the same as asking for none.</summary>
+    public const string Open = "open";
+
+    public static readonly string[] All = [None, StairLattice, SlabBanded, Pane, Open];
 
     public static string Describe(string? form) => Canonical(form) switch
     {
         StairLattice => "2×2 of stairs, open in the middle",
         SlabBanded => "A band between a slab sill and lintel",
         Pane => "Panes, glazed",
+        Open => "An opening, nothing in it",
         _ => "No windows",
     };
 
@@ -221,3 +225,34 @@ public sealed record DoorOptionDto(string Slug, string Label);
 /// instead. The list arrives in group order, so grouping the flagged blocks by <see cref="Group"/> recovers
 /// the families whole, in the order they are offered.</para></summary>
 public sealed record PaintBlockDto(int Id, int Data, string Name, string Group, string Hex, bool InFamily);
+
+/// <summary>How a doorway's top course is dressed (<c>door_head_form</c>). A head is what carries the wall over
+/// the opening; the door is what fills it, and they are different questions with different closed sets.</summary>
+public static class DoorHeadForms
+{
+    public const string None = "none";
+    public const string Arched = "arched";
+
+    public static readonly (string Id, string Name)[] All =
+    [
+        (None, "Square"),
+        (Arched, "Arched — stairs in the corners"),
+    ];
+
+    public static string Canonical(string? form) => All.Any(entry => entry.Id == form) ? form! : None;
+}
+
+/// <summary>What spans the middle of an arched head on an opening wider than its two corners.</summary>
+public static class DoorHeadFills
+{
+    public const string UpperSlab = "upperSlab";
+    public const string Solid = "solid";
+
+    public static readonly (string Id, string Name)[] All =
+    [
+        (UpperSlab, "Upside-down slab"),
+        (Solid, "A whole block"),
+    ];
+
+    public static string Canonical(string? fill) => All.Any(entry => entry.Id == fill) ? fill! : UpperSlab;
+}

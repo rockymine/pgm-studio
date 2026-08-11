@@ -114,6 +114,8 @@ public sealed class HousePartStore(PgmDb db)
             .Set(r => r.WindowWidth, storey.WindowWidth)
             .Set(r => r.WindowHeight, storey.WindowHeight)
             .Set(r => r.WindowSpacing, storey.WindowSpacing)
+            .Set(r => r.WindowHostBlock, storey.WindowHostBlock)
+            .Set(r => r.WindowHostData, storey.WindowHostData)
             .UpdateAsync(ct);
         if (updated == 0) return false;
 

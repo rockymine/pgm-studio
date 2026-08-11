@@ -1,18 +1,20 @@
 using PgmStudio.Domain;
-using PgmStudio.Minecraft;
 
-namespace PatternMap;
+namespace PgmStudio.Minecraft;
 
 /// <summary>
-/// The house styles the showcase stands on its own row of islands — the presets that will seed the room-style
-/// library, held here first so they can be walked before they are stored.
+/// The built-in house styles: the presets the room-style library is seeded with, and what the showcase stands
+/// on its own row of islands.
+///
+/// <para>Here rather than beside the showcase because two things need them — the world that is walked and the
+/// seeder that stores them — and this is the lowest project both can reach.</para>
 ///
 /// <para>Each is described from a real building rather than invented, and the description is checked against
 /// the world it came from: the corpus map is read block by block, the wall face is printed, and the style is
 /// written to match what it says. A style that cannot be said in <see cref="HouseStyle"/> is the interesting
 /// case — it is a gap in the model, and finding those is what the row is for.</para>
 /// </summary>
-public static class Houses
+public static class HousePresets
 {
     // Ids the styles name. Literals with a comment, the way the showcase's own materials are written — Blocks
     // carries what the stamper needs and a mushroom block has never been one of them.

@@ -225,6 +225,29 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
         PorchRailBlock = Math.Max(0, req.Porch?.RailBlock ?? Blocks.OakFence),
         RoofStyleId = req.RoofStyleId,
         PorchStyleId = req.PorchStyleId,
+
+        WindowHostBlock = req.Windows?.HostBlock ?? -1,
+        WindowHostData = Math.Clamp(req.Windows?.HostData ?? 0, 0, 15),
+
+        BeamBlock = req.Beams?.Block ?? -1,
+        BeamData = Math.Clamp(req.Beams?.Data ?? 0, 0, 15),
+        BeamReach = Math.Clamp(req.Beams?.Reach ?? 1, 1, 4),
+
+        RoofSlab = req.RoofSlab,
+        RoofSlabData = Math.Clamp(req.RoofSlabData, 0, 15),
+
+        GableWindowForm = WindowForms.Canonical(req.GableWindows?.Form),
+        GableWindowBlock = Math.Max(0, req.GableWindows?.Block ?? Blocks.GlassPane),
+        GableWindowData = Math.Clamp(req.GableWindows?.Data ?? 0, 0, 15),
+        GableWindowSill = Math.Clamp(req.GableWindows?.Sill ?? 1, 1, 16),
+        GableWindowWidth = Math.Clamp(req.GableWindows?.Width ?? 1, 1, 8),
+        GableWindowHeight = Math.Clamp(req.GableWindows?.Height ?? 1, 1, 8),
+
+        DoorHeadForm = DoorHeadForms.Canonical(req.DoorHead?.Form),
+        DoorHeadBlock = Math.Max(0, req.DoorHead?.Block ?? Blocks.OakStairs),
+        DoorHeadFill = DoorHeadFills.Canonical(req.DoorHead?.Fill),
+        DoorHeadFillBlock = Math.Max(0, req.DoorHead?.FillBlock ?? Blocks.WoodenSlab),
+        DoorHeadFillData = Math.Clamp(req.DoorHead?.FillData ?? 0, 0, 15),
     };
 
     public static IEnumerable<RoomStyleCourseRow> CourseRowsOf(RoomStyleSaveRequest req)
@@ -285,8 +308,54 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
             RidgeCap = row.RidgeCap,
             Door = DoorMaterials.TryParse(row.Door, out var door) ? door : DoorMaterial.StainedGlassPane,
             DoorHeight = Math.Max(1, row.DoorHeight),
+
+            // The trim M0019 gave the row a column for. Each is off by default and off is what every stored
+            // style was, so a row saved before them builds exactly what it always did.
+            RoofSlab = row.RoofSlab,
+            RoofSlabData = row.RoofSlabData,
+            Beams = new BeamStyle
+            {
+                Block = row.BeamBlock, Data = row.BeamData, Reach = Math.Max(1, row.BeamReach),
+            },
+            GableWindows = GableWindowOf(row),
+            DoorHead = DoorHeadOf(row),
         };
     }
+
+    /// <summary>The window a gable face carries. Its own columns because a gable is not a wall: one is cut per
+    /// face and centred, and its sill counts from the wall top rather than from a floor.</summary>
+    private static WindowStyle GableWindowOf(RoomStyleRow row) => new()
+    {
+        Form = WindowFormOf(row.GableWindowForm),
+        Block = row.GableWindowBlock,
+        Data = row.GableWindowData,
+        Sill = Math.Max(1, row.GableWindowSill),
+        Width = Math.Max(1, row.GableWindowWidth),
+        Height = Math.Max(1, row.GableWindowHeight),
+    };
+
+    private static DoorHeadStyle DoorHeadOf(RoomStyleRow row) => new()
+    {
+        Form = DoorHeadForms.Canonical(row.DoorHeadForm) == DoorHeadForms.Arched
+            ? DoorHeadForm.Arched
+            : DoorHeadForm.None,
+        Block = row.DoorHeadBlock,
+        Fill = DoorHeadFills.Canonical(row.DoorHeadFill) == DoorHeadFills.Solid
+            ? DoorHeadFill.Solid
+            : DoorHeadFill.UpperSlab,
+        FillBlock = row.DoorHeadFillBlock,
+        FillData = row.DoorHeadFillData,
+    };
+
+    /// <summary>The stored word for a window form as the stamper's own.</summary>
+    internal static WindowForm WindowFormOf(string? form) => WindowForms.Canonical(form) switch
+    {
+        WindowForms.StairLattice => WindowForm.StairLattice,
+        WindowForms.SlabBanded => WindowForm.SlabBanded,
+        WindowForms.Pane => WindowForm.Pane,
+        WindowForms.Open => WindowForm.Open,
+        _ => WindowForm.None,
+    };
 
     /// <summary>The stored word for a roof as the stamper's own form. Unknown words are the flat lid, the same
     /// fold <see cref="RoofForms.Canonical"/> makes, so a hand-edited row still stamps.</summary>
@@ -313,13 +382,9 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
 
     private static WindowStyle WindowOf(RoomStyleRow row) => new()
     {
-        Form = WindowForms.Canonical(row.WindowForm) switch
-        {
-            WindowForms.StairLattice => WindowForm.StairLattice,
-            WindowForms.SlabBanded => WindowForm.SlabBanded,
-            WindowForms.Pane => WindowForm.Pane,
-            _ => WindowForm.None,
-        },
+        Form = WindowFormOf(row.WindowForm),
+        HostBlock = row.WindowHostBlock,
+        HostData = row.WindowHostData,
         Block = row.WindowBlock,
         Data = row.WindowData,
         Sill = Math.Max(1, row.WindowSill),

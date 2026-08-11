@@ -70,8 +70,20 @@ public sealed record RoomStyleSummary(long Id, string Name, string Preview);
 /// climbs, which half a slab fills — and a material resolves its own data from where the cell sits, which would
 /// turn every stair in a wall the same way. <paramref name="Data"/> carries only the block's variant (which
 /// wood, which dye); the stamper adds the geometry bits.</summary>
+/// <param name="HostBlock">The block a window may be cut <em>into</em>, or -1 to cut wherever one fits. On a
+/// banded wall a seat chosen by spacing lands half in one band and half in the next; naming the block the wall
+/// has to resolve to lets the panel decide instead.</param>
 public sealed record RoomWindowDto(
-    string Form, int Block, int Data, int Sill, int Width, int Height, int Spacing);
+    string Form, int Block, int Data, int Sill, int Width, int Height, int Spacing,
+    int HostBlock = -1, int HostData = 0);
+
+/// <summary>The log ends that run out past the corners where two storeys meet — two per corner, one along each
+/// axis. <paramref name="Block"/> -1 is a building whose storeys meet without them.</summary>
+public sealed record RoomBeamDto(int Block, int Data, int Reach);
+
+/// <summary>The beam over a doorway: stairs in the two corners of its top course, and what spans the middle of
+/// a wider one. <paramref name="Form"/> <c>none</c> leaves the opening a plain rectangle.</summary>
+public sealed record RoomDoorHeadDto(string Form, int Block, string Fill, int FillBlock, int FillData);
 
 /// <summary>The porch a room style gives a strip of its footprint up for, or absent for a building whose walls
 /// stand on the whole of it. <paramref name="RailBlock"/> 0 leaves the deck open to step off anywhere.</summary>
@@ -141,7 +153,11 @@ public sealed record RoomStyleDetail(
     RoomWindowDto Windows, RoomPorchDto? Porch,
     string Door, int DoorHeight,
     long? RoofStyleId, long? PorchStyleId, IReadOnlyList<RoomStoreyDto> StoreyStack,
-    IReadOnlyList<RoomCourseDto> Courses);
+    IReadOnlyList<RoomCourseDto> Courses,
+    // Trailing and defaulted so every existing construction site keeps compiling and keeps meaning "this
+    // building has none" — which is what every stored style already was.
+    RoomBeamDto? Beams = null, int RoofSlab = -1, int RoofSlabData = 0,
+    RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null);
 
 /// <summary>Create or replace a room style (POST /api/room-styles, PUT /api/room-styles/{id}).</summary>
 public sealed record RoomStyleSaveRequest(
@@ -153,7 +169,11 @@ public sealed record RoomStyleSaveRequest(
     RoomWindowDto Windows, RoomPorchDto? Porch,
     string Door, int DoorHeight,
     long? RoofStyleId, long? PorchStyleId, IReadOnlyList<RoomStoreyDto> StoreyStack,
-    IReadOnlyList<RoomCourseDto> Courses);
+    IReadOnlyList<RoomCourseDto> Courses,
+    // Trailing and defaulted so every existing construction site keeps compiling and keeps meaning "this
+    // building has none" — which is what every stored style already was.
+    RoomBeamDto? Beams = null, int RoofSlab = -1, int RoofSlabData = 0,
+    RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null);
 
 /// <summary>The four pictures of a room style: from above, projected onto its front, in isometric, and one
 /// plane drawn at the scale of the pieces in it. A library <em>card</em> carries the section alone — the
