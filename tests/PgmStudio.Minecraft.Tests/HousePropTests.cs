@@ -66,6 +66,38 @@ public sealed class HousePropTests
         await Assert.That(new HouseProp { Points = [[0, 0]] }.Footprint()).IsNull();
     }
 
+    [Test]
+    public async Task A_rectangle_larger_than_a_small_house_is_no_footprint_either()
+    {
+        // The prop is for small houses, so it carries a ceiling as well as a floor. Area rather than a side
+        // length, because a sloped roof climbs with the short span alone: a long thin building of the same area
+        // stays low and cheap where a square one does not.
+        await Assert.That(House(0, 0, 19, 29).Footprint()).IsNotNull();   // 20x30 = 600, the largest there is
+        await Assert.That(House(0, 0, 29, 19).Footprint()).IsNotNull();   // the same rectangle turned
+        await Assert.That(House(0, 0, 23, 24).Footprint()).IsNotNull();   // 24x25 = 600, a different shape of it
+        await Assert.That(House(0, 0, 19, 30).Footprint()).IsNull();      // 20x31 = 620
+        await Assert.That(House(0, 0, 24, 24).Footprint()).IsNull();      // 25x25 = 625
+    }
+
+    [Test]
+    public async Task A_building_past_the_cap_raises_nothing_rather_than_raising_part_of_one()
+    {
+        var (world, top) = Plateau(size: 96);
+        var tally = Decorator.Decorate(world, Context(top, [House(-20, -20, 10, 20)]));   // 31x41
+        await Assert.That(tally.Houses).IsEqualTo(0);
+        await Assert.That(Height(world, 0, 0)).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task The_cap_is_the_props_own_and_never_the_stampers()
+    {
+        // A wool cage and a spawn cube go through the same stamper, and their footprints come from the plan
+        // piece they sit on (WX1) — a map's own geometry, which a dressing limit has no business refusing.
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, 0, 0, 40, 40, 64, new HouseStyle());    // 1600 blocks, far past the prop cap
+        await Assert.That(world.GetBlock(0, 65, 0).Id).IsNotEqualTo(Blocks.Air);
+    }
+
     // ── the placement ──────────────────────────────────────────────────────────────────────────────
     [Test]
     public async Task A_building_stands_on_the_rectangle_that_was_dragged_and_nowhere_else()

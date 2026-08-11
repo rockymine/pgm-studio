@@ -65,17 +65,30 @@ export const isMarker = (propOrKind) => {
 export const isRect = (propOrKind) =>
   (typeof propOrKind === "string" ? propOrKind : propOrKind?.kind) === "house";
 
-/** A rect prop's footprint in whole blocks, or null when it is too small to hold two walls and an inside —
- *  the same floor `HouseProp.Footprint` holds, so the canvas refuses exactly what the stamp would. */
+/** The largest footprint a placed building may cover, in blocks — a 20x30 house. Restated here rather than
+ *  served because it is a rule the *canvas* has to apply while a drag is still in the pointer, before anything
+ *  could be asked of the server; it is the same number `HouseProp.MaxFootprint` holds, and the same reason the
+ *  3-block minimum is restated below it. */
+export const MAX_FOOTPRINT = 600;
+
+/** A rect prop's footprint in whole blocks, or null when it is no building — too small to hold two walls and
+ *  an inside, or past `MAX_FOOTPRINT`. The same floor and ceiling `HouseProp.Footprint` holds, so the canvas
+ *  refuses exactly what the stamp would. */
 export function rectFootprint(prop) {
+  const plan = rectPlan(prop);
+  if (!plan) return null;
+  return plan.width < 3 || plan.depth < 3 || plan.width * plan.depth > MAX_FOOTPRINT ? null : plan;
+}
+
+/** The rectangle two corners bound, whatever its size — what a drag in progress is, before it is judged. */
+export function rectPlan(prop) {
   const points = prop?.points ?? [];
   if (points.length < 2) return null;
   const minX = Math.floor(Math.min(points[0][0], points[1][0]));
   const minZ = Math.floor(Math.min(points[0][1], points[1][1]));
   const maxX = Math.floor(Math.max(points[0][0], points[1][0]));
   const maxZ = Math.floor(Math.max(points[0][1], points[1][1]));
-  const width = maxX - minX + 1, depth = maxZ - minZ + 1;
-  return width < 3 || depth < 3 ? null : { minX, minZ, width, depth };
+  return { minX, minZ, width: maxX - minX + 1, depth: maxZ - minZ + 1 };
 }
 
 /** A prop's position, as one point: a marker's own cell, else the middle of what it covers. What a label is

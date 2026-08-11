@@ -361,6 +361,21 @@ What it does need is ground, and that is physics rather than policy: it seats on
 own footprint, one course down, so it settles into a slope instead of standing on stilts over the low side. An
 image with no ground under it at all raises nothing.
 
+**A building is bounded at both ends.** The floor is the stamper's own — three blocks a side, two walls and an
+inside — and the ceiling is the prop's: **600 blocks of footprint**, a 20×30 house, because this is scenery a
+map is dressed with rather than architecture it is built from. The cap is an **area** rather than a side
+length, and the roof is the reason. A sloped roof's ridge climbs with the **short** span alone and ignores the
+long one entirely, so two buildings of one area are not one problem: 24×25 carries a gable twelve courses over
+its wall, 8×75 carries one four courses over. Area bounds what a building costs and how much map it covers;
+the short span bounds how tall it gets, and does that by itself.
+
+The ceiling belongs to the **prop** and never to the stamper. A wool cage and a spawn cube run through the same
+`HouseStamper`, and their footprints come from the plan piece they sit on (WX1) — a map's own geometry, which a
+dressing limit has no business refusing. The canvas restates the number so a drag can be judged while it is
+still in the pointer, and shows an overshoot as refused the way a marker over the void is; a rectangle that has
+not yet grown to three blocks is not marked, because that is the first moment of every drag, where being too
+big is a thing the author kept dragging to do.
+
 The shell is a **snapshot** on the prop, not a library id — the rule a map's bound room styles follow
 (`structures.md` §9). Picking a style from the library copies its JSON in, so editing that row later cannot
 rebuild a map's scenery.

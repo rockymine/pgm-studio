@@ -13,7 +13,8 @@
  */
 
 import { pathRing, pathCenterline } from "../geometry/path.js";
-import { isMarker, isRect, propAnchor, propReach, rectFootprint } from "../dressing/dressing-doc.js";
+import { isMarker, isRect, MAX_FOOTPRINT, propAnchor, propReach, rectFootprint, rectPlan }
+  from "../dressing/dressing-doc.js";
 
 // One colour family per kind, so a glance separates a route from a stand of trees without reading a label.
 const KIND_STYLE = {
@@ -68,10 +69,20 @@ export function paintDressingPreview(painter, kind, points, radius) {
   if (!points || points.length < 2) return;
   const kindStyle = KIND_STYLE[kind] ?? KIND_STYLE.boulder;
   const style = { fill: kindStyle.fill, fillAlpha: 0.2, stroke: kindStyle.stroke, width: 1, dash: [5, 3], fillRule: "evenodd" };
-  const ring = isRect(kind)
-    ? rectRing({ points })
-    : (kind === "path" || kind === "water") ? pathRing({ points, radius }) : [...points, points[0]];
-  if (ring.length >= 3) painter.ring(isRect(kind) ? ring : ring.slice(0, -1), style);
+  if (isRect(kind)) {
+    // A drag that has overshot the largest building reads as refused, the way a marker over the void does.
+    // Only overshoot: every rectangle starts too small to be a house, so painting that red would flicker on
+    // the first pixel of every drag — where being too big is a thing the author kept dragging to do.
+    const plan = rectPlan({ points });
+    if (plan && plan.width * plan.depth > MAX_FOOTPRINT) {
+      Object.assign(style, { fill: "#c0392b", fillAlpha: 0.12, stroke: "#c0392b", width: 1.5 });
+    }
+    const rect = rectRing({ points });
+    if (rect.length >= 3) painter.ring(rect, style);
+    return;
+  }
+  const ring = (kind === "path" || kind === "water") ? pathRing({ points, radius }) : [...points, points[0]];
+  if (ring.length >= 3) painter.ring(ring.slice(0, -1), style);
 }
 
 /** Where a marker will be dropped, before the click that drops it. Over the void it reads as refused — a red

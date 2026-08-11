@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { DressingDoc, defaultProp, isMarker, isRect, propAnchor, rectFootprint, translateProp }
+import { DressingDoc, defaultProp, isMarker, isRect, MAX_FOOTPRINT, propAnchor, rectFootprint, translateProp }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/dressing/dressing-doc.js";
 import { DressingController, DRESSING_TOOLS }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/controllers/dressing-controller.js";
@@ -302,4 +302,17 @@ test("a building tool is a tool like any other", () => {
   assert.equal(isMarker("house"), false);
   assert.deepEqual(defaultProp("house").points, []);
   assert.equal(defaultProp("house").front, null);
+});
+
+test("a building larger than a small house is refused, and the canvas refuses the same one the stamp does", () => {
+  assert.equal(MAX_FOOTPRINT, 600);
+  assert.notEqual(rectFootprint({ points: [[0, 0], [19, 29]] }), null);   // 20x30, the largest there is
+  assert.equal(rectFootprint({ points: [[0, 0], [19, 30]] }), null);      // 20x31
+  assert.notEqual(rectFootprint({ points: [[0, 0], [29, 19]] }), null);   // the same rectangle turned
+});
+
+test("a building drag past the cap places nothing", () => {
+  const { doc, tools } = controller();
+  drag(tools, "dress:house", [[0, 0], [40, 40]]);
+  assert.equal(doc.props.length, 0);
 });
