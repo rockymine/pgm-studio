@@ -45,23 +45,24 @@ public sealed class BaseSeedWorldTests
         var surface = SketchTerrainBuilder.Build(SketchRasterizer.RasterizeColumns(layout)).SurfaceTop;
         int Surf(int x, int z) => surface.GetValueOrDefault((x, z), 1);
 
-        // Each spawn: on a real island (surface > the bedrock fallback), bedrock floor at y0, terrain solid
-        // directly under the cube floor, and the 2×2 wool marker at the anchor on the surface.
+        // Each spawn: on a real island (surface > the bedrock fallback), bedrock floor at y0, and the 2×2 wool
+        // marker at the anchor. The pad sits one below the surface top, because a room's floor course replaces
+        // the ground's own top block rather than standing on it — so a player walks in level, not up a step.
         foreach (var s in intent.Spawns)
         {
             int ax = Snap(s.Point.X), az = Snap(s.Point.Z), fy = Surf(ax, az);
             await Assert.That(fy).IsGreaterThan(1);
             await Assert.That(w.GetBlock(ax, 0, az).Id).IsEqualTo(Blocks.Bedrock);
-            await Assert.That(w.GetBlock(ax, fy - 1, az).Id).IsNotEqualTo(Blocks.Air);   // cube rests on terrain
-            await Assert.That(w.GetBlock(ax, fy, az).Id).IsEqualTo(Blocks.Wool);         // 2×2 marker
+            await Assert.That(w.GetBlock(ax, fy - 1, az).Id).IsEqualTo(Blocks.Wool);     // 2×2 marker, sunk in
+            await Assert.That(w.GetBlock(ax, fy - 2, az).Id).IsNotEqualTo(Blocks.Air);   // ground under it
         }
 
-        // Each wool cage: same — marker at the anchor on the surface, resting on solid terrain.
+        // Each wool room: same — the pad sunk into the platform, ground under it.
         foreach (var wl in intent.Wools!)
         {
             int ax = Snap(wl.Spawn.X), az = Snap(wl.Spawn.Z), fy = Surf(ax, az);
-            await Assert.That(w.GetBlock(ax, fy, az).Id).IsEqualTo(Blocks.Wool);
-            await Assert.That(w.GetBlock(ax, fy - 1, az).Id).IsNotEqualTo(Blocks.Air);
+            await Assert.That(w.GetBlock(ax, fy - 1, az).Id).IsEqualTo(Blocks.Wool);
+            await Assert.That(w.GetBlock(ax, fy - 2, az).Id).IsNotEqualTo(Blocks.Air);
         }
 
         // Observer platform: bedrock at the authored (floating) Y, air directly below (it floats).
@@ -116,7 +117,7 @@ public sealed class BaseSeedWorldTests
             // A spawn marker and the observer floor must survive the region-file serialisation.
             var s = intent.Spawns[0];
             int ax = Snap(s.Point.X), az = Snap(s.Point.Z), fy = surface.GetValueOrDefault((ax, az), 1);
-            await Assert.That(At(ax, fy, az).Id).IsEqualTo(Blocks.Wool);
+            await Assert.That(At(ax, fy - 1, az).Id).IsEqualTo(Blocks.Wool);
             await Assert.That(At(ax, 0, az).Id).IsEqualTo(Blocks.Bedrock);
 
             var ob = intent.Observer!;

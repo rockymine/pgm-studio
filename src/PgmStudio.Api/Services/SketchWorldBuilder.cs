@@ -43,7 +43,7 @@ public static class SketchWorldBuilder
             var fy = FrameFloor(frame, terrain.SurfaceTop, woolStyle);
             WoolStructureStamper.Stamp(world, new WoolStructure
             {
-                Frame = frame, FloorY = fy, WoolSlug = slug, Ground = terrain.SurfaceTop, Shell = woolStyle,
+                Frame = frame, FloorY = fy, WoolSlug = slug, Ground = terrain.SurfaceTop, Shell = woolStyle.AsHouse(),
             });
             woolFrame[i] = frame;
             woolFloor[i] = fy;
@@ -65,7 +65,7 @@ public static class SketchWorldBuilder
             var placed = SpawnStructureStamper.Stamp(world, new SpawnStructure
             {
                 Frame = frame, FloorY = fy, TeamColor = WoolDataForTeam(s.Team, teams),
-                CapturedWools = [.. captured.Select(x => ColorSlug(x.w, teams))], Shell = spawnStyle,
+                CapturedWools = [.. captured.Select(x => ColorSlug(x.w, teams))], Shell = spawnStyle.AsHouse(),
             }).Monuments;
 
             for (var k = 0; k < placed.Count && k < captured.Count; k++)
@@ -284,11 +284,20 @@ public static class SketchWorldBuilder
         => Math.Clamp(y, 1, VoxelWorld.MaxHeight - (style?.TopLayer ?? RoomStyle.MaxTopLayer) - 1);
 
     /// <summary>The floor a room shell rests on: the highest surface over the columns its footprint spans —
-    /// not the one at its marker, which is a grid line whose side does not survive the symmetry orbit.</summary>
+    /// not the one at its marker, which is a grid line whose side does not survive the symmetry orbit.
+    ///
+    /// <para><b>The floor course replaces the ground's top block rather than sitting on it.</b> A surface top is
+    /// the first <em>air</em> cell over a column, so laying the floor there puts it a block proud of the terrain
+    /// and a player steps up on the way in and drops on the way out. One block down is the ground's own top
+    /// course, so the room's floor sinks into the platform and comes out flush — and a floor deeper than one
+    /// course digs further in, which is what a stack claimed downward is for. It overwrites what it lands on,
+    /// the bedrock foundation included, because the foundation is what the building stands on and the floor is
+    /// what stands on the foundation.</para></summary>
     public static int FrameFloor(
         RoomFrame frame, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, RoomStyle? style = null)
         => SafeFloor(
-            PositionSnap.SurfaceYOver(surfaceTop, frame.MinX, frame.MinZ, frame.MaxX - 1, frame.MaxZ - 1, 1), style);
+            PositionSnap.SurfaceYOver(surfaceTop, frame.MinX, frame.MinZ, frame.MaxX - 1, frame.MaxZ - 1, 1) - 1,
+            style);
 
     /// <summary>The frame the export stamps for a wool: resolved from its plan piece + entry interfaces when
     /// it compiled from a plan (WX1/WX6), else the legacy marker-anchored default. Shared with the structure
