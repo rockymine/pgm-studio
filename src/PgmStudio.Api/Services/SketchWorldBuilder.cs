@@ -31,6 +31,13 @@ public static class SketchWorldBuilder
         // The shells this map is finished with — one for every cage, one for every spawn (structures.md §9).
         var (woolStyle, spawnStyle) = RoomStyleScope.StylesOf(layoutJson);
 
+        // ── Wool-room bedrock floors (ST1) ──────────────────────────────────────────────────────────
+        // Ground, not dressing — the plan fills each wool-room piece solid from y=0 to the surface so the room
+        // cannot be tunnelled into from below, and the building is then stamped on top of that. Which is why
+        // it goes first: the fill's top block IS the floor course now that a room's floor sinks one course into
+        // its platform (WX17), so laid afterwards it buries the floor and the wool pad standing on it.
+        StampRoomFloors(world, terrain.SurfaceTop, intent.Structures);
+
         // ── Wool cages (framed by their plan piece + entries, or the marker-anchored default) ────────
         var resolvedWools = new List<WoolIntent>(wools.Count);
         var woolFrame = new RoomFrame[wools.Count];
@@ -114,9 +121,10 @@ public static class SketchWorldBuilder
             };
         }
 
-        // ── Plan-derived structures (bedrock room floors, entrance redstone, iron cubes, approach walls) ──
+        // ── Plan-derived structures (entrance redstone, iron cubes, approach walls) ─────────────────
         // Stamped after the cubes so an authoritative layout feature (an iron cube beside a spawn) wins any
-        // footprint overlap; room floors sit below the cage floor and the rest are clear of the cubes.
+        // footprint overlap. The room floors are not among them — they are the ground the rooms stand on and
+        // were laid before them.
         StampStructures(world, terrain.SurfaceTop, intent.Structures);
 
         // ── Build-region outline (ST5) — an unpowered redstone line in the void, one air block clear of the
@@ -189,12 +197,17 @@ public static class SketchWorldBuilder
         return new SketchWorld(world, spawnX, spawnY, spawnZ, resolved);
     }
 
+    // The bedrock under every wool room, laid before the rooms themselves (see the call site).
+    private static void StampRoomFloors(VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surface, StructureIntent? s)
+    {
+        foreach (var f in s?.RoomFloors ?? [])
+            StructureStamper.StampFoundation(world, surface, (int)f.MinX, (int)f.MinZ, (int)f.MaxX, (int)f.MaxZ);
+    }
+
     // Stamp the plan-compiled layout structures (already resolved + fanned to block coords) onto the world.
     private static void StampStructures(VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surface, StructureIntent? s)
     {
         if (s is null) return;
-        foreach (var f in s.RoomFloors)
-            StructureStamper.StampFoundation(world, surface, (int)f.MinX, (int)f.MinZ, (int)f.MaxX, (int)f.MaxZ);
         foreach (var w in s.Walls)
         {
             StructureStamper.StampWall(world, w.MinX, w.MinZ, w.MaxX, w.MaxZ, w.TopY);

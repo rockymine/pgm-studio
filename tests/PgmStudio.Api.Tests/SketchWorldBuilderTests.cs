@@ -50,6 +50,51 @@ public sealed class SketchWorldBuilderTests
     }
 
     [Test]
+    public async Task Room_floor_bedrock_goes_under_the_room_not_over_its_pad()
+    {
+        // The plan's ST1 room floor fills the whole wool-room piece solid to the surface. Its top block is the
+        // course the room's own floor and wool pad occupy, so stamping order decides which survives: laid last
+        // it buries both, and the room reads as a shell of bedrock with nothing to break out of it.
+        // A raised plateau, so the sunk floor is a real course of ground rather than clamped off the world
+        // bottom: solid to y=4, first air at y=5, so the room's floor is the platform's own top block.
+        const string plateau =
+            """
+            {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},"layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":5}],"islands":[]}}
+            """;
+        var intent = SampleIntent();
+        var piece = new Rect(-16, 4, -4, 16);
+        intent = new MapIntent
+        {
+            Teams = intent.Teams, Spawns = intent.Spawns, Observer = intent.Observer, Meta = intent.Meta,
+            Wools =
+            [
+                new WoolIntent
+                {
+                    Owner = "red", Color = "red", Spawn = new Pt(-10, 1, 10), Piece = piece,
+                    Entries = [new Rect(piece.MinX, piece.MaxZ, piece.MaxX, piece.MaxZ)],
+                    Monuments = [new MonumentIntent { Team = "blue" }],
+                },
+            ],
+            Structures = new StructureIntent { RoomFloors = [piece] },
+        };
+
+        var built = SketchWorldBuilder.Build(plateau, intent);
+        var pad = built.ResolvedIntent.Wools![0].Spawn;
+        await Assert.That(pad.Y).IsEqualTo(4);
+
+        // The pad is wool at the floor course, and bedrock stops one below it rather than one above.
+        await Assert.That(built.World.GetBlock((int)pad.X, (int)pad.Y, (int)pad.Z))
+            .IsEqualTo((Blocks.Wool, 14));
+        await Assert.That(built.World.GetBlock((int)pad.X, (int)pad.Y - 1, (int)pad.Z).Id)
+            .IsEqualTo(Blocks.Bedrock);
+
+        // …and it still tops out at the floor course outside the shell, where the entrance line runs: the fill
+        // is the ground under the whole piece, not just under the building inset into it.
+        await Assert.That(built.World.GetBlock((int)piece.MinX, (int)pad.Y, (int)piece.MinZ).Id)
+            .IsEqualTo(Blocks.Bedrock);
+    }
+
+    [Test]
     public async Task Team_tint_owns_terrain_by_island_and_leaves_anchorless_land_neutral()
     {
         // Three separate islands (no mirroring): a red-spawn island, a blue-spawn island, and one with no
