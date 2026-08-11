@@ -60,7 +60,9 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
         FloorDepth = Math.Max(1, req.FloorDepth),
         WallHeight = Math.Max(1, req.WallHeight),
         RoofThickness = Math.Max(1, req.RoofThickness),
-        Eave = req.Eave == RoomEaves.Overlap ? RoomEaves.Overlap : RoomEaves.Flush,
+        RoofForm = RoofForms.Canonical(req.RoofForm),
+        Pitch = Math.Clamp(req.Pitch, 1, 4),
+        Overhang = Math.Clamp(req.Overhang, 0, 4),
         RoofHole = req.RoofHole,
         Door = DoorMaterials.IsKnown(req.Door) ? req.Door : DoorMaterials.Slug(DoorMaterial.StainedGlassPane),
         DoorHeight = Math.Max(1, req.DoorHeight),
@@ -94,13 +96,28 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
             Wall = Part(RoomParts.Wall, row.WallHeight, builtIn.Wall),
             // A roof is one course, so its stack contributes only its first material and the stored thickness
             // is ignored. The eave was a two-valued overhang all along: flush is none, overlap is one block.
-            Roof = Part(RoomParts.Roof, 1, RoomPart.Of(builtIn.Roof)).At(0).Material,
-            Verge = Part(RoomParts.Roof, 1, RoomPart.Of(builtIn.Verge)).At(0).Material,
-            Overhang = row.Eave == RoomEaves.Overlap ? 1 : 0,
+            Roof = Material(RoomParts.Roof, builtIn.Roof),
+            // A house's three: unbound they stay what a shell is — corners that are wall like the rest of it,
+            // no footing, and a rim in the roof's own material.
+            Post = Bound(RoomParts.Post),
+            Sill = Material(RoomParts.Sill, builtIn.Sill),
+            Verge = Material(RoomParts.Verge, Material(RoomParts.Roof, builtIn.Roof)),
+            Form = RoofForms.Canonical(row.RoofForm) == RoofForms.Gable ? RoofForm.Gable : RoofForm.Flat,
+            Pitch = Math.Max(1, row.Pitch),
+            Overhang = Math.Max(0, row.Overhang),
             RoofHole = row.RoofHole,
             Door = DoorMaterials.TryParse(row.Door, out var door) ? door : DoorMaterial.StainedGlassPane,
             DoorHeight = Math.Max(1, row.DoorHeight),
         };
+
+        // A part that takes one material rather than a stack: its first bound course, or the fallback.
+        TerrainMaterial Material(string part, TerrainMaterial fallback) => Bound(part) ?? fallback;
+
+        TerrainMaterial? Bound(string part) => courses
+            .Where(course => course.Part == part)
+            .OrderBy(course => course.Ordinal)
+            .Select(course => MaterialOf(course, bound))
+            .FirstOrDefault(material => material is not null);
 
         RoomPart Part(string part, int extent, RoomPart fallback)
         {

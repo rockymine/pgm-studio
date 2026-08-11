@@ -15,12 +15,12 @@ internal static class RoomStyleMapping
 {
     public static RoomStyleDetail ToDetail(RoomStyleRow row, IReadOnlyList<RoomStyleCourseRow> courses) =>
         new(row.Id, row.Name, row.FloorDepth, row.WallHeight, row.RoofThickness,
-            row.Eave, row.RoofHole, row.Door, row.DoorHeight,
+            row.RoofForm, row.Pitch, row.Overhang, row.RoofHole, row.Door, row.DoorHeight,
             courses.Select(c => new RoomCourseDto(c.Part, c.Ordinal, c.StyleId, c.Height)).ToList());
 
     public static RoomStyleDetail ToDetail(long id, RoomStyleSaveRequest req) =>
         new(id, req.Name, req.FloorDepth, req.WallHeight, req.RoofThickness,
-            req.Eave, req.RoofHole, req.Door, req.DoorHeight, req.Courses);
+            req.RoofForm, req.Pitch, req.Overhang, req.RoofHole, req.Door, req.DoorHeight, req.Courses);
 }
 
 /// <summary>GET /api/room-styles — the room-style library, newest first, each with the shell it stamps.</summary>

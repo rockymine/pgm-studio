@@ -506,7 +506,9 @@ public sealed class RoomStyleRow
     [Column("floor_depth")] public int FloorDepth { get; set; } = 1;
     [Column("wall_height")] public int WallHeight { get; set; } = 7;
     [Column("roof_thickness")] public int RoofThickness { get; set; } = 1;
-    [Column("eave"), NotNull] public string Eave { get; set; } = "flush";
+    [Column("roof_form"), NotNull] public string RoofForm { get; set; } = "flat";
+    [Column("pitch")] public int Pitch { get; set; } = 1;
+    [Column("overhang")] public int Overhang { get; set; }
     [Column("roof_hole")] public bool RoofHole { get; set; } = true;
     [Column("door"), NotNull] public string Door { get; set; } = "stained-glass-pane";
     [Column("door_height")] public int DoorHeight { get; set; } = 3;
@@ -529,7 +531,7 @@ public sealed class RoomStyleCourseRow
 }
 
 // The well-known values of style.kind, theme_bucket.bucket, room_style_course.part and room_style.eave are
-// PgmStudio.Contracts' MaterialKind, ThemeBuckets, RoomParts and RoomEaves; room_style.door is
+// PgmStudio.Contracts' MaterialKind, ThemeBuckets, RoomParts and RoofForms; room_style.door is
 // PgmStudio.Domain's DoorMaterials. They are not restated here: the same strings have to satisfy the column,
 // the wire and the client's editor, and a second copy next to the column is exactly how they would come to
 // disagree.

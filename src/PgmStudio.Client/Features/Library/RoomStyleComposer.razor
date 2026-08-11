@@ -127,10 +127,23 @@
                than in a second one competing for the same heading. *@
             @if (part.Id == RoomParts.Roof)
             {
-              <Field Label="Eave">
-                <Chip Active="@(draft.Eave == RoomEaves.Overlap)" OnClick="ToggleEave">
-                  @(draft.Eave == RoomEaves.Overlap ? "One block past the walls" : "Flush with the walls")
+              <Field Label="Shape">
+                <Chip Active="@(draft.RoofForm == RoofForms.Gable)" OnClick="ToggleForm">
+                  @(draft.RoofForm == RoofForms.Gable ? "Two slopes to a ridge" : "A flat lid")
                 </Chip>
+              </Field>
+              @if (draft.RoofForm == RoofForms.Gable)
+              {
+                <Field Label="Pitch">
+                  <input class="field-input field-input--slim" type="number" min="1" max="4" step="1"
+                         title="Courses of rise per block travelled inward. 1 is 45°."
+                         value="@draft.Pitch" @onchange="SetPitch" />
+                </Field>
+              }
+              <Field Label="Overhang">
+                <input class="field-input field-input--slim" type="number" min="0" max="4" step="1"
+                       title="How far the roof reaches past the walls, in blocks. 0 ends it flush."
+                       value="@draft.Overhang" @onchange="SetOverhang" />
               </Field>
               <Field Label="Hole">
                 <Chip Active="draft.RoofHole" OnClick="ToggleHole">

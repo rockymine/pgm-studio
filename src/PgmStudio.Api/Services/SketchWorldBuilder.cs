@@ -280,8 +280,13 @@ public static class SketchWorldBuilder
     // A shell's roof sits at floorY + its style's top layer, so the floor must leave that much headroom below
     // the world ceiling — clamp every structure floor here so an author-elevated island can't push a stamp
     // past 255. A taller shell clamps lower, which is why the style is read rather than assumed.
-    internal static int SafeFloor(int y, HouseStyle? style = null)
-        => Math.Clamp(y, 1, VoxelWorld.MaxHeight - (style?.TopLayer ?? HouseStyle.MaxTopLayer) - 1);
+    /// <summary>A floor low enough that the shell over it cannot run past the world ceiling. A gable's ridge
+    /// climbs with the footprint it spans, so the headroom is reserved against that rather than against the
+    /// flat answer — otherwise a tall roof near the top of the world is clipped instead of lowered.</summary>
+    internal static int SafeFloor(int y, HouseStyle? style = null, int width = 0, int depth = 0)
+        => Math.Clamp(y, 1, VoxelWorld.MaxHeight - 1 - (style is null
+            ? HouseStyle.MaxTopLayer
+            : style.TopLayerOver(width, depth)));
 
     /// <summary>The floor a room shell rests on: the highest surface over the columns its footprint spans —
     /// not the one at its marker, which is a grid line whose side does not survive the symmetry orbit.
@@ -297,7 +302,7 @@ public static class SketchWorldBuilder
         RoomFrame frame, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, HouseStyle? style = null)
         => SafeFloor(
             PositionSnap.SurfaceYOver(surfaceTop, frame.MinX, frame.MinZ, frame.MaxX - 1, frame.MaxZ - 1, 1) - 1,
-            style);
+            style, frame.Width, frame.Depth);
 
     /// <summary>The frame the export stamps for a wool: resolved from its plan piece + entry interfaces when
     /// it compiled from a plan (WX1/WX6), else the legacy marker-anchored default. Shared with the structure

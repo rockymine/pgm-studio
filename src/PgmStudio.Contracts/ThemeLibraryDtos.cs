@@ -71,14 +71,14 @@ public sealed record RoomStyleSummary(long Id, string Name, string Preview);
 public sealed record RoomStyleDetail(
     long Id, string Name,
     int FloorDepth, int WallHeight, int RoofThickness,
-    string Eave, bool RoofHole, string Door, int DoorHeight,
+    string RoofForm, int Pitch, int Overhang, bool RoofHole, string Door, int DoorHeight,
     IReadOnlyList<RoomCourseDto> Courses);
 
 /// <summary>Create or replace a room style (POST /api/room-styles, PUT /api/room-styles/{id}).</summary>
 public sealed record RoomStyleSaveRequest(
     string Name,
     int FloorDepth, int WallHeight, int RoofThickness,
-    string Eave, bool RoofHole, string Door, int DoorHeight,
+    string RoofForm, int Pitch, int Overhang, bool RoofHole, string Door, int DoorHeight,
     IReadOnlyList<RoomCourseDto> Courses);
 
 /// <summary>A room style previewed (POST /api/room-styles/preview): the shell it stamps, from above and cut

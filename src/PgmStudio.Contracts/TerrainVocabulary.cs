@@ -97,16 +97,29 @@ public static class RoomParts
     public const string Wall = "wall";
     public const string Roof = "roof";
 
+    /// <summary>The three a house has that a plain shell does not: the corner columns that frame it, the
+    /// footing it meets the ground on, and the trim along its roof's edge. Each takes one material rather
+    /// than a stack — a post is a post all the way up — so only the first course of theirs is read.</summary>
+    public const string Post = "post";
+    public const string Sill = "sill";
+    public const string Verge = "verge";
+
     /// <summary>The parts bottom-up, the order a shell is stamped in.</summary>
-    public static readonly string[] All = [Floor, Wall, Roof];
+    public static readonly string[] All = [Floor, Wall, Roof, Post, Sill, Verge];
 }
 
-/// <summary>Where a roof ends — flush with the walls, or one block past them. Wire vocabulary for
-/// <c>RoofEdge</c>.</summary>
-public static class RoomEaves
+/// <summary>Which roof a stored style asks for — the wire words for <c>RoofForm</c>. A <c>flat</c> one is the
+/// lid every shell has always had; a <c>gable</c> is two slopes meeting at a ridge, which the stamper could
+/// always build and no stored style could ask for until now.</summary>
+public static class RoofForms
 {
-    public const string Flush = "flush";
-    public const string Overlap = "overlap";
+    public const string Gable = "gable";
+    public const string Flat = "flat";
+
+    public static readonly string[] All = [Flat, Gable];
+
+    /// <summary>Fold an unknown or absent form down to the flat lid, so a hand-edited row still stamps.</summary>
+    public static string Canonical(string? form) => form == Gable ? Gable : Flat;
 }
 
 /// <summary>One door a room may be stamped with (<c>GET /api/room-styles/doors</c>). Served rather than

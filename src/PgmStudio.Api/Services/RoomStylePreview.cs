@@ -61,7 +61,7 @@ public static class RoomStylePreview
     /// oversails the walls — reads here and nowhere else.</summary>
     private static string PlanSvg(VoxelWorld world, HouseStyle style, int cell)
     {
-        var top = FloorY + style.TopLayer;
+        var top = FloorY + style.TopLayerOver(Sample.Width, Sample.Depth);
         return SvgRaster.Raster(Sample.Width + Margin * 2, Sample.Depth + Margin * 2, cell, (x, z) =>
         {
             for (var y = top; y >= 1; y--)
@@ -78,7 +78,7 @@ public static class RoomStylePreview
     private static string SectionSvg(VoxelWorld world, HouseStyle style, int cell)
     {
         var (fromX, toX) = (Sample.MinX - Margin, Sample.MaxX + Margin - 1);
-        var (fromY, toY) = (FloorY - style.Floor.Extent, FloorY + style.TopLayer);
+        var (fromY, toY) = (FloorY - style.Floor.Extent, FloorY + style.TopLayerOver(Sample.Width, Sample.Depth));
         var view = BlockSideView.Project(
             world, fromX, toX, Sample.MinZ - Margin, Sample.MaxZ + Margin - 1, fromY, toY);
 

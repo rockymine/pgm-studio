@@ -17,7 +17,8 @@ public sealed class RoomStyleLibraryEndpointsTests
 {
     private static RoomStyleSaveRequest Draft(string name, params RoomCourseDto[] courses) => new(
         name, FloorDepth: 1, WallHeight: 7, RoofThickness: 1,
-        RoomEaves.Flush, RoofHole: true, Door: "stained-glass-pane", DoorHeight: 3, courses);
+        RoofForms.Flat, Pitch: 1, Overhang: 0, RoofHole: true,
+        Door: "stained-glass-pane", DoorHeight: 3, Courses: courses);
 
     private static async Task<long> StyleAsync(HttpClient client, string name, int blockId)
     {
@@ -115,8 +116,11 @@ public sealed class RoomStyleLibraryEndpointsTests
             .IsGreaterThan(Height(baseline.Section));
 
         // An eave and a sealed roof change what the plan shows without changing its size.
-        await Assert.That((await Preview(client, plain with { Eave = RoomEaves.Overlap })).Plan)
+        await Assert.That((await Preview(client, plain with { Overhang = 1 })).Plan)
             .IsNotEqualTo(baseline.Plan);
+        // And the shape itself: a gable is a different building, not a different lid.
+        await Assert.That((await Preview(client, plain with { RoofForm = RoofForms.Gable })).Section)
+            .IsNotEqualTo(baseline.Section);
         await Assert.That((await Preview(client, plain with { RoofHole = false })).Plan)
             .IsNotEqualTo(baseline.Plan);
     }

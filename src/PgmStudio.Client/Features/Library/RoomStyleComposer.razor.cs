@@ -60,7 +60,7 @@ public partial class RoomStyleComposer
     // ── the draft ──────────────────────────────────────────────────────────────────────────────────
     private RoomStyleSaveRequest EmptyDraft(string name) => new(
         name, FloorDepth: 1, WallHeight: 7, RoofThickness: 1,
-        Eave: RoomEaves.Flush, RoofHole: true,
+        RoofForm: RoofForms.Flat, Pitch: 1, Overhang: 0, RoofHole: true,
         Door: doors.FirstOrDefault()?.Slug ?? "", DoorHeight: 3, Courses: []);
 
     /// <summary>Open the rail on a room style that is not in the library yet. It is unnamed: the name is the
@@ -83,7 +83,8 @@ public partial class RoomStyleComposer
         note = null;
         draft = new RoomStyleSaveRequest(
             detail.Name, detail.FloorDepth, detail.WallHeight, detail.RoofThickness,
-            detail.Eave, detail.RoofHole, detail.Door, detail.DoorHeight, detail.Courses);
+            detail.RoofForm, detail.Pitch, detail.Overhang, detail.RoofHole, detail.Door, detail.DoorHeight,
+            detail.Courses);
         await Preview();
     }
 
@@ -151,10 +152,17 @@ public partial class RoomStyleComposer
         _ => d with { WallHeight = Math.Max(1, Parse(e, d.WallHeight)) },
     });
 
-    private Task ToggleEave() => Knob(d => d with
+    /// <summary>A flat lid or a gable. The pitch only means anything on a gable, so it is offered beside the
+    /// form rather than as a knob of its own.</summary>
+    private Task ToggleForm() => Knob(d => d with
     {
-        Eave = d.Eave == RoomEaves.Overlap ? RoomEaves.Flush : RoomEaves.Overlap,
+        RoofForm = d.RoofForm == RoofForms.Gable ? RoofForms.Flat : RoofForms.Gable,
     });
+
+    private Task SetPitch(ChangeEventArgs e) => Knob(d => d with { Pitch = Math.Clamp(Parse(e, d.Pitch), 1, 4) });
+
+    private Task SetOverhang(ChangeEventArgs e) =>
+        Knob(d => d with { Overhang = Math.Clamp(Parse(e, d.Overhang), 0, 4) });
 
     private Task ToggleHole() => Knob(d => d with { RoofHole = !d.RoofHole });
 
