@@ -175,52 +175,145 @@ style-as-data pattern and stay anchor-based on purpose, a point structure rather
 
 ## 7. The room style
 
-A shell is **three parts and two overrides**. Floor, walls and roof are each a `RoomPart`: a stack of
-`RoomCourse` (material + how many courses it runs) plus an `Extent` saying how far the part goes. Over
-them go the two things a style may not decide — the **pad**, because the exported wool/spawn location
-is derived from it (WX5), and the **doorway**, because it is the entry contract (WX6/WX7).
+A shell is **parts and overrides**. Floor, walls and roof are each a `RoomPart`: a stack of `RoomCourse`
+(material + how many courses it runs) plus an `Extent` saying how far the part goes. Over them go the two
+things a style may not decide — the **pad**, because the exported wool/spawn location is derived from it
+(WX5), and the **doorway**, because it is the entry contract (WX6/WX7).
 
-A stack is read from its part's own base outward: a floor **downward** from the course players stand
-on, a wall and a roof **upward**. The direction is the load-bearing part of the model. A floor that
-grew upward would lift the pad and move the exported point; walls indexed from the floor are what keep
-a band at eye level and a slit near the top when the room's height changes, where the layer indices
-they replace would have slid.
+A stack is read from its part's own base outward: a floor **downward** from the course players stand on, a
+wall and a roof **upward**. The direction is the load-bearing part of the model. A floor that grew upward
+would lift the pad and move the exported point; walls indexed from the floor are what keep a band at eye level
+and a slit near the top when the room's height changes, where the layer indices they replace would have slid.
 
-The **last course repeats** past the end of the stack, the rule `LayeredMaterial` already holds, so
-`Extent` moves without the stack being re-authored: a taller wall grows in whatever its top course is.
-That is what makes height a knob at all — §4's note that room height stays out of G31 is answered here
-rather than through the frame.
+The **last course repeats** past the end of the stack, the rule `LayeredMaterial` already holds, so `Extent`
+moves without the stack being re-authored: a taller wall grows in whatever its top course is. That is what
+makes height a knob at all — §4's note that room height stays out of G31 is answered here rather than through
+the frame.
 
-Three fixed layers became ordinary courses, and that is the whole simplification. The coloured band
-was layer 4 and is now a `TeamTintedMaterial` course; the light slit was a skipped layer 6 and is now
-a course of air; and `CubeKind` — which existed to branch the band material, the door material and the
-door height — is gone, because a wool cage and a spawn cube are two bound styles rather than two code
-paths. The room's colour reaches a tinted course through `BucketContext.TeamData`, the tint channel, so
-one material paints the wool's colour in a cage and the team's in a spawn.
+Three fixed layers are ordinary courses, and that is the whole simplification. The coloured band was layer 4
+and is a `TeamTintedMaterial` course; the light slit was a skipped layer 6 and is a course of air; and a wool
+cage and a spawn cube are two bound styles rather than two code paths. The room's colour reaches a tinted
+course through `BucketContext.TeamData`, the tint channel, so one material paints the wool's colour in a cage
+and the team's in a spawn.
 
-**Air is a gap, not a block.** A part's air course is skipped rather than written, so no style can
-erase what another stamp already placed. A doorway's air *is* written — it cuts the opening out of the
-wall the same pass just built. The two are different operations and the code keeps them apart.
+**Air is a gap, not a block.** A part's air course is skipped rather than written, so no style can erase what
+another stamp already placed. A doorway's air *is* written — it cuts the opening out of the wall the same pass
+just built. Windows follow the doorway's rule for the same reason. The two are different operations and the
+code keeps them apart.
 
-The roof carries three knobs of its own beyond its stack. Its **thickness** is its extent. Its
-**hole** is optional — off is a sealed, unlit room, a real style worth choosing rather than getting by
-accident — and is measured and centred on the **shell**, never on the roof plane, because it lights the
-interior. And its **eave** is either flush with the walls or one block past them. The overlap needs no
-rule of its own: a shell is its piece inset by one block (WX1), so an eave lands exactly on the piece
-boundary, and under WX8 — where an iron cube pulls a shell edge back — it lands strictly inside it. The
-ring an eave covers is always the room's own.
+### 7.1 The roof is a height field
 
-**The door is a closed set, and the reason is in the XML.** `Domain.DoorMaterials` names the four
-choices (air, cobweb, stained glass, stained-glass panes) and, for each, both the block the stamper
-places and the PGM material the wool-room block rule must whitelist. The wool room's `block` rule is a
-whitelist (`WoolGenerator`), so a door made of anything it does not name cannot be broken — the cage
-would be stamped with an entrance nobody can open, and nothing else in the pipeline would catch it. One
-row read by both sides is what prevents that; `Pgm` and `Minecraft` are siblings, so `Domain` is the
-lowest place both reach. A spawn's door is pinned to air whatever its style says: a player spawning in
-has to walk straight out, and the spawn protection rule already keeps enemies from walking in.
+Every roof — `Flat`, `Gable`, `Hip`, `Gambrel`, `Shed`, `Saltbox` — is one `RoofField`: for each cell of the
+roof's plan, the course that column tops out at, and how many courses it writes to close the step down to its
+neighbours. The stamper walks that plan once. The forms differ in a single formula over the same two
+distances — how far the cell stands from each wall line — and in nothing else:
 
-What a style never touches: the **platform** under a room (`StampFoundation`'s bedrock column, ST1) and
-the **entrance redstone line** (ST1) belong to the plan-derived structures, not to a shell.
+| Form | Crown over a cell |
+|---|---|
+| `Flat` | the base course, everywhere |
+| `Gable` | the smaller distance across the building's **shorter** side, times the pitch |
+| `Hip` | the smallest of all four wall distances, times the pitch |
+| `Shed` | the distance from the front wall alone, times the pitch |
+| `Gambrel` | as `Gable`, at pitch + 1 for the first quarter-span in from each eave, then at the pitch |
+| `Saltbox` | the smaller of (front distance × pitch + 1) and (back distance × pitch) |
+
+A `Hip` over a square footprint is a pyramid: the ridge is the run the longer side has left over, and a square
+leaves none. A `Shed` and a `Saltbox` need to know which wall is the front; every other form is symmetric and
+ignores it. The front is the wall the doors are cut through.
+
+**Distances are measured from the wall line and are allowed to go negative**, which is what makes the eave
+part of the slope: the course over the wall rests on the wall, and every course outward from there keeps
+falling at the same rate. Holding the overhang level with the wall line instead — the obvious way to stop the
+roof floating a course above it — runs the last blocks flat exactly where the roof is most visible.
+
+Two things follow from the field rather than from any one form. A column writes as many courses as its deepest
+step down to a neighbour, so a pitch of two does not leave the slope open between its treads. And **the walls
+climb to meet the roof** wherever the roof stands above them: the gable's two ends, the shed's back wall and
+both its flanks, and nothing at all under a hip, whose slopes come down to the wall line on every side. That
+one rule replaced the gable's own end-wall pass.
+
+The roof's remaining knobs are its **thickness** (its extent), its **hole** — a flat lid only; a sloped roof
+has a volume of its own and a hole in a slope is a leak rather than a light — and its **ridge cap**, the line
+the slopes meet on laid in the verge rather than in the roof's own material. The hole is measured and centred
+on the **shell**, never on the roof plane, because it lights the interior.
+
+### 7.2 The floor is divided in plan as well as in depth
+
+The floor's stack divides it in depth. Its **top course** — the one players stand on — is divided across the
+room by how far a cell stands from the walls: a `Border` ring as wide as `BorderWidth`, a `Field` across the
+rest, and an `Inlay` centred in it starting `InlayInset` blocks in. A cell on the wall line is ring 0 and is
+never zoned: the walls stand on it, so what it is made of is the floor part's business.
+
+Zoning is a property of the shell rather than of a material, and the reason is that **a material does not know
+the room**. A checker, a noise field and a wall run all resolve from the cell's own coordinates, so they can
+pattern a floor but cannot put a ring one block inside a wall that moves with the footprint. Anything that is
+a pattern therefore stays a material and is bound to the field; only what needs the room's own bounds is a
+zone. Each zone is unbound until a course names it, and an unbound zone is not a zone — the floor part shows
+through.
+
+### 7.3 A porch is taken out of the footprint
+
+The footprint comes from the piece (WX1) and a style may never change it, so a porch that grew outward would
+be a style deciding a footprint. Taken inward it is not. The sill and the floor still cover the whole
+footprint; the walls stand `Depth` blocks back from one wall of it; and the strip they gave up is a deck
+carrying posts, a rail and its own canopy. `Inset` pulls the deck in from each end of that wall, which makes
+the porch a feature of the front rather than the front itself.
+
+**The porch is the part that gives way.** It is trimmed to whatever the room can spare beyond the three blocks
+that hold two walls and an inside, and where the room can spare nothing there is no porch at all.
+
+Two details make it a porch rather than a hole in a wall. The doorway is **carried onto the wall's new line**,
+so a frame's entry contract survives the wall moving; and the rail **breaks exactly where that doorway crosses
+it**, because a rail running unbroken across the front would be a porch with no way onto the step.
+
+The canopy is seated by where its **ridge** has to land — tucked one course over the wall, under the house's
+own eave — rather than by where its plane starts. That is one statement for all six forms while the plane's
+start is not, so a lean-to, a gable and a hip all front the building without fighting its roof. A canopy that
+would drop below the door it fronts is lifted until its lowest course clears the doorway.
+
+### 7.4 Windows are cut, and chosen as a block
+
+Three forms. A **stair lattice** is four stairs in a 2×2 hole, each with its raised half toward the outside of
+the group, so the quarter each is missing meets in the middle and the window is open — there is no glass in
+it. A **slab band** is a slab sill, an upside-down slab lintel and the course between them cut clean through;
+the two half-blocks make the opening read taller than the one course actually removed. **Panes** are the
+ordinary glazed window. Size belongs to the form as much as to the author: a lattice is 2×2 because the four
+missing quarters are the whole trick, and a band is three courses because a sill and a lintel with nothing
+between them is not a window.
+
+Seating is the half that has to be right, because a window is cut out of a wall that already stands. Each wall
+is seated on the run **between its two corner posts**, the windows are spread evenly and centred on that run —
+a wall reads as symmetric rather than as windows starting at one end and stopping when they run out — and any
+seat that would meet a doorway, or the block of wall either side of it, is **dropped rather than shifted**.
+Shifting one would break the spacing of every window after it to save it, and the gap where a door is reads as
+intended. An opening that will not fit between the sill and the wall's last course is not cut at all.
+
+A window's material is a **block id**, not a bound style, and it is the one place a shell departs from the
+library's shape. A stair's metadata is which way it climbs and a slab's is which half it fills; the four
+stairs of a lattice differ from each other by geometry alone, and a material resolving its data from where the
+cell sits would turn all four the same way — a solid 2×2 patch of wall rather than a window. The block is
+therefore chosen from the block picker and the stamper supplies the nibble.
+
+### 7.5 The door is a closed set, and the reason is in the XML
+
+`Domain.DoorMaterials` names the four choices (air, cobweb, stained glass, stained-glass panes) and, for each,
+both the block the stamper places and the PGM material the wool-room block rule must whitelist. The wool
+room's `block` rule is a whitelist (`WoolGenerator`), so a door made of anything it does not name cannot be
+broken — the cage would be stamped with an entrance nobody can open, and nothing else in the pipeline would
+catch it. One row read by both sides is what prevents that; `Pgm` and `Minecraft` are siblings, so `Domain` is
+the lowest place both reach. A spawn's door is pinned to air whatever its style says: a player spawning in has
+to walk straight out, and the spawn protection rule already keeps enemies from walking in.
+
+Windows are deliberately **not** on that list, and the distinction is worth stating. A door is the way an
+attacker gets in and so is governed by a filter; a window is a hole a player can see through and, in a
+lattice's case, shoot through, but it is never the entrance the block rule is about.
+
+What a style never touches: the **platform** under a room (`StampFoundation`'s bedrock column, ST1) and the
+**entrance redstone line** (ST1) belong to the plan-derived structures, not to a shell.
+
+`tools/compose/house-showcase.cs` is this section's live twin — every figure in it is stamped by the real
+`HouseStamper` and read back out of the world, so when the prose and the showcase disagree, suspect the prose.
+
 
 ## 8. The library
 

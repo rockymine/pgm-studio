@@ -183,6 +183,23 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   separate.
 ## Backend, pipeline & internals (B / P / A)
 
+- [ ] **B69 — A roof that rises half a block at a time.** A slope's pitch is whole courses, so a roof is laid
+  in whole blocks: a course of slabs stepping up a full block leaves an open half between every pair and the
+  roof can be seen straight through (the reason `HouseStyle.Roof` documents stairs and slabs as different
+  roofs). The gentler roof a slab actually suits — half a block of rise per block travelled — needs the
+  height field to carry half-courses and the layer to know that a cell's top half is a slab rather than a
+  cube. `RoofField` is the right seam: a crown in half-courses, with `Riser` and `Underside` in the same
+  unit, leaves every form's formula untouched. Worth doing when a style wants a shallow roof over a wide
+  span, where a whole-block pitch is already too steep to read.
+
+- [ ] **B70 — The room-style card cannot show a porch or a window.** `RoomStylePreview` stamps its two views
+  over the shipped 10×10 piece's 8×8 shell, seen from above and cut open from the front. That sample is too
+  small for a porch to leave a room behind it, and a section projected onto the front wall shows a window as
+  a patch of the same colour as the wall around it. The library therefore has knobs whose card does not
+  change when they are turned, which is the one thing the preview exists to prevent. Wants a larger sample
+  footprint and a third view at the scale of the pieces — the elevation `tools/compose/house-showcase.cs`
+  draws, which reads a block's own metadata and so shows a stair lattice as the opening it is.
+
 - [ ] **B54 — A rebuild has no undo.** The rebuild now carries the finish and the credits across (B49, B52)
   and says what it trades before it runs (S39), so what it still replaces is replaced *on purpose*: the
   board, and the teams/spawns/wools/build zones the plan states. What is missing is a way back from a

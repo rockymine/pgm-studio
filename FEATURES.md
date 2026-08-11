@@ -3426,6 +3426,33 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   before the step existed. Serializing a style also forced structural equality onto every material holding a
   collection (`RoomPart`, `LayeredMaterial`, the three patterns) — record equality compares a collection
   member by reference, so a stack read back from JSON had never equalled the one that wrote it. (G34c)
+- **A shell became a house — six roofs, a floor in zones, windows and a porch (G34d).** The room style now
+  decides four things beyond its materials (`docs/world-export/structures.md` §7.1–§7.4), and the picture of
+  all of them is `tools/compose/house-showcase.cs`, stamped by the real `HouseStamper` and read back out of
+  the world. **The roof is a height field** (`RoofField`): for each cell of its plan, the course that column
+  tops out at and how many courses it writes to close the step down to its neighbours. `Flat`, `Gable`,
+  `Hip`, `Gambrel`, `Shed` and `Saltbox` are one loop and differ in a single formula over the same two
+  distances, and a hip over a square is a pyramid because the ridge is the run the longer side has left over.
+  Two rules generalized with it: a column's riser is its deepest step down, so a pitch above one no longer
+  leaves the slope open between its treads; and **the walls climb to meet the roof** wherever it stands above
+  them, which retired the gable's own end-wall pass and is what closes a shed's back wall and flanks. A
+  `RidgeCap` lays the line the slopes meet on in the verge. **The floor is divided in plan as well as in
+  depth** (`FloorSurface`): a border ring, a field, and a centred inlay, keyed on how far a cell stands from
+  the walls — zoning lives in the shell rather than in a material because a material resolves from the cell's
+  own coordinates and cannot know where the walls are, so anything that is a *pattern* stays a material bound
+  to the field. **A porch is taken out of the footprint, never added to it** (`PorchStyle`): the footprint
+  comes from the piece (WX1), so the walls stand back from one wall of it and the strip they gave up is a
+  deck with posts, a rail and its own canopy — the doorway is carried onto the wall's new line, the rail
+  breaks where that doorway crosses it, the canopy is seated by where its *ridge* lands (one statement for
+  all six forms), and where the room cannot spare the depth the porch is the part that gives way.
+  **Windows are cut, and chosen as a block id** (`WindowStyle`/`HouseWindows`): a 2×2 stair lattice whose four
+  stairs turn their raised halves outward so the quarters they are missing meet as the light, a slab-sill /
+  slab-lintel band, and ordinary panes. Seats are spread evenly and centred on the run between a wall's two
+  corner posts, and a seat meeting a doorway is dropped rather than shifted. The block is an id rather than a
+  bound style — the one place a shell departs from the library's shape — because a stair's metadata is which
+  way it climbs, and a material resolving data from where the cell sits would turn all four the same way.
+  M0016 carries the new knobs; `border`/`field`/`inlay` are three more parts a course may bind, so the floor's
+  zones needed no column. (G34d)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds

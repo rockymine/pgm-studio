@@ -64,8 +64,24 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
         Pitch = Math.Clamp(req.Pitch, 1, 4),
         Overhang = Math.Clamp(req.Overhang, 0, 4),
         RoofHole = req.RoofHole,
+        RidgeCap = req.RidgeCap,
         Door = DoorMaterials.IsKnown(req.Door) ? req.Door : DoorMaterials.Slug(DoorMaterial.StainedGlassPane),
         DoorHeight = Math.Max(1, req.DoorHeight),
+        BorderWidth = Math.Clamp(req.BorderWidth, 1, 4),
+        InlayInset = Math.Clamp(req.InlayInset, 1, 8),
+        WindowForm = WindowForms.Canonical(req.Windows?.Form),
+        WindowBlock = Math.Max(0, req.Windows?.Block ?? Blocks.GlassPane),
+        WindowData = Math.Clamp(req.Windows?.Data ?? 0, 0, 15),
+        WindowSill = Math.Clamp(req.Windows?.Sill ?? 2, 1, 16),
+        WindowWidth = Math.Clamp(req.Windows?.Width ?? 2, 1, 8),
+        WindowHeight = Math.Clamp(req.Windows?.Height ?? 2, 1, 8),
+        WindowSpacing = Math.Clamp(req.Windows?.Spacing ?? 3, 0, 16),
+        // Depth 0 is what an absent porch stores, so the wire's null and a depth of nothing are one row.
+        PorchDepth = Math.Clamp(req.Porch?.Depth ?? 0, 0, 8),
+        PorchInset = Math.Clamp(req.Porch?.Inset ?? 0, 0, 8),
+        PorchEdge = PorchEdges.Canonical(req.Porch?.Edge),
+        PorchRoof = RoofForms.Canonical(req.Porch?.Roof ?? RoofForms.Shed),
+        PorchRailBlock = Math.Max(0, req.Porch?.RailBlock ?? Blocks.OakFence),
     };
 
     public static IEnumerable<RoomStyleCourseRow> CourseRowsOf(RoomStyleSaveRequest req)
@@ -102,10 +118,23 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
             Post = Bound(RoomParts.Post),
             Sill = Material(RoomParts.Sill, builtIn.Sill),
             Verge = Material(RoomParts.Verge, Material(RoomParts.Roof, builtIn.Roof)),
-            Form = RoofForms.Canonical(row.RoofForm) == RoofForms.Gable ? RoofForm.Gable : RoofForm.Flat,
+            // The floor's top course in plan. Each zone is unbound until a course names it, and an unbound
+            // zone is not a zone: the floor part shows through, which is what every stored style was.
+            Surface = new FloorSurface
+            {
+                Field = Bound(RoomParts.Field),
+                Border = Bound(RoomParts.Border),
+                BorderWidth = Math.Max(1, row.BorderWidth),
+                Inlay = Bound(RoomParts.Inlay),
+                InlayInset = Math.Max(1, row.InlayInset),
+            },
+            Windows = WindowOf(row),
+            Porch = PorchOf(row),
+            Form = FormOf(row.RoofForm),
             Pitch = Math.Max(1, row.Pitch),
             Overhang = Math.Max(0, row.Overhang),
             RoofHole = row.RoofHole,
+            RidgeCap = row.RidgeCap,
             Door = DoorMaterials.TryParse(row.Door, out var door) ? door : DoorMaterial.StainedGlassPane,
             DoorHeight = Math.Max(1, row.DoorHeight),
         };
@@ -134,6 +163,53 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
                 : new RoomPart(stack, Math.Max(1, extent));
         }
     }
+
+    /// <summary>The stored word for a roof as the stamper's own form. Unknown words are the flat lid, the same
+    /// fold <see cref="RoofForms.Canonical"/> makes, so a hand-edited row still stamps.</summary>
+    private static RoofForm FormOf(string? form) => RoofForms.Canonical(form) switch
+    {
+        RoofForms.Gable => RoofForm.Gable,
+        RoofForms.Hip => RoofForm.Hip,
+        RoofForms.Gambrel => RoofForm.Gambrel,
+        RoofForms.Shed => RoofForm.Shed,
+        RoofForms.Saltbox => RoofForm.Saltbox,
+        _ => RoofForm.Flat,
+    };
+
+    private static WindowStyle WindowOf(RoomStyleRow row) => new()
+    {
+        Form = WindowForms.Canonical(row.WindowForm) switch
+        {
+            WindowForms.StairLattice => WindowForm.StairLattice,
+            WindowForms.SlabBanded => WindowForm.SlabBanded,
+            WindowForms.Pane => WindowForm.Pane,
+            _ => WindowForm.None,
+        },
+        Block = row.WindowBlock,
+        Data = row.WindowData,
+        Sill = Math.Max(1, row.WindowSill),
+        Width = Math.Max(1, row.WindowWidth),
+        Height = Math.Max(1, row.WindowHeight),
+        Spacing = Math.Max(0, row.WindowSpacing),
+    };
+
+    /// <summary>The porch a row asks for, or null for a depth of nothing — which is what a building whose walls
+    /// stand on the whole footprint stores, and what every row saved before there were porches is.</summary>
+    private static PorchStyle? PorchOf(RoomStyleRow row) => row.PorchDepth <= 0 ? null : new PorchStyle
+    {
+        Depth = row.PorchDepth,
+        Inset = Math.Max(0, row.PorchInset),
+        Edge = PorchEdges.Canonical(row.PorchEdge) switch
+        {
+            PorchEdges.NegZ => RoomEdge.NegZ,
+            PorchEdges.PosZ => RoomEdge.PosZ,
+            PorchEdges.NegX => RoomEdge.NegX,
+            PorchEdges.PosX => RoomEdge.PosX,
+            _ => null,
+        },
+        Roof = FormOf(row.PorchRoof),
+        RailBlock = Math.Max(0, row.PorchRailBlock),
+    };
 
     /// <summary>The material a course resolves through, or null when it names a style the library no longer
     /// holds or one whose params this build cannot read. Deliberately forgiving for the reason a style's card

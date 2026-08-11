@@ -15,12 +15,26 @@ internal static class RoomStyleMapping
 {
     public static RoomStyleDetail ToDetail(RoomStyleRow row, IReadOnlyList<RoomStyleCourseRow> courses) =>
         new(row.Id, row.Name, row.FloorDepth, row.WallHeight, row.RoofThickness,
-            row.RoofForm, row.Pitch, row.Overhang, row.RoofHole, row.Door, row.DoorHeight,
+            row.RoofForm, row.Pitch, row.Overhang, row.RoofHole, row.RidgeCap,
+            row.BorderWidth, row.InlayInset,
+            new RoomWindowDto(row.WindowForm, row.WindowBlock, row.WindowData, row.WindowSill,
+                row.WindowWidth, row.WindowHeight, row.WindowSpacing),
+            // A depth of nothing is the row's way of saying no porch, so it comes back as an absent one rather
+            // than as a porch nought blocks deep — the editor reads the absence, not the number.
+            row.PorchDepth <= 0
+                ? null
+                : new RoomPorchDto(row.PorchDepth, row.PorchInset, row.PorchEdge, row.PorchRoof, row.PorchRailBlock),
+            row.Door, row.DoorHeight,
             courses.Select(c => new RoomCourseDto(c.Part, c.Ordinal, c.StyleId, c.Height)).ToList());
 
-    public static RoomStyleDetail ToDetail(long id, RoomStyleSaveRequest req) =>
-        new(id, req.Name, req.FloorDepth, req.WallHeight, req.RoofThickness,
-            req.RoofForm, req.Pitch, req.Overhang, req.RoofHole, req.Door, req.DoorHeight, req.Courses);
+    /// <summary>What a saved request comes back as — read off the <em>row</em> it composes to rather than off
+    /// the request, so the clamps the row applies are the numbers the editor is handed back.</summary>
+    public static RoomStyleDetail ToDetail(long id, RoomStyleSaveRequest req)
+    {
+        var row = RoomStyleLibrary.RowOf(req);
+        row.Id = id;
+        return ToDetail(row, [.. RoomStyleLibrary.CourseRowsOf(req)]);
+    }
 }
 
 /// <summary>GET /api/room-styles — the room-style library, newest first, each with the shell it stamps.</summary>

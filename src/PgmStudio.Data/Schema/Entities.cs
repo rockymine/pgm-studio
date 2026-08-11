@@ -510,8 +510,32 @@ public sealed class RoomStyleRow
     [Column("pitch")] public int Pitch { get; set; } = 1;
     [Column("overhang")] public int Overhang { get; set; }
     [Column("roof_hole")] public bool RoofHole { get; set; } = true;
+    [Column("ridge_cap")] public bool RidgeCap { get; set; }
     [Column("door"), NotNull] public string Door { get; set; } = "stained-glass-pane";
     [Column("door_height")] public int DoorHeight { get; set; } = 3;
+
+    // The floor's top course in plan (M0016): how wide the ring hugging the walls is and how far in the
+    // centred plate starts. Their materials are courses bound to the border/field/inlay parts, so only the
+    // two distances are columns.
+    [Column("border_width")] public int BorderWidth { get; set; } = 1;
+    [Column("inlay_inset")] public int InlayInset { get; set; } = 2;
+
+    // The windows (M0016). The block is an id rather than a bound style because its metadata is geometry.
+    [Column("window_form"), NotNull] public string WindowForm { get; set; } = "none";
+    [Column("window_block")] public int WindowBlock { get; set; } = 102;
+    [Column("window_data")] public int WindowData { get; set; }
+    [Column("window_sill")] public int WindowSill { get; set; } = 2;
+    [Column("window_width")] public int WindowWidth { get; set; } = 2;
+    [Column("window_height")] public int WindowHeight { get; set; } = 2;
+    [Column("window_spacing")] public int WindowSpacing { get; set; } = 3;
+
+    // The porch (M0016). Depth 0 is no porch at all, which is why it needs no flag of its own.
+    [Column("porch_depth")] public int PorchDepth { get; set; }
+    [Column("porch_inset")] public int PorchInset { get; set; }
+    [Column("porch_edge"), NotNull] public string PorchEdge { get; set; } = "front";
+    [Column("porch_roof"), NotNull] public string PorchRoof { get; set; } = "shed";
+    [Column("porch_rail_block")] public int PorchRailBlock { get; set; } = 85;
+
     [Column("created_at")] public DateTime CreatedAt { get; set; }
 }
 

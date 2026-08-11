@@ -88,9 +88,9 @@ public static class RimEdgeModes
     public static string Canonical(string? mode) => All.Contains(mode) ? mode! : Drop;
 }
 
-/// <summary>The three parts of a room shell a style binds courses to (the pad and the doorway are stamped over
-/// them and are never a part). Same reasoning as <see cref="ThemeBuckets"/>: the <c>room_style_course.part</c>
-/// column, the courses on the wire and the client's editor all name the same three.</summary>
+/// <summary>The parts of a room shell a style binds courses to (the pad and the doorway are stamped over them
+/// and are never a part). Same reasoning as <see cref="ThemeBuckets"/>: the <c>room_style_course.part</c>
+/// column, the courses on the wire and the client's editor all name the same set.</summary>
 public static class RoomParts
 {
     public const string Floor = "floor";
@@ -104,22 +104,96 @@ public static class RoomParts
     public const string Sill = "sill";
     public const string Verge = "verge";
 
+    /// <summary>The three zones of the floor's <em>top</em> course — the ring hugging the walls, the open
+    /// floor across the rest, and a plate centred in it. They are parts rather than courses of the floor
+    /// because they divide it in plan and the floor's own stack divides it in depth; each takes one material,
+    /// so only the first course bound to one is read.</summary>
+    public const string Border = "border";
+    public const string Field = "field";
+    public const string Inlay = "inlay";
+
     /// <summary>The parts bottom-up, the order a shell is stamped in.</summary>
-    public static readonly string[] All = [Floor, Wall, Roof, Post, Sill, Verge];
+    public static readonly string[] All =
+        [Floor, Field, Border, Inlay, Wall, Roof, Post, Sill, Verge];
 }
 
-/// <summary>Which roof a stored style asks for — the wire words for <c>RoofForm</c>. A <c>flat</c> one is the
-/// lid every shell has always had; a <c>gable</c> is two slopes meeting at a ridge, which the stamper could
-/// always build and no stored style could ask for until now.</summary>
+/// <summary>Which roof a stored style asks for — the wire words for <c>RoofForm</c>. Every one of them is a
+/// height field over the same plan, so the list grows without the stamper branching.</summary>
 public static class RoofForms
 {
     public const string Gable = "gable";
     public const string Flat = "flat";
+    public const string Hip = "hip";
+    public const string Gambrel = "gambrel";
+    public const string Shed = "shed";
+    public const string Saltbox = "saltbox";
 
-    public static readonly string[] All = [Flat, Gable];
+    /// <summary>The forms in the order the editor offers them: the lid every shell has always had, then the
+    /// slopes, simplest first.</summary>
+    public static readonly string[] All = [Flat, Gable, Hip, Shed, Gambrel, Saltbox];
+
+    /// <summary>What each looks like, in the words the picker offers it in.</summary>
+    public static string Describe(string? form) => Canonical(form) switch
+    {
+        Gable => "Two slopes to a ridge",
+        Hip => "Four slopes, one off every wall",
+        Shed => "One plane, leaning off the front",
+        Gambrel => "A barn: steep, then shallow",
+        Saltbox => "A gable with its ridge off centre",
+        _ => "A flat lid",
+    };
 
     /// <summary>Fold an unknown or absent form down to the flat lid, so a hand-edited row still stamps.</summary>
-    public static string Canonical(string? form) => form == Gable ? Gable : Flat;
+    public static string Canonical(string? form) => All.Contains(form) ? form! : Flat;
+}
+
+/// <summary>Which wall a porch takes its strip from — the wire words for <c>RoomEdge</c>, plus the one that is
+/// not an edge at all. <see cref="Front"/> is the default and the answer almost every style wants: the wall the
+/// doors are cut through, whichever that turns out to be once the frame has spoken. Naming a compass edge
+/// instead pins the porch to a side of the world regardless of where the building's door ends up.</summary>
+public static class PorchEdges
+{
+    public const string Front = "front";
+    public const string NegZ = "negZ";
+    public const string PosZ = "posZ";
+    public const string NegX = "negX";
+    public const string PosX = "posX";
+
+    public static readonly string[] All = [Front, NegZ, PosZ, NegX, PosX];
+
+    public static string Describe(string? edge) => Canonical(edge) switch
+    {
+        NegZ => "The −z wall",
+        PosZ => "The +z wall",
+        NegX => "The −x wall",
+        PosX => "The +x wall",
+        _ => "Whichever wall the door is on",
+    };
+
+    public static string Canonical(string? edge) => All.Contains(edge) ? edge! : Front;
+}
+
+/// <summary>Which window a stored style asks for — the wire words for <c>WindowForm</c>. Two of the three are
+/// openings rather than glass: a lattice of stairs turned back to back, and a band between a slab sill and a
+/// slab lintel.</summary>
+public static class WindowForms
+{
+    public const string None = "none";
+    public const string StairLattice = "stairLattice";
+    public const string SlabBanded = "slabBanded";
+    public const string Pane = "pane";
+
+    public static readonly string[] All = [None, StairLattice, SlabBanded, Pane];
+
+    public static string Describe(string? form) => Canonical(form) switch
+    {
+        StairLattice => "2×2 of stairs, open in the middle",
+        SlabBanded => "A band between a slab sill and lintel",
+        Pane => "Panes, glazed",
+        _ => "No windows",
+    };
+
+    public static string Canonical(string? form) => All.Contains(form) ? form! : None;
 }
 
 /// <summary>One door a room may be stamped with (<c>GET /api/room-styles/doors</c>). Served rather than

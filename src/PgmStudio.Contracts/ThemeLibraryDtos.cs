@@ -65,20 +65,38 @@ public sealed record RoomCourseDto(string Part, int Ordinal, long StyleId, int H
 /// <summary>One row in the room-style library list (GET /api/room-styles), with the shell it stamps.</summary>
 public sealed record RoomStyleSummary(long Id, string Name, string Preview);
 
+/// <summary>The windows a room style cuts through its walls (<see cref="WindowForms"/>). <paramref name="Block"/>
+/// is a block id rather than a bound style because the metadata is <b>geometry</b> here — which way a stair
+/// climbs, which half a slab fills — and a material resolves its own data from where the cell sits, which would
+/// turn every stair in a wall the same way. <paramref name="Data"/> carries only the block's variant (which
+/// wood, which dye); the stamper adds the geometry bits.</summary>
+public sealed record RoomWindowDto(
+    string Form, int Block, int Data, int Sill, int Width, int Height, int Spacing);
+
+/// <summary>The porch a room style gives a strip of its footprint up for, or absent for a building whose walls
+/// stand on the whole of it. <paramref name="RailBlock"/> 0 leaves the deck open to step off anywhere.</summary>
+public sealed record RoomPorchDto(int Depth, int Inset, string Edge, string Roof, int RailBlock);
+
 /// <summary>A full room style (GET /api/room-styles/{id}) — the per-part extents and knobs plus the courses
 /// bound to each part. A part with no courses keeps the built-in finish, the way an unbound theme bucket
 /// does.</summary>
 public sealed record RoomStyleDetail(
     long Id, string Name,
     int FloorDepth, int WallHeight, int RoofThickness,
-    string RoofForm, int Pitch, int Overhang, bool RoofHole, string Door, int DoorHeight,
+    string RoofForm, int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
+    int BorderWidth, int InlayInset,
+    RoomWindowDto Windows, RoomPorchDto? Porch,
+    string Door, int DoorHeight,
     IReadOnlyList<RoomCourseDto> Courses);
 
 /// <summary>Create or replace a room style (POST /api/room-styles, PUT /api/room-styles/{id}).</summary>
 public sealed record RoomStyleSaveRequest(
     string Name,
     int FloorDepth, int WallHeight, int RoofThickness,
-    string RoofForm, int Pitch, int Overhang, bool RoofHole, string Door, int DoorHeight,
+    string RoofForm, int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
+    int BorderWidth, int InlayInset,
+    RoomWindowDto Windows, RoomPorchDto? Porch,
+    string Door, int DoorHeight,
     IReadOnlyList<RoomCourseDto> Courses);
 
 /// <summary>A room style previewed (POST /api/room-styles/preview): the shell it stamps, from above and cut

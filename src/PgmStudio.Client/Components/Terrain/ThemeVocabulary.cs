@@ -305,10 +305,16 @@ public static class JsonEdit
 /// <param name="Id">The part's wire id (<see cref="RoomParts"/>).</param>
 /// <param name="Title">Its heading.</param>
 /// <param name="Blurb">What it is and which way its stack is read, in one sentence.</param>
-/// <param name="ExtentLabel">What that part's extent means — a floor's depth is not a wall's height.</param>
-public sealed record RoomPartInfo(string Id, string Title, string Blurb, string ExtentLabel)
+/// <param name="ExtentLabel">What that part's extent means — a floor's depth is not a wall's height — or null
+/// for a part that takes one material rather than a stack, and so has no extent to state.</param>
+public sealed record RoomPartInfo(string Id, string Title, string Blurb, string? ExtentLabel = null)
 {
-    /// <summary>The three parts bottom-up, the order a shell is stamped in.</summary>
+    /// <summary>Whether the part is a stack of courses with a depth of its own, as against one material read
+    /// straight through. A post is a post all the way up, and so is a sill, a verge and each zone of the
+    /// floor's top course — for those the editor offers one picker instead of a stack.</summary>
+    public bool Stacked => ExtentLabel is not null;
+
+    /// <summary>The three stacked parts bottom-up, the order a shell is stamped in.</summary>
     public static readonly IReadOnlyList<RoomPartInfo> All =
     [
         new(RoomParts.Floor, "Floor",
@@ -322,5 +328,32 @@ public sealed record RoomPartInfo(string Id, string Title, string Blurb, string 
             "Courses thick"),
     ];
 
-    public static RoomPartInfo Of(string part) => All.First(info => info.Id == part);
+    /// <summary>The floor's top course divided across the room. These are zones rather than courses because
+    /// they divide the floor in <em>plan</em> while its stack divides it in depth — and they are here rather
+    /// than inside a material because a material resolves from the cell's own coordinates and cannot know
+    /// where the walls are.</summary>
+    public static readonly IReadOnlyList<RoomPartInfo> FloorZones =
+    [
+        new(RoomParts.Field, "Field",
+            "The open floor between the border and the inlay. Unbound, the floor part's own top course shows through."),
+        new(RoomParts.Border, "Border",
+            "A ring hugging the walls, as wide as the border width below."),
+        new(RoomParts.Inlay, "Inlay",
+            "A plate centred in the room — a hearth, a rug, a floor in the room's own colour."),
+    ];
+
+    /// <summary>What a house has that a plain shell does not: framed corners, a footing, and trim along the
+    /// roof's edge. Each takes one material.</summary>
+    public static readonly IReadOnlyList<RoomPartInfo> Trim =
+    [
+        new(RoomParts.Post, "Corner posts",
+            "The four columns the walls run between. Unbound, the corners are wall like the rest of the building — which is what a plain shell is."),
+        new(RoomParts.Sill, "Sill",
+            "The course the walls stand on, laid one block proud of them on every side, so the building meets the ground on a footing instead of stopping dead at it."),
+        new(RoomParts.Verge, "Verge",
+            "The roof's own border — its eave course and its two verges, and the ridge cap where the roof wears one. Unbound, it is the roof's material."),
+    ];
+
+    public static RoomPartInfo Of(string part)
+        => All.Concat(FloorZones).Concat(Trim).First(info => info.Id == part);
 }

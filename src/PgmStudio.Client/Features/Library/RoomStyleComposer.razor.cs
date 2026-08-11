@@ -26,6 +26,12 @@ public partial class RoomStyleComposer
     private IReadOnlyList<RoomStyleSummary> rooms = [];
     private IReadOnlyList<StyleDto> styles = [];
     private IReadOnlyList<DoorOptionDto> doors = [];
+
+    /// <summary>The block shortlist the window and rail pickers offer. Windows and railings are chosen as a
+    /// block rather than as a bound style: their metadata is geometry — which way a stair climbs, which half a
+    /// slab fills — and a material would resolve that from where the cell sits.</summary>
+    private IReadOnlyList<PaintBlockDto> blocks = [];
+
     private bool loading = true;
     private string? note;
 
@@ -45,6 +51,7 @@ public partial class RoomStyleComposer
     protected override async Task OnInitializedAsync()
     {
         doors = await Library.RoomDoorsAsync();
+        blocks = await Library.BlocksAsync();
         await Reload();
     }
 
@@ -58,10 +65,23 @@ public partial class RoomStyleComposer
     }
 
     // ── the draft ──────────────────────────────────────────────────────────────────────────────────
+    /// <summary>What a new room style starts as: the shipped shell — a flat lid with a hole in it, no windows
+    /// and no porch — so the first thing an author sees is what the export builds today and every knob turned
+    /// from here is a visible change to it.</summary>
     private RoomStyleSaveRequest EmptyDraft(string name) => new(
         name, FloorDepth: 1, WallHeight: 7, RoofThickness: 1,
-        RoofForm: RoofForms.Flat, Pitch: 1, Overhang: 0, RoofHole: true,
+        RoofForm: RoofForms.Flat, Pitch: 1, Overhang: 0, RoofHole: true, RidgeCap: false,
+        BorderWidth: 1, InlayInset: 2,
+        Windows: NoWindows, Porch: null,
         Door: doors.FirstOrDefault()?.Slug ?? "", DoorHeight: 3, Courses: []);
+
+    private static readonly RoomWindowDto NoWindows =
+        new(WindowForms.None, Block: 102, Data: 0, Sill: 2, Width: 2, Height: 2, Spacing: 3);
+
+    /// <summary>The porch a style gets the moment one is switched on: two blocks of the front wall's strip,
+    /// running its full width, under a lean-to with a fence along its open edges.</summary>
+    private static readonly RoomPorchDto DefaultPorch =
+        new(Depth: 2, Inset: 0, Edge: PorchEdges.Front, Roof: RoofForms.Shed, RailBlock: 85);
 
     /// <summary>Open the rail on a room style that is not in the library yet. It is unnamed: the name is the
     /// rail's first field, the same as a style's, and the save stays disabled until it is filled in.</summary>
@@ -83,8 +103,9 @@ public partial class RoomStyleComposer
         note = null;
         draft = new RoomStyleSaveRequest(
             detail.Name, detail.FloorDepth, detail.WallHeight, detail.RoofThickness,
-            detail.RoofForm, detail.Pitch, detail.Overhang, detail.RoofHole, detail.Door, detail.DoorHeight,
-            detail.Courses);
+            detail.RoofForm, detail.Pitch, detail.Overhang, detail.RoofHole, detail.RidgeCap,
+            detail.BorderWidth, detail.InlayInset, detail.Windows, detail.Porch,
+            detail.Door, detail.DoorHeight, detail.Courses);
         await Preview();
     }
 
@@ -144,6 +165,17 @@ public partial class RoomStyleComposer
         return Preview();
     }
 
+    /// <summary>The one style bound to a part that takes a material rather than a stack — a post, a sill, a
+    /// verge, one zone of the floor's top course. Zero unbinds it, which is the part keeping the built-in
+    /// finish rather than resolving to nothing.</summary>
+    private long Single(string part) => Courses(part).FirstOrDefault()?.StyleId ?? 0;
+
+    private Task BindSingle(string part, ChangeEventArgs e)
+    {
+        var id = long.TryParse((string?)e.Value, out var picked) ? picked : 0;
+        return WriteCourses(part, id <= 0 ? [] : [new RoomCourseDto(part, 0, id, 1)]);
+    }
+
     // ── the knobs ──────────────────────────────────────────────────────────────────────────────────
     private Task SetExtent(string part, ChangeEventArgs e) => Knob(d => part switch
     {
@@ -152,12 +184,12 @@ public partial class RoomStyleComposer
         _ => d with { WallHeight = Math.Max(1, Parse(e, d.WallHeight)) },
     });
 
-    /// <summary>A flat lid or a gable. The pitch only means anything on a gable, so it is offered beside the
-    /// form rather than as a knob of its own.</summary>
-    private Task ToggleForm() => Knob(d => d with
-    {
-        RoofForm = d.RoofForm == RoofForms.Gable ? RoofForms.Flat : RoofForms.Gable,
-    });
+    /// <summary>Which of the six roofs. The pitch and the ridge cap only mean anything on a sloped one and the
+    /// hole only on the lid, so each is offered under the form rather than as a knob of its own.</summary>
+    private Task SetForm(ChangeEventArgs e) =>
+        Knob(d => d with { RoofForm = RoofForms.Canonical((string?)e.Value) });
+
+    private bool Sloped => RoofForms.Canonical(draft?.RoofForm) != RoofForms.Flat;
 
     private Task SetPitch(ChangeEventArgs e) => Knob(d => d with { Pitch = Math.Clamp(Parse(e, d.Pitch), 1, 4) });
 
@@ -165,6 +197,80 @@ public partial class RoomStyleComposer
         Knob(d => d with { Overhang = Math.Clamp(Parse(e, d.Overhang), 0, 4) });
 
     private Task ToggleHole() => Knob(d => d with { RoofHole = !d.RoofHole });
+
+    private Task ToggleRidgeCap() => Knob(d => d with { RidgeCap = !d.RidgeCap });
+
+    private Task SetBorderWidth(ChangeEventArgs e) =>
+        Knob(d => d with { BorderWidth = Math.Clamp(Parse(e, d.BorderWidth), 1, 4) });
+
+    private Task SetInlayInset(ChangeEventArgs e) =>
+        Knob(d => d with { InlayInset = Math.Clamp(Parse(e, d.InlayInset), 1, 8) });
+
+    // ── the windows ────────────────────────────────────────────────────────────────────────────────
+    private RoomWindowDto Windows => draft?.Windows ?? NoWindows;
+
+    private bool Glazing => WindowForms.Canonical(Windows.Form) != WindowForms.None;
+
+    /// <summary>Switching form carries the block with it only where the new form can use it — a lattice needs
+    /// stairs and a band needs slabs, and a pane block turned into a stair facing is a solid patch of wall — so
+    /// each form brings its own default block rather than inheriting the last one.</summary>
+    private Task SetWindowForm(ChangeEventArgs e) => Window(window =>
+    {
+        var form = WindowForms.Canonical((string?)e.Value);
+        return window with { Form = form, Block = DefaultWindowBlock(form), Data = 0 };
+    });
+
+    private static int DefaultWindowBlock(string form) => form switch
+    {
+        WindowForms.StairLattice => 53,      // oak stairs
+        WindowForms.SlabBanded => 126,       // wooden slab
+        _ => 102,                            // glass pane
+    };
+
+    private Task PickWindowBlock(PaintBlockDto block)
+        => Window(window => window with { Block = block.Id, Data = block.Data });
+
+    private Task SetWindowSill(ChangeEventArgs e) =>
+        Window(window => window with { Sill = Math.Clamp(Parse(e, window.Sill), 1, 16) });
+
+    private Task SetWindowWidth(ChangeEventArgs e) =>
+        Window(window => window with { Width = Math.Clamp(Parse(e, window.Width), 1, 8) });
+
+    private Task SetWindowHeight(ChangeEventArgs e) =>
+        Window(window => window with { Height = Math.Clamp(Parse(e, window.Height), 1, 8) });
+
+    private Task SetWindowSpacing(ChangeEventArgs e) =>
+        Window(window => window with { Spacing = Math.Clamp(Parse(e, window.Spacing), 0, 16) });
+
+    private Task Window(Func<RoomWindowDto, RoomWindowDto> edit)
+        => Knob(d => d with { Windows = edit(d.Windows ?? NoWindows) });
+
+    // ── the porch ──────────────────────────────────────────────────────────────────────────────────
+    private RoomPorchDto? Porch => draft?.Porch;
+
+    /// <summary>A porch is present or it is not — an absent one is not a porch of depth nothing, because the
+    /// depth it would come back at is the one the author last set.</summary>
+    private Task TogglePorch() => Knob(d => d with { Porch = d.Porch is null ? DefaultPorch : null });
+
+    private Task SetPorchDepth(ChangeEventArgs e) =>
+        Deck(porch => porch with { Depth = Math.Clamp(Parse(e, porch.Depth), 1, 8) });
+
+    private Task SetPorchInset(ChangeEventArgs e) =>
+        Deck(porch => porch with { Inset = Math.Clamp(Parse(e, porch.Inset), 0, 8) });
+
+    private Task SetPorchEdge(ChangeEventArgs e) =>
+        Deck(porch => porch with { Edge = PorchEdges.Canonical((string?)e.Value) });
+
+    private Task SetPorchRoof(ChangeEventArgs e) =>
+        Deck(porch => porch with { Roof = RoofForms.Canonical((string?)e.Value) });
+
+    private Task PickRailBlock(PaintBlockDto block) => Deck(porch => porch with { RailBlock = block.Id });
+
+    private Task ToggleRail() =>
+        Deck(porch => porch with { RailBlock = porch.RailBlock > 0 ? 0 : DefaultPorch.RailBlock });
+
+    private Task Deck(Func<RoomPorchDto, RoomPorchDto> edit)
+        => draft?.Porch is { } porch ? Knob(d => d with { Porch = edit(porch) }) : Task.CompletedTask;
 
     private Task SetDoor(ChangeEventArgs e) => Knob(d => d with { Door = (string?)e.Value ?? d.Door });
 

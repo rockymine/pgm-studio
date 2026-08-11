@@ -3,19 +3,19 @@ using PgmStudio.Domain;
 namespace PgmStudio.Minecraft;
 
 /// <summary>
-/// Stamps a house: a sill, four corner posts with walls between them, a gabled roof over the top, and a
-/// doorway through one long side.
+/// Stamps a house: a sill, four corner posts with walls between them, windows through those walls, a roof of
+/// whichever form the style asks for, a doorway through one side, and — where the style gives a strip of the
+/// footprint up for one — a porch fronting it.
 ///
-/// <para><b>The roof slopes across the shorter side.</b> A gable's ridge runs the length of a building, so the
-/// slope is taken across its width — pitching the long way would put the ridge on the short axis and give a
-/// long building two enormous faces and no length. Each course inward from the eave rises by the pitch until
-/// the two slopes meet; where the span is even they meet as a two-block ridge rather than a peak, which is
-/// what a block world gives instead of a line.</para>
+/// <para><b>The roof is a height field, and every form is one formula over it</b> (<see cref="RoofField"/>).
+/// The stamper walks the roof's plan once, asks each cell what course it tops out at and how many courses it
+/// has to write to close the step down to its neighbours, and lays them. A flat lid, a gable, a hip, a gambrel,
+/// a shed and a saltbox are the same loop; only the answer differs. What used to be the gable's own end-wall
+/// pass generalizes with it: <b>the walls climb to meet the roof</b> wherever the roof stands above them, which
+/// is the gable's two ends, the shed's back wall and triangular flanks, and nothing at all under a hip.</para>
 ///
-/// <para>The gable ends are filled in the wall's own material, up to the underside of the slope, so the house
-/// is closed without the roof having to carry a wall's worth of blocks. Nothing is written outside the
-/// footprint plus its overhang, and nothing below the sill, so a house may be stamped onto finished terrain
-/// without reaching into it.</para>
+/// <para>Nothing is written outside the footprint plus its overhang, and nothing below the sill, so a house may
+/// be stamped onto finished terrain without reaching into it.</para>
 /// </summary>
 public static class HouseStamper
 {
@@ -36,206 +36,311 @@ public static class HouseStamper
     {
         if (width < 3 || depth < 3) return;                       // no room for two walls and an inside
 
-        int maxX = minX + width - 1, maxZ = minZ + depth - 1;
-        var depthOf = depth;
-        var wallTop = floorY + Math.Max(1, style.Wall.Extent);     // the eave course sits on this
+        var ground = new Footprint(minX, minZ, minX + width - 1, minZ + depth - 1);
+        var front = style.Porch?.Edge ?? FrontEdge(doors, ground);
+        var (body, deck) = SplitPorch(ground, style.Porch, front);
+        var doorHeight = Math.Min(
+            doors is { Count: > 0 } ? style.DoorHeight : Math.Max(3, style.DoorHeight),
+            Math.Max(1, style.Wall.Extent));
+        var openings = Doorways(doors, style, body, wallsMoved: deck is not null, front);
+
         var overhang = Math.Max(0, style.Overhang);
         var pitch = Math.Max(1, style.Pitch);
-        var acrossZ = depth <= width;                             // ridge runs the long way
+        var wallTop = floorY + Math.Max(1, style.Wall.Extent);     // the eave course sits on this
 
         // Air resolved out of a material is a gap left open, never a hole punched in what is already there:
         // a stack whose fourth course is air is a light slit, and skipping it keeps the pass from erasing a
-        // stamp underneath. Only a doorway writes air, because that one is an opening cut on purpose.
-        void Put(int x, int y, int z, TerrainMaterial material, int depth = 0)
+        // stamp underneath. Only a doorway and a window write air, because those are openings cut on purpose.
+        void Put(int x, int y, int z, TerrainMaterial material, Footprint ring, int depth = 0)
         {
             if (y is < 1 or >= VoxelWorld.MaxHeight) return;
             // A wall is a closed ring, so a pattern reads it exactly as it reads a plateau's outer edge: the
             // arc carries a wall-run's stripes round every corner, and the turn tells a frame where a corner
             // is. Without them every cell of the wall answers as arc 0 and a striped wall comes out flat.
-            var arc = PerimeterArc(minX, minZ, maxX, maxZ, x, z);
+            var arc = ring.Arc(x, z);
             var (id, data) = material.Resolve(new BucketContext(
-                x, y, z, TerrainBucket.Fill, depth, color, arc, 0, PerimeterTurn(width, depth: depthOf, arc)));
+                x, y, z, TerrainBucket.Fill, depth, color, arc, 0, ring.Turn(arc)));
             if (id == Blocks.Air) return;
             world.SetBlock(x, y, z, id, data);
         }
 
-        void PutPart(int x, int y, int z, RoomPart part, int step)
+        void PutPart(int x, int y, int z, RoomPart part, int step, Footprint ring)
         {
             var (material, depth) = part.At(step);
-            Put(x, y, z, material, depth);
+            Put(x, y, z, material, ring, depth);
         }
 
-        // Sill and floor: the sill rings the building one block proud, the floor claims downward from the
-        // course players stand on.
-        for (var x = minX - 1; x <= maxX + 1; x++)
-            for (var z = minZ - 1; z <= maxZ + 1; z++)
+        // ── the foundation ────────────────────────────────────────────────────────────────────────────
+        // The sill rings the whole footprint one block proud and the floor claims downward from the course
+        // players stand on — both over the ground the house was given, not over what its walls kept, so a
+        // porch stands on the same footing and the same floor as the room behind it.
+        for (var x = ground.MinX - 1; x <= ground.MaxX + 1; x++)
+            for (var z = ground.MinZ - 1; z <= ground.MaxZ + 1; z++)
             {
-                if (x < minX || x > maxX || z < minZ || z > maxZ) { Put(x, floorY, z, style.Sill); continue; }
+                if (!ground.Holds(x, z)) { Put(x, floorY, z, style.Sill, ground); continue; }
                 for (var step = 0; step < Math.Max(1, style.Floor.Extent); step++)
-                    PutPart(x, floorY - step, z, style.Floor, step);
+                    PutPart(x, floorY - step, z, style.Floor, step, ground);
             }
 
-        // Walls, with the four corners in their own material. The course index runs up from the floor, so a
-        // band written at the fourth course stays there whatever the wall's height becomes.
+        // The floor's own top course, zoned across the room it belongs to. The porch keeps the floor part
+        // showing: a deck is what the building stands on, not a room to lay a border round.
+        if (!style.Surface.IsPlain)
+            for (var x = body.MinX; x <= body.MaxX; x++)
+                for (var z = body.MinZ; z <= body.MaxZ; z++)
+                    if (style.Surface.At(body.Ring(x, z)) is { } surface)
+                        Put(x, floorY, z, surface, body);
+
+        // ── the walls ─────────────────────────────────────────────────────────────────────────────────
+        // The course index runs up from the floor, so a band written at the fourth course stays there whatever
+        // the wall's height becomes. The four corners take their own material.
         for (var course = 1; course <= style.Wall.Extent; course++)
-            for (var x = minX; x <= maxX; x++)
-                for (var z = minZ; z <= maxZ; z++)
+            for (var x = body.MinX; x <= body.MaxX; x++)
+                for (var z = body.MinZ; z <= body.MaxZ; z++)
                 {
-                    var onWall = x == minX || x == maxX || z == minZ || z == maxZ;
-                    if (!onWall) continue;
-                    var corner = (x == minX || x == maxX) && (z == minZ || z == maxZ);
-                    if (corner && style.Post is { } post) Put(x, floorY + course, z, post);
-                    else PutPart(x, floorY + course, z, style.Wall, course - 1);
+                    if (!body.OnPerimeter(x, z)) continue;
+                    if (body.OnCorner(x, z) && style.Post is { } post) Put(x, floorY + course, z, post, body);
+                    else PutPart(x, floorY + course, z, style.Wall, course - 1, body);
                 }
 
-        if (style.Form == RoofForm.Flat)
-        {
-            // A lid one course over the walls, reaching out by the overhang, optionally holed to light the
-            // inside. The hole is measured on the walls rather than the roof plane: it lights the room, and
-            // an overhang grows symmetrically so the centre is the same either way.
-            var lid = wallTop + 1;
-            var holeW = RoofHoleSpan(width);
-            var holeD = RoofHoleSpan(depth);
-            int holeMinX = minX + (width - holeW) / 2, holeMinZ = minZ + (depth - holeD) / 2;
-            int lidMinX = minX - overhang, lidMaxX = maxX + overhang;
-            int lidMinZ = minZ - overhang, lidMaxZ = maxZ + overhang;
+        foreach (var seat in HouseWindows.Seats(
+                     style.Windows, body.MinX, body.MinZ, body.MaxX, body.MaxZ, style.Wall.Extent, openings))
+            HouseWindows.Cut(world, seat, style.Windows, floorY, body.MinX, body.MinZ, body.MaxX, body.MaxZ);
 
-            for (var x = lidMinX; x <= lidMaxX; x++)
-                for (var z = lidMinZ; z <= lidMaxZ; z++)
-                {
-                    if (style.RoofHole && x >= holeMinX && x < holeMinX + holeW
-                                       && z >= holeMinZ && z < holeMinZ + holeD) continue;
-                    // The rim is the roof's own outermost ring, not the part of it that oversails the wall:
-                    // a roof ending flush still has an edge, and it is the edge that is trimmed. Keying this
-                    // to the overhang instead leaves a flush roof with no rim at all.
-                    var rim = x == lidMinX || x == lidMaxX || z == lidMinZ || z == lidMaxZ;
-                    Put(x, lid, z, rim ? style.Verge : style.Roof);
-                }
-            StampDoors();
-            return;
-        }
+        // ── the roof ──────────────────────────────────────────────────────────────────────────────────
+        var roof = new RoofField(
+            style.Form, body.MinX, body.MinZ, body.MaxX, body.MaxZ, overhang, wallTop + 1, pitch, front);
+        var hole = RoofHole(style, body);
 
-        // Every cell of the roof in plan, and how high the slope stands over it. A cell's height is set by
-        // whichever eave it is nearer, so the two slopes meet of their own accord: at an odd span they meet on
-        // one line and peak, at an even one two lines tie and the ridge is two blocks wide, which is what a
-        // block world gives instead of an edge. The roof begins one course above the wall's last, or it would
-        // land on the wall top and there would be no eave to see.
-        int wallLow = acrossZ ? minZ : minX, wallHigh = acrossZ ? maxZ : maxX;
-        int low = wallLow - overhang, high = wallHigh + overhang;
-        int fromEnd = (acrossZ ? minX : minZ) - overhang, toEnd = (acrossZ ? maxX : maxZ) + overhang;
-
-        // Measured from the wall and allowed to go past it: the course over the wall line rests on the wall,
-        // and every course outward from there keeps falling at the same rate, so the overhang hangs a block
-        // below its neighbour. Holding the overhang level with the wall line instead — which is the obvious
-        // way to stop the roof floating a course above the wall — runs the last two blocks of the slope flat
-        // and the gable stops being 45° exactly where it is most visible.
-        int RoofY(int across) => wallTop + 1 + Math.Min(across - wallLow, wallHigh - across) * pitch;
-
-        // A step of more than one course leaves the slope open between its treads, so each column carries its
-        // own riser as well as its tread. The outermost course has nothing below it to close and stays one.
-        int Riser(int across) => across == low || across == high ? 1 : pitch;
-
-        for (var along = fromEnd; along <= toEnd; along++)
-            for (var across = low; across <= high; across++)
+        for (var x = roof.MinX; x <= roof.MaxX; x++)
+            for (var z = roof.MinZ; z <= roof.MaxZ; z++)
             {
-                // The border is the eave the slope ends on and the verge that closes each gable.
-                var border = across == low || across == high || along == fromEnd || along == toEnd;
-                var crown = RoofY(across);
-                for (var y = crown - Riser(across) + 1; y <= crown; y++)
-                    Put(acrossZ ? along : across, y, acrossZ ? across : along,
-                        border ? style.Verge : style.Roof);
+                if (hole is { } gap && gap.Holds(x, z)) continue;
+                Lay(roof, x, z, body);
             }
 
-        // The gable ends: the two walls the ridge runs into, carried up to the underside of the slope.
-        foreach (var along in new[] { acrossZ ? minX : minZ, acrossZ ? maxX : maxZ })
-            for (var across = acrossZ ? minZ : minX; across <= (acrossZ ? maxZ : maxX); across++)
-                for (var fill = wallTop + 1; fill < RoofY(across); fill++)
-                    PutPart(acrossZ ? along : across, fill, acrossZ ? across : along,
-                            style.Wall, style.Wall.Extent - 1);
+        // The walls climb to meet it: a gable's two ends, a shed's back wall and its triangular flanks, and
+        // nothing under a hip, whose slopes already come down to the wall line on every side.
+        for (var x = body.MinX; x <= body.MaxX; x++)
+            for (var z = body.MinZ; z <= body.MaxZ; z++)
+            {
+                if (!body.OnPerimeter(x, z)) continue;
+                for (var fill = wallTop + 1; fill < roof.Underside(x, z); fill++)
+                    PutPart(x, fill, z, style.Wall, style.Wall.Extent - 1, body);
+            }
 
         StampDoors();
 
-        // A doorway through the middle of one long side, cut after the walls so it is a hole in them, and never
-        // through a corner post, which is what holds the building up. Air is written here rather than skipped:
-        // this one is an opening cut on purpose, not a gap a material declined to fill.
+        if (deck is { } porchDeck && style.Porch is { } porchStyle) StampPorch(porchDeck, porchStyle);
+        return;
+
+        // One column of a roof: its tread and whatever riser it needs under it, bordered on the roof's own
+        // outermost ring and capped along the ridge when the style asks for a capped one.
+        void Lay(RoofField field, int x, int z, Footprint ring)
+        {
+            var crown = field.Crown(x, z);
+            var material = field.OnBorder(x, z) || (style.RidgeCap && field.OnRidge(x, z))
+                ? style.Verge
+                : style.Roof;
+            for (var y = field.Underside(x, z); y <= crown; y++) Put(x, y, z, material, ring);
+        }
+
+        // A doorway cut after the walls so it is a hole in them, and never through a corner post, which is
+        // what holds the building up. Air is written here rather than skipped: this one is an opening cut on
+        // purpose, not a gap a material declined to fill.
         void StampDoors()
         {
             var choice = DoorMaterials.Of(style.Door);
-
-            // A frame's doors are the entry contract and are taken as given, opening exactly where and how
-            // wide it says. Without one the house cuts its own: centred on a long side, never smaller than
-            // two by three, and never through a corner post — which is what holds the building up.
-            if (doors is { Count: > 0 })
-            {
-                foreach (var door in doors)
-                    for (var course = 1; course <= Math.Min(style.DoorHeight, style.Wall.Extent); course++)
-                        for (var along = door.Lo; along < door.Lo + door.Width; along++)
+            foreach (var door in openings)
+                for (var course = 1; course <= doorHeight; course++)
+                    for (var along = door.Lo; along < door.Lo + door.Width; along++)
+                    {
+                        var (x, z) = door.Edge switch
                         {
-                            var (x, z) = door.Edge switch
-                            {
-                                RoomEdge.NegZ => (along, minZ),
-                                RoomEdge.PosZ => (along, maxZ),
-                                RoomEdge.NegX => (minX, along),
-                                _ => (maxX, along),
-                            };
-                            Open(x, floorY + course, z);
-                        }
-                return;
-            }
-
-            var doorWidth = Math.Max(2, style.DoorWidth);
-            var doorHeight = Math.Max(3, style.DoorHeight);
-            var centre = acrossZ ? (minX + maxX) / 2 : (minZ + maxZ) / 2;
-
-            for (var course = 1; course <= Math.Min(doorHeight, style.Wall.Extent); course++)
-                for (var step = 0; step < doorWidth; step++)
-                {
-                    var along = centre - (doorWidth - 1) / 2 + step;
-                    if (along <= (acrossZ ? minX : minZ) || along >= (acrossZ ? maxX : maxZ)) continue;
-                    var (x, z) = acrossZ ? (along, minZ) : (minX, along);
-                    Open(x, floorY + course, z);
-                }
-
-            void Open(int x, int y, int z) =>
-                world.SetBlock(x, y, z, choice.BlockId, choice.Coloured && color >= 0 ? color : 0);
+                            RoomEdge.NegZ => (along, body.MinZ),
+                            RoomEdge.PosZ => (along, body.MaxZ),
+                            RoomEdge.NegX => (body.MinX, along),
+                            _ => (body.MaxX, along),
+                        };
+                        world.SetBlock(x, floorY + course, z,
+                            choice.BlockId, choice.Coloured && color >= 0 ? color : 0);
+                    }
         }
-    }
 
-    /// <summary>How far round the building's perimeter a cell sits, clockwise from its −x/−z corner, or −1 off
-    /// the ring. A wall is a closed loop, so a wall-run pattern reads this exactly as it reads a plateau's
-    /// outer edge — one material stripes both.</summary>
-    private static int PerimeterArc(int minX, int minZ, int maxX, int maxZ, int x, int z)
-    {
-        int width = maxX - minX + 1, depth = maxZ - minZ + 1;
-        if (z == minZ) return x - minX;                                  // −z edge, corners included
-        if (x == maxX) return width - 1 + (z - minZ);                    // +x edge
-        if (z == maxZ) return width + depth - 2 + (maxX - x);            // +z edge, back along x
-        if (x == minX) return 2 * width + depth - 3 + (maxZ - z);        // −x edge, back along z
-        return -1;
-    }
-
-    /// <summary>How sharply the ring bends where a cell sits, to the same scale a painted wall reads
-    /// (<see cref="PgmStudio.Geom.Algorithms.GridBoundary.TurnAt"/>). A footprint is a rectangle, so the answer
-    /// is closed-form rather than traced: a cell <c>d</c> from a corner has a window straddling it by
-    /// <c>window − d</c>, and the chords make <c>atan2(window − d, d)</c> — 90° on the corner itself, then 76,
-    /// 56, 34, 14 and straight, which is the ramp a traced right angle measures.</summary>
-    private static int PerimeterTurn(int width, int depth, int arc)
-    {
-        if (arc < 0) return 0;
-        var loop = 2 * (width + depth) - 4;
-        if (loop <= 0) return 0;
-
-        int[] corners = [0, width - 1, width + depth - 2, 2 * width + depth - 3];
-        var nearest = int.MaxValue;
-        foreach (var corner in corners)
+        // ── the porch ─────────────────────────────────────────────────────────────────────────────────
+        // The strip the walls gave up, roofed and posted. Its canopy is seated by where its *ridge* has to
+        // land — tucked one course over the wall, under the house's own eave — rather than by where its plane
+        // starts, because that is the same statement for all six forms while the plane's start is not.
+        void StampPorch(Footprint porch, PorchStyle porchStyle)
         {
-            var apart = Math.Abs(arc - corner);
-            nearest = Math.Min(nearest, Math.Min(apart, loop - apart));
+            // The deck's open side is the wall's own outward face: the strip was taken off that wall, so the
+            // house stands behind the deck and the weather is in front of it.
+            var outer = front;
+            var seated = new RoofField(
+                porchStyle.Roof, porch.MinX, porch.MinZ, porch.MaxX, porch.MaxZ, overhang, 0, pitch, outer);
+            var canopy = seated.Raised(wallTop + 1 - seated.Peak);
+            // A canopy that drops below the door it fronts is a porch nobody can walk under, so it is lifted
+            // until its lowest course clears the doorway rather than being allowed to close it.
+            var clear = floorY + doorHeight + 2;
+            if (canopy.Trough < clear) canopy = canopy.Raised(clear - canopy.Trough);
+
+            for (var x = canopy.MinX; x <= canopy.MaxX; x++)
+                for (var z = canopy.MinZ; z <= canopy.MaxZ; z++)
+                    if (!body.Holds(x, z))                    // the house roofs its own footprint
+                        Lay(canopy, x, z, porch);
+
+            var postMaterial = style.Post ?? style.Wall.At(style.Wall.Extent - 1).Material;
+            foreach (var (x, z) in PorchPosts(porch, outer))
+                for (var y = floorY + 1; y < canopy.Underside(x, z); y++)
+                    Put(x, y, z, postMaterial, porch);
+
+            if (porchStyle.RailBlock <= 0) return;
+            var posts = PorchPosts(porch, outer).ToHashSet();
+            foreach (var (x, z) in PorchRail(porch, outer))
+                if (!posts.Contains((x, z)) && !FrontsDoor(x, z))
+                    world.SetBlock(x, floorY + 1, z, porchStyle.RailBlock);
+
+            // The way in. A rail that ran unbroken across the front would be a porch with a door behind it and
+            // no way onto the step, so the door's own run is left open through every rail it crosses.
+            bool FrontsDoor(int x, int z)
+            {
+                foreach (var door in openings)
+                {
+                    if (door.Edge != front) continue;
+                    var along = door.Edge is RoomEdge.NegZ or RoomEdge.PosZ ? x : z;
+                    if (along >= door.Lo && along < door.Lo + door.Width) return true;
+                }
+                return false;
+            }
+        }
+    }
+
+    /// <summary>The wall a house fronts on: the one its doors are cut through, or — with none given — the long
+    /// side the building would cut its own through.</summary>
+    private static RoomEdge FrontEdge(IReadOnlyList<RoomDoor>? doors, Footprint ground)
+        => doors is { Count: > 0 } ? doors[0].Edge
+            : ground.Depth <= ground.Width ? RoomEdge.NegZ : RoomEdge.NegX;
+
+    /// <summary>The footprint split into what the walls keep and what the porch takes, or the whole of it and
+    /// no deck. <b>The porch is the part that gives way</b>: it is trimmed to whatever the room can spare
+    /// beyond the three blocks that hold two walls and an inside, and where the room can spare nothing there
+    /// is no porch. A style asked for a building and a porch, and half a building is neither.</summary>
+    private static (Footprint Body, Footprint? Deck) SplitPorch(Footprint ground, PorchStyle? porch, RoomEdge front)
+    {
+        if (porch is null || porch.Depth <= 0) return (ground, null);
+        var across = front is RoomEdge.NegZ or RoomEdge.PosZ ? ground.Depth : ground.Width;
+        var depth = Math.Min(porch.Depth, across - 3);
+        if (depth <= 0) return (ground, null);
+
+        var inset = Math.Max(0, porch.Inset);
+        var along = front is RoomEdge.NegZ or RoomEdge.PosZ ? ground.Width : ground.Depth;
+        if (2 * inset >= along) inset = 0;
+
+        return front switch
+        {
+            RoomEdge.NegZ => (ground with { MinZ = ground.MinZ + depth },
+                              new Footprint(ground.MinX + inset, ground.MinZ, ground.MaxX - inset, ground.MinZ + depth - 1)),
+            RoomEdge.PosZ => (ground with { MaxZ = ground.MaxZ - depth },
+                              new Footprint(ground.MinX + inset, ground.MaxZ - depth + 1, ground.MaxX - inset, ground.MaxZ)),
+            RoomEdge.NegX => (ground with { MinX = ground.MinX + depth },
+                              new Footprint(ground.MinX, ground.MinZ + inset, ground.MinX + depth - 1, ground.MaxZ - inset)),
+            _ => (ground with { MaxX = ground.MaxX - depth },
+                  new Footprint(ground.MaxX - depth + 1, ground.MinZ + inset, ground.MaxX, ground.MaxZ - inset)),
+        };
+    }
+
+    /// <summary>Where the doorways go. A frame's doors are the entry contract and are taken as given — until a
+    /// porch moves the wall they were cut in, when they are carried onto the wall's new line and any that no
+    /// longer meet it are dropped. Without a frame the house cuts its own: centred on the front, never smaller
+    /// than two by three, and never through a corner post.</summary>
+    private static List<RoomDoor> Doorways(
+        IReadOnlyList<RoomDoor>? doors, HouseStyle style, Footprint body, bool wallsMoved, RoomEdge front)
+    {
+        if (doors is { Count: > 0 })
+        {
+            if (!wallsMoved) return [.. doors];
+            var carried = new List<RoomDoor>();
+            foreach (var door in doors)
+            {
+                var (runLo, runHi) = Run(body, door.Edge);
+                var width = Math.Min(door.Width, runHi - runLo + 1);
+                if (width < 1) continue;
+                carried.Add(door with { Lo = Math.Clamp(door.Lo, runLo, runHi - width + 1), Width = width });
+            }
+            return carried;
         }
 
-        const int window = 5;
-        if (nearest >= window) return 0;
-        return (int)Math.Round(Math.Atan2(window - nearest, nearest) * 180.0 / Math.PI);
+        var (lo, hi) = Run(body, front);
+        var asked = Math.Max(2, style.DoorWidth);
+        var centre = front is RoomEdge.NegZ or RoomEdge.PosZ
+            ? (body.MinX + body.MaxX) / 2
+            : (body.MinZ + body.MaxZ) / 2;
+        var start = Math.Max(lo, centre - (asked - 1) / 2);
+        var end = Math.Min(hi, start + asked - 1);
+        return end < start ? [] : [new RoomDoor(front, start, end - start + 1)];
+    }
+
+    /// <summary>The stretch of a wall between its two corner posts — where a door or a window may be cut.</summary>
+    private static (int Lo, int Hi) Run(Footprint body, RoomEdge edge)
+        => edge is RoomEdge.NegZ or RoomEdge.PosZ
+            ? (body.MinX + 1, body.MaxX - 1)
+            : (body.MinZ + 1, body.MaxZ - 1);
+
+    /// <summary>The deck's posts: one at each outer corner, and enough between them that no span of the eave
+    /// runs more than five blocks unsupported.</summary>
+    private static List<(int X, int Z)> PorchPosts(Footprint porch, RoomEdge outer)
+    {
+        var alongX = outer is RoomEdge.NegZ or RoomEdge.PosZ;
+        var (lo, hi) = alongX ? (porch.MinX, porch.MaxX) : (porch.MinZ, porch.MaxZ);
+        var fixedAt = outer switch
+        {
+            RoomEdge.NegZ => porch.MinZ,
+            RoomEdge.PosZ => porch.MaxZ,
+            RoomEdge.NegX => porch.MinX,
+            _ => porch.MaxX,
+        };
+
+        const int longestSpan = 5;
+        var run = hi - lo;
+        var spans = Math.Max(1, (run + longestSpan - 1) / longestSpan);
+        var posts = new List<(int X, int Z)>();
+        for (var index = 0; index <= spans; index++)
+        {
+            var along = lo + (int)Math.Round((double)index * run / spans);
+            posts.Add(alongX ? (along, fixedAt) : (fixedAt, along));
+        }
+        return posts;
+    }
+
+    /// <summary>The deck's open edges — the one facing away from the house and the two flanks running back to
+    /// it. The edge against the wall is not one of them; the wall is already there.</summary>
+    private static IEnumerable<(int X, int Z)> PorchRail(Footprint porch, RoomEdge outer)
+    {
+        for (var x = porch.MinX; x <= porch.MaxX; x++)
+            for (var z = porch.MinZ; z <= porch.MaxZ; z++)
+            {
+                if (!porch.OnPerimeter(x, z)) continue;
+                var against = outer switch
+                {
+                    RoomEdge.NegZ => z == porch.MaxZ,
+                    RoomEdge.PosZ => z == porch.MinZ,
+                    RoomEdge.NegX => x == porch.MaxX,
+                    _ => x == porch.MinX,
+                };
+                if (!against) yield return (x, z);
+            }
+    }
+
+    /// <summary>The gap a flat lid carries, or null for a roof that has none. Sloped forms never take one:
+    /// they have a volume of their own and a hole in a slope is a leak rather than a light.</summary>
+    private static Footprint? RoofHole(HouseStyle style, Footprint body)
+    {
+        if (!style.RoofHole || style.Form != RoofForm.Flat) return null;
+        int spanX = RoofHoleSpan(body.Width), spanZ = RoofHoleSpan(body.Depth);
+        // Measured on the walls rather than on the roof plane: it lights the room, and an overhang grows
+        // symmetrically so the centre is the same either way.
+        var minX = body.MinX + (body.Width - spanX) / 2;
+        var minZ = body.MinZ + (body.Depth - spanZ) / 2;
+        return new Footprint(minX, minZ, minX + spanX - 1, minZ + spanZ - 1);
     }
 
     /// <summary>The hole a flat roof carries over a shell <paramref name="span"/> wide: proportional
@@ -246,5 +351,63 @@ public static class HouseStamper
         var cap = span % 2 == 0 ? 4 : 3;
         var floor = span % 2 == 0 ? 2 : 1;
         return Math.Min(cap, Math.Max(span - 4, floor));
+    }
+
+    /// <summary>A rectangle of plan the stamper reads a ring off: which cells it holds, which of them are on
+    /// its perimeter, how far in from that perimeter a cell stands, and how far round it — the arc and turn a
+    /// wall-run material reads. A house has two of these once it has a porch (what the walls keep and what the
+    /// deck took), which is why the ring a cell is painted against is passed rather than assumed.</summary>
+    private readonly record struct Footprint(int MinX, int MinZ, int MaxX, int MaxZ)
+    {
+        public int Width => MaxX - MinX + 1;
+        public int Depth => MaxZ - MinZ + 1;
+
+        public bool Holds(int x, int z) => x >= MinX && x <= MaxX && z >= MinZ && z <= MaxZ;
+
+        public bool OnPerimeter(int x, int z)
+            => Holds(x, z) && (x == MinX || x == MaxX || z == MinZ || z == MaxZ);
+
+        public bool OnCorner(int x, int z) => (x == MinX || x == MaxX) && (z == MinZ || z == MaxZ);
+
+        /// <summary>How many blocks in from the nearest edge a cell stands — 0 on the edge itself, negative
+        /// outside. What the floor's zones are cut by.</summary>
+        public int Ring(int x, int z)
+            => Math.Min(Math.Min(x - MinX, MaxX - x), Math.Min(z - MinZ, MaxZ - z));
+
+        /// <summary>How far round the perimeter a cell sits, clockwise from the −x/−z corner, or −1 off the
+        /// ring. A wall is a closed loop, so a wall-run pattern reads this exactly as it reads a plateau's
+        /// outer edge — one material stripes both.</summary>
+        public int Arc(int x, int z)
+        {
+            if (z == MinZ) return x - MinX;                                  // −z edge, corners included
+            if (x == MaxX) return Width - 1 + (z - MinZ);                    // +x edge
+            if (z == MaxZ) return Width + Depth - 2 + (MaxX - x);            // +z edge, back along x
+            if (x == MinX) return 2 * Width + Depth - 3 + (MaxZ - z);        // −x edge, back along z
+            return -1;
+        }
+
+        /// <summary>How sharply the ring bends where a cell sits, to the same scale a painted wall reads
+        /// (<see cref="PgmStudio.Geom.Algorithms.GridBoundary.TurnAt"/>). A footprint is a rectangle, so the
+        /// answer is closed-form rather than traced: a cell <c>d</c> from a corner has a window straddling it
+        /// by <c>window − d</c>, and the chords make <c>atan2(window − d, d)</c> — 90° on the corner itself,
+        /// then 76, 56, 34, 14 and straight, which is the ramp a traced right angle measures.</summary>
+        public int Turn(int arc)
+        {
+            if (arc < 0) return 0;
+            var loop = 2 * (Width + Depth) - 4;
+            if (loop <= 0) return 0;
+
+            int[] corners = [0, Width - 1, Width + Depth - 2, 2 * Width + Depth - 3];
+            var nearest = int.MaxValue;
+            foreach (var corner in corners)
+            {
+                var apart = Math.Abs(arc - corner);
+                nearest = Math.Min(nearest, Math.Min(apart, loop - apart));
+            }
+
+            const int window = 5;
+            if (nearest >= window) return 0;
+            return (int)Math.Round(Math.Atan2(window - nearest, nearest) * 180.0 / Math.PI);
+        }
     }
 }

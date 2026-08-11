@@ -17,7 +17,9 @@ public sealed class RoomStyleLibraryEndpointsTests
 {
     private static RoomStyleSaveRequest Draft(string name, params RoomCourseDto[] courses) => new(
         name, FloorDepth: 1, WallHeight: 7, RoofThickness: 1,
-        RoofForms.Flat, Pitch: 1, Overhang: 0, RoofHole: true,
+        RoofForms.Flat, Pitch: 1, Overhang: 0, RoofHole: true, RidgeCap: false,
+        BorderWidth: 1, InlayInset: 2,
+        Windows: new RoomWindowDto(WindowForms.None, Blocks.GlassPane, 0, 2, 2, 2, 3), Porch: null,
         Door: "stained-glass-pane", DoorHeight: 3, Courses: courses);
 
     private static async Task<long> StyleAsync(HttpClient client, string name, int blockId)

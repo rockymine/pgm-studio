@@ -3,10 +3,114 @@ using PgmStudio.Domain;
 
 namespace PgmStudio.Minecraft;
 
-/// <summary>Which roof a house wears. A <see cref="Flat"/> one is the shell a wool structure and a spawn have
-/// always had — a lid over the walls — and a <see cref="Gable"/> one is two slopes meeting at a ridge. They
-/// are the same building underneath, which is why one stamper builds both.</summary>
-public enum RoofForm { Gable, Flat }
+/// <summary>
+/// Which roof a house wears. They are the same building underneath — every one of them is a height field over
+/// the same plan (<see cref="RoofField"/>) — which is why one stamper builds all six.
+/// </summary>
+public enum RoofForm
+{
+    /// <summary>Two slopes meeting at a ridge that runs the length of the building.</summary>
+    Gable,
+
+    /// <summary>A lid over the walls: the shell a wool structure and a spawn have always had, and the only form
+    /// that can carry a hole.</summary>
+    Flat,
+
+    /// <summary>Four slopes, one off every wall, meeting at a ridge along the building's length — a pyramid
+    /// where the footprint is square, because the ridge has no length left to run along.</summary>
+    Hip,
+
+    /// <summary>A barn roof: each slope steep for its first courses in from the eave, then shallow to the
+    /// ridge, so the building carries a usable volume under a roof that still sheds.</summary>
+    Gambrel,
+
+    /// <summary>One plane, low at the front wall and climbing to the back — a lean-to, and what a porch wears
+    /// by default.</summary>
+    Shed,
+
+    /// <summary>A gable whose two slopes climb at different rates, so they meet off centre: short and steep
+    /// over the front, long and shallow over the back.</summary>
+    Saltbox,
+}
+
+/// <summary>
+/// The course players stand on, in plan. The courses <em>below</em> it are the floor part's stack, which reads
+/// downward and is the same everywhere; this is the one course that varies across the room, divided into zones
+/// by how far a cell stands from the walls: a <see cref="Border"/> ring just inside them, a
+/// <see cref="Field"/> across the rest, and an <see cref="Inlay"/> — a hearth, a rug, a plate of the room's
+/// own colour — centred in it.
+///
+/// <para>Zoning is here rather than in a material because <b>a material does not know the room</b>. A checker,
+/// a noise field and a wall run all resolve from the cell's own coordinates, so they can pattern a floor but
+/// cannot put a border one block inside a wall that moves with the footprint. Anything that is a pattern stays
+/// a material and is bound to <see cref="Field"/>; only what needs the room's own bounds is a zone.</para>
+/// </summary>
+public sealed record FloorSurface
+{
+    /// <summary>What the open floor is finished with, or null to leave the floor part's own top course showing.</summary>
+    public TerrainMaterial? Field { get; init; }
+
+    /// <summary>A ring hugging the walls, or null for a floor that runs to them unbroken.</summary>
+    public TerrainMaterial? Border { get; init; }
+
+    public int BorderWidth { get; init; } = 1;
+
+    /// <summary>A centred plate, or null for none.</summary>
+    public TerrainMaterial? Inlay { get; init; }
+
+    /// <summary>How far in from the walls the inlay starts. Two leaves a walkable block between it and the
+    /// border, which is what keeps it reading as laid <em>in</em> the floor rather than as a second floor.</summary>
+    public int InlayInset { get; init; } = 2;
+
+    /// <summary>The floor a style that never asked for one gets: the floor part, unzoned.</summary>
+    public static FloorSurface Plain { get; } = new();
+
+    /// <summary>Whether nothing is zoned — the fast path, and what a preview draws when a style has no floor
+    /// of its own.</summary>
+    public bool IsPlain => Field is null && Border is null && Inlay is null;
+
+    /// <summary>The material a cell <paramref name="ring"/> blocks in from the nearest wall takes, or null to
+    /// leave the floor part showing. A cell on the wall line is ring 0 and is never zoned: the walls stand on
+    /// it, so what it is made of is the floor part's business and not the surface's.</summary>
+    public TerrainMaterial? At(int ring)
+    {
+        if (ring <= 0) return null;
+        if (Border is not null && ring <= Math.Max(1, BorderWidth)) return Border;
+        if (Inlay is not null && ring >= Math.Max(1, InlayInset)) return Inlay;
+        return Field;
+    }
+}
+
+/// <summary>
+/// A porch: a strip of the building's own footprint, given up by the walls and left open.
+///
+/// <para>It is <b>taken out of</b> the house rather than added to it, and that is the whole model. A room's
+/// footprint comes from the piece it sits on and a style may never change it (WX1), so a porch that grew
+/// outward would be a style deciding a footprint. Taken inward it is not: the foundation, the sill and the
+/// floor still cover the whole footprint, the walls simply stand <see cref="Depth"/> blocks back from one of
+/// them, and the strip they gave up is a deck with posts, a rail and its own roof over it.</para>
+/// </summary>
+public sealed record PorchStyle
+{
+    /// <summary>How deep a strip the walls give up, in blocks.</summary>
+    public int Depth { get; init; } = 2;
+
+    /// <summary>How far the deck stops short of each end of that wall. Zero runs it the building's full width;
+    /// one or two pull it in to a porch that reads as a feature of the front rather than as the front itself.</summary>
+    public int Inset { get; init; }
+
+    /// <summary>Which wall gives the strip up, or null for the one the door is on — which is what a porch is
+    /// for and what every house on the corpus does.</summary>
+    public RoomEdge? Edge { get; init; }
+
+    /// <summary>The canopy over the deck. Its ridge is seated under the house's eave whatever form it is, so a
+    /// shed leans off the wall and a gable fronts the building with its own little end.</summary>
+    public RoofForm Roof { get; init; } = RoofForm.Shed;
+
+    /// <summary>The fence along the deck's open edges, or 0 for a deck left open to step off anywhere. The gap
+    /// in front of the door is cut whatever this is.</summary>
+    public int RailBlock { get; init; } = Blocks.OakFence;
+}
 
 /// <summary>
 /// How a house is finished: a part or a material per piece of it, and the few numbers that decide its
@@ -20,9 +124,9 @@ public enum RoofForm { Gable, Flat }
 /// </summary>
 public sealed record HouseStyle
 {
-    // Wood ids and the species nibble they share. Not in Blocks because nothing else has wanted them yet.
-    private const int Planks = 5, WoodSlab = 126;
+    // The species nibble the wood blocks share. Not in Blocks because nothing else has wanted them yet.
     private const int Oak = 0, Spruce = 1, DarkOak = 5;
+    private const int Planks = Blocks.Planks;
 
     /// <summary>The course the walls stand on, laid one block proud of them on every side, so the building
     /// meets the ground on a footing instead of stopping dead at it.</summary>
@@ -53,7 +157,22 @@ public sealed record HouseStyle
     /// on rather than lifting its inside off it.</summary>
     public RoomPart Floor { get; init; } = RoomPart.Of(new SolidMaterial(Planks, Oak));
 
+    /// <summary>How the top course of that floor is divided across the room — a border, a field, an inlay.
+    /// Plain by default, which is the floor part showing through unchanged.</summary>
+    public FloorSurface Surface { get; init; } = FloorSurface.Plain;
+
+    /// <summary>The windows cut through the walls, or none.</summary>
+    public WindowStyle Windows { get; init; } = new();
+
+    /// <summary>The strip of footprint given up to a porch, or null for a building whose walls stand on the
+    /// whole of it.</summary>
+    public PorchStyle? Porch { get; init; }
+
     public RoofForm Form { get; init; } = RoofForm.Gable;
+
+    /// <summary>Whether the line the slopes meet on is laid in the <see cref="Verge"/> rather than the roof's
+    /// own material — the capping course a real ridge is finished with. A flat lid has no ridge to cap.</summary>
+    public bool RidgeCap { get; init; }
 
     /// <summary>Whether a flat roof carries a centred hole, the way the shipped shell does — the light a
     /// windowless room otherwise has none of. A gable has its own volume and never takes one.</summary>
@@ -130,14 +249,18 @@ public sealed record HouseStyle
 
 /// <summary>Courses above the floor this style can reach on a footprint of the given size — what a caller
 /// reserves headroom for and what a preview draws to. A flat lid is one course over the wall whatever the
-/// footprint; a gable's ridge climbs with the span it crosses, so that one has to be asked about a footprint
-/// rather than about the style alone.</summary>
+/// footprint; every sloped form climbs with the span it crosses, so the question is asked about a footprint
+/// rather than about the style alone, and it is asked of the roof itself rather than of a formula beside it —
+/// there are six forms and a second copy of their arithmetic is how one of them comes to be drawn short.</summary>
 public static class HouseHeights
 {
     public static int TopLayerOver(this HouseStyle style, int width, int depth)
     {
-        if (style.Form == RoofForm.Flat) return style.Wall.Extent + 1;
-        var span = Math.Min(width, depth) + 2 * Math.Max(0, style.Overhang);
-        return style.Wall.Extent + 1 + (span + 1) / 2 * Math.Max(1, style.Pitch);
+        var wallTop = Math.Max(1, style.Wall.Extent);
+        if (style.Form == RoofForm.Flat) return wallTop + 1;
+        var field = new RoofField(
+            style.Form, 0, 0, Math.Max(0, width - 1), Math.Max(0, depth - 1),
+            Math.Max(0, style.Overhang), wallTop + 1, Math.Max(1, style.Pitch), RoomEdge.NegZ);
+        return field.Peak;
     }
 }

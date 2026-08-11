@@ -123,16 +123,93 @@
               <Button Icon="plus" Disabled="@(styles.Count == 0)" OnClick="() => AddCourse(part.Id)">Add a course</Button>
             </div>
 
-            @* The roof's two non-material knobs belong to the roof, so they sit in its own section rather
-               than in a second one competing for the same heading. *@
+            @* A part's non-material knobs belong to that part, so they sit in its own section rather than in
+               a second one competing for the same heading. *@
+            @if (part.Id == RoomParts.Floor)
+            {
+              @* The floor's top course, divided across the room. A zone is a plan division and its stack is a
+                 depth one, which is why these are parts beside the floor rather than courses inside it. *@
+              @foreach (var zone in RoomPartInfo.FloorZones)
+              {
+                <Field Label="@zone.Title" @key="zone.Id">
+                  <select class="field-input field-input--slim" title="@zone.Blurb"
+                          value="@Single(zone.Id)" @onchange="e => BindSingle(zone.Id, e)">
+                    <option value="0">Unbound — the floor shows through</option>
+                    @foreach (var group in StylesByKind)
+                    {
+                      <optgroup label="@MaterialKind.NameOf(group.Key)" @key="group.Key">
+                        @foreach (var style in group) { <option value="@style.Id">@style.Name</option> }
+                      </optgroup>
+                    }
+                  </select>
+                </Field>
+              }
+              <Field Label="Border width">
+                <input class="field-input field-input--slim" type="number" min="1" max="4" step="1"
+                       title="How many blocks in from the walls the border ring runs."
+                       value="@draft.BorderWidth" @onchange="SetBorderWidth" />
+              </Field>
+              <Field Label="Inlay inset">
+                <input class="field-input field-input--slim" type="number" min="1" max="8" step="1"
+                       title="How far in from the walls the centred plate starts."
+                       value="@draft.InlayInset" @onchange="SetInlayInset" />
+              </Field>
+            }
+
+            @if (part.Id == RoomParts.Wall)
+            {
+              @* Windows are cut out of the wall the courses above just built, so they are the wall's knob. *@
+              <Field Label="Windows">
+                <select class="field-input field-input--slim" value="@Windows.Form" @onchange="SetWindowForm">
+                  @foreach (var form in WindowForms.All)
+                  {
+                    <option value="@form" @key="form">@WindowForms.Describe(form)</option>
+                  }
+                </select>
+              </Field>
+              @if (Glazing)
+              {
+                <Field Label="Made of">
+                  <BlockPicker Blocks="blocks" Id="Windows.Block" Data="Windows.Data" OnPick="PickWindowBlock" />
+                </Field>
+                <Field Label="Sill">
+                  <input class="field-input field-input--slim" type="number" min="1" max="16" step="1"
+                         title="The course above the floor the opening starts at."
+                         value="@Windows.Sill" @onchange="SetWindowSill" />
+                </Field>
+                @if (Windows.Form != WindowForms.StairLattice)
+                {
+                  <Field Label="Blocks wide">
+                    <input class="field-input field-input--slim" type="number" min="1" max="8" step="1"
+                           value="@Windows.Width" @onchange="SetWindowWidth" />
+                  </Field>
+                }
+                @if (Windows.Form == WindowForms.Pane)
+                {
+                  <Field Label="Blocks tall">
+                    <input class="field-input field-input--slim" type="number" min="1" max="8" step="1"
+                           value="@Windows.Height" @onchange="SetWindowHeight" />
+                  </Field>
+                }
+                <Field Label="Spacing">
+                  <input class="field-input field-input--slim" type="number" min="0" max="16" step="1"
+                         title="Clear blocks of wall between one window and the next."
+                         value="@Windows.Spacing" @onchange="SetWindowSpacing" />
+                </Field>
+              }
+            }
+
             @if (part.Id == RoomParts.Roof)
             {
               <Field Label="Shape">
-                <Chip Active="@(draft.RoofForm == RoofForms.Gable)" OnClick="ToggleForm">
-                  @(draft.RoofForm == RoofForms.Gable ? "Two slopes to a ridge" : "A flat lid")
-                </Chip>
+                <select class="field-input field-input--slim" value="@draft.RoofForm" @onchange="SetForm">
+                  @foreach (var form in RoofForms.All)
+                  {
+                    <option value="@form" @key="form">@RoofForms.Describe(form)</option>
+                  }
+                </select>
               </Field>
-              @if (draft.RoofForm == RoofForms.Gable)
+              @if (Sloped)
               {
                 <Field Label="Pitch">
                   <input class="field-input field-input--slim" type="number" min="1" max="4" step="1"
@@ -145,15 +222,105 @@
                        title="How far the roof reaches past the walls, in blocks. 0 ends it flush."
                        value="@draft.Overhang" @onchange="SetOverhang" />
               </Field>
-              <Field Label="Hole">
-                <Chip Active="draft.RoofHole" OnClick="ToggleHole">
-                  @(draft.RoofHole ? "Open in the middle" : "Sealed — an unlit room")
-                </Chip>
-              </Field>
+              @if (Sloped)
+              {
+                <Field Label="Ridge">
+                  <Chip Active="draft.RidgeCap" OnClick="ToggleRidgeCap">
+                    @(draft.RidgeCap ? "Capped in the verge" : "The roof's own material")
+                  </Chip>
+                </Field>
+              }
+              else
+              {
+                <Field Label="Hole">
+                  <Chip Active="draft.RoofHole" OnClick="ToggleHole">
+                    @(draft.RoofHole ? "Open in the middle" : "Sealed — an unlit room")
+                  </Chip>
+                </Field>
+              }
             }
           </ChildContent>
         </Section>
       }
+
+      @* What a house has and a plain shell does not. Each takes one material — a post is a post all the way
+         up — so each is one picker rather than a stack. *@
+      <Section Title="Frame and trim" Variant="list" HelpTitle="Why these are not stacks">
+        <Help>A corner post, a footing and a roof edge are each one material read straight through, so binding
+          one is a single choice. Leaving them unbound is what a plain shell is: corners that are wall like the
+          rest of it, no footing, and a roof edge in the roof's own material.</Help>
+        <ChildContent>
+          @foreach (var part in RoomPartInfo.Trim)
+          {
+            <Field Label="@part.Title" @key="part.Id">
+              <select class="field-input field-input--slim" title="@part.Blurb"
+                      value="@Single(part.Id)" @onchange="e => BindSingle(part.Id, e)">
+                <option value="0">Unbound</option>
+                @foreach (var group in StylesByKind)
+                {
+                  <optgroup label="@MaterialKind.NameOf(group.Key)" @key="group.Key">
+                    @foreach (var style in group) { <option value="@style.Id">@style.Name</option> }
+                  </optgroup>
+                }
+              </select>
+            </Field>
+          }
+        </ChildContent>
+      </Section>
+
+      <Section Title="Porch" Variant="list" HelpTitle="Where a porch comes from">
+        <Help>A porch is taken <strong>out of</strong> the footprint, never added to it — the footprint comes
+          from the piece and a style may not change it. The walls stand back from one side, and the strip they
+          gave up is a deck with posts, a rail and its own roof over it.</Help>
+        <ChildContent>
+          <Field Label="Porch">
+            <Chip Active="@(Porch is not null)" OnClick="TogglePorch">
+              @(Porch is null ? "None — walls on the whole footprint" : "A strip given up to a deck")
+            </Chip>
+          </Field>
+          @if (Porch is { } deck)
+          {
+            <Field Label="Blocks deep">
+              <input class="field-input field-input--slim" type="number" min="1" max="8" step="1"
+                     title="How deep a strip the walls give up. The room keeps at least three blocks."
+                     value="@deck.Depth" @onchange="SetPorchDepth" />
+            </Field>
+            <Field Label="Pulled in by">
+              <input class="field-input field-input--slim" type="number" min="0" max="8" step="1"
+                     title="How far the deck stops short of each end of that wall. 0 runs it the full width."
+                     value="@deck.Inset" @onchange="SetPorchInset" />
+            </Field>
+            <Field Label="Off which wall">
+              <select class="field-input field-input--slim" value="@deck.Edge" @onchange="SetPorchEdge">
+                @foreach (var edge in PorchEdges.All)
+                {
+                  <option value="@edge" @key="edge">@PorchEdges.Describe(edge)</option>
+                }
+              </select>
+            </Field>
+            <Field Label="Canopy">
+              <select class="field-input field-input--slim" value="@deck.Roof" @onchange="SetPorchRoof">
+                @foreach (var form in RoofForms.All)
+                {
+                  <option value="@form" @key="form">@RoofForms.Describe(form)</option>
+                }
+              </select>
+            </Field>
+            <Field Label="Rail">
+              <Chip Active="@(deck.RailBlock > 0)" OnClick="ToggleRail">
+                @(deck.RailBlock > 0 ? "Along the open edges" : "None — step off anywhere")
+              </Chip>
+            </Field>
+            @if (deck.RailBlock > 0)
+            {
+              <Field Label="Rail made of">
+                <BlockPicker Blocks="blocks" Id="deck.RailBlock" Data="0" ShowColors="false"
+                             OnPick="PickRailBlock" />
+              </Field>
+            }
+          }
+        </ChildContent>
+      </Section>
 
       <Section Title="Doorway" Variant="list" HelpTitle="Why the list is short">
         <Help>A closed set: only these can be broken by an attacker, so only these open a cage. A spawn's door
