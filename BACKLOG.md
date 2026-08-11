@@ -62,6 +62,15 @@ highlight); these are the parked / dormant / deferred slices.
   pass could be merged out of the first. Whether the rest is worth an incremental cache depends on a number
   nobody has: a typical board is ~93 ms end to end now, so this is the 200×200 case, not the common one.
 
+- [ ] **S40 — Offer "no building" in the Rooms step.** A bound room style has three answers — a style, absent
+  (the built-in shell), and an explicit null meaning the pad stands on open ground with nothing over it
+  (`docs/world-export/structures.md` §9). The export reads all three and the stampers have always accepted
+  the third, but the step can only *bind* or *clear*, and clearing means the built-in rather than none. So a
+  map can be authored open only by writing its layout by hand. The step needs a third control per kind, and
+  `ReadBindings` needs to tell a null snapshot from a missing one — today the bridge state drops both, so an
+  open room displays as unpicked (harmless until the author touches it, since the save preserves what it
+  loaded).
+
 - [ ] **S26 — Sweep the now-dead plan-side theme JS.** The Theme phase moved onto the sketch (`FEATURES.md`);
   the plan tool's Theme UI + C# theme path are gone, but the plan **JS** theme code is still present as an
   unreachable, self-consistent island: `plan-bridge.js` theme methods (`themesState`/`assignPiece`/`assignBox`/

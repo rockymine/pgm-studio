@@ -5,6 +5,7 @@ using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Pgm;
 using PgmStudio.Pgm.Authoring;
+using PgmStudio.Pgm.Sketch;
 using Dict = System.Collections.Generic.Dictionary<string, object?>;
 
 // A world you can walk, showing every terrain-paint pattern and the house stamper — built the way a real map
@@ -20,6 +21,32 @@ var (plateaus, themes) = Plateaus.Themed();
 
 var layout = Shapes.Layout(plateaus, themes, mapTheme: plateaus[0].ThemeId);
 layout.Dressing = JsonDocument.Parse(DressingJson.Serialize(new DressingDoc { Props = Trees() })).RootElement;
+
+// The shell every wool room is stamped with, bound onto the layout the way the studio's room-style step
+// binds one. A gabled oak house rather than the shipped bedrock lid — which a stored style could not have
+// asked for until the roof form became a column of its own.
+//
+// The spawns bind the third answer: no building. A spawn here is a pad and the monuments around it on open
+// plateau, which is what a map wants wherever the ground itself is the room.
+var oak = HouseStyle.Wool with
+{
+    Form = RoofForm.Gable,
+    Pitch = 1,
+    Overhang = 1,
+    Wall = RoomPart.Of(new SolidMaterial(5, 1), 5),        // spruce planks
+    Floor = RoomPart.Of(new SolidMaterial(5, 0)),          // oak planks
+    Roof = new SolidMaterial(5, 1),
+    Verge = new SolidMaterial(5, 5),                       // dark oak, so the roof reads an edge
+    Post = new SolidMaterial(17, 0),                       // oak log at the corners: a house is framed
+    Sill = new SolidMaterial(4),                           // cobble footing
+    RoofHole = false,
+    DoorHeight = 3,
+};
+layout.RoomStyles = new SketchRoomStyles
+{
+    Wool = JsonDocument.Parse(HouseStyleJson.Serialize(oak)).RootElement,
+    Spawn = SketchRoomStyles.Open,
+};
 
 // Half grown, half vanilla template, so the two forms stand side by side and the grown knobs vary plateau to
 // plateau rather than repeating one tree twenty-five times.

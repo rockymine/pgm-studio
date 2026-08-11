@@ -274,5 +274,13 @@ An **absent or unreadable** snapshot falls back to the built-in shell for its ki
 step exports byte-identical to how it did before the step existed, and a hand-edited layout that broke its
 snapshot loses its chosen shell rather than its export.
 
+A snapshot that is present and **null** is the third answer: no building. The pad and its monuments are stamped
+on whatever ground the plan already shaped, and nothing is raised over them — which is what a spawn wants
+wherever the terrain is the room, and what the stampers have always accepted through their nullable `Shell`.
+Absence and null are therefore different questions, and the wire keeps them apart: the two snapshots are bare
+`JsonElement`s rather than nullable ones, so *undefined* means never picked and *null* means picked as nothing.
+Collapsing them would not merely blur a distinction — loading a map that bound nothing and saving it again
+would write the null back and turn every room it has into open ground.
+
 The step is **Theme's third**, after Create and Apply, because a room shell is finishing: it is what the map is
 *made of*, decided once for the whole map, next to the terrain finish that is decided the same way.

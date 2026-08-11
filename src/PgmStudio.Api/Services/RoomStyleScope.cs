@@ -1,3 +1,4 @@
+using System.Text.Json;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Sketch;
 
@@ -15,17 +16,26 @@ namespace PgmStudio.Api.Services;
 /// </summary>
 public static class RoomStyleScope
 {
-    /// <summary>The pair a map binds. Either snapshot being absent — or unreadable, since it is a hand-editable
-    /// leaf — falls back to that kind's built-in shell, so a sketch that never opened the step exports exactly
-    /// as it did before the step existed.</summary>
-    public static (HouseStyle Wool, HouseStyle Spawn) StylesOf(string layoutJson)
+    /// <summary>The pair a map binds, <b>either of which may be none</b> — a pad on open ground rather than a
+    /// building over it, which is what a spawn on a plateau the plan already shaped often wants to be.
+    ///
+    /// <para>Three answers, because absent and none are different questions. A snapshot that is absent — or
+    /// unreadable, since it is a hand-editable leaf — falls back to that kind's built-in shell, so a sketch
+    /// that never opened the step exports exactly as it did before the step existed. A snapshot that is
+    /// explicitly null asked for no building, and gets none.</para></summary>
+    public static (HouseStyle? Wool, HouseStyle? Spawn) StylesOf(string layoutJson)
         => StylesOf(SketchLayout.Parse(layoutJson));
 
-    public static (HouseStyle Wool, HouseStyle Spawn) StylesOf(SketchLayout? layout)
+    public static (HouseStyle? Wool, HouseStyle? Spawn) StylesOf(SketchLayout? layout)
     {
         var bound = layout?.RoomStyles;
-        return (
-            HouseStyleJson.DeserializeOr(bound?.Wool?.GetRawText(), HouseStyle.Wool),
-            HouseStyleJson.DeserializeOr(bound?.Spawn?.GetRawText(), HouseStyle.Spawn));
+        return (Shell(bound?.Wool, HouseStyle.Wool), Shell(bound?.Spawn, HouseStyle.Spawn));
     }
+
+    private static HouseStyle? Shell(JsonElement? snapshot, HouseStyle builtIn) => snapshot?.ValueKind switch
+    {
+        JsonValueKind.Null => null,                    // asked for open ground
+        null or JsonValueKind.Undefined => builtIn,    // never asked
+        _ => HouseStyleJson.DeserializeOr(snapshot.Value.GetRawText(), builtIn),
+    };
 }

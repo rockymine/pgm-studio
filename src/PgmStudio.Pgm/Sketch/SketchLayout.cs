@@ -82,16 +82,30 @@ public sealed class SketchLayout
     }
 }
 
-/// <summary>The two room-style snapshots a map binds: the shell every wool structure is stamped with, and the
-/// one every spawn is. Held as raw JSON because a layout cannot know the stamper's model — the same reason a
-/// theme rides here as a <see cref="JsonElement"/> — and read back by the export's scope. Either may be absent,
-/// which stamps that kind's built-in shell.</summary>
+/// <summary>
+/// The two room-style snapshots a map binds: the shell every wool structure is stamped with, and the one every
+/// spawn is. Held as raw JSON because a layout cannot know the stamper's model — the same reason a theme rides
+/// here as a <see cref="JsonElement"/> — and read back by the export's scope.
+///
+/// <para>Each answers in one of <b>three</b> states, which is why these are bare <see cref="JsonElement"/>s
+/// rather than nullable ones: an <b>object</b> is the bound style; <b>absent</b> is a sketch that never picked
+/// one, which stamps that kind's built-in shell; and an explicit <b>null</b> is no building at all — a pad on
+/// open ground, which the stampers have always accepted and nothing could ask them for. A nullable property
+/// collapses the last two into one, and the collapse is not harmless: loading a map that bound nothing and
+/// saving it again would write the null and turn every one of its rooms into open ground.</para>
+/// </summary>
 public sealed class SketchRoomStyles
 {
     // The wire word stays "cage": it is written into stored layouts by the sketch bridge, and renaming it
     // would leave every bound wool style silently falling back to the built-in one on load.
-    [JsonPropertyName("cage")]  public JsonElement? Wool { get; set; }
-    [JsonPropertyName("spawn")] public JsonElement? Spawn { get; set; }
+    [JsonPropertyName("cage"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public JsonElement Wool { get; set; }
+
+    [JsonPropertyName("spawn"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public JsonElement Spawn { get; set; }
+
+    /// <summary>The JSON literal <c>null</c>, as this type spells "no building".</summary>
+    public static JsonElement Open { get; } = JsonDocument.Parse("null").RootElement;
 }
 
 /// <summary>A stacked slab (S7): its shapes/islands at a Y offset. The whole 2-D editor authors one layer;

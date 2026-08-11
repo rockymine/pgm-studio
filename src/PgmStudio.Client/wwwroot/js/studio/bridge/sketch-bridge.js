@@ -60,7 +60,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // and the one every spawn cube is. Snapshots rather than library ids, so a library edit never rebuilds a
   // shipped map's rooms — and map-wide rather than per room, because a cage that differed between teams would
   // be a sightline that differed between teams.
-  let roomStyles = { cage: null, spawn: null };
+  // Three states each, matching the stored layout: an object is the bound style, `undefined` is unpicked (the
+  // built-in shell gets stamped), and `null` is no building at all — a pad on open ground. Keeping them apart
+  // is what lets an open room survive being opened and saved here; collapsing them would rebuild it.
+  let roomStyles = { cage: undefined, spawn: undefined };
   // Dressing (decoration.md) does NOT ride beside theming. A theme is a recipe named once and applied to many
   // footprints; a prop was put somewhere, so the canvas owns the placements and this owns only the load/save.
   // Theme phase: the canvas is a selection surface only. Geometry is the Draw phase's to edit.
@@ -583,11 +586,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // ── terrain-paint themes (finishing-model.md §4) ──
     getThemes() { return themesState(); },
     getRoomStyles() { return roomStylesState(); },
-    // A snapshot as its JSON text, or null/"" to fall back to that kind's built-in shell.
+    // A snapshot as its JSON text, the text "null" for no building at all, or null/"" to fall back to that
+    // kind's built-in shell.
     setRoomStyle(kind, styleJson) {
       if (kind !== "cage" && kind !== "spawn") return;
-      let parsed = null;
-      if (styleJson) { try { parsed = JSON.parse(styleJson); } catch { parsed = null; } }
+      let parsed = undefined;
+      if (styleJson) { try { parsed = JSON.parse(styleJson); } catch { parsed = undefined; } }
       roomStyles = { ...roomStyles, [kind]: parsed };
       markDirty();
       fire("OnRoomStyles", roomStylesState());
@@ -657,8 +661,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       themes = (s.themes && typeof s.themes === "object") ? s.themes : {};
       mapTheme = (s.mapTheme && themes[s.mapTheme]) ? s.mapTheme : "";
       roomStyles = {
-        cage: s.roomStyles?.cage ?? null,
-        spawn: s.roomStyles?.spawn ?? null,
+        cage: s.roomStyles && "cage" in s.roomStyles ? s.roomStyles.cage : undefined,
+        spawn: s.roomStyles && "spawn" in s.roomStyles ? s.roomStyles.spawn : undefined,
       };
       canvas.setDressing(s.dressing && typeof s.dressing === "object" ? s.dressing : null);
       const raw = (s.layers && s.layers.length) ? s.layers : (s.layout ? [{ base_y: 0, layout: s.layout }] : []);
@@ -700,8 +704,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         mapTheme: mapTheme || undefined,
         // The bound room shells, omitted when neither is picked so a sketch that never opened the step
         // serialises exactly as it did before it existed.
-        roomStyles: (roomStyles.cage || roomStyles.spawn)
-          ? { cage: roomStyles.cage ?? undefined, spawn: roomStyles.spawn ?? undefined }
+        roomStyles: (roomStyles.cage !== undefined || roomStyles.spawn !== undefined)
+          ? { cage: roomStyles.cage, spawn: roomStyles.spawn }
           : undefined,
         // Dressing rides the same way, and is likewise omitted when empty so an undressed sketch serialises
         // exactly as it did before the phase existed.

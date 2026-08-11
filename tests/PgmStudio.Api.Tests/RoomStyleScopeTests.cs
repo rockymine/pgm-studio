@@ -17,12 +17,18 @@ public sealed class RoomStyleScopeTests
         {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},"layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":1}],"islands":[]}}
         """;
 
-    /// <summary>The same layout with the two shells bound — the snapshot form the Rooms step writes.</summary>
+    /// <summary>The same layout with the two shells bound — the snapshot form the Rooms step writes. A kind
+    /// left out here is absent from the JSON entirely, which is the "never picked one" state; passing
+    /// <c>"null"</c> as its raw text is the other one, the map asking for no building.</summary>
     private static string Bound(HouseStyle? cage = null, HouseStyle? spawn = null)
+        => BoundRaw(cage is null ? null : HouseStyleJson.Serialize(cage),
+                    spawn is null ? null : HouseStyleJson.Serialize(spawn));
+
+    private static string BoundRaw(string? cage = null, string? spawn = null)
     {
         var parts = new List<string>();
-        if (cage is not null) parts.Add($"\"cage\":{HouseStyleJson.Serialize(cage)}");
-        if (spawn is not null) parts.Add($"\"spawn\":{HouseStyleJson.Serialize(spawn)}");
+        if (cage is not null) parts.Add($"\"cage\":{cage}");
+        if (spawn is not null) parts.Add($"\"spawn\":{spawn}");
         return Plain[..^1] + $",\"roomStyles\":{{{string.Join(',', parts)}}}}}";
     }
 
@@ -58,7 +64,7 @@ public sealed class RoomStyleScopeTests
         var tall = HouseStyle.Wool with { Wall = HouseStyle.Wool.Wall with { Extent = 11 } };
         var (cage, spawn) = RoomStyleScope.StylesOf(Bound(cage: tall));
 
-        await Assert.That(cage.Wall.Extent).IsEqualTo(11);
+        await Assert.That(cage!.Wall.Extent).IsEqualTo(11);
         await Assert.That(spawn).IsEqualTo(HouseStyle.Spawn);
     }
 
@@ -70,6 +76,42 @@ public sealed class RoomStyleScopeTests
 
         await Assert.That(cage).IsEqualTo(HouseStyle.Wool);
         await Assert.That(spawn).IsEqualTo(HouseStyle.Spawn);
+    }
+
+    [Test]
+    public async Task An_explicit_null_asks_for_no_building_and_absence_still_asks_for_the_built_in()
+    {
+        // The two states a nullable snapshot would have collapsed into one. Absence is a map that never opened
+        // the step; null is a map that opened it and said the ground is the room.
+        var (cage, spawn) = RoomStyleScope.StylesOf(BoundRaw(spawn: "null"));
+
+        await Assert.That(spawn).IsNull();
+        await Assert.That(cage).IsEqualTo(HouseStyle.Wool);
+    }
+
+    [Test]
+    public async Task A_spawn_asking_for_no_building_gets_its_pad_and_nothing_over_it()
+    {
+        var open = SketchWorldBuilder.Build(BoundRaw(spawn: "null"), Intent());
+        var built = SketchWorldBuilder.Build(Plain, Intent());
+
+        // The pad is still there — a spawn is its point first, and the shell is what is optional around it.
+        var point = open.ResolvedIntent.Spawns[0].Point;
+        await Assert.That(open.World.GetBlock((int)point.X, (int)point.Y - 1, (int)point.Z).Id)
+            .IsEqualTo(Blocks.Wool);
+
+        // …and no building stands over it: not one course of the shell's own team-tinted clay, where the map
+        // that never asked has a room's worth.
+        await Assert.That(Count(open.World, -20, 0, Blocks.StainedClay)).IsEqualTo(0);
+        await Assert.That(Count(built.World, -20, 0, Blocks.StainedClay)).IsGreaterThan(0);
+
+        // The monument stays. It is seated against the room's walls but is not one of them — a spawn on open
+        // ground still has to be somewhere the other team's wool is placed.
+        var monument = open.ResolvedIntent.Wools![1].Monuments[0].Location;
+        await Assert.That(open.World.GetBlock((int)monument.X, (int)monument.Y, (int)monument.Z).Id)
+            .IsEqualTo(0);                                                              // the placement cell
+        await Assert.That(open.World.GetBlock((int)monument.X, (int)monument.Y - 1, (int)monument.Z).Id)
+            .IsEqualTo(Blocks.Bedrock);                                                 // its pedestal
     }
 
     // ── what the export does with them ─────────────────────────────────────────────────────────────
