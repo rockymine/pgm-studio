@@ -3473,6 +3473,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   that survives a tower: a wall is a `RoomPart` extent whose last course repeats, so a twenty-four-course
   building is an ordinary style, and a canopy chasing that eave rode the wall the whole way up as a colonnade
   with the door it fronted left open to the sky. (G34e)
+- **The gable face is its own part (G34f).** The triangle a sloped roof leaves standing at each end of a
+  building was welded to the wall's top course, so the one thing nearly every hand-built house on the corpus
+  does — a timbered or shingled gable over a plain wall — could not be said. `HouseStyle.Gable` and the
+  `gable` room part name it: unbound it is the wall's top course carried up, so every stored style builds
+  exactly what it always did. The reason it cannot be a course of the wall instead is that **the wall's stack
+  has run out by then** — the courses end at the wall's top, so a wall that bands as it rises goes flat the
+  moment it turns into a gable and has nothing left to say about the face. `room_style_course.part` is a free
+  string, so it needed no migration. Documented against its neighbour in the same figure: the **verge** is the
+  roof's own outermost ring, which on a flush roof is the raking edge directly over the gable and under an eave
+  moves out to the overhang, leaving plain roof along the wall line. (G34f)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds

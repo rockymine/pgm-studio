@@ -542,6 +542,40 @@ page.Append("<section><div class='section-head'><span class='label'>One</span><h
     .Append("is the gable's two ends, the shed's back wall and both its flanks, and nothing at all under a hip.</p>")
     .Append("</section>");
 
+// ── figure 1b: the gable face ─────────────────────────────────────────────────────────────────────────
+var gableFigures = new StringBuilder();
+foreach (var (gable, name, blurb) in new (TerrainMaterial? Gable, string Name, string Blurb)[]
+         {
+             (null, "Unbound",
+                 "The wall's top course carried up. Note that it is the top course rather than the stack going on to count: the courses have run out by then, so a wall that bands as it rises goes flat the moment it turns into a gable."),
+             (new SolidMaterial(Blocks.Log, 0), "Bound to a timber",
+                 "The face named separately — here the oak the corner posts are, so the frame reads as carrying on into the gable. This is what nearly every hand-built house does and what the wall's own stack had no way to say."),
+         })
+{
+    var style = basis with
+    {
+        Form = RoofForm.Gable, Overhang = 0, RidgeCap = true, Gable = gable,
+        Wall = new RoomPart([new RoomCourse(new SolidMaterial(Blocks.Cobblestone)), new RoomCourse(plaster)], 5),
+    };
+    var world = Build(13, 9, style);
+    var top = FloorY + style.TopLayerOver(13, 9);
+    gableFigures.Append($"<article class='card'><h3>{name}</h3>")
+        .Append($"<div class='fig fig--iso'>{Iso(world, -1, -1, 13, 9, FloorY - 1, top, 12)}</div>")
+        .Append($"<p>{blurb}</p></article>");
+}
+
+page.Append("<section><div class='section-head'><span class='label'>One and a half</span>")
+    .Append("<h2>The triangle the slopes leave behind</h2>")
+    .Append("<p>Where the roof stands above the wall, the wall climbs to meet it — and the triangle that ")
+    .Append("leaves at each end of a gable is the <strong>gable face</strong>, a part of its own. It is wall ")
+    .Append("rather than roof, so the roof's material never appears in it; and it is one material rather than ")
+    .Append("a stack, because a stack has nothing left to say by the time the wall has ended.</p>")
+    .Append("<p class='note'>The <strong>verge</strong> is a different piece again — the roof's own outermost ")
+    .Append("ring. On a flush roof that is the raking edge directly over the gable, as drawn here; give the ")
+    .Append("roof an eave and the verge moves out to the overhang, leaving plain roof along the wall line.</p>")
+    .Append("</div>")
+    .Append($"<div class='grid grid--wide'>{gableFigures}</div></section>");
+
 page.Append("<section><div class='section-head'><span class='label'>Two</span><h2>Pitch, and where the eave goes</h2>")
     .Append("<p>Pitch is courses of rise per block travelled inward: one is the vanilla 45°, two an alpine roof. ")
     .Append("A step of more than one course would leave the slope open between its treads, so each column ")
@@ -594,6 +628,7 @@ page.Append("""
 <tr><td>Overhang</td><td>How far the roof reaches past the walls, measured from the wall line so the eave keeps falling.</td></tr>
 <tr><td>RoofHole</td><td>The gap a flat lid carries to light the room. A sloped roof has a volume of its own and never takes one.</td></tr>
 <tr><td>RidgeCap</td><td>The line the slopes meet on, laid in the verge rather than the roof's own material.</td></tr>
+<tr><td>Gable</td><td>The triangle a sloped roof leaves at each end. Unbound, the wall's top course carried up.</td></tr>
 <tr><td>Surface</td><td>The floor's top course in plan: Border and its width, Field, Inlay and its inset.</td></tr>
 <tr><td>Windows</td><td>Form, block, sill, size and spacing. StairLattice is 2×2 and SlabBanded three courses, because that is what makes each one work.</td></tr>
 <tr><td>Porch</td><td>Depth, inset, which wall, the canopy's own form, and the rail block. Depth 0 is no porch.</td></tr>

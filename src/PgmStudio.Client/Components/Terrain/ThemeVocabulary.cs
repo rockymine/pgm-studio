@@ -352,6 +352,8 @@ public sealed record RoomPartInfo(string Id, string Title, string Blurb, string?
             "The course the walls stand on, laid one block proud of them on every side, so the building meets the ground on a footing instead of stopping dead at it."),
         new(RoomParts.Verge, "Verge",
             "The roof's own border — its eave course and its two verges, and the ridge cap where the roof wears one. Unbound, it is the roof's material."),
+        new(RoomParts.Gable, "Gable face",
+            "The triangle a sloped roof leaves standing at each end. Unbound, it is the wall's top course carried up — a wall that bands as it rises has no band left to give it, since the courses run out at the wall's top."),
     ];
 
     public static RoomPartInfo Of(string part)

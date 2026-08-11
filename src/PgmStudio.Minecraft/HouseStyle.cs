@@ -141,6 +141,17 @@ public sealed record HouseStyle
     /// unset.</summary>
     public TerrainMaterial? Post { get; init; } = new SolidMaterial(Blocks.Log, Oak);
 
+    /// <summary>The triangle of wall a sloped roof leaves standing at each end, or null to carry the wall's own
+    /// top course up into it.
+    ///
+    /// <para>Its own material because the gable is the one piece of wall the <b>roof</b> shapes, and because a
+    /// wall's stack has nothing left to say about it: the courses run out at the wall's top, so a wall that
+    /// bands as it rises goes flat the moment it turns into a gable. Naming it separately is what makes the
+    /// timbered gable over a plain wall — the thing nearly every hand-built house on the corpus does — sayable
+    /// at all. Unset it is the wall's top course, which is what every shell was before there was a name for
+    /// it.</para></summary>
+    public TerrainMaterial? Gable { get; init; }
+
     /// <summary>The body of each roof slope.
     ///
     /// <para><b>A slope that climbs a whole block per block must be laid in whole blocks.</b> A slab fills only

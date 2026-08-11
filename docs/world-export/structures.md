@@ -232,6 +232,15 @@ climb to meet the roof** wherever the roof stands above them: the gable's two en
 both its flanks, and nothing at all under a hip, whose slopes come down to the wall line on every side. That
 one rule replaced the gable's own end-wall pass.
 
+What they climb in is the **gable**, a part of its own. Unbound it is the wall's top course carried up, which
+is what every shell was before the face had a name — and note that it is the wall's top course rather than the
+stack continuing to count, because the courses have run out by then: a wall that bands as it rises goes flat
+the moment it turns into a gable, and there is nothing left in the stack to say otherwise. Naming the face
+separately is what makes a timbered or shingled gable over a plain wall sayable, which is what nearly every
+hand-built house on the corpus does. The **verge** is a different piece again: it is the roof's own outermost
+ring, so on a flush roof it is the raking edge directly over the gable, and under an eave it moves out to the
+overhang and the rake at the wall line is plain roof.
+
 The roof's remaining knobs are its **thickness** (its extent), its **hole** — a flat lid only; a sloped roof
 has a volume of its own and a hole in a slope is a leak rather than a light — and its **ridge cap**, the line
 the slopes meet on laid in the verge rather than in the roof's own material. The hole is measured and centred

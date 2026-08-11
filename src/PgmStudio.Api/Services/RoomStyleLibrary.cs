@@ -116,6 +116,9 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, ThemeStore styles)
             // A house's three: unbound they stay what a shell is — corners that are wall like the rest of it,
             // no footing, and a rim in the roof's own material.
             Post = Bound(RoomParts.Post),
+            // Unbound the gable is the wall's top course carried up, which is what every stored style was
+            // before the face had a name of its own.
+            Gable = Bound(RoomParts.Gable),
             Sill = Material(RoomParts.Sill, builtIn.Sill),
             Verge = Material(RoomParts.Verge, Material(RoomParts.Roof, builtIn.Roof)),
             // The floor's top course in plan. Each zone is unbound until a course names it, and an unbound

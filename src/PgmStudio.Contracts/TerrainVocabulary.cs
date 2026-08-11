@@ -104,6 +104,12 @@ public static class RoomParts
     public const string Sill = "sill";
     public const string Verge = "verge";
 
+    /// <summary>The triangle of wall a sloped roof leaves standing at each end — the face a timbered or
+    /// shingled gable is made of. It is a part rather than a course of the wall because it is the one piece of
+    /// wall the <em>roof</em> decides the shape of, and because a wall that bands as it rises has no band left
+    /// to give it: the courses run out at the wall's top and the gable is whatever the last one was.</summary>
+    public const string Gable = "gable";
+
     /// <summary>The three zones of the floor's <em>top</em> course — the ring hugging the walls, the open
     /// floor across the rest, and a plate centred in it. They are parts rather than courses of the floor
     /// because they divide it in plan and the floor's own stack divides it in depth; each takes one material,
@@ -114,7 +120,7 @@ public static class RoomParts
 
     /// <summary>The parts bottom-up, the order a shell is stamped in.</summary>
     public static readonly string[] All =
-        [Floor, Field, Border, Inlay, Wall, Roof, Post, Sill, Verge];
+        [Floor, Field, Border, Inlay, Wall, Gable, Roof, Post, Sill, Verge];
 }
 
 /// <summary>Which roof a stored style asks for — the wire words for <c>RoofForm</c>. Every one of them is a

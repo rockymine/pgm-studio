@@ -119,13 +119,16 @@ public static class HouseStamper
             }
 
         // The walls climb to meet it: a gable's two ends, a shed's back wall and its triangular flanks, and
-        // nothing under a hip, whose slopes already come down to the wall line on every side.
+        // nothing under a hip, whose slopes already come down to the wall line on every side. What they climb
+        // in is the gable's own material where the style names one, else the wall's top course carried up —
+        // the wall's stack has nothing left to say by then, since its courses ran out at the wall's top.
         for (var x = body.MinX; x <= body.MaxX; x++)
             for (var z = body.MinZ; z <= body.MaxZ; z++)
             {
                 if (!body.OnPerimeter(x, z)) continue;
                 for (var fill = wallTop + 1; fill < roof.Underside(x, z); fill++)
-                    PutPart(x, fill, z, style.Wall, style.Wall.Extent - 1, body);
+                    if (style.Gable is { } gable) Put(x, fill, z, gable, body);
+                    else PutPart(x, fill, z, style.Wall, style.Wall.Extent - 1, body);
             }
 
         StampDoors();

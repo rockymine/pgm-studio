@@ -208,6 +208,43 @@ public sealed class HouseStamperTests
     }
 
     [Test]
+    public async Task A_bound_gable_faces_the_triangle_and_leaves_the_wall_below_it_alone()
+    {
+        // The classic look the wall's own stack cannot say: a timbered gable over a plain wall.
+        var world = House(13, 9, new HouseStyle
+        {
+            Wall = RoomPart.Of(new SolidMaterial(Blocks.QuartzBlock), 5),
+            Gable = new SolidMaterial(Blocks.Obsidian),
+            Overhang = 0,
+        });
+
+        // The triangle above the wall top is the gable's material...
+        await Assert.That(world.GetBlock(0, FloorY + 7, 4).Id).IsEqualTo(Blocks.Obsidian);
+        await Assert.That(world.GetBlock(12, FloorY + 7, 4).Id).IsEqualTo(Blocks.Obsidian);
+        // ...and the wall below it is untouched, gable and wall being different parts of one building.
+        await Assert.That(world.GetBlock(0, FloorY + 3, 4).Id).IsEqualTo(Blocks.QuartzBlock);
+        // Nothing of it lands on the long walls, which a gable roof does not leave a triangle on.
+        await Assert.That(world.GetBlock(6, FloorY + 7, 0).Id).IsNotEqualTo(Blocks.Obsidian);
+    }
+
+    [Test]
+    public async Task An_unbound_gable_is_the_walls_top_course_and_not_the_next_one_in_its_stack()
+    {
+        // A stack longer than the wall it fills: the gable takes what actually tops the wall, not the course
+        // the stack would have gone on to had the wall been taller. Naming the part changed nothing here — a
+        // style that never binds it builds exactly what it always did.
+        var stack = new RoomPart(
+            [new RoomCourse(new SolidMaterial(Blocks.Cobblestone)),
+             new RoomCourse(new SolidMaterial(Blocks.QuartzBlock)),
+             new RoomCourse(new SolidMaterial(Blocks.Obsidian))], 2);
+        var world = House(13, 9, new HouseStyle { Wall = stack, Post = null, Overhang = 0 });
+
+        await Assert.That(world.GetBlock(0, FloorY + 2, 4).Id).IsEqualTo(Blocks.QuartzBlock);   // the wall's top
+        await Assert.That(world.GetBlock(0, FloorY + 4, 4).Id).IsEqualTo(Blocks.QuartzBlock);   // the gable
+        await Assert.That(world.GetBlock(0, FloorY + 4, 4).Id).IsNotEqualTo(Blocks.Obsidian);
+    }
+
+    [Test]
     public async Task A_ridge_cap_lays_the_line_the_slopes_meet_on_in_the_verge()
     {
         var capped = House(11, 9, new HouseStyle { RidgeCap = true, Verge = new SolidMaterial(Blocks.Obsidian) });
