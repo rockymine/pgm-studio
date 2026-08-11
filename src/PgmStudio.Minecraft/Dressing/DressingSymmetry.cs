@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Geom.Algorithms;
 
@@ -55,6 +56,28 @@ public sealed record DressingSymmetry(string? Mode = null, double CenterX = 0, d
             var (x, z) = Symmetry.Point(point[0], point[1], Mode, CenterX, CenterZ, k);
             return new[] { x, z };
         })];
+    }
+
+    /// <summary>The <paramref name="k"/>-th image of a wall's outward direction.
+    /// <para>A building's door is the case this exists for. Fanning a house's <em>rectangle</em> puts a copy on
+    /// the far side of the map, but the copy's door stays on whichever compass side the original's was — so a
+    /// mirrored pair face the same way and one team walks out toward the other's half. An edge is a direction,
+    /// so it turns the way an offset does: take its outward normal round the orbit and read back whichever wall
+    /// that lands on.</para></summary>
+    public RoomEdge TurnEdge(RoomEdge edge, int k)
+    {
+        if (k == 0) return edge;
+        var (dx, dz) = edge switch
+        {
+            RoomEdge.NegZ => (0.0, -1.0),
+            RoomEdge.PosZ => (0.0, 1.0),
+            RoomEdge.NegX => (-1.0, 0.0),
+            _ => (1.0, 0.0),
+        };
+        var (tx, tz) = TurnOffset(dx, dz, k);
+        return Math.Abs(tx) >= Math.Abs(tz)
+            ? tx < 0 ? RoomEdge.NegX : RoomEdge.PosX
+            : tz < 0 ? RoomEdge.NegZ : RoomEdge.PosZ;
     }
 
     /// <summary>The <paramref name="k"/>-th image of a prop-local block offset.

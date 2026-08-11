@@ -167,9 +167,7 @@ public static class HouseStamper
         }
 
         // ── the porch ─────────────────────────────────────────────────────────────────────────────────
-        // The strip the walls gave up, roofed and posted. Its canopy is seated by where its *ridge* has to
-        // land — tucked one course over the wall, under the house's own eave — rather than by where its plane
-        // starts, because that is the same statement for all six forms while the plane's start is not.
+        // The strip the walls gave up, roofed and posted.
         void StampPorch(Footprint porch, PorchStyle porchStyle)
         {
             // The deck's open side is the wall's own outward face: the strip was taken off that wall, so the
@@ -177,11 +175,17 @@ public static class HouseStamper
             var outer = front;
             var seated = new RoofField(
                 porchStyle.Roof, porch.MinX, porch.MinZ, porch.MaxX, porch.MaxZ, overhang, 0, pitch, outer);
-            var canopy = seated.Raised(wallTop + 1 - seated.Peak);
-            // A canopy that drops below the door it fronts is a porch nobody can walk under, so it is lifted
-            // until its lowest course clears the doorway rather than being allowed to close it.
-            var clear = floorY + doorHeight + 2;
-            if (canopy.Trough < clear) canopy = canopy.Raised(clear - canopy.Trough);
+
+            // The canopy is seated by its own *lowest* course rather than by its ridge: that course has to
+            // clear the doorway the porch fronts, and where it lands the ridge follows by however far the form
+            // happens to fall. One statement for all six, and a statement about the thing that matters, since
+            // a canopy resting on the door head is a porch nobody can walk under.
+            //
+            // It is deliberately not seated under the house's eave. On a house the two agree — a five-course
+            // wall puts its eave about where a porch wants its roof anyway — and on a tower they do not: a
+            // canopy chasing the eave rides the wall up twenty courses and leaves a colonnade over a doorway
+            // open to the sky.
+            var canopy = seated.Raised(floorY + doorHeight + 2 - seated.Trough);
 
             for (var x = canopy.MinX; x <= canopy.MaxX; x++)
                 for (var z = canopy.MinZ; z <= canopy.MaxZ; z++)

@@ -3453,6 +3453,26 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   way it climbs, and a material resolving data from where the cell sits would turn all four the same way.
   M0016 carries the new knobs; `border`/`field`/`inlay` are three more parts a course may bind, so the floor's
   zones needed no column. (G34d)
+- **A building is a dressing prop — drag a rectangle, raise a shell (G34e).** A house no longer only appears
+  where a wool cage or a spawn cube does. `HouseProp` is the dressing stage's sixth prop
+  (`docs/world-export/decoration.md` §8): an author drags a footprint in the Dressing phase and the same
+  `HouseStamper` raises the same `HouseStyle` on it. Rooms are untouched — they still resolve their frames from
+  plan pieces and markers (WX1) and stamp before the painter, carrying the pad, monuments, chests and entry
+  contract a prop has none of; a building is scenery a player walks into, stamped after the painter with the
+  rest of the dressing. **The rectangle is a third interaction** beside the marker's click and the outline's
+  trace, stored as its **two opposite corners** so the orbit fan mirrors it as the shape it is — a quarter turn
+  swaps its width and depth with nothing told to swap them — and the **door turns with it**
+  (`DressingSymmetry.TurnEdge`), or a mirrored pair both open toward the same half of the map. It is
+  deliberately **not gated on the protected mask and never joins it**: that mask tells a *scatter* where not to
+  grow, and a building is not scattered — someone drew this rectangle, and a refusal would silently drop a
+  placement they can see. Its cells do join the pass's running claim, which is the different rule that stops
+  grass growing through the walls. Ground is physics rather than policy: it seats on the lowest column of its
+  own footprint so it settles into a slope, and an image over the void raises nothing. The shell is a snapshot
+  on the prop, not a library id (structures.md §9). **The porch's canopy is seated by its own lowest course**
+  clearing the doorway rather than by the eave above it — one statement for all six canopy forms, and the one
+  that survives a tower: a wall is a `RoomPart` extent whose last course repeats, so a twenty-four-course
+  building is an ordinary style, and a canopy chasing that eave rode the wall the whole way up as a colonnade
+  with the door it fronted left open to the sky. (G34e)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds

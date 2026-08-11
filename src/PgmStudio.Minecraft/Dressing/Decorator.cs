@@ -1,5 +1,9 @@
 using PgmStudio.Geom;
 using PgmStudio.Geom.Algorithms;
+// Named one by one rather than by namespace: Domain and Geom both carry a Vec3, and this file already means
+// Geom's everywhere it says one.
+using RoomDoor = PgmStudio.Domain.RoomDoor;
+using RoomEdge = PgmStudio.Domain.RoomEdge;
 
 namespace PgmStudio.Minecraft.Dressing;
 
@@ -24,7 +28,8 @@ public sealed record DressingContext(
 
 /// <summary>What one pass placed, for a caller that wants to report or preview it rather than only write it.
 /// Counted as placed, images included — two mirrored boulders are two boulders.</summary>
-public readonly record struct DressingTally(int Plants, int Boulders, int Trees, int PathCells, int WaterCells);
+public readonly record struct DressingTally(
+    int Plants, int Boulders, int Trees, int PathCells, int WaterCells, int Houses);
 
 /// <summary>
 /// The dressing pass: the third and last walk over a realized world (docs/world-export/decoration.md). The
@@ -58,7 +63,8 @@ public static class Decorator
         // Order is what keeps the parts from growing through each other. Water goes first because it is the one
         // prop that carves the ground — everything after it seats on what it leaves. Then paths, which become
         // bare ground for the props above them (a route with a tree in the middle of it is not a route), then
-        // the big props, each an exclusion for the small ones, and cover last, into whatever is left.
+        // buildings, which are the largest exclusion there is, then the big props, each an exclusion for the
+        // small ones, and cover last, into whatever is left.
         var taken = new HashSet<(int X, int Z)>();
         var tally = new DressingTally();
 
@@ -66,6 +72,8 @@ public static class Decorator
             tally = tally with { WaterCells = tally.WaterCells + PlaceWater(world, context, prop, taken) };
         foreach (var prop in context.Props.OfType<PathProp>())
             tally = tally with { PathCells = tally.PathCells + PlacePath(world, context, prop, taken) };
+        foreach (var prop in context.Props.OfType<HouseProp>())
+            tally = tally with { Houses = tally.Houses + PlaceHouse(world, context, prop, taken) };
         foreach (var prop in context.Props.OfType<BoulderProp>())
             tally = tally with { Boulders = tally.Boulders + PlaceBoulder(world, context, prop, taken) };
         foreach (var prop in context.Props.OfType<TreeProp>())
@@ -260,6 +268,74 @@ public static class Decorator
     }
 
     // ── boulders (DR-SC) ────────────────────────────────────────────────────────
+    // ── buildings (DR-HO) ───────────────────────────────────────────────────────
+    /// <summary>
+    /// Raise a building on the rectangle its author dragged, at every image of its orbit.
+    ///
+    /// <para><b>It is not gated on the protected mask, and it never joins it.</b> That mask exists to keep a
+    /// scatter off the cells the map is played through — a flower field is generated, so it has to be told
+    /// where not to grow. A building is not generated: someone drew this rectangle here, on purpose, and a
+    /// refusal would silently drop a placement the author can see on the canvas. Its cells do join the pass's
+    /// running <see cref="taken"/> set, which is a different thing entirely — that is the rule that keeps grass
+    /// from growing through the walls, exactly as a path's cells claim the road.</para>
+    ///
+    /// <para>What it does need is ground, and that is physics rather than policy: it seats on the
+    /// <b>lowest</b> column of its own footprint, so it settles into a slope rather than standing on stilts
+    /// over the low side, and one course down, so the floor sinks into what it stands on the way a room's does.
+    /// An image with no ground under it at all raises nothing.</para>
+    /// </summary>
+    private static int PlaceHouse(
+        VoxelWorld world, DressingContext context, HouseProp house, HashSet<(int X, int Z)> taken)
+    {
+        if (house.Footprint() is not { } plan) return 0;
+        var placed = 0;
+
+        for (var k = 0; k < context.Symmetry.Order; k++)
+        {
+            // The rectangle goes round the orbit as the shape it is, so a quarter turn swaps its width and
+            // depth without the stamp being told; the door turns with it, or a mirrored pair open the same way.
+            var corners = context.Symmetry.ImageRing(house.Points, k);
+            if (new HouseProp { Points = corners }.Footprint() is not { } image) continue;
+            var front = house.Front is { } edge ? context.Symmetry.TurnEdge(edge, k) : (RoomEdge?)null;
+
+            var floorY = Ground(context, image);
+            if (floorY is null) continue;
+
+            HouseStamper.Stamp(
+                world, image.MinX, image.MinZ, image.Width, image.Depth, floorY.Value, house.Style,
+                doors: front is { } side ? Doorway(house.Style, image, side) : null);
+
+            for (var x = image.MinX; x < image.MinX + image.Width; x++)
+                for (var z = image.MinZ; z < image.MinZ + image.Depth; z++)
+                    taken.Add((x, z));
+            placed++;
+        }
+        return placed;
+    }
+
+    /// <summary>The course a building's floor sits at: one below the lowest ground its footprint covers, or
+    /// null where that footprint has no ground at all.</summary>
+    private static int? Ground(DressingContext context, (int MinX, int MinZ, int Width, int Depth) plan)
+    {
+        var lowest = int.MaxValue;
+        for (var x = plan.MinX; x < plan.MinX + plan.Width; x++)
+            for (var z = plan.MinZ; z < plan.MinZ + plan.Depth; z++)
+                if (context.SurfaceTop.TryGetValue((x, z), out var top)) lowest = Math.Min(lowest, top);
+        return lowest == int.MaxValue || lowest < 2 ? null : lowest - 1;
+    }
+
+    /// <summary>The one doorway a chosen wall asks for: centred on that wall and clear of both corner posts,
+    /// which is what the building would cut for itself on a long side. Stated as a door rather than left to the
+    /// stamper because the stamper picks the <em>side</em> as well, and here the side is the author's.</summary>
+    private static IReadOnlyList<RoomDoor> Doorway(
+        HouseStyle style, (int MinX, int MinZ, int Width, int Depth) plan, RoomEdge front)
+    {
+        var alongSpan = front is RoomEdge.NegZ or RoomEdge.PosZ ? plan.Width : plan.Depth;
+        var alongMin = front is RoomEdge.NegZ or RoomEdge.PosZ ? plan.MinX : plan.MinZ;
+        var width = Math.Clamp(Math.Max(2, style.DoorWidth), 1, Math.Max(1, alongSpan - 2));
+        return [new RoomDoor(front, alongMin + (alongSpan - width) / 2, width)];
+    }
+
     private static int PlaceBoulder(VoxelWorld world, DressingContext context, BoulderProp boulder, HashSet<(int X, int Z)> taken)
     {
         var lobes = BoulderShapes.Of(boulder.Form, boulder.Reach);

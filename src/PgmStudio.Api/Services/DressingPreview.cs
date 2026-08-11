@@ -212,6 +212,7 @@ public static class DressingPreview
         PathProp path => path with { Points = Recentre(path.Points, x, z) },
         WaterProp water => water with { Points = Recentre(water.Points, x, z) },
         FloraProp area => area with { Points = Recentre(area.Points, x, z) },
+        HouseProp house => house with { Points = Recentre(house.Points, x, z) },
         _ => prop,
     };
 

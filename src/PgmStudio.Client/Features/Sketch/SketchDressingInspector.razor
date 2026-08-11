@@ -12,8 +12,9 @@
     @if (prop is null)
     {
       <p class="section-desc">
-        Pick a tool and place something: drag a <strong>route</strong> or an <strong>area</strong>, click to drop
-        a <strong>tree</strong> or a <strong>boulder</strong>. Click a placed prop to change it.
+        Pick a tool and place something: drag a <strong>route</strong>, an <strong>area</strong> or a
+        <strong>building</strong>'s footprint, click to drop a <strong>tree</strong> or a
+        <strong>boulder</strong>. Click a placed prop to change it.
       </p>
       <p class="section-desc">@propCount placed on this map.</p>
     }
@@ -23,7 +24,7 @@
         <span class="detail-header-badges">
           @if (editingSelection) { <Badge Kind="neutral">selected</Badge> }
           else { <Badge Kind="dim">next one</Badge> }
-          @if (kind is PropKinds.Tree or PropKinds.Boulder) { <Badge Kind="warning">affects play</Badge> }
+          @if (kind is PropKinds.Tree or PropKinds.Boulder or PropKinds.House) { <Badge Kind="warning">affects play</Badge> }
           else if (kind == PropKinds.Flora) { <Badge Kind="dim">cosmetic</Badge> }
         </span>
       </DetailHeader>
@@ -241,6 +242,42 @@
             @(Flag(PropFields.Mossy) ? "On the sky-lit faces" : "None")
           </Chip>
         </Field>
+      }
+
+      else if (kind == PropKinds.House)
+      {
+        <div class="section-header section-header--ruled"><h2 class="section-title">Shell</h2></div>
+        <p class="section-desc">The building is raised in a room style from the library. Picking one copies it
+          onto this building, so editing that library row later leaves what is already placed alone.</p>
+        <div class="prop-cards">
+          @foreach (var shell in shells)
+          {
+            <button class="prop-card @(shellName == shell.Name ? "prop-card--active" : null)"
+                    title="@shell.Name" @key="shell.Id" @onclick="() => PickShell(shell)">
+              <span class="prop-card-art">@((MarkupString)shell.Preview)</span>
+              <span class="prop-card-label">@shell.Name</span>
+            </button>
+          }
+        </div>
+        @if (shells.Count == 0)
+        {
+          <p class="section-desc">No room styles saved yet — the building keeps the built-in shell until the
+            library has one. Author one on the <strong>Library</strong> tool's Rooms tab.</p>
+        }
+
+        <div class="section-header section-header--ruled"><h2 class="section-title">Door</h2></div>
+        <p class="section-desc">Which wall the way in is cut through. It turns with the building at every
+          mirror image, so a pair never both open toward the same half of the map.</p>
+        <div class="chip-row">
+          <Chip Active="@(Text(PropFields.Front, string.Empty).Length == 0)" OnClick="() => Set(PropFields.Front, null)">
+            A long side
+          </Chip>
+          @foreach (var edge in HouseFronts)
+          {
+            <Chip Active="@(Text(PropFields.Front, string.Empty) == edge.Key)" @key="edge.Key"
+                  OnClick="() => Set(PropFields.Front, JsonValue.Create(edge.Key))">@edge.Label</Chip>
+          }
+        </div>
       }
 
       @* ── seed + delete ───────────────────────────────────────────────────────────────────────── *@

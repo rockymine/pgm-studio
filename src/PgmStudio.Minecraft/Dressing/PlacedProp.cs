@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using PgmStudio.Domain;
 using PgmStudio.Geom.Algorithms;
 
 namespace PgmStudio.Minecraft.Dressing;
@@ -24,6 +25,7 @@ namespace PgmStudio.Minecraft.Dressing;
 [JsonDerivedType(typeof(TreeProp), "tree")]
 [JsonDerivedType(typeof(BoulderProp), "boulder")]
 [JsonDerivedType(typeof(FloraProp), "flora")]
+[JsonDerivedType(typeof(HouseProp), "house")]
 public abstract record PlacedProp
 {
     /// <summary>Stable id, so a canvas can select, move and delete one prop among many.</summary>
@@ -217,4 +219,49 @@ public sealed record FloraProp : PlacedProp
     public IReadOnlyList<double[]> Points { get; init; } = [];
 
     public FloraSpec Spec { get; init; } = new();
+}
+
+/// <summary>
+/// A building standing on the terrain: the rectangle an author dragged, and the shell to raise on it.
+///
+/// <para>It is the same <see cref="HouseStyle"/> a wool cage and a spawn cube are stamped with, and the same
+/// <see cref="HouseStamper"/> raises it — but nothing else is shared, and the difference is worth stating.
+/// A <b>room</b>'s footprint comes from its plan piece (WX1), it is stamped before the painter, and it carries
+/// a pad, monuments, chests and an entry contract because the map is played through it. A <b>prop</b>'s
+/// footprint is a rectangle someone drew, it is stamped after the painter with the rest of the dressing, and it
+/// carries none of those: it is scenery a player can walk into, not a room the objectives live in.</para>
+///
+/// <para>The footprint is stored as its two opposite corners rather than as an origin and a size, so the fan
+/// mirrors it as the <em>shape</em> it is — the rule an area prop's outline already follows. A rectangle turned
+/// through ninety degrees is a rectangle whose width and depth have swapped, and taking two corners round the
+/// orbit says that without the stamp having to know it happened.</para>
+/// </summary>
+public sealed record HouseProp : PlacedProp
+{
+    /// <summary>The dragged rectangle, as exactly two opposite <c>[x, z]</c> corners.</summary>
+    public IReadOnlyList<double[]> Points { get; init; } = [];
+
+    /// <summary>Which wall the door is cut through, or null to let the building choose the middle of a long
+    /// side. A room's door is an entry contract derived from its frame; a prop has no contract to derive one
+    /// from, so here it is a choice — and one that has to be <b>turned</b> with the rest of the building at
+    /// every image of its orbit, or a mirrored pair both open toward the same side of the map.</summary>
+    public RoomEdge? Front { get; init; }
+
+    /// <summary>The shell to raise, snapshotted onto the prop rather than referenced by library id — the rule
+    /// a map's bound room styles follow (docs/world-export/structures.md §9). Editing the library row a
+    /// building was picked from must never rebuild a shipped map's scenery.</summary>
+    public HouseStyle Style { get; init; } = new();
+
+    /// <summary>The footprint in whole blocks, min inclusive, or null when the rectangle is degenerate — too
+    /// few corners, or too small to hold two walls and an inside.</summary>
+    public (int MinX, int MinZ, int Width, int Depth)? Footprint()
+    {
+        if (Points.Count < 2 || Points[0].Length < 2 || Points[1].Length < 2) return null;
+        int minX = (int)Math.Floor(Math.Min(Points[0][0], Points[1][0]));
+        int minZ = (int)Math.Floor(Math.Min(Points[0][1], Points[1][1]));
+        int maxX = (int)Math.Floor(Math.Max(Points[0][0], Points[1][0]));
+        int maxZ = (int)Math.Floor(Math.Max(Points[0][1], Points[1][1]));
+        int width = maxX - minX + 1, depth = maxZ - minZ + 1;
+        return width < 3 || depth < 3 ? null : (minX, minZ, width, depth);
+    }
 }

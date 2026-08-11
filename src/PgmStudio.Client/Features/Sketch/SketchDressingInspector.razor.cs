@@ -120,9 +120,31 @@ public partial class SketchDressingInspector
         if (kind == PropKinds.Water && waterForms.Count == 0) waterForms = await Library.WaterFormsAsync();
         if (kind == PropKinds.Boulder && boulderForms.Count == 0) boulderForms = await Library.BoulderFormsAsync(Spec(PropFields.Rock));
         if (kind == PropKinds.Tree && species.Count == 0) species = await Library.SpeciesAsync();
+        if (kind == PropKinds.House && shells.Count == 0) shells = await Library.RoomStylesAsync();
         if (!editingSelection && prop is null) await LoadToolSettings();
         if (kind == PropKinds.Tree && IsGrown) await LoadWoods();
     }
+
+    /// <summary>The shell a building would be raised in, offered as the library's own cards. Picking one
+    /// copies its JSON onto the prop rather than storing its id — a snapshot, the rule a map's bound room
+    /// styles follow, so editing that library row later cannot rebuild a map's scenery.</summary>
+    private async Task PickShell(RoomStyleSummary shell)
+    {
+        var json = await Library.RoomStyleJsonAsync(shell.Id);
+        if (json is null) return;
+        Set(PropFields.Style, JsonNode.Parse(json));
+        shellName = shell.Name;
+    }
+
+    private string? shellName;
+    private IReadOnlyList<RoomStyleSummary> shells = [];
+
+    /// <summary>The four walls a door may be cut through, in the wire words <c>RoomEdge</c> serializes as.
+    /// Named here rather than in the markup because a Razor markup lambda cannot hold a string literal.</summary>
+    private static readonly (string Key, string Label)[] HouseFronts =
+    [
+        ("negZ", "−z"), ("posZ", "+z"), ("negX", "−x"), ("posX", "+x"),
+    ];
 
     /// <summary>Whether the tree being edited is the grown one rather than a vanilla template.</summary>
     private bool IsGrown => Text(PropFields.Form, PropFields.TemplateForm) == PropFields.GrownForm;
@@ -272,6 +294,7 @@ public partial class SketchDressingInspector
             [PropKinds.Flora] = ("flower", "Cover", "Grass, fern and flowers over the soil inside the area you drew. Masked by the paint beneath — nothing grows on a plaza's quartz."),
             [PropKinds.Tree] = ("trees", "Tree", "One tree, standing where you put it. Mirrored across the map's symmetry, so both teams get the same cover."),
             [PropKinds.Boulder] = ("mountain", "Boulder", "One rock, half-buried where you put it. Mirrored across the map's symmetry, so both teams get the same cover."),
+            [PropKinds.House] = ("home", "Building", "A building on the rectangle you dragged, raised in a shell from the room-style library. It settles into the ground it covers, and it is mirrored across the map's symmetry, so both teams get the same cover."),
         };
 
     private (string Icon, string Title, string Blurb) Info
@@ -299,12 +322,17 @@ public static class PropKinds
     public const string Flora = "flora";
     public const string Tree = "tree";
     public const string Boulder = "boulder";
+    public const string House = "house";
 }
 
 /// <summary>A prop's own fields (see <see cref="PropKinds"/> for why these are constants).</summary>
 public static class PropFields
 {
     public const string Radius = "radius";
+    /// <summary>Which wall a building's door is cut through — <c>null</c> lets it pick a long side.</summary>
+    public const string Front = "front";
+    /// <summary>A path's band style, and a building's whole shell. One wire name, two prop kinds: the field is
+    /// named once here because it is one field name, whatever the prop it sits on means by it.</summary>
     public const string Style = "style";
     public const string Coverage = "coverage";
     /// <summary>What a path is paved with — a full terrain material, not a block list.</summary>
@@ -361,6 +389,7 @@ public static class DressingTools
     public const string Path = "dress:path";
     public const string Water = "dress:water";
     public const string Flora = "dress:flora";
+    public const string House = "dress:house";
     public const string Tree = "dress:tree";
     public const string Boulder = "dress:boulder";
 
@@ -371,6 +400,7 @@ public static class DressingTools
         (Path, PropKinds.Path, "spline", "Path"),
         (Water, PropKinds.Water, "droplet", "Water"),
         (Flora, PropKinds.Flora, "flower", "Ground cover"),
+        (House, PropKinds.House, "home", "Building"),
         (Tree, PropKinds.Tree, "trees", "Tree"),
         (Boulder, PropKinds.Boulder, "mountain", "Boulder"),
     ];

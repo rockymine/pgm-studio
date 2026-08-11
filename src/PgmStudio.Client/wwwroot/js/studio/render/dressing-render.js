@@ -13,13 +13,14 @@
  */
 
 import { pathRing, pathCenterline } from "../geometry/path.js";
-import { isMarker, propAnchor, propReach } from "../dressing/dressing-doc.js";
+import { isMarker, isRect, propAnchor, propReach, rectFootprint } from "../dressing/dressing-doc.js";
 
 // One colour family per kind, so a glance separates a route from a stand of trees without reading a label.
 const KIND_STYLE = {
   path:    { fill: "#8d8378", stroke: "#6f6459" },
   water:   { fill: "#4a86c4", stroke: "#2f5f92" },
   flora:   { fill: "#5aa64a", stroke: "#3f7f33" },
+  house:   { fill: "#b08050", stroke: "#7d5732" },
   tree:    { fill: "#2f7d46", stroke: "#1f5a31" },
   boulder: { fill: "#8a8f96", stroke: "#5f656d" },
 };
@@ -67,8 +68,10 @@ export function paintDressingPreview(painter, kind, points, radius) {
   if (!points || points.length < 2) return;
   const kindStyle = KIND_STYLE[kind] ?? KIND_STYLE.boulder;
   const style = { fill: kindStyle.fill, fillAlpha: 0.2, stroke: kindStyle.stroke, width: 1, dash: [5, 3], fillRule: "evenodd" };
-  const ring = (kind === "path" || kind === "water") ? pathRing({ points, radius }) : [...points, points[0]];
-  if (ring.length >= 3) painter.ring(ring.slice(0, -1), style);
+  const ring = isRect(kind)
+    ? rectRing({ points })
+    : (kind === "path" || kind === "water") ? pathRing({ points, radius }) : [...points, points[0]];
+  if (ring.length >= 3) painter.ring(isRect(kind) ? ring : ring.slice(0, -1), style);
 }
 
 /** Where a marker will be dropped, before the click that drops it. Over the void it reads as refused — a red
@@ -93,7 +96,27 @@ function footprint(prop, image, mirrorPoint) {
     const ring = pathRing(prop);
     return ring.length ? ring.slice(0, -1).map(([x, z]) => mirror(x, z)) : [];
   }
+  // A rectangle is stored as two opposite corners, so it is opened into four before being mirrored — turning
+  // the corners is what makes a quarter-turn image swap the building's width and depth, exactly as the export
+  // does when it fans the same two points.
+  if (isRect(prop)) return rectRing(prop).map(([x, z]) => mirror(x, z));
   return (prop.points ?? []).map(([x, z]) => mirror(x, z));
+}
+
+/** The four corners of a rect prop, spanning the whole blocks it covers — so the drawn outline is the
+ *  footprint the stamp takes rather than the two cells the pointer happened to be over. */
+function rectRing(prop) {
+  const plan = rectFootprint(prop);
+  if (!plan) {
+    const points = prop?.points ?? [];
+    if (points.length < 2) return [];
+    const [x0, z0] = points[0], [x1, z1] = points[1];
+    const [ax, bx] = [Math.min(x0, x1), Math.max(x0, x1) + 1];
+    const [az, bz] = [Math.min(z0, z1), Math.max(z0, z1) + 1];
+    return [[ax, az], [bx, az], [bx, bz], [ax, bz]];
+  }
+  const { minX, minZ, width, depth } = plan;
+  return [[minX, minZ], [minX + width, minZ], [minX + width, minZ + depth], [minX, minZ + depth]];
 }
 
 function disc(cx, cz, radius) {

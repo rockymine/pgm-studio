@@ -307,6 +307,75 @@ public sealed class HouseStamperTests
     }
 
     [Test]
+    public async Task A_porch_sits_at_porch_height_however_tall_the_building_behind_it_is()
+    {
+        // The canopy is seated by its own lowest course clearing the doorway, not by the eave overhead. Seating
+        // it under the eave is the same answer on a house and absurd on a tower, where it would ride the wall
+        // up and leave a colonnade over a door open to the sky.
+        static int CanopyTop(int wallExtent)
+        {
+            var world = House(13, 11, new HouseStyle
+            {
+                Wall = RoomPart.Of(new SolidMaterial(Blocks.Cobblestone), wallExtent),
+                Porch = new PorchStyle { Depth = 2 },
+                Door = DoorMaterial.Air,
+            });
+            var top = 0;
+            for (var x = 1; x < 12; x++)
+                for (var y = FloorY + 1; y < FloorY + 40; y++)
+                    if (world.GetBlock(x, y, 0).Id != Blocks.Air) top = Math.Max(top, y - FloorY);
+            return top;
+        }
+
+        // A five-course house and a twenty-four-course tower wear the same porch at the same height.
+        var house = CanopyTop(5);
+        await Assert.That(house).IsEqualTo(6);
+        foreach (var extent in new[] { 3, 8, 12, 24 })
+            await Assert.That(CanopyTop(extent)).IsEqualTo(house);
+    }
+
+    [Test]
+    public async Task A_porch_leaves_the_way_out_of_its_doorway_walkable()
+    {
+        // The invariant the seating rule exists for, at every wall height: the two courses a player occupies
+        // stepping out of the door and off the deck are clear of the canopy over them.
+        foreach (var extent in new[] { 3, 4, 5, 8, 24 })
+        {
+            var world = House(13, 11, new HouseStyle
+            {
+                Wall = RoomPart.Of(new SolidMaterial(Blocks.Cobblestone), extent),
+                Porch = new PorchStyle { Depth = 2 },
+                Door = DoorMaterial.Air,
+            });
+            for (var z = 0; z <= 2; z++)                       // off the deck, across it, and the doorway itself
+                for (var y = FloorY + 1; y <= FloorY + 2; y++)
+                    await Assert.That(world.GetBlock(6, y, z).Id).IsEqualTo(Blocks.Air);
+        }
+    }
+
+    [Test]
+    public async Task A_tower_is_a_tall_wall_and_nothing_else()
+    {
+        // Height is the wall part's extent and its last course repeats, so a tower needs no form of its own —
+        // and a hip over a square footprint comes to a point, which is the cap one wants.
+        var style = new HouseStyle
+        {
+            Wall = RoomPart.Of(new SolidMaterial(Blocks.Cobblestone), 24),
+            Form = RoofForm.Hip, Door = DoorMaterial.StainedGlass,
+        };
+        var world = House(5, 5, style);
+
+        await Assert.That(Leaks(world, 5, 5)).IsFalse();
+
+        var highest = FloorY;
+        for (var x = -3; x < 8; x++)
+            for (var z = -3; z < 8; z++)
+                for (var y = FloorY; y < FloorY + 40; y++)
+                    if (world.GetBlock(x, y, z).Id != Blocks.Air) highest = Math.Max(highest, y);
+        await Assert.That(highest - FloorY).IsEqualTo(style.TopLayerOver(5, 5));
+    }
+
+    [Test]
     public async Task A_house_with_windows_and_a_porch_is_still_sealed()
     {
         var world = House(13, 11, new HouseStyle

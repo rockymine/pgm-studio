@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { DressingDoc, defaultProp, isMarker, propAnchor, translateProp }
+import { DressingDoc, defaultProp, isMarker, isRect, propAnchor, rectFootprint, translateProp }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/dressing/dressing-doc.js";
 import { DressingController, DRESSING_TOOLS }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/controllers/dressing-controller.js";
@@ -255,4 +255,51 @@ test("delete removes the selection and nothing else", () => {
   assert.equal(doc.props.length, 1);
   assert.equal(doc.props[0].kind, "tree");
   assert.ok(!tools.deleteSelected());
+});
+
+// ── buildings: the third interaction ──────────────────────────────────────────
+test("a building is a rectangle, and reads the same whichever corner it was dragged from", () => {
+  assert.equal(isRect("house"), true);
+  assert.equal(isRect("flora"), false);
+
+  const forward = rectFootprint({ points: [[4, 6], [12, 14]] });
+  assert.deepEqual(forward, { minX: 4, minZ: 6, width: 9, depth: 9 });
+  assert.deepEqual(rectFootprint({ points: [[12, 14], [4, 6]] }), forward);
+  assert.deepEqual(rectFootprint({ points: [[12, 6], [4, 14]] }), forward);
+});
+
+test("a rectangle too small to hold two walls and an inside is no footprint at all", () => {
+  assert.equal(rectFootprint({ points: [[0, 0], [1, 8]] }), null);
+  assert.notEqual(rectFootprint({ points: [[0, 0], [2, 2]] }), null);
+  assert.equal(rectFootprint({ points: [[0, 0]] }), null);
+});
+
+test("dragging a building keeps two corners however far the pointer wandered", () => {
+  // A rectangle's second corner is rewritten by every move where a traced outline appends one — otherwise a
+  // wandering drag would store a hundred points the stamp has no use for.
+  const { doc, tools } = controller();
+  drag(tools, "dress:house", [[2, 3], [5, 6], [9, 4], [12, 9]]);
+
+  assert.equal(doc.props.length, 1);
+  assert.equal(doc.props[0].kind, "house");
+  assert.equal(doc.props[0].points.length, 2);
+  assert.deepEqual(rectFootprint(doc.props[0]), { minX: 2, minZ: 3, width: 11, depth: 7 });
+});
+
+test("a building drag too small to stand up places nothing", () => {
+  const { doc, tools } = controller();
+  drag(tools, "dress:house", [[4, 4], [5, 9]]);
+  assert.equal(doc.props.length, 0);
+});
+
+test("a building moves as a whole, corners together", () => {
+  const moved = translateProp({ kind: "house", points: [[2, 3], [10, 9]] }, 5, -2);
+  assert.deepEqual(moved.points, [[7, 1], [15, 7]]);
+});
+
+test("a building tool is a tool like any other", () => {
+  assert.equal(DRESSING_TOOLS["dress:house"], "house");
+  assert.equal(isMarker("house"), false);
+  assert.deepEqual(defaultProp("house").points, []);
+  assert.equal(defaultProp("house").front, null);
 });

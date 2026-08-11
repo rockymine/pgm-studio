@@ -81,10 +81,11 @@ one stage rather than four:
 - **Mask.** Eligibility from the painted surface (soil vs. quartz, read from the top block) and from the
   plan's protected regions (spawns, objectives, structures) as exclusion zones. Nothing lands where it would
   break play or read wrong. A path's own cells join the mask as it is laid, so nothing grows through a road.
-- **Placement.** A **point** for the props that stand somewhere (a tree, a boulder) and a **drawn outline**
-  for the ones that cover a stretch (a route along a line, cover inside a ring). Two interactions, and the
-  split is the model's: a marker is a click because a spot is a click, and an area is a drag because tracing
-  is how a stretch of ground is described. A marker seats on the ground, so it can only be dropped **on the
+- **Placement.** A **point** for the props that stand somewhere (a tree, a boulder), a **drawn outline** for
+  the ones that cover a stretch (a route along a line, cover inside a ring), and a **dragged rectangle** for
+  the one whose stamp takes a footprint (a building, §8). Three interactions, and the split is the model's: a
+  marker is a click because a spot is a click, an area is a trace because tracing is how a stretch of ground
+  is described, and a rectangle is a two-corner drag because that is what a box is. A marker seats on the ground, so it can only be dropped **on the
   rasterized terrain** — the canvas refuses a click over a gap or off the map (a red ghost, no drop), because
   the stamp below would refuse it anyway. An **area** has no such limit: a route or a channel may be drawn
   across a void, and only its cells that land on real ground do anything.
@@ -326,7 +327,45 @@ pale gravel, coarse dirt) showing through the shallows; **edge life** reusing th
 the bank (reeds, lily pads); and **ponds** — the closed version, an organic basin (the §5 boulder blob read
 concave), scattered onto low ground and joined to channels into one watershed on a single water level.
 
-## 8. What it reuses, and what it adds
+## 8. Buildings — a rectangle and a shell (`DR-HO`)
+
+A building is dressing that already had a stamper. The shell a wool cage and a spawn cube are raised in is a
+`HouseStyle` over a footprint (`structures.md` §7), and nothing in that stamper knows or cares where the
+footprint came from — so a **drawn rectangle** is as good an origin as a plan piece, and a house becomes the
+sixth prop.
+
+What differs from a room is worth stating plainly, because the two share a stamper and nothing else. A room's
+footprint is its plan piece inset one block (WX1), it is stamped **before** the painter, and it carries a pad,
+monuments, chests and an entry contract because the map is played through it. A prop's footprint is a rectangle
+someone dragged, it is stamped **after** the painter with the rest of the dressing, and it carries none of
+those. Spawns and wools are untouched by any of this: they still resolve their frames from pieces and markers,
+at the stage they always did.
+
+**The geometry is a third interaction.** A point is a click and an outline is a trace; a building is a
+press-drag-release rectangle, because a footprint is what the stamper takes and a stamper takes a box. It is
+stored as its **two opposite corners**, which is what lets the fan mirror it as the shape it is: a rectangle
+turned through ninety degrees is a rectangle whose width and depth have swapped, and taking two corners round
+the orbit says that without the stamp being told it happened. The **door turns with it** — an edge is a
+direction, so it goes round the orbit the way an offset does (`DressingSymmetry.TurnEdge`). Fanning the
+rectangle alone would put a copy on the far side of the map with its door still on the same compass side, so a
+mirrored pair would face the same way and one team would walk out toward the other's half.
+
+**It is not gated on the protected mask, and it never joins it.** That mask exists so a *scatter* can be told
+where not to grow — a flora field is generated, so it needs the instruction. A building is not generated:
+someone drew this rectangle here, and a refusal would silently drop a placement they can see on the canvas.
+Its cells do join the pass's running claim, which is a different mechanism entirely — the rule that keeps grass
+from growing through the walls, exactly as a path's cells claim the road. In the ordering that puts buildings
+after paths and before the props that scatter around them.
+
+What it does need is ground, and that is physics rather than policy: it seats on the **lowest** column of its
+own footprint, one course down, so it settles into a slope instead of standing on stilts over the low side. An
+image with no ground under it at all raises nothing.
+
+The shell is a **snapshot** on the prop, not a library id — the rule a map's bound room styles follow
+(`structures.md` §9). Picking a style from the library copies its JSON in, so editing that row later cannot
+rebuild a map's scenery.
+
+## 9. What it reuses, and what it adds
 
 The stage leans hard on machinery G157 and the sketch tools already shipped; the net-new surface is small
 and lands in the same realize seam.
@@ -338,6 +377,7 @@ and lands in the same realize seam.
 | Boulders | `SurfaceTop`; the squared-distance masks the objective stampers fill by | `Blob`; `BoulderShapes` | `DR-SC` |
 | Trees | the boulder's seating; `CatmullRom` for the limb splines | `TreeSkeleton`; `TreeCrown`; `SweptVolume`; the species rows | `DR-TR` |
 | Water | the §4 path stroke's band (channels); the §5 boulder blob + FBM edge (ponds); the §3 flora overlay (reeds) | `WaterBed` + `Decorator.PlaceWater` — the carve-and-level bed (shipped); depth shading, the shoreline band, ponds (G169) | `DR-WA` |
+| Buildings | `HouseStamper` + `HouseStyle` whole; the room-style library; `DressingSymmetry`'s outline fan | `HouseProp` + `Decorator.PlaceHouse`; the rectangle drag; `TurnEdge` for the door | `DR-HO` |
 
 Two neighbours bound the stage. G32-C (structures & elevation, the "second generator") is the sibling pass
 that gives a flat layout its heights; a boulder or tree seats on whatever surface that pass leaves, so the
@@ -347,7 +387,7 @@ once G32-C gives a layout its heights. G142 (the roughen pass) shares this stage
 last in realize, over the authored unit, symmetry re-fanned — and its edge-displacement operator is the
 path's rough edge; if both land, they share the noise operators rather than duplicating them.
 
-## 9. Where the code lives
+## 10. Where the code lives
 
 The organizing rule is the repo's own (`CLAUDE.md`): a unit of code lives in the lowest project that has the
 deps it needs and every consumer can reach — push pure algorithms down to the leaf, keep world-writing where
@@ -382,8 +422,10 @@ there:
 **`PgmStudio.Minecraft/Dressing` — the world-writing pass.** `Decorator`, sibling to `ObjectiveStamper` and
 `TerrainPainter`: it takes a `DressingContext` (the surface, the placed props, the protected set, the
 symmetry) and writes blocks via `SetBlock`. It reaches `Geom` for the algorithms and `DressingSymmetry` for
-the orbit fan. The props themselves (`PathProp`, `WaterProp`, `FloraProp`, `TreeProp`, `BoulderProp` under one
-`PlacedProp` discriminator) and the block palette live here beside `Blocks`/`BlockPalette`.
+the orbit fan. The props themselves (`PathProp`, `WaterProp`, `FloraProp`, `HouseProp`, `TreeProp`,
+`BoulderProp` under one `PlacedProp` discriminator) and the block palette live here beside
+`Blocks`/`BlockPalette`. A building's own stamper is **not** here — `HouseStamper` sits a folder up, where the
+room stampers already call it, and the pass reaches sideways to it rather than growing a second copy.
 
 **`PgmStudio.Api/Services` — reading + wiring.** `DressingScope` answers the three things the pass needs from
 a map: what was placed, how the map is mirrored, and what must be left bare. Unlike `TerrainThemeScope` there

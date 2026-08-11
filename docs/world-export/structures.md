@@ -266,10 +266,16 @@ Two details make it a porch rather than a hole in a wall. The doorway is **carri
 so a frame's entry contract survives the wall moving; and the rail **breaks exactly where that doorway crosses
 it**, because a rail running unbroken across the front would be a porch with no way onto the step.
 
-The canopy is seated by where its **ridge** has to land — tucked one course over the wall, under the house's
-own eave — rather than by where its plane starts. That is one statement for all six forms while the plane's
-start is not, so a lean-to, a gable and a hip all front the building without fighting its roof. A canopy that
-would drop below the door it fronts is lifted until its lowest course clears the doorway.
+The canopy is seated by its own **lowest course** rather than by where its plane starts or by the eave above
+it: that course has to clear the doorway the porch fronts, and where it lands the ridge follows by however far
+the form happens to fall. One statement for all six, and a statement about the thing that matters — a canopy
+resting on the door head is a porch nobody can walk under.
+
+Seating it under the house's eave instead is wrong for a reason worth keeping. On a house the two agree, since
+a five-course wall puts its eave about where a porch wants its roof anyway. On a **tower** they do not: a wall
+is a `RoomPart` extent and its last course repeats, so a building twenty-four courses tall is an ordinary
+style, and a canopy chasing that eave rides the wall the whole way up — a colonnade of posts with a roof at the
+top and the doorway it fronts left open to the sky twenty courses below.
 
 ### 7.4 Windows are cut, and chosen as a block
 

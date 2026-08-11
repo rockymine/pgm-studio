@@ -331,7 +331,7 @@ foreach (var (porch, roof, name, blurb) in new (PorchStyle? Porch, RoofForm Roof
              (new PorchStyle { Depth = 3, Inset = 3 }, RoofForm.Gable, "Deeper, pulled in",
                  "Pulling the deck in from each end makes the porch a feature of the front rather than the front itself. The room behind it loses the depth either way."),
              (new PorchStyle { Depth = 3, Inset = 2, Roof = RoofForm.Gable, RailBlock = 0 }, RoofForm.Hip, "Its own gable, no rail",
-                 "The canopy is seated by where its ridge lands — tucked one course over the wall, under the house's eave — so any form fronts the building without fighting its roof."),
+                 "The canopy is seated by its own lowest course clearing the doorway, so any form fronts the building at porch height without fighting the roof above it."),
          })
 {
     var style = basis with { Porch = porch, Form = roof, RidgeCap = true, Windows = WindowStyle.Glazed };
@@ -340,6 +340,26 @@ foreach (var (porch, roof, name, blurb) in new (PorchStyle? Porch, RoofForm Roof
     porchFigures.Append($"<article class='card'><h3>{name}</h3>")
         .Append($"<div class='fig fig--iso'>{Iso(world, -2, -2, 16, 12, FloorY - 1, top)}</div>")
         .Append($"<p>{blurb}</p></article>");
+}
+
+// The case that decided how a canopy is seated. Height is only the wall part's extent, so a tower is an
+// ordinary style — and a porch that chased the eave up one would be a colonnade rather than a porch.
+{
+    var tower = basis with
+    {
+        Wall = new RoomPart([new RoomCourse(new SolidMaterial(Blocks.Cobblestone)), new RoomCourse(plaster)], 18),
+        Form = RoofForm.Hip,
+        RidgeCap = true,
+        Windows = WindowStyle.Lattice with { Block = 164, Sill = 2 },
+        Porch = new PorchStyle { Depth = 2, Inset = 1 },
+    };
+    var world = Build(9, 9, tower);
+    var top = FloorY + tower.TopLayerOver(9, 9);
+    porchFigures.Append("<article class='card'><h3>On a tower</h3>")
+        .Append($"<div class='fig fig--iso'>{Iso(world, -2, -2, 10, 10, FloorY - 1, top, 8)}</div>")
+        .Append("<p>The same porch on an eighteen-course wall. The canopy is seated by its own lowest course ")
+        .Append("clearing the doorway rather than by the eave, so it stays a porch instead of riding the wall ")
+        .Append("to the roof as a colonnade with the door left open to the sky beneath it.</p></article>");
 }
 
 // ── figure 5: the windows ─────────────────────────────────────────────────────────────────────────────
@@ -548,7 +568,9 @@ page.Append("<section><div class='section-head'><span class='label'>Four</span><
     .Append($"<div class='grid grid--wide'>{porchFigures}</div>")
     .Append("<p class='note'>Two details make it a porch rather than a hole in a wall: the doorway is carried onto ")
     .Append("the wall's new line, and the rail breaks exactly where that doorway crosses it — a rail running ")
-    .Append("unbroken across the front would be a porch with no way onto the step.</p></section>");
+    .Append("unbroken across the front would be a porch with no way onto the step. The canopy is seated by its ")
+    .Append("own <strong>lowest</strong> course, which has to clear that doorway; the ridge follows by however ")
+    .Append("far the form happens to fall. One statement for all six, and the one that survives a tower.</p></section>");
 
 page.Append("<section><div class='section-head'><span class='label'>Five</span><h2>Three windows, two of them open</h2>")
     .Append("<p>Windows are cut out of the wall the pass has just built, so seating is the half that has to be ")

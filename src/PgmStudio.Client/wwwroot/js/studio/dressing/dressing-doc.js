@@ -9,7 +9,7 @@
  */
 
 /** The things that can be placed, in the order their tools sit on the toolbar. */
-export const PROP_KINDS = ["path", "water", "flora", "tree", "boulder"];
+export const PROP_KINDS = ["path", "water", "flora", "house", "tree", "boulder"];
 
 /** A fresh prop of each kind, before the author has touched a knob. The numbers mirror the C# record defaults,
  *  so a prop drawn on the canvas and one deserialized from an empty object are the same prop. */
@@ -41,6 +41,11 @@ export function defaultProp(kind, seed) {
     case "boulder":
       return { ...base, x: 0, z: 0, form: "round", size: 2.5, mossy: true,
                rock: { kind: "solid", id: 1, data: 0 } };
+    case "house":
+      // No style of its own until one is picked from the library: an empty object deserializes to the C#
+      // HouseStyle defaults, which is the built-in shell — so a building drawn and never dressed is still a
+      // building rather than nothing.
+      return { ...base, points: [], front: null, style: {} };
     default:
       throw new Error(`Unknown prop kind: ${kind}`);
   }
@@ -53,6 +58,25 @@ export const isMarker = (propOrKind) => {
   const kind = typeof propOrKind === "string" ? propOrKind : propOrKind?.kind;
   return kind === "tree" || kind === "boulder";
 };
+
+/** Whether a kind is placed by dragging a rectangle rather than by tracing an outline. A building is the only
+ *  one: its footprint is what the stamper takes, and a stamper takes a box. Stored as two opposite corners in
+ *  `points`, so it moves, mirrors and reshapes through the same code every other area prop does. */
+export const isRect = (propOrKind) =>
+  (typeof propOrKind === "string" ? propOrKind : propOrKind?.kind) === "house";
+
+/** A rect prop's footprint in whole blocks, or null when it is too small to hold two walls and an inside —
+ *  the same floor `HouseProp.Footprint` holds, so the canvas refuses exactly what the stamp would. */
+export function rectFootprint(prop) {
+  const points = prop?.points ?? [];
+  if (points.length < 2) return null;
+  const minX = Math.floor(Math.min(points[0][0], points[1][0]));
+  const minZ = Math.floor(Math.min(points[0][1], points[1][1]));
+  const maxX = Math.floor(Math.max(points[0][0], points[1][0]));
+  const maxZ = Math.floor(Math.max(points[0][1], points[1][1]));
+  const width = maxX - minX + 1, depth = maxZ - minZ + 1;
+  return width < 3 || depth < 3 ? null : { minX, minZ, width, depth };
+}
 
 /** A prop's position, as one point: a marker's own cell, else the middle of what it covers. What a label is
  *  anchored to and what a click is measured against. */
