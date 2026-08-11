@@ -98,29 +98,41 @@ static List<PlacedProp> Trees()
 // A rectangle rasterizes as [min, max), so a plateau drawn to z=41 has its last solid row at 40. Reaching a
 // piece to 41 is what put a foundation into the void: fifteen lone bedrock blocks at y=0, one per overhanging
 // cell, because StampFoundation found no surface to fill up to.
-const int PlateauMinZ = 15, PlateauEndZ = 41;      // end is exclusive — the first void row
-
 static Rect Piece(int minX, int minZ, int width, int depth) =>
     new(minX, minZ, minX + width, minZ + depth);
 
-var (westX, endZ) = Shapes.Origin(10);
+/// <summary>A piece of the given size centred on a plateau, which is where one belongs when the plateau
+/// carries nothing else: half its width and depth back from the centre the grid put it on.</summary>
+static Rect Centred((int X, int Z) origin, int width, int depth) =>
+    Piece(origin.X - width / 2, origin.Z - depth / 2, width, depth);
+
+// A room and a spawn share no plateau. Two structures on one 34×26 board leave them abutting along a single
+// seam, which reads as one building split rather than two things with ground between them — and a spawn is
+// meant to be somewhere a player crosses to the wool from, not a room attached to it. So each takes an island
+// of its own: the wool rooms keep the two plateaus they showed off, and the spawns take the plateau on the
+// far side of a stretch of void.
+//
+// Blue's is the plateau directly north of its room. Red's is two rows south of its own rather than one,
+// because the plateau one row south is the wedge, and a 13×13 piece on a wedge would hang over the point of
+// it — every piece has to sit wholly on its plateau (see below).
+var (westX, roomZ) = Shapes.Origin(10);
 var eastX = Shapes.Origin(14).X;
 
-// Wool room at one end of each plateau, spawn at the other, a row of grass between them.
-var blueRoom = Piece(westX - 7, PlateauMinZ, 15, 13);              // z 15..27
-var blueSpawnPiece = Piece(westX - 6, PlateauEndZ - 13, 13, 13);   // z 28..40
-var redSpawnPiece = Piece(eastX - 6, PlateauMinZ, 13, 13);         // z 15..27
-var redRoom = Piece(eastX - 7, PlateauEndZ - 13, 15, 13);          // z 28..40
+var blueRoom = Centred((westX, roomZ), 15, 13);
+var redRoom = Centred((eastX, roomZ), 15, 13);
+var blueSpawnPiece = Centred(Shapes.Origin(5), 13, 13);      // solid grey stone, north of the blue room
+var redSpawnPiece = Centred(Shapes.Origin(24), 13, 13);      // striped wall, south of the red room
 
-var bluePad = new Pt(westX, Surface + 1, endZ - 7);
-var redPad = new Pt(eastX, Surface + 1, endZ + 7);
+var bluePad = new Pt(westX, Surface + 1, roomZ);
+var redPad = new Pt(eastX, Surface + 1, roomZ);
 
-// The door is the wall the yaw looks out of (0 = +z, 180 = −z), so each spawn faces along its own plateau
-// rather than over its edge.
+// The door is the wall the yaw looks out of (0 = +z, 180 = −z). Each spawn faces the plateau its wool room
+// stands on: blue looks south across the void to its room, red looks north to its own.
 const double FaceNegZ = 180, FacePosZ = 0;
 
 // The entrance row EntranceRow picks: the first block row of the piece on the seam side, which is the bare
-// ring outside the shell. Each room is entered from the side its plateau's spawn stands on.
+// ring outside the shell. Each room is entered from the side its team's spawn lies on, so the door faces the
+// way a player actually arrives.
 static RedstoneLine RowOnMaxZ(Rect piece) =>
     new((int)piece.MinX, (int)piece.MaxZ - 1, (int)piece.MaxX - 1, (int)piece.MaxZ - 1);
 static RedstoneLine RowOnMinZ(Rect piece) =>
@@ -134,17 +146,19 @@ var intent = new MapIntent
         new TeamDef { Id = "red-team", Name = "Red", Color = "red" },
     ],
     MaxPlayers = 8,
-    Observer = new ObserverIntent { Point = new Pt(0, Surface + 60, endZ) },
+    Observer = new ObserverIntent { Point = new Pt(0, Surface + 60, roomZ) },
     Spawns =
     [
         new SpawnIntent
         {
-            Team = "blue-team", Yaw = FaceNegZ, Point = new Pt(westX, Surface + 1, endZ + 7),
+            Team = "blue-team", Yaw = FacePosZ,
+            Point = new Pt(westX, Surface + 1, Shapes.Origin(5).Z),
             Piece = blueSpawnPiece, Protection = [blueSpawnPiece],
         },
         new SpawnIntent
         {
-            Team = "red-team", Yaw = FacePosZ, Point = new Pt(eastX, Surface + 1, endZ - 7),
+            Team = "red-team", Yaw = FaceNegZ,
+            Point = new Pt(eastX, Surface + 1, Shapes.Origin(24).Z),
             Piece = redSpawnPiece, Protection = [redSpawnPiece],
         },
     ],
@@ -153,18 +167,18 @@ var intent = new MapIntent
         new WoolIntent
         {
             Owner = "blue-team", Color = "red", Room = [blueRoom], Spawn = bluePad, Piece = blueRoom,
-            Entries = [new Rect(blueRoom.MinX, blueRoom.MaxZ, blueRoom.MaxX, blueRoom.MaxZ)],
+            Entries = [new Rect(blueRoom.MinX, blueRoom.MinZ, blueRoom.MaxX, blueRoom.MinZ)],
         },
         new WoolIntent
         {
             Owner = "red-team", Color = "blue", Room = [redRoom], Spawn = redPad, Piece = redRoom,
-            Entries = [new Rect(redRoom.MinX, redRoom.MinZ, redRoom.MaxX, redRoom.MinZ)],
+            Entries = [new Rect(redRoom.MinX, redRoom.MaxZ, redRoom.MaxX, redRoom.MaxZ)],
         },
     ],
     Structures = new StructureIntent
     {
         RoomFloors = [blueRoom, redRoom],
-        RedstoneLines = [RowOnMaxZ(blueRoom), RowOnMinZ(redRoom)],
+        RedstoneLines = [RowOnMinZ(blueRoom), RowOnMaxZ(redRoom)],
     },
 };
 
