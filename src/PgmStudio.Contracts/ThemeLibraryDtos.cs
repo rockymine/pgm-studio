@@ -82,6 +82,6 @@ public sealed record RoomStyleSaveRequest(
     IReadOnlyList<RoomCourseDto> Courses);
 
 /// <summary>A room style previewed (POST /api/room-styles/preview): the shell it stamps, from above and cut
-/// open. Both are drawn by the real <c>CubeStamper</c> over a sample frame, so a card cannot promise a shell
+/// open. Both are drawn by the real <c>HouseStamper</c> over a sample frame, so a card cannot promise a shell
 /// the export would not build.</summary>
 public sealed record RoomStylePreviewDto(string Plan, string Section);

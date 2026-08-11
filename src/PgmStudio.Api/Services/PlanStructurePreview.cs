@@ -27,7 +27,7 @@ public readonly record struct StructureBox(
 /// <para>The boxes must agree with <see cref="SketchWorldBuilder"/> block for block, or the preview lies about
 /// the map. So everything is taken from the build's own sources rather than re-derived: the geometry from
 /// <see cref="PlanCompiler"/> output, the sizes from the stampers' constants and footprint helpers
-/// (<see cref="CubeStamper"/>, <see cref="StructureStamper.IronCubeFootprint"/>), and every floor from the same
+/// (<see cref="HouseStamper"/>, <see cref="StructureStamper.IronCubeFootprint"/>), and every floor from the same
 /// per-column surface map the stampers rest structures on — including its fallback for a marker whose column
 /// carries no terrain, which drops that structure to the bottom of the world. Reading the floor from the
 /// marker's plan surface instead would look equivalent and silently disagree in exactly that case.</para>

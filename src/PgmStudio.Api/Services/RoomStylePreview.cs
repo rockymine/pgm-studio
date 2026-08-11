@@ -5,7 +5,7 @@ using PgmStudio.Minecraft;
 namespace PgmStudio.Api.Services;
 
 /// <summary>
-/// What a room style stamps. Every picture here is built by running the real <see cref="CubeStamper"/> over a
+/// What a room style stamps. Every picture here is built by running the real <see cref="HouseStamper"/> over a
 /// sample <see cref="RoomFrame"/> and reading the blocks back, so a card cannot promise a shell the export
 /// would not build — the discipline the dressing pickers and the theme cards already hold.
 ///
@@ -45,7 +45,11 @@ public static class RoomStylePreview
         for (var y = 1; y < FloorY; y++)
             world.SetBlock(x, y, z, Blocks.Stone);
 
-        CubeStamper.Stamp(world, Sample, FloorY, SampleColor, style);
+        HouseStamper.Stamp(world, Sample, FloorY, style.AsHouse(), SampleColor);
+        // The pad belongs to the structure stampers rather than the shell, but a preview is of the room and
+        // not of the shell alone — and it is what a plan view sees through the roof hole, so without it a
+        // holed roof and a sealed one draw the same picture.
+        PadStamp.Lay(world, Sample.Pad, FloorY, SampleColor);
         return world;
     }
 

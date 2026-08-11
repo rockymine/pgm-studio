@@ -41,7 +41,10 @@ public static class SketchWorldBuilder
             var slug = ColorSlug(w, teams);
             var frame = WoolFrame(w);
             var fy = FrameFloor(frame, terrain.SurfaceTop, woolStyle);
-            WoolStructureStamper.Stamp(world, frame, fy, BlockColors.BlockDamage(slug), woolStyle);
+            WoolStructureStamper.Stamp(world, new WoolStructure
+            {
+                Frame = frame, FloorY = fy, WoolSlug = slug, Ground = terrain.SurfaceTop, Shell = woolStyle,
+            });
             woolFrame[i] = frame;
             woolFloor[i] = fy;
             resolvedWools.Add(w);   // monuments filled in below, once spawn cubes place them
@@ -59,8 +62,11 @@ public static class SketchWorldBuilder
 
             var captured = wools.Select((w, i) => (w, i))
                 .Where(x => Capturers(x.w, teams).Contains(s.Team)).ToList();
-            var placed = SpawnStructureStamper.Stamp(world, frame, fy, WoolDataForTeam(s.Team, teams),
-                [.. captured.Select(x => ColorSlug(x.w, teams))], spawnStyle);
+            var placed = SpawnStructureStamper.Stamp(world, new SpawnStructure
+            {
+                Frame = frame, FloorY = fy, TeamColor = WoolDataForTeam(s.Team, teams),
+                CapturedWools = [.. captured.Select(x => ColorSlug(x.w, teams))], Shell = spawnStyle,
+            }).Monuments;
 
             for (var k = 0; k < placed.Count && k < captured.Count; k++)
                 monLoc[(captured[k].i, s.Team)] = new Pt(placed[k].X, placed[k].Y, placed[k].Z);

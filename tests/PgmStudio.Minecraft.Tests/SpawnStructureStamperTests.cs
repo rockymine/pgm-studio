@@ -18,7 +18,8 @@ public sealed class SpawnStructureStamperTests
     public async Task One_wool_places_a_single_monument_at_a_door_wall_corner()
     {
         var w = new VoxelWorld();
-        var placed = SpawnStructureStamper.Stamp(w, Baseline(), 64, teamColor: 11 /*blue*/, ["red"]);
+        var placed = SpawnStructureStamper.Stamp(w, new SpawnStructure
+        { Frame = Baseline(), FloorY = 64, TeamColor = 11, CapturedWools = ["red"] }).Monuments;
 
         await Assert.That(placed.Count).IsEqualTo(1);
         var m = placed[0];
@@ -38,7 +39,8 @@ public sealed class SpawnStructureStamperTests
     public async Task Sign_faces_the_room_and_reads_place_the_colour_wool_here()
     {
         var w = new VoxelWorld();
-        var placed = SpawnStructureStamper.Stamp(w, Baseline(), 64, teamColor: 11, ["light_blue"]);
+        var placed = SpawnStructureStamper.Stamp(w, new SpawnStructure
+        { Frame = Baseline(), FloorY = 64, TeamColor = 11, CapturedWools = ["light_blue"] }).Monuments;
         var m = placed[0];
 
         // Sign is one cell toward centre from the pedestal (+Z), at pedestal height, facing south (data 3).
@@ -72,7 +74,8 @@ public sealed class SpawnStructureStamperTests
     public async Task Three_wools_use_both_door_corners_and_one_back_corner()
     {
         var w = new VoxelWorld();
-        var placed = SpawnStructureStamper.Stamp(w, Baseline(), 64, teamColor: 11, ["red", "green", "yellow"]);
+        var placed = SpawnStructureStamper.Stamp(w, new SpawnStructure
+        { Frame = Baseline(), FloorY = 64, TeamColor = 11, CapturedWools = ["red", "green", "yellow"] }).Monuments;
 
         await Assert.That(placed.Count).IsEqualTo(3);
         // Door-wall corners sit near z=-3; the third (back wall) sits near z=+2.
@@ -90,8 +93,8 @@ public sealed class SpawnStructureStamperTests
         // The 8×8-piece minimum: 4×4 interior, 2-wide door → 4 corners + 2 back-wall mids = 6 seats.
         var frame = RoomFrames.Resolve(0, 0, 8, 8, 4, 4, [], RoomEdge.NegZ, out _)!;
         var w = new VoxelWorld();
-        var placed = SpawnStructureStamper.Stamp(w, frame, 64, teamColor: 11,
-            ["red", "green", "yellow", "orange", "cyan", "purple", "lime"]);
+        var placed = SpawnStructureStamper.Stamp(w, new SpawnStructure
+        { Frame = frame, FloorY = 64, TeamColor = 11, CapturedWools = ["red", "green", "yellow", "orange", "cyan", "purple", "lime"] }).Monuments;
 
         await Assert.That(placed.Count).IsEqualTo(6);
         // Every seat hugs a wall row of the interior [2,6): z ∈ {2,5}.
