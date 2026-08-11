@@ -362,12 +362,18 @@ own footprint, one course down, so it settles into a slope instead of standing o
 image with no ground under it at all raises nothing.
 
 **A building is bounded at both ends.** The floor is the stamper's own — three blocks a side, two walls and an
-inside — and the ceiling is the prop's: **600 blocks of footprint**, a 20×30 house, because this is scenery a
-map is dressed with rather than architecture it is built from. The cap is an **area** rather than a side
-length, and the roof is the reason. A sloped roof's ridge climbs with the **short** span alone and ignores the
-long one entirely, so two buildings of one area are not one problem: 24×25 carries a gable twelve courses over
-its wall, 8×75 carries one four courses over. Area bounds what a building costs and how much map it covers;
-the short span bounds how tall it gets, and does that by itself.
+inside — and the ceiling is the prop's: **192 blocks of footprint**, three times the 8×8 shell a wool cage is
+stamped in, so a 12×16 or a 14×13 house is buildable and a 20×30 one is not. The unit is deliberately the room
+the map is played through. This is scenery a map is dressed with rather than architecture it is built from, and
+scenery covering much more than a few of those stops reading as scenery and starts competing with the
+objectives for the ground — these are maps of pieces and lanes, not a landscape with a town in it.
+
+The cap is an **area** rather than a side length, so a long low building is as buildable as a square one. It
+bounds what a building costs and how much map it covers, and nothing else. **Height is bounded separately, and
+by the roof rather than by the prop**: every form's rise is measured over the building's shorter side
+(`structures.md` §7.1), which is what stops a 10×60 hall carrying a lean-to sixty courses over its wall. Two
+bounds because they are two questions — a cap on area cannot answer the second, and at a steep pitch a square
+building of legal area is the taller one.
 
 The ceiling belongs to the **prop** and never to the stamper. A wool cage and a spawn cube run through the same
 `HouseStamper`, and their footprints come from the plan piece they sit on (WX1) — a map's own geometry, which a

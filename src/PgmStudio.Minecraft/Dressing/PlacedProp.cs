@@ -252,19 +252,22 @@ public sealed record HouseProp : PlacedProp
     /// building was picked from must never rebuild a shipped map's scenery.</summary>
     public HouseStyle Style { get; init; } = new();
 
-    /// <summary>The largest footprint a placed building may cover, in blocks — a 20×30 house, and the size this
-    /// prop is for.
+    /// <summary>The largest footprint a placed building may cover, in blocks — three times the 8×8 shell a wool
+    /// cage is stamped in, so a 12×16 or a 14×13 house is buildable and a 20×30 one is not.
     ///
-    /// <para>It is an <b>area</b> rather than a side length, and the roof is why. A sloped roof's ridge climbs
-    /// with the <em>short</em> span alone and ignores the long one, so a long thin building stays low and cheap
-    /// while a square one of the same area does not: 24×25 puts a gable twelve courses over its wall, 8×75 puts
-    /// one four courses over. Capping the area bounds what a building costs and how much map it takes; the
-    /// short span bounds how tall it gets, and it does that on its own.</para>
+    /// <para>The unit is the room the map is actually played through. Scenery that covers more than a few times
+    /// one of those stops reading as scenery and starts competing with the objectives for the ground; these are
+    /// maps of pieces and lanes, not a landscape with a town in it.</para>
+    ///
+    /// <para>It is an <b>area</b> rather than a side length so a long low building is as buildable as a square
+    /// one. It bounds what a building costs and how much map it takes, and nothing else — <b>height is bounded
+    /// separately and by the roof</b>: every form's rise is measured over the building's shorter side
+    /// (<see cref="RoofField"/>), which is what stops a hall carrying a lean-to as tall as it is long.</para>
     ///
     /// <para>The cap is the <b>prop's</b>, not the stamper's. A wool cage and a spawn cube go through the same
     /// <see cref="HouseStamper"/> and their footprints come from the plan piece they sit on (WX1) — a map's own
     /// geometry, and nothing a dressing limit has any business refusing.</para></summary>
-    public const int MaxFootprint = 600;
+    public const int MaxFootprint = 192;
 
     /// <summary>The footprint in whole blocks, min inclusive, or null when the rectangle is no building — too
     /// few corners, too small to hold two walls and an inside, or past <see cref="MaxFootprint"/>.</summary>

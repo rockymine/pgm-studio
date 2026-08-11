@@ -78,13 +78,13 @@ public static class RoomStylePreview
     /// deepest floor to over the highest course of roof.</summary>
     private static ViewBox Outer(HouseStyle style) => new(
         Sample.MinX - Margin, FloorY - style.Floor.Extent, Sample.MinZ - Margin,
-        Sample.MaxX + Margin - 1, FloorY + style.TopLayerOver(Sample.Width, Sample.Depth), Sample.MaxZ + Margin - 1);
+        Sample.MaxX + Margin - 1, FloorY + style.TopLayerOver(Sample.Width, Sample.Depth, Sample.Doors[0].Edge), Sample.MaxZ + Margin - 1);
 
     /// <summary>The box the cutaway is drawn over — the shell itself, since a slice through the ground beside
     /// it is a slice through stone.</summary>
     private static ViewBox Inner(HouseStyle style) => new(
         Sample.MinX, FloorY - 1, Sample.MinZ,
-        Sample.MaxX, FloorY + style.TopLayerOver(Sample.Width, Sample.Depth), Sample.MaxZ);
+        Sample.MaxX, FloorY + style.TopLayerOver(Sample.Width, Sample.Depth, Sample.Doors[0].Edge), Sample.MaxZ);
 
     /// <summary>The plane the cutaway is taken on: the one the ladder stands in where the building has
     /// storeys, since that is where the slab, the clear under it and the way through it are all visible at

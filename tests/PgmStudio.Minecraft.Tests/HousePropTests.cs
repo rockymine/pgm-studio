@@ -69,14 +69,15 @@ public sealed class HousePropTests
     [Test]
     public async Task A_rectangle_larger_than_a_small_house_is_no_footprint_either()
     {
-        // The prop is for small houses, so it carries a ceiling as well as a floor. Area rather than a side
-        // length, because a sloped roof climbs with the short span alone: a long thin building of the same area
-        // stays low and cheap where a square one does not.
-        await Assert.That(House(0, 0, 19, 29).Footprint()).IsNotNull();   // 20x30 = 600, the largest there is
-        await Assert.That(House(0, 0, 29, 19).Footprint()).IsNotNull();   // the same rectangle turned
-        await Assert.That(House(0, 0, 23, 24).Footprint()).IsNotNull();   // 24x25 = 600, a different shape of it
-        await Assert.That(House(0, 0, 19, 30).Footprint()).IsNull();      // 20x31 = 620
-        await Assert.That(House(0, 0, 24, 24).Footprint()).IsNull();      // 25x25 = 625
+        // The prop is for small houses, so it carries a ceiling as well as a floor: three times the 8x8 shell a
+        // wool cage is stamped in, because scenery covering much more than a few of those competes with the
+        // objectives for the ground. Area rather than a side length, so a long low building is as buildable as
+        // a square one — height is the roof's business and is bounded over the shorter side.
+        await Assert.That(House(0, 0, 11, 15).Footprint()).IsNotNull();   // 12x16 = 192, the largest there is
+        await Assert.That(House(0, 0, 15, 11).Footprint()).IsNotNull();   // the same rectangle turned
+        await Assert.That(House(0, 0, 13, 12).Footprint()).IsNotNull();   // 14x13 = 182, a different shape of it
+        await Assert.That(House(0, 0, 11, 16).Footprint()).IsNull();      // 12x17 = 204
+        await Assert.That(House(0, 0, 19, 29).Footprint()).IsNull();      // 20x30 = 600, a building, not scenery
     }
 
     [Test]

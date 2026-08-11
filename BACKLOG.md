@@ -192,13 +192,20 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   unit, leaves every form's formula untouched. Worth doing when a style wants a shallow roof over a wide
   span, where a whole-block pitch is already too steep to read.
 
-- [ ] **B70 — The room-style card cannot show a porch or a window.** `RoomStylePreview` stamps its two views
-  over the shipped 10×10 piece's 8×8 shell, seen from above and cut open from the front. That sample is too
-  small for a porch to leave a room behind it, and a section projected onto the front wall shows a window as
-  a patch of the same colour as the wall around it. The library therefore has knobs whose card does not
-  change when they are turned, which is the one thing the preview exists to prevent. Wants a larger sample
-  footprint and a third view at the scale of the pieces — the elevation `tools/compose/house-showcase.cs`
-  draws, which reads a block's own metadata and so shows a stair lattice as the opening it is.
+- [~] **B70 — The room-style *card* cannot show a porch or a window.** The open editor draws four views now
+  (B71), the cutaway among them, so a style's porch and its windows read there. A library **card** still
+  carries the section alone, and a section projected onto the front wall shows a window as a patch of the same
+  colour as the wall around it. The sample is the other half: `RoomStylePreview` stamps the shipped 10×10
+  piece's 8×8 shell, which is small enough that a porch leaves little room behind it. The library therefore
+  still has knobs whose *card* does not change when they are turned, which is the one thing the preview exists
+  to prevent. Wants a larger sample footprint, and a card that is not the one view those knobs are invisible in.
+
+- [ ] **B72 — Two roof-thickness columns nothing reads.** `room_style.roof_thickness` (M0012) and
+  `roof_style.thickness` (M0018) are written, clamped and round-tripped through the DTOs, and no stamper has
+  ever read either: a roof's depth at a cell comes from the height field's own step down to its neighbours
+  (`RoofField.Riser`), so there is nothing for a stored number to say. The composer offers no knob for it,
+  which is the only reason it has not misled an author yet. Drop both columns and their DTO fields, or give
+  the number a meaning under B69 — but not leave a third state where a row carries it and nothing looks.
 
 - [ ] **B54 — A rebuild has no undo.** The rebuild now carries the finish and the credits across (B49, B52)
   and says what it trades before it runs (S39), so what it still replaces is replaced *on purpose*: the

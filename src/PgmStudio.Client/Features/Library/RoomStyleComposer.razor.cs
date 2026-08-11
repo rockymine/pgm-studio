@@ -135,10 +135,11 @@ public partial class RoomStyleComposer
     private List<RoomCourseDto> Courses(string part)
         => [.. draft!.Courses.Where(course => course.Part == part).OrderBy(course => course.Ordinal)];
 
+    // Only the parts that stack have an extent, so the roof is not among them: its depth at a cell is whatever
+    // closes the step down to its neighbour (B72 retires the column the roof's own extent was stored in).
     private int Extent(string part) => part switch
     {
         RoomParts.Floor => draft!.FloorDepth,
-        RoomParts.Roof => draft!.RoofThickness,
         _ => draft!.WallHeight,
     };
 
@@ -192,7 +193,6 @@ public partial class RoomStyleComposer
     private Task SetExtent(string part, ChangeEventArgs e) => Knob(d => part switch
     {
         RoomParts.Floor => d with { FloorDepth = Math.Max(1, Parse(e, d.FloorDepth)) },
-        RoomParts.Roof => d with { RoofThickness = Math.Max(1, Parse(e, d.RoofThickness)) },
         _ => d with { WallHeight = Math.Max(1, Parse(e, d.WallHeight)) },
     });
 

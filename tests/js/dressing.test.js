@@ -305,10 +305,11 @@ test("a building tool is a tool like any other", () => {
 });
 
 test("a building larger than a small house is refused, and the canvas refuses the same one the stamp does", () => {
-  assert.equal(MAX_FOOTPRINT, 600);
-  assert.notEqual(rectFootprint({ points: [[0, 0], [19, 29]] }), null);   // 20x30, the largest there is
-  assert.equal(rectFootprint({ points: [[0, 0], [19, 30]] }), null);      // 20x31
-  assert.notEqual(rectFootprint({ points: [[0, 0], [29, 19]] }), null);   // the same rectangle turned
+  assert.equal(MAX_FOOTPRINT, 192);
+  assert.notEqual(rectFootprint({ points: [[0, 0], [11, 15]] }), null);   // 12x16, the largest there is
+  assert.equal(rectFootprint({ points: [[0, 0], [11, 16]] }), null);      // 12x17
+  assert.notEqual(rectFootprint({ points: [[0, 0], [15, 11]] }), null);   // the same rectangle turned
+  assert.equal(rectFootprint({ points: [[0, 0], [19, 29]] }), null);      // 20x30, a building, not scenery
 });
 
 test("a building drag past the cap places nothing", () => {

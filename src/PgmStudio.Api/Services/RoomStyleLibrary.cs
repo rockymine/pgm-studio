@@ -29,19 +29,25 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
         var row = await rooms.GetAsync(id, ct);
         if (row is null) return null;
         var courses = await rooms.GetCoursesAsync(id, ct);
-        return await Bind(
+        var stack = await rooms.GetStoreysAsync(id, ct);
+        return Bind(
             Compose(row, courses, await StylesOf(courses, ct)),
-            row, await rooms.GetStoreysAsync(id, ct), ct);
+            row, stack, await PartShelf.ForAsync(parts, styles, row, stack, ct));
     }
 
-    /// <summary>Every library room style with the shell it composes to, newest first — the whole library in
-    /// two reads, so listing rooms with a picture of each does not cost a query per row.</summary>
+    /// <summary>Every library room style with the shell it composes to, newest first — the whole library in a
+    /// fixed number of reads, so listing rooms with a picture of each does not cost a query per row.
+    ///
+    /// <para>The parts are read once into a <see cref="PartShelf"/> rather than per row. A house binds a roof, a
+    /// porch and a stack of storeys, so resolving each row against the store would be several queries per row
+    /// and a dozen for a house of three storeys — a listing that grows with the library twice over.</para></summary>
     public async Task<List<(RoomStyleRow Row, HouseStyle Style)>> ComposeAllAsync(CancellationToken ct = default)
     {
         var rows = await rooms.ListAsync(ct);
         if (rows.Count == 0) return [];
         var byRoom = (await rooms.GetAllCourseStylesAsync(ct)).ToLookup(entry => entry.Course.RoomStyleId);
         var stacks = (await rooms.GetAllStoreysAsync(ct)).ToLookup(storey => storey.RoomStyleId);
+        var shelf = await PartShelf.WholeAsync(parts, styles, ct);
         var composed = new List<(RoomStyleRow Row, HouseStyle Style)>(rows.Count);
         foreach (var row in rows)
         {
@@ -49,7 +55,7 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
             var bound = entries.GroupBy(entry => entry.Course.StyleId)
                 .ToDictionary(group => group.Key, group => group.First().Style);
             var house = Compose(row, entries.Select(entry => entry.Course).ToList(), bound);
-            composed.Add((row, await Bind(house, row, [.. stacks[row.Id]], ct)));
+            composed.Add((row, Bind(house, row, [.. stacks[row.Id]], shelf)));
         }
         return composed;
     }
@@ -61,26 +67,29 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
     {
         var courses = CourseRowsOf(draft).ToList();
         var row = RowOf(draft);
-        return await Bind(Compose(row, courses, await StylesOf(courses, ct)), row, StoreyRowsOf(draft), ct);
+        var stack = StoreyRowsOf(draft);
+        return Bind(
+            Compose(row, courses, await StylesOf(courses, ct)),
+            row, stack, await PartShelf.ForAsync(parts, styles, row, stack, ct));
     }
 
     /// <summary>The house with its bound parts laid over it: the roof it names, the porch it names, and the
     /// storeys it stacks. Each replaces the house's own columns for that part and nothing else, so a house
-    /// that binds none is untouched by any of this.</summary>
-    private async Task<HouseStyle> Bind(
-        HouseStyle house, RoomStyleRow row, IReadOnlyList<RoomStyleStoreyRow> stack, CancellationToken ct)
+    /// that binds none is untouched by any of this.
+    ///
+    /// <para>Synchronous, over parts already read. One house needs its own few rows and a listing needs all of
+    /// them, and the difference between those is which <see cref="PartShelf"/> is handed in — not a second copy
+    /// of what binding a part means.</para></summary>
+    private static HouseStyle Bind(
+        HouseStyle house, RoomStyleRow row, IReadOnlyList<RoomStyleStoreyRow> stack, PartShelf shelf)
     {
-        if (row.RoofStyleId is { } roofId && await parts.GetRoofAsync(roofId, ct) is { } roof)
-        {
-            var courses = await parts.GetRoofCoursesAsync(roofId, ct);
-            house = HousePartLibrary.RoofOver(
-                roof, PartCourses.Of(courses, await StyleMap(courses.Select(c => c.StyleId), ct)), house);
-        }
+        if (row.RoofStyleId is { } roofId && shelf.Roofs.TryGetValue(roofId, out var roof))
+            house = HousePartLibrary.RoofOver(roof, PartCourses.Of(shelf.RoofCourses[roofId], shelf.Styles), house);
 
-        if (row.PorchStyleId is { } porchId && await parts.GetPorchAsync(porchId, ct) is { } porch)
+        if (row.PorchStyleId is { } porchId && shelf.Porches.TryGetValue(porchId, out var porch))
             house = house with { Porch = HousePartLibrary.PorchOf(porch) };
 
-        if (stack.Count > 0) house = house with { Storeys = await StoreysOf(stack, ct) };
+        if (stack.Count > 0) house = house with { Storeys = StoreysOf(stack, shelf) };
         return house;
     }
 
@@ -88,23 +97,90 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
     /// for that position where it states one. A binding naming a storey style the library no longer holds is
     /// dropped, the way an unresolvable course is; an empty stack leaves the house's own storey count in
     /// force.</summary>
-    private async Task<IReadOnlyList<Storey>> StoreysOf(
-        IReadOnlyList<RoomStyleStoreyRow> stack, CancellationToken ct)
+    private static IReadOnlyList<Storey> StoreysOf(IReadOnlyList<RoomStyleStoreyRow> stack, PartShelf shelf)
     {
         var storeys = new List<Storey>(stack.Count);
         foreach (var binding in stack.OrderBy(s => s.Ordinal))
         {
-            if (await parts.GetStoreyAsync(binding.StoreyStyleId, ct) is not { } row) continue;
-            var courses = await parts.GetStoreyCoursesAsync(binding.StoreyStyleId, ct);
+            if (!shelf.Storeys.TryGetValue(binding.StoreyStyleId, out var row)) continue;
             var storey = HousePartLibrary.StoreyOf(
-                row, PartCourses.Of(courses, await StyleMap(courses.Select(c => c.StyleId), ct)));
+                row, PartCourses.Of(shelf.StoreyCourses[binding.StoreyStyleId], shelf.Styles));
             storeys.Add(binding.Clear > 0 ? storey with { Clear = Math.Max(3, binding.Clear) } : storey);
         }
         return storeys;
     }
 
-    private async Task<Dictionary<long, StyleRow>> StyleMap(IEnumerable<long> ids, CancellationToken ct)
-        => (await styles.GetStylesAsync(ids, ct)).ToDictionary(style => style.Id);
+    /// <summary>The part rows a bind reads, already fetched: the roofs, the storeys, the porches, each part's
+    /// courses, and the styles those courses resolve through. Built once for a whole listing and narrowly for
+    /// one house, so binding itself never touches the store and cannot cost a query per row.</summary>
+    private sealed record PartShelf(
+        IReadOnlyDictionary<long, RoofStyleRow> Roofs,
+        ILookup<long, RoofStyleCourseRow> RoofCourses,
+        IReadOnlyDictionary<long, StoreyStyleRow> Storeys,
+        ILookup<long, StoreyStyleCourseRow> StoreyCourses,
+        IReadOnlyDictionary<long, PorchStyleRow> Porches,
+        IReadOnlyDictionary<long, StyleRow> Styles)
+    {
+        /// <summary>Every part in the library, in six reads whatever the number of houses listed.</summary>
+        public static async Task<PartShelf> WholeAsync(
+            HousePartStore parts, ThemeStore styles, CancellationToken ct)
+        {
+            var roofCourses = await parts.GetAllRoofCoursesAsync(ct);
+            var storeyCourses = await parts.GetAllStoreyCoursesAsync(ct);
+            return new PartShelf(
+                (await parts.ListRoofsAsync(ct)).ToDictionary(roof => roof.Id),
+                roofCourses.ToLookup(course => course.RoofStyleId),
+                (await parts.ListStoreysAsync(ct)).ToDictionary(storey => storey.Id),
+                storeyCourses.ToLookup(course => course.StoreyStyleId),
+                (await parts.ListPorchesAsync(ct)).ToDictionary(porch => porch.Id),
+                await StyleMapAsync(
+                    styles, roofCourses.Select(c => c.StyleId).Concat(storeyCourses.Select(c => c.StyleId)), ct));
+        }
+
+        /// <summary>Only the parts one house binds — what an editor previewing a single style pays for, rather
+        /// than the whole part library on every keystroke.</summary>
+        public static async Task<PartShelf> ForAsync(
+            HousePartStore parts, ThemeStore styles,
+            RoomStyleRow row, IReadOnlyList<RoomStyleStoreyRow> stack, CancellationToken ct)
+        {
+            var roofs = new Dictionary<long, RoofStyleRow>();
+            var roofCourses = new List<RoofStyleCourseRow>();
+            if (row.RoofStyleId is { } roofId && await parts.GetRoofAsync(roofId, ct) is { } roof)
+            {
+                roofs[roof.Id] = roof;
+                roofCourses.AddRange(await parts.GetRoofCoursesAsync(roofId, ct));
+            }
+
+            var storeys = new Dictionary<long, StoreyStyleRow>();
+            var storeyCourses = new List<StoreyStyleCourseRow>();
+            foreach (var storeyId in stack.Select(binding => binding.StoreyStyleId).Distinct())
+            {
+                if (await parts.GetStoreyAsync(storeyId, ct) is not { } storey) continue;
+                storeys[storey.Id] = storey;
+                storeyCourses.AddRange(await parts.GetStoreyCoursesAsync(storeyId, ct));
+            }
+
+            var porches = new Dictionary<long, PorchStyleRow>();
+            if (row.PorchStyleId is { } porchId && await parts.GetPorchAsync(porchId, ct) is { } porch)
+                porches[porch.Id] = porch;
+
+            return new PartShelf(
+                roofs, roofCourses.ToLookup(course => course.RoofStyleId),
+                storeys, storeyCourses.ToLookup(course => course.StoreyStyleId),
+                porches,
+                await StyleMapAsync(
+                    styles, roofCourses.Select(c => c.StyleId).Concat(storeyCourses.Select(c => c.StyleId)), ct));
+        }
+
+        private static async Task<Dictionary<long, StyleRow>> StyleMapAsync(
+            ThemeStore styles, IEnumerable<long> ids, CancellationToken ct)
+        {
+            var wanted = ids.Distinct().ToList();
+            return wanted.Count == 0
+                ? []
+                : (await styles.GetStylesAsync(wanted, ct)).ToDictionary(style => style.Id);
+        }
+    }
 
     /// <summary>The stack rows a save request describes, in the order it listed them.</summary>
     public static List<RoomStyleStoreyRow> StoreyRowsOf(RoomStyleSaveRequest req)

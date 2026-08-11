@@ -23,7 +23,7 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
     {
         var row = await parts.GetRoofAsync(id, ct);
         if (row is null) return null;
-        return RoofOver(row, await CoursesOf(await parts.GetRoofCoursesAsync(id, ct), ct), Sample);
+        return RoofOver(row, await CoursesOf(await parts.GetRoofCoursesAsync(id, ct), ct), WallFor(row));
     }
 
     /// <summary>Every roof with the building it composes to, newest first — the whole library in two reads.</summary>
@@ -34,11 +34,11 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
         var all = await parts.GetAllRoofCoursesAsync(ct);
         var bound = await StylesOf(all.Select(course => course.StyleId), ct);
         var byRoof = all.ToLookup(course => course.RoofStyleId);
-        return [.. rows.Select(row => (row, RoofOver(row, PartCourses.Of(byRoof[row.Id], bound), Sample)))];
+        return [.. rows.Select(row => (row, RoofOver(row, PartCourses.Of(byRoof[row.Id], bound), WallFor(row))))];
     }
 
     public async Task<HouseStyle> ComposeRoofDraftAsync(RoofStyleSaveRequest draft, CancellationToken ct = default)
-        => RoofOver(RowOf(draft), await CoursesOf(PartCourses.Accepted(draft.Courses), ct), Sample);
+        => RoofOver(RowOf(draft), await CoursesOf(PartCourses.Accepted(draft.Courses), ct), WallFor(RowOf(draft)));
 
     /// <summary>What a roof style says about a building: the form and its numbers, and the three materials
     /// above the eave. Applied over <paramref name="basis"/>, so a house keeps everything a roof has no
@@ -198,10 +198,17 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
     };
 
     // ── drawing a part on its own ─────────────────────────────────────────────────────────────────────
-    /// <summary>The sample building a part is previewed on. A part is not a building, so a picture of one has
-    /// to stand it on something — and that something is deliberately plain, so what differs between two cards
-    /// is the part and never the house around it.</summary>
-    private static readonly HouseStyle Sample = HouseStyle.Wool with
+    /// <summary>What every part is stood on. A part is not a building, so a picture of one has to stand it on
+    /// something — but that something is <b>as little building as the part needs</b>, and each kind mutes a
+    /// different piece of it.
+    ///
+    /// <para>Standing all three on one house is what made the cards unreadable: a roof card and a storey card
+    /// drew the same gabled cottage, and the thing the card was about was a detail somewhere inside it. So the
+    /// roof's building is a bare plinth of wall (<see cref="RoofBasis"/>) and the storey's lid is flat
+    /// (<see cref="StoreyBasis"/>) — each picture is mostly the part it is a picture of. The <b>whole</b>
+    /// building is what the room-style editor draws, because that is the level a house is composed at, and
+    /// seeing it there rather than three times over is the point of composing at all.</para></summary>
+    private static readonly HouseStyle Plain = HouseStyle.Wool with
     {
         Wall = RoomPart.Of(new SolidMaterial(Blocks.Planks, 1), 5),
         Sill = new SolidMaterial(Blocks.Cobblestone),
@@ -214,11 +221,48 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
         Door = DoorMaterial.Air,
     };
 
-    private static HouseStyle OnSample(Storey storey)
-        => Sample with { Storeys = [storey] };
+    /// <summary>What a roof is stood on: unbroken wall and nothing else. No windows, no posts and no porch, so
+    /// the picture is the roof — its form, its pitch, how far it oversails, and what its verge and gable face
+    /// are made of.</summary>
+    private static readonly HouseStyle RoofBasis = Plain with
+    {
+        Post = null,
+        Windows = new WindowStyle(),
+        Porch = null,
+    };
 
+    /// <summary>That wall at the <b>least height this roof can stand on</b>. An eave is part of the slope and
+    /// keeps falling past the wall line, by one course for every block it oversails at the roof's own pitch —
+    /// so a steep roof with a deep overhang reaches further below its own base than a short plinth is tall, and
+    /// on a fixed one it comes down through the wall and into the ground. Sizing the wall from the roof's own
+    /// numbers keeps the picture the roof rather than the building, and keeps it a building at all.</summary>
+    private static HouseStyle WallFor(RoofStyleRow row)
+        => RoofBasis with
+        {
+            Wall = RoomPart.Of(
+                new SolidMaterial(Blocks.Planks, 1),
+                Math.Max(3, Math.Clamp(row.Overhang, 0, 4) * Math.Clamp(row.Pitch, 1, 4) + 1)),
+        };
+
+    /// <summary>What a storey is drawn under: a <b>flat lid</b>, flush with the walls. A storey is a wall, the
+    /// windows through it and how its floor is divided, and every one of those is hidden or overshadowed by a
+    /// pitched roof standing over it — so the roof is taken away rather than merely made plain, and what is
+    /// left in the picture is one room.</summary>
+    private static readonly HouseStyle StoreyBasis = Plain with
+    {
+        Form = RoofForm.Flat,
+        Overhang = 0,
+        RoofHole = false,
+    };
+
+    private static HouseStyle OnSample(Storey storey)
+        => StoreyBasis with { Storeys = [storey] };
+
+    /// <summary>What a porch is drawn against: the plain house, roof and all. A porch is a piece of the
+    /// building's own footprint given up, its deck is the house's floor and its canopy is seated to clear the
+    /// door under the house's own eave — so unlike the other two it cannot be read without the house.</summary>
     private static HouseStyle OnSample(PorchStyle porch)
-        => Sample with { Porch = porch };
+        => Plain with { Porch = porch };
 
     // ── shared plumbing ───────────────────────────────────────────────────────────────────────────────
     private async Task<PartCourses> CoursesOf(IEnumerable<RoofStyleCourseRow> rows, CancellationToken ct)

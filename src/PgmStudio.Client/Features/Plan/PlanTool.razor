@@ -410,7 +410,7 @@
               else if (sel.Kind == "zone")
               {
                 var lane = sel.ZoneKind == "water-lane";
-                <DetailHeader Icon="@(lane ? "droplet" : "square-dashed")" Label="@(lane ? "Water lane" : "Build area")" />
+                <DetailHeader Icon="@(lane ? "waves" : "square-dashed")" Label="@(lane ? "Water lane" : "Build area")" />
                 <Field Label="Id">
                   <input class="field-input" value="@sel.Id" @onchange="OnZoneId" />
                 </Field>

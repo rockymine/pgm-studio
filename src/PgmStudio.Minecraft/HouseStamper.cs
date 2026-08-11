@@ -335,8 +335,13 @@ public static class HouseStamper
     /// <summary>The wall a house fronts on: the one its doors are cut through, or — with none given — the long
     /// side the building would cut its own through.</summary>
     private static RoomEdge FrontEdge(IReadOnlyList<RoomDoor>? doors, Footprint ground)
-        => doors is { Count: > 0 } ? doors[0].Edge
-            : ground.Depth <= ground.Width ? RoomEdge.NegZ : RoomEdge.NegX;
+        => doors is { Count: > 0 } ? doors[0].Edge : DefaultFront(ground.Width, ground.Depth);
+
+    /// <summary>The wall a house with no doors fronts on — the long side, which is where it cuts its own. Public
+    /// because the front decides how tall a <see cref="RoofForm.Shed"/> or a <see cref="RoofForm.Saltbox"/>
+    /// stands, so anything reserving headroom for one has to reach the same answer this stamper does.</summary>
+    public static RoomEdge DefaultFront(int width, int depth)
+        => depth <= width ? RoomEdge.NegZ : RoomEdge.NegX;
 
     /// <summary>The footprint split into what the walls keep and what the porch takes, or the whole of it and
     /// no deck. <b>The porch is the part that gives way</b>: it is trimmed to whatever the room can spare

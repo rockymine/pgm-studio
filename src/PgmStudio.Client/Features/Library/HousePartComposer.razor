@@ -211,14 +211,20 @@
                        title="Blocks of air between this floor and the next thing over it. Never below three — a room has to be stood up in."
                        value="@storey.Clear" @onchange="SetClear" />
               </Field>
-              <Field Label="Border width">
+              <Field Label="@(Bound(RoomParts.Border) ? "Border width" : "Border width — no border bound")">
                 <input class="field-input field-input--slim" type="number" min="1" max="4" step="1"
-                       title="How many blocks in from the walls the border ring runs."
+                       disabled="@(!Bound(RoomParts.Border))"
+                       title="@(Bound(RoomParts.Border)
+                                ? "How many blocks in from the walls the border ring runs."
+                                : "Bind a style to Border above and this decides how wide that ring runs.")"
                        value="@storey.BorderWidth" @onchange="SetBorderWidth" />
               </Field>
-              <Field Label="Inlay inset">
+              <Field Label="@(Bound(RoomParts.Inlay) ? "Inlay inset" : "Inlay inset — no inlay bound")">
                 <input class="field-input field-input--slim" type="number" min="1" max="8" step="1"
-                       title="How far in from the walls the centred plate starts."
+                       disabled="@(!Bound(RoomParts.Inlay))"
+                       title="@(Bound(RoomParts.Inlay)
+                                ? "How far in from the walls the centred plate starts."
+                                : "Bind a style to Inlay above and this decides where that plate starts.")"
                        value="@storey.InlayInset" @onchange="SetInlayInset" />
               </Field>
             </ChildContent>

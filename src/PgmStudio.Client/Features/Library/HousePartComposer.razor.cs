@@ -199,6 +199,11 @@ public partial class HousePartComposer
 
     private long Single(string part) => Courses(part).FirstOrDefault()?.StyleId ?? 0;
 
+    /// <summary>Whether a part has a style on it. A zone is not a zone until something names it — the floor
+    /// part shows through instead — so the numbers that shape one (a border's width, an inlay's inset) decide
+    /// nothing until then, and a knob that decides nothing should say so rather than sit there turning.</summary>
+    private bool Bound(string part) => Courses(part).Count > 0;
+
     private Task BindSingle(string part, ChangeEventArgs e)
     {
         var id = long.TryParse((string?)e.Value, out var picked) ? picked : 0;

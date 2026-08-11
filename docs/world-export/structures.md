@@ -213,13 +213,31 @@ distances — how far the cell stands from each wall line — and in nothing els
 | `Flat` | the base course, everywhere |
 | `Gable` | the smaller distance across the building's **shorter** side, times the pitch |
 | `Hip` | the smallest of all four wall distances, times the pitch |
-| `Shed` | the distance from the front wall alone, times the pitch |
+| `Shed` | the distance from the front wall, **held to the shorter side's run**, times the pitch |
 | `Gambrel` | as `Gable`, at pitch + 1 for the first quarter-span in from each eave, then at the pitch |
-| `Saltbox` | the smaller of (front distance × pitch + 1) and (back distance × pitch) |
+| `Saltbox` | as `Gable`, but the two distances **across the shorter side** climb at different rates — the front's side at pitch + 1, the other at the pitch |
 
 A `Hip` over a square footprint is a pyramid: the ridge is the run the longer side has left over, and a square
 leaves none. A `Shed` and a `Saltbox` need to know which wall is the front; every other form is symmetric and
 ignores it. The front is the wall the doors are cut through.
+
+**No roof climbs with the long side of a building.** A gable, a hip and a gambrel are measured across the
+shorter side by construction, so the law costs them nothing. The two that face a *front* are the ones it is
+written for, because the front is wherever the doors happen to be — which on a hall is as likely to be an end
+as a side. Left alone, a 10×60 building would carry a lean-to sixty courses over its wall: a tower with a door
+in it, from a footprint an author drew flat.
+
+They are held two different ways, and the difference is what each form is *for*. A `Shed` is one plane falling
+toward a chosen wall, so the fall is kept and the climb is bounded: it rises at its pitch until it has risen
+the shorter side's worth, then **runs flat** the rest of the way — a lean-to that levels off. A `Saltbox` is a
+gable whose slopes climb at different rates, so it is measured across the shorter side exactly as a gable is,
+and the front decides only which of the two is the steep one. Bounding it from the front instead does not work,
+and the reason is worth keeping: on a hall both of its slopes run the length of the building, each stops at its
+own bound long before reaching the other, and two slopes that never meet leave a ridge that is the long side's
+after all.
+
+The height that survives is the one the author asked for when they set the pitch. What the long side decides is
+how far the roof runs, and nothing about how high it stands.
 
 **Distances are measured from the wall line and are allowed to go negative**, which is what makes the eave
 part of the slope: the course over the wall rests on the wall, and every course outward from there keeps
@@ -241,10 +259,16 @@ hand-built house on the corpus does. The **verge** is a different piece again: i
 ring, so on a flush roof it is the raking edge directly over the gable, and under an eave it moves out to the
 overhang and the rake at the wall line is plain roof.
 
-The roof's remaining knobs are its **thickness** (its extent), its **hole** — a flat lid only; a sloped roof
-has a volume of its own and a hole in a slope is a leak rather than a light — and its **ridge cap**, the line
-the slopes meet on laid in the verge rather than in the roof's own material. The hole is measured and centred
-on the **shell**, never on the roof plane, because it lights the interior.
+The roof's remaining knobs are its **hole** — a flat lid only; a sloped roof has a volume of its own and a hole
+in a slope is a leak rather than a light — and its **ridge cap**, the line the slopes meet on laid in the verge
+rather than in the roof's own material. The hole is measured and centred on the **shell**, never on the roof
+plane, because it lights the interior.
+
+A roof has **no thickness knob**, and the height field is why: a column writes as many courses as the step down
+to its neighbours needs, so how deep the roof runs at a given cell is answered by the slope rather than by a
+number beside it. A flat lid is one course because a flat lid has no step to close. The `roof_thickness` and
+`thickness` columns are read by nothing (B72); a roof laid half a block at a time is B69, and that is the shape
+of the knob if one is ever wanted.
 
 ### 7.2 The floor is divided in plan as well as in depth
 
@@ -421,14 +445,21 @@ The level above a style and below a house (M0018, `/library/parts`). A room styl
 building gave a **part** no identity: a shingled roof with its pitch, its overhang and its capped ridge could
 not be reused, only re-entered house by house, and a stack of storeys could only be a count of identical ones.
 Three rows fix that — a `roof_style`, a `storey_style` and a `porch_style`, each owning the knobs of its part
-plus that part's course stacks, and a `room_style` becomes the thing that binds them.
+plus that part's materials, and a `room_style` becomes the thing that binds them.
 
 The split is by **what owns a coherent set of decisions**, not by what happens to be a nameable piece. A roof
 is everything above the eave: the form and its numbers, and the body, the verge and the gable face. A storey is
 one room: its clear, its wall, its corner posts, its windows and how its own floor is divided in plan. A porch
-is the strip of footprint the walls give up, and it carries no courses at all — a porch's deck is the house's
+is the strip of footprint the walls give up, and it carries no materials at all — a porch's deck is the house's
 own floor and its canopy is laid in the roof's material, so what is left to it is its shape. The rest of a
 house's parts are a single material each, and a row wrapping one style would add a name and nothing else.
+
+**Only a storey stacks.** A course stack counts upward from its part's own base and is what pins a band to the
+fourth course of a wall however tall that wall grows. A roof has no such base to count from: how deep it runs
+at a cell is however many courses close the step down to its neighbour (§7.1), so the body is one pass, the
+verge is one and the gable face is one. Each of a roof's three pieces is therefore a single material, and the
+editor offers one picker rather than a stack — offering a stack offered courses the stamper read the first of
+and dropped the rest of, which is a knob whose preview never moves.
 
 What the house keeps is what belongs to no part: its foundation — the sill and the floor's depth — and its
 door. Everything else it names is a **fallback**. A bound part takes over from the columns on the house that
@@ -441,11 +472,11 @@ and a caller free to number it could save a house with two ground floors and no 
 the storey style's own where it is set, so one preset is a tall ground floor in one house and an ordinary room
 in another without a second row of it: a shop under two flats is two presets bound three times.
 
-Roofs and storeys keep **their own course tables** rather than sharing one polymorphic table, so each keeps a
-real foreign key to the row it belongs to and dies with it. A course means the same thing in all three, though,
-so the act of resolving one is written once (`PartCourses`) and the three tables convert into it. That is the
-line: duplicated *schema shape* is cheap and duplicated *resolution logic* is how two libraries come to
-disagree about what a stack means.
+Roofs and storeys keep **their own binding tables** rather than sharing one polymorphic table, so each keeps a
+real foreign key to the row it belongs to and dies with it. A roof's rows are one per piece where a storey's
+wall is a stack, but a *binding* means the same thing in all three, so the act of resolving one is written once
+(`PartCourses`) and the three tables convert into it. That is the line: duplicated *schema shape* is cheap and
+duplicated *resolution logic* is how two libraries come to disagree about what a stack means.
 
 A part a building still wears cannot be forgotten — the delete answers 409 with the names of the houses wearing
 it — which is the answer a style already gives a theme, and for the same reason: forgetting it would silently

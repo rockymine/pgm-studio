@@ -406,13 +406,21 @@ public sealed record HouseStyle
 /// there are six forms and a second copy of their arithmetic is how one of them comes to be drawn short.</summary>
 public static class HouseHeights
 {
-    public static int TopLayerOver(this HouseStyle style, int width, int depth)
+    /// <param name="front">The wall the doors are cut through. A <see cref="RoofForm.Gable"/>, a
+    /// <see cref="RoofForm.Hip"/> and a <see cref="RoofForm.Gambrel"/> are symmetric and ignore it, but a
+    /// <see cref="RoofForm.Shed"/> and a <see cref="RoofForm.Saltbox"/> fall toward the front, so their ridge
+    /// climbs with the span <em>perpendicular to that wall</em> — which on a long building is the long span.
+    /// Answering as though the front were always one edge under-reserves by the difference between the two
+    /// spans, and a roof reserved short is clipped at the world ceiling rather than lowered. Null is the edge
+    /// a house with no doors picks for itself, so the default answer is a real one rather than a guess.</param>
+    public static int TopLayerOver(this HouseStyle style, int width, int depth, RoomEdge? front = null)
     {
         var wallTop = style.WallCourses;
         if (style.Form == RoofForm.Flat) return wallTop + 1;
         var field = new RoofField(
             style.Form, 0, 0, Math.Max(0, width - 1), Math.Max(0, depth - 1),
-            Math.Max(0, style.Overhang), wallTop + 1, Math.Max(1, style.Pitch), RoomEdge.NegZ);
+            Math.Max(0, style.Overhang), wallTop + 1, Math.Max(1, style.Pitch),
+            front ?? HouseStamper.DefaultFront(width, depth));
         return field.Peak;
     }
 }

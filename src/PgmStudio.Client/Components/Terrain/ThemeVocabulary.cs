@@ -314,7 +314,13 @@ public sealed record RoomPartInfo(string Id, string Title, string Blurb, string?
     /// floor's top course — for those the editor offers one picker instead of a stack.</summary>
     public bool Stacked => ExtentLabel is not null;
 
-    /// <summary>The three stacked parts bottom-up, the order a shell is stamped in.</summary>
+    /// <summary>The parts a shell is built from, bottom-up, in the order it is stamped.
+    ///
+    /// <para>The floor and the walls stack; the <b>roof does not</b>. A stack counts courses from its part's own
+    /// base, which is a thing a wall has and a slope has not: how deep a roof runs at a cell is however many
+    /// courses close the step down to its neighbour, so the roof is one pass and there is no second course for
+    /// a stack to name. It kept an extent and a stack for a while and neither was ever read — a roof authored
+    /// with three courses built exactly the roof its first course described.</para></summary>
     public static readonly IReadOnlyList<RoomPartInfo> All =
     [
         new(RoomParts.Floor, "Floor",
@@ -324,8 +330,7 @@ public sealed record RoomPartInfo(string Id, string Title, string Blurb, string?
             "The perimeter ring, read upward from the floor. A coloured course takes the room's own colour, and a course of air is the light slit. The last course repeats, so a taller wall grows in whatever tops it.",
             "Courses tall"),
         new(RoomParts.Roof, "Roof",
-            "The plane over the walls, read upward. Its hole is measured on the shell it covers, so an overhanging eave does not move it.",
-            "Courses thick"),
+            "The plane over the walls — one material, not a stack: how deep it runs at a cell is whatever closes the step down to its neighbour. Its hole is measured on the shell it covers, so an overhanging eave does not move it."),
     ];
 
     /// <summary>The floor's top course divided across the room. These are zones rather than courses because
@@ -376,11 +381,15 @@ public sealed record PartKindInfo(
 
     public static readonly IReadOnlyList<PartKindInfo> All =
     [
+        // Every one of a roof's three pieces is a single material, and none of them stacks. A course stack
+        // counts upward from its part's own base, which a wall has and a roof does not: a slope's depth at a
+        // cell is however many courses close the step down to its neighbour, so there is no second course for
+        // a stack to name. The body is one pass, the verge is one, the gable face is one.
         new(Roof, "roof", "Roofs", "triangle",
             "Everything above the eave: which form the roof takes, how steeply it climbs, how far it oversails, and what its body, its edge and its gable face are made of. Bound by a house, so a roof authored once tops every building that wants it.",
-            "The roof is drawn on a plain five-course building.",
-            [RoomPartInfo.Of(RoomParts.Roof)],
-            [RoomPartInfo.Of(RoomParts.Verge), RoomPartInfo.Of(RoomParts.Gable)]),
+            "The roof is drawn on the least wall that can carry its own eave.",
+            [],
+            [RoomPartInfo.Of(RoomParts.Roof), RoomPartInfo.Of(RoomParts.Verge), RoomPartInfo.Of(RoomParts.Gable)]),
 
         new(Storey, "storey", "Storeys", "layers",
             "One room: the air a player stands in, the wall around it, the windows through that wall and how its own floor is divided. A house stacks these in order, so a shop under two flats is three bindings of two presets.",

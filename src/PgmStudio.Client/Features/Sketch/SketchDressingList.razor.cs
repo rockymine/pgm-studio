@@ -53,8 +53,9 @@ public partial class SketchDressingList
             "tree" => new Row(id, "trees", Species(prop), Cell(prop)),
             "boulder" => new Row(id, "mountain", $"{Field(prop, "form", "round")} boulder", Cell(prop)),
             "path" => new Row(id, "spline", $"{Field(prop, "style", "solid")} path", Span(prop)),
-            "water" => new Row(id, "droplet", $"{Field(prop, "form", "canal")} channel", Span(prop)),
+            "water" => new Row(id, "waves", $"{Field(prop, "form", "canal")} channel", Span(prop)),
             "flora" => new Row(id, "flower", "ground cover", Span(prop)),
+            "house" => new Row(id, "house", "building", Footprint(prop)),
             _ => new Row(id, "shapes", kind, ""),
         };
     }
@@ -74,6 +75,24 @@ public partial class SketchDressingList
         if (!prop.TryGetProperty("points", out var points) || points.ValueKind != JsonValueKind.Array) return "";
         var count = points.GetArrayLength();
         return count == 0 ? "" : $"{count} pts";
+    }
+
+    /// <summary>A building's footprint in whole blocks. It is stored as two opposite corners rather than as a
+    /// traced outline, so a count of points says nothing about it — how much ground it covers does.</summary>
+    private static string Footprint(JsonElement prop)
+    {
+        if (!prop.TryGetProperty("points", out var points) || points.ValueKind != JsonValueKind.Array
+            || points.GetArrayLength() < 2) return "";
+        JsonElement first = points[0], second = points[1];
+        if (first.ValueKind != JsonValueKind.Array || first.GetArrayLength() < 2
+            || second.ValueKind != JsonValueKind.Array || second.GetArrayLength() < 2) return "";
+
+        var width = Blocks(first[0], second[0]);
+        var depth = Blocks(first[1], second[1]);
+        return $"{width} × {depth}";
+
+        static int Blocks(JsonElement one, JsonElement other)
+            => (int)Math.Abs(Math.Floor(other.GetDouble()) - Math.Floor(one.GetDouble())) + 1;
     }
 
     private Task Select(string id)

@@ -132,7 +132,7 @@ public partial class SketchDressingInspector
     {
         var json = await Library.RoomStyleJsonAsync(shell.Id);
         if (json is null) return;
-        Set(PropFields.Style, JsonNode.Parse(json));
+        await Set(PropFields.Style, JsonNode.Parse(json));
         shellName = shell.Name;
     }
 
@@ -290,7 +290,7 @@ public partial class SketchDressingInspector
         new Dictionary<string, (string, string, string)>
         {
             [PropKinds.Path] = ("spline", "Path", "A route across the ground. It swaps the surface it crosses rather than building on it, and nothing grows on what it covers."),
-            [PropKinds.Water] = ("droplet", "Water", "A channel of water. It cuts a bed into the ground and fills it to a level line — the one prop that takes terrain away rather than standing on it. Only existing ground is cut, and it is mirrored across the map's symmetry."),
+            [PropKinds.Water] = ("waves", "Water", "A channel of water. It cuts a bed into the ground and fills it to a level line — the one prop that takes terrain away rather than standing on it. Only existing ground is cut, and it is mirrored across the map's symmetry."),
             [PropKinds.Flora] = ("flower", "Cover", "Grass, fern and flowers over the soil inside the area you drew. Masked by the paint beneath — nothing grows on a plaza's quartz."),
             [PropKinds.Tree] = ("trees", "Tree", "One tree, standing where you put it. Mirrored across the map's symmetry, so both teams get the same cover."),
             [PropKinds.Boulder] = ("mountain", "Boulder", "One rock, half-buried where you put it. Mirrored across the map's symmetry, so both teams get the same cover."),
@@ -398,7 +398,7 @@ public static class DressingTools
     public static readonly (string Tool, string Kind, string Icon, string Name)[] All =
     [
         (Path, PropKinds.Path, "spline", "Path"),
-        (Water, PropKinds.Water, "droplet", "Water"),
+        (Water, PropKinds.Water, "waves", "Water"),
         (Flora, PropKinds.Flora, "flower", "Ground cover"),
         (House, PropKinds.House, "home", "Building"),
         (Tree, PropKinds.Tree, "trees", "Tree"),

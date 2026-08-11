@@ -3468,11 +3468,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   placement they can see. Its cells do join the pass's running claim, which is the different rule that stops
   grass growing through the walls. Ground is physics rather than policy: it seats on the lowest column of its
   own footprint so it settles into a slope, and an image over the void raises nothing. It is bounded at both
-  ends — the stamper's own three-block floor, and a **600-block footprint ceiling** (a 20×30 house) that is the
-  prop's alone, since a room's footprint comes from its plan piece and is no dressing limit's business. The cap
-  is an area rather than a side length because a sloped roof climbs with the *short* span only, so a long thin
-  building of the same area stays low where a square one does not. The shell is a snapshot on the prop, not a
-  library id (structures.md §9). **The porch's canopy is seated by its own lowest course**
+  ends — the stamper's own three-block floor, and a **192-block footprint ceiling** (three times the 8×8 shell a
+  wool cage is stamped in, so a 12×16 house is buildable and a 20×30 one is not) that is the prop's alone, since
+  a room's footprint comes from its plan piece and is no dressing limit's business. The cap is an area rather
+  than a side length so a long low building is as buildable as a square one; it bounds what a building costs and
+  how much map it covers, and **height is bounded separately and by the roof** — every form's rise is measured
+  over the building's shorter side. The shell is a snapshot on the prop, not a library id (structures.md §9). **The porch's canopy is seated by its own lowest course**
   clearing the doorway rather than by the eave above it — one statement for all six canopy forms, and the one
   that survives a tower: a wall is a `RoomPart` extent whose last course repeats, so a twenty-four-course
   building is an ordinary style, and a canopy chasing that eave rode the wall the whole way up as a colonnade

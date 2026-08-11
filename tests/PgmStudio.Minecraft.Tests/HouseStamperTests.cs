@@ -198,13 +198,67 @@ public sealed class HouseStamperTests
         var style = new HouseStyle { Form = form, Pitch = pitch };
         var world = House(11, 9, style);
 
-        var highest = FloorY;
-        for (var x = -4; x < 15; x++)
-            for (var z = -4; z < 13; z++)
-                for (var y = FloorY; y < FloorY + 40; y++)
-                    if (world.GetBlock(x, y, z).Id != Blocks.Air) highest = Math.Max(highest, y);
+        await Assert.That(Highest(world, 11, 9) - FloorY).IsEqualTo(style.TopLayerOver(11, 9));
+    }
 
-        await Assert.That(highest - FloorY).IsEqualTo(style.TopLayerOver(11, 9));
+    [Test]
+    [Arguments(RoofForm.Gable, RoomEdge.NegZ)]
+    [Arguments(RoofForm.Gable, RoomEdge.NegX)]
+    [Arguments(RoofForm.Hip, RoomEdge.PosX)]
+    [Arguments(RoofForm.Shed, RoomEdge.NegZ)]
+    [Arguments(RoofForm.Shed, RoomEdge.NegX)]
+    [Arguments(RoofForm.Shed, RoomEdge.PosX)]
+    [Arguments(RoofForm.Saltbox, RoomEdge.NegZ)]
+    [Arguments(RoofForm.Saltbox, RoomEdge.PosX)]
+    [Arguments(RoofForm.Gambrel, RoomEdge.NegX)]
+    public async Task The_reserved_height_follows_the_wall_the_doors_are_cut_through(RoofForm form, RoomEdge front)
+    {
+        // A shed and a saltbox fall toward the front, so their ridge climbs with the span perpendicular to that
+        // wall — on this footprint 11 one way and 9 the other. Reserving against a fixed edge is short by the
+        // difference, and a roof reserved short is clipped at the world ceiling instead of lowered. The
+        // symmetric forms are here to hold the other half of the claim: that the front changes nothing for them.
+        var style = new HouseStyle { Form = form, Pitch = 2 };
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, 0, 0, 11, 9, FloorY, style, doors: [new RoomDoor(front, 4, 2)]);
+
+        await Assert.That(Highest(world, 11, 9) - FloorY).IsEqualTo(style.TopLayerOver(11, 9, front));
+    }
+
+    [Test]
+    [Arguments(RoofForm.Gable)]
+    [Arguments(RoofForm.Hip)]
+    [Arguments(RoofForm.Gambrel)]
+    [Arguments(RoofForm.Shed)]
+    [Arguments(RoofForm.Saltbox)]
+    public async Task No_roof_climbs_with_the_long_side_of_a_building(RoofForm form)
+    {
+        // The same hall, roofed from an end wall and then from a side one. A gable, a hip and a gambrel are
+        // measured across the shorter side and never saw the long one; a shed and a saltbox fall toward the
+        // front, so before they were held to the short side the first of these stood three times the second.
+        var style = new HouseStyle { Form = form, Pitch = 2 };
+        var fromTheEnd = new VoxelWorld();
+        HouseStamper.Stamp(fromTheEnd, 0, 0, 24, 8, FloorY, style, doors: [new RoomDoor(RoomEdge.NegX, 3, 2)]);
+        var fromTheSide = new VoxelWorld();
+        HouseStamper.Stamp(fromTheSide, 0, 0, 24, 8, FloorY, style, doors: [new RoomDoor(RoomEdge.NegZ, 3, 2)]);
+
+        await Assert.That(Highest(fromTheEnd, 24, 8)).IsEqualTo(Highest(fromTheSide, 24, 8));
+
+        // And the height that survives is the short side's, not the long one's: a 24x8 hall is never taller
+        // than the same roof over an 8x8 shed of it.
+        var square = new VoxelWorld();
+        HouseStamper.Stamp(square, 0, 0, 8, 8, FloorY, style, doors: [new RoomDoor(RoomEdge.NegX, 3, 2)]);
+        await Assert.That(Highest(fromTheEnd, 24, 8) - FloorY).IsLessThanOrEqualTo(Highest(square, 8, 8) - FloorY);
+    }
+
+    /// <summary>The topmost course any block of the building occupies, read generously around it.</summary>
+    private static int Highest(VoxelWorld world, int width, int depth)
+    {
+        var highest = FloorY;
+        for (var x = -4; x < width + 4; x++)
+            for (var z = -4; z < depth + 4; z++)
+                for (var y = FloorY; y < FloorY + 60; y++)
+                    if (world.GetBlock(x, y, z).Id != Blocks.Air) highest = Math.Max(highest, y);
+        return highest;
     }
 
     [Test]

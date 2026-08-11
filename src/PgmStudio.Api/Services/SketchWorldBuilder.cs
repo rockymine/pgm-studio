@@ -296,10 +296,11 @@ public static class SketchWorldBuilder
     /// <summary>A floor low enough that the shell over it cannot run past the world ceiling. A gable's ridge
     /// climbs with the footprint it spans, so the headroom is reserved against that rather than against the
     /// flat answer — otherwise a tall roof near the top of the world is clipped instead of lowered.</summary>
-    internal static int SafeFloor(int y, HouseStyle? style = null, int width = 0, int depth = 0)
+    internal static int SafeFloor(
+        int y, HouseStyle? style = null, int width = 0, int depth = 0, RoomEdge? front = null)
         => Math.Clamp(y, 1, VoxelWorld.MaxHeight - 1 - (style is null
             ? HouseStyle.MaxTopLayer
-            : style.TopLayerOver(width, depth)));
+            : style.TopLayerOver(width, depth, front)));
 
     /// <summary>The floor a room shell rests on: the highest surface over the columns its footprint spans —
     /// not the one at its marker, which is a grid line whose side does not survive the symmetry orbit.
@@ -315,7 +316,11 @@ public static class SketchWorldBuilder
         RoomFrame frame, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, HouseStyle? style = null)
         => SafeFloor(
             PositionSnap.SurfaceYOver(surfaceTop, frame.MinX, frame.MinZ, frame.MaxX - 1, frame.MaxZ - 1, 1) - 1,
-            style, frame.Width, frame.Depth);
+            style, frame.Width, frame.Depth,
+            // The frame's own door, because a shed and a saltbox climb with the span perpendicular to it: a
+            // room whose entry contract puts the door on the long wall reserves more headroom than the same
+            // room fronting the short one.
+            frame.Doors.Count > 0 ? frame.Doors[0].Edge : null);
 
     /// <summary>The frame the export stamps for a wool: resolved from its plan piece + entry interfaces when
     /// it compiled from a plan (WX1/WX6), else the legacy marker-anchored default. Shared with the structure

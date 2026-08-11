@@ -11,8 +11,11 @@ namespace PgmStudio.Minecraft;
 /// so the stamper writes one loop and the forms differ only in what they answer here. A flat lid answers a
 /// constant, a gable the smaller distance across the building, a hip the smaller of all four, and the rest are
 /// that shape bent: a gambrel steepens the first courses in from the eave, a saltbox steepens one side alone
-/// so the ridge slides off centre, a shed drops the ridge onto one wall and slopes the whole plane to the
-/// opposite one.</para>
+/// so the ridge slides off centre, a shed drops the ridge onto one wall and slopes toward the opposite one.</para>
+///
+/// <para><b>Every rise is measured over the building's shorter side</b> (<see cref="Reach"/>). The forms
+/// measured across the building get that for nothing; the two measured from the front wall are held to it, so
+/// a long hall carries a long roof rather than a tall one.</para>
 ///
 /// <para><b>Distances are measured from the wall line, not from the roof's own edge, and are allowed to go
 /// negative.</b> That is what makes the overhang part of the slope: the course over the wall rests on the wall,
@@ -31,6 +34,10 @@ public sealed class RoofField
     /// axis and give a long building two enormous faces and no length.</summary>
     private readonly bool acrossZ;
 
+    /// <summary>The shorter of the two wall spans, in blocks — the run every form's rise is measured over, and
+    /// the reason a long building is a long building rather than a tall one.</summary>
+    private readonly int shortSpan;
+
     /// <param name="form">Which roof this is.</param>
     /// <param name="overhang">How far past the walls the roof reaches, in blocks.</param>
     /// <param name="baseY">The course the roof stands at over the wall line — one above the wall's last.</param>
@@ -48,6 +55,7 @@ public sealed class RoofField
         this.pitch = Math.Max(1, pitch);
         this.front = front;
         acrossZ = wallMaxZ - wallMinZ <= wallMaxX - wallMinX;
+        shortSpan = Math.Max(1, Math.Min(wallMaxZ - wallMinZ, wallMaxX - wallMinX) + 1);
 
         var (lowest, highest) = (int.MaxValue, int.MinValue);
         for (var x = MinX; x <= MaxX; x++)
@@ -98,16 +106,44 @@ public sealed class RoofField
         return baseY + form switch
         {
             RoofForm.Flat => 0,
-            RoofForm.Shed => fromFront * pitch,
+            RoofForm.Shed => Reach(fromFront) * pitch,
             RoofForm.Hip => Math.Min(Math.Min(westward, eastward), Math.Min(northward, southward)) * pitch,
             RoofForm.Gambrel => Gambrel(Math.Min(acrossLow, acrossHigh)),
             // Both slopes rise from their own eave, and the ridge is simply where they meet: at one rate they
             // meet in the middle and it is a gable, at two different rates the steeper side reaches the other
             // first and the ridge slides toward it, which is the whole of a saltbox.
-            RoofForm.Saltbox => Math.Min(fromFront * (pitch + 1), fromBack * pitch),
+            //
+            // Taken across the shorter side exactly as a gable is, so the front decides which slope is the
+            // steep one and nothing about how high the roof stands. Measuring it from the front instead lets
+            // both slopes run the length of a hall, where each saturates on its own and they never meet — the
+            // ridge is then the long side's, which is the one thing no roof's height may be.
+            RoofForm.Saltbox => Math.Min(SteepSide(acrossLow, acrossHigh) * (pitch + 1),
+                                         ShallowSide(acrossLow, acrossHigh) * pitch),
             _ => Math.Min(acrossLow, acrossHigh) * pitch,
         };
     }
+
+    /// <summary>How far a slope that falls toward the <em>front</em> is allowed to climb: the short side's own
+    /// run, whatever the run it actually has.
+    ///
+    /// <para><b>No roof climbs with the long side of a building.</b> A gable, a hip and a gambrel are measured
+    /// across the shorter side already, so the rule costs them nothing. A shed and a saltbox are measured from
+    /// the front wall, and the front is wherever the doors are — so on a building longer than it is deep they
+    /// would climb the long way, and a 10×60 hall would carry a lean-to sixty courses over its wall. Held to the
+    /// short side, a shed climbs at its pitch and then <b>runs flat</b> the rest of the way, which is a lean-to
+    /// that levels off, and a saltbox's long shallow slope stops short of where it would otherwise have met the
+    /// steep one.</para></summary>
+    private int Reach(int distance) => Math.Min(distance, shortSpan - 1);
+
+    /// <summary>Which of a saltbox's two across-distances belongs to the steep slope: the one on the front's own
+    /// side of the building. Where the front wall is an end rather than a side it lies on neither, and the low
+    /// side is taken — a saltbox has to face <em>somewhere</em>, and a stable choice beats one that flips with
+    /// a door the slope does not run toward anyway.</summary>
+    private int SteepSide(int acrossLow, int acrossHigh) => FrontIsHigh ? acrossHigh : acrossLow;
+
+    private int ShallowSide(int acrossLow, int acrossHigh) => FrontIsHigh ? acrossLow : acrossHigh;
+
+    private bool FrontIsHigh => acrossZ ? front == RoomEdge.PosZ : front == RoomEdge.PosX;
 
     /// <summary>How many courses the column writes. A step of more than one course leaves the slope open between
     /// its treads, so each column carries its own riser as well as its tread — as deep as the deepest step down

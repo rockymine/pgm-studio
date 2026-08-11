@@ -76,7 +76,7 @@ var roofNotes = new (RoofForm Form, string Name, string Blurb)[]
     (RoofForm.Flat, "Flat", "A lid one course over the walls — the shell every wool cage and spawn cube has always worn, and the only form that can carry a hole to light the room under it."),
     (RoofForm.Gable, "Gable", "Two slopes meeting at a ridge that runs the building's length. The ends are wall carried up to the underside of the slope, not roof."),
     (RoofForm.Hip, "Hip", "A slope off every wall. The ridge keeps whatever length the footprint has left over; on a square there is none, and the roof comes to a point."),
-    (RoofForm.Shed, "Shed", "One plane, low at the front wall and climbing to the back. The back wall and both flanks climb with it."),
+    (RoofForm.Shed, "Shed", "One plane, low at the front wall and climbing to the back. The back wall and both flanks climb with it. On a building longer than it is deep the plane levels off once it has risen the short side's worth, so a hall carries a long roof rather than a tall one."),
     (RoofForm.Gambrel, "Gambrel", "A barn: steep for the first courses in from each eave, then shallow to the ridge, so the roof carries a usable volume and still sheds."),
     (RoofForm.Saltbox, "Saltbox", "The two slopes climb at different rates, so they meet off centre — short and steep over the front, long and shallow over the back."),
 };
@@ -288,6 +288,7 @@ var heroTop = FloorY + finished.TopLayerOver(17, 13);
 
 // ── the page ──────────────────────────────────────────────────────────────────────────────────────────
 page.Append("""
+<meta charset="utf-8">
 <title>House generation — roofs, floors, porches, windows</title>
 <style>
 :root {
@@ -413,12 +414,54 @@ page.Append("<section><div class='section-head'><span class='label'>One</span><h
     .Append("neighbours. The stamper walks that plan once and lays what it is told. Each form is a different ")
     .Append("answer to the same question — the smaller distance across the building is a gable, the smallest of ")
     .Append("all four is a hip, the distance from one wall alone is a shed — so the six differ in one formula ")
-    .Append("and nothing else.</p></div>")
+    .Append("and nothing else. Every one of those distances is measured over the building's <strong>shorter ")
+    .Append("side</strong>: the forms taken across the building get that for free, and the two taken from the ")
+    .Append("front wall are held to it, so no roof ever climbs with the long side of a hall.</p></div>")
     .Append($"<div class='grid grid--wide'>{roofFigures}</div>")
     .Append("<p class='note'>What generalized with them is the wall. The gable's end walls used to be a pass of ")
     .Append("their own; now every wall simply climbs to meet the roof wherever the roof stands above it — which ")
     .Append("is the gable's two ends, the shed's back wall and both its flanks, and nothing at all under a hip.</p>")
     .Append("</section>");
+
+// ── figure 1a: the long hall ──────────────────────────────────────────────────────────────────────────
+// The one case the short-side hold exists for, drawn at the proportion that shows it: a building three times
+// as long as it is deep, where the front wall is an end rather than a side.
+var hallFigures = new StringBuilder();
+foreach (var (form, name, blurb) in new (RoofForm Form, string Name, string Blurb)[]
+         {
+             (RoofForm.Gable, "Gable over a hall",
+                 "Taken across the building already, so the length changes nothing: the ridge simply runs further. This is the shape the other two are held to."),
+             (RoofForm.Shed, "Shed over a hall",
+                 "The plane climbs from the front wall at its pitch and then runs flat — a lean-to that levels off. Unheld it would climb the whole length of the building and stand taller than the hall is deep."),
+             (RoofForm.Saltbox, "Saltbox over a hall",
+                 "A gable whose two slopes climb at different rates, so it is measured across the short side exactly as a gable is. The front decides which of them is the steep one and nothing about how high the roof stands."),
+         })
+{
+    var style = basis with { Form = form, Overhang = 1, Pitch = 1 };
+    // The door on an end wall, which is what turns a shed's fall onto the long axis.
+    var world = new VoxelWorld();
+    for (var x = -3; x < 27; x++)
+        for (var z = -3; z < 11; z++)
+            for (var y = FloorY - 3; y < FloorY; y++)
+                world.SetBlock(x, y, z, y == FloorY - 1 ? Blocks.Grass : Blocks.Dirt);
+    HouseStamper.Stamp(world, 0, 0, 24, 8, FloorY, style, color: 14, doors: [new RoomDoor(RoomEdge.NegX, 3, 2)]);
+    var top = FloorY + style.TopLayerOver(24, 8, RoomEdge.NegX);
+    hallFigures.Append($"<article class='card'><h3>{name}</h3>")
+        .Append($"<div class='fig fig--iso'>{Iso(world, -1, -1, 24, 8, FloorY - 1, top, 8)}</div>")
+        .Append($"<p>{blurb}</p></article>");
+}
+
+page.Append("<section><div class='section-head'><span class='label'>One, continued</span>")
+    .Append("<h2>A long building is a long building, not a tall one</h2>")
+    .Append("<p>A gable, a hip and a gambrel are measured across the shorter side, so a hall only makes their ")
+    .Append("ridge longer. A shed and a saltbox are measured from the <em>front</em> wall — and the front is ")
+    .Append("wherever the doors are, which on a hall is as likely to be an end as a side. Left alone they ")
+    .Append("would climb the long way, and a 24&times;8 building would carry a roof two dozen courses over its ")
+    .Append("wall from a footprint drawn flat on the canvas. Every rise is therefore measured over the ")
+    .Append("<strong>shorter side</strong>, whichever wall the slope falls toward.</p></div>")
+    .Append($"<div class='grid grid--wide'>{hallFigures}</div>")
+    .Append("<p class='note'>The height that survives is the one the pitch asked for. What the footprint's ")
+    .Append("long side decides is how far the roof runs, and nothing about how high it stands.</p></section>");
 
 // ── figure 1b: the gable face ─────────────────────────────────────────────────────────────────────────
 var gableFigures = new StringBuilder();

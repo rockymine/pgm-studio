@@ -143,9 +143,32 @@
                  HelpTitle="@($"What the {part.Title.ToLowerInvariant()} is")">
           <Help>@part.Blurb</Help>
           <Actions>
-            <Badge Kind="dim">@Courses(part.Id).Count course@(Courses(part.Id).Count == 1 ? string.Empty : "s")</Badge>
+            @if (part.Stacked)
+            {
+              <Badge Kind="dim">@Courses(part.Id).Count course@(Courses(part.Id).Count == 1 ? string.Empty : "s")</Badge>
+            }
           </Actions>
           <ChildContent>
+            @* A part that takes one material takes one picker. Offering a stack for the roof offered an author
+               courses the stamper reads the first of and drops the rest — a knob whose preview never moved. *@
+            @if (!part.Stacked)
+            {
+              <Field Label="Material">
+                <select class="field-input field-input--slim" title="@part.Blurb"
+                        value="@Single(part.Id)" @onchange="e => BindSingle(part.Id, e)">
+                  <option value="0">Unbound — keeps the built-in finish</option>
+                  @foreach (var group in StylesByKind)
+                  {
+                    <optgroup label="@MaterialKind.NameOf(group.Key)" @key="group.Key">
+                      @foreach (var style in group) { <option value="@style.Id">@style.Name</option> }
+                    </optgroup>
+                  }
+                </select>
+              </Field>
+            }
+
+            @if (part.Stacked)
+            {
             <Field Label="@part.ExtentLabel">
               <input class="field-input field-input--slim" type="number" min="1" step="1"
                      value="@Extent(part.Id)" @onchange="e => SetExtent(part.Id, e)" />
@@ -185,6 +208,7 @@
             <div class="panel-actions">
               <Button Icon="plus" Disabled="@(styles.Count == 0)" OnClick="() => AddCourse(part.Id)">Add a course</Button>
             </div>
+            }
 
             @* A part's non-material knobs belong to that part, so they sit in its own section rather than in
                a second one competing for the same heading. *@

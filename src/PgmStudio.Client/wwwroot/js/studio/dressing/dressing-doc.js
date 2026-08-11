@@ -65,11 +65,12 @@ export const isMarker = (propOrKind) => {
 export const isRect = (propOrKind) =>
   (typeof propOrKind === "string" ? propOrKind : propOrKind?.kind) === "house";
 
-/** The largest footprint a placed building may cover, in blocks — a 20x30 house. Restated here rather than
- *  served because it is a rule the *canvas* has to apply while a drag is still in the pointer, before anything
- *  could be asked of the server; it is the same number `HouseProp.MaxFootprint` holds, and the same reason the
- *  3-block minimum is restated below it. */
-export const MAX_FOOTPRINT = 600;
+/** The largest footprint a placed building may cover, in blocks — three times the 8x8 shell a wool cage is
+ *  stamped in, so a 12x16 house is buildable and a 20x30 one is not. Restated here rather than served because
+ *  it is a rule the *canvas* has to apply while a drag is still in the pointer, before anything could be asked
+ *  of the server; it is the same number `HouseProp.MaxFootprint` holds, and the same reason the 3-block minimum
+ *  is restated below it. */
+export const MAX_FOOTPRINT = 192;
 
 /** A rect prop's footprint in whole blocks, or null when it is no building — too small to hold two walls and
  *  an inside, or past `MAX_FOOTPRINT`. The same floor and ceiling `HouseProp.Footprint` holds, so the canvas
