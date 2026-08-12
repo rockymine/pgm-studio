@@ -273,6 +273,32 @@ internal sealed record RimMark(double MarkHeight, int Depth = 1) : Mark(MarkHeig
     }
 }
 
+/// <summary>
+/// A shape of ground lifted or lowered, rather than a height stated. Every other mark is a <em>constraint</em>
+/// — the ground here <b>is</b> twelve — and constraints are what a solver needs but not what a hand wants:
+/// stated as a point and a radius they can only make a round hill, and the roundness is not a style, it is
+/// the shape of the only footprint that could be typed.
+///
+/// <para>A push takes a drawn ring instead and raises the ground inside it by an amount, falling away outside
+/// it over a stated distance — so the landform's plan is whatever was drawn. A spur, a saddleback, a crescent
+/// ridge and a lobed hollow are all the same operation with a different outline. It is applied to the solved
+/// surface rather than into it, because that is what makes it compose: two pushes over the same ground add,
+/// where two constraints over the same ground would have to argue.</para>
+///
+/// <para>The falloff is measured as distance from the ring across the land — <b>not</b> from a centre — which
+/// is what keeps the shape all the way out: a long thin push stays long and thin as it fades, where a radial
+/// falloff would round it off within a few blocks of its own outline. <see cref="Roughness"/> wobbles that
+/// distance with a noise field so the skirt is not a clean offset of the outline, which is the difference
+/// between a hill and an extruded logo.</para>
+/// </summary>
+internal sealed record PushMark(double[][] Ring, double Amount, double Falloff = 10, double Roughness = 0,
+                                uint Seed = 1)
+{
+    /// <summary>How the lift decays from the ring outward. Smoothstep flattens at both ends, so the push
+    /// leaves the surrounding land level and its own top flat-ish — a landform rather than a tent.</summary>
+    public static double Ease(double t) => t <= 0 ? 1 : t >= 1 ? 0 : 1 - t * t * (3 - 2 * t);
+}
+
 /// <summary>How the field between the marks is decided. The three are genuinely different surfaces, not
 /// tunings of one: <see cref="Idw"/> weights every mark by straight-line distance and so reaches through a
 /// wall; <see cref="GeodesicIdw"/> measures the same weights along paths that stay on the land;
@@ -286,6 +312,10 @@ internal sealed record ReliefSpec
 {
     public double Base { get; init; } = 4;
     public List<Mark> Marks { get; init; } = [];
+
+    /// <summary>Shapes of ground lifted or lowered after the field is solved — the sculpting half of the
+    /// model, where the landform's plan is whatever ring was drawn rather than whatever radius was typed.</summary>
+    public List<PushMark> Pushes { get; init; } = [];
     public Interpolator Interpolator { get; init; } = Interpolator.Diffusion;
 
     /// <summary>How far a mark's influence travels before the field falls back to <see cref="Base"/>, in
@@ -421,6 +451,14 @@ internal static class ReliefSolver
             _ => Diffuse(footprint, pinned, isPinned, spec, warmStart, sweeps, cascade),
         };
 
+        // Pushes go on before the grain and before the fold, so a lifted spur gets the same wobble and the
+        // same symmetry guarantee as the ground it stands on.
+        if (spec.Pushes.Count > 0)
+        {
+            var lift = Sculpt(footprint, spec.Pushes);
+            for (var index = 0; index < field.Length; index++) field[index] += lift[index];
+        }
+
         if (spec.Grain > 0)
             foreach (var (x, z) in footprint.Cells())
             {
@@ -454,6 +492,65 @@ internal static class ReliefSolver
             blocks[index] = (int)Math.Round((field[index] - spec.Base) / step) * step + (int)Math.Round(spec.Base);
         }
         return new HeightField(footprint, field, blocks);
+    }
+
+    /// <summary>
+    /// How much each cell is lifted by the pushes. Distance is measured <b>from the ring</b> by a chamfer
+    /// sweep over the footprint, not from a centre, which is the whole reason a push keeps its shape: a long
+    /// thin outline stays long and thin as it fades. The sweep also only ever steps onto land, so a push on
+    /// one arm of a shape does not lift the arm across the notch from it — the same property the fill has,
+    /// for the same reason.
+    /// </summary>
+    private static double[] Sculpt(Footprint footprint, List<PushMark> pushes)
+    {
+        var lift = new double[footprint.Width * footprint.Depth];
+        foreach (var push in pushes)
+        {
+            var distance = new double[lift.Length];
+            Array.Fill(distance, double.PositiveInfinity);
+            var seeded = false;
+            foreach (var (x, z) in footprint.Cells())
+                if (Footprint.PointInRing(x + 0.5, z + 0.5, push.Ring))
+                { distance[footprint.Index(x, z)] = 0; seeded = true; }
+            if (!seeded) continue;
+
+            for (var sweep = 0; sweep < 6; sweep++)
+            {
+                var moved = false;
+                for (var pass = 0; pass < 2; pass++)
+                    for (var i = 0; i < distance.Length; i++)
+                    {
+                        var index = pass == 0 ? i : distance.Length - 1 - i;
+                        if (!footprint.InsideAt(index)) continue;
+                        var (x, z) = footprint.CellAt(index);
+                        var best = distance[index];
+                        foreach (var (dx, dz) in Neighbours8)
+                        {
+                            if (!footprint.Inside(x + dx, z + dz)) continue;
+                            var step = dx != 0 && dz != 0 ? 1.41421356 : 1.0;
+                            var candidate = distance[footprint.Index(x + dx, z + dz)] + step;
+                            if (candidate < best) best = candidate;
+                        }
+                        if (best < distance[index]) { distance[index] = best; moved = true; }
+                    }
+                if (!moved) break;
+            }
+
+            var falloff = Math.Max(0.5, push.Falloff);
+            foreach (var (x, z) in footprint.Cells())
+            {
+                var index = footprint.Index(x, z);
+                var away = distance[index];
+                if (double.IsPositiveInfinity(away)) continue;
+                // The skirt wanders, so the fade is not a clean offset of the outline. Only the distance is
+                // wobbled and never the amount, so the push still reaches its full height inside its ring.
+                if (push.Roughness > 0)
+                    away = Math.Max(0, away + (Noise.Field(x, z, push.Seed, 9, 3) - 0.5) * 2 * push.Roughness);
+                if (away > falloff) continue;
+                lift[index] += push.Amount * PushMark.Ease(away / falloff);
+            }
+        }
+        return lift;
     }
 
     /// <summary>The coordinate a cell's grain is drawn from: itself, or — once a fold is declared — whichever

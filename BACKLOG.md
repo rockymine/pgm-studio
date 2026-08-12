@@ -141,25 +141,30 @@ highlight); these are the parked / dormant / deferred slices.
   excluded shape is stamped back after the solve, so it can be moved or re-themed without re-solving the
   ground (`sketch-relief.md` §11).
 
-- [ ] **S49 — Split terrain from structure when reading a built world.** `tools/relief --corpus` runs the
-  relief readback over community map worlds and is what §12's table is measured from, but it reads the
-  **built surface**: a roof and a city wall are ground to it, so some of the barrier share and much of the
-  fragmentation is architecture rather than landform. The painter already answers this question for a map the
-  studio built (`terrain-painting.md` TP6 — a column whose top block is not stone is a structure), and the
-  answer does not transfer to an imported world with no stamps. Wanted: a structure test that works off the
-  world alone — flat-topped rectilinear masses with vertical faces and non-terrain materials — so the corpus
-  can be re-read for terrain only. Blocks S47.
+- [ ] **S50 — Relief: push and pull a drawn shape, not a radius.** Every mark is a *constraint* — the ground
+  here **is** twelve — which is what a solver needs and not what a hand wants: stated as a position and a
+  radius, a summit can only be round, and the roundness is not a style but the shape of the only footprint
+  that could be typed. A **push** takes a drawn ring and raises the ground inside it, falling away outside
+  over a stated distance, so a spur, a saddleback, a crescent ridge and a lobed hollow are one operation with
+  a different outline. It applies to the solved surface rather than into it, which is what makes pushes
+  **compose** — two over the same ground add, where two constraints would have to argue. The detail that
+  decides whether it works: falloff is distance **from the ring across the land**, not from a centre. A radial
+  falloff rounds a long thin push off within a few blocks of its own outline and cannot keep the hollow inside
+  a crescent's curve at all. A roughness wobbles that distance so the skirt is not a clean offset of the
+  outline (`sketch-relief.md` §2.1).
 
 - [ ] **S47 — A pressure budget for relief.** S43 measures what terrain charges; nothing says how much
   charging is too much. The dressing stage has the identical gap (`world-export/ideas.md` G167) and the two
   should share an answer. The materials exist — the share of the board at each passability tier, the detour
   factor between key places, the ford count and direction on a barrier, the reachable share per team side —
-  and the corpus pass has now run (`sketch-relief.md` §12, 106 dtcm maps): body relief median **24 blocks**,
-  walk median **77.3%**, barrier median **16.3%**, largest walkable place median only **30.7%**, **9** cliffs.
-  Every board this design has produced sits at the flat, open extreme of that distribution — as does Cedar
-  Crossing, which measures 96.1% walk and one place holding 97.9% against its own corpus. So the direction is
-  known and the threshold is not, because the reading cannot yet separate a cliff from a castle wall. Blocked
-  on **S49**.
+  and the corpus pass has now run on the right surface (`sketch-relief.md` §12, 105 maps, natural ground):
+  body relief median **19 blocks**, walk median **72.6%**, barrier median **18.3%**, largest walkable place
+  median **29.4%**, **8** cliffs. Filtering the architecture out made the terrain read *steeper*, not gentler
+  — a building's flat roof was smoothing the reading — so the tier shares were never the distorted numbers;
+  the **cliff count** was, and heavily (Alpine Mining II: 36 cliffs off the built surface, 13 off natural
+  ground). What is still missing is the shape of a rule: a median is not a target, and a map at the 25th
+  percentile for walkable share is not thereby worse than one at the 75th. That needs labelled examples of a
+  *bad* map rather than more measurement.
 
 - [ ] **S34 — Reuse a sketch paint's column classification across the edits of one drag.** `TerrainProfile`
   construction is what a paint now costs — ~60 ms of the ~164 ms a 40k-cell board takes (S33, `FEATURES.md`),

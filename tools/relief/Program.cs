@@ -18,7 +18,8 @@ void Say(string line) { Console.WriteLine(line); log.Add(line); }
 // only way the tiers and the places-and-ledges split get calibrated against maps people shipped.
 if (args.Length >= 2 && args[0] == "--measure")
 {
-    var read = Measure.Read(args[1]);
+    var surface = args.Contains("--terrain") ? Measure.Surface.Natural : Measure.Surface.Built;
+    var read = Measure.Read(args[1], surface);
     if (read is not var (built, flooded)) { Console.Error.WriteLine($"no world at {args[1]}"); return 1; }
     var (low, high) = Measure.Body(built);
     Console.WriteLine(Terrain.Report(built, Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(args[1])) ?? args[1])));
@@ -30,7 +31,8 @@ if (args.Length >= 2 && args[0] == "--measure")
 }
 if (args.Length >= 2 && args[0] == "--corpus")
 {
-    Measure.Corpus(args[1], Console.WriteLine);
+    Measure.Corpus(args[1], Console.WriteLine,
+        args.Contains("--terrain") ? Measure.Surface.Natural : Measure.Surface.Built);
     return 0;
 }
 
@@ -622,6 +624,119 @@ HeightField FromFunction(Footprint footprint, Func<double, double, double> heigh
     var heldEdge = EdgeStep(held, city);
     var excludedEdge = EdgeStep(excluded, city);
     Say($"  at the compound's wall: held meets the land at a worst step of {heldEdge}, excluded at {excludedEdge}");
+    Say("");
+}
+
+// ═══ figure 11 — a landform's plan is whatever was drawn ══════════════════════════════════════════
+{
+    var footprint = FootprintOf(Board);
+    const int Scale = 3;
+
+    // The same amount of ground lifted by the same height, four outlines. Nothing else differs.
+    double[][] Spur = [[30, 18], [52, 26], [58, 52], [50, 78], [56, 104], [44, 118], [36, 96], [42, 66], [34, 42]];
+    double[][] Crescent = [[16, 30], [42, 20], [66, 34], [72, 60], [62, 56], [56, 38], [38, 32], [24, 44], [22, 78],
+                           [34, 100], [26, 104], [12, 76]];
+    double[][] Saddle = [[18, 34], [40, 26], [44, 56], [66, 48], [76, 78], [56, 92], [50, 66], [30, 74], [20, 60]];
+
+    var panels = new List<(string, Canvas)>();
+    foreach (var (name, ring, rough) in new[]
+    {
+        ("a point mark, radius 22", (double[][])[], 0.0),
+        ("a drawn spur", Spur, 0.0),
+        ("a crescent ridge", Crescent, 0.0),
+        ("a saddleback, skirt roughened", Saddle, 5.0),
+    })
+    {
+        var spec = ring.Length == 0
+            ? new ReliefSpec { Base = 6, Marks = [new RimMark(6), new PointMark(45, 66, 20, 22)], Grain = 0.8, Seed = 4 }
+            : new ReliefSpec
+            {
+                Base = 6,
+                Marks = [new RimMark(6)],
+                Pushes = [new PushMark(ring, Amount: 14, Falloff: 16, Roughness: rough, Seed: 4)],
+                Grain = 0.8,
+                Seed = 4,
+            };
+        var solved = ReliefSolver.Solve(footprint, spec);
+        var panel = Render.TopDown(solved, Scale, floor: 4, ceiling: 22);
+        if (ring.Length > 0)
+            for (var i = 0; i < ring.Length; i++)
+            {
+                var next = ring[(i + 1) % ring.Length];
+                panel.Line((int)((ring[i][0] - footprint.MinX) * Scale), (int)((ring[i][1] - footprint.MinZ) * Scale),
+                           (int)((next[0] - footprint.MinX) * Scale), (int)((next[1] - footprint.MinZ) * Scale), Render.Ink, 0.85);
+            }
+        panels.Add((name, panel));
+    }
+    Png.Write(Path.Combine(outputRoot, "11-push.png"), Render.Row(panels).Upscale(2));
+    Say("figure 11 — the same lift, four outlines: a landform's plan is whatever ring was drawn");
+    Say("");
+}
+
+// ═══ figure 12 — the character of a mined valley, not a copy of one ═══════════════════════════════
+{
+    // A long board, a river that widens into a lake, spurs reaching down to it between side valleys, and a
+    // bench cut into one flank where a mine would sit. The shapes are drawn, not radial.
+    double[][] valley = [[0, 0], [140, 0], [140, 260], [0, 260]];
+    var footprint = FootprintOf(valley);
+
+    double[][] river = [[64, 0], [72, 44], [66, 92], [70, 130], [62, 170], [74, 216], [66, 260]];
+    double[][] lake = [[44, 104], [92, 98], [104, 132], [96, 168], [56, 174], [38, 140]];
+
+    double[][] westSpur = [[10, 22], [40, 34], [46, 60], [30, 76], [14, 62]];
+    double[][] eastSpur = [[96, 30], [130, 20], [134, 58], [110, 74], [92, 56]];
+    double[][] westRidge = [[4, 118], [30, 108], [40, 148], [34, 200], [12, 214], [2, 168]];
+    double[][] eastRidge = [[104, 186], [136, 176], [138, 236], [112, 246], [100, 216]];
+    double[][] bench = [[86, 74], [118, 68], [124, 96], [92, 102]];
+
+    var spec = new ReliefSpec
+    {
+        Base = 14,
+        Marks =
+        [
+            new RimMark(20, 2),
+            new LineMark(river, [6, 5, 4, 4, 4, 5, 6], 5),
+            new AreaMark(lake, 3),
+            new AreaMark(bench, 26),
+            new ScarpMark([[86, 66], [122, 60]], High: 27, Low: 17, FaceWidth: 2, BandWidth: 5),
+        ],
+        Pushes =
+        [
+            new PushMark(westSpur, 16, 20, 5, 11),
+            new PushMark(eastSpur, 18, 22, 5, 12),
+            new PushMark(westRidge, 20, 24, 6, 13),
+            new PushMark(eastRidge, 17, 22, 6, 14),
+            new PushMark(lake, -7, 26, 6, 15),
+        ],
+        Grain = 1.6,
+        GrainScale = 19,
+        Seed = 31,
+    };
+
+    var solved = ReliefSolver.Solve(footprint, spec);
+    var filled = Terrain.FillDepressions(solved);
+    var flow = Terrain.Flow(solved, filled, (68, 6));
+    var channel = Terrain.Carve(solved, flow, radius: 4, depth: 2);
+    var finished = channel.Bed;
+
+    var plan = Render.TopDown(finished, 3, floor: 0, ceiling: 44);
+    foreach (var (cell, _) in channel.Water)
+        plan.Disc((cell.X - footprint.MinX) * 3 + 1.5, (cell.Z - footprint.MinZ) * 3 + 1.5, 1.8, 0x3C7FE0, 0.9);
+
+    Png.Write(Path.Combine(outputRoot, "12-valley.png"),
+        Render.Row([("a mined valley", plan),
+                    ("what each cell costs", Render.StepMap(finished, 3)),
+                    ("reachable on foot", Render.ReachMap(finished, Terrain.Passage.Walk, 3))]).Upscale(2));
+    Png.Write(Path.Combine(outputRoot, "12b-valley-iso.png"),
+        Render.Row([("the same valley in blocks",
+            Render.Isometric(finished, tileWidth: 3, tileDepth: 2, blockRise: 2, floor: 0, ceiling: 44,
+                tintOf: cell => channel.Water.ContainsKey(cell) ? 0x2E6FC4 : null))]).Upscale(2));
+
+    var (low, high) = Measure.Body(finished);
+    Say("figure 12 — the character of a mined valley: drawn spurs, a lake, a benched flank");
+    Say(Terrain.Report(finished, "  the valley"));
+    Say($"  body: 95% of columns in a {high - low}-block band");
+    Say($"  water: {channel.Water.Count} cells at {channel.Water.Values.Distinct().Count()} distinct level(s)");
     Say("");
 }
 

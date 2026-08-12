@@ -16,11 +16,24 @@ namespace PgmStudio.Relief;
 /// </summary>
 internal static class Measure
 {
-    private static bool NotGround(int id) => id == 0 || BlockRoles.IsLiquid(id) || BlockRoles.StandsOnGround(id);
+    /// <summary>
+    /// Which surface a reading is of, and it is the difference between measuring a map and measuring its
+    /// architecture. <see cref="Built"/> takes the top of everything a player stands on, walls and roofs
+    /// included — the right surface for a question about play. <see cref="Natural"/> steps past a building's
+    /// own courses to the terrain underneath, which is the only one a terrain solver can be calibrated
+    /// against: a rampart is a three-block step and a landform is not, and a reading that cannot tell them
+    /// apart reports a town as a mountain range.
+    /// </summary>
+    internal enum Surface { Built, Natural }
+
+    private static bool NotGround(int id, Surface surface) => surface == Surface.Natural
+        ? !BlockRoles.IsNaturalGround(id)
+        : id == 0 || BlockRoles.IsLiquid(id) || BlockRoles.StandsOnGround(id);
 
     /// <summary>The ground surface of a world folder as a height field, plus the columns standing under
     /// liquid and the waterline they stand under.</summary>
-    public static (HeightField Field, Dictionary<(int X, int Z), int> Flooded)? Read(string regionDir, int margin = 0)
+    public static (HeightField Field, Dictionary<(int X, int Z), int> Flooded)? Read(
+        string regionDir, Surface surface = Surface.Built, int margin = 0)
     {
         if (!Directory.Exists(regionDir)) return null;
         var files = Directory.GetFiles(regionDir, "*.mca");
@@ -30,7 +43,7 @@ internal static class Measure
         var flooded = new Dictionary<(int X, int Z), int>();
         foreach (var mca in files)
             foreach (var chunk in AnvilRegion.ReadChunks(mca))
-                Scan(chunk, ground, flooded);
+                Scan(chunk, ground, flooded, surface);
         if (ground.Count == 0) return null;
 
         int minX = ground.Keys.Min(cell => cell.X) - margin, maxX = ground.Keys.Max(cell => cell.X) + margin;
@@ -49,7 +62,7 @@ internal static class Measure
     }
 
     private static void Scan(AnvilRegion.Chunk chunk, Dictionary<(int X, int Z), int> ground,
-                             Dictionary<(int X, int Z), int> flooded)
+                             Dictionary<(int X, int Z), int> flooded, Surface surface)
     {
         var ids = new ushort[256 * 256];
         foreach (var section in AnvilRegion.Sections(chunk))
@@ -68,7 +81,7 @@ internal static class Measure
                 {
                     var id = ids[(y << 8) | column];
                     if (waterline == int.MinValue && BlockRoles.IsLiquid(id)) waterline = y;
-                    if (NotGround(id)) continue;
+                    if (NotGround(id, surface)) continue;
                     var cell = (chunk.ChunkX * 16 + lx, chunk.ChunkZ * 16 + lz);
                     ground[cell] = y;
                     if (waterline != int.MinValue) flooded[cell] = waterline;
@@ -99,9 +112,9 @@ internal static class Measure
         string Name, int Cells, int Wide, int Deep, int Span, int Body, double Walk, double Scramble,
         double Barrier, int Places, double Largest, int Ledges, int Cliffs, int WidestCliff, double Flooded);
 
-    public static Reading? Of(string name, string regionDir)
+    public static Reading? Of(string name, string regionDir, Surface surface = Surface.Built)
     {
-        var read = Read(regionDir);
+        var read = Read(regionDir, surface);
         if (read is not var (field, flooded)) return null;
 
         var cells = field.Footprint.Cells().ToList();
@@ -131,7 +144,7 @@ internal static class Measure
     /// <summary>Runs the readback over every world under a corpus directory and reports the distribution.
     /// What comes out is the answer the pressure budget needs and design cannot supply: not what a surface
     /// should cost, but what the surfaces people ship actually do.</summary>
-    public static void Corpus(string root, Action<string> say, int limit = 500)
+    public static void Corpus(string root, Action<string> say, Surface surface = Surface.Built, int limit = 500)
     {
         var maps = Directory.GetDirectories(root).OrderBy(path => path).Take(limit).ToList();
         var readings = new List<Reading>();
@@ -141,13 +154,13 @@ internal static class Measure
             if (!Directory.Exists(region)) continue;
             try
             {
-                if (Of(Path.GetFileName(map), region) is { } reading) readings.Add(reading);
+                if (Of(Path.GetFileName(map), region, surface) is { } reading) readings.Add(reading);
             }
             catch (Exception error) { say($"  {Path.GetFileName(map)}: unreadable ({error.GetType().Name})"); }
         }
         if (readings.Count == 0) { say("  no readable worlds"); return; }
 
-        say($"  read {readings.Count} maps");
+        say($"  read {readings.Count} maps ({(surface == Surface.Natural ? "natural ground, stepping past what was built" : "the built surface, walls and roofs included")})");
         void Spread(string label, Func<Reading, double> pick, string unit = "")
         {
             var values = readings.Select(pick).Order().ToList();

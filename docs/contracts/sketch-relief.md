@@ -83,6 +83,30 @@ slope and flatten it, and it is load-bearing in a way worth stating: a rim writt
 doorway through both ends of the ridge where the two meet, which hands a router a free way around the high
 ground the ridge was placed to create.
 
+### 2.1 A push is not a constraint
+
+Every mark above is a **constraint**: the ground here *is* twelve, and the solver honours it exactly.
+Constraints are what a solver needs and not what a hand wants, and the tell is the point mark — stated as a
+position and a radius it can only make a round hill, and the roundness is not a style, it is the shape of the
+only footprint that could be typed.
+
+A **push** is the other half. It takes a drawn ring and raises the ground inside it by an amount, falling away
+outside it over a stated distance, so the landform's plan is whatever was drawn: a spur, a saddleback, a
+crescent ridge and a lobed hollow are one operation with a different outline. It applies to the solved surface
+rather than into it, and that is what makes it compose — two pushes over the same ground add, where two
+constraints over the same ground would have to argue.
+
+One detail decides whether it works. The falloff is distance **from the ring, measured across the land**, not
+from a centre. A radial falloff rounds a long thin push off within a few blocks of its own outline; a
+distance-from-the-ring falloff keeps the shape the whole way out, and it keeps the hollow inside a crescent's
+curve, which no centre-based falloff can produce at all. The sweep only steps onto land, so a push on one arm
+of a shape does not lift the arm across the notch from it — the same property the fill has, for the same
+reason. A **roughness** wobbles that distance against a noise field so the skirt is not a clean offset of the
+outline, which is the difference between a hill and an extruded logo.
+
+Constraints and pushes are both authored and both fan across the symmetry orbit; what separates them is
+whether the author is stating a fact about the ground or sculpting it.
+
 One detail of the same family, because it is the difference between a wall and a wall with a gate: a band
 stops where its line stops. Measured perpendicular distance alone wraps a half-disc around each end of a
 drawn line, which for a scarp means the cliff closes over the gap beside it — the gap being the entire reason
@@ -338,40 +362,57 @@ without re-solving the ground around it.
 ## 12. What the corpus says, and what it says about this
 
 Every number above is self-consistent, which is not the same as being right. The same readback was run over
-the built worlds of the **106 destroy-the-monument maps** in the community corpus, reading ground the way the
-height-profile render does — stepping past vegetation, trunks, surface furniture and liquids.
+the built worlds of the destroy-the-monument maps in the community corpus, twice: once over the **built
+surface** — the top of everything a player stands on, walls and roofs included — and once over **natural
+ground**, stepping past a building's own courses to the terrain underneath. The second is the one a terrain
+solver can be calibrated against, and the block roles that decide it were already in the tree: a building is
+recognised by *material*, not height, from a set that deliberately excludes stone, cobble, gravel, sand and
+clay so an outcrop is not read as architecture.
 
 | | min | p25 | median | p75 | max |
 |---|---|---|---|---|---|
-| plan width | 47 | 102 | **155** | 200 | 395 |
-| plan depth | 41 | 123 | **166** | 235 | 513 |
-| height range | 0 | 39 | **56** | 76 | 130 |
-| body — 95% of columns | 0 | 16 | **24** | 39 | 112 |
-| walk (0–1) | 42.8% | 69.6% | **77.3%** | 83.3% | 100% |
-| scramble (2) | 0% | 2.7% | **5.5%** | 8.5% | 26% |
-| barrier (3+) | 0% | 11.6% | **16.3%** | 22.6% | 48% |
-| largest place | 6.1% | 21.1% | **30.7%** | 43.2% | 100% |
-| places of 1% or more | 1 | 5 | **9** | 14 | 30 |
-| cliffs (EL6) | 0 | 2 | **9** | 15 | 53 |
-| under liquid | 0% | 0% | **1.2%** | 7.2% | 74.5% |
+| plan width | 36 | 102 | **148** | 196 | 395 |
+| plan depth | 41 | 118 | **164** | 230 | 513 |
+| height range | 0 | 32 | **48** | 76 | 133 |
+| body — 95% of columns | 0 | 11 | **19** | 30 | 88 |
+| walk (0–1) | 25% | 62.6% | **72.6%** | 85.2% | 100% |
+| scramble (2) | 0% | 1.5% | **5.5%** | 10.2% | 24.4% |
+| barrier (3+) | 0% | 8.8% | **18.3%** | 25.9% | 73.9% |
+| largest place | 1.9% | 21.2% | **29.4%** | 44.2% | 100% |
+| places of 1% or more | 1 | 4 | **8** | 13 | 52 |
+| cliffs (EL6) | 0 | 2 | **8** | 13 | 60 |
+| under liquid | 0% | 0% | **1.4%** | 7.1% | 75.3% |
 
-One caveat governs the reading: this measures the **built surface**, not the terrain. A building's roof and a
-city wall are ground to this pass, so some of the barrier share and much of the fragmentation is architecture
-rather than landform. That is the right surface for a question about play — a player does meet the wall — and
-the wrong one for calibrating a terrain solver on its own. The direction of the gap survives the caveat; its
-exact size does not.
+*105 maps, natural ground.*
+
+**Filtering the architecture out makes the terrain read steeper, not gentler**, which is the opposite of what
+it was expected to do: walk falls from 77.3% to 72.6% and barrier rises from 16.3% to 18.3%. A building's flat
+roof and level floor were *smoothing* the reading, and stripping them exposes the ground the building was
+placed to stand on. So the corpus's steepness is terrain and not walls, and the tier shares were never the
+distorted numbers.
+
+The number that *was* distorted is the cliff count, and heavily. Alpine Mining II reads **36 cliffs** off the
+built surface and **13** off natural ground: two thirds of its apparent cliffs were the walls of its own
+buildings. A cliff is qualified by width and drop, and a rampart passes both tests, so any rule written
+against the built surface would have been counting architecture.
 
 And the gap is the point. The designed map of §10 measures at a 14-block body, 96.1% walk, 2.8% barrier and
 one place holding 98.9% — flatter and more open than the corpus at every percentile. **Cedar Crossing**, a
-201×131 board and the most recent addition to the corpus, measures at a 13-block body, 96.1% walk and one
-place holding 97.9%: the same profile, and also an outlier against the corpus it belongs to. Two independent
+201×131 board and the corpus's most recent addition, measures a 13-block body, 96.1% walk and one place
+holding 97.9%: the same profile, and also an outlier against the corpus it belongs to. Two independent
 attempts at gentle rolling terrain landing on the same numbers is a result about the *approach*, not about
-either map.
+either map — smooth interpolation between pleasant marks makes pleasant, open, undemanding ground.
 
 Lifting the same design — every mark's departure from the base scaled, the banks steepened with it, nothing
 moved — brings the board to a **27-block body**, 8 cliffs and three places with the largest at 45.6%, and
 turns the river from something crossable at two fords into a gorge with none on foot and two with a block.
 That is what the corpus was asking for, and it took one number to ask.
+
+Drawing with pushes rather than radii closes the rest of it. A 140×260 valley stated as drawn spurs between
+side valleys, a river stepping down into a lake and a benched flank measures **83.9% walk** over a 41-block
+body with water at 11 distinct levels — the first board here to sit inside the corpus range rather than at its
+edge. Against Alpine Mining II's own numbers — 42-block body, 71.7% walk, 13 cliffs, 19.3% under liquid — it
+is still the gentler of the two, and by a margin that is now a choice rather than a limit of the vocabulary.
 
 ## 13. Where it lives
 
@@ -453,11 +494,11 @@ overview, a stepped approach climbing toward a wool room, a low frontline so bri
 flanking a wool approach (EL7), a scarped bank where the plan wants a one-way lane. That mapping is G32-C's
 own work; this document only establishes that what it would emit is what a hand places.
 
-**A budget for pressure.** §12 supplies the numbers a budget would be written against, and the caveat that
-stops it being written yet: the corpus reading cannot separate a cliff from a castle wall. Splitting terrain
-from structure needs the painter's own structure test, which needs the stamps — available for a map the
-studio built and not for one it imported. Until then the corpus gives a direction and not a threshold. The
-dressing stage has the identical gap (`world-export/ideas.md` G167) and the two should share one answer.
+**A budget for pressure.** §12 supplies the numbers, on the right surface: a terrain-only reading of 105
+maps. What is still missing is the shape of the rule — a median is not a target, and a map at the 25th
+percentile for walkable share is not thereby worse than one at the 75th. What a budget needs is which of these
+measures a *bad* map fails, which means labelled examples rather than more measurement. The dressing stage has
+the identical gap (`world-export/ideas.md` G167) and the two should share one answer.
 
 **The readback surface.** The measurements are computed and have nowhere to be fetched from. What makes a
 relief drivable by a generator or an agent is that the report sits next to the document it describes.
