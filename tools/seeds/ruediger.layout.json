@@ -1,0 +1,1344 @@
+{
+  "setup": {
+    "bbox": {
+      "min_x": -70,
+      "max_x": 70,
+      "min_z": -130,
+      "max_z": 130
+    },
+    "center": {
+      "cx": 0,
+      "cz": 0
+    },
+    "mirror_mode": "rot_180"
+  },
+  "themes": {
+    "ruediger": {
+      "bedrock": {
+        "relative": true,
+        "value": 7
+      },
+      "closed": true,
+      "wallOnTerrainFaces": true,
+      "rim": {
+        "material": {
+          "kind": "solid",
+          "id": 1,
+          "data": 6
+        },
+        "depth": 2,
+        "enabled": true
+      },
+      "surface": {
+        "material": {
+          "kind": "voronoi",
+          "seed": 1,
+          "cellSize": 5,
+          "palette": [
+            {
+              "kind": "solid",
+              "id": 12,
+              "data": 0
+            },
+            {
+              "kind": "solid",
+              "id": 24,
+              "data": 0
+            },
+            {
+              "kind": "solid",
+              "id": 5,
+              "data": 2
+            }
+          ]
+        },
+        "depth": 3,
+        "enabled": true
+      },
+      "wall": {
+        "kind": "layered",
+        "layers": [
+          {
+            "material": {
+              "kind": "solid",
+              "id": 1,
+              "data": 0
+            },
+            "thickness": 2
+          },
+          {
+            "material": {
+              "kind": "teamTint",
+              "blockId": 159,
+              "neutral": {
+                "kind": "solid",
+                "id": 159,
+                "data": 9
+              }
+            },
+            "thickness": 4
+          }
+        ]
+      },
+      "wallEnabled": true,
+      "fill": {
+        "kind": "solid",
+        "id": 1
+      }
+    },
+    "theme": {
+      "bedrock": {
+        "relative": true,
+        "value": 7
+      },
+      "closed": true,
+      "wallOnTerrainFaces": true,
+      "rim": {
+        "material": {
+          "kind": "solid",
+          "id": 1,
+          "data": 6
+        },
+        "depth": 2,
+        "enabled": true
+      },
+      "surface": {
+        "material": {
+          "kind": "solid",
+          "id": 98,
+          "data": 0
+        },
+        "depth": 1,
+        "enabled": true
+      },
+      "wall": {
+        "kind": "wallRun",
+        "runs": [
+          {
+            "material": {
+              "kind": "solid",
+              "id": 1,
+              "data": 5
+            },
+            "width": 2
+          },
+          {
+            "material": {
+              "kind": "teamTint",
+              "blockId": 159,
+              "neutral": {
+                "kind": "solid",
+                "id": 159,
+                "data": 9
+              }
+            },
+            "width": 2
+          }
+        ]
+      },
+      "wallEnabled": true,
+      "fill": {
+        "kind": "solid",
+        "id": 1
+      }
+    },
+    "ruediger-steps": {
+      "bedrock": {
+        "relative": true,
+        "value": 7
+      },
+      "closed": true,
+      "wallOnTerrainFaces": true,
+      "rim": {
+        "material": {
+          "kind": "solid",
+          "id": 1,
+          "data": 6
+        },
+        "depth": 2,
+        "enabled": true
+      },
+      "surface": {
+        "material": {
+          "kind": "noise",
+          "seed": 1,
+          "scale": 3,
+          "octaves": 7,
+          "stops": [
+            {
+              "kind": "solid",
+              "id": 159,
+              "data": 13
+            },
+            {
+              "kind": "solid",
+              "id": 2,
+              "data": 0
+            },
+            {
+              "kind": "solid",
+              "id": 159,
+              "data": 5
+            }
+          ]
+        },
+        "depth": 3,
+        "enabled": true
+      },
+      "wall": {
+        "kind": "layered",
+        "layers": [
+          {
+            "material": {
+              "kind": "solid",
+              "id": 1,
+              "data": 5
+            },
+            "thickness": 1
+          },
+          {
+            "material": {
+              "kind": "solid",
+              "id": 98,
+              "data": 0
+            },
+            "thickness": 2
+          },
+          {
+            "material": {
+              "kind": "solid",
+              "id": 1,
+              "data": 5
+            },
+            "thickness": 2
+          },
+          {
+            "material": {
+              "kind": "solid",
+              "id": 49,
+              "data": 0
+            },
+            "thickness": 1
+          },
+          {
+            "material": {
+              "kind": "solid",
+              "id": 1,
+              "data": 5
+            },
+            "thickness": 1
+          }
+        ]
+      },
+      "wallEnabled": true,
+      "fill": {
+        "kind": "solid",
+        "id": 1
+      }
+    }
+  },
+  "mapTheme": "ruediger",
+  "layers": [
+    {
+      "id": "s1785789790596_1",
+      "name": "Ground",
+      "base_y": 0,
+      "layout": {
+        "shapes": [
+          {
+            "id": "s0",
+            "type": "polygon",
+            "operation": "add",
+            "override": false,
+            "min_x": null,
+            "min_z": null,
+            "max_x": null,
+            "max_z": null,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": [
+              [
+                -40,
+                70
+              ],
+              [
+                -30,
+                70
+              ],
+              [
+                -30,
+                80
+              ],
+              [
+                -40,
+                80
+              ]
+            ],
+            "controls": null,
+            "base_height": 7,
+            "anchor_heights": null,
+            "floor": null,
+            "role": null,
+            "intentRef": null,
+            "color": null,
+            "theme": null
+          },
+          {
+            "id": "s1",
+            "type": "polygon",
+            "operation": "add",
+            "override": false,
+            "min_x": null,
+            "min_z": null,
+            "max_x": null,
+            "max_z": null,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": [
+              [
+                -40,
+                80
+              ],
+              [
+                -35,
+                80
+              ],
+              [
+                -35,
+                85
+              ],
+              [
+                -40,
+                85
+              ]
+            ],
+            "controls": null,
+            "base_height": 8,
+            "anchor_heights": null,
+            "floor": null,
+            "role": null,
+            "intentRef": null,
+            "color": null,
+            "theme": "theme"
+          },
+          {
+            "id": "s2",
+            "type": "polygon",
+            "operation": "add",
+            "override": false,
+            "min_x": null,
+            "min_z": null,
+            "max_x": null,
+            "max_z": null,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": [
+              [
+                -20,
+                50
+              ],
+              [
+                -5,
+                50
+              ],
+              [
+                -5,
+                55
+              ],
+              [
+                15,
+                55
+              ],
+              [
+                15,
+                100
+              ],
+              [
+                -5,
+                100
+              ],
+              [
+                -5,
+                70
+              ],
+              [
+                -20,
+                70
+              ]
+            ],
+            "base_height": 9,
+            "anchor_heights": null,
+            "floor": null,
+            "role": null,
+            "intentRef": null,
+            "color": null,
+            "theme": "ruediger-steps",
+            "controls": {
+              "7": {
+                "in": [
+                  -20,
+                  70
+                ],
+                "out": [
+                  -20,
+                  70
+                ]
+              }
+            }
+          },
+          {
+            "id": "s3",
+            "type": "polygon",
+            "operation": "add",
+            "override": false,
+            "min_x": null,
+            "min_z": null,
+            "max_x": null,
+            "max_z": null,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": [
+              [
+                -40,
+                85
+              ],
+              [
+                -35,
+                85
+              ],
+              [
+                -35,
+                90
+              ],
+              [
+                -40,
+                90
+              ]
+            ],
+            "controls": null,
+            "base_height": 9,
+            "anchor_heights": null,
+            "floor": null,
+            "role": null,
+            "intentRef": null,
+            "color": null,
+            "theme": "theme"
+          },
+          {
+            "id": "s4",
+            "type": "polygon",
+            "operation": "add",
+            "override": false,
+            "min_x": null,
+            "min_z": null,
+            "max_x": null,
+            "max_z": null,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": [
+              [
+                15,
+                55
+              ],
+              [
+                20,
+                55
+              ],
+              [
+                20,
+                70
+              ],
+              [
+                15,
+                70
+              ]
+            ],
+            "controls": null,
+            "base_height": 10,
+            "anchor_heights": null,
+            "floor": null,
+            "role": null,
+            "intentRef": null,
+            "color": null,
+            "theme": "theme"
+          },
+          {
+            "id": "s5",
+            "type": "polygon",
+            "operation": "add",
+            "override": false,
+            "min_x": null,
+            "min_z": null,
+            "max_x": null,
+            "max_z": null,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": [
+              [
+                -40,
+                90
+              ],
+              [
+                -35,
+                90
+              ],
+              [
+                -35,
+                95
+              ],
+              [
+                -40,
+                95
+              ]
+            ],
+            "controls": null,
+            "base_height": 10,
+            "anchor_heights": null,
+            "floor": null,
+            "role": null,
+            "intentRef": null,
+            "color": null,
+            "theme": "theme"
+          },
+          {
+            "id": "s6",
+            "type": "polygon",
+            "operation": "add",
+            "override": false,
+            "min_x": null,
+            "min_z": null,
+            "max_x": null,
+            "max_z": null,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": [
+              [
+                -5,
+                100
+              ],
+              [
+                15,
+                100
+              ],
+              [
+                15,
+                120
+              ],
+              [
+                -5,
+                120
+              ]
+            ],
+            "base_height": 11,
+            "anchor_heights": null,
+            "floor": null,
+            "role": null,
+            "intentRef": null,
+            "color": null,
+            "theme": null,
+            "controls": {
+              "2": {
+                "in": [
+                  27,
+                  106
+                ],
+                "out": [
+                  3,
+                  134
+                ]
+              }
+            }
+          },
+          {
+            "id": "s7",
+            "type": "polygon",
+            "operation": "add",
+            "override": false,
+            "min_x": null,
+            "min_z": null,
+            "max_x": null,
+            "max_z": null,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": [
+              [
+                20,
+                55
+              ],
+              [
+                25,
+                55
+              ],
+              [
+                25,
+                70
+              ],
+              [
+                20,
+                70
+              ]
+            ],
+            "controls": null,
+            "base_height": 11,
+            "anchor_heights": null,
+            "floor": null,
+            "role": null,
+            "intentRef": null,
+            "color": null,
+            "theme": "theme"
+          },
+          {
+            "id": "s8",
+            "type": "polygon",
+            "operation": "add",
+            "override": false,
+            "min_x": null,
+            "min_z": null,
+            "max_x": null,
+            "max_z": null,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": [
+              [
+                -40,
+                95
+              ],
+              [
+                -35,
+                95
+              ],
+              [
+                -35,
+                100
+              ],
+              [
+                -40,
+                100
+              ]
+            ],
+            "controls": null,
+            "base_height": 11,
+            "anchor_heights": null,
+            "floor": null,
+            "role": null,
+            "intentRef": null,
+            "color": null,
+            "theme": "theme"
+          },
+          {
+            "id": "s9",
+            "type": "polygon",
+            "operation": "add",
+            "override": false,
+            "min_x": null,
+            "min_z": null,
+            "max_x": null,
+            "max_z": null,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": [
+              [
+                25,
+                55
+              ],
+              [
+                45,
+                55
+              ],
+              [
+                45,
+                80
+              ],
+              [
+                30,
+                80
+              ],
+              [
+                30,
+                70
+              ],
+              [
+                25,
+                70
+              ]
+            ],
+            "base_height": 12,
+            "anchor_heights": null,
+            "floor": null,
+            "role": null,
+            "intentRef": null,
+            "color": null,
+            "theme": null,
+            "controls": {
+              "3": {
+                "in": [
+                  35,
+                  87
+                ],
+                "out": [
+                  25,
+                  73
+                ]
+              }
+            }
+          },
+          {
+            "id": "s10",
+            "type": "polygon",
+            "operation": "add",
+            "override": false,
+            "min_x": null,
+            "min_z": null,
+            "max_x": null,
+            "max_z": null,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": [
+              [
+                -15,
+                105
+              ],
+              [
+                -5,
+                105
+              ],
+              [
+                -5,
+                120
+              ],
+              [
+                -15,
+                120
+              ]
+            ],
+            "controls": null,
+            "base_height": 12,
+            "anchor_heights": null,
+            "floor": null,
+            "role": null,
+            "intentRef": null,
+            "color": null,
+            "theme": "theme"
+          },
+          {
+            "id": "s11",
+            "type": "polygon",
+            "operation": "add",
+            "override": false,
+            "min_x": null,
+            "min_z": null,
+            "max_x": null,
+            "max_z": null,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": [
+              [
+                -40,
+                100
+              ],
+              [
+                -35,
+                100
+              ],
+              [
+                -35,
+                105
+              ],
+              [
+                -40,
+                105
+              ]
+            ],
+            "controls": null,
+            "base_height": 12,
+            "anchor_heights": null,
+            "floor": null,
+            "role": null,
+            "intentRef": null,
+            "color": null,
+            "theme": "theme"
+          },
+          {
+            "id": "s12",
+            "type": "polygon",
+            "operation": "add",
+            "override": false,
+            "min_x": null,
+            "min_z": null,
+            "max_x": null,
+            "max_z": null,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": [
+              [
+                -40,
+                105
+              ],
+              [
+                -35,
+                105
+              ],
+              [
+                -35,
+                80
+              ],
+              [
+                -20,
+                80
+              ],
+              [
+                -20,
+                95
+              ],
+              [
+                -25,
+                95
+              ],
+              [
+                -25,
+                105
+              ],
+              [
+                -15,
+                105
+              ],
+              [
+                -15,
+                120
+              ],
+              [
+                -30,
+                120
+              ],
+              [
+                -30,
+                125
+              ],
+              [
+                -40,
+                125
+              ]
+            ],
+            "controls": null,
+            "base_height": 13,
+            "anchor_heights": null,
+            "floor": null,
+            "role": null,
+            "intentRef": null,
+            "color": null,
+            "theme": "ruediger-steps"
+          },
+          {
+            "id": "s13",
+            "type": "polygon",
+            "operation": "add",
+            "override": false,
+            "min_x": null,
+            "min_z": null,
+            "max_x": null,
+            "max_z": null,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": [
+              [
+                45,
+                70
+              ],
+              [
+                50,
+                70
+              ],
+              [
+                50,
+                80
+              ],
+              [
+                45,
+                80
+              ]
+            ],
+            "controls": null,
+            "base_height": 13,
+            "anchor_heights": null,
+            "floor": null,
+            "role": null,
+            "intentRef": null,
+            "color": null,
+            "theme": "theme"
+          },
+          {
+            "id": "s14",
+            "type": "polygon",
+            "operation": "add",
+            "override": false,
+            "min_x": null,
+            "min_z": null,
+            "max_x": null,
+            "max_z": null,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": [
+              [
+                50,
+                70
+              ],
+              [
+                65,
+                70
+              ],
+              [
+                65,
+                80
+              ],
+              [
+                50,
+                80
+              ]
+            ],
+            "controls": null,
+            "base_height": 14,
+            "anchor_heights": null,
+            "floor": null,
+            "role": null,
+            "intentRef": null,
+            "color": null,
+            "theme": "theme"
+          },
+          {
+            "id": "s15",
+            "type": "polygon",
+            "operation": "add",
+            "override": false,
+            "min_x": null,
+            "min_z": null,
+            "max_x": null,
+            "max_z": null,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": [
+              [
+                20,
+                15
+              ],
+              [
+                30,
+                15
+              ],
+              [
+                30,
+                35
+              ],
+              [
+                45,
+                35
+              ],
+              [
+                45,
+                45
+              ],
+              [
+                20,
+                45
+              ]
+            ],
+            "base_height": 9,
+            "anchor_heights": null,
+            "floor": null,
+            "role": null,
+            "intentRef": null,
+            "color": null,
+            "theme": "ruediger-steps",
+            "controls": {
+              "5": {
+                "in": [
+                  20,
+                  45
+                ],
+                "out": [
+                  20,
+                  45
+                ]
+              }
+            }
+          },
+          {
+            "id": "s16",
+            "type": "polygon",
+            "operation": "add",
+            "override": false,
+            "min_x": null,
+            "min_z": null,
+            "max_x": null,
+            "max_z": null,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": [
+              [
+                -40,
+                20
+              ],
+              [
+                -30,
+                20
+              ],
+              [
+                -30,
+                15
+              ],
+              [
+                -15,
+                15
+              ],
+              [
+                -15,
+                20
+              ],
+              [
+                -10,
+                20
+              ],
+              [
+                -10,
+                35
+              ],
+              [
+                -40,
+                35
+              ]
+            ],
+            "base_height": 12,
+            "anchor_heights": null,
+            "floor": null,
+            "role": null,
+            "intentRef": null,
+            "color": null,
+            "theme": "ruediger-steps",
+            "controls": {
+              "7": {
+                "in": [
+                  -25,
+                  35
+                ],
+                "out": [
+                  -55,
+                  35
+                ]
+              }
+            }
+          },
+          {
+            "id": "s17",
+            "type": "polygon",
+            "operation": "add",
+            "override": false,
+            "min_x": null,
+            "min_z": null,
+            "max_x": null,
+            "max_z": null,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": [
+              [
+                -10,
+                20
+              ],
+              [
+                -5,
+                20
+              ],
+              [
+                -5,
+                35
+              ],
+              [
+                -10,
+                35
+              ]
+            ],
+            "controls": null,
+            "base_height": 13,
+            "anchor_heights": null,
+            "floor": null,
+            "role": null,
+            "intentRef": null,
+            "color": null,
+            "theme": "theme"
+          },
+          {
+            "id": "s18",
+            "type": "polygon",
+            "operation": "add",
+            "override": false,
+            "min_x": null,
+            "min_z": null,
+            "max_x": null,
+            "max_z": null,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": [
+              [
+                -5,
+                20
+              ],
+              [
+                0,
+                20
+              ],
+              [
+                0,
+                35
+              ],
+              [
+                -5,
+                35
+              ]
+            ],
+            "controls": null,
+            "base_height": 14,
+            "anchor_heights": null,
+            "floor": null,
+            "role": null,
+            "intentRef": null,
+            "color": null,
+            "theme": "theme"
+          },
+          {
+            "id": "s19",
+            "type": "polygon",
+            "operation": "add",
+            "override": false,
+            "min_x": null,
+            "min_z": null,
+            "max_x": null,
+            "max_z": null,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": [
+              [
+                0,
+                20
+              ],
+              [
+                5,
+                20
+              ],
+              [
+                5,
+                35
+              ],
+              [
+                0,
+                35
+              ]
+            ],
+            "controls": null,
+            "base_height": 15,
+            "anchor_heights": null,
+            "floor": null,
+            "role": null,
+            "intentRef": null,
+            "color": null,
+            "theme": "theme"
+          },
+          {
+            "id": "s20",
+            "type": "polygon",
+            "operation": "add",
+            "override": false,
+            "min_x": null,
+            "min_z": null,
+            "max_x": null,
+            "max_z": null,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": [
+              [
+                5,
+                15
+              ],
+              [
+                20,
+                15
+              ],
+              [
+                20,
+                35
+              ],
+              [
+                5,
+                35
+              ]
+            ],
+            "controls": null,
+            "base_height": 16,
+            "anchor_heights": null,
+            "floor": null,
+            "role": null,
+            "intentRef": null,
+            "color": null,
+            "theme": null
+          },
+          {
+            "type": "rectangle",
+            "operation": "subtract",
+            "override": false,
+            "min_x": 4,
+            "max_x": 6,
+            "min_z": 80,
+            "max_z": 95,
+            "id": "s1785789842694_2",
+            "base_height": 100,
+            "floor": 0
+          },
+          {
+            "id": "spawn-red",
+            "type": "rectangle",
+            "operation": "add",
+            "override": false,
+            "min_x": 55,
+            "min_z": 70,
+            "max_x": 65,
+            "max_z": 80,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": null,
+            "controls": null,
+            "base_height": null,
+            "anchor_heights": null,
+            "floor": null,
+            "role": "spawn",
+            "intentRef": "red",
+            "color": "red",
+            "theme": null
+          },
+          {
+            "id": "spawn-blue",
+            "type": "rectangle",
+            "operation": "add",
+            "override": false,
+            "min_x": -65,
+            "min_z": -80,
+            "max_x": -55,
+            "max_z": -70,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": null,
+            "controls": null,
+            "base_height": null,
+            "anchor_heights": null,
+            "floor": null,
+            "role": "spawn",
+            "intentRef": "blue",
+            "color": "blue",
+            "theme": null
+          },
+          {
+            "id": "wool-red-red",
+            "type": "rectangle",
+            "operation": "add",
+            "override": false,
+            "min_x": -40,
+            "min_z": 115,
+            "max_x": -30,
+            "max_z": 125,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": null,
+            "controls": null,
+            "base_height": null,
+            "anchor_heights": null,
+            "floor": null,
+            "role": "woolRoom",
+            "intentRef": "red:red",
+            "color": "red",
+            "theme": null
+          },
+          {
+            "id": "wool-blue-blue",
+            "type": "rectangle",
+            "operation": "add",
+            "override": false,
+            "min_x": 30,
+            "min_z": -125,
+            "max_x": 40,
+            "max_z": -115,
+            "center_x": null,
+            "center_z": null,
+            "radius": null,
+            "vertices": null,
+            "controls": null,
+            "base_height": null,
+            "anchor_heights": null,
+            "floor": null,
+            "role": "woolRoom",
+            "intentRef": "blue:blue",
+            "color": "blue",
+            "theme": null
+          }
+        ],
+        "islands": [
+          {
+            "id": "team",
+            "name": "Other team island",
+            "mirrors": true,
+            "shapeIds": [
+              "s15",
+              "s16",
+              "s17",
+              "s18",
+              "s19",
+              "s20"
+            ]
+          },
+          {
+            "id": "team",
+            "name": "Team island",
+            "mirrors": true,
+            "shapeIds": [
+              "s0",
+              "s1",
+              "s2",
+              "s3",
+              "s4",
+              "s5",
+              "s6",
+              "s7",
+              "s8",
+              "s9",
+              "s10",
+              "s11",
+              "s12",
+              "s13",
+              "s14",
+              "s1785789842694_2"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

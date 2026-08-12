@@ -133,7 +133,9 @@ already caps building, so the marker sits out of reach by construction.
 `theme` and its own height, and the two together are how a board says *this part is built and that part is
 grown*: a grid-like quarter laid in coursed stone against a quarter of natural ground, a plateau that is
 plainly a platform against a slope that is plainly a hillside. Deliberately differing the paint per shape,
-keyed to what that shape is for, is available now and unused.
+keyed to what that shape is for, is available now and unused. `tools/seeds/ruediger.layout.json` is the
+worked example: three themes across twenty-six shapes, so its stepped area reads as built and the ground
+around it reads as ground.
 
 **MG25 — The whole world is one biome, so grass and water are one colour everywhere.**
 `AnvilRegionWriter` fills every chunk's biome array with a single value — `Array.Fill(biomes, (byte)1)`,
@@ -300,7 +302,10 @@ fifteen boards has a rim, one theme, one relief style and the same wall treatmen
 only shapes the format could express. The fix is not more knobs — it is that a spec should be a **thin
 addressing layer over the real documents**, able to hand through a `SketchShape` or a `TerrainTheme`
 verbatim, with the convenience fields as shorthand that expands into them rather than as the whole surface.
-`surface.md` beside this file is the reference that was missing.
+`surface.md` beside this file is the reference that was missing, and `tools/seeds/ruediger.layout.json` is a
+hand-drawn map that uses the layout format to its width — three themes chosen per shape, ten `base_height`
+tiers stepping the ground with no relief block at all, Bézier outlines, a subtract, and the defence walls of
+MG21 actually authored.
 
 **MG30 — Nothing was looked at between the stages.** Fifteen maps were built and judged from one top-down
 render each, at the end, after everything had already been decided. The system renders itself at every stage

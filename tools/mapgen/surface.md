@@ -44,6 +44,39 @@ The **intent** is what the map is *for*: teams, spawns with yaw and protection, 
 monuments, destroyables, cores, the build region and its holes, water lanes, and `structures` — room floors,
 entrance redstone, iron cubes and approach walls. It is the only layer that knows the objective.
 
+## A worked example
+
+`tools/seeds/ruediger.layout.json` and `ruediger.intent.json` are a hand-drawn capture map, kept because it
+is the only authored document in the repository that uses the layout format to its width. Everything below
+is in those two files and none of it was reachable through mapgen's spec.
+
+**Elevation is built from shapes, not from relief.** The layout carries no `relief` block at all. Its ground
+steps because twenty-six shapes sit at `base_height` 7, 8, 9, 10, 11, 12, 13, 14, 15 and 16 — a staircase of
+tiers stacked as set algebra, one of them a `subtract` cutting a hole through the rest, and one at
+`base_height` 100 standing as a tall face. That is the second way to make terrain, beside the relief solver,
+and it is the one that gives deliberate steps rather than a solved surface.
+
+**Three themes over one map, chosen per shape.** `ruediger` (sand and sandstone over stone) paints the body,
+`ruediger-steps` (grass and stone brick) picks out the treads and the border, and `theme` (stone brick and
+stained clay) carries the rest; seventeen of the twenty-six shapes name one. The stepped area therefore reads
+as built and the ground around it reads as ground — the distinction MG2 says a single blanket theme throws
+away.
+
+**Curves and a hole.** Five shapes carry Bézier `controls` on their polygon edges, so their outlines are
+drawn rather than rectilinear, and one shape is `subtract`.
+
+**Two islands that mirror into four.** Both are `mirrors: true` under `rot_180`, so the authored half becomes
+the whole 140×260 board.
+
+**Hand-authored defence walls.** The intent carries two `structures.walls` entries — 21×3 at `topY` 13 and
+its orbit image — the bedrock approach walls MG21 says nothing generated has ever asked for. It also carries
+the two room floors and the two entrance redstone lines.
+
+What it has none of is houses, dressing or iron, which is exactly the gap the review's dressing entries
+describe. One clarification worth keeping, because the map is easy to misread: it holds a **single** sketch
+layer named "Ground". The layering that reads as depth is the shapes' own `base_height` tiers, not
+`layers[]`.
+
 ## Where the generation lives
 
 | Stage | Lives in | Takes → gives |
