@@ -510,7 +510,59 @@ mark perturbs the field locally, so a warm-started relaxation has only that pert
 lands, in blocks, on the settled answer everywhere but the figures in the last column, each off by exactly
 one. So the drag warm-starts and the release solves in full.
 
-## 15. What is open
+## 15. Authoring it — where it goes and in what order
+
+Nothing above is integrated: the solver lives in `tools/relief`, and the sketch tool cannot author a relief.
+What follows is the plan, and most of it is reuse rather than new surface.
+
+**Relief is a canvas mode, beside Draw, Theme and Dressing.** The sketch tool already runs four modes over
+one canvas, switched by the flow bar, and relief is a fifth of exactly that kind: same shapes, same viewport,
+its own tools and its own overlay. It sits **between Draw and Theme**, and the order is the dependency —
+relief is geometry and changes what the rasterizer emits, so it has to precede the two passes that read the
+built surface. Making it a step inside Draw would bury it; making it a phase after Theme would state the
+dependency backwards.
+
+**Marks are placed things, so they get the Dressing treatment wholesale.** That stage already solved this
+exact problem: a document of placed items (`DressingDoc`), a tool set on the canvas with select / delete /
+update (`canvas.dressingTools`), a list panel and an inspector bound to the selection
+(`SketchDressingList` + `SketchDressingInspector`), per-kind settings carried across placements, and a bridge
+surface of flat methods. A relief needs the same five parts with different nouns, and the five mark kinds map
+onto tool buttons the way the five prop kinds already do. The one genuinely new interaction is dragging a
+**contour**, which writes a line mark at that height — and it is an addition to the overlay rather than a
+sixth tool.
+
+**The preview is solved on the server, and there is no JS twin.** The paint preview already establishes the
+seam: an edit debounces, the layout is posted, a render comes back, the canvas loads it as a layer, and a
+sequence number drops replies overtaken by a newer edit. A relief solve is far cheaper than the whole-map
+paint that seam already carries — 7 ms on a room, 124 ms on a team board, 325 ms on a whole map, and 89–191 ms
+warm-started from the surface already on screen (§14). Porting the relaxation to JS would buy a few
+milliseconds and cost a second implementation of a cascade, a chamfer sweep and a symmetry fold, which is the
+duplication the symmetry leaf exists to prevent. The client draws contours from a returned height raster; the
+solving stays in one place.
+
+**The order.** Each step is independently useful, and the first three land before any of it is visible:
+
+1. **`Geom.Relief` and the rasterizer seam** (S41, S42). Headless, TUnit-testable, no UI. A relief written
+   into the layout by hand already exports, and the symmetry fold ships with it rather than after it.
+2. **The preview endpoint and the contour overlay** (part of S45). Read-only — the canvas shows the relief a
+   layout already carries. This is the step that makes the rest reviewable.
+3. **Marks as placed things** (S41's UI half): the document, the tools, the list, the inspector.
+4. **Pushes** (S50) — the same tool surface with one more kind, plus crown and per-vertex amounts as numbers
+   on the inspector.
+5. **The readback** (S43). A panel, and the same JSON over HTTP, which is what makes a relief correctable by
+   a generator or an agent rather than only by eye.
+6. **Erecting shapes** (S44) — one control on the shape inspector that already exists.
+7. **Paths and water reading the relief** (S46), last, because it depends on all of the above.
+
+**One integration question is genuinely open.** A relief is expensive hand work and it is *geometry*, so a
+recompile from a plan replaces it — the same rule that already replaces hand-drawn shapes, and a much worse
+loss. Carrying it the way the finish keys are carried needs relief stored **top-level, keyed by island**,
+rather than nested inside the shapes a recompile discards; and island identity is itself derived from the
+geometry, so a re-fused island can orphan a relief that was authored against the old fusion. The candidates
+are to key on a stable authored island id, to re-bind by footprint overlap, or to refuse the recompile when a
+relief would be orphaned and make the author choose. This wants deciding before S41 stores anything.
+
+## 16. What is open
 
 **Anchors as marks.** Per-vertex anchor heights are exactly a set of point marks on the outline, so a shape
 with anchors could be read as a relief with no interior marks and a rim of varying height. Whether to

@@ -102,16 +102,26 @@ highlight); these are the parked / dormant / deferred slices.
   places, the largest holding 49.8%, and cutting a stair through the cheapest riser of each stranded place
   restores one place while moving the walkable share only from 86.9% to 87.3% (`sketch-relief.md` §4, §7).
 
-- [ ] **S45 — Relief: the contour canvas, on a coarse-to-fine solve.** The JS twin of the solver, the same
-  arrangement `Geom.Symmetry` has with `js/studio/geometry/symmetry.js`. It draws the field's **contours**,
+- [ ] **S45 — Relief: the contour overlay, solved on the server.** The canvas draws the field's **contours**,
   which is both the readable view of a height field and the direct-manipulation surface — dragging a contour
-  is dragging a line mark at that height, so how the surface reads and how it is edited are one object. Two
-  measured facts make it affordable. A relaxation's sweep count grows with how far across the field the marks
-  must talk, so the solve **cascades**: coarse grid first, then refine — on a 192×128 map that is 317 ms
-  against 519 ms on one grid, agreeing to within a block, and the advantage grows with the footprint. And a
-  drag **resumes** from the surface already on screen: 40 sweeps costs 228 ms on that map and lands on the
-  settled answer everywhere but 1,614 of 24,576 cells, each off by one. So the drag warm-starts and the
-  release solves in full (`sketch-relief.md` §12).
+  writes a line mark at that height, so how the surface reads and how it is edited are one object. **No JS
+  twin**: the paint preview already establishes the seam (debounce the edit, post the layout, load the reply
+  as a canvas layer, drop replies overtaken by a newer edit via a sequence number), and a relief solve is far
+  cheaper than the whole-map paint that seam already carries. Two measured facts make it affordable: the solve
+  **cascades** coarse-to-fine (317 ms against 519 ms on a 192×128 map, agreeing to within a block, the
+  advantage growing with the footprint), and a drag **resumes** from the surface already on screen (40 sweeps,
+  228 ms on that map, off by one block on 1,614 of 24,576 cells). Porting the relaxation to JS would buy
+  milliseconds and cost a second implementation of a cascade, a chamfer sweep and a symmetry fold — the
+  duplication `Geom.Symmetry` exists to prevent (`sketch-relief.md` §14, §15).
+
+- [ ] **S51 — Decide how a relief survives a plan recompile, before anything stores one.** A relief is
+  geometry, so recompiling from a plan replaces it the way it already replaces hand-drawn shapes — and it is
+  far more expensive hand work than a shape. Carrying it the way `SketchLayout.FinishKeys` carries theming
+  needs it stored **top-level, keyed by island**, not nested inside the shapes a recompile discards. But
+  island identity is derived from the geometry, so a re-fused island can orphan a relief authored against the
+  old fusion. Candidates: a stable authored island id, re-binding by footprint overlap, or refusing the
+  recompile when a relief would be orphaned and making the author choose. **Blocks S41's storage decision**
+  (`sketch-relief.md` §15).
 
 - [ ] **S46 — Paths and water read the relief; a river on the axis is a canal.** Both stroke tools assume a
   flat plane. A path gains **routing** (a shortest line whose cost counts climbing far more than distance and
