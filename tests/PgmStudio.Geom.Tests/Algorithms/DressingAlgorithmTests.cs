@@ -192,6 +192,20 @@ public sealed class DressingAlgorithmTests
         await Assert.That(cells.Count).IsEqualTo(1);
     }
 
+    [Test]
+    public async Task A_sweep_sample_always_fills_at_least_the_block_it_sits_in()
+    {
+        // The ball's membership test measures to a cell's integer coordinate, so a centre near a cell corner
+        // is √3/2 = 0.866 from every candidate. At a twig's radius that selects nothing, and a limb swept at
+        // one comes out as a dotted line — the block it sits in has to be stamped whatever the radius.
+        foreach (var radius in new[] { 0.5, 0.55, 0.6, 0.7, 0.87, 1.4 })
+            for (var step = 0; step < 8; step++)
+            {
+                var corner = new Vec3(0.5 - step * 0.01, 0.5, 0.5);
+                await Assert.That(SweptVolume.Ball(corner, radius).Any()).IsTrue();
+            }
+    }
+
     // ── the grown tree ─────────────────────────────────────────────────────────────────────────────
     [Test]
     public async Task A_grown_tree_has_a_trunk_that_climbs_the_whole_way()
@@ -268,12 +282,153 @@ public sealed class DressingAlgorithmTests
     }
 
     [Test]
-    public async Task A_cluster_is_dense_inside_the_airiness_is_the_seams()
+    public async Task A_cluster_is_perforated_lace_not_a_solid_ball()
     {
+        // A hand-built crown carries about six occupied neighbours per leaf and encloses 1.7% of them on all
+        // six faces; a solid cluster measures twice that and reads as a brush stroke. So a cluster is filled
+        // well over half and well under whole — thin enough to be lace, thick enough to still be a patch.
         List<LeafCluster> one = [new(new Vec3(0, 0, 0), new Vec3(6, 4, 6), 0)];
         var inside = Cells(-6, 6).Where(p => Quadric(p, 5) < 0.5).ToList();
         var filled = inside.Count(p => TreeCrown.OwnerAt(one, p, 7) is not null);
-        await Assert.That(filled / (double)inside.Count).IsGreaterThan(0.85);
+
+        await Assert.That(filled / (double)inside.Count).IsGreaterThan(0.5);
+        await Assert.That(filled / (double)inside.Count).IsLessThan(0.8);
+    }
+
+    [Test]
+    public async Task A_leaf_that_cannot_reach_wood_is_never_emitted()
+    {
+        HashSet<(int X, int Y, int Z)> wood = [(0, 0, 0), (0, 1, 0), (0, 2, 0)];
+        // Two leaves on the wood, one chained off those, and one across a gap that nothing holds.
+        List<(int X, int Y, int Z)> drawn = [(1, 2, 0), (1, 3, 0), (2, 4, 0), (7, 7, 7)];
+
+        var held = TreeCrown.Rooted(drawn, wood);
+
+        await Assert.That(held).Contains((1, 2, 0));
+        await Assert.That(held).Contains((2, 4, 0));       // reached through the chain, not directly
+        await Assert.That(held).DoesNotContain((7, 7, 7)); // floating, so it is not placed at all
+    }
+
+    [Test]
+    public async Task A_branch_leaves_a_vertical_trunk_by_the_angle_it_was_given()
+    {
+        // The angle a limb leaves by is measured against its parent, so it has to survive the parent being
+        // vertical — the case a yaw-and-pitch turn loses entirely, and the one every trunk is in.
+        var tree = TreeSkeleton.Grow(new TreeShape(Height: 24, BranchAngle: 1.05), seed: 6);
+        var laterals = tree.Limbs.Where(limb => limb.Level == 1).ToList();
+
+        var offVertical = laterals.Select(limb =>
+        {
+            var span = limb.Path[^1] - limb.Path[0];
+            return Math.Acos(Math.Clamp(span.Y / Math.Max(1e-9, span.Length), -1, 1)) * 180 / Math.PI;
+        }).Average();
+
+        // The corpus puts an author's first-order limbs at 59° off vertical and their children at 67°.
+        await Assert.That(offVertical).IsGreaterThan(40);
+        await Assert.That(offVertical).IsLessThan(85);
+    }
+
+    [Test]
+    public async Task A_grown_tree_holds_every_leaf_it_places_at_every_size()
+    {
+        // The gate the hand-built corpus supports, over the sizes and seeds the inspector can ask for:
+        // foliage reaches wood, a quarter of it touches wood outright, and none of it is a solid.
+        foreach (var height in new double[] { 6, 12, 20, 32, 40 })
+            for (uint seed = 1; seed <= 4; seed++)
+            {
+                var shape = new TreeShape(Height: height, Leader: 0.55, Flow: 0.45);
+                var tree = TreeSkeleton.Grow(shape, seed);
+                var wood = new HashSet<(int X, int Y, int Z)>();
+                foreach (var limb in tree.Limbs)
+                    foreach (var cell in SweptVolume.Sweep(limb.Path, limb.StartRadius, limb.EndRadius))
+                        wood.Add(cell);
+
+                var clusters = TreeCrown.Clusters(tree.Tips, leafSize: 0.6, shape.Size, seed);
+                var (min, max) = TreeCrown.Bounds(clusters);
+                var drawn = new List<(int X, int Y, int Z)>();
+                for (var y = (int)Math.Floor(min.Y); y <= (int)Math.Ceiling(max.Y); y++)
+                for (var z = (int)Math.Floor(min.Z); z <= (int)Math.Ceiling(max.Z); z++)
+                for (var x = (int)Math.Floor(min.X); x <= (int)Math.Ceiling(max.X); x++)
+                    if (!wood.Contains((x, y, z)) && TreeCrown.OwnerAt(clusters, new Vec3(x, y, z), seed) is not null)
+                        drawn.Add((x, y, z));
+                var leaves = TreeCrown.Rooted(drawn, wood);
+
+                await Assert.That(leaves.Count).IsGreaterThan(0);
+                var touching = leaves.Count(leaf => Neighbours(leaf).Any(wood.Contains));
+                var occupied = leaves.Sum(leaf => Neighbours(leaf).Count(c => leaves.Contains(c) || wood.Contains(c)));
+
+                await Assert.That(touching / (double)leaves.Count).IsGreaterThan(0.25);
+                // The corpus's own crowns sit at 6.2 occupied neighbours per leaf and the grower at 9.2, so
+                // this catches a return to the 13 a solid measures rather than certifying the gap is closed.
+                await Assert.That(occupied / (double)leaves.Count).IsLessThan(11.0);
+                // And the wood itself is one network, so no limb is left floating in the air.
+                await Assert.That(Pieces(wood)).IsEqualTo(1);
+            }
+    }
+
+    [Test]
+    public async Task A_whorled_tree_carries_its_crown_lower_than_a_staggered_one()
+    {
+        // The measure the corpus separates conifers from broadleaves on: a hand-built conifer keeps 60-77% of
+        // its foliage in the lower half of its crown, a broadleaf 43-61%. The two forms have to separate here
+        // or a whorl is decoration rather than a silhouette.
+        var lower = new List<double>();
+        foreach (var whorled in new[] { false, true })
+        {
+            var share = new List<double>();
+            foreach (var height in new double[] { 16, 22, 28 })
+                for (uint seed = 1; seed <= 3; seed++)
+                {
+                    var shape = new TreeShape(Height: height, Leader: 0.55, Flow: 0.45, Whorled: whorled);
+                    var tree = TreeSkeleton.Grow(shape, seed);
+                    var wood = new HashSet<(int X, int Y, int Z)>();
+                    foreach (var limb in tree.Limbs)
+                        foreach (var cell in SweptVolume.Sweep(limb.Path, limb.StartRadius, limb.EndRadius))
+                            wood.Add(cell);
+                    var clusters = TreeCrown.Clusters(tree.Tips, leafSize: 0.6, shape.Size, seed);
+                    var (min, max) = TreeCrown.Bounds(clusters);
+                    var drawn = new List<(int X, int Y, int Z)>();
+                    for (var y = (int)Math.Floor(min.Y); y <= (int)Math.Ceiling(max.Y); y++)
+                    for (var z = (int)Math.Floor(min.Z); z <= (int)Math.Ceiling(max.Z); z++)
+                    for (var x = (int)Math.Floor(min.X); x <= (int)Math.Ceiling(max.X); x++)
+                        if (!wood.Contains((x, y, z)) && TreeCrown.OwnerAt(clusters, new Vec3(x, y, z), seed) is not null)
+                            drawn.Add((x, y, z));
+                    var leaves = TreeCrown.Rooted(drawn, wood);
+
+                    var foot = leaves.Min(cell => cell.Y);
+                    var span = Math.Max(1, leaves.Max(cell => cell.Y) - foot);
+                    share.Add(leaves.Count(cell => cell.Y - foot <= span / 2.0) / (double)leaves.Count);
+                }
+            lower.Add(share.Average());
+        }
+
+        await Assert.That(lower[1]).IsGreaterThan(lower[0] + 0.1);   // the whorled one, by a clear margin
+        await Assert.That(lower[1]).IsGreaterThan(0.55);             // and inside the corpus's conifer band
+    }
+
+    private static IEnumerable<(int X, int Y, int Z)> Neighbours((int X, int Y, int Z) cell)
+    {
+        for (var dy = -1; dy <= 1; dy++)
+        for (var dz = -1; dz <= 1; dz++)
+        for (var dx = -1; dx <= 1; dx++)
+            if (dx != 0 || dy != 0 || dz != 0) yield return (cell.X + dx, cell.Y + dy, cell.Z + dz);
+    }
+
+    private static int Pieces(HashSet<(int X, int Y, int Z)> cells)
+    {
+        var pending = new HashSet<(int X, int Y, int Z)>(cells);
+        var count = 0;
+        while (pending.Count > 0)
+        {
+            var seed = pending.First();
+            pending.Remove(seed);
+            var queue = new Queue<(int X, int Y, int Z)>([seed]);
+            while (queue.Count > 0)
+                foreach (var next in Neighbours(queue.Dequeue()))
+                    if (pending.Remove(next)) queue.Enqueue(next);
+            count++;
+        }
+        return count;
     }
 
     // ── the channel bed ────────────────────────────────────────────────────────────────────────────

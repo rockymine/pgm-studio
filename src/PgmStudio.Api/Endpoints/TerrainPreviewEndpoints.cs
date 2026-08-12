@@ -172,9 +172,10 @@ public sealed class TreeWoodEndpoint : EndpointWithoutRequest<List<PropOptionDto
             Form = TreeForm.Grown, Seed = 5,
             Height = Query<double?>("height", isRequired: false) ?? 18,
             Leader = Query<double?>("leader", isRequired: false) ?? 0.55,
-            BranchAngle = Query<double?>("branchAngle", isRequired: false) ?? 0.55,
+            BranchAngle = Query<double?>("branchAngle", isRequired: false) ?? 1.1,
             Levels = Query<int?>("levels", isRequired: false) ?? 2,
             LeafSize = Query<double?>("leafSize", isRequired: false) ?? 0.6,
+            Whorled = Query<bool?>("whorled", isRequired: false) ?? false,
             Stems = Query<int?>("stems", isRequired: false) ?? 1,
             Flow = Query<double?>("flow", isRequired: false) ?? 0.45,
         };

@@ -249,4 +249,43 @@ from block id.
 
 Three thresholds the corpus supports directly, as a gate on generated foliage: at least **99%** of leaves
 reach wood through a chain of leaves, at least **25%** touch wood directly, and occupied neighbours per leaf
-below about **9**. The corpus sits at 99.95%, 30.3% and 6.2; the grower at 98.7%, 18.7% and 13.1.
+below about **9**. The corpus sits at 99.95%, 30.3% and 6.2; the grower sat at 98.7%, 18.7% and 13.1.
+
+## What the grower does with it
+
+Every finding above is now law in the code, and the same harnesses measure the result. Reading the grower's
+own output over eight heights, three leaf sizes and eight seeds:
+
+| | before | after | corpus |
+|---|---|---|---|
+| leaves reaching wood through leaves | 98.7% | **100%** | 99.95% |
+| leaves touching wood directly | 14.8% | **54%** | 30.3% |
+| occupied neighbours per leaf | 12.5 | **8.6** | 6.2 |
+| leaves enclosed on all six faces | 7.2% | **0.5%** | 1.7% |
+| trees carrying a stranded leaf | 36% | **0%** | 0% |
+| worst stranded island | 189 blocks | **0** | 2 blocks |
+| trees whose wood is in one piece | 81% | **100%** | 96% |
+| wood neighbours per block | 7.9 | **5.6** | 6.3 |
+| first-order limb, off vertical | 24° | **54°** | 59° |
+| first-order limb, reach against the trunk's | 0.20 | **0.43** | 0.40 |
+
+Six changes carry it. `SweptVolume.Ball` stamps the block its centre sits in whatever the radius, which is
+what stops a twig from evaporating and takes the wood from 81% to 100% in one piece. `TreeCrown` seats each
+cluster **on** its tip rather than beyond it, and `TreeCrown.Rooted` emits only the foliage that reaches wood
+through foliage — so a stranded leaf is not rare, it is impossible. Clusters are small, many and perforated
+rather than few and solid, and each is sized by the branch carrying it. `TreeSkeleton.Steer` turns a child in
+its parent's own frame, so a branch angle is the angle a branch actually leaves by even off a vertical trunk —
+the single change that moved the limbs from 24° to 54° and thinned the wood from 7.9 neighbours to 5.6. And
+the trunk is swept thinner, against a hand-built bole of about three blocks across.
+
+What is not closed is the last of the density: **8.6 occupied neighbours per leaf against the corpus's 6.2**,
+and it is flat across sizes now rather than climbing to 10.8 on the biggest trees. The gate in
+`DressingAlgorithmTests` holds it under 11 — enough to catch a return to the solid, not enough to claim the
+gap is shut. The other half of the same gap is that a generated tree still carries more wood for its foliage
+than an author's: 2.2 leaves per block against a corpus that runs 2.7 to 13.4 on its own large trees.
+
+The conifer is half-built. A whorled tree — a ring of branches every 5.2 courses, each ring shorter than the
+one below, no forking — now separates from the staggered one on the measures that separate the corpus's
+families: **63% of its foliage in the lower half against 46%**, where the corpus's conifers run 60–77% and its
+broadleaves 43–61%. It misses on the other: its widest tenth sits at **#3.9** where a hand-built conifer's is
+#1–#3. So the silhouette is a cone that is not yet steep enough (`G173`).

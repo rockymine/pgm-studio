@@ -511,53 +511,16 @@ import diagnostic (`B24e`), detection (`B26`), and the island-floor work the pha
   feed so every rule reports where the edit happened. The second is the general fix and covers the
   destroyable style and float/leak rules too.
 
-- [ ] **G171 — the grown crown is seated beyond the branch it hangs on.** `TreeCrown.Clusters` puts a
-  cluster centre at `tip + outward*1.6 + (0, outward.Y*1.4 + height*0.25, 0)`, a median 3.0–3.3 blocks of
-  lift against a vertical half-height of only 1.2–3.0, so the branch tip lies outside its own ellipsoid in
-  ~100% of clusters and **1,516 of 4,020 (37.7%) never touch their branch at all** over an 8×5×12 sweep
-  (`tools/tree-corpus/grower-tip-gap.cs`, `grower-crown-check.cs`). The crown coheres only because
-  neighbours overlap and rescue each other, which is the same reason it reads as one merged mass; at height
-  6–9 it does not cohere and 42–76% of the foliage is stranded. Seat the cluster so its ellipsoid contains
-  its tip. The hand-built corpus puts 30.3% of leaves in direct contact with wood, so the docstring premise
-  that leaves sit only at branch ends and not on the wood is what has to give
-  (`docs/world-export/tree-corpus.md`).
-
-- [ ] **G172 — nothing gates how a generated leaf attaches.** The corpus supports three thresholds
-  measurable straight off the emitted cells: ≥99% of leaves reach wood through a chain of leaves, ≥25%
-  touch wood directly, and fewer than ~9 occupied neighbours per leaf. Hand-built sits at 99.95% / 30.3% /
-  6.2, the grower at 98.7% / 18.7% / 13.1. `tools/tree-corpus/leaf-contact.cs` is the reading; a test over a
-  seed sweep is the gate. Without it G171 can be "fixed" and silently regress.
-
-- [ ] **G173 — the grower has no tiered crown, so a conifer preset cannot be one.** `decoration.md` §6
-  already names the six-presets-one-silhouette problem; the corpus now says what the missing shape is worth.
-  Four of its fourteen families are conifers and separate from the other ten with no overlap on two
-  measures — the widest tenth of the crown sits in the bottom third, and the crown is built in 3–7 tiers
-  against never more than 2 — with **tier spacing of 4.6–5.8 courses** across all four. The grower produces
-  no tiers at any setting.
-
-- [ ] **G174 — a generated limb leaves the trunk too steep and too short, and its wood is too solid.** The
-  wood network of all 75 hand-built trees, read against the same reading of the grower's own swept wood
-  (`tools/tree-corpus/wood-skeleton.cs`, `--grower`), puts three numbers on it. A first-order limb leaves the
-  stem at **59°** off vertical where a generated one sits at **41°** (`BranchAngle = 0.55 rad`), and reaches
-  **0.40 of its stem's reach** where a generated one reaches **0.20** — so relative to its own trunk the
-  generated branch is half the length, even though `LengthFactor = 0.62` is larger than the wool tree's 0.29,
-  because the grown axis is so much longer than an author's bole. The proportion to aim at is the one measured
-  in blocks. Third, generated wood carries **9.6** occupied neighbours per block against the corpus's **6.3**
-  and thins far less on the way out (at ten steps from the stem: 3.4 neighbours and 21% ends, against 2.1 and
-  35%) — the same solid-versus-lace finding G172 gates for foliage, and gateable the same way.
-
-- [ ] **G175 — a thin sweep sample can place no block at all, so generated twigs break up.** `SweptVolume.Ball`
-  tests the distance from the limb's continuous centre to a candidate cell's **integer coordinate**, so a
-  centre near a cell corner is √3/2 = 0.866 from every candidate, while the only floor —
-  `radius < 0.5` fills the containing cell — sits below that. In the band between, a sample fills nothing: 33%
-  of positions at radius 0.55, 20% at 0.60, 48% at exactly 0.5. `TreeSkeleton` floors a limb's end radius at
-  0.55 and the axis's at 0.5, so every twig is in that band — **5,322 of 25,392 sweep samples (21.0%) place no
-  block** over an 8 height × 12 seed sweep, and **18 of 96 grown trees emit wood in more than one piece** with
-  10 blocks touching no wood at all (the corpus: 3 trees, 2 blocks). Fill the containing cell whenever a ball
-  would otherwise be empty — or test against cell centres rather than corners — and the twigs stop dissolving.
-  The path sampling is not the cause: on the limbs that break, the widest step between samples is 0.51 blocks.
-  Measured by `tools/tree-corpus/wood-skeleton.cs --grower`; `docs/world-export/tree-corpus.md`.
-
+- [ ] **G173 — the whorled tree is a cone that is not steep enough.** The grower now has a conifer
+  (`TreeShape.Whorled`): rings of laterals 5.2 courses apart, each shorter than the one below, none forking,
+  with each leaf cluster sized by the branch carrying it. It separates from the staggered form on one of the
+  two measures the corpus separates families on — **63% of its foliage in the lower half against 46%**, where
+  hand-built conifers run 60–77% and broadleaves 43–61% — but not on the other: its **widest tenth sits at
+  #3.9** where a hand-built conifer's is #1–#3. The bulk is still too high up. Likely levers, in order: the
+  ring-length taper (currently the top ring keeps 28% of the bottom ring's length), the whorl's reach ceiling
+  (`highest`, 0.52 + 0.16 x leader), and the apex, which still carries a full fork and cluster of its own.
+  `tools/tree-corpus/crown-profile.cs` measures the corpus side; the generated side is the same reading over
+  `TreeSkeleton.Grow`.
 - [ ] **G150 — stamp a catalog shape into a drawn box.** The plan editor can draw a typed box and then ask
   whether the composer could have produced what is in it (G125's feasibility panel), but there is no way to
   go the other direction and *place* something known-producible: nothing in `Features/Plan/` references the

@@ -28,13 +28,21 @@ public static class SweptVolume
         }
     }
 
-    /// <summary>The cells within <paramref name="radius"/> of a point. A radius under half a block still fills
-    /// the block it sits in — a twig that tapered to nothing would leave the branch hanging in the air.</summary>
+    /// <summary>The cells within <paramref name="radius"/> of a point — always including the block the point
+    /// sits in, so a thin limb cannot evaporate.
+    ///
+    /// <para>The membership test measures to a cell's integer coordinate, so a centre sitting near a cell
+    /// corner is √3/2 = 0.866 from every candidate around it. Any radius below that can therefore select
+    /// nothing at all — at 0.55 a third of positions do, at 0.6 a fifth — and a limb swept at a twig's radius
+    /// comes out as a dotted line of detached blocks rather than a branch. Stamping the containing block
+    /// unconditionally is what closes that band; above 0.866 it is already inside the ball and the extra
+    /// yield is a duplicate a caller writing into a set never sees.</para></summary>
     public static IEnumerable<(int X, int Y, int Z)> Ball(Vec3 center, double radius)
     {
         var reach = (int)Math.Ceiling(Math.Max(radius, 0.5));
         int cx = (int)Math.Round(center.X), cy = (int)Math.Round(center.Y), cz = (int)Math.Round(center.Z);
-        if (radius < 0.5) { yield return (cx, cy, cz); yield break; }
+        yield return (cx, cy, cz);
+        if (radius < 0.5) yield break;
 
         var radiusSq = radius * radius;
         for (var dy = -reach; dy <= reach; dy++)

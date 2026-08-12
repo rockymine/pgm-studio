@@ -166,8 +166,8 @@ public partial class SketchDressingInspector
     private string KnobSpec()
         => $"height={Knob(PropFields.Height, 12)}&stems={Knob(PropFields.Stems, 1, "0")}" +
            $"&leader={Knob(PropFields.Leader, 0.55)}&flow={Knob(PropFields.Flow, 0.45)}" +
-           $"&branchAngle={Knob(PropFields.BranchAngle, 0.55)}&levels={Knob(PropFields.Levels, 2, "0")}" +
-           $"&leafSize={Knob(PropFields.LeafSize, 0.6)}";
+           $"&branchAngle={Knob(PropFields.BranchAngle, 1.1)}&levels={Knob(PropFields.Levels, 2, "0")}" +
+           $"&leafSize={Knob(PropFields.LeafSize, 0.6)}&whorled={Flag(PropFields.Whorled)}";
 
     private string Knob(string field, double fallback, string format = "0.##")
         => Num(field, fallback).ToString(format, CultureInfo.InvariantCulture);
@@ -349,6 +349,7 @@ public static class PropFields
     public const string Flow = "flow";
     public const string BranchAngle = "branchAngle";
     public const string Levels = "levels";
+    public const string Whorled = "whorled";
     public const string LeafSize = "leafSize";
     public const string Wood = "wood";
     /// <summary>Which shape a prop takes — a boulder's rock family, a tree's vanilla-or-grown. One wire name

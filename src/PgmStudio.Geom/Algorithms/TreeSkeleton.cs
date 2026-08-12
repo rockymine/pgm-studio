@@ -7,8 +7,11 @@ namespace PgmStudio.Geom.Algorithms;
 public readonly record struct TreeLimb(IReadOnlyList<Vec3> Path, double StartRadius, double EndRadius, int Level);
 
 /// <summary>A limb's outer end, where a leaf cluster sits: the point and the direction the limb was travelling
-/// when it got there, so the cluster can be pushed out along the branch rather than dropped on it.</summary>
-public readonly record struct TreeTip(Vec3 Position, Vec3 Direction);
+/// when it got there, so the cluster can be pushed out along the branch rather than dropped on it.
+/// <paramref name="Spread"/> is how much foliage the branch can carry, as a share of a full-length limb's —
+/// a short branch holds a small clump. It is what makes a whorled tree a cone rather than a column, since its
+/// upper rings are the short ones, and it stops a twig on any tree from wearing the same crown as a bough.</summary>
+public readonly record struct TreeTip(Vec3 Position, Vec3 Direction, double Spread = 1);
 
 /// <summary>A grown tree as pure geometry — limb centerlines and the tips their foliage hangs on, with no
 /// block, palette or world in sight. Sweeping the limbs into wood and the tips into leaves is the caller's
@@ -30,21 +33,32 @@ public sealed record GrownTree(IReadOnlyList<TreeLimb> Limbs, IReadOnlyList<Tree
 /// <param name="Gnarl">Per-step wander on a lateral — the sharper jitter that keeps a limb from being a ruler.</param>
 /// <param name="Flow">Slow sway on the central axis.</param>
 /// <param name="Leader">0–1; how far the central axis climbs into the crown.</param>
+/// <param name="Whorled">Whether the laterals are gathered into whorls — a ring of them at one height, the next
+/// ring a few courses up, each ring shorter than the one below. It is the conifer, and it is a different tree
+/// rather than a setting of the same one: measured against a hand-built corpus, four families of fourteen build
+/// their crowns in 3–7 tiers with the widest tenth in the bottom third, and the other ten never exceed two tiers
+/// and carry their bulk higher, with no overlap between the two groups on either measure.</param>
 public sealed record TreeShape(
     double Height = 20,
     int Stems = 1,
     int Levels = 2,
-    double BranchAngle = 0.75,
+    double BranchAngle = 1.1,
     double Gnarl = 0.30,
     double Flow = 0.35,
-    double Leader = 0.5)
+    double Leader = 0.5,
+    bool Whorled = false)
 {
+    /// <summary>Courses between one whorl and the next. Every conifer family in the corpus spaces its tiers
+    /// 4.6 to 5.8 courses apart, whatever its height — 7 tiers in 32 courses, 4 in 20, 4 in 23, 3 in 14 — so the
+    /// spacing is a constant and the tier count is what a taller tree gains.</summary>
+    public const double WhorlSpacing = 5.2;
+
     /// <summary>Where along a parent the first child leaves it — children never sprout from the base.</summary>
     public double ChildStart { get; init; } = 0.30;
     /// <summary>How much of its start radius a limb keeps at its end.</summary>
     public double Taper { get; init; } = 0.62;
     /// <summary>How much of its parent's radius a child starts at.</summary>
-    public double ChildScale { get; init; } = 0.6;
+    public double ChildScale { get; init; } = 0.5;
     /// <summary>How much of its parent's length a child gets.</summary>
     public double LengthFactor { get; init; } = 0.62;
 
@@ -52,8 +66,10 @@ public sealed record TreeShape(
     /// sparser branching of a small tree are scaled by.</summary>
     public double Size => Math.Clamp((Height - 4) / 40.0, 0.05, 1);
 
-    /// <summary>The trunk's radius at the ground.</summary>
-    public double TrunkRadius => 0.7 + Size * 1.5;
+    /// <summary>The trunk's radius at the ground. A hand-built bole carries about three blocks across its
+    /// course, so a big tree's is under two: wood swept fatter than that reads as a column, and it is what
+    /// puts half again as many occupied neighbours on every block of a generated limb as on an author's.</summary>
+    public double TrunkRadius => 0.65 + Size * 1.15;
 }
 
 /// <summary>
@@ -117,18 +133,42 @@ public static class TreeSkeleton
             limbs.Add(Smoothed(control, startRadius, endRadius, level: 0));
 
             // Laterals up the axis — fewer on a small tree, and reaching higher when the leader is strong.
-            var lateralCount = Math.Max(1, (int)Math.Round(1 + shape.Leader * 2 + shape.Size * 2));
-            var highest = 0.66 + 0.24 * shape.Leader;
+            // A big tree carries many of them because that is what the crown is built from: one small cluster
+            // per tip, so a tree with three tips can only be foliated by three clusters wide enough to be
+            // solids. The author's own tree ends in about thirty limbs.
+            var lateralCount = Math.Max(2, (int)Math.Round(2 + shape.Leader * 2 + shape.Size * 6));
+            // A whorled tree's rings stop well below the apex, which is what leaves a spire above the top
+            // ring instead of a bush around it.
+            var highest = shape.Whorled ? 0.52 + 0.16 * shape.Leader : 0.66 + 0.24 * shape.Leader;
+
+            // A conifer's laterals are gathered into whorls — a ring at one height, the next ring a fixed few
+            // courses up — and each ring is shorter than the one below it, which is the whole of why the
+            // silhouette is a cone and why the crown carries its bulk in its bottom third. A broadleaf's are
+            // staggered up the axis one at a time instead, never whorled.
+            var tiers = shape.Whorled
+                ? Math.Max(3, (int)Math.Round(length * (highest - shape.ChildStart) / TreeShape.WhorlSpacing))
+                : 0;
+            var perTier = shape.Whorled ? Math.Max(2, (int)Math.Round(lateralCount / (double)tiers) + 1) : 0;
+            if (shape.Whorled) lateralCount = tiers * perTier;
+
             for (var k = 0; k < lateralCount; k++)
             {
-                var along = shape.ChildStart + (highest - shape.ChildStart) * ((k + 0.5) / lateralCount);
+                var tier = shape.Whorled ? k / perTier : 0;
+                var upTheTiers = shape.Whorled && tiers > 1 ? tier / (double)(tiers - 1) : 0;
+                var along = shape.ChildStart + (highest - shape.ChildStart)
+                    * (shape.Whorled ? upTheTiers : (k + 0.5) / lateralCount);
                 var index = At(control, along);
                 var parent = Heading(control, index);
                 // Laterals spiral around the axis rather than alternating in one plane, which is what stops a
-                // tree from reading as flat when it is finally seen from another angle.
-                var spread = k * 2.399963 + PatternNoise.Unit(k, (int)key, seed) * 0.8;
+                // tree from reading as flat when it is finally seen from another angle. A whorl divides its
+                // ring evenly and turns each ring against the last, so the tiers do not stack into a fin.
+                var spread = shape.Whorled
+                    ? (k % perTier) * (Math.PI * 2 / perTier) + tier * 0.7 + PatternNoise.Unit(k, (int)key, seed) * 0.3
+                    : k * 2.399963 + PatternNoise.Unit(k, (int)key, seed) * 0.8;
                 var angle = shape.BranchAngle * (0.7 + 0.7 * PatternNoise.Unit(k * 3, (int)key, seed + 9));
                 var length2 = length * shape.LengthFactor * (0.72 + 0.4 * PatternNoise.Unit(k, (int)key, seed + 4)) * (1 - 0.35 * along);
+                // A whorl's ring shortens as it climbs, from full at the foot to a third at the top.
+                if (shape.Whorled) length2 *= 1 - 0.72 * upTheTiers;
                 var radius = Math.Max(0.6, (startRadius + (endRadius - startRadius) * along) * shape.ChildScale);
                 GrowLimb(control[index], Steer(parent, spread, angle), length2, radius, level: 1, key: key * 17 + (uint)k * 4 + 1);
             }
@@ -140,8 +180,11 @@ public static class TreeSkeleton
                 for (var k = 0; k < 2; k++)
                     GrowLimb(top, Steer(topHeading, k * Math.PI, shape.BranchAngle * 0.5),
                         length * shape.LengthFactor * 0.5, Math.Max(0.6, endRadius * 0.85), level: 1, key: key * 91 + (uint)k);
-            tips.Add(new TreeTip(top, topHeading));
+            tips.Add(new TreeTip(top, topHeading, Carry(length * shape.LengthFactor * 0.6)));
         }
+
+        /// <summary>How much foliage a limb of this length carries, against a full-grown branch's.</summary>
+        private static double Carry(double length) => Math.Clamp(length / 6.0, 0.4, 1.25);
 
         /// <summary>A lateral branch: sharper per-step jitter than the axis, pulled gently upright, branching
         /// on until it runs out of levels or gets too short to be worth one.</summary>
@@ -155,7 +198,10 @@ public static class TreeSkeleton
             {
                 yaw += (PatternNoise.Unit((int)key * 7 + s, level + 1, seed) - 0.5) * shape.Gnarl * 2;
                 pitch += (PatternNoise.Unit((int)key * 7 + s, level + 401, seed) - 0.5) * shape.Gnarl;
-                pitch += (Math.PI / 2 - pitch) * 0.10 - 0.02 * level;         // upright pull, drooping higher up
+                // A weak upright pull, weaker again further out. A strong one straightens every limb back
+                // toward the axis within a few steps, which is what puts a generated branch at 41° off
+                // vertical where an author's leaves the trunk at 59° and its children at 67°.
+                pitch += (Math.PI / 2 - pitch) * 0.04 - 0.03 * level;
                 point += Vec3.FromYawPitch(yaw, pitch) * (length / steps);
                 control.Add(point);
             }
@@ -163,10 +209,11 @@ public static class TreeSkeleton
             limbs.Add(Smoothed(control, startRadius, endRadius, level));
 
             // A branch shorter than a step is terminal, which is why a small tree carries fewer of them rather
-            // than the same count scaled down.
-            if (level >= shape.Levels || length < 3.5)
+            // than the same count scaled down. A whorled tree's branches never fork at all: a ring of forking
+            // limbs fills the gap above it and the tiers stop reading as tiers.
+            if (level >= shape.Levels || length < 3.5 || shape.Whorled)
             {
-                tips.Add(new TreeTip(control[^1], Heading(control, control.Count - 1)));
+                tips.Add(new TreeTip(control[^1], Heading(control, control.Count - 1), Carry(length)));
                 return;
             }
 
@@ -195,15 +242,28 @@ public static class TreeSkeleton
             => (control[index] - control[Math.Max(0, index - 1)]).Normalized;
     }
 
-    /// <summary>Turn a direction by <paramref name="angle"/>, in the plane picked by <paramref name="spread"/>
-    /// around it — how a child leaves its parent at an angle and at its own place around the parent's girth.</summary>
+    /// <summary>Turn a direction by <paramref name="angle"/>, about the place on the parent's girth picked by
+    /// <paramref name="spread"/> — how a child leaves its parent at an angle and at its own place around it.
+    ///
+    /// <para>The turn is taken in the parent's own frame rather than in world yaw and pitch, so that
+    /// <paramref name="angle"/> is the angle the child actually leaves by and <paramref name="spread"/> only
+    /// decides which way round. Spending it on yaw instead is silent for exactly the parent that matters most:
+    /// a trunk is vertical, a vertical direction has no meaningful yaw, and a whole radian of branch angle
+    /// there turns a limb by nothing at all. That is what put generated laterals at 41° off vertical against
+    /// the 59° an author leaves the trunk by, however far the knob was turned up.</para></summary>
     private static Vec3 Steer(Vec3 direction, double spread, double angle)
     {
-        var (yaw, pitch) = YawPitch(direction);
-        // Decompose the turn into the parent's own frame: the spread says which way round it goes, the angle
-        // how far. Doing it in yaw/pitch rather than as a rotation matrix keeps the upright pull one term.
-        return Vec3.FromYawPitch(yaw + Math.Cos(spread) * angle, pitch - Math.Abs(Math.Sin(spread)) * angle * 0.6);
+        var forward = direction.Normalized;
+        // Any axis not parallel to the limb, so the frame is well defined for a vertical trunk as well.
+        var reference = Math.Abs(forward.Y) > 0.9 ? new Vec3(1, 0, 0) : new Vec3(0, 1, 0);
+        var side = Cross(forward, reference).Normalized;
+        var over = Cross(forward, side);
+        var away = side * Math.Cos(spread) + over * Math.Sin(spread);
+        return (forward * Math.Cos(angle) + away * Math.Sin(angle)).Normalized;
     }
+
+    private static Vec3 Cross(Vec3 a, Vec3 b) =>
+        new(a.Y * b.Z - a.Z * b.Y, a.Z * b.X - a.X * b.Z, a.X * b.Y - a.Y * b.X);
 
     private static (double Yaw, double Pitch) YawPitch(Vec3 direction)
     {

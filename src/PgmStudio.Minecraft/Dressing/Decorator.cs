@@ -434,7 +434,9 @@ public static class Decorator
         for (var z = (int)Math.Floor(min.Z); z <= (int)Math.Ceiling(max.Z); z++)
         for (var x = (int)Math.Floor(min.X); x <= (int)Math.Ceiling(max.X); x++)
             if (TreeCrown.OwnerAt(clusters, new Vec3(x, y, z), tree.Seed) is not null) leaves.Add((x, y, z));
-        return (wood, leaves);
+        // Nothing is placed that the tree does not hold: a leaf out of reach of the wood is a block floating
+        // in the air, and the crown is emitted through the same reachability the corpus is gated on.
+        return (wood, [.. TreeCrown.Rooted(leaves, wood)]);
     }
 
     // ── the shared prop pipeline ────────────────────────────────────────────────

@@ -20,26 +20,44 @@ public readonly record struct LeafCluster(Vec3 Center, Vec3 Radii, int Tip);
 public static class TreeCrown
 {
     /// <summary>How much closer a cell must be to its nearest cluster than to the next one to be filled. Zero
-    /// merges every cluster into one mass; too high and the crown falls apart into separate balls.</summary>
-    private const double SeamMargin = 0.30;
+    /// merges every cluster into one mass; too high and the crown falls apart into separate balls. It is wide
+    /// because the clusters are small: a puff two blocks across needs a seam of comparable width before the
+    /// eye reads two of them rather than one lump.</summary>
+    private const double SeamMargin = 0.68;
 
-    /// <summary>How full a cluster is. The gaps that make a crown airy are the seams, so a cluster itself is
-    /// nearly solid — punching holes through one only makes it read as a damaged sphere.</summary>
-    private const double Density = 0.92;
+    /// <summary>How full a cluster is. Most of the air in a crown is its seams rather than holes punched
+    /// through a cluster — a heavily perforated wide ball reads as damaged, not airy. A little perforation
+    /// still earns its place at this size, where it ragged-edges a two-block puff instead of hollowing a
+    /// solid, and it is what carries the last of the way down to the six-neighbour lace an author builds.</summary>
+    private const double Density = 0.64;
 
-    /// <summary>Place a cluster beyond each tip. <paramref name="leafSize"/> scales them and
+    /// <summary>How far along the branch's own direction a cluster is carried past its tip, as a share of the
+    /// cluster's radius. It is a share rather than a distance so that the tip stays inside the cluster at every
+    /// size: a crown seated beyond the branch it hangs on is foliage attached to nothing, which measures as a
+    /// tenth of the wood contact an author's crown has and, on a small tree, as a crown that floats away
+    /// entirely.</summary>
+    private const double TipCarry = 0.35;
+
+    /// <summary>Place a cluster on each tip. <paramref name="leafSize"/> scales them and
     /// <paramref name="treeSize"/> shrinks them with the tree, so a sapling carries a few small clusters on a
-    /// thin stalk rather than a scaled-down big tree's crown.</summary>
+    /// thin stalk rather than a scaled-down big tree's crown.
+    ///
+    /// <para>Clusters are <b>small and many</b> rather than large and few. A hand-built crown is lace — 1.7% of
+    /// its leaves are enclosed on all six faces and each carries about six occupied neighbours — and a puff a
+    /// couple of blocks across is lace by construction, where a wide one is a solid whatever is done to its
+    /// surface. It also leaves the seam something to separate: clusters that overlap everywhere have no seams
+    /// left to show.</para></summary>
     public static List<LeafCluster> Clusters(IReadOnlyList<TreeTip> tips, double leafSize, double treeSize, uint seed)
     {
         var clusters = new List<LeafCluster>(tips.Count);
         for (var i = 0; i < tips.Count; i++)
         {
             var tip = tips[i];
-            var radius = (2.3 + leafSize * 2.4) * (0.55 + 0.45 * treeSize) + PatternNoise.Unit(i, 2, seed) * 1.0;
-            var height = radius * (0.55 + PatternNoise.Unit(i, 5, seed) * 0.12);   // an oblate disc, not a ball
+            var radius = (1.5 + leafSize * 1.9) * (0.95 - 0.08 * treeSize)
+                * (0.55 + 0.45 * tip.Spread) + PatternNoise.Unit(i, 2, seed) * 0.7;
+            var height = radius * (0.62 + PatternNoise.Unit(i, 5, seed) * 0.14);   // an oblate disc, not a ball
             var outward = tip.Direction.Normalized;
-            var center = tip.Position + outward * 1.6 + new Vec3(0, Math.Max(0, outward.Y) * 1.4 + height * 0.25, 0);
+            var center = tip.Position + outward * (radius * TipCarry);
             clusters.Add(new LeafCluster(center, new Vec3(radius, height, radius), i));
         }
         return clusters;
@@ -62,6 +80,33 @@ public static class TreeCrown
 
         var cell = (X: (int)Math.Round(point.X), Y: (int)Math.Round(point.Y), Z: (int)Math.Round(point.Z));
         return PatternNoise.Unit(cell.X, cell.Y, cell.Z, seed + 31) < Density ? owner : null;
+    }
+
+    /// <summary>The foliage that is actually held: the leaves reaching wood through a chain of leaves, and no
+    /// others. A cluster's rim and the seams between clusters both shed the odd cell that touches nothing, and
+    /// a single perforated cell on a rim is a leaf block floating in the air once the tree is placed. Filtering
+    /// on reachability rather than tuning the fill until specks are rare is what makes the guarantee absolute:
+    /// an author's 75 trees carry 11 stranded leaves between them, and a generator can carry none.</summary>
+    public static HashSet<(int X, int Y, int Z)> Rooted(
+        IEnumerable<(int X, int Y, int Z)> leaves, IReadOnlySet<(int X, int Y, int Z)> wood)
+    {
+        var foliage = leaves as IReadOnlySet<(int X, int Y, int Z)> ?? new HashSet<(int X, int Y, int Z)>(leaves);
+        var held = new HashSet<(int X, int Y, int Z)>();
+        var frontier = new Queue<(int X, int Y, int Z)>();
+        foreach (var leaf in foliage)
+            if (Around(leaf).Any(wood.Contains) && held.Add(leaf)) frontier.Enqueue(leaf);
+        while (frontier.Count > 0)
+            foreach (var next in Around(frontier.Dequeue()))
+                if (foliage.Contains(next) && held.Add(next)) frontier.Enqueue(next);
+        return held;
+    }
+
+    private static IEnumerable<(int X, int Y, int Z)> Around((int X, int Y, int Z) cell)
+    {
+        for (var dy = -1; dy <= 1; dy++)
+            for (var dz = -1; dz <= 1; dz++)
+                for (var dx = -1; dx <= 1; dx++)
+                    if (dx != 0 || dy != 0 || dz != 0) yield return (cell.X + dx, cell.Y + dy, cell.Z + dz);
     }
 
     /// <summary>The block range the whole crown can touch — the union of its clusters, with room for the

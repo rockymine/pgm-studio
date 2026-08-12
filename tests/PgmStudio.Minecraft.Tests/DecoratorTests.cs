@@ -720,7 +720,7 @@ public sealed class DecoratorTests
         await Assert.That(shape.Levels).IsEqualTo(3);
         await Assert.That(shape.Leader).IsEqualTo(1);
         await Assert.That(shape.Flow).IsEqualTo(1);
-        await Assert.That(shape.BranchAngle).IsEqualTo(1.2);
+        await Assert.That(shape.BranchAngle).IsEqualTo(1.5);
 
         // and the other way: a knob below its range is lifted rather than left to build nothing
         var tiny = new TreeProp { Form = TreeForm.Grown, Height = -10, Leader = -5, LeafSize = 0 };

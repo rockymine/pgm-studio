@@ -201,9 +201,16 @@
           <Field Label="Trunk flow"><LabelEnd><strong>@($"{Num(PropFields.Flow, 0.45):0.00}")</strong></LabelEnd>
             <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
                    value="@((int)(Num(PropFields.Flow, 0.45) * 100))" @oninput="e => Set(PropFields.Flow, JsonValue.Create(Share(e)))" /></ChildContent></Field>
-          <Field Label="Branch angle"><LabelEnd><strong>@($"{Num(PropFields.BranchAngle, 0.55) * 57:0}°")</strong></LabelEnd>
-            <ChildContent><input type="range" class="field-range" min="20" max="120" step="1"
-                   value="@((int)(Num(PropFields.BranchAngle, 0.55) * 100))" @oninput="e => Set(PropFields.BranchAngle, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+          <Field Label="Branching"><LabelHint>whorled rings are a conifer; staggered is everything else</LabelHint>
+            <ChildContent>
+              <Chip Active="Flag(PropFields.Whorled)" OnClick="() => Set(PropFields.Whorled, JsonValue.Create(!Flag(PropFields.Whorled)))">
+                @(Flag(PropFields.Whorled) ? "Whorled — a ring of branches every few courses, shorter as it climbs" : "Staggered — one branch at a time up the trunk")
+              </Chip>
+            </ChildContent>
+          </Field>
+          <Field Label="Branch angle"><LabelEnd><strong>@($"{Num(PropFields.BranchAngle, 1.1) * 57:0}°")</strong></LabelEnd>
+            <ChildContent><input type="range" class="field-range" min="20" max="150" step="1"
+                   value="@((int)(Num(PropFields.BranchAngle, 1.1) * 100))" @oninput="e => Set(PropFields.BranchAngle, JsonValue.Create(Share(e)))" /></ChildContent></Field>
           <Field Label="Levels"><LabelEnd><strong>@($"{Num(PropFields.Levels, 2):0}")</strong></LabelEnd>
             <ChildContent><input type="range" class="field-range" min="2" max="3" step="1"
                    value="@((int)Num(PropFields.Levels, 2))" @oninput="e => Set(PropFields.Levels, JsonValue.Create(Whole(e)))" /></ChildContent></Field>

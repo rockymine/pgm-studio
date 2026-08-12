@@ -242,13 +242,22 @@ stroke), so the tree and the path share one rasterization primitive.
 
 The crown is where a naive generator gives itself away — a spherical brush with holes punched in it reads as
 one blob, and you cannot tell which branch a patch of leaves belongs to. So the crown is placed the way a
-mapmaker does it by hand: **one dense disc-shaped cluster per outer tip** — a flat leaf-rock, the §5 boulder
-disc reused, ~90% full — pushed up and out from the tip, never down toward the trunk, because leaves sit at
-the branch ends and not on the wood. Neighbouring clusters keep a **seam of air** between them: a cell fills
-only when it clearly belongs to one cluster (nearest-cluster ownership, the seam where two are equidistant),
-so a viewer still reads each patch as its own branch's instead of one merged mass — which is the real reason
-to keep the branch count low. A few short strands hang below each disc for a broken lower edge. The airiness
-lives *between* the clusters, not as holes inside them.
+mapmaker does it by hand: **one disc-shaped cluster per outer tip**, seated *on* the tip so the branch it
+hangs from is inside it, and **sized by the branch that carries it** — a short limb holds a small clump.
+Clusters are **small and many** rather than large and few, because a hand-built crown is lace: 1.7% of its
+leaves are enclosed on all six faces and each carries about six occupied neighbours, and a puff two blocks
+across is lace by construction where a wide one is a solid whatever is done to its surface. Neighbouring
+clusters keep a **seam of air** between them: a cell fills only when it clearly belongs to one cluster
+(nearest-cluster ownership, the seam where two are equidistant), so a viewer still reads each patch as its own
+branch's instead of one merged mass. Most of the air is those seams; a little of it is perforation inside a
+cluster, which at this size ragged-edges a puff rather than hollowing a ball. Whatever the fill leaves behind,
+**only foliage that reaches wood through foliage is emitted** (`TreeCrown.Rooted`) — a leaf floating in the air
+is not made rare, it is made impossible. A few short strands hang below each disc for a broken lower edge.
+
+The laterals come in two arrangements, and they are two trees rather than two settings of one. **Staggered**
+puts one branch at a time up the trunk, spiralling — every broadleaf. **Whorled** gathers them into rings a
+fixed 5.2 courses apart, each ring shorter than the one below and none of them forking — the conifer, whose
+cone comes from the ring lengths and from each cluster being sized by its own branch.
 
 Both trees are the same stamper as the boulder: a trunk-and-limbs volume plus a leaf mask over a box, and
 both end at one place that turns those cells into blocks — so the wood, the no-decay bit every leaf carries,

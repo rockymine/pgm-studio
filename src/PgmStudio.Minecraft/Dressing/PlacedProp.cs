@@ -145,11 +145,18 @@ public sealed record TreeProp : PlacedProp
     /// <summary>Grown only — how much the trunk wanders on its way up.</summary>
     public double Flow { get; init; } = 0.45;
 
-    /// <summary>Grown only — how far a branch leaves its parent, in radians.</summary>
-    public double BranchAngle { get; init; } = 0.55;
+    /// <summary>Grown only — how far a branch leaves its parent, in radians. A hand-built corpus leaves the
+    /// trunk at 59° off vertical and forks its children at 67°, so the default is a radian rather than the
+    /// half one a tighter fan wants.</summary>
+    public double BranchAngle { get; init; } = 1.1;
 
     /// <summary>Grown only — branching depth: 2 is a tree, 3 a denser one.</summary>
     public int Levels { get; init; } = 2;
+
+    /// <summary>Grown only — whether the branches are gathered into whorls, a ring every few courses, each
+    /// ring shorter than the one below. It is the conifer against the broadleaf, and it is the one shape
+    /// choice a picker of six woods cannot make for an author.</summary>
+    public bool Whorled { get; init; }
 
     /// <summary>Grown only — how big each tip's leaf cluster is.</summary>
     public double LeafSize { get; init; } = 0.6;
@@ -170,8 +177,8 @@ public sealed record TreeProp : PlacedProp
     /// <see cref="Reach"/>. Read only when it is grown.</summary>
     public TreeShape Shape => new(
         Height: Reach, Stems: Math.Clamp(Stems, 1, 3), Levels: Math.Clamp(Levels, 2, 3),
-        BranchAngle: Math.Clamp(BranchAngle, 0.2, 1.2), Flow: Math.Clamp(Flow, 0, 1),
-        Leader: Math.Clamp(Leader, 0, 1));
+        BranchAngle: Math.Clamp(BranchAngle, 0.2, 1.5), Flow: Math.Clamp(Flow, 0, 1),
+        Leader: Math.Clamp(Leader, 0, 1), Whorled: Whorled);
 
     /// <summary>How big each tip's leaf cluster is, bounded like <see cref="Reach"/>: it scales the crown, and
     /// the crown is filled cell by cell.</summary>
