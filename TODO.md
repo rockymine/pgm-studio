@@ -31,7 +31,51 @@ three files. Moving a task between files never changes its id; never renumber or
   that the code-comments rule already bans. `appsettings.Development.json`'s `MapsRoots`/`Import.Root` point at
   the reference VM but are import-only — repoint or document, don't leave dangling.
 
-## Layout generation (G) — current focus: the generator in the studio
+## Sketch tool (S) — current focus: relief in the hand
+
+The relief model is built and headless: the solver, its marks and pushes, the symmetry fold, the wire
+document, the rasterizer seam and the recompile rule have all shipped (`FEATURES.md`). A relief written into
+a stored layout by hand exports as terrain today. **Nothing authors one** — there is no mode, no tool, no
+inspector and no way to see the surface before it is built, so the whole model is reachable only by editing
+JSON. This theme is that half, in the order each step unblocks the next: see it (S45) → place marks (S41) →
+draw pushes (S50). The design, its measurements and the authoring plan are
+`docs/contracts/sketch-relief.md`; the prototype every figure comes from is `tools/relief`. What this theme
+deliberately leaves parked is in `BACKLOG.md` — the readback (S43), erecting shapes (S44), the stroke tools
+(S46) and per-shape participation (S48).
+
+- [ ] **S45 — Relief: the preview, solved on the server.** Nothing shows a relief before it is built. The
+  canvas draws the field's **contours**, which is both the readable view of a height field and the
+  direct-manipulation surface — dragging a contour writes a line mark at that height, so how the surface
+  reads and how it is edited are one object. **No JS twin**: the paint preview already establishes the seam
+  (debounce the edit, post the layout, load the reply as a canvas layer, drop replies overtaken by a newer
+  edit via a sequence number), and a relief solve is far cheaper than the whole-map paint that seam already
+  carries. Two measured facts make it affordable: the solve **cascades** coarse-to-fine (317 ms against
+  519 ms on a 192×128 map, agreeing to within a block, the advantage growing with the footprint), and a drag
+  **resumes** from the surface already on screen (40 sweeps, 228 ms on that map, off by one block on 1,614 of
+  24,576 cells). Both are in the solver already; this slice is the endpoint and the overlay. Porting the
+  relaxation to JS would buy milliseconds and cost a second implementation of a cascade, a chamfer sweep and
+  a symmetry fold — the duplication `Geom.Symmetry` exists to prevent (`sketch-relief.md` §14, §15).
+
+- [ ] **S41 — Relief: marks as placed things.** The five mark kinds solve and export; none can be *placed*.
+  A relief mode between Draw and Theme, with the canvas tools that put a point, a line, an area and a scarp
+  on the ground, a list of what an island states, and an inspector for the numbers on the selected one — the
+  Dressing phase is the pattern to follow, since it is the same shape of problem (a placed thing, a list, an
+  inspector). Two behaviours are load-bearing and were bugs before they were rules, so the tools must not
+  quietly undo them: a mark is **clipped, not confined**, so one placed *past the edge* raises the ground
+  into a corner and stops — which is how a spawn hill is authored with no wasted strip behind it, and the
+  canvas therefore has to let a mark be dragged outside the island; and a **scarp band stops where its line
+  stops**, which is what leaves the gaps a crossing is authored at.
+
+- [ ] **S50 — Relief: draw the push, don't type a radius.** The push solves — ring falloff across the land,
+  crown off the medial axis, per-vertex amounts, roughness (`FEATURES.md`, `sketch-relief.md` §2.1–2.2) —
+  and the only way to state one is by hand in JSON, which is precisely the hand-authoring the feature exists
+  to replace: a summit typed as a position and a radius can only be round. The slice is the ring **drawn**
+  like any other polygon, plus `amount` / `falloff` / `crown` / `roughness` as inspector numbers and the
+  per-vertex lift edited on the ring's own anchors, where a per-vertex height already reads as a height.
+  Crown is the one to get in front of an author rather than bury: it is what makes a drawn ridge a ridge
+  instead of a plateau, and its default of 0 is the least natural of its three settings.
+
+## Layout generation (G) — the generator in the studio
 
 The box pipeline is now **the** composer (the old grower path is retired — `FEATURES.md`), and the
 emitted layouts are good enough to work *with*: the bottleneck has moved from the grammar to the

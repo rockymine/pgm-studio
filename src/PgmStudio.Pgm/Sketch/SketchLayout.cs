@@ -40,6 +40,12 @@ public sealed class SketchLayout
     // sketch that never opened the phase, which dresses nothing.
     [JsonPropertyName("dressing")] public JsonElement? Dressing { get; set; }
 
+    // Interior elevation (docs/contracts/sketch-relief.md), keyed by island id. It rides top-level rather
+    // than inside the shapes for one reason: a plan recompile replaces every shape it produced, and a relief
+    // is expensive hand work a plan cannot express. It is not a finish key — a relief is geometry, it decides
+    // what the rasterizer emits, and it is carried across a recompile under its own rule (CarryRelief).
+    [JsonPropertyName("relief")] public Dictionary<string, SketchReliefJson>? Relief { get; set; }
+
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     public string ToJson() => JsonSerializer.Serialize(this, Json);
@@ -79,6 +85,53 @@ public sealed class SketchLayout
                 carried = true;
             }
         return carried ? target.ToJsonString(Json) : compiledJson;
+    }
+
+    /// <summary>The island ids a stored relief is bound to that the freshly compiled layout has no island
+    /// for. Each one is hand-authored terrain the recompile would silently discard, which is why the compile
+    /// path refuses rather than carrying what it can: island identity is derived from the geometry, so a
+    /// re-fused island does not merely move — it becomes a different island, and a relief authored against
+    /// the old fusion has nowhere correct to land.</summary>
+    public static IReadOnlyList<string> OrphanedRelief(string compiledJson, string? storedJson)
+    {
+        var stored = string.IsNullOrWhiteSpace(storedJson) ? null : Parse(storedJson);
+        if (stored?.Relief is not { Count: > 0 } relief) return [];
+
+        var islands = new HashSet<string>(IslandIds(Parse(compiledJson)));
+        return relief.Keys.Where(id => !islands.Contains(id)).OrderBy(id => id, StringComparer.Ordinal).ToList();
+    }
+
+    /// <summary>Every island id a layout names, across all its layers.</summary>
+    public static IEnumerable<string> IslandIds(SketchLayout? state)
+    {
+        if (state?.Layers is { Count: > 0 } layers)
+            foreach (var layer in layers)
+                foreach (var island in layer.Layout?.Islands ?? [])
+                    if (island.Id is { Length: > 0 } id) yield return id;
+        if (state?.Layout is { } single)
+            foreach (var island in single.Islands)
+                if (island.Id is { Length: > 0 } id) yield return id;
+    }
+
+    /// <summary>A freshly compiled layout with the stored relief carried onto it. Only call this once
+    /// <see cref="OrphanedRelief"/> is empty or the author has accepted the loss — it carries what still
+    /// binds and drops the rest.</summary>
+    public static string CarryRelief(string compiledJson, string? storedJson)
+    {
+        var stored = string.IsNullOrWhiteSpace(storedJson) ? null : Parse(storedJson);
+        if (stored?.Relief is not { Count: > 0 } relief) return compiledJson;
+
+        JsonNode? node;
+        try { node = JsonNode.Parse(compiledJson); } catch (JsonException) { return compiledJson; }
+        if (node is not JsonObject target) return compiledJson;
+
+        var islands = new HashSet<string>(IslandIds(Parse(compiledJson)));
+        var kept = relief.Where(entry => islands.Contains(entry.Key))
+                         .ToDictionary(entry => entry.Key, entry => entry.Value);
+        if (kept.Count == 0) return compiledJson;
+
+        target["relief"] = JsonNode.Parse(JsonSerializer.Serialize(kept, Json));
+        return target.ToJsonString(Json);
     }
 }
 

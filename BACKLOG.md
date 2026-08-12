@@ -53,31 +53,12 @@ the focus-integration polish remains.
 The Sketch depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection
 highlight); these are the parked / dormant / deferred slices.
 
-- [ ] **S41 — Relief: interior elevation for a sketch shape (the solver + the rasterizer seam).** A shape
-  states its height only at its outline — a uniform thickness, or one per vertex triangulated across the
-  footprint — so a hill in the interior is unreachable by construction, and a concave outline is interpolated
-  straight across its own notch. The design and its measurements are `docs/contracts/sketch-relief.md`, and
-  the prototype every figure and number in it comes from is `tools/relief`. This slice is the data half: a
-  `relief` object on `SketchShape` (base, marks, fill, reach, grain, step), the five mark kinds
-  (point / line / area / rim / scarp), and the screened-relaxation solver as **`PgmStudio.Geom.Relief`** — the
-  dependency-free leaf, since it reads a footprint mask and returns a height grid and knows nothing about
-  maps. `SketchRasterizer` takes a relief-carrying shape's thickness from the solved field instead of from
-  the per-vertex triangulation; `base_height`/`anchor_heights` keep their meaning untouched, because a flat
-  plate and a cut staircase are right often enough not to become special cases of a solver. Two details are
-  load-bearing and were bugs before they were rules: a mark is **clipped, not confined**, so one placed past
-  the edge raises the ground into a corner and stops (which is how a spawn hill is authored with no wasted
-  strip behind it); and a band **stops where its line stops**, because perpendicular distance alone wraps a
-  half-disc round each end and closes the very gap the line was drawn to leave.
-
-- [ ] **S42 — Relief: the symmetry fold, on the surface and on every later pass.** Mirroring the marks is not
-  enough for fairness and the gap is invisible: measured over the 24,576-cell designed map, mirrored marks
-  with the fold off leave **26.2% of the board** differing from its own mirror by up to 2 blocks, and only
-  folding the grain sample *and* the quantized surface gives 0. Both fold on the cell **centre**, not its
-  corner — reflecting the corner pairs each cell with its image's neighbour, a one-cell shear that looks like
-  symmetry and measures as a full block. The rule extends past the solve: a carve, a graded road and a stair
-  cut each decide things by walking the map, and a walk has a direction the half-turn does not preserve, so
-  each pass folds again or it undoes what the solve established (`sketch-relief.md` §8). Ship with S41; a
-  relief without it is an unfair map that nothing catches.
+- [ ] **S42 — Relief: the later passes fold too.** The solve folds (`FEATURES.md`), and the rule extends past
+  it: a carve, a graded road and a stair cut each decide things by **walking** the map, and a walk has a
+  direction the half-turn does not preserve, so each pass folds again or it undoes what the solve established
+  (`sketch-relief.md` §8). Measured on the designed map, a carve that did not re-fold left the two halves **9
+  blocks** apart. Belongs to whichever of S44 / S46 lands its pass first; the fold itself is
+  `Geom.Symmetry` and needs no new machinery.
 
 - [ ] **S43 — Relief: the readback — what the terrain charges, not whether it is flat.** A height difference
   reads in three tiers, from how the game moves: 0–1 is a jump, **2 needs a placed block** (slow, and the
@@ -102,27 +83,6 @@ highlight); these are the parked / dormant / deferred slices.
   places, the largest holding 49.8%, and cutting a stair through the cheapest riser of each stranded place
   restores one place while moving the walkable share only from 86.9% to 87.3% (`sketch-relief.md` §4, §7).
 
-- [ ] **S45 — Relief: the contour overlay, solved on the server.** The canvas draws the field's **contours**,
-  which is both the readable view of a height field and the direct-manipulation surface — dragging a contour
-  writes a line mark at that height, so how the surface reads and how it is edited are one object. **No JS
-  twin**: the paint preview already establishes the seam (debounce the edit, post the layout, load the reply
-  as a canvas layer, drop replies overtaken by a newer edit via a sequence number), and a relief solve is far
-  cheaper than the whole-map paint that seam already carries. Two measured facts make it affordable: the solve
-  **cascades** coarse-to-fine (317 ms against 519 ms on a 192×128 map, agreeing to within a block, the
-  advantage growing with the footprint), and a drag **resumes** from the surface already on screen (40 sweeps,
-  228 ms on that map, off by one block on 1,614 of 24,576 cells). Porting the relaxation to JS would buy
-  milliseconds and cost a second implementation of a cascade, a chamfer sweep and a symmetry fold — the
-  duplication `Geom.Symmetry` exists to prevent (`sketch-relief.md` §14, §15).
-
-- [ ] **S51 — Decide how a relief survives a plan recompile, before anything stores one.** A relief is
-  geometry, so recompiling from a plan replaces it the way it already replaces hand-drawn shapes — and it is
-  far more expensive hand work than a shape. Carrying it the way `SketchLayout.FinishKeys` carries theming
-  needs it stored **top-level, keyed by island**, not nested inside the shapes a recompile discards. But
-  island identity is derived from the geometry, so a re-fused island can orphan a relief authored against the
-  old fusion. Candidates: a stable authored island id, re-binding by footprint overlap, or refusing the
-  recompile when a relief would be orphaned and making the author choose. **Blocks S41's storage decision**
-  (`sketch-relief.md` §15).
-
 - [ ] **S46 — Paths and water read the relief; a river on the axis is a canal.** Both stroke tools assume a
   flat plane. A path gains **routing** (a shortest line whose cost counts climbing far more than distance and
   which refuses an unwalkable step — measured, a drawn line climbs 14 blocks to y21 where the routed one
@@ -137,41 +97,14 @@ highlight); these are the parked / dormant / deferred slices.
   here runs the other way — a drawn channel handed to the solver as a line mark below base level makes the
   terrain form a valley around it (`sketch-relief.md` §9).
 
-- [ ] **S48 — Relief scope: the island is the unit, and a shape can leave it.** A relief solves over the
-  **fused island**, not the shape — measured on three abutting pieces with a ridge across them, solving per
-  shape leaves steps of **8 and 7 blocks** at the seams where solving over the fusion leaves **1 and 1**, and
-  a plan-derived sketch fuses equal-level pieces into exactly such an island. But the fusion is not always
-  wanted, so participation is a property of the shape: **inherit** (the default, the relief flows through),
-  **hold** (the shape pins its own height) and **exclude** (the shape is a hole the field bends around). The
-  difference is **whether the shape's height reaches the ground around it**, and not — as an earlier draft had
-  it — whether the land responds at all: both are boundaries, so both change the surrounding surface. Solved
-  at two very different heights, a held compound moves the land around it and an excluded one leaves it
-  bit-identical. Nor does either guarantee a flush meeting: a flat pad across a slope pays for its flatness at
-  its edge whichever way it is bound, and hold only spreads that payment as far as the relaxation can. The
-  case that decides it is a themed built thing — a city, a keep, a walled compound — whose floor is not
-  terrain and whose pattern must land the same on every stretch. An excluded shape is stamped back after the
-  solve, so it can be moved or re-themed without re-solving the ground (`sketch-relief.md` §11).
-
-- [ ] **S50 — Relief: push and pull a drawn shape, not a radius.** Every mark is a *constraint* — the ground
-  here **is** twelve — which is what a solver needs and not what a hand wants: stated as a position and a
-  radius, a summit can only be round, and the roundness is not a style but the shape of the only footprint
-  that could be typed. A **push** takes a drawn ring and raises the ground inside it, falling away outside
-  over a stated distance, so a spur, a saddleback, a crescent ridge and a lobed hollow are one operation with
-  a different outline. It applies to the solved surface rather than into it, which is what makes pushes
-  **compose** — two over the same ground add, where two constraints would have to argue. The detail that
-  decides whether it works: falloff is distance **from the ring across the land**, not from a centre. A radial
-  falloff rounds a long thin push off within a few blocks of its own outline and cannot keep the hollow inside
-  a crescent's curve at all. A roughness wobbles that distance so the skirt is not a clean offset of the
-  outline (`sketch-relief.md` §2.1).
-
-  A push's top is a **field, not a number**, and two more optional numbers cover what the flat top could not
-  (§2.2). **A lift per ring vertex**, interpolated around the arc and wrapped so a closed loop has no seam, is
-  what makes a drawn ridge fall along its length instead of holding level. **A crown** says how much higher
-  the middle stands than the edge — positive domes, negative dishes into a hollow whose rim is the drawn
-  outline. The middle is not authored: it is the deepest point measured inward, which is the shape's medial
-  axis, so a round push crowns to a **point** and a long one to a **line** from the same setting. An explicit
-  centre, a per-push profile curve and a brush stack were considered and are all covered by these two;
-  each would have cost the property the model rests on, that a landform is one drawn ring and a few numbers.
+- [ ] **S48 — Relief scope: let a shape leave its island's relief.** The island is the unit and the solver
+  already honours a shape that leaves it — `Participation` is **inherit** / **hold** / **exclude**, tested,
+  and the measurement behind the choice is in `FEATURES.md` and `sketch-relief.md` §11. What is missing is the
+  authored end: nothing on `SketchShape` says which one a shape takes, so the rasterizer solves every island
+  as one fused surface and a city floor cannot yet stand out of the field that rolls past it. One word on the
+  shape, read into `ReliefShape` where the rasterizer builds the island's footprint, plus the control on the
+  shape inspector next to the height fields. An excluded shape is stamped back after the solve, so it can be
+  moved or re-themed without re-solving the ground around it.
 
 - [ ] **S47 — A pressure budget for relief.** S43 measures what terrain charges; nothing says how much
   charging is too much. The dressing stage has the identical gap (`world-export/ideas.md` G167) and the two

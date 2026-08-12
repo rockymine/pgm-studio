@@ -1,4 +1,5 @@
 using PgmStudio.Geom;
+using PgmStudio.Geom.Relief;
 
 namespace PgmStudio.Pgm.Sketch;
 
@@ -36,7 +37,7 @@ public static class SketchRasterizer
         foreach (var (layout, baseY) in ResolveLayers(state))
         {
             int by = (int)Math.Round(baseY);
-            foreach (var kv in RasterizeLayout(layout, cx, cz, axes))
+            foreach (var kv in RasterizeLayout(layout, cx, cz, axes, state?.Relief, state?.Setup?.MirrorMode))
                 output.Add((kv.Key.Item1, kv.Key.Item2, kv.Value.Floor + by, kv.Value.Top + by));
         }
         return output;
@@ -106,13 +107,25 @@ public static class SketchRasterizer
     }
 
     // One layer → its solid (x,z) cells with layer-local columns (primary + opted-in island mirror copies).
-    private static Dictionary<(int, int), (int Top, int Floor)> RasterizeLayout(SketchShapes layout, double cx, double cz, IReadOnlyList<string> axes)
+    private static Dictionary<(int, int), (int Top, int Floor)> RasterizeLayout(
+        SketchShapes layout, double cx, double cz, IReadOnlyList<string> axes,
+        Dictionary<string, SketchReliefJson>? relief = null, string? mirrorMode = null)
     {
         var shapes = layout?.Shapes ?? [];
         if (shapes.Count == 0) return [];
 
         var cells = RasterGroup(shapes);                 // primary
         var metas = layout?.Islands ?? [];
+
+        // Interior elevation, per island, over the cells the set algebra actually left standing — so a relief
+        // never re-adds ground a subtract took away. The solved surface replaces the column's top and leaves
+        // its floor alone: a relief says where the ground is, not how thick the slab under it is.
+        var solved = SolveRelief(cells, shapes, metas, relief, mirrorMode, cx, cz);
+        foreach (var (islandId, field) in solved)
+            foreach (var (x, z) in field.Footprint.Land())
+                if (cells.TryGetValue((x, z), out var column))
+                    cells[(x, z)] = (Math.Max(column.Floor + 1, field.At(x, z)), column.Floor);
+
         if (metas.Count == 0)
         {
             // No island metadata (hand-authored): mirror the whole primary footprint (height is invariant).
@@ -130,14 +143,60 @@ public static class SketchRasterizer
             foreach (var meta in metas.Where(m => m.Mirrors))
             {
                 var islandShapes = meta.ShapeIds.Where(byId.ContainsKey).Select(id => byId[id]).ToList();
+                var field = meta.Id is { Length: > 0 } id ? solved.GetValueOrDefault(id) : null;
                 foreach (var axis in axes)
                 {
                     var mirrored = islandShapes.Select(s => MirrorShape(s, axis, cx, cz));
-                    Merge(cells, RasterGroup(mirrored));
+                    var copy = RasterGroup(mirrored);
+                    // A mirrored copy of a relief-bearing island takes its heights from the island's own
+                    // solved surface, read back through the same transform — exactly symmetric by
+                    // construction, rather than symmetric to within a second solve's tolerance.
+                    if (field is not null)
+                        foreach (var cell in copy.Keys.ToList())
+                        {
+                            var source = MirrorCell(cell, axis, cx, cz);
+                            if (!field.Has(source.Item1, source.Item2)) continue;
+                            copy[cell] = (Math.Max(copy[cell].Floor + 1, field.At(source.Item1, source.Item2)),
+                                          copy[cell].Floor);
+                        }
+                    Merge(cells, copy);
                 }
             }
         }
         return cells;
+    }
+
+    /// <summary>Each relief-bearing island's solved surface, over the cells that island actually contributes
+    /// to the standing footprint. An island with no relief is absent, which is the common case and costs
+    /// nothing.</summary>
+    private static Dictionary<string, HeightField> SolveRelief(
+        Dictionary<(int, int), (int Top, int Floor)> cells, List<SketchShape> shapes, List<SketchIsland> metas,
+        Dictionary<string, SketchReliefJson>? relief, string? mirrorMode, double cx, double cz)
+    {
+        var solved = new Dictionary<string, HeightField>();
+        if (relief is not { Count: > 0 }) return solved;
+
+        var byId = shapes.GroupBy(s => s.Id).ToDictionary(g => g.Key, g => g.First());
+        foreach (var meta in metas)
+        {
+            if (meta.Id is not { Length: > 0 } islandId) continue;
+            if (!relief.TryGetValue(islandId, out var stated)) continue;
+
+            // The island's own ground: the cells its add-shapes cover that survived the layer's set algebra.
+            var owned = new List<(int X, int Z)>();
+            foreach (var id in meta.ShapeIds.Where(byId.ContainsKey))
+            {
+                var shape = byId[id];
+                if (shape.Role is not null || shape.Operation == "subtract") continue;
+                foreach (var (x, z, _, _) in RasterShape(shape))
+                    if (cells.ContainsKey((x, z))) owned.Add((x, z));
+            }
+            if (owned.Count == 0) continue;
+
+            var footprint = Footprint.Over(owned.Distinct().ToList(), margin: 0);
+            solved[islandId] = ReliefSolver.Solve(footprint, stated.ToSpec(mirrorMode, cx, cz));
+        }
+        return solved;
     }
 
     // ── 4-step set algebra over a shape group, carrying each cell's column ─────────────────────────

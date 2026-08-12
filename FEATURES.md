@@ -3919,6 +3919,37 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   independent of the **Shapes** toggle. So a drilled member is findable within a busy island instead of showing
   only its handles + a sliver of the shared outline. Follows move / rotate / scale / resize / vertex edits via
   the recompute path. (`sketch-canvas.js` `#renderSelectionHighlight` + `#selectionLayer`; S22)
+- **Relief — the interior-elevation solver (S41, S42).** A shape used to state its height only at its outline,
+  so a hill in the interior was unreachable by construction and a concave outline interpolated straight across
+  its own notch. `PgmStudio.Geom.Relief` solves the interior instead: a **footprint** mask whose outline is a
+  **no-flow boundary**, five **marks** that pin a stated height over a patch (point / line / area / rim /
+  scarp), and **pushes** that lift a drawn ring after the solve with a chamfer-distance skirt, a **crown** that
+  domes a round push and ridges a long one off the ring's medial axis, and per-vertex **amounts** so a ridgeline
+  falls along its length. Between them sits a **screened Poisson relaxation** (red-black Gauss-Seidel), solved
+  **coarse-to-fine** and resumable from the surface already on screen. A mark is *clipped, not confined*, so one
+  placed past the edge raises the ground into a corner and stops; a band stops where its line stops, so it
+  cannot wrap a half-disc round each end and close the gap it was drawn to leave. Fairness is not left to the
+  mirrored marks agreeing: the grain is sampled through the fold and the solved field is folded before it is
+  quantized, both on the cell **centre** — reflecting the corner pairs each cell with its image's *neighbour*,
+  a one-cell shear that reads as symmetry and measures as a whole block. A shape can **hold** its height into
+  the surrounding solve or **exclude** itself from it. Design + measurements: `docs/contracts/sketch-relief.md`;
+  the prototype every figure comes from is `tools/relief`. (`Geom/Relief/{Footprint,Marks,ReliefSpec,ReliefSolver}.cs`;
+  30 tests)
+- **Relief is stored per island, rasterizes as the column top, and refuses to be orphaned (S41, S51).** A relief
+  rides **top-level on the layout keyed by island id**, not nested in the shapes, because a plan recompile
+  replaces every shape it produced and a relief is far more expensive hand work than a shape. `SketchRasterizer`
+  takes a relief-bearing island's column **tops** from the solved field and leaves the **floor** alone — a relief
+  says where the ground is, not how thick the slab under it is — and solves only over the cells that island's
+  add-shapes actually contribute to the standing footprint, so a relief never re-adds ground a subtract took
+  away. A **mirrored copy reads its heights back out of the island's own solved surface through the same
+  transform**, so the two sides are identical by construction rather than to within a second solve's tolerance.
+  Across a recompile the carry is its own rule, not a `FinishKeys` entry: island identity is derived from the
+  geometry, so a re-fused board does not move an island but produces a different one, and `PUT
+  /map/{slug}/sketch/from-plan` answers **409** naming the islands whose terrain would be orphaned and writes
+  nothing — `?force=true` accepts the loss, which is the author's call and not the server's. One flat mark shape
+  carries every kind and `"h"` reads a number or an array, so the document an agent emits is the one the editor
+  saves. (`Pgm/Sketch/{SketchRelief,SketchLayout,SketchRasterizer}.cs`, `Api/Endpoints/SketchEndpoints.cs`;
+  13 tests)
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,

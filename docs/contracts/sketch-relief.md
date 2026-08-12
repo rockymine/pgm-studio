@@ -458,19 +458,24 @@ the dependency-free leaf beside the other pure algorithms: **`PgmStudio.Geom.Rel
 spec, and the relaxation. Classification is not pure geometry — a cliff is a corpus rule about play — so the
 step histogram, the reachable-place flood, the scarp qualification and the ford/detour measures live in
 **`PgmStudio.Analysis`**, where the other derivations that read a surface already are. `SketchRasterizer`
-consumes the result: a shape carrying a relief takes its thickness from the solved field instead of from the
-per-vertex triangulation, and nothing else about the rasterizer changes, because the field answers the same
-question the triangulation did.
+consumes the result: an island carrying a relief takes its columns' **tops** from the solved field instead of
+from the per-vertex triangulation, and their **floors** are left alone, because a relief states where the
+ground is and not how thick the slab under it is. Nothing else about the rasterizer changes — the field
+answers the same question the triangulation did. It solves over the cells the island's add-shapes contribute
+that survive the set algebra, so a relief cannot re-add ground a subtract took away, and a mirrored copy
+reads its heights back out of the island's own solved surface through the same transform, which makes the two
+halves identical by construction rather than to within a second solve's tolerance (§8).
 
-The canvas preview is the JS twin, the same arrangement `Geom.Symmetry` already has with
-`js/studio/geometry/symmetry.js`. What it draws is the field's **contours**, which is both the readable view
-of a height field and the direct-manipulation surface: dragging a contour line is dragging a line mark at
-that height, so the topographic reading of the surface and the way it is edited are the same object.
+The canvas preview draws the field's **contours**, which is both the readable view of a height field and the
+direct-manipulation surface: dragging a contour line is dragging a line mark at that height, so the
+topographic reading of the surface and the way it is edited are the same object. The field itself arrives
+from the server as a raster — §15 says why the relaxation is not twinned in JS the way `Geom.Symmetry` is.
 
-A relief rides on the shape, beside the height fields it generalizes:
+A relief rides **top-level on the layout, keyed by island id**, because the island is the unit it is solved
+over (§11) and because a plan recompile replaces every shape it produced:
 
 ```json
-"relief": {
+"relief": { "island-3": {
   "base": 8,
   "fill": "smooth",
   "reach": 26,
@@ -483,17 +488,21 @@ A relief rides on the shape, beside the height fields it generalizes:
     { "kind": "scarp", "points": [[79, -2], [83, 8], [86, 16]], "high": 15, "low": 6, "face": 2, "band": 5 },
     { "kind": "rim",   "h": 4, "depth": 1 }
   ]
-}
+} }
 ```
 
-and the shape gains one word for how its own top is decided:
+One flat mark shape carries every kind, discriminated by `kind`, and `h` reads a number or an array of them.
+That is a property worth stating rather than a shortcut taken: a relief is short enough to write by hand and
+is meant to be, so the document a generator or an agent emits is the same one the editor saves.
+
+The shape gains one word for how its own top is decided:
 
 ```json
 "height_mode": "level" | "raise" | "sink"
 ```
 
 `base_height` and `anchor_heights` stay exactly as they are and keep their meaning; a relief supersedes them
-on the shape that carries one. That matters for more than compatibility: the flat plate and the neat
+on the island that carries one. That matters for more than compatibility: the flat plate and the neat
 staircase are the right answer often enough that they should not become special cases of a solver.
 
 ## 14. What it costs to edit
@@ -563,13 +572,19 @@ solving stays in one place.
 6. **Erecting shapes** (S44) — one control on the shape inspector that already exists.
 7. **Paths and water reading the relief** (S46), last, because it depends on all of the above.
 
-**One integration question is genuinely open.** A relief is expensive hand work and it is *geometry*, so a
+**A recompile refuses rather than guesses.** A relief is expensive hand work and it is *geometry*, so a
 recompile from a plan replaces it — the same rule that already replaces hand-drawn shapes, and a much worse
-loss. Carrying it the way the finish keys are carried needs relief stored **top-level, keyed by island**,
-rather than nested inside the shapes a recompile discards; and island identity is itself derived from the
-geometry, so a re-fused island can orphan a relief that was authored against the old fusion. The candidates
-are to key on a stable authored island id, to re-bind by footprint overlap, or to refuse the recompile when a
-relief would be orphaned and make the author choose. This wants deciding before S41 stores anything.
+loss. Two things follow, and the second is the one with teeth. A relief is stored **top-level on the layout,
+keyed by island**, rather than nested inside the shapes a recompile discards, and is carried across the
+compile under its own rule rather than as a finish key: theming is a finish, terrain is not. But island
+identity is itself derived from the geometry, so a board that re-fuses does not move an island — it produces
+a different one, and a relief authored against the old fusion has nowhere correct to land. Neither of the
+alternatives survives that. A stable authored id would keep the key alive while the ground under it changed
+shape, which is worse than losing it, because the terrain would still be applied. Re-binding by footprint
+overlap decides by area what the author decided by intent, and the case it gets wrong — one island split in
+two, most of the relief landing on the larger half — is exactly the case that matters. So the compile path
+answers **409**, naming the islands whose relief it cannot place, and writes nothing; `?force=true` accepts
+the loss. Discarding hours of terrain is a decision, and it belongs to the author.
 
 ## 16. What is open
 

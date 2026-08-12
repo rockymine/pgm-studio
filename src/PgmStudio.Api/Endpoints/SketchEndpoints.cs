@@ -166,7 +166,15 @@ public sealed class SketchPutEndpoint(MapRepository repo, PgmDb db) : EndpointWi
 /// carrying the map's existing finish onto it (<see cref="SketchLayout.CarryFinish"/>). The plan owns the
 /// board; the sketch owns its themes, room shells and dressing, and a plan cannot express any of those — so
 /// the compile path merges where <see cref="SketchPutEndpoint"/> replaces. Rebuilding a themed map from its
-/// plan used to hand back bare stone.</summary>
+/// plan used to hand back bare stone.
+///
+/// <para><b>A relief is carried the same way but refuses rather than merging silently.</b> It is keyed by
+/// island, and island identity is derived from the geometry — so a recompile that re-fuses the board does not
+/// merely move an island, it produces a different one, and terrain authored against the old fusion has
+/// nowhere correct to land. Losing that is losing hours of hand work with no warning, so the endpoint answers
+/// <b>409</b> listing the islands whose relief would be orphaned and does not write. Sending
+/// <c>?force=true</c> accepts the loss and proceeds, which is the author's call to make and not the
+/// server's.</para></summary>
 public sealed class SketchFromPlanEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
 {
     public override void Configure() { Put("/map/{slug}/sketch/from-plan"); AllowAnonymous(); }
@@ -182,9 +190,24 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, PgmDb db) : Endpo
         catch { await Send.ResponseAsync(new { error = "invalid JSON" }, 400, ct); return; }
 
         var stored = await SketchStore.LoadAsync(db, map.Id, ct);
-        var merged = SketchLayout.CarryFinish(compiled, stored is null ? null : Encoding.UTF8.GetString(stored));
+        var storedJson = stored is null ? null : Encoding.UTF8.GetString(stored);
+
+        var orphans = SketchLayout.OrphanedRelief(compiled, storedJson);
+        if (orphans.Count > 0 && Query<bool>("force", isRequired: false) != true)
+        {
+            await Send.ResponseAsync(new
+            {
+                error = "relief would be orphaned",
+                islands = orphans,
+                hint = "the recompiled board has no island for this authored terrain; retry with ?force=true to discard it",
+            }, 409, ct);
+            return;
+        }
+
+        var merged = SketchLayout.CarryRelief(
+            SketchLayout.CarryFinish(compiled, storedJson), storedJson);
         await SketchStore.SaveAsync(db, map.Id, Encoding.UTF8.GetBytes(merged), ct);
-        await Send.OkAsync(new { ok = true }, ct);
+        await Send.OkAsync(new { ok = true, orphaned = orphans }, ct);
     }
 }
 
