@@ -41,6 +41,24 @@ tool as a refusal — a spec that sites a goal off the ground should fail to bui
 that cannot be played. The check is cheap: the rasterized ground is already computed before dressing, and the
 goal's anchor either has a column under it or does not.
 
+**MG18 — An obsidian goal needs a kit that can mine obsidian, and every destroy map in this batch fails
+it.** The plan compiler defaults a destroyable's material to obsidian, which over half the corpus also uses,
+and the generated spawn kit carries an **iron** pickaxe. An iron pickaxe does not mine obsidian slowly — it
+does not mine it at all, breaking nothing and dropping nothing. So every monument and every core in the
+seven destroy boards is indestructible and every one of those maps is unwinnable, in the same way and for the
+same reason as a goal standing over void (MG3).
+
+The corpus does not merely prefer the pairing, it never breaks it. Of 312 destroy maps, **86 name obsidian in
+a goal's materials and all 86 carry a diamond pickaxe — 100%, no exceptions.** Among the 226 whose goal is
+some softer material, 65% carry one anyway, so a diamond pickaxe is common everywhere and *mandatory* where
+the goal is obsidian. Only 30 maps carry both a diamond and an iron pickaxe, so the usual shape is a
+substitution rather than an addition: the destroy kit is the capture kit with its pickaxe upgraded, which is
+what makes it a kit **variant** rather than a second kit.
+
+Two ways to be right, and the tool should do both: pair the kit to the goal material when it builds a destroy
+map, and refuse to write a map whose goal material no tool in its kit can break. The second is the one that
+survives someone later choosing a different material.
+
 **MG4 — A spawn must not face its exit into the void.** The spawn's yaw decides which wall its door is cut
 through, and a spawn on the edge of a piece with its yaw pointing outward puts the only way out over the
 drop. The direction is settable and is currently inherited from whatever the compiler fanned. It should be
