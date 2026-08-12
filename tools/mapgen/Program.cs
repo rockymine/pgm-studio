@@ -195,12 +195,13 @@ static string Census(VoxelWorld world)
                 else if (id == Blocks.Bedrock && y > 2) { bedrock++; if (y > bedrockTop) bedrockTop = y; }
                 if (y > top) top = y;
             }
-    // Logs, not trees: a building's corner posts are logs too, so the log count alone cannot say whether a
-    // forest was planted. Leaves can — nothing but a tree lays one — which is why they are reported apart.
+    // Logs count a building's corner posts as well as a trunk, so the log count alone cannot say whether a
+    // forest was planted — only that wood was laid. Leaves can: nothing but a tree lays one, which makes the
+    // leaf count the forest's only honest measure and the number to read when a map looks bare.
     var span = wood == 0 ? "no logs" : $"logs y {woodLow}..{woodTop}";
     // Bedrock is reported because a room raised as a building must not leave any: the built-in shell is a
     // bedrock lid, so a count above zero means a room fell back to it rather than taking its house.
-    return $"{wood} logs (trees+posts) · {leaf} leaves (trees only) · {bedrock} standing bedrock (to y {bedrockTop}) · highest y {top} · {span}";
+    return $"{wood} logs · {leaf} leaves · {bedrock} standing bedrock (to y {bedrockTop}) · highest y {top} · {span}";
 }
 
 // ── paint ────────────────────────────────────────────────────────────────────────────────────────────────

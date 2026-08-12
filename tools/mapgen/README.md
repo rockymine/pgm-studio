@@ -15,7 +15,16 @@ world: buildings raised, tree sites found, logs and leaves standing. Those count
 rather than off the props that were requested, because a prop is a request — the dressing pass drops one that
 finds no ground or lands on a protected column — and the only honest report of a forest is the wood in it.
 
-Builds are deterministic: the same spec rebuilds the same map, so two runs can be compared.
+Builds are deterministic: the same spec rebuilds the same map, so two runs can be compared. Each `seed` is
+independent — `compose`, `relief`, `trees` and `village` do not need matching values, and giving them one
+changes nothing but the draws. **If two runs of one spec disagree, that is not the tool.** It is almost
+always a build racing another build: the projects share output, so a second `dotnet build` in the same tree
+can swap a DLL mid-run or leave `bin/` without its `runtimeconfig.json`. Build once, then run with
+`--no-build`, and never build while another agent is building.
+
+`objective_mode` does not affect anything below it. The same spec at `dtm` and at `dtcm` places the same
+buildings on the same ground and seats the same forest, to the block — it changes which goal is stamped, not
+where anything can stand. A forest that will not seat is never the objective's doing.
 
 ## The board
 
@@ -100,6 +109,12 @@ falls on a protected column, and it is normal for well under half of a requested
 generated board. The report says how many sites were found and how many leaves stand, which is how to tell
 the two apart: few *sites* means the ground was rejected as too steep or too near an objective, while many
 sites and few *leaves* means the pass dropped what was offered.
+
+Read the **leaves**, not the logs. A building's corner posts are logs too, so logs rise as soon as a village
+lands and say nothing about whether a tree did. Nothing but a tree lays a leaf.
+
+`clearance` is a distance in blocks, kept between a prop and any objective piece — a room or a spawn, grown
+by that much. Raising it pushes scenery further off the goals and leaves less ground to plant on.
 
 **Aim the leaf count, don't just clear a floor.** Around **1,000–5,000 leaves** on a board of this size reads
 as wooded — trees you walk between. Under a few hundred is a bare map with a shrub on it. Above roughly
