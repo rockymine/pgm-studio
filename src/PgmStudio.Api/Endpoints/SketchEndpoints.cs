@@ -10,6 +10,7 @@ using PgmStudio.Contracts;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Geom.Relief;
 using PgmStudio.Pgm.Sketch;
 
 namespace PgmStudio.Api.Endpoints;
@@ -234,6 +235,59 @@ public sealed class SketchPaintEndpoint(MapRepository repo, PgmDb db) : Endpoint
         catch { await Send.ResponseAsync(new { error = "could not paint layout" }, 400, ct); return; }
 
         await Send.OkAsync(cells.Count == 0 ? LayerData.EmptyPixels() : LayerData.PalettePixels(cells), ct);
+    }
+}
+
+/// <summary>POST /api/map/{slug}/sketch/relief — the contour overlay for whatever relief the posted layout
+/// carries, one entry per relief-bearing island: its traced lines, its height range, and its bounds. The body
+/// is the <em>live</em> layout, the same as the paint preview takes, so the overlay tracks unsaved edits.
+///
+/// <para>The solve is the build's own (<see cref="SketchRasterizer.ReliefFields"/>), so a previewed surface
+/// cannot differ from the surface that gets built — the only property that makes a preview worth drawing.
+/// Contours are traced from the <b>continuous</b> field rather than the block one, because contouring a
+/// staircase returns the outlines of its treads instead of lines of constant height (sketch-relief.md §13).
+/// <c>?interval=</c> sets the spacing in blocks; a layout carrying no relief answers an empty list rather
+/// than a 404, so the client can draw nothing through the same path.</para></summary>
+public sealed class SketchReliefEndpoint(MapRepository repo) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/map/{slug}/sketch/relief"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
+        if (map is null) { await Send.NotFoundAsync(ct); return; }
+
+        using var reader = new StreamReader(HttpContext.Request.Body);
+        var layoutJson = await reader.ReadToEndAsync(ct);
+
+        var interval = Query<double>("interval", isRequired: false);
+        if (interval <= 0) interval = 1;
+
+        Dictionary<string, HeightField> fields;
+        try { fields = SketchRasterizer.ReliefFields(layoutJson); }
+        catch { await Send.ResponseAsync(new { error = "could not solve relief" }, 400, ct); return; }
+
+        var islands = fields.Select(entry => new
+        {
+            island = entry.Key,
+            min = entry.Value.Min,
+            max = entry.Value.Max,
+            min_x = entry.Value.Footprint.MinX,
+            min_z = entry.Value.Footprint.MinZ,
+            max_x = entry.Value.Footprint.MinX + entry.Value.Footprint.Width - 1,
+            max_z = entry.Value.Footprint.MinZ + entry.Value.Footprint.Depth - 1,
+            // Points go out as one flat [x, z, x, z, …] run per line. A line is hundreds of points and there
+            // are dozens of lines on a board, so a pair of objects each would multiply the payload by the
+            // length of the words "x" and "z" — and the client strokes them in pairs either way.
+            lines = Contours.Of(entry.Value, interval).Select(line => new
+            {
+                level = line.Level,
+                closed = line.Closed,
+                points = line.Points.SelectMany(point => new[] { point.X, point.Z }).ToArray(),
+            }).ToArray(),
+        }).ToArray();
+
+        await Send.OkAsync(new { interval, islands }, ct);
     }
 }
 

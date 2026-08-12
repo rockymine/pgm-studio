@@ -530,8 +530,10 @@ one. So the drag warm-starts and the release solves in full.
 
 ## 15. Authoring it — where it goes and in what order
 
-Nothing above is integrated: the solver lives in `tools/relief`, and the sketch tool cannot author a relief.
-What follows is the plan, and most of it is reuse rather than new surface.
+The model below the canvas is built — the solver, the stored document, the rasterizer seam, the recompile
+rule, and the contour overlay that shows what any of it produced. What is not built is the authoring: a
+relief is stated by writing the document, and the tools that would place a mark or draw a push are the plan
+that follows. Most of it is reuse rather than new surface.
 
 **Relief is a canvas mode, beside Draw, Theme and Dressing.** The sketch tool already runs four modes over
 one canvas, switched by the flow bar, and relief is a fifth of exactly that kind: same shapes, same viewport,
@@ -555,8 +557,12 @@ sequence number drops replies overtaken by a newer edit. A relief solve is far c
 paint that seam already carries — 7 ms on a room, 124 ms on a team board, 325 ms on a whole map, and 89–191 ms
 warm-started from the surface already on screen (§14). Porting the relaxation to JS would buy a few
 milliseconds and cost a second implementation of a cascade, a chamfer sweep and a symmetry fold, which is the
-duplication the symmetry leaf exists to prevent. The client draws contours from a returned height raster; the
-solving stays in one place.
+duplication the symmetry leaf exists to prevent. The **tracing** stays server-side for the same reason — the
+reply is lines, not a raster — so the client's whole share of it is stroking points it was handed. What it
+does add is the reading: every fifth block is an index line, heavier and the only one labelled, because forty
+equal lines on a team board say no more than "there is a slope somewhere". The overlay follows its own toggle
+rather than a phase, since a relief is geometry and is worth seeing while the shapes over it are still being
+drawn — which is exactly when the paint preview is not.
 
 **The order.** Each step is independently useful, and the first three land before any of it is visible:
 

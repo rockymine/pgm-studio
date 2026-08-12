@@ -126,6 +126,56 @@ public sealed class SketchReliefTests
     }
 
     [Test]
+    public async Task The_preview_reads_the_same_field_the_build_does()
+    {
+        // The property the whole preview rests on: what an author sees on the canvas is the surface that
+        // gets built, not a second computation that agrees with it most of the time.
+        const string relief = """
+        {
+          "i1": {
+            "base": 5,
+            "grain": { "amplitude": 1.1, "scale": 6, "seed": 3 },
+            "marks": [ { "kind": "rim", "h": 5 }, { "kind": "point", "at": [10, 10], "h": 16, "r": 3 } ]
+          }
+        }
+        """;
+        var layout = Layout(relief);
+        var field = SketchRasterizer.ReliefFields(layout)["i1"];
+        var tops = Tops(layout);
+
+        foreach (var (x, z) in field.Footprint.Land())
+            await Assert.That(tops[(x, z)]).IsEqualTo(field.At(x, z));
+    }
+
+    [Test]
+    public async Task A_layer_offset_moves_the_previewed_field_with_the_ground()
+    {
+        // A relief on a stacked layer is solved in layer-local Y, so a preview reading it raw would draw a
+        // sky bridge's contours down at the ground's levels.
+        const string layout = """
+        {
+          "setup": { "mirror_mode": "rot_180", "center": { "cx": 40, "cz": 10 } },
+          "layers": [
+            { "id": "l1", "base_y": 30, "layout": {
+              "shapes": [ { "id": "s1", "type": "rectangle", "operation": "add",
+                            "min_x": 0, "min_z": 0, "max_x": 20, "max_z": 20, "base_height": 3, "floor": 0 } ],
+              "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1"] } ] } }
+          ],
+          "relief": { "i1": { "base": 5, "marks": [ { "kind": "point", "at": [10, 10], "h": 12, "r": 3 } ] } }
+        }
+        """;
+        var field = SketchRasterizer.ReliefFields(layout)["i1"];
+        await Assert.That(field.At(10, 10)).IsEqualTo(42);
+        await Assert.That(field.Continuous[field.Footprint.Index(10, 10)]).IsBetween(41.5, 42.5);
+    }
+
+    [Test]
+    public async Task A_layout_with_no_relief_previews_nothing()
+    {
+        await Assert.That(SketchRasterizer.ReliefFields(Layout(null)).Count).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task A_half_written_mark_is_dropped_rather_than_guessed_at()
     {
         // A point with no position cannot place terrain, and inventing one would put ground where nobody

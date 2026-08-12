@@ -92,6 +92,13 @@
   /* Minecraft chunk grid (16-block boundaries, lighter purple) */
   --canvas-chunk: color-mix(in oklab, var(--canvas-axis) 38%, transparent);
 
+  /* Relief contours — the map's own convention, and the reason they are amber rather than another blue or
+     purple: a contour has to read as a line ON the ground while the island, mirror, axis and chunk grids
+     all read as lines ABOUT it, and it is the one overlay drawn over the painted blocks. Index lines (every
+     fifth) carry the label and are the same hue at full strength, so the hierarchy is weight, not colour. */
+  --canvas-contour:       rgba(251, 191, 36, 0.45);   /* amber-400 */
+  --canvas-contour-index: rgba(251, 191, 36, 0.92);
+
   /* Canvas SVG area background */
   --canvas-bg: var(--bg-canvas);   /* alias — the viewport background (follows the theme) */
 

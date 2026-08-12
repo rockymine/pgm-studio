@@ -26,6 +26,7 @@ public partial class SketchTool
     private bool shapesOn = false;
     private bool chunksOn = true;
     private bool blocksOn = false;   // S23: the rasterized block-footprint preview
+    private bool reliefOn = false;   // the height contours of whatever relief the islands carry
     private bool snapOn = true;
     private bool threeD = false;
     private bool isoUnavailable = false;   // 3-D preview couldn't initialise (no WebGL / module load failed)
@@ -236,6 +237,12 @@ public partial class SketchTool
     {
         blocksOn = !blocksOn;
         if (handle is not null) await handle.InvokeVoidAsync("setBlocksVisible", blocksOn);
+    }
+
+    private async Task ToggleRelief()
+    {
+        reliefOn = !reliefOn;
+        if (handle is not null) await handle.InvokeVoidAsync("setReliefVisible", reliefOn);
     }
 
     private async Task ToggleSnap()

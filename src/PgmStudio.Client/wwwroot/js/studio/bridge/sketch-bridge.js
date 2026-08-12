@@ -208,6 +208,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     pushLayers();
     refreshIso();
     refreshPaint();   // the geometry moved, so the paint on it has too (no-op unless the overlay is on)
+    // A relief is solved over the island's own footprint, so moving the geometry re-shapes the ground under
+    // it — and a re-fused island can change which relief applies at all.
+    refreshRelief();
   }
 
   // Build the iso "solids" for every layer: one solid PER SHAPE so per-shape heights are visible (a
@@ -457,6 +460,41 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     } catch { /* offline or mid-navigation — the overlay keeps the stone footprint */ }
   }
 
+  // ── the relief contour overlay ─────────────────────────────────────────────
+  // Same seam as the painted Blocks overlay, and for the same reason: the surface a relief produces is
+  // solved by the export's own solver, so the only honest preview is the one the server draws. The lines
+  // come back as world points and are stroked at the live zoom, so unlike the block bitmap this does not
+  // need re-fetching to stay sharp — only when the layout changes.
+  //
+  // It follows the toggle alone rather than a phase. A relief is geometry: it is worth seeing while the
+  // shapes over it are still being drawn, which is exactly when the paint overlay is not.
+  const RELIEF_DEBOUNCE_MS = 140;
+  let reliefTimer = null, reliefSeq = 0, reliefOn = false;
+
+  function refreshRelief({ now = false } = {}) {
+    if (!reliefOn || !slug) return;
+    clearTimeout(reliefTimer);
+    reliefTimer = setTimeout(fetchRelief, now ? 0 : RELIEF_DEBOUNCE_MS);
+  }
+
+  function syncRelief() {
+    clearTimeout(reliefTimer);
+    if (reliefOn) refreshRelief({ now: true });
+    else canvas.loadReliefLayer(null);
+  }
+
+  async function fetchRelief() {
+    const seq = ++reliefSeq;
+    try {
+      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/sketch/relief`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(handle.getState()),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (seq === reliefSeq) canvas.loadReliefLayer(data);   // ignore a reply overtaken by a newer edit
+    } catch { /* offline or mid-navigation — the overlay keeps whatever it last drew */ }
+  }
+
   // Set (or clear, with a falsy themeId) a shape's theme override — the live canvas shape so it persists on sync.
   function setShapeTheme(shapeId, themeId) {
     const s = canvas.getShape(shapeId);
@@ -502,6 +540,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       blocksOn = !!v;
       canvas.setBlocksVisible(blocksOn);
       syncPaint();
+    },
+    // The contour overlay. Unlike Blocks it is not phase-gated: a relief is geometry, so it is worth seeing
+    // while the shapes over it are still being drawn.
+    setReliefVisible(v){
+      reliefOn = !!v;
+      syncRelief();
     },
     // Whether this phase previews the finished paint. Only Theme does: Draw wants the raw voxelization while
     // the shapes are still moving, and painting the layout is server work worth not doing there at all.

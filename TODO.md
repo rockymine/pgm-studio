@@ -37,34 +37,32 @@ The relief model is built and headless: the solver, its marks and pushes, the sy
 document, the rasterizer seam and the recompile rule have all shipped (`FEATURES.md`). A relief written into
 a stored layout by hand exports as terrain today. **Nothing authors one** — there is no mode, no tool, no
 inspector and no way to see the surface before it is built, so the whole model is reachable only by editing
-JSON. This theme is that half, in the order each step unblocks the next: see it (S45) → place marks (S41) →
-draw pushes (S50). The design, its measurements and the authoring plan are
-`docs/contracts/sketch-relief.md`; the prototype every figure comes from is `tools/relief`. What this theme
-deliberately leaves parked is in `BACKLOG.md` — the readback (S43), erecting shapes (S44), the stroke tools
-(S46) and per-shape participation (S48).
+JSON. Seeing one is solved — the Relief chip traces the contours of whatever a layout carries (`FEATURES.md`).
+What is left is stating one by hand: place marks (S41), draw pushes (S50), and make a drag cheap enough to be
+live (S52). The design, its measurements and the authoring plan are `docs/contracts/sketch-relief.md`; the
+prototype every figure comes from is `tools/relief`. What this theme deliberately leaves parked is in
+`BACKLOG.md` — the readback (S43), erecting shapes (S44), the stroke tools (S46) and per-shape participation
+(S48).
 
-- [ ] **S45 — Relief: the preview, solved on the server.** Nothing shows a relief before it is built. The
-  canvas draws the field's **contours**, which is both the readable view of a height field and the
-  direct-manipulation surface — dragging a contour writes a line mark at that height, so how the surface
-  reads and how it is edited are one object. **No JS twin**: the paint preview already establishes the seam
-  (debounce the edit, post the layout, load the reply as a canvas layer, drop replies overtaken by a newer
-  edit via a sequence number), and a relief solve is far cheaper than the whole-map paint that seam already
-  carries. Two measured facts make it affordable: the solve **cascades** coarse-to-fine (317 ms against
-  519 ms on a 192×128 map, agreeing to within a block, the advantage growing with the footprint), and a drag
-  **resumes** from the surface already on screen (40 sweeps, 228 ms on that map, off by one block on 1,614 of
-  24,576 cells). Both are in the solver already; this slice is the endpoint and the overlay. Porting the
-  relaxation to JS would buy milliseconds and cost a second implementation of a cascade, a chamfer sweep and
-  a symmetry fold — the duplication `Geom.Symmetry` exists to prevent (`sketch-relief.md` §14, §15).
+- [ ] **S41 — Relief: marks as placed things.** The five mark kinds solve, export and now draw
+  (`FEATURES.md`); none can be *placed*. A relief mode between Draw and Theme, with the canvas tools that put
+  a point, a line, an area and a scarp on the ground, a list of what an island states, and an inspector for
+  the numbers on the selected one — the Dressing phase is the pattern to follow, since it is the same shape
+  of problem (a placed thing, a list, an inspector). Dragging a **contour** belongs here rather than to the
+  overlay that draws it: a contour dragged to a height is a line mark at that height, which makes how the
+  surface reads and how it is edited one object. Two behaviours are load-bearing and were bugs before they
+  were rules, so the tools must not quietly undo them: a mark is **clipped, not confined**, so one placed
+  *past the edge* raises the ground into a corner and stops — which is how a spawn hill is authored with no
+  wasted strip behind it, and the canvas therefore has to let a mark be dragged outside the island; and a
+  **scarp band stops where its line stops**, which is what leaves the gaps a crossing is authored at.
 
-- [ ] **S41 — Relief: marks as placed things.** The five mark kinds solve and export; none can be *placed*.
-  A relief mode between Draw and Theme, with the canvas tools that put a point, a line, an area and a scarp
-  on the ground, a list of what an island states, and an inspector for the numbers on the selected one — the
-  Dressing phase is the pattern to follow, since it is the same shape of problem (a placed thing, a list, an
-  inspector). Two behaviours are load-bearing and were bugs before they were rules, so the tools must not
-  quietly undo them: a mark is **clipped, not confined**, so one placed *past the edge* raises the ground
-  into a corner and stops — which is how a spawn hill is authored with no wasted strip behind it, and the
-  canvas therefore has to let a mark be dragged outside the island; and a **scarp band stops where its line
-  stops**, which is what leaves the gaps a crossing is authored at.
+- [ ] **S52 — Relief: a drag resumes the solve instead of restarting it.** Every preview solves from flat.
+  That is right for an edit that settles — the cascade already makes a whole map 325 ms — and wrong for a
+  drag, which is a preview per frame. The solver takes a **warm start** and it is measured: resuming from the
+  surface already on screen needs 40 sweeps against a cold solve's full run, 228 ms on a 192×128 map, and
+  lands off by one block on 1,614 of its 24,576 cells. What is missing is the seam — the endpoint has nowhere
+  to keep the previous continuous field, and the client has no way to say "this is the same relief, moved".
+  Wanted once a mark can be dragged (S41), not before: with nothing draggable there is no drag to resume.
 
 - [ ] **S50 — Relief: draw the push, don't type a radius.** The push solves — ring falloff across the land,
   crown off the medial axis, per-vertex amounts, roughness (`FEATURES.md`, `sketch-relief.md` §2.1–2.2) —

@@ -43,6 +43,37 @@ public static class SketchRasterizer
         return output;
     }
 
+    /// <summary>Every relief-bearing island's solved surface, keyed by island id, with each field's heights
+    /// already shifted into world Y by its layer's <c>base_y</c>. This is the same solve the build runs, from
+    /// the same entry point, so a preview drawn from it cannot show a surface the world will not have —
+    /// which is the only reason a preview is worth drawing.
+    ///
+    /// <para>An island appears once. A layout that names the same island on two layers is malformed, and
+    /// showing the lower of the two would be a quieter wrong answer than showing the first.</para></summary>
+    public static Dictionary<string, HeightField> ReliefFields(string layoutJson)
+    {
+        var state = SketchLayout.Parse(layoutJson);
+        if (state?.Relief is not { Count: > 0 } relief) return [];
+
+        var cx = state.Setup?.Center?.Cx ?? 0;
+        var cz = state.Setup?.Center?.Cz ?? 0;
+
+        var fields = new Dictionary<string, HeightField>();
+        foreach (var (layout, baseY) in ResolveLayers(state))
+        {
+            var shapes = layout?.Shapes ?? [];
+            if (shapes.Count == 0) continue;
+
+            var shift = (int)Math.Round(baseY);
+            foreach (var (islandId, field) in SolveRelief(RasterGroup(shapes), shapes, layout?.Islands ?? [],
+                                                          relief, state.Setup?.MirrorMode, cx, cz))
+                fields.TryAdd(islandId, shift == 0 ? field : new HeightField(field.Footprint,
+                    [.. field.Continuous.Select(height => height + shift)],
+                    [.. field.Blocks.Select(height => height + shift)]));
+        }
+        return fields;
+    }
+
     /// <summary>Maps every cell a <em>themed</em> shape covers to that shape's id — the scope
     /// <c>TerrainThemeScope</c> resolves a cell's paint through.</summary>
     public static Dictionary<(int X, int Z), string> ShapeThemeOwners(string layoutJson)

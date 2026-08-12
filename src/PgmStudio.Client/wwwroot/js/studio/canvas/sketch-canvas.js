@@ -51,6 +51,7 @@ import { orbitAxes, applySymmetry } from "../geometry/symmetry.js";
 import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
   paintSketchShape, paintIslands, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintGhostIslands, paintRaster, paintStructural,
+  paintRelief,
 } from "../render/sketch-render.js";
 import { rasterizeShapes, cellRuns } from "../geometry/rasterize.js";
 import { loadBlockImage, blockImageBounds } from "../render/block-render.js";
@@ -118,6 +119,7 @@ export class SketchCanvas extends CanvasBase {
   #rasterRuns    = null;   // cached rasterized cell runs; recomputed on shape change while blocks are shown
   #paintData     = null;   // the server's block-pixel payload for the terrain paint (finishing-model.md §4)
   #paintImage    = null;   // that payload decoded — a canvas blits a bitmap, not a data URL
+  #relief        = null;   // the server's traced contours for the relief the layout carries
   #selectOnly    = false;  // Theme phase: pick islands/shapes and pan/zoom, edit nothing
 
   #draw = null;
@@ -323,6 +325,20 @@ export class SketchCanvas extends CanvasBase {
       this.#paintWorld();
     });
   }
+
+  /**
+   * The relief overlay: the traced contours `sketch/relief` returns for the layout on screen. A falsy
+   * payload clears it. Nothing is decoded and nothing is cached — the lines are world-space points and are
+   * stroked at whatever the current zoom is, so the overlay stays sharp where the block bitmap would have
+   * had to be re-fetched.
+   */
+  loadReliefLayer(relief) {
+    this.#relief = relief?.islands?.length ? relief : null;
+    this.#paintWorld();
+  }
+
+  /** Whether a relief is on screen — what a phase asks before offering to read a height off it. */
+  get hasRelief() { return this.#relief !== null; }
 
   // ── isometric preview (S6) ─────────────────────────────────────────────────────
   // Swap the top-down viewport for a read-only iso render of the extruded islands. Lazily loads and
@@ -568,6 +584,9 @@ export class SketchCanvas extends CanvasBase {
     // The island fill would tint every painted block towards the result purple, so under the paint the
     // island contributes its outline only.
     painter.layer("island",    () => paintIslands(painter, this.#islands, { filled: !painted }));
+    // Contours sit over the blocks and the island fill and under everything drawn or selected: they describe
+    // the ground, so they belong on it, but an author's own shapes have to stay legible across them.
+    painter.layer("relief",    () => { if (this.#relief) paintRelief(painter, this.#relief); });
     painter.layer("shapes",    () => this.#paintShapes());
     // Structural pieces (S25) are locked plan context, not drawn primitives — always shown (like the island
     // outlines), not behind the Shapes toggle, so they stay visible while a plan is refined.

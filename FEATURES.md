@@ -3951,6 +3951,27 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   saves. (`Pgm/Sketch/{SketchRelief,SketchLayout,SketchRasterizer}.cs`, `Api/Endpoints/SketchEndpoints.cs`;
   13 tests)
 
+- **Relief: the contour overlay, traced on the server (S45).** A relief could be written and built but not
+  *seen*. A **Relief** layer chip posts the live layout to `POST /map/{slug}/sketch/relief`, which solves it
+  through the build's own entry point (`SketchRasterizer.ReliefFields`) and answers, per relief-bearing
+  island, its height range, its bounds and its **traced contour lines** — so a previewed surface cannot differ
+  from the surface that gets built, which is the only property that makes a preview worth drawing. Lines are
+  traced by marching squares over the **continuous** field (`Geom.Relief.Contours`), because contouring the
+  block surface returns the outlines of its own treads rather than lines of constant height; squares are
+  sampled at cell centres so a contour stops half a block inside the land instead of running out over the
+  void; the ambiguous saddle square is resolved by its centre, which is what keeps a pass between two summits
+  reading as one ring; and a segment of no length — what a level passing exactly through a sampled height
+  emits — is dropped rather than surfacing as a stray two-point stub on every whole number a mark stated.
+  Loose pieces are chained into walking order from their **loose ends** first, so an open run is one line
+  rather than two halves. The overlay draws every fifth block as an **index** line, heavier and the only one
+  labelled, with the label placed on the line's straightest stretch; forty equal lines would say only that
+  there is a slope somewhere. It follows its own toggle rather than a phase — a relief is geometry, so it is
+  worth seeing while the shapes over it are still being drawn, which is exactly when the paint preview is not
+  — and reuses the paint seam wholesale (debounce, post the live layout, load the reply as a canvas layer,
+  drop replies overtaken by a newer edit). No JS twin: the reply is lines, so the client's whole share is
+  stroking points it was handed. (`Geom/Relief/Contours.cs`, `SketchReliefEndpoint`, `sketch-render.js`
+  `paintRelief`, `sketch-bridge.js`, `SketchTool.razor`; 9 + 3 + 6 tests)
+
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,
   `GET /wool-availability`, `GET /monument-obstruction` (each wool monument's block must be air; flags a
