@@ -368,6 +368,8 @@ public sealed record RoomPartInfo(string Id, string Title, string Blurb, string?
             "The roof's own border — its eave course and its two verges, and the ridge cap where the roof wears one. Unbound, it is the roof's material."),
         new(RoomParts.Gable, "Gable face",
             "The triangle a sloped roof leaves standing at each end. Unbound, it is the wall's top course carried up — a wall that bands as it rises has no band left to give it, since the courses run out at the wall's top."),
+        new(RoomParts.Ceiling, "Ceiling",
+            "The slab laid across this storey's interior to carry the one above it. Unbound, it is the house floor's own top material. The top storey has none — the roof is what closes that one — and what a player stands on up there is divided by the storey above's own border, field and inlay."),
     ];
 
     public static RoomPartInfo Of(string part)
@@ -402,10 +404,11 @@ public sealed record PartKindInfo(
 
         new(Storey, "storey", "Storeys", "layers",
             "One room: the air a player stands in, the wall around it, the windows through that wall and how its own floor is divided. A house stacks these in order, so a shop under two flats is three bindings of two presets.",
-            "The storey is drawn as the one-storey building it makes.",
+            "The storey is drawn as the one-storey building it makes — or, where it names a ceiling, as two of itself, since the slab it closes with only exists under something.",
             [RoomPartInfo.Of(RoomParts.Wall)],
-            [RoomPartInfo.Of(RoomParts.Post), RoomPartInfo.Of(RoomParts.Field),
-             RoomPartInfo.Of(RoomParts.Border), RoomPartInfo.Of(RoomParts.Inlay)]),
+            [RoomPartInfo.Of(RoomParts.Post), RoomPartInfo.Of(RoomParts.Ceiling),
+             RoomPartInfo.Of(RoomParts.Field), RoomPartInfo.Of(RoomParts.Border),
+             RoomPartInfo.Of(RoomParts.Inlay)]),
 
         new(Porch, "porch", "Porches", "door-open",
             "The strip of footprint the walls give up, and what stands on it. A porch has no materials of its own — its deck is the house's floor and its canopy the roof's material — so what is left to it is its shape.",

@@ -122,9 +122,20 @@ public static class RoomParts
     public const string Field = "field";
     public const string Inlay = "inlay";
 
+    /// <summary>The slab laid across a storey's interior to carry the one above it — the ceiling of this room
+    /// seen from below and the floor of that one seen from above. A storey's rather than a house's, because a
+    /// building may close its ground floor in one thing and the storey over it in another, and the top storey
+    /// has none at all: the roof is what closes that one. Unbound it is the house floor's own top material,
+    /// which is what every storey stack was before the slab had a name.
+    ///
+    /// <para>One material rather than a stack, and the plan zones are why: what a player actually stands on
+    /// up there is the slab's top course, and that is already divided by the storey <em>above</em>'s border,
+    /// field and inlay. A stack here would be a second answer to a question the zones have settled.</para></summary>
+    public const string Ceiling = "ceiling";
+
     /// <summary>The parts bottom-up, the order a shell is stamped in.</summary>
     public static readonly string[] All =
-        [Floor, Field, Border, Inlay, Wall, Gable, Roof, Post, Sill, Verge];
+        [Floor, Field, Border, Inlay, Wall, Ceiling, Gable, Roof, Post, Sill, Verge];
 }
 
 /// <summary>Which roof a stored style asks for — the wire words for <c>RoofForm</c>. Every one of them is a

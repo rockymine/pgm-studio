@@ -412,9 +412,17 @@ own wall, windows and floor zoning, and falls back to the building's where it do
 storeys is a count rather than a repeated description.
 
 Each storey but the last is closed by a **slab** across its interior only, the perimeter being wall already.
+What it is laid in is that storey's own **ceiling**, so a building may close its shop floor in flagstone and
+the flat over it in boards; unbound it is the house floor's own top material, which is what every storey stack
+was before the slab had a name. The ceiling belongs to the storey below because that is the storey the slab
+closes — the top one names none, since the roof is what closes that one.
+
 The slab's top course is zoned by the storey **above** it, so an upper floor takes a border and an inlay
 exactly as the ground one does — it is that storey's floor, not the ceiling of the one below, and the author
-who divided the ground floor into a bordered field means the same thing one storey up.
+who divided the ground floor into a bordered field means the same thing one storey up. The two do not
+compete, and which decides which is what keeps the ceiling a single material rather than a stack: the ceiling
+says what the slab is made of and the zones above divide the one course of it a player actually stands on, so
+a stack here would be a second answer to a question already settled.
 
 A slab needs a way through it or an upper storey is a sealed volume — a picture of a house rather than a
 house. That way is a **ladder**, standing in the storey below and reaching the slab, so a player steps off it
@@ -428,6 +436,20 @@ the doorway is a ladder in the way.
 
 Storeys are not a house-only feature. A wool room takes a `HouseStyle` like any other building, so a
 multi-storey wool room is the same stack with a monument in it.
+
+A **roof terrace** is a storey stack and nothing else, and it is worth spelling out because it looks like it
+would need a form the roof does not have. Air is a gap rather than a block everywhere in a style (§7), so a
+storey whose wall stack is one course of fence over two courses of air is a building with a **parapet** and
+nothing above it; that storey's post takes air for the same reason, or four columns stand on the deck at the
+corners. What closes the storey underneath is its ceiling, which is the deck. And the lid is taken off the
+same way the walls were: a `Flat` roof laid in air writes nothing, so the stack's top storey is open to the
+sky. The ladder is already there, because a slab has to have a way through it.
+
+Two things about it are not free. The storey carrying the parapet still **states a clear of three** — a room
+has to be stood up in and a storey cannot say it is not a room — so the building reserves two courses it never
+writes, and `TopLayerOver` answers for the reservation rather than for the highest block actually laid (G171).
+And a parapet is the wall's own stack rather than a rail of its own, so it is as wide as the wall line and
+sits over it, which is what a parapet is and is not what a rail set in from the edge would be.
 
 ### 7.7 The beams a seam leaves long
 
@@ -508,7 +530,8 @@ plus that part's materials, and a `room_style` becomes the thing that binds them
 
 The split is by **what owns a coherent set of decisions**, not by what happens to be a nameable piece. A roof
 is everything above the eave: the form and its numbers, and the body, the verge and the gable face. A storey is
-one room: its clear, its wall, its corner posts, its windows and how its own floor is divided in plan. A porch
+one room: its clear, its wall, its corner posts, its windows, how its own floor is divided in plan, and the
+ceiling it closes with where something stands on it. A porch
 is the strip of footprint the walls give up, and it carries no materials at all — a porch's deck is the house's
 own floor and its canopy is laid in the roof's material, so what is left to it is its shape. The rest of a
 house's parts are a single material each, and a row wrapping one style would add a name and nothing else.

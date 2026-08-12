@@ -191,6 +191,18 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   still has knobs whose *card* does not change when they are turned, which is the one thing the preview exists
   to prevent. Wants a larger sample footprint, and a card that is not the one view those knobs are invisible in.
 
+- [ ] **G171 — A building's reported height is its reservation, not its highest block.** `TopLayerOver` adds
+  up every storey's headroom and answers where the roof would sit, which is right for a building whose storeys
+  are rooms and wrong for one whose top storey is a roof terrace (`structures.md` §7.6): a parapet storey
+  states the clear of three a storey may not go under, writes one course of wall and leaves two courses of air,
+  and the answer overshoots the highest block laid by exactly those two. Nothing is stamped up there, so the
+  building is correct — what is wrong is every consumer of the number. The dressing prop clamps its placement
+  against the world ceiling with it, so a tall terraced building is refused a little sooner than it needs to
+  be, and the preview views frame to it, so a terrace is drawn with a band of empty sky over it. The fix is to
+  answer from what the stamp would actually write rather than from what the stack reserves — the wall stack
+  already knows which of its courses resolve to air — which also makes the number right for the stilt house,
+  whose ground storey is air for the same reason.
+
 - [ ] **B72 — Two roof-thickness columns nothing reads.** `room_style.roof_thickness` (M0012) and
   `roof_style.thickness` (M0018) are written, clamped and round-tripped through the DTOs, and no stamper has
   ever read either: a roof's depth at a cell comes from the height field's own step down to its neighbours

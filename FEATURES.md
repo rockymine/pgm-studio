@@ -3573,6 +3573,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   that shows a storey's slab, the clear under it and the way through it at once. Library **cards** keep the
   cheap run-merged section alone: an isometric is tens of kilobytes, which is nothing for one open editor and
   megabytes for a grid. (B71)
+- **A storey names what it closes with, and the slab stops being the floor's leftover (B74).** The slab laid
+  across a storey's interior to carry the one above it was always the house floor's own top material, so a
+  building could not close its shop floor in flagstone and the flat over it in boards. `Storey.Ceiling` named
+  it in the stamper and nothing could reach it — no part, no column, no knob — which made it the one piece of a
+  building sayable only in code. It is now a **storey part** (`ceiling`), which needed no migration: a storey's
+  parts are rows in `storey_style_course` keyed by (owner, part, ordinal), so naming one more is a word in the
+  vocabulary rather than a column. Unbound it is the floor's top material exactly as before, so every stored
+  storey builds what it always did. It takes **one material rather than a stack**, and the reason is that the
+  course a player actually stands on up there is already divided by the storey *above*'s border, field and
+  inlay: a stack here would be a second answer to a settled question, which is the `roof_thickness` mistake
+  (B72) in a new place. The preview earns it — a storey that names a ceiling is drawn as **two of itself**,
+  because a slab only exists under something and a storey drawn alone is a top storey, so the knob would
+  otherwise be one whose picture never moves (the B70 failure). The **cutaway** is the view that shows it, the
+  section being a projection of the outside with the near wall in front of the slab. (B74)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds
