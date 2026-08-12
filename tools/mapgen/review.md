@@ -13,6 +13,40 @@ paints a wall. Randomness is the right tool for the grain on a surface and the w
 player navigates by. A map is a designed thing, and every one of these is somewhere the design was left to a
 seed.
 
+## How a map is designed
+
+The rest of this document is faults. This section is the frame they are faults against, and it is not a
+checklist — it is the reason the checklist exists.
+
+**A layout is a control on player flow.** That is what the plan layer and the composer are for: the voids,
+the gaps between pieces and the placement of pieces decide where a player can go, how long it takes and what
+they can see on the way. Every later decision inherits it. A board is therefore not a container that scenery
+is sprinkled into — the ground *is* the design, and the scenery is a second layer of the same argument.
+
+**The plan's rectangles are a starting point, not the shape.** The composer emits rectilinear pieces to keep
+the first pass simple and legible. That is precisely why the pipeline walks into the **sketch tool** next:
+the shapes are there to be manipulated — dragged into a swirl instead of a straight run, given Bézier edges,
+cut with a subtract, stepped in `base_height`. A capture layout can be as organic as a destroy one. Taking
+the compiled rectangles as final (MG34) is taking the scaffolding for the building.
+
+**Every element answers a question about movement.** The vocabulary is small and each piece of it does
+something specific to a player:
+
+- a river or a drop through the middle forces a **bridge**, which is a chokepoint that has to be built
+- a small forest **stops movement** through it — at an edge it closes a flank, and it gives someone room to
+  be sneaky
+- a hill gives **height** and sightline to whoever takes it
+- a village gives **cover and interiors** to fight through
+- open ground **exposes**, which is what an objective wants around it
+
+**So an objective sits exposed, and the ground around it is composed.** A monument or a core in the open, a
+forest on one side, a hill on the other, a village behind. That is the whole method in one sentence: the
+approach is legible, the defender has somewhere to hold, the attacker has a way to arrive unseen and a price
+for using it. None of that survives being scattered.
+
+**Think what to place where, and why.** If there is no answer to "why here", the thing does not go there
+yet. Randomness is the wrong approach for nearly all of it.
+
 ## The board
 
 **MG1 — A destroy map needs a board drawn for it, not a capture board with its wool taken out.**
@@ -306,6 +340,14 @@ verbatim, with the convenience fields as shorthand that expands into them rather
 hand-drawn map that uses the layout format to its width — three themes chosen per shape, ten `base_height`
 tiers stepping the ground with no relief block at all, Bézier outlines, a subtract, and the defence walls of
 MG21 actually authored.
+
+**MG34 — The sketch stage was skipped as an authoring step.** mapgen composes a plan, compiles it and builds
+the world, so whatever rectangles the compiler emitted are what got built. But the compiler emits
+rectilinear pieces *to keep the first pass simple*, and the sketch tool is the stage where they stop being
+rectangles: an edge takes Bézier `controls`, a run becomes a `path`, a shape is cut with a `subtract` or
+stepped by `base_height`. Compiling straight through to the world treats the scaffolding as the building,
+which is why fifteen boards look like plans rather than like places — and why a capture layout came out as
+rectangular as a destroy one, when neither has to be.
 
 **MG30 — Nothing was looked at between the stages.** Fifteen maps were built and judged from one top-down
 render each, at the end, after everything had already been decided. The system renders itself at every stage

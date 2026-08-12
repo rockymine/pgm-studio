@@ -47,14 +47,22 @@ entrance redstone, iron cubes and approach walls. It is the only layer that know
 ## A worked example
 
 `tools/seeds/ruediger.layout.json` and `ruediger.intent.json` are a hand-drawn capture map, kept because it
-is the only authored document in the repository that uses the layout format to its width. Everything below
-is in those two files and none of it was reachable through mapgen's spec.
+is the only authored document in the repository that shows the layout being used as **design** rather than
+as configuration. It is worth being clear about what that means, since the temptation is to read it as a
+feature showcase and it is not one: the map was drawn **before relief and before house themes existed**, so
+none of what it does is reaching for a new toy. It is an author deciding where ground goes and what it is
+made of, with the tools that were there. Its dressing was going to come next and never did.
 
-**Elevation is built from shapes, not from relief.** The layout carries no `relief` block at all. Its ground
-steps because twenty-six shapes sit at `base_height` 7, 8, 9, 10, 11, 12, 13, 14, 15 and 16 — a staircase of
-tiers stacked as set algebra, one of them a `subtract` cutting a hole through the rest, and one at
-`base_height` 100 standing as a tall face. That is the second way to make terrain, beside the relief solver,
-and it is the one that gives deliberate steps rather than a solved surface.
+It is also **one** way to build a map, not the pattern to copy. What transfers is the method, not the
+shapes.
+
+**Elevation is built from shapes, and the small shapes are the elevation.** The layout carries no `relief`
+block — it predates one. Its ground steps because twenty-six shapes sit at `base_height` 7, 8, 9, 10, 11, 12,
+13, 14, 15 and 16, stacked as set algebra with one `subtract` cutting through and one face standing at 100.
+The little shapes are not detail added to a big shape; they *are* how the author states a change in height.
+That is the second way to make terrain, beside the relief solver, and it is the one that gives deliberate
+steps rather than a solved surface — the two are meant to sit on one board, a built stepped quarter against a
+naturally solved one.
 
 **Three themes over one map, chosen per shape.** `ruediger` (sand and sandstone over stone) paints the body,
 `ruediger-steps` (grass and stone brick) picks out the treads and the border, and `theme` (stone brick and
