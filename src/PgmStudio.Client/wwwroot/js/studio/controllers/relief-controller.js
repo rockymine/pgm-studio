@@ -3,10 +3,15 @@
  * draw, edit and dressing controllers (onMouseDown → bool, onMouseMove, onMouseUp, paint, cancel), so the
  * canvas routes to it the same way it routes to those.
  *
- * Four tools, two interactions, and the split is the model's own. A **spot height** is a click, because a
- * summit is a decision about a place and a place is a click. A **ridgeline**, an **area** and a **scarp** are
- * dragged: press, trace, release — where the button comes up is the last point, exactly the way the lasso
- * already behaves, so there is no separate way to finish and no way to get stuck mid-draw.
+ * Five tools, two interactions, and the split is the model's own. A **spot height** is a click, because a
+ * summit is a decision about a place and a place is a click. A **ridgeline**, a **bench**, a **scarp** and a
+ * **push** are dragged: press, trace, release — where the button comes up is the last point, exactly the way
+ * the lasso already behaves, so there is no separate way to finish and no way to get stuck mid-draw.
+ *
+ * Four of the five state a **constraint** — the ground here IS twelve — and the fifth, the push, states a
+ * **relative lift** applied to the solved surface afterwards. Everything about placing and editing them is
+ * shared, and this file is that sharing; what differs is only what the solver does with the result, which is
+ * why a push travels the same pipeline instead of getting a phase of its own.
  *
  * One thing here has no counterpart in dressing, and it is the whole difference between the two phases: a
  * prop is placed **on the map**, a mark is placed **in an island**. A relief is solved over one island's fused
@@ -22,8 +27,8 @@
  */
 
 import { paintMarkPreview, paintSpotGhost } from "../render/relief-render.js";
-import { defaultMark, isSpot, isRing, markAnchor, markPoints, markReach, pointsPatch, translateMark }
-  from "../relief/relief-doc.js";
+import { defaultMark, defaultPush, isSpot, isRing, isPush, markAnchor, markPoints, markReach, pointsPatch,
+         translateMark, PUSH_KIND } from "../relief/relief-doc.js";
 import { douglasPeucker, simplifyRing } from "../geometry/simplify.js";
 import { svgEl, handleRectAttrs } from "../render/svg.js";
 import { toScreen } from "../geometry/transform.js";
@@ -32,6 +37,7 @@ import { toScreen } from "../geometry/transform.js";
  *  "is a relief tool active at all". */
 export const RELIEF_TOOLS = {
   "relief:point": "point", "relief:line": "line", "relief:area": "area", "relief:scarp": "scarp",
+  "relief:push": PUSH_KIND,
 };
 
 // A dragged trace is one point per block of pointer travel — unreadable to edit and pointless to store, so it
@@ -74,7 +80,7 @@ export class ReliefController {
     this.#getViewport = getViewport ?? (() => ({ scale: 1, panX: 0, panY: 0 }));
     this.#callbacks = callbacks;
     this.#islandAt = callbacks.onIslandAt ?? (() => null);
-    for (const kind of ["point", "line", "area", "scarp"]) this.#settings[kind] = defaultMark(kind);
+    for (const kind of ["point", "line", "area", "scarp", PUSH_KIND]) this.#settings[kind] = defaultMark(kind);
   }
 
   setDoc(doc) { this.#doc = doc; this.#selectedId = null; this.refreshHandles(); }
@@ -108,7 +114,7 @@ export class ReliefController {
     if (!this.#selectedId) return null;
     const updated = this.#doc.update(this.#selectedId, patch);
     if (updated) {
-      this.setSettings(updated.kind, patch);
+      this.setSettings(updated.kind, carryable(patch));
       this.refreshHandles();      // a wider band or a re-traced ring moves its own grips
       this.#callbacks.onChanged?.();
     }
@@ -268,8 +274,10 @@ export class ReliefController {
   paint(painter) {
     if (this.#trace) {
       const settings = this.#settings[this.#trace.kind];
+      // A push is coloured by its lift read from zero, a mark by its height read from the island's base —
+      // which is the same ramp asked the same question, since what both want to say is "higher" or "lower".
       paintMarkPreview(painter, this.#trace.kind, this.#trace.points, this.#heightOf(settings),
-                       this.#baseOf(this.#trace.islandId));
+                       isPush(this.#trace.kind) ? 0 : this.#baseOf(this.#trace.islandId));
     }
     if (this.#cursor) {
       const settings = this.#settings[this.#cursor.kind];
@@ -291,7 +299,8 @@ export class ReliefController {
   #finishTrace(kind, islandId, points) {
     // A ring simplifier splits at the two farthest points and walks both ways round, which is right for an
     // outline and would reorder a line. So a ridgeline and a scarp keep their direction through the plain
-    // open simplifier — and a scarp's direction is load-bearing, since it says which side the shelf is on.
+    // open simplifier — and a scarp's direction is load-bearing, since it says which side the shelf is on. A
+    // push's ring closes, so it takes the ring simplifier with the bench.
     const simplified = isRing(kind)
       ? simplifyRing(points, TRACE_SIMPLIFY_TOLERANCE)
       : douglasPeucker(points, TRACE_SIMPLIFY_TOLERANCE);
@@ -305,9 +314,15 @@ export class ReliefController {
     this.#callbacks.onPlaced?.();
   }
 
-  /** A new mark of a kind: the tool's settings, but re-based when this island has nothing stated yet. A
-   *  height carried over from another island at another base would state a cliff nobody asked for. */
+  /** A new statement of a kind: the tool's settings, but re-based when this island has nothing stated yet. A
+   *  height carried over from another island at another base would state a cliff nobody asked for.
+   *
+   *  A push needs no re-basing, and that is not an exception so much as the point of it: a push states a
+   *  lift, not a level, so five blocks up is five blocks up wherever it is drawn. */
   #freshMark(kind, islandId) {
+    // A push gets its own seed, so two drawn with the same roughness are still two different slopes. Derived
+    // from how many there already are rather than rolled, so re-opening a document places nothing new.
+    if (isPush(kind)) return { ...this.#settings[kind], seed: 1 + this.#doc.pushes.length * 7 };
     const relief = this.#doc.peek(islandId);
     if (relief?.marks?.length) return { ...this.#settings[kind] };
     return defaultMark(kind, relief?.base ?? this.#doc.reliefOf(islandId).base);
@@ -315,8 +330,10 @@ export class ReliefController {
 
   #baseOf(islandId) { return this.#doc.peek(islandId)?.base ?? 8; }
 
-  // What a preview is coloured by — a scarp reads as its shelf, everything else as the height it states.
+  // What a preview is coloured by — a scarp reads as its shelf, a push as its lift, everything else as the
+  // height it states.
   #heightOf(settings) {
+    if (isPush(settings)) return settings.amount ?? 0;
     if (settings?.kind === "scarp") return settings.high ?? 0;
     return Array.isArray(settings?.h) ? settings.h[0] : (settings?.h ?? 0);
   }
@@ -333,4 +350,19 @@ export class ReliefController {
     }
     return best;
   }
+}
+
+/**
+ * The part of an edit worth carrying to the next statement of the same kind. Widening one ridgeline usually
+ * means the next one too; where that one was drawn never does.
+ *
+ * Geometry is the obvious exclusion. The one that is not obvious, and the reason this function exists rather
+ * than a `delete patch.points`: a **per-vertex** number is sized to the ring it was stated on. Carried
+ * forward, a push whose six corners each hold a different lift would hand a freshly drawn four-corner push an
+ * array it cannot mean — and the same goes for a ridgeline whose `h` has become one height per vertex.
+ */
+function carryable(patch) {
+  const { points, ring, at, amounts, ...rest } = patch ?? {};
+  if (Array.isArray(rest.h)) delete rest.h;
+  return rest;
 }

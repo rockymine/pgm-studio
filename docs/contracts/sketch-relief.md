@@ -117,7 +117,10 @@ other six, and the crest falls between them along the line that was drawn.
 
 **A crown** says how much higher the middle of the push stands than its edge. Zero is the flat top; positive
 domes it; negative dishes it into a hollow whose rim is the drawn outline — a corrie, a quarry floor, a pond
-basin, depending on what fills it.
+basin, depending on what fills it. The record's own default is zero and the **editor's is two**, and the
+disagreement is deliberate: a flat top is the least natural of the three settings and is the thing an author
+reaches for a push in order to stop making, so a push drawn without touching a knob should already be a
+landform. The record keeps zero because a caller that states nothing should get the plain operation.
 
 What "the middle" means is the part worth stating, because it is the one thing that does *not* have to be
 authored. It is the deepest point of the outline measured **inward**, which is the shape's medial axis — the
@@ -587,7 +590,8 @@ drawn — which is exactly when the paint preview is not.
    layout already carries. This is the step that makes the rest reviewable.
 3. **Marks as placed things** (S41's UI half): the document, the tools, the list, the inspector.
 4. **Pushes** (S50) — the same tool surface with one more kind, plus crown and per-vertex amounts as numbers
-   on the inspector.
+   on the inspector. Sharing the pipeline is the point rather than a convenience: a push is placed, selected,
+   dragged, re-cornered and deleted exactly as a mark is, and only what the solver does with it differs.
 5. **The readback** (S43). A panel, and the same JSON over HTTP, which is what makes a relief correctable by
    a generator or an agent rather than only by eye.
 6. **Erecting shapes** (S44) — one control on the shape inspector that already exists.

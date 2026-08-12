@@ -201,6 +201,77 @@ public sealed class SketchReliefTests
     }
 
     [Test]
+    public async Task A_push_lifts_the_solved_surface_and_two_of_them_add()
+    {
+        // The property that separates a push from a mark: it is applied AFTER the solve as a relative move,
+        // so two over the same ground add where two constraints would have to argue over it.
+        static string WithPushes(string pushes) => Layout($$"""
+        {
+          "i1": {
+            "base": 6,
+            "marks": [ { "kind": "rim", "h": 6 } ],
+            "pushes": {{pushes}}
+          }
+        }
+        """);
+
+        const string ring = """[[6,6],[14,6],[14,14],[6,14]]""";
+        var one = Tops(WithPushes($$"""[ { "ring": {{ring}}, "amount": 5, "falloff": 3, "crown": 0 } ]"""));
+        var two = Tops(WithPushes($$"""
+        [ { "ring": {{ring}}, "amount": 5, "falloff": 3, "crown": 0 },
+          { "ring": {{ring}}, "amount": 5, "falloff": 3, "crown": 0 } ]
+        """));
+
+        await Assert.That(two[(10, 10)] - one[(10, 10)]).IsEqualTo(one[(10, 10)] - 6);
+    }
+
+    [Test]
+    public async Task A_per_vertex_lift_falls_along_the_ring()
+    {
+        // What makes a drawn ridge fall along its length instead of holding level — and the reason the
+        // editor expands the single amount into one number per corner before showing it.
+        const string relief = """
+        {
+          "i1": {
+            "base": 4,
+            "marks": [ { "kind": "rim", "h": 4 } ],
+            "pushes": [ { "ring": [[2,8],[10,8],[18,8],[18,12],[10,12],[2,12]],
+                          "amount": 10, "amounts": [10, 6, 2, 2, 6, 10], "falloff": 2, "crown": 0 } ]
+          }
+        }
+        """;
+        var tops = Tops(Layout(relief));
+        await Assert.That(tops[(3, 10)]).IsGreaterThan(tops[(17, 10)]);
+    }
+
+    [Test]
+    public async Task An_id_and_a_per_vertex_lift_survive_the_wire()
+    {
+        // The editor's handle on a placed thing, and the array that makes a ridge fall. Both are dropped by a
+        // round trip that does not know them, which would silently move the selection and level the ridge.
+        const string relief = """
+        {
+          "i1": {
+            "marks": [ { "id": "r4", "kind": "point", "at": [5, 5], "h": 9, "r": 2 } ],
+            "pushes": [ { "id": "r5", "ring": [[0,0],[8,0],[8,8]], "amount": 6, "amounts": [6, 3, 1] } ]
+          }
+        }
+        """;
+        var state = SketchLayout.Parse(Layout(relief));
+        var stated = state!.Relief!["i1"];
+
+        await Assert.That(stated.Marks![0].Id).IsEqualTo("r4");
+        await Assert.That(stated.Pushes![0].Id).IsEqualTo("r5");
+        await Assert.That(stated.Pushes[0].Amounts).IsEquivalentTo(new[] { 6d, 3d, 1d });
+
+        // And back out again, through the carry a recompile runs.
+        var carried = SketchLayout.CarryRelief(Layout(null), Layout(relief));
+        var round = SketchLayout.Parse(carried)!.Relief!["i1"];
+        await Assert.That(round.Marks![0].Id).IsEqualTo("r4");
+        await Assert.That(round.Pushes![0].Amounts).IsEquivalentTo(new[] { 6d, 3d, 1d });
+    }
+
+    [Test]
     public async Task A_half_written_mark_is_dropped_rather_than_guessed_at()
     {
         // A point with no position cannot place terrain, and inventing one would put ground where nobody

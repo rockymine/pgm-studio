@@ -74,9 +74,29 @@ public partial class SketchReliefList
             "area" => new Row(id, "pentagon", $"bench at {Heights(mark)}", Span(mark, "ring")),
             "scarp" => new Row(id, "triangle", $"scarp {Drop(mark)}", Span(mark, "points")),
             "rim" => new Row(id, "square-dashed", $"rim at {Heights(mark)}", "outline"),
+            "push" => new Row(id, "arrows-up-from-line", $"push {Lift(mark)}", Span(mark, "ring")),
             _ => new Row(id, "shapes", kind, ""),
         };
     }
+
+    /// <summary>A push's lift, signed — because it MOVES the ground rather than stating a level, and an
+    /// unsigned "5" beside a mark's "5" would read as a height. A ring whose corners disagree shows both ends,
+    /// for the same reason a falling ridgeline does.</summary>
+    private static string Lift(JsonElement push)
+    {
+        if (push.TryGetProperty("amounts", out var stated) && stated.ValueKind == JsonValueKind.Array
+            && stated.GetArrayLength() > 1)
+        {
+            var first = stated[0].GetDouble();
+            var last = stated[stated.GetArrayLength() - 1].GetDouble();
+            if (first != last) return $"{Signed(first)} to {Signed(last)}";
+            return Signed(first);
+        }
+        return push.TryGetProperty("amount", out var amount) && amount.ValueKind == JsonValueKind.Number
+            ? Signed(amount.GetDouble()) : "+0";
+    }
+
+    private static string Signed(double value) => $"{(value > 0 ? "+" : "")}{Math.Round(value)}";
 
     /// <summary>The heights a mark states. A falling ridgeline shows both ends, because one number would hide
     /// exactly what a per-vertex height exists to say.</summary>

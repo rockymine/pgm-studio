@@ -33,17 +33,18 @@ three files. Moving a task between files never changes its id; never renumber or
 
 ## Sketch tool (S) — current focus: relief in the hand
 
-The relief model is built and headless: the solver, its marks and pushes, the symmetry fold, the wire
-document, the rasterizer seam and the recompile rule have all shipped (`FEATURES.md`). A relief written into
-a stored layout by hand exports as terrain today. **Nothing authors one** — there is no mode, no tool, no
-inspector and no way to see the surface before it is built, so the whole model is reachable only by editing
-JSON. Seeing one and stating one are both solved: the Relief chip traces the contours of whatever a layout
-carries, and the Relief phase places the four mark kinds with tools, a list and an inspector (`FEATURES.md`).
-What is left is the sculpting half and the two interactions that make editing feel live — draw pushes (S50),
-drag a contour to state a height (S53), and resume the solve on a drag instead of restarting it (S52). The
-design, its measurements and the authoring plan are `docs/contracts/sketch-relief.md`; the prototype every
-figure comes from is `tools/relief`. What this theme deliberately leaves parked is in `BACKLOG.md` — the
-readback (S43), erecting shapes (S44), the stroke tools (S46) and per-shape participation (S48).
+A relief can now be seen and stated: the solver and its wire document, the rasterizer seam, the recompile
+rule, the contour overlay, and a Relief phase whose five tools place the four mark kinds and the push, each
+with a list row, an inspector and its own point grips (`FEATURES.md`). The model is reachable by hand and by
+mouse, and what it produces is on screen while it is being stated.
+
+What is left is the two interactions that make editing feel **live** rather than iterative: dragging a
+contour to state a height (S53), which is what would make how a surface reads and how it is edited one
+object; and resuming the solve on a drag instead of restarting it (S52). Both are about the loop between an
+edit and its result, which is now the slowest thing about the phase. The design, its measurements and the
+authoring plan are `docs/contracts/sketch-relief.md`; the prototype every figure comes from is
+`tools/relief`. What this theme deliberately leaves parked is in `BACKLOG.md` — the readback (S43), erecting
+shapes (S44), the stroke tools (S46) and per-shape participation (S48).
 
 - [ ] **S53 — Relief: drag a contour to state a height.** The contour overlay is read-only and the marks are
   placed with their own tools (`FEATURES.md`); the interaction that joins them is missing. A contour dragged
@@ -60,16 +61,8 @@ readback (S43), erecting shapes (S44), the stroke tools (S46) and per-shape part
   surface already on screen needs 40 sweeps against a cold solve's full run, 228 ms on a 192×128 map, and
   lands off by one block on 1,614 of its 24,576 cells. What is missing is the seam — the endpoint has nowhere
   to keep the previous continuous field, and the client has no way to say "this is the same relief, moved".
-  Wanted once a mark can be dragged (S41), not before: with nothing draggable there is no drag to resume.
-
-- [ ] **S50 — Relief: draw the push, don't type a radius.** The push solves — ring falloff across the land,
-  crown off the medial axis, per-vertex amounts, roughness (`FEATURES.md`, `sketch-relief.md` §2.1–2.2) —
-  and the only way to state one is by hand in JSON, which is precisely the hand-authoring the feature exists
-  to replace: a summit typed as a position and a radius can only be round. The slice is the ring **drawn**
-  like any other polygon, plus `amount` / `falloff` / `crown` / `roughness` as inspector numbers and the
-  per-vertex lift edited on the ring's own anchors, where a per-vertex height already reads as a height.
-  Crown is the one to get in front of an author rather than bury: it is what makes a drawn ridge a ridge
-  instead of a plateau, and its default of 0 is the least natural of its three settings.
+  Now worth having: marks and pushes are dragged by their bodies and by their point grips, so there are drags
+  to resume, and each of them currently pays for a whole cold solve per settle.
 
 ## Layout generation (G) — the generator in the studio
 

@@ -3999,6 +3999,26 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the author's hands. (`relief/relief-doc.js`, `controllers/relief-controller.js`, `render/relief-render.js`,
   `SketchReliefList` + `SketchReliefInspector`, `SketchRelief.cs`; 23 + 1 tests)
 
+- **Relief: the push is drawn, not typed (S50).** A summit stated as a position and a radius can only be
+  round, and the roundness was not a style but the shape of the only footprint that could be typed. A **Push**
+  tool traces a ring like any other, and travels the *same* placed-thing pipeline as the four marks — one id,
+  one selection, one set of point grips, one body drag, one list row — because what separates a push from a
+  mark is not how it is drawn but what it does: a mark is a **constraint** (the ground here IS twelve, and two
+  over the same ground must argue), where a push is a **relative lift** applied to the solved surface
+  afterwards, so two over the same ground simply **add**. It is stored in the relief's own `pushes` array and
+  carries no `kind` on the wire — the array already says what it is, and a field repeating that would be one
+  more thing able to disagree; the word is added back when the document hands a push out. The inspector holds
+  lift (negative digs), **skirt**, **crown** and roughness, and the canvas draws the skirt as a dashed outline
+  at the falloff distance — the difference between a push and a bench made visible, since a bench ends at its
+  outline where a push is still moving ground past it. Which side of the ring is "out" comes from the ring's
+  own signed area, so a ring traced either way round gets its skirt outside it rather than inside, where it
+  would read as a smaller push. **Per-vertex lift** is edited as one number per ring corner, expanded from the
+  single amount so an author who wants one end lower has a number to change — and the document collapses the
+  array back to one amount when every corner agrees, so undoing a variation leaves the push it started from
+  rather than an array that happens to be flat. A per-corner array is never carried to the next push: it is
+  sized to the ring it was stated on. (`relief-doc.js`, `relief-controller.js`, `relief-render.js`,
+  `SketchReliefInspector`, `SketchReliefList`; 11 JS + 3 C# tests)
+
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,
   `GET /wool-availability`, `GET /monument-obstruction` (each wool monument's block must be air; flags a

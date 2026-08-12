@@ -14,7 +14,7 @@
  * through to a cold blue for a low one, read against the island's own base.
  */
 
-import { markAnchor, markPoints, isSpot, isRing } from "../relief/relief-doc.js";
+import { markAnchor, markPoints, pushAmounts, isSpot, isRing, isPush } from "../relief/relief-doc.js";
 
 const FILL_ALPHA = 0.28;
 const GHOST_ALPHA = 0.12;      // a mirror image is context, not a thing to click
@@ -39,6 +39,14 @@ export function heightColor(height, base = 8) {
 }
 
 /**
+ * Where a push's *lift* puts it on the same ramp. A push states a relative move rather than a level, so it
+ * cannot be read against the island's base the way a mark is: five blocks up is five blocks up wherever it is
+ * drawn. Reading it as a move from zero puts a lift and a mark at the same height in the same colour, which
+ * is the reading an author wants — warm is higher ground either way.
+ */
+export const liftColor = (amount) => heightColor(amount, 0);
+
+/**
  * Paint every mark, plus the mirror images of each. `mirrorPoint(x, z, k)` gives the k-th image of a point and
  * `order` how many images there are — the canvas already owns the map's symmetry, so this asks rather than
  * re-deriving it. `baseOf(islandId)` supplies the level each island's marks are read against.
@@ -46,7 +54,17 @@ export function heightColor(height, base = 8) {
 export function paintReliefMarks(painter, marks, { selectedId = null, mirrorPoint = null, order = 1, baseOf = null } = {}) {
   for (const mark of marks ?? []) {
     const base = baseOf?.(mark.islandId) ?? 8;
-    const colour = heightColor(topHeight(mark), base);
+    const colour = isPush(mark) ? liftColor(topHeight(mark)) : heightColor(topHeight(mark), base);
+
+    // A push's skirt — the ground it moves outside the ring it was drawn on — as a dashed outline at the
+    // falloff distance. It is the difference between a push and a bench made visible: a bench ends at its
+    // outline, where a push is still moving ground a stated distance past it. Drawn on the primary image
+    // only: it is a reading aid for the thing being edited, and a dashed halo round every mirror copy would
+    // crowd the board with lines nobody can grab.
+    if (isPush(mark) && (mark.falloff ?? 0) > 0) {
+      const skirt = offsetRing(markPoints(mark), mark.falloff);
+      if (skirt.length >= 3) painter.ring(skirt, { stroke: colour, strokeAlpha: 0.5, width: 1, dash: [4, 4] });
+    }
     for (let k = order - 1; k >= 0; k--) {          // images first, so the real mark draws over them
       const ring = footprint(mark, k, mirrorPoint);
       if (ring.length < 3) continue;
@@ -100,21 +118,34 @@ export function paintSpotGhost(painter, x, z, radius, height, base = 8, valid = 
   });
 }
 
-// What a mark's swatch is coloured by: the height it states, or a scarp's shelf — a scarp is drawn from the
-// top down, so the shelf is the height it reads as.
+// What a statement's swatch is coloured by: the height it states, a scarp's shelf — a scarp is drawn from the
+// top down, so the shelf is the height it reads as — or, for a push, its largest lift.
 function topHeight(mark) {
+  if (isPush(mark)) {
+    const amounts = pushAmounts(mark);
+    return amounts.length ? amounts.reduce((a, b) => (Math.abs(b) > Math.abs(a) ? b : a)) : (mark.amount ?? 0);
+  }
   if (mark.kind === "scarp") return mark.high ?? 0;
   return Array.isArray(mark.h) ? Math.max(...mark.h) : (mark.h ?? 0);
 }
 
-// The number a mark wears. A falling ridgeline wears both ends and a scarp wears its drop, because one number
-// would hide exactly what those two kinds exist to state.
+// The number a statement wears. A falling ridgeline wears both ends, a scarp wears its drop, and a push wears
+// its lift with a sign — because one bare number would hide exactly what each of those exists to state, and a
+// push showing "5" where a mark shows "5" would read as a height rather than as five blocks of move.
 function label(mark) {
+  if (isPush(mark)) {
+    const amounts = pushAmounts(mark);
+    const [first, last] = [amounts[0] ?? 0, amounts[amounts.length - 1] ?? 0];
+    const varies = amounts.some(amount => amount !== first);
+    return varies ? `${signed(first)}→${signed(last)}` : signed(first);
+  }
   if (mark.kind === "scarp") return `${round(mark.high)}↓${round(mark.low)}`;
   if (Array.isArray(mark.h) && mark.h.length > 1 && mark.h[0] !== mark.h[mark.h.length - 1])
     return `${round(mark.h[0])}–${round(mark.h[mark.h.length - 1])}`;
   return `${round(Array.isArray(mark.h) ? mark.h[0] : mark.h)}`;
 }
+
+const signed = (value) => `${round(value) > 0 ? "+" : ""}${round(value)}`;
 
 const round = (value) => Math.round(Number(value) || 0);
 
@@ -148,6 +179,53 @@ function band(points, halfWidth) {
     right.push([points[i][0] - nx, points[i][1] - nz]);
   }
   return [...left, ...right.reverse()];
+}
+
+/**
+ * A ring pushed outward by `distance`, for drawing a push's skirt. Each vertex moves along the bisector of
+ * its two edges, scaled so the offset edges land the full distance out rather than short of it on a sharp
+ * corner. Approximate on purpose: the solver measures the skirt as distance **across the land** from the ring
+ * — which bends round a notch where this cannot — so this is the outline's honest shape and not a second
+ * implementation of the falloff.
+ */
+function offsetRing(ring, distance) {
+  const count = ring.length;
+  if (count < 3 || !(distance > 0)) return [];
+  // Which side "out" is depends on the winding, and an author traces a ring either way — so the sign comes
+  // from the ring's own signed area rather than from an assumption about how it was drawn. Traced the other
+  // way round, an unflipped offset would draw the skirt INSIDE the push, which reads as a smaller push.
+  const side = signedArea(ring) < 0 ? -1 : 1;
+  const out = [];
+  for (let i = 0; i < count; i++) {
+    const prev = ring[(i - 1 + count) % count], here = ring[i], next = ring[(i + 1) % count];
+    const inNormal = normal(prev, here, side), outNormal = normal(here, next, side);
+    let bx = inNormal[0] + outNormal[0], bz = inNormal[1] + outNormal[1];
+    const length = Math.hypot(bx, bz);
+    if (length < 1e-9) { out.push([here[0] + inNormal[0] * distance, here[1] + inNormal[1] * distance]); continue; }
+    bx /= length; bz /= length;
+    // 1/cos(half the corner angle): how much farther a corner has to move for its two edges to sit the full
+    // distance out. Capped, or a near-reversal would fling the corner off the map.
+    const scale = Math.min(4, 1 / Math.max(0.25, (bx * inNormal[0] + bz * inNormal[1])));
+    out.push([here[0] + bx * distance * scale, here[1] + bz * distance * scale]);
+  }
+  return out;
+}
+
+// The unit normal of the edge from `from` to `to`, on the side the ring's winding says is outward.
+function normal(from, to, side) {
+  const dx = to[0] - from[0], dz = to[1] - from[1];
+  const length = Math.hypot(dx, dz) || 1;
+  return [(dz / length) * side, (-dx / length) * side];
+}
+
+// Twice the ring's signed area — positive one way round, negative the other. Only the sign is read.
+function signedArea(ring) {
+  let total = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const [x1, z1] = ring[i], [x2, z2] = ring[(i + 1) % ring.length];
+    total += x1 * z2 - x2 * z1;
+  }
+  return total;
 }
 
 function disc(cx, cz, radius) {

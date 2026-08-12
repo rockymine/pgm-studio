@@ -16,6 +16,24 @@
 /** The mark kinds that are *placed*, in the order their tools sit on the dock. */
 export const MARK_KINDS = ["point", "line", "area", "scarp"];
 
+/**
+ * A push is placed exactly the way a bench is — a ring traced on the ground — so it travels the whole placed-
+ * thing pipeline with the marks: one id, one selection, one set of grips, one body drag, one list row. What
+ * separates it is not how it is drawn but what it *does*, and the difference is worth being plain about,
+ * because it is the reason both exist.
+ *
+ * A mark is a **constraint**: the ground here IS twelve. Two marks over the same ground have to argue, and the
+ * solver settles it by order. A push is applied to the solved surface **afterwards** and is a **relative**
+ * lift, so two over the same ground simply add — which is what makes a spur on the flank of a hill one
+ * operation rather than a re-statement of the hill.
+ *
+ * It lives in the relief's own `pushes` array rather than among the marks, and it carries no `kind` on the
+ * wire: the array it is in already says what it is, and a stored field that only repeated that would be one
+ * more thing able to disagree. The word is added back when the document hands a push out, so everything
+ * downstream can ask a statement what it is without first asking where it came from.
+ */
+export const PUSH_KIND = "push";
+
 /** A rim is a mark, but it is not placed: it holds the island's whole outline, so there is nowhere to put it
  *  and nothing to drag. It rides as a property of the island's relief instead — one height and a depth. */
 export const RIM_KIND = "rim";
@@ -45,8 +63,22 @@ export function defaultMark(kind, height = 8) {
     // walks, and a 5-block band either side for the land to arrive through.
     case "scarp": return { ...base, points: [], high: height + 3, low: Math.max(0, height - 3), face: 2, band: 5 };
     case "rim":   return { ...base, h: height, depth: 1 };
+    case PUSH_KIND: return defaultPush();
     default: throw new Error(`Unknown mark kind: ${kind}`);
   }
+}
+
+/**
+ * A fresh push. The numbers mirror the C# record defaults, with one exception that is a UI decision rather
+ * than a model one: `crown` ships at **2** here where the record's default is 0.
+ *
+ * A crown of zero gives a drawn ring a flat top, and a flat top is the least natural of the three settings —
+ * it is a plateau, and a plateau is the thing an author reaches for a push to stop making. Two is a gentle
+ * dome on a round ring and a gentle ridge on a long one, from the same number, because the middle is measured
+ * inward and a shape's inward middle is a point when it is round and a line when it is long.
+ */
+export function defaultPush() {
+  return { kind: PUSH_KIND, id: "", ring: [], amount: 5, falloff: 10, roughness: 0.3, crown: 2, seed: 1 };
 }
 
 /** Whether a kind is placed at a point rather than traced. Only a spot height is: a summit is a decision about
@@ -54,10 +86,18 @@ export function defaultMark(kind, height = 8) {
 export const isSpot = (markOrKind) =>
   (typeof markOrKind === "string" ? markOrKind : markOrKind?.kind) === "point";
 
-/** Whether a kind's trace closes on itself. An area encloses ground; a line and a scarp run through it, and
- *  closing either would turn a ridgeline into a loop and a scarp into a moat. */
-export const isRing = (markOrKind) =>
-  (typeof markOrKind === "string" ? markOrKind : markOrKind?.kind) === "area";
+/** Whether a kind's trace closes on itself. A bench and a push enclose ground; a line and a scarp run through
+ *  it, and closing either would turn a ridgeline into a loop and a scarp into a moat. */
+export const isRing = (markOrKind) => {
+  const kind = typeof markOrKind === "string" ? markOrKind : markOrKind?.kind;
+  return kind === "area" || kind === PUSH_KIND;
+};
+
+/** Whether a statement is a push — a relative lift applied after the solve — rather than a mark, which pins
+ *  the ground to a stated height. Everything about placing and editing the two is shared; what they do to the
+ *  surface is not, and every caller that cares asks here. */
+export const isPush = (markOrKind) =>
+  (typeof markOrKind === "string" ? markOrKind : markOrKind?.kind) === PUSH_KIND;
 
 /** A mark's traced points, whatever field its kind keeps them in — `ring` for an area, `points` for the rest.
  *  Two names because the wire format says what a thing IS: an area's points close, a line's do not. */
@@ -88,7 +128,11 @@ export function markReach(mark) {
   const points = markPoints(mark);
   if (!points.length) return 0;
   const [ax, az] = markAnchor(mark);
-  const band = mark?.kind === "line" ? (mark.width ?? 1.5) : mark?.kind === "scarp" ? (mark.band ?? 5) : 0;
+  const band = mark?.kind === "line" ? (mark.width ?? 1.5)
+             : mark?.kind === "scarp" ? (mark.band ?? 5)
+             // A push's skirt is ground it moves, so a click on the slope reaches the push that made it.
+             : isPush(mark) ? (mark.falloff ?? 10)
+             : 0;
   return Math.max(...points.map(([x, z]) => Math.hypot(x - ax, z - az))) + band;
 }
 
@@ -104,6 +148,34 @@ export function markHeights(mark) {
   if (mark?.kind === "scarp") return [mark.high ?? 0, mark.low ?? 0];
   const stated = mark?.h;
   return Array.isArray(stated) ? stated : [stated ?? 0];
+}
+
+/**
+ * A push's lift at each of its ring's vertices — its `amounts` if it states them, else its single `amount`
+ * repeated. What makes a drawn ridge fall along its length instead of holding level, and the reason the
+ * expanded form is what an editor shows: an author who wants one end lower needs a number to change, and
+ * "the amount, except at that corner" is not a number.
+ */
+export function pushAmounts(push) {
+  const ring = markPoints(push);
+  const stated = push?.amounts;
+  if (Array.isArray(stated) && stated.length)
+    return ring.map((_, i) => Number(stated[Math.min(i, stated.length - 1)]) || 0);
+  return ring.map(() => Number(push?.amount ?? 0) || 0);
+}
+
+/**
+ * The patch that states one vertex's lift. Writing a per-vertex array collapses back to the single `amount`
+ * when every vertex agrees — so a push edited to a uniform lift and one that never had per-vertex numbers are
+ * the same document, and an author who undoes a variation is left with what they started from rather than
+ * with an array that happens to be flat.
+ */
+export function pushAmountPatch(push, index, value) {
+  const amounts = pushAmounts(push);
+  if (index < 0 || index >= amounts.length) return {};
+  amounts[index] = Number(value) || 0;
+  const uniform = amounts.every(amount => amount === amounts[0]);
+  return uniform ? { amount: amounts[0], amounts: undefined } : { amount: amounts[0], amounts };
 }
 
 /**
@@ -162,25 +234,58 @@ export class ReliefDoc {
       relief.marks.map(mark => ({ ...mark, islandId })));
   }
 
-  byId(id) { return this.marks.find(mark => mark.id === id) ?? null; }
+  /** Every push, each tagged with its island and with the word for what it is. The `kind` is added here
+   *  rather than stored, because the array it sits in already says it. */
+  get pushes() {
+    return [...this.#byIsland.entries()].flatMap(([islandId, relief]) =>
+      relief.pushes.map(push => ({ ...push, kind: PUSH_KIND, islandId })));
+  }
 
-  /** Which island states a mark — the question every edit has to answer first, since the marks live inside
-   *  their island rather than in one flat list. */
-  islandOf(id) {
-    for (const [islandId, relief] of this.#byIsland)
-      if (relief.marks.some(mark => mark.id === id)) return islandId;
+  /** Everything an author placed, marks and pushes together, in the one list the canvas selects from and the
+   *  sidebar lists. They differ in what they do to the surface, not in how they are picked up. */
+  get statements() { return [...this.marks, ...this.pushes]; }
+
+  byId(id) { return this.statements.find(entry => entry.id === id) ?? null; }
+
+  /** Which island states an entry, and which of its two arrays holds it — the question every edit has to
+   *  answer first, since a statement lives inside its island rather than in one flat list. */
+  #locate(id) {
+    for (const [islandId, relief] of this.#byIsland) {
+      if (relief.marks.some(mark => mark.id === id)) return { islandId, list: relief.marks, kind: null };
+      if (relief.pushes.some(push => push.id === id)) return { islandId, list: relief.pushes, kind: PUSH_KIND };
+    }
     return null;
   }
 
-  add(islandId, mark) {
-    const placed = { ...mark, id: mark.id || this.#mintId() };
+  islandOf(id) { return this.#locate(id)?.islandId ?? null; }
+
+  add(islandId, entry) {
+    const placed = { ...entry, id: entry.id || this.#mintId() };
+    if (isPush(entry)) {
+      // Stored without the word: the pushes array is what says it is a push, and a field repeating that
+      // would be one more thing able to disagree with it.
+      const { kind, ...stored } = placed;
+      this.reliefOf(islandId).pushes.push(stored);
+      return { ...stored, kind: PUSH_KIND, islandId };
+    }
     this.reliefOf(islandId).marks.push(placed);
     return { ...placed, islandId };
   }
 
   update(id, patch) {
-    const islandId = this.islandOf(id);
-    if (!islandId) return null;
+    const found = this.#locate(id);
+    if (!found) return null;
+    if (found.kind === PUSH_KIND) {
+      const at = found.list.findIndex(push => push.id === id);
+      // `undefined` in a patch means "state this no longer" — how a per-vertex lift collapses back to one
+      // number — so it deletes the key rather than writing an undefined into the document.
+      const merged = { ...found.list[at], ...patch, id };
+      for (const [key, value] of Object.entries(patch)) if (value === undefined) delete merged[key];
+      delete merged.kind;
+      found.list[at] = merged;
+      return { ...merged, kind: PUSH_KIND, islandId: found.islandId };
+    }
+    const islandId = found.islandId;
     const marks = this.#byIsland.get(islandId).marks;
     const at = marks.findIndex(mark => mark.id === id);
     marks[at] = { ...marks[at], ...patch, id, kind: marks[at].kind };
@@ -188,10 +293,11 @@ export class ReliefDoc {
   }
 
   remove(id) {
-    const islandId = this.islandOf(id);
-    if (!islandId) return;
-    const relief = this.#byIsland.get(islandId);
-    relief.marks = relief.marks.filter(mark => mark.id !== id);
+    const found = this.#locate(id);
+    if (!found) return;
+    const relief = this.#byIsland.get(found.islandId);
+    if (found.kind === PUSH_KIND) relief.pushes = relief.pushes.filter(push => push.id !== id);
+    else relief.marks = relief.marks.filter(mark => mark.id !== id);
   }
 
   /** Patch an island's own settings — base, reach, step, grain. Not a mark: these are what the marks are

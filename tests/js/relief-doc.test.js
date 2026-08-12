@@ -5,11 +5,12 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { recordingPainter } from "./_painter-stub.js";
 
-import { ReliefDoc, defaultMark, markAnchor, markPoints, markReach, pointsPatch, translateMark, isRing, isSpot }
+import { ReliefDoc, defaultMark, markAnchor, markPoints, markReach, pointsPatch, translateMark, isRing, isSpot,
+         isPush, pushAmounts, pushAmountPatch }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/relief/relief-doc.js";
 import { ReliefController, RELIEF_TOOLS }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/controllers/relief-controller.js";
-import { paintReliefMarks, heightColor }
+import { paintReliefMarks, heightColor, liftColor }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/render/relief-render.js";
 
 // ── the document ──────────────────────────────────────────────────────────────
@@ -300,4 +301,147 @@ test("colour carries the height: a rise and a cut are not two shades of one hue"
   assert.notEqual(rise, flat);
   assert.notEqual(cut, flat);
   assert.notEqual(rise, cut);
+});
+
+// ── pushes ────────────────────────────────────────────────────────────────────
+// A push is placed like a bench and does something else entirely: it MOVES the solved surface rather than
+// pinning it, so two over the same ground add where two marks would have to argue. What these hold is that
+// the shared pipeline carries it without either half leaking into the other.
+test("a push is stored in its own array, and without a kind", () => {
+  // The array it sits in already says what it is; a stored field repeating that is one more thing able to
+  // disagree with it.
+  const { controller, doc } = tools();
+  controller.onMouseDown(0, 0, "relief:push");
+  for (const [x, z] of [[10, 0], [10, 10], [0, 10]]) controller.onMouseMove(x, z, "relief:push");
+  controller.onMouseUp();
+
+  const stored = doc.toJSON().i1;
+  assert.equal(stored.marks.length, 0);
+  assert.equal(stored.pushes.length, 1);
+  assert.equal(stored.pushes[0].kind, undefined);
+  // Handed out, it wears the word — everything downstream asks a statement what it is, not where it came from.
+  assert.equal(doc.statements[0].kind, "push");
+});
+
+test("marks and pushes are selected, edited and deleted through one pipeline", () => {
+  const { controller, doc } = tools();
+  controller.onMouseDown(4, 4, "relief:point");
+  controller.onMouseDown(0, 0, "relief:push");
+  for (const [x, z] of [[10, 0], [10, 10], [0, 10]]) controller.onMouseMove(x, z, "relief:push");
+  controller.onMouseUp();
+
+  assert.equal(doc.statements.length, 2);
+  const push = doc.statements.find(isPush);
+  controller.select(push.id);
+  controller.updateSelected({ amount: -6 });
+  assert.equal(doc.toJSON().i1.pushes[0].amount, -6);
+
+  assert.equal(controller.deleteSelected(), true);
+  assert.equal(doc.toJSON().i1.pushes.length, 0);
+  assert.equal(doc.toJSON().i1.marks.length, 1);   // the mark is untouched
+});
+
+test("a push needs no re-basing — it states a lift, not a level", () => {
+  // A mark placed first in an island takes that island's base. A push must not: five blocks up is five
+  // blocks up wherever it is drawn, and re-basing it would turn its lift into an elevation.
+  const doc = ReliefDoc.from({ i1: { base: 30, marks: [], pushes: [] } });
+  const { controller } = tools({ doc });
+  controller.onMouseDown(0, 0, "relief:push");
+  for (const [x, z] of [[10, 0], [10, 10], [0, 10]]) controller.onMouseMove(x, z, "relief:push");
+  controller.onMouseUp();
+  assert.equal(doc.statements.find(isPush).amount, 5);
+});
+
+test("per-vertex lifts expand to one number per ring corner", () => {
+  const push = { kind: "push", ring: [[0, 0], [10, 0], [10, 10], [0, 10]], amount: 4 };
+  assert.deepEqual(pushAmounts(push), [4, 4, 4, 4]);
+  assert.deepEqual(pushAmounts({ ...push, amounts: [6, 2] }), [6, 2, 2, 2]);
+});
+
+test("varying one corner writes an array; levelling them collapses it back", () => {
+  // The way out matters as much as the way in: an author who undoes a variation should be left with the push
+  // they started from, not with an array that happens to be flat.
+  const push = { kind: "push", ring: [[0, 0], [10, 0], [10, 10], [0, 10]], amount: 4 };
+  const varied = pushAmountPatch(push, 2, 9);
+  assert.deepEqual(varied.amounts, [4, 4, 9, 4]);
+
+  const levelled = pushAmountPatch({ ...push, ...varied }, 2, 4);
+  assert.equal(levelled.amounts, undefined);
+  assert.equal(levelled.amount, 4);
+});
+
+test("an undefined in a patch un-states the field rather than storing an undefined", () => {
+  // How a per-corner array collapses back to one number, through the document rather than around it.
+  const { controller, doc } = tools();
+  controller.onMouseDown(0, 0, "relief:push");
+  for (const [x, z] of [[10, 0], [10, 10], [0, 10]]) controller.onMouseMove(x, z, "relief:push");
+  controller.onMouseUp();
+
+  const id = doc.statements.find(isPush).id;
+  controller.select(id);
+  controller.updateSelected({ amount: 4, amounts: [4, 9, 4] });
+  assert.deepEqual(doc.toJSON().i1.pushes[0].amounts, [4, 9, 4]);
+
+  controller.updateSelected({ amount: 4, amounts: undefined });
+  assert.equal("amounts" in doc.toJSON().i1.pushes[0], false);
+});
+
+test("a per-vertex array is never carried to the next push of the same kind", () => {
+  // Settings carry forward so an author can draw six pushes without configuring six. A per-corner array is
+  // sized to the ring it was stated on, so carrying it would hand a fresh four-corner ring numbers it cannot
+  // mean — and the same goes for a ridgeline whose heights have become one per vertex.
+  const { controller, doc } = tools();
+  controller.onMouseDown(0, 0, "relief:push");
+  for (const [x, z] of [[10, 0], [10, 10], [0, 10], [5, 14]]) controller.onMouseMove(x, z, "relief:push");
+  controller.onMouseUp();
+  controller.updateSelected({ amount: 4, amounts: [4, 9, 4, 1] });
+
+  assert.equal(controller.settingsFor("push").amounts, undefined);
+  assert.deepEqual(controller.settingsFor("push").ring, []);   // never the ring that was drawn
+  assert.equal(controller.settingsFor("push").amount, 4);      // the plain number does carry
+});
+
+test("a push's reach counts its skirt, so a click on the slope finds it", () => {
+  const push = { kind: "push", ring: [[0, 0], [10, 0], [10, 10], [0, 10]], amount: 5, falloff: 12 };
+  const tight = { ...push, falloff: 0 };
+  assert.ok(markReach(push) > markReach(tight) + 10);
+});
+
+test("a push wears its lift with a sign, and a varying one wears both ends", () => {
+  const painter = recordingPainter();
+  paintReliefMarks(painter, [
+    { id: "p1", islandId: "i1", kind: "push", ring: [[0, 0], [10, 0], [10, 10], [0, 10]], amount: 5, falloff: 0 },
+  ], { baseOf: () => 8 });
+  assert.equal(painter.of("text")[0][0], "+5");
+
+  const other = recordingPainter();
+  paintReliefMarks(other, [
+    { id: "p2", islandId: "i1", kind: "push", ring: [[0, 0], [10, 0], [10, 10], [0, 10]],
+      amount: 6, amounts: [6, 6, 1, 1], falloff: 0 },
+  ], { baseOf: () => 8 });
+  assert.equal(other.of("text")[0][0], "+6→+1");
+});
+
+test("a push draws its skirt outside the ring, whichever way the ring was traced", () => {
+  // Which side is "out" comes from the ring's own winding. Traced the other way round, an unflipped offset
+  // would draw the skirt INSIDE the push, which reads as a smaller push.
+  const clockwise = [[0, 0], [10, 0], [10, 10], [0, 10]];
+  for (const ring of [clockwise, [...clockwise].reverse()]) {
+    const painter = recordingPainter();
+    paintReliefMarks(painter, [{ id: "p1", islandId: "i1", kind: "push", ring, amount: 5, falloff: 6 }],
+                     { baseOf: () => 8 });
+    // Two rings are drawn: the skirt and the ring itself. Whichever order they come in, the skirt is the
+    // outer one and it has to clear the drawn ring by about the falloff — inside it would read as a
+    // SMALLER push, which is the failure a flipped winding produces.
+    const extents = painter.of("ring").map(([points]) => Math.max(...points.map(([x]) => x)));
+    assert.equal(extents.length, 2);
+    const [inner, outer] = [Math.min(...extents), Math.max(...extents)];
+    assert.equal(inner, 10);                                    // the ring as traced
+    assert.ok(outer >= 15 && outer <= 18, `skirt reached ${outer}, expected about 16`);
+  }
+});
+
+test("a lift is coloured from zero, so a push and a mark at the same height agree", () => {
+  assert.equal(liftColor(5), heightColor(13, 8));
+  assert.equal(liftColor(-5), heightColor(3, 8));
 });

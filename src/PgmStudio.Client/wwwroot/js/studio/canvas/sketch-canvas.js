@@ -697,7 +697,9 @@ export class SketchCanvas extends CanvasBase {
   #paintReliefMarks(painter) {
     if (!this.#reliefOn) return;
     const axes = orbitAxes(this.#mode);
-    paintReliefMarks(painter, this.#reliefDoc.marks, {
+    // Marks and pushes together: they are picked up the same way and differ only in what they do to the
+    // surface, so drawing them from one list is what makes the phase one phase.
+    paintReliefMarks(painter, this.#reliefDoc.statements, {
       selectedId: this.#reliefTools?.selectedId ?? null,
       order: axes.length + 1,
       mirrorPoint: (x, z, k) => applySymmetry(x, z, axes[k - 1], this.#center.cx, this.#center.cz),

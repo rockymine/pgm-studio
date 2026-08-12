@@ -100,6 +100,53 @@
           <strong>stops where the line stops</strong>, so the gaps either end are where the shelf can be
           crossed — a line drawn short of the island's edge is a way through.</p>
       }
+      else if (kind == MarkKinds.Push)
+      {
+        <Field Label="Lift">
+          <LabelHint>(negative digs)</LabelHint>
+          <ChildContent>
+            <NumberField Value="Num(PushFields.Amount, 5)" ValueChanged="SetAmount" />
+          </ChildContent>
+        </Field>
+        <Field Label="Skirt">
+          <LabelHint>(how far the lift falls away outside the ring)</LabelHint>
+          <ChildContent>
+            <NumberField Value="Num(PushFields.Falloff, 10)" ValueChanged="SetFalloff" Min="0" />
+          </ChildContent>
+        </Field>
+        <Field Label="Crown">
+          <LabelHint>(how much higher the middle stands)</LabelHint>
+          <ChildContent>
+            <NumberField Value="Num(PushFields.Crown, 2)" ValueChanged="SetCrown" />
+          </ChildContent>
+        </Field>
+        <Field Label="Roughness">
+          <NumberField Value="Num(PushFields.Roughness, 0.3)" ValueChanged="SetRoughness" Min="0" Step="0.05" />
+        </Field>
+        <p class="section-desc">A push <strong>moves</strong> the ground instead of stating a height, so two
+          over the same ground add. Crown is the one worth reaching for: at zero the ring gets a flat top,
+          and the middle it raises instead is the deepest point measured inward — so a round ring domes to a
+          <strong>point</strong> and a long one ridges to a <strong>line</strong>, from the same number.</p>
+
+        @* Per-vertex lift. Only for a placed push: the numbers are one per corner of the ring that was drawn,
+           so there is nothing to list until there is a ring. This is what makes a drawn ridge fall along its
+           length instead of holding level. *@
+        @if (editingSelection && amounts.Count > 0)
+        {
+          <p class="section-desc">Lift at each corner — vary them and the ridge falls along its own length.</p>
+          @for (var i = 0; i < amounts.Count; i++)
+          {
+            var at = i;
+            <Field Label="@($"Corner {at + 1}")">
+              <NumberField Value="amounts[at]" ValueChanged="v => SetPushAmount(at, v)" />
+            </Field>
+          }
+          @if (VariesAlongRing)
+          {
+            <Button Variant="ghost" OnClick="LevelAmounts">Make it level</Button>
+          }
+        }
+      }
 
       @if (editingSelection)
       {

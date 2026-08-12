@@ -34,6 +34,7 @@ public partial class SketchReliefInspector
     private JsonObject? relief;        // the island in play's own settings
     private bool editingSelection;
     private int markCount;
+    private List<double> amounts = [];   // a selected push's lift at each ring vertex, expanded
     private string kind = "";
     private string? islandId;
     private string? islandName;
@@ -65,6 +66,9 @@ public partial class SketchReliefInspector
         if (root is not JsonObject state) return;
 
         markCount = (state["marks"] as JsonArray)?.Count ?? 0;
+        amounts = state["amounts"] is JsonArray lifts
+            ? [.. lifts.Select(lift => double.TryParse(lift?.ToString(), out var one) ? one : 0)]
+            : [];
         islandId = state["islandId"]?.GetValue<string>();
         islandName = state["islandName"]?.GetValue<string>();
         if (state["relief"] is JsonObject stated) relief = (JsonObject)stated.DeepClone();
@@ -105,6 +109,33 @@ public partial class SketchReliefInspector
     private Task SetBand(double value) => Set(MarkFields.Band, JsonValue.Create(Math.Max(1, value)));
 
     private Task Delete() => Handle is null ? Task.CompletedTask : Handle.InvokeVoidAsync("deleteMark").AsTask();
+
+    // ── a push ─────────────────────────────────────────────────────────────────
+    private Task SetAmount(double value) => Set(PushFields.Amount, JsonValue.Create(value));
+    private Task SetFalloff(double value) => Set(PushFields.Falloff, JsonValue.Create(Math.Max(0, value)));
+    private Task SetCrown(double value) => Set(PushFields.Crown, JsonValue.Create(value));
+    private Task SetRoughness(double value) => Set(PushFields.Roughness, JsonValue.Create(Math.Max(0, value)));
+
+    /// <summary>Whether the ring's corners state different lifts — which is the whole reason the per-corner
+    /// numbers exist, and the test for whether there is anything to level back out.</summary>
+    private bool VariesAlongRing => amounts.Count > 1 && amounts.Any(lift => lift != amounts[0]);
+
+    /// <summary>State one corner's lift. The document collapses the array back to a single amount when every
+    /// corner agrees, so this is also the way out: level them and the push is the one an author started
+    /// from rather than an array that happens to be flat.</summary>
+    private Task SetPushAmount(int at, double value)
+    {
+        if (Handle is null || at < 0 || at >= amounts.Count) return Task.CompletedTask;
+        amounts[at] = value;
+        return Handle.InvokeVoidAsync("setPushAmount", at, value).AsTask();
+    }
+
+    private async Task LevelAmounts()
+    {
+        // Level to the FIRST corner rather than to the average: an author levelling a ridge is undoing the
+        // fall, and the height they mean is the one they set at the end they started from.
+        for (var at = 1; at < amounts.Count; at++) await SetPushAmount(at, amounts[0]);
+    }
 
     // ── heights ────────────────────────────────────────────────────────────────
     /// <summary>How many heights this mark states. One is the common case; a ridgeline gains more as an
@@ -244,6 +275,8 @@ public partial class SketchReliefInspector
             "A shelf above a line and open ground below it. The face is the drop; where the line stops is where the shelf can be crossed."),
         [MarkKinds.Rim] = ("square-dashed", "Rim",
             "The island's whole outline, held at one height."),
+        [MarkKinds.Push] = ("arrows-up-from-line", "Push",
+            "A drawn ring the ground is lifted inside, falling away outside it over the skirt. It moves the surface rather than stating a height, so two over the same ground add."),
     };
 
     private (string Icon, string Title, string Blurb) Info
@@ -260,6 +293,12 @@ public static class MarkKinds
     public const string Area = "area";
     public const string Scarp = "scarp";
     public const string Rim = "rim";
+
+    /// <summary>A push is not a mark — it lifts the solved surface rather than pinning it — but it is placed,
+    /// selected and edited through the same pipeline, so the phase needs one word for it alongside the rest.
+    /// The client adds this when it hands a push out; the stored form carries no kind, because the array a
+    /// push sits in already says what it is.</summary>
+    public const string Push = "push";
 }
 
 /// <summary>A mark's own fields (see <see cref="MarkKinds"/> for why these are constants).</summary>
@@ -277,6 +316,19 @@ public static class MarkFields
     public const string Low = "low";
     public const string Face = "face";
     public const string Band = "band";
+}
+
+/// <summary>A push's own fields. <c>Amount</c> is the lift the whole ring takes and <c>Amounts</c> one per
+/// ring vertex; the two are not alternatives an author picks between, but the same number before and after it
+/// stops being uniform, which is why the inspector edits vertices and the document collapses them back.</summary>
+public static class PushFields
+{
+    public const string Amount = "amount";
+    public const string Amounts = "amounts";
+    public const string Falloff = "falloff";
+    public const string Roughness = "roughness";
+    public const string Crown = "crown";
+    public const string Ring = "ring";
 }
 
 /// <summary>One island's relief settings — what its marks are stated against.</summary>
@@ -306,6 +358,7 @@ public static class ReliefTools
     public const string Line = "relief:line";
     public const string Area = "relief:area";
     public const string Scarp = "relief:scarp";
+    public const string Push = "relief:push";
 
     /// <summary>Tool id, the mark kind it places, its glyph, and what it is called. The name names the tool
     /// and does not explain it — a dock tooltip is a label, not a manual.</summary>
@@ -315,6 +368,7 @@ public static class ReliefTools
         (Line, MarkKinds.Line, "spline", "Ridgeline"),
         (Area, MarkKinds.Area, "pentagon", "Bench"),
         (Scarp, MarkKinds.Scarp, "triangle", "Scarp"),
+        (Push, MarkKinds.Push, "arrows-up-from-line", "Push"),
     ];
 
     /// <summary>The kind of mark a tool places, or null when the tool places none.</summary>

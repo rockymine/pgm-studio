@@ -11,6 +11,7 @@ import { rectToPolygon, translateShape, rotateShape, boundsOfShapes, splitShape 
 import { surfaceHeights } from "../geometry/slope.js";
 import { applySymmetry, orbitAxes } from "../geometry/symmetry.js";
 import { defaultThemeJson, uniqueScopeId } from "../theme/theme-model.js";
+import { isPush, pushAmounts, pushAmountPatch } from "../relief/relief-doc.js";
 import { fireTo } from "./fire.js";
 import polygonClipping from "../vendor/polygon-clipping.js";
 
@@ -480,9 +481,15 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // canvas. Its own settings — base, reach, step, grain — are what the inspector edits when no mark is.
     const islandId = selected?.islandId ?? selectedIslandId ?? null;
     return JSON.stringify({
-      marks: canvas.relief.marks,
+      // Marks and pushes as one list, because that is how the phase treats them: the sidebar lists them
+      // together and the canvas selects across both. Which of the two a row is, its `kind` says.
+      marks: canvas.relief.statements,
       selectedId,
       selected,
+      // A push's per-vertex lifts, expanded to one number per ring vertex — what an inspector shows, since
+      // an author who wants one corner lower needs a number to change and "the amount, except there" is not
+      // one. Only for a selected push; null for everything else.
+      amounts: selected && isPush(selected) ? pushAmounts(selected) : null,
       islandId,
       islandName: islandId ? (islandById(islandId)?.name ?? islandId) : null,
       relief: islandId ? canvas.relief.peek(islandId) : null,
@@ -758,6 +765,19 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "Invalid JSON"; }
       if (!selectedIslandId) return "no island selected";
       canvas.reliefTools?.updateRelief(selectedIslandId, patch);
+      afterReliefChange(); return null;
+    },
+    /**
+     * State the lift at ONE of a selected push's ring vertices — what makes a drawn ridge fall along its
+     * length instead of holding level. Collapses back to the single `amount` when every vertex agrees, so
+     * undoing a variation leaves the push an author started from rather than an array that happens to be
+     * flat. A no-op unless a push is selected: a mark has no lift to vary.
+     */
+    setPushAmount(index, value) {
+      const tools = canvas.reliefTools;
+      const selected = tools?.selectedId ? canvas.relief.byId(tools.selectedId) : null;
+      if (!selected || !isPush(selected)) return "no push selected";
+      tools.updateSelected(pushAmountPatch(selected, Number(index), Number(value)));
       afterReliefChange(); return null;
     },
     /** The starting values the next mark of a kind takes — what the inspector edits with nothing selected. */
