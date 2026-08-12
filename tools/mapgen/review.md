@@ -22,10 +22,25 @@ from, a village behind, a void channel twenty blocks in front" and authors the d
 shapes,
 their heights, the themes on each, the relief, the dressing, the objective and its kit.
 
-**That is already possible.** The surfaces exist — `surface.md` beside this file is the map of them — and
-nothing in the list above needs a capability that has not been built. What it needs is an author that knows
-the surfaces it is touching. An MCP head (`B21`) would make it a first-class loop with the validator and
-evaluator answering in rule ids, and some work remains there, but the shortfall today is not the machinery.
+**That is already possible, and it has already been done.** The house presets in `HousePresets` were authored
+exactly this way — described in prose and built from the description, down to "seven courses between spruce
+log posts that stand the full height, the bottom two cobble and andesite mixed" — and they work. Their
+docstrings are the briefs they came from. So the method is not a proposal; the gap is that it was applied to
+a building and never to a board. The surfaces exist — `surface.md` beside this file is the map of them — and
+nothing above needs a capability that has not been built. What it needs is an author that knows the surfaces
+it is touching. An MCP head (`B21`) would make it a first-class loop with the validator and evaluator
+answering in rule ids, and some work remains there, but the shortfall today is not the machinery.
+
+**It is a reviewed loop, not a single shot.** Iterations are expected: a pass is produced, a human reads it
+and says what is wrong with it — this relief is too harsh here, that plan puts the wool behind the spawn —
+and the next pass answers that. Which is why building in layers (MG30) matters beyond tidiness: a pass is
+only reviewable if it is small enough to have an opinion about, and only correctable if the passes after it
+have not already been laid on top.
+
+Where this goes, stated as direction rather than as something that exists: the critique becomes **spatially
+anchored** — an area marked with a rectangle and a sentence about what is wrong inside it. Text carries that
+today (a rect and a note is a rect and a note), so nothing blocks it; it is a question of the loop being
+built around it.
 
 Two entries below are what stand between the tool and that, and both belong at the top rather than buried:
 
