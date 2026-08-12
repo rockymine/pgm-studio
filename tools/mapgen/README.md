@@ -1,5 +1,10 @@
 # mapgen — a whole map from one JSON spec
 
+> `review.md` beside this file records where the first fifteen maps fell short of what the corpus ships, as a
+> pool of `MG` entries. Read it before adding to the tool: several of the knobs documented here are the wrong
+> knobs, and the largest entry is that a destroy map needs a board composed for it rather than a capture board
+> with its wool retargeted.
+
 ```bash
 dotnet run --project tools/mapgen -- <spec.json> [more.json ...]
 dotnet run --project tools/mapgen -- --describe <spec.json>    # compile only, report the board
