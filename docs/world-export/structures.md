@@ -276,6 +276,11 @@ the eave's rise goes negative below the base plane and rounding those cells back
 the slope it belongs to. The slab is a block id rather than a material, for the reason a window's is: which
 half of its cube a slab fills is geometry.
 
+Every roof here is a height field over **one rectangle**, because a building is one rectangle. A house whose
+footprint is several touching rectangles — an L, a T, a U — is designed and not built (G172): a wing's roof is
+one of these fields, a building's roof is the union of the wing volumes, and `RoofField` needs no changes to
+serve it. The rules that composition turns on, and the invariant that gates it, are on the task.
+
 A roof has **no thickness knob**, and the height field is why: a column writes as many courses as the step down
 to its neighbours needs, so how deep the roof runs at a given cell is answered by the slope rather than by a
 number beside it. A flat lid is one course because a flat lid has no step to close. The `roof_thickness` and

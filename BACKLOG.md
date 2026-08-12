@@ -191,6 +191,69 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   still has knobs whose *card* does not change when they are turned, which is the one thing the preview exists
   to prevent. Wants a larger sample footprint, and a card that is not the one view those knobs are invisible in.
 
+- [ ] **G172 — A house on more than one rectangle: wings, and the roof where two of them meet.** A building is
+  one rectangle today, so an L, a T or a U can only be built as separate houses standing next to each other —
+  which is what the settlement investigation ran aground on. The shape that works is **one house, one style, a
+  footprint of touching rectangles**, each *wing* carrying its own ridge axis and its own storey count. Designed
+  and prototyped in scratch, not built; the prototype was thrown away deliberately (see the note at the end).
+
+  **The roof needs no new machinery, and that is the finding.** `RoofField` already answers a height per cell
+  for a rect, a base course, a form and a pitch — so a wing's roof is one of those, and a building's roof is
+  the **union of the wing volumes**. Not a max of crowns: a max blends two surfaces into one and drags roof
+  material down the wall between wings of different heights. `RoofField` itself needs no changes at all.
+
+  Six rules, each of which the prototype got wrong at least once. The first five held by the end of it; the
+  sixth is where it still fell short, below.
+
+  1. **Union of volumes, never a max of crowns.** Each wing is extruded as the whole building it would be
+     alone, and its riser — write down as far as the lowest neighbour — closes only against **itself**. A
+     surface does not thicken to reach one it merely stands beside.
+  2. **No roof block below the wall top of whatever covers that cell.** This is what makes a one-storey wing
+     stop against a two-storey one instead of pushing through it: under a wall is inside the building, and
+     that is not where a roof goes.
+  3. **A wing emits overhang only at its own ends.** Extending a roof plan along the ridge is what lets it run
+     on and find the other roof, but that extension belongs inside the footprint. Carried past the far wall of
+     a wing it ran into, it hangs a stub of roof in the air outside a wall it never touched.
+  4. **A gable face wherever a wing's roof plan ends** — on the building's outline or inside it. Filling only
+     on the outline is what leaves a wing that stops partway into another reading as roof pushed into roof.
+  5. **A wing's gable end is a wall from the ground up, wherever it stands.** Walls built only where *exposed*
+     never build this one, because a gable end inside another wing of the same height is exposed by nothing.
+  6. **Walls outrank roofs.** Lay the roofs first and the walls after, or a wing punching through another has
+     the other's slope written straight over its standing wall.
+
+  **Two joints, and they are not a mode — they are which rectangle was drawn.** Where a wing reaches an outside
+  wall its roof runs through and the crossing is a valley (*meet*); where it stops inside another, its gable
+  end stands mid-slope and it is a cross-gable (*project*). An author picking between them is redundant with
+  the geometry. Different storey heights admit only the first: the second would put roof inside a building.
+
+  *Meet* is a march rather than a formula. Build both roofs standalone, then step each course of the
+  perpendicular roof into the other until it **hits a block, and stop** — placing no overhang, since an
+  overhang is what a roof has outside a wall. What still needs settling is the inside: the result has to be one
+  continuous attic rather than a slice of the long roof hanging through it.
+
+  **The acceptance test, and it is worth more than the implementation.** A wing has two gable ends: one on the
+  outside of the building, one projected into the other wing's slope. At the same wall height *they are the
+  same gable* — same plinth, same wall, same gable face, same verge, same overhang, mirrored. The only
+  difference is that one sits mid-slope instead of ending a building. Assert the two profiles are identical,
+  comparing over the **wing's own width** (the neighbour's floor legitimately runs wider). It says nothing
+  about how a roof is assembled, so it outlives any implementation of one — and in the prototype it located a
+  missing wall in a single run and then pointed straight at an uncut roof with no ambiguity left.
+
+  Also needed, and cheap once the above holds: a projecting wing must **cut** the roof it pushes into across
+  its own span, or its verge has nowhere to sit and its overhang is simply missing.
+
+  **What this costs elsewhere is the footprint, not the roof.** `Footprint` is a rectangle throughout the
+  stamper: `OnPerimeter`, `OnCorner`, the perimeter `Arc` that carries wall stripes round corners, the window
+  runs (six on an L, not four, with an *inner* corner as a new kind to keep a margin off), and `Ring`, whose
+  distance-to-nearest-wall is the same transform the plan needs anyway. Upstream, WX1 says the piece dictates
+  the footprint, so the dressing prop or the plan piece has to accept more than one rect. Do the footprint
+  first: the roof falls out once it exists, and doing the roof first means writing it twice.
+
+  **A note on method, because it cost most of a session.** Every defect above was invisible in an isometric and
+  obvious in a **printed cut** — a text grid of one plane, one letter per material. Two of them survived a
+  flood-fill seal test, which passes happily on a roof with a hole in its body. Print the cut from the first
+  line of the implementation, not the last.
+
 - [ ] **G171 — A building's reported height is its reservation, not its highest block.** `TopLayerOver` adds
   up every storey's headroom and answers where the roof would sit, which is right for a building whose storeys
   are rooms and wrong for one whose top storey is a roof terrace (`structures.md` §7.6): a parapet storey
