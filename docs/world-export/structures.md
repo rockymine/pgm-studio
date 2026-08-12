@@ -305,30 +305,34 @@ stub of roof hangs outside a wall it never touched. **No roof block sits below t
 that cell** — under a wall is inside the building — which is what makes a one-storey wing stop against a
 two-storey one instead of pushing a slope through its standing wall, and what turns two abutting eaves into a
 valley rather than into each other's gutters. And **walls outrank roofs**: every volume is laid before any wall
-is, so a wing standing against another does not have the other's slope written over it. That ordering shows on
-a building of one wing too — a steep eave's riser used to write into the top course of its own wall, and the
-wall now keeps it.
+is, and the wall-top rule settles the rest, so a wing standing against another does not have the other's slope
+written over it. That shows on a building of one wing too — a steep eave's riser used to reach into the top
+course of its own wall, and the wall now keeps it.
 
 **Two joints, and they are not a mode — they are which rectangle was drawn.** Where a wing reaches an outside
-wall of another its roof runs up against it and the crossing is a **valley**, which the union builds by itself.
-Where a wing **stops inside** another — a gable end landing between that wing's own two ends — it is a
-**cross-gable**, and three things follow. Its gable end is a wall from the ground up even though nothing
-exposes it, posts and all, because a face buried in a neighbour of the same height is exposed by nothing and a
-wall built only where the plan is exposed never builds this one. Its gable face is drawn there exactly as on
-the end that closes the building, since a wing's roof plan ends on both. And it **cuts** the roof it pushes
+wall of another the crossing is a **valley**; where a wing **stops inside** another — a gable end landing
+between that wing's own two ends — it is a **cross-gable**.
+
+A meet is not left as two roofs abutting, because a wing that merely stops at the wall drops its ridge to the
+neighbour's eave and climbs again, which is a gutter cut across the middle of a roof. It **marches**: each
+course of the meeting wing steps on along its own ridge into the other until it hits a block, and stops. The
+courses nearest the ridge travel furthest and the ones nearest the eave stop at once, which is what draws the
+crossing as a diagonal valley. No overhang is carried in — an overhang is what a roof has outside a wall, and
+inside another wing there is no outside — so a marching end emits none of its own and the march takes those
+columns over. That is not only a rule about what an overhang means: with its own eave still in place, every
+course strikes a block at its first step and the march moves nothing.
+
+A cross-gable turns on three things instead. Its buried gable end is a wall from the ground up even though
+nothing exposes it, posts and all, because a face inside a neighbour of the same height is exposed by nothing
+and a wall built only where the plan is exposed never builds this one. Its gable face is drawn there exactly as
+on the end that closes the building, since a wing's roof plan ends on both. And it **cuts** the roof it pushes
 into, across its own span, or its verge has nothing to sit on. The span is the wing's walls and not its
 overhang: cut the overhang's columns too and the hole is wider than anything fills, because the verge that was
 to sit there is itself standing over the other wing's wall and the rule keeping roof out from under a wall
-keeps it out as well.
+keeps it out as well. A wing that projects never marches, having already cut what it pushed into.
 
-What is not built is the **march** (G172): a wing's roof is one of these fields and a
-building's roof is the **union of the wing volumes**, which `RoofField` needs no changes to serve, and until
-that lands a plan of more than one wing is roofed by a single field over the box drawn round it. a meet is a union rather than a march. The two roofs abut
-in a valley instead of one stepping each course into the other until it hits a block, so the attic under them
-is continuous but the slopes do not interlock. A porch is refused on
-such a plan for the same reason it is deferred: a deck is a strip the walls give up, and giving one up means
-taking cells out of a shape rather than moving one side of a rectangle in. The rules the roof's composition
-turns on, and the invariant that gates it, are on the task.
+A porch is refused on a plan of more than one wing: a deck is a strip the walls give up, and giving one up
+means taking cells out of a shape rather than moving one side of a rectangle in.
 
 A roof has **no thickness knob**, and the height field is why: a column writes as many courses as the step down
 to its neighbours needs, so how deep the roof runs at a given cell is answered by the slope rather than by a
