@@ -963,20 +963,19 @@ public sealed class HouseStamperTests
     private static Footprint Crossed() => new([new Wing(0, 5, 9, 9), new Wing(2, 0, 6, 9)]);
 
     /// <summary>
-    /// <b>A wing's two gable ends are the same gable above the eave, and only above it.</b> A wing drawn
+    /// <b>A wing's two gable ends carry the same triangle.</b> A wing drawn
     /// through its neighbour ends on that neighbour's far wall, and its gable there — face, slope and verge —
     /// is the gable that closes the building's other end, mirrored.
     ///
     /// <para><b>Below the eave they differ, and should.</b> The wing's own end is a corner the building turns
     /// away at and stands on posts; the end on the neighbour's wall is a stretch of that wall, and the building
-    /// turns at the neighbour's corners instead — several blocks further along. The task's criterion asks for
-    /// the same plinth and wall too, and that part does not hold for any shape tried: measured on a wing
-    /// stopping short, on one buried inside its neighbour, and on one drawn through, the corner columns differ
-    /// every time and for the same reason. Recorded here rather than trimmed out of the comparison, because
-    /// what it is really saying is that a gable end is a roof part and a corner post is a building part.</para>
+    /// turns at the neighbour's corners instead — several blocks further along. What has to match is the
+    /// <b>triangle</b>, and it does; no post is added where a wall runs straight on, because that would not be
+    /// a corner. The difference below the line is asserted rather than trimmed out, so that the day it moves,
+    /// something says so.</para>
     /// </summary>
     [Test]
-    public async Task A_wings_two_gable_ends_are_the_same_gable_above_the_eave()
+    public async Task A_wings_two_gable_ends_carry_the_same_triangle()
     {
         var plan = Crossed();
         var wing = plan.Wings[1];
@@ -996,10 +995,10 @@ public sealed class HouseStamperTests
         await Assert.That(seen).IsGreaterThan(0);
 
         // And below it they part exactly where the building's own corners are, which is the corner columns.
-        var posts = Enumerable.Range(wing.MinX, wing.Width)
+        var turns = Enumerable.Range(wing.MinX, wing.Width)
             .Where(x => world.GetBlock(x, eave, wing.MinZ) != world.GetBlock(x, eave, wing.MaxZ))
             .ToList();
-        await Assert.That(posts).IsEquivalentTo(new[] { wing.MinX, wing.MaxX });
+        await Assert.That(turns).IsEquivalentTo(new[] { wing.MinX, wing.MaxX });
     }
 
     /// <summary>

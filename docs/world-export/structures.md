@@ -322,14 +322,17 @@ inside another wing there is no outside — so a marching end emits none of its 
 columns over. That is not only a rule about what an overhang means: with its own eave still in place, every
 course strikes a block at its first step and the march moves nothing.
 
-A cross-gable turns on three things instead. Its buried gable end is a wall from the ground up even though
-nothing exposes it, posts and all, because a face inside a neighbour of the same height is exposed by nothing
-and a wall built only where the plan is exposed never builds this one. Its gable face is drawn there exactly as
-on the end that closes the building, since a wing's roof plan ends on both. And it **cuts** the roof it pushes
-into, across its own span, or its verge has nothing to sit on. The span is the wing's walls and not its
-overhang: cut the overhang's columns too and the hole is wider than anything fills, because the verge that was
-to sit there is itself standing over the other wing's wall and the rule keeping roof out from under a wall
-keeps it out as well. A wing that projects never marches, having already cut what it pushed into.
+There are only these two shapes. A wing either stops at its neighbour's wall or is drawn on through it, and
+which one it is, is the rectangle the author drew — never a mode. A wing whose roof is shallower than the one
+it meets marches until it hits and stops; one drawn through comes out the far side with its own gable and its
+own overhang, landing on the row the neighbour's overhang lands on. A roof taller than the one it crosses can
+only pass through, which is to say it can only be drawn through.
+
+**A wing's two gable ends carry the same triangle**, and that is what the acceptance test asserts: the end that
+closes the building and the end on the neighbour's far wall are the same gable, block for block, above the eave.
+Below the eave they are not alike and are not made so. One is a corner the building turns away at and stands on
+posts; the other is a stretch of the neighbour's wall, which turns at that neighbour's own corners further
+along. A gable is a roof part and a post is a building part, and no post is added where a wall runs straight on.
 
 A porch is refused on a plan of more than one wing: a deck is a strip the walls give up, and giving one up
 means taking cells out of a shape rather than moving one side of a rectangle in.

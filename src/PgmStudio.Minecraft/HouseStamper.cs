@@ -148,7 +148,6 @@ public static class HouseStamper
                     // <b>A projecting wing cuts the roof it pushes into, across its own span.</b> Without the
                     // cut the two surfaces are laid over each other and the wing's verge has nothing to sit on
                     // — its overhang is simply missing, buried in the slope it was supposed to break.
-                    if (CutBy(wing, field, x, z) || Buried(wing, field, x, z)) continue;
                     // A marching end carries no overhang of its own: the march is what fills those columns,
                     // stepping them on into the other roof, and a course that met its own eave first would
                     // strike a block at the first step and never move.
@@ -205,22 +204,6 @@ public static class HouseStamper
                         else PutPart(x, y, z, wall, course - 1, plan);
                     }
         }
-
-        // <b>A wing's gable end is a wall from the ground up, wherever it stands.</b> The storey pass builds
-        // what each storey's own outline exposes, and a gable end pushed into a neighbour of the same height is
-        // exposed by nothing — so it is built here, by the wing it belongs to rather than by the plan.
-        foreach (var (x, z, wing, corner) in BuriedGableEnds())
-            for (var level = 0; level < levels.Count && wing.Reaches(level); level++)
-            {
-                var storey = levels[level];
-                var post = storey.Post ?? style.Post;
-                for (var course = 1; course <= storey.Courses(level == levels.Count - 1); course++)
-                {
-                    var y = floorY + bases[level] + course;
-                    if (corner && post is { } standing) Put(x, y, z, standing, body);
-                    else PutPart(x, y, z, storey.Wall ?? style.Wall, course - 1, body);
-                }
-            }
 
         // Windows, storey by storey and in each storey's own frame — a sill of two is two blocks above *this*
         // floor whichever storey it is. The seater takes a sill and a wall height and asks nothing about which
@@ -439,15 +422,15 @@ public static class HouseStamper
         }
 
         /// <summary>Whether a wing's gable end runs up against another wing, so its roof marches on into it
-        /// rather than stopping. A wing that <em>projects</em> never marches: it has already cut the roof it
-        /// pushed into, and marching would step it back over its own cut.</summary>
+        /// rather than stopping. An end with open ground beyond it closes the building and marches nowhere,
+        /// which is what makes a wing drawn <em>through</em> its neighbour simply a longer rectangle.</summary>
         bool Marches(Wing wing, int end, int step)
         {
             var across = wing.RidgeAlongX ? (wing.MinZ + wing.MaxZ) / 2 : (wing.MinX + wing.MaxX) / 2;
             var along = end + step;
             var (x, z) = wing.RidgeAlongX ? (along, across) : (across, along);
             foreach (var other in body.Wings)
-                if (!other.Equals(wing) && other.Holds(x, z)) return !wing.ProjectsInto(other);
+                if (!other.Equals(wing) && other.Holds(x, z)) return true;
             return false;
         }
 
@@ -459,62 +442,6 @@ public static class HouseStamper
             for (var y = Math.Max(field.Underside(x, z), Covering(x, z) + 1); y <= field.Crown(x, z); y++)
                 if (y is > 0 and < VoxelWorld.MaxHeight && world.GetBlock(x, y, z).Id != Blocks.Air) return true;
             return false;
-        }
-
-        /// <summary>Whether another wing projects into this one and its roof plan claims this cell, so this
-        /// wing's roof gives way there. A wing that merely reaches this one's outside wall claims nothing: that
-        /// crossing is a valley, and two surfaces meeting is what a valley is.</summary>
-        bool CutBy(Wing wing, RoofField field, int x, int z)
-        {
-            foreach (var (other, _, theirs, _) in roofs)
-            {
-                if (other.Equals(wing) || !other.ProjectsInto(wing) || !other.Holds(x, z)) continue;
-                // Across the projecting wing's own span — its walls, not its overhang. Cut the overhang's
-                // columns too and the hole is wider than anything fills it: the verge that was to sit there is
-                // itself below the wall it is standing over, so rule 2 keeps it out and the roof is left open.
-                //
-                // And only where that wing actually stands over this one. A cross wing lower than the roof it
-                // pushes into cuts a trench straight through its ridge otherwise — the main roof severed by a
-                // gable too short to replace it.
-                if (theirs.Crown(x, z) >= field.Crown(x, z)) return true;
-            }
-            return false;
-        }
-
-        /// <summary>Whether this wing's roof lies under the one it projects into, and so is not laid at all: it
-        /// <b>dies into that slope</b> rather than surfacing through it. The complement of the cut — at any one
-        /// cell exactly one of the two roofs stands.</summary>
-        bool Buried(Wing wing, RoofField field, int x, int z)
-        {
-            foreach (var (other, _, theirs, _) in roofs)
-            {
-                if (other.Equals(wing) || !wing.ProjectsInto(other) || !other.Holds(x, z)) continue;
-                if (theirs.Crown(x, z) > field.Crown(x, z)) return true;
-            }
-            return false;
-        }
-
-        /// <summary>Every cell of a gable end that stands <b>inside</b> another wing rather than on the
-        /// building's outline. A wall built only where the plan is exposed never builds this one — a gable end
-        /// buried in a neighbour of the same height is exposed by nothing — and without it the gable above has
-        /// no wall under it and the wing opens straight into the slope it pushed into.</summary>
-        IEnumerable<(int X, int Z, Wing Wing, bool Corner)> BuriedGableEnds()
-        {
-            foreach (var wing in body.Wings)
-            {
-                if (!body.Wings.Any(other => !other.Equals(wing) && wing.ProjectsInto(other))) continue;
-                var (low, high) = wing.GableEnds;
-                foreach (var end in new[] { low, high })
-                    foreach (var (x, z) in wing.GableEnd(end))
-                    {
-                        if (body.OnPerimeter(x, z)) continue;
-                        // The ends of the face are the wing's own corners and take a post, exactly as the
-                        // gable end that closes the building does — the two are the same gable.
-                        var corner = wing.RidgeAlongX ? z == wing.MinZ || z == wing.MaxZ
-                                                      : x == wing.MinX || x == wing.MaxX;
-                        yield return (x, z, wing, corner);
-                    }
-            }
         }
 
         /// <summary>The highest wall top of any wing standing on this cell, or a course below every roof where

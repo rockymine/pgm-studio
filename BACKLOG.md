@@ -250,11 +250,16 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   volumes**, with the three rules that carry it — a wing reaches its own overhang and no further, no roof block
   below the wall top of whatever covers a cell, and walls laid after every volume.
 
-  **Both joints are built, and the acceptance test passes in the form this task states it.** A meet marches —
-  each course of the meeting wing steps on into the other until it hits a block — so the valley runs as a
-  diagonal and the ridge never dips. A project cuts the roof it pushes into across its own walls and stands its
-  buried gable end from the ground up. What remains of the original design note is the attic: it is continuous
-  under a marched valley, but nothing yet says a wing may not be roofed over a room it cannot reach.
+  **Both shapes are built and gated.** A wing stopping at its neighbour's wall marches into it until each
+  course hits a block; a wing drawn on through comes out the far side with its own gable and overhang. Those
+  are the only two — which one applies is the rectangle drawn, never a mode — and the acceptance test asserts
+  what it should: the two gable ends carry the **same triangle**. The plinth and wall below the eave are not
+  alike and are not made alike, since no post belongs where a wall runs straight on.
+
+  **Worth measuring next: a wing taller than the roof it meets, stopping at the wall rather than drawn
+  through.** Its upper courses have nothing to hit, so the march may carry them across the whole neighbour and
+  out the other side — which is the drawn-through result reached by the shape that did not ask for it. A march
+  should stop somewhere; where, is the question.
 
   **A wing has no doorway into its neighbour.** Where two wings meet the plan is simply open between them, which
   is right; where one projects into another its gable end is now a wall from the ground up, which is also right
