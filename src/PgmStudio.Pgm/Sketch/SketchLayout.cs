@@ -265,6 +265,19 @@ public sealed class SketchShape
     /// sits it IN the terrain instead of on it.</summary>
     [JsonPropertyName("skirt")]          public int? Skirt { get; set; }
 
+    /// <summary>Whether this shape's ground takes part in its island's relief. The island is the unit a relief
+    /// is solved over, because a relief solved per shape leaves a seam wherever two of them meet and disagree
+    /// about the height they share. The fusion is not always what an author wants, and the case that decides
+    /// it is a built thing standing on the ground — a city, a keep, a walled compound — whose floor is not
+    /// terrain and which is themed as a unit. <c>hold</c> pins the shape at its own stated top, so the
+    /// surrounding surface is solved knowing where it has to arrive; <c>exclude</c> pins nothing and takes the
+    /// footprint out of the solve entirely, so the land is whatever that outline would have produced and the
+    /// shape keeps its own height. Absent is <c>inherit</c> — the shape is part of the island's ground.
+    /// <para>Not read on a shape that declares a <see cref="HeightMode"/>: such a shape already stands out of
+    /// the field, and <c>raise</c>/<c>sink</c> read the ground under their own footprint to know where to
+    /// stand, which an excluded footprint would not have.</para></summary>
+    [JsonPropertyName("relief_scope")]   public string? ReliefScope { get; set; }
+
     [JsonPropertyName("base_height")]    public double? BaseHeight { get; set; }
     [JsonPropertyName("anchor_heights")] public double[]? AnchorHeights { get; set; }
     [JsonPropertyName("floor")]          public double? Floor { get; set; }

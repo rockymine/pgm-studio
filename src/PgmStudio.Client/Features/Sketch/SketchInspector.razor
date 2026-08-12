@@ -60,6 +60,21 @@
           <p class="section-desc">Zero is a sheer face — right for a monolith, which is a built thing standing
             on the ground. A few blocks sits a landform <strong>in</strong> the terrain instead of on it.</p>
         }
+        else
+        {
+          @* Whether the shape's ground joins its island's relief. Only asked of a shape that IS ground: one
+             standing out of the field already answers it, and a raise reads the ground under its own
+             footprint to know where to stand. *@
+          <Field Label="Takes part in relief">
+            <select class="field-input" value="@Shape.ReliefScope" @onchange="ReliefScopeChanged">
+              @foreach (var (value, label) in ReliefScopes)
+              {
+                <option value="@value" selected="@(Shape.ReliefScope == value)">@label</option>
+              }
+            </select>
+          </Field>
+          <p class="section-desc">@ReliefScopeBlurb</p>
+        }
         <Field Label="Rotate (°)">
           <input @key="rotateNonce" class="field-input" type="number" step="15" placeholder="0" value="@rotateInput" @onchange="RotateChanged" />
         </Field>

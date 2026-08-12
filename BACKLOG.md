@@ -98,15 +98,6 @@ highlight); these are the parked / dormant / deferred slices.
   compose on top as they do for any other shape, so a sunk tilted path is a cutting and a raised one an
   embankment.
 
-- [ ] **S48 — Relief scope: let a shape leave its island's relief.** The island is the unit and the solver
-  already honours a shape that leaves it — `Participation` is **inherit** / **hold** / **exclude**, tested,
-  and the measurement behind the choice is in `FEATURES.md` and `sketch-relief.md` §11. What is missing is the
-  authored end: nothing on `SketchShape` says which one a shape takes, so the rasterizer solves every island
-  as one fused surface and a city floor cannot yet stand out of the field that rolls past it. One word on the
-  shape, read into `ReliefShape` where the rasterizer builds the island's footprint, plus the control on the
-  shape inspector next to the height fields. An excluded shape is stamped back after the solve, so it can be
-  moved or re-themed without re-solving the ground around it.
-
 - [ ] **S47 — A pressure budget for relief.** S43 measures what terrain charges; nothing says how much
   charging is too much. The dressing stage has the identical gap (`world-export/ideas.md` G167) and the two
   should share an answer. The materials exist — the share of the board at each passability tier, the detour

@@ -418,7 +418,18 @@ ten blocks above its surroundings steps at its wall under either binding.
 
 An excluded shape is stamped back at its own height after the solve, so the built surface and the surface the
 relief was solved over are different objects. That is what lets the compound be moved, re-themed or restyled
-without re-solving the ground around it.
+without re-solving the ground around it. In the rasterizer the stamping costs nothing to arrange: an excluded
+footprint is not in the solved field, so the cells simply keep the column the shape drew, tilt and all.
+
+A held shape pins **one** level, read at its ring's centre. That is what holding means — a floor is flat, and
+a floor that followed a per-vertex tilt would be the slope it was declared to replace. An excluded shape has
+no such limit, because it never enters the solve: its own column survives however it varies.
+
+The word is not asked of a shape that declares a `height_mode`. Such a shape already stands out of the field,
+and `raise`/`sink` read the ground under their own footprint to know where to stand — an excluded footprint
+would leave them reading their own plate, which is the failure the erect pass exists to avoid. The inspector
+offers whichever question applies: a skirt for a shape standing out of the terrain, a participation for a
+shape that is terrain.
 
 ## 12. What the corpus says, and what it says about this
 
@@ -524,6 +535,13 @@ The shape gains one word for how its own top is decided, and a number for how ha
 ```json
 "height_mode": "level" | "raise" | "sink",
 "skirt": 0
+```
+
+and one for whether its ground joins the island's, which is the other question and is asked of the shapes the
+first is not:
+
+```json
+"relief_scope": "hold" | "exclude"
 ```
 
 `base_height` and `anchor_heights` stay exactly as they are and keep their meaning; a relief supersedes them

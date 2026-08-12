@@ -102,6 +102,28 @@ public partial class SketchInspector
         _ => "Part of the landmass: the island's relief is what this shape's ground does.",
     };
 
+    /// <summary>Whether a shape's ground joins the relief its island is solved over (sketch-relief.md §11).
+    /// Inheriting is first and is the default: the island is the unit because a relief solved per shape leaves
+    /// a seam wherever two of them meet and disagree about the height they share.</summary>
+    private static readonly (string Value, string Label)[] ReliefScopes =
+    [
+        ("", "yes — its ground is the island's ground"),
+        ("hold", "holds its own level, and the land meets it"),
+        ("exclude", "sits apart — the land ignores it"),
+    ];
+
+    private string ReliefScopeBlurb => Shape?.ReliefScope switch
+    {
+        "hold" => "Flat at its own floor + height, and the surrounding surface is solved knowing where it has to arrive — a walled town the valley runs up to.",
+        "exclude" => "Out of the solve entirely, so the land is whatever that outline would have made at any height — a citadel on its own plinth.",
+        _ => "The island's relief rolls through it, which is what a shape drawn to make a landmass wants.",
+    };
+
+    private Task ReliefScopeChanged(ChangeEventArgs e)
+        => Shape is null || Handle is null
+            ? Task.CompletedTask
+            : Handle.InvokeVoidAsync("setReliefScope", Shape.Id, e.Value?.ToString() ?? "").AsTask();
+
     private Task SkirtChanged(double value)
         => Shape is null || Handle is null
             ? Task.CompletedTask

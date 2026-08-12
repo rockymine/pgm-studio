@@ -195,7 +195,7 @@ public static class SketchRasterizer
                 var field = meta.Id is { Length: > 0 } id ? solved.GetValueOrDefault(id) : null;
                 foreach (var axis in axes)
                 {
-                    var mirrored = islandShapes.Select(s => MirrorShape(s, axis, cx, cz));
+                    var mirrored = islandShapes.Select(s => MirrorShape(s, axis, cx, cz)).ToList();
                     var copy = RasterGroup(mirrored);
                     // A mirrored copy of a relief-bearing island takes its heights from the island's own
                     // solved surface, read back through the same transform — exactly symmetric by
@@ -208,6 +208,11 @@ public static class SketchRasterizer
                             copy[cell] = (Math.Max(copy[cell].Floor + 1, field.At(source.Item1, source.Item2)),
                                           copy[cell].Floor);
                         }
+                    // The image gets the same pass over it the primary got, and in the same order. An erected
+                    // shape is settled against the ground under it, so reading its height back through the
+                    // mirror would give it the relief's answer instead of its own — one team a mesa and the
+                    // other a hillside.
+                    Erect(copy, mirrored);
                     Merge(cells, copy);
                 }
             }
@@ -345,20 +350,43 @@ public static class SketchRasterizer
             if (meta.Id is not { Length: > 0 } islandId) continue;
             if (!relief.TryGetValue(islandId, out var stated)) continue;
 
-            // The island's own ground: the cells its add-shapes cover that survived the layer's set algebra.
+            // The island's own ground: the cells its add-shapes cover that survived the layer's set algebra,
+            // minus the shapes that take themselves out of the solve. An excluded shape is a hole, so the
+            // relaxation bends around it exactly as it bends around the void.
             var owned = new List<(int X, int Z)>();
+            var excluded = new HashSet<(int X, int Z)>();
+            var held = new List<Mark>();
             foreach (var id in meta.ShapeIds.Where(byId.ContainsKey))
             {
                 var shape = byId[id];
                 if (shape.Role is not null || shape.Operation == "subtract") continue;
-                foreach (var (x, z, _, _) in RasterShape(shape))
-                    if (cells.ContainsKey((x, z))) owned.Add((x, z));
+                var covered = RasterShape(shape).Select(cell => (cell.X, cell.Z))
+                                                .Where(cells.ContainsKey).ToList();
+                switch (ScopeOf(shape))
+                {
+                    case Participation.Exclude:
+                        excluded.UnionWith(covered);
+                        break;
+                    case Participation.Hold:
+                        owned.AddRange(covered);
+                        var ring = RingOf(shape);
+                        if (ring.Count >= 3) held.Add(new AreaMark([.. ring], StatedTop(shape, ring)));
+                        break;
+                    default:
+                        owned.AddRange(covered);
+                        break;
+                }
             }
-            if (owned.Count == 0) continue;
+            var ground = owned.Distinct().Where(cell => !excluded.Contains(cell)).ToList();
+            if (ground.Count == 0) continue;
 
-            var footprint = Footprint.Over(owned.Distinct().ToList(), margin: 0);
-            solved[islandId] = ReliefSolver.Solve(footprint, stated.ToSpec(mirrorMode, cx, cz),
-                                                  warmStart?.Invoke(islandId, footprint));
+            // Held shapes go last so one wins its cells outright: a compound's floor is a statement about the
+            // map, not a suggestion the terrain averages against.
+            var spec = stated.ToSpec(mirrorMode, cx, cz);
+            if (held.Count > 0) spec = spec with { Marks = [.. spec.Marks, .. held] };
+
+            var footprint = Footprint.Over(ground, margin: 0);
+            solved[islandId] = ReliefSolver.Solve(footprint, spec, warmStart?.Invoke(islandId, footprint));
         }
         return solved;
     }
@@ -455,6 +483,27 @@ public static class SketchRasterizer
         _ => [],
     };
 
+    // How a shape's ground takes part in its island's relief. An erected shape does not get a say: it already
+    // stands out of the field, and raise/sink read the ground under their own footprint to know where to stand.
+    private static Participation ScopeOf(SketchShape s) => IsErected(s) ? Participation.Inherit : s.ReliefScope switch
+    {
+        "hold"    => Participation.Hold,
+        "exclude" => Participation.Exclude,
+        _         => Participation.Inherit,
+    };
+
+    // The top a held shape pins the field to, read the same way RasterShape reads it so the shape lands where
+    // it drew itself. One level, sampled at the ring's centre: holding is what a floor does, and a floor that
+    // followed a per-vertex tilt would be the slope it was declared to replace. An EXCLUDED shape keeps its
+    // own column instead, tilt and all, because it never enters the solve at all.
+    private static int StatedTop(SketchShape s, List<double[]> ring)
+    {
+        var floor = Math.Max(0, (int)Math.Round(s.Floor ?? 0));
+        var centreX = ring.Average(point => point[0]);
+        var centreZ = ring.Average(point => point[1]);
+        return floor + Math.Max(1, (int)Math.Round(HeightFn(s)(centreX, centreZ)));
+    }
+
     private static PathEdge ParsePathEdge(string? edge) => edge switch
     {
         "rough"   => Geom.Algorithms.PathEdge.Rough,
@@ -550,7 +599,7 @@ public static class SketchRasterizer
             {
                 Id = s.Id, Type = s.Type, Operation = s.Operation, Override = s.Override,
                 Vertices = nv, Controls = nc, AnchorHeights = s.AnchorHeights, BaseHeight = s.BaseHeight, Floor = s.Floor,
-                HeightMode = s.HeightMode, Skirt = s.Skirt, Theme = s.Theme,
+                HeightMode = s.HeightMode, Skirt = s.Skirt, ReliefScope = s.ReliefScope, Theme = s.Theme,
             };
         }
         // Rectangle/circle/path: flatten the transformed footprint to a polygon (uniform height carried). A
@@ -561,7 +610,7 @@ public static class SketchRasterizer
         {
             Id = s.Id, Type = "polygon", Operation = s.Operation, Override = s.Override,
             Vertices = ring, BaseHeight = s.BaseHeight, Floor = s.Floor,
-            HeightMode = s.HeightMode, Skirt = s.Skirt, Theme = s.Theme,
+            HeightMode = s.HeightMode, Skirt = s.Skirt, ReliefScope = s.ReliefScope, Theme = s.Theme,
         };
     }
 

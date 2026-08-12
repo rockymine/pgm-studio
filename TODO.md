@@ -42,8 +42,8 @@ The authoring half is done: a contour can be grabbed and moved to state a height
 from the surface the last one settled on (`FEATURES.md`). The design, its measurements and the authoring plan
 are `docs/contracts/sketch-relief.md`; the prototype every figure comes from is `tools/relief`.
 
-**This theme has drained.** What remains of relief is parked in `BACKLOG.md` and is no longer the focus: the
-stroke tools reading the relief (S46), per-shape participation (S48), the later passes folding (S42) and a
+**This theme has drained.** What remains of relief is parked in `BACKLOG.md` and is no longer the focus:
+water reading the relief (S46), the later passes folding (S42), a path's height varying along it (S56) and a
 pressure budget (S47). Pull one up when it becomes the work.
 
 ## Layout generation (G) — the generator in the studio

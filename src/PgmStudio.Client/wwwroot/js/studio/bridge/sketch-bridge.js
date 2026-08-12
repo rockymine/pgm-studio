@@ -301,7 +301,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     const shapes = canvas.getShapes().map(s => ({
       id: s.id, type: s.type, operation: s.operation, override: !!s.override, dim: dimLabel(s),
       baseHeight: clampHeight(s.base_height), floor: clampFloor(s.floor),
-      heightMode: s.height_mode ?? "", skirt: s.skirt ?? 0,
+      heightMode: s.height_mode ?? "", skirt: s.skirt ?? 0, reliefScope: s.relief_scope ?? "",
       radius: s.radius ?? 0, pathEdge: s.path_edge ?? "", pathSeed: s.path_seed ?? 0,
     }));
     const isl = islands.map(i => ({ id: i.id, name: i.name, mirrors: i.mirrors, shapeIds: i.shapeIds }));
@@ -652,6 +652,34 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (seed !== null && seed !== undefined) s.path_seed = Math.max(0, Math.round(seed));
       canvas.updateShape(s);
       recompute(); pushLayout(); refreshIso(); markDirty();
+    },
+
+    // How a shape's top is decided once its island carries a relief, and how far in it eases into the ground
+    // it meets. Neither changes the footprint, so the island does not need recomputing — but both change the
+    // column, so the iso and the saved document do.
+    setHeightMode(id, mode) {
+      const s = canvas.getShape(id);
+      if (!s) return;
+      if (mode === "level" || mode === "raise" || mode === "sink") s.height_mode = mode;
+      else delete s.height_mode;                    // absent, not empty: a shape without the word IS ground
+      pushLayout(); refreshIso(); markDirty();
+    },
+
+    setSkirt(id, blocks) {
+      const s = canvas.getShape(id);
+      if (!s) return;
+      s.skirt = Math.max(0, Math.round(blocks ?? 0));
+      pushLayout(); refreshIso(); markDirty();
+    },
+
+    // Whether the shape's ground joins its island's relief. Solved on the server, so nothing here recomputes
+    // — the next preview is what shows it.
+    setReliefScope(id, scope) {
+      const s = canvas.getShape(id);
+      if (!s) return;
+      if (scope === "hold" || scope === "exclude") s.relief_scope = scope;
+      else delete s.relief_scope;
+      pushLayout(); markDirty();
     },
 
     // Panel-driven edits.

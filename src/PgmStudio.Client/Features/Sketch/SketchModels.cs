@@ -18,6 +18,9 @@ public sealed record SketchShapeRow(
     [property: JsonPropertyName("heightMode")] string HeightMode = "",
     // How far in from its outline an erected shape eases into the ground it meets. Zero is a sheer face.
     [property: JsonPropertyName("skirt")] double Skirt = 0,
+    // Whether the shape's ground joins its island's relief. Empty inherits; hold pins it at its own level and
+    // the land is solved to meet it; exclude takes it out of the solve entirely.
+    [property: JsonPropertyName("reliefScope")] string ReliefScope = "",
     // A path's band: half-width, how its edges are drawn, and the seed a rough edge wanders by. Empty on
     // every other kind of shape, which is what the inspector reads to know whether to offer them.
     [property: JsonPropertyName("radius")] double Radius = 0,

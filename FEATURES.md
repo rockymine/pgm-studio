@@ -4113,6 +4113,42 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   mirrored island, zero cells differ from their image. (`SketchRasterizer.RingOf`/`MirrorShape`,
   `geometry/shape.js`, `sketch-draw-controller.js`; 6 + 4 tests)
 
+- **A shape can leave its island's relief (S48).** The island is the unit a relief is solved over, because
+  solving per shape is a different and wrong answer — a mark outside a shape says nothing to it, and measured
+  over three abutting pieces the seams step **8 and 7 blocks** against **1 and 1** for the fusion. The fusion
+  is not always what an author wants, and the case that decides it is a built thing standing on the ground,
+  whose floor is not terrain. `Participation` had been modelled and tested in `Geom` since the solver landed
+  with nothing reading it; the shape now carries the word. **hold** pins the shape at its own stated top and
+  the surrounding surface is solved knowing where it has to arrive — a walled town the valley runs up to;
+  **exclude** takes the footprint out of the solve entirely, so the land is whatever that outline would have
+  produced at any height — a citadel on its own plinth. Both are boundaries and the land differs under
+  either, because a hole has an outline the relaxation must bend around; what separates them is whether the
+  shape's height travels into the ground around it. Measured over a compound on a 6→26 slope, the fused
+  ground varies 3 blocks under it and both bindings flatten it to 0, while the land beyond the wall differs
+  between the two. A held shape pins **one** level, read at its ring's centre, since a floor that followed a
+  per-vertex tilt would be the slope it replaced; an excluded shape keeps its own column, tilt and all, and
+  needs no stamping pass to do it — its cells were never in the solved field. The word is not asked of a
+  shape declaring a `height_mode`: that shape already stands out of the field, and `raise`/`sink` read the
+  ground under their own footprint, which an excluded footprint would not have. (`SketchRasterizer.SolveRelief`,
+  `SketchInspector`, `sketch-bridge.js`; 7 tests)
+
+- **Erected shapes reach the far side of a mirror (S57).** A mirrored island's copy takes its heights from the
+  primary's solved surface, read back through the same transform — exactly symmetric by construction rather
+  than symmetric to within a second solve's tolerance. An erected shape is settled *after* that surface,
+  against the ground under it, so reading its height back through the mirror gave it the relief's answer
+  instead of its own: a 24-block mesa stood at 24 on the authored side and **12** on its image, one team a
+  mesa and the other a hillside. The image now gets the same passes the primary got, in the same order.
+  Shipped with it, the two words a mirror was dropping outright — `height_mode` and `skirt` were absent from
+  both arms of the shape transform, so an erected shape's image was ordinary ground before it was anything
+  else. (`SketchRasterizer.RasterizeLayout`/`MirrorShape`; 1 test)
+
+- **The height-mode and skirt controls are connected (S58).** The shape inspector had offered "Stands as"
+  since the erect pass landed and a skirt since it gained one, and neither reached the document: the bridge
+  had no `setHeightMode` and no `setSkirt`, so the dropdown threw into the console and the shape kept whatever
+  it had. Both exist now, alongside `setReliefScope`, and all three write **absence** rather than an empty
+  string — a shape without the word is ground, and a shape carrying `""` is a shape carrying a word nothing
+  reads. (`sketch-bridge.js`)
+
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,
   `GET /wool-availability`, `GET /monument-obstruction` (each wool monument's block must be air; flags a
