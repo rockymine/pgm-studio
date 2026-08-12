@@ -207,7 +207,11 @@ public static class WindowForms
     /// <summary>The hole and nothing in it — cut and left, which is not the same as asking for none.</summary>
     public const string Open = "open";
 
-    public static readonly string[] All = [None, StairLattice, SlabBanded, Pane, Open];
+    /// <summary>An opening with its two top corners rounded off by upside-down stairs — the door head's trick
+    /// on a window.</summary>
+    public const string Arched = "arched";
+
+    public static readonly string[] All = [None, StairLattice, SlabBanded, Pane, Open, Arched];
 
     public static string Describe(string? form) => Canonical(form) switch
     {
@@ -215,6 +219,7 @@ public static class WindowForms
         SlabBanded => "A band between a slab sill and lintel",
         Pane => "Panes, glazed",
         Open => "An opening, nothing in it",
+        Arched => "An opening, its top corners rounded",
         _ => "No windows",
     };
 

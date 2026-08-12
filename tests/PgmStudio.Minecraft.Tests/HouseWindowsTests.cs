@@ -10,6 +10,8 @@ namespace PgmStudio.Minecraft.Tests;
 /// </summary>
 public sealed class HouseWindowsTests
 {
+    private const int FloorY = 64;
+
     private static List<WindowSeat> Seats(
         WindowStyle style, int width = 15, int depth = 11, int wallExtent = 7,
         IReadOnlyList<RoomDoor>? doors = null)
@@ -273,5 +275,62 @@ public sealed class HouseWindowsTests
         // Five across leaves one cell once both margins are kept, so a two-wide window does not fit — and the
         // wall is left whole rather than the margin being quietly given up to seat one.
         await Assert.That(Seats(WindowStyle.Glazed, width: 5, depth: 5)).IsEmpty();
+    }
+
+    // ── the arched opening ─────────────────────────────────────────────────────────────────────────
+    /// <summary>An arch is its two top corners and nothing else: an upside-down stair at each end of the
+    /// opening's <em>top</em> course, every other cell of it left as light. The upside-down flag is what makes
+    /// it an arch rather than a pair of steps — the full half is the top of the cube and the quarter each is
+    /// missing faces into the opening.</summary>
+    [Test]
+    [Arguments(2, 2)]
+    [Arguments(2, 3)]
+    [Arguments(3, 3)]
+    public async Task An_arched_window_carries_stairs_only_in_the_top_corners(int width, int height)
+    {
+        var style = new WindowStyle
+        {
+            Form = WindowForm.Arched, Block = Blocks.OakStairs,
+            Width = width, Height = height, Sill = 2, Spacing = 3,
+        };
+        var (builtWidth, builtHeight) = style.Normalized();
+        var world = new VoxelWorld();
+        var seat = new WindowSeat(RoomEdge.NegZ, 3, builtWidth, 2, builtHeight);
+        HouseWindows.Cut(world, seat, style, FloorY, 0, 0, 12, 8);
+
+        for (var step = 0; step < builtWidth; step++)
+            for (var course = 0; course < builtHeight; course++)
+            {
+                var (id, data) = world.GetBlock(seat.Lo + step, FloorY + 2 + course, 0);
+                var corner = course == builtHeight - 1 && (step == 0 || step == builtWidth - 1);
+                if (corner)
+                {
+                    await Assert.That(id).IsEqualTo(Blocks.OakStairs);
+                    await Assert.That(data & Blocks.StairUpsideDown).IsEqualTo(Blocks.StairUpsideDown);
+                }
+                else
+                {
+                    await Assert.That(id).IsEqualTo(Blocks.Air);
+                }
+            }
+    }
+
+    /// <summary>Two corners are the whole of an arch and one cell cannot hold both, and a head that took the
+    /// only course would be an arch over nothing — so the form states its own least size whatever it is
+    /// asked for.</summary>
+    [Test]
+    [Arguments(1, 1, 2, 2)]
+    [Arguments(1, 4, 2, 4)]
+    [Arguments(5, 1, 5, 2)]
+    public async Task An_arch_is_never_narrower_than_two_or_shorter_than_two(
+        int askedWidth, int askedHeight, int builtWidth, int builtHeight)
+    {
+        var built = new WindowStyle
+        {
+            Form = WindowForm.Arched, Width = askedWidth, Height = askedHeight,
+        }.Normalized();
+
+        await Assert.That(built.Width).IsEqualTo(builtWidth);
+        await Assert.That(built.Height).IsEqualTo(builtHeight);
     }
 }

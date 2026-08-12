@@ -40,7 +40,7 @@ public static class HouseStamper
         if (width < 3 || depth < 3) return;                       // no room for two walls and an inside
 
         var ground = new Footprint(minX, minZ, minX + width - 1, minZ + depth - 1);
-        var front = style.Porch?.Edge ?? FrontEdge(doors, ground);
+        var front = style.Porch?.Edge ?? style.DoorEdge ?? FrontEdge(doors, ground);
         var (body, deck) = SplitPorch(ground, style.Porch, front);
         var doorHeight = Math.Min(
             doors is { Count: > 0 } ? style.DoorHeight : Math.Max(3, style.DoorHeight),
@@ -497,42 +497,57 @@ public static class HouseStamper
         };
     }
 
-    /// <summary>Where the doorways go. A frame's doors are the entry contract and are taken as given — until a
-    /// porch moves the wall they were cut in, when they are carried onto the wall's new line and any that no
-    /// longer meet it are dropped. Without a frame the house cuts its own: centred on the front, never smaller
-    /// than two by three, and never through a corner post.</summary>
+    /// <summary>Where the doorways go. A frame's doors are the entry contract and keep the wall and the place
+    /// the frame chose — but a frame knows the room and not the building, so where the style stands a
+    /// <b>post</b> at the corners the opening is still fitted clear of them, narrowing rather than cutting
+    /// through the frame. A porch moves the wall its doors were cut in, and they are carried onto the new line
+    /// with the same fit. Without a frame the house cuts its own, centred on the front.</summary>
     private static List<RoomDoor> Doorways(
         IReadOnlyList<RoomDoor>? doors, HouseStyle style, Footprint body, bool wallsMoved, RoomEdge front)
     {
+        // A postless building's corners are wall like the rest of it, so an opening a block in from one takes
+        // nothing that was holding anything up and the frame's own margin is the whole of the rule. Where a
+        // post stands, the corner is a column, and a column wants a block of wall beside it before anything is
+        // taken out — which is the margin the house keeps for the door it cuts itself.
+        var framed = style.Levels[0].Post ?? style.Post;
+
         if (doors is { Count: > 0 })
         {
-            if (!wallsMoved) return [.. doors];
+            if (!wallsMoved && framed is null) return [.. doors];
             var carried = new List<RoomDoor>();
             foreach (var door in doors)
-            {
-                var (runLo, runHi) = Run(body, door.Edge);
-                var width = Math.Min(door.Width, runHi - runLo + 1);
-                if (width < 1) continue;
-                carried.Add(door with { Lo = Math.Clamp(door.Lo, runLo, runHi - width + 1), Width = width });
-            }
+                if (Fit(body, door.Edge, door.Width, door.Lo + (door.Width - 1) / 2, framed) is { } fitted)
+                    carried.Add(door with { Lo = fitted.Lo, Width = fitted.Width });
             return carried;
         }
-
-        // Clear of both posts, and the door <b>narrows</b> rather than the margin giving way: a face too tight
-        // for the width asked for gets a narrower opening, not one that meets the frame. Two blocks is what a
-        // door wants and one is what a narrow shed can have, which is the building saying it is narrow. Only a
-        // face with no seat at all — three across, where the margins leave nothing — falls back to the run
-        // between the corners, because a building nobody can walk into is worse than one with a tight door.
-        var (seatLo, seatHi) = Seat(body, front);
-        var (lo, hi) = seatHi >= seatLo ? (seatLo, seatHi) : Run(body, front);
-        var asked = Math.Min(Math.Max(2, style.DoorWidth), hi - lo + 1);
-        if (asked < 1) return [];
 
         var centre = front is RoomEdge.NegZ or RoomEdge.PosZ
             ? (body.MinX + body.MaxX) / 2
             : (body.MinZ + body.MaxZ) / 2;
-        var start = Math.Clamp(centre - (asked - 1) / 2, lo, hi - asked + 1);
-        return [new RoomDoor(front, start, asked)];
+        return Fit(body, front, Math.Max(2, style.DoorWidth), centre, framed) is { } own
+            ? [new RoomDoor(front, own.Lo, own.Width)]
+            : [];
+    }
+
+    /// <summary>An opening of at most <paramref name="width"/> on one wall, as near <paramref name="about"/> as
+    /// the wall allows, or null where the wall cannot carry one at all.
+    ///
+    /// <para>The door <b>narrows</b> rather than the margin giving way: a face too tight for the width asked
+    /// for gets a narrower opening, not one that meets the frame. Two blocks is what a door wants and one is
+    /// what a narrow shed can have, which is the building saying it is narrow — so a five-wide framed face
+    /// carries a centred single opening rather than a two-wide one against a post. Only a face with no seat at
+    /// all falls back to the run between the corners, because a building nobody can walk into is worse than one
+    /// with a tight door.</para></summary>
+    private static (int Lo, int Width)? Fit(
+        Footprint body, RoomEdge edge, int width, int about, TerrainMaterial? post)
+    {
+        var (runLo, runHi) = Run(body, edge);
+        var (seatLo, seatHi) = post is null ? (runLo, runHi) : Seat(body, edge);
+        var (lo, hi) = seatHi >= seatLo ? (seatLo, seatHi) : (runLo, runHi);
+
+        var fitted = Math.Min(width, hi - lo + 1);
+        if (fitted < 1) return null;
+        return (Math.Clamp(about - (fitted - 1) / 2, lo, hi - fitted + 1), fitted);
     }
 
     /// <summary>The stretch of a wall between its two corner posts.</summary>

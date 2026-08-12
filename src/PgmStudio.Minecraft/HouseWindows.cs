@@ -27,6 +27,17 @@ public enum WindowForm
     /// one is cut and left, which is what a warm-weather house does and what a wall wants where the light
     /// matters more than the weather. Its size is entirely the author's, since no form is imposing one.</summary>
     Open,
+
+    /// <summary>An opening whose <b>top course is rounded off</b>: an upside-down stair in each of its two top
+    /// corners, raised half outward so the quarter each is missing faces into the opening, and the courses under
+    /// them left clear. It is <see cref="DoorHeadForm.Arched"/> doing its trick for a window instead of a
+    /// doorway — the same two stairs taking the squareness out of the same square hole.
+    ///
+    /// <para>Two wide at the least, because the whole of it is two corners and one cell cannot hold both, and
+    /// two tall at the least, because a head that took the only course would leave an arch over nothing. Wider
+    /// than two it spans the middle between the corners the way a door head does; taller than two the courses
+    /// below the head are the light.</para></summary>
+    Arched,
 }
 
 /// <summary>
@@ -79,6 +90,9 @@ public sealed record WindowStyle
     {
         WindowForm.StairLattice => (2, 2),
         WindowForm.SlabBanded => (Math.Max(2, Width), 3),
+        // Two corners are the whole of an arch and one cell cannot hold both; and a head that took the only
+        // course would be an arch over nothing, so there is always a course of light under it.
+        WindowForm.Arched => (Math.Max(2, Width), Math.Max(2, Height)),
         _ => (Math.Max(1, Width), Math.Max(1, Height)),
     };
 
@@ -351,6 +365,20 @@ public static class HouseWindows
                     2 => (style.Block, variant | Blocks.SlabUpperHalf),       // the lintel
                     _ => (Blocks.Air, 0),
                 };
+            case WindowForm.Arched:
+            {
+                // Only the top course carries anything, and only at its two ends: the arch is the corners
+                // rounded off and everything under them is the light. A wider opening leaves the middle of the
+                // head open rather than spanning it — a window is not carrying a wall over a doorway, so there
+                // is nothing there for a beam to do.
+                if (course != seat.Height - 1 || (step > 0 && step < seat.Width - 1)) return (Blocks.Air, 0);
+                var facing = alongX
+                    ? step == 0 ? Blocks.StairWest : Blocks.StairEast
+                    : step == 0 ? Blocks.StairNorth : Blocks.StairSouth;
+                // A stair's whole data value is geometry — two bits of facing and the upside-down flag — so
+                // there is no variant nibble to carry, and which wood it is, is which block it is.
+                return (style.Block, facing | Blocks.StairUpsideDown);
+            }
             case WindowForm.Pane:
                 return (style.Block, style.Data & 0xF);
             default:

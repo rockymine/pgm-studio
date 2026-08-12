@@ -354,6 +354,7 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
         WindowForms.SlabBanded => WindowForm.SlabBanded,
         WindowForms.Pane => WindowForm.Pane,
         WindowForms.Open => WindowForm.Open,
+        WindowForms.Arched => WindowForm.Arched,
         _ => WindowForm.None,
     };
 

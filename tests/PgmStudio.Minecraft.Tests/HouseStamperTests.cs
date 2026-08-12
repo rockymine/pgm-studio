@@ -668,4 +668,60 @@ public sealed class HouseStamperTests
             await Assert.That(open.Max()).IsLessThanOrEqualTo(width - 3);
         }
     }
+
+    /// <summary>A frame's door is the entry contract and keeps the wall the frame chose — but a frame knows the
+    /// room and not the building, so where the style stands a post the opening is still fitted clear of it. This
+    /// is the path a library preview and a wool room take, and it was the one seating doors against the post.</summary>
+    [Test]
+    [Arguments(7)]
+    [Arguments(9)]
+    [Arguments(11)]
+    public async Task A_handed_in_door_clears_the_post_a_frame_knew_nothing_about(int width)
+    {
+        var style = new HouseStyle { Post = new SolidMaterial(Blocks.Log), DoorWidth = 2 };
+        var world = new VoxelWorld();
+        // Hard against the corner cell, which is where a frame that never heard of a post would put it.
+        HouseStamper.Stamp(world, 0, 0, width, 7, FloorY, style, doors: [new RoomDoor(RoomEdge.NegZ, 1, 2)]);
+
+        var open = Enumerable.Range(0, width)
+            .Where(x => world.GetBlock(x, FloorY + 1, 0).Id == Blocks.Air).ToList();
+        await Assert.That(open).IsNotEmpty();
+        await Assert.That(open.Min()).IsGreaterThanOrEqualTo(2);
+    }
+
+    /// <summary>And a building with no post keeps the door exactly where it was handed. A postless corner is
+    /// wall like the rest of the building, so an opening beside it takes nothing that was carrying anything —
+    /// the margin exists for the column, and inventing one here would narrow every wool cage's door.</summary>
+    [Test]
+    public async Task A_postless_shell_keeps_the_door_the_frame_handed_it()
+    {
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, 0, 0, 9, 7, FloorY, new HouseStyle { Post = null },
+            doors: [new RoomDoor(RoomEdge.NegZ, 1, 2)]);
+
+        var open = Enumerable.Range(0, 9)
+            .Where(x => world.GetBlock(x, FloorY + 1, 0).Id == Blocks.Air).ToList();
+        await Assert.That(open).IsEquivalentTo(new[] { 1, 2 });
+    }
+
+    /// <summary>A style may name the wall it fronts on, and it outranks the proportions. It is what lets a hall
+    /// be entered at its gable end so the row of windows down its long walls survives — windows and doorways are
+    /// both centred on a wall's run, and a seat a door meets is dropped rather than shifted.</summary>
+    [Test]
+    public async Task A_style_may_choose_the_wall_it_fronts_on()
+    {
+        var hall = new HouseStyle { DoorEdge = RoomEdge.NegX, DoorWidth = 2 };
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, 0, 0, 21, 9, FloorY, hall);
+
+        // The long side is where the proportions would have put it, and it is whole.
+        var longSide = Enumerable.Range(0, 21)
+            .Where(x => world.GetBlock(x, FloorY + 1, 0).Id == Blocks.Air).ToList();
+        await Assert.That(longSide).IsEmpty();
+
+        // The gable end carries it instead.
+        var end = Enumerable.Range(0, 9)
+            .Where(z => world.GetBlock(0, FloorY + 1, z).Id == Blocks.Air).ToList();
+        await Assert.That(end).IsNotEmpty();
+    }
 }
