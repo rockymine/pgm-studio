@@ -5,6 +5,7 @@ using FastEndpoints;
 using LinqToDB;
 using LinqToDB.Async;
 using PgmStudio.Analysis.Footprint;
+using PgmStudio.Analysis.Playability;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Features;
@@ -302,6 +303,63 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
         }).ToArray();
 
         await Send.OkAsync(new { interval, islands }, ct);
+    }
+}
+
+/// <summary>POST /api/map/{slug}/sketch/relief/read — what the relief a posted layout carries <b>charges</b>,
+/// per island. Not a walkability score: a relief that is walkable everywhere is a field rather than a map, and
+/// a single number ranks every deliberate barrier as a defect. The report states reachability at each of the
+/// game's three thresholds (a jump, a placed block, building in earnest), separates <b>places</b> from
+/// <b>ledges</b>, qualifies faces as cliffs by the corpus rule, measures crossings in <b>both</b> directions
+/// (a drop is free the way it falls) and reports the symmetry error, which nothing else would show.
+///
+/// <para>It sits next to the document it describes, which is what makes a relief correctable by a generator or
+/// an agent rather than only by eye. Same body as the contour endpoint — the live layout.</para></summary>
+public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCache warm) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/map/{slug}/sketch/relief/read"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
+        if (map is null) { await Send.NotFoundAsync(ct); return; }
+
+        using var reader = new StreamReader(HttpContext.Request.Body);
+        var layoutJson = await reader.ReadToEndAsync(ct);
+
+        Dictionary<string, HeightField> fields;
+        SketchLayout? state;
+        try
+        {
+            state = SketchLayout.Parse(layoutJson);
+            fields = SketchRasterizer.ReliefFields(layoutJson,
+                (island, footprint) => warm.WarmStart(map.Id, island, footprint),
+                (island, solved) => warm.Remember(map.Id, island, solved));
+        }
+        catch { await Send.ResponseAsync(new { error = "could not solve relief" }, 400, ct); return; }
+
+        var mode = state?.Setup?.MirrorMode;
+        var cx = state?.Setup?.Center?.Cx ?? 0;
+        var cz = state?.Setup?.Center?.Cz ?? 0;
+
+        var islands = fields.Select(entry =>
+        {
+            var read = ReliefReadback.Read(entry.Value, mode, cx, cz);
+            return new
+            {
+                island = entry.Key,
+                read.Cells, read.Low, read.High, read.Relief,
+                read.Steps,
+                tiers = read.Tiers,
+                faces = read.Faces.Take(12),          // the whole list is long and the tail is all banks
+                faceCount = read.Faces.Count,
+                read.Cliffs,
+                acrossX = read.AcrossX, acrossZ = read.AcrossZ,
+                symmetryError = read.SymmetryError,
+            };
+        }).ToArray();
+
+        await Send.OkAsync(new { islands }, ct);
     }
 }
 

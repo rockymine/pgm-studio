@@ -86,6 +86,9 @@ public partial class SketchTool
     // to precede the two passes that read the built surface.
     private bool ReliefActive => active == "relief";
     private string reliefJson = "";
+    // Bumped on every relief change so a reading already on screen knows it is describing terrain that has
+    // since moved — a stale measurement reads as current, which is worse than none.
+    private int reliefRevision;
     private Task GoRelief() { tool = ReliefTools.Point; return SetPhase("relief"); }
 
     /// <summary>Whether the canvas is being used to place a scope rather than to draw — today only Theme's
@@ -368,7 +371,7 @@ public partial class SketchTool
     public void OnDressing(string json) { dressingJson = json; StateHasChanged(); }
 
     [JSInvokable]
-    public void OnRelief(string json) { reliefJson = json; StateHasChanged(); }
+    public void OnRelief(string json) { reliefJson = json; reliefRevision++; StateHasChanged(); }
 
     /// <summary>The bridge couldn't initialise the read-only 3-D preview (WebGL unavailable, or the
     /// preview module failed to load); fall back to 2-D and disable the toggle.</summary>

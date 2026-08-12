@@ -60,17 +60,6 @@ highlight); these are the parked / dormant / deferred slices.
   blocks** apart. Belongs to whichever of S44 / S46 lands its pass first; the fold itself is
   `Geom.Symmetry` and needs no new machinery.
 
-- [ ] **S43 — Relief: the readback — what the terrain charges, not whether it is flat.** A height difference
-  reads in three tiers, from how the game moves: 0–1 is a jump, **2 needs a placed block** (slow, and the
-  player stands still in the open), 3+ is not crossed in a fight. None is a fault and a good map is a mix, so
-  the report states reachability at each tier rather than scoring a surface against the flattest one. It also
-  separates **places from ledges** — a region holding under a hundredth of the ground is a shelf, and counting
-  them together turns "one connected map with twenty cliff-top ledges" into a meaningless "twenty-one
-  pieces". Measures: the step histogram, reachable places per tier, scarps with EL6's cliff qualification,
-  directional fords across a corridor, the detour factor between two places, and the symmetry error. Computed
-  in `PgmStudio.Analysis` (classification is corpus law, not pure geometry) and served next to the sketch
-  document — it is what makes a relief drivable by a generator or an agent (`sketch-relief.md` §5, §6).
-
 - [ ] **S44 — Relief: erecting shapes (level / raise / sink), and the stair repair the block step needs.** One
   word on `SketchShape` saying how its top is decided: an absolute height (a mesa, whose faces are cliffs), a
   fixed amount above the ground under it (a monolith or plinth, which keeps its prominence wherever it is

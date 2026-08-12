@@ -603,7 +603,10 @@ drawn — which is exactly when the paint preview is not.
 5. **Dragging a contour** (S53) and **resuming the solve** (S52) — the two that make editing live rather than
    iterative, and the only ones that need what the four before them built.
 6. **The readback** (S43). A panel, and the same JSON over HTTP, which is what makes a relief correctable by
-   a generator or an agent rather than only by eye.
+   a generator or an agent rather than only by eye. One measure needed a rule the prose above did not state:
+   a face is grouped by **which way it looks** before its runs are joined, because a face is a thing that
+   faces a direction — joined without regard to it, a small block's four sides become one run whose cell
+   count passes the cliff width, which is the exact call EL6 exists to get right.
 7. **Erecting shapes** (S44) — one control on the shape inspector that already exists.
 8. **Paths and water reading the relief** (S46), last, because it depends on all of the above.
 

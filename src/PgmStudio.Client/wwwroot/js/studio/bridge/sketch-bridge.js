@@ -782,6 +782,20 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       tools.updateSelected(pushAmountPatch(selected, Number(index), Number(value)));
       afterReliefChange(); return null;
     },
+    /**
+     * What the relief CHARGES, per island — the readback (sketch-relief.md §5–§6). Asked for rather than
+     * pushed: it is a second solve's worth of measurement over the same field, and an author wants it when
+     * they stop to read the board rather than on every edit.
+     */
+    async readRelief() {
+      if (!slug) return "{}";
+      try {
+        const res = await fetch(`/api/map/${encodeURIComponent(slug)}/sketch/relief/read`, {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(handle.getState()),
+        });
+        return res.ok ? await res.text() : "{}";
+      } catch { return "{}"; }
+    },
     /** The starting values the next mark of a kind takes — what the inspector edits with nothing selected. */
     getMarkSettings(kind) { return JSON.stringify(canvas.reliefTools?.settingsFor(kind) ?? {}); },
     setMarkSettings(kind, patchJson) {

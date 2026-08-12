@@ -1,0 +1,95 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* What the terrain CHARGES, per island. Deliberately not a score: a relief that is walkable everywhere is a
+   field rather than a map, so one number would rank every barrier an author placed on purpose as a defect.
+   Every reading here is per passability tier, and the two that decide whether a relief added pressure or broke
+   the map — places and ledges — sit next to each other for exactly that comparison. *@
+
+<Section Title="What it charges">
+  @if (islands.Count == 0)
+  {
+    <p class="section-desc">Nothing stated yet, so there is nothing to read. State a mark and press
+      <strong>Measure</strong>.</p>
+  }
+  else
+  {
+    @foreach (var island in islands)
+    {
+      <div class="readback" @key="island.Id">
+        <div class="readback-head">
+          <span class="geo-label">@island.Id</span>
+          <span class="list-tag">y @island.Low–@island.High · @island.Relief blocks of relief</span>
+        </div>
+
+        @* The three thresholds the game actually has. None is a fault and a good map is a mix, so these are
+           reported side by side rather than scored against the flattest. *@
+        <table class="readback-table">
+          <thead>
+            <tr><th>Crossing</th><th>Open</th><th>Places</th><th>Largest</th><th>Ledges</th></tr>
+          </thead>
+          <tbody>
+            @foreach (var tier in island.Tiers)
+            {
+              <tr @key="tier.Name">
+                <td>@TierWord(tier.Name)</td>
+                <td>@Pct(tier.Share)</td>
+                <td>@tier.Places</td>
+                <td>@Pct(tier.LargestPlace)</td>
+                <td>@tier.Ledges</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        @* A barrier is usually not a wall but a detour, and a drop is free the way it falls — so a crossing is
+           counted in both directions or it cannot tell the two apart. *@
+        <table class="readback-table">
+          <thead>
+            <tr><th>Rows</th><th>On foot</th><th>With a block</th><th>Descended</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>west–east</td>
+              <td>@island.AcrossX.OnFoot / @island.AcrossX.Rows</td>
+              <td>@island.AcrossX.WithBlock</td>
+              <td>@island.AcrossX.Descended</td>
+            </tr>
+            <tr>
+              <td>north–south</td>
+              <td>@island.AcrossZ.OnFoot / @island.AcrossZ.Rows</td>
+              <td>@island.AcrossZ.WithBlock</td>
+              <td>@island.AcrossZ.Descended</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="readback-head">
+          <span class="list-tag">@island.FaceCount faces · @island.Cliffs @(island.Cliffs == 1 ? "cliff" : "cliffs")</span>
+          @if (island.SymmetryError > 0)
+          {
+            <Badge Kind="warning">@island.SymmetryError off its mirror</Badge>
+          }
+          else if (island.Symmetric)
+          {
+            <Badge Kind="ok">mirrors exactly</Badge>
+          }
+        </div>
+
+        @if (island.Faces.Count > 0)
+        {
+          <p class="section-desc">
+            Widest face @island.Faces[0].Width wide, dropping @island.Faces[0].Drop.
+            @if (island.Cliffs == 0)
+            {
+              <text>Nothing wide enough to read as a cliff — these are banks.</text>
+            }
+          </p>
+        }
+      </div>
+    }
+  }
+
+  <Button Full Variant="ghost" Disabled="@busy" OnClick="Measure">
+    <i data-lucide="ruler"></i> @(busy ? "Measuring…" : "Measure")
+  </Button>
+</Section>

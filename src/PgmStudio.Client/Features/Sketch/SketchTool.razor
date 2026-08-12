@@ -95,6 +95,10 @@
             <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="selectedShapeId" SelectedIslandId="selectedIslandId"
                          OnSelectShape="SelectShape" OnSelectIsland="SelectIsland" />
             <SketchReliefList StateJson="@reliefJson" Handle="handle" />
+            @* What the stated terrain costs a player. Below the list rather than beside it: the list is what
+               was said, this is what it came to, and reading the second without the first is how a number
+               gets acted on without knowing which mark produced it. *@
+            <SketchReliefReadback Handle="handle" Revision="reliefRevision" />
           }
           else
           {

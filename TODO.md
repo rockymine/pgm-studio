@@ -43,8 +43,8 @@ from the surface the last one settled on (`FEATURES.md`). The design, its measur
 are `docs/contracts/sketch-relief.md`; the prototype every figure comes from is `tools/relief`.
 
 **This theme has drained.** What remains of relief is parked in `BACKLOG.md` and is no longer the focus: the
-readback (S43), erecting shapes (S44), the stroke tools reading the relief (S46), per-shape participation
-(S48), the later passes folding (S42) and a pressure budget (S47). Pull one up when it becomes the work.
+stroke tools reading the relief (S46), per-shape participation (S48), the later passes folding (S42) and a
+pressure budget (S47). Pull one up when it becomes the work.
 
 ## Layout generation (G) — the generator in the studio
 

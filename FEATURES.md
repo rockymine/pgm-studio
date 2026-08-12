@@ -4045,6 +4045,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   would seed the next solve a whole layer high. (`ReliefSolver`, `ReliefPreviewCache`, `SketchRasterizer`;
   8 tests)
 
+- **Relief: the readback — what the terrain charges, not whether it is flat (S43).** A relief walkable
+  everywhere is a field rather than a map, so a single walkability score answers the wrong question: it ranks
+  every barrier an author placed on purpose as a defect. `ReliefReadback` (`PgmStudio.Analysis`) reports at
+  the game's **three thresholds** instead — 0–1 is a jump, 2 costs a placed block, 3+ is building in earnest —
+  and none is a fault. Per tier: the share of boundaries a player can cross, the **places** that leaves, how
+  much ground the largest holds, and the **ledges** stranded off it. That last split is what stops "one
+  connected map with twenty cliff-top shelves" reading as "twenty-one pieces"; a place holds at least a
+  hundredth of the ground. Faces are grouped by **which way they look** before being joined — a face is a
+  thing that faces a direction, and joining the brink without regard to it wraps a 6×6 monolith's four sides
+  into one twenty-cell run that qualifies as a cliff, which is the exact call the rule exists to get right.
+  Crossings are counted **both ways**, because a drop is free the way it falls: a face that refuses a crossing
+  one way lets it through the other, which is a one-way cliff rather than a wall. And the symmetry error,
+  which nothing else in the report would show — an unfair map looks identical on every other measure. Served
+  at `POST /map/{slug}/sketch/relief/read` next to the document it describes, which is what makes a relief
+  correctable by a generator or an agent rather than only by eye, and shown as a **What it charges** panel in
+  the Relief phase, fetched on a button rather than on every edit. (`Analysis/Playability/ReliefReadback.cs`,
+  `SketchReliefReadEndpoint`, `SketchReliefReadback.razor`; 9 tests)
+
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,
   `GET /wool-availability`, `GET /monument-obstruction` (each wool monument's block must be air; flags a
