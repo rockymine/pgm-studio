@@ -128,20 +128,21 @@ public static class HouseStamper
         // slide the one above it. The four corners take their own material.
         for (var level = 0; level < levels.Count; level++)
         {
+            if (body.At(level) is not { } plan) break;          // no wing stands this high
             var storey = levels[level];
             var wall = storey.Wall ?? style.Wall;
             var corner = storey.Post ?? style.Post;
             for (var course = 1; course <= storey.Courses(level == levels.Count - 1); course++)
-                foreach (var (x, z) in body.Cells())
+                foreach (var (x, z) in plan.Cells())
                     {
-                        if (!body.OnPerimeter(x, z)) continue;
+                        if (!plan.OnPerimeter(x, z)) continue;
                         var y = floorY + bases[level] + course;
                         // Both kinds of turn take the post: the ones the building turns away at, and the one
                         // where two wings meet, which is a corner the walls running into it turn at even
                         // though neither runs through it.
-                        var turns = body.OnCorner(x, z) || body.OnInnerCorner(x, z);
-                        if (turns && corner is { } post) Put(x, y, z, post, body);
-                        else PutPart(x, y, z, wall, course - 1, body);
+                        var turns = plan.OnCorner(x, z) || plan.OnInnerCorner(x, z);
+                        if (turns && corner is { } post) Put(x, y, z, post, plan);
+                        else PutPart(x, y, z, wall, course - 1, plan);
                     }
         }
 
@@ -151,11 +152,12 @@ public static class HouseStamper
         // the doorway; there is no door to avoid on the ones above.
         for (var level = 0; level < levels.Count; level++)
         {
+            if (body.At(level) is not { } plan) break;
             var storey = levels[level];
             var windows = storey.Windows ?? style.Windows;
             var seats = HouseWindows.Seats(
-                windows, body.Segments, storey.Headroom, level == 0 ? openings : null,
-                Hosts(storey.Wall ?? style.Wall, windows, bases[level]));
+                windows, plan.Segments, storey.Headroom, level == 0 ? openings : null,
+                Hosts(plan, storey.Wall ?? style.Wall, windows, bases[level]));
             foreach (var seat in seats)
                 HouseWindows.Cut(world, seat with { Sill = seat.Sill + bases[level] }, windows, floorY);
         }
@@ -165,7 +167,7 @@ public static class HouseStamper
         // Whether the wall at one cell of one storey resolves to the block a window wants to be cut into. The
         // wall is asked rather than inspected: it is resolved exactly as the pass that laid it resolved it,
         // same course, same arc, same run — so whatever pattern put a block there, a window finds it.
-        Func<WallSegment, int, bool>? Hosts(RoomPart wall, WindowStyle windows, int storeyBase)
+        Func<WallSegment, int, bool>? Hosts(Footprint plan, RoomPart wall, WindowStyle windows, int storeyBase)
         {
             if (windows.HostBlock < 0) return null;
             var course = Math.Max(1, windows.Sill);
@@ -173,10 +175,10 @@ public static class HouseStamper
             return (segment, along) =>
             {
                 var (x, z) = segment.Cell(along);
-                var arc = body.Arc(x, z);
+                var arc = plan.Arc(x, z);
                 var (id, data) = material.Resolve(new BucketContext(
                     x, floorY + storeyBase + course, z, TerrainBucket.Fill, depth, color,
-                    arc, 0, body.Turn(arc), body.Run(x, z)));
+                    arc, 0, plan.Turn(arc), plan.Run(x, z)));
                 return id == windows.HostBlock && data == windows.HostData;
             };
         }
@@ -263,25 +265,34 @@ public static class HouseStamper
         void StampLevels()
         {
             // One cell for the whole stack, so the way up is a single shaft rather than a ladder that moves
-            // from storey to storey and leaves a player to find the next one.
-            var climb = frontWall is { } wall ? LadderCell(wall, openings) : default((int X, int Z)?);
+            // from storey to storey and leaves a player to find the next one. It is seated against the front
+            // of the <b>topmost</b> storey's plan, because a plan only ever loses wings on the way up: a cell
+            // inside the highest storey is inside every storey under it, and one chosen on the ground could be
+            // under open sky two floors later.
+            var top = TopPlan();
+            var climb = top?.WallFacing(front, FrontCentre(top, front)) is { } wall
+                ? LadderCell(wall, openings)
+                : default((int X, int Z)?);
 
             for (var level = 0; level < levels.Count - 1; level++)
             {
+                // The slab is the floor of the storey above as much as the ceiling of this one, so it is laid
+                // over that storey's plan: a wing that stops here is closed by its roof, not by a floor for a
+                // room nobody built.
+                if (body.At(level + 1) is not { } plan) break;
                 var storey = levels[level];
                 var slabY = floorY + bases[level] + storey.Courses(topmost: false);
 
-                // The slab: the storey's ceiling across the interior only, since the perimeter is wall. Its
-                // top course is zoned by the storey above it, so an upper floor takes a border and an inlay
-                // exactly as the ground one does.
+                // Across the interior only, since the perimeter is wall. Its top course is zoned by the storey
+                // above it, so an upper floor takes a border and an inlay exactly as the ground one does.
                 var above = levels[level + 1];
                 var ceiling = storey.Ceiling ?? style.Floor.At(0).Material;
-                foreach (var (x, z) in body.Cells())
+                foreach (var (x, z) in plan.Cells())
                 {
-                    if (body.OnPerimeter(x, z)) continue;         // the perimeter is wall
+                    if (plan.OnPerimeter(x, z)) continue;         // the perimeter is wall
                     if (climb == (x, z)) continue;                // the way up
-                    var surface = above.Surface?.At(body.Ring(x, z));
-                    Put(x, slabY, z, surface ?? ceiling, body);
+                    var surface = above.Surface?.At(plan.Ring(x, z));
+                    Put(x, slabY, z, surface ?? ceiling, plan);
                 }
 
                 // The ladder: it stands in the storey below the hole and reaches the floor above, so a player
@@ -291,7 +302,7 @@ public static class HouseStamper
                         if (y is > 0 and < VoxelWorld.MaxHeight)
                             world.SetBlock(shaft.X, y, shaft.Z, Blocks.Ladder, LadderFacing(front));
 
-                LayBeams(slabY);
+                LayBeams(plan, slabY);
             }
         }
 
@@ -299,17 +310,25 @@ public static class HouseStamper
         // the walls are its middle and two ends carry on outward from every corner the building turns away at.
         // Each shows its sawn end, which is the one place on a building where a cut face outward is the point —
         // it is the end of a log, and a log building leaves them long.
-        void LayBeams(int y)
+        // The highest storey any wing still stands at, which on a building of equal wings is the whole plan.
+        Footprint? TopPlan()
+        {
+            for (var level = levels.Count - 1; level > 0; level--)
+                if (body.At(level) is { } plan) return plan;
+            return body;
+        }
+
+        void LayBeams(Footprint plan, int y)
         {
             if (!style.Beams.Any || y is < 1 or >= VoxelWorld.MaxHeight) return;
             var reach = Math.Max(1, style.Beams.Reach);
             var wood = style.Beams.Data & 3;
 
-            foreach (var (cornerX, cornerZ) in body.Cells().Where(cell => body.OnCorner(cell.X, cell.Z)))
+            foreach (var (cornerX, cornerZ) in plan.Cells().Where(cell => plan.OnCorner(cell.X, cell.Z)))
             {
                 // Out of the building on both axes, which at a corner is the side each axis has no wall on.
-                var awayX = body.Holds(cornerX - 1, cornerZ) ? 1 : -1;
-                var awayZ = body.Holds(cornerX, cornerZ - 1) ? 1 : -1;
+                var awayX = plan.Holds(cornerX - 1, cornerZ) ? 1 : -1;
+                var awayZ = plan.Holds(cornerX, cornerZ - 1) ? 1 : -1;
                 for (var step = 1; step <= reach; step++)
                 {
                     // Lying along the axis it runs out on, so the face pointing away from the building is the

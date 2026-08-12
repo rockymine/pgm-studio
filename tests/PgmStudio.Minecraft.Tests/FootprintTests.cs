@@ -275,5 +275,58 @@ public sealed class FootprintTests
             .IsEqualTo(new WallSegment(RoomEdge.NegZ, 0, 0, 14));
     }
 
+    // ── a storey of its own ─────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>A hall of two storeys with a wing of one running off it.</summary>
+    private static Footprint Unequal()
+        => new([new Wing(0, 0, 10, 6, Storeys: 2), new Wing(0, 7, 6, 12, Storeys: 1)]);
+
+    /// <summary>A plan loses wings on the way up and never gains one, so a storey is a plan in its own right —
+    /// the ground over both wings, the storey above over the hall alone, and nothing at all above that.</summary>
+    [Test]
+    public async Task A_storey_is_the_plan_of_the_wings_that_reach_it()
+    {
+        var plan = Unequal();
+
+        await Assert.That(plan.At(0)).IsSameReferenceAs(plan);
+        await Assert.That(plan.At(0)!.Holds(3, 10)).IsTrue();       // the wing, on the ground
+
+        var upper = plan.At(1);
+        await Assert.That(upper).IsNotNull();
+        await Assert.That(upper!.Holds(3, 10)).IsFalse();           // the wing has stopped
+        await Assert.That(upper.Holds(3, 3)).IsTrue();              // the hall carries on
+        await Assert.That((upper.MinX, upper.MinZ, upper.MaxX, upper.MaxZ)).IsEqualTo((0, 0, 10, 6));
+
+        await Assert.That(plan.At(2)).IsNull();                     // nothing stands three storeys up
+    }
+
+    /// <summary>The wall a taller wing needs against its neighbour's roof is no new rule: at that height the
+    /// neighbour is not there, so the boundary between them is simply the storey's own outline.</summary>
+    [Test]
+    public async Task A_taller_wing_walls_itself_where_its_neighbour_has_stopped()
+    {
+        var plan = Unequal();
+
+        // On the ground the two wings are one room, so the line between them carries no wall at all.
+        await Assert.That(plan.OnPerimeter(3, 6)).IsFalse();
+
+        // A storey up it is the hall's own north wall, and both ends of it are corners the hall turns away at.
+        var upper = plan.At(1)!;
+        await Assert.That(upper.OnPerimeter(3, 6)).IsTrue();
+        await Assert.That(upper.Segments.Any(wall => wall == new WallSegment(RoomEdge.PosZ, 6, 0, 10))).IsTrue();
+        await Assert.That(upper.Cells().Count(cell => upper.OnCorner(cell.X, cell.Z))).IsEqualTo(4);
+        await Assert.That(upper.Cells().Any(cell => upper.OnInnerCorner(cell.X, cell.Z))).IsFalse();
+    }
+
+    /// <summary>A plan whose wings all stand the whole way up is the same plan at every storey, so the walk and
+    /// the runs measured once serve all of them.</summary>
+    [Test]
+    public async Task A_plan_of_equal_wings_is_itself_at_every_storey()
+    {
+        var plan = Ell();
+        await Assert.That(plan.At(1)).IsSameReferenceAs(plan);
+        await Assert.That(plan.At(7)).IsSameReferenceAs(plan);
+    }
+
     public static IEnumerable<Func<Footprint>> Plans() => [Ell, Tee];
 }

@@ -3698,6 +3698,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   geometric instead: no cell inside the house may touch the outside on any of its eight sides. The wall at the
   turn also settles what the crook is worth: nowhere in the L stands more than 2 blocks in, where before the
   two five-deep wings read as one room deeper than either of them is. (G172)
+- **A storey is a plan of its own, so wings may stand to different heights (G172).** A `Wing` carries a storey
+  count — nought taking the whole of the style's stack, which is what a building of level wings means — and
+  `Footprint.At(level)` answers the plan of the wings still standing at that storey. Every pass a storey runs is
+  then asked of that plan: its walls, its posts, its corners of both kinds, its window runs, the steps in from
+  its wall, and the slab, which is laid over the storey *above*'s plan because a wing that stops is closed by
+  its roof rather than by a floor for a room nobody built. **The wall a taller wing needs against its
+  neighbour's roof falls out of this rather than being a rule of its own**: at that height the neighbour is not
+  there to be met, so the line the two shared is simply the upper storey's outline — one open room downstairs,
+  a walled gable upstairs, built by the ordinary pass. A plan only ever loses wings on the way up, which is what
+  lets the way up be seated against the topmost storey's front: a cell inside the highest storey is inside every
+  storey beneath it, where one chosen on the ground could be under open sky two floors later. The roof is still
+  one field at one height, so a wing that stops lower has its walls climb to meet it — unequal wings are correct
+  to the eave and roofed as though they were level, which is the rest of G172. (G172)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds

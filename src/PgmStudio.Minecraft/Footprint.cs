@@ -57,13 +57,20 @@ public readonly record struct WallOpening(WallSegment Wall, int Lo, int Width);
 
 /// <summary>One rectangle of a building's plan. A house of a single rectangle is one wing; an L, a T or a U is
 /// several touching ones, which is what lets a building turn a corner as one house under one style rather than
-/// as two houses standing beside each other.</summary>
-public readonly record struct Wing(int MinX, int MinZ, int MaxX, int MaxZ)
+/// as two houses standing beside each other.
+///
+/// <para><see cref="Storeys"/> is how many of the style's storeys stand on this wing, and <b>nought takes them
+/// all</b> — which is what a building whose wings are all of a height wants, and what one wing on its own can
+/// only mean. A hall of one storey with a two-storey cross wing is the shape that needs the number.</para></summary>
+public readonly record struct Wing(int MinX, int MinZ, int MaxX, int MaxZ, int Storeys = 0)
 {
     public int Width => MaxX - MinX + 1;
     public int Depth => MaxZ - MinZ + 1;
 
     public bool Holds(int x, int z) => x >= MinX && x <= MaxX && z >= MinZ && z <= MaxZ;
+
+    /// <summary>Whether this wing is still standing at a storey, counting from nought at the ground.</summary>
+    public bool Reaches(int level) => Storeys <= 0 || level < Storeys;
 }
 
 /// <summary>
@@ -108,6 +115,33 @@ public sealed class Footprint
 
     /// <summary>The rectangles the plan is made of, in the order they were given.</summary>
     public IReadOnlyList<Wing> Wings => wings;
+
+    /// <summary>
+    /// The plan at one storey — the wings still standing there, as a footprint of their own.
+    ///
+    /// <para><b>A storey is its own plan, and that is the whole of how a building of unequal wings works.</b>
+    /// Where a one-storey hall meets a two-storey cross wing, the ground is one plan over both and the storey
+    /// above is a plan over the wing alone; the wall the cross wing needs against the hall's roof is not a new
+    /// rule but the ordinary outline of the storey it belongs to, since at that height the hall is not there to
+    /// be met. Everything a storey does — its walls, its posts, its corners of both kinds, its window runs, the
+    /// steps in from its wall — is then asked of that plan, and none of it knows it is above anything.</para>
+    ///
+    /// <para>Null where no wing reaches the storey. The ground is always the whole plan.</para></summary>
+    public Footprint? At(int level)
+    {
+        if (level <= 0) return this;
+        storeys ??= [];
+        if (storeys.TryGetValue(level, out var standing)) return standing;
+
+        var reaching = wings.Where(wing => wing.Reaches(level)).ToArray();
+        // A plan none of whose wings stop below the storey is that plan, not a copy of it, so the walk and the
+        // runs measured on the ground serve every storey above it too.
+        standing = reaching.Length == 0 ? null
+            : reaching.Length == wings.Length ? this
+            : new Footprint(reaching);
+        storeys[level] = standing;
+        return standing;
+    }
 
     /// <summary>The box the whole plan fits in. On a single-wing building it is the building; on one that turns
     /// a corner it is the box drawn round it, so a caller walking it has to ask <see cref="Holds"/>.</summary>
@@ -303,6 +337,7 @@ public sealed class Footprint
     private PerimeterTrace? perimeter;
     private Dictionary<(int X, int Z), int>? inset;
     private WallSegment[]? segments;
+    private Dictionary<int, Footprint?>? storeys;
 
     /// <summary>The walked outline, measured once on first use. A wall reads its arc, bend and direction from
     /// the same walk of the same outline that a plateau's edge reads them from — one measurement, so a building

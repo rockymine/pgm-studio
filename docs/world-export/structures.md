@@ -283,11 +283,24 @@ one house on one outline. A wall stands wherever the plan is exposed, **diagonal
 wings meet, the two walls running into the turn touch along one vertical edge and nothing else, and the
 cell behind that edge — building on all four sides of it — is the corner. Without a block there the
 building has no block where it turns and the room shows through the seam. It takes a post like any
-corner, so an L stands on six. The roof over one is not (G172): a wing's roof is one of these fields and a
+corner, so an L stands on six.
+
+**A storey is a plan of its own**, and that is the whole of how a building of unequal wings works. A wing
+carries a storey count, the plan at a storey is the wings still standing there, and every pass a storey runs —
+its walls, its posts, its corners of both kinds, its window runs, the steps in from its wall, its slab — is
+asked of that plan. Where a one-storey hall meets a two-storey cross wing, the ground is one plan over both and
+the storey above is a plan over the wing alone, so the wall the cross wing needs against the hall's roof is not
+a rule about neighbours: at that height the hall is not there to be met, and the line between them is simply
+the upper storey's own outline. A plan only ever loses wings on the way up, which is why the way up is seated
+against the topmost storey's front — a cell inside the highest storey is inside every storey under it.
+
+The roof over more than one wing is not built (G172): a wing's roof is one of these fields and a
 building's roof is the **union of the wing volumes**, which `RoofField` needs no changes to serve, and until
 that lands a plan of more than one wing is roofed by a single field over the box drawn round it. That field is
 **clipped to the plan and its overhang**, so the roof stops at the building rather than bridging the notch —
-nothing is written where the house never stood, which is the invariant §7 opens with. A porch is refused on
+nothing is written where the house never stood, which is the invariant §7 opens with. It sits at one height for
+the whole building, so a wing that stops lower has its walls climb to meet it; wings of unequal height are
+built correctly up to the eave and roofed as though they were level. A porch is refused on
 such a plan for the same reason it is deferred: a deck is a strip the walls give up, and giving one up means
 taking cells out of a shape rather than moving one side of a rectangle in. The rules the roof's composition
 turns on, and the invariant that gates it, are on the task.

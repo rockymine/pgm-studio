@@ -245,9 +245,11 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   **The footprint and everything below the eave are done** (`FEATURES.md`). `Footprint` is a union of touching
   `Wing` rectangles that walks its own cells, splits its outline into `WallSegment` runs, and `Stamp` takes one
   — so the sill, floor, walls, window runs, doorways, slab and beams all build an L or a T on its own outline.
-  **What is left is the roof**, and it is now the only thing standing between a plan of several wings and a
-  building: a single field over the bounding box, clipped to the plan and its overhang so it stops at the
-  building rather than bridging the notch. Two smaller things are deferred with it and both are named in the
+  Each wing carries **its own storey count** and a storey is the plan of the wings that reach it, so a taller
+  wing walls itself along the line a stopped neighbour shared with it. **What is left is the roof**, and it is
+  now the only thing standing between a plan of several wings and a building: a single field at one height over
+  the bounding box, clipped to the plan and its overhang so it stops at the building rather than bridging the
+  notch, with a shorter wing's walls climbing to meet it. Two smaller things are deferred with it and both are named in the
   code with this id — a **porch** is refused on a plan of more than one wing (a deck is a strip the walls give
   up, which means taking cells out of a shape rather than moving one side of a rectangle in), and `RoofHole`
   centres its lid in the bounding box. Upstream, WX1 says the piece dictates the footprint, so the dressing

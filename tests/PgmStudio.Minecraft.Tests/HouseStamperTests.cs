@@ -886,6 +886,34 @@ public sealed class HouseStamperTests
         await Assert.That(world.GetBlock(0, FloorY, 0).Id).IsEqualTo(Blocks.Air);
     }
 
+    /// <summary>A wing may stop below the one beside it, and the storey above then walls itself along the line
+    /// they shared. Downstairs the two are one room and that line carries no wall; upstairs it is the taller
+    /// wing's own outline, so the wall is built by the ordinary storey pass rather than by a rule about
+    /// neighbours.</summary>
+    [Test]
+    public async Task A_storey_above_a_stopped_wing_walls_the_line_they_shared()
+    {
+        var plan = new Footprint([new Wing(0, 0, 10, 6, Storeys: 2), new Wing(0, 7, 6, 12, Storeys: 1)]);
+        var style = new HouseStyle
+        {
+            Storeys = [new Storey { Clear = 4 }, new Storey { Clear = 4 }],
+            Door = DoorMaterial.StainedGlass,
+        };
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, style);
+
+        // The shared line, clear of the corners at either end of it.
+        foreach (var x in new[] { 2, 3, 4 })
+        {
+            await Assert.That(world.GetBlock(x, FloorY + 2, 6).Id).IsEqualTo(Blocks.Air);      // one room below
+            await Assert.That(world.GetBlock(x, FloorY + 8, 6).Id).IsNotEqualTo(Blocks.Air);   // walled above
+        }
+
+        // And the wing itself carries no upper storey: no floor was laid over it for a room nobody built.
+        await Assert.That(world.GetBlock(3, FloorY + 5, 10).Id).IsEqualTo(Blocks.Air);
+        await Assert.That(world.GetBlock(3, FloorY + 5, 3).Id).IsNotEqualTo(Blocks.Air);       // the hall's slab
+    }
+
     /// <summary>A material that inks a cell whose ring bends at least <paramref name="Angle"/> degrees, so a
     /// stamped wall reports the turn it was painted with. It is what <see cref="WallFrameMaterial"/> reads, on
     /// its own: a frame also inks the courses at the top and bottom of a wall, which would ink every cell here
