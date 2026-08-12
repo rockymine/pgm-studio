@@ -253,6 +253,29 @@ unconditionally. Every map in this batch carries a spawn kit, so MG14 alone fixe
 would pass through the composer and come out with no keep, repair or remove rules and no warning that its
 loadout rules are missing. Worth a report line rather than silence, since the elements are near-universal.
 
+## The tool itself
+
+**MG29 — `MapSpec` is a smaller system wearing the big one's clothes.** The spec format was invented rather
+than derived: it takes a handful of knobs, names them, and hides everything else the documents underneath can
+say. A shape becomes a footprint when it also carries its own theme, floor, base height, per-vertex anchor
+heights, `height_mode`, `skirt` and `relief_scope`. A theme becomes four family names and a pattern when
+`TerrainTheme` holds a rim band, a surface band with its own depth, a wall, a fill, and a per-shape scope. A
+relief becomes `scatter` when the mark vocabulary has five kinds. The tell is in the output: every one of the
+fifteen boards has a rim, one theme, one relief style and the same wall treatment, because those were the
+only shapes the format could express. The fix is not more knobs — it is that a spec should be a **thin
+addressing layer over the real documents**, able to hand through a `SketchShape` or a `TerrainTheme`
+verbatim, with the convenience fields as shorthand that expands into them rather than as the whole surface.
+`surface.md` beside this file is the reference that was missing.
+
+**MG30 — Nothing was looked at between the stages.** Fifteen maps were built and judged from one top-down
+render each, at the end, after everything had already been decided. The system renders itself at every stage
+and none of it was used: thirteen preview endpoints answer a theme, a material, a prop, a building or a plan
+without building a world; the round-trip harness reads a built world back as a heightmap, a contour, a
+surface, a traversability map or a structure map; the relief prototype draws a section and a step map. Every
+fault in this document that is about *appearance* — the rim everywhere, the identical walls, the asymmetric
+trees, the closed canopy, the dark map with no silhouette — was visible in an image nobody rendered. The
+working rule is that a stage which produced something gets looked at before the next stage consumes it.
+
 ## Reading it back
 
 **MG13 — The maps were judged from one view.** Every map was checked with `--topdown` at three pixels to the
