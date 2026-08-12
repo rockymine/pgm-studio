@@ -3,7 +3,7 @@
   "name": "Obsidian Keep",
   "objective": "A monument and a core apiece, behind the dark walls of the keep.",
   "authors": [
-    "mapgen"
+    "haiku"
   ],
   "out_dir": "/media/sf_repos/CommunityMaps/dtcm/hk2_obsidian_keep",
   "compose": {

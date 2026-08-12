@@ -3,7 +3,7 @@
   "name": "Crystalline Quarry",
   "objective": "Race through ice caverns to steal the enemy wool and bring it home to your base.",
   "authors": [
-    "mapgen"
+    "haiku"
   ],
   "out_dir": "/media/sf_repos/CommunityMaps/ctw/hk2_crystalline_quarry",
   "compose": {
