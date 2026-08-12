@@ -3177,6 +3177,23 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **A whole map from one JSON spec.** `tools/mapgen` (`README.md`) takes a spec — the board, the paint, the
+  interior elevation, the trees, the buildings, and the houses the wool and spawn rooms are raised as — and
+  writes `region/` + `level.dat` + `map.xml` through `SketchWorldBuilder`/`IntentGenerator`, so it can only
+  contain what an author could draw. The board comes either from the layout generator (`compose`) or from a
+  literal plan document; `objective_mode` **retargets** the goals the generator placed (`ctw` / `dtm` /
+  `dtcm`) rather than adding a second generator, since a wool room, a monument and a core are one team's
+  thing to defend in the same slot of a board. Themes name palette families, never block ids; relief takes
+  the sketch's own mark vocabulary or scatters point marks; trees and buildings are placed against the
+  **rasterized ground** and reported by what reached the voxels rather than by what was requested. Builds
+  are deterministic. Eleven maps built with it (`tools/mapgen/specs/`). (`B21` groundwork · `S41` relief ·
+  `G172` houses)
+- **A single island is a map.** `POST /map/{slug}/sketch/finish` no longer demands two islands ("a CTW needs
+  both sides"). An island is a connected landmass, not a side: over the 320 readable worlds of the
+  destroy-the-monument corpus **17% are a single island and 26% carry a single major one**, and the
+  generator's own thirty-player boards compile to exactly one — so the commonest shape in that category was
+  refused. Symmetry decides whether a board has two sides and is stated in the setup; the gate now refuses
+  only a layout that rasterizes to no ground at all.
 - **Terrain finish — walls, rims, plateaus.** `TerrainPainter` (`PgmStudio.Minecraft`,
   `docs/world-export/terrain-painting.md` TP1–TP9, TP11–TP13) dresses the raw stone as the last world pass: a quartz
   **rim** on the top-most block of every edge (8-neighbour, so a reentrant corner never gaps), a **team-tinted stained-clay wall** on the exposed riser between bedrock and rim, a **surface** stack on the interior top,

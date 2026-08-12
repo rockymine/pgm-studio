@@ -14,6 +14,19 @@ three files. Moving a task between files never changes its id; never renumber or
 
 ## Backend, pipeline & internals (B / P / A)
 
+- [ ] **B78 — A grown tree gets taller by not being built.** The dressing pass seats a prop only if *no*
+  cell it occupies falls on a protected column, at any height, and a grown crown is wide — so the taller the
+  tree, the likelier some leaf clips protection and the whole tree is dropped. Measured over one composed
+  board at twenty-four sites: a grown oak lands 590 leaves at height 8, 364 at 12 and **0 at 20**, while a
+  template oak on the same sites climbs 1584 → 3424 → 7194. Height is silently inverted — asking for a
+  bigger tree empties the forest — and it bites hardest on exactly the boards worth dressing, since
+  protection grows with the objectives on them. `tools/mapgen` holds grown trees to 14 to work around it;
+  the fix belongs in `Decorator.Seats`. The question to settle first is what protection is *for* here: a
+  trunk on a monument is the fault, a canopy overhanging one at y+15 is not obviously anything, so the
+  candidate is to test the resting cells against protection and let the crown overhang — which is already
+  the rule `Seats` applies to *ground* ("what is above may overhang nothing at all"), just not to
+  protection. Gate it on the corpus: a hand-built map's trees do overhang its structures.
+
 - [ ] **B43 — Retire the Python-oracle parity harness.** The project began as a port of the Python
   `pgm-map-studio` and still carries a parity harness that regenerates Python "oracles"
   (`parser.parse + serializer.to_dict` over the corpus at `/media/sf_repos/pgm-map-studio` into `/tmp/pyfresh`)
