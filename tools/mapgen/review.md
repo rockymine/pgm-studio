@@ -126,16 +126,15 @@ The measure of how wrong that is, over the 365 corpus capture maps outside this 
 The hyphenated spellings PGM also accepts — `item-keep`, `tool-repair`, `item-remove` — are used by **no**
 corpus map at all, and the writer already emits the unhyphenated forms the corpus uses.
 
-**MG15 — What happens to spawn armour on death is a decision, and no decision was made.** Leather kit armour
-currently drops and lies on the ground, because nothing says otherwise. PGM offers two answers and they are
-not the same map. `<itemremove>` destroys the item when it spawns as an entity (`ItemSpawnEvent`), so the
-armour still leaves the body on death but never litters the field and cannot be picked up by the killer —
-this is the corpus convention at 99%, and it works because the kit re-applies team-coloured armour on
-respawn, which is exactly why `CtwStandards` derives `itemremove` from the kit's armour. `<armorkeep>` keeps
-it on the body instead, and matches only when the stack sits in an armour slot; three maps in 365 do this.
-The corpus answer is `itemremove`, and it should be chosen deliberately rather than inherited. Note that
-`<armorkeep>` cannot currently be written at all: `XmlWriter` emits `itemkeep`, `itemremove` and `toolrepair`
-and has no armour list, so picking the 1% style needs the writer extended first.
+**MG15 — Spawn armour goes in `<itemremove>`, the way the corpus does it.** *(Decided by the author.)*
+Leather kit armour currently drops and lies on the ground, because nothing says otherwise. `<itemremove>`
+destroys the stack when it spawns as an entity (`ItemSpawnEvent`), so the armour still leaves the body on
+death but never litters the field and cannot be worn by the killer; it works because the kit re-applies
+team-coloured armour on respawn. That is the convention at 99% of the corpus, and it is already what
+`CtwStandards` derives — `m.ItemRemove = kit.Armor.Select(a => a.Material)`. So this entry needs no new code
+beyond MG14: routing through the composer produces it. The alternative, `<armorkeep>`, keeps the armour on
+the body and is not being taken — three maps in 365 use it, and the writer could not emit it anyway, having
+no armour list.
 
 **MG16 — Tools that wear out are meant to be repairable, and a generated map repairs nothing.**
 `<toolrepair>` lists materials whose pickup repairs the tool already in the inventory rather than stacking a
@@ -143,6 +142,18 @@ second one — picking up a sword restores the held sword's durability by the pi
 and the pickup is cancelled. Without it a kit's sword, axe and pickaxe simply break and the player is
 disarmed until the next death. 94% of the corpus carries it; `CtwStandards` already derives the list as the
 kit's tools and weapons, identified by the material's last word.
+
+One thing to check while wiring it, because the two overlap: the generated spawn kit marks its tools
+`unbreakable="true"`, and an unbreakable tool never wears down, so `toolrepair` has nothing to repair on it.
+The corpus carries both at once, which suggests the two are belt and braces rather than alternatives — but
+whether the generated kit should keep `unbreakable` once `toolrepair` is present is a real question and
+should be answered against what the corpus kits do, not assumed.
+
+**MG17 — The derivation is silent when a map has no kit.** Everything `CtwStandards` derives sits behind
+`if (m.Kits.FirstOrDefault() is { } kit)`; only the kill-reward include and hunger-off happen
+unconditionally. Every map in this batch carries a spawn kit, so MG14 alone fixes them — but a kitless map
+would pass through the composer and come out with no keep, repair or remove rules and no warning that its
+loadout rules are missing. Worth a report line rather than silence, since the elements are near-universal.
 
 ## Reading it back
 
