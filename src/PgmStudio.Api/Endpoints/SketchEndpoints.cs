@@ -247,8 +247,14 @@ public sealed class SketchPaintEndpoint(MapRepository repo, PgmDb db) : Endpoint
 /// Contours are traced from the <b>continuous</b> field rather than the block one, because contouring a
 /// staircase returns the outlines of its treads instead of lines of constant height (sketch-relief.md §13).
 /// <c>?interval=</c> sets the spacing in blocks; a layout carrying no relief answers an empty list rather
-/// than a 404, so the client can draw nothing through the same path.</para></summary>
-public sealed class SketchReliefEndpoint(MapRepository repo) : EndpointWithoutRequest
+/// than a 404, so the client can draw nothing through the same path.</para>
+///
+/// <para>Each island's solve <b>resumes</b> from the surface its last preview settled on
+/// (<see cref="ReliefPreviewCache"/>). Every preview is one small edit after the last, so the relaxation has
+/// that edit left to carry rather than the whole surface to build — and because it stops when the field stops
+/// moving, a resumed solve that settles has settled on the same answer. Nothing about the reply depends on
+/// whether a head start was available.</para></summary>
+public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache warm) : EndpointWithoutRequest
 {
     public override void Configure() { Post("/map/{slug}/sketch/relief"); AllowAnonymous(); }
 
@@ -263,8 +269,16 @@ public sealed class SketchReliefEndpoint(MapRepository repo) : EndpointWithoutRe
         var interval = Query<double>("interval", isRequired: false);
         if (interval <= 0) interval = 1;
 
+        // Each island resumes from the surface its last preview settled on. The relaxation stops when the
+        // field stops moving and discards a resume that fails to reach that tolerance, so this can only ever
+        // save sweeps — never change the answer, which is what keeps a previewed surface the built one.
         Dictionary<string, HeightField> fields;
-        try { fields = SketchRasterizer.ReliefFields(layoutJson); }
+        try
+        {
+            fields = SketchRasterizer.ReliefFields(layoutJson,
+                (island, footprint) => warm.WarmStart(map.Id, island, footprint),
+                (island, solved) => warm.Remember(map.Id, island, solved));
+        }
         catch { await Send.ResponseAsync(new { error = "could not solve relief" }, 400, ct); return; }
 
         var islands = fields.Select(entry => new

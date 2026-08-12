@@ -4019,6 +4019,32 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   sized to the ring it was stated on. (`relief-doc.js`, `relief-controller.js`, `relief-render.js`,
   `SketchReliefInspector`, `SketchReliefList`; 11 JS + 3 C# tests)
 
+- **Relief: a contour is grabbed and moved to state a height (S53).** The overlay drew the solver's answer and
+  the tools placed marks, and nothing joined them — the reading of a surface sat beside the form that edited
+  it. A press near a contour now **grabs** it, and moving it writes a `line` mark at that contour's **own
+  level** along its new position: a contour is a line of constant height, so moving one says the ground
+  reaches that height here now. Two decisions carry it. **Index lines win a press** inside a slack, because
+  several contours run close together on a steep face — that is what steep means — and the heavily drawn ones
+  are the only ones an author can aim at. And the whole line **moves** rather than bending under the pointer:
+  a contour has hundreds of points and a drag has one, so bending it locally would need a brush radius, a
+  falloff and a rule for the ends — three settings to express what is one statement. A placed mark wins the
+  press over a contour beneath it (a mark is a thing an author put there; the contours are what the solver
+  made of them), the written mark is simplified like every other traced mark, and a contour pressed without
+  moving states nothing. (`relief/contour-drag.js`, `relief-controller.js`; 7 tests)
+- **Relief: a preview resumes instead of rebuilding (S52).** Every preview solved from flat, so each edit paid
+  for the whole surface to be brought into existence again — and every preview is one small edit after the
+  last. Each island's solve now resumes from the surface its previous preview settled on
+  (`ReliefPreviewCache`, a bounded LRU keyed by map and island, matched on the exact footprint since a field
+  is an array indexed by the grid it was solved on). **It cannot change an answer**, and that is the design
+  rather than a hope: the relaxation stops when the field stops moving, so a resumed run that reaches that
+  tolerance has reached the surface a cold one would — and `Lattice.Relax` now reports whether it *settled*,
+  so a resume that fails is discarded and the cold cascade runs. The fallback is deliberately not held to the
+  resume's sweep budget: a caller offering a head start may cap the attempt cheaply, and inheriting that cap
+  would answer an unfinished surface in exactly the case the fallback exists for. The cache is handed the
+  **unshifted** field, since what the rasterizer returns has its layer's `base_y` added and feeding that back
+  would seed the next solve a whole layer high. (`ReliefSolver`, `ReliefPreviewCache`, `SketchRasterizer`;
+  8 tests)
+
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,
   `GET /wool-availability`, `GET /monument-obstruction` (each wool monument's block must be air; flags a

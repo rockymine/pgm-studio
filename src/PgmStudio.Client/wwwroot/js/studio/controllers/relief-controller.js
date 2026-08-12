@@ -29,6 +29,7 @@
 import { paintMarkPreview, paintSpotGhost } from "../render/relief-render.js";
 import { defaultMark, defaultPush, isSpot, isRing, isPush, markAnchor, markPoints, markReach, pointsPatch,
          translateMark, PUSH_KIND } from "../relief/relief-doc.js";
+import { contourAt, markFromDrag } from "../relief/contour-drag.js";
 import { douglasPeucker, simplifyRing } from "../geometry/simplify.js";
 import { svgEl, handleRectAttrs } from "../render/svg.js";
 import { toScreen } from "../geometry/transform.js";
@@ -64,9 +65,11 @@ export class ReliefController {
   #cursor = null;         // where a spot height would drop
   #drag = null;           // moving an already-placed mark
   #pointDrag = null;      // reshaping one: { id, idx }
+  #contourDrag = null;    // moving a traced contour: { grabbed, fromX, fromZ, dx, dz }
   #selectedId = null;
   #settings = {};         // per-kind starting values for the next mark placed
   #islandAt;              // (bx, bz) → the id of the island covering this cell, or null
+  #contours;              // () → the traced contour payload on screen, or null
 
   /**
    * @param doc          ReliefDoc — the stated relief (mutated through its own methods)
@@ -80,6 +83,7 @@ export class ReliefController {
     this.#getViewport = getViewport ?? (() => ({ scale: 1, panX: 0, panY: 0 }));
     this.#callbacks = callbacks;
     this.#islandAt = callbacks.onIslandAt ?? (() => null);
+    this.#contours = callbacks.onContours ?? (() => null);
     for (const kind of ["point", "line", "area", "scarp", PUSH_KIND]) this.#settings[kind] = defaultMark(kind);
   }
 
@@ -148,9 +152,26 @@ export class ReliefController {
 
     // Select mode: pick the mark under the cursor and start dragging it.
     const hit = this.#hitTest(bx, bz);
-    this.select(hit?.id ?? null);
-    this.#drag = hit ? { id: hit.id, fromX: bx, fromZ: bz, moved: false } : null;
-    return hit !== null;
+    if (hit) {
+      this.select(hit.id);
+      this.#drag = { id: hit.id, fromX: bx, fromZ: bz, moved: false };
+      return true;
+    }
+
+    // Nothing placed under the cursor — but a CONTOUR may be, and a contour is grabbable. It is a line of
+    // constant height, so moving one says the ground reaches that height here now, which is a line mark at
+    // that level. Marks win the press: one is a thing an author put there, and the contours are what the
+    // solver made of them.
+    const grabbed = contourAt(this.#contours(), bx, bz);
+    if (grabbed) {
+      this.select(null);
+      this.#contourDrag = { grabbed, fromX: bx, fromZ: bz, dx: 0, dz: 0 };
+      return true;
+    }
+
+    this.select(null);
+    this.#drag = null;
+    return false;
   }
 
   onMouseMove(bx, bz, activeTool) {
@@ -174,6 +195,12 @@ export class ReliefController {
       // stop at the outline the way a prop's does at the void.
       this.#doc.update(mark.id, translateMark(mark, dx, dz));
       this.refreshHandles();
+      this.#callbacks.onPreviewChanged?.();
+      return true;
+    }
+    if (this.#contourDrag) {
+      this.#contourDrag.dx = bx - this.#contourDrag.fromX;
+      this.#contourDrag.dz = bz - this.#contourDrag.fromZ;
       this.#callbacks.onPreviewChanged?.();
       return true;
     }
@@ -203,12 +230,23 @@ export class ReliefController {
       if (moved) this.#callbacks.onChanged?.();
       return moved;
     }
+    if (this.#contourDrag) {
+      const { grabbed, dx, dz } = this.#contourDrag;
+      this.#contourDrag = null;
+      const stated = markFromDrag(grabbed, dx, dz);
+      // A contour pressed and released without moving is a click on a line, not a statement about the ground.
+      if (!stated) { this.#callbacks.onPreviewChanged?.(); return true; }
+      const placed = this.#doc.add(stated.islandId, stated.mark);
+      this.select(placed.id);
+      this.#callbacks.onChanged?.();
+      return true;
+    }
     return false;
   }
 
   cancel() {
-    if (!this.#trace && !this.#cursor && !this.#drag && !this.#pointDrag) return;
-    this.#trace = null; this.#cursor = null; this.#drag = null; this.#pointDrag = null;
+    if (!this.#trace && !this.#cursor && !this.#drag && !this.#pointDrag && !this.#contourDrag) return;
+    this.#trace = null; this.#cursor = null; this.#drag = null; this.#pointDrag = null; this.#contourDrag = null;
     this.#callbacks.onPreviewChanged?.();
   }
 
@@ -278,6 +316,15 @@ export class ReliefController {
       // which is the same ramp asked the same question, since what both want to say is "higher" or "lower".
       paintMarkPreview(painter, this.#trace.kind, this.#trace.points, this.#heightOf(settings),
                        isPush(this.#trace.kind) ? 0 : this.#baseOf(this.#trace.islandId));
+    }
+    // A grabbed contour, at the height it states, following the pointer — so what the drag will say is on
+    // screen before the release that says it.
+    if (this.#contourDrag) {
+      const { grabbed, dx, dz } = this.#contourDrag;
+      const moved = [];
+      for (let i = 0; i + 1 < grabbed.points.length; i += 2)
+        moved.push([grabbed.points[i] + dx, grabbed.points[i + 1] + dz]);
+      paintMarkPreview(painter, "line", moved, grabbed.level, this.#baseOf(grabbed.islandId));
     }
     if (this.#cursor) {
       const settings = this.#settings[this.#cursor.kind];

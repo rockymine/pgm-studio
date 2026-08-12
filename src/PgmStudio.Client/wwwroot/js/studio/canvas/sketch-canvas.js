@@ -906,6 +906,10 @@ export class SketchCanvas extends CanvasBase {
       // island's edge — a mark is clipped, not confined, and a hill authored into a corner is exactly that
       // gesture — so this decides ownership at placement and never again.
       onIslandAt: (bx, bz) => this.#hitIsland(bx + 0.5, bz + 0.5),
+      // The contours on screen, so a press can grab one. They are the solver's answer rather than anything
+      // placed, which is why they are read from the overlay rather than kept by the controller: what an
+      // author grabs is exactly what is drawn, and when the overlay is off there is nothing to grab.
+      onContours: () => this.#relief,
     });
     this.#edit = new SketchEditController(this.#screen.handles, getViewport, (id) => this.#shapes.get(id), {
       onShapeUpdated: (shape) => { this.updateShape(shape); this.#callbacks.onShapeUpdated?.(shape); },

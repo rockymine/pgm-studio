@@ -12,6 +12,8 @@ import { ReliefController, RELIEF_TOOLS }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/controllers/relief-controller.js";
 import { paintReliefMarks, heightColor, liftColor }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/render/relief-render.js";
+import { contourAt, markFromDrag }
+  from "../../src/PgmStudio.Client/wwwroot/js/studio/relief/contour-drag.js";
 
 // ── the document ──────────────────────────────────────────────────────────────
 test("a stored relief round-trips through the document", () => {
@@ -92,13 +94,14 @@ test("a mark's reach counts the band it holds, not only its points", () => {
 });
 
 // ── the tools ─────────────────────────────────────────────────────────────────
-function tools({ islandAt = () => "i1", doc = new ReliefDoc() } = {}) {
+function tools({ islandAt = () => "i1", doc = new ReliefDoc(), contours = () => null } = {}) {
   const events = [];
   const controller = new ReliefController(doc, null, () => ({ scale: 1, panX: 0, panY: 0 }), {
     onChanged: () => events.push("changed"),
     onSelected: (id) => events.push(`selected:${id}`),
     onPlaced: () => events.push("placed"),
     onIslandAt: islandAt,
+    onContours: contours,
   });
   return { controller, doc, events };
 }
@@ -444,4 +447,87 @@ test("a push draws its skirt outside the ring, whichever way the ring was traced
 test("a lift is coloured from zero, so a push and a mark at the same height agree", () => {
   assert.equal(liftColor(5), heightColor(13, 8));
   assert.equal(liftColor(-5), heightColor(3, 8));
+});
+
+// ── dragging a contour ────────────────────────────────────────────────────────
+// The one interaction that starts from what the SOLVER produced rather than from an empty tool. A contour is a
+// line of constant height, so moving one says the ground reaches that height here now — which is a line mark
+// at that level, and what makes the reading of a surface and the way it is edited the same object.
+const CONTOURS = {
+  islands: [{
+    island: "i1",
+    lines: [
+      // A plain line at z = 20 and an index line at z = 24, both running the width of the board.
+      { level: 7, closed: false, points: [0, 20, 20, 20, 40, 20] },
+      { level: 10, closed: false, points: [0, 24, 20, 24, 40, 24] },
+    ],
+  }],
+};
+
+test("a press near a contour grabs it, and one away from every contour grabs nothing", () => {
+  assert.equal(contourAt(CONTOURS, 20, 20)?.level, 7);
+  assert.equal(contourAt(CONTOURS, 20, 40), null);
+  assert.equal(contourAt(null, 20, 20), null);
+});
+
+test("an index line wins a press between two contours", () => {
+  // Several run close together on a steep face — that is what steep means — so a plain nearest test hands an
+  // author whichever one the cursor fell on the near side of. The labelled ones are the ones aimable at.
+  const between = contourAt(CONTOURS, 20, 21.8);   // nearer the level-7 line, but the 10 is the index line
+  assert.equal(between.level, 10);
+  assert.equal(between.index, true);
+
+  // Far enough onto the plain line and it still wins: the preference is a nudge, not an override.
+  assert.equal(contourAt(CONTOURS, 20, 20).level, 7);
+});
+
+test("a dragged contour becomes a line mark at that contour's own height", () => {
+  const grabbed = contourAt(CONTOURS, 20, 20);
+  const stated = markFromDrag(grabbed, 0, -6);
+
+  assert.equal(stated.islandId, "i1");
+  assert.equal(stated.mark.kind, "line");
+  assert.equal(stated.mark.h, 7);                       // the height it already was
+  assert.deepEqual(stated.mark.points[0], [0, 14]);     // moved by the drag
+  assert.deepEqual(stated.mark.points.at(-1), [40, 14]);
+});
+
+test("a contour pressed and released without moving states nothing", () => {
+  const grabbed = contourAt(CONTOURS, 20, 20);
+  assert.equal(markFromDrag(grabbed, 0, 0), null);
+  assert.equal(markFromDrag(grabbed, 0.4, 0.2), null);
+  assert.equal(markFromDrag(null, 5, 5), null);
+});
+
+test("a dragged contour is simplified, not stored as the tracer drew it", () => {
+  // A traced contour is one point per cell boundary. Stored raw it is a mark with hundreds of grips, which is
+  // not a thing an author can then edit.
+  const dense = { islands: [{ island: "i1", lines: [{ level: 5, closed: false,
+    points: Array.from({ length: 120 }, (_, i) => (i % 2 === 0 ? i : 30)) }] }] };
+  const stated = markFromDrag(contourAt(dense, 20, 30), 0, -4);
+  assert.ok(stated.mark.points.length < 8, `kept ${stated.mark.points.length} points`);
+});
+
+test("a mark under the cursor wins the press over a contour beneath it", () => {
+  // A mark is a thing an author put there; the contours are what the solver made of them. Grabbing the
+  // contour instead would make a placed mark unselectable wherever its own contour crossed it.
+  const { controller, doc } = tools({ contours: () => CONTOURS });
+  controller.onMouseDown(20, 20, "relief:point");     // a spot height right on the level-7 line
+  const placed = doc.marks[0].id;
+
+  controller.onMouseDown(20, 20, "select");
+  assert.equal(controller.selectedId, placed);
+});
+
+test("dragging a contour places the mark and selects it", () => {
+  const { controller, doc, events } = tools({ contours: () => CONTOURS });
+  controller.onMouseDown(20, 24, "select");
+  controller.onMouseMove(20, 32, "select");
+  controller.onMouseUp();
+
+  assert.equal(doc.marks.length, 1);
+  assert.equal(doc.marks[0].kind, "line");
+  assert.equal(doc.marks[0].h, 10);
+  assert.equal(controller.selectedId, doc.marks[0].id);
+  assert.ok(events.includes("changed"));
 });

@@ -50,7 +50,16 @@ public static class SketchRasterizer
     ///
     /// <para>An island appears once. A layout that names the same island on two layers is malformed, and
     /// showing the lower of the two would be a quieter wrong answer than showing the first.</para></summary>
-    public static Dictionary<string, HeightField> ReliefFields(string layoutJson)
+    /// <param name="warmStart">The surface each island's last solve settled on, asked for by island id and
+    /// footprint. Resuming from it is a head start and never a different answer — the solver discards a resume
+    /// that fails to settle — so a caller with nothing to offer simply omits this.</param>
+    /// <param name="remember">Handed each island's solve as the solver produced it, for a caller keeping
+    /// surfaces to resume from. It is the <b>unshifted</b> field, and the pairing is the point: what comes
+    /// back from this method has its layer's <c>base_y</c> added, and feeding that back as a head start would
+    /// seed the next solve a whole layer too high.</param>
+    public static Dictionary<string, HeightField> ReliefFields(
+        string layoutJson, Func<string, Footprint, double[]?>? warmStart = null,
+        Action<string, HeightField>? remember = null)
     {
         var state = SketchLayout.Parse(layoutJson);
         if (state?.Relief is not { Count: > 0 } relief) return [];
@@ -66,10 +75,13 @@ public static class SketchRasterizer
 
             var shift = (int)Math.Round(baseY);
             foreach (var (islandId, field) in SolveRelief(RasterGroup(shapes), shapes, layout?.Islands ?? [],
-                                                          relief, state.Setup?.MirrorMode, cx, cz))
+                                                          relief, state.Setup?.MirrorMode, cx, cz, warmStart))
+            {
+                if (!fields.ContainsKey(islandId)) remember?.Invoke(islandId, field);
                 fields.TryAdd(islandId, shift == 0 ? field : new HeightField(field.Footprint,
                     [.. field.Continuous.Select(height => height + shift)],
                     [.. field.Blocks.Select(height => height + shift)]));
+            }
         }
         return fields;
     }
@@ -202,7 +214,8 @@ public static class SketchRasterizer
     /// nothing.</summary>
     private static Dictionary<string, HeightField> SolveRelief(
         Dictionary<(int, int), (int Top, int Floor)> cells, List<SketchShape> shapes, List<SketchIsland> metas,
-        Dictionary<string, SketchReliefJson>? relief, string? mirrorMode, double cx, double cz)
+        Dictionary<string, SketchReliefJson>? relief, string? mirrorMode, double cx, double cz,
+        Func<string, Footprint, double[]?>? warmStart = null)
     {
         var solved = new Dictionary<string, HeightField>();
         if (relief is not { Count: > 0 }) return solved;
@@ -225,7 +238,8 @@ public static class SketchRasterizer
             if (owned.Count == 0) continue;
 
             var footprint = Footprint.Over(owned.Distinct().ToList(), margin: 0);
-            solved[islandId] = ReliefSolver.Solve(footprint, stated.ToSpec(mirrorMode, cx, cz));
+            solved[islandId] = ReliefSolver.Solve(footprint, stated.ToSpec(mirrorMode, cx, cz),
+                                                  warmStart?.Invoke(islandId, footprint));
         }
         return solved;
     }

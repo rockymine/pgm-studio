@@ -37,12 +37,19 @@ public static class ReliefSolver
     private static readonly (int X, int Z)[] Neighbours8 =
         [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)];
 
+    /// <summary>The sweep budget a solve gets when the caller states none — high enough that the relaxation
+    /// settles on every footprint a map is built at, since it stops of its own accord once the field stops
+    /// moving and an unused budget costs nothing.</summary>
+    public const int DefaultSweeps = 1200;
+
     /// <summary>Solves a relief. Passing the previous solve's continuous surface as
     /// <paramref name="warmStart"/> resumes from it instead of from flat, which is what makes a drag
     /// affordable: moving one mark perturbs the field locally, so the relaxation has only that perturbation
-    /// left to carry rather than the whole surface to build.</summary>
+    /// left to carry rather than the whole surface to build. A resume that fails to settle inside
+    /// <paramref name="sweeps"/> is discarded and the cold path runs, so the answer does not depend on
+    /// whether one was offered.</summary>
     public static HeightField Solve(Footprint footprint, ReliefSpec spec,
-                                    double[]? warmStart = null, int sweeps = 1200, bool cascade = true)
+                                    double[]? warmStart = null, int sweeps = DefaultSweeps, bool cascade = true)
     {
         var pinned = new double[footprint.Cells];
         var isPinned = new bool[pinned.Length];
@@ -138,12 +145,23 @@ public static class ReliefSolver
         // a characteristic length of one over the root of this, so reach is stated in blocks.
         var screen = spec.Reach > 0 ? 1.0 / (spec.Reach * spec.Reach) : 0.0;
 
+        // Resuming from the surface already on screen. The relaxation stops when the field stops moving, so a
+        // resumed run that settles has reached the SAME surface a cold one would — it simply had less left to
+        // do, which is the whole saving. What it must not do is hand back a surface that never settled: an
+        // edit big enough to need the long-range conversation the cascade exists for cannot get it here, since
+        // information moves one cell per sweep on a single grid. So an unsettled resume is thrown away and the
+        // cold path runs, and the preview stays the surface the export builds rather than an approximation of
+        // it that happens to be quicker.
         if (warmStart is { } previous && previous.Length == pinned.Length)
         {
             var resumed = (double[])previous.Clone();
             for (var index = 0; index < pinned.Length; index++) if (isPinned[index]) resumed[index] = pinned[index];
-            Lattice.Of(footprint, pinned, isPinned).Relax(resumed, screen, spec.Base, sweeps);
-            return resumed;
+            if (Lattice.Of(footprint, pinned, isPinned).Relax(resumed, screen, spec.Base, sweeps)) return resumed;
+            // The fallback exists to be correct, so it is not held to the resume's budget. A caller offering a
+            // previous surface may cap the attempt at a handful of sweeps precisely because it expects the
+            // work to be small; inheriting that cap here would answer an unsettled surface in the one case the
+            // fallback was written for.
+            sweeps = Math.Max(sweeps, DefaultSweeps);
         }
         if (!cascade)
         {
@@ -360,9 +378,14 @@ public static class ReliefSolver
             return field;
         }
 
-        public void Relax(double[] field, double screen, double baseHeight, int sweeps)
+        /// <summary>Relaxes until the field stops moving, or until the sweep budget runs out. Returns whether
+        /// it <b>settled</b> — which is the difference between a surface and an unfinished one, and the only
+        /// thing that makes resuming from a previous solve safe: a resumed run that reaches the same tolerance
+        /// has reached the same surface, where one merely cut short has not.</summary>
+        public bool Relax(double[] field, double screen, double baseHeight, int sweeps)
         {
             const double OverRelaxation = 1.85;
+            var settled = false;
             for (var sweep = 0; sweep < sweeps; sweep++)
             {
                 var movement = 0.0;
@@ -387,10 +410,16 @@ public static class ReliefSolver
                             field[index] += moved;
                             movement = Math.Max(movement, Math.Abs(moved));
                         }
-                if (movement < 1e-4) break;
+                if (movement < Settled) { settled = true; break; }
             }
             for (var index = 0; index < field.Length; index++)
                 if (_isPinned[index]) field[index] = _pinned[index];
+            return settled;
         }
+
+        /// <summary>How little a sweep has to move the field before it counts as finished. Four orders below
+        /// the block the surface is rounded to, so a field that has settled by this measure cannot round to a
+        /// different block than one relaxed further.</summary>
+        private const double Settled = 1e-4;
     }
 }

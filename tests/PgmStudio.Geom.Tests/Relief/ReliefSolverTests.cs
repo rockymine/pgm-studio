@@ -200,6 +200,49 @@ public sealed class ReliefSolverTests
         await Assert.That(worst).IsLessThanOrEqualTo(1);
     }
 
+    [Test]
+    public async Task A_resume_given_room_to_settle_reaches_the_cold_answer_exactly()
+    {
+        // The property the preview rests on. A resumed solve is only worth having if it is the SAME surface,
+        // not a quicker approximation of it — the contours on screen are the ground the export will build.
+        // The relaxation stops when the field stops moving, so a resume that settles has settled on the same
+        // answer; it simply had less left to do.
+        var footprint = Board(60, 45);
+        var before = new ReliefSpec
+        {
+            Base = 6, Marks = [new RimMark(5), new PointMark(20, 20, 16, 5), new PointMark(46, 30, 11, 4)],
+        };
+        var after = before with
+        {
+            Marks = [new RimMark(5), new PointMark(23, 22, 16, 5), new PointMark(46, 30, 11, 4)],
+        };
+
+        var previous = ReliefSolver.Solve(footprint, before).Continuous;
+        var resumed = ReliefSolver.Solve(footprint, after, previous);
+        var cold = ReliefSolver.Solve(footprint, after);
+
+        foreach (var (x, z) in footprint.Land())
+            await Assert.That(resumed.At(x, z)).IsEqualTo(cold.At(x, z));
+    }
+
+    [Test]
+    public async Task A_resume_too_stale_to_settle_is_thrown_away_rather_than_handed_back()
+    {
+        // A resume runs on ONE grid, where information moves a cell per sweep — so an edit big enough to need
+        // the long-range conversation the cascade exists for cannot get it here. Given almost no budget, the
+        // resume cannot settle, and what comes back is the cold solve rather than an unfinished surface.
+        var footprint = Board(70, 55);
+        var flat = new ReliefSpec { Base = 5, Marks = [new RimMark(5)] };
+        var raised = new ReliefSpec { Base = 5, Marks = [new RimMark(5), new PointMark(35, 27, 24, 6)] };
+
+        var previous = ReliefSolver.Solve(footprint, flat).Continuous;
+        var resumed = ReliefSolver.Solve(footprint, raised, previous, sweeps: 2);
+        var cold = ReliefSolver.Solve(footprint, raised);
+
+        foreach (var (x, z) in footprint.Land())
+            await Assert.That(resumed.At(x, z)).IsEqualTo(cold.At(x, z));
+    }
+
     private static int WorstMirroredDifference(HeightField field, double centreX, double centreZ)
     {
         var worst = 0;

@@ -31,38 +31,20 @@ three files. Moving a task between files never changes its id; never renumber or
   that the code-comments rule already bans. `appsettings.Development.json`'s `MapsRoots`/`Import.Root` point at
   the reference VM but are import-only — repoint or document, don't leave dangling.
 
-## Sketch tool (S) — current focus: relief in the hand
+## Sketch tool (S) — relief (drained)
 
 A relief can now be seen and stated: the solver and its wire document, the rasterizer seam, the recompile
 rule, the contour overlay, and a Relief phase whose five tools place the four mark kinds and the push, each
 with a list row, an inspector and its own point grips (`FEATURES.md`). The model is reachable by hand and by
 mouse, and what it produces is on screen while it is being stated.
 
-What is left is the two interactions that make editing feel **live** rather than iterative: dragging a
-contour to state a height (S53), which is what would make how a surface reads and how it is edited one
-object; and resuming the solve on a drag instead of restarting it (S52). Both are about the loop between an
-edit and its result, which is now the slowest thing about the phase. The design, its measurements and the
-authoring plan are `docs/contracts/sketch-relief.md`; the prototype every figure comes from is
-`tools/relief`. What this theme deliberately leaves parked is in `BACKLOG.md` — the readback (S43), erecting
-shapes (S44), the stroke tools (S46) and per-shape participation (S48).
+The authoring half is done: a contour can be grabbed and moved to state a height, and each preview resumes
+from the surface the last one settled on (`FEATURES.md`). The design, its measurements and the authoring plan
+are `docs/contracts/sketch-relief.md`; the prototype every figure comes from is `tools/relief`.
 
-- [ ] **S53 — Relief: drag a contour to state a height.** The contour overlay is read-only and the marks are
-  placed with their own tools (`FEATURES.md`); the interaction that joins them is missing. A contour dragged
-  to a new height is a **line mark at that height** — which is what makes how the surface reads and how it is
-  edited one object, rather than a picture beside a form. It belongs to the overlay rather than to a sixth
-  tool: the line is already on screen and already carries its level, so what is needed is a hit test against
-  the returned polylines, a drag that reads out a height, and the mark it writes on release. The awkward part
-  is which contour a drag grabs when several run close together on a steep face, and the honest answer is
-  probably the nearest *index* line, since those are the ones drawn heavily enough to aim at.
-
-- [ ] **S52 — Relief: a drag resumes the solve instead of restarting it.** Every preview solves from flat.
-  That is right for an edit that settles — the cascade already makes a whole map 325 ms — and wrong for a
-  drag, which is a preview per frame. The solver takes a **warm start** and it is measured: resuming from the
-  surface already on screen needs 40 sweeps against a cold solve's full run, 228 ms on a 192×128 map, and
-  lands off by one block on 1,614 of its 24,576 cells. What is missing is the seam — the endpoint has nowhere
-  to keep the previous continuous field, and the client has no way to say "this is the same relief, moved".
-  Now worth having: marks and pushes are dragged by their bodies and by their point grips, so there are drags
-  to resume, and each of them currently pays for a whole cold solve per settle.
+**This theme has drained.** What remains of relief is parked in `BACKLOG.md` and is no longer the focus: the
+readback (S43), erecting shapes (S44), the stroke tools reading the relief (S46), per-shape participation
+(S48), the later passes folding (S42) and a pressure budget (S47). Pull one up when it becomes the work.
 
 ## Layout generation (G) — the generator in the studio
 

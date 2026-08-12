@@ -569,6 +569,14 @@ a falling ridgeline shows its ends, a scarp shows its drop.
 The one interaction still to build is dragging a **contour**, which writes a line mark at that height — an
 addition to the overlay rather than another tool.
 
+**A preview resumes rather than rebuilding, and it still cannot disagree with the build.** Solving from flat
+brings a whole surface into existence; every preview an author asks for is one small edit after the last, so
+the relaxation has that edit left to carry and nothing else. What makes resuming safe is not a tolerance an
+implementation happens to hit — it is that the relaxation **stops when the field stops moving**. A resumed run
+that reaches that tolerance has reached the same surface a cold one would; one that fails to reach it is
+thrown away, and the cold cascade runs instead. So the head start is worth exactly what it saves and can cost
+nothing, which is the only footing on which a cache is allowed near a preview that claims to be the build.
+
 **The preview is solved on the server, and there is no JS twin.** The paint preview already establishes the
 seam: an edit debounces, the layout is posted, a render comes back, the canvas loads it as a layer, and a
 sequence number drops replies overtaken by a newer edit. A relief solve is far cheaper than the whole-map
@@ -592,10 +600,12 @@ drawn — which is exactly when the paint preview is not.
 4. **Pushes** (S50) — the same tool surface with one more kind, plus crown and per-vertex amounts as numbers
    on the inspector. Sharing the pipeline is the point rather than a convenience: a push is placed, selected,
    dragged, re-cornered and deleted exactly as a mark is, and only what the solver does with it differs.
-5. **The readback** (S43). A panel, and the same JSON over HTTP, which is what makes a relief correctable by
+5. **Dragging a contour** (S53) and **resuming the solve** (S52) — the two that make editing live rather than
+   iterative, and the only ones that need what the four before them built.
+6. **The readback** (S43). A panel, and the same JSON over HTTP, which is what makes a relief correctable by
    a generator or an agent rather than only by eye.
-6. **Erecting shapes** (S44) — one control on the shape inspector that already exists.
-7. **Paths and water reading the relief** (S46), last, because it depends on all of the above.
+7. **Erecting shapes** (S44) — one control on the shape inspector that already exists.
+8. **Paths and water reading the relief** (S46), last, because it depends on all of the above.
 
 **A recompile refuses rather than guesses.** A relief is expensive hand work and it is *geometry*, so a
 recompile from a plan replaces it — the same rule that already replaces hand-drawn shapes, and a much worse
