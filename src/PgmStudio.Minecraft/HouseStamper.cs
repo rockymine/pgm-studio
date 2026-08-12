@@ -148,7 +148,7 @@ public static class HouseStamper
                     // <b>A projecting wing cuts the roof it pushes into, across its own span.</b> Without the
                     // cut the two surfaces are laid over each other and the wing's verge has nothing to sit on
                     // — its overhang is simply missing, buried in the slope it was supposed to break.
-                    if (CutBy(wing, x, z)) continue;
+                    if (CutBy(wing, field, x, z) || Buried(wing, field, x, z)) continue;
                     // A marching end carries no overhang of its own: the march is what fills those columns,
                     // stepping them on into the other roof, and a course that met its own eave first would
                     // strike a block at the first step and never move.
@@ -464,15 +464,32 @@ public static class HouseStamper
         /// <summary>Whether another wing projects into this one and its roof plan claims this cell, so this
         /// wing's roof gives way there. A wing that merely reaches this one's outside wall claims nothing: that
         /// crossing is a valley, and two surfaces meeting is what a valley is.</summary>
-        bool CutBy(Wing wing, int x, int z)
+        bool CutBy(Wing wing, RoofField field, int x, int z)
         {
-            foreach (var other in body.Wings)
+            foreach (var (other, _, theirs, _) in roofs)
             {
-                if (other.Equals(wing) || !other.ProjectsInto(wing)) continue;
+                if (other.Equals(wing) || !other.ProjectsInto(wing) || !other.Holds(x, z)) continue;
                 // Across the projecting wing's own span — its walls, not its overhang. Cut the overhang's
                 // columns too and the hole is wider than anything fills it: the verge that was to sit there is
                 // itself below the wall it is standing over, so rule 2 keeps it out and the roof is left open.
-                if (other.Holds(x, z)) return true;
+                //
+                // And only where that wing actually stands over this one. A cross wing lower than the roof it
+                // pushes into cuts a trench straight through its ridge otherwise — the main roof severed by a
+                // gable too short to replace it.
+                if (theirs.Crown(x, z) >= field.Crown(x, z)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>Whether this wing's roof lies under the one it projects into, and so is not laid at all: it
+        /// <b>dies into that slope</b> rather than surfacing through it. The complement of the cut — at any one
+        /// cell exactly one of the two roofs stands.</summary>
+        bool Buried(Wing wing, RoofField field, int x, int z)
+        {
+            foreach (var (other, _, theirs, _) in roofs)
+            {
+                if (other.Equals(wing) || !wing.ProjectsInto(other) || !other.Holds(x, z)) continue;
+                if (theirs.Crown(x, z) > field.Crown(x, z)) return true;
             }
             return false;
         }

@@ -960,7 +960,7 @@ public sealed class HouseStamperTests
 
     /// <summary>A cross-gable: the same hall, with the wing pushed <b>into</b> it rather than set against it,
     /// so one of the wing's gable ends stands mid-slope inside the hall's roof.</summary>
-    private static Footprint Crossed() => new([new Wing(0, 0, 14, 8), new Wing(5, 4, 9, 16)]);
+    private static Footprint Crossed() => new([new Wing(0, 0, 14, 8), new Wing(3, 4, 11, 16)]);
 
     /// <summary>
     /// <b>A wing's two gable ends are the same gable — plinth and wall included.</b> This is the criterion in
@@ -982,13 +982,19 @@ public sealed class HouseStamperTests
 
         var seen = 0;
         for (var x = wing.MinX; x <= wing.MaxX; x++)
-            for (var y = FloorY; y <= FloorY + 24; y++)
+        {
+            // Up to the wing's own roof and no further. What stands over the buried end above that is the
+            // hall's roof passing across it, which is the neighbour's business and not this gable's.
+            var crown = Enumerable.Range(FloorY, 24)
+                .Last(y => world.GetBlock(x, y, wing.MaxZ).Id != Blocks.Air);
+            for (var y = FloorY; y <= crown; y++)
             {
                 var buried = world.GetBlock(x, y, wing.MinZ);       // the end standing mid-slope in the hall
                 var open = world.GetBlock(x, y, wing.MaxZ);         // the end that closes the building
                 await Assert.That((x, y, buried.Id, buried.Data)).IsEqualTo((x, y, open.Id, open.Data));
                 if (buried.Id != Blocks.Air) seen++;
             }
+        }
 
         // A gable that is nowhere at all would pass the comparison and mean nothing.
         await Assert.That(seen).IsGreaterThan(0);
@@ -1010,15 +1016,18 @@ public sealed class HouseStamperTests
         await Assert.That(wing.ProjectsInto(hall)).IsTrue();
         await Assert.That(hall.ProjectsInto(wing)).IsFalse();
 
-        // The verge runs down the wing's own edge, over ground the hall's roof would otherwise have filled.
-        // Its height has to come from the wing rather than from the hall: read at the ridge, where the two
-        // roofs are furthest apart.
+        int Surface(int x, int z)
+            => Enumerable.Range(FloorY, 24).Last(y => world.GetBlock(x, y, z).Id != Blocks.Air);
+
+        // The wing's ridge carries on across the hall at its own height, which is what the cut makes room for.
         var ridge = (wing.MinX + wing.MaxX) / 2;
-        var top = (int)Enumerable.Range(FloorY, 24)
-            .Last(y => world.GetBlock(ridge, y, wing.MaxZ - 1).Id != Blocks.Air);
-        var inside = (int)Enumerable.Range(FloorY, 24)
-            .Last(y => world.GetBlock(ridge, y, hall.MaxZ - 1).Id != Blocks.Air);
-        await Assert.That(top).IsEqualTo(inside);
+        var outside = Surface(ridge, wing.MaxZ - 1);
+        await Assert.That(Surface(ridge, hall.MaxZ - 1)).IsEqualTo(outside);
+
+        // <b>And it cuts only what it stands over.</b> The hall's own ridge survives the crossing: a wing is
+        // not licensed to sever the roof it pushes into, only to take the part of it that is underneath.
+        for (var x = hall.MinX + 1; x < hall.MaxX; x++)
+            await Assert.That(Surface(x, (hall.MinZ + hall.MaxZ) / 2)).IsEqualTo(outside);
     }
 
     /// <summary>
