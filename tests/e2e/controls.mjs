@@ -42,6 +42,7 @@ const style = await api("/styles", { method: "POST", body: {
 const room = await api("/room-styles", { method: "POST", body: {
   name: "E2E control room", floorDepth: 1, wallHeight: 4, roofThickness: 1,
   eave: "flush", roofHole: false, door: "oak_door", doorHeight: 2,
+  storeyStack: [],
   courses: [{ part: "wall", ordinal: 0, styleId: style.id, height: 2 }],
 } });
 

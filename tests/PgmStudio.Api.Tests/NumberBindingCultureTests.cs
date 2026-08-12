@@ -63,7 +63,7 @@ public sealed class NumberBindingCultureTests
         {
             // The tree-wood picker, every knob sent explicitly at exactly the endpoint's own default.
             var sent = await WoodCardsAsync(client,
-                "height=13&stems=1&leader=0.55&flow=0.45&branchAngle=0.55&levels=2&leafSize=0.6");
+                "height=13&stems=1&leader=0.55&flow=0.45&branchAngle=1.1&levels=2&leafSize=0.6");
             var defaulted = await WoodCardsAsync(client, "height=13");
 
             await Assert.That(sent).IsEquivalentTo(defaulted)
@@ -77,7 +77,7 @@ public sealed class NumberBindingCultureTests
             // One knob at a time: a shared parser fault shows on all of them, a per-knob one on exactly the
             // knob that misses.
             var defaulted = await WoodCardsAsync(client, "height=13");
-            foreach (var knob in new[] { "leader=0.55", "flow=0.45", "branchAngle=0.55", "leafSize=0.6" })
+            foreach (var knob in new[] { "leader=0.55", "flow=0.45", "branchAngle=1.1", "leafSize=0.6" })
                 await Assert.That(await WoodCardsAsync(client, $"height=13&{knob}")).IsEquivalentTo(defaulted)
                     .Because($"{knob} is the endpoint's own default and must bind as written");
         });
