@@ -11,6 +11,7 @@ import { rectToPolygon, translateShape, rotateShape, boundsOfShapes, splitShape 
 import { surfaceHeights } from "../geometry/slope.js";
 import { applySymmetry, orbitAxes } from "../geometry/symmetry.js";
 import { defaultThemeJson, uniqueScopeId } from "../theme/theme-model.js";
+import { isPush, pushAmounts, pushAmountPatch } from "../relief/relief-doc.js";
 import { fireTo } from "./fire.js";
 import polygonClipping from "../vendor/polygon-clipping.js";
 
@@ -50,6 +51,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   let islands = [];            // alias of layers[active].islands — kept current by recompute()
   let mirrorVisible = true;
   let selectedIslandId = null; // panel island selection (drives arrow-move of the whole island)
+  let reliefMode = false;      // the Relief phase is up: marks are drawn, edited, and reported to the host
   let view = "2d";             // "2d" | "iso" — the read-only isometric height preview (S6)
   let isoYaw = 30;
   // Terrain-paint theming (finishing-model.md §4): a map-global registry + default; a shape's own override
@@ -103,6 +105,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     onPropSelected:    () => fire("OnDressing", dressingState()),
     // A placed prop ends its tool, the same as a completed draw: the toolbar follows the canvas back to select.
     onDressingPlaced:  () => { canvas.setActiveTool("select"); fire("OnToolChanged", "select"); },
+    // Relief marks follow exactly the same three rules, for the same reasons.
+    onReliefChanged: () => afterReliefChange(),
+    onMarkSelected:  () => fire("OnRelief", reliefState()),
+    onReliefPlaced:  () => { canvas.setActiveTool("select"); fire("OnToolChanged", "select"); },
     onShapeDeleted:  (id) => { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); },
     onShapePromote:  (id) => promoteShape(id),
     onSplit:         (a, b) => splitAt(a, b),
@@ -168,6 +174,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     const single = isl && isl.shapeIds.length === 1 ? isl.shapeIds[0] : null;
     fire("OnShapeSelected", single);
     fire("OnIslandSelected", single ? null : selectedIslandId);
+    // In the Relief phase the island IS the unit being edited — its base, reach, step and grain are what the
+    // marks are stated against — so picking one has to reach the inspector.
+    if (reliefMode) fire("OnRelief", reliefState());
   }
 
   // Rotate the current selection by `deg` degrees about its bbox centre (the inspector's numeric field; the
@@ -201,13 +210,18 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     islands = next;
     layers[active].islands = next;
     layers[active].shapes = shapes;
-    canvas.setIslands(next.map(i => ({ id: i.id, shapeIds: i.shapeIds, exterior: i.exterior, holes: i.holes })));
+    // `mirrors` rides along because the relief overlay ghosts a mark only on an island that opted in — the
+    // rasterizer fans only those, so a ghost anywhere else is terrain that will never be built.
+    canvas.setIslands(next.map(i => ({ id: i.id, shapeIds: i.shapeIds, exterior: i.exterior, holes: i.holes, mirrors: i.mirrors })));
     canvas.setGhostIslands(ghostPolys());
     refreshMirror();
     pushLayout();
     pushLayers();
     refreshIso();
     refreshPaint();   // the geometry moved, so the paint on it has too (no-op unless the overlay is on)
+    // A relief is solved over the island's own footprint, so moving the geometry re-shapes the ground under
+    // it — and a re-fused island can change which relief applies at all.
+    refreshRelief();
   }
 
   // Build the iso "solids" for every layer: one solid PER SHAPE so per-shape heights are visible (a
@@ -287,6 +301,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     const shapes = canvas.getShapes().map(s => ({
       id: s.id, type: s.type, operation: s.operation, override: !!s.override, dim: dimLabel(s),
       baseHeight: clampHeight(s.base_height), floor: clampFloor(s.floor),
+      heightMode: s.height_mode ?? "", skirt: s.skirt ?? 0, reliefScope: s.relief_scope ?? "",
       radius: s.radius ?? 0, pathEdge: s.path_edge ?? "", pathSeed: s.path_seed ?? 0,
     }));
     const isl = islands.map(i => ({ id: i.id, name: i.name, mirrors: i.mirrors, shapeIds: i.shapeIds }));
@@ -457,6 +472,74 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     } catch { /* offline or mid-navigation — the overlay keeps the stone footprint */ }
   }
 
+  // ── the stated relief (docs/contracts/sketch-relief.md) ────────────────────
+  // What an author has said about the ground inside each island. Distinct from the contour overlay below it:
+  // this is the statement, that is what the solver made of it. Both are on screen at once during the phase,
+  // which is the whole reason a mark can be tuned by eye.
+  function reliefState() {
+    const tools = canvas.reliefTools;
+    const selectedId = tools?.selectedId ?? null;
+    const selected = selectedId ? canvas.relief.byId(selectedId) : null;
+    // The island in play: the one stating the selected mark, else the one the author has picked on the
+    // canvas. Its own settings — base, reach, step, grain — are what the inspector edits when no mark is.
+    const islandId = selected?.islandId ?? selectedIslandId ?? null;
+    return JSON.stringify({
+      // Marks and pushes as one list, because that is how the phase treats them: the sidebar lists them
+      // together and the canvas selects across both. Which of the two a row is, its `kind` says.
+      marks: canvas.relief.statements,
+      selectedId,
+      selected,
+      // A push's per-vertex lifts, expanded to one number per ring vertex — what an inspector shows, since
+      // an author who wants one corner lower needs a number to change and "the amount, except there" is not
+      // one. Only for a selected push; null for everything else.
+      amounts: selected && isPush(selected) ? pushAmounts(selected) : null,
+      islandId,
+      islandName: islandId ? (islandById(islandId)?.name ?? islandId) : null,
+      relief: islandId ? canvas.relief.peek(islandId) : null,
+    });
+  }
+
+  function afterReliefChange() {
+    markDirty();
+    fire("OnRelief", reliefState());
+    refreshRelief();   // the statement changed, so the contours it produced have too
+  }
+
+  // ── the relief contour overlay ─────────────────────────────────────────────
+  // Same seam as the painted Blocks overlay, and for the same reason: the surface a relief produces is
+  // solved by the export's own solver, so the only honest preview is the one the server draws. The lines
+  // come back as world points and are stroked at the live zoom, so unlike the block bitmap this does not
+  // need re-fetching to stay sharp — only when the layout changes.
+  //
+  // It follows the toggle alone rather than a phase. A relief is geometry: it is worth seeing while the
+  // shapes over it are still being drawn, which is exactly when the paint overlay is not.
+  const RELIEF_DEBOUNCE_MS = 140;
+  let reliefTimer = null, reliefSeq = 0, reliefOn = false;
+
+  function refreshRelief({ now = false } = {}) {
+    if (!reliefOn || !slug) return;
+    clearTimeout(reliefTimer);
+    reliefTimer = setTimeout(fetchRelief, now ? 0 : RELIEF_DEBOUNCE_MS);
+  }
+
+  function syncRelief() {
+    clearTimeout(reliefTimer);
+    if (reliefOn) refreshRelief({ now: true });
+    else canvas.loadReliefLayer(null);
+  }
+
+  async function fetchRelief() {
+    const seq = ++reliefSeq;
+    try {
+      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/sketch/relief`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(handle.getState()),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (seq === reliefSeq) canvas.loadReliefLayer(data);   // ignore a reply overtaken by a newer edit
+    } catch { /* offline or mid-navigation — the overlay keeps whatever it last drew */ }
+  }
+
   // Set (or clear, with a falsy themeId) a shape's theme override — the live canvas shape so it persists on sync.
   function setShapeTheme(shapeId, themeId) {
     const s = canvas.getShape(shapeId);
@@ -502,6 +585,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       blocksOn = !!v;
       canvas.setBlocksVisible(blocksOn);
       syncPaint();
+    },
+    // The contour overlay. Unlike Blocks it is not phase-gated: a relief is geometry, so it is worth seeing
+    // while the shapes over it are still being drawn.
+    setReliefVisible(v){
+      reliefOn = !!v;
+      syncRelief();
     },
     // Whether this phase previews the finished paint. Only Theme does: Draw wants the raw voxelization while
     // the shapes are still moving, and painting the layout is server work worth not doing there at all.
@@ -563,6 +652,34 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (seed !== null && seed !== undefined) s.path_seed = Math.max(0, Math.round(seed));
       canvas.updateShape(s);
       recompute(); pushLayout(); refreshIso(); markDirty();
+    },
+
+    // How a shape's top is decided once its island carries a relief, and how far in it eases into the ground
+    // it meets. Neither changes the footprint, so the island does not need recomputing — but both change the
+    // column, so the iso and the saved document do.
+    setHeightMode(id, mode) {
+      const s = canvas.getShape(id);
+      if (!s) return;
+      if (mode === "level" || mode === "raise" || mode === "sink") s.height_mode = mode;
+      else delete s.height_mode;                    // absent, not empty: a shape without the word IS ground
+      pushLayout(); refreshIso(); markDirty();
+    },
+
+    setSkirt(id, blocks) {
+      const s = canvas.getShape(id);
+      if (!s) return;
+      s.skirt = Math.max(0, Math.round(blocks ?? 0));
+      pushLayout(); refreshIso(); markDirty();
+    },
+
+    // Whether the shape's ground joins its island's relief. Solved on the server, so nothing here recomputes
+    // — the next preview is what shows it.
+    setReliefScope(id, scope) {
+      const s = canvas.getShape(id);
+      if (!s) return;
+      if (scope === "hold" || scope === "exclude") s.relief_scope = scope;
+      else delete s.relief_scope;
+      pushLayout(); markDirty();
     },
 
     // Panel-driven edits.
@@ -654,6 +771,68 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       fire("OnDressing", dressingState()); return null;
     },
 
+    // ── relief (sketch-relief.md) ──
+    // Placing is the canvas's; the bridge exposes reading the document, editing the selected mark, the island
+    // settings the marks are stated against, and the per-kind settings a newly placed mark starts from.
+    getRelief() { return reliefState(); },
+    setReliefMode(on) {
+      reliefMode = !!on;
+      canvas.setReliefMode(reliefMode);
+      // The phase shows the statement and its result together, which is the only way a mark can be tuned by
+      // eye — so entering it turns the contour overlay on rather than leaving it to a second toggle.
+      if (reliefMode) { reliefOn = true; syncRelief(); fire("OnRelief", reliefState()); }
+    },
+    selectMark(id) { canvas.reliefTools?.select(id || null); },
+    deleteMark() { if (canvas.reliefTools?.deleteSelected()) afterReliefChange(); },
+    /** Patch the selected mark. `patchJson` is a partial mark; returns an error string on bad JSON, else null. */
+    updateMark(patchJson) {
+      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "Invalid JSON"; }
+      canvas.reliefTools?.updateSelected(patch);
+      afterReliefChange(); return null;
+    },
+    /** Patch the island's own relief — base, reach, step, grain, and the rim it carries. Not a mark: these
+     *  are what every mark in the island is stated against, so changing one moves the whole surface. */
+    updateIslandRelief(patchJson) {
+      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "Invalid JSON"; }
+      if (!selectedIslandId) return "no island selected";
+      canvas.reliefTools?.updateRelief(selectedIslandId, patch);
+      afterReliefChange(); return null;
+    },
+    /**
+     * State the lift at ONE of a selected push's ring vertices — what makes a drawn ridge fall along its
+     * length instead of holding level. Collapses back to the single `amount` when every vertex agrees, so
+     * undoing a variation leaves the push an author started from rather than an array that happens to be
+     * flat. A no-op unless a push is selected: a mark has no lift to vary.
+     */
+    setPushAmount(index, value) {
+      const tools = canvas.reliefTools;
+      const selected = tools?.selectedId ? canvas.relief.byId(tools.selectedId) : null;
+      if (!selected || !isPush(selected)) return "no push selected";
+      tools.updateSelected(pushAmountPatch(selected, Number(index), Number(value)));
+      afterReliefChange(); return null;
+    },
+    /**
+     * What the relief CHARGES, per island — the readback (sketch-relief.md §5–§6). Asked for rather than
+     * pushed: it is a second solve's worth of measurement over the same field, and an author wants it when
+     * they stop to read the board rather than on every edit.
+     */
+    async readRelief() {
+      if (!slug) return "{}";
+      try {
+        const res = await fetch(`/api/map/${encodeURIComponent(slug)}/sketch/relief/read`, {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(handle.getState()),
+        });
+        return res.ok ? await res.text() : "{}";
+      } catch { return "{}"; }
+    },
+    /** The starting values the next mark of a kind takes — what the inspector edits with nothing selected. */
+    getMarkSettings(kind) { return JSON.stringify(canvas.reliefTools?.settingsFor(kind) ?? {}); },
+    setMarkSettings(kind, patchJson) {
+      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "Invalid JSON"; }
+      canvas.reliefTools?.setSettings(kind, patch);
+      fire("OnRelief", reliefState()); return null;
+    },
+
     // Load a persisted layout: setup + the layers[] array (or a legacy single layout → one layer at base_y 0).
     load(state) {
       const s = state ?? {};
@@ -665,6 +844,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         spawn: s.roomStyles && "spawn" in s.roomStyles ? s.roomStyles.spawn : undefined,
       };
       canvas.setDressing(s.dressing && typeof s.dressing === "object" ? s.dressing : null);
+      canvas.setReliefDoc(s.relief && typeof s.relief === "object" ? s.relief : null);
       const raw = (s.layers && s.layers.length) ? s.layers : (s.layout ? [{ base_y: 0, layout: s.layout }] : []);
       // A layer's stored shapes are partitioned on load: role-tagged shapes are the plan's structural pieces
       // (S25) — carried as a locked render-only overlay, kept out of the drawn-shape pipeline (islands, raster,
@@ -710,6 +890,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         // Dressing rides the same way, and is likewise omitted when empty so an undressed sketch serialises
         // exactly as it did before the phase existed.
         dressing: canvas.dressing.isEmpty ? undefined : canvas.dressing.toJSON(),
+        // Relief rides top-level keyed by island rather than on the shapes, because a plan recompile
+        // replaces every shape it produced and a relief is hand work a plan cannot express. Omitted when
+        // nothing is stated, so opening the phase and leaving it cannot add a key to the layout.
+        relief: canvas.relief.isEmpty ? undefined : canvas.relief.toJSON(),
         layers: layers.map(L => ({
           id: L.id, name: L.name, base_y: L.baseY,
           layout: {

@@ -80,6 +80,9 @@ builder.Services.AddHttpClient("import", c => c.Timeout = TimeSpan.FromSeconds(1
 var mapsRoots = (builder.Configuration.GetSection("MapsRoots").Get<string[]>() ?? [])
     .Append(importRoot).ToArray();
 builder.Services.AddSingleton(new PgmStudio.Api.Services.MapsRoots(mapsRoots));
+// The last surface each island's relief settled on, so a preview resumes rather than rebuilding from flat.
+// A singleton because it is a head start across requests; it can only save sweeps, never change an answer.
+builder.Services.AddSingleton<PgmStudio.Api.Services.ReliefPreviewCache>();
 
 var app = builder.Build();
 

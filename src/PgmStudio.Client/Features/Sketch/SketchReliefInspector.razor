@@ -1,0 +1,219 @@
+@namespace PgmStudio.Client.Features.Sketch
+@using System.Text.Json.Nodes
+
+@* The Relief phase's inspector: the numbers of the mark under the cursor, and — always, below them — the
+   island's own settings, because those are what every mark in it is stated against. With nothing selected the
+   same form edits the active tool's starting numbers, so the next mark placed is already aimed. *@
+
+<Inspector>
+  <Section>
+    @if (mark is null)
+    {
+      <p class="section-desc">
+        Pick a tool and state something: click a <strong>spot height</strong>, or drag a
+        <strong>ridgeline</strong>, a <strong>bench</strong> or a <strong>scarp</strong>. A mark can be
+        dragged past the island's edge — it is clipped, not refused, which is how a hill sits in a corner with
+        no wasted ground behind it.
+      </p>
+      <p class="section-desc">@markCount stated on this map.</p>
+    }
+    else
+    {
+      <DetailHeader Icon="@Info.Icon" Label="@Info.Title">
+        <span class="detail-header-badges">
+          @if (editingSelection) { <Badge Kind="neutral">selected</Badge> }
+          else { <Badge Kind="dim">next one</Badge> }
+          @if (kind == MarkKinds.Scarp) { <Badge Kind="warning">blocks movement</Badge> }
+        </span>
+      </DetailHeader>
+      <p class="section-desc">@Info.Blurb</p>
+
+      @if (kind == MarkKinds.Point)
+      {
+        <Field Label="Height">
+          <NumberField Value="Height(0)" ValueChanged="v => SetHeight(0, v)" />
+        </Field>
+        <Field Label="Radius">
+          <LabelHint>(blocks held at that height)</LabelHint>
+          <ChildContent>
+            <NumberField Value="Num(MarkFields.Radius, 4)" ValueChanged="SetRadius" Min="0" />
+          </ChildContent>
+        </Field>
+        <p class="section-desc">A radius of zero pins one cell and reads as a spike; from about two up it
+          reads as a summit, which is the whole reason the radius exists.</p>
+      }
+      else if (kind == MarkKinds.Line)
+      {
+        <Field Label="Width">
+          <LabelHint>(the band held either side)</LabelHint>
+          <ChildContent>
+            <NumberField Value="Num(MarkFields.Width, 3)" ValueChanged="SetWidth" Min="1" />
+          </ChildContent>
+        </Field>
+        <div class="section-header section-header--ruled"><h2 class="section-title">Heights along it</h2></div>
+        <p class="section-desc">One height holds the whole run. Add more and they interpolate between the
+          vertices, which is what makes a drawn ridge fall as it goes rather than sit level.</p>
+        @for (var i = 0; i < HeightCount; i++)
+        {
+          var at = i;
+          <Field Label="@($"Point {at + 1}")">
+            <NumberField Value="Height(at)" ValueChanged="v => SetHeight(at, v)" />
+          </Field>
+        }
+        <div class="detail-header-badges">
+          <Button Variant="ghost" OnClick="AddHeight">Add a point</Button>
+          @if (HeightCount > 1)
+          {
+            <Button Variant="ghost" OnClick="LevelHeights">Make it level</Button>
+          }
+        </div>
+      }
+      else if (kind == MarkKinds.Area)
+      {
+        <Field Label="Height">
+          <NumberField Value="Height(0)" ValueChanged="v => SetHeight(0, v)" />
+        </Field>
+        <p class="section-desc">The whole ring is held flat at this level — a bench, a floor, a plateau. It
+          pays for its flatness at its edge, however the land around it arrives.</p>
+      }
+      else if (kind == MarkKinds.Scarp)
+      {
+        <Field Label="Above the line">
+          <NumberField Value="Num(MarkFields.High, 11)" ValueChanged="SetHigh" />
+        </Field>
+        <Field Label="Below the line">
+          <NumberField Value="Num(MarkFields.Low, 5)" ValueChanged="SetLow" />
+        </Field>
+        <Field Label="Face">
+          <LabelHint>(how wide the drop is)</LabelHint>
+          <ChildContent>
+            <NumberField Value="Num(MarkFields.Face, 2)" ValueChanged="SetFace" Min="1" />
+          </ChildContent>
+        </Field>
+        <Field Label="Band">
+          <LabelHint>(how far the two levels are held)</LabelHint>
+          <ChildContent>
+            <NumberField Value="Num(MarkFields.Band, 5)" ValueChanged="SetBand" Min="1" />
+          </ChildContent>
+        </Field>
+        <p class="section-desc">Narrow face, big drop is a cliff; wide face is a slope. The band
+          <strong>stops where the line stops</strong>, so the gaps either end are where the shelf can be
+          crossed — a line drawn short of the island's edge is a way through.</p>
+      }
+      else if (kind == MarkKinds.Push)
+      {
+        <Field Label="Lift">
+          <LabelHint>(negative digs)</LabelHint>
+          <ChildContent>
+            <NumberField Value="Num(PushFields.Amount, 5)" ValueChanged="SetAmount" />
+          </ChildContent>
+        </Field>
+        <Field Label="Skirt">
+          <LabelHint>(how far the lift falls away outside the ring)</LabelHint>
+          <ChildContent>
+            <NumberField Value="Num(PushFields.Falloff, 10)" ValueChanged="SetFalloff" Min="0" />
+          </ChildContent>
+        </Field>
+        <Field Label="Crown">
+          <LabelHint>(how much higher the middle stands)</LabelHint>
+          <ChildContent>
+            <NumberField Value="Num(PushFields.Crown, 2)" ValueChanged="SetCrown" />
+          </ChildContent>
+        </Field>
+        <Field Label="Roughness">
+          <NumberField Value="Num(PushFields.Roughness, 0.3)" ValueChanged="SetRoughness" Min="0" Step="0.05" />
+        </Field>
+        <p class="section-desc">A push <strong>moves</strong> the ground instead of stating a height, so two
+          over the same ground add. Crown is the one worth reaching for: at zero the ring gets a flat top,
+          and the middle it raises instead is the deepest point measured inward — so a round ring domes to a
+          <strong>point</strong> and a long one ridges to a <strong>line</strong>, from the same number.</p>
+
+        @* Per-vertex lift. Only for a placed push: the numbers are one per corner of the ring that was drawn,
+           so there is nothing to list until there is a ring. This is what makes a drawn ridge fall along its
+           length instead of holding level. *@
+        @if (editingSelection && amounts.Count > 0)
+        {
+          <p class="section-desc">Lift at each corner — vary them and the ridge falls along its own length.</p>
+          @for (var i = 0; i < amounts.Count; i++)
+          {
+            var at = i;
+            <Field Label="@($"Corner {at + 1}")">
+              <NumberField Value="amounts[at]" ValueChanged="v => SetPushAmount(at, v)" />
+            </Field>
+          }
+          @if (VariesAlongRing)
+          {
+            <Button Variant="ghost" OnClick="LevelAmounts">Make it level</Button>
+          }
+        }
+      }
+
+      @if (editingSelection)
+      {
+        <Button Full Variant="danger" OnClick="Delete"><i data-lucide="trash-2"></i> Delete</Button>
+      }
+    }
+  </Section>
+
+  @* The island's own settings. Always shown, never behind a selection: they are what the marks are stated
+     against, so a base an author cannot see is a set of heights they cannot read. *@
+  @if (islandId is not null)
+  {
+    <Section Title="@IslandTitle">
+      <Field Label="Base">
+        <LabelHint>(where the ground falls back to)</LabelHint>
+        <ChildContent>
+          <NumberField Value="ReliefNum(ReliefFields.Base, 8)" ValueChanged="SetBase" />
+        </ChildContent>
+      </Field>
+      <Field Label="Reach">
+        <LabelHint>(0 = the marks decide everything)</LabelHint>
+        <ChildContent>
+          <NumberField Value="ReliefNum(ReliefFields.Reach, 0)" ValueChanged="SetReach" Min="0" />
+        </ChildContent>
+      </Field>
+      <Field Label="Block step">
+        <NumberField Value="ReliefNum(ReliefFields.Step, 1)" ValueChanged="SetStep" Min="1" Max="4" />
+      </Field>
+      <p class="section-desc">A step of two reads as deliberate terracing — and it is the one knob here that
+        can break a map, because every riser becomes a two-block wall.</p>
+
+      <div class="section-header section-header--ruled"><h2 class="section-title">Grain</h2></div>
+      <p class="section-desc">The wobble added after the surface is solved — what stops it reading as
+        machined. It never overrides a mark: a stated height is a statement, not a suggestion.</p>
+      <Field Label="Amount">
+        <LabelHint>(blocks)</LabelHint>
+        <ChildContent>
+          <NumberField Value="GrainNum(GrainFields.Amplitude, 1.2)" ValueChanged="SetGrainAmount" Min="0" Step="0.5" />
+        </ChildContent>
+      </Field>
+      <Field Label="Feature size">
+        <LabelHint>(blocks)</LabelHint>
+        <ChildContent>
+          <NumberField Value="GrainNum(GrainFields.Scale, 12)" ValueChanged="SetGrainScale" Min="1" />
+        </ChildContent>
+      </Field>
+      <Field Label="Seed">
+        <NumberField Value="GrainNum(GrainFields.Seed, 1)" ValueChanged="SetGrainSeed" Min="0" />
+      </Field>
+
+      <div class="section-header section-header--ruled"><h2 class="section-title">Rim</h2></div>
+      <p class="section-desc">A height held all the way round the island's outline — what keeps a hill inside
+        the shape rather than running off its edge. A setting rather than a tool because there is nowhere to
+        place it: it holds the whole outline or none of it.</p>
+      <Field Label="Hold the outline">
+        <label class="ctrl-row" style="cursor:pointer">
+          <input type="checkbox" class="control-input control-input--hidden" checked="@HasRim"
+                 @onchange="ToggleRim" />
+          <span class="plan-readout">@(HasRim ? "the outline is held" : "the land runs to the edge")</span>
+        </label>
+      </Field>
+      @if (HasRim)
+      {
+        <Field Label="Rim height">
+          <NumberField Value="RimHeight" ValueChanged="SetRimHeight" />
+        </Field>
+      }
+    </Section>
+  }
+</Inspector>

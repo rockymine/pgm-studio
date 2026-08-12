@@ -184,4 +184,27 @@ public static class BlockRoles
     /// <see cref="StandsOnGround"/> instead, where a trunk is part of the tree it belongs to.</summary>
     public static bool SeenThrough(int blockId) =>
         IsLeaf(blockId) || Growing.Contains(blockId) || Placed.Contains(blockId);
+
+    /// <summary>Blocks a world does not put on its own surface — the material signature of something built.
+    /// Deliberately excludes stone, cobblestone, andesite, gravel, sand and clay: all of those generate
+    /// naturally in the open, so including them would classify every outcrop and river bank as architecture.
+    ///
+    /// <para>Material rather than height is what separates a building from the ground, because elevation
+    /// alone cannot: a hut and the boulder beside it are both flat-topped lumps standing over their
+    /// surroundings, and a long hall on level ground has no elevation signature at all.</para></summary>
+    private static readonly HashSet<int> BuiltSurfaces =
+    [
+        5, 20, 24, 35, 43, 44, 45, 47, 53, 54, 57, 58, 61, 62, 64, 65, 67, 71, 80, 82, 84, 87, 89, 91, 95,
+        96, 98, 101, 102, 108, 109, 112, 114, 116, 117, 118, 120, 125, 126, 128, 133, 134, 135, 136, 138,
+        145, 146, 152, 155, 158, 159, 160, 163, 164, 165, 168, 169, 170, 171, 172, 173, 179, 180, 181, 182,
+        188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 201, 202, 206, 208, 214, 215, 216,
+    ];
+
+    public static bool IsBuilt(int blockId) => BuiltSurfaces.Contains(blockId);
+
+    /// <summary>Whether the block is the terrain itself: not air, not something standing on the ground, not
+    /// something built, not a liquid, and not a log — so a pass reading the natural surface steps past a
+    /// building's own courses and the water over them to reach the ground underneath.</summary>
+    public static bool IsNaturalGround(int blockId) =>
+        blockId != 0 && !SeenThrough(blockId) && !IsBuilt(blockId) && !IsLiquid(blockId) && !IsLog(blockId);
 }

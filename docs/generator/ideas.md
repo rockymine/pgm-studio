@@ -137,7 +137,10 @@ landed, the rest is the idea.
   toward a wool room, a low frontline so bridges launch low and defenders hold the high ground, and a
   `cliff` interface where flow should go one way only. The binding constraint is that steps along any
   `land` path stay walkable unless the plan explicitly says `cliff`. G81 (the declared-bay scythe) is
-  blocked on this pass existing.
+  blocked on this pass existing. The **authoring** half of the same question — a height field stated
+  inside a shape rather than at its outline, and what it costs to walk — is designed and measured in
+  `docs/contracts/sketch-relief.md` (tasks S41–S46, prototype `tools/relief`); the two meet at one data
+  model, so what this pass emits from roles and interfaces is what a hand places by dragging.
 - **G142** — the **roughen pass**: turn the plan's clean rectilinear geometry into an organic read. It would
   run last, inside realize, over the realized polygons of the **authored unit only** — symmetry re-fans the
   images, plan meaning is frozen, and objective placements are pinned — emitting ordinary `SketchShape`s so

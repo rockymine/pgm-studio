@@ -3937,6 +3937,235 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   independent of the **Shapes** toggle. So a drilled member is findable within a busy island instead of showing
   only its handles + a sliver of the shared outline. Follows move / rotate / scale / resize / vertex edits via
   the recompute path. (`sketch-canvas.js` `#renderSelectionHighlight` + `#selectionLayer`; S22)
+- **Relief — the interior-elevation solver (S41, S42).** A shape used to state its height only at its outline,
+  so a hill in the interior was unreachable by construction and a concave outline interpolated straight across
+  its own notch. `PgmStudio.Geom.Relief` solves the interior instead: a **footprint** mask whose outline is a
+  **no-flow boundary**, five **marks** that pin a stated height over a patch (point / line / area / rim /
+  scarp), and **pushes** that lift a drawn ring after the solve with a chamfer-distance skirt, a **crown** that
+  domes a round push and ridges a long one off the ring's medial axis, and per-vertex **amounts** so a ridgeline
+  falls along its length. Between them sits a **screened Poisson relaxation** (red-black Gauss-Seidel), solved
+  **coarse-to-fine** and resumable from the surface already on screen. A mark is *clipped, not confined*, so one
+  placed past the edge raises the ground into a corner and stops; a band stops where its line stops, so it
+  cannot wrap a half-disc round each end and close the gap it was drawn to leave. Fairness is not left to the
+  mirrored marks agreeing: the grain is sampled through the fold and the solved field is folded before it is
+  quantized, both on the cell **centre** — reflecting the corner pairs each cell with its image's *neighbour*,
+  a one-cell shear that reads as symmetry and measures as a whole block. A shape can **hold** its height into
+  the surrounding solve or **exclude** itself from it. Design + measurements: `docs/contracts/sketch-relief.md`;
+  the prototype every figure comes from is `tools/relief`. (`Geom/Relief/{Footprint,Marks,ReliefSpec,ReliefSolver}.cs`;
+  30 tests)
+- **Relief is stored per island, rasterizes as the column top, and refuses to be orphaned (S41, S51).** A relief
+  rides **top-level on the layout keyed by island id**, not nested in the shapes, because a plan recompile
+  replaces every shape it produced and a relief is far more expensive hand work than a shape. `SketchRasterizer`
+  takes a relief-bearing island's column **tops** from the solved field and leaves the **floor** alone — a relief
+  says where the ground is, not how thick the slab under it is — and solves only over the cells that island's
+  add-shapes actually contribute to the standing footprint, so a relief never re-adds ground a subtract took
+  away. A **mirrored copy reads its heights back out of the island's own solved surface through the same
+  transform**, so the two sides are identical by construction rather than to within a second solve's tolerance.
+  Across a recompile the carry is its own rule, not a `FinishKeys` entry: island identity is derived from the
+  geometry, so a re-fused board does not move an island but produces a different one, and `PUT
+  /map/{slug}/sketch/from-plan` answers **409** naming the islands whose terrain would be orphaned and writes
+  nothing — `?force=true` accepts the loss, which is the author's call and not the server's. One flat mark shape
+  carries every kind and `"h"` reads a number or an array, so the document an agent emits is the one the editor
+  saves. (`Pgm/Sketch/{SketchRelief,SketchLayout,SketchRasterizer}.cs`, `Api/Endpoints/SketchEndpoints.cs`;
+  13 tests)
+
+- **Relief: the contour overlay, traced on the server (S45).** A relief could be written and built but not
+  *seen*. A **Relief** layer chip posts the live layout to `POST /map/{slug}/sketch/relief`, which solves it
+  through the build's own entry point (`SketchRasterizer.ReliefFields`) and answers, per relief-bearing
+  island, its height range, its bounds and its **traced contour lines** — so a previewed surface cannot differ
+  from the surface that gets built, which is the only property that makes a preview worth drawing. Lines are
+  traced by marching squares over the **continuous** field (`Geom.Relief.Contours`), because contouring the
+  block surface returns the outlines of its own treads rather than lines of constant height; squares are
+  sampled at cell centres so a contour stops half a block inside the land instead of running out over the
+  void; the ambiguous saddle square is resolved by its centre, which is what keeps a pass between two summits
+  reading as one ring; and a segment of no length — what a level passing exactly through a sampled height
+  emits — is dropped rather than surfacing as a stray two-point stub on every whole number a mark stated.
+  Loose pieces are chained into walking order from their **loose ends** first, so an open run is one line
+  rather than two halves. The overlay draws every fifth block as an **index** line, heavier and the only one
+  labelled, with the label placed on the line's straightest stretch; forty equal lines would say only that
+  there is a slope somewhere. It follows its own toggle rather than a phase — a relief is geometry, so it is
+  worth seeing while the shapes over it are still being drawn, which is exactly when the paint preview is not
+  — and reuses the paint seam wholesale (debounce, post the live layout, load the reply as a canvas layer,
+  drop replies overtaken by a newer edit). No JS twin: the reply is lines, so the client's whole share is
+  stroking points it was handed. (`Geom/Relief/Contours.cs`, `SketchReliefEndpoint`, `sketch-render.js`
+  `paintRelief`, `sketch-bridge.js`, `SketchTool.razor`; 9 + 3 + 6 tests)
+
+- **Relief: a phase where terrain is stated, and marks are placed things (S41).** The five mark kinds solved
+  and exported but could only be written as JSON. A **Relief** phase now sits between Draw and Theme — the
+  order is the dependency, since a relief is geometry and changes what the rasterizer emits — with four canvas
+  tools (spot height · ridgeline · bench · scarp), a list of what each island states, and an inspector for the
+  numbers on the selected mark. It takes the Dressing phase's shape wholesale: a document (`ReliefDoc`), a
+  controller with select / drag / point-grips / delete (`canvas.reliefTools`), a list and an inspector bound
+  to the selection, per-kind settings carried across placements, and a bridge surface of flat methods. Entering
+  the phase turns the contour overlay on with it, so the statement and the surface it produced are on screen
+  together — the only way a mark can be tuned by eye.
+  **Three things differ from dressing, and each is the model asserting itself over the borrowed shape.** A prop
+  is placed on the map; a mark is placed **in an island**, because that is the unit a relief is solved over —
+  so the island is fixed by where a trace *starts* and never revised. Judging it by coverage would break the
+  one gesture the clipping rule exists for: a mark dragged past an edge raises the ground into a corner and
+  stops, and ownership by area would hand it to whichever island the overhang crossed. For the same reason a
+  mark, unlike a prop, may be dragged **off** its island entirely where a prop's drag stops at the void. And
+  the **rim** gets no tool: it holds the whole outline, so there is nowhere to put it — it is a switch on the
+  island, one that writes the rim **first** in the mark list, since a rim written last cuts a doorway through
+  both ends of every ridge reaching the outline. A first mark in an island starts at that island's own **base**
+  rather than at the last mark's height, which would state a cliff nobody asked for.
+  **Colour carries the height, not the kind** — the opposite of the dressing overlay's rule and the right way
+  round here, since every mark does the same thing to the ground and differs only in where and how high; the
+  drawn shape already says which kind it is. Each mark wears its own number, and the two that state more than
+  one wear both: a falling ridgeline shows its ends, a scarp its drop. A mark carries an **id** on the wire —
+  the solver has no use for it, but a relief that renumbered its marks on load would move the selection under
+  the author's hands. (`relief/relief-doc.js`, `controllers/relief-controller.js`, `render/relief-render.js`,
+  `SketchReliefList` + `SketchReliefInspector`, `SketchRelief.cs`; 23 + 1 tests)
+
+- **Relief: the push is drawn, not typed (S50).** A summit stated as a position and a radius can only be
+  round, and the roundness was not a style but the shape of the only footprint that could be typed. A **Push**
+  tool traces a ring like any other, and travels the *same* placed-thing pipeline as the four marks — one id,
+  one selection, one set of point grips, one body drag, one list row — because what separates a push from a
+  mark is not how it is drawn but what it does: a mark is a **constraint** (the ground here IS twelve, and two
+  over the same ground must argue), where a push is a **relative lift** applied to the solved surface
+  afterwards, so two over the same ground simply **add**. It is stored in the relief's own `pushes` array and
+  carries no `kind` on the wire — the array already says what it is, and a field repeating that would be one
+  more thing able to disagree; the word is added back when the document hands a push out. The inspector holds
+  lift (negative digs), **skirt**, **crown** and roughness, and the canvas draws the skirt as a dashed outline
+  at the falloff distance — the difference between a push and a bench made visible, since a bench ends at its
+  outline where a push is still moving ground past it. Which side of the ring is "out" comes from the ring's
+  own signed area, so a ring traced either way round gets its skirt outside it rather than inside, where it
+  would read as a smaller push. **Per-vertex lift** is edited as one number per ring corner, expanded from the
+  single amount so an author who wants one end lower has a number to change — and the document collapses the
+  array back to one amount when every corner agrees, so undoing a variation leaves the push it started from
+  rather than an array that happens to be flat. A per-corner array is never carried to the next push: it is
+  sized to the ring it was stated on. (`relief-doc.js`, `relief-controller.js`, `relief-render.js`,
+  `SketchReliefInspector`, `SketchReliefList`; 11 JS + 3 C# tests)
+
+- **Relief: a contour is grabbed and moved to state a height (S53).** The overlay drew the solver's answer and
+  the tools placed marks, and nothing joined them — the reading of a surface sat beside the form that edited
+  it. A press near a contour now **grabs** it, and moving it writes a `line` mark at that contour's **own
+  level** along its new position: a contour is a line of constant height, so moving one says the ground
+  reaches that height here now. Two decisions carry it. **Index lines win a press** inside a slack, because
+  several contours run close together on a steep face — that is what steep means — and the heavily drawn ones
+  are the only ones an author can aim at. And the whole line **moves** rather than bending under the pointer:
+  a contour has hundreds of points and a drag has one, so bending it locally would need a brush radius, a
+  falloff and a rule for the ends — three settings to express what is one statement. A placed mark wins the
+  press over a contour beneath it (a mark is a thing an author put there; the contours are what the solver
+  made of them), the written mark is simplified like every other traced mark, and a contour pressed without
+  moving states nothing. (`relief/contour-drag.js`, `relief-controller.js`; 7 tests)
+- **Relief: a preview resumes instead of rebuilding (S52).** Every preview solved from flat, so each edit paid
+  for the whole surface to be brought into existence again — and every preview is one small edit after the
+  last. Each island's solve now resumes from the surface its previous preview settled on
+  (`ReliefPreviewCache`, a bounded LRU keyed by map and island, matched on the exact footprint since a field
+  is an array indexed by the grid it was solved on). **It cannot change an answer**, and that is the design
+  rather than a hope: the relaxation stops when the field stops moving, so a resumed run that reaches that
+  tolerance has reached the surface a cold one would — and `Lattice.Relax` now reports whether it *settled*,
+  so a resume that fails is discarded and the cold cascade runs. The fallback is deliberately not held to the
+  resume's sweep budget: a caller offering a head start may cap the attempt cheaply, and inheriting that cap
+  would answer an unfinished surface in exactly the case the fallback exists for. The cache is handed the
+  **unshifted** field, since what the rasterizer returns has its layer's `base_y` added and feeding that back
+  would seed the next solve a whole layer high. (`ReliefSolver`, `ReliefPreviewCache`, `SketchRasterizer`;
+  8 tests)
+
+- **Relief: the readback — what the terrain charges, not whether it is flat (S43).** A relief walkable
+  everywhere is a field rather than a map, so a single walkability score answers the wrong question: it ranks
+  every barrier an author placed on purpose as a defect. `ReliefReadback` (`PgmStudio.Analysis`) reports at
+  the game's **three thresholds** instead — 0–1 is a jump, 2 costs a placed block, 3+ is building in earnest —
+  and none is a fault. Per tier: the share of boundaries a player can cross, the **places** that leaves, how
+  much ground the largest holds, and the **ledges** stranded off it. That last split is what stops "one
+  connected map with twenty cliff-top shelves" reading as "twenty-one pieces"; a place holds at least a
+  hundredth of the ground. Faces are grouped by **which way they look** before being joined — a face is a
+  thing that faces a direction, and joining the brink without regard to it wraps a 6×6 monolith's four sides
+  into one twenty-cell run that qualifies as a cliff, which is the exact call the rule exists to get right.
+  Crossings are counted **both ways**, because a drop is free the way it falls: a face that refuses a crossing
+  one way lets it through the other, which is a one-way cliff rather than a wall. And the symmetry error,
+  which nothing else in the report would show — an unfair map looks identical on every other measure. Served
+  at `POST /map/{slug}/sketch/relief/read` next to the document it describes, which is what makes a relief
+  correctable by a generator or an agent rather than only by eye, and shown as a **What it charges** panel in
+  the Relief phase, fetched on a button rather than on every edit. (`Analysis/Playability/ReliefReadback.cs`,
+  `SketchReliefReadEndpoint`, `SketchReliefReadback.razor`; 9 tests)
+
+- **Relief: shapes erected out of the field, and the stair the block step owes (S44).** A relief makes rolling
+  ground; what makes a map is the thing standing in it. One word on a shape says how its top is decided once
+  its island carries a relief — **level** cuts a flat top at an absolute height (a mesa, whose faces are
+  cliffs), **raise** holds it a fixed amount above the ground under it (a monolith or plinth, which keeps its
+  prominence wherever it is dragged), **sink** the same downward (a quarry). Absent, a shape is ordinary
+  ground and the relief is what its ground does — the default has to stay the default, or a drawn board would
+  become a staircase of plates. Erected shapes are applied **after** the relief, which is the whole of what
+  makes them erected, and they contribute their footprint without their thickness deciding the height: read
+  before that separation, a `raise` found its own plate under itself and stood proud of it. `raise`/`sink`
+  read the ground at the **median** of the cells covered, so the result is one flat-topped thing standing
+  proud rather than a blanket following the hillside — flat-topped only when the shape says so, since the top
+  is evaluated per cell through the shape's own height function: anchor heights and slopes compose with all
+  three modes, so the mode decides what the surface is measured *from* while the height function decides what
+  it *looks like*, and a sunk tilt is a quarry whose floor drains. A **skirt** of N blocks decides how hard a
+  shape lands, blending the top toward the ground it meets across the outermost N cells of the footprint by
+  inward distance from the outline; each cell blends toward the height immediately outside it, so a shape
+  crossing a relief eases into low ground downhill and high uphill instead of levelling the slope. Measured,
+  a skirt of 7 takes a mesa's worst edge step from **17 blocks to 2**, while a monolith left at 0 keeps its
+  sheer face — which is the distinction, a landform sits in the terrain and a structure stands on it.
+  Nothing downstream needed teaching — the painter already
+  classifies a column by its neighbours, so a mesa face arrives as an edge with a known drop and is painted as
+  a wall under a rim.
+  **The stair repair** ships with it, being the same compositing question from the other side: snapping to a
+  two-block step turns every riser into a wall, and a 60×40 hillside terraces into **six separate places**
+  with nothing about the surface saying so. `StairRepair` cuts one stair per stranded place through its
+  **cheapest** riser — the smallest intervention that reconnects, moving under eight cells and the walkable
+  share by under 2% — and **refuses rather than half-cutting** when a stair would run out of footprint, since
+  a riser plus a partial cut is the same map with a scar in it. On a mirrored map the surface is **folded
+  again** afterwards: the repair decides things by walking the map, and a walk has a direction a half-turn
+  does not preserve, so unfolded it hands one team a stair the other lacks. (`Geom/Relief/StairRepair.cs`,
+  `SketchRasterizer.Erect`, `SketchInspector`; 15 tests)
+
+- **The path primitive reaches the ground it draws on (S55).** A path is the one shape stored as something
+  other than its own outline — its vertices are an **open** centerline and its radius a half-width — and the
+  band those imply is what every consumer below the sketch expects, since island detection, the orbit fan,
+  per-anchor height and the world export all read a ring. Deriving that band is `Geom.Algorithms.PathBand`
+  and its JS twin, both already shipped for the dressing stroke; what was missing was the arm that reaches
+  them. `RingOf` had no `path` case and fell to the empty ring, so a drawn path rasterized to **zero
+  columns** — no terrain, no theme scope, no relief footprint. `toRing` had no case either and its default
+  arm throws, so a committed path could take out the island recompute and the shape repaint, and the live
+  preview handed `pathRing` a `vertices` key where it reads `points`, so the band never drew while it was
+  being drawn. All three now route to the band, and `path_edge`/`path_seed` are properties on `SketchShape`
+  rather than keys surviving only because the blob is stored as text. Width is the authored number to the
+  block — radius 2 rasterizes 4 columns across, radius 6 twelve — and the height fields mean on a path what
+  they mean everywhere else, so a raised causeway is a path with a thickness and not a new kind of shape.
+  A path **mirrors as its band, not as its centerline**: a reflection reverses handedness, so re-deriving
+  the band on the far side would swap the edge a rough or tapered width was drawn on. Measured over a
+  mirrored island, zero cells differ from their image. (`SketchRasterizer.RingOf`/`MirrorShape`,
+  `geometry/shape.js`, `sketch-draw-controller.js`; 6 + 4 tests)
+
+- **A shape can leave its island's relief (S48).** The island is the unit a relief is solved over, because
+  solving per shape is a different and wrong answer — a mark outside a shape says nothing to it, and measured
+  over three abutting pieces the seams step **8 and 7 blocks** against **1 and 1** for the fusion. The fusion
+  is not always what an author wants, and the case that decides it is a built thing standing on the ground,
+  whose floor is not terrain. `Participation` had been modelled and tested in `Geom` since the solver landed
+  with nothing reading it; the shape now carries the word. **hold** pins the shape at its own stated top and
+  the surrounding surface is solved knowing where it has to arrive — a walled town the valley runs up to;
+  **exclude** takes the footprint out of the solve entirely, so the land is whatever that outline would have
+  produced at any height — a citadel on its own plinth. Both are boundaries and the land differs under
+  either, because a hole has an outline the relaxation must bend around; what separates them is whether the
+  shape's height travels into the ground around it. Measured over a compound on a 6→26 slope, the fused
+  ground varies 3 blocks under it and both bindings flatten it to 0, while the land beyond the wall differs
+  between the two. A held shape pins **one** level, read at its ring's centre, since a floor that followed a
+  per-vertex tilt would be the slope it replaced; an excluded shape keeps its own column, tilt and all, and
+  needs no stamping pass to do it — its cells were never in the solved field. The word is not asked of a
+  shape declaring a `height_mode`: that shape already stands out of the field, and `raise`/`sink` read the
+  ground under their own footprint, which an excluded footprint would not have. (`SketchRasterizer.SolveRelief`,
+  `SketchInspector`, `sketch-bridge.js`; 7 tests)
+
+- **Erected shapes reach the far side of a mirror (S57).** A mirrored island's copy takes its heights from the
+  primary's solved surface, read back through the same transform — exactly symmetric by construction rather
+  than symmetric to within a second solve's tolerance. An erected shape is settled *after* that surface,
+  against the ground under it, so reading its height back through the mirror gave it the relief's answer
+  instead of its own: a 24-block mesa stood at 24 on the authored side and **12** on its image, one team a
+  mesa and the other a hillside. The image now gets the same passes the primary got, in the same order.
+  Shipped with it, the two words a mirror was dropping outright — `height_mode` and `skirt` were absent from
+  both arms of the shape transform, so an erected shape's image was ordinary ground before it was anything
+  else. (`SketchRasterizer.RasterizeLayout`/`MirrorShape`; 1 test)
+
+- **The height-mode and skirt controls are connected (S58).** The shape inspector had offered "Stands as"
+  since the erect pass landed and a skirt since it gained one, and neither reached the document: the bridge
+  had no `setHeightMode` and no `setSkirt`, so the dropdown threw into the console and the shape kept whatever
+  it had. Both exist now, alongside `setReliefScope`, and all three write **absence** rather than an empty
+  string — a shape without the word is ground, and a shape carrying `""` is a shape carrying a word nothing
+  reads. (`sketch-bridge.js`)
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,

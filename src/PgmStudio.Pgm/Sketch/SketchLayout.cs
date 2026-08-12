@@ -40,6 +40,12 @@ public sealed class SketchLayout
     // sketch that never opened the phase, which dresses nothing.
     [JsonPropertyName("dressing")] public JsonElement? Dressing { get; set; }
 
+    // Interior elevation (docs/contracts/sketch-relief.md), keyed by island id. It rides top-level rather
+    // than inside the shapes for one reason: a plan recompile replaces every shape it produced, and a relief
+    // is expensive hand work a plan cannot express. It is not a finish key — a relief is geometry, it decides
+    // what the rasterizer emits, and it is carried across a recompile under its own rule (CarryRelief).
+    [JsonPropertyName("relief")] public Dictionary<string, SketchReliefJson>? Relief { get; set; }
+
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     public string ToJson() => JsonSerializer.Serialize(this, Json);
@@ -79,6 +85,53 @@ public sealed class SketchLayout
                 carried = true;
             }
         return carried ? target.ToJsonString(Json) : compiledJson;
+    }
+
+    /// <summary>The island ids a stored relief is bound to that the freshly compiled layout has no island
+    /// for. Each one is hand-authored terrain the recompile would silently discard, which is why the compile
+    /// path refuses rather than carrying what it can: island identity is derived from the geometry, so a
+    /// re-fused island does not merely move — it becomes a different island, and a relief authored against
+    /// the old fusion has nowhere correct to land.</summary>
+    public static IReadOnlyList<string> OrphanedRelief(string compiledJson, string? storedJson)
+    {
+        var stored = string.IsNullOrWhiteSpace(storedJson) ? null : Parse(storedJson);
+        if (stored?.Relief is not { Count: > 0 } relief) return [];
+
+        var islands = new HashSet<string>(IslandIds(Parse(compiledJson)));
+        return relief.Keys.Where(id => !islands.Contains(id)).OrderBy(id => id, StringComparer.Ordinal).ToList();
+    }
+
+    /// <summary>Every island id a layout names, across all its layers.</summary>
+    public static IEnumerable<string> IslandIds(SketchLayout? state)
+    {
+        if (state?.Layers is { Count: > 0 } layers)
+            foreach (var layer in layers)
+                foreach (var island in layer.Layout?.Islands ?? [])
+                    if (island.Id is { Length: > 0 } id) yield return id;
+        if (state?.Layout is { } single)
+            foreach (var island in single.Islands)
+                if (island.Id is { Length: > 0 } id) yield return id;
+    }
+
+    /// <summary>A freshly compiled layout with the stored relief carried onto it. Only call this once
+    /// <see cref="OrphanedRelief"/> is empty or the author has accepted the loss — it carries what still
+    /// binds and drops the rest.</summary>
+    public static string CarryRelief(string compiledJson, string? storedJson)
+    {
+        var stored = string.IsNullOrWhiteSpace(storedJson) ? null : Parse(storedJson);
+        if (stored?.Relief is not { Count: > 0 } relief) return compiledJson;
+
+        JsonNode? node;
+        try { node = JsonNode.Parse(compiledJson); } catch (JsonException) { return compiledJson; }
+        if (node is not JsonObject target) return compiledJson;
+
+        var islands = new HashSet<string>(IslandIds(Parse(compiledJson)));
+        var kept = relief.Where(entry => islands.Contains(entry.Key))
+                         .ToDictionary(entry => entry.Key, entry => entry.Value);
+        if (kept.Count == 0) return compiledJson;
+
+        target["relief"] = JsonNode.Parse(JsonSerializer.Serialize(kept, Json));
+        return target.ToJsonString(Json);
     }
 }
 
@@ -182,10 +235,49 @@ public sealed class SketchShape
     [JsonPropertyName("vertices")] public double[][]? Vertices { get; set; }
     [JsonPropertyName("controls")] public Dictionary<string, SketchControl>? Controls { get; set; }
 
+    // A path is the one shape not stored as its own outline: Vertices are an OPEN centerline and Radius its
+    // half-width, and the band those imply is derived wherever a ring is wanted. That keeps it editable as
+    // the line it was drawn as while every consumer below still sees a ring.
+    /// <summary>How a path's two long edges are drawn — <c>solid</c> holds one width the whole way,
+    /// <c>rough</c> lets it wander so the outline reads organic, <c>tapered</c> runs it fat in the middle and
+    /// thin at the ends. Absent is solid.</summary>
+    [JsonPropertyName("path_edge")] public string? PathEdge { get; set; }
+
+    /// <summary>The noise row a rough edge reads, so a path's wander is identical on every export until the
+    /// author rerolls it.</summary>
+    [JsonPropertyName("path_seed")] public uint? PathSeed { get; set; }
+
     // Height. Floor = the shape's elevation (where its base sits), BaseHeight = its thickness: the column
     // spans [Floor, Floor + BaseHeight]. For a polygon/lasso whose AnchorHeights line up with its Vertices,
     // the thickness varies per vertex (TIN-interpolated across the footprint). All optional; absent = the
     // flat one-block Y=0 behaviour.
+    /// <summary>How this shape's top is decided, once an island carries a relief. Absent, the shape is
+    /// ordinary ground and the relief is the ground — which is what a shape drawn to make a landmass wants.
+    /// The three words are for a shape that is meant to stand OUT of the field rather than be part of it:
+    /// <c>level</c> cuts a flat top at an absolute height (a mesa, whose faces are cliffs), <c>raise</c> holds
+    /// it a fixed amount above the ground under it (a monolith or a plinth, which keeps its prominence
+    /// wherever it is dragged), and <c>sink</c> the same downward (a quarry, a sunken arena).</summary>
+    [JsonPropertyName("height_mode")]    public string? HeightMode { get; set; }
+
+    /// <summary>How far in from its own outline an erected shape eases back into the ground it meets, in
+    /// blocks. Zero is a sheer face — right for a plinth or a monolith, which is a built thing standing on the
+    /// ground, and wrong for a landform: an unskirted mesa drops its whole height in one cell. A few blocks
+    /// sits it IN the terrain instead of on it.</summary>
+    [JsonPropertyName("skirt")]          public int? Skirt { get; set; }
+
+    /// <summary>Whether this shape's ground takes part in its island's relief. The island is the unit a relief
+    /// is solved over, because a relief solved per shape leaves a seam wherever two of them meet and disagree
+    /// about the height they share. The fusion is not always what an author wants, and the case that decides
+    /// it is a built thing standing on the ground — a city, a keep, a walled compound — whose floor is not
+    /// terrain and which is themed as a unit. <c>hold</c> pins the shape at its own stated top, so the
+    /// surrounding surface is solved knowing where it has to arrive; <c>exclude</c> pins nothing and takes the
+    /// footprint out of the solve entirely, so the land is whatever that outline would have produced and the
+    /// shape keeps its own height. Absent is <c>inherit</c> — the shape is part of the island's ground.
+    /// <para>Not read on a shape that declares a <see cref="HeightMode"/>: such a shape already stands out of
+    /// the field, and <c>raise</c>/<c>sink</c> read the ground under their own footprint to know where to
+    /// stand, which an excluded footprint would not have.</para></summary>
+    [JsonPropertyName("relief_scope")]   public string? ReliefScope { get; set; }
+
     [JsonPropertyName("base_height")]    public double? BaseHeight { get; set; }
     [JsonPropertyName("anchor_heights")] public double[]? AnchorHeights { get; set; }
     [JsonPropertyName("floor")]          public double? Floor { get; set; }

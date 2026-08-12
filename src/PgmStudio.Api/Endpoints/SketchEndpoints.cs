@@ -5,11 +5,13 @@ using FastEndpoints;
 using LinqToDB;
 using LinqToDB.Async;
 using PgmStudio.Analysis.Footprint;
+using PgmStudio.Analysis.Playability;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Geom.Relief;
 using PgmStudio.Pgm.Sketch;
 
 namespace PgmStudio.Api.Endpoints;
@@ -166,7 +168,15 @@ public sealed class SketchPutEndpoint(MapRepository repo, PgmDb db) : EndpointWi
 /// carrying the map's existing finish onto it (<see cref="SketchLayout.CarryFinish"/>). The plan owns the
 /// board; the sketch owns its themes, room shells and dressing, and a plan cannot express any of those — so
 /// the compile path merges where <see cref="SketchPutEndpoint"/> replaces. Rebuilding a themed map from its
-/// plan used to hand back bare stone.</summary>
+/// plan used to hand back bare stone.
+///
+/// <para><b>A relief is carried the same way but refuses rather than merging silently.</b> It is keyed by
+/// island, and island identity is derived from the geometry — so a recompile that re-fuses the board does not
+/// merely move an island, it produces a different one, and terrain authored against the old fusion has
+/// nowhere correct to land. Losing that is losing hours of hand work with no warning, so the endpoint answers
+/// <b>409</b> listing the islands whose relief would be orphaned and does not write. Sending
+/// <c>?force=true</c> accepts the loss and proceeds, which is the author's call to make and not the
+/// server's.</para></summary>
 public sealed class SketchFromPlanEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
 {
     public override void Configure() { Put("/map/{slug}/sketch/from-plan"); AllowAnonymous(); }
@@ -182,9 +192,24 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, PgmDb db) : Endpo
         catch { await Send.ResponseAsync(new { error = "invalid JSON" }, 400, ct); return; }
 
         var stored = await SketchStore.LoadAsync(db, map.Id, ct);
-        var merged = SketchLayout.CarryFinish(compiled, stored is null ? null : Encoding.UTF8.GetString(stored));
+        var storedJson = stored is null ? null : Encoding.UTF8.GetString(stored);
+
+        var orphans = SketchLayout.OrphanedRelief(compiled, storedJson);
+        if (orphans.Count > 0 && Query<bool>("force", isRequired: false) != true)
+        {
+            await Send.ResponseAsync(new
+            {
+                error = "relief would be orphaned",
+                islands = orphans,
+                hint = "the recompiled board has no island for this authored terrain; retry with ?force=true to discard it",
+            }, 409, ct);
+            return;
+        }
+
+        var merged = SketchLayout.CarryRelief(
+            SketchLayout.CarryFinish(compiled, storedJson), storedJson);
         await SketchStore.SaveAsync(db, map.Id, Encoding.UTF8.GetBytes(merged), ct);
-        await Send.OkAsync(new { ok = true }, ct);
+        await Send.OkAsync(new { ok = true, orphaned = orphans }, ct);
     }
 }
 
@@ -211,6 +236,130 @@ public sealed class SketchPaintEndpoint(MapRepository repo, PgmDb db) : Endpoint
         catch { await Send.ResponseAsync(new { error = "could not paint layout" }, 400, ct); return; }
 
         await Send.OkAsync(cells.Count == 0 ? LayerData.EmptyPixels() : LayerData.PalettePixels(cells), ct);
+    }
+}
+
+/// <summary>POST /api/map/{slug}/sketch/relief — the contour overlay for whatever relief the posted layout
+/// carries, one entry per relief-bearing island: its traced lines, its height range, and its bounds. The body
+/// is the <em>live</em> layout, the same as the paint preview takes, so the overlay tracks unsaved edits.
+///
+/// <para>The solve is the build's own (<see cref="SketchRasterizer.ReliefFields"/>), so a previewed surface
+/// cannot differ from the surface that gets built — the only property that makes a preview worth drawing.
+/// Contours are traced from the <b>continuous</b> field rather than the block one, because contouring a
+/// staircase returns the outlines of its treads instead of lines of constant height (sketch-relief.md §13).
+/// <c>?interval=</c> sets the spacing in blocks; a layout carrying no relief answers an empty list rather
+/// than a 404, so the client can draw nothing through the same path.</para>
+///
+/// <para>Each island's solve <b>resumes</b> from the surface its last preview settled on
+/// (<see cref="ReliefPreviewCache"/>). Every preview is one small edit after the last, so the relaxation has
+/// that edit left to carry rather than the whole surface to build — and because it stops when the field stops
+/// moving, a resumed solve that settles has settled on the same answer. Nothing about the reply depends on
+/// whether a head start was available.</para></summary>
+public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache warm) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/map/{slug}/sketch/relief"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
+        if (map is null) { await Send.NotFoundAsync(ct); return; }
+
+        using var reader = new StreamReader(HttpContext.Request.Body);
+        var layoutJson = await reader.ReadToEndAsync(ct);
+
+        var interval = Query<double>("interval", isRequired: false);
+        if (interval <= 0) interval = 1;
+
+        // Each island resumes from the surface its last preview settled on. The relaxation stops when the
+        // field stops moving and discards a resume that fails to reach that tolerance, so this can only ever
+        // save sweeps — never change the answer, which is what keeps a previewed surface the built one.
+        Dictionary<string, HeightField> fields;
+        try
+        {
+            fields = SketchRasterizer.ReliefFields(layoutJson,
+                (island, footprint) => warm.WarmStart(map.Id, island, footprint),
+                (island, solved) => warm.Remember(map.Id, island, solved));
+        }
+        catch { await Send.ResponseAsync(new { error = "could not solve relief" }, 400, ct); return; }
+
+        var islands = fields.Select(entry => new
+        {
+            island = entry.Key,
+            min = entry.Value.Min,
+            max = entry.Value.Max,
+            min_x = entry.Value.Footprint.MinX,
+            min_z = entry.Value.Footprint.MinZ,
+            max_x = entry.Value.Footprint.MinX + entry.Value.Footprint.Width - 1,
+            max_z = entry.Value.Footprint.MinZ + entry.Value.Footprint.Depth - 1,
+            // Points go out as one flat [x, z, x, z, …] run per line. A line is hundreds of points and there
+            // are dozens of lines on a board, so a pair of objects each would multiply the payload by the
+            // length of the words "x" and "z" — and the client strokes them in pairs either way.
+            lines = Contours.Of(entry.Value, interval).Select(line => new
+            {
+                level = line.Level,
+                closed = line.Closed,
+                points = line.Points.SelectMany(point => new[] { point.X, point.Z }).ToArray(),
+            }).ToArray(),
+        }).ToArray();
+
+        await Send.OkAsync(new { interval, islands }, ct);
+    }
+}
+
+/// <summary>POST /api/map/{slug}/sketch/relief/read — what the relief a posted layout carries <b>charges</b>,
+/// per island. Not a walkability score: a relief that is walkable everywhere is a field rather than a map, and
+/// a single number ranks every deliberate barrier as a defect. The report states reachability at each of the
+/// game's three thresholds (a jump, a placed block, building in earnest), separates <b>places</b> from
+/// <b>ledges</b>, qualifies faces as cliffs by the corpus rule, measures crossings in <b>both</b> directions
+/// (a drop is free the way it falls) and reports the symmetry error, which nothing else would show.
+///
+/// <para>It sits next to the document it describes, which is what makes a relief correctable by a generator or
+/// an agent rather than only by eye. Same body as the contour endpoint — the live layout.</para></summary>
+public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCache warm) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/map/{slug}/sketch/relief/read"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
+        if (map is null) { await Send.NotFoundAsync(ct); return; }
+
+        using var reader = new StreamReader(HttpContext.Request.Body);
+        var layoutJson = await reader.ReadToEndAsync(ct);
+
+        Dictionary<string, HeightField> fields;
+        SketchLayout? state;
+        try
+        {
+            state = SketchLayout.Parse(layoutJson);
+            fields = SketchRasterizer.ReliefFields(layoutJson,
+                (island, footprint) => warm.WarmStart(map.Id, island, footprint),
+                (island, solved) => warm.Remember(map.Id, island, solved));
+        }
+        catch { await Send.ResponseAsync(new { error = "could not solve relief" }, 400, ct); return; }
+
+        var mode = state?.Setup?.MirrorMode;
+        var cx = state?.Setup?.Center?.Cx ?? 0;
+        var cz = state?.Setup?.Center?.Cz ?? 0;
+
+        var islands = fields.Select(entry =>
+        {
+            var read = ReliefReadback.Read(entry.Value, mode, cx, cz);
+            return new
+            {
+                island = entry.Key,
+                read.Cells, read.Low, read.High, read.Relief,
+                read.Steps,
+                tiers = read.Tiers,
+                faces = read.Faces.Take(12),          // the whole list is long and the tail is all banks
+                faceCount = read.Faces.Count,
+                read.Cliffs,
+                acrossX = read.AcrossX, acrossZ = read.AcrossZ,
+                symmetryError = read.SymmetryError,
+            };
+        }).ToArray();
+
+        await Send.OkAsync(new { islands }, ct);
     }
 }
 

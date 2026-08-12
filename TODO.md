@@ -31,7 +31,22 @@ three files. Moving a task between files never changes its id; never renumber or
   that the code-comments rule already bans. `appsettings.Development.json`'s `MapsRoots`/`Import.Root` point at
   the reference VM but are import-only — repoint or document, don't leave dangling.
 
-## Layout generation (G) — current focus: the generator in the studio
+## Sketch tool (S) — relief (drained)
+
+A relief can now be seen and stated: the solver and its wire document, the rasterizer seam, the recompile
+rule, the contour overlay, and a Relief phase whose five tools place the four mark kinds and the push, each
+with a list row, an inspector and its own point grips (`FEATURES.md`). The model is reachable by hand and by
+mouse, and what it produces is on screen while it is being stated.
+
+The authoring half is done: a contour can be grabbed and moved to state a height, and each preview resumes
+from the surface the last one settled on (`FEATURES.md`). The design, its measurements and the authoring plan
+are `docs/contracts/sketch-relief.md`; the prototype every figure comes from is `tools/relief`.
+
+**This theme has drained.** What remains of relief is parked in `BACKLOG.md` and is no longer the focus:
+water reading the relief (S46), the later passes folding (S42), a path's height varying along it (S56) and a
+pressure budget (S47). Pull one up when it becomes the work.
+
+## Layout generation (G) — the generator in the studio
 
 The box pipeline is now **the** composer (the old grower path is retired — `FEATURES.md`), and the
 emitted layouts are good enough to work *with*: the bottleneck has moved from the grammar to the

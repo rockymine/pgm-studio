@@ -34,7 +34,9 @@ import { toScreen } from "../geometry/transform.js";
 export const DRESSING_TOOLS = { "dress:path": "path", "dress:water": "water", "dress:flora": "flora", "dress:house": "house", "dress:tree": "tree", "dress:boulder": "boulder" };
 
 // A dragged trace is one point per block of pointer travel — unreadable to edit and pointless to store, so it
-// is simplified to the points at real bends on release. The same tolerance the lasso uses, for the same reason.
+// is simplified to the points at real bends on release. Same simplifier as the lasso, one step tighter than
+// it: a lasso outlines land, where a route runs THROUGH it, so a bend the outline can afford to round off is
+// a bend a path would visibly miss.
 const TRACE_SIMPLIFY_TOLERANCE = 3;
 
 // How near a prop's anchor a click counts as picking it, in blocks — a marker is small, so its own reach is

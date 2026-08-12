@@ -23,17 +23,6 @@ namespace PgmStudio.RoundTrip;
 /// </summary>
 internal static class StructureFinder
 {
-    /// <summary>Blocks a world does not put on its own surface. Deliberately excludes stone, cobblestone,
-    /// andesite, gravel, sand and clay: all four generate naturally in the open, so including them would
-    /// classify every outcrop and river bank as architecture.</summary>
-    private static readonly HashSet<int> Built =
-    [
-        5, 20, 24, 35, 43, 44, 45, 47, 53, 54, 57, 58, 61, 62, 64, 65, 67, 71, 80, 82, 84, 87, 89, 91, 95,
-        96, 98, 101, 102, 108, 109, 112, 114, 116, 117, 118, 120, 125, 126, 128, 133, 134, 135, 136, 138,
-        145, 146, 152, 155, 158, 159, 160, 163, 164, 165, 168, 169, 170, 171, 172, 173, 179, 180, 181, 182,
-        188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 201, 202, 206, 208, 214, 215, 216,
-    ];
-
     /// <summary>Stripped before the top block is read: plants, snow and the small furniture that would
     /// otherwise decide a column's class.</summary>
     /// <summary>What a structure's outline may be read through: nothing, and everything standing on the
@@ -42,8 +31,7 @@ internal static class StructureFinder
 
     /// <summary>Natural ground: everything the terrain itself is made of, so a built column's own blocks and
     /// the liquids over them are stepped past to reach it.</summary>
-    private static bool IsNaturalGround(int id) => id != 0 && !Skin(id) && !Built.Contains(id)
-                                                   && id is not (8 or 9 or 10 or 11 or 17 or 162);
+    private static bool IsNaturalGround(int id) => BlockRoles.IsNaturalGround(id);
 
     private sealed record Structure(int MinX, int MaxX, int MinZ, int MaxZ, int Area, int RoofLow, int RoofHigh,
                                     int GroundAround, int GroundSpread, int BaseOffset, string Materials);
@@ -64,7 +52,7 @@ internal static class StructureFinder
                 Scan(chunk, topId, topData, topY, baseY, naturalY);
         if (topY.Count == 0) { Console.Error.WriteLine("no columns decoded"); return 1; }
 
-        var builtCells = new HashSet<(int X, int Z)>(topId.Where(entry => Built.Contains(entry.Value)).Select(entry => entry.Key));
+        var builtCells = new HashSet<(int X, int Z)>(topId.Where(entry => BlockRoles.IsBuilt(entry.Value)).Select(entry => entry.Key));
         var structures = new List<Structure>();
         var claimed = new Dictionary<(int X, int Z), int>();
 
@@ -134,7 +122,7 @@ internal static class StructureFinder
                         // The base is where the unbroken run of built blocks under the top ends, which is
                         // the level the structure was actually seated at.
                         baseY[cell] = y;
-                        for (var below = y; below >= 0 && (Built.Contains(ids[(below << 8) | col]) || Skin(ids[(below << 8) | col])); below--)
+                        for (var below = y; below >= 0 && (BlockRoles.IsBuilt(ids[(below << 8) | col]) || Skin(ids[(below << 8) | col])); below--)
                             baseY[cell] = below;
                         haveTop = true;
                     }

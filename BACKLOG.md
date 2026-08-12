@@ -53,6 +53,64 @@ the focus-integration polish remains.
 The Sketch depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection
 highlight); these are the parked / dormant / deferred slices.
 
+- [ ] **S42 — Relief: the carve and the graded road fold too.** The solve folds, and so now does the stair cut
+  (`FEATURES.md`) — the first later pass to land, and the one that showed the rule is real rather than
+  theoretical. The other two are still open: a carve and a graded road each decide things by **walking** the
+  map, and a walk has a direction the half-turn does not preserve, so each folds again or it undoes what the
+  solve established (`sketch-relief.md` §8). Measured on the designed map, a carve that did not re-fold left
+  the two halves **9 blocks** apart. Belongs with S46, which lands both passes; the fold itself needs no new
+  machinery — `ReliefSolver.FoldBlocks` is the shape of it.
+
+- [ ] **S54 — The 3-D preview shows neither the relief nor an erected top.** The iso builds one prism per
+  shape at `floor + base_height` (`sketch-bridge.js` `isoSolids`), which was the whole truth when a shape's
+  thickness decided its column and is now two-thirds of it: an island's relief replaces those tops, and an
+  erected shape's is settled after the relief against the ground under it (`FEATURES.md`). So the one view
+  that exists to show height is the one view that does not show the height model — a mesa reads at its own
+  thickness and a hillside reads as a plate. The fix is to build the solids from the **rasterizer's columns**
+  rather than from the shapes, which is also what makes it agree with the export by construction instead of
+  by a second implementation; the cost is that a column set is bigger than a shape list and the iso would
+  want run-merging to stay cheap. Pre-dates the relief work — the iso never showed a relief — so this is a
+  gap widening rather than a regression.
+
+- [ ] **S46 — Water reads the relief; a river on the axis is a canal.** A dressing path draping over whatever
+  it crosses is **settled as correct** — it repaints the top block of each column and adds no cell, which is
+  what lets a road cross a slope without becoming a ramp, and routing or grading it would be the tool
+  deciding where the author's road goes. Terrain that a route *emits* is the draw phase's path primitive
+  (`FEATURES.md`) and the erected-shape modes, not this. Water is the half that is genuinely wrong on a
+  relief, because it has to obey the ground rather than sit on it. It needs three things the flat model never
+  did: routing on a **depression-filled** copy, because steepest descent stops at the first grain-made pit after 2 cells
+  where the filled run covers 65; a bed floor forced non-increasing downstream; and **per-pool** water levels
+  replacing `decoration.md` §7's single lowest-surface line — the measured run holds 14 distinct levels, and a
+  basin is an outlet alongside the map edge, which is what a pond is. The exception is the case that matters
+  most: **a river on the mirror axis cannot both fall and be fair**, because a half-turn reverses the flow, so
+  on the axis it is a canal at one level and falling water belongs to the flanks. And the cheapest good idea
+  here runs the other way — a drawn channel handed to the solver as a line mark below base level makes the
+  terrain form a valley around it (`sketch-relief.md` §9).
+
+- [ ] **S56 — A path's height varies along it.** The path primitive takes a uniform `base_height` over its
+  whole band (`FEATURES.md`), so a causeway is one thickness end to end and a ramp cannot be drawn as the
+  ramp it is. A polygon already solves the equivalent problem with `anchor_heights` index-aligned to its
+  vertices and TIN-interpolated across the footprint, but a path's footprint is not its vertices — the band
+  is derived from a smoothed centerline, so the interpolation runs **along the arc** rather than over a
+  triangulation: each band point knows how far along it sits (`PathHit.Along` already carries this for the
+  stroke), and the height is read between the two authored vertices that bracket it. That gives a graded road
+  that is authored, not inferred, which is the distinction that keeps it out of S46. The erected modes then
+  compose on top as they do for any other shape, so a sunk tilted path is a cutting and a raised one an
+  embankment.
+
+- [ ] **S47 — A pressure budget for relief.** S43 measures what terrain charges; nothing says how much
+  charging is too much. The dressing stage has the identical gap (`world-export/ideas.md` G167) and the two
+  should share an answer. The materials exist — the share of the board at each passability tier, the detour
+  factor between key places, the ford count and direction on a barrier, the reachable share per team side —
+  and the corpus pass has now run on the right surface (`sketch-relief.md` §12, 105 maps, natural ground):
+  body relief median **19 blocks**, walk median **72.6%**, barrier median **18.3%**, largest walkable place
+  median **29.4%**, **8** cliffs. Filtering the architecture out made the terrain read *steeper*, not gentler
+  — a building's flat roof was smoothing the reading — so the tier shares were never the distorted numbers;
+  the **cliff count** was, and heavily (Alpine Mining II: 36 cliffs off the built surface, 13 off natural
+  ground). What is still missing is the shape of a rule: a median is not a target, and a map at the 25th
+  percentile for walkable share is not thereby worse than one at the 75th. That needs labelled examples of a
+  *bad* map rather than more measurement.
+
 - [ ] **S34 — Reuse a sketch paint's column classification across the edits of one drag.** `TerrainProfile`
   construction is what a paint now costs — ~60 ms of the ~164 ms a 40k-cell board takes (S33, `FEATURES.md`),
   and roughly 35 ms of that is its two `GridComponents.Label` passes: one flood fill for plateaus, a second for

@@ -47,10 +47,14 @@ import { SketchDrawController } from "../controllers/sketch-draw-controller.js";
 import { DressingController } from "../controllers/dressing-controller.js";
 import { DressingDoc } from "../dressing/dressing-doc.js";
 import { paintDressing } from "../render/dressing-render.js";
+import { ReliefController } from "../controllers/relief-controller.js";
+import { ReliefDoc } from "../relief/relief-doc.js";
+import { paintReliefMarks } from "../render/relief-render.js";
 import { orbitAxes, applySymmetry } from "../geometry/symmetry.js";
 import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
   paintSketchShape, paintIslands, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintGhostIslands, paintRaster, paintStructural,
+  paintContours,
 } from "../render/sketch-render.js";
 import { rasterizeShapes, cellRuns } from "../geometry/rasterize.js";
 import { loadBlockImage, blockImageBounds } from "../render/block-render.js";
@@ -106,6 +110,13 @@ export class SketchCanvas extends CanvasBase {
   #dressingDoc = new DressingDoc();
   #dressing    = null;
   #dressingOn  = false;      // only the Dressing phase draws and edits props
+
+  // The stated relief (docs/contracts/sketch-relief.md). Here for the same reason the dressing document is:
+  // this is where a mark is put, moved and picked. Unlike dressing it is keyed by island, because a relief is
+  // solved over an island's fused footprint rather than placed loose on the map.
+  #reliefDoc   = new ReliefDoc();
+  #reliefTools = null;
+  #reliefOn    = false;      // only the Relief phase draws and edits marks
   // A placement hands the canvas back to select mid-press, so the click that finished it would arrive with
   // select already active and be read as "pick the island under the cursor" — deselecting the prop just put
   // down. This marks that click as spent. Cleared on the next press, so it can only ever swallow its own.
@@ -118,6 +129,7 @@ export class SketchCanvas extends CanvasBase {
   #rasterRuns    = null;   // cached rasterized cell runs; recomputed on shape change while blocks are shown
   #paintData     = null;   // the server's block-pixel payload for the terrain paint (finishing-model.md §4)
   #paintImage    = null;   // that payload decoded — a canvas blits a bitmap, not a data URL
+  #relief        = null;   // the server's traced contours for the relief the layout carries
   #selectOnly    = false;  // Theme phase: pick islands/shapes and pan/zoom, edit nothing
 
   #draw = null;
@@ -276,6 +288,20 @@ export class SketchCanvas extends CanvasBase {
   get dressing()      { return this.#dressingDoc; }
   get dressingTools() { return this.#dressing; }
 
+  /** Show and edit the stated relief — on for the Relief phase, off everywhere else. Distinct from the
+   *  Relief layer chip, which shows the *solved* contours and is available in every phase: one is the
+   *  statement, the other is what the statement produced, and seeing the second while editing the first is
+   *  the whole point of keeping them separate. */
+  setReliefMode(on) {
+    this.#reliefOn = !!on;
+    if (!on) { this.#reliefTools?.cancel(); this.#reliefTools?.select(null); }
+    this.#reliefTools?.refreshHandles();
+    this.#paintWorld();
+  }
+  setReliefDoc(stored) { this.#reliefDoc = ReliefDoc.from(stored); this.#reliefTools?.setDoc(this.#reliefDoc); this.#paintWorld(); }
+  get relief()      { return this.#reliefDoc; }
+  get reliefTools() { return this.#reliefTools; }
+
   setShapesVisible(v) { this.#shapesVisible = v; this.#paintWorld(); }
   setMirrorVisible(v) { this.#mirrorVisible = v; this.#paintWorld(); }
   setChunkVisible(v)  { this.#chunkVisible = v; this.#paintWorld(); }
@@ -324,6 +350,20 @@ export class SketchCanvas extends CanvasBase {
     });
   }
 
+  /**
+   * The relief overlay: the traced contours `sketch/relief` returns for the layout on screen. A falsy
+   * payload clears it. Nothing is decoded and nothing is cached — the lines are world-space points and are
+   * stroked at whatever the current zoom is, so the overlay stays sharp where the block bitmap would have
+   * had to be re-fetched.
+   */
+  loadReliefLayer(relief) {
+    this.#relief = relief?.islands?.length ? relief : null;
+    this.#paintWorld();
+  }
+
+  /** Whether a relief is on screen — what a phase asks before offering to read a height off it. */
+  get hasRelief() { return this.#relief !== null; }
+
   // ── isometric preview (S6) ─────────────────────────────────────────────────────
   // Swap the top-down viewport for a read-only iso render of the extruded islands. Lazily loads and
   // creates the WebGL renderer on first use; returns false (leaving the 2-D viewport untouched) if the
@@ -335,13 +375,13 @@ export class SketchCanvas extends CanvasBase {
   _onIsoEnter() { this.#draw?.cancel(); }
   // What the preview covers: the painted world, the (inert) viewport group, and every screen-space overlay.
   _isoLayers() {
-    const { handles, dressingHandles, center, drawHandles, measureLabel, islandChrome } = this.#screen;
-    return [this.#canvasEl, this._viewportG, handles, dressingHandles, center, drawHandles, measureLabel, islandChrome];
+    const { handles, dressingHandles, reliefHandles, center, drawHandles, measureLabel, islandChrome } = this.#screen;
+    return [this.#canvasEl, this._viewportG, handles, dressingHandles, reliefHandles, center, drawHandles, measureLabel, islandChrome];
   }
 
   // ── CanvasBase hooks ───────────────────────────────────────────────────────────
 
-  _onViewportChanged() { this.#paintWorld(); this.#edit?.refresh(); this.#dressing?.refreshHandles(); this.#refreshCenter(); this.#draw?.refreshDrawHandles(); this.#renderMeasureLabel(); this.#renderIslandChrome(); }
+  _onViewportChanged() { this.#paintWorld(); this.#edit?.refresh(); this.#dressing?.refreshHandles(); this.#reliefTools?.refreshHandles(); this.#refreshCenter(); this.#draw?.refreshDrawHandles(); this.#renderMeasureLabel(); this.#renderIslandChrome(); }
   _onZoom(scale)       { if (this.#zoomEl) this.#zoomEl.textContent = `${Math.round(scale * 100)}%`; }
 
   _onToolMousedown(e, svgPt) {
@@ -350,6 +390,7 @@ export class SketchCanvas extends CanvasBase {
     const bx = Math.floor(svgPt.x), bz = Math.floor(svgPt.y);
     if (this._activeTool === "measure") { this.#measure = { ax: bx, az: bz, bx, bz, live: true }; this.#renderMeasure(); this.#updateDim(); return; }
     if (this._activeTool === "split") { this.#onSplitClick(bx, bz); return; }
+    if (this.#reliefOn && this.#reliefTools?.onMouseDown(bx, bz, this._activeTool)) return;
     if (this.#dressingOn && this.#dressing?.onMouseDown(bx, bz, this._activeTool)) return;
     this.#draw?.onMouseDown(bx, bz, this._activeTool);
   }
@@ -361,6 +402,8 @@ export class SketchCanvas extends CanvasBase {
       if (this.#measure?.live) { this.#measure.bx = bx; this.#measure.bz = bz; this.#renderMeasure(); }
     } else if (this._activeTool === "split") {
       if (this.#split) { this.#split.bx = bx; this.#split.bz = bz; this.#paintWorld(); }
+    } else if (this.#reliefOn && this.#reliefTools?.onMouseMove(bx, bz, this._activeTool)) {
+      // consumed by a trace, a spot ghost or a mark being dragged
     } else if (this.#dressingOn && this.#dressing?.onMouseMove(bx, bz, this._activeTool)) {
       // consumed by a trace, a marker ghost or a prop being dragged
     } else {
@@ -372,6 +415,7 @@ export class SketchCanvas extends CanvasBase {
 
   _onToolMouseup(e, svgPt) {
     if (this._activeTool === "measure") { if (this.#measure) this.#measure.live = false; return; }
+    if (this.#reliefOn && this.#reliefTools?.onMouseUp()) return;
     if (this.#dressingOn && this.#dressing?.onMouseUp()) return;
     this.#draw?.onMouseUp();
   }
@@ -386,9 +430,10 @@ export class SketchCanvas extends CanvasBase {
   _onMouseleave() { if (this.#cursorEl) this.#cursorEl.textContent = ""; this.#updateDim(); }
 
   _onResizeMove(e) {
-    if (this.#dressing) {
+    if (this.#dressing || this.#reliefTools) {
       const p = this._clientToSvg(e.clientX, e.clientY);
-      if (this.#dressing.onHandleMove(p.x, p.y)) return true;
+      if (this.#dressing?.onHandleMove(p.x, p.y)) return true;
+      if (this.#reliefTools?.onHandleMove(p.x, p.y)) return true;
     }
     if (this.#rotateState) { const p = this._clientToSvg(e.clientX, e.clientY); this.#rotateMove(p.x, p.y, e.shiftKey); return true; }
     if (this.#scaleState)  { const p = this._clientToSvg(e.clientX, e.clientY); this.#scaleMove(p.x, p.y, e.shiftKey, e.altKey); return true; }
@@ -398,6 +443,7 @@ export class SketchCanvas extends CanvasBase {
   }
   _onResizeUp(e) {
     if (e.button === 0 && this.#dressing?.onHandleUp()) return true;
+    if (e.button === 0 && this.#reliefTools?.onHandleUp()) return true;
     if (this.#rotateState) { if (e.button !== 0) return false; this.#rotateState = null; return true; }
     if (this.#scaleState)  { if (e.button !== 0) return false; this.#scaleState = null; return true; }
     const consumed = e.button === 0 ? (this.#edit?.onResizeUp() ?? false) : false;
@@ -568,11 +614,15 @@ export class SketchCanvas extends CanvasBase {
     // The island fill would tint every painted block towards the result purple, so under the paint the
     // island contributes its outline only.
     painter.layer("island",    () => paintIslands(painter, this.#islands, { filled: !painted }));
+    // Contours sit over the blocks and the island fill and under everything drawn or selected: they describe
+    // the ground, so they belong on it, but an author's own shapes have to stay legible across them.
+    painter.layer("relief",    () => { if (this.#relief) paintContours(painter, this.#relief); });
     painter.layer("shapes",    () => this.#paintShapes());
     // Structural pieces (S25) are locked plan context, not drawn primitives — always shown (like the island
     // outlines), not behind the Shapes toggle, so they stay visible while a plan is refined.
     painter.layer("structural", () => paintStructural(painter, this.#structural));
     painter.layer("selection", () => this.#paintSelectionHighlight());
+    painter.layer("marks",     () => this.#paintReliefMarks(painter));
     painter.layer("dressing",  () => this.#paintDressing(painter));
     painter.layer("draw",      () => this.#draw?.paint(painter));
     painter.layer("measure",   () => this.#paintMeasure());
@@ -638,6 +688,26 @@ export class SketchCanvas extends CanvasBase {
       mirrorPoint: (x, z, k) => applySymmetry(x, z, axes[k - 1], this.#center.cx, this.#center.cz),
     });
     this.#dressing?.paint(painter);
+  }
+
+  // The stated marks, plus each mark's mirror images — a relief is folded across the symmetry at solve time,
+  // so an author who cannot see the other half is stating terrain blind. Only while the phase is up: on the
+  // draw canvas the marks would crowd the geometry being edited, and the contour chip is the read-only view
+  // that belongs there instead.
+  #paintReliefMarks(painter) {
+    if (!this.#reliefOn) return;
+    const axes = orbitAxes(this.#mode);
+    // Marks and pushes together: they are picked up the same way and differ only in what they do to the
+    // surface, so drawing them from one list is what makes the phase one phase.
+    paintReliefMarks(painter, this.#reliefDoc.statements, {
+      selectedId: this.#reliefTools?.selectedId ?? null,
+      // Per island: the rasterizer fans only the islands that opted into mirroring, so ghosting a mark on one
+      // that did not would draw ground the export will never build.
+      orderOf: (islandId) => (this.#islands.find(isl => isl.id === islandId)?.mirrors ? axes.length + 1 : 1),
+      mirrorPoint: (x, z, k) => applySymmetry(x, z, axes[k - 1], this.#center.cx, this.#center.cz),
+      baseOf: (islandId) => this.#reliefDoc.peek(islandId)?.base ?? 8,
+    });
+    this.#reliefTools?.paint(painter);
   }
 
   // The ruler line in world coords (so it pans/zooms with the map); the live distance rides the line
@@ -797,6 +867,7 @@ export class SketchCanvas extends CanvasBase {
       islandChrome: null,                          // island bbox (inert) + interactive rotate zones
       handles:      null,
       dressingHandles: null,                       // the selected prop's point grips (Dressing phase)
+      reliefHandles: null,                         // the selected mark's point grips (Relief phase)
       center:       INERT,
       drawHandles:  INERT,
       measureLabel: INERT,
@@ -825,6 +896,22 @@ export class SketchCanvas extends CanvasBase {
       // A marker (a tree, a boulder) may only land on the rasterized terrain — the export refuses one seated on
       // nothing, so the canvas refuses to drop it there in the first place.
       onTerrain: (bx, bz) => this.#cellOnTerrain(bx, bz),
+    });
+    // Relief states the ground inside an island, so its tools live on the same canvas for the same reason
+    // dressing's do — and its own controller for the same reason too.
+    this.#reliefTools = new ReliefController(this.#reliefDoc, this.#screen.reliefHandles, getViewport, {
+      onChanged: () => { this.#paintWorld(); this.#callbacks.onReliefChanged?.(); },
+      onSelected: (id) => this.#callbacks.onMarkSelected?.(id),
+      onPreviewChanged: () => this.#paintWorld(),
+      onPlaced: () => { this.#placementClick = true; this.#callbacks.onReliefPlaced?.(); },
+      // A mark belongs to the island it was started in. Unlike a prop it may then be dragged past that
+      // island's edge — a mark is clipped, not confined, and a hill authored into a corner is exactly that
+      // gesture — so this decides ownership at placement and never again.
+      onIslandAt: (bx, bz) => this.#hitIsland(bx + 0.5, bz + 0.5),
+      // The contours on screen, so a press can grab one. They are the solver's answer rather than anything
+      // placed, which is why they are read from the overlay rather than kept by the controller: what an
+      // author grabs is exactly what is drawn, and when the overlay is off there is nothing to grab.
+      onContours: () => this.#relief,
     });
     this.#edit = new SketchEditController(this.#screen.handles, getViewport, (id) => this.#shapes.get(id), {
       onShapeUpdated: (shape) => { this.updateShape(shape); this.#callbacks.onShapeUpdated?.(shape); },

@@ -127,6 +127,72 @@ export function paintRaster(painter, runs) {
   }
 }
 
+/**
+ * The relief as contour lines — the payload `sketch/relief` returns, one entry per island:
+ * `{ island, min, max, lines: [{ level, closed, points: [x, z, x, z, …] }] }`. Nothing here decides where a
+ * line goes; the server traces the same field the export builds from, so what is drawn is the ground that
+ * will exist rather than a client's idea of it.
+ *
+ * Every fifth block is an **index** line — heavier, and the only one labelled. That is the map convention and
+ * it is what makes the overlay readable rather than a hatch: at a one-block interval a team board carries
+ * forty levels, and forty equal lines say only "there is a slope somewhere". The label is placed at the
+ * line's own widest point rather than at a fixed spacing, so a small closed ring gets exactly one and a long
+ * traverse gets one where there is room for it.
+ */
+export function paintContours(painter, relief, { indexEvery = 5 } = {}) {
+  const hair = painter.screenPx(1);
+  for (const island of relief?.islands ?? []) {
+    for (const line of island.lines ?? []) {
+      const points = line.points ?? [];
+      if (points.length < 4) continue;
+
+      const index = Math.abs(line.level % indexEvery) < 1e-6;
+      const runs = [];
+      for (let i = 2; i < points.length; i += 2)
+        runs.push({ x1: points[i - 2], z1: points[i - 1], x2: points[i], z2: points[i + 1] });
+      painter.segments(runs, {
+        stroke: index ? "var(--canvas-contour-index)" : "var(--canvas-contour)",
+        width: index ? hair * 1.8 : hair,
+      });
+    }
+
+    // Labels last, so no line is stroked over one.
+    for (const line of island.lines ?? []) {
+      if (Math.abs(line.level % indexEvery) > 1e-6) continue;
+      const at = labelPoint(line.points ?? []);
+      if (at) painter.text(`${Math.round(line.level)}`, at.x, at.z, {
+        size: 10, fill: "var(--canvas-contour-index)", halo: "var(--canvas-bg)", haloWidth: 3,
+      });
+    }
+  }
+}
+
+// Where a contour's label goes: the middle of its straightest stretch, measured as how much of a window's
+// walked length it covers as the crow flies. A contour's segments are all about a block long, so the longest
+// single one says nothing; a label wants the flattest run it can find, because one sitting on a bend is
+// crossed by the line on both sides of it. A line too short to hold a window is labelled at its midpoint.
+const LABEL_WINDOW = 6;
+
+function labelPoint(points) {
+  const count = points.length / 2;
+  if (count < 2) return null;
+  const at = (i) => ({ x: points[i * 2], z: points[i * 2 + 1] });
+  const middle = (i, j) => ({ x: (points[i * 2] + points[j * 2]) / 2, z: (points[i * 2 + 1] + points[j * 2 + 1]) / 2 });
+  if (count <= LABEL_WINDOW) return middle(0, count - 1);
+
+  let best = -1, found = middle(0, LABEL_WINDOW);
+  for (let i = 0; i + LABEL_WINDOW < count; i++) {
+    let walked = 0;
+    for (let step = i; step < i + LABEL_WINDOW; step++)
+      walked += Math.hypot(points[(step + 1) * 2] - points[step * 2], points[(step + 1) * 2 + 1] - points[step * 2 + 1]);
+    if (walked < 1e-9) continue;
+    const head = at(i), tail = at(i + LABEL_WINDOW);
+    const straightness = Math.hypot(tail.x - head.x, tail.z - head.z) / walked;
+    if (straightness > best) { best = straightness; found = middle(i, i + LABEL_WINDOW); }
+  }
+  return found;
+}
+
 /** The working-bounds rectangle — the tight world bound of what a finish would rasterize. */
 export function paintBbox(painter, bbox) {
   if (!bbox) return;
