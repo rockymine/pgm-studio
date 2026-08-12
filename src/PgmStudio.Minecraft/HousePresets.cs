@@ -381,7 +381,7 @@ public static class HousePresets
     public static House Cottage => new("cottage", new HouseStyle
     {
         Form = RoofForm.Gable,
-        Pitch = 2,                                              // steep: a small roof needs the height to read
+        Pitch = 1,
         Overhang = 1,
         RidgeCap = true,
         Roof = DarkOak,
@@ -500,11 +500,14 @@ public static class HousePresets
             new Storey
             {
                 Clear = 5,
+                // The last course is the cornice: the deck's own line, said on the outside of the building.
+                // Without it a terrace is a grey box with a lip, and nothing tells a player where the floor is.
                 Wall = new RoomPart(
                 [
                     new RoomCourse(Rubble, 1),
                     new RoomCourse(Masonry, 4),
-                ], Extent: 5),
+                    new RoomCourse(new SolidMaterial(StoneBrickBlock), 1),
+                ], Extent: 6),
                 Windows = new WindowStyle
                 {
                     Form = WindowForm.Arched, Block = StoneBrickStairs,
@@ -627,6 +630,11 @@ public static class HousePresets
         Form = RoofForm.Shed,
         Pitch = 1,
         Overhang = 1,
+        // A shed climbs its whole shorter span where a gable climbs half of one, so on anything but a shallow
+        // building it comes out all roof — eleven courses over a six-course wall. Half courses are the lever:
+        // the slope travels one half per block instead of two, so the same lean-to costs half the height.
+        RoofSlab = Blocks.WoodenSlab,
+        RoofSlabData = SpruceSlab,
         Roof = DarkOak,
         Verge = Spruces,
         Gable = Spruces,
