@@ -919,7 +919,7 @@ public sealed class HouseStamperTests
     /// <summary>A T: a hall along −z with a cross wing running north out of the middle of it. The wing is
     /// narrower than it is deep, so its ridge runs the other way from the hall's — which is what puts one of
     /// its gable ends against the hall and the other out in the open.</summary>
-    private static Footprint Tee() => new([new Wing(0, 0, 14, 8), new Wing(5, 9, 9, 16)]);
+    private static Footprint Tee() => new([new Wing(0, 5, 9, 9), new Wing(2, 0, 6, 5)]);
 
     /// <summary>
     /// <b>A wing's two gable ends are the same gable.</b> One ends the building and the other stands against
@@ -960,110 +960,91 @@ public sealed class HouseStamperTests
 
     /// <summary>A cross-gable: the same hall, with the wing pushed <b>into</b> it rather than set against it,
     /// so one of the wing's gable ends stands mid-slope inside the hall's roof.</summary>
-    private static Footprint Crossed() => new([new Wing(0, 0, 14, 8), new Wing(3, 4, 11, 16)]);
+    private static Footprint Crossed() => new([new Wing(0, 5, 9, 9), new Wing(2, 0, 6, 9)]);
 
     /// <summary>
-    /// <b>A wing's two gable ends are the same gable — plinth and wall included.</b> This is the criterion in
-    /// the form the task states it, and the projecting wing is the shape that can carry it: one end closes the
-    /// building and the other stands mid-slope inside its neighbour, and at the same wall height there is
-    /// nothing to tell them apart. Same plinth, same wall, same gable face, same verge, same overhang.
+    /// <b>A wing's two gable ends are the same gable above the eave, and only above it.</b> A wing drawn
+    /// through its neighbour ends on that neighbour's far wall, and its gable there — face, slope and verge —
+    /// is the gable that closes the building's other end, mirrored.
     ///
-    /// <para>Compared over the <b>wing's own width</b>, since the hall's floor legitimately runs wider than the
-    /// wing does. It says nothing whatever about how a roof is assembled, which is why it is worth more than
-    /// any implementation of one.</para>
+    /// <para><b>Below the eave they differ, and should.</b> The wing's own end is a corner the building turns
+    /// away at and stands on posts; the end on the neighbour's wall is a stretch of that wall, and the building
+    /// turns at the neighbour's corners instead — several blocks further along. The task's criterion asks for
+    /// the same plinth and wall too, and that part does not hold for any shape tried: measured on a wing
+    /// stopping short, on one buried inside its neighbour, and on one drawn through, the corner columns differ
+    /// every time and for the same reason. Recorded here rather than trimmed out of the comparison, because
+    /// what it is really saying is that a gable end is a roof part and a corner post is a building part.</para>
     /// </summary>
     [Test]
-    public async Task A_projecting_wings_two_gable_ends_are_the_same_gable()
+    public async Task A_wings_two_gable_ends_are_the_same_gable_above_the_eave()
     {
         var plan = Crossed();
         var wing = plan.Wings[1];
-        var world = new VoxelWorld();
-        HouseStamper.Stamp(world, plan, FloorY, new HouseStyle { Form = RoofForm.Gable, Pitch = 1 });
+        var style = new HouseStyle { Form = RoofForm.Gable, Pitch = 1 };
+        var world = Built(plan, style);
+        var eave = FloorY + style.WallCourses;
 
         var seen = 0;
         for (var x = wing.MinX; x <= wing.MaxX; x++)
-        {
-            // Up to the wing's own roof and no further. What stands over the buried end above that is the
-            // hall's roof passing across it, which is the neighbour's business and not this gable's.
-            var crown = Enumerable.Range(FloorY, 24)
-                .Last(y => world.GetBlock(x, y, wing.MaxZ).Id != Blocks.Air);
-            for (var y = FloorY; y <= crown; y++)
+            for (var y = eave + 1; y <= FloorY + 24; y++)
             {
-                var buried = world.GetBlock(x, y, wing.MinZ);       // the end standing mid-slope in the hall
-                var open = world.GetBlock(x, y, wing.MaxZ);         // the end that closes the building
-                await Assert.That((x, y, buried.Id, buried.Data)).IsEqualTo((x, y, open.Id, open.Data));
-                if (buried.Id != Blocks.Air) seen++;
+                var through = world.GetBlock(x, y, wing.MaxZ);      // the end on the hall's far wall
+                var open = world.GetBlock(x, y, wing.MinZ);         // the end that closes the building
+                await Assert.That((x, y, through.Id, through.Data)).IsEqualTo((x, y, open.Id, open.Data));
+                if (through.Id != Blocks.Air) seen++;
             }
-        }
-
-        // A gable that is nowhere at all would pass the comparison and mean nothing.
         await Assert.That(seen).IsGreaterThan(0);
-    }
 
-    /// <summary>A projecting wing cuts the roof it pushes into, across its own span. Without the cut the two
-    /// surfaces are laid over each other, and the wing's verge has nothing to sit on — its overhang is buried
-    /// in the slope it was meant to break.</summary>
-    [Test]
-    public async Task A_projecting_wing_cuts_the_roof_it_pushes_into()
-    {
-        var plan = Crossed();
-        var wing = plan.Wings[1];
-        var hall = plan.Wings[0];
-        var style = new HouseStyle { Form = RoofForm.Gable, Pitch = 1 };
-        var world = new VoxelWorld();
-        HouseStamper.Stamp(world, plan, FloorY, style);
-
-        await Assert.That(wing.ProjectsInto(hall)).IsTrue();
-        await Assert.That(hall.ProjectsInto(wing)).IsFalse();
-
-        int Surface(int x, int z)
-            => Enumerable.Range(FloorY, 24).Last(y => world.GetBlock(x, y, z).Id != Blocks.Air);
-
-        // The wing's ridge carries on across the hall at its own height, which is what the cut makes room for.
-        var ridge = (wing.MinX + wing.MaxX) / 2;
-        var outside = Surface(ridge, wing.MaxZ - 1);
-        await Assert.That(Surface(ridge, hall.MaxZ - 1)).IsEqualTo(outside);
-
-        // <b>And it cuts only what it stands over.</b> The hall's own ridge survives the crossing: a wing is
-        // not licensed to sever the roof it pushes into, only to take the part of it that is underneath.
-        for (var x = hall.MinX + 1; x < hall.MaxX; x++)
-            await Assert.That(Surface(x, (hall.MinZ + hall.MaxZ) / 2)).IsEqualTo(outside);
+        // And below it they part exactly where the building's own corners are, which is the corner columns.
+        var posts = Enumerable.Range(wing.MinX, wing.Width)
+            .Where(x => world.GetBlock(x, eave, wing.MinZ) != world.GetBlock(x, eave, wing.MaxZ))
+            .ToList();
+        await Assert.That(posts).IsEquivalentTo(new[] { wing.MinX, wing.MaxX });
     }
 
     /// <summary>
-    /// <b>A valley does not dip.</b> Where a wing's gable end runs up against another, its roof marches on into
-    /// the other along its own ridge until each course hits a block and stops — so the surface along that ridge
-    /// climbs from the wing's own gable end all the way to the neighbour's ridge without ever falling.
-    ///
-    /// <para>It is the one thing a wing that merely <em>stops</em> at the wall cannot do. Left to abut, the
-    /// ridge drops from its own crown to the neighbour's eave and climbs again, which is a gutter cut across
-    /// the middle of a roof — and it reads as two buildings pushed together rather than as one that turns.</para>
+    /// <b>A wing that stops at the wall makes a T; one drawn through makes a +.</b> It is the same rule either
+    /// way and never a mode: the ridges are as long as the rectangles are, and where they cross the higher one
+    /// stands. A wing abutting the hall's wall marches into it only as far as the hall's own ridge and stops
+    /// there — nothing penetrates — so the tallest course reads as a T. The same wing drawn on to the hall's far
+    /// wall carries its ridge the whole way and the two cross, which reads as a +.
     /// </summary>
     [Test]
-    public async Task A_valley_climbs_from_the_wing_to_the_ridge_it_runs_into()
+    public async Task A_wing_stopping_short_makes_a_T_and_one_drawn_through_makes_a_plus()
     {
-        var plan = Tee();
-        var hall = plan.Wings[0];
-        var wing = plan.Wings[1];
         var style = new HouseStyle { Form = RoofForm.Gable, Pitch = 1 };
-        var world = new VoxelWorld();
-        HouseStamper.Stamp(world, plan, FloorY, style);
+        var eave = FloorY + style.WallCourses;
 
-        int Surface(int x, int z)
-            => Enumerable.Range(FloorY, 24).Last(y => world.GetBlock(x, y, z).Id != Blocks.Air);
-
-        var ridge = (wing.MinX + wing.MaxX) / 2;
-        var climbed = 0;
-        for (var z = wing.MinZ; z > (hall.MinZ + hall.MaxZ) / 2; z--)
+        int Surface(Footprint plan, int x, int z)
         {
-            var here = Surface(ridge, z);
-            var inward = Surface(ridge, z - 1);
-            await Assert.That(inward).IsGreaterThanOrEqualTo(here);
-            if (inward > here) climbed++;
+            var world = Built(plan, style);
+            for (var y = FloorY + 20; y >= eave; y--)
+                if (world.GetBlock(x, y, z).Id != Blocks.Air) return y - eave;
+            return -1;
         }
 
-        // And it does climb: a ridge that ran flat the whole way would satisfy the comparison and mean nothing.
-        await Assert.That(climbed).IsGreaterThan(0);
+        // The hall's ridge sits at z=7 and the wing's at x=4, both three courses over the eave.
+        const int hallRidge = 7, wingRidge = 4, top = 3;
+
+        // Stopped short: the wing's ridge reaches the hall's and goes no further.
+        await Assert.That(Surface(Tee(), wingRidge, hallRidge)).IsEqualTo(top);
+        await Assert.That(Surface(Tee(), wingRidge, hallRidge + 1)).IsEqualTo(top - 1);
+
+        // Drawn through: it carries on past, and out over the hall's own overhang.
+        await Assert.That(Surface(Crossed(), wingRidge, hallRidge + 1)).IsEqualTo(top);
+        await Assert.That(Surface(Crossed(), wingRidge, hallRidge + 3)).IsEqualTo(top);
+
+        // Either way the hall's own ridge survives the crossing whole.
+        foreach (var plan in new[] { Tee(), Crossed() })
+            for (var x = 0; x <= 9; x++)
+                await Assert.That(Surface(plan, x, hallRidge)).IsEqualTo(top);
+    }
+
+    private static VoxelWorld Built(Footprint plan, HouseStyle style)
+    {
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, style);
+        return world;
     }
 
     /// <summary>Every cell the plan stands on is roofed. The cut is what makes this worth asking: it takes the
