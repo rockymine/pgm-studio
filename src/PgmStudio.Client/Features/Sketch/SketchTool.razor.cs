@@ -79,6 +79,15 @@ public partial class SketchTool
     private string dressingJson = "";
     private Task GoDressing() { tool = DressingTools.Tree; return SetPhase("dressing"); }
 
+    // ── Relief phase (sketch-relief.md §15) ──
+    // One step, like Dressing and for the same reason: every part of a relief is a thing stated somewhere, so
+    // the phase is the canvas with its own tools and an inspector for whatever is under the cursor. It sits
+    // between Draw and Theme because a relief is geometry — it changes what the rasterizer emits — so it has
+    // to precede the two passes that read the built surface.
+    private bool ReliefActive => active == "relief";
+    private string reliefJson = "";
+    private Task GoRelief() { tool = ReliefTools.Point; return SetPhase("relief"); }
+
     /// <summary>Whether the canvas is being used to place a scope rather than to draw — today only Theme's
     /// apply step, which selects shapes it does not edit.</summary>
     private bool ScopeApplyActive => ThemeApplyActive;
@@ -141,6 +150,11 @@ public partial class SketchTool
         // which is a judgement about the finish as much as about the planting.
         await handle.InvokeVoidAsync("setPaintPreview", phase is "theme" or "dressing");
         await handle.InvokeVoidAsync("setDressingMode", phase == "dressing");
+        // Entering Relief turns the contour overlay on with it: the phase shows the statement and the surface
+        // it produced at once, which is the only way a mark can be tuned by eye. Leaving does not turn it off
+        // again — the chip is the author's, and a contour view they asked for should survive a phase change.
+        await handle.InvokeVoidAsync("setReliefMode", phase == "relief");
+        if (phase == "relief") reliefOn = true;
     }
 
     // Layout pushed from the bridge (OnLayout) + the current selection (OnShapeSelected/OnIslandSelected).
@@ -352,6 +366,9 @@ public partial class SketchTool
     /// the selected prop itself, which is what the inspector and the list both read.</summary>
     [JSInvokable]
     public void OnDressing(string json) { dressingJson = json; StateHasChanged(); }
+
+    [JSInvokable]
+    public void OnRelief(string json) { reliefJson = json; StateHasChanged(); }
 
     /// <summary>The bridge couldn't initialise the read-only 3-D preview (WebGL unavailable, or the
     /// preview module failed to load); fall back to 2-D and disable the toggle.</summary>

@@ -50,6 +50,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   let islands = [];            // alias of layers[active].islands — kept current by recompute()
   let mirrorVisible = true;
   let selectedIslandId = null; // panel island selection (drives arrow-move of the whole island)
+  let reliefMode = false;      // the Relief phase is up: marks are drawn, edited, and reported to the host
   let view = "2d";             // "2d" | "iso" — the read-only isometric height preview (S6)
   let isoYaw = 30;
   // Terrain-paint theming (finishing-model.md §4): a map-global registry + default; a shape's own override
@@ -103,6 +104,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     onPropSelected:    () => fire("OnDressing", dressingState()),
     // A placed prop ends its tool, the same as a completed draw: the toolbar follows the canvas back to select.
     onDressingPlaced:  () => { canvas.setActiveTool("select"); fire("OnToolChanged", "select"); },
+    // Relief marks follow exactly the same three rules, for the same reasons.
+    onReliefChanged: () => afterReliefChange(),
+    onMarkSelected:  () => fire("OnRelief", reliefState()),
+    onReliefPlaced:  () => { canvas.setActiveTool("select"); fire("OnToolChanged", "select"); },
     onShapeDeleted:  (id) => { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); },
     onShapePromote:  (id) => promoteShape(id),
     onSplit:         (a, b) => splitAt(a, b),
@@ -168,6 +173,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     const single = isl && isl.shapeIds.length === 1 ? isl.shapeIds[0] : null;
     fire("OnShapeSelected", single);
     fire("OnIslandSelected", single ? null : selectedIslandId);
+    // In the Relief phase the island IS the unit being edited — its base, reach, step and grain are what the
+    // marks are stated against — so picking one has to reach the inspector.
+    if (reliefMode) fire("OnRelief", reliefState());
   }
 
   // Rotate the current selection by `deg` degrees about its bbox centre (the inspector's numeric field; the
@@ -460,6 +468,33 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     } catch { /* offline or mid-navigation — the overlay keeps the stone footprint */ }
   }
 
+  // ── the stated relief (docs/contracts/sketch-relief.md) ────────────────────
+  // What an author has said about the ground inside each island. Distinct from the contour overlay below it:
+  // this is the statement, that is what the solver made of it. Both are on screen at once during the phase,
+  // which is the whole reason a mark can be tuned by eye.
+  function reliefState() {
+    const tools = canvas.reliefTools;
+    const selectedId = tools?.selectedId ?? null;
+    const selected = selectedId ? canvas.relief.byId(selectedId) : null;
+    // The island in play: the one stating the selected mark, else the one the author has picked on the
+    // canvas. Its own settings — base, reach, step, grain — are what the inspector edits when no mark is.
+    const islandId = selected?.islandId ?? selectedIslandId ?? null;
+    return JSON.stringify({
+      marks: canvas.relief.marks,
+      selectedId,
+      selected,
+      islandId,
+      islandName: islandId ? (islandById(islandId)?.name ?? islandId) : null,
+      relief: islandId ? canvas.relief.peek(islandId) : null,
+    });
+  }
+
+  function afterReliefChange() {
+    markDirty();
+    fire("OnRelief", reliefState());
+    refreshRelief();   // the statement changed, so the contours it produced have too
+  }
+
   // ── the relief contour overlay ─────────────────────────────────────────────
   // Same seam as the painted Blocks overlay, and for the same reason: the surface a relief produces is
   // solved by the export's own solver, so the only honest preview is the one the server draws. The lines
@@ -698,6 +733,41 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       fire("OnDressing", dressingState()); return null;
     },
 
+    // ── relief (sketch-relief.md) ──
+    // Placing is the canvas's; the bridge exposes reading the document, editing the selected mark, the island
+    // settings the marks are stated against, and the per-kind settings a newly placed mark starts from.
+    getRelief() { return reliefState(); },
+    setReliefMode(on) {
+      reliefMode = !!on;
+      canvas.setReliefMode(reliefMode);
+      // The phase shows the statement and its result together, which is the only way a mark can be tuned by
+      // eye — so entering it turns the contour overlay on rather than leaving it to a second toggle.
+      if (reliefMode) { reliefOn = true; syncRelief(); fire("OnRelief", reliefState()); }
+    },
+    selectMark(id) { canvas.reliefTools?.select(id || null); },
+    deleteMark() { if (canvas.reliefTools?.deleteSelected()) afterReliefChange(); },
+    /** Patch the selected mark. `patchJson` is a partial mark; returns an error string on bad JSON, else null. */
+    updateMark(patchJson) {
+      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "Invalid JSON"; }
+      canvas.reliefTools?.updateSelected(patch);
+      afterReliefChange(); return null;
+    },
+    /** Patch the island's own relief — base, reach, step, grain, and the rim it carries. Not a mark: these
+     *  are what every mark in the island is stated against, so changing one moves the whole surface. */
+    updateIslandRelief(patchJson) {
+      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "Invalid JSON"; }
+      if (!selectedIslandId) return "no island selected";
+      canvas.reliefTools?.updateRelief(selectedIslandId, patch);
+      afterReliefChange(); return null;
+    },
+    /** The starting values the next mark of a kind takes — what the inspector edits with nothing selected. */
+    getMarkSettings(kind) { return JSON.stringify(canvas.reliefTools?.settingsFor(kind) ?? {}); },
+    setMarkSettings(kind, patchJson) {
+      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "Invalid JSON"; }
+      canvas.reliefTools?.setSettings(kind, patch);
+      fire("OnRelief", reliefState()); return null;
+    },
+
     // Load a persisted layout: setup + the layers[] array (or a legacy single layout → one layer at base_y 0).
     load(state) {
       const s = state ?? {};
@@ -709,6 +779,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         spawn: s.roomStyles && "spawn" in s.roomStyles ? s.roomStyles.spawn : undefined,
       };
       canvas.setDressing(s.dressing && typeof s.dressing === "object" ? s.dressing : null);
+      canvas.setReliefDoc(s.relief && typeof s.relief === "object" ? s.relief : null);
       const raw = (s.layers && s.layers.length) ? s.layers : (s.layout ? [{ base_y: 0, layout: s.layout }] : []);
       // A layer's stored shapes are partitioned on load: role-tagged shapes are the plan's structural pieces
       // (S25) — carried as a locked render-only overlay, kept out of the drawn-shape pipeline (islands, raster,
@@ -754,6 +825,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         // Dressing rides the same way, and is likewise omitted when empty so an undressed sketch serialises
         // exactly as it did before the phase existed.
         dressing: canvas.dressing.isEmpty ? undefined : canvas.dressing.toJSON(),
+        // Relief rides top-level keyed by island rather than on the shapes, because a plan recompile
+        // replaces every shape it produced and a relief is hand work a plan cannot express. Omitted when
+        // nothing is stated, so opening the phase and leaving it cannot add a key to the layout.
+        relief: canvas.relief.isEmpty ? undefined : canvas.relief.toJSON(),
         layers: layers.map(L => ({
           id: L.id, name: L.name, base_y: L.baseY,
           layout: {

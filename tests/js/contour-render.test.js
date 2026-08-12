@@ -6,7 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { recordingPainter } from "./_painter-stub.js";
 
-import { paintRelief } from "../../src/PgmStudio.Client/wwwroot/js/studio/render/sketch-render.js";
+import { paintContours } from "../../src/PgmStudio.Client/wwwroot/js/studio/render/sketch-render.js";
 
 // One island's worth of lines, each a flat [x, z, x, z, …] run as the endpoint returns them.
 const relief = (levels) => ({
@@ -21,7 +21,7 @@ const relief = (levels) => ({
 
 test("every contour is stroked as one path of segments", () => {
   const painter = recordingPainter();
-  paintRelief(painter, relief([1, 2, 3]));
+  paintContours(painter, relief([1, 2, 3]));
   // One segments() call per line — a contour is hundreds of points, and stroking each pair on its own is
   // the cost the batched primitive exists to avoid.
   assert.equal(painter.of("segments").length, 3);
@@ -30,7 +30,7 @@ test("every contour is stroked as one path of segments", () => {
 
 test("every fifth level is an index line — heavier, and the only one labelled", () => {
   const painter = recordingPainter();
-  paintRelief(painter, relief([3, 4, 5, 6, 10]));
+  paintContours(painter, relief([3, 4, 5, 6, 10]));
 
   const widths = painter.of("segments").map(([, style]) => style.width);
   assert.deepEqual(widths.map(w => w > 1), [false, false, true, false, true]);
@@ -41,14 +41,14 @@ test("every fifth level is an index line — heavier, and the only one labelled"
 
 test("the index spacing is a setting, not a constant", () => {
   const painter = recordingPainter();
-  paintRelief(painter, relief([1, 2, 3, 4]), { indexEvery: 2 });
+  paintContours(painter, relief([1, 2, 3, 4]), { indexEvery: 2 });
   assert.deepEqual(painter.of("text").map(([content]) => content), ["2", "4"]);
 });
 
 test("a label lands on the line's straightest stretch", () => {
   // A line that turns a hard corner at its start and then runs straight: the label belongs on the run.
   const painter = recordingPainter();
-  paintRelief(painter, {
+  paintContours(painter, {
     islands: [{
       island: "i1",
       lines: [{
@@ -63,7 +63,7 @@ test("a label lands on the line's straightest stretch", () => {
 
 test("a line too short to hold a label window is labelled at its midpoint", () => {
   const painter = recordingPainter();
-  paintRelief(painter, {
+  paintContours(painter, {
     islands: [{ island: "i1", lines: [{ level: 5, closed: true, points: [0, 0, 4, 0, 4, 4] }] }],
   });
   const [content, x, z] = painter.of("text")[0];
@@ -73,8 +73,8 @@ test("a line too short to hold a label window is labelled at its midpoint", () =
 
 test("nothing is drawn for an empty payload or a degenerate line", () => {
   const painter = recordingPainter();
-  paintRelief(painter, null);
-  paintRelief(painter, { islands: [] });
-  paintRelief(painter, { islands: [{ island: "i1", lines: [{ level: 5, points: [3, 3] }] }] });
+  paintContours(painter, null);
+  paintContours(painter, { islands: [] });
+  paintContours(painter, { islands: [{ island: "i1", lines: [{ level: 5, points: [3, 3] }] }] });
   assert.equal(painter.calls.length, 0);
 });

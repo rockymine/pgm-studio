@@ -139,7 +139,7 @@ export function paintRaster(painter, runs) {
  * line's own widest point rather than at a fixed spacing, so a small closed ring gets exactly one and a long
  * traverse gets one where there is room for it.
  */
-export function paintRelief(painter, relief, { indexEvery = 5 } = {}) {
+export function paintContours(painter, relief, { indexEvery = 5 } = {}) {
   const hair = painter.screenPx(1);
   for (const island of relief?.islands ?? []) {
     for (const line of island.lines ?? []) {

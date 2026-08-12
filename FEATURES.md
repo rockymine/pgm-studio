@@ -3972,6 +3972,33 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   stroking points it was handed. (`Geom/Relief/Contours.cs`, `SketchReliefEndpoint`, `sketch-render.js`
   `paintRelief`, `sketch-bridge.js`, `SketchTool.razor`; 9 + 3 + 6 tests)
 
+- **Relief: a phase where terrain is stated, and marks are placed things (S41).** The five mark kinds solved
+  and exported but could only be written as JSON. A **Relief** phase now sits between Draw and Theme — the
+  order is the dependency, since a relief is geometry and changes what the rasterizer emits — with four canvas
+  tools (spot height · ridgeline · bench · scarp), a list of what each island states, and an inspector for the
+  numbers on the selected mark. It takes the Dressing phase's shape wholesale: a document (`ReliefDoc`), a
+  controller with select / drag / point-grips / delete (`canvas.reliefTools`), a list and an inspector bound
+  to the selection, per-kind settings carried across placements, and a bridge surface of flat methods. Entering
+  the phase turns the contour overlay on with it, so the statement and the surface it produced are on screen
+  together — the only way a mark can be tuned by eye.
+  **Three things differ from dressing, and each is the model asserting itself over the borrowed shape.** A prop
+  is placed on the map; a mark is placed **in an island**, because that is the unit a relief is solved over —
+  so the island is fixed by where a trace *starts* and never revised. Judging it by coverage would break the
+  one gesture the clipping rule exists for: a mark dragged past an edge raises the ground into a corner and
+  stops, and ownership by area would hand it to whichever island the overhang crossed. For the same reason a
+  mark, unlike a prop, may be dragged **off** its island entirely where a prop's drag stops at the void. And
+  the **rim** gets no tool: it holds the whole outline, so there is nowhere to put it — it is a switch on the
+  island, one that writes the rim **first** in the mark list, since a rim written last cuts a doorway through
+  both ends of every ridge reaching the outline. A first mark in an island starts at that island's own **base**
+  rather than at the last mark's height, which would state a cliff nobody asked for.
+  **Colour carries the height, not the kind** — the opposite of the dressing overlay's rule and the right way
+  round here, since every mark does the same thing to the ground and differs only in where and how high; the
+  drawn shape already says which kind it is. Each mark wears its own number, and the two that state more than
+  one wear both: a falling ridgeline shows its ends, a scarp its drop. A mark carries an **id** on the wire —
+  the solver has no use for it, but a relief that renumbered its marks on load would move the selection under
+  the author's hands. (`relief/relief-doc.js`, `controllers/relief-controller.js`, `render/relief-render.js`,
+  `SketchReliefList` + `SketchReliefInspector`, `SketchRelief.cs`; 23 + 1 tests)
+
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,
   `GET /wool-availability`, `GET /monument-obstruction` (each wool monument's block must be air; flags a

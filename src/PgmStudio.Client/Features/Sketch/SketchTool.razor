@@ -26,6 +26,7 @@
     <NavRail LogoHref="/" LogoTitle="Studio home">
       <NavButton Icon="book-open-text" Title="Info" Active="@InfoActive" OnClick="GoInfo" />
       <NavButton Icon="pencil-ruler" Title="Draw" Active="@DrawActive" OnClick="GoDraw" />
+      <NavButton Icon="mountain" Title="Relief" Active="@ReliefActive" OnClick="GoRelief" />
       <NavButton Icon="palette" Title="Theme" Active="@(ThemeCreateActive || ThemeApplyActive || ThemeRoomsActive)" OnClick="GoTheme" />
       <NavButton Icon="trees" Title="Dressing" Active="@DressingActive" OnClick="GoDressing" />
     </NavRail>
@@ -48,7 +49,7 @@
       @* Draw + Theme-Apply share the one mounted canvas, so this body stays present (hidden when Info/Create
          is up) — [hidden] is display:none, and the canvas re-measures on unhide. Theme-Apply swaps the sidebar
          (island tree + theme controls) and hides the draw toolbar/inspector; the canvas is reused as-is. *@
-      <div class="phase-body" hidden="@(!(DrawActive || ThemeApplyActive || DressingActive))">
+      <div class="phase-body" hidden="@(!(DrawActive || ThemeApplyActive || DressingActive || ReliefActive))">
       @if (ThemeApplyActive)
       {
         <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Theme"
@@ -59,6 +60,11 @@
       {
         <FlowBar Class="flow-bar--flush" PhaseIcon="trees" PhaseTitle="Dressing"
                  BackEnabled="true" NextLabel="Done" NextEnabled="true" OnBack="GoDraw" OnNext="GoDraw" />
+      }
+      else if (ReliefActive)
+      {
+        <FlowBar Class="flow-bar--flush" PhaseIcon="mountain" PhaseTitle="Relief"
+                 BackEnabled="true" NextLabel="Done" NextEnabled="true" OnBack="GoDraw" OnNext="GoTheme" />
       }
       else
       {
@@ -80,6 +86,15 @@
             @* Dressing places things on the map rather than assigning recipes to shapes, so its sidebar is the
                list of what is placed — the island tree would only offer a selection nothing here acts on. *@
             <SketchDressingList StateJson="@dressingJson" Handle="handle" />
+          }
+          else if (ReliefActive)
+          {
+            @* Relief needs BOTH: the island tree, because the island is the unit a relief is solved over and
+               picking one is how its base and grain are reached; and the list of what is stated, because a
+               spot height under a broad bench is a small target on the canvas. *@
+            <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="selectedShapeId" SelectedIslandId="selectedIslandId"
+                         OnSelectShape="SelectShape" OnSelectIsland="SelectIsland" />
+            <SketchReliefList StateJson="@reliefJson" Handle="handle" />
           }
           else
           {
@@ -152,6 +167,16 @@
                 }
               </DockGroup>
             }
+            else if (ReliefActive)
+            {
+              <DockGroup>
+                @foreach (var stater in ReliefTools.All)
+                {
+                  <DockButton Icon="@stater.Icon" Title="@stater.Name" @key="stater.Tool"
+                              Active="@(tool == stater.Tool)" OnClick="() => SetTool(stater.Tool)" />
+                }
+              </DockGroup>
+            }
             else if (!ScopeApplyActive)
             {
               @* The three tools that make a shape, and the operation the shape will perform, in one box wearing
@@ -181,6 +206,11 @@
         {
           <div class="sidebar-handle"></div>
           <SketchDressingInspector Handle="handle" ActiveTool="@tool" StateJson="@dressingJson" />
+        }
+        else if (ReliefActive)
+        {
+          <div class="sidebar-handle"></div>
+          <SketchReliefInspector Handle="handle" ActiveTool="@tool" StateJson="@reliefJson" />
         }
         else if (!ScopeApplyActive)
         {

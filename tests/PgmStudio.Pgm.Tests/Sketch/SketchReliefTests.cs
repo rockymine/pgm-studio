@@ -1,3 +1,4 @@
+using System.Text.Json;
 using PgmStudio.Pgm.Sketch;
 
 namespace PgmStudio.Pgm.Tests.Sketch;
@@ -173,6 +174,30 @@ public sealed class SketchReliefTests
     public async Task A_layout_with_no_relief_previews_nothing()
     {
         await Assert.That(SketchRasterizer.ReliefFields(Layout(null)).Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task A_marks_id_survives_a_round_trip_and_is_absent_when_it_has_none()
+    {
+        // The editor's handle on a mark. It has to come back out of the document unchanged, or a stored relief
+        // would renumber its marks on load and move the selection under the author's hands. A hand-written
+        // relief carries none, and must not gain one silently — which would look like an edit nobody made.
+        const string json = """
+        {
+          "base": 5,
+          "marks": [
+            { "id": "r3", "kind": "point", "at": [4, 4], "h": 12 },
+            { "kind": "area", "ring": [[0, 0], [8, 0], [8, 8]], "h": 7 }
+          ]
+        }
+        """;
+        var relief = JsonSerializer.Deserialize<SketchReliefJson>(json, SketchLayout.Json)!;
+        await Assert.That(relief.Marks![0].Id).IsEqualTo("r3");
+        await Assert.That(relief.Marks[1].Id).IsNull();
+
+        var written = JsonSerializer.Serialize(relief, SketchLayout.Json);
+        await Assert.That(written).Contains("\"id\":\"r3\"");
+        await Assert.That(written.Split("{\"kind\":\"area\"")[^1]).DoesNotContain("\"id\"");
     }
 
     [Test]

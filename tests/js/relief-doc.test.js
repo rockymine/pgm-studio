@@ -1,0 +1,220 @@
+// The relief document and the tools that state into it. What these hold is the half of the model the C# side
+// cannot: a mark belongs to an ISLAND, and the whole document is exactly what the layout stores — so a mark
+// placed on the canvas and one written by hand are the same mark.
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { recordingPainter } from "./_painter-stub.js";
+
+import { ReliefDoc, defaultMark, markAnchor, markPoints, markReach, pointsPatch, translateMark, isRing, isSpot }
+  from "../../src/PgmStudio.Client/wwwroot/js/studio/relief/relief-doc.js";
+import { ReliefController, RELIEF_TOOLS }
+  from "../../src/PgmStudio.Client/wwwroot/js/studio/controllers/relief-controller.js";
+import { paintReliefMarks, heightColor }
+  from "../../src/PgmStudio.Client/wwwroot/js/studio/render/relief-render.js";
+
+// ── the document ──────────────────────────────────────────────────────────────
+test("a stored relief round-trips through the document", () => {
+  const stored = {
+    i1: { base: 6, reach: 20, step: 1, marks: [{ kind: "point", at: [4, 4], h: 12, r: 3 }] },
+  };
+  const doc = ReliefDoc.from(stored);
+  const out = doc.toJSON();
+  assert.equal(out.i1.base, 6);
+  assert.equal(out.i1.marks.length, 1);
+  assert.deepEqual(out.i1.marks[0].at, [4, 4]);
+});
+
+test("a mark kind the client cannot draw is dropped rather than carried", () => {
+  const doc = ReliefDoc.from({ i1: { marks: [{ kind: "point", at: [0, 0], h: 5 }, { kind: "wormhole" }] } });
+  assert.equal(doc.marks.length, 1);
+});
+
+test("a stored mark keeps its id, and one without gets one", () => {
+  const doc = ReliefDoc.from({ i1: { marks: [{ kind: "point", id: "r7", at: [0, 0], h: 5 }, { kind: "area", ring: [[0, 0], [2, 0], [2, 2]], h: 4 }] } });
+  const [first, second] = doc.marks;
+  assert.equal(first.id, "r7");
+  assert.ok(second.id);
+  // Minted above the highest stored id, so re-opening a document cannot hand out one that is already taken.
+  assert.notEqual(second.id, "r7");
+});
+
+test("an island that states nothing is left out of the stored form entirely", () => {
+  // Opening the phase and closing it again must not add a key to the layout.
+  const doc = new ReliefDoc();
+  doc.reliefOf("i1");
+  assert.deepEqual(doc.toJSON(), {});
+  assert.equal(doc.isEmpty, true);
+});
+
+test("ids are unique across islands, not per island", () => {
+  // A mark can be dragged out of one island and into another; an id that changed on the way would break the
+  // selection mid-drag.
+  const doc = new ReliefDoc();
+  const a = doc.add("i1", defaultMark("point"));
+  const b = doc.add("i2", defaultMark("point"));
+  assert.notEqual(a.id, b.id);
+  assert.equal(doc.islandOf(a.id), "i1");
+  assert.equal(doc.islandOf(b.id), "i2");
+});
+
+test("an update cannot change a mark's kind or id", () => {
+  const doc = new ReliefDoc();
+  const placed = doc.add("i1", defaultMark("point"));
+  const updated = doc.update(placed.id, { kind: "scarp", id: "hijack", h: 14 });
+  assert.equal(updated.kind, "point");
+  assert.equal(updated.id, placed.id);
+  assert.equal(updated.h, 14);
+});
+
+test("points live in the field their kind names them", () => {
+  // An area's points close and a line's do not, so the wire format says which by the name it stores them under.
+  assert.deepEqual(pointsPatch(defaultMark("area"), [[0, 0], [2, 0], [2, 2]]), { ring: [[0, 0], [2, 0], [2, 2]] });
+  assert.deepEqual(pointsPatch(defaultMark("line"), [[0, 0], [4, 0]]), { points: [[0, 0], [4, 0]] });
+  assert.deepEqual(pointsPatch(defaultMark("point"), [[3, 5]]), { at: [3, 5] });
+  assert.ok(isRing("area") && !isRing("line"));
+  assert.ok(isSpot("point") && !isSpot("area"));
+});
+
+test("a mark moves point by point, so a drag keeps its shape", () => {
+  const line = { ...defaultMark("line"), points: [[0, 0], [10, 4]] };
+  assert.deepEqual(markPoints(translateMark(line, 3, -2)), [[3, -2], [13, 2]]);
+  const spot = { ...defaultMark("point"), at: [5, 5] };
+  assert.deepEqual(translateMark(spot, 2, 2).at, [7, 7]);
+});
+
+test("a mark's reach counts the band it holds, not only its points", () => {
+  // A hit test has to reach the ground a mark states, not the line an author drew through the middle of it.
+  const narrow = { ...defaultMark("line"), points: [[0, 0], [10, 0]], width: 1 };
+  const broad = { ...defaultMark("line"), points: [[0, 0], [10, 0]], width: 8 };
+  assert.ok(markReach(broad) > markReach(narrow));
+  assert.deepEqual(markAnchor(narrow), [5, 0]);
+});
+
+// ── the tools ─────────────────────────────────────────────────────────────────
+function tools({ islandAt = () => "i1", doc = new ReliefDoc() } = {}) {
+  const events = [];
+  const controller = new ReliefController(doc, null, () => ({ scale: 1, panX: 0, panY: 0 }), {
+    onChanged: () => events.push("changed"),
+    onSelected: (id) => events.push(`selected:${id}`),
+    onPlaced: () => events.push("placed"),
+    onIslandAt: islandAt,
+  });
+  return { controller, doc, events };
+}
+
+test("a click places a spot height in the island under it", () => {
+  const { controller, doc, events } = tools();
+  assert.equal(controller.onMouseDown(12, 8, "relief:point"), true);
+  assert.equal(doc.marks.length, 1);
+  assert.deepEqual(doc.marks[0].at, [12, 8]);
+  assert.equal(doc.marks[0].islandId, "i1");
+  assert.ok(events.includes("placed"));
+});
+
+test("a click off every island states nothing", () => {
+  // A relief is stated INSIDE an island. Off one there is no ground and no island to state it about, so the
+  // press is consumed and nothing is begun.
+  const { controller, doc } = tools({ islandAt: () => null });
+  assert.equal(controller.onMouseDown(12, 8, "relief:point"), true);
+  assert.equal(doc.marks.length, 0);
+});
+
+test("a drag traces a ridgeline and simplifies it on release", () => {
+  const { controller, doc } = tools();
+  controller.onMouseDown(0, 0, "relief:line");
+  for (let x = 1; x <= 20; x++) controller.onMouseMove(x, 0, "relief:line");
+  controller.onMouseUp();
+  assert.equal(doc.marks.length, 1);
+  // A straight drag is two points once the bends nobody made are dropped.
+  assert.equal(markPoints(doc.marks[0]).length, 2);
+});
+
+test("a drag too small to enclose anything is a misfire, not a tiny mark", () => {
+  const { controller, doc } = tools();
+  controller.onMouseDown(4, 4, "relief:area");
+  controller.onMouseMove(5, 4, "relief:area");
+  controller.onMouseUp();
+  assert.equal(doc.marks.length, 0);
+});
+
+test("the island is decided where the trace STARTS, not where most of it lands", () => {
+  // A mark is clipped, not confined: one dragged past an edge raises the ground into a corner and stops. If
+  // ownership followed coverage, that authoring gesture would pick whichever island the overhang crossed.
+  const { controller, doc } = tools({ islandAt: (x) => (x < 10 ? "i1" : "i2") });
+  controller.onMouseDown(2, 0, "relief:line");
+  for (let x = 3; x <= 40; x++) controller.onMouseMove(x, 0, "relief:line");
+  controller.onMouseUp();
+  assert.equal(doc.marks[0].islandId, "i1");
+});
+
+test("a first mark in an island starts at that island's base, not the last one's height", () => {
+  // A height carried over from another island at another base would state a cliff nobody asked for.
+  const doc = ReliefDoc.from({ i2: { base: 20, marks: [] } });
+  const { controller } = tools({ doc, islandAt: () => "i2" });
+  controller.onMouseDown(0, 0, "relief:point");
+  assert.equal(doc.marks[0].h, 20);
+});
+
+test("a later mark in the same island carries the tool's settings forward", () => {
+  const { controller, doc } = tools();
+  controller.onMouseDown(0, 0, "relief:point");
+  controller.updateSelected({ h: 17, r: 9 });
+  controller.onMouseDown(20, 20, "relief:point");
+  assert.equal(doc.marks[1].h, 17);
+  assert.equal(doc.marks[1].r, 9);
+});
+
+test("a selected mark can be dragged past its island's edge", () => {
+  // The one place this differs from a placed prop, which stops at the void: a hill authored into a corner IS
+  // a mark hanging over the edge.
+  const { controller, doc } = tools({ islandAt: (x) => (x < 10 ? "i1" : null) });
+  controller.onMouseDown(4, 4, "relief:point");
+  controller.setTool("select");
+  controller.onMouseDown(4, 4, "select");
+  controller.onMouseMove(40, 4, "select");
+  controller.onMouseUp();
+  assert.deepEqual(doc.marks[0].at, [40, 4]);
+});
+
+test("deleting the selection removes it and clears the selection", () => {
+  const { controller, doc, events } = tools();
+  controller.onMouseDown(0, 0, "relief:point");
+  assert.equal(controller.deleteSelected(), true);
+  assert.equal(doc.marks.length, 0);
+  assert.ok(events.includes("selected:null"));
+});
+
+test("island settings are edited through the document, not through a mark", () => {
+  const { controller, doc } = tools();
+  controller.onMouseDown(0, 0, "relief:point");
+  controller.updateRelief("i1", { base: 14, reach: 30 });
+  assert.equal(doc.toJSON().i1.base, 14);
+  assert.equal(doc.toJSON().i1.reach, 30);
+});
+
+// ── the paint ─────────────────────────────────────────────────────────────────
+test("a mark is drawn as the ground it holds, and wears its height", () => {
+  const painter = recordingPainter();
+  paintReliefMarks(painter, [{ id: "r1", islandId: "i1", kind: "point", at: [5, 5], h: 14, r: 3 }], { baseOf: () => 8 });
+  assert.equal(painter.of("ring").length, 1);
+  assert.deepEqual(painter.of("text")[0].slice(0, 3), ["14", 5, 5]);
+});
+
+test("a falling ridgeline wears both of its ends", () => {
+  const painter = recordingPainter();
+  paintReliefMarks(painter, [{ id: "r1", islandId: "i1", kind: "line", points: [[0, 0], [10, 0]], h: [16, 9], width: 2 }]);
+  assert.equal(painter.of("text")[0][0], "16–9");
+});
+
+test("a scarp wears its drop", () => {
+  const painter = recordingPainter();
+  paintReliefMarks(painter, [{ id: "r1", islandId: "i1", kind: "scarp", points: [[0, 0], [10, 0]], high: 18, low: 6 }]);
+  assert.equal(painter.of("text")[0][0], "18↓6");
+});
+
+test("colour carries the height: a rise and a cut are not two shades of one hue", () => {
+  const rise = heightColor(20, 8), flat = heightColor(8, 8), cut = heightColor(-4, 8);
+  assert.notEqual(rise, flat);
+  assert.notEqual(cut, flat);
+  assert.notEqual(rise, cut);
+});

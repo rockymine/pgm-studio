@@ -64,6 +64,13 @@ public sealed class ReliefGrainJson
 /// to the named <see cref="Kind"/> are ignored, so a mark can be retyped in place without rewriting it.</summary>
 public sealed class ReliefMarkJson
 {
+    /// <summary>The editor's handle on this mark. The solver has no use for it — a mark is a set of pinned
+    /// cells — but a mark is a <em>placed thing</em>, and a placed thing has to survive being selected, moved
+    /// and edited among its neighbours. Carried on the wire rather than assigned per session because a stored
+    /// relief that renumbered its marks on every load would move the selection under the author's hands.</summary>
+    [JsonPropertyName("id"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Id { get; set; }
+
     [JsonPropertyName("kind")] public string Kind { get; set; } = "point";
 
     [JsonPropertyName("at")]     public double[]? At { get; set; }        // point
@@ -101,6 +108,10 @@ public sealed class ReliefMarkJson
 /// are shaped.</summary>
 public sealed class ReliefPushJson
 {
+    /// <summary>The editor's handle on this push — see <see cref="ReliefMarkJson.Id"/>.</summary>
+    [JsonPropertyName("id"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Id { get; set; }
+
     [JsonPropertyName("ring")]      public double[][]? Ring { get; set; }
     [JsonPropertyName("amount")]    public double Amount { get; set; }
     [JsonPropertyName("amounts")]   public double[]? Amounts { get; set; }

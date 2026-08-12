@@ -530,26 +530,41 @@ one. So the drag warm-starts and the release solves in full.
 
 ## 15. Authoring it — where it goes and in what order
 
-The model below the canvas is built — the solver, the stored document, the rasterizer seam, the recompile
-rule, and the contour overlay that shows what any of it produced. What is not built is the authoring: a
-relief is stated by writing the document, and the tools that would place a mark or draw a push are the plan
-that follows. Most of it is reuse rather than new surface.
+**Relief is a canvas mode, beside Draw, Theme and Dressing.** The sketch tool runs its modes over one canvas,
+switched by the rail, and relief is one of exactly that kind: same shapes, same viewport, its own tools and
+its own overlay. It sits **between Draw and Theme**, and the order is the dependency — relief is geometry and
+changes what the rasterizer emits, so it has to precede the two passes that read the built surface. Making it
+a step inside Draw would bury it; making it a phase after Theme would state the dependency backwards.
 
-**Relief is a canvas mode, beside Draw, Theme and Dressing.** The sketch tool already runs four modes over
-one canvas, switched by the flow bar, and relief is a fifth of exactly that kind: same shapes, same viewport,
-its own tools and its own overlay. It sits **between Draw and Theme**, and the order is the dependency —
-relief is geometry and changes what the rasterizer emits, so it has to precede the two passes that read the
-built surface. Making it a step inside Draw would bury it; making it a phase after Theme would state the
-dependency backwards.
+**Marks are placed things, so they take the Dressing treatment wholesale.** That stage had already solved the
+same problem: a document of placed items, a tool set on the canvas with select / delete / update, a list panel
+and an inspector bound to the selection, per-kind settings carried across placements, and a bridge surface of
+flat methods. Relief has the same five parts with different nouns — `ReliefDoc`, `canvas.reliefTools`,
+`SketchReliefList` + `SketchReliefInspector` — and the mark kinds map onto tool buttons the way the prop kinds
+do.
 
-**Marks are placed things, so they get the Dressing treatment wholesale.** That stage already solved this
-exact problem: a document of placed items (`DressingDoc`), a tool set on the canvas with select / delete /
-update (`canvas.dressingTools`), a list panel and an inspector bound to the selection
-(`SketchDressingList` + `SketchDressingInspector`), per-kind settings carried across placements, and a bridge
-surface of flat methods. A relief needs the same five parts with different nouns, and the five mark kinds map
-onto tool buttons the way the five prop kinds already do. The one genuinely new interaction is dragging a
-**contour**, which writes a line mark at that height — and it is an addition to the overlay rather than a
-sixth tool.
+Three things differ, and each is the model asserting itself over the borrowed shape. A prop is placed **on the
+map**; a mark is placed **in an island**, because that is the unit a relief is solved over — so the island is
+decided by where a trace *starts*, and never revised. Judging it by coverage instead would break the one
+gesture the clipping rule exists for: a mark dragged past an edge raises the ground into a corner and stops,
+and ownership by area would hand that mark to whichever island the overhang happened to cross. For the same
+reason a mark, unlike a prop, may be dragged **off** its island entirely, where a prop's drag stops at the
+void. And the **rim** gets no tool at all: it holds the whole outline, so there is nowhere to put it and
+nothing to drag, and it is a switch on the island instead — one that writes the rim *first* in the mark list,
+since a rim written last cuts a doorway through both ends of every ridge that reaches the outline.
+
+A mark carries an **id** on the wire for the same reason a prop does. The solver has no use for it — a mark is
+a set of pinned cells — but a placed thing has to survive being selected, moved and edited among its
+neighbours, and a relief that renumbered its marks on load would move the selection under the author's hands.
+
+**Colour carries the height, not the kind** — the opposite of the dressing overlay's rule, and the right way
+round here. Every mark does the same thing to the ground and differs only in where and how high, so a glance
+should answer "is this the high one or the low one" rather than "is this a line or an area", which the drawn
+shape already says. Each mark also wears its own number, and the two kinds that state more than one wear both:
+a falling ridgeline shows its ends, a scarp shows its drop.
+
+The one interaction still to build is dragging a **contour**, which writes a line mark at that height — an
+addition to the overlay rather than another tool.
 
 **The preview is solved on the server, and there is no JS twin.** The paint preview already establishes the
 seam: an edit debounces, the layout is posted, a render comes back, the canvas loads it as a layer, and a
