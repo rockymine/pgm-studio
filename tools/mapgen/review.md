@@ -70,19 +70,29 @@ chosen against the ground: face the spawn at the board, not off it.
 ## The structures
 
 `StructureIntent` is the stamped furniture a map is played through — room floors, entrance redstone, iron
-cubes and approach walls. Two of its four lists are never filled by anything.
+cubes and approach walls. Two of its four lists are complete end to end and reachable only by hand: the
+**layout generator never authors them**, so they exist on maps someone drew and on no map it composed.
 
-**MG21 — The defence wall exists, is described, and has never been authored.** `StructureIntent.Walls` holds
-"pre-built bedrock approach walls over a wool-lane interface seam (ST4)", the stamper reads it, and
-`DressingScope` already protects the ground under one — but no assignment to `Walls` exists anywhere outside
-the record's own definition, so every generated capture map ships without the wall its own model describes. A
-wool lane with no approach wall is a different game: the defence has nothing to hold and the run has nothing
-to break through.
+**MG21 — The defence wall is fully authorable and the composer never asks for one.** The chain is whole. A
+plan carries `walls` as a list of `PlanWall`, each naming the two pieces (`a`, `b`) whose interface it
+stands on; the plan editor authors one by clicking that interface with the brick tool; `PlanValidator` checks
+it; `PlanCompiler` computes the footprint from the two pieces' contact, fans it through the orbit and emits a
+`WallStructure`; the stamper builds it and `DressingScope` protects the ground under it. What no code does is
+put a `PlanWall` into a plan the **composer** produced, so a generated board has no wall unless a person
+opens it in the editor and marks the seam. The work is in `Composer` — deciding which contacts deserve a wall
+— and not in building a wall system, which is done.
 
-**MG22 — Iron is never placed.** `StructureIntent.IronCubes` stamps a 4×4×4 iron cube on the surface at each
-iron marker (ST2/ST3), fed by `PlanPlacements.Iron`. The composer places no iron markers and no spec asks for
-any, so no generated board carries a resource to fight over. Iron wants placing regularly through the map
-rather than once near a spawn — it is a reason to leave cover, which is the same argument as MG9 about trees.
+Worth reading before touching it, because it settles a question MG26 raises elsewhere: the wall is two blocks
+thick so one face can be opened while the other stays solid, and which face carries its defence chests is
+authored as a **piece id** rather than a coordinate, precisely so it survives the orbit — a reflection swaps
+which face has the smaller coordinate, and only the piece it looks out at is invariant. That is the pattern
+every fanned decision should follow.
+
+**MG22 — Iron is authorable the same way and equally unasked-for.** `PlanPlacements.Iron` carries the
+markers, `PlanCompiler` turns each into an `IronCube`, and `StructureStamper.StampIronCube` builds the 4×4×4
+cube on the surface (ST2/ST3). The composer emits no iron markers, so no generated board carries a resource
+to fight over. Iron wants placing regularly through the map rather than once near a spawn — it is a reason to
+leave cover, which is the same argument as MG9 about trees.
 
 **MG23 — A destroyable wants a bedrock platform under it.** A 5×5 bedrock platform one block beneath the
 ground under each destroyable, so the monument cannot be undermined from below and the ground it stands on
