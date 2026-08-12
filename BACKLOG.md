@@ -256,10 +256,13 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   what it should: the two gable ends carry the **same triangle**. The plinth and wall below the eave are not
   alike and are not made alike, since no post belongs where a wall runs straight on.
 
-  **Worth measuring next: a wing taller than the roof it meets, stopping at the wall rather than drawn
-  through.** Its upper courses have nothing to hit, so the march may carry them across the whole neighbour and
-  out the other side — which is the drawn-through result reached by the shape that did not ask for it. A march
-  should stop somewhere; where, is the question.
+  **Measured, and it is a defect: a wing whose roof rises above its neighbour's marches clean across it.**
+  Each course marches until it hits a block, and a course standing above everything in its way never hits one,
+  so it runs the whole length of the neighbour and stops only at the far overhang — the drawn-through result,
+  reached by a shape that stopped at the wall and did not ask for it. Two footprints show it: a wing at pitch 2
+  against a hall at pitch 1 on equal storeys, and a gabled wing against a **flat**-roofed hall, where there is
+  no ridge anywhere for a march to strike. A march needs a stop that does not depend on meeting something
+  taller. The obvious candidate — stop at the neighbour's ridge — is wrong for the flat roof, which has none.
 
   **A wing has no doorway into its neighbour.** Where two wings meet the plan is simply open between them, which
   is right; where one projects into another its gable end is now a wall from the ground up, which is also right

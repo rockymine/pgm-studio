@@ -62,12 +62,26 @@ public readonly record struct WallOpening(WallSegment Wall, int Lo, int Width);
 /// <para><see cref="Storeys"/> is how many of the style's storeys stand on this wing, and <b>nought takes them
 /// all</b> — which is what a building whose wings are all of a height wants, and what one wing on its own can
 /// only mean. A hall of one storey with a two-storey cross wing is the shape that needs the number.</para></summary>
-public readonly record struct Wing(int MinX, int MinZ, int MaxX, int MaxZ, int Storeys = 0)
+public readonly record struct Wing(
+    int MinX, int MinZ, int MaxX, int MaxZ, int Storeys = 0,
+    RoofForm? Form = null, int Pitch = 0, int? RoofSlab = null)
 {
     public int Width => MaxX - MinX + 1;
     public int Depth => MaxZ - MinZ + 1;
 
     public bool Holds(int x, int z) => x >= MinX && x <= MaxX && z >= MinZ && z <= MaxZ;
+
+    /// <summary>The roof this wing wears, where it does not simply wear the building's. A wing carries its own
+    /// form, its own rise per block, and its own slab — naming a slab is what makes a roof climb in halves, so
+    /// a half-stepping wing is one that names one. Unset takes the style's, which is what a building whose
+    /// wings are roofed alike wants and what one wing on its own can only mean.</summary>
+    public RoofForm FormOr(RoofForm fallback) => Form ?? fallback;
+
+    /// <inheritdoc cref="FormOr"/>
+    public int PitchOr(int fallback) => Pitch > 0 ? Pitch : fallback;
+
+    /// <inheritdoc cref="FormOr"/>
+    public int SlabOr(int fallback) => RoofSlab ?? fallback;
 
     /// <summary>Whether this wing is still standing at a storey, counting from nought at the ground.</summary>
     public bool Reaches(int level) => Storeys <= 0 || level < Storeys;

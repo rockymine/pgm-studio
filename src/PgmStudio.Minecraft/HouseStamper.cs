@@ -134,13 +134,13 @@ public static class HouseStamper
             var top = WallTopOf(wing);
             var alone = new Footprint(wing.MinX, wing.MinZ, wing.MaxX, wing.MaxZ);
             var field = new RoofField(
-                style.Form, wing.MinX, wing.MinZ, wing.MaxX, wing.MaxZ, overhang, top + 1, pitch, front,
-                style.RoofInHalves);
-            return (Wing: wing, Alone: alone, Field: field, Top: top);
+                wing.FormOr(style.Form), wing.MinX, wing.MinZ, wing.MaxX, wing.MaxZ, overhang, top + 1,
+                wing.PitchOr(pitch), front, wing.SlabOr(style.RoofSlab) >= 0);
+            return (Wing: wing, Alone: alone, Field: field, Top: top, Slab: wing.SlabOr(style.RoofSlab));
         }).ToList();
         var hole = RoofHole(style, body);
 
-        foreach (var (wing, _, field, _) in roofs)
+        foreach (var (wing, _, field, _, slab) in roofs)
             for (var x = field.MinX; x <= field.MaxX; x++)
                 for (var z = field.MinZ; z <= field.MaxZ; z++)
                 {
@@ -152,7 +152,7 @@ public static class HouseStamper
                     // stepping them on into the other roof, and a course that met its own eave first would
                     // strike a block at the first step and never move.
                     if (BeyondMarch(wing, x, z)) continue;
-                    Lay(field, x, z, body);
+                    Lay(field, x, z, body, slab);
                 }
 
 
@@ -162,7 +162,7 @@ public static class HouseStamper
         // nearest the eave stop at once, which is what draws the crossing as a diagonal valley rather than as a
         // wing abutting a wall. No overhang is carried in — an overhang is what a roof has outside a wall, and
         // inside another wing there is no outside — so the march runs across the wing's own width alone.
-        foreach (var (wing, _, field, _) in roofs)
+        foreach (var (wing, _, field, _, slab) in roofs)
         {
             var (low, high) = wing.GableEnds;
             foreach (var (end, step) in new[] { (low, -1), (high, 1) })
@@ -176,7 +176,7 @@ public static class HouseStamper
                         var (x, z) = wing.RidgeAlongX ? (along, across) : (across, along);
                         if (!body.Holds(x, z)) break;            // marched clean out of the building
                         if (Struck(field, x, z)) break;          // hit a block, and stop
-                        Lay(field, x, z, body);
+                        Lay(field, x, z, body, slab);
                     }
             }
         }
@@ -251,7 +251,7 @@ public static class HouseStamper
         //
         // <b>Walls outrank roofs</b>, which is why this runs after every volume is laid: a wing standing
         // against another has the other's slope written over it otherwise.
-        foreach (var (_, alone, field, top) in roofs)
+        foreach (var (_, alone, field, top, _) in roofs)
             foreach (var (x, z) in alone.Cells())
             {
                 if (!alone.OnPerimeter(x, z)) continue;
@@ -260,7 +260,7 @@ public static class HouseStamper
                     else PutPart(x, fill, z, topWall, topWall.Extent - 1, body);
             }
 
-        foreach (var (_, alone, field, top) in roofs) StampGableWindows(alone, field, top);
+        foreach (var (_, alone, field, top, _) in roofs) StampGableWindows(alone, field, top);
         StampDoors();
 
         if (deck is { } porchDeck && style.Porch is { } porchStyle) StampPorch(porchDeck, porchStyle);
@@ -389,7 +389,7 @@ public static class HouseStamper
 
         // One column of a roof: its tread and whatever riser it needs under it, bordered on the roof's own
         // outermost ring and capped along the ridge when the style asks for a capped one.
-        void Lay(RoofField field, int x, int z, Footprint ring)
+        void Lay(RoofField field, int x, int z, Footprint ring, int slabBlock)
         {
             var crown = field.Crown(x, z);
             var material = field.OnBorder(x, z) || (style.RidgeCap && field.OnRidge(x, z))
@@ -409,7 +409,7 @@ public static class HouseStamper
             for (var y = Math.Max(field.Underside(x, z), lowest); y <= (slab ? crown - 1 : crown); y++)
                 Put(x, y, z, material, ring);
             if (slab && crown >= lowest && crown is > 0 and < VoxelWorld.MaxHeight)
-                world.SetBlock(x, crown, z, style.RoofSlab, style.RoofSlabData & 0x7);
+                world.SetBlock(x, crown, z, slabBlock, style.RoofSlabData & 0x7);
         }
 
         /// <summary>Whether the cell lies past a gable end that marches — the overhang columns the march takes
@@ -511,7 +511,7 @@ public static class HouseStamper
             for (var x = canopy.MinX; x <= canopy.MaxX; x++)
                 for (var z = canopy.MinZ; z <= canopy.MaxZ; z++)
                     if (!body.Holds(x, z))                    // the house roofs its own footprint
-                        Lay(canopy, x, z, porch);
+                        Lay(canopy, x, z, porch, style.RoofSlab);
 
             // A post stands on the deck, so it takes the ground storey's wall where the style names no post —
             // the storey it is actually beside, not the one at the top of the building.
