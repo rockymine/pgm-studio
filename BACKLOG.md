@@ -61,6 +61,17 @@ highlight); these are the parked / dormant / deferred slices.
   the two halves **9 blocks** apart. Belongs with S46, which lands both passes; the fold itself needs no new
   machinery — `ReliefSolver.FoldBlocks` is the shape of it.
 
+- [ ] **S54 — The 3-D preview shows neither the relief nor an erected top.** The iso builds one prism per
+  shape at `floor + base_height` (`sketch-bridge.js` `isoSolids`), which was the whole truth when a shape's
+  thickness decided its column and is now two-thirds of it: an island's relief replaces those tops, and an
+  erected shape's is settled after the relief against the ground under it (`FEATURES.md`). So the one view
+  that exists to show height is the one view that does not show the height model — a mesa reads at its own
+  thickness and a hillside reads as a plate. The fix is to build the solids from the **rasterizer's columns**
+  rather than from the shapes, which is also what makes it agree with the export by construction instead of
+  by a second implementation; the cost is that a column set is bigger than a shape list and the iso would
+  want run-merging to stay cheap. Pre-dates the relief work — the iso never showed a relief — so this is a
+  gap widening rather than a regression.
+
 - [ ] **S46 — Paths and water read the relief; a river on the axis is a canal.** Both stroke tools assume a
   flat plane. A path gains **routing** (a shortest line whose cost counts climbing far more than distance and
   which refuses an unwalkable step — measured, a drawn line climbs 14 blocks to y21 where the routed one
