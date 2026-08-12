@@ -35,8 +35,10 @@ export const RELIEF_TOOLS = {
 };
 
 // A dragged trace is one point per block of pointer travel — unreadable to edit and pointless to store, so it
-// is simplified to the points at real bends on release. The same tolerance the lasso and the dressing traces
-// use, for the same reason.
+// is simplified to the points at real bends on release. Same simplifier as the lasso and the dressing traces,
+// and the dressing tolerance rather than the lasso's looser one, for the same reason: a lasso outlines land,
+// where a ridgeline and a scarp run THROUGH it, and a bend an outline can afford to round off is a bend the
+// terrain would visibly miss.
 const TRACE_SIMPLIFY_TOLERANCE = 3;
 
 // How near a mark's anchor a click counts as picking it, in blocks.
