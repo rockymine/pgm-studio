@@ -176,8 +176,9 @@ internal static class Render
         return canvas.Upscale(scale);
     }
 
-    /// <summary>How the surface steps between neighbours, painted as the one thing a competitive map cannot
-    /// get wrong: a flat, a walkable rise, a jump, and a drop no player crosses on foot.</summary>
+    /// <summary>What each cell costs a player: flat ground, a rise taken by jumping, one that needs a block
+    /// placed, and one that is not crossed without building. The picture is the map's flow, not its
+    /// faults — a good map has all four.</summary>
     public static Canvas StepMap(HeightField field, int scale)
     {
         var footprint = field.Footprint;
@@ -187,12 +188,32 @@ internal static class Render
             var step = Terrain.MaxStep(field, x, z);
             var colour = step switch
             {
-                0 => 0x223146,
+                0 => 0x203044,
                 1 => 0x2F6B4F,
-                2 or 3 => 0xB08428,
+                2 => 0xC08A2E,
                 _ => 0xA6383A,
             };
             canvas.Set(x - footprint.MinX, z - footprint.MinZ, colour);
+        }
+        return canvas.Upscale(scale);
+    }
+
+    /// <summary>Where a player can actually get, painted as one colour per reachable region at a tier. Two
+    /// of these side by side — on foot, and with a block to spend — is the readable form of what terrain is
+    /// doing to the map's flow.</summary>
+    public static Canvas ReachMap(HeightField field, Terrain.Passage tier, int scale)
+    {
+        int[] palette = [0x3D7F5C, 0xC08A63, 0x5878A8, 0xB0894A, 0x8F5F86, 0x4E9A8C, 0xA6544A];
+        var footprint = field.Footprint;
+        var canvas = new Canvas(footprint.Width, footprint.Depth, Void);
+        var regions = Terrain.Reachable(field, tier);
+        for (var index = 0; index < regions.Count; index++)
+        {
+            // Anything under a fraction of a percent is a ledge rather than a place; it is painted as one
+            // colour so the eye reads the real divisions instead of a confetti of one-cell shelves.
+            var tiny = regions[index].Count * 400 < footprint.Count;
+            var colour = tiny ? 0x2A3346 : palette[index % palette.Length];
+            foreach (var (x, z) in regions[index]) canvas.Set(x - footprint.MinX, z - footprint.MinZ, colour);
         }
         return canvas.Upscale(scale);
     }

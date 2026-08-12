@@ -17,7 +17,7 @@ argument that it belongs in that leaf.
 | File | Holds |
 |---|---|
 | `Relief.cs` | the footprint mask, the four mark kinds, the three fills, and the finishing (reach, grain, step, symmetry fold) |
-| `Terrain.cs` | what a solved surface can be asked about (steps, walkable regions, scarps, symmetry) and the operations on it (erect, route, grade, fill depressions, flow, carve) |
+| `Terrain.cs` | what a solved surface can be asked about (passability tiers, reachable places, scarps, fords, detours, symmetry) and the operations on it (erect, route, grade, stair, fill depressions, flow, carve, fold) |
 | `Render.cs` | the two views a relief is judged in — topographic from above, blocks from an angle — plus the section and step-map diagnostics |
 | `Png.cs` · `Text.cs` | a pixel buffer, a PNG writer and a 5×7 font, so the tool has no image dependency |
 | `Program.cs` | the eight figures and the measurements printed beside them |
@@ -26,13 +26,14 @@ argument that it belongs in that leaf.
 
 | Figure | Answers |
 |---|---|
-| `01-today` | what an L-shaped room can already state about its height, and the same intent said as marks |
-| `02-interpolators` | whether a fill reaches through a six-block slot it should not |
-| `03-vocabulary` | the four kinds of mark on a 62×92 board |
+| `01-today` | what a 50×44 L-shaped room can already state about its height, and the same intent said as marks |
+| `02-interpolators` | whether a fill reaches through an eight-block slot it should not |
+| `03-vocabulary` | the five kinds of mark on a 90×135 board |
 | `04-knobs` | reach, grain, block step — and the stair repair the coarse step needs |
-| `05-scale` | how much relief a 30×20 room takes before it stops being one piece of walkable ground |
+| `05-scale` | what a 45×30 room costs a player at four amplitudes of relief |
 | `06-erected` | a monolith, a mesa and a quarry composited onto a solved field, in blocks |
 | `07-routes` | a drawn line against a routed one, grading on terraced ground, and a channel found by flow |
-| `08-fairness` | a whole rot_180 map, and every cell that would differ from its mirror without the fold |
+| `08-scarp` | the same ten-block drop at three grades, and what each one lets through |
+| `09-map` | a whole 192×128 rot_180 map designed with the vocabulary, in plan and in blocks |
 
 `report.txt` carries the measurements the pictures cannot state.

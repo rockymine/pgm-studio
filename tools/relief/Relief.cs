@@ -130,7 +130,28 @@ internal sealed record LineMark(double[][] Points, double[] Heights, double Widt
     /// <summary>Distance to the polyline and the fractional arc position of the nearest point.</summary>
     public static (double Distance, double Along) NearestOnPolyline(double x, double z, double[][] points)
     {
+        var (distance, along, _) = NearestSigned(x, z, points);
+        return (distance, along);
+    }
+
+    /// <summary>As <see cref="NearestOnPolyline"/>, and which side of the line the point falls on: +1 to the
+    /// left of the direction of travel, -1 to the right. A mark that treats its two sides differently — a
+    /// scarp, a bank — needs the side as much as the distance.</summary>
+    public static (double Distance, double Along, int Side) NearestSigned(double x, double z, double[][] points)
+    {
+        var (distance, along, side, _) = NearestCapped(x, z, points);
+        return (distance, along, side);
+    }
+
+    /// <summary>As <see cref="NearestSigned"/>, and whether the nearest point is one of the line's two ends
+    /// rather than a point along it. A band that ignores this wraps a half-disc around each end, which for a
+    /// scarp means the wall closes over the gap the author left beside it — the gap being, on a map, the
+    /// entire reason the line stopped where it did.</summary>
+    public static (double Distance, double Along, int Side, bool AtEnd) NearestCapped(double x, double z, double[][] points)
+    {
         double best = double.MaxValue, bestArc = 0, arc = 0;
+        var bestSide = 1;
+        var atEnd = false;
         var total = 0.0;
         for (var i = 0; i + 1 < points.Length; i++)
             total += Math.Sqrt(Sq(points[i + 1][0] - points[i][0]) + Sq(points[i + 1][1] - points[i][1]));
@@ -143,13 +164,52 @@ internal sealed record LineMark(double[][] Points, double[] Heights, double Widt
             var t = length2 <= 0 ? 0 : Math.Clamp(((x - ax) * dx + (z - az) * dz) / length2, 0, 1);
             double px = ax + t * dx, pz = az + t * dz;
             var distance = Math.Sqrt(Sq(x - px) + Sq(z - pz));
-            if (distance < best) { best = distance; bestArc = (arc + t * Math.Sqrt(length2)) / total; }
+            if (distance < best)
+            {
+                best = distance;
+                bestArc = (arc + t * Math.Sqrt(length2)) / total;
+                bestSide = dx * (z - az) - dz * (x - ax) >= 0 ? 1 : -1;
+                atEnd = (i == 0 && t <= 0) || (i == points.Length - 2 && t >= 1);
+            }
             arc += Math.Sqrt(length2);
         }
-        return (best, bestArc);
+        return (best, bestArc, bestSide, atEnd);
     }
 
     private static double Sq(double value) => value * value;
+}
+
+/// <summary>
+/// A face too steep to walk up: the mark that makes terrain control where players go. Every other mark
+/// states a height; this one states a <em>drop</em> — a height on each side of a drawn line and the width of
+/// the face between them — so what the author picks is the grade, and the grade is what decides whether the
+/// line can be crossed on foot, crossed by placing a block, or not crossed at all.
+///
+/// <para>It pins two bands, one either side of a free strip the face is solved across. Nothing else is
+/// needed: the relaxation runs a near-linear ramp between two pinned levels, so a 6-block drop over a
+/// 2-block face is three blocks of rise per block of run, and over a 6-block face it is one — the same mark
+/// spelling a wall or a hillside depending on one number.</para>
+///
+/// <para>The high side is the left of the drawn direction. The band width is how much ground either side is
+/// held at its level, which is what stops the face's own influence bleeding into the country behind it.</para>
+/// </summary>
+internal sealed record ScarpMark(double[][] Points, double High, double Low, double FaceWidth = 2, double BandWidth = 3)
+    : Mark(High)
+{
+    public override IEnumerable<((int X, int Z) Cell, double Height)> Pins(Footprint footprint)
+    {
+        var half = FaceWidth / 2;
+        foreach (var (x, z) in footprint.Cells())
+        {
+            var (distance, _, side, atEnd) = LineMark.NearestCapped(x + 0.5, z + 0.5, Points);
+            if (atEnd) continue;                       // the wall stops where it was drawn to stop
+            if (distance < half || distance > half + BandWidth) continue;
+            yield return ((x, z), side > 0 ? High : Low);
+        }
+    }
+
+    /// <summary>The rise per block of run the face works out to — what the mark is actually choosing.</summary>
+    public double Grade => Math.Abs(High - Low) / Math.Max(1, FaceWidth);
 }
 
 /// <summary>A bench, a mesa top or a sunken floor: every cell inside a ring is held at one height, so the
@@ -253,7 +313,8 @@ internal static class ReliefSolver
     /// <paramref name="warmStart"/> resumes from it instead of from flat, which is what makes a drag
     /// affordable: moving one mark perturbs the field locally, so the relaxation has only that perturbation
     /// left to carry rather than the whole surface to build.</summary>
-    public static HeightField Solve(Footprint footprint, ReliefSpec spec, double[]? warmStart = null, int sweeps = 1200)
+    public static HeightField Solve(Footprint footprint, ReliefSpec spec, double[]? warmStart = null,
+                                    int sweeps = 1200, bool cascade = true)
     {
         var pinned = new double[footprint.Width * footprint.Depth];
         var isPinned = new bool[pinned.Length];
@@ -269,7 +330,7 @@ internal static class ReliefSolver
         {
             Interpolator.Idw => Weighted(footprint, pinned, isPinned, spec, geodesic: false),
             Interpolator.GeodesicIdw => Weighted(footprint, pinned, isPinned, spec, geodesic: true),
-            _ => Diffuse(footprint, pinned, isPinned, spec, warmStart, sweeps),
+            _ => Diffuse(footprint, pinned, isPinned, spec, warmStart, sweeps, cascade),
         };
 
         if (spec.Grain > 0)
@@ -456,7 +517,7 @@ internal static class ReliefSolver
     /// around a notch rather than through it. The screening term pulls the field toward the base at a rate
     /// set by <see cref="ReliefSpec.Reach"/>; at zero it is absent and the marks decide everything.</para></summary>
     private static double[] Diffuse(Footprint footprint, double[] pinned, bool[] isPinned, ReliefSpec spec,
-                                    double[]? warmStart, int sweeps)
+                                    double[]? warmStart, int sweeps, bool cascade)
     {
         var anyPin = isPinned.Any(pin => pin);
         if (!anyPin)
@@ -466,51 +527,172 @@ internal static class ReliefSolver
             return flat;
         }
 
-        double[] field;
-        if (warmStart is { } previous && previous.Length == pinned.Length) field = (double[])previous.Clone();
-        else
-        {
-            field = new double[pinned.Length];
-            Array.Fill(field, Enumerable.Range(0, pinned.Length).Where(i => isPinned[i]).Average(i => pinned[i]));
-        }
-        for (var index = 0; index < pinned.Length; index++) if (isPinned[index]) field[index] = pinned[index];
-
         // The screening strength that gives a mark the requested reach: the field decays toward the base over
         // a characteristic length of one over the root of this, so reach is stated in blocks.
         var screen = spec.Reach > 0 ? 1.0 / (spec.Reach * spec.Reach) : 0.0;
-        Relax(footprint, field, pinned, isPinned, screen, spec.Base, sweeps);
-        return field;
+
+        if (warmStart is { } previous && previous.Length == pinned.Length)
+        {
+            var resumed = (double[])previous.Clone();
+            for (var index = 0; index < pinned.Length; index++) if (isPinned[index]) resumed[index] = pinned[index];
+            Relax(footprint, resumed, pinned, isPinned, screen, spec.Base, sweeps);
+            return resumed;
+        }
+        if (cascade) return Cascade(footprint, pinned, isPinned, screen, spec.Base, sweeps);
+
+        var oneGrid = Lattice.Of(footprint, pinned, isPinned);
+        var settled = oneGrid.Seeded();
+        oneGrid.Relax(settled, screen, spec.Base, sweeps);
+        return settled;
+    }
+
+    /// <summary>
+    /// Solves coarse first, then refines. A relaxation moves information one cell per sweep, so the number
+    /// of sweeps a field needs to settle grows with how far across it the marks have to talk — which is why
+    /// a solve that is comfortable on a room becomes unusable on a map. Halving the grid halves that distance
+    /// and quarters the cells, so the same conversation happens on a quarter of the work; the coarse answer
+    /// is then blown up and used as the starting surface one level down, where only the detail is left to
+    /// resolve.
+    ///
+    /// <para>Levels are stepped down until the grid is small enough that a full settle there is nearly free.
+    /// A coarse cell is land if any of the four under it is, and pinned if any of them is — a mark is never
+    /// lost by being narrower than the coarse grid, which would let a scarp vanish at the top of the cascade
+    /// and reappear as a shock at the bottom.</para>
+    /// </summary>
+    private static double[] Cascade(Footprint footprint, double[] pinned, bool[] isPinned,
+                                    double screen, double baseHeight, int sweeps)
+    {
+        var levels = new List<Lattice> { Lattice.Of(footprint, pinned, isPinned) };
+        while (Math.Max(levels[^1].Width, levels[^1].Depth) > 24 && levels.Count < 5)
+            levels.Add(levels[^1].Coarsen());
+
+        double[]? carried = null;
+        for (var level = levels.Count - 1; level >= 0; level--)
+        {
+            var lattice = levels[level];
+            var field = carried is null ? lattice.Seeded() : lattice.Adopt(carried, levels[level + 1]);
+            // The screening length is stated in blocks, so it has to be re-expressed per level: a coarse cell
+            // is twice as wide, and a reach that is not rescaled would pull the field to base twice as fast
+            // at every step up the cascade.
+            var levelScreen = screen * Math.Pow(4, level);
+            // A coarse level is cheap and is where the long-range work happens, so it is allowed to settle;
+            // the finest level only ever has local detail left and needs a fraction of the sweeps.
+            var levelSweeps = level == 0 ? Math.Max(60, sweeps / 6) : sweeps;
+            lattice.Relax(field, levelScreen, baseHeight, levelSweeps);
+            carried = field;
+        }
+        return carried!;
     }
 
     private static void Relax(Footprint footprint, double[] field, double[] pinned, bool[] isPinned,
                               double screen, double baseHeight, int sweeps)
+        => Lattice.Of(footprint, pinned, isPinned).Relax(field, screen, baseHeight, sweeps);
+
+    /// <summary>
+    /// One grid the relaxation runs on, held purely as topology: which cells are land, which are pinned and
+    /// to what. No world coordinates, because a coarse level of the cascade has none that mean anything —
+    /// and the relaxation never needed them, only the neighbours.
+    /// </summary>
+    private sealed class Lattice
     {
-        const double OverRelaxation = 1.85;
-        for (var sweep = 0; sweep < sweeps; sweep++)
+        public readonly int Width, Depth;
+        public readonly bool[] Inside;
+        public readonly double[] Pinned;
+        public readonly bool[] IsPinned;
+
+        private Lattice(int width, int depth, bool[] inside, double[] pinned, bool[] isPinned)
+        { Width = width; Depth = depth; Inside = inside; Pinned = pinned; IsPinned = isPinned; }
+
+        public static Lattice Of(Footprint footprint, double[] pinned, bool[] isPinned)
         {
-            var movement = 0.0;
-            // Red-black ordering, so the sweep is order-independent and converges evenly from both directions.
-            for (var parity = 0; parity < 2; parity++)
-                for (var index = 0; index < field.Length; index++)
-                {
-                    if (!footprint.InsideAt(index) || isPinned[index]) continue;
-                    var (x, z) = footprint.CellAt(index);
-                    if (((x + z) & 1) != parity) continue;
-
-                    double sum = 0; var count = 0;
-                    foreach (var (dx, dz) in Neighbours4)
-                        if (footprint.Inside(x + dx, z + dz)) { sum += field[footprint.Index(x + dx, z + dz)]; count++; }
-                    if (count == 0) continue;
-
-                    var target = (sum + screen * baseHeight) / (count + screen);
-                    var moved = OverRelaxation * (target - field[index]);
-                    field[index] += moved;
-                    movement = Math.Max(movement, Math.Abs(moved));
-                }
-            if (movement < 1e-4) break;
+            var inside = new bool[footprint.Width * footprint.Depth];
+            for (var index = 0; index < inside.Length; index++) inside[index] = footprint.InsideAt(index);
+            return new Lattice(footprint.Width, footprint.Depth, inside, pinned, isPinned);
         }
-        // Pinned cells are re-imposed so nothing above can have drifted them.
-        for (var index = 0; index < field.Length; index++) if (isPinned[index]) field[index] = pinned[index];
+
+        /// <summary>The next level up: each cell covers a two-by-two block of this one, land if any of them
+        /// is and pinned if any of them is, at the mean of the pins it swallowed.</summary>
+        public Lattice Coarsen()
+        {
+            int width = (Width + 1) / 2, depth = (Depth + 1) / 2;
+            var inside = new bool[width * depth];
+            var pinned = new double[width * depth];
+            var isPinned = new bool[width * depth];
+            var pinCount = new int[width * depth];
+
+            for (var z = 0; z < Depth; z++)
+                for (var x = 0; x < Width; x++)
+                {
+                    var source = z * Width + x;
+                    if (!Inside[source]) continue;
+                    var target = z / 2 * width + x / 2;
+                    inside[target] = true;
+                    if (!IsPinned[source]) continue;
+                    isPinned[target] = true;
+                    pinned[target] += Pinned[source];
+                    pinCount[target]++;
+                }
+            for (var index = 0; index < pinned.Length; index++)
+                if (pinCount[index] > 0) pinned[index] /= pinCount[index];
+            return new Lattice(width, depth, inside, pinned, isPinned);
+        }
+
+        /// <summary>A starting surface with nothing carried in: every free cell at the mean of the pins.</summary>
+        public double[] Seeded()
+        {
+            var field = new double[Inside.Length];
+            var pins = Enumerable.Range(0, Inside.Length).Where(i => IsPinned[i]).ToList();
+            var mean = pins.Count > 0 ? pins.Average(i => Pinned[i]) : 0;
+            Array.Fill(field, mean);
+            foreach (var index in pins) field[index] = Pinned[index];
+            return field;
+        }
+
+        /// <summary>This level's starting surface, read off the level above by taking each cell's parent.</summary>
+        public double[] Adopt(double[] coarse, Lattice above)
+        {
+            var field = new double[Inside.Length];
+            for (var z = 0; z < Depth; z++)
+                for (var x = 0; x < Width; x++)
+                {
+                    var parent = Math.Min(above.Depth - 1, z / 2) * above.Width + Math.Min(above.Width - 1, x / 2);
+                    field[z * Width + x] = coarse[parent];
+                }
+            for (var index = 0; index < Inside.Length; index++) if (IsPinned[index]) field[index] = Pinned[index];
+            return field;
+        }
+
+        public void Relax(double[] field, double screen, double baseHeight, int sweeps)
+        {
+            const double OverRelaxation = 1.85;
+            for (var sweep = 0; sweep < sweeps; sweep++)
+            {
+                var movement = 0.0;
+                // Red-black ordering, so the sweep is order-independent and converges evenly from both sides.
+                for (var parity = 0; parity < 2; parity++)
+                    for (var z = 0; z < Depth; z++)
+                        for (var x = 0; x < Width; x++)
+                        {
+                            if (((x + z) & 1) != parity) continue;
+                            var index = z * Width + x;
+                            if (!Inside[index] || IsPinned[index]) continue;
+
+                            double sum = 0; var count = 0;
+                            if (x > 0 && Inside[index - 1]) { sum += field[index - 1]; count++; }
+                            if (x + 1 < Width && Inside[index + 1]) { sum += field[index + 1]; count++; }
+                            if (z > 0 && Inside[index - Width]) { sum += field[index - Width]; count++; }
+                            if (z + 1 < Depth && Inside[index + Width]) { sum += field[index + Width]; count++; }
+                            if (count == 0) continue;
+
+                            var target = (sum + screen * baseHeight) / (count + screen);
+                            var moved = OverRelaxation * (target - field[index]);
+                            field[index] += moved;
+                            movement = Math.Max(movement, Math.Abs(moved));
+                        }
+                if (movement < 1e-4) break;
+            }
+            for (var index = 0; index < field.Length; index++) if (IsPinned[index]) field[index] = Pinned[index];
+        }
     }
 }
 

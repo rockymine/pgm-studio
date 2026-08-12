@@ -58,61 +58,82 @@ highlight); these are the parked / dormant / deferred slices.
   footprint — so a hill in the interior is unreachable by construction, and a concave outline is interpolated
   straight across its own notch. The design and its measurements are `docs/contracts/sketch-relief.md`, and
   the prototype every figure and number in it comes from is `tools/relief`. This slice is the data half: a
-  `relief` object on `SketchShape` (base, marks, fill, reach, grain, step), the four mark kinds
-  (point / line / area / rim), and the screened-relaxation solver as **`PgmStudio.Geom.Relief`** — the
+  `relief` object on `SketchShape` (base, marks, fill, reach, grain, step), the five mark kinds
+  (point / line / area / rim / scarp), and the screened-relaxation solver as **`PgmStudio.Geom.Relief`** — the
   dependency-free leaf, since it reads a footprint mask and returns a height grid and knows nothing about
   maps. `SketchRasterizer` takes a relief-carrying shape's thickness from the solved field instead of from
   the per-vertex triangulation; `base_height`/`anchor_heights` keep their meaning untouched, because a flat
-  plate and a cut staircase are right often enough not to become special cases of a solver. Solve on the
-  **fused island footprint**, not per shape, or adjoining shapes disagree about the height of the seam they
-  share.
+  plate and a cut staircase are right often enough not to become special cases of a solver. Two details are
+  load-bearing and were bugs before they were rules: a mark is **clipped, not confined**, so one placed past
+  the edge raises the ground into a corner and stops (which is how a spawn hill is authored with no wasted
+  strip behind it); and a band **stops where its line stops**, because perpendicular distance alone wraps a
+  half-disc round each end and closes the very gap the line was drawn to leave. Solve on the **fused island
+  footprint**, not per shape, or adjoining shapes disagree about the height of the seam they share.
 
-- [ ] **S42 — Relief: the symmetry fold.** Mirroring the marks is not enough for fairness and the gap is
-  invisible: measured over an 11,408-cell `rot_180` board, unmirrored marks differ from their own image by 8
-  blocks, **mirrored marks with the grain drawn per side still differ by 1** over a large fraction of the map,
-  and only folding both the grain sample and the solved field through the symmetry before quantizing gives 0.
-  Both fold on the cell **centre**, not its corner — reflecting the corner pairs each cell with its image's
-  neighbour, a one-cell shear that looks like symmetry and measures as a full block. Costs one pass
-  (`sketch-relief.md` §7). Ship with S41; a relief without it is an unfair map that nothing catches.
+- [ ] **S42 — Relief: the symmetry fold, on the surface and on every later pass.** Mirroring the marks is not
+  enough for fairness and the gap is invisible: measured over the 24,576-cell designed map, mirrored marks
+  with the fold off leave **26.2% of the board** differing from its own mirror by up to 2 blocks, and only
+  folding the grain sample *and* the quantized surface gives 0. Both fold on the cell **centre**, not its
+  corner — reflecting the corner pairs each cell with its image's neighbour, a one-cell shear that looks like
+  symmetry and measures as a full block. The rule extends past the solve: a carve, a graded road and a stair
+  cut each decide things by walking the map, and a walk has a direction the half-turn does not preserve, so
+  each pass folds again or it undoes what the solve established (`sketch-relief.md` §8). Ship with S41; a
+  relief without it is an unfair map that nothing catches.
 
-- [ ] **S43 — Relief: the readback, and the stair repair the block step needs.** Four measurements off the
-  block surface — the step histogram, reachability on foot, scarps with EL6's cliff qualification, and the
-  symmetry error — computed in `PgmStudio.Analysis` (classification is corpus law, not pure geometry) and
-  served next to the sketch document. It is what makes a relief drivable by a generator or an agent: state
-  marks, read what the surface costs, adjust. It also catches the failure the histogram hides — terracing a
-  board at a two-block step leaves **twelve** disconnected walkable regions, the largest holding 53%, and
-  cutting a stair through the cheapest riser of each stranded region restores one region while changing 0.6%
-  of the cells. Ship the repair with the measurement that finds it (`sketch-relief.md` §4, §6).
+- [ ] **S43 — Relief: the readback — what the terrain charges, not whether it is flat.** A height difference
+  reads in three tiers, from how the game moves: 0–1 is a jump, **2 needs a placed block** (slow, and the
+  player stands still in the open), 3+ is not crossed in a fight. None is a fault and a good map is a mix, so
+  the report states reachability at each tier rather than scoring a surface against the flattest one. It also
+  separates **places from ledges** — a region holding under a hundredth of the ground is a shelf, and counting
+  them together turns "one connected map with twenty cliff-top ledges" into a meaningless "twenty-one
+  pieces". Measures: the step histogram, reachable places per tier, scarps with EL6's cliff qualification,
+  directional fords across a corridor, the detour factor between two places, and the symmetry error. Computed
+  in `PgmStudio.Analysis` (classification is corpus law, not pure geometry) and served next to the sketch
+  document — it is what makes a relief drivable by a generator or an agent (`sketch-relief.md` §5, §6).
 
-- [ ] **S44 — Relief: erecting shapes (level / raise / sink).** One word on `SketchShape` saying how its top
-  is decided: an absolute height (a mesa, whose faces are cliffs), a fixed amount above the ground under it
-  (a monolith or plinth, which keeps its prominence wherever it is dragged), or the same downward (a quarry).
-  The compositing rule already exists — the taller add wins — and nothing downstream needs teaching: the
-  painter classifies a column by its neighbours, so a mesa face arrives as an edge with a known drop and is
-  painted as a wall under a rim, machinery that has shipped and has had nothing to paint. EL6 discriminates
-  the result correctly unprompted: a 17-wide 9-block face qualifies as a cliff, an 8-wide face at the same
-  drop does not (`sketch-relief.md` §5).
+- [ ] **S44 — Relief: erecting shapes (level / raise / sink), and the stair repair the block step needs.** One
+  word on `SketchShape` saying how its top is decided: an absolute height (a mesa, whose faces are cliffs), a
+  fixed amount above the ground under it (a monolith or plinth, which keeps its prominence wherever it is
+  dragged), or the same downward (a quarry). The compositing rule already exists — the taller add wins — and
+  nothing downstream needs teaching: the painter classifies a column by its neighbours, so a mesa face arrives
+  as an edge with a known drop and is painted as a wall under a rim, machinery that has shipped and has had
+  nothing to paint. EL6 discriminates the result unprompted: a 27-wide 11-block face qualifies as a cliff, an
+  8-wide face at a comparable drop does not. Ship the **stair repair** here too, since it is the same
+  compositing question from the other side: terracing a 90×135 board at a two-block step leaves six separate
+  places, the largest holding 49.8%, and cutting a stair through the cheapest riser of each stranded place
+  restores one place while moving the walkable share only from 86.9% to 87.3% (`sketch-relief.md` §4, §7).
 
-- [ ] **S45 — Relief: the contour canvas.** The JS twin of the solver, the same arrangement `Geom.Symmetry`
-  has with `js/studio/geometry/symmetry.js`. It draws the field's **contours**, which is both the readable
-  view of a height field and the direct-manipulation surface — dragging a contour is dragging a line mark at
-  that height, so how the surface reads and how it is edited are one object. The cost is known and the
-  answer measured: a full solve is 7 ms on a 30×20 room, 171 ms on a 62×92 board and 624 ms on a 124×92 map,
-  and resuming 40 sweeps from the surface already on screen costs 151 ms on the whole map and lands on the
-  settled answer everywhere but 126 of 11,408 cells, each off by one. So the drag warm-starts and the release
-  solves in full (`sketch-relief.md` §10).
+- [ ] **S45 — Relief: the contour canvas, on a coarse-to-fine solve.** The JS twin of the solver, the same
+  arrangement `Geom.Symmetry` has with `js/studio/geometry/symmetry.js`. It draws the field's **contours**,
+  which is both the readable view of a height field and the direct-manipulation surface — dragging a contour
+  is dragging a line mark at that height, so how the surface reads and how it is edited are one object. Two
+  measured facts make it affordable. A relaxation's sweep count grows with how far across the field the marks
+  must talk, so the solve **cascades**: coarse grid first, then refine — on a 192×128 map that is 317 ms
+  against 519 ms on one grid, agreeing to within a block, and the advantage grows with the footprint. And a
+  drag **resumes** from the surface already on screen: 40 sweeps costs 228 ms on that map and lands on the
+  settled answer everywhere but 1,614 of 24,576 cells, each off by one. So the drag warm-starts and the
+  release solves in full (`sketch-relief.md` §12).
 
-- [ ] **S46 — Paths and water read the relief.** Both stroke tools assume a flat plane. A path gains
-  **routing** (a shortest line whose cost counts climbing far more than distance and which refuses an
-  unwalkable step — measured, a straight line climbs 13 blocks to y19 where the routed one climbs 0 and tops
-  out at y7 through a pass) and **grading** (cut and fill a corridor to a one-block maximum step, shoulders
-  blended back over a couple of blocks). Water needs three things the flat model never did: routing on a
-  **depression-filled** copy of the surface, because steepest descent stops at the first grain-made pit after
-  2 cells where the filled run covers 44; a bed floor forced non-increasing downstream; and **per-pool** water
-  levels replacing `decoration.md` §7's single lowest-surface line — the measured run holds 12 distinct
-  levels. A basin is an outlet alongside the map edge, which is what a pond is. And the cheapest good idea
-  here runs the other way: a drawn channel handed to the solver as a line mark below base level makes the
-  terrain form a valley around it (`sketch-relief.md` §8).
+- [ ] **S46 — Paths and water read the relief; a river on the axis is a canal.** Both stroke tools assume a
+  flat plane. A path gains **routing** (a shortest line whose cost counts climbing far more than distance and
+  which refuses an unwalkable step — measured, a drawn line climbs 14 blocks to y21 where the routed one
+  climbs 0 and tops out at y7 through a pass) and **grading** (cut and fill to a one-block maximum step,
+  shoulders blended back over a couple of blocks). Water needs three things the flat model never did: routing
+  on a **depression-filled** copy, because steepest descent stops at the first grain-made pit after 2 cells
+  where the filled run covers 65; a bed floor forced non-increasing downstream; and **per-pool** water levels
+  replacing `decoration.md` §7's single lowest-surface line — the measured run holds 14 distinct levels, and a
+  basin is an outlet alongside the map edge, which is what a pond is. The exception is the case that matters
+  most: **a river on the mirror axis cannot both fall and be fair**, because a half-turn reverses the flow, so
+  on the axis it is a canal at one level and falling water belongs to the flanks. And the cheapest good idea
+  here runs the other way — a drawn channel handed to the solver as a line mark below base level makes the
+  terrain form a valley around it (`sketch-relief.md` §9).
+
+- [ ] **S47 — A pressure budget for relief.** S43 measures what terrain charges; nothing says how much
+  charging is too much. The dressing stage has the identical gap (`world-export/ideas.md` G167) and the two
+  should share an answer. The materials exist — the share of the board at each passability tier, the detour
+  factor between key places, the ford count and direction on a barrier, the reachable share per team side —
+  and what is missing is what those numbers *should* be, which is a corpus question: measure the hand-built
+  maps for them before inventing thresholds. Parked until the corpus pass runs.
 
 - [ ] **S34 — Reuse a sketch paint's column classification across the edits of one drag.** `TerrainProfile`
   construction is what a paint now costs — ~60 ms of the ~164 ms a 40k-cell board takes (S33, `FEATURES.md`),

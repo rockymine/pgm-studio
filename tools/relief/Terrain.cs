@@ -18,9 +18,34 @@ internal static class Terrain
         return worst;
     }
 
+    /// <summary>
+    /// What a step costs a player, which is the only reading of a height difference that means anything. The
+    /// tiers come from how the game moves rather than from a preference for flat ground: a one-block rise is
+    /// a jump and costs nothing but the jump; a two-block rise cannot be jumped and is crossed by placing a
+    /// block, which is slow and leaves the player standing still in the open; three and above is not crossed
+    /// at all without building in earnest.
+    ///
+    /// <para>None of the three is a fault. A map that is <see cref="Walk"/> everywhere is a field, and the
+    /// terrain of a good one is a mix — which is why the readback reports reachability at each tier instead
+    /// of scoring a surface against the flattest one.</para>
+    /// </summary>
+    internal enum Passage { Walk = 1, Scramble = 2, Barrier = 3 }
+
+    /// <summary>The largest step a tier admits.</summary>
+    public static int Admits(Passage tier) => tier switch { Passage.Walk => 1, Passage.Scramble => 2, _ => 99 };
+
+    /// <summary>The land reachable from a cell by a player willing to cross steps up to
+    /// <paramref name="tier"/>. Running it at <see cref="Passage.Walk"/> and again at
+    /// <see cref="Passage.Scramble"/> is what separates ground that is genuinely cut off from ground that is
+    /// merely defended: the first says where a player can go, the second where a player who will spend a
+    /// block can go, and the difference between them is the terrain's grip on the map's flow.</summary>
+    public static List<HashSet<(int X, int Z)>> Reachable(HeightField field, Passage tier)
+        => WalkableRegions(field, Admits(tier));
+
     /// <summary>The land a player can reach on foot from a cell: a flood fill that crosses a boundary only
-    /// where the step is walkable. More than one component means the relief has cut the map in two — the
-    /// failure a height field can cause that no amount of looking at a picture reliably catches.</summary>
+    /// where the step is within reach. More than one component at a tier means the relief has separated the
+    /// map for a player at that tier — deliberate as often as not, which is why it is reported rather than
+    /// judged.</summary>
     public static List<HashSet<(int X, int Z)>> WalkableRegions(HeightField field, int walkableStep = 1)
     {
         var seen = new HashSet<(int X, int Z)>();
@@ -92,6 +117,85 @@ internal static class Terrain
             scarps.Add(new Scarp(run, width, run.Max(cell => steep[cell])));
         }
         return scarps.OrderByDescending(scarp => scarp.Width).ToList();
+    }
+
+    /// <summary>Where a barrier running north–south can actually be got past, and at what cost: each row is
+    /// walked west to east across the corridor and admitted only if every step in it is within the tier, and
+    /// the admitted rows are grouped into the runs a player would recognise as fords. It is the measurement
+    /// terrain-as-flow-control is authored against — the point of a cliffed bank is not that it is steep but
+    /// that it leaves exactly three ways through, at places the author chose.</summary>
+    /// <param name="eastbound">Which way the crossing is attempted. A drop is not a barrier — a player walks
+    /// off a ledge and takes the fall — so only the climbs count against the tier, and a face that stops a
+    /// crossing one way lets it through the other. That is what a cliff <em>is</em>, and measuring both
+    /// directions is the only way to see it: a bank that reads as a wall from the river is a shortcut from
+    /// the plateau.</param>
+    public static List<(int From, int To)> Fords(HeightField field, Func<(int X, int Z), bool> inCorridor,
+                                                 Passage tier, bool eastbound = true, int fallLimit = 20)
+    {
+        var limit = Admits(tier);
+        var open = new List<int>();
+        var footprint = field.Footprint;
+
+        for (var z = footprint.MinZ; z < footprint.MinZ + footprint.Depth; z++)
+        {
+            var band = Enumerable.Range(footprint.MinX, footprint.Width)
+                                 .Where(x => footprint.Inside(x, z) && inCorridor((x, z))).ToList();
+            if (band.Count == 0) continue;
+            int from = band.Min() - 2, to = band.Max() + 2;
+            var passable = true;
+            for (var x = from; x < to && passable; x++)
+            {
+                if (!field.Has(x, z) || !field.Has(x + 1, z)) { passable = false; break; }
+                var rise = field.At(x + 1, z) - field.At(x, z);
+                if (!eastbound) rise = -rise;
+                if (rise > limit || rise < -fallLimit) passable = false;
+            }
+            if (passable) open.Add(z);
+        }
+
+        var fords = new List<(int, int)>();
+        for (var i = 0; i < open.Count;)
+        {
+            var start = i;
+            while (i + 1 < open.Count && open[i + 1] == open[i] + 1) i++;
+            fords.Add((open[start], open[i]));
+            i++;
+        }
+        return fords;
+    }
+
+    /// <summary>What a barrier actually costs, which is not always that it cannot be crossed. A face too
+    /// steep to climb rarely cuts a map in two — there is usually a way round the end of it — so the honest
+    /// measure is how far round: the least-climb route between two places against the straight-line distance
+    /// between them. A detour of three is a barrier doing its job whether or not anything is unreachable, and
+    /// it is the number an author is really choosing when they pick a grade.</summary>
+    public static (int Steps, int Direct, double Detour) CrossingCost(HeightField field, (int X, int Z) from,
+                                                                     (int X, int Z) to, Passage tier)
+    {
+        var route = Route(field, from, to, Admits(tier));
+        var direct = Math.Abs(to.X - from.X) + Math.Abs(to.Z - from.Z);
+        if (route.Count == 0) return (0, direct, double.PositiveInfinity);
+        return (route.Count, direct, (double)route.Count / Math.Max(1, direct));
+    }
+
+    /// <summary>Copies the canonical half of a surface onto its mirror image. Every pass that runs after the
+    /// solve — a carve, a graded road, a stair cut — decides things by walking the map, and a walk has a
+    /// direction the symmetry does not preserve, so each one has to be folded again or it undoes the
+    /// fairness the solve established.</summary>
+    public static HeightField Fold(HeightField field, string mode, double centreX, double centreZ)
+    {
+        var blocks = (int[])field.Blocks.Clone();
+        foreach (var (x, z) in field.Footprint.Cells())
+        {
+            var canonical = mode == "rot_180"
+                ? z + 0.5 < centreZ || (z + 0.5 == centreZ && x + 0.5 <= centreX)
+                : x + 0.5 <= centreX;
+            if (canonical) continue;
+            var (mx, mz) = Mirror(x + 0.5, z + 0.5, mode, centreX, centreZ);
+            int ix = (int)Math.Floor(mx), iz = (int)Math.Floor(mz);
+            if (field.Has(ix, iz)) blocks[field.Footprint.Index(x, z)] = field.At(ix, iz);
+        }
+        return field.WithBlocks(blocks);
     }
 
     /// <summary>The worst disagreement between a field and its own mirror image — the fairness measure. Zero
@@ -382,24 +486,39 @@ internal static class Terrain
     /// so a run down a hillside reads as a chain of pools rather than one impossible tilted sheet.</summary>
     internal sealed record Channel(HeightField Bed, Dictionary<(int X, int Z), int> Water);
 
-    public static Channel Carve(HeightField field, List<(int X, int Z)> route, double radius = 3, int depth = 2)
+    /// <param name="level">A water line to hold for the whole run instead of letting it fall. A channel that
+    /// falls cannot be symmetric — a half-turn reverses the direction of flow, so the same water would have
+    /// to run both ways at once — and on a map's mirror axis that is exactly what is being asked of it. Held
+    /// to one level it becomes a canal, whose bed is the same shape read from either end, and a canal is what
+    /// a river down the middle of a competitive map has always had to be.</param>
+    public static Channel Carve(HeightField field, List<(int X, int Z)> route, double radius = 3, int depth = 2,
+                                int? level = null)
     {
         var blocks = (int[])field.Blocks.Clone();
         var water = new Dictionary<(int X, int Z), int>();
         if (route.Count == 0) return new Channel(field.WithBlocks(blocks), water);
 
-        // The bed's own profile: the land under the route, dropped by the channel depth, then forced
-        // non-increasing downstream. That single constraint is what makes water behave.
-        var bed = route.Select(cell => field.At(cell.X, cell.Z) - depth).ToArray();
-        for (var i = 1; i < bed.Length; i++) bed[i] = Math.Min(bed[i], bed[i - 1]);
+        int[] bed, surface;
+        if (level is { } line)
+        {
+            bed = route.Select(_ => line - depth).ToArray();
+            surface = route.Select(_ => line).ToArray();
+        }
+        else
+        {
+            // The bed's own profile: the land under the route, dropped by the channel depth, then forced
+            // non-increasing downstream. That single constraint is what makes water behave.
+            bed = route.Select(cell => field.At(cell.X, cell.Z) - depth).ToArray();
+            for (var i = 1; i < bed.Length; i++) bed[i] = Math.Min(bed[i], bed[i - 1]);
 
-        // The water line steps down only where the bed does, and holds level in between: each level stretch
-        // is one pool, filled to the height of its own bed plus the depth it was cut to.
-        var surface = new int[bed.Length];
-        for (var i = 0; i < bed.Length; i++) surface[i] = bed[i] + depth;
-        for (var i = 1; i < surface.Length; i++) surface[i] = Math.Min(surface[i], surface[i - 1]);
-        for (var i = surface.Length - 2; i >= 0; i--)
-            if (bed[i] == bed[i + 1]) surface[i] = Math.Min(surface[i], surface[i + 1]);
+            // The water line steps down only where the bed does, and holds level in between: each level
+            // stretch is one pool, filled to its own bed plus the depth it was cut to.
+            surface = new int[bed.Length];
+            for (var i = 0; i < bed.Length; i++) surface[i] = bed[i] + depth;
+            for (var i = 1; i < surface.Length; i++) surface[i] = Math.Min(surface[i], surface[i - 1]);
+            for (var i = surface.Length - 2; i >= 0; i--)
+                if (bed[i] == bed[i + 1]) surface[i] = Math.Min(surface[i], surface[i + 1]);
+        }
 
         var points = route.Select(cell => new[] { (double)cell.X + 0.5, cell.Z + 0.5 }).ToArray();
         foreach (var (x, z) in field.Footprint.Cells())
@@ -442,13 +561,21 @@ internal static class Terrain
 
         var steps = cells.GroupBy(cell => MaxStep(field, cell.X, cell.Z))
                          .ToDictionary(group => group.Key, group => group.Count());
-        var walkable = steps.Where(entry => entry.Key <= 1).Sum(entry => entry.Value);
-        lines.Add($"  steps: flat/walkable {walkable * 100.0 / cells.Count:0.0}%, " +
-                  $"jump (2-3) {steps.Where(e => e.Key is 2 or 3).Sum(e => e.Value)}, " +
-                  $"drop (4+) {steps.Where(e => e.Key >= 4).Sum(e => e.Value)}");
+        lines.Add($"  steps: walk (0-1) {steps.Where(e => e.Key <= 1).Sum(e => e.Value) * 100.0 / cells.Count:0.0}%, " +
+                  $"scramble (2) {steps.GetValueOrDefault(2)}, " +
+                  $"barrier (3+) {steps.Where(e => e.Key >= 3).Sum(e => e.Value)}");
 
-        var regions = WalkableRegions(field);
-        lines.Add($"  reachable on foot: {regions.Count} region(s), largest holds {regions[0].Count * 100.0 / cells.Count:0.0}%");
+        // Regions are counted at two scales because the raw count is dominated by one-cell shelves on top of
+        // cliffs and in the grain — real, and not what "the map is in pieces" means. A region holding a
+        // hundredth of the ground is a place; the rest are ledges.
+        string Places(List<HashSet<(int X, int Z)>> regions)
+        {
+            var places = regions.Count(region => region.Count * 100 >= cells.Count);
+            return $"{places} place(s) of 1% or more, largest {regions[0].Count * 100.0 / cells.Count:0.0}% " +
+                   $"({regions.Count - places} ledge(s) besides)";
+        }
+        lines.Add($"  on foot: {Places(Reachable(field, Passage.Walk))}");
+        lines.Add($"  placing a block: {Places(Reachable(field, Passage.Scramble))}");
 
         var scarps = Scarps(field);
         var cliffs = scarps.Count(scarp => scarp.IsCliff);
