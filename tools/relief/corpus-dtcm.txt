@@ -1,0 +1,12 @@
+  read 106 maps
+  plan width                   min 47  p25 102  median 155  p75 200  max 395
+  plan depth                   min 41  p25 123  median 166  p75 235  max 513
+  height range                 min 0  p25 39  median 56  p75 76  max 130
+  body (95% of columns)        min 0  p25 16  median 24  p75 39  max 112
+  walk 0-1                     min 42.8%  p25 69.6%  median 77.3%  p75 83.3%  max 100%
+  scramble 2                   min 0%  p25 2.7%  median 5.5%  p75 8.5%  max 26%
+  barrier 3+                   min 0%  p25 11.6%  median 16.3%  p75 22.6%  max 48%
+  largest place                min 6.1%  p25 21.1%  median 30.7%  p75 43.2%  max 100%
+  places of 1% or more         min 1  p25 5  median 9  p75 14  max 30
+  cliffs (EL6)                 min 0  p25 2  median 9  p75 15  max 53
+  under liquid                 min 0%  p25 0%  median 1.2%  p75 7.2%  max 74.5%

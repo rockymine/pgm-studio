@@ -304,7 +304,76 @@ northern reach costs a 1.3× detour against the direct line; crossing the middle
 That is the point of the exercise. Every one of those numbers is a design decision the author made and can
 now read back, and none of them is a score.
 
-## 11. Where it lives
+## 11. The island is the unit, and a shape can leave it
+
+A relief is solved over the **island** — the fused footprint of every shape on one landmass — not over a
+shape. Solving per shape is not a smaller version of the same thing; it is a different and wrong answer,
+because a mark outside a shape says nothing to it and the two sides of a seam settle independently. Measured
+on a board of three abutting pieces with a ridge running across all of them, solving per shape leaves steps
+of **8 and 7 blocks** at the two seams; solving over the fusion leaves **1 and 1**. On a plan-derived sketch
+this is the common case rather than an edge one, since equal-level plan pieces fuse into exactly such an
+island.
+
+The fusion is not always what an author wants, and the case that decides it is a built thing standing on the
+ground: a city, a keep, a walled compound. Its floor is not terrain and it is themed as a unit, so a field
+rolling through it would put a slope under a wall and land its pattern differently on every stretch. So
+participation is a property of the **shape**, and there are three answers:
+
+| | The shape | The land around it |
+|---|---|---|
+| **inherit** | is part of the island; the relief flows through it | one continuous surface (the default) |
+| **hold** | keeps its own height and pins it | is solved *knowing* where it must arrive — it rolls up and meets the wall flush |
+| **exclude** | is taken out of the solve, leaving a hole | never learns the shape's height; the two meet at whatever step their decisions produce |
+
+The distinction is not visual, it is which of the two holds the other still. **Hold** lets the shape steer the
+terrain; **exclude** lets the terrain ignore the shape. Measured at the same compound's wall on the same
+board: held meets the land at a worst step of **1**, excluded at **8** — and that edge then qualifies as a
+cliff under EL6, 38 wide. A town in a valley and a citadel on a plinth are the same rectangle with one word
+changed.
+
+An excluded shape is stamped back at its own height after the solve, so the built surface and the surface the
+relief was solved over are different objects. That is what lets the compound be moved, re-themed or restyled
+without re-solving the ground around it.
+
+## 12. What the corpus says, and what it says about this
+
+Every number above is self-consistent, which is not the same as being right. The same readback was run over
+the built worlds of the **106 destroy-the-monument maps** in the community corpus, reading ground the way the
+height-profile render does — stepping past vegetation, trunks, surface furniture and liquids.
+
+| | min | p25 | median | p75 | max |
+|---|---|---|---|---|---|
+| plan width | 47 | 102 | **155** | 200 | 395 |
+| plan depth | 41 | 123 | **166** | 235 | 513 |
+| height range | 0 | 39 | **56** | 76 | 130 |
+| body — 95% of columns | 0 | 16 | **24** | 39 | 112 |
+| walk (0–1) | 42.8% | 69.6% | **77.3%** | 83.3% | 100% |
+| scramble (2) | 0% | 2.7% | **5.5%** | 8.5% | 26% |
+| barrier (3+) | 0% | 11.6% | **16.3%** | 22.6% | 48% |
+| largest place | 6.1% | 21.1% | **30.7%** | 43.2% | 100% |
+| places of 1% or more | 1 | 5 | **9** | 14 | 30 |
+| cliffs (EL6) | 0 | 2 | **9** | 15 | 53 |
+| under liquid | 0% | 0% | **1.2%** | 7.2% | 74.5% |
+
+One caveat governs the reading: this measures the **built surface**, not the terrain. A building's roof and a
+city wall are ground to this pass, so some of the barrier share and much of the fragmentation is architecture
+rather than landform. That is the right surface for a question about play — a player does meet the wall — and
+the wrong one for calibrating a terrain solver on its own. The direction of the gap survives the caveat; its
+exact size does not.
+
+And the gap is the point. The designed map of §10 measures at a 14-block body, 96.1% walk, 2.8% barrier and
+one place holding 98.9% — flatter and more open than the corpus at every percentile. **Cedar Crossing**, a
+201×131 board and the most recent addition to the corpus, measures at a 13-block body, 96.1% walk and one
+place holding 97.9%: the same profile, and also an outlier against the corpus it belongs to. Two independent
+attempts at gentle rolling terrain landing on the same numbers is a result about the *approach*, not about
+either map.
+
+Lifting the same design — every mark's departure from the base scaled, the banks steepened with it, nothing
+moved — brings the board to a **27-block body**, 8 cliffs and three places with the largest at 45.6%, and
+turns the river from something crossable at two fords into a gorge with none on foot and two with a block.
+That is what the corpus was asking for, and it took one number to ask.
+
+## 13. Where it lives
 
 The solver reads a footprint mask and produces a height grid, and knows nothing about maps, so it belongs in
 the dependency-free leaf beside the other pure algorithms: **`PgmStudio.Geom.Relief`** — the mark types, the
@@ -349,7 +418,7 @@ and the shape gains one word for how its own top is decided:
 on the shape that carries one. That matters for more than compatibility: the flat plate and the neat
 staircase are the right answer often enough that they should not become special cases of a solver.
 
-## 12. What it costs to edit
+## 14. What it costs to edit
 
 A relaxation is iterative, and the number of sweeps a field needs to settle grows with how far across it the
 marks have to talk — so a solve that is comfortable on a room is not on a map. The fix is to solve **coarse
@@ -372,28 +441,23 @@ mark perturbs the field locally, so a warm-started relaxation has only that pert
 lands, in blocks, on the settled answer everywhere but the figures in the last column, each off by exactly
 one. So the drag warm-starts and the release solves in full.
 
-## 13. What is open
-
-**Relief across shapes.** A relief is solved per footprint, and an island is many shapes. Solving each
-independently leaves a seam where two adjoining shapes disagree about the height they share. The candidates
-are to solve per *island* over the fused footprint, to let a shape inherit its neighbours' edge heights as
-marks, or to declare the seam a scarp on purpose — and the first is probably right, since the island is
-already the unit theming and detection use.
+## 15. What is open
 
 **Anchors as marks.** Per-vertex anchor heights are exactly a set of point marks on the outline, so a shape
 with anchors could be read as a relief with no interior marks and a rim of varying height. Whether to
 converge the two representations or keep the plate/staircase path separate is a real decision, not a
-formality — §11 argues for keeping it.
+formality — §13 argues for keeping it.
 
 **The composer's side.** Marks attach to roles and interfaces rather than to coordinates — a raised spawn for
 overview, a stepped approach climbing toward a wool room, a low frontline so bridges launch low, a pit
 flanking a wool approach (EL7), a scarped bank where the plan wants a one-way lane. That mapping is G32-C's
 own work; this document only establishes that what it would emit is what a hand places.
 
-**A budget for pressure.** The readback measures what terrain charges but nothing yet says how much charging
-is too much — the dressing stage has the same gap (`world-export/ideas.md` G167). The materials for one are
-here: the share of the map at each tier, the detour factor between key places, the ford count on a barrier.
-What is missing is what those should be, which is a corpus question rather than a design one.
+**A budget for pressure.** §12 supplies the numbers a budget would be written against, and the caveat that
+stops it being written yet: the corpus reading cannot separate a cliff from a castle wall. Splitting terrain
+from structure needs the painter's own structure test, which needs the stamps — available for a map the
+studio built and not for one it imported. Until then the corpus gives a direction and not a threshold. The
+dressing stage has the identical gap (`world-export/ideas.md` G167) and the two should share one answer.
 
 **The readback surface.** The measurements are computed and have nowhere to be fetched from. What makes a
 relief drivable by a generator or an agent is that the report sits next to the document it describes.

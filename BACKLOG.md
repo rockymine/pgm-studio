@@ -67,8 +67,7 @@ highlight); these are the parked / dormant / deferred slices.
   load-bearing and were bugs before they were rules: a mark is **clipped, not confined**, so one placed past
   the edge raises the ground into a corner and stops (which is how a spawn hill is authored with no wasted
   strip behind it); and a band **stops where its line stops**, because perpendicular distance alone wraps a
-  half-disc round each end and closes the very gap the line was drawn to leave. Solve on the **fused island
-  footprint**, not per shape, or adjoining shapes disagree about the height of the seam they share.
+  half-disc round each end and closes the very gap the line was drawn to leave.
 
 - [ ] **S42 — Relief: the symmetry fold, on the surface and on every later pass.** Mirroring the marks is not
   enough for fairness and the gap is invisible: measured over the 24,576-cell designed map, mirrored marks
@@ -128,12 +127,39 @@ highlight); these are the parked / dormant / deferred slices.
   here runs the other way — a drawn channel handed to the solver as a line mark below base level makes the
   terrain form a valley around it (`sketch-relief.md` §9).
 
+- [ ] **S48 — Relief scope: the island is the unit, and a shape can leave it.** A relief solves over the
+  **fused island**, not the shape — measured on three abutting pieces with a ridge across them, solving per
+  shape leaves steps of **8 and 7 blocks** at the seams where solving over the fusion leaves **1 and 1**, and
+  a plan-derived sketch fuses equal-level pieces into exactly such an island. But the fusion is not always
+  wanted, so participation is a property of the shape: **inherit** (the default, the relief flows through),
+  **hold** (the shape keeps its height and pins it, so the land is solved knowing where it must arrive and
+  rolls up to meet the wall flush — worst step 1), **exclude** (the shape is a hole the field bends around, so
+  the two meet at whatever step their decisions produce — worst step 8, and that edge then qualifies as a
+  cliff). Hold lets the shape steer the terrain; exclude lets the terrain ignore it, which is a town in a
+  valley against a citadel on a plinth. The case that decides it is a themed built thing — a city, a keep, a
+  walled compound — whose floor is not terrain and whose pattern must land the same on every stretch. An
+  excluded shape is stamped back after the solve, so it can be moved or re-themed without re-solving the
+  ground (`sketch-relief.md` §11).
+
+- [ ] **S49 — Split terrain from structure when reading a built world.** `tools/relief --corpus` runs the
+  relief readback over community map worlds and is what §12's table is measured from, but it reads the
+  **built surface**: a roof and a city wall are ground to it, so some of the barrier share and much of the
+  fragmentation is architecture rather than landform. The painter already answers this question for a map the
+  studio built (`terrain-painting.md` TP6 — a column whose top block is not stone is a structure), and the
+  answer does not transfer to an imported world with no stamps. Wanted: a structure test that works off the
+  world alone — flat-topped rectilinear masses with vertical faces and non-terrain materials — so the corpus
+  can be re-read for terrain only. Blocks S47.
+
 - [ ] **S47 — A pressure budget for relief.** S43 measures what terrain charges; nothing says how much
   charging is too much. The dressing stage has the identical gap (`world-export/ideas.md` G167) and the two
   should share an answer. The materials exist — the share of the board at each passability tier, the detour
   factor between key places, the ford count and direction on a barrier, the reachable share per team side —
-  and what is missing is what those numbers *should* be, which is a corpus question: measure the hand-built
-  maps for them before inventing thresholds. Parked until the corpus pass runs.
+  and the corpus pass has now run (`sketch-relief.md` §12, 106 dtcm maps): body relief median **24 blocks**,
+  walk median **77.3%**, barrier median **16.3%**, largest walkable place median only **30.7%**, **9** cliffs.
+  Every board this design has produced sits at the flat, open extreme of that distribution — as does Cedar
+  Crossing, which measures 96.1% walk and one place holding 97.9% against its own corpus. So the direction is
+  known and the threshold is not, because the reading cannot yet separate a cliff from a castle wall. Blocked
+  on **S49**.
 
 - [ ] **S34 — Reuse a sketch paint's column classification across the edits of one drag.** `TerrainProfile`
   construction is what a paint now costs — ~60 ms of the ~164 ms a 40k-cell board takes (S33, `FEATURES.md`),

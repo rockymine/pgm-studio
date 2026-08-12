@@ -11,6 +11,9 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/PgmStudio.Geom/PgmStudio.Geom.csproj" />
+    <!-- The Anvil reader, so the same readback can be run over worlds people actually built.
+         The solver itself stays dependency-free; only the measuring half reaches for this. -->
+    <ProjectReference Include="../../src/PgmStudio.Minecraft/PgmStudio.Minecraft.csproj" />
   </ItemGroup>
 
 </Project>

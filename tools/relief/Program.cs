@@ -13,6 +13,27 @@ Directory.CreateDirectory(outputRoot);
 var log = new List<string>();
 void Say(string line) { Console.WriteLine(line); log.Add(line); }
 
+// Measuring a built world instead of drawing figures: `--measure <regionDir>` for one map, `--corpus <dir>`
+// for every map under a directory. What comes back is the same report the solved fields get, which is the
+// only way the tiers and the places-and-ledges split get calibrated against maps people shipped.
+if (args.Length >= 2 && args[0] == "--measure")
+{
+    var read = Measure.Read(args[1]);
+    if (read is not var (built, flooded)) { Console.Error.WriteLine($"no world at {args[1]}"); return 1; }
+    var (low, high) = Measure.Body(built);
+    Console.WriteLine(Terrain.Report(built, Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(args[1])) ?? args[1])));
+    Console.WriteLine($"  body: 95% of columns sit in y {low}..{high} ({high - low} blocks) of a {built.Max - built.Min}-block range");
+    if (flooded.Count > 0)
+        Console.WriteLine($"  under liquid: {flooded.Count * 100.0 / built.Footprint.Count:0.0}% of columns, " +
+            $"waterline y {flooded.Values.Min()}..{flooded.Values.Max()}");
+    return 0;
+}
+if (args.Length >= 2 && args[0] == "--corpus")
+{
+    Measure.Corpus(args[1], Console.WriteLine);
+    return 0;
+}
+
 // ── the shapes the figures are drawn on, at the sizes maps are actually built at ──────────────────
 
 // A room-sized L — one arm high, the other low, and a corner between them.
@@ -395,17 +416,30 @@ HeightField FromFunction(Footprint footprint, Func<double, double, double> heigh
     // The river itself is stated last so it cuts through everything above it, including the scarps' low bands.
     var marks = new List<Mark>(mirrored) { new LineMark(river, [4, 4, 4, 4, 4], 6) };
 
-    var spec = new ReliefSpec
+    // The same statement at two amplitudes. Every mark's departure from the base is scaled, and the banks
+    // steepen with it — so the second board is the first one's design read louder, not a different design.
+    List<Mark> Lifted(double lift) => marks.Select(mark => mark switch
+    {
+        PointMark point => new PointMark(point.X, point.Z, 8 + (point.MarkHeight - 8) * lift, point.Radius),
+        LineMark line => new LineMark(line.Points, line.Heights.Select(h => 8 + (h - 8) * lift).ToArray(), line.Width),
+        AreaMark area => new AreaMark(area.Ring, 8 + (area.MarkHeight - 8) * lift),
+        ScarpMark scarp => new ScarpMark(scarp.Points, 8 + (scarp.High - 8) * lift, 8 + (scarp.Low - 8) * lift,
+                                         scarp.FaceWidth, scarp.BandWidth),
+        _ => mark,
+    }).ToList();
+
+    ReliefSpec SpecAt(double lift) => new()
     {
         Base = 8,
-        Marks = marks,
-        Grain = 1.3,
+        Marks = Lifted(lift),
+        Grain = 1.3 * lift,
         GrainScale = 17,
         Seed = 21,
         FoldMode = "rot_180",
         FoldCentreX = CentreX,
         FoldCentreZ = CentreZ,
     };
+    var spec = SpecAt(1.0);
 
     var clock = System.Diagnostics.Stopwatch.StartNew();
     var solved = ReliefSolver.Solve(footprint, spec);
@@ -442,6 +476,24 @@ HeightField FromFunction(Footprint footprint, Func<double, double, double> heigh
         tintOf: cell => channel.Water.ContainsKey(cell) ? 0x2E6FC4 : null);
     Png.Write(Path.Combine(outputRoot, "09b-map-iso.png"), Render.Row([("the same board in blocks", iso)]).Upscale(2));
 
+    // The corpus says this board is at the flat end of what gets shipped, so here is the same design read
+    // louder: the marks lifted, the banks steepened with them, nothing moved.
+    var loudSpec = SpecAt(2.1);
+    var loudSolved = ReliefSolver.Solve(footprint, loudSpec);
+    var loudChannel = Terrain.Carve(loudSolved, riverRoute, radius: 4, depth: 3, level: 6);
+    var loud = Terrain.Fold(loudChannel.Bed, "rot_180", CentreX, CentreZ);
+
+    var loudPlan = Render.TopDown(loud, 4, floor: 2, ceiling: 34);
+    foreach (var (cell, _) in loudChannel.Water)
+        loudPlan.Disc((cell.X - footprint.MinX) * 4 + 2, (cell.Z - footprint.MinZ) * 4 + 2, 2.4, 0x3C7FE0, 0.92);
+    Png.Write(Path.Combine(outputRoot, "09c-map-louder.png"),
+        Render.Row([("the same design, lifted to the corpus median", loudPlan),
+                    ("what each cell costs", Render.StepMap(loud, 4)),
+                    ("reachable on foot", Render.ReachMap(loud, Terrain.Passage.Walk, 4))]).Upscale(2));
+    Png.Write(Path.Combine(outputRoot, "09d-map-louder-iso.png"),
+        Render.Row([("lifted, in blocks", Render.Isometric(loud, tileWidth: 4, tileDepth: 2, blockRise: 3,
+            floor: 0, ceiling: 34, tintOf: cell => loudChannel.Water.ContainsKey(cell) ? 0x2E6FC4 : null))]).Upscale(2));
+
     // The same board with the fold switched off, so the cost of leaving it off is a number rather than an
     // assertion: the marks are still mirrored, and only the grain and the quantized surface go unfolded.
     var unfolded = ReliefSolver.Solve(footprint, spec with { FoldMode = null });
@@ -458,6 +510,8 @@ HeightField FromFunction(Footprint footprint, Func<double, double, double> heigh
     Say(Terrain.Report(finished, "  the board", "rot_180", CentreX, CentreZ));
     Say($"  the same marks with the fold switched off: worst mirrored difference {unfoldedWorst} block(s), " +
         $"over {unfoldedCells} cells ({unfoldedCells * 100.0 / footprint.Count:0.0}% of the board)");
+    var (bodyLow, bodyHigh) = Measure.Body(finished);
+    Say($"  body: 95% of columns in a {bodyHigh - bodyLow}-block band");
     Say($"  spawn hill crowns at y{finished.At(6, 6)}; the river runs at y{finished.At(96, 64)}");
     Say($"  pushing straight across eastward on foot: {eastward.Count} ford(s) — " +
         $"{string.Join(", ", eastward.Select(ford => $"z{ford.From}-{ford.To}"))}");
@@ -479,6 +533,95 @@ HeightField FromFunction(Footprint footprint, Func<double, double, double> heigh
     }
     foreach (var scarp in Terrain.Scarps(finished).Take(4))
         Say($"    scarp {scarp.Width} wide, drops {scarp.Drop} — {(scarp.IsCliff ? "cliff" : "step edge")}");
+
+    var (loudLow, loudHigh) = Measure.Body(loud);
+    Say(Terrain.Report(loud, "  the same design lifted", "rot_180", CentreX, CentreZ));
+    Say($"  lifted body: 95% of columns in a {loudHigh - loudLow}-block band");
+    var loudEast = Terrain.Fords(loud, InRiverCorridor, Terrain.Passage.Walk);
+    var loudEastBlock = Terrain.Fords(loud, InRiverCorridor, Terrain.Passage.Scramble);
+    Say($"  lifted, pushing straight across eastward: {loudEast.Count} ford(s) on foot, {loudEastBlock.Count} with a block");
+    Say("");
+}
+
+// ═══ figure 10 — the island is the unit, and a shape can opt out of it ════════════════════════════
+{
+    // Three abutting pieces of one landmass — what a plan's equal-level pieces fuse into — and a walled
+    // compound standing on the middle one.
+    double[][] north = [[0, 0], [90, 0], [90, 50], [0, 50]];
+    double[][] middle = [[0, 50], [90, 50], [90, 95], [0, 95]];
+    double[][] south = [[0, 95], [90, 95], [90, 135], [0, 135]];
+    double[][] city = [[20, 56], [56, 56], [56, 88], [20, 88]];
+    const int Scale = 3;
+
+    List<Mark> marks =
+    [
+        new RimMark(5),
+        new PointMark(20, 22, 15, 9),
+        new LineMark([[8, 118], [40, 100], [70, 66], [82, 24]], [7, 12, 13, 14], 4),
+        new PointMark(74, 120, 6, 10),
+    ];
+    var spec = new ReliefSpec { Base = 6, Marks = marks, Grain = 1.1, GrainScale = 15, Seed = 9 };
+
+    // Solved per shape: each piece is its own domain, so a mark outside a piece says nothing to it and the
+    // two sides of a seam settle independently.
+    var whole = Footprint.Of(new[] { north, middle, south }.Select(ring => (ring, false)));
+    var perShape = new int[whole.Width * whole.Depth];
+    foreach (var ring in new[] { north, middle, south })
+    {
+        var piece = Footprint.Of([(ring, false)]);
+        var solved = ReliefSolver.Solve(piece, spec);
+        foreach (var (x, z) in piece.Cells())
+            if (whole.Inside(x, z)) perShape[whole.Index(x, z)] = solved.At(x, z);
+    }
+    var seamed = new HeightField(whole, perShape.Select(height => (double)height).ToArray(), perShape);
+
+    var fused = new Island([new ReliefShape(north), new ReliefShape(middle), new ReliefShape(south)], spec).Build();
+    var held = new Island([new ReliefShape(north), new ReliefShape(middle), new ReliefShape(south),
+        new ReliefShape(city, Participation.Hold, 13)], spec).Build();
+    var excluded = new Island([new ReliefShape(north), new ReliefShape(middle), new ReliefShape(south),
+        new ReliefShape(city, Participation.Exclude, 13)], spec).Build();
+
+    Canvas WithCity(Canvas panel, bool outline)
+    {
+        if (!outline) return panel;
+        for (var i = 0; i < city.Length; i++)
+        {
+            var next = city[(i + 1) % city.Length];
+            panel.Line((int)((city[i][0] - whole.MinX) * Scale), (int)((city[i][1] - whole.MinZ) * Scale),
+                       (int)((next[0] - whole.MinX) * Scale), (int)((next[1] - whole.MinZ) * Scale), Render.Ink, 0.9);
+        }
+        return panel;
+    }
+
+    var panels = new List<(string, Canvas)>
+    {
+        ("solved per shape", Render.TopDown(seamed, Scale, floor: 3, ceiling: 17)),
+        ("solved per island", Render.TopDown(fused, Scale, floor: 3, ceiling: 17)),
+        ("a held compound", WithCity(Render.TopDown(held, Scale, floor: 3, ceiling: 17), true)),
+        ("an excluded compound", WithCity(Render.TopDown(excluded, Scale, floor: 3, ceiling: 17), true)),
+    };
+    Png.Write(Path.Combine(outputRoot, "10-island.png"), Render.Row(panels).Upscale(2));
+
+    var blocks = Render.Row([("held — the land arrives at it", Render.Isometric(held, floor: 0, ceiling: 17)),
+                             ("excluded — the land ignores it", Render.Isometric(excluded, floor: 0, ceiling: 17))]);
+    Png.Write(Path.Combine(outputRoot, "10b-island-iso.png"), blocks.Upscale(2));
+
+    // What the seam costs, measured at the two piece boundaries rather than described.
+    int WorstAcross(HeightField field, int z)
+        => Enumerable.Range(whole.MinX, whole.Width)
+                     .Where(x => field.Has(x, z) && field.Has(x, z + 1))
+                     .Select(x => Math.Abs(field.At(x, z + 1) - field.At(x, z)))
+                     .DefaultIfEmpty(0).Max();
+
+    Say("figure 10 — the island is the unit a relief is solved over");
+    Say($"  solved per shape: worst step across the seams at z50 and z95 is {WorstAcross(seamed, 49)} and {WorstAcross(seamed, 94)} blocks");
+    Say($"  solved per island: {WorstAcross(fused, 49)} and {WorstAcross(fused, 94)}");
+    Say(Terrain.Report(fused, "  fused island"));
+    Say(Terrain.Report(held, "  with the compound held at 13"));
+    Say(Terrain.Report(excluded, "  with the compound excluded at 13"));
+    var heldEdge = EdgeStep(held, city);
+    var excludedEdge = EdgeStep(excluded, city);
+    Say($"  at the compound's wall: held meets the land at a worst step of {heldEdge}, excluded at {excludedEdge}");
     Say("");
 }
 
@@ -532,10 +675,29 @@ HeightField FromFunction(Footprint footprint, Func<double, double, double> heigh
 
 File.WriteAllText(Path.Combine(outputRoot, "report.txt"), string.Join("\n", log));
 Console.WriteLine($"wrote figures to {Path.GetFullPath(outputRoot)}");
+return 0;
 
 // ── helpers the figures use ───────────────────────────────────────────────────────────────────────
 
 static int Rows(List<(int From, int To)> runs) => runs.Sum(run => run.To - run.From + 1);
+
+/// The worst step between a ring's own cells and the land immediately outside it — how a compound meets the
+/// ground it stands on, which is the whole difference between holding a shape and excluding it.
+static int EdgeStep(HeightField field, double[][] ring)
+{
+    var worst = 0;
+    foreach (var (x, z) in field.Footprint.Cells())
+    {
+        if (!Footprint.PointInRing(x + 0.5, z + 0.5, ring)) continue;
+        foreach (var (dx, dz) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
+        {
+            if (!field.Has(x + dx, z + dz)) continue;
+            if (Footprint.PointInRing(x + dx + 0.5, z + dz + 0.5, ring)) continue;
+            worst = Math.Max(worst, Math.Abs(field.At(x + dx, z + dz) - field.At(x, z)));
+        }
+    }
+    return worst;
+}
 
 /// The cells a drawn polyline passes through, in order — an authored stroke turned into the route the
 /// carve walks, so what is cut is the line the author drew rather than one a search found.

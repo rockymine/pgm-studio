@@ -73,6 +73,33 @@ internal sealed class Footprint
     }
 }
 
+/// <summary>
+/// How a shape takes part in the relief of the island it belongs to. The unit a relief is solved over is the
+/// **island** — the fused footprint of every shape on one landmass — because a relief solved per shape leaves
+/// a seam wherever two of them meet and disagree about the height they share. But the fusion is not always
+/// what an author wants, and the case that decides it is a built thing standing on the ground: a city, a
+/// keep, a walled compound. Its floor is not terrain and it is themed as a unit, so a field that rolled
+/// through it would put a slope under a wall and make its pattern land differently on every stretch.
+///
+/// <para>So participation is a property of the shape, not a rule about the pass. <see cref="Inherit"/> is the
+/// default and the common case: the shape is part of the island, the relief flows through it, and the fused
+/// outline is the only boundary. <see cref="Hold"/> keeps the shape at its own authored height and pins it,
+/// so the surrounding land is solved knowing where it must arrive — the ground rolls up to the city and meets
+/// its floor flush. <see cref="Exclude"/> takes the shape out of the solve entirely, leaving a hole the field
+/// bends around: the terrain outside never learns the shape's height, so the two meet at whatever step their
+/// two decisions produce, which is a citadel on a plinth rather than a town in a valley.</para>
+///
+/// <para>The distinction that matters is not visual, it is which of the two is holding the other still.
+/// <see cref="Hold"/> lets the shape steer the terrain; <see cref="Exclude"/> lets the terrain ignore the
+/// shape.</para>
+/// </summary>
+internal enum Participation { Inherit, Hold, Exclude }
+
+/// <summary>One shape of an island as the relief sees it: the ring it covers, how it takes part, and the
+/// height it holds when it is holding one.</summary>
+internal sealed record ReliefShape(double[][] Ring, Participation Participation = Participation.Inherit,
+                                   double HeldHeight = 0);
+
 /// <summary>What an author states about height: a placed mark holding a patch of the footprint at a chosen
 /// elevation. Every kind reduces to the same thing for the solver — a set of cells pinned to a value — which
 /// is what lets one field carry a peak, a ridgeline, a contour ring and a flat bench at once.</summary>
@@ -302,6 +329,67 @@ internal sealed class HeightField
     /// <summary>A copy with the block surface replaced — how a composited shape or a carved bed is layered on
     /// without losing the field it was solved from.</summary>
     public HeightField WithBlocks(int[] blocks) => new(Footprint, Continuous, blocks);
+}
+
+/// <summary>An island as the relief is asked to solve it: its shapes, and the relief stated over them. The
+/// island rather than the shape is the unit, so the fused outline is the boundary and a seam between two of
+/// its shapes is not a boundary at all.</summary>
+internal sealed record Island(IReadOnlyList<ReliefShape> Shapes, ReliefSpec Spec)
+{
+    /// <summary>The fused footprint every shape contributes to, minus the shapes that take themselves out of
+    /// the solve. An excluded shape is a hole, so the relaxation bends around it exactly as it bends around
+    /// the void — which is the same no-flow boundary doing the same job at a smaller scale.</summary>
+    public Footprint Footprint()
+    {
+        var footprint = Relief.Footprint.Of(Shapes.Select(shape => (shape.Ring, false)));
+        foreach (var shape in Shapes.Where(shape => shape.Participation == Participation.Exclude))
+            footprint.Remove(Relief.Footprint.Rasterize(shape.Ring, footprint.MinX, footprint.MinZ,
+                footprint.MinX + footprint.Width, footprint.MinZ + footprint.Depth));
+        return footprint;
+    }
+
+    /// <summary>The marks the author stated, plus one <see cref="AreaMark"/> for every shape that holds its
+    /// own height. They go last so a held shape wins its cells outright: a city floor is a statement about
+    /// the map and not a suggestion the terrain gets to average against.</summary>
+    public List<Mark> Marks()
+    {
+        var marks = new List<Mark>(Spec.Marks);
+        foreach (var shape in Shapes.Where(shape => shape.Participation == Participation.Hold))
+            marks.Add(new AreaMark(shape.Ring, shape.HeldHeight));
+        return marks;
+    }
+
+    public HeightField Solve()
+    {
+        var footprint = Footprint();
+        return ReliefSolver.Solve(footprint, Spec with { Marks = Marks() });
+    }
+
+    /// <summary>The solved island with every excluded shape stamped back in at its own height — the built
+    /// surface, as against the surface the relief was solved over. They are different things and keeping them
+    /// apart is what lets an excluded shape be moved without re-solving the ground around it.</summary>
+    public HeightField Build()
+    {
+        var solved = Solve();
+        var whole = Relief.Footprint.Of(Shapes.Select(shape => (shape.Ring, false)));
+        var blocks = new int[whole.Width * whole.Depth];
+        var continuous = new double[blocks.Length];
+        foreach (var (x, z) in whole.Cells())
+        {
+            var index = whole.Index(x, z);
+            blocks[index] = solved.Has(x, z) ? solved.At(x, z) : (int)Math.Round(Spec.Base);
+            continuous[index] = blocks[index];
+        }
+        foreach (var shape in Shapes.Where(shape => shape.Participation == Participation.Exclude))
+            foreach (var (x, z) in whole.Cells())
+                if (Relief.Footprint.PointInRing(x + 0.5, z + 0.5, shape.Ring))
+                {
+                    var index = whole.Index(x, z);
+                    blocks[index] = (int)Math.Round(shape.HeldHeight);
+                    continuous[index] = shape.HeldHeight;
+                }
+        return new HeightField(whole, continuous, blocks);
+    }
 }
 
 internal static class ReliefSolver
