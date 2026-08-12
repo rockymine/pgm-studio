@@ -53,6 +53,67 @@ the focus-integration polish remains.
 The Sketch depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection
 highlight); these are the parked / dormant / deferred slices.
 
+- [ ] **S41 — Relief: interior elevation for a sketch shape (the solver + the rasterizer seam).** A shape
+  states its height only at its outline — a uniform thickness, or one per vertex triangulated across the
+  footprint — so a hill in the interior is unreachable by construction, and a concave outline is interpolated
+  straight across its own notch. The design and its measurements are `docs/contracts/sketch-relief.md`, and
+  the prototype every figure and number in it comes from is `tools/relief`. This slice is the data half: a
+  `relief` object on `SketchShape` (base, marks, fill, reach, grain, step), the four mark kinds
+  (point / line / area / rim), and the screened-relaxation solver as **`PgmStudio.Geom.Relief`** — the
+  dependency-free leaf, since it reads a footprint mask and returns a height grid and knows nothing about
+  maps. `SketchRasterizer` takes a relief-carrying shape's thickness from the solved field instead of from
+  the per-vertex triangulation; `base_height`/`anchor_heights` keep their meaning untouched, because a flat
+  plate and a cut staircase are right often enough not to become special cases of a solver. Solve on the
+  **fused island footprint**, not per shape, or adjoining shapes disagree about the height of the seam they
+  share.
+
+- [ ] **S42 — Relief: the symmetry fold.** Mirroring the marks is not enough for fairness and the gap is
+  invisible: measured over an 11,408-cell `rot_180` board, unmirrored marks differ from their own image by 8
+  blocks, **mirrored marks with the grain drawn per side still differ by 1** over a large fraction of the map,
+  and only folding both the grain sample and the solved field through the symmetry before quantizing gives 0.
+  Both fold on the cell **centre**, not its corner — reflecting the corner pairs each cell with its image's
+  neighbour, a one-cell shear that looks like symmetry and measures as a full block. Costs one pass
+  (`sketch-relief.md` §7). Ship with S41; a relief without it is an unfair map that nothing catches.
+
+- [ ] **S43 — Relief: the readback, and the stair repair the block step needs.** Four measurements off the
+  block surface — the step histogram, reachability on foot, scarps with EL6's cliff qualification, and the
+  symmetry error — computed in `PgmStudio.Analysis` (classification is corpus law, not pure geometry) and
+  served next to the sketch document. It is what makes a relief drivable by a generator or an agent: state
+  marks, read what the surface costs, adjust. It also catches the failure the histogram hides — terracing a
+  board at a two-block step leaves **twelve** disconnected walkable regions, the largest holding 53%, and
+  cutting a stair through the cheapest riser of each stranded region restores one region while changing 0.6%
+  of the cells. Ship the repair with the measurement that finds it (`sketch-relief.md` §4, §6).
+
+- [ ] **S44 — Relief: erecting shapes (level / raise / sink).** One word on `SketchShape` saying how its top
+  is decided: an absolute height (a mesa, whose faces are cliffs), a fixed amount above the ground under it
+  (a monolith or plinth, which keeps its prominence wherever it is dragged), or the same downward (a quarry).
+  The compositing rule already exists — the taller add wins — and nothing downstream needs teaching: the
+  painter classifies a column by its neighbours, so a mesa face arrives as an edge with a known drop and is
+  painted as a wall under a rim, machinery that has shipped and has had nothing to paint. EL6 discriminates
+  the result correctly unprompted: a 17-wide 9-block face qualifies as a cliff, an 8-wide face at the same
+  drop does not (`sketch-relief.md` §5).
+
+- [ ] **S45 — Relief: the contour canvas.** The JS twin of the solver, the same arrangement `Geom.Symmetry`
+  has with `js/studio/geometry/symmetry.js`. It draws the field's **contours**, which is both the readable
+  view of a height field and the direct-manipulation surface — dragging a contour is dragging a line mark at
+  that height, so how the surface reads and how it is edited are one object. The cost is known and the
+  answer measured: a full solve is 7 ms on a 30×20 room, 171 ms on a 62×92 board and 624 ms on a 124×92 map,
+  and resuming 40 sweeps from the surface already on screen costs 151 ms on the whole map and lands on the
+  settled answer everywhere but 126 of 11,408 cells, each off by one. So the drag warm-starts and the release
+  solves in full (`sketch-relief.md` §10).
+
+- [ ] **S46 — Paths and water read the relief.** Both stroke tools assume a flat plane. A path gains
+  **routing** (a shortest line whose cost counts climbing far more than distance and which refuses an
+  unwalkable step — measured, a straight line climbs 13 blocks to y19 where the routed one climbs 0 and tops
+  out at y7 through a pass) and **grading** (cut and fill a corridor to a one-block maximum step, shoulders
+  blended back over a couple of blocks). Water needs three things the flat model never did: routing on a
+  **depression-filled** copy of the surface, because steepest descent stops at the first grain-made pit after
+  2 cells where the filled run covers 44; a bed floor forced non-increasing downstream; and **per-pool** water
+  levels replacing `decoration.md` §7's single lowest-surface line — the measured run holds 12 distinct
+  levels. A basin is an outlet alongside the map edge, which is what a pond is. And the cheapest good idea
+  here runs the other way: a drawn channel handed to the solver as a line mark below base level makes the
+  terrain form a valley around it (`sketch-relief.md` §8).
+
 - [ ] **S34 — Reuse a sketch paint's column classification across the edits of one drag.** `TerrainProfile`
   construction is what a paint now costs — ~60 ms of the ~164 ms a 40k-cell board takes (S33, `FEATURES.md`),
   and roughly 35 ms of that is its two `GridComponents.Label` passes: one flood fill for plateaus, a second for
