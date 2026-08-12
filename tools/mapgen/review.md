@@ -100,6 +100,50 @@ board's edges read identically whatever else changes about it. The pattern vocab
 turbulence, electric, over nineteen families — is barely sampled, and the choice is not tied to what the wall
 is (a cliff face, a built retaining wall, the side of a platform).
 
+## The XML
+
+**MG14 — The export composer is bypassed, so a generated map carries none of the boilerplate every corpus
+map carries.** `tools/mapgen` builds its document and calls `XmlWriter.ToXml(Deserializer.FromDict(doc))`
+directly. The path a map is supposed to take is `MapXmlComposer.Compose(doc, isIntent: true, …)`, and
+everything it does is therefore missing: `CtwStandards.Apply` (the keep / repair / remove rules derived from
+the spawn kit, hunger depletion off, and the shared golden-apple kill-reward include),
+`WaterLaneGenerator.EnsureInclude`, `ResourceRenewables.Apply`, `StructureRenewables.Apply`, and the
+reordering that puts the `not-build-area` rule **last** — which matters because PGM stops at the first
+applicator that decides, and that rule is the one keeping players out of the void (MG3). None of this is
+unbuilt: `CtwStandards` derives its lists from the corpus at N=199 and `XmlWriter` already emits all four
+elements. The generated maps simply never go through the composer, and one call is most of the fix.
+
+The measure of how wrong that is, over the 365 corpus capture maps outside this batch:
+
+| element | corpus maps carrying it | in a generated map |
+|---|---|---|
+| `<itemremove>` | 364 (99%) | absent |
+| `<toolrepair>` | 345 (94%) | absent |
+| `<itemkeep>` | 299 (81%) | absent |
+| `<hunger><depletion>off` | 297 (81%) | absent |
+| `<armorkeep>` | 3 (1%) | absent, and unwritable |
+
+The hyphenated spellings PGM also accepts — `item-keep`, `tool-repair`, `item-remove` — are used by **no**
+corpus map at all, and the writer already emits the unhyphenated forms the corpus uses.
+
+**MG15 — What happens to spawn armour on death is a decision, and no decision was made.** Leather kit armour
+currently drops and lies on the ground, because nothing says otherwise. PGM offers two answers and they are
+not the same map. `<itemremove>` destroys the item when it spawns as an entity (`ItemSpawnEvent`), so the
+armour still leaves the body on death but never litters the field and cannot be picked up by the killer —
+this is the corpus convention at 99%, and it works because the kit re-applies team-coloured armour on
+respawn, which is exactly why `CtwStandards` derives `itemremove` from the kit's armour. `<armorkeep>` keeps
+it on the body instead, and matches only when the stack sits in an armour slot; three maps in 365 do this.
+The corpus answer is `itemremove`, and it should be chosen deliberately rather than inherited. Note that
+`<armorkeep>` cannot currently be written at all: `XmlWriter` emits `itemkeep`, `itemremove` and `toolrepair`
+and has no armour list, so picking the 1% style needs the writer extended first.
+
+**MG16 — Tools that wear out are meant to be repairable, and a generated map repairs nothing.**
+`<toolrepair>` lists materials whose pickup repairs the tool already in the inventory rather than stacking a
+second one — picking up a sword restores the held sword's durability by the picked-up one's remaining hits
+and the pickup is cancelled. Without it a kit's sword, axe and pickaxe simply break and the player is
+disarmed until the next death. 94% of the corpus carries it; `CtwStandards` already derives the list as the
+kit's tools and weapons, identified by the material's last word.
+
 ## Reading it back
 
 **MG13 — The maps were judged from one view.** Every map was checked with `--topdown` at three pixels to the
