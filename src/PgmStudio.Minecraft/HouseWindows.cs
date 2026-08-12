@@ -250,14 +250,20 @@ public static class HouseWindows
         return seats;
     }
 
-    /// <summary>The low coordinates of the windows a <b>banded</b> wall takes: one centred in each unbroken
-    /// panel of the host block that is wide enough to hold it, skipping a panel that stands closer than
-    /// <paramref name="spacing"/> to the window already placed.
+    /// <summary>The low coordinates of the windows a wall with a named host takes: each unbroken panel of the
+    /// host block <b>spread and centred exactly as a whole wall is</b>, skipping a panel whose first window
+    /// would stand closer than <paramref name="spacing"/> to the one already placed.
     ///
     /// <para>Where <see cref="Spread"/> divides the run and lets the material fall where it may, this lets the
-    /// material divide the run. It is the difference between a window that happens to land on planks and a
-    /// window that is <em>in</em> the planks — and on a wall whose bands are four cells and whose spacing is
-    /// five, the first almost never happens.</para></summary>
+    /// material divide the run first and then divides each piece. It is the difference between a window that
+    /// happens to land on planks and a window that is <em>in</em> the planks — and on a wall whose bands are
+    /// four cells and whose spacing is five, the first almost never happens.</para>
+    ///
+    /// <para><b>The panel is spread rather than given a single centred window, and a uniform wall is why.</b>
+    /// A host names a block, not a band: a wall that is one material at the sill course resolves to a single
+    /// panel the length of the whole run, and one window centred in that is one window on a twenty-one-block
+    /// hall. Spreading each panel gives the banded wall exactly what it had — a two-cell band holds one
+    /// two-wide window and no more — and gives the uniform wall the row it was always asking for.</para></summary>
     private static IEnumerable<int> Panels(int runLo, int runHi, int width, int spacing, Func<int, bool> hosts)
     {
         // Tracked as "is there one yet" rather than as a sentinel coordinate: a sentinel far enough below the
@@ -271,17 +277,13 @@ public static class HouseWindows
             var end = at;
             while (end + 1 <= runHi && hosts(end + 1)) end++;
 
-            // The panel, centred — what is left over is split between its two ends, so a window sits in the
-            // middle of its band rather than hard against whichever edge the walk reached first.
-            var span = end - at + 1;
-            if (span >= width)
+            foreach (var lo in Spread(at, end, width, spacing))
             {
-                var lo = at + (span - width) / 2;
-                if (!placed || lo - lastEnd > spacing)
-                {
-                    yield return lo;
-                    (placed, lastEnd) = (true, lo + width - 1);
-                }
+                // Only the seam between two panels can be too tight: within one, the spread already put a
+                // clear <paramref name="spacing"/> between neighbours.
+                if (placed && lo - lastEnd <= spacing) continue;
+                yield return lo;
+                (placed, lastEnd) = (true, lo + width - 1);
             }
             at = end;
         }

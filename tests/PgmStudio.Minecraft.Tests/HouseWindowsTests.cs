@@ -277,6 +277,65 @@ public sealed class HouseWindowsTests
         await Assert.That(Seats(WindowStyle.Glazed, width: 5, depth: 5)).IsEmpty();
     }
 
+    // ── the host block ─────────────────────────────────────────────────────────────────────────────
+    /// <summary>A host names a <b>block</b>, not a band. A wall that is one material at the sill course
+    /// resolves to a single panel the length of the whole run, and that has to take a row — one window centred
+    /// in it is one window on a twenty-one-block hall, which is what a long building is least able to afford.</summary>
+    [Test]
+    [Arguments(13, 2)]
+    [Arguments(17, 3)]
+    [Arguments(21, 4)]
+    [Arguments(25, 5)]
+    public async Task A_wall_that_is_all_host_takes_a_row_rather_than_one_window(int width, int expected)
+    {
+        var style = new WindowStyle
+        {
+            Form = WindowForm.Pane, Block = Blocks.GlassPane, HostBlock = Blocks.Planks, HostData = 1,
+            Width = 2, Height = 2, Sill = 2, Spacing = 2,
+        };
+        var seats = HouseWindows.Seats(style, 0, 0, width - 1, 8, 6, null, (_, _) => true)
+            .Where(seat => seat.Edge == RoomEdge.NegZ)
+            .OrderBy(seat => seat.Lo)
+            .ToList();
+
+        await Assert.That(seats.Count).IsEqualTo(expected);
+
+        // Evenly: one stride, and symmetric about the middle of the run.
+        if (seats.Count > 1)
+        {
+            var strides = seats.Zip(seats.Skip(1), (a, b) => b.Lo - a.Lo).Distinct().ToList();
+            await Assert.That(strides.Count).IsEqualTo(1);
+            var head = seats[0].Lo - 2;
+            var tail = width - 3 - (seats[^1].Lo + seats[^1].Width - 1);
+            await Assert.That(Math.Abs(head - tail)).IsLessThanOrEqualTo(1);
+        }
+    }
+
+    /// <summary>And a banded wall keeps what it had: a two-cell band holds one two-wide window and no more, so
+    /// spreading each panel changes nothing where the panels are already window-sized. That is the case the
+    /// host rule was written for, and the row above must not have cost it.</summary>
+    [Test]
+    public async Task A_banded_wall_still_takes_one_window_to_the_band()
+    {
+        var style = new WindowStyle
+        {
+            Form = WindowForm.Pane, Block = Blocks.GlassPane, HostBlock = Blocks.Planks, HostData = 1,
+            Width = 2, Height = 2, Sill = 2, Spacing = 1,
+        };
+        // Two cells of something else, then two of the host, round and round.
+        var seats = HouseWindows.Seats(style, 0, 0, 20, 8, 6, null, (_, along) => along % 4 >= 2)
+            .Where(seat => seat.Edge == RoomEdge.NegZ)
+            .ToList();
+
+        await Assert.That(seats).IsNotEmpty();
+        foreach (var seat in seats)
+        {
+            // Every window sits wholly inside one band of the host.
+            await Assert.That(seat.Lo % 4).IsEqualTo(2);
+            await Assert.That(seat.Width).IsEqualTo(2);
+        }
+    }
+
     // ── the arched opening ─────────────────────────────────────────────────────────────────────────
     /// <summary>An arch is its two top corners and nothing else: an upside-down stair at each end of the
     /// opening's <em>top</em> course, every other cell of it left as light. The upside-down flag is what makes
