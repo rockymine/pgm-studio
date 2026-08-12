@@ -25,7 +25,9 @@ three files. Moving a task between files never changes its id; never renumber or
   first post-merge run, which is what makes it worth a task rather than a revert. The 422 is the plan
   **validator** refusing what the page posts, while the same map's stored plan compiles 200 through curl —
   so the first thing to find is what the editor sends that the stored document does not, and the finding
-  ids in the 422 body name the rule. The dressing pass seats a prop only if *no*
+  ids in the 422 body name the rule.
+
+- [ ] **B78 — A grown tree gets taller by not being built.** The dressing pass seats a prop only if *no*
   cell it occupies falls on a protected column, at any height, and a grown crown is wide — so the taller the
   tree, the likelier some leaf clips protection and the whole tree is dropped. Measured over one composed
   board at twenty-four sites: a grown oak lands 590 leaves at height 8, 364 at 12 and **0 at 20**, while a
