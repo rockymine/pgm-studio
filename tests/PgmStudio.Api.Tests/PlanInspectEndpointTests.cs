@@ -18,8 +18,7 @@ public sealed class PlanInspectEndpointTests
     [Test]
     public async Task Valid_plan_returns_derived_geometry()
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var resp = await client.PostAsync("/api/plan/inspect",
             new StringContent(ReadSeed("base-2wool.plan.json"), Encoding.UTF8, "application/json"));
@@ -47,8 +46,7 @@ public sealed class PlanInspectEndpointTests
     [Test]
     public async Task Interfaces_carry_wool_room_and_wall_flags()
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         // a (piece) — b (wool-room) is a terrain↔room seam; a — c abut and carry a wall mark.
         const string plan = """
@@ -74,8 +72,7 @@ public sealed class PlanInspectEndpointTests
     [Test]
     public async Task Malformed_body_is_a_400_not_a_500()
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var resp = await client.PostAsync("/api/plan/inspect", new StringContent("not a plan", Encoding.UTF8, "application/json"));
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);

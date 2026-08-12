@@ -24,8 +24,7 @@ public sealed class SketchEndpointTests
     public async Task Create_returns_a_slug_and_seeds_an_empty_layout()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var resp = await client.PostAsJsonAsync("/api/sketch", new { name = "My Sketch" });
         await Assert.That(resp.IsSuccessStatusCode).IsTrue();
@@ -43,8 +42,7 @@ public sealed class SketchEndpointTests
     public async Task Create_with_a_frame_seeds_the_working_setup()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         // A portrait footprint (80×120) off-centre, mirror-Z — the new-sketch page's blank-create body.
         var resp = await client.PostAsJsonAsync("/api/sketch",
@@ -68,8 +66,7 @@ public sealed class SketchEndpointTests
     public async Task Layout_round_trips_through_put_then_get()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Round Trip" }))
             .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
@@ -97,8 +94,7 @@ public sealed class SketchEndpointTests
     public async Task Create_dedupes_the_slug()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var first = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Dup" }))
             .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString();
@@ -113,8 +109,7 @@ public sealed class SketchEndpointTests
     public async Task Put_rejects_non_json()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Bad" }))
             .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
@@ -127,8 +122,7 @@ public sealed class SketchEndpointTests
     public async Task Finish_rasterizes_the_layout_and_advances_the_map_to_configure()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Finish Me" }))
             .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
@@ -184,8 +178,7 @@ public sealed class SketchEndpointTests
     public async Task Finish_rejects_a_layout_with_fewer_than_two_islands()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "One Island" }))
             .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
@@ -213,8 +206,7 @@ public sealed class SketchEndpointTests
     public async Task Compiled_plan_drives_the_full_create_layout_finish_intent_loop()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         // Compile a seed plan into the pair the pipeline consumes (the editor's Compile step).
         var compile = await client.PostAsync("/api/plan/compile",

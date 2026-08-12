@@ -17,8 +17,7 @@ public sealed class PlanEvaluateEndpointTests
     [Test]
     public async Task Valid_seed_scores_clean()
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var resp = await client.PostAsync("/api/plan/evaluate",
             new StringContent(ReadSeed("base-2wool.plan.json"), Encoding.UTF8, "application/json"));
@@ -35,8 +34,7 @@ public sealed class PlanEvaluateEndpointTests
     [Test]
     public async Task Cramped_wool_fires_WL2_with_evidence()
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         // A spawn and a wool two cells apart (10 blocks by traversal) violate WL2's 20-block floor. Single-unit
         // symmetry keeps it a bare minimal pair.
@@ -70,8 +68,7 @@ public sealed class PlanEvaluateEndpointTests
     [Test]
     public async Task Malformed_body_is_a_400_not_a_500()
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var resp = await client.PostAsync("/api/plan/evaluate", new StringContent("not a plan", Encoding.UTF8, "application/json"));
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);

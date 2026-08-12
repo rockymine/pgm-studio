@@ -22,8 +22,7 @@ public sealed class ThemeLibraryEndpointsTests
     public async Task Import_then_compose_round_trips_the_theme_json()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         // The painter's built-in default, serialized exactly as a map's applied theme would be.
         var themeJson = TerrainThemeJson.Serialize(TerrainTheme.Default);
@@ -50,8 +49,7 @@ public sealed class ThemeLibraryEndpointsTests
     public async Task Styles_are_browsable_by_kind_over_http()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         await client.PostAsJsonAsync("/api/styles", new StyleSaveRequest("cobble patches", "voronoi", "{\"kind\":\"voronoi\"}"));
         await client.PostAsJsonAsync("/api/styles", new StyleSaveRequest("stone", "solid", "{\"kind\":\"solid\"}"));
@@ -66,8 +64,7 @@ public sealed class ThemeLibraryEndpointsTests
     public async Task A_theme_created_from_styles_reads_back_and_deletes_with_cascade()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var rim = await (await client.PostAsJsonAsync("/api/styles", new StyleSaveRequest("quartz", "solid", "{}")))
             .Content.ReadFromJsonAsync<StyleDto>();
@@ -97,8 +94,7 @@ public sealed class ThemeLibraryEndpointsTests
     public async Task A_style_carries_the_picture_it_is_browsed_by()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var stack = TerrainThemeJson.Serialize(new LayeredMaterial(
             [new MaterialLayer(new SolidMaterial(Blocks.Grass), 1), new MaterialLayer(new SolidMaterial(Blocks.Dirt), 2)]));
@@ -114,8 +110,7 @@ public sealed class ThemeLibraryEndpointsTests
     public async Task A_theme_is_updated_in_place_bindings_and_all()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var quartz = await CreateStyle(client, "quartz", new SolidMaterial(Blocks.QuartzBlock));
         var stone = await CreateStyle(client, "stone", new SolidMaterial(Blocks.Stone));
@@ -149,8 +144,7 @@ public sealed class ThemeLibraryEndpointsTests
     public async Task A_style_a_theme_still_binds_cannot_be_deleted_and_the_refusal_names_the_theme()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var bound = await CreateStyle(client, "quartz", new SolidMaterial(Blocks.QuartzBlock));
         var loose = await CreateStyle(client, "stone", new SolidMaterial(Blocks.Stone));
@@ -169,8 +163,7 @@ public sealed class ThemeLibraryEndpointsTests
     public async Task A_draft_theme_previews_before_any_of_it_is_saved()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var gold = await CreateStyle(client, "gold", new SolidMaterial(Blocks.GoldBlock));
 
@@ -191,8 +184,7 @@ public sealed class ThemeLibraryEndpointsTests
     public async Task A_bucket_switches_off_without_being_bound_a_style_first()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var gold = await CreateStyle(client, "gold", new SolidMaterial(Blocks.GoldBlock));
 
@@ -230,8 +222,7 @@ public sealed class ThemeLibraryEndpointsTests
     public async Task A_void_only_rim_survives_the_library_round_trip()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var created = await (await client.PostAsJsonAsync("/api/themes", new ThemeSaveRequest(
             "outside only", false, 1, RimEdgeModes.Void, true, [])))
@@ -252,8 +243,7 @@ public sealed class ThemeLibraryEndpointsTests
     public async Task A_malformed_theme_import_is_400_not_500()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var resp = await client.PostAsJsonAsync("/api/themes/import", new ThemeImportRequest("bad", "{ not json"));
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);

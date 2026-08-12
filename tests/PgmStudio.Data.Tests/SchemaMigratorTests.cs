@@ -23,7 +23,7 @@ public sealed class SchemaMigratorTests
     [Test]
     public async Task Freshly_migrated_database_is_up_to_date()
     {
-        await TestDb.ResetSchemaAsync();
+        await TestDb.RebuildSchemaAsync();
 
         var state = SchemaMigrator.GetSchemaState(TestDb.ConnectionString);
 

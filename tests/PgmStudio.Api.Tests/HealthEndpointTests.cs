@@ -11,8 +11,7 @@ public sealed class HealthEndpointTests
     [Test]
     public async Task Health_returns_ok()
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var resp = await client.GetAsync("/api/health");
 

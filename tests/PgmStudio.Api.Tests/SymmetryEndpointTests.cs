@@ -25,8 +25,7 @@ public sealed class SymmetryEndpointTests
     [Arguments("mirror_d1")]
     public async Task Patch_confirms_a_diagonal_mirror_primary(string type)
     {
-        await using var factory = await SeedAsync("symmap");
-        using var client = factory.CreateClient();
+        using var client = await SeedAsync("symmap");
 
         var resp = await client.PatchAsJsonAsync("/api/map/symmap/symmetry",
             new { status = "confirmed", confirmed_type = type, cx = -36.5, cz = -303.5 });
@@ -42,8 +41,7 @@ public sealed class SymmetryEndpointTests
     [Test]
     public async Task Patch_rejects_an_unknown_symmetry_type()
     {
-        await using var factory = await SeedAsync("symmap");
-        using var client = factory.CreateClient();
+        using var client = await SeedAsync("symmap");
 
         var resp = await client.PatchAsJsonAsync("/api/map/symmap/symmetry",
             new { status = "confirmed", confirmed_type = "rot_270" });
@@ -52,8 +50,8 @@ public sealed class SymmetryEndpointTests
 
     // ── harness (self-contained, mirrors MetadataEndpointTests) ─────────────────────
 
-    /// <summary>Reset the test schema, seed one empty map, and return a factory bound to that DB.</summary>
-    private static async Task<ApiTestFactory> SeedAsync(string slug)
+    /// <summary>Reset the test schema, seed one empty map, and return a client onto it.</summary>
+    private static async Task<HttpClient> SeedAsync(string slug)
     {
         await ApiTestFactory.ResetSchemaAsync();
         await using (var db = new PgmDb(PgmDataOptions.ForConnectionString(ApiTestFactory.ConnectionString)))
@@ -64,6 +62,6 @@ public sealed class SymmetryEndpointTests
                 CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
             });
         }
-        return new ApiTestFactory();
+        return ApiTestFactory.Shared.CreateClient();
     }
 }

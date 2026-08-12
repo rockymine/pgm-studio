@@ -21,8 +21,7 @@ public sealed class ObjectiveVocabularyEndpointTests
 {
     private static async Task<JsonElement> GetAsync()
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
         return await client.GetFromJsonAsync<JsonElement>("/api/objectives/vocabulary");
     }
 
@@ -74,8 +73,7 @@ public sealed class ObjectiveVocabularyEndpointTests
     {
         // The plan editor opens on /plan-editor with no map behind it, so a map-scoped route could not serve
         // the inspector at all.
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
         var resp = await client.GetAsync("/api/objectives/vocabulary");
         await Assert.That(resp.IsSuccessStatusCode).IsTrue();
     }

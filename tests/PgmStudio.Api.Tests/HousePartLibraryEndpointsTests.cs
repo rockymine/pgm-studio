@@ -57,8 +57,7 @@ public sealed class HousePartLibraryEndpointsTests
     public async Task A_roof_round_trips_with_its_courses_and_lists_with_a_picture()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var slate = await StyleAsync(client, "slate", Blocks.Stone);
         var trim = await StyleAsync(client, "trim", Blocks.StainedClay);
@@ -83,8 +82,7 @@ public sealed class HousePartLibraryEndpointsTests
     public async Task A_storey_round_trips_and_is_drawn_as_the_room_it_makes()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var timber = await StyleAsync(client, "timber", Blocks.Log);
 
@@ -108,8 +106,7 @@ public sealed class HousePartLibraryEndpointsTests
     public async Task A_storey_is_never_saved_shorter_than_three()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var saved = await (await client.PostAsJsonAsync("/api/storey-styles", Storey("crawlspace", 1)))
             .Content.ReadFromJsonAsync<StoreyStyleDetail>();
@@ -120,8 +117,7 @@ public sealed class HousePartLibraryEndpointsTests
     public async Task A_porch_round_trips_with_its_shape()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var created = await (await client.PostAsJsonAsync("/api/porch-styles",
                 new PorchStyleSaveRequest("veranda", 3, 2, PorchEdges.Front, RoofForms.Shed, 85)))
@@ -140,8 +136,7 @@ public sealed class HousePartLibraryEndpointsTests
     public async Task A_bound_roof_replaces_the_houses_own_and_an_unbound_one_changes_nothing()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var slate = await StyleAsync(client, "slate", Blocks.StainedClay);
         var roof = await (await client.PostAsJsonAsync("/api/roof-styles", Roof("gabled", RoofForms.Gable,
@@ -167,8 +162,7 @@ public sealed class HousePartLibraryEndpointsTests
     public async Task A_bound_stack_makes_the_house_a_stack_of_rooms()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var storey = await (await client.PostAsJsonAsync("/api/storey-styles", Storey("room", 3)))
             .Content.ReadFromJsonAsync<StoreyStyleDetail>();
@@ -190,8 +184,7 @@ public sealed class HousePartLibraryEndpointsTests
     public async Task A_stack_slot_can_override_the_storeys_own_clear()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var storey = await (await client.PostAsJsonAsync("/api/storey-styles", Storey("room", 3)))
             .Content.ReadFromJsonAsync<StoreyStyleDetail>();
@@ -210,8 +203,7 @@ public sealed class HousePartLibraryEndpointsTests
     public async Task A_houses_stack_reads_back_in_the_order_it_was_saved()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var shop = await (await client.PostAsJsonAsync("/api/storey-styles", Storey("shop", 6)))
             .Content.ReadFromJsonAsync<StoreyStyleDetail>();
@@ -233,8 +225,7 @@ public sealed class HousePartLibraryEndpointsTests
     public async Task A_part_a_house_still_binds_cannot_be_deleted()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var roof = await (await client.PostAsJsonAsync("/api/roof-styles", Roof("hipped", RoofForms.Hip)))
             .Content.ReadFromJsonAsync<RoofStyleDetail>();
@@ -261,8 +252,7 @@ public sealed class HousePartLibraryEndpointsTests
     public async Task A_draft_part_previews_as_the_saved_one_draws()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var slate = await StyleAsync(client, "slate", Blocks.StainedClay);
         var draft = Roof("hipped", RoofForms.Hip, new RoomCourseDto(RoomParts.Roof, 0, slate, 1));

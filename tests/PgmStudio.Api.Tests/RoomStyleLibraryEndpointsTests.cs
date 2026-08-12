@@ -42,8 +42,7 @@ public sealed class RoomStyleLibraryEndpointsTests
     public async Task A_room_style_round_trips_with_its_stacks_in_order()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var stone = await StyleAsync(client, "stone", Blocks.Stone);
         var clay = await StyleAsync(client, "clay", Blocks.StainedClay);
@@ -73,8 +72,7 @@ public sealed class RoomStyleLibraryEndpointsTests
         // The reason the library is worth having for a style that only changes its roof: naming one part does
         // not blank the other two.
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var bedrock = BlockPalette.Hex(Blocks.Bedrock, 0);
         var clay = BlockPalette.Hex(Blocks.StainedClay, 0);
@@ -99,8 +97,7 @@ public sealed class RoomStyleLibraryEndpointsTests
         // this can tell is that the knobs reach the drawing at all: the same request that would be saved is
         // what is composed and stamped.
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var plain = Draft("plain");
         var baseline = await Preview(client, plain);
@@ -134,8 +131,7 @@ public sealed class RoomStyleLibraryEndpointsTests
         // The picker cannot offer a door the wool-room block rule does not name, or the cage it stamps has an
         // entrance nobody can open. Served from the one table both sides read.
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var doors = await client.GetFromJsonAsync<List<DoorOptionDto>>("/api/room-styles/doors") ?? [];
         await Assert.That(doors.Select(d => d.Slug))
@@ -147,8 +143,7 @@ public sealed class RoomStyleLibraryEndpointsTests
     public async Task A_style_a_room_binds_cannot_be_forgotten_while_it_does()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var stone = await StyleAsync(client, "stone", Blocks.Stone);
         await client.PostAsJsonAsync("/api/room-styles", Draft("bunker", new RoomCourseDto(RoomParts.Wall, 0, stone, 1)));
@@ -163,8 +158,7 @@ public sealed class RoomStyleLibraryEndpointsTests
     public async Task An_unknown_room_style_is_a_404_on_read_and_on_write()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         await Assert.That((await client.GetAsync("/api/room-styles/404")).StatusCode).IsEqualTo(HttpStatusCode.NotFound);
         await Assert.That((await client.PutAsJsonAsync("/api/room-styles/404", Draft("ghost"))).StatusCode)

@@ -21,8 +21,7 @@ public sealed class MetadataEndpointTests
     [Test]
     public async Task Patch_round_trips_authors_and_contributors()
     {
-        await using var factory = await SeedAsync("amap");
-        using var client = factory.CreateClient();
+        using var client = await SeedAsync("amap");
 
         var resp = await client.PatchAsJsonAsync("/api/map/amap/metadata", new
         {
@@ -50,8 +49,7 @@ public sealed class MetadataEndpointTests
     [Test]
     public async Task Patch_skips_authors_without_a_uuid()
     {
-        await using var factory = await SeedAsync("bmap");
-        using var client = factory.CreateClient();
+        using var client = await SeedAsync("bmap");
 
         await client.PatchAsJsonAsync("/api/map/bmap/metadata", new
         {
@@ -70,8 +68,7 @@ public sealed class MetadataEndpointTests
     [Test]
     public async Task Patch_replaces_authors_rather_than_appending()
     {
-        await using var factory = await SeedAsync("cmap");
-        using var client = factory.CreateClient();
+        using var client = await SeedAsync("cmap");
 
         await client.PatchAsJsonAsync("/api/map/cmap/metadata", new
         {
@@ -94,8 +91,7 @@ public sealed class MetadataEndpointTests
     [Test]
     public async Task Patch_without_authors_key_leaves_existing_authors_intact()
     {
-        await using var factory = await SeedAsync("dmap");
-        using var client = factory.CreateClient();
+        using var client = await SeedAsync("dmap");
 
         await client.PatchAsJsonAsync("/api/map/dmap/metadata", new
         {
@@ -121,8 +117,8 @@ public sealed class MetadataEndpointTests
     private static string? Field(JsonElement e, string key) =>
         e.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
 
-    /// <summary>Reset the test schema, seed one empty map, and return a factory bound to that DB.</summary>
-    private static async Task<ApiTestFactory> SeedAsync(string slug)
+    /// <summary>Reset the test schema, seed one empty map, and return a client onto it.</summary>
+    private static async Task<HttpClient> SeedAsync(string slug)
     {
         await ApiTestFactory.ResetSchemaAsync();
         await using (var db = new PgmDb(PgmDataOptions.ForConnectionString(ApiTestFactory.ConnectionString)))
@@ -133,6 +129,6 @@ public sealed class MetadataEndpointTests
                 CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
             });
         }
-        return new ApiTestFactory();
+        return ApiTestFactory.Shared.CreateClient();
     }
 }

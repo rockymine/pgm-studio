@@ -18,8 +18,7 @@ public sealed class PlanFeasibilityEndpointTests
     [Test]
     public async Task An_unproducible_exemplar_reports_both_halves_with_citations()
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var resp = await client.PostAsync("/api/plan/feasibility",
             new StringContent(ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"), Encoding.UTF8, "application/json"));
@@ -55,8 +54,7 @@ public sealed class PlanFeasibilityEndpointTests
     [Test]
     public async Task The_nearest_miss_carries_the_cells_the_canvas_paints()
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var resp = await client.PostAsync("/api/plan/feasibility",
             new StringContent(ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"), Encoding.UTF8, "application/json"));
@@ -75,8 +73,7 @@ public sealed class PlanFeasibilityEndpointTests
     [Test]
     public async Task A_plan_without_boxes_reads_empty_rather_than_erroring()
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var resp = await client.PostAsync("/api/plan/feasibility",
             new StringContent(ReadSeed("base-2wool.plan.json"), Encoding.UTF8, "application/json"));
@@ -90,8 +87,7 @@ public sealed class PlanFeasibilityEndpointTests
     [Test]
     public async Task Malformed_body_is_a_400_not_a_500()
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var resp = await client.PostAsync("/api/plan/feasibility",
             new StringContent("not a plan", Encoding.UTF8, "application/json"));

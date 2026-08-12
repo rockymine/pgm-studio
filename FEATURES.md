@@ -3956,3 +3956,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **README setup guide** — prerequisites, DB/user provisioning, dev + tests, and the two-step
   scan-out → import flow (incl. the stale-output `ROUND-TRIP DRIFT [kits]` gotcha + `--refresh-xml`
   fix). (B12)
+- **A database test resets by emptying its tables, and the Api tests share one host (B73).** The two
+  database-touching test projects spent most of their time arriving at a clean database rather than
+  testing against one. Each of the 81 resets dropped all 39 tables and re-applied all 19 migrations —
+  DDL, and InnoDB gives every table its own file to create and flush, so one reset cost **713 ms**
+  measured. A test cannot tell that apart from the same tables emptied, which is one round trip of DML
+  over rows that have already gone and costs **2.5 ms**. `tests/TestSchema.cs` is the shared reset —
+  linked into both projects rather than written out in each, since what would be duplicated is the
+  meaning of a reset and two copies of that is how they come to disagree about what a test starts from.
+  The migrations still run **once**: the reset reads the applied version first and rebuilds where it is
+  not the newest this build knows, which covers a fresh database, one left by an older build, and the
+  migration tests themselves, which delete a version row on purpose to prove the startup guard catches
+  it. `RebuildSchemaAsync` stays for the two tests whose subject *is* the migrating. The second half
+  is the host: `ApiTestFactory` documented itself as the single factory every test boots while 78 call
+  sites each built their own, at about half a second each. There is now one for the assembly, and what
+  makes that safe is where the API keeps its state — every service that reads or writes the database is
+  scoped, so it holds nothing across a request, and the only singletons are immutable configuration.
+  Measured over the same suite: **Data 25.6 s → 6.8 s**, **Api 72.9 s → 16.0 s**, the whole suite
+  **117 s → 42 s**, with the same 1744 tests passing. The saving grows on a slower disk, since what was
+  removed is fsync-bound DDL and what replaced it barely touches the disk at all. (B73)
