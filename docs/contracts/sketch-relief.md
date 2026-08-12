@@ -371,17 +371,26 @@ ground: a city, a keep, a walled compound. Its floor is not terrain and it is th
 rolling through it would put a slope under a wall and land its pattern differently on every stretch. So
 participation is a property of the **shape**, and there are three answers:
 
-| | The shape | The land around it |
+| | The shape | Does its height reach the land around it? |
 |---|---|---|
-| **inherit** | is part of the island; the relief flows through it | one continuous surface (the default) |
-| **hold** | keeps its own height and pins it | is solved *knowing* where it must arrive — it rolls up and meets the wall flush |
-| **exclude** | is taken out of the solve, leaving a hole | never learns the shape's height; the two meet at whatever step their decisions produce |
+| **inherit** | is part of the island; the relief flows through it | there is no separate height — one continuous surface (the default) |
+| **hold** | keeps its own height and pins it | **yes** — the surrounding surface is solved knowing where it must arrive, and moves when that height changes |
+| **exclude** | is taken out of the solve, leaving a hole | **no** — the land is whatever that outline would have produced at any height the shape is finally stamped at |
 
-The distinction is not visual, it is which of the two holds the other still. **Hold** lets the shape steer the
-terrain; **exclude** lets the terrain ignore the shape. Measured at the same compound's wall on the same
-board: held meets the land at a worst step of **1**, excluded at **8** — and that edge then qualifies as a
-cliff under EL6, 38 wide. A town in a valley and a citadel on a plinth are the same rectangle with one word
-changed.
+Two things about this were wrong in an earlier draft and are worth stating plainly, because both would
+mislead whoever builds the UI.
+
+**Both kinds change the ground around them.** An excluded shape is not ignored by the terrain: it is a hole,
+a hole has an outline, and the relaxation bends around it exactly as it bends around the void. What is
+different is not *whether* the land responds but *what it responds to* — a held shape's height travels into
+the surrounding surface, an excluded shape's does not. Solved at two very different heights, a held compound
+moves the land around it and an excluded one leaves it bit-identical, which is the property the tests assert.
+
+**Neither guarantees a flush meeting.** A flat pad laid across a slope has to pay for its flatness at its
+edge, whichever way it is bound — that is arithmetic, not a solver limitation. Hold spreads the payment as
+far as the relaxation can spread it; it does not remove it. On one prototype board held met the land at a
+step of 1 and excluded at 8, and that pair of numbers is that board's, not a law: the same compound stated
+ten blocks above its surroundings steps at its wall under either binding.
 
 An excluded shape is stamped back at its own height after the solve, so the built surface and the surface the
 relief was solved over are different objects. That is what lets the compound be moved, re-themed or restyled

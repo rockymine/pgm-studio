@@ -142,14 +142,15 @@ highlight); these are the parked / dormant / deferred slices.
   shape leaves steps of **8 and 7 blocks** at the seams where solving over the fusion leaves **1 and 1**, and
   a plan-derived sketch fuses equal-level pieces into exactly such an island. But the fusion is not always
   wanted, so participation is a property of the shape: **inherit** (the default, the relief flows through),
-  **hold** (the shape keeps its height and pins it, so the land is solved knowing where it must arrive and
-  rolls up to meet the wall flush — worst step 1), **exclude** (the shape is a hole the field bends around, so
-  the two meet at whatever step their decisions produce — worst step 8, and that edge then qualifies as a
-  cliff). Hold lets the shape steer the terrain; exclude lets the terrain ignore it, which is a town in a
-  valley against a citadel on a plinth. The case that decides it is a themed built thing — a city, a keep, a
-  walled compound — whose floor is not terrain and whose pattern must land the same on every stretch. An
-  excluded shape is stamped back after the solve, so it can be moved or re-themed without re-solving the
-  ground (`sketch-relief.md` §11).
+  **hold** (the shape pins its own height) and **exclude** (the shape is a hole the field bends around). The
+  difference is **whether the shape's height reaches the ground around it**, and not — as an earlier draft had
+  it — whether the land responds at all: both are boundaries, so both change the surrounding surface. Solved
+  at two very different heights, a held compound moves the land around it and an excluded one leaves it
+  bit-identical. Nor does either guarantee a flush meeting: a flat pad across a slope pays for its flatness at
+  its edge whichever way it is bound, and hold only spreads that payment as far as the relaxation can. The
+  case that decides it is a themed built thing — a city, a keep, a walled compound — whose floor is not
+  terrain and whose pattern must land the same on every stretch. An excluded shape is stamped back after the
+  solve, so it can be moved or re-themed without re-solving the ground (`sketch-relief.md` §11).
 
 - [ ] **S50 — Relief: push and pull a drawn shape, not a radius.** Every mark is a *constraint* — the ground
   here **is** twelve — which is what a solver needs and not what a hand wants: stated as a position and a
