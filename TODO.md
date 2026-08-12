@@ -12,7 +12,156 @@ When this board drains, pull the next theme up from `BACKLOG.md`. Board rules li
 Task ids are a section letter + number (`S13`, `B10`, `G15`) — **globally unique and stable** across all
 three files. Moving a task between files never changes its id; never renumber or reuse.
 
+## The focus: a map an agent can author, and that a player can win
+
+Sixteen maps were designed by an agent driving the system end to end, and every one of them was built. That
+is the result worth reading first — the machinery reaches from a prose description to a loadable world with
+no human in the middle. What the boards then showed is where the reach is thinner than it looks:
+**`tools/mapgen/review.md`** is the measured record of it, thirty-four `MG` entries in pipeline order, and
+**`tools/mapgen/surface.md`** is the map of the documents the tool should have been written against.
+
+The entries stay in `review.md` as evidence, the way `docs/generator/audit.md` holds the generator's; an
+entry **leaves it when its fix lands**. The twelve below are the ones promoted onto the board, and they are
+promoted in the review's own order of severity rather than in pipeline order.
+
+**The first six ship a map that cannot be played as intended, and four of those cannot be won at all.**
+They come first for that reason and for no other. The two after them are wrong on every board and cheap.
+The next two are what a goal needs to be legible and defensible on the ground. The last two are the loop
+itself: an agent that cannot see what it built cannot correct it, and one that cannot read what the system
+will accept reaches for a random answer where an author would reach for a deliberate one — which is the
+single thread running through most of `review.md`.
+
+What is deliberately **not** here: the design entries (a destroy board composed for destroy topology, a
+forest placed rather than scattered, per-shape paint, houses that differ from each other). They are the
+difference between a rough map and a good one, they are real, and they are a second wave — `review.md`
+holds them until one becomes the focus.
+
 ## Backend, pipeline & internals (B / P / A)
+
+- [ ] **B80 — A generated map goes out through the export composer** (`review.md` MG14, MG15, MG16, MG17).
+  `tools/mapgen` builds its document and calls `XmlWriter.ToXml(Deserializer.FromDict(doc))` directly, so it
+  skips `MapXmlComposer.Compose(doc, isIntent: true, …)` and everything the composer applies: `CtwStandards`
+  (the keep / repair / remove rules derived from the spawn kit, hunger depletion off, the shared
+  golden-apple kill-reward include), `WaterLaneGenerator.EnsureInclude`, `ResourceRenewables.Apply`,
+  `StructureRenewables.Apply`, and the reordering that puts the `not-build-area` rule **last**. That
+  ordering is load-bearing: PGM stops at the first applicator that decides, and that rule is what holds
+  players out of the void, which is the same void B82 refuses a goal over. Measured against the 365 corpus
+  capture maps outside the batch, a generated map is missing `<itemremove>` (99% carry it), `<toolrepair>`
+  (94%), `<itemkeep>` (81%) and `<hunger><depletion>off` (81%). One call is most of the fix. Two things ride
+  with it: everything `CtwStandards` derives sits behind `if (m.Kits.FirstOrDefault() is { } kit)`, so a
+  kitless map comes out with no loadout rules and **no warning** — that wants a report line rather than
+  silence (MG17); and the generated kit marks its tools `unbreakable="true"`, which leaves `toolrepair`
+  nothing to repair, so whether the generated kit keeps `unbreakable` once repair is present is a real
+  question to answer **against what the corpus kits do**, not by assumption.
+
+- [ ] **B81 — The kit's pickaxe is paired to the goal it has to break, and a goal nothing can break is
+  refused** (`review.md` MG18). The plan compiler defaults a destroyable's material to obsidian and the
+  generated spawn kit carries an **iron** pickaxe, which does not mine obsidian slowly — it does not mine it
+  at all. Every monument and every core in the seven destroy boards is therefore indestructible and every one
+  of those maps is unwinnable. The corpus never breaks the pairing: of 312 destroy maps, **86 name obsidian
+  in a goal's materials and all 86 carry a diamond pickaxe**, while 65% of the 226 with a softer goal carry
+  one anyway; only 30 carry both a diamond and an iron, so the usual shape is a **substitution** — the
+  destroy kit is the capture kit with its pickaxe upgraded, a kit variant rather than a second kit. Two ways
+  to be right and both are wanted: derive the pickaxe from the goal material when a destroy map is built, and
+  **refuse to write a map whose goal material no tool in its kit can break** — the second is what survives
+  someone later choosing a different material. Which is the third half of this: the material is already a
+  knob (`PlanModel`'s empty-means-obsidian, `MapIntent`'s destroyable materials, end stone and the softer
+  families the corpus uses) and the spec has no word for it, so a destroy map cannot ask for anything but the
+  default. Give the spec the word, then pair the kit to whatever it says.
+
+- [ ] **B82 — A goal standing over void is refused** (`review.md` MG3). An objective with no ground under it
+  cannot be reached or mined: there is nothing to stand on and nothing to break through, so the map is
+  unwinnable — and silent, because it builds and loads. This is an invariant rather than a quality note, and
+  it belongs in the tool as a **refusal**: a spec that sites a goal off the ground fails to build rather than
+  writing a board that cannot be played. The check is cheap, because the rasterized ground is already
+  computed before dressing and the goal's anchor either has a column under it or does not.
+
+- [ ] **B83 — The relief leaves the ground a room stands on alone** (`review.md` MG5). The surface is solved
+  after the spawn and wool rooms are sited, so a room ends up cut into a slope the relief invented under it.
+  Two rules in strength order: the ground a spawn or a wool room stands on is **left out of the solve**, and
+  failing that it is **never carved below** the room's floor — a surface solved downward under a stamped room
+  leaves the floor cut through or hanging over a hole, which is the version that breaks the map rather than
+  merely spoiling it. The machinery exists and is unused: a shape states `relief_scope` — `hold` pins it at
+  its own stated top so the surrounding surface is solved *knowing where it has to arrive*, `exclude` keeps
+  it out of the solve altogether — and `height_mode` with `skirt` sits a stated platform into the terrain
+  rather than on it. Every structural shape `PlanCompiler` projects (`spawn-*`, `wool-*`) is exactly the case
+  those words were written for, and none of them sets either.
+
+- [ ] **B84 — A spawn faces the board, not the drop** (`review.md` MG4). The spawn's yaw decides which wall
+  its door is cut through, so a spawn on the edge of a piece with its yaw pointing outward puts its only exit
+  over the void. The direction is settable and is currently inherited from whatever the compiler fanned; it
+  should be chosen against the ground — at the board rather than off it.
+
+- [ ] **B85 — Nothing is placed inside anything else** (`review.md` MG7). Buildings stand inside buildings,
+  trees grow inside trees, and trees grow through buildings — not merely ugly, since a structure through a
+  room's wall is a hole in it and a tree through a doorway is a blocked route. The village pass keeps
+  buildings a margin apart and the forest pass keeps trees a margin from buildings placed before it, but the
+  margins are small, the checks are site-against-site rather than footprint-against-footprint, and the
+  symmetry fan places an orbit image nothing tested. Overlap has to be decided against the **occupied cells**
+  of everything already standing, **after** fanning, rather than against the anchor a prop was requested at.
+  B86 is the other half of the same seam and the two want reading together.
+
+- [ ] **B86 — A prop is decided once for its whole orbit** (`review.md` MG26). A mirrored board whose trees
+  differ side to side reads as broken however good each side is, and the mechanism is known: `Decorator.Fan`
+  loops the symmetry orbit and runs `Seats` per image, so a `continue` on failure drops **that image only**.
+  A tree whose mirror lands a block nearer a protected column, or on ground the relief left slightly steeper,
+  is built on one side and missing on the other. A prop has to be decided once for the whole orbit — seat
+  every image or none — and the same applies to anything else placed per-cell rather than per-orbit.
+
+- [ ] **B87 — A wool-room chest opens into the room** (`review.md` MG20). The chests stamped in a wool room
+  are not turned to the room they open into, so some present their back to the player and can only be opened
+  from inside the wall. A chest's facing is a block data value resolved against which wall it sits on and
+  which way the room is entered — the same question the room's door already answers, which is where the
+  answer should come from.
+
+- [ ] **B88 — A destroyable stands on a platform, and the platform is one block thick** (`review.md` MG23).
+  A 5×5 bedrock platform **one block thick**, seated one block beneath the ground under each destroyable, so
+  the monument cannot be undermined from below and the ground it stands on cannot be mined out from under the
+  goal. One block is the whole of it — a thicker slab is a wall growing out of the floor and reads as one.
+  Nothing stamps a platform today; `StructureStamper` is where it goes, and `DressingScope` already protects
+  the ground under a stamped structure.
+
+- [ ] **B89 — Every goal carries a marker above build height** (`review.md` MG24). A wool room, a destroyable
+  and a core each want a mark high above them — a small cube, or a letter picked out in blocks — so a player
+  crossing open ground knows where the goal is without a map. It is the cheapest legibility a board can
+  carry. **Above build height** is the part that matters: `BuildIntent.MaxHeight` already caps building, so a
+  marker placed over it is out of reach and cannot be griefed by construction.
+
+- [ ] **B90 — Every stage answers with a picture.** The system renders itself at every stage and the sixteen
+  maps used none of it: they were judged from one top-down at three pixels to the block, at the end, after
+  every decision had already been made (`review.md` MG13, MG30). Every fault in that document about
+  *appearance* — the rim everywhere, the identical walls, the asymmetric trees, the closed canopy — was
+  visible in an image nobody rendered. The working rule is that **a stage that produced something is looked
+  at before the next stage consumes it**, and what makes that rule followable is a picture per stage that is
+  one call away. Three families already exist and are the material: the thirteen API previews that answer a
+  document without building a world (`/terrain/theme-preview`, `/terrain/theme-map-preview`,
+  `/terrain/material-preview`, `/terrain/prop-preview`, the room / roof / porch / storey style previews,
+  `/themes/preview`, `GET /plans/{id}/svg`, `GET /shapes/probe`); the world read-backs in
+  `tools/PgmStudio.RoundTrip` (`--topdown`, `--heightmap`, `--contour`, `--surface`, `--traversability`,
+  `--buildings`, `--structures`); and the relief prototype's section and step map. The work is not new
+  renderers — it is that each pipeline stage has **one named PNG** an agent can ask for by name, that the
+  plan renders as a raster and not only as SVG (the `plan_render` half of `B21`, which is the piece with no
+  code behind it), and that `tools/mapgen` emits the set as it builds rather than leaving them to be
+  remembered. A rendered board also wants reading from more than one view, since a top-down hides everything
+  about the third dimension — whether a drop is walkable, whether a room's floor sits where the relief left
+  it, whether a goal has ground under it, which is B82's fault seen rather than asserted.
+
+- [ ] **B91 — The handbook: what the system can be asked for, and where to say it.** `surface.md` maps the
+  four documents a map is made of and where each generator lives, and it is the reference that was missing.
+  What it is not yet is a **handbook** — the thing an agent reads to know what is expressible before it
+  writes anything, which is the gap `review.md` MG29 names: the tool reached for a random answer wherever an
+  author would reach for a deliberate one, because the spec format it was written against could only say one
+  theme and a rim. The handbook states the reachable surface as capability rather than as file layout: that a
+  shape carries its own theme, floor, `base_height`, per-vertex anchor heights, `height_mode`, `skirt` and
+  `relief_scope`; that a `TerrainTheme` holds a rim band, a surface band with its own depth, a wall, a fill
+  and a per-shape scope; that the relief mark vocabulary is five kinds and not a scatter count; that a
+  `HouseStyle` carries a roof form and pitch, an overhang, a verge, stacked `RoomCourse` bands, posts, a
+  sill, window styles, gable windows, a door head, beams and a storey stack, and that a `Footprint` carries
+  wings; **and that a destroyable's and a core's material is a knob** — obsidian is the default and end stone
+  and the softer families are equally sayable, which nothing in the batch used and which B81 makes safe to
+  turn. It is written for an agent, so every capability names the document that carries it and the endpoint
+  that answers it; the shipped `HousePresets` docstrings are the worked example of the method, since each is
+  the prose brief its style was built from.
 
 - [ ] **B79 — `map-layers` e2e: the plan editor's Compile button never arrives (13/14).** The suite drives to
   `/maps/{slug}/plan` on the seed's built map, then clicks `button:has-text("Compile")` to check that a
@@ -39,88 +188,3 @@ three files. Moving a task between files never changes its id; never renumber or
   candidate is to test the resting cells against protection and let the crown overhang — which is already
   the rule `Seats` applies to *ground* ("what is above may overhang nothing at all"), just not to
   protection. Gate it on the corpus: a hand-built map's trees do overhang its structures.
-
-- [ ] **B43 — Retire the Python-oracle parity harness.** The project began as a port of the Python
-  `pgm-map-studio` and still carries a parity harness that regenerates Python "oracles"
-  (`parser.parse + serializer.to_dict` over the corpus at `/media/sf_repos/pgm-map-studio` into `/tmp/pyfresh`)
-  and diffs the C# derivations against them. That reference is deprecated dead weight: the C# feature set
-  overtook it long ago (the `map.xml`-contract `--parity` was already dropped, B30), and comparing every
-  refactor against a frozen, out-of-date oracle makes safe changes look risky and blocks cleanups (it just
-  did — the grid-algorithm consolidation, fix 1). Remove the four `*Parity` modes from
-  `tools/PgmStudio.RoundTrip/Program.cs` (`--categorize` / `--buildability` / `--traversability` / `--wool`)
-  and their regenerate-from-Python scaffolding; the project-native modes (`--extract` / `--islands` /
-  `--scan-out` / `--authoring` / `--monument-slices` / …) stay. **Keep the concept — a regression / golden
-  harness — but re-home it as project-native** (C# goldens or fixtures over the corpus, no second framework).
-  Then sweep the residue: the `/media/sf_repos` + `/tmp/pyfresh` mentions and the parity paragraph in
-  `CLAUDE.md` (Verification & gotchas) and the docs, and the "Port of X.py" / "matches scipy.ndimage" attribution
-  comments in the ported C# (`Analysis/IslandDetector`, `Analysis/Traversability`, …)
-  that the code-comments rule already bans. `appsettings.Development.json`'s `MapsRoots`/`Import.Root` point at
-  the reference VM but are import-only — repoint or document, don't leave dangling.
-
-## Sketch tool (S) — relief (drained)
-
-A relief can now be seen and stated: the solver and its wire document, the rasterizer seam, the recompile
-rule, the contour overlay, and a Relief phase whose five tools place the four mark kinds and the push, each
-with a list row, an inspector and its own point grips (`FEATURES.md`). The model is reachable by hand and by
-mouse, and what it produces is on screen while it is being stated.
-
-The authoring half is done: a contour can be grabbed and moved to state a height, and each preview resumes
-from the surface the last one settled on (`FEATURES.md`). The design, its measurements and the authoring plan
-are `docs/contracts/sketch-relief.md`; the prototype every figure comes from is `tools/relief`.
-
-**This theme has drained.** What remains of relief is parked in `BACKLOG.md` and is no longer the focus:
-water reading the relief (S46), the later passes folding (S42), a path's height varying along it (S56) and a
-pressure budget (S47). Pull one up when it becomes the work.
-
-## Layout generation (G) — the generator in the studio
-
-The box pipeline is now **the** composer (the old grower path is retired — `FEATURES.md`), and the
-emitted layouts are good enough to work *with*: the bottleneck has moved from the grammar to the
-feedback loop. A standalone gallery script with a handful of seeds gives the author no control over the
-variables and no way to record judgments. This theme integrates the generator into the studio itself —
-compose interactively, filter what to see, and **collect annotated keep/discard verdicts** that become
-the labeled positive/negative corpus every later refinement (rules, envelopes, AI passes) feeds on.
-Build order: the persistence foundation → browse → verdicts → duels (G119 → G117 → G118 → G120); the
-showcase (G121), the persistence foundation (G119), browse mode (G117), its structural sieve
-(G128 — form/family filters) and the shape catalog page (G144) have shipped — see `FEATURES.md`. The
-catalog lands ahead of verdicts on purpose: it is the reference surface for the vocabulary the tags are
-written in, and its measured class counts are what make per-bucket coverage tractable later.
-**Verdicts (G118) is next**, and it now
-owns the up/down votes deferred out of browse (the browse pin is the only persistence action so far,
-and the structural bucket key it stores is G118's verdict column / G120's duel bucket). The design long tail this focus deliberately
-displaced is condensed in **`docs/generator/ideas.md`** (ids preserved — pull one back here
-when it becomes the focus).
-
-**Persistence doctrine for the whole theme: the feed is ephemeral; only human attention persists.** A
-plan enters the database exactly when it is voted on, pinned, or saved from the editor — never while
-scrolling. Generated rows are **immutable**: editing one forks a new `authored` row with a `parent_id`
-back-reference, so the labeled corpus cannot be contaminated after the fact. Browse votes (absolute)
-and duel results (pairwise preference) are **separate datasets**, unified only at analysis time. The
-hold tray persists across reloads — pinned *means* persisted.
-
-- [~] **G159 — a composed plan should carry its voids before it is compiled.** The compiler declares them on
-  every compile (`PlanVoids`, `FEATURES.md`), so a board's holes are correct wherever it is built. What a
-  freshly composed plan does not yet carry is the declaration itself: `Composer.Compose` returns pieces only,
-  and the buffers appear when something compiles it. Running the same step at the end of `Composer.Assemble`
-  makes a generated plan self-describing from birth — one line, no new geometry, and it cannot disagree with
-  the compiler because it is the same step. The cost is the reason it is not folded in already: the composer
-  fingerprint digests the plan JSON, so every board's digest moves, which means a `ComposerVersion` bump and a
-  re-record of `tools/compose/composer-fingerprints.json`. Worth doing on the next version bump rather than
-  spending one on annotation.
-
-- [ ] **G118 — Verdict collection.** Tap-chip annotation tags (large toggleable pills, multi-select —
-  never checkboxes) available on both vote directions, both optional; the tag set seeded from the
-  layout-rules vocabulary (wools-too-close · wools/spawns-should-swap · flat-front · crammed-mid ·
-  no-rotation · great-hub · …, extendable), each tag carrying its rule id where one exists — a
-  downvote tagged with a rule whose term did *not* fire is a ready-made evaluator bug report. Persist
-  {plan ref, descriptor, verdict, tags, free-text note, evaluator score + per-term snapshot, evaluator
-  version} via G119; JSONL export so the labeled examples drive rule refinement, envelope
-  regeneration, and AI-assisted analysis.
-
-- [ ] **G120 — Duel mode (the tournament).** Bucket-scoped side-by-side comparison: a **bucket** is a
-  filter combination (e.g. 2 wools · F frontline · double-hole hub · one L + one donut), so both
-  boards made broadly the same structural decisions — the closest thing to a controlled comparison,
-  and a minimal-pair factory for the evaluator's labeled set. Two big renders, pick the better; the
-  result is a **preference pair** `(winner, loser, bucket)` — never converted into a downvote — with a
-  per-bucket ranking (Bradley-Terry/Elo-style) derived at analysis time. A separate dataset from the
-  browse votes by design.
