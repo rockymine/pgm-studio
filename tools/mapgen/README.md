@@ -95,9 +95,22 @@ wall material paints most of the surface reads as a quarry rather than as terrai
 `jungle` `acacia` `dark oak`. `whorled` gathers a grown tree's branches into rings — the conifer against the
 broadleaf.
 
-**Ask for more trees than you want.** The dressing pass drops a prop if any cell it occupies falls on a
-protected column, and it is normal for well under half of a requested forest to seat on a generated board.
-The report says how many sites were found and how many leaves stand, which is how to tell the two apart.
+**Ask for two or three times the trees you want.** The dressing pass drops a prop if any cell it occupies
+falls on a protected column, and it is normal for well under half of a requested forest to seat on a
+generated board. The report says how many sites were found and how many leaves stand, which is how to tell
+the two apart: few *sites* means the ground was rejected as too steep or too near an objective, while many
+sites and few *leaves* means the pass dropped what was offered.
+
+**Aim the leaf count, don't just clear a floor.** Around **1,000–5,000 leaves** on a board of this size reads
+as wooded — trees you walk between. Under a few hundred is a bare map with a shrub on it. Above roughly
+**10,000 the canopy closes** and the map disappears underneath it: a spruce forest at 17,600 leaves on a
+120×240 board rendered as one solid green mass with the terrain, the buildings and the routes all buried.
+Density is a design decision, so read the number and then adjust it in both directions.
+
+**Relief and dressing compete for the same ground.** Steep terrain is not merely rougher, it is unplantable:
+a scarp at face 3 over a 9-block band left 113 of 520 tree sites standing and *none* of them seated, and the
+same map with the face lowered and the band widened to 16 carried 785 leaves. If a forest will not seat,
+suspect the relief before the trees.
 
 **A grown tree is held to 14 blocks** whatever `max_height` says, because past that it stops being placed at
 all rather than being placed tall: measured over one board at twenty-four sites, a grown oak lands 590 leaves
@@ -127,6 +140,39 @@ dig out, and a wool foundation is laid in it too.
 
 `slug` `name` `objective` `authors` `out_dir`. Absent, `out_dir` is
 `/media/sf_repos/CommunityMaps/dtcm/<slug>`.
+
+## A whole one
+
+Everything above, as one spec that builds a map worth walking. `objective_mode` is omitted because `ctw` is
+the default; say it when the map is a destroy map.
+
+```json
+{
+  "slug": "thornwake", "name": "Thornwake",
+  "objective": "Two woods, one wool each. Cross the hollow and take theirs.",
+  "authors": ["mapgen"],
+  "out_dir": "/media/sf_repos/CommunityMaps/ctw/thornwake",
+
+  "compose": { "players_per_team": 15, "teams": 2, "symmetry": "mirror_x", "seed": 11, "cell": 9 },
+
+  "theme": { "surface": "grass", "wall": "loam", "rim": "ash", "fill": "grey stone", "pattern": "noise" },
+
+  "relief": {
+    "base": 6, "step": 1, "stairs": true,
+    "grain":   { "amplitude": 1.8, "scale": 13, "seed": 11 },
+    "scatter": { "count": 12, "min_h": 3, "max_h": 12, "radius": 22, "seed": 11 }
+  },
+
+  "trees":   { "count": 210, "form": "mixed", "woods": ["oak", "birch", "spruce", "dark oak"],
+               "min_height": 9, "max_height": 22, "seed": 11, "clearance": 11 },
+  "village": { "count": 4, "seed": 11, "clearance": 15 },
+
+  "room_shell": { "wool": "cottage", "spawn": "longhouse" }
+}
+```
+
+It reports `4 building(s) · 171/210 tree site(s)` and `6294 leaves` — a wood you can walk through, on ground
+that rises and falls, with four buildings on it and its two rooms raised as houses.
 
 ## Seeing it
 

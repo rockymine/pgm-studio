@@ -106,8 +106,11 @@ for (const [label, body] of [["not json", "{{{"], ["empty", ""], ["an array", "[
   checks.add(`${label} → 4xx, never 5xx`, res.status >= 400 && res.status < 500, `${res.status}`);
 }
 
-checks.section("finish will not rasterize a map with too little land");
-// A sketch draft whose layout holds a single small shape cannot make two islands; Finish must say so.
+checks.section("finish takes one island, and refuses only bare ground");
+// One connected landmass is a map, not a half-drawn one: 17% of the destroy-the-monument corpus is a single
+// island and 26% carries a single major one, and the layout generator's own boards compile to exactly one.
+// Symmetry decides whether a board has two sides and is stated in the setup, so Finish must accept this and
+// refuse only a layout that rasterizes to no ground at all.
 const draft = await apiRaw("/sketch", { method: "POST", body: { name: "E2E refusal draft" } });
 if (draft.status === 200 && draft.json?.slug) {
   const slug = draft.json.slug;
@@ -120,10 +123,23 @@ if (draft.status === 200 && draft.json?.slug) {
   };
   await apiRaw(`/map/${slug}/sketch`, { method: "PUT", body: oneShape });
   const fin = await apiRaw(`/map/${slug}/sketch/finish`, { method: "POST" });
-  checks.add("finish refuses a one-island layout", fin.status === 422, `${fin.status}: ${(fin.json?.error ?? fin.text).slice(0, 120)}`);
-  await apiRaw(`/map/${slug}/sketch/discard-if-empty`, { method: "DELETE" });
+  checks.add("finish accepts a one-island layout", fin.status === 200, `${fin.status}: ${(fin.json?.error ?? fin.text).slice(0, 120)}`);
+
+  // Nothing drawn is the one thing left to refuse.
+  const bare = await apiRaw("/sketch", { method: "POST", body: { name: "E2E bare draft" } });
+  if (bare.status === 200 && bare.json?.slug) {
+    const bareSlug = bare.json.slug;
+    await apiRaw(`/map/${bareSlug}/sketch`, { method: "PUT", body: {
+      setup: oneShape.setup,
+      layers: [{ id: "l1", name: "Ground", base_y: 0, layout: { shapes: [], islands: [] } }],
+    } });
+    const bareFin = await apiRaw(`/map/${bareSlug}/sketch/finish`, { method: "POST" });
+    checks.add("finish refuses a layout with no ground", bareFin.status === 422,
+      `${bareFin.status}: ${(bareFin.json?.error ?? bareFin.text).slice(0, 120)}`);
+    await apiRaw(`/map/${bareSlug}/sketch/discard-if-empty`, { method: "DELETE" });
+  }
 } else {
-  checks.add("finish refuses a one-island layout", false, `could not create a draft: ${draft.status}`);
+  checks.add("finish accepts a one-island layout", false, `could not create a draft: ${draft.status}`);
 }
 
 checks.finish();

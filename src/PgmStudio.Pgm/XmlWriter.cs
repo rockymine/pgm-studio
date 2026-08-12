@@ -172,20 +172,34 @@ public static partial class XmlWriter
         parent.Add(block);
     }
 
+    /// <summary>
+    /// The authors and contributors, each written as the kind of contributor it actually is.
+    ///
+    /// <para>PGM takes a person <b>either</b> as an account — <c>uuid</c>, which it resolves to a player —
+    /// <b>or</b> as a pseudonym, the element's own text. Its parser reads the uuid attribute whenever the
+    /// attribute is <em>present</em> and rejects the map if the value is not a UUID, so a name-only author
+    /// must be written with no uuid attribute at all rather than an empty one: <c>&lt;author uuid=""/&gt;</c>
+    /// fails the map to load. It then requires that at least one of the two arrived, so a person carrying
+    /// neither is dropped here rather than written out as something PGM will refuse.</para>
+    ///
+    /// <para>A named account keeps the name as a sibling comment — the corpus convention, on its own line at
+    /// the same indent — because there the name is a resolved label for the uuid and not the identity.</para>
+    /// </summary>
     private static void WriteAuthors(XElement parent, List<Author> authors)
     {
         void Block(string blockTag, string itemTag, List<Author> people)
         {
-            if (people.Count == 0) return;
+            var writable = people.Where(a => a.Uuid.Length > 0 || a.Name.Length > 0).ToList();
+            if (writable.Count == 0) return;
             var block = new XElement(blockTag); parent.Add(block);
-            foreach (var a in people)
+            foreach (var a in writable)
             {
-                var e = new XElement(itemTag); Set(e, "uuid", a.Uuid);
+                var e = new XElement(itemTag);
+                if (a.Uuid.Length > 0) Set(e, "uuid", a.Uuid);
+                else e.Value = a.Name;
                 if (a.Contribution.Length > 0) Set(e, "contribution", a.Contribution);
                 block.Add(e);
-                // Resolve uuid → username as a sibling comment (its own line at the same indent, the corpus
-                // convention) so the human name is visible next to the uuid. Skipped when unresolved.
-                if (a.Name.Length > 0) block.Add(new XComment($" {a.Name} "));
+                if (a.Uuid.Length > 0 && a.Name.Length > 0) block.Add(new XComment($" {a.Name} "));
             }
         }
         Block("authors", "author", authors.Where(a => a.Role == "author").ToList());

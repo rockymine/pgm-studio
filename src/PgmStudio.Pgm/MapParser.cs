@@ -291,19 +291,29 @@ public sealed partial class MapParser
     }
 
     // ── sections ────────────────────────────────────────────────────────────────────
+    /// <summary>The authors and contributors. A person is an account (<c>uuid</c>) <b>or</b> a pseudonym (the
+    /// element's own text) — PGM takes either and requires one, so reading only the uuid dropped every
+    /// name-only author a map declared and lost them on round-trip.</summary>
     private List<Author> ParseAuthors()
     {
         var authors = new List<Author>();
-        foreach (var elem in (_root.Elements("authors").FirstOrDefault()?.Elements("author") ?? []))
+        void Read(string blockTag, string itemTag, string role)
         {
-            var uuid = Xml.Get(elem, "uuid", "");
-            if (uuid.Length > 0) authors.Add(new Author { Uuid = uuid, Role = "author", Contribution = Xml.Get(elem, "contribution", "") });
+            foreach (var elem in (_root.Elements(blockTag).FirstOrDefault()?.Elements(itemTag) ?? []))
+            {
+                var (uuid, name) = (Xml.Get(elem, "uuid", ""), (elem.Value ?? "").Trim());
+                if (uuid.Length == 0 && name.Length == 0) continue;
+                authors.Add(new Author
+                {
+                    Uuid = uuid,
+                    Name = name,
+                    Role = role,
+                    Contribution = Xml.Get(elem, "contribution", ""),
+                });
+            }
         }
-        foreach (var elem in (_root.Elements("contributors").FirstOrDefault()?.Elements("contributor") ?? []))
-        {
-            var uuid = Xml.Get(elem, "uuid", "");
-            if (uuid.Length > 0) authors.Add(new Author { Uuid = uuid, Role = "contributor", Contribution = Xml.Get(elem, "contribution", "") });
-        }
+        Read("authors", "author", "author");
+        Read("contributors", "contributor", "contributor");
         return authors;
     }
 

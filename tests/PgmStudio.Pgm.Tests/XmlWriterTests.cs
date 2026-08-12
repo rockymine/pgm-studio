@@ -43,6 +43,43 @@ public sealed class XmlWriterTests
         await Assert.That(xml).DoesNotContain("<!--");
     }
 
+    /// <summary>PGM reads the <c>uuid</c> attribute whenever it is present and refuses the map if the value
+    /// is not a UUID, so an author who is only a name must be written as the element's text with no uuid
+    /// attribute at all. Writing an empty one fails the map to load rather than degrading.</summary>
+    [Test]
+    public async Task An_author_without_an_account_is_written_as_a_name_not_an_empty_uuid()
+    {
+        var m = new MapXml
+        {
+            Name = "Test", Version = "1.0.0",
+            Authors = [new Author { Role = "author", Name = "mapgen" }],   // no Uuid
+        };
+        var xml = XmlWriter.ToXml(m);
+
+        await Assert.That(xml).DoesNotContain("uuid=\"\"")
+            .Because("PGM parses a present uuid attribute and rejects a map whose value is not a UUID");
+        await Assert.That(xml).Contains("<author>mapgen</author>");
+
+        // and it survives the read back, as the same pseudonym
+        var reparsed = MapParser.ParseXmlString(xml);
+        await Assert.That(reparsed.Authors.Count).IsEqualTo(1);
+        await Assert.That(reparsed.Authors[0].Name).IsEqualTo("mapgen");
+        await Assert.That(reparsed.Authors[0].Uuid).IsEqualTo("");
+    }
+
+    /// <summary>A person carrying neither an account nor a name is something PGM refuses outright, so the
+    /// writer drops them rather than emitting an element that fails the map.</summary>
+    [Test]
+    public async Task An_author_with_neither_a_name_nor_an_account_is_not_written()
+    {
+        var m = new MapXml
+        {
+            Name = "Test", Version = "1.0.0",
+            Authors = [new Author { Role = "author" }],
+        };
+        await Assert.That(XmlWriter.ToXml(m)).DoesNotContain("<authors>");
+    }
+
     [Test]
     public async Task Kit_force_and_potion_effects_round_trip()
     {
