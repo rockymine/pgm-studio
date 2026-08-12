@@ -3587,6 +3587,48 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   because a slab only exists under something and a storey drawn alone is a top storey, so the knob would
   otherwise be one whose picture never moves (the B70 failure). The **cutaway** is the view that shows it, the
   section being a projection of the outside with the near wall in front of the slab. (B74)
+- **A door clears the post it was handed past, and a window can arch (B75).** A house cutting its own doorway
+  already kept a block of wall clear of each corner post and narrowed the opening rather than giving the margin
+  up, so a five-wide framed face carries a centred single opening. A door handed **in** kept nothing — and that
+  is the path a wool room's frame takes and the path every library preview takes, so the cards had been drawing
+  a two-wide door hard against the pillar. Both paths now go through one fit. The margin is applied **only where
+  the style stands a post**, which is the whole of the rule: a postless corner is wall like the rest of the
+  building, an opening beside it takes nothing that was carrying anything, and WX7's own margin already keeps a
+  cage's door off the corner — inventing a second one would narrow every wool cage's door for a column that is
+  not there. `WindowForm.Arched` is the door head's trick on a window: an upside-down stair in each of the
+  opening's two top corners and light under them, two wide at the least because an arch is its two corners and
+  one cell cannot hold both, two tall at the least because a head that took the only course would be an arch
+  over nothing. And `HouseStyle.DoorEdge` lets a building name the wall it fronts on. A hall is what wanted it:
+  windows are spread and centred on a wall's run and a doorway is centred on the same run, so on a long building
+  they land on each other and the seats a door meets are dropped — a twenty-one-wide wall entered in the middle
+  loses the two windows either side of its door. Entered at the gable end it keeps all four a side. (B75)
+- **A village of five houses, cut from one masonry (B76).** `HousePresets.Village` — a cottage, a longhouse, a
+  terrace, a counting house and a workshop, meant to stand together rather than to sample the model. They share
+  one masonry and one timber, so what separates them is what each is *for* — small and steep, long and low, tall
+  and narrow — rather than what each is made of: a settlement whose buildings differ in material reads as five
+  settlements, one whose buildings differ in proportion reads as a village. Each is under the 192 blocks a
+  dressing building is allowed, so every one can be dragged onto a map. The masonry is **stone and polished
+  andesite** checkered a block at a time, and the pair is the point: they differ in texture and not in hue, so
+  the board reads as coursed stonework rather than as a chequerboard. That is the rule for checkering a wall — a
+  checker states the grid it is laid on, so the two squares must be near enough in value that the grid becomes a
+  texture, and two blocks a player can name apart across a courtyard make a draughtboard. Size 1, because the
+  board reads off the wall's own perimeter arc and a one-block square carries the alternation round a corner
+  without a seam. Proportion was **measured rather than eyeballed**, and two of the five were wrong: the cottage
+  at pitch 2 was 64% roof and the workshop's shed 65%. The workshop's fix is the one worth keeping — a shed
+  climbs the whole of its shorter span where a gable climbs half of one, so on anything but a shallow building it
+  is all roof, and half courses buy the same lean-to for half the height. Both sit at 50% now. (B76)
+- **A wall that is all host takes a row, not one window (B77).** A window may name the block it is cut into, so
+  that on a banded wall an opening lands in the planks rather than across the seam. The seater found each
+  unbroken panel of that block and centred **one** window in it — right for a band, wrong for everything else,
+  because a host names a block and not a band: a wall that is one material at the sill course resolves to a
+  single panel the length of the whole run, and one window centred in that is one window on a twenty-one-block
+  hall. Each panel is now spread and centred exactly as a whole wall is, so a two-cell band still holds one
+  two-wide window and no more while a uniform wall gets its row — the longhouse goes from one window a side to
+  four, and lengthening it adds windows rather than stretching the gaps. Only the seam between two panels can
+  now be too tight, since within one the spread has already left a clear spacing. Worth recording how it was
+  missed: the measurement that claimed four a side passed **no host question** to the seater, and with none the
+  seater takes the spacing path — it measured the branch the building does not walk. Reading the stamped world
+  is what found it. (B77)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds

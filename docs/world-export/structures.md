@@ -324,14 +324,18 @@ top and the doorway it fronts left open to the sky twenty courses below.
 
 ### 7.4 Windows are cut, and chosen as a block
 
-Four forms. A **stair lattice** is four stairs in a 2×2 hole, each with its raised half toward the outside of
+Five forms. A **stair lattice** is four stairs in a 2×2 hole, each with its raised half toward the outside of
 the group, so the quarter each is missing meets in the middle and the window is open — there is no glass in
 it. A **slab band** is a slab sill, an upside-down slab lintel and the course between them cut clean through;
 the two half-blocks make the opening read taller than the one course actually removed. **Panes** are the
 ordinary glazed window. **Open** is the hole and nothing in it — cut and left, which is not the same as asking
-for no windows at all. Size belongs to the form as much as to the author: a lattice is 2×2 because the four
-missing quarters are the whole trick, and a band is three courses because a sill and a lintel with nothing
-between them is not a window; an open one is entirely the author's, since no form is imposing a shape on it.
+for no windows at all. An **arched** opening carries an upside-down stair in each of its two top corners and
+nothing anywhere else: it is the door head's trick (§7.5) on a window, the same two stairs taking the
+squareness out of the same square hole. Size belongs to the form as much as to the author: a lattice is 2×2
+because the four missing quarters are the whole trick, a band is three courses because a sill and a lintel with
+nothing between them is not a window, and an arch is two wide and two tall at the least — two corners are the
+whole of an arch and one cell cannot hold both, and a head that took the only course would be an arch over
+nothing. An open one is entirely the author's, since no form is imposing a shape on it.
 
 Seating is the half that has to be right, because a window is cut out of a wall that already stands. Each wall
 is seated on the run **between its two corner posts**, the windows are spread evenly and centred on that run —
@@ -345,8 +349,16 @@ the same question and spacing seats a window well enough. Where it bands — a r
 of planks — they come apart: a seat chosen by spacing lands half in one band and half in the next, and an
 opening cut across that seam reads as damage rather than as a window. A style may therefore name a **host
 block**, and then the material divides the run instead of the spacing doing it: the seater walks the wall,
-finds each unbroken panel of the host, and centres a window in every panel wide enough to hold one. On a wall
-whose bands are four cells and whose spacing is five, the two almost never agree on their own.
+finds each unbroken panel of the host, and **spreads that panel exactly as it would spread a whole wall**. On a
+wall whose bands are four cells and whose spacing is five, the two almost never agree on their own.
+
+The panel is spread rather than given one centred window, and a **uniform** wall is why. A host names a block,
+not a band, so a wall that is one material at the sill course resolves to a single panel the length of the
+whole run — and one window centred in that is one window on a twenty-one-block hall, which is the wall a row is
+most the point of. Spreading each panel gives the banded wall exactly what it had, since a two-cell band holds
+one two-wide window and no more, and gives the uniform wall the row it was always asking for. Only the seam
+between two panels can then be too tight, because within one the spread has already left a clear spacing
+between neighbours.
 
 The seater is told none of this. It takes the host as a **question** — may a window be cut at this cell? — and
 the stamper answers by resolving the wall exactly as the pass that laid it did, same course, same arc, same
@@ -373,6 +385,31 @@ to walk straight out, and the spawn protection rule already keeps enemies from w
 Windows are deliberately **not** on that list, and the distinction is worth stating. A door is the way an
 attacker gets in and so is governed by a filter; a window is a hole a player can see through and, in a
 lattice's case, shoot through, but it is never the entrance the block rule is about.
+
+**A doorway keeps a block of wall clear of each corner post, and the door is what gives way.** Clearing the
+corner cell is not enough: an opening starting in the very next cell still meets the post, and a door hard
+against the post reads as a hole knocked through the frame rather than as a way in. The margin costs four
+blocks of the face, so a five-wide framed face has one cell left and carries a **centred single opening**
+rather than a two-wide one against a column — a building too narrow for the door it asked for says so by
+having a narrow door, not by cutting through its own frame. Only a face with no seat at all falls back to the
+run between the corners, because a building nobody can walk into is worse than one with a tight door.
+
+The margin is kept **for the post and only for the post**, and that is what decides whether a frame's door is
+moved. A frame's doors are the entry contract (§4) and keep the wall the frame chose — but a frame knows the
+room and not the building, so where the style stands a post the opening is fitted clear of it, narrowing if it
+must. Where the style stands none the door is taken exactly as handed: a postless corner is wall like the rest
+of the building, an opening beside it takes nothing that was carrying anything, and WX7's own margin already
+keeps a cage's door off the corner cell. Inventing a second margin there would narrow every wool cage's door
+for a column that is not there. This is the path a **library preview** takes as well as a wool room, which is
+where it was visible: every card was drawing its door against the pillar.
+
+**A style may name the wall it fronts on**, and a hall is what wanted it. Windows are spread and centred on a
+wall's run (§7.4) and a doorway is centred on the same run, so on a long building the two land on each other —
+and a seat a door meets is dropped rather than shifted. A twenty-one-wide wall entered in the middle loses the
+two windows either side of its door and reads as a row with a hole punched in it; entered at the gable end it
+keeps its whole row, and a hall is entered at the end anyway. Unset, the front is the long side, which is what
+a building with nothing to say about it has always fronted on. A porch's own edge outranks it, since a porch
+names the wall it fronts; a frame's doors outrank both.
 
 Neither is the **head**, the beam that carries the wall over the opening. An arched one puts an upside-down
 stair in each corner of the doorway's top course, raised half outward so the quarter each is missing faces
