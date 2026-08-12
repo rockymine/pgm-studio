@@ -176,6 +176,89 @@ test("a selected mark can be dragged past its island's edge", () => {
   assert.deepEqual(doc.marks[0].at, [40, 4]);
 });
 
+// ── point grips ───────────────────────────────────────────────────────────────
+// A mark is reshaped the way a drawn polygon is: one grip per point, dragged in world coordinates. Without
+// these a traced ridgeline that runs two blocks wide of where it was wanted has to be traced again.
+test("a grip moves the point it holds and leaves the rest alone", () => {
+  const { controller, doc } = tools();
+  controller.onMouseDown(0, 0, "relief:line");
+  controller.onMouseMove(10, 0, "relief:line");
+  controller.onMouseMove(20, 0, "relief:line");
+  controller.onMouseUp();
+
+  const id = doc.marks[0].id;
+  assert.equal(controller.beginPointDrag(id, 1), true);
+  assert.equal(controller.onHandleMove(20.4, 9.6), true);
+  assert.equal(controller.onHandleUp(), true);
+
+  // Rounded to the block, because a mark states cells and a point between two of them states neither.
+  assert.deepEqual(markPoints(doc.marks[0]), [[0, 0], [20, 10]]);
+});
+
+test("a grip writes back to the field its kind names, not to a shared one", () => {
+  // A bench keeps its points in `ring` and a ridgeline in `points`. A grip that wrote to the wrong one would
+  // leave the mark looking edited on the canvas and unchanged in the solve.
+  const { controller, doc } = tools();
+  controller.onMouseDown(0, 0, "relief:area");
+  for (const [x, z] of [[10, 0], [10, 10], [0, 10]]) controller.onMouseMove(x, z, "relief:area");
+  controller.onMouseUp();
+
+  const bench = doc.marks[0];
+  controller.beginPointDrag(bench.id, 0);
+  controller.onHandleMove(-6, -6);
+  controller.onHandleUp();
+
+  assert.deepEqual(doc.toJSON().i1.marks[0].ring[0], [-6, -6]);
+  assert.equal(doc.toJSON().i1.marks[0].points, undefined);
+});
+
+test("a spot height has exactly one grip, and it moves the spot", () => {
+  const { controller, doc } = tools();
+  controller.onMouseDown(4, 4, "relief:point");
+  const spot = doc.marks[0];
+  assert.equal(markPoints(spot).length, 1);
+
+  controller.beginPointDrag(spot.id, 0);
+  controller.onHandleMove(9, 12);
+  controller.onHandleUp();
+  assert.deepEqual(doc.marks[0].at, [9, 12]);
+});
+
+test("a grip may be dragged off the island — a mark is clipped, not confined", () => {
+  // The same rule the body drag follows, and the reason both exist: a hill authored into a corner with no
+  // wasted ground behind it IS a mark whose points hang over the edge.
+  const { controller, doc } = tools({ islandAt: (x) => (x < 10 ? "i1" : null) });
+  controller.onMouseDown(0, 0, "relief:line");
+  controller.onMouseMove(8, 0, "relief:line");
+  controller.onMouseUp();
+
+  const id = doc.marks[0].id;
+  controller.beginPointDrag(id, 1);
+  controller.onHandleMove(60, 0);
+  controller.onHandleUp();
+  assert.deepEqual(markPoints(doc.marks[0])[1], [60, 0]);
+});
+
+test("a grip that never moved reports no change", () => {
+  // Grabbing a grip and letting go is not an edit, and reporting one would mark the sketch dirty and post a
+  // fresh solve for a surface nobody touched.
+  const { controller, doc, events } = tools();
+  controller.onMouseDown(4, 4, "relief:point");
+  const before = events.filter(event => event === "changed").length;
+  controller.beginPointDrag(doc.marks[0].id, 0);
+  assert.equal(controller.onHandleUp(), true);
+  assert.equal(events.filter(event => event === "changed").length, before);
+});
+
+test("a grip on a mark that is gone releases rather than throwing", () => {
+  const { controller, doc } = tools();
+  controller.onMouseDown(4, 4, "relief:point");
+  const id = doc.marks[0].id;
+  controller.beginPointDrag(id, 0);
+  doc.remove(id);
+  assert.equal(controller.onHandleMove(9, 9), false);
+});
+
 test("deleting the selection removes it and clears the selection", () => {
   const { controller, doc, events } = tools();
   controller.onMouseDown(0, 0, "relief:point");
