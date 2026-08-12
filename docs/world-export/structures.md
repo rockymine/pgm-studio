@@ -309,14 +309,23 @@ is, so a wing standing against another does not have the other's slope written o
 a building of one wing too — a steep eave's riser used to write into the top course of its own wall, and the
 wall now keeps it.
 
-What is not built is the **project** joint (G172): a wing's roof is one of these fields and a
+**Two joints, and they are not a mode — they are which rectangle was drawn.** Where a wing reaches an outside
+wall of another its roof runs up against it and the crossing is a **valley**, which the union builds by itself.
+Where a wing **stops inside** another — a gable end landing between that wing's own two ends — it is a
+**cross-gable**, and three things follow. Its gable end is a wall from the ground up even though nothing
+exposes it, posts and all, because a face buried in a neighbour of the same height is exposed by nothing and a
+wall built only where the plan is exposed never builds this one. Its gable face is drawn there exactly as on
+the end that closes the building, since a wing's roof plan ends on both. And it **cuts** the roof it pushes
+into, across its own span, or its verge has nothing to sit on. The span is the wing's walls and not its
+overhang: cut the overhang's columns too and the hole is wider than anything fills, because the verge that was
+to sit there is itself standing over the other wing's wall and the rule keeping roof out from under a wall
+keeps it out as well.
+
+What is not built is the **march** (G172): a wing's roof is one of these fields and a
 building's roof is the **union of the wing volumes**, which `RoofField` needs no changes to serve, and until
-that lands a plan of more than one wing is roofed by a single field over the box drawn round it. Where a wing reaches an outside wall of another its roof
-meets it and the crossing is a valley, and that is what the union builds. Where a wing <em>stops inside</em>
-another, its gable end stands mid-slope and it is a cross-gable — which wants a gable face wherever a wing's
-roof plan ends rather than only on the building's outline, a wing's gable end walled from the ground up even
-where nothing exposes it, and the roof it pushes into cut across its own span. An author picks between the two
-by which rectangle was drawn, never by a mode. A porch is refused on
+that lands a plan of more than one wing is roofed by a single field over the box drawn round it. a meet is a union rather than a march. The two roofs abut
+in a valley instead of one stepping each course into the other until it hits a block, so the attic under them
+is continuous but the slopes do not interlock. A porch is refused on
 such a plan for the same reason it is deferred: a deck is a strip the walls give up, and giving one up means
 taking cells out of a shape rather than moving one side of a rectangle in. The rules the roof's composition
 turns on, and the invariant that gates it, are on the task.

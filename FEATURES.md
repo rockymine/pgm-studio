@@ -3727,6 +3727,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   course below a wing's roof base *is* its wall top. The gate is the task's own acceptance test — **a wing's two
   gable ends are the same gable**, the one ending the building and the one standing against its neighbour,
   compared above the eave over the wing's own width. (G172)
+- **A wing may project into another, and the cross-gable is built (G172).** Two joints, and they are which
+  rectangle was drawn rather than a mode an author picks: a wing reaching an outside wall of another makes a
+  **valley**, which the union builds by itself, and a wing whose gable end lands between the other's own two
+  ends is standing mid-slope and makes a **cross-gable**. Three things follow for that one. Its buried gable end
+  is **a wall from the ground up**, posts and all — a face inside a neighbour of the same height is exposed by
+  nothing, so a wall built only where the plan is exposed never builds it. Its gable face is drawn there by the
+  same pass that draws the end closing the building, because a wing's roof plan ends on both. And it **cuts**
+  the roof it pushes into. The cut is across the wing's **walls and not its overhang**, which is the correction
+  a printed plan of the highest block over each column produced immediately: cut one column wider and the roof
+  opens down both sides of the wing, because the verge that was to fill it is itself standing over the other
+  wing's wall and the rule keeping roof out from under a wall keeps it out too. This is the shape that can carry
+  **the acceptance test in the form the task states it** — a wing's two gable ends the same gable, plinth and
+  wall included — and it passes over the wing's own width. That test wrote the last of the implementation: it
+  failed first on a missing corner post at the buried end, which is exactly the sort of thing it exists to
+  name. (G172)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds

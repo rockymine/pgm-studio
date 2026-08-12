@@ -958,6 +958,91 @@ public sealed class HouseStamperTests
         await Assert.That(seen).IsGreaterThan(0);
     }
 
+    /// <summary>A cross-gable: the same hall, with the wing pushed <b>into</b> it rather than set against it,
+    /// so one of the wing's gable ends stands mid-slope inside the hall's roof.</summary>
+    private static Footprint Crossed() => new([new Wing(0, 0, 14, 8), new Wing(5, 4, 9, 16)]);
+
+    /// <summary>
+    /// <b>A wing's two gable ends are the same gable — plinth and wall included.</b> This is the criterion in
+    /// the form the task states it, and the projecting wing is the shape that can carry it: one end closes the
+    /// building and the other stands mid-slope inside its neighbour, and at the same wall height there is
+    /// nothing to tell them apart. Same plinth, same wall, same gable face, same verge, same overhang.
+    ///
+    /// <para>Compared over the <b>wing's own width</b>, since the hall's floor legitimately runs wider than the
+    /// wing does. It says nothing whatever about how a roof is assembled, which is why it is worth more than
+    /// any implementation of one.</para>
+    /// </summary>
+    [Test]
+    public async Task A_projecting_wings_two_gable_ends_are_the_same_gable()
+    {
+        var plan = Crossed();
+        var wing = plan.Wings[1];
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, new HouseStyle { Form = RoofForm.Gable, Pitch = 1 });
+
+        var seen = 0;
+        for (var x = wing.MinX; x <= wing.MaxX; x++)
+            for (var y = FloorY; y <= FloorY + 24; y++)
+            {
+                var buried = world.GetBlock(x, y, wing.MinZ);       // the end standing mid-slope in the hall
+                var open = world.GetBlock(x, y, wing.MaxZ);         // the end that closes the building
+                await Assert.That((x, y, buried.Id, buried.Data)).IsEqualTo((x, y, open.Id, open.Data));
+                if (buried.Id != Blocks.Air) seen++;
+            }
+
+        // A gable that is nowhere at all would pass the comparison and mean nothing.
+        await Assert.That(seen).IsGreaterThan(0);
+    }
+
+    /// <summary>A projecting wing cuts the roof it pushes into, across its own span. Without the cut the two
+    /// surfaces are laid over each other, and the wing's verge has nothing to sit on — its overhang is buried
+    /// in the slope it was meant to break.</summary>
+    [Test]
+    public async Task A_projecting_wing_cuts_the_roof_it_pushes_into()
+    {
+        var plan = Crossed();
+        var wing = plan.Wings[1];
+        var hall = plan.Wings[0];
+        var style = new HouseStyle { Form = RoofForm.Gable, Pitch = 1 };
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, style);
+
+        await Assert.That(wing.ProjectsInto(hall)).IsTrue();
+        await Assert.That(hall.ProjectsInto(wing)).IsFalse();
+
+        // The verge runs down the wing's own edge, over ground the hall's roof would otherwise have filled.
+        // Its height has to come from the wing rather than from the hall: read at the ridge, where the two
+        // roofs are furthest apart.
+        var ridge = (wing.MinX + wing.MaxX) / 2;
+        var top = (int)Enumerable.Range(FloorY, 24)
+            .Last(y => world.GetBlock(ridge, y, wing.MaxZ - 1).Id != Blocks.Air);
+        var inside = (int)Enumerable.Range(FloorY, 24)
+            .Last(y => world.GetBlock(ridge, y, hall.MaxZ - 1).Id != Blocks.Air);
+        await Assert.That(top).IsEqualTo(inside);
+    }
+
+    /// <summary>Every cell the plan stands on is roofed. The cut is what makes this worth asking: it takes the
+    /// roof a projecting wing pushes into out of the way, and taken one column too wide it opens a hole nothing
+    /// fills — the verge that was to sit there is itself standing over the hall's wall, so the rule that keeps
+    /// roof out from under a wall keeps it out too, and the building is left open to the sky down both sides of
+    /// the wing. A flood fill from inside finds it; a plan of the highest block over each column shows it at a
+    /// glance, which is how it was found.</summary>
+    [Test]
+    public async Task A_cross_gable_leaves_no_hole_where_it_cut()
+    {
+        var plan = Crossed();
+        var style = new HouseStyle { Form = RoofForm.Gable, Pitch = 1 };
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, style);
+
+        var eave = FloorY + style.WallCourses;
+        foreach (var (x, z) in plan.Cells())
+        {
+            var roofed = Enumerable.Range(eave, 20).Any(y => world.GetBlock(x, y, z).Id != Blocks.Air);
+            await Assert.That(roofed).IsTrue();
+        }
+    }
+
     /// <summary>A roof reaches its own walls and its own overhang, and stops. A wing may not hang a stub of
     /// itself over ground no wall of the building stands on.</summary>
     [Test]

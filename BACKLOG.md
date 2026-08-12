@@ -250,32 +250,17 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   volumes**, with the three rules that carry it — a wing reaches its own overhang and no further, no roof block
   below the wall top of whatever covers a cell, and walls laid after every volume.
 
-  **What is left is the second joint.** Where a wing reaches an outside wall of another its roof meets it and
-  the crossing is a valley, which the union builds. Where a wing **stops inside** another its gable end stands
-  mid-slope and it is a cross-gable, and that is not built: it wants rule 4 (a gable face wherever a wing's roof
-  plan ends, inside the building as well as on its outline), rule 5 (a wing's gable end walled from the ground
-  up wherever it stands, since one inside another wing of the same height is exposed by nothing), and the cut —
-  a projecting wing must open the roof it pushes into across its own span, or its verge has nowhere to sit and
-  its overhang is simply missing. The acceptance test is already in `HouseStamperTests` in the form the meet
-  joint can carry, comparing the two gable ends **above the eave**; the project joint is what lets it compare
-  the plinth and the wall too, which is the form the task states. *Meet* is also still a union rather than a
-  march: the two roofs abut in a valley instead of one stepping into the other until it hits a block, so the
-  attic under it is continuous but the slopes do not interlock. Two smaller things are deferred with it and both are named in the
-  code with this id — a **porch** is refused on a plan of more than one wing (a deck is a strip the walls give
-  up, which means taking cells out of a shape rather than moving one side of a rectangle in), and `RoofHole`
-  centres its lid in the bounding box. Upstream, WX1 says the piece dictates the footprint, so the dressing
-  prop or the plan piece has to accept more than one rect.
+  **What is left is the march.** A *meet* is a union rather than a march: the two roofs abut in a valley
+  instead of one stepping each course into the other until it hits a block and stops, so the attic under them
+  is continuous but the slopes do not interlock. The *project* joint is built — the buried gable end walled from
+  the ground up with its posts, the gable face drawn on it, and the cut across the projecting wing's own walls
+  — and the acceptance test passes in the form this task states it, plinth and wall included.
 
-  **The ring is one measurement now, and that part is done** (`FEATURES.md`). `Footprint` answered `Arc`,
-  `Turn` and `Run` in closed form because a rectangle can; it walks its own outline through `Geom.GridBoundary`
-  instead, at the same window the terrain painter reads, so a multi-rect footprint changes only which cells the
-  walk covers. The measurement that decided it: `Arc` and `Run` agreed exactly, 0 mismatches over 264 perimeter
-  cells of eight rectangles, but the closed `Turn` assumes exactly **one corner inside its window of 5**, so on
-  a wall shorter than `2 x window + 1` = 11 blocks two corners fall in it and the walk measures the combined
-  bend — 13x13 apart by 0.3 degrees, 21x9 by 14, 7x9 by 33, and 11x5 by **57** (closed 56, walked 112.6, at the
-  midpoint of the five-wide side). Nothing built changed shape: `Turn` is read only by `WallFrameMaterial`,
-  which places nothing and which no shipped house style binds, and the corner posts come from `OnCorner`, four
-  literal cells with no window and no angle in them.
+  **A wing has no doorway into its neighbour.** Where two wings meet the plan is simply open between them, which
+  is right; where one projects into another its gable end is now a wall from the ground up, which is also right
+  and leaves the projecting wing reachable only from outside. A doorway between wings is its own task — it wants
+  a run to sit in and a rule for which wall it is cut through — and belongs with the openings work rather than
+  with the roof.
 
   **A note on method, because it cost most of a session.** Every defect above was invisible in an isometric and
   obvious in a **printed cut** — a text grid of one plane, one letter per material. Two of them survived a

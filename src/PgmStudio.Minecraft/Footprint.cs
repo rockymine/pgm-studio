@@ -71,6 +71,37 @@ public readonly record struct Wing(int MinX, int MinZ, int MaxX, int MaxZ, int S
 
     /// <summary>Whether this wing is still standing at a storey, counting from nought at the ground.</summary>
     public bool Reaches(int level) => Storeys <= 0 || level < Storeys;
+
+    /// <summary>Whether the ridge runs east–west. A roof is pitched across the <b>shorter</b> side, so the ridge
+    /// lies along the longer one — the same choice <see cref="RoofField"/> makes, and the reason it is a
+    /// property of the wing is that the two ends it names are the wing's gable ends.</summary>
+    public bool RidgeAlongX => MaxZ - MinZ <= MaxX - MinX;
+
+    /// <summary>The two lines the wing's roof plan ends on — its gable ends. A ridge running along x ends at
+    /// the ±x walls and one running along z at the ±z walls, so these are the faces a gable is drawn on.</summary>
+    public (int Low, int High) GableEnds => RidgeAlongX ? (MinX, MaxX) : (MinZ, MaxZ);
+
+    /// <summary>Every cell of one of the wing's gable ends, running the width of that face.</summary>
+    public IEnumerable<(int X, int Z)> GableEnd(int at)
+    {
+        if (RidgeAlongX)
+            for (var z = MinZ; z <= MaxZ; z++) yield return (at, z);
+        else
+            for (var x = MinX; x <= MaxX; x++) yield return (x, at);
+    }
+
+    /// <summary>Whether this wing <b>stops inside</b> <paramref name="other"/> rather than running up against
+    /// it — the cross-gable joint, as against the valley a wing makes where it reaches an outside wall. It is
+    /// which rectangle was drawn and never a mode an author picks: a gable end landing between the other wing's
+    /// own two ends is standing mid-slope, and there is nothing else it could mean.</summary>
+    public bool ProjectsInto(Wing other)
+    {
+        if (MinX > other.MaxX || MaxX < other.MinX || MinZ > other.MaxZ || MaxZ < other.MinZ) return false;
+        var (low, high) = GableEnds;
+        var (theirLow, theirHigh) = RidgeAlongX ? (other.MinX, other.MaxX) : (other.MinZ, other.MaxZ);
+        return Inside(low) || Inside(high);
+        bool Inside(int end) => end > theirLow && end < theirHigh;
+    }
 }
 
 /// <summary>
