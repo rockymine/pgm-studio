@@ -1,0 +1,68 @@
+{
+  "slug": "goldhollow",
+  "name": "Goldhollow",
+  "objective": "Two monuments, two cores, and a lot of open sand between them.",
+  "authors": [
+    "mapgen"
+  ],
+  "compose": {
+    "players_per_team": 15,
+    "teams": 2,
+    "symmetry": "rot_180",
+    "seed": 41,
+    "cell": 9,
+    "objective_mode": "dtcm"
+  },
+  "theme": {
+    "surface": "gold",
+    "wall": "sand",
+    "rim": "ash",
+    "fill": "pale stone",
+    "pattern": "cell"
+  },
+  "relief": {
+    "base": 6,
+    "step": 1,
+    "stairs": true,
+    "grain": {
+      "amplitude": 1.1,
+      "scale": 14,
+      "seed": 41
+    },
+    "scatter": {
+      "count": 8,
+      "min_h": 3,
+      "max_h": 11,
+      "radius": 26,
+      "seed": 41
+    }
+  },
+  "trees": {
+    "count": 150,
+    "form": "mixed",
+    "woods": [
+      "acacia",
+      "birch",
+      "oak"
+    ],
+    "min_height": 8,
+    "max_height": 18,
+    "seed": 41,
+    "clearance": 12
+  },
+  "village": {
+    "count": 5,
+    "presets": [
+      "desert brick",
+      "terrace",
+      "counting house",
+      "workshop"
+    ],
+    "seed": 41,
+    "clearance": 15
+  },
+  "room_shell": {
+    "wool": "desert brick",
+    "spawn": "counting house"
+  }
+}

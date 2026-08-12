@@ -1,0 +1,64 @@
+{
+  "slug": "mourncrag",
+  "name": "Mourncrag",
+  "objective": "A monument and a core apiece, on frozen rock. Break either.",
+  "authors": [
+    "mapgen"
+  ],
+  "compose": {
+    "players_per_team": 15,
+    "teams": 2,
+    "symmetry": "rot_180",
+    "seed": 13,
+    "cell": 10,
+    "objective_mode": "dtcm"
+  },
+  "theme": {
+    "surface": "ice",
+    "wall": "slate",
+    "rim": "azure",
+    "fill": "slate",
+    "pattern": "electric"
+  },
+  "relief": {
+    "base": 8,
+    "step": 2,
+    "stairs": true,
+    "grain": {
+      "amplitude": 1.5,
+      "scale": 11,
+      "seed": 13
+    },
+    "scatter": {
+      "count": 12,
+      "min_h": 4,
+      "max_h": 17,
+      "radius": 21,
+      "seed": 13
+    }
+  },
+  "trees": {
+    "count": 140,
+    "form": "mixed",
+    "woods": [
+      "spruce"
+    ],
+    "min_height": 8,
+    "max_height": 20,
+    "seed": 13,
+    "clearance": 12
+  },
+  "village": {
+    "count": 3,
+    "presets": [
+      "alpine mining",
+      "cottage"
+    ],
+    "seed": 13,
+    "clearance": 16
+  },
+  "room_shell": {
+    "wool": "alpine mining",
+    "spawn": "cottage"
+  }
+}

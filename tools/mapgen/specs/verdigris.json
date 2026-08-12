@@ -1,0 +1,62 @@
+{
+  "slug": "verdigris",
+  "name": "Verdigris",
+  "objective": "The copper hall has gone green. Bring their monument down.",
+  "authors": [
+    "mapgen"
+  ],
+  "compose": {
+    "players_per_team": 15,
+    "teams": 2,
+    "symmetry": "mirror_z",
+    "seed": 17,
+    "cell": 9,
+    "objective_mode": "dtm"
+  },
+  "theme": {
+    "surface": "turquoise",
+    "wall": "spring",
+    "rim": "ash",
+    "fill": "grey stone",
+    "pattern": "noise"
+  },
+  "relief": {
+    "base": 6,
+    "step": 1,
+    "stairs": true,
+    "grain": {
+      "amplitude": 1.6,
+      "scale": 12,
+      "seed": 17
+    },
+    "scatter": {
+      "count": 11,
+      "min_h": 3,
+      "max_h": 13,
+      "radius": 23,
+      "seed": 17
+    }
+  },
+  "trees": {
+    "count": 165,
+    "form": "mixed",
+    "woods": [
+      "jungle",
+      "oak",
+      "birch"
+    ],
+    "min_height": 9,
+    "max_height": 21,
+    "seed": 17,
+    "clearance": 11
+  },
+  "village": {
+    "count": 4,
+    "seed": 17,
+    "clearance": 15
+  },
+  "room_shell": {
+    "wool": "cottage",
+    "spawn": "terrace"
+  }
+}

@@ -1,0 +1,135 @@
+# mapgen — a whole map from one JSON spec
+
+```bash
+dotnet run --project tools/mapgen -- <spec.json> [more.json ...]
+dotnet run --project tools/mapgen -- --describe <spec.json>    # compile only, report the board
+```
+
+The spec says what a map is *about*; the generator answers the rest. Everything goes through
+`SketchWorldBuilder` and `IntentGenerator` — the same path the studio's own export takes — so a map this
+writes is a map an author could have drawn, and anything it cannot say is a gap in the system rather than a
+gap in the tool.
+
+Each run writes `region/`, `level.dat` and `map.xml` into `out_dir`, then reports what actually reached the
+world: buildings raised, tree sites found, logs and leaves standing. Those counts are read out of the voxels
+rather than off the props that were requested, because a prop is a request — the dressing pass drops one that
+finds no ground or lands on a protected column — and the only honest report of a forest is the wood in it.
+
+Builds are deterministic: the same spec rebuilds the same map, so two runs can be compared.
+
+## The board
+
+A spec takes **either** `compose` (ask the layout generator for a board) **or** `plan` (a literal plan
+document, for a board that is drawn rather than generated).
+
+```json
+"compose": {
+  "players_per_team": 15,      // 5–32. A thirty-player map is fifteen a side.
+  "teams": 2,                  // 2 or 4
+  "symmetry": "rot_180",       // rot_180 | mirror_x | mirror_z for two teams; rot_90 for four
+  "seed": 7,
+  "cell": 9,                   // blocks per plan cell — what decides how big the map is on the ground
+  "objective_mode": "ctw"      // ctw | dtm | dtcm
+}
+```
+
+`cell` is the knob to reach for when a board feels small: the generator budgets in cells, so raising it grows
+the map without changing its layout. At `cell: 5` a fifteen-a-side board lands around 70×120 blocks; the
+destroy-the-monument corpus runs a median 148×164, which `cell: 9` or `10` reaches.
+
+`objective_mode` retargets the goals the generator placed. A wool room, a monument and a core occupy the same
+slot in a board — one team's thing to defend, sited where the budget put it — so `dtm` turns each goal into a
+monument and `dtcm` gives a team both a monument and a core beside it.
+
+## The paint
+
+```json
+"theme": {
+  "surface": "grass",          // a palette family, or "grass" for the one course that reads from above
+  "wall":    "grey stone",     // the face of every drop
+  "rim":     "ash",            // the one-block band round an island's outline
+  "fill":    "grey stone",     // what the volume under the surface is packed with
+  "pattern": "solid"           // solid | voronoi | cell | noise | turbulence | electric
+}
+```
+
+Families: `verdant` `spring` `turquoise` `loam` `dirt` `brick` `rust` `sand` `gold` `pale stone` `ash`
+`grey stone` `cobble` `mauve` `azure` `slate` `dark` `ice` `bright`.
+
+A pattern reads a whole family and carries its fabric down the risers as well as across the ground, so a
+stepped surface does not streak vertically where it falls.
+
+## The ground's shape
+
+```json
+"relief": {
+  "base": 6,                   // the level the field falls back to
+  "step": 1,                   // the block quantum the surface snaps to
+  "stairs": true,              // cut a way up out of ground a coarse step stranded
+  "grain":   { "amplitude": 1.5, "scale": 11, "seed": 3 },
+  "scatter": { "count": 10, "min_h": 3, "max_h": 12, "radius": 22, "seed": 5 },
+  "marks":   [ ... ],          // optional, stated by hand
+  "pushes":  [ ... ]
+}
+```
+
+`scatter` is the quick way to get ground that is not a table: it places ordinary point marks, so nothing it
+does reaches past what an author could draw. `marks` states them by hand instead — `point` (`at`, `r`, `h`),
+`line` (`points`, `h[]`, `width`), `area` (`ring`, `h`), `rim` (`h`, `depth`), `scarp` (`points`, `high`,
+`low`, `face`, `band`). A relief is bound to every island the board compiled to, because the island is the
+unit it is solved over.
+
+Keep it gentle. The corpus walks 0–1 blocks over a median 72.6% of its ground; relief steep enough that the
+wall material paints most of the surface reads as a quarry rather than as terrain.
+
+## What stands on it
+
+```json
+"trees":   { "count": 60, "form": "mixed", "woods": ["oak","birch","spruce"],
+             "min_height": 8, "max_height": 20, "whorled": false, "seed": 4, "clearance": 12 },
+"village": { "count": 4, "presets": ["cottage","workshop"], "seed": 3, "clearance": 15 },
+"houses":  [ { "preset": "cottage", "x": 40, "z": 0, "front": "negz" } ]
+```
+
+`form` is `grown` (the recursive skeleton), `template` (vanilla), or `mixed`. Woods: `oak` `birch` `spruce`
+`jungle` `acacia` `dark oak`. `whorled` gathers a grown tree's branches into rings — the conifer against the
+broadleaf.
+
+**Ask for more trees than you want.** The dressing pass drops a prop if any cell it occupies falls on a
+protected column, and it is normal for well under half of a requested forest to seat on a generated board.
+The report says how many sites were found and how many leaves stand, which is how to tell the two apart.
+
+**A grown tree is held to 14 blocks** whatever `max_height` says, because past that it stops being placed at
+all rather than being placed tall: measured over one board at twenty-four sites, a grown oak lands 590 leaves
+at height 8, 364 at 12 and **nothing whatever at 20**, while a template oak on the same sites climbs
+1584 → 3424 → 7194. Its crown is wide, and a wide crown almost always clips something protected.
+
+`village` scatters buildings onto ground flat enough to stand them on; `houses` places one at a stated spot.
+Prefer `village` on a generated board — the ground is not known until the plan compiles, so a stated
+coordinate is a guess and a guess lands in the void. Presets: `alpine mining` `desert brick` `diorite pyramid`
+`townside` `townside on stilts` `cottage` `longhouse` `terrace` `counting house` `workshop`. Every footprint
+is held to 20 a side and to the 192 blocks a placed building is allowed.
+
+## The rooms
+
+```json
+"room_shell": { "wool": "cottage", "spawn": "terrace" }
+```
+
+The buildings a wool room and a spawn room are raised as, named from the same presets. Absent leaves the
+built-in shell, which is a bedrock lid — it says "objective here" and nothing about the place it stands in.
+`"spawn": "open"` leaves the ground bare, which is right wherever the plateau itself is the room.
+
+Bedrock below this is normal and not a fault: every column of a map carries one at its base so players cannot
+dig out, and a wool foundation is laid in it too.
+
+## The rest
+
+`slug` `name` `objective` `authors` `out_dir`. Absent, `out_dir` is
+`/media/sf_repos/CommunityMaps/dtcm/<slug>`.
+
+## Seeing it
+
+```bash
+dotnet run --project tools/PgmStudio.RoundTrip -- --topdown <out_dir>/region out.png --map <out_dir>/map.xml --scale 3
+```

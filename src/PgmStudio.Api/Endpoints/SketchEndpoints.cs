@@ -365,7 +365,13 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
 
 /// <summary>POST /api/map/{slug}/sketch/finish — rasterize the stored layout into the world geometry
 /// artifacts (layer.parquet / islands.json / segments) so the draft flows into the Configure wizard.
-/// 422 if the layout yields fewer than 2 islands (a CTW needs both sides).</summary>
+/// 422 only if the layout rasterizes to no ground at all.
+///
+/// <para>It does <b>not</b> ask for two islands. An island is a connected landmass, not a side: over the 320
+/// readable worlds of the destroy-the-monument corpus, 17% are a single island and 26% carry a single major
+/// one, so the commonest shape in that category — one continent both teams stand on — is exactly what a
+/// two-island floor rejected. Symmetry decides whether a board has two sides, and it is stated in the setup
+/// rather than counted in the ground.</para></summary>
 public sealed class SketchFinishEndpoint(MapRepository repo, PgmDb db, WorldFeatureWriter writer) : EndpointWithoutRequest
 {
     public override void Configure() { Post("/map/{slug}/sketch/finish"); AllowAnonymous(); }
@@ -380,9 +386,9 @@ public sealed class SketchFinishEndpoint(MapRepository repo, PgmDb db, WorldFeat
 
         var cells = SketchRasterizer.RasterizeColumns(Encoding.UTF8.GetString(data));
         var islands = IslandDetector.Detect(cells.Select(c => (c.X, c.Z)), minIslandSize: 1);
-        if (islands.Count < 2)
+        if (islands.Count == 0)
         {
-            await Send.ResponseAsync(new { error = $"A map needs at least 2 islands; got {islands.Count}. Draw both sides, or enable mirroring." }, 422, ct);
+            await Send.ResponseAsync(new { error = "Nothing is drawn: the layout rasterizes to no ground. Draw a shape first." }, 422, ct);
             return;
         }
 
