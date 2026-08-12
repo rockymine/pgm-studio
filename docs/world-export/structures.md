@@ -276,10 +276,13 @@ the eave's rise goes negative below the base plane and rounding those cells back
 the slope it belongs to. The slab is a block id rather than a material, for the reason a window's is: which
 half of its cube a slab fills is geometry.
 
-Every roof here is a height field over **one rectangle**, because a building is one rectangle. A house whose
-footprint is several touching rectangles — an L, a T, a U — is designed and not built (G172): a wing's roof is
-one of these fields, a building's roof is the union of the wing volumes, and `RoofField` needs no changes to
-serve it. The rules that composition turns on, and the invariant that gates it, are on the task.
+Every roof here is a height field over **one rectangle**, because the stamper builds a building of one
+rectangle. The plan underneath it has outgrown that: a `Footprint` is one or more touching **wings**, and it
+answers its outline, its corners of both kinds and its steps in from the wall by walking its own cells rather
+than by arithmetic on a min and a max, so an L, a T or a U is already one plan with one closed ring. What is
+not built is the roof over one (G172): a wing's roof is one of these fields and a building's roof is the union
+of the wing volumes, which `RoofField` needs no changes to serve. The rules that composition turns on, and the
+invariant that gates it, are on the task.
 
 A roof has **no thickness knob**, and the height field is why: a column writes as many courses as the step down
 to its neighbours needs, so how deep the roof runs at a given cell is answered by the slope rather than by a

@@ -242,12 +242,16 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   Also needed, and cheap once the above holds: a projecting wing must **cut** the roof it pushes into across
   its own span, or its verge has nowhere to sit and its overhang is simply missing.
 
-  **What this costs elsewhere is the footprint, not the roof.** `Footprint` is a rectangle throughout the
-  stamper: `OnPerimeter`, `OnCorner`, the perimeter `Arc` that carries wall stripes round corners, the window
-  runs (six on an L, not four, with an *inner* corner as a new kind to keep a margin off), and `Ring`, whose
-  distance-to-nearest-wall is the same transform the plan needs anyway. Upstream, WX1 says the piece dictates
-  the footprint, so the dressing prop or the plan piece has to accept more than one rect. Do the footprint
-  first: the roof falls out once it exists, and doing the roof first means writing it twice.
+  **What this costs elsewhere is the footprint, not the roof, and the shape half of it is done**
+  (`FEATURES.md`). `Footprint` is a type of its own now, a union of touching `Wing` rectangles that walks its
+  own cells: `Holds`, `OnPerimeter`, `OnCorner`, `OnInnerCorner`, `Ring` and the walked `Arc`/`Turn`/`Run` all
+  answer for an L, a T or a U. **What still reads a rectangle is the stamper**, and that is the next slice:
+  `Stamp` builds a single-wing plan and takes a width and a depth, the sill fills the bounding box rather than
+  ringing the outline, the wall pass and the window runs assume four walls (six on an L, with the inner corner
+  keeping its margin off the turn), and `SplitPorch`, `Fit`, `Run`, `Seat` and `LadderCell` all reach for a
+  min and a max. Upstream, WX1 says the piece dictates the footprint, so the dressing prop or the plan piece
+  has to accept more than one rect. The roof still falls out once that is done; doing the roof first means
+  writing it twice.
 
   **The ring is one measurement now, and that part is done** (`FEATURES.md`). `Footprint` answered `Arc`,
   `Turn` and `Run` in closed form because a rectangle can; it walks its own outline through `Geom.GridBoundary`

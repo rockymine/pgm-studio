@@ -3645,6 +3645,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   in them. The measuring window is one constant on `GridBoundary` rather than a five in each caller, and a
   probe material stamped into a wall gates the agreement over both narrow and ordinary spans. It is also the
   footing for a footprint of more than one rectangle, which has no closed form to fall back on. (G172)
+- **A plan is a union of wings, not a rectangle (G172).** `Footprint` is a type of its own, built from one or
+  more touching `Wing` rectangles, and every question it answers is asked of its cells rather than of a min and
+  a max — so an L, a T or a U is one plan with one closed ring rather than two buildings that happen to touch.
+  A rectangle is the case where walking the cells agrees with the arithmetic it replaced, which is what lets
+  every shipped building keep its shape. **A corner comes in two kinds and they are not interchangeable**: an
+  outer one is where the building turns away from itself — the five of an L, where a post stands — and an inner
+  one is where two wings meet and a wall runs into a wall, where nothing stands and what the kind is for is
+  keeping an opening's margin off the turn. On a raster that inner turn is a *pair* of cells meeting corner to
+  corner, one on each wall, and both answer to it. The steps in from the wall are walked breadth-first from
+  every wall cell at once rather than subtracted from an edge, which is the only way a cell in the crook of two
+  wings counts to the wall actually nearest it: the L's deepest cell stands 3 in, where its bounding box claims
+  4 and either wing alone claims 2, because where two wings meet there is no wall between them and two
+  five-deep halls read as one ten-deep room. The stamper still builds a single wing — the roof over more than
+  one, and the walls and window runs that go with it, are the rest of G172. (G172)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds
