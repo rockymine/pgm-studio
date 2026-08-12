@@ -249,6 +249,23 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   the footprint, so the dressing prop or the plan piece has to accept more than one rect. Do the footprint
   first: the roof falls out once it exists, and doing the roof first means writing it twice.
 
+  **Measured before starting, and it changes the order of work: the rectangle's ring does not agree with the
+  traced one on a short wall.** `Footprint` answers `Arc`, `Turn` and `Run` in closed form because a rectangle
+  can, and generalising it means tracing instead (`Geom.GridBoundary` already traces, and the terrain painter
+  already reads it — the general machinery is there). `Arc` and `Run` agree **exactly**, 0 mismatches over 264
+  perimeter cells of eight rectangles. `Turn` does not. The closed form assumes exactly **one corner inside its
+  window of 5**, so on a wall shorter than `2 x window + 1` = 11 blocks two corners fall in it and the trace
+  measures the combined bend: 13x13 differs by 0.3 degrees, 21x9 by 14, 7x9 by 33, and 11x5 by **56.6** (closed
+  56, traced 112.6, at the midpoint of the five-wide side). `Turn` feeds `WallFrameMaterial`
+  (`framed = PerimeterTurn >= Angle`), so adopting the trace changes which cells read as a corner on every wall
+  under 11 blocks — the cottage, the counting house, the terrace and **every 8x8 wool cage** — and plausibly
+  with the suite still green, since nothing appears to exercise a framed material on a narrow wall. Decide it
+  deliberately: keep the closed form for rectangles and trace only a multi-rect shape (two implementations of
+  one idea, which is what the symmetry rule exists to prevent), adopt the trace everywhere and re-baseline the
+  narrow buildings, or make the closed form account for a second corner in its window. Note also that this
+  makes §7's "a wall reads it exactly as it reads a plateau's outer edge — one material stripes both" already
+  untrue for narrow buildings, independently of any of this.
+
   **A note on method, because it cost most of a session.** Every defect above was invisible in an isometric and
   obvious in a **printed cut** — a text grid of one plane, one letter per material. Two of them survived a
   flood-fill seal test, which passes happily on a roof with a hole in its body. Print the cut from the first
