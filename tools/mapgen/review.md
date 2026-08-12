@@ -13,6 +13,27 @@ paints a wall. Randomness is the right tool for the grain on a surface and the w
 player navigates by. A map is a designed thing, and every one of these is somewhere the design was left to a
 seed.
 
+## Start here — what actually breaks a map
+
+The entries below are in pipeline order, not in severity order, and they are not equal. Most are the
+difference between a rough map and a good one. **Six are the difference between a map and a broken map**, and
+they are what to fix first — each one ships a board that cannot be played as intended, and four of them make
+one that cannot be won at all.
+
+| | Breaks | Why it is fatal |
+|---|---|---|
+| **MG18** | every destroy board | The goal defaults to obsidian and the kit carries an iron pickaxe, which does not mine obsidian at all. The monument cannot be broken, so the map cannot be won. 86 of 86 corpus maps with an obsidian goal ship a diamond pickaxe. |
+| **MG3** | any goal over void | An objective with no ground under it cannot be reached or mined. Unwinnable, and silent — the map builds and loads. |
+| **MG14** | every generated map | The export composer is bypassed, so a map ships with no `itemkeep`, `toolrepair`, `itemremove` or hunger rule — and without the reordering that puts `not-build-area` last, which is the rule holding players out of the void. It therefore feeds MG3. Fixing it is one call, and it closes MG15, MG16 and MG17 with it. |
+| **MG5** | spawn and wool rooms | The relief is solved after the rooms are sited and moves the ground under them. Carving *below* a room leaves its floor cut or hanging. |
+| **MG4** | spawns on a piece edge | The yaw decides which wall the door is cut through, so a spawn facing outward opens its only exit over the drop. |
+| **MG7** | structures everywhere | Buildings stamped inside buildings and trees grown through both. Not merely ugly — a structure through a room's wall is a hole in it, and a tree through a doorway is a blocked route. |
+
+Two more are wrong on every board and cheap to fix, without making a map unplayable: **MG26** (a mirrored
+board whose dressing differs side to side, because each orbit image is decided separately) and **MG20**
+(wool-room chests turned into the wall). Everything else is design, and the section above is what it is
+measured against.
+
 ## How a map is designed
 
 The rest of this document is faults. This section is the frame they are faults against, and it is not a
@@ -218,9 +239,13 @@ static render has no biome to read, so a top-down would need to read the array t
 
 ## The ground
 
-**MG5 — A relief must not move ground an objective is standing on.** On the capture maps the solved surface
-overrides the spawn and wool placements, so a room ends up cut into a slope the relief invented after the
-room was sited. The machinery to prevent it is already there and unused: a shape states `relief_scope` —
+**MG5 — A relief must not move ground an objective is standing on, and must never carve below it.** On the
+capture maps the solved surface overrides the spawn and wool placements, so a room ends up cut into a slope
+the relief invented after the room was sited. Two rules, in strength order: the ground a spawn or a wool room
+stands on should be **left alone** by the solve, and failing that it must **never be carved below** the
+room's floor — a surface solved downward under a stamped room leaves the floor cut through or hanging over a
+hole, which is the version that breaks the map rather than merely spoiling it. The machinery to prevent both
+is already there and unused: a shape states `relief_scope` —
 `hold` pins it at its own stated top so the surrounding surface is solved *knowing where it has to arrive*,
 and `exclude` keeps it out of the solve altogether — and `height_mode` with `skirt` sits a stated platform
 into the terrain rather than on it. Every structural shape the plan compiler projects (`spawn-*`, `wool-*`)
