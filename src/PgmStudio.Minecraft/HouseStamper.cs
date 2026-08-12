@@ -486,13 +486,13 @@ public static class HouseStamper
 
         return front switch
         {
-            RoomEdge.NegZ => (ground with { MinZ = ground.MinZ + depth },
+            RoomEdge.NegZ => (new Footprint(ground.MinX, ground.MinZ + depth, ground.MaxX, ground.MaxZ),
                               new Footprint(ground.MinX + inset, ground.MinZ, ground.MaxX - inset, ground.MinZ + depth - 1)),
-            RoomEdge.PosZ => (ground with { MaxZ = ground.MaxZ - depth },
+            RoomEdge.PosZ => (new Footprint(ground.MinX, ground.MinZ, ground.MaxX, ground.MaxZ - depth),
                               new Footprint(ground.MinX + inset, ground.MaxZ - depth + 1, ground.MaxX - inset, ground.MaxZ)),
-            RoomEdge.NegX => (ground with { MinX = ground.MinX + depth },
+            RoomEdge.NegX => (new Footprint(ground.MinX + depth, ground.MinZ, ground.MaxX, ground.MaxZ),
                               new Footprint(ground.MinX, ground.MinZ + inset, ground.MinX + depth - 1, ground.MaxZ - inset)),
-            _ => (ground with { MaxX = ground.MaxX - depth },
+            _ => (new Footprint(ground.MinX, ground.MinZ, ground.MaxX - depth, ground.MaxZ),
                   new Footprint(ground.MaxX - depth + 1, ground.MinZ + inset, ground.MaxX, ground.MaxZ - inset)),
         };
     }
@@ -645,8 +645,13 @@ public static class HouseStamper
     /// its perimeter, how far in from that perimeter a cell stands, and how far round it — the arc and turn a
     /// wall-run material reads. A house has two of these once it has a porch (what the walls keep and what the
     /// deck took), which is why the ring a cell is painted against is passed rather than assumed.</summary>
-    private readonly record struct Footprint(int MinX, int MinZ, int MaxX, int MaxZ)
+    private sealed class Footprint(int minX, int minZ, int maxX, int maxZ)
     {
+        public int MinX { get; } = minX;
+        public int MinZ { get; } = minZ;
+        public int MaxX { get; } = maxX;
+        public int MaxZ { get; } = maxZ;
+
         public int Width => MaxX - MinX + 1;
         public int Depth => MaxZ - MinZ + 1;
 
@@ -663,50 +668,57 @@ public static class HouseStamper
             => Math.Min(Math.Min(x - MinX, MaxX - x), Math.Min(z - MinZ, MaxZ - z));
 
         /// <summary>Which axis the wall runs along at this cell — what a block with a direction of its own is
-        /// laid along, so a log on its side shows bark to the outside rather than its sawn end. A rectangle
-        /// answers it exactly where a traced outline has to measure it: the ±z walls run along x and the ±x
-        /// walls along z. A corner belongs to both, and takes the x wall's answer for the same reason the arc
-        /// counts it there.</summary>
+        /// laid along, so a log on its side shows bark to the outside rather than its sawn end. The chord
+        /// across the ring answers it everywhere but the four corners, where a wall has an exposed face on both
+        /// axes and no horizontal direction can serve them both; that one a rectangle names outright, because
+        /// a trace sees a corner as a staircase of short runs rather than as a cell.</summary>
         public int Run(int x, int z)
-            => OnCorner(x, z) ? GridBoundary.RunsBothWays
-                : z == MinZ || z == MaxZ ? GridBoundary.RunAlongX
-                : x == MinX || x == MaxX ? GridBoundary.RunAlongZ
-                : 0;
+        {
+            if (OnCorner(x, z)) return GridBoundary.RunsBothWays;
+            var arc = Arc(x, z);
+            return arc < 0 ? 0 : Perimeter.Run[arc];
+        }
 
         /// <summary>How far round the perimeter a cell sits, clockwise from the −x/−z corner, or −1 off the
         /// ring. A wall is a closed loop, so a wall-run pattern reads this exactly as it reads a plateau's
         /// outer edge — one material stripes both.</summary>
-        public int Arc(int x, int z)
-        {
-            if (z == MinZ) return x - MinX;                                  // −z edge, corners included
-            if (x == MaxX) return Width - 1 + (z - MinZ);                    // +x edge
-            if (z == MaxZ) return Width + Depth - 2 + (MaxX - x);            // +z edge, back along x
-            if (x == MinX) return 2 * Width + Depth - 3 + (MaxZ - z);        // −x edge, back along z
-            return -1;
-        }
+        public int Arc(int x, int z) => Perimeter.Arc.GetValueOrDefault((x, z), -1);
 
-        /// <summary>How sharply the ring bends where a cell sits, to the same scale a painted wall reads
-        /// (<see cref="PgmStudio.Geom.Algorithms.GridBoundary.TurnAt"/>). A footprint is a rectangle, so the
-        /// answer is closed-form rather than traced: a cell <c>d</c> from a corner has a window straddling it
-        /// by <c>window − d</c>, and the chords make <c>atan2(window − d, d)</c> — 90° on the corner itself,
-        /// then 76, 56, 34, 14 and straight, which is the ramp a traced right angle measures.</summary>
-        public int Turn(int arc)
-        {
-            if (arc < 0) return 0;
-            var loop = 2 * (Width + Depth) - 4;
-            if (loop <= 0) return 0;
+        /// <summary>How sharply the ring bends where a cell sits, in degrees, to the same scale a painted wall
+        /// reads. A right angle measures ninety on the corner itself and ramps to nothing a window away, so a
+        /// material thresholding it frames a band either side of each corner.</summary>
+        public int Turn(int arc) => arc >= 0 && arc < Perimeter.Turn.Length ? Perimeter.Turn[arc] : 0;
 
-            int[] corners = [0, Width - 1, Width + Depth - 2, 2 * Width + Depth - 3];
-            var nearest = int.MaxValue;
-            foreach (var corner in corners)
+        private PerimeterTrace? perimeter;
+
+        /// <summary>The walked ring, measured once on first use. A wall reads its arc, bend and direction from
+        /// the same walk of the same outline that a plateau's edge reads them from — one measurement, so a
+        /// building and the terrain beside it cannot answer a wall-run material differently. Walking it is also
+        /// what holds on a short wall: a side under twice the window carries two corners inside one window, and
+        /// the bend there is the pair's together rather than the nearer one's alone.</summary>
+        private PerimeterTrace Perimeter => perimeter ??= Trace();
+
+        private PerimeterTrace Trace()
+        {
+            var cells = new List<(int X, int Z)>(Width * Depth);
+            for (var x = MinX; x <= MaxX; x++)
+                for (var z = MinZ; z <= MaxZ; z++)
+                    cells.Add((x, z));
+
+            var arc = GridBoundary.TracePerimeter(cells);
+            var loop = GridBoundary.Loop(arc);
+            var turn = new int[loop.Length];
+            var run = new int[loop.Length];
+            for (var index = 0; index < loop.Length; index++)
             {
-                var apart = Math.Abs(arc - corner);
-                nearest = Math.Min(nearest, Math.Min(apart, loop - apart));
+                turn[index] = (int)Math.Round(GridBoundary.TurnAt(loop, index, GridBoundary.CornerWindow));
+                run[index] = GridBoundary.RunAt(loop, index, GridBoundary.CornerWindow);
             }
-
-            const int window = 5;
-            if (nearest >= window) return 0;
-            return (int)Math.Round(Math.Atan2(window - nearest, nearest) * 180.0 / Math.PI);
+            return new PerimeterTrace(arc, turn, run);
         }
+
+        /// <summary>One walk of an outline: which arc index each boundary cell holds, and the bend and
+        /// direction measured at each of those indices.</summary>
+        private sealed record PerimeterTrace(Dictionary<(int X, int Z), int> Arc, int[] Turn, int[] Run);
     }
 }

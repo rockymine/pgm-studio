@@ -3631,6 +3631,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   missed: the measurement that claimed four a side passed **no host question** to the seater, and with none the
   seater takes the spacing path — it measured the branch the building does not walk. Reading the stamped world
   is what found it. (B77)
+- **A wall bends where the walked ring does, and it is one measurement (G172).** A house answered `Arc`, `Turn`
+  and `Run` off its own rectangle in closed form while the terrain painter walked the same outline through
+  `Geom.GridBoundary` — one idea with two implementations, which is what the symmetry rule exists to prevent.
+  `Footprint` walks its outline now, at the window the painter reads, so a building and the plateau beside it
+  cannot answer a wall-run material differently. The disagreement was in the bend alone: `Arc` and `Run` matched
+  exactly over 264 perimeter cells of eight rectangles, but the closed form can see only the corner nearest a
+  cell, so on a wall shorter than twice the window two corners fall inside it and it reports one bend where the
+  ring turns two — 57 degrees out at the middle of a five-wide side, and six of a five-deep house's fourteen
+  inked cells frame differently at a threshold of ninety. Nothing built changed shape, which is why the swap was
+  cheap to make now: the bend is read only by `WallFrameMaterial`, which places nothing and which no shipped
+  house style binds, and the corner posts come from `OnCorner` — four literal cells with no window and no angle
+  in them. The measuring window is one constant on `GridBoundary` rather than a five in each caller, and a
+  probe material stamped into a wall gates the agreement over both narrow and ordinary spans. It is also the
+  footing for a footprint of more than one rectangle, which has no closed form to fall back on. (G172)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds

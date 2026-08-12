@@ -1,4 +1,5 @@
 using PgmStudio.Domain;
+using PgmStudio.Geom.Algorithms;
 
 namespace PgmStudio.Minecraft.Tests;
 
@@ -751,4 +752,62 @@ public sealed class HouseStamperTests
             .Where(z => world.GetBlock(0, FloorY + 1, z).Id == Blocks.Air).ToList();
         await Assert.That(end).IsNotEmpty();
     }
+
+    /// <summary>A material that inks a cell whose ring bends at least <paramref name="Angle"/> degrees, so a
+    /// stamped wall reports the turn it was painted with. It is what <see cref="WallFrameMaterial"/> reads, on
+    /// its own: a frame also inks the courses at the top and bottom of a wall, which would ink every cell here
+    /// and say nothing about the corner.</summary>
+    private sealed record TurnProbe(int Angle) : TerrainMaterial
+    {
+        public override (int Id, int Data) Resolve(in BucketContext ctx)
+            => (ctx.PerimeterTurn >= Angle ? Blocks.Stone : Blocks.Dirt, 0);
+    }
+
+    /// <summary>A wall reads the bend at its corners exactly as the terrain beside it reads the same outline —
+    /// one walk of one ring, so a building and the plateau it stands on cannot frame differently.
+    ///
+    /// <para>The narrow spans are the ones that carry it. A closed form sees only the corner nearest a cell, so
+    /// on a wall shorter than twice the measuring window it reports one bend where the ring turns two: over a
+    /// five-wide side it disagrees with the walk by 57° at the middle, and a five-deep house then frames six of
+    /// its fourteen inked cells differently at a threshold of ninety. The wider spans hold the other half of
+    /// the claim — that reading the ring off a walk leaves an ordinary building's corners where they were.</para>
+    /// </summary>
+    [Test]
+    [Arguments(11, 5, 60)]      // both corners of the short side inside one window
+    [Arguments(11, 5, 90)]
+    [Arguments(7, 9, 45)]
+    [Arguments(7, 9, 60)]
+    [Arguments(21, 9, 45)]
+    [Arguments(13, 13, 45)]
+    [Arguments(9, 9, 60)]
+    public async Task A_wall_bends_where_the_traced_ring_does(int width, int depth, int angle)
+    {
+        var style = new HouseStyle { Wall = RoomPart.Of(new TurnProbe(angle), 5), Post = null };
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, 0, 0, width, depth, FloorY, style);
+
+        // Any course of the wall answers, so a cell the doorway took lower down is still read at the top.
+        var inked = new HashSet<(int X, int Z)>();
+        foreach (var (x, z) in Perimeter(width, depth))
+            for (var y = FloorY + 1; y <= FloorY + style.WallCourses; y++)
+                if (world.GetBlock(x, y, z).Id == Blocks.Stone) inked.Add((x, z));
+
+        var ring = GridBoundary.TracePerimeter(Cells(width, depth));
+        var expected = GridBoundary.Turns(ring, GridBoundary.CornerWindow)
+            .Where(cell => (int)Math.Round(cell.Value) >= angle)
+            .Select(cell => cell.Key).ToHashSet();
+
+        await Assert.That(inked.OrderBy(c => c.X).ThenBy(c => c.Z))
+            .IsEquivalentTo(expected.OrderBy(c => c.X).ThenBy(c => c.Z));
+    }
+
+    private static IEnumerable<(int X, int Z)> Cells(int width, int depth)
+    {
+        for (var x = 0; x < width; x++)
+            for (var z = 0; z < depth; z++)
+                yield return (x, z);
+    }
+
+    private static IEnumerable<(int X, int Z)> Perimeter(int width, int depth)
+        => Cells(width, depth).Where(c => c.X == 0 || c.X == width - 1 || c.Z == 0 || c.Z == depth - 1);
 }

@@ -191,7 +191,7 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   still has knobs whose *card* does not change when they are turned, which is the one thing the preview exists
   to prevent. Wants a larger sample footprint, and a card that is not the one view those knobs are invisible in.
 
-- [ ] **G172 — A house on more than one rectangle: wings, and the roof where two of them meet.** A building is
+- [~] **G172 — A house on more than one rectangle: wings, and the roof where two of them meet.** A building is
   one rectangle today, so an L, a T or a U can only be built as separate houses standing next to each other —
   which is what the settlement investigation ran aground on. The shape that works is **one house, one style, a
   footprint of touching rectangles**, each *wing* carrying its own ridge axis and its own storey count. Designed
@@ -249,30 +249,16 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   the footprint, so the dressing prop or the plan piece has to accept more than one rect. Do the footprint
   first: the roof falls out once it exists, and doing the roof first means writing it twice.
 
-  **Measured before starting, and it changes the order of work: the rectangle's ring does not agree with the
-  traced one on a short wall.** `Footprint` answers `Arc`, `Turn` and `Run` in closed form because a rectangle
-  can, and generalising it means tracing instead (`Geom.GridBoundary` already traces, and the terrain painter
-  already reads it — the general machinery is there). `Arc` and `Run` agree **exactly**, 0 mismatches over 264
-  perimeter cells of eight rectangles. `Turn` does not. The closed form assumes exactly **one corner inside its
-  window of 5**, so on a wall shorter than `2 x window + 1` = 11 blocks two corners fall in it and the trace
-  measures the combined bend: 13x13 differs by 0.3 degrees, 21x9 by 14, 7x9 by 33, and 11x5 by **56.6** (closed
-  56, traced 112.6, at the midpoint of the five-wide side). `Turn` is read in exactly one place —
-  `WallFrameMaterial` (`framed = PerimeterTurn >= Angle`) — and it **places nothing**. The corner posts come
-  from `OnCorner`, which is the four literal corner cells and has no window and no angle in it, so a narrow
-  building has always framed its pillars correctly and none of this touches that. No shipped house style binds
-  a wall-frame material either, so nothing currently built changes shape whichever way this is decided.
-
-  What the measurement really exposes is that the two rings are **already two implementations of one idea**:
-  terrain traces (`TerrainProfile` → `GridBoundary.Turns`, window 5) and a house answers in closed form
-  (`Footprint.Turn`, window 5). Same intent, same window, disagreeing by up to 56 degrees under 11 blocks —
-  which is the duplicate-resolution trap the symmetry rule exists to prevent, and it makes §7's "a wall reads
-  it exactly as it reads a plateau's outer edge — one material stripes both" untrue for a narrow building
-  today, before any of this work. The bite comes later: bind a wall-frame material to a house wall and a narrow
-  building frames differently from the identically shaped plateau beside it. Decide it deliberately: keep the closed form for rectangles and trace only a multi-rect shape (two implementations of
-  one idea, which is what the symmetry rule exists to prevent), adopt the trace everywhere and re-baseline the
-  narrow buildings, or make the closed form account for a second corner in its window. Note also that this
-  makes §7's "a wall reads it exactly as it reads a plateau's outer edge — one material stripes both" already
-  untrue for narrow buildings, independently of any of this.
+  **The ring is one measurement now, and that part is done** (`FEATURES.md`). `Footprint` answered `Arc`,
+  `Turn` and `Run` in closed form because a rectangle can; it walks its own outline through `Geom.GridBoundary`
+  instead, at the same window the terrain painter reads, so a multi-rect footprint changes only which cells the
+  walk covers. The measurement that decided it: `Arc` and `Run` agreed exactly, 0 mismatches over 264 perimeter
+  cells of eight rectangles, but the closed `Turn` assumes exactly **one corner inside its window of 5**, so on
+  a wall shorter than `2 x window + 1` = 11 blocks two corners fall in it and the walk measures the combined
+  bend — 13x13 apart by 0.3 degrees, 21x9 by 14, 7x9 by 33, and 11x5 by **57** (closed 56, walked 112.6, at the
+  midpoint of the five-wide side). Nothing built changed shape: `Turn` is read only by `WallFrameMaterial`,
+  which places nothing and which no shipped house style binds, and the corner posts come from `OnCorner`, four
+  literal cells with no window and no angle in them.
 
   **A note on method, because it cost most of a session.** Every defect above was invisible in an isometric and
   obvious in a **printed cut** — a text grid of one plane, one letter per material. Two of them survived a
