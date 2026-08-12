@@ -25,11 +25,12 @@ public static class TreeCrown
     /// eye reads two of them rather than one lump.</summary>
     private const double SeamMargin = 0.68;
 
-    /// <summary>How full a cluster is. Most of the air in a crown is its seams rather than holes punched
-    /// through a cluster — a heavily perforated wide ball reads as damaged, not airy. A little perforation
-    /// still earns its place at this size, where it ragged-edges a two-block puff instead of hollowing a
-    /// solid, and it is what carries the last of the way down to the six-neighbour lace an author builds.</summary>
-    private const double Density = 0.64;
+    /// <summary>How full a cluster is, and it is mostly air. A hand-built crown measures **24% block** over
+    /// its own volume, with every one of its leaves carrying air on at least one side — there is no interior
+    /// to it at all. Foliage is lace the light comes through, not a brush stroke with holes in it, and a
+    /// cluster filled two-thirds is the single thing that made a generated crown read as one solid mass
+    /// however the seams between clusters were widened.</summary>
+    private const double Density = 0.45;
 
     /// <summary>How far along the branch's own direction a cluster is carried past its tip, as a share of the
     /// cluster's radius. It is a share rather than a distance so that the tip stays inside the cluster at every
@@ -53,8 +54,8 @@ public static class TreeCrown
         for (var i = 0; i < tips.Count; i++)
         {
             var tip = tips[i];
-            var radius = (1.5 + leafSize * 1.9) * (0.95 - 0.08 * treeSize)
-                * (0.55 + 0.45 * tip.Spread) + PatternNoise.Unit(i, 2, seed) * 0.7;
+            var radius = (2.0 + leafSize * 2.5) * (0.80 + 0.25 * treeSize)
+                * (0.55 + 0.45 * tip.Spread) + PatternNoise.Unit(i, 2, seed) * 0.8;
             var height = radius * (0.62 + PatternNoise.Unit(i, 5, seed) * 0.14);   // an oblate disc, not a ball
             var outward = tip.Direction.Normalized;
             var center = tip.Position + outward * (radius * TipCarry);

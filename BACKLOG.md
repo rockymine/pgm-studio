@@ -511,16 +511,23 @@ import diagnostic (`B24e`), detection (`B26`), and the island-floor work the pha
   feed so every rule reports where the edit happened. The second is the general fix and covers the
   destroyable style and float/leak rules too.
 
-- [ ] **G173 — the whorled tree is a cone that is not steep enough.** The grower now has a conifer
-  (`TreeShape.Whorled`): rings of laterals 5.2 courses apart, each shorter than the one below, none forking,
-  with each leaf cluster sized by the branch carrying it. It separates from the staggered form on one of the
-  two measures the corpus separates families on — **63% of its foliage in the lower half against 46%**, where
-  hand-built conifers run 60–77% and broadleaves 43–61% — but not on the other: its **widest tenth sits at
-  #3.9** where a hand-built conifer's is #1–#3. The bulk is still too high up. Likely levers, in order: the
-  ring-length taper (currently the top ring keeps 28% of the bottom ring's length), the whorl's reach ceiling
-  (`highest`, 0.52 + 0.16 x leader), and the apex, which still carries a full fork and cluster of its own.
-  `tools/tree-corpus/crown-profile.cs` measures the corpus side; the generated side is the same reading over
-  `TreeSkeleton.Grow`.
+- [ ] **G173 — the conifer's bulk sits at mid-height, not in the bottom third.** The whorled tree now rings
+  its whole trunk (three to five branches per ring, 5.2 courses apart, each ring shorter than the last, none
+  forking, a spire at the apex) and clears the first of the two measures the corpus separates families on:
+  **63% of its foliage in the lower half against the staggered form's 49%**, inside the hand-built conifers'
+  60–77%. The second is still out: its **widest tenth is #4.4** where a hand-built conifer's is #1–#3. The
+  ring-length taper and the apex are already spent; what is left to try is the ring *spacing* (a hand-built
+  conifer's tiers are evenly spaced but its lowest tiers are much the longest, which a linear taper across a
+  short axis cannot express) and the leaf cluster's own size per ring. `tools/tree-corpus/crown-profile.cs`
+  measures the corpus side.
+
+- [ ] **G176 — a grown tree still carries twice an author's wood at mid heights.** The corpus is nearly flat
+  in height — 23 blocks of wood at 5–9 courses, 36 at 10–13, then 51, 53, 53 to 40 — and the grower now runs
+  13, 19, 47, 82, 113, 173, 221, 322 over heights 6 to 40. The trunk radius and the lateral count no longer
+  scale steeply, so what remains is limb *count*: an author's median tree carries three limbs off its stem
+  where a 20-course generated one carries thirteen. Cutting them further trades against crown coverage, since
+  each tip is a cluster, so the honest next step is to let a cluster cover more than one tip rather than to
+  starve the crown. `tools/tree-corpus/grower-gate.cs --by-height` against `census.cs` is the reading.
 - [ ] **G150 — stamp a catalog shape into a drawn box.** The plan editor can draw a typed box and then ask
   whether the composer could have produced what is in it (G125's feasibility panel), but there is no way to
   go the other direction and *place* something known-producible: nothing in `Features/Plan/` references the

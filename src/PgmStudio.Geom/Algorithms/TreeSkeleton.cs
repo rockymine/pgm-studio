@@ -66,10 +66,11 @@ public sealed record TreeShape(
     /// sparser branching of a small tree are scaled by.</summary>
     public double Size => Math.Clamp((Height - 4) / 40.0, 0.05, 1);
 
-    /// <summary>The trunk's radius at the ground. A hand-built bole carries about three blocks across its
-    /// course, so a big tree's is under two: wood swept fatter than that reads as a column, and it is what
-    /// puts half again as many occupied neighbours on every block of a generated limb as on an author's.</summary>
-    public double TrunkRadius => 0.65 + Size * 1.15;
+    /// <summary>The trunk's radius at the ground, which barely grows with the tree. A hand-built tree's wood
+    /// is nearly flat in its height — 23 blocks at 5-9 courses, 36 at 10-13, then 51, 53, 53 all the way to 40
+    /// — because an author adds crown rather than timber as a tree gets taller. A bole swept from a radius
+    /// that scales with height is what took a generated tree of 30 courses to six times an author's wood.</summary>
+    public double TrunkRadius => 0.6 + Size * 0.6;
 }
 
 /// <summary>
@@ -96,7 +97,9 @@ public static class TreeSkeleton
         var grower = new Growth(shape, seed, limbs, tips);
 
         var stems = Math.Max(1, shape.Stems);
-        var axisLength = shape.Height * (0.5 + 0.34 * shape.Leader);
+        // A whorled tree's spine runs to its tip by construction — that is what a conifer is — so its axis is
+        // nearly the whole height rather than the leader-scaled two thirds a spreading tree gets.
+        var axisLength = shape.Height * (shape.Whorled ? 0.86 : 0.5 + 0.34 * shape.Leader);
         for (var s = 0; s < stems; s++)
         {
             // Multiple stems lean out from a shared base, each a slightly shorter axis of its own.
@@ -133,29 +136,34 @@ public static class TreeSkeleton
             limbs.Add(Smoothed(control, startRadius, endRadius, level: 0));
 
             // Laterals up the axis — fewer on a small tree, and reaching higher when the leader is strong.
-            // A big tree carries many of them because that is what the crown is built from: one small cluster
-            // per tip, so a tree with three tips can only be foliated by three clusters wide enough to be
-            // solids. The author's own tree ends in about thirty limbs.
-            var lateralCount = Math.Max(2, (int)Math.Round(2 + shape.Leader * 2 + shape.Size * 6));
-            // A whorled tree's rings stop well below the apex, which is what leaves a spire above the top
-            // ring instead of a bush around it.
-            var highest = shape.Whorled ? 0.52 + 0.16 * shape.Leader : 0.66 + 0.24 * shape.Leader;
+            // Kept few because wood is what a generated tree overspends: an author's median tree carries three
+            // limbs off its stem and foliates them with clumps big enough to be a crown, rather than carrying
+            // a dozen limbs each wearing a puff.
+            var lateralCount = Math.Max(2, (int)Math.Round(2 + shape.Leader * 2 + shape.Size * 3));
+            // A whorled tree rings almost its whole trunk — a conifer branches nearly to the ground and
+            // nearly to the tip — and its cone comes from each ring being shorter than the one below rather
+            // than from the rings stopping early, which only leaves a bare pole over a shrub.
+            var highest = shape.Whorled ? 0.92 : 0.66 + 0.24 * shape.Leader;
+            var lowest = shape.Whorled ? 0.10 : shape.ChildStart;
 
             // A conifer's laterals are gathered into whorls — a ring at one height, the next ring a fixed few
             // courses up — and each ring is shorter than the one below it, which is the whole of why the
             // silhouette is a cone and why the crown carries its bulk in its bottom third. A broadleaf's are
             // staggered up the axis one at a time instead, never whorled.
             var tiers = shape.Whorled
-                ? Math.Max(3, (int)Math.Round(length * (highest - shape.ChildStart) / TreeShape.WhorlSpacing))
+                ? Math.Max(3, (int)Math.Round(length * (highest - lowest) / TreeShape.WhorlSpacing))
                 : 0;
-            var perTier = shape.Whorled ? Math.Max(2, (int)Math.Round(lateralCount / (double)tiers) + 1) : 0;
+            // A whorl is a ring, so its width is the ring's own — three branches on a sapling, five on a big
+            // tree — rather than a share of a lateral budget sized for a tree that stagger its branches. Two
+            // is a pair, and a stack of pairs reads as a ladder instead of a cone.
+            var perTier = shape.Whorled ? 3 + (int)Math.Round(shape.Size * 2) : 0;
             if (shape.Whorled) lateralCount = tiers * perTier;
 
             for (var k = 0; k < lateralCount; k++)
             {
                 var tier = shape.Whorled ? k / perTier : 0;
                 var upTheTiers = shape.Whorled && tiers > 1 ? tier / (double)(tiers - 1) : 0;
-                var along = shape.ChildStart + (highest - shape.ChildStart)
+                var along = lowest + (highest - lowest)
                     * (shape.Whorled ? upTheTiers : (k + 0.5) / lateralCount);
                 var index = At(control, along);
                 var parent = Heading(control, index);
@@ -168,19 +176,22 @@ public static class TreeSkeleton
                 var angle = shape.BranchAngle * (0.7 + 0.7 * PatternNoise.Unit(k * 3, (int)key, seed + 9));
                 var length2 = length * shape.LengthFactor * (0.72 + 0.4 * PatternNoise.Unit(k, (int)key, seed + 4)) * (1 - 0.35 * along);
                 // A whorl's ring shortens as it climbs, from full at the foot to a third at the top.
-                if (shape.Whorled) length2 *= 1 - 0.72 * upTheTiers;
+                if (shape.Whorled) length2 *= 1 - 0.85 * upTheTiers;
                 var radius = Math.Max(0.6, (startRadius + (endRadius - startRadius) * along) * shape.ChildScale);
                 GrowLimb(control[index], Steer(parent, spread, angle), length2, radius, level: 1, key: key * 17 + (uint)k * 4 + 1);
             }
 
             // The top forks a little and then ends in a cluster of its own — a sapling is too short to fork.
+            // A whorled tree never forks there: its apex is a spire carrying the smallest clump on the tree,
+            // and a fork wearing a full crown is what rounds a cone off into a bush.
             var top = control[^1];
             var topHeading = Heading(control, control.Count - 1);
-            if (length * shape.LengthFactor * 0.5 > 2.6)
+            if (!shape.Whorled && length * shape.LengthFactor * 0.5 > 2.6)
                 for (var k = 0; k < 2; k++)
                     GrowLimb(top, Steer(topHeading, k * Math.PI, shape.BranchAngle * 0.5),
                         length * shape.LengthFactor * 0.5, Math.Max(0.6, endRadius * 0.85), level: 1, key: key * 91 + (uint)k);
-            tips.Add(new TreeTip(top, topHeading, Carry(length * shape.LengthFactor * 0.6)));
+            tips.Add(new TreeTip(top, topHeading,
+                shape.Whorled ? 0.4 : Carry(length * shape.LengthFactor * 0.6)));
         }
 
         /// <summary>How much foliage a limb of this length carries, against a full-grown branch's.</summary>

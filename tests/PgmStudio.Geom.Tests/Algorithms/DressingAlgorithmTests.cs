@@ -284,15 +284,15 @@ public sealed class DressingAlgorithmTests
     [Test]
     public async Task A_cluster_is_perforated_lace_not_a_solid_ball()
     {
-        // A hand-built crown carries about six occupied neighbours per leaf and encloses 1.7% of them on all
-        // six faces; a solid cluster measures twice that and reads as a brush stroke. So a cluster is filled
-        // well over half and well under whole — thin enough to be lace, thick enough to still be a patch.
+        // A hand-built crown is 24% block over its own volume, every leaf of it with air on some side. A
+        // cluster measured on its own sits above that — the crown's own figure is the union of clusters and
+        // the seams between them — but nowhere near solid: lace, not a brush stroke.
         List<LeafCluster> one = [new(new Vec3(0, 0, 0), new Vec3(6, 4, 6), 0)];
         var inside = Cells(-6, 6).Where(p => Quadric(p, 5) < 0.5).ToList();
         var filled = inside.Count(p => TreeCrown.OwnerAt(one, p, 7) is not null);
 
-        await Assert.That(filled / (double)inside.Count).IsGreaterThan(0.5);
-        await Assert.That(filled / (double)inside.Count).IsLessThan(0.8);
+        await Assert.That(filled / (double)inside.Count).IsGreaterThan(0.3);
+        await Assert.That(filled / (double)inside.Count).IsLessThan(0.65);
     }
 
     [Test]
@@ -332,7 +332,11 @@ public sealed class DressingAlgorithmTests
     public async Task A_grown_tree_holds_every_leaf_it_places_at_every_size()
     {
         // The gate the hand-built corpus supports, over the sizes and seeds the inspector can ask for:
-        // foliage reaches wood, a quarter of it touches wood outright, and none of it is a solid.
+        // foliage reaches wood, a quarter of it touches wood outright, and none of it is a solid. The wood
+        // contact is checked as the corpus's own 30.3% was computed — over the whole sweep — with a floor
+        // under each tree, because an author's own trees vary either side of that figure too and a per-tree
+        // assertion at the aggregate would be stricter than the ground truth it comes from.
+        var contact = new List<double>();
         foreach (var height in new double[] { 6, 12, 20, 32, 40 })
             for (uint seed = 1; seed <= 4; seed++)
             {
@@ -357,13 +361,16 @@ public sealed class DressingAlgorithmTests
                 var touching = leaves.Count(leaf => Neighbours(leaf).Any(wood.Contains));
                 var occupied = leaves.Sum(leaf => Neighbours(leaf).Count(c => leaves.Contains(c) || wood.Contains(c)));
 
-                await Assert.That(touching / (double)leaves.Count).IsGreaterThan(0.25);
-                // The corpus's own crowns sit at 6.2 occupied neighbours per leaf and the grower at 9.2, so
-                // this catches a return to the 13 a solid measures rather than certifying the gap is closed.
-                await Assert.That(occupied / (double)leaves.Count).IsLessThan(11.0);
+                contact.Add(touching / (double)leaves.Count);
+                await Assert.That(touching / (double)leaves.Count).IsGreaterThan(0.20);
+                // A hand-built crown carries 6.2 occupied neighbours per leaf; this catches a return to the
+                // 12.5 a solid measures rather than certifying the last of the gap is closed.
+                await Assert.That(occupied / (double)leaves.Count).IsLessThan(9.5);
                 // And the wood itself is one network, so no limb is left floating in the air.
                 await Assert.That(Pieces(wood)).IsEqualTo(1);
             }
+
+        await Assert.That(contact.Average()).IsGreaterThan(0.25);
     }
 
     [Test]

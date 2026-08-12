@@ -3616,12 +3616,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   islands up to 189 blocks); and `SweptVolume.Ball` always stamps the block its centre sits in, closing a band
   between radius 0.5 and √3/2 where a sample selected no cell at all — 21% of sweep samples placed nothing, and
   19% of trees emitted wood in more than one piece. **A cluster sits on its tip, not beyond it**, and is small,
-  perforated and sized by the branch carrying it, which takes leaves touching wood from 14.8% to 56% (an
-  author's 30.3%) and enclosed leaves from 7.2% to 0.6% (1.7%). **A branch leaves by the angle it was given**:
+  perforated and sized by the branch carrying it, which takes leaves touching wood from 14.8% to 36% (an
+  author's 30.3%) and enclosed leaves from 7.2% to nil (1.7%). **A branch leaves by the angle it was given**:
   `TreeSkeleton.Steer` turns a child in its parent's own frame rather than in world yaw and pitch, which a
-  vertical trunk discards entirely — first-order limbs moved from 24° off vertical to 61° (59°), their reach
-  against the trunk's from 0.20 to 0.43 (0.40), and the wood from 7.9 occupied neighbours per block to 5.4
-  (6.3). A **whorled** form gathers the laterals into rings 5.2 courses apart, each shorter than the last and
+  vertical trunk discards entirely — first-order limbs moved from 24° off vertical to 60° (59°), their reach
+  against the trunk's from 0.20 to 0.42 (0.40), and the wood from 7.9 occupied neighbours per block to 4.7
+  (6.3). **Wood barely grows with height**, because an author's does not — 23 blocks at 5-9 courses and 53 at
+  24-40 — so neither the trunk radius nor the lateral count scales with it, and a 40-course tree fell from 456
+  blocks of wood to 322. A **whorled** form gathers the laterals into rings 5.2 courses apart, each shorter than the last and
   none forking: the conifer against the broadleaf, an author's toggle on the tree's own panel. Gated by
   `DressingAlgorithmTests` over a height and seed sweep. (`PgmStudio.Geom/Algorithms/TreeSkeleton.cs`,
   `TreeCrown.cs`, `SweptVolume.cs`; `tools/tree-corpus/grower-gate.cs`, `wood-skeleton.cs --grower`) (G171, G172, G174, G175)

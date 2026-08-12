@@ -201,6 +201,25 @@ Console.WriteLine($"\n  trees flora's stem test can reach: {trees.Count - missed
     $" ({stemTally.Sum()} stems total)");
 Console.WriteLine($"  trees it cannot: {missed.Count} — {string.Join(", ", missed)}");
 
+// What a tree of a given height costs in blocks. The finding this answers is that it costs almost the same
+// whatever its height: an author adds crown as a tree grows, not timber, where a generator that scales its
+// trunk radius and its branch count with height spends six times the wood on a tall one.
+Console.WriteLine("\n=== wood and foliage by height ===");
+Console.WriteLine($"  {"height",-10} {"trees",6} {"wood",7} {"leaves",8} {"leaf/wood",10}");
+foreach (var band in new (string Name, int Low, int High)[]
+         { ("5-9", 5, 9), ("10-13", 10, 13), ("14-17", 14, 17), ("18-23", 18, 23), ("24 or more", 24, 999) })
+{
+    var inBand = trees.Select(tree => (
+            Height: tree.Max(p => p.Y) - (tree.Any(p => IsLog(world[p].Id))
+                ? tree.Where(p => IsLog(world[p].Id)).Min(p => p.Y) : tree.Min(p => p.Y)) + 1,
+            Wood: tree.Count(p => IsLog(world[p].Id) || world[p].Id == 35),
+            Leaves: tree.Count(p => IsLeaf(world[p].Id))))
+        .Where(t => t.Height >= band.Low && t.Height <= band.High && t.Leaves > 0).ToList();
+    if (inBand.Count == 0) continue;
+    Console.WriteLine($"  {band.Name,-10} {inBand.Count,6} {inBand.Average(t => t.Wood),7:0} " +
+        $"{inBand.Average(t => t.Leaves),8:0} {inBand.Sum(t => t.Leaves) / (double)inBand.Sum(t => t.Wood),10:0.0}");
+}
+
 // How straight the trunks are: the tallest stack of logs at any one (x,z), rooted or not.
 Console.WriteLine("\n=== trunk straightness (tallest log column anywhere in the tree) ===");
 var straight = new List<(int Tree, int Row, int Tallest, int Height, bool Grounded)>();

@@ -261,15 +261,15 @@ tree ships with:
 | | before | after | corpus |
 |---|---|---|---|
 | leaves reaching wood through leaves | 98.7% | **100%** | 99.95% |
-| leaves touching wood directly | 14.8% | **56%** | 30.3% |
-| occupied neighbours per leaf | 12.5 | **8.6** | 6.2 |
-| leaves enclosed on all six faces | 7.2% | **0.6%** | 1.7% |
+| leaves touching wood directly | 14.8% | **36%** | 30.3% |
+| occupied neighbours per leaf | 12.5 | **7.3** | 6.2 |
+| leaves enclosed on all six faces | 7.2% | **0.0%** | 1.7% |
 | trees carrying a stranded leaf | 36% | **0%** | 0% |
 | worst stranded island | 189 blocks | **0** | 2 blocks |
 | trees whose wood is in one piece | 81% | **100%** | 96% |
-| wood neighbours per block | 7.9 | **5.4** | 6.3 |
-| first-order limb, off vertical | 24° | **61°** | 59° |
-| first-order limb, reach against the trunk's | 0.20 | **0.43** | 0.40 |
+| wood neighbours per block | 7.9 | **4.7** | 6.3 |
+| first-order limb, off vertical | 24° | **60°** | 59° |
+| first-order limb, reach against the trunk's | 0.20 | **0.42** | 0.40 |
 
 Six changes carry it. `SweptVolume.Ball` stamps the block its centre sits in whatever the radius, which is
 what stops a twig from evaporating and takes the wood from 81% to 100% in one piece. `TreeCrown` seats each
@@ -277,8 +277,17 @@ cluster **on** its tip rather than beyond it, and `TreeCrown.Rooted` emits only 
 through foliage — so a stranded leaf is not rare, it is impossible. Clusters are small, many and perforated
 rather than few and solid, and each is sized by the branch carrying it. `TreeSkeleton.Steer` turns a child in
 its parent's own frame, so a branch angle is the angle a branch actually leaves by even off a vertical trunk —
-the single change that moved the limbs from 24° to 61° and thinned the wood from 7.9 neighbours to 5.4. And
-the trunk is swept thinner, against a hand-built bole of about three blocks across.
+the single change that moved the limbs from 24° to 60° and thinned the wood from 7.9 neighbours to 4.7.
+
+**A hand-built tree's wood barely grows with its height.** Read per tree and bucketed, the corpus carries 23
+blocks of wood at 5–9 courses, 36 at 10–13, then 51, 53 and 53 all the way to 40 — an author adds crown as a
+tree gets taller, not timber, and the tallest tree in the corpus carries about what a fourteen-course one
+does. The grower ran 13 → 456 over the same range, six to nine times an author's wood at the top of it,
+because both its trunk radius and its lateral count scaled with height. Both are now nearly flat in it, and
+the sweep runs 13 → 322. The crown that few branches have to carry comes from the other half of the same
+finding: a hand-built crown is **24% block over its own volume**, with **every one of its leaves carrying air
+on some side** — there is no interior to it at all — so a cluster is filled a little under half rather than
+nearly whole, and a handful of big lacy clumps foliate a tree that a dozen small dense ones could not.
 
 What is not closed is the last of the density: **8.6 occupied neighbours per leaf against the corpus's 6.2**.
 It still climbs with size — 8.0 at height 6 to 9.9 at height 40 — but far less steeply than the 8.3 to 10.8 it
@@ -287,8 +296,9 @@ climbed before, and `--by-height` is the switch that shows it. The gate in
 gap is shut. The other half of the same gap is that a generated tree still carries more wood for its foliage
 than an author's: 2.2 leaves per block against a corpus that runs 2.7 to 13.4 on its own large trees.
 
-The conifer is half-built. A whorled tree — a ring of branches every 5.2 courses, each ring shorter than the
-one below, no forking — now separates from the staggered one on the measures that separate the corpus's
-families: **63% of its foliage in the lower half against 46%**, where the corpus's conifers run 60–77% and its
-broadleaves 43–61%. It misses on the other: its widest tenth sits at **#3.9** where a hand-built conifer's is
-#1–#3. So the silhouette is a cone that is not yet steep enough (`G173`).
+The conifer is most of the way there. A whorled tree rings its whole trunk — three to five branches at one
+height, the next ring 5.2 courses up, each ring shorter than the one below, none of them forking, and a spire
+rather than a fork at the apex — and it separates from the staggered form on the measure that separates the
+corpus's families: **63% of its foliage in the lower half against 49%**, where hand-built conifers run 60–77%
+and broadleaves 43–61%. It still misses on the second: its widest tenth sits at **#4.4** where a hand-built
+conifer's is #1–#3, so the bulk is at mid-height rather than in the bottom third (`G173`).
