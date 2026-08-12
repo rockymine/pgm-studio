@@ -197,10 +197,12 @@ public sealed record DoorHeadStyle
     }
 }
 
-/// <summary>One window's place in a wall: the <see cref="Edge"/> it is cut through, the low along-axis block
-/// coordinate (x for a Z edge, z for an X edge), and its size in blocks. <see cref="Sill"/> counts courses up
-/// from the floor, so it is the same number a style asked for.</summary>
-public readonly record struct WindowSeat(RoomEdge Edge, int Lo, int Width, int Sill, int Height);
+/// <summary>One window's place in a wall: the <see cref="Wall"/> it is cut through, the low along-axis block
+/// coordinate along that run (x for a wall facing ±z, z for one facing ±x), and its size in blocks.
+/// <see cref="Sill"/> counts courses up from the floor, so it is the same number a style asked for. The seat
+/// carries the run rather than a facing, so it knows the line its wall stands on and needs no box to be cut
+/// against.</summary>
+public readonly record struct WindowSeat(WallSegment Wall, int Lo, int Width, int Sill, int Height);
 
 /// <summary>
 /// Where a house's windows go and what is written into them.
@@ -214,16 +216,20 @@ public readonly record struct WindowSeat(RoomEdge Edge, int Lo, int Width, int S
 /// </summary>
 public static class HouseWindows
 {
-    /// <summary>Every window seat on the four walls of a footprint, in edge order. Empty when the style asks
-    /// for none, when the wall is too short to hold one clear of its corners, or when the opening would not fit
-    /// between the floor and the wall's last course.</summary>
+    /// <summary>Every window seat on a building's walls, run by run in the order the plan lists them. Empty
+    /// when the style asks for none, when the wall is too short to hold one clear of its corners, or when the
+    /// opening would not fit between the floor and the wall's last course.
+    ///
+    /// <para>A run rather than a facing is what a window is seated in, so a building that turns a corner seats
+    /// each of its walls on its own length: an L's six walls are six runs, and the short one beside the turn
+    /// takes what it can hold rather than what the whole side could.</para></summary>
     /// <param name="hosts">Whether the wall at one cell of a run is a block the window may be cut into, or
     /// null where the style names no host and any cell will do. Passed as a question rather than as the wall
     /// itself: the seater decides <em>where</em> a window goes and has no business knowing what a wall is made
     /// of, and the caller that does know can answer by resolving it.</param>
     public static List<WindowSeat> Seats(
-        WindowStyle style, int minX, int minZ, int maxX, int maxZ,
-        int wallExtent, IReadOnlyList<RoomDoor>? doors, Func<RoomEdge, int, bool>? hosts = null)
+        WindowStyle style, IReadOnlyList<WallSegment> walls,
+        int wallExtent, IReadOnlyList<WallOpening>? doors, Func<WallSegment, int, bool>? hosts = null)
     {
         var seats = new List<WindowSeat>();
         if (style.Form == WindowForm.None) return seats;
@@ -232,20 +238,18 @@ public static class HouseWindows
         var sill = Math.Max(1, style.Sill);
         if (sill + height - 1 > wallExtent) return seats;      // no wall left above the sill to open
 
-        foreach (var edge in new[] { RoomEdge.NegZ, RoomEdge.PosZ, RoomEdge.NegX, RoomEdge.PosX })
+        foreach (var wall in walls)
         {
-            var alongMin = edge is RoomEdge.NegZ or RoomEdge.PosZ ? minX : minZ;
-            var alongMax = edge is RoomEdge.NegZ or RoomEdge.PosZ ? maxX : maxZ;
             // Two blocks in from each end rather than one: clearing the corner cell still leaves an opening
             // hard against the corner post, and a window meeting the post reads as a hole knocked through the
             // frame. The post wants a block of wall beside it before anything is taken out.
-            int seatLo = alongMin + 2, seatHi = alongMax - 2;
+            var (seatLo, seatHi) = wall.Seat;
             var placed = style.HostBlock >= 0 && hosts is not null
-                ? Panels(seatLo, seatHi, width, Math.Max(0, style.Spacing), along => hosts(edge, along))
+                ? Panels(seatLo, seatHi, width, Math.Max(0, style.Spacing), along => hosts(wall, along))
                 : Spread(seatLo, seatHi, width, Math.Max(0, style.Spacing));
             foreach (var lo in placed)
-                if (!MeetsDoor(doors, edge, lo, width))
-                    seats.Add(new WindowSeat(edge, lo, width, sill, height));
+                if (!MeetsDoor(doors, wall, lo, width))
+                    seats.Add(new WindowSeat(wall, lo, width, sill, height));
         }
         return seats;
     }
@@ -303,13 +307,15 @@ public static class HouseWindows
     }
 
     /// <summary>Whether a seat would meet a doorway on the same wall — the door's own run plus a block of wall
-    /// either side of it, so a window never lands hard against a door jamb.</summary>
-    private static bool MeetsDoor(IReadOnlyList<RoomDoor>? doors, RoomEdge edge, int lo, int width)
+    /// either side of it, so a window never lands hard against a door jamb. A doorway in another run of wall is
+    /// no obstacle even where the two look the same way, which is what carrying the run rather than the facing
+    /// buys.</summary>
+    private static bool MeetsDoor(IReadOnlyList<WallOpening>? doors, WallSegment wall, int lo, int width)
     {
         if (doors is null) return false;
         foreach (var door in doors)
         {
-            if (door.Edge != edge) continue;
+            if (door.Wall != wall) continue;
             if (lo <= door.Lo + door.Width && door.Lo <= lo + width) return true;
         }
         return false;
@@ -318,24 +324,13 @@ public static class HouseWindows
     /// <summary>Cut one window and dress it. The cells are written rather than skipped, air included: a window
     /// is an opening taken out of a wall the same pass just built, which is the doorway's rule and not a
     /// material's.</summary>
-    public static void Cut(
-        VoxelWorld world, WindowSeat seat, WindowStyle style, int floorY,
-        int minX, int minZ, int maxX, int maxZ)
+    public static void Cut(VoxelWorld world, WindowSeat seat, WindowStyle style, int floorY)
     {
-        var alongX = seat.Edge is RoomEdge.NegZ or RoomEdge.PosZ;
-        var fixedAt = seat.Edge switch
-        {
-            RoomEdge.NegZ => minZ,
-            RoomEdge.PosZ => maxZ,
-            RoomEdge.NegX => minX,
-            _ => maxX,
-        };
-
+        var alongX = seat.Wall.AlongX;
         for (var step = 0; step < seat.Width; step++)
             for (var course = 0; course < seat.Height; course++)
             {
-                var along = seat.Lo + step;
-                var (x, z) = alongX ? (along, fixedAt) : (fixedAt, along);
+                var (x, z) = seat.Wall.Cell(seat.Lo + step);
                 var (id, data) = Piece(style, seat, alongX, step, course);
                 world.SetBlock(x, floorY + seat.Sill + course, z, id, data);
             }

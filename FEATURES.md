@@ -3659,6 +3659,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   4 and either wing alone claims 2, because where two wings meet there is no wall between them and two
   five-deep halls read as one ten-deep room. The stamper still builds a single wing — the roof over more than
   one, and the walls and window runs that go with it, are the rest of G172. (G172)
+- **A wall is a run, and a facing stopped being its name (G172).** `Footprint` splits its outline into
+  `WallSegment` runs — every maximal stretch of wall with open ground on one side of it, ending wherever the
+  building turns, away from itself or back into itself. A rectangle stands in four, one per side, which is
+  exactly what a caller naming a wall by its compass direction used to read off a min and a max; an L stands in
+  six and a T in eight. **The reason it had to stop being a facing is that two of an L's walls look the same
+  way**, at different lines and over different stretches, so a window seated in one and a window seated in the
+  other were indistinguishable — and a doorway in one wrongly blocked a window in the other. The window seater,
+  the opening fit, the doorway pass, the gable windows, the porch rail and the ladder all take a run now, and a
+  `WindowSeat` and a `WallOpening` carry theirs, so a window knows the line its wall stands on and is cut
+  without being handed a box. Where a run has to be picked from a direction — a door handed in by a room frame
+  names a side, not a wall — the rule is on the plan: the longest run looking that way whose stretch reaches the
+  place asked for, length breaking the tie because a building is entered by its face rather than by its return.
+  The margin an opening keeps off the end of its run is now the same whichever kind of corner ends it, which is
+  what the inner corner was added for. Nothing moved: the house showcase renders byte-identical across the
+  change, over every roof, floor, porch and window figure it draws. (G172)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds

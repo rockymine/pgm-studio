@@ -345,8 +345,12 @@ nothing between them is not a window, and an arch is two wide and two tall at th
 whole of an arch and one cell cannot hold both, and a head that took the only course would be an arch over
 nothing. An open one is entirely the author's, since no form is imposing a shape on it.
 
-Seating is the half that has to be right, because a window is cut out of a wall that already stands. Each wall
-is seated on the run **between its two corner posts**, the windows are spread evenly and centred on that run —
+Seating is the half that has to be right, because a window is cut out of a wall that already stands. A wall is
+a **run** — one straight stretch of the plan's outline, ending wherever the building turns, away from itself or
+back into itself — so a rectangle stands in four of them and an L in six, and a run rather than a compass
+direction is what a window is seated in and a doorway is cut through. Two of an L's walls look the same way, so
+naming a wall by the direction it faces stops being an identity the moment a building turns a corner. Each run
+is seated **between its two corners**, the windows are spread evenly and centred on that run —
 a wall reads as symmetric rather than as windows starting at one end and stopping when they run out — and any
 seat that would meet a doorway, or the block of wall either side of it, is **dropped rather than shifted**.
 Shifting one would break the spacing of every window after it to save it, and the gap where a door is reads as

@@ -1,6 +1,59 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom.Algorithms;
 
 namespace PgmStudio.Minecraft;
+
+/// <summary>
+/// One straight run of a building's wall: which way its outward face points, which line it stands on, and how
+/// far it runs. <see cref="Lo"/> and <see cref="Hi"/> are inclusive and count in the wall's own along axis — x
+/// for a wall facing ±z, z for one facing ±x — and both ends are the corner cells, whichever kind of corner
+/// ends the run.
+///
+/// <para><b>A facing is not an identity.</b> A rectangle has one run per facing, so naming the wall and naming
+/// the direction it looks were the same thing; a plan that turns a corner has two walls looking the same way at
+/// different lines, and a building addressed by facing alone cannot say which. A run is the thing a window is
+/// seated in and a doorway is cut through, so it is the run that gets carried rather than the direction.</para>
+/// </summary>
+public readonly record struct WallSegment(RoomEdge Facing, int Fixed, int Lo, int Hi)
+{
+    /// <summary>Whether the wall runs east–west, so its along axis is x and the line it stands on is a z.</summary>
+    public bool AlongX => Facing is RoomEdge.NegZ or RoomEdge.PosZ;
+
+    /// <summary>How many blocks of wall the run holds, corner cells included.</summary>
+    public int Length => Hi - Lo + 1;
+
+    /// <summary>The block one step along the run stands on.</summary>
+    public (int X, int Z) Cell(int along) => AlongX ? (along, Fixed) : (Fixed, along);
+
+    /// <summary>Whether a step along the axis falls within the run.</summary>
+    public bool Holds(int along) => along >= Lo && along <= Hi;
+
+    /// <summary>The step from a cell of this wall to the cell behind it — into the building, away from the
+    /// weather. What something standing against the wall rather than in it is offset by.</summary>
+    public (int X, int Z) Inward => Facing switch
+    {
+        RoomEdge.NegZ => (0, 1),
+        RoomEdge.PosZ => (0, -1),
+        RoomEdge.NegX => (1, 0),
+        _ => (-1, 0),
+    };
+
+    /// <summary>The stretch of wall between the two corners, which is what is left once the cells the corners
+    /// themselves take are off the table.</summary>
+    public (int Lo, int Hi) BetweenCorners => (Lo + 1, Hi - 1);
+
+    /// <summary>Where an opening may actually be cut: the stretch between the corners, <b>one block further in
+    /// at each end</b>. Clearing the corner cell is not enough — an opening starting in the very next cell still
+    /// meets the corner, and a corner is where two walls turn and wants a block of wall beside it before
+    /// anything is taken out. It is the same margin whether the building turns away from itself there or back
+    /// into itself, because both are a turn.</summary>
+    public (int Lo, int Hi) Seat => (Lo + 2, Hi - 2);
+}
+
+/// <summary>An opening taken out of one run of wall: which run, where along it, and how wide. A door carries its
+/// run rather than a facing for the reason <see cref="WallSegment"/> gives — two walls of one building may look
+/// the same way.</summary>
+public readonly record struct WallOpening(WallSegment Wall, int Lo, int Width);
 
 /// <summary>One rectangle of a building's plan. A house of a single rectangle is one wing; an L, a T or a U is
 /// several touching ones, which is what lets a building turn a corner as one house under one style rather than
@@ -138,6 +191,70 @@ public sealed class Footprint
         return arc < 0 ? 0 : Perimeter.Run[arc];
     }
 
+    /// <summary>The runs of wall the plan stands in, measured once on first use: every maximal stretch of held
+    /// cells with open ground on one side of it. A rectangle answers four, one per facing, which is what lets a
+    /// caller that used to name a wall by its direction keep the answers it had; an L answers six and a T eight,
+    /// because a wall ends wherever the building turns — away from itself or back into itself.
+    ///
+    /// <para>Ordered by facing, then by the line the wall stands on, then along it, so the order is a property
+    /// of the plan rather than of how the wings were listed.</para></summary>
+    public IReadOnlyList<WallSegment> Segments => segments ??= SplitWalls();
+
+    /// <summary>The run of wall on one side of the building that a thing placed <paramref name="about"/> a place
+    /// along that side belongs to: the longest of those looking that way whose stretch reaches it, or simply the
+    /// longest where none does. A rectangle has one run per side and answers it whatever the rule; the rule is
+    /// what a plan that turns a corner needs, and length is the tiebreak because the wall a building is entered
+    /// by is its face rather than its return. Null only where the plan looks nowhere in that direction.</summary>
+    public WallSegment? WallFacing(RoomEdge facing, int about)
+    {
+        WallSegment? best = null;
+        foreach (var wall in Segments)
+        {
+            if (wall.Facing != facing) continue;
+            if (best is not { } chosen) { best = wall; continue; }
+            if (wall.Holds(about) != chosen.Holds(about)) { if (wall.Holds(about)) best = wall; continue; }
+            if (wall.Length > chosen.Length) best = wall;
+        }
+        return best;
+    }
+
+    private WallSegment[] SplitWalls()
+    {
+        var found = new List<WallSegment>();
+        foreach (var facing in new[] { RoomEdge.NegZ, RoomEdge.PosZ, RoomEdge.NegX, RoomEdge.PosX })
+        {
+            var alongX = facing is RoomEdge.NegZ or RoomEdge.PosZ;
+            var (lineLo, lineHi) = alongX ? (MinZ, MaxZ) : (MinX, MaxX);
+            var (alongLo, alongHi) = alongX ? (MinX, MaxX) : (MinZ, MaxZ);
+            var (outX, outZ) = facing switch
+            {
+                RoomEdge.NegZ => (0, -1),
+                RoomEdge.PosZ => (0, 1),
+                RoomEdge.NegX => (-1, 0),
+                _ => (1, 0),
+            };
+
+            for (var line = lineLo; line <= lineHi; line++)
+            {
+                var from = int.MinValue;
+                // One step past the end closes a run that reaches it, so a wall running to the far edge of the
+                // plan is not left open.
+                for (var along = alongLo; along <= alongHi + 1; along++)
+                {
+                    var (x, z) = alongX ? (along, line) : (line, along);
+                    var faces = along <= alongHi && Holds(x, z) && !Holds(x + outX, z + outZ);
+                    if (faces && from == int.MinValue) from = along;
+                    else if (!faces && from != int.MinValue)
+                    {
+                        found.Add(new WallSegment(facing, line, from, along - 1));
+                        from = int.MinValue;
+                    }
+                }
+            }
+        }
+        return [.. found];
+    }
+
     /// <summary>Every cell the plan holds, in ascending x then z.</summary>
     public IEnumerable<(int X, int Z)> Cells()
     {
@@ -148,6 +265,7 @@ public sealed class Footprint
 
     private PerimeterTrace? perimeter;
     private Dictionary<(int X, int Z), int>? inset;
+    private WallSegment[]? segments;
 
     /// <summary>The walked outline, measured once on first use. A wall reads its arc, bend and direction from
     /// the same walk of the same outline that a plateau's edge reads them from — one measurement, so a building

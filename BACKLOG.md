@@ -242,16 +242,16 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   Also needed, and cheap once the above holds: a projecting wing must **cut** the roof it pushes into across
   its own span, or its verge has nowhere to sit and its overhang is simply missing.
 
-  **What this costs elsewhere is the footprint, not the roof, and the shape half of it is done**
-  (`FEATURES.md`). `Footprint` is a type of its own now, a union of touching `Wing` rectangles that walks its
-  own cells: `Holds`, `OnPerimeter`, `OnCorner`, `OnInnerCorner`, `Ring` and the walked `Arc`/`Turn`/`Run` all
-  answer for an L, a T or a U. **What still reads a rectangle is the stamper**, and that is the next slice:
-  `Stamp` builds a single-wing plan and takes a width and a depth, the sill fills the bounding box rather than
-  ringing the outline, the wall pass and the window runs assume four walls (six on an L, with the inner corner
-  keeping its margin off the turn), and `SplitPorch`, `Fit`, `Run`, `Seat` and `LadderCell` all reach for a
-  min and a max. Upstream, WX1 says the piece dictates the footprint, so the dressing prop or the plan piece
-  has to accept more than one rect. The roof still falls out once that is done; doing the roof first means
-  writing it twice.
+  **What this costs elsewhere is the footprint, not the roof, and the footprint is done** (`FEATURES.md`).
+  `Footprint` is a type of its own, a union of touching `Wing` rectangles that walks its own cells — `Holds`,
+  `OnPerimeter`, `OnCorner`, `OnInnerCorner`, `Ring`, the walked `Arc`/`Turn`/`Run` — and it splits its outline
+  into `WallSegment` runs, six on an L and eight on a T, which the window seater, the opening fit, the doorway
+  pass and the ladder all read instead of a min and a max. **What still reads a rectangle is the way in and the
+  way out of the stamper**, and that is the next slice: `Stamp` takes a width and a depth and builds a single
+  wing, the sill fills the bounding box rather than ringing the outline, `SplitPorch` splits a rect, and
+  `RoofField` is handed the bounding box. Upstream, WX1 says the piece dictates the footprint, so the dressing
+  prop or the plan piece has to accept more than one rect. The roof still falls out once that is done; doing the
+  roof first means writing it twice.
 
   **The ring is one measurement now, and that part is done** (`FEATURES.md`). `Footprint` answered `Arc`,
   `Turn` and `Run` in closed form because a rectangle can; it walks its own outline through `Geom.GridBoundary`

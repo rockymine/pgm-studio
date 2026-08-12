@@ -12,10 +12,18 @@ public sealed class HouseWindowsTests
 {
     private const int FloorY = 64;
 
+    /// <summary>The runs of wall a plain rectangle stands in — four, one per side.</summary>
+    private static IReadOnlyList<WallSegment> Walls(int width = 15, int depth = 11)
+        => new Footprint(0, 0, width - 1, depth - 1).Segments;
+
+    /// <summary>One wall of a rectangle, named the way a rectangle lets it be named.</summary>
+    private static WallSegment Wall(RoomEdge facing, int width = 15, int depth = 11)
+        => Walls(width, depth).First(wall => wall.Facing == facing);
+
     private static List<WindowSeat> Seats(
         WindowStyle style, int width = 15, int depth = 11, int wallExtent = 7,
-        IReadOnlyList<RoomDoor>? doors = null)
-        => HouseWindows.Seats(style, 0, 0, width - 1, depth - 1, wallExtent, doors);
+        IReadOnlyList<WallOpening>? doors = null)
+        => HouseWindows.Seats(style, Walls(width, depth), wallExtent, doors);
 
     [Test]
     public async Task No_window_is_cut_through_a_corner()
@@ -23,7 +31,7 @@ public sealed class HouseWindowsTests
         // A corner is what holds the building up, and it is the one cell a wall run must never offer.
         foreach (var seat in Seats(WindowStyle.Glazed))
         {
-            var (lo, hi) = seat.Edge is RoomEdge.NegZ or RoomEdge.PosZ ? (0, 14) : (0, 10);
+            var (lo, hi) = seat.Wall.Facing is RoomEdge.NegZ or RoomEdge.PosZ ? (0, 14) : (0, 10);
             await Assert.That(seat.Lo).IsGreaterThan(lo);
             await Assert.That(seat.Lo + seat.Width - 1).IsLessThan(hi);
         }
@@ -32,7 +40,7 @@ public sealed class HouseWindowsTests
     [Test]
     public async Task Windows_are_spread_evenly_and_centred_on_the_wall_they_are_cut_in()
     {
-        var seats = Seats(WindowStyle.Glazed).Where(seat => seat.Edge == RoomEdge.NegZ).ToList();
+        var seats = Seats(WindowStyle.Glazed).Where(seat => seat.Wall.Facing == RoomEdge.NegZ).ToList();
         await Assert.That(seats.Count).IsGreaterThan(1);
 
         // Centred: what is left over is split between the two ends rather than piling up at one of them.
@@ -48,9 +56,10 @@ public sealed class HouseWindowsTests
     [Test]
     public async Task A_window_that_would_meet_a_doorway_is_dropped_rather_than_shifted()
     {
-        var doors = new[] { new RoomDoor(RoomEdge.NegZ, 6, 2) };
-        var withDoor = Seats(WindowStyle.Glazed, doors: doors).Where(s => s.Edge == RoomEdge.NegZ).ToList();
-        var without = Seats(WindowStyle.Glazed).Where(s => s.Edge == RoomEdge.NegZ).ToList();
+        var doors = new[] { new WallOpening(Wall(RoomEdge.NegZ), 6, 2) };
+        var front = (WindowSeat seat) => seat.Wall.Facing == RoomEdge.NegZ;
+        var withDoor = Seats(WindowStyle.Glazed, doors: doors).Where(front).ToList();
+        var without = Seats(WindowStyle.Glazed).Where(front).ToList();
 
         // Shifting the one that clashes would break the spacing of every window after it to save one; the gap
         // where a door is reads as intended, so the survivors keep exactly the seats they always had.
@@ -83,7 +92,7 @@ public sealed class HouseWindowsTests
     public async Task A_stair_lattice_turns_its_four_stairs_away_from_the_light_between_them()
     {
         var world = new VoxelWorld();
-        HouseWindows.Cut(world, new WindowSeat(RoomEdge.NegZ, 4, 2, 2, 2), WindowStyle.Lattice, 64, 0, 0, 14, 10);
+        HouseWindows.Cut(world, new WindowSeat(Wall(RoomEdge.NegZ, 15, 11), 4, 2, 2, 2), WindowStyle.Lattice, 64);
 
         // The raised half of each stair sits on the outside of the group, so the quarter each is missing points
         // at the centre and the four missing quarters meet there.
@@ -101,7 +110,7 @@ public sealed class HouseWindowsTests
         // The same window in a wall running the other way climbs north and south rather than east and west: the
         // step faces along the wall, not out through it.
         var world = new VoxelWorld();
-        HouseWindows.Cut(world, new WindowSeat(RoomEdge.NegX, 4, 2, 2, 2), WindowStyle.Lattice, 64, 0, 0, 14, 10);
+        HouseWindows.Cut(world, new WindowSeat(Wall(RoomEdge.NegX, 15, 11), 4, 2, 2, 2), WindowStyle.Lattice, 64);
 
         await Assert.That(world.GetBlock(0, 66, 4)).IsEqualTo((Blocks.OakStairs, Blocks.StairNorth));
         await Assert.That(world.GetBlock(0, 66, 5)).IsEqualTo((Blocks.OakStairs, Blocks.StairSouth));
@@ -111,7 +120,7 @@ public sealed class HouseWindowsTests
     public async Task A_slab_band_is_a_sill_a_lintel_and_open_air_between_them()
     {
         var world = new VoxelWorld();
-        HouseWindows.Cut(world, new WindowSeat(RoomEdge.NegZ, 4, 2, 2, 3), WindowStyle.Band, 64, 0, 0, 14, 10);
+        HouseWindows.Cut(world, new WindowSeat(Wall(RoomEdge.NegZ, 15, 11), 4, 2, 2, 3), WindowStyle.Band, 64);
 
         for (var x = 4; x <= 5; x++)
         {
@@ -125,7 +134,7 @@ public sealed class HouseWindowsTests
     public async Task A_pane_window_is_glazed_the_whole_way_across()
     {
         var world = new VoxelWorld();
-        HouseWindows.Cut(world, new WindowSeat(RoomEdge.PosZ, 4, 2, 2, 2), WindowStyle.Glazed, 64, 0, 0, 14, 10);
+        HouseWindows.Cut(world, new WindowSeat(Wall(RoomEdge.PosZ, 15, 11), 4, 2, 2, 2), WindowStyle.Glazed, 64);
 
         for (var x = 4; x <= 5; x++)
             for (var y = 66; y <= 67; y++)
@@ -141,7 +150,7 @@ public sealed class HouseWindowsTests
     // ── a window that belongs to a band ─────────────────────────────────────────────────────────────
 
     /// <summary>A wall that bands in fours: two cells of host, two of something else, repeating.</summary>
-    private static bool Banded(RoomEdge edge, int along) => ((along % 4) + 4) % 4 is 0 or 1;
+    private static bool Banded(WallSegment wall, int along) => ((along % 4) + 4) % 4 is 0 or 1;
 
     [Test]
     public async Task A_window_with_a_host_sits_wholly_inside_one_panel_of_it()
@@ -153,12 +162,12 @@ public sealed class HouseWindowsTests
             Form = WindowForm.Pane, Width = 2, Height = 2, Sill = 2, Spacing = 1,
             HostBlock = 5, HostData = 1,
         };
-        var seats = HouseWindows.Seats(style, 0, 0, 20, 20, 7, null, Banded);
+        var seats = HouseWindows.Seats(style, Walls(21, 21), 7, null, Banded);
 
         await Assert.That(seats).IsNotEmpty();
         foreach (var seat in seats)
             for (var step = 0; step < seat.Width; step++)
-                await Assert.That(Banded(seat.Edge, seat.Lo + step)).IsTrue();
+                await Assert.That(Banded(seat.Wall, seat.Lo + step)).IsTrue();
     }
 
     [Test]
@@ -172,8 +181,8 @@ public sealed class HouseWindowsTests
             Form = WindowForm.Pane, Width = 2, Height = 2, Sill = 2, Spacing = 1,
             HostBlock = 5, HostData = 1,
         };
-        var seats = HouseWindows.Seats(style, 0, 0, 8, 8, 7, null, Banded);
-        await Assert.That(seats.Count(seat => seat.Edge == RoomEdge.NegZ)).IsGreaterThan(0);
+        var seats = HouseWindows.Seats(style, Walls(9, 9), 7, null, Banded);
+        await Assert.That(seats.Count(seat => seat.Wall.Facing == RoomEdge.NegZ)).IsGreaterThan(0);
     }
 
     [Test]
@@ -185,7 +194,7 @@ public sealed class HouseWindowsTests
         {
             Form = WindowForm.Pane, Width = 2, Height = 2, Sill = 2, HostBlock = 5, HostData = 1,
         };
-        await Assert.That(HouseWindows.Seats(style, 0, 0, 20, 20, 7, null, (_, _) => false)).IsEmpty();
+        await Assert.That(HouseWindows.Seats(style, Walls(21, 21), 7, null, (_, _) => false)).IsEmpty();
     }
 
     [Test]
@@ -194,7 +203,7 @@ public sealed class HouseWindowsTests
         // The host is an addition, not a change: a style that names none is spread exactly as it always was,
         // and the predicate is not even consulted.
         var style = new WindowStyle { Form = WindowForm.Pane, Width = 2, Height = 2, Sill = 2, Spacing = 3 };
-        await Assert.That(HouseWindows.Seats(style, 0, 0, 14, 10, 7, null, (_, _) => false))
+        await Assert.That(HouseWindows.Seats(style, Walls(15, 11), 7, null, (_, _) => false))
             .IsEquivalentTo(Seats(style));
     }
 
@@ -262,7 +271,7 @@ public sealed class HouseWindowsTests
             await Assert.That(seats).IsNotEmpty();
             foreach (var seat in seats)
             {
-                var span = seat.Edge is RoomEdge.NegZ or RoomEdge.PosZ ? width : depth;
+                var span = seat.Wall.Facing is RoomEdge.NegZ or RoomEdge.PosZ ? width : depth;
                 await Assert.That(seat.Lo).IsGreaterThanOrEqualTo(2);
                 await Assert.That(seat.Lo + seat.Width - 1).IsLessThanOrEqualTo(span - 3);
             }
@@ -293,8 +302,8 @@ public sealed class HouseWindowsTests
             Form = WindowForm.Pane, Block = Blocks.GlassPane, HostBlock = Blocks.Planks, HostData = 1,
             Width = 2, Height = 2, Sill = 2, Spacing = 2,
         };
-        var seats = HouseWindows.Seats(style, 0, 0, width - 1, 8, 6, null, (_, _) => true)
-            .Where(seat => seat.Edge == RoomEdge.NegZ)
+        var seats = HouseWindows.Seats(style, Walls(width, 9), 6, null, (_, _) => true)
+            .Where(seat => seat.Wall.Facing == RoomEdge.NegZ)
             .OrderBy(seat => seat.Lo)
             .ToList();
 
@@ -323,8 +332,8 @@ public sealed class HouseWindowsTests
             Width = 2, Height = 2, Sill = 2, Spacing = 1,
         };
         // Two cells of something else, then two of the host, round and round.
-        var seats = HouseWindows.Seats(style, 0, 0, 20, 8, 6, null, (_, along) => along % 4 >= 2)
-            .Where(seat => seat.Edge == RoomEdge.NegZ)
+        var seats = HouseWindows.Seats(style, Walls(21, 9), 6, null, (_, along) => along % 4 >= 2)
+            .Where(seat => seat.Wall.Facing == RoomEdge.NegZ)
             .ToList();
 
         await Assert.That(seats).IsNotEmpty();
@@ -354,8 +363,8 @@ public sealed class HouseWindowsTests
         };
         var (builtWidth, builtHeight) = style.Normalized();
         var world = new VoxelWorld();
-        var seat = new WindowSeat(RoomEdge.NegZ, 3, builtWidth, 2, builtHeight);
-        HouseWindows.Cut(world, seat, style, FloorY, 0, 0, 12, 8);
+        var seat = new WindowSeat(Wall(RoomEdge.NegZ, 13, 9), 3, builtWidth, 2, builtHeight);
+        HouseWindows.Cut(world, seat, style, FloorY);
 
         for (var step = 0; step < builtWidth; step++)
             for (var course = 0; course < builtHeight; course++)

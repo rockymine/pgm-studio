@@ -45,7 +45,11 @@ public static class HouseStamper
         var doorHeight = Math.Min(
             doors is { Count: > 0 } ? style.DoorHeight : Math.Max(3, style.DoorHeight),
             Math.Max(1, style.Levels[0].Headroom));
-        var openings = Doorways(doors, style, body, wallsMoved: deck is not null, front);
+        // The run of wall the building fronts on: what its own door is cut through, and what the way up stands
+        // against. A rectangle has one run per side, so this is that side; a plan that turns a corner has to
+        // pick, and the rule is on the plan.
+        var frontWall = body.WallFacing(front, FrontCentre(body, front));
+        var openings = Doorways(doors, style, body, frontWall);
 
         var overhang = Math.Max(0, style.Overhang);
         var pitch = Math.Max(1, style.Pitch);
@@ -127,13 +131,10 @@ public static class HouseStamper
             var storey = levels[level];
             var windows = storey.Windows ?? style.Windows;
             var seats = HouseWindows.Seats(
-                windows, body.MinX, body.MinZ, body.MaxX, body.MaxZ,
-                storey.Headroom, level == 0 ? openings : null,
+                windows, body.Segments, storey.Headroom, level == 0 ? openings : null,
                 Hosts(storey.Wall ?? style.Wall, windows, bases[level]));
             foreach (var seat in seats)
-                HouseWindows.Cut(
-                    world, seat with { Sill = seat.Sill + bases[level] }, windows, floorY,
-                    body.MinX, body.MinZ, body.MaxX, body.MaxZ);
+                HouseWindows.Cut(world, seat with { Sill = seat.Sill + bases[level] }, windows, floorY);
         }
 
         StampLevels();
@@ -141,20 +142,14 @@ public static class HouseStamper
         // Whether the wall at one cell of one storey resolves to the block a window wants to be cut into. The
         // wall is asked rather than inspected: it is resolved exactly as the pass that laid it resolved it,
         // same course, same arc, same run — so whatever pattern put a block there, a window finds it.
-        Func<RoomEdge, int, bool>? Hosts(RoomPart wall, WindowStyle windows, int storeyBase)
+        Func<WallSegment, int, bool>? Hosts(RoomPart wall, WindowStyle windows, int storeyBase)
         {
             if (windows.HostBlock < 0) return null;
             var course = Math.Max(1, windows.Sill);
             var (material, depth) = wall.At(course - 1);
-            return (edge, along) =>
+            return (segment, along) =>
             {
-                var (x, z) = edge switch
-                {
-                    RoomEdge.NegZ => (along, body.MinZ),
-                    RoomEdge.PosZ => (along, body.MaxZ),
-                    RoomEdge.NegX => (body.MinX, along),
-                    _ => (body.MaxX, along),
-                };
+                var (x, z) = segment.Cell(along);
                 var arc = body.Arc(x, z);
                 var (id, data) = material.Resolve(new BucketContext(
                     x, floorY + storeyBase + course, z, TerrainBucket.Fill, depth, color,
@@ -206,9 +201,9 @@ public static class HouseStamper
             var (width, height) = windows.Normalized();
             var sill = Math.Max(1, windows.Sill);
 
-            foreach (var edge in new[] { RoomEdge.NegZ, RoomEdge.PosZ, RoomEdge.NegX, RoomEdge.PosX })
+            foreach (var wall in body.Segments)
             {
-                var (lo, hi) = Seat(body, edge);                     // a block clear of both corners
+                var (lo, hi) = wall.Seat;                            // a block clear of both corners
                 var start = lo + (hi - lo + 1 - width) / 2;          // centred the way a wall's windows are
                 if (start < lo || start + width - 1 > hi) continue;
 
@@ -222,13 +217,7 @@ public static class HouseStamper
                 for (var course = sill; course < sill + height && fits; course++)
                     for (var along = start - 1; along <= start + width && fits; along++)
                     {
-                        var (x, z) = edge switch
-                        {
-                            RoomEdge.NegZ => (along, body.MinZ),
-                            RoomEdge.PosZ => (along, body.MaxZ),
-                            RoomEdge.NegX => (body.MinX, along),
-                            _ => (body.MaxX, along),
-                        };
+                        var (x, z) = wall.Cell(along);
                         fits = along >= lo - 1 && along <= hi + 1
                                && field.Underside(x, z) > wallTop + course;
                     }
@@ -237,8 +226,7 @@ public static class HouseStamper
                 // Seated from the wall top, which is the course the gable starts at and the datum an author is
                 // looking at when they place one — the floor is storeys away by then.
                 HouseWindows.Cut(
-                    world, new WindowSeat(edge, start, width, sill, height), windows, wallTop,
-                    body.MinX, body.MinZ, body.MaxX, body.MaxZ);
+                    world, new WindowSeat(wall, start, width, sill, height), windows, wallTop);
             }
         }
 
@@ -250,7 +238,7 @@ public static class HouseStamper
         {
             // One cell for the whole stack, so the way up is a single shaft rather than a ladder that moves
             // from storey to storey and leaves a player to find the next one.
-            var climb = LadderCell(body, front, openings);
+            var climb = frontWall is { } wall ? LadderCell(wall, openings) : default((int X, int Z)?);
 
             for (var level = 0; level < levels.Count - 1; level++)
             {
@@ -272,9 +260,10 @@ public static class HouseStamper
 
                 // The ladder: it stands in the storey below the hole and reaches the floor above, so a player
                 // steps off it onto the new floor rather than into its underside.
-                for (var y = floorY + bases[level] + 1; y <= slabY; y++)
-                    if (y is > 0 and < VoxelWorld.MaxHeight)
-                        world.SetBlock(climb.X, y, climb.Z, Blocks.Ladder, LadderFacing(front));
+                if (climb is { } shaft)
+                    for (var y = floorY + bases[level] + 1; y <= slabY; y++)
+                        if (y is > 0 and < VoxelWorld.MaxHeight)
+                            world.SetBlock(shaft.X, y, shaft.Z, Blocks.Ladder, LadderFacing(front));
 
                 LayBeams(slabY);
             }
@@ -338,18 +327,11 @@ public static class HouseStamper
                 // The head takes the opening's <em>top</em> course where the style names one and the opening
                 // is big enough to spare it, so a three-course door becomes two of clear under a beam.
                 var head = style.DoorHead.Fits(door.Width, doorHeight) ? doorHeight : 0;
-                var alongX = door.Edge is RoomEdge.NegZ or RoomEdge.PosZ;
+                var alongX = door.Wall.AlongX;
                 for (var course = 1; course <= doorHeight; course++)
                     for (var step = 0; step < door.Width; step++)
                     {
-                        var along = door.Lo + step;
-                        var (x, z) = door.Edge switch
-                        {
-                            RoomEdge.NegZ => (along, body.MinZ),
-                            RoomEdge.PosZ => (along, body.MaxZ),
-                            RoomEdge.NegX => (body.MinX, along),
-                            _ => (body.MaxX, along),
-                        };
+                        var (x, z) = door.Wall.Cell(door.Lo + step);
                         var (id, data) = course == head
                             ? style.DoorHead.Piece(alongX, step, door.Width)
                             : (choice.BlockId, choice.Coloured && color >= 0 ? color : 0);
@@ -404,8 +386,8 @@ public static class HouseStamper
             {
                 foreach (var door in openings)
                 {
-                    if (door.Edge != front) continue;
-                    var along = door.Edge is RoomEdge.NegZ or RoomEdge.PosZ ? x : z;
+                    if (door.Wall.Facing != front) continue;
+                    var along = door.Wall.AlongX ? x : z;
                     if (along >= door.Lo && along < door.Lo + door.Width) return true;
                 }
                 return false;
@@ -423,29 +405,16 @@ public static class HouseStamper
     ///
     /// <para>The low end of the wall unless the doorway reaches it, in which case the high end — a ladder in
     /// the doorway is a ladder in the way.</para></summary>
-    private static (int X, int Z) LadderCell(Footprint body, RoomEdge front, IReadOnlyList<RoomDoor> doors)
+    private static (int X, int Z) LadderCell(WallSegment wall, IReadOnlyList<WallOpening> doors)
     {
-        var alongX = front is RoomEdge.NegZ or RoomEdge.PosZ;
-        var (lo, hi) = alongX ? (body.MinX + 1, body.MaxX - 1) : (body.MinZ + 1, body.MaxZ - 1);
+        var (lo, hi) = wall.BetweenCorners;
         var along = Math.Min(lo + 1, hi);
-        if (doors.Any(door => door.Edge == front && along >= door.Lo - 1 && along < door.Lo + door.Width + 1))
+        if (doors.Any(door => door.Wall == wall && along >= door.Lo - 1 && along < door.Lo + door.Width + 1))
             along = Math.Max(hi - 1, lo);
 
-        var inward = front switch
-        {
-            RoomEdge.NegZ => (X: 0, Z: 1),
-            RoomEdge.PosZ => (X: 0, Z: -1),
-            RoomEdge.NegX => (X: 1, Z: 0),
-            _ => (X: -1, Z: 0),
-        };
-        var (wallX, wallZ) = front switch
-        {
-            RoomEdge.NegZ => (along, body.MinZ),
-            RoomEdge.PosZ => (along, body.MaxZ),
-            RoomEdge.NegX => (body.MinX, along),
-            _ => (body.MaxX, along),
-        };
-        return (wallX + inward.X, wallZ + inward.Z);
+        var (wallX, wallZ) = wall.Cell(along);
+        var (inX, inZ) = wall.Inward;
+        return (wallX + inX, wallZ + inZ);
     }
 
     /// <summary>The metadata a ladder on a wall takes: it faces <em>away</em> from the wall it hangs on, since
@@ -502,25 +471,33 @@ public static class HouseStamper
     /// <b>post</b> at the corners the opening is still fitted clear of them, narrowing rather than cutting
     /// through the frame. A porch moves the wall its doors were cut in, and they are carried onto the new line
     /// with the same fit. Without a frame the house cuts its own, centred on the front.</summary>
-    private static List<RoomDoor> Doorways(
-        IReadOnlyList<RoomDoor>? doors, HouseStyle style, Footprint body, bool wallsMoved, RoomEdge front)
+    private static List<WallOpening> Doorways(
+        IReadOnlyList<RoomDoor>? doors, HouseStyle style, Footprint body, WallSegment? frontWall)
     {
         if (doors is { Count: > 0 })
         {
-            var carried = new List<RoomDoor>();
+            var carried = new List<WallOpening>();
             foreach (var door in doors)
-                if (Fit(body, door.Edge, door.Width, door.Lo + (door.Width - 1) / 2) is { } fitted)
-                    carried.Add(door with { Lo = fitted.Lo, Width = fitted.Width });
+            {
+                var about = door.Lo + (door.Width - 1) / 2;
+                if (body.WallFacing(door.Edge, about) is not { } wall) continue;
+                if (Fit(wall, door.Width, about) is { } fitted)
+                    carried.Add(new WallOpening(wall, fitted.Lo, fitted.Width));
+            }
             return carried;
         }
 
-        var centre = front is RoomEdge.NegZ or RoomEdge.PosZ
-            ? (body.MinX + body.MaxX) / 2
-            : (body.MinZ + body.MaxZ) / 2;
-        return Fit(body, front, Math.Max(2, style.DoorWidth), centre) is { } own
-            ? [new RoomDoor(front, own.Lo, own.Width)]
+        if (frontWall is not { } face) return [];
+        return Fit(face, Math.Max(2, style.DoorWidth), FrontCentre(body, face.Facing)) is { } own
+            ? [new WallOpening(face, own.Lo, own.Width)]
             : [];
     }
+
+    /// <summary>The middle of the side a house fronts on, which is where it cuts its own door.</summary>
+    private static int FrontCentre(Footprint body, RoomEdge front)
+        => front is RoomEdge.NegZ or RoomEdge.PosZ
+            ? (body.MinX + body.MaxX) / 2
+            : (body.MinZ + body.MaxZ) / 2;
 
     /// <summary>An opening of at most <paramref name="width"/> on one wall, as near <paramref name="about"/> as
     /// the wall allows, or null where the wall cannot carry one at all.
@@ -539,38 +516,15 @@ public static class HouseStamper
     /// centred single opening rather than a two-wide one against the turn. Only a face with no seat at all
     /// falls back to the run between the corners, because a building nobody can walk into is worse than one
     /// with a tight door.</para></summary>
-    private static (int Lo, int Width)? Fit(Footprint body, RoomEdge edge, int width, int about)
+    private static (int Lo, int Width)? Fit(WallSegment wall, int width, int about)
     {
-        var (runLo, runHi) = Run(body, edge);
-        var (seatLo, seatHi) = Seat(body, edge);
+        var (runLo, runHi) = wall.BetweenCorners;
+        var (seatLo, seatHi) = wall.Seat;
         var (lo, hi) = seatHi >= seatLo ? (seatLo, seatHi) : (runLo, runHi);
 
         var fitted = Math.Min(width, hi - lo + 1);
         if (fitted < 1) return null;
         return (Math.Clamp(about - (fitted - 1) / 2, lo, hi - fitted + 1), fitted);
-    }
-
-    /// <summary>The stretch of a wall between its two corner posts.</summary>
-    private static (int Lo, int Hi) Run(Footprint body, RoomEdge edge)
-        => edge is RoomEdge.NegZ or RoomEdge.PosZ
-            ? (body.MinX + 1, body.MaxX - 1)
-            : (body.MinZ + 1, body.MaxZ - 1);
-
-    /// <summary>Where an opening may actually be cut: the run between the corners, <b>one block further in at
-    /// each end</b>.
-    ///
-    /// <para>Clearing the corner cell is not enough. An opening that starts in the very next cell still meets
-    /// the corner post, and a door hard against the post reads as a hole knocked through the frame rather than
-    /// as a way in — the post is what carries the building, and it wants a block of wall beside it before
-    /// anything is taken out. The same margin is what keeps a window off the corner.</para>
-    ///
-    /// <para>It costs four blocks of wall, so a five-wide face has one cell left and cannot carry a two-wide
-    /// door: that is a building too narrow for the door it asked for, and the answer is a wider building.</para>
-    /// </summary>
-    private static (int Lo, int Hi) Seat(Footprint body, RoomEdge edge)
-    {
-        var (lo, hi) = Run(body, edge);
-        return (lo + 1, hi - 1);
     }
 
     /// <summary>The deck's posts: one at each outer corner, and enough between them that no span of the eave

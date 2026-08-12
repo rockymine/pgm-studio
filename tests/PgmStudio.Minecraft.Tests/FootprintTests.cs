@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom.Algorithms;
 
 namespace PgmStudio.Minecraft.Tests;
@@ -151,6 +152,113 @@ public sealed class FootprintTests
         await Assert.That(plan.Run(0, 7)).IsEqualTo(GridBoundary.RunAlongZ);   // the wing's west wall
         await Assert.That(plan.Run(0, 0)).IsEqualTo(GridBoundary.RunsBothWays);
         await Assert.That(plan.Run(3, 3)).IsEqualTo(0);                        // inside, no wall to run along
+    }
+
+// ── the runs of wall ────────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>A wall ends wherever the building turns, so the count of runs is the count of the plan's sides.
+    /// A rectangle answers four — one per facing, which is what lets a caller that used to name a wall by its
+    /// direction keep every answer it had — and the shapes that turn a corner answer their own sides.</summary>
+    [Test]
+    public async Task A_plan_stands_in_as_many_runs_of_wall_as_it_has_sides()
+    {
+        await Assert.That(new Footprint(0, 0, 14, 10).Segments.Count).IsEqualTo(4);
+        await Assert.That(Ell().Segments.Count).IsEqualTo(6);
+        await Assert.That(Tee().Segments.Count).IsEqualTo(8);
+    }
+
+    /// <summary>A rectangle's four runs are its four sides, each running corner to corner — the numbers a caller
+    /// used to read straight off a min and a max.</summary>
+    [Test]
+    public async Task A_rectangle_stands_in_its_own_four_sides()
+    {
+        var walls = new Footprint(0, 0, 14, 10).Segments;
+        await Assert.That(walls).IsEquivalentTo(new[]
+        {
+            new WallSegment(RoomEdge.NegZ, 0, 0, 14),
+            new WallSegment(RoomEdge.PosZ, 10, 0, 14),
+            new WallSegment(RoomEdge.NegX, 0, 0, 10),
+            new WallSegment(RoomEdge.PosX, 14, 0, 10),
+        });
+    }
+
+    /// <summary>Two of an L's six walls look the same way, at different lines and over different stretches —
+    /// which is the whole reason a run is carried rather than a facing. Named by direction alone, a window in
+    /// one of them and a window in the other are indistinguishable.</summary>
+    [Test]
+    public async Task An_ell_has_two_walls_looking_the_same_way()
+    {
+        var walls = Ell().Segments;
+
+        var south = walls.Where(wall => wall.Facing == RoomEdge.PosZ).ToList();
+        await Assert.That(south).IsEquivalentTo(new[]
+        {
+            new WallSegment(RoomEdge.PosZ, 4, 5, 9),      // the hall's south side, east of the wing
+            new WallSegment(RoomEdge.PosZ, 9, 0, 4),      // the wing's own far end
+        });
+
+        // The west side is one wall over both wings, because nothing interrupts it: two rectangles standing
+        // beside each other would report two, and a building reports the wall a player walks along.
+        await Assert.That(walls.Where(wall => wall.Facing == RoomEdge.NegX))
+            .IsEquivalentTo(new[] { new WallSegment(RoomEdge.NegX, 0, 0, 9) });
+    }
+
+    /// <summary>Every run's cells are on the outline and face the way the run says, and every wall cell of the
+    /// plan belongs to at least one run — so nothing a wall pass would build is left unseated.</summary>
+    [Test]
+    [MethodDataSource(nameof(Plans))]
+    public async Task Every_wall_cell_belongs_to_a_run_that_faces_open_ground(Footprint plan)
+    {
+        var seated = new HashSet<(int X, int Z)>();
+        foreach (var wall in plan.Segments)
+        {
+            var (outX, outZ) = (-wall.Inward.X, -wall.Inward.Z);
+            for (var along = wall.Lo; along <= wall.Hi; along++)
+            {
+                var (x, z) = wall.Cell(along);
+                await Assert.That(plan.Holds(x, z)).IsTrue();
+                await Assert.That(plan.Holds(x + outX, z + outZ)).IsFalse();
+                seated.Add((x, z));
+            }
+        }
+
+        var built = plan.Cells().Where(cell => plan.OnPerimeter(cell.X, cell.Z)).ToHashSet();
+        await Assert.That(seated.OrderBy(c => c.X).ThenBy(c => c.Z))
+            .IsEquivalentTo(built.OrderBy(c => c.X).ThenBy(c => c.Z));
+    }
+
+    /// <summary>An opening keeps two blocks off each end of the wall it is cut in, and it is the wall's own end
+    /// that counts — so the short return beside a turn offers a short seat rather than the whole side's.</summary>
+    [Test]
+    public async Task A_run_seats_an_opening_two_blocks_clear_of_both_its_ends()
+    {
+        var hall = Ell().Segments.Single(wall => wall.Facing == RoomEdge.NegZ);
+        await Assert.That(hall.Seat).IsEqualTo((2, 7));
+        await Assert.That(hall.BetweenCorners).IsEqualTo((1, 8));
+
+        // The wing's far end is five long, so its seat is the one cell in the middle: a wall that narrow says
+        // it is narrow rather than pushing an opening against the turn.
+        var end = Ell().Segments.Single(wall => wall is { Facing: RoomEdge.PosZ, Fixed: 9 });
+        await Assert.That(end.Seat).IsEqualTo((2, 2));
+    }
+
+    /// <summary>Which wall a door handed in belongs to. On a rectangle the answer is the side it names; where a
+    /// plan looks the same way twice, the one whose stretch reaches the place asked for wins, and length breaks
+    /// a tie because a building is entered by its face rather than by its return.</summary>
+    [Test]
+    public async Task A_side_named_by_direction_resolves_to_the_run_that_reaches_the_place()
+    {
+        var plan = Ell();
+
+        await Assert.That(plan.WallFacing(RoomEdge.PosZ, 7))
+            .IsEqualTo(new WallSegment(RoomEdge.PosZ, 4, 5, 9));
+        await Assert.That(plan.WallFacing(RoomEdge.PosZ, 2))
+            .IsEqualTo(new WallSegment(RoomEdge.PosZ, 9, 0, 4));
+
+        // A rectangle answers its one run whatever is asked of it.
+        var box = new Footprint(0, 0, 14, 10);
+        await Assert.That(box.WallFacing(RoomEdge.NegZ, 7))
+            .IsEqualTo(new WallSegment(RoomEdge.NegZ, 0, 0, 14));
     }
 
     public static IEnumerable<Func<Footprint>> Plans() => [Ell, Tee];
