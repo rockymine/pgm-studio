@@ -44,6 +44,21 @@ forest on one side, a hill on the other, a village behind. That is the whole met
 approach is legible, the defender has somewhere to hold, the attacker has a way to arrive unseen and a price
 for using it. None of that survives being scattered.
 
+**And the point of composing it that way is that the approaches differ.** Ringing an objective with
+different ground is not scenery variety — it is how a goal comes to have several ways in that are not the
+same way twice. Through the forest is concealed and slow; over the hill is exposed but pays in height and
+sightline; across the water is a chokepoint someone has to bridge; through the village is cover the whole
+way but fought room by room. A defender must then choose what to watch, and an attacker must choose what to
+pay, which is a decision on both sides rather than one lane repeated.
+
+The capture side already says this and the destroy side does not. **WL8** records that a wool's default is a
+**single chokepoint route** and that real maps add **alternative routes** — and, usefully for a river or a
+drop, that an approach crossing a sealed zone counts as an approach even when it has to be *bridged rather
+than walked*. There is no equivalent rule for a destroyable or a core, which is exactly where one is needed:
+a goal a team defends wants more than one angle onto it, or the defence is a single doorway and the attack is
+a queue. Flat ground inside a nice environment is a real style and a legitimate answer; it is just rarely the
+better one, and it should be a choice rather than what happens when nobody decides.
+
 **Think what to place where, and why.** If there is no answer to "why here", the thing does not go there
 yet. Randomness is the wrong approach for nearly all of it.
 
