@@ -25,6 +25,28 @@ wrong thing: `--island-study` was run over all 368 destroy worlds to count islan
 approach geometry and their build regions, and the way to a destroy board is to read them and compose for
 them. The retarget is a shortcut that produced fifteen capture boards wearing three different hats.
 
+**MG31 — Where a spawn and a goal sit relative to each other is already law, and a hand-built board must
+carry it too.** The composer never places a wool or a spawn freely, and the reasons are written down in
+`docs/generator/rules.md` rather than buried in it: the frontline→wool path never passes **through** a spawn
+(SP1); a spawn sits near the **back** of its lane, because the space behind a spawn is dead space (SP2); iron
+goes **beside or ahead** of a spawn, since players face forward (SP7); a wool sits at the far end of a
+dead-end lane inset about 5 (WL1), on a **different lane** from the spawn and at least **20** away — all 17
+corpus pairs (WL2); a team's wools are 1–3, each on a distinct lane (WL6), with a measured separation between
+them (WL7). Those relations are what make a board readable: a goal you can see the way to, that is not behind
+you when you leave your spawn, and that no one reaches by walking through a protection region. **A custom
+destroy board gets none of this for free**, so the rules have to be carried across by hand — sightline to
+the objective, the objective not behind the spawn, the approach not through the spawn — and MG1's
+corpus reading is where the destroy-side numbers come from.
+
+**MG32 — A destroy board is not a capture board with a different goal; the topology is inverted.** In
+capture the thing a team wants is deep in *enemy* ground, so the board is built around a long run out and a
+longer run back. In destroy the thing a team defends is its **own** monument: the spawn sits remote at the
+back, the monument is a short walk forward of it, and the contested space is everything beyond. That single
+difference resizes the whole board — the run is shorter, the defended ground is smaller and closer, and the
+space between the two teams is correspondingly larger and emptier. Which is also why destroy maps have room
+for scenery that capture maps do not, and why retargeting a capture board (MG1) produces something that
+plays wrong even when every element is present.
+
 ## The objectives
 
 **MG3 — A monument or a core may never stand over void.** Some do. An objective in void cannot be broken:
@@ -169,6 +191,19 @@ runs `Seats` per image, and a `continue` on failure drops **that image only**. S
 block nearer a protected column, or on ground the relief left slightly steeper, is built on one side and
 missing on the other — which is exactly the asymmetry observed. A prop has to be decided **once for the whole
 orbit**: seat every image or none. The same applies to any pattern placed per-cell rather than per-orbit.
+
+**MG33 — Every house is the same house.** The buildings on all fifteen boards read as one shape repeated,
+because they very nearly are: the presets cluster around 7–13 wide by 7–11 deep, the specs draw from a
+handful of them, and each is placed at the size it was designed at. A settlement is made of buildings that
+differ — a long low hall beside a tall narrow tower beside a squat outbuilding — and the difference an eye
+reads first is **aspect ratio and height**, not material.
+
+The system is modular far past what was used. A `HouseStyle` carries a roof form and pitch, an overhang and a
+verge, a wall built of stacked `RoomCourse` bands, a floor, posts, a sill, window styles with their own form,
+width, height, sill and spacing, separate gable windows, a door head, beams, and a storey stack — and a
+`Footprint` carries wings, so a building can be an L or a T with its roofs merged (MG8). None of that varies
+across the batch. Placing a village round a destroy map's monument (MG32) is the case that most wants it: a
+dozen buildings of one silhouette is a barracks, and a dozen of differing silhouette is a village.
 
 **MG27 — A house is empty.** Buildings are shells with nothing inside. Chests with a small random loot table
 give a player a reason to enter one, and turn scenery into a place worth crossing the map for. Loot wants to
