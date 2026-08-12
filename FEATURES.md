@@ -4073,7 +4073,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   makes them erected, and they contribute their footprint without their thickness deciding the height: read
   before that separation, a `raise` found its own plate under itself and stood proud of it. `raise`/`sink`
   read the ground at the **median** of the cells covered, so the result is one flat-topped thing standing
-  proud rather than a blanket following the hillside. Nothing downstream needed teaching — the painter already
+  proud rather than a blanket following the hillside — flat-topped only when the shape says so, since the top
+  is evaluated per cell through the shape's own height function: anchor heights and slopes compose with all
+  three modes, so the mode decides what the surface is measured *from* while the height function decides what
+  it *looks like*, and a sunk tilt is a quarry whose floor drains. A **skirt** of N blocks decides how hard a
+  shape lands, blending the top toward the ground it meets across the outermost N cells of the footprint by
+  inward distance from the outline; each cell blends toward the height immediately outside it, so a shape
+  crossing a relief eases into low ground downhill and high uphill instead of levelling the slope. Measured,
+  a skirt of 7 takes a mesa's worst edge step from **17 blocks to 2**, while a monolith left at 0 keeps its
+  sheer face — which is the distinction, a landform sits in the terrain and a structure stands on it.
+  Nothing downstream needed teaching — the painter already
   classifies a column by its neighbours, so a mesa face arrives as an edge with a known drop and is painted as
   a wall under a rim.
   **The stair repair** ships with it, being the same compositing question from the other side: snapping to a
