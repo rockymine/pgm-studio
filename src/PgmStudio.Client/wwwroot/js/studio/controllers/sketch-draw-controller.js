@@ -154,7 +154,7 @@ export class SketchDrawController {
       // would hide it until the shape was committed. The cursor's pending point is included, so the band
       // grows with the pointer, and the centerline is stroked over it as the thing being edited.
       const pending = [...ds.vertices, [ds.cursorX ?? ds.vertices[0][0], ds.cursorZ ?? ds.vertices[0][1]]];
-      const ring = pathRing({ vertices: pending, radius: PATH_DEFAULT_RADIUS });
+      const ring = pathRing({ points: pending, radius: PATH_DEFAULT_RADIUS });
       if (ring.length >= 3) painter.ring(ring.slice(0, -1), { ...style, fillRule: "evenodd" });
       const curve = pathCenterline(pending);
       const runs = [];

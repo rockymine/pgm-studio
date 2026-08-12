@@ -4095,6 +4095,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   does not preserve, so unfolded it hands one team a stair the other lacks. (`Geom/Relief/StairRepair.cs`,
   `SketchRasterizer.Erect`, `SketchInspector`; 15 tests)
 
+- **The path primitive reaches the ground it draws on (S55).** A path is the one shape stored as something
+  other than its own outline — its vertices are an **open** centerline and its radius a half-width — and the
+  band those imply is what every consumer below the sketch expects, since island detection, the orbit fan,
+  per-anchor height and the world export all read a ring. Deriving that band is `Geom.Algorithms.PathBand`
+  and its JS twin, both already shipped for the dressing stroke; what was missing was the arm that reaches
+  them. `RingOf` had no `path` case and fell to the empty ring, so a drawn path rasterized to **zero
+  columns** — no terrain, no theme scope, no relief footprint. `toRing` had no case either and its default
+  arm throws, so a committed path could take out the island recompute and the shape repaint, and the live
+  preview handed `pathRing` a `vertices` key where it reads `points`, so the band never drew while it was
+  being drawn. All three now route to the band, and `path_edge`/`path_seed` are properties on `SketchShape`
+  rather than keys surviving only because the blob is stored as text. Width is the authored number to the
+  block — radius 2 rasterizes 4 columns across, radius 6 twelve — and the height fields mean on a path what
+  they mean everywhere else, so a raised causeway is a path with a thickness and not a new kind of shape.
+  A path **mirrors as its band, not as its centerline**: a reflection reverses handedness, so re-deriving
+  the band on the far side would swap the edge a rough or tapered width was drawn on. Measured over a
+  mirrored island, zero cells differ from their image. (`SketchRasterizer.RingOf`/`MirrorShape`,
+  `geometry/shape.js`, `sketch-draw-controller.js`; 6 + 4 tests)
+
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,
   `GET /wool-availability`, `GET /monument-obstruction` (each wool monument's block must be air; flags a

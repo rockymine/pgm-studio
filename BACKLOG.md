@@ -72,12 +72,13 @@ highlight); these are the parked / dormant / deferred slices.
   want run-merging to stay cheap. Pre-dates the relief work — the iso never showed a relief — so this is a
   gap widening rather than a regression.
 
-- [ ] **S46 — Paths and water read the relief; a river on the axis is a canal.** Both stroke tools assume a
-  flat plane. A path gains **routing** (a shortest line whose cost counts climbing far more than distance and
-  which refuses an unwalkable step — measured, a drawn line climbs 14 blocks to y21 where the routed one
-  climbs 0 and tops out at y7 through a pass) and **grading** (cut and fill to a one-block maximum step,
-  shoulders blended back over a couple of blocks). Water needs three things the flat model never did: routing
-  on a **depression-filled** copy, because steepest descent stops at the first grain-made pit after 2 cells
+- [ ] **S46 — Water reads the relief; a river on the axis is a canal.** A dressing path draping over whatever
+  it crosses is **settled as correct** — it repaints the top block of each column and adds no cell, which is
+  what lets a road cross a slope without becoming a ramp, and routing or grading it would be the tool
+  deciding where the author's road goes. Terrain that a route *emits* is the draw phase's path primitive
+  (`FEATURES.md`) and the erected-shape modes, not this. Water is the half that is genuinely wrong on a
+  relief, because it has to obey the ground rather than sit on it. It needs three things the flat model never
+  did: routing on a **depression-filled** copy, because steepest descent stops at the first grain-made pit after 2 cells
   where the filled run covers 65; a bed floor forced non-increasing downstream; and **per-pool** water levels
   replacing `decoration.md` §7's single lowest-surface line — the measured run holds 14 distinct levels, and a
   basin is an outlet alongside the map edge, which is what a pond is. The exception is the case that matters
@@ -85,6 +86,17 @@ highlight); these are the parked / dormant / deferred slices.
   on the axis it is a canal at one level and falling water belongs to the flanks. And the cheapest good idea
   here runs the other way — a drawn channel handed to the solver as a line mark below base level makes the
   terrain form a valley around it (`sketch-relief.md` §9).
+
+- [ ] **S56 — A path's height varies along it.** The path primitive takes a uniform `base_height` over its
+  whole band (`FEATURES.md`), so a causeway is one thickness end to end and a ramp cannot be drawn as the
+  ramp it is. A polygon already solves the equivalent problem with `anchor_heights` index-aligned to its
+  vertices and TIN-interpolated across the footprint, but a path's footprint is not its vertices — the band
+  is derived from a smoothed centerline, so the interpolation runs **along the arc** rather than over a
+  triangulation: each band point knows how far along it sits (`PathHit.Along` already carries this for the
+  stroke), and the height is read between the two authored vertices that bracket it. That gives a graded road
+  that is authored, not inferred, which is the distinction that keeps it out of S46. The erected modes then
+  compose on top as they do for any other shape, so a sunk tilted path is a cutting and a raised one an
+  embankment.
 
 - [ ] **S48 — Relief scope: let a shape leave its island's relief.** The island is the unit and the solver
   already honours a shape that leaves it — `Participation` is **inherit** / **hold** / **exclude**, tested,

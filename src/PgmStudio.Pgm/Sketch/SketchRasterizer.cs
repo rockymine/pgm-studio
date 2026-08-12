@@ -1,4 +1,5 @@
 using PgmStudio.Geom;
+using PgmStudio.Geom.Algorithms;
 using PgmStudio.Geom.Relief;
 
 namespace PgmStudio.Pgm.Sketch;
@@ -448,7 +449,17 @@ public static class SketchRasterizer
         "rectangle" => [[s.MinX ?? 0, s.MinZ ?? 0], [s.MaxX ?? 0, s.MinZ ?? 0], [s.MaxX ?? 0, s.MaxZ ?? 0], [s.MinX ?? 0, s.MaxZ ?? 0]],
         "circle"    => CircleRing(s.CenterX ?? 0, s.CenterZ ?? 0, s.Radius ?? 0),
         "polygon" or "lasso" => PolygonRing(s.Vertices, s.Controls),
+        // A path arrives as a centerline and a half-width; the band around it is the ring, so nothing below
+        // this point learns a shape that is not a ring.
+        "path" => PathBand.Ring(s.Vertices ?? [], s.Radius ?? 0, ParsePathEdge(s.PathEdge), s.PathSeed ?? 0),
         _ => [],
+    };
+
+    private static PathEdge ParsePathEdge(string? edge) => edge switch
+    {
+        "rough"   => Geom.Algorithms.PathEdge.Rough,
+        "tapered" => Geom.Algorithms.PathEdge.Tapered,
+        _         => Geom.Algorithms.PathEdge.Solid,
     };
 
     private static List<double[]> CircleRing(double cx, double cz, double r)
@@ -539,15 +550,18 @@ public static class SketchRasterizer
             {
                 Id = s.Id, Type = s.Type, Operation = s.Operation, Override = s.Override,
                 Vertices = nv, Controls = nc, AnchorHeights = s.AnchorHeights, BaseHeight = s.BaseHeight, Floor = s.Floor,
-                Theme = s.Theme,
+                HeightMode = s.HeightMode, Skirt = s.Skirt, Theme = s.Theme,
             };
         }
-        // Rectangle/circle: flatten the transformed footprint to a polygon (uniform height carried).
+        // Rectangle/circle/path: flatten the transformed footprint to a polygon (uniform height carried). A
+        // path mirrors as its band rather than as its centerline: a reflection reverses handedness, so
+        // re-deriving the band on the far side would swap which edge a rough or tapered width was drawn on.
         var ring = RingOf(s).Select(p => { var (x, z) = MirrorPoint(p[0], p[1], axis, cx, cz); return new[] { x, z }; }).ToArray();
         return new SketchShape
         {
             Id = s.Id, Type = "polygon", Operation = s.Operation, Override = s.Override,
-            Vertices = ring, BaseHeight = s.BaseHeight, Floor = s.Floor, Theme = s.Theme,
+            Vertices = ring, BaseHeight = s.BaseHeight, Floor = s.Floor,
+            HeightMode = s.HeightMode, Skirt = s.Skirt, Theme = s.Theme,
         };
     }
 

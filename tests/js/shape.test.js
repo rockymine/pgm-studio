@@ -272,3 +272,35 @@ test("snapShape carries height fields untouched", () => {
   assert.deepEqual(s.anchor_heights, [1, 2, 3]);
   assert.equal(s.floor, 5);
 });
+
+// ── path (an open centerline + a half-width; the band is derived) ──────────────
+const road = { type: "path", vertices: [[10, 40], [40, 40], [70, 40]], radius: 3 };
+
+test("toRing path is the band around the centerline, closed", () => {
+  const ring = toRing(road);
+  assert.ok(ring.length > 4, "a band is more than the line it was drawn from");
+  assert.deepEqual(ring[0], ring[ring.length - 1]);
+  // Both long edges sit a radius off the line, so the band spans 2r across.
+  const zs = ring.map(([, z]) => z);
+  assert.equal(r6(Math.min(...zs)), 37);
+  assert.equal(r6(Math.max(...zs)), 43);
+});
+
+test("toRing returns [] for a path with nowhere to go", () => {
+  assert.deepEqual(toRing({ type: "path", vertices: [[10, 10]], radius: 3 }), []);
+  assert.deepEqual(toRing({ type: "path", vertices: [[0, 0], [9, 0]], radius: 0 }), []);
+});
+
+test("toBounds path reaches the band, not the line", () => {
+  // A fit that stopped at the clicked line would crop a wide path by its radius on both sides.
+  const b = toBounds(road);
+  assert.equal(r6(b.min_z), 37);
+  assert.equal(r6(b.max_z), 43);
+});
+
+test("containsPoint path hits inside the band and misses outside it", () => {
+  assert.equal(containsPoint(road, 40, 40), true);
+  assert.equal(containsPoint(road, 40, 42), true);
+  assert.equal(containsPoint(road, 40, 46), false);
+  assert.equal(containsPoint(road, 5, 40), false);
+});

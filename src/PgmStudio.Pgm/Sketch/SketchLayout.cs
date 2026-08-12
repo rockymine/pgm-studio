@@ -235,6 +235,18 @@ public sealed class SketchShape
     [JsonPropertyName("vertices")] public double[][]? Vertices { get; set; }
     [JsonPropertyName("controls")] public Dictionary<string, SketchControl>? Controls { get; set; }
 
+    // A path is the one shape not stored as its own outline: Vertices are an OPEN centerline and Radius its
+    // half-width, and the band those imply is derived wherever a ring is wanted. That keeps it editable as
+    // the line it was drawn as while every consumer below still sees a ring.
+    /// <summary>How a path's two long edges are drawn — <c>solid</c> holds one width the whole way,
+    /// <c>rough</c> lets it wander so the outline reads organic, <c>tapered</c> runs it fat in the middle and
+    /// thin at the ends. Absent is solid.</summary>
+    [JsonPropertyName("path_edge")] public string? PathEdge { get; set; }
+
+    /// <summary>The noise row a rough edge reads, so a path's wander is identical on every export until the
+    /// author rerolls it.</summary>
+    [JsonPropertyName("path_seed")] public uint? PathSeed { get; set; }
+
     // Height. Floor = the shape's elevation (where its base sits), BaseHeight = its thickness: the column
     // spans [Floor, Floor + BaseHeight]. For a polygon/lasso whose AnchorHeights line up with its Vertices,
     // the thickness varies per vertex (TIN-interpolated across the footprint). All optional; absent = the
