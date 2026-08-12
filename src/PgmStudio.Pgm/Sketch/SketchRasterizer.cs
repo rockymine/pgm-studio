@@ -241,29 +241,91 @@ public static class SketchRasterizer
             if (!IsErected(shape)) continue;
             var mode = shape.HeightMode!.ToLowerInvariant();
 
-            var covered = RasterShape(shape).Where(cell => cells.ContainsKey((cell.X, cell.Z))).ToList();
+            var covered = RasterShape(shape).Select(cell => (cell.X, cell.Z))
+                                            .Where(cells.ContainsKey).ToList();
             if (covered.Count == 0) continue;
 
-            var amount = Math.Max(1, (int)Math.Round(shape.BaseHeight ?? 1));
-            int top;
-            if (mode == "level")
-            {
-                top = Math.Max(0, (int)Math.Round(shape.Floor ?? 0)) + amount;
-            }
-            else
-            {
-                var ground = covered.Select(cell => cells[(cell.X, cell.Z)].Top).OrderBy(height => height).ToList();
-                var median = ground[ground.Count / 2];
-                top = mode == "raise" ? median + amount : median - amount;
-            }
+            // The shape's OWN surface, whatever it is — a flat plate, a plane tilted through two vertices, or
+            // a triangulation of per-vertex anchors. The word says what that surface is measured FROM; it does
+            // not say the surface is flat, and reading one number here is what silently levelled a tilted
+            // polygon the moment it was erected.
+            var surface = HeightFn(shape);
+            var floor = Math.Max(0, (int)Math.Round(shape.Floor ?? 0));
 
-            foreach (var (x, z, _, _) in covered)
+            // What a relative mode measures from: the middle of the ground the shape covers, read BEFORE any
+            // of it is moved. Per-cell would make a monolith a blanket following the hillside; the median is
+            // what makes it one thing standing proud, and what keeps its prominence when it is dragged.
+            var ground = covered.Select(cell => cells[cell].Top).OrderBy(height => height).ToList();
+            var datum = mode == "level" ? floor : ground[ground.Count / 2];
+            var rise = mode == "sink" ? -1 : 1;
+
+            int Stated(int x, int z) =>
+                datum + rise * Math.Max(1, (int)Math.Round(surface(x + 0.5, z + 0.5)));
+
+            // The skirt: how far in from its own outline the shape eases back into the ground it meets, so it
+            // sits IN the terrain rather than on it. Zero is a sheer face, which is right for a plinth and
+            // wrong for a landform — an unskirted mesa drops seventeen blocks in one cell.
+            var skirt = Math.Max(0, shape.Skirt ?? 0);
+            var depth = skirt > 0 ? InwardDepth(covered, cells) : null;
+
+            foreach (var cell in covered)
             {
-                var column = cells[(x, z)];
-                cells[(x, z)] = (Math.Max(column.Floor + 1, top), column.Floor);
+                var column = cells[cell];
+                var top = Stated(cell.X, cell.Z);
+                if (depth is not null && depth.TryGetValue(cell, out var reach) && reach.Depth <= skirt)
+                {
+                    // Linear from the ground just outside at the outline to the shape's own surface a skirt
+                    // in. Linear rather than eased on purpose: the result is a talus slope of one constant
+                    // grade, which is a thing the readback can measure and a player can read.
+                    var t = reach.Depth / (double)(skirt + 1);
+                    top = (int)Math.Round(reach.Ground + (top - reach.Ground) * t);
+                }
+                cells[cell] = (Math.Max(column.Floor + 1, top), column.Floor);
             }
         }
     }
+
+    /// <summary>How deep inside a shape each of its cells sits, and the ground height just outside the outline
+    /// nearest it. A multi-source sweep out from the boundary, so a cell knows both how far in it is and what
+    /// the terrain was doing where it meets it — which is what lets a skirt follow a hillside rather than ease
+    /// toward one average.</summary>
+    private static Dictionary<(int X, int Z), (int Depth, int Ground)> InwardDepth(
+        List<(int X, int Z)> covered, Dictionary<(int, int), (int Top, int Floor)> cells)
+    {
+        var inside = new HashSet<(int, int)>(covered);
+        var reach = new Dictionary<(int X, int Z), (int Depth, int Ground)>();
+        var queue = new Queue<(int X, int Z)>();
+
+        foreach (var cell in covered)
+            foreach (var (dx, dz) in Neighbours4)
+            {
+                var outside = (cell.X + dx, cell.Z + dz);
+                if (inside.Contains(outside)) continue;
+                // A boundary cell eases from the ground it meets, or — over the void — from its own floor,
+                // since there is no terrain out there to embed into.
+                var ground = cells.TryGetValue(outside, out var column) ? column.Top : cells[cell].Floor;
+                if (!reach.TryGetValue(cell, out var known) || ground < known.Ground)
+                    reach[cell] = (1, ground);
+            }
+
+        foreach (var cell in reach.Keys) queue.Enqueue(cell);
+        while (queue.Count > 0)
+        {
+            var cell = queue.Dequeue();
+            var here = reach[cell];
+            foreach (var (dx, dz) in Neighbours4)
+            {
+                var next = (cell.X + dx, cell.Z + dz);
+                if (!inside.Contains(next)) continue;
+                if (reach.ContainsKey(next)) continue;
+                reach[next] = (here.Depth + 1, here.Ground);
+                queue.Enqueue(next);
+            }
+        }
+        return reach;
+    }
+
+    private static readonly (int X, int Z)[] Neighbours4 = [(1, 0), (-1, 0), (0, 1), (0, -1)];
 
     /// <summary>Each relief-bearing island's solved surface, over the cells that island actually contributes
     /// to the standing footprint. An island with no relief is absent, which is the common case and costs

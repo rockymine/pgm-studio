@@ -49,6 +49,17 @@
           </select>
         </Field>
         <p class="section-desc">@HeightModeBlurb</p>
+        @if (!string.IsNullOrEmpty(Shape.HeightMode))
+        {
+          <Field Label="Skirt">
+            <LabelHint>(how far in it eases into the ground)</LabelHint>
+            <ChildContent>
+              <NumberField Value="Shape.Skirt" ValueChanged="SkirtChanged" Min="0" />
+            </ChildContent>
+          </Field>
+          <p class="section-desc">Zero is a sheer face — right for a monolith, which is a built thing standing
+            on the ground. A few blocks sits a landform <strong>in</strong> the terrain instead of on it.</p>
+        }
         <Field Label="Rotate (°)">
           <input @key="rotateNonce" class="field-input" type="number" step="15" placeholder="0" value="@rotateInput" @onchange="RotateChanged" />
         </Field>

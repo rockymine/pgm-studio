@@ -131,6 +131,107 @@ public sealed class SketchErectTests
     }
 
     [Test]
+    public async Task An_erected_shape_keeps_its_own_surface_rather_than_being_levelled()
+    {
+        // The word says what the surface is measured FROM. It does not say the surface is flat — a polygon
+        // tilted through its anchors is still tilted when it is erected, and reading one number here silently
+        // levelled it.
+        static string Tilted(string? mode) => $$"""
+        {
+          "layout": {
+            "shapes": [
+              { "id": "s1", "type": "rectangle", "operation": "add",
+                "min_x": 0, "min_z": 0, "max_x": 60, "max_z": 40, "base_height": 6, "floor": 0 },
+              { "id": "s2", "type": "polygon", "operation": "add",
+                {{(mode is null ? "" : $"\"height_mode\": \"{mode}\",")}}
+                "vertices": [[10,10],[50,10],[50,30],[10,30]],
+                "anchor_heights": [8, 20, 20, 8], "base_height": 14, "floor": 0 }
+            ],
+            "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
+          }
+        }
+        """;
+
+        var plain = Tops(Tilted(null));
+        var level = Tops(Tilted("level"));
+        var raised = Tops(Tilted("raise"));
+
+        // The plain shape tilts from its west anchors to its east ones.
+        await Assert.That(plain[(48, 20)] - plain[(12, 20)]).IsGreaterThan(8);
+        // Erected, it still does — and a raise carries the same tilt up above the ground.
+        await Assert.That(level[(48, 20)] - level[(12, 20)]).IsEqualTo(plain[(48, 20)] - plain[(12, 20)]);
+        await Assert.That(raised[(48, 20)] - raised[(12, 20)]).IsEqualTo(plain[(48, 20)] - plain[(12, 20)]);
+        await Assert.That(raised[(12, 20)]).IsGreaterThan(level[(12, 20)]);
+    }
+
+    [Test]
+    public async Task A_skirt_sits_the_shape_in_the_terrain_instead_of_on_it()
+    {
+        // Unskirted, an erected shape drops its whole height in one cell — right for a plinth, wrong for a
+        // landform. The skirt eases the face back into the ground it meets over a stated distance.
+        static string Mesa(int skirt) => $$"""
+        {
+          "layout": {
+            "shapes": [
+              { "id": "s1", "type": "rectangle", "operation": "add",
+                "min_x": 0, "min_z": 0, "max_x": 60, "max_z": 40, "base_height": 6, "floor": 0 },
+              { "id": "s2", "type": "rectangle", "operation": "add", "height_mode": "level",
+                "min_x": 20, "min_z": 12, "max_x": 44, "max_z": 30,
+                "base_height": 24, "floor": 0, "skirt": {{skirt}} }
+            ],
+            "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
+          }
+        }
+        """;
+
+        static int WorstEdgeStep(Dictionary<(int X, int Z), int> tops)
+        {
+            var worst = 0;
+            foreach (var ((x, z), top) in tops)
+                foreach (var (dx, dz) in new[] { (1, 0), (0, 1) })
+                    if (tops.TryGetValue((x + dx, z + dz), out var other))
+                        worst = Math.Max(worst, Math.Abs(top - other));
+            return worst;
+        }
+
+        var sheer = Tops(Mesa(0));
+        var skirted = Tops(Mesa(5));
+
+        await Assert.That(WorstEdgeStep(sheer)).IsGreaterThanOrEqualTo(17);
+        await Assert.That(WorstEdgeStep(skirted)).IsLessThan(WorstEdgeStep(sheer));
+        // The middle still stands at its stated height — a skirt is an edge, not a flattening.
+        await Assert.That(skirted[(32, 21)]).IsEqualTo(sheer[(32, 21)]);
+    }
+
+    [Test]
+    public async Task A_skirt_follows_the_ground_it_meets_rather_than_one_average()
+    {
+        // A shape half on a hill should embed deeper on the low side, which is what makes it read as sitting
+        // in the terrain rather than as a bevelled plate.
+        const string layout = """
+        {
+          "layout": {
+            "shapes": [
+              { "id": "s1", "type": "rectangle", "operation": "add",
+                "min_x": 0, "min_z": 0, "max_x": 60, "max_z": 40, "base_height": 6, "floor": 0 },
+              { "id": "s2", "type": "rectangle", "operation": "add", "height_mode": "level",
+                "min_x": 20, "min_z": 12, "max_x": 44, "max_z": 30, "base_height": 26, "floor": 0, "skirt": 6 }
+            ],
+            "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
+          },
+          "relief": {
+            "i1": { "base": 8, "marks": [ { "kind": "point", "at": [4, 20], "h": 8, "r": 3 },
+                                          { "kind": "point", "at": [56, 20], "h": 22, "r": 3 } ] }
+          }
+        }
+        """;
+        var tops = Tops(layout);
+
+        // The west skirt eases from low ground and the east from high, so the west cell sits lower.
+        await Assert.That(tops[(21, 21)]).IsLessThan(tops[(43, 21)]);
+    }
+
+    [Test]
     public async Task An_unknown_word_is_ignored_rather_than_guessed_at()
     {
         // A layout written by a generator that knows a word this build does not should place ordinary ground,

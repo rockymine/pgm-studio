@@ -247,6 +247,12 @@ public sealed class SketchShape
     /// wherever it is dragged), and <c>sink</c> the same downward (a quarry, a sunken arena).</summary>
     [JsonPropertyName("height_mode")]    public string? HeightMode { get; set; }
 
+    /// <summary>How far in from its own outline an erected shape eases back into the ground it meets, in
+    /// blocks. Zero is a sheer face — right for a plinth or a monolith, which is a built thing standing on the
+    /// ground, and wrong for a landform: an unskirted mesa drops its whole height in one cell. A few blocks
+    /// sits it IN the terrain instead of on it.</summary>
+    [JsonPropertyName("skirt")]          public int? Skirt { get; set; }
+
     [JsonPropertyName("base_height")]    public double? BaseHeight { get; set; }
     [JsonPropertyName("anchor_heights")] public double[]? AnchorHeights { get; set; }
     [JsonPropertyName("floor")]          public double? Floor { get; set; }

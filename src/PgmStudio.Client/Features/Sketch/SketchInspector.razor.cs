@@ -102,6 +102,11 @@ public partial class SketchInspector
         _ => "Part of the landmass: the island's relief is what this shape's ground does.",
     };
 
+    private Task SkirtChanged(double value)
+        => Shape is null || Handle is null
+            ? Task.CompletedTask
+            : Handle.InvokeVoidAsync("setSkirt", Shape.Id, Math.Max(0, (int)Math.Round(value))).AsTask();
+
     private Task HeightModeChanged(ChangeEventArgs e)
         => Shape is null || Handle is null
             ? Task.CompletedTask

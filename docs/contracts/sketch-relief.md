@@ -262,6 +262,14 @@ decided:
   Otherwise it finds its own plate underneath itself and stands proud of that.
 - **sink** — the same, downward: a quarry, a sunken arena, a pit.
 
+The word is orthogonal to the height function a shape already carries, and the two compose in every
+combination. Per-vertex anchor heights and the two- and three-point slopes decide what the top surface
+**looks like** — flat, tilted, folded along a diagonal — and `height_mode` decides what that surface is
+**measured from**: an absolute height for `level`, the median ground under the footprint for `raise` and
+`sink`. A polygon whose anchors read 8 at its west edge and 20 at its east tilts from y9 to y20 as ordinary
+ground, and tilts from y9 to y20 again once it is erected — a tilted mesa rather than a levelled one. Sunk,
+that same tilt is a quarry whose floor drains one way, which is what a pit with a flat bottom is missing.
+
 Nothing downstream needs teaching. The painter classifies a column by its neighbours (`terrain-painting.md`
 §5), so a mesa's face arrives as a void-facing or terrain-facing edge with a known drop and is painted as a
 wall under a rim — the machinery for cliffs is already shipped and has simply had nothing to paint. And the
@@ -269,6 +277,17 @@ corpus's own cliff law (`rules.md` EL6) discriminates on the result without bein
 prototype island the mesa's face measures **27 wide with an 11-block drop** and qualifies as a cliff, while
 the monolith's — **8 wide** at a comparable drop — does not, which is right, because a monolith is a structure
 and not a landform.
+
+That distinction has a second half, at the shape's own edge. An erected shape meets the ground at whatever
+step the two heights happen to differ by, and unqualified that step is sheer: over the same island the mesa's
+west face rises **13 blocks between two adjacent cells**, and the worst step anywhere around its outline is
+**17**. Sheer is right for a monolith, which wants a hard edge; it is wrong for a mesa, which is a landform
+and belongs *in* the terrain rather than on it. A **skirt** of N blocks says which: the top is blended toward
+the ground it meets across the outermost N cells of the footprint, weighted by inward distance from the
+outline. Each cell blends toward the height immediately outside it rather than toward one number for the
+whole shape, so where a mesa crosses a relief its downhill side eases into low ground and its uphill side
+into high, and it sits in the slope instead of levelling it. A skirt of 7 takes that mesa's worst edge step
+from **17 blocks to 2**; the monolith, left at 0, keeps its 12-block face.
 
 ## 8. Symmetry is imposed on the surface, not on the statements
 
@@ -500,10 +519,11 @@ One flat mark shape carries every kind, discriminated by `kind`, and `h` reads a
 That is a property worth stating rather than a shortcut taken: a relief is short enough to write by hand and
 is meant to be, so the document a generator or an agent emits is the same one the editor saves.
 
-The shape gains one word for how its own top is decided:
+The shape gains one word for how its own top is decided, and a number for how hard it lands:
 
 ```json
-"height_mode": "level" | "raise" | "sink"
+"height_mode": "level" | "raise" | "sink",
+"skirt": 0
 ```
 
 `base_height` and `anchor_heights` stay exactly as they are and keep their meaning; a relief supersedes them

@@ -301,7 +301,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     const shapes = canvas.getShapes().map(s => ({
       id: s.id, type: s.type, operation: s.operation, override: !!s.override, dim: dimLabel(s),
       baseHeight: clampHeight(s.base_height), floor: clampFloor(s.floor),
-      heightMode: s.height_mode ?? "",
+      heightMode: s.height_mode ?? "", skirt: s.skirt ?? 0,
       radius: s.radius ?? 0, pathEdge: s.path_edge ?? "", pathSeed: s.path_seed ?? 0,
     }));
     const isl = islands.map(i => ({ id: i.id, name: i.name, mirrors: i.mirrors, shapeIds: i.shapeIds }));
