@@ -13,6 +13,32 @@ paints a wall. Randomness is the right tool for the grain on a surface and the w
 player navigates by. A map is a designed thing, and every one of these is somewhere the design was left to a
 seed.
 
+## What this should be able to do
+
+The target is worth stating before the faults, because most of them are it being missed. **A map should be
+describable in prose and built from that description** — an agent reads "a destroy board, one connected
+island, the monument in the open with a forest closing the west flank, a hill east that attackers can bridge
+from, a village behind, a void channel twenty blocks in front" and authors the documents that say it: the
+shapes,
+their heights, the themes on each, the relief, the dressing, the objective and its kit.
+
+**That is already possible.** The surfaces exist — `surface.md` beside this file is the map of them — and
+nothing in the list above needs a capability that has not been built. What it needs is an author that knows
+the surfaces it is touching. An MCP head (`B21`) would make it a first-class loop with the validator and
+evaluator answering in rule ids, and some work remains there, but the shortfall today is not the machinery.
+
+Two entries below are what stand between the tool and that, and both belong at the top rather than buried:
+
+- **MG29 — the spec format is a reduction of the system, not an addressing layer over it.** It invented a
+  small vocabulary and hid the rest, so a shape became a footprint, a theme became four family names, and
+  every board came out with a rim, one theme and the same wall — because those were the only things the
+  format could say. A description-driven author needs to reach the real documents, not a simplification of
+  them.
+- **MG30 / MG34 — a map was composed in one shot and judged at the end.** A layout is meant to be built up
+  **layer by layer** — pieces, then their shaping in the sketch tool, then heights, then paint, then relief,
+  then dressing — with each step looked at before the next is laid on it. Fifteen boards were emitted whole
+  and inspected once, from a single top-down, after every decision had already been made.
+
 ## Start here — what actually breaks a map
 
 The entries below are in pipeline order, not in severity order, and they are not equal. Most are the
@@ -396,6 +422,9 @@ fifteen boards has a rim, one theme, one relief style and the same wall treatmen
 only shapes the format could express. The fix is not more knobs — it is that a spec should be a **thin
 addressing layer over the real documents**, able to hand through a `SketchShape` or a `TerrainTheme`
 verbatim, with the convenience fields as shorthand that expands into them rather than as the whole surface.
+That is also what a prose-described map needs: a description names intent — *a stepped plateau in coursed
+stone, natural ground falling away west* — and the author turns it into shapes, heights and themes. It cannot
+do that through a format whose whole vocabulary is one theme and a rim.
 `surface.md` beside this file is the reference that was missing, and `tools/seeds/ruediger.layout.json` is a
 hand-drawn map that uses the layout format to its width — three themes chosen per shape, ten `base_height`
 tiers stepping the ground with no relief block at all, Bézier outlines, a subtract, and the defence walls of
@@ -417,6 +446,14 @@ surface, a traversability map or a structure map; the relief prototype draws a s
 fault in this document that is about *appearance* — the rim everywhere, the identical walls, the asymmetric
 trees, the closed canopy, the dark map with no silhouette — was visible in an image nobody rendered. The
 working rule is that a stage which produced something gets looked at before the next stage consumes it.
+
+The other half of the same fault is that the layout was never **built up in layers**. A board is meant to
+accumulate — pieces placed, then reshaped in the sketch tool, then given heights, then paint, then relief,
+then dressing — each pass laid on something already read and accepted. Emitting a whole board in one call
+and rendering it once at the end means no pass was ever chosen in response to what the pass before it
+actually produced, which is why nothing on these boards answers anything else on them: the trees do not know
+where the hill is, the paint does not know where the steps are, and the relief does not know a room is
+standing there (MG5).
 
 ## Reading it back
 
