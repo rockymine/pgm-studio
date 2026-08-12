@@ -278,8 +278,11 @@ across a lane is exactly the thing worth aiming.
 
 The crown described above is the intent; `tree-corpus.md` is the measured record of what the code builds,
 against 75 hand-built trees. It reports the gap — the cluster seated beyond its own branch tip, the missing
-tiers, the child limb given twice the length an author gives it — and the thresholds a generated crown can be
-gated on.
+tiers — and the thresholds a generated crown can be gated on. It reads the wood the same way, with the
+foliage disregarded: a generated limb leaves the trunk at 41° off vertical where an author's leaves at 59°,
+and reaches half as far relative to its own trunk; the wood carries half again as many neighbours per block
+as an author's and barely thins on the way out. It also locates why generated twigs come apart — a swept ball
+between radius 0.5 and 0.866 can fill no cell at all.
 
 ## 7. Water — channels (`DR-WA`)
 

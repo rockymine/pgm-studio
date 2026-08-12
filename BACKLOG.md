@@ -533,9 +533,30 @@ import diagnostic (`B24e`), detection (`B26`), and the island-floor work the pha
   Four of its fourteen families are conifers and separate from the other ten with no overlap on two
   measures — the widest tenth of the crown sits in the bottom third, and the crown is built in 3–7 tiers
   against never more than 2 — with **tier spacing of 4.6–5.8 courses** across all four. The grower produces
-  no tiers at any setting. Related and separable: `TreeShape.LengthFactor` gives a child 62% of its parent's
-  length where the author gives 29%, and `BranchAngle`'s 31° is far off primaries measured at ~94° from
-  vertical (`tools/tree-corpus/wool-skeleton.cs`).
+  no tiers at any setting.
+
+- [ ] **G174 — a generated limb leaves the trunk too steep and too short, and its wood is too solid.** The
+  wood network of all 75 hand-built trees, read against the same reading of the grower's own swept wood
+  (`tools/tree-corpus/wood-skeleton.cs`, `--grower`), puts three numbers on it. A first-order limb leaves the
+  stem at **59°** off vertical where a generated one sits at **41°** (`BranchAngle = 0.55 rad`), and reaches
+  **0.40 of its stem's reach** where a generated one reaches **0.20** — so relative to its own trunk the
+  generated branch is half the length, even though `LengthFactor = 0.62` is larger than the wool tree's 0.29,
+  because the grown axis is so much longer than an author's bole. The proportion to aim at is the one measured
+  in blocks. Third, generated wood carries **9.6** occupied neighbours per block against the corpus's **6.3**
+  and thins far less on the way out (at ten steps from the stem: 3.4 neighbours and 21% ends, against 2.1 and
+  35%) — the same solid-versus-lace finding G172 gates for foliage, and gateable the same way.
+
+- [ ] **G175 — a thin sweep sample can place no block at all, so generated twigs break up.** `SweptVolume.Ball`
+  tests the distance from the limb's continuous centre to a candidate cell's **integer coordinate**, so a
+  centre near a cell corner is √3/2 = 0.866 from every candidate, while the only floor —
+  `radius < 0.5` fills the containing cell — sits below that. In the band between, a sample fills nothing: 33%
+  of positions at radius 0.55, 20% at 0.60, 48% at exactly 0.5. `TreeSkeleton` floors a limb's end radius at
+  0.55 and the axis's at 0.5, so every twig is in that band — **5,322 of 25,392 sweep samples (21.0%) place no
+  block** over an 8 height × 12 seed sweep, and **18 of 96 grown trees emit wood in more than one piece** with
+  10 blocks touching no wood at all (the corpus: 3 trees, 2 blocks). Fill the containing cell whenever a ball
+  would otherwise be empty — or test against cell centres rather than corners — and the twigs stop dissolving.
+  The path sampling is not the cause: on the limbs that break, the widest step between samples is 0.51 blocks.
+  Measured by `tools/tree-corpus/wood-skeleton.cs --grower`; `docs/world-export/tree-corpus.md`.
 
 - [ ] **G150 — stamp a catalog shape into a drawn box.** The plan editor can draw a typed box and then ask
   whether the composer could have produced what is in it (G125's feasibility panel), but there is no way to

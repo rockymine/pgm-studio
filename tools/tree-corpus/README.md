@@ -43,6 +43,24 @@ many tiers it is built in — the two measures that separate a conifer from a br
 its own colour, so its skeleton can be read directly: what attaches to what, where along the parent, at what
 angle, and how much of its parent's reach a child keeps.
 
+`wood-skeleton.cs` — the same question asked of all 75, with the foliage disregarded. Every block of wood is
+filed by its strongest join to the next (the ladder `leaf-contact.cs` reads a leaf on), the network is
+decomposed into a stem and the limbs leaving it, and the thinning is measured both by branch order and by
+steps out from the stem — the second owing nothing to the decomposition. Also reports the stem: its lean
+measured on the bole, how it steps, how low the crown starts and how far the leader climbs. The wool tree is
+printed on its own as the control, since `wool-skeleton.cs` already knows its answer.
+
+```
+dotnet run tools/tree-corpus/wood-skeleton.cs [regionDir] [--logs-only] [--grower] [--families] [--per-tree] [--sketch [N]]
+```
+
+Carpentry counts as wood by default, because the family that branches with dark oak slabs has no wood network
+without it; `--logs-only` turns that off and is how the claim is checked (it breaks 13 of 75 log networks into
+pieces). `--grower` reads `TreeSkeleton.Grow` + `SweptVolume.Sweep` over a height × seed sweep instead of a
+world, through the same code, so the two columns in the doc are the same measurement. `--sketch` draws each
+network as an elevation — stem, limbs and doublings by character — which is the fastest way to see whether a
+decomposition is reading a tree or a mess.
+
 `column-probe.cs` — a vertical dump of a named box, course by course, as ASCII. The debugging tool behind
 every claim about what actually stands where.
 
