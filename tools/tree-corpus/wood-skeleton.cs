@@ -143,8 +143,9 @@ void ReadGrower()
     foreach (var height in heights)
         for (uint seed = 1; seed <= seedCount; seed++)
         {
-            var shape = new TreeShape(Height: height, Stems: 1, Levels: 2,
-                BranchAngle: 0.95, Flow: 0.45, Leader: 0.55);
+            // The knobs a placed tree ships with: leader and flow are TreeProp's defaults, and everything
+            // else is TreeShape's own, so the harness tracks the product rather than a tuning run.
+            var shape = new TreeShape(Height: height, Leader: 0.55, Flow: 0.45);
             var wood = new HashSet<(int X, int Y, int Z)>();
             foreach (var limb in TreeSkeleton.Grow(shape, seed).Limbs)
                 foreach (var cell in SweptVolume.Sweep(limb.Path, limb.StartRadius, limb.EndRadius))

@@ -87,4 +87,14 @@ how many crown clusters never touch their own branch.
 `grower-tip-gap.cs` — the geometry underneath that: whether a branch tip lies inside the leaf cluster meant to
 hang on it, and the vertical lift that decides it.
 
-These two need no world — they are pure `PgmStudio.Geom`.
+`grower-gate.cs` — the scorecard. Grows and foliates a tree exactly as the dressing pass does — limbs swept
+into wood, clusters placed on the tips, the crown filtered to what the tree holds — and prints every measure
+the corpus supplies beside the corpus's own figure for it. This is the reading behind the "what the grower
+does with it" table in `tree-corpus.md`, and the one to take before and after touching `TreeSkeleton`,
+`TreeCrown` or `SweptVolume`, since a change that improves one measure and wrecks another shows up in the same
+glance. `--by-height` breaks it down per size, which is how a crown that solidifies only on the biggest trees
+is caught.
+
+These three need no world — they are pure `PgmStudio.Geom`. Note that `dotnet run <script>.cs` caches its
+build keyed on the script, so `rm -rf ~/.local/share/dotnet/runfile/grower-gate-*` before measuring a change
+under `src/` or the old binary reports pre-change numbers with no error.

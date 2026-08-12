@@ -253,20 +253,22 @@ below about **9**. The corpus sits at 99.95%, 30.3% and 6.2; the grower sat at 9
 
 ## What the grower does with it
 
-Every finding above is now law in the code, and the same harnesses measure the result. Reading the grower's
-own output over eight heights, three leaf sizes and eight seeds:
+Every finding above is now law in the code, and the same harnesses measure the result.
+`tools/tree-corpus/grower-gate.cs` grows and foliates a tree exactly as the dressing pass does and scores it
+on every measure the corpus supplies — eight heights, three leaf sizes, eight seeds, at the knobs a placed
+tree ships with:
 
 | | before | after | corpus |
 |---|---|---|---|
 | leaves reaching wood through leaves | 98.7% | **100%** | 99.95% |
-| leaves touching wood directly | 14.8% | **54%** | 30.3% |
+| leaves touching wood directly | 14.8% | **56%** | 30.3% |
 | occupied neighbours per leaf | 12.5 | **8.6** | 6.2 |
-| leaves enclosed on all six faces | 7.2% | **0.5%** | 1.7% |
+| leaves enclosed on all six faces | 7.2% | **0.6%** | 1.7% |
 | trees carrying a stranded leaf | 36% | **0%** | 0% |
 | worst stranded island | 189 blocks | **0** | 2 blocks |
 | trees whose wood is in one piece | 81% | **100%** | 96% |
-| wood neighbours per block | 7.9 | **5.6** | 6.3 |
-| first-order limb, off vertical | 24° | **54°** | 59° |
+| wood neighbours per block | 7.9 | **5.4** | 6.3 |
+| first-order limb, off vertical | 24° | **61°** | 59° |
 | first-order limb, reach against the trunk's | 0.20 | **0.43** | 0.40 |
 
 Six changes carry it. `SweptVolume.Ball` stamps the block its centre sits in whatever the radius, which is
@@ -275,11 +277,12 @@ cluster **on** its tip rather than beyond it, and `TreeCrown.Rooted` emits only 
 through foliage — so a stranded leaf is not rare, it is impossible. Clusters are small, many and perforated
 rather than few and solid, and each is sized by the branch carrying it. `TreeSkeleton.Steer` turns a child in
 its parent's own frame, so a branch angle is the angle a branch actually leaves by even off a vertical trunk —
-the single change that moved the limbs from 24° to 54° and thinned the wood from 7.9 neighbours to 5.6. And
+the single change that moved the limbs from 24° to 61° and thinned the wood from 7.9 neighbours to 5.4. And
 the trunk is swept thinner, against a hand-built bole of about three blocks across.
 
-What is not closed is the last of the density: **8.6 occupied neighbours per leaf against the corpus's 6.2**,
-and it is flat across sizes now rather than climbing to 10.8 on the biggest trees. The gate in
+What is not closed is the last of the density: **8.6 occupied neighbours per leaf against the corpus's 6.2**.
+It still climbs with size — 8.0 at height 6 to 9.9 at height 40 — but far less steeply than the 8.3 to 10.8 it
+climbed before, and `--by-height` is the switch that shows it. The gate in
 `DressingAlgorithmTests` holds it under 11 — enough to catch a return to the solid, not enough to claim the
 gap is shut. The other half of the same gap is that a generated tree still carries more wood for its foliage
 than an author's: 2.2 leaves per block against a corpus that runs 2.7 to 13.4 on its own large trees.
