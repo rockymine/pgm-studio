@@ -27,6 +27,10 @@ public sealed class SketchReliefJson
     /// <summary>The block quantum the finished surface snaps to.</summary>
     [JsonPropertyName("step")] public int Step { get; set; } = 1;
 
+    /// <summary>Whether to cut a way up out of ground the block step stranded. Worth asking for whenever the
+    /// step is more than one, since that is what turns a riser into a wall.</summary>
+    [JsonPropertyName("stairs")] public bool Stairs { get; set; }
+
     [JsonPropertyName("grain")]  public ReliefGrainJson? Grain { get; set; }
     [JsonPropertyName("marks")]  public List<ReliefMarkJson>? Marks { get; set; }
     [JsonPropertyName("pushes")] public List<ReliefPushJson>? Pushes { get; set; }
@@ -40,6 +44,7 @@ public sealed class SketchReliefJson
         Base = Base,
         Reach = Reach,
         Step = Math.Max(1, Step),
+        Stairs = Stairs,
         Grain = Grain?.Amplitude ?? 0,
         GrainScale = Math.Max(1, Grain?.Scale ?? 9),
         Seed = Grain?.Seed ?? 1,

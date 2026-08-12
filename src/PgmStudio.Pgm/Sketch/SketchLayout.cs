@@ -239,6 +239,14 @@ public sealed class SketchShape
     // spans [Floor, Floor + BaseHeight]. For a polygon/lasso whose AnchorHeights line up with its Vertices,
     // the thickness varies per vertex (TIN-interpolated across the footprint). All optional; absent = the
     // flat one-block Y=0 behaviour.
+    /// <summary>How this shape's top is decided, once an island carries a relief. Absent, the shape is
+    /// ordinary ground and the relief is the ground — which is what a shape drawn to make a landmass wants.
+    /// The three words are for a shape that is meant to stand OUT of the field rather than be part of it:
+    /// <c>level</c> cuts a flat top at an absolute height (a mesa, whose faces are cliffs), <c>raise</c> holds
+    /// it a fixed amount above the ground under it (a monolith or a plinth, which keeps its prominence
+    /// wherever it is dragged), and <c>sink</c> the same downward (a quarry, a sunken arena).</summary>
+    [JsonPropertyName("height_mode")]    public string? HeightMode { get; set; }
+
     [JsonPropertyName("base_height")]    public double? BaseHeight { get; set; }
     [JsonPropertyName("anchor_heights")] public double[]? AnchorHeights { get; set; }
     [JsonPropertyName("floor")]          public double? Floor { get; set; }

@@ -169,6 +169,11 @@ public static class SketchRasterizer
                 if (cells.TryGetValue((x, z), out var column))
                     cells[(x, z)] = (Math.Max(column.Floor + 1, field.At(x, z)), column.Floor);
 
+        // Erected shapes go on AFTER the relief, which is the whole of what makes them erected: a shape that
+        // declares how its top is decided is one meant to stand OUT of the field rather than be part of it,
+        // and it can only stand out of ground that already exists.
+        Erect(cells, shapes);
+
         if (metas.Count == 0)
         {
             // No island metadata (hand-authored): mirror the whole primary footprint (height is invariant).
@@ -207,6 +212,57 @@ public static class SketchRasterizer
             }
         }
         return cells;
+    }
+
+    /// <summary>The three words a shape can use to say how its top is decided. Anything else — including a
+    /// word a later build knows and this one does not — is ordinary ground, which places terrain an author
+    /// drew rather than terrain nobody asked for.</summary>
+    private static bool IsErected(SketchShape shape)
+        => shape.Role is null && shape.Operation != "subtract"
+           && shape.HeightMode?.ToLowerInvariant() is "level" or "raise" or "sink";
+
+    /// <summary>
+    /// Applies the shapes that declare how their top is decided, over ground the relief has already made.
+    ///
+    /// <para>A shape without the word is ordinary ground: it draws a landmass, and the relief inside that
+    /// landmass is what the ground does. The three words are for the other thing a shape can be — something
+    /// standing in the terrain rather than being it.</para>
+    ///
+    /// <para><b>level</b> cuts a flat top at an absolute height, so it reads as a mesa and its faces are
+    /// cliffs. <b>raise</b> and <b>sink</b> are relative, and are read at the <b>median</b> of the ground the
+    /// shape covers rather than per cell: a monolith standing a fixed amount above every cell under it would
+    /// be a blanket following the hillside, where what the word means is one flat-topped thing standing proud
+    /// — which is also what keeps its prominence when it is dragged somewhere else on the map.</para>
+    /// </summary>
+    private static void Erect(Dictionary<(int, int), (int Top, int Floor)> cells, List<SketchShape> shapes)
+    {
+        foreach (var shape in shapes)
+        {
+            if (!IsErected(shape)) continue;
+            var mode = shape.HeightMode!.ToLowerInvariant();
+
+            var covered = RasterShape(shape).Where(cell => cells.ContainsKey((cell.X, cell.Z))).ToList();
+            if (covered.Count == 0) continue;
+
+            var amount = Math.Max(1, (int)Math.Round(shape.BaseHeight ?? 1));
+            int top;
+            if (mode == "level")
+            {
+                top = Math.Max(0, (int)Math.Round(shape.Floor ?? 0)) + amount;
+            }
+            else
+            {
+                var ground = covered.Select(cell => cells[(cell.X, cell.Z)].Top).OrderBy(height => height).ToList();
+                var median = ground[ground.Count / 2];
+                top = mode == "raise" ? median + amount : median - amount;
+            }
+
+            foreach (var (x, z, _, _) in covered)
+            {
+                var column = cells[(x, z)];
+                cells[(x, z)] = (Math.Max(column.Floor + 1, top), column.Floor);
+            }
+        }
     }
 
     /// <summary>Each relief-bearing island's solved surface, over the cells that island actually contributes
@@ -292,6 +348,14 @@ public static class SketchRasterizer
         var ring = RingOf(s);
         if (ring.Count < 3) yield break;
         int floor = Math.Max(0, (int)Math.Round(s.Floor ?? 0));
+        // An erected shape adds its footprint but does NOT decide its own height here — that is settled after
+        // the relief, against the ground it stands on. Contributing its full thickness now would make it part
+        // of that ground, so a raise would read its own plate and stand proud of itself.
+        if (IsErected(s))
+        {
+            foreach (var (x, z) in RasterRing(ring)) yield return (x, z, floor + 1, floor);
+            yield break;
+        }
         var height = HeightFn(s);
         foreach (var (x, z) in RasterRing(ring))
         {

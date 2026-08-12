@@ -4063,6 +4063,29 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the Relief phase, fetched on a button rather than on every edit. (`Analysis/Playability/ReliefReadback.cs`,
   `SketchReliefReadEndpoint`, `SketchReliefReadback.razor`; 9 tests)
 
+- **Relief: shapes erected out of the field, and the stair the block step owes (S44).** A relief makes rolling
+  ground; what makes a map is the thing standing in it. One word on a shape says how its top is decided once
+  its island carries a relief — **level** cuts a flat top at an absolute height (a mesa, whose faces are
+  cliffs), **raise** holds it a fixed amount above the ground under it (a monolith or plinth, which keeps its
+  prominence wherever it is dragged), **sink** the same downward (a quarry). Absent, a shape is ordinary
+  ground and the relief is what its ground does — the default has to stay the default, or a drawn board would
+  become a staircase of plates. Erected shapes are applied **after** the relief, which is the whole of what
+  makes them erected, and they contribute their footprint without their thickness deciding the height: read
+  before that separation, a `raise` found its own plate under itself and stood proud of it. `raise`/`sink`
+  read the ground at the **median** of the cells covered, so the result is one flat-topped thing standing
+  proud rather than a blanket following the hillside. Nothing downstream needed teaching — the painter already
+  classifies a column by its neighbours, so a mesa face arrives as an edge with a known drop and is painted as
+  a wall under a rim.
+  **The stair repair** ships with it, being the same compositing question from the other side: snapping to a
+  two-block step turns every riser into a wall, and a 60×40 hillside terraces into **six separate places**
+  with nothing about the surface saying so. `StairRepair` cuts one stair per stranded place through its
+  **cheapest** riser — the smallest intervention that reconnects, moving under eight cells and the walkable
+  share by under 2% — and **refuses rather than half-cutting** when a stair would run out of footprint, since
+  a riser plus a partial cut is the same map with a scar in it. On a mirrored map the surface is **folded
+  again** afterwards: the repair decides things by walking the map, and a walk has a direction a half-turn
+  does not preserve, so unfolded it hands one team a stair the other lacks. (`Geom/Relief/StairRepair.cs`,
+  `SketchRasterizer.Erect`, `SketchInspector`; 15 tests)
+
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,
   `GET /wool-availability`, `GET /monument-obstruction` (each wool monument's block must be air; flags a

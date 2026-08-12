@@ -53,24 +53,13 @@ the focus-integration polish remains.
 The Sketch depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection
 highlight); these are the parked / dormant / deferred slices.
 
-- [ ] **S42 — Relief: the later passes fold too.** The solve folds (`FEATURES.md`), and the rule extends past
-  it: a carve, a graded road and a stair cut each decide things by **walking** the map, and a walk has a
-  direction the half-turn does not preserve, so each pass folds again or it undoes what the solve established
-  (`sketch-relief.md` §8). Measured on the designed map, a carve that did not re-fold left the two halves **9
-  blocks** apart. Belongs to whichever of S44 / S46 lands its pass first; the fold itself is
-  `Geom.Symmetry` and needs no new machinery.
-
-- [ ] **S44 — Relief: erecting shapes (level / raise / sink), and the stair repair the block step needs.** One
-  word on `SketchShape` saying how its top is decided: an absolute height (a mesa, whose faces are cliffs), a
-  fixed amount above the ground under it (a monolith or plinth, which keeps its prominence wherever it is
-  dragged), or the same downward (a quarry). The compositing rule already exists — the taller add wins — and
-  nothing downstream needs teaching: the painter classifies a column by its neighbours, so a mesa face arrives
-  as an edge with a known drop and is painted as a wall under a rim, machinery that has shipped and has had
-  nothing to paint. EL6 discriminates the result unprompted: a 27-wide 11-block face qualifies as a cliff, an
-  8-wide face at a comparable drop does not. Ship the **stair repair** here too, since it is the same
-  compositing question from the other side: terracing a 90×135 board at a two-block step leaves six separate
-  places, the largest holding 49.8%, and cutting a stair through the cheapest riser of each stranded place
-  restores one place while moving the walkable share only from 86.9% to 87.3% (`sketch-relief.md` §4, §7).
+- [ ] **S42 — Relief: the carve and the graded road fold too.** The solve folds, and so now does the stair cut
+  (`FEATURES.md`) — the first later pass to land, and the one that showed the rule is real rather than
+  theoretical. The other two are still open: a carve and a graded road each decide things by **walking** the
+  map, and a walk has a direction the half-turn does not preserve, so each folds again or it undoes what the
+  solve established (`sketch-relief.md` §8). Measured on the designed map, a carve that did not re-fold left
+  the two halves **9 blocks** apart. Belongs with S46, which lands both passes; the fold itself needs no new
+  machinery — `ReliefSolver.FoldBlocks` is the shape of it.
 
 - [ ] **S46 — Paths and water read the relief; a river on the axis is a canal.** Both stroke tools assume a
   flat plane. A path gains **routing** (a shortest line whose cost counts climbing far more than distance and

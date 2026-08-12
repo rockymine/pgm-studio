@@ -1,9 +1,15 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace PgmStudio.Client.Features.Sketch;
 
 public partial class SketchInspector
 {
+    /// <summary>The bridge. Most of this inspector reports edits up through callbacks the host owns, which is
+    /// right for anything the host also has to persist or re-render around; the height mode goes straight to
+    /// the canvas because it changes only what the rasterizer emits, and routing it through the host would be
+    /// a callback that does nothing but forward.</summary>
+    [Parameter] public IJSObjectReference? Handle { get; set; }
     [Parameter] public SketchShapeRow? Shape { get; set; }
     [Parameter] public SketchIslandRow? Island { get; set; }
     [Parameter] public IReadOnlyList<SketchShapeRow> Shapes { get; set; } = [];
@@ -75,6 +81,31 @@ public partial class SketchInspector
 
     private Task FloorChanged(double v)
         => Shape is null ? Task.CompletedTask : OnSetHeight.InvokeAsync((Shape.Id, Shape.BaseHeight, v));
+
+    /// <summary>How a shape's top is decided once its island carries a relief (sketch-relief.md §7). The
+    /// empty word is ordinary ground and is deliberately first: a shape is part of the landmass unless its
+    /// author says otherwise, and a default that made every shape a mesa would turn a drawn board into a
+    /// staircase of plates.</summary>
+    private static readonly (string Value, string Label)[] HeightModes =
+    [
+        ("", "ground — the relief decides it"),
+        ("level", "a mesa — a flat top at this height"),
+        ("raise", "a monolith — this far above the ground"),
+        ("sink", "a quarry — this far below the ground"),
+    ];
+
+    private string HeightModeBlurb => Shape?.HeightMode switch
+    {
+        "level" => "Cuts a flat top straight through the field, whatever the ground under it was doing — so its faces are cliffs.",
+        "raise" => "Stands proud of the ground it covers, read at the middle of it, so it keeps its prominence wherever it is dragged.",
+        "sink" => "Cuts down into the ground it covers by the same reading — a quarry, a sunken arena, a pit.",
+        _ => "Part of the landmass: the island's relief is what this shape's ground does.",
+    };
+
+    private Task HeightModeChanged(ChangeEventArgs e)
+        => Shape is null || Handle is null
+            ? Task.CompletedTask
+            : Handle.InvokeVoidAsync("setHeightMode", Shape.Id, e.Value?.ToString() ?? "").AsTask();
 
     private Task VertexHeightChanged(double v)
         => Shape is null || SelectedVertexIdx < 0 ? Task.CompletedTask

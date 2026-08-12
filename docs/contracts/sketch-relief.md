@@ -257,7 +257,9 @@ decided:
   is a mesa, and its faces are cliffs.
 - **raise** — the top is a fixed amount above the ground under it, read at the covered cells' median. The
   shape stands proud of the relief wherever it is dragged, which is what a monolith, a plinth or an outcrop
-  wants.
+  wants. What "the ground under it" means needs saying, because the obvious reading is wrong: an erected
+  shape contributes its footprint but **not its own thickness** to the surface it is then read against.
+  Otherwise it finds its own plate underneath itself and stands proud of that.
 - **sink** — the same, downward: a quarry, a sunken arena, a pit.
 
 Nothing downstream needs teaching. The painter classifies a column by its neighbours (`terrain-painting.md`

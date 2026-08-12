@@ -13,6 +13,9 @@ public sealed record SketchShapeRow(
     [property: JsonPropertyName("dim")] string Dim,
     [property: JsonPropertyName("baseHeight")] double BaseHeight = 1,   // a shape is never zero-height
     [property: JsonPropertyName("floor")] double Floor = 0,
+    // How the top is decided once the island carries a relief (sketch-relief.md §7). Empty is ordinary
+    // ground; level / raise / sink make the shape something standing IN the terrain rather than being it.
+    [property: JsonPropertyName("heightMode")] string HeightMode = "",
     // A path's band: half-width, how its edges are drawn, and the seed a rough edge wanders by. Empty on
     // every other kind of shape, which is what the inspector reads to know whether to offer them.
     [property: JsonPropertyName("radius")] double Radius = 0,

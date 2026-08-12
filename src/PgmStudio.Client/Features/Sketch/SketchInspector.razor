@@ -36,6 +36,19 @@
           <NumberField Value="Shape.Floor" ValueChanged="FloorChanged" Min="0" />
         </Field>
         <p class="section-desc">Floor lifts the base; the top sits at floor + height.</p>
+
+        @* How the top is decided once the island carries a relief. Ordinary ground is the default and stays
+           it: a shape drawn to make a landmass IS the landmass, and the relief inside it is what the ground
+           does. The other three are for a shape meant to stand in the terrain rather than be it. *@
+        <Field Label="Stands as">
+          <select class="field-input" value="@Shape.HeightMode" @onchange="HeightModeChanged">
+            @foreach (var (value, label) in HeightModes)
+            {
+              <option value="@value" selected="@(Shape.HeightMode == value)">@label</option>
+            }
+          </select>
+        </Field>
+        <p class="section-desc">@HeightModeBlurb</p>
         <Field Label="Rotate (°)">
           <input @key="rotateNonce" class="field-input" type="number" step="15" placeholder="0" value="@rotateInput" @onchange="RotateChanged" />
         </Field>

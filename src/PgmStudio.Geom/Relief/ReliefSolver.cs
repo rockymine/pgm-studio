@@ -103,7 +103,18 @@ public static class ReliefSolver
             var index = footprint.Index(x, z);
             blocks[index] = (int)Math.Round((field[index] - spec.Base) / step) * step + baseBlock;
         }
-        return new HeightField(footprint, field, blocks);
+        var solved = new HeightField(footprint, field, blocks);
+        if (!spec.Stairs) return solved;
+
+        // Last, because it reads the finished blocks: a stair is cut against the surface the step produced,
+        // and cutting one before the step would be repairing ground that has not been broken yet.
+        //
+        // And then folded AGAIN. The repair decides things by walking the map — which place is largest, which
+        // riser is cheapest, which way a stair runs — and a walk has a direction a half-turn does not
+        // preserve. Left unfolded it hands one team a stair the other does not have, which is the exact
+        // unfairness the fold on the solved surface exists to prevent, arriving one pass later.
+        var repaired = StairRepair.Repair(solved);
+        return spec.FoldMode is null ? repaired : repaired.WithBlocks(FoldBlocks(footprint, repaired.Blocks, spec));
     }
 
     /// <summary>The coordinate a cell's grain is drawn from and the cell its solved height is copied from:
@@ -128,6 +139,19 @@ public static class ReliefSolver
             _ => centreZ < spec.FoldCentreZ || (centreZ == spec.FoldCentreZ && centreX <= spec.FoldCentreX)
                 ? (x, z) : (mirroredX, mirroredZ),
         };
+    }
+
+    /// <summary>The block surface with every cell taking its mirror image's value from the canonical half —
+    /// the same fold the continuous field gets, applied to a pass that ran after it.</summary>
+    private static int[] FoldBlocks(Footprint footprint, int[] blocks, ReliefSpec spec)
+    {
+        var folded = (int[])blocks.Clone();
+        foreach (var (x, z) in footprint.Land())
+        {
+            var (sx, sz) = Fold(x, z, spec);
+            if (footprint.Inside(sx, sz)) folded[footprint.Index(x, z)] = blocks[footprint.Index(sx, sz)];
+        }
+        return folded;
     }
 
     private static double[] Diffuse(Footprint footprint, double[] pinned, bool[] isPinned, ReliefSpec spec,
