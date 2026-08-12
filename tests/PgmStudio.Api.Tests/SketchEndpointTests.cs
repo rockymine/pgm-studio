@@ -174,8 +174,13 @@ public sealed class SketchEndpointTests
         await Assert.That(entry.HasPlan).IsFalse();     // this one was drawn, not planned
     }
 
+    /// <summary>One connected landmass is a map. An island is not a side: 17% of the destroy-the-monument
+    /// corpus is a single island and 26% carries a single major one, and the layout generator's own boards
+    /// compile to exactly one — so a two-island floor refused the commonest shape in the category, and the
+    /// generator's own output with it. Symmetry says whether a board has two sides, and it is stated in the
+    /// setup rather than counted in the ground.</summary>
     [Test]
-    public async Task Finish_rejects_a_layout_with_fewer_than_two_islands()
+    public async Task Finish_accepts_a_single_island()
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
@@ -183,7 +188,6 @@ public sealed class SketchEndpointTests
         var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "One Island" }))
             .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
 
-        // A single rectangle → one island; a CTW needs both sides, so finish must refuse.
         await client.PutAsJsonAsync($"/api/map/{slug}/sketch", new
         {
             setup = new { mirror_mode = "mirror_x", center = new { cx = 1000, cz = 0 } },
@@ -192,6 +196,31 @@ public sealed class SketchEndpointTests
                 shapes = new object[] { new { id = "a", type = "rectangle", operation = "add", @override = false, min_x = 0, max_x = 20, min_z = 0, max_z = 20 } },
                 islands = new object[] { new { id = "i1", name = "Solo", mirrors = false, shapeIds = new[] { "a" } } },
             },
+        });
+
+        var finish = await client.PostAsync($"/api/map/{slug}/sketch/finish", null);
+        await Assert.That(finish.IsSuccessStatusCode).IsTrue()
+            .Because("a board both teams stand on is one island, which is a map and not a half-drawn one");
+
+        // It advanced: the draft now carries geometry, so it is what the wizard configures.
+        var configureStaged = await client.GetFromJsonAsync<List<MapSummary>>("/api/maps?stage=configure");
+        await Assert.That(configureStaged!.Any(m => m.Slug == slug)).IsTrue();
+    }
+
+    /// <summary>Nothing drawn is the one thing finish still refuses — there is no ground to rasterize.</summary>
+    [Test]
+    public async Task Finish_rejects_a_layout_with_no_ground()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Nothing Drawn" }))
+            .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
+
+        await client.PutAsJsonAsync($"/api/map/{slug}/sketch", new
+        {
+            setup = new { mirror_mode = "mirror_x", center = new { cx = 1000, cz = 0 } },
+            layout = new { shapes = Array.Empty<object>(), islands = Array.Empty<object>() },
         });
 
         var finish = await client.PostAsync($"/api/map/{slug}/sketch/finish", null);
