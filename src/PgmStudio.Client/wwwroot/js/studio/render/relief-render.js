@@ -48,12 +48,19 @@ export const liftColor = (amount) => heightColor(amount, 0);
 
 /**
  * Paint every mark, plus the mirror images of each. `mirrorPoint(x, z, k)` gives the k-th image of a point and
- * `order` how many images there are — the canvas already owns the map's symmetry, so this asks rather than
- * re-deriving it. `baseOf(islandId)` supplies the level each island's marks are read against.
+ * `orderOf(islandId)` how many images that island's marks have — the canvas already owns the map's symmetry,
+ * so this asks rather than re-deriving it. `baseOf(islandId)` supplies the level each island's marks are read
+ * against.
+ *
+ * The order is asked **per island** rather than taken once for the map, because mirroring is a property of the
+ * island: the rasterizer fans only the islands that opted in. Ghosting a mark on an island that does not
+ * mirror draws ground the export will never build, which is worse than drawing nothing — it is the one thing
+ * an overlay must not do.
  */
-export function paintReliefMarks(painter, marks, { selectedId = null, mirrorPoint = null, order = 1, baseOf = null } = {}) {
+export function paintReliefMarks(painter, marks, { selectedId = null, mirrorPoint = null, orderOf = null, baseOf = null } = {}) {
   for (const mark of marks ?? []) {
     const base = baseOf?.(mark.islandId) ?? 8;
+    const order = Math.max(1, orderOf?.(mark.islandId) ?? 1);
     const colour = isPush(mark) ? liftColor(topHeight(mark)) : heightColor(topHeight(mark), base);
 
     // A push's skirt — the ground it moves outside the ring it was drawn on — as a dashed outline at the

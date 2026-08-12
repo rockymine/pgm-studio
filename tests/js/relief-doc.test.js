@@ -531,3 +531,23 @@ test("dragging a contour places the mark and selects it", () => {
   assert.equal(controller.selectedId, doc.marks[0].id);
   assert.ok(events.includes("changed"));
 });
+
+test("a mark is ghosted only on an island that mirrors", () => {
+  // The rasterizer fans only the islands that opted in, so ghosting a mark on one that did not draws ground
+  // the export will never build — the one thing an overlay must not do.
+  const mark = { id: "r1", islandId: "i1", kind: "point", at: [5, 5], h: 12, r: 3 };
+
+  const mirrored = recordingPainter();
+  paintReliefMarks(mirrored, [mark], { baseOf: () => 8, orderOf: () => 2, mirrorPoint: (x, z) => [x + 50, z] });
+  assert.equal(mirrored.of("ring").length, 2);
+
+  const alone = recordingPainter();
+  paintReliefMarks(alone, [mark], { baseOf: () => 8, orderOf: () => 1, mirrorPoint: (x, z) => [x + 50, z] });
+  assert.equal(alone.of("ring").length, 1);
+
+  // No order at all is one image, not none: a caller that has not been taught about mirroring should draw
+  // the mark rather than nothing.
+  const bare = recordingPainter();
+  paintReliefMarks(bare, [mark], { baseOf: () => 8 });
+  assert.equal(bare.of("ring").length, 1);
+});

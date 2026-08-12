@@ -210,7 +210,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     islands = next;
     layers[active].islands = next;
     layers[active].shapes = shapes;
-    canvas.setIslands(next.map(i => ({ id: i.id, shapeIds: i.shapeIds, exterior: i.exterior, holes: i.holes })));
+    // `mirrors` rides along because the relief overlay ghosts a mark only on an island that opted in — the
+    // rasterizer fans only those, so a ghost anywhere else is terrain that will never be built.
+    canvas.setIslands(next.map(i => ({ id: i.id, shapeIds: i.shapeIds, exterior: i.exterior, holes: i.holes, mirrors: i.mirrors })));
     canvas.setGhostIslands(ghostPolys());
     refreshMirror();
     pushLayout();

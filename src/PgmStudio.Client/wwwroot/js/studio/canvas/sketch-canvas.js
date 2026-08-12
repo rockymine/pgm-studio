@@ -701,7 +701,9 @@ export class SketchCanvas extends CanvasBase {
     // surface, so drawing them from one list is what makes the phase one phase.
     paintReliefMarks(painter, this.#reliefDoc.statements, {
       selectedId: this.#reliefTools?.selectedId ?? null,
-      order: axes.length + 1,
+      // Per island: the rasterizer fans only the islands that opted into mirroring, so ghosting a mark on one
+      // that did not would draw ground the export will never build.
+      orderOf: (islandId) => (this.#islands.find(isl => isl.id === islandId)?.mirrors ? axes.length + 1 : 1),
       mirrorPoint: (x, z, k) => applySymmetry(x, z, axes[k - 1], this.#center.cx, this.#center.cz),
       baseOf: (islandId) => this.#reliefDoc.peek(islandId)?.base ?? 8,
     });
