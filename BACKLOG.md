@@ -153,6 +153,15 @@ highlight); these are the parked / dormant / deferred slices.
   a crescent's curve at all. A roughness wobbles that distance so the skirt is not a clean offset of the
   outline (`sketch-relief.md` §2.1).
 
+  A push's top is a **field, not a number**, and two more optional numbers cover what the flat top could not
+  (§2.2). **A lift per ring vertex**, interpolated around the arc and wrapped so a closed loop has no seam, is
+  what makes a drawn ridge fall along its length instead of holding level. **A crown** says how much higher
+  the middle stands than the edge — positive domes, negative dishes into a hollow whose rim is the drawn
+  outline. The middle is not authored: it is the deepest point measured inward, which is the shape's medial
+  axis, so a round push crowns to a **point** and a long one to a **line** from the same setting. An explicit
+  centre, a per-push profile curve and a brush stack were considered and are all covered by these two;
+  each would have cost the property the model rests on, that a landform is one drawn ring and a few numbers.
+
 - [ ] **S47 — A pressure budget for relief.** S43 measures what terrain charges; nothing says how much
   charging is too much. The dressing stage has the identical gap (`world-export/ideas.md` G167) and the two
   should share an answer. The materials exist — the share of the board at each passability tier, the detour

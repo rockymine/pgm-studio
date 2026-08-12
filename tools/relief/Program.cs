@@ -673,6 +673,70 @@ HeightField FromFunction(Footprint footprint, Func<double, double, double> heigh
     Say("");
 }
 
+// ═══ figure 11b — a push's top is a field, not a number ═══════════════════════════════════════════
+{
+    var footprint = FootprintOf(Board);
+    const int Scale = 3;
+
+    // Two outlines that differ only in proportion: a fat blob and a long spur. The same crown is applied to
+    // both, and what it crowns toward is decided by the shape rather than by anything authored.
+    double[][] blob = Enumerable.Range(0, 20).Select(i =>
+    {
+        var angle = 2 * Math.PI * i / 20;
+        var radius = 20 + 4 * Math.Sin(angle * 3 + 1.1);
+        return new[] { 45 + radius * Math.Cos(angle), 44 + radius * Math.Sin(angle) };
+    }).ToArray();
+    double[][] spur = [[30, 14], [52, 24], [56, 52], [48, 82], [54, 112], [42, 124], [34, 98], [40, 62], [32, 36]];
+
+    var panels = new List<(string, Canvas)>();
+    void Panel(string name, double[][] ring, double amount, double[]? amounts, double crown, int ceiling)
+    {
+        var spec = new ReliefSpec
+        {
+            Base = 6,
+            Marks = [new RimMark(6)],
+            Pushes = [new PushMark(ring, amount, Falloff: 16, Roughness: 4, Seed: 4, Amounts: amounts, Crown: crown)],
+            Grain = 0.7,
+            Seed = 4,
+        };
+        var solved = ReliefSolver.Solve(footprint, spec);
+        var panel = Render.TopDown(solved, Scale, floor: 4, ceiling: ceiling);
+        for (var i = 0; i < ring.Length; i++)
+        {
+            var next = ring[(i + 1) % ring.Length];
+            panel.Line((int)((ring[i][0] - footprint.MinX) * Scale), (int)((ring[i][1] - footprint.MinZ) * Scale),
+                       (int)((next[0] - footprint.MinX) * Scale), (int)((next[1] - footprint.MinZ) * Scale), Render.Ink, 0.8);
+        }
+        panels.Add((name, panel));
+        Say($"  {name}: y {solved.Min}..{solved.Max}");
+    }
+
+    Panel("flat top (crown 0)", blob, 12, null, 0, 26);
+    Panel("crowned — a point", blob, 12, null, 10, 26);
+    Panel("crowned — a line", spur, 12, null, 10, 26);
+    Panel("dished (crown -9)", blob, 12, null, -9, 26);
+    // One amount per drawn vertex, so the crest falls along the line the author drew rather than holding level.
+    Panel("a lift per vertex", spur, 12,
+        [16, 15, 13, 11, 8, 6, 7, 10, 14], 8, 26);
+
+    Png.Write(Path.Combine(outputRoot, "11b-crown.png"), Render.Row(panels).Upscale(2));
+    Png.Write(Path.Combine(outputRoot, "11c-crown-iso.png"), Render.Row(
+    [
+        ("crowned blob", Render.Isometric(ReliefSolver.Solve(footprint, new ReliefSpec
+        {
+            Base = 6, Marks = [new RimMark(6)], Grain = 0.7, Seed = 4,
+            Pushes = [new PushMark(blob, 12, 16, 4, 4, Crown: 10)],
+        }), tileWidth: 3, tileDepth: 2, blockRise: 3, floor: 0, ceiling: 26)),
+        ("crowned spur, lift per vertex", Render.Isometric(ReliefSolver.Solve(footprint, new ReliefSpec
+        {
+            Base = 6, Marks = [new RimMark(6)], Grain = 0.7, Seed = 4,
+            Pushes = [new PushMark(spur, 12, 16, 4, 4, [16, 15, 13, 11, 8, 6, 7, 10, 14], 8)],
+        }), tileWidth: 3, tileDepth: 2, blockRise: 3, floor: 0, ceiling: 26)),
+    ]).Upscale(2));
+    Say("figure 11b — a flat top, a dome, a ridge, a hollow and a falling crest: one ring, four numbers");
+    Say("");
+}
+
 // ═══ figure 12 — the character of a mined valley, not a copy of one ═══════════════════════════════
 {
     // A long board, a river that widens into a lake, spurs reaching down to it between side valleys, and a

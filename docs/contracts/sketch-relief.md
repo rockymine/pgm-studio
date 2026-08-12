@@ -104,6 +104,34 @@ of a shape does not lift the arm across the notch from it — the same property 
 reason. A **roughness** wobbles that distance against a noise field so the skirt is not a clean offset of the
 outline, which is the difference between a hill and an extruded logo.
 
+### 2.2 A push's top is a field, not a number
+
+A push that lifts its whole interior by one amount makes a plateau, and a plateau is a landform but not the
+common one. Three things an author reaches for next — a ridge whose crest falls along its length, a hollow
+rather than a table, and a centre for the lift to pull toward — turn out to be one addition: the amount is a
+**field over the push** rather than a scalar.
+
+**A lift per ring vertex** varies the amount around the outline, interpolated along the ring's arc and wrapped
+so a closed loop has no seam. That is what makes a drawn ridge a ridge: one end stands sixteen blocks up, the
+other six, and the crest falls between them along the line that was drawn.
+
+**A crown** says how much higher the middle of the push stands than its edge. Zero is the flat top; positive
+domes it; negative dishes it into a hollow whose rim is the drawn outline — a corrie, a quarry floor, a pond
+basin, depending on what fills it.
+
+What "the middle" means is the part worth stating, because it is the one thing that does *not* have to be
+authored. It is the deepest point of the outline measured **inward**, which is the shape's medial axis — the
+same chamfer sweep the skirt uses, run the other way. For a round push the medial axis is a **point** and the
+crown makes a dome; for a long push it is a **line** and the crown makes a ridge whose crest follows the
+shape's own spine. The identical setting on different proportions gives a peak or a ridgeline, and a shape
+with a fat lobe and a thin arm gets a domed lobe and a narrow crest on the arm. So the centre a push pulls
+toward never has to be drawn: the outline already contains it.
+
+That closes the vocabulary rather than extending it. An explicit centre point, a profile curve per push and a
+brush stack were all considered and are all covered by these two numbers, and each would have cost the
+property that makes the model authorable at all — that a landform is one drawn ring and a few numbers beside
+it.
+
 Constraints and pushes are both authored and both fan across the symmetry orbit; what separates them is
 whether the author is stating a fact about the ground or sculpting it.
 

@@ -291,12 +291,37 @@ internal sealed record RimMark(double MarkHeight, int Depth = 1) : Mark(MarkHeig
 /// distance with a noise field so the skirt is not a clean offset of the outline, which is the difference
 /// between a hill and an extruded logo.</para>
 /// </summary>
+/// <param name="Amounts">A lift per ring vertex instead of one for the whole outline, interpolated around
+/// the ring. This is what makes a drawn ridge a ridge rather than a plateau with a shaped edge: one end can
+/// stand ten blocks up and the other three, and the crest falls between them along the line the author drew.
+/// Null uses <paramref name="Amount"/> the whole way round.</param>
+/// <param name="Crown">How much higher the <em>middle</em> of the push stands than its edge. Zero is a flat
+/// top — the ring's amount everywhere inside it. Positive domes it; negative dishes it into a hollow whose
+/// rim is the drawn outline, which is a corrie, a quarry floor or a pond basin depending on what fills it.
+///
+/// <para>What "the middle" means is not authored, because the shape already knows: it is the deepest point
+/// of the outline measured inward, which is the medial axis. For a round push that is a <b>point</b> and the
+/// result is a dome; for a long one it is a <b>line</b> and the result is a ridge whose crest follows the
+/// shape's own spine. So a centre to pull toward never has to be drawn, and a shape with a fat lobe and a
+/// thin arm gets a domed lobe and a narrow crest on the arm — which is what terrain does.</para></param>
 internal sealed record PushMark(double[][] Ring, double Amount, double Falloff = 10, double Roughness = 0,
-                                uint Seed = 1)
+                                uint Seed = 1, double[]? Amounts = null, double Crown = 0)
 {
     /// <summary>How the lift decays from the ring outward. Smoothstep flattens at both ends, so the push
-    /// leaves the surrounding land level and its own top flat-ish — a landform rather than a tent.</summary>
+    /// leaves the surrounding land level and meets its own edge without a crease.</summary>
     public static double Ease(double t) => t <= 0 ? 1 : t >= 1 ? 0 : 1 - t * t * (3 - 2 * t);
+
+    /// <summary>The lift stated at a fractional position around the ring. The ring is closed, so the last
+    /// vertex interpolates back to the first — a ridge drawn as a loop has no seam in it.</summary>
+    public double AmountAt(double around)
+    {
+        if (Amounts is not { Length: > 1 } stated) return Amount;
+        var scaled = Math.Clamp(around, 0, 1) * stated.Length;
+        var lower = (int)scaled % stated.Length;
+        var upper = (lower + 1) % stated.Length;
+        var t = scaled - (int)scaled;
+        return stated[lower] + (stated[upper] - stated[lower]) * t;
+    }
 }
 
 /// <summary>How the field between the marks is decided. The three are genuinely different surfaces, not
@@ -514,27 +539,31 @@ internal static class ReliefSolver
                 { distance[footprint.Index(x, z)] = 0; seeded = true; }
             if (!seeded) continue;
 
-            for (var sweep = 0; sweep < 6; sweep++)
+            Chamfer(footprint, distance);
+
+            // The same sweep run the other way: seeded on everything the ring does not cover, so an interior
+            // cell ends up holding its distance in from the outline. Its maximum is the deepest point of the
+            // shape, and the set of local maxima is the medial axis — the point a round push crowns toward
+            // and the line a long one does, neither of them authored.
+            double[]? depth = null;
+            var deepest = 0.0;
+            if (push.Crown != 0)
             {
-                var moved = false;
-                for (var pass = 0; pass < 2; pass++)
-                    for (var i = 0; i < distance.Length; i++)
-                    {
-                        var index = pass == 0 ? i : distance.Length - 1 - i;
-                        if (!footprint.InsideAt(index)) continue;
-                        var (x, z) = footprint.CellAt(index);
-                        var best = distance[index];
-                        foreach (var (dx, dz) in Neighbours8)
-                        {
-                            if (!footprint.Inside(x + dx, z + dz)) continue;
-                            var step = dx != 0 && dz != 0 ? 1.41421356 : 1.0;
-                            var candidate = distance[footprint.Index(x + dx, z + dz)] + step;
-                            if (candidate < best) best = candidate;
-                        }
-                        if (best < distance[index]) { distance[index] = best; moved = true; }
-                    }
-                if (!moved) break;
+                depth = new double[lift.Length];
+                Array.Fill(depth, double.PositiveInfinity);
+                foreach (var (x, z) in footprint.Cells())
+                    if (!Footprint.PointInRing(x + 0.5, z + 0.5, push.Ring)) depth[footprint.Index(x, z)] = 0;
+                Chamfer(footprint, depth);
+                foreach (var (x, z) in footprint.Cells())
+                {
+                    var value = depth[footprint.Index(x, z)];
+                    if (!double.IsPositiveInfinity(value)) deepest = Math.Max(deepest, value);
+                }
             }
+
+            // A closed copy, so the arc parameter the per-vertex amounts read runs the whole way round and
+            // meets itself rather than stopping at the last drawn vertex.
+            var closed = push.Ring.Append(push.Ring[0]).ToArray();
 
             var falloff = Math.Max(0.5, push.Falloff);
             foreach (var (x, z) in footprint.Cells())
@@ -547,10 +576,48 @@ internal static class ReliefSolver
                 if (push.Roughness > 0)
                     away = Math.Max(0, away + (Noise.Field(x, z, push.Seed, 9, 3) - 0.5) * 2 * push.Roughness);
                 if (away > falloff) continue;
-                lift[index] += push.Amount * PushMark.Ease(away / falloff);
+
+                var amount = push.Amounts is null
+                    ? push.Amount
+                    : push.AmountAt(LineMark.NearestOnPolyline(x + 0.5, z + 0.5, closed).Along);
+                if (depth is not null && deepest > 0)
+                {
+                    var inward = depth[index];
+                    if (!double.IsPositiveInfinity(inward) && inward > 0)
+                        amount += push.Crown * PushMark.Ease(1 - inward / deepest);
+                }
+                lift[index] += amount * PushMark.Ease(away / falloff);
             }
         }
         return lift;
+    }
+
+    /// <summary>Sweeps a seeded distance field out across the footprint, forward then backward until it
+    /// settles. Only land is stepped onto, so every distance this produces is a distance a player could
+    /// walk.</summary>
+    private static void Chamfer(Footprint footprint, double[] distance)
+    {
+        for (var sweep = 0; sweep < 6; sweep++)
+        {
+            var moved = false;
+            for (var pass = 0; pass < 2; pass++)
+                for (var i = 0; i < distance.Length; i++)
+                {
+                    var index = pass == 0 ? i : distance.Length - 1 - i;
+                    if (!footprint.InsideAt(index)) continue;
+                    var (x, z) = footprint.CellAt(index);
+                    var best = distance[index];
+                    foreach (var (dx, dz) in Neighbours8)
+                    {
+                        if (!footprint.Inside(x + dx, z + dz)) continue;
+                        var step = dx != 0 && dz != 0 ? 1.41421356 : 1.0;
+                        var candidate = distance[footprint.Index(x + dx, z + dz)] + step;
+                        if (candidate < best) best = candidate;
+                    }
+                    if (best < distance[index]) { distance[index] = best; moved = true; }
+                }
+            if (!moved) break;
+        }
     }
 
     /// <summary>The coordinate a cell's grain is drawn from: itself, or — once a fold is declared — whichever
