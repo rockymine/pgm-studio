@@ -279,7 +279,11 @@ half of its cube a slab fills is geometry.
 Every roof here is a height field over **one rectangle**, and it is the last part of a building that is. A
 `Footprint` is one or more touching **wings**; everything below the eave — the sill, the floor, the walls, the
 window runs, the doorways, the slab and the beams — reads the plan's own cells, so an L, a T or a U is built as
-one house on one outline. The roof over one is not (G172): a wing's roof is one of these fields and a
+one house on one outline. A wall stands wherever the plan is exposed, **diagonals included**: where two
+wings meet, the two walls running into the turn touch along one vertical edge and nothing else, and the
+cell behind that edge — building on all four sides of it — is the corner. Without a block there the
+building has no block where it turns and the room shows through the seam. It takes a post like any
+corner, so an L stands on six. The roof over one is not (G172): a wing's roof is one of these fields and a
 building's roof is the **union of the wing volumes**, which `RoofField` needs no changes to serve, and until
 that lands a plan of more than one wing is roofed by a single field over the box drawn round it. That field is
 **clipped to the plan and its overhang**, so the roof stops at the building rather than bridging the notch —

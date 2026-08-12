@@ -834,6 +834,48 @@ public sealed class HouseStamperTests
         await Assert.That(escaped).IsFalse();
     }
 
+    /// <summary>Six posts on an L, not five: the cell where two wings meet is a corner the walls run into, and
+    /// it takes a post exactly as the five the building turns away at do.</summary>
+    [Test]
+    public async Task An_ell_stands_on_six_posts()
+    {
+        var plan = Ell();
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, new HouseStyle());
+
+        var posts = plan.Cells()
+            .Where(cell => world.GetBlock(cell.X, FloorY + 3, cell.Z).Id == Blocks.Log).ToList();
+        await Assert.That(posts.Count).IsEqualTo(6);
+        await Assert.That(posts).Contains((X: 6, Z: 6));      // the turn, where the two wings meet
+    }
+
+    /// <summary>The building is closed <b>diagonally</b> as well as squarely, which is a different question from
+    /// whether air escapes it.
+    ///
+    /// <para>Where two wings meet, the two walls running into the turn touch along a single vertical edge and
+    /// nothing else. Leave the cell behind that edge open and the building has no block where it turns and the
+    /// room shows through the seam — and a flood fill walks past it without a word, because nothing can step
+    /// diagonally. So the question is asked of the geometry instead: no cell inside the house may touch the
+    /// outside at all, corners included.</para></summary>
+    [Test]
+    public async Task No_room_touches_the_outside_across_a_diagonal()
+    {
+        var plan = Ell();
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, new HouseStyle { Door = DoorMaterial.StainedGlass });
+
+        var course = FloorY + 3;
+        foreach (var (x, z) in plan.Cells())
+        {
+            if (world.GetBlock(x, course, z).Id != Blocks.Air) continue;      // a wall or a post, not a room
+            for (var dx = -1; dx <= 1; dx++)
+                for (var dz = -1; dz <= 1; dz++)
+                    if (!plan.Holds(x + dx, z + dz))
+                        await Assert.That(world.GetBlock(x + dx, course, z + dz).Id)
+                            .IsNotEqualTo(Blocks.Air);
+        }
+    }
+
     /// <summary>A plan with no cell off its own wall has no room in it, whatever shape it is — the refusal a
     /// span under three blocks used to be.</summary>
     [Test]

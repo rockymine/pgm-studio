@@ -70,13 +70,16 @@ public sealed class FootprintTests
     {
         var plan = Ell();
 
-        await Assert.That(plan.OnInnerCorner(5, 4)).IsTrue();   // the hall's wall, running out of the notch
-        await Assert.That(plan.OnInnerCorner(4, 5)).IsTrue();   // the wing's wall, meeting it corner to corner
-        await Assert.That(plan.OnCorner(5, 4)).IsFalse();
-        await Assert.That(plan.OnCorner(4, 5)).IsFalse();
+        // The turn is the cell the two walls run into, and the building surrounds it: no run passes through it,
+        // and without a block on it the two walls touch along a vertical edge and nothing else.
+        await Assert.That(plan.OnInnerCorner(4, 4)).IsTrue();
+        await Assert.That(plan.OnPerimeter(4, 4)).IsTrue();      // so a wall stands there
+        await Assert.That(plan.OnCorner(4, 4)).IsFalse();        // and the building does not turn away at it
+        await Assert.That(plan.OnInnerCorner(5, 4)).IsFalse();   // the wall running into it, not the turn
+        await Assert.That(plan.OnInnerCorner(4, 5)).IsFalse();
 
-        // An L turns away from itself five times and back into itself once, which is the count that says it is
-        // one building rather than two rectangles standing next to each other — those would answer eight.
+        // An L turns away from itself five times and back into itself once — six corners, six posts, which is
+        // the count that says it is one building rather than two rectangles standing next to each other.
         var outer = plan.Cells().Where(cell => plan.OnCorner(cell.X, cell.Z))
             .OrderBy(cell => cell.X).ThenBy(cell => cell.Z).ToList();
         await Assert.That(outer).IsEquivalentTo(
@@ -86,21 +89,26 @@ public sealed class FootprintTests
 
         var inner = plan.Cells().Where(cell => plan.OnInnerCorner(cell.X, cell.Z))
             .OrderBy(cell => cell.X).ThenBy(cell => cell.Z).ToList();
-        await Assert.That(inner).IsEquivalentTo(new[] { (X: 4, Z: 5), (X: 5, Z: 4) });
+        await Assert.That(inner).IsEquivalentTo(new[] { (X: 4, Z: 4) });
     }
 
-    /// <summary>Every wall cell of an L is on one closed ring, and no cell is on it twice. A wall pattern reads
-    /// the arc round the whole building, so a ring that stopped at a wing would stripe half a house.</summary>
+    /// <summary>Every wall the walk passes is on one closed ring, and no cell is on it twice. A wall pattern
+    /// reads the arc round the whole building, so a ring that stopped at a wing would stripe half a house.
+    ///
+    /// <para>The turn where two wings meet is the one wall cell the walk does not pass: it steps from one wall
+    /// to the other diagonally, across the corner rather than through it, so that cell has no arc — it takes a
+    /// post, and a post is not something an arc places.</para></summary>
     [Test]
     [MethodDataSource(nameof(Plans))]
     public async Task A_plan_that_turns_a_corner_has_one_closed_ring(Footprint plan)
     {
-        var walls = plan.Cells().Where(cell => plan.OnPerimeter(cell.X, cell.Z)).ToList();
-        var arcs = walls.Select(cell => plan.Arc(cell.X, cell.Z)).ToList();
+        var walked = plan.Cells()
+            .Where(cell => plan.OnPerimeter(cell.X, cell.Z) && !plan.OnInnerCorner(cell.X, cell.Z)).ToList();
+        var arcs = walked.Select(cell => plan.Arc(cell.X, cell.Z)).ToList();
 
         await Assert.That(arcs.Any(arc => arc < 0)).IsFalse();
-        await Assert.That(arcs.Distinct().Count()).IsEqualTo(walls.Count);
-        await Assert.That(arcs.Order()).IsEquivalentTo(Enumerable.Range(0, walls.Count));
+        await Assert.That(arcs.Distinct().Count()).IsEqualTo(walked.Count);
+        await Assert.That(arcs.Order()).IsEquivalentTo(Enumerable.Range(0, walked.Count));
 
         // Off the ring is off the ring: an interior cell has no arc, and answers no bend.
         foreach (var (x, z) in plan.Cells().Where(cell => !plan.OnPerimeter(cell.X, cell.Z)))
@@ -124,21 +132,21 @@ public sealed class FootprintTests
     }
 
     /// <summary>Steps in from the nearest wall, not in from the nearest edge of a box: a cell in the crook of
-    /// two wings has walls on two sides of it and is one step from both.</summary>
+    /// two wings counts to the wall actually nearest it, the one at the turn included.</summary>
     [Test]
     public async Task Inset_counts_from_the_nearest_wall_rather_than_the_box()
     {
         var plan = Ell();
 
         await Assert.That(plan.Ring(0, 0)).IsEqualTo(0);        // on the wall
-        await Assert.That(plan.Ring(4, 4)).IsEqualTo(1);        // in the crook, a step from the wall at (5,4)
+        await Assert.That(plan.Ring(4, 4)).IsEqualTo(0);        // the turn itself carries a wall
         await Assert.That(plan.Ring(2, 2)).IsEqualTo(2);        // deep in the hall
         await Assert.That(plan.Ring(7, 7)).IsEqualTo(-1);       // the notch
 
-        // The deepest cell of this L stands 3 in — more than either wing offers alone, because where they meet
-        // there is no wall between them and the two five-deep halls read as one ten-deep room. A box measured
-        // from its own corners answers 4, and a wing measured alone answers 2; neither is the building.
-        await Assert.That(plan.Cells().Max(cell => plan.Ring(cell.X, cell.Z))).IsEqualTo(3);
+        // Nowhere in this L stands more than 2 in, which a box drawn round it would put at 4. The wall at the
+        // turn is what holds it there: without a block on that cell the crook has no wall near it, and the two
+        // five-deep wings read as one room deeper than either of them is.
+        await Assert.That(plan.Cells().Max(cell => plan.Ring(cell.X, cell.Z))).IsEqualTo(2);
     }
 
     /// <summary>A wall lies along the axis it runs on, and a corner stands upright because it faces two ways at
@@ -204,7 +212,8 @@ public sealed class FootprintTests
     }
 
     /// <summary>Every run's cells are on the outline and face the way the run says, and every wall cell of the
-    /// plan belongs to at least one run — so nothing a wall pass would build is left unseated.</summary>
+    /// plan is either in a run or the turn where two wings meet — so nothing a wall pass would build is left
+    /// unaccounted for, and nothing a run claims is off the outline.</summary>
     [Test]
     [MethodDataSource(nameof(Plans))]
     public async Task Every_wall_cell_belongs_to_a_run_that_faces_open_ground(Footprint plan)
@@ -222,8 +231,13 @@ public sealed class FootprintTests
             }
         }
 
+        // The turn belongs to no run: the building surrounds it, so it faces open ground on no axis at all.
+        foreach (var (x, z) in plan.Cells().Where(cell => plan.OnInnerCorner(cell.X, cell.Z)))
+            await Assert.That(seated.Contains((x, z))).IsFalse();
+
         var built = plan.Cells().Where(cell => plan.OnPerimeter(cell.X, cell.Z)).ToHashSet();
-        await Assert.That(seated.OrderBy(c => c.X).ThenBy(c => c.Z))
+        var accounted = seated.Concat(plan.Cells().Where(cell => plan.OnInnerCorner(cell.X, cell.Z))).ToHashSet();
+        await Assert.That(accounted.OrderBy(c => c.X).ThenBy(c => c.Z))
             .IsEquivalentTo(built.OrderBy(c => c.X).ThenBy(c => c.Z));
     }
 

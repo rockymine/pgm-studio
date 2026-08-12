@@ -136,7 +136,11 @@ public static class HouseStamper
                     {
                         if (!body.OnPerimeter(x, z)) continue;
                         var y = floorY + bases[level] + course;
-                        if (body.OnCorner(x, z) && corner is { } post) Put(x, y, z, post, body);
+                        // Both kinds of turn take the post: the ones the building turns away at, and the one
+                        // where two wings meet, which is a corner the walls running into it turn at even
+                        // though neither runs through it.
+                        var turns = body.OnCorner(x, z) || body.OnInnerCorner(x, z);
+                        if (turns && corner is { } post) Put(x, y, z, post, body);
                         else PutPart(x, y, z, wall, course - 1, body);
                     }
         }

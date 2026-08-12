@@ -80,11 +80,11 @@ public readonly record struct Wing(int MinX, int MinZ, int MaxX, int MaxZ)
 /// <para><b>The outline is walked</b> (<see cref="GridBoundary"/>), at the window the terrain painter measures
 /// its own edges over, so a wall and the plateau beside it cannot answer a wall-run material differently.</para>
 ///
-/// <para>A corner comes in two kinds and they are not interchangeable. An <see cref="OnCorner">outer</see> one
-/// is where the building turns away from itself — the four of a rectangle, and where a post stands. An
-/// <see cref="OnInnerCorner">inner</see> one is where two wings meet and the outline turns back into the
-/// building; nothing stands in it, and what it is for is keeping an opening off the turn, the same margin an
-/// outer corner keeps.</para>
+/// <para>A corner comes in two kinds. An <see cref="OnCorner">outer</see> one is where the building turns away
+/// from itself — the four of a rectangle. An <see cref="OnInnerCorner">inner</see> one is where two wings meet
+/// and it turns back into itself, which no run of wall passes through because the building surrounds it on all
+/// four sides. Both carry a post, so an L stands on six; only an outer one throws a beam, since an inner one
+/// has no direction to throw it in that is not the building itself.</para>
 /// </summary>
 public sealed class Footprint
 {
@@ -133,11 +133,23 @@ public sealed class Footprint
         return false;
     }
 
-    /// <summary>Whether the cell is on the outline: held, with open ground orthogonally beside it. This is where
-    /// a wall stands, so a wing's edge buried inside another wing is not on it.</summary>
+    /// <summary>Whether the cell is on the outline: held, with open ground anywhere beside it. This is where a
+    /// wall stands, so a wing's edge buried inside another wing is not on it.
+    ///
+    /// <para><b>Diagonally beside it counts</b>, and the cell where two wings meet is why. Its four orthogonal
+    /// neighbours are all building — two walls and two rooms — so an orthogonal test calls it interior and
+    /// leaves it open, and the two walls running into it then pass each other touching along nothing but a
+    /// vertical edge. That is not a corner: the building has no block where it turns, and the room behind shows
+    /// through the seam at a glancing angle. A flood fill will not find it, because nothing can step
+    /// diagonally.</para></summary>
     public bool OnPerimeter(int x, int z)
-        => Holds(x, z)
-           && (!Holds(x - 1, z) || !Holds(x + 1, z) || !Holds(x, z - 1) || !Holds(x, z + 1));
+    {
+        if (!Holds(x, z)) return false;
+        for (var dx = -1; dx <= 1; dx++)
+            for (var dz = -1; dz <= 1; dz++)
+                if ((dx != 0 || dz != 0) && !Holds(x + dx, z + dz)) return true;
+        return false;
+    }
 
     /// <summary>Whether the building turns <b>away</b> from itself here — the four corners of a rectangle, and
     /// where a corner post stands. It is the cell that has no held neighbour opposite it on either axis, which
@@ -148,17 +160,17 @@ public sealed class Footprint
            && !(Holds(x - 1, z) && Holds(x + 1, z))
            && !(Holds(x, z - 1) && Holds(x, z + 1));
 
-    /// <summary>Whether the building turns <b>back into</b> itself here — where two wings meet and one wall runs
-    /// into another. The cell carries on straight along its own wall, so it is no outer corner, but the plan
-    /// reaches round the open side of it: a diagonal neighbour is held that the wall cannot be walked to
-    /// orthogonally. On a raster that turn is a <b>pair</b> of cells meeting corner to corner, one on each wall,
-    /// and both answer here. An opening keeps its margin off one exactly as it does off an outer corner, which
-    /// is what the kind is for — nothing stands on it.</summary>
+    /// <summary>Whether the building turns <b>back into</b> itself here — the cell where two wings meet. The
+    /// building surrounds it on all four sides, so no wall runs <em>through</em> it and it belongs to no run,
+    /// but a diagonal is open and that open diagonal is the turn. It is the corner the two walls running into
+    /// it turn at, and a post stands on it exactly as one stands at a corner the building turns away at: an L
+    /// carries six, not five.</summary>
     public bool OnInnerCorner(int x, int z)
     {
-        if (!OnPerimeter(x, z)) return false;
+        if (!Holds(x, z)) return false;
+        if (!Holds(x - 1, z) || !Holds(x + 1, z) || !Holds(x, z - 1) || !Holds(x, z + 1)) return false;
         foreach (var (dx, dz) in Diagonals)
-            if (Holds(x + dx, z + dz) && (!Holds(x + dx, z) || !Holds(x, z + dz))) return true;
+            if (!Holds(x + dx, z + dz)) return true;
         return false;
     }
 
@@ -211,7 +223,7 @@ public sealed class Footprint
     /// staircase of short runs rather than as a cell.</summary>
     public int Run(int x, int z)
     {
-        if (OnCorner(x, z)) return GridBoundary.RunsBothWays;
+        if (OnCorner(x, z) || OnInnerCorner(x, z)) return GridBoundary.RunsBothWays;
         var arc = Arc(x, z);
         return arc < 0 ? 0 : Perimeter.Run[arc];
     }

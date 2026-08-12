@@ -3649,15 +3649,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   more touching `Wing` rectangles, and every question it answers is asked of its cells rather than of a min and
   a max — so an L, a T or a U is one plan with one closed ring rather than two buildings that happen to touch.
   A rectangle is the case where walking the cells agrees with the arithmetic it replaced, which is what lets
-  every shipped building keep its shape. **A corner comes in two kinds and they are not interchangeable**: an
-  outer one is where the building turns away from itself — the five of an L, where a post stands — and an inner
-  one is where two wings meet and a wall runs into a wall, where nothing stands and what the kind is for is
-  keeping an opening's margin off the turn. On a raster that inner turn is a *pair* of cells meeting corner to
-  corner, one on each wall, and both answer to it. The steps in from the wall are walked breadth-first from
-  every wall cell at once rather than subtracted from an edge, which is the only way a cell in the crook of two
-  wings counts to the wall actually nearest it: the L's deepest cell stands 3 in, where its bounding box claims
-  4 and either wing alone claims 2, because where two wings meet there is no wall between them and two
-  five-deep halls read as one ten-deep room. The stamper still builds a single wing — the roof over more than
+  every shipped building keep its shape. **A corner comes in two kinds**: an outer one is where the building
+  turns away from itself — the five of an L — and an inner one is where two wings meet and it turns back into
+  itself, which is one cell and carries a post like any other corner, so an L stands on six. The steps in from
+  the wall are walked breadth-first from every wall cell at once rather than subtracted from an edge, which is
+  the only way a cell in the crook of two wings counts to the wall actually nearest it: nowhere in the L stands
+  more than 2 in, where its bounding box claims 4. The stamper still builds a single wing — the roof over more than
   one, and the walls and window runs that go with it, are the rest of G172. (G172)
 - **A wall is a run, and a facing stopped being its name (G172).** `Footprint` splits its outline into
   `WallSegment` runs — every maximal stretch of wall with open ground on one side of it, ending wherever the
@@ -3671,9 +3668,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   without being handed a box. Where a run has to be picked from a direction — a door handed in by a room frame
   names a side, not a wall — the rule is on the plan: the longest run looking that way whose stretch reaches the
   place asked for, length breaking the tie because a building is entered by its face rather than by its return.
-  The margin an opening keeps off the end of its run is now the same whichever kind of corner ends it, which is
-  what the inner corner was added for. Nothing moved: the house showcase renders byte-identical across the
-  change, over every roof, floor, porch and window figure it draws. (G172)
+  The margin an opening keeps off the end of its run is the same whichever kind of corner ends the run, because
+  both are a turn. Nothing moved: the house showcase renders byte-identical across the change, over every roof,
+  floor, porch and window figure it draws. (G172)
 - **A house is stamped over a plan, not over a width and a depth (G172).** `HouseStamper.Stamp` takes a
   `Footprint`, and everything below the eave reads the plan's own cells: the sill runs one block proud of the
   **outline** rather than filling the box, the floor and the surface course cover what the plan holds, the walls
@@ -3686,9 +3683,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   that nothing is written outside the footprint: the roof stops at the wing's own eave instead of bridging the
   notch. A porch is refused on such a plan for the same reason it is deferred. What found the shape of all of
   this was a **printed cut** — a text grid of one plane, one letter per material — which showed the sill
-  following the notch, the five posts, the absent post at the inner corner, and the slab of roof hanging over
-  open ground that the clip now removes. The single-wing path is unmoved: the house showcase renders
-  byte-identical. (G172)
+  following the notch, the posts, and the slab of roof hanging over open ground that the clip now removes. The
+  single-wing path is unmoved: the house showcase renders byte-identical. (G172)
+- **A house on more than one wing closes at the turn, and stands on six posts (G172).** Where two wings meet,
+  the wall of one runs into the wall of the other — and on a raster those two walls touch along a single
+  vertical **edge** and nothing else. The cell behind that edge has building on all four sides of it, so a wall
+  that stands wherever the plan is exposed *orthogonally* calls it interior and leaves it open: the building
+  has no block where it turns, the two walls simply step past each other, and the room behind shows through the
+  seam at a glancing angle. A wall now stands wherever the plan is exposed **at all**, diagonals included,
+  which puts a block on that cell and makes the outline turn a real corner — and it takes a post, so an L
+  carries six and not five. A beam is the one thing that stays with the outer corners alone: an inner one has
+  no direction to throw a log end in that is not the building itself. **A flood fill cannot find this class of
+  hole** — nothing steps diagonally, so the seal test passed the whole time — which is why the gate for it is
+  geometric instead: no cell inside the house may touch the outside on any of its eight sides. The wall at the
+  turn also settles what the crook is worth: nowhere in the L stands more than 2 blocks in, where before the
+  two five-deep wings read as one room deeper than either of them is. (G172)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds
