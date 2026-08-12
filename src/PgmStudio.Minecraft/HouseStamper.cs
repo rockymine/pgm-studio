@@ -122,6 +122,66 @@ public static class HouseStamper
                 if (style.Surface.At(body.Ring(x, z)) is { } surface)
                     Put(x, floorY, z, surface, body);
 
+        // ── the roof ──────────────────────────────────────────────────────────────────────────────────
+        // <b>A building's roof is the union of its wings' roofs</b>, and never a max of their crowns: a max
+        // blends two surfaces into one and drags roof material down the wall between wings of unequal height.
+        // Each wing is extruded as the whole building it would be alone — its own rectangle, its own eave from
+        // its own storey count, its own ridge axis from its own proportions — and the volumes are simply laid
+        // one after another. A wing's roof reaches its own walls plus its own overhang and no further, which is
+        // what keeps a stub of roof from hanging outside a wall it never touched.
+        var roofs = body.Wings.Select(wing =>
+        {
+            var top = WallTopOf(wing);
+            var alone = new Footprint(wing.MinX, wing.MinZ, wing.MaxX, wing.MaxZ);
+            var field = new RoofField(
+                style.Form, wing.MinX, wing.MinZ, wing.MaxX, wing.MaxZ, overhang, top + 1, pitch, front,
+                style.RoofInHalves);
+            return (Wing: wing, Alone: alone, Field: field, Top: top);
+        }).ToList();
+        var hole = RoofHole(style, body);
+
+        foreach (var (wing, _, field, _) in roofs)
+            for (var x = field.MinX; x <= field.MaxX; x++)
+                for (var z = field.MinZ; z <= field.MaxZ; z++)
+                {
+                    if (hole is { } gap && gap.Holds(x, z)) continue;
+                    // <b>A projecting wing cuts the roof it pushes into, across its own span.</b> Without the
+                    // cut the two surfaces are laid over each other and the wing's verge has nothing to sit on
+                    // — its overhang is simply missing, buried in the slope it was supposed to break.
+                    if (CutBy(wing, x, z)) continue;
+                    // A marching end carries no overhang of its own: the march is what fills those columns,
+                    // stepping them on into the other roof, and a course that met its own eave first would
+                    // strike a block at the first step and never move.
+                    if (BeyondMarch(wing, x, z)) continue;
+                    Lay(field, x, z, body);
+                }
+
+
+        // <b>The march.</b> Where a wing's gable end runs up against another wing rather than into the open, its
+        // roof does not simply stop at the wall: each course steps on along its own ridge into the other roof
+        // until it <b>hits a block, and stops</b>. The courses nearest the ridge travel furthest and the ones
+        // nearest the eave stop at once, which is what draws the crossing as a diagonal valley rather than as a
+        // wing abutting a wall. No overhang is carried in — an overhang is what a roof has outside a wall, and
+        // inside another wing there is no outside — so the march runs across the wing's own width alone.
+        foreach (var (wing, _, field, _) in roofs)
+        {
+            var (low, high) = wing.GableEnds;
+            foreach (var (end, step) in new[] { (low, -1), (high, 1) })
+            {
+                if (!Marches(wing, end, step)) continue;
+                var (acrossLo, acrossHi) = wing.RidgeAlongX ? (wing.MinZ, wing.MaxZ) : (wing.MinX, wing.MaxX);
+                for (var across = acrossLo; across <= acrossHi; across++)
+                    for (var reach = 1; ; reach++)
+                    {
+                        var along = end + step * reach;
+                        var (x, z) = wing.RidgeAlongX ? (along, across) : (across, along);
+                        if (!body.Holds(x, z)) break;            // marched clean out of the building
+                        if (Struck(field, x, z)) break;          // hit a block, and stop
+                        Lay(field, x, z, body);
+                    }
+            }
+        }
+
         // ── the walls ─────────────────────────────────────────────────────────────────────────────────
         // Storey by storey, each counting its own courses up from its own floor — so a band written at a
         // storey's fourth course is at the fourth course of every storey, and a taller ground floor does not
@@ -198,36 +258,6 @@ public static class HouseStamper
                 return id == windows.HostBlock && data == windows.HostData;
             };
         }
-
-        // ── the roof ──────────────────────────────────────────────────────────────────────────────────
-        // <b>A building's roof is the union of its wings' roofs</b>, and never a max of their crowns: a max
-        // blends two surfaces into one and drags roof material down the wall between wings of unequal height.
-        // Each wing is extruded as the whole building it would be alone — its own rectangle, its own eave from
-        // its own storey count, its own ridge axis from its own proportions — and the volumes are simply laid
-        // one after another. A wing's roof reaches its own walls plus its own overhang and no further, which is
-        // what keeps a stub of roof from hanging outside a wall it never touched.
-        var roofs = body.Wings.Select(wing =>
-        {
-            var top = WallTopOf(wing);
-            var alone = new Footprint(wing.MinX, wing.MinZ, wing.MaxX, wing.MaxZ);
-            var field = new RoofField(
-                style.Form, wing.MinX, wing.MinZ, wing.MaxX, wing.MaxZ, overhang, top + 1, pitch, front,
-                style.RoofInHalves);
-            return (Wing: wing, Alone: alone, Field: field, Top: top);
-        }).ToList();
-        var hole = RoofHole(style, body);
-
-        foreach (var (wing, _, field, _) in roofs)
-            for (var x = field.MinX; x <= field.MaxX; x++)
-                for (var z = field.MinZ; z <= field.MaxZ; z++)
-                {
-                    if (hole is { } gap && gap.Holds(x, z)) continue;
-                    // <b>A projecting wing cuts the roof it pushes into, across its own span.</b> Without the
-                    // cut the two surfaces are laid over each other and the wing's verge has nothing to sit on
-                    // — its overhang is simply missing, buried in the slope it was supposed to break.
-                    if (CutBy(wing, x, z)) continue;
-                    Lay(field, x, z, body);
-                }
 
         // The walls climb to meet the roof over them: a gable's two ends, a shed's back wall and its triangular
         // flanks, and nothing under a hip, whose slopes already come down to the wall line on every side. Each
@@ -397,6 +427,38 @@ public static class HouseStamper
                 Put(x, y, z, material, ring);
             if (slab && crown >= lowest && crown is > 0 and < VoxelWorld.MaxHeight)
                 world.SetBlock(x, crown, z, style.RoofSlab, style.RoofSlabData & 0x7);
+        }
+
+        /// <summary>Whether the cell lies past a gable end that marches — the overhang columns the march takes
+        /// over from.</summary>
+        bool BeyondMarch(Wing wing, int x, int z)
+        {
+            var (low, high) = wing.GableEnds;
+            var along = wing.RidgeAlongX ? x : z;
+            return (along < low && Marches(wing, low, -1)) || (along > high && Marches(wing, high, 1));
+        }
+
+        /// <summary>Whether a wing's gable end runs up against another wing, so its roof marches on into it
+        /// rather than stopping. A wing that <em>projects</em> never marches: it has already cut the roof it
+        /// pushed into, and marching would step it back over its own cut.</summary>
+        bool Marches(Wing wing, int end, int step)
+        {
+            var across = wing.RidgeAlongX ? (wing.MinZ + wing.MaxZ) / 2 : (wing.MinX + wing.MaxX) / 2;
+            var along = end + step;
+            var (x, z) = wing.RidgeAlongX ? (along, across) : (across, along);
+            foreach (var other in body.Wings)
+                if (!other.Equals(wing) && other.Holds(x, z)) return !wing.ProjectsInto(other);
+            return false;
+        }
+
+        /// <summary>Whether the column a marching course would write is already occupied — the block it stops
+        /// at. The other roof is laid in full before any march begins, so what a course meets is a surface
+        /// rather than a half-built one.</summary>
+        bool Struck(RoofField field, int x, int z)
+        {
+            for (var y = Math.Max(field.Underside(x, z), Covering(x, z) + 1); y <= field.Crown(x, z); y++)
+                if (y is > 0 and < VoxelWorld.MaxHeight && world.GetBlock(x, y, z).Id != Blocks.Air) return true;
+            return false;
         }
 
         /// <summary>Whether another wing projects into this one and its roof plan claims this cell, so this

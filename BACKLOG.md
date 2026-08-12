@@ -250,11 +250,11 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   volumes**, with the three rules that carry it — a wing reaches its own overhang and no further, no roof block
   below the wall top of whatever covers a cell, and walls laid after every volume.
 
-  **What is left is the march.** A *meet* is a union rather than a march: the two roofs abut in a valley
-  instead of one stepping each course into the other until it hits a block and stops, so the attic under them
-  is continuous but the slopes do not interlock. The *project* joint is built — the buried gable end walled from
-  the ground up with its posts, the gable face drawn on it, and the cut across the projecting wing's own walls
-  — and the acceptance test passes in the form this task states it, plinth and wall included.
+  **Both joints are built, and the acceptance test passes in the form this task states it.** A meet marches —
+  each course of the meeting wing steps on into the other until it hits a block — so the valley runs as a
+  diagonal and the ridge never dips. A project cuts the roof it pushes into across its own walls and stands its
+  buried gable end from the ground up. What remains of the original design note is the attic: it is continuous
+  under a marched valley, but nothing yet says a wing may not be roofed over a room it cannot reach.
 
   **A wing has no doorway into its neighbour.** Where two wings meet the plan is simply open between them, which
   is right; where one projects into another its gable end is now a wall from the ground up, which is also right

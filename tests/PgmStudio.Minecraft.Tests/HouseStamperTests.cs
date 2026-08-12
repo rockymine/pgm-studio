@@ -1021,6 +1021,42 @@ public sealed class HouseStamperTests
         await Assert.That(top).IsEqualTo(inside);
     }
 
+    /// <summary>
+    /// <b>A valley does not dip.</b> Where a wing's gable end runs up against another, its roof marches on into
+    /// the other along its own ridge until each course hits a block and stops — so the surface along that ridge
+    /// climbs from the wing's own gable end all the way to the neighbour's ridge without ever falling.
+    ///
+    /// <para>It is the one thing a wing that merely <em>stops</em> at the wall cannot do. Left to abut, the
+    /// ridge drops from its own crown to the neighbour's eave and climbs again, which is a gutter cut across
+    /// the middle of a roof — and it reads as two buildings pushed together rather than as one that turns.</para>
+    /// </summary>
+    [Test]
+    public async Task A_valley_climbs_from_the_wing_to_the_ridge_it_runs_into()
+    {
+        var plan = Tee();
+        var hall = plan.Wings[0];
+        var wing = plan.Wings[1];
+        var style = new HouseStyle { Form = RoofForm.Gable, Pitch = 1 };
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, style);
+
+        int Surface(int x, int z)
+            => Enumerable.Range(FloorY, 24).Last(y => world.GetBlock(x, y, z).Id != Blocks.Air);
+
+        var ridge = (wing.MinX + wing.MaxX) / 2;
+        var climbed = 0;
+        for (var z = wing.MinZ; z > (hall.MinZ + hall.MaxZ) / 2; z--)
+        {
+            var here = Surface(ridge, z);
+            var inward = Surface(ridge, z - 1);
+            await Assert.That(inward).IsGreaterThanOrEqualTo(here);
+            if (inward > here) climbed++;
+        }
+
+        // And it does climb: a ridge that ran flat the whole way would satisfy the comparison and mean nothing.
+        await Assert.That(climbed).IsGreaterThan(0);
+    }
+
     /// <summary>Every cell the plan stands on is roofed. The cut is what makes this worth asking: it takes the
     /// roof a projecting wing pushes into out of the way, and taken one column too wide it opens a hole nothing
     /// fills — the verge that was to sit there is itself standing over the hall's wall, so the rule that keeps

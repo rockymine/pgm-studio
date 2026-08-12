@@ -3721,9 +3721,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   that is the bound rather than a clip on top of one. **No roof block below the wall top of whatever covers that
   cell**, which is what makes a one-storey wing stop against a two-storey one instead of pushing a slope through
   its standing wall, and what turns two abutting eaves into a valley instead of into each other's gutters. And
-  **walls outrank roofs** — every volume is laid before any wall is. That last one moves a building of a single
-  wing too, and it is the only thing on this branch that has: at a steep pitch the eave's riser used to write
-  into the top course of its own wall, and the wall now keeps it. No hole opens where it stopped, because the
+  **walls outrank roofs** — every volume is laid before any wall is, and the wall-top rule settles the rest.
+  That last one moves a building of a single wing too, and it is the only thing on this branch that has: at a
+  steep pitch the eave's riser used to reach into the top course of its own wall, and the wall now keeps it. No hole opens where it stopped, because the
   course below a wing's roof base *is* its wall top. The gate is the task's own acceptance test — **a wing's two
   gable ends are the same gable**, the one ending the building and the one standing against its neighbour,
   compared above the eave over the wing's own width. (G172)
@@ -3742,6 +3742,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   wall included — and it passes over the wing's own width. That test wrote the last of the implementation: it
   failed first on a missing corner post at the buried end, which is exactly the sort of thing it exists to
   name. (G172)
+- **A meet marches, so a valley does not dip (G172).** A wing whose gable end runs up against another does not
+  stop at the wall: each course steps on along its own ridge into the other roof until it **hits a block, and
+  stops**. The courses nearest the ridge travel furthest and the ones nearest the eave stop at once, which draws
+  the crossing as a **diagonal valley** rather than as a wing abutting a wall. Left to abut, the ridge fell from
+  its own crown to the neighbour's eave and climbed again — a gutter cut across the middle of a roof, reading as
+  two buildings pushed together rather than as one that turns; the gate is that the surface along that ridge
+  never falls between the wing's gable end and the ridge it runs into. **A marching end carries no overhang**,
+  and that is not only a rule about what an overhang means outside a wall — it is what makes the march possible
+  at all. With its own eave still in place every course struck a block at its first step and the march moved
+  nothing, which a printed height map showed at once and no seal test could have. The march is the meet's half
+  of the pair: a wing that *projects* never marches, having already cut the roof it pushed into. (G172)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds
