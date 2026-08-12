@@ -689,11 +689,13 @@ public sealed class HouseStamperTests
         await Assert.That(open.Min()).IsGreaterThanOrEqualTo(2);
     }
 
-    /// <summary>And a building with no post keeps the door exactly where it was handed. A postless corner is
-    /// wall like the rest of the building, so an opening beside it takes nothing that was carrying anything —
-    /// the margin exists for the column, and inventing one here would narrow every wool cage's door.</summary>
+    /// <summary>And a building with <b>no</b> post keeps the same margin, because the margin is not the post's.
+    /// A corner is where two walls meet and turn, and an opening hard against that turn reads as a wall that
+    /// failed rather than as a way through, in a plain shell exactly as in a framed house. Making it conditional
+    /// would also mean one building gained and lost the margin as its corners were bound and unbound, which is a
+    /// style deciding where a door goes.</summary>
     [Test]
-    public async Task A_postless_shell_keeps_the_door_the_frame_handed_it()
+    public async Task A_postless_shell_keeps_the_same_margin_as_a_framed_one()
     {
         var world = new VoxelWorld();
         HouseStamper.Stamp(world, 0, 0, 9, 7, FloorY, new HouseStyle { Post = null },
@@ -701,7 +703,32 @@ public sealed class HouseStamperTests
 
         var open = Enumerable.Range(0, 9)
             .Where(x => world.GetBlock(x, FloorY + 1, 0).Id == Blocks.Air).ToList();
-        await Assert.That(open).IsEquivalentTo(new[] { 1, 2 });
+        await Assert.That(open).IsNotEmpty();
+        await Assert.That(open.Min()).IsGreaterThanOrEqualTo(2);
+        await Assert.That(8 - open.Max()).IsGreaterThanOrEqualTo(2);
+    }
+
+    /// <summary>The margin a wool cage's own doors already keep is the one this rule asks for, so making it
+    /// general costs them nothing. WX7 holds a door to at least one block narrower than the interior on each
+    /// side, which is exactly the seat run — so a frame's door fits it without being narrowed, and only one
+    /// pushed hard against a corner moves at all.</summary>
+    [Test]
+    [Arguments(6, 2)]
+    [Arguments(8, 4)]
+    [Arguments(9, 3)]
+    [Arguments(10, 4)]
+    public async Task A_frame_door_sized_by_WX7_is_never_narrowed_by_the_margin(int span, int doorWidth)
+    {
+        var world = new VoxelWorld();
+        // Centred on the wall, which is where a frame puts a door it has room for.
+        var lo = (span - doorWidth) / 2;
+        HouseStamper.Stamp(world, 0, 0, span, 7, FloorY, new HouseStyle { Post = null },
+            doors: [new RoomDoor(RoomEdge.NegZ, lo, doorWidth)]);
+
+        var open = Enumerable.Range(0, span)
+            .Where(x => world.GetBlock(x, FloorY + 1, 0).Id == Blocks.Air).ToList();
+        await Assert.That(open.Count).IsEqualTo(doorWidth);
+        await Assert.That(open.Min()).IsEqualTo(lo);
     }
 
     /// <summary>A style may name the wall it fronts on, and it outranks the proportions. It is what lets a hall

@@ -505,18 +505,11 @@ public static class HouseStamper
     private static List<RoomDoor> Doorways(
         IReadOnlyList<RoomDoor>? doors, HouseStyle style, Footprint body, bool wallsMoved, RoomEdge front)
     {
-        // A postless building's corners are wall like the rest of it, so an opening a block in from one takes
-        // nothing that was holding anything up and the frame's own margin is the whole of the rule. Where a
-        // post stands, the corner is a column, and a column wants a block of wall beside it before anything is
-        // taken out — which is the margin the house keeps for the door it cuts itself.
-        var framed = style.Levels[0].Post ?? style.Post;
-
         if (doors is { Count: > 0 })
         {
-            if (!wallsMoved && framed is null) return [.. doors];
             var carried = new List<RoomDoor>();
             foreach (var door in doors)
-                if (Fit(body, door.Edge, door.Width, door.Lo + (door.Width - 1) / 2, framed) is { } fitted)
+                if (Fit(body, door.Edge, door.Width, door.Lo + (door.Width - 1) / 2) is { } fitted)
                     carried.Add(door with { Lo = fitted.Lo, Width = fitted.Width });
             return carried;
         }
@@ -524,7 +517,7 @@ public static class HouseStamper
         var centre = front is RoomEdge.NegZ or RoomEdge.PosZ
             ? (body.MinX + body.MaxX) / 2
             : (body.MinZ + body.MaxZ) / 2;
-        return Fit(body, front, Math.Max(2, style.DoorWidth), centre, framed) is { } own
+        return Fit(body, front, Math.Max(2, style.DoorWidth), centre) is { } own
             ? [new RoomDoor(front, own.Lo, own.Width)]
             : [];
     }
@@ -532,17 +525,24 @@ public static class HouseStamper
     /// <summary>An opening of at most <paramref name="width"/> on one wall, as near <paramref name="about"/> as
     /// the wall allows, or null where the wall cannot carry one at all.
     ///
+    /// <para>Every opening keeps the same margin off both corners, and it is kept <b>whatever stands in the
+    /// corner</b>. A post makes the reason easy to see — a column wants a block of wall beside it before
+    /// anything is taken out — but the rule is not about the post: a corner is where two walls meet and turn,
+    /// and an opening hard against that turn reads as a wall that failed rather than as a way through, in a
+    /// plain shell exactly as in a framed house. Making it conditional would also mean the same building gained
+    /// and lost the margin as its corners were bound and unbound, which is a style deciding where a door goes.
+    /// It is the same margin <see cref="HouseWindows.Seats"/> keeps, for the same reason.</para>
+    ///
     /// <para>The door <b>narrows</b> rather than the margin giving way: a face too tight for the width asked
-    /// for gets a narrower opening, not one that meets the frame. Two blocks is what a door wants and one is
-    /// what a narrow shed can have, which is the building saying it is narrow — so a five-wide framed face
-    /// carries a centred single opening rather than a two-wide one against a post. Only a face with no seat at
-    /// all falls back to the run between the corners, because a building nobody can walk into is worse than one
+    /// for gets a narrower opening, not one that meets the corner. Two blocks is what a door wants and one is
+    /// what a narrow shed can have, which is the building saying it is narrow — so a five-wide face carries a
+    /// centred single opening rather than a two-wide one against the turn. Only a face with no seat at all
+    /// falls back to the run between the corners, because a building nobody can walk into is worse than one
     /// with a tight door.</para></summary>
-    private static (int Lo, int Width)? Fit(
-        Footprint body, RoomEdge edge, int width, int about, TerrainMaterial? post)
+    private static (int Lo, int Width)? Fit(Footprint body, RoomEdge edge, int width, int about)
     {
         var (runLo, runHi) = Run(body, edge);
-        var (seatLo, seatHi) = post is null ? (runLo, runHi) : Seat(body, edge);
+        var (seatLo, seatHi) = Seat(body, edge);
         var (lo, hi) = seatHi >= seatLo ? (seatLo, seatHi) : (runLo, runHi);
 
         var fitted = Math.Min(width, hi - lo + 1);

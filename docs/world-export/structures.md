@@ -386,22 +386,26 @@ Windows are deliberately **not** on that list, and the distinction is worth stat
 attacker gets in and so is governed by a filter; a window is a hole a player can see through and, in a
 lattice's case, shoot through, but it is never the entrance the block rule is about.
 
-**A doorway keeps a block of wall clear of each corner post, and the door is what gives way.** Clearing the
-corner cell is not enough: an opening starting in the very next cell still meets the post, and a door hard
-against the post reads as a hole knocked through the frame rather than as a way in. The margin costs four
-blocks of the face, so a five-wide framed face has one cell left and carries a **centred single opening**
-rather than a two-wide one against a column — a building too narrow for the door it asked for says so by
-having a narrow door, not by cutting through its own frame. Only a face with no seat at all falls back to the
-run between the corners, because a building nobody can walk into is worse than one with a tight door.
+**Every opening keeps a block of wall clear of each corner, and the opening is what gives way.** Clearing the
+corner cell is not enough: an opening starting in the very next cell still meets the corner, and one hard
+against it reads as a wall that failed rather than as a way through. The margin costs four blocks of the face,
+so a five-wide face has one cell left and carries a **centred single opening** rather than a two-wide one
+against the turn — a building too narrow for the door it asked for says so by having a narrow door. Only a
+face with no seat at all falls back to the run between the corners, because a building nobody can walk into is
+worse than one with a tight door. It is the same margin §7.4 keeps for a window, and it is the same number.
 
-The margin is kept **for the post and only for the post**, and that is what decides whether a frame's door is
-moved. A frame's doors are the entry contract (§4) and keep the wall the frame chose — but a frame knows the
-room and not the building, so where the style stands a post the opening is fitted clear of it, narrowing if it
-must. Where the style stands none the door is taken exactly as handed: a postless corner is wall like the rest
-of the building, an opening beside it takes nothing that was carrying anything, and WX7's own margin already
-keeps a cage's door off the corner cell. Inventing a second margin there would narrow every wool cage's door
-for a column that is not there. This is the path a **library preview** takes as well as a wool room, which is
-where it was visible: every card was drawing its door against the pillar.
+**It does not depend on a post standing there.** A post makes the reason easy to see — a column wants a block
+of wall beside it before anything is taken out — but the rule is about the *corner*, which is where two walls
+meet and turn, and that turn is in a plain shell exactly as it is in a framed house. Making it conditional
+would also mean one building gained and lost the margin as its corners were bound and unbound, which is a
+style deciding where a door goes; the footprint decides that, and a style may not (WX1).
+
+So a frame's doors keep the wall and the place the frame chose, and are then fitted to the same margin like
+any other opening. That costs a wool cage nothing, and WX7 is why: it already holds a door to at least one
+block narrower than the interior on each side, which is exactly the length of the seat run — so a frame's door
+fits without being narrowed, and only one pushed hard against a corner moves at all. This is the path a
+**library preview** takes as well as a wool room, which is where the fault was visible: every card was drawing
+its door against the pillar.
 
 **A style may name the wall it fronts on**, and a hall is what wanted it. Windows are spread and centred on a
 wall's run (§7.4) and a doorway is centred on the same run, so on a long building the two land on each other —

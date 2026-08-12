@@ -3591,11 +3591,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   already kept a block of wall clear of each corner post and narrowed the opening rather than giving the margin
   up, so a five-wide framed face carries a centred single opening. A door handed **in** kept nothing — and that
   is the path a wool room's frame takes and the path every library preview takes, so the cards had been drawing
-  a two-wide door hard against the pillar. Both paths now go through one fit. The margin is applied **only where
-  the style stands a post**, which is the whole of the rule: a postless corner is wall like the rest of the
-  building, an opening beside it takes nothing that was carrying anything, and WX7's own margin already keeps a
-  cage's door off the corner — inventing a second one would narrow every wool cage's door for a column that is
-  not there. `WindowForm.Arched` is the door head's trick on a window: an upside-down stair in each of the
+  a two-wide door hard against the pillar. Both paths now go through one fit, and the margin **does not depend
+  on a post standing there**: the rule is about the corner, which is where two walls meet and turn, and that
+  turn is in a plain shell exactly as in a framed house — making it conditional would mean one building gained
+  and lost the margin as its corners were bound and unbound, which is a style deciding where a door goes. It
+  costs a wool cage nothing, and WX7 is why: a door already at least one block narrower than the interior on
+  each side is exactly the length of the seat run, so a frame's door fits without narrowing and only one pushed
+  hard against a corner moves at all. `WindowForm.Arched` is the door head's trick on a window: an upside-down stair in each of the
   opening's two top corners and light under them, two wide at the least because an arch is its two corners and
   one cell cannot hold both, two tall at the least because a head that took the only course would be an arch
   over nothing. And `HouseStyle.DoorEdge` lets a building name the wall it fronts on. A hall is what wanted it:
