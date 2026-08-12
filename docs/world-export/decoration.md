@@ -276,6 +276,11 @@ A grove is therefore a handful of trees an author placed rather than a density f
 intended trade: a forest that clumps by itself is quicker to get and impossible to aim, and a treeline
 across a lane is exactly the thing worth aiming.
 
+The crown described above is the intent; `tree-corpus.md` is the measured record of what the code builds,
+against 75 hand-built trees. It reports the gap — the cluster seated beyond its own branch tip, the missing
+tiers, the child limb given twice the length an author gives it — and the thresholds a generated crown can be
+gated on.
+
 ## 7. Water — channels (`DR-WA`)
 
 A channel begins exactly where the §4 path does — a dragged centerline and a radius, the same swept-disc

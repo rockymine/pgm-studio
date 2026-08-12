@@ -5,6 +5,11 @@
 
 *.png binary
 
+# Minecraft world data: Anvil region files and gzipped NBT. The eol=lf rule above must never
+# reach these — a normalised byte inside a compressed chunk is silent corruption.
+*.mca binary
+*.dat binary
+
 # Vendored third-party JS libraries (committed in-tree because the hosted-WASM stack
 # has no bundler/CDN to resolve them at build or runtime). Exclude from language stats,
 # collapse in diffs/PRs, and don't try to merge them — treat as opaque blobs.

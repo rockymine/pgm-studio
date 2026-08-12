@@ -511,6 +511,32 @@ import diagnostic (`B24e`), detection (`B26`), and the island-floor work the pha
   feed so every rule reports where the edit happened. The second is the general fix and covers the
   destroyable style and float/leak rules too.
 
+- [ ] **G171 — the grown crown is seated beyond the branch it hangs on.** `TreeCrown.Clusters` puts a
+  cluster centre at `tip + outward*1.6 + (0, outward.Y*1.4 + height*0.25, 0)`, a median 3.0–3.3 blocks of
+  lift against a vertical half-height of only 1.2–3.0, so the branch tip lies outside its own ellipsoid in
+  ~100% of clusters and **1,516 of 4,020 (37.7%) never touch their branch at all** over an 8×5×12 sweep
+  (`tools/tree-corpus/grower-tip-gap.cs`, `grower-crown-check.cs`). The crown coheres only because
+  neighbours overlap and rescue each other, which is the same reason it reads as one merged mass; at height
+  6–9 it does not cohere and 42–76% of the foliage is stranded. Seat the cluster so its ellipsoid contains
+  its tip. The hand-built corpus puts 30.3% of leaves in direct contact with wood, so the docstring premise
+  that leaves sit only at branch ends and not on the wood is what has to give
+  (`docs/world-export/tree-corpus.md`).
+
+- [ ] **G172 — nothing gates how a generated leaf attaches.** The corpus supports three thresholds
+  measurable straight off the emitted cells: ≥99% of leaves reach wood through a chain of leaves, ≥25%
+  touch wood directly, and fewer than ~9 occupied neighbours per leaf. Hand-built sits at 99.95% / 30.3% /
+  6.2, the grower at 98.7% / 18.7% / 13.1. `tools/tree-corpus/leaf-contact.cs` is the reading; a test over a
+  seed sweep is the gate. Without it G171 can be "fixed" and silently regress.
+
+- [ ] **G173 — the grower has no tiered crown, so a conifer preset cannot be one.** `decoration.md` §6
+  already names the six-presets-one-silhouette problem; the corpus now says what the missing shape is worth.
+  Four of its fourteen families are conifers and separate from the other ten with no overlap on two
+  measures — the widest tenth of the crown sits in the bottom third, and the crown is built in 3–7 tiers
+  against never more than 2 — with **tier spacing of 4.6–5.8 courses** across all four. The grower produces
+  no tiers at any setting. Related and separable: `TreeShape.LengthFactor` gives a child 62% of its parent's
+  length where the author gives 29%, and `BranchAngle`'s 31° is far off primaries measured at ~94° from
+  vertical (`tools/tree-corpus/wool-skeleton.cs`).
+
 - [ ] **G150 — stamp a catalog shape into a drawn box.** The plan editor can draw a typed box and then ask
   whether the composer could have produced what is in it (G125's feasibility panel), but there is no way to
   go the other direction and *place* something known-producible: nothing in `Features/Plan/` references the
