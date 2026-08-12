@@ -43,6 +43,13 @@ static void Build(MapSpec spec, bool describeOnly)
 {
     if (string.IsNullOrWhiteSpace(spec.Slug)) throw new ArgumentException("the spec needs a slug");
 
+    // PGM reads the objective as a REQUIRED child (MapInfoImpl: Node.fromRequiredChildOrAttr(root,
+    // "objective", "description")), so a map without one does not load at all. It is refused here rather
+    // than defaulted, because the objective is the one sentence telling players what to do and a generated
+    // stand-in would be a lie printed on the join screen.
+    if (string.IsNullOrWhiteSpace(spec.Objective))
+        throw new ArgumentException("the spec needs an 'objective' — PGM requires one and will not load the map without it");
+
     // ── the board: generated, or drawn ───────────────────────────────────────────────────────────────────
     PlanModel plan;
     if (spec.Compose is { } ask)
