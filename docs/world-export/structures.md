@@ -276,8 +276,8 @@ the eave's rise goes negative below the base plane and rounding those cells back
 the slope it belongs to. The slab is a block id rather than a material, for the reason a window's is: which
 half of its cube a slab fills is geometry.
 
-Every roof here is a height field over **one rectangle**, and it is the last part of a building that is. A
-`Footprint` is one or more touching **wings**; everything below the eave — the sill, the floor, the walls, the
+Every roof here is a height field over **one rectangle**, and a building is not always one. A `Footprint` is
+one or more touching **wings**; everything below the eave — the sill, the floor, the walls, the
 window runs, the doorways, the slab and the beams — reads the plan's own cells, so an L, a T or a U is built as
 one house on one outline. A wall stands wherever the plan is exposed, **diagonals included**: where two
 wings meet, the two walls running into the turn touch along one vertical edge and nothing else, and the
@@ -294,13 +294,29 @@ a rule about neighbours: at that height the hall is not there to be met, and the
 the upper storey's own outline. A plan only ever loses wings on the way up, which is why the way up is seated
 against the topmost storey's front — a cell inside the highest storey is inside every storey under it.
 
-The roof over more than one wing is not built (G172): a wing's roof is one of these fields and a
+**A building's roof is the union of its wings' roofs**, and never a max of their crowns: a max blends two
+surfaces into one and drags roof material down the wall between wings of unequal height. Each wing is extruded
+as the whole building it would be alone — its own rectangle, its own eave from its own storey count, its own
+ridge axis from its own proportions — and the volumes are laid one after another, each closing its own riser
+against itself. `RoofField` needs no changes to serve it, which is the finding the whole arrangement rests on.
+
+Three rules carry the rest. A wing's roof reaches **its own walls plus its own overhang and no further**, so no
+stub of roof hangs outside a wall it never touched. **No roof block sits below the wall top of whatever covers
+that cell** — under a wall is inside the building — which is what makes a one-storey wing stop against a
+two-storey one instead of pushing a slope through its standing wall, and what turns two abutting eaves into a
+valley rather than into each other's gutters. And **walls outrank roofs**: every volume is laid before any wall
+is, so a wing standing against another does not have the other's slope written over it. That ordering shows on
+a building of one wing too — a steep eave's riser used to write into the top course of its own wall, and the
+wall now keeps it.
+
+What is not built is the **project** joint (G172): a wing's roof is one of these fields and a
 building's roof is the **union of the wing volumes**, which `RoofField` needs no changes to serve, and until
-that lands a plan of more than one wing is roofed by a single field over the box drawn round it. That field is
-**clipped to the plan and its overhang**, so the roof stops at the building rather than bridging the notch —
-nothing is written where the house never stood, which is the invariant §7 opens with. It sits at one height for
-the whole building, so a wing that stops lower has its walls climb to meet it; wings of unequal height are
-built correctly up to the eave and roofed as though they were level. A porch is refused on
+that lands a plan of more than one wing is roofed by a single field over the box drawn round it. Where a wing reaches an outside wall of another its roof
+meets it and the crossing is a valley, and that is what the union builds. Where a wing <em>stops inside</em>
+another, its gable end stands mid-slope and it is a cross-gable — which wants a gable face wherever a wing's
+roof plan ends rather than only on the building's outline, a wing's gable end walled from the ground up even
+where nothing exposes it, and the roof it pushes into cut across its own span. An author picks between the two
+by which rectangle was drawn, never by a mode. A porch is refused on
 such a plan for the same reason it is deferred: a deck is a strip the walls give up, and giving one up means
 taking cells out of a shape rather than moving one side of a rectangle in. The rules the roof's composition
 turns on, and the invariant that gates it, are on the task.

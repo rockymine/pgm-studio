@@ -246,10 +246,21 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   `Wing` rectangles that walks its own cells, splits its outline into `WallSegment` runs, and `Stamp` takes one
   — so the sill, floor, walls, window runs, doorways, slab and beams all build an L or a T on its own outline.
   Each wing carries **its own storey count** and a storey is the plan of the wings that reach it, so a taller
-  wing walls itself along the line a stopped neighbour shared with it. **What is left is the roof**, and it is
-  now the only thing standing between a plan of several wings and a building: a single field at one height over
-  the bounding box, clipped to the plan and its overhang so it stops at the building rather than bridging the
-  notch, with a shorter wing's walls climbing to meet it. Two smaller things are deferred with it and both are named in the
+  wing walls itself along the line a stopped neighbour shared with it. The roof is the **union of the wing
+  volumes**, with the three rules that carry it — a wing reaches its own overhang and no further, no roof block
+  below the wall top of whatever covers a cell, and walls laid after every volume.
+
+  **What is left is the second joint.** Where a wing reaches an outside wall of another its roof meets it and
+  the crossing is a valley, which the union builds. Where a wing **stops inside** another its gable end stands
+  mid-slope and it is a cross-gable, and that is not built: it wants rule 4 (a gable face wherever a wing's roof
+  plan ends, inside the building as well as on its outline), rule 5 (a wing's gable end walled from the ground
+  up wherever it stands, since one inside another wing of the same height is exposed by nothing), and the cut —
+  a projecting wing must open the roof it pushes into across its own span, or its verge has nowhere to sit and
+  its overhang is simply missing. The acceptance test is already in `HouseStamperTests` in the form the meet
+  joint can carry, comparing the two gable ends **above the eave**; the project joint is what lets it compare
+  the plinth and the wall too, which is the form the task states. *Meet* is also still a union rather than a
+  march: the two roofs abut in a valley instead of one stepping into the other until it hits a block, so the
+  attic under it is continuous but the slopes do not interlock. Two smaller things are deferred with it and both are named in the
   code with this id — a **porch** is refused on a plan of more than one wing (a deck is a strip the walls give
   up, which means taking cells out of a shape rather than moving one side of a rectangle in), and `RoofHole`
   centres its lid in the bounding box. Upstream, WX1 says the piece dictates the footprint, so the dressing

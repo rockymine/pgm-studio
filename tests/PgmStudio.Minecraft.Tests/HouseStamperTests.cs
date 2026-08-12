@@ -914,6 +914,92 @@ public sealed class HouseStamperTests
         await Assert.That(world.GetBlock(3, FloorY + 5, 3).Id).IsNotEqualTo(Blocks.Air);       // the hall's slab
     }
 
+    // ── the roof over more than one wing ────────────────────────────────────────────────────────────
+
+    /// <summary>A T: a hall along −z with a cross wing running north out of the middle of it. The wing is
+    /// narrower than it is deep, so its ridge runs the other way from the hall's — which is what puts one of
+    /// its gable ends against the hall and the other out in the open.</summary>
+    private static Footprint Tee() => new([new Wing(0, 0, 14, 8), new Wing(5, 9, 9, 16)]);
+
+    /// <summary>
+    /// <b>A wing's two gable ends are the same gable.</b> One ends the building and the other stands against
+    /// its neighbour, and above the eave there is nothing to tell them apart: same gable face, same slope over
+    /// it, same verge. Compared over the <b>wing's own width</b>, since the neighbour's floor legitimately runs
+    /// wider than the wing does.
+    ///
+    /// <para>It says nothing about how a roof is assembled, so it outlives any implementation of one. Asked of
+    /// the gable rather than of the whole end wall, because <b>below</b> the eave the two ends are not alike
+    /// and should not be: the open end is a corner the building turns away at and carries posts, while the end
+    /// against the hall is a wall running into the hall's own corner a cell further on. The stronger form —
+    /// the same plinth and wall too — belongs to a wing that <em>projects</em> into another and stands
+    /// mid-slope, which is not built (G172).</para>
+    /// </summary>
+    [Test]
+    public async Task A_wings_two_gable_ends_are_the_same_gable()
+    {
+        var plan = Tee();
+        var wing = plan.Wings[1];
+        var style = new HouseStyle { Form = RoofForm.Gable, Pitch = 1 };
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, style);
+
+        var eave = FloorY + style.WallCourses;
+        var seen = 0;
+        for (var x = wing.MinX; x <= wing.MaxX; x++)
+            for (var y = eave + 1; y <= FloorY + 24; y++)
+            {
+                var against = world.GetBlock(x, y, wing.MinZ);      // the end standing against the hall
+                var open = world.GetBlock(x, y, wing.MaxZ);         // the end out in the open
+                await Assert.That((x, y, against.Id, against.Data)).IsEqualTo((x, y, open.Id, open.Data));
+                if (against.Id != Blocks.Air) seen++;
+            }
+
+        // A gable that is nowhere at all would pass the comparison and mean nothing.
+        await Assert.That(seen).IsGreaterThan(0);
+    }
+
+    /// <summary>A roof reaches its own walls and its own overhang, and stops. A wing may not hang a stub of
+    /// itself over ground no wall of the building stands on.</summary>
+    [Test]
+    public async Task No_roof_stands_further_out_than_a_wings_own_overhang()
+    {
+        var plan = Tee();
+        var style = new HouseStyle { Form = RoofForm.Gable, Pitch = 1 };
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, style);
+
+        var reach = Math.Max(0, style.Overhang);
+        for (var x = plan.MinX - 4; x <= plan.MaxX + 4; x++)
+            for (var z = plan.MinZ - 4; z <= plan.MaxZ + 4; z++)
+            {
+                if (plan.Near(x, z, reach)) continue;
+                for (var y = FloorY; y <= FloorY + 24; y++)
+                    await Assert.That(world.GetBlock(x, y, z).Id).IsEqualTo(Blocks.Air);
+            }
+    }
+
+    /// <summary>No roof block below the wall top of whatever covers that cell — under a wall is inside the
+    /// building. It is what makes a wing that stops lower stop <em>against</em> its taller neighbour instead of
+    /// pushing a slope through its standing wall.</summary>
+    [Test]
+    public async Task A_shorter_wings_roof_stops_against_its_taller_neighbour()
+    {
+        var plan = new Footprint([new Wing(0, 0, 10, 6, Storeys: 2), new Wing(0, 7, 6, 12, Storeys: 1)]);
+        var style = new HouseStyle
+        {
+            Storeys = [new Storey { Clear = 4 }, new Storey { Clear = 4 }],
+            Form = RoofForm.Gable, Pitch = 1,
+        };
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, style);
+
+        // The hall's upper storey wall, along the line the wing gave up. Every course of it is wall, from the
+        // slab it stands on to its own eave: the wing's roof reaches the line and gets no further.
+        for (var course = 1; course <= 4; course++)
+            foreach (var x in new[] { 2, 4 })
+                await Assert.That(world.GetBlock(x, FloorY + 5 + course, 6).Id).IsNotEqualTo(Blocks.Air);
+    }
+
     /// <summary>A material that inks a cell whose ring bends at least <paramref name="Angle"/> degrees, so a
     /// stamped wall reports the turn it was painted with. It is what <see cref="WallFrameMaterial"/> reads, on
     /// its own: a frame also inks the courses at the top and bottom of a wall, which would ink every cell here

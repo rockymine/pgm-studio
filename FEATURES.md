@@ -3711,6 +3711,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   storey beneath it, where one chosen on the ground could be under open sky two floors later. The roof is still
   one field at one height, so a wing that stops lower has its walls climb to meet it — unequal wings are correct
   to the eave and roofed as though they were level, which is the rest of G172. (G172)
+- **A building's roof is the union of its wings' roofs (G172).** Each wing is extruded as the whole building it
+  would be alone — its own rectangle, its own eave from its own storey count, its own ridge axis from its own
+  proportions — and the volumes are laid one after another, each closing its own riser against itself. **Never a
+  max of crowns**: a max blends two surfaces into one and drags roof material down the wall between wings of
+  unequal height. `RoofField` is untouched, which is the finding the whole arrangement rests on. Three rules
+  carry the rest. A wing's roof reaches **its own walls plus its own overhang and no further**, so no stub hangs
+  outside a wall it never touched — and since a wing's field is already its rectangle grown by the overhang,
+  that is the bound rather than a clip on top of one. **No roof block below the wall top of whatever covers that
+  cell**, which is what makes a one-storey wing stop against a two-storey one instead of pushing a slope through
+  its standing wall, and what turns two abutting eaves into a valley instead of into each other's gutters. And
+  **walls outrank roofs** — every volume is laid before any wall is. That last one moves a building of a single
+  wing too, and it is the only thing on this branch that has: at a steep pitch the eave's riser used to write
+  into the top course of its own wall, and the wall now keeps it. No hole opens where it stopped, because the
+  course below a wing's roof base *is* its wall top. The gate is the task's own acceptance test — **a wing's two
+  gable ends are the same gable**, the one ending the building and the one standing against its neighbour,
+  compared above the eave over the wing's own width. (G172)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds

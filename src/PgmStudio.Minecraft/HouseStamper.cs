@@ -184,35 +184,50 @@ public static class HouseStamper
         }
 
         // ── the roof ──────────────────────────────────────────────────────────────────────────────────
-        var roof = new RoofField(
-            style.Form, body.MinX, body.MinZ, body.MaxX, body.MaxZ, overhang, wallTop + 1, pitch, front,
-            style.RoofInHalves);
+        // <b>A building's roof is the union of its wings' roofs</b>, and never a max of their crowns: a max
+        // blends two surfaces into one and drags roof material down the wall between wings of unequal height.
+        // Each wing is extruded as the whole building it would be alone — its own rectangle, its own eave from
+        // its own storey count, its own ridge axis from its own proportions — and the volumes are simply laid
+        // one after another. A wing's roof reaches its own walls plus its own overhang and no further, which is
+        // what keeps a stub of roof from hanging outside a wall it never touched.
+        var roofs = body.Wings.Select(wing =>
+        {
+            var top = WallTopOf(wing);
+            var alone = new Footprint(wing.MinX, wing.MinZ, wing.MaxX, wing.MaxZ);
+            var field = new RoofField(
+                style.Form, wing.MinX, wing.MinZ, wing.MaxX, wing.MaxZ, overhang, top + 1, pitch, front,
+                style.RoofInHalves);
+            return (Alone: alone, Field: field, Top: top);
+        }).ToList();
         var hole = RoofHole(style, body);
 
-        for (var x = roof.MinX; x <= roof.MaxX; x++)
-            for (var z = roof.MinZ; z <= roof.MaxZ; z++)
-            {
-                if (hole is { } gap && gap.Holds(x, z)) continue;
-                // The field is one height per cell of a box, and a building is not always a box: a roof cell
-                // further from the plan than its own overhang stands over ground the house never covered.
-                if (!body.Near(x, z, overhang)) continue;
-                Lay(roof, x, z, body);
-            }
+        foreach (var (_, field, _) in roofs)
+            for (var x = field.MinX; x <= field.MaxX; x++)
+                for (var z = field.MinZ; z <= field.MaxZ; z++)
+                {
+                    if (hole is { } gap && gap.Holds(x, z)) continue;
+                    Lay(field, x, z, body);
+                }
 
-        // The walls climb to meet it: a gable's two ends, a shed's back wall and its triangular flanks, and
-        // nothing under a hip, whose slopes already come down to the wall line on every side. What they climb
-        // in is the gable's own material where the style names one, else the wall's top course carried up —
-        // the wall's stack has nothing left to say by then, since its courses ran out at the wall's top.
-        for (var x = body.MinX; x <= body.MaxX; x++)
-            for (var z = body.MinZ; z <= body.MaxZ; z++)
+        // The walls climb to meet the roof over them: a gable's two ends, a shed's back wall and its triangular
+        // flanks, and nothing under a hip, whose slopes already come down to the wall line on every side. Each
+        // wing climbs to its own roof from its own eave, so a wing that stops lower closes against its own
+        // slope rather than against the tallest one in the building. What they climb in is the gable's own
+        // material where the style names one, else the wall's top course carried up — the wall's stack has
+        // nothing left to say by then, since its courses ran out at the wall's top.
+        //
+        // <b>Walls outrank roofs</b>, which is why this runs after every volume is laid: a wing standing
+        // against another has the other's slope written over it otherwise.
+        foreach (var (alone, field, top) in roofs)
+            foreach (var (x, z) in alone.Cells())
             {
-                if (!body.OnPerimeter(x, z)) continue;
-                for (var fill = wallTop + 1; fill < roof.Underside(x, z); fill++)
+                if (!alone.OnPerimeter(x, z)) continue;
+                for (var fill = top + 1; fill < field.Underside(x, z); fill++)
                     if (style.Gable is { } gable) Put(x, fill, z, gable, body);
                     else PutPart(x, fill, z, topWall, topWall.Extent - 1, body);
             }
 
-        StampGableWindows(roof);
+        foreach (var (alone, field, top) in roofs) StampGableWindows(alone, field, top);
         StampDoors();
 
         if (deck is { } porchDeck && style.Porch is { } porchStyle) StampPorch(porchDeck, porchStyle);
@@ -222,14 +237,14 @@ public static class HouseStamper
         // One per face and centred, where a wall takes as many as its run will hold. A gable is a triangle:
         // its height runs out toward both ends, so the middle is the one place a window certainly fits, and
         // spreading them along the run would put half of them where there is no wall to cut.
-        void StampGableWindows(RoofField field)
+        void StampGableWindows(Footprint alone, RoofField field, int top)
         {
             var windows = style.GableWindows;
             if (windows.Form == WindowForm.None) return;
             var (width, height) = windows.Normalized();
             var sill = Math.Max(1, windows.Sill);
 
-            foreach (var wall in body.Segments)
+            foreach (var wall in alone.Segments)
             {
                 var (lo, hi) = wall.Seat;                            // a block clear of both corners
                 var start = lo + (hi - lo + 1 - width) / 2;          // centred the way a wall's windows are
@@ -247,14 +262,14 @@ public static class HouseStamper
                     {
                         var (x, z) = wall.Cell(along);
                         fits = along >= lo - 1 && along <= hi + 1
-                               && field.Underside(x, z) > wallTop + course;
+                               && field.Underside(x, z) > top + course;
                     }
                 if (!fits) continue;
 
                 // Seated from the wall top, which is the course the gable starts at and the datum an author is
                 // looking at when they place one — the floor is storeys away by then.
                 HouseWindows.Cut(
-                    world, new WindowSeat(wall, start, width, sill, height), windows, wallTop);
+                    world, new WindowSeat(wall, start, width, sill, height), windows, top);
             }
         }
 
@@ -348,14 +363,38 @@ public static class HouseStamper
                 ? style.Verge
                 : style.Roof;
 
+            // <b>No roof block below the wall top of whatever covers this cell.</b> Under a wall is inside the
+            // building, and that is not where a roof goes — it is what makes a one-storey wing stop against a
+            // two-storey one instead of pushing through it. A wing's own roof already starts above its own
+            // wall, so on a building of one wing this decides nothing.
+            var lowest = Covering(x, z) + 1;
+
             // On a half course the topmost cell is a slab rather than a cube — written straight, the way a
             // window's pieces are, because which half it fills is geometry and not something a material may
             // resolve. The cubes under it are the roof's own material like any other course.
             var slab = field.Half(x, z);
-            for (var y = field.Underside(x, z); y <= (slab ? crown - 1 : crown); y++)
+            for (var y = Math.Max(field.Underside(x, z), lowest); y <= (slab ? crown - 1 : crown); y++)
                 Put(x, y, z, material, ring);
-            if (slab && crown is > 0 and < VoxelWorld.MaxHeight)
+            if (slab && crown >= lowest && crown is > 0 and < VoxelWorld.MaxHeight)
                 world.SetBlock(x, crown, z, style.RoofSlab, style.RoofSlabData & 0x7);
+        }
+
+        /// <summary>The highest wall top of any wing standing on this cell, or a course below every roof where
+        /// none does — so a cell out past the walls is gated by nothing and keeps its overhang.</summary>
+        int Covering(int x, int z)
+        {
+            var highest = int.MinValue;
+            foreach (var wing in body.Wings)
+                if (wing.Holds(x, z)) highest = Math.Max(highest, WallTopOf(wing));
+            return highest;
+        }
+
+        /// <summary>The course a wing's own eave sits on: its floor plus the courses of every storey it
+        /// reaches, the last of them counted as a top storey since a wing that stops carries no slab over it.</summary>
+        int WallTopOf(Wing wing)
+        {
+            var reaches = wing.Storeys <= 0 ? levels.Count : Math.Clamp(wing.Storeys, 1, levels.Count);
+            return floorY + bases[reaches - 1] + levels[reaches - 1].Courses(topmost: true);
         }
 
         // A doorway cut after the walls so it is a hole in them, and never through a corner post, which is
