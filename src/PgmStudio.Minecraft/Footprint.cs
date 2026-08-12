@@ -164,6 +164,31 @@ public sealed class Footprint
 
     private static readonly (int X, int Z)[] Diagonals = [(-1, -1), (1, -1), (-1, 1), (1, 1)];
 
+    /// <summary>Whether the cell lies just outside the plan with the building beside it — the ring one block
+    /// proud of the outline that a sill runs round. Diagonals count, so the ring closes at a corner rather than
+    /// leaving a gap where the two sides pass each other, and it follows the plan into the crook of two wings
+    /// instead of filling the notch a bounding box would.</summary>
+    public bool Borders(int x, int z)
+    {
+        if (Holds(x, z)) return false;
+        for (var dx = -1; dx <= 1; dx++)
+            for (var dz = -1; dz <= 1; dz++)
+                if ((dx != 0 || dz != 0) && Holds(x + dx, z + dz)) return true;
+        return false;
+    }
+
+    /// <summary>Whether the cell is the plan or within <paramref name="reach"/> blocks of it — what a roof and
+    /// its overhang are allowed to cover. A rectangle's roof plan is its box grown by the overhang, so this
+    /// takes in the whole of it; a plan that turns a corner has a box holding ground the building never stood
+    /// on, and nothing may be laid over that.</summary>
+    public bool Near(int x, int z, int reach)
+    {
+        for (var dx = -reach; dx <= reach; dx++)
+            for (var dz = -reach; dz <= reach; dz++)
+                if (Holds(x + dx, z + dz)) return true;
+        return false;
+    }
+
     /// <summary>How many blocks in from the nearest wall a cell stands — 0 on the outline itself, −1 off the
     /// plan. What the floor's zones are cut by, and it is a step count rather than a subtraction because on a
     /// plan that turns a corner the nearest wall is not the nearest edge of a box.</summary>

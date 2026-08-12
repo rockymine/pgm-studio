@@ -36,10 +36,24 @@ public static class HouseStamper
     /// <paramref name="doors"/> the house cuts one of its own through the middle of a long side.</summary>
     public static void Stamp(VoxelWorld world, int minX, int minZ, int width, int depth, int floorY,
                              HouseStyle style, int color = -1, IReadOnlyList<RoomDoor>? doors = null)
-    {
-        if (width < 3 || depth < 3) return;                       // no room for two walls and an inside
+        => Stamp(world, new Footprint(minX, minZ, minX + width - 1, minZ + depth - 1), floorY, style, color,
+                 doors);
 
-        var ground = new Footprint(minX, minZ, minX + width - 1, minZ + depth - 1);
+    /// <summary>Stamp a house over a <paramref name="ground"/> plan of any shape, standing on
+    /// <paramref name="floorY"/> — the course a player walks on inside it. Everything below the eave reads the
+    /// plan itself, so a building of more than one wing gets its sill, its floor, its walls, its windows and its
+    /// doorways on its own outline.
+    ///
+    /// <para>The roof is <b>one field over the plan's bounding box</b> and a porch is refused on a plan of more
+    /// than one wing (G172). Both want a wing at a time — a building's roof is the union of the wing volumes —
+    /// so until that lands, a plan that turns a corner is roofed as though it did not.</para></summary>
+    public static void Stamp(VoxelWorld world, Footprint ground, int floorY, HouseStyle style,
+                             int color = -1, IReadOnlyList<RoomDoor>? doors = null)
+    {
+        // No room for two walls and an inside: a plan whose every cell is wall is a plan with no room in it,
+        // which is the same refusal a span under three blocks used to be and holds whatever shape it is.
+        if (!ground.Cells().Any(cell => ground.Ring(cell.X, cell.Z) >= 1)) return;
+
         var front = style.Porch?.Edge ?? style.DoorEdge ?? FrontEdge(doors, ground);
         var (body, deck) = SplitPorch(ground, style.Porch, front);
         var doorHeight = Math.Min(
@@ -89,7 +103,14 @@ public static class HouseStamper
         for (var x = ground.MinX - 1; x <= ground.MaxX + 1; x++)
             for (var z = ground.MinZ - 1; z <= ground.MaxZ + 1; z++)
             {
-                if (!ground.Holds(x, z)) { Put(x, floorY, z, style.Sill, ground); continue; }
+                if (!ground.Holds(x, z))
+                {
+                    // One block proud of the building rather than everything the box holds: on a plan that
+                    // turns a corner the two are different, and a sill filling the notch is a doorstep across
+                    // ground the house never stood on.
+                    if (ground.Borders(x, z)) Put(x, floorY, z, style.Sill, ground);
+                    continue;
+                }
                 for (var step = 0; step < Math.Max(1, style.Floor.Extent); step++)
                     PutPart(x, floorY - step, z, style.Floor, step, ground);
             }
@@ -97,10 +118,9 @@ public static class HouseStamper
         // The floor's own top course, zoned across the room it belongs to. The porch keeps the floor part
         // showing: a deck is what the building stands on, not a room to lay a border round.
         if (!style.Surface.IsPlain)
-            for (var x = body.MinX; x <= body.MaxX; x++)
-                for (var z = body.MinZ; z <= body.MaxZ; z++)
-                    if (style.Surface.At(body.Ring(x, z)) is { } surface)
-                        Put(x, floorY, z, surface, body);
+            foreach (var (x, z) in body.Cells())
+                if (style.Surface.At(body.Ring(x, z)) is { } surface)
+                    Put(x, floorY, z, surface, body);
 
         // ── the walls ─────────────────────────────────────────────────────────────────────────────────
         // Storey by storey, each counting its own courses up from its own floor — so a band written at a
@@ -112,8 +132,7 @@ public static class HouseStamper
             var wall = storey.Wall ?? style.Wall;
             var corner = storey.Post ?? style.Post;
             for (var course = 1; course <= storey.Courses(level == levels.Count - 1); course++)
-                for (var x = body.MinX; x <= body.MaxX; x++)
-                    for (var z = body.MinZ; z <= body.MaxZ; z++)
+                foreach (var (x, z) in body.Cells())
                     {
                         if (!body.OnPerimeter(x, z)) continue;
                         var y = floorY + bases[level] + course;
@@ -168,6 +187,9 @@ public static class HouseStamper
             for (var z = roof.MinZ; z <= roof.MaxZ; z++)
             {
                 if (hole is { } gap && gap.Holds(x, z)) continue;
+                // The field is one height per cell of a box, and a building is not always a box: a roof cell
+                // further from the plan than its own overhang stands over ground the house never covered.
+                if (!body.Near(x, z, overhang)) continue;
                 Lay(roof, x, z, body);
             }
 
@@ -250,13 +272,13 @@ public static class HouseStamper
                 // exactly as the ground one does.
                 var above = levels[level + 1];
                 var ceiling = storey.Ceiling ?? style.Floor.At(0).Material;
-                for (var x = body.MinX + 1; x < body.MaxX; x++)
-                    for (var z = body.MinZ + 1; z < body.MaxZ; z++)
-                    {
-                        if ((x, z) == climb) continue;            // the way up
-                        var surface = above.Surface?.At(body.Ring(x, z));
-                        Put(x, slabY, z, surface ?? ceiling, body);
-                    }
+                foreach (var (x, z) in body.Cells())
+                {
+                    if (body.OnPerimeter(x, z)) continue;         // the perimeter is wall
+                    if (climb == (x, z)) continue;                // the way up
+                    var surface = above.Surface?.At(body.Ring(x, z));
+                    Put(x, slabY, z, surface ?? ceiling, body);
+                }
 
                 // The ladder: it stands in the storey below the hole and reaches the floor above, so a player
                 // steps off it onto the new floor rather than into its underside.
@@ -270,23 +292,20 @@ public static class HouseStamper
         }
 
         // The log ends that run out past the corners where two storeys meet. In plan the seam reads as a hash:
-        // the walls are its middle and eight ends carry on outward, two from each corner. Each shows its sawn
-        // end, which is the one place on a building where a cut face outward is the point — it is the end of a
-        // log, and a log building leaves them long.
+        // the walls are its middle and two ends carry on outward from every corner the building turns away at.
+        // Each shows its sawn end, which is the one place on a building where a cut face outward is the point —
+        // it is the end of a log, and a log building leaves them long.
         void LayBeams(int y)
         {
             if (!style.Beams.Any || y is < 1 or >= VoxelWorld.MaxHeight) return;
             var reach = Math.Max(1, style.Beams.Reach);
             var wood = style.Beams.Data & 3;
 
-            foreach (var (cornerX, cornerZ) in new[]
-                     {
-                         (body.MinX, body.MinZ), (body.MaxX, body.MinZ),
-                         (body.MinX, body.MaxZ), (body.MaxX, body.MaxZ),
-                     })
+            foreach (var (cornerX, cornerZ) in body.Cells().Where(cell => body.OnCorner(cell.X, cell.Z)))
             {
-                var awayX = cornerX == body.MinX ? -1 : 1;
-                var awayZ = cornerZ == body.MinZ ? -1 : 1;
+                // Out of the building on both axes, which at a corner is the side each axis has no wall on.
+                var awayX = body.Holds(cornerX - 1, cornerZ) ? 1 : -1;
+                var awayZ = body.Holds(cornerX, cornerZ - 1) ? 1 : -1;
                 for (var step = 1; step <= reach; step++)
                 {
                     // Lying along the axis it runs out on, so the face pointing away from the building is the
@@ -445,6 +464,9 @@ public static class HouseStamper
     private static (Footprint Body, Footprint? Deck) SplitPorch(Footprint ground, PorchStyle? porch, RoomEdge front)
     {
         if (porch is null || porch.Depth <= 0) return (ground, null);
+        // A deck is a strip the walls give up, and giving one up on a plan that turns a corner means taking
+        // cells out of a shape rather than moving one side of a rectangle in (G172).
+        if (ground.Wings.Count > 1) return (ground, null);
         var across = front is RoomEdge.NegZ or RoomEdge.PosZ ? ground.Depth : ground.Width;
         var depth = Math.Min(porch.Depth, across - 3);
         if (depth <= 0) return (ground, null);

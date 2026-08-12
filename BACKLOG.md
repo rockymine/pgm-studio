@@ -242,16 +242,16 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   Also needed, and cheap once the above holds: a projecting wing must **cut** the roof it pushes into across
   its own span, or its verge has nowhere to sit and its overhang is simply missing.
 
-  **What this costs elsewhere is the footprint, not the roof, and the footprint is done** (`FEATURES.md`).
-  `Footprint` is a type of its own, a union of touching `Wing` rectangles that walks its own cells — `Holds`,
-  `OnPerimeter`, `OnCorner`, `OnInnerCorner`, `Ring`, the walked `Arc`/`Turn`/`Run` — and it splits its outline
-  into `WallSegment` runs, six on an L and eight on a T, which the window seater, the opening fit, the doorway
-  pass and the ladder all read instead of a min and a max. **What still reads a rectangle is the way in and the
-  way out of the stamper**, and that is the next slice: `Stamp` takes a width and a depth and builds a single
-  wing, the sill fills the bounding box rather than ringing the outline, `SplitPorch` splits a rect, and
-  `RoofField` is handed the bounding box. Upstream, WX1 says the piece dictates the footprint, so the dressing
-  prop or the plan piece has to accept more than one rect. The roof still falls out once that is done; doing the
-  roof first means writing it twice.
+  **The footprint and everything below the eave are done** (`FEATURES.md`). `Footprint` is a union of touching
+  `Wing` rectangles that walks its own cells, splits its outline into `WallSegment` runs, and `Stamp` takes one
+  — so the sill, floor, walls, window runs, doorways, slab and beams all build an L or a T on its own outline.
+  **What is left is the roof**, and it is now the only thing standing between a plan of several wings and a
+  building: a single field over the bounding box, clipped to the plan and its overhang so it stops at the
+  building rather than bridging the notch. Two smaller things are deferred with it and both are named in the
+  code with this id — a **porch** is refused on a plan of more than one wing (a deck is a strip the walls give
+  up, which means taking cells out of a shape rather than moving one side of a rectangle in), and `RoofHole`
+  centres its lid in the bounding box. Upstream, WX1 says the piece dictates the footprint, so the dressing
+  prop or the plan piece has to accept more than one rect.
 
   **The ring is one measurement now, and that part is done** (`FEATURES.md`). `Footprint` answered `Arc`,
   `Turn` and `Run` in closed form because a rectangle can; it walks its own outline through `Geom.GridBoundary`

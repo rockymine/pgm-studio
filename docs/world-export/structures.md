@@ -276,13 +276,17 @@ the eave's rise goes negative below the base plane and rounding those cells back
 the slope it belongs to. The slab is a block id rather than a material, for the reason a window's is: which
 half of its cube a slab fills is geometry.
 
-Every roof here is a height field over **one rectangle**, because the stamper builds a building of one
-rectangle. The plan underneath it has outgrown that: a `Footprint` is one or more touching **wings**, and it
-answers its outline, its corners of both kinds and its steps in from the wall by walking its own cells rather
-than by arithmetic on a min and a max, so an L, a T or a U is already one plan with one closed ring. What is
-not built is the roof over one (G172): a wing's roof is one of these fields and a building's roof is the union
-of the wing volumes, which `RoofField` needs no changes to serve. The rules that composition turns on, and the
-invariant that gates it, are on the task.
+Every roof here is a height field over **one rectangle**, and it is the last part of a building that is. A
+`Footprint` is one or more touching **wings**; everything below the eave — the sill, the floor, the walls, the
+window runs, the doorways, the slab and the beams — reads the plan's own cells, so an L, a T or a U is built as
+one house on one outline. The roof over one is not (G172): a wing's roof is one of these fields and a
+building's roof is the **union of the wing volumes**, which `RoofField` needs no changes to serve, and until
+that lands a plan of more than one wing is roofed by a single field over the box drawn round it. That field is
+**clipped to the plan and its overhang**, so the roof stops at the building rather than bridging the notch —
+nothing is written where the house never stood, which is the invariant §7 opens with. A porch is refused on
+such a plan for the same reason it is deferred: a deck is a strip the walls give up, and giving one up means
+taking cells out of a shape rather than moving one side of a rectangle in. The rules the roof's composition
+turns on, and the invariant that gates it, are on the task.
 
 A roof has **no thickness knob**, and the height field is why: a column writes as many courses as the step down
 to its neighbours needs, so how deep the roof runs at a given cell is answered by the slope rather than by a

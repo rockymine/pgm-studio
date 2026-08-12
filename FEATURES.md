@@ -3674,6 +3674,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   The margin an opening keeps off the end of its run is now the same whichever kind of corner ends it, which is
   what the inner corner was added for. Nothing moved: the house showcase renders byte-identical across the
   change, over every roof, floor, porch and window figure it draws. (G172)
+- **A house is stamped over a plan, not over a width and a depth (G172).** `HouseStamper.Stamp` takes a
+  `Footprint`, and everything below the eave reads the plan's own cells: the sill runs one block proud of the
+  **outline** rather than filling the box, the floor and the surface course cover what the plan holds, the walls
+  and their posts follow the outline, the slab is whatever the interior turns out to be, and the log beams throw
+  their two ends out of every corner the building turns away at — five on an L, not four. The refusal
+  generalises with them: a plan with no cell off its own wall has no room in it, which is the same rejection a
+  span under three blocks used to be and holds whatever shape the plan is. **The roof is the one part still
+  written over a rectangle**, so a plan of more than one wing is roofed by a single field over the box drawn
+  round it — but that field is **clipped to the plan and its overhang**, which keeps the stamper's own promise
+  that nothing is written outside the footprint: the roof stops at the wing's own eave instead of bridging the
+  notch. A porch is refused on such a plan for the same reason it is deferred. What found the shape of all of
+  this was a **printed cut** — a text grid of one plane, one letter per material — which showed the sill
+  following the notch, the five posts, the absent post at the inner corner, and the slab of roof hanging over
+  open ground that the clip now removes. The single-wing path is unmoved: the house showcase renders
+  byte-identical. (G172)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds

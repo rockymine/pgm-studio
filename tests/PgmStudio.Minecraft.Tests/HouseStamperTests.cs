@@ -753,6 +753,97 @@ public sealed class HouseStamperTests
         await Assert.That(end).IsNotEmpty();
     }
 
+    // ── a house on more than one wing ───────────────────────────────────────────────────────────────
+
+    /// <summary>An L: a hall along −z with a wing running north off its west end.</summary>
+    private static Footprint Ell() => new([new Wing(0, 0, 10, 6), new Wing(0, 7, 6, 12)]);
+
+    /// <summary>Everything below the eave follows the plan rather than the box drawn round it. The notch is the
+    /// cell that tells them apart: a pass reading a min and a max writes into it, and the building never stood
+    /// there.</summary>
+    [Test]
+    public async Task A_house_on_two_wings_builds_nothing_in_the_notch()
+    {
+        var plan = Ell();
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, new HouseStyle { Door = DoorMaterial.StainedGlass });
+
+        // Deep in the notch, clear of the block of sill that legitimately rings the building.
+        foreach (var (x, z) in new[] { (9, 11), (10, 12), (8, 12) })
+        {
+            await Assert.That(plan.Holds(x, z)).IsFalse();
+            await Assert.That(plan.Borders(x, z)).IsFalse();
+            for (var y = FloorY - 2; y <= FloorY + 2; y++)
+                await Assert.That(world.GetBlock(x, y, z).Id).IsEqualTo(Blocks.Air);
+        }
+
+        // The floor is laid over every cell the plan does hold, the crook of the two wings included.
+        foreach (var (x, z) in plan.Cells())
+            await Assert.That(world.GetBlock(x, FloorY, z).Id).IsNotEqualTo(Blocks.Air);
+    }
+
+    /// <summary>The sill runs one block proud of the outline, so it follows the plan into the crook instead of
+    /// squaring the building off. It is the pass a bounding box gets most visibly wrong.</summary>
+    [Test]
+    public async Task The_sill_rings_the_outline_rather_than_the_box()
+    {
+        var plan = Ell();
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, new HouseStyle());
+
+        var sill = new HashSet<(int X, int Z)>();
+        for (var x = plan.MinX - 2; x <= plan.MaxX + 2; x++)
+            for (var z = plan.MinZ - 2; z <= plan.MaxZ + 2; z++)
+                if (!plan.Holds(x, z) && world.GetBlock(x, FloorY, z).Id != Blocks.Air) sill.Add((x, z));
+
+        var proud = plan.Cells()
+            .SelectMany(cell => new[] { -1, 0, 1 }.SelectMany(dx => new[] { -1, 0, 1 }
+                .Select(dz => (X: cell.X + dx, Z: cell.Z + dz))))
+            .Where(cell => plan.Borders(cell.X, cell.Z)).ToHashSet();
+
+        await Assert.That(sill.OrderBy(c => c.X).ThenBy(c => c.Z))
+            .IsEquivalentTo(proud.OrderBy(c => c.X).ThenBy(c => c.Z));
+    }
+
+    /// <summary>The shell closes on more than one wing too. A roof drawn per plan cell is easy to leave gaps in,
+    /// and the walls of a plan that turns a corner are the pass most likely to leave one.</summary>
+    [Test]
+    public async Task A_house_on_two_wings_is_sealed()
+    {
+        var plan = Ell();
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, new HouseStyle { Door = DoorMaterial.StainedGlass });
+
+        // Started in the crook, which is the cell furthest from any one wing's own walls.
+        var start = (4, FloorY + 1, 5);
+        var seen = new HashSet<(int X, int Y, int Z)> { start };
+        var queue = new Queue<(int X, int Y, int Z)>([start]);
+        var escaped = false;
+        while (queue.Count > 0 && !escaped)
+        {
+            var (x, y, z) = queue.Dequeue();
+            if (x < plan.MinX - 4 || x > plan.MaxX + 4 || z < plan.MinZ - 4 || z > plan.MaxZ + 4
+                || y > FloorY + 30) { escaped = true; break; }
+            foreach (var (dx, dy, dz) in new[] { (1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1) })
+            {
+                var next = (x + dx, y + dy, z + dz);
+                if (world.GetBlock(next.Item1, next.Item2, next.Item3).Id != Blocks.Air) continue;
+                if (seen.Add(next)) queue.Enqueue(next);
+            }
+        }
+        await Assert.That(escaped).IsFalse();
+    }
+
+    /// <summary>A plan with no cell off its own wall has no room in it, whatever shape it is — the refusal a
+    /// span under three blocks used to be.</summary>
+    [Test]
+    public async Task A_plan_with_no_inside_is_refused()
+    {
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, new Footprint(0, 0, 9, 1), FloorY, new HouseStyle());
+        await Assert.That(world.GetBlock(0, FloorY, 0).Id).IsEqualTo(Blocks.Air);
+    }
+
     /// <summary>A material that inks a cell whose ring bends at least <paramref name="Angle"/> degrees, so a
     /// stamped wall reports the turn it was painted with. It is what <see cref="WallFrameMaterial"/> reads, on
     /// its own: a frame also inks the courses at the top and bottom of a wall, which would ink every cell here
