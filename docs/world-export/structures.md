@@ -276,6 +276,67 @@ the eave's rise goes negative below the base plane and rounding those cells back
 the slope it belongs to. The slab is a block id rather than a material, for the reason a window's is: which
 half of its cube a slab fills is geometry.
 
+Every roof here is a height field over **one rectangle**, and a building is not always one. A `Footprint` is
+one or more touching **wings**; everything below the eave — the sill, the floor, the walls, the
+window runs, the doorways, the slab and the beams — reads the plan's own cells, so an L, a T or a U is built as
+one house on one outline. A wall stands wherever the plan is exposed, **diagonals included**: where two
+wings meet, the two walls running into the turn touch along one vertical edge and nothing else, and the
+cell behind that edge — building on all four sides of it — is the corner. Without a block there the
+building has no block where it turns and the room shows through the seam. It takes a post like any
+corner, so an L stands on six.
+
+**A storey is a plan of its own**, and that is the whole of how a building of unequal wings works. A wing
+carries a storey count, the plan at a storey is the wings still standing there, and every pass a storey runs —
+its walls, its posts, its corners of both kinds, its window runs, the steps in from its wall, its slab — is
+asked of that plan. Where a one-storey hall meets a two-storey cross wing, the ground is one plan over both and
+the storey above is a plan over the wing alone, so the wall the cross wing needs against the hall's roof is not
+a rule about neighbours: at that height the hall is not there to be met, and the line between them is simply
+the upper storey's own outline. A plan only ever loses wings on the way up, which is why the way up is seated
+against the topmost storey's front — a cell inside the highest storey is inside every storey under it.
+
+**A building's roof is the union of its wings' roofs**, and never a max of their crowns: a max blends two
+surfaces into one and drags roof material down the wall between wings of unequal height. Each wing is extruded
+as the whole building it would be alone — its own rectangle, its own eave from its own storey count, its own
+ridge axis from its own proportions — and the volumes are laid one after another, each closing its own riser
+against itself. `RoofField` needs no changes to serve it, which is the finding the whole arrangement rests on.
+
+Three rules carry the rest. A wing's roof reaches **its own walls plus its own overhang and no further**, so no
+stub of roof hangs outside a wall it never touched. **No roof block sits below the wall top of whatever covers
+that cell** — under a wall is inside the building — which is what makes a one-storey wing stop against a
+two-storey one instead of pushing a slope through its standing wall, and what turns two abutting eaves into a
+valley rather than into each other's gutters. And **walls outrank roofs**: every volume is laid before any wall
+is, and the wall-top rule settles the rest, so a wing standing against another does not have the other's slope
+written over it. That shows on a building of one wing too — a steep eave's riser used to reach into the top
+course of its own wall, and the wall now keeps it.
+
+**Two joints, and they are not a mode — they are which rectangle was drawn.** Where a wing reaches an outside
+wall of another the crossing is a **valley**; where a wing **stops inside** another — a gable end landing
+between that wing's own two ends — it is a **cross-gable**.
+
+A meet is not left as two roofs abutting, because a wing that merely stops at the wall drops its ridge to the
+neighbour's eave and climbs again, which is a gutter cut across the middle of a roof. It **marches**: each
+course of the meeting wing steps on along its own ridge into the other until it hits a block, and stops. The
+courses nearest the ridge travel furthest and the ones nearest the eave stop at once, which is what draws the
+crossing as a diagonal valley. No overhang is carried in — an overhang is what a roof has outside a wall, and
+inside another wing there is no outside — so a marching end emits none of its own and the march takes those
+columns over. That is not only a rule about what an overhang means: with its own eave still in place, every
+course strikes a block at its first step and the march moves nothing.
+
+There are only these two shapes. A wing either stops at its neighbour's wall or is drawn on through it, and
+which one it is, is the rectangle the author drew — never a mode. A wing whose roof is shallower than the one
+it meets marches until it hits and stops; one drawn through comes out the far side with its own gable and its
+own overhang, landing on the row the neighbour's overhang lands on. A roof taller than the one it crosses can
+only pass through, which is to say it can only be drawn through.
+
+**A wing's two gable ends carry the same triangle**, and that is what the acceptance test asserts: the end that
+closes the building and the end on the neighbour's far wall are the same gable, block for block, above the eave.
+Below the eave they are not alike and are not made so. One is a corner the building turns away at and stands on
+posts; the other is a stretch of the neighbour's wall, which turns at that neighbour's own corners further
+along. A gable is a roof part and a post is a building part, and no post is added where a wall runs straight on.
+
+A porch is refused on a plan of more than one wing: a deck is a strip the walls give up, and giving one up
+means taking cells out of a shape rather than moving one side of a rectangle in.
+
 A roof has **no thickness knob**, and the height field is why: a column writes as many courses as the step down
 to its neighbours needs, so how deep the roof runs at a given cell is answered by the slope rather than by a
 number beside it. A flat lid is one course because a flat lid has no step to close. The `roof_thickness` and
@@ -324,17 +385,25 @@ top and the doorway it fronts left open to the sky twenty courses below.
 
 ### 7.4 Windows are cut, and chosen as a block
 
-Four forms. A **stair lattice** is four stairs in a 2×2 hole, each with its raised half toward the outside of
+Five forms. A **stair lattice** is four stairs in a 2×2 hole, each with its raised half toward the outside of
 the group, so the quarter each is missing meets in the middle and the window is open — there is no glass in
 it. A **slab band** is a slab sill, an upside-down slab lintel and the course between them cut clean through;
 the two half-blocks make the opening read taller than the one course actually removed. **Panes** are the
 ordinary glazed window. **Open** is the hole and nothing in it — cut and left, which is not the same as asking
-for no windows at all. Size belongs to the form as much as to the author: a lattice is 2×2 because the four
-missing quarters are the whole trick, and a band is three courses because a sill and a lintel with nothing
-between them is not a window; an open one is entirely the author's, since no form is imposing a shape on it.
+for no windows at all. An **arched** opening carries an upside-down stair in each of its two top corners and
+nothing anywhere else: it is the door head's trick (§7.5) on a window, the same two stairs taking the
+squareness out of the same square hole. Size belongs to the form as much as to the author: a lattice is 2×2
+because the four missing quarters are the whole trick, a band is three courses because a sill and a lintel with
+nothing between them is not a window, and an arch is two wide and two tall at the least — two corners are the
+whole of an arch and one cell cannot hold both, and a head that took the only course would be an arch over
+nothing. An open one is entirely the author's, since no form is imposing a shape on it.
 
-Seating is the half that has to be right, because a window is cut out of a wall that already stands. Each wall
-is seated on the run **between its two corner posts**, the windows are spread evenly and centred on that run —
+Seating is the half that has to be right, because a window is cut out of a wall that already stands. A wall is
+a **run** — one straight stretch of the plan's outline, ending wherever the building turns, away from itself or
+back into itself — so a rectangle stands in four of them and an L in six, and a run rather than a compass
+direction is what a window is seated in and a doorway is cut through. Two of an L's walls look the same way, so
+naming a wall by the direction it faces stops being an identity the moment a building turns a corner. Each run
+is seated **between its two corners**, the windows are spread evenly and centred on that run —
 a wall reads as symmetric rather than as windows starting at one end and stopping when they run out — and any
 seat that would meet a doorway, or the block of wall either side of it, is **dropped rather than shifted**.
 Shifting one would break the spacing of every window after it to save it, and the gap where a door is reads as
@@ -345,8 +414,16 @@ the same question and spacing seats a window well enough. Where it bands — a r
 of planks — they come apart: a seat chosen by spacing lands half in one band and half in the next, and an
 opening cut across that seam reads as damage rather than as a window. A style may therefore name a **host
 block**, and then the material divides the run instead of the spacing doing it: the seater walks the wall,
-finds each unbroken panel of the host, and centres a window in every panel wide enough to hold one. On a wall
-whose bands are four cells and whose spacing is five, the two almost never agree on their own.
+finds each unbroken panel of the host, and **spreads that panel exactly as it would spread a whole wall**. On a
+wall whose bands are four cells and whose spacing is five, the two almost never agree on their own.
+
+The panel is spread rather than given one centred window, and a **uniform** wall is why. A host names a block,
+not a band, so a wall that is one material at the sill course resolves to a single panel the length of the
+whole run — and one window centred in that is one window on a twenty-one-block hall, which is the wall a row is
+most the point of. Spreading each panel gives the banded wall exactly what it had, since a two-cell band holds
+one two-wide window and no more, and gives the uniform wall the row it was always asking for. Only the seam
+between two panels can then be too tight, because within one the spread has already left a clear spacing
+between neighbours.
 
 The seater is told none of this. It takes the host as a **question** — may a window be cut at this cell? — and
 the stamper answers by resolving the wall exactly as the pass that laid it did, same course, same arc, same
@@ -373,6 +450,35 @@ to walk straight out, and the spawn protection rule already keeps enemies from w
 Windows are deliberately **not** on that list, and the distinction is worth stating. A door is the way an
 attacker gets in and so is governed by a filter; a window is a hole a player can see through and, in a
 lattice's case, shoot through, but it is never the entrance the block rule is about.
+
+**Every opening keeps a block of wall clear of each corner, and the opening is what gives way.** Clearing the
+corner cell is not enough: an opening starting in the very next cell still meets the corner, and one hard
+against it reads as a wall that failed rather than as a way through. The margin costs four blocks of the face,
+so a five-wide face has one cell left and carries a **centred single opening** rather than a two-wide one
+against the turn — a building too narrow for the door it asked for says so by having a narrow door. Only a
+face with no seat at all falls back to the run between the corners, because a building nobody can walk into is
+worse than one with a tight door. It is the same margin §7.4 keeps for a window, and it is the same number.
+
+**It does not depend on a post standing there.** A post makes the reason easy to see — a column wants a block
+of wall beside it before anything is taken out — but the rule is about the *corner*, which is where two walls
+meet and turn, and that turn is in a plain shell exactly as it is in a framed house. Making it conditional
+would also mean one building gained and lost the margin as its corners were bound and unbound, which is a
+style deciding where a door goes; the footprint decides that, and a style may not (WX1).
+
+So a frame's doors keep the wall and the place the frame chose, and are then fitted to the same margin like
+any other opening. That costs a wool cage nothing, and WX7 is why: it already holds a door to at least one
+block narrower than the interior on each side, which is exactly the length of the seat run — so a frame's door
+fits without being narrowed, and only one pushed hard against a corner moves at all. This is the path a
+**library preview** takes as well as a wool room, which is where the fault was visible: every card was drawing
+its door against the pillar.
+
+**A style may name the wall it fronts on**, and a hall is what wanted it. Windows are spread and centred on a
+wall's run (§7.4) and a doorway is centred on the same run, so on a long building the two land on each other —
+and a seat a door meets is dropped rather than shifted. A twenty-one-wide wall entered in the middle loses the
+two windows either side of its door and reads as a row with a hole punched in it; entered at the gable end it
+keeps its whole row, and a hall is entered at the end anyway. Unset, the front is the long side, which is what
+a building with nothing to say about it has always fronted on. A porch's own edge outranks it, since a porch
+names the wall it fronts; a frame's doors outrank both.
 
 Neither is the **head**, the beam that carries the wall over the opening. An arched one puts an upside-down
 stair in each corner of the doorway's top course, raised half outward so the quarter each is missing faces
@@ -412,9 +518,17 @@ own wall, windows and floor zoning, and falls back to the building's where it do
 storeys is a count rather than a repeated description.
 
 Each storey but the last is closed by a **slab** across its interior only, the perimeter being wall already.
+What it is laid in is that storey's own **ceiling**, so a building may close its shop floor in flagstone and
+the flat over it in boards; unbound it is the house floor's own top material, which is what every storey stack
+was before the slab had a name. The ceiling belongs to the storey below because that is the storey the slab
+closes — the top one names none, since the roof is what closes that one.
+
 The slab's top course is zoned by the storey **above** it, so an upper floor takes a border and an inlay
 exactly as the ground one does — it is that storey's floor, not the ceiling of the one below, and the author
-who divided the ground floor into a bordered field means the same thing one storey up.
+who divided the ground floor into a bordered field means the same thing one storey up. The two do not
+compete, and which decides which is what keeps the ceiling a single material rather than a stack: the ceiling
+says what the slab is made of and the zones above divide the one course of it a player actually stands on, so
+a stack here would be a second answer to a question already settled.
 
 A slab needs a way through it or an upper storey is a sealed volume — a picture of a house rather than a
 house. That way is a **ladder**, standing in the storey below and reaching the slab, so a player steps off it
@@ -428,6 +542,20 @@ the doorway is a ladder in the way.
 
 Storeys are not a house-only feature. A wool room takes a `HouseStyle` like any other building, so a
 multi-storey wool room is the same stack with a monument in it.
+
+A **roof terrace** is a storey stack and nothing else, and it is worth spelling out because it looks like it
+would need a form the roof does not have. Air is a gap rather than a block everywhere in a style (§7), so a
+storey whose wall stack is one course of fence over two courses of air is a building with a **parapet** and
+nothing above it; that storey's post takes air for the same reason, or four columns stand on the deck at the
+corners. What closes the storey underneath is its ceiling, which is the deck. And the lid is taken off the
+same way the walls were: a `Flat` roof laid in air writes nothing, so the stack's top storey is open to the
+sky. The ladder is already there, because a slab has to have a way through it.
+
+Two things about it are not free. The storey carrying the parapet still **states a clear of three** — a room
+has to be stood up in and a storey cannot say it is not a room — so the building reserves two courses it never
+writes, and `TopLayerOver` answers for the reservation rather than for the highest block actually laid (G171).
+And a parapet is the wall's own stack rather than a rail of its own, so it is as wide as the wall line and
+sits over it, which is what a parapet is and is not what a rail set in from the edge would be.
 
 ### 7.7 The beams a seam leaves long
 
@@ -508,7 +636,8 @@ plus that part's materials, and a `room_style` becomes the thing that binds them
 
 The split is by **what owns a coherent set of decisions**, not by what happens to be a nameable piece. A roof
 is everything above the eave: the form and its numbers, and the body, the verge and the gable face. A storey is
-one room: its clear, its wall, its corner posts, its windows and how its own floor is divided in plan. A porch
+one room: its clear, its wall, its corner posts, its windows, how its own floor is divided in plan, and the
+ceiling it closes with where something stands on it. A porch
 is the strip of footprint the walls give up, and it carries no materials at all — a porch's deck is the house's
 own floor and its canopy is laid in the roof's material, so what is left to it is its shape. The rest of a
 house's parts are a single material each, and a row wrapping one style would add a name and nothing else.

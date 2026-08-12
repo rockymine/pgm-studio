@@ -23,8 +23,7 @@ public sealed class ShapeProbeEndpointTests
     [Test]
     public async Task Schema_covers_every_emittable_family_and_flags_the_menu()
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var schema = await client.GetFromJsonAsync<ShapeProbeSchema>("/api/shapes/probe/schema");
         var tokens = schema!.Families.Select(f => f.Token).ToList();
@@ -44,8 +43,7 @@ public sealed class ShapeProbeEndpointTests
     [Test]
     public async Task Schema_knobs_match_what_the_emitter_accepts_per_family()
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
         var schema = await client.GetFromJsonAsync<ShapeProbeSchema>("/api/shapes/probe/schema");
 
         // side-tuck is I/Z/scythe only — the guard the emitter states in its own message
@@ -61,8 +59,7 @@ public sealed class ShapeProbeEndpointTests
     [Test]
     public async Task A_probe_that_fills_carries_the_shape_its_land_and_its_slots()
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var probe = await client.GetFromJsonAsync<ShapeProbeResult>(
             "/api/shapes/probe?family=donut&w=6&h=13&cw=2&mouth=Top");
@@ -80,8 +77,7 @@ public sealed class ShapeProbeEndpointTests
     [Test]
     public async Task A_box_below_the_minimum_is_a_refusal_that_states_the_minimum()
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var probe = await client.GetFromJsonAsync<ShapeProbeResult>("/api/shapes/probe?family=donut&w=4&h=4&cw=2");
 
@@ -98,8 +94,7 @@ public sealed class ShapeProbeEndpointTests
     {
         // the panel turns MinW/MinH into a one-click resize, so the offer has to be a box that works —
         // an off-by-one or a transposed pair would hand the author a button that refuses again
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         foreach (var family in new[] { "donut", "u", "h", "clamp", "l", "z" })
         {
@@ -120,8 +115,7 @@ public sealed class ShapeProbeEndpointTests
     {
         // the frame bug this endpoint shipped with: the schema reported the emitter's canonical frame while
         // a refusal reports the dock frame, so the donut's chip said 10x5 next to a refusal saying 5x10.
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
         var schema = await client.GetFromJsonAsync<ShapeProbeSchema>("/api/shapes/probe/schema");
 
         foreach (var family in schema!.Families)
@@ -139,8 +133,7 @@ public sealed class ShapeProbeEndpointTests
     public async Task An_unsupported_knob_passes_the_emitters_own_words_through()
     {
         // a reworded guard is a second copy free to disagree with the one that fired
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var probe = await client.GetFromJsonAsync<ShapeProbeResult>(
             "/api/shapes/probe?family=l&w=12&h=12&cw=2&sideTuck=true");
@@ -154,8 +147,7 @@ public sealed class ShapeProbeEndpointTests
     [Test]
     public async Task A_family_off_the_fill_menu_is_refused_with_the_menu_that_was_offered()
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var probe = await client.GetFromJsonAsync<ShapeProbeResult>("/api/shapes/probe?family=scythe&w=16&h=14&cw=2");
 
@@ -169,8 +161,7 @@ public sealed class ShapeProbeEndpointTests
     public async Task An_unknown_family_is_400_rather_than_a_refusal()
     {
         // a bad enum is a caller error, not a modelling answer — it must not masquerade as a refusal
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var resp = await client.GetAsync("/api/shapes/probe?family=triangle&w=8&h=8&cw=2");
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
@@ -184,8 +175,7 @@ public sealed class ShapeProbeEndpointTests
     public async Task Every_mouth_is_drivable()
     {
         // the panel offers all four edges; a fill that only works mouth-up would make three chips dead
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         foreach (var mouth in new[] { "Top", "Bottom", "Left", "Right" })
         {

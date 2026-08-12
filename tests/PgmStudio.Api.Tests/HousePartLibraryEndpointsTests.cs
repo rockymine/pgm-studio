@@ -57,8 +57,7 @@ public sealed class HousePartLibraryEndpointsTests
     public async Task A_roof_round_trips_with_its_courses_and_lists_with_a_picture()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var slate = await StyleAsync(client, "slate", Blocks.Stone);
         var trim = await StyleAsync(client, "trim", Blocks.StainedClay);
@@ -83,8 +82,7 @@ public sealed class HousePartLibraryEndpointsTests
     public async Task A_storey_round_trips_and_is_drawn_as_the_room_it_makes()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var timber = await StyleAsync(client, "timber", Blocks.Log);
 
@@ -102,14 +100,44 @@ public sealed class HousePartLibraryEndpointsTests
         await Assert.That(listed!.Single().Clear).IsEqualTo(5);
     }
 
+    /// <summary>A storey's ceiling is the slab it closes with, and a slab only exists under something — so a
+    /// storey that names one is drawn as two of itself. Without that the knob would be a knob whose picture
+    /// never moves, which is the one thing the preview is for preventing.</summary>
+    [Test]
+    public async Task A_storey_that_names_a_ceiling_is_drawn_with_something_standing_on_it()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var timber = await StyleAsync(client, "timber", Blocks.Log);
+        var flags = await StyleAsync(client, "flags", Blocks.Bedrock);
+
+        var plain = Storey("plain", 3, new RoomCourseDto(RoomParts.Wall, 0, timber, 1));
+        var ceiled = Storey("ceiled", 3,
+            new RoomCourseDto(RoomParts.Wall, 0, timber, 1),
+            new RoomCourseDto(RoomParts.Ceiling, 0, flags, 1));
+
+        var without = (await (await client.PostAsJsonAsync("/api/storey-styles/preview", plain))
+            .Content.ReadFromJsonAsync<RoomStylePreviewDto>())!;
+        var with = (await (await client.PostAsJsonAsync("/api/storey-styles/preview", ceiled))
+            .Content.ReadFromJsonAsync<RoomStylePreviewDto>())!;
+
+        // The cutaway is asked rather than the section: a section is a projection of the outside, and a slab
+        // laid across the interior is behind the near wall in one. The cutaway is taken on the plane the
+        // ladder stands in, which is the plane the slab and the clear under it are both on.
+        await Assert.That(Fills(with.Cutaway)).Contains(BlockPalette.Hex(Blocks.Bedrock, 0));
+        await Assert.That(Fills(without.Cutaway)).DoesNotContain(BlockPalette.Hex(Blocks.Bedrock, 0));
+        // And the building is taller than the one-storey version, because a slab is what the second is on.
+        await Assert.That(Height(with.Section)).IsGreaterThan(Height(without.Section));
+    }
+
     /// <summary>A room has to be stood up in, so a clear under three is read as three however it is asked
     /// for — and the number handed back is the one the row stores rather than the one the request sent.</summary>
     [Test]
     public async Task A_storey_is_never_saved_shorter_than_three()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var saved = await (await client.PostAsJsonAsync("/api/storey-styles", Storey("crawlspace", 1)))
             .Content.ReadFromJsonAsync<StoreyStyleDetail>();
@@ -120,8 +148,7 @@ public sealed class HousePartLibraryEndpointsTests
     public async Task A_porch_round_trips_with_its_shape()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var created = await (await client.PostAsJsonAsync("/api/porch-styles",
                 new PorchStyleSaveRequest("veranda", 3, 2, PorchEdges.Front, RoofForms.Shed, 85)))
@@ -140,8 +167,7 @@ public sealed class HousePartLibraryEndpointsTests
     public async Task A_bound_roof_replaces_the_houses_own_and_an_unbound_one_changes_nothing()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var slate = await StyleAsync(client, "slate", Blocks.StainedClay);
         var roof = await (await client.PostAsJsonAsync("/api/roof-styles", Roof("gabled", RoofForms.Gable,
@@ -167,8 +193,7 @@ public sealed class HousePartLibraryEndpointsTests
     public async Task A_bound_stack_makes_the_house_a_stack_of_rooms()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var storey = await (await client.PostAsJsonAsync("/api/storey-styles", Storey("room", 3)))
             .Content.ReadFromJsonAsync<StoreyStyleDetail>();
@@ -190,8 +215,7 @@ public sealed class HousePartLibraryEndpointsTests
     public async Task A_stack_slot_can_override_the_storeys_own_clear()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var storey = await (await client.PostAsJsonAsync("/api/storey-styles", Storey("room", 3)))
             .Content.ReadFromJsonAsync<StoreyStyleDetail>();
@@ -210,8 +234,7 @@ public sealed class HousePartLibraryEndpointsTests
     public async Task A_houses_stack_reads_back_in_the_order_it_was_saved()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var shop = await (await client.PostAsJsonAsync("/api/storey-styles", Storey("shop", 6)))
             .Content.ReadFromJsonAsync<StoreyStyleDetail>();
@@ -233,8 +256,7 @@ public sealed class HousePartLibraryEndpointsTests
     public async Task A_part_a_house_still_binds_cannot_be_deleted()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var roof = await (await client.PostAsJsonAsync("/api/roof-styles", Roof("hipped", RoofForms.Hip)))
             .Content.ReadFromJsonAsync<RoofStyleDetail>();
@@ -261,8 +283,7 @@ public sealed class HousePartLibraryEndpointsTests
     public async Task A_draft_part_previews_as_the_saved_one_draws()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var slate = await StyleAsync(client, "slate", Blocks.StainedClay);
         var draft = Roof("hipped", RoofForms.Hip, new RoomCourseDto(RoomParts.Roof, 0, slate, 1));

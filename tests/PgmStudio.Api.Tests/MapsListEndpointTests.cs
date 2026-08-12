@@ -24,8 +24,7 @@ public sealed class MapsListEndpointTests
     public async Task A_created_sketch_is_stage_sketch_and_filters_and_counts()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Draft One" }))
             .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
@@ -49,8 +48,7 @@ public sealed class MapsListEndpointTests
     public async Task Finishing_a_sketch_advances_its_stage_and_keeps_its_sketch_layer()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Two Sides" }))
             .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
@@ -137,8 +135,7 @@ public sealed class MapsListEndpointTests
             });
         }
 
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var maps = (await client.GetFromJsonAsync<JsonElement[]>("/api/maps"))!;
         var bySlug = maps.ToDictionary(

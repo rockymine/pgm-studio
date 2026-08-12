@@ -3573,6 +3573,186 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   that shows a storey's slab, the clear under it and the way through it at once. Library **cards** keep the
   cheap run-merged section alone: an isometric is tens of kilobytes, which is nothing for one open editor and
   megabytes for a grid. (B71)
+- **A storey names what it closes with, and the slab stops being the floor's leftover (B74).** The slab laid
+  across a storey's interior to carry the one above it was always the house floor's own top material, so a
+  building could not close its shop floor in flagstone and the flat over it in boards. `Storey.Ceiling` named
+  it in the stamper and nothing could reach it — no part, no column, no knob — which made it the one piece of a
+  building sayable only in code. It is now a **storey part** (`ceiling`), which needed no migration: a storey's
+  parts are rows in `storey_style_course` keyed by (owner, part, ordinal), so naming one more is a word in the
+  vocabulary rather than a column. Unbound it is the floor's top material exactly as before, so every stored
+  storey builds what it always did. It takes **one material rather than a stack**, and the reason is that the
+  course a player actually stands on up there is already divided by the storey *above*'s border, field and
+  inlay: a stack here would be a second answer to a settled question, which is the `roof_thickness` mistake
+  (B72) in a new place. The preview earns it — a storey that names a ceiling is drawn as **two of itself**,
+  because a slab only exists under something and a storey drawn alone is a top storey, so the knob would
+  otherwise be one whose picture never moves (the B70 failure). The **cutaway** is the view that shows it, the
+  section being a projection of the outside with the near wall in front of the slab. (B74)
+- **A door clears the post it was handed past, and a window can arch (B75).** A house cutting its own doorway
+  already kept a block of wall clear of each corner post and narrowed the opening rather than giving the margin
+  up, so a five-wide framed face carries a centred single opening. A door handed **in** kept nothing — and that
+  is the path a wool room's frame takes and the path every library preview takes, so the cards had been drawing
+  a two-wide door hard against the pillar. Both paths now go through one fit, and the margin **does not depend
+  on a post standing there**: the rule is about the corner, which is where two walls meet and turn, and that
+  turn is in a plain shell exactly as in a framed house — making it conditional would mean one building gained
+  and lost the margin as its corners were bound and unbound, which is a style deciding where a door goes. It
+  costs a wool cage nothing, and WX7 is why: a door already at least one block narrower than the interior on
+  each side is exactly the length of the seat run, so a frame's door fits without narrowing and only one pushed
+  hard against a corner moves at all. `WindowForm.Arched` is the door head's trick on a window: an upside-down stair in each of the
+  opening's two top corners and light under them, two wide at the least because an arch is its two corners and
+  one cell cannot hold both, two tall at the least because a head that took the only course would be an arch
+  over nothing. And `HouseStyle.DoorEdge` lets a building name the wall it fronts on. A hall is what wanted it:
+  windows are spread and centred on a wall's run and a doorway is centred on the same run, so on a long building
+  they land on each other and the seats a door meets are dropped — a twenty-one-wide wall entered in the middle
+  loses the two windows either side of its door. Entered at the gable end it keeps all four a side. (B75)
+- **A village of five houses, cut from one masonry (B76).** `HousePresets.Village` — a cottage, a longhouse, a
+  terrace, a counting house and a workshop, meant to stand together rather than to sample the model. They share
+  one masonry and one timber, so what separates them is what each is *for* — small and steep, long and low, tall
+  and narrow — rather than what each is made of: a settlement whose buildings differ in material reads as five
+  settlements, one whose buildings differ in proportion reads as a village. Each is under the 192 blocks a
+  dressing building is allowed, so every one can be dragged onto a map. The masonry is **stone and polished
+  andesite** checkered a block at a time, and the pair is the point: they differ in texture and not in hue, so
+  the board reads as coursed stonework rather than as a chequerboard. That is the rule for checkering a wall — a
+  checker states the grid it is laid on, so the two squares must be near enough in value that the grid becomes a
+  texture, and two blocks a player can name apart across a courtyard make a draughtboard. Size 1, because the
+  board reads off the wall's own perimeter arc and a one-block square carries the alternation round a corner
+  without a seam. Proportion was **measured rather than eyeballed**, and two of the five were wrong: the cottage
+  at pitch 2 was 64% roof and the workshop's shed 65%. The workshop's fix is the one worth keeping — a shed
+  climbs the whole of its shorter span where a gable climbs half of one, so on anything but a shallow building it
+  is all roof, and half courses buy the same lean-to for half the height. Both sit at 50% now. (B76)
+- **A wall that is all host takes a row, not one window (B77).** A window may name the block it is cut into, so
+  that on a banded wall an opening lands in the planks rather than across the seam. The seater found each
+  unbroken panel of that block and centred **one** window in it — right for a band, wrong for everything else,
+  because a host names a block and not a band: a wall that is one material at the sill course resolves to a
+  single panel the length of the whole run, and one window centred in that is one window on a twenty-one-block
+  hall. Each panel is now spread and centred exactly as a whole wall is, so a two-cell band still holds one
+  two-wide window and no more while a uniform wall gets its row — the longhouse goes from one window a side to
+  four, and lengthening it adds windows rather than stretching the gaps. Only the seam between two panels can
+  now be too tight, since within one the spread has already left a clear spacing. Worth recording how it was
+  missed: the measurement that claimed four a side passed **no host question** to the seater, and with none the
+  seater takes the spacing path — it measured the branch the building does not walk. Reading the stamped world
+  is what found it. (B77)
+- **A wall bends where the walked ring does, and it is one measurement (G172).** A house answered `Arc`, `Turn`
+  and `Run` off its own rectangle in closed form while the terrain painter walked the same outline through
+  `Geom.GridBoundary` — one idea with two implementations, which is what the symmetry rule exists to prevent.
+  `Footprint` walks its outline now, at the window the painter reads, so a building and the plateau beside it
+  cannot answer a wall-run material differently. The disagreement was in the bend alone: `Arc` and `Run` matched
+  exactly over 264 perimeter cells of eight rectangles, but the closed form can see only the corner nearest a
+  cell, so on a wall shorter than twice the window two corners fall inside it and it reports one bend where the
+  ring turns two — 57 degrees out at the middle of a five-wide side, and six of a five-deep house's fourteen
+  inked cells frame differently at a threshold of ninety. Nothing built changed shape, which is why the swap was
+  cheap to make now: the bend is read only by `WallFrameMaterial`, which places nothing and which no shipped
+  house style binds, and the corner posts come from `OnCorner` — four literal cells with no window and no angle
+  in them. The measuring window is one constant on `GridBoundary` rather than a five in each caller, and a
+  probe material stamped into a wall gates the agreement over both narrow and ordinary spans. It is also the
+  footing for a footprint of more than one rectangle, which has no closed form to fall back on. (G172)
+- **A plan is a union of wings, not a rectangle (G172).** `Footprint` is a type of its own, built from one or
+  more touching `Wing` rectangles, and every question it answers is asked of its cells rather than of a min and
+  a max — so an L, a T or a U is one plan with one closed ring rather than two buildings that happen to touch.
+  A rectangle is the case where walking the cells agrees with the arithmetic it replaced, which is what lets
+  every shipped building keep its shape. **A corner comes in two kinds**: an outer one is where the building
+  turns away from itself — the five of an L — and an inner one is where two wings meet and it turns back into
+  itself, which is one cell and carries a post like any other corner, so an L stands on six. The steps in from
+  the wall are walked breadth-first from every wall cell at once rather than subtracted from an edge, which is
+  the only way a cell in the crook of two wings counts to the wall actually nearest it: nowhere in the L stands
+  more than 2 in, where its bounding box claims 4. The stamper still builds a single wing — the roof over more than
+  one, and the walls and window runs that go with it, are the rest of G172. (G172)
+- **A wall is a run, and a facing stopped being its name (G172).** `Footprint` splits its outline into
+  `WallSegment` runs — every maximal stretch of wall with open ground on one side of it, ending wherever the
+  building turns, away from itself or back into itself. A rectangle stands in four, one per side, which is
+  exactly what a caller naming a wall by its compass direction used to read off a min and a max; an L stands in
+  six and a T in eight. **The reason it had to stop being a facing is that two of an L's walls look the same
+  way**, at different lines and over different stretches, so a window seated in one and a window seated in the
+  other were indistinguishable — and a doorway in one wrongly blocked a window in the other. The window seater,
+  the opening fit, the doorway pass, the gable windows, the porch rail and the ladder all take a run now, and a
+  `WindowSeat` and a `WallOpening` carry theirs, so a window knows the line its wall stands on and is cut
+  without being handed a box. Where a run has to be picked from a direction — a door handed in by a room frame
+  names a side, not a wall — the rule is on the plan: the longest run looking that way whose stretch reaches the
+  place asked for, length breaking the tie because a building is entered by its face rather than by its return.
+  The margin an opening keeps off the end of its run is the same whichever kind of corner ends the run, because
+  both are a turn. Nothing moved: the house showcase renders byte-identical across the change, over every roof,
+  floor, porch and window figure it draws. (G172)
+- **A house is stamped over a plan, not over a width and a depth (G172).** `HouseStamper.Stamp` takes a
+  `Footprint`, and everything below the eave reads the plan's own cells: the sill runs one block proud of the
+  **outline** rather than filling the box, the floor and the surface course cover what the plan holds, the walls
+  and their posts follow the outline, the slab is whatever the interior turns out to be, and the log beams throw
+  their two ends out of every corner the building turns away at — five on an L, not four. The refusal
+  generalises with them: a plan with no cell off its own wall has no room in it, which is the same rejection a
+  span under three blocks used to be and holds whatever shape the plan is. **The roof is the one part still
+  written over a rectangle**, so a plan of more than one wing is roofed by a single field over the box drawn
+  round it — but that field is **clipped to the plan and its overhang**, which keeps the stamper's own promise
+  that nothing is written outside the footprint: the roof stops at the wing's own eave instead of bridging the
+  notch. A porch is refused on such a plan for the same reason it is deferred. What found the shape of all of
+  this was a **printed cut** — a text grid of one plane, one letter per material — which showed the sill
+  following the notch, the posts, and the slab of roof hanging over open ground that the clip now removes. The
+  single-wing path is unmoved: the house showcase renders byte-identical. (G172)
+- **A house on more than one wing closes at the turn, and stands on six posts (G172).** Where two wings meet,
+  the wall of one runs into the wall of the other — and on a raster those two walls touch along a single
+  vertical **edge** and nothing else. The cell behind that edge has building on all four sides of it, so a wall
+  that stands wherever the plan is exposed *orthogonally* calls it interior and leaves it open: the building
+  has no block where it turns, the two walls simply step past each other, and the room behind shows through the
+  seam at a glancing angle. A wall now stands wherever the plan is exposed **at all**, diagonals included,
+  which puts a block on that cell and makes the outline turn a real corner — and it takes a post, so an L
+  carries six and not five. A beam is the one thing that stays with the outer corners alone: an inner one has
+  no direction to throw a log end in that is not the building itself. **A flood fill cannot find this class of
+  hole** — nothing steps diagonally, so the seal test passed the whole time — which is why the gate for it is
+  geometric instead: no cell inside the house may touch the outside on any of its eight sides. The wall at the
+  turn also settles what the crook is worth: nowhere in the L stands more than 2 blocks in, where before the
+  two five-deep wings read as one room deeper than either of them is. (G172)
+- **A storey is a plan of its own, so wings may stand to different heights (G172).** A `Wing` carries a storey
+  count — nought taking the whole of the style's stack, which is what a building of level wings means — and
+  `Footprint.At(level)` answers the plan of the wings still standing at that storey. Every pass a storey runs is
+  then asked of that plan: its walls, its posts, its corners of both kinds, its window runs, the steps in from
+  its wall, and the slab, which is laid over the storey *above*'s plan because a wing that stops is closed by
+  its roof rather than by a floor for a room nobody built. **The wall a taller wing needs against its
+  neighbour's roof falls out of this rather than being a rule of its own**: at that height the neighbour is not
+  there to be met, so the line the two shared is simply the upper storey's outline — one open room downstairs,
+  a walled gable upstairs, built by the ordinary pass. A plan only ever loses wings on the way up, which is what
+  lets the way up be seated against the topmost storey's front: a cell inside the highest storey is inside every
+  storey beneath it, where one chosen on the ground could be under open sky two floors later. The roof is still
+  one field at one height, so a wing that stops lower has its walls climb to meet it — unequal wings are correct
+  to the eave and roofed as though they were level, which is the rest of G172. (G172)
+- **A building's roof is the union of its wings' roofs (G172).** Each wing is extruded as the whole building it
+  would be alone — its own rectangle, its own eave from its own storey count, its own ridge axis from its own
+  proportions — and the volumes are laid one after another, each closing its own riser against itself. **Never a
+  max of crowns**: a max blends two surfaces into one and drags roof material down the wall between wings of
+  unequal height. `RoofField` is untouched, which is the finding the whole arrangement rests on. Three rules
+  carry the rest. A wing's roof reaches **its own walls plus its own overhang and no further**, so no stub hangs
+  outside a wall it never touched — and since a wing's field is already its rectangle grown by the overhang,
+  that is the bound rather than a clip on top of one. **No roof block below the wall top of whatever covers that
+  cell**, which is what makes a one-storey wing stop against a two-storey one instead of pushing a slope through
+  its standing wall, and what turns two abutting eaves into a valley instead of into each other's gutters. And
+  **walls outrank roofs** — every volume is laid before any wall is, and the wall-top rule settles the rest.
+  That last one moves a building of a single wing too, and it is the only thing on this branch that has: at a
+  steep pitch the eave's riser used to reach into the top course of its own wall, and the wall now keeps it. No hole opens where it stopped, because the
+  course below a wing's roof base *is* its wall top. The gate is the task's own acceptance test — **a wing's two
+  gable ends are the same gable**, the one ending the building and the one standing against its neighbour,
+  compared above the eave over the wing's own width. (G172)
+- **A wing may project into another, and the cross-gable is built (G172).** Two joints, and they are which
+  rectangle was drawn rather than a mode an author picks: a wing reaching an outside wall of another makes a
+  **valley**, which the union builds by itself, and a wing whose gable end lands between the other's own two
+  ends is standing mid-slope and makes a **cross-gable**. Three things follow for that one. Its buried gable end
+  is **a wall from the ground up**, posts and all — a face inside a neighbour of the same height is exposed by
+  nothing, so a wall built only where the plan is exposed never builds it. Its gable face is drawn there by the
+  same pass that draws the end closing the building, because a wing's roof plan ends on both. And it **cuts**
+  the roof it pushes into. The cut is across the wing's **walls and not its overhang**, which is the correction
+  a printed plan of the highest block over each column produced immediately: cut one column wider and the roof
+  opens down both sides of the wing, because the verge that was to fill it is itself standing over the other
+  wing's wall and the rule keeping roof out from under a wall keeps it out too. This is the shape that can carry
+  **the acceptance test in the form the task states it** — a wing's two gable ends the same gable, plinth and
+  wall included — and it passes over the wing's own width. That test wrote the last of the implementation: it
+  failed first on a missing corner post at the buried end, which is exactly the sort of thing it exists to
+  name. (G172)
+- **A meet marches, so a valley does not dip (G172).** A wing whose gable end runs up against another does not
+  stop at the wall: each course steps on along its own ridge into the other roof until it **hits a block, and
+  stops**. The courses nearest the ridge travel furthest and the ones nearest the eave stop at once, which draws
+  the crossing as a **diagonal valley** rather than as a wing abutting a wall. Left to abut, the ridge fell from
+  its own crown to the neighbour's eave and climbed again — a gutter cut across the middle of a roof, reading as
+  two buildings pushed together rather than as one that turns; the gate is that the surface along that ridge
+  never falls between the wing's gable end and the ridge it runs into. **A marching end carries no overhang**,
+  and that is not only a rule about what an overhang means outside a wall — it is what makes the march possible
+  at all. With its own eave still in place every course struck a block at its first step and the march moved
+  nothing, which a printed height map showed at once and no seal test could have. The march is the meet's half
+  of the pair: a wing that *projects* never marches, having already cut the roof it pushed into. (G172)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds
@@ -4203,3 +4383,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **README setup guide** — prerequisites, DB/user provisioning, dev + tests, and the two-step
   scan-out → import flow (incl. the stale-output `ROUND-TRIP DRIFT [kits]` gotcha + `--refresh-xml`
   fix). (B12)
+- **A database test resets by emptying its tables, and the Api tests share one host (B73).** The two
+  database-touching test projects spent most of their time arriving at a clean database rather than
+  testing against one. Each of the 81 resets dropped all 39 tables and re-applied all 19 migrations —
+  DDL, and InnoDB gives every table its own file to create and flush, so one reset cost **713 ms**
+  measured. A test cannot tell that apart from the same tables emptied, which is one round trip of DML
+  over rows that have already gone and costs **2.5 ms**. `tests/TestSchema.cs` is the shared reset —
+  linked into both projects rather than written out in each, since what would be duplicated is the
+  meaning of a reset and two copies of that is how they come to disagree about what a test starts from.
+  The migrations still run **once**: the reset reads the applied version first and rebuilds where it is
+  not the newest this build knows, which covers a fresh database, one left by an older build, and the
+  migration tests themselves, which delete a version row on purpose to prove the startup guard catches
+  it. `RebuildSchemaAsync` stays for the two tests whose subject *is* the migrating. The second half
+  is the host: `ApiTestFactory` documented itself as the single factory every test boots while 78 call
+  sites each built their own, at about half a second each. There is now one for the assembly, and what
+  makes that safe is where the API keeps its state — every service that reads or writes the database is
+  scoped, so it holds nothing across a request, and the only singletons are immutable configuration.
+  Measured over the same suite: **Data 25.6 s → 6.8 s**, **Api 72.9 s → 16.0 s**, the whole suite
+  **117 s → 42 s**, with the same 1744 tests passing. The saving grows on a slower disk, since what was
+  removed is fsync-bound DDL and what replaced it barely touches the disk at all. (B73)

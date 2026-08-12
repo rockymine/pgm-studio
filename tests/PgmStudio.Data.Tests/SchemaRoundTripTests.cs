@@ -20,7 +20,7 @@ public sealed class SchemaRoundTripTests
     [Test]
     public async Task Migrations_create_the_expected_tables()
     {
-        await TestDb.ResetSchemaAsync();
+        await TestDb.RebuildSchemaAsync();
         await using var db = TestDb.Connect();
 
         var tables = db.Query<string>(

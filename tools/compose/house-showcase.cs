@@ -201,8 +201,8 @@ foreach (var (windows, name, blurb) in new (WindowStyle Windows, string Name, st
     var top = FloorY + style.TopLayerOver(17, 11);
     // Cropped around a real seat rather than around a guess at where one lands, so the close-up is of the
     // window and not of the wall next to it.
-    var seat = HouseWindows.Seats(windows, 0, 0, 16, 10, style.Wall.Extent, null)
-        .First(candidate => candidate.Edge == RoomEdge.NegZ);
+    var seat = HouseWindows.Seats(windows, new Footprint(0, 0, 16, 10).Segments, style.Wall.Extent, null)
+        .First(candidate => candidate.Wall.Facing == RoomEdge.NegZ);
     windowFigures.Append($"<article class='card'><h3>{name}</h3>")
         .Append($"<div class='fig fig--iso'>{Iso(world, -2, -2, 18, 12, FloorY - 1, top, 11)}</div>")
         .Append("<figure><div class='fig'>")

@@ -19,8 +19,7 @@ public sealed class ComposeEndpointsTests
     public async Task Browse_returns_cards_with_svg_and_advances_the_cursor()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var page = await client.GetFromJsonAsync<ComposePage>("/api/compose?players=12&symmetry=rot_180&seedStart=0&count=3");
         await Assert.That(page!.Cards.Count).IsEqualTo(3);
@@ -37,8 +36,7 @@ public sealed class ComposeEndpointsTests
     public async Task Unsupported_symmetry_is_400()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var resp = await client.GetAsync("/api/compose?players=12&symmetry=rot_90");
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
@@ -48,8 +46,7 @@ public sealed class ComposeEndpointsTests
     public async Task Structural_sieve_wools_must_include_hub_any_of()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         // wools=donut → every card includes a donut wool (must-include); the page reports the scan honestly.
         var donut = await client.GetFromJsonAsync<ComposePage>(
@@ -70,8 +67,7 @@ public sealed class ComposeEndpointsTests
     public async Task The_structural_census_counts_composed_boards_not_matched_ones()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var page = await client.GetFromJsonAsync<ComposePage>(
             "/api/compose?players=20&symmetry=rot_180&seedStart=0&count=3&hub=ring");
@@ -94,8 +90,7 @@ public sealed class ComposeEndpointsTests
     public async Task A_form_the_request_cannot_produce_stays_absent_from_the_census()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var page = await client.GetFromJsonAsync<ComposePage>(
             "/api/compose?players=8&symmetry=rot_180&seedStart=0&count=8&hub=twin");
@@ -114,8 +109,7 @@ public sealed class ComposeEndpointsTests
     public async Task MaxScore_sieve_excludes_higher_scored_boards()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var page = await client.GetFromJsonAsync<ComposePage>(
             "/api/compose?players=12&symmetry=rot_180&seedStart=0&count=8&maxScore=0.5");
@@ -126,8 +120,7 @@ public sealed class ComposeEndpointsTests
     public async Task Pin_persists_a_generated_row_is_idempotent_and_renders()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var page = await client.GetFromJsonAsync<ComposePage>("/api/compose?players=12&symmetry=rot_180&seedStart=0&count=1");
         var card = page!.Cards[0];
@@ -156,8 +149,7 @@ public sealed class ComposeEndpointsTests
     public async Task A_row_from_an_older_composer_reads_stale()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var page = await client.GetFromJsonAsync<ComposePage>("/api/compose?players=12&symmetry=rot_180&seedStart=0&count=1");
         var current = page!.Cards[0].Descriptor;

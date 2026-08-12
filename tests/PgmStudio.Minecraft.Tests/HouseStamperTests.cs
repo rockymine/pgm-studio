@@ -1,4 +1,5 @@
 using PgmStudio.Domain;
+using PgmStudio.Geom.Algorithms;
 
 namespace PgmStudio.Minecraft.Tests;
 
@@ -668,4 +669,502 @@ public sealed class HouseStamperTests
             await Assert.That(open.Max()).IsLessThanOrEqualTo(width - 3);
         }
     }
+
+    /// <summary>A frame's door is the entry contract and keeps the wall the frame chose — but a frame knows the
+    /// room and not the building, so where the style stands a post the opening is still fitted clear of it. This
+    /// is the path a library preview and a wool room take, and it was the one seating doors against the post.</summary>
+    [Test]
+    [Arguments(7)]
+    [Arguments(9)]
+    [Arguments(11)]
+    public async Task A_handed_in_door_clears_the_post_a_frame_knew_nothing_about(int width)
+    {
+        var style = new HouseStyle { Post = new SolidMaterial(Blocks.Log), DoorWidth = 2 };
+        var world = new VoxelWorld();
+        // Hard against the corner cell, which is where a frame that never heard of a post would put it.
+        HouseStamper.Stamp(world, 0, 0, width, 7, FloorY, style, doors: [new RoomDoor(RoomEdge.NegZ, 1, 2)]);
+
+        var open = Enumerable.Range(0, width)
+            .Where(x => world.GetBlock(x, FloorY + 1, 0).Id == Blocks.Air).ToList();
+        await Assert.That(open).IsNotEmpty();
+        await Assert.That(open.Min()).IsGreaterThanOrEqualTo(2);
+    }
+
+    /// <summary>And a building with <b>no</b> post keeps the same margin, because the margin is not the post's.
+    /// A corner is where two walls meet and turn, and an opening hard against that turn reads as a wall that
+    /// failed rather than as a way through, in a plain shell exactly as in a framed house. Making it conditional
+    /// would also mean one building gained and lost the margin as its corners were bound and unbound, which is a
+    /// style deciding where a door goes.</summary>
+    [Test]
+    public async Task A_postless_shell_keeps_the_same_margin_as_a_framed_one()
+    {
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, 0, 0, 9, 7, FloorY, new HouseStyle { Post = null },
+            doors: [new RoomDoor(RoomEdge.NegZ, 1, 2)]);
+
+        var open = Enumerable.Range(0, 9)
+            .Where(x => world.GetBlock(x, FloorY + 1, 0).Id == Blocks.Air).ToList();
+        await Assert.That(open).IsNotEmpty();
+        await Assert.That(open.Min()).IsGreaterThanOrEqualTo(2);
+        await Assert.That(8 - open.Max()).IsGreaterThanOrEqualTo(2);
+    }
+
+    /// <summary>The margin a wool cage's own doors already keep is the one this rule asks for, so making it
+    /// general costs them nothing. WX7 holds a door to at least one block narrower than the interior on each
+    /// side, which is exactly the seat run — so a frame's door fits it without being narrowed, and only one
+    /// pushed hard against a corner moves at all.</summary>
+    [Test]
+    [Arguments(6, 2)]
+    [Arguments(8, 4)]
+    [Arguments(9, 3)]
+    [Arguments(10, 4)]
+    public async Task A_frame_door_sized_by_WX7_is_never_narrowed_by_the_margin(int span, int doorWidth)
+    {
+        var world = new VoxelWorld();
+        // Centred on the wall, which is where a frame puts a door it has room for.
+        var lo = (span - doorWidth) / 2;
+        HouseStamper.Stamp(world, 0, 0, span, 7, FloorY, new HouseStyle { Post = null },
+            doors: [new RoomDoor(RoomEdge.NegZ, lo, doorWidth)]);
+
+        var open = Enumerable.Range(0, span)
+            .Where(x => world.GetBlock(x, FloorY + 1, 0).Id == Blocks.Air).ToList();
+        await Assert.That(open.Count).IsEqualTo(doorWidth);
+        await Assert.That(open.Min()).IsEqualTo(lo);
+    }
+
+    /// <summary>A style may name the wall it fronts on, and it outranks the proportions. It is what lets a hall
+    /// be entered at its gable end so the row of windows down its long walls survives — windows and doorways are
+    /// both centred on a wall's run, and a seat a door meets is dropped rather than shifted.</summary>
+    [Test]
+    public async Task A_style_may_choose_the_wall_it_fronts_on()
+    {
+        var hall = new HouseStyle { DoorEdge = RoomEdge.NegX, DoorWidth = 2 };
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, 0, 0, 21, 9, FloorY, hall);
+
+        // The long side is where the proportions would have put it, and it is whole.
+        var longSide = Enumerable.Range(0, 21)
+            .Where(x => world.GetBlock(x, FloorY + 1, 0).Id == Blocks.Air).ToList();
+        await Assert.That(longSide).IsEmpty();
+
+        // The gable end carries it instead.
+        var end = Enumerable.Range(0, 9)
+            .Where(z => world.GetBlock(0, FloorY + 1, z).Id == Blocks.Air).ToList();
+        await Assert.That(end).IsNotEmpty();
+    }
+
+    // ── a house on more than one wing ───────────────────────────────────────────────────────────────
+
+    /// <summary>An L: a hall along −z with a wing running north off its west end.</summary>
+    private static Footprint Ell() => new([new Wing(0, 0, 10, 6), new Wing(0, 7, 6, 12)]);
+
+    /// <summary>Everything below the eave follows the plan rather than the box drawn round it. The notch is the
+    /// cell that tells them apart: a pass reading a min and a max writes into it, and the building never stood
+    /// there.</summary>
+    [Test]
+    public async Task A_house_on_two_wings_builds_nothing_in_the_notch()
+    {
+        var plan = Ell();
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, new HouseStyle { Door = DoorMaterial.StainedGlass });
+
+        // Deep in the notch, clear of the block of sill that legitimately rings the building.
+        foreach (var (x, z) in new[] { (9, 11), (10, 12), (8, 12) })
+        {
+            await Assert.That(plan.Holds(x, z)).IsFalse();
+            await Assert.That(plan.Borders(x, z)).IsFalse();
+            for (var y = FloorY - 2; y <= FloorY + 2; y++)
+                await Assert.That(world.GetBlock(x, y, z).Id).IsEqualTo(Blocks.Air);
+        }
+
+        // The floor is laid over every cell the plan does hold, the crook of the two wings included.
+        foreach (var (x, z) in plan.Cells())
+            await Assert.That(world.GetBlock(x, FloorY, z).Id).IsNotEqualTo(Blocks.Air);
+    }
+
+    /// <summary>The sill runs one block proud of the outline, so it follows the plan into the crook instead of
+    /// squaring the building off. It is the pass a bounding box gets most visibly wrong.</summary>
+    [Test]
+    public async Task The_sill_rings_the_outline_rather_than_the_box()
+    {
+        var plan = Ell();
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, new HouseStyle());
+
+        var sill = new HashSet<(int X, int Z)>();
+        for (var x = plan.MinX - 2; x <= plan.MaxX + 2; x++)
+            for (var z = plan.MinZ - 2; z <= plan.MaxZ + 2; z++)
+                if (!plan.Holds(x, z) && world.GetBlock(x, FloorY, z).Id != Blocks.Air) sill.Add((x, z));
+
+        var proud = plan.Cells()
+            .SelectMany(cell => new[] { -1, 0, 1 }.SelectMany(dx => new[] { -1, 0, 1 }
+                .Select(dz => (X: cell.X + dx, Z: cell.Z + dz))))
+            .Where(cell => plan.Borders(cell.X, cell.Z)).ToHashSet();
+
+        await Assert.That(sill.OrderBy(c => c.X).ThenBy(c => c.Z))
+            .IsEquivalentTo(proud.OrderBy(c => c.X).ThenBy(c => c.Z));
+    }
+
+    /// <summary>The shell closes on more than one wing too. A roof drawn per plan cell is easy to leave gaps in,
+    /// and the walls of a plan that turns a corner are the pass most likely to leave one.</summary>
+    [Test]
+    public async Task A_house_on_two_wings_is_sealed()
+    {
+        var plan = Ell();
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, new HouseStyle { Door = DoorMaterial.StainedGlass });
+
+        // Started in the crook, which is the cell furthest from any one wing's own walls.
+        var start = (4, FloorY + 1, 5);
+        var seen = new HashSet<(int X, int Y, int Z)> { start };
+        var queue = new Queue<(int X, int Y, int Z)>([start]);
+        var escaped = false;
+        while (queue.Count > 0 && !escaped)
+        {
+            var (x, y, z) = queue.Dequeue();
+            if (x < plan.MinX - 4 || x > plan.MaxX + 4 || z < plan.MinZ - 4 || z > plan.MaxZ + 4
+                || y > FloorY + 30) { escaped = true; break; }
+            foreach (var (dx, dy, dz) in new[] { (1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1) })
+            {
+                var next = (x + dx, y + dy, z + dz);
+                if (world.GetBlock(next.Item1, next.Item2, next.Item3).Id != Blocks.Air) continue;
+                if (seen.Add(next)) queue.Enqueue(next);
+            }
+        }
+        await Assert.That(escaped).IsFalse();
+    }
+
+    /// <summary>Six posts on an L, not five: the cell where two wings meet is a corner the walls run into, and
+    /// it takes a post exactly as the five the building turns away at do.</summary>
+    [Test]
+    public async Task An_ell_stands_on_six_posts()
+    {
+        var plan = Ell();
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, new HouseStyle());
+
+        var posts = plan.Cells()
+            .Where(cell => world.GetBlock(cell.X, FloorY + 3, cell.Z).Id == Blocks.Log).ToList();
+        await Assert.That(posts.Count).IsEqualTo(6);
+        await Assert.That(posts).Contains((X: 6, Z: 6));      // the turn, where the two wings meet
+    }
+
+    /// <summary>The building is closed <b>diagonally</b> as well as squarely, which is a different question from
+    /// whether air escapes it.
+    ///
+    /// <para>Where two wings meet, the two walls running into the turn touch along a single vertical edge and
+    /// nothing else. Leave the cell behind that edge open and the building has no block where it turns and the
+    /// room shows through the seam — and a flood fill walks past it without a word, because nothing can step
+    /// diagonally. So the question is asked of the geometry instead: no cell inside the house may touch the
+    /// outside at all, corners included.</para></summary>
+    [Test]
+    public async Task No_room_touches_the_outside_across_a_diagonal()
+    {
+        var plan = Ell();
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, new HouseStyle { Door = DoorMaterial.StainedGlass });
+
+        var course = FloorY + 3;
+        foreach (var (x, z) in plan.Cells())
+        {
+            if (world.GetBlock(x, course, z).Id != Blocks.Air) continue;      // a wall or a post, not a room
+            for (var dx = -1; dx <= 1; dx++)
+                for (var dz = -1; dz <= 1; dz++)
+                    if (!plan.Holds(x + dx, z + dz))
+                        await Assert.That(world.GetBlock(x + dx, course, z + dz).Id)
+                            .IsNotEqualTo(Blocks.Air);
+        }
+    }
+
+    /// <summary>A plan with no cell off its own wall has no room in it, whatever shape it is — the refusal a
+    /// span under three blocks used to be.</summary>
+    [Test]
+    public async Task A_plan_with_no_inside_is_refused()
+    {
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, new Footprint(0, 0, 9, 1), FloorY, new HouseStyle());
+        await Assert.That(world.GetBlock(0, FloorY, 0).Id).IsEqualTo(Blocks.Air);
+    }
+
+    /// <summary>A wing may stop below the one beside it, and the storey above then walls itself along the line
+    /// they shared. Downstairs the two are one room and that line carries no wall; upstairs it is the taller
+    /// wing's own outline, so the wall is built by the ordinary storey pass rather than by a rule about
+    /// neighbours.</summary>
+    [Test]
+    public async Task A_storey_above_a_stopped_wing_walls_the_line_they_shared()
+    {
+        var plan = new Footprint([new Wing(0, 0, 10, 6, Storeys: 2), new Wing(0, 7, 6, 12, Storeys: 1)]);
+        var style = new HouseStyle
+        {
+            Storeys = [new Storey { Clear = 4 }, new Storey { Clear = 4 }],
+            Door = DoorMaterial.StainedGlass,
+        };
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, style);
+
+        // The shared line, clear of the corners at either end of it.
+        foreach (var x in new[] { 2, 3, 4 })
+        {
+            await Assert.That(world.GetBlock(x, FloorY + 2, 6).Id).IsEqualTo(Blocks.Air);      // one room below
+            await Assert.That(world.GetBlock(x, FloorY + 8, 6).Id).IsNotEqualTo(Blocks.Air);   // walled above
+        }
+
+        // And the wing itself carries no upper storey: no floor was laid over it for a room nobody built.
+        await Assert.That(world.GetBlock(3, FloorY + 5, 10).Id).IsEqualTo(Blocks.Air);
+        await Assert.That(world.GetBlock(3, FloorY + 5, 3).Id).IsNotEqualTo(Blocks.Air);       // the hall's slab
+    }
+
+    // ── the roof over more than one wing ────────────────────────────────────────────────────────────
+
+    /// <summary>A T: a hall along −z with a cross wing running north out of the middle of it. The wing is
+    /// narrower than it is deep, so its ridge runs the other way from the hall's — which is what puts one of
+    /// its gable ends against the hall and the other out in the open.</summary>
+    private static Footprint Tee() => new([new Wing(0, 5, 9, 9), new Wing(2, 0, 6, 5)]);
+
+    /// <summary>
+    /// <b>A wing's two gable ends are the same gable.</b> One ends the building and the other stands against
+    /// its neighbour, and above the eave there is nothing to tell them apart: same gable face, same slope over
+    /// it, same verge. Compared over the <b>wing's own width</b>, since the neighbour's floor legitimately runs
+    /// wider than the wing does.
+    ///
+    /// <para>It says nothing about how a roof is assembled, so it outlives any implementation of one. Asked of
+    /// the gable rather than of the whole end wall, because <b>below</b> the eave the two ends are not alike
+    /// and should not be: the open end is a corner the building turns away at and carries posts, while the end
+    /// against the hall is a wall running into the hall's own corner a cell further on. The stronger form —
+    /// the same plinth and wall too — belongs to a wing that <em>projects</em> into another and stands
+    /// mid-slope, which is not built (G172).</para>
+    /// </summary>
+    [Test]
+    public async Task A_wings_two_gable_ends_are_the_same_gable()
+    {
+        var plan = Tee();
+        var wing = plan.Wings[1];
+        var style = new HouseStyle { Form = RoofForm.Gable, Pitch = 1 };
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, style);
+
+        var eave = FloorY + style.WallCourses;
+        var seen = 0;
+        for (var x = wing.MinX; x <= wing.MaxX; x++)
+            for (var y = eave + 1; y <= FloorY + 24; y++)
+            {
+                var against = world.GetBlock(x, y, wing.MinZ);      // the end standing against the hall
+                var open = world.GetBlock(x, y, wing.MaxZ);         // the end out in the open
+                await Assert.That((x, y, against.Id, against.Data)).IsEqualTo((x, y, open.Id, open.Data));
+                if (against.Id != Blocks.Air) seen++;
+            }
+
+        // A gable that is nowhere at all would pass the comparison and mean nothing.
+        await Assert.That(seen).IsGreaterThan(0);
+    }
+
+    /// <summary>A cross-gable: the same hall, with the wing pushed <b>into</b> it rather than set against it,
+    /// so one of the wing's gable ends stands mid-slope inside the hall's roof.</summary>
+    private static Footprint Crossed() => new([new Wing(0, 5, 9, 9), new Wing(2, 0, 6, 9)]);
+
+    /// <summary>
+    /// <b>A wing's two gable ends carry the same triangle.</b> A wing drawn
+    /// through its neighbour ends on that neighbour's far wall, and its gable there — face, slope and verge —
+    /// is the gable that closes the building's other end, mirrored.
+    ///
+    /// <para><b>Below the eave they differ, and should.</b> The wing's own end is a corner the building turns
+    /// away at and stands on posts; the end on the neighbour's wall is a stretch of that wall, and the building
+    /// turns at the neighbour's corners instead — several blocks further along. What has to match is the
+    /// <b>triangle</b>, and it does; no post is added where a wall runs straight on, because that would not be
+    /// a corner. The difference below the line is asserted rather than trimmed out, so that the day it moves,
+    /// something says so.</para>
+    /// </summary>
+    [Test]
+    public async Task A_wings_two_gable_ends_carry_the_same_triangle()
+    {
+        var plan = Crossed();
+        var wing = plan.Wings[1];
+        var style = new HouseStyle { Form = RoofForm.Gable, Pitch = 1 };
+        var world = Built(plan, style);
+        var eave = FloorY + style.WallCourses;
+
+        var seen = 0;
+        for (var x = wing.MinX; x <= wing.MaxX; x++)
+            for (var y = eave + 1; y <= FloorY + 24; y++)
+            {
+                var through = world.GetBlock(x, y, wing.MaxZ);      // the end on the hall's far wall
+                var open = world.GetBlock(x, y, wing.MinZ);         // the end that closes the building
+                await Assert.That((x, y, through.Id, through.Data)).IsEqualTo((x, y, open.Id, open.Data));
+                if (through.Id != Blocks.Air) seen++;
+            }
+        await Assert.That(seen).IsGreaterThan(0);
+
+        // And below it they part exactly where the building's own corners are, which is the corner columns.
+        var turns = Enumerable.Range(wing.MinX, wing.Width)
+            .Where(x => world.GetBlock(x, eave, wing.MinZ) != world.GetBlock(x, eave, wing.MaxZ))
+            .ToList();
+        await Assert.That(turns).IsEquivalentTo(new[] { wing.MinX, wing.MaxX });
+    }
+
+    /// <summary>
+    /// <b>A wing that stops at the wall makes a T; one drawn through makes a +.</b> It is the same rule either
+    /// way and never a mode: the ridges are as long as the rectangles are, and where they cross the higher one
+    /// stands. A wing abutting the hall's wall marches into it only as far as the hall's own ridge and stops
+    /// there — nothing penetrates — so the tallest course reads as a T. The same wing drawn on to the hall's far
+    /// wall carries its ridge the whole way and the two cross, which reads as a +.
+    /// </summary>
+    [Test]
+    public async Task A_wing_stopping_short_makes_a_T_and_one_drawn_through_makes_a_plus()
+    {
+        var style = new HouseStyle { Form = RoofForm.Gable, Pitch = 1 };
+        var eave = FloorY + style.WallCourses;
+
+        int Surface(Footprint plan, int x, int z)
+        {
+            var world = Built(plan, style);
+            for (var y = FloorY + 20; y >= eave; y--)
+                if (world.GetBlock(x, y, z).Id != Blocks.Air) return y - eave;
+            return -1;
+        }
+
+        // The hall's ridge sits at z=7 and the wing's at x=4, both three courses over the eave.
+        const int hallRidge = 7, wingRidge = 4, top = 3;
+
+        // Stopped short: the wing's ridge reaches the hall's and goes no further.
+        await Assert.That(Surface(Tee(), wingRidge, hallRidge)).IsEqualTo(top);
+        await Assert.That(Surface(Tee(), wingRidge, hallRidge + 1)).IsEqualTo(top - 1);
+
+        // Drawn through: it carries on past, and out over the hall's own overhang.
+        await Assert.That(Surface(Crossed(), wingRidge, hallRidge + 1)).IsEqualTo(top);
+        await Assert.That(Surface(Crossed(), wingRidge, hallRidge + 3)).IsEqualTo(top);
+
+        // Either way the hall's own ridge survives the crossing whole.
+        foreach (var plan in new[] { Tee(), Crossed() })
+            for (var x = 0; x <= 9; x++)
+                await Assert.That(Surface(plan, x, hallRidge)).IsEqualTo(top);
+    }
+
+    private static VoxelWorld Built(Footprint plan, HouseStyle style)
+    {
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, style);
+        return world;
+    }
+
+    /// <summary>Every cell the plan stands on is roofed. The cut is what makes this worth asking: it takes the
+    /// roof a projecting wing pushes into out of the way, and taken one column too wide it opens a hole nothing
+    /// fills — the verge that was to sit there is itself standing over the hall's wall, so the rule that keeps
+    /// roof out from under a wall keeps it out too, and the building is left open to the sky down both sides of
+    /// the wing. A flood fill from inside finds it; a plan of the highest block over each column shows it at a
+    /// glance, which is how it was found.</summary>
+    [Test]
+    public async Task A_cross_gable_leaves_no_hole_where_it_cut()
+    {
+        var plan = Crossed();
+        var style = new HouseStyle { Form = RoofForm.Gable, Pitch = 1 };
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, style);
+
+        var eave = FloorY + style.WallCourses;
+        foreach (var (x, z) in plan.Cells())
+        {
+            var roofed = Enumerable.Range(eave, 20).Any(y => world.GetBlock(x, y, z).Id != Blocks.Air);
+            await Assert.That(roofed).IsTrue();
+        }
+    }
+
+    /// <summary>A roof reaches its own walls and its own overhang, and stops. A wing may not hang a stub of
+    /// itself over ground no wall of the building stands on.</summary>
+    [Test]
+    public async Task No_roof_stands_further_out_than_a_wings_own_overhang()
+    {
+        var plan = Tee();
+        var style = new HouseStyle { Form = RoofForm.Gable, Pitch = 1 };
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, style);
+
+        var reach = Math.Max(0, style.Overhang);
+        for (var x = plan.MinX - 4; x <= plan.MaxX + 4; x++)
+            for (var z = plan.MinZ - 4; z <= plan.MaxZ + 4; z++)
+            {
+                if (plan.Near(x, z, reach)) continue;
+                for (var y = FloorY; y <= FloorY + 24; y++)
+                    await Assert.That(world.GetBlock(x, y, z).Id).IsEqualTo(Blocks.Air);
+            }
+    }
+
+    /// <summary>No roof block below the wall top of whatever covers that cell — under a wall is inside the
+    /// building. It is what makes a wing that stops lower stop <em>against</em> its taller neighbour instead of
+    /// pushing a slope through its standing wall.</summary>
+    [Test]
+    public async Task A_shorter_wings_roof_stops_against_its_taller_neighbour()
+    {
+        var plan = new Footprint([new Wing(0, 0, 10, 6, Storeys: 2), new Wing(0, 7, 6, 12, Storeys: 1)]);
+        var style = new HouseStyle
+        {
+            Storeys = [new Storey { Clear = 4 }, new Storey { Clear = 4 }],
+            Form = RoofForm.Gable, Pitch = 1,
+        };
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, plan, FloorY, style);
+
+        // The hall's upper storey wall, along the line the wing gave up. Every course of it is wall, from the
+        // slab it stands on to its own eave: the wing's roof reaches the line and gets no further.
+        for (var course = 1; course <= 4; course++)
+            foreach (var x in new[] { 2, 4 })
+                await Assert.That(world.GetBlock(x, FloorY + 5 + course, 6).Id).IsNotEqualTo(Blocks.Air);
+    }
+
+    /// <summary>A material that inks a cell whose ring bends at least <paramref name="Angle"/> degrees, so a
+    /// stamped wall reports the turn it was painted with. It is what <see cref="WallFrameMaterial"/> reads, on
+    /// its own: a frame also inks the courses at the top and bottom of a wall, which would ink every cell here
+    /// and say nothing about the corner.</summary>
+    private sealed record TurnProbe(int Angle) : TerrainMaterial
+    {
+        public override (int Id, int Data) Resolve(in BucketContext ctx)
+            => (ctx.PerimeterTurn >= Angle ? Blocks.Stone : Blocks.Dirt, 0);
+    }
+
+    /// <summary>A wall reads the bend at its corners exactly as the terrain beside it reads the same outline —
+    /// one walk of one ring, so a building and the plateau it stands on cannot frame differently.
+    ///
+    /// <para>The narrow spans are the ones that carry it. A closed form sees only the corner nearest a cell, so
+    /// on a wall shorter than twice the measuring window it reports one bend where the ring turns two: over a
+    /// five-wide side it disagrees with the walk by 57° at the middle, and a five-deep house then frames six of
+    /// its fourteen inked cells differently at a threshold of ninety. The wider spans hold the other half of
+    /// the claim — that reading the ring off a walk leaves an ordinary building's corners where they were.</para>
+    /// </summary>
+    [Test]
+    [Arguments(11, 5, 60)]      // both corners of the short side inside one window
+    [Arguments(11, 5, 90)]
+    [Arguments(7, 9, 45)]
+    [Arguments(7, 9, 60)]
+    [Arguments(21, 9, 45)]
+    [Arguments(13, 13, 45)]
+    [Arguments(9, 9, 60)]
+    public async Task A_wall_bends_where_the_traced_ring_does(int width, int depth, int angle)
+    {
+        var style = new HouseStyle { Wall = RoomPart.Of(new TurnProbe(angle), 5), Post = null };
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, 0, 0, width, depth, FloorY, style);
+
+        // Any course of the wall answers, so a cell the doorway took lower down is still read at the top.
+        var inked = new HashSet<(int X, int Z)>();
+        foreach (var (x, z) in Perimeter(width, depth))
+            for (var y = FloorY + 1; y <= FloorY + style.WallCourses; y++)
+                if (world.GetBlock(x, y, z).Id == Blocks.Stone) inked.Add((x, z));
+
+        var ring = GridBoundary.TracePerimeter(Cells(width, depth));
+        var expected = GridBoundary.Turns(ring, GridBoundary.CornerWindow)
+            .Where(cell => (int)Math.Round(cell.Value) >= angle)
+            .Select(cell => cell.Key).ToHashSet();
+
+        await Assert.That(inked.OrderBy(c => c.X).ThenBy(c => c.Z))
+            .IsEquivalentTo(expected.OrderBy(c => c.X).ThenBy(c => c.Z));
+    }
+
+    private static IEnumerable<(int X, int Z)> Cells(int width, int depth)
+    {
+        for (var x = 0; x < width; x++)
+            for (var z = 0; z < depth; z++)
+                yield return (x, z);
+    }
+
+    private static IEnumerable<(int X, int Z)> Perimeter(int width, int depth)
+        => Cells(width, depth).Where(c => c.X == 0 || c.X == width - 1 || c.Z == 0 || c.Z == depth - 1);
 }

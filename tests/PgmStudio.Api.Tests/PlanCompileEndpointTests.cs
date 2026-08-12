@@ -17,8 +17,7 @@ public sealed class PlanCompileEndpointTests
     [Test]
     public async Task Valid_plan_compiles_to_a_layout_and_intent()
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var resp = await client.PostAsync("/api/plan/compile",
             new StringContent(ReadSeed("base-2wool.plan.json"), Encoding.UTF8, "application/json"));
@@ -42,8 +41,7 @@ public sealed class PlanCompileEndpointTests
     [Test]
     public async Task Structural_errors_block_the_compile_with_422()
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         // A different-surface overlap is a structural error → the compile is blocked, findings returned.
         const string plan = """
@@ -64,8 +62,7 @@ public sealed class PlanCompileEndpointTests
     [Test]
     public async Task Lint_alone_does_not_block_the_compile()
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         // The seeds intentionally trip lint rules (which never block); they must still compile 200.
         var resp = await client.PostAsync("/api/plan/compile",
@@ -76,8 +73,7 @@ public sealed class PlanCompileEndpointTests
     [Test]
     public async Task Malformed_body_is_a_400_not_a_500()
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var resp = await client.PostAsync("/api/plan/compile", new StringContent("not a plan", Encoding.UTF8, "application/json"));
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);

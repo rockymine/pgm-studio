@@ -123,18 +123,12 @@ public sealed class TerrainProfile
         {
             var ring = GridBoundary.TracePerimeter(landmass);
             foreach (var (cell, arc) in ring) _perimeterArc[cell] = arc;
-            foreach (var (cell, turn) in GridBoundary.Turns(ring, CornerWindow))
+            foreach (var (cell, turn) in GridBoundary.Turns(ring, GridBoundary.CornerWindow))
                 _perimeterTurn[cell] = (int)Math.Round(turn);
             // Which way the face is going as well as how sharply it bends — what a block with a direction of
             // its own is laid along, measured over the same window so the two agree about the same stretch.
-            foreach (var (cell, run) in GridBoundary.Runs(ring, CornerWindow))
+            foreach (var (cell, run) in GridBoundary.Runs(ring, GridBoundary.CornerWindow))
                 _perimeterRun[cell] = run;
         }
     }
-
-    /// <summary>The span, in perimeter cells either side, that a bend is measured over. It is the scale at which
-    /// "corner" is a question at all: under about four the raster's own staircase reads as turning, and above it
-    /// no arc tighter than roughly that radius can still count as curved. Five sits between the two, holding a
-    /// straight shallow edge at a few degrees while leaving a right angle at ninety.</summary>
-    private const int CornerWindow = 5;
 }

@@ -34,6 +34,40 @@ public static class HousePresets
     private static readonly TerrainMaterial DarkOak = new SolidMaterial(Blocks.Planks, DarkOakPlanks);
     private static readonly TerrainMaterial SpruceLog = new SolidMaterial(Blocks.Log, Spruce);
 
+    // ── the terrace row's own vocabulary ──────────────────────────────────────────────────────────────
+    private const int PolishedAndesite = 6;                     // the nibble of block 1
+    private const int CobblestoneWall = 139, StoneBrickBlock = 98;
+    private const int SmoothSandstone = 2;                      // the nibble of block 24
+    private const int StoneBrickStairs = 109, SandstoneStairs = 128;
+    private const int SpruceFence = 189, SpruceSlab = 1;        // 1 is the spruce nibble of block 126
+    private const int StoneBrickSlab = 5;                       // 5 is the stone-brick nibble of block 44
+
+    /// <summary>
+    /// The masonry the whole row is built out of: stone and <b>polished andesite</b>, alternating a block at a
+    /// time.
+    ///
+    /// <para>They are the pair to reach for because they differ in <em>texture and not in hue</em> — both are
+    /// the same grey, one speckled and one flat — so the board reads as coursed stonework rather than as a
+    /// chequerboard. That is the whole rule for checkering a wall: a checker states the grid it is laid on, so
+    /// the two squares have to be near enough in value that the grid is a texture. Two blocks a player can name
+    /// apart across a courtyard — cobble against dark oak, white against black wool — make a draughtboard, and a
+    /// draughtboard is the one pattern that can never be mistaken for a building.</para>
+    ///
+    /// <para>Laid at <b>size 1</b>. The board is read off the wall's own perimeter arc and its height, so a
+    /// one-block square carries the alternation round the corners without a seam, and anything larger starts to
+    /// read as panels.</para>
+    /// </summary>
+    private static readonly TerrainMaterial Masonry = new CheckerMaterial(1,
+        new SolidMaterial(Blocks.Stone),
+        new SolidMaterial(Blocks.Stone, PolishedAndesite));
+
+    /// <summary>The same two stones scattered rather than boarded — a rubble plinth. The checker is the dressed
+    /// wall and this is the footing under it, which is the order a real building puts them in.</summary>
+    private static readonly TerrainMaterial Rubble = new NoiseMaterial(
+        Seed: 0x3C1D, Scale: 2, Octaves: 1,
+        Stops: [new SolidMaterial(Blocks.Cobblestone), new SolidMaterial(Blocks.Stone, Andesite)],
+        Rise: 2);
+
     /// <summary>One house on the row: what to call it, the style, and the footprint it is drawn at.
     ///
     /// <para>The footprint is here rather than on the style because <b>a style may never carry one</b> — a
@@ -41,7 +75,14 @@ public static class HousePresets
     /// was designed at travels beside it and is used when it is placed.</para></summary>
     public readonly record struct House(string Name, HouseStyle Style, int Width, int Depth);
 
-    public static IReadOnlyList<House> All => [Alpine, Desert, Diorite, Townside, Stilts];
+    public static IReadOnlyList<House> All =>
+        [Alpine, Desert, Diorite, Townside, Stilts, Cottage, Longhouse, Terrace, Counting, Workshop];
+
+    /// <summary>The five that are one settlement rather than five samples: a cottage, a hall, a terrace, a
+    /// counting house and a workshop, all cut from the same <see cref="Masonry"/> and the same spruce, so a
+    /// village built out of them reads as one place. Each is under the 192 blocks of footprint a dressing
+    /// building is allowed, so every one of them can be dragged onto a map.</summary>
+    public static IReadOnlyList<House> Village => [Cottage, Longhouse, Terrace, Counting, Workshop];
 
     /// <summary>
     /// The alpine mining house: a spruce-framed cottage on a mixed stone plinth.
@@ -318,4 +359,324 @@ public static class HousePresets
             Townside.Style.Storeys[1],
         ],
     }, Width: 7, Depth: 9);
+
+    // ══ the village ═══════════════════════════════════════════════════════════════════════════════════
+    // Five buildings meant to stand together. They share one masonry, one timber and one roof line, so what
+    // separates them is what each is *for* — a cottage is small and steep, a hall is long and low, a counting
+    // house is tall and narrow — rather than what each is made of. A settlement whose buildings differ in
+    // material reads as five settlements; one whose buildings differ in proportion reads as a village.
+
+    /// <summary>
+    /// The cottage: one room of checkered masonry under a steep gable, with a timbered face at each end.
+    ///
+    /// <para>It is the smallest of the five and the one that states the row's palette plainly — a rubble plinth
+    /// two courses high, <see cref="Masonry"/> above it, and spruce for everything the roof touches. The gable
+    /// is spruce rather than more stone because that is the one move nearly every hand-built house makes: the
+    /// wall is what holds the building up and the gable is what closes it, and saying so in a second material
+    /// is what stops a small building reading as a box with a lid.</para>
+    ///
+    /// <para>Its windows are <see cref="WindowForm.Arched"/> — two upside-down stairs rounding the top corners
+    /// of a 2×2 hole. On a nine-wide face the seater lays one per side clear of both posts.</para>
+    /// </summary>
+    public static House Cottage => new("cottage", new HouseStyle
+    {
+        Form = RoofForm.Gable,
+        Pitch = 1,
+        Overhang = 1,
+        RidgeCap = true,
+        Roof = DarkOak,
+        Verge = Spruces,
+        Gable = Spruces,
+
+        Post = SpruceLog,
+        Wall = new RoomPart(
+        [
+            new RoomCourse(Rubble, 2),
+            new RoomCourse(Masonry, 3),
+        ], Extent: 5),
+
+        Windows = new WindowStyle
+        {
+            Form = WindowForm.Arched, Block = StoneBrickStairs, Width = 2, Height = 2, Sill = 3, Spacing = 3,
+        },
+        GableWindows = new WindowStyle { Form = WindowForm.Open, Width = 1, Height = 1, Sill = 2 },
+
+        Floor = RoomPart.Of(Spruces),
+        Sill = new SolidMaterial(Blocks.Cobblestone),
+        Door = DoorMaterial.Air,
+        DoorWidth = 2,
+        DoorHeight = 3,
+        DoorHead = new DoorHeadStyle
+        {
+            Form = DoorHeadForm.Arched, Block = StoneBrickStairs,
+            Fill = DoorHeadFill.UpperSlab, FillBlock = StoneSlab, FillData = StoneBrickSlab,
+        },
+    }, Width: 9, Depth: 11);
+
+    /// <summary>
+    /// The longhouse: a hall for the workforce, twenty-one blocks along and nine across, with a <b>row of
+    /// arched windows</b> down each long wall.
+    ///
+    /// <para>The row is the point, and it is what a long building is for. The seater divides the run between
+    /// the two corner posts and spreads as many windows as fit at the spacing asked for, centred on that run —
+    /// so the row is symmetric about the middle of the wall rather than starting at one end and stopping when
+    /// it runs out, and lengthening the building adds windows instead of stretching the gaps: four a side at
+    /// twenty-one wide, five at twenty-five, six at twenty-nine.</para>
+    ///
+    /// <para><b>It is entered at the gable end, and the row is why.</b> Windows are spread and centred on a
+    /// wall's run, and a doorway is centred on the same run, so on a long wall the two land on each other — and
+    /// a seat a door meets is dropped rather than shifted. Entered in the middle of its long side this building
+    /// loses the two windows either side of its door and reads as a row with a hole punched in it; entered at
+    /// the end it keeps all four a side, and a hall is entered at the end anyway.</para>
+    ///
+    /// <para>Its proportions are the other half. The roof is measured across the building's <em>shorter</em>
+    /// side whatever its length, so a hall gets a long ridge and not a tall one, and the pitch is left at one:
+    /// a steep roof on a building this long would be all roof.</para>
+    /// </summary>
+    public static House Longhouse => new("longhouse", new HouseStyle
+    {
+        Form = RoofForm.Gable,
+        DoorEdge = RoomEdge.NegX,                               // the gable end: the long walls keep their rows
+        Pitch = 1,                                              // long and low; a hall is not a steeple
+        Overhang = 1,
+        RidgeCap = true,
+        Roof = Spruces,
+        Verge = DarkOak,
+        Gable = DarkOak,
+
+        Post = SpruceLog,
+        Wall = new RoomPart(
+        [
+            new RoomCourse(Rubble, 1),
+            new RoomCourse(Masonry, 2),
+            new RoomCourse(Spruces, 3),
+        ], Extent: 6),
+
+        // Cut into the spruce only, so the row sits in the boarding above the stonework rather than across the
+        // line where the two meet — the seam is where an opening reads as damage.
+        Windows = new WindowStyle
+        {
+            Form = WindowForm.Arched, Block = SpruceStairs, Width = 2, Height = 2, Sill = 4, Spacing = 2,
+            HostBlock = Blocks.Planks, HostData = SprucePlanks,
+        },
+
+        Floor = RoomPart.Of(Spruces),
+        Sill = new SolidMaterial(Blocks.Cobblestone),
+        Beams = new BeamStyle { Block = Blocks.Log, Data = Spruce, Reach = 1 },
+        Door = DoorMaterial.Air,
+        DoorWidth = 3,
+        DoorHeight = 4,                                         // a hall takes a cart, not a person
+        DoorHead = new DoorHeadStyle
+        {
+            Form = DoorHeadForm.Arched, Block = SpruceStairs,
+            Fill = DoorHeadFill.UpperSlab, FillBlock = Blocks.WoodenSlab, FillData = SpruceSlab,
+        },
+    }, Width: 21, Depth: 9);
+
+    /// <summary>
+    /// The terrace house: a room with an open deck on top of it, walled by a parapet and roofed by nothing.
+    ///
+    /// <para><b>It needed no new machinery, and that is the interesting part.</b> Air is a gap rather than a
+    /// block everywhere in a style, so every piece of this is something taken away. The upper storey's wall is
+    /// one course of cobblestone wall over two courses of air, which is a parapet. Its post is air, or four
+    /// columns would stand at the corners of the deck. And the lid is a <see cref="RoofForm.Flat"/> roof laid
+    /// in air, which writes nothing at all — so the top of the stack is open to the sky.</para>
+    ///
+    /// <para>What holds it up is the storey below's <see cref="Storey.Ceiling"/>: the slab across the interior
+    /// is the deck a player stands on, and the ladder that any stack of storeys carries is the way up onto it.
+    /// The one cost is that the parapet storey still states the three blocks of clear a storey may not go under,
+    /// so the building reserves two courses it never writes (G171).</para>
+    /// </summary>
+    public static House Terrace => new("terrace", new HouseStyle
+    {
+        Form = RoofForm.Flat,
+        Overhang = 0,
+        Roof = new SolidMaterial(Blocks.Air),                   // no lid: the top of the stack is the sky
+        Verge = new SolidMaterial(Blocks.Air),
+
+        Post = new SolidMaterial(StoneBrickBlock),
+        Storeys =
+        [
+            new Storey
+            {
+                Clear = 5,
+                // The last course is the cornice: the deck's own line, said on the outside of the building.
+                // Without it a terrace is a grey box with a lip, and nothing tells a player where the floor is.
+                Wall = new RoomPart(
+                [
+                    new RoomCourse(Rubble, 1),
+                    new RoomCourse(Masonry, 4),
+                    new RoomCourse(new SolidMaterial(StoneBrickBlock), 1),
+                ], Extent: 6),
+                Windows = new WindowStyle
+                {
+                    Form = WindowForm.Arched, Block = StoneBrickStairs,
+                    Width = 2, Height = 3, Sill = 2, Spacing = 3,
+                },
+                Ceiling = new SolidMaterial(StoneSlab, StoneBrickSlab),   // the deck underfoot
+            },
+            new Storey
+            {
+                Clear = 3,                                      // the least a storey may state
+                Wall = new RoomPart(
+                [
+                    new RoomCourse(new SolidMaterial(CobblestoneWall), 1),
+                    new RoomCourse(new SolidMaterial(Blocks.Air), 2),
+                ], Extent: 3),
+                Post = new SolidMaterial(Blocks.Air),           // nothing standing on the deck
+                Windows = new WindowStyle(),                    // no wall left to cut one through
+            },
+        ],
+
+        Floor = RoomPart.Of(new SolidMaterial(StoneBrickBlock)),
+        Sill = new SolidMaterial(Blocks.Cobblestone),
+        Door = DoorMaterial.Air,
+        DoorWidth = 2,
+        DoorHeight = 3,
+        DoorHead = new DoorHeadStyle
+        {
+            Form = DoorHeadForm.Arched, Block = StoneBrickStairs,
+            Fill = DoorHeadFill.UpperSlab, FillBlock = StoneSlab, FillData = StoneBrickSlab,
+        },
+    }, Width: 11, Depth: 9);
+
+    /// <summary>
+    /// The counting house: three storeys on a nine-by-nine footprint under a hip, the settlement's tall one.
+    ///
+    /// <para>It differs from its neighbours in <b>proportion rather than palette</b> — the same masonry, the
+    /// same spruce, stacked instead of spread. A hip is the roof for it because a hip comes down to the wall
+    /// line on all four sides and so has no gable face to fill, which is what a building seen from every side at
+    /// once wants; over a square footprint it is a pyramid, since the ridge is whatever run the longer side has
+    /// left over and a square leaves none.</para>
+    ///
+    /// <para>The storeys narrow as they rise, in weight rather than in plan: stone at the bottom, boarding above
+    /// it, and smooth sandstone at the top where the wall carries least. The beam ends run out at each seam, so
+    /// the building shows its floors from outside.</para>
+    /// </summary>
+    public static House Counting => new("counting house", new HouseStyle
+    {
+        Form = RoofForm.Hip,
+        Pitch = 1,
+        Overhang = 1,
+        RoofSlab = StoneSlab,                                   // half courses: the slope a slab is for
+        RoofSlabData = StoneBrickSlab,
+        Roof = new SolidMaterial(StoneBrickBlock),
+        Verge = new SolidMaterial(StoneBrickBlock),
+
+        Post = SpruceLog,
+        Beams = new BeamStyle { Block = Blocks.Log, Data = Spruce, Reach = 1 },
+        Storeys =
+        [
+            new Storey
+            {
+                Clear = 4,
+                Wall = new RoomPart([new RoomCourse(Rubble, 1), new RoomCourse(Masonry, 3)], Extent: 4),
+                Windows = new WindowStyle
+                {
+                    Form = WindowForm.Arched, Block = StoneBrickStairs,
+                    Width = 2, Height = 2, Sill = 2, Spacing = 3,
+                },
+                Ceiling = new SolidMaterial(Blocks.Planks, SprucePlanks),
+            },
+            new Storey
+            {
+                Clear = 3,
+                Wall = RoomPart.Of(Spruces, 3),
+                Windows = new WindowStyle
+                {
+                    Form = WindowForm.Pane, Block = StainedPane, Data = White,
+                    Width = 2, Height = 2, Sill = 1, Spacing = 3,
+                },
+                Ceiling = new SolidMaterial(Blocks.Planks, SprucePlanks),
+            },
+            new Storey
+            {
+                Clear = 3,
+                Wall = RoomPart.Of(new SolidMaterial(Blocks.Sandstone, SmoothSandstone), 3),
+                Windows = new WindowStyle
+                {
+                    Form = WindowForm.Arched, Block = SandstoneStairs,
+                    Width = 2, Height = 2, Sill = 1, Spacing = 3,
+                },
+            },
+        ],
+
+        Floor = RoomPart.Of(new SolidMaterial(StoneBrickBlock)),
+        Sill = new SolidMaterial(Blocks.Cobblestone),
+        Door = DoorMaterial.Air,
+        DoorWidth = 2,
+        DoorHeight = 3,
+        DoorHead = new DoorHeadStyle
+        {
+            Form = DoorHeadForm.Arched, Block = StoneBrickStairs,
+            Fill = DoorHeadFill.UpperSlab, FillBlock = StoneSlab, FillData = StoneBrickSlab,
+        },
+    }, Width: 9, Depth: 9);
+
+    /// <summary>
+    /// The workshop: a shed-roofed shop with its front given up to a porch.
+    ///
+    /// <para>A shed is one plane falling toward the door, which is what an outbuilding wears and what makes it
+    /// read as secondary to the hall beside it without being smaller than one. The porch is a strip of the
+    /// building's own footprint the walls stand back from — taken <em>out</em> of the house rather than added to
+    /// it — with the deck, the posts and the rail on the ground the walls gave up, and its own little canopy
+    /// seated to clear the doorway it fronts.</para>
+    ///
+    /// <para>Its floor is the one in the row that is divided in plan: a border of stone brick hugging the walls
+    /// and spruce across the rest, which is the zoning a workshop floor actually has.</para>
+    /// </summary>
+    public static House Workshop => new("workshop", new HouseStyle
+    {
+        Form = RoofForm.Shed,
+        Pitch = 1,
+        Overhang = 1,
+        // A shed climbs its whole shorter span where a gable climbs half of one, so on anything but a shallow
+        // building it comes out all roof — eleven courses over a six-course wall. Half courses are the lever:
+        // the slope travels one half per block instead of two, so the same lean-to costs half the height.
+        RoofSlab = Blocks.WoodenSlab,
+        RoofSlabData = SpruceSlab,
+        Roof = DarkOak,
+        Verge = Spruces,
+        Gable = Spruces,
+
+        Post = SpruceLog,
+        Wall = new RoomPart(
+        [
+            new RoomCourse(Rubble, 1),
+            new RoomCourse(Masonry, 2),
+            new RoomCourse(Spruces, 3),
+        ], Extent: 6),
+
+        Windows = new WindowStyle
+        {
+            Form = WindowForm.SlabBanded, Block = Blocks.WoodenSlab, Data = SpruceSlab,
+            Width = 3, Sill = 4, Spacing = 3,
+            HostBlock = Blocks.Planks, HostData = SprucePlanks,
+        },
+
+        Porch = new PorchStyle
+        {
+            Depth = 2,
+            Inset = 1,                                          // a feature of the front, not the front itself
+            Roof = RoofForm.Shed,
+            RailBlock = SpruceFence,
+        },
+
+        Floor = RoomPart.Of(Spruces),
+        Surface = new FloorSurface
+        {
+            Field = Spruces,
+            Border = new SolidMaterial(StoneBrickBlock),
+            BorderWidth = 1,
+        },
+        Sill = new SolidMaterial(Blocks.Cobblestone),
+        Door = DoorMaterial.Air,
+        DoorWidth = 3,
+        DoorHeight = 3,
+        DoorHead = new DoorHeadStyle
+        {
+            Form = DoorHeadForm.Arched, Block = SpruceStairs,
+            Fill = DoorHeadFill.UpperSlab, FillBlock = Blocks.WoodenSlab, FillData = SpruceSlab,
+        },
+    }, Width: 13, Depth: 11);
 }

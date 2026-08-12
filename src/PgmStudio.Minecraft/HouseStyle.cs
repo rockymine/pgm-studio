@@ -332,6 +332,21 @@ public sealed record HouseStyle
     /// whole of it.</summary>
     public PorchStyle? Porch { get; init; }
 
+    /// <summary>The wall this building fronts on — where it cuts its own doorway, and the wall a
+    /// <see cref="RoofForm.Shed"/> falls toward. Null leaves it to the proportions, which is the long side.
+    ///
+    /// <para>It matters most on a <b>hall</b>, and the reason is the row of windows. A wall's windows are spread
+    /// and centred on the run between its corners, and a doorway is centred on the same run, so on a long
+    /// building the two land on each other: the seats a door meets are dropped rather than shifted, and a
+    /// twenty-one-wide wall entered in the middle loses the two windows either side of its door and reads as a
+    /// row with a hole in it. Entering at the gable end instead — which is what a hall does anyway — leaves both
+    /// long walls to their windows and puts the door where the short wall has no row to break.</para>
+    ///
+    /// <para>A frame's doors still win over it: where a room states its entries the entry contract is the
+    /// frame's, and this is only what a building picks when nothing has picked for it. A
+    /// <see cref="PorchStyle.Edge"/> wins too, since a porch names the wall it fronts.</para></summary>
+    public RoomEdge? DoorEdge { get; init; }
+
     public RoofForm Form { get; init; } = RoofForm.Gable;
 
     /// <summary>Whether the line the slopes meet on is laid in the <see cref="Verge"/> rather than the roof's
@@ -408,7 +423,7 @@ public sealed record HouseStyle
            && Surface == other.Surface && Windows == other.Windows
            && GableWindows == other.GableWindows
            && Storeys.SequenceEqual(other.Storeys)
-           && Porch == other.Porch && Form == other.Form
+           && Porch == other.Porch && DoorEdge == other.DoorEdge && Form == other.Form
            && RidgeCap == other.RidgeCap && RoofHole == other.RoofHole
            && Overhang == other.Overhang && Pitch == other.Pitch
            && RoofSlab == other.RoofSlab && RoofSlabData == other.RoofSlabData
@@ -423,7 +438,7 @@ public sealed record HouseStyle
         hash.Add(Roof); hash.Add(Verge); hash.Add(Floor);
         hash.Add(Surface); hash.Add(Windows); hash.Add(GableWindows);
         foreach (var storey in Storeys) hash.Add(storey);
-        hash.Add(Porch); hash.Add(Form);
+        hash.Add(Porch); hash.Add(DoorEdge); hash.Add(Form);
         hash.Add(RidgeCap); hash.Add(RoofHole);
         hash.Add(Overhang); hash.Add(Pitch); hash.Add(RoofSlab); hash.Add(RoofSlabData);
         hash.Add(Beams);
@@ -498,7 +513,8 @@ public static class HouseHeights
         var field = new RoofField(
             style.Form, 0, 0, Math.Max(0, width - 1), Math.Max(0, depth - 1),
             Math.Max(0, style.Overhang), wallTop + 1, Math.Max(1, style.Pitch),
-            front ?? HouseStamper.DefaultFront(width, depth), style.RoofInHalves);
+            front ?? style.Porch?.Edge ?? style.DoorEdge ?? HouseStamper.DefaultFront(width, depth),
+            style.RoofInHalves);
         return field.Peak;
     }
 }

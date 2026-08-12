@@ -21,24 +21,23 @@ namespace PgmStudio.Api.Tests;
 [NotInParallel("api-db")]
 public sealed class CoreSuggestionsEndpointTests
 {
-    private static async Task<(ApiTestFactory Factory, HttpClient Client, string Slug, long MapId)> SetUpAsync()
+    private static async Task<(HttpClient Client, string Slug, long MapId)> SetUpAsync()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        var factory = new ApiTestFactory();
-        var client = factory.CreateClient();
+        var client = ApiTestFactory.Shared.CreateClient();
 
         var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Core Map" }))
             .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
 
-        using var scope = factory.Services.CreateScope();
+        using var scope = ApiTestFactory.Shared.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PgmDb>();
         var mapId = await db.Maps.Where(m => m.Slug == slug).Select(m => m.Id).FirstAsync();
-        return (factory, client, slug, mapId);
+        return (client, slug, mapId);
     }
 
-    private static async Task WriteAsync(ApiTestFactory factory, long mapId, params CoreSuggestion[] cores)
+    private static async Task WriteAsync(long mapId, params CoreSuggestion[] cores)
     {
-        using var scope = factory.Services.CreateScope();
+        using var scope = ApiTestFactory.Shared.Services.CreateScope();
         await CoreCandidateStore.WriteAsync(scope.ServiceProvider.GetRequiredService<PgmDb>(), mapId, cores);
     }
 
@@ -48,9 +47,8 @@ public sealed class CoreSuggestionsEndpointTests
     [Test]
     public async Task Every_measured_parameter_survives_the_read()
     {
-        var (factory, client, slug, mapId) = await SetUpAsync();
-        await using var _ = factory;
-        await WriteAsync(factory, mapId, Core(100, 200, size: 7, shell: 2, rise: 9, openTop: true));
+        var (client, slug, mapId) = await SetUpAsync();
+        await WriteAsync(mapId, Core(100, 200, size: 7, shell: 2, rise: 9, openTop: true));
 
         var body = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/core-suggestions");
         var core = body.GetProperty("cores").EnumerateArray().Single();
@@ -72,9 +70,8 @@ public sealed class CoreSuggestionsEndpointTests
     [Test]
     public async Task A_drawn_box_narrows_the_list_to_the_casings_it_touches()
     {
-        var (factory, client, slug, mapId) = await SetUpAsync();
-        await using var _ = factory;
-        await WriteAsync(factory, mapId, Core(0, 0), Core(500, 500));
+        var (client, slug, mapId) = await SetUpAsync();
+        await WriteAsync(mapId, Core(0, 0), Core(500, 500));
 
         var all = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/core-suggestions");
         await Assert.That(all.GetProperty("cores").GetArrayLength()).IsEqualTo(2);
@@ -90,8 +87,7 @@ public sealed class CoreSuggestionsEndpointTests
     {
         // A map with no proposals still needs them: a core placed by hand takes its size, shell, float and
         // leak from here, and the client cannot reach ObjectiveDefaults.
-        var (factory, client, slug, _) = await SetUpAsync();
-        await using var __ = factory;
+        var (client, slug, _) = await SetUpAsync();
 
         var body = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/core-suggestions");
         await Assert.That(body.GetProperty("cores").GetArrayLength()).IsEqualTo(0);
@@ -107,8 +103,7 @@ public sealed class CoreSuggestionsEndpointTests
     [Test]
     public async Task An_unknown_map_is_not_found()
     {
-        var (factory, client, _, _) = await SetUpAsync();
-        await using var __ = factory;
+        var (client, _, _) = await SetUpAsync();
         var resp = await client.GetAsync("/api/map/no-such-map/core-suggestions");
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }

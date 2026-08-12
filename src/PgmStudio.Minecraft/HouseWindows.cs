@@ -27,6 +27,17 @@ public enum WindowForm
     /// one is cut and left, which is what a warm-weather house does and what a wall wants where the light
     /// matters more than the weather. Its size is entirely the author's, since no form is imposing one.</summary>
     Open,
+
+    /// <summary>An opening whose <b>top course is rounded off</b>: an upside-down stair in each of its two top
+    /// corners, raised half outward so the quarter each is missing faces into the opening, and the courses under
+    /// them left clear. It is <see cref="DoorHeadForm.Arched"/> doing its trick for a window instead of a
+    /// doorway — the same two stairs taking the squareness out of the same square hole.
+    ///
+    /// <para>Two wide at the least, because the whole of it is two corners and one cell cannot hold both, and
+    /// two tall at the least, because a head that took the only course would leave an arch over nothing. Wider
+    /// than two it spans the middle between the corners the way a door head does; taller than two the courses
+    /// below the head are the light.</para></summary>
+    Arched,
 }
 
 /// <summary>
@@ -79,6 +90,9 @@ public sealed record WindowStyle
     {
         WindowForm.StairLattice => (2, 2),
         WindowForm.SlabBanded => (Math.Max(2, Width), 3),
+        // Two corners are the whole of an arch and one cell cannot hold both; and a head that took the only
+        // course would be an arch over nothing, so there is always a course of light under it.
+        WindowForm.Arched => (Math.Max(2, Width), Math.Max(2, Height)),
         _ => (Math.Max(1, Width), Math.Max(1, Height)),
     };
 
@@ -183,10 +197,12 @@ public sealed record DoorHeadStyle
     }
 }
 
-/// <summary>One window's place in a wall: the <see cref="Edge"/> it is cut through, the low along-axis block
-/// coordinate (x for a Z edge, z for an X edge), and its size in blocks. <see cref="Sill"/> counts courses up
-/// from the floor, so it is the same number a style asked for.</summary>
-public readonly record struct WindowSeat(RoomEdge Edge, int Lo, int Width, int Sill, int Height);
+/// <summary>One window's place in a wall: the <see cref="Wall"/> it is cut through, the low along-axis block
+/// coordinate along that run (x for a wall facing ±z, z for one facing ±x), and its size in blocks.
+/// <see cref="Sill"/> counts courses up from the floor, so it is the same number a style asked for. The seat
+/// carries the run rather than a facing, so it knows the line its wall stands on and needs no box to be cut
+/// against.</summary>
+public readonly record struct WindowSeat(WallSegment Wall, int Lo, int Width, int Sill, int Height);
 
 /// <summary>
 /// Where a house's windows go and what is written into them.
@@ -200,16 +216,20 @@ public readonly record struct WindowSeat(RoomEdge Edge, int Lo, int Width, int S
 /// </summary>
 public static class HouseWindows
 {
-    /// <summary>Every window seat on the four walls of a footprint, in edge order. Empty when the style asks
-    /// for none, when the wall is too short to hold one clear of its corners, or when the opening would not fit
-    /// between the floor and the wall's last course.</summary>
+    /// <summary>Every window seat on a building's walls, run by run in the order the plan lists them. Empty
+    /// when the style asks for none, when the wall is too short to hold one clear of its corners, or when the
+    /// opening would not fit between the floor and the wall's last course.
+    ///
+    /// <para>A run rather than a facing is what a window is seated in, so a building that turns a corner seats
+    /// each of its walls on its own length: an L's six walls are six runs, and the short one beside the turn
+    /// takes what it can hold rather than what the whole side could.</para></summary>
     /// <param name="hosts">Whether the wall at one cell of a run is a block the window may be cut into, or
     /// null where the style names no host and any cell will do. Passed as a question rather than as the wall
     /// itself: the seater decides <em>where</em> a window goes and has no business knowing what a wall is made
     /// of, and the caller that does know can answer by resolving it.</param>
     public static List<WindowSeat> Seats(
-        WindowStyle style, int minX, int minZ, int maxX, int maxZ,
-        int wallExtent, IReadOnlyList<RoomDoor>? doors, Func<RoomEdge, int, bool>? hosts = null)
+        WindowStyle style, IReadOnlyList<WallSegment> walls,
+        int wallExtent, IReadOnlyList<WallOpening>? doors, Func<WallSegment, int, bool>? hosts = null)
     {
         var seats = new List<WindowSeat>();
         if (style.Form == WindowForm.None) return seats;
@@ -218,32 +238,36 @@ public static class HouseWindows
         var sill = Math.Max(1, style.Sill);
         if (sill + height - 1 > wallExtent) return seats;      // no wall left above the sill to open
 
-        foreach (var edge in new[] { RoomEdge.NegZ, RoomEdge.PosZ, RoomEdge.NegX, RoomEdge.PosX })
+        foreach (var wall in walls)
         {
-            var alongMin = edge is RoomEdge.NegZ or RoomEdge.PosZ ? minX : minZ;
-            var alongMax = edge is RoomEdge.NegZ or RoomEdge.PosZ ? maxX : maxZ;
             // Two blocks in from each end rather than one: clearing the corner cell still leaves an opening
             // hard against the corner post, and a window meeting the post reads as a hole knocked through the
             // frame. The post wants a block of wall beside it before anything is taken out.
-            int seatLo = alongMin + 2, seatHi = alongMax - 2;
+            var (seatLo, seatHi) = wall.Seat;
             var placed = style.HostBlock >= 0 && hosts is not null
-                ? Panels(seatLo, seatHi, width, Math.Max(0, style.Spacing), along => hosts(edge, along))
+                ? Panels(seatLo, seatHi, width, Math.Max(0, style.Spacing), along => hosts(wall, along))
                 : Spread(seatLo, seatHi, width, Math.Max(0, style.Spacing));
             foreach (var lo in placed)
-                if (!MeetsDoor(doors, edge, lo, width))
-                    seats.Add(new WindowSeat(edge, lo, width, sill, height));
+                if (!MeetsDoor(doors, wall, lo, width))
+                    seats.Add(new WindowSeat(wall, lo, width, sill, height));
         }
         return seats;
     }
 
-    /// <summary>The low coordinates of the windows a <b>banded</b> wall takes: one centred in each unbroken
-    /// panel of the host block that is wide enough to hold it, skipping a panel that stands closer than
-    /// <paramref name="spacing"/> to the window already placed.
+    /// <summary>The low coordinates of the windows a wall with a named host takes: each unbroken panel of the
+    /// host block <b>spread and centred exactly as a whole wall is</b>, skipping a panel whose first window
+    /// would stand closer than <paramref name="spacing"/> to the one already placed.
     ///
     /// <para>Where <see cref="Spread"/> divides the run and lets the material fall where it may, this lets the
-    /// material divide the run. It is the difference between a window that happens to land on planks and a
-    /// window that is <em>in</em> the planks — and on a wall whose bands are four cells and whose spacing is
-    /// five, the first almost never happens.</para></summary>
+    /// material divide the run first and then divides each piece. It is the difference between a window that
+    /// happens to land on planks and a window that is <em>in</em> the planks — and on a wall whose bands are
+    /// four cells and whose spacing is five, the first almost never happens.</para>
+    ///
+    /// <para><b>The panel is spread rather than given a single centred window, and a uniform wall is why.</b>
+    /// A host names a block, not a band: a wall that is one material at the sill course resolves to a single
+    /// panel the length of the whole run, and one window centred in that is one window on a twenty-one-block
+    /// hall. Spreading each panel gives the banded wall exactly what it had — a two-cell band holds one
+    /// two-wide window and no more — and gives the uniform wall the row it was always asking for.</para></summary>
     private static IEnumerable<int> Panels(int runLo, int runHi, int width, int spacing, Func<int, bool> hosts)
     {
         // Tracked as "is there one yet" rather than as a sentinel coordinate: a sentinel far enough below the
@@ -257,17 +281,13 @@ public static class HouseWindows
             var end = at;
             while (end + 1 <= runHi && hosts(end + 1)) end++;
 
-            // The panel, centred — what is left over is split between its two ends, so a window sits in the
-            // middle of its band rather than hard against whichever edge the walk reached first.
-            var span = end - at + 1;
-            if (span >= width)
+            foreach (var lo in Spread(at, end, width, spacing))
             {
-                var lo = at + (span - width) / 2;
-                if (!placed || lo - lastEnd > spacing)
-                {
-                    yield return lo;
-                    (placed, lastEnd) = (true, lo + width - 1);
-                }
+                // Only the seam between two panels can be too tight: within one, the spread already put a
+                // clear <paramref name="spacing"/> between neighbours.
+                if (placed && lo - lastEnd <= spacing) continue;
+                yield return lo;
+                (placed, lastEnd) = (true, lo + width - 1);
             }
             at = end;
         }
@@ -287,13 +307,15 @@ public static class HouseWindows
     }
 
     /// <summary>Whether a seat would meet a doorway on the same wall — the door's own run plus a block of wall
-    /// either side of it, so a window never lands hard against a door jamb.</summary>
-    private static bool MeetsDoor(IReadOnlyList<RoomDoor>? doors, RoomEdge edge, int lo, int width)
+    /// either side of it, so a window never lands hard against a door jamb. A doorway in another run of wall is
+    /// no obstacle even where the two look the same way, which is what carrying the run rather than the facing
+    /// buys.</summary>
+    private static bool MeetsDoor(IReadOnlyList<WallOpening>? doors, WallSegment wall, int lo, int width)
     {
         if (doors is null) return false;
         foreach (var door in doors)
         {
-            if (door.Edge != edge) continue;
+            if (door.Wall != wall) continue;
             if (lo <= door.Lo + door.Width && door.Lo <= lo + width) return true;
         }
         return false;
@@ -302,24 +324,13 @@ public static class HouseWindows
     /// <summary>Cut one window and dress it. The cells are written rather than skipped, air included: a window
     /// is an opening taken out of a wall the same pass just built, which is the doorway's rule and not a
     /// material's.</summary>
-    public static void Cut(
-        VoxelWorld world, WindowSeat seat, WindowStyle style, int floorY,
-        int minX, int minZ, int maxX, int maxZ)
+    public static void Cut(VoxelWorld world, WindowSeat seat, WindowStyle style, int floorY)
     {
-        var alongX = seat.Edge is RoomEdge.NegZ or RoomEdge.PosZ;
-        var fixedAt = seat.Edge switch
-        {
-            RoomEdge.NegZ => minZ,
-            RoomEdge.PosZ => maxZ,
-            RoomEdge.NegX => minX,
-            _ => maxX,
-        };
-
+        var alongX = seat.Wall.AlongX;
         for (var step = 0; step < seat.Width; step++)
             for (var course = 0; course < seat.Height; course++)
             {
-                var along = seat.Lo + step;
-                var (x, z) = alongX ? (along, fixedAt) : (fixedAt, along);
+                var (x, z) = seat.Wall.Cell(seat.Lo + step);
                 var (id, data) = Piece(style, seat, alongX, step, course);
                 world.SetBlock(x, floorY + seat.Sill + course, z, id, data);
             }
@@ -351,6 +362,20 @@ public static class HouseWindows
                     2 => (style.Block, variant | Blocks.SlabUpperHalf),       // the lintel
                     _ => (Blocks.Air, 0),
                 };
+            case WindowForm.Arched:
+            {
+                // Only the top course carries anything, and only at its two ends: the arch is the corners
+                // rounded off and everything under them is the light. A wider opening leaves the middle of the
+                // head open rather than spanning it — a window is not carrying a wall over a doorway, so there
+                // is nothing there for a beam to do.
+                if (course != seat.Height - 1 || (step > 0 && step < seat.Width - 1)) return (Blocks.Air, 0);
+                var facing = alongX
+                    ? step == 0 ? Blocks.StairWest : Blocks.StairEast
+                    : step == 0 ? Blocks.StairNorth : Blocks.StairSouth;
+                // A stair's whole data value is geometry — two bits of facing and the upside-down flag — so
+                // there is no variant nibble to carry, and which wood it is, is which block it is.
+                return (style.Block, facing | Blocks.StairUpsideDown);
+            }
             case WindowForm.Pane:
                 return (style.Block, style.Data & 0xF);
             default:

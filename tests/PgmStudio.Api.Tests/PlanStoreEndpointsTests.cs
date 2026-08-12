@@ -21,8 +21,7 @@ public sealed class PlanStoreEndpointsTests
     public async Task Save_list_get_mutate_delete_round_trip()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         // Save a fresh plan → an authored row.
         var saved = await (await client.PostAsJsonAsync("/api/plans", new PlanSaveRequest(PlanJson("hand-drawn"), null)))
@@ -57,8 +56,7 @@ public sealed class PlanStoreEndpointsTests
     public async Task A_malformed_plan_body_is_400_not_500()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var resp = await client.PostAsJsonAsync("/api/plans", new PlanSaveRequest("{ this is not json", null));
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);

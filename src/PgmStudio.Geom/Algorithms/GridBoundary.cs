@@ -10,6 +10,13 @@ namespace PgmStudio.Geom.Algorithms;
 /// </summary>
 public static class GridBoundary
 {
+    /// <summary>The span, in perimeter cells either side, that a bend is measured over. It is the scale at which
+    /// "corner" is a question at all: under about four the raster's own staircase reads as turning, and above it
+    /// no arc tighter than roughly that radius can still count as curved. Five sits between the two, holding a
+    /// straight shallow edge at a few degrees while leaving a right angle at ninety. Every caller measuring a
+    /// ring reads the same one, so a wall and the plateau beside it answer at the same scale.</summary>
+    public const int CornerWindow = 5;
+
     // Clockwise 8-neighbour offsets starting due north (z−1), so a "turn right" is +1 around the ring.
     private static readonly (int dx, int dz)[] Cw =
         [(0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1)];

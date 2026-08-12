@@ -185,4 +185,80 @@ public sealed class HouseStoreyTests
             }
         }
     }
+
+    // ── what a storey closes with ──────────────────────────────────────────────────────────────────
+    /// <summary>The slab over a storey is laid in that storey's own ceiling where it names one, so a building
+    /// may close its ground floor in one thing and the storey over it in another. Unbound it stays the house
+    /// floor's own top material, which is what every storey was before the slab had a name.</summary>
+    [Test]
+    public async Task Each_storey_lays_its_own_ceiling_and_falls_back_to_the_floor()
+    {
+        var style = Stacked(3) with
+        {
+            Floor = RoomPart.Of(new SolidMaterial(Blocks.Planks)),
+            Storeys =
+            [
+                new Storey { Clear = 3, Ceiling = new SolidMaterial(Blocks.Cobblestone) },
+                new Storey { Clear = 3 },                       // unbound: the floor's own material
+                new Storey { Clear = 3 },                       // the top storey lays no slab at all
+            ],
+        };
+        var world = House(11, 9, style);
+        var bases = style.LevelBases;
+
+        // A cell of interior clear of the ladder, which stands in its own column through the whole stack.
+        (int X, int Z) cell = (7, 6);
+        var groundSlab = FloorY + bases[0] + style.Levels[0].Courses(topmost: false);
+        var firstSlab = FloorY + bases[1] + style.Levels[1].Courses(topmost: false);
+
+        await Assert.That(world.GetBlock(cell.X, groundSlab, cell.Z).Id).IsEqualTo(Blocks.Cobblestone);
+        await Assert.That(world.GetBlock(cell.X, firstSlab, cell.Z).Id).IsEqualTo(Blocks.Planks);
+    }
+
+    /// <summary>The storey above's zoning still divides the slab it stands on: a ceiling is what the slab is
+    /// laid in, not a claim on the course a player walks on. Bound together, the zone wins where it reaches
+    /// and the ceiling fills the rest.</summary>
+    [Test]
+    public async Task The_storey_above_zones_the_slab_its_ceiling_laid()
+    {
+        var style = Stacked(2) with
+        {
+            Storeys =
+            [
+                new Storey { Clear = 3, Ceiling = new SolidMaterial(Blocks.Cobblestone) },
+                new Storey
+                {
+                    Clear = 3,
+                    Surface = new FloorSurface { Border = new SolidMaterial(Blocks.Bedrock), BorderWidth = 1 },
+                },
+            ],
+        };
+        var world = House(11, 9, style);
+        var slab = FloorY + style.Levels[0].Courses(topmost: false);
+
+        // Ring 1 is the border the upper storey asked for; the middle of the room is the ceiling's own.
+        await Assert.That(world.GetBlock(1, slab, 1).Id).IsEqualTo(Blocks.Bedrock);
+        await Assert.That(world.GetBlock(7, slab, 6).Id).IsEqualTo(Blocks.Cobblestone);
+    }
+
+    /// <summary>A ceiling survives the snapshot a map keeps of its bound style. It is a material rather than a
+    /// number, so nothing carries it but the converter that carries the rest of them.</summary>
+    [Test]
+    public async Task A_ceiling_survives_the_snapshot()
+    {
+        var style = Stacked(2) with
+        {
+            Storeys =
+            [
+                new Storey { Clear = 3, Ceiling = new SolidMaterial(Blocks.Cobblestone) },
+                new Storey { Clear = 3 },
+            ],
+        };
+
+        var read = HouseStyleJson.Deserialize(HouseStyleJson.Serialize(style));
+
+        await Assert.That(read.Storeys[0].Ceiling).IsEqualTo(style.Storeys[0].Ceiling);
+        await Assert.That(read.Storeys[1].Ceiling).IsNull();
+        await Assert.That(read).IsEqualTo(style);
+    }
 }

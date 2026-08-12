@@ -32,8 +32,7 @@ public sealed class NumberBindingCultureTests
     /// German way.</summary>
     private static async Task UnderCommaDecimalCulture(Func<HttpClient, Task> body)
     {
-        await using var factory = new ApiTestFactory();
-        using var client = factory.CreateClient();
+        using var client = ApiTestFactory.Shared.CreateClient();
 
         var (culture, uiCulture) = (CultureInfo.DefaultThreadCurrentCulture, CultureInfo.DefaultThreadCurrentUICulture);
         CultureInfo.DefaultThreadCurrentCulture = CommaDecimal;

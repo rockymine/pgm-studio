@@ -16,6 +16,12 @@
     <ProjectReference Include="..\..\src\PgmStudio.Api\PgmStudio.Api.csproj" />
   </ItemGroup>
 
+  <!-- Linked rather than folded into tests/Directory.Build.props: it needs MySqlConnector and the
+       migrations, which only the two database-touching test projects reference. -->
+  <ItemGroup>
+    <Compile Include="..\TestSchema.cs" Link="TestSchema.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.*" />
     <PackageReference Include="TUnit" Version="1.53.0" />
