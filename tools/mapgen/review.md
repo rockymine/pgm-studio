@@ -25,13 +25,6 @@ wrong thing: `--island-study` was run over all 368 destroy worlds to count islan
 approach geometry and their build regions, and the way to a destroy board is to read them and compose for
 them. The retarget is a shortcut that produced fifteen capture boards wearing three different hats.
 
-**MG2 — A single blanket theme wastes the one thing the layout already gives away.** Every spec paints one
-`theme` over the whole map, so a board reads as one material from edge to edge. A shape carries its own
-`theme` and its own height, and the two together are how a board says *this part is built and that part is
-grown*: a grid-like quarter laid in coursed stone against a quarter of natural ground, a plateau that is
-plainly a platform against a slope that is plainly a hillside. Deliberately differing the paint per shape,
-keyed to what that shape is for, is available now and unused.
-
 ## The objectives
 
 **MG3 — A monument or a core may never stand over void.** Some do. An objective in void cannot be broken:
@@ -59,10 +52,66 @@ Two ways to be right, and the tool should do both: pair the kit to the goal mate
 map, and refuse to write a map whose goal material no tool in its kit can break. The second is the one that
 survives someone later choosing a different material.
 
+**MG19 — The observer spawn takes no kit.** `ObserverIntent` carries a point and a yaw and nothing else, so
+observers arrive with whatever the server hands them. An observer wants its own kit variant — the flight and
+the tools for watching a match rather than playing one — and the intent has nowhere to put it.
+
+**MG20 — Wool-room chests face into the wall.** The chests stamped in a wool room are not turned to the room
+they open into, so some present their back to the player and can only be opened from inside the wall. A
+chest's facing is a block data value and has to be resolved against which wall it sits on and which way the
+room is entered — the same question the room's door already answers, which is where the answer should come
+from.
+
 **MG4 — A spawn must not face its exit into the void.** The spawn's yaw decides which wall its door is cut
 through, and a spawn on the edge of a piece with its yaw pointing outward puts the only way out over the
 drop. The direction is settable and is currently inherited from whatever the compiler fanned. It should be
 chosen against the ground: face the spawn at the board, not off it.
+
+## The structures
+
+`StructureIntent` is the stamped furniture a map is played through — room floors, entrance redstone, iron
+cubes and approach walls. Two of its four lists are never filled by anything.
+
+**MG21 — The defence wall exists, is described, and has never been authored.** `StructureIntent.Walls` holds
+"pre-built bedrock approach walls over a wool-lane interface seam (ST4)", the stamper reads it, and
+`DressingScope` already protects the ground under one — but no assignment to `Walls` exists anywhere outside
+the record's own definition, so every generated capture map ships without the wall its own model describes. A
+wool lane with no approach wall is a different game: the defence has nothing to hold and the run has nothing
+to break through.
+
+**MG22 — Iron is never placed.** `StructureIntent.IronCubes` stamps a 4×4×4 iron cube on the surface at each
+iron marker (ST2/ST3), fed by `PlanPlacements.Iron`. The composer places no iron markers and no spec asks for
+any, so no generated board carries a resource to fight over. Iron wants placing regularly through the map
+rather than once near a spawn — it is a reason to leave cover, which is the same argument as MG9 about trees.
+
+**MG23 — A destroyable wants a bedrock platform under it.** A 5×5 bedrock platform one block beneath the
+ground under each destroyable, so the monument cannot be undermined from below and the ground it stands on
+cannot be mined out from under the goal. Nothing stamps one today.
+
+**MG24 — Every goal wants a marker in the sky.** A wool room, a destroyable and a core each want a mark high
+above them, above build height so no one can reach or grief it — something as simple as a small cube or a
+letter picked out in blocks. It is how a player crossing open ground knows where the goal is without a map,
+and it is the cheapest legibility a board can carry. Above build height matters: `BuildIntent.MaxHeight`
+already caps building, so the marker sits out of reach by construction.
+
+## The paint
+
+**MG2 — A single blanket theme wastes the one thing the layout already gives away.** Every spec paints one
+`theme` over the whole map, so a board reads as one material from edge to edge. A shape carries its own
+`theme` and its own height, and the two together are how a board says *this part is built and that part is
+grown*: a grid-like quarter laid in coursed stone against a quarter of natural ground, a plateau that is
+plainly a platform against a slope that is plainly a hillside. Deliberately differing the paint per shape,
+keyed to what that shape is for, is available now and unused.
+
+**MG25 — The whole world is one biome, so grass and water are one colour everywhere.**
+`AnvilRegionWriter` fills every chunk's biome array with a single value — `Array.Fill(biomes, (byte)1)`,
+plains — so every biome-tinted block on the map takes the same tint: grass, leaves, vines, sugar cane, lily
+pad, tall grass and water. Biomes are a second paint layer that costs one byte per column and is currently
+spent on nothing. Painting them over the map's whole bounding box with the patterns the terrain painter
+already has — voronoi for patches, noise for drift — gives grass that varies from cold-dry to swamp-dark and
+water that runs from blue to green, under and independent of the block palette. Note the renderer follows
+separately: `BlockPalette` multiplies biome-tinted blocks by a fixed temperate tint precisely because a
+static render has no biome to read, so a top-down would need to read the array to show the result.
 
 ## The ground
 
@@ -102,6 +151,27 @@ turns a row of boxes into a village.
 filter, which is why they read as noise: no groves, no treeline, no clearing, nothing thicker where the map
 wants cover and nothing bare where it wants sightlines. Trees are cover, and cover is a gameplay decision. The
 same argument applies to buildings, which are currently dropped wherever the ground happens to be level.
+
+**MG26 — The dressing is not symmetric, and the mechanism that breaks it is known.** A mirrored board whose
+trees differ side to side reads as broken however good each side is. The dressing pass *does* fan every prop
+through the symmetry orbit, but it decides each image independently: `Decorator.Fan` loops the orbit and
+runs `Seats` per image, and a `continue` on failure drops **that image only**. So a tree whose mirror lands a
+block nearer a protected column, or on ground the relief left slightly steeper, is built on one side and
+missing on the other — which is exactly the asymmetry observed. A prop has to be decided **once for the whole
+orbit**: seat every image or none. The same applies to any pattern placed per-cell rather than per-orbit.
+
+**MG27 — A house is empty.** Buildings are shells with nothing inside. Chests with a small random loot table
+give a player a reason to enter one, and turn scenery into a place worth crossing the map for. Loot wants to
+be modest and consistent with the map's own kit, and — see MG26 — identical across the orbit, since a chest
+that is richer on one side is a competitive advantage rather than decoration.
+
+**MG28 — A conifer stands on a stump.** A grown tree drawn `whorled` puts its lowest branches near the base
+but its stem stops short, so the crown sits on a stub rather than running through it: the trunk never reaches
+below the topmost leaves and the tree reads as a bush balanced on a post. A conifer's whole silhouette is a
+continuous stem with rings of branches getting shorter up it. This is in the grower rather than in mapgen —
+`TreeSkeleton` and `TreeCrown` in `PgmStudio.Geom` — and it is measurable the same way `B78` is, through
+`tools/tree-corpus/grower-gate.cs`, which already scores limb angle and reach against the 75 hand-built
+trees and would score stem extent beside them.
 
 **MG10 — A tree's parts must agree with each other.** An oak-profiled tree is being built with spruce logs.
 The `template` form takes a `Species` — which names the wood, the canopy profile and the proportions
