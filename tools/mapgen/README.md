@@ -120,6 +120,16 @@ wall material paints most of the surface reads as a quarry rather than as terrai
 `jungle` `acacia` `dark oak`. `whorled` gathers a grown tree's branches into rings — the conifer against the
 broadleaf.
 
+**Reach for `grown` sparingly until its open faults land.** The recursive tree is the more expressive of the
+two and it is the less finished: it carries about twice an author's wood at mid heights (`G176`), a whorled
+one puts its bulk at mid-height rather than in the bottom third (`G173`), and its stem stops short of the
+topmost leaves so the crown sits on a stub rather than running through it (`review.md` MG28). A board drawn
+mostly `template` with `grown` used where a tree is meant to be looked at reads better today than one drawn
+`grown` throughout. Whichever form, the wood and the foliage have to name the same plant — the `template`
+form takes a **species**, which decides the timber and the canopy profile together, while `grown` takes a
+**wood**, and handing a species name to the wood field builds a tree whose silhouette and timber come from
+different plants (MG10).
+
 **Ask for two or three times the trees you want.** The dressing pass drops a prop if any cell it occupies
 falls on a protected column, and it is normal for well under half of a requested forest to seat on a
 generated board. The report says how many sites were found and how many leaves stand, which is how to tell

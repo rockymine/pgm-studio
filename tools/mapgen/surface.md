@@ -288,6 +288,27 @@ or `houses` in `MapSpec`. Library previews exist for the pieces once a style is 
 `/room-styles/preview` and its `-snapshot`, `/roof-styles/preview`, `/porch-styles/preview`,
 `/storey-styles/preview` — so a building is checkable from four sides before it stands on a map.
 
+### Circulation is decided before dressing, not after it
+
+Scenery is placed last in the pipeline and decided first in the design, and reversing those is what makes a
+board read as cluttered rather than as furnished. A dressing pass that samples wherever the ground will take
+a prop produces exactly what it asks for — trees and buildings standing in the routes, so reaching a build
+region means walking round a house and then round a tree, neither of which anybody put there.
+
+The order that works states the **movement** first. A `path` shape is a drawn centreline with a half-width,
+so a road network can be traced before anything is planted: where a player walks from spawn to goal, where
+the flanking approach runs, where a village's street is. Those runs and a margin either side are then the
+ground foliage does not get, and everything else is where a wood or a settlement may stand. That is the same
+reasoning `clearance` already applies to objectives, applied to routes as well — and it turns density from a
+number into a consequence, because the space left over after the circulation is drawn is the space a forest
+is allowed to fill.
+
+It also settles what a prop may do to a building it stands beside. A prop writes only into air, so a tree can
+never replace a wall, a roof or a post, and leaves resting **against** a house are correct — an author pastes
+a tree beside a building masked against the building's own blocks and expects exactly that. What the author
+then does by hand, and what nothing does here yet, is clear the leaves that landed **inside** the building
+through its roof (`B97`). A tree rooted inside a structure is a fault; a canopy leaning on one is not.
+
 ### What these combine into, which is where the width actually is
 
 Every section above names one type. The reach of the system is not in any of them individually — it is in

@@ -124,6 +124,23 @@ holds them until one becomes the focus.
   README a band in those terms; the two numbers disagreeing is itself informative, since a high count at a low
   share is a few enormous trees and a low count at a high share is scrub.
 
+- [ ] **B97 — Leaves may lie against a building and never inside it.** A prop already writes only into air —
+  `Decorator` skips any unburied cell whose target is not `Blocks.Air`, so a tree can never replace a wall, a
+  roof or a post, and a canopy resting against a house is correct and wanted. What that mask does not catch is
+  the **enclosed volume**: a building's interior is air, so a crown overhanging a roof drops leaves through it
+  into the room below, and the room is then a room with a tree in it. The authoring convention this is
+  imitating is exact — a map author pastes a tree beside a house masked against the house's own blocks and
+  then **removes the leaves that landed inside it**, so the building stays empty. Only the second half is
+  missing here.
+
+  So the rule is three-way rather than two-way, and `B85` implemented only two thirds of it: a prop may not
+  **root** inside a structure (done), a prop may not **replace** a structure's blocks (done), and a prop's
+  cells falling in a structure's **enclosed interior** are dropped rather than written. The last wants the
+  volume a stamped building encloses, which `HouseStamper` knows at stamp time and nothing records afterwards
+  — recording it is most of the work, and `DressingScope` is where a stamped thing's extent already lives.
+  Worth doing with `B92`, which fills that same volume with a stated material and therefore has to describe it
+  anyway.
+
 - [ ] **B79 — `map-layers` e2e: the plan editor's Compile button never arrives (13/14).** The suite drives to
   `/maps/{slug}/plan` on the seed's built map, then clicks `button:has-text("Compile")` to check that a
   *rebuild* states the trade before replacing a board someone has worked on. The click times out at 30s and
