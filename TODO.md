@@ -208,6 +208,26 @@ holds them until one becomes the focus.
   place to defend. The three refused specs are the gate — they should build, and their cores should stand on
   ground.
 
+- [ ] **B95 — A stage image has no key, and its colours are read as materials.** The plan render colours by
+  **role** — hub violet, spawn green, wool amber, frontline orange, anything else slate, and a zone in blue
+  (`#38bdf8` for a build zone, `#2563eb` for a water lane, separated only by shade, opacity and dash pattern).
+  Nothing on the image says any of that. Blue is the universal visual code for water, so a reader who has the
+  picture and not the key is handed a wrong answer rather than no answer: a generated board's central build
+  zone was read as water on a map that carries none, and the misreading was then used to explain away a
+  connectivity result. An image that invites a confident wrong reading is worse than one that is merely
+  unclear, and the pictures exist precisely so that things get read off them.
+
+  Two fixes, and the second matters more than the first. **A legend on the image** — the role swatches and the
+  two zone kinds named on the plan render, and a scale on every world read-back — costs little and removes the
+  guess. **A distinction that survives being looked at**: a build zone and a water lane are the same gap with
+  different crossing rules, one open from the first minute and one opening part-way through a match, and
+  encoding a difference that large as two shades of blue means it does not survive the render. Hatching, a
+  label, or an outright different hue would.
+
+  The general rule this teaches belongs beside the images in `surface.md`: **an image is a check, not a
+  source of meaning.** A render answers "did the thing that was authored actually come out", and the document
+  underneath answers "what is it". Reading semantics off pixels is how a build zone becomes water.
+
 - [ ] **B79 — `map-layers` e2e: the plan editor's Compile button never arrives (13/14).** The suite drives to
   `/maps/{slug}/plan` on the seed's built map, then clicks `button:has-text("Compile")` to check that a
   *rebuild* states the trade before replacing a board someone has worked on. The click times out at 30s and

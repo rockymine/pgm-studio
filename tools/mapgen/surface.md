@@ -388,3 +388,12 @@ each rendering the real emitters.
 The rule that follows: **a stage that produced something should be looked at before the next stage consumes
 it.** A theme is checkable before a world is built, a plan is checkable before it compiles, a shape is
 checkable before it is drawn, and a forest is checkable in a heightmap rather than guessed from a leaf count.
+
+The rule that follows *that* one, because looking has its own failure mode: **an image is a check, not a
+source of meaning.** A render answers whether the thing that was authored came out; the document underneath
+answers what it is. The plan render in particular colours by **role** rather than by material — hub violet,
+spawn green, wool amber, frontline orange, and a zone in blue — so its blue is a build zone or a water lane
+and never water, and the two zone kinds are separated only by shade and dash (`B95`). A board whose central
+build zone was read as water off the picture, on a map carrying no water at all, is what that costs: the
+observation was right, the cause was invented, and the invented cause then explained away a real
+connectivity result. Read the picture for whether, read the document for what.

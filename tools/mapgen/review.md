@@ -526,7 +526,15 @@ one board at sixty sites, spruce between 8 and 14 with the village off, whorled 
 plain grown's 1102 and template's 1846, so the whorl is within noise of not being set. And template was
 reported as an order of magnitude denser than grown as a property of the form; at equal height it is 1.6×.
 
-Both readings come from the same place, and it is a fault this document already carries. The zero-leaf pass
+There is a likely mechanism for the second class of error, and it is worth naming because the pictures were
+added to prevent exactly this. The plan render colours by **role**, and a zone — a build zone or a water lane
+— is drawn in **blue**, the two separated only by shade, opacity and dash. Blue reads as water to anyone who
+has the image and not the key, and the board in question carries no water whatever: its only include is the
+kill reward. So a true observation (two components) acquired an invented cause (a water lane) that happened
+to make the observation sound resolved. `B95` is that gap; the rule it argues for is that an image answers
+whether something came out and never what it is.
+
+Both tree readings come from the same place, and it is a fault this document already carries. The zero-leaf pass
 asked for a **tall** grown tree, and a tall grown tree is not a tall tree but an absent one (`B78`): every
 grown prop was dropped, the 136 logs left standing were the village's corner posts, and the run reported
 success. So a documented, filed, understood inversion emptied a forest inside three passes, and the reading
