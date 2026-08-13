@@ -1,0 +1,32 @@
+{
+  "slug": "duskfell",
+  "name": "Duskfell",
+  "objective": "Break the enemy monument, standing open in a grass clearing between a dark wood and a raised stone terrace.",
+  "authors": ["mapgen"],
+  "out_dir": "/media/sf_repos/CommunityMaps/dtm/duskfell",
+
+  "compose": { "players_per_team": 8, "teams": 2, "symmetry": "rot_180", "seed": 101, "cell": 10,
+               "objective_mode": "dtm", "objective_materials": "gold block" },
+
+  "theme": { "surface": "grass", "wall": "cobble", "rim": "ash", "fill": "grey stone", "pattern": "noise" },
+
+  "relief": {
+    "base": 8, "step": 1, "stairs": true,
+    "grain": { "amplitude": 1.0, "scale": 9, "seed": 101 },
+    "marks": [
+      { "kind": "scarp", "points": [[-5, 14], [-5, 56]], "high": 17, "low": 8, "face": 5, "band": 3 },
+      { "kind": "area", "ring": [[0, 14], [30, 14], [30, 48], [0, 48]], "h": 17 }
+    ]
+  },
+
+  "trees": { "count": 70, "form": "template", "woods": ["spruce", "dark oak"],
+             "min_height": 9, "max_height": 16, "seed": 101, "clearance": 14 },
+
+  "houses": [
+    { "preset": "cottage",   "x": -20, "z": 52, "front": "negz" },
+    { "preset": "workshop",  "x": -33, "z": 24, "front": "posx" },
+    { "preset": "longhouse", "x": -22, "z": 66, "front": "posx" }
+  ],
+
+  "room_shell": { "wool": "open", "spawn": "terrace" }
+}
