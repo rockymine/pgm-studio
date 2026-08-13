@@ -489,6 +489,69 @@ public sealed class DecoratorTests
         await Assert.That(walled.Trees).IsEqualTo(0);
     }
 
+    // ── nothing stands inside anything else (B85) ──────────────────────────────────────────────────
+    [Test]
+    public async Task A_tree_does_not_root_where_a_building_already_stands()
+    {
+        // The building is placed first, so its cells are already claimed by the time the tree is considered.
+        // Before B85 the pass only skipped the individual wood/leaf cells that landed on a non-air block,
+        // which still let the rest of the tree stand half inside the walls; now the whole tree is refused.
+        var (world, top) = Plateau();
+        var house = new HouseProp { Id = "h", Points = [[16, 16], [24, 24]], Style = new HouseStyle { Door = DoorMaterial.Air } };
+        var tree = new TreeProp { Id = "t", X = 20, Z = 20, Species = "oak", Height = 14, Seed = 5 };
+
+        var tally = Decorator.Decorate(world, Context(top, [house, tree]));
+
+        await Assert.That(tally.Houses).IsEqualTo(1);
+        await Assert.That(tally.Trees).IsEqualTo(0);
+        var logsInsideTheHouse = Placed(world, [(20, 20)], 8, 20).Where(b => b.Id == Blocks.Log);
+        await Assert.That(logsInsideTheHouse).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_second_building_does_not_stand_where_the_first_one_does()
+    {
+        // Two authored rectangles that overlap are two buildings colliding, not one winning a race to write
+        // the same blocks — the second is refused outright rather than raised through the first's walls.
+        var (world, top) = Plateau();
+        var first = new HouseProp { Id = "h1", Points = [[10, 10], [18, 18]], Style = new HouseStyle { Door = DoorMaterial.Air } };
+        var second = new HouseProp { Id = "h2", Points = [[14, 14], [22, 22]], Style = new HouseStyle { Door = DoorMaterial.Air } };
+
+        var tally = Decorator.Decorate(world, Context(top, [first, second]));
+
+        await Assert.That(tally.Houses).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Two_boulders_do_not_share_the_ground_they_rest_on()
+    {
+        // The first boulder claims its footprint; the second, anchored at the same spot, has nowhere of its
+        // own to rest and is refused rather than merging into (or overwriting) the first rock.
+        var (world, top) = Plateau();
+        var first = new BoulderProp { Id = "b1", X = 20, Z = 20, Size = 3, Mossy = false, Seed = 3 };
+        var second = new BoulderProp { Id = "b2", X = 20, Z = 20, Size = 3, Mossy = false, Seed = 11 };
+
+        var tally = Decorator.Decorate(world, Context(top, [first, second]));
+
+        await Assert.That(tally.Boulders).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task A_trees_canopy_may_still_overhang_a_building_it_does_not_root_in()
+    {
+        // Overlap is decided on the cells a prop *rests* on, the same footprint protection is decided on
+        // (B78) — not on everything a tall crown happens to pass over. A trunk planted clear of a low building
+        // still gets to spread its canopy over the roof, the way a real tree overhangs a shed beside it.
+        var (world, top) = Plateau();
+        var house = new HouseProp { Id = "h", Points = [[24, 16], [30, 24]], Style = new HouseStyle { Door = DoorMaterial.Air } };
+        var tree = new TreeProp { Id = "t", X = 20, Z = 20, Species = "oak", Height = 16, Seed = 5 };
+
+        var tally = Decorator.Decorate(world, Context(top, [house, tree]));
+
+        await Assert.That(tally.Houses).IsEqualTo(1);
+        await Assert.That(tally.Trees).IsEqualTo(1);
+    }
+
     // ── fairness (G162) ────────────────────────────────────────────────────────────────────────────
     [Test]
     public async Task A_prop_lands_identically_for_every_team()
