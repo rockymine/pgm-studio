@@ -112,6 +112,16 @@ static void Build(MapSpec spec, bool describeOnly)
     // ── build it the way the export does ─────────────────────────────────────────────────────────────────
     var built = SketchWorldBuilder.Build(layout.ToJson(), intent);
 
+    // A goal with no ground under it cannot be reached or mined: there is nothing to stand on and nothing to
+    // break through. Silent otherwise — the map builds and loads — so it is refused here rather than shipped.
+    // The wool monument location is only known once the world is built (SketchWorldBuilder resolves it), so
+    // every goal kind is checked together against the same rasterized ground the build itself stood on.
+    var overVoid = GoalsOverVoid(ground, built.ResolvedIntent);
+    if (overVoid.Count > 0)
+        throw new ArgumentException($"{spec.Slug}: {string.Join(", ", overVoid)} "
+                                   + $"stand{(overVoid.Count == 1 ? "s" : "")} over void — a goal with nothing "
+                                   + "under it cannot be won");
+
     var doc = new Dict();
     IntentGenerator.Apply(doc, built.ResolvedIntent);
     doc["name"] = string.IsNullOrWhiteSpace(spec.Name) ? spec.Slug : spec.Name;
@@ -126,9 +136,10 @@ static void Build(MapSpec spec, bool describeOnly)
         Console.Error.WriteLine($"  ! {spec.Slug}: no kit — itemkeep/toolrepair/itemremove derive from the "
                                + "spawn kit and will be empty");
 
-    // A destroyable or core nothing in the kit can mine is not a rough edge, it is a map that cannot be won.
-    // Reads the kit actually written to the doc rather than trusting the derivation that built it
-    // (TeamsGenerator), so the check still catches a kitless destroy map (MG17 meets MG18).
+    // A destroyable or core nothing in the kit can mine is not a rough edge, it is a map that cannot be won —
+    // the same failure the void refusal above guards against for a goal with no ground under it. Reads the
+    // kit actually written to the doc rather than trusting the derivation that built it (TeamsGenerator),
+    // so the check still catches a kitless destroy map (MG17 meets MG18).
     var unbreakable = DestroyKitPairing.Unwinnable(built.ResolvedIntent, KitPickaxeMaterials(doc));
     if (unbreakable.Count > 0)
         throw new ArgumentException($"{spec.Slug}: no tool in the kit can break "
@@ -147,6 +158,27 @@ static void Build(MapSpec spec, bool describeOnly)
     File.WriteAllText(Path.Combine(outDir, "map.xml"), xml);
 
     Console.WriteLine($"  → {outDir}  (spawn {built.SpawnX},{built.SpawnY},{built.SpawnZ})  {Census(built.World)}");
+}
+
+/// <summary>The goals — wool monuments, destroyables, cores — whose anchor has no rasterized column under it,
+/// named for the refusal message. Every goal kind is checked the same way: a column either exists at the
+/// goal's (floored) XZ or it does not, which is all "stands over void" means.</summary>
+static List<string> GoalsOverVoid(Dictionary<(int X, int Z), int> ground, MapIntent intent)
+{
+    bool Grounded(Pt point) => ground.ContainsKey(((int)Math.Floor(point.X), (int)Math.Floor(point.Z)));
+
+    var findings = new List<string>();
+    foreach (var wool in intent.Wools ?? [])
+        foreach (var monument in wool.Monuments)
+            if (!Grounded(monument.Location))
+                findings.Add($"{monument.Team}'s monument on {wool.Owner}'s wool");
+    foreach (var destroyable in intent.Destroyables ?? [])
+        if (!Grounded(destroyable.Anchor))
+            findings.Add(destroyable.Name.Length > 0 ? destroyable.Name : destroyable.Owner);
+    foreach (var core in intent.Cores ?? [])
+        if (!Grounded(core.Anchor))
+            findings.Add(core.Name.Length > 0 ? core.Name : $"{core.Owner}'s core");
+    return findings;
 }
 
 /// <summary>Every item material named by every kit in the document — the alphabet <see cref="DestroyKitPairing.Unwinnable"/>
