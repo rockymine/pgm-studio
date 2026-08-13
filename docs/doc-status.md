@@ -133,9 +133,11 @@ URL law, the route table, the labels against the code names, and the collections
 it duplicated left to `tools/flow.md` and its migration log gone. So has **B113**:
 `pgm/destroyables-and-cores.md` (693 → 533) keeps the PGM law and the world-measured corpus study, and loses
 the premise §3.2 disproved along with its sequencing plan, its schema sketch, the plan/intent model
-`tools/plan.md` now states, and the world-scan section `world-scan/objective-suggestion.md` owns. Still open:
-**B114** (`ui-conventions` is a build plan whose phases shipped) and **B115** (`monument-candidate-store` is
-headed "design only" and is built).
+`tools/plan.md` now states, and the world-scan section `world-scan/objective-suggestion.md` owns. And so has
+**B114**: `client/ui-conventions.md` (245 → 129) is now the vocabulary reference and the API rules — which
+component to reach for, what each takes, why an icon cannot change in place, and what stays raw — with the
+C12 build order and its phase log left to the board, where `C12` is reworded to the three slices that
+remain. Still open: **B115** (`monument-candidate-store` is headed "design only" and is built).
 
 **§3.4's churn ranking still wants re-running against the full history**, for the reason stated above: the
 container that produced it saw three days of commits.

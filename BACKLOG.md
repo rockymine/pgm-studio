@@ -196,34 +196,26 @@ are Edit-specific. Full canvas spec: `docs/client/canvas-interaction.md`.
 - [ ] **C11 — Wire + verify inspector edits across activities.** `OnDelete`/`OnRename` are wired only
   in Build Regions; the Regions/Teams/Objective inspectors are **unwired** (rename/delete silently
   no-op). Wire all three + verify rename/delete/coord-patch end-to-end.
-- [~] **C12 — Build the shared component vocabulary (atoms → sections → shells).** The studio has a
-  consistent CSS design system but **no Blazor layer that renders it** — the canonical skeleton
-  (`panel-section` → `section-header` → `section-title`) is hand-typed across 44 of 64 razor files and
-  the app shell is copy-pasted 11×. Full audit, atomic tree, API conventions (foldered under
-  `Components/`, param-first + slot override; global CSS, no `.razor.css`), and the class→component map
-  are the **contract in `docs/client/ui-conventions.md`** — follow it; `/design` is the
-  zero-visual-diff regression oracle (components emit the same classes). **Phases A–C + D.1–D.2 shipped**
-  (`FEATURES.md`): the atoms + `Section`, the shell (`StudioShell` + topbar/rail/footer), the workspace
-  shells (`Workspace`/`Sidebar`/`Inspector`/`ContentColumn`), and — across every production surface (0
-  raw markup outside the `/concepts` + `/design` leave-raw zone) — `Section` (D.1) plus the atomic
-  vocabulary `Field`/`Button`/`Badge`/`ListRow`/`Chip` (D.2). Remaining:
+- [~] **C12 — The last of the component vocabulary: the icon, the generator, the inline styles.** The
+  vocabulary is built and adopted — the atoms, `Section`, the shell and the workspace shells are across every
+  production surface, with two raw `action-btn`s and two raw `list-row`s left as genuine exceptions
+  (`FEATURES.md`; the reference is `docs/client/ui-conventions.md`). Three slices remain, and `/design` is the
+  zero-visual-diff oracle for all of them since a component emits the classes the markup did.
 
-  **D.3 — build + adopt the new components.** `CoordField`, `DetailHeader` **done** (`FEATURES.md`); the
-  `/design` gallery **regenerated** to render the real components. `FlowBar` — once deferred as
-  single-use — **shipped** (C21) once the Editor/Configure shell-convergence work needed it in a
-  second consumer; it backs both `ConfigureLayout` and Edit's stepped activities (Setup, Build).
-  `Console` stays single-use (the pre-flight log in `ReviewPreflightStep`) — not worth componentizing
-  yet, left raw (same call as `CoordRow`, dropped because `ctrl-row` triples vary XYZ/XZ/R·H).
-  `Card`/`CardGrid` **deferred** (only ~8 landing cards; low payoff).
+  **`Icon` is built and unadopted.** `Components/Primitives/Icon.razor` centralizes the lucide reconciler
+  gotcha — recreate on a glyph change rather than patch a node lucide has already replaced with an `<svg>` —
+  and **156 raw `<i data-lucide>` still stand**. Adopt incrementally: the icon-bearing components
+  (`Button`/`DetailHeader`/`Chip`) first, then the page sites that re-render. High churn, subtle benefit, so
+  parked by choice rather than blocked.
 
-  **Open — `Icon` adoption.** `Components/Primitives/Icon.razor` is **built but unadopted**: `<i
-  data-lucide="@Name" @key="@Name">`, centralizing the lucide reconciler gotcha (recreate-on-glyph-change
-  rather than patch a lucide-mutated `<svg>`). The ~156 raw `<i data-lucide>` across components and pages
-  still stand — adopt incrementally (the icon-bearing components `Button`/`DetailHeader`/`Chip`, then the
-  re-rendering page sites) when picked up. High churn, subtle benefit, so parked by choice, not blocked.
+  **The `gen-*` set is the last real drift**, and the largest thing left here: `/generator`'s filter rail, card
+  grid, candidate cards, badges, tray and census tables are around forty classes in `generator.css`
+  re-implementing `workspace-sidebar`, `card-grid`, `badge` and `filter-chip` under their own names. The atoms
+  inside them have been picked up where they fit; the layout has not.
 
-  **Open — polish**: fold the 1 `section-heading` use into `SectionHeader`; drop the inline `style=`
-  occurrences now expressible as component params (`Align`/`MaxWidth`/`Fill`).
+  **Polish**: fold the one `section-heading` use into `SectionHeader`, and drop the 84 inline `style=`
+  occurrences now expressible as component params (`Fill`, `Full`, a modifier `Class`).
+
 - [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
   (Build/Objective/Teams) + the `Index`/`CollectDescendants` region-tree walkers (3–4 activities) →
   a shared `MapApiClient` and/or `EditorActivityBase` / static `RegionNode` helpers.
@@ -269,12 +261,6 @@ are Edit-specific. Full canvas spec: `docs/client/canvas-interaction.md`.
   genuinely share — the rest of their apparent repetition is per-tool document semantics and should stay
   separate.
 ## Backend, pipeline & internals (B / P / A)
-
-- [ ] **B114 — `client/ui-conventions.md` is a build plan whose phases shipped.** It is written as the map
-  from CSS classes to the components that replace them, in the order they get built (C12) — and phases A–C
-  and D.1 are in `FEATURES.md`, with the `/design` page rendering the components themselves. What is live in
-  it is the **vocabulary reference** (which component to reach for, what API each takes) and the adoption
-  rules that keep Blazor from fighting the markup. Cut it to those; the build order goes.
 
 - [ ] **B115 — `world-scan/monument-candidate-store.md` is headed "design only" and is built.** The gather/score
   split, the `monument_candidate` table (M0002), the ingest write and both authoring endpoints all shipped
