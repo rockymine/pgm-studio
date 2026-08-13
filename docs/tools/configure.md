@@ -387,9 +387,10 @@ in the Plan tool rides through Configure untouched and exports correctly — the
 mirrored — but it cannot be seen or edited here, and there is no detection for one either, because unlike a
 core a destroyable has no signature of its own (`B58`).
 
-**Kits cannot be edited.** Every generated team gets the fixed Standard preset. The spawn kit is read and sent
-by the document layer but has no UI anywhere in the studio (`C9`), so a map wanting different starting gear
-has to be edited outside it.
+**Kits cannot be edited.** Every generated team gets the fixed Standard preset, and the intent carries no kit
+field at all. The one kit surface in the studio is a free-text box in the **Edit** tool naming which kit a
+spawn uses; nothing anywhere authors what a kit *contains* (`C9`), so a map wanting different starting gear
+has to be finished outside the studio.
 
 **A team's id does not follow its colour.** The id is seeded from the colour first picked, and recolouring a
 team afterwards changes only the colour — so a team switched from red to purple keeps `id="red"` and every id
