@@ -194,6 +194,21 @@ is what lets the suite run from the VirtualBox shared folder at all.
   loudly** — a console error, which the e2e smoke sweep turns into a failed page. A silent blank is the
   bug being avoided.
 
+## Gameplay decisions have a human oracle — ask before filing one
+
+A rule about the map *as it is played* is not derivable from this repository. The corpus shows what authors
+did, the code shows what the tool does, and neither says what is correct — so a question about how a map
+plays is answered by **asking the author**, before a task is filed, a doc is written or a fix is made. What
+counts: what an objective needs around it, where a goal may sit, what a rule is for, whether a measured
+difference is a defect or a convention.
+
+The failure this prevents has already happened. A destroyable and a core **float a few blocks above the
+terrain by design** — a core on the ground cannot leak, and a destroyable on the ground is trivially covered
+— and that has been PGM's behaviour from the start. Measuring the gap and reasoning from first principles
+produced a confident, filed, committed claim that every generated destroy map was unwinnable. The measurement
+was right and the conclusion was invented. Neither the corpus nor the code would have corrected it; one
+question would have.
+
 ## Verification & gotchas (load-bearing, easy to lose)
 - Run the app with **`./tools/dev.sh restart`** (`:7894`); after a host reboot MariaDB auto-starts
   but the dotnet bg process doesn't, and the claude-in-chrome MCP needs reconnecting (extension panel).

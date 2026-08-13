@@ -39,32 +39,22 @@ holds them until one becomes the focus.
 
 ## Backend, pipeline & internals (B / P / A)
 
-- [ ] **B104 — A destroy goal is stamped in the air above its own floor, and the map cannot be won.**
-  Measured on two freshly designed boards and confirmed pre-existing. `duskfell`: the room's bedrock tops at
-  y16, four blocks of air follow, and the gold destroyable stands at y21–23. `corvale`: bedrock to y13, one
-  block at y14, air, and the emerald destroyable at y18–20. The goal is not merely ugly there — it is out of
-  reach of a player standing on the floor beneath it, and `max_build_height` is **20** on both maps, so
-  nobody can pillar or bridge up to it either. Every generated destroy board is therefore unwinnable, in a
-  third way distinct from the pickaxe (`B81`) and from void (`B82`).
+- [ ] **B104 — A destroy goal is stamped above the build cap.** On `duskfell` the gold destroyable stands at
+  y21–23 and `max_build_height` is 20; on `corvale` the emerald stands at y18–20 against the same cap. Blocks
+  above the cap can still be broken, so this does not make the goal unbreakable — but a destroyable or a core
+  belongs **below** the cap, and neither does. The cap itself is the cause rather than the placement: it is
+  `plan.Globals.Surface + Headroom`, both halves of the plan's flat nominal world, so it is computed from a
+  ground level the relief later abandons and lands under the terrain it is supposed to sit over. `B105` is the
+  fix; what this entry owns is the check that the goal ends up under whatever cap that produces.
 
-  **It is not a regression.** The same spec built at the commit before the relief work shows the identical
-  four-block gap — bedrock to y16, goal at y21 — so the sixteen original boards shipped floating goals as
-  well, and nothing found it because a top-down draws the marker exactly where it should be and says nothing
-  about what is under it.
-
-  The root is one mistake made by three consumers: **the plan's flat nominal surface is read as a real world
-  height after the relief has moved the ground.** The objective anchor takes `piece.Surface`
-  (`PlanCompiler`), the build ceiling takes `plan.Globals.Surface + Headroom` (same file, one expression),
-  and the marker floor takes that ceiling. The relief then solves the ground somewhere else entirely and
-  nothing reconciles them. Fixing the anchor alone leaves a ceiling below the terrain; fixing the ceiling
-  alone leaves the goal in the air.
-
-  It also names the hole in `B82`, which is the more useful half of this entry. That check asks the
-  rasterized ground *whether a column exists* at the goal's x,z — one does — and never asks *whether the
-  ground is at the height the goal was placed at*. A check satisfiable without being true is the same shape
-  as the fault `B83` turned out to have, and the fix is the same: compare the two numbers rather than
-  confirming one of them exists. A goal whose anchor is more than a step above its own ground should refuse
-  the build, exactly as one over void does.
+  **A floating goal is not the fault, and an earlier version of this entry said it was.** A destroyable and a
+  core **float a few blocks above the terrain by design**, and have since PGM's beginning: a core that sits on
+  the ground cannot leak, so attackers would have to mine the terrain out from under it first, and a
+  destroyable flat on the ground is trivially covered and hidden. The four-block gap measured under
+  `duskfell`'s goal is therefore correct behaviour, not a defect, and the same gap in the pre-existing build
+  is correct too. What a goal needs beneath it is **terrain, somewhere below** — which is what `B82` already
+  checks and checks correctly. The earlier claim that `B82` should compare the goal's height against the
+  ground's was wrong and is withdrawn.
 
 - [ ] **B105 — Retire `headroom`; a plan states a build ceiling, it does not derive one.** `PlanGlobals`
   carries `Headroom` (board-wide, default 11 — not per piece, despite the field reading like one) and
@@ -115,10 +105,11 @@ holds them until one becomes the focus.
   selection, a drag, and an inspector row for the stated height is its own slice of the canvas and render
   layers, and it is what turns a proven mechanism into something an author can reach.
 
-  **The destroy objectives.** A destroyable and a core have **no rect in the plan at all** — `Anchor` is a
-  bare point, unlike a spawn or a wool room — so there is nothing to project into the sketch and nothing to
-  give a height to. What a destroyable's footprint even *is* has to be decided before it can have a sketch
-  presence, which puts this behind `B106` rather than beside it.
+  **The destroy objectives.** A destroyable and a core carry **no rect in the plan** — `Anchor` is a bare
+  point, unlike a spawn or a wool room — and that is correct rather than missing: neither has a footprint, and
+  neither wants one. They sit anywhere terrain exists beneath them, floating a few blocks clear of it. So a
+  sketch presence for them is a **movable point with a stated height**, not a rect to drag, and the height is
+  the interesting half because it is the one thing the plan cannot know before the relief runs.
 
   **Position, separately.** Moving a piece rather than raising it is `S25b`, and the design here deliberately
   leaves rect and position tracking the plan so that a recompile stays authoritative about *where* while the
