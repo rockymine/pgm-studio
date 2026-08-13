@@ -1,187 +1,186 @@
-# Project structure: the package map, what each project is, and where code belongs
+# Project structure — the package map, and where a piece of code belongs
 
-> A whole-board inventory and classification. The question this answers: **do the project boundaries
-> earn their keep, and which code is mis-homed?** Companion to the `## Code placement` rule in `CLAUDE.md`
-> (the *rule*). This doc is the *map*.
->
-> **Headline finding:** the cross-project boundaries are sound — namespaces are internally clean, and
-> there are **no illegal dependency edges** (`Pgm`⊥`Analysis`, `Client` sees only `Contracts`+`Geom`,
-> the sketch rasterizer stays NTS-free). The remaining friction is **(a) organization *inside* a few
-> over-stuffed projects** and **(b) legibility of the data-model layering** (six representations of
-> "a map", spread across four projects) — both fixable without moving project boundaries.
->
-> **A5 landed the internal folds for `Pgm` and `Analysis`** (behaviour-preserving — build clean · all
-> tests green · `RoundTrip --parity` 350/350), and relocated `RegionCategorizer` → `Pgm/Authoring/`
-> (beside its generator inverse) + `RegionFacet` → `Domain`. **`A6` then folded `Data` into
-> `Schema/`/`Map/`/`Features/` (§5.3) — the structure reorg is complete; every project now has a clean
-> internal shape.**
+A whole-board inventory: what each project is, what it may reach, and which parts have outgrown the shape they
+were given. It answers one question — **do the project boundaries earn their keep, and which code is
+mis-homed?** — and it is the companion to `CLAUDE.md`'s *Code placement* rule: that is the rule, this is the
+map.
 
-## 1. The verified dependency graph
+**Where it stands.** The cross-project boundaries are sound and the two invariants that make them load-bearing
+still hold. The friction is no longer between projects but *inside* two of them: `Pgm` now holds two different
+things under one name, and `Minecraft` has grown 47 files at its root. Both are internal folds, not boundary
+moves.
+
+## 1. The dependency graph
+
+Every arrow points at something the project is allowed to reach; read it bottom-up.
 
 ```
-            ┌─────────────────────────── Api (composition root: refs everything) ───────────────────────────┐
-            │                                                                                                │
-         Client ──────────────┐                Import ───┬──────────┬──────────┐                            │
-        (Blazor WASM)         │                (ingest CLI)│         │          │                            │
-            │  └──> Contracts  │                          │         │          │                            │
-            │  └──> Geom       │                          ▼         ▼          ▼                            │
-            │                  │                         Data ──> Migrations   Pgm ──> Domain                │
-            │                  │                    (persistence) │     ▲       │  └──> Geom                 │
-            │                  │                    refs: Domain, │     │    Analysis ──> Domain             │
-            │                  │                    Contracts,    │     │       │     └──> Geom              │
-            │                  │                    Pgm, Minecraft,│     │    Minecraft ──> Domain           │
-            │                  │                    Analysis ─────┘     │                                    │
-            └──────────────────┴──────────────────────────────────────-┘                                    │
-                                                                                                            │
-  Pure leaves (0 project deps):  Geom   Domain   Contracts   Migrations                                     │
-  ──────────────────────────────────────────────────────────────────────────────────────────────────────--┘
+  Api  (composition root — refs Data · Pgm · Analysis · Minecraft · Contracts · Migrations · Client)
+   │
+   ├── Client  ──> Contracts, Geom                       (Blazor WASM)
+   ├── Data    ──> Domain, Contracts, Pgm, Minecraft, Analysis
+   ├── Pgm     ──> Domain, Geom
+   ├── Analysis──> Domain, Geom
+   └── Minecraft ──> Domain, Geom
+
+  Import ──> Data, Pgm, Contracts, Migrations            (parquet → relational CLI)
+
+  Pure leaves (no project references):  Geom   Domain   Contracts   Migrations
 ```
 
-Reads bottom-up; every arrow points at a thing the project is *allowed* to reach. **Two facts make the
-split load-bearing, not arbitrary:**
+**Two constraints are what force the shape**, and they are the reason there appear to be "two model projects":
 
-- **`Client` cannot see `Domain` or `Pgm`** (WASM boundary — it refs only `Contracts` + `Geom`). So the
-  wire DTOs *must* live somewhere `Analysis` can't drag in. That somewhere is `Contracts`.
-- **`Analysis` cannot see `Contracts`** (it would create a cycle of intent: DTOs depending on analysis
-  which depends on DTOs). So anything `Analysis` *and* the client both need is forced down into a true
-  leaf — that is exactly what `Geom` is for, and why the old duplicated reflect/rotate existed before it.
+- **`Client` cannot see `Domain` or `Pgm`.** It is WASM and references only `Contracts` and `Geom`, so the
+  wire DTOs have to live somewhere that does not drag the rest in. That somewhere is `Contracts`.
+- **`Analysis` cannot see `Contracts`.** DTOs depending on analysis depending on DTOs is a cycle of intent, so
+  anything `Analysis` *and* the client both need is forced into a true leaf. That is exactly what `Geom` is
+  for, and the duplicated reflect/rotate that existed before it is what the rule prevents.
 
-These two constraints are the real reason there are "two model projects." It is not an accident.
+Both are checked by the `.csproj` files rather than by convention: `Analysis` has no `Contracts` reference and
+`Client` has no `Domain` or `Pgm` reference.
 
-## 2. The four *kinds* of project
+## 2. The four kinds of project
 
-| Kind | Projects | One-line charter |
+| Kind | Projects | Charter |
 |---|---|---|
-| **Pure leaves** (0 deps) | `Geom`, `Domain`, `Contracts`, `Migrations` | math primitives · PGM entities · wire DTOs · DB schema |
-| **Format / domain logic** | `Pgm`, `Analysis`, `Minecraft` | read/edit/write `map.xml` · NTS-backed derivations · Anvil world reading |
-| **Persistence / ingest** | `Data`, `Import` | DB codec + repositories · parquet→relational CLI |
-| **Presentation** | `Client`, `Api` | Blazor UI · FastEndpoints composition root |
+| **Pure leaves** | `Geom`, `Domain`, `Contracts`, `Migrations` | geometry algorithms · PGM entities and the rules over them · wire DTOs · the DB schema |
+| **Format and domain logic** | `Pgm`, `Analysis`, `Minecraft` | the `map.xml` codec *and* the layout generator · NTS-backed derivations · Anvil world reading and writing |
+| **Persistence and ingest** | `Data`, `Import` | the DB codec, repositories and stores · the parquet→relational CLI |
+| **Presentation** | `Client`, `Api` | the Blazor UI · the FastEndpoints composition root |
 
-The mental buckets map onto this cleanly: **PGM stuff** = `Pgm` + `Domain` + the region-semantics
-half of `Analysis`; **Minecraft world stuff** = `Minecraft` + `Import` + the block-feature half of
-`Analysis`; **data models** = `Domain` (internal) + `Contracts` (wire); **database** = `Data` +
-`Migrations`; **geometry** = `Geom`; **API** = `Api` + `Client`. The only bucket genuinely *split across
-two charters* is `Analysis` (PGM-semantic region work vs. world-feature playability work) — now folded
-by concern (§4).
+`Domain` has drifted past "entities" in a way worth naming: alongside `MapModel`, `Region` and `Filter` it now
+holds the **rules that several projects share** — `RoomFrames` (the stamped-room resolver), `ObjectiveFootprint`,
+`MiningTiers`, `DestroyableMaterials`, `DoorMaterials`, `Gamemodes`, `PhantomErasure`. That is correct rather
+than accidental: each is a pure function of the entities, and each has consumers in more than one project
+above. It does mean `Domain` is "the PGM domain", not "the PGM data model".
 
-## 3. The key insight: six representations of "a map" (this is the "data spread over" feeling)
+## 3. Sizes, and the two that have outgrown their shape
 
-There is no single "map model." There are **six**, each correct for its pipeline stage. The friction
-is not that they exist — it is that their names/locations don't announce the pipeline. The flow:
+| Project | Files | Lines | Internal shape |
+|---|---|---|---|
+| `Geom` | 40 | 4,593 | `Algorithms/` 20 · `Relief/` 6 · `Render/` 2 · 12 at root |
+| `Domain` | 18 | 1,616 | flat |
+| `Contracts` | 12 | 898 | flat |
+| `Migrations` | 20 | 1,448 | `Migrations/` 19 |
+| `Minecraft` | 61 | 11,246 | **47 at root** · `Dressing/` 6 · `Render/` 5 · `Views/` 3 |
+| `Import` | 4 | 471 | flat |
+| `Pgm` | 133 | 20,085 | `Compose/` 42 · `Authoring/` 21 · `Evaluate/` 20 · `Shapes/` 10 · `Editing/` 10 · `Plan/` 6 · `Sketch/` 4 · `Derive/` 4 · `Render/` 3 · `Detect/` 1 · 12 at root |
+| `Analysis` | 16 | 2,577 | `Playability/` 7 · `Footprint/` 4 · `Region/` 3 · `Layer/` 2 |
+| `Data` | 13 | 2,223 | `Features/` 4 · `Theme/` 3 · `Map/` 3 · `Schema/` 2 · `Plan/` 1 |
+| `Api` | 65 | 8,838 | `Endpoints/` 37 · `Services/` 25 · `Http/` 2 |
+| `Client` | 80 `.cs` + razor | 13,434 | `Features/<Tool>/` · `Components/` · `Pages/`, plus 11 JS layers |
+
+**`Pgm` is two projects wearing one name.** `CLAUDE.md` charters it as "`map.xml` parse/edit/generate", and
+that describes 48 files — the codec at the root, `Authoring/` (intent → map), `Editing/` (patch a parsed doc),
+`Sketch/` and `Detect/`. The other 85 files and 11,522 lines are the **layout generator**: `Compose/`,
+`Evaluate/`, `Shapes/`, `Derive/`, `Plan/` and its `Render/`. The generator touches no XML. It reads only
+`Domain` and `Geom`, which means it would stand on its own as a project with no new edge — the boundary it
+already respects is exactly the one it would get. Whether to split it is §6.1; what is not in question is that
+one charter sentence no longer covers the project.
+
+**`Minecraft` has 47 files at its root**, 8,220 lines — the shape `Pgm`, `Analysis` and `Data` were folded out
+of. The concerns are visible from the filenames and separable without moving a boundary: world reading (Anvil,
+regions, chunks), stamping (rooms, cubes, objectives, houses), painting, and the suggesters that read a world
+back. It is the last unfolded project.
+
+## 4. Seven representations of "a map"
+
+There is no single map model, and there should not be: each of these is correct for one stage of the pipeline.
+The friction is that their names do not announce the order they come in.
+
+| # | Representation | Lives in | Is |
+|---|---|---|---|
+| 1 | `PlanModel` (`plan_json`) | `Pgm/Plan` | the coarse cell grid — the **plan** tool's document, and what the generator emits; `plan-doc.js` is its browser twin |
+| 2 | `SketchLayout` (`sketch_layout_json`) | `Pgm/Sketch` | the real geometry at block resolution — the **sketch** tool's document |
+| 3 | `MapIntent` (`map_intent_json`) | `Pgm/Authoring` | what the author *wants*: teams, spawns, objectives, regions — the **configure** tool's input |
+| 4 | `MapXml` + entities | `Domain/MapModel.cs` | what a finished map *is*, parsed and typed |
+| 5 | the `Dict` doc (`xml_data.json`) | `Pgm/JsonTree.cs` | the loose `Dictionary<string, object?>` tree — the round-trip currency the **edit** tool patches |
+| 6 | `*Row` POCOs (39 tables) | `Data/Schema/Entities.cs` | the relational shape — the hybrid persistence model |
+| 7 | wire DTOs | `Contracts/*.cs` | what crosses `/api` to the client |
+
+The flow between them is the one `docs/tools/flow.md` describes from the map's side:
 
 ```
- (1) map.xml ──Pgm.MapParser──> MapXml + entities (Domain)         "what a finished map IS" (typed)
-                    │
-                    └──Pgm codec──> Dict doc / xml_data.json        "the loose JSON tree" (Pgm.JsonTree)
-                                        │  ▲
-                                        │  └── patched in place by Pgm/Editing/*Editor   ← EDIT tool
-                                        │
- (4) MapIntent (Pgm/Authoring) ──Generators──┘                     "what the author WANTS" ← CONFIGURE tool
-                                        │
-                                        └──Data/MapWriter codec──> *Row POCOs (Data/Entities) ──> MariaDB
-                                                                        │
- (5) world features ──Minecraft──> Data/WorldFeatureWriter ──> feature *Row ──Analysis──> (6) DTOs (Contracts) ──> Client
- (3) SketchLayout (sketch_layout_json) ──Pgm/Sketch + Analysis/Footprint.IslandDetector──> cells/parquet ──> world  ← SKETCH tool
+ plan_json ──PlanCompiler──> sketch_layout_json ─┬─SketchRasterizer──> world geometry ──> Anvil world
+                             + map_intent_json   │
+                                                 └──Generators──> Dict doc ──MapWriter──> rows ──> MariaDB
+ map.xml ──MapParser──> MapXml ──Serializer──> Dict doc ──┘                    │
+                                       ▲                                       └──> DTOs ──> Client
+                                       └── patched in place by Pgm/Editing/*
 ```
 
-1. **`MapXml` + entities** — `Domain/MapModel.cs`. The typed, parsed PGM model. *What a map is.*
-2. **`Dict` doc** (`xml_data.json`) — the loose `Dictionary<string,object?>` tree (`Pgm/JsonTree.cs`).
-   The round-trip currency; what the **edit** tool patches and what the **generators** emit.
-3. **`SketchLayout`** (`sketch_layout_json`) — the **sketch** tool's draft-geometry format.
-4. **`MapIntent`** — `Pgm/Authoring/MapIntent.cs`. The **configure** tool's declarative input.
-5. **`*Row` POCOs** — `Data/Entities.cs` (23 tables). The relational shape; the hybrid persistence model.
-6. **Wire DTOs** — `Contracts/*.cs`. What crosses `/api` to the Blazor client.
+Each tool owns one authoring document — plan, sketch, intent — and all of them converge on the **Dict doc →
+codec → rows** spine.
 
-Each tool "owns" one authoring format (edit→Dict patch, configure→MapIntent, sketch→SketchLayout), and
-all three converge on the **Dict doc → codec → Rows** spine. That is the spine to make legible.
+### 4a. The codec — `XML ⇄ MapXml ⇄ Dict`
 
-### 3a. The codec — `XML ⇄ MapXml ⇄ Dict` (the 9 flat `Pgm` root files)
+The machinery between representations 4 and 5 sits flat at the `Pgm` root, because it *is* that half of the
+project's charter. Every file is a pure function over the three forms.
 
-The machinery between representations (1) and (2) lives flat at the `Pgm` root — it *is* the project's
-charter. Every file is a pure function over `XML ⇄ MapXml ⇄ Dict`; the codec is the hub the whole
-pipeline turns on.
-
-| File | Role | Public entry | Direction |
+| File | Role | Entry | Direction |
 |---|---|---|---|
-| `MapParser` | top-level parser; orchestrates the two registry parsers | `Parse(path)` / `ParseXmlString(xml)` → `MapXml` | XML → domain |
-| `RegionParser` | `<regions>` → flat `Region` registry + apply-rules; synthetic ids for anon | `ParseRegionsElem` → `(regions, applyRules)` | XML → domain |
-| `FilterParser` | `<filters>` → flat `Filter` registry; seeds `never`/`always` | `ParseFiltersElem` → `filters` | XML → domain |
-| `Xml` | `internal` XElement/attr/text/coord helpers | (internal, parse-side) | — |
-| `Serializer` | domain → JSON tree (`xml_data.json` shape) + single-entity encoders for the importer | `ToDict(MapXml)` → `Dict`; `RegionToDict`/… | domain → Dict |
-| `Deserializer` | inverse of `Serializer` | `FromDict(Dict)` → `MapXml` | Dict → domain |
-| `XmlWriter` | domain → PGM `map.xml` (top-level/inline-ref logic, synthetic-id elision) | `ToXml(MapXml)` → `string` | domain → XML |
-| `JsonTree` | JSON-string → tree **+** structural tree compare | `FromJson`/`FromJsonLenient`; `DeepEquals`/`Canonical`/`DiffKeys` | Dict util |
-| `RegionBoundsDeriver` | recompute derived `bounds_2d` for compound/transform regions after a **DB** rebuild | `Derive(registry)` | Dict-read helper |
+| `MapParser` | the top-level parser; orchestrates the two registry parsers and gates what is supported | `Parse(path)` / `ParseXmlString(xml)` → `MapXml` | XML → domain |
+| `RegionParser` | `<regions>` → a flat `Region` registry plus apply-rules; synthetic ids for anonymous regions | `ParseRegionsElem` → `(regions, applyRules)` | XML → domain |
+| `FilterParser` | `<filters>` → a flat `Filter` registry; seeds `never`/`always` | `ParseFiltersElem` → `filters` | XML → domain |
+| `Xml` | internal XElement / attribute / text / coordinate helpers | (internal) | — |
+| `IncludeLibrary` | resolves `<include>` against the server's includes directory | | XML → XML |
+| `Serializer` | domain → the JSON tree, plus single-entity encoders for the importer | `ToDict(MapXml)` → `Dict` | domain → Dict |
+| `Deserializer` | the inverse | `FromDict(Dict)` → `MapXml` | Dict → domain |
+| `XmlWriter` | domain → PGM `map.xml`, with top-level/inline-ref logic and synthetic-id elision | `ToXml(MapXml)` → `string` | domain → XML |
+| `JsonTree` | JSON string → tree, and structural tree comparison | `FromJson`/`FromJsonLenient`; `DeepEquals`/`Canonical`/`DiffKeys` | Dict utility |
+| `RegionBoundsDeriver` | recomputes derived `bounds_2d` for compound and transform regions after a DB rebuild | `Derive(registry)` | Dict-read helper |
+| `MapValidity` | the rules a map must satisfy to export | | over the domain |
+| `UnsupportedMapException` | the refusal `MapParser` raises — proto floor, modern world, unread objective module | | — |
 
-**Who drives it:** `Import` (parse→serialize on ingest, then `FromJson`→rows), `Data/MapReader`
-(`ToDict` + `RegionBoundsDeriver` to rebuild the doc for the editor), `Data/MapWriter` (`FromDict` on
-save), `Api/MapXmlEndpoint` (`FromDict` + `XmlWriter` for the export endpoint), `Api/WriteEndpoints`
-(`FromJson` on POSTed edits), and the `RoundTrip` parity harness (all of it). `JsonTree`'s
-`DeepEquals`/`Canonical`/`DiffKeys` are roundtrip-verification (used by `Import`'s drift check + the
-parity harness); its `FromJson` is the production codec.
+**Who drives it:** `Import` (parse and serialize at ingest, then `FromJson` → rows), `Data/Map/MapReader`
+(`ToDict` plus `RegionBoundsDeriver` to rebuild the doc for the editor), `Data/Map/MapWriter` (`FromDict` on
+save), `Api/MapXmlEndpoint` (`FromDict` + `XmlWriter` for export), `Api/WriteEndpoints` (`FromJson` on posted
+edits), and the round-trip harness. `JsonTree`'s comparison half is verification — the importer's drift check
+and the harness; its `FromJson` is the production codec.
 
-## 4. Per-project verdict
+## 5. Per-project verdict
 
-| Project | Files / LOC | Verdict | Action |
-|---|---|---|---|
-| `Geom` | 2 / 112 | **Exemplary** | none — it's the model the others should imitate |
-| `Domain` | 6 / 332 | **Earns its place** | none — now also home to `RegionFacet` + `BlockColors` (A5); open Q §6.1 (`MapIntent`) |
-| `Contracts` | 3 / 93 | **Earns its place** | name is fine; add a one-liner so it's not confused with `Domain` |
-| `Migrations` | 5 / 460 | **Clean** | none |
-| `Minecraft` | 8 / 1381 | **Clean** | none — the cleanest project |
-| `Import` | 3 / 265 | **Clean but identity-blurred** | clarify: it is parquet→relational, **not** world-scan (§5.3) |
-| `Pgm` | 30 / 4951 | **Right internal shape now** | ✅ **folded `Editing/`/`Authoring/`/`Sketch/`; `RegionCategorizer` joined `Authoring/` (A5)** |
-| `Analysis` | 10 / 1731 | **Right internal shape now** | ✅ **folded `Region/`/`Layer/`/`Playability/`/`Footprint/` (A5)** |
-| `Data` | 8 / 1084 | **Right internal shape now** | ✅ **folded `Schema/`/`Map/`/`Features/`; `WorldFeatureWriter` stays in `Features/` (A6, §5.3)** |
-| `Api` | 27 / — | **Acceptable for a composition root** | optional: group 20 endpoint files into feature folders |
-| `Client` | ~60 / — | **Well-organized** | none (already foldered by tool; JS is 5-layer) |
-
-## 5. Remaining internal reorganization
-
-> §5.1 (`Pgm`) and §5.2 (`Analysis`) **landed in A5**; §5.3 (`Data`) **landed in A6** — see the §4
-> verdict table and the codec map (§3a). All three folds are done.
-
-### 5.3 `Data` — folded into Schema / Map / Features (A6)
-
-`Data` conflated five concerns. **`A6` sub-foldered it behaviour-preservingly** (folders-only — build
-clean · `RoundTrip --parity` 350/350 · `Data`/`Import`/`Api` tests green) into three namespaces that
-match their folders (the A5 convention):
-
-| Folder / namespace | Files | The concern |
+| Project | Verdict | What it needs |
 |---|---|---|
-| `Schema/` → `PgmStudio.Data.Schema` | Entities.cs (23 `*Row` + `ArtifactKind`), PgmDb.cs | the relational *model* + linq2db context |
-| `Map/` → `PgmStudio.Data.Map` | MapReader, MapWriter, MapRepository | Dict doc ⇄ entity rows (the map codec; see `pgm/region-data-flow.md`) |
-| `Features/` → `PgmStudio.Data.Features` | WorldFeatureWriter, SurfaceLayer, MonumentCandidateStore | world-feature ingest · artifact decode (`layer.parquet` blob) · monument-suggestion query store |
+| `Geom` | **Exemplary.** Zero project references and every consumer can take it — the model the others are measured against. Its growth is the right kind: `Algorithms/`, `Relief/`, `Render/` are all pure. | none |
+| `Domain` | **Earns its place**, now as the shared-rule leaf as much as the entity one (§2). | a header line saying so |
+| `Contracts` | **Earns its place** — the only model project `Client` can see. | a header line distinguishing it from `Domain` |
+| `Migrations` | **Clean** — one file per migration, in order. | none |
+| `Minecraft` | **Needs the fold the others got.** 47 root files across four separable concerns (§3). | an internal fold, folders-only |
+| `Import` | **Clean, identity blurred.** It is parquet→relational replay; it is *not* the world scan, which lives in `Data/Features/WorldFeatureWriter`. | the distinction stated in its own header |
+| `Pgm` | **Two charters in one project** (§3). Both halves are internally well-shaped. | the split decision, §6.1 |
+| `Analysis` | **Right internal shape** — `Region/`, `Layer/`, `Playability/`, `Footprint/`. | none |
+| `Data` | **Right internal shape** — `Schema/`, `Map/`, `Features/`, and since then `Theme/` and `Plan/` for the library and plan stores. | none |
+| `Api` | **Acceptable for a composition root**, though 37 endpoint files and 25 services is where feature folders start to pay. | optional grouping |
+| `Client` | **Well organized** — `Pages/` for routable pages, `Features/<Tool>/` for a tool's own bodies, `Components/` for the shared vocabulary, and 11 JS layers under `wwwroot/js/studio/`. | none |
 
-**`WorldFeatureWriter`'s home — decided: stays in `Data` (`Features/`).** It reads as a pipeline stage
-(it pulls `Minecraft` *and* `Analysis` to turn a world into feature rows), but its body is fundamentally
-a **DB writer** — `PgmDb` `BulkCopyAsync`/`InsertAsync`/`DeleteAsync` over the `*Row` POCOs plus
-`MonumentCandidateStore`. Moving it to `Import` would drag `Minecraft` + `Analysis` into the
-parquet-replay CLI (which today refs neither) for no boundary gain, and exceeds a folders-only fold, so it
-sits beside the rows it writes. The broader "is the ingest story split, and should it be unified?"
-question is parked as an open decision (§6.4).
+## 6. Open decisions
 
-## 6. Open decisions (genuinely your call — recommendations given, not executed)
+**6.1 — Should the layout generator be its own project?** `Compose/`, `Evaluate/`, `Shapes/`, `Derive/` and
+`Plan/` are 85 files and 11,522 lines that never touch `map.xml`, and they reference only `Domain` and `Geom`,
+so `PgmStudio.Compose` would add no dependency edge — the split is free in graph terms. What it would buy is
+that `Pgm`'s charter sentence becomes true again and the generator's own dependencies become visible (today it
+can reach the codec without anything noticing). What it costs is a rename across every citation and the
+`PlanCompiler` seam sitting on a boundary rather than inside one. **Recommendation: split it when the
+generator next needs a structural change**, not as a standalone refactor.
 
-1. **`MapIntent` → `Domain`?** It's a pure, zero-dep data model — it *could* join the other map models
-   in `Domain`, leaving only the *generators* in `Pgm/Authoring/`. **Recommendation: leave it in `Pgm`.**
-   `Domain` is deliberately "what a *parsed* map IS"; `MapIntent` is "what an author *wants*" — a
-   different lifecycle, and it lives next to the only code that consumes it. Promoting it buys nothing
-   (nothing below `Pgm` needs it; `Client` posts loose JSON, §6.3).
-2. **Rename `Contracts`?** The name reads generic, but it's the correct API term (the wire contract) and
-   it's the one model project `Client` can see. **Recommendation: keep the name**, add a header comment
-   distinguishing it from `Domain` (internal entities vs. wire DTOs). A rename is churn across every
-   endpoint for no boundary change.
-3. **The intent contract is stringly-typed.** The Configure client (`ConfigureWizard.razor.cs`) builds a
-   loose `JsonObject` and PUTs it; `Api/IntentStore` deserializes into `MapIntent` by camelCase
-   convention. This is *why* `MapIntent` can sit in `Pgm` without breaking `Client`'s leaf set — but the
-   contract between the wizard and `MapIntent` is **unchecked**. If it bites, the fix is a `Contracts`
-   intent-DTO shared by both sides; until then it's a known, deliberate trade (decoupling over safety).
-4. **Unify the two ingest pathways?** Ingest is split across two homes: `Import` replays
-   parquet→rows (a CLI; refs neither `Minecraft` nor `Analysis`), while `Data/Features/WorldFeatureWriter`
-   live-scans the Anvil world→rows (pulls `Minecraft` + `Analysis`), driven by `Api` endpoints. So "how a
-   world becomes rows" has two implementations. A thin `Pipeline` seam — or merging the live-scan into
-   `Import` — would unify them. **Recommendation: leave it split** until the import story is revisited:
-   `WorldFeatureWriter` is DB-write-shaped and sits fine beside the rows it writes, and unifying is a
-   project-boundary refactor with new transitive deps, not a fold. (This resolves the `WorldFeatureWriter`
-   half of `A6`'s "decide its home" as *keep* — see §5.3.)
+**6.2 — `MapIntent` → `Domain`?** It is a pure, zero-dependency data model and could join the other map models
+there, leaving only the generators in `Pgm/Authoring/`. **Recommendation: leave it in `Pgm`.** `Domain` is
+what a *parsed* map is; `MapIntent` is what an author *wants* — a different lifecycle — and it sits beside the
+only code that consumes it. Nothing below `Pgm` needs it, and the client posts loose JSON (§6.4).
+
+**6.3 — Rename `Contracts`?** The name reads generic, but it is the correct API term and it is the one model
+project `Client` can see. **Recommendation: keep it**, with a header comment separating it from `Domain`. A
+rename is churn across every endpoint for no boundary change.
+
+**6.4 — The intent contract is stringly typed.** The Configure client builds a loose `JsonObject`
+(`AuthoringContext`, `Wizard.Intent`) and PUTs it; `AuthoringIntentEndpoints` deserializes into `MapIntent` by
+camelCase convention. This is *why* `MapIntent` can live in `Pgm` without breaking `Client`'s leaf set, and it
+is unchecked in both directions. If it bites, the fix is an intent DTO in `Contracts` shared by both sides;
+until then it is a deliberate trade of safety for decoupling.
+
+**6.5 — Two ingest pathways.** `Import` replays parquet → rows as a CLI and references neither `Minecraft` nor
+`Analysis`; `Data/Features/WorldFeatureWriter` scans an Anvil world → rows and pulls both, driven by `Api`. So
+"how a world becomes rows" has two implementations. **Recommendation: leave it split.** `WorldFeatureWriter`
+is DB-write-shaped and sits beside the rows it writes, and unifying would drag `Minecraft` and `Analysis` into
+the replay CLI for no boundary gain — a project-boundary refactor, not a fold.

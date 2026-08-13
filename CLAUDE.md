@@ -19,9 +19,11 @@ That plus a separation of concerns by *kind*:
 - **`Contracts`** = the wire DTOs shared by client and server (`MapStage`, the analysis DTOs). How
   things *cross the API*. It is **not** a dumping ground for algorithms — it is reachable by `Client`/`Pgm`/
   `Api` but **not** by `Analysis`, so anything `Analysis` also needs must **not** live here.
-- **`Pgm`** = `map.xml` parse/edit/generate. **`Analysis`** = NTS-backed derivations (refs `Domain` only).
-  **`Minecraft`** = world/Anvil. **`Data`/`Import`** = persistence/ingest. **`Client`** = Blazor (refs
-  `Contracts` only). **`Api`** = composition root (refs everything).
+- **`Pgm`** = two halves under one name: the `map.xml` codec (parse/edit/generate, at the root plus
+  `Authoring`/`Editing`/`Sketch`) **and** the layout generator (`Compose`/`Evaluate`/`Shapes`/`Derive`/`Plan`,
+  which touches no XML — see `docs/project-structure.md` §6.1). **`Analysis`** = NTS-backed derivations (refs
+  `Domain` + `Geom`). **`Minecraft`** = world/Anvil. **`Data`/`Import`** = persistence/ingest. **`Client`** =
+  Blazor (refs `Contracts` only). **`Api`** = composition root (refs everything).
 - **Pure algorithms shared by many projects** (geometry scalar math, shapes, generative layout algos)
   belong in a **dependency-free leaf below them all** — this is **`PgmStudio.Geom`** (`Symmetry`,
   `Polygon`; future: shape model, TSP/annealing layout). It references **nothing** (not even `Domain`),

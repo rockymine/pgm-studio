@@ -1054,6 +1054,27 @@ long-tail so they stop competing with real work. Re-evaluate (or delete) when th
   Surface/Y0 = air-only) are the solid-policy. Still open: the byte-parity sub-question — a segment-derived
   surface would **not** be byte-parity with the reference (endpoint-only runs also can't honour user
   `exclude_blocks`). Pairs with A4.
+- [ ] **A7 — `Minecraft` is the last unfolded project: 47 files at its root.** Every other project has been
+  sub-foldered by concern (`Pgm`, `Analysis`, `Data` — A5/A6); `Minecraft` grew to 61 files and 11k lines with
+  47 of them flat at the root and only `Dressing/`, `Render/` and `Views/` broken out. The concerns are
+  separable without touching a boundary and are visible from the filenames: **world reading** (Anvil regions,
+  chunks, the block palette), **stamping** (rooms, cubes, objectives, houses and their frames), **painting**
+  (the terrain painter and its profile/theme family), and the **suggesters** that read a built world back
+  (monument, core, objective). Folders-only and behaviour-preserving, the same discipline as A5/A6: namespaces
+  match folders, no file changes beyond the namespace line, build clean and every suite green before it lands.
+  Map: `docs/project-structure.md` §3.
+
+- [ ] **A8 — [Decision, parked] Should the layout generator be its own project?** `Pgm` holds two charters:
+  the `map.xml` codec (48 files) and the layout generator (`Compose`/`Evaluate`/`Shapes`/`Derive`/`Plan`, 85
+  files and 11.5k lines, touching no XML). The generator references only `Domain` and `Geom`, so
+  `PgmStudio.Compose` would add **no dependency edge** — the split is free in graph terms, and it would make
+  `Pgm`'s charter true again while making the generator's own dependencies enforceable (today it can reach the
+  codec and nothing notices). Against it: a rename across every citation, and `PlanCompiler` — the plan →
+  layout + intent seam — would sit on a project boundary rather than inside one. **The blocking question is
+  whether `PlanCompiler` belongs to the generator or to authoring**, and that is answerable only when the
+  generator next needs a structural change; doing it as a standalone refactor buys nothing today.
+  See `docs/project-structure.md` §6.1.
+
 - [ ] **A3 — Buildability endpoint perf (verify, then optimise if needed).** Per-cell NTS over the grid
   was flagged slow; the endpoint is now live and user-visible (`N03`'s buildability overlay landed).
   **First profile it under the Configure overlay** — only optimise (spatial index / batch) if it's
