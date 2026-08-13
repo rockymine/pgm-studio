@@ -6,9 +6,10 @@ namespace PgmStudio.Pgm.Authoring;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Two-facet region categorisation (port of studio/services/region_categorizer.py, contract
-/// docs/pgm/region-categorization.md). Operates on the map document dict (xml_data.json shape) so the
-/// input is identical to Python's. Category = what a region *is*; roles = what it's *used for*.
+/// Two-facet region categorisation (contract
+/// docs/pgm/region-categorization.md). Operates on the map document dict (xml_data.json shape), so it
+/// reads exactly what the editor and the codec do. Category = what a region *is*; roles = what it is
+/// *used for*.
 /// </summary>
 public static partial class RegionCategorizer
 {
@@ -111,8 +112,8 @@ public static partial class RegionCategorizer
             if (MessageCategory(rule.GetValueOrDefault("message")) is { } hint2) msgHint.TryAdd(rid, hint2);
             if (IsSpawnBlockPattern(rule, filters)) ironSpawnIds.Add(rid);
         }
-        // stable sort by event only (matches Python's stable list.sort(key=event) — preserves
-        // apply-rule order for equal events, e.g. two `enter=` entries on one region)
+        // A stable sort by event alone, so apply-rule order survives for equal events — two `enter=`
+        // entries on one region keep the order the map wrote them in.
         foreach (var rid in rulesByRegion.Keys.ToList())
             rulesByRegion[rid] = rulesByRegion[rid].OrderBy(e => e.ev, StringComparer.Ordinal).ToList();
 

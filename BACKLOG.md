@@ -952,23 +952,6 @@ What stays here is the concrete non-design work on *imported* maps (island detec
   strong opening against a hopeless second phase describes neither. The played account is in
   `docs/gameplay/match-flow.md` §4.8.
 
-- [ ] **B43 — Retire the Python-oracle parity harness.** The project began as a port of the Python
-  `pgm-map-studio` and still carries a parity harness that regenerates Python "oracles"
-  (`parser.parse + serializer.to_dict` over the corpus at `/media/sf_repos/pgm-map-studio` into `/tmp/pyfresh`)
-  and diffs the C# derivations against them. That reference is deprecated dead weight: the C# feature set
-  overtook it long ago (the `map.xml`-contract `--parity` was already dropped, B30), and comparing every
-  refactor against a frozen, out-of-date oracle makes safe changes look risky and blocks cleanups (it just
-  did — the grid-algorithm consolidation, fix 1). Remove the four `*Parity` modes from
-  `tools/PgmStudio.RoundTrip/Program.cs` (`--categorize` / `--buildability` / `--traversability` / `--wool`)
-  and their regenerate-from-Python scaffolding; the project-native modes (`--extract` / `--islands` /
-  `--scan-out` / `--authoring` / `--monument-slices` / …) stay. **Keep the concept — a regression / golden
-  harness — but re-home it as project-native** (C# goldens or fixtures over the corpus, no second framework).
-  Then sweep the residue: the `/media/sf_repos` + `/tmp/pyfresh` mentions and the parity paragraph in
-  `CLAUDE.md` (Verification & gotchas) and the docs, and the "Port of X.py" / "matches scipy.ndimage" attribution
-  comments in the ported C# (`Analysis/IslandDetector`, `Analysis/Traversability`, …)
-  that the code-comments rule already bans. `appsettings.Development.json`'s `MapsRoots`/`Import.Root` point at
-  the reference VM but are import-only — repoint or document, don't leave dangling.
-
 ### The generator in the studio (G117–G120) — parked while the authoring loop is the focus
 
 The box pipeline is **the** composer and the emitted layouts are good enough to work *with*, so the
@@ -1026,11 +1009,11 @@ auto-wires), and Edit is frozen. Resume when the existing-map authoring path is 
   generator already uses orbit-fill automatically).
 - [ ] **3D / side-depth selection view** (ex-`F8` 3D half). The flat side-view slice is done (→ `N08`);
   a true 3D selection view (monument point/block + cuboid Y) needs design. Later.
-- [ ] **Comment hygiene sweep — purely functional comments.** Code comments must describe behaviour
-  only: **no** references to the Python reference app ("port of", "mirrors the reference", parity/oracle)
-  and **no** implementation-phase / task ids (`NS`, `N00`, `B8`, `P5`, `ND2`, …). New code already
-  follows this (CLAUDE.md). ~19 task-id references + ~41 parity/"port of" references remain across
-  `src/` + `tests/` (e.g. `ImportEndpoints`, `WorldScanStep`, `WorldFeatureWriter`) — sweep them.
+- [ ] **Comment hygiene sweep — the task ids.** Code comments must describe behaviour only, and the
+  attribution half is done (B43 swept every "port of X.py" / "matches Python" reference out of `src/` and
+  `tests/`). What remains is **implementation-phase and task ids** (`NS`, `N00`, `B8`, `P5`, `ND2`, …) in
+  about nineteen places — a comment that says *when* something was built rather than what it does, which
+  reads as noise to anyone who was not there. New code already follows the rule (`CLAUDE.md`).
 
 **Deprioritized — may be dropped in a later pass.** Optional/deferred slices parked out of the active
 long-tail so they stop competing with real work. Re-evaluate (or delete) when their area is next touched.

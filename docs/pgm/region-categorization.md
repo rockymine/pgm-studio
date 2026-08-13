@@ -11,9 +11,9 @@ near-zero false positives.
 > **Implementation:** `src/PgmStudio.Pgm/Authoring/RegionCategorizer.cs` — `DeriveFacets` →
 > `{id: RegionFacet(Category, Roles, Subtype)}`; `Categorize` → flat `{id: category}` with
 > `region_categories` user overrides applied. Verified by synthetic unit tests
-> (`tests/PgmStudio.Pgm.Tests/RegionCategorizerTests.cs`) and the corpus parity guard
-> `tools/PgmStudio.RoundTrip --categorize <pyfresh> <pyfacets>` against the Python oracle
-> (which still emits flat `wool_room`/`monument`/`wool_spawner` — see the §2 parity note).
+> (`tests/PgmStudio.Pgm.Tests/RegionCategorizerTests.cs`) and by the corpus net
+> `tools/PgmStudio.RoundTrip --goldens`, which digests every corpus map's categories and roles so a change
+> to a signal names the maps it moved.
 
 ---
 
@@ -55,8 +55,8 @@ room, monument(s), and often a spawner), so they share a category, but the subty
 room-vs-monument opposition the model depends on — they are never an indistinct bucket. (A wool-
 dispensing spawner's `player_region` is the wool **room** → subtype `room`; its `spawn_region` is the
 `spawner`.) The editor's Objective activity lists them as Wool Rooms / Monuments / Wool Spawners.
-**Parity note:** the Python reference still emits the flat `wool_room`/`monument`/`wool_spawner`; the
-`--categorize` harness maps C# `wool`+subtype ↔ those, so the 350-map guard is preserved.
+The flat `wool_room`/`monument`/`wool_spawner` split older tooling emitted is recoverable from the pair:
+the category says wool and the subtype says which.
 
 **Spawn subtype (implemented).** `spawn` carries a `subtype` separating the two things authors
 treat differently: **`point`** — the literal spawn, the region in `spawns[].region` (where the
@@ -317,6 +317,6 @@ surfaces *that it is a build region* and *that it opens after 30s*.
   `subtype = null`. When added it will be best-effort from geometry/naming.
 
 Verification is by synthetic-fixture unit tests in `tests/PgmStudio.Pgm.Tests/RegionCategorizerTests.cs`
-(per the repo's "synthetic fixtures only" rule — no real game files under `tests/`) plus the
-`tools/PgmStudio.RoundTrip --categorize` corpus parity guard against the Python `derive_region_facets`
-oracle. There is no checked-in `tests/fixtures/region_categories/` directory in this repo.
+(per the repo's "synthetic fixtures only" rule — no real game files under `tests/`) plus
+`tools/PgmStudio.RoundTrip --goldens`, which records what every corpus map's regions derive to and reports
+the maps a change moves.

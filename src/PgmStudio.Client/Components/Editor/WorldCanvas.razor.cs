@@ -327,7 +327,7 @@ public partial class WorldCanvas
         await OnRegionCreated.InvokeAsync();
     }
 
-    // Convert an WorldCanvas drawResult into a createRegion payload (port of drawResultToPayload).
+    // Convert an WorldCanvas drawResult into a createRegion payload (drawResultToPayload in the canvas bridge).
     private static Dictionary<string, object?> BuildPayload(JsonElement d, string category, string? draftStep)
     {
         double N(string k) => d.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;

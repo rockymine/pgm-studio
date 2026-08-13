@@ -3,7 +3,7 @@ namespace PgmStudio.Pgm.Editing;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Wool + monument CRUD on the grouped wool format (port of studio/services/wool_editor.py). Ids are
+/// Wool + monument CRUD on the grouped wool format. Ids are
 /// content-derived (wool id = colour slug; monument id = <c>colour-team</c>), matching the serializer.
 /// </summary>
 public static class WoolEditor

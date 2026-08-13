@@ -1,10 +1,11 @@
 # CLAUDE.md — pgm-studio
 
 ## What this is
-A from-scratch **ASP.NET Core** rewrite of the Python `pgm-map-studio`
-(`/media/sf_repos/pgm-map-studio`), which stays in place as the **behavioural reference**
-(routes, the data contract, analysis oracles, and the 350-map corpus). Goal: full feature
-parity in C# with all map data in **MariaDB**.
+An **ASP.NET Core** studio for authoring PGM maps — planning a layout, drawing its ground, stating what
+the map is played for, and writing the `map.xml` and world a server can load. **PGM itself
+(`/media/sf_repos/PGM`) is the reference for the contract**, and the 350-map corpus
+(`/media/sf_repos/CommunityMaps`, `/media/sf_repos/PublicMaps`) is what any claim about how maps are
+actually built is measured against. All map data lives in **MariaDB**.
 
 ## Stack (decided, do not relitigate)
 ASP.NET Core · FastEndpoints (`/api`) · Blazor WebAssembly hosted by the backend ·
@@ -55,7 +56,7 @@ That plus a separation of concerns by *kind*:
   (~7.7k rows/map) kept as a regenerable cached artifact (`map_artifact` blob), not row-per-block.
 - **Parquet → relational** via Parquet.Net in `PgmStudio.Import`; no world re-scan needed to
   migrate existing maps (only to import new ones, M7).
-- Contract invariants to enforce (from the reference app): wools grouped by colour with
+- Contract invariants to enforce: wools grouped by colour with
   deterministic ids; region/filter registries id-keyed; compound `children` + transform
   `source_id` are string-id refs; owner team derived from capturing `monument.team`.
 
@@ -69,7 +70,6 @@ That plus a separation of concerns by *kind*:
 - The VirtualBox shared folder hosts the solution fine, but `dotnet run` cold-start is slow and
   the first WASM load can take seconds — **use `./tools/dev.sh`** (builds once, runs the binary;
   background on :7894). Warm requests are sub-ms.
-- Reference Python app runs on :7892 (`pgm-map-studio/tools/studio-dev.sh`) for parity checks.
 
 ## Tests
 TUnit, one test class per source unit, mirroring `src/`. `dotnet test` is **not** the path on
@@ -98,10 +98,9 @@ table — a table is right and prose would be padding. `model.md`'s shape-model 
 the worked examples.
 
 ## Code comments
-Comments stay **purely functional** — describe what the code does and why. **Never** reference the
-Python reference app ("port of", "mirrors the reference", parity/oracle) or implementation-phase /
-task ids (`NS`, `N00`, `B8`, `P5`, `ND2`, …). Existing non-conforming comments are swept separately
-(see `TODO.md`).
+Comments stay **purely functional** — describe what the code does and why. **Never** an attribution to
+what a piece of code was ported from, and **never** an implementation-phase or task id (`NS`, `N00`, `B8`,
+`P5`, `ND2`, …). The port attributions are swept (B43); the task-id half is still open on the board.
 
 ## Git
 Commit **only when the user explicitly asks**. **Don't push** unless asked. End commit messages with a
@@ -237,9 +236,14 @@ question would have.
   dependencies): `npm i -g playwright && npx playwright install chromium`. **Stop `dev.sh` first** — both
   servers on one VM starve each other and the failures land as 30s route timeouts that look like page
   faults; six smoke checks failed that way and passed cleanly the moment the dev server was down.
-- Parity harnesses in `tools/PgmStudio.RoundTrip` (`--categorize`/`--buildability`/`--traversability`/
-  `--wool`/`--extract`/`--islands`/`--authoring`); regenerate Python oracles into `/tmp/pyfresh` (wiped on
-  reboot) via `parser.parse + serializer.to_dict` over the corpus.
+- **`tools/PgmStudio.RoundTrip --goldens [featureRoot] [--update]` is the corpus regression net.** It runs
+  the four map-level derivations — region categories, buildability, traversability, wool availability with
+  its resource summary — over every corpus map and compares each against `corpus-goldens.json`, so a change
+  that moves a verdict on a real map says which maps and what moved. A feature root (a directory of
+  `<slug>/*.parquet` world-scan output) enables the three that read terrain; without one only the categorizer
+  runs. The record is meant to be re-recorded when a change is deliberate — it buys the look, not a veto.
+  Other corpus modes: `--extract`/`--islands` (the world reader against a scan), `--scan-out[-all]`,
+  `--authoring-fixture`, `--monument-slices`, `--suggest-monuments[-corpus]`.
 - **`dotnet run tools/deriver/figure-check.cs` gates the shape-model section's ASCII figures in `model.md`.** It parses every labelled
   grid **out of the doc** (never a copy) and pushes it through the classifier that names that kind of thing —
   a body figure through `ClassifyBody`, a family figure through `ShapeClassifier`, a negative space through
@@ -252,12 +256,12 @@ question would have.
   invalidates any before/after measurement. Before measuring a `src/` change, **`rm -rf
   ~/.local/share/dotnet/runfile/<script>-*`** (or edit the script). A brand-new script file always builds
   fresh, which is why a scratch copy can disagree with the committed tool.
-- **The `map.xml` contract is no longer checked against the Python oracle — `--parity` is gone (B30).** The
-  C# contract deliberately exceeds the reference's (kit `force`/`effects`, `destroyables`/`cores`/`modes`,
-  the OB4 group-attribute fix the reference gets wrong), so on those the oracle is *silent*, not
-  authoritative, and the comparison reported a red it could never go green on. **PGM itself
-  (`/media/sf_repos/PGM`) is the reference for the contract**; `tests/` + `--authoring` gate it. The
-  *analysis* oracles above are unaffected — they compare derivations both sides own, and still pass.
+- **Nothing is checked against an outside oracle any more (B30, B43).** The contract check went first: the
+  studio's `map.xml` deliberately carries more than the old reference did (kit `force`/`effects`,
+  `destroyables`/`cores`/`modes`, the OB4 group-attribute fix), so a comparison reported a red it could never
+  go green on. The four analysis comparisons followed, for a different reason — they were green, but they
+  pinned live derivations to a frozen copy, which made safe refactors look risky. **PGM is the reference for
+  the contract** and `tests/` gate it; the corpus net above is what catches a derivation moving.
 - `--suggest-monuments <regionDir> <xml_data.json> [--auto-style|--pedestal K --label K] [--margin M]`
   and `--suggest-monuments-corpus` validate `MonumentSuggester` (`PgmStudio.Minecraft`) — the
   authoring-flow "which monument style? + box" extractor. Given the world, the box the author drew, and

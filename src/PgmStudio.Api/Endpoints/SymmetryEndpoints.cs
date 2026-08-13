@@ -17,7 +17,7 @@ internal static class SymmetrySupport
 {
     public static readonly HashSet<string> ValidTypes = ["rot_90", "rot_180", "mirror_x", "mirror_z", "mirror_d1", "mirror_d2"];
 
-    // Display-strength rank for primary tie-breaks (port of _SYMMETRY_ORDER).
+    // Display-strength rank for primary tie-breaks.
     private static readonly Dictionary<string, int> Order = new()
     {
         ["rot_90"] = 4, ["rot_180"] = 2, ["mirror_x"] = 1, ["mirror_z"] = 1, ["mirror_d1"] = 1, ["mirror_d2"] = 1,
@@ -70,7 +70,7 @@ internal static class SymmetrySupport
 
     private static int AxisWidth(double coord)
     {
-        var frac = ((coord % 1.0) + 1.0) % 1.0;     // Python-style non-negative modulo
+        var frac = ((coord % 1.0) + 1.0) % 1.0;     // non-negative modulo, so -0.5 reads as 0.5
         return Math.Abs(frac - 0.5) < 1e-6 ? 1 : 2;
     }
 }

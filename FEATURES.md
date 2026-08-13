@@ -885,6 +885,21 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   **analysis** oracles (`--categorize`/`--buildability`/`--traversability`/`--wool`/`--extract`/`--islands`/
   `--authoring`) compare derivations **both** sides own, were never implicated in this, and are untouched.
   (B30)
+- **The corpus regression net replaced the last outside oracle (B43).** The four analysis comparisons —
+  region categories, buildability, traversability, wool availability — read a reference app's per-map JSON out
+  of `/tmp/pyfresh` and diffed the C# derivation against it. They were green, and that was the problem: a live
+  derivation pinned to a frozen copy makes every safe refactor look risky, and the copy could not be
+  regenerated once the reference was deprecated. **`--goldens [featureRoot] [--update]`** keeps what they were
+  for and drops what they depended on: it runs the same four derivations over every corpus map from the
+  studio's own parse, and compares each against `tools/PgmStudio.RoundTrip/corpus-goldens.json` — **370 maps,
+  1402 derivations**, 128 KB. Each entry reads `<digest> <summary>`, so a `git diff` of the record says what
+  moved (`connected=True components=1 points=8` → `components=3`) before anyone re-runs anything, and a moved
+  verdict names the map and the derivation and exits non-zero. Buildability's verdict grid is hashed per cell
+  rather than summarized, since a per-cell change is exactly what no count would show. The record is meant to
+  be re-recorded when a change is deliberate — it buys the look, not a veto. `--authoring` went with them: its
+  `authoring_oracle.json` exists nowhere on disk, so it had been running over zero maps; `--authoring-fixture`
+  is the review artifact that survives it. Also swept: every "port of X.py" attribution in `src/` and
+  `tests/`, and the parity paragraph in `CLAUDE.md`. (`tools/PgmStudio.RoundTrip/CorpusGoldens.cs`)
 - **Region authoring + tree encoders** — `GET /regions/authoring`, `/regions/tree`, `/islands`. (B1)
 - **`RegionBoundsDeriver`** — compound/transform `bounds_2d` recomputed on read. (B2)
 - **Configure endpoints** — `state` / `scan-layer` / `exclude-island` / `exclude-block` /

@@ -5,7 +5,7 @@ using PgmStudio.Domain;
 
 namespace PgmStudio.Pgm;
 
-/// <summary>MapXml → PGM map.xml string (port of xml_writer.py).</summary>
+/// <summary>MapXml → a PGM map.xml string.</summary>
 public static partial class XmlWriter
 {
     private static readonly HashSet<string> BuiltinFilterIds = new() { "never", "always" };
@@ -57,7 +57,7 @@ public static partial class XmlWriter
         {
             if (f.Children is not null) foreach (var cid in f.Children) Inc(cid);
             if ((f.Type is "not" or "deny" or "allow" or "blocks" or "offset") && !string.IsNullOrEmpty(f.Child)) Inc(f.Child!);
-            if ((f.Type is "blocks" or "offset") && !string.IsNullOrEmpty(f.Child)) Inc(f.Child!);  // matches Python double-count
+            if ((f.Type is "blocks" or "offset") && !string.IsNullOrEmpty(f.Child)) Inc(f.Child!);  // the child counts under both its own id and the parent's
         }
         return counts;
     }

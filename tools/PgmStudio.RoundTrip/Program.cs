@@ -30,27 +30,19 @@ string[] defaultRoots = (Environment.GetEnvironmentVariable("PGM_STUDIO_MAPS_ROO
     .Split([';', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 var verbose = args.Contains("--verbose");
 
-// --categorize <pyfreshDir> <pyfacetsDir>: compare C# RegionCategorizer.DeriveFacets to the
-// Python derive_region_facets oracle over every map (exact category + ordered roles).
-var catIdx = Array.IndexOf(args, "--categorize");
-if (catIdx >= 0 && catIdx + 2 < args.Length)
-    return RunCategorizeParity(args[catIdx + 1], args[catIdx + 2], verbose);
-
-// --buildability <pyfreshDir> <featureRoot> <pybuildDir>: compare C# Buildability.Compute to the
-// Python oracle for maps with layer_segments.parquet (Y=0 columns drive the void verdict).
-var bIdx = Array.IndexOf(args, "--buildability");
-if (bIdx >= 0 && bIdx + 3 < args.Length)
-    return await RunBuildabilityParity(args[bIdx + 1], args[bIdx + 2], args[bIdx + 3], verbose);
-
-// --traversability <pyfreshDir> <featureRoot> <pytravDir>: compare C# Traversability.Check to Python.
-var tIdx = Array.IndexOf(args, "--traversability");
-if (tIdx >= 0 && tIdx + 3 < args.Length)
-    return await RunTraversabilityParity(args[tIdx + 1], args[tIdx + 2], args[tIdx + 3], verbose);
-
-// --wool <pyfreshDir> <featureRoot> <pywoolDir>: compare C# wool-availability + resource summaries.
-var wIdx = Array.IndexOf(args, "--wool");
-if (wIdx >= 0 && wIdx + 3 < args.Length)
-    return await RunWoolParity(args[wIdx + 1], args[wIdx + 2], args[wIdx + 3], verbose);
+// --goldens [featureRoot] [--update]: run the four map-level derivations — region categories,
+// buildability, traversability, wool availability — over the whole corpus and compare each map against the
+// recorded digest, so a change that moves a verdict on a real map says which maps. A feature root (a
+// directory of <slug>/*.parquet world-scan output) enables the three that read terrain; without one only the
+// region categorizer runs. --update re-records instead of comparing.
+var goldIdx = Array.IndexOf(args, "--goldens");
+if (goldIdx >= 0)
+{
+    var featureRoot = goldIdx + 1 < args.Length && !args[goldIdx + 1].StartsWith("--") ? args[goldIdx + 1] : null;
+    var goldRoots = args.Where(a => !a.StartsWith("--") && a != featureRoot).ToArray();
+    return await RunGoldens(goldRoots.Length > 0 ? goldRoots : defaultRoots, featureRoot,
+                            args.Contains("--update"), verbose);
+}
 
 // --readworld <regionDir>: decode all .mca and tally block ids of interest (validates AnvilRegion).
 var rwIdx = Array.IndexOf(args, "--readworld");
@@ -337,11 +329,6 @@ var sgIdx = Array.IndexOf(args, "--suggest-monuments");
 if (sgIdx >= 0 && sgIdx + 2 < args.Length)
     return RunSuggestMonuments(args, args[sgIdx + 1], args[sgIdx + 2]);
 
-// --authoring <oracleRoot>: RegionAuthoringEncoder vs Python authoring_oracle.json over the corpus.
-var auIdx = Array.IndexOf(args, "--authoring");
-if (auIdx >= 0 && auIdx + 1 < args.Length)
-    return RunAuthoringParity(args[auIdx + 1], defaultRoots, verbose);
-
 // --authoring-fixture [slug ...] [--out <dir>]: write the *readable* region-authoring split for a
 // map — primitives vs composed, each node trimmed to id/type/category/subtype/member_ids/wiring
 // (geometry omitted as noise). A review artifact (mirror of the reference
@@ -613,230 +600,60 @@ static List<(string Slug, string XmlPath)> CorpusMaps(string[] corpusRoots) =>
         .Where(m => File.Exists(m.XmlPath))
         .OrderBy(m => m.Slug, StringComparer.Ordinal)];
 
-static int RunCategorizeParity(string pyfreshDir, string pyfacetsDir, bool verbose)
+// ── --goldens: the corpus regression net ────────────────────────────────────────────────────────────────
+// Run the four map-level derivations over every corpus map and compare each against the recorded digest.
+// The record is meant to be re-recorded when a change is deliberate (--update); what it buys is that the
+// change is looked at map by map first, which no synthetic fixture can show.
+static async Task<int> RunGoldens(string[] corpusRoots, string? featureRoot, bool update, bool verbose)
 {
-    var dirs = Directory.GetDirectories(pyfreshDir)
-        .Where(d => File.Exists(Path.Combine(d, "xml_data.json")))
-        .OrderBy(d => d, StringComparer.Ordinal).ToList();
-
-    int ok = 0, failed = 0;
-    var failures = new List<(string, string)>();
-    foreach (var dir in dirs)
+    var maps = CorpusMaps(corpusRoots);
+    if (maps.Count == 0)
     {
-        var slug = Path.GetFileName(dir)!;
-        var oraclePath = Path.Combine(pyfacetsDir, slug + ".json");
-        if (!File.Exists(oraclePath)) continue;
-        try
-        {
-            var doc = (Dictionary<string, object?>)JsonTree.FromJsonLenient(File.ReadAllText(Path.Combine(dir, "xml_data.json")))!;
-            var mine = PgmStudio.Pgm.Authoring.RegionCategorizer.DeriveFacets(doc);
-            var theirs = (Dictionary<string, object?>)JsonTree.FromJson(File.ReadAllText(oraclePath))!;
-
-            var diffs = new List<string>();
-            foreach (var (rid, tObj) in theirs)
-            {
-                var t = (Dictionary<string, object?>)tObj!;
-                var tCat = t.GetValueOrDefault("category") as string ?? "";
-                var tRoles = ((List<object?>)t.GetValueOrDefault("roles")!).Select(x => (string)x!).ToList();
-                if (!mine.TryGetValue(rid, out var m)) { diffs.Add($"{rid}: missing in C#"); continue; }
-                // C# folds the objective trio into one `wool` category + subtype; map it back to the
-                // Python fine category for comparison so the 350-map guard survives the taxonomy change.
-                var eff = m.Category == "wool"
-                    ? m.Subtype switch { "monument" => "monument", "spawner" => "wool_spawner", _ => "wool_room" }
-                    : m.Category;
-                if (eff != tCat) diffs.Add($"{rid}: cat {eff}({m.Category}/{m.Subtype})≠{tCat}");
-                if (!m.Roles.SequenceEqual(tRoles)) diffs.Add($"{rid}: roles [{string.Join(",", m.Roles)}]≠[{string.Join(",", tRoles)}]");
-            }
-            if (mine.Count != theirs.Count) diffs.Add($"count {mine.Count}≠{theirs.Count}");
-            if (diffs.Count == 0) ok++;
-            else { failed++; failures.Add((slug, string.Join("; ", diffs.Take(4)))); }
-        }
-        catch (Exception ex) { failed++; failures.Add((slug, $"{ex.GetType().Name}: {ex.Message}")); }
+        Console.WriteLine("no corpus maps found — pass a root, or set PGM_STUDIO_MAPS_ROOTS");
+        return 2;
     }
-    Console.WriteLine($"region categorizer parity vs Python: {ok} ok, {failed} failed ({dirs.Count} maps)");
-    foreach (var (slug, detail) in verbose ? failures : failures.Take(20))
-        Console.WriteLine($"  {slug}: {detail}");
-    return failed == 0 ? 0 : 1;
-}
 
-static async Task<int> RunBuildabilityParity(string pyfreshDir, string featureRoot, string pybuildDir, bool verbose)
-{
-    var oracles = Directory.GetFiles(pybuildDir, "*.json").OrderBy(x => x, StringComparer.Ordinal).ToList();
-    int ok = 0, failed = 0;
-    var failures = new List<(string, string)>();
-    foreach (var oraclePath in oracles)
+    var path = Path.Combine([".", .. CorpusGoldens.FilePath]);
+    var previous = File.Exists(path) ? CorpusGoldens.Record.Parse(File.ReadAllText(path)) : null;
+    var next = await CorpusGoldens.Compute(maps, featureRoot, verbose ? Console.WriteLine : null);
+
+    int moved = 0, added = 0, measured = 0;
+    var gone = previous is null ? [] : previous.Maps.Keys.Where(k => !next.Maps.ContainsKey(k)).ToList();
+    foreach (var (slug, entry) in next.Maps)
     {
-        var slug = Path.GetFileNameWithoutExtension(oraclePath);
-        var xmlData = Path.Combine(pyfreshDir, slug, "xml_data.json");
-        var segPath = Path.Combine(featureRoot, slug, "layer_segments.parquet");
-        if (!File.Exists(xmlData) || !File.Exists(segPath)) continue;
-        try
+        var was = previous?.Maps.GetValueOrDefault(slug);
+        foreach (var derivation in CorpusGoldens.Derivations)
         {
-            var doc = (Dictionary<string, object?>)JsonTree.FromJsonLenient(File.ReadAllText(xmlData))!;
-            var y0 = new PgmStudio.Analysis.Layer.SegmentIndex(await ReadSegments(segPath)).Y0Columns();
-            var res = PgmStudio.Analysis.Playability.Buildability.Compute(doc, y0);
-            var oracle = (Dictionary<string, object?>)JsonTree.FromJson(File.ReadAllText(oraclePath))!;
-
-            var diffs = new List<string>();
-            var ob = ((List<object?>)oracle["bbox"]!).Select(Convert.ToInt32).ToList();
-            if (res.MinX != ob[0] || res.MinZ != ob[1] || res.MaxX != ob[2] || res.MaxZ != ob[3])
-                diffs.Add($"bbox [{res.MinX},{res.MinZ},{res.MaxX},{res.MaxZ}]≠[{string.Join(",", ob)}]");
-            var oc = (Dictionary<string, object?>)oracle["counts"]!;
-            foreach (var c in PgmStudio.Analysis.Playability.Buildability.Classes)
-                if (res.Counts[c] != Convert.ToInt32(oc[c])) diffs.Add($"{c} {res.Counts[c]}≠{oc[c]}");
-            var orows = ((List<object?>)oracle["rows"]!).Select(x => (string)x!).ToList();
-            var myRows = Enumerable.Range(0, res.Height)
-                .Select(iz => string.Concat(Enumerable.Range(0, res.Width).Select(ix => (char)('0' + res.Verdict[iz * res.Width + ix])))).ToList();
-            if (myRows.Count != orows.Count) diffs.Add($"rowcount {myRows.Count}≠{orows.Count}");
-            else
-            {
-                var cellDiffs = Enumerable.Range(0, orows.Count).Sum(i => orows[i].Where((ch, j) => j < myRows[i].Length && myRows[i][j] != ch).Count());
-                if (cellDiffs > 0) diffs.Add($"{cellDiffs} cell diff(s) of {res.Width * res.Height}");
-            }
-            if (diffs.Count == 0) ok++; else { failed++; failures.Add((slug, string.Join("; ", diffs.Take(4)))); }
+            var now = entry[derivation];
+            if (now is null) continue;
+            measured++;
+            var before = was?[derivation];
+            if (before == now) continue;
+            if (before is null) { added++; continue; }   // newly measurable — nothing to have moved
+            moved++;
+            Console.WriteLine($"  {slug} {derivation}");
+            Console.WriteLine($"      was  {before}");
+            Console.WriteLine($"      now  {now}");
         }
-        catch (Exception ex) { failed++; failures.Add((slug, $"{ex.GetType().Name}: {ex.Message}")); }
     }
-    Console.WriteLine($"buildability parity vs Python: {ok} ok, {failed} failed ({oracles.Count} maps)");
-    foreach (var (slug, d) in verbose ? failures : failures.Take(20)) Console.WriteLine($"  {slug}: {d}");
-    return failed == 0 ? 0 : 1;
-}
+    // A map in the record that this run did not see is usually a narrower root set rather than a deletion,
+    // so it is counted always and named only when asked.
+    if (verbose) foreach (var slug in gone) Console.WriteLine($"  {slug}: in the record, not in this run");
 
-static async Task<int> RunTraversabilityParity(string pyfreshDir, string featureRoot, string pytravDir, bool verbose)
-{
-    var oracles = Directory.GetFiles(pytravDir, "*.json").OrderBy(x => x, StringComparer.Ordinal).ToList();
-    int ok = 0, failed = 0;
-    var failures = new List<(string, string)>();
-    foreach (var oraclePath in oracles)
+    Console.WriteLine($"{next.Maps.Count} maps, {measured} derivations measured"
+        + (featureRoot is null ? " (no feature root — regions only)" : "")
+        + $": {moved} moved, {added} new, {gone.Count} gone");
+
+    if (update)
     {
-        var slug = Path.GetFileNameWithoutExtension(oraclePath);
-        var xmlData = Path.Combine(pyfreshDir, slug, "xml_data.json");
-        var segPath = Path.Combine(featureRoot, slug, "layer_segments.parquet");
-        if (!File.Exists(xmlData) || !File.Exists(segPath)) continue;
-        try
-        {
-            var doc = (Dictionary<string, object?>)JsonTree.FromJsonLenient(File.ReadAllText(xmlData))!;
-            var si = new PgmStudio.Analysis.Layer.SegmentIndex(await ReadSegments(segPath));
-            var res = PgmStudio.Analysis.Playability.Traversability.Check(doc, si.SurfaceColumns(), si.Y0Columns());
-            var oracle = (Dictionary<string, object?>)JsonTree.FromJson(File.ReadAllText(oraclePath))!;
-
-            var diffs = new List<string>();
-            if (res.Connected != (bool)oracle["connected"]!) diffs.Add($"connected {res.Connected}≠{oracle["connected"]}");
-            if (res.ComponentCount != Convert.ToInt32(oracle["component_count"])) diffs.Add($"component_count {res.ComponentCount}≠{oracle["component_count"]}");
-            if (res.HaveLayers != (bool)oracle["have_layers"]!) diffs.Add($"have_layers {res.HaveLayers}≠{oracle["have_layers"]}");
-            var op = ((List<object?>)oracle["points"]!).Cast<Dictionary<string, object?>>().ToList();
-            if (op.Count != res.Points.Count) diffs.Add($"points {res.Points.Count}≠{op.Count}");
-            else for (var i = 0; i < op.Count; i++)
-                {
-                    var mp = res.Points[i];
-                    if (mp.Kind != op[i]["kind"] as string || mp.Name != op[i]["name"] as string
-                        || mp.X != Convert.ToInt32(op[i]["x"]) || mp.Z != Convert.ToInt32(op[i]["z"])
-                        || mp.Component != Convert.ToInt32(op[i]["component"]))
-                        diffs.Add($"point[{i}] {mp.Kind}/{mp.Name}@({mp.X},{mp.Z})c{mp.Component} ≠ {op[i]["kind"]}/{op[i]["name"]}@({op[i]["x"]},{op[i]["z"]})c{op[i]["component"]}");
-                }
-            if (diffs.Count == 0) ok++; else { failed++; failures.Add((slug, string.Join("; ", diffs.Take(3)))); }
-        }
-        catch (Exception ex) { failed++; failures.Add((slug, $"{ex.GetType().Name}: {ex.Message}")); }
+        File.WriteAllText(path, next.ToJson() + "\n");
+        Console.WriteLine($"recorded {path}");
+        return 0;
     }
-    Console.WriteLine($"traversability parity vs Python: {ok} ok, {failed} failed ({oracles.Count} maps)");
-    foreach (var (slug, d) in verbose ? failures : failures.Take(20)) Console.WriteLine($"  {slug}: {d}");
-    return failed == 0 ? 0 : 1;
-}
-
-static async Task<int> RunWoolParity(string pyfreshDir, string featureRoot, string pywoolDir, bool verbose)
-{
-    var oracles = Directory.GetFiles(pywoolDir, "*.json").OrderBy(x => x, StringComparer.Ordinal).ToList();
-    int ok = 0, failed = 0;
-    var failures = new List<(string, string)>();
-    foreach (var oraclePath in oracles)
-    {
-        var slug = Path.GetFileNameWithoutExtension(oraclePath);
-        var xmlData = Path.Combine(pyfreshDir, slug, "xml_data.json");
-        var dir = Path.Combine(featureRoot, slug);
-        if (!File.Exists(xmlData)) continue;
-        try
-        {
-            var doc = (Dictionary<string, object?>)JsonTree.FromJsonLenient(File.ReadAllText(xmlData))!;
-            var sources = await LoadWoolSources(dir);
-            sources.AddRange(PgmStudio.Analysis.Playability.WoolSources.PgmSpawnerSources(doc));
-            var avail = PgmStudio.Analysis.Playability.WoolSources.CheckAvailability(doc, sources);
-            var resBlocks = await LoadResourceBlocks(dir);
-            var res = PgmStudio.Analysis.Playability.ResourceSources.Summarize(resBlocks, null, PgmStudio.Analysis.Playability.ResourceSources.RenewableRegions(doc));
-
-            var oracle = (Dictionary<string, object?>)JsonTree.FromJson(File.ReadAllText(oraclePath))!;
-            var diffs = new List<string>();
-
-            var oa = ((List<object?>)oracle["availability"]!).Cast<Dictionary<string, object?>>().ToList();
-            if (oa.Count != avail.Count) diffs.Add($"availability {avail.Count}≠{oa.Count}");
-            else for (var i = 0; i < oa.Count; i++)
-                {
-                    var m = avail[i]; var o = oa[i];
-                    if (m.Color != o["color"] as string || m.Obtainable != (bool)o["obtainable"]! || m.Repeatable != (bool)o["repeatable"]!
-                        || m.OneTime != (bool)o["one_time"]! || m.Severity != o["severity"] as string
-                        || !m.SourceTypes.SequenceEqual(((List<object?>)o["source_types"]!).Select(x => (string)x!))
-                        || m.Message != o["message"] as string)
-                        diffs.Add($"avail[{i}] {m.Color}/{m.Severity}/[{string.Join(",", m.SourceTypes)}] ≠ {o["color"]}/{o["severity"]}/[{string.Join(",", ((List<object?>)o["source_types"]!))}]");
-                }
-
-            var orr = ((List<object?>)oracle["resources"]!).Cast<Dictionary<string, object?>>().ToList();
-            if (orr.Count != res.Count) diffs.Add($"resources {res.Count}≠{orr.Count}");
-            else for (var i = 0; i < orr.Count; i++)
-                {
-                    var m = res[i]; var o = orr[i];
-                    if (m.Type != o["type"] as string || m.Total != Convert.ToInt32(o["total"]) || m.Renewable != Convert.ToInt32(o["renewable"]) || m.AllRenewable != (bool)o["all_renewable"]!)
-                        diffs.Add($"res[{i}] {m.Type} t{m.Total}/r{m.Renewable} ≠ {o["type"]} t{o["total"]}/r{o["renewable"]}");
-                }
-
-            if (diffs.Count == 0) ok++; else { failed++; failures.Add((slug, string.Join("; ", diffs.Take(3)))); }
-        }
-        catch (Exception ex) { failed++; failures.Add((slug, $"{ex.GetType().Name}: {ex.Message}")); }
-    }
-    Console.WriteLine($"wool/resource parity vs Python: {ok} ok, {failed} failed ({oracles.Count} maps)");
-    foreach (var (slug, d) in verbose ? failures : failures.Take(20)) Console.WriteLine($"  {slug}: {d}");
-    return failed == 0 ? 0 : 1;
-}
-
-static async Task<List<PgmStudio.Analysis.Playability.WoolSources.Source>> LoadWoolSources(string dir)
-{
-    var sources = new List<PgmStudio.Analysis.Playability.WoolSources.Source>();
-    var wp = Path.Combine(dir, "wools.parquet");
-    if (File.Exists(wp))
-        foreach (var r in await ReadParquet(wp))
-            sources.Add(new("block", PgmStudio.Domain.BlockColors.Normalize(r["color"]?.ToString() ?? ""),
-                Convert.ToInt32(r["world_x"]), Convert.ToInt32(r["world_y"]), Convert.ToInt32(r["world_z"]), 1));
-    var cp = Path.Combine(dir, "chests.parquet");
-    if (File.Exists(cp))
-        foreach (var r in await ReadParquet(cp))
-        {
-            if (!(r["item_id"]?.ToString() ?? "").Contains("wool", StringComparison.OrdinalIgnoreCase)) continue;
-            if (!PgmStudio.Domain.BlockColors.BlockDamageToColor.TryGetValue(Convert.ToInt32(r["item_damage"]), out var color)) continue;
-            sources.Add(new("chest", color, Convert.ToInt32(r["world_x"]), Convert.ToInt32(r["world_y"]), Convert.ToInt32(r["world_z"]), Convert.ToInt32(r["count"])));
-        }
-    var sp = Path.Combine(dir, "spawners.parquet");
-    if (File.Exists(sp))
-        foreach (var r in await ReadParquet(sp))
-        {
-            if (r.GetValueOrDefault("spawns_wool") is not true) continue;
-            if (r.GetValueOrDefault("spawn_item_damage") is null || !PgmStudio.Domain.BlockColors.BlockDamageToColor.TryGetValue(Convert.ToInt32(r["spawn_item_damage"]), out var color)) continue;
-            var count = r.GetValueOrDefault("spawn_count") is { } sc ? Convert.ToInt32(sc) : 1;
-            sources.Add(new("spawner", color, Convert.ToInt32(r["world_x"]), Convert.ToInt32(r["world_y"]), Convert.ToInt32(r["world_z"]), count == 0 ? 1 : count));
-        }
-    return sources;
-}
-
-static async Task<List<PgmStudio.Analysis.Playability.ResourceSources.Block>> LoadResourceBlocks(string dir)
-{
-    var path = Path.Combine(dir, "resources.parquet");
-    if (!File.Exists(path)) return [];
-    return (await ReadParquet(path)).Select(r => new PgmStudio.Analysis.Playability.ResourceSources.Block(
-        r["resource_type"]?.ToString() ?? "", Convert.ToInt32(r["world_x"]), Convert.ToInt32(r["world_y"]), Convert.ToInt32(r["world_z"]))).ToList();
-}
-
-static async Task<List<Dictionary<string, object?>>> ReadParquet(string path)
-{
-    await using var stream = File.OpenRead(path);
-    var result = await Parquet.Serialization.ParquetSerializer.DeserializeUntypedAsync(stream);
-    return result.Data.Select(d => d.ToDictionary(kv => kv.Key, kv => (object?)kv.Value)).ToList();
+    if (moved > 0)
+        Console.WriteLine("a verdict moved on a real map — read the pairs above, then re-record with --update "
+                          + "if the change was meant.");
+    return moved == 0 ? 0 : 1;
 }
 
 static async Task<int> RunExtractParity(string regionDir, string oracleDir)
@@ -1138,7 +955,7 @@ static async Task<int> RunMonumentSlices(string regionDir, string xmlDataPath, s
     if (rows.Count == 0) { Console.WriteLine("  (no monuments — nothing to validate)"); return 0; }
 
     // Read back and validate against the extractor's invariants.
-    var back = await ReadParquet(outParquet);
+    var back = await FeatureData.ReadParquet(outParquet);
     var fails = 0;
     void Require(bool ok, string what) { if (!ok) { fails++; Console.WriteLine($"  FAIL {what}"); } else Console.WriteLine($"  OK   {what}"); }
 
@@ -1361,55 +1178,8 @@ static int RunSuggestMonumentsCorpus(string[] args, string[] corpusRoots, string
 }
 
 static async Task<List<Dictionary<string, object?>>> TryRead(string path) =>
-    File.Exists(path) ? await ReadParquet(path) : [];
+    File.Exists(path) ? await FeatureData.ReadParquet(path) : [];
 
-static int RunAuthoringParity(string oracleRoot, string[] corpusRoots, bool verbose)
-{
-    var dirs = Directory.GetDirectories(oracleRoot)
-        .Where(d => File.Exists(Path.Combine(d, "authoring_oracle.json")))
-        .OrderBy(d => d, StringComparer.Ordinal).ToList();
-
-    int ok = 0, failed = 0;
-    foreach (var dir in dirs)
-    {
-        var slug = Path.GetFileName(dir)!;
-        var mapXml = corpusRoots.Select(r => Path.Combine(r, slug, "map.xml")).FirstOrDefault(File.Exists);
-        if (mapXml is null) continue;
-
-        var doc = Serializer.ToDict(MapParser.Parse(mapXml));
-        var regions = doc.GetValueOrDefault("regions") as Dictionary<string, object?> ?? [];
-        var applyRules = doc.GetValueOrDefault("apply_rules") as List<object?>;
-        var cats = PgmStudio.Pgm.Authoring.RegionCategorizer.Categorize(doc);
-        var bbox = ReadIslandsBbox(Path.Combine(dir, "islands.json"));
-
-        var mine = PgmStudio.Analysis.Region.RegionAuthoringEncoder.EncodeAuthoring(regions, cats, applyRules, bbox);
-        // PGM oo/-oo coords/bounds (e.g. an all-XZ cuboid) are ±Infinity on both sides; normalise
-        // ±Infinity → a finite sentinel and NaN → null so JsonDocument can read both identically.
-        var mineStr = System.Text.Json.JsonSerializer.Serialize(mine,
-            new System.Text.Json.JsonSerializerOptions { NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals });
-        var mineJson = System.Text.Json.JsonDocument.Parse(NormInf(mineStr)).RootElement;
-        var oracle = System.Text.Json.JsonDocument.Parse(NormInf(File.ReadAllText(Path.Combine(dir, "authoring_oracle.json")))).RootElement;
-
-        var mineSig = AuthoringSigs(mineJson);
-        var oraSig = AuthoringSigs(oracle);
-        var diffs = new List<string>();
-        foreach (var (id, sig) in oraSig)
-            if (!mineSig.TryGetValue(id, out var ms)) diffs.Add($"missing node '{id}'");
-            else if (ms != sig) diffs.Add($"'{id}': mine[{ms}] != oracle[{sig}]");
-        foreach (var id in mineSig.Keys.Except(oraSig.Keys)) diffs.Add($"extra node '{id}'");
-
-        if (diffs.Count == 0) { ok++; Console.WriteLine($"  OK   {slug,-16} prim+comp={mineSig.Count}"); }
-        else { failed++; Console.WriteLine($"  FAIL {slug}"); foreach (var d in (verbose ? diffs : diffs.Take(4))) Console.WriteLine($"        {d}"); }
-    }
-    Console.WriteLine($"authoring parity: {ok} ok, {failed} failed");
-    return failed == 0 ? 0 : 1;
-}
-
-// Region-authoring split as a readable JSON artifact, one file per map. Mirrors the reference
-// tools/gen_region_authoring_oracle.py: {map, counts, primitives, composed}, each node trimmed to the
-// fields that define the *authoring view* — id/type/category/subtype, composed member_ids, and the
-// apply-rule wiring (event→value). Subtype isn't on the authoring node itself; it's pulled from the
-// categoriser facets (RegionFacet.Subtype) per region id.
 static int RunAuthoringFixture(string[] args, string[] corpusRoots)
 {
     var outIdx = Array.IndexOf(args, "--out");
@@ -1495,85 +1265,6 @@ static string RepoRoot()
 }
 
 // ±Infinity → finite sentinel, NaN → null, so JsonDocument parses both sides identically.
-static string NormInf(string json)
-{
-    json = System.Text.RegularExpressions.Regex.Replace(json, @"(?<![\w""])-Infinity(?![\w""])", "-1e308");
-    json = System.Text.RegularExpressions.Regex.Replace(json, @"(?<![\w""])Infinity(?![\w""])", "1e308");
-    return System.Text.RegularExpressions.Regex.Replace(json, @"(?<![\w""])NaN(?![\w""])", "null");
-}
-
-static (double, double, double, double)? ReadIslandsBbox(string path)
-{
-    if (!File.Exists(path)) return null;
-    var arr = System.Text.Json.JsonDocument.Parse(File.ReadAllText(path)).RootElement;
-    if (arr.ValueKind != System.Text.Json.JsonValueKind.Array || arr.GetArrayLength() == 0) return null;
-    double minX = double.MaxValue, minZ = double.MaxValue, maxX = double.MinValue, maxZ = double.MinValue;
-    foreach (var e in arr.EnumerateArray())
-    {
-        var b = e.GetProperty("bounds");
-        minX = Math.Min(minX, b[0].GetDouble()); minZ = Math.Min(minZ, b[1].GetDouble());
-        maxX = Math.Max(maxX, b[2].GetDouble()); maxZ = Math.Max(maxZ, b[3].GetDouble());
-    }
-    return (minX, minZ, maxX, maxZ);
-}
-
-// id → robust signature: type, category, member_ids, wiring(event|value), bounds(2dp), polygon vert-count + bbox.
-static Dictionary<string, string> AuthoringSigs(System.Text.Json.JsonElement root)
-{
-    var sigs = new Dictionary<string, string>();
-    foreach (var listName in new[] { "primitives", "composed" })
-    {
-        if (!root.TryGetProperty(listName, out var list)) continue;
-        foreach (var n in list.EnumerateArray())
-        {
-            var id = n.GetProperty("id").GetString() ?? "";
-            sigs[id] = NodeSig(n, listName);
-        }
-    }
-    return sigs;
-}
-
-static string NodeSig(System.Text.Json.JsonElement n, string list)
-{
-    string S(string k) => n.TryGetProperty(k, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.String ? v.GetString()! : "";
-    var members = n.TryGetProperty("member_ids", out var m) && m.ValueKind == System.Text.Json.JsonValueKind.Array
-        ? string.Join(",", m.EnumerateArray().Select(x => x.GetString()).OrderBy(x => x)) : "";
-    var wiring = n.TryGetProperty("wiring", out var w) && w.ValueKind == System.Text.Json.JsonValueKind.Array
-        ? string.Join(",", w.EnumerateArray().Select(x => $"{x.GetProperty("event").GetString()}={x.GetProperty("value").GetString()}").OrderBy(x => x)) : "";
-    var bounds = BoundsSig(n);
-    var poly = "nopoly";
-    if (n.TryGetProperty("polygon_2d", out var p) && p.ValueKind == System.Text.Json.JsonValueKind.Object)
-    {
-        var ext = p.GetProperty("exterior");
-        double mnx = double.MaxValue, mnz = double.MaxValue, mxx = double.MinValue, mxz = double.MinValue;
-        foreach (var pt in ext.EnumerateArray())
-        {
-            mnx = Math.Min(mnx, D(pt[0])); mnz = Math.Min(mnz, D(pt[1]));
-            mxx = Math.Max(mxx, D(pt[0])); mxz = Math.Max(mxz, D(pt[1]));
-        }
-        poly = $"P{ext.GetArrayLength()}:{R(mnx)},{R(mnz)},{R(mxx)},{R(mxz)}";
-    }
-    return $"{list}|{S("type")}|{S("category")}|m[{members}]|w[{wiring}]|{bounds}|{poly}";
-}
-
-static string BoundsSig(System.Text.Json.JsonElement n)
-{
-    if (!n.TryGetProperty("bounds", out var b) || b.ValueKind != System.Text.Json.JsonValueKind.Object) return "nb";
-    return $"{R(D(b.GetProperty("min_x")))},{R(D(b.GetProperty("min_z")))},{R(D(b.GetProperty("max_x")))},{R(D(b.GetProperty("max_z")))}";
-}
-
-// Robust number read: a PGM oo/-oo coordinate can surface as a string; map it to ±inf sentinel.
-static double D(System.Text.Json.JsonElement e) => e.ValueKind switch
-{
-    System.Text.Json.JsonValueKind.Number => e.GetDouble(),
-    System.Text.Json.JsonValueKind.String => e.GetString() is { } s
-        ? (s is "oo" ? 1e308 : s is "-oo" ? -1e308 : double.TryParse(s, System.Globalization.CultureInfo.InvariantCulture, out var d) ? d : double.NaN)
-        : double.NaN,
-    _ => double.NaN,
-};
-
-static string R(double v) => Math.Round(v, 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
-
 static async Task<int> RunIslandParity(string regionDir, string oracleDir)
 {
     var mcas = Directory.GetFiles(regionDir, "*.mca");
@@ -1848,14 +1539,6 @@ static List<(string Kind, double X, double Z)> ReadObjectives(
         }
     }
     return outp;
-}
-
-static async Task<List<(int, int, int, int)>> ReadSegments(string path)
-{
-    await using var stream = File.OpenRead(path);
-    var result = await Parquet.Serialization.ParquetSerializer.DeserializeUntypedAsync(stream);
-    return result.Data.Select(r => (Convert.ToInt32(r["world_x"]), Convert.ToInt32(r["world_z"]),
-        Convert.ToInt32(r["world_y_start"]), Convert.ToInt32(r["world_y_end"]))).ToList();
 }
 
 static (bool ok, string detail) CheckMap(string xmlPath)

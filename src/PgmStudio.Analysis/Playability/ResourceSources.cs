@@ -6,8 +6,7 @@ namespace PgmStudio.Analysis.Playability;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Resource-block detection for renewable auto-config (port of studio/services/resource_sources.py,
-/// C17): group iron/gold/diamond blocks by type, each with how many a &lt;renewable&gt; already covers.
+/// Resource-block detection for renewable auto-config: group iron/gold/diamond blocks by type, each with how many a &lt;renewable&gt; already covers.
 /// </summary>
 public static class ResourceSources
 {

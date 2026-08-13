@@ -365,7 +365,7 @@ public static class MonumentSuggester
         return (capSpecific && pedSpecific) ? 0.60 : (capSpecific || pedSpecific) ? 0.40 : 0.25;
     }
 
-    // ---- refined sign-text classifier (port of docs/analysis/sign_text_analysis.py) ----
+    // ---- refined sign-text classifier (the corpus study in docs/world-scan/monument-patterns.md) ----
 
     // Matched against the *normalised* text (lowercased, § codes + punctuation collapsed to spaces), so
     // each phrase must be written in that form — e.g. "can t build", not "can't build".

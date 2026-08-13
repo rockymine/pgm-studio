@@ -6,8 +6,8 @@ namespace PgmStudio.Analysis.Tests;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Resource-block summary tests (renewable auto-config). Exact parity vs Python over the feature maps
-/// lives in the RoundTrip harness; these are synthetic.
+/// Resource-block summary tests (renewable auto-config). These are synthetic; the corpus-wide net is
+/// <c>tools/PgmStudio.RoundTrip --goldens</c>.
 /// </summary>
 public sealed class ResourceSourcesTests
 {

@@ -6,9 +6,8 @@ namespace PgmStudio.Analysis.Region;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Resolves a region dict (xml_data.json shape) to a 2D footprint geometry — a NetTopologySuite
-/// port of region_encoder._dict_to_shapely. Circles use a 32-segments-per-quadrant buffer (shapely
-/// resolution=32); compounds use boolean union/difference/intersection; mirror/translate are affine.
+/// Resolves a region dict (xml_data.json shape) to a 2D footprint geometry, in NetTopologySuite.
+/// Circles are buffered at 32 segments per quadrant; compounds use boolean union/difference/intersection; mirror/translate are affine.
 /// </summary>
 public static class RegionGeometry2d
 {

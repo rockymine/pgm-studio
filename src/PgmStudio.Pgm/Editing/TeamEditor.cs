@@ -2,7 +2,7 @@ namespace PgmStudio.Pgm.Editing;
 
 using Dict = Dictionary<string, object?>;
 
-/// <summary>Team add/update/delete on the map document dict (port of studio/services/team_editor.py).</summary>
+/// <summary>Team add/update/delete on the map document dict.</summary>
 public static class TeamEditor
 {
     public static Dict AddTeam(Dict data, Dict payload)

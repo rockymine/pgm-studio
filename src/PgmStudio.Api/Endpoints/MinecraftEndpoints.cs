@@ -7,7 +7,7 @@ using Dict = Dictionary<string, object?>;
 
 /// <summary>
 /// GET /api/minecraft/player?name=|uuid= — resolve a Minecraft username or UUID to {uuid, name}
-/// via Mojang. Mirrors the reference studio's <c>routes/minecraft.py</c>; the editor uses it to
+/// via Mojang. The editor uses it to
 /// turn a typed username into a canonical uuid (and to resolve a stored uuid back to a name).
 /// </summary>
 public sealed class PlayerLookupEndpoint(MojangClient mojang) : EndpointWithoutRequest

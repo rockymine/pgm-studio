@@ -474,9 +474,8 @@ mid band) does not read as cut apart just because the join has no ground of its 
 out on purpose, since it opens only after the match clock passes its timer and is not a connection yet at
 the moment the picture is taken — `--buildings` and
 `--structures` for what was stamped, `--island-study` and `--skeleton-study` for footprint shape and
-centrelines, `--water`, `--flora`, `--ores` and `--underground` for the rest. (`--traversability` — no `-map`
-— is a different thing: the Python-parity comparator over parquet features, not a picture; the name is close
-on purpose; the two do not answer the same question.) These renderers live in `PgmStudio.Minecraft.Render` and
+centrelines, `--water`, `--flora`, `--ores` and `--underground` for the rest. These renderers live in
+`PgmStudio.Minecraft.Render` and
 read equally from a region directory or an in-memory `VoxelWorld` (`AnvilRegion.FromWorld`), which is what
 lets `tools/mapgen` emit the same set itself, over the world it just built, with no second load off the
 region files it just wrote — see `README.md` beside this file.

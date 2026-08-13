@@ -21,7 +21,7 @@ internal readonly record struct InheritedElement(XElement Element, IReadOnlyDict
     }
 }
 
-/// <summary>XML attribute/text/coordinate helpers mirroring the Python ElementTree usage.</summary>
+/// <summary>XML attribute, text and coordinate helpers over XElement.</summary>
 internal static class Xml
 {
     /// <summary>

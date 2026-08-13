@@ -19,7 +19,7 @@ public static class LayoutEvaluator
     /// envelope catalogue is built. A profile selects/weights them by id.</summary>
     public static readonly IReadOnlyList<ILayoutTerm> AllTerms =
     [
-        // hard terms — the acceptance gate (port of Composer.Acceptable)
+        // hard terms — the acceptance gate
         new StructuralIntegrity(),
         new LintRejectTerm("PC-C"),
         new LintRejectTerm("G2"),

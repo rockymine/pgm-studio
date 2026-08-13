@@ -5,7 +5,7 @@ using PgmStudio.Domain;
 namespace PgmStudio.Pgm;
 
 /// <summary>
-/// Builds a flat filter registry from a &lt;filters&gt; element (port of filter_parser.py),
+/// Builds a flat filter registry from a &lt;filters&gt; element,
 /// pre-seeded with the PGM built-ins (never/always). Anonymous children get synthetic ids
 /// <c>{parent_id}__anon_{index}</c>; a &lt;filter id="ref"/&gt; is a transient reference.
 /// </summary>

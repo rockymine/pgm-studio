@@ -18,7 +18,7 @@ public sealed class WorldFeatureWriter(PgmDb db)
 {
     public readonly record struct Counts(int WoolBlocks, int ResourceBlocks, int ChestItems, int SpawnerBlocks, int LayerSegments, int Islands, int MonumentCandidates, int CoreCandidates);
 
-    /// <summary>One surface-scan row (layer.parquet schema); column names match the Python output.</summary>
+    /// <summary>One surface-scan row (layer.parquet schema).</summary>
     private sealed class LayerRow
     {
         [System.Text.Json.Serialization.JsonPropertyName("world_x")] public int WorldX { get; set; }

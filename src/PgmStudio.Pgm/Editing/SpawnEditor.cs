@@ -2,7 +2,7 @@ namespace PgmStudio.Pgm.Editing;
 
 using Dict = Dictionary<string, object?>;
 
-/// <summary>Spawn-link + observer-spawn CRUD on the doc dict (port of studio/services/spawn_editor.py).</summary>
+/// <summary>Spawn-link + observer-spawn CRUD on the doc dict.</summary>
 public static class SpawnEditor
 {
     public static Dict AddSpawnLink(Dict data, Dict payload)

@@ -1,7 +1,7 @@
 namespace PgmStudio.Domain;
 
 /// <summary>
-/// A PGM coordinate value, as produced by the Python <c>parse_coord</c>:
+/// A PGM coordinate value:
 /// <list type="bullet">
 ///   <item><c>null</c> — a template variable <c>${…}</c> (absent value)</item>
 ///   <item><c>double.PositiveInfinity</c>/<c>NegativeInfinity</c> — the literals <c>"oo"</c>/<c>"-oo"</c></item>
@@ -24,7 +24,7 @@ public static class Coord
         if (double.TryParse(value, System.Globalization.NumberStyles.Float,
                             System.Globalization.CultureInfo.InvariantCulture, out var d))
             return d;
-        // Malformed literal → 0.0 (flag-and-continue, matching the Python warning path).
+        // Malformed literal → 0.0: flag and continue rather than refuse the map.
         return 0.0;
     }
 

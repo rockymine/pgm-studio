@@ -1,7 +1,7 @@
 namespace PgmStudio.Analysis.Layer;
 
 /// <summary>
-/// Vertical-segment terrain index (port of studio/services/segments.py): solid Y-ranges per
+/// Vertical-segment terrain index: solid Y-ranges per
 /// (x,z) column. The single source for Y=0 presence (buildability void), surface/walkable
 /// columns (traversability), and air-at-a-point (monument obstruction).
 /// </summary>

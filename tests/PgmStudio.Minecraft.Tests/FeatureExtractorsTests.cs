@@ -5,8 +5,7 @@ namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>
 /// Exercises the extractors against a synthetic in-memory chunk (no real game files, per convention).
-/// Corpus-level byte-exact parity vs the Python parquet oracles is covered by the RoundTrip
-/// <c>--extract</c> harness (11/11 maps).
+/// Corpus-level agreement against a scanned world is covered by the RoundTrip <c>--extract</c> harness.
 /// </summary>
 public class FeatureExtractorsTests
 {

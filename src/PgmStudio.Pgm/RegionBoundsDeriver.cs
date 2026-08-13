@@ -43,7 +43,7 @@ public static class RegionBoundsDeriver
         foreach (var cid in childIds)
             if (registry.GetValueOrDefault(cid)?.Bounds2d is { } b)
             {
-                // NaN-tolerant like Python's min/max (a mirror of an oo/-oo source yields NaN).
+                // NaN-tolerant min/max — a mirror of an oo/-oo source yields NaN.
                 minX = MinPy(minX, b.MinX); minZ = MinPy(minZ, b.MinZ);
                 maxX = MaxPy(maxX, b.MaxX); maxZ = MaxPy(maxZ, b.MaxZ);
                 found = true;

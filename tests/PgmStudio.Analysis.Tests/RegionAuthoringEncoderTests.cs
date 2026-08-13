@@ -5,8 +5,8 @@ namespace PgmStudio.Analysis.Tests;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Synthetic checks for the authoring split. Full byte-for-byte corpus parity vs Python's
-/// <c>encode_region_authoring</c> is covered by the RoundTrip <c>--authoring</c> harness (350/350).
+/// Synthetic checks for the authoring split. <c>tools/PgmStudio.RoundTrip --authoring-fixture</c> writes
+/// the readable split for a real map, which is how a change to it is reviewed.
 /// </summary>
 public class RegionAuthoringEncoderTests
 {

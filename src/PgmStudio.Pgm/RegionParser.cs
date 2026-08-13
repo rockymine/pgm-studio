@@ -6,7 +6,7 @@ using PgmStudio.Geom;
 namespace PgmStudio.Pgm;
 
 /// <summary>
-/// Builds a flat region registry from a &lt;regions&gt; element (port of region_parser.py).
+/// Builds a flat region registry from a &lt;regions&gt; element.
 /// Composite regions reference children by id; anonymous regions get stable synthetic ids
 /// <c>{parent_id}__anon_{index}</c>.
 /// </summary>
@@ -92,8 +92,8 @@ internal sealed class RegionParser
         Region? region;
         if (tag == "region")
         {
-            // A pure <region id="X"/> reference returns immediately, unregistered (matches
-            // Python's in-dispatch early return). A <region>…</region> wrapper falls through
+            // A pure <region id="X"/> reference returns immediately, unregistered; a
+            // <region>…</region> wrapper falls through
             // to its first child + the synthetic-id assignment below.
             if (regionId.Length > 0 && !elem.Elements().Any())
                 return new Region { Id = "", Type = "reference", RefId = regionId };
@@ -359,7 +359,7 @@ internal sealed class RegionParser
         {
             if (_registry.GetValueOrDefault(cid)?.Bounds2d is { } b)
             {
-                // Python's min/max ignore a NaN operand (a mirror of an infinite source yields NaN);
+                // min/max ignore a NaN operand — a mirror of an infinite source yields NaN;
                 // C# Math.Min/Max propagate it — so skip NaN per component to match.
                 minX = MinPy(minX, b.MinX); minZ = MinPy(minZ, b.MinZ);
                 maxX = MaxPy(maxX, b.MaxX); maxZ = MaxPy(maxZ, b.MaxZ);

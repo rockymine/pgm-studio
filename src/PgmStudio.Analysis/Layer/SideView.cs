@@ -1,7 +1,7 @@
 namespace PgmStudio.Analysis.Layer;
 
 /// <summary>
-/// Side-view depth projection (B5, port of <c>_build_depth_map</c> in routes/build_regions.py).
+/// Side-view depth projection.
 /// Projects vertical solid segments onto a 2D (primary × y) grid; each cell holds the nearest
 /// depth index normalised to 0–255 (0 = nearest), or -1 for empty. Feeds the side-view canvases (C7).
 /// <para>The region can be inspected from any of four directions — the camera on the −/+ side of each

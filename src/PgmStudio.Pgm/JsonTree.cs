@@ -4,7 +4,7 @@ using Dict = Dictionary<string, object?>;
 
 /// <summary>
 /// Structural comparison of the JSON object trees produced by <see cref="Serializer.ToDict"/>,
-/// matching Python dict/list equality semantics: objects compared order-independently, arrays
+/// with structural equality: objects compared order-independently, arrays
 /// order-sensitively, numbers by value (so <c>0</c> == <c>0.0</c>). Plus <see cref="Canonical"/>,
 /// which drops the derived <c>bounds_2d</c> from regions (the harness's idempotence comparison).
 /// </summary>
@@ -66,7 +66,7 @@ public static class JsonTree
     }
 
     /// <summary>
-    /// Like <see cref="FromJson"/> but tolerant of Python's non-standard bare <c>NaN</c>/<c>Infinity</c>
+    /// Like <see cref="FromJson"/> but tolerant of the non-standard bare <c>NaN</c>/<c>Infinity</c>
     /// value tokens (emitted for some derived bounds) — they are nulled out. The lookarounds avoid
     /// touching those words inside quoted strings.
     /// </summary>

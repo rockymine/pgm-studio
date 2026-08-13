@@ -27,9 +27,10 @@ says so.
   the bridge-width minimum, walling a lane, burying a monument, or over-cluttering until the map is
   unreadable. The layout generator has a two-currency budget and the `BZ`/`LN`/traversability laws; dressing
   has neither. Add a **dressing budget** (density caps per region kind — a lane gets far less than a
-  backfield) and a small set of `DR` guardrail rules checked against the same harness
-  (`tools/PgmStudio.RoundTrip --traversability`): no prop reduces a corridor below its minimum, no
-  gameplay-affecting prop inside a bridge / build zone, every objective keeps a clear framing radius.
+  backfield) and a small set of `DR` guardrail rules checked against the built world
+  (`tools/PgmStudio.RoundTrip --traversability-map`, and the relief readback for what the ground charges): no
+  prop reduces a corridor below its minimum, no gameplay-affecting prop inside a bridge or build zone, every
+  objective keeps a clear framing radius.
   Restraint as a first-class control, not an afterthought.
 
 ## The missing dimension — vertical surfaces

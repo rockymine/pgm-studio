@@ -4,8 +4,8 @@ using PgmStudio.Pgm.Authoring;
 namespace PgmStudio.Pgm.Tests;
 
 /// <summary>
-/// Synthetic categorizer tests (the 350-map exact-parity-vs-Python harness lives in
-/// tools/PgmStudio.RoundTrip --categorize). Covers the core category signals + a role.
+/// Synthetic categorizer tests, covering the core category signals and a role. Every corpus map's
+/// categories are digested by <c>tools/PgmStudio.RoundTrip --goldens</c>.
 /// </summary>
 public sealed class RegionCategorizerTests
 {

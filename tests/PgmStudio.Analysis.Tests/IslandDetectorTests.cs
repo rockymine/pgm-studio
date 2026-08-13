@@ -3,8 +3,8 @@ using PgmStudio.Analysis.Footprint;
 namespace PgmStudio.Analysis.Tests;
 
 /// <summary>
-/// Synthetic island-detection checks. Corpus-level parity vs Python's islands.json (count +
-/// block_count + bounds) is covered by the RoundTrip <c>--islands</c> harness (10/10 maps).
+/// Synthetic island-detection checks. Corpus-level agreement against a scanned world (count, block count
+/// and bounds) is covered by the RoundTrip <c>--islands</c> harness.
 /// </summary>
 public class IslandDetectorTests
 {

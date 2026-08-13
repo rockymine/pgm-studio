@@ -4,8 +4,8 @@ using Dict = Dictionary<string, object?>;
 
 /// <summary>
 /// Build/update region dicts in the <b>canonical</b> xml_data.json shape (nested min/max/base/center/
-/// position), so created/edited regions round-trip through the codec + DB. (Python's region_builder
-/// emits a flat min_x form that only its analysis fallback tolerates; ours must be canonical.)
+/// position), so created and edited regions round-trip through the codec and the DB. The flat
+/// <c>min_x</c> form some readers tolerate is not written here — the canonical shape is the contract.
 /// </summary>
 public static class RegionBuilder
 {

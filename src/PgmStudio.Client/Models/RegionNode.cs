@@ -81,7 +81,7 @@ public sealed class RegionNode
         _ => v.ToString() ?? "—",
     };
 
-    /// <summary>Region type → Lucide icon name (port of region-types.js TYPE_ICON).</summary>
+    /// <summary>Region type → Lucide icon name (the mapping region-types.js draws with).</summary>
     public static string Icon(string type) => type switch
     {
         "point" => "dot",

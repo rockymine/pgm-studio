@@ -5,8 +5,8 @@ using PgmStudio.Pgm;
 namespace PgmStudio.Analysis.Tests;
 
 /// <summary>
-/// Synthetic wool source/availability tests (exact parity vs Python over the feature maps lives in
-/// tools/PgmStudio.RoundTrip --wool).
+/// Synthetic wool source and availability tests. Every real map's answer is digested by
+/// <c>tools/PgmStudio.RoundTrip --goldens</c>.
 /// </summary>
 public sealed class WoolSourcesTests
 {

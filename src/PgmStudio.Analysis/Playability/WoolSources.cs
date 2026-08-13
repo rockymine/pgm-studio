@@ -8,7 +8,7 @@ namespace PgmStudio.Analysis.Playability;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Wool source detection + availability (port of studio/services/wool_sources.py, C12). Operates on
+/// Wool source detection + availability. Operates on
 /// a plain source list (block/chest/spawner) + the map doc; the parquet/DB I/O lives in the caller.
 /// </summary>
 public static class WoolSources

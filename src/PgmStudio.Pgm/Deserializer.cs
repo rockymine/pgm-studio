@@ -4,7 +4,7 @@ namespace PgmStudio.Pgm;
 
 using Dict = Dictionary<string, object?>;
 
-/// <summary>JSON object tree → MapXml (port of deserializer.py; inverse of <see cref="Serializer"/>).</summary>
+/// <summary>JSON object tree → MapXml; the inverse of <see cref="Serializer"/>.</summary>
 public static class Deserializer
 {
     public static MapXml FromDict(Dict d)

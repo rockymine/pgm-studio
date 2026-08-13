@@ -60,7 +60,7 @@ public static class AnvilRegion
     /// <summary>A decoded 16×16×16 section: ids/data unpacked to one entry per cell, index <c>(y&lt;&lt;8)|(z&lt;&lt;4)|x</c>.</summary>
     public sealed record Section(int SectionY, ushort[] Ids, byte[] Data);
 
-    /// <summary>Decode every well-formed section of a chunk in ascending Y order (port of <c>_iter_chunk_sections</c>).</summary>
+    /// <summary>Decode every well-formed section of a chunk in ascending Y order.</summary>
     public static IEnumerable<Section> Sections(Chunk chunk)
     {
         if (chunk.Level.Get<NbtList>("Sections") is not { } sections) yield break;
@@ -110,7 +110,7 @@ public static class AnvilRegion
 
     /// <summary>
     /// Full (256-high) decoded block-id volume for a chunk, index <c>(y&lt;&lt;8)|(z&lt;&lt;4)|x</c> with
-    /// y∈0..255. Absent sections stay 0 (air). Port of <c>_build_full_blocks</c>.
+    /// y∈0..255. Absent sections stay 0 (air).
     /// </summary>
     public static ushort[] FullVolume(Chunk chunk)
     {

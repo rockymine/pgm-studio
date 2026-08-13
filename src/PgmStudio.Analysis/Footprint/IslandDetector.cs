@@ -280,7 +280,7 @@ public static class IslandDetector
         }
         var poly = UnaryUnionOp.Union((IEnumerable<Geometry>)rects);
         if (!poly.IsValid) poly = GeometryFixer.Fix(poly);
-        // Diagonal-only touches can split into a MultiPolygon — keep the largest part (matches Python).
+        // Diagonal-only touches can split into a MultiPolygon — keep the largest part.
         if (poly is MultiPolygon mp && mp.NumGeometries > 0)
         {
             Geometry largest = mp.GetGeometryN(0);

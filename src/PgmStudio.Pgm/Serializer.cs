@@ -4,7 +4,7 @@ namespace PgmStudio.Pgm;
 
 using Dict = Dictionary<string, object?>;
 
-/// <summary>MapXml → JSON object tree (port of serializer.py). Mirrors the xml_data.json shape.</summary>
+/// <summary>MapXml → JSON object tree, in the xml_data.json shape.</summary>
 public static class Serializer
 {
     public static Dict ToDict(MapXml m)

@@ -18,7 +18,7 @@ public sealed class Bounds2d
 /// <summary>
 /// A PGM region, flat across all 17 types (discriminated by <see cref="Type"/>). Only the
 /// fields relevant to a given type are populated; the serializer emits exactly the type's
-/// field set (mirrors the Python <c>Region</c> hierarchy + serializer <c>_encode_region</c>).
+/// field set, one per region type.
 /// Coordinate fields are nullable: <c>null</c> models a template-variable component.
 /// </summary>
 public sealed class Region

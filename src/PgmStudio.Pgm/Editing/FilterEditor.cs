@@ -3,7 +3,7 @@ namespace PgmStudio.Pgm.Editing;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Filter registry CRUD (port of studio/services/filter_editor.py, C3). Validates filter type +
+/// Filter registry CRUD. Validates filter type +
 /// refs; a filter can't be deleted while referenced (by apply-rules, other filters, renewables, or
 /// block-drop rules); never/always builtins are protected.
 /// </summary>

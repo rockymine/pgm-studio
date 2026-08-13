@@ -2,7 +2,7 @@ namespace PgmStudio.Domain;
 
 /// <summary>
 /// A PGM filter, flat across all types (discriminated by <see cref="Type"/>). Mirrors the
-/// Python <c>Filter</c> hierarchy + serializer <c>_encode_filter</c>: each type emits a fixed
+/// filter hierarchy: each type emits a fixed
 /// subset of these fields.
 /// </summary>
 public sealed class Filter

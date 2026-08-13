@@ -148,7 +148,7 @@ internal static class LayerData
     }
 
     /// <summary>One entry per distinct block_id (count summed across data variants, colour/name from
-    /// the dominant variant), sorted by count desc. Port of <c>_block_types_from_parquet</c>.</summary>
+    /// the dominant variant), sorted by count desc.</summary>
     public static List<Dict> BlockTypes(IReadOnlyList<SurfaceCell> cells)
     {
         var pairCounts = new Dictionary<(int id, int data), int>();

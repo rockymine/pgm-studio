@@ -5,7 +5,7 @@ namespace PgmStudio.Api.Services;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// F1 (C9): apply the v1 filter↔region wiring templates (port of the appliers in
+/// Apply the v1 filter↔region wiring templates (the appliers in
 /// studio/services/filter_wiring.py; see docs/pgm/filter-region-wiring.md). A template is a
 /// pre-built Filter + ApplyRule (+ compound) combination emitted through the existing C3/C4 editors —
 /// it adds no new persisted type. The <b>caller chooses the region</b> (after grouping, R1); there is

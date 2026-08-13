@@ -15,7 +15,7 @@ using Dict = Dictionary<string, object?>;
 
 /// <summary>
 /// GET /api/map/{slug}/regions/authoring — the B4a authoring split (primitives + composed) plus the
-/// island bounding box, the render input for the world canvas. Port of the Flask
+/// island bounding box, the render input for the world canvas. Serves the Flask
 /// <c>get_regions_authoring</c> route: <see cref="RegionAuthoringEncoder"/> over the reconstructed
 /// doc + derived categories, with the bbox taken from the map's <c>islands_json</c> artifact.
 /// </summary>

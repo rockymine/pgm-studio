@@ -5,7 +5,7 @@ using PgmStudio.Domain;
 
 namespace PgmStudio.Pgm;
 
-/// <summary>Top-level PGM map.xml parser (port of parser.py).</summary>
+/// <summary>Top-level PGM map.xml parser.</summary>
 public sealed partial class MapParser
 {
     private readonly XElement _root;

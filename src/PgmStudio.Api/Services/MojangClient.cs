@@ -5,7 +5,7 @@ namespace PgmStudio.Api.Services;
 
 /// <summary>
 /// Resolves a Minecraft username or UUID to <c>(uuid, name)</c> via Mojang's public APIs.
-/// Port of the reference studio's <c>services/mojang.py</c>: a dashed-UUID lookup hits the session
+/// Mojang profile lookup: a dashed-UUID lookup hits the session
 /// server, a username lookup hits the profiles API. Returns the canonical dashed uuid + current name.
 /// </summary>
 public sealed partial class MojangClient(HttpClient http)

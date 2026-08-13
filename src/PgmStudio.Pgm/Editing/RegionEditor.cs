@@ -3,7 +3,7 @@ namespace PgmStudio.Pgm.Editing;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Region CRUD + grouping (port of studio/services/region_editor.py). Regions are an id-keyed dict
+/// Region CRUD + grouping. Regions are an id-keyed dict
 /// of canonical region dicts; compound children are string-id refs into that registry.
 /// </summary>
 public static class RegionEditor

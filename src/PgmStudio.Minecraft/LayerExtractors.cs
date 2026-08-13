@@ -6,8 +6,7 @@ namespace PgmStudio.Minecraft;
 public readonly record struct SurfaceBlock(int WorldX, int WorldZ, int WorldY, int BlockId, int BlockData);
 
 /// <summary>
-/// Layer extractors — one row per column, the input to island detection. Port of the
-/// <c>SurfaceExtractor</c> from <c>minecraft/layers.py</c> (the default <c>ScanConfig.layer</c>).
+/// Layer extractors — one row per column, the input to island detection. <c>SurfaceExtractor</c> from <c>minecraft/layers.py</c> (the default <c>ScanConfig.layer</c>).
 /// </summary>
 public static class LayerExtractors
 {
@@ -189,7 +188,7 @@ public static class LayerExtractors
         }
     }
 
-    /// <summary>Non-air blocks at world y=0 (port of Y0Extractor). WorldY is always 0.</summary>
+    /// <summary>Non-air blocks at world y=0. WorldY is always 0.</summary>
     public static IEnumerable<SurfaceBlock> Y0(IEnumerable<AnvilRegion.Chunk> chunks)
     {
         foreach (var chunk in chunks)
@@ -207,7 +206,7 @@ public static class LayerExtractors
         }
     }
 
-    /// <summary>Lowest bedrock block (id=7) per column, bottom-up (port of BedrockExtractor).</summary>
+    /// <summary>Lowest bedrock block (id=7) per column, bottom-up.</summary>
     public static IEnumerable<SurfaceBlock> Bedrock(IEnumerable<AnvilRegion.Chunk> chunks)
     {
         foreach (var chunk in chunks)
@@ -229,7 +228,7 @@ public static class LayerExtractors
         }
     }
 
-    /// <summary>Lowest non-excluded non-air block per column, bottom-up (port of BaseExtractor;
+    /// <summary>Lowest non-excluded non-air block per column, bottom-up (the base layer;
     /// default exclude = {36}). Works for bedrock-floored, raised-floor and floating-island maps.</summary>
     public static IEnumerable<SurfaceBlock> Base(IEnumerable<AnvilRegion.Chunk> chunks, ISet<int>? excludeIds = null)
     {

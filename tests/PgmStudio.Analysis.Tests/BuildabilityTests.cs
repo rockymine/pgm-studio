@@ -5,8 +5,8 @@ using PgmStudio.Pgm;
 namespace PgmStudio.Analysis.Tests;
 
 /// <summary>
-/// Synthetic buildability/geometry tests (exact parity vs Python's grid is in
-/// tools/PgmStudio.RoundTrip --buildability over the feature maps).
+/// Synthetic buildability and geometry tests. The corpus-wide net — the verdict grid of every real map
+/// digested and compared — is <c>tools/PgmStudio.RoundTrip --goldens</c>.
 /// </summary>
 public sealed class BuildabilityTests
 {

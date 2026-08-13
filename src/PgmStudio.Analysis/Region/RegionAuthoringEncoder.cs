@@ -9,7 +9,7 @@ using Dict = Dictionary<string, object?>;
 /// Encodes the flat region registry into the authoring split (B4a) for the editor: <c>primitives</c>
 /// (leaf shapes you drew) and <c>composed</c> (structures grouping them, with apply-rule wiring),
 /// each node carrying derived category, type-specific coords, and a Shapely/NTS-derived
-/// <c>polygon_2d</c>. Port of <c>region_encoder.encode_region_authoring</c> (+ its node helpers).
+/// <c>polygon_2d</c>.
 /// Geometry is delegated to <see cref="RegionGeometry2d"/> (the <c>_dict_to_shapely</c> port).
 /// </summary>
 public static class RegionAuthoringEncoder
@@ -80,7 +80,7 @@ public static class RegionAuthoringEncoder
         return node;
     }
 
-    // ── bounds / coords (port of _encode_bounds / _encode_coords) ──────────────────
+    // ── bounds / coords ────────────────────────────────────────────────────────────
 
     private static Dict? EncodeBounds(Dict region)
     {
@@ -88,7 +88,7 @@ public static class RegionAuthoringEncoder
         var mn = b2.GetValueOrDefault("min") as Dict ?? new();
         var mx = b2.GetValueOrDefault("max") as Dict ?? new();
         if (!mn.ContainsKey("x") || !mn.ContainsKey("z")) return null;
-        // Pass values through raw (a coordinate may be the "oo"/"-oo" string), like Python's _encode_bounds.
+        // Pass values through raw — a coordinate may be the "oo"/"-oo" string.
         object? minX = mn["x"], minZ = mn["z"], maxX = mx.GetValueOrDefault("x"), maxZ = mx.GetValueOrDefault("z");
         var t = region.GetValueOrDefault("type") as string;
         if (NumEq(maxX, minX) && NumEq(maxZ, minZ))
@@ -189,7 +189,7 @@ public static class RegionAuthoringEncoder
         }
     }
 
-    // ── structure / wiring (port of _member_ids / _wiring_for) ─────────────────────
+    // ── structure / wiring ─────────────────────────────────────────────────────────
 
     private static List<object?> MemberIds(Dict region)
     {
@@ -232,7 +232,7 @@ public static class RegionAuthoringEncoder
         return outList;
     }
 
-    // ── polygon_2d (port of _shapely_to_polygon_2d) ────────────────────────────────
+    // ── polygon_2d ─────────────────────────────────────────────────────────────────
 
     private static Dict? ComputePolygon2d(Dict region, (double, double, double, double) bounds, Dict registry)
     {
@@ -287,7 +287,7 @@ public static class RegionAuthoringEncoder
         double d => d, long l => l, int i => i, float f => f, _ => null,
     };
 
-    // ── region tree (port of region_encoder.encode_region_tree + _encode_node) ──────
+    // ── region tree ────────────────────────────────────────────────────────────────
     // The canvas renders from this grouped, nested view (vs the flat authoring split above).
 
     private static readonly IReadOnlyDictionary<string, string> CategoryLabels = new Dictionary<string, string>

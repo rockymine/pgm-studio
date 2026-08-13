@@ -7,7 +7,7 @@ namespace PgmStudio.Analysis.Playability;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Per-column buildability verdict (port of studio/services/buildability.py, C14): region geometry
+/// Per-column buildability verdict: region geometry
 /// × the Y=0 layer × apply-rule order (last rule wins). Verdict codes index <see cref="Classes"/>.
 /// </summary>
 public static class Buildability

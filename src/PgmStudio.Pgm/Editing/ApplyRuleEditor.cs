@@ -5,7 +5,7 @@ namespace PgmStudio.Pgm.Editing;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Apply-rule CRUD on the doc dict (port of studio/services/apply_rule_editor.py). Rules have no
+/// Apply-rule CRUD on the doc dict. Rules have no
 /// id in the PGM model, so a stable synthetic <c>rule_&lt;n&gt;</c> is backfilled (positional, so it
 /// survives save/reload). Filter/region refs may be ids or inline descriptors — only a plain id that
 /// resolves to nothing is rejected.
