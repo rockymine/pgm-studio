@@ -138,6 +138,31 @@ holds them until one becomes the focus.
   build regions is the question that measurement answers: a room joined only by a build region is connected
   and reads as connected, so a genuinely isolated one means neither ground nor buildable ground reaches it.
 
+- [ ] **B100 — A destroy board carries one or two goals a team, not one per composed slot.** `Retarget`
+  turns **every** goal the composer sited into a destroyable and, for `dtcm`, adds a core beside each — so a
+  two-wool-a-side board becomes four monuments and four cores, eight objectives, which is past the top of the
+  corpus distribution entirely. Measured over the 127 corpus maps carrying a destroy objective, per team:
+  **one monument in 59 maps (55%), two in 40 (37%), three in 5 (5%)** and four or more in four outliers;
+  **one core in 24 (77%), two in 6 (19%), three in exactly one map in the corpus.** Of the 17 carrying both,
+  **16 have a single core a team**, and the common combined shape is one monument and one core. So the count
+  is a design decision with a narrow real range, and it is currently a side effect of how many wools the
+  budget happened to place.
+
+  Count is not the whole of it, because the goals are **sited relative to each other** rather than scattered:
+  where a board carries several they are deliberately spaced and named by where they stand — a west and an
+  east monument, or two forward and one back near the spawn, or two back and one forward. That spacing is the
+  board's shape, since each goal is a place a team must hold and their arrangement decides whether a defence
+  is one line or three. A core is rarer than a monument for a reason worth carrying into the choice: leaking
+  one is a harder, longer job, so a board wants fewer of them. Pair this with `MG2` — the areas those goals
+  stand in are themed apart in the corpus, so the ground around a west monument reads differently from the
+  ground around an east one, and that distinction is expressible today and was used on none of the sixteen.
+
+  One naming fix belongs with it, because the confusion is already in the code. In-game the mode is
+  *destroy the monument*, so a `<destroyable>` is colloquially a monument — but **`monument` is already taken**
+  in this codebase and in PGM, for the block a wool is placed on in a capture map. `Retarget` nonetheless
+  names its destroyables `monument-0`, `monument-1`, which is the one word that means the other thing.
+  `CLAUDE.md`'s naming rule applies directly: a name must not promise the wrong category.
+
 - [ ] **B79 — `map-layers` e2e: the plan editor's Compile button never arrives (13/14).** The suite drives to
   `/maps/{slug}/plan` on the seed's built map, then clicks `button:has-text("Compile")` to check that a
   *rebuild* states the trade before replacing a board someone has worked on. The click times out at 30s and

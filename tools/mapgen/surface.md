@@ -151,6 +151,28 @@ start. Its use is narrow and worth stating, because the mechanism invites misuse
 board means waiting three quarters of an hour for the map to begin. It belongs where a goal is tucked away
 and wants a **second** approach opening late, changing the shape of the endgame rather than the opening.
 
+### How many goals a destroy board carries, and where they stand
+
+The count is a design decision with a narrow real range, and it is worth stating in numbers because the tool
+will otherwise decide it as a side effect. Measured over the 127 corpus maps carrying a destroy objective,
+per team: **one destroyable in 55% of them, two in 37%, three in 5%**, four or more in four outliers. Cores
+are rarer and tighter — **one in 77%, two in 19%, three in a single map in the corpus** — because leaking a
+core is a harder and longer job than breaking a monument, so a board wants fewer of them. Of the seventeen
+maps carrying both kinds, sixteen have exactly one core a team, and the ordinary combined board is one
+destroyable and one core. A large board with a single goal on it is not an underfilled board; it is the most
+common destroy map there is.
+
+Where a board carries more than one, they are **placed against each other rather than scattered**: a west and
+an east, or two forward with one back near the spawn, or two back with one forward. That arrangement is the
+board's shape, because each goal is a place a team has to hold, and their spacing is what decides whether the
+defence is one line or three. The ground around each is themed apart in the corpus, which is the same
+per-shape paint the layout already offers — the approach to a west goal reading differently from the approach
+to an east one is what makes several goals read as several places rather than as one objective duplicated.
+
+**A word on the word.** In game the mode is *destroy the monument*, so a `<destroyable>` is colloquially a
+monument — but `monument` is already taken here and in PGM for the block a wool is placed on in a capture
+map. The two are different objects on different kinds of map. This document says **destroyable**.
+
 ### The goal's material is a knob, and the kit has to agree with it
 
 A destroyable's material is authored on the plan, not fixed. `DestroyablePlacement.Materials`
