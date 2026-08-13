@@ -36,46 +36,45 @@ public static class PlanCompiler
         var d = ContactGraph.Build(declared);
         var layout = BuildLayout(declared, d);
         var intent = BuildIntent(declared, d, layout);
-        AppendStructuralShapes(layout, intent);
         return (layout, intent);
     }
 
-    // Project the plan's placed structural pieces — spawn buildings and wool rooms — into the layout as
-    // locked annotation rectangles (S25), so refining a plan in the sketch keeps them visible instead of
-    // letting them dissolve into the fused island polygon. The intent's piece rect is the whole story: it is
-    // the protection/room region, it sizes the stamped foundation, and the marker sits relative to it, so the
-    // rectangle alone re-secures the link back to the intent entity. Role-tagged, so the rasterizer skips them
-    // (no terrain contribution — the ground under them is already the island) and the sketch renders them
-    // read-only. Only pieces with a role rect are projected: a plain-piece or hand-authored spawn/wool has no
-    // Piece and keeps nothing to surface here.
-    private static void AppendStructuralShapes(SketchLayout layout, MapIntent intent)
+    // Project a plan's placed structural piece — a spawn building or a wool room — into the layout as a
+    // locked annotation rectangle (S25), so refining a plan in the sketch keeps it visible instead of letting
+    // it dissolve into the fused island polygon. The piece rect is the whole story: it is the
+    // protection/room region, it sizes the stamped foundation, and the marker sits relative to it, so the
+    // rectangle alone re-secures the link back to the intent entity. Role-tagged, so the rasterizer skips it
+    // as terrain (the ground under it is already the island) and the sketch renders it read-only.
+    //
+    // The authored (k = 0) image also binds into its island's relief solve: `hold` pins the room at the
+    // piece's own surface, so the ground around it is solved knowing the floor must arrive there rather than
+    // cutting through it (docs/contracts/sketch-relief.md §11 — the rasterizer matches it to its island by
+    // footprint, not by list membership, since an annotation is never added to an island's own ShapeIds).
+    // Every other orbit image needs no binding of its own — its ground comes back from the same solved
+    // field, reflected, so it is pinned by construction (§8).
+    private static void AppendStructuralShape(
+        SketchLayout layout, string id, string role, string intentRef, string color, BlockRect rect,
+        int surface, int orbitIndex)
     {
         var shapes = layout.Layout?.Shapes;
         if (shapes is null) return;
-        var teamColor = (intent.Teams ?? []).ToDictionary(t => t.Id, t => t.Color);
-
-        foreach (var s in intent.Spawns)
-            if (s.Piece is { } rect)
-                shapes.Add(StructureShape($"spawn-{s.Team}", "spawn", s.Team, teamColor.GetValueOrDefault(s.Team, s.Team), rect));
-
-        foreach (var w in intent.Wools ?? [])
-            if (w.Piece is { } rect)
-            {
-                var color = !string.IsNullOrEmpty(w.Color) ? w.Color : teamColor.GetValueOrDefault(w.Owner, w.Owner);
-                shapes.Add(StructureShape($"wool-{w.Owner}-{color}", "woolRoom", $"{w.Owner}:{color}", color, rect));
-            }
+        var shape = new SketchShape
+        {
+            Id = id,
+            Type = "rectangle",
+            Operation = "add",
+            Role = role,
+            IntentRef = intentRef,
+            Color = color,
+            MinX = rect.MinX, MinZ = rect.MinZ, MaxX = rect.MaxX, MaxZ = rect.MaxZ,
+        };
+        if (orbitIndex == 0)
+        {
+            shape.BaseHeight = surface;
+            shape.ReliefScope = "hold";
+        }
+        shapes.Add(shape);
     }
-
-    private static SketchShape StructureShape(string id, string role, string intentRef, string color, Rect rect) => new()
-    {
-        Id = id,
-        Type = "rectangle",
-        Operation = "add",
-        Role = role,
-        IntentRef = intentRef,
-        Color = color,
-        MinX = rect.MinX, MinZ = rect.MinZ, MaxX = rect.MaxX, MaxZ = rect.MaxZ,
-    };
 
     // ── layout: unioned shapes + mirror islands + framing ───────────────────────────────────────────────
 
@@ -197,7 +196,7 @@ public static class PlanCompiler
                 var piece = d.Piece(s.Piece);
                 if (piece is null) continue;
                 var (bx, bz) = Resolve(piece.Value.Rect, s.At, d.Cell);
-                var (fx, fz) = FacingDir(s.Facing);
+                var (fx, fz) = BoardFacing(d, piece.Value, FacingDir(s.Facing));
                 var (px, pz) = d.FanPoint(bx, bz, k);
                 var prot = d.FanRect(piece.Value.Rect, k);
                 spawns.Add(new SpawnIntent
@@ -221,6 +220,9 @@ public static class PlanCompiler
                         : [],
                     Yaw = FanYaw(d, bx, bz, fx, fz, k),
                 });
+                if (piece.Value.Role == PlanRoles.Spawn)
+                    AppendStructuralShape(layout, $"spawn-{teams[k].Id}", "spawn", teams[k].Id, teams[k].Color,
+                        prot, piece.Value.Surface, k);
             }
 
         // wools: team-outer, placement-inner (matches the intent's grouping); auto colour with a global dye cursor
@@ -257,6 +259,9 @@ public static class PlanCompiler
                         : [],
                     Spawn = new Pt(px, piece.Value.Surface, pz),
                 });
+                if (isRoomPiece)
+                    AppendStructuralShape(layout, $"wool-{teams[k].Id}-{color}", "woolRoom",
+                        $"{teams[k].Id}:{color}", color, room, piece.Value.Surface, k);
             }
 
         // destroyables: team-outer like wools — a destroyable is a goal one team defends, so an orbit image
@@ -573,6 +578,54 @@ public static class PlanCompiler
         "right" => (1, 0),
         _ => (0, -1),                                                     // "front"
     };
+
+    // FacingDir's four directions, in the reading order an author sees them — reused below to pick a
+    // fallback deterministically when the stated one has to be overridden.
+    private static readonly (int Dx, int Dz)[] FacingOrder = [(0, -1), (0, 1), (-1, 0), (1, 0)];
+
+    // The direction a spawn's door actually opens: the authored facing, unless it points through a wall
+    // that opens onto the void — a piece on the edge of the board whose door would be its only exit over
+    // the drop. Resolved once on the authored (team-0) piece, in the piece's own local frame, so the result
+    // fans through FanYaw exactly like the authored facing did; the rule is "face the board", not a fixed
+    // compass point, and it therefore reflects and rotates correctly with every orbit image.
+    //
+    // A piece with no open side at all (an isolated island with no interface to anything) keeps the
+    // authored facing — there is no safer wall to pick, and the marker still resolves to a door somewhere.
+    private static (int Dx, int Dz) BoardFacing(ContactGraph d, DerivedPiece piece, (int Dx, int Dz) authored)
+    {
+        var open = OpenSides(d, piece);
+        if (open.Count == 0 || open.Contains(authored)) return authored;
+        foreach (var side in FacingOrder)
+            if (open.Contains(side)) return side;
+        return authored;
+    }
+
+    // The piece's four cardinal sides that open onto more board rather than the void: a land or narrow
+    // interface with another piece, or a build-zone frontage — the same two things a wool room's own entries
+    // count (WoolEntrySegments). A side earns its direction from where the opening's segment actually lies
+    // on the piece's own rect, not from which piece is "bigger", so an opening on a piece's north edge marks
+    // north open regardless of what is across it.
+    private static HashSet<(int Dx, int Dz)> OpenSides(ContactGraph d, DerivedPiece piece)
+    {
+        var open = new HashSet<(int Dx, int Dz)>();
+        void Mark(int x1, int z1, int x2, int z2)
+        {
+            if (x1 == piece.Rect.MinX && x2 == piece.Rect.MinX) open.Add((-1, 0));
+            else if (x1 == piece.Rect.MaxX && x2 == piece.Rect.MaxX) open.Add((1, 0));
+            else if (z1 == piece.Rect.MinZ && z2 == piece.Rect.MinZ) open.Add((0, -1));
+            else if (z1 == piece.Rect.MaxZ && z2 == piece.Rect.MaxZ) open.Add((0, 1));
+        }
+        foreach (var c in d.LandInterfaces.Where(c => c.A == piece.Id || c.B == piece.Id))
+        {
+            var other = d.Piece(c.A == piece.Id ? c.B : c.A);
+            if (other is null) continue;
+            var (x1, z1, x2, z2) = ContactGraph.BorderSegment(piece.Rect, other.Value.Rect);
+            Mark(x1, z1, x2, z2);
+        }
+        foreach (var edge in d.FrontlineEdges.Where(e => e.Piece == piece.Id))
+            Mark(edge.X1, edge.Z1, edge.X2, edge.Z2);
+        return open;
+    }
 
     // The k-th orbit image's yaw: fan the facing as a direction (image of point+dir minus image of point).
     private static double FanYaw(ContactGraph d, double x, double z, int dx, int dz, int k)

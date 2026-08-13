@@ -377,6 +377,26 @@ public static class SketchRasterizer
                         break;
                 }
             }
+
+            // A structural annotation (a spawn or wool room, S25) is never listed in an island's own
+            // ShapeIds — that list is read elsewhere as the island's terrain rings — so a room binds by
+            // footprint instead: if the room it marks overlaps ground this island already owns, a stated
+            // relief_scope applies to it exactly as it would an ordinary shape's. RasterGroup still skips
+            // the annotation itself, so it never draws terrain of its own; this only lets it pin or hole
+            // the terrain that was already there.
+            var groundSoFar = new HashSet<(int X, int Z)>(owned);
+            foreach (var shape in shapes)
+            {
+                if (shape.Role is null || shape.ReliefScope is not ("hold" or "exclude")) continue;
+                var covered = RasterShape(shape).Select(cell => (cell.X, cell.Z))
+                                                .Where(cells.ContainsKey).ToList();
+                if (covered.Count == 0 || !covered.Any(groundSoFar.Contains)) continue;
+                if (shape.ReliefScope == "exclude") { excluded.UnionWith(covered); continue; }
+                owned.AddRange(covered);
+                var ring = RingOf(shape);
+                if (ring.Count >= 3) held.Add(new AreaMark([.. ring], StatedTop(shape, ring)));
+            }
+
             var ground = owned.Distinct().Where(cell => !excluded.Contains(cell)).ToList();
             if (ground.Count == 0) continue;
 
