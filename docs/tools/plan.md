@@ -74,7 +74,6 @@ Here is one carrying every element the format has, which compiles clean — no e
     "cores":        [ { "id": "core-1", "piece": "approach", "at": [1, 5],
                         "size": 5, "height": 5, "shell": 1, "float": 6, "leak": 5 } ]
   },
-  "cliffs": [ { "a": "lane", "b": "plateau" } ],
   "walls":  [ { "a": "approach", "b": "wool-room", "side": "a" } ],
   "boxes":  [ { "id": "wool-box", "kind": "wool", "rect": [-4, 3, 4, 10] } ]
 }
@@ -192,10 +191,13 @@ slug is an error rather than a silent fallback. A core's `float` and `leak` are 
 free-falls to the terrain at `float` below the casing while the core leaks at `leak` below it, so together
 they state how far players must dig, `max(0, leak − float)` — and authoring one without the other is refused.
 
-### Cliffs and walls
+### Walls
 
-`cliffs` marks a piece pair whose shared land interface is a one-way drop, suppressing the step terrace an
-elevation delta would otherwise require. `walls` marks a pair whose interface carries a pre-built approach
+An interface between two pieces is authored for exactly one reason, and this is it. Everything else a seam
+does — a step, a drop, a cliff — is decided by the ground: a plan states a surface per piece, the relief
+carves the rest, and what happens where two surfaces meet follows from them rather than from a mark.
+
+`walls` marks a pair whose interface carries a pre-built approach
 wall: a bedrock barrier two blocks thick and three courses tall across the full interface width, stamped on
 the attack side, which slows a wool raid and gives the defence a prepared line. `side` names which of the
 wall's two faces carries its defence chests, as the piece id that face looks out at — the wall is two blocks
@@ -357,8 +359,7 @@ carries is the author's and one can still be set in Configure.
 contact between otherwise-separate areas is not a connection), `G2` (a zone narrower than the 10-block corridor
 minimum), `G5` (a void hop outside 10–20), `SP2` (a spawn not near the back of its lane), `BZ5` (a zone of
 either kind touching a spawn piece), `WL1` (a water lane covering terrain instead of void), `EL1` (a piece's
-surface delta from the base not a multiple of 2), `EL6` (a full-width drop of 4 or more that qualifies as a
-cliff and carries no `cliffs` mark), `ST2` (iron outside the spawn piece on a board that has one), `WX4` (a pad
+surface delta from the base not a multiple of 2), `ST2` (iron outside the spawn piece on a board that has one), `WX4` (a pad
 shifted inward for wall clearance, moving the exported point with it) and `WX8` (an iron marker beside a spawn
 room that cannot be placed at all). These findings are the evaluator's context rather than a response of their
 own: the compile endpoint returns errors, and the scored rules reach the editor through `/api/plan/evaluate`.
@@ -445,9 +446,9 @@ between `wool-a-t1` and `wool-a-t3`, `rot_180` at 30 players. It compiles to 25 
 `−70..70 × −130..130`, two teams, two spawns, two wools, a build ceiling of 20 over 14 build areas, the
 observer at y 24, and four structure directives — two room floors, two entrance redstone rows, two walls.
 
-That plan also shows what lint is worth. It carries **seventeen findings and no errors**: eleven `EL1` (its
-elevation steps in ones, not the twos the stepper defaults to), two `G2` (five-block zones), one `G5` (a
-35-block hop) and one `EL6` (a seven-block drop with no `cliffs` mark). None of them stopped a good map being
+That plan also shows what lint is worth. It carries **sixteen findings and no errors**: eleven `EL1` (its
+elevation steps in ones, not the twos the stepper defaults to), two `G2` (five-block zones) and one `G5` (a
+35-block hop). None of them stopped a good map being
 built, which is the difference between the lint table and the refusals above.
 
 Reading the trio together shows exactly where this tool stops. The compile emitted the twenty-one polygons

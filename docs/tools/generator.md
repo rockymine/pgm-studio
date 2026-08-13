@@ -126,8 +126,8 @@ players under `rot_180`, exactly as `POST /api/compose/pin` stored it:
 ```
 
 That document compiles clean, evaluates at score 0, and reports every box producible. It also shows what a
-composed plan invariably lacks, and the empty arrays are the honest part of it. **`cliffs` and `walls` are
-always empty** — the elevation pass that would write them is not built. **No piece carries a `surface`**, so a
+composed plan invariably lacks, and the empty arrays are the honest part of it. **`walls` is always
+empty** — a defence wall is authored, never composed. **No piece carries a `surface`**, so a
 generated board is flat at the global 9 and every height on it arrives later, in the Sketch tool's relief
 phase. **`iron`, `destroyables` and `cores` are always empty**: the composer makes CTW boards and places wools
 and one spawn, nothing else. There is exactly **one zone**, the mid band, and it is a build zone — no water
@@ -327,7 +327,7 @@ knob does and why it stops.
 
 **A generated board is flat, unpainted and CTW.** No elevation, no theme, no dressing, no destroy objective,
 no water lane, no iron, and no defensive wall — every one of those is a later tool's or an unbuilt pass.
-`cliffs` and `walls` exist in the format as schema waiting for an elevation pass that is not written.
+`walls` exists in the format as schema waiting for a composer that decides which seams deserve one.
 
 **The mid is one plain band.** Twenty blocks of build zone spanning the axis, flush against both fronts, with
 no stones and no centre island. A board's crossing is therefore the same crossing on every board, and the

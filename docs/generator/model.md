@@ -248,9 +248,14 @@ Three categories exist, and the boundaries between them are the point.
 the role each piece carries, from the closed set below; the objective and spawn markers; the
 deliberate voids, where a `buffer` piece or a zone
 hole is an author asserting *I meant this emptiness*; per-piece height at full block resolution; and
-the override channels — `cliffs` and `walls` — which exist to overrule what a deriver would otherwise
-infer. Those last two are written by no generator today: the elevation pass that would fill them is
-not built, and they stand as schema waiting for it.
+the override channel — `walls` — which exists to overrule what a deriver would otherwise
+infer. It is written by no generator today: a defence wall is authored, never composed, and the list
+stands empty on every generated board.
+
+A `cliffs` channel sat beside it until 2026-08-14 and is deleted (`rules.md` EL5). It was authored and
+read by nothing but the lint that demanded it, so the annotation could not change the map it described.
+A cliff is what the terrain does where two surfaces meet — a consequence of the heights, never a mark —
+and the only interface a plan authors deliberately is a wall.
 
 The authored roles are worth naming exactly, because a second taxonomy sits next to them and the two
 must never be mixed. A **role** is a *map-level* label on a piece in the plan, and the authored set is

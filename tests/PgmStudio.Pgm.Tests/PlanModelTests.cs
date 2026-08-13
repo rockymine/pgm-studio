@@ -23,8 +23,7 @@ public sealed class PlanModelTests
             "spawns": [ { "piece": "a", "at": [1, 5], "facing": "front" } ],
             "wools":  [ { "piece": "a", "at": [1, 8], "color": "orange" } ],
             "iron":   [ { "piece": "a", "at": [0, 4] } ]
-          },
-          "cliffs": [ { "a": "a", "b": "b" } ]
+          }
         }
         """;
         var plan = PlanModel.Parse(json)!;
@@ -36,7 +35,6 @@ public sealed class PlanModelTests
         await Assert.That(plan.Zones[0].Holes.Count).IsEqualTo(1);
         await Assert.That(plan.Placements.Wools[0].Color).IsEqualTo("orange");
         await Assert.That(plan.Placements.Iron.Count).IsEqualTo(1);
-        await Assert.That(plan.Cliffs[0].A).IsEqualTo("a");
 
         var reparsed = PlanModel.Parse(plan.ToJson())!;
         await Assert.That(reparsed.Pieces.Count).IsEqualTo(2);

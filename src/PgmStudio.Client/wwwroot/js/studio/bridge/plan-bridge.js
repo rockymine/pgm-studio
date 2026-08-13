@@ -93,12 +93,11 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     if (sel.kind === "piece") {
       const p = doc.pieces.find(x => x.id === sel.id);
       doc.pieces = doc.pieces.filter(x => x.id !== sel.id);
-      if (p) {   // drop any markers that rode the removed piece + any cliff/wall marks referencing it
+      if (p) {   // drop any markers that rode the removed piece + any wall mark referencing it
         for (const kind of MARKER_KINDS) {
           const list = markerList(doc, kind);
           if (list) markerList(doc, kind).splice(0, list.length, ...list.filter(m => m.piece !== sel.id));
         }
-        doc.cliffs = (doc.cliffs || []).filter(c => c.a !== sel.id && c.b !== sel.id);
         doc.walls = (doc.walls || []).filter(w => w.a !== sel.id && w.b !== sel.id);
         // A box that named the removed piece keeps its remaining members; a box left naming nothing falls
         // back to containment rather than becoming an empty group.
@@ -389,7 +388,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       const p = doc.pieces.find(x => x.id === oldId); if (!p || !newId || newId === oldId) return;
       const id = uniqueId(doc.pieces.filter(x => x !== p).map(x => x.id), newId);
       for (const m of [...doc.placements.spawns, ...doc.placements.wools, ...doc.placements.iron]) if (m.piece === oldId) m.piece = id;
-      for (const c of [...(doc.cliffs || []), ...(doc.walls || [])]) { if (c.a === oldId) c.a = id; if (c.b === oldId) c.b = id; }
+      for (const w of doc.walls || []) { if (w.a === oldId) w.a = id; if (w.b === oldId) w.b = id; }
       for (const b of doc.boxes || []) if (Array.isArray(b.members)) b.members = b.members.map(m => (m === oldId ? id : m));
       p.id = id;
       canvas.setDoc(doc); canvas.select({ kind: "piece", id }); afterEdit();

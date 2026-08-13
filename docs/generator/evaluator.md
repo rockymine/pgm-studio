@@ -75,7 +75,7 @@ are unsure how to label are exactly the things you should not be labeling; they 
 - **Height** (`pieces[].surface` + `globals.surface`) — full block resolution, per piece.
 - **Intent markers** (`placements.wools` / `spawns`) — the objective + spawn anchors.
 - **Deliberate voids** (`zones[].holes` + `buffer` pieces) — on-purpose emptiness.
-- **Override channels** (`cliffs`, `walls`) — authored refinements over what the deriver would guess.
+- **Override channel** (`walls`) — an authored refinement over what the deriver would guess.
 
 The evaluator is a **new read-only consumer**: `plan.json → rasterize to 5×5-cell tiles → derive roles →
 measure → score`. The tile field and every derived role are computed views, never written back.
@@ -109,7 +109,7 @@ not a liability the tile model must swallow.
 - `wool-room` / `spawn` regions + their objective markers;
 - deliberate voids — `zones[].holes` and `buffer` pieces (the author asserting "I meant this void");
 - per-tile surface (height);
-- overrides — `cliffs`, `walls`, and (§5) any manual role correction.
+- overrides — `walls`, and (§5) any manual role correction.
 
 **Derived** (computed, never authored) — split into locked *measurables* and provisional *labels* (§5):
 
@@ -402,7 +402,7 @@ Starter property terms, grouped by the measurable they read (each ties to a froz
   edge-to-edge (WL3); 1–3 wools, each on a distinct lane (WL6); a third wool is rare and a real route, not
   crammed by the spawn (G45).
 - **Height (purposeful, not random)** — surface deltas are multiples of 2 (EL1); ≤2 raised sections per
-  island (EL4); a Δ≥4 full-width seam is marked a cliff only when it qualifies (EL6); **wool room ≥ its
+  island (EL4); **wool room ≥ its
   approach** (a real climb, WL5); a **tower** is a tall tile on the frontline edge that clears the void; and the
   cross-cutting term — **every raised tile must be explained by a derived height-role** (room / tower /
   step); unexplained elevation is the definition of "random" and is penalized. Match the authored

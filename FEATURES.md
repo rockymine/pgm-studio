@@ -1966,7 +1966,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`role: "piece"`); legacy `lane`/`hub`/`mid` (and any unknown value) map to `piece` on parse in both the C#
   `PlanModel` and the JS `normalizeDoc`, so old plans/seeds load clean. Two optional intent-bearing roles kept:
   `wool-room` (terrain↔room land seams render **red**, per ST1) and `spawn` (new **ST2** lint keeps iron
-  markers inside the spawn piece when one exists). A `walls` list beside `cliffs` marks pre-built approach
+  markers inside the spawn piece when one exists). A `walls` list marks pre-built approach
   walls (piece-id pairs); `PlanDerived` exposes the wall-marked land interfaces and a structural **error** when
   a wall pair shares no land seam. The editor palette collapses to one **Piece** draw tool plus the two area
   roles (neutral piece tint; distinct wool-room/spawn tints), a **Wall** tool toggles a wall mark on the

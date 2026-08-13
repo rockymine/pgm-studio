@@ -153,12 +153,6 @@
     ],
     "iron": []
   },
-  "cliffs": [
-    {
-      "a": "piece-2",
-      "b": "piece-6"
-    }
-  ],
   "walls": [
     {
       "a": "piece-4",

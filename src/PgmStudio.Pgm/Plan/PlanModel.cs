@@ -90,7 +90,6 @@ public sealed class PlanModel
     [JsonPropertyName("pieces")]     public List<PlanPiece> Pieces { get; set; } = [];
     [JsonPropertyName("zones")]      public List<PlanZone> Zones { get; set; } = [];
     [JsonPropertyName("placements")] public PlanPlacements Placements { get; set; } = new();
-    [JsonPropertyName("cliffs")]     public List<PlanCliff> Cliffs { get; set; } = [];
     [JsonPropertyName("walls")]      public List<PlanWall> Walls { get; set; } = [];
 
     /// <summary>Optional authoring annotation: the typed <see cref="PlanBox"/> envelopes grouping the pieces
@@ -399,14 +398,6 @@ public sealed class CorePlacement : IPlanMarker
     /// <summary>Optional — PGM auto-names a core per team (<c>Core</c>, <c>Core 2</c>), unlike a destroyable,
     /// which it rejects nameless.</summary>
     [JsonPropertyName("name")]     public string? Name { get; set; }
-}
-
-/// <summary>A land interface between pieces <see cref="A"/> and <see cref="B"/> forced to a one-way drop
-/// (a cliff), suppressing the step-terrace an elevation delta would otherwise require.</summary>
-public sealed class PlanCliff
-{
-    [JsonPropertyName("a")] public string A { get; set; } = "";
-    [JsonPropertyName("b")] public string B { get; set; } = "";
 }
 
 /// <summary>A land interface between pieces <see cref="A"/> and <see cref="B"/> marked as a pre-built approach

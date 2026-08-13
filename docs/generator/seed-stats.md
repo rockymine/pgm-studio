@@ -297,8 +297,8 @@ board **25×70**, 9 pieces (several 1-cell), 2 zones, 650 land blocks (**65 b/p*
 - Surface palette **3–11**: sub-base 3/5/7 — including the first **lowered spawn** (−2, SP4
   extended) — wool at +2.
 - **Axis-spanning mid island** (`piece-2` at 9 + `piece-6` at 3, self-mirrored across z=0) carrying
-  a **10-wide Δ6 cliff** ("9 vs 3") — the corpus's smallest EL6-qualifying cliff, `cliffs`-marked
-  (the EL6 lint demanded it; thresholds sit at their lower bounds at tiny scale). Mid form:
+  a **10-wide Δ6 cliff** ("9 vs 3") — the corpus's smallest EL6-qualifying cliff, sitting exactly at
+  the qualification's lower bounds, which is what tiny maps do. Mid form:
   clean (all zones chain into one region) → tally **clean 8 · hash 3 · parallel 1**.
 - Markers at block centres of 1-cell pieces: the fixed 8×8 spawn/wool stamps overlap piece
   bounds → **scaled structure presets** filed as `G31`.

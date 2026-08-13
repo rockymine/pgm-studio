@@ -21,7 +21,7 @@ public sealed record ComposedStages(
 /// <see cref="LayoutEvaluator"/> hard-terms gate — no structural errors, no WL2/PC-C/G2 lint, every void hop
 /// in G5's band, the mid band clear of every wool by two cells (BZ6), and no closure hole ringed by a wool
 /// plateau (WL8) — or the whole attempt is resampled (an optional <see cref="IComposeRejectSink"/> captures
-/// why). Cliffs and walls stay empty (the elevation pass fills them later).
+/// why). Walls stay empty — a defence wall is authored, never composed (review.md MG21).
 /// </summary>
 public static class Composer
 {

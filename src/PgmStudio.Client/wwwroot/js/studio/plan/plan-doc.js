@@ -72,7 +72,6 @@ export function emptyDoc() {
     pieces: [],
     zones: [],
     placements: { spawns: [], wools: [], iron: [], destroyables: [], cores: [] },
-    cliffs: [],
     walls: [],
     boxes: [],
   };
@@ -147,7 +146,6 @@ export function normalizeDoc(d) {
         return o;
       }),
     },
-    cliffs: (src.cliffs || []).map(c => ({ a: c.a ?? "", b: c.b ?? "" })),
     walls: (src.walls || []).map(c => ({ a: c.a ?? "", b: c.b ?? "" })),
     // Box annotations: `members` is kept only when it names pieces, so a containment-grouped box stays the
     // bare { id, kind, rect } it was authored as.

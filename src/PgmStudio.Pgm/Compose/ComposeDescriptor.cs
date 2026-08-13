@@ -9,7 +9,7 @@ namespace PgmStudio.Pgm.Compose;
 /// (request, seed) produces.</summary>
 public static class ComposerVersion
 {
-    public const string Current = "marker-id-1";
+    public const string Current = "no-cliffs-1";
 }
 
 /// <summary>

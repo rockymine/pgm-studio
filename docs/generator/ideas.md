@@ -150,7 +150,7 @@ landed, the rest is the idea.
 ## Realize & world
 
 - **G32-C** — structures & elevation (the "second generator": stairs, climbs, heights, walls). The missing
-  soul once layouts read valid-but-flat. The composer leaves `cliffs` and `walls` empty for this pass, and
+  soul once layouts read valid-but-flat. The composer leaves `walls` empty for this pass, and
   the `EL` laws in `rules.md` are already measured, so what is missing is the pass itself, not its rules.
   The intended vocabulary: a per-shape floor or base height (plateaus); **cut + raise** — splitting a shape
   along a seam and offsetting one piece, which at plan level refines one piece into two joined by a `land`

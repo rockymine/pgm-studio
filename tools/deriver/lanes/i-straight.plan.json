@@ -9,6 +9,5 @@
   ],
   "zones": [],
   "placements": { "spawns": [], "wools": [{ "piece": "wool", "at": [1, 1] }], "iron": [] },
-  "cliffs": [],
   "walls": []
 }

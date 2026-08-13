@@ -440,14 +440,21 @@ the stat corpus.
   low (defensive device), or the defended wool sits low and the defender holds height advantage
   *inside* the room.
 - **EL3 [expert]** `land` interfaces: walkable step ≤1; 2–3 only as an explicit jump/ledge
-  feature; ≥4 is either a **cliff** (per EL6, needing a `cliffs` mark) or a **stepped path edge**
-  (no mark — the seam borders a staircase route).
+  feature; ≥4 is either a **cliff** or a **stepped path edge** (the seam borders a staircase
+  route). Neither is annotated: see EL5/EL6.
 - **EL4 [expert]** Per island: base + up to **2** raised sections (not 1). Roughen never changes
   levels, only outlines.
-- **EL5 [corpus]** Cliffs (one-way drops): in v1 and now in use — `odd-facing-three-wool` marks
-  3 (incl. the pit pair), `mirror-big-board` 2 (the long spawn-side seam + the 15-long seam).
-- **EL6 [expert, new]** **Cliff qualification** — what separates a real cliff from a stepped path
-  edge (the seam beside a staircase/hairpin): a cliff (a) cuts the **full width of a lane**,
+- **EL5 [corpus; amendment 2026-08-14]** Cliffs (one-way drops) are made by **terrain, not by an
+  annotation**. A drop is whatever the ground does at a seam — a plan states a surface per piece and
+  the relief carves the rest, so a cliff is a consequence of two heights meeting, never a mark. The
+  only interface a plan authors deliberately is a **wall** (`walls`), which stamps a structure; a
+  `cliffs` list was authored, read by nothing but the lint that demanded it, and is deleted. The
+  corpus reading it produced is kept below as measurement.
+- **EL6 [expert; retired 2026-08-14]** **Cliff qualification** — what separates a real cliff from a
+  stepped path edge. Retired as a *lint*: it asked an author to annotate a seam, and the annotation
+  changed nothing about the built map. What it measured stands, and the same qualification is what
+  `ReliefReadback` applies to a **solved surface**, where a face's width and drop are read off the
+  ground rather than declared. Kept here for that reading: a cliff (a) cuts the **full width of a lane**,
   (b) is **≥10 blocks** wide, and (c) carries **Δ≥6**, *or* a shallow **Δ4 that walls a pit**
   (EL7's opposing-cliff geometry) with no gentle bypass — a lone Δ4 dead-end step-up is just a
   staircase edge, however wide. Of the corpus's 17 Δ≥4 seams this reproduces the author's
@@ -608,6 +615,13 @@ both corrected.)
    room; ST1 now states the door-axis rule that fixes it. No other rule's stamped geometry changes.
 10. **ST6 added (2026-08-13).** The destroyable platform — new rule, no existing rule changed.
 11. **ST7 added (2026-08-13).** The goal sky marker — new rule, no existing rule changed.
+12. **EL5 amended, EL6 retired as a lint, EL3 reworded (2026-08-14).** The `cliffs` mark is
+    deleted from the plan document, the validator and the seeds. It was read in exactly one
+    place — the EL6 lint it silenced — and no compiler, composer or stamper ever read it, so the
+    annotation could not change the map it described. A cliff is what the terrain does where two
+    surfaces meet; the only interface a plan authors on purpose is a wall. EL6's qualification
+    survives as the reading `ReliefReadback` takes off a solved surface, and its corpus
+    measurements are kept.
 
 ## Correction protocol
 

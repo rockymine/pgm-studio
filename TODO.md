@@ -53,11 +53,6 @@ holds them until one becomes the focus.
   author can see on the canvas, where a refusal naming the prop and the goal can be acted on. All three are
   409s from the one composer, so the studio and any headless driver are gated identically.
 
-- [ ] **B117 — A seed plan fails `Every_seed_plan_lints_clean_on_EL6`, and the mark it wants is dead.**
-  Pre-existing and reproducible at HEAD. Low stakes and worth stating why: `plan.Cliffs` is read in exactly
-  one place — the EL6 lint it silences — and no compiler, composer or stamper reads it, so the mark changes
-  nothing about the built map. The fix is the deletion, not the annotation.
-
 - [ ] **B104 — A destroy goal is stamped above the build cap.** On `duskfell` the gold destroyable stands at
   y21–23 and `max_build_height` is 20; on `corvale` the emerald stands at y18–20 against the same cap. Blocks
   above the cap can still be broken, so this does not make the goal unbreakable — but a destroyable or a core
@@ -147,15 +142,6 @@ holds them until one becomes the focus.
   the tool ahead of the build, and giving the geometry checks it does not cover a home beside it, turns a
   build cycle into a message. The same findings are what an agent needs, since they name rules rather than
   describing symptoms.
-
-- [ ] **B110 — `PlanCliff` documents a terracing that a relief-free board does not do.** Its doc comment reads
-  as though an elevation delta between two pieces terraces into a staircase by default and `cliffs` opts out
-  of that. Measured on a hand-authored board with no `relief` block: an unmarked, un-cliffed +4 interface
-  between a piece at 11 and one at 15 built as a sheer four-block riser, identical in character to a *marked*
-  six-block cliff elsewhere on the same board. So in a relief-free build every delta is already sheer and
-  there is nothing for the mark to suppress. Whether terracing lives in the relief layer and the comment is
-  describing that, or whether it describes an intention nothing implements, is the question — the mark's
-  behaviour is not in doubt, only what it is documented as opting out of.
 
 - [~] **B111 — The deletions.**
   The set is complete: `docs/tools/plan.md`, `sketch.md`, `library.md`, `generator.md`, `shapes.md`,
