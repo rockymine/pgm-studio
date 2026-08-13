@@ -4392,6 +4392,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `POST /regions/group` + `/ungroup`. (ex-R1a; wire-after-group is parked.)
 
 ## Data & ops (D)
+- **A stated structural height survives a recompile (B107, backend half).** A spawn or wool-room piece is
+  projected into the sketch as a `Role`-tagged shape whose `Floor`/`BaseHeight` already drive the relief's
+  hold-pin — but `AppendStructuralShape` overwrote both with the plan's flat `surface` on every compile, so a
+  correction made where the ground is actually known could not survive the next one. `SketchShape` now carries
+  `height_authored`, and `SketchLayout.CarryStructuralHeight` merges an author-marked shape's height onto the
+  freshly compiled layout, matched by **`intentRef`** — the team/owner:colour identity that survives a
+  recompile, where a shape id and an island id are both regenerated. Marking the *field* rather than the shape
+  keeps rect and position tracking the plan, and an unmarked shape still follows the plan's surface, so the
+  carry cannot silently mask a deliberate plan-side height change. It follows the `CarryRelief`/`CarryFinish`
+  precedent in `SketchFromPlanEndpoint`, and is gated end to end: the test asserts the relief solve holds the
+  surrounding ground at the carried height rather than that JSON round-trips.
 ### Agent-drivable map generation — what sixteen agent-designed boards exposed (B78, B80–B90)
 
 Sixteen maps were designed by an agent driving the system end to end and every one of them built, which is

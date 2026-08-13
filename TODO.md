@@ -106,38 +106,23 @@ holds them until one becomes the focus.
   the first, and one word for both invites exactly the inference that a destroyable must live somewhere
   protected.
 
-- [ ] **B107 — The sketch tool cannot place or move an objective, so a board can only be designed in plan
-  space.** A plan's structural pieces are projected into the sketch as `Role`-tagged shapes and they are
-  **locked**: visible, and unmovable. Everything about a goal's position and height is therefore decided in
-  the plan, on a flat board, before any relief exists — which is why a depression dropped onto a piece
-  standing at the default `surface` 9 bottoms out two blocks off the floor, and why a goal's height cannot be
-  corrected once the ground around it is real. The sketch is where a board stops being rectangles; it is also
-  the only stage that knows what the ground actually became, and it is the one stage that cannot touch the
-  objectives.
+- [~] **B107 — The sketch still cannot place or move an objective; only its height sticks.** The storage
+  question is settled and the backend half is landed (`FEATURES.md`): a structural shape's stated height now
+  survives a recompile, marked per field and carried by `intentRef`. What remains is the reach.
 
-  What it needs is the ability to **place and move a structural piece and state its height**: a spawn, a wool
-  room, a destroyable and a core. Two of those keep constraints that are not negotiable — a wool room and a
-  spawn are rectangles and carry protection regions — while a destroyable and a core have neither and may sit
-  anywhere ground exists (`B106`). `S25b` already asks for the movable half of this for spawn and wool pieces,
-  writing the move back to the intent; this is that task grown to cover height and the destroy objectives, and
-  it should be researched before it is built, because the plan projects these shapes and a recompile replaces
-  them — so where an edit is stored, and what happens to it on the next compile, is the design question rather
-  than the dragging.
+  **The canvas half.** `sketch-canvas.js` documents structural pieces as render-only — never hit-tested,
+  never selected, never edited — so nothing can write the flag a user's correction would set. Unlocking
+  selection, a drag, and an inspector row for the stated height is its own slice of the canvas and render
+  layers, and it is what turns a proven mechanism into something an author can reach.
 
-- [ ] **B108 — Forty-eight worked plans exist and nothing points at them.** `tools/seeds/` holds 15
-  hand-authored plan documents, 17 more under `teaching/` built to demonstrate one structure each, and 16
-  under `traced/` that are **real published maps traced into plan space**. Between them they answer every
-  question an author has about how a board is stated — piece counts, sizes, connectivity, and the per-piece
-  `surface` tiers that make ground step, which no generated board has ever reproduced. `traced/bridgid-ii`
-  alone carries 36 pieces across sixteen height tiers.
+  **The destroy objectives.** A destroyable and a core have **no rect in the plan at all** — `Anchor` is a
+  bare point, unlike a spawn or a wool room — so there is nothing to project into the sketch and nothing to
+  give a height to. What a destroyable's footprint even *is* has to be decided before it can have a sketch
+  presence, which puts this behind `B106` rather than beside it.
 
-  None of it is reachable from the documentation. `tools/seeds/README.md` describes the three `base-*`
-  **sketch layouts** and frames the whole directory as fixtures for exercising the world export; it names no
-  plan, never mentions `traced/` or `teaching/`, and never mentions `surface`. Meanwhile every doc that
-  offers a worked example — this file and `review.md` — cites `ruediger.layout.json`, which is a *layout*. So
-  an author asking "how do I write a plan" is pointed one layer below the question, and every board generated
-  so far started from `compose` instead. The handbook now names the seeds; the README is still wrong, and the
-  seeds themselves want names that say what they demonstrate rather than what they contain.
+  **Position, separately.** Moving a piece rather than raising it is `S25b`, and the design here deliberately
+  leaves rect and position tracking the plan so that a recompile stays authoritative about *where* while the
+  author stays authoritative about *how high*.
 
 - [ ] **B92 — A building can be a solid volume behind its own facade.** `HouseStamper` raises walls, a roof
   and their openings, and the volume they enclose is left as air — "fill" appears in the house model only as a
