@@ -6,7 +6,7 @@ namespace PgmStudio.Pgm.Sketch;
 
 /// <summary>
 /// The wire form of an island's relief — the interior elevation an author states inside a landmass, as
-/// against the outline heights a shape already carries (docs/contracts/sketch-relief.md). It rides
+/// against the outline heights a shape already carries (docs/world-export/relief.md). It rides
 /// <b>top-level on the layout, keyed by island id</b>, not nested inside the shapes: a plan recompile
 /// replaces every shape it produced, and a relief is far more expensive hand work than a shape.
 ///

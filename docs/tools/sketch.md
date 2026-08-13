@@ -20,6 +20,15 @@ The tool saves continuously — every change schedules a debounced write 800 ms 
 **Finish**, which flushes the layout, rasterizes it server-side into world geometry, and moves the map to
 `stage=configure`. A draft that was never drawn on is discarded on the way out.
 
+**What the later phases state, `docs/world-export/` executes**, and that folder is where the depth is. This
+document is the tool: what each phase authors, what it writes, and what refuses. Beside it sit five that each
+take one of those statements through to the blocks it becomes — `relief.md` (the elevation solver behind the
+Relief phase, with the measured terrain law), `terrain-painting.md` (what the painter makes of a theme, cell by
+cell), `structures.md` (the shells the Rooms step binds and the house the Dressing phase stamps),
+`decoration.md` (the dressing pass itself) and `tree-corpus.md` (the hand-built ground truth a grown tree is
+scored against). `docs/contracts/sketch-world-export.md` is the world folder Finish writes into. Each is cited
+below from the phase that feeds it.
+
 ## What it writes
 
 One artifact: the `sketch_layout_json` blob on the map row (`SketchStore`,
@@ -205,6 +214,10 @@ by a fraction of a block, which is why the constants carry cross-referencing com
 Where an island carries a relief, its surface is solved first (`ReliefFields`) and the same solve is what the
 contour preview draws — which is the only reason a preview is worth drawing at all.
 
+What becomes of those columns once Finish runs — the layer scheme the world folder is written in, its
+`level.dat`, the coordinate anchoring, the wool-cage chests and the observer platform — is
+`docs/contracts/sketch-world-export.md`.
+
 ## Phases
 
 ### Info
@@ -324,6 +337,11 @@ three thresholds a player has (a jump, a placed block, building in earnest), pla
 faces qualified as cliffs, crossings measured in both directions because a drop is free the way it falls, and
 the symmetry error. It is asked for rather than pushed, since it is a second solve's worth of measurement.
 
+`docs/world-export/relief.md` is this phase written out in full: the relaxation between the marks and why it
+is that rather than a weighting, what each knob costs measured on a room and on a whole map, how steepness
+decides where players can go, the symmetry fold that makes two halves identical rather than close, and the
+corpus reading the whole model is calibrated against.
+
 ### Theme
 
 Three steps, and together they are the map's paint.
@@ -338,6 +356,10 @@ they are edited for one map.
 A new theme is a clone of the built-in default — a quartz rim, a team-tinted clay wall, grass over dirt — and
 the thing being edited is the painter's own wire JSON, so there is no second model of a theme to fall out of
 step. A theme can be pulled in from the shared library and pushed back out to it.
+
+What the painter then does with it is `docs/world-export/terrain-painting.md`: how a column is classified into
+one of the buckets from its neighbours alone, what each bucket claims when two could claim the same cell, how
+a theme resolves per cell through the shape/map scope, and the `TP*` rules the whole pass is written to.
 
 **Apply** turns the canvas into a selection surface: nothing can be drawn or moved, and picking an island or a
 shape assigns a theme to it. A shape carries the assignment (`shape.theme`), an island assignment writes it to
@@ -370,6 +392,12 @@ with a seeded house written out there in full.
 That map stamps its wool cages with the bound style and gives its spawns no building at all. Leaving `spawn`
 out entirely — rather than writing `null` — is the third state, and stamps the built-in spawn shell.
 
+The stamp itself is `docs/world-export/structures.md`: how one `RoomFrame` is resolved from the piece rect,
+the marker and the entry interfaces so the drawn box and the built shell cannot disagree, what the pad and the
+doors are for, and the `WX*` rules that size everything. Its §7 is also where a room style's own anatomy is
+written out — the roof as a height field, the storey stack, the porch taken out of the footprint — which is
+what the Dressing phase's building prop stamps too.
+
 ### Dressing
 
 One step, because dressing has nothing to define up front: every part of it is a thing put somewhere. The
@@ -383,6 +411,13 @@ board, no "fill this island with forest". Within a drawn area the individual bla
 nobody places nine hundred of them by hand — but the area itself was drawn. Every prop is then fanned across
 the symmetry orbit, so one half of a map is dressed and both halves match. Each carries a `seed`, so two props
 of the same kind and knobs differ from each other while any one prop re-exports identically.
+
+`docs/world-export/decoration.md` is the pass this phase feeds, one section per tool and each carrying its
+`DR*` rules: how a flora field reads the paint under it, how a path's band is derived from its centreline, how
+a boulder is seated half-buried, how a tree is copied or grown, and how a channel is dug. Two of those reach
+further. A grown tree is scored against `tree-corpus.md`, the 75 hand-built trees that are the measured ground
+truth for what a tree looks like; and the building prop stamps `structures.md`'s house, which is why what it
+can be made of runs past what this phase can state.
 
 Six things can be placed, in three placement geometries.
 

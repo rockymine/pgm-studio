@@ -99,9 +99,9 @@ public sealed class PlanModel
     /// not depend on whether its boxes were drawn.</summary>
     [JsonPropertyName("boxes")]      public List<PlanBox> Boxes { get; set; } = [];
 
-    // Terrain-paint theming was moved off the plan onto the sketch model (docs/world-export/finishing-model.md
-    // §4): the plan is the structural layer a generator emits, and paint is authored on the sketch where the
-    // geometry is final. Any `themes`/`mapTheme`/`themeScopes` on a legacy plan blob are simply ignored on parse.
+    // Terrain-paint theming lives on the sketch model, not here (docs/world-export/terrain-painting.md TP10):
+    // the plan is the structural layer a generator emits, and paint is authored on the sketch where the
+    // geometry is final. Any `themes`/`mapTheme`/`themeScopes` on a plan blob are simply ignored on parse.
 
     /// <summary>Optional provenance: the real map this plan was traced over, and where its top-down render
     /// sat under the grid. Purely authoring metadata — the compiler never reads it, so it has no effect on the

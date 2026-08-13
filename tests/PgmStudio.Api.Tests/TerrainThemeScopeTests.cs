@@ -6,7 +6,7 @@ using PgmStudio.Pgm.Sketch;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// Scoped theme resolution for the export (docs/world-export/finishing-model.md §4): <see cref="TerrainThemeScope"/>
+/// Scoped theme resolution for the export (docs/world-export/terrain-painting.md TP10): <see cref="TerrainThemeScope"/>
 /// turns the theme data on the sketch layout into a per-cell theme — a themed shape paints its theme, everything
 /// else the map default, and the smaller (most specific) shape wins an overlap. Because the scope is the shape,
 /// rasterised fresh, reshaping a shape moves its paint. Pure (no DB): themes are built from real theme JSON and

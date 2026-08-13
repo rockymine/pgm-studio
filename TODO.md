@@ -176,6 +176,17 @@ holds them until one becomes the focus.
   — the studio does not classify finished maps, because real maps differ too much. `audit.md` stays, with its
   HB4/FR6 entry corrected: the wide frontline it recorded as unreachable is measurably the only outcome a
   branch hub with a frontline produces.
+
+  **The world-export set is the detail behind the sketch, and now says so both ways.** `sketch-relief.md`
+  belonged with it rather than in `contracts/` — the pass that decides the ground the painter, the stampers
+  and the dressing pass all land on — so it is `world-export/relief.md`, rewritten to what shipped. And
+  `tools/sketch.md` cites the five of them from the phase that feeds each, which it did not before: a reader
+  wanting the elevation solver or the painter's bucket rules had nothing saying those documents existed. Two
+  documents are deleted outright: `sketch-creation-flow.md`, for naming four files and a route that are gone,
+  and `finishing-model.md`, whose §1 and §2 describe theming as a plan-side concern and then catalogue what
+  that arrangement breaks — a system that no longer exists and failures that can no longer occur. Its rationale
+  is kept where it is load-bearing: why the finish belongs on the sketch in `flow.md`, the two stamp concepts
+  in `structures.md`.
   `docs/doc-status.md` §2 says what is duplicated and §5 which tools are unserved; its churn ranking (§3.4)
   **wants re-running against the full history**, since the container that produced it saw 197 commits over
   three days and cannot see drift older than that.

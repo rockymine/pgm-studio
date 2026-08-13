@@ -57,7 +57,7 @@ highlight); these are the parked / dormant / deferred slices.
   (`FEATURES.md`) — the first later pass to land, and the one that showed the rule is real rather than
   theoretical. The other two are still open: a carve and a graded road each decide things by **walking** the
   map, and a walk has a direction the half-turn does not preserve, so each folds again or it undoes what the
-  solve established (`sketch-relief.md` §8). Measured on the designed map, a carve that did not re-fold left
+  solve established (`world-export/relief.md` §8). Measured on the designed map, a carve that did not re-fold left
   the two halves **9 blocks** apart. Belongs with S46, which lands both passes; the fold itself needs no new
   machinery — `ReliefSolver.FoldBlocks` is the shape of it.
 
@@ -85,7 +85,7 @@ highlight); these are the parked / dormant / deferred slices.
   most: **a river on the mirror axis cannot both fall and be fair**, because a half-turn reverses the flow, so
   on the axis it is a canal at one level and falling water belongs to the flanks. And the cheapest good idea
   here runs the other way — a drawn channel handed to the solver as a line mark below base level makes the
-  terrain form a valley around it (`sketch-relief.md` §9).
+  terrain form a valley around it (`world-export/relief.md` §9).
 
 - [ ] **S56 — A path's height varies along it.** The path primitive takes a uniform `base_height` over its
   whole band (`FEATURES.md`), so a causeway is one thickness end to end and a ramp cannot be drawn as the
@@ -102,7 +102,7 @@ highlight); these are the parked / dormant / deferred slices.
   charging is too much. The dressing stage has the identical gap (`world-export/ideas.md` G167) and the two
   should share an answer. The materials exist — the share of the board at each passability tier, the detour
   factor between key places, the ford count and direction on a barrier, the reachable share per team side —
-  and the corpus pass has now run on the right surface (`sketch-relief.md` §12, 105 maps, natural ground):
+  and the corpus pass has now run on the right surface (`world-export/relief.md` §12, 105 maps, natural ground):
   body relief median **19 blocks**, walk median **72.6%**, barrier median **18.3%**, largest walkable place
   median **29.4%**, **8** cliffs. Filtering the architecture out made the terrain read *steeper*, not gentler
   — a building's flat roof was smoothing the reading — so the tier shares were never the distorted numbers;
@@ -402,10 +402,9 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   library theme into a sketch copies its JSON and nothing links them, but there is no snapshot record saying
   *which* library theme a map's paint came from, and no way to re-pull one when the library moves on. Give the
   map's scope store a forked instance with a `parent_id` back-reference, the same doctrine the generator's plan
-  persistence uses. **(2) A data migration** lifting existing inline-blob themes (`plan_json`,
-  `map_intent_json` on `map_artifact`) into styles + themes + bindings, deduping identical materials — today
-  every map authored before the library keeps its blob and the library cannot see it. The cross-tool scoping
-  and dressing sections of `docs/world-export/finishing-model.md` stay draft.
+  persistence uses. **(2) A data migration** lifting the themes inlined in a map's own `sketch_layout_json`
+  registry into styles + themes + bindings, deduping identical materials — today a map themed without pushing
+  anything out keeps its blob and the library cannot see it.
 
 - [ ] **B47 — The library has no search, and the sketch's theme names are its own.** Two small gaps the
   library page left open, worth doing once it has enough rows to hurt. The style browser filters by kind but

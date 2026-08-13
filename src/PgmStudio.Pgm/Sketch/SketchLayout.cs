@@ -16,7 +16,7 @@ public sealed class SketchLayout
     [JsonPropertyName("layout")] public SketchShapes? Layout { get; set; }   // legacy single-layer (pre-S7)
     [JsonPropertyName("layers")] public List<SketchLayer>? Layers { get; set; }
 
-    // Terrain-paint theming lives on the sketch model (docs/world-export/finishing-model.md §4): a registry of
+    // Terrain-paint theming lives on the sketch model (docs/world-export/terrain-painting.md TP10): a registry of
     // named themes (id → the theme JSON the painter deserializes) and the map-default id covering every cell no
     // shape scope claims. A shape's own theme override rides on SketchShape.Theme; a cell resolves shape → map
     // default at export (TerrainThemeScope). Absent on a plain/unthemed sketch, which paints the built-in default.
@@ -40,7 +40,7 @@ public sealed class SketchLayout
     // sketch that never opened the phase, which dresses nothing.
     [JsonPropertyName("dressing")] public JsonElement? Dressing { get; set; }
 
-    // Interior elevation (docs/contracts/sketch-relief.md), keyed by island id. It rides top-level rather
+    // Interior elevation (docs/world-export/relief.md), keyed by island id. It rides top-level rather
     // than inside the shapes for one reason: a plan recompile replaces every shape it produced, and a relief
     // is expensive hand work a plan cannot express. It is not a finish key — a relief is geometry, it decides
     // what the rasterizer emits, and it is carried across a recompile under its own rule (CarryRelief).
@@ -366,7 +366,7 @@ public sealed class SketchShape
     // outlives the shapes it was solved over. Never set by the compiler itself.
     [JsonPropertyName("height_authored")] public bool? HeightAuthored { get; set; }
 
-    // Terrain-paint theme override (finishing-model.md §4): the id (into SketchLayout.Themes) of the theme this
+    // Terrain-paint theme override (docs/world-export/terrain-painting.md TP10): the id (into SketchLayout.Themes) of the theme this
     // shape paints; null falls to the map default. The scope is the shape, so a reshape moves the paint. Island
     // and full-map assignment are UI conveniences that write this per member shape / the map default.
     [JsonPropertyName("theme")]      public string? Theme { get; set; }

@@ -3,7 +3,7 @@ using FluentMigrator;
 namespace PgmStudio.Migrations.Migrations;
 
 /// <summary>
-/// The terrain-paint <c>theme</c> / <c>style</c> library (B44, docs/world-export/finishing-model.md §3). Themes
+/// The terrain-paint <c>theme</c> / <c>style</c> library (B44, docs/tools/library.md). Themes
 /// were only ever opaque JSON blobs inside a plan/intent, with every material inlined per bucket — no library to
 /// browse or reuse. These tables make the two things the theme JSON already decomposes into first-class:
 /// <para>A <c>style</c> is one reusable, named material recipe — its <c>kind</c> (the material discriminator:

@@ -7,7 +7,7 @@ using PgmStudio.Contracts;
 namespace PgmStudio.Client.Features.Sketch;
 
 /// <summary>
-/// The Theme phase's Apply-step controls (docs/world-export/finishing-model.md §4), shown under the island tree
+/// The Theme phase's Apply-step controls (docs/tools/sketch.md, the Theme phase), shown under the island tree
 /// in the sketch sidebar. The tree is the selector — an island or one of its shapes — and this picks the theme,
 /// previews it, and applies or removes it on that selection; the map default sits under everything. It owns no
 /// state: it reads the theme registry + per-shape assignments through the sketch-bridge <see cref="Handle"/> and

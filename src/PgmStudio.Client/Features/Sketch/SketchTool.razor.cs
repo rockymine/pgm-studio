@@ -79,7 +79,7 @@ public partial class SketchTool
     private string dressingJson = "";
     private Task GoDressing() { tool = DressingTools.Tree; return SetPhase("dressing"); }
 
-    // ── Relief phase (sketch-relief.md §15) ──
+    // ── Relief phase (docs/world-export/relief.md §15) ──
     // One step, like Dressing and for the same reason: every part of a relief is a thing stated somewhere, so
     // the phase is the canvas with its own tools and an inspector for whatever is under the cursor. It sits
     // between Draw and Theme because a relief is geometry — it changes what the rasterizer emits — so it has

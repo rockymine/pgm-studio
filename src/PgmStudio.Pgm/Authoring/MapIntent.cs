@@ -76,7 +76,7 @@ public sealed record MapIntent
 
     // Terrain-paint theming is no longer carried on the intent: it lives on the sketch model (a theme registry
     // + per-shape override on SketchLayout), resolved at export by TerrainThemeScope from the sketch geometry
-    // (docs/world-export/finishing-model.md §4).
+    // (docs/world-export/terrain-painting.md TP10).
 }
 
 /// <summary>The plan-compiled layout structures, in absolute world block coordinates already fanned across the

@@ -1,7 +1,7 @@
 namespace PgmStudio.Minecraft;
 
 /// <summary>
-/// A theme decomposed into the reusable pieces the library stores (B44, docs/world-export/finishing-model.md §3):
+/// A theme decomposed into the reusable pieces the library stores (B44, docs/tools/library.md):
 /// the geometry knobs, and one <see cref="ThemeStyleBinding"/> per themeable bucket — a bucket, the material
 /// (as a serialized <em>style</em>), and the bucket's depth/toggle. Bedrock is fixed, never a bucket. This is the
 /// shape a <c>theme</c> row + its <c>theme_bucket</c> rows (each pointing at a <c>style</c> row) reconstruct, and

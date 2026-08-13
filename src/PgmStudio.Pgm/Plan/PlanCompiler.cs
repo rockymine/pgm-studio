@@ -48,7 +48,7 @@ public static class PlanCompiler
     //
     // The authored (k = 0) image also binds into its island's relief solve: `hold` pins the room at the
     // piece's own surface, so the ground around it is solved knowing the floor must arrive there rather than
-    // cutting through it (docs/contracts/sketch-relief.md §11 — the rasterizer matches it to its island by
+    // cutting through it (docs/world-export/relief.md §11 — the rasterizer matches it to its island by
     // footprint, not by list membership, since an annotation is never added to an island's own ShapeIds).
     // Every other orbit image needs no binding of its own — its ground comes back from the same solved
     // field, reflected, so it is pinned by construction (§8).

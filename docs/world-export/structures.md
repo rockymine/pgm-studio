@@ -15,6 +15,19 @@ alike. Read alongside:
   anchoring.
 - `docs/generator/rules.md` ST1–ST5 — the stamped-structure law; ST1/ST2 carry the footprint rule.
 - `docs/contracts/destroyables-and-cores.md` — the style-as-data precedent (§5 below).
+- `docs/tools/sketch.md` — the tool that binds the shells (its Rooms step) and stamps the same house as a
+  dressing prop.
+
+**Two stamp concepts, not one.** A *structural* stamp — the spawn building, the wool cage, the bedrock
+approach wall, an objective marker — is objective-defining and generator-emittable, so it is authored in the
+Plan and Configure tools and precedes the `map.xml`. A *dressing* stamp — a house, a boulder, a tree — is
+placed in the Sketch tool's Dressing phase and defines nothing. The finishing passes therefore **read** the
+structural stamps rather than owning them: the painter touches only stone, so a room is never repainted (TP6);
+the dressing pass keeps off what the map is played through — the intent's spawns, objectives and the
+structures stamped for them, plus any column whose surface is not the terrain's own (`DressingScope`); and the
+sketch canvas shows the pieces as locked annotations, so the ground around one can be refined without the
+piece being moved. What a stamp is made of is shared — both kinds come from the same room-style library and
+the same `HouseStamper` — but who authors one is not.
 
 ---
 
@@ -681,7 +694,7 @@ see while choosing it.
 
 The binding lives on the **sketch layout**, under a `roomStyles` key beside the geometry, because that is what
 the export reads: `SketchWorldBuilder` is handed the layout JSON and nothing else about the map. It is a
-**snapshot**, not a library reference (finishing-model.md §3.3) — picking a style copies its JSON in, so editing
+**snapshot**, not a library reference (`docs/tools/library.md`) — picking a style copies its JSON in, so editing
 that library row later cannot rebuild a shipped map's rooms. The `style_id` a map picked from is not stored,
 which is the point: there is no reference to go stale, and the Rooms step's "from *Slate cage*" caption is a
 note on the session rather than a fact about the map.

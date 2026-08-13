@@ -54,7 +54,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   let reliefMode = false;      // the Relief phase is up: marks are drawn, edited, and reported to the host
   let view = "2d";             // "2d" | "iso" — the read-only isometric height preview (S6)
   let isoYaw = 30;
-  // Terrain-paint theming (finishing-model.md §4): a map-global registry + default; a shape's own override
+  // Terrain-paint theming (docs/world-export/terrain-painting.md TP10): a map-global registry + default; a shape's own override
   // rides on the shape (`shape.theme`), assigned via the Theme phase and resolved at export.
   let themes = {};
   let mapTheme = "";
@@ -394,7 +394,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   function islandById(id) { return islands.find(i => i.id === id); }
 
-  // ── terrain-paint themes (finishing-model.md §4) ────────────────────────────
+  // ── terrain-paint themes (docs/world-export/terrain-painting.md TP10) ────────────────────────────
   // The theme state the Theme phase reads: the registry, the map default, and the resolved per-shape override
   // (every shape carrying a `theme`). The island tree is the selection surface, so the phase derives an
   // island's theme from its member shapes (uniform → that theme, else mixed).
@@ -472,7 +472,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     } catch { /* offline or mid-navigation — the overlay keeps the stone footprint */ }
   }
 
-  // ── the stated relief (docs/contracts/sketch-relief.md) ────────────────────
+  // ── the stated relief (docs/world-export/relief.md) ────────────────────
   // What an author has said about the ground inside each island. Distinct from the contour overlay below it:
   // this is the statement, that is what the solver made of it. Both are on screen at once during the phase,
   // which is the whole reason a mark can be tuned by eye.
@@ -700,7 +700,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     renameLayer(id, name)   { renameLayer(id, name); },
     setLayerBaseY(id, y)    { setLayerBaseY(id, y); },
 
-    // ── terrain-paint themes (finishing-model.md §4) ──
+    // ── terrain-paint themes (docs/world-export/terrain-painting.md TP10) ──
     getThemes() { return themesState(); },
     getRoomStyles() { return roomStylesState(); },
     // A snapshot as its JSON text, the text "null" for no building at all, or null/"" to fall back to that
@@ -771,7 +771,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       fire("OnDressing", dressingState()); return null;
     },
 
-    // ── relief (sketch-relief.md) ──
+    // ── relief (docs/world-export/relief.md) ──
     // Placing is the canvas's; the bridge exposes reading the document, editing the selected mark, the island
     // settings the marks are stated against, and the per-kind settings a newly placed mark starts from.
     getRelief() { return reliefState(); },
@@ -812,7 +812,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       afterReliefChange(); return null;
     },
     /**
-     * What the relief CHARGES, per island — the readback (sketch-relief.md §5–§6). Asked for rather than
+     * What the relief CHARGES, per island — the readback (docs/world-export/relief.md §5–§6). Asked for rather than
      * pushed: it is a second solve's worth of measurement over the same field, and an author wants it when
      * they stop to read the board rather than on every edit.
      */
@@ -878,7 +878,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       syncActive();
       return {
         setup,
-        // Terrain-paint theming (finishing-model.md §4): the registry + default ride the layout; each shape's
+        // Terrain-paint theming (docs/world-export/terrain-painting.md TP10): the registry + default ride the layout; each shape's
         // own override rides on the shape below. Omitted when empty so an unthemed sketch serialises as before.
         themes: Object.keys(themes).length ? themes : undefined,
         mapTheme: mapTheme || undefined,

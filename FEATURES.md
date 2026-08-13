@@ -3470,7 +3470,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   library on a third Theme step beside Create and Apply, since a shell is what the map is *made of* and is
   decided once for the whole map. There is **no per-room override**: a room is fanned across the symmetry
   orbit, so a shell that differed between the teams' cages would be a sightline one team has and the other
-  does not. The binding is a **snapshot, not a reference** (finishing-model.md §3.3) — no `style_id` is
+  does not. The binding is a **snapshot, not a reference** (`docs/tools/library.md`) — no `style_id` is
   stored, so a later library edit cannot rebuild a shipped map's rooms. `RoomStyleScope` is the read side,
   `TerrainThemeScope`'s sibling with the one shape difference that says the whole thing: a theme resolves per
   cell, a room style per map, so there is no `StyleAt` and nothing for one to take. An absent or unreadable
@@ -3889,7 +3889,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   16/edge — the same cell-centre `(x+0.5, z+0.5)` fill, the same add/subtract/override set algebra), merged into
   horizontal runs so a curve visibly reads as the stair-stepped cells it exports as, beneath its smooth outline.
   This is the prerequisite that makes the sketch the block-accurate surface the finishing pass will live on
-  (`docs/world-export/finishing-model.md` §7). Parity is unit-tested both sides.
+  (the parity constants in `docs/tools/sketch.md`). Parity is unit-tested both sides.
 - **The plan's spawn/wool pieces surface as locked, labelled rectangles in the sketch (S25).** Refining a
   plan in the sketch used to be blind: `PlanCompiler` fuses same-plane pieces into one island polygon, so on a
   single-height board the spawn and wool-room footprints — which survive only in `map_intent_json` — dissolved
@@ -3904,9 +3904,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the fused island without double-carving it. They are **locked** (never hit-tested, selected, promoted,
   resized, moved, or sloped): the client partitions them out of the drawn-shape pipeline on load and merges
   them back on save, round-tripping without entering island detection. Making them movable (a drag writing back
-  to the intent) is a deliberate later phase. Reverses `finishing-model.md` §6's "the sketch does not author
-  these" for *visibility* (§6.1); authoring still stays in plan/configure.
-- **Terrain-paint theming moved onto the sketch, keyed on shapes/islands (finishing-model.md §4).** The paint
+  to the intent) is a deliberate later phase. Visibility changes; authoring still stays in plan/configure.
+- **Terrain-paint theming moved onto the sketch, keyed on shapes/islands (`docs/world-export/terrain-painting.md` TP10).** The paint
   pass no longer lives on the plan: it is a **Theme phase** of the sketch tool, because the sketch rasterizer is
   what makes the world and the scope target is the final geometry, not plan pieces. Two steps, ported from the
   old plan Theme rail: **Create** authors a theme per bucket (the shared `MaterialEditor`/`BlockPicker`/
@@ -4034,7 +4033,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   centre `coord-field` rows); a single **Continue** creates the draft via `POST /api/sketch` (carrying the
   working frame → a seeded `setup`). The editor's footprint/symmetry **Setup** block moved off the always-open
   sidebar into a collapsed **Frame** accordion, lifting the Islands tree toward the top. Reusable `.choice-*`
-  tile CSS shared with the primitive palette. (S11) Plan: `docs/contracts/sketch-creation-flow.md`.
+  tile CSS shared with the primitive palette. (S11 — the page itself was later retired by C27 below, which
+  moved framing into the tool's own Info phase.)
 - **Rectangle → polygon promotion** — an inspector **Convert to polygon** button (and the `P` shortcut)
   turns the selected rectangle into a 4-corner polygon (id / operation / override **and the height fields**
   `base_height`/`floor`/`anchor_heights` preserved — a promoted box keeps its column instead of resetting to
@@ -4147,7 +4147,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   mirrored marks agreeing: the grain is sampled through the fold and the solved field is folded before it is
   quantized, both on the cell **centre** — reflecting the corner pairs each cell with its image's *neighbour*,
   a one-cell shear that reads as symmetry and measures as a whole block. A shape can **hold** its height into
-  the surrounding solve or **exclude** itself from it. Design + measurements: `docs/contracts/sketch-relief.md`;
+  the surrounding solve or **exclude** itself from it. Design + measurements: `docs/world-export/relief.md`;
   the prototype every figure comes from is `tools/relief`. (`Geom/Relief/{Footprint,Marks,ReliefSpec,ReliefSolver}.cs`;
   30 tests)
 - **Relief is stored per island, rasterizes as the column top, and refuses to be orphaned (S41, S51).** A relief

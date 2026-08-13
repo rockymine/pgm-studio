@@ -4,7 +4,7 @@ using PgmStudio.Pgm.Sketch;
 namespace PgmStudio.Api.Services;
 
 /// <summary>
-/// Scoped terrain-paint theme resolution for the world export (docs/world-export/finishing-model.md §4). It
+/// Scoped terrain-paint theme resolution for the world export (docs/world-export/terrain-painting.md TP10). It
 /// turns the theme data on the <see cref="SketchLayout"/> — the theme-JSON registry, the map-default id, and
 /// each shape's <see cref="SketchShape.Theme"/> override — into a per-cell <c>themeAt(x, z)</c> the painter
 /// reads. A cell in a themed shape paints that shape's theme; every other cell paints the map default; where

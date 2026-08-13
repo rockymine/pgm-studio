@@ -111,7 +111,7 @@ export class SketchCanvas extends CanvasBase {
   #dressing    = null;
   #dressingOn  = false;      // only the Dressing phase draws and edits props
 
-  // The stated relief (docs/contracts/sketch-relief.md). Here for the same reason the dressing document is:
+  // The stated relief (docs/world-export/relief.md). Here for the same reason the dressing document is:
   // this is where a mark is put, moved and picked. Unlike dressing it is keyed by island, because a relief is
   // solved over an island's fused footprint rather than placed loose on the map.
   #reliefDoc   = new ReliefDoc();
@@ -127,7 +127,7 @@ export class SketchCanvas extends CanvasBase {
   #chunkVisible  = true;
   #blocksVisible = false;
   #rasterRuns    = null;   // cached rasterized cell runs; recomputed on shape change while blocks are shown
-  #paintData     = null;   // the server's block-pixel payload for the terrain paint (finishing-model.md §4)
+  #paintData     = null;   // the server's block-pixel payload for the terrain paint (terrain-painting.md TP10)
   #paintImage    = null;   // that payload decoded — a canvas blits a bitmap, not a data URL
   #relief        = null;   // the server's traced contours for the relief the layout carries
   #selectOnly    = false;  // Theme phase: pick islands/shapes and pan/zoom, edit nothing

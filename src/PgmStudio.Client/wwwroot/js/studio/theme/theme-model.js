@@ -1,5 +1,5 @@
 /**
- * Terrain-paint theme model shared by the sketch tool's Theme phase (finishing-model.md §4). A theme is the
+ * Terrain-paint theme model shared by the sketch tool's Theme phase (docs/tools/library.md). A theme is the
  * wire JSON the painter (`TerrainThemeJson`/`TerrainTheme`) deserialises — no second model — so this holds only
  * the built-in default a new theme clones and a small id uniquifier. Pure, no DOM.
  */

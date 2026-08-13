@@ -35,6 +35,8 @@ where the collision cannot bite.
 Read alongside:
 
 - `docs/world-export/terrain-painting.md` — the pass this one runs immediately after; the surface it reads.
+- `docs/world-export/relief.md` — the elevation under all of it. Its §9 is what a channel owes ground that is
+  not flat, which is the one part of this stage the flat-plane assumption gets wrong (`S46`).
 - `docs/world-export/structures.md` §6.4 — the preset seam (style-as-data). A dressing style attaches here.
 - `docs/tools/sketch.md` — the sketch document this stage stores its props beside.
 - `docs/generator/ideas.md` — G34 (the umbrella), G32-C (structures & elevation, the sibling pass), G142

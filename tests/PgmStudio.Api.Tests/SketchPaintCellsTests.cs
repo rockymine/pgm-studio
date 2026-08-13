@@ -9,7 +9,7 @@ namespace PgmStudio.Api.Tests;
 
 /// <summary>
 /// The sketch's terrain paint as the block-pixel payload the Blocks overlay blits
-/// (docs/world-export/finishing-model.md §4). <see cref="TerrainPreview.SketchPaintCells"/> runs the export's own
+/// (docs/world-export/terrain-painting.md TP10). <see cref="TerrainPreview.SketchPaintCells"/> runs the export's own
 /// path — rasterise, build the terrain, paint through the scoped resolver — so what the overlay shows is the
 /// block the export places, per cell. That is the property under test: a themed shape's own surface block
 /// reaches the payload, buckets other than the surface do too, and the whole footprint is covered.

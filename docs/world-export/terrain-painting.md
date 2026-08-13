@@ -6,22 +6,25 @@ objectives onto the terrain, this pass dresses the terrain **itself**: the raw s
 becomes a stone body walled in clay, lipped in quartz, and topped in grass. It reads the terrain the
 world builder already placed and rewrites its surface — no new geometry, only materials.
 
-**Status: the whole model — TP1–TP15, including scoped per-piece theming (TP10) — is built and shipped.**
+**Status: the whole model — TP1–TP15, including scoped per-shape theming (TP10) — is built and shipped.**
 `TerrainPainter` (`PgmStudio.Minecraft`) paints every sketch export, wired last into `SketchWorldBuilder.Build`;
 the four-stage architecture of §5 is in place. A theme is resolved **per cell** through `TerrainThemeScope` (a
-piece override, its box/collection, else the map default); themes are authored on the plan tool's **Theme** rail
-and baked into the intent at `/plan/compile`. Depth is a per-bucket knob (`TopBand`
+sketch shape's own theme, else the map default); themes are authored in the Sketch tool's **Theme** phase and
+stored on the sketch layout. Depth is a per-bucket knob (`TopBand`
 carries a bucket's material, depth and toggle), so a theme sets the rim depth and the surface stack
 independently; the default surface is grass over two dirt, three blocks deep (TP11). Any bucket's material can
 be a pattern — voronoi or cell regions, a fractal / turbulence / electric field, wall-runs that wrap the
 void-facing perimeter (TP13), those runs sheared onto the diagonal, a checkerboard laid in the face it
 paints (TP17), or that same board turning one log upright and on its side (TP20) —
-and the whole theme serializes to the theme JSON (`TerrainThemeJson`), the data a TP10 scope will attach to a
-piece. The model was first validated by a
+and the whole theme serializes to the theme JSON (`TerrainThemeJson`), the data a TP10 scope attaches to a
+shape. The model was first validated by a
 scratch prototype's figures (two real seeds — `mirror-tiny-map-cliff`, `isolated-spawn` — compiled through
 `PlanCompiler` and rasterized through `SketchRasterizer`) and is now covered by `TerrainPainterTests`. Rule
 ids here are `TP*` (terrain paint), local to this file the way `structures.md` owns `WX*`. Read alongside:
 
+- `docs/tools/sketch.md` — the tool a theme is authored in (the Theme phase), and the layout it is stored on.
+- `docs/world-export/relief.md` — the elevation this pass dresses: a mesa's face and a scarp arrive here as
+  edges with a known drop, which is what the rim/wall rules were written for.
 - `docs/world-export/structures.md` §6.4 — the preset seam (style-as-data). Terrain materials attach here.
 - `docs/contracts/sketch-world-export.md` — the world the painter runs inside (layer scheme, `level.dat`).
 - `SketchTerrainBuilder` (`PgmStudio.Minecraft`) — the terrain this pass consumes: bedrock at y=0, stone
@@ -213,8 +216,8 @@ exactly one seam, and the core never moves.
 **The runtime seam.** `TerrainPainter` runs **last** in `SketchWorldBuilder.Build`, after the stampers, and
 rewrites **only stone** — so bedrock and every structure are excluded by construction and a re-run is
 idempotent. It reads inputs already in hand: the finished world (column heights + materials), the per-cell
-surface grid (`SketchTerrain.SurfaceTop`), and — only for scoped theming — the piece map and contact graph the
-compiler already built. Running after the stampers is what makes TP6 free: the rooms, cubes and approach walls
+surface grid (`SketchTerrain.SurfaceTop`), and — only for scoped theming — the shape footprints the rasterizer
+already walks. Running after the stampers is what makes TP6 free: the rooms, cubes and approach walls
 are already non-stone columns, so "consult the stamps" is just "read the finished world."
 
 **The four stages.** The pass is one pure function assembled from four separable stages, in pipeline order:
@@ -232,10 +235,10 @@ are already non-stone columns, so "consult the stamps" is just "read the finishe
 2. **Theme resolution — the scope layer.** A `Theme` is a data row: the bedrock mode, the `rimEdges` and
    wall-face knobs, plus a `TopBand` per top bucket (its material, depth and toggle) and a material for the wall and
    fill — each bucket's depth living with its bucket, not as a loose scalar. Scoping (TP10) resolves the theme
-   **per cell**: `TerrainThemeScope` picks the **whole** theme of the highest-priority scope over a cell —
-   piece › collection › map default, winner-takes-all, not a field merge — reading the plan-baked piece
-   footprints in the intent (a cell → piece → theme resolver, the `TeamTerritory` shape), so it adds only the
-   lookup, no new geometry.
+   **per cell**: `TerrainThemeScope` picks the **whole** theme of the narrowest scope over a cell — the
+   shape's own theme, else the map default, winner-takes-all, not a field merge — reading the sketch shape
+   footprints the rasterizer produces (a cell → shape → theme resolver, the `TeamTerritory` shape), so it adds
+   only the lookup, no new geometry.
 
 3. **Bands — the resolver (pure depth math).** Given `(Profile column, resolved Theme)`, compute the vertical
    band assignment: which y-range is bedrock, rim, wall, surface, fill. Every depth and toggle rule lives here
@@ -259,14 +262,14 @@ are already non-stone columns, so "consult the stamps" is just "read the finishe
 |---|---|
 | add a depth/toggle knob (TP7–TP9, TP11–TP12) | the `Theme` record + the band resolver |
 | add a material pattern (TP13) | a new `TerrainMaterial` |
-| scope a theme to a piece/collection (TP10) | the theme-resolution lookup |
+| scope a theme to a shape (TP10) | the theme-resolution lookup |
 | change the geometry (a new edge kind, a new stamp to consult, TP6) | the Profile core |
 
 The core never learns about materials; the materials never recompute geometry; the resolver is the only place
 depths interact. The bucket vocabulary — **bedrock · rim · wall · surface · fill** — is the shared contract
 every stage speaks. And the interface-relative principle proven for the approach wall (TP6) is the same one
-that lets a per-piece theme resolve at a seam rather than over a piece interior: a cell is rim/wall by its
-**geometry** and themed by its **owning piece**, so a boundary between two same-height pieces has no rim to
+that lets a per-shape theme resolve at a seam rather than over a shape interior: a cell is rim/wall by its
+**geometry** and themed by its **owning shape**, so a boundary between two same-height shapes has no rim to
 contest, whatever their themes differ on. Every stage is pure over explicit inputs, so each tests directly —
 the Profile against the §4 fixtures, the resolver against synthetic columns, the specs on their own — with no
 DB and no IO, exactly as the stampers do.
@@ -305,35 +308,37 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
   one rim block, one-or-more wall blocks on the taller side (a difference of 1 is covered by the rim alone, no
   wall). Off, only void-facing faces paint and internal risers stay fill/stone.
 
-- **TP10** *(built)* *Theming is scoped: a map default, overridden per piece or per collection.* Today one theme applies map-wide. The design keeps that as the **map default** — the lowest
-  priority layer, covering every cell no narrower scope claims — and lets a theme also attach to a **piece** or
-  a **collection** (a box's members, or a drawn set), the higher layers. A cell resolves to exactly one theme,
-  **whole**, by the highest-priority scope covering it: **piece assignment › collection › map default**. A
-  scope supplies a complete theme, not a field patch — every theme field already has a default, so "one theme
-  applied" is the whole thing, and lower layers are simply ignored for that cell.
+- **TP10** *(built)* *Theming is scoped: a map default, overridden per shape.* One theme covers the board as
+  the **map default** — the lower layer, covering every cell no narrower scope claims — and a theme also
+  attaches to a **sketch shape**, the higher one. A cell resolves to exactly one theme, **whole**, by the
+  narrowest scope covering it: **shape assignment › map default**. A scope supplies a complete theme, not a
+  field patch — every theme field already has a default, so "one theme applied" is the whole thing, and the
+  lower layer is simply ignored for that cell.
 
   The resolution mirrors the team-ownership decomposition (`TeamTerritory` / `IslandTeams`): the semantic
-  assignment is stored in the intent, the geometry is resolved at export. The intent carries three plan-baked
-  fields — a **theme registry** (`themeId → theme JSON`, opaque to the intent's project, with `default` the
-  map theme), a flat **`pieceId → themeId`** map (the priority stack already resolved and any box/collection
-  already expanded to its member pieces at compile — so nothing downstream re-decides priority), and the
-  **piece footprints** (the fanned world rects, the one plan fact the painter needs to map a cell to its
-  piece). At export a scope resolver builds cell → piece → theme (else the map default) and hands the painter a
-  per-cell `themeAt(x, z)` instead of one theme; because the band resolver and materials already run per column
-  against one `ColumnProfile` and the profile is theme-agnostic, the per-cell lookup needs no new geometry.
+  assignment is stored on the sketch layout, the geometry is resolved at export. The layout carries a **theme
+  registry** (`themes`, `themeId → theme JSON`) and the **map default** (`mapTheme`), and a shape carries the
+  id of the theme it takes (`shape.theme`). At export `TerrainThemeScope` walks the rasterizer's own shape
+  footprints — the primary plus every orbit copy, since a mirrored image keeps its shape id — and hands the
+  painter a per-cell `themeAt(x, z)` instead of one theme; because the band resolver and the materials already
+  run per column against one theme-agnostic `ColumnProfile`, the per-cell lookup needs no new geometry. A
+  layout that themes nothing resolves to a constant map default and allocates nothing per cell.
 
-  "Resolved at interfaces" then falls out with no special case: a piece's rim and wall appear only where **its**
-  cells are edges (the profile already computes that per cell), a piece dead-centre among same-height
-  neighbours has no edge and so no rim or wall the way an interior column does now, and a seam between two
-  differently-themed pieces is borne by the **taller** side's edge cell — so that cell's piece, and its theme,
-  paint the seam, unambiguously. Boxes stay pure authoring annotation: a box is *selected* by id but expanded
-  to piece ids at authoring/compile time, so the export never reads a box and "drawing a box never changes what
-  a plan compiles to" holds. Tiebreaks are deterministic — a cell in overlapping piece rects takes the
-  smallest (most specific) piece; a piece in two collections resolves by later-scope-wins (boxes ordered before
-  per-piece overrides). Authored on the plan tool's **Theme** rail — define named themes, pick the map default,
-  and assign a theme to a piece or a box — stored on the plan doc and baked into the intent at `/plan/compile`,
-  the `IslandTeams`/`TeamTerritory` shape end to end. The theme's materials are edited as JSON in the rail today;
-  a visual per-bucket/pattern picker is the open follow-up.
+  **The scope is the shape, rasterized fresh at export**, so reshaping a shape moves its paint with it — which
+  is the whole reason the scope keys on sketch geometry rather than on a plan piece frozen at compile. Where
+  two themed shapes overlap the **smaller** — the more specific — wins; a subtract and a role-tagged structural
+  shape are never scopes, since neither places terrain of its own.
+
+  "Resolved at interfaces" then falls out with no special case: a shape's rim and wall appear only where
+  **its** cells are edges (the profile already computes that per cell), a shape dead-centre among same-height
+  neighbours has no edge and so no rim or wall the way an interior column does, and a seam between two
+  differently-themed shapes is borne by the **taller** side's edge cell — so that cell's shape, and its theme,
+  paint the seam, unambiguously.
+
+  Authored in the Sketch tool's **Theme** phase (`docs/tools/sketch.md`): Create edits a theme against live
+  previews, Apply assigns it to a shape or to every shape of an island, and the map default is named beside
+  them. A plan states no paint at all — `themes`, `mapTheme` and `themeScopes` on a plan document are dropped
+  on parse.
 
 - **TP11** *(built)* *The surface is a layered stack with its own depth.* Not one block: an ordered run of
   layers (`LayeredMaterial`) claimed from the top of an interior column — the standard being **one grass over
@@ -441,7 +446,7 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
 | **TP7** | Rim depth is configurable (`Rim.Depth`, default 1); the wall takes the height below it, and the rim never overrides the bedrock floor. |
 | **TP8** | Bedrock floor thickness is configurable — absolute, or terrain-relative (bedrock = column height − intended terrain depth); ≥1, ≤ column height. When it equals the height, no rim or wall. |
 | **TP9** | A toggle paints wall on exposed terrain-to-terrain faces (adjacent height difference ≥2 after the rim), not only void-facing ones. |
-| **TP10** | Theming is scoped: map default › collection › piece, winner-takes-all (whole theme). A registry + a plan-baked `pieceId → themeId` + piece footprints in the intent; a per-cell `themeAt` resolver (`TerrainThemeScope`, the `TeamTerritory` shape) at export. Authored on the plan tool's Theme rail. Resolves at interfaces with no special case; boxes stay annotation (expanded to piece ids). |
+| **TP10** | Theming is scoped: map default › shape, winner-takes-all (whole theme). A `themes` registry + `mapTheme` + each shape's own `theme` on the sketch layout; a per-cell `themeAt` resolver (`TerrainThemeScope`, the `TeamTerritory` shape) walking the rasterizer's shape footprints at export, the smaller shape winning an overlap. Authored in the Sketch tool's Theme phase. Resolves at interfaces with no special case. |
 | **TP11** | The surface is a layered stack to a configured depth (`Surface.Depth`; grass over two dirt by default), clamped by the bedrock floor. |
 | **TP12** | Surface, rim and wall are toggleable; fill is required and claims the rest. Rim off → surface, then fill; wall/surface off → fill. |
 | **TP13** | Buckets take patterns, not just a block. Region: `VoronoiMaterial` (bands inward from the cell boundary — band 0 is the grid line, the last is the middle, a small cell never reaches it), `CellMaterial` (one material per warped region). Field: `NoiseMaterial` · `TurbulenceMaterial` · `ElectricMaterial` (an N-stop ramp over a fractal field, bent plain / folded / ridged; spread held constant across octave counts). Wall: `WallRunMaterial` (N stripes wrapping the void-facing perimeter arc). All deterministic, and each entry nests any material. |

@@ -82,7 +82,7 @@ public partial class SketchInspector
     private Task FloorChanged(double v)
         => Shape is null ? Task.CompletedTask : OnSetHeight.InvokeAsync((Shape.Id, Shape.BaseHeight, v));
 
-    /// <summary>How a shape's top is decided once its island carries a relief (sketch-relief.md §7). The
+    /// <summary>How a shape's top is decided once its island carries a relief (docs/world-export/relief.md §7). The
     /// empty word is ordinary ground and is deliberately first: a shape is part of the landmass unless its
     /// author says otherwise, and a default that made every shape a mesa would turn a drawn board into a
     /// staircase of plates.</summary>
@@ -102,7 +102,7 @@ public partial class SketchInspector
         _ => "Part of the landmass: the island's relief is what this shape's ground does.",
     };
 
-    /// <summary>Whether a shape's ground joins the relief its island is solved over (sketch-relief.md §11).
+    /// <summary>Whether a shape's ground joins the relief its island is solved over (docs/world-export/relief.md §11).
     /// Inheriting is first and is the default: the island is the unit because a relief solved per shape leaves
     /// a seam wherever two of them meet and disagree about the height they share.</summary>
     private static readonly (string Value, string Label)[] ReliefScopes =

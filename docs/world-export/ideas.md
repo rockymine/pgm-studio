@@ -94,6 +94,6 @@ says so.
   version, the §5 blob read concave with an FBM-wandered outline, scattered onto low ground and joined to
   channels into one watershed. The bed carve reads best once the **G32-C** elevation pass gives layouts their
   heights, so a channel becomes a cut valley rather than a trench in a flat. What a channel has to do
-  differently once the ground *does* have relief is measured in `docs/contracts/sketch-relief.md` §8 (task
+  differently once the ground *does* have relief is measured in `relief.md` §9 (task
   S46): route on a depression-filled surface, force the bed non-increasing downstream, and replace the single
   water line with one level per pool — the ponds above are then the same mechanism, not a second one.

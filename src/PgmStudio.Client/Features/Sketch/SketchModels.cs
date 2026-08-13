@@ -13,7 +13,7 @@ public sealed record SketchShapeRow(
     [property: JsonPropertyName("dim")] string Dim,
     [property: JsonPropertyName("baseHeight")] double BaseHeight = 1,   // a shape is never zero-height
     [property: JsonPropertyName("floor")] double Floor = 0,
-    // How the top is decided once the island carries a relief (sketch-relief.md §7). Empty is ordinary
+    // How the top is decided once the island carries a relief (docs/world-export/relief.md §7). Empty is ordinary
     // ground; level / raise / sink make the shape something standing IN the terrain rather than being it.
     [property: JsonPropertyName("heightMode")] string HeightMode = "",
     // How far in from its outline an erected shape eases into the ground it meets. Zero is a sheer face.

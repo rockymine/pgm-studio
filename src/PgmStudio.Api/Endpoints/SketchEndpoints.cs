@@ -222,7 +222,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, PgmDb db) : Endpo
 
 /// <summary>POST /api/map/{slug}/sketch/paint — the sketch's terrain paint as a palette-indexed block-pixel
 /// payload (<c>xs</c>/<c>zs</c>/<c>palette</c>/<c>color_idx</c> + bounds), which the client expands into the
-/// <c>colors</c> array the block-overlay bitmap path already decodes (finishing-model.md §4). The body is the <em>live</em> layout — the
+/// <c>colors</c> array the block-overlay bitmap path already decodes (docs/world-export/terrain-painting.md TP10). The body is the <em>live</em> layout — the
 /// bridge's <c>getState()</c>, not the stored blob — so the overlay tracks unsaved edits; the stored intent
 /// supplies team ownership, which is what a team-tinted material reads. Empty payload when nothing is
 /// drawn; 400 on unparseable JSON.</summary>
@@ -253,7 +253,7 @@ public sealed class SketchPaintEndpoint(MapRepository repo, PgmDb db) : Endpoint
 /// <para>The solve is the build's own (<see cref="SketchRasterizer.ReliefFields"/>), so a previewed surface
 /// cannot differ from the surface that gets built — the only property that makes a preview worth drawing.
 /// Contours are traced from the <b>continuous</b> field rather than the block one, because contouring a
-/// staircase returns the outlines of its treads instead of lines of constant height (sketch-relief.md §13).
+/// staircase returns the outlines of its treads instead of lines of constant height (docs/world-export/relief.md §15).
 /// <c>?interval=</c> sets the spacing in blocks; a layout carrying no relief answers an empty list rather
 /// than a 404, so the client can draw nothing through the same path.</para>
 ///

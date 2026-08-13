@@ -152,7 +152,12 @@ Worth knowing before looking for a control that is not there.
 marker, so unless it is placed in Configure's spawn step, spectators stand at `0, 0`.
 
 **Terrain paint and dressing** are the Sketch tool's alone. A plan carrying theme keys has them dropped on
-parse, and Configure has no control for them.
+parse, and Configure has no control for them. That is where the finish belongs rather than where its controls
+happened to be built: the sketch rasterizer is what makes the world, so a finish authored a level above it is
+authored before the thing it finishes exists, and a scope anchored to a plan piece would freeze at compile
+while the ground under it kept being edited. It is also the half of a map a generator cannot reach — a
+generator emits a plan, never a theme — so the finish is always hand-authored, at the level where the geometry
+is final.
 
 **Water lanes** are the Plan tool's alone. They survive a Configure save and generate their region, but
 nothing in Configure renders them.

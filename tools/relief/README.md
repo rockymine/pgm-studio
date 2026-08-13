@@ -1,6 +1,6 @@
 # relief — the interior-elevation prototype
 
-The live twin of `docs/contracts/sketch-relief.md`. Every figure and every number in that document is
+The live twin of `docs/world-export/relief.md`. Every figure and every number in that document is
 emitted by this tool from the algorithms in this folder, so the two cannot drift: when the prose and the
 prototype disagree, suspect the prose.
 
@@ -12,8 +12,8 @@ dotnet run --project tools/relief -- --corpus  <mapsDir> # …and over every wor
 ```
 
 The two reading modes are what keep the model honest. `--corpus` over the community destroy-the-monument
-maps is where `sketch-relief.md` §12's table comes from, and it says the boards this design produces are at
-the flat, open extreme of what actually gets shipped.
+maps is where that document's §12 table comes from, and it says the boards this design produces are at the
+flat, open extreme of what actually gets shipped.
 
 It is deliberately thin — one project and no database. `PgmStudio.Geom` is referenced so the "what a shape
 can state today" panel runs the real ear-clip triangulation rather than an imitation of it, and

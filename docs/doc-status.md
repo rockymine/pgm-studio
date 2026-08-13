@@ -63,6 +63,48 @@ frontend port that never happened are gone. §3.3's moved `RegionCategorizer` pa
 `contracts/region-categorization.md`, which otherwise stands — it is careful about the implemented-versus-
 designed line and its subject is live.
 
+**`contracts/sketch-relief.md` is now `world-export/relief.md`**, which settles §5's "Sketch has design
+documents but no current one" for the one document that survived. The detail behind the Sketch tool's later
+phases already lived in `docs/world-export/` — the painter, the stampers, the dressing pass, the tree corpus —
+and relief is the same kind of thing: the pass that decides the ground those three dress. It moved beside them
+and was rewritten to what shipped. Out came the eight-step build order it was written to drive and the path
+routing and grading that were measured and then declined; in went the behaviour that was only designed when it
+was written — the stair repair, the resumed preview, the contour drag, the readback and its endpoint — so it
+is longer rather than shorter (712 → 746). What it keeps unchanged is the model, every measurement behind it,
+and its sixteen section numbers — so of the dozen code comments citing it by section, all but one resolved
+without an edit, and that one had cited a paragraph that moved.
+
+**`contracts/sketch-creation-flow.md` is deleted** — the only document in the set to fail the deletion rule
+outright. It designs a `/maps/new-sketch` page in `Pages/Sketch/SketchCreate.razor`, edits to `Home.razor` and
+the removal of a Setup block from `SketchEditor.razor`; none of those four files or that route exists. A new
+sketch is now created from the Maps overview (`POST /api/sketch`, then straight to `?phase=info`) and the
+frame is authored in the tool's own Info phase. The frame-seeding half of its backend change did ship and is
+documented in `tools/sketch.md`'s API table; its `S12` follow-on is in `BACKLOG.md`, reworded to what is left.
+
+**`tools/sketch.md` now cites the detail set from the phase that feeds it**, which it did not before: the tool
+document pointed at no world-export file at all, so a reader who wanted the elevation solver, the painter's
+bucket rules, the room stamper or the dressing pass had nothing telling them those documents existed.
+
+**`world-export/finishing-model.md` is deleted, and it is the one whose first two sections were false rather
+than merely stale.** It described theming as a plan-side concern — themes stored in `plan_json`, folded into
+the intent by `PlanCompiler.BuildThemes`, scoped to a plan-piece rect frozen at compile, with "no `theme`,
+`style`, `material` or `pattern` table in any migration" — and then §2 catalogued what that arrangement breaks:
+a reshape desyncing the paint, and a sketch-only map being unthemeable. Theming has since moved onto the
+sketch, where the scope is a shape rasterized fresh at export, so both sections describe a system that no
+longer exists and a set of failures that cannot occur. Everything else in it had landed and is described where
+it belongs: the library tables in `tools/library.md`, the sketch-side scope in `terrain-painting.md`'s TP10,
+the grid-aligned sketch in `tools/sketch.md`'s parity constants, and the projected structural annotations in
+`tools/sketch.md` and `world-export/relief.md` §11. Two paragraphs of rationale were transplanted before it
+went — **why the finish belongs on the sketch** into `tools/flow.md`, beside the ownership fact it explains,
+and **the two stamp concepts** (structural stamps are authored in Plan and Configure and precede the XML; the
+finishing passes only read them) into `world-export/structures.md`. Twenty-odd code comments cited it, mostly
+its §4, and now cite `terrain-painting.md` TP10 or `tools/library.md`.
+
+**`world-export/terrain-painting.md`'s TP10 was corrected.** It described scoped theming as a plan-baked
+`pieceId → themeId` map authored on the plan tool's Theme rail; theming moved onto sketch geometry, so a theme
+is a shape's own and `TerrainThemeScope` resolves it against the rasterizer's shape footprints. The status
+header, the §5 runtime and resolution notes, the rule row and the seam argument all said "piece".
+
 **§3.4's churn ranking still wants re-running against the full history**, for the reason stated above: the
 container that produced it saw three days of commits.
 
