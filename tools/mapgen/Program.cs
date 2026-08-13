@@ -85,9 +85,15 @@ static void Build(MapSpec spec, bool describeOnly, bool forceStages)
     foreach (var (x, z, _, top) in SketchRasterizer.RasterizeColumns(layout.ToJson()))
         ground[(x, z)] = Math.Max(ground.GetValueOrDefault((x, z), int.MinValue), top);
 
-    if (spec.Village is { Count: > 0 } village) props.AddRange(Settle(ground, intent, village));
+    // The map's own mirror, read the way the dressing pass itself will read it (DressingScope.SymmetryOf) —
+    // so a site rejected here because it collides with an already-placed prop is rejected for the same
+    // reason Decorator would refuse it after fanning, not a looser guess that only checks a raw anchor.
+    var symmetry = new DressingSymmetry(
+        layout.Setup?.MirrorMode, layout.Setup?.Center?.Cx ?? 0, layout.Setup?.Center?.Cz ?? 0);
+
+    if (spec.Village is { Count: > 0 } village) props.AddRange(Settle(ground, intent, village, symmetry));
     if (spec.Houses is { Count: > 0 } houses) props.AddRange(Placed(houses));
-    if (spec.Trees is { } trees) props.AddRange(Forest(ground, intent, trees, props));
+    if (spec.Trees is { } trees) props.AddRange(Forest(ground, intent, trees, props, symmetry));
     if (props.Count > 0)
     {
         var dressingJson = DressingJson.Serialize(new DressingDoc { Props = props });
@@ -433,7 +439,7 @@ static List<ReliefMarkJson>? Marks(ReliefSpec spec, SketchLayout layout, SketchI
 /// the edge, where a tree has no surface to stand on and simply is not built. The rasterizer is also what
 /// knows each column's top, which is what lets a tree be kept off ground too steep to stand a trunk on.</para></summary>
 static List<PlacedProp> Forest(Dictionary<(int X, int Z), int> ground, MapIntent intent, TreeSpec spec,
-                               List<PlacedProp> standing)
+                               List<PlacedProp> standing, DressingSymmetry symmetry)
 {
     var props = new List<PlacedProp>();
     var woods = spec.Woods is { Count: > 0 } named ? named : ["oak", "birch", "spruce", "dark oak"];
@@ -441,37 +447,51 @@ static List<PlacedProp> Forest(Dictionary<(int X, int Z), int> ground, MapIntent
     var random = new Random(spec.Seed);
 
     if (ground.Count == 0) return props;
-    var cells = ground.Keys.ToList();
+    // Sampled from one representative half of the orbit rather than the whole board. Drawing candidates from
+    // both halves independently is what let two unrelated trees pick sites that turned out to be *each
+    // other's* mirror image — a coincidence the old site-only check never saw and the new fanned one caught
+    // only after paying for it in rejected attempts. A canonical site's mirror is never sampled again: it is
+    // fanned, deterministically, into the same tree — so two different trees cannot collide with each
+    // other's reflection by chance, only a real neighbour can.
+    var cells = ground.Keys.Where(cell => symmetry.IsCanonical(cell.X, cell.Z)).ToList();
+    if (cells.Count == 0) cells = ground.Keys.ToList();
 
     // Buildings are already placed, and a tree through a roof is the same fault as a tree through a room.
+    // Every image of every building counts, not just the one an author actually dragged — the dressing pass
+    // fans a building across the map's mirror, and a site only checked against the original rectangle can
+    // still land squarely on its mirrored copy.
     var built = standing.OfType<HouseProp>()
-        .Select(house => Around(house, margin: 4))
+        .SelectMany(house => FannedAround(house, symmetry, margin: 4))
         .ToList();
 
     // A tree's height is held to 24: past that a grown crown is a volume the export spends real time filling,
-    // and a tree taller than the drop it stands on stops reading as scenery.
+    // and a tree taller than the drop it stands on stops reading as scenery. A grown tree no longer needs a
+    // lower ceiling of its own (B78): Decorator.Seats used to drop a prop if any cell it occupied — at any
+    // height — fell on a protected column, and a grown crown is wide, so past height 14 a grown tree was more
+    // often absent than tall. Protection is now decided on the cells a tree actually rests on, the same
+    // footprint ground is decided on, and its crown is free to overhang the way a hand-built map's trees do.
     var minHeight = Math.Clamp(spec.MinHeight, 5, 24);
     var maxHeight = Math.Clamp(spec.MaxHeight, minHeight, 24);
-
-    // A GROWN tree is held lower still, because past this it stops being placed at all. The dressing pass
-    // drops a prop if any cell it occupies — at any height — falls on a protected column, and a grown crown
-    // is wide: measured over one board at twenty-four sites, a grown oak lands 590 leaves at height 8, 364 at
-    // 12 and nothing whatever at 20, while a template oak on the same sites climbs 1584 → 3424 → 7194. So a
-    // tall grown tree is not a tall tree, it is an absent one, and asking for one silently empties a forest.
-    var grownCeiling = Math.Min(maxHeight, 14);
 
     var placed = 0;
     for (var attempt = 0; attempt < spec.Count * 60 && placed < spec.Count; attempt++)
     {
         var (x, z) = cells[random.Next(cells.Count)];
         if (keepOut.Any(rect => Inside(rect, x, z))) continue;
-        if (built.Any(rect => Inside(rect, x, z))) continue;
+        // Every image of this candidate has to clear the keepout too — a mirror board fans the site as well
+        // as the building, so a tree whose *reflection* lands on a roof is exactly as much a fault as one
+        // planted on the roof directly.
+        var candidateImages = FannedPoints(x, z, symmetry).ToList();
+        if (built.Any(rect => candidateImages.Any(image => Inside(rect, image.X, image.Z)))) continue;
+        // Only the raw site is checked for spacing, not its fanned images: candidates are already drawn from
+        // one canonical half (below), so two different trees' own reflections cannot collide with each
+        // other — only a canonical tree's mirror and a *different* canonical tree very near the mirror line
+        // itself could, a narrow edge case Decorator's own post-fan check still catches if it ever happens.
         if (props.OfType<TreeProp>().Any(t => Math.Abs(t.X - x) < 5 && Math.Abs(t.Z - z) < 5)) continue;
 
         var grown = spec.Form.Equals("grown", StringComparison.OrdinalIgnoreCase)
                  || (spec.Form.Equals("mixed", StringComparison.OrdinalIgnoreCase) && random.Next(2) == 0);
-        var ceiling = grown ? grownCeiling : maxHeight;
-        var height = Math.Min(minHeight, ceiling) + random.NextDouble() * Math.Max(0, ceiling - minHeight);
+        var height = Math.Min(minHeight, maxHeight) + random.NextDouble() * Math.Max(0, maxHeight - minHeight);
 
         // The disc is the tree's FOOT, not its crown. A prop seats on the cells at its lowest level, and a
         // tree is narrow down there whatever it does higher up — a few blocks of stem — so sizing this off
@@ -550,18 +570,34 @@ static int StableHash(string text)
 static bool Inside(Extent rect, int x, int z) =>
     x >= rect.MinX && x <= rect.MaxX && z >= rect.MinZ && z <= rect.MaxZ;
 
-/// <summary>The ground a placed building covers, grown by a margin.</summary>
-static Extent Around(HouseProp house, int margin)
+/// <summary>Every image of a placed building's ground round the map's mirror, each grown by a margin. A
+/// site-selection check that only ever asked about the rectangle an author's own click landed on never saw
+/// the mirrored building standing on the other half of the map.</summary>
+static IEnumerable<Extent> FannedAround(HouseProp house, DressingSymmetry symmetry, int margin)
 {
-    var (a, b) = (house.Points[0], house.Points[1]);
-    return new Extent(Math.Min(a[0], b[0]) - margin, Math.Min(a[1], b[1]) - margin,
-                      Math.Max(a[0], b[0]) + margin, Math.Max(a[1], b[1]) + margin);
+    for (var k = 0; k < symmetry.Order; k++)
+    {
+        var corners = symmetry.ImageRing(house.Points, k);
+        var (a, b) = (corners[0], corners[1]);
+        yield return new Extent(Math.Min(a[0], b[0]) - margin, Math.Min(a[1], b[1]) - margin,
+                                Math.Max(a[0], b[0]) + margin, Math.Max(a[1], b[1]) + margin);
+    }
+}
+
+/// <summary>Every image of a candidate site round the map's mirror — what a site's own reflection lands on,
+/// which a check against the raw anchor alone never sees. The dressing pass fans a prop's position exactly
+/// this way (<see cref="PgmStudio.Minecraft.Dressing.DressingSymmetry.ImageCell"/>), so a site-selection
+/// check that skips it is testing a different board than the one that gets built.</summary>
+static IEnumerable<(int X, int Z)> FannedPoints(int x, int z, DressingSymmetry symmetry)
+{
+    for (var k = 0; k < symmetry.Order; k++) yield return symmetry.ImageCell(x, z, k);
 }
 
 /// <summary>Buildings scattered onto ground flat enough to stand them on. A building is stamped as a
 /// rectangle and takes the lowest column under it, so unlike a tree it wants ground that is genuinely level:
 /// dropped on a slope it either buries its own doorway or stands on a plinth of fill.</summary>
-static List<PlacedProp> Settle(Dictionary<(int X, int Z), int> ground, MapIntent intent, VillageSpec spec)
+static List<PlacedProp> Settle(
+    Dictionary<(int X, int Z), int> ground, MapIntent intent, VillageSpec spec, DressingSymmetry symmetry)
 {
     var props = new List<PlacedProp>();
     if (ground.Count == 0) return props;
@@ -571,7 +607,11 @@ static List<PlacedProp> Settle(Dictionary<(int X, int Z), int> ground, MapIntent
         : [.. HousePresets.Village.Select(house => house.Name)];
     var keepOut = KeepOut(intent, spec.Clearance);
     var random = new Random(spec.Seed);
-    var cells = ground.Keys.ToList();
+    // One representative half of the orbit, the same reason Forest() draws from it: a house's mirror is
+    // fanned from its own site, not sampled again as if it were an independent building, so two different
+    // houses cannot land on each other's reflection by chance.
+    var cells = ground.Keys.Where(cell => symmetry.IsCanonical(cell.X, cell.Z)).ToList();
+    if (cells.Count == 0) cells = ground.Keys.ToList();
 
     var placed = 0;
     for (var attempt = 0; attempt < spec.Count * 400 && placed < spec.Count; attempt++)
@@ -587,7 +627,13 @@ static List<PlacedProp> Settle(Dictionary<(int X, int Z), int> ground, MapIntent
         var here = ground[(x, z)];
         var half = Math.Max(width, depth) / 2 + 1;
         if (!Level(ground, x, z, half, here)) continue;
-        if (props.OfType<HouseProp>().Any(house => Inside(Around(house, margin: 6), x, z))) continue;
+        // Both sides of the check have to be fanned: an earlier house's mirrored copy is as real a building
+        // as the one drawn, and this candidate's own mirrored copy is as real a building as the one about to
+        // be accepted — a site-against-site test that only looked at raw anchors never sees either.
+        var candidateImages = FannedPoints(x, z, symmetry).ToList();
+        if (props.OfType<HouseProp>().Any(house => FannedAround(house, symmetry, margin: 6)
+                .Any(rect => candidateImages.Any(image => Inside(rect, image.X, image.Z)))))
+            continue;
 
         double minX = x - width / 2.0, minZ = z - depth / 2.0;
         props.Add(new HouseProp

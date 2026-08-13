@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft.Dressing;
 
@@ -472,20 +473,104 @@ public sealed class DecoratorTests
     }
 
     [Test]
-    public async Task A_tree_may_lean_its_crown_over_a_drop_but_never_over_something_protected()
+    public async Task A_tree_may_lean_its_crown_over_a_drop()
     {
-        // Two different footprints answer two different questions. What a prop *rests* on needs ground; what it
-        // merely occupies does not, or no tree could grow within a crown's reach of a shoreline. Protection is
-        // the opposite: it covers the whole volume, because a canopy over a monument reads as badly as a trunk.
+        // What a prop *rests* on needs ground; what it merely occupies does not, or no tree could grow within
+        // a crown's reach of a shoreline or an island edge.
         var stand = new TreeProp { Id = "t", X = 7, Z = 7, Species = "oak", Seed = 5 };
-
         var (edge, edgeTop) = Plateau(14);
-        await Assert.That(Decorator.Decorate(edge, Context(edgeTop, [stand])).Trees).IsEqualTo(1);
 
-        var (fenced, fencedTop) = Plateau(14);
-        var walled = Decorator.Decorate(fenced, Context(fencedTop, [stand],
-            isProtected: (x, z) => x is < 6 or > 8 || z is < 6 or > 8));
-        await Assert.That(walled.Trees).IsEqualTo(0);
+        await Assert.That(Decorator.Decorate(edge, Context(edgeTop, [stand])).Trees).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task A_trees_crown_may_overhang_something_protected_but_its_trunk_may_not_root_in_it()
+    {
+        // Protection is decided on the same footprint ground and occupancy are (B78): the cells a tree
+        // actually rests on, not the whole volume a tall crown happens to pass over. A trunk on a monument is
+        // the fault; a canopy reaching over one at height is not — a hand-built map's trees overhang its
+        // structures too, and testing the whole volume would make a tree taller by refusing to build it: a
+        // wider crown claims more protected columns the taller it grows, which silently empties a forest.
+        var stand = new TreeProp { Id = "t", X = 10, Z = 10, Species = "oak", Height = 20, Seed = 5 };
+
+        var (open, openTop) = Plateau(20);
+        await Assert.That(Decorator.Decorate(open, Context(openTop, [stand])).Trees).IsEqualTo(1);
+
+        // Everything but a small core around the trunk is protected, so the crown necessarily overhangs it —
+        // and the tree still stands, because its trunk never leaves the unprotected core.
+        var (overhung, overhungTop) = Plateau(20);
+        var overhanging = Decorator.Decorate(overhung, Context(overhungTop, [stand],
+            isProtected: (x, z) => x is < 9 or > 11 || z is < 9 or > 11));
+        await Assert.That(overhanging.Trees).IsEqualTo(1);
+
+        // But a trunk asked to root on the protected column itself is still refused.
+        var (rooted, rootedTop) = Plateau(20);
+        var onProtection = Decorator.Decorate(rooted, Context(rootedTop, [stand],
+            isProtected: (x, z) => x == 10 && z == 10));
+        await Assert.That(onProtection.Trees).IsEqualTo(0);
+    }
+
+    // ── nothing stands inside anything else (B85) ──────────────────────────────────────────────────
+    [Test]
+    public async Task A_tree_does_not_root_where_a_building_already_stands()
+    {
+        // The building is placed first, so its cells are already claimed by the time the tree is considered.
+        // Before B85 the pass only skipped the individual wood/leaf cells that landed on a non-air block,
+        // which still let the rest of the tree stand half inside the walls; now the whole tree is refused.
+        var (world, top) = Plateau();
+        var house = new HouseProp { Id = "h", Points = [[16, 16], [24, 24]], Style = new HouseStyle { Door = DoorMaterial.Air } };
+        var tree = new TreeProp { Id = "t", X = 20, Z = 20, Species = "oak", Height = 14, Seed = 5 };
+
+        var tally = Decorator.Decorate(world, Context(top, [house, tree]));
+
+        await Assert.That(tally.Houses).IsEqualTo(1);
+        await Assert.That(tally.Trees).IsEqualTo(0);
+        var logsInsideTheHouse = Placed(world, [(20, 20)], 8, 20).Where(b => b.Id == Blocks.Log);
+        await Assert.That(logsInsideTheHouse).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_second_building_does_not_stand_where_the_first_one_does()
+    {
+        // Two authored rectangles that overlap are two buildings colliding, not one winning a race to write
+        // the same blocks — the second is refused outright rather than raised through the first's walls.
+        var (world, top) = Plateau();
+        var first = new HouseProp { Id = "h1", Points = [[10, 10], [18, 18]], Style = new HouseStyle { Door = DoorMaterial.Air } };
+        var second = new HouseProp { Id = "h2", Points = [[14, 14], [22, 22]], Style = new HouseStyle { Door = DoorMaterial.Air } };
+
+        var tally = Decorator.Decorate(world, Context(top, [first, second]));
+
+        await Assert.That(tally.Houses).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Two_boulders_do_not_share_the_ground_they_rest_on()
+    {
+        // The first boulder claims its footprint; the second, anchored at the same spot, has nowhere of its
+        // own to rest and is refused rather than merging into (or overwriting) the first rock.
+        var (world, top) = Plateau();
+        var first = new BoulderProp { Id = "b1", X = 20, Z = 20, Size = 3, Mossy = false, Seed = 3 };
+        var second = new BoulderProp { Id = "b2", X = 20, Z = 20, Size = 3, Mossy = false, Seed = 11 };
+
+        var tally = Decorator.Decorate(world, Context(top, [first, second]));
+
+        await Assert.That(tally.Boulders).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task A_trees_canopy_may_still_overhang_a_building_it_does_not_root_in()
+    {
+        // Overlap is decided on the cells a prop *rests* on, the same footprint protection is decided on
+        // (B78) — not on everything a tall crown happens to pass over. A trunk planted clear of a low building
+        // still gets to spread its canopy over the roof, the way a real tree overhangs a shed beside it.
+        var (world, top) = Plateau();
+        var house = new HouseProp { Id = "h", Points = [[24, 16], [30, 24]], Style = new HouseStyle { Door = DoorMaterial.Air } };
+        var tree = new TreeProp { Id = "t", X = 20, Z = 20, Species = "oak", Height = 16, Seed = 5 };
+
+        var tally = Decorator.Decorate(world, Context(top, [house, tree]));
+
+        await Assert.That(tally.Houses).IsEqualTo(1);
+        await Assert.That(tally.Trees).IsEqualTo(1);
     }
 
     // ── fairness (G162) ────────────────────────────────────────────────────────────────────────────
@@ -535,6 +620,44 @@ public sealed class DecoratorTests
             [new BoulderProp { Id = "b", X = 12, Z = 9, Size = 3, Seed = 3 }]));
 
         await Assert.That(tally.Boulders).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task A_prop_is_decided_once_for_its_whole_orbit_not_once_per_image()
+    {
+        // Only one of the two mirrored sites is protected. The old per-image "continue" would still raise the
+        // other one, leaving a rock on one side of the board and nothing where its mirror should stand — the
+        // exact asymmetry a mirrored map is not allowed to show. Deciding for the whole orbit drops both.
+        var (world, top) = Plateau(80, from: -40);
+        var tally = Decorator.Decorate(world, Context(top,
+            [new BoulderProp { Id = "b", X = 12, Z = 9, Size = 3, Seed = 3 }],
+            isProtected: (x, z) => Math.Abs(x - 12) < 3 && Math.Abs(z - 9) < 3,
+            symmetry: "rot_180"));
+
+        await Assert.That(tally.Boulders).IsEqualTo(0);
+        await Assert.That(Placed(world, [(12, 9), (-13, -10)], 8, 20)).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_building_is_decided_once_for_its_whole_orbit_not_once_per_image()
+    {
+        // Same rule, the building's own version of it: an image whose ground is missing fails the whole orbit
+        // rather than raising the building on one side of a mirrored map and leaving the other bare. Only the
+        // rectangle the author actually drew loses its ground here — the old per-image "continue" would still
+        // have raised the mirrored copy on the far side of the map with nothing standing opposite it.
+        var (world, top) = Plateau(80, from: -40);
+        for (var x = 4; x <= 10; x++)
+            for (var z = 4; z <= 8; z++)
+                top.Remove((x, z));
+
+        var tally = Decorator.Decorate(world, Context(top,
+            [new HouseProp { Id = "h", Points = [[4, 4], [10, 8]], Style = new HouseStyle { Door = DoorMaterial.Air } }],
+            symmetry: "rot_180"));
+
+        await Assert.That(tally.Houses).IsEqualTo(0);
+        // Nothing raised at the mirrored site either — the far corner from (4,4)/(10,8) under a 180° turn.
+        var raised = Placed(world, [(-10, -8), (-4, -4), (-7, -6)], 8, 40);
+        await Assert.That(raised).IsEmpty();
     }
 
     // ── determinism & the wire format ──────────────────────────────────────────────────────────────
