@@ -1,7 +1,7 @@
 # Sketch creation flow — move Setup to a full-screen creation page
 
 > **Status: planned.** Design for `S11`/`S12` (`TODO.md`, Sketch tool §). Resolves the heaviest part of
-> the Sketch-tool UX review's **P0#1** (`docs/sketch-tool-ux-review.md`) and the creation-flow asymmetry
+> the sidebar-ordering slice now parked as `S12` and the creation-flow asymmetry
 > with Configure. Touches `routing-and-ia.md` (the Sketch primary action). No data-model change.
 
 ## Problem

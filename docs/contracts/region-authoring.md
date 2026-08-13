@@ -194,7 +194,7 @@ system in the current vanilla stack would build it twice (see `frontend-stack.md
 
 - `region-categorization.md` (B5) — the `category`/`roles` that scope each facet to a step.
 - `filter-region-wiring.md` (C9) — the preset templates the engine applies after grouping.
-- `data-model.md` — Region/Wool/Spawn/ApplyRule shapes; `geometry.md` — region geometry.
+- `Domain/MapModel.cs` — the Region / Wool / Spawn / ApplyRule shapes, and `Domain/Filter.cs` the filter; the types are the specification.
 - `frontend-stack.md` (D1) — the React port that builds the interaction layer; B6 — undo/redo commands.
 - Supersedes the stale authoring narrative in `docs/requirements/editor-regions.md` /
   `editor-objectives.md` / `editor-build-regions.md`.

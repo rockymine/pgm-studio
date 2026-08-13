@@ -145,7 +145,7 @@ sharing one page:
 - **Import** — the `new-map-authoring.md` §12 flow at `/maps/new` (**Source → Found → Plan**), now the
   Configure tool's conditional **phase-zero** (`ConfigureTool` routes both `/maps/new` and
   `/maps/{id}/configure`; the `ImportPhase` component renders on the slug-less route, and a slug'd/imported
-  map skips Import → `Identity` — see `tool-consistency.md`). Reached from the **Configure overview**'s
+  map skips Import → `Identity` — see `../tools/configure.md`). Reached from the **Configure overview**'s
   *Import a world* action. Picking an xml-less world folder creates the map record at stage `configure`
   (a slug); **Start authoring** enters
   `/maps/{slug}/configure`.

@@ -5,9 +5,8 @@ tree). This is the orientation document for the browser-side half of the studio:
 each module is for, which rules keep them from tangling, and where the known rough edges are. Blazor owns
 chrome, forms, state and persistence; this layer owns everything that draws or responds to a pointer.
 
-Read alongside `primitive-styles.md` (how a primitive is *styled* across the four editors),
-`sketch-authoring.md` and `plan-editor.md` (what the two drawing tools mean), and `tool-consistency.md`
-(the phase/step model the hosts follow).
+Read alongside `sketch-authoring.md` and `plan-editor.md` (what the two drawing tools mean), and
+`../tools/flow.md` (which tool works at which level, and how a map moves between them).
 
 ## 1. The one fact that frames everything
 
@@ -204,7 +203,7 @@ line terms — a few hundred at most. It is filed because it costs *consistency*
 - **CV15** — the bridge invoke wrapper: `plan-bridge` and `sketch-bridge` guard `invokeMethodAsync` in a
   `fire()` helper, `world-bridge` calls it unguarded.
 - **CV9** — a point draws as a 1×1 block on Edit and as a fixed-radius dot on Configure. Tracked with the
-  full four-editor audit in `primitive-styles.md`.
+  shared helper is `render/primitive-style.js`; §10 below is the four-editor account.
 
 One stale reference remains in a module header: `static-renderer.js` cites an `OverviewRenderer` that no
 longer exists.

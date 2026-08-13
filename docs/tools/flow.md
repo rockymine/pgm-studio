@@ -95,9 +95,19 @@ recompile that re-fuses the board produces different islands and hand-authored t
 land. That case answers **409** listing the islands it would orphan, and `?force=true` accepts the loss. It is
 the author's call, not the server's.
 
-**Intent onto a map.** `PUT /api/map/{slug}/intent/from-plan` likewise carries the three things the plan does
-not own — the authors, the island-to-team assignments and the confirmed symmetry — onto the compiled intent
-before storing it. The plan owns the map's structure; a rebuild changes what the plan states and nothing else.
+**Intent onto a map.** `PUT /api/map/{slug}/intent/from-plan` carries much less: the map's **authors and
+contributors**, and nothing else. The plan owns the map's structure, so a rebuild is meant to replace its
+teams, spawns, wools and build zones; what it was silently destroying was the credits, since a compiled intent
+states `authors` and leaves it empty.
+
+Two slices that look like they should ride across deliberately do not, and it is worth knowing because both
+are Configure's work. **`islandTeams`** is a derivation rather than a decision, and island ids are positional,
+so a tag made about the old board may name a different island on the new one — carrying it would relabel
+territory rather than preserve an answer. **`symmetry`** is absent from a compiled intent on purpose: setting
+the field is what switches the orbit expander on, and the expander rebuilds an intent from a fixed property
+set that drops the structure directives. So **a rebuild clears both**, and Configure's World and Teams phases
+have to be walked again — the World phase's gate is the presence of a confirmed symmetry, so the rail re-locks
+behind it until they are.
 
 **Layout → world.** `POST /api/map/{slug}/sketch/finish` rasterizes the layout into world geometry and moves
 the map to the configure stage. This is the only stage transition the studio performs at runtime.

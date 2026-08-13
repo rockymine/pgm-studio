@@ -412,7 +412,7 @@ document as the body and need no map, which is what lets a plan be checked befor
 | `POST /sketch` | `{name}` | `{slug}` — originates a map; only needed off the bare route | — |
 | `PUT /map/{slug}/sketch/from-plan` | the compiled `layout` | `{ok}` — merges rather than replaces: the sketch's themes, room shells and dressing are carried onto the new board, and a structural piece's author-corrected height is carried by `intentRef` | 409 listing islands whose relief would be orphaned (`?force=true` accepts the loss) · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes the layout into world geometry and moves the map to `stage=configure` | 422 the layout rasterizes to no ground |
-| `PUT /map/{slug}/intent/from-plan` | the compiled `intent` | the projected map — carries the authors, island team assignments and confirmed symmetry that the compiler leaves empty | 404 |
+| `PUT /map/{slug}/intent/from-plan` | the compiled `intent` | the projected map — carries the stored **authors and contributors** onto it and nothing else. `symmetry` and `islandTeams` are deliberately not carried, so a rebuild clears both | 404 |
 | `GET /map/{slug}/export` | — | the world ZIP | non-2xx with a message |
 
 ## Driving it without the UI

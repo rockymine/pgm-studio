@@ -29,7 +29,7 @@ That plus a separation of concerns by *kind*:
   it directly; `Api` transitively. (Named `Geom`, not `Geometry`, because `Analysis` uses
   NetTopologySuite's `Geometry` type everywhere and a sibling `PgmStudio.Geometry` namespace would shadow
   it.) Do **not** put algorithms in `Contracts` (the DTO leaf) — `Analysis` can't reference it, which is
-  what forced the old duplicate reflect/rotate copy. See `docs/contracts/geometry-consolidation.md`.
+  what forced the old duplicate reflect/rotate copy.
 
 **Client (Blazor) folder layout** — three buckets, by role not by "page":
 - **`Pages/`** = standalone **routable** pages only (`Index`, `Maps`, `Design`, `NotFound`) — namespace
@@ -39,8 +39,7 @@ That plus a separation of concerns by *kind*:
   `Generator`). Folder-matched namespace `PgmStudio.Client.Features.<Tool>`, so a host and its bodies
   resolve each other with no `@using`. A body used by exactly one tool lives here; a body shared across
   tools moves to `Components/`. **Component-name altitude**: `*Phase` for a whole phase (single-step, or a
-  phase that hosts its own steps inline), `*Step` for one step of a multi-step phase (see
-  `docs/contracts/tool-consistency.md`).
+  phase that hosts its own steps inline), `*Step` for one step of a multi-step phase.
 - **`Components/`** = the shared, tool-agnostic UI library — deliberately **flat** namespace
   `PgmStudio.Client.Components` regardless of subfolder, so any atom/shell resolves without per-subfolder
   usings.

@@ -19,7 +19,7 @@ team board, a 192×128 whole map.
 
 Read alongside:
 
-- `docs/contracts/sketch-tool-improvements.md` §3 — the rasterizer this feeds, and the column model
+- `docs/tools/sketch.md` — the rasterizer this feeds, and the column model
   (`floor`, `base_height`, `anchor_heights`) it extends.
 - `docs/world-export/terrain-painting.md` — the pass that dresses the result. It reads elevation already;
   everything a relief produces is a shape the painter's rim/wall/plateau rules were written for.

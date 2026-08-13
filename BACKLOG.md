@@ -151,10 +151,39 @@ highlight); these are the parked / dormant / deferred slices.
   parallel"), and **manually droppable** guide lines shapes snap to (vs the current auto-from-shapes). Both
   are their own work; park until needed.
 - [ ] **S12 — Pin the Islands tree to the top of the sketch sidebar (UI polish, parked).** Most of the weight
-  the review named is gone: the shape palette was retired outright and Setup moved into its own Info phase, so
-  the only panel still above **Islands** is **Layers**. Collapse it behind a `<details>` accordion, or pin the
-  tree above it — the tree is read on every edit and the layer list is set once. (`docs/sketch-tool-ux-review.md`
-  P0#1; `docs/contracts/sketch-creation-flow.md` follow-on.)
+  the original review named is gone: the shape palette was retired outright and Setup moved into its own Info
+  phase, so the only panel still above **Islands** is **Layers**. Collapse it behind a `<details>` accordion,
+  or pin the tree above it — the tree is read on every edit and the layer list is set once.
+
+- [ ] **S57 — The measure tool is a ruler where the question is a gap.** `sketch-canvas.js` measures the raw
+  drag between two freely-placed points and reports `Math.hypot` as "N blocks" (`#renderMeasureLabel`). The
+  question it exists to answer is how wide a void gap is — the 10–15 block lane, the jump a player can make —
+  and a free ruler eyeball-aimed at two edges is barely better than reading the cursor twice. Three parts,
+  each usable alone: **snap the endpoints** to nearby shape and island edges, reusing the `#snapTargets` /
+  `bestSnap` machinery the drag already has; **decompose the readout** into ΔX × ΔZ beside the diagonal, since
+  a lane's width is an axis extent and not a hypotenuse; and, the real target, **measure the gap rather than
+  the drag** — hover or select two islands and draw the nearest-point line between their outlines with the
+  block count on it. The islands are already computed live in JS (`computeIslands`), so the nearest-point
+  pass is the only new geometry.
+
+- [ ] **S58 — The sketch canvas has no shortcut surface, and its best affordances are secrets.** Escape,
+  Delete, `P` to promote, arrows to nudge (Shift for sixteen), double-click to close a polygon, **Ctrl-drag a
+  vertex handle for a Bézier tangent** and **Alt to bypass snapping** are all live, and they are spread across
+  `sketch-canvas.js`, `sketch-bridge.js` and `sketch-edit-controller.js` with nothing in the UI naming them —
+  a grep for "shortcut" across `Features/Sketch` and `Components` returns nothing. The last two matter most:
+  Bézier editing is the thing that makes an outline stop being rectilinear, and it is reachable only by
+  someone who already knows. A "?" popover on the canvas chrome listing the set, plus tool-contextual hints
+  where a tool has a non-obvious step ("click to add · double-click to close" while the polygon tool is
+  armed), is the whole of it.
+
+- [ ] **S59 — Per-vertex height is the headline feature and is found by accident.** The path is: select a
+  polygon, read the one conditional sentence in the inspector, click a vertex on the canvas without moving it,
+  then type into a field that appears in the panel. On the canvas a vertex handle looks exactly like a drag
+  handle and its height is a bare text label, so nothing says a click-without-drag does something a drag does
+  not. Make the height labels read as interactive (a pill or a hover state), and ideally let the label itself
+  be edited or scrolled in place rather than round-tripping to the inspector. The shift-click 2–3 vertices
+  slope-fit has the same problem and the same fix. Pairs with `S54`, since the 3-D preview is where a height
+  edit is actually legible and it is a modal swap rather than a companion view.
 
 ## Editor & canvas infrastructure (C / CV)
 
@@ -730,7 +759,7 @@ import diagnostic (`B24e`), detection (`B26`), and the island-floor work the pha
   different products. Map-backed gets the phase rail (Info · Draw), the flow bar, and the three panels as chips;
   the bare route gets no flow bar, no phases, the same three panels as **rail buttons**, and a collapsible
   sidebar the map-backed one cannot have (`SidebarOpen => MapBacked || leftOpen`). Same panels, two navigation
-  models, one file — the thing `docs/contracts/tool-consistency.md` exists to prevent.
+  models, one file — the thing the tool-consistency alignment exists to prevent.
   Unify on the phase-rail + flow-bar + chips structure and keep the collapsible sidebar for both. The route may
   change **only** the topbar — its crumbs and which actions exist — because that is where the binding genuinely
   differs: a map-backed plan saves into its map's artifact, while a plan row saves as a row and forks when it

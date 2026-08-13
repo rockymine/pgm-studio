@@ -405,7 +405,7 @@ public static class ArtifactKind
     // sidecars it lives outside the entity-replace codec. A draft map with this artifact but no
     // layer_parquet is a sketch-in-progress; "finish" rasterizes it into the geometry artifacts (S2e).
     public const string SketchLayoutJson = "sketch_layout_json";
-    // Plan tool authoring source (docs/contracts/plan-as-map.md): the plan blob (cell-grid layout +
+    // Plan tool authoring source (docs/tools/plan.md): the plan blob (cell-grid layout +
     // globals) for a map at stage=plan. Like the sketch layout it lives outside the entity-replace codec.
     // An authored plan is a map row with this artifact; the map's plan_source_id links back to the
     // generator `plan` candidate it was authored from.

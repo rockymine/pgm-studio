@@ -186,7 +186,10 @@ detection is pre-selected and the author clicks another mode, or `none`, only to
 World slice, and it is what every later orbit-fill reads.
 
 A plan-built map arrives with **no** symmetry in its intent — the plan compiler leaves it empty — so this step
-is where a generated map's symmetry is confirmed, not merely reviewed.
+is where a generated map's symmetry is confirmed, not merely reviewed. **A rebuild clears it again**, along
+with the island tags from the next phase, because neither is carried across a recompile (below). Since the
+World phase's gate is exactly the presence of a confirmed symmetry, a rebuilt map re-locks the rail behind it
+until the step is walked once more.
 
 ### Teams — Teams & islands · Spawn point · Protection
 
@@ -317,7 +320,7 @@ writes: apart from the import and one island toggle, **Configure has exactly one
 |---|---|---|---|
 | `GET /map/{slug}/intent` | — | the stored intent, or an empty one | 404 unknown map |
 | `PUT /map/{slug}/intent` | the whole intent | `{}` — stores it and re-projects the document | 404 |
-| `PUT /map/{slug}/intent/from-plan` | a compiled intent | the projected map, carrying the authored meta, island teams and symmetry the compiler leaves empty | 404 |
+| `PUT /map/{slug}/intent/from-plan` | a compiled intent | the projected map, carrying the stored **authors and contributors** onto it and nothing else — a rebuild clears the confirmed symmetry and the island-team tags | 404 |
 
 **Getting a world in**
 

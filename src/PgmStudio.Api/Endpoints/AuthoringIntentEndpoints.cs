@@ -134,10 +134,13 @@ public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapW
 /// slices onto it first (<see cref="IntentCarry"/>), then project it exactly as a normal PUT does.
 ///
 /// <para>The plan owns the map's structure, so a rebuild is meant to replace its teams, spawns, wools and
-/// build zones. It does not own who wrote the map, which island belongs to which team, or the symmetry the
-/// author confirmed — the compiler leaves all three empty, and writing that over the stored intent deleted
-/// them. The layout write has the same shape for the same reason (<c>…/sketch/from-plan</c>): a rebuild
-/// changes what the plan states, and nothing else.</para>
+/// build zones. What it does not own is who wrote the map — the compiler states <c>authors</c> and leaves it
+/// empty, so a plain replace wiped the credits off every map that had been through Configure. That is the
+/// whole of what <see cref="IntentCarry.CarryAuthored"/> carries: <c>meta.authors</c> and
+/// <c>meta.contributors</c>. <b>The confirmed symmetry and the island-team tags are deliberately NOT carried</b>
+/// — see <see cref="IntentCarry"/> for why each would do harm rather than preserve an answer — so a rebuild
+/// clears both and Configure's World and Teams phases are walked again. The layout write is the same shape for
+/// a different reason (<c>…/sketch/from-plan</c>), where the finish does ride across.</para>
 /// </summary>
 public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader, MapWriter writer, PgmDb db, MojangClient mojang) : EndpointWithoutRequest
 {

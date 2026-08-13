@@ -2,9 +2,9 @@
 
 How behavior attaches to regions, and the v1 suggestion templates the editor offers. This doc owns
 the **wiring relationship** and the **template catalog**. It does not restate:
-- the **Filter / ApplyRule shapes** → `data-model.md` §9;
+- the **Filter / ApplyRule shapes** → the types themselves, `Domain/Filter.cs` and `Domain/MapModel.cs`;
 - the filter **vocabulary** + the *event × filter-type* and *event × region-geometry* matrices →
-  `filter-use-cases.md` (Appendix A.2–A.5) + the use-case recipes (Clusters 1–6);
+  `../filter-patterns.md` (Appendix A.2–A.5) + the corpus recipes (Clusters 1–6);
 - how wiring **surfaces per region** as `roles` → `region-categorization.md` §3.
 
 Supersedes the (unstable) `docs/requirements/editor-filters.md`.
@@ -17,13 +17,13 @@ A region is **inert geometry**. Behavior comes from an **apply-rule**: `region �
 condition `filter`. One rule may carry several `event→filter` keys at once (canonical, not a
 normalization target); filters compose (`all`/`any`/`not`/`deny`) and reference children by id.
 
-**This introduces no new persisted type.** Wiring is `apply_rules` + `filters` (`data-model.md` §9)
+**This introduces no new persisted type.** Wiring is `apply_rules` + `filters` (`Domain/MapModel.cs`, `Domain/Filter.cs`)
 referencing regions by id; in the region view it appears as the `roles` `<event>=<filter_id>` entries
 (`region-categorization.md`).
 
 ## What attaches where
 
-The sensible defaults (a **soft-warning** source for the UI, never a hard validator — `filter-use-cases.md` A.4):
+The sensible defaults (a **soft-warning** source for the UI, never a hard validator — `../filter-patterns.md` A.4):
 
 - `enter` / `use` → **team**(-based) filters, on **area/compound** regions only (never a single
   `block`/`point` — you can't "enter" a 1-block region).
@@ -31,7 +31,7 @@ The sensible defaults (a **soft-warning** source for the UI, never a hard valida
   on areas, void wrappers, occasionally a single block.
 - `block_physics` → `deny`. The kit/velocity `filter` condition → team / `all`.
 
-Full matrices: `filter-use-cases.md` A.2 (event × filter-type) and A.5 (event × region-geometry).
+Full matrices: `../filter-patterns.md` A.2 (event × filter-type) and A.5 (event × region-geometry).
 
 ## v1 templates (suggest + confirm)
 
@@ -64,7 +64,7 @@ that doesn't exist); "sense" (event/region/intent fit) is a **soft warning**, no
 
 ## For B1
 
-Wiring adds **no new typed shape**: the typed models are `Filter` + `ApplyRule` (`data-model.md` §9),
+Wiring adds **no new typed shape**: the typed models are `Filter` + `ApplyRule` (`Domain/Filter.cs`, `Domain/MapModel.cs`),
 and the region view exposes its attached rules via `roles` (`region-categorization.md`). The
 templates above are pre-built `Filter` + `ApplyRule` combinations the C9 feature *emits* — not a
 persisted entity. So B1 types filters/rules straight from §9 + the `roles` view; the C9 feature

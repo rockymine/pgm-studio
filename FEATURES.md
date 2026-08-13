@@ -41,7 +41,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   doctrine); the bare `/plan-editor` keeps the generator-candidate pool (`/api/plans`, `?plan=<id>`). The
   dashboard has a **Plans** stage (`/maps?stage=plan`, *New plan* action); the generator's card action is
   **Author this plan** → begins the lifecycle. The generator's many candidates stay `plan` rows (a
-  separate pool). Contract: `docs/contracts/plan-as-map.md`. (C27)
+  separate pool). Contract: `docs/tools/flow.md`. (C27)
 - **A map shows every layer it holds, and each one is one click (S38).** A map is one row that accumulates
   authoring layers and keeps every one it has ever had — a built plan still holds its plan, a configured
   sketch still holds its sketch. The overview did not say so: `map.stage` was doing two jobs at once, *how
@@ -72,7 +72,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   row) still originates one: there the build *is* the map's creation — and it now writes the plan onto that
   map too, so a board built from the bare route also carries the document its layout was compiled from and
   can be reopened in the plan editor rather than holding a layout whose source is nowhere (G152). Contract:
-  `plan-as-map.md` §Lifecycle, whose "the row advances" claim this makes true.
+  `docs/tools/flow.md`, whose "the row advances" claim this makes true.
 - **The plan editor shows the plan it names (G152).** Opening a map-backed plan could display a drawing
   belonging to no plan at all: the same three maps showed one picture in one browser and another in the
   next, and every plan "created" appeared to contain a board made once, long ago. `LoadFromMap` treats an
@@ -96,7 +96,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   never rebuilt it in the first place: opening a layer from the overview touches nothing (S38), and
   `POST …/sketch/finish` re-rasterizes the stored layout without touching the intent, so *open the sketch →
   finish* is the round trip out of Configuring and back. Compiling is for when the plan itself has changed.
-  `plan-as-map.md` §"What a rebuild keeps, and what it replaces".
+  `docs/tools/flow.md` § "The hand-offs".
 - **A rebuild keeps the credits, and says why it keeps nothing else (B52).** The layout half of a rebuild
   carries a map's finish across (B49); the intent half replaced the stored intent outright, and the compiler
   writes `"authors": []`, so every build wiped the author list off a map that had been through Configure.
@@ -231,7 +231,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **One drawing-surface model for Sketch + Plan: tinted working area · viewport grid · scale bar** — a
   fresh sketch opened on a postage stamp you couldn't draw your way out of, and the plan editor it was
   modelled on had the same defects. Both canvases now share `render/canvas-chrome.js` and the contract in
-  `docs/contracts/tool-consistency.md` (*Drawing-surface model*):
+  the drawing-surface model:
   - **The working area is a tinted region with a default size, present even when blank** — the size anchor
     that says how big a map is meant to be (Sketch **64×64 blocks** = 4×4 chunks; Plan **~60×60 blocks** =
     12×12 cells, expressed in blocks and converted to whole cells so it holds at any `globals.cell`). It
@@ -486,7 +486,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   duplicated add/sub colour constants collapse to one `OP_COLORS`/`opColors` source (sketch render + draw
   controller). Icons route through `RegionNode.Icon` — `SpawnStep`'s hardcoded `cylinder` and
   `WoolMonuments`' `square` become the canonical `point → dot`. Plan's surface-tint + hatch stay
-  Plan-specific. Audit + design: `docs/contracts/primitive-styles.md`; canvas-interaction.md §10. (CV9)
+  Plan-specific. The shared helper is `render/primitive-style.js`; `canvas-interaction.md` §10. (CV9)
 
 - **The Button variants are painted (C33).** `<Button Variant="primary|danger|warn">` emitted
   `action-btn--primary` / `--danger` / `--warn` and no stylesheet defined any of the three, so 47 buttons
@@ -635,7 +635,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   plan naming it loads as a plain `piece`, the same fold `lane`/`hub`/`mid` take — there is no migration
   because nothing authored one. `tools/compose/wool-lane-study.cs` and its six fixtures are deleted with it:
   the study was a rendering of connector-based authoring and could not outlive its subject. The generator
-  docs (`model.md`, `vocabulary.md`, `evaluator.md`) and `primitive-styles.md` follow. (C43)
+  docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
 - **One block volume, one type (`B33`).** `BlockBox` (`PgmStudio.Domain`) is the single inclusive integer
@@ -3310,7 +3310,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the separator is the subbar's own `.subbar-sep` rather than a twin of it. Shown in the `/design` catalog and
   gated by a new e2e spec (`tests/e2e/draw-tools.mjs`, 11 checks: exactly one operation control with nothing
   else repeating its state, dimmed on move and measure, awake on rectangle, a click flipping it each way, and
-  the mode surviving a tool change). (`docs/sketch-tool-ux-review.md` P0#2)
+  the mode surviving a tool change).
 - **The paint palette is grouped by tone family, and a family fills a pattern in one choice (TP16).**
   `TerrainPalette`'s taxonomy groups — Rock, Earth, Wood, Mineral — were replaced by the **19 tone families over
   72 full blocks** the surface analysis measures ground by, so one table now serves both: what an author paints
@@ -4022,7 +4022,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `120×120` (4-team / D2), or custom — replacing the old 512-square that made 10–15-block lanes
   undrawable. A live **on-canvas size readout** (`canvas-dim`) shows the active draw's `W × D` or the
   selected shape's extent. (S3)
-  Plan: `docs/contracts/sketch-tool-improvements.md` §1.
+  Plan: the S3 footprint-and-scale slice.
 - **Ruler distance reads on the ruler line** — the measure tool renders its block distance as **pure
   screen-space text running along the ruler line** (at the midpoint, kept upright, with a thin halo so it
   stays legible over shapes at any zoom, re-drawn on every pan/zoom) instead of in the `canvas-dim` sub-bar,

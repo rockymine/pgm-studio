@@ -2,7 +2,7 @@
 
 > A whole-board inventory and classification. The question this answers: **do the project boundaries
 > earn their keep, and which code is mis-homed?** Companion to the `## Code placement` rule in `CLAUDE.md`
-> (the *rule*) and `geometry-consolidation.md` (the geometry *leaf*). This doc is the *map*.
+> (the *rule*). This doc is the *map*.
 >
 > **Headline finding:** the cross-project boundaries are sound — namespaces are internally clean, and
 > there are **no illegal dependency edges** (`Pgm`⊥`Analysis`, `Client` sees only `Contracts`+`Geom`,

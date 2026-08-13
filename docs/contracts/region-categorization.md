@@ -1,7 +1,7 @@
 # Region Categorization Contract
 
 How the studio derives what a region *is* and what it's *used for* — the full model behind
-`data-model.md` §10. Category is **derived, never persisted**; `region_categories` in
+the `Region` shape in `Domain/MapModel.cs`. Category is **derived, never persisted**; `region_categories` in
 `xml_data.json` is only a store of **user overrides** layered on top of this derivation.
 
 A region falls into one of the gameplay categories below, with `build` taken only from

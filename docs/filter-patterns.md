@@ -1,11 +1,19 @@
-# CTW Filter & Apply Rule — Semantic Use Cases
+# Filters and apply-rules in the corpus — a measured pattern study
 
-Analysis of 345 CTW maps (CommunityMaps + PublicMaps), 3 946 apply rules, 7 772 filters.
-This document maps gameplay design questions to the XML patterns that implement them,
-organised by cluster and ordered by map-level prevalence. The Clusters cover *intent*; the
-**Appendix** (bottom) is the *vocabulary* — which filter types attach to which events, and how
-they compose — and is the reference for the C3/C4 editor and the C9 wiring UI.
-*(Corpus figures re-verified 2026-06-10.)*
+**This is a measurement, not a design.** It is what 345 CTW maps (CommunityMaps + PublicMaps) actually do
+with their 3,946 apply-rules and 7,772 filters: each gameplay question paired with the XML pattern the corpus
+implements it as, and how many maps use it. The prevalence figures are the point — they are the only record
+of which patterns are conventional and which are one map's idea, and nothing in the code carries them. Corpus
+figures re-verified 2026-06-10.
+
+The **clusters** below cover *intent*, ordered by map-level prevalence. The **appendix** is the *vocabulary*
+— which filter types attach to which events, and how they compose — and is the only written account of it in
+the repository, since the studio surfaces no filter editing at all (`docs/tools/edit.md`).
+
+What the studio's own generator emits is a small, fixed subset of this: `TeamsGenerator`, `WoolGenerator` and
+`BuildGenerator` write the spawn-protection, wool-room and build-area patterns, wired per
+`docs/contracts/filter-region-wiring.md`. That document owns the wiring *relationship* and the template
+catalog; this one owns what the corpus measured.
 
 ---
 

@@ -17,6 +17,35 @@ actually covers; a doc showing zero churn was not necessarily untouched for mont
 high churn was not necessarily edited recently in the way that number implies. Treat the numbers as a
 sample of the last three days' motion, not a lifetime odometer.
 
+## 0. What has changed since this census — read this first
+
+This document is a **snapshot**, and the set it inventories has since moved. It is kept as the record of the
+state that motivated the rewrite rather than updated in place, so every row below describes the tree as it was
+on the day, not as it is. What has happened since (`B111`):
+
+**Eight tool documents were written from the code** and live in `docs/tools/` — `flow.md` (the entry point:
+the levels a map is described at and how it moves between the tools), then `plan.md`, `sketch.md`,
+`configure.md`, `edit.md`, `generator.md`, `shapes.md` and `library.md`. §5's finding — that no tool had an
+authoritative document and the Generator's UI had none at all — is answered by that set.
+
+**Seven documents in this inventory are deleted.** `sketch-tool-ux-review.md` and
+`contracts/sketch-tool-improvements.md` (their surviving findings filed as `S57`–`S59`);
+`contracts/tool-consistency.md`, `contracts/geometry-consolidation.md` and `contracts/primitive-styles.md`
+(all three describe work that has landed, and two say so in their own status lines);
+`contracts/plan-as-map.md` (folded into `tools/flow.md`); and `generator/wool-approach-read.md`, §4's ninth
+file, whose question is settled and now stands as a plain rule in `generator/model.md` §4.7.
+
+**`filter-use-cases.md` is now `filter-patterns.md`**, retitled as what it is — a measured corpus study
+rather than a design — since the deletion rule keeps corpus measurements. `contracts/filter-region-wiring.md`
+stays: six source and test files cite it as the contract for what they emit.
+
+**§3.3's dangling `data-model.md`** is fixed. It never existed in the visible git history, so nothing could be
+recovered; the four citations now point at the types themselves, `Domain/Filter.cs` and `Domain/MapModel.cs`.
+The same was done for `geometry.md`.
+
+**§3.4's churn ranking still wants re-running against the full history**, for the reason stated above: the
+container that produced it saw three days of commits.
+
 ## 1. Inventory
 
 Each tool has design documents scattered across `docs/`, `docs/contracts/`, and `docs/generator/` or
