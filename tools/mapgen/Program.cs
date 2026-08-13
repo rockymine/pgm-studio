@@ -119,7 +119,17 @@ static void Build(MapSpec spec, bool describeOnly)
     if (!string.IsNullOrWhiteSpace(spec.Objective)) doc["objective"] = spec.Objective;
     if (spec.Authors is { Count: > 0 } authors)
         doc["authors"] = authors.Select(a => (object?)new Dict { ["name"] = a }).ToList();
-    var xml = XmlWriter.ToXml(Deserializer.FromDict(doc));
+
+    // Everything CtwStandards derives (itemkeep/toolrepair/itemremove) sits behind a kit; a map with none
+    // still exports, but with its loadout rules silently empty rather than missing outright.
+    if (doc.GetValueOrDefault("kits") is not List<object?> { Count: > 0 })
+        Console.Error.WriteLine($"  ! {spec.Slug}: no kit — itemkeep/toolrepair/itemremove derive from the "
+                               + "spawn kit and will be empty");
+
+    // Through the same path a saved map exports: CtwStandards' keep/repair/remove derivation, the water-lane
+    // include, ore/structure renewables, and the not-build-area reordering that must decide last.
+    var renewableCubes = SketchWorldBuilder.RenewableCubeFootprints(built.ResolvedIntent);
+    var xml = MapXmlComposer.Compose(doc, isIntent: true, surfaceBlockIds: null, resources: [], renewableCubes);
 
     var outDir = spec.OutDir ?? $"/media/sf_repos/CommunityMaps/dtcm/{spec.Slug}";
     Directory.CreateDirectory(outDir);
