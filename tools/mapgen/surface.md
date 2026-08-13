@@ -61,26 +61,34 @@ entrance redstone, iron cubes and approach walls. It is the only layer that know
 
 ## A worked example
 
-`tools/seeds/ruediger.layout.json` and `ruediger.intent.json` are a hand-drawn capture map, kept because it
-is the only authored document in the repository that shows the layout being used as **design** rather than
-as configuration. It is worth being clear about what that means, since the temptation is to read it as a
-feature showcase and it is not one: the map was drawn **before relief and before house themes existed**, so
-none of what it does is reaching for a new toy. It is an author deciding where ground goes and what it is
-made of, with the tools that were there. Its dressing was going to come next and never did.
+`tools/seeds/ruediger.plan.json`, `ruediger.layout.json` and `ruediger.intent.json` are a hand-drawn capture
+map at all three layers, kept because it is the authored example in the repository that shows the stack being
+used as **design** rather than as configuration. It is worth being clear about what that means, since the
+temptation is to read it as a feature showcase and it is not one: the map was drawn **before relief and
+before house themes existed**, so none of what it does is reaching for a new toy. It is an author deciding
+where ground goes and what it is made of, with the tools that were there. Its dressing was going to come next
+and never did.
 
 It is also **one** way to build a map, not the pattern to copy. What transfers is the method, not the
 shapes.
 
-**Elevation is built from shapes, and the small shapes are the elevation.** This is a *layout* technique and
-does not transfer to a plan: ruediger's tiers are arbitrary polygons carrying `base_height`, while a plan
-states height as `PlanPiece.Surface` on a cell-grid rectangle. An author writing a `*.plan.json` should read
-`tools/seeds/traced/bridgid-ii.plan.json` instead — ruediger shows the *idea* of stacked tiers and none of
-the mechanism. The layout carries no `relief` block — it predates one. Its ground steps because twenty-six shapes sit at `base_height` 7, 8, 9, 10, 11, 12,
-13, 14, 15 and 16, stacked as set algebra with one `subtract` cutting through and one face standing at 100.
-The little shapes are not detail added to a big shape; they *are* how the author states a change in height.
-That is the second way to make terrain, beside the relief solver, and it is the one that gives deliberate
-steps rather than a solved surface — the two are meant to sit on one board, a built stepped quarter against a
-naturally solved one.
+**Elevation is built from shapes, and the small shapes are the elevation — and those shapes came out of the
+plan.** The layout's tiers are not a layout-only technique: `ruediger.plan.json` states them as
+`PlanPiece.Surface` on cell-grid rectangles, thirty-one pieces standing at ten heights from 7 to 16 over a
+base of 9, and `PlanCompiler` turns each distinct surface within a component into its own shape. The proof is
+the file itself — the compile emits the twenty-one polygons `s0`–`s20` and the four structural rectangles
+`spawn-red`, `spawn-blue`, `wool-red-red` and `wool-blue-blue`, which is twenty-five of the layout's
+twenty-six shapes, and its bbox −70..70 × −130..130 is the one the layout carries. So the mechanism transfers
+exactly, and an author writing a `*.plan.json` can state a stepped board directly: the map's western
+staircase is six pieces, one at surface 7 and five single cells climbing 8, 9, 10, 11, 12, one step per cell,
+of which the one at 9 states no surface at all and inherits the base.
+
+The layout carries no `relief` block — it predates one. Its ground steps because twenty-six shapes sit at
+`base_height` 7, 8, 9, 10, 11, 12, 13, 14, 15 and 16, stacked as set algebra with one `subtract` cutting
+through and one face standing at 100. The little shapes are not detail added to a big shape; they *are* how a
+change in height is stated. That is the second way to make terrain, beside the relief solver, and it is the
+one that gives deliberate steps rather than a solved surface — the two are meant to sit on one board, a built
+stepped quarter against a naturally solved one.
 
 **Three themes over one map, chosen per shape.** `ruediger` (sand and sandstone over stone) paints the body,
 `ruediger-steps` (grass and stone brick) picks out the treads and the border, and `theme` (stone brick and
@@ -88,15 +96,22 @@ stained clay) carries the rest; seventeen of the twenty-six shapes name one. The
 as built and the ground around it reads as ground — the distinction MG2 says a single blanket theme throws
 away.
 
-**Curves and a hole.** Five shapes carry Bézier `controls` on their polygon edges, so their outlines are
-drawn rather than rectilinear, and one shape is `subtract`.
+**Curves and a hole — and these are the sketch's, not the plan's.** Five shapes carry Bézier `controls` on
+their polygon edges, so their outlines are drawn rather than rectilinear, and one shape is `subtract`. That is
+where the boundary between the two layers actually falls on this map: the curves sit on `s2`, `s6`, `s9`,
+`s15` and `s16` — compiled polygons whose outlines were bent afterwards — and the subtract is
+`s1785789842694_2`, a sketch-minted id and the one shape in the file the plan did not produce. The themes
+above are the sketch's for the same reason. A plan states rectangles on a cell grid and a height per
+rectangle; everything drawn, carved or painted on top of that is the tool downstream.
 
 **Two islands that mirror into four.** Both are `mirrors: true` under `rot_180`, so the authored half becomes
 the whole 140×260 board.
 
 **Hand-authored defence walls.** The intent carries two `structures.walls` entries — 21×3 at `topY` 13 and
-its orbit image — the bedrock approach walls MG21 says nothing generated has ever asked for. It also carries
-the two room floors and the two entrance redstone lines.
+its orbit image — the bedrock approach walls MG21 says nothing generated has ever asked for. They are a plan
+mark rather than hand-written intent: `ruediger.plan.json` carries one entry in `walls`, naming the piece pair
+`wool-a-t1`/`wool-a-t3`, and the compiler stamps it onto the seam those two share and fans it. The intent also
+carries the two room floors and the two entrance redstone lines, from the same compile.
 
 What it has none of is houses, dressing or iron, which is exactly the gap the review's dressing entries
 describe. One clarification worth keeping, because the map is easy to misread: it holds a **single** sketch
@@ -105,9 +120,9 @@ layer named "Ground". The layering that reads as depth is the shapes' own `base_
 
 ## Forty-eight worked plans, and a traced corpus
 
-`ruediger` is the worked example this document reached for first, and it is a **layout**. The plan layer has
-its own worked examples and there are forty-eight of them, in `tools/seeds/`, which is where an author
-looking for "how is a board actually stated" should start. Nothing pointed at them, which is the likeliest
+`ruediger` is the worked example this document reached for first, and it is a whole stack — plan, layout and
+intent, one map. The plan layer has further worked examples and there are forty-eight of them, in
+`tools/seeds/`, which is where an author looking for "how is a board actually stated" should start. Nothing pointed at them, which is the likeliest
 reason every generated board so far began from `compose`: the only example on offer was one layer down from
 the question being asked.
 

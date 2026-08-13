@@ -34,10 +34,10 @@ A column is **void** iff the block at `(x, 0, z)` is air and was not a block-36 
 `getBlockAt` is evaluated **at query time, not at load**: put anything non-air at `y=0` and the column
 stops being void from that instant.
 
-That is the entire trick. Fill `y=0` with water fifteen minutes into a match and a gap nobody could
-bridge becomes buildable, so players reach ground that did not exist as a route before. Water is
-incidental to it — any block would do — and the authors chose water because it reads as a lane and
-does not obstruct.
+That is the entire trick. Fill `y=0` with water three quarters of an hour into a match and a gap
+nobody could bridge becomes buildable, so players reach ground that did not exist as a route before.
+Water is incidental to it — any block would do — and the authors chose water because it reads as a
+lane and does not obstruct.
 
 Two consequences shape everything below. First, **a lane is always the single block layer at `y=0`**:
 a region that misses the void layer cannot open a route however it is filled. Second, **a lane is a
@@ -105,14 +105,27 @@ zero `<apply>` on `water-lanes` / `blue-lanes` / `red-lanes` across the whole se
 fill, no destroyable and no mode at all. The fragment carries the entire mechanism, keyed by the
 region id alone.
 
-What it carries is more than a fill. Resolved, the fragment adds five apply rules to the lane region
-and a mode to fire it: it denies sponge placement, denies a long blacklist of blocks in the parts of
-the lane that were previously air (anything that breaks by proxy without a block-break event —
-ladders, doors, rails, plants, redstone), denies breaking the water with a bucket, blocks pistons
-pushing into it, and replaces broken lane blocks with stationary water via `<block-drops>`. The fill
-itself is on a 15-minute `<pulse>`, so a lane drained by players refills. The timer is
-`water-lane-timer`, declared `fallback` — the fragment's default is 45m and a map overrides it by
-declaring the constant itself, which `rushers_vs_defenders` does at 30m.
+What it carries is more than a fill. Resolved (`PublicMaps/includes/water-lanes.xml`), it is six
+`<apply>` rules, a `<block-drops>` rule, a match-scoped variable, an action pair and the mode that
+starts them. Four of the applies protect the lane: a blacklist of blocks denied where the lane was
+previously air (anything that breaks by proxy without firing a block-break event — ladders, doors,
+rails, plants, redstone), doors denied a second time over the region grown one block upward and
+without the was-air condition, because a door stands two blocks tall and each is filtered separately,
+pistons and other non-participating block movement denied on the same previously-air ground, and
+breaking the water while holding a bucket denied. `<block-drops>` replaces a broken lane block with
+stationary water. The fifth apply is the one that opens the lane —
+`block="allow(water_lanes_initiated=1)"` over a resize of the region spanning the full column height,
+so the deny that kept players out lifts the moment the match variable flips. The sixth denies sponge
+placement everywhere rather than only in the lane, since a sponge anywhere drains it.
+
+The opening is two steps rather than one, which is why the fragment holds two numbers. A `<mode>` fires
+`after="${water-lane-timer}"` and does nothing but set `water_lanes_initiated` to 1, announcing itself
+five minutes ahead (`show-before="5m"`). The `<fill>` that actually places the water sits on a
+15-minute `<pulse>` gated on that variable, so it does nothing for the whole first stretch of the
+match, lands the water once the mode has run, and re-runs every fifteen minutes afterwards — which is
+what refills a lane players have drained. The timer is `water-lane-timer`, declared `fallback` — the
+fragment's default is **45m** and a map overrides it by declaring the constant itself, which
+`rushers_vs_defenders` does at 30m.
 
 **Static — the name without the behaviour.** A region under the lane naming convention that nothing
 fills, swaps or applies, appearing only inside the negative that the void rule denies. It opens
@@ -233,8 +246,9 @@ already committed to the map they read at the first tick.
 ## 5. Resolving the fragment, and why neither half of this document waits on it
 
 The body is resolvable when a library is configured (`IncludeLibrary`, `include-resolution.md`), and
-reading it is where §2's account of the fragment's five apply rules and 15-minute refill pulse comes
-from. Neither half of this document depends on that, though, and it is worth being exact about why.
+reading it is where §2's account of the fragment's rules, its 45-minute mode and its 15-minute refill
+pulse comes from. Neither half of this document depends on that, though, and it is worth being exact
+about why.
 
 Detection needs the include's *presence*, not its body: `<include id="water-lanes"/>` plus the matching
 region is the signal, and the corpus verdicts are **identical read resolved or unresolved** — the
