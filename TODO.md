@@ -21,8 +21,8 @@ no human in the middle. What the boards then showed is where the reach is thinne
 **`tools/mapgen/surface.md`** is the map of the documents the tool should have been written against.
 
 The entries stay in `review.md` as evidence, the way `docs/generator/audit.md` holds the generator's; an
-entry **leaves it when its fix lands**. The twelve below are the ones promoted onto the board, and they are
-promoted in the review's own order of severity rather than in pipeline order.
+entry **leaves it when its fix lands**. What is promoted onto the board below is ordered by the review's own
+severity rather than by the pipeline.
 
 **The first six ship a map that cannot be played as intended, and four of those cannot be won at all.**
 They come first for that reason and for no other. The two after them are wrong on every board and cheap.
@@ -67,7 +67,16 @@ holds them until one becomes the focus.
   someone later choosing a different material. Which is the third half of this: the material is already a
   knob (`PlanModel`'s empty-means-obsidian, `MapIntent`'s destroyable materials, end stone and the softer
   families the corpus uses) and the spec has no word for it, so a destroy map cannot ask for anything but the
-  default. Give the spec the word, then pair the kit to whatever it says.
+  default. Give the spec the word, then pair the kit to whatever it says — for a **destroyable** only, since a
+  core has no material field anywhere in the pipeline and DC1 fixes obsidian by design.
+
+  The knob has a landmine under it that the refusal must cover too. `DestroyableMaterials.All` limits the
+  **stamped** block to four words — obsidian, emerald block, gold block, ender stone — and silently falls back
+  to obsidian for anything else, while `DestroyableGenerator` writes whatever was authored **verbatim** into
+  the XML. So any fifth word ships a `<destroyable>` whose declared `materials` matches nothing inside its own
+  region: a goal with zero health, silent, and the map builds and loads. That is the same failure class as the
+  iron pickaxe and it wants the same answer, so the refusal has two halves — a material no tool in the kit can
+  break, and a material the stamper cannot stamp.
 
 - [ ] **B82 — A goal standing over void is refused** (`review.md` MG3). An objective with no ground under it
   cannot be reached or mined: there is nothing to stand on and nothing to break through, so the map is
@@ -145,23 +154,6 @@ holds them until one becomes the focus.
   remembered. A rendered board also wants reading from more than one view, since a top-down hides everything
   about the third dimension — whether a drop is walkable, whether a room's floor sits where the relief left
   it, whether a goal has ground under it, which is B82's fault seen rather than asserted.
-
-- [ ] **B91 — The handbook: what the system can be asked for, and where to say it.** `surface.md` maps the
-  four documents a map is made of and where each generator lives, and it is the reference that was missing.
-  What it is not yet is a **handbook** — the thing an agent reads to know what is expressible before it
-  writes anything, which is the gap `review.md` MG29 names: the tool reached for a random answer wherever an
-  author would reach for a deliberate one, because the spec format it was written against could only say one
-  theme and a rim. The handbook states the reachable surface as capability rather than as file layout: that a
-  shape carries its own theme, floor, `base_height`, per-vertex anchor heights, `height_mode`, `skirt` and
-  `relief_scope`; that a `TerrainTheme` holds a rim band, a surface band with its own depth, a wall, a fill
-  and a per-shape scope; that the relief mark vocabulary is five kinds and not a scatter count; that a
-  `HouseStyle` carries a roof form and pitch, an overhang, a verge, stacked `RoomCourse` bands, posts, a
-  sill, window styles, gable windows, a door head, beams and a storey stack, and that a `Footprint` carries
-  wings; **and that a destroyable's and a core's material is a knob** — obsidian is the default and end stone
-  and the softer families are equally sayable, which nothing in the batch used and which B81 makes safe to
-  turn. It is written for an agent, so every capability names the document that carries it and the endpoint
-  that answers it; the shipped `HousePresets` docstrings are the worked example of the method, since each is
-  the prose brief its style was built from.
 
 - [ ] **B79 — `map-layers` e2e: the plan editor's Compile button never arrives (13/14).** The suite drives to
   `/maps/{slug}/plan` on the seed's built map, then clicks `button:has-text("Compile")` to check that a

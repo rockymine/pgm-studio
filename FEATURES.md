@@ -4392,6 +4392,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `POST /regions/group` + `/ungroup`. (ex-R1a; wire-after-group is parked.)
 
 ## Data & ops (D)
+- **The capability handbook — what the system can be asked for, and where to say it (B91).** `tools/mapgen/surface.md`
+  mapped the four documents a map is made of; it now also states the surface underneath the spec's shorthand, in
+  pipeline order, every claim naming the type that carries it and the endpoint that answers it: the destroyable's
+  material and the four words the stamper can actually build from, the defence wall and iron cube the composer
+  never asks for, a `TerrainTheme`'s five buckets against the spec's four words (nineteen tone families crossed
+  with six of fourteen pattern kinds), the relief's five constraint marks against the separately-composing push,
+  and a `HouseStyle`'s course bands, window styles, door head, beams and storey stack with `Footprint`'s wings.
+  Written for an agent that reads before it writes, which is the fault it answers: the tool reached for a random
+  answer wherever an author would have reached for a deliberate one, because the format it was written against
+  could only say one theme and a rim. Two claims were dropped for disagreeing with the code — a **core**'s
+  material is not a knob (no field on `CorePlacement`/`CoreIntent`; obsidian fixed by DC1), and a wing-carrying
+  `Footprint` is buildable but unreachable from a placed prop.
 - **Map XML refresh** — `--refresh-xml` re-derives every map's entities via the editor write path
   (preserves world features/artifacts); recovered annealing_iv's missing region, which fixed the
   former stale-DB symptom. (D1, closed C10)
