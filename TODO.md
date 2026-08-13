@@ -39,6 +39,33 @@ holds them until one becomes the focus.
 
 ## Backend, pipeline & internals (B / P / A)
 
+- [ ] **B104 — A destroy goal is stamped in the air above its own floor, and the map cannot be won.**
+  Measured on two freshly designed boards and confirmed pre-existing. `duskfell`: the room's bedrock tops at
+  y16, four blocks of air follow, and the gold destroyable stands at y21–23. `corvale`: bedrock to y13, one
+  block at y14, air, and the emerald destroyable at y18–20. The goal is not merely ugly there — it is out of
+  reach of a player standing on the floor beneath it, and `max_build_height` is **20** on both maps, so
+  nobody can pillar or bridge up to it either. Every generated destroy board is therefore unwinnable, in a
+  third way distinct from the pickaxe (`B81`) and from void (`B82`).
+
+  **It is not a regression.** The same spec built at the commit before the relief work shows the identical
+  four-block gap — bedrock to y16, goal at y21 — so the sixteen original boards shipped floating goals as
+  well, and nothing found it because a top-down draws the marker exactly where it should be and says nothing
+  about what is under it.
+
+  The root is one mistake made by three consumers: **the plan's flat nominal surface is read as a real world
+  height after the relief has moved the ground.** The objective anchor takes `piece.Surface`
+  (`PlanCompiler`), the build ceiling takes `plan.Globals.Surface + Headroom` (same file, one expression),
+  and the marker floor takes that ceiling. The relief then solves the ground somewhere else entirely and
+  nothing reconciles them. Fixing the anchor alone leaves a ceiling below the terrain; fixing the ceiling
+  alone leaves the goal in the air.
+
+  It also names the hole in `B82`, which is the more useful half of this entry. That check asks the
+  rasterized ground *whether a column exists* at the goal's x,z — one does — and never asks *whether the
+  ground is at the height the goal was placed at*. A check satisfiable without being true is the same shape
+  as the fault `B83` turned out to have, and the fix is the same: compare the two numbers rather than
+  confirming one of them exists. A goal whose anchor is more than a step above its own ground should refuse
+  the build, exactly as one over void does.
+
 - [ ] **B92 — A building can be a solid volume behind its own facade.** `HouseStamper` raises walls, a roof
   and their openings, and the volume they enclose is left as air — "fill" appears in the house model only as a
   wall's infill between posts and as the gable's, never as the interior. That makes every building somewhere
