@@ -115,6 +115,29 @@ holds them until one becomes the focus.
   leaves rect and position tracking the plan so that a recompile stays authoritative about *where* while the
   author stays authoritative about *how high*.
 
+- [ ] **B109 — Nothing checks a plan before it costs a build.** Authoring a plan by hand is arithmetic over
+  rectangles in cells, and the repository offers no way to ask whether the arithmetic worked short of running
+  the whole pipeline. Two pieces that overlap, a land interface too narrow to connect, a stray corner touch —
+  none of these is reported until a world has been built. An author writing two boards by hand had to
+  re-implement `ContactGraph.Classify` in a throwaway script to check adjacency before spending a build cycle,
+  which shortened iteration enough to be worth the detour and is a tool the repository should have.
+
+  `PlanValidator` already answers most of this with rule-id findings, and it is the piece that is closest to
+  free: **`tools/mapgen` never calls it**, not even as a warning before building, and nothing documents how to
+  invoke it standalone — reaching it meant reading `PlanValidator.cs` and writing a wrapper. Wiring it into
+  the tool ahead of the build, and giving the geometry checks it does not cover a home beside it, turns a
+  build cycle into a message. The same findings are what an agent needs, since they name rules rather than
+  describing symptoms.
+
+- [ ] **B110 — `PlanCliff` documents a terracing that a relief-free board does not do.** Its doc comment reads
+  as though an elevation delta between two pieces terraces into a staircase by default and `cliffs` opts out
+  of that. Measured on a hand-authored board with no `relief` block: an unmarked, un-cliffed +4 interface
+  between a piece at 11 and one at 15 built as a sheer four-block riser, identical in character to a *marked*
+  six-block cliff elsewhere on the same board. So in a relief-free build every delta is already sheer and
+  there is nothing for the mark to suppress. Whether terracing lives in the relief layer and the comment is
+  describing that, or whether it describes an intention nothing implements, is the question — the mark's
+  behaviour is not in doubt, only what it is documented as opting out of.
+
 - [ ] **B92 — A building can be a solid volume behind its own facade.** `HouseStamper` raises walls, a roof
   and their openings, and the volume they enclose is left as air — "fill" appears in the house model only as a
   wall's infill between posts and as the gable's, never as the interior. That makes every building somewhere
@@ -216,6 +239,13 @@ holds them until one becomes the focus.
   is solid, so it is never itself navigable. A search that starts there can fail to find the component the
   ground beside it belongs to. That would also explain why the corpus convention the composer follows — a goal
   at the far end of a dead-end lane, inset about five — reads as isolation rather than as a dead end.
+
+  A hand-authored board then settled it further: its **wool** markers read isolated too, and rebuilding the
+  repository's own `tools/seeds/base-2wool.plan.json` through the same pipeline reported all four of *its*
+  wool markers isolated as well, on a seed nobody suspects. The land interface was flush and the floor under
+  the wool solid, so the reading is a property of the cage stamp against the renderer's strict two-cell
+  headroom test rather than of any board's geometry. That is a measurement fault on a second objective kind,
+  which makes the renderer the likely cause rather than a possibility.
 
   So the first move is to tell the two apart, and the cheap way is to ask the question from the ground rather
   than from the goal: take the walkable cells immediately around the marker and test whether *they* join the

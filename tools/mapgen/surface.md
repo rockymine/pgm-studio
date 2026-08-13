@@ -71,8 +71,11 @@ made of, with the tools that were there. Its dressing was going to come next and
 It is also **one** way to build a map, not the pattern to copy. What transfers is the method, not the
 shapes.
 
-**Elevation is built from shapes, and the small shapes are the elevation.** The layout carries no `relief`
-block — it predates one. Its ground steps because twenty-six shapes sit at `base_height` 7, 8, 9, 10, 11, 12,
+**Elevation is built from shapes, and the small shapes are the elevation.** This is a *layout* technique and
+does not transfer to a plan: ruediger's tiers are arbitrary polygons carrying `base_height`, while a plan
+states height as `PlanPiece.Surface` on a cell-grid rectangle. An author writing a `*.plan.json` should read
+`tools/seeds/traced/bridgid-ii.plan.json` instead — ruediger shows the *idea* of stacked tiers and none of
+the mechanism. The layout carries no `relief` block — it predates one. Its ground steps because twenty-six shapes sit at `base_height` 7, 8, 9, 10, 11, 12,
 13, 14, 15 and 16, stacked as set algebra with one `subtract` cutting through and one face standing at 100.
 The little shapes are not detail added to a big shape; they *are* how the author states a change in height.
 That is the second way to make terrain, beside the relief solver, and it is the one that gives deliberate
