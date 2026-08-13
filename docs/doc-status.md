@@ -127,11 +127,12 @@ folder whose subject it is about, and there is no bucket for a form.
 
 The move was pure relocation: every citation followed (fifty-seven files by full path, plus the relative and
 bare ones the move broke), and no document's prose changed except where a sentence named the folder that no
-longer exists. Four documents that need content work are filed rather than fixed in the same pass —
-**B112** (`routing-and-ia`'s route table names two routes that do not exist and omits six that do),
-**B113** (`destroyables-and-cores` still opens on the premise §3.2 disproved), **B114** (`ui-conventions` is a
-build plan whose phases shipped) and **B115** (`monument-candidate-store` is headed "design only" and is
-built).
+longer exists. Four documents needed content work rather than an address, and were filed rather than fixed in the
+same pass. **B112** has since landed: `client/routing-and-ia.md` is cut to the four things only it says — the
+URL law, the route table, the labels against the code names, and the collections — with the lifecycle model
+it duplicated left to `tools/flow.md` and its migration log gone. Still open: **B113**
+(`destroyables-and-cores` still opens on the premise §3.2 disproved), **B114** (`ui-conventions` is a build
+plan whose phases shipped) and **B115** (`monument-candidate-store` is headed "design only" and is built).
 
 **§3.4's churn ranking still wants re-running against the full history**, for the reason stated above: the
 container that produced it saw three days of commits.

@@ -270,16 +270,6 @@ are Edit-specific. Full canvas spec: `docs/client/canvas-interaction.md`.
   separate.
 ## Backend, pipeline & internals (B / P / A)
 
-- [ ] **B112 — `client/routing-and-ia.md`'s route table names routes that do not exist.** It lists
-  `/maps/new-sketch` and `/concepts` → `Authoring.razor`, neither of which is in the tree, and omits six that
-  are: `/maps/{slug}/plan`, `/generator`, `/plan-editor`, `/catalog`, `/design` and `/not-found`. A route
-  table is the one part of a document that can be checked mechanically, so a wrong one is worse than none.
-  The question underneath is whether the document survives: `tools/flow.md` now owns where a map starts and
-  which surface owns what, and each tool document owns its own route. What only this one says is the
-  **decoupling of the visible label from the code name** — the code says "authoring", the UI says
-  "Configure" — which is a real decision and about two paragraphs. Either cut it to that plus a route table
-  generated from the `@page` directives, or fold the decision into `flow.md` and retire it.
-
 - [ ] **B113 — `pgm/destroyables-and-cores.md` opens on a premise its own code disproved.** Its second
   sentence reads "today both elements are invisible to the parser — a DTM map loads 'successfully' and
   silently loses its objectives", and DTM and DTC both parse, write and round-trip (`FEATURES.md`: 188 maps /

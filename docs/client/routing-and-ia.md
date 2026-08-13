@@ -1,207 +1,103 @@
-# Routing & information architecture
+# Routing and information architecture
 
-> **Status: landed — including the staged landing + dashboard.** Settles the URL shape + user-facing
-> labels for the three map surfaces, and the entry point that fans out to them. **Decouples the
-> visible label from the code/concept name:** the code keeps **"authoring"** (the `N` series,
-> `../pgm/new-map-authoring.md`, the intent model) — the UI says **"Configure"**. Supersedes the *route names*
-> in `../pgm/new-map-authoring.md` §12; the §12 *interaction* design (three-level nav, Import sub-steps) is
-> unchanged. Open sub-decisions are flagged inline.
+Where everything lives in the URL, what each surface is called, and how a reader gets from the landing to a
+map and back. It owns four things nothing else does: the **URL law**, the **route table**, the **labels** the
+UI shows against the names the code uses, and the **collections** the maps page fans into. It does not
+describe what any tool does — that is `../tools/`, starting at `flow.md`, which also owns the difference
+between a map's stage and the layers it carries.
 
-## The model: a map is one resource; the verbs are modes on it
+## The URL law
 
-There is **one noun — a map** — and three things you do to it. They are **stages of a lifecycle**, not
-parallel apps:
+**The map is the resource, so it lives in the path, and the mode is a trailing segment.** Never `?map=…`: a
+query parameter reads as an optional filter, and an editor without a map is not a page at all.
 
-```
-Sketch  ──▶  Configure  ──▶  Edit
-(draw          (built/blank      (refine an
- geometry       world → map.xml   existing
- from nothing)  via intent)       map.xml)
-```
+**The id is the on-disk map directory name** — maps are already clean slugs (`thunder`, `pigland`,
+`dragons_hearth`), so `/maps/thunder/edit` works and matches the `api/map/{slug}` calls beside it. The pretty
+`<name>` out of the XML is shown in the UI and never put in a URL: spaces and capitals force encoding and are
+not stable across a rename.
 
-- **Sketch** makes the **geometry** (the physical world) by drawing 2-D shapes — from nothing.
-- **Configure** makes the **configuration** (`map.xml`) for a world that already has geometry but no
-  XML — either one you just sketched, or one imported/built in Minecraft. This is the intent-driven
-  **authoring wizard** (`../pgm/new-map-authoring.md`).
-- **Edit** modifies the XML of a map that **already has one** — the region-first existing-map editor.
+**Query parameters are transient view state only** — selection, zoom, the active layer, an open panel, the
+phase a tool opens on (`?phase=info`), the row a listing should highlight (`?just={slug}`). The maps page's
+`?stage=` fits the rule: it selects which collection is shown, not which map.
 
-> **"New" is not the discriminator.** Both Sketch *and* Configure produce a new map, so leaning on
-> "new" to separate them is the trap. The real axes are **artifact** (geometry vs config) and
-> **lifecycle** (no XML yet vs has XML). That is why the labels are verbs, not "New Map".
+## The routes
 
-## Layers and stage — two different questions about a map
-
-A map is one row that accumulates **authoring layers**, and it keeps every layer it has ever had. A plan
-built into a world still holds its `plan_json`; a sketch configured into a `map.xml` still holds its
-`sketch_layout_json`. So *what a map is made of* is a set, not a position:
-
-| Layer | Artifact | Tool |
+| Route | Component | Is |
 |---|---|---|
-| Plan | `plan_json` | `/maps/{id}/plan` |
-| Sketch | `sketch_layout_json` | `/maps/{id}/sketch` |
-| World | `layer_parquet` (the rasterized geometry) | `/maps/{id}/configure` |
+| `/` | `Index` | the landing — seven cards over live counts |
+| `/maps` | `Maps` | the map collections; `?stage=plan\|sketch\|configure` selects one, absent means Maps |
+| `/maps/{slug}/plan` | `PlanTool` | the plan tool on a map |
+| `/maps/{slug}/sketch` | `SketchTool` | the sketch tool |
+| `/maps/{slug}/configure` | `ConfigureTool` | the configure wizard |
+| `/maps/{slug}/edit` | `EditTool` | the region editor for a map that already has a `map.xml` |
+| `/maps/new` | `ConfigureTool` | the same tool with no slug: its Import phase, which is how a world becomes a map row |
+| `/plan-editor` | `PlanTool` | the same tool with no map: a candidate plan row, no phase host |
+| `/generator` | `GeneratorTool` | the composer's browse-and-pin gallery |
+| `/catalog` | `CatalogTool` | the shape catalog |
+| `/library` · `/library/{tab}` | `LibraryTool` | the style, theme, part and room library |
+| `/design` | `Design` | the component showcase |
+| `/not-found` | `NotFound` | 404 |
 
-**Stage answers a different question — how far the map has got**, and it is **stored**, not inferred:
-`map.stage` ∈ `{plan, sketch, configure, edit}` (`Contracts.MapStage`). Deriving it from artifacts was
-rejected and still is — a sketch-in-progress *is* cleanly derivable (`sketch_layout_json` with no
-`layer_parquet`), but **Configure and Edit are not distinguishable from data**: the intent wizard
-regenerates real `region`/`team` rows on every save and the `map_intent_json` artifact never clears, so a
-half-configured map and a finished one look identical.
+Two of them carry a tool twice, and both times the slug-less route is the origination surface: a map has no id
+until Import creates its row, and a plan has no map until it is authored onto one. Blazor discovers routes from
+`@page`, so this table is the only inventory there is — nothing in the app enumerates them.
 
-Transitions (each set by the endpoint that performs the step), and stage **only ever moves forward**:
+## The collections
 
-- **plan** — seeded by `POST /api/plan` and `POST /api/plan/{id}/author`.
-- **sketch** — seeded by `POST /api/sketch` (sketch-create).
-- **configure** — set when a world gains geometry but not a finished `map.xml`: `import-folder` /
-  `import-url`, and **sketch-finish** (`POST /api/map/{slug}/sketch/finish`).
-- **edit** — the default (full-XML corpus import); the eventual `configure → edit` step lands with the
-  Configure wizard's **Export** (today a stub — `M0004` backfilled existing rows by the rule above:
-  intent-authored or geometry-without-regions → `configure`, sketch-only → `sketch`, else `edit`).
+`?stage=` selects one of four, and they are not the same kind of question. Two list **a layer a map holds**
+and two list **a stage a map stands at**, which is why a map appears in more than one.
 
-### Why there is no backward transition
-
-There used to be one. Stage was doing two jobs — *how far the map has got* **and** *which list it appears
-in* — so a finished draft vanished from the tool that drew it, and `POST /api/map/{slug}/reopen` (S35)
-existed to move the pointer back one hop so it would reappear. That hop carried a hard-coded preference
-(the sketch first, then the plan, minus wherever the map already stood), which made reaching a built map's
-plan a two-step walk through two different lists whose second step only became visible after the first.
-
-**Stage no longer decides listing, so nothing has to move to reach a tool.** The layer lists key off the
-layers a map holds, every row links each of its layers directly (`GET /api/maps` carries `HasPlan` /
-`HasSketch` / `HasSurface`), and no route gates on stage — `/maps/{id}/plan` opens the plan of a map
-standing at `configure`. Reopen and `MapReopen` are deleted; visiting a layer changes nothing at all,
-which is the point, because the visit used to be indistinguishable from the rebuild.
-
-### What each list is
-
-`?stage=` selects a collection, and the four are not all the same kind of thing:
-
-| List | Shows | Because |
+| List | Shows | Primary action |
 |---|---|---|
-| **Plans** (`?stage=plan`) | every map holding a `plan_json` | a built plan is still a plan |
-| **Sketches** (`?stage=sketch`) | every map holding a `sketch_layout_json` | a configured sketch is still a sketch |
-| **Configuring** (`?stage=configure`) | maps standing at `configure` | "what still needs configuring" is a position |
-| **Maps** (`/maps`) | maps standing at `edit` | as above |
+| **Plans** (`?stage=plan`) | every map holding a plan, including ones long since built | New plan |
+| **Sketches** (`?stage=sketch`) | every map holding a drawn sketch, including ones already configured | New sketch |
+| **Configuring** (`?stage=configure`) | maps standing at `configure` — terrain but no finished `map.xml` | Import a world |
+| **Maps** (`/maps`) | maps standing at `edit` — a finished `map.xml` | — |
 
-A map therefore appears in more than one list, which is correct — it *has* more than one layer — and the
-landing's Sketch count follows its own list (maps holding a sketch), so a card and the page it opens
-cannot disagree.
+A map keeps every layer it has ever had, so "every map with a plan" and "every map at the plan stage" are
+different collections; each list says which in its own blurb. `GET /api/maps[?stage=…]` serves them and
+`GET /api/maps/stage-counts` the landing tallies, each counting exactly what its list does — so a card and the
+page it opens cannot disagree.
 
-## Landing & exits
+## The landing
 
-- **Landing (`/`)** replaces the old bare redirect: a hero over three **cards** (Sketch · Configure ·
-  Edit, the shared `.card` component) that deep-link into `/maps?stage=…`, each showing a live count
-  from `stage-counts`.
-- **Overviews** share one page (`Maps.razor`); the **nav rail is the stage switcher** and each
-  stage carries its own primary action (Sketch → New-sketch, Configure → Import) and resume target
-  (`/maps/{id}/{stage}`).
-- **Exits are consistent.** Every editor's topbar **home breadcrumb** returns to *its* stage overview
-  (Sketch → `?stage=sketch`, Configure → `?stage=configure`, Edit → `/maps`), which in turn carries a
-  *Studio* crumb back to `/`. **Sketch-finish no longer force-marches** into the wizard: it rasterizes,
-  advances the stage, and lands on the Configure overview with a *Continue to Configure* offer
-  (`?just={slug}` highlights the row + shows the callout).
+Seven cards in two groups. The first four are where authoring starts — **Plan a layout** (the Plans
+collection), **Browse generated layouts** (`/generator`), **Shape catalog** (`/catalog`) and **Style and theme
+library** (`/library`) — three of which need no map at all. The last three are the map lifecycle — **Sketch**,
+**Configure**, **Edit** — each deep-linking into its collection and carrying that collection's live count.
 
-## Route table
+## Labels against code names
 
-The **map is the resource → it lives in the path**; the **mode is a trailing segment**. Never
-`?map=…` — a query param reads as an optional filter, but the editor is meaningless without a map.
+The visible label is deliberately decoupled from the concept the code is built on, in one place:
 
-| Route                    | Label (UI)  | What it is                                         | Lives in           | Status |
-| ------------------------ | ----------- | ------------------------------------------------- | ------------------ | ------ |
-| `/`                      | *Studio*    | **landing** — three lifecycle cards + live counts | `Index.razor`      | live   |
-| `/maps`                  | **Edit**    | staged dashboard, default stage = `edit`          | `Maps.razor`       | live   |
-| `/maps?stage=sketch`     | **Sketch**  | sketch-draft overview + New-sketch (→ `/maps/new-sketch`) | `Maps.razor` | live   |
-| `/maps?stage=configure`  | **Configure** | configure-stage overview + Import                | `Maps.razor`       | live   |
-| `/maps/{id}/edit`        | **Edit**    | existing-map region editor (phases)               | `EditTool.razor`   | live†  |
-| `/maps/{id}/configure`   | **Configure** | new-map intent wizard — the six phases          | `ConfigureTool`    | live   |
-| `/maps/{id}/sketch`      | **Sketch**  | sketch tool — draw geometry                       | `SketchTool`       | live   |
-| `/maps/new-sketch`       | *(entry)*   | originate a sketch: blank frame or generated layout | `SketchCreate`   | live   |
-| `/maps/new`              | *(entry)*   | originate a map: **Import** a world folder        | `ConfigureTool` (Import phase) | live‡ |
-| `/library`               | *(entry)*   | style library — reusable material recipes         | `LibraryTool`      | live   |
-| `/library/themes`        | *(entry)*   | theme library — styles composed into finishes     | `LibraryTool`      | live   |
-| `/concepts`              | —           | the authoring concept mock (`Authoring.razor`)    | `Authoring.razor`  | live   |
-| `/design`                | **Design**  | design-system showcase                            | `Design.razor`     | live   |
-| `/not-found`             | —           | 404                                               | `NotFound.razor`   | live   |
+| UI label | Code name | Where |
+|---|---|---|
+| **Configure** | **authoring** — `MapIntent`, the intent model, `../pgm/new-map-authoring.md` | `/maps/{slug}/configure` |
+| **Sketch** | sketch | `/maps/{slug}/sketch` |
+| **Edit** | the region editor | `/maps/{slug}/edit` |
 
-† `Edit` is the **route-renamed** `/editor/{slug}` (the editor internals stay frozen) — a rename, not a refit.
-‡ `/maps/new` is **Import-only** — "Sketch from scratch" origination lives at its own `/maps/new-sketch`
-page (`SketchCreate`); the download-link source stays parked there.
+The reason is that "authoring" names what the tool *does* to a map and "Configure" names what a person came to
+do, and the two audiences are different. Renaming the concept to match the label would have touched the intent
+model, its endpoints and every document that reasons about it; renaming the label costs nothing. Nowhere else
+in the studio does a label differ from its type name, and this one is worth the exception.
 
-Supporting API: `GET /api/maps[?stage=…]` (the staged list; an invalid/absent stage returns all) and
-`GET /api/maps/stage-counts` (the landing-card tallies).
+**"New" is not a discriminator.** Sketch and Configure both produce a new map, so a label built on "new" would
+separate nothing. The axes that do separate them are the artifact (geometry against configuration) and the
+lifecycle position (no `map.xml` yet against has one), which is why the labels are verbs.
 
-## The `{id}`
+## Exits
 
-Use the **on-disk map directory name** as the path id — maps are already clean slugs (`thunder`,
-`pigland`, `dragons_hearth`), so `/maps/thunder/edit` just works and matches the existing
-`api/map/{slug}` calls. Show the pretty `<name>` from the XML in the UI; **never** put the display
-name ("Annealing IV") in the URL — spaces/caps force encoding and aren't stable.
+**A tool leaves through the collection it belongs to, not through the landing.** The topbar's home link is the
+exit, and each of the four map tools names its own list: Sketch → *Sketches*, Plan → *Plans*, Configure →
+*Configuring*, Edit → *Maps*. The surfaces that hold no map — the generator, the catalog, the library, the
+design showcase and the maps page itself — go to *Studio* instead, because there is no collection above them.
+The plan tool sits on both sides: opened on a map it returns to Plans, opened at `/plan-editor` on a bare
+candidate it returns to Studio.
 
-## Origination — two pre-id surfaces
+Beside that link the topbar carries the trail — the map's name, then the tool or phase, dimmed. Neither is a
+link: the map is already open, so a second way to it would be a way to nowhere.
 
-Sketch and Import both *originate* a map, so neither has an id yet. They split by stage rather than
-sharing one page:
-
-- **Import** — the `../pgm/new-map-authoring.md` §12 flow at `/maps/new` (**Source → Found → Plan**), now the
-  Configure tool's conditional **phase-zero** (`ConfigureTool` routes both `/maps/new` and
-  `/maps/{id}/configure`; the `ImportPhase` component renders on the slug-less route, and a slug'd/imported
-  map skips Import → `Identity` — see `../tools/configure.md`). Reached from the **Configure overview**'s
-  *Import a world* action. Picking an xml-less world folder creates the map record at stage `configure`
-  (a slug); **Start authoring** enters
-  `/maps/{slug}/configure`.
-- **Sketch** — the **New-sketch page** (`/maps/new-sketch`, `SketchCreate`), reached from the **Sketch
-  overview**'s *New-sketch* action. Pick a blank frame (footprint + symmetry) or a generated starter;
-  `POST /api/sketch` (carrying the frame) / `POST /api/sketch/generate` creates a stage-`sketch` draft
-  (a slug) → `/maps/{slug}/sketch`. Drawing, then **Finish**, rasterizes the geometry, advances the map
-  to stage `configure`, and returns to the Configure overview.
-
-So origination is reached from the stage overviews (themselves reached from the landing cards), and
-`/maps/{id}/configure` is the per-map wizard both paths feed.
-
-## Label ↔ code mapping (the decoupling)
-
-| UI label    | Code / concept (unchanged) | Where it lives                                                |
-| ----------- | -------------------------- | ------------------------------------------------------------- |
-| **Configure** | **authoring** — `N` series, `../pgm/new-map-authoring.md`, intent model | the wizard at `/maps/{id}/configure` |
-| **Edit**    | the existing editor        | `Edit/EditTool.razor` + `Edit/*Phase` at `/maps/{id}/edit`     |
-| **Sketch**  | `sketch_api` / sketch pages | `SketchCreate` at `/maps/new-sketch` + `SketchTool` at `/maps/{id}/sketch` |
-
-> **Collision to resolve (not blocking):** the **Edit** editor already has an internal **"Configure"
-> activity** (`ConfigureActivity`, the scan/setup pass — `settings-2` icon). With **Configure** now a
-> top-level mode, that inner activity should be renamed (e.g. **Setup** / **Scan**) so the word means
-> one thing. Track under the editor's activity work, not `NS`.
-
-## Query params = view state only
-
-Query params are for **transient, bookmarkable view state** — never identity:
-`/maps/thunder/edit?region=blue_spawn&zoom=2&layer=wool`. Selection, zoom, active layer, open panel.
-The map id and the mode stay in the path. The dashboard `?stage=` filter fits this rule — it selects
-*which* collection view, not *which* map.
-
-## Migration
-
-The IA surface was small (Blazor discovers `@page`; no central route table; nav is plain `href`s), and
-the whole pass — IA rename, the Configure wizard + Sketch routes, and the staged landing/dashboard — is
-**landed**.
-
-**Landed:**
-
-1. **`Editor.razor`** — `@page "/editor/{Slug}"` → `@page "/maps/{Slug}/edit"`; breadcrumb home → `/maps`.
-   No back-compat alias kept (nothing was live yet). The activity rail's inner **"Configure"** activity
-   was renamed **"Setup"** to free the word for the top-level mode (`Editor.razor.cs` + the switch case).
-2. **`Home.razor`** — `@page "/maps"`; now the **staged dashboard** keyed on `?stage=` (default `edit`);
-   the activity rail is the stage switcher; per-stage primary action + resume target.
-3. **`Index.razor`** — `@page "/"` is now the **landing** (three lifecycle cards + `stage-counts`), no
-   longer a redirect.
-4. **`Authoring.razor`** (the concept mock) → `/concepts`; breadcrumb home → `/maps`.
-5. **Stage** — `map.stage` column (`M0004`) + `MapStage`; `GET /api/maps?stage=` and
-   `/api/maps/stage-counts`; stage seeded/advanced at sketch-create, import, and sketch-finish.
-6. **Sketch origination** moved off `/maps/new` (now Import-only) to its own `/maps/new-sketch` page.
-7. **Exits** — editor home breadcrumbs point at their stage overview; sketch-finish lands on the
-   Configure overview with a *Continue* offer instead of force-navigating into the wizard.
-8. **Docs** — route strings reworded in `../pgm/new-map-authoring.md` §12, `CLAUDE.md`, `TODO.md`,
-   `../world-scan/monument-candidate-store.md`; `FEATURES.md` gained an "App shell & routing" entry. The concept
-   *name* "authoring" stays everywhere; only route strings changed.
-
-**Open:** `configure → edit` has no live trigger yet — it lands with the Configure wizard's **Export**
-step (currently a stub).
+One exit is not a link at all. **Finishing a sketch** rasterizes the layout, advances the map to `configure`,
+and lands on the Configure collection with `?just={slug}`, which highlights the row and offers *Continue to
+Configure* — rather than force-marching into the wizard, since finishing the geometry and starting the
+configuration are two decisions.
