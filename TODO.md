@@ -127,41 +127,58 @@ holds them until one becomes the focus.
   the combined view that already exists, makes each pass answerable on its own, which is what a pipeline that
   is meant to be reviewed between stages actually needs. `B90` built the set; this is what makes it readable.
 
-- [ ] **B99 — A composed wool room can sit off the board's own navigable component.** Made visible the moment
-  three `dtcm` specs built for the first time (`B94`): `goldhollow` and `spinebreak` render several objective
-  markers isolated — four and eight — and the cause is not a goal standing over void, which `B82` already
-  refuses, but rooms that have real ground and no walkable join to the main component. A goal a player cannot
-  reach is unwinnable in the same way as one that cannot be mined, and it went unseen until the void refusal
-  stopped hiding it behind an earlier failure. The read that shows it now exists (`B93`'s bridgeable-void
-  traversability), so the first move is to run it over every shipped spec and find how wide the fault is,
-  rather than assuming it is those two. Whether the fix belongs in the composer's seating or in the compiler's
-  build regions is the question that measurement answers: a room joined only by a build region is connected
-  and reads as connected, so a genuinely isolated one means neither ground nor buildable ground reaches it.
+- [ ] **B99 — An objective reads as cut off from the board, and it is not yet known whether it is.** Three
+  `dtcm` specs built for the first time once `B94` landed, and `goldhollow` and `spinebreak` rendered four and
+  eight objective markers isolated from the board's navigable component — real ground beneath them, no walkable
+  join. A goal nobody can reach is unwinnable exactly as a goal nobody can mine is, and it had been hidden
+  behind the void refusal.
 
-- [ ] **B100 — A destroy board carries one or two goals a team, not one per composed slot.** `Retarget`
-  turns **every** goal the composer sited into a destroyable and, for `dtcm`, adds a core beside each — so a
-  two-wool-a-side board becomes four monuments and four cores, eight objectives, which is past the top of the
-  corpus distribution entirely. Measured over the 127 corpus maps carrying a destroy objective, per team:
-  **one monument in 59 maps (55%), two in 40 (37%), three in 5 (5%)** and four or more in four outliers;
-  **one core in 24 (77%), two in 6 (19%), three in exactly one map in the corpus.** Of the 17 carrying both,
-  **16 have a single core a team**, and the common combined shape is one monument and one core. So the count
-  is a design decision with a narrow real range, and it is currently a side effect of how many wools the
-  budget happened to place.
+  A second run then found the same reading on **every** composed `dtm` board it tried — ten-plus seeds across
+  both symmetries, before touching anything — which changes what the likeliest explanation is. Ten broken
+  boards in a row is a worse hypothesis than one broken measurement, and there is a specific mechanism to
+  suspect: `TraversabilityRender` snaps a marker to the component under the goal's own block, and that block
+  is solid, so it is never itself navigable. A search that starts there can fail to find the component the
+  ground beside it belongs to. That would also explain why the corpus convention the composer follows — a goal
+  at the far end of a dead-end lane, inset about five — reads as isolation rather than as a dead end.
 
-  Count is not the whole of it, because the goals are **sited relative to each other** rather than scattered:
-  where a board carries several they are deliberately spaced and named by where they stand — a west and an
-  east monument, or two forward and one back near the spawn, or two back and one forward. That spacing is the
-  board's shape, since each goal is a place a team must hold and their arrangement decides whether a defence
-  is one line or three. A core is rarer than a monument for a reason worth carrying into the choice: leaking
-  one is a harder, longer job, so a board wants fewer of them. Pair this with `MG2` — the areas those goals
-  stand in are themed apart in the corpus, so the ground around a west monument reads differently from the
-  ground around an east one, and that distinction is expressible today and was used on none of the sixteen.
+  So the first move is to tell the two apart, and the cheap way is to ask the question from the ground rather
+  than from the goal: take the walkable cells immediately around the marker and test whether *they* join the
+  spawn's component. If they do, the render is at fault and the fix is in the snap. If they do not, the fault
+  is real, it is in the composer's seating or the compiler's build regions, and it is the more serious of the
+  two. Do not fix either until the measurement says which.
 
-  One naming fix belongs with it, because the confusion is already in the code. In-game the mode is
-  *destroy the monument*, so a `<destroyable>` is colloquially a monument — but **`monument` is already taken**
-  in this codebase and in PGM, for the block a wool is placed on in a capture map. `Retarget` nonetheless
-  names its destroyables `monument-0`, `monument-1`, which is the one word that means the other thing.
-  `CLAUDE.md`'s naming rule applies directly: a name must not promise the wrong category.
+- [ ] **B101 — A destroy board's goal gets no dressing clearance at all.** `KeepOut` in `tools/mapgen`
+  builds its exclusion rectangles from `intent.Wools` and `intent.Spawns` and from nothing else, so a
+  destroyable and a core are invisible to it. On a capture board that is harmless, because the wool rooms are
+  the goals; on a destroy board `Retarget` empties `Wools`, and the only protected thing left is the spawn.
+  Nothing then stops the forest or the village planting a trunk against a monument's wall — two hand-designed
+  boards landed their nearest tree eleven blocks off the goal, but by the author's steering rather than by any
+  rule. `DressingScope` protects the ground a stamped structure stands on, which is why this has not produced
+  a tree *inside* a goal, but clearance is a wider question than overlap: a goal wants open ground around it
+  because that is what makes the approach legible, which is the whole method the review argues for. Add the
+  destroyables and cores to `KeepOut`, and say so in the README, whose "any objective piece — a room or a
+  spawn" reads as though it already covers them.
+
+- [ ] **B102 — A rebuild writes over a region directory it never clears, so a stale chunk survives.**
+  `AnvilRegionWriter.Write` calls `Directory.CreateDirectory` and nothing else, so every `.mca` a previous
+  build left is still there. A chunk the new build does not touch — because its geometry moved — is read back
+  as part of the new map. That is not a cosmetic problem: it makes a rebuild into an existing `out_dir`
+  untrustworthy, which is exactly what iterating on a spec does, and it silently contradicts the README's own
+  promise that "the same spec rebuilds the same map, so two runs can be compared" — true only into a directory
+  nothing has written before. It cost a design session real time, presenting as building counts that could not
+  be reconciled until the directory was deleted by hand. The fix is to clear the region directory before
+  writing it. Note this is a different hazard from the concurrent-build race `CLAUDE.md` already warns about:
+  that one is two builds at once, this one is one build after another.
+
+- [ ] **B103 — The top-down leaves real ground blank on a narrow board.** On a board whose goal sits on a
+  narrow dead-end spur, `TopDownRender` drew that spur — the most important corner of the map — as empty
+  margin at every scale tried, while `HeightProfileRender` and `StructureFinder` showed real, populated
+  terrain there in the same build. The ground was confirmed present by reading the region files directly. A
+  renderer that omits ground is worse than one that is merely hard to read, because the omission is
+  indistinguishable from a board that genuinely has nothing there — and the top-down is the view everything
+  gets judged from first. Suspect the bounds computation rather than the drawing: the spur is at the extreme
+  of the board's extent, which is where an off-by-one or an early bbox clamp would bite. It is also a second
+  instance of the fault `review.md` MG13 names, found on a newer renderer than the one that entry describes.
 
 - [ ] **B79 — `map-layers` e2e: the plan editor's Compile button never arrives (13/14).** The suite drives to
   `/maps/{slug}/plan` on the seed's built map, then clicks `button:has-text("Compile")` to check that a
