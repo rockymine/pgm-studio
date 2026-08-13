@@ -39,19 +39,117 @@ holds them until one becomes the focus.
 
 ## Backend, pipeline & internals (B / P / A)
 
-- [ ] **B116 — OB17 is asked at compile and not at export.** The rule now has one home
-  (`ObjectivePlacement`) and one caller. The second caller is the export gate: `MapExportComposer` already
-  builds the world and holds the resolved intent, so it can ask the same question against the ground the
-  rasterizer produced rather than against the plan's rectangles — which is the only reading that sees a
-  subtract, a relief, or a sketch edited after its compile. A plan that passed can still export a goal over a
-  hole carved afterwards, and a map begun in Sketch never passes the compile gate at all.
+**These four are the current run, in order.** They come out of one finding, and the finding is worth stating
+once because every entry below inherits it: **`tools/` grew a second copy of the system.** A two-day
+experiment in whether an agent could drive the studio produced a CLI that reimplemented the parts it could
+not reach — its own goal-over-void refusal, its own prop clearance, its own forest and village samplers, its
+own reduced document format — and the board began treating that CLI as product, filing bugs against it and
+listing its refusals in `FEATURES.md`. A tool is allowed to *drive* the system. It is not allowed to *be* a
+second one, because the second one is what rots: it has no tests, no document that governs it, and it drifts
+behind the thing it copies without anyone seeing (the relief fork sat 1614 cells off a settled solve for
+exactly that reason).
 
-  Two more refusals belong on the same gate and nowhere else. `DestroyKitPairing.Unwinnable` already answers
-  which goals no tool in the kit can break, and only `tools/mapgen` calls it. And a **tree, boulder or
-  building inside a goal's clearance** (`DressingScope.GoalGroundAt`, `decoration.md` §3.1) has to be refused
-  rather than silently dropped, because those three are authored: dropping one discards a placement the
-  author can see on the canvas, where a refusal naming the prop and the goal can be acted on. All three are
-  409s from the one composer, so the studio and any headless driver are gated identically.
+**Take them in the order listed.** `B116` is first because it is the only one that is a live defect — a map
+exported from the studio today is not checked for the three things the CLI checks for — and because it is
+independent of the rest; it lands in a file `B119` later moves, which costs nothing. `B119` then moves the
+boundary so the copying stops being necessary, `B118` undoes what was copied, and `B120` finds out whether
+the result actually answers.
+
+- [ ] **B116 — OB17 is asked at compile and not at export.** The rule now has one home
+  (`ObjectivePlacement`, `Pgm/Plan`) and one caller. The second caller is the export gate:
+  `MapExportComposer.ComposeAsync` already builds the world and holds the resolved intent, so it can ask the
+  same question against the ground the rasterizer produced rather than against the plan's rectangles.
+
+  **Why a second gate is not redundant.** The compile gate reads plan pieces, which is the board as *drawn*.
+  A subtract cut afterwards, a relief solved over it, or a sketch edited after its compile all change where
+  ground is, and none of them re-enters the compile gate — so a plan that passed can still export a goal
+  standing over a hole somebody carved later. A map begun in Sketch never passes the compile gate at all.
+  The export gate is the only place that sees the ground a player will actually stand on.
+
+  Two more refusals belong on that same gate and nowhere else. `DestroyKitPairing.Unwinnable` already answers
+  which goals no tool in the kit can break, and its only caller today is `tools/mapgen` — which is precisely
+  the fault this run is about: a map exported from the studio is not checked, and a map exported from a CLI
+  is. And a **tree, boulder or building inside a goal's clearance** (`DressingScope.GoalGroundAt`,
+  `decoration.md` §3.1) has to be refused rather than dropped, because those three are authored: dropping one
+  discards a placement the author can see on the canvas, where a refusal naming the prop and the goal can be
+  acted on. Ground cover is explicitly not refused — it is allowed over a goal, tall grass excepted.
+
+  All of them are 409s from the one composer, so the studio and every headless driver are gated identically.
+  Findings carry their rule id, so a caller can act on `OB17` rather than parse a sentence.
+
+- [ ] **B119 — The export path lives inside the web application.** `SketchWorldBuilder`, `MapXmlComposer` and
+  `MapExportComposer` sit in `Api/Services/`, so anything that builds a world offline must reference
+  `PgmStudio.Api` — ASP.NET Core, FastEndpoints, the DB layer and the Blazor host — to write a region folder.
+  `tools/mapgen` and `tools/PgmStudio.PatternMap` both do exactly that.
+
+  **Why it is the first move.** It is what makes the other entries cheap, and it is free in graph terms: the
+  extracted project would reference `Pgm`, `Minecraft`, `Domain` and `Geom`, all of which `Api` already
+  reaches, so no dependency edge is added and none is inverted. It is the same observation
+  `project-structure.md` §6.1 makes about `Pgm` being two projects, one level up and never stated. What it
+  buys is a nameable **export path** — the thing every driver needs and nothing else — instead of a folder
+  inside the web app, and a gate (`B116`) that lives where both the API and any CLI reach it without either
+  one owning it. `project-structure.md` gains the new project and `tools/` finally appears on that map at
+  all, which it does not today despite being 19,000 lines.
+
+- [ ] **B118 — `MapSpec` is a smaller system wearing the big one's clothes, and two of its knobs are
+  actively harmful.** The spec format was invented rather than derived: it names a handful of fields and
+  hides everything the four real documents can say, so a shape became a footprint, a theme became four family
+  names, and all sixteen boards came out with a rim, one theme, one relief style and the same wall. This is
+  `mapgen-review.md` MG29, and its cost is measured there — a model given the spec reported five of six brief
+  requirements as impossible, two of which the README it was quoting from documents.
+
+  **Delete `trees`, `village` and `houses` outright**, with `Forest`, `Settle`, `Placed`, `KeepOut`, `Level`,
+  `Clear` and `FannedAround` in `Program.cs`. They are a site sampler, and the studio deliberately has none:
+  `sketch.md` states that dressing is authored and that there is no scatter, no density pass and no "fill
+  this island with forest", because a tree is cover and where cover stands is a gameplay decision. The
+  sampler contradicted the shipped design, MG9 files it as a fault, and it is what buried every generated
+  board under a canopy nobody chose.
+
+  **What replaces the format is a thin addressing layer**, which is MG29's own prescription: `plan`, `layout`
+  and `intent` handed through **verbatim** as the real document types, with the convenience fields kept only
+  as shorthand that expands into them rather than as the whole vocabulary. A spec must be able to say a
+  `SketchShape` with its own theme, floor, base height, anchor heights and `relief_scope`; a `TerrainTheme`
+  with its rim band and per-shape scope; a relief mark of any of the five kinds. Anything it cannot say is
+  then a gap in the system, which is reportable, rather than a gap in the format, which teaches an author
+  that the system cannot do it.
+
+  `Retarget` goes too. Rewriting a capture board's wool markers into monuments is MG1, the largest entry in
+  the review: a destroyable needs no room, no lane and no protection region, so a retargeted wool puts every
+  goal at the back of a corridor it never wanted. A destroy board is authored as a plan, not converted.
+
+- [ ] **B120 — Run the trial again, and find out whether the system now answers.** The point of the three
+  entries above is that an agent can author a map by driving the real documents. That claim is untested. Take
+  the brief `mapgen-review.md` already uses — *a destroy board, one connected island, the monument in the
+  open with a forest closing the west flank, a hill east that attackers can bridge from, a village behind, a
+  void channel twenty blocks in front* — and author it, stage by stage, reviewing each stage before the next
+  is laid on it.
+
+  **What the run has to produce besides a map** is the honest list of what could not be said and why. That is
+  the actual deliverable: a capability that is missing is worth more written down than worked around.
+
+  **The rules the run is held to.** They exist because breaking each one is what produced the mess this run
+  is cleaning up:
+
+  - **No capability is added in `tools/`.** If the run needs something the system cannot do, it is built in
+    `src/` where the studio and every driver get it, or it is filed and the map is authored without it. A
+    tool may compose, drive and report; a refusal, a placement rule, a sampler or a validation that lives in
+    a tool is the exact defect `B116` and `B118` are undoing.
+  - **No second format.** The run authors `PlanModel`, `SketchLayout` and `MapIntent` as they are. A
+    convenience wrapper is allowed only where it expands into those documents and can be shown to.
+  - **Nothing is scattered.** Every prop is placed because there is an answer to "why here". A run that
+    cannot answer it leaves the ground bare and says so.
+  - **Layers are not used.** The ground layer only, per `sketch.md`.
+  - **Every stage is looked at before the next consumes it.** The preview endpoints answer a theme, a
+    material, a prop or a plan without building a world; the round-trip harness reads a built world back as a
+    heightmap, a contour, a surface, a traversability map. MG30 is fifteen boards judged from one top-down at
+    the end, and every appearance fault in the review was visible in an image nobody rendered. An image
+    answers *whether* something came out and never *what* it is — the plan render colours by role, so its
+    blue is a build zone and never water (`B95`).
+  - **A question about how a map plays is asked, not derived.** `docs/gameplay/approaches.md` is the
+    document, its `[review]` claims are not yet law, and a claim marked `[author]` is settled. Inventing a
+    gameplay conclusion from a correct measurement is what produced a filed, committed, wrong claim that
+    every generated destroy map was unwinnable.
+  - **A document that describes something unbuilt names its task id, or says nothing.**
 
 - [ ] **B104 — A destroy goal is stamped above the build cap.** On `duskfell` the gold destroyable stands at
   y21–23 and `max_build_height` is 20; on `corvale` the emerald stands at y18–20 against the same cap. Blocks
