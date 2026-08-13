@@ -1,0 +1,37 @@
+{
+  "slug": "voidwatch",
+  "name": "Voidwatch",
+  "objective": "Capture the enemy wool and return it to your own — the mid is broken by a hole you must go around.",
+  "authors": ["hand-authored"],
+  "out_dir": "/media/sf_repos/CommunityMaps/ctw/voidwatch",
+  "plan": {
+    "plan": 1,
+    "meta": { "name": "Voidwatch", "notes": "hand-authored CTW: void-hole mid, dead-end wool dogleg, stepped ground" },
+    "globals": { "cell": 5, "symmetry": "rot_180", "maxPlayers": 16, "surface": 11, "headroom": 12 },
+    "pieces": [
+      { "id": "spawn",         "role": "spawn",      "rect": [-3, 15, 6, 4], "surface": 17 },
+      { "id": "spawn-apron",   "role": "piece",       "rect": [-3, 12, 6, 3], "surface": 15 },
+      { "id": "lane",          "role": "piece",       "rect": [-3, 8, 6, 4],  "surface": 13 },
+      { "id": "hub",           "role": "piece",       "rect": [-6, 3, 12, 5], "surface": 11 },
+      { "id": "west-arm",      "role": "piece",       "rect": [-11, 3, 5, 5], "surface": 9 },
+      { "id": "west-turn",     "role": "piece",       "rect": [-11, 8, 5, 5], "surface": 9 },
+      { "id": "west-corridor", "role": "piece",       "rect": [-11, 13, 5, 5], "surface": 7 },
+      { "id": "wool-room",     "role": "wool-room",   "rect": [-11, 18, 5, 5], "surface": 7 },
+      { "id": "east-hill",     "role": "piece",       "rect": [6, 3, 5, 5],   "surface": 15 }
+    ],
+    "zones": [
+      { "id": "mid-gap", "rect": [-11, -3, 23, 6], "holes": [[-2, -2, 4, 4]] }
+    ],
+    "placements": {
+      "spawns": [ { "piece": "spawn", "at": [3, 3], "facing": "front" } ],
+      "wools": [ { "piece": "wool-room", "at": [2, 4] } ],
+      "iron": [ { "piece": "spawn", "at": [1, 3] } ],
+      "destroyables": [],
+      "cores": []
+    },
+    "cliffs": [],
+    "walls": [ { "a": "west-corridor", "b": "wool-room", "side": "b" } ]
+  },
+  "theme": { "surface": "grass", "wall": "grey stone", "rim": "ash", "fill": "grey stone", "pattern": "solid" },
+  "room_shell": { "wool": "cottage", "spawn": "terrace" }
+}
