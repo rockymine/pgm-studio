@@ -271,6 +271,36 @@ or `houses` in `MapSpec`. Library previews exist for the pieces once a style is 
 `/room-styles/preview` and its `-snapshot`, `/roof-styles/preview`, `/porch-styles/preview`,
 `/storey-styles/preview` — so a building is checkable from four sides before it stands on a map.
 
+### What these combine into, which is where the width actually is
+
+Every section above names one type. The reach of the system is not in any of them individually — it is in
+what they compose into, and the compositions have no field named after them, so nothing discovers them by
+reading a schema. Three worth stating, because each is built today out of parts already described.
+
+**A stair of themed steps, at whatever granularity the ground wants.** A composed plan lands at a single
+height, because the rules deciding how height should fall across a board are the hard part and the composer
+does not try. Relief answers half of that — a solved surface without anyone stating a piece — and stacked
+shapes answer the other half, deliberately rather than by solve. Where a plan is cut into pieces the
+granularity is the cell, five or nine or ten blocks at a time; the layout underneath is drawn in **blocks**,
+so a step there can be one block deep. Twenty-six shapes at ten `base_height` tiers is what `ruediger` does,
+and because each shape carries its own `theme`, alternate treads can take alternate paint — every even step
+one theme and every odd step another — so the flight reads as built masonry rather than as a slope that
+happens to be quantised. The two ways of making ground are meant to share a board: a stepped quarter that is
+plainly a platform against a solved quarter that is plainly a hillside.
+
+**An erected cube as a blocker, themed as its own thing.** A shape with a `height_mode` and a top above
+`max_build_height` is an obstacle rather than terrain, and because paint scopes to the shape, that obstacle
+takes its own material — so a line of them is a colonnade, a wall or a set of pillars, and nothing about it
+is scenery. Tilted with `anchor_heights` it leans; below the cap the same tilt is a ramp.
+
+**A building used as a boundary rather than as a place.** A `HouseStyle` takes `RoofForm.Flat` — the lid form
+— and its courses take any material, bedrock included, so a house can be authored as a sealed slab-topped
+block rather than as somewhere to walk into. Stood tall enough to clear the build cap it is a tower that
+divides the map, wearing a skin that reads as architecture instead of as a wall. **What is missing is the
+inside**: `HouseStamper` builds a shell and its interior volume is air, so such a tower is enterable and
+hollow rather than solid. Filling it is `B92`, and it is the one part of this composition that does not
+exist yet.
+
 ## Where the generation lives
 
 | Stage | Lives in | Takes → gives |

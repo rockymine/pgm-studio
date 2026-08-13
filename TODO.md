@@ -155,6 +155,20 @@ holds them until one becomes the focus.
   about the third dimension — whether a drop is walkable, whether a room's floor sits where the relief left
   it, whether a goal has ground under it, which is B82's fault seen rather than asserted.
 
+- [ ] **B92 — A building can be a solid volume, not only a shell.** `HouseStamper` raises walls, a roof and
+  their openings, and the volume they enclose is left as air — "fill" appears in the house model only as a
+  wall's infill between posts and as the gable's, never as the interior. That makes a building somewhere to
+  walk into, which is right for a village and wrong for the other thing a building is good for: a **boundary**.
+  A house authored with `RoofForm.Flat` and bedrock courses, stood tall enough to clear `max_build_height`, is
+  a tower that divides a board while wearing a skin that reads as architecture rather than as a wall — except
+  that it is hollow, so it is enterable and it is not a barrier. One stated material packing the enclosed
+  volume is the whole feature, and it wants to be a `HouseStyle` field rather than a stamper flag, so a style
+  carries whether it is a place or a mass. Two things to settle while doing it: what happens to a filled
+  building's door and windows, which are openings into solid rock and are probably better refused than
+  emitted; and whether the fill respects the storey stack, since a tower filled to its top course and a tower
+  filled only to its first floor are different buildings. `DressingScope` already protects the ground under a
+  stamped building, so nothing downstream needs teaching.
+
 - [ ] **B79 — `map-layers` e2e: the plan editor's Compile button never arrives (13/14).** The suite drives to
   `/maps/{slug}/plan` on the seed's built map, then clicks `button:has-text("Compile")` to check that a
   *rebuild* states the trade before replacing a board someone has worked on. The click times out at 30s and
