@@ -61,37 +61,6 @@ holds them until one becomes the focus.
   gap. `DressingScope` already protects the ground under a stamped building, so nothing downstream needs
   teaching.
 
-- [ ] **B93 — The traversability stage image asks a different question from the one its name owns.**
-  `TraversabilityRender` reads a column as navigable when it has ground and two blocks of headroom, splits
-  those into 4-connected components and colours each goal by the component it lands in. Its docstring is
-  honest that this is "no build-region awareness, no bridgeable-gap classification" — but that is what makes
-  it wrong rather than merely light, because it is blind to the one thing that joins a board together. A
-  capture map connects its islands **with build regions**, which is what `ruediger` does, and a **water lane**
-  is the staggered form of the same idea: `docs/contracts/water-lanes.md` defines it as a gap between islands
-  that becomes **bridgeable** part-way through a match, driven by PGM's void filter reading y=0 live — land
-  that opens a late second approach to a tucked-away wool, not water and not a hazard. So a render that stops
-  at walkable ground reports a false disconnection on exactly the boards whose connectivity was authored, and
-  it reports it under a name this project has already given to the other question: `Analysis.Playability.
-  Traversability` asks whether the spawn↔wool chain shares one component over **walkable surface ∪ bridgeable
-  buildable**, which is the check the Configure tool runs. `CLAUDE.md`'s naming rule settles which way to
-  resolve it — a name must not promise the wrong category — so the render either asks the map's own question
-  or gives up the word. Asking it is the smaller change: the renderer already parses the `map.xml` for its
-  markers, so the build regions are in reach, and treating a buildable empty column as bridgeable is the whole
-  of the difference. A lane that opens at 45 minutes wants distinguishing from ground that is walkable at
-  match start, since a board connected only after 45 minutes is not a connected board.
-
-- [ ] **B94 — A `dtcm` core is placed two cells along and may land off the board.** `Retarget` in
-  `tools/mapgen` gives a destroy map's core `At = [goal.At[0] + 2, goal.At[1]]` — two cells along the piece
-  from the monument, unconditionally and in one direction. Where the monument already sits near its piece's
-  edge that offset walks the core off the land, and three of the seven shipped destroy specs (`goldhollow`,
-  `mourncrag`, `spinebreak`) are refused by B82's void check for exactly this reason, with the anchor's
-  floored column genuinely absent from the rasterized ground rather than off by one. B82 makes the fault loud;
-  it does not fix it, so every `dtcm` board this tool has written carried a core that was unreachable whenever
-  the offset happened to run outward. The offset wants choosing against the piece rather than stated: toward
-  its interior, or along whichever axis has room, with the two structures still close enough to read as one
-  place to defend. The three refused specs are the gate — they should build, and their cores should stand on
-  ground.
-
 - [ ] **B95 — A stage image has no key, and its colours are read as materials.** The plan render colours by
   **role** — hub violet, spawn green, wool amber, frontline orange, anything else slate, and a zone in blue
   (`#38bdf8` for a build zone, `#2563eb` for a water lane, separated only by shade, opacity and dash pattern).
@@ -140,6 +109,34 @@ holds them until one becomes the focus.
   — recording it is most of the work, and `DressingScope` is where a stamped thing's extent already lives.
   Worth doing with `B92`, which fills that same volume with a stated material and therefore has to describe it
   anyway.
+
+- [ ] **B98 — A stage image is a diagram, not a photograph.** The renders imitate what a map looks like —
+  grass green, leaves green, stone grey — and that is the one thing an image for reasoning must not do,
+  because a green tree on green ground is invisible in it. Legibility beats realism here: a reader, human or
+  model, needs to tell foliage from surface from structure at a glance, and the surest way is deliberate
+  false colour that no terrain would ever wear. Foliage in a vibrant purple against a muted ground says more
+  in one look than an accurate render says in ten.
+
+  Two things follow, and the second is the larger. **Contrast is the requirement**, so every render picks its
+  palette to separate the categories it is drawing rather than to depict them — the same reasoning `B95`
+  applies to the plan's role colours, applied to the world read-backs. And **a layer is worth seeing alone**:
+  the top-down today is the finished rasterized map with everything on it at once, including things a given
+  question does not want — the redstone lines marking a build region's edge in red, the observer platform
+  floating over the middle — so the reading is a search rather than a look. One image per layer (ground ·
+  relief · paint · structures · foliage · buildings · objectives), each in its own high-contrast scheme, plus
+  the combined view that already exists, makes each pass answerable on its own, which is what a pipeline that
+  is meant to be reviewed between stages actually needs. `B90` built the set; this is what makes it readable.
+
+- [ ] **B99 — A composed wool room can sit off the board's own navigable component.** Made visible the moment
+  three `dtcm` specs built for the first time (`B94`): `goldhollow` and `spinebreak` render several objective
+  markers isolated — four and eight — and the cause is not a goal standing over void, which `B82` already
+  refuses, but rooms that have real ground and no walkable join to the main component. A goal a player cannot
+  reach is unwinnable in the same way as one that cannot be mined, and it went unseen until the void refusal
+  stopped hiding it behind an earlier failure. The read that shows it now exists (`B93`'s bridgeable-void
+  traversability), so the first move is to run it over every shipped spec and find how wide the fault is,
+  rather than assuming it is those two. Whether the fix belongs in the composer's seating or in the compiler's
+  build regions is the question that measurement answers: a room joined only by a build region is connected
+  and reads as connected, so a genuinely isolated one means neither ground nor buildable ground reaches it.
 
 - [ ] **B79 — `map-layers` e2e: the plan editor's Compile button never arrives (13/14).** The suite drives to
   `/maps/{slug}/plan` on the seed's built map, then clicks `button:has-text("Compile")` to check that a

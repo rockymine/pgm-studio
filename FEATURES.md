@@ -4445,6 +4445,18 @@ these are the ones that shipped a map that could not be played as intended, and 
   `PgmStudio.Minecraft.Render` and each gained an entry point taking a `VoxelWorld` directly, so the CLI and
   the generator call the same renderer. `tools/mapgen --stages` emits eight named images — plan, heightmap,
   contour, surface, dressing, topdown, traversability, structures — off the world it just built.
+- **The traversability read knows what a build region is, and a core lands on ground (B93, B94).** The stage
+  image had been reading navigability as ground plus headroom, which is blind to the way a capture board
+  actually joins up — islands connected by build regions rather than by walkable ground — so it reported a
+  false disconnection under a name this project had already given to the build-region-aware question. It now
+  finds the apply rule gated on a void filter, reduces its region through a new `RegionBoxes.FootprintXZ`
+  (added because `Of` silently returned nothing for a `rectangle` region, which carries no Y bounds), and
+  joins those columns to the navigable graph while tinting them so bridged void still reads as standing on
+  nothing. A water lane stays unbridged by construction, since it carries no such rule and opens on a timer —
+  a board connected only after 45 minutes is not a connected board. One measured board went from 7 components
+  with 2 isolated markers to 5 with none. Alongside it, `Retarget` no longer offsets a `dtcm` core two cells
+  along unconditionally: it measures room-to-edge within the monument's own piece and takes the direction with
+  the most room, so the three shipped specs that `B82` was refusing now build with their cores on ground.
 
 - **The capability handbook — what the system can be asked for, and where to say it (B91).** `tools/mapgen/surface.md`
   mapped the four documents a map is made of; it now also states the surface underneath the spec's shorthand, in
