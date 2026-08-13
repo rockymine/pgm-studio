@@ -45,17 +45,47 @@ server and mirrored by `plan-doc.js` on the client, which round-trip it identica
 unknown piece roles, box kinds and zone kinds fold to their canonical value, and every marker without an id
 is given one. A document written under an older vocabulary therefore loads cleanly rather than failing.
 
+Here is one carrying every element the format has, which compiles clean — no errors and no warnings:
+
 ```json
 {
   "plan": 1,
-  "meta": { "name": "Base 2-Wool" },
+  "meta": { "name": "Example board" },
   "globals": { "cell": 5, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9, "headroom": 11 },
-  "pieces": [ { "id": "spawn", "role": "spawn", "rect": [1, 9, 2, 2] } ],
-  "zones":  [ { "id": "mid-band", "rect": [-3, -5, 6, 10], "holes": [] } ],
-  "placements": { "spawns": [], "wools": [], "iron": [], "destroyables": [], "cores": [] },
-  "cliffs": [], "walls": [], "boxes": []
+  "pieces": [
+    { "id": "spawn",      "role": "spawn",     "rect": [1, 9, 2, 2] },
+    { "id": "lane",       "role": "piece",     "rect": [1, 5, 2, 4] },
+    { "id": "approach",   "role": "piece",     "rect": [-3, 4, 2, 7] },
+    { "id": "wool-room",  "role": "wool-room", "rect": [-3, 11, 2, 2] },
+    { "id": "plateau",    "role": "piece",     "rect": [5, 7, 4, 2], "surface": 13 },
+    { "id": "bridgehead", "role": "piece",     "rect": [-1, 7, 2, 2] },
+    { "id": "gap",        "role": "buffer",    "rect": [3, 5, 2, 2] }
+  ],
+  "zones": [
+    { "id": "mid-band", "rect": [-3, -5, 6, 10], "holes": [] },
+    { "id": "lane-e",   "rect": [3, -1, 2, 4], "kind": "water-lane" }
+  ],
+  "placements": {
+    "spawns":       [ { "id": "spawn-1", "piece": "spawn", "at": [1, 1], "facing": "front" } ],
+    "wools":        [ { "id": "wool-1", "piece": "wool-room", "at": [1, 1] } ],
+    "iron":         [ { "id": "iron-1", "piece": "spawn", "at": [0.5, 0.5] } ],
+    "destroyables": [ { "id": "destroyable-1", "piece": "plateau", "at": [2, 1],
+                        "style": "cube-3", "materials": "obsidian", "float": 4 } ],
+    "cores":        [ { "id": "core-1", "piece": "approach", "at": [1, 5],
+                        "size": 5, "height": 5, "shell": 1, "float": 6, "leak": 5 } ]
+  },
+  "cliffs": [ { "a": "lane", "b": "plateau" } ],
+  "walls":  [ { "a": "approach", "b": "wool-room", "side": "a" } ],
+  "boxes":  [ { "id": "wool-box", "kind": "wool", "rect": [-4, 3, 4, 10] } ]
 }
 ```
+
+Everything optional is shown set here so the shapes are visible; almost all of it can be left out. The wool
+names no `color`, so the auto rule gives red's wool the red dye and blue's the blue one — naming one would
+give **both** teams that colour, since a stated field is used verbatim on every orbit image. The destroyable
+and the core state values that are already their defaults; a bare `{ "id", "piece", "at" }` builds the same
+structures. The buffer declares a void the compiler would have declared anyway, and the box is annotation the
+compiler ignores entirely.
 
 ### Coordinates
 
@@ -290,6 +320,16 @@ replacing a board someone has since been working on.
 
 Four separate questions are asked of a plan, and they are kept apart on purpose. Only the first two stop
 anything.
+
+A refusal comes back as a list of findings, each naming the rule where it has one and the ids it indicts —
+moving the example's destroyable onto the wool-room piece answers:
+
+```json
+{ "findings": [
+  { "severity": "error", "rule": null,
+    "message": "destroyable 'destroyable-1' on 'wool-room' is 3×3 and reaches into the wool room on 'wool-room' — the room's own rules would cover the goal",
+    "subjects": ["destroyable-1", "wool-room", "wool-room"] } ] }
+```
 
 **Structural errors** (`PlanValidator.Validate`) block a compile with 422. They are: overlapping pieces at
 different surfaces; a placement referencing an unknown piece, a buffer, or a position outside its piece; a core

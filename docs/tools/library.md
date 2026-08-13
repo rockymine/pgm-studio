@@ -1,0 +1,449 @@
+# The Library tool
+
+## What it is
+
+The library is where a material is authored once and reused. It is the only tool in the studio that knows
+nothing about maps: no slug, no stage, no map row anywhere in it. What it holds is recipes, and the tools that
+build worlds reach into it to pick one.
+
+Its route is `/library`, or `/library/{tab}`. Four tabs, in the order the things compose: **Styles** — a style
+is one material; **Themes** — a terrain finish made of styles; **Parts** — the roofs, storeys and porches a
+house is composed from, each made of styles; **Rooms** — a whole building made of parts and styles. A style is
+browsed by what it looks like; everything above it by what it composes to.
+
+Two tools consume the library. The Sketch tool's Theme phase pulls a theme in and pushes one back out, and its
+Rooms step binds a room style as the shell every wool cage and spawn cube is stamped with; the Dressing phase's
+building prop takes a room style as its own. Nothing else reads it.
+
+## What it writes
+
+Eleven tables, one group per level: `style`; `theme` with `theme_bucket`; `roof_style` with
+`roof_style_course`, `storey_style` with `storey_style_course`, and `porch_style`; and `room_style` with
+`room_style_course` and `room_style_storey`.
+
+**Two directions, and the difference between them is the whole design.** *Inside* the library, everything is
+bound **by id**: a theme names the style that fills each of its buckets, a room style names the courses and
+parts it is built from. So editing a style reaches every theme and every room style binding it — the editor
+says so when it saves — and deleting one is refused rather than allowed to break them.
+
+*Out of* the library, everything is **copied**. A theme applied to a sketch is stored as the painter's own JSON
+in that sketch's registry; the room shells bound in the Rooms step are snapshots; a placed building carries its
+style rather than a library id. So a library edit can never rebuild a map that already shipped, and there is no
+mechanism by which it could — which is the guarantee, not an omission.
+
+## The four levels
+
+### A style is one material
+
+`style` rows carry a name, a kind and `params` — the serialized `TerrainMaterial` the painter itself reads.
+There is no second model of a material anywhere: the same editor authors a library style and a theme bucket in
+the Sketch tool, and the kind is read back off the JSON node the editor rewrote, so the row's kind and its
+params cannot disagree.
+
+A style's card picture travels with the row rather than costing a request per card, because a library is
+browsed by what its entries look like. The editor previews two views of one material: a **plan**, one course
+seen from above, which is where a voronoi, a noise field and a wall run vary, and a **section**, one row of
+columns cut open downward, which is the axis a layer stack varies along. A stored style's `params` is exactly
+one of the nodes below, and a saved row is that node plus a name:
+
+```json
+{ "name": "quartz rim", "kind": "solid", "params": "{\"kind\":\"solid\",\"id\":155,\"data\":0}" }
+```
+
+### The fourteen kinds
+
+Every kind resolves one block per cell, and every one of them **nests**: wherever a material is asked for
+below, any of the fourteen may stand — so a voronoi band can be a team tint, a layer of a stack can be a
+noise field, and a wall stripe can be a checkerboard. `id` and `data` are the block and its variant.
+
+**`solid` — one block everywhere.** The leaf every other kind bottoms out in.
+
+```json
+{ "kind": "solid", "id": 1, "data": 0 }
+```
+
+**`layered` — a vertical stack claimed from the top of the bucket.** Grass over two dirt; a wall's banded
+riser. Each layer states its thickness in courses, and the last layer repeats past the stack's depth, so a
+band deeper than declared never falls through to nothing.
+
+```json
+{ "kind": "layered", "layers": [
+  { "material": { "kind": "solid", "id": 2 }, "thickness": 1 },
+  { "material": { "kind": "solid", "id": 3 }, "thickness": 2 } ] }
+```
+
+**`teamTint` — the block tinted by the team that owns the cell**, on the same 0–15 damage scale wool uses, so
+clay, wool or stained glass takes the team's colour. A cell with no team — a neutral mid — falls back to
+`neutral`. It works on any bucket, not just the wall, and nests inside a stack or a pattern.
+
+```json
+{ "kind": "teamTint", "blockId": 159, "neutral": { "kind": "solid", "id": 159, "data": 8 } }
+```
+
+#### The five area patterns
+
+These five vary across the *ground*, and they share one field: **`rise`**, the vertical period of the pattern
+in blocks, `0` for none. A pattern of the plane gives every block in a column the same answer, which decides
+the surface and leaves a wall face as vertical stripes; a positive `rise` samples the field over the volume
+instead, so a wall carries the same fabric its surface does.
+
+**`voronoi` — straight-edged cells with bands running inward from each boundary.** The footprint is tiled by a
+jittered grid of period `cellSize`, one seed point per grid cell, and every block belongs to the nearest seed.
+Each band states how many blocks inward from the cell boundary it runs; the last band's depth is ignored and
+it takes whatever is left of the cell. Reads as a diagram — a grid of lines with cells off it.
+
+```json
+{ "kind": "voronoi", "seed": 1, "cellSize": 10, "rise": 0, "bands": [
+  { "material": { "kind": "solid", "id": 155 }, "depth": 1 },
+  { "material": { "kind": "solid", "id": 3 },   "depth": 2 },
+  { "material": { "kind": "solid", "id": 1 },   "depth": 1 } ] }
+```
+
+**`cell` — the same regions, one flat colour each, with the lookup warped.** Where a voronoi draws a diagram,
+this draws a **fabric**: flat patches, any two of which may meet. `jitter` (0–100) is how far a site may sit
+from the middle of its grid cell — 0 gives the grid squares, 100 gives shards — and `warp` is how many blocks
+the boundary wanders, which is what turns a straight-edged diagram into organic patches.
+
+```json
+{ "kind": "cell", "seed": 1, "cellSize": 10, "jitter": 50, "warp": 4, "rise": 0,
+  "palette": [ { "kind": "solid", "id": 1 }, { "kind": "solid", "id": 24 },
+               { "kind": "solid", "id": 3, "data": 1 } ] }
+```
+
+**`noise`, `turbulence`, `electric` — one fractal field read three ways**, each taking `scale` (the feature
+size), `octaves` (how many levels of detail) and `stops` (the materials the field ramps through, first to
+last). `noise` is the plain field: soft cloud-like ramps. `turbulence` folds it at every zero crossing so it
+creases instead of fading — billowed, marbled bands laid out like smoke. `electric` inverts and sharpens that
+fold, so the crossings become thin branching filaments with everything else falling away — veins through a
+body rather than bands across one.
+
+```json
+{ "kind": "noise", "seed": 1, "scale": 16, "octaves": 3, "rise": 0,
+  "stops": [ { "kind": "solid", "id": 1 }, { "kind": "solid", "id": 2 },
+             { "kind": "solid", "id": 3 }, { "kind": "solid", "id": 24 } ] }
+```
+
+`turbulence` and `electric` take exactly the same fields; only `kind` changes.
+
+#### The six wall patterns
+
+These read the wall's own geometry rather than the ground's, so they draw in section and on a riser and look
+flat from above. Three of them read where a cell sits **around** the building's outline — the arc the boundary
+walk assigned it — which is what lets a stripe carry round a corner instead of restarting on each face.
+
+**`wallRun` — stripes travelling along the wall face**, wrapping the whole void-facing perimeter. The runs
+repeat in order around the loop, each as many arc cells wide as it says, so any number of materials with any
+widths cycle continuously around every corner. A cell off the outer perimeter — an internal riser — reads as
+arc 0 and takes the first run.
+
+```json
+{ "kind": "wallRun", "runs": [
+  { "material": { "kind": "solid", "id": 155 },           "width": 3 },
+  { "material": { "kind": "solid", "id": 159, "data": 8 }, "width": 2 } ] }
+```
+
+**`wallDiagonal` — the same stripes sheared by height.** `slope` is how many arc cells the pattern shifts per
+course up: 1 is 45° on a square-blocked face, larger lays it flatter, negative leans it the other way, 0 is the
+vertical run again. The height is read from the cell's own Y rather than from the foot of the wall, so two
+walls of different heights standing side by side meet with their diagonals in line.
+
+```json
+{ "kind": "wallDiagonal", "slope": 1, "runs": [
+  { "material": { "kind": "solid", "id": 155 },           "width": 2 },
+  { "material": { "kind": "solid", "id": 159, "data": 8 }, "width": 2 } ] }
+```
+
+**`wallFrame` — an edge material inked around the wall's borders and corners, with a fill inside.** `angle` is
+the turn threshold in degrees that counts as a corner, and because the measured turn ramps to a vertex rather
+than switching on at it, the same number sets how far the ink wraps round each corner — a low threshold inks a
+broad return, a high one only the vertex. `thickness` is the courses taken at the top and bottom, and a wall
+too short to hold two of them is all edge.
+
+```json
+{ "kind": "wallFrame", "angle": 45, "thickness": 1,
+  "edge": { "kind": "solid", "id": 159, "data": 15 },
+  "fill": { "kind": "solid", "id": 155 } }
+```
+
+**`checker` — two materials on a board of `size`-block squares**, laid in the face the cell belongs to, so a
+wall gets squares rather than the vertical stripes a plane pattern would give it.
+
+```json
+{ "kind": "checker", "size": 1,
+  "even": { "kind": "solid", "id": 155 },
+  "odd":  { "kind": "solid", "id": 159, "data": 15 } }
+```
+
+**`logChecker` — one log alternating upright and laid**, which is the timbering the corpus houses use. Off a
+wall the flat squares read as bark against sawn end, which is what a log floor is.
+
+```json
+{ "kind": "logChecker", "size": 1, "id": 162, "data": 0 }
+```
+
+**`laidLog` — one log lying along the wall, never across it.** The axis a log is laid on decides which two of
+its six faces are the sawn ends, and a log laid across a wall puts one straight out at the viewer; this takes
+the axis the wall is going. At a corner, where the wall has faces on both axes, the log stands upright — which
+is what a corner post is.
+
+```json
+{ "kind": "laidLog", "id": 17, "data": 0 }
+```
+
+### A theme is a terrain finish made of styles
+
+A `theme` binds a style to each of the four buckets and carries the geometry that is not a material.
+
+**What a bucket is.** The painter reads a column of stone top-down and hands each block to exactly one bucket,
+and the four are read in that order:
+
+- **`rim`** — the cap on the top course of every **edge** column: what the ground reads as from across the
+  void. It claims a stated `depth` of top courses.
+- **`surface`** — the stack finishing the top of **interior** columns, claimed downward, also to a stated
+  `depth`. Grass over two dirt is a surface three deep.
+- **`wall`** — the exposed **riser** under the rim, down as far as the shallowest drop beside it. A team tint
+  here is what makes a team's ground read as theirs. Its depth is not a knob: the riser it finds is its depth.
+- **`fill`** — every block no other bucket claimed, the body of the terrain under the surface and behind the
+  wall. It takes what is left, so it has no depth either.
+
+They **fall through** in that order: an unpainted rim falls to the surface, an unpainted surface or wall to the
+fill, and the fill to nothing — which is why the fill alone cannot be switched off. Only the rim and the
+surface carry a `depth`. Both, and the wall, may be disabled outright, and disabled is not the same as unbound:
+a theme that binds no rim keeps the built-in one, while a theme whose rim is *off* paints no rim at all.
+
+Three knobs sit beside the buckets rather than in them. **`bedrock`** is the floor course, either an absolute
+thickness or a terrain-relative depth, and the band resolver always clamps a bucket's depth to the stone above
+it, so no bucket ever recolours bedrock. **`rimEdges`** decides which edges the rim caps at all: `void` caps
+only where the ground borders the void, so a staircase of stacked plateaus takes one rim around its outside
+rather than a lip on every tread; `drop` caps wherever the ground falls away; `boundary` caps every plateau
+boundary, a face against a structure included. **`wallOnTerrainFaces`** decides whether risers inside the
+terrain are painted as wall or left to the fill.
+
+That is the whole of a theme, and this is one written out — the form `GET /themes/{id}/json` returns, the form
+a sketch stores in its `themes` registry, and the form the export consumes:
+
+```json
+{
+  "bedrock": { "relative": false, "value": 1 },
+  "rimEdges": "drop",
+  "wallOnTerrainFaces": true,
+  "rim":     { "material": { "kind": "solid", "id": 155 }, "depth": 1, "enabled": true },
+  "surface": { "material": { "kind": "layered", "layers": [
+                 { "material": { "kind": "solid", "id": 2 }, "thickness": 1 },
+                 { "material": { "kind": "solid", "id": 3 }, "thickness": 2 } ] },
+               "depth": 3, "enabled": true },
+  "wall":    { "kind": "teamTint", "blockId": 159,
+               "neutral": { "kind": "solid", "id": 159, "data": 8 } },
+  "wallEnabled": true,
+  "fill":    { "kind": "solid", "id": 1 }
+}
+```
+
+Note the shape: the rim and the surface are **band objects** — a material plus a depth plus a toggle — while
+the wall and the fill are **bare materials**, the wall's toggle riding beside it as `wallEnabled`. That is the
+built-in default, near enough: a quartz rim, grass over two dirt, a team-tinted clay wall, a stone body.
+
+In the library the same theme is a row of bindings rather than a document — each bucket naming a style id, a
+depth and a toggle — and `GET /themes/{id}/json` is what assembles the row into the above.
+
+**Unbound is a real answer, and so is switched off.** A bucket with no style (id 0) keeps the built-in finish
+and is stored by being left out, which is what makes the library worth having for the case it was built for —
+a rim and a fill bound once and reused, with only the surface and the wall differing between themes. A theme
+needs neither a rim nor a wall, so the toggle is offered whether or not a style is bound: an unbound bucket
+that is **off** keeps its binding, because it says a great deal, and only an unbound bucket that still paints
+is dropped on save, because that one says nothing.
+
+The preview is a sample plateau painted and cut open, plus a top-down swatch per bucket.
+`GET /themes/{id}/json` assembles the row into the painter's own theme JSON — the form the export consumes and
+a map snapshots — and `POST /themes/import` runs the other way, lifting a whole theme JSON into the library as
+one style per bucket plus a theme binding them.
+
+### A part is a roof, a storey or a porch
+
+One composer serves all three, because they are the same act — pick a kind, bind styles to that kind's parts,
+turn that kind's knobs — and what differs between them is data rather than a third editor.
+
+A **roof** is everything above the eave: its form, thickness, pitch and overhang, whether it carries a hole and
+a ridge cap, and a material for each of its `roof`, `verge` and `gable` parts. None of the three stacks: a
+course stack counts upward from its part's own base, which a wall has and a roof does not, since a slope's
+depth at a cell is however many courses close the step down to its neighbour.
+
+A **storey** is one room: the `clear` a player stands in — never under three, because a room has to be stood up
+in — the floor's border width and inlay inset, its windows, and courses for the `wall` (which does stack) plus
+`post`, `ceiling`, `field`, `border` and `inlay`. A house stacks storeys in order, so a shop under two flats is
+three bindings of two presets.
+
+A **porch** is the strip of footprint the walls give up and what stands on it: depth, inset, edge, roof and a
+rail block. It carries no courses at all — its deck is the house's floor and its canopy the roof's material, so
+what is left to it is its shape.
+
+Every part's picture stands it on a plain sample building, so what differs between two cards is the part and
+never the house around it.
+
+### A room is a building made of parts and styles
+
+A `room_style` carries the extents and knobs of a whole shell — floor depth, wall height, roof thickness, roof
+form, pitch, overhang, border and inlay, door and door head, beams, windows and gable windows, an optional
+porch — plus three ways of composing: per-part **course stacks**, optional bound **roof and porch style ids**,
+and a **storey stack** whose position in the list is the position in the building, ground first, so there is no
+ordinal on the wire. Reordering the list reorders the house.
+
+A course names its part, its ordinal (0 being the course nearest that part's own base), the style it resolves
+through and how many courses it runs. `post`, `sill` and `verge` take one material rather than a stack — a post
+is a post all the way up — so only their first course is read. A part with no courses keeps the built-in
+finish, exactly as an unbound theme bucket does, which is what makes a room style that only changes its roof
+worth storing.
+
+**Windows and rails are picked as a block, not as a style**, and the reason is worth keeping: their metadata is
+*geometry* — which way a stair climbs, which half a slab fills — while a material resolves its own data from
+where the cell sits, which would turn every stair in a wall the same way. A window's `hostBlock` names the
+block it may be cut into, so a seat chosen by spacing on a banded wall does not land half in one band.
+
+A room style previews in four views — plan, section, isometric and cutaway — but a library card carries the
+section alone, since an isometric is tens of kilobytes for one style and megabytes for a grid of them.
+
+### A seeded house, written out
+
+`desert brick` is one of the presets the seed puts in: end stone and sandstone under a brick roof, with no
+frame at all. Where the alpine house is a frame with panels between it, this is a wall — two courses of end
+stone under five of sandstone, unbroken by posts, so the corners are wall like everything else. The roof and
+its verge are one material, which is what a roof laid in a single thing looks like, and the gable face comes
+back down to the end stone the base is in so the two ends of the building answer each other. It is also the
+first preset to wear a door head: birch stairs in the two corners of the opening's top course, so the doorway
+loses its square top.
+
+This is what `GET /api/room-styles/3/json` answers with, unwrapped from its `styleJson` string — the form the
+stamper takes, a sketch's Rooms step stores, and a placed building carries:
+
+```json
+{
+  "wall": { "extent": 7, "courses": [
+      { "material": { "kind": "solid", "id": 121, "data": 0 }, "height": 2 },
+      { "material": { "kind": "solid", "id": 24,  "data": 0 }, "height": 5 } ] },
+  "post": null,
+  "sill":   { "kind": "solid", "id": 0,   "data": 0 },
+  "gable":  { "kind": "solid", "id": 121, "data": 0 },
+  "roof":   { "kind": "solid", "id": 45,  "data": 0 },
+  "verge":  { "kind": "solid", "id": 45,  "data": 0 },
+  "floor":  { "extent": 1, "courses": [
+      { "material": { "kind": "solid", "id": 24, "data": 0 }, "height": 1 } ] },
+  "surface": { "field": null, "border": null, "borderWidth": 1,
+               "inlay": null, "inlayInset": 2, "isPlain": true },
+  "windows": { "form": "stairLattice", "block": 135, "data": 0,
+               "hostBlock": -1, "hostData": 0,
+               "sill": 4, "width": 2, "height": 2, "spacing": 3 },
+  "gableWindows": { "form": "none", "block": 102, "data": 0,
+                    "hostBlock": -1, "hostData": 0,
+                    "sill": 2, "width": 2, "height": 2, "spacing": 3 },
+  "form": "gable", "pitch": 1, "overhang": 1,
+  "ridgeCap": false, "roofHole": false,
+  "roofSlab": -1, "roofSlabData": 0,
+  "beams": { "block": -1, "data": 0, "reach": 1, "any": false },
+  "storeys": [], "porch": null, "doorEdge": null,
+  "door": "air", "doorWidth": 2, "doorHeight": 3,
+  "doorHead": { "form": "arched", "block": 135,
+                "fill": "upperSlab", "fillBlock": 126, "fillData": 2 }
+}
+```
+
+Read it against the levels above and the whole model is visible in one object. `wall` and `floor` are **course
+stacks** — a material and how many courses it runs, counted up from the part's own base — while `post`,
+`sill`, `gable`, `roof` and `verge` are **single materials**, which is why the two end-stone-and-sandstone
+courses are a list and the brick roof is not. `post: null` is the absence of a part, not an empty one: this
+house has no frame. `storeys` is empty because the shell is one room rather than a stack, and `porch` is null
+for the same reason. Everything else is the geometry a material cannot carry — the roof's form and pitch, the
+window's lattice and spacing, the door's opening and its arched head.
+
+## Tabs
+
+Every tab is the same shape: a browsing grid of cards on the left and an editing rail on the right, with New,
+Save, Save as copy and Delete. Styles adds a filter by kind and a count per kind.
+
+The rail's draft **is the save request** — for a style, the material's own JSON node; for the rest, the request
+value itself — so the preview re-renders from the same value the save would post, and a picture cannot promise
+something the save would not build. Saving a style says which way it reaches: adding one is "Added to the
+library", editing one is "Saved. Every theme binding it now paints this."
+
+## Refusals
+
+**A bound row cannot be forgotten.** `DELETE /styles/{id}` answers **409** naming the themes and room styles
+still binding it, so the refusal says what would break rather than surfacing a foreign-key error. The three
+part kinds answer the same way: a roof, storey or porch a house still wears is refused.
+
+**A composition can be.** Deleting a theme or a room style is unguarded — a theme's bucket bindings and a room
+style's courses cascade, and the styles they bound stay. That asymmetry is deliberate: the things something
+else depends on are protected, and the things nothing depends on are the author's to discard.
+
+Beyond that the library barely refuses. A save needs a name. A storey's clear floors at three. An unbound
+bucket that still paints is dropped rather than rejected. Nothing validates that a composed style is *good* —
+the preview is the check.
+
+## The API
+
+Every endpoint is anonymous, rooted at `/api`, and takes no map.
+
+| Endpoint | Does |
+|---|---|
+| `GET /styles[?kind=]` · `GET /styles/{id}` | the style library, newest first, each with its card picture |
+| `POST /styles` · `PUT /styles/{id}` | save a material recipe — `{name, kind, params}` |
+| `DELETE /styles/{id}` | 409 `{error, themes}` when something still binds it |
+| `GET /themes` · `GET /themes/{id}` | the theme library and one theme's bucket bindings |
+| `POST /themes` · `PUT /themes/{id}` | compose from existing styles — the knobs plus bucket→style bindings |
+| `POST /themes/preview` | what a set of bindings composes to, saving nothing |
+| `GET /themes/{id}/json` | the painter-ready theme JSON — the form a map snapshots — as `{themeJson: "…"}`, the document itself being the **string** in that field |
+| `POST /themes/import` | lift a whole theme JSON in: one style per bucket plus a theme. 400, never 500, on bad JSON |
+| `DELETE /themes/{id}` | forget a theme; its bindings cascade, its styles stay |
+| `GET`·`POST`·`PUT`·`DELETE /roof-styles[/{id}]` · `…/storey-styles` · `…/porch-styles` | the three part libraries; each `POST …/preview` renders a draft on a sample building |
+| `GET /room-styles` · `GET /room-styles/{id}` | the room library and one room style's parts and courses |
+| `POST /room-styles` · `PUT /room-styles/{id}` | compose a building from parts and styles |
+| `GET /room-styles/doors` | the doors a room may be stamped with |
+| `GET /room-styles/{id}/json` | the stamper's own JSON — what a sketch binds and a building prop snapshots — as `{styleJson: "…"}`, likewise a string to unwrap |
+| `POST /room-styles/preview` · `POST /room-styles/preview-snapshot` | the shell a set of courses composes to, or the one a stored `HouseStyle` snapshot builds |
+| `DELETE /room-styles/{id}` | forget a room style; its courses cascade, its styles stay |
+| `GET /terrain/blocks` · `POST /terrain/material-preview` | the block palette, and one material drawn in plan and section |
+
+## Driving it without the UI
+
+Composing a theme is three calls and a hand-off: `POST /styles` for each material the theme needs, `POST
+/themes` binding them to buckets with the geometry knobs, then `GET /themes/{id}/json` for the painter-ready
+form — which is what goes into a sketch's own `themes` registry, keyed under a name, with `mapTheme` or a
+shape's `theme` pointing at it. `POST /themes/import` collapses the first two when a theme JSON already exists.
+
+A building is the same shape one level up: `POST /roof-styles`, `/storey-styles` and `/porch-styles` for the
+parts, `POST /room-styles` binding them with the shell's own knobs and courses, then `GET
+/room-styles/{id}/json` for the stamper's form — which a sketch's Rooms step stores as its `cage` or `spawn`
+snapshot, or a placed building carries as its `style`.
+
+Both `/json` endpoints answer a **string in a field** rather than the document — `{themeJson: "…"}` and
+`{styleJson: "…"}` — so what a sketch stores is the parse of that string, not the response.
+
+**The built-in presets are put in by a tool, not by a migration.** `dotnet run tools/seed-library.cs` writes
+the materials the house presets are made of and the room styles that bind them. It is idempotent and keyed by
+name — a row already there is updated in place and keeps the id that maps and themes depend on — and it never
+deletes, so a preset retired from the code stays as a row the author now owns. It finishes by composing each
+seeded room style back out of the library and reporting any field that came back different, which is the only
+honest way to say whether a preset survived being stored.
+
+## Limits
+
+The library knows nothing about maps, and that cuts both ways. There is no way to ask which maps use a row,
+because no map references one; and there is no way to push an edit into a map that already snapshotted it. The
+snapshot is the guarantee that a library edit cannot rebuild a shipped map, so the missing "re-apply to these
+maps" is the price of it rather than a gap.
+
+Nothing checks a composition. A style, a theme, a part and a room are all saved as stated; the previews are the
+only feedback, and they show what would be built rather than judging it.
+
+The theme half starts empty. The seed puts in materials and room styles — the presets are buildings — so a
+studio that has never composed one has fifty-odd styles and no themes, and a sketch's themes live in the sketch
+until someone pushes one out to the library.
+
+Windows and rails are chosen as blocks rather than as styles, which means the patterns a style can hold are not
+available to them. That is deliberate — their metadata is geometry, not material — but it does mean a window
+frame cannot be a voronoi.
+
+**The editor offers a kind it cannot build.** `laidLog` is in the dropdown as "Laid log beam", but the client
+has no shape for it: choosing it replaces the material wholesale with a plain stone `solid`, silently. The
+painter, the wire format and every preview handle a laid log correctly — `{"kind": "laidLog", "id": 17}`
+renders — so it is authorable by hand and by an agent, and only the picker is missing. Thirteen of the fourteen
+kinds are reachable in the UI.

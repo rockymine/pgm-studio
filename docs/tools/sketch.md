@@ -51,6 +51,40 @@ onto a map the compiled layout's geometry replaces what was there while the fini
 (`CarryFinish`). Relief is *not* in that set, because a relief is geometry: it decides what the rasterizer
 emits, and it is carried by its own rule with a refusal attached (below).
 
+The geometry half, with one shape of each flavour — a plain rectangle, a polygon carrying per-vertex heights
+and a Bézier edge, a carve, and an erected shape standing out of the relief:
+
+```json
+{
+  "setup": { "mirror_mode": "rot_180", "center": { "cx": 0, "cz": 0 },
+             "bbox": { "min_x": -60, "max_x": 60, "min_z": -40, "max_z": 40 } },
+  "layers": [
+    { "id": "ground", "name": "Ground", "base_y": 0, "layout": {
+      "shapes": [
+        { "id": "s0", "type": "rectangle", "operation": "add",
+          "min_x": -40, "min_z": -20, "max_x": 0, "max_z": 20, "floor": 0, "base_height": 9 },
+        { "id": "s1", "type": "polygon", "operation": "add",
+          "vertices": [[0, -20], [30, -20], [30, 20], [0, 20]],
+          "anchor_heights": [9, 13, 13, 9], "floor": 0, "base_height": 9,
+          "controls": { "1": { "out": [38, -12], "in": [38, -18] } } },
+        { "id": "s2", "type": "rectangle", "operation": "subtract",
+          "min_x": -14, "min_z": -6, "max_x": -6, "max_z": 6, "floor": 0, "base_height": 100 },
+        { "id": "s3", "type": "rectangle", "operation": "add", "override": true,
+          "min_x": -12, "min_z": -2, "max_x": -8, "max_z": 2, "floor": 0, "base_height": 9,
+          "height_mode": "raise", "skirt": 2, "relief_scope": "exclude" }
+      ],
+      "islands": [ { "id": "i1", "name": "Team island", "mirrors": true,
+                     "shapeIds": ["s0", "s1", "s2", "s3"] } ] } }
+  ]
+}
+```
+
+Read against the fields above: `s2`'s `base_height` of 100 is the statement of intent a subtract's height
+always is — it carves the whole column whatever the number — and `s3` sits *inside* the hole `s2` cut, which
+is what `override` is for, since an override-add is laid after the ordinary subtracts. `controls` is keyed by
+the index of the vertex whose edges the handles bend. The whole document adds the finish keys and `relief`
+beside `layers`, both shown below.
+
 ### Shapes
 
 A shape is one entry in a layer's `shapes` array. Its geometry is a rectangle (`min_x`/`min_z`/`max_x`/`max_z`),
@@ -236,6 +270,38 @@ array back to the single amount.
 A sixth mark, the **rim**, is not placed at all: it holds the island's whole outline, so it rides as a property
 of the island's relief — one height and a depth.
 
+The document is keyed by island id and carries the island's own settings beside the two lists. This one states
+all six, and solves to a surface running 7 to 16:
+
+```json
+{ "relief": {
+  "i1": {
+    "base": 9, "reach": 14, "step": 1, "stairs": true,
+    "grain": { "amplitude": 1.2, "scale": 12, "seed": 1 },
+    "marks": [
+      { "id": "r1", "kind": "point", "at": [-30, -10], "h": 15, "r": 5 },
+      { "id": "r2", "kind": "line",  "points": [[-36, 6], [-20, 10], [-6, 6]],
+        "h": [12, 14, 11], "width": 3 },
+      { "id": "r3", "kind": "area",  "ring": [[-38, -18], [-24, -18], [-24, -6], [-38, -6]], "h": 7 },
+      { "id": "r4", "kind": "scarp", "points": [[2, -16], [2, 16]],
+        "high": 14, "low": 8, "face": 2, "band": 5 },
+      { "id": "r5", "kind": "rim",   "h": 9, "depth": 1 }
+    ],
+    "pushes": [
+      { "id": "r6", "ring": [[10, -8], [24, -8], [24, 8], [10, 8]],
+        "amount": 5, "amounts": [5, 5, 2, 2],
+        "falloff": 10, "roughness": 0.3, "crown": 2, "seed": 1 }
+    ]
+  } } }
+```
+
+Two shapes of `h` are both correct: a point, an area and a rim state one number, while a line may state one
+per vertex — `"h": 9` and `"h": [12, 14, 11]` are each what an author would write, and the format reads
+either. A push carries no `kind` on the wire, because the array it sits in says what it is; `amounts` states a
+lift per ring vertex and collapses back to the single `amount` when they all agree. And a mark that does not
+carry what its kind needs is **dropped rather than defaulted** — a point without `at`, a line or scarp under
+two points, an area or push under three ring vertices never reaches the solver.
+
 Two server-side reads support the phase. The **contour overlay** posts the live layout and gets back traced
 lines per island, at a stated interval, from the build's own solver, so what is drawn cannot differ from what
 will be built. The **readback** answers what the stated terrain *charges* a player: reachability at each of the
@@ -247,27 +313,16 @@ the symmetry error. It is asked for rather than pushed, since it is a second sol
 
 Three steps, and together they are the map's paint.
 
-**Create** is the theme editor. A theme is a recipe read top-down, and the editor lays its buckets out in that
-order: **rim** is the cap on the top course of every edge column — what the ground reads as from across the
-void; **surface** is the stack finishing the top of interior columns, claimed downward, grass over two dirt;
-**wall** is the exposed riser under the rim, down to the shallowest drop, and a team tint here is what makes a
-team's ground read as theirs; **fill** is every block no other bucket claimed. They fall through in that same
-order — the rim to the surface, the surface and the wall to the fill, and the fill to nothing, which is why
-the fill alone cannot be switched off. Only the rim and the surface carry a **depth**: the wall's depth is
-whatever riser it finds and the fill takes what is left. (The painter's own enum counts a fifth bucket,
-bedrock, which is theme-wide geometry rather than something the editor paints.)
+**Create** is the theme editor. A theme is a recipe read top-down, with one section per paintable bucket —
+**rim**, **surface**, **wall**, **fill** — each carrying a material and, for the rim and the surface, a depth,
+plus the theme-wide knobs beside them: the bedrock course, `rimEdges`, and whether walls are painted on terrain
+faces. What each bucket claims, how they fall through to one another, and the fourteen material kinds a bucket
+can be filled with are `library.md`'s subject, written out there with a JSON example each; this step is where
+they are edited for one map.
 
-Each bucket's material is one of **fourteen kinds** — `solid`, `layered`, `teamTint`, `voronoi`, `cell`,
-`noise`, `turbulence`, `electric`, `wallRun`, `wallDiagonal`, `checker`, `logChecker`, `laidLog` and
-`wallFrame` — previewed against the real block palette as it is edited, and nestable, so a `wallRun` over a
-`teamTint` is a sayable thing and is exactly what `ruediger`'s wall bucket does. Around the buckets sit the
-theme's own knobs: the `bedrock` course, whether walls are painted on terrain faces, and `rimEdges` —
-`void` caps only where the ground borders the void, so a staircase of stacked plateaus takes one rim around
-its outside rather than a lip on every tread; `drop` caps wherever the ground falls away; `boundary` caps
-every plateau boundary, a face against a structure included. A new theme is a clone of the built-in default —
-a quartz rim, a team-tinted clay wall, grass over dirt — and the thing being edited is the painter's own wire
-JSON, so there is no second model of a theme to fall out of step. A theme can be pulled in from the shared
-library and pushed back out to it.
+A new theme is a clone of the built-in default — a quartz rim, a team-tinted clay wall, grass over dirt — and
+the thing being edited is the painter's own wire JSON, so there is no second model of a theme to fall out of
+step. A theme can be pulled in from the shared library and pushed back out to it.
 
 **Apply** turns the canvas into a selection surface: nothing can be drawn or moved, and picking an island or a
 shape assigns a theme to it. A shape carries the assignment (`shape.theme`), an island assignment writes it to
@@ -290,7 +345,15 @@ building, and a per-room shell would be a sightline that differed between teams.
 style's **JSON snapshot**, not the library id it came from, so editing the library afterwards cannot rebuild a
 shipped map's rooms. Each binding has three states, and they are genuinely distinct: absent stamps that kind's
 built-in shell, an object stamps the bound style, and an explicit null means no building at all — a pad on open
-ground.
+ground. What a room style is made of — its parts, its course stacks and its storey stack — is `library.md`'s,
+with a seeded house written out there in full.
+
+```json
+{ "roomStyles": { "cage": { "form": "gable", "pitch": 1 }, "spawn": null } }
+```
+
+That map stamps its wool cages with the bound style and gives its spawns no building at all. Leaving `spawn`
+out entirely — rather than writing `null` — is the third state, and stamps the built-in spawn shell.
 
 ### Dressing
 
@@ -398,6 +461,37 @@ buildings drawn touching are stamped as two buildings, and one whose footprint o
 already claimed is dropped rather than joined to it. Composing several placed rectangles into one multi-wing
 footprint is the open half of `G172`; the stamper is waiting for it.
 
+The document is a flat list of what was placed, in placement order, each entry carrying its own knobs. One of
+each:
+
+```json
+{ "dressing": { "props": [
+  { "id": "d1", "kind": "path", "seed": 1, "points": [[-36, 0], [-20, 4], [-4, 0]],
+    "radius": 3, "style": "worn", "coverage": 0.7,
+    "pave": { "kind": "solid", "id": 13, "data": 0 } },
+  { "id": "d2", "kind": "water", "seed": 2, "points": [[-30, -16], [-16, -12]],
+    "radius": 3, "depth": 2, "form": "stream", "edge": 0.8, "shore": 2, "shoreWander": true,
+    "bank": { "kind": "solid", "id": 12, "data": 0 } },
+  { "id": "d3", "kind": "flora", "seed": 3,
+    "points": [[-38, 8], [-26, 8], [-26, 18], [-38, 18]],
+    "spec": { "coverage": 0.45, "scale": 12, "octaves": 3,
+              "fernShare": 0.25, "flowerShare": 0.18, "flowerScale": 18, "tallShare": 0 } },
+  { "id": "d4", "kind": "house", "seed": 4, "points": [[-22, -16], [-14, -8]],
+    "front": "negZ", "style": {} },
+  { "id": "d5", "kind": "tree", "seed": 5, "x": -32, "z": 2,
+    "form": "template", "species": "birch", "height": 12 },
+  { "id": "d6", "kind": "boulder", "seed": 6, "x": -8, "z": 14,
+    "form": "cairn", "size": 3, "mossy": true,
+    "rock": { "kind": "solid", "id": 1, "data": 0 } }
+] } }
+```
+
+The three geometries are visible in the shape of the entries: a marker carries `x`/`z`, a traced prop carries
+`points` — a line for a path or a channel, a closed ring for ground cover — and a building carries the two
+opposite corners of its rectangle. `pave`, `bank` and `rock` are full terrain materials, so any of the
+fourteen kinds in `library.md` may stand there; a building's `style` is a `HouseStyle` snapshot, and `{}`
+means the built-in shell.
+
 Dressing does not repaint the Blocks overlay, which shows the painter's surface colours — a prop adds blocks
 *above* the surface.
 
@@ -450,11 +544,10 @@ blob, so they track unsaved edits, and all three answer 400 rather than 500 on a
 | `POST /map/{slug}/sketch/relief[?interval=]` | `{interval, islands[]}` — per island its height range, its bounds and its traced contour lines, from the build's own solver |
 | `POST /map/{slug}/sketch/relief/read` | `{islands[]}` — per island the cell count, low/high/relief, steps, tiers, the first twelve faces and the total, cliffs, crossings in X and Z, and the symmetry error |
 
-**The finish libraries**, all map-independent. `/styles` and `/themes` are the terrain-paint library a theme is
-pulled from or pushed to (`DELETE /styles/{id}` answers 409 naming what still binds it). `/room-styles` is the
-shell library the Rooms step binds from, with `/room-styles/doors`, `/room-styles/{id}/json` for the stamper's
-own form, and two preview routes — one for a set of courses, one for a snapshot. `/roof-styles`,
-`/storey-styles` and `/porch-styles` are the parts a room style is composed from. `/terrain/blocks` is the
+**The finish libraries**, all map-independent and all `library.md`'s to describe. `/styles` and `/themes` are
+the terrain-paint library a theme is pulled from or pushed to; `/room-styles` is the shell library the Rooms
+step binds from, with `/room-styles/{id}/json` for the stamper's own form; `/roof-styles`, `/storey-styles` and
+`/porch-styles` are the parts a room style is composed from. `/terrain/blocks` is the
 block palette, and `/terrain/material-preview`, `/terrain/theme-preview`, `/terrain/theme-map-preview` and
 `/terrain/prop-preview` render what an edit will look like; `/terrain/path-styles`, `/terrain/water-forms`,
 `/terrain/boulder-forms`, `/terrain/species` and `/terrain/woods` are the dressing vocabularies.
