@@ -4392,6 +4392,60 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `POST /regions/group` + `/ungroup`. (ex-R1a; wire-after-group is parked.)
 
 ## Data & ops (D)
+### Agent-drivable map generation — what sixteen agent-designed boards exposed (B78, B80–B90)
+
+Sixteen maps were designed by an agent driving the system end to end and every one of them built, which is
+the result worth reading first. The faults the boards then showed are recorded in `tools/mapgen/review.md`;
+these are the ones that shipped a map that could not be played as intended, and every one of them was silent
+— the map built, loaded and looked correct from above.
+
+- **A generated map goes out through the export composer (B80).** `tools/mapgen` called `XmlWriter` directly
+  and skipped `MapXmlComposer`, so a board shipped without `itemkeep`, `toolrepair`, `itemremove` or hunger
+  depletion (carried by 81–99% of the corpus) and without the reordering that puts `not-build-area` last —
+  the rule that holds players out of the void. Routing through the composer restores all four and the
+  renewables; a kitless map now reports rather than silently dropping its loadout rules. The `unbreakable`
+  question was settled on the corpus rather than assumed: of 301 maps carrying `<toolrepair>`, 291 (97%) also
+  mark a kit tool unbreakable, so the generated kit keeps it.
+- **A destroy kit's pickaxe is paired to its goal, and an unbreakable goal refuses (B81).** An obsidian
+  monument against an iron pickaxe cannot be mined at all, so every destroy board in the batch was
+  unwinnable. The pickaxe now derives from the goal's material, the spec can name that material
+  (`objective_materials`, monuments only — a core's casing is not a knob), and two refusals close the loop: a
+  material no tool in the kit can break, and a material the stamper cannot build. The second matters because
+  `DestroyableMaterials` silently falls back to obsidian while the generator writes the authored name
+  verbatim, which shipped a goal whose declared material matched nothing in its own region.
+- **A goal standing over void refuses the build (B82).** Checked against the ground already rasterized before
+  dressing. It immediately caught three shipped `dtcm` specs whose cores stand in void (cause filed as B94).
+- **The relief holds a room's floor instead of carving through it (B83).** The task's premise was false and
+  checking it was the work: the structural shapes the compiler projects are `Role`-tagged annotations the
+  rasterizer skips everywhere, so stating `relief_scope` on them would have been a no-op. The honouring was
+  fixed — a room binds to its island by footprint overlap — and the compiler now states `hold` and the piece's
+  own surface on the authored orbit image. Measured: standing bedrock 9740 → 6528 on one board, because
+  `StampFoundation` had been filling a column inflated by relief pushed above the room's stated height.
+- **A spawn's door faces the board, not the drop (B84).** Resolved against the piece's own open sides before
+  the symmetry fan, so it reflects and rotates correctly rather than naming a compass direction.
+- **Nothing is placed inside anything else (B85).** Overlap is decided against the occupied resting cells of
+  everything already standing, after fanning; `tools/mapgen` samples candidate sites from one canonical half
+  of the orbit so a prop's mirror is never independently re-drawn.
+- **A prop is decided once for its whole orbit (B86).** `Decorator.Fan` and `PlaceHouse` collect every orbit
+  image before writing any, so a mirrored board no longer keeps a tree on one side and drops its mirror.
+  Verified at world level: 0 of 606 leaf columns and 0 of 208 log columns unmatched across the mirror.
+- **A tree's protection is decided on the cells it rests on (B78).** Testing every cell a prop occupied made a
+  taller tree likelier to be dropped whole, so height was silently inverted — a grown oak fell 1545 → 108 → 0
+  leaves across heights 8/12/20 and now climbs 1545 → 3361 → 8136. Gated on the corpus: of 124,374 columns
+  carrying both a leaf and an unambiguously man-made block, 106,354 (85%) have the leaf above it, and 204 of
+  318 maps have at least one — hand-built trees overhang their own structures routinely. `tools/mapgen`'s
+  grown-tree ceiling of 14 is removed.
+- **A wool-room chest opens into the room (B87)**, its facing resolved from the room's own door rather than a
+  second rule. **A destroyable stands on a one-block-thick 5×5 bedrock platform (B88)** so it cannot be
+  undermined. **Every goal carries a marker above `max_build_height` (B89)** — a cube over a wool room, a
+  cross over a destroyable or core, coloured to the goal — placed where it cannot be reached or griefed.
+- **Every stage answers with a picture (B90).** A plan now renders as a raster as well as SVG
+  (`GET /plans/{id}/png`), both drawn from one shared `PlanBoardScene` so the two encodings cannot disagree;
+  the PNG encoder moved down to `PgmStudio.Geom`, four world read-backs moved from the round-trip tool into
+  `PgmStudio.Minecraft.Render` and each gained an entry point taking a `VoxelWorld` directly, so the CLI and
+  the generator call the same renderer. `tools/mapgen --stages` emits eight named images — plan, heightmap,
+  contour, surface, dressing, topdown, traversability, structures — off the world it just built.
+
 - **The capability handbook — what the system can be asked for, and where to say it (B91).** `tools/mapgen/surface.md`
   mapped the four documents a map is made of; it now also states the surface underneath the spec's shorthand, in
   pipeline order, every claim naming the type that carries it and the endpoint that answers it: the destroyable's

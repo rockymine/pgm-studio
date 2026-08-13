@@ -132,11 +132,18 @@ lands and say nothing about whether a tree did. Nothing but a tree lays a leaf.
 `clearance` is a distance in blocks, kept between a prop and any objective piece — a room or a spawn, grown
 by that much. Raising it pushes scenery further off the goals and leaves less ground to plant on.
 
-**Aim the leaf count, don't just clear a floor.** Around **1,000–5,000 leaves** on a board of this size reads
-as wooded — trees you walk between. Under a few hundred is a bare map with a shrub on it. Above roughly
-**10,000 the canopy closes** and the map disappears underneath it: a spruce forest at 17,600 leaves on a
-120×240 board rendered as one solid green mass with the terrain, the buildings and the routes all buried.
-Density is a design decision, so read the number and then adjust it in both directions.
+**Aim the leaf count, don't just clear a floor — but read it per tree.** A leaf count alone does not say
+whether a board is wooded or buried, and two measurements on the same map size settle it. A spruce forest at
+**17,600 leaves** over many sites rendered as one solid green mass, with the terrain, the buildings and the
+routes all lost underneath it. `thornwake` at **17,897 leaves** over **72** trees renders as a wood: the
+buildings, the wool rooms, the paths and the void channel all read, and a player walks between trunks. Nearly
+the same count; opposite maps. What separates them is how many trees the leaves are divided among — a few
+hundred leaves per tree is a canopy with gaps under it, and a few dozen is a blanket laid over the board.
+
+So the number to read is the count **and** the site count together, and the number that would actually settle
+it is neither: it is what share of the ground stands under a leaf (`B96`). Under a few hundred leaves is a
+bare map with a shrub on it whatever the site count. Density is a design decision, so read both numbers, look
+at the top-down, and adjust in either direction.
 
 **Relief and dressing compete for the same ground.** Steep terrain is not merely rougher, it is unplantable:
 a scarp at face 3 over a 9-block band left 113 of 520 tree sites standing and *none* of them seated, and the
@@ -204,7 +211,7 @@ the default; say it when the map is a destroy map.
 }
 ```
 
-It reports `4 building(s) · 171/210 tree site(s)` and `6294 leaves` — a wood you can walk through, on ground
+It reports `4 building(s) · 72/210 tree site(s)` and `17897 leaves` — a wood you can walk through, on ground
 that rises and falls, with four buildings on it and its two rooms raised as houses.
 
 ## Seeing it

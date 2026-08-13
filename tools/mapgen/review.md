@@ -54,26 +54,30 @@ Two entries below are what stand between the tool and that, and both belong at t
   then dressing — with each step looked at before the next is laid on it. Fifteen boards were emitted whole
   and inspected once, from a single top-down, after every decision had already been made.
 
-## Start here — what actually breaks a map
+## What broke a map, and what closed it
 
-The entries below are in pipeline order, not in severity order, and they are not equal. Most are the
-difference between a rough map and a good one. **Six are the difference between a map and a broken map**, and
-they are what to fix first — each one ships a board that cannot be played as intended, and four of them make
-one that cannot be won at all.
+Eight entries were the difference between a map and a broken map rather than between a rough map and a good
+one, and they are gone from the pool because they are fixed. They are recorded here as a list rather than as
+entries, because the shape of that set is the useful part: six of the eight shipped a board that could not be
+played as intended, four shipped one that could not be won at all, and every one of them was silent — the map
+built, loaded, and looked correct from above.
 
-| | Breaks | Why it is fatal |
+| was | closed by | what it shipped |
 |---|---|---|
-| **MG18** | every destroy board | The goal defaults to obsidian and the kit carries an iron pickaxe, which does not mine obsidian at all. The monument cannot be broken, so the map cannot be won. 86 of 86 corpus maps with an obsidian goal ship a diamond pickaxe. |
-| **MG3** | any goal over void | An objective with no ground under it cannot be reached or mined. Unwinnable, and silent — the map builds and loads. |
-| **MG14** | every generated map | The export composer is bypassed, so a map ships with no `itemkeep`, `toolrepair`, `itemremove` or hunger rule — and without the reordering that puts `not-build-area` last, which is the rule holding players out of the void. It therefore feeds MG3. Fixing it is one call, and it closes MG15, MG16 and MG17 with it. |
-| **MG5** | spawn and wool rooms | The relief is solved after the rooms are sited and moves the ground under them. Carving *below* a room leaves its floor cut or hanging. |
-| **MG4** | spawns on a piece edge | The yaw decides which wall the door is cut through, so a spawn facing outward opens its only exit over the drop. |
-| **MG7** | structures everywhere | Buildings stamped inside buildings and trees grown through both. Not merely ugly — a structure through a room's wall is a hole in it, and a tree through a doorway is a blocked route. |
+| MG18 | `B81` | an obsidian goal against an iron pickaxe, so no monument could be broken |
+| MG3 | `B82` | a goal standing over void, unreachable and unminable |
+| MG14, MG15, MG16, MG17 | `B80` | no `itemkeep`, `toolrepair`, `itemremove` or hunger rule, and `not-build-area` not last |
+| MG5 | `B83` | a relief solved under a sited room, cutting its floor |
+| MG4 | `B84` | a spawn whose only exit opened over the drop |
+| MG7 | `B85` | buildings inside buildings and trees through both |
+| MG26 | `B86` | a mirrored board whose dressing differed side to side |
+| MG20 | `B87` | wool-room chests turned into the wall |
 
-Two more are wrong on every board and cheap to fix, without making a map unplayable: **MG26** (a mirrored
-board whose dressing differs side to side, because each orbit image is decided separately) and **MG20**
-(wool-room chests turned into the wall). Everything else is design, and the section above is what it is
-measured against.
+Two more that were not faults but absences closed with them: a destroyable now stands on a one-block bedrock
+platform (MG23, `B88`) and every goal carries a marker above the build cap (MG24, `B89`).
+
+What remains below is design. It is the difference between a rough map and a good one, which is a real
+difference, and the section that follows is what it is measured against.
 
 ## How a map is designed
 
@@ -180,45 +184,9 @@ plays wrong even when every element is present.
 
 ## The objectives
 
-**MG3 — A monument or a core may never stand over void.** Some do. An objective in void cannot be broken:
-without a build region under it there is nothing for a player to stand on or mine through, so the goal is
-unreachable and the map is unwinnable. This is a hard invariant, not a quality note, and it belongs in the
-tool as a refusal — a spec that sites a goal off the ground should fail to build rather than write a board
-that cannot be played. The check is cheap: the rasterized ground is already computed before dressing, and the
-goal's anchor either has a column under it or does not.
-
-**MG18 — An obsidian goal needs a kit that can mine obsidian, and every destroy map in this batch fails
-it.** The plan compiler defaults a destroyable's material to obsidian, which over half the corpus also uses,
-and the generated spawn kit carries an **iron** pickaxe. An iron pickaxe does not mine obsidian slowly — it
-does not mine it at all, breaking nothing and dropping nothing. So every monument and every core in the
-seven destroy boards is indestructible and every one of those maps is unwinnable, in the same way and for the
-same reason as a goal standing over void (MG3).
-
-The corpus does not merely prefer the pairing, it never breaks it. Of 312 destroy maps, **86 name obsidian in
-a goal's materials and all 86 carry a diamond pickaxe — 100%, no exceptions.** Among the 226 whose goal is
-some softer material, 65% carry one anyway, so a diamond pickaxe is common everywhere and *mandatory* where
-the goal is obsidian. Only 30 maps carry both a diamond and an iron pickaxe, so the usual shape is a
-substitution rather than an addition: the destroy kit is the capture kit with its pickaxe upgraded, which is
-what makes it a kit **variant** rather than a second kit.
-
-Two ways to be right, and the tool should do both: pair the kit to the goal material when it builds a destroy
-map, and refuse to write a map whose goal material no tool in its kit can break. The second is the one that
-survives someone later choosing a different material.
-
 **MG19 — The observer spawn takes no kit.** `ObserverIntent` carries a point and a yaw and nothing else, so
 observers arrive with whatever the server hands them. An observer wants its own kit variant — the flight and
 the tools for watching a match rather than playing one — and the intent has nowhere to put it.
-
-**MG20 — Wool-room chests face into the wall.** The chests stamped in a wool room are not turned to the room
-they open into, so some present their back to the player and can only be opened from inside the wall. A
-chest's facing is a block data value and has to be resolved against which wall it sits on and which way the
-room is entered — the same question the room's door already answers, which is where the answer should come
-from.
-
-**MG4 — A spawn must not face its exit into the void.** The spawn's yaw decides which wall its door is cut
-through, and a spawn on the edge of a piece with its yaw pointing outward puts the only way out over the
-drop. The direction is settable and is currently inherited from whatever the compiler fanned. It should be
-chosen against the ground: face the spawn at the board, not off it.
 
 ## The structures
 
@@ -247,16 +215,6 @@ cube on the surface (ST2/ST3). The composer emits no iron markers, so no generat
 to fight over. Iron wants placing regularly through the map rather than once near a spawn — it is a reason to
 leave cover, which is the same argument as MG9 about trees.
 
-**MG23 — A destroyable wants a bedrock platform under it.** A 5×5 bedrock platform one block beneath the
-ground under each destroyable, so the monument cannot be undermined from below and the ground it stands on
-cannot be mined out from under the goal. Nothing stamps one today.
-
-**MG24 — Every goal wants a marker in the sky.** A wool room, a destroyable and a core each want a mark high
-above them, above build height so no one can reach or grief it — something as simple as a small cube or a
-letter picked out in blocks. It is how a player crossing open ground knows where the goal is without a map,
-and it is the cheapest legibility a board can carry. Above build height matters: `BuildIntent.MaxHeight`
-already caps building, so the marker sits out of reach by construction.
-
 ## The paint
 
 **MG2 — A single blanket theme wastes the one thing the layout already gives away.** Every spec paints one
@@ -280,18 +238,6 @@ static render has no biome to read, so a top-down would need to read the array t
 
 ## The ground
 
-**MG5 — A relief must not move ground an objective is standing on, and must never carve below it.** On the
-capture maps the solved surface overrides the spawn and wool placements, so a room ends up cut into a slope
-the relief invented after the room was sited. Two rules, in strength order: the ground a spawn or a wool room
-stands on should be **left alone** by the solve, and failing that it must **never be carved below** the
-room's floor — a surface solved downward under a stamped room leaves the floor cut through or hanging over a
-hole, which is the version that breaks the map rather than merely spoiling it. The machinery to prevent both
-is already there and unused: a shape states `relief_scope` —
-`hold` pins it at its own stated top so the surrounding surface is solved *knowing where it has to arrive*,
-and `exclude` keeps it out of the solve altogether — and `height_mode` with `skirt` sits a stated platform
-into the terrain rather than on it. Every structural shape the plan compiler projects (`spawn-*`, `wool-*`)
-is exactly the case those words were written for, and none of them sets either.
-
 **MG6 — Relief and dressing compete, and the competition is currently settled by luck.** Steep ground is
 unplantable, so the same spec at a harsher relief silently loses its forest — one scarp took a board from 785
 leaves to none. The tool reports the two numbers that distinguish "no site was acceptable" from "the pass
@@ -300,13 +246,6 @@ whatever is left. Deliberate placement (MG9) largely dissolves this, since a cho
 ground was chosen to suit it.
 
 ## The dressing
-
-**MG7 — Nothing may be placed inside anything else.** Buildings stand inside buildings, trees grow inside
-trees, and trees grow through buildings. The village pass keeps buildings a margin apart and the forest pass
-keeps trees a margin from buildings *placed before it*, but the margins are small, the checks are
-site-against-site rather than footprint-against-footprint, and the symmetry fan places an orbit image that
-nothing tested. Overlap has to be decided against the **occupied cells** of everything already standing,
-after fanning, not against the anchor a prop was requested at.
 
 **MG8 — An L or a T house is buildable and unauthorable.** `Footprint` holds wings, `HouseStamper` walks them
 as one landmass, and the roof of a building is the union of its wings' roofs with the cross-gable built where
@@ -320,14 +259,6 @@ turns a row of boxes into a village.
 filter, which is why they read as noise: no groves, no treeline, no clearing, nothing thicker where the map
 wants cover and nothing bare where it wants sightlines. Trees are cover, and cover is a gameplay decision. The
 same argument applies to buildings, which are currently dropped wherever the ground happens to be level.
-
-**MG26 — The dressing is not symmetric, and the mechanism that breaks it is known.** A mirrored board whose
-trees differ side to side reads as broken however good each side is. The dressing pass *does* fan every prop
-through the symmetry orbit, but it decides each image independently: `Decorator.Fan` loops the orbit and
-runs `Seats` per image, and a `continue` on failure drops **that image only**. So a tree whose mirror lands a
-block nearer a protected column, or on ground the relief left slightly steeper, is built on one side and
-missing on the other — which is exactly the asymmetry observed. A prop has to be decided **once for the whole
-orbit**: seat every image or none. The same applies to any pattern placed per-cell rather than per-orbit.
 
 **MG33 — Every house is the same house.** The buildings on all fifteen boards read as one shape repeated,
 because they very nearly are: the presets cluster around 7–13 wide by 7–11 deep, the specs draw from a
@@ -369,61 +300,6 @@ README now says so, but nothing enforces or even reports against a target.
 board's edges read identically whatever else changes about it. The pattern vocabulary — voronoi, cell, noise,
 turbulence, electric, over nineteen families — is barely sampled, and the choice is not tied to what the wall
 is (a cliff face, a built retaining wall, the side of a platform).
-
-## The XML
-
-**MG14 — The export composer is bypassed, so a generated map carries none of the boilerplate every corpus
-map carries.** `tools/mapgen` builds its document and calls `XmlWriter.ToXml(Deserializer.FromDict(doc))`
-directly. The path a map is supposed to take is `MapXmlComposer.Compose(doc, isIntent: true, …)`, and
-everything it does is therefore missing: `CtwStandards.Apply` (the keep / repair / remove rules derived from
-the spawn kit, hunger depletion off, and the shared golden-apple kill-reward include),
-`WaterLaneGenerator.EnsureInclude`, `ResourceRenewables.Apply`, `StructureRenewables.Apply`, and the
-reordering that puts the `not-build-area` rule **last** — which matters because PGM stops at the first
-applicator that decides, and that rule is the one keeping players out of the void (MG3). None of this is
-unbuilt: `CtwStandards` derives its lists from the corpus at N=199 and `XmlWriter` already emits all four
-elements. The generated maps simply never go through the composer, and one call is most of the fix.
-
-The measure of how wrong that is, over the 365 corpus capture maps outside this batch:
-
-| element | corpus maps carrying it | in a generated map |
-|---|---|---|
-| `<itemremove>` | 364 (99%) | absent |
-| `<toolrepair>` | 345 (94%) | absent |
-| `<itemkeep>` | 299 (81%) | absent |
-| `<hunger><depletion>off` | 297 (81%) | absent |
-| `<armorkeep>` | 3 (1%) | absent, and unwritable |
-
-The hyphenated spellings PGM also accepts — `item-keep`, `tool-repair`, `item-remove` — are used by **no**
-corpus map at all, and the writer already emits the unhyphenated forms the corpus uses.
-
-**MG15 — Spawn armour goes in `<itemremove>`, the way the corpus does it.** *(Decided by the author.)*
-Leather kit armour currently drops and lies on the ground, because nothing says otherwise. `<itemremove>`
-destroys the stack when it spawns as an entity (`ItemSpawnEvent`), so the armour still leaves the body on
-death but never litters the field and cannot be worn by the killer; it works because the kit re-applies
-team-coloured armour on respawn. That is the convention at 99% of the corpus, and it is already what
-`CtwStandards` derives — `m.ItemRemove = kit.Armor.Select(a => a.Material)`. So this entry needs no new code
-beyond MG14: routing through the composer produces it. The alternative, `<armorkeep>`, keeps the armour on
-the body and is not being taken — three maps in 365 use it, and the writer could not emit it anyway, having
-no armour list.
-
-**MG16 — Tools that wear out are meant to be repairable, and a generated map repairs nothing.**
-`<toolrepair>` lists materials whose pickup repairs the tool already in the inventory rather than stacking a
-second one — picking up a sword restores the held sword's durability by the picked-up one's remaining hits
-and the pickup is cancelled. Without it a kit's sword, axe and pickaxe simply break and the player is
-disarmed until the next death. 94% of the corpus carries it; `CtwStandards` already derives the list as the
-kit's tools and weapons, identified by the material's last word.
-
-One thing to check while wiring it, because the two overlap: the generated spawn kit marks its tools
-`unbreakable="true"`, and an unbreakable tool never wears down, so `toolrepair` has nothing to repair on it.
-The corpus carries both at once, which suggests the two are belt and braces rather than alternatives — but
-whether the generated kit should keep `unbreakable` once `toolrepair` is present is a real question and
-should be answered against what the corpus kits do, not assumed.
-
-**MG17 — The derivation is silent when a map has no kit.** Everything `CtwStandards` derives sits behind
-`if (m.Kits.FirstOrDefault() is { } kit)`; only the kill-reward include and hunger-off happen
-unconditionally. Every map in this batch carries a spawn kit, so MG14 alone fixes them — but a kitless map
-would pass through the composer and come out with no keep, repair or remove rules and no warning that its
-loadout rules are missing. Worth a report line rather than silence, since the elements are near-universal.
 
 ## The tool itself
 
