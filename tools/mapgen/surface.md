@@ -100,6 +100,35 @@ describe. One clarification worth keeping, because the map is easy to misread: i
 layer named "Ground". The layering that reads as depth is the shapes' own `base_height` tiers, not
 `layers[]`.
 
+## Forty-eight worked plans, and a traced corpus
+
+`ruediger` is the worked example this document reached for first, and it is a **layout**. The plan layer has
+its own worked examples and there are forty-eight of them, in `tools/seeds/`, which is where an author
+looking for "how is a board actually stated" should start. Nothing pointed at them, which is the likeliest
+reason every generated board so far began from `compose`: the only example on offer was one layer down from
+the question being asked.
+
+**Sixteen of them are real published maps traced into plan space** (`tools/seeds/traced/` — `acapulco`,
+`aether`, `ad-astra`, `after-hours`, `3084` and the rest). That makes them the ground truth for what a
+real board's structure looks like as pieces: how many, how large, how they connect, and — the part no
+generated board has ever reproduced — **how their heights step**. `traced/bridgid-ii.plan.json` carries 36
+pieces across sixteen height tiers from 11 to 41.
+
+**Height is stated per piece, and the global stays where it is.** Every seed leaves `globals.surface` at 9
+and varies `PlanPiece.Surface` instead, which is what makes a step a step: `mirror-big-board` runs 39 pieces
+over tiers 11·13·15·17·19, `big-board-wool-two-sided-plaza-parallel-mid` runs 16 pieces over
+5·7·11·13·15·17, and `mirror-tiny-map-cliff` puts its pieces at 3·5·7·11 — at and **below** the global,
+which is how ground goes down rather than up. A relief dropped onto a board whose pieces all sit at the
+default has nowhere to cut to; the seeds solve that by stating the tiers first.
+
+**A third folder teaches structures rather than maps.** `tools/seeds/teaching/` holds seventeen plans built
+to demonstrate one thing each — build interfaces, build regions, a crammed frontline, a middle void with and
+without steps, mid rotations — and it carries its own shopping list of what is covered. It is the right place
+to look for what a named structure is supposed to look like before authoring one.
+
+The folder's own `README.md` documents only the three `base-*` sketch layouts and frames the directory as
+test fixtures for the export, so none of the above is discoverable from it (`B108`).
+
 ## The capability surface
 
 `MapSpec` — the JSON `tools/mapgen` actually reads — is a reduction of the four documents above, not an

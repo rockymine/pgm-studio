@@ -124,6 +124,21 @@ holds them until one becomes the focus.
   them — so where an edit is stored, and what happens to it on the next compile, is the design question rather
   than the dragging.
 
+- [ ] **B108 — Forty-eight worked plans exist and nothing points at them.** `tools/seeds/` holds 15
+  hand-authored plan documents, 17 more under `teaching/` built to demonstrate one structure each, and 16
+  under `traced/` that are **real published maps traced into plan space**. Between them they answer every
+  question an author has about how a board is stated — piece counts, sizes, connectivity, and the per-piece
+  `surface` tiers that make ground step, which no generated board has ever reproduced. `traced/bridgid-ii`
+  alone carries 36 pieces across sixteen height tiers.
+
+  None of it is reachable from the documentation. `tools/seeds/README.md` describes the three `base-*`
+  **sketch layouts** and frames the whole directory as fixtures for exercising the world export; it names no
+  plan, never mentions `traced/` or `teaching/`, and never mentions `surface`. Meanwhile every doc that
+  offers a worked example — this file and `review.md` — cites `ruediger.layout.json`, which is a *layout*. So
+  an author asking "how do I write a plan" is pointed one layer below the question, and every board generated
+  so far started from `compose` instead. The handbook now names the seeds; the README is still wrong, and the
+  seeds themselves want names that say what they demonstrate rather than what they contain.
+
 - [ ] **B92 — A building can be a solid volume behind its own facade.** `HouseStamper` raises walls, a roof
   and their openings, and the volume they enclose is left as air — "fill" appears in the house model only as a
   wall's infill between posts and as the gable's, never as the interior. That makes every building somewhere
