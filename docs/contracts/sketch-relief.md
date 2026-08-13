@@ -431,6 +431,23 @@ would leave them reading their own plate, which is the failure the erect pass ex
 offers whichever question applies: a skirt for a shape standing out of the terrain, a participation for a
 shape that is terrain.
 
+**A structural annotation binds by footprint, not by membership, and its held height can be corrected once the
+ground is real.** A spawn or wool room the plan compiler projects into the layout is a held shape that is
+never listed in its island's own `shapeIds` — that list is read elsewhere as the island's terrain rings, and
+the annotation is not terrain. It binds instead by overlapping the ground the island's own shapes already
+claimed, so `hold`/`exclude` apply to it exactly as they would an ordinary member shape. Its stated
+`floor`/`base_height` starts out as the plan's flat `surface`, because that is the only height a plan-space
+piece can state before any terrain exists — and once the relief solved around it is visible, that number can
+be wrong: a piece pinned to a flat plan height can leave a depression next to it unable to reach the floor it
+was drawn for. `height_authored: true` marks a shape whose `floor`/`base_height` the author corrected in the
+sketch rather than the compiler; a recompile carries those fields forward matched by the shape's `intentRef`
+(`SketchLayout.CarryStructuralHeight`) instead of overwriting them with the plan's own number, since the
+compiler regenerates the shape's id and rect every time but a spawn or wool room keeps the same team/
+owner:colour identity across a recompile. This is narrower than a relief's own carry: a relief is carried
+unconditionally because it cannot be re-derived from anything, while an unmarked structural shape keeps
+tracking the plan's `surface` on every compile, so the mechanism never masks a deliberate plan-side height
+change the author never asked to keep.
+
 ## 12. What the corpus says, and what it says about this
 
 Every number above is self-consistent, which is not the same as being right. The same readback was run over
@@ -684,3 +701,12 @@ the identical gap (`world-export/ideas.md` G167) and the two should share one an
 
 **The readback surface.** The measurements are computed and have nowhere to be fetched from. What makes a
 relief drivable by a generator or an agent is that the report sits next to the document it describes.
+
+**Editing a structural piece's stated height, and moving one at all.** §11's `height_authored` carry is the
+storage half only: the shape it applies to is still locked in the canvas — rendered, never hit-tested, never
+selected — so nothing in the editor writes `floor`/`base_height`/`height_authored` on one yet. What unlocks it
+is an inspector affordance on a selected structural annotation restricted to its height (position and rect
+stay compiler-derived, which is a separate piece of work), writing through the sketch's ordinary save rather
+than a new endpoint. Moving the piece itself, and giving a destroyable or a core the same treatment, are
+larger and are not this: a destroyable/core marker has no rect in the plan to surface at all today, so netting
+it into the sketch is downstream of deciding what its rect *is* — a plan-space question, not a sketch one.
