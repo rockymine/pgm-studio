@@ -99,4 +99,34 @@ public sealed class StructureStamperTests
         await Assert.That(w.GetBlock(-25, 15, 40).Id).IsEqualTo(Blocks.Air);   // one course, and nothing above it
         await Assert.That(w.GetBlock(-20, 14, 39).Id).IsEqualTo(Blocks.Air);   // exclusive at maxX, like the bedrock
     }
+
+    [Test]
+    public async Task Platform_is_a_5x5_bedrock_plate_one_course_beneath_the_ground()
+    {
+        var w = new VoxelWorld();
+        var surf = FlatSurface(-10, -10, 10, 10, top: 20);   // ground surface (solid) block at y=19
+        StructureStamper.StampPlatform(w, surf, minX: -2, minZ: -2, maxX: 2, maxZ: 2);
+
+        // One course below the ground's own top block (19 - 1 = 18), full 5×5 footprint.
+        for (var x = -2; x <= 2; x++)
+        for (var z = -2; z <= 2; z++)
+            await Assert.That(w.GetBlock(x, 18, z).Id).IsEqualTo(Blocks.Bedrock);
+
+        // Nothing at the ground's own surface course, and nothing a course further down either — one
+        // course is the whole of it.
+        await Assert.That(w.GetBlock(0, 19, 0).Id).IsEqualTo(Blocks.Air);
+        await Assert.That(w.GetBlock(0, 17, 0).Id).IsEqualTo(Blocks.Air);
+        // Outside the 5×5 footprint, nothing is touched even at the plate's own course.
+        await Assert.That(w.GetBlock(3, 18, 0).Id).IsEqualTo(Blocks.Air);
+    }
+
+    [Test]
+    public async Task Platform_noops_when_the_terrain_is_too_shallow_to_bury_a_course_under()
+    {
+        var w = new VoxelWorld();
+        var surf = FlatSurface(-10, -10, 10, 10, top: 1);   // ground surface at y=0 — nothing to bury under
+        StructureStamper.StampPlatform(w, surf, minX: -2, minZ: -2, maxX: 2, maxZ: 2);
+
+        await Assert.That(w.GetBlock(0, 0, 0).Id).IsEqualTo(Blocks.Air);
+    }
 }

@@ -99,6 +99,47 @@ public sealed class DestroyableWorldTests
     }
 
     [Test]
+    public async Task Each_destroyable_stands_on_a_buried_5x5_bedrock_platform()
+    {
+        // MG23/B88: a one-block-thick 5×5 plate, seated one course beneath the ground under the goal, so
+        // the goal cannot be undermined from below.
+        var (world, resolved) = Build(Json);
+        await Assert.That(resolved.Destroyables!.Count).IsEqualTo(2);
+
+        foreach (var destroyable in resolved.Destroyables!)
+        {
+            var anchorX = (int)Math.Round(destroyable.Anchor.X, MidpointRounding.AwayFromZero);
+            var anchorZ = (int)Math.Round(destroyable.Anchor.Z, MidpointRounding.AwayFromZero);
+            // The piece surfaces at y=12, so the ground's own top block is y=11 and the buried plate is y=10.
+            var count = 0;
+            for (var x = anchorX - 2; x <= anchorX + 2; x++)
+            for (var z = anchorZ - 2; z <= anchorZ + 2; z++)
+                if (world.GetBlock(x, 10, z).Id == Blocks.Bedrock) count++;
+            await Assert.That(count).IsEqualTo(25);
+
+            // The ground's own surface course is untouched — the plate is buried a course down, not built up.
+            await Assert.That(world.GetBlock(anchorX, 11, anchorZ).Id).IsNotEqualTo(Blocks.Bedrock);
+        }
+    }
+
+    [Test]
+    public async Task Each_destroyable_carries_a_sky_marker_in_its_owning_teams_colour_above_the_build_cap()
+    {
+        // MG24/B89: the marker floats clear of BuildIntent.MaxHeight (globals surface 9 + headroom 11 = 20
+        // here), out of build reach by construction.
+        var (world, resolved) = Build(Json);
+        var floorY = 20 + GoalMarkerStamper.Clearance;
+
+        foreach (var destroyable in resolved.Destroyables!)
+        {
+            var anchorX = (int)Math.Round(destroyable.Anchor.X, MidpointRounding.AwayFromZero);
+            var anchorZ = (int)Math.Round(destroyable.Anchor.Z, MidpointRounding.AwayFromZero);
+            var expectedDamage = destroyable.Owner == "red" ? 14 : 11;   // red / blue wool
+            await Assert.That(world.GetBlock(anchorX, floorY + 1, anchorZ)).IsEqualTo((Blocks.Wool, expectedDamage));
+        }
+    }
+
+    [Test]
     public async Task The_exported_xml_carries_the_destroyables_and_reads_back()
     {
         var (_, resolved) = Build(Json);

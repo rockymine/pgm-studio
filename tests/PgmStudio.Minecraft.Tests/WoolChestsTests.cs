@@ -60,4 +60,36 @@ public sealed class WoolChestsTests
             Directory.Delete(dir, recursive: true);
         }
     }
+
+    [Test]
+    public async Task A_corner_chest_opens_away_from_both_walls_it_touches()
+    {
+        // Door on the NegZ (north) wall — the entry axis is Z, so every corner chest faces along Z, away
+        // from whichever of its two walls sits on that axis. The two corners nearest the door (low Z) face
+        // south (data 3, PosZ); the two nearest the back wall (high Z) face north (data 2, NegZ). Neither
+        // value ever points at the wall the corner actually sits against.
+        var world = new VoxelWorld();
+        var frame = RoomFrames.Resolve(-5, -5, 5, 5, 0, 0, [(-5, -5, 5, -5)], null, out _)!;
+        WoolChests.Stamp(world, frame, floorY: 64);
+
+        await Assert.That(world.GetBlock(-3, 65, -3).Data).IsEqualTo(3);   // near-door corner (west) → south
+        await Assert.That(world.GetBlock(2, 65, -3).Data).IsEqualTo(3);    // near-door corner (east) → south
+        await Assert.That(world.GetBlock(-3, 65, 2).Data).IsEqualTo(2);    // back-wall corner (west) → north
+        await Assert.That(world.GetBlock(2, 65, 2).Data).IsEqualTo(2);     // back-wall corner (east) → north
+    }
+
+    [Test]
+    public async Task A_door_on_a_side_wall_turns_every_chest_to_face_along_X_instead()
+    {
+        // Door on the NegX (west) wall: the entry axis is X, so facing follows X instead of Z — the two
+        // corners nearest the door face east (data 5, PosX), the two nearest the far wall face west (data 4).
+        var world = new VoxelWorld();
+        var frame = RoomFrames.Resolve(-5, -5, 5, 5, 0, 0, [(-5, -5, -5, 5)], null, out _)!;
+        WoolChests.Stamp(world, frame, floorY: 64);
+
+        await Assert.That(world.GetBlock(-3, 65, -3).Data).IsEqualTo(5);   // near-door corner (north) → east
+        await Assert.That(world.GetBlock(-3, 65, 2).Data).IsEqualTo(5);    // near-door corner (south) → east
+        await Assert.That(world.GetBlock(2, 65, -3).Data).IsEqualTo(4);    // far-wall corner (north) → west
+        await Assert.That(world.GetBlock(2, 65, 2).Data).IsEqualTo(4);     // far-wall corner (south) → west
+    }
 }

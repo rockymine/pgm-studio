@@ -50,6 +50,19 @@ public sealed class SketchWorldBuilderTests
     }
 
     [Test]
+    public async Task Every_wool_room_carries_a_sky_marker_in_its_own_wool_colour()
+    {
+        // B89: no Build intent is authored here, so the marker floor falls back to comfortably above the
+        // tallest terrain rather than an unset build cap — it still ends up well clear of the play surface.
+        var built = SketchWorldBuilder.Build(Layout, SampleIntent());
+        var floorY = 1 + GoalMarkerStamper.Clearance;   // terrain tops out at y=1 across this flat sketch
+
+        // The default 10×10 shell centres on the (snapped) wool spawn point for each room.
+        await Assert.That(built.World.GetBlock(-10, floorY + 1, 10)).IsEqualTo((Blocks.Wool, 14));   // red room
+        await Assert.That(built.World.GetBlock(10, floorY + 1, 10)).IsEqualTo((Blocks.Wool, 11));    // blue room
+    }
+
+    [Test]
     public async Task Room_floor_bedrock_goes_under_the_room_not_over_its_pad()
     {
         // The plan's ST1 room floor fills the whole wool-room piece solid to the surface. Its top block is the

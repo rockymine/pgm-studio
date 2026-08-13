@@ -491,7 +491,10 @@ the stat corpus.
   floor** (no tunnelling in from below); a **redstone line with a torch at either end** lies on the
   last block row at each of the room's **entry interfaces** — every terrain↔room land seam and
   every abutting build-zone edge (WX6) — the conventional marker for where entrance protection
-  begins. The editor renders terrain↔wool-room interfaces **red**.
+  begins. The editor renders terrain↔wool-room interfaces **red**. Each of the four corner chests
+  turns to open into the room rather than facing a wall: a corner touches two shell walls at once,
+  and the room's own door breaks the tie — every chest faces away from whichever of its two walls
+  sits on the door's axis (`WoolChests`).
 - **ST2 [expert]** *Spawn piece* (optional): defines the spawn **region** and **sizes the stamped
   spawn room** (the same WX footprint rule). Iron placed inside it is **auto-renewed** in the
   generated XML (load-bearing for gameplay); lint: when a spawn piece exists, iron markers belong
@@ -535,6 +538,19 @@ the stat corpus.
   cell size. Evidence: the teaching seed `tools/seeds/teaching/build-region-examples.plan.json`;
   `dotnet run tools/deriver/build-marker-check.cs <plan.json> [--svg out.svg]` draws what a plan would
   export.
+- **ST6 [author]** *Destroyable platform*: a **5×5, one-block-thick bedrock plate**, seated **one
+  course beneath the ground's own surface block** under each destroyable — never thicker, which
+  would read as a wall grown out of the floor rather than a plate under it. It stops the goal being
+  undermined from below and the ground under it being mined out from under it (`StructureStamper.
+  StampPlatform`, called from the destroyable stamp in `SketchWorldBuilder`).
+- **ST7 [author]** *Goal sky marker*: every wool room, destroyable and core carries a small marker —
+  a solid 3×3×3 cube or a 3-D asterisk, the shape a per-call choice — floating clear of
+  `BuildIntent.MaxHeight` (a fixed clearance above it, or above the tallest built terrain when no cap
+  is authored), so it sits out of build reach by construction. Coloured to the goal: the wool's own
+  colour for a wool room, the owning team's colour for a destroyable or a core. One marker per
+  already-fanned goal entry — a wool room, a destroyable, a core are each one list entry per
+  symmetry-orbit image (`PlanCompiler` fans team-outer) — so a mirrored board's markers match without
+  the stamper (`GoalMarkerStamper`) doing any orbit math of its own.
 
 ## Facing semantics [expert]
 
@@ -587,6 +603,11 @@ both corrected.)
    `docs/world-export/structures.md`, which governs the stamped geometry. ST1's entrance line also
    gains the build-zone interface (an abutting build zone is an entrance like any land seam — WX6),
    which was previously unstated.
+9. **ST1 corner-chest facing corrected (2026-08-13).** The wool-cage corner chests stamped a fixed
+   facing regardless of the room they sat in, so some opened toward a wall rather than into the
+   room; ST1 now states the door-axis rule that fixes it. No other rule's stamped geometry changes.
+10. **ST6 added (2026-08-13).** The destroyable platform — new rule, no existing rule changed.
+11. **ST7 added (2026-08-13).** The goal sky marker — new rule, no existing rule changed.
 
 ## Correction protocol
 

@@ -9,6 +9,11 @@ namespace PgmStudio.Minecraft;
 /// Speed I (3:00) potions, and a row of golden apples ×16; the upper chest (B) holds a row of diamond
 /// leggings, a row of Power I + Infinity bows, and a row of planks ×16. Corners come from the room's
 /// <see cref="RoomFrame"/>, so the loadout rides any footprint.
+///
+/// <para>Each corner touches two walls at once, so opening away from just one of them is not enough — a
+/// chest that ignores the second wall still fronts it half the time. The room's own door breaks the tie:
+/// every chest opens along the door's axis, away from whichever of its two walls sits on that axis, which
+/// is never the door wall itself and always the wall the room was entered past.</para>
 /// </summary>
 public static class WoolChests
 {
@@ -18,16 +23,29 @@ public static class WoolChests
 
     public static void Stamp(VoxelWorld world, RoomFrame frame, int floorY)
     {
+        var doorEdge = frame.Doors.Count > 0 ? frame.Doors[0].Edge : RoomEdge.NegZ;
         foreach (var (cornerX, cornerZ) in RoomFrames.InteriorCorners(frame))
         {
-            PlaceChest(world, cornerX, floorY + 1, cornerZ, ChestA());   // resting on the bedrock floor
-            PlaceChest(world, cornerX, floorY + 2, cornerZ, ChestB());
+            var facing = CornerFacing(frame, doorEdge, cornerX, cornerZ);
+            PlaceChest(world, cornerX, floorY + 1, cornerZ, facing, ChestA());   // resting on the bedrock floor
+            PlaceChest(world, cornerX, floorY + 2, cornerZ, facing, ChestB());
         }
     }
 
-    private static void PlaceChest(VoxelWorld world, int x, int y, int z, IEnumerable<(int, NbtCompound)> items)
+    // The wall a corner touches on the door's own axis decides the facing: away from that wall is always
+    // open room on the other side, whichever of the corner's two walls it turns out to be. Reuses
+    // SignBuilder's edge→data mapping rather than a second copy of the same four numbers.
+    private static int CornerFacing(RoomFrame frame, RoomEdge doorEdge, int cornerX, int cornerZ)
     {
-        world.SetBlock(x, y, z, Blocks.Chest, 2);   // data 2 = facing north; functional regardless
+        var doorAlongZ = doorEdge is RoomEdge.NegZ or RoomEdge.PosZ;
+        if (doorAlongZ)
+            return SignBuilder.WallSignData(cornerZ == frame.InteriorMinZ ? RoomEdge.PosZ : RoomEdge.NegZ);
+        return SignBuilder.WallSignData(cornerX == frame.InteriorMinX ? RoomEdge.PosX : RoomEdge.NegX);
+    }
+
+    private static void PlaceChest(VoxelWorld world, int x, int y, int z, int facing, IEnumerable<(int, NbtCompound)> items)
+    {
+        world.SetBlock(x, y, z, Blocks.Chest, facing);
         world.AddTileEntity(x, z, ChestBuilder.Chest(x, y, z, items));
     }
 
