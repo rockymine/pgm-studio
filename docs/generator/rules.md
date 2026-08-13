@@ -538,6 +538,11 @@ the stat corpus.
   cell size. Evidence: the teaching seed `tools/seeds/teaching/build-region-examples.plan.json`;
   `dotnet run tools/deriver/build-marker-check.cs <plan.json> [--svg out.svg]` draws what a plan would
   export.
+- **ST6 [author]** *Destroyable platform*: a **5×5, one-block-thick bedrock plate**, seated **one
+  course beneath the ground's own surface block** under each destroyable — never thicker, which
+  would read as a wall grown out of the floor rather than a plate under it. It stops the goal being
+  undermined from below and the ground under it being mined out from under it (`StructureStamper.
+  StampPlatform`, called from the destroyable stamp in `SketchWorldBuilder`).
 
 ## Facing semantics [expert]
 
@@ -593,6 +598,7 @@ both corrected.)
 9. **ST1 corner-chest facing corrected (2026-08-13).** The wool-cage corner chests stamped a fixed
    facing regardless of the room they sat in, so some opened toward a wall rather than into the
    room; ST1 now states the door-axis rule that fixes it. No other rule's stamped geometry changes.
+10. **ST6 added (2026-08-13).** The destroyable platform — new rule, no existing rule changed.
 
 ## Correction protocol
 

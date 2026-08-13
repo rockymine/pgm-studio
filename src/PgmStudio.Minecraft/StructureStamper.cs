@@ -90,6 +90,31 @@ public static class StructureStamper
             world.SetBlock(minX + lx, baseY + ly, minZ + lz, Blocks.IronBlock);
     }
 
+    /// <summary>The platform's XZ span in blocks — a fixed 5×5, independent of the destroyable's own
+    /// footprint, because its job is stopping a shaft dug up from below rather than matching what stands
+    /// on it.</summary>
+    public const int PlatformSize = 5;
+
+    /// <summary>Bury a one-block-thick bedrock plate under a footprint, one course beneath the ground's own
+    /// surface block: the goal's foundation stands on ordinary terrain, and this sits a further course down,
+    /// so a tunnel dug up from below meets unbreakable rock before it reaches daylight and the ground the
+    /// goal stands on cannot be mined out from under it. One course is deliberately the whole of it — a
+    /// thicker slab reads as a wall grown out of the floor rather than a plate under it. Footprint is
+    /// inclusive on every side; sampling the whole footprint (rather than a single anchor column) is what
+    /// keeps the plate level and survives the symmetry orbit the same way every other structure here does.
+    /// No-ops where the terrain is too shallow to bury a course under.</summary>
+    public static void StampPlatform(
+        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
+        int minX, int minZ, int maxX, int maxZ)
+    {
+        var groundTop = PositionSnap.SurfaceYOver(surfaceTop, minX, minZ, maxX, maxZ, 1);
+        var plateY = groundTop - 2;   // one course below the ground's own top (solid) block
+        if (plateY < 0) return;
+        for (var x = minX; x <= maxX; x++)
+        for (var z = minZ; z <= maxZ; z++)
+            world.SetBlock(x, plateY, z, Blocks.Bedrock);
+    }
+
     /// <summary>Raise a solid bedrock wall over a seam footprint from y=0 up to <paramref name="topY"/>
     /// inclusive, and lay one course of cobweb over it (ST4). Footprint is min-inclusive, max-exclusive; it is
     /// two blocks thick across the seam and spans the full shared-interface width along it.

@@ -241,6 +241,13 @@ public static class SketchWorldBuilder
             var (ax, az) = PositionSnap.SnapXZ(b.Anchor.X, b.Anchor.Z);
             var box = ObjectiveStamper.DestroyableBox(surface, ax, az, style, b.Float);
             ObjectiveStamper.StampDestroyable(world, box, style, DestroyableMaterials.BlockId(b.Materials));
+
+            // A buried bedrock plate under the goal, one course beneath the ground's own surface, so the
+            // monument cannot be undermined from below and the ground under it cannot be mined away.
+            var (platformMinX, platformMinZ, platformMaxX, platformMaxZ) =
+                ObjectiveFootprint.Centred(ax, az, StructureStamper.PlatformSize, StructureStamper.PlatformSize);
+            StructureStamper.StampPlatform(world, surface, platformMinX, platformMinZ, platformMaxX, platformMaxZ);
+
             resolved.Add(new DestroyableIntent
             {
                 Owner = b.Owner, Name = b.Name, Style = b.Style, Materials = b.Materials,
