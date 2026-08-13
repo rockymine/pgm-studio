@@ -251,14 +251,42 @@ static void Retarget(PlanModel plan, string mode, string? materials)
         if (word == "dtcm")
             plan.Placements.Cores.Add(new CorePlacement
             {
-                Id = $"core-{index}",
-                Piece = goal.Piece,
-                // Two cells along the piece from the monument: far enough that the two structures are separate
-                // things to defend, near enough that they stay one place on the board.
-                At = [goal.At[0] + 2, goal.At[1]],
+                Id = $"core-{index}", Piece = goal.Piece, At = CoreOffset(plan, goal.Piece, goal.At),
             });
     }
     plan.Placements.Wools = [];
+}
+
+/// <summary>Where a core lands relative to the monument it shares a piece with — up to two cells away, chosen
+/// against <b>that piece's own footprint</b> rather than stated as one fixed direction. The monument's piece
+/// is a wool room: a dead-end box the composer always finishes with a floor, so staying inside its rect is
+/// what guarantees ground. Stepping past its border is not: the fixed <c>+2</c> this replaces lands exactly
+/// on the seam where the room, its approach corridor and the hub all meet, and goldhollow/mourncrag/
+/// spinebreak's own refusals show that corner is not solid ground even though it sits inside a neighbouring
+/// piece's nominal rect — a shape need not fill its own bounding rect corner to corner. The four candidate
+/// directions are tried in the old offset's own order (+x, −x, +z, −z) so a piece roomy enough for the full
+/// two cells keeps landing exactly where it always did; only a piece too small for that trims the distance
+/// down to whatever room it actually has, which is what keeps these three specs off the void without giving
+/// up the "one place to defend" reading a same-piece core and monument have by construction.</summary>
+static double[] CoreOffset(PlanModel plan, string pieceId, double[] at)
+{
+    const double distance = 2.0;
+    const double wallClearance = 0.15;   // stays off the room's own wall rather than grazing it
+
+    var piece = plan.Pieces.FirstOrDefault(p => p.Id == pieceId);
+    if (piece is null) return [at[0] + distance, at[1]];
+
+    var room = new (double Available, double[] At)[]
+    {
+        (Math.Max(0, piece.Rect.Width - wallClearance - at[0]), [at[0] + distance, at[1]]),
+        (Math.Max(0, at[0] - wallClearance), [at[0] - distance, at[1]]),
+        (Math.Max(0, piece.Rect.Height - wallClearance - at[1]), [at[0], at[1] + distance]),
+        (Math.Max(0, at[1] - wallClearance), [at[0], at[1] - distance]),
+    };
+    var (available, direction) = room.MaxBy(candidate => candidate.Available);
+    var offset = Math.Min(distance, available);
+    var scale = offset / distance;
+    return [at[0] + (direction[0] - at[0]) * scale, at[1] + (direction[1] - at[1]) * scale];
 }
 
 /// <summary>The eight named stage images, into <c>stages/</c> beside <c>region/</c> and <c>map.xml</c> — the

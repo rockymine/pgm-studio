@@ -178,9 +178,10 @@ if (heightIdx >= 0 && heightIdx + 2 < args.Length)
 }
 
 // --traversability-map <regionDir> <outPng> [--map <mapXmlPath>] [--scale N]: spawn/wool/monument/core
-// connectivity over the navigable columns (ground + 2 blocks headroom), 4-connected components coloured so
-// one dominant colour reading through every marker is a connected board. Distinct from --traversability
-// (the Python-parity harness over parquet features) — this is the stage-image render.
+// connectivity over the navigable columns (ground + 2 blocks headroom, plus any void column the map's own
+// buildable-region apply rule opens to bridging — requires --map to read that wiring), 4-connected
+// components coloured so one dominant colour reading through every marker is a connected board. Distinct
+// from --traversability (the Python-parity harness over parquet features) — this is the stage-image render.
 var travMapIdx = Array.IndexOf(args, "--traversability-map");
 if (travMapIdx >= 0 && travMapIdx + 2 < args.Length)
 {
