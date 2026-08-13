@@ -130,9 +130,12 @@ bare ones the move broke), and no document's prose changed except where a senten
 longer exists. Four documents needed content work rather than an address, and were filed rather than fixed in the
 same pass. **B112** has since landed: `client/routing-and-ia.md` is cut to the four things only it says — the
 URL law, the route table, the labels against the code names, and the collections — with the lifecycle model
-it duplicated left to `tools/flow.md` and its migration log gone. Still open: **B113**
-(`destroyables-and-cores` still opens on the premise §3.2 disproved), **B114** (`ui-conventions` is a build
-plan whose phases shipped) and **B115** (`monument-candidate-store` is headed "design only" and is built).
+it duplicated left to `tools/flow.md` and its migration log gone. So has **B113**:
+`pgm/destroyables-and-cores.md` (693 → 533) keeps the PGM law and the world-measured corpus study, and loses
+the premise §3.2 disproved along with its sequencing plan, its schema sketch, the plan/intent model
+`tools/plan.md` now states, and the world-scan section `world-scan/objective-suggestion.md` owns. Still open:
+**B114** (`ui-conventions` is a build plan whose phases shipped) and **B115** (`monument-candidate-store` is
+headed "design only" and is built).
 
 **§3.4's churn ranking still wants re-running against the full history**, for the reason stated above: the
 container that produced it saw three days of commits.

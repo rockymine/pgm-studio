@@ -8,7 +8,7 @@ become bridgeable*, dominion's *Crescent Void gaps will be bridgeable in*, vesuv
 become bridgeable*.
 
 This doc owns the mechanism, the four wirings the corpus authors it in, how the studio detects each,
-and the one it authors. It graduated out of `destroyables-and-cores.md` §14, which retains only a
+and the one it authors. It graduated out of `destroyables-and-cores.md`, whose §10 retains only a
 pointer here: the oldest wiring *is* a destroyable, which is why the two were documented together
 until the phantom classifier made this one buildable.
 

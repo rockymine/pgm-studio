@@ -7,7 +7,7 @@ namespace PgmStudio.Pgm.Authoring;
 /// material a kit needs to break every destroyable and core a map defends, and — reading a generated map's
 /// actual kits rather than re-trusting the derivation — which of those goals nothing in the kit can break.
 /// <para>A destroyable's material defaults to obsidian and the corpus norm is a destroy kit whose pickaxe is
-/// upgraded to match (docs/pgm/destroyables-and-cores.md MG18): an iron pickaxe does not mine obsidian
+/// upgraded to match (docs/pgm/destroyables-and-cores.md DT1, tools/mapgen/review.md MG18): an iron pickaxe does not mine obsidian
 /// at all, so a mismatch is not a rough edge, it is an unwinnable map. A core's casing carries no authored
 /// material — the generator never emits one, relying on PGM's own obsidian default — so a map with a core
 /// always needs a diamond pickaxe outright.</para>

@@ -270,15 +270,6 @@ are Edit-specific. Full canvas spec: `docs/client/canvas-interaction.md`.
   separate.
 ## Backend, pipeline & internals (B / P / A)
 
-- [ ] **B113 — `pgm/destroyables-and-cores.md` opens on a premise its own code disproved.** Its second
-  sentence reads "today both elements are invisible to the parser — a DTM map loads 'successfully' and
-  silently loses its objectives", and DTM and DTC both parse, write and round-trip (`FEATURES.md`: 188 maps /
-  619 destroyables / 153 modes; 127 maps / 300 cores, zero drift). §1–§9 are PGM law and stand as the
-  reference for what the objectives require; §10's data-loss fix, §11's persistence and §12's sequencing are
-  landed build plan, and §13 (detecting objectives from a world scan) is `world-scan/objective-suggestion.md`'s
-  subject. Cut it to the law and the corpus measurements, the treatment `new-map-authoring.md` and
-  `region-authoring.md` already had.
-
 - [ ] **B114 — `client/ui-conventions.md` is a build plan whose phases shipped.** It is written as the map
   from CSS classes to the components that replace them, in the order they get built (C12) — and phases A–C
   and D.1 are in `FEATURES.md`, with the `/design` page rendering the components themselves. What is live in
