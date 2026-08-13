@@ -491,7 +491,10 @@ the stat corpus.
   floor** (no tunnelling in from below); a **redstone line with a torch at either end** lies on the
   last block row at each of the room's **entry interfaces** — every terrain↔room land seam and
   every abutting build-zone edge (WX6) — the conventional marker for where entrance protection
-  begins. The editor renders terrain↔wool-room interfaces **red**.
+  begins. The editor renders terrain↔wool-room interfaces **red**. Each of the four corner chests
+  turns to open into the room rather than facing a wall: a corner touches two shell walls at once,
+  and the room's own door breaks the tie — every chest faces away from whichever of its two walls
+  sits on the door's axis (`WoolChests`).
 - **ST2 [expert]** *Spawn piece* (optional): defines the spawn **region** and **sizes the stamped
   spawn room** (the same WX footprint rule). Iron placed inside it is **auto-renewed** in the
   generated XML (load-bearing for gameplay); lint: when a spawn piece exists, iron markers belong
@@ -587,6 +590,9 @@ both corrected.)
    `docs/world-export/structures.md`, which governs the stamped geometry. ST1's entrance line also
    gains the build-zone interface (an abutting build zone is an entrance like any land seam — WX6),
    which was previously unstated.
+9. **ST1 corner-chest facing corrected (2026-08-13).** The wool-cage corner chests stamped a fixed
+   facing regardless of the room they sat in, so some opened toward a wall rather than into the
+   room; ST1 now states the door-axis rule that fixes it. No other rule's stamped geometry changes.
 
 ## Correction protocol
 
