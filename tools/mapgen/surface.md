@@ -122,9 +122,9 @@ layer named "Ground". The layering that reads as depth is the shapes' own `base_
 
 `ruediger` is the worked example this document reached for first, and it is a whole stack — plan, layout and
 intent, one map. The plan layer has further worked examples and there are forty-eight of them, in
-`tools/seeds/`, which is where an author looking for "how is a board actually stated" should start. Nothing pointed at them, which is the likeliest
-reason every generated board so far began from `compose`: the only example on offer was one layer down from
-the question being asked.
+`tools/seeds/`, which is where an author looking for "how is a board actually stated" should start. Nothing
+pointed at them, which is the likeliest reason every generated board so far began from `compose`: the only
+example on offer was one layer down from the question being asked.
 
 **Sixteen of them are real published maps traced into plan space** (`tools/seeds/traced/` — `acapulco`,
 `aether`, `ad-astra`, `after-hours`, `3084` and the rest). That makes them the ground truth for what a
@@ -366,10 +366,14 @@ board read as cluttered rather than as furnished. A dressing pass that samples w
 a prop produces exactly what it asks for — trees and buildings standing in the routes, so reaching a build
 region means walking round a house and then round a tree, neither of which anybody put there.
 
-The order that works states the **movement** first. A `path` shape is a drawn centreline with a half-width,
-so a road network can be traced before anything is planted: where a player walks from spawn to goal, where
-the flanking approach runs, where a village's street is. Those runs and a margin either side are then the
-ground foliage does not get, and everything else is where a wood or a settlement may stand. That is the same
+The order that works states the **movement** first. A `path` prop is a drawn centreline with a half-width, so
+a road network can be traced before anything is planted: where a player walks from spawn to goal, where the
+flanking approach runs, where a village's street is. First in the design rather than in the tool — a path and
+the foliage that avoids it are both placed in the Dressing phase, and it is the order of the decisions that
+matters. (The layout carries a `path` **shape** type as well, a centreline with its own band, edge style and
+seed, but no tool in the Draw dock draws one: it is reachable only in a document written outside the editor.)
+Those runs and a margin either side are then the ground foliage does not get, and everything else is where a
+wood or a settlement may stand. That is the same
 reasoning `clearance` already applies to objectives, applied to routes as well — and it turns density from a
 number into a consequence, because the space left over after the circulation is drawn is the space a forest
 is allowed to fill.
@@ -427,7 +431,7 @@ building for this instead of a shape.
 | solve relief | `Geom/Relief/` | `ReliefSpec` → a surface per island |
 | build the world | `Api/Services/SketchWorldBuilder.cs` | layout + intent → `VoxelWorld` + resolved intent |
 | paint | `Minecraft/TerrainPainter.cs` | raw stone → rim, wall, surface, fill |
-| dress | `Minecraft/Dressing/Decorator.cs` | props → trees, houses, boulders, paths, water |
+| dress | `Minecraft/Dressing/Decorator.cs` | props → trees, houses, boulders, paths, water, ground cover |
 | stamp buildings | `Minecraft/HouseStamper.cs` | `Footprint` + `HouseStyle` → walls, roof, openings |
 | stamp furniture | `Minecraft/StructureStamper.cs` | `StructureIntent` → floors, redstone, iron, walls |
 | write the goal | `Pgm/Authoring/IntentGenerator.cs` | resolved intent → the map document |

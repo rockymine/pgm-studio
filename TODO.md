@@ -138,17 +138,17 @@ holds them until one becomes the focus.
   describing that, or whether it describes an intention nothing implements, is the question — the mark's
   behaviour is not in doubt, only what it is documented as opting out of.
 
-- [~] **B111 — The five remaining tool documents, the flow document, and the deletions.**
-  `docs/tools/plan.md` is written and settles the shape the rest answer to: *what it is · what it writes · the
-  document model, field by field · what it compiles to · the phases and their steps · what it refuses ·
-  the API as an endpoint table with failure codes · driving it without the UI · limits*. Two of those sections
-  are conditional — a tool with no gate needs no refusals section, a tool with no document of its own needs no
-  model section — and the rest are the spine. Written from the code in the present tense, and usable as agent
-  input, which is what puts the endpoints in it.
+- [~] **B111 — The four remaining tool documents, the flow document, and the deletions.**
+  `docs/tools/plan.md` and `docs/tools/sketch.md` are written and settle the shape the rest answer to: *what it
+  is · what it writes · the document model, field by field · what it compiles to · the phases and their steps ·
+  what it refuses · the API as an endpoint table with failure codes · driving it without the UI · limits*. Two
+  of those sections are conditional — a tool with no gate needs no refusals section, a tool with no document of
+  its own needs no model section — and the rest are the spine. Written from the code in the present tense, and
+  usable as agent input, which is what puts the endpoints in it.
 
-  What remains is one document each for **sketch, configure, edit, generator and library** — theme and style
-  editing and the house builder are the Library tool's surface, so one-per-tool covers them without a special
-  case — plus one for **the flow between them**, the hand-off no current document owns and the part
+  What remains is one document each for **configure, edit, generator and library** — theme and style editing
+  and the house builder are the Library tool's surface, so one-per-tool covers them without a special case —
+  plus one for **the flow between them**, the hand-off no current document owns and the part
   `tools/mapgen/surface.md` carries today.
 
   Then the deletions, which are the point of the exercise and wait until the set is complete: a document goes

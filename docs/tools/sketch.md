@@ -1,0 +1,572 @@
+# The Sketch tool
+
+## What it is
+
+Sketch authors the ground itself: the outline of every landmass, the height of every part of it, what it is
+made of, and what stands on it. It is the largest of the studio's tools and the only one that draws real
+geometry — a plan states rectangles on a coarse grid, and everything finer than that happens here.
+
+It is also one of the two tools a map can be started in. Opened empty it is a drawing surface and nothing
+more: a sketch alone produces geometry and states no intent, so a map begun here has no teams, no spawns and
+no objective until Configure gives it one. Opened on a map that came from a plan, it receives the compiled
+layout — the plan's abutting same-height pieces already fused into single polygons — and refines it.
+
+The route is `/maps/{slug}/sketch`. Five phases sit on the rail in the order the work is done: **Info**,
+**Draw**, **Relief**, **Theme** and **Dressing**. Only Draw and Theme's Apply step share the live canvas; the
+rest are their own bodies, and Draw stays mounted while another is up so the drawing state and the zoom
+survive the trip.
+
+The tool saves continuously — every change schedules a debounced write 800 ms later — and leaves by
+**Finish**, which flushes the layout, rasterizes it server-side into world geometry, and moves the map to
+`stage=configure`. A draft that was never drawn on is discarded on the way out.
+
+## What it writes
+
+One artifact: the `sketch_layout_json` blob on the map row (`SketchStore`,
+`src/PgmStudio.Api/Endpoints/SketchEndpoints.cs`). It is stored **verbatim** as the browser produced it —
+authoring source rather than a canonical document — which is why the editor's own save replaces the whole blob
+and a deletion therefore sticks. Only the plan-compile path merges (below).
+
+The identity of the map — its display name and authors — lives on the map row and is saved through
+`PATCH /api/map/{slug}/metadata`, not in the layout.
+
+### The layout document
+
+`SketchLayout` (`src/PgmStudio.Pgm/Sketch/SketchLayout.cs`) is the typed model of the blob, and it is the same
+shape whether a layout was hand-drawn or compiled from a plan.
+
+| Key | Holds |
+|---|---|
+| `setup` | `mirror_mode`, the symmetry `center`, and the `bbox` the canvas frames on open |
+| `layers[]` | the stacked slabs — each `{id, name, base_y, layout:{shapes, islands}}` |
+| `layout` | a legacy single-layer document, read as one layer at `base_y` 0 |
+| `themes` · `mapTheme` | the terrain-paint registry and the map-wide default |
+| `roomStyles` | the two bound room shells — `cage` (wool) and `spawn` |
+| `dressing` | every placed prop |
+| `relief` | interior elevation, keyed by island id |
+
+Four of those are the map's **finish** rather than its shape — `themes`, `mapTheme`, `roomStyles`,
+`dressing` — and that grouping is load-bearing: a plan cannot express any of them, so when a plan is recompiled
+onto a map the compiled layout's geometry replaces what was there while the finish is carried across
+(`CarryFinish`). Relief is *not* in that set, because a relief is geometry: it decides what the rasterizer
+emits, and it is carried by its own rule with a refusal attached (below).
+
+### Shapes
+
+A shape is one entry in a layer's `shapes` array. Its geometry is a rectangle (`min_x`/`min_z`/`max_x`/`max_z`),
+a circle (`center_x`/`center_z`/`radius`), or a vertex list (`vertices`, with optional Bézier `controls` per
+edge). Every shape carries an `operation` — `add` builds ground, `subtract` removes it — and an `override`
+flag that decides the order the set algebra resolves in: the ordinary pass is adds minus subtracts, then
+override-adds overwrite whatever column they land on, then override-subtracts remove theirs last.
+
+**A subtract is a hole, not a dip.** It takes the whole column out at every cell its outline covers, so its
+own height is not read — a one-block-tall subtract carves exactly as deep as a hundred-block one. That is the
+difference from relief, and it is the whole of it: relief moves a surface, a subtract removes it.
+
+Height is two numbers. `floor` is where the shape's base sits and `base_height` is its thickness, so the
+column spans `[floor, floor + base_height]`. A polygon whose `anchor_heights` line up with its vertices varies
+that thickness per vertex, interpolated across the footprint as a TIN. A shape is never thinner than one block
+and never floors below zero; a freshly drawn one starts at height 9.
+
+Four further fields matter once an island carries a relief. `height_mode` — `level`, `raise` or `sink` — makes
+a shape stand out of the solved field rather than be part of it: a mesa cut flat at an absolute height, a
+plinth held a fixed amount above whatever ground it sits on, a quarry the same downward. `skirt` is how far in
+from its own outline an erected shape eases back into the ground it meets, in blocks; zero is a sheer face,
+which is right for a built thing and wrong for a landform. `relief_scope` is `hold` or `exclude` and decides
+whether the shape's ground takes part in its island's relief at all (see *Islands and layers*); absent means
+it is simply part of the island's ground. And a path carries `path_edge`
+(`solid`, `rough`, `tapered`) with a `path_seed`, since a path is stored as the open centreline it was drawn
+as and its band is derived.
+
+A shape tagged with a `role` is not terrain at all. It is a spawn or wool-room piece the plan placed,
+projected in so the room stays visible instead of dissolving into the fused island, carrying an `intentRef`
+back to the entity it belongs to and a `color`. Role-tagged shapes are loaded as a locked render-only overlay:
+never hit-tested, never edited, skipped by the rasterizer, and merged back into the saved document unchanged.
+
+### Islands and layers
+
+An **island** is not authored; it is computed. Every time the shapes change, the tool unions them and reports
+the connected landmasses that result, so two rectangles pushed together become one island and pulling them
+apart splits it again. What an author owns is the island's `name` and its `mirrors` flag — whether the group is
+copied onto its symmetry orbit — and those survive a recompute by matching the island back to its previous
+self. A single-member island shows the shape inspector rather than the island one, so a lone rectangle needs
+no drilling.
+
+The island matters beyond naming: **it is the unit a relief is stated against**, because a relief solved per
+shape would leave a seam wherever two shapes met and disagreed about the height they share. One island holds
+one relief, keyed by its id, and there is no way to give two parts of a landmass a relief each — two shapes
+that touch are one island and share whatever it states.
+
+**A shape can leave that solve, though, and this is where the fusion stops being a cage.** `relief_scope` on a
+shape says how its ground takes part: `exclude` removes its cells from the field entirely, so the shape keeps
+its own column — its stated floor, its thickness and any per-vertex tilt — while the relaxation treats the
+footprint as a hole and bends around it exactly as it bends around the void; `hold` leaves the cells in the
+field but pins them at one level, read at the shape's ring centre, and the surrounding land is then solved
+knowing where it has to arrive. Held shapes are applied last, so one wins its cells outright rather than being
+averaged against.
+
+That is what makes a mixed board possible without a second relief. A flat rectangle with a raised step
+attached to it is one island; marking the step `exclude` leaves it standing at exactly the height it was drawn
+at while a relief shapes only the ground around it, and marking it `hold` flattens it to its own top and lets
+the surrounding surface rise to meet it.
+
+**`reach` bounds the statement; the word bounds the ground.** The fill is a screened-Poisson relaxation and
+`reach` is the screening: the field decays back to `base` over a characteristic length of that many blocks, so
+a finite reach makes each mark a local landform with plain ground between. The default is the trap —
+**`reach` of zero means unlimited**, which is what a room-sized island wants and exactly what lets one mark
+decide a whole fused board. But reach only says how far the *mark* travels. Every cell the relief covers takes
+its height from the solved field, so a shape inside it has no height of its own left however local the marks
+are; keeping a drawn height beside a relief is what `exclude` and `hold` are for.
+
+The four outcomes are worth stating as measurements, over one plan — a 30×20 field at surface 9 with a 10×20
+step at 19 attached to it, compiled to one island, carrying one bench five blocks below the base inside the
+field. The readings are the built column top at the pit, out on the field, and on the step.
+
+| The island's relief | pit | field | step | The board |
+|---|---|---|---|---|
+| `reach` 0, step inherits | 4 | 4 | 4 | one mark flattens everything, step included |
+| `reach` 8, step inherits | 4 | 7 | 8 | the pit is local; the step's rise is gone all the same |
+| `reach` 8, step `exclude` | 4 | 6 | 19 | the step keeps its own column — a clean face at the seam |
+| `reach` 8, step `hold` | 4 | 12 | 19 | the step is pinned and the ground ramps up to meet it |
+
+A push needs none of this care: it is applied to the solved surface with its own `falloff`, so it is bounded by
+construction. And the relaxation puts no extreme where no mark asked for one — what travels is reach, never
+invention.
+
+One exception: the word is not read on a shape that declares a `height_mode`. Such a shape already stands out
+of the field by construction, and `raise`/`sink` need to read the ground under their own footprint to know
+where to stand, which an excluded footprint would not have.
+
+A **layer** is a stacked slab with its own `base_y`. The editor always edits the active layer; the others ghost
+underneath in 2-D and stack in the isometric preview. A new layer defaults to ten blocks above the highest
+existing one, and there is always at least one — the first is called `Ground` and sits at 0. A cell's column is
+that layer's `[floor, top]` shifted by `base_y`, and the same `(x, z)` may appear on several layers, which is
+how a bridge over a gap keeps both segments.
+
+**An agent should author the ground layer only.** Stacking is for a person drawing an overhang by eye; a
+generated board wants one slab.
+
+### What the rasterizer makes of it
+
+`SketchRasterizer.RasterizeColumns` turns the document into the solid cells of the finished world: one entry
+per `(x, z)` with its span `[YFloor, YTop]`. It resolves circles as 64-gons and Bézier edges at 16 samples,
+matching the client geometry exactly so the drawn outline and the built one cannot differ. Island mirror copies
+follow the saved `shapeIds` and the setup's mode, so an island that opted out of mirroring is rasterized once.
+
+Where an island carries a relief, its surface is solved first (`ReliefFields`) and the same solve is what the
+contour preview draws — which is the only reason a preview is worth drawing at all.
+
+## Phases
+
+### Info
+
+Two steps. **Identity** is the map's display name and its authors, loaded from `GET /api/map/{slug}` and saved
+with `PATCH /api/map/{slug}/metadata`. **Settings** is the symmetry the whole board is built against: the mode
+— `mirror_x`, `mirror_z`, `rot_180` or `rot_90` — and the centre X and Z. There is no size to set; the map area
+grows to fit whatever is drawn. A freshly created sketch opens here (`?phase=info`); an existing one opens on
+Draw.
+
+### Draw
+
+The canvas, and where the geometry is made.
+
+**Three tools draw, and one word decides what they draw.** Rectangle drags a box; polygon places vertices and
+closes; lasso traces freehand and closes itself, simplifying the trace at a four-block tolerance so a big round
+blob arrives as about ten anchors rather than one per block — it commits as a polygon. Beside them sits the
+operation, **Build** or **Carve**, wearing the colour the finished shape will take, so an armed carve cannot be
+mistaken for an armed build. Two more tools read and cut rather than make: **measure** drags a ruler between
+two points, the usual question being how wide a void gap is, and **split** slices the topmost shape it crosses
+into two independent shapes. Every draw and every split drops the
+tool back to select when it completes.
+
+**Editing is per point.** A rectangle shows eight resize handles. A polygon (and a path's centreline) shows a
+handle per vertex, a midpoint ghost on edge hover that inserts a vertex where it is clicked, and a pair of
+Bézier tangent handles per vertex that round the edges leaving and arriving — which is how an outline stops
+being rectilinear. A rectangle can be **promoted** to a polygon in place, keeping its id and therefore its
+island membership. Selection can be rotated by a stated number of degrees about its own bounding-box centre,
+nudged a block at a time with the arrow keys (sixteen with Shift), moved with snapping to other shapes' edges
+(Alt bypasses), have its operation or its override flipped, or be deleted.
+
+**Height is edited three ways.** The whole shape takes a floor and a thickness. A single selected vertex takes
+its own height, which materialises the per-vertex array on first use. And two or three vertices shift-marked as
+controls fit a plane through their stated heights and fill every remaining vertex from it — a ramp from two, an
+aimed plane from three — rounding to blocks, so a slope reads as the neat straight steps of a staircase.
+
+Six overlays sit above the canvas: **Shapes** (the draw primitives over the fused islands), **Mirror** (the
+symmetry copies), **Chunks** (the 16-block grid), **Blocks** (the rasterized footprint — the exact cells an
+export would fill), **Relief** (the height contours of whatever relief the islands carry) and **Snap**. A
+read-only isometric preview extrudes every shape to its own height, carves it with the subtracts that apply,
+mirrors it per orbit axis and depth-buffers the result, so where footprints overlap the taller column occludes;
+it rotates in 90° steps and disables itself where WebGL is unavailable.
+
+The sidebar carries the layer list and the island→shape tree; the inspector on the right edits whatever is
+selected.
+
+### Relief
+
+One step, and the phase that turns flat plateaus into terrain. Everything here is stated **inside an island**,
+so the island tree is half the sidebar and the list of what has been stated is the other half. Which of the
+island's shapes the solve actually covers is not stated here but on the shapes themselves, through
+`relief_scope` in the Draw inspector — a shape can hold its own level or leave the field altogether.
+
+The island's own settings are what every mark is measured against: `base` (the level the field falls back to
+where nothing is stated), `reach` (how far a mark's influence travels before the field returns to `base` —
+zero is unlimited, and a finite value is what keeps a landform local on a large island), `step` (the
+block quantum the finished surface snaps to), `stairs` (cut a way up out of ground the step stranded — worth
+asking for whenever the step is more than one, since that is what turns a riser into a wall) and `grain` (a
+wobble applied after the solve: amplitude, feature scale, seed).
+
+Five things are placed, and they divide into two kinds.
+
+| Tool | Kind | States |
+|---|---|---|
+| Spot height | `point` | a height at a place, over a radius |
+| Ridgeline | `line` | a traced line at one height, or one height per vertex, over a width |
+| Bench | `area` | a closed ring held at one height |
+| Scarp | `scarp` | a traced line with a shelf above and ground below — `high`, `low`, the `face` it drops over and the `band` either side for the land to arrive through |
+| Push | `push` | a closed ring lifted by an `amount`, with `falloff`, `roughness`, `crown` and a seed |
+
+The first four are **marks**, and a mark is a constraint: the ground here *is* twelve. Two marks over the same
+ground argue, and the solver settles it. A **push** is different in kind — it is applied to the solved surface
+afterwards as a relative lift, so two pushes over the same ground simply add, which is what makes a spur on the
+flank of a hill one operation rather than a restatement of the hill. A push's lift can vary per ring vertex,
+which is what makes a drawn ridge fall along its length; setting every vertex to the same number collapses the
+array back to the single amount.
+
+A sixth mark, the **rim**, is not placed at all: it holds the island's whole outline, so it rides as a property
+of the island's relief — one height and a depth.
+
+Two server-side reads support the phase. The **contour overlay** posts the live layout and gets back traced
+lines per island, at a stated interval, from the build's own solver, so what is drawn cannot differ from what
+will be built. The **readback** answers what the stated terrain *charges* a player: reachability at each of the
+three thresholds a player has (a jump, a placed block, building in earnest), places separated from ledges,
+faces qualified as cliffs, crossings measured in both directions because a drop is free the way it falls, and
+the symmetry error. It is asked for rather than pushed, since it is a second solve's worth of measurement.
+
+### Theme
+
+Three steps, and together they are the map's paint.
+
+**Create** is the theme editor. A theme is a recipe read top-down, and the editor lays its buckets out in that
+order: **rim** is the cap on the top course of every edge column — what the ground reads as from across the
+void; **surface** is the stack finishing the top of interior columns, claimed downward, grass over two dirt;
+**wall** is the exposed riser under the rim, down to the shallowest drop, and a team tint here is what makes a
+team's ground read as theirs; **fill** is every block no other bucket claimed. They fall through in that same
+order — the rim to the surface, the surface and the wall to the fill, and the fill to nothing, which is why
+the fill alone cannot be switched off. Only the rim and the surface carry a **depth**: the wall's depth is
+whatever riser it finds and the fill takes what is left. (The painter's own enum counts a fifth bucket,
+bedrock, which is theme-wide geometry rather than something the editor paints.)
+
+Each bucket's material is one of **fourteen kinds** — `solid`, `layered`, `teamTint`, `voronoi`, `cell`,
+`noise`, `turbulence`, `electric`, `wallRun`, `wallDiagonal`, `checker`, `logChecker`, `laidLog` and
+`wallFrame` — previewed against the real block palette as it is edited, and nestable, so a `wallRun` over a
+`teamTint` is a sayable thing and is exactly what `ruediger`'s wall bucket does. Around the buckets sit the
+theme's own knobs: the `bedrock` course, whether walls are painted on terrain faces, and `rimEdges` —
+`void` caps only where the ground borders the void, so a staircase of stacked plateaus takes one rim around
+its outside rather than a lip on every tread; `drop` caps wherever the ground falls away; `boundary` caps
+every plateau boundary, a face against a structure included. A new theme is a clone of the built-in default —
+a quartz rim, a team-tinted clay wall, grass over dirt — and the thing being edited is the painter's own wire
+JSON, so there is no second model of a theme to fall out of step. A theme can be pulled in from the shared
+library and pushed back out to it.
+
+**Apply** turns the canvas into a selection surface: nothing can be drawn or moved, and picking an island or a
+shape assigns a theme to it. A shape carries the assignment (`shape.theme`), an island assignment writes it to
+every member, and a cell that carries none falls to the map default — so the resolution is shape, then map.
+With the Blocks overlay on, this step shows the **real paint**: the live layout is posted to the server, the
+actual painter runs over it, and one colour per footprint cell comes back as a bitmap, so a Voronoi reads as
+its cells and a noise field as its patches rather than as one representative colour.
+
+`tools/seeds/ruediger.layout.json` is the worked example of this step. It carries three themes and names
+`ruediger` as the map default; four shapes take `ruediger-steps`, thirteen take `theme`, and the remaining nine
+inherit the default. That is the pattern the step exists for — the stepped area reads as built and the ground
+around it reads as ground, which a single blanket theme cannot do. The same file is the reference for two Draw
+features: five of its outlines carry Bézier `controls`, and its one negative shape is a `subtract` rectangle
+standing a hundred blocks tall over a floor of zero, which cuts a channel clean through the board and
+demonstrates that a subtract's height is a statement of intent rather than a depth.
+
+**Rooms** binds the shells the map's stamped structures take: one for every wool cage and one for every spawn
+cube. Two bindings and no more — rooms are fanned across the symmetry orbit so both sides face the same
+building, and a per-room shell would be a sightline that differed between teams. What is stored is the composed
+style's **JSON snapshot**, not the library id it came from, so editing the library afterwards cannot rebuild a
+shipped map's rooms. Each binding has three states, and they are genuinely distinct: absent stamps that kind's
+built-in shell, an object stamps the bound style, and an explicit null means no building at all — a pad on open
+ground.
+
+### Dressing
+
+One step, because dressing has nothing to define up front: every part of it is a thing put somewhere. The
+sidebar is the list of what is placed, and the inspector edits either the selection or — with nothing selected
+— the settings the next prop of that kind will start from.
+
+**Dressing is authored, not sprinkled, and that is the whole design.** A tree is cover and a boulder is a
+wall, so *where* each one stands is a decision about how the map plays and belongs to the person making the
+map: the pass places exactly what was placed and nothing else. There is no scatter, no density pass over the
+board, no "fill this island with forest". Within a drawn area the individual blades are a noise field, because
+nobody places nine hundred of them by hand — but the area itself was drawn. Every prop is then fanned across
+the symmetry orbit, so one half of a map is dressed and both halves match. Each carries a `seed`, so two props
+of the same kind and knobs differ from each other while any one prop re-exports identically.
+
+Six things can be placed, in three placement geometries.
+
+| Tool | Kind | Placed by | Starts as |
+|---|---|---|---|
+| Path | `path` | tracing a line | gravel, radius 3, `solid`, coverage 0.7 |
+| Water | `water` | tracing a line | a `canal` radius 3, cut 2 deep, a 2-block shore over a Voronoi bank |
+| Ground cover | `flora` | tracing a ring | coverage 0.45 at scale 12, with fern and flower shares |
+| Building | `house` | dragging a rectangle | no style of its own until one is picked from the room-style library |
+| Tree | `tree` | a click | a `template` oak, height 12 |
+| Boulder | `boulder` | a click | a `round` mossy stone, size 2.5 |
+
+**Every one of them takes a style, and for the two that pave the ground the style and the material are
+separate questions.** A **path** replaces the surface it crosses rather than adding to it — it is a finish,
+not terrain, which is why it carries a material and no height, and why nothing grows on what it covers. Its
+`style` shapes the *band*: `solid` holds one width the whole way for a clean utility road, `worn` thins it by
+a per-cell dice (that is what `coverage` spends), `rough` wanders the width by a noise field so the outline is
+organic rather than ruled, `stones` lays discs at intervals with gaps between them — stepping stones across a
+void — and `tapered` runs it fat in the middle and thin at the ends. What fills the band is `pave`, a **full
+terrain material**: a solid block, a layer stack, a Voronoi patchwork, a noise ramp, any pattern the painter
+offers. The two are independent, so a worn cobble and a solid cobble are both sayable.
+
+**Water** is the one prop that changes the ground rather than the surface: it cuts a bed and fills it to a
+level water line, because water laid flat on a surface reads as blue paint. It only ever carves existing
+terrain — the cut stops at the surface it crosses and never fills what was already air. Its `form` is `canal`
+(a clean uniform width, deepest on the centreline), `natural` (the width wandered by noise) or `stream` (the
+width pinching and swelling on a beat down the arc, running shallower throughout, so it reads as riffles
+rather than one even channel). Around that: `radius` and `depth`, `edge` for how far a natural or stream bank
+wobbles, `shore` for how wide a beach the water meets the land through with `shoreWander` for whether that
+beach opens and closes along the run, and `bank` — again a full terrain material, defaulting to a Voronoi of
+gravel edges, coarse dirt inside them and sand in the middle, which shows through the shallows and continues
+as the beach.
+
+**A tree is two different things rather than one thing with a switch.** A `template` tree is vanilla: its
+`species` — oak, birch, spruce, jungle, acacia or dark oak — names its wood, its canopy profile and its
+proportions together, since a notched cone is a spruce and a flat umbrella on a leaning trunk is an acacia,
+and neither is a knob setting of the other; `height` scales the lot. A `grown` tree is the recursive skeleton,
+where the shape is the author's and `wood` (the same six) is all that is left to name: `stems` one to three,
+`leader` for how far the central axis climbs, `flow` for how much the trunk wanders, `branchAngle`, `levels`
+two or three, `whorled` for the ring-every-few-courses conifer against the broadleaf, and `leafSize`. Each
+form reads only its own fields, so the others are inert rather than wrong.
+
+**A boulder** takes a `form` — `round` (one lobe, half buried), `angular` (one heavily eroded lobe),
+`outcrop` (one wide flat lobe, a low shelf rather than a rock) or `cairn` (three shrinking lobes stacked) — a
+`size`, a `mossy` flag for whether moss creeps onto the sky-lit faces, and `rock`, a full terrain material
+like a path's paving. A rock's material resolves in the **boulder's own frame** rather than the map's, so a
+mottled stone carries the same mottling to every image of its orbit instead of sampling whatever the world
+pattern says where each image happened to land.
+
+**Ground cover** is the one place a density field is the point: a drawn ring filled by `coverage` at a feature
+`scale` over some `octaves`, split by `fernShare`, `flowerShare` (with its own `flowerScale`) and `tallShare`.
+
+The pickers show **your** prop rather than a stock one. `GET /terrain/path-styles?pave=…` draws the five band
+styles in the material already chosen, `/terrain/boulder-forms?rock=…` the four rock shapes in the author's
+stone, `/terrain/water-forms` the three channels as actual dug beds, `/terrain/species` every vanilla tree
+built, and `/terrain/woods` the six woods on the tree currently being edited — so the question answered is
+"what would mine look like", not "what does the catalogue contain". `POST /terrain/prop-preview` renders one
+before it is placed.
+
+Two knobs are bounded rather than free, and it is load-bearing: a tree's height is held to 5–40 and its leaf
+cluster to 0.2–1, and a boulder's size to 1–7. Cost is superlinear in reach — a grown crown is filled by
+testing every cell of its bounding box — so a `leader` of 55 rather than 0.55 would not draw a strange tree,
+it would ask for a volume hundreds of blocks across and never return.
+
+The two clicked kinds are **markers**, and a marker seats on the ground: it can only be dropped where there is
+terrain, and dragging one across the void simply does not follow, so it stays on the last real cell it was
+over. The cursor shows in advance whether a spot will take it. A **building** is the only prop placed as a
+rectangle, because a stamper takes a box: it must be at least three by three to hold two walls and an inside,
+and no larger than 192 blocks of footprint, and a drag outside that range places nothing.
+
+**What a building is made of reaches further than what this phase can say.** A house is stamped against a
+`Footprint` (`src/PgmStudio.Minecraft/Footprint.cs`), and a footprint is **one or more touching rectangles** —
+wings. An L, a T or a U is therefore one house under one style rather than two standing beside each other: the
+outline is walked as a single landmass, so an L answers six runs of wall and a T eight, a wall ends wherever
+the building turns, and the cell where two wings meet is an inner corner carrying a post of its own. Each wing
+may stop short of the building's full height and may override the roof form, pitch and slab, and a storey is
+then its own plan over the wings still standing — which is how a one-storey hall with a two-storey cross wing
+gets the wall it needs against the hall's roof with no rule written for it.
+
+**The roof over a junction is built and has two behaviours.** A building's roof is the union of its wings'
+roofs, never a max of their crowns, because a max blends two surfaces into one and drags roof material down
+the wall between wings of unequal height; each wing is extruded as the whole building it would be alone. Where
+a wing **projects** into another, it cuts the roof it pushes into across its own span, so its verge has
+something to sit on instead of two surfaces lying over each other. Where a wing's gable end runs up against
+another wing rather than into the open, its roof **marches** — carried across the wing's own width with no
+overhang, since an overhang is what a roof has outside a wall and inside another wing there is no outside.
+
+What is missing is the authoring, not the stamp. A placed building is stored as exactly two corners, so
+nothing in the studio can state a second wing, and the dressing pass stamps one rectangle per prop: two
+buildings drawn touching are stamped as two buildings, and one whose footprint overlaps ground an earlier prop
+already claimed is dropped rather than joined to it. Composing several placed rectangles into one multi-wing
+footprint is the open half of `G172`; the stamper is waiting for it.
+
+Dressing does not repaint the Blocks overlay, which shows the painter's surface colours — a prop adds blocks
+*above* the surface.
+
+## Refusals and complaints
+
+The sketch has almost no gate, and that is deliberate: an unfinished drawing is a legitimate state, and the
+tool saves it. Five things nonetheless refuse.
+
+**Finish refuses an empty board.** `POST .../sketch/finish` answers 422 when there is no stored layout at all,
+and again when the layout rasterizes to no ground. It does *not* ask for two islands: an island is a connected
+landmass rather than a side, and one continent both teams stand on is a common and correct shape. Symmetry
+decides whether a board has two sides, and it is stated in the setup rather than counted in the ground.
+
+**A recompile refuses to orphan a relief.** `PUT .../sketch/from-plan` answers **409**, listing the islands
+whose relief the new geometry has no home for, and writes nothing. Island identity is derived from the
+geometry, so a recompile that re-fuses the board does not merely move an island — it produces a different one,
+and terrain authored against the old fusion has nowhere correct to land. `?force=true` accepts the loss and
+proceeds, which is the author's call and not the server's.
+
+**A building refuses a footprint it cannot stamp** (under 3×3, over 192 blocks), and **a marker refuses the
+void**, as above.
+
+**Heights are clamped rather than refused**: a shape is never thinner than one block and its floor never dips
+below zero, whatever is asked for.
+
+And two things are silently **dropped on load** rather than carried: a prop whose kind the client does not
+know, and a relief mark whose kind it cannot draw. A shape nothing can edit is worse than an absence.
+
+## The API
+
+Every endpoint is anonymous and rooted at `/api`.
+
+**The map's layout**
+
+| Endpoint | Body | Answers | Fails with |
+|---|---|---|---|
+| `POST /sketch` | `{name?, width?, depth?, mode?, centerX?, centerZ?}` | `{slug}` — a `map` row at `stage=sketch`. A frame seeds the `setup`; without one the layout is `{}` and the editor uses its 120×80 `rot_180` default | — |
+| `GET /map/{slug}/sketch` | — | the stored layout, or `{}` | 404 |
+| `PUT /map/{slug}/sketch` | the layout | `{ok: true}` — a **verbatim replace**, which is what makes a deletion stick | 400 non-JSON · 404 |
+| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{ok, orphaned}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry | 409 `{islands}` orphaned relief (`?force=true`) · 400 · 404 |
+| `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure` | 422 no layout, or no ground |
+| `DELETE /map/{slug}/sketch/discard-if-empty` | — | `{discarded}` — drops a draft still at its default name with no authors and nothing drawn | — |
+
+**Previews over a live layout.** All three take the working document as the body rather than reading the stored
+blob, so they track unsaved edits, and all three answer 400 rather than 500 on a layout they cannot process.
+
+| Endpoint | Answers |
+|---|---|
+| `POST /map/{slug}/sketch/paint` | the painted surface as palette-indexed block pixels — the real painter's output, with team tints resolved from the stored intent |
+| `POST /map/{slug}/sketch/relief[?interval=]` | `{interval, islands[]}` — per island its height range, its bounds and its traced contour lines, from the build's own solver |
+| `POST /map/{slug}/sketch/relief/read` | `{islands[]}` — per island the cell count, low/high/relief, steps, tiers, the first twelve faces and the total, cliffs, crossings in X and Z, and the symmetry error |
+
+**The finish libraries**, all map-independent. `/styles` and `/themes` are the terrain-paint library a theme is
+pulled from or pushed to (`DELETE /styles/{id}` answers 409 naming what still binds it). `/room-styles` is the
+shell library the Rooms step binds from, with `/room-styles/doors`, `/room-styles/{id}/json` for the stamper's
+own form, and two preview routes — one for a set of courses, one for a snapshot. `/roof-styles`,
+`/storey-styles` and `/porch-styles` are the parts a room style is composed from. `/terrain/blocks` is the
+block palette, and `/terrain/material-preview`, `/terrain/theme-preview`, `/terrain/theme-map-preview` and
+`/terrain/prop-preview` render what an edit will look like; `/terrain/path-styles`, `/terrain/water-forms`,
+`/terrain/boulder-forms`, `/terrain/species` and `/terrain/woods` are the dressing vocabularies.
+
+## Driving it without the UI
+
+A sketch is one document, so an agent writes it and puts it. The loop is three calls.
+
+```
+POST   /api/sketch                    {"name": "Voidwatch", "width": 160, "depth": 100}
+PUT    /api/map/voidwatch/sketch      <the layout document>
+POST   /api/map/voidwatch/sketch/finish
+```
+
+A map that already came from a plan needs only the last two — the layout is already there, and `GET
+/api/map/{slug}/sketch` returns it to be edited and put back. Note the difference between the two write paths:
+the plain `PUT` replaces the blob, so a document that omits `themes` deletes them, while
+`.../sketch/from-plan` merges the finish onto fresh geometry.
+
+### Gauging the result
+
+Everything below runs on the **working layout posted as the body**, so a sketch can be checked before it is
+saved and without a browser. What matters for an agent is which of them answer in numbers, which answer in a
+drawing, and which answer in a raster it can actually open.
+
+**Three read the sketch itself.** `POST .../sketch/paint` runs the real painter and answers the surface as
+palette-indexed runs — the exact colour of every footprint cell, which is how a Voronoi reads as its cells
+rather than as an average. `POST .../sketch/relief[?interval=]` answers the traced contour lines per island
+from the build's own solver, as flat `[x, z, x, z, …]` runs. `POST .../sketch/relief/read` answers the terrain
+in **numbers**: per island the cell count, low, high and relief, the step count and tiers, the faces with
+cliffs qualified, crossings measured in both directions, and the symmetry error. That last one is the one to
+reach for first, because it is the only preview that says whether terrain is any *good* without an eye — it is
+what makes a relief correctable by a generator.
+
+**The finish previews draw, in SVG.** `POST /terrain/material-preview` and `/terrain/theme-preview` answer a
+material and a theme as they will paint — the theme as a cut-open sample plateau plus a top-down swatch per
+bucket. `POST /terrain/prop-preview` and the five card sets (`/terrain/path-styles`, `/water-forms`,
+`/boulder-forms`, `/species`, `/woods`) answer a prop as it will be built. `POST /room-styles/preview`, its
+`-snapshot` twin, and `/roof-styles/preview`, `/storey-styles/preview`, `/porch-styles/preview` answer a
+building in plan, section, isometric and cutaway. All of them return **SVG text inside JSON**, so an agent
+gets markup it must render to look at.
+
+**After Finish**, the map holds rasterized world geometry and three more reads open up:
+`GET /map/{slug}/layers/top-surface` for the per-column surface colours, `GET /map/{slug}/segments` and
+`GET /map/{slug}/column-floor`. Data again, not pictures.
+
+**No picture of a sketch exists as an endpoint.** The API's only raster is the plan board —
+`GET /plans/{id}/png` beside its `/svg`, both off one shared scene so the two encodings cannot disagree
+(`B90`). The eight named stage images an agent can genuinely look at — **plan, heightmap, contour, surface,
+dressing, topdown, traversability, structures** — are written by `tools/mapgen --stages` off the `VoxelWorld`
+the build just produced, and the same read-backs are CLI flags on `tools/PgmStudio.RoundTrip` (`--topdown`,
+`--heightmap`, `--contour`, `--surface`, `--structures`, `--traversability-map`) over a built world. So an
+agent wanting to *see* a sketch has two honest options: render the data it already gets from the three reads
+above, or build the world and take the stage set.
+
+Two things are worth knowing before hand-writing a document. **Editor defaults and wire defaults are not the
+same numbers.** A mark placed in the editor is seeded from the client's own starting values; a hand-written
+mark that omits a field takes the C# record's default, and several differ — a relief omitting `base` reads 4
+where the editor would have seeded 8, a spot height omitting `r` reads 2 where the editor seeds 4, a ridgeline
+omitting `width` reads 1.5 where the editor seeds 3, and a push omitting `amount`, `roughness` or `crown` reads
+zero for all three. State the fields rather than relying on either. And **a mark that does not carry what its
+kind needs is dropped, not defaulted**: a point without `at`, a line or scarp with fewer than two points, an
+area or push with fewer than three ring vertices simply does not reach the solver.
+
+`tools/seeds/ruediger.layout.json` is the readable example for the geometry, the carve and the theme
+assignment. It states no relief, no dressing and no room styles, so it is not a reference for those three.
+
+## Limits
+
+Sketch draws the ground and everything on it, and it does not know what any of it is *for*. It has no teams,
+no spawns, no objectives, no build regions and no protection: a map begun here reaches Configure with geometry
+and nothing else, and a map that came from a plan carries the plan's intent unchanged through this tool.
+
+The structural pieces a plan projects in are **read-only here**. A spawn or wool room is rendered so it stays
+visible while the ground around it is refined, but it cannot be selected, moved or reshaped, and a destroy
+objective has no sketch presence at all. The backend half of correcting a structural piece's height across a
+recompile is in place; the canvas half is not (`B107`).
+
+The layout model carries two shape types the **Draw** dock cannot draw. A `circle` rasterizes as a 64-gon, and
+a `path` shape is a centreline with a band whose width, edge style and seed the inspector edits — but nothing
+in the Draw dock creates either, so both arrive only in a document written outside the editor. The path shape
+is not the Dressing phase's path tool and the two do different things: a `path` **shape** is terrain, drawn
+into the ground and rasterized as a footprint, while a `path` **prop** repaints the surface it crosses and
+adds no cell. The tool exists for the prop; the shape has none.
+
+Placed buildings cannot be joined, though the stamper would take them joined. It builds a house from any
+number of touching wings and roofs the junctions properly, and this phase hands it one rectangle per prop, so
+an L or a T can only be drawn as separate buildings standing beside each other — and drawing them touching
+gets exactly that, or one building and a dropped prop where they overlap. The gap is `G172`'s open half: a way
+to state the second wing. One thing beyond it is genuinely unbuilt — a wing that projects into another and
+stands mid-slope wants the same plinth and wall as its neighbour, which nothing does yet.
+
+Symmetry here is a **preview and a mirror flag**, not a constraint. Shapes are drawn on one side and copied at
+export for every island that opted in; nothing stops an author drawing across the axis, and nothing checks that
+the two halves agree. The relief readback reports a symmetry error precisely because nothing prevents one.
+
+Nothing validates a sketch. The only questions asked of it are whether anything was drawn at all and whether a
+recompile would orphan hand-authored terrain; there is no lint, no rule set and no score. What a board plays
+like is Configure's pre-flight and, past that, a human's.
+
+**And nothing pictures one.** The sketch is the only stage between a plan and a world with no raster of its
+own: `GET /plans/{id}/png` renders the plan board and the eight stage images render the built world (`B90`),
+but a sketch answers only in data — palette runs, contour polylines, a numeric readback — and in SVG for the
+finish previews. An agent that wants to look at what it drew must render that data itself or build the world
+first. A `sketch/png` over the paint and relief it already computes would close the gap.
+
+**The pictures that do exist are not yet built to be read**, which bears on every one of them an agent
+reaches for. They imitate what a map looks like — grass green, leaves green, stone grey — and a green tree on
+green ground is invisible in a picture meant for reasoning; legibility beats realism here, and one image per
+layer in deliberate false colour would say more in a glance than an accurate render says in ten (`B98`).
+Nor does an image carry a key: the plan render colours by role and says so nowhere, and because blue is the
+universal code for water, a build zone has already been read as water on a map that carries none — an image
+that invites a confident wrong reading being worse than one that is merely unclear (`B95`). Until both land,
+the rule to work by is that **a render answers "did what was authored come out", not "what is this"**: it is
+a check against the document, never a source of meaning on its own.
