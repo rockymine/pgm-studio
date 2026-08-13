@@ -108,6 +108,32 @@ for a description knows what it can become before reaching for the spec's shorth
 below is built and shipping; where it is not reachable from `MapSpec`, that is a gap in the spec's
 vocabulary, not in the system.
 
+### A shape is not only ground — it is also an obstacle, and the cap is what makes it one
+
+The layout reads as a document about where land is, and most of what it does is that. It is also the coarsest
+control the system has over where a player may *go*, and two fields together are what turn a shape from
+terrain into architecture.
+
+The first is height without a way over it. `BuildIntent.MaxHeight` becomes the map's `max_build_height`
+(`BuildGenerator`), and PGM will not let a block be placed above that line — so a bridge cannot be built over
+anything standing higher. Ground whose top clears the cap is therefore not merely tall: it cannot be climbed,
+cannot be bridged past, and cannot be built on top of. A shape given a `height_mode` of `level` at an
+absolute height above the cap, or a `base_height` that reaches past it, is a wall made of terrain, and it
+holds whatever line its outline is drawn along. The same fact is what makes a marker above the cap
+ungriefable, which is the whole of why B89 puts one there.
+
+The second is that the top need not be flat. `anchor_heights` states a height per vertex on a polygon or
+lasso, TIN-interpolated across the footprint, so a shape's surface tilts rather than stepping. A rectangle
+given four differing anchors is a slanted block; slanted and standing above the cap, it is an obstacle that
+reads as a leaning slab rather than as a fence, and the direction of its lean is a decision about which side
+a player is funnelled to. Below the cap the same tilt is a ramp, which is the other thing it is for: a way up
+that no stair cut had to invent.
+
+Read with the set algebra above, that is the layout's whole vocabulary of movement control, and it is
+deliberate at every step. A `subtract` is a hole nobody crosses. A shape above the cap is a wall nobody
+passes. A tilted shape below it is a way up. Gaps between pieces are the routes that remain. None of that is
+scenery, and none of it needs a relief, a theme or a prop to work.
+
 ### The goal's material is a knob, and the kit has to agree with it
 
 A destroyable's material is authored on the plan, not fixed. `DestroyablePlacement.Materials`
