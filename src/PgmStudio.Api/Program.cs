@@ -65,7 +65,7 @@ builder.Services.AddHttpClient<PgmStudio.Api.Services.MojangClient>(c =>
     c.DefaultRequestHeaders.UserAgent.ParseAdd("pgm-studio/1.0");
 });
 
-// B8 import-from-url (docs/contracts/new-map-authoring.md §12): a hardcoded SSRF allowlist + a dedicated
+// B8 import-from-url (docs/tools/configure.md, the Import phase): a hardcoded SSRF allowlist + a dedicated
 // imports root (kept out of the curated corpus) + bounded extraction.
 var importRoot = builder.Configuration["Import:Root"] ?? Path.Combine(Path.GetTempPath(), "pgm-studio-imports");
 var importHosts = builder.Configuration.GetSection("Import:AllowedHosts").Get<string[]>()

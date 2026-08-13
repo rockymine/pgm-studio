@@ -362,7 +362,7 @@ public sealed class MapArtifactRow
     [Column("data"), NotNull] public byte[] Data { get; set; } = [];
 }
 
-/// <summary>Map symmetry (docs/contracts/new-map-authoring.md §6b) — promoted from the
+/// <summary>Map symmetry (confirmed in Configure's World phase, docs/tools/configure.md) — promoted from the
 /// <c>symmetry_json</c> artifact to a first-class row (one per map). The scalars are what consumers query
 /// (orbit, counterpart, team-count, the World step); <c>ModesJson</c> is the irregular candidate list;
 /// <c>center_cell</c> and the <c>primary</c> projection are derived on read. <c>ExcludedIslandsJson</c> /
@@ -388,7 +388,7 @@ public static class ArtifactKind
 {
     public const string LayerParquet = "layer_parquet";
     public const string IslandsJson = "islands_json";
-    // symmetry_json was promoted to the `symmetry` table (M0003, new-map-authoring.md §6b).
+    // symmetry_json was promoted to the `symmetry` table (M0003).
     public const string MapConfigJson = "map_config_json";
     // Editor-only sidecar: {region_key: editor_step} for freshly drawn, not-yet-wired regions (E10).
     // Lives outside the entity-replace codec so it survives MapWriter.SaveDocAsync; never part of the

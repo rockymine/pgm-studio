@@ -4,7 +4,7 @@ using Dict = Dictionary<string, object?>;
 
 /// <summary>
 /// The Review-phase pre-flight checks that prove a generated map is <i>correct</i>, not merely present
-/// (new-map-authoring.md §9). Two checks live here because they need only the codec + categorizer:
+/// (new-map-authoring.md §6). Two checks live here because they need only the codec + categorizer:
 /// <list type="bullet">
 /// <item><b>Round-trip</b> — the document survives the export codec (<c>FromDict → XmlWriter → re-parse</c>)
 /// with no field lost; a drift here is a generator/codec bug, and the same path is what <c>GET /xml</c>

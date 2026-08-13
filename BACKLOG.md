@@ -1054,7 +1054,7 @@ long-tail so they stop competing with real work. Re-evaluate (or delete) when th
   **layer-tagged** `layer.parquet` / `islands.json`. The per-map scan-layer + custom block-exclusion UI
   has been **removed** from both editors (detection is the fixed cleaned base; the world-scanning
   endpoints are gone), so there is no longer a config-change to honour from the UI — this remains only as
-  a rare, local-only override path outside the hosted flow (new-map-authoring.md §6a). (Island-exclusion →
+  a rare, local-only override path outside the hosted flow. (Island-exclusion →
   symmetry re-run already works without a re-scan, B7.)
 - [ ] **P7 — [Deferred decision] Consolidate the layer extractors / scan passes.** **`ND2` settles the
   "consolidate vs keep" half: KEEP the exact per-layer extractors** — the World step uses them in distinct

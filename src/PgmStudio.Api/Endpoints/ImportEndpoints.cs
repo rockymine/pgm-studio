@@ -14,7 +14,7 @@ namespace PgmStudio.Api.Endpoints;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// POST /api/map/import-url — B8 import-from-url (new-map-authoring.md §12). Server-side: fetch a zipped
+/// POST /api/map/import-url — B8 import-from-url (docs/tools/configure.md, the Import phase). Server-side: fetch a zipped
 /// Minecraft world from an <b>allowlisted</b> host, safely extract only <c>region/*.mca</c>, create the map
 /// row, and scan it into MariaDB (reusing <see cref="WorldFeatureWriter"/>). The browser never sees the zip.
 /// <para><b>Safeguards:</b> https-only + host allowlist (SSRF) · no redirects · download size cap · zip

@@ -898,7 +898,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   hybrid shape (scalar `status`/centre/chosen-mode columns + `modes_json`; `center_cell`/`primary` derived
   on read via `SymmetryStore`). GET/PATCH + the orbit/counterpart/Configure consumers read columns, not a
   blob. Has the authoring World-step inputs (`excluded_islands_json`, `detection_layer`) ready for `N01`.
-  Settles `D3` (new-map-authoring.md §6b). (NS)
+  Settles `D3`. (NS)
 
 - **Schema-drift guards** — the API asserts the FluentMigrator `VersionInfo` is at the newest known
   migration at startup and fails fast naming the pending versions + the exact fix command (never
@@ -1610,14 +1610,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the playability picture in one image, no live canvas. A failed traversability/buildability/round-trip links the author back
   to **Build**, and a
   **Re-run checks** button (+ re-run on re-entry) closes the Build⇄Traversability loop.
-  (`PreflightEndpoint`, `PreflightDto`, `Preflight`, `ReviewPreflightStep`; new-map-authoring.md §9/§12)
+  (`PreflightEndpoint`, `PreflightDto`, `Preflight`, `ReviewPreflightStep`; new-map-authoring.md §6)
 - **Review & Export · Region tree sub-step (N07)** — the read-only inspect/debug view of the full generated
   region tree (between Pre-flight and XML). Intent maps drop the tree from the shaping steps (structure is a
   generated artifact), so it surfaces here: fetches `GET /map/{slug}/regions/tree` and renders it through the
   **reused editor `RegionTree` component** (category groups · collapse · type icons · synthetic-`__anon_N`
   styling · first-event tags), in the same single-column overview as Pre-flight, with a `read-only · N regions`
   badge and a note that the tree regenerates from the shaping steps. Writes nothing. (`ReviewTreeStep`;
-  new-map-authoring.md §7/§12)
+  docs/tools/configure.md)
 - **Review & Export · XML sub-step + gated Export (N06)** — the final sub-step: the generated PGM
   `map.xml`, segmented into containers picked on the left (**Full document** + Teams · Spawns · Wools ·
   Filters · Regions · Apply rules — the latter pulled from inside `<regions>`), each with a count, the
@@ -1627,7 +1627,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   downloads exactly the previewed bytes through a new `studio.downloadText` Blob helper — `NextEnabled` at
   the final sub-step is the export gate, `Next()` runs the download. **This completes the Configure wizard
   spine** — a new map now flows intent → Map Info → World → Teams → Build → Wools → Review & Export → a
-  validated, downloaded `map.xml`. (`ReviewXmlStep`, `ConfigureWizard` export wiring; new-map-authoring.md §9/§12)
+  validated, downloaded `map.xml`. (`ReviewXmlStep`, `ConfigureWizard` export wiring; new-map-authoring.md §6)
 - **CTW standards in generated exports + PGM-faithful formatting** — generated (intent) maps now export the
   standard CTW boilerplate ~every corpus map carries: `<itemkeep>` (the non-armor, **non-block** kit items —
   tools/weapons/consumables), `<toolrepair>` (the kit's tools/weapons), `<itemremove>` (the kit's

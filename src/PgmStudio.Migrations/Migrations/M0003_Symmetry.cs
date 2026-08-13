@@ -4,7 +4,7 @@ namespace PgmStudio.Migrations.Migrations;
 
 /// <summary>
 /// Promote map symmetry from the <c>symmetry_json</c> artifact blob to a first-class table
-/// (docs/contracts/new-map-authoring.md §6b). One row per map: the queried scalars (status, centre,
+/// (confirmed in Configure's World phase, docs/tools/configure.md). One row per map: the queried scalars (status, centre,
 /// chosen mode) as columns; the irregular candidate list (<c>modes_json</c>) + authoring inputs
 /// (<c>excluded_islands_json</c>, <c>detection_layer</c>) as JSON. <c>center_cell</c> and the primary
 /// projection are derived on read. Mirrors the hybrid rule (columns for what we query, JSON for the

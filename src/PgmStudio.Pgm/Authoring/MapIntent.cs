@@ -54,7 +54,7 @@ public sealed record MapIntent
     /// and the objective text are auto-derived by the generator, not authored.</summary>
     public MetaIntent? Meta { get; init; }
 
-    /// <summary>The confirmed symmetry of the map (docs/contracts/new-map-authoring.md §4). When set, the
+    /// <summary>The confirmed symmetry of the map (docs/contracts/new-map-authoring.md §3). When set, the
     /// generator <b>orbit-fills by default</b>: the author defines one orbit unit (team 0's spawn, one
     /// wool) and <see cref="SymmetryExpander"/> rotates/reflects it onto the other teams before projection,
     /// mapping orbit positions to <see cref="Teams"/> <i>in list order</i>. Null → no fill (author states
@@ -150,7 +150,7 @@ public sealed record MetaIntent
 
 /// <summary>Where players may build. <see cref="Areas"/> are the buildable rectangles (the over-void
 /// bridges/platforms — the islands' terrain is auto-buildable via the void filter, so it needs no rect,
-/// see new-map-authoring.md §6); they're unioned and the void boundary is wired automatically.
+/// see new-map-authoring.md §5); they're unioned and the void boundary is wired automatically.
 /// <see cref="Holes"/> are no-build cutouts subtracted from that union (PGM <c>complement</c>) — genuine
 /// authored intent, unlike incidental union overlaps (which PGM ignores).</summary>
 public sealed record BuildIntent
@@ -233,7 +233,7 @@ public sealed record WoolIntent
     /// <summary>Dye colour (slug, e.g. <c>light_blue</c>). Empty → defaults to the owner team's colour.</summary>
     public string Color { get; init; } = "";
     /// <summary>The wool-room footprint, as a union of rectangles. Empty until the author draws it (partial
-    /// intent is tolerated, new-map-authoring.md §11): a roomless wool still generates its objective +
+    /// intent is tolerated, new-map-authoring.md §7): a roomless wool still generates its objective +
     /// monuments, just not the room region / spawner / room wiring. A simple room is one rect; a complex
     /// footprint needs several, which the generator unions into the room region. Tolerates a legacy
     /// single-object blob on read (see the converter).</summary>

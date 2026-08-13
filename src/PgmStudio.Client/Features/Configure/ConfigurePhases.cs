@@ -1,6 +1,6 @@
 namespace PgmStudio.Client.Features.Configure;
 
-/// <summary>A Configure-wizard phase + its steps (mirrors new-map-authoring.md §12 / the concept page).
+/// <summary>A Configure-wizard phase + its steps (docs/tools/configure.md, Phases).
 /// <c>Task</c> is the N-series task that builds the phase's real body.</summary>
 public record ConfigurePhase(string Id, string Icon, string Title, string[] Steps, string Task);
 

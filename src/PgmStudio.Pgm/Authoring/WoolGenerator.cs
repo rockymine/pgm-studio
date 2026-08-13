@@ -65,7 +65,7 @@ public static class WoolGenerator
             var spawnId = $"{colorSlug}-wool-spawn";
 
             // wool element + monuments (one per capturing team) — emitted even before the room is drawn,
-            // so a partly-authored map still generates its objectives (new-map-authoring.md §11).
+            // so a partly-authored map still generates its objectives (new-map-authoring.md §7).
             WoolEditor.AddWool(doc, new Dict { ["color"] = colorSlug });
             var update = new Dict
             {

@@ -1,141 +1,84 @@
-# New-map authoring: the declarative intent model
+# The declarative intent model
 
-How a **new** map is authored by stating *intent* — teams, spawns, build space, wools — and having
-the system **generate** the regions, filters, and apply-rules, instead of editing the region/filter
-graph by hand. This is the forward direction of the app; everything else (parse → derive category →
-display) is the reverse.
+Why authoring a map runs **meaning → structure** rather than the other way, and the laws that follow from
+it. This is the rationale record for `MapIntent`; it does not describe the tool that edits one — that is
+`../tools/configure.md`, and the type itself (`Pgm/Authoring/MapIntent.cs`) is the specification of what an
+intent holds.
 
-Read alongside:
-- `region-categorization.md` — the **reverse** mapping (structure → meaning). The generator here is
-  its mirror image.
-- `filter-region-wiring.md` — the **wiring templates** the generator emits (build/void, spawn
-  protection, wool-room defense, wool-room build/break).
-- `../region-data-flow.md` — **persistence + entity-replace + the `map_artifact` sidecar**. The
-  intent model lives where the draft bucket lives, and for the same reasons.
-
-> **Status:** backend landed (generator + persistence + orbit-fill + export gate, all unit-tested);
-> frontend authoring UI not yet built. New maps only — e.g. `thunder_blank` (a no-xml copy of thunder).
-> Existing corpus maps stay region-first and are untouched by any of this.
+Read alongside `region-categorization.md` (the reverse mapping, structure → meaning — the generator here is
+its mirror image) and `filter-region-wiring.md` (the wiring templates the generator emits).
 
 ---
 
-## 1. Why — the inversion
+## 1. The inversion
 
-The whole app today flows **structure → meaning**: parse XML → `regions`/`filters`/`apply_rules` →
-*derive* category, subtype, owner, build areas (`RegionCategorizer`). It has to, because the corpus
-only ever gave us structure and intent had to be recovered from it.
+The app's original direction is **structure → meaning**: parse XML → `regions` / `filters` / `apply_rules` →
+*derive* category, subtype, owner, build areas (`RegionCategorizer`). It has to be, because the corpus only
+ever gave structure, and intent had to be recovered from it.
 
-New-map authoring flows the other way — **meaning → structure**: the author states intent and the
-system *generates* the graph, which then serializes to PGM-loadable XML. The generator is the mirror
-of the categorizer; we already understand the mapping in both directions (categorization + the wiring
-templates prove it). We just haven't built the forward path.
+Authoring runs the other way. The author states intent and the system *generates* the graph, which then
+serializes to PGM-loadable XML. The generator is the mirror of the categorizer, and the mapping was already
+understood in both directions before it was built — categorization and the wiring templates are the proof.
 
-**The corpus was the sample, not the target.** Per the standing TODO warning, over-fitting the
-generator to reproduce any existing map's exact structure is the failure mode. The generator is
-driven by **author intent + round-trip validity**, not by matching a specific map. It is allowed to
-emit a *different* (simpler, canonical) structure than a human author wrote, as long as it parses and
-plays.
+**The corpus was the sample, not the target.** Over-fitting the generator to reproduce a specific map's exact
+structure is the failure mode. It is driven by author intent plus round-trip validity, and it is allowed to
+emit a *different*, simpler, canonical structure than a human wrote, as long as the map parses and plays.
 
----
+That inversion is what the whole studio rests on. Before it, authoring meant editing the region graph by hand,
+and the corpus is the argument against that. `annealing_iv` states "players may not build in a spawn, except
+on the monuments that stand in one" as
+`negative not-spawns → union spawns → complement → union of four spawn rectangles, minus twelve monument
+blocks` — five levels, one of them subtracting a dozen leaves from a union. It is faithful to the data and
+hostile to an author. Stating the spawn and the monuments and deriving that graph is what made a wizard
+possible at all.
 
-## 2. The intent model — the source of truth
+## 2. Why regeneration is free
 
-A compact, declarative description of *what the author wants*, independent of how it's realized as
-regions/filters:
+`../region-data-flow.md` §2 establishes the load-bearing constraint: **every save drops and recreates all
+region / filter / apply-rule rows** (`MapWriter.SaveDocAsync` = `DeleteEntities` → `FromDict` →
+`WriteEntities`), and editor-only state must therefore live outside the codec or the next save wipes it.
 
-```
-intent = {
-  meta:   { name, authors[], contributors[] },  // {name, contribution?} usernames → uuids; version
-                                                //   1.0.0, proto 1.5.0, gamemode ctw, objective auto-derived
-  teams:  { count, maxPlayers, kit },          // one size for all teams (symmetric map)
-  spawns: [ { team, point, protection? } ],     // protection optional per team
-  build:  { maxHeight?, areas[] },              // buildable rects (footprints + bridges alike)
-  wools:  [ { color, owner, roomRegion, spawnRegion, monuments[] } ],
-  symmetry: <ref to the confirmed symmetry mode>,
-}
-```
+That constraint is what makes the declarative model cheap rather than expensive.
 
-**Map identity.** `name` + `authors`/`contributors` are authored (the latter as Minecraft usernames with
-an optional per-person contribution note, resolved to uuids via `MojangClient` at save). `version`
-(1.0.0), `gamemode` (ctw), and the `objective` text are auto-derived; `proto` (1.5.0) is fixed at export.
+**Intent is a `map_artifact` blob** (`map_intent_json`), like the region-draft sidecar. It survives
+`SaveDocAsync`, and the codec and categorizer never see it — it is not part of the PGM document. Its presence
+is also what *makes* a map intent-authored, which is how the export gate knows to apply itself and how a
+corpus map is left alone.
 
-Notes that fall out of the model:
-- **One authored unit per symmetry orbit.** The author defines team 0's spawn/protection, one
-  build/bridge set, one wool — symmetry-fill (orbit) produces the rest. The intent stores the
-  *authored* unit plus the symmetry; the orbit members are generated, not stored.
-  **Implemented** as `SymmetryExpander.Expand`, applied **by default** at the top of
-  `IntentGenerator.Apply`: when `MapIntent.Symmetry` (`SymmetryIntent{Mode, CenterX, CenterZ}`) is set, it
-  rotates/reflects the authored spawn(s) and wool(s) onto the other teams *before* any slice runs.
-  **Orbit-order convention:** `Teams` are listed in orbit order — step `k` maps the unit owned by
-  `Teams[i]` onto `Teams[(i+k) % n]` (and a wool's capturing-team / monument team shifts by the same `k`).
-  An already-authored team is never overwritten, so any orbit member stays hand-correctable. Build areas
-  are **not** orbited (a flat union with no per-team identity; seeded symmetric from the islands, §6).
-  Yaw is transformed by running its facing vector through the same op. *(Not yet orbited: build holes,
-  observer spawn — both intentionally global.)*
-- **`maxPlayers` is one number.** On a symmetric map every team has the same cap. **`minPlayers` is
-  dropped** (not needed). **Kit is preselected** (a sensible default, overridable).
-- Geometry the author draws (spawn point, protection rect, bridge rects, wool-room rect, monument
-  blocks) is stored as plain coords in the intent, **not** as `region` rows. Regions are derived.
+**Regions are a derived projection.** The generator turns intent into a document dict and persists it through
+the normal codec path. The generated regions are fully canonical — they round-trip, they categorize, the tree
+and canvas render them unchanged — they are simply output rather than the source of truth.
 
----
-
-## 3. Where intent lives — and why regeneration is free
-
-`region-data-flow.md` §2 establishes the load-bearing constraint: **every save drops and recreates
-all region/filter/apply-rule rows** (`MapWriter.SaveDocAsync` = `DeleteEntities` → `FromDict` →
-`WriteEntities`), and **editor-only state must live outside the codec** or the next save wipes it.
-
-That constraint is what makes the declarative model clean rather than expensive:
-
-- **Intent is a `map_artifact` blob** (`map_intent_json`), exactly like `region_drafts_json`. It
-  survives `SaveDocAsync` (artifacts are kept), and the codec/categorizer never see it — it is *not*
-  part of the PGM document.
-- **Regions are a derived projection of intent.** The generator turns intent into a PGM document
-  dict and persists it through the **normal codec path** (`SaveDocAsync`). The generated regions are
-  fully canonical (they round-trip, they categorize, the existing tree/canvas/inspector render them
-  unchanged) — they're just *output*, not the source of truth.
-- **Idempotent regeneration is the existing save path.** Because every save already wipes and
-  rewrites all rows, "the author corrected the team count / moved a spawn" is just: mutate intent →
-  regenerate doc → `SaveDocAsync`. No duplicate regions, no orphaned filters, no diffing. This is the
-  "define once, correct anytime" property — and we get it for free from a behavior that already
-  exists.
+**Idempotent regeneration is the existing save path.** Because every save already wipes and rewrites every
+row, "the author corrected the team count" is just: mutate intent → regenerate → save. No duplicate regions,
+no orphaned filters, no diffing. Define once, correct anytime — obtained for free from behaviour that already
+existed.
 
 ```
 author edits ─▶ intent blob (source of truth)
-                   │  generate (§4)
+                   │  generate
                    ▼
               PGM document dict ──SaveDocAsync──▶ region/filter/apply_rule rows (canonical, derived)
                    │                                   │  read + RegionCategorizer
-                   └──────────── mirror check ─────────┘  (should recover the intent — §9)
+                   └──────────── mirror check ─────────┘  (should recover the intent — §6)
 ```
 
----
+## 3. Where orbit happens, and why it happens in more than one place
 
-## 4. The generator — mirror of the categorizer
-
-`generate(intent) → PGM document dict`. It composes primitives the backend already has (region CRUD,
-filter CRUD, apply-rules, spawns, wools, monuments, kits) using two engines that already exist:
-
-- **Symmetry-fill (orbit).** The confirmed symmetry (`GET /symmetry`, `POST /regions/{id}/orbit`)
-  rotates/mirrors the authored unit into every orbit position. Already used for single drawn regions
-  (F3); here it's applied to whole authored units.
-
-### Where orbit happens, and why it happens in more than one place
-
-Every orbit in the studio computes the same transform through the same leaf (`PgmStudio.Geom.Symmetry`),
-but it is asked three different questions, and conflating them is what makes the map look scattered.
+Every orbit in the studio computes the same transform through the same leaf (`PgmStudio.Geom.Symmetry`), but
+it is asked three different questions, and conflating them is what makes the code look scattered.
 
 **The plan fans.** A plan *is* one orbit unit by definition — the author draws half a board — so
-`PlanCompiler` reads each placement once and emits one per orbit image, taking the team from the orbit
-index. Every kind fans there: spawns, wools, iron, destroyables, cores, build zones, walls. Nothing about a
-plan is ambiguous, because the plan is authored in the frame the orbit is defined in.
+`PlanCompiler` reads each placement once and emits one per orbit image, taking the team from the orbit index.
+Every kind fans there: spawns, wools, iron, destroyables, cores, build zones, walls. Nothing about a plan is
+ambiguous, because the plan is authored in the frame the orbit is defined in.
 
-**Configure assigns by coverage.** An imported world is not authored half-first; the author drops a spawn on
-a real island. Which team an orbit image belongs to is then a *spatial* question — the island it lands on —
-and only the client has the islands. So `SpawnStep`, `ProtectionStep`, `WoolSpawnStep` and `WoolRoomStep`
-compute the orbit through `OrbitAssignment` and **store the copies as real intent entries**, keyed by the
-anchor each image covers rather than by orbit order. Storing rather than deriving is deliberate: the
-assignment is a judgement, so it must be visible and hand-correctable.
+**Configure assigns by coverage.** An imported world is not authored half-first; the author drops a spawn on a
+real island. Which team an orbit image belongs to is then a *spatial* question — the island it lands on — and
+only the client has the islands. So the spawn, protection, wool-spawn and wool-room steps compute the orbit
+through `OrbitAssignment` and **store the copies as real intent entries**, keyed by the anchor each image
+covers rather than by orbit order. Storing rather than deriving is deliberate: the assignment is a judgement,
+so it must be visible and hand-correctable.
 
 **Generation fills what is still missing.** `SymmetryExpander` runs at the top of every projection and
 completes an intent that carries only one unit — the property that makes "a symmetry plus one spawn" a whole
@@ -143,475 +86,86 @@ map. It maps orbit position to team *in list order*, which is the weaker rule, s
 authored or already-assigned team is left alone. On a plan-built or fully-configured map it therefore does
 nothing at all.
 
-**The canvases only draw.** The JS ghosts (`plan-doc` mirror images, the sketch mirror layer, the editor's
-`setAuthorMirror`) are previews. They store nothing and decide nothing.
+**The canvases only draw.** The JS ghosts — `plan-doc`'s mirror images, the sketch mirror layer, the editor's
+`setAuthorMirror` — are previews. They store nothing and decide nothing.
 
 The rule that keeps this coherent is that **coverage is a property of the entity, not of the tier**. Every
-objective orbits in all three, or the answer to "is this map fair?" changes depending on which tool the
-author happened to use. That rule was broken once and cost a whole class of map: `Expand` rebuilt the intent
-by naming its fields, so the four slices added after it was written — destroyables, cores, island teams and
-the plan's stamped structures — were deleted on any intent carrying a symmetry, silently. It now expands
-with `intent with { … }`, so carrying is the default and only a transform is spelled out.
-- **Wiring templates (F1, `filter-region-wiring.md`).** The four catalog templates are the generator's
-  building blocks:
-  1. **Build/void** — union the positive build areas, apply `block_place=deny(void)` to the complement.
-  2. **Spawn protection** — `enter=only-<team>` on the protection zone.
-  3. **Wool-room defense** — `enter=not-<owner>` on the wool-room region.
-  4. **Wool-room build/break** — team-checked block filter on the wool-room region.
+objective orbits in all three, or the answer to "is this map fair?" changes depending on which tool the author
+happened to use. That rule was broken once and cost a whole class of map: `Expand` rebuilt the intent by
+naming its fields, so the four slices added after it was written — destroyables, cores, island teams and the
+plan's stamped structures — were deleted on any intent carrying a symmetry, silently. It now expands with
+`intent with { … }`, so carrying is the default and only a transform is spelled out.
 
-**Auto-derivations (the "system does the hard work" part):**
+One consequence is worth stating because it surprises people: **a compiled intent carries no symmetry on
+purpose.** The field is what switches the expander on, and the expander rebuilds an intent from a fixed
+property set; setting it on an intent that is already fanned would delete the structure directives it exists
+to deliver. So a plan-built map confirms its symmetry in Configure, and a rebuild clears that confirmation
+again (`IntentCarry`).
 
-| Author states | System derives |
-|---|---|
-| confirmed symmetry (no teams) | **team count** from the symmetry order (`rot_90` → 4, `mirror_*` → 2…) **and the teams themselves** — `SymmetryExpander.SynthesizeTeams` assigns palette colours (`TeamPalette`: red/blue/green/yellow…), team 0 anchored to the authored spawn's id. Author-provided teams win. |
-| team count | **monuments per wool**: 2-team → 1, N-team → N−1 (every team *except the owner* must capture it) |
-| spawn point (+ optional protection) for team 0 | the other teams' spawns/protection via orbit, plus spawn-protection wiring (template 2) |
-| build rectangles (over-void bridges) on one side | the other sides' build rects via orbit (+ dedup of centre/axis pieces), auto-**union** + void filter on the negative (template 1) |
-| wool-room rect, owner | defense + build/break wiring (templates 3, 4); deny-enter for the defender |
+## 4. Coordinate flooring — match how PGM parses each field
 
-**Auto-unioning over hand-grouping.** The author never builds union/complement structure by hand. The
-generator unions the regions a template needs (bridges for void, spawn rects for protection, etc.) and
-applies the filter to the union/complement. This is why the shaping activities **stop showing the
-region tree** (§7): there is no author-managed structure to show — structure is an artifact.
-
-**Coordinate flooring — match how PGM parses each field, don't normalize blindly.** The wool slice floors
-the wool `<location>` to a block but passes the monument block coordinates through *raw*. This asymmetry
-is deliberate and grounded in the PGM parser (`/media/sf_repos/PGM`):
+Do not normalize blindly. The wool slice floors the wool `<location>` to a block but passes the monument block
+coordinates through **raw**, and the asymmetry is grounded in the PGM parser (`/media/sf_repos/PGM`):
 
 | Field | PGM parse path | Floors? | So the generator… |
 |---|---|---|---|
 | `<wool location="x,y,z">` | `XMLUtils.parseVector` → raw `Vector`, kept for proximity distance | **no** (never block-snapped) | **floors it** — keep the wool's goal reference block-aligned |
 | `<monument><block>x,y,z</block>` | `BlockRegion(Vector)` → `new Vector(getBlockX(), getBlockY(), getBlockZ())` | **yes** (PGM floors itself) | **leaves it raw** — re-flooring would be redundant |
 
-The rule: floor a coordinate iff PGM *won't*. A `<block>`/`<point>` region is already block-snapped by its
-region ctor; a bare proximity `Vector` is not. (Verified by static read of `wool/WoolModule`,
-`regions/RegionParser`, `regions/BlockRegion`; the generated XML exports valid.)
-
----
-
-## 5. The authoring flow (per activity)
-
-Each shaping activity edits a **slice of intent** through a simple form + canvas, not the region tree.
-
-1. **Teams & spawns.** Symmetry order suggests team count (correctable). Set one `maxPlayers`; pick a
-   kit (preselected). **Island assignment** (step 1) colour-codes islands to teams (`intent.islandTeams`,
-   island id → team) as authoring help — it tints the canvas and, crucially, feeds spawn placement: when a
-   spawn point is dropped on a tagged island it takes that island's team, and each orbit-filled spawn is
-   (re)assigned by the island it lands in (point-in-polygon) rather than blindly by orbit order, so
-   placement + orbit stay accurate even when a rotation lands slightly off. Untagged islands are neutral
-   (a contested centre). Then place team 0's spawn point; toggle "wrap in a protection zone" and
-   draw/accept it. Orbit fills the other teams; templates wire protection. A team's **spawn point and its
-   protection zone are one unit in one place** — fixing the current split where they appear under
-   different tree branches.
-2. **Build.** Set max build height; mark the positive build area; draw a few bridge rectangles. System
-   unions them and applies the void filter to the negative/complement (template 1).
-3. **Wools.** Per wool: define the wool **spawn**, the **room** region, the **monuments**. Monument
-   count is pre-filled from team count (§4) and adjustable. System wires room defense + build/break and
-   monument capture.
-
-End state: a complete, valid PGM document an author produced by *defining each thing once*.
-
----
-
-## 6. World analysis — seeding, validation, and why the steps are ordered this way
-
-The new-map target is a **logical map authored on top of existing terrain** (the `thunder_blank`
-class — a world with blocks but no `map.xml`). That terrain is what the read-side analyses
-(`/islands`, `/buildability`, `/traversability`) operate on, so they become the **bridge between the
-physical world and the logical intent**: the world *seeds* the intent, and the intent is *validated*
-back against the world. Each analysis plays both roles.
-
-**Seed (world → authoring inputs)** — so no step starts blank:
-- **The y=0 terrain footprint is the void-filter substrate — it is *not* turned into build regions.**
-  PGM's void filter (`block = not(void)` applied to the *negative* of the build group) makes any column
-  that has a block at the surface automatically editable; the islands' terrain therefore **is** the
-  buildable area, with **no `region` rows generated for it** (see PGM `regions/VoidFilter` + `BlockRegion`).
-  `/buildability` and `/traversability` both run on this y=0 footprint. So **`BuildIntent.Areas` are only
-  the over-void extensions** — the bridges/platforms the author wants buildable *across the void* between
-  islands — never the islands themselves. (This corrects the earlier "`/islands` → build areas" framing:
-  islands seed team count/positions and the buildability overlay, not build rectangles.)
-- **symmetry + island count → team count & positions** (4 symmetric islands ⇒ 4 teams). The count feeds
-  team synthesis (§4); the positions seed where the author drops each side's spawn.
-- **`/buildability` → placement snap/validate.** Spawns, wool rooms, and monuments must sit on
-  `buildable` columns; the overlay shows where solid ground is.
-
-**Validate (intent → feedback):**
-- **`/buildability`** re-run *after* the build slice shows the *actual* buildable map produced by the
-  void enforcement — catching unintended `never`/`void_denied`.
-- **`/traversability`** checks the **spawn↔wool chain is connected** over *walkable surface ∪
-  bridgeable buildable*. (Live on a half-authored `thunder_blank` it reports `connected: false —
-  "… not reachable … check build regions / bridgeable gaps."`)
-
-**This dependency chain fixes the step order** (and confirms `meta → teams → build → wools`):
-
-```
-world analysis (islands / buildability / symmetry)   ← step 0, precomputed (M7 import)
-        │ seeds
-   teams / spawns      (spawns validated onto buildable/surface columns)
-        │
-     build             ← over-void bridges between islands (terrain itself is auto-buildable via the void filter)
-        │ (the build + bridge geometry IS the navigability substrate)
-     wools             (rooms / monuments on buildable ground)
-        │
-  traversability       ← closing GATE: chain connected? if not, loop back to build
-```
-
-The load-bearing rule: **build must precede wools and the traversability gate**, because
-traversability is computed over the build/bridge geometry — a wool's reachability is undefined until
-the bridges exist. So:
-- **buildability is a live overlay *within* the Build step** (seed + immediate feedback), not a step.
-- **traversability is a closing validation gate, not a step** — and it's *iterative*: its failure
-  message sends the author back to Build to add bridges (Build ⇄ Traversability is a loop).
-- a natural **Review/Validate phase** falls out: run traversability (+ buildability) on the finished
-  intent before export, and only a connected map should export (the **export gate**, §9).
-
-> Without a world (Y=0 / surface columns) these analyses can't run, so a truly from-scratch map gets
-> no seeding or connectivity validation — another reason the first target is the terrain-backed
-> `thunder_blank` class.
-
-### 6a. The minimal World step — scan-layer selection (settles ND2)
-
-"Configure" (the old scan step) is the most unintuitive part of the editor; ND2 strips the 01-World step
-to **Scan → Islands → Symmetry**, just enough to seed team count + spawn positions + a confirmed symmetry.
-The author should **confirm, not configure** — so the studio produces one good detection layer automatically:
-
-- **Detection runs on an auto-cleaned base layer.** The `Base` (lowest-solid) extractor reads bottom-up, so on
-  decorated terrain it "looks up" into overlapping tree branches and water and the island picture jumps. The
-  fix is a **fixed, corpus-derived noise exclusion** baked into the base extractor. The reference project's
-  curated `map_layouts.json` (231 maps) justifies the set — the block ids it hand-excluded were
-  **water/lava (30 hits) · cobweb (19) · foliage = leaves/logs (9) · redstone lines (6)** (plus a few
-  map-specific decor blocks). So the cleaned base = `Base` minus `{water, lava, leaves, logs, saplings,
-  tallgrass, vines, lily_pad, redstone_wire, tripwire, cobweb}` (extends the existing `{36}` piston-marker
-  default). *(The exact foliage id set may want a render-comparison pass during `N01`.)*
-- **Tiny islands are pruned — which is why most "exclusions" don't matter.** `IslandDetector` already drops
-  components below `minIslandSize` (=10): **0 of 2780 corpus islands are < 10 blocks.** So 1×1/2×2 specks —
-  cobwebs, redstone dots, lone saplings — never become islands regardless. Excluding *them* is cosmetic; the
-  island-affecting noise is the **connected** masses (foliage canopies, water bodies), which the cleaned base
-  removes. This is why `thunder`'s `[30]` (cobweb) exclusion doesn't change its islands.
-- **Floating structures over void are pruned by a Y-discontinuity, not a height threshold.** The base scan is
-  bottom-up, so a decorative structure floating over void (no terrain beneath) has its *lowest* block "shot
-  into" by the laser and joins the picture far above the play surface (e.g. `mame_i_shrunk_the_pvpers`'
-  built **eagles** at Y≈50–82 over a play surface at Y≈0). A global height cap fails (the Y-histogram isn't
-  cleanly bimodal). The fix is **height-aware connectivity**: when detecting islands, two adjacent base cells
-  join only if their Y is *continuous* (|ΔY| ≤ ~3); a **stark Y jump** breaks the link, so the floating mass
-  becomes its own connected component and is pruned as a **height outlier above the terrain's dominant Y band**
-  (or as a mass with no support below). Validated on mame's lowest-solid layer: height-aware components isolate
-  the eagle masses (median Y≈70) for pruning while the play surface stays whole.
-- **Water is the usual "bridge" — and the cleaned base already removes it.** On `mame` the four islands are
-  joined at Y=0 by **5,796 `water_still` cells** (the reference dodged it with `bedrock`). But water is in the
-  noise set, so the cleaned base separates them on its own: island detection on mame's lowest-solid gives one
-  blob with all blocks, `[6700, 6700, 1902, 1902]` with water/lava removed, and **`[6700, 6700, 1894, 1894]`
-  with the full noise set — byte-identical to the bedrock layer's islands.** So the two cleanup passes compose:
-  height-aware connectivity drops the floating eagles, the water/lava exclusion drops the bridges, and the
-  result matches what hand-picking `bedrock` would have produced — no fallback needed for this case.
-- **Layer fallback is just a safety net now.** Because the cleaned base recovers bedrock-quality islands on the
-  motivating case, the bedrock/y0 fallback is demoted to a cheap last resort: if the cleaned base still reads
-  degenerately (one giant island, or no symmetry where the island count suggests it), retry on `bedrock`/`y0`.
-  Still studio-chosen, not user-chosen — "confirm, not configure."
-- **Surface is kept as a visual aid; segments ride along.** The top **surface** layer is messy for detection
-  but **essential for orientation** — the author toggles to it to see the map they built (wool rooms, spawns).
-  So the World canvas offers **Base (detection) · Surface (visual) · Segments** views over the same map.
-- **No user block-exclude UI, and no `P8` for the common case.** Because the clean-up is a fixed default (not
-  per-map config), the happy path never triggers a pipeline re-scan. A rare map that still needs a bespoke
-  exclude/override remains a `P8`-gated escape hatch, out of the minimal flow.
-- **Island exclusion needs no re-scan — confirmed in code.** `PATCH /configure/{slug}/exclude-island` only
-  drops the cached `symmetry_json` artifact; `islands_json` is untouched and symmetry recomputes minus the
-  excluded ids (B7). Symmetry is detectable on **99%** (332/335) of corpus maps once islands are clean, so the
-  detected order reliably seeds the team count.
-
-**P7 fits here.** The clean base is the `Base` per-layer extractor with an expanded default ignored-block set,
-and Surface/Segments stay distinct extractors used for their own roles. That settles P7's deferred "consolidate
-the layer extractors vs keep the exact per-layer ones" question in favour of **keeping them** — each has a
-distinct solid-policy and purpose (detection / visual / vertical). (P7's other half, byte-parity of a
-segment-derived surface, is unaffected.) **Build split:** the extraction-model work (expand
-`LayerExtractors.Base` exclude · `IslandDetector` height-aware connectivity + floating-mass prune ·
-degenerate-read fallback) is task **`A5`**; the World step that surfaces it is **`N01`**.
-
-### 6b. World-step data model — scan flow + persistence (analysis → confirm → intent)
-
-The World step is an **analysis → confirm → intent** pipeline; three layers, each with its own home.
-
-**1. Scan analysis — written once at world-load** (the landing's *Found* scan). One pass over the
-`.mca` chunks (read once, materialised) fans out to:
-- **Feature tables** (`wool_block` / `resource_block` / `chest_item` / `spawner_block` / `layer_segment`)
-  + the **`monument_candidate`** gather — relational, so later phases query them without re-reading the world.
-- **`islands_json`** (blob) — island polygons from the **CleanBase** detection layer; **`layer.parquet`**
-  (blob) — the **Surface** render. Detection layer is **studio-chosen** (CleanBase, with an auto
-  `bedrock`/`y0` fallback for degenerate reads — §6a), never user-chosen.
-- **Initial symmetry** over *all* detected islands → the **`symmetry` table** (below).
-
-There is **no `exclude_blocks` and no `scan_layer` selection** — the cleanup is a fixed default, so the
-world-load path never triggers `P8`'s re-scan.
-
-**2. Confirmation — interactive, no re-scan.** The author **deselects** islands that shouldn't count
-(decorative / asymmetric). Each change updates `excluded_islands` and **recomputes symmetry from
-`islands_json` minus those ids** — no `.mca` re-read (B7, §6a) — then the author confirms the symmetry.
-
-**3. Intent commit — the phase's slice.** On confirm the studio copies the slim **`SymmetryIntent`**
-(`Mode` + `CenterX/Z`) into `map_intent_json` and PUTs the whole intent (`PUT /map/{slug}/intent`). The
-**generator reads only the intent** — never the analysis tables — keeping `map_intent_json` the
-self-contained source of truth for generation.
-
-**Storage decisions (this settles `D3`).**
-- **`symmetry` → relational table** (1 row/map; shipped as `M0003`) = the *analysis / working* layer.
-  The blob is a full detection result, so the table is hybrid: scalar columns `status` · `center_x` ·
-  `center_z` · the chosen mode (`primary_type` / `primary_confidence` / `primary_user_override`), the
-  irregular candidate list as `modes_json`, and the authoring inputs `excluded_islands_json` +
-  `detection_layer`. `center_cell` and the `primary` object are **derived on read** (`SymmetryStore.ToJson`
-  reconstructs the historic `symmetry.json` shape). Replaces the `symmetry_json` artifact; its consumers
-  (existing-editor re-run, monument orbit, region counterpart, team-count suggestion) read columns instead
-  of parsing a blob. **Not redundant with `SymmetryIntent`:** the table is the *mutable analysis* (recomputed
-  on deselect); `SymmetryIntent` is the *committed declaration* the generator consumes. Confirm = copy
-  mode+centre table → intent. *(`excluded_islands_json` / `detection_layer` are populated by the authoring
-  World step, `N01`; existing-editor maps leave them null and keep island-exclusion in `map_config`.)*
-- **Authoring `map_config` dissolves.** `exclude_blocks` gone (fixed cleanup); `scan_layer` becomes the
-  auto-recorded `detection_layer` on the symmetry table; `exclude_islands` lives on the symmetry table as its
-  input. Nothing left to store. *(The existing-editor `map_config_json` blob stays frozen — its
-  scan-layer/exclude-blocks UI is the `P8` path we are not pulling into authoring.)*
-- **Stays a blob:** `islands_json` (irregular polygon geometry, rendered not queried) · `layer.parquet`
-  (bulk pixels) · `map_intent_json` (the rich declarative leaf).
-
-Net: the World step adds exactly **one new table (`symmetry`)**, needs **no authoring `map_config`**, and
-keeps the user-block-exclude + `P8` re-scan path out of authoring entirely.
-
-### 6c. Map-record lifecycle & the `kind` column
-
-A new map enters through the **landing**, not the importer:
-- **Source → create the record.** Picking an xml-less world folder inserts a `map` row with `slug` = the
-  folder name (the world already lives at `<root>/<slug>/region`, the `MapsRoots` convention). This is task
-  **`B8`** — small, because `scan-world` already exists and finds the world by that convention; it just needs
-  the row to exist first.
-- **Found → scan.** `POST /map/{slug}/scan-world` writes the analysis (feature tables, islands, symmetry —
-  §6b) against that row.
-- **Phases → author.** Map Info (`N00`) sets the real name (until then the row is slug-named); later phases
-  PUT intent slices.
-
-**`kind` column (`xml` | `intent`).** `map` gains a discriminator, set once at creation — the importer writes
-`xml`, `B8` writes `intent`. Today the split is inferred implicitly (presence of a `map_intent_json` blob —
-how the export 409 gate detects an intent map); a column makes it explicit and cheap to query. It drives:
-- **Dashboard** — section/badge "Maps" (`xml`) vs "Authoring" (`intent` drafts) rather than one
-  undifferentiated list.
-- **Routing** — a row opens in **Edit** (`/maps/{id}/edit`) when `xml`, **Configure**
-  (`/maps/{id}/configure`) when `intent` (replaces `Home.razor`'s current hard-link to `/edit`).
-
-**Deferred:** an `intent` record created then abandoned (at Found/Plan or mid-authoring) is an orphan draft.
-`kind` keeps it out of the finished-maps list; reclaiming abandoned drafts (a TTL / manual sweep) and any
-finer `status` (`draft`/`ready`) are out of scope here.
-
----
-
-## 7. Coexistence — the tree view doesn't die, it moves
-
-- **Gated by intent.** A map "is intent-authored" iff it has a `map_intent_json` blob. New maps
-  (thunder_blank) get one; existing corpus maps don't and keep the current **region-first** editing
-  unchanged. Nothing about the corpus path changes.
-- **The shaping activities (Teams/Build/Objective) drop `RegionTree`** for intent maps and render
-  bespoke intent panels (form + canvas + a small draft list). The data-model tree was never an
-  intuitive authoring surface — annealing_iv's `negative → union → complement → union → child` spawn
-  structure is the proof: faithful to the data, hostile to an author.
-- **The Regions activity keeps the full tree** as the read-only structure/inspection view (and the
-  debugging surface for what the generator produced). That's where the hierarchy belongs.
-
----
-
-## 8. Canvas implications (separate, lands independently)
-
-The full-map canvas fights small edits: placing one block or a small region on a whole-map zoom is
-imprecise. New-map authoring needs **per-side focus** — zoom/fit to one team's quadrant or a
-restricted view-box while defining that team's regions, since the author works one orbit unit at a
-time. This is an independent canvas capability and can land before the generator.
-
-**Landed — canvas focus controls.** The world canvas layer bar has a **Fit island** dropdown (zooms to
-an island's bbox) and a **fit** button (whole-map view), so the author can frame one side while
-working it.
-
-**Landed — the side-view slice (setting Y on a flat map).** The plan canvas is top-down, so a drawn
-point/block region has no obvious Y. The region inspector therefore shows a **side-view slice** — a
-localised vertical cross-section of the terrain at the selection (`/segments` windowed to the column ±10,
-or a rectangle's footprint):
-- **Point/block** → a **draggable Y line** sets the region's Y (persisted as a `coords` patch); this is
-  how the author lifts a spawn point / wool-spawn / monument off `y=0` onto the terrain surface.
-- **Rectangle** → display-only (read the terrain profile under a wool room / build area).
-- **Four inspect directions** (`Z− Z+ X− X+`) — the camera on either side of each axis — so the author
-  can read the near face from whichever direction is unobstructed. The same four-way control drives the
-  Build-Regions step-1 side-view.
-
-How it fits the flow: after placing a point in the plan view (often via orbit-fill, §4), select it and
-drag the Y line in the slice to seat it on the surface — the canvas gives plan position, the slice gives
-height. Buildability/traversability (§6) then validate that the placement is on solid, reachable ground.
-
----
-
-## 9. Validation — the mirror property and the playability gate
-
-Three checks, all reusing what exists:
-- **Round-trip:** `generate(intent)` → document → XML must pass the codec round-trip harness (the same
-  350/350 guard). A generated map that doesn't round-trip is a generator bug.
-- **Mirror consistency:** `RegionCategorizer.DeriveFacets(generate(intent))` should **recover the
-  intent's classification** (the spawn protection reads back as `spawn/protection`, the wool room as
-  `wool/room`, the build union as `build`, monuments as `wool/monument`). Generator and categorizer are
-  inverses; this is the strongest test that generation produced *correct* structure, not just *valid*
-  structure.
-- **Playability gate (export gate) — implemented.** `GET /map/{slug}/xml` now runs `Traversability.Check`
-  before rendering, and for **intent-authored maps** (those with a `map_intent_json` blob) returns **HTTP
-  409** with the failure message + the isolated spawn/wool points when the chain isn't `connected`. A
-  valid, mirror-correct document can still be *unplayable* (islands not bridged); this is the only check
-  that catches it. The gate is scoped to intent maps on purpose: corpus maps have no intent (and may have
-  no scan layers) and keep exporting unconditionally, unchanged.
-
----
-
-## 10. Scope & non-goals
-
-- **New maps only.** No migration of existing maps to the intent model; no intent inferred from the
-  corpus.
-- **Symmetric, simpler maps first.** The generator targets clean symmetric CTW layouts (the
-  thunder_blank class). Highly irregular/asymmetric maps may not be expressible at first — that's
-  acceptable; the bar is "a valid map PGM can load," not "every map."
-- **Generated structure may differ from a human's.** Canonical generator output (auto-unions, template
-  filters) is the goal, not byte-matching an existing map.
-- **Build-area "holes" (complement) — supported.** `BuildIntent.Holes` are no-build cutouts subtracted
-  from the area union: the build slice emits `buildable = complement(build-area, hole…)` (PGM `complement`
-  = first child minus the rest) and wraps *that* in the void negative; with no holes it stays a plain
-  union. Holes orbit alongside areas on symmetric maps and read back as `build` (the categorizer walks the
-  complement subtree). **Why now, not YAGNI:** the region-categorized corpus survey (350 maps) found
-  **16/233 build maps (~7%)** use a *genuine inner* complement (a real cutout), well above the earlier
-  "only 3" estimate — and per the authoring rule, a `complement` is **deliberate intent** (unlike a union
-  overlap, which PGM ignores and we may freely re-decompose), so it must be expressible and preserved.
-
----
-
-## 11. Open decisions
-
-- ~~**Intent schema location/typing**~~ — **resolved.** Typed C# model `MapIntent` (+ `SymmetryIntent`)
-  in `PgmStudio.Pgm/Editing/`, persisted as the camelCase `map_intent_json` blob; this doc is the contract.
-- ~~**Team-count inference detail**~~ — **resolved.** `SymmetryExpander` derives the count from the mode
-  (`SuggestedTeamCount`: `rot_90`→4, else→2) **and synthesizes the teams** from `TeamPalette`
-  (red/blue/green/yellow…) when none are listed; author-listed teams win. Still open: the **correction UX**
-  (override the count / recolour) — a frontend concern.
-- ~~**Build holes (complement = author intent)**~~ — **resolved (implemented).** `BuildIntent.Holes`
-  emits `buildable = complement(build-area, holes…)`, orbits with the areas, and reads back as `build`
-  (mirror + XML round-trip tested). Overturns the old §10 YAGNI on the strength of the ~7% corpus finding.
-- **Partial/invalid intent** — how the generator + UI handle an incomplete map (draft of a draft):
-  generate what's valid, surface what's missing. (Backend tolerates it: null/empty slices are skipped.)
-- **First vertical slice** — recommend **Teams on thunder_blank** (exercises symmetry→count,
-  orbit-fill, auto-wiring, and idempotent regeneration in one slice). Backend ready; UI not started.
-- **Yaw under reflection** — the facing-vector reflection is exact, but whether a *mirrored* spawn should
-  face the symmetric direction or be re-aimed at map centre is an authoring-taste call to revisit with the UI.
-
----
-
-## 12. The authoring wizard shell — navigation & gating (settles ND1)
-
-The Configure wizard (route `/maps/{id}/configure`, UI label **Configure**;
-see `routing-and-ia.md`) is a **guided wizard**, not the free-form region editor. Its chrome is three
-levels (the concept page's `NavModelSection`), and this section pins where the flow overview, the
-pre-flight checks, and phase locking actually live.
-
-**Three-level navigation**
-
-1. **Activity rail** (left, unchanged from the existing editor) — the phases:
-   `0 Map Info · 1 World · 2 Teams · 3 Build · 4 Wools · 5 Cores · 6 Review & Export`. A completed phase
-   carries a green dot, the current one a left bar, a locked one is dimmed. The rail **logo returns to the
-   landing screen**. Jump to any *unlocked* phase here. The rail renders **the map's own phase list**, not
-   the catalog, so a phase can be dropped for a map without the indices behind locking and navigation
-   meaning something different from one map to the next.
-
-**The objective phases are a group, not a choice.** A PGM map may carry wools, destroyables and cores at
-once, in any combination — a CTW map with a core to breach is an ordinary map, not an exotic one — so each
-objective kind is **its own phase** and every one of them is offered on every map. An author adds a gamemode
-by filling a phase in, which is the only way a map that arrived with one objective can gain a second. They
-share a **single completeness gate**: the map needs *an* objective, not one of each, so a DTC map is never
-held up by an empty wool slice and a CTW map is never held up by an empty core one.
-2. **Flow bar** — its **own strip above the workspace** (never on the canvas, whose own chrome — the
-   readout, the layer bar and the dock — floats on it). Left-to-right: a **phase-identity cluster** (the current phase's icon + name,
-   so the strip always names where you are) · the phase's **sub-steps** (check = done, accent
-   underline = current; a **single-step phase shows no sub-steps** — just the phase name, e.g. Map
-   Info) · **Back / Next** on the right, **always present**, with **Back disabled at the first step**.
-3. **Back / Next** advances one sub-step / phase at a time (the linear path).
-
-Every phase uses this same shell — including **Map Info** (the form-only phase 0; its Back is disabled
-as the entry point). There is **no per-step "Save & continue" button**.
-
-**Save model (settles ND4).** A phase **saves on advance** — when you leave it via *Next* or a rail jump
-to another phase, the wizard `PUT`s the whole intent (one idempotent regenerate per phase, §3, resolving
-author usernames as it goes) and the next phase's prerequisite slice is now present, so the rail unlocks
-it. Forward *Next* is **gated on the current phase being complete** (each phase defines what that means —
-Map Info needs a name + an author), so you fill a phase in before you can progress; the unlocked range is
-**purely slice-derived** (no session "furthest"), so you can't skip ahead by clicking through. Editing a
-phase marks it **dirty**; leaving while dirty saves, leaving clean is a no-op (no needless regenerate). Save state is a **single text indicator in the topbar** — **Saved · Saving… · Unsaved**, no
-icons — global so it reads the same in every phase. **Per-phase "done" is the rail's green dot**, backed
-by the phase's intent slice being present (`meta` · `symmetry` · `teams` · `build`, plus the one gate the
-objective phases share); there is **no per-sub-step checkmark** (intent slices are per-phase, not per-sub-step, so the flow bar marks only
-the current sub-step). On entry the wizard loads the stored intent (`GET /map/{slug}/intent`) and derives
-both the unlocked range and the done dots from it, so revisiting a part-authored map opens exactly the
-phases it has reached — progress lives in the intent, not in session state.
-
-**The landing / home screen (ND3 — `LandingSection`).** `/maps/new` (the Import landing) opens here,
-and the rail logo returns here. It is **a workspace with its own flow bar** (phase = **Import**) walking three sub-steps —
-**Source → Found → Plan** — the same three-level chrome as every phase, so the entry feels like the rest of
-the wizard. Only **Found** has a central canvas (the scanned-world preview); **Source** and **Plan** are
-panel-only. The sub-steps:
-
-1. **Source — pick a world.** *Now:* **open a local folder** — a world folder under the maps roots that
-   has `region/*.mca` but **no `map.xml`** (the new-map candidates); the studio scans it directly. A
-   folder-path field + "Browse" is the manual fallback. *Later (deferred):* a **download-link field** —
-   paste an Overcast / S3 `//download` zip URL and the studio fetches + imports it (the `import-from-url`
-   half of **`B8`**). The field is shown on the landing screen but disabled until B8 lands. This whole
-   step exists so we can **validate the new-map approach on real terrain folders before any download
-   integration.**
-2. **Found — the import brief.** Folder + file list (`region/` count, `level.dat`, `map.xml` absent), the
-   **top-down render**, and the detection summary — islands (on the cleaned base, ND2 §6a), symmetry,
-   suggested team count, plus the world features the scan already found (wools / resources / chests /
-   spawners). This is the **seed of the guidance model**: exactly what the author *confirms* in the phases
-   that follow (e.g. the detected island count → team count in World/Teams). Nothing here is final.
-3. **Plan — the flow + Start.** The phase overview (each phase, its one-line purpose, the
-   Build⇄Traversability caveat) and a **Start authoring → Map Info** action (the `Next` on this last
-   sub-step, like Review's XML→Export).
-
-**Step navigation & re-pick.** The **scan** is the gate: before it only *Source* is reachable (the flow-bar
-*Found* / *Plan* steps are dimmed); after it the author moves freely across all three — a scanned world
-has its whole brief ready, so jumping straight to *Plan* is expected. **Back to *Source* stays allowed**;
-re-picking a *different* world there **resets the scan** (clears the brief + canvas, re-locking *Found* /
-*Plan* until the new world is scanned), so the preview and panels can never show a world other than the one
-currently selected.
-
-Backend: the local **open-folder source** (list xml-less world folders under the roots → create the map
-record → `POST /map/{slug}/scan-world`, which exists) is the now-increment of **`B8`**; the URL download
-is the later increment.
-
-**Where the checks live.** Validation is **not a phase of its own** (§9; the concept page's
-`ValidateSection` is a reference, not a step):
-- **Buildability is a live layer toggle inside Build** — the `Buildable` overlay chip on the canvas
-  sub-bar, immediate feedback as bridges are drawn (it is the seed + feedback of §6).
-- The **buildability and traversability maps**, plus the four **pre-flight checks** (round-trip ·
-  mirror · buildability · traversability, §9), render in the **Review** phase, where the whole map is
-  validated on entry / on demand. They are not re-run continuously on every edit.
-
-**Review & Export is one phase with three sub-steps** walked by the flow bar:
-`Pre-flight → Region tree → XML`. Pre-flight is the checks + the two maps (above); Region tree is the
-read-only generated structure (§7 — the inspect/debug surface); XML is the segmented serialized output.
-**Export is the flow bar's `Next` on the final (XML) sub-step**, enabled only when the Pre-flight gate
-is open (HTTP 409 otherwise, §9) — there is no separate Export button on Pre-flight. On the concept page
-these are still three sections (`ReviewSection` / `TreeSection` / `XmlSection`, the `N05`/`N07`/`N06`
-build units) but they are one phase. *(Map Info, by contrast, is a single-step phase — no sub-steps.)*
-
-**Phase locking — by prerequisite slice (not a rigid line).** A phase unlocks once the intent slice it
-depends on exists; you may always jump *back* to any **done** phase to edit it:
-
-| Phase | Unlocks when |
-|-------|--------------|
-| 0 Map Info | always (entry) |
-| 1 World | map exists (Map Info saved) |
-| 2 Teams | World symmetry **confirmed** (seeds team count/positions) |
-| 3 Build | Teams defined (spawns placed) |
-| 4 Wools | Build slice exists — **build must precede the objectives** (traversability is computed over the build geometry, §6) |
-| 5 Cores | as Wools — the objective phases are peers, so either order is fine |
-| 6 Review | all required slices present (teams + build + **an** objective) — i.e. there is a complete map to check |
-
-**"Review needs a connected map" is the *export gate*, not the phase lock.** Review unlocks on
-*completeness*; the **connectivity** requirement is enforced at export: `GET /map/{slug}/xml` runs
-`Traversability.Check` and returns **HTTP 409** for intent maps whose spawn↔wool chain isn't connected
-(§9). Locking Review behind connectivity would be circular — the connectivity check runs *inside*
-Review. A failed traversability/buildability result there links **back to Build** (the Build⇄Traversability
-loop, §6); a failed round-trip/mirror is a generator bug surfaced in the validate log.
+The rule: **floor a coordinate iff PGM will not.** A `<block>` or `<point>` region is already block-snapped by
+its region constructor; a bare proximity `Vector` is not. Verified by static read of `wool/WoolModule`,
+`regions/RegionParser` and `regions/BlockRegion`; the generated XML exports valid.
+
+## 5. The buildable substrate is the terrain, not a region
+
+PGM's void filter — `block = not(void)` applied to the *negative* of the build group — makes any column with a
+block at the surface automatically editable. The islands' terrain therefore **is** the buildable area, and
+**no region rows are generated for it** (PGM `regions/VoidFilter` + `BlockRegion`).
+
+So `BuildIntent.Areas` are **only the over-void extensions** — the bridges and platforms the author wants
+buildable *across* the void between islands — never the islands themselves. `Holes` are the no-build cutouts
+subtracted from that union, emitted as a PGM `complement`, and they are genuine authored intent rather than an
+incidental overlap: the region-categorized corpus survey found **16 of 233 build maps (~7%)** using a real
+inner complement, which is why the shape has to be expressible and preserved rather than re-decomposed.
+
+Two consequences follow, and both are load-bearing elsewhere. The y=0 footprint is what `/buildability` and
+`/traversability` read, which is why **an intent authored against no scanned world cannot pass the export
+gate** — there is no substrate for either to run on. And **build must precede the objectives**, because
+traversability is computed over the build and bridge geometry: a wool's reachability is undefined until the
+bridges exist, so a failed gate sends the author back to Build rather than to the wool.
+
+## 6. What validation proves
+
+Three checks, each answering a different question.
+
+**Round-trip** — `generate(intent)` → document → XML must pass the codec round-trip. A generated map that does
+not round-trip is a generator bug.
+
+**Mirror consistency** — `RegionCategorizer.DeriveFacets(generate(intent))` should recover the intent's own
+classification: the spawn protection reads back as `spawn/protection`, the wool room as `wool/room`, the build
+union as `build`, monuments as `wool/monument`. Generator and categorizer are inverses, and this is the
+strongest available test that generation produced *correct* structure rather than merely *valid* structure.
+
+**The playability gate** — a valid, mirror-correct document can still be unplayable, because nothing above
+asks whether the islands are bridged. `Traversability.Check` does, and `GET /map/{slug}/xml` answers **409**
+for an intent-authored map whose spawn↔wool chain is not connected. It is scoped to intent maps on purpose:
+a corpus map has no intent, may have no scan layers, and exports unconditionally.
+
+## 7. Scope
+
+**New maps only.** No migration of existing maps to the intent model, and no intent inferred from a finished
+one — recovering meaning from a corpus map's structure is the categorizer's direction, and it stops at
+categories.
+
+**Generated structure may differ from a human's.** Canonical output — auto-unions, template filters — is the
+goal, not byte-matching an existing map. The author never builds union or complement structure by hand; the
+generator unions what a template needs and applies the filter to the union or complement. That is why the
+shaping steps show no region tree: there is no author-managed structure to show.
+
+**Partial intent is tolerated.** Null and empty slices are skipped rather than refused, so a half-authored map
+still generates what it has — a roomless wool still produces its objective and its monuments, losing only the
+room region and its wiring. Completeness is a question the tool asks at its own gates, not one the generator
+enforces.
+
+**Symmetric maps first.** The generator targets clean symmetric layouts; a highly irregular map may not be
+expressible, and the bar is "a valid map PGM can load" rather than "every map".

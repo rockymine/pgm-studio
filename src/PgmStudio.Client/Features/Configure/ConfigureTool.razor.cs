@@ -24,7 +24,7 @@ public partial class ConfigureTool
 
     // The stored authoring intent (GET /map/{slug}/intent) is the source of truth for both gating and
     // persistence. Held as a mutable JsonObject so a phase body can patch its own slice and mark dirty;
-    // the wizard re-PUTs the whole object on phase-advance (save model, new-map-authoring.md §12).
+    // the wizard re-PUTs the whole object on phase-advance (the save model, docs/tools/configure.md).
     private JsonObject? intent;
     private bool dirty;
     private SaveState save = SaveState.Saved;
@@ -44,7 +44,7 @@ public partial class ConfigureTool
     private string StepLabel => Phase.Steps.Length == 0 ? "Identity" : Phase.Steps[step];
 
     // A phase must be complete before its boundary Next persists the slice and unlocks the next phase
-    // (new-map-authoring.md §12). Step moves within a phase are always allowed; only crossing the
+    // (docs/tools/configure.md, What it refuses). Step moves within a phase are always allowed; only crossing the
     // boundary is gated. Phases without a built body yet default to complete so the scaffold stays
     // browsable — each N-task swaps in its real predicate.
     private bool CanAdvance => Phase.Id switch
@@ -106,7 +106,7 @@ public partial class ConfigureTool
     private bool HasObjective() => ConfigurePhases.ObjectiveSlices.Any(NonEmptyArray);
 
     // Identity's slice is complete once it has a name and at least one (non-blank) author — the minimum
-    // the generator needs (new-map-authoring.md §0/§12). Authors are {name, contribution?} objects.
+    // the generator needs (docs/tools/configure.md, Identity). Authors are {name, contribution?} objects.
     private bool MetaValid()
     {
         if (Obj("meta") is not { } m || string.IsNullOrWhiteSpace(Str(m, "name"))) return false;

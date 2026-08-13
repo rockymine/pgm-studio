@@ -15,7 +15,7 @@ namespace PgmStudio.Api.Endpoints;
 /// what proves the generated document is a real, loadable PGM map. Delegates to
 /// <see cref="MapExportComposer"/> so what's reviewed here is exactly what <see cref="MapExportEndpoint"/>
 /// ships (for a sketch map, the <em>resolved</em> XML — snapped spawns + auto-derived monuments).
-/// <para><b>Playability gate (new-map-authoring.md §9).</b> For intent-authored maps (those with a stored
+/// <para><b>Playability gate (new-map-authoring.md §6).</b> For intent-authored maps (those with a stored
 /// intent blob), export is <b>blocked</b> (HTTP 409) unless <see cref="Traversability"/> reports the
 /// spawn↔wool chain connected — a valid, mirror-correct document can still be unplayable (islands not
 /// bridged), and this is the only check that catches it. Corpus maps have no intent and export
