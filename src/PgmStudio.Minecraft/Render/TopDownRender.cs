@@ -1,7 +1,7 @@
 using PgmStudio.Domain;
-using PgmStudio.Minecraft;
+using PgmStudio.Geom.Render;
 
-namespace PgmStudio.RoundTrip;
+namespace PgmStudio.Minecraft.Render;
 
 /// <summary>
 /// A world's surface as a top-down PNG: one pixel block per column, coloured by the same
@@ -22,9 +22,12 @@ namespace PgmStudio.RoundTrip;
 ///
 /// <para>The optional overlay draws what <c>map.xml</c> declares on top of the terrain — objective
 /// destroyables, spawns, and the boxes named by apply rules — because the question a render is usually asked
-/// is whether the geometry sits where the XML says it does.</para>
+/// is whether the geometry sits where the XML says it does. Overlays take an already-parsed <see cref="MapXml"/>
+/// rather than a file path: parsing the document is <c>map.xml</c> semantics, which stays in the caller
+/// (a text file on disk for the <c>RoundTrip</c> harness, the string a build just produced for
+/// <c>tools/mapgen</c>), so this renderer needs nothing beyond <see cref="Domain"/> and its own world reads.</para>
 /// </summary>
-internal static class TopDownRender
+public static class TopDownRender
 {
     /// <summary>How dark the deepest water gets over its bed.</summary>
     private const double DeepWaterKeep = 0.35;
@@ -34,15 +37,52 @@ internal static class TopDownRender
 
     private sealed record Column(int SurfaceY, int PackedRgb);
 
-    public static int Run(string regionDir, string outPng, string? mapXml, int scale, int? yMax)
+    public sealed record Result(byte[] Pixels, int BlocksWide, int BlocksHigh, int ColumnCount,
+        int LowestY, int HighestY, int OverlayCount);
+
+    /// <summary>Reads a built region directory from disk and renders it — the <c>RoundTrip</c> CLI's entry
+    /// point.</summary>
+    public static int Run(string regionDir, string outPng, MapXml? map, int scale, int? yMax)
     {
         if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"no region dir: {regionDir}"); return 1; }
-
         var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(AnvilRegion.ReadChunks).ToList();
         if (chunks.Count == 0) { Console.Error.WriteLine($"no chunks in {regionDir}"); return 1; }
+        return Emit(chunks, outPng, map, scale, yMax,
+            Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(regionDir)) ?? regionDir));
+    }
 
-        var columns = ReadColumns(chunks, yMax);
-        if (columns.Count == 0) { Console.Error.WriteLine("no non-air columns"); return 1; }
+    /// <summary>Renders a world still held in memory — no round trip through a region file. This is what lets
+    /// a generator emit its own top-down the moment it finishes building, over the exact world it just made
+    /// rather than one re-read off disk.</summary>
+    public static int Run(VoxelWorld world, string outPng, MapXml? map, int scale, int? yMax, string name)
+    {
+        var chunks = AnvilRegion.FromWorld(world).ToList();
+        if (chunks.Count == 0) { Console.Error.WriteLine("world has no chunks"); return 1; }
+        return Emit(chunks, outPng, map, scale, yMax, name);
+    }
+
+    private static int Emit(List<AnvilRegion.Chunk> chunks, string outPng, MapXml? map, int scale, int? yMax, string name)
+    {
+        var result = Render(chunks, map, yMax);
+        if (result is null) { Console.Error.WriteLine("no non-air columns"); return 1; }
+
+        var scaled = Raster.Upscale(result.Pixels, result.BlocksWide, result.BlocksHigh, scale);
+        PngWriter.Write(outPng, result.BlocksWide * scale, result.BlocksHigh * scale, scaled);
+
+        Console.WriteLine($"topdown {name}: {result.ColumnCount} columns over {result.BlocksWide}x{result.BlocksHigh} blocks, " +
+            $"surface y {result.LowestY}..{result.HighestY}");
+        if (result.OverlayCount > 0) Console.WriteLine($"  overlay: {result.OverlayCount} box(es)");
+        Console.WriteLine($"  wrote {outPng} ({result.BlocksWide * scale}x{result.BlocksHigh * scale} px, {scale} px/block)");
+        return 0;
+    }
+
+    /// <summary>The pure render: columns in, an RGB pixel buffer (one pixel per block, unscaled) out. No file
+    /// or console I/O, so a caller that only wants the bytes — an HTTP endpoint, a batch of stage images — pays
+    /// nothing beyond the pixels themselves.</summary>
+    public static Result? Render(IEnumerable<AnvilRegion.Chunk> chunks, MapXml? map, int? yMax)
+    {
+        var columns = ReadColumns(chunks.ToList(), yMax);
+        if (columns.Count == 0) return null;
 
         int minX = columns.Keys.Min(cell => cell.X), maxX = columns.Keys.Max(cell => cell.X);
         int minZ = columns.Keys.Min(cell => cell.Z), maxZ = columns.Keys.Max(cell => cell.Z);
@@ -53,18 +93,10 @@ internal static class TopDownRender
 
         var pixels = Paint(columns, minX, minZ, blocksWide, blocksHigh, lowest, highest);
 
-        var overlays = mapXml is null ? [] : Overlays(mapXml);
+        var overlays = map is null ? [] : Overlays(map);
         foreach (var overlay in overlays) DrawBox(pixels, blocksWide, blocksHigh, minX, minZ, overlay);
 
-        var scaled = Raster.Upscale(pixels, blocksWide, blocksHigh, scale);
-        PngWriter.Write(outPng, blocksWide * scale, blocksHigh * scale, scaled);
-
-        var name = Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(regionDir)) ?? regionDir);
-        Console.WriteLine($"topdown {name}: {columns.Count} columns over {blocksWide}x{blocksHigh} blocks " +
-            $"(x {minX}..{maxX}, z {minZ}..{maxZ}), surface y {lowest}..{highest}");
-        if (overlays.Count > 0) Console.WriteLine($"  overlay: {overlays.Count} box(es) from {Path.GetFileName(mapXml!)}");
-        Console.WriteLine($"  wrote {outPng} ({blocksWide * scale}x{blocksHigh * scale} px, {scale} px/block)");
-        return 0;
+        return new Result(pixels, blocksWide, blocksHigh, columns.Count, lowest, highest, overlays.Count);
     }
 
     /// <summary>Surface colour + height per column, with water resolved to its bed.</summary>
@@ -143,14 +175,13 @@ internal static class TopDownRender
         return pixels;
     }
 
-    private sealed record Overlay(BlockBox Box, int PackedRgb, bool Filled, string Label);
+    public sealed record Overlay(BlockBox Box, int PackedRgb, bool Filled, string Label);
 
     /// <summary>What the map declares, as boxes to outline: objective destroyables and cores filled in their
     /// owner's colour, spawns as a small filled marker, and every apply-rule region outlined. A region whose
     /// shape does not reduce to boxes contributes nothing, which is <see cref="RegionBoxes"/>'s contract.</summary>
-    private static List<Overlay> Overlays(string mapXml)
+    public static List<Overlay> Overlays(MapXml map)
     {
-        var map = PgmStudio.Pgm.MapParser.Parse(mapXml);
         var overlays = new List<Overlay>();
 
         var teamColors = map.Teams.ToDictionary(team => team.Id, team => TeamRgb(team.Color));
@@ -168,6 +199,17 @@ internal static class TopDownRender
             foreach (var box in RegionBoxes.Of(map.Regions, spawn.Region!))
                 overlays.Add(new Overlay(Grow(box, 1), ColorOf(spawn.Team), true, $"spawn {spawn.Team}"));
 
+        // A wool room reduces to boxes like any other region; a wool with no declared room still marks the
+        // block its own goal is read at, grown by one so a single point is visible at typical render scales.
+        foreach (var wool in map.Wools)
+        {
+            if (wool.WoolRoomRegion is { Length: > 0 } roomRegion)
+                foreach (var box in RegionBoxes.Of(map.Regions, roomRegion))
+                    overlays.Add(new Overlay(box, WoolRgb(wool.Color), true, $"wool {wool.Color}"));
+            else
+                overlays.Add(new Overlay(Grow(PointBox(wool.Location), 1), WoolRgb(wool.Color), true, $"wool {wool.Color}"));
+        }
+
         foreach (var rule in map.ApplyRules)
             foreach (var box in RegionBoxes.Of(map.Regions, rule.RegionId))
                 overlays.Add(new Overlay(box, 0xF0F0F0, false, $"apply {rule.RegionId}"));
@@ -177,6 +219,23 @@ internal static class TopDownRender
 
     private static BlockBox Grow(BlockBox box, int by) =>
         new(box.MinX - by, box.MinY, box.MinZ - by, box.MaxX + by, box.MaxY, box.MaxZ + by);
+
+    private static BlockBox PointBox(Vec3 point)
+    {
+        int x = (int)Math.Floor(point.X), y = (int)Math.Floor(point.Y), z = (int)Math.Floor(point.Z);
+        return new BlockBox(x, y, z, x, y, z);
+    }
+
+    /// <summary>Common wool dye names → a pixel colour. Unknown names fall back to amber rather than to a
+    /// guess.</summary>
+    private static int WoolRgb(string? color) => (color ?? "").ToLowerInvariant() switch
+    {
+        "red" => 0xef4444, "blue" => 0x3b82f6, "green" or "lime" => 0x22c55e,
+        "yellow" => 0xeab308, "orange" => 0xf97316, "purple" or "magenta" => 0xa855f7,
+        "cyan" or "aqua" => 0x06b6d4, "pink" => 0xec4899, "white" => 0xf8fafc,
+        "black" => 0x334155, "brown" => 0x92400e,
+        _ => 0xfbbf24,
+    };
 
     /// <summary>A PGM team colour name as a pixel colour. Unknown names fall back to white rather than to a
     /// guess, so a mis-typed colour is visible as one.</summary>

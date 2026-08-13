@@ -1,11 +1,11 @@
-namespace PgmStudio.RoundTrip;
+namespace PgmStudio.Geom.Render;
 
 /// <summary>
 /// The pixel-buffer operations every block render shares: a buffer is three bytes per pixel, row-major,
 /// one pixel per block until the last step. Colour choice belongs to each render; only the mechanics live
 /// here.
 /// </summary>
-internal static class Raster
+public static class Raster
 {
     /// <summary>Writes a packed <c>0xRRGGBB</c> at a block position.</summary>
     public static void Set(byte[] pixels, int blocksWide, int col, int row, int packedRgb)

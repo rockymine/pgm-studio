@@ -1,6 +1,6 @@
-using PgmStudio.Minecraft;
+using PgmStudio.Geom.Render;
 
-namespace PgmStudio.RoundTrip;
+namespace PgmStudio.Minecraft.Render;
 
 /// <summary>
 /// The terrain's shape alone: every column reduced to one ground height, drawn with no reference to what the
@@ -19,12 +19,11 @@ namespace PgmStudio.RoundTrip;
 /// the grid — raw block heights step by whole blocks, so an unsmoothed gradient reports every one-block lip as
 /// a cliff and the image turns to noise, while the colour and the contours stay on the exact heights.
 /// Contour lines close the reading, because shading shows that a slope exists and only a contour says how much
-/// it climbs.</para>
+/// it climbs — and are optional, because the un-contoured ramp is its own reading (bare ground shape) worth
+/// asking for on its own.</para>
 /// </summary>
-internal static class HeightProfileRender
+public static class HeightProfileRender
 {
-    /// <summary>Blocks that stand on the ground rather than being it: plants, tree trunks and canopy, surface
-    /// furniture, and the liquids that would hide a channel's true depth.</summary>
     /// <summary>Not the ground: nothing, water, and everything standing on the ground rather than being it.
     /// The roles are <see cref="BlockRoles"/>, so a block this render must step past is decided once for the
     /// whole suite instead of here.</summary>
@@ -41,18 +40,56 @@ internal static class HeightProfileRender
     private const double SunAzimuthDegrees = 315;
     private const double SunAltitudeDegrees = 45;
 
-    public static int Run(string regionDir, string outPng, int scale, int contourInterval, bool greyscale, bool markWater)
+    public sealed record Result(byte[] Pixels, int BlocksWide, int BlocksHigh, int ColumnCount,
+        int LowestY, int HighestY, int ContourInterval, Dictionary<(int X, int Z), int> Flooded);
+
+    /// <summary>Reads a built region directory from disk — the <c>RoundTrip</c> CLI's entry point.</summary>
+    public static int Run(string regionDir, string outPng, int scale, int contourInterval, bool greyscale,
+        bool markWater, bool drawContours = true)
     {
         if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"no region dir: {regionDir}"); return 1; }
         var mcas = Directory.GetFiles(regionDir, "*.mca");
         if (mcas.Length == 0) { Console.Error.WriteLine($"no region files in {regionDir}"); return 1; }
+        var chunks = mcas.SelectMany(AnvilRegion.ReadChunks).ToList();
+        var name = Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(regionDir)) ?? regionDir);
+        return Emit(chunks, outPng, scale, contourInterval, greyscale, markWater, drawContours, name);
+    }
 
+    /// <summary>Renders a world still held in memory, via <see cref="AnvilRegion.FromWorld"/> — no round trip
+    /// through a region file.</summary>
+    public static int Run(VoxelWorld world, string outPng, int scale, int contourInterval, bool greyscale,
+        bool markWater, bool drawContours, string name)
+    {
+        var chunks = AnvilRegion.FromWorld(world).ToList();
+        return Emit(chunks, outPng, scale, contourInterval, greyscale, markWater, drawContours, name);
+    }
+
+    private static int Emit(List<AnvilRegion.Chunk> chunks, string outPng, int scale, int contourInterval,
+        bool greyscale, bool markWater, bool drawContours, string name)
+    {
+        var result = Render(chunks, contourInterval, greyscale, markWater, drawContours);
+        if (result is null) { Console.Error.WriteLine("no ground columns"); return 1; }
+
+        var scaled = Raster.Upscale(result.Pixels, result.BlocksWide, result.BlocksHigh, scale);
+        PngWriter.Write(outPng, result.BlocksWide * scale, result.BlocksHigh * scale, scaled);
+
+        Console.WriteLine($"height profile {name}: {result.ColumnCount} columns over {result.BlocksWide}x{result.BlocksHigh} blocks, " +
+            $"ground y {result.LowestY}..{result.HighestY} (span {result.HighestY - result.LowestY})" +
+            (drawContours ? $", contours every {result.ContourInterval} (every {result.ContourInterval * 5} emphasised)" : ", no contours"));
+        if (result.Flooded.Count > 0)
+            Console.WriteLine($"  under liquid {result.Flooded.Count} columns, waterline y {result.Flooded.Values.Min()}..{result.Flooded.Values.Max()}");
+        Console.WriteLine($"  wrote {outPng} ({result.BlocksWide * scale}x{result.BlocksHigh * scale} px, {scale} px/block)");
+        return 0;
+    }
+
+    /// <summary>The pure render, no file or console I/O.</summary>
+    public static Result? Render(IEnumerable<AnvilRegion.Chunk> chunks, int contourInterval, bool greyscale,
+        bool markWater, bool drawContours = true)
+    {
         var ground = new Dictionary<(int X, int Z), int>();
         var flooded = new Dictionary<(int X, int Z), int>();
-        foreach (var mca in mcas)
-            foreach (var chunk in AnvilRegion.ReadChunks(mca))
-                Scan(chunk, ground, flooded);
-        if (ground.Count == 0) { Console.Error.WriteLine("no ground columns"); return 1; }
+        foreach (var chunk in chunks) Scan(chunk, ground, flooded);
+        if (ground.Count == 0) return null;
 
         int minX = ground.Keys.Min(cell => cell.X), maxX = ground.Keys.Max(cell => cell.X);
         int minZ = ground.Keys.Min(cell => cell.Z), maxZ = ground.Keys.Max(cell => cell.Z);
@@ -82,7 +119,7 @@ internal static class HeightProfileRender
 
                 // A contour marks the cell whose band differs from the cell east or south of it, so a line
                 // lands on one side of the boundary only and never doubles.
-                if (CrossesBand(heights, blocksWide, blocksHigh, col, row, height, contourInterval))
+                if (drawContours && CrossesBand(heights, blocksWide, blocksHigh, col, row, height, contourInterval))
                     lit = Raster.Scale(lit, height % (contourInterval * 5) == 0 ? 0.42 : 0.66);
 
                 Raster.Set(pixels, blocksWide, col, row, lit);
@@ -90,16 +127,7 @@ internal static class HeightProfileRender
                     Raster.Over(pixels, blocksWide, col, row, 0x3C7FE0, 0.30);
             }
 
-        var scaled = Raster.Upscale(pixels, blocksWide, blocksHigh, scale);
-        PngWriter.Write(outPng, blocksWide * scale, blocksHigh * scale, scaled);
-
-        var name = Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(regionDir)) ?? regionDir);
-        Console.WriteLine($"height profile {name}: {ground.Count} columns over {blocksWide}x{blocksHigh} blocks, " +
-            $"ground y {lowest}..{highest} (span {span}), contours every {contourInterval} " +
-            $"(every {contourInterval * 5} emphasised)");
-        Report(ground, flooded, lowest, highest);
-        Console.WriteLine($"  wrote {outPng} ({blocksWide * scale}x{blocksHigh * scale} px, {scale} px/block)");
-        return 0;
+        return new Result(pixels, blocksWide, blocksHigh, ground.Count, lowest, highest, contourInterval, flooded);
     }
 
     /// <summary>Highest ground block per column, plus the waterline where a column stands under liquid.</summary>
@@ -203,27 +231,5 @@ internal static class HeightProfileRender
                 return Raster.Lerp(Ramp[stop - 1].Rgb, Ramp[stop].Rgb,
                     (at - Ramp[stop - 1].At) / (Ramp[stop].At - Ramp[stop - 1].At));
         return Ramp[^1].Rgb;
-    }
-
-    /// <summary>The distribution the picture cannot state: how much of the map sits at each height, and how
-    /// much of it is under water.</summary>
-    private static void Report(Dictionary<(int X, int Z), int> ground, Dictionary<(int X, int Z), int> flooded,
-                              int lowest, int highest)
-    {
-        var bands = Math.Min(12, Math.Max(1, highest - lowest));
-        var width = (highest - lowest + 1) / (double)bands;
-        Console.WriteLine($"  {"ground y",-12} {"columns",8}  share");
-        for (var band = bands - 1; band >= 0; band--)
-        {
-            int from = lowest + (int)(band * width), to = lowest + (int)((band + 1) * width) - 1;
-            if (band == bands - 1) to = highest;
-            var count = ground.Values.Count(height => height >= from && height <= to);
-            if (count == 0) continue;
-            var share = count * 100.0 / ground.Count;
-            Console.WriteLine($"  {from,4}..{to,-6} {count,8}  {share,5:0.0}% {new string('#', (int)Math.Round(share / 2))}");
-        }
-        if (flooded.Count > 0)
-            Console.WriteLine($"  under liquid {flooded.Count} columns ({flooded.Count * 100.0 / ground.Count:0.0}%), " +
-                $"waterline y {flooded.Values.Min()}..{flooded.Values.Max()}");
     }
 }

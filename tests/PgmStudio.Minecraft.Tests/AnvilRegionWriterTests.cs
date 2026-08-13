@@ -99,4 +99,49 @@ public sealed class AnvilRegionWriterTests
         Assert.Throws<ArgumentOutOfRangeException>(() => world.SetBlock(0, 256, 0, 1));
         Assert.Throws<ArgumentOutOfRangeException>(() => world.SetBlock(0, -1, 0, 1));
     }
+
+    [Test]
+    public async Task FromWorld_reads_the_same_blocks_as_a_round_trip_through_a_region_file()
+    {
+        var world = new VoxelWorld();
+        world.SetBlock(0, 0, 0, Blocks.Bedrock);
+        world.SetBlock(5, 64, 5, 1, 0);
+        world.SetBlock(3, 70, 9, 35, 14);
+        world.SetBlock(-1, 10, -1, 159, 5);
+
+        var fromWorld = AnvilRegion.FromWorld(world).SelectMany(AnvilRegion.Blocks)
+            .OrderBy(b => b.X).ThenBy(b => b.Y).ThenBy(b => b.Z).ToList();
+
+        var dir = Path.Combine(Path.GetTempPath(), "anvilfromworld_" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            AnvilRegionWriter.Write(world, dir);
+            var fromDisk = Directory.GetFiles(dir, "*.mca").SelectMany(AnvilRegion.ReadChunks)
+                .SelectMany(AnvilRegion.Blocks).OrderBy(b => b.X).ThenBy(b => b.Y).ThenBy(b => b.Z).ToList();
+
+            await Assert.That(fromWorld.SequenceEqual(fromDisk)).IsTrue();
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Test]
+    public void FromWorld_does_not_disturb_a_later_file_write_of_the_same_world()
+    {
+        // A tile entity / entity NBT tag can only ever belong to one parent tree. FromWorld and Write both
+        // build a chunk's Level compound from the same VoxelWorld.ChunkData, so calling FromWorld first —
+        // the shape a generator's in-memory stage render takes, ahead of the region files it also writes —
+        // must not leave the writer unable to re-parent those same tags into its own tree.
+        var world = new VoxelWorld();
+        world.SetBlock(0, 64, 0, Blocks.Stone);
+        world.AddTileEntity(0, 0, SignBuilder.Sign(0, 65, 0, [new SignLine("hello")]));
+
+        _ = AnvilRegion.FromWorld(world).SelectMany(AnvilRegion.Blocks).ToList();
+
+        var dir = Path.Combine(Path.GetTempPath(), "anvilreuse_" + Guid.NewGuid().ToString("N"));
+        try { AnvilRegionWriter.Write(world, dir); }
+        finally { if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true); }
+    }
 }

@@ -61,6 +61,14 @@ public static class AnvilRegionWriter
     }
 
     private static NbtCompound BuildChunkRoot(int cx, int cz, VoxelWorld.ChunkData chunk)
+        => new("") { BuildLevel(cx, cz, chunk) };
+
+    /// <summary>The chunk's <c>Level</c> compound alone, without the file-writer's unnamed root wrapper — the
+    /// exact NBT <see cref="AnvilRegion.Sections"/> reads back. <see cref="AnvilRegion.FromWorld"/> builds an
+    /// <see cref="AnvilRegion.Chunk"/> straight from a <see cref="VoxelWorld"/> with this shared method, so an
+    /// in-memory world reads the same as one round-tripped through a region file, with no second encoder to
+    /// keep in sync.</summary>
+    internal static NbtCompound BuildLevel(int cx, int cz, VoxelWorld.ChunkData chunk)
     {
         var sections = new NbtList("Sections", NbtTagType.Compound);
         for (var sy = 0; sy < 16; sy++)
@@ -112,15 +120,19 @@ public static class AnvilRegionWriter
             sections,
         };
 
+        // Cloned rather than added directly: an NbtTag can only ever belong to one parent tree, and the
+        // VoxelWorld holds these same compound instances for as long as the world is in memory — a stage
+        // image built from AnvilRegion.FromWorld after the region files are already written would otherwise
+        // try to re-parent a tag the file write already claimed, and fNbt rejects that outright.
         var tiles = new NbtList("TileEntities", NbtTagType.Compound);
-        foreach (var t in chunk.TileEntities) tiles.Add(t);
+        foreach (var t in chunk.TileEntities) tiles.Add((NbtCompound)t.Clone());
         level.Add(tiles);
 
         var entities = new NbtList("Entities", NbtTagType.Compound);
-        foreach (var e in chunk.Entities) entities.Add(e);
+        foreach (var e in chunk.Entities) entities.Add((NbtCompound)e.Clone());
         level.Add(entities);
 
-        return new NbtCompound("") { level };
+        return level;
     }
 
     /// <summary>The per-column heightmap: 256 ints (indexed <c>z*16 + x</c>), each the Y just above the

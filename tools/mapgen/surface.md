@@ -125,14 +125,21 @@ fifteen maps used. `POST /terrain/theme-preview` and `/terrain/theme-map-preview
 paint, the second over a compiled plan; `/terrain/material-preview` shows one material; `/terrain/prop-preview`
 shows a tree, boulder or path before it is placed; `/room-styles/preview` and its `-snapshot`,
 `/roof-styles/preview`, `/porch-styles/preview` and `/storey-styles/preview` show a building from four sides;
-`/themes/preview` shows a library row. `GET /plans/{id}/svg` draws the plan itself, and `GET /shapes/probe`
-emits a canonical family through the real emitters and answers with the shape or a directed rejection.
+`/themes/preview` shows a library row. `GET /plans/{id}/svg` draws the plan itself as a vector card;
+`GET /plans/{id}/png` draws the same board — off the same geometry, so the two can never disagree — as the
+raster an image reader can actually open (`B90`, `B21`'s `plan_render`). `GET /shapes/probe` emits a canonical
+family through the real emitters and answers with the shape or a directed rejection.
 
 **The corpus and world harnesses** in `tools/PgmStudio.RoundTrip` read a built world back: `--topdown` for
 the plan view, `--heightmap` and `--contour` for the third dimension, `--surface` for what the paint did,
-`--traversability` for what a player can walk, `--buildings` and `--structures` for what was stamped,
-`--island-study` and `--skeleton-study` for footprint shape and centrelines, `--water`, `--flora`, `--ores`
-and `--underground` for the rest.
+`--traversability-map` for whether the navigable ground actually joins spawn to every goal, `--buildings` and
+`--structures` for what was stamped, `--island-study` and `--skeleton-study` for footprint shape and
+centrelines, `--water`, `--flora`, `--ores` and `--underground` for the rest. (`--traversability` — no `-map`
+— is a different thing: the Python-parity comparator over parquet features, not a picture; the name is close
+on purpose; the two do not answer the same question.) These renderers live in `PgmStudio.Minecraft.Render` and
+read equally from a region directory or an in-memory `VoxelWorld` (`AnvilRegion.FromWorld`), which is what
+lets `tools/mapgen` emit the same set itself, over the world it just built, with no second load off the
+region files it just wrote — see `README.md` beside this file.
 
 **The prototypes** render the model rather than a map. `tools/relief` emits ten figures plus a topographic
 view, a blocks-from-an-angle view, a section and a step map, and `--corpus` measures real worlds into the
