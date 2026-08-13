@@ -94,9 +94,11 @@ public sealed class ComposeSpec
     /// of those goals becomes a monument to destroy), or <c>dtcm</c> (monuments and cores together, the way
     /// the category's own corpus mixes them).
     ///
-    /// <para>The generator budgets and places a goal per team without caring what kind of goal it is — a wool
-    /// room, a monument and a core are all one team's thing to defend, in the same place on the board. So the
-    /// objective is a retarget of the markers it already placed rather than a second generator.</para></summary>
+    /// <para>The retarget reuses the wool markers the generator placed, which is a shortcut rather than a
+    /// design: a wool sits walled at the end of a dead-end lane because an enemy has to reach it and carry it
+    /// back, while a destroyable is defended in the open and may stand on any piece where ground exists. A
+    /// board retargeted this way therefore keeps a cage its goal never wanted. Authoring the placement in a
+    /// plan document is how a destroy goal is put where the design wants it.</para></summary>
     [JsonPropertyName("objective_mode")] public string ObjectiveMode { get; set; } = "ctw";
 
     /// <summary>The goal material a destroy board's monuments are made of — one of <c>obsidian</c>,

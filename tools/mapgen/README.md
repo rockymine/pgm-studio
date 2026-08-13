@@ -55,9 +55,17 @@ document, for a board that is drawn rather than generated).
 the map without changing its layout. At `cell: 5` a fifteen-a-side board lands around 70×120 blocks; the
 destroy-the-monument corpus runs a median 148×164, which `cell: 9` or `10` reaches.
 
-`objective_mode` retargets the goals the generator placed. A wool room, a monument and a core occupy the same
-slot in a board — one team's thing to defend, sited where the budget put it — so `dtm` turns each goal into a
-monument and `dtcm` gives a team both a monument and a core beside it.
+`objective_mode` retargets the goals the generator placed: `dtm` turns each into a destroyable and `dtcm`
+gives a team a destroyable and a core beside it.
+
+**That retarget is a shortcut, and it puts the goal in the wrong place.** A wool room and a destroyable do
+not occupy the same slot in a board. A wool sits at the far end of a dead-end lane, inset about five, walled
+and entered from one side, because a wool is a thing an *enemy* has to reach and carry back. A destroyable is
+a thing a team **defends in the open**, and it may stand on **any piece of the plan** — in a field, on a
+plateau, on the frontline, anywhere ground exists. It needs no room, no lane and no protection region.
+Retargeting a wool placement therefore inherits a cage the goal never wanted, and every board built this way
+has its monument at the back of a corridor. Authoring the destroyable's own placement in a `plan` document is
+the way to put it where the design wants it.
 
 `objective_materials` names what a monument is made of — one of the four the stamper can actually build
 (empty defaults to obsidian, over half the corpus). A core's casing is not a knob: it is always obsidian, the

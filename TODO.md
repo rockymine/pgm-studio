@@ -66,6 +66,46 @@ holds them until one becomes the focus.
   confirming one of them exists. A goal whose anchor is more than a step above its own ground should refuse
   the build, exactly as one over void does.
 
+- [ ] **B105 — Retire `headroom`; a plan states a build ceiling, it does not derive one.** `PlanGlobals`
+  carries `Headroom` (board-wide, default 11 — not per piece, despite the field reading like one) and
+  `PlanCompiler` turns it into the map's only build cap with `plan.Globals.Surface + plan.Globals.Headroom`.
+  Both halves of that sum are the plan's **flat nominal** world, so the cap is computed from a ground level
+  the relief then abandons — which is the root `B104` names, and it produced boards whose ceiling sits below
+  their own terrain. Derivation is the wrong shape here regardless of the numbers: a build ceiling is a
+  decision about how high a player may build, and it should be **stated**, not inferred from a base plus a
+  slack. `MapIntent`'s `BuildIntent.MaxHeight` is already the real field and the export already honours it;
+  what is missing is a plan-level value that sets it, and an author or agent knowing it exists.
+
+  So: remove `Headroom` from `PlanGlobals` and everything reading it, add a stated maximum build height in
+  its place, and keep **per-piece `Surface`** exactly as it is — that one is load-bearing and correct as a
+  plan-space concept. Two things travel with it. The compiler must stop reading a piece's `Surface` as a
+  literal world Y for spawns, wool rooms, destroyables and cores (`PlanCompiler` lines 205, 260, 290, 308),
+  because that is the same flat-world mistake wearing a different field; the anchor wants resolving against
+  the ground as built. And the ceiling wants a sane relationship to the finished terrain rather than to the
+  plan's base, since a map whose highest ground is y20 and whose cap is y20 permits no building at all.
+
+- [ ] **B106 — A destroy goal may stand anywhere, and three documents say otherwise.** A destroyable or a
+  core can be placed on **any piece of a plan** — a field, a plateau, a frontline, anywhere ground exists. It
+  needs no room, no dead-end lane and no protection region. A wool needs all three, because a wool is a thing
+  an enemy must reach and carry back, so it sits at the far end of a lane inset about five, walled, entered
+  from one side. The two are not the same slot and never were.
+
+  `Retarget` nonetheless reuses the wool markers, and — the part that actually matters — **the tool's own
+  documentation states the conflation as a principle** in three places: the README's "a wool room, a monument
+  and a core occupy the same slot in a board", the same sentence in `MapSpec`'s `objective_mode` docstring,
+  and again in `Program.cs`. Every agent that has authored a destroy board read one of those and put the goal
+  in a cage. Those sentences are corrected; the code behind them is not. The work is to let a spec place a
+  destroy goal where the design wants it rather than where a wool budget put it, which is `MG1`'s corpus
+  reading arriving as a placement rather than as a whole second composer.
+
+  One naming problem sits underneath and is worth fixing while here, because it is the likeliest reason the
+  conflation felt right: **two different things in this codebase are called protection.** One is the XML
+  region rule that stops a player entering a spawn or a wool room and restricts what may be broken or placed
+  inside it — a gameplay contract. The other is `Decorator.IsProtected`, "cells nothing may be placed on",
+  which is a dressing keep-out and has no gameplay meaning at all. A goal that needs the second does not need
+  the first, and one word for both invites exactly the inference that a destroyable must live somewhere
+  protected.
+
 - [ ] **B92 — A building can be a solid volume behind its own facade.** `HouseStamper` raises walls, a roof
   and their openings, and the volume they enclose is left as air — "fill" appears in the house model only as a
   wall's infill between posts and as the gable's, never as the interior. That makes every building somewhere

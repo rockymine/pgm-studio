@@ -213,6 +213,11 @@ static List<string> KitPickaxeMaterials(Dict doc)
 
 /// <summary>Turn the goals the generator placed into the kind of goal this map is played for.
 ///
+/// <para>The markers are reused rather than resited, which is the shortcut this carries: a wool is walled at
+/// the end of a dead-end lane because an enemy must reach it and carry it back, while a destroyable is
+/// defended in the open and may stand on any piece where ground exists. What follows describes what the
+/// retarget does, not where a destroy goal belongs.</para>
+///
 /// <para>A wool room, a monument and a core occupy the same slot in a board: one team's thing to defend,
 /// sited where the generator's budget put it. So a destroy-the-monument map is the same composition with its
 /// markers retargeted, not a different generator — which is also why the corpus's destroy categories share a
