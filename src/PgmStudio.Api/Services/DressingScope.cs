@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Pgm.Authoring;
@@ -70,8 +71,9 @@ public static class DressingScope
             foreach (var area in wool.Room) KeepArea(area);
             foreach (var monument in wool.Monuments) Keep((int)monument.Location.X, (int)monument.Location.Z);
         }
-        foreach (var destroyable in intent.Destroyables ?? []) Keep((int)destroyable.Anchor.X, (int)destroyable.Anchor.Z);
-        foreach (var core in intent.Cores ?? []) Keep((int)core.Anchor.X, (int)core.Anchor.Z);
+        // A destroyable and a core are deliberately absent from this mask. They are not ground the pass must
+        // avoid — grass and flowers belong under a floating monument as much as anywhere — and what they do
+        // ask for is a different and wider thing: see GoalGroundAt.
 
         if (intent.Structures is { } structures)
         {
@@ -87,5 +89,51 @@ public static class DressingScope
             if (top <= 1 || DressingPalette.IsStamp(world.GetBlock(cell.X, top - 1, cell.Z).Id)) Keep(cell.X, cell.Z);
 
         return (x, z) => blocked.Contains((x, z));
+    }
+
+    /// <summary>How far cover must stay off a goal, beyond the ground the structure itself covers. An
+    /// objective is the one thing on a map that wants its approach legible — a defender needs to see what is
+    /// coming and an attacker needs to pay something visible for arriving — so the clearance is what makes the
+    /// goal a place rather than a thing hidden in a wood.</summary>
+    public const int GoalClearance = 4;
+
+    /// <summary>The ground read against a destroyable or a core: every block its structure covers, grown by
+    /// <see cref="GoalClearance"/>.
+    ///
+    /// <para>Every rect comes from the box the stamper wrote where there is one, for the same reason the
+    /// emitted region does (OB8) — the ground kept open is then the ground the structure occupies, by
+    /// construction rather than by two derivations agreeing. <see cref="ObjectiveFootprint"/> answers for an
+    /// intent that has not been through the world build, which is the plan-side and preview case.</para>
+    ///
+    /// <para>Separate from <see cref="ProtectedAt"/> because it answers a different question. That mask says
+    /// what may not be <em>placed</em>; this says what may not be <em>hidden behind</em>, so ground cover
+    /// crosses it freely and only cover is turned away.</para></summary>
+    public static Func<int, int, bool> GoalGroundAt(MapIntent intent, int clearance = GoalClearance)
+    {
+        var rects = new List<(int MinX, int MinZ, int MaxX, int MaxZ)>();
+
+        foreach (var destroyable in intent.Destroyables ?? [])
+        {
+            DestroyableStyles.TryParse(destroyable.Style, out var style);
+            var (width, _, depth) = ObjectiveFootprint.Destroyable(style);
+            rects.Add(Ground(destroyable.Box, destroyable.Anchor, width, depth));
+        }
+        foreach (var core in intent.Cores ?? [])
+        {
+            var (width, depth) = ObjectiveFootprint.Core(core.Size > 0 ? core.Size : ObjectiveDefaults.CoreSize);
+            rects.Add(Ground(core.Box, core.Anchor, width, depth));
+        }
+
+        // Held as rects rather than expanded into a cell set: a goal's clearance is a handful of boxes, and the
+        // question is asked once per candidate cell rather than per block of ground.
+        return (x, z) => rects.Any(r => x >= r.MinX && x <= r.MaxX && z >= r.MinZ && z <= r.MaxZ);
+
+        (int, int, int, int) Ground(BlockBox? stamped, Pt anchor, int width, int depth)
+        {
+            var (minX, minZ, maxX, maxZ) = stamped is { } box
+                ? (box.MinX, box.MinZ, box.MaxX, box.MaxZ)
+                : ObjectiveFootprint.Centred(anchor.X, anchor.Z, width, depth);
+            return (minX - clearance, minZ - clearance, maxX + clearance, maxZ + clearance);
+        }
     }
 }

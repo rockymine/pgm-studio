@@ -81,8 +81,9 @@ one stage rather than four:
   and trees into groves; a per-cell `Unit` is the dice a worn path rolls. Deterministic hash-from-cell,
   **never RNG** — the discipline `terrain-painting.md` §5 already holds, so a map re-exports identically.
 - **Mask.** Eligibility from the painted surface (soil vs. quartz, read from the top block) and from the
-  plan's protected regions (spawns, objectives, structures) as exclusion zones. Nothing lands where it would
+  plan's protected regions (spawns, wool rooms, structures) as exclusion zones. Nothing lands where it would
   break play or read wrong. A path's own cells join the mask as it is laid, so nothing grows through a road.
+  A destroyable and a core are **not** in that mask, and what they ask for instead is §3.1.
 - **Placement.** A **point** for the props that stand somewhere (a tree, a boulder), a **drawn outline** for
   the ones that cover a stretch (a route along a line, cover inside a ring), and a **dragged rectangle** for
   the one whose stamp takes a footprint (a building, §8). Three interactions, and the split is the model's: a
@@ -148,6 +149,29 @@ The split that matters here is not a species one. Grass, fern and flowers are on
 straight through, so they are **cosmetic** and scatter freely; the two-block `TallGrass` and `LargeFern`
 break a sight line and are marked **gameplay**, which routes them through the fan of §2. A plant's
 `PropClass` is declared on the palette row, not inferred at placement.
+
+### 3.1 The ground a goal is read against
+
+A destroyable and a core are the two objectives with no room and no protection region, so nothing else holds
+ground around them — and what they need held is not the same thing a spawn needs. A spawn's ground is
+**forbidden**: a prop there breaks play. A goal's ground is **kept open**, which is a narrower claim. Grass,
+fern and flowers grow across it and under a floating monument exactly as they grow anywhere, because none of
+them changes what a player can see or reach, and a monument standing in a ring of bare dirt reads as a
+diagram rather than as a place.
+
+What may not stand there is **cover**. `DressingScope.GoalGroundAt` is every block the structure covers grown
+by `GoalClearance` (**4**), and the flora pass declines to raise a tall plant inside it — growing its short
+cover on that cell instead of skipping the cell, so a meadow stays continuous across a goal. The footprint
+comes from the box the stamper wrote wherever there is one, for the same reason the emitted region does
+(OB8): the ground kept open is then the ground the structure occupies by construction, rather than by two
+derivations agreeing. `ObjectiveFootprint` answers for an intent that has not been through a world build.
+
+A tree, a boulder or a building inside that ground is a different case and is **not yet answered** (`B116`).
+Those three are authored rather than generated, so dropping one here would silently discard a placement the
+author can see on the canvas; the answer they are getting is a refusal at export under OB17, naming the prop
+and the goal. Until that lands, nothing stops a trunk standing against a monument. The clearance is why the
+refusal is wanted at all: an objective is the one thing on a map that wants its approach legible, so a
+defender can see what is coming and an attacker pays something visible for arriving.
 
 ## 4. Paths — drag a line, replace the finish (`DR-PA`)
 

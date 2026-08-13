@@ -162,11 +162,16 @@ public static class SketchWorldBuilder
         // fact it needs is what the surface now *is* — soil takes flora, a plaza's quartz does not — and the
         // painter has just decided that per cell. Everything here was placed by hand and every prop is fanned
         // across the symmetry orbit, so two teams face the same rock from the same side.
+        // The goals handed to the pass are the RESOLVED ones: their boxes were computed above, so the ground
+        // read against a goal is the ground its structure occupies rather than a second derivation of it
+        // (OB8, and the reason this call sits after the two stamps).
+        var goals = intent with { Destroyables = resolvedDestroyables, Cores = resolvedCores };
         Decorator.Decorate(world, new DressingContext(
             terrain.SurfaceTop,
             DressingScope.PropsOf(layoutJson),
-            DressingScope.ProtectedAt(world, terrain.SurfaceTop, intent),
-            DressingScope.SymmetryOf(layoutJson)));
+            DressingScope.ProtectedAt(world, terrain.SurfaceTop, goals),
+            DressingScope.SymmetryOf(layoutJson),
+            DressingScope.GoalGroundAt(goals)));
 
         // ── Observer platform (floating at the authored Y) ───────────────────────────────────────────
         int spawnX, spawnY, spawnZ;

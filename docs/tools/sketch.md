@@ -408,7 +408,11 @@ sidebar is the list of what is placed, and the inspector edits either the select
 wall, so *where* each one stands is a decision about how the map plays and belongs to the person making the
 map: the pass places exactly what was placed and nothing else. There is no scatter, no density pass over the
 board, no "fill this island with forest". Within a drawn area the individual blades are a noise field, because
-nobody places nine hundred of them by hand — but the area itself was drawn. Every prop is then fanned across
+nobody places nine hundred of them by hand — but the area itself was drawn.
+
+**One piece of ground answers back.** A destroyable and a core keep the ground they cover, grown by four
+blocks, clear of anything that hides them: ground cover grows across it and under a floating monument, and
+tall grass does not. `decoration.md` §3.1 is the rule and the reason. Every prop is then fanned across
 the symmetry orbit, so one half of a map is dressed and both halves match. Each carries a `seed`, so two props
 of the same kind and knobs differ from each other while any one prop re-exports identically.
 

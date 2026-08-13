@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using PgmStudio.Api.Services;
+using PgmStudio.Domain;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Dressing;
@@ -83,6 +84,77 @@ public sealed class DressingScopeTests
         await Assert.That(isProtected(20, 20)).IsTrue();    // the wool
         await Assert.That(isProtected(30, 30)).IsTrue();    // the column a stamp stands on
         await Assert.That(isProtected(15, 34)).IsFalse();   // plain terrain
+    }
+
+    [Test]
+    public async Task Ground_cover_is_free_over_a_goal_and_the_goal_asks_a_different_question()
+    {
+        // A destroyable and a core are absent from the placement mask on purpose. Grass under a floating
+        // monument is what a hand-built map has; what the goal actually asks for is that nothing HIDES it,
+        // which is a wider rect and a different rule.
+        var (world, surface) = Ground(-20, 40);
+        var core = new MapIntent
+        {
+            Cores = [new CoreIntent { Owner = "red", Anchor = new Pt(20, 8, 20), Size = 7, Height = 7, Shell = 1 }],
+        };
+
+        await Assert.That(DressingScope.ProtectedAt(world, surface, core)(20, 20)).IsFalse();
+    }
+
+    [Test]
+    public async Task A_goals_ground_reaches_past_its_own_blocks_whatever_size_it_was_authored_at()
+    {
+        // The clearance is measured from the FOOTPRINT, so it holds at any authored size. A square grown from
+        // the marker covers the default sizes by coincidence and stops covering the casing itself the moment a
+        // core is authored larger — at size 7 the outer ring of the casing is the goal's own blocks.
+        var core = new MapIntent
+        {
+            Cores = [new CoreIntent { Owner = "red", Anchor = new Pt(20, 8, 20), Size = 7, Height = 7, Shell = 1 }],
+        };
+        var goalGround = DressingScope.GoalGroundAt(core);
+
+        await Assert.That(goalGround(23, 23)).IsTrue();      // the casing's own far corner
+        await Assert.That(goalGround(27, 27)).IsTrue();      // the last block of its clearance (footprint + 4)
+        await Assert.That(goalGround(28, 28)).IsFalse();     // and open ground beyond it
+    }
+
+    [Test]
+    public async Task A_goals_ground_is_the_box_the_stamper_wrote_rather_than_a_square_on_its_marker()
+    {
+        // A cube-4 leans one block along +X/+Z, so the ground it covers is not centred on its anchor and a
+        // symmetric square would hold the near faces while leaving the far ones short (OB8).
+        var stamped = new MapIntent
+        {
+            Destroyables =
+            [
+                new DestroyableIntent
+                {
+                    Owner = "red", Name = "red's monument", Style = "cube-4", Materials = "obsidian",
+                    Anchor = new Pt(0, 8, 0), Box = new BlockBox(-1, 12, -1, 2, 15, 2),
+                },
+            ],
+        };
+        var goalGround = DressingScope.GoalGroundAt(stamped);
+
+        await Assert.That(goalGround(6, 6)).IsTrue();        // the leaning corner plus its clearance
+        await Assert.That(goalGround(7, 7)).IsFalse();
+        await Assert.That(goalGround(-5, -5)).IsTrue();      // one block nearer on the other side, as the box leans
+        await Assert.That(goalGround(-6, -6)).IsFalse();
+    }
+
+    /// <summary>A flat grass field over <paramref name="span"/> blocks from <paramref name="origin"/>, and the
+    /// surface map that goes with it — the ground every mask question below is asked against.</summary>
+    private static (VoxelWorld World, Dictionary<(int X, int Z), int> Surface) Ground(int origin, int span)
+    {
+        var world = new VoxelWorld();
+        var surface = new Dictionary<(int X, int Z), int>();
+        for (var z = origin; z < origin + span; z++)
+        for (var x = origin; x < origin + span; x++)
+        {
+            world.SetBlock(x, 7, z, Blocks.Grass);
+            surface[(x, z)] = 8;
+        }
+        return (world, surface);
     }
 
     // ── the preview ────────────────────────────────────────────────────────────────────────────────

@@ -131,30 +131,14 @@ public static class PlanValidator
         // at the one goal that is wrong rather than at everything sharing its piece. An agent driving the
         // compile endpoint is refused for every one of the three rather than silently building an unwinnable
         // map (B21).
-        foreach (var (kind, id, pieceId, at, width, depth) in ObjectiveFootprints(plan, d))
-        {
-            var piece = d.Piece(pieceId);
-            if (piece is null) continue;   // CheckInside already reported the dangling reference
-            var (markerX, markerZ) = ResolveBlock(piece.Value.Rect, at, d.Cell);
-            // ObjectiveFootprint speaks the stamper's inclusive block box; BlockRect's max is exclusive.
-            var box = ObjectiveFootprint.Centred(markerX, markerZ, width, depth);
-            var footprint = new BlockRect(box.MinX, box.MinZ, box.MaxX + 1, box.MaxZ + 1);
-
-            if (!CoveredByLand(footprint, d))
-                Error($"{kind} '{id}' on '{pieceId}' is {width}×{depth} and overhangs the void — the build "
-                    + "slice denies breaking blocks out there, so the goal could never be completed",
-                    id, pieceId);
-
-            foreach (var (roomKind, roomPiece, frame) in ObjectiveRooms(plan, d))
-                if (Overlaps(footprint, frame))
-                {
-                    Error($"{kind} '{id}' on '{pieceId}' is {width}×{depth} and reaches into the {roomKind} "
-                        + $"on '{roomPiece}' — {(roomKind == "spawn"
-                            ? "spawn protection denies breaking blocks to every team, so the goal could never be broken"
-                            : "the room's own rules would cover the goal")}", id, pieceId, roomPiece);
-                    break;
-                }
-        }
+        // The land is the plan's pieces and the rooms are the frames the compiler will stamp; the rule itself
+        // is ObjectivePlacement's, which the export gate asks again over the ground the rasterizer actually
+        // produced. Stating it once is what keeps the two answers the same sentence.
+        findings.AddRange(ObjectivePlacement.Check(
+            PlacedGoals(plan, d),
+            (x, z) => d.Pieces.Any(piece => x >= piece.Rect.MinX && x < piece.Rect.MaxX
+                                         && z >= piece.Rect.MinZ && z < piece.Rect.MaxZ),
+            [.. ObjectiveRooms(plan, d).Select(room => new GoalKeepOut(room.Kind, room.Piece, room.Frame))]));
 
         // An unknown style names no structure, so the compiler would have to invent one — and silently
         // stamping a pillar where the author asked for a cube is worse than saying the word is not a style.
@@ -558,24 +542,38 @@ public static class PlanValidator
 
     // ── objective footprints (OB17) ─────────────────────────────────────────────────────────────────────
 
-    /// <summary>Every objective's plan-view extent, in the units the rule compares: the marker's piece and
-    /// offset, plus the width and depth the structure will actually cover. Both kinds resolve their unset
-    /// fields to the same defaults the compiler would, so the rule judges the structure that gets built.</summary>
-    private static IEnumerable<(string Kind, string Id, string Piece, double[] At, int Width, int Depth)> ObjectiveFootprints(
-        PlanModel plan, ContactGraph d)
+    /// <summary>Every objective as ground rather than as a marker: the block rect the structure will cover,
+    /// resolved from the marker's piece and offset. Both kinds resolve their unset fields to the same defaults
+    /// the compiler would, so the rule judges the structure that gets built.</summary>
+    private static IEnumerable<PlacedGoal> PlacedGoals(PlanModel plan, ContactGraph d)
     {
         foreach (var b in plan.Placements.Destroyables)
         {
             // An unknown style is its own error; size it as the default rather than reporting twice.
             DestroyableStyles.TryParse(string.IsNullOrEmpty(b.Style) ? null : b.Style, out var style);
             var (width, _, depth) = ObjectiveFootprint.Destroyable(style);
-            yield return ("destroyable", b.Id, b.Piece, b.At, width, depth);
+            if (Footprint(d, b.Piece, b.At, width, depth) is { } rect)
+                yield return new PlacedGoal("destroyable", b.Id, rect, b.Piece);
         }
         foreach (var c in plan.Placements.Cores)
         {
             var (width, depth) = ObjectiveFootprint.Core(c.Size ?? ObjectiveDefaults.CoreSize);
-            yield return ("core", c.Id, c.Piece, c.At, width, depth);
+            if (Footprint(d, c.Piece, c.At, width, depth) is { } rect)
+                yield return new PlacedGoal("core", c.Id, rect, c.Piece);
         }
+    }
+
+    /// <summary>The block rect a marker's structure covers, or null when the marker names no piece —
+    /// <see cref="CheckInside"/> already reported the dangling reference and a second finding for the same
+    /// typo would only crowd the drawer.</summary>
+    private static BlockRect? Footprint(ContactGraph d, string pieceId, double[] at, int width, int depth)
+    {
+        var piece = d.Piece(pieceId);
+        if (piece is null) return null;
+        var (markerX, markerZ) = ResolveBlock(piece.Value.Rect, at, d.Cell);
+        // ObjectiveFootprint speaks the stamper's inclusive block box; BlockRect's max is exclusive.
+        var box = ObjectiveFootprint.Centred(markerX, markerZ, width, depth);
+        return new BlockRect(box.MinX, box.MinZ, box.MaxX + 1, box.MaxZ + 1);
     }
 
     /// <summary>The stamped rooms a goal may not reach into: every spawn's and every wool's resolved frame.
@@ -595,19 +593,6 @@ public static class PlanValidator
     // not a conversion — rounding here would widen every room by a block and refuse goals standing clear of it.
     private static BlockRect Frame(ResolvedRoom room) =>
         new(room.Frame.MinX, room.Frame.MinZ, room.Frame.MaxX, room.Frame.MaxZ);
-
-    /// <summary>Whether every block of a footprint stands on some piece. Pieces are the plan's land, so a
-    /// block on none of them is over the void. Tested per block rather than by rect subtraction because a
-    /// footprint may be covered by several abutting pieces at once, which a single-rect test would miss.</summary>
-    private static bool CoveredByLand(BlockRect footprint, ContactGraph d)
-    {
-        for (var x = footprint.MinX; x < footprint.MaxX; x++)
-            for (var z = footprint.MinZ; z < footprint.MaxZ; z++)
-                if (!d.Pieces.Any(piece => x >= piece.Rect.MinX && x < piece.Rect.MaxX
-                                        && z >= piece.Rect.MinZ && z < piece.Rect.MaxZ))
-                    return false;
-        return true;
-    }
 
     // ── shared helpers ──────────────────────────────────────────────────────────────────────────────────
 

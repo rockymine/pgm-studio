@@ -39,6 +39,25 @@ holds them until one becomes the focus.
 
 ## Backend, pipeline & internals (B / P / A)
 
+- [ ] **B116 — OB17 is asked at compile and not at export.** The rule now has one home
+  (`ObjectivePlacement`) and one caller. The second caller is the export gate: `MapExportComposer` already
+  builds the world and holds the resolved intent, so it can ask the same question against the ground the
+  rasterizer produced rather than against the plan's rectangles — which is the only reading that sees a
+  subtract, a relief, or a sketch edited after its compile. A plan that passed can still export a goal over a
+  hole carved afterwards, and a map begun in Sketch never passes the compile gate at all.
+
+  Two more refusals belong on the same gate and nowhere else. `DestroyKitPairing.Unwinnable` already answers
+  which goals no tool in the kit can break, and only `tools/mapgen` calls it. And a **tree, boulder or
+  building inside a goal's clearance** (`DressingScope.GoalGroundAt`, `decoration.md` §3.1) has to be refused
+  rather than silently dropped, because those three are authored: dropping one discards a placement the
+  author can see on the canvas, where a refusal naming the prop and the goal can be acted on. All three are
+  409s from the one composer, so the studio and any headless driver are gated identically.
+
+- [ ] **B117 — A seed plan fails `Every_seed_plan_lints_clean_on_EL6`, and the mark it wants is dead.**
+  Pre-existing and reproducible at HEAD. Low stakes and worth stating why: `plan.Cliffs` is read in exactly
+  one place — the EL6 lint it silences — and no compiler, composer or stamper reads it, so the mark changes
+  nothing about the built map. The fix is the deletion, not the annotation.
+
 - [ ] **B104 — A destroy goal is stamped above the build cap.** On `duskfell` the gold destroyable stands at
   y21–23 and `max_build_height` is 20; on `corvale` the emerald stands at y18–20 against the same cap. Blocks
   above the cap can still be broken, so this does not make the goal unbreakable — but a destroyable or a core

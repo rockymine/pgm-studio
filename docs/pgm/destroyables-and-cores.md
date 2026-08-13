@@ -502,6 +502,15 @@ endpoint is stopped for every one of the three rather than shipping a map that c
 the *room frame* rather than the piece holding it matters — a spawn piece is often far larger than the room
 stamped on it, and refusing a goal at its far corner would be a refusal with no cause.
 
+**The rule is stated once and meant to be asked twice.** `ObjectivePlacement` (`Pgm/Plan`) holds it, and
+takes the two things a caller has to supply: what counts as land, and which stamped rooms are out of bounds.
+`PlanValidator` supplies the plan's pieces and the frames the compiler will stamp, which catches the fault
+before a build is spent. The second caller is the **export gate**, over the ground the rasterizer actually
+produced — the only place a subtract, a relief, or a sketch edited after its compile can be seen, since a
+plan that passed can still export a goal standing over a hole somebody carved afterwards. That second call is
+`B116` and is not wired yet; until it is, the compile gate is the only one asking, and it can only answer for
+the board as the plan drew it. Every finding carries `OB17` as its rule id.
+
 Each finding names the offending marker by its **id** (`core-1`, `destroyable-2`) ahead of the piece it stands
 on, and carries both as subjects. A refusal that named only the piece is ambiguous the moment two goals share
 one — and the id is what makes the answer actionable to a caller that must then move a specific marker, rather

@@ -12,18 +12,30 @@ namespace PgmStudio.Minecraft.Dressing;
 /// <param name="SurfaceTop">The first air Y above each column, the same grid the painter and every stamper
 /// read.</param>
 /// <param name="Props">What the author placed, in the order they were placed.</param>
-/// <param name="IsProtected">Cells nothing may be placed on: spawns, objectives, structures. A prop that landed
+/// <param name="IsProtected">Cells nothing may be placed on: spawns, rooms, structures. A prop that landed
 /// here would break play or read wrong, so the mask is consulted before anything else.</param>
 /// <param name="Symmetry">How the map is mirrored, which decides where every prop's other images go and how
 /// each one is turned to get there.</param>
+/// <param name="IsGoalGround">The ground a destroyable or a core stands on, grown by its clearance — a
+/// narrower mask than <paramref name="IsProtected"/> and a different question. A goal's ground is not
+/// forbidden, it is <b>kept open</b>: grass, fern and flowers grow across it and under a floating monument
+/// the way they grow anywhere, because none of them changes what a player can see or reach. What may not
+/// stand there is <b>cover</b> — the two-block grass that hides a footstep among it, since an objective is
+/// the one thing on a map that wants its approach legible. A tree, a boulder or a building is refused
+/// earlier still (OB17 at export), because those are authored and dropping one silently would discard a
+/// placement the author can see.</param>
 public sealed record DressingContext(
     IReadOnlyDictionary<(int X, int Z), int> SurfaceTop,
     IReadOnlyList<PlacedProp> Props,
     Func<int, int, bool> IsProtected,
-    DressingSymmetry Symmetry)
+    DressingSymmetry Symmetry,
+    Func<int, int, bool>? IsGoalGround = null)
 {
     public DressingContext(IReadOnlyDictionary<(int X, int Z), int> surfaceTop, IReadOnlyList<PlacedProp> props)
         : this(surfaceTop, props, (_, _) => false, DressingSymmetry.None) { }
+
+    /// <summary>Whether cover may stand on a cell — everything except the ground a goal is read against.</summary>
+    public bool AllowsCover(int x, int z) => IsGoalGround is null || !IsGoalGround(x, z);
 }
 
 /// <summary>What one pass placed, for a caller that wants to report or preview it rather than only write it.
@@ -214,6 +226,10 @@ public static class Decorator
             if (share <= 0) continue;
 
             if (PickPlant(area.Spec, area.Seed, x, z, share, context.Symmetry) is not { } plant) continue;
+            // Tall grass is the one plant that is cover rather than colour, so it is the one the goal's own
+            // ground turns away — the field simply grows its short cover there instead of skipping the cell,
+            // which keeps the meadow continuous across a monument instead of ringing it with bare dirt.
+            if (plant.Tall && !context.AllowsCover(x, z)) continue;
             world.SetBlock(x, top, z, plant.Id, plant.Data);
             if (plant.Tall && top + 1 < VoxelWorld.MaxHeight)
                 world.SetBlock(x, top + 1, z, plant.Id, DressingPalette.DoublePlantUpper);
