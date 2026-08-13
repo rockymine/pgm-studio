@@ -133,6 +133,68 @@ public sealed class SketchLayout
         target["relief"] = JsonNode.Parse(JsonSerializer.Serialize(kept, Json));
         return target.ToJsonString(Json);
     }
+
+    /// <summary>A freshly compiled layout with every author-stated structural height carried onto it —
+    /// the shape-level counterpart to <see cref="CarryRelief"/>. A plan recompile writes a fresh Floor/
+    /// BaseHeight for every Role-tagged shape it holds an island's relief against, because that is the only
+    /// height a plan-space piece can state before any terrain exists; once the ground is real and an author
+    /// corrects that number in the sketch, <see cref="SketchShape.HeightAuthored"/> marks the shape so this
+    /// carries its Floor/BaseHeight/AnchorHeights forward instead of letting the recompile hand back the
+    /// plan's flat number. Matched by <see cref="SketchShape.IntentRef"/> — the identity that survives a
+    /// recompile — not by shape id, which the compiler regenerates every time. A shape with no author-owned
+    /// match in the stored layout is untouched, so a piece never corrected keeps tracking the plan.</summary>
+    public static string CarryStructuralHeight(string compiledJson, string? storedJson)
+    {
+        var stored = string.IsNullOrWhiteSpace(storedJson) ? null : Parse(storedJson);
+        var authored = StructuralHeights(stored);
+        if (authored.Count == 0) return compiledJson;
+
+        JsonNode? node;
+        try { node = JsonNode.Parse(compiledJson); } catch (JsonException) { return compiledJson; }
+        if (node is not JsonObject target) return compiledJson;
+
+        var carried = false;
+        foreach (var shapes in ShapeArrays(target))
+            foreach (var shapeNode in shapes)
+            {
+                if (shapeNode is not JsonObject shape) continue;
+                if (shape["role"] is not JsonValue) continue;                 // not a structural annotation
+                if (shape["intentRef"]?.GetValue<string?>() is not { } intentRef) continue;
+                if (!authored.TryGetValue(intentRef, out var height)) continue;
+
+                shape["floor"] = height.Floor is { } floor ? JsonValue.Create(floor) : null;
+                shape["base_height"] = height.BaseHeight is { } baseHeight ? JsonValue.Create(baseHeight) : null;
+                shape["anchor_heights"] = height.AnchorHeights is { } anchorHeights
+                    ? JsonSerializer.SerializeToNode(anchorHeights, Json) : null;
+                shape["height_authored"] = JsonValue.Create(true);
+                carried = true;
+            }
+        return carried ? target.ToJsonString(Json) : compiledJson;
+    }
+
+    // Every Role-tagged shape's stated height, keyed by IntentRef, over every layer a stored layout carries
+    // (legacy single `layout` and S7 `layers`) — only the ones the author actually corrected.
+    private static Dictionary<string, StructuralHeight> StructuralHeights(SketchLayout? state)
+    {
+        var shapes = state?.Layers is { Count: > 0 } layers
+            ? layers.SelectMany(l => l.Layout?.Shapes ?? [])
+            : state?.Layout?.Shapes ?? [];
+        return shapes.Where(s => s.Role is not null && s.HeightAuthored == true && s.IntentRef is { Length: > 0 })
+                     .ToDictionary(s => s.IntentRef!, s => new StructuralHeight(s.Floor, s.BaseHeight, s.AnchorHeights));
+    }
+
+    // The shape arrays a compiled layout can hold its structural annotations in — legacy `layout.shapes`
+    // (what PlanCompiler emits today) and S7 `layers[].layout.shapes`, checked too so this keeps working if
+    // the compiler ever starts emitting stacked layers.
+    private static IEnumerable<JsonArray> ShapeArrays(JsonObject root)
+    {
+        if (root["layout"]?["shapes"] is JsonArray single) yield return single;
+        if (root["layers"] is JsonArray layers)
+            foreach (var layer in layers)
+                if (layer?["layout"]?["shapes"] is JsonArray shapes) yield return shapes;
+    }
+
+    private readonly record struct StructuralHeight(double? Floor, double? BaseHeight, double[]? AnchorHeights);
 }
 
 /// <summary>
@@ -291,6 +353,18 @@ public sealed class SketchShape
     [JsonPropertyName("role")]       public string? Role { get; set; }
     [JsonPropertyName("intentRef")]  public string? IntentRef { get; set; }
     [JsonPropertyName("color")]      public string? Color { get; set; }
+
+    // Whether Floor/BaseHeight on a Role-tagged shape were stated by the author rather than derived from the
+    // plan's flat Surface. A compile always writes a fresh Floor/BaseHeight for the shape it holds the
+    // island's relief against (AppendStructuralShape), because that is the only way a plan-space piece can
+    // state a height at all before any terrain exists. Once a relief is solved the author can see where that
+    // flat number lands and correct it — and the correction has to outlive the next recompile, which
+    // otherwise overwrites every structural shape it produces. This flag is what tells the recompile which
+    // shapes to leave alone: absent (or false), Floor/BaseHeight track the plan's Surface on every compile,
+    // same as before; true, the stored Floor/BaseHeight/AnchorHeights carry forward onto the freshly compiled
+    // shape with the same IntentRef instead (SketchLayout.CarryStructuralHeight), the same way a relief
+    // outlives the shapes it was solved over. Never set by the compiler itself.
+    [JsonPropertyName("height_authored")] public bool? HeightAuthored { get; set; }
 
     // Terrain-paint theme override (finishing-model.md §4): the id (into SketchLayout.Themes) of the theme this
     // shape paints; null falls to the map default. The scope is the shape, so a reshape moves the paint. Island

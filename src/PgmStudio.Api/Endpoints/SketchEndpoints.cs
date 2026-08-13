@@ -176,7 +176,14 @@ public sealed class SketchPutEndpoint(MapRepository repo, PgmDb db) : EndpointWi
 /// nowhere correct to land. Losing that is losing hours of hand work with no warning, so the endpoint answers
 /// <b>409</b> listing the islands whose relief would be orphaned and does not write. Sending
 /// <c>?force=true</c> accepts the loss and proceeds, which is the author's call to make and not the
-/// server's.</para></summary>
+/// server's.</para>
+///
+/// <para><b>A structural piece's stated height is carried a third way</b>
+/// (<see cref="SketchLayout.CarryStructuralHeight"/>): matched by <c>intentRef</c>, not by shape id or
+/// island, since the compiler regenerates both of those every time but a spawn or wool room keeps the same
+/// team/owner:colour identity across a recompile. Only a shape the author actually corrected
+/// (<c>height_authored</c>) carries forward — an untouched piece keeps tracking the plan's own
+/// <c>surface</c>, so this never masks a deliberate plan-side height change.</para></summary>
 public sealed class SketchFromPlanEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
 {
     public override void Configure() { Put("/map/{slug}/sketch/from-plan"); AllowAnonymous(); }
@@ -206,8 +213,8 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, PgmDb db) : Endpo
             return;
         }
 
-        var merged = SketchLayout.CarryRelief(
-            SketchLayout.CarryFinish(compiled, storedJson), storedJson);
+        var merged = SketchLayout.CarryStructuralHeight(
+            SketchLayout.CarryRelief(SketchLayout.CarryFinish(compiled, storedJson), storedJson), storedJson);
         await SketchStore.SaveAsync(db, map.Id, Encoding.UTF8.GetBytes(merged), ct);
         await Send.OkAsync(new { ok = true, orphaned = orphans }, ct);
     }
