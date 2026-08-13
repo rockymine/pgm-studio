@@ -216,3 +216,24 @@ public sealed class PlanSvgEndpoint(PlanStore store) : EndpointWithoutRequest
         await Send.OkAsync(new { svg = PlanBoardSvg.Render(plan) }, ct);
     }
 }
+
+/// <summary>GET /api/plans/{id}/png — the same fanned board as <see cref="PlanSvgEndpoint"/>, rasterized: a
+/// picture an image reader can actually open, where the vector card cannot be. Draws off
+/// <see cref="PlanBoardScene"/>, the geometry the SVG endpoint shares, so the two can never disagree about
+/// what the plan looks like. 404 when the plan is missing.</summary>
+public sealed class PlanPngEndpoint(PlanStore store) : EndpointWithoutRequest
+{
+    public override void Configure() { Get("/plans/{id}/png"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var row = await store.GetByIdAsync(Route<long>("id"), ct);
+        if (row is null) { await Send.NotFoundAsync(ct); return; }
+        var plan = PlanModel.Parse(row.PlanJson);
+        if (plan is null) { await Send.ResponseAsync(new { error = "stored plan is unreadable" }, 422, ct); return; }
+
+        var png = PlanBoardPng.Render(plan);
+        HttpContext.Response.ContentType = "image/png";
+        await HttpContext.Response.Body.WriteAsync(png, ct);
+    }
+}

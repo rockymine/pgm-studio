@@ -4,10 +4,12 @@ using PgmStudio.Domain;
 using PgmStudio.MapGen;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Dressing;
+using PgmStudio.Minecraft.Render;
 using PgmStudio.Pgm;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Plan;
+using PgmStudio.Pgm.Render;
 using PgmStudio.Pgm.Sketch;
 using Dict = System.Collections.Generic.Dictionary<string, object?>;
 
@@ -15,22 +17,24 @@ using Dict = System.Collections.Generic.Dictionary<string, object?>;
 //
 //   dotnet run --project tools/mapgen -- <spec.json> [more.json ...]
 //   dotnet run --project tools/mapgen -- --describe <spec.json>   # compile only, report the board
+//   dotnet run --project tools/mapgen -- --stages <spec.json>     # force the stages/ image set on
 //
 // The spec says what the map is about; the generator answers the rest. Nothing here reaches past
 // SketchWorldBuilder, so a map it writes is a map an author could have drawn.
 
 var describe = args.Contains("--describe");
+var forceStages = args.Contains("--stages");
 var specPaths = args.Where(a => !a.StartsWith("--")).ToList();
 if (specPaths.Count == 0)
 {
-    Console.Error.WriteLine("usage: mapgen [--describe] <spec.json> [...]");
+    Console.Error.WriteLine("usage: mapgen [--describe] [--stages] <spec.json> [...]");
     return 1;
 }
 
 var failures = 0;
 foreach (var path in specPaths)
 {
-    try { Build(MapSpec.Parse(File.ReadAllText(path)), describe); }
+    try { Build(MapSpec.Parse(File.ReadAllText(path)), describe, forceStages); }
     catch (Exception error)
     {
         failures++;
@@ -39,7 +43,7 @@ foreach (var path in specPaths)
 }
 return failures == 0 ? 0 : 1;
 
-static void Build(MapSpec spec, bool describeOnly)
+static void Build(MapSpec spec, bool describeOnly, bool forceStages)
 {
     if (string.IsNullOrWhiteSpace(spec.Slug)) throw new ArgumentException("the spec needs a slug");
 
@@ -158,6 +162,12 @@ static void Build(MapSpec spec, bool describeOnly)
     File.WriteAllText(Path.Combine(outDir, "map.xml"), xml);
 
     Console.WriteLine($"  → {outDir}  (spawn {built.SpawnX},{built.SpawnY},{built.SpawnZ})  {Census(built.World)}");
+
+    // ── one named picture per stage ──────────────────────────────────────────────────────────────────────
+    // Off by default (a batch run over many specs should not pay for pictures it will not look at); the spec
+    // or the CLI's --stages flag turns it on. The world is already built and held in memory, so every world
+    // read-back below draws over `built.World` itself — no second load off the region files just written.
+    if (spec.Stages || forceStages) EmitStages(outDir, plan, built.World, xml);
 }
 
 /// <summary>The goals — wool monuments, destroyables, cores — whose anchor has no rasterized column under it,
@@ -243,6 +253,48 @@ static void Retarget(PlanModel plan, string mode, string? materials)
             });
     }
     plan.Placements.Wools = [];
+}
+
+/// <summary>The eight named stage images, into <c>stages/</c> beside <c>region/</c> and <c>map.xml</c> — the
+/// set an agent asks for by name rather than remembers to have rendered. Every world
+/// read-back draws over the <see cref="VoxelWorld"/> the build just produced, via
+/// <see cref="AnvilRegion.FromWorld"/>, not a re-read of the region files just written.
+///
+/// <para><b>plan</b> is the board before it was built, off the compiled <see cref="PlanModel"/> — the same
+/// geometry <c>GET /plans/{id}/png</c> serves, called directly with no HTTP round trip. <b>heightmap</b> and
+/// <b>contour</b> are one renderer read twice: elevation alone, then the same ramp with contour lines added,
+/// so the ground's shape is checkable with and without the third reading layered on. <b>surface</b> is what
+/// the paint actually laid, by material family rather than by height. <b>dressing</b> is the finished terrain
+/// and props read from directly above, before the objective is drawn on top of it — <b>topdown</b> is the same
+/// view again with the map.xml goal boxes overlaid, so a prop placed through a room shows up in the first and
+/// a goal standing over void shows up in the second. <b>traversability</b> answers a question neither top-down
+/// can: whether the navigable ground actually joins spawn to every goal. <b>structures</b> is what the world
+/// stamped, independent of theme.</para></summary>
+static void EmitStages(string outDir, PlanModel plan, VoxelWorld world, string xml)
+{
+    var dir = Path.Combine(outDir, "stages");
+    Directory.CreateDirectory(dir);
+
+    File.WriteAllBytes(Path.Combine(dir, "plan.png"), PlanBoardPng.Render(plan));
+
+    TopDownRender.Run(world, Path.Combine(dir, "dressing.png"), map: null, scale: 3, yMax: null, name: "dressing");
+    HeightProfileRender.Run(world, Path.Combine(dir, "heightmap.png"), scale: 3, contourInterval: 0,
+        greyscale: false, markWater: true, drawContours: false, name: "heightmap");
+    HeightProfileRender.Run(world, Path.Combine(dir, "contour.png"), scale: 3, contourInterval: 0,
+        greyscale: false, markWater: true, drawContours: true, name: "contour");
+    SurfaceReport.Run(world, Path.Combine(dir, "surface.png"), scale: 3);
+    StructureFinder.Run(world, Path.Combine(dir, "structures.png"), scale: 3, minimumArea: 12);
+
+    // The overlay reads the map document already built in memory — parsed back from the XML string rather
+    // than the file just written, so this too costs no extra disk read.
+    MapXml? map = null;
+    try { map = MapParser.ParseXmlString(xml); }
+    catch (Exception error) { Console.Error.WriteLine($"  ! stages: map.xml overlay unavailable ({error.Message})"); }
+
+    TraversabilityRender.Run(world, Path.Combine(dir, "traversability.png"), map, scale: 3);
+    TopDownRender.Run(world, Path.Combine(dir, "topdown.png"), map, scale: 3, yMax: null, name: "topdown");
+
+    Console.WriteLine($"  stages → {dir}");
 }
 
 /// <summary>What actually reached the world, counted out of the voxels rather than off the props that were

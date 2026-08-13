@@ -1,11 +1,13 @@
 using System.IO.Compression;
 
-namespace PgmStudio.RoundTrip;
+namespace PgmStudio.Geom.Render;
 
 /// <summary>
 /// Writes a 24-bit RGB image as a PNG: signature, IHDR, one IDAT, IEND. Deliberately minimal — no palette,
-/// no interlacing, no ancillary chunks — because the only image this harness emits is a block raster, where
-/// every pixel is already one opaque colour.
+/// no interlacing, no ancillary chunks — because the only image the studio's block renders emit is a block
+/// raster, where every pixel is already one opaque colour. Zero dependencies: every stage image the studio
+/// produces, from a world read-back to a rasterized plan, goes through this one encoder rather than pulling
+/// in an imaging library for one write call.
 ///
 /// <para>The pixel stream is filtered per row with the <b>Up</b> filter (each byte minus the byte above it).
 /// A top-down block render is bands of one terrain colour repeated down the image, so subtracting the row
@@ -13,18 +15,23 @@ namespace PgmStudio.RoundTrip;
 /// along a row, but terrain is more consistent between rows than within one. The zlib wrapper deflate needs
 /// comes from <see cref="ZLibStream"/>, which writes the header and the trailing Adler-32 itself.</para>
 /// </summary>
-internal static class PngWriter
+public static class PngWriter
 {
     private static readonly byte[] Signature = [0x89, (byte)'P', (byte)'N', (byte)'G', 0x0D, 0x0A, 0x1A, 0x0A];
 
     /// <summary>Serialises <paramref name="rgb"/> — three bytes per pixel, row-major, <paramref name="width"/>
     /// pixels per row — to <paramref name="path"/>.</summary>
     public static void Write(string path, int width, int height, byte[] rgb)
+        => File.WriteAllBytes(path, Encode(width, height, rgb));
+
+    /// <summary>Serialises <paramref name="rgb"/> to a PNG byte array without touching disk — the path an HTTP
+    /// endpoint writes into a response body.</summary>
+    public static byte[] Encode(int width, int height, byte[] rgb)
     {
         if (rgb.Length != width * height * 3)
             throw new ArgumentException($"expected {width * height * 3} bytes for {width}x{height}, got {rgb.Length}");
 
-        using var file = File.Create(path);
+        using var file = new MemoryStream();
         file.Write(Signature);
 
         var header = new byte[13];
@@ -39,6 +46,7 @@ internal static class PngWriter
 
         WriteChunk(file, "IDAT", Deflate(width, height, rgb));
         WriteChunk(file, "IEND", []);
+        return file.ToArray();
     }
 
     /// <summary>Row-filtered scanlines through zlib. Each row is prefixed with filter type 2 (Up) and holds

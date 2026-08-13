@@ -3,6 +3,7 @@ using PgmStudio.Pgm;
 using PgmStudio.Domain;
 using PgmStudio.Pgm.Detect;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Render;
 using PgmStudio.Analysis.Footprint;
 using JP = System.Text.Json.Serialization.JsonPropertyNameAttribute;
 
@@ -137,9 +138,9 @@ if (topIdx >= 0 && topIdx + 2 < args.Length)
     var mapIdx = Array.IndexOf(args, "--map");
     var scaleIdx = Array.IndexOf(args, "--scale");
     var yMaxIdx = Array.IndexOf(args, "--ymax");
-    return PgmStudio.RoundTrip.TopDownRender.Run(
-        args[topIdx + 1], args[topIdx + 2],
-        mapIdx >= 0 && mapIdx + 1 < args.Length ? args[mapIdx + 1] : null,
+    var overlayMap = mapIdx >= 0 && mapIdx + 1 < args.Length ? MapParser.Parse(args[mapIdx + 1]) : null;
+    return TopDownRender.Run(
+        args[topIdx + 1], args[topIdx + 2], overlayMap,
         scaleIdx >= 0 && scaleIdx + 1 < args.Length && int.TryParse(args[scaleIdx + 1], out var topScale) ? Math.Max(1, topScale) : 3,
         yMaxIdx >= 0 && yMaxIdx + 1 < args.Length && int.TryParse(args[yMaxIdx + 1], out var topYMax) ? topYMax : null);
 }
@@ -169,11 +170,26 @@ if (heightIdx >= 0 && heightIdx + 2 < args.Length)
 {
     var scaleWhere = Array.IndexOf(args, "--scale");
     var contourWhere = Array.IndexOf(args, "--contour");
-    return PgmStudio.RoundTrip.HeightProfileRender.Run(
+    return HeightProfileRender.Run(
         args[heightIdx + 1], args[heightIdx + 2],
         scaleWhere >= 0 && scaleWhere + 1 < args.Length && int.TryParse(args[scaleWhere + 1], out var heightScale) ? Math.Max(1, heightScale) : 3,
         contourWhere >= 0 && contourWhere + 1 < args.Length && int.TryParse(args[contourWhere + 1], out var interval) ? interval : 0,
         args.Contains("--grey"), args.Contains("--water"));
+}
+
+// --traversability-map <regionDir> <outPng> [--map <mapXmlPath>] [--scale N]: spawn/wool/monument/core
+// connectivity over the navigable columns (ground + 2 blocks headroom), 4-connected components coloured so
+// one dominant colour reading through every marker is a connected board. Distinct from --traversability
+// (the Python-parity harness over parquet features) — this is the stage-image render.
+var travMapIdx = Array.IndexOf(args, "--traversability-map");
+if (travMapIdx >= 0 && travMapIdx + 2 < args.Length)
+{
+    var mapAt = Array.IndexOf(args, "--map");
+    var scaleAt = Array.IndexOf(args, "--scale");
+    var travMap = mapAt >= 0 && mapAt + 1 < args.Length ? MapParser.Parse(args[mapAt + 1]) : null;
+    return TraversabilityRender.Run(
+        args[travMapIdx + 1], args[travMapIdx + 2], travMap,
+        scaleAt >= 0 && scaleAt + 1 < args.Length && int.TryParse(args[scaleAt + 1], out var travScale) ? Math.Max(1, travScale) : 3);
 }
 
 // --structures <regionDir> <outPng> [--scale N] [--min-area N]: built structures found by the material on
@@ -184,7 +200,7 @@ if (structIdx >= 0 && structIdx + 2 < args.Length)
 {
     var scaleSlot = Array.IndexOf(args, "--scale");
     var areaSlot = Array.IndexOf(args, "--min-area");
-    return PgmStudio.RoundTrip.StructureFinder.Run(
+    return StructureFinder.Run(
         args[structIdx + 1], args[structIdx + 2],
         scaleSlot >= 0 && scaleSlot + 1 < args.Length && int.TryParse(args[scaleSlot + 1], out var structScale) ? Math.Max(1, structScale) : 3,
         areaSlot >= 0 && areaSlot + 1 < args.Length && int.TryParse(args[areaSlot + 1], out var minArea) ? Math.Max(1, minArea) : 12);
@@ -273,7 +289,7 @@ if (surfIdx >= 0 && surfIdx + 2 < args.Length)
 {
     var surfScale = Array.IndexOf(args, "--scale");
     var surfTop = Array.IndexOf(args, "--top");
-    return PgmStudio.RoundTrip.SurfaceReport.Run(args[surfIdx + 1], args[surfIdx + 2],
+    return SurfaceReport.Run(args[surfIdx + 1], args[surfIdx + 2],
         surfScale >= 0 && surfScale + 1 < args.Length && int.TryParse(args[surfScale + 1], out var sScale) ? Math.Max(1, sScale) : 3,
         surfTop >= 0 && surfTop + 1 < args.Length && int.TryParse(args[surfTop + 1], out var sTop) ? Math.Max(1, sTop) : 10);
 }

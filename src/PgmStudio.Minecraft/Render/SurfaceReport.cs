@@ -1,6 +1,6 @@
-using PgmStudio.Minecraft;
+using PgmStudio.Geom.Render;
 
-namespace PgmStudio.RoundTrip;
+namespace PgmStudio.Minecraft.Render;
 
 /// <summary>
 /// What a map's ground is made of, once the things standing on it are set aside.
@@ -18,9 +18,8 @@ namespace PgmStudio.RoundTrip;
 /// own kind in nine neighbours out of ten is laid in fields. Component counts and their median size then give
 /// the scale of the field, which is what tells a broad wash from a fine speckle at the same clustering.</para>
 /// </summary>
-internal static class SurfaceReport
+public static class SurfaceReport
 {
-
     /// <summary>
     /// The family a block reads as. The vocabulary itself is <see cref="TerrainPalette.Families"/> — the same
     /// table the paint picker offers, so what a report measures and what an author paints cannot drift apart.
@@ -56,30 +55,85 @@ internal static class SurfaceReport
     private readonly record struct Cell(int Ground, int GroundData, int GroundY, int Decor, int DecorData,
                                         int Depth, int Bed, int BedData, bool Built, bool Shaded);
 
+    public sealed record Result(byte[] Pixels, int BlocksWide, int BlocksHigh,
+        Dictionary<(int X, int Z), (int Id, int Data)> Ground, int ColumnCount);
+
     public static int Run(string regionDir, string outPng, int scale, int topMaterials)
     {
         if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"no region dir: {regionDir}"); return 1; }
         var mcas = Directory.GetFiles(regionDir, "*.mca");
         if (mcas.Length == 0) { Console.Error.WriteLine($"no region files in {regionDir}"); return 1; }
+        return Emit(mcas.SelectMany(AnvilRegion.ReadChunks), outPng, scale, topMaterials, verbose: true);
+    }
 
+    /// <summary>Renders a world still held in memory, via <see cref="AnvilRegion.FromWorld"/> — the PNG only,
+    /// without the CLI's console-scale material tables.</summary>
+    public static int Run(VoxelWorld world, string outPng, int scale, int topMaterials = 12)
+        => Emit(AnvilRegion.FromWorld(world), outPng, scale, topMaterials, verbose: false);
+
+    /// <summary>The pure render: chunks in, the ground-only material map and an RGB pixel buffer out. No file
+    /// or console I/O — what a caller wanting only the picture (an HTTP endpoint, a stage-image batch) pays
+    /// for.</summary>
+    public static Result? Render(IEnumerable<AnvilRegion.Chunk> chunks, int topMaterials)
+    {
         var columns = new Dictionary<(int X, int Z), Cell>();
-        foreach (var mca in mcas)
-            foreach (var chunk in AnvilRegion.ReadChunks(mca))
-                Scan(chunk, columns);
+        foreach (var chunk in chunks) Scan(chunk, columns);
+        return columns.Count == 0 ? null : Render(columns, topMaterials, out _);
+    }
+
+    private static int Emit(IEnumerable<AnvilRegion.Chunk> chunks, string outPng, int scale, int topMaterials, bool verbose)
+    {
+        var columns = new Dictionary<(int X, int Z), Cell>();
+        foreach (var chunk in chunks) Scan(chunk, columns);
         if (columns.Count == 0) { Console.Error.WriteLine("no columns decoded"); return 1; }
 
-        var ground = columns.Where(entry => !entry.Value.Built && entry.Value.Depth == 0)
+        var result = Render(columns, topMaterials, out var ground);
+        if (verbose)
+        {
+            ReportMaterials(columns, ground, topMaterials);
+            ReportTones(ground);
+            ReportDecoration(columns);
+            ReportBeds(columns);
+            ReportPatchiness(ground, topMaterials);
+            ReportTonePatchiness(ground);
+            ReportRelief(columns);
+        }
+
+        var scaled = Raster.Upscale(result.Pixels, result.BlocksWide, result.BlocksHigh, scale);
+        PngWriter.Write(outPng, result.BlocksWide * scale, result.BlocksHigh * scale, scaled);
+        Console.WriteLine($"{(verbose ? "\n  " : "")}wrote {outPng} ({result.BlocksWide * scale}x{result.BlocksHigh * scale} px, {scale} px/block); " +
+            $"structure charcoal, water blue, partial blocks amber, unnamed materials magenta");
+        return 0;
+    }
+
+    /// <summary>The pure draw: a scanned column map in, the ground-only material map and an RGB pixel buffer
+    /// out. No file or console I/O.</summary>
+    private static Result Render(Dictionary<(int X, int Z), Cell> columns, int topMaterials,
+        out Dictionary<(int X, int Z), (int Id, int Data)> ground)
+    {
+        ground = columns.Where(entry => !entry.Value.Built && entry.Value.Depth == 0)
             .ToDictionary(entry => entry.Key, entry => (entry.Value.Ground, entry.Value.GroundData));
 
-        ReportMaterials(columns, ground, topMaterials);
-        ReportTones(ground);
-        ReportDecoration(columns);
-        ReportBeds(columns);
-        ReportPatchiness(ground, topMaterials);
-        ReportTonePatchiness(ground);
-        ReportRelief(columns);
-        Draw(outPng, scale, columns, ground);
-        return 0;
+        int minX = columns.Keys.Min(cell => cell.X), maxX = columns.Keys.Max(cell => cell.X);
+        int minZ = columns.Keys.Min(cell => cell.Z), maxZ = columns.Keys.Max(cell => cell.Z);
+        int blocksWide = maxX - minX + 1, blocksHigh = maxZ - minZ + 1;
+
+        var pixels = new byte[blocksWide * blocksHigh * 3];
+        for (var row = 0; row < blocksHigh; row++)
+            for (var col = 0; col < blocksWide; col++)
+            {
+                var cell = (minX + col, minZ + row);
+                if (!columns.TryGetValue(cell, out var column)) { Raster.Set(pixels, blocksWide, col, row, 0x0E0E12); continue; }
+                if (column.Built) { Raster.Set(pixels, blocksWide, col, row, 0x2A2D33); continue; }
+                if (column.Depth > 0) { Raster.Set(pixels, blocksWide, col, row, 0x1B3A5C); continue; }
+                // A partial block gets its own colour rather than the unnamed magenta: it is not a gap in the
+                // vocabulary, it is a thing standing on ground the vocabulary would have named.
+                var tone = ToneName(column.Ground, column.GroundData);
+                Raster.Set(pixels, blocksWide, col, row,
+                    tone == "partial block" ? 0xC08030 : TerrainPalette.ColourOf(tone));
+            }
+
+        return new Result(pixels, blocksWide, blocksHigh, ground, columns.Count);
     }
 
     private static void Scan(AnvilRegion.Chunk chunk, Dictionary<(int X, int Z), Cell> columns)
@@ -287,36 +341,5 @@ internal static class SurfaceReport
             sizes.Add(size);
         }
         return sizes;
-    }
-
-    /// <summary>The ground by material identity, in colours chosen to be told apart rather than to be
-    /// realistic — the question this render answers is where one material stops and the next begins, and a
-    /// palette of true block colours renders podzol, dirt and coarse dirt as three browns.</summary>
-    private static void Draw(string outPng, int scale, Dictionary<(int X, int Z), Cell> columns,
-                             Dictionary<(int X, int Z), (int Id, int Data)> ground)
-    {
-        int minX = columns.Keys.Min(cell => cell.X), maxX = columns.Keys.Max(cell => cell.X);
-        int minZ = columns.Keys.Min(cell => cell.Z), maxZ = columns.Keys.Max(cell => cell.Z);
-        int blocksWide = maxX - minX + 1, blocksHigh = maxZ - minZ + 1;
-
-        var pixels = new byte[blocksWide * blocksHigh * 3];
-        for (var row = 0; row < blocksHigh; row++)
-            for (var col = 0; col < blocksWide; col++)
-            {
-                var cell = (minX + col, minZ + row);
-                if (!columns.TryGetValue(cell, out var column)) { Raster.Set(pixels, blocksWide, col, row, 0x0E0E12); continue; }
-                if (column.Built) { Raster.Set(pixels, blocksWide, col, row, 0x2A2D33); continue; }
-                if (column.Depth > 0) { Raster.Set(pixels, blocksWide, col, row, 0x1B3A5C); continue; }
-                // A partial block gets its own colour rather than the unnamed magenta: it is not a gap in the
-                // vocabulary, it is a thing standing on ground the vocabulary would have named.
-                var tone = ToneName(column.Ground, column.GroundData);
-                Raster.Set(pixels, blocksWide, col, row,
-                    tone == "partial block" ? 0xC08030 : TerrainPalette.ColourOf(tone));
-            }
-
-        var scaled = Raster.Upscale(pixels, blocksWide, blocksHigh, scale);
-        PngWriter.Write(outPng, blocksWide * scale, blocksHigh * scale, scaled);
-        Console.WriteLine($"\n  wrote {outPng} ({blocksWide * scale}x{blocksHigh * scale} px, {scale} px/block); " +
-            $"structure charcoal, water blue, partial blocks amber, unnamed materials magenta");
     }
 }

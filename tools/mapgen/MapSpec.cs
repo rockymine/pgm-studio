@@ -58,6 +58,13 @@ public sealed class MapSpec
     /// Absent leaves the built-in bedrock shell, which is a lid rather than a building.</summary>
     [JsonPropertyName("room_shell")] public RoomShellSpec? RoomShell { get; set; }
 
+    /// <summary>Emit the named stage-image set (<c>plan</c>, <c>heightmap</c>, <c>surface</c>, <c>contour</c>,
+    /// <c>dressing</c>, <c>traversability</c>, <c>structures</c>, <c>topdown</c>) into a <c>stages/</c> folder
+    /// beside <c>region/</c> and <c>map.xml</c>. Off by default — a batch run over many specs should not pay
+    /// for pictures it will not look at — turned on here or with the CLI's <c>--stages</c> flag, which forces
+    /// it on regardless of what a spec says.</summary>
+    [JsonPropertyName("stages")] public bool Stages { get; set; }
+
     public static MapSpec Parse(string json) =>
         JsonSerializer.Deserialize<MapSpec>(json, Options)
         ?? throw new ArgumentException("the spec did not parse as an object");

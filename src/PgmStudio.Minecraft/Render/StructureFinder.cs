@@ -1,6 +1,6 @@
-using PgmStudio.Minecraft;
+using PgmStudio.Geom.Render;
 
-namespace PgmStudio.RoundTrip;
+namespace PgmStudio.Minecraft.Render;
 
 /// <summary>
 /// The built structures standing on a world, found and drawn over the terrain they sit on.
@@ -19,12 +19,12 @@ namespace PgmStudio.RoundTrip;
 /// used as a filter — a paved road is a real find, it is simply not a building.</para>
 ///
 /// <para>The render puts the findings over a desaturated height profile, because a structure's placement only
-/// means something against the terrain it was placed on.</para>
+/// means something against the terrain it was placed on. Nothing here reads what a material means (no
+/// per-theme roof/path spec, unlike <c>--buildings</c>/<c>--flora</c>), which is what makes it the stage
+/// image a generator can always ask for: it needs no knowledge of which theme built the world.</para>
 /// </summary>
-internal static class StructureFinder
+public static class StructureFinder
 {
-    /// <summary>Stripped before the top block is read: plants, snow and the small furniture that would
-    /// otherwise decide a column's class.</summary>
     /// <summary>What a structure's outline may be read through: nothing, and everything standing on the
     /// ground rather than being it.</summary>
     private static bool Skin(int id) => id == 0 || BlockRoles.SeenThrough(id);
@@ -33,24 +33,46 @@ internal static class StructureFinder
     /// the liquids over them are stepped past to reach it.</summary>
     private static bool IsNaturalGround(int id) => BlockRoles.IsNaturalGround(id);
 
-    private sealed record Structure(int MinX, int MaxX, int MinZ, int MaxZ, int Area, int RoofLow, int RoofHigh,
+    public sealed record Structure(int MinX, int MaxX, int MinZ, int MaxZ, int Area, int RoofLow, int RoofHigh,
                                     int GroundAround, int GroundSpread, int BaseOffset, string Materials);
+
+    public sealed record Result(byte[] Pixels, int BlocksWide, int BlocksHigh, List<Structure> Structures);
 
     public static int Run(string regionDir, string outPng, int scale, int minimumArea)
     {
         if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"no region dir: {regionDir}"); return 1; }
         var mcas = Directory.GetFiles(regionDir, "*.mca");
         if (mcas.Length == 0) { Console.Error.WriteLine($"no region files in {regionDir}"); return 1; }
+        return Emit(mcas.SelectMany(AnvilRegion.ReadChunks), outPng, scale, minimumArea);
+    }
 
+    /// <summary>Renders a world still held in memory, via <see cref="AnvilRegion.FromWorld"/>.</summary>
+    public static int Run(VoxelWorld world, string outPng, int scale, int minimumArea)
+        => Emit(AnvilRegion.FromWorld(world), outPng, scale, minimumArea);
+
+    private static int Emit(IEnumerable<AnvilRegion.Chunk> chunks, string outPng, int scale, int minimumArea)
+    {
+        var result = Render(chunks, minimumArea);
+        if (result is null) { Console.Error.WriteLine("no columns decoded"); return 1; }
+
+        Report(result.Structures);
+        var scaled = Raster.Upscale(result.Pixels, result.BlocksWide, result.BlocksHigh, scale);
+        PngWriter.Write(outPng, result.BlocksWide * scale, result.BlocksHigh * scale, scaled);
+        Console.WriteLine($"  wrote {outPng} ({result.BlocksWide * scale}x{result.BlocksHigh * scale} px, {scale} px/block), " +
+            $"{result.Structures.Count} structure(s) over the terrain");
+        return 0;
+    }
+
+    /// <summary>The pure render: chunks in, findings + an RGB pixel buffer out. No file or console I/O.</summary>
+    public static Result? Render(IEnumerable<AnvilRegion.Chunk> chunks, int minimumArea)
+    {
         var topId = new Dictionary<(int X, int Z), int>();
         var topData = new Dictionary<(int X, int Z), int>();
         var topY = new Dictionary<(int X, int Z), int>();
         var baseY = new Dictionary<(int X, int Z), int>();
         var naturalY = new Dictionary<(int X, int Z), int>();
-        foreach (var mca in mcas)
-            foreach (var chunk in AnvilRegion.ReadChunks(mca))
-                Scan(chunk, topId, topData, topY, baseY, naturalY);
-        if (topY.Count == 0) { Console.Error.WriteLine("no columns decoded"); return 1; }
+        foreach (var chunk in chunks) Scan(chunk, topId, topData, topY, baseY, naturalY);
+        if (topY.Count == 0) return null;
 
         var builtCells = new HashSet<(int X, int Z)>(topId.Where(entry => BlockRoles.IsBuilt(entry.Value)).Select(entry => entry.Key));
         var structures = new List<Structure>();
@@ -85,9 +107,8 @@ internal static class StructureFinder
                 groundLevel, spread, bases[bases.Count / 2] - groundLevel, string.Join(", ", materials)));
         }
 
-        Report(structures);
-        Draw(outPng, scale, topY, naturalY, claimed, structures);
-        return 0;
+        var pixels = Draw(topY, naturalY, claimed, out var blocksWide, out var blocksHigh);
+        return new Result(pixels, blocksWide, blocksHigh, structures);
     }
 
     private static void Scan(AnvilRegion.Chunk chunk, Dictionary<(int X, int Z), int> topId,
@@ -196,16 +217,15 @@ internal static class StructureFinder
 
     /// <summary>Findings over a desaturated height profile: a structure's placement only means something
     /// against the terrain it was placed on.</summary>
-    private static void Draw(string outPng, int scale, Dictionary<(int X, int Z), int> topY,
-                             Dictionary<(int X, int Z), int> naturalY, Dictionary<(int X, int Z), int> claimed,
-                             List<Structure> structures)
+    private static byte[] Draw(Dictionary<(int X, int Z), int> topY, Dictionary<(int X, int Z), int> naturalY,
+                               Dictionary<(int X, int Z), int> claimed, out int blocksWide, out int blocksHigh)
     {
         int minX = topY.Keys.Min(cell => cell.X), maxX = topY.Keys.Max(cell => cell.X);
         int minZ = topY.Keys.Min(cell => cell.Z), maxZ = topY.Keys.Max(cell => cell.Z);
-        int blocksWide = maxX - minX + 1, blocksHigh = maxZ - minZ + 1;
+        blocksWide = maxX - minX + 1; blocksHigh = maxZ - minZ + 1;
 
         var terrain = naturalY.Values.ToList();
-        int lowest = terrain.Min(), highest = terrain.Max();
+        int lowest = terrain.Count > 0 ? terrain.Min() : 0, highest = terrain.Count > 0 ? terrain.Max() : 0;
         var span = Math.Max(1, highest - lowest);
 
         // Structures far enough apart never share a colour, and the cycle is short enough to stay readable.
@@ -226,10 +246,6 @@ internal static class StructureFinder
                     .Any(neighbour => !claimed.TryGetValue(neighbour, out var other) || other != index);
                 Raster.Over(pixels, blocksWide, col, row, accents[index % accents.Length], onEdge ? 1.0 : 0.62);
             }
-
-        var scaled = Raster.Upscale(pixels, blocksWide, blocksHigh, scale);
-        PngWriter.Write(outPng, blocksWide * scale, blocksHigh * scale, scaled);
-        Console.WriteLine($"  wrote {outPng} ({blocksWide * scale}x{blocksHigh * scale} px, {scale} px/block), " +
-            $"{structures.Count} structure(s) over the terrain");
+        return pixels;
     }
 }
