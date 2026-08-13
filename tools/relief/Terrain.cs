@@ -1,3 +1,4 @@
+using PgmStudio.Geom.Relief;
 namespace PgmStudio.Relief;
 
 /// <summary>What a solved surface can be asked about, and the operations that act on it. Everything here
@@ -50,7 +51,7 @@ internal static class Terrain
     {
         var seen = new HashSet<(int X, int Z)>();
         var regions = new List<HashSet<(int X, int Z)>>();
-        foreach (var start in field.Footprint.Cells())
+        foreach (var start in field.Footprint.Land())
         {
             if (!seen.Add(start)) continue;
             var region = new HashSet<(int X, int Z)> { start };
@@ -84,7 +85,7 @@ internal static class Terrain
     public static List<Scarp> Scarps(HeightField field, int minimumDrop = 4)
     {
         var steep = new Dictionary<(int X, int Z), int>();
-        foreach (var (x, z) in field.Footprint.Cells())
+        foreach (var (x, z) in field.Footprint.Land())
         {
             var drop = 0;
             foreach (var (dx, dz) in Neighbours4)
@@ -185,7 +186,7 @@ internal static class Terrain
     public static HeightField Fold(HeightField field, string mode, double centreX, double centreZ)
     {
         var blocks = (int[])field.Blocks.Clone();
-        foreach (var (x, z) in field.Footprint.Cells())
+        foreach (var (x, z) in field.Footprint.Land())
         {
             var canonical = mode == "rot_180"
                 ? z + 0.5 < centreZ || (z + 0.5 == centreZ && x + 0.5 <= centreX)
@@ -204,7 +205,7 @@ internal static class Terrain
     public static (int WorstDelta, int Cells) SymmetryError(HeightField field, string mode, double centreX, double centreZ)
     {
         int worst = 0, counted = 0;
-        foreach (var (x, z) in field.Footprint.Cells())
+        foreach (var (x, z) in field.Footprint.Land())
         {
             var (mx, mz) = Mirror(x + 0.5, z + 0.5, mode, centreX, centreZ);
             int ix = (int)Math.Floor(mx), iz = (int)Math.Floor(mz);
@@ -238,8 +239,8 @@ internal static class Terrain
     {
         var blocks = (int[])field.Blocks.Clone();
         var covered = new List<(int X, int Z)>();
-        foreach (var (x, z) in field.Footprint.Cells())
-            if (Footprint.PointInRing(x + 0.5, z + 0.5, ring)) covered.Add((x, z));
+        foreach (var (x, z) in field.Footprint.Land())
+            if (PgmStudio.Geom.Polygon.PointInRing(x + 0.5, z + 0.5, ring)) covered.Add((x, z));
         if (covered.Count == 0) return field.WithBlocks(blocks);
 
         // A raised or sunk shape takes one height for the whole footprint — the ground it stands on read at
@@ -304,7 +305,7 @@ internal static class Terrain
         var filled = new int[field.Blocks.Length];
         Array.Fill(filled, int.MaxValue);
         var frontier = new PriorityQueue<(int X, int Z), int>();
-        foreach (var (x, z) in field.Footprint.Cells())
+        foreach (var (x, z) in field.Footprint.Land())
         {
             var onEdge = Neighbours4.Any(step => !field.Has(x + step.X, z + step.Z));
             if (!onEdge) continue;
@@ -468,9 +469,9 @@ internal static class Terrain
             graded[i] = Math.Clamp(graded[i], graded[i + 1] - maxStep, graded[i + 1] + maxStep);
 
         var points = route.Select(cell => new[] { (double)cell.X + 0.5, cell.Z + 0.5 }).ToArray();
-        foreach (var (x, z) in field.Footprint.Cells())
+        foreach (var (x, z) in field.Footprint.Land())
         {
-            var (distance, along) = LineMark.NearestOnPolyline(x + 0.5, z + 0.5, points);
+            var (distance, along, _, _) = Polyline.Nearest(x + 0.5, z + 0.5, points);
             if (distance > radius + 2.5) continue;
             var at = Math.Clamp((int)Math.Round(along * (graded.Length - 1)), 0, graded.Length - 1);
             var index = field.Footprint.Index(x, z);
@@ -521,9 +522,9 @@ internal static class Terrain
         }
 
         var points = route.Select(cell => new[] { (double)cell.X + 0.5, cell.Z + 0.5 }).ToArray();
-        foreach (var (x, z) in field.Footprint.Cells())
+        foreach (var (x, z) in field.Footprint.Land())
         {
-            var (distance, along) = LineMark.NearestOnPolyline(x + 0.5, z + 0.5, points);
+            var (distance, along, _, _) = Polyline.Nearest(x + 0.5, z + 0.5, points);
             if (distance > radius + 2) continue;
             var at = Math.Clamp((int)Math.Round(along * (bed.Length - 1)), 0, bed.Length - 1);
             var index = field.Footprint.Index(x, z);
@@ -556,7 +557,7 @@ internal static class Terrain
     public static string Report(HeightField field, string name, string? mirrorMode = null,
                                 double centreX = 0, double centreZ = 0)
     {
-        var cells = field.Footprint.Cells().ToList();
+        var cells = field.Footprint.Land().ToList();
         var lines = new List<string> { $"{name}: {cells.Count} cells, y {field.Min}..{field.Max} (relief {field.Max - field.Min})" };
 
         var steps = cells.GroupBy(cell => MaxStep(field, cell.X, cell.Z))

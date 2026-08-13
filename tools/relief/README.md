@@ -15,14 +15,22 @@ The two reading modes are what keep the model honest. `--corpus` over the commun
 maps is where that document's §12 table comes from, and it says the boards this design produces are at the
 flat, open extreme of what actually gets shipped.
 
-It is deliberately thin — one project and no database. `PgmStudio.Geom` is referenced so the "what a shape
-can state today" panel runs the real ear-clip triangulation rather than an imitation of it, and
-`PgmStudio.Minecraft` so the readback can be run over built worlds. The **solver** touches neither: keeping
-`Relief.cs` dependency-free is the argument that it belongs in the `Geom` leaf.
+It is deliberately thin — one project and no database. **The solver is not here.** It is
+`PgmStudio.Geom.Relief`, the shipped one, and this tool draws its figures by calling it: the argument that a
+dependency-free solver belongs in the `Geom` leaf was made and won, and a second copy living here would only
+be a fork that drifts. It did drift, in the direction that matters least and is hardest to notice — the fork
+never gained the guard that discards a warm-start resume which has not settled, so it reported a resumed solve
+1614 cells off the settled answer where the shipped solver is exact.
+
+`PgmStudio.Minecraft` is referenced so the readback can be run over built worlds.
+
+A third fill choice lived here too, comparing straight-line and on-land weighting against the relaxation. The
+comparison is settled and its measurement is written down — `docs/world-export/relief.md` §3, with the numbers
+— so the knob and its figure are gone rather than kept as a fork's worth of code to redraw a closed
+decision.
 
 | File | Holds |
 |---|---|
-| `Relief.cs` | the footprint mask, the five mark kinds, island scope and shape participation, the three fills, and the finishing (reach, grain, step, coarse-to-fine, symmetry fold) |
 | `Terrain.cs` | what a solved surface can be asked about (passability tiers, reachable places, scarps, fords, detours, symmetry) and the operations on it (erect, route, grade, stair, fill depressions, flow, carve, fold) |
 | `Render.cs` | the two views a relief is judged in — topographic from above, blocks from an angle — plus the section and step-map diagnostics |
 | `Png.cs` · `Text.cs` | a pixel buffer, a PNG writer and a 5×7 font, so the tool has no image dependency |
@@ -34,7 +42,6 @@ can state today" panel runs the real ear-clip triangulation rather than an imita
 | Figure | Answers |
 |---|---|
 | `01-today` | what a 50×44 L-shaped room can already state about its height, and the same intent said as marks |
-| `02-interpolators` | whether a fill reaches through an eight-block slot it should not |
 | `03-vocabulary` | the five kinds of mark on a 90×135 board |
 | `04-knobs` | reach, grain, block step — and the stair repair the coarse step needs |
 | `05-scale` | what a 45×30 room costs a player at four amplitudes of relief |

@@ -1,3 +1,4 @@
+using PgmStudio.Geom.Relief;
 namespace PgmStudio.Relief;
 
 /// <summary>The figure renderers. A relief is judged in two views and nothing else does the job: a
@@ -101,7 +102,7 @@ internal static class Render
         var highest = ceiling ?? field.Max;
         var span = Math.Max(1, highest - lowest);
 
-        var cells = footprint.Cells().ToList();
+        var cells = footprint.Land().ToList();
         if (cells.Count == 0) return new Canvas(1, 1, Background);
 
         double ScreenX(int x, int z) => (x - footprint.MinX - (z - footprint.MinZ)) * tileWidth;
@@ -183,7 +184,7 @@ internal static class Render
     {
         var footprint = field.Footprint;
         var canvas = new Canvas(footprint.Width, footprint.Depth, Void);
-        foreach (var (x, z) in footprint.Cells())
+        foreach (var (x, z) in footprint.Land())
         {
             var step = Terrain.MaxStep(field, x, z);
             var colour = step switch
@@ -222,7 +223,7 @@ internal static class Render
     {
         var footprint = field.Footprint;
         var smoothed = new double[footprint.Width * footprint.Depth];
-        foreach (var (x, z) in footprint.Cells())
+        foreach (var (x, z) in footprint.Land())
         {
             double total = 0; var counted = 0;
             for (var dz = -1; dz <= 1; dz++)

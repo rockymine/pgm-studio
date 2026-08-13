@@ -1,3 +1,5 @@
+using PgmStudio.Geom.Relief;
+using Footprint = PgmStudio.Geom.Relief.Footprint;
 using PgmStudio.Minecraft;
 
 namespace PgmStudio.Relief;
@@ -96,7 +98,7 @@ internal static class Measure
     /// statistic and this is the right one.</summary>
     public static (int Low, int High) Body(HeightField field, double share = 0.95)
     {
-        var heights = field.Footprint.Cells().Select(cell => field.At(cell.X, cell.Z)).Order().ToList();
+        var heights = field.Footprint.Land().Select(cell => field.At(cell.X, cell.Z)).Order().ToList();
         var want = (int)Math.Ceiling(heights.Count * share);
         int bestLow = heights[0], bestHigh = heights[^1];
         for (var start = 0; start + want <= heights.Count; start++)
@@ -117,7 +119,7 @@ internal static class Measure
         var read = Read(regionDir, surface);
         if (read is not var (field, flooded)) return null;
 
-        var cells = field.Footprint.Cells().ToList();
+        var cells = field.Footprint.Land().ToList();
         if (cells.Count < 400) return null;
 
         var steps = cells.GroupBy(cell => Terrain.MaxStep(field, cell.X, cell.Z))

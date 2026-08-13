@@ -1,3 +1,4 @@
+using PgmStudio.Geom.Relief;
 using PgmStudio.Relief;
 using Geom = PgmStudio.Geom;
 
@@ -66,7 +67,7 @@ HeightField FromFunction(Footprint footprint, Func<double, double, double> heigh
 {
     var continuous = new double[footprint.Width * footprint.Depth];
     var blocks = new int[continuous.Length];
-    foreach (var (x, z) in footprint.Cells())
+    foreach (var (x, z) in footprint.Land())
     {
         var index = footprint.Index(x, z);
         continuous[index] = height(x + 0.5, z + 0.5);
@@ -111,38 +112,6 @@ HeightField FromFunction(Footprint footprint, Func<double, double, double> heigh
     Say("figure 1 — the height a 50x44 L-shaped room can state");
     Say(Terrain.Report(tin, "  per-vertex anchors"));
     Say(Terrain.Report(relief, "  marks + solved field"));
-    Say("");
-}
-
-// ═══ figure 2 — the same statement, three ways of filling the space between ═══════════════════════
-{
-    var footprint = FootprintOf(Horseshoe);
-    const int Scale = 4;
-
-    List<Mark> marks =
-    [
-        new PointMark(12, 44, 14, 4),
-        new PointMark(46, 44, 4, 4),
-        new PointMark(29, 6, 9, 4),
-    ];
-
-    var panels = new List<(string, Canvas)>();
-    foreach (var (name, interpolator) in new[]
-    {
-        ("straight-line weighting", Interpolator.Idw),
-        ("on-land weighting", Interpolator.GeodesicIdw),
-        ("smoothest surface", Interpolator.Diffusion),
-    })
-    {
-        var solved = ReliefSolver.Solve(footprint, new ReliefSpec { Base = 4, Marks = marks, Interpolator = interpolator });
-        var panel = Render.TopDown(solved, Scale, floor: 3, ceiling: 15);
-        Render.DrawMarks(panel, footprint, marks, Scale);
-        panels.Add((name, panel));
-
-        var acrossSlot = Math.Abs(solved.At(24, 44) - solved.At(34, 44));
-        Say($"  {name}: across the eight-block slot the two banks differ by {acrossSlot} block(s)");
-    }
-    Png.Write(Path.Combine(outputRoot, "02-interpolators.png"), Render.Row(panels).Upscale(2));
     Say("");
 }
 
@@ -355,7 +324,7 @@ HeightField FromFunction(Footprint footprint, Func<double, double, double> heigh
         var grade = 10.0 / face;
 
         bool InCorridor((int X, int Z) cell)
-            => LineMark.NearestOnPolyline(cell.X + 0.5, cell.Z + 0.5, bank).Distance <= face / 2 + 3;
+            => Polyline.Nearest(cell.X + 0.5, cell.Z + 0.5, bank).Distance <= face / 2 + 3;
 
         var uphill = Terrain.Fords(solved, InCorridor, Terrain.Passage.Walk, eastbound: false);
         var uphillBlock = Terrain.Fords(solved, InCorridor, Terrain.Passage.Scramble, eastbound: false);
@@ -422,9 +391,9 @@ HeightField FromFunction(Footprint footprint, Func<double, double, double> heigh
     // steepen with it — so the second board is the first one's design read louder, not a different design.
     List<Mark> Lifted(double lift) => marks.Select(mark => mark switch
     {
-        PointMark point => new PointMark(point.X, point.Z, 8 + (point.MarkHeight - 8) * lift, point.Radius),
+        PointMark point => new PointMark(point.X, point.Z, 8 + (point.Height - 8) * lift, point.Radius),
         LineMark line => new LineMark(line.Points, line.Heights.Select(h => 8 + (h - 8) * lift).ToArray(), line.Width),
-        AreaMark area => new AreaMark(area.Ring, 8 + (area.MarkHeight - 8) * lift),
+        AreaMark area => new AreaMark(area.Ring, 8 + (area.Height - 8) * lift),
         ScarpMark scarp => new ScarpMark(scarp.Points, 8 + (scarp.High - 8) * lift, 8 + (scarp.Low - 8) * lift,
                                          scarp.FaceWidth, scarp.BandWidth),
         _ => mark,
@@ -455,7 +424,7 @@ HeightField FromFunction(Footprint footprint, Func<double, double, double> heigh
     var finished = Terrain.Fold(channel.Bed, "rot_180", CentreX, CentreZ);
 
     bool InRiverCorridor((int X, int Z) cell)
-        => LineMark.NearestOnPolyline(cell.X + 0.5, cell.Z + 0.5, river).Distance <= 8;
+        => Polyline.Nearest(cell.X + 0.5, cell.Z + 0.5, river).Distance <= 8;
 
     var eastward = Terrain.Fords(finished, InRiverCorridor, Terrain.Passage.Walk);
     var westward = Terrain.Fords(finished, InRiverCorridor, Terrain.Passage.Walk, eastbound: false);
@@ -500,7 +469,7 @@ HeightField FromFunction(Footprint footprint, Func<double, double, double> heigh
     // assertion: the marks are still mirrored, and only the grain and the quantized surface go unfolded.
     var unfolded = ReliefSolver.Solve(footprint, spec with { FoldMode = null });
     var (unfoldedWorst, _) = Terrain.SymmetryError(unfolded, "rot_180", CentreX, CentreZ);
-    var unfoldedCells = footprint.Cells().Count(cell =>
+    var unfoldedCells = footprint.Land().Count(cell =>
     {
         var (mx, mz) = Terrain.Mirror(cell.X + 0.5, cell.Z + 0.5, "rot_180", CentreX, CentreZ);
         int ix = (int)Math.Floor(mx), iz = (int)Math.Floor(mz);
@@ -572,15 +541,15 @@ HeightField FromFunction(Footprint footprint, Func<double, double, double> heigh
     {
         var piece = Footprint.Of([(ring, false)]);
         var solved = ReliefSolver.Solve(piece, spec);
-        foreach (var (x, z) in piece.Cells())
+        foreach (var (x, z) in piece.Land())
             if (whole.Inside(x, z)) perShape[whole.Index(x, z)] = solved.At(x, z);
     }
     var seamed = new HeightField(whole, perShape.Select(height => (double)height).ToArray(), perShape);
 
-    var fused = new Island([new ReliefShape(north), new ReliefShape(middle), new ReliefShape(south)], spec).Build();
-    var held = new Island([new ReliefShape(north), new ReliefShape(middle), new ReliefShape(south),
+    var fused = new ReliefIsland([new ReliefShape(north), new ReliefShape(middle), new ReliefShape(south)], spec).Build();
+    var held = new ReliefIsland([new ReliefShape(north), new ReliefShape(middle), new ReliefShape(south),
         new ReliefShape(city, Participation.Hold, 13)], spec).Build();
-    var excluded = new Island([new ReliefShape(north), new ReliefShape(middle), new ReliefShape(south),
+    var excluded = new ReliefIsland([new ReliefShape(north), new ReliefShape(middle), new ReliefShape(south),
         new ReliefShape(city, Participation.Exclude, 13)], spec).Build();
 
     Canvas WithCity(Canvas panel, bool outline)
@@ -830,7 +799,7 @@ HeightField FromFunction(Footprint footprint, Func<double, double, double> heigh
         clock.Restart();
         var cascaded = ReliefSolver.Solve(footprint, spec);
         var cascadeCost = clock.Elapsed.TotalMilliseconds;
-        var cascadeDrift = footprint.Cells().Max(cell => Math.Abs(cascaded.At(cell.X, cell.Z) - flatSolve.At(cell.X, cell.Z)));
+        var cascadeDrift = footprint.Land().Max(cell => Math.Abs(cascaded.At(cell.X, cell.Z) - flatSolve.At(cell.X, cell.Z)));
 
         var moved = new List<Mark>(marks);
         moved[0] = new PointMark(footprint.MinX + footprint.Width * 0.25 + 4,
@@ -841,8 +810,8 @@ HeightField FromFunction(Footprint footprint, Func<double, double, double> heigh
         clock.Restart();
         var resumed = ReliefSolver.Solve(footprint, movedSpec, cascaded.Continuous, sweeps: 40);
         var resumeCost = clock.Elapsed.TotalMilliseconds;
-        var drifted = footprint.Cells().Count(cell => resumed.At(cell.X, cell.Z) != settled.At(cell.X, cell.Z));
-        var worstDrift = footprint.Cells().Max(cell => Math.Abs(resumed.At(cell.X, cell.Z) - settled.At(cell.X, cell.Z)));
+        var drifted = footprint.Land().Count(cell => resumed.At(cell.X, cell.Z) != settled.At(cell.X, cell.Z));
+        var worstDrift = footprint.Land().Max(cell => Math.Abs(resumed.At(cell.X, cell.Z) - settled.At(cell.X, cell.Z)));
 
         Say($"  {name}: {footprint.Count} cells — one grid {flatCost:0} ms, coarse-to-fine {cascadeCost:0} ms " +
             $"(worst difference between the two {cascadeDrift} block); " +
@@ -865,13 +834,13 @@ static int Rows(List<(int From, int To)> runs) => runs.Sum(run => run.To - run.F
 static int EdgeStep(HeightField field, double[][] ring)
 {
     var worst = 0;
-    foreach (var (x, z) in field.Footprint.Cells())
+    foreach (var (x, z) in field.Footprint.Land())
     {
-        if (!Footprint.PointInRing(x + 0.5, z + 0.5, ring)) continue;
+        if (!PgmStudio.Geom.Polygon.PointInRing(x + 0.5, z + 0.5, ring)) continue;
         foreach (var (dx, dz) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
         {
             if (!field.Has(x + dx, z + dz)) continue;
-            if (Footprint.PointInRing(x + dx + 0.5, z + dz + 0.5, ring)) continue;
+            if (PgmStudio.Geom.Polygon.PointInRing(x + dx + 0.5, z + dz + 0.5, ring)) continue;
             worst = Math.Max(worst, Math.Abs(field.At(x + dx, z + dz) - field.At(x, z)));
         }
     }
@@ -928,11 +897,11 @@ static int WorstStep(HeightField field, List<(int X, int Z)> route)
 
 static Mark MirrorMark(Mark mark, double centreX, double centreZ) => mark switch
 {
-    PointMark point => new PointMark(2 * centreX - point.X, 2 * centreZ - point.Z, point.MarkHeight, point.Radius),
+    PointMark point => new PointMark(2 * centreX - point.X, 2 * centreZ - point.Z, point.Height, point.Radius),
     LineMark line => new LineMark(
         line.Points.Select(p => new[] { 2 * centreX - p[0], 2 * centreZ - p[1] }).ToArray(), line.Heights, line.Width),
     AreaMark area => new AreaMark(
-        area.Ring.Select(p => new[] { 2 * centreX - p[0], 2 * centreZ - p[1] }).ToArray(), area.MarkHeight),
+        area.Ring.Select(p => new[] { 2 * centreX - p[0], 2 * centreZ - p[1] }).ToArray(), area.Height),
     // A scarp's high side is the left of its drawn direction, and a half-turn preserves handedness, so the
     // point order carries the sides across unchanged.
     ScarpMark scarp => new ScarpMark(
