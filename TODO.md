@@ -155,19 +155,27 @@ holds them until one becomes the focus.
   about the third dimension — whether a drop is walkable, whether a room's floor sits where the relief left
   it, whether a goal has ground under it, which is B82's fault seen rather than asserted.
 
-- [ ] **B92 — A building can be a solid volume, not only a shell.** `HouseStamper` raises walls, a roof and
-  their openings, and the volume they enclose is left as air — "fill" appears in the house model only as a
-  wall's infill between posts and as the gable's, never as the interior. That makes a building somewhere to
-  walk into, which is right for a village and wrong for the other thing a building is good for: a **boundary**.
-  A house authored with `RoofForm.Flat` and bedrock courses, stood tall enough to clear `max_build_height`, is
-  a tower that divides a board while wearing a skin that reads as architecture rather than as a wall — except
-  that it is hollow, so it is enterable and it is not a barrier. One stated material packing the enclosed
-  volume is the whole feature, and it wants to be a `HouseStyle` field rather than a stamper flag, so a style
-  carries whether it is a place or a mass. Two things to settle while doing it: what happens to a filled
-  building's door and windows, which are openings into solid rock and are probably better refused than
-  emitted; and whether the fill respects the storey stack, since a tower filled to its top course and a tower
-  filled only to its first floor are different buildings. `DressingScope` already protects the ground under a
-  stamped building, so nothing downstream needs teaching.
+- [ ] **B92 — A building can be a solid volume behind its own facade.** `HouseStamper` raises walls, a roof
+  and their openings, and the volume they enclose is left as air — "fill" appears in the house model only as a
+  wall's infill between posts and as the gable's, never as the interior. That makes every building somewhere
+  to walk into, which is right for a village and wrong for the two things a building is also good for: a
+  **scenery building inside the map that is not enterable**, and a **run of buildings sealing the edge of the
+  board**, which is how scenery does the work of a boundary — and the only way it can do that work at all in a
+  mode where nothing may be placed.
+
+  **The facade is kept, and that is the whole trick.** A filled building is not a solid block wearing a
+  house's outline: its windows and its door stay exactly where they were, because they are what makes it read
+  as a building rather than as a lump, and the fill sits **behind** them. The idiom is a dark fill — black
+  wool being the obvious one — so a window reads as an unlit interior rather than as a hole into rock, which
+  is a house with its lights off and is what an eye expects at the edge of a map. So the fill material is a
+  knob rather than a constant, and the openings are untouched by it.
+
+  It wants to be a `HouseStyle` field rather than a stamper flag, so a style carries whether it is a place or
+  a mass. What still has to be settled: whether the fill respects the storey stack, since a building filled to
+  its top course and one filled only to its first floor are different buildings; and how deep behind a door or
+  window the fill starts, since flush against the opening and one course back read differently through the
+  gap. `DressingScope` already protects the ground under a stamped building, so nothing downstream needs
+  teaching.
 
 - [ ] **B93 — The traversability stage image asks a different question from the one its name owns.**
   `TraversabilityRender` reads a column as navigable when it has ground and two blocks of headroom, splits

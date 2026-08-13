@@ -313,10 +313,16 @@ is scenery. Tilted with `anchor_heights` it leans; below the cap the same tilt i
 **A building used as a boundary rather than as a place.** A `HouseStyle` takes `RoofForm.Flat` — the lid form
 — and its courses take any material, bedrock included, so a house can be authored as a sealed slab-topped
 block rather than as somewhere to walk into. Stood tall enough to clear the build cap it is a tower that
-divides the map, wearing a skin that reads as architecture instead of as a wall. **What is missing is the
-inside**: `HouseStamper` builds a shell and its interior volume is air, so such a tower is enterable and
-hollow rather than solid. Filling it is `B92`, and it is the one part of this composition that does not
-exist yet.
+divides the map, and a run of them along an edge seals a board with scenery instead of with a wall — which is
+the only way an edge gets sealed at all in a mode where nothing may be placed.
+
+**What is missing is the inside, and the reason it matters is the facade.** `HouseStamper` builds a shell and
+leaves the volume it encloses as air, so such a building is enterable and hollow rather than a mass. Filling
+it is `B92`. The part worth stating now, because it is what makes the technique work rather than an
+implementation detail: a filled building **keeps its windows and its door**, and the fill sits behind them. A
+dark fill — black wool is the idiom — reads through a window as an unlit interior, so the building is a house
+with its lights off rather than a lump wearing a house's outline. The facade is the whole point of using a
+building for this instead of a shape.
 
 ## Where the generation lives
 
