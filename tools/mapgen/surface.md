@@ -348,7 +348,12 @@ family through the real emitters and answers with the shape or a directed reject
 
 **The corpus and world harnesses** in `tools/PgmStudio.RoundTrip` read a built world back: `--topdown` for
 the plan view, `--heightmap` and `--contour` for the third dimension, `--surface` for what the paint did,
-`--traversability-map` for whether the navigable ground actually joins spawn to every goal, `--buildings` and
+`--traversability-map` for whether the navigable ground actually joins spawn to every goal — ground and
+headroom, plus any void column the map's own buildable-region apply rule opens to bridging from the first
+tick, so a capture board that joins its islands with build regions (`ruediger`, or a composed board's own
+mid band) does not read as cut apart just because the join has no ground of its own; a water lane is left
+out on purpose, since it opens only after the match clock passes its timer and is not a connection yet at
+the moment the picture is taken — `--buildings` and
 `--structures` for what was stamped, `--island-study` and `--skeleton-study` for footprint shape and
 centrelines, `--water`, `--flora`, `--ores` and `--underground` for the rest. (`--traversability` — no `-map`
 — is a different thing: the Python-parity comparator over parquet features, not a picture; the name is close
