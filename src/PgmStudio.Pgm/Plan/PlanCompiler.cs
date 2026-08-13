@@ -36,46 +36,45 @@ public static class PlanCompiler
         var d = ContactGraph.Build(declared);
         var layout = BuildLayout(declared, d);
         var intent = BuildIntent(declared, d, layout);
-        AppendStructuralShapes(layout, intent);
         return (layout, intent);
     }
 
-    // Project the plan's placed structural pieces — spawn buildings and wool rooms — into the layout as
-    // locked annotation rectangles (S25), so refining a plan in the sketch keeps them visible instead of
-    // letting them dissolve into the fused island polygon. The intent's piece rect is the whole story: it is
-    // the protection/room region, it sizes the stamped foundation, and the marker sits relative to it, so the
-    // rectangle alone re-secures the link back to the intent entity. Role-tagged, so the rasterizer skips them
-    // (no terrain contribution — the ground under them is already the island) and the sketch renders them
-    // read-only. Only pieces with a role rect are projected: a plain-piece or hand-authored spawn/wool has no
-    // Piece and keeps nothing to surface here.
-    private static void AppendStructuralShapes(SketchLayout layout, MapIntent intent)
+    // Project a plan's placed structural piece — a spawn building or a wool room — into the layout as a
+    // locked annotation rectangle (S25), so refining a plan in the sketch keeps it visible instead of letting
+    // it dissolve into the fused island polygon. The piece rect is the whole story: it is the
+    // protection/room region, it sizes the stamped foundation, and the marker sits relative to it, so the
+    // rectangle alone re-secures the link back to the intent entity. Role-tagged, so the rasterizer skips it
+    // as terrain (the ground under it is already the island) and the sketch renders it read-only.
+    //
+    // The authored (k = 0) image also binds into its island's relief solve: `hold` pins the room at the
+    // piece's own surface, so the ground around it is solved knowing the floor must arrive there rather than
+    // cutting through it (docs/contracts/sketch-relief.md §11 — the rasterizer matches it to its island by
+    // footprint, not by list membership, since an annotation is never added to an island's own ShapeIds).
+    // Every other orbit image needs no binding of its own — its ground comes back from the same solved
+    // field, reflected, so it is pinned by construction (§8).
+    private static void AppendStructuralShape(
+        SketchLayout layout, string id, string role, string intentRef, string color, BlockRect rect,
+        int surface, int orbitIndex)
     {
         var shapes = layout.Layout?.Shapes;
         if (shapes is null) return;
-        var teamColor = (intent.Teams ?? []).ToDictionary(t => t.Id, t => t.Color);
-
-        foreach (var s in intent.Spawns)
-            if (s.Piece is { } rect)
-                shapes.Add(StructureShape($"spawn-{s.Team}", "spawn", s.Team, teamColor.GetValueOrDefault(s.Team, s.Team), rect));
-
-        foreach (var w in intent.Wools ?? [])
-            if (w.Piece is { } rect)
-            {
-                var color = !string.IsNullOrEmpty(w.Color) ? w.Color : teamColor.GetValueOrDefault(w.Owner, w.Owner);
-                shapes.Add(StructureShape($"wool-{w.Owner}-{color}", "woolRoom", $"{w.Owner}:{color}", color, rect));
-            }
+        var shape = new SketchShape
+        {
+            Id = id,
+            Type = "rectangle",
+            Operation = "add",
+            Role = role,
+            IntentRef = intentRef,
+            Color = color,
+            MinX = rect.MinX, MinZ = rect.MinZ, MaxX = rect.MaxX, MaxZ = rect.MaxZ,
+        };
+        if (orbitIndex == 0)
+        {
+            shape.BaseHeight = surface;
+            shape.ReliefScope = "hold";
+        }
+        shapes.Add(shape);
     }
-
-    private static SketchShape StructureShape(string id, string role, string intentRef, string color, Rect rect) => new()
-    {
-        Id = id,
-        Type = "rectangle",
-        Operation = "add",
-        Role = role,
-        IntentRef = intentRef,
-        Color = color,
-        MinX = rect.MinX, MinZ = rect.MinZ, MaxX = rect.MaxX, MaxZ = rect.MaxZ,
-    };
 
     // ── layout: unioned shapes + mirror islands + framing ───────────────────────────────────────────────
 
@@ -221,6 +220,9 @@ public static class PlanCompiler
                         : [],
                     Yaw = FanYaw(d, bx, bz, fx, fz, k),
                 });
+                if (piece.Value.Role == PlanRoles.Spawn)
+                    AppendStructuralShape(layout, $"spawn-{teams[k].Id}", "spawn", teams[k].Id, teams[k].Color,
+                        prot, piece.Value.Surface, k);
             }
 
         // wools: team-outer, placement-inner (matches the intent's grouping); auto colour with a global dye cursor
@@ -257,6 +259,9 @@ public static class PlanCompiler
                         : [],
                     Spawn = new Pt(px, piece.Value.Surface, pz),
                 });
+                if (isRoomPiece)
+                    AppendStructuralShape(layout, $"wool-{teams[k].Id}-{color}", "woolRoom",
+                        $"{teams[k].Id}:{color}", color, room, piece.Value.Surface, k);
             }
 
         // destroyables: team-outer like wools — a destroyable is a goal one team defends, so an orbit image
