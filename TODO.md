@@ -106,6 +106,24 @@ holds them until one becomes the focus.
   the first, and one word for both invites exactly the inference that a destroyable must live somewhere
   protected.
 
+- [ ] **B107 — The sketch tool cannot place or move an objective, so a board can only be designed in plan
+  space.** A plan's structural pieces are projected into the sketch as `Role`-tagged shapes and they are
+  **locked**: visible, and unmovable. Everything about a goal's position and height is therefore decided in
+  the plan, on a flat board, before any relief exists — which is why a depression dropped onto a piece
+  standing at the default `surface` 9 bottoms out two blocks off the floor, and why a goal's height cannot be
+  corrected once the ground around it is real. The sketch is where a board stops being rectangles; it is also
+  the only stage that knows what the ground actually became, and it is the one stage that cannot touch the
+  objectives.
+
+  What it needs is the ability to **place and move a structural piece and state its height**: a spawn, a wool
+  room, a destroyable and a core. Two of those keep constraints that are not negotiable — a wool room and a
+  spawn are rectangles and carry protection regions — while a destroyable and a core have neither and may sit
+  anywhere ground exists (`B106`). `S25b` already asks for the movable half of this for spawn and wool pieces,
+  writing the move back to the intent; this is that task grown to cover height and the destroy objectives, and
+  it should be researched before it is built, because the plan projects these shapes and a recompile replaces
+  them — so where an edit is stored, and what happens to it on the next compile, is the design question rather
+  than the dragging.
+
 - [ ] **B92 — A building can be a solid volume behind its own facade.** `HouseStamper` raises walls, a roof
   and their openings, and the volume they enclose is left as air — "fill" appears in the house model only as a
   wall's infill between posts and as the gable's, never as the interior. That makes every building somewhere

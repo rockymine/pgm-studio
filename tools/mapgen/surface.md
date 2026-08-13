@@ -47,8 +47,10 @@ control on flow for a capture board — so it is worth stating outright rather t
 a dip in the surface. That is the difference from relief, and it is the whole of it: **relief moves a
 surface, a subtract removes it**, so no mark of any kind cuts a channel and no channel is ever a relief
 question. A channel twenty blocks across in front of an objective is one subtract rectangle or polygon, drawn
-at the width the gap wants and standing tall enough to take the whole column — `ruediger.layout.json` cuts
-one with a rectangle at `base_height` 100 over `floor` 0. `override` decides the order the algebra resolves
+at the width the gap wants — and its **height is not read**. The rasterizer resolves a subtract in plan only,
+removing the whole column at every cell the outline covers, so a one-block-tall subtract carves exactly as
+deep as a two-hundred-block one. `ruediger.layout.json` states `base_height` 100 over `floor` 0 on its cut,
+which is a statement of intent rather than a load-bearing number. `override` decides the order the algebra resolves
 in: the ordinary pass is (adds − subtracts), then override-adds overwrite whatever column they land on, then
 override-subtracts remove theirs last, so an override-add is how ground is put back inside a hole and an
 override-subtract is how a hole is cut through ground that was itself an override.
