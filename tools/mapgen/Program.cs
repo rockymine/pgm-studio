@@ -56,7 +56,7 @@ static void Build(MapSpec spec, bool describeOnly)
     {
         plan = Composer.Compose(new ComposeRequest(
             ask.PlayersPerTeam, ask.Teams, ask.Symmetry, ask.Seed, ask.Cell));
-        Retarget(plan, ask.ObjectiveMode);
+        Retarget(plan, ask.ObjectiveMode, ask.ObjectiveMaterials);
     }
     else if (spec.Plan is { } drawn)
     {
@@ -112,6 +112,16 @@ static void Build(MapSpec spec, bool describeOnly)
     // ── build it the way the export does ─────────────────────────────────────────────────────────────────
     var built = SketchWorldBuilder.Build(layout.ToJson(), intent);
 
+    // A goal with no ground under it cannot be reached or mined: there is nothing to stand on and nothing to
+    // break through. Silent otherwise — the map builds and loads — so it is refused here rather than shipped.
+    // The wool monument location is only known once the world is built (SketchWorldBuilder resolves it), so
+    // every goal kind is checked together against the same rasterized ground the build itself stood on.
+    var overVoid = GoalsOverVoid(ground, built.ResolvedIntent);
+    if (overVoid.Count > 0)
+        throw new ArgumentException($"{spec.Slug}: {string.Join(", ", overVoid)} "
+                                   + $"stand{(overVoid.Count == 1 ? "s" : "")} over void — a goal with nothing "
+                                   + "under it cannot be won");
+
     var doc = new Dict();
     IntentGenerator.Apply(doc, built.ResolvedIntent);
     doc["name"] = string.IsNullOrWhiteSpace(spec.Name) ? spec.Slug : spec.Name;
@@ -119,7 +129,26 @@ static void Build(MapSpec spec, bool describeOnly)
     if (!string.IsNullOrWhiteSpace(spec.Objective)) doc["objective"] = spec.Objective;
     if (spec.Authors is { Count: > 0 } authors)
         doc["authors"] = authors.Select(a => (object?)new Dict { ["name"] = a }).ToList();
-    var xml = XmlWriter.ToXml(Deserializer.FromDict(doc));
+
+    // Everything CtwStandards derives (itemkeep/toolrepair/itemremove) sits behind a kit; a map with none
+    // still exports, but with its loadout rules silently empty rather than missing outright.
+    if (doc.GetValueOrDefault("kits") is not List<object?> { Count: > 0 })
+        Console.Error.WriteLine($"  ! {spec.Slug}: no kit — itemkeep/toolrepair/itemremove derive from the "
+                               + "spawn kit and will be empty");
+
+    // A destroyable or core nothing in the kit can mine is not a rough edge, it is a map that cannot be won —
+    // the same failure the void refusal above guards against for a goal with no ground under it. Reads the
+    // kit actually written to the doc rather than trusting the derivation that built it (TeamsGenerator),
+    // so the check still catches a kitless destroy map (MG17 meets MG18).
+    var unbreakable = DestroyKitPairing.Unwinnable(built.ResolvedIntent, KitPickaxeMaterials(doc));
+    if (unbreakable.Count > 0)
+        throw new ArgumentException($"{spec.Slug}: no tool in the kit can break "
+                                   + $"{string.Join(", ", unbreakable)} — a goal that cannot be mined cannot be won");
+
+    // Through the same path a saved map exports: CtwStandards' keep/repair/remove derivation, the water-lane
+    // include, ore/structure renewables, and the not-build-area reordering that must decide last.
+    var renewableCubes = SketchWorldBuilder.RenewableCubeFootprints(built.ResolvedIntent);
+    var xml = MapXmlComposer.Compose(doc, isIntent: true, surfaceBlockIds: null, resources: [], renewableCubes);
 
     var outDir = spec.OutDir ?? $"/media/sf_repos/CommunityMaps/dtcm/{spec.Slug}";
     Directory.CreateDirectory(outDir);
@@ -129,6 +158,41 @@ static void Build(MapSpec spec, bool describeOnly)
     File.WriteAllText(Path.Combine(outDir, "map.xml"), xml);
 
     Console.WriteLine($"  → {outDir}  (spawn {built.SpawnX},{built.SpawnY},{built.SpawnZ})  {Census(built.World)}");
+}
+
+/// <summary>The goals — wool monuments, destroyables, cores — whose anchor has no rasterized column under it,
+/// named for the refusal message. Every goal kind is checked the same way: a column either exists at the
+/// goal's (floored) XZ or it does not, which is all "stands over void" means.</summary>
+static List<string> GoalsOverVoid(Dictionary<(int X, int Z), int> ground, MapIntent intent)
+{
+    bool Grounded(Pt point) => ground.ContainsKey(((int)Math.Floor(point.X), (int)Math.Floor(point.Z)));
+
+    var findings = new List<string>();
+    foreach (var wool in intent.Wools ?? [])
+        foreach (var monument in wool.Monuments)
+            if (!Grounded(monument.Location))
+                findings.Add($"{monument.Team}'s monument on {wool.Owner}'s wool");
+    foreach (var destroyable in intent.Destroyables ?? [])
+        if (!Grounded(destroyable.Anchor))
+            findings.Add(destroyable.Name.Length > 0 ? destroyable.Name : destroyable.Owner);
+    foreach (var core in intent.Cores ?? [])
+        if (!Grounded(core.Anchor))
+            findings.Add(core.Name.Length > 0 ? core.Name : $"{core.Owner}'s core");
+    return findings;
+}
+
+/// <summary>Every item material named by every kit in the document — the alphabet <see cref="DestroyKitPairing.Unwinnable"/>
+/// checks a destroy goal's material against, read back from the doc rather than assumed.</summary>
+static List<string> KitPickaxeMaterials(Dict doc)
+{
+    var materials = new List<string>();
+    if (doc.GetValueOrDefault("kits") is List<object?> kits)
+        foreach (var kit in kits.OfType<Dict>())
+            if (kit.GetValueOrDefault("items") is List<object?> items)
+                foreach (var item in items.OfType<Dict>())
+                    if (item.GetValueOrDefault("material") is string material)
+                        materials.Add(material);
+    return materials;
 }
 
 /// <summary>Turn the goals the generator placed into the kind of goal this map is played for.
@@ -142,12 +206,20 @@ static void Build(MapSpec spec, bool describeOnly)
 /// on one map: the monument keeps the goal the generator sited, and the core takes a slot beside it on the
 /// same piece. A map with only one of the two is a destroy-the-monument map or a destroy-the-core map, and
 /// both of those are already sayable.</para></summary>
-static void Retarget(PlanModel plan, string mode)
+static void Retarget(PlanModel plan, string mode, string? materials)
 {
     var word = mode.Trim().ToLowerInvariant();
     if (word is "ctw" or "") return;
     if (word is not ("dtm" or "dtcm"))
         throw new ArgumentException($"no objective mode '{mode}' — have: ctw, dtm, dtcm");
+
+    // The stamper only knows how to build four materials (DestroyableMaterials.All) and silently falls back
+    // to obsidian for anything else, while the XML would still declare whatever was asked for verbatim — a
+    // goal whose declared material matches nothing in its own region. Refuse the mismatch here rather than
+    // build a map that ships it.
+    if (materials is { Length: > 0 } && !DestroyableMaterials.IsBuildable(materials))
+        throw new ArgumentException($"no destroyable material '{materials}' — the generator can only build: "
+                                   + string.Join(", ", DestroyableMaterials.All));
 
     var goals = plan.Placements.Wools;
     if (goals.Count == 0) return;
@@ -155,8 +227,11 @@ static void Retarget(PlanModel plan, string mode)
     for (var index = 0; index < goals.Count; index++)
     {
         var goal = goals[index];
-        plan.Placements.Destroyables.Add(
-            new DestroyablePlacement { Id = $"monument-{index}", Piece = goal.Piece, At = goal.At });
+        plan.Placements.Destroyables.Add(new DestroyablePlacement
+        {
+            Id = $"monument-{index}", Piece = goal.Piece, At = goal.At,
+            Materials = string.IsNullOrWhiteSpace(materials) ? null : materials,
+        });
         if (word == "dtcm")
             plan.Placements.Cores.Add(new CorePlacement
             {

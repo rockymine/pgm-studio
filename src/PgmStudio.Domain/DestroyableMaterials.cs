@@ -27,6 +27,15 @@ public static class DestroyableMaterials
         return Obsidian;
     }
 
+    /// <summary>Whether a match names at least one material the generator can actually stamp. Checked before
+    /// authoring a destroyable's <c>materials</c>, because <see cref="BlockId"/>'s own fallback is silent: an
+    /// unrecognised name still writes into the XML verbatim (<c>DestroyableGenerator</c>) while the stamper
+    /// quietly builds obsidian, so the declared material matches nothing in its own region — the same
+    /// zero-health failure as an unmatched kit tool, just one step upstream of it. Empty is buildable (the
+    /// obsidian default).</summary>
+    public static bool IsBuildable(string? materials) =>
+        string.IsNullOrWhiteSpace(materials) || MaterialIds.Resolve(materials).Any(Buildable.Contains);
+
     private const int Obsidian = 49;
     private static readonly HashSet<int> Buildable = [.. All.SelectMany(MaterialIds.Resolve)];
 }
