@@ -83,7 +83,7 @@ public sealed class WorldFeatureWriter(PgmDb db)
     }
 
     /// <summary>
-    /// Persist the geometry artifacts for a <b>finished sketch</b> (docs/contracts/sketch-authoring.md §4):
+    /// Persist the geometry artifacts for a <b>finished sketch</b> (docs/tools/sketch.md, Finish):
     /// the rasterized cells become a synthetic surface layer (stone at Y=0) → layer.parquet, the supplied
     /// islands → islands.json, one single-block segment per column → layer_segment, plus the default
     /// map_config. The sketched map then has the same geometry shape an imported world does, so it flows

@@ -5,7 +5,7 @@ tree). This is the orientation document for the browser-side half of the studio:
 each module is for, which rules keep them from tangling, and where the known rough edges are. Blazor owns
 chrome, forms, state and persistence; this layer owns everything that draws or responds to a pointer.
 
-Read alongside `sketch-authoring.md` and `plan-editor.md` (what the two drawing tools mean), and
+Read alongside `../tools/sketch.md` and `../tools/plan.md` (what the two drawing tools mean), and
 `../tools/flow.md` (which tool works at which level, and how a map moves between them).
 
 ## 1. The one fact that frames everything

@@ -183,9 +183,24 @@ generated board wants one slab.
 ### What the rasterizer makes of it
 
 `SketchRasterizer.RasterizeColumns` turns the document into the solid cells of the finished world: one entry
-per `(x, z)` with its span `[YFloor, YTop]`. It resolves circles as 64-gons and Bézier edges at 16 samples,
-matching the client geometry exactly so the drawn outline and the built one cannot differ. Island mirror copies
-follow the saved `shapeIds` and the setup's mode, so an island that opted out of mirroring is rasterized once.
+per `(x, z)` with its span `[YFloor, YTop]`. Island mirror copies follow the saved `shapeIds` and the setup's
+mode, so an island that opted out of mirroring is rasterized once.
+
+**Two rasterizers have to agree, and five constants are what make them.** The live island preview runs the
+boolean in the browser (`boolean.js`, over the vendored `polygon-clipping`) because it is the hot path; the
+server rasterizes the same document authoritatively and re-detects islands. Neither is derived from the other,
+so the drawn outline and the built one stay identical only as long as both sides read the same numbers:
+
+| Constant | Value | Where |
+|---|---|---|
+| circle resolution | **64** points | `SketchRasterizer.CirclePoints` ⇄ `shape.js CIRCLE_POINTS` |
+| Bézier sampling | **16** samples per curved edge, endpoint excluded | `BezierSamples` ⇄ `BEZIER_SAMPLES` |
+| set-algebra order | adds − subtracts, then override-adds, then override-subtracts | both |
+| `controls` keying | the vertex index as a **string** | `Dictionary<string, SketchControl>` |
+| `rot_270` | `(Δx, Δz) → (Δz, −Δx)` | the internal third image of a `rot_90` orbit — never an authored mode |
+
+Changing one without the other does not fail loudly; it produces a world whose edges disagree with the picture
+by a fraction of a block, which is why the constants carry cross-referencing comments on both sides.
 
 Where an island carries a relief, its surface is solved first (`ReliefFields`) and the same solve is what the
 contour preview draws — which is the only reason a preview is worth drawing at all.

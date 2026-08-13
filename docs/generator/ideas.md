@@ -110,9 +110,31 @@ landed, the rest is the idea.
   invariants, evaluator-side slot terms.
 - **G43** — the composer↔teaching-set conformance sweep (aggregate soft distance per term).
 - **G127** — the flow graph: junction/lane-chain derivation + route signatures + the first flow terms.
-  Revives G24's already-designed substrate (plan-editor.md §2: mouths as intervals, corridor extrusion,
-  junction regions = ≥3-corridor intersections, lane chains between them — areal, decomposition-free) as
-  the derive side of a **third mirror**: the emit side assembles the intended story from the vocabulary
+  Revives G24's already-designed substrate, which is worth keeping written down because it is the part
+  that was solved and never built (moved here from the retired plan-editor design doc):
+
+  > **Junction regions (hubs)** are computed on the **unioned island footprint**, so how the author cut
+  > the plan into pieces cannot change the result. Every access **mouth** — a land interface or a bridge
+  > mouth on the boundary — is an *interval* with an inward direction; extrude each mouth's span
+  > perpendicular into the land, and a junction region is the intersection of corridors from **three or
+  > more** mouths. A four-way "plus" yields the crossing rect, a three-way T likewise, and a two-mouth
+  > corner yields nothing, because a corner is not a hub. Areal by construction — interval mouths, region
+  > output, no thinning or skeletonization anywhere. A **lane** is then the corridor between junction
+  > regions and dead ends, which is what the width and length rules are measured along, so a lane cut into
+  > several pieces for elevation or cornering is still one lane.
+  >
+  > **Climbs** ride on those chains. A climb is a maximal run of land-interface traversals with monotone
+  > elevation change; each traversal carries a horizontal direction (interface midpoint to midpoint) and a
+  > delta. A climb whose direction reverses past roughly 120° while still monotone is a
+  > **switchback** — net displacement far shorter than path length, height packed into a small
+  > footprint — against a **straight ramp**, where displacement is about equal to length; a flat piece
+  > between two climbing segments is a **landing**. Label a climb by its top-end anchor (nearest wool room
+  > → wool approach, a junction or mid piece → mid ascent, else interior) and by use per team (on an
+  > enemy-spawn→wool path it is an attacker climb, on an own-spawn→wool path a defender rotation). That
+  > gives the composer vocabulary the distinction it currently cannot make: a straight approach against a
+  > space-packing switchback against a defensible landing.
+
+  It is the derive side of a **third mirror**: the emit side assembles the intended story from the vocabulary
   (each form a known mini-graph — donut a cycle, ring hub a cycle with tangent runs, twin frontline two
   parallel band edges — glued at the joints), and a mismatch is itself the finding (square-on-square: the
   story says hub + frontline, the mask says one many-mouthed blob). Per wool a **route signature** — the

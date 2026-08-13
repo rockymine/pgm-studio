@@ -4,7 +4,7 @@ using PgmStudio.Pgm.Derive;
 namespace PgmStudio.Pgm.Plan;
 
 /// <summary>
-/// The compile step that gives a plan's negative space a name (docs/contracts/plan-editor.md §3). Terrain is
+/// The compile step that gives a plan's negative space a name (docs/tools/plan.md). Terrain is
 /// stated by the pieces that generate it, so the ground a body encircles and no piece covers — a ring hub's
 /// hole — is void by omission, and nothing in the document says so. This writes it down: every enclosed void
 /// becomes a <see cref="PlanRoles.Buffer"/> piece, the role that already means reserved empty space.

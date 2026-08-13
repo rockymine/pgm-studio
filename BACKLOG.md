@@ -765,7 +765,7 @@ import diagnostic (`B24e`), detection (`B26`), and the island-floor work the pha
   differs: a map-backed plan saves into its map's artifact, while a plan row saves as a row and forks when it
   was generated or imported. Rename the bare route to `/plans/{id}` (and `/plans/new`), which says what it is
   bound to where `/plan-editor` says nothing, updating the generator hand-off, the smoke sweep's route list and
-  `plan-editor.md` with it.
+  the plan schema doc with it.
   **Do not delete the route.** It is the only surface that opens a **plan row**, which is what the generator
   hands a candidate off as and what `G119`'s fork-on-edit rule operates on; routing candidates through
   `/maps/{slug}/plan` would mint a map per candidate looked at, and New, Import, Open and the origin badge have
@@ -1069,7 +1069,7 @@ long-tail so they stop competing with real work. Re-evaluate (or delete) when th
   actually slow in use; otherwise close.
 - [ ] **A4 — [Consider, not perf] Vector-boolean island outlines (drop the rasterize→polygon round-trip).**
   Today island outlines come from a pixel round-trip: vector shapes → rasterize to cells → BFS → `BlocksToPolygon`
-  (cells back to a polygon), done only to **avoid a C# polygon-boolean lib** (sketch-authoring.md §6). We
+  (cells back to a polygon), done only to **avoid a C# polygon-boolean lib**. We
   already depend on NTS, so the sketch-finish island polygons *could* be computed by NTS vector boolean
   directly off the shapes (union adds, difference subs), dropping `BlocksToPolygon` + the BFS for the
   *polygon*. **Not a perf task** — the row-run fix already removed the hotspot, and the cell rasterize must

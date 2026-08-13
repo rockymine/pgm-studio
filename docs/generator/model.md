@@ -19,7 +19,7 @@ matching it. **What it defers:**
 | `vocabulary.md` | The **living type catalog** — every type as a map concept, by pipeline order. This document defines the terms where they are used and §8 is the code map; this names the types that embody them. Extend it in the same commit a task adds/renames/retires a type. |
 | `audit.md` | The standing measured record of where the implementation and this model **disagree** — the evidence behind the open G-tasks. |
 | `ideas.md` | The G-track idea pool: open work not on the board. |
-| `../contracts/plan-editor.md` | The field-level `*.plan.json` schema and the editor UI (the Plan tool). |
+| `../tools/plan.md` | The field-level `*.plan.json` schema and the editor that writes it (the Plan tool). |
 
 **The live twin.** `tools/compose/showcase.cs` renders this same model as one self-contained HTML
 page with **every figure emitted by the real generator** (`dotnet run tools/compose/showcase.cs`).
@@ -278,7 +278,7 @@ through a spawn piece; at least one gap on every inter-team path; interface widt
 corridor minimum; and spawns kept some distance from the nearest frontline interface. These are what
 make a hand-edited plan checkable before anything tries to build it.
 
-The field-level schema and the editor that writes it are in `../contracts/plan-editor.md`.
+The field-level schema and the editor that writes it are in `../tools/plan.md`.
 
 ---
 
@@ -1505,4 +1505,4 @@ and it grows only through its correction protocol. The **measured envelopes** th
 terms score against are `seed-stats.md` / `seed-envelopes.md`. The **detailed deriver-measurable and
 evaluator-metric catalogue** is `evaluator.md`. Where the implementation is known to **disagree**
 with this model, the measured record is `audit.md`. The **plan schema and editor** are
-`../contracts/plan-editor.md`.
+`../tools/plan.md`.

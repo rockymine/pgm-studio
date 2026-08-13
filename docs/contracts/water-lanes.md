@@ -14,7 +14,7 @@ until the phantom classifier made this one buildable.
 
 Read alongside:
 - `destroyables-and-cores.md` — the phantom destroyable (OB16) the first wiring is made of.
-- `plan-editor.md` — the plan schema. A lane is a zone kind.
+- `../tools/plan.md` — the plan schema. A lane is a zone kind.
 - `new-map-authoring.md` §5 — the build slice a lane is deliberately not part of.
 
 ---
@@ -197,7 +197,7 @@ one: the server resolves it at load, so a map states the id and the behaviour ar
 makes the newest wiring also the cheapest — no `<actions>`/`<fill>`/`<trigger>` writer, no mode, no
 hidden destroyable.
 
-A lane is authored as a **zone kind** in the plan (`plan-editor.md`). Both kinds are a rect over the
+A lane is authored as a **zone kind** in the plan (`../tools/plan.md`). Both kinds are a rect over the
 void saying where players may bridge; they differ only in *when*:
 
 ```jsonc

@@ -17,7 +17,7 @@ using PgmStudio.Pgm.Sketch;
 namespace PgmStudio.Api.Endpoints;
 
 /// <summary>
-/// Sketch tool persistence (docs/contracts/sketch-authoring.md §1–§2): the <c>sketch_layout_json</c>
+/// Sketch tool persistence (docs/tools/sketch.md): the <c>sketch_layout_json</c>
 /// artifact that backs a draft map. Mirrors <see cref="IntentStore"/> — it lives outside the
 /// entity-replace codec, so it survives <c>MapWriter.SaveDocAsync</c>. The blob is the browser's
 /// JS-origin layout ({setup, layout:{shapes, islands}}), stored verbatim (authoring source, not the

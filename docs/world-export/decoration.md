@@ -36,7 +36,7 @@ Read alongside:
 
 - `docs/world-export/terrain-painting.md` — the pass this one runs immediately after; the surface it reads.
 - `docs/world-export/structures.md` §6.4 — the preset seam (style-as-data). A dressing style attaches here.
-- `docs/contracts/sketch-authoring.md` §2 — the sketch document this stage stores its props beside.
+- `docs/tools/sketch.md` — the sketch document this stage stores its props beside.
 - `docs/generator/ideas.md` — G34 (the umbrella), G32-C (structures & elevation, the sibling pass), G142
   (the roughen pass, whose noise operators the path edge borrows).
 - `docs/world-export/ideas.md` — the dressing-stage gap pool: what turns these tools into one coherent

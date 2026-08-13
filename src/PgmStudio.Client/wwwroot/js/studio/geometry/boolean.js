@@ -5,7 +5,7 @@
  * they contribute to. Also computes the live mirror-preview polygons for a symmetry axis.
  *
  * This drives the *live* canvas preview (the hot path stays in JS); the server rasterizes from shapes
- * for the persisted geometry (docs/contracts/sketch-authoring.md §4). No DOM.
+ * for the persisted geometry (docs/tools/sketch.md). No DOM.
  */
 
 import polygonClipping from "../vendor/polygon-clipping.js";

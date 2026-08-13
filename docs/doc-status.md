@@ -43,6 +43,16 @@ stays: six source and test files cite it as the contract for what they emit.
 recovered; the four citations now point at the types themselves, `Domain/Filter.cs` and `Domain/MapModel.cs`.
 The same was done for `geometry.md`.
 
+**Two more were deleted after a transplant**, because in each case one section was live and the rest was
+done. `contracts/plan-editor.md`'s §2 held the junction-region / lane-chain / climb derivation, which is
+*designed and unbuilt* and is the substrate `generator/ideas.md`'s **G127** revives — so it moved there,
+beside its task, and the schema, validation and editor sections went to `tools/plan.md` along with six shipped
+milestones and three settled open points. `contracts/sketch-authoring.md`'s §6 held the **parity constants**
+that keep the JS and C# rasterizers agreeing — circle 64, Bézier 16, the four-step set-algebra order, the
+stringified `controls` key, `rot_270` — cited from `shape.js` by section; they moved into `tools/sketch.md`
+as a table beside the rasterizer. The rest of it described the old Setup→Layout→Overview→Finish flow and a
+`POST /api/sketch/generate` endpoint that no longer exists.
+
 **Two documents were cut to what only they say**, rather than deleted, because each held something nothing
 else does. `contracts/new-map-authoring.md` (617 → 171) keeps the inversion, why regeneration is free, where
 orbit happens and why in three places, the coordinate-flooring law, the void-filter substrate, and what the

@@ -1794,7 +1794,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   edge-interval interfaces, no skeletons; proxy-cell mini-layout semantics; one-way compile into sketch +
   intent with a detach point; rule-based composition, fragmentation moves, roughen + elevation passes; scope
   tiers), `docs/generator/rules.md` (the author-corrected per-role rule checklist + the seed shopping
-  list), and `docs/contracts/plan-editor.md` (plan schema · compiler · seed-studio editor — built as
+  list), and the plan schema · compiler · seed-studio editor design (built as
   `G16`–`G21`). Resolves the `G15` exploration: **WFC evaluated and rejected** for the layout skeleton (CTW
   quality is global/relational — symmetry, spawn/wool separation, typed gaps — not local-adjacency texture);
   the polyomino vocabulary survives as the plan's proxy-cell grid. (G15)
@@ -2917,7 +2917,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   shifted-frontline exemplars migrate off the `buffer`-as-overlay misuse onto real boxes (`buffer` means a
   reserved gap again), and `tools/deriver/plan-readback.cs` reads `boxes` — per-box derived reads on both
   exemplars (g-hub: G hub + 2-arm frontline; hole-hub: Ring hub + Donut wool). Pgm 696 + 146 JS tests green.
-  Contract: `plan-editor.md` §1/§5; vocabulary row added. Unblocks G125. (G126)
+  Contract: `docs/tools/plan.md`; vocabulary row added. Unblocks G125. (G126)
 
 - **Feasibility read-back — "could the composer have produced this?" (G125)** — `Pgm/Compose/Producibility.cs`
   + `Compose/Boxes/FillRejection.cs` + `Api/Endpoints/PlanInspectEndpoints.cs` + `Contracts/FeasibilityDto.cs` +
@@ -2948,7 +2948,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   styling. On the hole-hub exemplar: the ring's one over-wide wall localises to **2 cells** citing G105, the
   donut's 1-wide attachment to 8 cells citing G82, and the shifted frontline fires **twice** citing G123 — while
   the evaluator still reports score 0, nothing fired. Pgm 716 + Api 76 + 148 JS tests green. Contracts:
-  `plan-editor.md` §1/§5, vocabulary rows added. Unblocks the B21 agent loop (an agent iterating against the
+  `docs/tools/plan.md`, vocabulary rows added. Unblocks the B21 agent loop (an agent iterating against the
   validator alone converges on plans the composer can't reproduce). (G125)
 
 - **The branch hub's leg sampler — a wide leg makes the L an L (G105)** — `Compose/HubBoxEmitter.cs` +
@@ -4009,7 +4009,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `POST .../sketch/finish` + the Finish button: the sketch rasterizes into the importer's geometry
   artifacts and flows into Configure (`MapStage.Configure` + a `configureUrl`; 6 rasterizer tests). The
   `/maps/new-sketch` page (`SketchCreate`, S11) originates one. (S2e) Plan:
-  `docs/contracts/sketch-authoring.md`.
+  `docs/tools/sketch.md`.
 - **Sketch tool end-to-end verified** — a live pass of the whole chain on the running app: `POST /api/sketch`
   create → `PUT .../sketch` a two-island layout → `POST .../sketch/finish` rasterize (advances the map from
   the *sketch* to the *configure* stage) → the sketch-origin map **opens in the Configure wizard** (Map Info /
