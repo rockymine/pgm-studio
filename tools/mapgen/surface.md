@@ -40,6 +40,19 @@ its `floor` and `base_height`, per-vertex `anchor_heights`, a `height_mode` of `
 relief. The **relief** rides beside the shapes rather than inside them, keyed by island id, because a plan
 recompile replaces every shape it produced and a relief is hand work a plan cannot express.
 
+The set algebra is where **void** comes from, and void is the instrument `review.md` names as the primary
+control on flow for a capture board — so it is worth stating outright rather than leaving inside the phrase
+"set-algebra operations". A shape's `operation` is `add` unless it says otherwise; a shape carrying
+`subtract` takes its footprint's columns out of the ground entirely, which is a hole to the void rather than
+a dip in the surface. That is the difference from relief, and it is the whole of it: **relief moves a
+surface, a subtract removes it**, so no mark of any kind cuts a channel and no channel is ever a relief
+question. A channel twenty blocks across in front of an objective is one subtract rectangle or polygon, drawn
+at the width the gap wants and standing tall enough to take the whole column — `ruediger.layout.json` cuts
+one with a rectangle at `base_height` 100 over `floor` 0. `override` decides the order the algebra resolves
+in: the ordinary pass is (adds − subtracts), then override-adds overwrite whatever column they land on, then
+override-subtracts remove theirs last, so an override-add is how ground is put back inside a hole and an
+override-subtract is how a hole is cut through ground that was itself an override.
+
 The **intent** is what the map is *for*: teams, spawns with yaw and protection, wools with rooms and
 monuments, destroyables, cores, the build region and its holes, water lanes, and `structures` — room floors,
 entrance redstone, iron cubes and approach walls. It is the only layer that knows the objective.

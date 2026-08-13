@@ -488,16 +488,25 @@ target section describes — a destroy board, the monument in the open, a forest
 east to bridge from, a village behind, a void channel twenty blocks in front — and told to author the spec,
 build it, look at the renders, and iterate. It took six passes and reported what it could not say.
 
-**Five of the six things the brief asked for were inexpressible, and it named each one correctly.** The
-forest could not be put on the west flank, because trees sample uniformly over every cell that passes a
-filter and nothing weights the sample by place (MG9). The void channel could not be cut, because the relief
-the spec exposes is a count, two heights and a radius, and never a coordinate (MG29, MG34). The plateau could
-not be made to read as built against ground that reads as ground, because the spec takes one theme (MG2). The
-village could not be put behind the monument, because buildings land wherever the ground is flat enough
-(MG9). The hill could not be raised to the east, because `scatter` is the only mark the spec reaches and the
-five mark kinds sit behind it (MG29). Only the exposed monument survived, and it survived because the
-generator sites goals that way already. That is MG29 measured rather than argued: the format was the binding
-constraint at every step, and the system underneath was not asked once.
+**Five of the six things the brief asked for could not be said through the spec.** The forest could not be
+put on the west flank, because trees sample uniformly over every cell that passes a filter and nothing
+weights the sample by place (MG9). The plateau could not be made to read as built against ground that reads
+as ground, because the spec takes one theme (MG2). The village could not be put behind the monument, because
+buildings land wherever the ground is flat enough (MG9). The hill could not be raised to the east, because
+`scatter` is the only mark the spec reaches and the five mark kinds sit behind it (MG29). Only the exposed
+monument survived, and it survived because the generator sites goals that way already.
+
+The void channel is the one worth reading closely, because the run reported the wrong wall. A channel is not
+relief and no relief mark makes one: it is a **negative shape** — an outline carrying `operation: subtract`,
+standing tall enough to take the whole column, which *removes* ground rather than lowering it.
+`ruediger.layout.json` cuts one with a single rectangle at `base_height` 100 over `floor` 0, and it is the
+instrument this document names as the primary control on flow for a capture board. The run looked in the
+relief block, because that is where the spec keeps elevation and the spec has no word for a shape at all, and
+so it searched the wrong layer and blamed the feature next to the one it wanted. That is MG29 twice over: the
+capability was one line of layout JSON, and the format hid it well enough that its absence was reported
+against something else. The lesson is not that a void channel is hard — it is that a surface which exposes a
+reduction teaches the reduction, and an author who learns the reduction cannot tell a missing capability
+apart from an unreachable one.
 
 **What it got wrong is worth more than what it got right.** Two faults were reported that a controlled rerun
 does not reproduce. A pass drawn `grown` with `whorled` was reported as building trunks with no crown; over
