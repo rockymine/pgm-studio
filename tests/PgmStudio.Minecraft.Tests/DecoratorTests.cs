@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft.Dressing;
 
@@ -535,6 +536,44 @@ public sealed class DecoratorTests
             [new BoulderProp { Id = "b", X = 12, Z = 9, Size = 3, Seed = 3 }]));
 
         await Assert.That(tally.Boulders).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task A_prop_is_decided_once_for_its_whole_orbit_not_once_per_image()
+    {
+        // Only one of the two mirrored sites is protected. The old per-image "continue" would still raise the
+        // other one, leaving a rock on one side of the board and nothing where its mirror should stand — the
+        // exact asymmetry a mirrored map is not allowed to show. Deciding for the whole orbit drops both.
+        var (world, top) = Plateau(80, from: -40);
+        var tally = Decorator.Decorate(world, Context(top,
+            [new BoulderProp { Id = "b", X = 12, Z = 9, Size = 3, Seed = 3 }],
+            isProtected: (x, z) => Math.Abs(x - 12) < 3 && Math.Abs(z - 9) < 3,
+            symmetry: "rot_180"));
+
+        await Assert.That(tally.Boulders).IsEqualTo(0);
+        await Assert.That(Placed(world, [(12, 9), (-13, -10)], 8, 20)).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_building_is_decided_once_for_its_whole_orbit_not_once_per_image()
+    {
+        // Same rule, the building's own version of it: an image whose ground is missing fails the whole orbit
+        // rather than raising the building on one side of a mirrored map and leaving the other bare. Only the
+        // rectangle the author actually drew loses its ground here — the old per-image "continue" would still
+        // have raised the mirrored copy on the far side of the map with nothing standing opposite it.
+        var (world, top) = Plateau(80, from: -40);
+        for (var x = 4; x <= 10; x++)
+            for (var z = 4; z <= 8; z++)
+                top.Remove((x, z));
+
+        var tally = Decorator.Decorate(world, Context(top,
+            [new HouseProp { Id = "h", Points = [[4, 4], [10, 8]], Style = new HouseStyle { Door = DoorMaterial.Air } }],
+            symmetry: "rot_180"));
+
+        await Assert.That(tally.Houses).IsEqualTo(0);
+        // Nothing raised at the mirrored site either — the far corner from (4,4)/(10,8) under a 180° turn.
+        var raised = Placed(world, [(-10, -8), (-4, -4), (-7, -6)], 8, 40);
+        await Assert.That(raised).IsEmpty();
     }
 
     // ── determinism & the wire format ──────────────────────────────────────────────────────────────

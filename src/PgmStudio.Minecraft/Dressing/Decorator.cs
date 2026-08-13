@@ -282,35 +282,43 @@ public static class Decorator
     /// <para>What it does need is ground, and that is physics rather than policy: it seats on the
     /// <b>lowest</b> column of its own footprint, so it settles into a slope rather than standing on stilts
     /// over the low side, and one course down, so the floor sinks into what it stands on the way a room's does.
-    /// An image with no ground under it at all raises nothing.</para>
+    /// </para>
+    ///
+    /// <para><b>Decided once for the whole orbit</b>, the same rule every other prop follows: every image has
+    /// to have ground under it before any of them is raised, so a building does not stand on one side of a
+    /// mirrored map and leave a hole where the other team's copy should be.</para>
     /// </summary>
     private static int PlaceHouse(
         VoxelWorld world, DressingContext context, HouseProp house, HashSet<(int X, int Z)> taken)
     {
         if (house.Footprint() is not { } plan) return 0;
-        var placed = 0;
 
+        var images = new List<((int MinX, int MinZ, int Width, int Depth) Plan, RoomEdge? Front, int FloorY)>(
+            context.Symmetry.Order);
         for (var k = 0; k < context.Symmetry.Order; k++)
         {
             // The rectangle goes round the orbit as the shape it is, so a quarter turn swaps its width and
             // depth without the stamp being told; the door turns with it, or a mirrored pair open the same way.
             var corners = context.Symmetry.ImageRing(house.Points, k);
-            if (new HouseProp { Points = corners }.Footprint() is not { } image) continue;
-            var front = house.Front is { } edge ? context.Symmetry.TurnEdge(edge, k) : (RoomEdge?)null;
-
+            if (new HouseProp { Points = corners }.Footprint() is not { } image) return 0;
             var floorY = Ground(context, image);
-            if (floorY is null) continue;
+            if (floorY is null) return 0;
 
+            var front = house.Front is { } edge ? context.Symmetry.TurnEdge(edge, k) : (RoomEdge?)null;
+            images.Add((image, front, floorY.Value));
+        }
+
+        foreach (var (image, front, floorY) in images)
+        {
             HouseStamper.Stamp(
-                world, image.MinX, image.MinZ, image.Width, image.Depth, floorY.Value, house.Style,
+                world, image.MinX, image.MinZ, image.Width, image.Depth, floorY, house.Style,
                 doors: front is { } side ? Doorway(house.Style, image, side) : null);
 
             for (var x = image.MinX; x < image.MinX + image.Width; x++)
                 for (var z = image.MinZ; z < image.MinZ + image.Depth; z++)
                     taken.Add((x, z));
-            placed++;
         }
-        return placed;
+        return images.Count;
     }
 
     /// <summary>The course a building's floor sits at: one below the lowest ground its footprint covers, or
@@ -448,14 +456,17 @@ public static class Decorator
     private const int MossyCobblestone = 48;
 
     /// <summary>Stamp a prop at every image of its orbit, each turned by that image's own transform, and return
-    /// how many landed. All-or-nothing per image: an image whose ground is missing or protected is skipped, so
-    /// a rock never appears half over a cliff — but the others still stand, because refusing the whole orbit
-    /// over one bad image would silently thin a map's dressing near its edges.</summary>
+    /// how many landed. <b>Decided once for the whole orbit</b>, not once per image: every image has to seat
+    /// before any of them is written, so the prop stands at all of them or none. A rock whose mirror lands a
+    /// block nearer a protected column, or on ground the relief left slightly steeper, does not get to stand on
+    /// one side of a mirrored board and vanish from the other — the difference a player would actually notice
+    /// is not "the edges are a little thinner", it is "the two halves disagree".</summary>
     private static int Fan(VoxelWorld world, DressingContext context, (int X, int Z) site,
         List<PropCell> prop, HashSet<(int X, int Z)> taken)
     {
         if (prop.Count == 0) return 0;
-        var placed = 0;
+
+        var images = new List<((int X, int Z) Anchor, List<PropCell> Turned, int BaseY)>(context.Symmetry.Order);
         for (var k = 0; k < context.Symmetry.Order; k++)
         {
             var anchor = context.Symmetry.ImageCell(site.X, site.Z, k);
@@ -465,7 +476,11 @@ public static class Decorator
                 return cell with { X = tx, Z = tz };
             }).ToList();
 
-            if (!Seats(context, anchor, turned, out var baseY)) continue;
+            if (!Seats(context, anchor, turned, out var baseY)) return 0;
+            images.Add((anchor, turned, baseY));
+        }
+
+        foreach (var (anchor, turned, baseY) in images)
             foreach (var cell in turned)
             {
                 var (wx, wy, wz) = (anchor.X + cell.X, baseY + cell.Y, anchor.Z + cell.Z);
@@ -474,9 +489,7 @@ public static class Decorator
                 world.SetBlock(wx, wy, wz, cell.Id, cell.Data);
                 taken.Add((wx, wz));
             }
-            placed++;
-        }
-        return placed;
+        return images.Count;
     }
 
     /// <summary>Whether a prop can stand at an anchor, and the Y its own origin sits at.
