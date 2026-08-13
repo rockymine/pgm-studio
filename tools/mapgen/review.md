@@ -480,6 +480,40 @@ exist and were not used — `--heightmap`, `--contour`, `--surface`, `--traversa
 angle, section and step-map renders in `tools/relief`. Several of the faults above would have been visible in
 the first one of those that was run.
 
+## A second run, from the outside
+
+The entries above were written from sixteen boards by the same hands that built them. A second run tests them
+the other way round: a small model that had never seen the codebase, given the prose brief this document's own
+target section describes — a destroy board, the monument in the open, a forest closing the west flank, a hill
+east to bridge from, a village behind, a void channel twenty blocks in front — and told to author the spec,
+build it, look at the renders, and iterate. It took six passes and reported what it could not say.
+
+**Five of the six things the brief asked for were inexpressible, and it named each one correctly.** The
+forest could not be put on the west flank, because trees sample uniformly over every cell that passes a
+filter and nothing weights the sample by place (MG9). The void channel could not be cut, because the relief
+the spec exposes is a count, two heights and a radius, and never a coordinate (MG29, MG34). The plateau could
+not be made to read as built against ground that reads as ground, because the spec takes one theme (MG2). The
+village could not be put behind the monument, because buildings land wherever the ground is flat enough
+(MG9). The hill could not be raised to the east, because `scatter` is the only mark the spec reaches and the
+five mark kinds sit behind it (MG29). Only the exposed monument survived, and it survived because the
+generator sites goals that way already. That is MG29 measured rather than argued: the format was the binding
+constraint at every step, and the system underneath was not asked once.
+
+**What it got wrong is worth more than what it got right.** Two faults were reported that a controlled rerun
+does not reproduce. A pass drawn `grown` with `whorled` was reported as building trunks with no crown; over
+one board at sixty sites, spruce between 8 and 14 with the village off, whorled lands 1136 leaves against
+plain grown's 1102 and template's 1846, so the whorl is within noise of not being set. And template was
+reported as an order of magnitude denser than grown as a property of the form; at equal height it is 1.6×.
+
+Both readings come from the same place, and it is a fault this document already carries. The zero-leaf pass
+asked for a **tall** grown tree, and a tall grown tree is not a tall tree but an absent one (`B78`): every
+grown prop was dropped, the 136 logs left standing were the village's corner posts, and the run reported
+success. So a documented, filed, understood inversion emptied a forest inside three passes, and the reading
+back could not name it — after the README warns in as many words that a building's corner posts are logs too
+and that the leaf count is a forest's only honest measure. A fault an author reliably misattributes is worse
+than one that merely bites, because the correction it invites is to the wrong knob: the next pass changed the
+whorl, which does nothing, and left the height, which is everything.
+
 ## Still to come
 
 The author is adding to this. New entries take the next free `MG` id and slot into the pipeline section they
