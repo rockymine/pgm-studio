@@ -79,6 +79,10 @@ better one, and it should be a choice rather than what happens when nobody decid
 grow across that ground and under a floating monument, while the two-block grass that hides a footstep does
 not. The rule and its mechanism are `docs/world-export/decoration.md` §3.1.
 
+**[author]** A **defence wall** is a CTW device. It is bedrock, it is pre-built, and it exists to slow an
+attack down and give the defence a prepared line to hold — which is why it is authored on the interface
+between two pieces rather than derived, and why nothing generated ever asks for one (`mapgen-review.md` MG21).
+
 **[review]** The capture side of this is already law and the destroy side is not. `rules.md` WL8 records that
 a wool's default is a **single chokepoint route** and that real maps add alternative routes — and, usefully
 for a river or a drop, that an approach crossing a sealed zone counts as an approach even when it must be
@@ -114,11 +118,14 @@ there is.
 
 ## Two mechanisms whose use is narrower than they look
 
-**[review]** A **water lane** is a gap between islands that becomes bridgeable part-way through a match rather
-than at the start, so the crossing opens on a timer. Its use is narrow and the mechanism invites misuse: a
-lane in the middle of a board means waiting three quarters of an hour for the map to begin. It belongs where a
-goal is tucked away and wants a **second** approach opening late, changing the shape of the endgame rather
-than the opening. `docs/pgm/water-lanes.md` owns the mechanism.
+**[author]** A **water lane** is a gap between islands that becomes bridgeable part-way through a match rather
+than at the start. Players cannot build there for **45 minutes**, and the consequence is a hard constraint
+rather than a preference: **a lane can never be what connects two teams' lands**, because for three quarters
+of an hour there would be no route between them. The regions that join a board are build zones; a lane is
+something else.
+
+**[review]** What it is for, then, is a **second** approach that opens late — where a goal is tucked away and
+the endgame should change shape rather than the opening. `docs/pgm/water-lanes.md` owns the mechanism.
 
 **[review]** Whether a hole can be **crossed** is a separate decision from cutting it, and it is made in the
 intent rather than in the geometry. A void gap with no build region over it is permanent: nobody bridges it,
