@@ -56,10 +56,14 @@ public static class TeamsGenerator
     {
         var kits = DocAccess.EnsureList(doc, "kits");
         kits.Clear();
-        if (intent.Spawns.Count > 0) { kits.Add(StandardSpawnKit(SpawnKitId)); kits.Add(ResetResistanceKit()); }
+        if (intent.Spawns.Count > 0)
+        {
+            kits.Add(StandardSpawnKit(SpawnKitId, DestroyKitPairing.RequiredPickaxe(intent)));
+            kits.Add(ResetResistanceKit());
+        }
     }
 
-    private static Dict StandardSpawnKit(string id) => new()
+    private static Dict StandardSpawnKit(string id, string pickaxe) => new()
     {
         ["id"] = id,
         ["items"] = new List<object?>
@@ -68,7 +72,9 @@ public static class TeamsGenerator
             // 7–8 = water bucket + golden apple; the utility items sit in the inventory row (28–30).
             Item(0, "iron sword", unbreakable: true),
             Item(1, "bow", unbreakable: true, enchantments: "infinity:1"),
-            Item(2, "iron pickaxe", unbreakable: true, enchantments: "efficiency:1"),
+            // The corpus norm is a substitution, not an addition: a destroy map's kit carries whatever
+            // pickaxe its own destroyables/cores need in place of the iron one, not both (MG18).
+            Item(2, pickaxe, unbreakable: true, enchantments: "efficiency:1"),
             Item(3, "iron axe", unbreakable: true, enchantments: "efficiency:1"),
             Item(4, "wood", amount: 64),
             Item(5, "stained clay", amount: 32, teamColor: true),

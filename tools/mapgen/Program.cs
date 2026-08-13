@@ -56,7 +56,7 @@ static void Build(MapSpec spec, bool describeOnly)
     {
         plan = Composer.Compose(new ComposeRequest(
             ask.PlayersPerTeam, ask.Teams, ask.Symmetry, ask.Seed, ask.Cell));
-        Retarget(plan, ask.ObjectiveMode);
+        Retarget(plan, ask.ObjectiveMode, ask.ObjectiveMaterials);
     }
     else if (spec.Plan is { } drawn)
     {
@@ -126,6 +126,14 @@ static void Build(MapSpec spec, bool describeOnly)
         Console.Error.WriteLine($"  ! {spec.Slug}: no kit — itemkeep/toolrepair/itemremove derive from the "
                                + "spawn kit and will be empty");
 
+    // A destroyable or core nothing in the kit can mine is not a rough edge, it is a map that cannot be won.
+    // Reads the kit actually written to the doc rather than trusting the derivation that built it
+    // (TeamsGenerator), so the check still catches a kitless destroy map (MG17 meets MG18).
+    var unbreakable = DestroyKitPairing.Unwinnable(built.ResolvedIntent, KitPickaxeMaterials(doc));
+    if (unbreakable.Count > 0)
+        throw new ArgumentException($"{spec.Slug}: no tool in the kit can break "
+                                   + $"{string.Join(", ", unbreakable)} — a goal that cannot be mined cannot be won");
+
     // Through the same path a saved map exports: CtwStandards' keep/repair/remove derivation, the water-lane
     // include, ore/structure renewables, and the not-build-area reordering that must decide last.
     var renewableCubes = SketchWorldBuilder.RenewableCubeFootprints(built.ResolvedIntent);
@@ -141,6 +149,20 @@ static void Build(MapSpec spec, bool describeOnly)
     Console.WriteLine($"  → {outDir}  (spawn {built.SpawnX},{built.SpawnY},{built.SpawnZ})  {Census(built.World)}");
 }
 
+/// <summary>Every item material named by every kit in the document — the alphabet <see cref="DestroyKitPairing.Unwinnable"/>
+/// checks a destroy goal's material against, read back from the doc rather than assumed.</summary>
+static List<string> KitPickaxeMaterials(Dict doc)
+{
+    var materials = new List<string>();
+    if (doc.GetValueOrDefault("kits") is List<object?> kits)
+        foreach (var kit in kits.OfType<Dict>())
+            if (kit.GetValueOrDefault("items") is List<object?> items)
+                foreach (var item in items.OfType<Dict>())
+                    if (item.GetValueOrDefault("material") is string material)
+                        materials.Add(material);
+    return materials;
+}
+
 /// <summary>Turn the goals the generator placed into the kind of goal this map is played for.
 ///
 /// <para>A wool room, a monument and a core occupy the same slot in a board: one team's thing to defend,
@@ -152,12 +174,20 @@ static void Build(MapSpec spec, bool describeOnly)
 /// on one map: the monument keeps the goal the generator sited, and the core takes a slot beside it on the
 /// same piece. A map with only one of the two is a destroy-the-monument map or a destroy-the-core map, and
 /// both of those are already sayable.</para></summary>
-static void Retarget(PlanModel plan, string mode)
+static void Retarget(PlanModel plan, string mode, string? materials)
 {
     var word = mode.Trim().ToLowerInvariant();
     if (word is "ctw" or "") return;
     if (word is not ("dtm" or "dtcm"))
         throw new ArgumentException($"no objective mode '{mode}' — have: ctw, dtm, dtcm");
+
+    // The stamper only knows how to build four materials (DestroyableMaterials.All) and silently falls back
+    // to obsidian for anything else, while the XML would still declare whatever was asked for verbatim — a
+    // goal whose declared material matches nothing in its own region. Refuse the mismatch here rather than
+    // build a map that ships it.
+    if (materials is { Length: > 0 } && !DestroyableMaterials.IsBuildable(materials))
+        throw new ArgumentException($"no destroyable material '{materials}' — the generator can only build: "
+                                   + string.Join(", ", DestroyableMaterials.All));
 
     var goals = plan.Placements.Wools;
     if (goals.Count == 0) return;
@@ -165,8 +195,11 @@ static void Retarget(PlanModel plan, string mode)
     for (var index = 0; index < goals.Count; index++)
     {
         var goal = goals[index];
-        plan.Placements.Destroyables.Add(
-            new DestroyablePlacement { Id = $"monument-{index}", Piece = goal.Piece, At = goal.At });
+        plan.Placements.Destroyables.Add(new DestroyablePlacement
+        {
+            Id = $"monument-{index}", Piece = goal.Piece, At = goal.At,
+            Materials = string.IsNullOrWhiteSpace(materials) ? null : materials,
+        });
         if (word == "dtcm")
             plan.Placements.Cores.Add(new CorePlacement
             {

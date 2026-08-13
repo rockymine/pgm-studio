@@ -203,6 +203,32 @@ public sealed class TeamsGeneratorTests
     }
 
     [Test]
+    public async Task The_kit_pickaxe_is_paired_to_an_obsidian_destroyable()   // MG18
+    {
+        var doc = new Dict { ["regions"] = new Dict(), ["spawns"] = new List<object?>(), ["kits"] = new List<object?>() };
+        TeamsGenerator.Apply(doc, new MapIntent
+        {
+            Spawns = [new SpawnIntent { Team = "red-team", Point = new(0, 8, 0) }],
+            Destroyables = [new DestroyableIntent { Owner = "red-team", Name = "Red Monument", Materials = "obsidian", Anchor = new(0, 8, 0), Float = 4 }],
+        });
+
+        var kit = ((List<object?>)doc["kits"]!).OfType<Dict>().First(k => k.GetValueOrDefault("id") as string == "spawn-kit");
+        var pickaxe = ((List<object?>)kit["items"]!).OfType<Dict>().First(i => (i["material"] as string)?.EndsWith("pickaxe") == true);
+        await Assert.That(pickaxe["material"]).IsEqualTo("diamond pickaxe");
+    }
+
+    [Test]
+    public async Task The_kit_keeps_the_default_iron_pickaxe_with_no_destroy_goal()
+    {
+        var doc = new Dict { ["regions"] = new Dict(), ["spawns"] = new List<object?>(), ["kits"] = new List<object?>() };
+        TeamsGenerator.Apply(doc, new MapIntent { Spawns = [new SpawnIntent { Team = "red-team", Point = new(0, 8, 0) }] });
+
+        var kit = ((List<object?>)doc["kits"]!).OfType<Dict>().First(k => k.GetValueOrDefault("id") as string == "spawn-kit");
+        var pickaxe = ((List<object?>)kit["items"]!).OfType<Dict>().First(i => (i["material"] as string)?.EndsWith("pickaxe") == true);
+        await Assert.That(pickaxe["material"]).IsEqualTo("iron pickaxe");
+    }
+
+    [Test]
     public async Task Spawns_link_to_the_fixed_kit_id()
     {
         var doc = Map();

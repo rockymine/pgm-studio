@@ -92,6 +92,14 @@ public sealed class ComposeSpec
     /// objective is a retarget of the markers it already placed rather than a second generator.</para></summary>
     [JsonPropertyName("objective_mode")] public string ObjectiveMode { get; set; } = "ctw";
 
+    /// <summary>The goal material a destroy board's monuments are made of — one of <c>obsidian</c>,
+    /// <c>emerald block</c>, <c>gold block</c>, <c>ender stone</c> (the vocabulary the stamper can actually
+    /// build; <c>PgmStudio.Domain.DestroyableMaterials</c>). Empty defaults to obsidian, over half the
+    /// corpus. A core's casing is not a knob — it is always obsidian, the same as the corpus and PGM's own
+    /// default — so this affects destroyables only. The kit's pickaxe is paired to whatever this names, and
+    /// a name the stamper cannot build is refused rather than silently built as obsidian (MG18).</summary>
+    [JsonPropertyName("objective_materials")] public string? ObjectiveMaterials { get; set; }
+
     /// <summary>Blocks per plan cell — the scale the board is drawn at. The generator budgets in cells, so
     /// this is what decides how big the finished map is on the ground without changing its layout: the
     /// destroy-the-monument corpus runs a median 148×164 blocks, which a five-block cell does not reach.</summary>

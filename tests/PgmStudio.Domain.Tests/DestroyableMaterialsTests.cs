@@ -57,4 +57,35 @@ public sealed class DestroyableMaterialsTests
         foreach (var material in DestroyableMaterials.All)
             await Assert.That(MaterialIds.ResolvesFully(material)).IsTrue();
     }
+
+    [Test]
+    public async Task Every_offered_material_is_buildable()
+    {
+        foreach (var material in DestroyableMaterials.All)
+            await Assert.That(DestroyableMaterials.IsBuildable(material)).IsTrue();
+    }
+
+    [Test]
+    public async Task A_name_the_stamper_cannot_build_is_not_buildable()
+    {
+        // The whole point of IsBuildable: catch, before authoring, exactly the case BlockId's own fallback
+        // hides — a declared material that would silently become obsidian in the world.
+        await Assert.That(DestroyableMaterials.IsBuildable("diamond block")).IsFalse();
+        await Assert.That(DestroyableMaterials.IsBuildable("not a block")).IsFalse();
+    }
+
+    [Test]
+    public async Task Empty_is_buildable_the_obsidian_default()
+    {
+        await Assert.That(DestroyableMaterials.IsBuildable(null)).IsTrue();
+        await Assert.That(DestroyableMaterials.IsBuildable("")).IsTrue();
+    }
+
+    [Test]
+    public async Task A_compound_match_is_buildable_if_any_pattern_is()
+    {
+        // Mirrors BlockId's own "first buildable pattern wins" reading of a ; separated match.
+        await Assert.That(DestroyableMaterials.IsBuildable("gold block;iron block")).IsTrue();
+        await Assert.That(DestroyableMaterials.IsBuildable("iron block;coal block")).IsFalse();
+    }
 }

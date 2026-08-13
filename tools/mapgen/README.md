@@ -46,7 +46,8 @@ document, for a board that is drawn rather than generated).
   "symmetry": "rot_180",       // rot_180 | mirror_x | mirror_z for two teams; rot_90 for four
   "seed": 7,
   "cell": 9,                   // blocks per plan cell — what decides how big the map is on the ground
-  "objective_mode": "ctw"      // ctw | dtm | dtcm
+  "objective_mode": "ctw",     // ctw | dtm | dtcm
+  "objective_materials": ""    // dtm/dtcm only: obsidian | emerald block | gold block | ender stone
 }
 ```
 
@@ -57,6 +58,13 @@ destroy-the-monument corpus runs a median 148×164, which `cell: 9` or `10` reac
 `objective_mode` retargets the goals the generator placed. A wool room, a monument and a core occupy the same
 slot in a board — one team's thing to defend, sited where the budget put it — so `dtm` turns each goal into a
 monument and `dtcm` gives a team both a monument and a core beside it.
+
+`objective_materials` names what a monument is made of — one of the four the stamper can actually build
+(empty defaults to obsidian, over half the corpus). A core's casing is not a knob: it is always obsidian, the
+same as PGM's own default, so this affects monuments only. The spawn kit's pickaxe is paired to whatever this
+names — an obsidian goal ships a diamond pickaxe rather than the default iron — and a material the stamper
+cannot build, or a kit that still could not break the goal, refuses the map rather than shipping it silently
+unbreakable.
 
 ## The paint
 
