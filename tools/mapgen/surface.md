@@ -130,9 +130,26 @@ a player is funnelled to. Below the cap the same tilt is a ramp, which is the ot
 that no stair cut had to invent.
 
 Read with the set algebra above, that is the layout's whole vocabulary of movement control, and it is
-deliberate at every step. A `subtract` is a hole nobody crosses. A shape above the cap is a wall nobody
-passes. A tilted shape below it is a way up. Gaps between pieces are the routes that remain. None of that is
-scenery, and none of it needs a relief, a theme or a prop to work.
+deliberate at every step. A `subtract` is a hole. A shape above the cap is a wall nobody passes. A tilted
+shape below it is a way up. Gaps between pieces are the routes that remain. None of that is scenery, and none
+of it needs a relief, a theme or a prop to work.
+
+**Whether a hole can be crossed is a separate decision from cutting it, and it is made in the intent.** The
+layout says where ground is absent; `BuildIntent`'s areas say where a player may place a block. A void gap
+with no build region over it is permanent — nobody bridges it, and the approach it forces is around. The same
+gap with a build region covering it is crossable from the first minute, at the price of the time and the
+material a bridge costs and the visibility of building one. Both are legitimate and they play differently, so
+a channel cut without deciding which it is has had half of it decided by accident. This is also how a board's
+islands are joined at all: a capture map's separate landmasses are connected by build regions rather than by
+ground, which is what `ruediger` does and what any connectivity read has to know before it can call a board
+disconnected.
+
+The **water lane** is the third setting of that same dial, and it is not water.
+`docs/contracts/water-lanes.md` owns it: a gap between islands that becomes **bridgeable part-way through a
+match**, built on PGM's void filter reading y=0 live, so the crossing opens on a timer rather than at the
+start. Its use is narrow and worth stating, because the mechanism invites misuse — a lane in the middle of a
+board means waiting three quarters of an hour for the map to begin. It belongs where a goal is tucked away
+and wants a **second** approach opening late, changing the shape of the endgame rather than the opening.
 
 ### The goal's material is a knob, and the kit has to agree with it
 
