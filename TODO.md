@@ -169,6 +169,37 @@ holds them until one becomes the focus.
   filled only to its first floor are different buildings. `DressingScope` already protects the ground under a
   stamped building, so nothing downstream needs teaching.
 
+- [ ] **B93 — The traversability stage image asks a different question from the one its name owns.**
+  `TraversabilityRender` reads a column as navigable when it has ground and two blocks of headroom, splits
+  those into 4-connected components and colours each goal by the component it lands in. Its docstring is
+  honest that this is "no build-region awareness, no bridgeable-gap classification" — but that is what makes
+  it wrong rather than merely light, because it is blind to the one thing that joins a board together. A
+  capture map connects its islands **with build regions**, which is what `ruediger` does, and a **water lane**
+  is the staggered form of the same idea: `docs/contracts/water-lanes.md` defines it as a gap between islands
+  that becomes **bridgeable** part-way through a match, driven by PGM's void filter reading y=0 live — land
+  that opens a late second approach to a tucked-away wool, not water and not a hazard. So a render that stops
+  at walkable ground reports a false disconnection on exactly the boards whose connectivity was authored, and
+  it reports it under a name this project has already given to the other question: `Analysis.Playability.
+  Traversability` asks whether the spawn↔wool chain shares one component over **walkable surface ∪ bridgeable
+  buildable**, which is the check the Configure tool runs. `CLAUDE.md`'s naming rule settles which way to
+  resolve it — a name must not promise the wrong category — so the render either asks the map's own question
+  or gives up the word. Asking it is the smaller change: the renderer already parses the `map.xml` for its
+  markers, so the build regions are in reach, and treating a buildable empty column as bridgeable is the whole
+  of the difference. A lane that opens at 45 minutes wants distinguishing from ground that is walkable at
+  match start, since a board connected only after 45 minutes is not a connected board.
+
+- [ ] **B94 — A `dtcm` core is placed two cells along and may land off the board.** `Retarget` in
+  `tools/mapgen` gives a destroy map's core `At = [goal.At[0] + 2, goal.At[1]]` — two cells along the piece
+  from the monument, unconditionally and in one direction. Where the monument already sits near its piece's
+  edge that offset walks the core off the land, and three of the seven shipped destroy specs (`goldhollow`,
+  `mourncrag`, `spinebreak`) are refused by B82's void check for exactly this reason, with the anchor's
+  floored column genuinely absent from the rasterized ground rather than off by one. B82 makes the fault loud;
+  it does not fix it, so every `dtcm` board this tool has written carried a core that was unreachable whenever
+  the offset happened to run outward. The offset wants choosing against the piece rather than stated: toward
+  its interior, or along whichever axis has room, with the two structures still close enough to read as one
+  place to defend. The three refused specs are the gate — they should build, and their cores should stand on
+  ground.
+
 - [ ] **B79 — `map-layers` e2e: the plan editor's Compile button never arrives (13/14).** The suite drives to
   `/maps/{slug}/plan` on the seed's built map, then clicks `button:has-text("Compile")` to check that a
   *rebuild* states the trade before replacing a board someone has worked on. The click times out at 30s and
