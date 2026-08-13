@@ -8,10 +8,10 @@ A region falls into one of the gameplay categories below, with `build` taken onl
 void-enforcement *structure*, never from `lane`/`bridge` names (§5) — trading raw coverage for
 near-zero false positives.
 
-> **Implementation:** `src/PgmStudio.Analysis/RegionCategorizer.cs` — `DeriveFacets` →
+> **Implementation:** `src/PgmStudio.Pgm/Authoring/RegionCategorizer.cs` — `DeriveFacets` →
 > `{id: RegionFacet(Category, Roles, Subtype)}`; `Categorize` → flat `{id: category}` with
 > `region_categories` user overrides applied. Verified by synthetic unit tests
-> (`tests/PgmStudio.Analysis.Tests/RegionCategorizerTests.cs`) and the corpus parity guard
+> (`tests/PgmStudio.Pgm.Tests/RegionCategorizerTests.cs`) and the corpus parity guard
 > `tools/PgmStudio.RoundTrip --categorize <pyfresh> <pyfacets>` against the Python oracle
 > (which still emits flat `wool_room`/`monument`/`wool_spawner` — see the §2 parity note).
 
@@ -316,7 +316,7 @@ surfaces *that it is a build region* and *that it opens after 30s*.
 - Build `subtype` (`footprint` vs `traversal`) is **not emitted yet** — build regions carry
   `subtype = null`. When added it will be best-effort from geometry/naming.
 
-Verification is by synthetic-fixture unit tests in `tests/PgmStudio.Analysis.Tests/RegionCategorizerTests.cs`
+Verification is by synthetic-fixture unit tests in `tests/PgmStudio.Pgm.Tests/RegionCategorizerTests.cs`
 (per the repo's "synthetic fixtures only" rule — no real game files under `tests/`) plus the
 `tools/PgmStudio.RoundTrip --categorize` corpus parity guard against the Python `derive_region_facets`
 oracle. There is no checked-in `tests/fixtures/region_categories/` directory in this repo.

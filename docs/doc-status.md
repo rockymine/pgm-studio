@@ -43,6 +43,16 @@ stays: six source and test files cite it as the contract for what they emit.
 recovered; the four citations now point at the types themselves, `Domain/Filter.cs` and `Domain/MapModel.cs`.
 The same was done for `geometry.md`.
 
+**Two documents were cut to what only they say**, rather than deleted, because each held something nothing
+else does. `contracts/new-map-authoring.md` (617 → 171) keeps the inversion, why regeneration is free, where
+orbit happens and why in three places, the coordinate-flooring law, the void-filter substrate, and what the
+three validations prove; the schema sketch, the wizard shell and the world-step data model went to
+`tools/configure.md` and to the type. `contracts/region-authoring.md` (200 → 132) keeps the per-activity
+composition patterns and the carve-out that is not a union; the split-view UI design and every reference to a
+frontend port that never happened are gone. §3.3's moved `RegionCategorizer` path is fixed in
+`contracts/region-categorization.md`, which otherwise stands — it is careful about the implemented-versus-
+designed line and its subject is live.
+
 **§3.4's churn ranking still wants re-running against the full history**, for the reason stated above: the
 container that produced it saw three days of commits.
 
