@@ -42,6 +42,15 @@ Two of them carry a tool twice, and both times the slug-less route is the origin
 until Import creates its row, and a plan has no map until it is authored onto one. Blazor discovers routes from
 `@page`, so this table is the only inventory there is — nothing in the app enumerates them.
 
+## How the client is served
+
+The Blazor client is **hosted by the API**, and one hosting detail is load-bearing enough to state here:
+**do not use `app.MapStaticAssets()`** in this setup. It breaks the framework boot — `_framework/*` answers
+500 and the app hangs on "Loading" — because the fingerprinted asset manifest it installs does not match what
+the WASM runtime asks for. What serves the client instead is a path-rewrite middleware that maps a
+fingerprinted `/js/…<hash>.js` back to the real file name, and JS modules are loaded by a native `import()`
+from the classic `studio.js` rather than through the framework's asset pipeline.
+
 ## The collections
 
 `?stage=` selects one of four, and they are not the same kind of question. Two list **a layer a map holds**

@@ -61,6 +61,24 @@ like "Place X WOOL here!". A minority decoration; **signs are the dominant label
 
 ---
 
+### How a slice is sampled
+
+Every figure above is read off a fixed volume around the monument block, and the sampler is
+`MonumentSliceExtractor` (`PgmStudio.Minecraft`, `--monument-slices <regionDir> <xml_data.json> <outParquet>`).
+For each wool monument it takes **width 3 × depth 3 × height 5** — one cell each way horizontally, two above
+and two below — and writes one parquet row per cell, tagged with `monument_id`, `wool_color` and `team`. A row
+carries the block id and data, the block name, decoded sign text, the full tile-entity NBT, and any entities
+standing there.
+
+Two details decide what the sample can answer. Entities are attached by **vertical reach** rather than by the
+cell they stand in, so a wool-indicator armour stand standing below the monument still registers — its head is
+in the slice even though its feet are not. And the monument cell itself is **air**, by PGM's
+placement-region convention (above), so the sampler never expects to find the monument's own block there.
+
+Validated on three maps that each exercise a different pattern: thunder (signs), pigland (a glass pedestal
+with a wool-on-head armour stand, the `Ruediger_LP` pattern) and dragons_hearth (an armour stand above the
+monument).
+
 ## What makes the detector work
 
 ### Invert the sign's facing — don't look near signs

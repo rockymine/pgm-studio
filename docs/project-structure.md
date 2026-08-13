@@ -98,6 +98,16 @@ The friction is that their names do not announce the order they come in.
 | 6 | `*Row` POCOs (39 tables) | `Data/Schema/Entities.cs` | the relational shape — the hybrid persistence model |
 | 7 | wire DTOs | `Contracts/*.cs` | what crosses `/api` to the client |
 
+**Two decisions shape representation 6, and both are about what deserves a column.** The map contract is
+persisted **hybrid**: real tables with foreign keys for the entities that get listed, queried and edited —
+map, team, region, filter, wool, monument, spawn, apply_rule, kit — and JSON columns for the polymorphic
+leaves, a region's or filter's type-specific parameters and an apply-rule's event map, where a column per
+variant would be a schema per type. Block data splits the same way by volume rather than by shape: the small
+**feature** parquet becomes relational rows (`wool_block`, `resource_block`, `chest_item`, `spawner`,
+`layer_segment`), while the raw `layer.parquet` — around 7,700 rows for a single map — stays a regenerable
+cached artifact in a `map_artifact` blob rather than a row per block. `PgmStudio.Import` replays parquet into
+those rows, so migrating an existing map needs no world re-scan; only importing a new one does.
+
 The flow between them is the one `docs/tools/flow.md` describes from the map's side:
 
 ```

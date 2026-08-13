@@ -134,6 +134,28 @@ gate** — there is no substrate for either to run on. And **build must precede 
 traversability is computed over the build and bridge geometry: a wool's reachability is undefined until the
 bridges exist, so a failed gate sends the author back to Build rather than to the wool.
 
+## 5a. Four invariants the emitted contract must hold
+
+Whatever produces a map — the intent generators, the editors, a hand-written document — the same four things
+have to be true of what comes out, because the readers below assume them.
+
+**Wools are grouped by colour, with deterministic ids.** PGM's `<wools>` block nests by colour, and a map's
+wool ids are derived from the colour and the index rather than minted per session, so re-emitting the same map
+produces the same document rather than a diff of renamed ids. This is also why the wool codec is the one entity
+that bypasses the flat `MapXml` path (`destroyables-and-cores.md` §9): the grouped shape carries wool-level
+fields the flat row cannot hold.
+
+**The region and filter registries are id-keyed.** Both are a flat dictionary from id to definition, with
+synthetic ids minted for anonymous elements at parse time, so every later reference — a wiring, a compound
+member, an objective's region — is a lookup rather than a search.
+
+**A compound's `children` and a transform's `source_id` are string id references**, never inlined definitions.
+A region that contains another names it; nothing is duplicated by value, which is what lets
+`RegionBoundsDeriver` recompute derived bounds after a DB rebuild without re-parsing the XML.
+
+**A wool's owner team is derived from its capturing `monument.team`**, not stated twice. The monument says who
+captures, and the ownership falls out of it — so the two can never disagree, because there is only one of them.
+
 ## 6. What validation proves
 
 Three checks, each answering a different question.

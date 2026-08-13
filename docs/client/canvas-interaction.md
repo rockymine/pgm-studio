@@ -168,6 +168,13 @@ it persists nothing — saving is the host's, on the author's word), `sketch-bri
 bridges look repetitive but are not: each owns different document semantics. What they genuinely share is
 only the invoke wrapper, which is inconsistent today (**CV15**).
 
+**Three interop details cost an afternoon each the first time.** `InvokeVoidAsync(name, params object?[])`
+**spreads** an array argument, so passing one whole array means boxing it — `(object)ids.ToArray()` — or the
+JS side receives the elements as separate parameters. A Razor markup lambda cannot contain a `"` literal, so
+an inline handler that needs an empty string uses `string.Empty` or a method group instead. And a
+`.control-input--hidden` checkbox is `display: none`, so a test or a script that clicks it hits nothing —
+the wrapping label is the clickable thing.
+
 ## 7. What is tested, and what is not
 
 `npm test` (or `tools/js-test.sh`) runs Node's built-in runner over `tests/js/` — no `node_modules`, so it
