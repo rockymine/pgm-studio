@@ -488,25 +488,37 @@ target section describes — a destroy board, the monument in the open, a forest
 east to bridge from, a village behind, a void channel twenty blocks in front — and told to author the spec,
 build it, look at the renders, and iterate. It took six passes and reported what it could not say.
 
-**Five of the six things the brief asked for could not be said through the spec.** The forest could not be
-put on the west flank, because trees sample uniformly over every cell that passes a filter and nothing
-weights the sample by place (MG9). The plateau could not be made to read as built against ground that reads
-as ground, because the spec takes one theme (MG2). The village could not be put behind the monument, because
-buildings land wherever the ground is flat enough (MG9). The hill could not be raised to the east, because
-`scatter` is the only mark the spec reaches and the five mark kinds sit behind it (MG29). Only the exposed
-monument survived, and it survived because the generator sites goals that way already.
+It reported five of the six as walls. **Two of the five are not walls, and the spec reaches both.** A hill at
+a stated place is one hand-written relief mark: `marks` is handed through the spec verbatim in the stored
+relief's own vocabulary, and the README lists all five kinds with their parameters in the paragraph directly
+beneath the block the run quoted from. A village behind the monument is the `houses` list, which places a
+named preset at a stated `x`/`z` with a stated facing, documented on the same page. Both were checked by
+building them: a `point` mark asked for at x −60, z −20 with radius 26 and height 14 lands its high band's
+centroid at x −59.5, z −20.3, its orbit image at x +59.0, z −20.4, and the surface histogram's two dominant
+bands are the two heights the marks stated; four buildings placed by hand all raised, none in void. The run
+reported these as impossible while quoting the documentation that describes them.
 
-The void channel is the one worth reading closely, because the run reported the wrong wall. A channel is not
-relief and no relief mark makes one: it is a **negative shape** — an outline carrying `operation: subtract`,
-standing tall enough to take the whole column, which *removes* ground rather than lowering it.
-`ruediger.layout.json` cuts one with a single rectangle at `base_height` 100 over `floor` 0, and it is the
-instrument this document names as the primary control on flow for a capture board. The run looked in the
-relief block, because that is where the spec keeps elevation and the spec has no word for a shape at all, and
-so it searched the wrong layer and blamed the feature next to the one it wanted. That is MG29 twice over: the
-capability was one line of layout JSON, and the format hid it well enough that its absence was reported
-against something else. The lesson is not that a void channel is hard — it is that a surface which exposes a
-reduction teaches the reduction, and an author who learns the reduction cannot tell a missing capability
-apart from an unreachable one.
+**Three are real, and none of them is a missing capability.** No spec field weights where trees go, so a
+forest cannot be leaned onto one flank — though the dressing document beneath places every tree at an
+explicit coordinate, which is what the spec's population form is a shorthand for. No spec field reaches a
+shape, so the paint cannot differ per shape (MG2) and a **void channel cannot be cut** — and that last is
+worth reading closely, because the run also named the wrong layer for it. A channel is not relief and no mark
+of any kind makes one: it is a **negative shape**, an outline carrying `operation: subtract` standing tall
+enough to take the whole column, which *removes* ground rather than lowering it. `ruediger.layout.json` cuts
+one with a rectangle at `base_height` 100 over `floor` 0, and it is the instrument this document names as the
+primary control on flow for a capture board. The run searched the relief block, because that is where the
+spec keeps elevation and the spec has no word for a shape at all.
+
+So the honest reading is not that the system cannot say these things. **Everything in the brief is
+expressible**, and three of the six only one layer down, in documents `surface.md` maps and the studio's own
+tools author. What the run measured is narrower and more useful: **a surface that exposes a reduction teaches
+the reduction as the boundary.** Handed a format whose vocabulary was one theme, a scatter and a rim, an
+author took the vocabulary for the system — reporting a wall where a paragraph of the README stood, and
+reporting the absence of a shape against the feature next to it. That is the cost MG29 names, priced: not
+lost capability, but an author who cannot tell a capability that is missing from one that is merely out of
+reach, and who therefore stops asking. The fix it argues for is the same either way — a spec that is a thin
+addressing layer over the real documents, with the convenience fields as shorthand that expands into them —
+and the case for it is stronger, not weaker, for the capabilities having been there all along.
 
 **What it got wrong is worth more than what it got right.** Two faults were reported that a controlled rerun
 does not reproduce. A pass drawn `grown` with `whorled` was reported as building trunks with no crown; over
