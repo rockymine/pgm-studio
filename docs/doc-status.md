@@ -137,7 +137,10 @@ the premise §3.2 disproved along with its sequencing plan, its schema sketch, t
 **B114**: `client/ui-conventions.md` (245 → 129) is now the vocabulary reference and the API rules — which
 component to reach for, what each takes, why an icon cannot change in place, and what stays raw — with the
 C12 build order and its phase log left to the board, where `C12` is reworded to the three slices that
-remain. Still open: **B115** (`monument-candidate-store` is headed "design only" and is built).
+remain. **B115** closes the set: `world-scan/monument-candidate-store.md` (361 → 185) keeps the hosting
+constraint the split was done for, the gather/score invariant, the measured rules about what a candidate row
+may hold, and the orbit's separation from it — the DDL, the entity, the endpoint contracts and the change
+checklist are the migration, the type, `tools/configure.md` and history respectively. All four are done.
 
 **§3.4's churn ranking still wants re-running against the full history**, for the reason stated above: the
 container that produced it saw three days of commits.

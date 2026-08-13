@@ -1,361 +1,185 @@
-# Monument candidate store — pre-computed suggestion via a relational table
+# The monument candidate store — suggestion as a query, not a world read
 
-How monument suggestion stops being a **`.mca`-at-runtime** feature and becomes a **DB query**, by
-splitting the detector into a *gather* pass (runs once at ingest, needs the world) and a *score* pass
-(runs at authoring, pure). The gathered candidates persist in a relational `monument_candidate` table.
+Monument suggestion runs at authoring time, and at authoring time there is no world to read. This is why
+`MonumentSuggester` is split in two — a **gather** pass that needs the `.mca` and runs once at ingest, and a
+**score** pass that is pure and runs per request against `monument_candidate` rows — and what the gathered
+rows are allowed to contain.
 
 Read alongside:
-- `monument-suggestion.md` — the detector this design factors. The schema here stores the output of its
-  **gather** half; the **score** half is the query-time function.
-- `../pgm/new-map-authoring.md` §Wools — the Monuments step that consumes the suggestions.
-- `../pgm/region-data-flow.md` — why derived data lives in MariaDB; this table is another *derived projection*
-  of the world, persisted so the authoring host never touches the world files.
+- `monument-suggestion.md` — the detector this factors: what it anchors on, what it emits, and the corpus
+  numbers it is held to.
+- `monument-patterns.md` — the corpus study the anchors and the allowlist come out of.
+- `../tools/configure.md` — the endpoints that serve it, in the tool that consumes them.
+- `../pgm/region-data-flow.md` — why derived data lives in MariaDB. This table is another derived projection
+  of the world, persisted so the authoring host never touches world files.
 
-> **Status:** design only. Backend detector (`MonumentSuggester`) is complete and corpus-validated
-> (precision 96.6% / recall 57.8% over 1721 monuments, auto-style). This doc specifies the refactor +
-> table that make it servable without the world on disk.
+## 1. Why a store at all
 
----
+The end state is a hosted tool: on the server where the map is built, the author types an in-game command, a
+plugin saves and zips the region files, uploads them, and posts back a link to author the map. For that the
+web tier has to be **stateless** — no mounted `.mca` corpus — and monument suggestion is the hardest of the
+three operations that used to read a world at runtime, because `layer_segment`/`layer.parquet` cannot drive
+it: they carry no block materials, no signs and no entities.
 
-## 1. Why — the hosting constraint
+The fix is the shape the rest of the data model already uses: **process the world once at ingest, persist the
+derived result, query it at runtime.** For monuments the derived result is a small set of candidate cells with
+their evidence — dozens of rows per map, not the whole world.
 
-The end goal is a hosted tool: on the Minecraft multiplayer server where the map is built, the mapmaker
-types an **in-game command** that a server-side **plugin** handles — it saves/flushes the world, zips the
-region files, uploads them, and posts back a clickable link to author the map to XML. The web tier should
-be **stateless** — no mounted `.mca` corpus. Today three operations read the world at runtime (`scan-world`, on-demand layer
-generation B9, **monument suggestion**); monument suggestion is the hardest because `layer_segment` /
-`layer.parquet` can't drive it (no block materials, signs, or entities — see `monument-suggestion.md`
-§Scope).
+**A table rather than a parquet**, because the access pattern is the opposite of `layer.parquet`'s. Candidates
+are sparse and queried *by predicate* — a spatial box filter, a source or colour filter, a join to the map —
+where a dense per-column grid is read whole. That is `CLAUDE.md`'s hybrid rule exactly: real tables for what is
+listed and queried, blobs for what is read entire.
 
-The fix is the same shape as the rest of the app's data model: **process the world once at ingest,
-persist the derived result, query it at runtime.** For monuments the derived result is a small set of
-**candidate monument cells with their evidence** — dozens of rows per map, not the whole world.
+## 2. Gather and score
 
-**Why a table, not a parquet.** Unlike `layer.parquet` (a dense per-column grid read whole), candidates
-are sparse and queried *by predicate*: spatial box filter, `source`/colour filter, join to the map. A
-relational table fits the hybrid rule in `CLAUDE.md` ("real tables for entities we list/query/edit") and
-queries trivially (`WHERE map_id = ? AND x BETWEEN …`); a blob would force a full read-and-deserialize on
-every suggestion call. It is *not* the `map_artifact` blob path.
-
----
-
-## 2. The refactor — split `Suggest` into `Gather` + `Score`
-
-`MonumentSuggester.Suggest(chunks, box, style)` today interleaves two separable phases:
-
-| phase | what it does | needs the world? | when it runs |
+| Phase | Does | Needs the world | Runs |
 |---|---|---|---|
-| **Gather** | `RegionScan.Read` → find anchors (monument-label wall signs, wool-head / named armour stands, wool item frames) → project each to a candidate **air cell** + capture surrounding evidence (pedestal/cap ids, sign text, facing, stand payload) | **yes** (`.mca`) | **ingest, once** |
-| **Score** | per candidate: `PedestalMatches`/`CapMatches` against the declared `MonumentStyle`, colour = `ColorFromStain(below) ?? ColorFromStain(above) ?? hint`, `Confidence`, `Offer` cell-merge + agreeing-sign boost, order | **no** (only ids/data/text already in hand) | **authoring, per call** |
+| **Gather** | reads the region files, finds anchors — monument-label wall signs, wool-head or named armour stands, wool item frames — projects each to a candidate **air cell**, and captures the surrounding evidence: pedestal and cap ids, sign text and facing, stand payload | **yes** | ingest, once |
+| **Score** | per candidate, applies the author's declared style — `PedestalMatches`/`CapMatches`, colour from the stain below then above then the hint, confidence, the cell-merge and agreeing-sign boost, the ranking | no | authoring, per call |
 
-Target API:
+The identity that keeps the split honest is that it is a **factoring, not a behaviour change**:
 
-```csharp
-// ingest — over the whole world (or buildable footprint); style-agnostic, permissive
-List<MonumentCandidate> MonumentSuggester.Gather(IEnumerable<AnvilRegion.Chunk> chunks, BlockBox world);
-
-// authoring — pure; box-scoped (the author marks the area they built in)
-List<MonumentSuggestion> MonumentSuggester.Score(IEnumerable<MonumentCandidate> candidates,
-                                                 BlockBox box, MonumentStyle style);
-
-// live path (parity guard, harness) stays identical in behaviour:
+```
 Suggest(chunks, box, style)  ==  Score(Gather(chunks, box.Expand(2)), box, style)
 ```
 
-`Suggest` is kept as `Score(Gather(...), ...)` so the existing corpus harness
-(`--suggest-monuments[-corpus]`) and its parity numbers continue to guard the *combined* behaviour —
-the refactor is required to be a pure factoring, not a behaviour change.
+`Suggest` remains as exactly that composition, so the corpus harness (`--suggest-monuments`,
+`--suggest-monuments-corpus`) still guards the combined behaviour and its precision/recall numbers mean the
+same thing they did before the split.
 
-**Gather must be style-agnostic.** It runs every anchor type and accepts any pedestal/cap (the declared
-style isn't known at ingest), storing the raw `below`/`above` ids+data so `Score` can re-apply the
-author's `MonumentStyle` later. The `LabelKind` branch logic in today's `Suggest` (which anchors to run)
-moves into `Score` as a filter on the stored `source`.
+**Gather is style-agnostic**, and it has to be: the declared style is not known at ingest. It runs every
+anchor type, accepts any pedestal or cap, and stores the raw below/above ids and data so `Score` can apply the
+author's `MonumentStyle` later. Which anchors a declared label admits is a filter on the stored `source` at
+score time, not a branch at gather time.
 
----
+## 3. What a row holds, and what is deliberately not gathered
 
-## 3. The `monument_candidate` table
+One row **per cell**, keeping the strongest anchor — armour stand over sign over geometry. Several wall signs
+ringing one monument all project to the same air cell (pigland places four against each block), and a monument
+is often marked by both a stand and a sign there. `Score` cell-merges anyway and the stand always scores at
+least the sign, so storing the duplicates only bloats the table: pigland's 64 sign emissions collapse to
+**8** candidates, four stand cells and four sign cells.
 
-One row **per cell**, keeping the strongest anchor (**armorstand > sign > geometry**). Several wall signs
-ringing one monument all project to the *same* air cell (pigland places 4 against each block), and a
-monument is often marked by *both* a stand and a sign at that cell. `Score` cell-merges anyway and the
-stand always scores ≥ the sign, so storing the duplicates just bloats the table — pigland's 64 sign
-emissions collapse to **8** candidates (4 stand cells + 4 sign cells). Columns are exactly what `Score`
-needs to reproduce the style filter / `Confidence`, and nothing it can recompute.
+The columns are what `Score` consumes and nothing it can recompute (`MonumentCandidateRow`,
+`M0002_MonumentCandidate`):
 
-**Drop pedestals `Score` can never accept.** At gather we drop any candidate whose pedestal block can't
-pass the `Score` pedestal filter under *any* style — pure dead storage:
-
-- **Sign pedestal (wall 68 / post 63).** A sign is never a pedestal: `PedestalMatches` rejects 63/68 for
-  `Pedestal.Any` (signs are excluded from "any solid") and no *specific* `PedestalKind` maps to them either,
-  so these are *provably* never scored — a code-level guarantee, not a corpus statistic. They are the
-  in-column "monument-above" emissions that land directly on top of the sign → **thunder 24 → 12** (exactly
-  its 12 real bedrock monuments).
-- **Barrier pedestal (166).** A barrier is *never* a real pedestal (0/593 corpus — it appears only as a
-  *cap*, 78×, e.g. pigland caps its glass-pedestal monuments with a signed barrier), so an air cell *above*
-  one is a deliberately-blocked, unreachable spot — the phantom that a barrier-mounted sign's "beside,
-  monument-above" placement projects onto the cap → **pigland 8 → 4** (exactly the 4 real stand monuments).
-
-Both are **zero real-monument loss** (corpus TP/FP/colour all unchanged). (The reachability intuition "solid
-pedestal but air directly below → too high to place" is *not* used as a blanket rule: 28/541 real
-solid-pedestal monuments are legitimately raised that way; the barrier-pedestal signal is the precise,
-loss-free version of it.)
-
-A wall sign emits two placement families: **beside** (the sign faces the monument — always tried) and
-**in-column** (the sign sits in the monument's own column, e.g. nutrient's "v WOOL v" cap). The in-column
-pair is emitted **only when the sign's column has a solid block within ±2** — a real in-column monument has
-a pedestal there (corpus: 16/16), whereas wool signs that merely *ring* a monument from open air (pigland's
-4-per-block) float (0/16) and would only store noise. This keeps every nutrient-style monument (corpus TP
-unchanged) and takes pigland 44 → 12 candidates. Validation: `scripts/monument_pedestal_rule.py` and the
-sign-column corpus check.
-
-**Wool item frames — a 4th anchor (`LabelKind.ItemFrame`).** An item frame holding a *wool* item marks a
-monument (the framed wool's `Damage` = the colour). The frame mounts on a vertical face of the monument's
-pedestal (→ monument **above** the support, a_new_day) or its cap (→ monument **below**, golden_drought_iii's
-"sign+frame in one block"); `support = (TileX,TileY,TileZ) + FrameSupport[Facing]`, and we try the air cell
-on each side. The catch: a corpus sweep finds **17 maps with wool frames but only ~6 use them as monument
-indicators** — the other 116/138 frames are *decorative* (molcein's 40-frame colour palette, mist's 22 on a
-floating slab, mame's black-wool "frog eyes"). Wool-only is necessary but not sufficient; the structural
-**pocket test** is what excludes the décor: emit only when the cell is air over a solid pedestal that is
-*either* capped (solid above) *or* itself grounded ≥3 blocks deep. Corpus: **20/20 real frame-cells, 0 FP**;
-adding the anchor took the whole suggester to **TP 995→1010 / colour 919→935, FP unchanged at 35**, and —
-because a wool-frame candidate now sets `anchored` — killed the geometry flood on those maps (a_new_day
-**186→4**, a_new_day_ii **171→4**). Decorative-frame maps emit no frame candidate, so they stay unanchored
-and geometry runs as before (molcein is still a geometry-flood map, unrelated to its frames). Validation:
-`scripts/monument_corpus_analysis.read_world` sweep over the 17 frame maps.
-
-### DDL (FluentMigrator, mirrors `spawner_block` conventions)
-
-```csharp
-Create.Table("monument_candidate")
-    .WithColumn("id").AsInt64().PrimaryKey().Identity()
-    .WithColumn("map_id").AsInt64().NotNullable()
-    // candidate (air) monument cell — world coords; box filter + cell-merge key
-    .WithColumn("cand_x").AsInt32().NotNullable()
-    .WithColumn("cand_y").AsInt32().NotNullable()
-    .WithColumn("cand_z").AsInt32().NotNullable()
-    .WithColumn("source").AsString(16).NotNullable()        // sign | armorstand | itemframe | geometry
-    // block below / above the cell — PedestalMatches / CapMatches + ColorFromStain
-    .WithColumn("pedestal_id").AsInt32().NotNullable()
-    .WithColumn("pedestal_data").AsInt32().NotNullable()
-    .WithColumn("cap_id").AsInt32().NotNullable()
-    .WithColumn("cap_data").AsInt32().NotNullable()
-    // fallback colour parsed from label text / stand head / name (stain still wins at Score)
-    .WithColumn("color_hint").AsString(24).Nullable()
-    // anchoring wall sign (null for non-sign sources)
-    .WithColumn("sign_x").AsInt32().Nullable()
-    .WithColumn("sign_y").AsInt32().Nullable()
-    .WithColumn("sign_z").AsInt32().Nullable()
-    .WithColumn("sign_facing").AsInt32().Nullable()         // wall-sign data nibble used to project
-    .WithColumn("sign_text").AsString(256).Nullable()       // decoded label — evidence / colour
-    // armour-stand evidence
-    .WithColumn("stand_head_color").AsString(24).Nullable()
-    .WithColumn("stand_name").AsString(256).Nullable()
-    .WithColumn("evidence").AsString(256).Nullable();       // human-readable note (incl. colour-conflict)
-```
-
-`map_id` gets the standard `fk_monument_candidate_map` (cascade-delete) + `ix_monument_candidate_map`
-via the existing `CreateForeignKeysAndIndexes` loop (add `"monument_candidate"` to its table list and to
-the `Down()` drop list). A composite index on `(map_id, cand_x, cand_z)` is optional — the per-map row
-count is small enough that the `map_id` index plus an in-memory box filter is fine for v1.
-
-### linq2db entity (`PgmStudio.Data/Entities.cs`)
-
-```csharp
-[Table("monument_candidate")]
-public sealed class MonumentCandidateRow
-{
-    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
-    [Column("map_id"), NotNull] public long MapId { get; set; }
-    [Column("cand_x"), NotNull] public int CandX { get; set; }
-    [Column("cand_y"), NotNull] public int CandY { get; set; }
-    [Column("cand_z"), NotNull] public int CandZ { get; set; }
-    [Column("source"), NotNull] public string Source { get; set; } = "";
-    [Column("pedestal_id"), NotNull] public int PedestalId { get; set; }
-    [Column("pedestal_data"), NotNull] public int PedestalData { get; set; }
-    [Column("cap_id"), NotNull] public int CapId { get; set; }
-    [Column("cap_data"), NotNull] public int CapData { get; set; }
-    [Column("color_hint")] public string? ColorHint { get; set; }
-    [Column("sign_x")] public int? SignX { get; set; }
-    [Column("sign_y")] public int? SignY { get; set; }
-    [Column("sign_z")] public int? SignZ { get; set; }
-    [Column("sign_facing")] public int? SignFacing { get; set; }
-    [Column("sign_text")] public string? SignText { get; set; }
-    [Column("stand_head_color")] public string? StandHeadColor { get; set; }
-    [Column("stand_name")] public string? StandName { get; set; }
-    [Column("evidence")] public string? Evidence { get; set; }
-}
-```
-
-`MonumentCandidate` (the domain record `Gather` emits / `Score` consumes) carries the same fields without
-`Id`/`MapId`; the ingest writer maps record → row, the suggestion endpoint maps row → record.
-
-### Column rationale (what `Score` does with each)
-
-| column(s) | consumed by |
+| Column | Consumed by |
 |---|---|
-| `cand_x/y/z` | box filter (`box?.Contains`); `Offer` merge key; output `X,Y,Z` |
-| `source` | `Confidence`; `LabelKind` filter (`SignBelow/Above`→`sign`, `ArmorStand`→`armorstand`, `None`→`geometry`) |
-| `pedestal_id/data` | `PedestalMatches(style.Pedestal, …)`; `ColorFromStain`; output `PedestalId/Data` |
-| `cap_id/data` | `CapMatches(style.Cap, …)`; `ColorFromStain` |
-| `color_hint` | colour fallback when neither stain colours |
-| `sign_x/y/z` | output `SignX/Y/Z`; evidence |
-| `sign_facing` | audit / re-projection if a future `Score` re-derives geometry |
-| `sign_text` | `Evidence`; re-derivable colour |
-| `stand_head_color`, `stand_name` | armour-stand colour / `Evidence` |
+| `cand_x/y/z` | the box filter, the cell-merge key, the output position |
+| `source` | confidence; the label filter (`sign` · `armorstand` · `itemframe` · `geometry`) |
+| `pedestal_id/data` · `cap_id/data` | `PedestalMatches`/`CapMatches`, and the colour read off the stain |
+| `color_hint` | the colour fallback when neither stain carries one |
+| `sign_x/y/z` · `sign_facing` · `sign_text` | the output, the evidence line, and a re-derivable colour |
+| `stand_head_color` · `stand_name` | armour-stand colour and evidence |
+| `evidence` | the human-readable note, including a colour conflict |
 
-**Not stored — recomputed by `Score`** (they depend on the author's declared `MonumentStyle`, unknown at
-ingest): `Confidence`, the final resolved `Color`, and the pass/fail of the pedestal/cap/label filter.
+What is **not** stored is what depends on the style the author has not declared yet: the confidence, the
+resolved colour, and the pass or fail of the pedestal/cap/label filter.
 
----
+**Two pedestals are dropped at gather, because `Score` could never accept them.** A **sign** pedestal (wall 68
+or post 63) is never a pedestal — `PedestalMatches` rejects both for `Pedestal.Any`, and no specific
+`PedestalKind` maps to them — so those rows are provably dead storage; dropping them takes thunder from 24
+candidates to **12**, exactly its twelve real bedrock monuments. A **barrier** pedestal (166) is never real
+either (0 of 593 in the corpus; a barrier appears only as a *cap*, 78 times — pigland caps its glass-pedestal
+monuments with a signed barrier), so an air cell above one is a deliberately blocked, unreachable spot: the
+phantom a barrier-mounted sign's "beside, monument-above" placement projects onto the cap. That takes pigland
+from 8 to **4**, exactly its four real stand monuments. Both are **zero real-monument loss**.
 
-## 4. Two correctness rules
+The related intuition — solid pedestal with air directly below means too high to place — is deliberately *not*
+used as a blanket rule: 28 of 541 real solid-pedestal monuments are legitimately raised that way. The
+barrier-pedestal rule is the precise, loss-free version of it.
 
-1. **Bound the geometry pass — it's a genuine last resort.** Today's `LabelKind.None` fallback iterates
-   *every* non-air block — fine for a small author box, catastrophic over a whole world (un-tuned, thunder
-   gathered **2193** candidates, ~99% exposed-stained-clay terrain). `Gather` bounds it, all
-   corpus-validated against the real monuments (`scripts/monument_pedestal_rule.py`, 593 monuments / 145
-   maps — **0% real-monument loss** for each rule below):
-   - **Skip geometry entirely when the map has monument anchors** (a `IsMonumentLabel` sign, or a wool-head
-     / named armour stand). Geometry is only ever scored for `Label=None`, which no author declares on a
-     labelled map. This alone takes **thunder 2193→24, pigland 258→68**.
-   - For a genuinely label-free map, recognise the **unsigned-monument allowlist** — a distinctive pedestal
-     (`ClassifyPedestal ∉ {Any, Floating}` = bedrock/clay/glass/wool) under a **colour-or-marker cap**
-     (`ClassifyCap ∈ {StainedGlass, StainedClay, Wool, Barrier}` — glass/wool/clay encode the colour,
-     barrier marks it). These are the **14 ped×cap combos real label-free monuments actually use** (corpus:
-     662 monuments / **38%**; lupain = bedrock+glass). This is deliberately tighter than "any distinctive
-     cap": **slab/sign/bedrock caps** are terrain-ambiguous (34% of unlabelled reals but low precision) and
-     **single-signal** (only one of the two distinctive) was 0.27%-precision spray — both **not gathered**.
-     Then two accessibility/terrain filters:
-       * **≥1 air horizontal neighbour of the cell** — else it's a sealed pocket in terrain, not a placeable
-         monument (corpus: **99.7%** of these have an open side). Cell-level accessibility; replaces the old
-         buried-pedestal + open-sky reject (which only checked the *pedestal's* faces and is moot once every
-         candidate is capped).
-       * **clay-mass reject** — a stained-clay pedestal with ≥3 same-clay neighbours among 8 is a clay
-         *floor*, not an isolated pedestal (real clay pedestals ≤2). *(Scoped to clay — a general mass rule
-         kills ~1.3% of real monuments.)*
-     Corpus `--label None`: **191 TP / 5 FP / 97.4% precision / 93.7% colour-correct** (the allowlist trades
-     ~66 slab/bedrock-cap recall for far better colour, since every allowed cap is a colour/marker). Store
-     impact vs the old un-bounded geometry: the 76 unanchored maps collapse — dreamland **5859→311**,
-     fall_of_babylon **5035→40**, thundershock **240→12**, molcein **216→0**, lupain **52→2** (its 2 real
-     bedrock+glass monuments). Anchored maps and the `Label=Any` path are unchanged (**TP=1010 / FP=35**).
+**A wall sign emits two placement families**, and only one of them is unconditional. *Beside* — the sign faces
+the monument — is always tried. *In-column* — the sign sits in the monument's own column, nutrient's
+"v WOOL v" cap — is emitted **only when the sign's column has a solid block within ±2**, because a real
+in-column monument has a pedestal there (16 of 16) while wool signs that merely ring a monument from open air
+float (0 of 16) and would store noise. Every nutrient-style monument survives; pigland drops from 44
+candidates to 12.
 
-2. **Box-scoped, author-driven — the box is the mode.** The mapmaker *knows* where they placed the
-   monument, so the UX is: the author **marks the area** (a required `BlockBox`) and optionally declares the
-   style; `Score(candidates, box, style)` filters the pre-gathered candidates to that box and ranks them.
-   Displaying *every* candidate on the map is explicitly **not** the model — it's noise. `Gather` is still
-   whole-world at ingest (the box isn't known then); the box is a `WHERE cand_* BETWEEN …` / in-memory
-   filter at `Score` time. Keep a small `Expand` margin on the box (the live path's 2-block slack) so an
-   anchor projected to a cell at the box edge still resolves.
+**The wool item frame is the fourth anchor, and it needs a structural test rather than a material one.** A
+frame holding a wool item marks a monument, the framed wool's damage value giving the colour, and it mounts on
+a vertical face of either the pedestal (monument above, a_new_day) or the cap (monument below,
+golden_drought_iii's sign-and-frame in one block). The catch is that of 17 maps with wool frames only about
+six use them as indicators — the other 116 of 138 frames are decoration: molcein's 40-frame colour palette,
+mist's 22 on a floating slab, mame's black-wool "frog eyes". Wool-only is necessary and not sufficient, so the
+**pocket test** is what excludes the décor: emit only where the cell is air over a solid pedestal that is
+either capped or itself grounded at least three blocks deep. Corpus: **20 of 20 real frame cells, no false
+positives**, taking the whole suggester to 1010 true positives and 935 colour-correct with false positives
+unchanged at 35 — and, because a frame candidate sets `anchored`, killing the geometry flood on those maps
+(a_new_day 186 → 4, a_new_day_ii 171 → 4).
 
----
+## 4. Two rules the gather pass is held to
 
-## 5. Orbit completion — one authored unit → all teams
+**Bound the geometry pass — it is a genuine last resort.** The `LabelKind.None` fallback iterates every
+non-air block, which is fine over an author's box and catastrophic over a whole world: untuned, thunder
+gathered **2193** candidates, about 99% of them exposed stained-clay terrain. Two bounds fix it, both
+corpus-validated at **zero real-monument loss** over 593 monuments across 145 maps
+(`scripts/monument_pedestal_rule.py`).
 
-The mapmaker builds and boxes the monument(s) for **one** symmetry orbit unit (their own team's wool).
-The other teams' monuments are the symmetric images, so once the author confirms the boxed suggestions, a
-**second request** reflects/rotates each confirmed position onto every other team to complete the wool's
-monument configuration.
+*Skip geometry entirely when the map has anchors* — an `IsMonumentLabel` sign, or a wool-head or named armour
+stand. Geometry is only ever scored for `Label=None`, which no author declares on a labelled map. This alone
+takes thunder 2193 → 24 and pigland 258 → 68.
 
-- **Input:** the confirmed monument cell(s) `(x, y, z)` (+ colour) from the box step.
-- **DB read (the second request):** the map's confirmed symmetry (`symmetry_json` artifact — mode +
-  centre), the same source `POST /regions/{id}/orbit` (F3) and `SymmetryExpander` already read.
-- **Transform:** the canonical `Geom.Symmetry` reflect/rotate on **XZ only** (Y is preserved — symmetry is
-  horizontal). `rot_90` yields 3 counterparts (→ 4 total), `mirror_*` / `rot_180` yield 1 (→ 2 total). Each
-  counterpart's **capturing team shifts by the orbit step `k`**, per `../pgm/new-map-authoring.md` §2.
-- **No candidate-table read here.** Orbit operates on the *confirmed* positions, not the gathered
-  candidates — it is pure geometry over the symmetry artifact. The candidate table answers *"where did the
-  author place it?"*; symmetry answers *"where are its mirrors?"*. Two distinct requests, two distinct
-  stores.
+*For a genuinely label-free map, recognise the unsigned-monument allowlist* — a distinctive pedestal
+(bedrock, clay, glass or wool) under a colour-or-marker cap (stained glass, stained clay, wool or barrier:
+three encode the colour and the fourth marks the spot). These are the **14 pedestal×cap combinations real
+label-free monuments actually use** (662 monuments, 38% of the corpus; lupain is bedrock under glass), and the
+tightness is deliberate — slab, sign and bedrock caps are terrain-ambiguous, and a single distinctive signal
+alone measured 0.27% precision. Two accessibility filters sit on top: the cell needs **at least one air
+horizontal neighbour**, or it is a sealed pocket in terrain rather than a placeable monument (99.7% of real
+ones have an open side); and a stained-clay pedestal with three or more same-clay neighbours among its eight
+is a clay *floor*, not a pedestal (real clay pedestals have at most two, and a general mass rule would kill
+about 1.3% of real monuments, so this one is scoped to clay).
 
-This keeps the intent model honest: the intent persists the **authored** wool + its monument(s) plus the
-symmetry, and `SymmetryExpander.Expand` reproduces the very same orbit at generate time
-(`../pgm/new-map-authoring.md` §2). The authoring-time orbit is the live **preview/confirm** of what the
-generator will emit — same transform, surfaced so the author sees all teams' monuments before export.
+Measured on `--label None`: **191 true positives, 5 false positives, 97.4% precision, 93.7% colour-correct** —
+trading roughly 66 slab/bedrock-cap recall for far better colour, since every allowed cap carries one. The
+storage effect on the 76 unanchored maps is the point: dreamland 5859 → 311, fall_of_babylon 5035 → 40,
+thundershock 240 → 12, molcein 216 → 0, lupain 52 → 2. Anchored maps and the `Label=Any` path are unchanged.
 
-## 6. Where it sits in the ingest pipeline
+**The box is the mode.** The author knows where they built the monument, so suggestion is box-scoped: they
+mark the area, optionally declare the style, and `Score` filters the pre-gathered candidates to that box and
+ranks them. Showing every candidate on the map is explicitly not the model — it is noise. Gather stays
+whole-world because the box is not known at ingest, and the box keeps a small expand margin (the live path's
+two blocks) so an anchor projected to a cell at the edge still resolves.
 
-The table is populated by the same once-per-upload worker that already does the world scan. After
-ingest, **no authoring operation reads `.mca`** — the web tier is stateless.
+## 5. The orbit is a different question, on a different store
 
-```
-in-game command → server plugin ──HTTP upload──▶ ingest worker
-   (saves world, zips region/)                     │ unzip to scratch
-                                                    │ scan-world      → features + layer.parquet + islands   (DB)
-                                                    │ pre-bake layers → surface/y0/bedrock/base               (DB, kills B9's .mca read)
-                                                    │ Gather monuments → monument_candidate rows              (DB, kills suggestion's .mca read)
-                                                    │ create map row → slug
-                                                    ▼
-                                raw world zip → object storage (cold; re-process only, never at edit time)
-                                                    ▼
-   plugin posts clickable link in chat ◀──slug──── return edit link → /maps/{slug}/edit   (runs 100% off MariaDB)
-```
+The author builds and boxes the monuments for **one** symmetry orbit unit — their own team's wool. The other
+teams' monuments are its images, so once the boxed suggestions are confirmed, a second request reflects or
+rotates each confirmed position onto every other team: `Geom.Symmetry` on **XZ only**, since symmetry is
+horizontal, with `rot_90` yielding three counterparts and `mirror_*`/`rot_180` one, and each counterpart's
+capturing team shifting by the orbit step.
 
-- **The plugin is the upload client, not a parser.** It only saves + zips + uploads the region files (and
-  posts the returned link); all decoding/detection stays in the C# ingest worker, so `MonumentSuggester`
-  remains the single source of truth — no Java reimplementation of the detector.
-- **Flush before zip.** A live server holds chunks in memory; the plugin must force a world save (so the
-  on-disk `.mca` is current) before zipping, or freshly placed monuments/signs are missed.
-- Gather is one extra pass over the already-decoded chunk stream (the scan worker holds them), so it adds
-  little cost beyond what `scan-world` already pays.
-- Re-gathering after a detector improvement is a worker job over the retained zip — no re-upload, so no
-  need to re-run the in-game command.
-- Candidates are map-scoped and cascade-delete with the map, like every other feature table.
+**That request reads no candidates.** Orbit operates on the confirmed positions and the map's symmetry, which
+is pure geometry: the candidate table answers *where did the author place it*, and symmetry answers *where are
+its mirrors*. Two questions, two stores, and keeping them apart is what makes the authoring-time orbit a true
+preview of what `SymmetryExpander` will emit at generate time rather than a second implementation of it
+(`../pgm/new-map-authoring.md` §2).
 
----
+## 6. The ingest side, and the half of it that is not built
 
-## 7. Authoring endpoints
+Gather runs in the same once-per-upload worker that already scans the world (`WorldFeatureWriter`), one extra
+pass over a chunk stream it has already decoded, so it costs little beyond what the scan pays. Rows are
+map-scoped and cascade-delete with the map, written delete-then-insert so a re-gather is idempotent — which
+means a detector improvement is re-run as a worker job over the retained world zip rather than as a re-upload.
 
-**Suggest within the boxed area** — `box` is required:
+**The hosted flow around it is the design, not the tree.** There is no plugin: the in-game command, the
+save-zip-upload client and the posted link are what the split was done *for*, and two decisions are recorded
+against the day they get built. The plugin is an **upload client, not a parser** — it saves, zips and uploads,
+and every bit of decoding stays in the C# worker, so `MonumentSuggester` remains the one implementation of the
+detector rather than growing a Java twin. And it must **flush the world before zipping**, since a live server
+holds chunks in memory and freshly placed monuments and signs would otherwise be missing from the `.mca` it
+uploads.
 
-```
-GET /api/map/{slug}/monument-suggestions?box=x0,y0,z0,x1,y1,z1[&style=<pedestal>,<label>,<cap>]
-```
+## 7. What is open
 
-Loads `monument_candidate` rows for the map, runs `Score(rows, box, style)`, returns ranked
-`MonumentSuggestion`s — the existing output contract from `monument-suggestion.md` §Output. No world
-access. `style` defaults to `Any,Any,Any`. (This replaces the world-reading suggestion endpoint that
-`monument-suggestion.md` anticipated but was never wired.)
+**Recall is still bounded by labelling**, not by this table — the store changes where and when detection runs,
+never how well it detects. Packed-cluster mis-attribution (a sign at `dy=0` beside a neighbour) carries over
+unchanged, and the author corrects it on confirm.
 
-**Complete the orbit** — after the author confirms positions (§5):
+**Per-map detection parameters have no home yet.** Detection is global-constant today; if a tuner ever wants
+per-map thresholds they belong in `map_config_json`, not here, because this table stores results rather than
+settings.
 
-```
-POST /api/map/{slug}/monument-orbit   { positions: [ { x, y, z, color? } ] }
-```
-
-Reads the confirmed `symmetry_json`, reflects/rotates each position onto the other teams, and returns the
-full per-team monument set (each tagged with its capturing team) for the author to confirm. Reuses the F3
-counterpart geometry; no candidate-table or world access.
-
----
-
-## 8. Change checklist
-
-- [ ] `PgmStudio.Minecraft`: factor `MonumentSuggester` into `Gather` (world → `List<MonumentCandidate>`)
-      + `Score` (`candidates, box?, style → List<MonumentSuggestion>`); keep `Suggest` =
-      `Score(Gather(...), box, style)`. Apply the geometry-bounding rule (§4.1) inside `Gather`.
-- [ ] `PgmStudio.Minecraft`: `MonumentCandidate` record.
-- [ ] Migration `M0002_MonumentCandidate` (table + FK + index; add to `Down()` drops).
-- [ ] `PgmStudio.Data`: `MonumentCandidateRow` entity + `ITable` on `PgmDb`; writer (record→row) +
-      reader (row→record), the latter likely on `MapReader` or a small `MonumentCandidateStore`.
-- [ ] Ingest: call `Gather` in the scan worker (`WorldFeatureWriter` or its caller) and persist rows;
-      delete-then-insert per map so re-gather is idempotent (mirrors the feature-row pattern).
-- [ ] `PgmStudio.Api`: `GET /map/{slug}/monument-suggestions` (box required; load rows → `Score` → rank)
-      and `POST /map/{slug}/monument-orbit` (read `symmetry_json` → reflect/rotate confirmed positions →
-      per-team set, reusing the F3 counterpart geometry).
-- [ ] Tests: `Gather`/`Score` round-trip equals `Suggest` on the existing fixtures (thunder, pigland,
-      dragons_hearth); re-run `--suggest-monuments-corpus` to confirm parity numbers unchanged.
-
----
-
-## 9. Scope & open questions
-
-- **v1 is gather-at-ingest only.** Live `.mca` re-gather for a one-off is out of scope (the zip in object
-  storage is the re-process source).
-- **Recall is still labelling-bounded** (§`monument-suggestion.md` Scope) — the table inherits, not fixes,
-  that limit; it only changes *where/when* detection runs.
-- **Packed-cluster mis-attribution** (a sign at `dy=0` beside a neighbour) carries over unchanged; the
-  author corrects on confirm.
-- **Open: per-map vs cross-map gather params.** Detection is currently global-constant; if a future tuner
-  wants per-map thresholds, they belong in `map_config_json`, not this table (the table stores *results*).
-- **Open: snap-to-buildable downstream.** A confirmed suggestion can be validated/snapped onto buildable
-  ground using `layer_segment` (DB), per `monument-suggestion.md` — independent of this table.
+**Snapping a confirmed suggestion onto buildable ground** using `layer_segment` is downstream of this and
+independent of it.

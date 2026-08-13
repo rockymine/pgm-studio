@@ -262,13 +262,6 @@ are Edit-specific. Full canvas spec: `docs/client/canvas-interaction.md`.
   separate.
 ## Backend, pipeline & internals (B / P / A)
 
-- [ ] **B115 — `world-scan/monument-candidate-store.md` is headed "design only" and is built.** The gather/score
-  split, the `monument_candidate` table (M0002), the ingest write and both authoring endpoints all shipped
-  (`FEATURES.md`, F9), so §1–§8 describe the tree rather than a proposal. What only it says is the **hosting
-  constraint** that motivated the split (the authoring host never touches world files), the two correctness
-  rules, and the orbit-completion pass; §9's open questions want re-reading against what landed. Same
-  treatment: cut to what only it says.
-
 - [~] **B70 — The room-style *card* cannot show a porch or a window.** The open editor draws four views now
   (B71), the cutaway among them, so a style's porch and its windows read there. A library **card** still
   carries the section alone, and a section projected onto the front wall shows a window as a patch of the same
