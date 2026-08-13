@@ -138,14 +138,14 @@ holds them until one becomes the focus.
   describing that, or whether it describes an intention nothing implements, is the question — the mark's
   behaviour is not in doubt, only what it is documented as opting out of.
 
-- [~] **B111 — The two remaining tool documents, the flow document, and the deletions.**
-  `docs/tools/plan.md`, `sketch.md`, `library.md`, `generator.md` and `shapes.md` are written and settle the
-  shape the rest answer to: *what it is · what it writes · the document model, field by field · what it
-  compiles to · the phases and their steps · what it refuses · the API as an endpoint table with failure codes ·
-  driving it without the UI · limits*. Two of those sections are conditional — a tool with no gate needs no
-  refusals section, a tool with no document of its own needs no model section — and the rest are the spine.
-  Written from the code in the present tense, and usable as agent input, which is what puts the endpoints in
-  them.
+- [~] **B111 — The last tool document, the flow document, and the deletions.**
+  `docs/tools/plan.md`, `sketch.md`, `library.md`, `generator.md`, `shapes.md` and `configure.md` are written
+  and settle the shape the rest answer to: *what it is · what it writes · the document model, field by field ·
+  what it compiles to · the phases and their steps · what it refuses · the API as an endpoint table with
+  failure codes · driving it without the UI · limits*. Two of those sections are conditional — a tool with no
+  gate needs no refusals section, a tool with no document of its own needs no model section — and the rest are
+  the spine. Written from the code in the present tense, and usable as agent input, which is what puts the
+  endpoints in them.
 
   **A tool that authors nothing bends the spine rather than breaking it.** The generator has no document to
   edit and no phases: its model section is the *request* (four numbers and a seed), its compile section is
@@ -159,8 +159,10 @@ holds them until one becomes the focus.
   and paints, every material kind rendered, the seeded house compared against what the endpoint returns. A
   document an agent authors from is wrong if its examples do not run, and only running them says they do.
 
-  What remains is one document each for **configure** and **edit**, plus one for **the flow between them** —
-  the hand-off no current document owns and the part `tools/mapgen/surface.md` carries today.
+  What remains is one document for **edit**, plus one for **the flow between the tools** — the hand-off no
+  current document owns and the part `tools/mapgen/surface.md` carries today. Edit's is the small one and its
+  scope is settled: a technical XML inspector for existing maps, **CTW only** and staying that way, whose
+  authoring role Configure took over when `MapIntent` landed.
 
   Then the deletions, which are the point of the exercise and wait until the set is complete: a document goes
   when a tool document owns its subject, which retires the plan, sketch and configure contract records but
