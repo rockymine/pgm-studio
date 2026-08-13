@@ -138,6 +138,39 @@ holds them until one becomes the focus.
   describing that, or whether it describes an intention nothing implements, is the question — the mark's
   behaviour is not in doubt, only what it is documented as opting out of.
 
+- [ ] **B111 — Rewrite the documentation as one file per tool, from the ground up.** `docs/doc-status.md`
+  inventories 62 documents and answers the question it was built for: **no tool has an authoritative
+  document.** Edit has none at all. The Generator's UI has none — `docs/generator/*` covers the algorithm and
+  says the surface is out of scope. Every Sketch document still carries a `Status: plan` header for work that
+  shipped. Plan and Configure are best served and still have no single entry point.
+
+  The reason they are all like that is the same, and it decides the shape of the fix: **every one is a design
+  record rather than a description.** Each was written at the moment a decision was made and none was ever
+  converted into an account of what the tree now holds. That is also where the duplication comes from — with
+  no document owning a subject, each new record restates the context it needs, so the monument-suggester
+  figures are asserted as fact in four places, the `Geom.Symmetry` canonical claim in two, and two documents
+  that do not exist (`data-model.md`, `layout-rules.md`) are cited by seven that do. And it is how a document
+  comes to teach the opposite of the truth: `destroyables-and-cores.md` opens by stating both elements are
+  invisible to the parser, which the shipped code contradicts.
+
+  So: **one document per tool** — plan, sketch, configure, edit, generator — **and one that describes how they
+  flow into each other**, since the hand-off between layers is the thing no current document owns and the
+  thing an author most needs. Written **from the ground up** rather than merged out of the existing text,
+  because merging design records produces another design record. The count comes down hard; several documents
+  are simply not needed once a tool has one owner.
+
+  **Decide the style first, and make it the rule the rewrite is measured against**: a document describes what
+  is in the tree **today**, in the present tense, and a design record is dated, marked as history, and kept
+  where nobody looking for current behaviour will mistake it for one. `CLAUDE.md`'s existing "do not describe
+  unbuilt machinery in the present tense" is half of it; the other half is that describing *built* machinery
+  in the past tense of a plan is equally misleading.
+
+  Two inputs and one caveat. `docs/doc-status.md`'s overlap map says what is duplicated and its rot ranking
+  says what to read first — both are for a human to rule on, since the report deliberately deleted nothing.
+  And the churn half of that ranking **wants re-running where the full history is available**: the container
+  it was produced in held 197 commits over three days, so it cannot see drift older than that, and the
+  content-verified findings are the reliable half until it is redone.
+
 - [ ] **B92 — A building can be a solid volume behind its own facade.** `HouseStamper` raises walls, a roof
   and their openings, and the volume they enclose is left as air — "fill" appears in the house model only as a
   wall's infill between posts and as the gable's, never as the interior. That makes every building somewhere
