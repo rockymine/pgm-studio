@@ -338,16 +338,13 @@ static List<PlacedProp> Forest(Dictionary<(int X, int Z), int> ground, MapIntent
         .ToList();
 
     // A tree's height is held to 24: past that a grown crown is a volume the export spends real time filling,
-    // and a tree taller than the drop it stands on stops reading as scenery.
+    // and a tree taller than the drop it stands on stops reading as scenery. A grown tree no longer needs a
+    // lower ceiling of its own (B78): Decorator.Seats used to drop a prop if any cell it occupied — at any
+    // height — fell on a protected column, and a grown crown is wide, so past height 14 a grown tree was more
+    // often absent than tall. Protection is now decided on the cells a tree actually rests on, the same
+    // footprint ground is decided on, and its crown is free to overhang the way a hand-built map's trees do.
     var minHeight = Math.Clamp(spec.MinHeight, 5, 24);
     var maxHeight = Math.Clamp(spec.MaxHeight, minHeight, 24);
-
-    // A GROWN tree is held lower still, because past this it stops being placed at all. The dressing pass
-    // drops a prop if any cell it occupies — at any height — falls on a protected column, and a grown crown
-    // is wide: measured over one board at twenty-four sites, a grown oak lands 590 leaves at height 8, 364 at
-    // 12 and nothing whatever at 20, while a template oak on the same sites climbs 1584 → 3424 → 7194. So a
-    // tall grown tree is not a tall tree, it is an absent one, and asking for one silently empties a forest.
-    var grownCeiling = Math.Min(maxHeight, 14);
 
     var placed = 0;
     for (var attempt = 0; attempt < spec.Count * 60 && placed < spec.Count; attempt++)
@@ -367,8 +364,7 @@ static List<PlacedProp> Forest(Dictionary<(int X, int Z), int> ground, MapIntent
 
         var grown = spec.Form.Equals("grown", StringComparison.OrdinalIgnoreCase)
                  || (spec.Form.Equals("mixed", StringComparison.OrdinalIgnoreCase) && random.Next(2) == 0);
-        var ceiling = grown ? grownCeiling : maxHeight;
-        var height = Math.Min(minHeight, ceiling) + random.NextDouble() * Math.Max(0, ceiling - minHeight);
+        var height = Math.Min(minHeight, maxHeight) + random.NextDouble() * Math.Max(0, maxHeight - minHeight);
 
         // The disc is the tree's FOOT, not its crown. A prop seats on the cells at its lowest level, and a
         // tree is narrow down there whatever it does higher up — a few blocks of stem — so sizing this off

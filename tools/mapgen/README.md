@@ -135,10 +135,12 @@ a scarp at face 3 over a 9-block band left 113 of 520 tree sites standing and *n
 same map with the face lowered and the band widened to 16 carried 785 leaves. If a forest will not seat,
 suspect the relief before the trees.
 
-**A grown tree is held to 14 blocks** whatever `max_height` says, because past that it stops being placed at
-all rather than being placed tall: measured over one board at twenty-four sites, a grown oak lands 590 leaves
-at height 8, 364 at 12 and **nothing whatever at 20**, while a template oak on the same sites climbs
-1584 → 3424 → 7194. Its crown is wide, and a wide crown almost always clips something protected.
+**A grown tree is no longer held below `max_height`.** It used to be capped at 14 blocks regardless of what
+the spec asked for, because the dressing pass dropped a whole tree if any cell it occupied — at any height —
+fell on a protected column, and a grown crown is wide enough that past 14 it was more often absent than tall.
+Protection is now decided on the cells a tree actually rests on, the same footprint ground is decided on
+(B78), so a grown tree's crown is free to overhang a monument or a spawn the way a hand-built map's trees
+overhang their own structures — only a trunk planted directly on protected ground is refused.
 
 `village` scatters buildings onto ground flat enough to stand them on; `houses` places one at a stated spot.
 Prefer `village` on a generated board — the ground is not known until the plan compiles, so a stated

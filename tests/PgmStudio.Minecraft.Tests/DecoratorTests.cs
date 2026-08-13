@@ -473,20 +473,41 @@ public sealed class DecoratorTests
     }
 
     [Test]
-    public async Task A_tree_may_lean_its_crown_over_a_drop_but_never_over_something_protected()
+    public async Task A_tree_may_lean_its_crown_over_a_drop()
     {
-        // Two different footprints answer two different questions. What a prop *rests* on needs ground; what it
-        // merely occupies does not, or no tree could grow within a crown's reach of a shoreline. Protection is
-        // the opposite: it covers the whole volume, because a canopy over a monument reads as badly as a trunk.
+        // What a prop *rests* on needs ground; what it merely occupies does not, or no tree could grow within
+        // a crown's reach of a shoreline or an island edge.
         var stand = new TreeProp { Id = "t", X = 7, Z = 7, Species = "oak", Seed = 5 };
-
         var (edge, edgeTop) = Plateau(14);
-        await Assert.That(Decorator.Decorate(edge, Context(edgeTop, [stand])).Trees).IsEqualTo(1);
 
-        var (fenced, fencedTop) = Plateau(14);
-        var walled = Decorator.Decorate(fenced, Context(fencedTop, [stand],
-            isProtected: (x, z) => x is < 6 or > 8 || z is < 6 or > 8));
-        await Assert.That(walled.Trees).IsEqualTo(0);
+        await Assert.That(Decorator.Decorate(edge, Context(edgeTop, [stand])).Trees).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task A_trees_crown_may_overhang_something_protected_but_its_trunk_may_not_root_in_it()
+    {
+        // Protection is decided on the same footprint ground and occupancy are (B78): the cells a tree
+        // actually rests on, not the whole volume a tall crown happens to pass over. A trunk on a monument is
+        // the fault; a canopy reaching over one at height is not — a hand-built map's trees overhang its
+        // structures too, and testing the whole volume would make a tree taller by refusing to build it: a
+        // wider crown claims more protected columns the taller it grows, which silently empties a forest.
+        var stand = new TreeProp { Id = "t", X = 10, Z = 10, Species = "oak", Height = 20, Seed = 5 };
+
+        var (open, openTop) = Plateau(20);
+        await Assert.That(Decorator.Decorate(open, Context(openTop, [stand])).Trees).IsEqualTo(1);
+
+        // Everything but a small core around the trunk is protected, so the crown necessarily overhangs it —
+        // and the tree still stands, because its trunk never leaves the unprotected core.
+        var (overhung, overhungTop) = Plateau(20);
+        var overhanging = Decorator.Decorate(overhung, Context(overhungTop, [stand],
+            isProtected: (x, z) => x is < 9 or > 11 || z is < 9 or > 11));
+        await Assert.That(overhanging.Trees).IsEqualTo(1);
+
+        // But a trunk asked to root on the protected column itself is still refused.
+        var (rooted, rootedTop) = Plateau(20);
+        var onProtection = Decorator.Decorate(rooted, Context(rootedTop, [stand],
+            isProtected: (x, z) => x == 10 && z == 10));
+        await Assert.That(onProtection.Trees).IsEqualTo(0);
     }
 
     // ── nothing stands inside anything else (B85) ──────────────────────────────────────────────────

@@ -511,19 +511,22 @@ public static class Decorator
 
     /// <summary>Whether a prop can stand at an anchor, and the Y its own origin sits at.
     ///
-    /// <para>Three different questions about two different footprints, which is the whole of this method.
-    /// Ground and occupancy are asked only where the prop <b>rests</b> — the cells at its lowest level, a
-    /// trunk's few blocks or a boulder's buried underside — and it seats on the lowest column among those, so
-    /// it sits into a slope rather than floating over its low side. <b>Occupancy is the rest of MG7</b>: a
-    /// resting cell already claimed by whatever stood here first — a building, an earlier boulder, another
-    /// tree's own trunk — refuses the whole image, which is what stops a trunk growing through a wall rather
-    /// than merely losing the handful of blocks the wall happens to cover. What is above may overhang nothing
-    /// at all: demanding ground, or a clear column, under a whole volume would ban every tree from a shoreline
-    /// or an island edge, which is exactly where a tree leaning out over the drop is the point, and would ban
-    /// two canopies from ever touching, which real cover does constantly.</para>
+    /// <para>One footprint decides all of it. Ground, occupancy and protection are every one of them asked
+    /// only where the prop <b>rests</b> — the cells at its lowest level, a trunk's few blocks or a boulder's
+    /// buried underside — and it seats on the lowest column among those, so it sits into a slope rather than
+    /// floating over its low side. A resting cell that is already claimed by whatever stood here first — a
+    /// building, an earlier boulder, another tree's own trunk — refuses the whole image, which is what stops a
+    /// trunk growing through a wall rather than merely losing the handful of blocks the wall happens to cover.
+    /// A resting cell over something the map is played through refuses it the same way: a trunk on a spawn or
+    /// a monument is the fault a wall clipping through the room is.</para>
     ///
-    /// <para>Protection is the opposite: it covers every cell the prop occupies, at any height. A canopy over
-    /// a monument reads as badly as a trunk on top of one.</para></summary>
+    /// <para>What is above may overhang nothing at all — neither ground, nor an earlier prop, nor protection.
+    /// Demanding a clear column under a whole volume would ban every tree from a shoreline or an island edge,
+    /// would ban two canopies from ever touching (which real cover does constantly), and would make a tree
+    /// taller by refusing it: a grown crown widens with height, so testing the whole volume against protection
+    /// empties a forest exactly where the objectives it should be covering stand. A canopy overhanging a
+    /// monument at y+15 is not a trunk grown through it — a hand-built map's trees overhang its structures
+    /// too — so the crown is free to reach wherever it would over open ground.</para></summary>
     private static bool Seats(
         DressingContext context, (int X, int Z) anchor, List<PropCell> prop, HashSet<(int X, int Z)> taken,
         out int baseY)
@@ -532,9 +535,9 @@ public static class Decorator
         var restsAt = prop.Count == 0 ? 0 : prop.Min(cell => cell.Y);
         foreach (var cell in prop)
         {
+            if (cell.Y != restsAt) continue;
             var ground = (X: anchor.X + cell.X, Z: anchor.Z + cell.Z);
             if (context.IsProtected(ground.X, ground.Z)) return false;
-            if (cell.Y != restsAt) continue;
             if (taken.Contains(ground)) return false;
             if (!context.SurfaceTop.TryGetValue(ground, out var top)) return false;
             baseY = Math.Min(baseY, top);
