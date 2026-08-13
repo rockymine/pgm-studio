@@ -1,7 +1,7 @@
 namespace PgmStudio.Minecraft;
 
 /// <summary>
-/// Stamps the observer/default-spawn platform (docs/contracts/sketch-world-export.md §2b): a solid 6×6
+/// Stamps the observer/default-spawn platform (docs/world-export/sketch-world-export.md §2b): a solid 6×6
 /// bedrock platform with four identical inward-facing "info boards" at the edge centres. Each board is a
 /// 1-tall × 2-wide bedrock wall with a 2-sign pair on its inner face; viewed from the centre, the left sign
 /// is the map name (<c>=== / [CTW] / {name} (bold) / ===</c>) and the right sign the authors

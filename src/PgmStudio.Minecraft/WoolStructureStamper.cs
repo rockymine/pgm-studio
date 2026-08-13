@@ -45,7 +45,7 @@ public sealed record WoolStructure
     public bool Chests { get; init; } = true;
 }
 
-/// <summary>Stamps a <see cref="WoolStructure"/> (docs/contracts/sketch-world-export.md §2).</summary>
+/// <summary>Stamps a <see cref="WoolStructure"/> (docs/world-export/sketch-world-export.md §2).</summary>
 public static class WoolStructureStamper
 {
     public static PlacedWoolSpawn Stamp(VoxelWorld world, WoolStructure room)

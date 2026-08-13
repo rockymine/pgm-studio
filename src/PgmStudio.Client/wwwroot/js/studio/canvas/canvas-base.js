@@ -4,7 +4,7 @@
  * Subclasses extend this and override the hook methods below.
  * All shared state is _-prefixed (convention: protected).
  *
- * See docs/contracts/canvas-interaction.md §3 (the shared base) for the contract.
+ * See docs/client/canvas-interaction.md §3 (the shared base) for the contract.
  */
 
 import { toScreen } from "../geometry/transform.js";

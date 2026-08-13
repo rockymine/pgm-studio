@@ -2,7 +2,7 @@
 
 This folder holds the contracts for the **realized world** — what the export writes into the Anvil
 world beyond raw terrain — the sibling of `docs/generator/` (which owns the layout) and
-`docs/contracts/` (which owns the API/data contracts). Later passes over the same surface (map
+`docs/pgm/` (which owns the map contract). Later passes over the same surface (map
 theming and material palettes, G34) belong here too.
 
 **Status: implemented (G31).** Rule ids here are `WX*` (world export); the resolver is
@@ -10,11 +10,11 @@ theming and material palettes, G34) belong here too.
 (`CubeStamper`/`SpawnStructureStamper`/`WoolChests`), the structure preview, and the exported points
 alike. Read alongside:
 
-- `docs/contracts/sketch-world-export.md` — the shell contract (layer scheme, chest loadouts,
+- `docs/world-export/sketch-world-export.md` — the shell contract (layer scheme, chest loadouts,
   monuments' derivation discipline, `level.dat`); its §2/§5 defer to this file for sizing and
   anchoring.
 - `docs/generator/rules.md` ST1–ST5 — the stamped-structure law; ST1/ST2 carry the footprint rule.
-- `docs/contracts/destroyables-and-cores.md` — the style-as-data precedent (§5 below).
+- `docs/pgm/destroyables-and-cores.md` — the style-as-data precedent (§5 below).
 - `docs/tools/sketch.md` — the tool that binds the shells (its Rooms step) and stamps the same house as a
   dressing prop.
 

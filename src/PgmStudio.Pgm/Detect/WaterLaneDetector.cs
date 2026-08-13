@@ -64,7 +64,7 @@ public sealed record WaterLane(
 ///
 /// <para>Two of the four need parser surface the studio holds only for reading:
 /// <see cref="MapXml.Includes"/> and <see cref="MapXml.Fills"/>. Neither resolves a shared fragment's body —
-/// see <c>docs/contracts/water-lanes.md</c>.</para>
+/// see <c>docs/pgm/water-lanes.md</c>.</para>
 /// </summary>
 public static class WaterLaneDetector
 {

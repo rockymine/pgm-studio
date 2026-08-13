@@ -5,10 +5,10 @@ using PgmStudio.Pgm.Editing;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Wool/objective slice of the declarative generator (new-map-authoring.md; filter-region-wiring.md
+/// Wool/objective slice of the declarative generator (new-map-authoring.md; docs/pgm/filter-region-wiring.md
 /// templates 3 + 4). Per wool it emits: the wool-room region, the wool element (with monuments), a wool
 /// spawn point fed by a <c>&lt;spawner&gt;</c> (player-region = room, spawn-region = the point, item =
-/// the dyed wool). The room wiring follows the validated template (docs/template.xml): the rooms are grouped
+/// the dyed wool). The room wiring follows the validated template (docs/pgm/template.xml): the rooms are grouped
 /// per defending team into a <c>&lt;team&gt;s-woolrooms</c> union (all under a top <c>woolrooms</c> union),
 /// with <c>enter=not-&lt;owner&gt;</c> (defenders kept out) and a <c>block</c> rule whose filter
 /// <c>&lt;owner&gt;s-woolrooms-filter = all(not-&lt;owner&gt;, woolrooms-filter)</c> lets attackers edit only

@@ -4,7 +4,7 @@ namespace PgmStudio.Pgm.Authoring;
 
 /// <summary>
 /// Declarative authoring intent — the source of truth for a <b>new</b> map
-/// (docs/contracts/new-map-authoring.md). The author states what they want; a generator projects it
+/// (docs/pgm/new-map-authoring.md). The author states what they want; a generator projects it
 /// into the PGM document (teams/kits/regions/filters/apply-rules/spawns). Persisted as a
 /// <c>map_intent_json</c> artifact, outside the entity-replace codec (like the draft sidecar).
 /// <para>Teams slice: teams, per-team spawns + protection, and the observer (<c>&lt;default&gt;</c>)
@@ -29,11 +29,11 @@ public sealed record MapIntent
     /// <summary>The observer / <c>&lt;default&gt;</c> spawn (pre-game + spectators). Every PGM map needs one.</summary>
     public ObserverIntent? Observer { get; init; }
 
-    /// <summary>Buildable space (docs/contracts/new-map-authoring.md §5): the build height cap and the
+    /// <summary>Buildable space (docs/pgm/new-map-authoring.md §5): the build height cap and the
     /// areas/bridges where building is allowed. The generator unions them and wires the void boundary.</summary>
     public BuildIntent? Build { get; init; }
 
-    /// <summary>The water lanes — the gaps that open mid-match (docs/contracts/water-lanes.md). Null/empty
+    /// <summary>The water lanes — the gaps that open mid-match (docs/pgm/water-lanes.md). Null/empty
     /// leaves them untouched, which is every map that has none.</summary>
     public WaterLaneIntent? WaterLanes { get; init; }
 
@@ -54,7 +54,7 @@ public sealed record MapIntent
     /// and the objective text are auto-derived by the generator, not authored.</summary>
     public MetaIntent? Meta { get; init; }
 
-    /// <summary>The confirmed symmetry of the map (docs/contracts/new-map-authoring.md §3). When set, the
+    /// <summary>The confirmed symmetry of the map (docs/pgm/new-map-authoring.md §3). When set, the
     /// generator <b>orbit-fills by default</b>: the author defines one orbit unit (team 0's spawn, one
     /// wool) and <see cref="SymmetryExpander"/> rotates/reflects it onto the other teams before projection,
     /// mapping orbit positions to <see cref="Teams"/> <i>in list order</i>. Null → no fill (author states
@@ -167,7 +167,7 @@ public sealed record BuildIntent
 }
 
 /// <summary>
-/// The water lanes (docs/contracts/water-lanes.md): gaps that become bridgeable part-way through the match,
+/// The water lanes (docs/pgm/water-lanes.md): gaps that become bridgeable part-way through the match,
 /// adding a late route to the wool. <see cref="Rects"/> are the footprints, and they carry no Y because a lane
 /// is always the single block layer at <c>y=0</c> — the one PGM's void filter reads.
 /// <para>Deliberately separate from <see cref="BuildIntent.Areas"/>, which it is the opposite of: a build area

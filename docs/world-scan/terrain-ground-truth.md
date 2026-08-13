@@ -21,7 +21,7 @@ Nothing here is height-dependent, because none of it is ever the floor a player 
 
 PGM's void filter reads `(x, 0, z)` and nothing else: a column is void iff the block at the world floor is
 air. So laying a sheet at `y=0` makes a whole column buildable without putting anything where players can see
-it, and authors use that constantly to declare build regions (`water-lanes.md` §1 covers the same mechanism
+it, and authors use that constantly to declare build regions (`../pgm/water-lanes.md` §1 covers the same mechanism
 from the other side — filling that layer mid-match is what opens a lane).
 
 A marker sheet is therefore **not terrain**, and `FloorMarkerIds` excludes it — but *only at the floor*, which

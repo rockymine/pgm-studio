@@ -3,8 +3,8 @@
 > **Status: landed — including the staged landing + dashboard.** Settles the URL shape + user-facing
 > labels for the three map surfaces, and the entry point that fans out to them. **Decouples the
 > visible label from the code/concept name:** the code keeps **"authoring"** (the `N` series,
-> `new-map-authoring.md`, the intent model) — the UI says **"Configure"**. Supersedes the *route names*
-> in `new-map-authoring.md` §12; the §12 *interaction* design (three-level nav, Import sub-steps) is
+> `../pgm/new-map-authoring.md`, the intent model) — the UI says **"Configure"**. Supersedes the *route names*
+> in `../pgm/new-map-authoring.md` §12; the §12 *interaction* design (three-level nav, Import sub-steps) is
 > unchanged. Open sub-decisions are flagged inline.
 
 ## The model: a map is one resource; the verbs are modes on it
@@ -22,7 +22,7 @@ Sketch  ──▶  Configure  ──▶  Edit
 - **Sketch** makes the **geometry** (the physical world) by drawing 2-D shapes — from nothing.
 - **Configure** makes the **configuration** (`map.xml`) for a world that already has geometry but no
   XML — either one you just sketched, or one imported/built in Minecraft. This is the intent-driven
-  **authoring wizard** (`new-map-authoring.md`).
+  **authoring wizard** (`../pgm/new-map-authoring.md`).
 - **Edit** modifies the XML of a map that **already has one** — the region-first existing-map editor.
 
 > **"New" is not the discriminator.** Both Sketch *and* Configure produce a new map, so leaning on
@@ -142,7 +142,7 @@ name ("Annealing IV") in the URL — spaces/caps force encoding and aren't stabl
 Sketch and Import both *originate* a map, so neither has an id yet. They split by stage rather than
 sharing one page:
 
-- **Import** — the `new-map-authoring.md` §12 flow at `/maps/new` (**Source → Found → Plan**), now the
+- **Import** — the `../pgm/new-map-authoring.md` §12 flow at `/maps/new` (**Source → Found → Plan**), now the
   Configure tool's conditional **phase-zero** (`ConfigureTool` routes both `/maps/new` and
   `/maps/{id}/configure`; the `ImportPhase` component renders on the slug-less route, and a slug'd/imported
   map skips Import → `Identity` — see `../tools/configure.md`). Reached from the **Configure overview**'s
@@ -162,7 +162,7 @@ So origination is reached from the stage overviews (themselves reached from the 
 
 | UI label    | Code / concept (unchanged) | Where it lives                                                |
 | ----------- | -------------------------- | ------------------------------------------------------------- |
-| **Configure** | **authoring** — `N` series, `new-map-authoring.md`, intent model | the wizard at `/maps/{id}/configure` |
+| **Configure** | **authoring** — `N` series, `../pgm/new-map-authoring.md`, intent model | the wizard at `/maps/{id}/configure` |
 | **Edit**    | the existing editor        | `Edit/EditTool.razor` + `Edit/*Phase` at `/maps/{id}/edit`     |
 | **Sketch**  | `sketch_api` / sketch pages | `SketchCreate` at `/maps/new-sketch` + `SketchTool` at `/maps/{id}/sketch` |
 
@@ -199,8 +199,8 @@ the whole pass — IA rename, the Configure wizard + Sketch routes, and the stag
 6. **Sketch origination** moved off `/maps/new` (now Import-only) to its own `/maps/new-sketch` page.
 7. **Exits** — editor home breadcrumbs point at their stage overview; sketch-finish lands on the
    Configure overview with a *Continue* offer instead of force-navigating into the wizard.
-8. **Docs** — route strings reworded in `new-map-authoring.md` §12, `CLAUDE.md`, `TODO.md`,
-   `monument-candidate-store.md`; `FEATURES.md` gained an "App shell & routing" entry. The concept
+8. **Docs** — route strings reworded in `../pgm/new-map-authoring.md` §12, `CLAUDE.md`, `TODO.md`,
+   `../world-scan/monument-candidate-store.md`; `FEATURES.md` gained an "App shell & routing" entry. The concept
    *name* "authoring" stays everywhere; only route strings changed.
 
 **Open:** `configure → edit` has no live trigger yet — it lands with the Configure wizard's **Export**

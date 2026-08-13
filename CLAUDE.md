@@ -147,8 +147,27 @@ Tasks flow left → right: **`BACKLOG.md` → `TODO.md` → `FEATURES.md`**.
 9. **Deferred *decisions* are parked** in `BACKLOG.md`, clearly marked with the blocking question — not
    interleaved with actionable tasks.
 
+## Where the docs live
+**Every folder under `docs/` is named for a subject, never for a form.** A new document joins the folder
+whose subject it is about; there is no bucket for "contracts" or "designs", because that names the shape of a
+document rather than what a reader is looking for.
+
+| Folder | Holds |
+|---|---|
+| `tools/` | one document per studio tool, end to end — `flow.md` first (the four levels and the hand-offs), then `plan`, `sketch`, `configure`, `edit`, `generator`, `shapes`, `library`. Written from the code and usable as agent input, which is why each carries its endpoints. |
+| `generator/` | the layout-generation track — the eight files below. |
+| `world-export/` | what the export **writes** into a world: `relief` (the ground), `terrain-painting` (its materials), `structures` (what is stamped on it), `decoration` (what is placed on it), `tree-corpus`, `sketch-world-export` (the world folder itself), `ideas`. |
+| `world-scan/` | what the studio **reads** out of a world it did not build: monument and objective suggestion, terrain ground truth, the block palette, the corpus pattern studies behind them. |
+| `pgm/` | the map contract — what PGM requires and what the studio emits: destroyables/cores, water lanes, regions and filters (categorization, wiring, corpus patterns, data flow), include resolution, the intent model, `template.xml`. |
+| `client/` | the browser half: the canvas JS layer, the component vocabulary, routing and IA. |
+| `gameplay/` | what real matches show — the match-flow account and the traffic ground truth. |
+| root | whole-repo notes with no subject folder: `project-structure`, `design-decisions`, `cloud-setup`, `doc-status`. |
+
+A document is deleted when a subject folder's document owns its subject; corpus **measurements** are kept
+even when the design around them has landed, because nothing else can re-derive them.
+
 ## Layout generation — the docs
-**All of them live in `docs/generator/`** (one folder per studio tool; the others follow). Eight files,
+**All of them live in `docs/generator/`.** Eight files,
 no others — a new generation doc means one of these grows, not a ninth file:
 
 | File | Is |
@@ -244,8 +263,8 @@ question would have.
   wall-sign facing→monument geometry, classifies sign *text* as a label (not keyword-match), requires
   the declared pedestal under an air cell, plus armour-stand/geometry fallbacks. Corpus (auto-style):
   **precision 96.6% / recall 57.8% / 35 FP** over 1721 monuments (recall capped by ~⅓ unlabelled +
-  sign-post-only maps). Contract (modes/usage): `docs/contracts/monument-suggestion.md`; pattern study:
-  `docs/monument-patterns.md` (scripts in `scripts/`). `layer_segment.parquet`
+  sign-post-only maps). Contract (modes/usage): `docs/world-scan/monument-suggestion.md`; pattern study:
+  `docs/world-scan/monument-patterns.md` (scripts in `scripts/`). `layer_segment.parquet`
   can't drive it (no block materials/signs/entities) — see that doc's reuse note.
 - `--monument-slices <regionDir> <xml_data.json> <outParquet>` runs `MonumentSliceExtractor`
   (`PgmStudio.Minecraft`): for every wool monument it samples a fixed **width-3 × depth-3 × height-5**
@@ -271,7 +290,7 @@ question would have.
   layer) — "the hot path stays in JS", the documented twin of `Geom.Symmetry`. When a Configure phase
   needs a non-editable orbit *preview*, render it on the canvas via `setAuthorMirror`, **not** by computing
   orbit rects in Blazor C#. (Spawn/Protection still compute orbit in C# via `OrbitAssignment` because they
-  *store* it with island/point-aware team assignment — see `docs/contracts/new-map-authoring.md` §4 / the
+  *store* it with island/point-aware team assignment — see `docs/pgm/new-map-authoring.md` §4 / the
   orbit memory.)
 - Don't make the format fit: reject malformed maps (e.g. kytriak_te) rather than weakening the schema.
 - **Supported map range (enforced in `MapParser.EnsureSupported`).** Three gates, all
@@ -292,4 +311,4 @@ question would have.
   reference block-aligned. The monument is a `<block>` region whose `BlockRegion(Vector)` ctor floors
   itself (`new Vector(getBlockX(), getBlockY(), getBlockZ())`), so flooring in the generator would be
   redundant. Verified against `/media/sf_repos/PGM` (`wool/WoolModule`, `regions/BlockRegion`); generated
-  XML exports valid. See `docs/contracts/new-map-authoring.md` §4.
+  XML exports valid. See `docs/pgm/new-map-authoring.md` §4.

@@ -68,7 +68,7 @@ public static class CtwStandards
         {
             // The spawn kit's build blocks are the stacked items (wood, the team-coloured accent block);
             // tools/weapons/consumables come as a single item. Keep the WHOLE loadout on death — single items
-            // AND blocks (docs/template.xml keeps `wood` + `stained clay` in <itemkeep>); farming *placed*
+            // AND blocks (docs/pgm/template.xml keeps `wood` + `stained clay` in <itemkeep>); farming *placed*
             // blocks is prevented by the block-drops chance=0 rule below, not by removing them on death (which
             // would leave players without building material). Only the team armour is dropped — the kit
             // re-applies it — so <itemremove> is just the armour (+ the terrain drops added later).

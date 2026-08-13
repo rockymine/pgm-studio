@@ -3,7 +3,7 @@ using PgmStudio.Domain;
 namespace PgmStudio.Pgm.Tests;
 
 /// <summary>
-/// Include resolution (docs/contracts/include-resolution.md): splicing the shared fragments a map references
+/// Include resolution (docs/pgm/include-resolution.md): splicing the shared fragments a map references
 /// so the document describes the map <b>as played</b> rather than as written. The tests hold the two lines
 /// that make that safe — a resolved parse can only ever add, and it never happens unless a library is given.
 /// </summary>

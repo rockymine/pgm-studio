@@ -5,7 +5,7 @@ namespace PgmStudio.Minecraft;
 
 /// <summary>
 /// Stamps the wool-cage loot: two stacked chests in each of the four interior corners of the room
-/// (docs/contracts/sketch-world-export.md §2a). The lower chest (A) holds a row of planks ×16, a row of
+/// (docs/world-export/sketch-world-export.md §2a). The lower chest (A) holds a row of planks ×16, a row of
 /// Speed I (3:00) potions, and a row of golden apples ×16; the upper chest (B) holds a row of diamond
 /// leggings, a row of Power I + Infinity bows, and a row of planks ×16. Corners come from the room's
 /// <see cref="RoomFrame"/>, so the loadout rides any footprint.

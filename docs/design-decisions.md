@@ -26,7 +26,7 @@ Rectangles and cuboids treat `min` as inclusive and `max` as exclusive: a single
 The intent generator floors the wool location but passes monument block coords through raw —
 PGM itself floors `BlockRegion` but keeps wool locations as raw vectors. Already documented in
 `CLAUDE.md` ("Wool-location flooring asymmetry is intentional") and
-`docs/contracts/new-map-authoring.md` §4; kept here as a pointer because it keeps resurfacing.
+`docs/pgm/new-map-authoring.md` §4; kept here as a pointer because it keeps resurfacing.
 
 ## Authoring intent model
 

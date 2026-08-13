@@ -26,7 +26,7 @@ take one of those statements through to the blocks it becomes — `relief.md` (t
 Relief phase, with the measured terrain law), `terrain-painting.md` (what the painter makes of a theme, cell by
 cell), `structures.md` (the shells the Rooms step binds and the house the Dressing phase stamps),
 `decoration.md` (the dressing pass itself) and `tree-corpus.md` (the hand-built ground truth a grown tree is
-scored against). `docs/contracts/sketch-world-export.md` is the world folder Finish writes into. Each is cited
+scored against). `docs/world-export/sketch-world-export.md` is the world folder Finish writes into. Each is cited
 below from the phase that feeds it.
 
 ## What it writes
@@ -216,7 +216,7 @@ contour preview draws — which is the only reason a preview is worth drawing at
 
 What becomes of those columns once Finish runs — the layer scheme the world folder is written in, its
 `level.dat`, the coordinate anchoring, the wool-cage chests and the observer platform — is
-`docs/contracts/sketch-world-export.md`.
+`docs/world-export/sketch-world-export.md`.
 
 ## Phases
 

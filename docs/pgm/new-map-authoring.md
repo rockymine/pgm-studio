@@ -34,7 +34,7 @@ possible at all.
 
 ## 2. Why regeneration is free
 
-`../region-data-flow.md` §2 establishes the load-bearing constraint: **every save drops and recreates all
+`region-data-flow.md` §2 establishes the load-bearing constraint: **every save drops and recreates all
 region / filter / apply-rule rows** (`MapWriter.SaveDocAsync` = `DeleteEntities` → `FromDict` →
 `WriteEntities`), and editor-only state must therefore live outside the codec or the next save wipes it.
 

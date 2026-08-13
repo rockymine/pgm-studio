@@ -26,7 +26,7 @@ ids here are `TP*` (terrain paint), local to this file the way `structures.md` o
 - `docs/world-export/relief.md` — the elevation this pass dresses: a mesa's face and a scarp arrive here as
   edges with a known drop, which is what the rim/wall rules were written for.
 - `docs/world-export/structures.md` §6.4 — the preset seam (style-as-data). Terrain materials attach here.
-- `docs/contracts/sketch-world-export.md` — the world the painter runs inside (layer scheme, `level.dat`).
+- `docs/world-export/sketch-world-export.md` — the world the painter runs inside (layer scheme, `level.dat`).
 - `SketchTerrainBuilder` (`PgmStudio.Minecraft`) — the terrain this pass consumes: bedrock at y=0, stone
   fill to each column's surface top, and the per-cell `SketchTerrain.SurfaceTop`.
 - `TerrainPainter` / `TerrainProfile` / `TerrainTheme` (`PgmStudio.Minecraft`) — the implementation:

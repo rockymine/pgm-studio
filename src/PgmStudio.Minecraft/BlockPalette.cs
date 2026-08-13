@@ -23,7 +23,7 @@ namespace PgmStudio.Minecraft;
 ///
 /// <para>Where the colours come from — texture means, the temperate tint applied to biome-coloured blocks,
 /// and the accent weighting that keeps ores apart — is documented on <see cref="BlockPaletteData"/> and in
-/// <c>docs/contracts/block-palette.md</c>.</para>
+/// <c>docs/world-scan/block-palette.md</c>.</para>
 /// </summary>
 public static class BlockPalette
 {

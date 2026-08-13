@@ -194,7 +194,7 @@ ground, which is what `ruediger` does and what any connectivity read has to know
 disconnected.
 
 The **water lane** is the third setting of that same dial, and it is not water.
-`docs/contracts/water-lanes.md` owns it: a gap between islands that becomes **bridgeable part-way through a
+`docs/pgm/water-lanes.md` owns it: a gap between islands that becomes **bridgeable part-way through a
 match**, built on PGM's void filter reading y=0 live, so the crossing opens on a timer rather than at the
 start. Its use is narrow and worth stating, because the mechanism invites misuse — a lane in the middle of a
 board means waiting three quarters of an hour for the map to begin. It belongs where a goal is tucked away
@@ -229,12 +229,12 @@ A destroyable's material is authored on the plan, not fixed. `DestroyablePlaceme
 `ObjectiveDefaults.Materials` (`Domain/ObjectiveDefaults.cs`, `"obsidian"`) and carries the result onto
 `DestroyableIntent.Materials` (`Pgm/Authoring/MapIntent.cs`). Obsidian is the corpus's own centre — over half
 of every destroyable in the corpus names it — but it is not the only word the corpus uses:
-`docs/contracts/destroyables-and-cores.md` DT1 measures emerald and gold behind the `cube-3` style and end
+`docs/pgm/destroyables-and-cores.md` DT1 measures emerald and gold behind the `cube-3` style and end
 stone behind `cube-4` and `column-plus`. What the stamper can actually build from is a short, published
 vocabulary rather than free text: `DestroyableMaterials.All` (`Domain/DestroyableMaterials.cs`) names exactly
 four buildable matches — `"obsidian"`, `"emerald block"`, `"gold block"`, `"ender stone"` (`"end stone"`
 resolves to the same block) — the four its own docstring measures carrying 84% of declared destroyables
-(`docs/contracts/objective-suggestion.md` §3). **The two ends of the pipe are
+(`docs/world-scan/objective-suggestion.md` §3). **The two ends of the pipe are
 not automatically kept in step.** `DestroyableGenerator` writes `Materials` verbatim into the emitted
 `<destroyable materials="…">`, while `SketchWorldBuilder` stamps the structure from
 `DestroyableMaterials.BlockId(Materials)`, which silently falls back to obsidian for anything outside the

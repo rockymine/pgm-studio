@@ -7,7 +7,7 @@ namespace PgmStudio.Pgm.Tests;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Water-lane slice of the declarative generator (docs/contracts/water-lanes.md): the authored footprints
+/// Water-lane slice of the declarative generator (docs/pgm/water-lanes.md): the authored footprints
 /// become one <c>y=0</c> union under the agreed id, and the map pulls in the fragment that gives it
 /// behaviour. The closing assertion is the round trip — what the generator emits is what the detector reads
 /// back as the newest form.

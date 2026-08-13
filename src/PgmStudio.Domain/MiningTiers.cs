@@ -2,7 +2,7 @@ namespace PgmStudio.Domain;
 
 /// <summary>
 /// The minimum pickaxe tier vanilla Minecraft requires to break a PGM material match — covering the closed
-/// vocabulary a destroyable or core actually names (docs/contracts/destroyables-and-cores.md DT1: obsidian,
+/// vocabulary a destroyable or core actually names (docs/pgm/destroyables-and-cores.md DT1: obsidian,
 /// emerald, gold, ender stone dominate). A miss means "this table cannot say", never "no tool needed" — the
 /// same partial-table convention <see cref="MaterialIds"/> follows, and for the same reason: a caller that
 /// wants to know whether a goal is breakable at all must treat an unresolved material as unconfirmed, not as

@@ -325,7 +325,7 @@ public static class PlanCompiler
 
         // Water lanes fan the same way build areas do, and stay out of the build intent on purpose: a lane
         // that reached the buildable region would be open from the first tick, which is the one thing a lane
-        // must not be (docs/contracts/water-lanes.md). A lane's holes are dropped rather than carried — the
+        // must not be (docs/pgm/water-lanes.md). A lane's holes are dropped rather than carried — the
         // shared fragment fills a flat region and has nowhere to put a cutout, so honouring one would promise
         // something the export cannot deliver.
         var laneRects = FanRects(plan.WaterLanes.Select(z => z.Rect), d);

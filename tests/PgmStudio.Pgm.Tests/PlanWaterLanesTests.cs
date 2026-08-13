@@ -3,7 +3,7 @@ using PgmStudio.Pgm.Plan;
 namespace PgmStudio.Pgm.Tests;
 
 /// <summary>
-/// The water-lane zone kind (docs/contracts/water-lanes.md): a zone that opens mid-match rather than at the
+/// The water-lane zone kind (docs/pgm/water-lanes.md): a zone that opens mid-match rather than at the
 /// first tick. The tests hold the line that separates it from a build zone — it compiles to its own intent,
 /// stays out of the buildable region, and takes no part in the starting board's connectivity.
 /// </summary>

@@ -6,7 +6,7 @@ namespace PgmStudio.Domain;
 ///
 /// <para>It is short for a reason. PGM accepts any material match on a <c>&lt;destroyable&gt;</c>, but the
 /// generator only knows how to place these four, and the corpus says they are the ones that matter: obsidian,
-/// emerald, gold and ender stone carry 84% of declared destroyables (<c>docs/contracts/
+/// emerald, gold and ender stone carry 84% of declared destroyables (<c>docs/world-scan/
 /// objective-suggestion.md</c> §3). Anything outside the list falls back to obsidian, which is the right
 /// fallback and the wrong thing to let an author pick unknowingly — so the vocabulary is published, and a
 /// picker offers these rather than a free-text field whose typos silently become obsidian.</para>

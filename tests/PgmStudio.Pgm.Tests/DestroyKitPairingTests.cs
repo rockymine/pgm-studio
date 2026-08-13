@@ -38,7 +38,7 @@ public sealed class DestroyKitPairingTests
     [Test]
     public async Task A_core_always_upgrades_to_diamond()
     {
-        // A core's casing is always obsidian — it is not a knob (docs/contracts/destroyables-and-cores.md
+        // A core's casing is always obsidian — it is not a knob (docs/pgm/destroyables-and-cores.md
         // DC1) — so a map with one always needs a diamond pickaxe outright.
         var intent = new MapIntent { Cores = [Core()] };
         await Assert.That(DestroyKitPairing.RequiredPickaxe(intent)).IsEqualTo("diamond pickaxe");

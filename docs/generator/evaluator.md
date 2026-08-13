@@ -426,7 +426,7 @@ asset you keep growing:
   authored frontline + bridge sets exist; the other cells are the shopping list.
 
 The 350-map corpus is **not** this set: it is unlabeled in plan-model semantics and its quality is mixed. The authored examples — small, high-quality, labeled by intent — are the ground
-truth. The traffic pipeline (`docs/contracts/traffic-ground-truth.md`) may promote a *few* real maps into
+truth. The traffic pipeline (`docs/gameplay/traffic-ground-truth.md`) may promote a *few* real maps into
 labeled layouts; do not block on it.
 
 ## 8. Where the generator fits [later]

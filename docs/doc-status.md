@@ -105,6 +105,34 @@ its §4, and now cite `terrain-painting.md` TP10 or `tools/library.md`.
 is a shape's own and `TerrainThemeScope` resolves it against the rasterizer's shape footprints. The status
 header, the §5 runtime and resolution notes, the rule row and the seam argument all said "piece".
 
+**`docs/contracts/` no longer exists, and the folder name is the finding.** Of the eighteen documents it
+held, about five were contracts in the sense of an interface two sides must agree on; the rest were a
+rationale record, corpus studies, PGM law references, a UI build plan, a URL decision record and a design.
+The name described a *form* most of the contents did not have, which is why §1's inventory had to group by
+"the tool a document is about, not the folder it sits in" to say anything useful. Every folder under `docs/`
+is now named for a subject, the way `tools/`, `generator/` and `world-export/` already were:
+
+| Folder | Took |
+|---|---|
+| `pgm/` | the map contract — `destroyables-and-cores`, `water-lanes`, `filter-region-wiring`, `filter-patterns`, `region-categorization`, `region-authoring`, `region-data-flow`, `include-resolution`, `new-map-authoring`, `template.xml` |
+| `world-scan/` | what the studio reads out of a world — `monument-suggestion`, `monument-candidate-store`, `monument-patterns`, `objective-suggestion`, `terrain-ground-truth`, `block-palette` |
+| `client/` | `canvas-interaction`, `ui-conventions`, `routing-and-ia` |
+| `gameplay/` | `match-flow`, `traffic-ground-truth` |
+| `world-export/` | `sketch-world-export`, which every document already in that folder was deferring to |
+| root | `project-structure`, beside `design-decisions`, `cloud-setup` and this file |
+
+`world-scan/` is deliberately the mirror of `world-export/`: one folder is what the studio writes into a
+world, the other what it reads out of one. `CLAUDE.md` carries the map as a rule — a new document joins the
+folder whose subject it is about, and there is no bucket for a form.
+
+The move was pure relocation: every citation followed (fifty-seven files by full path, plus the relative and
+bare ones the move broke), and no document's prose changed except where a sentence named the folder that no
+longer exists. Four documents that need content work are filed rather than fixed in the same pass —
+**B112** (`routing-and-ia`'s route table names two routes that do not exist and omits six that do),
+**B113** (`destroyables-and-cores` still opens on the premise §3.2 disproved), **B114** (`ui-conventions` is a
+build plan whose phases shipped) and **B115** (`monument-candidate-store` is headed "design only" and is
+built).
+
 **§3.4's churn ranking still wants re-running against the full history**, for the reason stated above: the
 container that produced it saw three days of commits.
 

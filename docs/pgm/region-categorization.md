@@ -164,7 +164,7 @@ e.g. `spawns` would be tagged build merely because it carries an iron-only rule.
 
 Build regions are derived from **rule structure**, not naming (`build` is <2% of regions by
 name alone). PGM grants buildability to columns with a block at Y=0; authors carve buildable
-space out of the void and enforce the boundary with a filter (`editor-build-regions.md`).
+space out of the void and enforce the boundary with a filter.
 
 **Static (void-complement) — the common case.** A region targeted by a placement filter that
 resolves to (or, for an inline filter, *names*) a `void` is the enforcement wrapper (`void-area`,

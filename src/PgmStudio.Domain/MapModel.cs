@@ -235,7 +235,7 @@ public sealed class BlockDropRule
 /// <c>&lt;actions&gt;</c> tree (the trigger, the filter, the event map).
 /// <para>What makes it worth reading at all is that a fill over a <c>y=0</c> region is the whole of a
 /// second-generation water lane: the columns stop being void the instant the fill lands, so a gap that was
-/// unbridgeable becomes buildable (see <c>docs/contracts/water-lanes.md</c>).</para>
+/// unbridgeable becomes buildable (see <c>docs/pgm/water-lanes.md</c>).</para>
 /// </summary>
 public sealed class FillAction
 {
@@ -308,7 +308,7 @@ public sealed class MapXml
     /// <para>An id is all we hold. PGM resolves a fragment out of <c>config.getIncludesDirectory()</c> — a
     /// server directory that ships with neither the map nor the corpus — so the body is unavailable and the
     /// rules it defines never enter the document analysed here. <see cref="MapValidity"/> warns for exactly
-    /// that reason; <c>docs/contracts/water-lanes.md</c> §3 covers the one id whose meaning is known without
+    /// that reason; <c>docs/pgm/water-lanes.md</c> §3 covers the one id whose meaning is known without
     /// the body.</para>
     /// </summary>
     public List<string> Includes = [];

@@ -113,7 +113,7 @@ public sealed class PlanModel
     /// lane is none of those things until it opens.</summary>
     [JsonIgnore] public IEnumerable<PlanZone> BuildZones => Zones.Where(z => z.IsBuild);
 
-    /// <summary>The zones that open mid-match — the authored water lanes (<c>docs/contracts/water-lanes.md</c>).
+    /// <summary>The zones that open mid-match — the authored water lanes (<c>docs/pgm/water-lanes.md</c>).
     /// They export as the lane region plus the shared include, and take no part in the starting board.</summary>
     [JsonIgnore] public IEnumerable<PlanZone> WaterLanes => Zones.Where(z => z.IsWaterLane);
 

@@ -7,7 +7,7 @@ using Dict = Dictionary<string, object?>;
 
 /// <summary>
 /// Two-facet region categorisation (port of studio/services/region_categorizer.py, contract
-/// region-categorization.md). Operates on the map document dict (xml_data.json shape) so the
+/// docs/pgm/region-categorization.md). Operates on the map document dict (xml_data.json shape) so the
 /// input is identical to Python's. Category = what a region *is*; roles = what it's *used for*.
 /// </summary>
 public static partial class RegionCategorizer

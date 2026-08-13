@@ -39,7 +39,7 @@ public sealed record SpawnStructure
 /// <summary>What one spawn structure placed: where the team comes in, and every monument it carries.</summary>
 public sealed record PlacedSpawn(PlacedPlayerSpawn Point, IReadOnlyList<PlacedMonument> Monuments);
 
-/// <summary>Stamps a <see cref="SpawnStructure"/> (docs/contracts/sketch-world-export.md §2–3).</summary>
+/// <summary>Stamps a <see cref="SpawnStructure"/> (docs/world-export/sketch-world-export.md §2–3).</summary>
 public static class SpawnStructureStamper
 {
     public static PlacedSpawn Stamp(VoxelWorld world, SpawnStructure room)

@@ -12,7 +12,7 @@ using Dict = Dictionary<string, object?>;
 /// GET /api/map/{slug}/core-suggestions[?box=x0,y0,z0,x1,y1,z1] — the cores the ingest scan proposed for this
 /// map, read straight out of <c>core_candidate</c>. No world access and no scoring pass: a core's signature
 /// is unambiguous enough that the gather already knew the casing, so the stored row <i>is</i> the suggestion
-/// (docs/contracts/objective-suggestion.md §2). <c>box</c> is optional and narrows the list to casings
+/// (docs/world-scan/objective-suggestion.md §2). <c>box</c> is optional and narrows the list to casings
 /// intersecting it, which is how the configure step scopes a detect to the area the author drew.
 ///
 /// <para>The response also carries the generator's casing <b>defaults</b>. A core placed by hand has no

@@ -3,7 +3,7 @@ using PgmStudio.Pgm.Detect;
 namespace PgmStudio.Pgm.Tests.Detect;
 
 /// <summary>
-/// Water-lane detection (docs/contracts/water-lanes.md): the four wirings, the <c>y=0</c> test that separates
+/// Water-lane detection (docs/pgm/water-lanes.md): the four wirings, the <c>y=0</c> test that separates
 /// a lane from any other water, and the ranking that reports one lane once.
 /// <para>Every fixture is a synthetic <c>map.xml</c> pushed through the real parser, because two of the four
 /// wirings are only visible through parser surface (<c>&lt;include&gt;</c>, <c>&lt;fill&gt;</c>) and a

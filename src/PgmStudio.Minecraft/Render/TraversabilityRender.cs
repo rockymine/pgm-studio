@@ -10,7 +10,7 @@ namespace PgmStudio.Minecraft.Render;
 /// <b>navigable</b> when it has ground and two clear blocks of headroom over it, <b>or</b> when it has
 /// neither but sits inside the map's own declared buildable region — a void gap a build carries no ground
 /// over is still a route the moment PGM lets players bridge it, and a capture board routinely joins its
-/// islands exactly that way (<c>docs/contracts/water-lanes.md</c> §1, <c>ruediger</c>'s build regions). The
+/// islands exactly that way (<c>docs/pgm/water-lanes.md</c> §1, <c>ruediger</c>'s build regions). The
 /// navigable columns are split into 4-connected components, and every spawn/wool/monument/core region is
 /// coloured by the component its centre falls in. One dominant colour reading through every marker is a
 /// connected board; a marker in a second colour is cut off from the rest, however good the terrain looks
@@ -112,7 +112,7 @@ public static class TraversabilityRender
     /// region read straight off the "not void" wiring PGM enforces, the same one <see cref="BuildGenerator"/>
     /// writes and any hand-authored map reaches for to the same end, since PGM offers no other way to open a
     /// void gap to building. A water lane carries no apply rule of its own over its footprint (it opens by a
-    /// timed fill firing later in the match, not by this wiring — <c>docs/contracts/water-lanes.md</c> §1,
+    /// timed fill firing later in the match, not by this wiring — <c>docs/pgm/water-lanes.md</c> §1,
     /// §4), so it is not found here and reads as void until the render that watches it actually opens.
     /// <para>Reduces only the box shapes <see cref="RegionBoxes.FootprintXZ"/> can state — rectangles,
     /// cuboids and unions of them, which is every shape the generator's own build regions are drawn from. A

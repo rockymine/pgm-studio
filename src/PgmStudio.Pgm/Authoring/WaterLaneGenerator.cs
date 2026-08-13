@@ -5,7 +5,7 @@ using PgmStudio.Pgm.Editing;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Water-lane slice of the declarative generator (docs/contracts/water-lanes.md): the authored lane
+/// Water-lane slice of the declarative generator (docs/pgm/water-lanes.md): the authored lane
 /// footprints become a <c>&lt;union id="water-lanes"&gt;</c> of <c>y=0</c> cuboids, and the map pulls in
 /// <c>&lt;include id="water-lanes"/&gt;</c>.
 ///

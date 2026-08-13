@@ -7,8 +7,8 @@ splitting the detector into a *gather* pass (runs once at ingest, needs the worl
 Read alongside:
 - `monument-suggestion.md` — the detector this design factors. The schema here stores the output of its
   **gather** half; the **score** half is the query-time function.
-- `new-map-authoring.md` §Wools — the Monuments step that consumes the suggestions.
-- `region-data-flow.md` — why derived data lives in MariaDB; this table is another *derived projection*
+- `../pgm/new-map-authoring.md` §Wools — the Monuments step that consumes the suggestions.
+- `../pgm/region-data-flow.md` — why derived data lives in MariaDB; this table is another *derived projection*
   of the world, persisted so the authoring host never touches the world files.
 
 > **Status:** design only. Backend detector (`MonumentSuggester`) is complete and corpus-validated
@@ -261,7 +261,7 @@ monument configuration.
   centre), the same source `POST /regions/{id}/orbit` (F3) and `SymmetryExpander` already read.
 - **Transform:** the canonical `Geom.Symmetry` reflect/rotate on **XZ only** (Y is preserved — symmetry is
   horizontal). `rot_90` yields 3 counterparts (→ 4 total), `mirror_*` / `rot_180` yield 1 (→ 2 total). Each
-  counterpart's **capturing team shifts by the orbit step `k`**, per `new-map-authoring.md` §2.
+  counterpart's **capturing team shifts by the orbit step `k`**, per `../pgm/new-map-authoring.md` §2.
 - **No candidate-table read here.** Orbit operates on the *confirmed* positions, not the gathered
   candidates — it is pure geometry over the symmetry artifact. The candidate table answers *"where did the
   author place it?"*; symmetry answers *"where are its mirrors?"*. Two distinct requests, two distinct
@@ -269,7 +269,7 @@ monument configuration.
 
 This keeps the intent model honest: the intent persists the **authored** wool + its monument(s) plus the
 symmetry, and `SymmetryExpander.Expand` reproduces the very same orbit at generate time
-(`new-map-authoring.md` §2). The authoring-time orbit is the live **preview/confirm** of what the
+(`../pgm/new-map-authoring.md` §2). The authoring-time orbit is the live **preview/confirm** of what the
 generator will emit — same transform, surfaced so the author sees all teams' monuments before export.
 
 ## 6. Where it sits in the ingest pipeline

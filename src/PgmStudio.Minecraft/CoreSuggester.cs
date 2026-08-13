@@ -45,7 +45,7 @@ public sealed record CoreSuggestion(BlockBox Casing, int LavaBlocks, int Shell, 
 /// a standalone connected mass, and 95% have a symmetric partner. They have no <i>local</i> signature: a DTM
 /// structure is one to three ordinary blocks, so it is separated by ranking candidates against each other
 /// rather than by any test a single cluster can pass. That is a different shape of detector and lives apart
-/// from this one (<c>docs/contracts/objective-suggestion.md</c> §3).</para>
+/// from this one (<c>docs/world-scan/objective-suggestion.md</c> §3).</para>
 /// </summary>
 public static class CoreSuggester
 {

@@ -652,7 +652,7 @@ Not in scope for the work above, recorded because §6's corpus study is most of 
 `MonumentSuggester` already solves the harder version of this problem for CTW: given a world and a
 box the author drew, infer which blocks are the wool monument — 96.6% precision / 57.8% recall over
 1721 monuments, using sign-facing inversion, sign-text classification, pedestal geometry, and
-armour-stand fallbacks (`monument-suggestion.md`). The same shape applies here: **scan the world,
+armour-stand fallbacks (`../world-scan/monument-suggestion.md`). The same shape applies here: **scan the world,
 propose the objectives, let the author confirm which is a destroyable and which is a core.**
 
 **This is the easier problem, not a harder one**, and §6 is why. Wool monuments are a design free-
@@ -672,7 +672,7 @@ at all. Destroyables and cores are far more standardised:
   and the style, not just the box.
 
 The existing CTW pattern-matching carries over directly — the same world-scan plumbing, the same
-candidate-store shape (`monument-candidate-store.md`, `monument_candidate`), the same
+candidate-store shape (`../world-scan/monument-candidate-store.md`, `monument_candidate`), the same
 confirm-in-the-UI flow. What changes is the classifier, and it gets a cleaner signal to work with.
 
 The one trap is OB12: a detector must propose **the structure's** bounding box and then emit a region
@@ -683,7 +683,7 @@ world.
 
 ## 14. Water lanes — see `water-lanes.md`
 
-Water lanes have their own contract: **`docs/contracts/water-lanes.md`**. It owns the mechanism (PGM's
+Water lanes have their own contract: **`docs/pgm/water-lanes.md`**. It owns the mechanism (PGM's
 void filter, read live at `y=0`), the four wirings the corpus authors them in, detection, and the
 authored form.
 

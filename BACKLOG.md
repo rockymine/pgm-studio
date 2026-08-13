@@ -15,7 +15,7 @@ renumber or reuse.
 ## Authoring (N) — the new-map intent editor (`/maps/{id}/configure`, new maps only)
 
 The guided wizard at `/maps/{id}/configure` (UI label **Configure**) that builds a map from declarative
-intent (`docs/contracts/new-map-authoring.md`; backend + every page-order step are landed —
+intent (`docs/pgm/new-map-authoring.md`; backend + every page-order step are landed —
 `FEATURES.md`). **Leave the existing Edit editor untouched** — a separate surface, not a refit. Only
 the focus-integration polish remains.
 
@@ -189,7 +189,7 @@ highlight); these are the parked / dormant / deferred slices.
 
 Shared infra for **both** the Configure wizard (`/maps/{id}/configure`) and the frozen Edit editor
 (`/maps/{id}/edit`). `C12`/`C14` are cross-cutting (serve both surfaces); `C9`/`C11`
-are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
+are Edit-specific. Full canvas spec: `docs/client/canvas-interaction.md`.
 
 - [ ] **C9 — Kits editing UI (Teams) + per-activity status dots.** Spawn `kit` is read/sent but has no
   edit UI; there is no status-dot system. *(Two sub-items — split if priorities diverge.)*
@@ -201,7 +201,7 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   (`panel-section` → `section-header` → `section-title`) is hand-typed across 44 of 64 razor files and
   the app shell is copy-pasted 11×. Full audit, atomic tree, API conventions (foldered under
   `Components/`, param-first + slot override; global CSS, no `.razor.css`), and the class→component map
-  are the **contract in `docs/contracts/ui-conventions.md`** — follow it; `/design` is the
+  are the **contract in `docs/client/ui-conventions.md`** — follow it; `/design` is the
   zero-visual-diff regression oracle (components emit the same classes). **Phases A–C + D.1–D.2 shipped**
   (`FEATURES.md`): the atoms + `Section`, the shell (`StudioShell` + topbar/rail/footer), the workspace
   shells (`Workspace`/`Sidebar`/`Inspector`/`ContentColumn`), and — across every production surface (0
@@ -269,6 +269,38 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   genuinely share — the rest of their apparent repetition is per-tool document semantics and should stay
   separate.
 ## Backend, pipeline & internals (B / P / A)
+
+- [ ] **B112 — `client/routing-and-ia.md`'s route table names routes that do not exist.** It lists
+  `/maps/new-sketch` and `/concepts` → `Authoring.razor`, neither of which is in the tree, and omits six that
+  are: `/maps/{slug}/plan`, `/generator`, `/plan-editor`, `/catalog`, `/design` and `/not-found`. A route
+  table is the one part of a document that can be checked mechanically, so a wrong one is worse than none.
+  The question underneath is whether the document survives: `tools/flow.md` now owns where a map starts and
+  which surface owns what, and each tool document owns its own route. What only this one says is the
+  **decoupling of the visible label from the code name** — the code says "authoring", the UI says
+  "Configure" — which is a real decision and about two paragraphs. Either cut it to that plus a route table
+  generated from the `@page` directives, or fold the decision into `flow.md` and retire it.
+
+- [ ] **B113 — `pgm/destroyables-and-cores.md` opens on a premise its own code disproved.** Its second
+  sentence reads "today both elements are invisible to the parser — a DTM map loads 'successfully' and
+  silently loses its objectives", and DTM and DTC both parse, write and round-trip (`FEATURES.md`: 188 maps /
+  619 destroyables / 153 modes; 127 maps / 300 cores, zero drift). §1–§9 are PGM law and stand as the
+  reference for what the objectives require; §10's data-loss fix, §11's persistence and §12's sequencing are
+  landed build plan, and §13 (detecting objectives from a world scan) is `world-scan/objective-suggestion.md`'s
+  subject. Cut it to the law and the corpus measurements, the treatment `new-map-authoring.md` and
+  `region-authoring.md` already had.
+
+- [ ] **B114 — `client/ui-conventions.md` is a build plan whose phases shipped.** It is written as the map
+  from CSS classes to the components that replace them, in the order they get built (C12) — and phases A–C
+  and D.1 are in `FEATURES.md`, with the `/design` page rendering the components themselves. What is live in
+  it is the **vocabulary reference** (which component to reach for, what API each takes) and the adoption
+  rules that keep Blazor from fighting the markup. Cut it to those; the build order goes.
+
+- [ ] **B115 — `world-scan/monument-candidate-store.md` is headed "design only" and is built.** The gather/score
+  split, the `monument_candidate` table (M0002), the ingest write and both authoring endpoints all shipped
+  (`FEATURES.md`, F9), so §1–§8 describe the tree rather than a proposal. What only it says is the **hosting
+  constraint** that motivated the split (the authoring host never touches world files), the two correctness
+  rules, and the orbit-completion pass; §9's open questions want re-reading against what landed. Same
+  treatment: cut to what only it says.
 
 - [~] **B70 — The room-style *card* cannot show a porch or a window.** The open editor draws four views now
   (B71), the cutaway among them, so a style's porch and its windows read there. A library **card** still
@@ -563,14 +595,14 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   refinements — read-only `verdicts_export`/`rejects_query`) is a small follow-on once the corpus has
   data, not before.
 
-**DTM / DTC objectives (destroyables + cores).** The contract is `docs/contracts/destroyables-and-cores.md`
+**DTM / DTC objectives (destroyables + cores).** The contract is `docs/pgm/destroyables-and-cores.md`
 — it owns the XML surface, the **world-measured** structure families, the schema, and the two-team scope;
 its rule ids (`OB*`/`DT*`/`DC*`) are cited below. Filed here (not `N`/`G`) because the bulk of each is
 pipeline — parser, writer, schema, intent, stamper — with the plan-editor placement as the last mile.
 **Both objectives now author end to end** (`FEATURES.md`): parse/write/codec, the schema, the world stamps,
 and plan → intent → world → `map.xml` for destroyables (`B24`) and cores (`B25`). What is left below is the
 import diagnostic (`B24e`), detection (`B26`), and the island-floor work the phantom classifier unblocked
-(`B31`). The other thing it unblocked — water lanes — has shipped (`FEATURES.md`, `docs/contracts/water-lanes.md`).
+(`B31`). The other thing it unblocked — water lanes — has shipped (`FEATURES.md`, `docs/pgm/water-lanes.md`).
 
 - [ ] **B24e — Flag an *imported* map whose objective region holds none of its material (a warning, not a
   gate).** Scoped down: the authored half of this is **already covered by tests** — `DestroyableWorldTests`
@@ -591,7 +623,7 @@ import diagnostic (`B24e`), detection (`B26`), and the island-floor work the pha
   world. (OB3, OB11, OB12)
 - [ ] **B57 — `layer_segment` counts a build-region marker as solid ground.** Island detection now separates
   terrain from markers and from what a map erases before play (`FEATURES.md`,
-  `docs/contracts/terrain-ground-truth.md`), but that runs on `CleanColumns` → `islands_json` only. The other
+  `docs/world-scan/terrain-ground-truth.md`), but that runs on `CleanColumns` → `islands_json` only. The other
   ingest derivation, `FeatureExtractors.Segments` → `layer_segment`, has its own exclusion set and applies
   neither rule, so a floor sheet at `y=0` persists as a solid span. Everything reading it at query time
   (`SegmentIndex.BaseColumns` → `IslandDetector.CleanedBaseFootprint`) therefore walks on a marker. Narrower
@@ -611,7 +643,7 @@ import diagnostic (`B24e`), detection (`B26`), and the island-floor work the pha
   order) wants resolved; anything that saves, exports or re-emits a document wants written; geometry
   (islands, layout, the seed corpus) does not care, since maps declare their own regions. Add
   `Includes:Root` beside `MapsRoots` in `Program.cs`, thread it only to the chosen paths, and make the
-  distinction unmissable at the call site. (`docs/contracts/include-resolution.md` §2)
+  distinction unmissable at the call site. (`docs/pgm/include-resolution.md` §2)
 
 - [ ] **B56 — Parse `<score>` and `<flags>` so an include-supplied objective is actually read.** Include
   resolution landed (`FEATURES.md`) and measured its own limit: **82 corpus maps take their objective from a
@@ -620,11 +652,11 @@ import diagnostic (`B24e`), detection (`B26`), and the island-floor work the pha
   what closes that; a parser is. Until one exists those maps read as objective-less — which the
   supported-range gate deliberately tolerates, since a module arriving from a fragment round-trips through the
   include reference and cannot be silently lost. Add each tag to `ParsedObjectiveModules` as its parser lands.
-  (`docs/contracts/include-resolution.md` §4)
+  (`docs/pgm/include-resolution.md` §4)
 
 - [~] **B58 — Finish the destroyable ranker.** The core half has shipped — gathered at ingest, stored in
   `core_candidate`, and confirmed in the Cores phase (`FEATURES.md`). What remains is the other objective,
-  and it is measured but unbuilt (`docs/contracts/objective-suggestion.md`).
+  and it is measured but unbuilt (`docs/world-scan/objective-suggestion.md`).
   **Destroyables: the discriminating signals are measured, the detector is not written.** They are not
   identified by anything about the structure — size spans 1 to 31,105 blocks and fill is uninformative — but by
   their **neighbourhood**, dumped 10 blocks outward and down to `y=0` for all 614 declared structures.
@@ -916,7 +948,7 @@ What stays here is the concrete non-design work on *imported* maps (island detec
   belongs beside `BoardDeriver`; the term belongs in `Evaluate/Terms`. It reads a pair of routes rather than
   one, so the origin "a captured wool room" comes from G168's post-capture state — until that exists,
   computing it once per wool treated as captured is the honest stand-in. Background and the full numbers:
-  `docs/match-flow.md` §2, §4.9.
+  `docs/gameplay/match-flow.md` §2, §4.9.
 
 - [ ] **G165 — dock arrangement belongs in the structure summary.** Which face of the hub each box seats on
   is a board property with measured consequences and no representation anywhere: it is not the hub's body
@@ -958,7 +990,7 @@ What stays here is the concrete non-design work on *imported* maps (island detec
   that only apply post-capture (G164's interference, rotation between objectives) declare it. Decide
   early whether the two states produce two scores or one combined figure — a single number that averages a
   strong opening against a hopeless second phase describes neither. The played account is in
-  `docs/match-flow.md` §4.8.
+  `docs/gameplay/match-flow.md` §4.8.
 
 - [ ] **B43 — Retire the Python-oracle parity harness.** The project began as a port of the Python
   `pgm-map-studio` and still carries a parity harness that regenerates Python "oracles"

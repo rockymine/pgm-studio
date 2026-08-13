@@ -5,15 +5,15 @@ using Dict = Dictionary<string, object?>;
 
 /// <summary>
 /// Forward generation for the Teams slice of the declarative authoring model
-/// (docs/contracts/new-map-authoring.md). Projects a <see cref="MapIntent"/> into the PGM document:
+/// (docs/pgm/new-map-authoring.md). Projects a <see cref="MapIntent"/> into the PGM document:
 /// teams, a spawn kit, per-team spawn-point + protection regions with the spawn-protection wiring
-/// (an <c>only-&lt;team&gt;</c> filter + an <c>enter</c> apply-rule — filter-region-wiring.md template
+/// (an <c>only-&lt;team&gt;</c> filter + an <c>enter</c> apply-rule — docs/pgm/filter-region-wiring.md template
 /// 2), the <c>spawns[]</c> links, and the observer (<c>&lt;default&gt;</c>) spawn.
 /// <para>Mirror of <c>RegionCategorizer</c>: the regions it emits read back as <c>spawn/point</c>,
 /// <c>spawn/protection</c>, and <c>observer_spawn</c> (the consistency check).</para>
 /// <para>Idempotent: clears its own prior output (by deterministic id) before regenerating, so
 /// re-running after an intent edit never duplicates. The save path is entity-replace anyway, so the
-/// doc is rebuilt from scratch each save — see region-data-flow.md.</para>
+/// doc is rebuilt from scratch each save — see docs/pgm/region-data-flow.md.</para>
 /// </summary>
 public static class TeamsGenerator
 {
@@ -68,7 +68,7 @@ public static class TeamsGenerator
         ["id"] = id,
         ["items"] = new List<object?>
         {
-            // Slot layout follows docs/template.xml: hotbar 0–3 = tools/weapons, 4–5 = build blocks,
+            // Slot layout follows docs/pgm/template.xml: hotbar 0–3 = tools/weapons, 4–5 = build blocks,
             // 7–8 = water bucket + golden apple; the utility items sit in the inventory row (28–30).
             Item(0, "iron sword", unbreakable: true),
             Item(1, "bow", unbreakable: true, enchantments: "infinity:1"),
@@ -92,7 +92,7 @@ public static class TeamsGenerator
             Armor("leggings", "chainmail leggings", enchantments: "projectile_protection:1"),
             Armor("boots", "leather boots", teamColor: true, enchantments: "projectile_protection:1"),
         },
-        // Full damage-immunity while in spawn; the reset kit strips it on leave (docs/template.xml).
+        // Full damage-immunity while in spawn; the reset kit strips it on leave (docs/pgm/template.xml).
         ["effects"] = new List<object?> { Effect("damage resistance", "oo", 100) },
     };
 

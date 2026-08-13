@@ -2,7 +2,7 @@
 """Cross-reference physically-present wool (wool_block + chest_item) against declared
 objective wools, and validate island-membership owner inference, across the corpus.
 
-Grounds the N04 Wools authoring step (docs/contracts/new-map-authoring.md §5):
+Grounds the N04 Wools authoring step (docs/pgm/new-map-authoring.md §5):
   1. decorative vs objective  — how much physical wool is NOT an objective (must be rejectable)?
   2. detection gaps           — objectives with no physical wool block (must allow manual add)?
   3. chest-dispensed wool     — is wool-in-chests a useful objective signal?

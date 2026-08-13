@@ -395,7 +395,7 @@ public static class ArtifactKind
     // PGM map document. Pruned against live regions on read; entries graduate out once a region's
     // derived category is no longer "other".
     public const string RegionDraftsJson = "region_drafts_json";
-    // Declarative authoring intent for NEW maps (docs/contracts/new-map-authoring.md): the source of
+    // Declarative authoring intent for NEW maps (docs/pgm/new-map-authoring.md): the source of
     // truth the generator projects into regions/filters/apply-rules. Like the draft sidecar it lives
     // outside the entity-replace codec, so it survives MapWriter.SaveDocAsync and is never part of the
     // PGM document. Presence of this artifact is what makes a map "intent-authored".

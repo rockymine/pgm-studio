@@ -163,7 +163,7 @@ belongs to the plan tool's marker panel, where the structure and the terrain und
 
 The phase itself is additive. A PGM map may carry wools, destroyables and cores at once, so Cores is its own
 phase beside Wools rather than a branch that replaces it, and the objective phases share one completeness
-gate — the map needs an objective, not one of each (`new-map-authoring.md` §12).
+gate — the map needs an objective, not one of each (`../pgm/new-map-authoring.md` §12).
 
 Validation runs from both ends. The corpus gives external truth at scale but only for maps someone else
 authored; **a composed plan gives truth by construction** — a plan states a core at an anchor with a chosen

@@ -7,7 +7,7 @@ using Dict = Dictionary<string, object?>;
 /// <summary>
 /// Build-slice generator (declarative authoring). Asserts the void-enforcement structure and the
 /// mirror property: the generated rectangles read back as <c>build</c>. See
-/// docs/contracts/new-map-authoring.md §5 and filter-region-wiring.md template 1.
+/// docs/pgm/new-map-authoring.md §5 and filter-region-wiring.md template 1.
 /// </summary>
 public sealed class BuildGeneratorTests
 {

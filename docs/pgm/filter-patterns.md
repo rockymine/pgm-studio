@@ -12,7 +12,7 @@ the repository, since the studio surfaces no filter editing at all (`docs/tools/
 
 What the studio's own generator emits is a small, fixed subset of this: `TeamsGenerator`, `WoolGenerator` and
 `BuildGenerator` write the spawn-protection, wool-room and build-area patterns, wired per
-`docs/contracts/filter-region-wiring.md`. That document owns the wiring *relationship* and the template
+`docs/pgm/filter-region-wiring.md`. That document owns the wiring *relationship* and the template
 catalog; this one owns what the corpus measured.
 
 ---

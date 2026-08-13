@@ -23,7 +23,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   dashboard `/maps`, **Edit** `/maps/{id}/edit`, **Configure** `/maps/{id}/configure`, **Sketch**
   `/maps/{id}/sketch`, origination `/maps/new`, concept showcase `/concepts`, design system `/design`.
   Slugs are the on-disk map dir; query params hold view state only. Contract:
-  `docs/contracts/routing-and-ia.md`.
+  `docs/client/routing-and-ia.md`.
 - **Landing + staged dashboard** — `/` is a landing of three lifecycle cards (Sketch · Configure ·
   Edit) with live `stage-counts`; `/maps?stage=sketch|configure|edit` (default edit) is one staged
   overview (`Home.razor`) whose activity rail switches stage and whose primary action + resume target
@@ -154,7 +154,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **Overview activity** — static pixel surface render + symmetry axis/centre overlay. (E7)
 - **Draft bucket** — a freshly drawn region shows in the activity step that drew it, via an editor-only
   `region_drafts_json` sidecar kept **outside** the codec; it graduates out the moment wiring derives its
-  real category. See `docs/region-data-flow.md`. (E10)
+  real category. See `docs/pgm/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
 - **The icon set is vendored, not fetched (C30).** `index.html` pulled lucide from `cdn.jsdelivr.net`
@@ -294,7 +294,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `SectionHeader`/`ListRow` under `Components/{Primitives,Forms,Data}/`, param-first with slot
   overrides, emitting the canonical CSS classes (zero visual diff vs `/design`). Adopted in the
   `/generator` filter rail (retiring the `gen-*` sidebar drift) and the `/maps` list. Contract:
-  `docs/contracts/ui-conventions.md`. (C12 phase A)
+  `docs/client/ui-conventions.md`. (C12 phase A)
 - **App-shell components** — `StudioShell` (`editor-page` + optional rail/viewport/footer, with a
   `Bare` mode for custom bodies) + `Topbar`/`Crumb`/`ActivityRail`/`ActivityButton`/`AppFooter`/
   `AppFooterLink` under `Components/Layout/`. Adopted across all 11 `editor-page` sites, retiring the
@@ -438,7 +438,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **Region geometry editing** — drag the 8 resize handles (rectangle/cuboid) on the canvas *and* type
   exact coords in the inspector; both persist (`PATCH /regions/{id}` bounds/coords) and stay in sync via
   the shared `Models/RegionEdits` (`WorldCanvas` raises `OnGeometrySaved`; the host persists). Wired in
-  all four Edit activities. `docs/contracts/canvas-interaction.md` §3. (CV1)
+  all four Edit activities. `docs/client/canvas-interaction.md` §3. (CV1)
 - **Arrow-key region nudge** — the selected rectangle/cuboid moves 1 block (Shift = 16) with the arrow
   keys; a single `document` keydown handler on the shared `WorldCanvas` (guards: canvas not visible,
   focus in a field, nothing selected) translates it live and persists through the same
@@ -679,7 +679,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `.mca` files are discarded straight after import and cannot be read again.
   Validated from both ends: the corpus for external truth at scale, and a **composed plan for truth by
   construction** — a plan states a core at an anchor, the pipeline builds the world, and the detector must
-  propose that core with that casing, shell and cap. (B26, OB12/OB14, `docs/contracts/objective-suggestion.md`)
+  propose that core with that casing, shell and cap. (B26, OB12/OB14, `docs/world-scan/objective-suggestion.md`)
 - **Island detection tells terrain, markers and erased blocks apart (B31).** A bottom-up scan asks "where does
   the ground start", and a Minecraft world holds three kinds of solid block with only one of them ground. They
   are now separated by three rules, each grounded in a different authority. **Noise** (water, lava, foliage,
@@ -694,7 +694,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   rock_the_casbah, while the maps whose glass genuinely bridges islands lay it at `y=0`, 100% of the time.
   Scoping to the floor preserves those exactly (newgen, outlyne, rushers_vs_defenders and ad_infinitum do not
   move) and returns terrain to 16 corpus maps carrying glass above it. Measured with `--island-erasure` over 398
-  worlds. (B31, OB16, `docs/contracts/terrain-ground-truth.md`)
+  worlds. (B31, OB16, `docs/world-scan/terrain-ground-truth.md`)
 - **Water lanes: all four wirings detected, the newest one authored (B28).** A water lane is a gap that
   becomes bridgeable part-way through a match, and the mechanism is PGM's void filter read *live*: a column
   is void iff `(x, 0, z)` is air, evaluated at query time, so anything landing at `y=0` opens the whole
@@ -714,7 +714,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `--water-lanes` sweeps a corpus; `WL1` lints a lane drawn over terrain. When a lane opens is read from the
   map in every form, the include one included: the fragment declares `water-lane-timer` as an overridable
   `fallback` constant, so a map's own value wins and its absence means the fragment's 45m. (B28,
-  `docs/contracts/water-lanes.md`)
+  `docs/pgm/water-lanes.md`)
 - **`<include>` is read, resolved, and the two readings are kept apart (B29).** The element was skipped
   outright, so 198 of 208 corpus `ctw/` maps (95%) were analysed as if rules they pull in did not exist.
   `MapXml.Includes` records every referenced id (so it still round-trips), `MapValidity` warns per
@@ -737,7 +737,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   apply rules (55) and kits (28); every corpus id resolves. Two negative results are load-bearing — no map
   gains a gamemode (`<score>`/`<flags>` have no parser: `B56`), and no water-lane verdict changes, because
   that signal is the reference and the region rather than the behaviour behind them. (B29,
-  `docs/contracts/include-resolution.md`)
+  `docs/pgm/include-resolution.md`)
 - **The wire is dot-separated on every machine, in every country (B48).** Query, route and form values bind
   through a converter that reads the ambient culture, so on a comma-decimal host `?leader=0.55` arrived as
   fifty-five — a valid number, a hundredfold out, silent, and correct again on the next developer's machine.
@@ -774,7 +774,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `(blockId << 4) | meta`, so a per-cell lookup is two array reads with no hashing, no tuple key and no
   allocation — hex strings are formatted once and returned interned (`PackedRgb` skips the string entirely),
   which retires the per-request colour cache in `LayerData.Pixels`. Contract:
-  `docs/contracts/block-palette.md`. `tools/palette/texture-average.cs` decodes 1.8 block PNGs with no image
+  `docs/world-scan/block-palette.md`. `tools/palette/texture-average.cs` decodes 1.8 block PNGs with no image
   dependency and dumps/emits/diffs the means the table is authored from (`--check` is non-zero on drift).
   Tested: sub-type distinctness per family, one colour per wood across all nine of its ids, masking of axis /
   decay / half / growth bits, the three dye ramps, base fallback, ore separation, accessor agreement, and
@@ -1303,7 +1303,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 ## New-map authoring — intent model (backend) ★ headline direction
 The forward path (**meaning → structure**): the author states intent and the generator emits the
 region/filter/apply-rule graph. Backend landed + unit-tested; the **wizard shell UI + intent wiring are
-landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: `docs/contracts/new-map-authoring.md`.
+landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: `docs/pgm/new-map-authoring.md`.
 - **Configure wizard shell (UI)** — `/maps/{id}/configure`: activity rail (six phases) + flow bar (phase
   identity · sub-steps · Back/Next) + three-panel workspace, driven by a phase/sub-step state machine. On
   entry it loads the stored intent (`GET /map/{slug}/intent`) and derives the **rail gating from its slices**
@@ -1582,7 +1582,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   Verified live (thunder_blank, `mirror_x`): a 2-rect spawn + 2-rect room orbit-fill into valid unioned XML on
   both teams. (`MapIntent`, `TeamsGenerator`, `WoolGenerator`, `SymmetryExpander`, `ProtectionStep`,
   `WoolRoomStep`, `OrbitAssignment`; N10)
-- **Wool-room wiring — the validated template structure (`docs/template.xml`)** — `WoolGenerator` now groups
+- **Wool-room wiring — the validated template structure (`docs/pgm/template.xml`)** — `WoolGenerator` now groups
   the rooms per defending team into a `<team>s-woolrooms` union (all under a top `woolrooms` union) instead
   of per-wool rules, and replaces the blanket `block=not-<owner>` ("forbid everything") with a shared
   **`woolrooms-filter`** whitelist: a single `<any>` allowing the spawn-kit blocks (`wood`, `stained clay`) +
@@ -1654,14 +1654,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (primitives → compounds → `<apply>` applicators last), and a
   uuid → username **comment** under each `<author>`/`<contributor>` (`<!-- name -->` on its own line at the
   same indent, from the resolved `Author.Name`; skipped when unresolved). (`CtwStandards`, `XmlWriter`, `MapXmlEndpoint`)
-- **XML serializer conventions (`docs/template.xml`-faithful).** `XmlWriter.ToXml` serializes with **4-space
+- **XML serializer conventions (`docs/pgm/template.xml`-faithful).** `XmlWriter.ToXml` serializes with **4-space
   indentation** (`XmlWriterSettings.IndentChars`, not the 2-space default / tabs) and **no `<?xml?>`
   declaration** (`OmitXmlDeclaration` — real PGM maps start at `<map>`); the `<void/>` filter is emitted
   **bare, without an id** (trivial + always inlined); and `<regions>` are now sub-ordered **by semantic role
   within each geometry type** (spawn points · wool spawns · spawn regions · monuments · build), so `*-point`
   and `*-spawn` ids no longer interleave. The `ReviewXmlStep` container segmenter was retuned to the 4-space
   indent. (`XmlWriter` + `ReviewXmlStep`; B11/B13/B15/B16)
-- **Generated CTW-standards conventions (`docs/template.xml`-faithful).** Four corpus-alignment fixes to the
+- **Generated CTW-standards conventions (`docs/pgm/template.xml`-faithful).** Four corpus-alignment fixes to the
   generated `map.xml`: team ids now carry the `-team` suffix (`red-team`/`blue-team`) at the derivation sites
   while `IntentNaming.Slug` keeps derived ids colour-based (`only-red`, `red-spawn-point`); the spawn kit's
   **build blocks** (`wood`, `stained clay`) go to `<itemkeep>` (not `<itemremove>`), so the `chance="0"`
@@ -1713,7 +1713,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Playability export gate** — `GET /map/{slug}/xml` returns **409** for an intent map whose
   spawn↔wool chain isn't traversable-connected. (`0ac03ae`, `MapXmlEndpoint`)
 - **Monument suggester + slice extractor** — smart-detect for the Monuments step (corpus-learned
-  sign-facing → monument geometry). See `docs/contracts/monument-suggestion.md`. (`5235107`, `45209a1`)
+  sign-facing → monument geometry). See `docs/world-scan/monument-suggestion.md`. (`5235107`, `45209a1`)
 - **Monument candidate store** — `MonumentSuggester` split into ingest-time `Gather` (world →
   candidates) + pure `Score` (`Suggest == Score(Gather)`); `monument_candidate` table (M0002) gathered in
   `scan-world`; served by `GET /map/{slug}/monument-suggestions` (box, no world access) +
@@ -1727,7 +1727,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   **96.7% / 58.7% / 35 FP**; label-free (`--label None`) **97.4% / 191 TP / 5 FP / 93.7% colour**. The
   single-signal + terrain-ambiguous geometry spray (~97% of the old store) is **not persisted** — flood
   maps collapse (dreamland 5859→311, fall_of_babylon 5035→40, lupain 52→2).
-  `docs/contracts/monument-candidate-store.md`. (F9)
+  `docs/world-scan/monument-candidate-store.md`. (F9)
 - **`--migrate-only`** — `PgmStudio.Import` applies pending migrations to a live DB without importing. (F9)
 - **`/authoring` concept page** — UI mock (no backend calls), the design reference for the real
   wizard. (`9f645dc` → `45209a1`)
@@ -2313,7 +2313,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   one connected mass, no overlap, edge-aligned joins only per §3; the arm cap; the U's slide) + full Pgm suite
   628/628 green; drawn **standalone** in the body gallery (`tools/compose/body-gallery.cs`) with every piece
   labelled by its slot. The shared bodies the hub (G88) and frontline (G89) designations reuse. Contract:
-  `docs/contracts/shape-vocabulary.md` §5/§10. (G91)
+  `docs/generator/model.md` §4 (the shape model). (G91)
 
 - **The terminal-free `Body` — the shape/designation split (M3, G90)** — `Pgm/Shapes/ShapeBody.cs` +
   `ShapeEmitter.cs` + `ApproachSlots.cs`: `ShapeEmitter.Emit` — which baked a wool `room` into every family —
@@ -2327,7 +2327,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   and the `DockingGate` stay green (619/619 Pgm), and `ShapeBodyTests` gates that the body carries exactly the
   emission's terrain (terminal-free) and that `Approach` reconstructs the emission. The shared stage the hub
   (G88), frontline (G89) and new-compound (G91) work builds on. Contract:
-  `docs/contracts/shape-vocabulary.md` §8/§9. (G90)
+  `docs/generator/model.md` §4 (the shape model). (G90)
 
 - **The spawn seats at a sampled point along the hub's back edge (G85)** — `Compose/TeamUnitGrower.cs`: the spawn
   was pinned to the hub back edge's −v corner (`FillSpawn(..., hubVMin, ...)`) while the wool arms already sampled a
@@ -2781,7 +2781,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   stretched raster would not. JS 166/166; the artifact is confirmed gone on a real Firefox. (CV18)
 
 - **The world canvas states its layer stack once (CV19)** — `canvas/world-canvas.js` +
-  `docs/contracts/canvas-interaction.md`. `CV13` gave the canvases `render/layer-stack.js` — the key order of
+  `docs/client/canvas-interaction.md`. `CV13` gave the canvases `render/layer-stack.js` — the key order of
   the spec *is* the paint order, bottom first, and each group carries `data-layer="<name>"` so a layer is
   addressable by name rather than by its index among siblings. Sketch and plan were rerouted then; the world
   canvas, the one with sixteen mounts, was the holdout. It hand-built 13 groups as `id="layer-*"` across a
@@ -3877,7 +3877,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   returns a `{slug}/` ZIP (`map.xml` + `level.dat` + `region/*.mca`) for sketch-origin maps and plain
   `map.xml` otherwise, behind the traversability gate (shared `MapXmlComposer`). The Configure Export button
   downloads it (`studio.downloadUrl`), and the wizard's manual Monuments sub-step is dropped for sketch maps
-  (`GET /map/{slug}/origin`). Spec: `docs/contracts/sketch-world-export.md`. (P9e, P9f, P9k)
+  (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **Grid-aligned sketch — block-accurate WYSIWYG (S23).** The sketch is now honest about the voxelized world

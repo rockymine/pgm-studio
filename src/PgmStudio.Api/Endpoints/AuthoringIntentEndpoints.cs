@@ -13,7 +13,7 @@ namespace PgmStudio.Api.Endpoints;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Declarative authoring intent store (docs/contracts/new-map-authoring.md): the <c>map_intent_json</c>
+/// Declarative authoring intent store (docs/pgm/new-map-authoring.md): the <c>map_intent_json</c>
 /// artifact that is the source of truth for a new map. Mirrors <see cref="RegionDraftStore"/> — it lives
 /// outside the entity-replace codec so it survives <c>MapWriter.SaveDocAsync</c>.
 /// </summary>

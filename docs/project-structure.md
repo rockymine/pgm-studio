@@ -150,7 +150,7 @@ match their folders (the A5 convention):
 | Folder / namespace | Files | The concern |
 |---|---|---|
 | `Schema/` → `PgmStudio.Data.Schema` | Entities.cs (23 `*Row` + `ArtifactKind`), PgmDb.cs | the relational *model* + linq2db context |
-| `Map/` → `PgmStudio.Data.Map` | MapReader, MapWriter, MapRepository | Dict doc ⇄ entity rows (the map codec; see `region-data-flow.md`) |
+| `Map/` → `PgmStudio.Data.Map` | MapReader, MapWriter, MapRepository | Dict doc ⇄ entity rows (the map codec; see `pgm/region-data-flow.md`) |
 | `Features/` → `PgmStudio.Data.Features` | WorldFeatureWriter, SurfaceLayer, MonumentCandidateStore | world-feature ingest · artifact decode (`layer.parquet` blob) · monument-suggestion query store |
 
 **`WorldFeatureWriter`'s home — decided: stays in `Data` (`Features/`).** It reads as a pipeline stage

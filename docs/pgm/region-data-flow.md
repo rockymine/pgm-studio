@@ -2,7 +2,7 @@
 
 How a region travels from the editor to the database and back, why its **category is never
 stored**, why **all region rows are dropped and rewritten on every save**, and how that shaped the
-**draft bucket** for freshly drawn regions (E10). Read alongside `contracts/region-categorization.md`
+**draft bucket** for freshly drawn regions (E10). Read alongside `region-categorization.md`
 (what the categories *mean*) — this doc is about *where the data lives and when it's computed*.
 
 ---

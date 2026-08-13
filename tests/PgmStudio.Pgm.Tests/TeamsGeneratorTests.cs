@@ -7,7 +7,7 @@ using Dict = Dictionary<string, object?>;
 /// <summary>
 /// Teams-slice generator (declarative authoring). Asserts the emitted structure and the
 /// <b>mirror property</b>: what the generator produces, the categorizer reads back as the same intent
-/// (spawn/point + spawn/protection) — the mirror property, docs/contracts/new-map-authoring.md §6.
+/// (spawn/point + spawn/protection) — the mirror property, docs/pgm/new-map-authoring.md §6.
 /// </summary>
 public sealed class TeamsGeneratorTests
 {

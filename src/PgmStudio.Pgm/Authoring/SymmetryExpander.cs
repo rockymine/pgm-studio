@@ -4,7 +4,7 @@ using PgmStudio.Domain;
 using PgmStudio.Geom;
 
 /// <summary>
-/// Orbit-fill for the declarative intent (docs/contracts/new-map-authoring.md §3). Given an intent whose
+/// Orbit-fill for the declarative intent (docs/pgm/new-map-authoring.md §3). Given an intent whose
 /// <see cref="MapIntent.Symmetry"/> is set, the author only authors <b>one orbit unit</b> — team 0's
 /// spawn, one wool — and this expander rotates/reflects it onto the other teams so the rest of the map
 /// configuration falls out for free. The expansion happens at the <i>intent</i> level (before any

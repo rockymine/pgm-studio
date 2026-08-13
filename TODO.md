@@ -187,6 +187,15 @@ holds them until one becomes the focus.
   that arrangement breaks — a system that no longer exists and failures that can no longer occur. Its rationale
   is kept where it is load-bearing: why the finish belongs on the sketch in `flow.md`, the two stamp concepts
   in `structures.md`.
+
+  **`docs/contracts/` is gone, and its name was the finding.** Five of its eighteen documents were contracts;
+  the rest were a rationale record, corpus studies, PGM law, a UI build plan, a URL decision and a design — a
+  folder named for a form most of its contents did not have, which is why the census had to group by subject
+  to say anything. Every folder under `docs/` is now named for a subject: **`pgm/`** (the map contract),
+  **`world-scan/`** (what the studio reads out of a world, the mirror of `world-export/`, which writes one),
+  **`client/`**, **`gameplay/`**, with `project-structure.md` at the root beside the other whole-repo notes.
+  `CLAUDE.md` carries the map. Pure relocation — every citation followed, no prose rewritten — with the four
+  documents that need content work filed as **B112**–**B115** rather than fixed in the same pass.
   `docs/doc-status.md` §2 says what is duplicated and §5 which tools are unserved; its churn ranking (§3.4)
   **wants re-running against the full history**, since the container that produced it saw 197 commits over
   three days and cannot see drift older than that.

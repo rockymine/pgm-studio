@@ -61,7 +61,7 @@ any( all( any(leaves, log[, tnt]), void ), not(void) )
 
 *Break allowed if it is a tree material **and** in the void, **or** it is not in the void at all.* An
 overhanging tree can be cleared to make a crossing while the void floor itself stays unbreakable.
-`docs/template.xml`'s `block-break-void-filter` is the canonical form; `annealing_iv` adds `tnt` to the
+`docs/pgm/template.xml`'s `block-break-void-filter` is the canonical form; `annealing_iv` adds `tnt` to the
 allowlist. The template carries the allowlist so no author hand-writes the nested `any`/`all`/`void`.
 
 ### Objectives
@@ -127,6 +127,6 @@ live and unreached, not as a plan; see `../tools/edit.md`, which is the surface 
 
 - `region-categorization.md` — the `category` and `roles` that scope a region to a step.
 - `filter-region-wiring.md` — the templates the engine applies after grouping.
-- `../filter-patterns.md` — the same patterns measured across the corpus, with prevalence.
+- `filter-patterns.md` — the same patterns measured across the corpus, with prevalence.
 - `Domain/MapModel.cs` — the Region / Wool / Spawn / ApplyRule shapes, and `Domain/Filter.cs` the filter;
   the types are the specification.

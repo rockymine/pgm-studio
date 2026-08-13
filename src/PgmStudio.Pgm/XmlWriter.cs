@@ -13,7 +13,7 @@ public static partial class XmlWriter
     public static string ToXml(MapXml m)
     {
         var root = BuildMapElem(m);
-        // Serialize with the corpus/`docs/template.xml` conventions: 4-space indentation and no `<?xml?>`
+        // Serialize with the corpus/`docs/pgm/template.xml` conventions: 4-space indentation and no `<?xml?>`
         // declaration (real PGM maps start straight at `<map>`).
         var settings = new System.Xml.XmlWriterSettings { OmitXmlDeclaration = true, Indent = true, IndentChars = "    ", NewLineChars = "\n" };
         var sb = new System.Text.StringBuilder();

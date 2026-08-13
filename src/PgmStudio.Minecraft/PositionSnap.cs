@@ -2,7 +2,7 @@ namespace PgmStudio.Minecraft;
 
 /// <summary>
 /// Coordinate constraints for anchoring structures on authored positions
-/// (docs/contracts/sketch-world-export.md §5): X/Z snap to whole integers (the 2×2 cube centre needs a
+/// (docs/world-export/sketch-world-export.md §5): X/Z snap to whole integers (the 2×2 cube centre needs a
 /// whole-integer midpoint), Y snaps to the terrain column top (<c>ymax</c>), and a spawn yaw maps to the
 /// wall its door faces (the player spawns facing out through the door).
 /// </summary>

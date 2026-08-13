@@ -3,7 +3,7 @@
 **Goal:** characterise how authors build and label wool monuments across the corpus, to ground the
 authoring-flow extractor that auto-suggests monument positions from a world. This is the pattern study
 behind the `MonumentSuggester` backend (`PgmStudio.Minecraft`) and the
-`docs/contracts/monument-suggestion.md` contract. Reproduce with the scripts in `scripts/`
+`docs/world-scan/monument-suggestion.md` contract. Reproduce with the scripts in `scripts/`
 (`monument_corpus_analysis.py`, `sign_text_analysis.py`, `scoped_analysis.py` — need the `nbt` lib in
 `/root/ctw-venv`; they read the `PublicMaps/ctw` + `CommunityMaps/ctw` worlds and
 `pgm-map-studio-output/*/xml_data.json` for ground-truth monuments).
