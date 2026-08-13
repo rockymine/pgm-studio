@@ -31,6 +31,14 @@ public static class SketchWorldBuilder
         // The shells this map is finished with — one for every cage, one for every spawn (structures.md §9).
         var (woolStyle, spawnStyle) = RoomStyleScope.StylesOf(layoutJson);
 
+        // The sky-marker floor every goal marker shares: the author's build-height cap plus clearance, or —
+        // when the map carries no explicit cap — comfortably above the tallest terrain actually built, so an
+        // unauthored ceiling still puts the marker out of easy reach rather than at a fixed low altitude.
+        var markerCap = intent.Build?.MaxHeight
+            ?? (terrain.SurfaceTop.Count > 0 ? terrain.SurfaceTop.Values.Max() : 1);
+        var markerFloor = Math.Clamp(
+            markerCap + GoalMarkerStamper.Clearance, 0, VoxelWorld.MaxHeight - GoalMarkerStamper.Size);
+
         // ── Wool-room bedrock floors (ST1) ──────────────────────────────────────────────────────────
         // Ground, not dressing — the plan fills each wool-room piece solid from y=0 to the surface so the room
         // cannot be tunnelled into from below, and the building is then stamped on top of that. Which is why
@@ -52,6 +60,10 @@ public static class SketchWorldBuilder
             {
                 Frame = frame, FloorY = fy, WoolSlug = slug, Ground = terrain.SurfaceTop, Shell = woolStyle,
             });
+            // One marker per wool room — the room is already one entry per orbit image (PlanCompiler fans
+            // team-outer), so no orbit math is needed here to keep a mirrored board's markers matching.
+            GoalMarkerStamper.Stamp(world, (frame.MinX + frame.MaxX) / 2, (frame.MinZ + frame.MaxZ) / 2,
+                markerFloor, BlockColors.BlockDamage(slug), GoalMarkerShape.Cube);
             woolFrame[i] = frame;
             woolFloor[i] = fy;
             resolvedWools.Add(w);   // monuments filled in below, once spawn cubes place them
@@ -135,8 +147,8 @@ public static class SketchWorldBuilder
 
         // ── Destroyables (DTM) — the box is computed once here and carried on the resolved intent, so the
         // region the generator emits is the volume these blocks were stamped into (OB8).
-        var resolvedDestroyables = StampDestroyables(world, terrain.SurfaceTop, intent.Destroyables);
-        var resolvedCores = StampCores(world, terrain.SurfaceTop, intent.Cores);
+        var resolvedDestroyables = StampDestroyables(world, terrain.SurfaceTop, intent.Destroyables, teams, markerFloor);
+        var resolvedCores = StampCores(world, terrain.SurfaceTop, intent.Cores, teams, markerFloor);
 
         // ── Terrain finish — dress the raw stone: team-tinted clay walls, quartz rims, grass surface.
         // Runs last so it reads the finished world; touches only stone, so bedrock and every stamp above stay
@@ -231,7 +243,8 @@ public static class SketchWorldBuilder
     // already errors on it, so reaching here means something upstream skipped the gate, and stamping the
     // wrong structure would hide that.
     private static List<DestroyableIntent>? StampDestroyables(
-        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surface, List<DestroyableIntent>? destroyables)
+        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surface, List<DestroyableIntent>? destroyables,
+        IReadOnlyList<TeamDef> teams, int markerFloor)
     {
         if (destroyables is null) return null;
         var resolved = new List<DestroyableIntent>(destroyables.Count);
@@ -248,6 +261,9 @@ public static class SketchWorldBuilder
                 ObjectiveFootprint.Centred(ax, az, StructureStamper.PlatformSize, StructureStamper.PlatformSize);
             StructureStamper.StampPlatform(world, surface, platformMinX, platformMinZ, platformMaxX, platformMaxZ);
 
+            // One marker per destroyable — already one orbit image per entry (PlanCompiler fans team-outer).
+            GoalMarkerStamper.Stamp(world, ax, az, markerFloor, WoolDataForTeam(b.Owner, teams), GoalMarkerShape.Cross);
+
             resolved.Add(new DestroyableIntent
             {
                 Owner = b.Owner, Name = b.Name, Style = b.Style, Materials = b.Materials,
@@ -261,7 +277,8 @@ public static class SketchWorldBuilder
     // shape, and the same one-box rule (OB8). Obsidian is not a knob (DC1): PGM defaults to it and the
     // corpus is effectively unanimous.
     private static List<CoreIntent>? StampCores(
-        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surface, List<CoreIntent>? cores)
+        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surface, List<CoreIntent>? cores,
+        IReadOnlyList<TeamDef> teams, int markerFloor)
     {
         if (cores is null) return null;
         var resolved = new List<CoreIntent>(cores.Count);
@@ -270,6 +287,10 @@ public static class SketchWorldBuilder
             var (ax, az) = PositionSnap.SnapXZ(c.Anchor.X, c.Anchor.Z);
             var box = ObjectiveStamper.CoreBox(surface, ax, az, c.Size, c.Height, c.Float);
             ObjectiveStamper.StampCore(world, box, Blocks.Obsidian, c.Shell, c.OpenTop);
+
+            // One marker per core — same already-fanned-per-orbit-image reasoning as the destroyable's.
+            GoalMarkerStamper.Stamp(world, ax, az, markerFloor, WoolDataForTeam(c.Owner, teams), GoalMarkerShape.Cross);
+
             resolved.Add(new CoreIntent
             {
                 Owner = c.Owner, Name = c.Name, Anchor = c.Anchor,

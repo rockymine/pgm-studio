@@ -543,6 +543,14 @@ the stat corpus.
   would read as a wall grown out of the floor rather than a plate under it. It stops the goal being
   undermined from below and the ground under it being mined out from under it (`StructureStamper.
   StampPlatform`, called from the destroyable stamp in `SketchWorldBuilder`).
+- **ST7 [author]** *Goal sky marker*: every wool room, destroyable and core carries a small marker —
+  a solid 3×3×3 cube or a 3-D asterisk, the shape a per-call choice — floating clear of
+  `BuildIntent.MaxHeight` (a fixed clearance above it, or above the tallest built terrain when no cap
+  is authored), so it sits out of build reach by construction. Coloured to the goal: the wool's own
+  colour for a wool room, the owning team's colour for a destroyable or a core. One marker per
+  already-fanned goal entry — a wool room, a destroyable, a core are each one list entry per
+  symmetry-orbit image (`PlanCompiler` fans team-outer) — so a mirrored board's markers match without
+  the stamper (`GoalMarkerStamper`) doing any orbit math of its own.
 
 ## Facing semantics [expert]
 
@@ -599,6 +607,7 @@ both corrected.)
    facing regardless of the room they sat in, so some opened toward a wall rather than into the
    room; ST1 now states the door-axis rule that fixes it. No other rule's stamped geometry changes.
 10. **ST6 added (2026-08-13).** The destroyable platform — new rule, no existing rule changed.
+11. **ST7 added (2026-08-13).** The goal sky marker — new rule, no existing rule changed.
 
 ## Correction protocol
 

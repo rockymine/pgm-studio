@@ -129,6 +129,23 @@ public sealed class CoreWorldTests
     }
 
     [Test]
+    public async Task Each_core_carries_a_sky_marker_in_its_owning_teams_colour_above_the_build_cap()
+    {
+        // MG24/B89: the marker floats clear of BuildIntent.MaxHeight (globals surface 9 + headroom 11 = 20
+        // here) — above build height, so it cannot be reached or griefed.
+        var (world, resolved) = Build(Json);
+        var floorY = 20 + GoalMarkerStamper.Clearance;
+
+        foreach (var core in resolved.Cores!)
+        {
+            var anchorX = (int)Math.Round(core.Anchor.X, MidpointRounding.AwayFromZero);
+            var anchorZ = (int)Math.Round(core.Anchor.Z, MidpointRounding.AwayFromZero);
+            var expectedDamage = core.Owner == "red" ? 14 : 11;   // red / blue wool
+            await Assert.That(world.GetBlock(anchorX, floorY + 1, anchorZ)).IsEqualTo((Blocks.Wool, expectedDamage));
+        }
+    }
+
+    [Test]
     public async Task The_exported_xml_carries_the_cores_and_reads_back_as_DTC()
     {
         var (_, resolved) = Build(Json);

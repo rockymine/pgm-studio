@@ -123,6 +123,23 @@ public sealed class DestroyableWorldTests
     }
 
     [Test]
+    public async Task Each_destroyable_carries_a_sky_marker_in_its_owning_teams_colour_above_the_build_cap()
+    {
+        // MG24/B89: the marker floats clear of BuildIntent.MaxHeight (globals surface 9 + headroom 11 = 20
+        // here), out of build reach by construction.
+        var (world, resolved) = Build(Json);
+        var floorY = 20 + GoalMarkerStamper.Clearance;
+
+        foreach (var destroyable in resolved.Destroyables!)
+        {
+            var anchorX = (int)Math.Round(destroyable.Anchor.X, MidpointRounding.AwayFromZero);
+            var anchorZ = (int)Math.Round(destroyable.Anchor.Z, MidpointRounding.AwayFromZero);
+            var expectedDamage = destroyable.Owner == "red" ? 14 : 11;   // red / blue wool
+            await Assert.That(world.GetBlock(anchorX, floorY + 1, anchorZ)).IsEqualTo((Blocks.Wool, expectedDamage));
+        }
+    }
+
+    [Test]
     public async Task The_exported_xml_carries_the_destroyables_and_reads_back()
     {
         var (_, resolved) = Build(Json);
