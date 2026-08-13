@@ -26,7 +26,7 @@ their heights, the themes on each, the relief, the dressing, the objective and i
 exactly this way — described in prose and built from the description, down to "seven courses between spruce
 log posts that stand the full height, the bottom two cobble and andesite mixed" — and they work. Their
 docstrings are the briefs they came from. So the method is not a proposal; the gap is that it was applied to
-a building and never to a board. The surfaces exist — `surface.md` beside this file is the map of them — and
+a building and never to a board. The surfaces exist — `capabilities.md` beside this file is the map of them — and
 nothing above needs a capability that has not been built. What it needs is an author that knows the surfaces
 it is touching. An MCP head (`B21`) would make it a first-class loop with the validator and evaluator
 answering in rule ids, and some work remains there, but the shortfall today is not the machinery.
@@ -81,72 +81,18 @@ difference, and the section that follows is what it is measured against.
 
 ## How a map is designed
 
-The rest of this document is faults. This section is the frame they are faults against, and it is not a
-checklist — it is the reason the checklist exists.
+The rest of this document is faults. The frame they are faults against — what a void, a hill, a forest, a
+depression, a village and open ground each do to a match, and why an objective sits exposed with composed
+ground around it — is `docs/gameplay/approaches.md`. It was moved there because every claim in it is a claim
+about **play**, which neither the corpus nor the code can settle, and mixing that kind of statement into a
+list of defects is how an unreviewed opinion becomes a rule. Each claim there carries whether the author has
+confirmed it.
 
-**A layout is a control on player flow.** That is what the plan layer and the composer are for: the voids,
-the gaps between pieces and the placement of pieces decide where a player can go, how long it takes and what
-they can see on the way. Every later decision inherits it. A board is therefore not a container that scenery
-is sprinkled into — the ground *is* the design, and the scenery is a second layer of the same argument.
-
-**The plan's rectangles are a starting point, not the shape.** The composer emits rectilinear pieces to keep
-the first pass simple and legible. That is precisely why the pipeline walks into the **sketch tool** next:
-the shapes are there to be manipulated — dragged into a swirl instead of a straight run, given Bézier edges,
-cut with a subtract, stepped in `base_height`. A capture layout can be as organic as a destroy one. Taking
-the compiled rectangles as final (MG34) is taking the scaffolding for the building.
-
-**On a capture map, flow is controlled primarily by void — and the void is the design.** The gaps between
-pieces are not what is left over after the ground is drawn; they are the instrument. A destroy map is much
-freer, because it does not need a lane structure to carry a wool run, but freer is not the same as
-unshaped: it still has to control movement, and a board that controls none is a field.
-
-**A void works on a rectangle too.** Even a large plain rectangular board becomes a designed one by cutting a
-hole in front of the objective — a gap of roughly twenty blocks, far enough that it cannot simply be jumped,
-though the number is illustrative rather than a law. It need not be a straight edge; an organic polygon reads
-as terrain rather than as a wall. What it does is force every attacker to **pass around it**, which is a
-decision, a delay and a place a defender can watch.
-
-**Each element creates a specific tactic, and the tactics differ in dimension and in timing.** This is the
-part worth reading slowly, because "put a forest there" is not the point — what the forest *does* is:
-
-- **a void hole** in front of the goal makes players go **around**, and turns the two ways round it into two
-  approaches a defender must split attention across
-- **a hill** is not merely height and sightline: attackers climb to its ledge and **bridge from the ledge
-  toward the objective**, arriving from **above**. A defender on the ground has to watch the sky as well as
-  the approaches, and the bridge is a visible commitment that takes time to build
-- **a forest** gives cover to within a few blocks of the objective, which makes it most valuable **early**,
-  when someone can move through unseen and be on the goal quickly. It also gives height a second way —
-  a tree can be **climbed** for the same advantage a hill gives
-- **a small depression** near the objective is an entrance **below**: a player drops in, tunnels, and comes
-  up under the monument, where nobody is looking
-- **a river or a drop** forces a **bridge**, which is a chokepoint that has to be built before it can be used
-- **a village** gives cover the whole way in and is fought through room by room
-- **open ground** exposes, which is what an objective itself wants around it
-
-Read together, those are approaches from **around**, **above**, **below** and **through** — not four
-flavours of the same walk. That is the difference between a composed objective and a decorated one.
-
-**So an objective sits exposed, and the ground around it is composed.** A monument or a core in the open, a
-forest on one side, a hill on the other, a village behind. That is the whole method in one sentence: the
-approach is legible, the defender has somewhere to hold, the attacker has a way to arrive unseen and a price
-for using it. None of that survives being scattered.
-
-**And the point of composing it that way is that the approaches differ.** Ringing an objective with
-different ground is not scenery variety — it is how a goal comes to have several ways in that are not the
-same way twice, and that arrive from different directions in three dimensions. A defender must then choose
-what to watch, and an attacker must choose what to pay, which is a decision on both sides rather than one
-lane repeated.
-
-The capture side already says this and the destroy side does not. **WL8** records that a wool's default is a
-**single chokepoint route** and that real maps add **alternative routes** — and, usefully for a river or a
-drop, that an approach crossing a sealed zone counts as an approach even when it has to be *bridged rather
-than walked*. There is no equivalent rule for a destroyable or a core, which is exactly where one is needed:
-a goal a team defends wants more than one angle onto it, or the defence is a single doorway and the attack is
-a queue. Flat ground inside a nice environment is a real style and a legitimate answer; it is just rarely the
-better one, and it should be a choice rather than what happens when nobody decides.
-
-**Think what to place where, and why.** If there is no answer to "why here", the thing does not go there
-yet. Randomness is the wrong approach for nearly all of it.
+Two of its sentences are the ones the entries below are measured against, and they are worth having here:
+**a layout is a control on player flow**, so the ground is the design rather than a container for scenery;
+and **think what to place where, and why** — if there is no answer to "why here", the thing does not go there
+yet. Randomness is the right tool for the grain on a surface and the wrong one for everything a player
+navigates by.
 
 ## The board
 
@@ -316,7 +262,7 @@ verbatim, with the convenience fields as shorthand that expands into them rather
 That is also what a prose-described map needs: a description names intent — *a stepped plateau in coursed
 stone, natural ground falling away west* — and the author turns it into shapes, heights and themes. It cannot
 do that through a format whose whole vocabulary is one theme and a rim.
-`surface.md` beside this file is the reference that was missing, and `tools/seeds/ruediger.layout.json` is a
+`capabilities.md` beside this file is the reference that was missing, and `tools/seeds/ruediger.layout.json` is a
 hand-drawn map that uses the layout format to its width — three themes chosen per shape, ten `base_height`
 tiers stepping the ground with no relief block at all, Bézier outlines, a subtract, and the defence walls of
 MG21 actually authored.
@@ -386,7 +332,7 @@ primary control on flow for a capture board. The run searched the relief block, 
 spec keeps elevation and the spec has no word for a shape at all.
 
 So the honest reading is not that the system cannot say these things. **Everything in the brief is
-expressible**, and three of the six only one layer down, in documents `surface.md` maps and the studio's own
+expressible**, and three of the six only one layer down, in documents `capabilities.md` maps and the studio's own
 tools author. What the run measured is narrower and more useful: **a surface that exposes a reduction teaches
 the reduction as the boundary.** Handed a format whose vocabulary was one theme, a scatter and a rim, an
 author took the vocabulary for the system — reporting a wall where a paragraph of the README stood, and

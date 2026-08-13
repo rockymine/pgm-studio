@@ -17,15 +17,15 @@ three files. Moving a task between files never changes its id; never renumber or
 Sixteen maps were designed by an agent driving the system end to end, and every one of them was built. That
 is the result worth reading first — the machinery reaches from a prose description to a loadable world with
 no human in the middle. What the boards then showed is where the reach is thinner than it looks:
-**`tools/mapgen/review.md`** is the measured record of it, thirty-four `MG` entries in pipeline order, and
-**`tools/mapgen/surface.md`** is the map of the documents the tool should have been written against.
+**`docs/tools/mapgen-review.md`** is the measured record of it, thirty-four `MG` entries in pipeline order, and
+**`docs/tools/capabilities.md`** is the map of the documents the tool should have been written against.
 
-The entries stay in `review.md` as evidence, the way `docs/generator/audit.md` holds the generator's; an
+The entries stay in `docs/tools/mapgen-review.md` as evidence, the way `docs/generator/audit.md` holds the generator's; an
 entry **leaves it when its fix lands**. What is promoted onto the board below is ordered by the review's own
 severity rather than by the pipeline.
 
 **The eight that broke a map have shipped**, along with the platform and the marker a goal wants, a picture
-per stage and the handbook (`FEATURES.md`; `review.md` records which entry each closed). What is left below
+per stage and the handbook (`FEATURES.md`; `mapgen-review.md` records which entry each closed). What is left below
 is the residue that work turned up, and the shape of it is worth noticing: every one was found by a fix
 rather than by the original review. A refusal caught three shipped specs whose cores stand in void. A stage
 image turned out to answer a different question from the one its name owns, and to hand a reader a wrong
@@ -34,7 +34,7 @@ building turned out to be the one composition the system cannot express.
 
 What is deliberately **not** here: the design entries (a destroy board composed for destroy topology, a
 forest placed rather than scattered, per-shape paint, houses that differ from each other). They are the
-difference between a rough map and a good one, they are real, and they are a second wave — `review.md`
+difference between a rough map and a good one, they are real, and they are a second wave — `mapgen-review.md`
 holds them until one becomes the focus.
 
 ## Backend, pipeline & internals (B / P / A)
@@ -166,7 +166,7 @@ holds them until one becomes the focus.
   and paints, every material kind rendered, the seeded house compared against what the endpoint returns. A
   document an agent authors from is wrong if its examples do not run, and only running them says they do.
 
-  `tools/mapgen/surface.md` keeps the half `flow.md` deliberately leaves it: the **capability** reference —
+  `docs/tools/capabilities.md` keeps the half `flow.md` deliberately leaves it: the **capability** reference —
   what the system can be asked for at each stage — which is a different question from how a map moves between
   the tools. `flow.md` points at it rather than absorbing it. The gameplay claims in it are still the ones
   the author flagged for review.
@@ -243,7 +243,7 @@ holds them until one becomes the focus.
   encoding a difference that large as two shades of blue means it does not survive the render. Hatching, a
   label, or an outright different hue would.
 
-  The general rule this teaches belongs beside the images in `surface.md`: **an image is a check, not a
+  The general rule this teaches belongs beside the images in `docs/tools/capabilities.md`: **an image is a check, not a
   source of meaning.** A render answers "did the thing that was authored actually come out", and the document
   underneath answers "what is it". Reading semantics off pixels is how a build zone becomes water.
 
@@ -351,7 +351,7 @@ holds them until one becomes the focus.
   indistinguishable from a board that genuinely has nothing there — and the top-down is the view everything
   gets judged from first. Suspect the bounds computation rather than the drawing: the spur is at the extreme
   of the board's extent, which is where an off-by-one or an early bbox clamp would bite. It is also a second
-  instance of the fault `review.md` MG13 names, found on a newer renderer than the one that entry describes.
+  instance of the fault `mapgen-review.md` MG13 names, found on a newer renderer than the one that entry describes.
 
 - [ ] **B79 — `map-layers` e2e: the plan editor's Compile button never arrives (13/14).** The suite drives to
   `/maps/{slug}/plan` on the seed's built map, then clicks `button:has-text("Compile")` to check that a

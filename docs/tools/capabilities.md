@@ -3,7 +3,7 @@
 The reference `tools/mapgen` should have been written against. A map is not one document — it is a short
 stack of them, each owned by a different project, each with its own JSON shape, its own endpoint and its own
 generator. Reading the stack is what stops a tool from inventing a flatter format of its own and losing the
-system's reach in the process (`review.md` MG29).
+system's reach in the process (`mapgen-review.md` MG29).
 
 Four layers, in the order a map moves through them: a **plan** says where things go in cells, a **layout**
 says what ground exists and what it is made of, an **intent** says what the map is played for, and the
@@ -40,7 +40,7 @@ its `floor` and `base_height`, per-vertex `anchor_heights`, a `height_mode` of `
 relief. The **relief** rides beside the shapes rather than inside them, keyed by island id, because a plan
 recompile replaces every shape it produced and a relief is hand work a plan cannot express.
 
-The set algebra is where **void** comes from, and void is the instrument `review.md` names as the primary
+The set algebra is where **void** comes from, and void is the instrument `mapgen-review.md` names as the primary
 control on flow for a capture board — so it is worth stating outright rather than leaving inside the phrase
 "set-algebra operations". A shape's `operation` is `add` unless it says otherwise; a shape carrying
 `subtract` takes its footprint's columns out of the ground entirely, which is a hole to the void rather than
@@ -150,7 +150,7 @@ test fixtures for the export, so none of the above is discoverable from it (`B10
 ## The capability surface
 
 `MapSpec` — the JSON `tools/mapgen` actually reads — is a reduction of the four documents above, not an
-addressing layer over them (`review.md` MG29): it names a handful of knobs and hides the rest, so every one
+addressing layer over them (`mapgen-review.md` MG29): it names a handful of knobs and hides the rest, so every one
 of the first fifteen boards came out with a rim, one theme, one relief style and the same wall wherever it
 met a drop. What follows is the surface underneath the reduction, by pipeline stage, so an author reaching
 for a description knows what it can become before reaching for the spec's shorthand instead. Everything
@@ -184,39 +184,29 @@ shape below it is a way up. Gaps between pieces are the routes that remain. None
 of it needs a relief, a theme or a prop to work.
 
 **Whether a hole can be crossed is a separate decision from cutting it, and it is made in the intent.** The
-layout says where ground is absent; `BuildIntent`'s areas say where a player may place a block. A void gap
-with no build region over it is permanent — nobody bridges it, and the approach it forces is around. The same
-gap with a build region covering it is crossable from the first minute, at the price of the time and the
-material a bridge costs and the visibility of building one. Both are legitimate and they play differently, so
-a channel cut without deciding which it is has had half of it decided by accident. This is also how a board's
-islands are joined at all: a capture map's separate landmasses are connected by build regions rather than by
-ground, which is what `ruediger` does and what any connectivity read has to know before it can call a board
-disconnected.
+layout says where ground is absent; `BuildIntent`'s areas say where a player may place a block, so the same
+gap is permanent or crossable-from-the-first-minute depending on a document that says nothing about geometry.
+Which of the two a given channel should be is `docs/gameplay/approaches.md`. The mechanical consequence
+belongs here: this is how a board's islands are joined at all, since a capture map's separate landmasses are
+connected by build regions rather than by ground — which is what `ruediger` does, and what any connectivity
+read has to know before it can call a board disconnected.
 
 The **water lane** is the third setting of that same dial, and it is not water.
-`docs/pgm/water-lanes.md` owns it: a gap between islands that becomes **bridgeable part-way through a
-match**, built on PGM's void filter reading y=0 live, so the crossing opens on a timer rather than at the
-start. Its use is narrow and worth stating, because the mechanism invites misuse — a lane in the middle of a
-board means waiting three quarters of an hour for the map to begin. It belongs where a goal is tucked away
-and wants a **second** approach opening late, changing the shape of the endgame rather than the opening.
+`docs/pgm/water-lanes.md` owns the mechanism: a gap between islands that becomes **bridgeable part-way through
+a match**, built on PGM's void filter reading y=0 live, so the crossing opens on a timer rather than at the
+start. Where it belongs on a board, and the misuse the mechanism invites, is `approaches.md`.
 
-### How many goals a destroy board carries, and where they stand
+### How many goals a destroy board carries
 
-The count is a design decision with a narrow real range, and it is worth stating in numbers because the tool
+The count is a design decision with a narrow real range, and it is worth stating in numbers because a tool
 will otherwise decide it as a side effect. Measured over the 127 corpus maps carrying a destroy objective,
 per team: **one destroyable in 55% of them, two in 37%, three in 5%**, four or more in four outliers. Cores
-are rarer and tighter — **one in 77%, two in 19%, three in a single map in the corpus** — because leaking a
-core is a harder and longer job than breaking a monument, so a board wants fewer of them. Of the seventeen
-maps carrying both kinds, sixteen have exactly one core a team, and the ordinary combined board is one
-destroyable and one core. A large board with a single goal on it is not an underfilled board; it is the most
-common destroy map there is.
+are rarer and tighter — **one in 77%, two in 19%, three in a single map in the corpus** — and of the seventeen
+maps carrying both kinds, sixteen have exactly one core a team, so the ordinary combined board is one
+destroyable and one core.
 
-Where a board carries more than one, they are **placed against each other rather than scattered**: a west and
-an east, or two forward with one back near the spawn, or two back with one forward. That arrangement is the
-board's shape, because each goal is a place a team has to hold, and their spacing is what decides whether the
-defence is one line or three. The ground around each is themed apart in the corpus, which is the same
-per-shape paint the layout already offers — the approach to a west goal reading differently from the approach
-to an east one is what makes several goals read as several places rather than as one objective duplicated.
+Those are counts. What the counts are *for* — why several goals are placed against each other rather than
+scattered, and why a large board with one goal is not underfilled — is `docs/gameplay/approaches.md`.
 
 **A word on the word.** In game the mode is *destroy the monument*, so a `<destroyable>` is colloquially a
 monument — but `monument` is already taken here and in PGM for the block a wool is placed on in a capture
@@ -258,7 +248,7 @@ Nothing in the generator ties the two together yet: `TeamsGenerator.GenerateKits
 kit for every map with spawns, an iron pickaxe among its tools, with no branch for a destroy objective or its
 material (`Pgm/Authoring/TeamsGenerator.cs`). So today, choosing anything other than a hand-edited kit leaves
 the default obsidian goal unbreakable, and choosing a softer material such as end stone does not fix that on
-its own — it only changes which pairing has to be checked by hand. `review.md` MG18 and `TODO.md` B81 record
+its own — it only changes which pairing has to be checked by hand. `mapgen-review.md` MG18 and `TODO.md` B81 record
 this as the fault it is; until B81 lands, pairing the kit to the goal is the author's job, not the
 generator's.
 
@@ -344,7 +334,7 @@ stand proud of; `Windows` with their own `Form`, `Width`, `Height`, `Sill` and `
 its one window rather than spacing a row; a `DoorHead` that arches the top course of a doorway or leaves it
 plain; `Beams` — the log ends that run out past a corner where two storeys meet; and a `Storeys` stack, each
 with its own wall, windows, floor and post, so a building can change what it is built of a level up. None of
-that is used twice the same way across the fifteen boards `review.md` MG33 measures, which is why they read
+that is used twice the same way across the fifteen boards `mapgen-review.md` MG33 measures, which is why they read
 as one house repeated: the presets cluster at 7–13 wide by 7–11 deep and every board draws from a handful of
 them at the size they were designed at.
 
@@ -361,27 +351,16 @@ or `houses` in `MapSpec`. Library previews exist for the pieces once a style is 
 
 ### Circulation is decided before dressing, not after it
 
-Scenery is placed last in the pipeline and decided first in the design, and reversing those is what makes a
-board read as cluttered rather than as furnished. A dressing pass that samples wherever the ground will take
-a prop produces exactly what it asks for — trees and buildings standing in the routes, so reaching a build
-region means walking round a house and then round a tree, neither of which anybody put there.
+Why the movement is drawn before the scenery, and what a path does to where a forest may stand, is
+`docs/gameplay/approaches.md`. What this document owns is the surface it is said with: a `path` prop is a
+drawn centreline with a half-width, so a road network can be traced before anything is planted. (The layout
+carries a `path` **shape** type as well — a centreline with its own band, edge style and seed — but no tool
+in the Draw dock draws one, so it is reachable only in a document written outside the editor.)
 
-The order that works states the **movement** first. A `path` prop is a drawn centreline with a half-width, so
-a road network can be traced before anything is planted: where a player walks from spawn to goal, where the
-flanking approach runs, where a village's street is. First in the design rather than in the tool — a path and
-the foliage that avoids it are both placed in the Dressing phase, and it is the order of the decisions that
-matters. (The layout carries a `path` **shape** type as well, a centreline with its own band, edge style and
-seed, but no tool in the Draw dock draws one: it is reachable only in a document written outside the editor.)
-Those runs and a margin either side are then the ground foliage does not get, and everything else is where a
-wood or a settlement may stand. That is the same
-reasoning `clearance` already applies to objectives, applied to routes as well — and it turns density from a
-number into a consequence, because the space left over after the circulation is drawn is the space a forest
-is allowed to fill.
-
-It also settles what a prop may do to a building it stands beside. A prop writes only into air, so a tree can
-never replace a wall, a roof or a post, and leaves resting **against** a house are correct — an author pastes
-a tree beside a building masked against the building's own blocks and expects exactly that. What the author
-then does by hand, and what nothing does here yet, is clear the leaves that landed **inside** the building
+One consequence is worth keeping here because it is about what the stamper does rather than about play. A
+prop writes only into air, so a tree can never replace a wall, a roof or a post, and leaves resting
+**against** a house are correct — an author pastes a tree beside a building masked against the building's own
+blocks and expects exactly that. What nothing does yet is clear the leaves that landed **inside** a building
 through its roof (`B97`). A tree rooted inside a structure is a fault; a canopy leaning on one is not.
 
 ### What these combine into, which is where the width actually is

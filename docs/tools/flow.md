@@ -181,6 +181,11 @@ free-text box in Edit naming which kit a spawn grants — nothing states what a 
 | `edit.md` | the inspector for maps that already exist |
 
 Two documents outside this folder carry the rest. `docs/generator/model.md` is the canonical model of layout
-generation and governs on any disagreement about it. `tools/mapgen/surface.md` is the capability reference —
-what the system can be asked for at each stage, in far more detail than a tool document goes into — and is the
-one to read when the question is *what could this look like* rather than *how do I drive it*.
+generation and governs on any disagreement about it. `capabilities.md` beside this file is the capability
+reference — what the system can be asked for at each stage, in far more detail than a tool document goes into
+— and is the one to read when the question is *what could this look like* rather than *how do I drive it*.
+
+`docs/gameplay/approaches.md` answers the question neither of those can: what the ground around an objective
+does to a match, and therefore what a board should be composed *for*. It is kept separate because every claim
+in it is the author's rather than the repository's — no corpus reading and no line of code settles what plays
+well — and each one is marked with whether the author has confirmed it.

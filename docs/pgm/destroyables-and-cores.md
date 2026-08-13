@@ -287,7 +287,7 @@ reproduced.
 
 The material vocabulary is also what a team's kit has to be able to mine: an iron pickaxe does not break
 obsidian, so a destroy map's pickaxe is paired to the goal it ships (`MiningTiers`, `DestroyKitPairing`, and
-`tools/mapgen/review.md` MG18 for the failure it prevents).
+`docs/tools/mapgen-review.md` MG18 for the failure it prevents).
 
 ### DT4 — the ender stone column
 

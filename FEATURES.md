@@ -4421,7 +4421,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 ### Agent-drivable map generation — what sixteen agent-designed boards exposed (B78, B80–B90)
 
 Sixteen maps were designed by an agent driving the system end to end and every one of them built, which is
-the result worth reading first. The faults the boards then showed are recorded in `tools/mapgen/review.md`;
+the result worth reading first. The faults the boards then showed are recorded in `docs/tools/mapgen-review.md`;
 these are the ones that shipped a map that could not be played as intended, and every one of them was silent
 — the map built, loaded and looked correct from above.
 
@@ -4484,7 +4484,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   along unconditionally: it measures room-to-edge within the monument's own piece and takes the direction with
   the most room, so the three shipped specs that `B82` was refusing now build with their cores on ground.
 
-- **The capability handbook — what the system can be asked for, and where to say it (B91).** `tools/mapgen/surface.md`
+- **The capability handbook — what the system can be asked for, and where to say it (B91).** `docs/tools/capabilities.md`
   mapped the four documents a map is made of; it now also states the surface underneath the spec's shorthand, in
   pipeline order, every claim naming the type that carries it and the endpoint that answers it: the destroyable's
   material and the four words the stamper can actually build from, the defence wall and iron cube the composer

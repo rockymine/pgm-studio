@@ -172,8 +172,8 @@ exercises the plans it produces.
 | `docs/contracts/plan-editor.md` | 294 | The plan JSON schema and the grid editor design ("Phase 1 implementation design"). |
 | `docs/contracts/plan-as-map.md` | 78 | How a plan candidate becomes a map row in the Plan→Sketch→Configure→Edit lifecycle. |
 | `tools/mapgen/README.md` | 271 | CLI usage for `tools/mapgen`, a whole-map-from-JSON-spec generator. |
-| `tools/mapgen/surface.md` | 478 | The plan/layout/intent/world four-layer model `tools/mapgen` should target — a synthesis doc. |
-| `tools/mapgen/review.md` | 425 | Pool of `MG`-tagged findings from reviewing the first fifteen `tools/mapgen` boards. |
+| `docs/tools/capabilities.md` | 478 | The plan/layout/intent/world four-layer model `tools/mapgen` should target — a synthesis doc. |
+| `docs/tools/mapgen-review.md` | 425 | Pool of `MG`-tagged findings from reviewing the first fifteen `tools/mapgen` boards. |
 | `tools/compose/README.md` | 42 | Usage for 2 of the 23 dev-driver scripts in `tools/compose/`; see §3.5. |
 | `scripts/generator/README.md` | 44 | Python corpus-analysis scripts, table covers all 8 files present. |
 | `tools/deriver/lanes/README.md` | 56 | Hand-labelled wool-lane fixture format and the training-harness check. |
@@ -306,7 +306,7 @@ doc-set decay. The same thing happened to `layout-rules.md`, cited by four separ
 destination for rule amendments; `docs/generator/rules.md` — "Layout rules — the composer's v1 rule
 set" — is almost certainly its renamed successor, but nothing says so.
 
-**`tools/mapgen/surface.md` is a synthesis that duplicates four other documents' authoritative
+**`docs/tools/capabilities.md` is a synthesis that duplicates four other documents' authoritative
 claims by design.** Its own opening line calls it "the reference `tools/mapgen` should have been
 written against" and its four-layer table (plan → layout → intent → world) restates ground that
 `docs/generator/model.md` (the pipeline), `docs/contracts/plan-editor.md` (the plan schema),
