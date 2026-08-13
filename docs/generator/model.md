@@ -754,10 +754,13 @@ signal that either is wrong, and a change that breaks one usually breaks it sile
 
 The scope of that check is **the generator's own artifacts** — emissions, synthetic fixtures, and
 composed pre-fragment units, where the wool box bounds what is read. Classifying **finished maps** —
-traced corpus maps, hand-authored plans — is out of scope **by decision**, not by omission.
-Fragmentation moves family identity onto the play surface of terrain plus build links, a finished
-map's base plan is not recoverable from what survives, and full-map decoding is a trap; the human
-oracle hypothesizes the fragmentation and mutation moves instead (`wool-approach-read.md`).
+traced corpus maps, hand-authored plans — is out of scope **by decision**, not by omission, and the
+decision is permanent. Real maps differ too much from each other and from anything the generator
+would draw: each has been through fragmentation and hand editing, which move family identity onto
+the play surface of terrain plus build links and leave a base plan that is not recoverable from what
+survives. The classifier is the generator's **mirror** — without it there is no knowing what was
+generated — and never a reverse-engineering tool. Hypothesizing the moves a finished map went
+through is the human oracle's, deliberately not automated.
 
 The check runs in `tests/PgmStudio.Pgm.Tests/Shapes/`: emit every family × size × width, read back,
 assert equality with no overlap, and assert that the emitted slot sequence equals

@@ -41,7 +41,6 @@ exercises the plans it produces.
 | `docs/generator/seed-stats.md` | 383 | Measured per-seed corpus statistics table. |
 | `docs/generator/seed-envelopes.md` | 66 | Generated soft-term bands (do not hand-edit). |
 | `docs/generator/ideas.md` | 191 | The G-track idea pool, ids preserved. |
-| `docs/generator/wool-approach-read.md` | 237 | A dated (2026-07) investigation memo into wool-approach shape recovery — the ninth file; see §4. |
 | `docs/contracts/plan-editor.md` | 294 | The plan JSON schema and the grid editor design ("Phase 1 implementation design"). |
 | `docs/contracts/plan-as-map.md` | 78 | How a plan candidate becomes a map row in the Plan→Sketch→Configure→Edit lifecycle. |
 | `tools/mapgen/README.md` | 271 | CLI usage for `tools/mapgen`, a whole-map-from-JSON-spec generator. |
@@ -342,29 +341,26 @@ By contrast, `scripts/generator/README.md`, `tools/deriver/lanes/README.md`,
 and each accounts for every file present — `tools/relief/README.md` even carries a file-by-file table.
 The gap is specific to `tools/seeds/` and `tools/compose/`, not systemic.
 
-## 4. The `docs/generator/` ninth file
+## 4. The `docs/generator/` ninth file — resolved, deleted
 
-`CLAUDE.md` states the folder holds "eight files, no others." It holds nine; the file outside the
-table is `docs/generator/wool-approach-read.md`.
+`CLAUDE.md` states the folder holds "eight files, no others." At the time of this census it held nine;
+the file outside the table was `docs/generator/wool-approach-read.md`, a dated (2026-07) investigation
+memo into whether the shape deriver could read wool approaches inside real maps.
 
-It is not a stray or a duplicate of one of the eight — it is a different *kind* of document. The
-other eight are living companions, each with an explicit maintenance discipline (`vocabulary.md`
-updates "in the same commit" as a type change; `audit.md` entries "leave... when the fix lands").
-`wool-approach-read.md` is dated in its own title ("the G50–G52 / G62 investigation (2026-07)"), reads
-as a single empirical investigation from measurement through verdict to a proposed formulation change,
-and closes with a dated addendum ("2026-07-16") recording the author's ruling and what was actually
-implemented as a result — at which point, by its own text, "`G56` is retired" and "`G62`/`G68` are
-reworded", i.e. most of its forward-looking content has already been folded into `model.md` and the
-task board. What remains live in it is a historical record of *why* those decisions were made, which
-none of the eight canonical files are positioned to hold (`audit.md` records current gaps, not settled
-investigations).
+It was not a stray or a duplicate of one of the eight but a different *kind* of document. The other
+eight are living companions, each with an explicit maintenance discipline (`vocabulary.md` updates "in
+the same commit" as a type change; `audit.md` entries "leave… when the fix lands"). The memo ran from
+measurement through verdict to a proposed formulation change and closed with a dated addendum
+recording the author's ruling — at which point, by its own text, `G56` was retired and `G62`/`G68`
+reworded. Every id it turned on has since shipped (`G50`–`G52`, `G61`, `G62`) or been retired, and the
+classifier drift it identified was fixed by the fold test.
 
-This makes it a genuine ninth document in substance, not an oversight, but it does not fit the table's
-contract either. Two directions close the gap without losing the record: fold the addendum's settled
-conclusions into `model.md`'s history or `audit.md` and retire the file, or move it out of
-`docs/generator/` to sit beside the scripts it validates (`scripts/approach_read_lab.py`,
-`scripts/approach_read_gallery.py`, both already under version control) where a dated investigation
-memo is a more natural fit than in a folder whose contract promises living companions only.
+**Resolved by deletion (B111).** What the memo argued for is now simply a rule, stated in `model.md`
+§4.7 and needing no evidence behind it: the studio does not classify finished maps, because real maps
+differ too much — each has been through fragmentation and hand editing that leave no recoverable base
+plan — and the classifier exists as the generator's mirror rather than as a reverse-engineering tool.
+The scripts it validated (`scripts/approach_read_lab.py`, `scripts/approach_read_gallery.py`) stay
+under version control. The folder is back to the eight its contract promises.
 
 ## 5. Which tools have no authoritative document
 

@@ -197,8 +197,8 @@ def build():
 <h1>Can the shape deriver read wool approaches inside actual maps?</h1>
 <p class="lead">Evidence gallery for the derive-side scope question. All reads come from a Python port of
 <code>ShapeClassifier</code> validated against every fixture in <code>tools/deriver/shapes/</code>
-and the emit&rarr;classify mirror (scripts/approach_read_lab.py). Interpretation:
-<code>docs/generator/wool-approach-read.md</code>.</p>
+and the emit&rarr;classify mirror (scripts/approach_read_lab.py). The question is settled and the answer
+was no &mdash; the rule that follows from it is <code>docs/generator/model.md</code> &sect;4.7.</p>
 
 <h2>1 &middot; What the wool-box emitter emits today</h2>
 <p>The eight non-isolated families at near-minimal boxes (cw&nbsp;=&nbsp;2), slot-coloured. Every one

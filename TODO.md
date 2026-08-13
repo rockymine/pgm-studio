@@ -138,28 +138,43 @@ holds them until one becomes the focus.
   describing that, or whether it describes an intention nothing implements, is the question — the mark's
   behaviour is not in doubt, only what it is documented as opting out of.
 
-- [~] **B111 — The three remaining tool documents, the flow document, and the deletions.**
-  `docs/tools/plan.md`, `sketch.md` and `library.md` are written and settle the shape the rest answer to:
-  *what it is · what it writes · the document model, field by field · what it compiles to · the phases and
-  their steps · what it refuses · the API as an endpoint table with failure codes · driving it without the UI ·
-  limits*. Two of those sections are conditional — a tool with no gate needs no refusals section, a tool with
-  no document of its own needs no model section — and the rest are the spine. Written from the code in the
-  present tense, and usable as agent input, which is what puts the endpoints in them.
+- [~] **B111 — The two remaining tool documents, the flow document, and the deletions.**
+  `docs/tools/plan.md`, `sketch.md`, `library.md`, `generator.md` and `shapes.md` are written and settle the
+  shape the rest answer to: *what it is · what it writes · the document model, field by field · what it
+  compiles to · the phases and their steps · what it refuses · the API as an endpoint table with failure codes ·
+  driving it without the UI · limits*. Two of those sections are conditional — a tool with no gate needs no
+  refusals section, a tool with no document of its own needs no model section — and the rest are the spine.
+  Written from the code in the present tense, and usable as agent input, which is what puts the endpoints in
+  them.
+
+  **A tool that authors nothing bends the spine rather than breaking it.** The generator has no document to
+  edit and no phases: its model section is the *request* (four numbers and a seed), its compile section is
+  *what a compose produces*, and its phase section is the single browse workspace. Where a tool is
+  statistical rather than authored, the description has to be **measured** — `generator.md` carries a
+  400-board-per-row census of what each player count actually produces, taken from the endpoint itself, because
+  prose about sampling weights cannot say whether a request makes rings.
 
   **Every JSON shape gets a worked example, and the examples are checked by being run.** Each is extracted from
   the document itself and posted to the live API — a plan that compiles clean, a layout that solves its relief
   and paints, every material kind rendered, the seeded house compared against what the endpoint returns. A
   document an agent authors from is wrong if its examples do not run, and only running them says they do.
 
-  What remains is one document each for **configure, edit and generator**, plus one for **the flow between
-  them** — the hand-off no current document owns and the part `tools/mapgen/surface.md` carries today.
+  What remains is one document each for **configure** and **edit**, plus one for **the flow between them** —
+  the hand-off no current document owns and the part `tools/mapgen/surface.md` carries today.
 
   Then the deletions, which are the point of the exercise and wait until the set is complete: a document goes
   when a tool document owns its subject, which retires the plan, sketch and configure contract records but
-  keeps the corpus measurements, `docs/generator/`'s eight and the world-export set. `docs/doc-status.md` §2
-  says what is duplicated and §5 which tools are unserved; its churn ranking (§3.4) **wants re-running against
-  the full history**, since the container that produced it saw 197 commits over three days and cannot see
-  drift older than that.
+  keeps the corpus measurements, `docs/generator/`'s eight and the world-export set. **The generator set is
+  settled and its ninth file is gone.** `generator.md` and `shapes.md` own the two *surfaces* — browse and
+  catalog — which `docs/generator/` never covered, and they defer the model to `model.md` rather than
+  restating it, so none of the eight is retired by them. `wool-approach-read.md` is deleted: every id it
+  turned on has shipped or been retired, and what it argued for now stands as a plain rule in `model.md` §4.7
+  — the studio does not classify finished maps, because real maps differ too much. `audit.md` stays, with its
+  HB4/FR6 entry corrected: the wide frontline it recorded as unreachable is measurably the only outcome a
+  branch hub with a frontline produces.
+  `docs/doc-status.md` §2 says what is duplicated and §5 which tools are unserved; its churn ranking (§3.4)
+  **wants re-running against the full history**, since the container that produced it saw 197 commits over
+  three days and cannot see drift older than that.
 
 - [ ] **B92 — A building can be a solid volume behind its own facade.** `HouseStamper` raises walls, a roof
   and their openings, and the volume they enclose is left as air — "fill" appears in the house model only as a

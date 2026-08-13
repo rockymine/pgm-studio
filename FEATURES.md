@@ -2529,8 +2529,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   box corner (the bay escaped past the vacated corner and the shifted/side-docked scythes read Z standalone,
   Scythe with a hub docked); the fold is a property of the cells alone, so the emitter's entry/wool-shift and
   side-dock manipulations keep their family in both contexts. Verified: `ShapeVariantTests` (14 variant grids
-  × 2 scales, standalone + hub-docked) + the catalog/mirror/stress suites unchanged. Analysis:
-  `docs/generator/wool-approach-read.md` §6. Contract: `docs/generator/model.md` §1.8/§5.2.
+  × 2 scales, standalone + hub-docked) + the catalog/mirror/stress suites unchanged. Contract:
+  `docs/generator/model.md` §4.7.
 
 - **Wool-box pieces carry their slot role** — `Pgm/Compose/WoolBoxEmitter.cs` + `TeamUnitGrower.cs`:
   `WoolBoxEmitter` now tags every emitted piece with its **slot role** (`ApproachSlots` on `GrownPiece.Slot`) —

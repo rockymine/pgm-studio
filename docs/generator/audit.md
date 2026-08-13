@@ -94,9 +94,14 @@ Measured over 400 seeds × 4 presets on the **placed rooms** (not the boxes), in
   min 12) by the third wool doubling onto the spawn's side. The seat-separation gap resolved it:
   that wool can no longer seat within the gap, so it **drops** rather than cramming.
 - **WL6 — 1–3 wools, each on a distinct lane. Holds.** 0/400 units place two wools on one hub edge.
-- **HB4 and FR6's wide frontline are unreachable**, not merely unimplemented: a branch hub with a
-  frontline falls back to the rectangle, so the Bar is never chosen. The law describes a composition
-  the code cannot currently produce.
+- **HB4 and FR6's wide frontline — no longer unreachable.** This entry recorded the Bar as a
+  composition the code could not produce: a branch hub with a frontline was said to fall back to the
+  rectangle, leaving `TeamUnitFiller`'s Bar-for-branch-hub arm dead. Re-measured **2026-08-13** on a
+  different instrument — 480 composed boards through `GET /api/compose` (240 each at 12 and 20
+  players, `rot_180`), cross-tabulating each board's hub form against its frontline form —
+  **87 branch hubs carry a frontline at 12 players and every one takes the Bar; 14 of 14 at 20.**
+  The arm is not dead; it is the only outcome. What remains open on FR6 is the *grouping* (§5), not
+  whether the wide face can be reached.
 
 ## 5. Rules sitting in the wrong layer
 
