@@ -138,14 +138,16 @@ holds them until one becomes the focus.
   describing that, or whether it describes an intention nothing implements, is the question — the mark's
   behaviour is not in doubt, only what it is documented as opting out of.
 
-- [~] **B111 — The flow document, and the deletions.**
-  The tool set is complete: `docs/tools/plan.md`, `sketch.md`, `library.md`, `generator.md`, `shapes.md`,
+- [~] **B111 — The deletions.**
+  The set is complete: `docs/tools/plan.md`, `sketch.md`, `library.md`, `generator.md`, `shapes.md`,
   `configure.md` and `edit.md`, all to one shape — *what it is · what it writes · the document model, field by
   field · what it compiles to · the phases and their steps · what it refuses · the API as an endpoint table
   with failure codes · driving it without the UI · limits*. Two of those sections are conditional — a tool
   with no gate needs no refusals section, a tool with no document of its own needs no model section — and the
   rest are the spine. Written from the code in the present tense, and usable as agent input, which is what
-  puts the endpoints in them.
+  puts the endpoints in them. `flow.md` is the eighth and the entry point: the four levels a map is described
+  at, which tool works at which, the five hand-offs and their merge rules, and pointers out. It describes only
+  the flow — no tool's own content is restated in it. **Author review pending.**
 
   **A tool that authors nothing bends the spine rather than breaking it.** The generator has no document to
   edit and no phases: its model section is the *request* (four numbers and a seed), its compile section is
@@ -159,11 +161,10 @@ holds them until one becomes the focus.
   and paints, every material kind rendered, the seeded house compared against what the endpoint returns. A
   document an agent authors from is wrong if its examples do not run, and only running them says they do.
 
-  What remains is one document for **the flow between the tools** — the hand-off no current document owns and
-  the part `tools/mapgen/surface.md` carries today. Everything it has to describe is now stated somewhere: the
-  two entry tools and what each writes, the merge rules on a recompile, where an intent comes from and where
-  it is finished, and which tool owns each artifact. The flow document is the map over them, not a seventh
-  restatement.
+  `tools/mapgen/surface.md` keeps the half `flow.md` deliberately leaves it: the **capability** reference —
+  what the system can be asked for at each stage — which is a different question from how a map moves between
+  the tools. `flow.md` points at it rather than absorbing it. The gameplay claims in it are still the ones
+  the author flagged for review.
 
   Then the deletions, which are the point of the exercise and wait until the set is complete: a document goes
   when a tool document owns its subject, which retires the plan, sketch and configure contract records but
