@@ -87,4 +87,20 @@ public sealed class StructureFinderTests
         await Assert.That(pillar.RoofHigh).IsEqualTo(9);
         await Assert.That(plaza.RoofHigh).IsEqualTo(6);
     }
+
+    [Test]
+    public async Task Run_appends_a_scale_legend_that_grows_the_written_png()
+    {
+        var outPng = Path.Combine(Path.GetTempPath(), $"structures-legend-{Guid.NewGuid():N}.png");
+        try
+        {
+            var exit = StructureFinder.Run(PlazaWithPillar(), outPng, scale: 2, minimumArea: 4);
+            await Assert.That(exit).IsEqualTo(0);
+
+            var (width, height) = PngTestUtil.Dimensions(File.ReadAllBytes(outPng));
+            await Assert.That(width).IsEqualTo(12);       // 6 columns wide at scale 2
+            await Assert.That(height).IsGreaterThan(12);  // 6 rows at scale 2, plus the legend strip
+        }
+        finally { File.Delete(outPng); }
+    }
 }

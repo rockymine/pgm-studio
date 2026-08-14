@@ -121,20 +121,35 @@ var cbrIdx = Array.IndexOf(args, "--clean-base-render");
 if (cbrIdx >= 0 && cbrIdx + 2 < args.Length)
     return RunCleanBaseRender(args[cbrIdx + 1], args[cbrIdx + 2]);
 
-// --topdown <regionDir> <outPng> [--map <map.xml>] [--scale N] [--ymax Y]: the world's surface as a
-// top-down PNG, coloured by BlockPalette with north-facing relief shading. --map overlays what the XML
-// declares (objectives, spawns, apply-rule boxes) so the geometry can be read against the terrain.
+// --topdown <regionDir> <outPng> [--map <map.xml>] [--scale N] [--ymax Y] [--layer ground|structure|foliage|objectives]
+// [--material]: the world's surface as a top-down PNG. The default reading sorts every column into
+// RenderCategory and false-colours it for legibility (foliage/structure/ground/water/void, each a legend
+// entry baked onto the image); --material switches back to the old per-block BlockPalette colouring, for
+// checking a theme's actual paint rather than the map's shape. --layer isolates one category (or the
+// map.xml overlay alone, for "objectives") instead of drawing the combined view. --map overlays what the
+// XML declares (objectives, spawns, apply-rule boxes) so the geometry can be read against the terrain.
 var topIdx = Array.IndexOf(args, "--topdown");
 if (topIdx >= 0 && topIdx + 2 < args.Length)
 {
     var mapIdx = Array.IndexOf(args, "--map");
     var scaleIdx = Array.IndexOf(args, "--scale");
     var yMaxIdx = Array.IndexOf(args, "--ymax");
+    var layerIdx = Array.IndexOf(args, "--layer");
     var overlayMap = mapIdx >= 0 && mapIdx + 1 < args.Length ? MapParser.Parse(args[mapIdx + 1]) : null;
+    var layer = layerIdx >= 0 && layerIdx + 1 < args.Length ? args[layerIdx + 1].ToLowerInvariant() switch
+    {
+        "ground" => TopDownLayer.Ground,
+        "structure" => TopDownLayer.Structure,
+        "foliage" => TopDownLayer.Foliage,
+        "objectives" => TopDownLayer.Objectives,
+        "combined" => TopDownLayer.Combined,
+        var other => throw new ArgumentException($"no top-down layer '{other}' — have: ground, structure, foliage, objectives, combined"),
+    } : TopDownLayer.Combined;
     return TopDownRender.Run(
         args[topIdx + 1], args[topIdx + 2], overlayMap,
         scaleIdx >= 0 && scaleIdx + 1 < args.Length && int.TryParse(args[scaleIdx + 1], out var topScale) ? Math.Max(1, topScale) : 3,
-        yMaxIdx >= 0 && yMaxIdx + 1 < args.Length && int.TryParse(args[yMaxIdx + 1], out var topYMax) ? topYMax : null);
+        yMaxIdx >= 0 && yMaxIdx + 1 < args.Length && int.TryParse(args[yMaxIdx + 1], out var topYMax) ? topYMax : null,
+        args.Contains("--material") ? TopDownColorMode.Material : TopDownColorMode.Category, layer);
 }
 
 // --underground <regionDir> <outPng> [--scale N] [--band <yMin> <yMax>] [--ores]: the world below its own

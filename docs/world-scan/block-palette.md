@@ -8,6 +8,20 @@ block — and all four read the same answer, so a swatch shown in a picker is th
 `PgmStudio.Minecraft.BlockPalette` is that answer. It covers block ids 0–197, the whole 1.8 set, and the
 metadata sub-types within them.
 
+**This is an authoring colour, not a diagnostic one, and the two are answered differently on purpose.** A
+picker or a preview exists to show what an author is about to place, so it has to be the block's real colour
+— the whole reason the alpha-masked texture mean below is worth computing. A stage image exists to answer a
+different question ("where is the foliage, the structure, the open ground" at a glance), and the real colours
+answer that question badly: stone, stone brick, cobblestone, andesite and gravel are all some shade of grey in
+the game, so a render that paints each its own true colour paints one indistinguishable grey field. `--topdown`
+and its per-layer isolations therefore read `PgmStudio.Minecraft.RenderCategories` by default — five
+deliberately unrealistic hues, one per coarse category, chosen for separation on the wheel rather than for
+resemblance to the game — and fall back to this table's real colours only on request (`--material`), for a
+caller checking a theme's actual paint rather than the map's shape (`docs/tools/capabilities.md`'s renderer
+section, `B98`). Every other consumer named above — the picker, the previews, the slice dump — keeps reading
+this table unconditionally, because showing an author a false colour for the material they are about to place
+would be the opposite mistake.
+
 ## The lookup pipeline
 
 A lookup runs three steps, and stops at the first that answers.

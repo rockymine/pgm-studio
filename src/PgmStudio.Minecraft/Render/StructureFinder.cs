@@ -82,8 +82,17 @@ public static class StructureFinder
 
         Report(result.Structures);
         var scaled = Raster.Upscale(result.Pixels, result.BlocksWide, result.BlocksHigh, scale);
-        PngWriter.Write(outPng, result.BlocksWide * scale, result.BlocksHigh * scale, scaled);
-        Console.WriteLine($"  wrote {outPng} ({result.BlocksWide * scale}x{result.BlocksHigh * scale} px, {scale} px/block), " +
+        List<Legend.Entry> entries =
+        [
+            new("NATURAL GROUND (SHADED BY HEIGHT)", 0x5B5E66),
+            new("STRUCTURE (ONE ACCENT PER FINDING)", 0xFF7A1F),
+            new("VOID", 0x0E0E12),
+        ];
+        var withLegend = Legend.AppendBelow(scaled, result.BlocksWide * scale, result.BlocksHigh * scale, entries,
+            out var legendHeight,
+            scaleLabel: $"SCALE: 1 BLOCK = {scale} PX - {result.BlocksWide} X {result.BlocksHigh} BLOCKS");
+        PngWriter.Write(outPng, result.BlocksWide * scale, legendHeight, withLegend);
+        Console.WriteLine($"  wrote {outPng} ({result.BlocksWide * scale}x{legendHeight} px, {scale} px/block), " +
             $"{result.Structures.Count} structure(s) over the terrain");
         return 0;
     }

@@ -58,4 +58,21 @@ public sealed class HeightProfileRenderTests
         await Assert.That(result.Flooded.Count).IsEqualTo(1);
         await Assert.That(result.Flooded.ContainsKey((0, 0))).IsTrue();
     }
+
+    [Test]
+    public async Task Run_appends_a_scale_legend_that_grows_the_written_png()
+    {
+        var outPng = Path.Combine(Path.GetTempPath(), $"heightmap-legend-{Guid.NewGuid():N}.png");
+        try
+        {
+            var exit = HeightProfileRender.Run(Steps(), outPng, scale: 2, contourInterval: 2,
+                greyscale: false, markWater: false, drawContours: true, name: "test");
+            await Assert.That(exit).IsEqualTo(0);
+
+            var (width, height) = PngTestUtil.Dimensions(File.ReadAllBytes(outPng));
+            await Assert.That(width).IsEqualTo(12);        // 6 columns wide at scale 2
+            await Assert.That(height).IsGreaterThan(8);    // 4 rows at scale 2, plus the legend strip
+        }
+        finally { File.Delete(outPng); }
+    }
 }

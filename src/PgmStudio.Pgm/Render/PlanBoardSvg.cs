@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using PgmStudio.Pgm.Plan;
 using static PgmStudio.Pgm.Render.PlanBoardScene;
+using static PgmStudio.Pgm.Render.PlanBoardPalette;
 
 namespace PgmStudio.Pgm.Render;
 
@@ -15,29 +16,57 @@ namespace PgmStudio.Pgm.Render;
 /// </summary>
 public static class PlanBoardSvg
 {
+    /// <summary>Role swatches, in the order <see cref="PlanBoardPalette.RoleName"/> would ever return them, plus
+    /// the two zone kinds — the key every plan render carries baked in rather than left to a caption
+    /// (<c>B95</c>, <c>docs/tools/capabilities.md</c>'s renderer section: an image is a check, not a source of
+    /// meaning). A reader with the picture and not this key is the failure the legend exists to close.</summary>
+    private static readonly (string Label, string Color)[] LegendRows =
+    [
+        ("hub", "#a78bfa"), ("spawn", "#34d399"), ("wool", "#fbbf24"), ("frontline", "#fb923c"), ("other", "#64748b"),
+        ("build zone", BuildZoneColor), ("water lane (hatched)", WaterLaneColor),
+    ];
+
+    private const int LegendRowHeight = 16;
+    private const int LegendSwatch = 10;
+
     /// <param name="scale">Pixels per proxy cell.</param>
     /// <param name="pad">Pixel margin around the board.</param>
     public static string Render(PlanModel plan, int scale = 9, int pad = 10)
     {
         var scene = PlanBoardScene.Build(plan);
+        var legendHeight = pad + LegendRows.Length * LegendRowHeight;
         if (scene is null)
-            return $"<svg viewBox='0 0 {2 * pad} {2 * pad}' width='{2 * pad}' height='{2 * pad}' xmlns='http://www.w3.org/2000/svg'></svg>";
+        {
+            int emptyWidth = 2 * pad, emptyHeight = 2 * pad + legendHeight;
+            var emptySvg = new StringBuilder();
+            emptySvg.Append($"<svg viewBox='0 0 {emptyWidth} {emptyHeight}' width='{emptyWidth}' height='{emptyHeight}' xmlns='http://www.w3.org/2000/svg'>");
+            AppendLegend(emptySvg, pad, 2 * pad);
+            emptySvg.Append("</svg>");
+            return emptySvg.ToString();
+        }
 
-        int vw = scene.Width * scale + 2 * pad, vh = scene.Height * scale + 2 * pad;
+        int boardWidth = scene.Width * scale + 2 * pad, boardHeight = scene.Height * scale + 2 * pad;
+        int vw = boardWidth, vh = boardHeight + legendHeight;
         double X(double cx) => (cx - scene.MinX) * scale + pad;
         double Z(double cz) => (cz - scene.MinZ) * scale + pad;
 
         var svg = new StringBuilder();
         svg.Append($"<svg viewBox='0 0 {vw} {vh}' width='{vw}' height='{vh}' xmlns='http://www.w3.org/2000/svg' role='img'>");
+        svg.Append("<defs><pattern id='waterLaneHatch' width='6' height='6' patternTransform='rotate(45)' patternUnits='userSpaceOnUse'>"
+            + $"<rect width='6' height='6' fill='{WaterLaneColor}' fill-opacity='0.30'/>"
+            + $"<rect width='3' height='6' fill='{WaterLaneColor}' fill-opacity='0.62'/></pattern></defs>");
 
-        // A water lane is drawn deeper and denser than a build zone: both are gaps players cross, and the
-        // only thing separating them on a still image is which one is open yet.
+        // A water lane and a build zone are the same gap with different crossing rules — one open from the
+        // first minute, one opening 45 minutes in — so the picture separates them by hue (blue only ever
+        // means the lane) and, for the lane, by a hatch a shade/opacity/dash difference cannot lose.
         foreach (var zone in scene.Zones)
         {
             var b = zone.Rect;
-            var col = zone.Lane ? "#2563eb" : "#38bdf8";
+            var fill = zone.Lane ? "url(#waterLaneHatch)" : BuildZoneColor;
+            var col = zone.Lane ? WaterLaneColor : BuildZoneColor;
+            var fillOpacity = zone.Lane ? "1" : "0.38";
             svg.Append($"<rect x='{N(X(b.X))}' y='{N(Z(b.Z))}' width='{N(b.Width * scale)}' height='{N(b.Height * scale)}' "
-                + $"fill='{col}' fill-opacity='{(zone.Lane ? "0.32" : "0.18")}' stroke='{col}' stroke-opacity='0.5' "
+                + $"fill='{fill}' fill-opacity='{fillOpacity}' stroke='{col}' stroke-opacity='0.6' "
                 + $"stroke-width='1' stroke-dasharray='{(zone.Lane ? "1 2" : "3 2")}'/>");
         }
 
@@ -56,8 +85,23 @@ public static class PlanBoardSvg
         foreach (var marker in scene.Markers.Where(m => m.Kind == "wool")) DrawMarker(svg, marker, X, Z);
         foreach (var marker in scene.Markers.Where(m => m.Kind == "spawn")) DrawMarker(svg, marker, X, Z);
 
+        AppendLegend(svg, pad, boardHeight);
         svg.Append("</svg>");
         return svg.ToString();
+    }
+
+    /// <summary>The role/zone key, drawn as one swatch-plus-label row per <see cref="LegendRows"/> entry,
+    /// starting at <paramref name="top"/> — the strip beneath the board itself.</summary>
+    private static void AppendLegend(StringBuilder svg, int pad, int top)
+    {
+        var y = top;
+        foreach (var (label, color) in LegendRows)
+        {
+            svg.Append($"<rect x='{pad}' y='{N(y + 3)}' width='{LegendSwatch}' height='{LegendSwatch}' fill='{color}'/>");
+            svg.Append($"<text x='{pad + LegendSwatch + 5}' y='{N(y + 3 + LegendSwatch - 1.5)}' "
+                + "font-family='monospace' font-size='11' fill='#e2e8f5'>" + System.Net.WebUtility.HtmlEncode(label) + "</text>");
+            y += LegendRowHeight;
+        }
     }
 
     private static void DrawMarker(StringBuilder svg, MarkerFan marker, Func<double, double> X, Func<double, double> Z)

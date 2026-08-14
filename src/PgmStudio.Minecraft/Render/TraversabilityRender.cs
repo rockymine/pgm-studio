@@ -65,13 +65,26 @@ public static class TraversabilityRender
         if (result is null) { Console.Error.WriteLine("no ground columns"); return 1; }
 
         var scaled = Raster.Upscale(result.Pixels, result.BlocksWide, result.BlocksHigh, scale);
-        PngWriter.Write(outPng, result.BlocksWide * scale, result.BlocksHigh * scale, scaled);
+        List<Legend.Entry> entries =
+        [
+            new("MAIN COMPONENT (SPAWN'S)", 0x3fae72),
+            new("OTHER COMPONENT (ISOLATED)", 0x6f5a2f),
+            new("NOT NAVIGABLE", 0x1c1f26),
+            new("BRIDGED BY A BUILD REGION", BridgeTint),
+            new("MARKER: CONNECTED", 0xf5f5f0),
+            new("MARKER: ISOLATED", 0xef4444),
+            new("VOID", 0x0E0E12),
+        ];
+        var withLegend = Legend.AppendBelow(scaled, result.BlocksWide * scale, result.BlocksHigh * scale, entries,
+            out var legendHeight,
+            scaleLabel: $"SCALE: 1 BLOCK = {scale} PX - {result.BlocksWide} X {result.BlocksHigh} BLOCKS");
+        PngWriter.Write(outPng, result.BlocksWide * scale, legendHeight, withLegend);
 
         Console.WriteLine($"traversability: {result.NavigableCount} navigable columns" +
             (result.BridgeableCount > 0 ? $" ({result.BridgeableCount} bridged over void)" : "") +
             $", {result.ComponentCount} component(s)" +
             (result.MarkerCount > 0 ? $", {result.MarkerCount} objective marker(s), {result.IsolatedCount} isolated" : ""));
-        Console.WriteLine($"  wrote {outPng} ({result.BlocksWide * scale}x{result.BlocksHigh * scale} px, {scale} px/block)");
+        Console.WriteLine($"  wrote {outPng} ({result.BlocksWide * scale}x{legendHeight} px, {scale} px/block)");
         return 0;
     }
 

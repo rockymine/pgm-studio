@@ -151,4 +151,20 @@ public sealed class TraversabilityRenderTests
 
         await Assert.That(TraversabilityRender.BridgeableColumns(map).Count).IsEqualTo(0);
     }
+
+    [Test]
+    public async Task Run_appends_a_scale_legend_that_grows_the_written_png()
+    {
+        var outPng = Path.Combine(Path.GetTempPath(), $"traversability-legend-{Guid.NewGuid():N}.png");
+        try
+        {
+            var exit = TraversabilityRender.Run(TwoPlatforms(), outPng, map: null, scale: 2);
+            await Assert.That(exit).IsEqualTo(0);
+
+            var (width, height) = PngTestUtil.Dimensions(File.ReadAllBytes(outPng));
+            await Assert.That(width).IsEqualTo(14);       // x=0..6 at scale 2
+            await Assert.That(height).IsGreaterThan(4);   // z=0..1 at scale 2, plus the legend strip
+        }
+        finally { File.Delete(outPng); }
+    }
 }

@@ -71,14 +71,23 @@ public static class HeightProfileRender
         if (result is null) { Console.Error.WriteLine("no ground columns"); return 1; }
 
         var scaled = Raster.Upscale(result.Pixels, result.BlocksWide, result.BlocksHigh, scale);
-        PngWriter.Write(outPng, result.BlocksWide * scale, result.BlocksHigh * scale, scaled);
+        List<Legend.Entry> entries =
+        [
+            new("LOW", greyscale ? 0x1C1C20 : Hypsometric(0)),
+            new("HIGH", greyscale ? 0xF2F2F0 : Hypsometric(1)),
+        ];
+        if (markWater) entries.Add(new Legend.Entry("UNDER WATER", 0x3C7FE0));
+        var withLegend = Legend.AppendBelow(scaled, result.BlocksWide * scale, result.BlocksHigh * scale, entries,
+            out var legendHeight,
+            scaleLabel: $"SCALE: 1 BLOCK = {scale} PX - {result.BlocksWide} X {result.BlocksHigh} BLOCKS - Y {result.LowestY}..{result.HighestY}");
+        PngWriter.Write(outPng, result.BlocksWide * scale, legendHeight, withLegend);
 
         Console.WriteLine($"height profile {name}: {result.ColumnCount} columns over {result.BlocksWide}x{result.BlocksHigh} blocks, " +
             $"ground y {result.LowestY}..{result.HighestY} (span {result.HighestY - result.LowestY})" +
             (drawContours ? $", contours every {result.ContourInterval} (every {result.ContourInterval * 5} emphasised)" : ", no contours"));
         if (result.Flooded.Count > 0)
             Console.WriteLine($"  under liquid {result.Flooded.Count} columns, waterline y {result.Flooded.Values.Min()}..{result.Flooded.Values.Max()}");
-        Console.WriteLine($"  wrote {outPng} ({result.BlocksWide * scale}x{result.BlocksHigh * scale} px, {scale} px/block)");
+        Console.WriteLine($"  wrote {outPng} ({result.BlocksWide * scale}x{legendHeight} px, {scale} px/block)");
         return 0;
     }
 

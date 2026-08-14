@@ -44,6 +44,51 @@ public static class Raster
         return (red << 16) | (green << 8) | blue;
     }
 
+    /// <summary>Fills an axis-aligned rectangle, clipped to the buffer — the legend swatch and text
+    /// background every render's key is built from.</summary>
+    public static void FillRect(byte[] pixels, int width, int height, int x, int y, int w, int h, int packedRgb)
+    {
+        for (var row = Math.Max(0, y); row < Math.Min(height, y + h); row++)
+            for (var col = Math.Max(0, x); col < Math.Min(width, x + w); col++)
+                Set(pixels, width, col, row, packedRgb);
+    }
+
+    /// <summary>A rectangle filled at <paramref name="opacity"/>, with a diagonal stripe over it every
+    /// <paramref name="period"/> pixels — a category whose colour alone would not survive being looked at
+    /// gets a texture that does, the same distinction a legend swatch shows so the picture and its key agree.</summary>
+    public static void FillHatchedRect(byte[] pixels, int width, int height, int x, int y, int w, int h,
+        int packedRgb, double opacity, int period = 5)
+    {
+        for (var row = Math.Max(0, y); row < Math.Min(height, y + h); row++)
+            for (var col = Math.Max(0, x); col < Math.Min(width, x + w); col++)
+            {
+                var onStripe = ((col - x) + (row - y)) % period == 0;
+                Over(pixels, width, col, row, packedRgb, onStripe ? Math.Min(1.0, opacity * 1.8) : opacity);
+            }
+    }
+
+    /// <summary>Draws left-to-right text in <see cref="PixelFont"/>'s 5×5 capitals, one glyph cell scaled to
+    /// <paramref name="pixelSize"/> real pixels a side and one blank column between letters. Returns the pixel
+    /// width consumed, so a caller can lay out several labels in a row without guessing string width.</summary>
+    public static int DrawText(byte[] pixels, int width, int height, int x, int y, string text, int packedRgb, int pixelSize = 1)
+    {
+        var cursor = x;
+        foreach (var character in text)
+        {
+            var glyph = PixelFont.Glyph(character);
+            for (var row = 0; row < PixelFont.GlyphSize; row++)
+                for (var col = 0; col < PixelFont.GlyphSize; col++)
+                    if (glyph[row][col] != '.')
+                        FillRect(pixels, width, height, cursor + col * pixelSize, y + row * pixelSize, pixelSize, pixelSize, packedRgb);
+            cursor += (PixelFont.GlyphSize + 1) * pixelSize;
+        }
+        return cursor - x;
+    }
+
+    /// <summary>The pixel width <see cref="DrawText"/> would consume for <paramref name="text"/>, without
+    /// drawing anything — what a caller lays a swatch or a right-aligned label out against.</summary>
+    public static int TextWidth(string text, int pixelSize = 1) => text.Length * (PixelFont.GlyphSize + 1) * pixelSize;
+
     /// <summary>Nearest-neighbour block magnification — a block is a unit of the world, so it must stay a
     /// crisp square; interpolating would invent terrain between two columns.</summary>
     public static byte[] Upscale(byte[] pixels, int blocksWide, int blocksHigh, int scale)

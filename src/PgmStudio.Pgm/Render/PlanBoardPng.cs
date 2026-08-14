@@ -1,6 +1,7 @@
 using PgmStudio.Geom.Render;
 using PgmStudio.Pgm.Plan;
 using static PgmStudio.Pgm.Render.PlanBoardScene;
+using static PgmStudio.Pgm.Render.PlanBoardPalette;
 
 namespace PgmStudio.Pgm.Render;
 
@@ -16,6 +17,15 @@ public static class PlanBoardPng
 {
     private const int Background = 0x11141a;
 
+    /// <summary>The same role/zone key <see cref="PlanBoardSvg"/> draws inline as SVG text, here appended by
+    /// <see cref="Legend"/> below the raster (<c>B95</c>) — water lane hatched to show the same texture the
+    /// board itself paints it with.</summary>
+    private static readonly Legend.Entry[] LegendEntries =
+    [
+        new("HUB", 0xa78bfa), new("SPAWN", 0x34d399), new("WOOL", 0xfbbf24), new("FRONTLINE", 0xfb923c), new("OTHER", 0x64748b),
+        new("BUILD ZONE", BuildZoneRgb), new("WATER LANE", WaterLaneRgb, Hatched: true),
+    ];
+
     /// <param name="scale">Pixels per proxy cell. Raster has no lossless zoom, so this defaults higher than
     /// the SVG's own default — legible at the fixed size an image reader actually opens it at.</param>
     /// <param name="pad">Pixel margin around the board.</param>
@@ -29,35 +39,41 @@ public static class PlanBoardPng
         for (var row = 0; row < height; row++)
             for (var col = 0; col < width; col++)
                 Raster.Set(pixels, width, col, row, Background);
-        if (scene is null) return PngWriter.Encode(width, height, pixels);
 
-        int X(double cx) => (int)Math.Round((cx - scene.MinX) * scale) + pad;
-        int Z(double cz) => (int)Math.Round((cz - scene.MinZ) * scale) + pad;
-
-        foreach (var zone in scene.Zones)
+        if (scene is not null)
         {
-            var rgb = zone.Lane ? 0x2563eb : 0x38bdf8;
-            FillRect(pixels, width, height, X(zone.Rect.X), Z(zone.Rect.Z), zone.Rect.Width * scale, zone.Rect.Height * scale,
-                rgb, zone.Lane ? 0.32 : 0.18);
+            int X(double cx) => (int)Math.Round((cx - scene.MinX) * scale) + pad;
+            int Z(double cz) => (int)Math.Round((cz - scene.MinZ) * scale) + pad;
+
+            // A water lane and a build zone are the same gap with different crossing rules — separated here by
+            // hue (never a shade of the same blue) and, for the lane, by a hatch on top of it.
+            foreach (var zone in scene.Zones)
+            {
+                var x = X(zone.Rect.X); var z = Z(zone.Rect.Z);
+                var w = zone.Rect.Width * scale; var h = zone.Rect.Height * scale;
+                if (zone.Lane) Raster.FillHatchedRect(pixels, width, height, x, z, w, h, WaterLaneRgb, 0.34, period: 6);
+                else FillRect(pixels, width, height, x, z, w, h, BuildZoneRgb, 0.38);
+            }
+
+            foreach (var piece in scene.Pieces)
+            {
+                var rgb = PieceRgb(piece.Id);
+                var room = piece.Role != PlanRoles.Piece;
+                var op = piece.K == 0 ? (room ? 0.95 : 0.4) : (room ? 0.55 : 0.22);
+                var px = X(piece.Rect.X); var pz = Z(piece.Rect.Z);
+                var pw = piece.Rect.Width * scale; var ph = piece.Rect.Height * scale;
+                FillRect(pixels, width, height, px, pz, pw, ph, rgb, op);
+                StrokeRect(pixels, width, height, px, pz, pw, ph, rgb, piece.K == 0 ? 1.0 : 0.4);
+            }
+
+            // markers at their fanned cells: iron (grey pip), wool (colour disc), spawn (pale disc drawn last, on top)
+            foreach (var marker in scene.Markers.Where(m => m.Kind == "iron")) DrawMarker(pixels, width, height, marker, X, Z);
+            foreach (var marker in scene.Markers.Where(m => m.Kind == "wool")) DrawMarker(pixels, width, height, marker, X, Z);
+            foreach (var marker in scene.Markers.Where(m => m.Kind == "spawn")) DrawMarker(pixels, width, height, marker, X, Z);
         }
 
-        foreach (var piece in scene.Pieces)
-        {
-            var rgb = PieceRgb(piece.Id);
-            var room = piece.Role != PlanRoles.Piece;
-            var op = piece.K == 0 ? (room ? 0.95 : 0.4) : (room ? 0.55 : 0.22);
-            var px = X(piece.Rect.X); var pz = Z(piece.Rect.Z);
-            var pw = piece.Rect.Width * scale; var ph = piece.Rect.Height * scale;
-            FillRect(pixels, width, height, px, pz, pw, ph, rgb, op);
-            StrokeRect(pixels, width, height, px, pz, pw, ph, rgb, piece.K == 0 ? 1.0 : 0.4);
-        }
-
-        // markers at their fanned cells: iron (grey pip), wool (colour disc), spawn (pale disc drawn last, on top)
-        foreach (var marker in scene.Markers.Where(m => m.Kind == "iron")) DrawMarker(pixels, width, height, marker, X, Z);
-        foreach (var marker in scene.Markers.Where(m => m.Kind == "wool")) DrawMarker(pixels, width, height, marker, X, Z);
-        foreach (var marker in scene.Markers.Where(m => m.Kind == "spawn")) DrawMarker(pixels, width, height, marker, X, Z);
-
-        return PngWriter.Encode(width, height, pixels);
+        var withLegend = Legend.AppendBelow(pixels, width, height, LegendEntries, out var legendHeight);
+        return PngWriter.Encode(width, legendHeight, withLegend);
     }
 
     private static void DrawMarker(byte[] pixels, int width, int height, MarkerFan marker, Func<double, int> X, Func<double, int> Z)

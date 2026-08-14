@@ -100,9 +100,21 @@ public static class SurfaceReport
         }
 
         var scaled = Raster.Upscale(result.Pixels, result.BlocksWide, result.BlocksHigh, scale);
-        PngWriter.Write(outPng, result.BlocksWide * scale, result.BlocksHigh * scale, scaled);
-        Console.WriteLine($"{(verbose ? "\n  " : "")}wrote {outPng} ({result.BlocksWide * scale}x{result.BlocksHigh * scale} px, {scale} px/block); " +
-            $"structure charcoal, water blue, partial blocks amber, unnamed materials magenta");
+        List<Legend.Entry> entries =
+        [
+            new("GROUND: COLOUR = TERRAIN-PAINT FAMILY (VARIES)", 0x9DA0A0),
+            new("STRUCTURE", 0x2A2D33),
+            new("UNDER WATER", 0x1B3A5C),
+            new("PARTIAL BLOCK (STAIR/SLAB/PANE)", 0xC08030),
+            new("UNNAMED MATERIAL", 0xC020C0),
+            new("VOID", 0x0E0E12),
+        ];
+        var withLegend = Legend.AppendBelow(scaled, result.BlocksWide * scale, result.BlocksHigh * scale, entries,
+            out var legendHeight,
+            scaleLabel: $"SCALE: 1 BLOCK = {scale} PX - {result.BlocksWide} X {result.BlocksHigh} BLOCKS");
+        PngWriter.Write(outPng, result.BlocksWide * scale, legendHeight, withLegend);
+        Console.WriteLine($"{(verbose ? "\n  " : "")}wrote {outPng} ({result.BlocksWide * scale}x{legendHeight} px, {scale} px/block); " +
+            $"ground tones by terrain-paint family, structure charcoal, water blue, partial blocks amber, unnamed materials magenta");
         return 0;
     }
 

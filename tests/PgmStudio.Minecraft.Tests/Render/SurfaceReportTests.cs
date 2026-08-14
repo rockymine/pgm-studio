@@ -24,4 +24,25 @@ public sealed class SurfaceReportTests
         await Assert.That(result.Ground.Count).IsEqualTo(5);
         await Assert.That(result.Ground.ContainsKey((0, 0))).IsFalse();
     }
+
+    [Test]
+    public async Task Run_appends_a_scale_legend_that_grows_the_written_png()
+    {
+        var world = new VoxelWorld();
+        for (var x = 0; x < 3; x++)
+            for (var z = 0; z < 2; z++)
+                world.SetBlock(x, 5, z, Blocks.Stone);
+
+        var outPng = Path.Combine(Path.GetTempPath(), $"surface-legend-{Guid.NewGuid():N}.png");
+        try
+        {
+            var exit = SurfaceReport.Run(world, outPng, scale: 2, topMaterials: 8);
+            await Assert.That(exit).IsEqualTo(0);
+
+            var (width, height) = PngTestUtil.Dimensions(File.ReadAllBytes(outPng));
+            await Assert.That(width).IsEqualTo(6);      // 3 columns wide at scale 2
+            await Assert.That(height).IsGreaterThan(4); // 2 rows at scale 2, plus the legend strip
+        }
+        finally { File.Delete(outPng); }
+    }
 }
