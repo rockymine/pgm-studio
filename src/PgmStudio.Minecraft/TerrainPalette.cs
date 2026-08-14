@@ -44,6 +44,13 @@ public readonly record struct PaintFamily(string Name, int Rgb, IReadOnlyList<Pa
 /// families separate by relief, cobble sitting low and shallow and grey stone standing high and steep, which is
 /// the distinction an author is actually drawing.</para>
 ///
+/// <para><b>All sixteen stained-clay shades now read as a tone.</b> Eight — orange, lime, green, brown, cyan,
+/// blue, black — were placed from the start; the other eight join the family their fired colour actually reads
+/// as, not the wool or glass block of the same dye name, since a family names a colour rather than a dye
+/// number: magenta and purple stained clay are both a dusty violet-grey closer to mauve than to any brick or
+/// soil tone, and light gray stained clay is a warm neutral brown rather than a grey. Hay bale joins gold for
+/// the same ochre yellow wool already offers there; packed ice was already the second member of ice.</para>
+///
 /// <para>The three sixteen-shade families are not tones and keep their own groups: their data value is a
 /// <em>shade</em> of one block rather than a different block, so a picker offers the family once and the shade
 /// is a swatch click. A shade a tone family claims is offered under that tone, and the colour row still reaches
@@ -60,19 +67,19 @@ public static class TerrainPalette
         ("spring",    0x78C13A, [(165, 0), (35, 5), (133, 0)]),
         ("turquoise", 0x3E9E8C, [(168, 0), (168, 1)]),
         ("loam",      0x5A4126, [(3, 2), (159, 12), (88, 0), (5, 5), (35, 12)]),
-        ("dirt",      0x8A6743, [(5, 0), (5, 3), (3, 0), (3, 1), (5, 1)]),
-        ("brick",     0x9A6250, [(1, 1), (1, 2), (45, 0), (172, 0)]),
-        ("rust",      0xA85A28, [(5, 4), (159, 1), (12, 1), (179, 0), (181, 8)]),
-        ("sand",      0xD6C894, [(12, 0), (5, 2), (24, 0), (43, 9), (121, 0)]),
-        ("gold",      0xC6A62F, [(35, 4), (19, 0), (19, 1), (103, 0)]),
+        ("dirt",      0x8A6743, [(5, 0), (5, 3), (159, 8), (3, 0), (3, 1), (5, 1)]),
+        ("brick",     0x9A6250, [(1, 1), (1, 2), (45, 0), (172, 0), (159, 6)]),
+        ("rust",      0xA85A28, [(5, 4), (159, 1), (12, 1), (179, 0), (181, 8), (159, 14)]),
+        ("sand",      0xD6C894, [(12, 0), (5, 2), (159, 0), (24, 0), (43, 9), (121, 0)]),
+        ("gold",      0xC6A62F, [(35, 4), (19, 0), (19, 1), (103, 0), (159, 4), (170, 0)]),
         ("pale stone",0xB4B2AE, [(1, 3), (1, 4), (99, 15)]),
         ("ash",       0x9DA0A0, [(35, 8), (82, 0), (43, 8), (43, 0)]),
         ("grey stone",0x7C817A, [(1, 0), (1, 5), (1, 6), (98, 0), (15, 0), (16, 0)]),
         ("cobble",    0x767B72, [(13, 0), (4, 0), (98, 2), (48, 0)]),
-        ("mauve",     0x8A7A8E, [(110, 0), (159, 3)]),
+        ("mauve",     0x8A7A8E, [(110, 0), (159, 2), (159, 3), (159, 10)]),
         ("azure",     0x3B5DA8, [(35, 11), (22, 0), (159, 11)]),
         ("slate",     0x5A6066, [(159, 9), (35, 7)]),
-        ("dark",      0x2E2B2B, [(112, 0), (159, 15), (35, 15), (173, 0), (49, 0)]),
+        ("dark",      0x2E2B2B, [(159, 7), (112, 0), (159, 15), (35, 15), (173, 0), (49, 0)]),
         ("ice",       0xA9CBE0, [(79, 0), (174, 0)]),
         ("bright",    0xE8E9E4, [(80, 0), (155, 0), (155, 1)]),
     ];

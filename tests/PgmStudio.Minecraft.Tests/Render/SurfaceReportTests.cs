@@ -26,6 +26,37 @@ public sealed class SurfaceReportTests
     }
 
     [Test]
+    public async Task A_full_cube_no_family_names_is_counted_rather_than_silently_painted_magenta()
+    {
+        var world = new VoxelWorld();
+        for (var x = 0; x < 2; x++)
+            for (var z = 0; z < 2; z++)
+                world.SetBlock(x, 5, z, Blocks.Stone);   // named by the "grey stone" family
+        world.SetBlock(0, 5, 0, Blocks.Bedrock);         // a full cube no family claims, by design
+
+        var result = SurfaceReport.Render(AnvilRegion.FromWorld(world), topMaterials: 8);
+
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.Unnamed.Count).IsEqualTo(1);
+        await Assert.That(result.Unnamed[0].Name).IsEqualTo("Bedrock");
+        await Assert.That(result.Unnamed[0].Count).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task A_board_entirely_within_the_vocabulary_reports_no_unnamed_blocks()
+    {
+        var world = new VoxelWorld();
+        for (var x = 0; x < 2; x++)
+            for (var z = 0; z < 2; z++)
+                world.SetBlock(x, 5, z, Blocks.Stone);
+
+        var result = SurfaceReport.Render(AnvilRegion.FromWorld(world), topMaterials: 8);
+
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.Unnamed).IsEmpty();
+    }
+
+    [Test]
     public async Task Run_appends_a_scale_legend_that_grows_the_written_png()
     {
         var world = new VoxelWorld();

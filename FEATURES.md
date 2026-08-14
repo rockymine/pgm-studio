@@ -4752,6 +4752,21 @@ these are the ones that shipped a map that could not be played as intended, and 
   (`WorldProvenanceFile`'s `owners` array) rather than a string per cell, with a run breaking on an owner
   change as well as a layer change; on `quillon-barrow` the sidecar grows from about 33 KB to about 35 KB for
   a full owner-per-claim identity.
+- **`--surface` names the rest of the stained-clay ramp, hay bale, and says what it still cannot (B147).**
+  `TerrainPalette.Families` covered stained-clay data `1, 3, 5, 9, 11, 12, 13, 15`; the other eight
+  (white, magenta, yellow, pink, gray, light gray, purple, red) now each join the tone family the fired
+  colour actually reads as — magenta and purple into `mauve`, next to the light blue clay already there;
+  yellow into `gold`, beside yellow wool; pink and gray into `brick` and `dark`; white, light gray and red
+  into `sand`, `dirt` and `rust`. Hay bale joins `gold` for the same ochre yellow wool already offers there;
+  packed ice already had a family. Nineteen hand-authored, light-to-dark-ordered families in total, unchanged
+  in count and order — only their membership grew. The renderer now states its own coverage the way
+  `--topdown` states which structure reading it used: a `SurfaceReport.Result.Unnamed` list of the full cubes
+  on the board no family names, folded into the `UNNAMED MATERIAL` legend swatch as
+  `UNNAMED MATERIAL (N BLOCKS NO FAMILY CLAIMS)` and printed as its own console section. On
+  `tallow-kilnrow`, unnamed ground fell from 6,624 columns (33.6%, mostly the eight stained-clay shades this
+  closes) to 965 (4.9%) — the honest remainder, all four still genuinely outside the vocabulary: Quartz
+  Pillar (e.g. `(8, 18, -89)`), Smooth Sandstone (`(31, 1, -75)`), Smooth Red Sandstone (`(20, 26, -68)`) and
+  decorative Bedrock (`(33, 21, -57)`).
 - **The capability handbook — what the system can be asked for, and where to say it (B91).** `docs/tools/capabilities.md`
   mapped the four documents a map is made of; it now also states the surface underneath the spec's shorthand, in
   pipeline order, every claim naming the type that carries it and the endpoint that answers it: the destroyable's

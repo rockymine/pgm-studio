@@ -55,8 +55,12 @@ public static class SurfaceReport
     private readonly record struct Cell(int Ground, int GroundData, int GroundY, int Decor, int DecorData,
                                         int Depth, int Bed, int BedData, bool Built, bool Shaded);
 
+    /// <param name="Unnamed">The full cubes on the ground that no <see cref="TerrainPalette"/> family names —
+    /// what the render's own magenta stands for, broken out by block rather than left as one undifferentiated
+    /// colour. Empty when the vocabulary covers everything the board actually used.</param>
     public sealed record Result(byte[] Pixels, int BlocksWide, int BlocksHigh,
-        Dictionary<(int X, int Z), (int Id, int Data)> Ground, int ColumnCount);
+        Dictionary<(int X, int Z), (int Id, int Data)> Ground, int ColumnCount,
+        IReadOnlyList<(string Name, int Count)> Unnamed);
 
     public static int Run(string regionDir, string outPng, int scale, int topMaterials)
     {
@@ -92,12 +96,21 @@ public static class SurfaceReport
         {
             ReportMaterials(columns, ground, topMaterials);
             ReportTones(ground);
+            ReportUnnamed(ground, result.Unnamed);
             ReportDecoration(columns);
             ReportBeds(columns);
             ReportPatchiness(ground, topMaterials);
             ReportTonePatchiness(ground);
             ReportRelief(columns);
         }
+
+        // The same honesty a structure read-back already bakes into its own caption (TopDownRender's
+        // provenance line): a viewer who only ever looks at the picture has no other way to learn that its
+        // magenta is not one material but a stand-in for several the vocabulary was never taught, so the count
+        // is folded into the swatch that explains it — a wrapped legend row, not a caption line that can run
+        // off a narrow image the way appending it to the fixed-width scale label would.
+        var unnamedNote = result.Unnamed.Count == 0 ? null
+            : $"{result.Unnamed.Count} BLOCK{(result.Unnamed.Count == 1 ? "" : "S")} NO FAMILY CLAIMS";
 
         var scaled = Raster.Upscale(result.Pixels, result.BlocksWide, result.BlocksHigh, scale);
         List<Legend.Entry> entries =
@@ -106,7 +119,7 @@ public static class SurfaceReport
             new("STRUCTURE", 0x2A2D33),
             new("UNDER WATER", 0x1B3A5C),
             new("PARTIAL BLOCK (STAIR/SLAB/PANE)", 0xC08030),
-            new("UNNAMED MATERIAL", 0xC020C0),
+            new(unnamedNote is null ? "UNNAMED MATERIAL" : $"UNNAMED MATERIAL ({unnamedNote})", 0xC020C0),
             new("VOID", 0x0E0E12),
         ];
         var withLegend = Legend.AppendBelow(scaled, result.BlocksWide * scale, result.BlocksHigh * scale, entries,
@@ -114,8 +127,31 @@ public static class SurfaceReport
             scaleLabel: $"SCALE: 1 BLOCK = {scale} PX - {result.BlocksWide} X {result.BlocksHigh} BLOCKS");
         PngWriter.Write(outPng, result.BlocksWide * scale, legendHeight, withLegend);
         Console.WriteLine($"{(verbose ? "\n  " : "")}wrote {outPng} ({result.BlocksWide * scale}x{legendHeight} px, {scale} px/block); " +
-            $"ground tones by terrain-paint family, structure charcoal, water blue, partial blocks amber, unnamed materials magenta");
+            $"ground tones by terrain-paint family, structure charcoal, water blue, partial blocks amber, unnamed materials magenta" +
+            (unnamedNote is null ? "" : $" ({unnamedNote.ToLowerInvariant()})"));
         return 0;
+    }
+
+    /// <summary>The full cubes standing on this board's ground that <see cref="TerrainPalette.Families"/> does
+    /// not name — the vocabulary gap made countable rather than left to read as a family that silently failed
+    /// to apply. A partial block is excluded: the vocabulary only ever named full cubes by design, so a stair
+    /// or a slab belongs under its own legend colour, not under this one.</summary>
+    private static IReadOnlyList<(string Name, int Count)> UnnamedMaterials(Dictionary<(int X, int Z), (int Id, int Data)> ground) =>
+        [.. ground.Values
+            .Where(entry => TerrainPalette.FamilyOf(entry.Id, entry.Data) is null && BlockRoles.IsFullCube(entry.Id))
+            .GroupBy(entry => Material(entry.Id, entry.Data))
+            .Select(group => (Name: group.Key, Count: group.Count()))
+            .OrderByDescending(entry => entry.Count)];
+
+    private static void ReportUnnamed(Dictionary<(int X, int Z), (int Id, int Data)> ground,
+        IReadOnlyList<(string Name, int Count)> unnamed)
+    {
+        var total = unnamed.Sum(entry => entry.Count);
+        Console.WriteLine($"\n=== {unnamed.Count} block(s) no family claims " +
+            $"({total} columns, {total * 100.0 / ground.Count:0.0}% of the ground) ===");
+        if (unnamed.Count == 0) { Console.WriteLine("  none — every ground column resolves to a tone family"); return; }
+        foreach (var (name, count) in unnamed)
+            Console.WriteLine($"  {name,-28} {count,7} {count * 100.0 / ground.Count,5:0.0}%");
     }
 
     /// <summary>The pure draw: a scanned column map in, the ground-only material map and an RGB pixel buffer
@@ -145,7 +181,7 @@ public static class SurfaceReport
                     tone == "partial block" ? 0xC08030 : TerrainPalette.ColourOf(tone));
             }
 
-        return new Result(pixels, blocksWide, blocksHigh, ground, columns.Count);
+        return new Result(pixels, blocksWide, blocksHigh, ground, columns.Count, UnnamedMaterials(ground));
     }
 
     private static void Scan(AnvilRegion.Chunk chunk, Dictionary<(int X, int Z), Cell> columns)

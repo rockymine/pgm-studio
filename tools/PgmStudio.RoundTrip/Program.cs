@@ -365,7 +365,8 @@ if (buildIdx >= 0 && buildIdx + 2 < args.Length)
 
 // --surface <regionDir> <outPng> [--scale N] [--top N]: what the ground is made of once decoration, water
 // and structure are set aside — the material histogram, what each decoration grows on, what lies under the
-// water, and whether each material was scattered or laid in fields.
+// water, whether each material was scattered or laid in fields, and which full cubes on the board the
+// terrain-paint vocabulary does not name at all (magenta on the image, counted rather than just shown).
 var surfIdx = Array.IndexOf(args, "--surface");
 if (surfIdx >= 0 && surfIdx + 2 < args.Length)
 {
