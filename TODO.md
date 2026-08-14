@@ -154,11 +154,30 @@ which finds out whether the result actually answers.
   casing, so the lava falls exactly that far with no terrain in the way: the core leaks the moment it is
   opened, and the dig that is supposed to be the second half of the task does not exist.
 
-  `PlanTool` already computes `CoreDigDepth => Math.Max(0, CoreLeak - CoreFloat)` and shows zero, so the
-  studio displays the consequence without treating it as wrong. **Whether a core should require digging at
-  all is a gameplay question and is not settled here** — PGM's own default `leak` is 5 and says nothing about
-  float. What is established is the mechanism and that the shipped pair sits exactly on the boundary where
-  the dig vanishes, which is unlikely to be a chosen number.
+  **The corpus settles it, and a zero dig is legitimate — that half of the entry is withdrawn.** Ten `dtcm`
+  maps carrying cores use `leak` 3–6, median 5, so the studio's `CoreLeak = 5` is the corpus norm exactly.
+  Probing two of them with `--column` finds two opposite designs, both shipped:
+
+  | map | `leak` | casing floor | air beneath | dig required |
+  |---|---|---|---|---|
+  | `stone_fields` | 5 | y23 (obsidian), lava y24–26 | 4 (y19–22), chest y18, solid y17 | **2 blocks** |
+  | `fungi_grove` | 6 | y15 (obsidian), lava y16–19 | 11 (y4–14), floor y3 | **none** — it hangs over a chasm |
+
+  So a core that leaks the moment its casing opens is a real design: `fungi_grove` suspends one over a drop
+  and the whole task is breaking the shell. The studio's `float 6` / `leak 5` reproduces that pattern, which
+  makes it a **default**, not a defect.
+
+  **What is actually missing is the other pattern.** `stone_fields` requires two blocks dug out from under
+  the casing, and the studio cannot express it: `CoreFloat` and `CoreLeak` are `const`, paired to a single
+  outcome, with no per-core control on the marker or the intent. A board wanting the shell-then-dig task has
+  no way to ask for it.
+
+  **And the arithmetic the studio shows an author is off by one.** `PlanTool` computes
+  `CoreDigDepth => Math.Max(0, CoreLeak - CoreFloat)`. PGM sets `leakRequired = lavaBottom − (coreBottom −
+  leak) + 1`, and the lava sits one course above the casing floor, so `leakRequired = leak + 2` and the lava
+  must reach `coreBottom − leak − 1`. The true depth is therefore **`leak + 1 − float`**. Both formulas give
+  0 at the shipped pair, so the error is invisible at the default and wrong everywhere else — at `leak 5`,
+  `float 4` the studio says 1 and `stone_fields` measures 2.
 
 - [ ] **B133 — What a cell *is* cannot be read off the block that sits there, and three read-backs try.**
   `RenderCategories.Classify` decides `Structure` with `BlockRoles.IsBuilt(blockId)`, `StructureFinder`
