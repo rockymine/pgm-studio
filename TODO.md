@@ -91,6 +91,45 @@ which finds out whether the result actually answers.
     claim that every generated destroy map was unwinnable.
   - **A document that describes something unbuilt names its task id, or says nothing.**
 
+- [ ] **B134 — "An iron pickaxe does not mine obsidian at all" is false, and a 409 now refuses maps on it.**
+  `DestroyKitPairing`'s docstring states the premise outright — *"an iron pickaxe does not mine obsidian at
+  all, so a mismatch is not a rough edge, it is an unwinnable map"* — and it is wrong. An iron pickaxe
+  **breaks** obsidian; what it does not do is **drop** it. A destroy objective only requires the block to be
+  gone, so an obsidian monument against an iron pickaxe is winnable, and slow, which is a design choice about
+  how long a raid should take rather than a broken map.
+
+  The claim entered as `mapgen-review.md` MG18, shipped as `B81`, and `B116` then wired
+  `DestroyKitPairing.Unwinnable` to the export gate as `OB18` — a **hard 409**. So the studio now refuses to
+  export a class of map that plays correctly, and the refusal names a rule id that asserts the false claim.
+  That is the worst direction for this error to travel: it began as a note, became a fix, and is now a gate.
+
+  **The severity is the gate, not the pairing.** `RequiredPickaxe` upgrading a kit to match its goals is
+  useful and stays. What has to go is the inference from *cannot drop* to *cannot break*, and with it `OB18`'s
+  standing as a refusal — a mismatch is at most a warning, and probably not even that.
+
+  **The author's rule for the pairing, which settles what it should do instead: the material defines the
+  kit.** Obsidian pairs with a diamond pickaxe; anything softer pairs with iron. That is a statement about
+  what the kit should be *generated* as, not about what is legal, so it belongs in `RequiredPickaxe` and
+  nowhere near a gate.
+
+  Grep the repository before calling this done: the false sentence is repeated in `DestroyKitPairing`'s
+  docstring, in `docs/pgm/destroyables-and-cores.md`, in `mapgen-review.md`'s MG18 row, and in whatever
+  `FEATURES.md` says `B81` and `B116` shipped. Each one reads as settled fact.
+
+- [ ] **B135 — The paired core defaults leak on the first break, with nothing to dig.** `ObjectiveDefaults`
+  carries `CoreFloat = 6` and `CoreLeak = 5` and documents them as a pair (DC2). Read against PGM, that pair
+  leaks immediately. `Core.java` builds a leak region whose top is `coreRegion.min.y − leakLevel` and sets
+  `leakRequired = lavaRegion.min.y − max.y + 1`, so with the lava sitting at the casing's floor the lava must
+  descend **`leak + 1` = 6** blocks below itself to count as leaked. Six blocks of authored air sit under the
+  casing, so the lava falls exactly that far with no terrain in the way: the core leaks the moment it is
+  opened, and the dig that is supposed to be the second half of the task does not exist.
+
+  `PlanTool` already computes `CoreDigDepth => Math.Max(0, CoreLeak - CoreFloat)` and shows zero, so the
+  studio displays the consequence without treating it as wrong. **Whether a core should require digging at
+  all is a gameplay question and is not settled here** — PGM's own default `leak` is 5 and says nothing about
+  float. What is established is the mechanism and that the shipped pair sits exactly on the boundary where
+  the dig vanishes, which is unlikely to be a chosen number.
+
 - [ ] **B133 — What a cell *is* cannot be read off the block that sits there, and three read-backs try.**
   `RenderCategories.Classify` decides `Structure` with `BlockRoles.IsBuilt(blockId)`, `StructureFinder`
   finds a building by material, and `--structures` fuses a house into the ground the moment the two share a
@@ -160,17 +199,25 @@ which finds out whether the result actually answers.
   trial run had to declare a decoy land-only build zone purely to turn void enforcement back on, which is a
   workaround for a default that is backwards.
 
-  **The corpus was read before proposing a fix, and it rules out the obvious one.** Over the 112 `dtcm` maps
-  in `CommunityMaps`: 102 declare a `maxbuildheight`, **15** carry a void filter at all, and **10** declare a
-  build region. So seven destroy maps in eight enforce nothing about the void, and making "no build area
-  declared" imply "the whole map is not-build-area with void enforced" would ship boards stricter than
-  almost every real one — a default nobody asked for, applied to every existing map at once. The first
-  reading of this entry proposed exactly that and it is withdrawn.
+  **The corpus settles it, and the enforcing majority is large.** Over the 112 `dtcm` maps in
+  `CommunityMaps`: 102 declare a `maxbuildheight`, **68 enforce the void**, 82 carry a hard `block="never"`
+  region, and **100 of 112 carry one or the other**. Nearly every real destroy map restricts building
+  somewhere. Two earlier readings of this entry claimed the opposite from a grep that matched only
+  `no-void` and `<void/>` and missed **`deny(void)`**, which is the dominant spelling — 31 uses as
+  `block-place`, 25 as `block`. Both are withdrawn; the corpus agrees with the entry's original instinct.
 
-  What the 15 that *do* enforce show is the idiom, and it is a positive one. `chaos_theory` declares
-  `<not id="no-void"><void/></not>` and applies it with `block="no-void"` over a **named rectangle**, not
-  over the complement of a build area. Enforcement is a decision an author makes about a region, stated
-  where they want it, rather than something derived from the absence of another declaration.
+  **`alpine_mining_ii` is the idiom worth copying**, and it is more precise than "a build area":
+
+  ```xml
+  <complement id="build-filter"><everywhere/><union id="obs-spawn">…</union></complement>
+  <apply block-place="deny(void)" message="You may not build outside of the map!" region="build-filter"/>
+  ```
+
+  Enforcement is applied over **everywhere minus a small exclusion**, not over a drawn build rectangle, and
+  it is **`block-place`, not `block`** — so a player may still *break* a block hanging over the void, which
+  the map's own comment says is deliberate. Eighteen of the enforcing maps scope it through `everywhere` or
+  a complement like this. A build *area* and void enforcement are therefore two different decisions in the
+  corpus: the area says where the map is, and the void rule says you may not extend it.
 
   So the defect is narrower and more useful than "the guard is backwards": **there is no way to ask for void
   enforcement without declaring a build area**, because the two are welded together in one method that exits
