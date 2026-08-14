@@ -105,13 +105,30 @@ public sealed class RenderCategoriesTests
     [Test]
     [Arguments(0, RenderCategory.Void)]
     [Arguments(Blocks.Water, RenderCategory.Water)]
-    [Arguments(Blocks.Log, RenderCategory.Foliage)]
-    public async Task Void_liquid_and_foliage_are_never_overridden_by_a_structure_claim(int blockId, RenderCategory expected)
+    public async Task Void_and_liquid_are_never_overridden_by_a_structure_claim(int blockId, RenderCategory expected)
     {
-        // Provenance answers the Ground/Structure question only; a column provenance never asked about
-        // (water, a tree) keeps reading by material even when a caller hands in a Structure claim for it —
-        // which should not happen in practice, but the priority order is worth pinning down.
+        // Neither is ever what a pass claimed a column for, so both stay material questions whatever a caller
+        // hands in beside them.
         await Assert.That(RenderCategories.Of(blockId, ProvenanceLayer.Structure)).IsEqualTo(expected);
+    }
+
+    [Test]
+    public async Task A_log_a_building_claimed_is_that_building_rather_than_a_tree()
+    {
+        // A log is the half of a tree that is also furniture: an author stands one at each corner of a house
+        // as a post. Reading the material first turned every log-posted building into a grove — the village
+        // rows on a board with eleven houses a side read as foliage along their outlines. A claim is the only
+        // thing that can tell a post from a trunk, so it wins.
+        await Assert.That(RenderCategories.Of(Blocks.Log, ProvenanceLayer.Structure)).IsEqualTo(RenderCategory.Structure);
+    }
+
+    [Test]
+    public async Task A_log_on_claimed_ground_is_still_a_tree()
+    {
+        // The mirror of the case above, and why a Ground claim cannot use the same rule: a tree carries no
+        // claim of its own — it stands on ground the rasterizer claimed — so the block is the only thing left
+        // that can say a trunk is there.
+        await Assert.That(RenderCategories.Of(Blocks.Log, ProvenanceLayer.Ground)).IsEqualTo(RenderCategory.Foliage);
     }
 
     [Test]

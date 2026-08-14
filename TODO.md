@@ -91,6 +91,53 @@ which finds out whether the result actually answers.
     claim that every generated destroy map was unwinnable.
   - **A document that describes something unbuilt names its task id, or says nothing.**
 
+- [ ] **B137 — A building claims its walls and not its roof, so its own eaves read as forest.**
+  `DressingScope.StructureFootprints` claims a dressing-placed house's `HouseProp.Footprint()`, which is the
+  rectangle its two `points` describe — the **wall** footprint. A roof with `overhang: 1` extends a course
+  past that on every side, and a `HouseStyle`'s `verge` is commonly a **log**, so the ring of cells the eaves
+  land on keeps whatever claim the ground under it had and reads `Foliage` by material. A village of eleven
+  houses draws eleven rectangles outlined in tree-colour.
+
+  Measured on `quillon-barrow`'s house `d-h1`, footprint x −38..−31 by z −82..−78, `overhang: 1`,
+  `verge: {kind: solid, id: 17, data: 1}`:
+
+  | column | relative to the claimed footprint | top block |
+  |---|---|---|
+  | (−39, −80) | one outside | `17:1` Spruce Log — the verge |
+  | (−38, −80) | on the edge | `5:1` Spruce Planks — the roof |
+  | (−35, −83) | one outside | `17:1` Spruce Log — the verge |
+  | (−35, −82) | on the edge | `5:1` Spruce Planks |
+
+  **The classifier is not the fault and was already corrected in the other direction.** A log a building
+  claimed now reads as that building rather than as a tree (`RenderCategories.Of`, the `Structure` claim
+  winning over the foliage test), which is right and is what `BlockRoles.IsLog`'s own docstring has always
+  argued — a log is the half of a tree that is also furniture. It changes nothing here because these cells
+  were **never claimed**: the fix and the fault are one block apart.
+
+  So the claim has to be the building's **stamped extent** rather than its wall rectangle. `HouseStamper`
+  knows the roof's reach at stamp time — it is the thing that lays the verge — and `overhang`, `pitch` and
+  the roof `form` are all style fields it already reads, so nothing needs re-deriving from voxels. The same
+  question applies to anything else a stamper puts outside the rect it was handed, and a porch is the obvious
+  second case.
+
+- [ ] **B138 — Foliage is drawn as the blocks it is made of, where a tree is one thing in one place.**
+  The category render paints every leaf and log cell, so a wood reads as an irregular violet mass whose
+  internal structure means nothing: two crowns that touch are one blob, and the count of trees — which is the
+  measure that actually decides whether a board is wooded or buried (`B96`) — cannot be read off it at all.
+  A tree is authored as **one prop at one coordinate**, and the render throws that away and re-derives a
+  silhouette from the blocks it produced.
+
+  Drawing each tree as its **point and a radius** instead would say what the material mass cannot: how many
+  there are, where each one stands, and how far its cover reaches. That is legible at a glance in a way a
+  canopy outline is not, and it is a truer picture of the authored document, which is a list of placements
+  rather than a field of leaves. The dressing document holds the points already; the radius wants deciding —
+  the crown's measured reach at stamp time is the honest source, and a species-nominal figure is the cheap
+  one.
+
+  The combined view still wants the mass, since a player's cover is the leaves and not the centres, so this
+  is a **mode** rather than a replacement — the natural home is the isolated `--layer foliage` image, where
+  the question being asked is about the trees themselves.
+
 - [ ] **B136 — The two features that make a shape stop looking drawn are reached almost never.** Measured
   over the eleven maps in `pgm-studio-mapgen`, counting non-null uses in the authored specs rather than
   serialized nulls:
