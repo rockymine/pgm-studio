@@ -1015,6 +1015,98 @@ the thing `B181` names, which makes the document upstream of the boards rather t
   carries above a stopped neighbour (`structures.md` §7.6) — wants a run to sit in and a rule for which wall it
   is cut through, and belongs with the openings work rather than with the roof (`G172`).
 
+- [ ] **G179 — A marched cell is laid as verge, so a T grows a fourth gable it does not have.** A verge is
+  strictly the **outer rim of a roof**, and an L, a T or a plus has **one outline** — no cell inside it is ever
+  verge. `Lay` decides the material with `field.OnBorder(x, z)`, and `field` is the **wing's own rectangle plus
+  its overhang**: `RoofField.MinZ => wallMinZ - overhang`, `MaxZ => wallMaxZ + overhang`. The march lays at
+  `along = end + step * reach`, so its very first step lands exactly on that overhang line — for the T's wing
+  (`Wing(2, 0, 6, 5)`, `wallMaxZ 5`, overhang 1) the first marched cell is `z = 6` and `field.MaxZ = 6`.
+  `OnBorder` answers true and the cell is stamped **dark oak verge inside the hall's roof**.
+
+  Measured at the topmost roof course, default `HouseStyle`, floor y64:
+
+  | footprint | verge cells at +8 | |
+  |---|---|---|
+  | T, march | `(4,−1)` `(4,6)` `(−1,7)` `(10,7)` | `(4,6)` is **inside** — three is correct |
+  | L, march | `(2,−1)` `(2,6)` `(−1,7)` `(10,7)` | `(2,6)` is **inside** — three is correct |
+  | T, project | `(4,−1)` `(4,10)` `(−1,7)` `(10,7)` | four gable tops, correct |
+  | L, project | `(2,−1)` `(2,10)` `(−1,7)` `(10,7)` | four gable tops, correct |
+
+  **The rule the count states (author): a march makes a T carry three gables and a project makes it carry
+  four.** The march's own end is not a gable and not a rim — it is where one roof runs into another. Verge
+  wants deciding against the **building's** outline rather than against the wing field's rectangle.
+
+  *author, 2026-08-14 · stamped from `HouseStamperTests` footprints and read back cell by cell.*
+
+- [ ] **G180 — A wing's roof course is written across another wing's span, so the attic is partitioned.** Above
+  the eave only walls and gable faces rise; the roof at each course must close **one outline** with the walls and
+  leave **one connected air interior** — a clean attic. Every wing is instead extruded over its own whole
+  rectangle and laid, and nothing removes the covering wing's roof surface from the cells another wing's volume
+  occupies, so the hall's roof course runs straight across the wing's opening.
+
+  Enclosed air regions per course, counted by flood fill (a clean attic is **1**):
+
+  | footprint | +6 | +7 |
+  |---|---|---|
+  | T, march | **2** (12, 24 cells) | **2** (4, 8) |
+  | L, march | **2** (12, 24) | **2** (4, 8) |
+  | T, project | **4** (12, 3, 9, 6) | **4** (5, 2, 1, 3) |
+  | L, project | **3** (12, 9, 12) | **3** (5, 1, 5) |
+
+  On the T at +6 the hall's roof course spans `x −1…10` at `z 5`, including the five cells `x 2…6` where the
+  wing's own attic stands — so the wing's attic is sealed off from the hall's. There is no space up there.
+
+  **The comment already describes the fix and the code does not do it.** `HouseStamper.cs:201` states *"a
+  projecting wing cuts the roof it pushes into, across its own span"*, and the line under it is
+  `if (BeyondMarch(wing, x, z)) continue;` — which skips the **marching wing's own** overhang columns and never
+  cuts the covering wing's roof at all. Doc and code disagree, in the direction that reads as done.
+
+  *author, 2026-08-14 · flood fill over every course of four stamped footprints.*
+
+- [ ] **G181 — A projected wing's verge closes a gable triangle that has to stay open.** The area beneath an
+  overhanging verge is empty in every column — that is what makes a gable end read as a triangle hanging over
+  the wall rather than as a filled panel. Probing the hall's west gable overhang column `x = −1` at the eave
+  course (+5), `z −2…14`, `V` verge and `.` air:
+
+  | footprint | column | air |
+  |---|---|---|
+  | L, march | `.VVVVVVV....V....` | 4 open cells at `z 6…9` |
+  | L, project | `.VVVVVVVVVVVV....` | **0** — closed the whole way |
+
+  The wing drawn through to `z 9` runs its own eave verge the full length at `x = −1`, and in doing so fills the
+  four cells the hall's own gable triangle needs open. The author reports the same defect closing the projected
+  side's own triangle as well, for **five** blocks too many in total; four are located above and the fifth is
+  not, which is the part of this entry to settle first.
+
+  **Open question for the author, and it must not be derived:** where a projected wing's eave overhang runs
+  alongside a hall it passes through, which of the two rules wins — the wing's eave overhang, which is solid
+  along its length, or the hall's gable overhang, which must stay open beneath? Both are correct for their own
+  wing in isolation. The answer decides the fix and nothing in the repository can settle it.
+
+  *author, 2026-08-14 · column probe at `x = −1` across the eave course of four stamped footprints.*
+
+- [ ] **G182 — Every `Ell()` fixture has two parallel ridges, so no L junction is tested anywhere.** A march and
+  a project only happen where one wing's gable end meets another wing whose ridge runs **across** it. Both L
+  fixtures in the suite fail that:
+
+  | fixture | wings | ridges | overlap |
+  |---|---|---|---|
+  | `FootprintTests.Ell()` | `Wing(0,0,9,4)` 10×5 · `Wing(0,5,4,9)` 5×5 | **both along x** | edge to edge only |
+  | `HouseStamperTests.Ell()` | `Wing(0,0,10,6)` 11×7 · `Wing(0,7,6,12)` 7×6 | **both along x** | none — `z 0…6` against `z 7…12` |
+
+  `Wing.RidgeAlongX => MaxZ - MinZ <= MaxX - MinX`, so a **square** wing takes the along-x ridge on the tie,
+  which is why the 5×5 comes out parallel to its hall. Neither footprint has a gable end landing in another
+  wing's slope, so `Marches` never fires on either: they are two houses standing beside each other with parallel
+  roofs, which is exactly what an L is not.
+
+  Four stamper tests run on the second one — `A_house_on_two_wings_is_sealed`, `An_ell_stands_on_six_posts`,
+  `A_house_on_two_wings_builds_nothing_in_the_notch`, `No_room_touches_the_outside_across_a_diagonal`. **The L
+  junction is therefore untested in both directions**, which is how `G179`–`G181` shipped. An L with orthogonal
+  ridges is `Wing(0,5,9,9)` with `Wing(0,0,4,5)` (march) or `Wing(0,0,4,9)` (project); those want to be the
+  fixtures, and the existing `Ell()` wants renaming to what it is.
+
+  *author, 2026-08-14 · ridge axis computed from `Wing.RidgeAlongX` for both fixtures.*
+
 - [ ] **G171 — A building's reported height is its reservation, not its highest block.** `TopLayerOver` adds
   up every storey's headroom and answers where the roof would sit, which is right for a building whose storeys
   are rooms and wrong for one whose top storey is a roof terrace (`structures.md` §7.6): a parapet storey

@@ -3782,6 +3782,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   this was a **printed cut** — a text grid of one plane, one letter per material — which showed the sill
   following the notch, the posts, and the slab of roof hanging over open ground that the clip now removes. The
   single-wing path is unmoved: the house showcase renders byte-identical. (G172)
+- **Correction, 2026-08-14: the roof over a junction is not finished, and the acceptance test does not catch
+  it (G179–G182).** The footprint, the walls, the storey stack and the authoring half all stand as described.
+  The **roof** at a crossing carries three measured defects: a marched cell is stamped verge because it lands on
+  the wing field's own overhang line, so a T grows a fourth gable it does not have (`G179`); every wing's roof
+  course is laid across the other's span, so the attic comes out in two pieces on a march and four on a project
+  instead of one (`G180`); and a projected wing's eave verge closes a gable triangle that must stay open
+  (`G181`). None of it was caught, because **both `Ell()` fixtures have two parallel ridges and no gable end
+  landing in another wing's slope** — so no L test exercises a junction at all (`G182`), and the gable-end
+  acceptance test compares two ends of one wing while saying nothing about what is verge, what is roof, or
+  whether anything is hollow. The test was called worth more than the implementation; it is necessary and it is
+  nowhere near sufficient.
 - **A house on more than one wing closes at the turn, and stands on six posts (G172).** Where two wings meet,
   the wall of one runs into the wall of the other — and on a raster those two walls touch along a single
   vertical **edge** and nothing else. The cell behind that edge has building on all four sides of it, so a wall
