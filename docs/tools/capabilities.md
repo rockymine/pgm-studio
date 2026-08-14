@@ -408,13 +408,13 @@ building for this instead of a shape.
 | compile | `Pgm/Plan/PlanCompiler.cs` | `PlanModel` → `(SketchLayout, MapIntent)` |
 | rasterize | `Pgm/Sketch/SketchRasterizer.cs` | layout JSON → columns `(x, z, yFloor, yTop)` |
 | solve relief | `Geom/Relief/` | `ReliefSpec` → a surface per island |
-| build the world | `Api/Services/SketchWorldBuilder.cs` | layout + intent → `VoxelWorld` + resolved intent |
+| build the world | `Export/SketchWorldBuilder.cs` | layout + intent → `VoxelWorld` + resolved intent |
 | paint | `Minecraft/TerrainPainter.cs` | raw stone → rim, wall, surface, fill |
 | dress | `Minecraft/Dressing/Decorator.cs` | props → trees, houses, boulders, paths, water, ground cover |
 | stamp buildings | `Minecraft/HouseStamper.cs` | `Footprint` + `HouseStyle` → walls, roof, openings |
 | stamp furniture | `Minecraft/StructureStamper.cs` | `StructureIntent` → floors, redstone, iron, walls |
 | write the goal | `Pgm/Authoring/IntentGenerator.cs` | resolved intent → the map document |
-| write the XML | `Api/Services/MapXmlComposer.cs` → `Pgm/XmlWriter.cs` | document → `map.xml` |
+| write the XML | `Export/MapXmlComposer.cs` → `Pgm/XmlWriter.cs` | document → `map.xml` |
 
 `SketchWorldBuilder` is the one to read before changing anything downstream, because **order is the
 contract**: floors, then wool cages, then spawn cubes and monuments, then plan-derived structures, then the

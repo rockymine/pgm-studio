@@ -4,7 +4,7 @@
     <!-- The export path itself: SketchWorldBuilder composes the world and the resolved intent, and pulls in
          Pgm (the composer, the plan compiler, the rasterizer, the intent generator, the XML writer) and
          Minecraft (the stampers, the palette, the house presets) with it. -->
-    <ProjectReference Include="..\..\src\PgmStudio.Api\PgmStudio.Api.csproj" />
+    <ProjectReference Include="..\..\src\PgmStudio.Export\PgmStudio.Export.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

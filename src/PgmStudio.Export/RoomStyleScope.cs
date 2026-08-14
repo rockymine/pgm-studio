@@ -2,7 +2,7 @@ using System.Text.Json;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Sketch;
 
-namespace PgmStudio.Api.Services;
+namespace PgmStudio.Export;
 
 /// <summary>
 /// The room styles a map's shells are stamped with (docs/world-export/structures.md §9): the snapshots on the

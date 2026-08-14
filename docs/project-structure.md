@@ -6,27 +6,39 @@ mis-homed?** — and it is the companion to `CLAUDE.md`'s *Code placement* rule:
 map.
 
 **Where it stands.** The cross-project boundaries are sound and the two invariants that make them load-bearing
-still hold. The friction is no longer between projects but *inside* two of them: `Pgm` now holds two different
-things under one name, and `Minecraft` has grown 47 files at its root. Both are internal folds, not boundary
-moves.
+still hold. `B119` cut the first new one since the original shape settled: `PgmStudio.Export` — the sketch
+world builder, the destroy/core/wool placement gate and the `map.xml` composer — pulled out of `Api/Services`
+into its own project, so a driver that only writes a region folder no longer has to reference ASP.NET Core,
+FastEndpoints and the DB layer to reach it. The friction elsewhere is no longer between projects but *inside*
+two of them: `Pgm` now holds two different things under one name, and `Minecraft` has grown 47 files at its
+root. Both are internal folds, not boundary moves.
 
 ## 1. The dependency graph
 
 Every arrow points at something the project is allowed to reach; read it bottom-up.
 
 ```
-  Api  (composition root — refs Data · Pgm · Analysis · Minecraft · Contracts · Migrations · Client)
+  Api  (composition root — refs Data · Pgm · Analysis · Minecraft · Contracts · Export · Migrations · Client)
    │
    ├── Client  ──> Contracts, Geom                       (Blazor WASM)
    ├── Data    ──> Domain, Contracts, Pgm, Minecraft, Analysis
+   ├── Export  ──> Domain, Analysis, Minecraft, Pgm       (the export path — world build + map.xml, no DB)
    ├── Pgm     ──> Domain, Geom
    ├── Analysis──> Domain, Geom
    └── Minecraft ──> Domain, Geom
 
   Import ──> Data, Pgm, Contracts, Migrations            (parquet → relational CLI)
 
+  tools/mapgen, tools/PgmStudio.PatternMap ──> Export     (headless export-path drivers — §7)
+
   Pure leaves (no project references):  Geom   Domain   Contracts   Migrations
 ```
+
+**`Export` added no edge and inverted none.** Every project it reaches (`Domain`, `Analysis`, `Minecraft`,
+`Pgm`) was already reachable from `Api` — directly, or through `Data` — so the cut is free in graph terms: `Api`
+now reaches the same set of projects through one more hop, and `tools/mapgen`/`tools/PgmStudio.PatternMap`
+reach exactly the same code they did when they referenced the whole of `Api`, minus the web host they never
+used.
 
 **Two constraints are what force the shape**, and they are the reason there appear to be "two model projects":
 
@@ -46,6 +58,7 @@ Both are checked by the `.csproj` files rather than by convention: `Analysis` ha
 | **Pure leaves** | `Geom`, `Domain`, `Contracts`, `Migrations` | geometry algorithms · PGM entities and the rules over them · wire DTOs · the DB schema |
 | **Format and domain logic** | `Pgm`, `Analysis`, `Minecraft` | the `map.xml` codec *and* the layout generator · NTS-backed derivations · Anvil world reading and writing |
 | **Persistence and ingest** | `Data`, `Import` | the DB codec, repositories and stores · the parquet→relational CLI |
+| **The export path** | `Export` | sketch layout + intent → voxel world + `map.xml`, DB-free — what every driver needs and nothing else |
 | **Presentation** | `Client`, `Api` | the Blazor UI · the FastEndpoints composition root |
 
 `Domain` has drifted past "entities" in a way worth naming: alongside `MapModel`, `Region` and `Filter` it now
@@ -67,7 +80,8 @@ above. It does mean `Domain` is "the PGM domain", not "the PGM data model".
 | `Pgm` | 133 | 20,085 | `Compose/` 42 · `Authoring/` 21 · `Evaluate/` 20 · `Shapes/` 10 · `Editing/` 10 · `Plan/` 6 · `Sketch/` 4 · `Derive/` 4 · `Render/` 3 · `Detect/` 1 · 12 at root |
 | `Analysis` | 16 | 2,577 | `Playability/` 7 · `Footprint/` 4 · `Region/` 3 · `Layer/` 2 |
 | `Data` | 13 | 2,223 | `Features/` 4 · `Theme/` 3 · `Map/` 3 · `Schema/` 2 · `Plan/` 1 |
-| `Api` | 65 | 8,838 | `Endpoints/` 37 · `Services/` 25 · `Http/` 2 |
+| `Export` | 7 | 1,042 | flat |
+| `Api` | 59 | 8,087 | `Endpoints/` 37 · `Services/` 19 · `Http/` 2 |
 | `Client` | 80 `.cs` + razor | 13,434 | `Features/<Tool>/` · `Components/` · `Pages/`, plus 11 JS layers |
 
 **`Pgm` is two projects wearing one name.** `CLAUDE.md` charters it as "`map.xml` parse/edit/generate", and
@@ -75,7 +89,7 @@ that describes 48 files — the codec at the root, `Authoring/` (intent → map)
 `Sketch/` and `Detect/`. The other 85 files and 11,522 lines are the **layout generator**: `Compose/`,
 `Evaluate/`, `Shapes/`, `Derive/`, `Plan/` and its `Render/`. The generator touches no XML. It reads only
 `Domain` and `Geom`, which means it would stand on its own as a project with no new edge — the boundary it
-already respects is exactly the one it would get. Whether to split it is §6.1; what is not in question is that
+already respects is exactly the one it would get. Whether to split it is §7.1; what is not in question is that
 one charter sentence no longer covers the project.
 
 **`Minecraft` has 47 files at its root**, 8,220 lines — the shape `Pgm`, `Analysis` and `Data` were folded out
@@ -158,15 +172,54 @@ and the harness; its `FromJson` is the production codec.
 | `Migrations` | **Clean** — one file per migration, in order. | none |
 | `Minecraft` | **Needs the fold the others got.** 47 root files across four separable concerns (§3). | an internal fold, folders-only |
 | `Import` | **Clean, identity blurred.** It is parquet→relational replay; it is *not* the world scan, which lives in `Data/Features/WorldFeatureWriter`. | the distinction stated in its own header |
-| `Pgm` | **Two charters in one project** (§3). Both halves are internally well-shaped. | the split decision, §6.1 |
+| `Pgm` | **Two charters in one project** (§3). Both halves are internally well-shaped. | the split decision, §7.1 |
 | `Analysis` | **Right internal shape** — `Region/`, `Layer/`, `Playability/`, `Footprint/`. | none |
 | `Data` | **Right internal shape** — `Schema/`, `Map/`, `Features/`, and since then `Theme/` and `Plan/` for the library and plan stores. | none |
-| `Api` | **Acceptable for a composition root**, though 37 endpoint files and 25 services is where feature folders start to pay. | optional grouping |
+| `Export` | **New (`B119`), flat and small.** Seven files — the sketch world builder, the destroy/core/wool scope readers, and the `map.xml` composer — with no DB reference, so `Api` and a headless CLI reach it identically. | none yet; a fold if it grows the way `Minecraft` did |
+| `Api` | **Acceptable for a composition root**, though 37 endpoint files and 19 services is where feature folders start to pay. | optional grouping |
 | `Client` | **Well organized** — `Pages/` for routable pages, `Features/<Tool>/` for a tool's own bodies, `Components/` for the shared vocabulary, and 11 JS layers under `wwwroot/js/studio/`. | none |
 
-## 6. Open decisions
+## 6. `tools/` — drivers, dev harnesses and fixtures
 
-**6.1 — Should the layout generator be its own project?** `Compose/`, `Evaluate/`, `Shapes/`, `Derive/` and
+70 files, 18,365 lines — never on this map before, despite being larger than every `src/` project but `Pgm`.
+It is not one thing: four are real `.csproj` projects the solution builds, most of the rest are single
+file-based scripts `dotnet run` builds on demand, and three folders hold no code at all.
+
+**The four project-based tools**, each a `ProjectReference` graph like any `src/` project and each listed in
+`PgmStudio.slnx`:
+
+| Tool | References | Is |
+|---|---|---|
+| `mapgen` | `Export` | builds a whole map from one JSON spec, through the real export path — the trial harness for `BACKLOG`/`TODO`'s generation track |
+| `PgmStudio.PatternMap` | `Export` | a smaller spec-to-world driver for hand-authored geometric pattern maps |
+| `PgmStudio.RoundTrip` | `Pgm`, `Analysis`, `Minecraft` | the corpus regression net (`--goldens`): the four map-level derivations over every corpus map, diffed against `corpus-goldens.json` |
+| `relief` (`PgmStudio.Relief`) | `Geom`, `Minecraft` | the relief solver's own measurement CLI — the solver stays dependency-free; only the Anvil-reading half needed `Minecraft` |
+
+`mapgen` and `PgmStudio.PatternMap` are `Export`'s two consumers beyond `Api` itself, and the reason the
+project exists: before `B119` both referenced the whole of `Api` — ASP.NET Core, FastEndpoints, the DB layer,
+the Blazor host — to reach `SketchWorldBuilder` and `MapXmlComposer`, which is what made a headless driver
+carry a web application it never started. That was the first of a pair of findings — `tools/` had grown a
+second copy of parts of the system precisely because reaching the real ones meant reaching `Api` — and `B119`
+is the fix for the reaching, not for the copy itself (`B118`, `TODO.md`).
+
+**The rest are file-based scripts** (`compose/`, `deriver/`, `objective-probe/`, `decorate/`, `palette/`,
+`tree-corpus/`) — no `.csproj`, no solution entry, each a `.cs` file opening with `#:project` directives that
+name the `src/` projects it needs and run directly as `dotnet run tools/<folder>/<script>.cs`. They are dev
+harnesses and one-off probes rather than product: `compose/` renders the generator's own galleries (`showcase.cs`
+is `docs/generator/model.md`'s live twin), `deriver/` recomputes corpus-derived constants and gates the model
+doc's figures, `objective-probe/` and `decorate/` are throwaway-but-maintained prototypes for detection and
+dressing. **`dotnet run <script>.cs` caches the built app keyed on the script**, so an unchanged script re-runs
+stale `src/` output with no error — `rm -rf ~/.local/share/dotnet/runfile/<script>-*` before trusting a
+measurement (`CLAUDE.md` *Traps*).
+
+**Three folders hold fixtures, not code** — `seeds/` (reusable sketch maps for the end-to-end world-export
+tests, `docs/world-export/sketch-world-export.md`), `traffic/` (recovered footprints + the traffic ground
+truth, `docs/gameplay/traffic-ground-truth.md`), `region-authoring-fixtures/` (captured region JSON for the
+editor's own tests). None references a project; they are data other tools and `tests/` read.
+
+## 7. Open decisions
+
+**7.1 — Should the layout generator be its own project?** `Compose/`, `Evaluate/`, `Shapes/`, `Derive/` and
 `Plan/` are 85 files and 11,522 lines that never touch `map.xml`, and they reference only `Domain` and `Geom`,
 so `PgmStudio.Compose` would add no dependency edge — the split is free in graph terms. What it would buy is
 that `Pgm`'s charter sentence becomes true again and the generator's own dependencies become visible (today it
@@ -174,22 +227,22 @@ can reach the codec without anything noticing). What it costs is a rename across
 `PlanCompiler` seam sitting on a boundary rather than inside one. **Recommendation: split it when the
 generator next needs a structural change**, not as a standalone refactor.
 
-**6.2 — `MapIntent` → `Domain`?** It is a pure, zero-dependency data model and could join the other map models
+**7.2 — `MapIntent` → `Domain`?** It is a pure, zero-dependency data model and could join the other map models
 there, leaving only the generators in `Pgm/Authoring/`. **Recommendation: leave it in `Pgm`.** `Domain` is
 what a *parsed* map is; `MapIntent` is what an author *wants* — a different lifecycle — and it sits beside the
-only code that consumes it. Nothing below `Pgm` needs it, and the client posts loose JSON (§6.4).
+only code that consumes it. Nothing below `Pgm` needs it, and the client posts loose JSON (§7.4).
 
-**6.3 — Rename `Contracts`?** The name reads generic, but it is the correct API term and it is the one model
+**7.3 — Rename `Contracts`?** The name reads generic, but it is the correct API term and it is the one model
 project `Client` can see. **Recommendation: keep it**, with a header comment separating it from `Domain`. A
 rename is churn across every endpoint for no boundary change.
 
-**6.4 — The intent contract is stringly typed.** The Configure client builds a loose `JsonObject`
+**7.4 — The intent contract is stringly typed.** The Configure client builds a loose `JsonObject`
 (`AuthoringContext`, `Wizard.Intent`) and PUTs it; `AuthoringIntentEndpoints` deserializes into `MapIntent` by
 camelCase convention. This is *why* `MapIntent` can live in `Pgm` without breaking `Client`'s leaf set, and it
 is unchecked in both directions. If it bites, the fix is an intent DTO in `Contracts` shared by both sides;
 until then it is a deliberate trade of safety for decoupling.
 
-**6.5 — Two ingest pathways.** `Import` replays parquet → rows as a CLI and references neither `Minecraft` nor
+**7.5 — Two ingest pathways.** `Import` replays parquet → rows as a CLI and references neither `Minecraft` nor
 `Analysis`; `Data/Features/WorldFeatureWriter` scans an Anvil world → rows and pulls both, driven by `Api`. So
 "how a world becomes rows" has two implementations. **Recommendation: leave it split.** `WorldFeatureWriter`
 is DB-write-shaped and sits beside the rows it writes, and unifying would drag `Minecraft` and `Analysis` into

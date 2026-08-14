@@ -2,7 +2,7 @@ using PgmStudio.Analysis.Footprint;
 using PgmStudio.Domain;
 using PgmStudio.Pgm.Authoring;
 
-namespace PgmStudio.Api.Services;
+namespace PgmStudio.Export;
 
 /// <summary>
 /// Shared terrain-ownership decomposition for the team tint (docs/world-export/terrain-painting.md §3). It

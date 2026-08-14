@@ -39,7 +39,7 @@ holds them until one becomes the focus.
 
 ## Backend, pipeline & internals (B / P / A)
 
-**These four are the current run, in order.** They come out of one finding, and the finding is worth stating
+**These three are the current run, in order.** They come out of one finding, and the finding is worth stating
 once because every entry below inherits it: **`tools/` grew a second copy of the system.** A two-day
 experiment in whether an agent could drive the studio produced a CLI that reimplemented the parts it could
 not reach — its own goal-over-void refusal, its own prop clearance, its own forest and village samplers, its
@@ -47,27 +47,13 @@ own reduced document format — and the board began treating that CLI as product
 listing its refusals in `FEATURES.md`. A tool is allowed to *drive* the system. It is not allowed to *be* a
 second one, because the second one is what rots: it has no tests, no document that governs it, and it drifts
 behind the thing it copies without anyone seeing (the relief fork sat 1614 cells off a settled solve for
-exactly that reason).
+exactly that reason). `B119` already moved the boundary so the copying stops being necessary — the export
+path is `PgmStudio.Export` now, not a folder inside the web app — which is what makes `B118` cheap.
 
-**Take them in the order listed.** `B119` moves the boundary so the copying stops being necessary and `B118`
-undoes what was copied. `B128` is the one entry here that is not about the second system at all: it is an
-authoring defect the boards exposed, and it comes before `B120` because every destroy map that run authors
-wants a goal at a chosen height and would otherwise reproduce the workaround once per map. Then `B120` finds
-out whether the result actually answers.
-
-- [ ] **B119 — The export path lives inside the web application.** `SketchWorldBuilder`, `MapXmlComposer` and
-  `MapExportComposer` sit in `Api/Services/`, so anything that builds a world offline must reference
-  `PgmStudio.Api` — ASP.NET Core, FastEndpoints, the DB layer and the Blazor host — to write a region folder.
-  `tools/mapgen` and `tools/PgmStudio.PatternMap` both do exactly that.
-
-  **Why it is the first move.** It is what makes the other entries cheap, and it is free in graph terms: the
-  extracted project would reference `Pgm`, `Minecraft`, `Domain` and `Geom`, all of which `Api` already
-  reaches, so no dependency edge is added and none is inverted. It is the same observation
-  `project-structure.md` §6.1 makes about `Pgm` being two projects, one level up and never stated. What it
-  buys is a nameable **export path** — the thing every driver needs and nothing else — instead of a folder
-  inside the web app, carrying the gate that shipped as `B116` where both the API and any CLI reach it
-  without either one owning it. `project-structure.md` gains the new project and `tools/` finally appears on
-  that map at all, which it does not today despite being 19,000 lines.
+**Take them in the order listed.** `B118` undoes what was copied. `B128` is the one entry here that is not
+about the second system at all: it is an authoring defect the boards exposed, and it comes before `B120`
+because every destroy map that run authors wants a goal at a chosen height and would otherwise reproduce the
+workaround once per map. Then `B120` finds out whether the result actually answers.
 
 - [ ] **B118 — `MapSpec` is a smaller system wearing the big one's clothes, and two of its knobs are
   actively harmful.** The spec format was invented rather than derived: it names a handful of fields and

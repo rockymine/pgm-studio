@@ -1,7 +1,7 @@
-using PgmStudio.Api.Services;
+using PgmStudio.Export;
 using PgmStudio.Pgm.Authoring;
 
-namespace PgmStudio.Api.Tests;
+namespace PgmStudio.Export.Tests;
 
 /// <summary>
 /// The shared terrain-ownership decomposition (docs/world-export/terrain-painting.md §3): canonical

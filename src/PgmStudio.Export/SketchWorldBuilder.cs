@@ -4,7 +4,7 @@ using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
 
-namespace PgmStudio.Api.Services;
+namespace PgmStudio.Export;
 
 /// <summary>The synthesised world plus the world spawn and a <em>resolved</em> intent — the authored intent
 /// with spawn/wool positions snapped to the structures the world actually places and each monument's

@@ -1,7 +1,7 @@
 using PgmStudio.Pgm;
 using PgmStudio.Pgm.Authoring;
 
-namespace PgmStudio.Api.Services;
+namespace PgmStudio.Export;
 
 using Dict = Dictionary<string, object?>;
 

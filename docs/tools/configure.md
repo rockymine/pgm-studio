@@ -313,7 +313,7 @@ intent with no world: round-trip and mirror pass, buildability skips, traversabi
 `GET /xml` answers 409. Configure writes the XML for a world that exists; it cannot author one in a vacuum.
 
 **A sketch-origin map's export answers three more 409s, from `MapExportComposer` itself rather than from
-pre-flight.** They exist because `ComposeAsync` already builds that map's world and holds its resolved
+pre-flight.** They exist because `Compose` already builds that map's world and holds its resolved
 intent, so it can ask them against the ground the rasterizer actually produced instead of the plan's
 rectangles — the case a subtract cut, a relief solve, or a post-compile sketch edit opens, none of which
 re-enters the compile gate, and the case a map begun in Sketch never reaches at all.

@@ -4495,6 +4495,18 @@ these are the ones that shipped a map that could not be played as intended, and 
   `DressingScope.GoalClearanceViolations`) — fanned across the map's own symmetry, so a violation only one
   team's mirror carries is still caught, and ground cover is exempt throughout. All three answer 409 from the
   one composer, so the studio and every headless driver are gated identically.
+- **The export path is a project, not a folder inside the web app (B119).** `SketchWorldBuilder`,
+  `MapXmlComposer` and `MapExportComposer` — plus the four map-facing readers only they used
+  (`DressingScope`, `TerrainThemeScope`, `TeamTerritory`, `RoomStyleScope`) — moved out of `Api/Services` into
+  a new `PgmStudio.Export`, which references `Domain`, `Analysis`, `Minecraft` and `Pgm`: every one of them
+  already reachable from `Api`, so the cut added no dependency edge and inverted none. `MapExportComposer`
+  itself split at its DB boundary rather than moving whole — `Compose` is now synchronous and pure, taking
+  the traversability segments, the stored intent and the cached surface/resources as plain arguments instead
+  of `PgmDb`/`FeatureData`; the DB reads that used to open the method stayed behind in `Api` as
+  `MapExportLoader.ComposeAsync`, the only thing in the pipeline that still touches the store. `tools/mapgen`
+  and `tools/PgmStudio.PatternMap` now reference `PgmStudio.Export` instead of the whole of `Api` — ASP.NET
+  Core, FastEndpoints and the DB layer along with it — which is what makes `B118`'s job cheap: a spec-driven
+  map now goes through the one export path both the studio and a CLI reach, with nothing left to duplicate.
 - **A vertical section, textual and drawn (B121).** Every world read-back before this one looked straight
   down; `layered` exists to vary a material down a riser and nothing could check one. `ColumnReport`
   (`--column <regionDir> <x> <z> [x z ...]`) prints one or more columns bedrock to sky, every solid block

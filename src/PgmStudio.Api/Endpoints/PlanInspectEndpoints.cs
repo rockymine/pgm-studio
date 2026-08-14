@@ -2,6 +2,7 @@ using System.Text.Json;
 using FastEndpoints;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
+using PgmStudio.Export;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Evaluate;

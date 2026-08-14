@@ -6,6 +6,7 @@
     <Project Path="src/PgmStudio.Contracts/PgmStudio.Contracts.csproj" />
     <Project Path="src/PgmStudio.Data/PgmStudio.Data.csproj" />
     <Project Path="src/PgmStudio.Domain/PgmStudio.Domain.csproj" />
+    <Project Path="src/PgmStudio.Export/PgmStudio.Export.csproj" />
     <Project Path="src/PgmStudio.Geom/PgmStudio.Geom.csproj" />
     <Project Path="src/PgmStudio.Import/PgmStudio.Import.csproj" />
     <Project Path="src/PgmStudio.Migrations/PgmStudio.Migrations.csproj" />
@@ -17,6 +18,7 @@
     <Project Path="tests/PgmStudio.Api.Tests/PgmStudio.Api.Tests.csproj" />
     <Project Path="tests/PgmStudio.Data.Tests/PgmStudio.Data.Tests.csproj" />
     <Project Path="tests/PgmStudio.Domain.Tests/PgmStudio.Domain.Tests.csproj" />
+    <Project Path="tests/PgmStudio.Export.Tests/PgmStudio.Export.Tests.csproj" />
     <Project Path="tests/PgmStudio.Geom.Tests/PgmStudio.Geom.Tests.csproj" />
     <Project Path="tests/PgmStudio.Import.Tests/PgmStudio.Import.Tests.csproj" />
     <Project Path="tests/PgmStudio.Minecraft.Tests/PgmStudio.Minecraft.Tests.csproj" />

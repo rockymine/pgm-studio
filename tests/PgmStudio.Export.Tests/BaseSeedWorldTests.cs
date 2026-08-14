@@ -1,10 +1,10 @@
 using System.Text.Json;
-using PgmStudio.Api.Services;
+using PgmStudio.Export;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
 
-namespace PgmStudio.Api.Tests;
+namespace PgmStudio.Export.Tests;
 
 /// <summary>
 /// Drives the committed base 2-island seed (<c>tools/seeds/base-2island.*.json</c>) through the export

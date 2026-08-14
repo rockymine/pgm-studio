@@ -1,9 +1,9 @@
 using System.Text.Json;
-using PgmStudio.Api.Services;
+using PgmStudio.Export;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Sketch;
 
-namespace PgmStudio.Api.Tests;
+namespace PgmStudio.Export.Tests;
 
 /// <summary>
 /// Scoped theme resolution for the export (docs/world-export/terrain-painting.md TP10): <see cref="TerrainThemeScope"/>

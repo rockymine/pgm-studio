@@ -1,5 +1,6 @@
 using System.Text.Json;
 using PgmStudio.Domain;
+using PgmStudio.Export;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Plan;

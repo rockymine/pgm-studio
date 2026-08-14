@@ -1,8 +1,8 @@
-using PgmStudio.Api.Services;
+using PgmStudio.Export;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Authoring;
 
-namespace PgmStudio.Api.Tests;
+namespace PgmStudio.Export.Tests;
 
 /// <summary>
 /// The sketch → world assembly (no DB): a rectangular layout + a 2-team intent yields terrain, wool cages,

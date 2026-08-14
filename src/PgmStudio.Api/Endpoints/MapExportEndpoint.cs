@@ -7,6 +7,7 @@ using PgmStudio.Api.Http;
 using PgmStudio.Api.Services;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Export;
 using PgmStudio.Minecraft;
 
 namespace PgmStudio.Api.Endpoints;
@@ -19,7 +20,7 @@ using Dict = Dictionary<string, object?>;
 /// <c>level.dat</c>, and <c>region/*.mca</c> — a real, playable world synthesised from the sketch columns +
 /// intent (docs/world-export/sketch-world-export.md). For any other map it returns the plain <c>map.xml</c>
 /// (those already ship a world). Shares the gate + compose pipeline with <see cref="MapXmlEndpoint"/> via
-/// <see cref="MapExportComposer"/>, diverging only to bundle the region files for a sketch map.
+/// <see cref="MapExportLoader"/>, diverging only to bundle the region files for a sketch map.
 /// </summary>
 public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, FeatureData feature, PgmDb db) : EndpointWithoutRequest
 {
@@ -33,7 +34,7 @@ public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, Feat
 
         var doc = await reader.ReadDocAsync(map, ct);
         var layoutBytes = await SketchStore.LoadAsync(db, map.Id, ct);
-        var result = await MapExportComposer.ComposeAsync(map.Id, doc, layoutBytes, feature, db, ct);
+        var result = await MapExportLoader.ComposeAsync(map.Id, doc, layoutBytes, feature, db, ct);
         if (result.IsError) { await Send.ResponseAsync(result.ErrorBody!, result.ErrorStatus!.Value, ct); return; }
 
         // Non-sketch maps: XML only (they already ship a real world).

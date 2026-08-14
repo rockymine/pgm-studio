@@ -1,13 +1,12 @@
 using System.Text;
+using PgmStudio.Analysis.Layer;
 using PgmStudio.Analysis.Playability;
-using PgmStudio.Api.Endpoints;
-using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
 
-namespace PgmStudio.Api.Services;
+namespace PgmStudio.Export;
 
 using Dict = Dictionary<string, object?>;
 
@@ -21,23 +20,37 @@ public sealed record ExportComposition(int? ErrorStatus, Dict? ErrorBody, string
 
 /// <summary>
 /// The shared pipeline behind <c>GET /map/{slug}/xml</c> and <c>GET /map/{slug}/export</c>: the
-/// traversability gate, surface/resource prep, sketch-intent resolution, and XML composition — so the two
-/// routes can't drift, and the reviewed XML is exactly what ships. For a sketch map it builds the world and
-/// re-projects the resolved intent (snapped spawns + auto-derived monument locations) so the XML agrees
-/// with the world; the build + compose run under one guard, surfacing any failure as a structured error.
+/// traversability gate, sketch-intent resolution, and XML composition — so the two routes can't drift, and
+/// the reviewed XML is exactly what ships. For a sketch map it builds the world and re-projects the resolved
+/// intent (snapped spawns + auto-derived monument locations) so the XML agrees with the world; the build +
+/// compose run under one guard, surfacing any failure as a structured error.
+///
+/// <para>Pure — no DB, no IO. Everything the store would otherwise supply (whether the map is intent-authored,
+/// the traversability segments, the stored authoring intent for a sketch map, the cached surface palette and
+/// spawn-ore renewables for everything else) is loaded by the caller and handed in, which is what lets a
+/// headless driver reach this without reaching a database.</para>
 /// </summary>
 public static class MapExportComposer
 {
-    public static async Task<ExportComposition> ComposeAsync(
-        long mapId, Dict doc, byte[]? layoutBytes, FeatureData feature, PgmDb db, CancellationToken ct)
+    /// <param name="isIntent">Whether the map was authored through the declarative intent model — gates the
+    /// traversability check below (corpus maps have none and export unconditionally).</param>
+    /// <param name="segments">The map's scanned layer segments, for the traversability check. Only read when
+    /// <paramref name="isIntent"/> is true; null when the map was never scanned.</param>
+    /// <param name="intent">The stored authoring intent. Required (and always non-null in practice) when
+    /// <paramref name="layoutBytes"/> is not null — a sketch-originated map resolves it against the world it
+    /// builds; ignored otherwise.</param>
+    /// <param name="surfacePalette">The cached scanned surface palette, for a non-sketch intent map's CTW
+    /// boilerplate. Ignored for a sketch map, which has no scanned surface.</param>
+    /// <param name="resources">The cached resource blocks, for a non-sketch intent map's renewables. Ignored
+    /// for a sketch map, which derives its own renewable cubes from the world it just built.</param>
+    public static ExportComposition Compose(
+        Dict doc, byte[]? layoutBytes, bool isIntent, SegmentIndex? segments, MapIntent? intent,
+        IReadOnlySet<int>? surfacePalette, IReadOnlyList<(string Type, int X, int Y, int Z)> resources)
     {
-        var isIntent = await IntentStore.HasAsync(db, mapId, ct);
-
         // Playability gate: intent-authored maps must be traversable before they can export (§9).
         if (isIntent)
         {
-            var segs = await feature.SegmentsAsync(mapId, ct);
-            var trav = Traversability.Check(doc, segs?.SurfaceColumns(), segs?.Y0Columns());
+            var trav = Traversability.Check(doc, segments?.SurfaceColumns(), segments?.Y0Columns());
             if (!trav.Connected)
                 return new(409, new Dict
                 {
@@ -54,8 +67,7 @@ public static class MapExportComposer
             if (layoutBytes is not null)
             {
                 var layoutJson = Encoding.UTF8.GetString(layoutBytes);
-                var intent = await IntentStore.LoadAsync(db, mapId, ct);
-                var built = SketchWorldBuilder.Build(layoutJson, intent);
+                var built = SketchWorldBuilder.Build(layoutJson, intent!);
                 var goals = built.ResolvedIntent;
 
                 // OB17 — asked again here against the ground the rasterizer actually produced, not the plan's
@@ -83,15 +95,6 @@ public static class MapExportComposer
 
             // Other maps get plain XML (they already ship a world). Intent maps additionally get the cached
             // surface palette + spawn-ore renewables — cache-only, never triggering a world scan on export.
-            IReadOnlySet<int>? surfacePalette = null;
-            IReadOnlyList<(string Type, int X, int Y, int Z)> resources = [];
-            if (isIntent)
-            {
-                var surface = await ConfigureLayers.CellsAsync(db, mapId, "surface", ct);
-                surfacePalette = surface?.Select(c => c.BlockId).ToHashSet();
-                resources = (await feature.ResourceBlocksAsync(mapId, ct)).Select(b => (b.Type, b.X, b.Y, b.Z)).ToList();
-            }
-
             var xml = MapXmlComposer.Compose(doc, isIntent, surfacePalette, resources);
             return new(null, null, xml, null);
         }

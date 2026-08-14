@@ -1,8 +1,8 @@
-using PgmStudio.Api.Services;
+using PgmStudio.Export;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Authoring;
 
-namespace PgmStudio.Api.Tests;
+namespace PgmStudio.Export.Tests;
 
 /// <summary>
 /// The room styles a map binds (G34c, docs/world-export/structures.md §9): read off the sketch layout and

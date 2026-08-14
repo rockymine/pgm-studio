@@ -4,7 +4,7 @@ using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
 
-namespace PgmStudio.Api.Services;
+namespace PgmStudio.Export;
 
 /// <summary>
 /// What the dressing pass needs from a map rather than from a world: what the author placed, how the map is

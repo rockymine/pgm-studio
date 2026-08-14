@@ -1,12 +1,12 @@
 using System.Text.Json;
-using PgmStudio.Api.Services;
 using PgmStudio.Domain;
+using PgmStudio.Export;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
 
-namespace PgmStudio.Api.Tests;
+namespace PgmStudio.Export.Tests;
 
 /// <summary>
 /// End-to-end structure stamping (docs/generator/rules.md ST1–ST4): compiles the isolated-spawn plan

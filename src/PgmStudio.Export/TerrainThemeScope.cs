@@ -1,7 +1,7 @@
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Sketch;
 
-namespace PgmStudio.Api.Services;
+namespace PgmStudio.Export;
 
 /// <summary>
 /// Scoped terrain-paint theme resolution for the world export (docs/world-export/terrain-painting.md TP10). It

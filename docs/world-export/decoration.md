@@ -495,13 +495,14 @@ the orbit fan. The props themselves (`PathProp`, `WaterProp`, `FloraProp`, `Hous
 `Blocks`/`BlockPalette`. A building's own stamper is **not** here — `HouseStamper` sits a folder up, where the
 room stampers already call it, and the pass reaches sideways to it rather than growing a second copy.
 
-**`PgmStudio.Api/Services` — reading + wiring.** `DressingScope` answers the three things the pass needs from
+**`PgmStudio.Export`** — **reading + wiring.** `DressingScope` answers the three things the pass needs from
 a map: what was placed, how the map is mirrored, and what must be left bare. Unlike `TerrainThemeScope` there
 is no scope to resolve — a prop is not a recipe applied to a footprint, so reading it is reading a list.
 `SketchWorldBuilder.Build` then calls `Decorator.Decorate` immediately after `TerrainPainter.Paint`.
-`DressingPreview` draws a prop by placing it — a sample patch painted with a theme and run through the real
-`Decorator` — and draws every picker's cards the same way, so a picker can never offer a look the export does
-not produce.
+
+**`PgmStudio.Api/Services`** — **the preview.** `DressingPreview` draws a prop by placing it — a sample patch
+painted with a theme and run through the real `Decorator` — and draws every picker's cards the same way, so a
+picker can never offer a look the export does not produce.
 
 The side view is a **projection**, not a cut. `Minecraft.BlockSideView` looks through every row and keeps the
 nearest block, shading it by how far back it stands; a single row through a crown meets it wherever that row
