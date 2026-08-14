@@ -86,7 +86,7 @@ depression, a village and open ground each do to a match, and why an objective s
 ground around it — is `docs/gameplay/approaches.md`. It was moved there because every claim in it is a claim
 about **play**, which neither the corpus nor the code can settle, and mixing that kind of statement into a
 list of defects is how an unreviewed opinion becomes a rule. Each claim there carries whether the author has
-confirmed it.
+confirmed it, and every claim it currently carries is confirmed.
 
 Two of its sentences are the ones the entries below are measured against, and they are worth having here:
 **a layout is a control on player flow**, so the ground is the design rather than a container for scenery;

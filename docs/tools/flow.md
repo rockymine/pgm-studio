@@ -188,4 +188,5 @@ reference — what the system can be asked for at each stage, in far more detail
 `docs/gameplay/approaches.md` answers the question neither of those can: what the ground around an objective
 does to a match, and therefore what a board should be composed *for*. It is kept separate because every claim
 in it is the author's rather than the repository's — no corpus reading and no line of code settles what plays
-well — and each one is marked with whether the author has confirmed it.
+well — and each one is marked with whether the author has confirmed it. Every claim it currently carries is
+confirmed, so it is law rather than advice.

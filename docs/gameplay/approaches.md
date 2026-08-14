@@ -8,9 +8,12 @@ is kept apart from the tool and capability documents for exactly that reason: a 
 that got mixed into a description of a JSON field is a claim nobody ever audits.
 
 **Every statement here carries its standing.** A claim marked **[author]** was stated by the author and is
-settled. A claim marked **[review]** is drawn from what real maps do or from the studio's own faults and is
-waiting on the author — it may be right, and it is not yet law. Nothing here should be turned into a rule id,
-a validator finding or a generator constraint while it still reads **[review]**.
+settled — every claim below is one, so anything in this document may be turned into a rule id, a validator
+finding or a generator constraint. A claim marked **[review]** is drawn from what real maps do or from the
+studio's own faults and is waiting on the author; it may be right, and it is not yet law. Nothing carrying
+that mark becomes a rule while it still does, and the mark exists because of how this document grows: someone
+collects what the author said and sorts it, and a sentence nobody has read back is exactly the kind that
+turns an unreviewed opinion into a constraint.
 
 The failure this separation prevents has already happened once, and it is worth stating so nobody repeats it.
 A destroyable and a core **float a few blocks above the terrain by design** — a core resting on the ground
@@ -21,21 +24,21 @@ Neither the corpus nor the code would have corrected it; one question would have
 
 ## The layout is the design, not the container
 
-**[review]** A layout is a control on player flow. The voids, the gaps between pieces and the placement of
+**[author]** A layout is a control on player flow. The voids, the gaps between pieces and the placement of
 pieces decide where a player can go, how long it takes and what they can see on the way, and every later
 decision inherits that. A board is therefore not a container that scenery is sprinkled into: the ground *is*
 the design, and the scenery is a second layer of the same argument.
 
-**[review]** The rectangles a composer emits are a starting point rather than the shape. They are rectilinear
+**[author]** The rectangles a composer emits are a starting point rather than the shape. They are rectilinear
 to keep a first pass legible, which is precisely why the pipeline walks into the sketch tool next — the shapes
 are there to be dragged into a swirl, given Bézier edges, cut with a subtract, stepped in height. A capture
 layout can be as organic as a destroy one, and taking the compiled rectangles as final is taking the
 scaffolding for the building.
 
-**[review]** On a capture map, flow is controlled primarily by **void**, and the void is the design. The gaps
+**[author]** On a capture map, flow is controlled primarily by **void**, and the void is the design. The gaps
 between pieces are not what is left over once the ground is drawn; they are the instrument.
 
-**[review]** A void works on a plain rectangle too. Even a large rectangular board becomes a designed one by
+**[author]** A void works on a plain rectangle too. Even a large rectangular board becomes a designed one by
 cutting a hole in front of the objective — a gap far enough across that it cannot simply be jumped, roughly
 twenty blocks, though that number is illustrative rather than a law. It need not be a straight edge: an
 organic polygon reads as terrain where a ruled line reads as a wall. What it does is force every attacker to
@@ -43,7 +46,7 @@ pass **around** it, which is a decision, a delay, and a place a defender can wat
 
 ## Each element makes a specific tactic
 
-**[review]** This is the part worth reading slowly, because "put a forest there" is not the point — what the
+**[author]** This is the part worth reading slowly, because "put a forest there" is not the point — what the
 forest *does* is. The elements differ in dimension and in timing, not in flavour.
 
 A **void hole** in front of a goal makes players go around, and turns the two ways round it into two
@@ -63,11 +66,11 @@ of the same walk. That difference is what separates a composed objective from a 
 
 ## An objective sits exposed, and the ground around it is composed
 
-**[review]** A monument or a core in the open, a forest on one side, a hill on the other, a village behind.
+**[author]** A monument or a core in the open, a forest on one side, a hill on the other, a village behind.
 That is the method in one sentence: the approach is legible, the defender has somewhere to hold, the attacker
 has a way to arrive unseen and a price for using it. None of it survives being scattered.
 
-**[review]** The point of composing it that way is that the approaches **differ**. Ringing an objective with
+**[author]** The point of composing it that way is that the approaches **differ**. Ringing an objective with
 different ground is not scenery variety — it is how a goal comes to have several ways in that are not the same
 way twice, and that arrive from different directions in three dimensions. A defender must then choose what to
 watch and an attacker must choose what to pay, which is a decision on both sides rather than one lane
@@ -83,7 +86,7 @@ not. The rule and its mechanism are `docs/world-export/decoration.md` §3.1.
 attack down and give the defence a prepared line to hold — which is why it is authored on the interface
 between two pieces rather than derived, and why nothing generated ever asks for one (`mapgen-review.md` MG21).
 
-**[review]** The capture side of this is already law and the destroy side is not. `rules.md` WL8 records that
+**[author]** The capture side of this is already law and the destroy side is not. `rules.md` WL8 records that
 a wool's default is a **single chokepoint route** and that real maps add alternative routes — and, usefully
 for a river or a drop, that an approach crossing a sealed zone counts as an approach even when it must be
 bridged rather than walked. There is no equivalent rule for a destroyable or a core, which is exactly where
@@ -92,7 +95,7 @@ the attack is a queue.
 
 ## A destroy board is not a capture board with a different goal
 
-**[review]** The topology is inverted. In capture, the thing a team wants is deep in *enemy* ground, so the
+**[author]** The topology is inverted. In capture, the thing a team wants is deep in *enemy* ground, so the
 board is built around a long run out and a longer run back. In destroy, the thing a team defends is its
 **own** monument: the spawn sits remote at the back, the monument is a short walk forward of it, and the
 contested space is everything beyond. That single difference resizes the whole board — the run is shorter, the
@@ -107,7 +110,7 @@ enforced (`docs/pgm/destroyables-and-cores.md` §8).
 **[author]** Both float a few blocks above the terrain, and that is the design rather than a defect. What a
 goal needs beneath it is terrain somewhere below, not terrain directly under its lowest block.
 
-**[review]** Where a board carries more than one goal they are placed **against each other rather than
+**[author]** Where a board carries more than one goal they are placed **against each other rather than
 scattered** — a west and an east, or two forward with one back near the spawn, or two back with one forward.
 That arrangement is the board's shape, because each goal is a place a team has to hold and their spacing is
 what decides whether the defence is one line or three. Measured over the 127 corpus maps carrying a destroy
@@ -124,10 +127,10 @@ rather than a preference: **a lane can never be what connects two teams' lands**
 of an hour there would be no route between them. The regions that join a board are build zones; a lane is
 something else.
 
-**[review]** What it is for, then, is a **second** approach that opens late — where a goal is tucked away and
+**[author]** What it is for, then, is a **second** approach that opens late — where a goal is tucked away and
 the endgame should change shape rather than the opening. `docs/pgm/water-lanes.md` owns the mechanism.
 
-**[review]** Whether a hole can be **crossed** is a separate decision from cutting it, and it is made in the
+**[author]** Whether a hole can be **crossed** is a separate decision from cutting it, and it is made in the
 intent rather than in the geometry. A void gap with no build region over it is permanent: nobody bridges it,
 and the approach it forces is around. The same gap with a build region covering it is crossable from the first
 minute, at the price of the time and material a bridge costs and the visibility of building one. Both are
@@ -136,7 +139,7 @@ by accident.
 
 ## Circulation is decided before dressing
 
-**[review]** Scenery is placed last in the pipeline and decided first in the design, and reversing those is
+**[author]** Scenery is placed last in the pipeline and decided first in the design, and reversing those is
 what makes a board read as cluttered rather than as furnished. Placing props wherever the ground will take one
 produces trees and buildings standing in the routes, so reaching a build region means walking round a house
 and then round a tree, neither of which anybody put there.
@@ -147,7 +150,7 @@ foliage does not get, and everything else is where a wood or a settlement may st
 number into a consequence, because the space left over once the circulation is drawn is the space a forest is
 allowed to fill.
 
-**[review]** Density is a design decision. A leaf count alone does not say whether a board is wooded or
+**[author]** Density is a design decision. A leaf count alone does not say whether a board is wooded or
 buried, and what settles it is how many trees the leaves are divided among — a few hundred leaves per tree is
 a canopy with gaps under it, and a few dozen is a blanket laid over the board. The measure that would actually
 answer it is neither number but what share of the ground stands under a leaf (`B96`).
