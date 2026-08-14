@@ -102,17 +102,29 @@ refuses, the authoring apparatus the next run needs, and the entries the audit c
   saying one, so every model reached for the same defaults, and it asked each model to review its own work,
   which is how a report came to describe two empty shells as "verified working with 2 destroyables".
 
-  The replacement is four documents in `pgm-studio-mapgen`, and their shape is the point rather than their
-  contents. **`ART-DIRECTION.md`** is the visual law — the material rules the audit measured (one course of
-  grass, a slab only on a half-course rise, no log in a roof or a verge, no footing on terrain, obsidian at
-  three blocks), the settlement rules that break the street, and the two failure modes a palette has. It is
-  written as constraints an author can check before building, because every one of them was checkable at the
-  theme and nothing checked. **`MAP-BRIEFS.md`** replaces "a map of your own design" with **named briefs** — a
-  mode, a size in the corpus band, a stated visual identity, a stated composition of approaches, and the one
-  thing each board is a test of. **`REVIEWER-BRIEF.md`** is a **second agent**, given the board and not the
-  author's intent, whose checklist is the twenty author rules with their numbers in it and whose output is a
-  per-item table with coordinates. **`AUTHORING-BRIEF.md`** is the author's own brief rewritten around the
-  other three.
+  The replacement is four documents in `pgm-studio-mapgen`. **`ART-DIRECTION.md`** is the visual law, and it is
+  deliberately **literal** — the last brief asked for "a visual identity you can name in a sentence" and
+  supplied no vocabulary for saying one, so it names blocks. It carries the nineteen hand-authored tone
+  families with their members, and the rule the boards all missed: **a pattern takes two or three members of a
+  family, never the whole family** — Kilnrow's `cell` over five near-identical whites is why that board reads
+  as clashing though every block in it is pale. It carries the material rules the audit measured (one course of
+  grass, a slab only on a half-course rise, no log in a roof, no footing on terrain, obsidian at three blocks),
+  and **five omissions nothing ever flagged because they were absences rather than mistakes**: nobody planned
+  the board's silhouette or aspect ratio before drawing; **no board in twenty-one has ever authored a path**,
+  which is the circulation diagram drawn and the thing that keeps the ground along a route clean; everybody
+  turned the rim on, including on relief-solved ground, where it terraces a rolling hill into contour lines;
+  landforms never flowed into each other, the named fault being a flat 20×20 pad butted against a hill with no
+  `skirt` and no tilt between them; and the only built thing any board has ever themed is a village behind the
+  spawn. It points at the ten shipped `HousePresets` as the starting point, since `Desert` and `Diorite` between
+  them model two of the most-broken rules.
+
+  **`MAP-BRIEFS.md`** replaces "a map of your own design" with **named briefs** — each stating the tone families
+  to build from, the preset to fork, the routes to draw as paths, how its landforms meet, and the one thing it
+  tests. Two exist because they have never been attempted at all: a **desert** board, and a **four-team**
+  `rot_90` board, both fully expressible and neither ever authored. **`REVIEWER-BRIEF.md`** is a **second
+  agent**, given the board and not the author's intent, whose checklist is the author rules with their numbers
+  in it and whose output is a per-item table with coordinates. **`AUTHORING-BRIEF.md`** is the author's own
+  brief rewritten around the other three.
 
   What this entry owns is keeping them true. Every rule in `ART-DIRECTION.md` and every check in
   `REVIEWER-BRIEF.md` is a `B141`–`B188` id that has not shipped yet, so **each one is a debt with a due
