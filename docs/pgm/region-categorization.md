@@ -217,6 +217,17 @@ Caveat: a `lane` with **no** void parent and **no** rule (e.g. `ad_astra`'s `wat
 *not* build — it's likely a movement mechanic. The structural rule correctly excludes it;
 naming alone would not.
 
+**A void-enforcement wrapper carved from `everywhere` rather than from a declared build area** — the
+`alpine_mining_ii` idiom `BuildGenerator` also emits, void enforcement stated independently of any
+`BuildIntent.Areas` — reads the same way whenever it has a subtracted child: a `negative` wrapping one
+region (an authored exclusion, or a union of several) still promotes that child to `build`, matching an
+authored map's `obs-spawn` exclusion. The one shape this section's rule does not carve anything out of is
+a wrapper with **no children at all** — a bare `everywhere` ruled directly (`block-place="deny(void)"`,
+no exclusions declared). There is no subtracted region to be `build`, so the wrapper itself stays `other`:
+the whole map is placement-denied over the void with nothing distinguished as the buildable subset,
+which is correct — a map with no build area and no exclusions has not carved out any space, it has only
+stated a boundary condition on the void that already governs every column.
+
 ---
 
 ## 6. `enter`-filter polarity (spawn vs wool disambiguation)

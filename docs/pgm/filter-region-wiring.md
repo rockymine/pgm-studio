@@ -55,6 +55,13 @@ apply is where a reader of the XML looks for it.
 Template 1 is the canonical *suggest + confirm* flow: detect the positive build regions, propose
 "auto-group and apply the void filter to the complement?", let the author confirm/adjust/decline.
 
+The **declarative** generator wires the same shape from the other direction, unprompted: an intent
+carrying `BuildIntent.VoidEnforcement` (`new-map-authoring.md` §5b) emits `block-place="deny(void)"` over
+`everywhere` minus its stated exclusions whether or not the map has any positive build region for this
+template to detect from. The two paths produce the same wiring family — a void-marked filter ruled onto a
+`negative`/`complement`/`everywhere` wrapper — but the declarative one runs unconditionally from a stated
+intent field rather than from a signal an editor session offers up for confirmation.
+
 ## Interaction stance
 
 **Suggest + confirm, never silent.** Detect a signal → propose the wiring → author confirms,

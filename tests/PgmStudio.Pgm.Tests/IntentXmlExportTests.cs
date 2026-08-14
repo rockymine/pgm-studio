@@ -130,6 +130,42 @@ public sealed class IntentXmlExportTests
     }
 
     [Test]
+    public async Task Void_enforcement_survives_the_xml_round_trip_with_no_build_area_declared()
+    {
+        // A worked example: an intent that states void enforcement and declares no build area at all — the
+        // exact shape that used to be inexpressible, because BuildGenerator returned before it ever reached
+        // the void-enforcement wiring when Areas was empty.
+        var doc = BaseDoc();
+        var intent = new MapIntent
+        {
+            Meta = new MetaIntent { Name = "Permanent Void" },
+            Teams = [new TeamDef { Id = "red-team", Name = "Red", Color = "red" }, new TeamDef { Id = "blue-team", Name = "Blue", Color = "blue" }],
+            Spawns = [new SpawnIntent { Team = "red-team", Point = new(10, 12, 10) }, new SpawnIntent { Team = "blue-team", Point = new(-10, 12, -10) }],
+            Build = new BuildIntent { VoidEnforcement = new VoidEnforcementIntent { Exclusions = [new Rect(-2, 58, 2, 62)] } },
+        };
+        IntentGenerator.Apply(doc, intent);
+
+        // no build area declared, but the enforcement rule is there
+        await Assert.That(((Dict)doc["regions"]!).ContainsKey("not-build-area")).IsFalse();
+        await Assert.That(((Dict)doc["regions"]!).ContainsKey("build-area")).IsFalse();
+
+        var xml = XmlWriter.ToXml(Deserializer.FromDict(doc));
+        await Assert.That(xml).Contains("block-place=\"deny(void)\"");
+        await Assert.That(xml).Contains("<negative id=\"void-enforcement-area\">");
+        await Assert.That(xml).DoesNotContain("not-build-area");
+
+        // re-parse — proves it's well-formed and PGM-parseable with no build area at all
+        var reparsed = Serializer.ToDict(MapParser.ParseXmlString(xml));
+        var regions = (Dict)reparsed["regions"]!;
+        await Assert.That(regions.ContainsKey("void-enforcement-area")).IsTrue();
+        var area = (Dict)regions["void-enforcement-area"]!;
+        await Assert.That(area["type"]).IsEqualTo("negative");
+        var rules = (List<object?>)reparsed["apply_rules"]!;
+        var rule = rules.OfType<Dict>().Single(r => r.GetValueOrDefault("region") as string == "void-enforcement-area");
+        await Assert.That(rule["block_place"]).IsEqualTo("deny(void)");
+    }
+
+    [Test]
     public async Task A_team_id_says_team_while_every_other_id_keeps_the_bare_colour()
     {
         // An intent whose team ids are bare colours — what the plan compiler emits. The document's own team

@@ -19,7 +19,8 @@ using PgmStudio.Geom;
 /// <para>Geometry uses the canonical <see cref="Symmetry"/> transforms. Build areas <i>are</i> orbited too
 /// (the author draws the bridges on one side; <see cref="OrbitBuild"/> mirrors each onto the other sides and
 /// dedups any centre/axis piece) — but, unlike spawns/wools, they carry no per-team identity, so they orbit
-/// as a flat set of rects rather than a team-indexed fill.</para>
+/// as a flat set of rects rather than a team-indexed fill. <see cref="BuildIntent.VoidEnforcement"/>'s
+/// exclusions orbit the same way, independently of whether any build area is present.</para>
 /// </summary>
 public static class SymmetryExpander
 {
@@ -82,8 +83,20 @@ public static class SymmetryExpander
     // areas carry no team. Holes orbit so a symmetric map keeps symmetric cutouts.
     private static BuildIntent? OrbitBuild(BuildIntent? build, SymmetryIntent sym, int order)
     {
-        if (build is not { } b || b.Areas.Count == 0) return build;
-        return new BuildIntent { MaxHeight = b.MaxHeight, Areas = OrbitRects(b.Areas, sym, order), Holes = OrbitRects(b.Holes, sym, order) };
+        if (build is not { } b) return build;
+        if (b.Areas.Count == 0 && b.Holes.Count == 0 && b.VoidEnforcement is null) return build;
+        // `with`, not a named rebuild — see the MapIntent-level comment above; BuildIntent gained
+        // VoidEnforcement after this method was first written and a `new BuildIntent { … }` here would have
+        // dropped it silently on every symmetric map exactly the same way.
+        return b with { Areas = OrbitRects(b.Areas, sym, order), Holes = OrbitRects(b.Holes, sym, order), VoidEnforcement = OrbitVoidEnforcement(b.VoidEnforcement, sym, order) };
+    }
+
+    // The exclusions orbit exactly as build areas/holes do — same rects, same dedup — so an exclusion drawn
+    // on one side (an observer platform near the void) is excluded on every side.
+    private static VoidEnforcementIntent? OrbitVoidEnforcement(VoidEnforcementIntent? voidEnforcement, SymmetryIntent sym, int order)
+    {
+        if (voidEnforcement is not { } v) return voidEnforcement;
+        return v with { Exclusions = OrbitRects(v.Exclusions, sym, order) };
     }
 
     // Lanes orbit exactly as build areas do — same rects, same dedup — so a lane drawn on one side opens on

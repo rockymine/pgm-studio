@@ -1386,6 +1386,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   have no team identity, so it stores **authored-only** (`intent.build.areas`/`holes`) and the **canvas**
   renders the symmetry mirror as ghost previews in JS (`setAuthorMirror`); `BuildGenerator` orbits + unions
   them, complements the holes, and wraps the void-enforcement negative. (`BuildLayerStep`; N03)
+- **Void enforcement, stated independently of a build area (B132).** `BuildIntent.VoidEnforcement` wires the
+  corpus's `alpine_mining_ii` idiom — `block-place="deny(void)"` over `everywhere` minus its stated
+  `Exclusions` — whether or not `BuildIntent.Areas` is declared, fixing `BuildGenerator.Apply`'s early return
+  at `Areas.Count == 0`, which used to skip the void-enforcement wiring entirely on any map with no build
+  rectangle and left every void on it bridgeable from the first minute. The default (null) is unchanged and
+  stays permissive, matching every map exported before this landed; measured over the 112 `dtcm` corpus maps,
+  100/112 restrict building somewhere but not all through the void (68 via `deny(void)`/`no-void`, 82 via a
+  hard `never` region), so the studio does not guess which an author wants. `SymmetryExpander.OrbitBuild`
+  orbits `Exclusions` alongside `Areas`/`Holes` (`docs/pgm/new-map-authoring.md` §5b).
 - **Build · live buildability overlay (N03)** — a **Buildable** chip on the canvas sub-bar toggles a
   translucent per-column **verdict heatmap** (`GET /buildability`): green buildable · orange void-denied ·
   red never · yellow restricted. Reuses the block-overlay's pixelated `<image>` renderer (the grid → one
