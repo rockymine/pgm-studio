@@ -608,6 +608,20 @@ than a gate beside the style.
   fill verified against `RoofField` on the real Corvid Hollow / Kilnrow houses and 700 fuzzed configurations;
   no discrepancy found in either.
 
+- [ ] **B190 — A roof style cannot say which slab it steps in, so the see-through-roof check cannot run at the
+  part level.** `HS3` refuses a `Roof` named as a slab while `RoofSlab` is unset — the fault that gave six
+  Weirgate houses a roof you can see straight through — but it can only run where a **whole house style** is
+  posted. `RoofStyleRow` carries no `roof_slab` column, so a roof style saved on its own has no column for the
+  one field the check reads, and pairing them there would false-positive on a roof meant to pair with a
+  `RoofSlab` set on the house later. Only the log/ground half of the rule (`CheckRoofFamily`) can run at the
+  part level today.
+
+  Found while building the gate rather than by a run, and stated as **missing from the system**: closing it
+  means a `roof_slab` column on `roof_style` and a migration, which is why it was correctly left out of the
+  batch that found it. Worth doing with any other `roof_style` schema work rather than alone.
+
+  *found implementing `B168`, 2026-08-14 · `RoofStyleRow` · `HouseStyleValidation.CheckRoofFamily`.*
+
 #### Bucket 5 — what ground and a goal are made of
 
 - [ ] **B162 — An obsidian destroyable may carry at most three obsidian blocks, and three maps carry 27, 27 and
