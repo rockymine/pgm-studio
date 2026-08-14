@@ -229,6 +229,13 @@ opens the instant the fragment floods it. Adding a lane to the build area would 
 tick and destroy the mechanic. Nothing else needs wiring — the generated `<apply>` set is untouched,
 matching the corpus maps, which apply nothing to their lane regions either.
 
+The same holds for `BuildIntent.VoidEnforcement` (`new-map-authoring.md` §5b) — void enforcement stated
+without any declared build area. Its scope is everywhere minus its own stated exclusions, and a lane is
+never among them unless an author deliberately adds it, so a lane sits inside the enforced region exactly
+as it would inside a build area's complement: closed until the fragment floods `y=0`, open from that tick
+on regardless of which of the two enforcement paths (or both) a map carries. Nothing about `WaterLaneGenerator`
+changes to keep this true — it already emits the lane as a region the build slice's union never reaches.
+
 For the same reason a lane takes no part in the derivations that describe the **starting** board:
 gap connectivity, frontline, buildable regions, walkable surface and the fanned graph all read
 `PlanModel.BuildZones`, not `Zones`. Treating a lane as a connection would tell the lint the map is

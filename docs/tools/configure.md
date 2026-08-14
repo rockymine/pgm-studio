@@ -61,7 +61,7 @@ null `cores` and nothing about cores is generated or cleared.
 | `islandTeams` | island id → team; an authoring aid, read by the spawn step, not by the generator |
 | `spawns` | per team: the point, the yaw, and the protection zone as a union of rects |
 | `observer` | the `<default>` spawn — where spectators and pre-match players stand |
-| `build` | `maxHeight` plus the buildable `areas` and the no-build `holes` cut out of them |
+| `build` | `maxHeight` plus the buildable `areas` and the no-build `holes` cut out of them, and a separate `voidEnforcement` (null = none) stating whether the void is permanent — independent of whether `areas` is populated |
 | `wools` | per wool: owner, colour, room rects, the source point, and one monument per capturing team |
 | `cores` | per core: owner, anchor, the casing's measurements, and `leak` |
 | `destroyables` | the DTM objectives — carried, never authored here (below) |
@@ -95,7 +95,8 @@ writes:
   "build": {
     "maxHeight": 30,
     "areas": [ { "minX": -30, "minZ": -70, "maxX": 30, "maxZ": 70 } ],
-    "holes": []
+    "holes": [],
+    "voidEnforcement": { "exclusions": [] }
   },
   "wools": [
     { "owner": "red", "color": "red",
@@ -215,9 +216,21 @@ orbits them onto the other teams as read-only copies that are listed so the unio
 **Buildable layer** draws the over-void bridges as `areas` and the no-build cutouts as `holes` with the
 rectangle tool. The islands' own terrain needs no rectangle — it is buildable through the void filter — so
 what is drawn here is the crossing: the places a player may bridge a gap. The generator unions the areas,
-subtracts the holes as a complement, and wires the void enforcement.
+subtracts the holes as a complement, and wires the void enforcement over the result (`not-build-area`,
+`block=no-void`).
 
 This is the phase the pre-flight sends an author back to, because an unbridged gap is what breaks the map.
+
+**`build.voidEnforcement` is a second, independent knob (B132)**, with no canvas step of its own yet — an
+author states it by posting the intent field directly. Declaring `areas` says nothing about whether the void
+elsewhere may be bridged; a map with no `areas` at all got no enforcement of any kind, because the wiring sat
+behind one early return keyed on `areas` being non-empty. `voidEnforcement` breaks that coupling: setting it
+(even with `areas` empty, even with `exclusions` empty) wires the corpus idiom —
+`block-place="deny(void)"` over everywhere minus the stated exclusions — which denies *placing* a block over
+open void without denying *breaking* one that already hangs there, exactly as `alpine_mining_ii` does it. Null
+(the default) leaves the void bridgeable outside any declared build area, which is every map today; the studio
+does not default it to enforced, because the corpus itself is split on whether a map restricts building at
+all through the void or through a hard region (`new-map-authoring.md` §5b measures both).
 
 ### Wools — Objectives · Spawn · Monuments · Room
 

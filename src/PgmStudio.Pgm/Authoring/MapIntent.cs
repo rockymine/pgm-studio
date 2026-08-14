@@ -153,7 +153,10 @@ public sealed record MetaIntent
 /// bridges/platforms — the islands' terrain is auto-buildable via the void filter, so it needs no rect,
 /// see new-map-authoring.md §5); they're unioned and the void boundary is wired automatically.
 /// <see cref="Holes"/> are no-build cutouts subtracted from that union (PGM <c>complement</c>) — genuine
-/// authored intent, unlike incidental union overlaps (which PGM ignores).</summary>
+/// authored intent, unlike incidental union overlaps (which PGM ignores).
+/// <para><see cref="VoidEnforcement"/> is a second, independent knob: whether the void may be bridged is
+/// stated on its own, not inferred from whether <see cref="Areas"/> is empty. A board with no declared build
+/// area still states it wants (or does not want) the void permanent.</para></summary>
 public sealed record BuildIntent
 {
     /// <summary>Y cap above which no block placement is allowed (null = no ceiling).</summary>
@@ -165,6 +168,29 @@ public sealed record BuildIntent
     /// <summary>No-build cutouts subtracted from the area union (emitted as a <c>complement</c>). Empty →
     /// no holes (plain union). Orbited alongside <see cref="Areas"/> on symmetric maps.</summary>
     public List<Rect> Holes { get; init; } = new();
+
+    /// <summary>Standalone void enforcement (docs/pgm/new-map-authoring.md §5b, corpus idiom
+    /// <c>alpine_mining_ii</c>): null → no standalone enforcement, which is every map today and stays the
+    /// default for a map that states nothing — the corpus itself is split (100/112 <c>dtcm</c> maps enforce
+    /// something, but by a hard <c>never</c> region as often as by the void), so the studio does not guess
+    /// which an author wants. Non-null → wired even with <see cref="Areas"/> empty, and alongside it when
+    /// both are declared: the two are independent decisions, exactly as the corpus keeps them.</summary>
+    public VoidEnforcementIntent? VoidEnforcement { get; init; }
+}
+
+/// <summary>Standalone void enforcement, scoped to everywhere minus <see cref="Exclusions"/> — the
+/// <c>alpine_mining_ii</c> idiom (<c>complement(everywhere, obs-spawn)</c>, here built as
+/// <c>negative(exclusion…)</c>, the same region with no <c>everywhere</c> node needed). Empty
+/// <see cref="Exclusions"/> → enforced over the whole map. A player may still <b>break</b> a block hanging
+/// over the void; only placing is denied (<c>block-place</c>, not <c>block</c>), which is what lets a
+/// destroyable float over open void without the studio blocking its own goal from being broken.</summary>
+public sealed record VoidEnforcementIntent
+{
+    /// <summary>Rectangles excluded from enforcement — an observer platform floating near the void, the way
+    /// <c>alpine_mining_ii</c> excludes its <c>obs-spawn</c> so a player who reaches it cannot be blocked
+    /// from editing there. Empty → no exclusions. Orbited alongside <see cref="BuildIntent.Areas"/> on
+    /// symmetric maps.</summary>
+    public List<Rect> Exclusions { get; init; } = new();
 }
 
 /// <summary>

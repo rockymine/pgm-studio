@@ -34,7 +34,11 @@ public sealed class SymmetryExpanderCarryTests
         Meta = new MetaIntent { Name = "Carry" },
         Spawns = [new SpawnIntent { Team = "red-team", Point = new Pt(10, 12, 10) }],
         Observer = new ObserverIntent { Point = new Pt(0, 60, 0) },
-        Build = new BuildIntent { MaxHeight = 40, Areas = [new Rect(0, 0, 10, 10)] },
+        Build = new BuildIntent
+        {
+            MaxHeight = 40, Areas = [new Rect(0, 0, 10, 10)], Holes = [new Rect(4, 4, 6, 6)],
+            VoidEnforcement = new VoidEnforcementIntent { Exclusions = [new Rect(1, 1, 3, 3)] },
+        },
         WaterLanes = new WaterLaneIntent { Rects = [new Rect(20, 20, 24, 30)] },
         Wools = [new WoolIntent { Owner = "red-team", Color = "lime", Spawn = new Pt(5, 12, 5) }],
         Destroyables = [new DestroyableIntent
@@ -70,6 +74,36 @@ public sealed class SymmetryExpanderCarryTests
             .ToList();
 
         await Assert.That(lost).IsEmpty();
+    }
+
+    [Test]
+    public async Task No_property_of_the_orbited_build_intent_is_lost()
+    {
+        // The same trap on a smaller stage: OrbitBuild used to rebuild BuildIntent by naming
+        // MaxHeight/Areas/Holes, so VoidEnforcement — added after that method was written — would have
+        // been silently dropped on every symmetric map the moment it existed. Proof this fails on the old
+        // behaviour: a `new BuildIntent { MaxHeight = b.MaxHeight, Areas = …, Holes = … }` rebuild (what
+        // OrbitBuild did before this field existed) leaves VoidEnforcement at its default (null), which
+        // IsPopulated reports as lost.
+        var expanded = SymmetryExpander.Expand(Full());
+
+        var lost = typeof(BuildIntent).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(property => !IsPopulated(property.GetValue(expanded.Build)))
+            .Select(property => property.Name)
+            .ToList();
+
+        await Assert.That(lost).IsEmpty();
+    }
+
+    [Test]
+    public async Task Void_enforcement_exclusions_orbit_like_build_areas()
+    {
+        var expanded = SymmetryExpander.Expand(Full());
+        var exclusions = expanded.Build!.VoidEnforcement!.Exclusions;
+
+        await Assert.That(exclusions.Count).IsEqualTo(2);   // the authored rect plus its rot_180 partner
+        await Assert.That(exclusions).Contains(new Rect(1, 1, 3, 3));
+        await Assert.That(exclusions).Contains(new Rect(-3, -3, -1, -1));   // rot_180 about the origin
     }
 
     [Test]
