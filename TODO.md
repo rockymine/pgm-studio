@@ -91,6 +91,36 @@ which finds out whether the result actually answers.
     claim that every generated destroy map was unwinnable.
   - **A document that describes something unbuilt names its task id, or says nothing.**
 
+- [ ] **B136 — The two features that make a shape stop looking drawn are reached almost never.** Measured
+  over the eleven maps in `pgm-studio-mapgen`, counting non-null uses in the authored specs rather than
+  serialized nulls:
+
+  | | per-shape `theme` | `anchor_heights` | Bézier `controls` | `height_mode` | `skirt` | relief `marks` |
+  |---|---|---|---|---|---|---|
+  | Opus, three boards | 5 · 6 · 8 | 2 · 1 · 1 | **0 · 0 · 0** | 2 · 2 · 3 | 2 · 2 · 3 | 5 · 3 · 3 |
+  | Sonnet, three boards | 2 · 4 · 4 | **0 · 0 · 0** | **1 · 0 · 0** | **0 · 0 · 0** | **0 · 0 · 0** | 4 · 5 · 3 |
+  | Haiku, three boards | **0** | **0** | **0** | **0** | **0** | **0** |
+  | `ashen_quarry` (earlier run) | 1 | 2 | **0** | 1 | 2 | 6 |
+
+  **A Bézier curve has been authored once, on one shape, across every map this repository holds.** Per-vertex
+  `anchor_heights` — the slant control, where an outline's corners each take a height and the surface solves
+  between them — is used only by the strongest model and only once or twice a board. `height_mode` and
+  `skirt` follow the same line. Every other outline on every map is a straight-edged polygon at one height.
+
+  The gradient is the finding. Per-shape themes and relief marks are reached by two models out of three and
+  are the features the documents lead with; the shape-level height and curvature controls are reached by one
+  model, barely, and the weakest model reaches **nothing** — its three boards are compiled plan rectangles
+  under a single blanket theme, which is the exact output the first fifteen generated boards had. So the
+  documents are not the binding constraint for the top of the range and are clearly binding at the bottom.
+
+  What this is **not** is a request for a new capability: all six columns are shipped, documented in
+  `capabilities.md` and `sketch.md`, and demonstrated on a committed map. It is a question about **reach** —
+  why a control that changes how a board looks more than any other is the one an author does not get to. The
+  candidates worth testing rather than assuming: the fields sit on `SketchShape` and a compile emits shapes
+  with them null, so an author edits a document rather than asking for a shape; nothing previews a slant or a
+  curve without building a world; and the worked examples in the documents are rectangles, so the first thing
+  a reader copies has straight edges and one height.
+
 - [ ] **B134 — "An iron pickaxe does not mine obsidian at all" is false, and a 409 now refuses maps on it.**
   `DestroyKitPairing`'s docstring states the premise outright — *"an iron pickaxe does not mine obsidian at
   all, so a mismatch is not a rough edge, it is an unwinnable map"* — and it is wrong. An iron pickaxe
