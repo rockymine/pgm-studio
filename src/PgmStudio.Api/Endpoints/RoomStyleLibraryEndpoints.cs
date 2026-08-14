@@ -80,13 +80,20 @@ public sealed class RoomStyleGetEndpoint(RoomStyleStore store) : EndpointWithout
     }
 }
 
-/// <summary>POST /api/room-styles — compose a room style from existing styles.</summary>
-public sealed class RoomStyleCreateEndpoint(RoomStyleStore store) : Endpoint<RoomStyleSaveRequest, RoomStyleDetail>
+/// <summary>POST /api/room-styles — compose a room style from existing styles. 400 `{error, findings}` when the
+/// composed shell fails <see cref="HouseStyleValidation.Check"/> — a block named for a geometric role that is
+/// not that kind of block, a doorway that does not clear the least height a door may, or a roof whose own
+/// materials are wrong for its pitch or its family. Nothing is corrected silently; the request is refused and
+/// the findings say what was wrong.</summary>
+public sealed class RoomStyleCreateEndpoint(RoomStyleStore store, RoomStyleLibrary library)
+    : Endpoint<RoomStyleSaveRequest, RoomStyleDetail>
 {
     public override void Configure() { Post("/room-styles"); AllowAnonymous(); }
 
     public override async Task HandleAsync(RoomStyleSaveRequest req, CancellationToken ct)
     {
+        var findings = HouseStyleValidation.Check(await library.ComposeDraftAsync(req, ct));
+        if (findings.Count > 0) { await HouseStyleGateResponse.WriteAsync(HttpContext, findings, ct); return; }
         var id = await store.CreateAsync(
             RoomStyleLibrary.RowOf(req), RoomStyleLibrary.CourseRowsOf(req),
             RoomStyleLibrary.StoreyRowsOf(req), ct);
@@ -94,13 +101,17 @@ public sealed class RoomStyleCreateEndpoint(RoomStyleStore store) : Endpoint<Roo
     }
 }
 
-/// <summary>PUT /api/room-styles/{id} — replace a room style's knobs and its whole set of courses.</summary>
-public sealed class RoomStyleUpdateEndpoint(RoomStyleStore store) : Endpoint<RoomStyleSaveRequest, RoomStyleDetail>
+/// <summary>PUT /api/room-styles/{id} — replace a room style's knobs and its whole set of courses. Refuses the
+/// same way <see cref="RoomStyleCreateEndpoint"/> does.</summary>
+public sealed class RoomStyleUpdateEndpoint(RoomStyleStore store, RoomStyleLibrary library)
+    : Endpoint<RoomStyleSaveRequest, RoomStyleDetail>
 {
     public override void Configure() { Put("/room-styles/{id}"); AllowAnonymous(); }
 
     public override async Task HandleAsync(RoomStyleSaveRequest req, CancellationToken ct)
     {
+        var findings = HouseStyleValidation.Check(await library.ComposeDraftAsync(req, ct));
+        if (findings.Count > 0) { await HouseStyleGateResponse.WriteAsync(HttpContext, findings, ct); return; }
         var id = Route<long>("id");
         var updated = await store.UpdateAsync(
             id, RoomStyleLibrary.RowOf(req), RoomStyleLibrary.CourseRowsOf(req),

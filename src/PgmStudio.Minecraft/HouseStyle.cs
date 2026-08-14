@@ -218,7 +218,11 @@ public sealed record HouseStyle
     private const int Planks = Blocks.Planks;
 
     /// <summary>The course the walls stand on, laid one block proud of them on every side, so the building
-    /// meets the ground on a footing instead of stopping dead at it.</summary>
+    /// meets the ground on a footing instead of stopping dead at it.
+    ///
+    /// <para><b>A building seated into terrain does not carry one</b> (author). The off switch is
+    /// <see cref="NoFooting"/> — name it here rather than reinventing a bare air material, so the choice reads
+    /// as "no footing" wherever it is written instead of as one more block id among the others.</para></summary>
     public TerrainMaterial Sill { get; init; } = new SolidMaterial(Blocks.Cobblestone);
 
     /// <summary>The infill between the posts, upward from the floor. Its extent is the wall's height.</summary>
@@ -446,6 +450,13 @@ public sealed record HouseStyle
         return hash.ToHashCode();
     }
 
+    /// <summary>The <see cref="Sill"/> a building seated into terrain wants: no footing at all, so the walls
+    /// meet the ground flush instead of standing on a course proud of it. The mechanism is not new — a sill
+    /// resolving to air is a course <see cref="HouseStamper"/> skips like any other — this is only the name
+    /// for it, so an author turning the footing off writes a choice rather than rediscovering a bare
+    /// <see cref="SolidMaterial"/> of <see cref="Blocks.Air"/> from a comment on one preset.</summary>
+    public static readonly TerrainMaterial NoFooting = new SolidMaterial(Blocks.Air);
+
     /// <summary>The shipped wool structure: a flat bedrock shell, a wool band at the fourth course, a light
     /// slit at the sixth, and a stained-glass-pane door. No posts and no sill — a shell's corners are wall
     /// like the rest of it, and it meets the ground without a footing.</summary>
@@ -471,7 +482,7 @@ public sealed record HouseStyle
         Roof = new SolidMaterial(Blocks.Bedrock),
         Verge = new SolidMaterial(Blocks.Bedrock),
         Post = null,
-        Sill = new SolidMaterial(Blocks.Air),
+        Sill = NoFooting,
         Overhang = 0,
         RoofHole = true,
         Door = DoorMaterial.StainedGlassPane,

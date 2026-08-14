@@ -285,7 +285,7 @@ when every id in it has a `FEATURES.md` line and no document still names it as a
 | **1** | What a spawn door faces | `B158` `B169` `B172` `B177` `B180` | one rectangle in front of a spawn, and five rules checked against it | `PlanValidator` |
 | **2** | How big a piece is, and how far apart | `B156` `B157` `B167` `B170` `B178` `B186` | size floors and ceilings, island separation, and the piece/building coupling broken | `PlanValidator` · `PlanCompiler` |
 | **3** | How far apart the goals are | `B175` `B179` `B188` | a spacing deriver over goals, spawns and the board extent, with the corpus band behind it | `PlanValidator` · `Analysis` |
-| **4** | A block must be the kind of block its role needs | `B160` `B161` `B164` `B165` `B168` | a style refused when it names a cube where a stair goes, and a footing that is a choice | `HouseWindows` · `HouseStyle` · `HouseStamper` |
+| **4** | A block must be the kind of block its role needs | `B165` | the stamper overriding a gable's own pitch, reported rather than silent — `B160`/`B161`/`B164`/`B168`, the gate beside the style, shipped (`FEATURES.md`) | `HouseStamper` |
 | **5** | What ground and a goal are made of | `B162` `B163` `B183` | a material checked against the depth and the role it is used at | `Themes` · `DestroyKitPairing` · read-back |
 | **6** | What may stand where | `B142` `B146` `B166` `B187` | a placement report the export refuses on, instead of four silent skips | `Decorator` · `DressingScope` · `HouseStamper` |
 | **7** | What the world build seats | `B145` `B159` `B176` `B184` `B185` | the marker, the plate, the chest, the shell and the paint under a stamped piece | `SketchWorldBuilder` · the stampers |
@@ -562,53 +562,11 @@ division, no build required.
 
 The largest single class of visible fault in the repository, and it is one shape repeated: a style names a
 **block id** for a field whose geometry needs a particular **kind** of block, nothing checks, and the stamper
-builds something else. Four models made it on five boards. The gate belongs beside the style so a bad style is
-refused when it is posted, not silently built.
-
-- [ ] **B160 — A block named for a geometric role is never checked to be that kind of block, so an arch stamps
-  as a solid lintel.** `DoorHeadStyle.Block` must be a **stair** and its `FillBlock` under `UpperSlab` must be a
-  **slab**; `WindowStyle.Block` under `SlabBanded` must be a slab. `sable-marsh` names Cobblestone (4) for the
-  first two and Glass Pane (102) for the third — a full cube where a stair goes, a full cube where a slab goes,
-  and a pane where a slab goes. Nothing refuses any of it. The result is a solid cobblestone lintel across the
-  doorway with no arch anywhere in it, and a pane / air / pane band where a slab band was asked for.
-
-  **Confirmed on two independent boards by two models**, which moves it from a one-map slip to the class of
-  fault it is: Corvid Hollow's spawn head is block 98 (Stone Brick — stone brick *stairs* are 109) with fill 4,
-  and its windows are `stairLattice` given 102, 85 (Fence) and 101 (Iron Bars). Ashfall Scar's nine houses are
-  `stairLattice` given 85 (Oak Fence) — and the author's aesthetic complaint about pale oak against nether brick
-  is that defect's visible form, not a separate one. Weirgate's `arched` window at height 3 with block 102 is
-  the same: the effect the author liked is partly an accident of a wrong block.
-
-  `HouseWindows.cs`'s own comment predicts it — the fields are block ids rather than materials precisely so a
-  stair keeps its facing and a slab its half, and getting it wrong would "lay a solid lintel instead of an arch".
-
-  *author, 2026-08-14 · `HouseWindows.cs` `DoorHeadForm`/`DoorHeadFill`/`WindowForm` · four boards.*
-
-- [ ] **B161 — A spawn door must stand 2.5 blocks clear, and a window must be plain.** A door head is written
-  into the doorway's top course, so `doorHeight: 3` leaves two clear courses — 2.5 only if the fill is genuinely
-  an upper slab. With `B160`'s cobblestone cube it is a flat **2.0**, measured on `sable-marsh` and
-  `corvid-hollow`. The two are one fix, but the clearance wants stating as a rule in its own right so a style
-  cannot meet it by accident.
-
-  **Two rules (author):** a spawn door is at least **2.5 blocks** of clear height; and a window is **either air
-  or glass** — if it is filled it is filled with a single block, and no patterned form is permitted. That rules
-  out `SlabBanded` and `StairLattice` for these maps whatever blocks they are given, which is a constraint on
-  authoring rather than a defect in either form.
-
-  *author, 2026-08-14 · `DoorHeadStyle` docstring ("a three-course door keeps two clear courses").*
-
-- [ ] **B164 — A building's footing is laid one block proud on every side, and twelve of fourteen maps never
-  turn it off.** The 1-wide rim is `HouseStyle.Sill`: "the course the walls stand on, laid one block proud of
-  them on every side, so the building meets the ground on a footing instead of stopping dead at it." Swept,
-  twelve of the fourteen maps with buildings have **no building without one**; only `sonnet-cinderreach` (5 of 5)
-  and `sonnet-holdfast` (6 of 7) set it to air.
-
-  **The rule (author):** a building seated into terrain does not carry a footing. The mechanism is already
-  configurable, so this is **reach rather than capability** — the off switch is "name air as the sill material",
-  which reads as a material and not as a choice, and one preset documents it in a comment nobody authoring from
-  the documents will see.
-
-  *author, 2026-08-14 · `HouseStyle.cs:220` · swept over every layout in the repository.*
+builds something else. Four models made it on five boards. `B160`, `B161` and `B168` — the block-kind gate, the
+door's clear height, and a roof's own materials — shipped as the house-style gate (`FEATURES.md`); `B164`'s
+footing shipped beside them. `B165` is the shape this bucket does not yet cover: a style stating something the
+stamper then does differently, with nothing reporting the divergence, and it wants the stamper itself rather
+than a gate beside the style.
 
 - [ ] **B165 — A gable roof at `pitch: 2` is overridden by its own wall.** Reported by the author: a gable
   rising two blocks a step disagrees with the wall under it, and the wall wins where they conflict — so the roof
@@ -616,30 +574,12 @@ refused when it is posted, not silently built.
   `pitch: 2`, and all nine of Ashfall Scar's do, and two of Kilnrow's; the configuration is confirmed present,
   and the block-level disagreement is the author's observation and the half still to be traced.
 
-  Worth pairing with `B160` — both are a style stating something the stamper then does differently, with nothing
-  reporting the divergence.
+  Worth pairing with the house-style gate (`FEATURES.md`, `B160`/`B161`/`B168`) — both are a style stating
+  something the stamper then does differently, with nothing reporting the divergence, though this one is the
+  stamper overriding a value it was given rather than a block of the wrong kind, so it belongs in
+  `HouseStamper.cs` rather than in the gate beside the style.
 
   *author, 2026-08-14 · configuration confirmed in three layouts; mechanism not yet traced.*
-
-- [ ] **B168 — A slab named as a roof material builds a see-through roof, and the correct construction is
-  already a shipped preset.** Six Weirgate shed houses set `roof: 126` (Wooden Slab) at `pitch: 1` with
-  `roofSlab: −1`; its spawn sets `roof: 44:4` (Brick Slab) on a hip, same settings. `HouseStyle` warns about
-  exactly this: `RoofSlab` is "the slab a roof steps in, or −1 for a roof laid in whole blocks", and at a whole
-  block of rise "a course of slabs leaves an open half between every pair and the roof can be seen straight
-  through". `HousePresets.Diorite` is the canonical correct form and **inverts these two fields**:
-  `Roof = Brick`, `RoofSlab = StoneSlab`, `RoofSlabData = BrickSlab`, `Pitch = 1`.
-
-  **Two rules (author):** a slab belongs in a roof only on a **half-course rise** (pyramid or gable); and a
-  **log is never a roof or a verge material** — the same six houses carry `verge: 162`. `quillon-barrow` extends
-  the second past wood: three of its houses roof in Grass Block (2:0) over a Podzol (3:2) verge, so **ground
-  materials are barred from those roles too**.
-
-  **And the worked example is in this repository.** `quillon-saltworks` is the one board that builds a slab roof
-  correctly — `h2` and `h5` carry `form: "gambrel"`, `pitch: 1`, `roofSlab: 126`, `roof: 5:5`: the slab in
-  `RoofSlab`, a whole block in `Roof`. Every other board inverts them. That makes this a reach problem with a
-  demonstrated answer rather than an unclear one.
-
-  *author, 2026-08-14 · `HouseStyle.cs:372–383` · `HousePresets.Diorite` · correct instance on `quillon-saltworks`.*
 
 #### Bucket 5 — what ground and a goal are made of
 

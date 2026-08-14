@@ -142,7 +142,7 @@ public static class HousePresets
         },
 
         Floor = RoomPart.Of(Spruces),
-        Sill = new SolidMaterial(Blocks.Air),          // it meets the ground flush; there is no footing
+        Sill = HouseStyle.NoFooting,                    // it meets the ground flush; there is no footing
         Door = DoorMaterial.Air,
         DoorWidth = 2,
         DoorHeight = 3,
@@ -188,7 +188,7 @@ public static class HousePresets
         },
 
         Floor = RoomPart.Of(new SolidMaterial(Blocks.Sandstone)),
-        Sill = new SolidMaterial(Blocks.Air),
+        Sill = HouseStyle.NoFooting,
         Door = DoorMaterial.Air,
         DoorWidth = 2,
         DoorHeight = 3,
@@ -252,7 +252,7 @@ public static class HousePresets
         },
 
         Floor = RoomPart.Of(new SolidMaterial(Blocks.Stone, PlainDiorite)),
-        Sill = new SolidMaterial(Blocks.Air),
+        Sill = HouseStyle.NoFooting,
         Door = DoorMaterial.Air,
         DoorWidth = 2,
         DoorHeight = 3,
@@ -325,7 +325,7 @@ public static class HousePresets
         },
 
         Floor = RoomPart.Of(new SolidMaterial(Blocks.Planks, Oak)),
-        Sill = new SolidMaterial(Blocks.Air),
+        Sill = HouseStyle.NoFooting,
         Door = DoorMaterial.Air,
         DoorWidth = 2,
         DoorHeight = 3,

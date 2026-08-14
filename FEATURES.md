@@ -3689,6 +3689,45 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   missed: the measurement that claimed four a side passed **no host question** to the seater, and with none the
   seater takes the spacing path — it measured the branch the building does not walk. Reading the stamped world
   is what found it. (B77)
+- **A block named for a geometric role is checked to be that kind of block before a house style is stored
+  (B160).** `doorHead.block`, its `fillBlock` under `upperSlab`, and a `windows`/`gableWindows`/storey-window
+  `block` under `stairLattice`, `arched` or `slabBanded` used to be trusted as whatever id a style named, so a
+  cobblestone id where the arch's own docstring calls for a stair built a solid lintel with no arch in it, and a
+  glass pane where a slab band calls for a slab built a pane/air/pane stripe — silently, on four authored
+  boards. `HouseStyleValidation.Check` and the classifier it reads, `BlockKinds` (the full stair set, the three
+  *single* slabs — a double slab does not count, since it ignores the half a window or a door head writes into
+  its data, and is the same fault as any other whole-block id), now run on every `POST`/`PUT` to `/room-styles`,
+  `/roof-styles` and `/storey-styles`, and on a sketch's own bound `roomStyles.cage`/`roomStyles.spawn`
+  (`PUT /map/{slug}/sketch`) — the door those snapshots actually enter the studio through. Answers **400**
+  `{error: "invalid house style", findings: [{rule, field, message}]}`, one finding per fault, `rule` a stable
+  id (`HouseStyleRules`) rather than this task's own; nothing is substituted for the author.
+  (`docs/tools/library.md`, `docs/tools/sketch.md`)
+- **A door's clear height is a rule of its own, not an accident of a genuine slab (B161).** A door head is
+  written into the doorway's top course, so a three-course door with no head clears three and one with a head
+  clears two plus half a block only when the fill is *genuinely* an upper slab — `HouseStyleValidation.
+  ClearDoorHeight` is that arithmetic (the author's own numbers, not re-derived), and `Check` refuses anything
+  under **2.5** (rule `HS2`). Paired with a wrong fill block (`HS1`), a three-course door with a solid
+  cobblestone head clears a flat two, which is what two corpus boards actually built. **The task's other half —
+  a spawn window must be plain (air or glass, no pattern) — is withdrawn by the author.** `stairLattice` and
+  `slabBanded` windows are allowed on any house, a spawn included; the corpus complaint was always the block
+  handed to the form (`B160`/`HS1`), never the form itself, which `HousePresets.Alpine` and `Workshop` already
+  built correctly. No code shipped for the withdrawn half.
+- **A building seated into terrain names its footing off, and the choice has a name (B164).**
+  `HouseStyle.NoFooting` is `Sill` resolved to air — the mechanism was already there, since a sill resolving to
+  air is a course `HouseStamper` skips like any other, and twelve of fourteen authored maps never reached for
+  it. Naming it is the whole fix: an author reading the model now finds "no footing" rather than rediscovering
+  a bare air material from a comment on one preset. `Alpine`, `Desert`, `Diorite`, `Townside` and `Stilts` — the
+  five presets that meet the ground flush — are built from it now instead of a second-hand
+  `new SolidMaterial(Blocks.Air)`.
+- **A roof's own materials are checked against its pitch and its family (B168).** A slab named as the
+  whole-block `roof` while `roofSlab` is unset builds a see-through roof — a course of slabs at a whole block of
+  rise leaves an open half between every pair — and `HouseStyleValidation.Check` refuses it now (rule `HS3`);
+  `HousePresets.Diorite`'s inverse (`Roof` a whole block, `RoofSlab` the slab, on a half-course rise) is the
+  shape that passes clean. A log or a ground material named as `roof` or `verge` is refused outright wherever it
+  is asked to fill either role — six Weirgate houses named a log verge, three of `quillon-barrow`'s named a
+  grass roof over a podzol verge. `CheckRoofFamily` is the standalone half of the check a roof-style *part*
+  runs on its own, since `roofSlab` is a house-level knob a roof part carries no column for and cannot be
+  paired against in isolation.
 - **A wall bends where the walked ring does, and it is one measurement (G172).** A house answered `Arc`, `Turn`
   and `Run` off its own rectangle in closed form while the terrain painter walked the same outline through
   `Geom.GridBoundary` — one idea with two implementations, which is what the symmetry rule exists to prevent.
