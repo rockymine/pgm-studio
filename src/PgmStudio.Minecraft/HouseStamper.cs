@@ -22,6 +22,28 @@ namespace PgmStudio.Minecraft;
 /// </summary>
 public static class HouseStamper
 {
+    /// <summary>The full rectangle a house stamped over <paramref name="ground"/> in this <paramref name="style"/>
+    /// actually writes into — never <paramref name="ground"/> itself, which is only the walls. Three things
+    /// reach past it and this is their union: the roof's own <see cref="HouseStyle.Overhang"/>, the log ends a
+    /// <see cref="BeamStyle"/> runs past every corner, and the one-block sill that rings every footprint
+    /// regardless of either. A porch reaches no further than this — its own canopy overhangs the strip the walls
+    /// gave up by the same <see cref="HouseStyle.Overhang"/>, and that strip is already inside <paramref
+    /// name="ground"/>, so its reach never exceeds the main roof's.
+    ///
+    /// <para>This is the number a caller wanting to claim the ground a stamped house actually covers
+    /// (<c>DressingScope.StructureFootprints</c>) reads, in place of the wall rectangle alone — the wall
+    /// rectangle is what a plan piece or a dragged rectangle hands the stamper, not what the stamper writes.
+    /// <c>HouseStamperTests</c> proves every block <see cref="Stamp(VoxelWorld,Footprint,int,HouseStyle,int,
+    /// IReadOnlyList{RoomDoor})"/> actually places lands inside it, so a caller answering from the style's own
+    /// fields never has to re-open the voxels to check.</para></summary>
+    public static (int MinX, int MinZ, int MaxX, int MaxZ) StampedExtent(
+        (int MinX, int MinZ, int MaxX, int MaxZ) ground, HouseStyle style)
+    {
+        var margin = Math.Max(1, Math.Max(Math.Max(0, style.Overhang),
+            style.Beams.Any ? Math.Max(0, style.Beams.Reach) : 0));
+        return (ground.MinX - margin, ground.MinZ - margin, ground.MaxX + margin, ground.MaxZ + margin);
+    }
+
     /// <summary>Stamp a house over a resolved <see cref="RoomFrame"/> — its footprint, and its doors on the
     /// edges the frame carries. A spawn's door sits on the yaw-derived edge, which is the way players face
     /// walking out, and a wool structure takes one per entry interface; neither is something a building can

@@ -4667,7 +4667,19 @@ these are the ones that shipped a map that could not be played as intended, and 
   concrete: read by material and step alone the whole board floods into three components, the largest 80,722
   cells; read by recorded provenance the same world reports seven structures matching exactly what was
   stamped, the largest 133 cells.
-
+- **A dressing-placed building claims its stamped extent, not its wall rectangle (B137).**
+  `DressingScope.StructureFootprints` used to fan `HouseProp.Footprint()` — the two-corner rectangle a style's
+  walls stand on — across the symmetry orbit and stop there, so a roof's `overhang`, its `verge` and a
+  `BeamStyle`'s log ends all lay past the claimed ground: the eaves ring kept whatever provenance claim the
+  terrain under it had, and with a log verge it read `Foliage` by material — eleven houses on `quillon-barrow`
+  drew eleven rectangles outlined in tree-colour. `HouseStamper.StampedExtent(ground, style)` is the fix: the
+  wall rectangle grown by the greatest of the roof's `Overhang`, the beams' `Reach` and the one-block sill
+  every footprint carries regardless, read straight off the style's own fields — the same ones the stamper
+  already reads to lay the roof and the beam ends — rather than re-derived from voxels a second time. A porch
+  needed no case of its own: it is carved out of the footprint it is handed rather than added past it, so its
+  canopy never overhangs further than the main roof already does. Verified on `quillon-barrow`'s `d-h1`
+  (overhang 1, verge `17:1` Spruce Log): the column one block outside the old claim now reads the verge as
+  `Structure`, and the eaves ring is gone from the category render entirely.
 - **The capability handbook — what the system can be asked for, and where to say it (B91).** `docs/tools/capabilities.md`
   mapped the four documents a map is made of; it now also states the surface underneath the spec's shorthand, in
   pipeline order, every claim naming the type that carries it and the endpoint that answers it: the destroyable's

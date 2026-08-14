@@ -184,27 +184,46 @@ public static class DressingScope
         return null;
     }
 
-    /// <summary>Every dressing-placed building's footprint, fanned across the map's symmetry orbit — the
-    /// columns a stamped house occupies, for the build's provenance record (<c>SketchWorldBuilder</c>) to
-    /// claim as structure regardless of what the house is built from. Trees, boulders and flora are absent on
-    /// purpose: their material already reads unambiguously (a log, a leaf, a liquid), so provenance has
-    /// nothing to correct there — it exists for the Ground/Structure pair a material test can get wrong.</summary>
+    /// <summary>Every dressing-placed building's <b>stamped extent</b> — the wall footprint grown by
+    /// <see cref="HouseStamper.StampedExtent"/>, not the wall rectangle alone — fanned across the map's
+    /// symmetry orbit, for the build's provenance record (<c>SketchWorldBuilder</c>) to claim as structure
+    /// regardless of what the house is built from. A roof's overhang and a verge lay past the walls by design,
+    /// and a column the stamper never claimed reads by material alone, which is exactly the eaves reading as
+    /// foliage when a style's verge is a log. Trees, boulders and flora are absent on purpose: their
+    /// material already reads unambiguously (a log, a leaf, a liquid), so provenance has nothing to correct
+    /// there — it exists for the Ground/Structure pair a material test can get wrong.</summary>
     public static IEnumerable<(int X, int Z)> StructureFootprints(string layoutJson)
     {
         var symmetry = SymmetryOf(layoutJson);
         foreach (var prop in PropsOf(layoutJson))
         {
-            if (prop is not HouseProp) continue;
+            if (prop is not HouseProp house) continue;
             for (var image = 0; image < symmetry.Order; image++)
-                foreach (var cell in ClearanceFootprint(prop, symmetry, image))
+                foreach (var cell in StampedFootprint(house, symmetry, image))
                     yield return cell;
         }
+    }
+
+    /// <summary>One image of a house's stamped extent — the wall rectangle turned round the orbit and then
+    /// grown by <see cref="HouseStamper.StampedExtent"/>, in that order, so a quarter turn swaps width and
+    /// depth before the margin is added and a non-square house's eaves come out right on every image.</summary>
+    private static IEnumerable<(int X, int Z)> StampedFootprint(HouseProp house, DressingSymmetry symmetry, int image)
+    {
+        var corners = symmetry.ImageRing(house.Points, image);
+        if (new HouseProp { Points = corners }.Footprint() is not { } wall) yield break;
+        var (minX, minZ, maxX, maxZ) = HouseStamper.StampedExtent(
+            (wall.MinX, wall.MinZ, wall.MinX + wall.Width - 1, wall.MinZ + wall.Depth - 1), house.Style);
+        for (var z = minZ; z <= maxZ; z++)
+        for (var x = minX; x <= maxX; x++)
+            yield return (x, z);
     }
 
     // The footprint each prop kind roots or covers, turned to one image of the orbit: a single point for a
     // tree or a boulder — the cell a trunk stands on is what matters here, the same resting cell Decorator's
     // own Seats reads, not the crown that may freely overhang a goal — and the whole rectangle for a building,
-    // since its floor covers every column beneath it.
+    // since its floor covers every column beneath it. Deliberately the wall rectangle alone rather than
+    // <see cref="HouseStamper.StampedExtent"/>: OB19 asks whether a building stands too close to a goal, which
+    // is a question about the room someone drew, not about how far its eaves happen to overhang it.
     private static IEnumerable<(int X, int Z)> ClearanceFootprint(PlacedProp prop, DressingSymmetry symmetry, int image)
     {
         switch (prop)

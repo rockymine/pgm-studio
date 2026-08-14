@@ -525,6 +525,50 @@ public sealed class HouseStamperTests
         await Assert.That(ends).IsEqualTo(8);
     }
 
+    /// <summary>The claim <c>DressingScope.StructureFootprints</c> rests on: every block a stamp writes
+    /// lands inside <see cref="HouseStamper.StampedExtent"/>, over the overhang, the beam ends and the porch
+    /// together — and the wall rectangle alone is <b>not</b> enough, which is the bug this guards against. Proved
+    /// by construction rather than by one style: overhang, beam reach and a porch are each varied past the plain
+    /// wall footprint, so a caller reading only the wall rectangle would miss real, intentionally-placed blocks
+    /// in every case below.</summary>
+    [Test]
+    [Arguments(1, 0, false)]
+    [Arguments(3, 0, false)]      // a deep overhang, no beams
+    [Arguments(1, 4, true)]       // beams reaching further than the overhang, plus a porch
+    [Arguments(0, 2, false)]      // overhang asked for zero — the sill's own one-block margin still applies
+    public async Task Every_block_a_stamp_writes_lands_inside_its_stamped_extent(int overhang, int beamReach, bool porch)
+    {
+        const int width = 11, depth = 9;
+        var style = new HouseStyle
+        {
+            Overhang = overhang,
+            Storeys = [new Storey { Clear = 3 }, new Storey { Clear = 3 }],
+            Beams = beamReach > 0 ? new BeamStyle { Block = Blocks.Log, Reach = beamReach } : new BeamStyle { Block = -1 },
+            Porch = porch ? new PorchStyle { Depth = 2 } : null,
+        };
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, 0, 0, width, depth, FloorY, style);
+
+        var (minX, minZ, maxX, maxZ) = HouseStamper.StampedExtent((0, 0, width - 1, depth - 1), style);
+
+        // The extent is a real bound, not a vacuous one: something stands strictly outside the plain wall
+        // rectangle, which is exactly the ground the old claim (the wall rect alone) used to miss.
+        var sawOutsideWalls = false;
+        for (var x = minX - 3; x <= maxX + 3; x++)
+            for (var z = minZ - 3; z <= maxZ + 3; z++)
+                for (var y = FloorY - 1; y < FloorY + 25; y++)
+                {
+                    if (world.GetBlock(x, y, z).Id == Blocks.Air) continue;
+                    var insideWalls = x is >= 0 and < width && z is >= 0 and < depth;
+                    if (!insideWalls) sawOutsideWalls = true;
+                    await Assert.That(x).IsGreaterThanOrEqualTo(minX);
+                    await Assert.That(x).IsLessThanOrEqualTo(maxX);
+                    await Assert.That(z).IsGreaterThanOrEqualTo(minZ);
+                    await Assert.That(z).IsLessThanOrEqualTo(maxZ);
+                }
+        await Assert.That(sawOutsideWalls).IsTrue();
+    }
+
     [Test]
     public async Task A_building_that_asks_for_no_beams_writes_nothing_outside_its_walls()
     {

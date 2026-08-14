@@ -237,6 +237,32 @@ public sealed class DressingScopeTests
     }
 
     [Test]
+    public async Task A_houses_stamped_extent_reaches_past_its_wall_rectangle_by_the_roofs_overhang()
+    {
+        // A 4x3 wall footprint at (20,20)-(23,22), overhang 2. Kept off the map's own centre (the
+        // fixture's rot_180 pivot) so the mirror image lands nowhere near it and cannot be mistaken for the
+        // eaves this test is actually checking. The wall rectangle alone (the old claim) is exactly the
+        // interior this test starts from; the eaves ring one cell further out is what a style's overhang and
+        // verge actually cover, and it has to be in the claim or it reads by material alone.
+        var footprints = DressingScope.StructureFootprints(Layout(
+            ",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"points\":[[20,20],[23,22]],"
+            + "\"style\":{\"overhang\":2}}]}"))
+            .ToHashSet();
+
+        // Inside the wall rectangle, as before.
+        await Assert.That(footprints).Contains((20, 20));
+        await Assert.That(footprints).Contains((23, 22));
+
+        // The eaves ring, which the wall rectangle alone never claimed — the bug this test would have caught.
+        await Assert.That(footprints).Contains((18, 18));   // the corner, two out on both axes
+        await Assert.That(footprints).Contains((19, 21));   // one side, one block short of the corner's reach
+        await Assert.That(footprints).Contains((25, 24));   // the far corner
+
+        // And it stops where the overhang says it does — one cell further is genuinely open ground.
+        await Assert.That(footprints).DoesNotContain((17, 21));
+    }
+
+    [Test]
     public async Task Trees_and_boulders_report_no_structure_footprint()
     {
         // Their material already reads unambiguously (a log, a leaf, plain stone) — provenance exists for
