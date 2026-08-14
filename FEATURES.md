@@ -4680,6 +4680,24 @@ these are the ones that shipped a map that could not be played as intended, and 
   canopy never overhangs further than the main roof already does. Verified on `quillon-barrow`'s `d-h1`
   (overhang 1, verge `17:1` Spruce Log): the column one block outside the old claim now reads the verge as
   `Structure`, and the eaves ring is gone from the category render entirely.
+- **The isolated foliage layer can read as a point and a measured radius, not a mass (B138).** The category
+  render paints every leaf and log cell a build wrote, so a wood reads as one irregular violet shape whose
+  internal structure means nothing — two crowns that touch fuse into one blob and the tree count, the measure
+  that actually decides whether a board reads as wooded, cannot be read off it. A tree is authored as one prop
+  at one coordinate; `DressingScope.TreeFootprints` now answers with exactly that, fanned across the map's
+  symmetry and paired with `Decorator.CanopyRadius` — the farthest a leaf of that tree's own deterministic
+  build (`TreeTemplate`/`TreeSkeleton` plus `TreeCrown`) stands from its trunk, the measured figure rather than
+  a species-nominal guess, read off the crown's own geometry with no world needed to measure it.
+  `TopDownRender`'s `--layer foliage` plots each as a softly-tinted circle grown to that radius with a solid
+  trunk mark on top, so overlapping crowns build up density rather than fusing, and every trunk stays
+  countable. A mode of the isolated layer alone — the combined view keeps painting the mass, since a player's
+  cover is the leaves and not the centres — and it needs the dressing document, never `WorldProvenance`, which
+  carries no tree claim at all. `tools/mapgen --stages` passes the build's own document automatically;
+  `PgmStudio.RoundTrip --topdown --layer foliage` takes one as an optional `--dressing <layout.json>`, and a
+  scanned world, carrying neither, falls back to the mass reading it always had — stated on the console rather
+  than silently substituted. Verified on `quillon-barrow`: 46 points (23 authored trees × the map's `rot_180`
+  symmetry), each a distinct, countable circle where the mass render showed solid clumps.
+
 - **The capability handbook — what the system can be asked for, and where to say it (B91).** `docs/tools/capabilities.md`
   mapped the four documents a map is made of; it now also states the surface underneath the spec's shorthand, in
   pipeline order, every claim naming the type that carries it and the endpoint that answers it: the destroyable's

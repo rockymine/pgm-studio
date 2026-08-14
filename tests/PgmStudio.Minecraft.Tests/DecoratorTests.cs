@@ -81,6 +81,44 @@ public sealed class DecoratorTests
         await Assert.That(logs.Max(b => Math.Abs(b.Z - 20))).IsLessThan(9);
     }
 
+    // ── the measured crown radius the point-and-radius foliage render reads ───────────────────────────
+    [Test]
+    [Arguments("oak", TreeForm.Template, 16.0)]
+    [Arguments("spruce", TreeForm.Template, 20.0)]
+    [Arguments("birch", TreeForm.Grown, 18.0)]
+    public async Task Canopy_radius_never_falls_short_of_the_crown_the_tree_actually_builds(
+        string wood, TreeForm form, double height)
+    {
+        // Decorator.CanopyRadius is read before any world exists — a caller placing the point-and-radius render
+        // has no build to measure. This is the check that the number it answers with is honest: no real leaf
+        // block, in the tree the same prop actually stamps, stands further from the trunk than it claims.
+        var tree = new TreeProp { Id = "t", X = 20, Z = 20, Form = form, Species = wood, Wood = wood, Height = height, Seed = 7 };
+        var (world, top) = Plateau();
+        Decorator.Decorate(world, Context(top, [tree]));
+
+        var radius = Decorator.CanopyRadius(tree);
+        var leaves = Placed(world, top.Keys, 8, 40).Where(b => b.Id is Blocks.Leaves or Blocks.Leaves2).ToList();
+
+        await Assert.That(leaves).IsNotEmpty();
+        await Assert.That(radius).IsGreaterThan(0);
+        foreach (var leaf in leaves)
+        {
+            var reach = Math.Sqrt(Math.Pow(leaf.X - tree.X, 2) + Math.Pow(leaf.Z - tree.Z, 2));
+            await Assert.That(reach).IsLessThanOrEqualTo(radius);
+        }
+    }
+
+    [Test]
+    public async Task A_taller_tree_of_the_same_species_reads_a_larger_canopy_radius()
+    {
+        // The measured figure tracks what the tree is actually asked to be, which a species-nominal constant
+        // could not — the same species at two heights builds two different crowns.
+        var small = new TreeProp { Id = "t", X = 0, Z = 0, Species = "oak", Height = 8, Seed = 3 };
+        var large = new TreeProp { Id = "t", X = 0, Z = 0, Species = "oak", Height = 30, Seed = 3 };
+
+        await Assert.That(Decorator.CanopyRadius(large)).IsGreaterThan(Decorator.CanopyRadius(small));
+    }
+
     [Test]
     public async Task The_two_tree_forms_build_two_different_trees()
     {

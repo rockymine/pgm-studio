@@ -218,6 +218,29 @@ public static class DressingScope
             yield return (x, z);
     }
 
+    /// <summary>Every dressing-placed tree's anchor and measured canopy radius, fanned across the map's
+    /// symmetry orbit — the authored points the point-and-radius foliage render draws (§6,
+    /// <c>docs/world-export/decoration.md</c>) rather than the leaf mass a build writes. The radius is
+    /// <see cref="Decorator.CanopyRadius"/>: the same deterministic generation the stamp itself runs, read for
+    /// its geometry, so a caller here never re-derives a shape a real build could still disagree with — and
+    /// never needs a built world at all, since a tree's crown is a pure function of its own fields and seed.</summary>
+    public static IReadOnlyList<(int X, int Z, double Radius)> TreeFootprints(string layoutJson)
+    {
+        var symmetry = SymmetryOf(layoutJson);
+        var points = new List<(int X, int Z, double Radius)>();
+        foreach (var prop in PropsOf(layoutJson))
+        {
+            if (prop is not TreeProp tree) continue;
+            var radius = Decorator.CanopyRadius(tree);
+            for (var image = 0; image < symmetry.Order; image++)
+            {
+                var (x, z) = symmetry.ImageCell(tree.X, tree.Z, image);
+                points.Add((x, z, radius));
+            }
+        }
+        return points;
+    }
+
     // The footprint each prop kind roots or covers, turned to one image of the orbit: a single point for a
     // tree or a boulder — the cell a trunk stands on is what matters here, the same resting cell Decorator's
     // own Seats reads, not the crown that may freely overhang a goal — and the whole rectangle for a building,

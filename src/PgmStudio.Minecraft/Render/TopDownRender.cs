@@ -63,46 +63,71 @@ public static class TopDownRender
 
     /// <summary>A column whose category is not the one <see cref="TopDownLayer"/> asked for — present, but
     /// deliberately not the void colour, so "nothing recorded here" and "something recorded, just not this
-    /// layer's question" stay two different findings.</summary>
+    /// layer's question" stay two different findings. The isolated foliage layer's <b>point</b> mode reuses it
+    /// as the backdrop every tree circle is drawn over, for the same reason: it is terrain, just not the thing
+    /// being asked about.</summary>
     private const int ContextRgb = 0x2A2C33;
+
+    /// <summary>A tree's own anchor, drawn over its crown circle so the trunk stays a single countable dot even
+    /// where two crowns overlap. White reads against every category hue here, foliage's violet included.</summary>
+    private const int TreeTrunkRgb = 0xF5F5F0;
+
+    /// <summary>How strongly one crown circle tints the backdrop — soft enough that overlapping crowns build up
+    /// visibly denser rather than flattening into one solid mass, which is the reading this mode exists to
+    /// replace.</summary>
+    private const double TreeCrownWeight = 0.55;
 
     private sealed record Column(int SurfaceY, RenderCategory Category, int BlockId, int BlockData, int WaterDepth);
 
     public sealed record Result(byte[] Pixels, int BlocksWide, int BlocksHigh, int ColumnCount,
-        int LowestY, int HighestY, int OverlayCount);
+        int LowestY, int HighestY, int OverlayCount, int TreePointCount = 0);
 
     /// <summary>Reads a built region directory from disk and renders it — the <c>RoundTrip</c> CLI's entry
     /// point. Picks up <see cref="WorldProvenanceFile"/>'s sidecar automatically when the region carries one;
     /// a region with none (a scanned world, or one built before this recording existed) falls back to the
-    /// material estimate, which is <see cref="TopDownColorMode.Material"/>'s reading regardless.</summary>
+    /// material estimate, which is <see cref="TopDownColorMode.Material"/>'s reading regardless.
+    ///
+    /// <para><paramref name="treePoints"/> is the isolated foliage layer's point-and-radius reading
+    /// (<c>DressingScope.TreeFootprints</c>, docs/world-export/decoration.md §6) — every authored tree's anchor
+    /// and measured crown radius. A caller reading a bare region directory has no dressing document to read it
+    /// from, so this is null by construction here and the layer falls back to painting the leaf/log mass, the
+    /// reading every layer already had. A caller that <em>does</em> hold the document (a studio export in
+    /// memory) passes it through the other <see cref="Run(VoxelWorld,string,MapXml?,int,int?,string,
+    /// TopDownColorMode,TopDownLayer,WorldProvenance?,IReadOnlyList{(int,int,double)}?)"/> overload.</para></summary>
     public static int Run(string regionDir, string outPng, MapXml? map, int scale, int? yMax,
-        TopDownColorMode colorMode = TopDownColorMode.Category, TopDownLayer layer = TopDownLayer.Combined)
+        TopDownColorMode colorMode = TopDownColorMode.Category, TopDownLayer layer = TopDownLayer.Combined,
+        IReadOnlyList<(int X, int Z, double Radius)>? treePoints = null)
     {
         if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"no region dir: {regionDir}"); return 1; }
         var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(AnvilRegion.ReadChunks).ToList();
         if (chunks.Count == 0) { Console.Error.WriteLine($"no chunks in {regionDir}"); return 1; }
         return Emit(chunks, outPng, map, scale, yMax, colorMode, layer, WorldProvenanceFile.TryRead(regionDir),
-            Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(regionDir)) ?? regionDir));
+            Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(regionDir)) ?? regionDir),
+            treePoints);
     }
 
     /// <summary>Renders a world still held in memory — no round trip through a region file. This is what lets
     /// a generator emit its own top-down the moment it finishes building, over the exact world it just made
     /// rather than one re-read off disk. <paramref name="provenance"/> is the record the build itself kept
     /// (<see cref="SketchWorld.Provenance"/> via <c>PgmStudio.Export</c>); null reads by the material estimate,
-    /// exactly as a caller with no world build behind it — a corpus scan — already does.</summary>
+    /// exactly as a caller with no world build behind it — a corpus scan — already does. <paramref
+    /// name="treePoints"/> is the isolated foliage layer's point-and-radius reading, from the same build's
+    /// dressing document (<c>DressingScope.TreeFootprints</c>); null falls back to the leaf/log mass, exactly
+    /// as the disk-reading overload's caller with no document does.</summary>
     public static int Run(VoxelWorld world, string outPng, MapXml? map, int scale, int? yMax, string name,
         TopDownColorMode colorMode = TopDownColorMode.Category, TopDownLayer layer = TopDownLayer.Combined,
-        WorldProvenance? provenance = null)
+        WorldProvenance? provenance = null, IReadOnlyList<(int X, int Z, double Radius)>? treePoints = null)
     {
         var chunks = AnvilRegion.FromWorld(world).ToList();
         if (chunks.Count == 0) { Console.Error.WriteLine("world has no chunks"); return 1; }
-        return Emit(chunks, outPng, map, scale, yMax, colorMode, layer, provenance, name);
+        return Emit(chunks, outPng, map, scale, yMax, colorMode, layer, provenance, name, treePoints);
     }
 
     private static int Emit(List<AnvilRegion.Chunk> chunks, string outPng, MapXml? map, int scale, int? yMax,
-        TopDownColorMode colorMode, TopDownLayer layer, WorldProvenance? provenance, string name)
+        TopDownColorMode colorMode, TopDownLayer layer, WorldProvenance? provenance, string name,
+        IReadOnlyList<(int X, int Z, double Radius)>? treePoints = null)
     {
-        var result = Render(chunks, map, yMax, colorMode, layer, provenance);
+        var result = Render(chunks, map, yMax, colorMode, layer, provenance, treePoints);
         if (result is null) { Console.Error.WriteLine("no non-air columns"); return 1; }
 
         // Whether the Ground/Structure split is a recorded fact or a material guess is the one thing a legend
@@ -114,7 +139,7 @@ public static class TopDownRender
 
         var scaled = Raster.Upscale(result.Pixels, result.BlocksWide, result.BlocksHigh, scale);
         var withLegend = Legend.AppendBelow(scaled, result.BlocksWide * scale, result.BlocksHigh * scale,
-            LegendEntries(colorMode, layer), out var legendHeight,
+            LegendEntries(colorMode, layer, result.TreePointCount > 0), out var legendHeight,
             scaleLabel: $"SCALE: 1 BLOCK = {scale} PX - {result.BlocksWide} X {result.BlocksHigh} BLOCKS"
                        + (provenanceState is null ? "" : $"  -  {provenanceState}"));
         PngWriter.Write(outPng, result.BlocksWide * scale, legendHeight, withLegend);
@@ -123,13 +148,17 @@ public static class TopDownRender
             $"{result.ColumnCount} columns over {result.BlocksWide}x{result.BlocksHigh} blocks, " +
             $"surface y {result.LowestY}..{result.HighestY}");
         if (result.OverlayCount > 0) Console.WriteLine($"  overlay: {result.OverlayCount} box(es)");
+        if (layer == TopDownLayer.Foliage)
+            Console.WriteLine(result.TreePointCount > 0
+                ? $"  {result.TreePointCount} tree(s), drawn as point + measured crown radius"
+                : $"  no dressing document given — drawn as the leaf/log mass (no tree points to plot)");
         Console.WriteLine($"  wrote {outPng} ({result.BlocksWide * scale}x{legendHeight} px, {scale} px/block)");
         return 0;
     }
 
     /// <summary>The legend a caller's picture actually carries — one entry per colour <see cref="Paint"/> can
     /// place under the given mode/layer, so a swatch on the image always has a name beside it.</summary>
-    private static List<Legend.Entry> LegendEntries(TopDownColorMode colorMode, TopDownLayer layer)
+    private static List<Legend.Entry> LegendEntries(TopDownColorMode colorMode, TopDownLayer layer, bool treePoints = false)
     {
         if (colorMode == TopDownColorMode.Material)
             return [new Legend.Entry("REAL MATERIAL COLOUR", ContextRgb), new Legend.Entry("VOID", RenderCategories.VoidRgb)];
@@ -152,6 +181,18 @@ public static class TopDownRender
                 new Legend.Entry("VOID", RenderCategories.VoidRgb),
             ];
 
+        // The isolated foliage layer's point mode is a different picture from the other two isolated layers —
+        // a tree's crown circle and its trunk dot rather than a highlighted material — so it carries its own
+        // pair of swatches instead of the one-category-plus-context shape the rest share.
+        if (layer == TopDownLayer.Foliage && treePoints)
+            return
+            [
+                new Legend.Entry("TREE CROWN (MEASURED RADIUS)", RenderCategories.HighlightOf(RenderCategory.Foliage)),
+                new Legend.Entry("TREE TRUNK (ONE PER PROP)", TreeTrunkRgb),
+                new Legend.Entry("OTHER (CONTEXT)", ContextRgb),
+                new Legend.Entry("VOID", RenderCategories.VoidRgb),
+            ];
+
         var wanted = layer switch
         {
             TopDownLayer.Ground => RenderCategory.Ground,
@@ -169,10 +210,16 @@ public static class TopDownRender
 
     /// <summary>The pure render: columns in, an RGB pixel buffer (one pixel per block, unscaled) out. No file
     /// or console I/O, no legend baked in — what a caller that only wants the categorised pixels (a test, an
-    /// HTTP endpoint composing its own page) pays for. <see cref="Emit"/> is what appends the key.</summary>
+    /// HTTP endpoint composing its own page) pays for. <see cref="Emit"/> is what appends the key.
+    ///
+    /// <para><paramref name="treePoints"/> switches the isolated foliage layer from painting the leaf/log mass
+    /// to plotting each tree's own anchor and measured crown radius (docs/world-export/decoration.md §6) — a
+    /// mode, not a second renderer: every other layer, and the combined view, are unaffected by it, because the
+    /// mass is still the honest reading of what cover a player actually has. Ignored on every layer but
+    /// <see cref="TopDownLayer.Foliage"/>.</para></summary>
     public static Result? Render(IEnumerable<AnvilRegion.Chunk> chunks, MapXml? map, int? yMax,
         TopDownColorMode colorMode = TopDownColorMode.Category, TopDownLayer layer = TopDownLayer.Combined,
-        WorldProvenance? provenance = null)
+        WorldProvenance? provenance = null, IReadOnlyList<(int X, int Z, double Radius)>? treePoints = null)
     {
         var columns = ReadColumns(chunks.ToList(), yMax, provenance);
         if (columns.Count == 0) return null;
@@ -184,12 +231,50 @@ public static class TopDownRender
         var heights = columns.Values.Select(column => column.SurfaceY).ToList();
         int lowest = heights.Min(), highest = heights.Max();
 
-        var pixels = Paint(columns, minX, minZ, blocksWide, blocksHigh, lowest, highest, colorMode, layer);
+        var pointMode = layer == TopDownLayer.Foliage && treePoints is { Count: > 0 };
+        var pixels = Paint(columns, minX, minZ, blocksWide, blocksHigh, lowest, highest, colorMode, layer, pointMode);
+        if (pointMode) DrawTreePoints(pixels, blocksWide, blocksHigh, minX, minZ, treePoints!);
 
         var overlays = map is null ? [] : Overlays(map);
         foreach (var overlay in overlays) DrawBox(pixels, blocksWide, blocksHigh, minX, minZ, overlay);
 
-        return new Result(pixels, blocksWide, blocksHigh, columns.Count, lowest, highest, overlays.Count);
+        return new Result(pixels, blocksWide, blocksHigh, columns.Count, lowest, highest, overlays.Count,
+            pointMode ? treePoints!.Count : 0);
+    }
+
+    /// <summary>Plots every tree as its own circle — filled to its measured crown radius, softly enough that
+    /// overlapping crowns read as denser cover rather than one fused blob — with a solid one-block trunk dot on
+    /// top so a cluster stays countable even where the circles merge. Clipped to the frame rather than to the
+    /// map's own bounds: a crown seated near the edge is allowed to draw the part of itself that is still in
+    /// frame.</summary>
+    private static void DrawTreePoints(byte[] pixels, int blocksWide, int blocksHigh, int minX, int minZ,
+        IReadOnlyList<(int X, int Z, double Radius)> treePoints)
+    {
+        var crownRgb = RenderCategories.HighlightOf(RenderCategory.Foliage);
+        foreach (var (treeX, treeZ, radius) in treePoints)
+        {
+            var reach = (int)Math.Ceiling(Math.Max(0, radius));
+            var squared = radius * radius;
+            for (var dz = -reach; dz <= reach; dz++)
+            for (var dx = -reach; dx <= reach; dx++)
+            {
+                if (dx * dx + dz * dz > squared) continue;
+                var col = treeX + dx - minX;
+                var row = treeZ + dz - minZ;
+                if (col < 0 || col >= blocksWide || row < 0 || row >= blocksHigh) continue;
+                Raster.Over(pixels, blocksWide, col, row, crownRgb, TreeCrownWeight);
+            }
+        }
+
+        // Trunks drawn after every crown, so a tree standing under a neighbour's overhang still shows its own
+        // point rather than disappearing into the shared tint.
+        foreach (var (treeX, treeZ, _) in treePoints)
+        {
+            var col = treeX - minX;
+            var row = treeZ - minZ;
+            if (col < 0 || col >= blocksWide || row < 0 || row >= blocksHigh) continue;
+            Raster.Set(pixels, blocksWide, col, row, TreeTrunkRgb);
+        }
     }
 
     /// <summary>Surface category + height per column, with water resolved to its bed for the depth reading
@@ -241,10 +326,14 @@ public static class TopDownRender
         }
     }
 
-    /// <summary>Category (or material) colours with north-facing relief and a light absolute-height term.</summary>
+    /// <summary>Category (or material) colours with north-facing relief and a light absolute-height term.
+    /// <paramref name="pointMode"/> is the isolated foliage layer's point-and-radius reading (<see cref="
+    /// DrawTreePoints"/> paints over the result after this returns): every column becomes the flat context
+    /// backdrop regardless of its own category, because the leaf/log mass is exactly the reading this mode
+    /// replaces — painting it underneath the circles would just be the old picture with dots added to it.</summary>
     private static byte[] Paint(Dictionary<(int X, int Z), Column> columns, int minX, int minZ,
                                 int blocksWide, int blocksHigh, int lowest, int highest,
-                                TopDownColorMode colorMode, TopDownLayer layer)
+                                TopDownColorMode colorMode, TopDownLayer layer, bool pointMode = false)
     {
         var pixels = new byte[blocksWide * blocksHigh * 3];
         var span = Math.Max(1, highest - lowest);
@@ -269,7 +358,8 @@ public static class TopDownRender
                 }
                 keep *= 0.88 + 0.24 * ((column.SurfaceY - lowest) / (double)span);
 
-                Raster.Set(pixels, blocksWide, col, row, Raster.Scale(BaseColor(column, colorMode, layer), keep));
+                var baseColor = pointMode ? ContextRgb : BaseColor(column, colorMode, layer);
+                Raster.Set(pixels, blocksWide, col, row, Raster.Scale(baseColor, keep));
             }
         return pixels;
     }

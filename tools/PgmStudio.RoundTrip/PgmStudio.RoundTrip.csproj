@@ -4,6 +4,7 @@
     <ProjectReference Include="..\..\src\PgmStudio.Pgm\PgmStudio.Pgm.csproj" />
     <ProjectReference Include="..\..\src\PgmStudio.Analysis\PgmStudio.Analysis.csproj" />
     <ProjectReference Include="..\..\src\PgmStudio.Minecraft\PgmStudio.Minecraft.csproj" />
+    <ProjectReference Include="..\..\src\PgmStudio.Export\PgmStudio.Export.csproj" />
   </ItemGroup>
 
   <ItemGroup>

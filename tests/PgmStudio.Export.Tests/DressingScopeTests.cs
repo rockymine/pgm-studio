@@ -262,6 +262,25 @@ public sealed class DressingScopeTests
         await Assert.That(footprints).DoesNotContain((17, 21));
     }
 
+    // ── the point-and-radius foliage render's source ───────────────────────────────────────────────────
+    [Test]
+    public async Task Every_tree_reports_its_anchor_and_a_positive_measured_radius()
+    {
+        var points = DressingScope.TreeFootprints(Layout(
+            ",\"dressing\":{\"props\":[{\"kind\":\"tree\",\"id\":\"t1\",\"seed\":1,\"x\":30,\"z\":30,"
+            + "\"species\":\"oak\",\"height\":16}]}"));
+
+        // The fixture's setup carries rot_180, so one authored tree fans to two images — the same order every
+        // other footprint here reads (StructureFootprints, GoalClearanceViolations).
+        await Assert.That(points.Count).IsEqualTo(2);
+        var here = points.Single(point => point.X == 30 && point.Z == 30);
+
+        await Assert.That(here.Radius).IsGreaterThan(0);
+        // Both images of the same authored tree carry the same measured radius — the crown is a property of
+        // the prop, not of where a particular image happens to land.
+        await Assert.That(points.Select(point => point.Radius).Distinct()).Count().IsEqualTo(1);
+    }
+
     [Test]
     public async Task Trees_and_boulders_report_no_structure_footprint()
     {

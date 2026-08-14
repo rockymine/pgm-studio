@@ -429,6 +429,25 @@ public static class Decorator
     private static int PlaceTree(VoxelWorld world, DressingContext context, TreeProp tree, HashSet<(int X, int Z)> taken)
         => Fan(world, context, (tree.X, tree.Z), TreeCells(tree), taken);
 
+    /// <summary>How far this tree's crown actually reaches from its own trunk — the farthest a leaf cell of
+    /// <see cref="TemplateTree"/> or <see cref="GrownTree"/> stands from the anchor, horizontally. This is the
+    /// same deterministic build the stamp writes with (species/shape, seed, form), read for its geometry rather
+    /// than its blocks, so a caller wanting the crown's true reach without a world to measure it — the
+    /// point-and-radius foliage render (<c>docs/world-export/decoration.md</c> §6) — gets the honest figure
+    /// rather than a species-nominal guess, at the cost of nothing more than the same generation the stamp was
+    /// always going to run.</summary>
+    public static double CanopyRadius(TreeProp tree)
+    {
+        var (_, leaves) = tree.Form == TreeForm.Template ? TemplateTree(tree) : GrownTree(tree);
+        var farthest = 0.0;
+        foreach (var (x, _, z) in leaves)
+        {
+            var reach = Math.Sqrt((double)x * x + (double)z * z);
+            if (reach > farthest) farthest = reach;
+        }
+        return farthest;
+    }
+
     /// <summary>A tree as offsets from the block it stands on. Both forms end here: each produces the cells
     /// that are wood and the cells that are leaf, and this turns those into blocks. Wood wins where they
     /// overlap, so a trunk is never hollowed by its own foliage, and every leaf carries the no-decay bit — a

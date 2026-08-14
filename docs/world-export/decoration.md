@@ -323,6 +323,42 @@ and reaches half as far relative to its own trunk; the wood carries half again a
 as an author's and barely thins on the way out. It also locates why generated twigs come apart — a swept ball
 between radius 0.5 and 0.866 can fill no cell at all.
 
+### 6.1 Read as a point, not a mass
+
+The category render (`TopDownRender`, §9 below and `docs/tools/capabilities.md`'s renderer section) paints
+every leaf and log cell it finds, so a wood reads as one irregular violet mass whose internal structure means
+nothing: two crowns that touch become one blob, and the tree count — the measure that actually decides whether
+a board reads as wooded or as buried — cannot be read off it. A tree is authored as **one prop at one
+coordinate**; the isolated `--layer foliage` image can draw exactly that instead of re-deriving a silhouette
+from the blocks the build wrote, because the question that layer answers is about the trees themselves rather
+than the cover a player crouches behind.
+
+`DressingScope.TreeFootprints` reads every `TreeProp` off the dressing document, fanned across the map's
+symmetry the same way every other footprint here is, and pairs each anchor with `Decorator.CanopyRadius(tree)`
+— the farthest a leaf cell of the **same deterministic build** (`TreeTemplate.Build` or `TreeSkeleton.Grow` plus
+`TreeCrown`) stands from the trunk, horizontally. This is the **measured** figure, read off the crown's own
+geometry before any world exists rather than a species-nominal number: a tree is deterministic and RNG-free
+(§2), so the shape `CanopyRadius` measures is exactly the shape the stamp goes on to write, and a taller tree
+of the same species answers with a larger radius rather than a fixed one. `TopDownRender`'s `--layer foliage`
+picture then plots each point as a circle grown to that radius, softly tinted so overlapping crowns build up
+visibly denser rather than fusing into one shape, with a solid one-block trunk mark on top of every one so a
+cluster stays countable even where its circles merge.
+
+**This is a mode of the isolated foliage layer, not a second renderer.** The combined view still paints the
+mass, and rightly: a player's cover is the leaves, not the centres, so the question the combined picture
+answers is unaffected by any of this. Only `--layer foliage` switches, and only when it is given the points to
+plot. The points come from the **dressing document** alone — a tree's crown is a pure function of its own
+fields and seed, so no built world is needed to measure it — never from `WorldProvenance`, which carries no
+tree claim at all and was never meant to (§8's provenance paragraph, and its own docstring, say why: a log and
+a leaf already answer the material question a Ground/Structure claim exists to correct, so a tree has nothing
+for provenance to fix). A **scanned** world has neither a dressing document nor a build-time provenance record,
+so the isolated foliage layer has no points to plot there; it falls back to the leaf/log mass it has always
+painted, stated on the console rather than silently substituted, which is the same shape of answer §8's
+provenance state gives when a region carries no sidecar. `tools/mapgen`'s `foliage.png` stage image passes the
+build's own layout and gets the point reading for free; `PgmStudio.RoundTrip --topdown --layer foliage` takes
+an optional `--dressing <layout.json>` naming the document a bare region directory cannot otherwise reach, and
+falls back to the mass without one.
+
 ## 7. Water — channels (`DR-WA`)
 
 A channel begins exactly where the §4 path does — a dragged centerline and a radius, the same swept-disc

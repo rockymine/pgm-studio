@@ -134,6 +134,84 @@ public sealed class TopDownRenderTests
         await Assert.That(groundPixel).IsEqualTo(structurePixel);
     }
 
+    // ── the isolated foliage layer's point-and-radius mode ─────────────────────────────────────────────
+    [Test]
+    public async Task With_no_tree_points_the_foliage_layer_keeps_painting_the_leaf_mass()
+    {
+        // The documented fallback for a caller with no dressing document — a scanned world, or the disk-reading
+        // overload with no `--dressing` file — is the reading every layer already had, not a blank picture.
+        var world = new VoxelWorld();
+        world.SetBlock(0, 5, 0, Blocks.Stone);
+        world.SetBlock(1, 5, 0, Blocks.Leaves);
+
+        var result = TopDownRender.Render(AnvilRegion.FromWorld(world), map: null, yMax: null,
+            TopDownColorMode.Category, TopDownLayer.Foliage, treePoints: null)!;
+
+        await Assert.That(result.TreePointCount).IsEqualTo(0);
+        // The leaf column still separates from its bare-ground neighbour, exactly as it always has — nothing
+        // about the mass reading changed just because the mode exists.
+        await Assert.That(PixelAt(result.Pixels, result.BlocksWide, 1, 0))
+            .IsNotEqualTo(PixelAt(result.Pixels, result.BlocksWide, 0, 0));
+    }
+
+    [Test]
+    public async Task Tree_points_switch_the_foliage_layer_from_mass_to_circles()
+    {
+        // A crown that would have painted every leaf cell (the mass) instead reads as one circle around the
+        // authored anchor — so a cell the real crown never reached, but that lies inside the authored radius,
+        // is filled anyway, and a real leaf cell the circle does not reach is left as context. On a flat world
+        // every column shares the same relief shading, so comparing rendered pixels to each other (rather than
+        // to a raw palette constant, which the shading factor would never match exactly) is what actually
+        // isolates the claim.
+        var world = new VoxelWorld();
+        for (var x = 0; x < 8; x++)
+            for (var z = 0; z < 8; z++)
+                world.SetBlock(x, 5, z, Blocks.Stone);
+        world.SetBlock(1, 5, 1, Blocks.Leaves);      // a real leaf cell, outside the authored point's radius
+
+        var points = new List<(int X, int Z, double Radius)> { (5, 5, 2) };
+        var result = TopDownRender.Render(AnvilRegion.FromWorld(world), map: null, yMax: null,
+            TopDownColorMode.Category, TopDownLayer.Foliage, treePoints: points)!;
+
+        await Assert.That(result.TreePointCount).IsEqualTo(1);
+
+        var context = PixelAt(result.Pixels, result.BlocksWide, 0, 0);           // untouched by any circle
+        var trunk = PixelAt(result.Pixels, result.BlocksWide, 5, 5);             // the authored anchor
+        var crown = PixelAt(result.Pixels, result.BlocksWide, 6, 5);             // inside the radius, no real leaf
+        var missedLeaf = PixelAt(result.Pixels, result.BlocksWide, 1, 1);        // a real leaf, outside the radius
+
+        await Assert.That(crown).IsNotEqualTo(context);        // the authored radius is filled...
+        await Assert.That(trunk).IsNotEqualTo(crown);          // ...the trunk marks itself apart from that fill...
+        // ...and the real leaf three blocks off is left as context: the mass is genuinely not read here.
+        await Assert.That(missedLeaf).IsEqualTo(context);
+    }
+
+    [Test]
+    public async Task Every_tree_point_leaves_its_own_countable_trunk_even_where_crowns_overlap()
+    {
+        // The point of the mode: two crowns that would fuse into one blob in the mass reading still carry two
+        // distinct trunk marks, because the trunk is drawn after every crown circle.
+        var world = new VoxelWorld();
+        for (var x = 0; x < 10; x++)
+            for (var z = 0; z < 3; z++)
+                world.SetBlock(x, 5, z, Blocks.Stone);
+
+        var points = new List<(int X, int Z, double Radius)> { (3, 1, 3), (6, 1, 3) };   // overlapping circles
+        var result = TopDownRender.Render(AnvilRegion.FromWorld(world), map: null, yMax: null,
+            TopDownColorMode.Category, TopDownLayer.Foliage, treePoints: points)!;
+
+        var firstTrunk = PixelAt(result.Pixels, result.BlocksWide, 3, 1);
+        var secondTrunk = PixelAt(result.Pixels, result.BlocksWide, 6, 1);
+        var sharedCrown = PixelAt(result.Pixels, result.BlocksWide, 3, 0);   // inside the first circle only
+        var context = PixelAt(result.Pixels, result.BlocksWide, 9, 2);      // inside neither circle
+
+        // Both trunks read the same distinctive marker colour, and it is not the crown's own tint — exactly
+        // what makes each one countable rather than lost inside the shared overlap.
+        await Assert.That(firstTrunk).IsEqualTo(secondTrunk);
+        await Assert.That(firstTrunk).IsNotEqualTo(sharedCrown);
+        await Assert.That(sharedCrown).IsNotEqualTo(context);
+    }
+
     [Test]
     public async Task Emit_writes_a_legend_strip_that_grows_the_image_beyond_its_block_extent()
     {

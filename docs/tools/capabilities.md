@@ -486,6 +486,23 @@ carries a legend baked into the image — swatch, name, one row per colour actua
 stating blocks-per-pixel, via `PgmStudio.Geom.Render.Legend`, so a reader never has to bring an outside key to
 the picture (`B98`, `B95`).
 
+**`--layer foliage` can read as a point and a radius instead of a mass, when it is given the points to plot.**
+The category reading paints every leaf and log cell a build wrote, so a wood reads as one irregular violet
+shape whose internal structure means nothing — two crowns that touch fuse into one blob, and the tree count is
+not recoverable from it. A tree is authored as one prop at one coordinate, and `DressingScope.TreeFootprints`
+answers with exactly that: every `TreeProp`'s anchor, fanned across the map's symmetry, paired with
+`Decorator.CanopyRadius(tree)` — the farthest a leaf of that tree's own deterministic build stands from its
+trunk, the measured figure rather than a species-nominal guess, read off the crown's geometry with no world
+needed to measure it. `TopDownRender` plots each as a softly-tinted circle grown to its radius with a solid
+trunk mark on top, so a cluster of overlapping crowns still shows one dot per tree. It is a mode of the
+isolated foliage layer alone — the combined view keeps painting the mass, since a player's cover is the leaves
+and not the centres — and it needs the **dressing document**, never `WorldProvenance`, which carries no tree
+claim at all (the paragraph below is why: a log and a leaf already answer the question provenance exists to
+correct). `tools/mapgen --stages` passes the build's own document automatically; `PgmStudio.RoundTrip --topdown
+--layer foliage` takes it as an optional `--dressing <layout.json>`, and a scanned world — which carries
+neither a dressing document nor a `WorldProvenance` sidecar — falls back to the mass reading it always had,
+stated on the console rather than silently swapped (`docs/world-export/decoration.md` §6.1).
+
 **The Ground/Structure boundary is read from a recorded build, not from the block, whenever one is
 available (B133).** A material test cannot separate a cottage's stone-brick wall from a plaza paved in the
 same stone brick, or from a mesa an author painted to read as built, and no palette refinement fixes that — a

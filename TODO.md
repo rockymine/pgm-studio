@@ -91,24 +91,6 @@ which finds out whether the result actually answers.
     claim that every generated destroy map was unwinnable.
   - **A document that describes something unbuilt names its task id, or says nothing.**
 
-- [ ] **B138 — Foliage is drawn as the blocks it is made of, where a tree is one thing in one place.**
-  The category render paints every leaf and log cell, so a wood reads as an irregular violet mass whose
-  internal structure means nothing: two crowns that touch are one blob, and the count of trees — which is the
-  measure that actually decides whether a board is wooded or buried (`B96`) — cannot be read off it at all.
-  A tree is authored as **one prop at one coordinate**, and the render throws that away and re-derives a
-  silhouette from the blocks it produced.
-
-  Drawing each tree as its **point and a radius** instead would say what the material mass cannot: how many
-  there are, where each one stands, and how far its cover reaches. That is legible at a glance in a way a
-  canopy outline is not, and it is a truer picture of the authored document, which is a list of placements
-  rather than a field of leaves. The dressing document holds the points already; the radius wants deciding —
-  the crown's measured reach at stamp time is the honest source, and a species-nominal figure is the cheap
-  one.
-
-  The combined view still wants the mass, since a player's cover is the leaves and not the centres, so this
-  is a **mode** rather than a replacement — the natural home is the isolated `--layer foliage` image, where
-  the question being asked is about the trees themselves.
-
 - [ ] **B136 — The two features that make a shape stop looking drawn are reached almost never.** Measured
   over the eleven maps in `pgm-studio-mapgen`, counting non-null uses in the authored specs rather than
   serialized nulls:

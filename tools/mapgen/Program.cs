@@ -167,7 +167,7 @@ static void Build(MapSpec spec, bool describeOnly, bool forceStages)
     // Off by default (a batch run over many specs should not pay for pictures it will not look at); the spec
     // or the CLI's --stages flag turns it on. The world is already built and held in memory, so every world
     // read-back below draws over `built.World` itself — no second load off the region files just written.
-    if (spec.Stages || forceStages) EmitStages(outDir, plan, built.World, built.Provenance, xml);
+    if (spec.Stages || forceStages) EmitStages(outDir, plan, built.World, built.Provenance, xml, layout.ToJson());
 }
 
 /// <summary>The goals — wool monuments, destroyables, cores — whose anchor has no rasterized column under it,
@@ -205,12 +205,14 @@ static List<string> GoalsOverVoid(Dictionary<(int X, int Z), int> ground, MapInt
 /// view again with the map.xml goal boxes overlaid, so a prop placed through a room shows up in the first and
 /// a goal standing over void shows up in the second; both are the false-coloured category reading
 /// (<see cref="TopDownColorMode.Category"/>), not the map's real materials, so foliage and structure separate
-/// from the ground at a glance. <b>foliage</b> and <b>objectives</b> isolate one question each out of that same
-/// combined view — where the canopy stands, and where the declared goals sit — so neither has to be picked out
-/// of the full picture by eye. <b>traversability</b> answers a question neither top-down can: whether the
+/// from the ground at a glance. <b>foliage</b> isolates the canopy as each tree's own point and measured crown
+/// radius (docs/world-export/decoration.md §6) rather than the leaf mass, and <b>objectives</b> isolates where
+/// the declared goals sit; neither has to be picked out of the full picture by eye.
+/// <b>traversability</b> answers a question neither top-down can: whether the
 /// navigable ground actually joins spawn to every goal. <b>structures</b> is what the world stamped,
 /// independent of theme.</para></summary>
-static void EmitStages(string outDir, PlanModel plan, VoxelWorld world, WorldProvenance provenance, string xml)
+static void EmitStages(string outDir, PlanModel plan, VoxelWorld world, WorldProvenance provenance, string xml,
+    string layoutJson)
 {
     var dir = Path.Combine(outDir, "stages");
     Directory.CreateDirectory(dir);
@@ -225,8 +227,10 @@ static void EmitStages(string outDir, PlanModel plan, VoxelWorld world, WorldPro
         greyscale: false, markWater: true, drawContours: true, name: "contour");
     SurfaceReport.Run(world, Path.Combine(dir, "surface.png"), scale: 3);
     StructureFinder.Run(world, Path.Combine(dir, "structures.png"), scale: 3, minimumArea: 12, provenance: provenance);
+    // The point-and-radius reading comes straight off the dressing document, not the world, so this caller
+    // reaches for the layout it already holds rather than anything the build produced.
     TopDownRender.Run(world, Path.Combine(dir, "foliage.png"), map: null, scale: 3, yMax: null, name: "foliage",
-        layer: TopDownLayer.Foliage, provenance: provenance);
+        layer: TopDownLayer.Foliage, provenance: provenance, treePoints: DressingScope.TreeFootprints(layoutJson));
 
     // The overlay reads the map document already built in memory — parsed back from the XML string rather
     // than the file just written, so this too costs no extra disk read.
