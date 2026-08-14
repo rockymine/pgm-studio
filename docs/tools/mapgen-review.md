@@ -129,6 +129,13 @@ destroy board gets none of this for free**, so the rules have to be carried acro
 the objective, the objective not behind the spawn, the approach not through the spawn — and MG1's
 corpus reading is where the destroy-side numbers come from.
 
+**Measured, and nothing carries them across.** A hand-authored board broke both of the spawn rules named
+here: Haiku CTW Rush's spawn point sits 11 blocks from its piece's back edge and 19 from its front, against
+SP2, and its iron cube stands five blocks *behind* the spawn point — and inside the map's own `red-spawn`
+protection rectangle, so it is a contested resource nobody may contest — against SP7. The rules are written,
+they are cited here, and no gate applies them to an authored plan, which is the same shape as `B109`.
+`B177` carries this, and it supplies the rule id `B169`'s dead-ground entry was missing: SP2.
+
 **MG32 — A destroy board is not a capture board with a different goal; the topology is inverted.** In
 capture the thing a team wants is deep in *enemy* ground, so the board is built around a long run out and a
 longer run back. In destroy the thing a team defends is its **own** monument: the spawn sits remote at the
@@ -247,6 +254,16 @@ continuous stem with rings of branches getting shorter up it. This is in the gro
 `TreeSkeleton` and `TreeCrown` in `PgmStudio.Geom` — and it is measurable the same way `B78` is, through
 `tools/tree-corpus/grower-gate.cs`, which already scores limb angle and reach against the 75 hand-built
 trees and would score stem extent beside them.
+
+**Reopened, and the note that closed it counted the wrong thing.** This entry was marked *does not
+reproduce* on the evidence that "whorled lands 1136 leaves" over sixty sites. An absolute leaf count cannot
+distinguish a leafy tree from a wooden one, which is the question. Measured over one board, one species and
+one build on `tallow-mirefast`: five `grown` + `whorled` trees give **228 logs to 287 leaves — 1.26 leaves
+per log, 46 logs a tree**, against three template spruces beside them at 42 logs to 222 leaves, 5.29 leaves
+per log, 14 logs a tree. The whorled form builds four times the wood for the same canopy, so
+"mainly logs and no leaves" is the right description and is now a number. This is `B96`'s fault exactly — a
+count standing in for a ratio — recurring on a different subject and closing a real defect. `B174` carries
+the evidence, and neither this entry nor `G173` closes again on a leaf count.
 
 **MG10 — A tree's parts must agree with each other.** An oak-profiled tree is being built with spruce logs.
 The `template` form takes a `Species` — which names the wood, the canopy profile and the proportions

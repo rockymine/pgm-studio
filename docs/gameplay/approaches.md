@@ -44,6 +44,26 @@ twenty blocks, though that number is illustrative rather than a law. It need not
 organic polygon reads as terrain where a ruled line reads as a wall. What it does is force every attacker to
 pass **around** it, which is a decision, a delay, and a place a defender can watch.
 
+**[author]** On a destroy board that instrument is narrower than the paragraph above makes it sound, and the
+narrowing is law rather than preference. **Void belongs between the teams, not across an approach.** A hole
+cut in the middle of a team's own ground — between its objectives and the middle, where its defenders move —
+funnels play into whatever side channels are left and empties the ground the contest was supposed to happen
+on. `tallow-kilnrow` is the worked counter-example: an 88-block cut across 65% of the board's width sat
+between the objectives and the middle while the mid band, where the two sides actually meet, stayed solid
+ground. The hole was where the join belongs and the join was where the hole belongs.
+
+**[author]** So on a `dtm` or `dtc` board, the middle-of-terrain hole is **withdrawn**, and what replaces it
+is a **depression or a pond** — the same interruption of a run, the same reason to go around or drop through,
+without removing the ground. A depression is also an entrance from *below*, which is a tactic the hole does
+not offer at all. Void still does its work at the seam between the two teams' lands, and there it is the same
+instrument the capture boards use.
+
+**[author]** One consequence is worth naming with it, because the obvious correction overshoots: a hole is
+also what makes a flank worth walking to. Four small holes around a connected middle draw play into the
+centre and leave the flanks unused, which is a different failure from the one being fixed. Where the void
+goes on a destroy board is therefore a composition decision about which ground should be contested, not a
+geometry one about how much of the board is missing.
+
 ## Each element makes a specific tactic
 
 **[author]** This is the part worth reading slowly, because "put a forest there" is not the point — what the

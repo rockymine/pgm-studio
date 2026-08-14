@@ -14,28 +14,32 @@ three files. Moving a task between files never changes its id; never renumber or
 
 ## The focus: a map an agent can author, and that a player can win
 
-Sixteen maps were designed by an agent driving the system end to end, and every one of them was built. That
-is the result worth reading first — the machinery reaches from a prose description to a loadable world with
-no human in the middle. What the boards then showed is where the reach is thinner than it looks:
-**`docs/tools/mapgen-review.md`** is the measured record of it, thirty-four `MG` entries in pipeline order, and
-**`docs/tools/capabilities.md`** is the map of the documents the tool should have been written against.
+**The machinery answers, and the answer arrived with a bill.** Six agent runs across three models authored
+**nineteen loadable maps** and seven reports by driving the real documents end to end, with no human in the
+middle — which is what `B120` asked and is now settled. The author then reviewed twelve of those boards
+against the plans, the layouts and the built worlds, and every claim in that review re-measured: **forty-eight
+findings, and one of them fatal.** Three committed maps do not parse at all, because a board carrying two
+objective kinds ships `<gamemode>dtm dtc</gamemode>` and PGM's `Gamemode` is a closed enum (`B155`).
 
-The entries stay in `docs/tools/mapgen-review.md` as evidence, the way `docs/generator/audit.md` holds the generator's; an
-entry **leaves it when its fix lands**. What is promoted onto the board below is ordered by the review's own
-severity rather than by the pipeline.
+**Twenty of the forty-eight enforce rules that are the author's**, stated rather than measured, and that
+nothing in the system checks: a spawn door stands 15 blocks off the void and opens onto 20×20 of clear ground
+it can climb back onto; a wool-room piece is at most 20×20 and a placed building at least 5×5; two islands sit
+15–40 apart; two goals of one team sit 35 apart; obsidian caps at three blocks; a grass course is exactly one
+block; a log is never a roof. They are law under `CLAUDE.md`'s oracle clause. **They are filed in
+`BACKLOG.md` as `B141`–`B188`, bucketed into thirteen dispatch groups** — each bucket one agent, one pass, one
+area of code — with the collisions between them stated (`B1`–`B3` all land in `PlanValidator`).
 
-**The eight that broke a map have shipped**, along with the platform and the marker a goal wants, a picture
-per stage and the handbook (`FEATURES.md`; `mapgen-review.md` records which entry each closed). What is left below
-is the residue that work turned up, and the shape of it is worth noticing: every one was found by a fix
-rather than by the original review. A refusal caught three shipped specs whose cores stand in void. A stage
-image turned out to answer a different question from the one its name owns, and to hand a reader a wrong
-answer through an unlabelled colour. A density threshold turned out to be stated in the wrong unit. And a
-building turned out to be the one composition the system cannot express.
+The `MG` entries stay in `docs/tools/mapgen-review.md` as evidence, the way `docs/generator/audit.md` holds the
+generator's; an entry **leaves it when its fix lands**. Two want reopening on the audit's measurement: `MG28`
+closed the whorled tree on a leaf count where the ratio is 1.26 leaves per log (`B174`), which is `B96`'s fault
+recurring on a different subject.
 
-What is deliberately **not** here: the design entries (a destroy board composed for destroy topology, a
-forest placed rather than scattered, per-shape paint, houses that differ from each other). They are the
-difference between a rough map and a good one, they are real, and they are a second wave — `mapgen-review.md`
-holds them until one becomes the focus.
+**What the boards showed that no gate will fix.** Ten of twelve settlements are one street of identical houses
+behind the spawn; three boards are unreadable in opposite directions, one vanishing into its own rock and one
+clashing; every objective on the widest board sits in a six-block column. Those are composition rather than
+defect — no refusal is wanted — and they are why the next run is not the same run again. The authoring
+apparatus itself is the second half of this focus (`B189`): art direction, named map briefs, and a reviewer
+that is a separate agent from the author.
 
 ## Backend, pipeline & internals (B / P / A)
 
@@ -52,44 +56,69 @@ exactly that reason). `B119` moved the boundary so the copying stopped being nec
 copy, the site sampler and the reduced spec format both, in favour of the real documents `B119` had just made
 reachable.
 
-**One remains.** `B128` is done — a destroyable/core's `float` now counts from the ground the world build
-actually solves rather than the plan's flat nominal surface, and the marker itself may name no plan piece at
-all, so a goal can ride an authored sketch landform with no tier manufactured to carry it. That leaves `B120`,
-which finds out whether the result actually answers.
+**That run is finished and `B120` with it.** `B128` landed — a destroyable/core's `float` now counts from the
+ground the world build actually solves rather than the plan's flat nominal surface, and the marker itself may
+name no plan piece at all, so a goal rides an authored sketch landform with no tier manufactured to carry it —
+and the trial that tested the result ran three times over three models. Nineteen maps, seven reports, and the
+forty-eight findings now in `BACKLOG.md`. What is on this board is what the trial made urgent: the label PGM
+refuses, the authoring apparatus the next run needs, and the entries the audit corrected.
 
-- [ ] **B120 — Run the trial again, and find out whether the system now answers.** The point of the three
-  entries above is that an agent can author a map by driving the real documents. That claim is untested. Take
-  the brief `mapgen-review.md` already uses — *a destroy board, one connected island, the monument in the
-  open with a forest closing the west flank, a hill east that attackers can bridge from, a village behind, a
-  void channel twenty blocks in front* — and author it, stage by stage, reviewing each stage before the next
-  is laid on it.
+- [ ] **B155 — A map declaring two gamemodes writes one element with a space in it, and PGM refuses to parse
+  it.** `MetaGenerator.cs:37` builds the label as `string.Join(' ', Gamemodes.From(…))` and `XmlWriter.cs:113`
+  writes it as a single element, so a board carrying two objective kinds ships `<gamemode>dtm dtc</gamemode>`.
+  PGM parses the element as a **repeated** one holding a single id each: `MapInfoImpl.parseGamemodes` loops
+  `root.getChildren("gamemode")`, calls `Gamemode.byId(el.getText())` and throws
+  `InvalidXMLException("Unknown gamemode")` when it matches nothing. `Gamemode` is a closed 25-value enum
+  matched with `equalsIgnoreCase` and no splitting, so `"dtm dtc"` is simply not a value. **The map does not
+  load.**
 
-  **What the run has to produce besides a map** is the honest list of what could not be said and why. That is
-  the actual deliverable: a capability that is missing is worth more written down than worked around.
+  **The premise underneath it is the real fault.** `MetaGenerator.cs:32` and `Gamemodes.cs` both state that
+  `<gamemode>` is "a free-text label PGM never reads authoritatively (`OB7`)". Half of that is right and the
+  half that is wrong is fatal: PGM does not use the element to decide which modules run — those come from the
+  objective elements — but it *does* validate it, strictly, and an unknown value kills the parse. "Not
+  authoritative" was flattened into "free text", and a value was invented on that basis. Across ~350 corpus
+  maps every `<gamemode>` holds exactly one id and maps with several **repeat the element**
+  (`cacti_the_wool` carries six); nothing in either corpus has ever written a space-separated value.
 
-  **The rules the run is held to.** They exist because breaking each one is what produced the mess this run
-  is cleaning up:
+  **The fix is two-sided and the reader has the mirror of the same bug.** The writer wants a list, not a
+  scalar — one `<gamemode>` per mode. `MapParser.cs:125` takes `GetText("gamemode")`, the first element only,
+  so importing a corpus map declaring several keeps one and silently drops the rest;
+  `MapXml.DeclaredGamemode` is a scalar where PGM's model is a list and both directions inherit it. A
+  validation gate belongs with it: the studio can check the label against PGM's enum, which is the kind of
+  refusal the export composer already hosts.
 
-  - **No capability is added in `tools/`.** If the run needs something the system cannot do, it is built in
-    `src/` where the studio and every driver get it, or it is filed and the map is authored without it. A
-    tool may compose, drive and report; a refusal, a placement rule, a sampler or a validation that lives in
-    a tool is the exact defect `B116` and `B118` undid.
-  - **No second format.** The run authors `PlanModel`, `SketchLayout` and `MapIntent` as they are. A
-    convenience wrapper is allowed only where it expands into those documents and can be shown to.
-  - **Nothing is scattered.** Every prop is placed because there is an answer to "why here". A run that
-    cannot answer it leaves the ground bare and says so.
-  - **Layers are not used.** The ground layer only, per `sketch.md`.
-  - **Every stage is looked at before the next consumes it.** The preview endpoints answer a theme, a
-    material, a prop or a plan without building a world; the round-trip harness reads a built world back as a
-    heightmap, a contour, a surface, a traversability map. MG30 is fifteen boards judged from one top-down at
-    the end, and every appearance fault in the review was visible in an image nobody rendered. An image
-    answers *whether* something came out and never *what* it is — the plan render colours by role, so its
-    blue is a build zone and never water (`B95`).
-  - **A question about how a map plays is asked, not derived.** `docs/gameplay/approaches.md` is the
-    document, and every claim in it is now marked `[author]` and settled, so it is law rather than advice.
-    Inventing a gameplay conclusion from a correct measurement is what produced a filed, committed, wrong
-    claim that every generated destroy map was unwinnable.
-  - **A document that describes something unbuilt names its task id, or says nothing.**
+  Affects three committed maps — `tallow-kilnrow`, `ashfall-scar`, `basalt-reach`. Correcting the XML by hand
+  is a two-line edit per map and needs no rebuild. Separately, **seven boards declare `ctw` and carry no
+  wool** (`ashen_quarry`, `quillon-barrow`, `quillon-foundry`, `sonnet-holdfast`, `sonnet-cinderreach`,
+  `haiku-canonical-destroy-3`, `haiku-dtm-tower`); those parse, because `ctw` is a valid id, and a rebuild
+  against the current studio corrects the label.
+
+  *Found by the author reading PGM, not by any run · `PGM/…/map/MapInfoImpl.java:312–320` · `PGM/…/api/map/Gamemode.java` · corpus swept for counter-examples.*
+
+- [ ] **B189 — The authoring apparatus: art direction, named briefs, and a reviewer that is not the author.**
+  Three runs asked three models for "a map of your own design" and got, three times over, one street of
+  identical houses behind the spawn on a square board under a palette nobody checked. The brief is where that
+  came from: it asked for a **visual identity you can name in a sentence** and then supplied no vocabulary for
+  saying one, so every model reached for the same defaults, and it asked each model to review its own work,
+  which is how a report came to describe two empty shells as "verified working with 2 destroyables".
+
+  The replacement is four documents in `pgm-studio-mapgen`, and their shape is the point rather than their
+  contents. **`ART-DIRECTION.md`** is the visual law — the material rules the audit measured (one course of
+  grass, a slab only on a half-course rise, no log in a roof or a verge, no footing on terrain, obsidian at
+  three blocks), the settlement rules that break the street, and the two failure modes a palette has. It is
+  written as constraints an author can check before building, because every one of them was checkable at the
+  theme and nothing checked. **`MAP-BRIEFS.md`** replaces "a map of your own design" with **named briefs** — a
+  mode, a size in the corpus band, a stated visual identity, a stated composition of approaches, and the one
+  thing each board is a test of. **`REVIEWER-BRIEF.md`** is a **second agent**, given the board and not the
+  author's intent, whose checklist is the twenty author rules with their numbers in it and whose output is a
+  per-item table with coordinates. **`AUTHORING-BRIEF.md`** is the author's own brief rewritten around the
+  other three.
+
+  What this entry owns is keeping them true. Every rule in `ART-DIRECTION.md` and every check in
+  `REVIEWER-BRIEF.md` is a `B141`–`B188` id that has not shipped yet, so **each one is a debt with a due
+  date**: when its bucket lands the check moves from the reviewer's list into the pipeline's refusals, and the
+  reviewer document loses a row. A reviewer still enforcing `B163` after `B163` ships is a second copy of the
+  system, which is exactly the fault `B118` undid in `tools/`.
 
 - [ ] **B140 — A map with no objective, no spawn and no team exports 200 and looks like a map.** Two boards
   from the second authoring trial (`haiku-r2-canonical-8`, `haiku-r2-ctw-mid`) built a world, wrote region
@@ -116,9 +145,20 @@ which finds out whether the result actually answers.
   and it wants stating in terms of the intent rather than the document, since the intent is what an author
   actually failed to write.
 
-- [ ] **B136 — The two features that make a shape stop looking drawn are reached almost never.** Measured
-  over the eleven maps in `pgm-studio-mapgen`, counting non-null uses in the authored specs rather than
-  serialized nulls:
+  **This entry is understated on its own evidence, and the correction changes the fix.** It frames the empty
+  boards as a map whose author *failed to write* an intent. But `specs/haiku-r2-canonical-8/plan.json` carries
+  **two spawns and two destroyables**. The author did state them; they were **lost between the plan and the
+  export**, and every stage answered 200. That is a harder failure than an author writing nothing, and the
+  refusal proposed above — stated against the intent — would still not catch it, **because the intent was
+  never stored**. So the gate wants asking at the last point that can see both: what the plan declared, and
+  what the export is about to write. `B141` is the same family one level down, on the sketch document.
+
+- [ ] **B136 — The two features that make a shape stop looking drawn are reached almost never.** **The census
+  below is stale and wants re-running before anything is concluded from it:** it covers **eleven** maps and
+  there are now **nineteen**, and the two boards it does not see are the strongest ones — Opus 5's
+  `marlstone-steps` and `basalt-reach` move every row, **including the Bézier column it records as zero**.
+  Re-run it over all nineteen `specs/` folders first; the gradient below may or may not survive. Measured over
+  the eleven, counting non-null uses in the authored specs rather than serialized nulls:
 
   | | per-shape `theme` | `anchor_heights` | Bézier `controls` | `height_mode` | `skirt` | relief `marks` |
   |---|---|---|---|---|---|---|
@@ -167,10 +207,14 @@ which finds out whether the result actually answers.
   and the whole task is breaking the shell. The studio's `float 6` / `leak 5` reproduces that pattern, which
   makes it a **default**, not a defect.
 
-  **What is actually missing is the other pattern.** `stone_fields` requires two blocks dug out from under
-  the casing, and the studio cannot express it: `CoreFloat` and `CoreLeak` are `const`, paired to a single
-  outcome, with no per-core control on the marker or the intent. A board wanting the shell-then-dig task has
-  no way to ask for it.
+  **The "no way to ask for it" half is false and is withdrawn.** An earlier version of this entry said
+  `CoreFloat` and `CoreLeak` are paired to a single outcome "with no per-core control on the marker or the
+  intent … no way to ask for it". There is: `basalt-reach` authors `"float": 5, "leak": 8` on its core marker
+  and ships `leak="8"` in its `map.xml`, so per-core control exists on the plan marker, the intent, the
+  validator and the XML writer, and a board can express `stone_fields`' shell-then-dig today. The `const` pair
+  is a **default** that is reachable past, not a ceiling. What remains of this entry is the off-by-one below —
+  and it is not cosmetic, because it is what the studio *tells an author their dig is*: on `basalt-reach` the
+  studio reported 3 and the real dig is 4.
 
   **And the arithmetic the studio shows an author is off by one.** `PlanTool` computes
   `CoreDigDepth => Math.Max(0, CoreLeak - CoreFloat)`. PGM sets `leakRequired = lavaBottom − (coreBottom −
@@ -250,27 +294,22 @@ which finds out whether the result actually answers.
   finished terrain rather than to the plan's base, since a map whose highest ground is y20 and whose cap is
   y20 permits no building at all.
 
-- [ ] **B106 — A destroy goal may stand anywhere, and three documents say otherwise.** A destroyable or a
-  core can be placed on **any piece of a plan** — a field, a plateau, a frontline, anywhere ground exists. It
-  needs no room, no dead-end lane and no protection region. A wool needs all three, because a wool is a thing
-  an enemy must reach and carry back, so it sits at the far end of a lane inset about five, walled, entered
-  from one side. The two are not the same slot and never were.
+- [~] **B106 — Two different things in this codebase are called protection.** **The placement half of this
+  entry has landed and its premise is stale.** It described `Retarget` reusing the wool markers so a destroy
+  goal could only stand where a wool budget put one, and the three documents stating that conflation as a
+  principle. `Retarget` was **deleted by `B118`**, the README sentence is corrected, and `B128` shipped the
+  replacement: a destroyable or a core may name an **empty `piece`** and give `at` as an absolute board
+  position, its height resolving from the solved terrain plus `float`. Goals authored that way ship on three
+  committed maps. Nothing of that half is left to do.
 
-  `Retarget` nonetheless reuses the wool markers, and — the part that actually matters — **the tool's own
-  documentation states the conflation as a principle** in three places: the README's "a wool room, a monument
-  and a core occupy the same slot in a board", the same sentence in `MapSpec`'s `objective_mode` docstring,
-  and again in `Program.cs`. Every agent that has authored a destroy board read one of those and put the goal
-  in a cage. Those sentences are corrected; the code behind them is not. The work is to let a spec place a
-  destroy goal where the design wants it rather than where a wool budget put it, which is `MG1`'s corpus
-  reading arriving as a placement rather than as a whole second composer.
-
-  One naming problem sits underneath and is worth fixing while here, because it is the likeliest reason the
+  What remains is the naming problem underneath it, and is worth fixing while here, because it is the likeliest reason the
   conflation felt right: **two different things in this codebase are called protection.** One is the XML
   region rule that stops a player entering a spawn or a wool room and restricts what may be broken or placed
   inside it — a gameplay contract. The other is `Decorator.IsProtected`, "cells nothing may be placed on",
   which is a dressing keep-out and has no gameplay meaning at all. A goal that needs the second does not need
   the first, and one word for both invites exactly the inference that a destroyable must live somewhere
-  protected.
+  protected — which is the inference that produced the caged goals in the first place, and it survives the
+  code that acted on it.
 
 - [~] **B107 — The sketch still cannot place or move an objective; only its height sticks.** The storage
   question is settled and the backend half is landed (`FEATURES.md`): a structural shape's stated height now
@@ -293,6 +332,13 @@ which finds out whether the result actually answers.
   leaves rect and position tracking the plan so that a recompile stays authoritative about *where* while the
   author stays authoritative about *how high*.
 
+  **And the raster does not draw an absolutely-placed goal at all**, which folds in here because this entry
+  owns the canvas half. `GET /plans/{id}/png` draws `tallow-mirefast`'s five pieces, both spawns and the
+  legend, and nothing at `(0, −50)` where the wardstone stands. `B128`'s empty-`piece` marker is the most
+  useful thing on the board for an agent — it is how a landform carries an objective without a tier
+  manufactured to hold it — and **the one picture the plan layer offers cannot show what it produced**, so an
+  agent authoring from the render has no way to see its own goal.
+
 - [ ] **B109 — Nothing checks a plan before it costs a build.** Authoring a plan by hand is arithmetic over
   rectangles in cells, and the repository offers no way to ask whether the arithmetic worked short of running
   the whole pipeline. Two pieces that overlap, a land interface too narrow to connect, a stray corner touch —
@@ -300,12 +346,21 @@ which finds out whether the result actually answers.
   re-implement `ContactGraph.Classify` in a throwaway script to check adjacency before spending a build cycle,
   which shortened iteration enough to be worth the detour and is a tool the repository should have.
 
-  `PlanValidator` already answers most of this with rule-id findings, and it is the piece that is closest to
-  free: **`tools/mapgen` never calls it**, not even as a warning before building, and nothing documents how to
-  invoke it standalone — reaching it meant reading `PlanValidator.cs` and writing a wrapper. Wiring it into
-  the tool ahead of the build, and giving the geometry checks it does not cover a home beside it, turns a
-  build cycle into a message. The same findings are what an agent needs, since they name rules rather than
-  describing symptoms.
+  **Half the premise is stale and the correction narrows the work.** `POST /plan/inspect` and
+  `POST /plan/evaluate` both exist and are documented at `plan.md:417`, so a plan *can* be asked about without
+  a build. What survives is that **nothing an author reaches calls them**: no driver invokes the validator
+  ahead of a build, and an agent authoring by hand found the endpoints only by reading source. That is reach,
+  not absence — the same shape as `B177`, where `SP2` and `SP7` are written law that nothing applies to an
+  authored plan.
+
+  **This entry is the home the audit's plan-space rules need, and it is why it is worth doing before them.**
+  Buckets 1–3 in `BACKLOG.md` are fourteen findings that are all geometry over plan rectangles — what a spawn
+  door faces (`B158` `B169` `B172` `B177` `B180`), how big a piece is and how far apart (`B156` `B157` `B167`
+  `B170` `B178` `B186`), how far apart the goals are (`B175` `B179` `B188`) — and each one is a rule with a
+  number in it that `PlanValidator` is the natural place for. Landing this entry first means those fourteen
+  are findings added to a reachable validator rather than fourteen separate checks looking for a home. The
+  findings name rules rather than describing symptoms, which is what an agent needs and what a human reviewer
+  can check a board against.
 
 - [~] **B111 — The deletions.**
   The set is complete: `docs/tools/plan.md`, `sketch.md`, `library.md`, `generator.md`, `shapes.md`,
@@ -447,6 +502,14 @@ which finds out whether the result actually answers.
   is real, it is in the composer's seating or the compiler's build regions, and it is the more serious of the
   two. Do not fix either until the measurement says which.
 
+  **The measurement has now been made, without being asked for, and it points at the renderer.** Sonnet's
+  second run rendered `sable-marsh` and **two of its four wool markers read isolated — and they are exactly
+  the two walled rooms**; the two open ones read connected. A wall in front of a room is not a board fault, so
+  the discriminator this entry asks for has answered: the reading tracks the cage rather than the geometry,
+  which matches the ClayClay precedent and the strict two-cell headroom test named above. That is evidence
+  rather than proof — it is one board — but it is the right shape of evidence and it should be the first thing
+  reproduced when this is picked up.
+
 - [ ] **B102 — A rebuild writes over a region directory it never clears, so a stale chunk survives.**
   `AnvilRegionWriter.Write` calls `Directory.CreateDirectory` and nothing else, so every `.mca` a previous
   build left is still there. A chunk the new build does not touch — because its geometry moved — is read back
@@ -467,17 +530,3 @@ which finds out whether the result actually answers.
   gets judged from first. Suspect the bounds computation rather than the drawing: the spur is at the extreme
   of the board's extent, which is where an off-by-one or an early bbox clamp would bite. It is also a second
   instance of the fault `mapgen-review.md` MG13 names, found on a newer renderer than the one that entry describes.
-
-- [ ] **B79 — `map-layers` e2e: the plan editor's Compile button never arrives (13/14).** The suite drives to
-  `/maps/{slug}/plan` on the seed's built map, then clicks `button:has-text("Compile")` to check that a
-  *rebuild* states the trade before replacing a board someone has worked on. The click times out at 30s and
-  the page records `HTTP 422 /api/plan/compile`, so the confirmation half of the suite never runs. **Not a
-  regression from the island gate or the author fix**: it reproduces identically at `f42ec58`, the commit
-  before either landed, and it is not the corpus either — re-running with `MapsRoots` pointed at an empty
-  directory fails the same way, so the 15 generated maps under `CommunityMaps/ctw` are not the cause. It is
-  also not contention: it reproduces with the suite run alone and no dev server up. It did pass once, on the
-  first post-merge run, which is what makes it worth a task rather than a revert. The 422 is the plan
-  **validator** refusing what the page posts, while the same map's stored plan compiles 200 through curl —
-  so the first thing to find is what the editor sends that the stored document does not, and the finding
-  ids in the 422 body name the rule.
-

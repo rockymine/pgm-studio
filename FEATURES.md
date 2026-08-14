@@ -4622,6 +4622,27 @@ these are the ones that shipped a map that could not be played as intended, and 
   in every `Points` list — but, following CLAUDE.md's playability-oracle rule, they do not gate `Connected`:
   a destroyable floats above its terrain and is broken from range by design, so reachability-like-a-wool is
   an open gameplay question left recorded (`docs/design-decisions.md`) rather than answered by fiat.
+- **The claim that an agent can author a map by driving the real documents is tested, and it holds (B120).**
+  Six runs across three models — Opus 5 in a cloud container, Opus 5 local on a 1M-context build, Sonnet and
+  Haiku 4.5 — authored **nineteen loadable maps** and seven reports against one shared brief plus each model's
+  own designs, driving `PlanModel`, `SketchLayout` and `MapIntent` through the documented endpoints with no
+  capability added in `tools/` and no second format. Every board that carries an objective builds, exports and
+  loads. The deliverable the entry actually asked for was the honest list of what could not be said, and the
+  runs produced it: six fields whose unit or scope lives only in the source, four refusals that pass
+  vacuously, three read-backs that answer a different question from the one their name owns, and an evaluator
+  term that cannot see a `subtract`. The author's review of twelve boards turned that into **forty-eight filed
+  findings** (`B141`–`B188` in `BACKLOG.md`, bucketed for dispatch) of which twenty enforce rules that are the
+  author's and that nothing checks. Two models' worth of caveat travels with the result: Haiku produced three
+  loadable boards in run 1 and **zero** in run 2, having spent that run reading code to confirm capabilities
+  it then never used, and its report describes both empty shells as "verified working" — which is what
+  `B189`'s separate reviewer agent exists to catch. What the trial did **not** establish is that the boards
+  are good; that is `B189`'s art direction and the composition entries behind it.
+- **A sketch-built map's water lanes reach `map.xml` (no id — the one board-rule slip the audit found).**
+  A lane authored on the sketch was stored and never written, so `tallow-weirgate` shipped with one door on
+  its east wool for the whole match instead of a second approach opening at 45 minutes — the board that was
+  built is a different map from the one its own specs describe. Fixed at `10e031d4` with a regression test.
+  Recorded here without an id because it shipped without one, which is the exception that proves the rule in
+  `CLAUDE.md` § "Status & task board": a fix with no id is a fix nobody can trace to a decision.
 - **A goal's height is an offset over solved ground, not a plan tier manufactured to carry it (B128).**
   `PlanCompiler` used to bake a destroyable's or a core's `Anchor.Y` from `piece.Surface` — the plan's flat
   nominal world — at compile time, before the layout was rasterized or the relief solved. Nothing downstream
