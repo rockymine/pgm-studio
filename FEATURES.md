@@ -3782,6 +3782,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   this was a **printed cut** — a text grid of one plane, one letter per material — which showed the sill
   following the notch, the posts, and the slab of roof hanging over open ground that the clip now removes. The
   single-wing path is unmoved: the house showcase renders byte-identical. (G172)
+- **A wing states which way its ridge runs, where its proportions should not decide it (G183).** A roof
+  pitches across the shorter side, so the ridge lies along the longer one — read from each wing alone, and two
+  wings that touch may easily come out **parallel**: a 10 × 5 hall beside a 7 × 6 wing is one block from
+  crossing and does not, so the roofs meet in a gutter rather than a valley, which is the thing a march exists
+  to prevent. A **square** wing is worse — no longer side, the comparison ties toward x, and it can never cross
+  anything whatever was wanted, which is how a 10 × 5 hall and a 5 × 5 wing became a fixture that tested no
+  junction at all. `Wing.Ridge` overrides the proportions and `RoofField` takes the resolved axis rather than
+  recomputing it, so the wing and its field cannot disagree. The rise then follows the span actually crossed,
+  which is the point. Proven by putting a stated 5 × 5 through every law a junction is held to. It is a model
+  field: a wing's overrides do not reach an authored document yet (`G184`).
 - **The roof over a junction is one building's roof, not two roofs in one place (G179–G183).** Four measured
   defects, all of them the same mistake in different clothes: every question was asked of the **wing** that
   happened to be laying a block rather than of the **building** it belongs to. A marched cell was stamped verge

@@ -59,9 +59,13 @@ public sealed class RoofField
     /// <param name="inHalves">Whether the roof climbs in half blocks, laying a slab on every odd step. The
     /// field is measured in halves either way; a whole-course roof is simply one that steps two at a time, so
     /// the forms' arithmetic is untouched and a roof laid in cubes answers exactly what it always did.</param>
+    /// <param name="ridgeAlongX">Which way the ridge runs, or null to take it from the proportions. A building
+    /// of several wings answers this per wing (<see cref="Wing.RidgeAlongX"/>), because whether two of them
+    /// make a junction is whether their ridges cross and their own shapes cannot know that.</param>
     public RoofField(
         RoofForm form, int wallMinX, int wallMinZ, int wallMaxX, int wallMaxZ,
-        int overhang, int baseY, int pitch, RoomEdge front, bool inHalves = false)
+        int overhang, int baseY, int pitch, RoomEdge front, bool inHalves = false,
+        bool? ridgeAlongX = null)
     {
         this.form = form;
         (this.wallMinX, this.wallMinZ, this.wallMaxX, this.wallMaxZ) = (wallMinX, wallMinZ, wallMaxX, wallMaxZ);
@@ -70,7 +74,7 @@ public sealed class RoofField
         this.pitch = Math.Max(1, pitch);
         this.inHalves = inHalves;
         this.front = front;
-        acrossZ = wallMaxZ - wallMinZ <= wallMaxX - wallMinX;
+        acrossZ = ridgeAlongX ?? (wallMaxZ - wallMinZ <= wallMaxX - wallMinX);
         shortSpan = Math.Max(1, Math.Min(wallMaxZ - wallMinZ, wallMaxX - wallMinX) + 1);
 
         var (lowest, highest) = (int.MaxValue, int.MinValue);
@@ -89,7 +93,8 @@ public sealed class RoofField
     /// by where its plane starts, and the ridge's offset from the base is what the form decides, so the base is
     /// solved for after the field is built rather than guessed before it.</summary>
     public RoofField Raised(int courses) =>
-        new(form, wallMinX, wallMinZ, wallMaxX, wallMaxZ, overhang, baseY + courses, pitch, front, inHalves);
+        new(form, wallMinX, wallMinZ, wallMaxX, wallMaxZ, overhang, baseY + courses, pitch, front, inHalves,
+            acrossZ);
 
     /// <summary>The plan rectangle the roof draws over: the walls plus the overhang on every side.</summary>
     public int MinX => wallMinX - overhang;

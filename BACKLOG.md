@@ -1008,6 +1008,40 @@ the thing `B181` names, which makes the document upstream of the boards rather t
   still has knobs whose *card* does not change when they are turned, which is the one thing the preview exists
   to prevent. Wants a larger sample footprint, and a card that is not the one view those knobs are invisible in.
 
+- [ ] **G184 — A wing's five overrides are model fields an authored document cannot reach.** `Wing` carries
+  its own `Storeys`, `Form`, `Pitch`, `RoofSlab` and now `Ridge`, and every one of them is settable only from
+  C#. A `HouseProp` states its wings as `IReadOnlyList<IReadOnlyList<double[]>>` — two opposite corners each and
+  nothing else — so an author writing a dressing document gets the plan of an L, a T or a U and none of the
+  knobs that decide what stands on it.
+
+  `Ridge` is the one that makes this urgent rather than tidy. Whether two wings make a junction at all is
+  whether their ridges cross, and proportions alone decide that today: a 10 × 5 hall beside a 7 × 6 wing gives
+  two parallel ridges and a gutter, and a **square** wing ties toward x and can never cross anything. An author
+  who wants an L with a real valley has to be told to draw the wing deeper than it is wide, which is a rule
+  about arithmetic rather than about buildings.
+
+  Wanted as one change rather than five, since the wire shape is the work: a wing entry that carries its
+  rectangle **and** its overrides, the `DressingJson.Upgraded` migration extended, and `sketch.md`'s document
+  model saying what a wing may state. Worth doing with `S60`, the canvas half — a second wing is stated in the
+  document either way until that lands.
+
+  *found implementing `G183`, 2026-08-14 · `Wing` · `HouseProp.Wings` · `docs/tools/sketch.md`.*
+
+- [ ] **G185 — A wing that abuts its neighbour and one that overlaps it are different junctions, and only one
+  is exercised. Parked on a question.** Every junction fixture shares a row with its hall — the wing's last row
+  *is* the hall's first. A wing that merely **abuts**, sharing an edge and no ground, marches over the
+  neighbour's roof rather than opening into it: measured on a 5 × 5 wing at `z 1…5` against a hall at `z 5…9`
+  the loft is one space at every course, and on the same wing at `z 0…4` it is one space at the eave course and
+  two a course higher, where the hall's own slope rises between them. Both footprints are legal — `Footprint`
+  asks only that wings touch.
+
+  **The question for the author, and it is about what a building should be rather than what the code does:**
+  is an abutting wing a junction at all, or two rooms sharing a wall line? If it is a junction it wants the
+  same open loft, which means cutting the neighbour's roof under a march that has no plan of its own there. If
+  it is not, it wants saying so — and both `Ell()` fixtures abut, so the answer decides what they are.
+
+  *observed implementing `G183`, 2026-08-14 · flood fill per course over abutting and overlapping variants.*
+
 - [ ] **G178 — A wing has no doorway into its neighbour.** Where two wings meet the plan is simply open between
   them, which is right; where one projects into another its gable end is a wall from the ground up, which is
   also right and leaves the projecting wing reachable only from outside. A doorway cut between two wings —

@@ -62,9 +62,19 @@ public readonly record struct WallOpening(WallSegment Wall, int Lo, int Width);
 /// <para><see cref="Storeys"/> is how many of the style's storeys stand on this wing, and <b>nought takes them
 /// all</b> — which is what a building whose wings are all of a height wants, and what one wing on its own can
 /// only mean. A hall of one storey with a two-storey cross wing is the shape that needs the number.</para></summary>
+/// <summary>Which way a wing's ridge runs, where its own proportions are not what should decide.</summary>
+public enum RidgeAxis
+{
+    /// <summary>Along x, so the slopes are taken across z.</summary>
+    AlongX,
+
+    /// <summary>Along z, so the slopes are taken across x.</summary>
+    AlongZ,
+}
+
 public readonly record struct Wing(
     int MinX, int MinZ, int MaxX, int MaxZ, int Storeys = 0,
-    RoofForm? Form = null, int Pitch = 0, int? RoofSlab = null)
+    RoofForm? Form = null, int Pitch = 0, int? RoofSlab = null, RidgeAxis? Ridge = null)
 {
     public int Width => MaxX - MinX + 1;
     public int Depth => MaxZ - MinZ + 1;
@@ -86,10 +96,24 @@ public readonly record struct Wing(
     /// <summary>Whether this wing is still standing at a storey, counting from nought at the ground.</summary>
     public bool Reaches(int level) => Storeys <= 0 || level < Storeys;
 
-    /// <summary>Whether the ridge runs east–west. A roof is pitched across the <b>shorter</b> side, so the ridge
-    /// lies along the longer one — the same choice <see cref="RoofField"/> makes, and the reason it is a
-    /// property of the wing is that the two ends it names are the wing's gable ends.</summary>
-    public bool RidgeAlongX => MaxZ - MinZ <= MaxX - MinX;
+    /// <summary>Whether the ridge runs east–west. A roof is pitched across the <b>shorter</b> side, so by
+    /// default the ridge lies along the longer one — the same choice <see cref="RoofField"/> makes, and the
+    /// reason it is a property of the wing is that the two ends it names are the wing's gable ends.
+    ///
+    /// <para><b>Proportions alone cannot answer this for a building of several wings.</b> Whether two wings
+    /// make a junction at all is whether their ridges <em>cross</em>, and read from each wing on its own they
+    /// may easily not: a 10 × 5 hall and a 7 × 6 wing are both wider than deep, so both ridges run along x and
+    /// the two roofs meet in a gutter rather than a valley. A <b>square</b> wing is the sharper case — it has
+    /// no longer side, the comparison ties, and it can therefore never cross anything. So a wing may state its
+    /// axis, and <see cref="Ridge"/> overrides the proportions when it does. Note the rise then follows the
+    /// span actually crossed, which is the point: a ridge forced along the shorter side gives the longer one
+    /// its slope.</para></summary>
+    public bool RidgeAlongX => Ridge switch
+    {
+        RidgeAxis.AlongX => true,
+        RidgeAxis.AlongZ => false,
+        _ => MaxZ - MinZ <= MaxX - MinX,
+    };
 
     /// <summary>The two lines the wing's roof plan ends on — its gable ends. A ridge running along x ends at
     /// the ±x walls and one running along z at the ±z walls, so these are the faces a gable is drawn on.</summary>

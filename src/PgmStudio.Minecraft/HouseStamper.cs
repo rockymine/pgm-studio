@@ -190,7 +190,7 @@ public static class HouseStamper
             var alone = new Footprint(wing.MinX, wing.MinZ, wing.MaxX, wing.MaxZ);
             var field = new RoofField(
                 wing.FormOr(style.Form), wing.MinX, wing.MinZ, wing.MaxX, wing.MaxZ, overhang, top + 1,
-                wing.PitchOr(pitch), front, wing.SlabOr(style.RoofSlab) >= 0);
+                wing.PitchOr(pitch), front, wing.SlabOr(style.RoofSlab) >= 0, wing.RidgeAlongX);
             return (Wing: wing, Alone: alone, Field: field, Top: top, Slab: wing.SlabOr(style.RoofSlab));
         }).ToList();
         var hole = RoofHole(style, body);

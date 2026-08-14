@@ -514,6 +514,13 @@ outside a wall and inside another wing there is no outside — and bounded by th
 from its own eave, so a course whose crown never meets a shallower or flatter neighbour's still stops rather
 than running the neighbour's whole length (`G172`).
 
+Whether two wings make a junction at all is whether their **ridges cross**, and a wing's proportions cannot
+know that: a roof pitches across the shorter side, so a 10 × 5 hall and a 7 × 6 wing both ridge along x and
+meet in a gutter, and a **square** wing ties toward x and can never cross anything. `Wing.Ridge` states the
+axis where the proportions should not decide it. Note it is a **model** field rather than an authored one —
+none of a wing's overrides (its ridge, its roof form, its pitch, its slab, its storey count) reaches the
+dressing document yet, where a wing is two corners and nothing else (`G184`).
+
 Three things follow from the junction being one building rather than two roofs in one place (`G179`–`G181`).
 The loft over it is **one space**: the side of a wing standing against a neighbour is a doorway rather than an
 outside face, so no gable rises there and a marching T carries **three** gable faces where a projecting one

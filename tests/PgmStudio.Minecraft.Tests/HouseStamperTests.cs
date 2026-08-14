@@ -1075,11 +1075,54 @@ public sealed class HouseStamperTests
         await Assert.That(attics).IsGreaterThan(0);
     }
 
+    /// <summary>A 5 × 5 wing on the same hall, crossing only because it says so. Left to its proportions it
+    /// ties and takes the along-x ridge, which is the hall's, and the two roofs meet in a gutter. It shares the
+    /// hall's near row exactly as the other junction fixtures do — a wing that merely abuts one has no ground in
+    /// common with it to open through.</summary>
+    private static Footprint EllSquare() =>
+        new([new Wing(0, 5, 9, 9), new Wing(0, 1, 4, 5, Ridge: RidgeAxis.AlongZ)]);
+
     public static IEnumerable<(string, Footprint)> Junctions() =>
     [
         ("T marched", Tee()), ("T projected", Crossed()),
         ("L marched", EllMarch()), ("L projected", EllProject()),
+        ("L squared, ridge stated", EllSquare()),
     ];
+
+    /// <summary>
+    /// <b>A wing may state which way its ridge runs, because its own proportions cannot know whether it
+    /// crosses anything.</b> Whether two wings make a junction at all is whether their ridges cross, and read
+    /// from each wing alone they easily do not — a 10 × 5 hall and a 7 × 6 wing are both wider than deep, so
+    /// both ridges run along x and the roofs meet in a gutter rather than a valley. A <b>square</b> wing is the
+    /// sharper case: it has no longer side at all, the comparison ties, and it can therefore never cross
+    /// anything whatever an author wanted. Stated, it crosses — and the same 5 × 5 then answers every law a
+    /// junction is held to, which is what <see cref="Junctions"/> puts it through.
+    /// </summary>
+    [Test]
+    public async Task A_square_wing_cannot_cross_by_its_proportions_and_may_say_so()
+    {
+        var square = new Wing(0, 1, 4, 5);
+        await Assert.That(square.RidgeAlongX).IsTrue();                       // 4 <= 4 — the tie
+        await Assert.That(square.GableEnds).IsEqualTo((0, 4));                // its ±x walls
+
+        var stated = square with { Ridge = RidgeAxis.AlongZ };
+        await Assert.That(stated.RidgeAlongX).IsFalse();
+        await Assert.That(stated.GableEnds).IsEqualTo((1, 5));                // now its ±z walls
+
+        // The hall it stands against is wider than it is deep, so it keeps the along-x ridge either way, and
+        // the two cross only because the wing said which way it runs.
+        await Assert.That(new Wing(0, 5, 9, 9).RidgeAlongX).IsTrue();
+
+        // A stated axis is what the roof is actually built on, not merely what the wing reports.
+        var style = new HouseStyle();
+        var world = Built(EllSquare(), style);
+        var ridge = FloorY + style.WallCourses + 3;
+        var alongZ = 0;
+        for (var z = 1; z <= 5; z++) if (world.GetBlock(2, ridge, z).Id != Blocks.Air) alongZ++;
+        var alongX = 0;
+        for (var x = 0; x <= 4; x++) if (world.GetBlock(x, ridge, 3).Id != Blocks.Air) alongX++;
+        await Assert.That(alongZ).IsGreaterThan(alongX);
+    }
 
     /// <summary>
     /// <b>A verge is the outer rim of a roof, so no cell inside the outline is one.</b> A building of several
@@ -1093,6 +1136,7 @@ public sealed class HouseStamperTests
     [Arguments("T projected", 4)]
     [Arguments("L marched", 3)]
     [Arguments("L projected", 4)]
+    [Arguments("L squared, ridge stated", 3)]
     public async Task Verge_at_the_ridge_course_counts_the_ends_that_stand_open(string name, int ends)
     {
         var style = new HouseStyle();

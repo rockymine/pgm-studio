@@ -349,6 +349,16 @@ single outline however many rectangles drew it, and the rim is read from the roo
 a neighbour outside it. Read from the wing instead, a march's first step lands exactly on that wing's own
 overhang line and stamps verge in the middle of the roof it has just run into.
 
+**A wing may state which way its ridge runs, because its own proportions cannot know whether it crosses
+anything.** A roof pitches across the shorter side, so by default the ridge lies along the longer one — and
+read from each wing alone, two that touch may easily come out parallel. A 10 × 5 hall beside a 7 × 6 wing is
+the ordinary case: both are wider than deep, both ridges run along x, and the roofs meet in a **gutter** rather
+than a valley, which is the very thing a march exists to prevent. A **square** wing is the sharper one — it has
+no longer side at all, the comparison ties toward x, and it can therefore never cross anything whatever was
+wanted. `Wing.Ridge` overrides the proportions where an author needs the axis stated; the rise then follows the
+span actually crossed, which is the point, since a ridge forced along the shorter side gives the longer one its
+slope.
+
 **Two joints, and they are not a mode — they are which rectangle was drawn.** Where a wing reaches an outside
 wall of another the crossing is a **valley**; where a wing **stops inside** another — a gable end landing
 between that wing's own two ends — it is a **cross-gable**.
