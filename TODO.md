@@ -160,10 +160,26 @@ which finds out whether the result actually answers.
   trial run had to declare a decoy land-only build zone purely to turn void enforcement back on, which is a
   workaround for a default that is backwards.
 
-  The guard reads as "no areas, nothing to do", and the truth is the opposite: no areas is the case where the
-  **whole map** is not-build-area, so it is the case where void enforcement matters most. Note the ordering
-  constraint that already governs this code — the broad `no-void` rule allows editing any solid block and PGM
-  stops at the first matching rule, so build must be applied last (`IntentGenerator`) — and keep it.
+  **The corpus was read before proposing a fix, and it rules out the obvious one.** Over the 112 `dtcm` maps
+  in `CommunityMaps`: 102 declare a `maxbuildheight`, **15** carry a void filter at all, and **10** declare a
+  build region. So seven destroy maps in eight enforce nothing about the void, and making "no build area
+  declared" imply "the whole map is not-build-area with void enforced" would ship boards stricter than
+  almost every real one — a default nobody asked for, applied to every existing map at once. The first
+  reading of this entry proposed exactly that and it is withdrawn.
+
+  What the 15 that *do* enforce show is the idiom, and it is a positive one. `chaos_theory` declares
+  `<not id="no-void"><void/></not>` and applies it with `block="no-void"` over a **named rectangle**, not
+  over the complement of a build area. Enforcement is a decision an author makes about a region, stated
+  where they want it, rather than something derived from the absence of another declaration.
+
+  So the defect is narrower and more useful than "the guard is backwards": **there is no way to ask for void
+  enforcement without declaring a build area**, because the two are welded together in one method that exits
+  early. An author who wants a permanent channel and no build restrictions otherwise has to invent a decoy
+  land-only zone — which is what both destroy boards in the run did. Decouple them: let the intent state
+  void enforcement, optionally scoped to a region the way the corpus does, independently of whether any
+  build area exists. Note the ordering constraint that already governs this code — the broad `no-void` rule
+  allows editing any solid block and PGM stops at the first matching rule, so build must be applied last
+  (`IntentGenerator`) — and keep it.
 
 - [ ] **B130 — A malformed dressing document is discarded whole, and the export says 200.**
   `DressingJson.Deserialize` ends `catch (JsonException) { return DressingDoc.Empty; }`, commented "a
