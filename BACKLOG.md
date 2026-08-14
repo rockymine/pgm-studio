@@ -1037,7 +1037,7 @@ the thing `B181` names, which makes the document upstream of the boards rather t
   | Footprints **never overlap** — they only touch | Overlap is allowed, and every shipped junction fixture **depends** on it |
   | A touching wing shares its **full edge** with the larger rectangle, as the box model does | Nothing checks; a wing shifted two blocks along still builds |
   | Rectangles not touching are **distinct houses** | Nothing checks; a wing three blocks clear builds as one prop with a gap in it |
-  | Two rectangles join only where **one is smaller** — 5 × 5 against 5 × 5 is a 10 × 5, not a house | Nothing checks; equal squares join |
+  | Equal rectangles join fine, **so long as their ridges cross** — the plan is one bounding box and the roof is a T | Works today; measured below |
   | **March or project is the author's choice** per joint, defaulting to march | Derived from geometry — `G172` states outright that it is "not a mode, it is which rectangle was drawn" |
 
   `Footprint`, `HouseProp` and `structures.md` all say wings are "expected to touch" in prose and **enforce it
@@ -1056,7 +1056,23 @@ the thing `B181` names, which makes the document upstream of the boards rather t
   abutting pairs with a stated joint. The four validation rules above want rule ids and refusals, since an
   overlap or a partial touch would otherwise build something the model has no account of.
 
-  *author, 2026-08-14 · stated as intent; measured against `Footprint`, `HouseProp.Footprint()` and the junction fixtures.*
+  **Equal squares are legal and the earlier version of this entry was wrong to bar them.** Two 5 × 5s abutting
+  along their full edge, hall ridged along x and wing along z, build a proper T: the plan is a single 5 × 10
+  bounding box and what makes it a building is that the **roof levels differ** — the wing's ridge runs north to
+  south and meets the hall's running east to west. Measured: the shared edge is 5 of 5, the march fires, and
+  the ridge course carries **three** verge cells, which is a march exactly. Its only blemish is two lofts a
+  course up, which is `G185` and is the abutting cut, not the equal sizes.
+
+  **A shifted pair is the case to refuse, and it builds silently today.** The same two squares with the wing
+  moved two blocks along share only 3 of 5, and neither joint can happen: part of the wing's end meets the hall
+  and part hangs over open ground. What it builds is a ragged seam — the wing's overhang oversails nothing on
+  the far side, and the two roofs interpenetrate at the join. And the reason nothing notices is exact:
+  `Marches` samples the **middle cell** of the wing's across-span and asks whether the neighbour holds it, so a
+  partial touch answers yes on one sample and then marches per column into ground that is not there. The
+  refusal wants asking of the **whole edge**, not of a sample.
+
+  *author, 2026-08-14 · stated as intent, corrected on equal sizes; measured against `Footprint`,
+  `HouseProp.Footprint()`, `Marches` and both abutting pairs.*
 
 - [ ] **G185 — A wing that abuts its neighbour keeps its loft one course too few. Parked on a question.**
   Measured with the ridge axis held constant, a 5-wide wing of growing depth against a hall at `z 5…9`:
