@@ -108,9 +108,12 @@ public static partial class XmlWriter
         var root = new XElement("map", new XAttribute("proto", "1.5.0"));
         root.Add(new XElement("name", m.Name));
         root.Add(new XElement("version", m.Version));
-        // The author's own label, round-tripped verbatim. PGM never reads it, so a map that declared none
-        // gets none back rather than an invented one.
-        if (m.DeclaredGamemode.Length > 0) root.Add(new XElement("gamemode", m.DeclaredGamemode));
+        // The author's own label(s), round-tripped verbatim, one <gamemode> element per id. PGM parses this
+        // as a repeated element — MapInfoImpl.parseGamemodes loops getChildren("gamemode") and resolves each
+        // against its own closed enum — so a mixed board must write several elements, never one joined by a
+        // space (Gamemode.byId has no notion of "several ids in one string" and simply fails to match). A
+        // map that declared none gets none back rather than an invented one.
+        foreach (var id in m.DeclaredGamemode) root.Add(new XElement("gamemode", id));
         root.Add(new XElement("objective", m.Objective));
 
         foreach (var inc in m.Includes) root.Add(new XElement("include", new XAttribute("id", inc)));

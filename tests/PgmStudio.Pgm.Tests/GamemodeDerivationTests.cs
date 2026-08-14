@@ -81,10 +81,10 @@ public sealed class GamemodeDerivationTests
     public async Task The_declared_label_round_trips_and_never_overrides_the_derivation()
     {
         var m = Parse(Wool, "ad");
-        await Assert.That(m.DeclaredGamemode).IsEqualTo("ad");
+        await Assert.That(m.DeclaredGamemode).IsEquivalentTo(new[] { "ad" });
         await Assert.That(m.Gamemodes).IsEquivalentTo(new[] { "ctw" });
         await Assert.That(XmlWriter.ToXml(m)).Contains("<gamemode>ad</gamemode>");
-        await Assert.That(MapParser.ParseXmlString(XmlWriter.ToXml(m)).DeclaredGamemode).IsEqualTo("ad");
+        await Assert.That(MapParser.ParseXmlString(XmlWriter.ToXml(m)).DeclaredGamemode).IsEquivalentTo(new[] { "ad" });
     }
 
     // A destroyables map declaring `ctw` is one of PGM's own inconsistencies; the modules win.
@@ -92,7 +92,28 @@ public sealed class GamemodeDerivationTests
     public async Task A_label_contradicting_the_modules_does_not_win()
     {
         var m = Parse(Destroyable, "ctw");
-        await Assert.That(m.DeclaredGamemode).IsEqualTo("ctw");
+        await Assert.That(m.DeclaredGamemode).IsEquivalentTo(new[] { "ctw" });
         await Assert.That(m.Gamemodes).IsEquivalentTo(new[] { "dtm" });
+    }
+
+    // B155: PGM parses <gamemode> as a REPEATED element holding one id each (MapInfoImpl.parseGamemodes
+    // loops getChildren("gamemode"), and Gamemode.byId has no notion of several ids in one string) — a board
+    // declaring both dtm and dtc must write two elements, never one joined by a space. cacti_the_wool is the
+    // corpus proof: it carries six separate <gamemode> elements, never a space-separated value.
+    [Test]
+    public async Task A_board_declaring_two_gamemodes_writes_two_separate_elements()
+    {
+        var xml = "<?xml version=\"1.0\"?><map proto=\"1.5.0\"><name>m</name><version>1</version>"
+            + "<gamemode>dtm</gamemode><gamemode>dtc</gamemode><objective>o</objective></map>";
+        var m = MapParser.ParseXmlString(xml);
+        await Assert.That(m.DeclaredGamemode).IsEquivalentTo(new[] { "dtm", "dtc" });
+
+        var written = XmlWriter.ToXml(m);
+        await Assert.That(written).Contains("<gamemode>dtm</gamemode>");
+        await Assert.That(written).Contains("<gamemode>dtc</gamemode>");
+        // The exact old bug: two ids joined into one element PGM's closed enum cannot resolve at all.
+        await Assert.That(written).DoesNotContain("dtm dtc");
+
+        await Assert.That(MapParser.ParseXmlString(written).DeclaredGamemode).IsEquivalentTo(new[] { "dtm", "dtc" });
     }
 }

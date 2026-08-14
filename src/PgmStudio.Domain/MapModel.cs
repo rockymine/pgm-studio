@@ -275,14 +275,16 @@ public sealed class MapXml
     public string Version = "";
 
     /// <summary>
-    /// The <c>&lt;gamemode&gt;</c> element verbatim, or empty when the map declares none — which is the
-    /// common case. It is a free-text label PGM never reads to decide anything, so it is <b>not</b> the
-    /// gamemode; <see cref="Gamemodes"/> is. Kept because it is the author's own word and sometimes says
-    /// what no module can (a CTW map labelled <c>ad</c> is played attack/defend), and because it should
-    /// round-trip. Never default it: inventing "ctw" for a map that declared nothing is a guess that reads
-    /// as a fact.
+    /// The map's own <c>&lt;gamemode&gt;</c> elements verbatim, in document order — empty when the map
+    /// declares none, which is the common case. PGM parses this as a <b>repeated</b> element and never reads
+    /// it to decide which modules run, so it is <b>not</b> the gamemode; <see cref="Gamemodes"/> is. Kept
+    /// because it is the author's own word and sometimes says what no module can (a CTW map labelled
+    /// <c>ad</c> is played attack/defend), and because it should round-trip. Never default it: inventing
+    /// "ctw" for a map that declared nothing is a guess that reads as a fact. It is still validated on the
+    /// way in by PGM's own closed enum (<see cref="Gamemodes.IsKnownId"/>) — an id outside that set is not
+    /// merely an odd label, it is a map that fails to load.
     /// </summary>
-    public string DeclaredGamemode = "";
+    public List<string> DeclaredGamemode = [];
     public string Objective = "";
     public int? MaxBuildHeight;
     public List<Author> Authors = [];

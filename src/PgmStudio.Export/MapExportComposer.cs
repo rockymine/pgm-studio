@@ -48,6 +48,11 @@ public static class MapExportComposer
         Dict doc, byte[]? layoutBytes, bool isIntent, SegmentIndex? segments, MapIntent? intent,
         IReadOnlySet<int>? surfacePalette, IReadOnlyList<(string Type, int X, int Y, int Z)> resources)
     {
+        // OB20 — every declared <gamemode> against PGM's own closed enum. Checked first, and against every
+        // map regardless of origin or world state: it needs no ground and no built intent, and an id outside
+        // PGM's enum fails the whole map to load (MapInfoImpl.parseGamemodes) however clean everything else is.
+        if (RefuseUnknownGamemode(doc) is { } gamemodeRefusal) return gamemodeRefusal;
+
         // Playability gate: intent-authored maps must be traversable before they can export (§9).
         if (isIntent)
         {
@@ -111,6 +116,24 @@ public static class MapExportComposer
         {
             return new(500, new Dict { ["error"] = ex.Message }, null, null);
         }
+    }
+
+    // ── OB20 — every declared <gamemode> must resolve against PGM's own closed enum ────────────────────────
+
+    private static ExportComposition? RefuseUnknownGamemode(Dict doc)
+    {
+        var declared = (doc.GetValueOrDefault("gamemode") as List<object?> ?? [])
+            .Select(g => g as string ?? "").Where(g => g.Length > 0).ToList();
+        var unknown = declared.Where(id => !Gamemodes.IsKnownId(id)).ToList();
+        if (unknown.Count == 0) return null;
+
+        return new(409, new Dict
+        {
+            ["error"] = "unknown gamemode",
+            ["message"] = $"declares <gamemode> {string.Join(", ", unknown)}, which PGM's Gamemode enum does not recognize — the map would fail to load",
+            ["rule"] = "OB20",
+            ["ids"] = unknown,
+        }, null, null);
     }
 
     // ── OB17 — objective placement, over the ground the rasterizer actually produced ──────────────────────

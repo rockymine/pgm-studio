@@ -45,9 +45,9 @@ public sealed partial class MapParser
     private static readonly Version FirstModernServer = new(1, 13, 0);   // the 1.13 block-id "flattening"
 
     // PGM's objective modules: the root elements whose module contributes a non-auxiliary gamemode when it
-    // parses anything. The gamemode falls out of which of these are present — the <gamemode> element is a
-    // label PGM never reads. Auxiliary modules (blitz, ffa, rage) modify how a map plays rather than what
-    // its goal is, so they are not objectives and are not listed.
+    // parses anything. The gamemode falls out of which of these are present — PGM never reads the
+    // <gamemode> element itself to decide (Domain.Gamemodes). Auxiliary modules (blitz, ffa, rage) modify
+    // how a map plays rather than what its goal is, so they are not objectives and are not listed.
     private static readonly Dictionary<string, string> ObjectiveModules = new()
     {
         ["wools"] = "CTW",
@@ -122,7 +122,7 @@ public sealed partial class MapParser
         {
             Name = GetText("name", ""),
             Version = GetText("version", ""),
-            DeclaredGamemode = GetText("gamemode"),
+            DeclaredGamemode = GetTextList("gamemode"),
             Objective = GetText("objective", ""),
             Authors = ParseAuthors(),
             Teams = ParseTeams(),
@@ -281,6 +281,12 @@ public sealed partial class MapParser
         var t = Xml.Text(elem);
         return t.Length > 0 ? t : def;
     }
+
+    // Every occurrence of a repeated element, not the first — PGM reads <gamemode> this way
+    // (MapInfoImpl.parseGamemodes loops root.getChildren("gamemode")), so a corpus map declaring several
+    // must keep all of them rather than silently dropping every one after the first.
+    private List<string> GetTextList(string tag) =>
+        [.. _root.Elements(tag).Select(Xml.Text).Where(t => t.Length > 0)];
 
     private static string NonEmpty(string s, string def) => string.IsNullOrEmpty(s) ? def : s;
 

@@ -25,7 +25,7 @@ public static class Serializer
     {
         ["name"] = m.Name,
         ["version"] = m.Version,
-        ["gamemode"] = m.DeclaredGamemode,
+        ["gamemode"] = m.DeclaredGamemode.ToList<object?>(),
         ["objective"] = m.Objective,
         ["max_build_height"] = m.MaxBuildHeight,
         ["authors"] = m.Authors.Select(EncodeAuthor).ToList<object?>(),

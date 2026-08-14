@@ -36,7 +36,7 @@ public sealed class MapImporter(PgmDb db)
         var now = DateTime.UtcNow;
         var mapId = await db.InsertWithInt64IdentityAsync(new MapRow
         {
-            Slug = slug, Name = m.Name, Version = NullIfEmpty(m.Version), Gamemode = NullIfEmpty(m.DeclaredGamemode),
+            Slug = slug, Name = m.Name, Version = NullIfEmpty(m.Version), Gamemode = NullIfEmpty(string.Join(' ', m.DeclaredGamemode)),
             Objective = NullIfEmpty(m.Objective), MaxBuildHeight = m.MaxBuildHeight, CreatedAt = now, UpdatedAt = now,
         });
 

@@ -18,6 +18,10 @@ public sealed class MetaGeneratorTests
     private static CoreIntent Core(string owner = "red", string name = "") =>
         new() { Owner = owner, Name = name, Anchor = new Pt(0, 8, 0), Size = 5, Height = 5, Shell = 1, Float = 6, Leak = 5 };
 
+    // doc["gamemode"] is a list, one id per element — never a single joined string (B155: PGM parses
+    // <gamemode> as a repeated element and cannot resolve several ids written into one).
+    private static List<string> Gamemode(Dict doc) => ((List<object?>)doc["gamemode"]!).Select(g => (string)g!).ToList();
+
     [Test]
     public async Task Sets_name_and_fixed_version()
     {
@@ -37,7 +41,7 @@ public sealed class MetaGeneratorTests
             Meta = new MetaIntent { Name = "M" },
             Wools = [new WoolIntent { Owner = "red-team" }],
         });
-        await Assert.That(doc["gamemode"]).IsEqualTo("ctw");
+        await Assert.That(Gamemode(doc)).IsEquivalentTo(new[] { "ctw" });
         await Assert.That(doc["objective"]).IsEqualTo("Capture the wool!");
     }
 
@@ -50,7 +54,7 @@ public sealed class MetaGeneratorTests
             Meta = new MetaIntent { Name = "M" },
             Wools = [new WoolIntent { Owner = "red-team" }, new WoolIntent { Owner = "blue-team" }],
         });
-        await Assert.That(doc["gamemode"]).IsEqualTo("ctw");
+        await Assert.That(Gamemode(doc)).IsEquivalentTo(new[] { "ctw" });
         await Assert.That(doc["objective"]).IsEqualTo("Capture the enemies' wools!");
     }
 
@@ -66,7 +70,7 @@ public sealed class MetaGeneratorTests
             Meta = new MetaIntent { Name = "M" },
             Destroyables = [Destroyable(name: "Red Monument")],
         });
-        await Assert.That(doc["gamemode"]).IsEqualTo("dtm");
+        await Assert.That(Gamemode(doc)).IsEquivalentTo(new[] { "dtm" });
         await Assert.That(doc["objective"]).IsEqualTo("Destroy the enemy's monument!");
         await Assert.That((string)doc["objective"]!).DoesNotContain("wool");
     }
@@ -92,7 +96,7 @@ public sealed class MetaGeneratorTests
             Meta = new MetaIntent { Name = "M" },
             Cores = [Core(name: "Red Core")],
         });
-        await Assert.That(doc["gamemode"]).IsEqualTo("dtc");
+        await Assert.That(Gamemode(doc)).IsEquivalentTo(new[] { "dtc" });
         await Assert.That(doc["objective"]).IsEqualTo("Leak the enemy's core!");
     }
 
@@ -108,8 +112,13 @@ public sealed class MetaGeneratorTests
         await Assert.That(doc["objective"]).IsEqualTo("Leak the enemy's cores!");
     }
 
+    // B155 — the fault itself: this used to assert doc["gamemode"] equalled the single joined string
+    // "ctw dtm", which XmlWriter then wrote as one <gamemode>ctw dtm</gamemode> element — a value PGM's
+    // closed enum cannot resolve (Gamemode.byId matches one id verbatim, never a space-separated pair), so
+    // MapInfoImpl.parseGamemodes threw and the map failed to load. This is the case that fails on the old
+    // behaviour: one element per mode, never several ids joined into one.
     [Test]
-    public async Task A_mixed_wool_and_destroy_board_declares_both_gamemodes_and_both_clauses()
+    public async Task A_mixed_wool_and_destroy_board_declares_both_gamemodes_as_separate_entries()
     {
         var doc = new Dict();
         MetaGenerator.Apply(doc, new MapIntent
@@ -118,7 +127,7 @@ public sealed class MetaGeneratorTests
             Wools = [new WoolIntent { Owner = "red-team" }],
             Destroyables = [Destroyable(name: "Red Monument")],
         });
-        await Assert.That(doc["gamemode"]).IsEqualTo("ctw dtm");
+        await Assert.That(Gamemode(doc)).IsEquivalentTo(new[] { "ctw", "dtm" });
         await Assert.That(doc["objective"]).IsEqualTo("Capture the wool and destroy the enemy's monument!");
     }
 
@@ -127,7 +136,7 @@ public sealed class MetaGeneratorTests
     {
         var doc = new Dict();
         MetaGenerator.Apply(doc, new MapIntent { Meta = new MetaIntent { Name = "M" } });
-        await Assert.That(doc["gamemode"]).IsEqualTo("");
+        await Assert.That(Gamemode(doc)).IsEmpty();
         await Assert.That(doc["objective"]).IsEqualTo("");
     }
 

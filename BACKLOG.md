@@ -282,7 +282,6 @@ when every id in it has a `FEATURES.md` line and no document still names it as a
 
 | # | Bucket | Ids | What one agent delivers | Lands in |
 |---|---|---|---|---|
-| **0** | **The label PGM refuses** | `B155` | `<gamemode>` written as a list and read as a list, a validation gate, and three committed maps corrected | `MetaGenerator` · `XmlWriter` · `MapParser` |
 | **1** | What a spawn door faces | `B158` `B169` `B172` `B177` `B180` | one rectangle in front of a spawn, and five rules checked against it | `PlanValidator` |
 | **2** | How big a piece is, and how far apart | `B156` `B157` `B167` `B170` `B178` `B186` | size floors and ceilings, island separation, and the piece/building coupling broken | `PlanValidator` · `PlanCompiler` |
 | **3** | How far apart the goals are | `B175` `B179` `B188` | a spacing deriver over goals, spawns and the board extent, with the corpus band behind it | `PlanValidator` · `Analysis` |
@@ -296,8 +295,9 @@ when every id in it has a `FEATURES.md` line and no document still names it as a
 | **11** | The evaluator over an authored board | `B150` `B151` | two terms that read the plan where the board is in the sketch | `ClosureTerms` · `G8` |
 | **12** | Four that stand alone | `B152` `B154` `B174` `B182` | four unrelated fixes, cheap, no shared file | scattered |
 
-**Order and collision.** `B0` is first and alone: three committed maps do not parse, and every other finding
-was reachable without a client while this one was not. `B1`, `B2` and `B3` all land in `PlanValidator` and
+**Order and collision.** The label PGM refused shipped first and alone, ahead of every bucket below (`B155`
+— three committed maps had not parsed, and every other finding was reachable without a client while that one
+was not). `B1`, `B2` and `B3` all land in `PlanValidator` and
 must not run concurrently — hand the three to one agent, or run them in that order. `B4` and `B5` both touch
 what a layout is allowed to say and want the same posting-time gate, so they are adjacent rather than
 parallel. `B6` through `B12` are file-disjoint from each other and from everything above, and may run at once.
@@ -330,12 +330,6 @@ instructions follow from that, and they are not optional:
 - *A sketch-built map's water lanes never reach `map.xml`* shipped at `10e031d4` with a regression test, and
   is the only board-rule slip the audit found: no task id, no `FEATURES.md` line. The line is added; whether
   `tallow-weirgate` is rebuilt against the fix is an authoring decision, not a task.
-
-#### Bucket 0 — the label PGM refuses
-
-**`B155` is on `TODO.md`**, being the one finding that stops a map loading at all. Its entry lives there;
-this row exists so the bucket sequence reads whole. Nothing else in the audit is blocked on it, but three
-committed maps are: `tallow-kilnrow`, `ashfall-scar` and `basalt-reach` do not parse until it lands.
 
 #### Bucket 1 — what a spawn door faces
 

@@ -71,9 +71,10 @@ public sealed class MapReader(PgmDb db)
         {
             Name = map.Name,
             Version = map.Version ?? "",
-            // The column holds the author's <gamemode> label, which most maps don't declare — an absent
-            // one stays absent rather than becoming an invented "ctw". MapXml.Gamemodes is the truth.
-            DeclaredGamemode = map.Gamemode ?? "",
+            // The column holds the author's <gamemode> label(s), space-joined (no id contains a space —
+            // PGM's own ids are single tokens), which most maps don't declare — an absent one stays absent
+            // rather than becoming an invented "ctw". MapXml.Gamemodes is the truth.
+            DeclaredGamemode = (map.Gamemode ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList(),
             Objective = map.Objective ?? "",
             MaxBuildHeight = map.MaxBuildHeight is { } h ? (int)h : null,
         };

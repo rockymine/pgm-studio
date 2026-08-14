@@ -18,8 +18,10 @@ three files. Moving a task between files never changes its id; never renumber or
 **nineteen loadable maps** and seven reports by driving the real documents end to end, with no human in the
 middle — which is what `B120` asked and is now settled. The author then reviewed twelve of those boards
 against the plans, the layouts and the built worlds, and every claim in that review re-measured: **forty-eight
-findings, and one of them fatal.** Three committed maps do not parse at all, because a board carrying two
-objective kinds ships `<gamemode>dtm dtc</gamemode>` and PGM's `Gamemode` is a closed enum (`B155`).
+findings, and one of them fatal.** Three committed maps failed to parse at all, because a board carrying two
+objective kinds shipped `<gamemode>dtm dtc</gamemode>` against PGM's closed `Gamemode` enum — fixed (`B155`):
+the writer emits one `<gamemode>` element per mode, the reader keeps every one, and the export gate refuses a
+label PGM's own enum would reject before it ships.
 
 **Twenty of the forty-eight enforce rules that are the author's**, stated rather than measured, and that
 nothing in the system checks: a spawn door stands 15 blocks off the void and opens onto 20×20 of clear ground
@@ -60,40 +62,8 @@ reachable.
 ground the world build actually solves rather than the plan's flat nominal surface, and the marker itself may
 name no plan piece at all, so a goal rides an authored sketch landform with no tier manufactured to carry it —
 and the trial that tested the result ran three times over three models. Nineteen maps, seven reports, and the
-forty-eight findings now in `BACKLOG.md`. What is on this board is what the trial made urgent: the label PGM
-refuses, the authoring apparatus the next run needs, and the entries the audit corrected.
-
-- [ ] **B155 — A map declaring two gamemodes writes one element with a space in it, and PGM refuses to parse
-  it.** `MetaGenerator.cs:37` builds the label as `string.Join(' ', Gamemodes.From(…))` and `XmlWriter.cs:113`
-  writes it as a single element, so a board carrying two objective kinds ships `<gamemode>dtm dtc</gamemode>`.
-  PGM parses the element as a **repeated** one holding a single id each: `MapInfoImpl.parseGamemodes` loops
-  `root.getChildren("gamemode")`, calls `Gamemode.byId(el.getText())` and throws
-  `InvalidXMLException("Unknown gamemode")` when it matches nothing. `Gamemode` is a closed 25-value enum
-  matched with `equalsIgnoreCase` and no splitting, so `"dtm dtc"` is simply not a value. **The map does not
-  load.**
-
-  **The premise underneath it is the real fault.** `MetaGenerator.cs:32` and `Gamemodes.cs` both state that
-  `<gamemode>` is "a free-text label PGM never reads authoritatively (`OB7`)". Half of that is right and the
-  half that is wrong is fatal: PGM does not use the element to decide which modules run — those come from the
-  objective elements — but it *does* validate it, strictly, and an unknown value kills the parse. "Not
-  authoritative" was flattened into "free text", and a value was invented on that basis. Across ~350 corpus
-  maps every `<gamemode>` holds exactly one id and maps with several **repeat the element**
-  (`cacti_the_wool` carries six); nothing in either corpus has ever written a space-separated value.
-
-  **The fix is two-sided and the reader has the mirror of the same bug.** The writer wants a list, not a
-  scalar — one `<gamemode>` per mode. `MapParser.cs:125` takes `GetText("gamemode")`, the first element only,
-  so importing a corpus map declaring several keeps one and silently drops the rest;
-  `MapXml.DeclaredGamemode` is a scalar where PGM's model is a list and both directions inherit it. A
-  validation gate belongs with it: the studio can check the label against PGM's enum, which is the kind of
-  refusal the export composer already hosts.
-
-  Affects three committed maps — `tallow-kilnrow`, `ashfall-scar`, `basalt-reach`. Correcting the XML by hand
-  is a two-line edit per map and needs no rebuild. Separately, **seven boards declare `ctw` and carry no
-  wool** (`ashen_quarry`, `quillon-barrow`, `quillon-foundry`, `sonnet-holdfast`, `sonnet-cinderreach`,
-  `haiku-canonical-destroy-3`, `haiku-dtm-tower`); those parse, because `ctw` is a valid id, and a rebuild
-  against the current studio corrects the label.
-
-  *Found by the author reading PGM, not by any run · `PGM/…/map/MapInfoImpl.java:312–320` · `PGM/…/api/map/Gamemode.java` · corpus swept for counter-examples.*
+forty-eight findings now in `BACKLOG.md`. What is on this board is what the trial made urgent, less the label
+PGM refused (`B155`, shipped): the authoring apparatus the next run needs, and the entries the audit corrected.
 
 - [ ] **B189 — The authoring apparatus: art direction, named briefs, and a reviewer that is not the author.**
   Three runs asked three models for "a map of your own design" and got, three times over, one street of

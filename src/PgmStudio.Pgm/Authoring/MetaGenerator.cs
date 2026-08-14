@@ -25,19 +25,20 @@ public static class MetaGenerator
         if (intent.Meta is not { } m) return;
         if (!string.IsNullOrWhiteSpace(m.Name)) doc["name"] = m.Name.Trim();
         doc["version"] = Version;
-        doc["gamemode"] = DeclaredGamemode(intent);
+        doc["gamemode"] = DeclaredGamemode(intent).ToList<object?>();
         doc["objective"] = Objective(intent);
     }
 
-    // <gamemode> is a free-text label PGM never reads authoritatively (OB7) — but it should still describe
-    // the map. Joins every module the intent actually carries rather than naming one fixed at "ctw"; a map
-    // with none of the three (no meta-only board should reach export, but nothing here assumes it can't)
-    // gets the empty string, which the writer already treats as "omit the element" — matching the 68 of 150
-    // corpus maps that declare no <gamemode> at all rather than a wrong one.
-    private static string DeclaredGamemode(MapIntent intent) => string.Join(' ', Gamemodes.From(
+    // <gamemode> does not decide which objective modules run (OB7) — but "not authoritative" is not "free
+    // text": PGM still parses it as one repeated element, each resolved against its own closed enum, and
+    // refuses the whole map when one does not match. One element per module the intent actually carries,
+    // never several ids joined into one element PGM cannot parse; a map with none of the three (no meta-only
+    // board should reach export, but nothing here assumes it can't) gets no elements at all — matching the
+    // 68 of 150 corpus maps that declare no <gamemode> rather than a wrong one.
+    private static List<string> DeclaredGamemode(MapIntent intent) => [.. Gamemodes.From(
         intent.Wools is { Count: > 0 },
         intent.Destroyables is { Count: > 0 },
-        intent.Cores is { Count: > 0 }));
+        intent.Cores is { Count: > 0 })];
 
     // Corpus objectives are short imperative lines, one clause per objective kind the board actually
     // carries, joined rather than assumed — "Capture the wool!" and "Destroy the enemy's monument!" are

@@ -4637,6 +4637,26 @@ these are the ones that shipped a map that could not be played as intended, and 
   it then never used, and its report describes both empty shells as "verified working" — which is what
   `B189`'s separate reviewer agent exists to catch. What the trial did **not** establish is that the boards
   are good; that is `B189`'s art direction and the composition entries behind it.
+- **A board declaring more than one objective kind now writes a `<gamemode>` PGM can load (B155) — the one
+  fatal finding of the forty-eight.** `MetaGenerator` had joined the derived modes into a single element
+  (`string.Join(' ', Gamemodes.From(…))`), so a mixed board shipped `<gamemode>dtm dtc</gamemode>`; PGM parses
+  `<gamemode>` as a **repeated** element holding one id each (`MapInfoImpl.parseGamemodes` loops
+  `getChildren("gamemode")`, resolving every one against the closed 25-value `Gamemode` enum via
+  `Gamemode.byId`, matched case-insensitively) and throws `InvalidXMLException("Unknown gamemode")` on the
+  first id it cannot resolve — so the map failed to load, not merely to describe itself oddly. The premise
+  behind the join was half right: PGM does not read `<gamemode>` to decide which modules run, but it does
+  validate the element strictly, and `MetaGenerator` and `Domain.Gamemodes`' own docstrings had flattened "not
+  authoritative" into "free text" — corrected in the same commit, alongside `destroyables-and-cores.md`'s `OB7`
+  statement, which carried the same half-truth. `XmlWriter` now emits one `<gamemode>` per mode;
+  `MapXml.DeclaredGamemode` is a list end to end rather than a scalar (`MapParser` reads every `<gamemode>`
+  element instead of the first, and `Deserializer`/`Serializer`/`MapReader`/`MapWriter`/`MapImporter` follow);
+  and the export composer refuses a declared label outside PGM's enum before it ships (`OB20`,
+  `MapExportComposer.RefuseUnknownGamemode`, checked first and against every map regardless of origin — it
+  needs no world and no resolved intent), the same shape as `OB17`/`OB19` (`docs/tools/configure.md`).
+  Confirmed against PGM's own source (`Gamemode.java`, `MapInfoImpl.java`): the enum, the loop, and the throw
+  are exactly as described. `tallow-kilnrow`, `ashfall-scar` and `basalt-reach` were the three committed maps
+  that failed to parse; their `map.xml` is corrected by hand already, and a rebuild against the fixed studio
+  no longer reproduces the fault.
 - **A sketch-built map's water lanes reach `map.xml` (no id — the one board-rule slip the audit found).**
   A lane authored on the sketch was stored and never written, so `tallow-weirgate` shipped with one door on
   its east wool for the whole match instead of a second approach opening at 45 minutes — the board that was

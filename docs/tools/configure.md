@@ -296,8 +296,10 @@ question in one image. A failed traversability links back to Build, because a br
 
 **Pre-flight's `exportReady` is not the whole export gate on a sketch-origin map.** The four checks above run
 against the stored document and the scanned/cached surface; they do not build a world and so cannot see the
-three refusals below, which only fire from the world `GET /map/{slug}/xml` and `/export` actually build. A
-sketch-origin map can therefore read pre-flight-ready and still 409 at Export — the honest answer is in *What
+four refusals below, which only fire from `GET /map/{slug}/xml` and `/export` themselves (`OB20` needs no
+world and could in principle run here too, but lives with the other three so a caller checks one place for
+everything Pre-flight cannot see). A sketch-origin map can therefore read pre-flight-ready and still 409 at
+Export — the honest answer is in *What
 it refuses*, not in this table.
 
 **Region tree** is the read-only inspect view of everything the generator produced. On an intent map the
@@ -337,6 +339,14 @@ across — every spawn and wool reads as isolated whatever the build areas say. 
 intent with no world: round-trip and mirror pass, buildability skips, traversability fails on both spawns, and
 `GET /xml` answers 409. Configure writes the XML for a world that exists; it cannot author one in a vacuum.
 
+**Every export checks its declared `<gamemode>` first, regardless of origin.** `MapExportComposer` reads the
+document's own `gamemode` list before anything else in `Compose` — no world, no resolved intent, nothing
+sketch-specific — and answers **409** `{error, message, rule: "OB20", ids}` the moment one of the author's own
+ids falls outside PGM's closed enum (`destroyables-and-cores.md` §1, `OB7`, which states it in full: PGM
+parses `<gamemode>` as a repeated element and fails the whole map to load on the first id `Gamemode.byId`
+cannot resolve). The studio's own generator never writes an id outside that set; the check exists for a
+hand-edited label or a corpus-derived one the export would otherwise ship straight into a load failure.
+
 **A sketch-origin map's export answers two more 409s, from `MapExportComposer` itself rather than from
 pre-flight.** They exist because `Compose` already builds that map's world and holds its resolved
 intent, so it can ask them against the ground the rasterizer actually produced instead of the plan's
@@ -350,14 +360,15 @@ re-enters the compile gate, and the case a map begun in Sketch never reaches at 
   `world-export/decoration.md` §3.1), refused rather than dropped because those three are authored and a
   silent drop would discard a placement the author can see on the canvas. Ground cover is exempt.
 
-A third check, `OB18`, briefly refused a kit/material mismatch as an unwinnable goal (an obsidian destroyable
+`OB18` briefly refused a kit/material mismatch as an unwinnable goal (an obsidian destroyable
 against an iron pickaxe); the premise was false — an iron pickaxe breaks obsidian, it just does not drop it,
 so the mismatch made a raid slow, not impossible — and the refusal was removed (`destroyables-and-cores.md`
 §8). `TeamsGenerator` still pairs the generated kit's pickaxe to the goal's material, which is why the case
 is rare in practice, but a hand-edited kit that leaves the pairing off no longer blocks export.
 
-Each answers `{error, message, rule, …}`, the last field a named list scoped to the refusal — `findings` for
-OB17 (one per goal, each carrying its own `rule`/`message`/`subjects`), `props` for OB19 (`{kind, id, x, z}`
+Each answers `{error, message, rule, …}`, the last field a named list scoped to the refusal — `ids` for OB20
+(every declared id PGM's enum did not recognize), `findings` for OB17 (one per goal, each carrying its own
+`rule`/`message`/`subjects`), `props` for OB19 (`{kind, id, x, z}`
 each). Neither applies to a map with no stored sketch layout: they read the sketch's own rasterized ground
 and dressing list, which only a sketch-origin map carries.
 
@@ -403,8 +414,8 @@ writes: apart from the import and one island toggle, **Configure has exactly one
 |---|---|---|
 | `GET /map/{slug}/preflight` | `{intentMap, exportReady, checks[], log[], traversability}` | 404 |
 | `GET /map/{slug}/regions/tree` | the generated region tree, grouped | 404 |
-| `GET /map/{slug}/xml` | the `map.xml` | **409** `{error, message, isolated[]}` not traversable · **409** `{error, message, findings[]}` OB17 · **409** `{error, message, rule, props[]}` OB19 · **422** `{error, rule: "DR-DOC", message, subject, field}` dressing document invalid · 404 |
-| `GET /map/{slug}/export` | the world ZIP | the same 409s and 422 as `/xml` (sketch-origin maps only), plus non-2xx with a message on a zip/IO failure |
+| `GET /map/{slug}/xml` | the `map.xml` | **409** `{error, message, rule, ids[]}` OB20 (every map, checked first) · **409** `{error, message, isolated[]}` not traversable · **409** `{error, message, findings[]}` OB17 · **409** `{error, message, rule, props[]}` OB19 · **422** `{error, rule: "DR-DOC", message, subject, field}` dressing document invalid · 404 |
+| `GET /map/{slug}/export` | the world ZIP | the same 409s and 422 as `/xml` (OB17/OB19/DR-DOC sketch-origin maps only; OB20 and not-traversable apply regardless of origin), plus non-2xx with a message on a zip/IO failure |
 
 ## Driving it without the UI
 

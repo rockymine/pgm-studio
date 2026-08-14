@@ -20,7 +20,7 @@ public static class Deserializer
         {
             Name = Str(d, "name"),
             Version = Str(d, "version"),
-            DeclaredGamemode = Str(d, "gamemode"),
+            DeclaredGamemode = ListOf(d, "gamemode").Select(g => g as string ?? "").Where(g => g.Length > 0).ToList(),
             Objective = Str(d, "objective"),
             MaxBuildHeight = AsIntN(Val(d, "max_build_height")),
             Authors = ListOf(d, "authors").Select(a => DecodeAuthor(AsDict(a))).ToList(),

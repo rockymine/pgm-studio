@@ -179,6 +179,14 @@ DTM/DTC quirk — it is exactly as true for CTW, where what makes a map CTW is t
 the text in `<gamemode>`. PGM never reads that element to decide: each module contributes a `MapTag` when it
 parses anything, and the gamemode falls out of which modules produced one.
 
+"Not the truth" describes what the element decides, not how strictly it is read — the two were conflated once
+(`B155`) and the map paid for it. PGM still parses `<gamemode>` as a **repeated** element holding one id each
+(`MapInfoImpl.parseGamemodes` loops `getChildren("gamemode")`), resolves every one against its own closed,
+25-value `Gamemode` enum (`Gamemode.byId`, matched case-insensitively, no splitting), and throws
+`InvalidXMLException("Unknown gamemode")` — failing the whole map to load — the moment one does not match. A
+board declaring two objective kinds must therefore write two `<gamemode>` elements, never one value with a
+space in it; the export gate refuses a label outside that enum before it ships (`OB20`, `configure.md`).
+
 | Module present | Gamemode |
 |---|---|
 | `<wools>` | CTW |
@@ -552,7 +560,11 @@ better one — but it is a generation choice now, not a legality check, and the 
 kit an author hand-edits away from it.
 
 A second export-time refusal, `OB19` — a tree, a boulder or a building standing inside a goal's clearance —
-is a dressing rule rather than an objective one, and its home is `world-export/decoration.md` §3.1.
+is a dressing rule rather than an objective one, and its home is `world-export/decoration.md` §3.1. A third,
+`OB20` — a declared `<gamemode>` outside PGM's own closed enum, checked by `MapExportComposer` before either
+of the other two — is stated in full above, at `OB7`: it exists because `OB7`'s own "not the truth" was once
+misread as "unvalidated", and `MetaGenerator` wrote a joined, space-separated value on that reading (`B155`).
+`configure.md` carries the endpoint-facing summary, the same split as `OB17`.
 
 ---
 
