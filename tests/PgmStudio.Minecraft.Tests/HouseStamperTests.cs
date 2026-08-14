@@ -1083,6 +1083,85 @@ public sealed class HouseStamperTests
                 await Assert.That(Surface(plan, x, hallRidge)).IsEqualTo(top);
     }
 
+    /// <summary>
+    /// <b>A march that can never be struck still stops.</b> The wing's ridge marches on the hall's wall exactly
+    /// as <see cref="A_wing_stopping_short_makes_a_T_and_one_drawn_through_makes_a_plus"/> does, but this wing's
+    /// own pitch is steeper than the hall's — so its ridge stands taller than the hall's ever gets, and nothing
+    /// in the hall's own roof is ever tall enough for the march to hit. Left unbounded that runs the march the
+    /// whole length of the hall and out its far overhang, the drawn-through shape of a wing whose footprint was
+    /// never drawn that far. Bounded by the wing's own distance from its own eave instead, the march reaches a
+    /// few courses in and stops there — short of the hall's far wall, whatever the hall's own roof is doing.
+    /// </summary>
+    [Test]
+    public async Task A_steeper_wings_march_stops_short_of_a_shallower_halls_far_wall()
+    {
+        var plan = new Footprint([
+            new Wing(0, 5, 9, 9, Form: RoofForm.Gable, Pitch: 1),
+            new Wing(2, 0, 6, 5, Form: RoofForm.Gable, Pitch: 2),
+        ]);
+        var style = new HouseStyle();
+        var world = Built(plan, style);
+
+        // The hall exactly as it would have stood with no wing at all, to read what its own roof does on its
+        // own — the only oracle that does not beg the question of what the march ought to leave behind.
+        var lone = new VoxelWorld();
+        HouseStamper.Stamp(lone, new Footprint(0, 5, 9, 9), FloorY, style);
+
+        var wing = plan.Wings[1];
+        var untouched = 0;
+        for (var x = wing.MinX; x <= wing.MaxX; x++)
+        {
+            // A course this many blocks from its own wall is the furthest the march may ever reach for it.
+            var reachable = Math.Min(x - wing.MinX, wing.MaxX - x);
+            for (var z = wing.MaxZ + reachable + 1; z <= 12; z++)
+                for (var y = FloorY; y <= FloorY + 20; y++)
+                {
+                    var marched = world.GetBlock(x, y, z);
+                    var alone = lone.GetBlock(x, y, z);
+                    await Assert.That((marched.Id, marched.Data)).IsEqualTo((alone.Id, alone.Data));
+                    if (alone.Id != Blocks.Air) untouched++;
+                }
+        }
+        // The bound has to actually be crossed somewhere, or the comparison holds vacuously.
+        await Assert.That(untouched).IsGreaterThan(0);
+    }
+
+    /// <summary>
+    /// <b>The same stop, where the hall has no ridge to strike at all.</b> A flat lid never rises, so a probe
+    /// waiting to be "hit" by the hall's own roof waits forever: every course of the wing's gable is eventually
+    /// taller than the flat lid's one constant course, and the old march ran every one of them the length of
+    /// the hall. The distance bound does not care that the hall is flat — it never asked the hall anything.
+    /// </summary>
+    [Test]
+    public async Task A_march_against_a_flat_roofed_hall_stops_without_a_ridge_to_strike()
+    {
+        var plan = new Footprint([
+            new Wing(0, 5, 9, 9, Form: RoofForm.Flat),
+            new Wing(2, 0, 6, 5, Form: RoofForm.Gable, Pitch: 1),
+        ]);
+        var style = new HouseStyle();
+        var world = Built(plan, style);
+
+        var lone = new VoxelWorld();
+        HouseStamper.Stamp(lone, new Footprint(0, 5, 9, 9), FloorY, style with { Form = RoofForm.Flat });
+
+        var wing = plan.Wings[1];
+        var untouched = 0;
+        for (var x = wing.MinX; x <= wing.MaxX; x++)
+        {
+            var reachable = Math.Min(x - wing.MinX, wing.MaxX - x);
+            for (var z = wing.MaxZ + reachable + 1; z <= 12; z++)
+                for (var y = FloorY; y <= FloorY + 20; y++)
+                {
+                    var marched = world.GetBlock(x, y, z);
+                    var alone = lone.GetBlock(x, y, z);
+                    await Assert.That((marched.Id, marched.Data)).IsEqualTo((alone.Id, alone.Data));
+                    if (alone.Id != Blocks.Air) untouched++;
+                }
+        }
+        await Assert.That(untouched).IsGreaterThan(0);
+    }
+
     private static VoxelWorld Built(Footprint plan, HouseStyle style)
     {
         var world = new VoxelWorld();

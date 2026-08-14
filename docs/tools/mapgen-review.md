@@ -210,13 +210,16 @@ ground was chosen to suit it.
 
 ## The dressing
 
-**MG8 — An L or a T house is buildable and unauthorable.** `Footprint` holds wings, `HouseStamper` walks them
-as one landmass, and the roof of a building is the union of its wings' roofs with the cross-gable built where
-they meet (G172). Nothing can ask for it: `HouseProp.Points` is exactly two opposite corners and
-`HouseProp.Footprint()` returns one rectangle, and every `new Footprint(...)` in the tree is single-winged. So
-two abutting rectangles in the same style do not merge — they are stamped as two buildings that happen to
-touch, with two roofs colliding. Reaching the wing model from the dressing path is the single change that
-turns a row of boxes into a village.
+**MG8's document-model half shipped: an L or a T house is authorable now, not merely buildable (`G177`).**
+`HouseProp.Wings` states one or more touching rectangles and `Decorator` composes them into one `Footprint`
+before stamping, the same wing model `HouseStamper` has always walked as one landmass, roofing the junction
+with a march or a cross-gable as the rectangles drawn call for (`G172`). A generator authoring `dressing.props`
+directly can therefore write a joined building today — nothing in the document model still refuses it. What is
+still missing is the generation side MG8 was really asking for: nothing in `tools/mapgen` composes several
+touching `HouseProp` wings when it places a building, so a village generated today is still a row of single
+rectangles even though the capability under it is no longer the reason. Filing that as its own fault wants a
+deliberate village generator to file it against (`MG9`'s "narrower than the fix this entry asks for" is the
+placement half; composing wings once placement is deliberate is the shape half).
 
 **MG9 — A forest is placed, not scattered.** `tools/mapgen` no longer samples trees or buildings onto the
 ground at all — `B118` deleted the sampler outright, along with `trees`/`village`/`houses` and the passes

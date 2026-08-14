@@ -44,8 +44,9 @@ export function defaultProp(kind, seed) {
     case "house":
       // No style of its own until one is picked from the library: an empty object deserializes to the C#
       // HouseStyle defaults, which is the built-in shell — so a building drawn and never dressed is still a
-      // building rather than nothing.
-      return { ...base, points: [], front: null, style: {} };
+      // building rather than nothing. `wings` is a list of rectangles rather than one — the canvas only ever
+      // drags the first, but the shape carries more the day something else authors one (G177).
+      return { ...base, wings: [], front: null, style: {} };
     default:
       throw new Error(`Unknown prop kind: ${kind}`);
   }
@@ -60,8 +61,9 @@ export const isMarker = (propOrKind) => {
 };
 
 /** Whether a kind is placed by dragging a rectangle rather than by tracing an outline. A building is the only
- *  one: its footprint is what the stamper takes, and a stamper takes a box. Stored as two opposite corners in
- *  `points`, so it moves, mirrors and reshapes through the same code every other area prop does. */
+ *  one: its footprint is what the stamper takes, and a stamper takes a box — one or more of them. Stored as
+ *  `wings`, a list of rectangles each as two opposite corners, so a wing moves, mirrors and reshapes through
+ *  the same per-rectangle code the single box always used; the canvas drags only the first one today. */
 export const isRect = (propOrKind) =>
   (typeof propOrKind === "string" ? propOrKind : propOrKind?.kind) === "house";
 
@@ -74,16 +76,20 @@ export const MAX_FOOTPRINT = 192;
 
 /** A rect prop's footprint in whole blocks, or null when it is no building — too small to hold two walls and
  *  an inside, or past `MAX_FOOTPRINT`. The same floor and ceiling `HouseProp.Footprint` holds, so the canvas
- *  refuses exactly what the stamp would. */
+ *  refuses exactly what the stamp would. Reads the wing being dragged or edited — the canvas only ever offers
+ *  one at a time — so this is the live-drag and single-wing check; the server is the authority on a whole
+ *  multi-wing plan's own covered area (G177). */
 export function rectFootprint(prop) {
   const plan = rectPlan(prop);
   if (!plan) return null;
   return plan.width < 3 || plan.depth < 3 || plan.width * plan.depth > MAX_FOOTPRINT ? null : plan;
 }
 
-/** The rectangle two corners bound, whatever its size — what a drag in progress is, before it is judged. */
+/** The rectangle two corners bound, whatever its size — what a drag in progress is, before it is judged. Takes
+ *  either an in-progress trace (`{points: [c1, c2]}`, the shape a rectangle drag builds before it is placed) or
+ *  a stored building (`{wings: [[c1, c2], ...]}`), reading its first wing — the one the canvas actually drags. */
 export function rectPlan(prop) {
-  const points = prop?.points ?? [];
+  const points = prop?.wings?.[0] ?? prop?.points ?? [];
   if (points.length < 2) return null;
   const minX = Math.floor(Math.min(points[0][0], points[1][0]));
   const minZ = Math.floor(Math.min(points[0][1], points[1][1]));
@@ -93,10 +99,12 @@ export function rectPlan(prop) {
 }
 
 /** A prop's position, as one point: a marker's own cell, else the middle of what it covers. What a label is
- *  anchored to and what a click is measured against. */
+ *  anchored to and what a click is measured against. A building's middle is measured across every wing's own
+ *  corners, so a multi-wing plan anchors in the middle of the whole shape rather than of its first rectangle
+ *  alone. */
 export function propAnchor(prop) {
   if (isMarker(prop)) return [prop.x, prop.z];
-  const points = prop?.points ?? [];
+  const points = isRect(prop) ? (prop?.wings ?? []).flat() : (prop?.points ?? []);
   if (!points.length) return [0, 0];
   const xs = points.map(([x]) => x), zs = points.map(([, z]) => z);
   return [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...zs) + Math.max(...zs)) / 2];
@@ -109,10 +117,13 @@ export function propReach(prop) {
   return 0;
 }
 
-/** Move a prop by (dx, dz), returning a new prop. Areas move point by point, so a drag keeps their shape. */
+/** Move a prop by (dx, dz), returning a new prop. Areas move point by point, and a building's every wing moves
+ *  the same delta together, so a drag keeps every part's shape and the wings' own relative positions. */
 export function translateProp(prop, dx, dz) {
   if (isMarker(prop)) return { ...prop, x: Math.round(prop.x + dx), z: Math.round(prop.z + dz) };
-  return { ...prop, points: (prop.points ?? []).map(([x, z]) => [Math.round(x + dx), Math.round(z + dz)]) };
+  const shift = ([x, z]) => [Math.round(x + dx), Math.round(z + dz)];
+  if (isRect(prop)) return { ...prop, wings: (prop.wings ?? []).map(wing => wing.map(shift)) };
+  return { ...prop, points: (prop.points ?? []).map(shift) };
 }
 
 /**

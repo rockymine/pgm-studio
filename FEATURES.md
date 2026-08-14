@@ -3850,6 +3850,30 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   at all. With its own eave still in place every course struck a block at its first step and the march moved
   nothing, which a printed height map showed at once and no seal test could have. The march is the meet's half
   of the pair: a wing that *projects* never marches, having already cut the roof it pushed into. (G172)
+- **A march stops on its own, and not only where something taller happens to meet it (G172).** "Hits a block,
+  and stops" was the whole rule, and it broke wherever no block was ever going to be tall enough to hit: a
+  wing at pitch 2 against a hall at pitch 1 on equal storeys, and a gabled wing against a **flat**-roofed hall
+  with no ridge anywhere to strike. A course whose crown stood above everything in its way never got struck,
+  so it marched the neighbour's whole length and came out its far overhang — the drawn-through shape, reached
+  by a rectangle that was drawn to stop at the wall. `HouseStamper.Marches`' stop is now two conditions, either
+  of which ends it: the neighbour's own roof field already stands as tall at that cell (read from its
+  `RoofField` directly, not probed from placed blocks), or the course has marched as far from its own eave as
+  its own roof plane would ever climb — a bound that does not depend on meeting anything, so it holds even
+  where the neighbour's surface never rises to meet it. Caught by a printed cut, one plane at a time, of both
+  reproducing footprints; the flood-fill seal test that gates a hole in a roof's body passed on both before the
+  fix, which is why the cut and not the seal test is what the fix was checked against. (G172)
+- **A building prop states a list of touching rectangles, and `Decorator` composes them into one house before
+  stamping (G177).** `HouseProp.Wings` replaces the single pair of corners a placed building used to carry, so
+  an L, a T or a U is authorable directly — by an agent writing `dressing.props`, and today only by one, since
+  the canvas tool to add a second wing interactively is not built (`S60`). `HouseProp.Footprint()` composes the
+  wings into one `Minecraft.Footprint`, each wing held to the same three-block floor a single rectangle always
+  needed and the whole plan to `MaxFootprint` measured over the cells the wings actually cover rather than the
+  box drawn round them. `Decorator.PlaceHouse` turns every wing round the symmetry orbit and stamps the
+  composed plan once through `HouseStamper`'s `Footprint` overload, and the overlap rule (`MG7`) now reads two
+  authored rectangles overlapping as two buildings colliding — still a drop — without a prop's own wings ever
+  reaching that test against each other, since the whole plan is checked as one before any of it is placed.
+  `DressingScope`'s provenance and goal-clearance readers turn and read the same composed, per-wing-grown plan
+  rather than the bounding box round it, so an L's notch is not claimed as structure it never stood on. (G177)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds

@@ -39,18 +39,22 @@ const CIRCLE_POINTS = 24;      // a marker's footprint is a disc; this many poin
 export function paintDressing(painter, props, { selectedId = null, mirrorPoint = null, order = 1 } = {}) {
   for (const prop of props ?? []) {
     for (let k = order - 1; k >= 0; k--) {          // images first, so the real prop draws over them
-      const ring = footprint(prop, k, mirrorPoint);
-      if (ring.length < 3) continue;
-      const kind = KIND_STYLE[prop.kind] ?? KIND_STYLE.boulder;
-      const selected = k === 0 && prop.id === selectedId;
-      painter.ring(ring, {
-        fill: kind.fill,
-        fillAlpha: k === 0 ? FILL_ALPHA : GHOST_ALPHA,
-        fillRule: "evenodd",
-        stroke: kind.stroke,
-        width: selected ? SELECTED_WIDTH : 1,
-        alpha: k === 0 ? 1 : 0.7,
-      });
+      // A building of several wings draws one ring per wing rather than one outline of the whole plan — an L
+      // or a T reads as two touching rectangles instead of the traced silhouette a build actually stamps, which
+      // is the honest picture of what this layer can draw without walking the plan's own outline (G177).
+      for (const ring of footprints(prop, k, mirrorPoint)) {
+        if (ring.length < 3) continue;
+        const kind = KIND_STYLE[prop.kind] ?? KIND_STYLE.boulder;
+        const selected = k === 0 && prop.id === selectedId;
+        painter.ring(ring, {
+          fill: kind.fill,
+          fillAlpha: k === 0 ? FILL_ALPHA : GHOST_ALPHA,
+          fillRule: "evenodd",
+          stroke: kind.stroke,
+          width: selected ? SELECTED_WIDTH : 1,
+          alpha: k === 0 ? 1 : 0.7,
+        });
+      }
     }
     // The line an author dragged, over the band it implies — a path and a water channel are edited as their
     // route, so the route has to stay visible inside its own band.
@@ -77,7 +81,7 @@ export function paintDressingPreview(painter, kind, points, radius) {
     if (plan && plan.width * plan.depth > MAX_FOOTPRINT) {
       Object.assign(style, { fill: "#c0392b", fillAlpha: 0.12, stroke: "#c0392b", width: 1.5 });
     }
-    const rect = rectRing({ points });
+    const rect = rectRing(points);
     if (rect.length >= 3) painter.ring(rect, style);
     return;
   }
@@ -95,31 +99,30 @@ export function paintMarkerGhost(painter, kind, x, z, reach, valid = true) {
   });
 }
 
-/** The footprint of one image of a prop, as an open ring the painter can fill. */
-function footprint(prop, image, mirrorPoint) {
+/** Every ring one image of a prop draws — more than one only for a building of several wings. */
+function footprints(prop, image, mirrorPoint) {
   const mirror = (x, z) => (image === 0 || !mirrorPoint ? [x, z] : mirrorPoint(x, z, image));
 
   if (isMarker(prop)) {
     const [ax, az] = mirror(...propAnchor(prop));
-    return disc(ax, az, propReach(prop));
+    return [disc(ax, az, propReach(prop))];
   }
   if (prop.kind === "path" || prop.kind === "water") {
     const ring = pathRing(prop);
-    return ring.length ? ring.slice(0, -1).map(([x, z]) => mirror(x, z)) : [];
+    return [ring.length ? ring.slice(0, -1).map(([x, z]) => mirror(x, z)) : []];
   }
-  // A rectangle is stored as two opposite corners, so it is opened into four before being mirrored — turning
-  // the corners is what makes a quarter-turn image swap the building's width and depth, exactly as the export
-  // does when it fans the same two points.
-  if (isRect(prop)) return rectRing(prop).map(([x, z]) => mirror(x, z));
-  return (prop.points ?? []).map(([x, z]) => mirror(x, z));
+  // A rectangle is stored as two opposite corners, so each wing is opened into four before being mirrored —
+  // turning the corners is what makes a quarter-turn image swap a wing's width and depth, exactly as the
+  // export does when it fans the same two points.
+  if (isRect(prop)) return wingRings(prop).map(ring => ring.map(([x, z]) => mirror(x, z)));
+  return [(prop.points ?? []).map(([x, z]) => mirror(x, z))];
 }
 
-/** The four corners of a rect prop, spanning the whole blocks it covers — so the drawn outline is the
+/** The four corners of one rect prop's wing, spanning the whole blocks it covers — so the drawn outline is the
  *  footprint the stamp takes rather than the two cells the pointer happened to be over. */
-function rectRing(prop) {
-  const plan = rectFootprint(prop);
+function rectRing(points) {
+  const plan = rectFootprint({ points });
   if (!plan) {
-    const points = prop?.points ?? [];
     if (points.length < 2) return [];
     const [x0, z0] = points[0], [x1, z1] = points[1];
     const [ax, bx] = [Math.min(x0, x1), Math.max(x0, x1) + 1];
@@ -128,6 +131,13 @@ function rectRing(prop) {
   }
   const { minX, minZ, width, depth } = plan;
   return [[minX, minZ], [minX + width, minZ], [minX + width, minZ + depth], [minX, minZ + depth]];
+}
+
+/** Every wing of a rect prop, each as its own four-corner ring — one entry for the plain building every board
+ *  carries, more for an L, a T or a U (G177). */
+function wingRings(prop) {
+  const wings = prop?.wings ?? (prop?.points ? [prop.points] : []);
+  return wings.map(rectRing).filter(ring => ring.length >= 3);
 }
 
 function disc(cx, cz, radius) {

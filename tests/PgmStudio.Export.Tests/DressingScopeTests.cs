@@ -173,7 +173,7 @@ public sealed class DressingScopeTests
         // The anchor corners sit outside the clearance rect, but the 5×5 footprint they enclose reaches into
         // its [16,16]-[24,24] corner — a building is checked as the whole floor it stamps, not a single point.
         var violations = DressingScope.GoalClearanceViolations(
-            Layout(",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"points\":[[23,23],[27,27]]}]}"),
+            Layout(",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"wings\":[[[23,23],[27,27]]]}]}"),
             GoalAt20);
 
         await Assert.That(violations.Count).IsEqualTo(1);
@@ -216,7 +216,7 @@ public sealed class DressingScopeTests
     public async Task A_dressing_placed_house_reports_its_whole_footprint()
     {
         var footprints = DressingScope.StructureFootprints(Layout(
-            ",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"points\":[[0,0],[3,2]]}]}"))
+            ",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"wings\":[[[0,0],[3,2]]]}]}"))
             .SelectMany(entry => entry.Cells).ToList();
 
         await Assert.That(footprints).Contains((0, 0));
@@ -230,7 +230,7 @@ public sealed class DressingScopeTests
         // rot_180 about the origin: a house at (0,0)-(3,2) has a second image at (-3,-2)-(0,0) (GoalClearanceViolations
         // fans the same way for the same reason — a stamped extent is symmetric wherever the building is).
         var footprints = DressingScope.StructureFootprints(Layout(
-            ",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"points\":[[10,10],[13,12]]}]}"))
+            ",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"wings\":[[[10,10],[13,12]]]}]}"))
             .SelectMany(entry => entry.Cells).ToList();
 
         await Assert.That(footprints).Contains((10, 10));
@@ -246,7 +246,7 @@ public sealed class DressingScopeTests
         // interior this test starts from; the eaves ring one cell further out is what a style's overhang and
         // verge actually cover, and it has to be in the claim or it reads by material alone.
         var footprints = DressingScope.StructureFootprints(Layout(
-            ",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"points\":[[20,20],[23,22]],"
+            ",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"wings\":[[[20,20],[23,22]]],"
             + "\"style\":{\"overhang\":2}}]}"))
             .SelectMany(entry => entry.Cells).ToHashSet();
 
@@ -269,7 +269,7 @@ public sealed class DressingScopeTests
         // Two images of one authored house (rot_180) are two different buildings standing in two different
         // places, not the same claim repeated — StructureFinder tells them apart by this owner alone.
         var entries = DressingScope.StructureFootprints(Layout(
-            ",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"points\":[[10,10],[13,12]]}]}"))
+            ",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"wings\":[[[10,10],[13,12]]]}]}"))
             .ToList();
 
         await Assert.That(entries.Count).IsEqualTo(2);
@@ -284,8 +284,8 @@ public sealed class DressingScopeTests
     {
         var entries = DressingScope.StructureFootprints(Layout(
             ",\"dressing\":{\"props\":["
-            + "{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"points\":[[0,0],[3,2]]},"
-            + "{\"kind\":\"house\",\"id\":\"h2\",\"seed\":1,\"points\":[[40,40],[43,42]]}]}"))
+            + "{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"wings\":[[[0,0],[3,2]]]},"
+            + "{\"kind\":\"house\",\"id\":\"h2\",\"seed\":1,\"wings\":[[[40,40],[43,42]]]}]}"))
             .ToList();
 
         await Assert.That(entries.Select(entry => entry.Owner).Distinct().Count()).IsEqualTo(entries.Count);

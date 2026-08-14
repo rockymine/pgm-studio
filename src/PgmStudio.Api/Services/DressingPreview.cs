@@ -213,7 +213,7 @@ public static class DressingPreview
         PathProp path => path with { Points = Recentre(path.Points, x, z) },
         WaterProp water => water with { Points = Recentre(water.Points, x, z) },
         FloraProp area => area with { Points = Recentre(area.Points, x, z) },
-        HouseProp house => house with { Points = Recentre(house.Points, x, z) },
+        HouseProp house => house with { Wings = RecentreWings(house.Wings, x, z) },
         _ => prop,
     };
 
@@ -224,6 +224,18 @@ public static class DressingPreview
         double minZ = points.Min(point => point[1]), maxZ = points.Max(point => point[1]);
         double dx = x - (minX + maxX) / 2, dz = z - (minZ + maxZ) / 2;
         return [.. points.Select(point => new[] { point[0] + dx, point[1] + dz })];
+    }
+
+    /// <summary>The same recentring, over every wing at once: the delta is measured across all of them so a
+    /// multi-wing building keeps its own shape, and then every wing's own two corners are carried by it.</summary>
+    private static List<List<double[]>> RecentreWings(IReadOnlyList<IReadOnlyList<double[]>> wings, int x, int z)
+    {
+        if (wings.Count == 0) return [];
+        var corners = wings.SelectMany(wing => wing).ToList();
+        double minX = corners.Min(point => point[0]), maxX = corners.Max(point => point[0]);
+        double minZ = corners.Min(point => point[1]), maxZ = corners.Max(point => point[1]);
+        double dx = x - (minX + maxX) / 2, dz = z - (minZ + maxZ) / 2;
+        return [.. wings.Select(wing => wing.Select(point => new[] { point[0] + dx, point[1] + dz }).ToList())];
     }
 
     /// <summary>A flat sample patch, painted and then dressed by the real passes. Flat on purpose: a preview is

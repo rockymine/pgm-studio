@@ -220,10 +220,13 @@ export class DressingController {
       if (!this.#onTerrain(bx, bz)) return true;
       this.#doc.update(prop.id, { x: bx, z: bz });
     } else {
-      const points = (prop.points ?? []).map(([x, z]) => [x, z]);
+      // A building's grip reshapes its first wing — the one the canvas drags — leaving any others it may
+      // carry untouched; every other area prop reshapes its own traced points the same way it always did.
+      const rect = isRect(prop);
+      const points = (rect ? (prop.wings?.[0] ?? []) : (prop.points ?? [])).map(([x, z]) => [x, z]);
       if (this.#pointDrag.idx >= points.length) { this.#pointDrag = null; return false; }
       points[this.#pointDrag.idx] = [bx, bz];
-      this.#doc.update(prop.id, { points });
+      this.#doc.update(prop.id, rect ? { wings: [points, ...(prop.wings ?? []).slice(1)] } : { points });
     }
     this.#pointDrag.moved = true;
     this.refreshHandles();
@@ -250,7 +253,7 @@ export class DressingController {
     while (layer.firstChild) layer.removeChild(layer.firstChild);
     const prop = this.#selectedId ? this.#doc.byId(this.#selectedId) : null;
     if (!prop) return;
-    const points = isMarker(prop) ? [propAnchor(prop)] : (prop.points ?? []);
+    const points = isMarker(prop) ? [propAnchor(prop)] : isRect(prop) ? (prop.wings?.[0] ?? []) : (prop.points ?? []);
     points.forEach(([wx, wz], i) => {
       const idx = isMarker(prop) ? -1 : i;
       const sp = toScreen(wx, wz, this.#getViewport());
@@ -297,7 +300,7 @@ export class DressingController {
     // too small to hold two walls and an inside is a misfire rather than a tiny building.
     if (isRect(kind)) {
       if (!rectFootprint({ points })) { this.#callbacks.onPreviewChanged?.(); return; }
-      const placed = this.#doc.add({ ...this.#settings[kind], points, seed: this.#nextSeed(kind) });
+      const placed = this.#doc.add({ ...this.#settings[kind], wings: [points], seed: this.#nextSeed(kind) });
       this.select(placed.id);
       this.#callbacks.onChanged?.();
       this.#callbacks.onPlaced?.();
@@ -348,7 +351,7 @@ function seedFor(kind) { return { path: 5, water: 11, flora: 7, house: 13, tree:
 // How far an area prop reaches from its own middle — its bounding radius, which is what a click is measured
 // against. Coarse on purpose: picking is about reaching the thing, not about its exact edge.
 function areaReach(prop) {
-  const points = prop.points ?? [];
+  const points = isRect(prop) ? (prop.wings ?? []).flat() : (prop.points ?? []);
   if (!points.length) return 0;
   const [ax, az] = propAnchor(prop);
   return Math.max(...points.map(([x, z]) => Math.hypot(x - ax, z - az))) + (prop.radius ?? 0);

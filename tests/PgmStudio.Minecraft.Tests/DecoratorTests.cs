@@ -556,7 +556,7 @@ public sealed class DecoratorTests
         // Before B85 the pass only skipped the individual wood/leaf cells that landed on a non-air block,
         // which still let the rest of the tree stand half inside the walls; now the whole tree is refused.
         var (world, top) = Plateau();
-        var house = new HouseProp { Id = "h", Points = [[16, 16], [24, 24]], Style = new HouseStyle { Door = DoorMaterial.Air } };
+        var house = new HouseProp { Id = "h", Wings = [[[16, 16], [24, 24]]], Style = new HouseStyle { Door = DoorMaterial.Air } };
         var tree = new TreeProp { Id = "t", X = 20, Z = 20, Species = "oak", Height = 14, Seed = 5 };
 
         var tally = Decorator.Decorate(world, Context(top, [house, tree]));
@@ -573,8 +573,8 @@ public sealed class DecoratorTests
         // Two authored rectangles that overlap are two buildings colliding, not one winning a race to write
         // the same blocks — the second is refused outright rather than raised through the first's walls.
         var (world, top) = Plateau();
-        var first = new HouseProp { Id = "h1", Points = [[10, 10], [18, 18]], Style = new HouseStyle { Door = DoorMaterial.Air } };
-        var second = new HouseProp { Id = "h2", Points = [[14, 14], [22, 22]], Style = new HouseStyle { Door = DoorMaterial.Air } };
+        var first = new HouseProp { Id = "h1", Wings = [[[10, 10], [18, 18]]], Style = new HouseStyle { Door = DoorMaterial.Air } };
+        var second = new HouseProp { Id = "h2", Wings = [[[14, 14], [22, 22]]], Style = new HouseStyle { Door = DoorMaterial.Air } };
 
         var tally = Decorator.Decorate(world, Context(top, [first, second]));
 
@@ -602,7 +602,7 @@ public sealed class DecoratorTests
         // (B78) — not on everything a tall crown happens to pass over. A trunk planted clear of a low building
         // still gets to spread its canopy over the roof, the way a real tree overhangs a shed beside it.
         var (world, top) = Plateau();
-        var house = new HouseProp { Id = "h", Points = [[24, 16], [30, 24]], Style = new HouseStyle { Door = DoorMaterial.Air } };
+        var house = new HouseProp { Id = "h", Wings = [[[24, 16], [30, 24]]], Style = new HouseStyle { Door = DoorMaterial.Air } };
         var tree = new TreeProp { Id = "t", X = 20, Z = 20, Species = "oak", Height = 16, Seed = 5 };
 
         var tally = Decorator.Decorate(world, Context(top, [house, tree]));
@@ -689,7 +689,7 @@ public sealed class DecoratorTests
                 top.Remove((x, z));
 
         var tally = Decorator.Decorate(world, Context(top,
-            [new HouseProp { Id = "h", Points = [[4, 4], [10, 8]], Style = new HouseStyle { Door = DoorMaterial.Air } }],
+            [new HouseProp { Id = "h", Wings = [[[4, 4], [10, 8]]], Style = new HouseStyle { Door = DoorMaterial.Air } }],
             symmetry: "rot_180"));
 
         await Assert.That(tally.Houses).IsEqualTo(0);

@@ -33,7 +33,7 @@ public sealed class DressingJsonTests
                 new TreeProp { Id = "t", Seed = 3, X = 1, Z = 1 },
                 new BoulderProp { Id = "b", Seed = 4, X = 2, Z = 2 },
                 new FloraProp { Id = "f", Seed = 5, Points = [[0, 0], [10, 0], [10, 10]] },
-                new HouseProp { Id = "h", Seed = 6, Points = [[0, 0], [5, 5]] },
+                new HouseProp { Id = "h", Seed = 6, Wings = [[[0, 0], [5, 5]]] },
             ],
         });
 
@@ -59,6 +59,22 @@ public sealed class DressingJsonTests
         var doc = DressingJson.Deserialize(
             """{"props":[{"kind":"path","id":"p1","seed":1,"points":[[0,0],[1,1]],"pave":{"id":13,"data":0,"kind":"solid"}}]}""");
         await Assert.That(((PathProp)doc.Props[0]).Pave).IsEqualTo((TerrainMaterial)new SolidMaterial(13));
+    }
+
+    // ── the house upgrade (G177) ───────────────────────────────────────────────────────────────────────
+    [Test]
+    public async Task A_stored_house_with_two_corners_reads_as_one_wing()
+    {
+        // A placed building was exactly two corners before G177; a document a map already carries — or one
+        // written against the old shape by hand — still has to build the same house.
+        var doc = DressingJson.Deserialize(
+            """{"props":[{"kind":"house","id":"h1","seed":1,"points":[[0,0],[10,6]]}]}""");
+        var house = (HouseProp)doc.Props[0];
+
+        await Assert.That(house.Wings.Count).IsEqualTo(1);
+        var plan = house.Footprint();
+        await Assert.That(plan).IsNotNull();
+        await Assert.That((plan!.MinX, plan.MinZ, plan.Width, plan.Depth)).IsEqualTo((0, 0, 11, 7));
     }
 
     // ── enum case (B130) ───────────────────────────────────────────────────────────────────────────────
