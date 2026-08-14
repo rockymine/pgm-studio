@@ -161,6 +161,38 @@ workaround once per map. Then `B120` finds out whether the result actually answe
     claim that every generated destroy map was unwinnable.
   - **A document that describes something unbuilt names its task id, or says nothing.**
 
+- [ ] **B129 — The section renderer cuts one plane, so everything behind the cut is missing.**
+  `SectionRender` samples a **single one-block-thick slice** and paints each cell with the block that stands
+  exactly on the plane. That is the right reading for checking a `layered` material, which is what it was
+  built for, and it is the wrong one for looking at a map: a cut through solid ground is a solid slab,
+  because a solid slab is genuinely what sits on that plane. A cut through Ashen Quarry's town at z=60 is
+  two courses of stone brick over forty-seven of andesite over bedrock, measured by `--column` and rendered
+  faithfully — and it shows none of the buildings standing a few blocks either side of it, none of the room
+  interiors, and nothing of the town's silhouette. The picture is accurate and nearly uninformative, which
+  is a harder fault to notice than a wrong one.
+
+  **The studio already computes exactly the missing quantity, on the other side of the house.**
+  `Analysis/Layer/SideView.Build` projects a map's vertical solid segments onto a `(primary × y)` grid as a
+  **depth map** — for each cell, the distance from the viewer to the nearest solid along the perpendicular
+  axis, `0` nearest and `-1` for a cell nothing occupies — for four viewing directions (`nz`/`pz`/`nx`/`px`,
+  with the positive-side ones mirroring left-to-right). `GET /map/{slug}/segments` serves it and
+  `js/studio/canvas/sideview-canvas.js` paints it as a depth-tinted cross-section. So a section that shows
+  what stands behind the plane is not a new idea here; it is an existing one the block-level renderer never
+  reached, and the two want the same projection.
+
+  Two differences are real and have to be settled rather than glossed. `SideView` reads `layer_segments`
+  rows, which exist for a map the studio has **scanned**, while `SectionRender` reads a region directory or
+  a `VoxelWorld` — so the projection wants doing over voxels rather than over segments, and the shared thing
+  is the algorithm, not the input. And a depth map answers *how far* rather than *what*, so a depth-only
+  section loses the material identity that makes the current one worth having: the two are complementary
+  modes of one renderer, not a replacement.
+
+  **The existing instance is greyscale, and colour is the half it never got.**
+  `sideview-canvas.js` ramps nearest to farthest across light stone to very dark, so depth reads and category
+  does not. A block-level section drawing the same projection can carry both — distance as value, material or
+  category as hue — which is the pairing that makes a building behind the cut legible as a building rather
+  than as a lighter smudge.
+
 - [ ] **B104 — A destroy goal is stamped above the build cap.** On `duskfell` the gold destroyable stands at
   y21–23 and `max_build_height` is 20; on `corvale` the emerald stands at y18–20 against the same cap. Blocks
   above the cap can still be broken, so this does not make the goal unbreakable — but a destroyable or a core
