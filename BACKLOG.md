@@ -1027,6 +1027,37 @@ the thing `B181` names, which makes the document upstream of the boards rather t
 
   *found implementing `G183`, 2026-08-14 · `Wing` · `HouseProp.Wings` · `docs/tools/sketch.md`.*
 
+- [ ] **G186 — Wings should touch and never overlap, share a full edge, and let the author choose the joint.
+  The author's design, and the model does none of it.** Stated in the author's own vocabulary: two footprints
+  **abut** when no block belongs to both and there is no gap between them; they **overlap** when blocks are
+  shared. The intended model allows only the first.
+
+  | The rule (author) | Today |
+  |---|---|
+  | Footprints **never overlap** — they only touch | Overlap is allowed, and every shipped junction fixture **depends** on it |
+  | A touching wing shares its **full edge** with the larger rectangle, as the box model does | Nothing checks; a wing shifted two blocks along still builds |
+  | Rectangles not touching are **distinct houses** | Nothing checks; a wing three blocks clear builds as one prop with a gap in it |
+  | Two rectangles join only where **one is smaller** — 5 × 5 against 5 × 5 is a 10 × 5, not a house | Nothing checks; equal squares join |
+  | **March or project is the author's choice** per joint, defaulting to march | Derived from geometry — `G172` states outright that it is "not a mode, it is which rectangle was drawn" |
+
+  `Footprint`, `HouseProp` and `structures.md` all say wings are "expected to touch" in prose and **enforce it
+  nowhere**: `HouseProp.Footprint()` checks a 3 × 3 minimum per wing and a cell budget for the whole plan, and
+  nothing else.
+
+  **It is implementable, and the march is already the mechanism for both joints.** A march lays roof cells
+  beyond the wing's own rectangle into its neighbour and stops on a condition; a project under this model is
+  the same loop that does not stop, closing with a gable and an overhang where it leaves the far wall. What
+  changes is what *triggers* each — a stated choice on the joint rather than how far a rectangle was drawn —
+  and that the cut which opens one loft keys on the **shared edge** instead of on overlapped cells, which is
+  also the answer `G185` is parked on.
+
+  **What it costs, so the decision is made with the price attached.** `G172`'s "not a mode" doctrine is
+  overturned. `Crossed()` and every overlapping fixture stop describing a legal footprint and want redrawing as
+  abutting pairs with a stated joint. The four validation rules above want rule ids and refusals, since an
+  overlap or a partial touch would otherwise build something the model has no account of.
+
+  *author, 2026-08-14 · stated as intent; measured against `Footprint`, `HouseProp.Footprint()` and the junction fixtures.*
+
 - [ ] **G185 — A wing that abuts its neighbour keeps its loft one course too few. Parked on a question.**
   Measured with the ridge axis held constant, a 5-wide wing of growing depth against a hall at `z 5…9`:
 
