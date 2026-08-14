@@ -3,6 +3,7 @@ using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Schema;
 using PgmStudio.Data.Theme;
+using PgmStudio.Minecraft;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -73,24 +74,37 @@ public sealed class RoofStyleGetEndpoint(HousePartStore store) : EndpointWithout
     }
 }
 
-public sealed class RoofStyleCreateEndpoint(HousePartStore store) : Endpoint<RoofStyleSaveRequest, RoofStyleDetail>
+/// <summary>POST /api/roof-styles. 400 `{error, findings}` when the roof or the verge is a log or a ground
+/// material — the one part of <see cref="HouseStyleValidation.Check"/> a roof part can answer on its own,
+/// since <see cref="HouseStyle.RoofSlab"/> is a house-level knob a roof style carries no column for and
+/// checking the slab/pitch pairing here would refuse a roof meant to pair with one set later.</summary>
+public sealed class RoofStyleCreateEndpoint(HousePartStore store, HousePartLibrary library)
+    : Endpoint<RoofStyleSaveRequest, RoofStyleDetail>
 {
     public override void Configure() { Post("/roof-styles"); AllowAnonymous(); }
 
     public override async Task HandleAsync(RoofStyleSaveRequest req, CancellationToken ct)
     {
+        var composed = await library.ComposeRoofDraftAsync(req, ct);
+        var findings = HouseStyleValidation.CheckRoofFamily(composed.Roof, composed.Verge);
+        if (findings.Count > 0) { await HouseStyleGateResponse.WriteAsync(HttpContext, findings, ct); return; }
         var id = await store.CreateRoofAsync(
             HousePartLibrary.RowOf(req), HousePartLibrary.RoofCourseRowsOf(req), ct);
         await Send.OkAsync(HousePartMapping.ToDetail(id, req), ct);
     }
 }
 
-public sealed class RoofStyleUpdateEndpoint(HousePartStore store) : Endpoint<RoofStyleSaveRequest, RoofStyleDetail>
+/// <summary>PUT /api/roof-styles/{id}. Refuses the same way <see cref="RoofStyleCreateEndpoint"/> does.</summary>
+public sealed class RoofStyleUpdateEndpoint(HousePartStore store, HousePartLibrary library)
+    : Endpoint<RoofStyleSaveRequest, RoofStyleDetail>
 {
     public override void Configure() { Put("/roof-styles/{id}"); AllowAnonymous(); }
 
     public override async Task HandleAsync(RoofStyleSaveRequest req, CancellationToken ct)
     {
+        var composed = await library.ComposeRoofDraftAsync(req, ct);
+        var findings = HouseStyleValidation.CheckRoofFamily(composed.Roof, composed.Verge);
+        if (findings.Count > 0) { await HouseStyleGateResponse.WriteAsync(HttpContext, findings, ct); return; }
         var id = Route<long>("id");
         var updated = await store.UpdateRoofAsync(
             id, HousePartLibrary.RowOf(req), HousePartLibrary.RoofCourseRowsOf(req), ct);
@@ -153,6 +167,9 @@ public sealed class StoreyStyleGetEndpoint(HousePartStore store) : EndpointWitho
     }
 }
 
+/// <summary>POST /api/storey-styles. 400 `{error, findings}` when the storey's window names a block that is not
+/// the kind its form needs — a stair lattice or an arched window whose block is not a stair, or a slab band
+/// whose block is not a single slab.</summary>
 public sealed class StoreyStyleCreateEndpoint(HousePartStore store)
     : Endpoint<StoreyStyleSaveRequest, StoreyStyleDetail>
 {
@@ -160,12 +177,15 @@ public sealed class StoreyStyleCreateEndpoint(HousePartStore store)
 
     public override async Task HandleAsync(StoreyStyleSaveRequest req, CancellationToken ct)
     {
+        var findings = HouseStyleValidation.CheckWindow("windows", HousePartLibrary.WindowOf(HousePartLibrary.RowOf(req)));
+        if (findings.Count > 0) { await HouseStyleGateResponse.WriteAsync(HttpContext, findings, ct); return; }
         var id = await store.CreateStoreyAsync(
             HousePartLibrary.RowOf(req), HousePartLibrary.StoreyCourseRowsOf(req), ct);
         await Send.OkAsync(HousePartMapping.ToDetail(id, req), ct);
     }
 }
 
+/// <summary>PUT /api/storey-styles/{id}. Refuses the same way <see cref="StoreyStyleCreateEndpoint"/> does.</summary>
 public sealed class StoreyStyleUpdateEndpoint(HousePartStore store)
     : Endpoint<StoreyStyleSaveRequest, StoreyStyleDetail>
 {
@@ -173,6 +193,8 @@ public sealed class StoreyStyleUpdateEndpoint(HousePartStore store)
 
     public override async Task HandleAsync(StoreyStyleSaveRequest req, CancellationToken ct)
     {
+        var findings = HouseStyleValidation.CheckWindow("windows", HousePartLibrary.WindowOf(HousePartLibrary.RowOf(req)));
+        if (findings.Count > 0) { await HouseStyleGateResponse.WriteAsync(HttpContext, findings, ct); return; }
         var id = Route<long>("id");
         var updated = await store.UpdateStoreyAsync(
             id, HousePartLibrary.RowOf(req), HousePartLibrary.StoreyCourseRowsOf(req), ct);

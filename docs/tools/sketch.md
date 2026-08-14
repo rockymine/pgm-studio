@@ -562,7 +562,17 @@ Dressing does not repaint the Blocks overlay, which shows the painter's surface 
 ## Refusals and complaints
 
 The sketch has almost no gate, and that is deliberate: an unfinished drawing is a legitimate state, and the
-tool saves it. Five things nonetheless refuse.
+tool saves it. Six things nonetheless refuse.
+
+**A bound room style is checked before the layout is stored.** `PUT .../sketch` reads `roomStyles.cage` and
+`roomStyles.spawn` off the posted layout and runs each through the house-style gate (`docs/tools/library.md`'s
+Refusals, rule ids `HS1`–`HS3`) — a block named for a geometric role that is not that kind of block, a doorway
+that does not clear 2.5 blocks once its head is written in, or a roof whose own materials are wrong for its
+pitch or its family. The spawn shell is checked once more on its own (`HS4`): a patterned window (a stair
+lattice, a slab band) is refused there specifically, since a spawn window is air or glass and every other house
+is free to pattern one. Answers **400** `{error, findings}`, one finding per fault, and writes nothing. A
+layout with no `roomStyles`, or one whose snapshot does not parse as a house style at all, is not this gate's
+business and saves as it always did — only a well-formed style that is wrong is refused.
 
 **Finish refuses an empty board.** `POST .../sketch/finish` answers 422 when there is no stored layout at all,
 and again when the layout rasterizes to no ground. It does *not* ask for two islands: an island is a connected
@@ -594,7 +604,7 @@ Every endpoint is anonymous and rooted at `/api`.
 |---|---|---|---|
 | `POST /sketch` | `{name?, width?, depth?, mode?, centerX?, centerZ?}` | `{slug}` — a `map` row at `stage=sketch`. A frame seeds the `setup`; without one the layout is `{}` and the editor uses its 120×80 `rot_180` default | — |
 | `GET /map/{slug}/sketch` | — | the stored layout, or `{}` | 404 |
-| `PUT /map/{slug}/sketch` | the layout | `{ok: true}` — a **verbatim replace**, which is what makes a deletion stick | 400 non-JSON · 404 |
+| `PUT /map/{slug}/sketch` | the layout | `{ok: true}` — a **verbatim replace**, which is what makes a deletion stick | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · 404 |
 | `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{ok, orphaned}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry | 409 `{islands}` orphaned relief (`?force=true`) · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure` | 422 no layout, or no ground |
 | `DELETE /map/{slug}/sketch/discard-if-empty` | — | `{discarded}` — drops a draft still at its default name with no authors and nothing drawn | — |
@@ -710,9 +720,10 @@ Symmetry here is a **preview and a mirror flag**, not a constraint. Shapes are d
 export for every island that opted in; nothing stops an author drawing across the axis, and nothing checks that
 the two halves agree. The relief readback reports a symmetry error precisely because nothing prevents one.
 
-Nothing validates a sketch. The only questions asked of it are whether anything was drawn at all and whether a
-recompile would orphan hand-authored terrain; there is no lint, no rule set and no score. What a board plays
-like is Configure's pre-flight and, past that, a human's.
+Almost nothing validates a sketch. The only questions asked of it are whether anything was drawn at all,
+whether a recompile would orphan hand-authored terrain, and — since the house-style gate above — whether a
+bound room style is one its own geometry can be built from; there is no lint, no rule set and no score over the
+drawing itself. What a board plays like is Configure's pre-flight and, past that, a human's.
 
 **And nothing pictures one.** The sketch is the only stage between a plan and a world with no raster of its
 own: `GET /plans/{id}/png` renders the plan board and the eight stage images render the built world (`B90`),

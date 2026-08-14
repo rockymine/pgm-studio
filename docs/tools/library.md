@@ -294,6 +294,13 @@ is a post all the way up — so only their first course is read. A part with no 
 finish, exactly as an unbound theme bucket does, which is what makes a room style that only changes its roof
 worth storing.
 
+**A building seated into terrain does not carry a footing** (author). `sill` is laid one block proud of the
+walls on every side by default — a footing a building meets the ground on — and the off switch is naming it
+**air**: a sill that resolves to air is a course the stamper skips like any other, so the walls meet the ground
+flush. `PgmStudio.Minecraft.HouseStyle.NoFooting` is that choice's name in the code the presets are built from,
+so an author reading the model finds "no footing" rather than rediscovering a bare air material from a comment.
+Bind an air-kind style to the `sill` part to reach the same choice from the library.
+
 **Windows and rails are picked as a block, not as a style**, and the reason is worth keeping: their metadata is
 *geometry* — which way a stair climbs, which half a slab fills — while a material resolves its own data from
 where the cell sits, which would turn every stair in a wall the same way. A window's `hostBlock` names the
@@ -374,9 +381,40 @@ part kinds answer the same way: a roof, storey or porch a house still wears is r
 style's courses cascade, and the styles they bound stay. That asymmetry is deliberate: the things something
 else depends on are protected, and the things nothing depends on are the author's to discard.
 
+**A house style that names the wrong kind of block is refused where it is saved.** `PgmStudio.Minecraft`'s
+`HouseStyleValidation.Check` runs on every `POST`/`PUT` to `/room-styles` (over the composed shell), the two
+`/roof-styles` verbs (over the roof and the verge — the two materials a roof part carries on their own) and the
+two `/storey-styles` verbs (over the storey's own window), and on the two other doors a `HouseStyle` snapshot
+enters the studio through: `PUT /map/{slug}/sketch`'s bound `roomStyles.cage` and `roomStyles.spawn`
+(`docs/tools/sketch.md`'s Refusals). Every finding names one of four stable rule ids
+(`PgmStudio.Minecraft.HouseStyleRules`), so a caller can act on `rule` rather than parsing `message`:
+
+- **`HS1` — a stair or a slab, unchecked.** `doorHead.block` must be a stair; its `fillBlock` under `upperSlab`
+  must be a single slab; a `windows.block` under `stairLattice` or `arched` must be a stair, and under
+  `slabBanded` a single slab; `roofSlab` itself must be a single slab when it names one at all — a **double**
+  slab (43/125/181) does not count, since it ignores the half a window or a door head writes into its data and
+  is a full cube regardless. Getting it wrong used to build silently — a solid lintel instead of an arch, a
+  pane/air/pane stripe instead of a band — and now answers **400**
+  `{error: "invalid house style", findings: [{rule, field, message}]}`, one finding per fault, naming the field
+  and the block that was wrong. Nothing is substituted for the author.
+- **`HS2` — a door too short to walk through.** A door head takes the doorway's top course, so a three-course
+  door clears two full courses plus, if the fill is genuinely an upper slab, half of a third — 2.5 at the least
+  a door may clear (author). A style whose fill only *claims* to be a slab, or is a solid beam by design, clears
+  a flat 2.0 and is refused the same way.
+- **`HS3` — a roof's own materials.** A slab named as the whole-block `roof` while `roofSlab` is unset builds a
+  see-through roof at a whole block of rise; a log or a ground material named as `roof` or `verge` is refused
+  outright, whichever role it is asked to fill.
+
+**`HS4` is not folded into that gate, because it is not a property of the style.** A spawn's window is either
+air or glass — a patterned form (a stair lattice, a slab band) is refused **only** when the style is the one
+bound as `roomStyles.spawn`; the same forms are shipped correctly on `Alpine` and `Workshop`, two of the ten
+built-in presets, which are not spawns. `HouseStyleValidation.SpawnFindings` is the standalone check for it,
+called nowhere `Check` is.
+
 Beyond that the library barely refuses. A save needs a name. A storey's clear floors at three. An unbound
-bucket that still paints is dropped rather than rejected. Nothing validates that a composed style is *good* —
-the preview is the check.
+bucket that still paints is dropped rather than rejected. Nothing yet validates a *composition* as a whole — a
+roof and a storey that would look wrong stacked, a window sized bigger than the wall that holds it — only that
+each geometry-carrying field names the kind of block its own form requires.
 
 ## The API
 
@@ -393,9 +431,9 @@ Every endpoint is anonymous, rooted at `/api`, and takes no map.
 | `GET /themes/{id}/json` | the painter-ready theme JSON — the form a map snapshots — as `{themeJson: "…"}`, the document itself being the **string** in that field |
 | `POST /themes/import` | lift a whole theme JSON in: one style per bucket plus a theme. 400, never 500, on bad JSON |
 | `DELETE /themes/{id}` | forget a theme; its bindings cascade, its styles stay |
-| `GET`·`POST`·`PUT`·`DELETE /roof-styles[/{id}]` · `…/storey-styles` · `…/porch-styles` | the three part libraries; each `POST …/preview` renders a draft on a sample building |
+| `GET`·`POST`·`PUT`·`DELETE /roof-styles[/{id}]` · `…/storey-styles` · `…/porch-styles` | the three part libraries; each `POST …/preview` renders a draft on a sample building. `POST`/`PUT …/roof-styles` and `…/storey-styles` answer 400 `{error, findings}` when the house-style gate refuses the roof/verge or the window (Refusals, above); porches carry nothing the gate checks |
 | `GET /room-styles` · `GET /room-styles/{id}` | the room library and one room style's parts and courses |
-| `POST /room-styles` · `PUT /room-styles/{id}` | compose a building from parts and styles |
+| `POST /room-styles` · `PUT /room-styles/{id}` | compose a building from parts and styles. 400 `{error, findings}` when the composed shell fails the house-style gate |
 | `GET /room-styles/doors` | the doors a room may be stamped with |
 | `GET /room-styles/{id}/json` | the stamper's own JSON — what a sketch binds and a building prop snapshots — as `{styleJson: "…"}`, likewise a string to unwrap |
 | `POST /room-styles/preview` · `POST /room-styles/preview-snapshot` | the shell a set of courses composes to, or the one a stored `HouseStyle` snapshot builds |
@@ -431,8 +469,12 @@ because no map references one; and there is no way to push an edit into a map th
 snapshot is the guarantee that a library edit cannot rebuild a shipped map, so the missing "re-apply to these
 maps" is the price of it rather than a gap.
 
-Nothing checks a composition. A style, a theme, a part and a room are all saved as stated; the previews are the
-only feedback, and they show what would be built rather than judging it.
+A theme and a house's own proportions are still saved as stated — a style, a theme, a bare porch, and every
+knob that is not one of the three shapes of fault above; the previews are the only feedback on those, and they
+show what would be built rather than judging it. A room, a roof and a storey style are checked for the one
+thing (Refusals, above): whether each block a form needs a particular kind of is that kind, whether a door
+clears the least height one may, and whether a roof's own materials fit its pitch and its family — not whether
+the composition as a whole reads well.
 
 The theme half starts empty. The seed puts in materials and room styles — the presets are buildings — so a
 studio that has never composed one has fifty-odd styles and no themes, and a sketch's themes live in the sketch

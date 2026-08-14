@@ -149,7 +149,10 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
             Part = course.Part, Ordinal = course.Ordinal, StyleId = course.StyleId, Height = course.Height,
         });
 
-    private static WindowStyle WindowOf(StoreyStyleRow row) => new()
+    /// <summary>internal rather than private: the storey-style endpoints check a draft's window against
+    /// <see cref="HouseStyleValidation.CheckWindow"/> before anything is stored, off the exact
+    /// <see cref="WindowStyle"/> composition would build — not a second reading of the same DTO.</summary>
+    internal static WindowStyle WindowOf(StoreyStyleRow row) => new()
     {
         Form = RoomStyleLibrary.WindowFormOf(row.WindowForm),
         HostBlock = row.WindowHostBlock,

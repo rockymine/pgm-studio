@@ -11,7 +11,9 @@ using PgmStudio.Contracts;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Export;
 using PgmStudio.Geom.Relief;
+using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Sketch;
 
 namespace PgmStudio.Api.Endpoints;
@@ -143,7 +145,10 @@ public sealed class SketchGetEndpoint(MapRepository repo, PgmDb db) : EndpointWi
     }
 }
 
-/// <summary>PUT /api/map/{slug}/sketch — replace the stored layout blob (the bridge's getState()).</summary>
+/// <summary>PUT /api/map/{slug}/sketch — replace the stored layout blob (the bridge's getState()). 400
+/// `{error, findings}` when a bound <c>roomStyles.cage</c> or <c>roomStyles.spawn</c> fails
+/// <see cref="HouseStyleValidation"/> — this is where those snapshots actually enter the studio, so it is where
+/// a wrong block or a see-through roof is refused rather than silently stamped at export.</summary>
 public sealed class SketchPutEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
 {
     public override void Configure() { Put("/map/{slug}/sketch"); AllowAnonymous(); }
@@ -159,9 +164,46 @@ public sealed class SketchPutEndpoint(MapRepository repo, PgmDb db) : EndpointWi
         try { using var _ = JsonDocument.Parse(bytes); }   // reject non-JSON; don't store garbage
         catch { await Send.ResponseAsync(new { error = "invalid JSON" }, 400, ct); return; }
 
+        var findings = SketchRoomStyleGate.Findings(Encoding.UTF8.GetString(bytes));
+        if (findings.Count > 0)
+        {
+            await Send.ResponseAsync(new { error = "invalid house style", findings }, 400, ct);
+            return;
+        }
+
         await SketchStore.SaveAsync(db, map.Id, bytes, ct);
         await Send.OkAsync(new { ok = true }, ct);
     }
+}
+
+/// <summary>The house-style gate a sketch's bound <c>roomStyles</c> runs through before the layout is stored —
+/// the wool cage against the universal checks, and the spawn against those <em>plus</em> the spawn-only
+/// window-plainness rule, since only a spawn is checked for that one
+/// (<see cref="HouseStyleValidation.SpawnFindings"/>'s own docs say why).</summary>
+internal static class SketchRoomStyleGate
+{
+    public static IReadOnlyList<HouseStyleFinding> Findings(string layoutJson)
+    {
+        // A layout the room-style shape does not parse against is not this gate's business — the blob is
+        // authoring-source JSON of arbitrary shape, and only a well-formed roomStyles snapshot is checked, the
+        // same leniency RoomStyleScope already gives export.
+        (HouseStyle? Wool, HouseStyle? Spawn) styles;
+        try { styles = RoomStyleScope.StylesOf(layoutJson); }
+        catch (JsonException) { return []; }
+
+        var findings = new List<HouseStyleFinding>();
+        if (styles.Wool is { } wool)
+            findings.AddRange(Prefixed("roomStyles.cage", HouseStyleValidation.Check(wool)));
+        if (styles.Spawn is { } spawn)
+        {
+            findings.AddRange(Prefixed("roomStyles.spawn", HouseStyleValidation.Check(spawn)));
+            findings.AddRange(Prefixed("roomStyles.spawn", HouseStyleValidation.SpawnFindings(spawn)));
+        }
+        return findings;
+    }
+
+    private static IEnumerable<HouseStyleFinding> Prefixed(string root, IReadOnlyList<HouseStyleFinding> findings)
+        => findings.Select(finding => finding with { Field = $"{root}.{finding.Field}" });
 }
 
 /// <summary>PUT /api/map/{slug}/sketch/from-plan — replace the stored layout with one a plan compiled,
