@@ -91,6 +91,35 @@ which finds out whether the result actually answers.
     claim that every generated destroy map was unwinnable.
   - **A document that describes something unbuilt names its task id, or says nothing.**
 
+- [ ] **B130 — A malformed dressing document is discarded whole, and the export says 200.**
+  `DressingJson.Deserialize` ends `catch (JsonException) { return DressingDoc.Empty; }`, commented "a
+  hand-edited blob must not fail an export". So any parse error anywhere in the document — one prop's enum
+  written in the case the documentation shows rather than the case the converter accepts, one polymorphic
+  `kind` that is not the object's first key — throws away **every prop on the map** and the build succeeds
+  with nothing to read. `DeserializeProp` swallows the same way, returning null.
+
+  The failure this produces is the worst shape a failure can have here: an author writes fifty placed props,
+  one of them has a wrong enum case, and the map builds **bare**, exports clean, passes every gate, and
+  renders as a board somebody forgot to dress. Nothing names the prop, the field or the fact that anything
+  was dropped. It was found by an agent authoring a board in this run, which noticed only because it went
+  looking for trees it had placed and could not find them; a run that did not check would have shipped the
+  bare board and reported the dressing model as not working.
+
+  **The comment is the bug.** An export that silently ships less than it was asked for is not a kinder
+  outcome than one that refuses — it is the same class of fault as a malformed map being accommodated rather
+  than rejected, which `MapParser.EnsureSupported` refuses on principle and `supported-maps.md` writes down,
+  and the same class as a vendored shim blanking an icon instead of failing loudly. A dressing document that
+  does not parse is an authoring error, and an authoring error wants a message naming what did not parse.
+
+  So: the parse failure surfaces rather than being swallowed, with the offending prop and field named, and
+  it joins the export gate's other refusals as a 4xx carrying a rule id rather than a 500. Two things
+  travel with it. The case a prop's enums are written in should be **one** case — whichever the converter
+  accepts — and the documentation's examples must be in it, since a document whose examples do not
+  round-trip is the fastest thing in any document to go quietly wrong. And a polymorphic `kind` that must be
+  the first key is a serialization detail leaking into an authoring contract; if the reader can be made
+  order-insensitive it should be, and if it cannot, the constraint belongs in `sketch.md` next to the prop
+  table rather than being discovered by a 500.
+
 - [ ] **B129 — The section renderer cuts one plane, so everything behind the cut is missing.**
   `SectionRender` samples a **single one-block-thick slice** and paints each cell with the block that stands
   exactly on the plane. That is the right reading for checking a `layered` material, which is what it was
