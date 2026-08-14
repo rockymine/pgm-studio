@@ -59,9 +59,13 @@ public static class SketchWorldBuilder
         // it goes first: the fill's top block IS the floor course now that a room's floor sinks one course into
         // its platform (WX17), so laid afterwards it buries the floor and the wool pad standing on it.
         StampRoomFloors(world, terrain.SurfaceTop, intent.Structures);
-        foreach (var floor in intent.Structures?.RoomFloors ?? [])
+        var roomFloors = intent.Structures?.RoomFloors ?? [];
+        for (var i = 0; i < roomFloors.Count; i++)
+        {
+            var floor = roomFloors[i];
             provenance.ClaimRect((int)Math.Floor(floor.MinX), (int)Math.Floor(floor.MinZ),
-                (int)Math.Ceiling(floor.MaxX), (int)Math.Ceiling(floor.MaxZ), ProvenanceLayer.Structure);
+                (int)Math.Ceiling(floor.MaxX), (int)Math.Ceiling(floor.MaxZ), ProvenanceLayer.Structure, $"roomfloor:{i}");
+        }
 
         // ── Wool cages (framed by their plan piece + entries, or the marker-anchored default) ────────
         var resolvedWools = new List<WoolIntent>(wools.Count);
@@ -77,12 +81,13 @@ public static class SketchWorldBuilder
             {
                 Frame = frame, FloorY = fy, WoolSlug = slug, Ground = terrain.SurfaceTop, Shell = woolStyle,
             });
-            provenance.ClaimRect(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ, ProvenanceLayer.Structure);
+            var woolOwner = $"wool:{i}";
+            provenance.ClaimRect(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ, ProvenanceLayer.Structure, woolOwner);
             // One marker per wool room — the room is already one entry per orbit image (PlanCompiler fans
             // team-outer), so no orbit math is needed here to keep a mirrored board's markers matching.
             GoalMarkerStamper.Stamp(world, (frame.MinX + frame.MaxX) / 2, (frame.MinZ + frame.MaxZ) / 2,
                 markerFloor, BlockColors.BlockDamage(slug), GoalMarkerShape.Cube);
-            provenance.Claim((frame.MinX + frame.MaxX) / 2, (frame.MinZ + frame.MaxZ) / 2, ProvenanceLayer.Structure);
+            provenance.Claim((frame.MinX + frame.MaxX) / 2, (frame.MinZ + frame.MaxZ) / 2, ProvenanceLayer.Structure, woolOwner);
             woolFrame[i] = frame;
             woolFloor[i] = fy;
             resolvedWools.Add(w);   // monuments filled in below, once spawn cubes place them
@@ -92,8 +97,9 @@ public static class SketchWorldBuilder
         // monLoc[(woolIndex, team)] = the air cell where that team places that wool.
         var monLoc = new Dictionary<(int Wool, string Team), Pt>();
         var resolvedSpawns = new List<SpawnIntent>(intent.Spawns.Count);
-        foreach (var s in intent.Spawns)
+        for (var spawnIndex = 0; spawnIndex < intent.Spawns.Count; spawnIndex++)
         {
+            var s = intent.Spawns[spawnIndex];
             var room = SpawnRoom(s);
             var frame = room.Frame;
             var fy = FrameFloor(frame, terrain.SurfaceTop, spawnStyle);
@@ -105,19 +111,21 @@ public static class SketchWorldBuilder
                 Frame = frame, FloorY = fy, TeamColor = WoolDataForTeam(s.Team, teams),
                 CapturedWools = [.. captured.Select(x => ColorSlug(x.w, teams))], Shell = spawnStyle,
             }).Monuments;
-            provenance.ClaimRect(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ, ProvenanceLayer.Structure);
+            provenance.ClaimRect(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ, ProvenanceLayer.Structure, $"spawn:{spawnIndex}");
 
             for (var k = 0; k < placed.Count && k < captured.Count; k++)
                 monLoc[(captured[k].i, s.Team)] = new Pt(placed[k].X, placed[k].Y, placed[k].Z);
 
             // The spawn's renewable iron: each placeable cube beside the room (WX8); an unplaceable
-            // marker stamps nothing — the validator already flagged it (WX9).
+            // marker stamps nothing — the validator already flagged it (WX9). Each cube is its own claim —
+            // it stands apart from the room rather than being part of its shell.
+            var ironIndex = 0;
             foreach (var iron in room.Iron)
                 if (iron.Placeable)
                 {
                     StructureStamper.StampIronCubeAt(world, terrain.SurfaceTop, iron.MinX, iron.MinZ, iron.Size);
                     provenance.ClaimRect(iron.MinX, iron.MinZ, iron.MinX + iron.Size - 1, iron.MinZ + iron.Size - 1,
-                        ProvenanceLayer.Structure);
+                        ProvenanceLayer.Structure, $"spawn:{spawnIndex}:iron:{ironIndex++}");
                 }
 
             resolvedSpawns.Add(new SpawnIntent
@@ -200,7 +208,10 @@ public static class SketchWorldBuilder
         // A dressing-placed building is a structure the author chose, not scenery the way a tree or a boulder
         // is (docs/world-export/decoration.md) — its footprint claims Structure last, over whatever ground
         // provenance the terrain under it carried, the same "later pass wins" rule every stamp above follows.
-        provenance.Claim(DressingScope.StructureFootprints(layoutJson), ProvenanceLayer.Structure);
+        // One claim call per house per orbit image, so each keeps the owner that names it rather than all of
+        // them collapsing into one call with no identity of their own.
+        foreach (var (owner, cells) in DressingScope.StructureFootprints(layoutJson))
+            provenance.Claim(cells, ProvenanceLayer.Structure, owner);
 
         // ── Observer platform (floating at the authored Y) ───────────────────────────────────────────
         int spawnX, spawnY, spawnZ;
@@ -271,16 +282,22 @@ public static class SketchWorldBuilder
     private static void ClaimStructures(WorldProvenance provenance, StructureIntent? s)
     {
         if (s is null) return;
-        foreach (var w in s.Walls)
-            provenance.ClaimRect(w.MinX, w.MinZ, w.MaxX, w.MaxZ, ProvenanceLayer.Structure);
-        foreach (var ic in s.IronCubes)
+        for (var i = 0; i < s.Walls.Count; i++)
         {
-            var (minX, minZ, maxX, maxZ) = StructureStamper.IronCubeFootprint(ic.X, ic.Z);
-            provenance.ClaimRect(minX, minZ, maxX, maxZ, ProvenanceLayer.Structure);
+            var w = s.Walls[i];
+            provenance.ClaimRect(w.MinX, w.MinZ, w.MaxX, w.MaxZ, ProvenanceLayer.Structure, $"wall:{i}");
         }
-        foreach (var line in s.RedstoneLines)
+        for (var i = 0; i < s.IronCubes.Count; i++)
+        {
+            var (minX, minZ, maxX, maxZ) = StructureStamper.IronCubeFootprint(s.IronCubes[i].X, s.IronCubes[i].Z);
+            provenance.ClaimRect(minX, minZ, maxX, maxZ, ProvenanceLayer.Structure, $"ironcube:{i}");
+        }
+        for (var i = 0; i < s.RedstoneLines.Count; i++)
+        {
+            var line = s.RedstoneLines[i];
             provenance.ClaimRect(Math.Min(line.X1, line.X2), Math.Min(line.Z1, line.Z2),
-                Math.Max(line.X1, line.X2), Math.Max(line.Z1, line.Z2), ProvenanceLayer.Structure);
+                Math.Max(line.X1, line.X2), Math.Max(line.Z1, line.Z2), ProvenanceLayer.Structure, $"redstoneline:{i}");
+        }
     }
 
     // Intent footprints are a fractional corner pair over whole world blocks (max exclusive); the stampers
@@ -300,24 +317,26 @@ public static class SketchWorldBuilder
     {
         if (destroyables is null) return null;
         var resolved = new List<DestroyableIntent>(destroyables.Count);
-        foreach (var b in destroyables)
+        for (var i = 0; i < destroyables.Count; i++)
         {
+            var b = destroyables[i];
             if (!DestroyableStyles.TryParse(b.Style, out var style)) continue;
+            var owner = $"destroyable:{i}";
             var (ax, az) = PositionSnap.SnapXZ(b.Anchor.X, b.Anchor.Z);
             var box = ObjectiveStamper.DestroyableBox(surface, ax, az, style, b.Float);
             ObjectiveStamper.StampDestroyable(world, box, style, DestroyableMaterials.BlockId(b.Materials));
-            provenance.ClaimRect(box.MinX, box.MinZ, box.MaxX, box.MaxZ, ProvenanceLayer.Structure);
+            provenance.ClaimRect(box.MinX, box.MinZ, box.MaxX, box.MaxZ, ProvenanceLayer.Structure, owner);
 
             // A buried bedrock plate under the goal, one course beneath the ground's own surface, so the
             // monument cannot be undermined from below and the ground under it cannot be mined away.
             var (platformMinX, platformMinZ, platformMaxX, platformMaxZ) =
                 ObjectiveFootprint.Centred(ax, az, StructureStamper.PlatformSize, StructureStamper.PlatformSize);
             StructureStamper.StampPlatform(world, surface, platformMinX, platformMinZ, platformMaxX, platformMaxZ);
-            provenance.ClaimRect(platformMinX, platformMinZ, platformMaxX, platformMaxZ, ProvenanceLayer.Structure);
+            provenance.ClaimRect(platformMinX, platformMinZ, platformMaxX, platformMaxZ, ProvenanceLayer.Structure, owner);
 
             // One marker per destroyable — already one orbit image per entry (PlanCompiler fans team-outer).
             GoalMarkerStamper.Stamp(world, ax, az, markerFloor, WoolDataForTeam(b.Owner, teams), GoalMarkerShape.Cross);
-            provenance.Claim(ax, az, ProvenanceLayer.Structure);
+            provenance.Claim(ax, az, ProvenanceLayer.Structure, owner);
 
             resolved.Add(new DestroyableIntent
             {
@@ -337,16 +356,18 @@ public static class SketchWorldBuilder
     {
         if (cores is null) return null;
         var resolved = new List<CoreIntent>(cores.Count);
-        foreach (var c in cores)
+        for (var i = 0; i < cores.Count; i++)
         {
+            var c = cores[i];
+            var owner = $"core:{i}";
             var (ax, az) = PositionSnap.SnapXZ(c.Anchor.X, c.Anchor.Z);
             var box = ObjectiveStamper.CoreBox(surface, ax, az, c.Size, c.Height, c.Float);
             ObjectiveStamper.StampCore(world, box, Blocks.Obsidian, c.Shell, c.OpenTop);
-            provenance.ClaimRect(box.MinX, box.MinZ, box.MaxX, box.MaxZ, ProvenanceLayer.Structure);
+            provenance.ClaimRect(box.MinX, box.MinZ, box.MaxX, box.MaxZ, ProvenanceLayer.Structure, owner);
 
             // One marker per core — same already-fanned-per-orbit-image reasoning as the destroyable's.
             GoalMarkerStamper.Stamp(world, ax, az, markerFloor, WoolDataForTeam(c.Owner, teams), GoalMarkerShape.Cross);
-            provenance.Claim(ax, az, ProvenanceLayer.Structure);
+            provenance.Claim(ax, az, ProvenanceLayer.Structure, owner);
 
             resolved.Add(new CoreIntent
             {

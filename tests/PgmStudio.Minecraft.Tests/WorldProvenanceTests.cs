@@ -63,4 +63,56 @@ public sealed class WorldProvenanceTests
         await Assert.That(provenance.Count).IsEqualTo(3);
         await Assert.That(provenance.LayerAt(1, 1)).IsEqualTo(ProvenanceLayer.Ground);
     }
+
+    [Test]
+    public async Task An_unclaimed_column_answers_no_owner_as_well_as_no_layer()
+    {
+        var provenance = new WorldProvenance();
+        await Assert.That(provenance.OwnerAt(5, 5)).IsNull();
+    }
+
+    [Test]
+    public async Task A_claim_with_no_owner_answers_WorldProvenance_NoOwner_not_null()
+    {
+        // NoOwner is a real, recorded answer — the column was claimed, by nothing identified — and has to
+        // read differently from a column nothing ever claimed at all.
+        var provenance = new WorldProvenance();
+        provenance.Claim(5, 5, ProvenanceLayer.Ground);
+        await Assert.That(provenance.OwnerAt(5, 5)).IsEqualTo(WorldProvenance.NoOwner);
+    }
+
+    [Test]
+    public async Task A_claim_carries_the_owner_it_was_given()
+    {
+        var provenance = new WorldProvenance();
+        provenance.Claim(5, 5, ProvenanceLayer.Structure, "house:d-h1:0");
+        await Assert.That(provenance.OwnerAt(5, 5)).IsEqualTo("house:d-h1:0");
+    }
+
+    [Test]
+    public async Task A_later_claim_overwrites_an_earlier_claims_owner_too()
+    {
+        var provenance = new WorldProvenance();
+        provenance.Claim(5, 5, ProvenanceLayer.Structure, "house:d-h1:0");
+        provenance.Claim(5, 5, ProvenanceLayer.Structure, "house:d-h2:0");
+        await Assert.That(provenance.OwnerAt(5, 5)).IsEqualTo("house:d-h2:0");
+    }
+
+    [Test]
+    public async Task ClaimRect_gives_every_column_in_it_the_same_owner()
+    {
+        var provenance = new WorldProvenance();
+        provenance.ClaimRect(0, 0, 2, 2, ProvenanceLayer.Structure, "wool:0");
+        await Assert.That(provenance.OwnerAt(0, 0)).IsEqualTo("wool:0");
+        await Assert.That(provenance.OwnerAt(2, 2)).IsEqualTo("wool:0");
+    }
+
+    [Test]
+    public async Task Claim_over_a_cell_set_gives_every_cell_the_same_owner()
+    {
+        var provenance = new WorldProvenance();
+        provenance.Claim([(0, 0), (1, 0)], ProvenanceLayer.Structure, "house:d-h1:0");
+        await Assert.That(provenance.OwnerAt(0, 0)).IsEqualTo("house:d-h1:0");
+        await Assert.That(provenance.OwnerAt(1, 0)).IsEqualTo("house:d-h1:0");
+    }
 }

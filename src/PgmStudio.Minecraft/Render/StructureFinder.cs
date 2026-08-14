@@ -42,6 +42,15 @@ namespace PgmStudio.Minecraft.Render;
 /// height alone) is dropped in favour of the recorded extent. A world with no provenance — a scanned map, or
 /// one built before this recording existed — keeps the step test, since material is the only signal it has.</para>
 ///
+/// <para><b>With provenance, a candidate column is grouped rather than flooded.</b> Adjacency alone cannot
+/// tell two buildings that genuinely touch — a terrace, a shared wall — apart, so each stamp's claim carries
+/// an owner and the candidates are partitioned by it directly: every column a given owner claimed is one
+/// finding, whether or not it happens to neighbour a column another owner claimed. Two houses that stand
+/// wall to wall read as two structures for exactly the reason a flood could never give — the columns were
+/// never one claim to begin with. A column whose claim carries no owner (<see cref="WorldProvenance.NoOwner"/>)
+/// groups with every other column that also carries none, which is the degraded reading for an unidentified
+/// claim rather than a case this reader tries to recover from.</para>
+///
 /// <para>The natural ground a component is measured against is read the same way — <c>naturalY</c> looks
 /// past the paint to the terrain underneath at every column, built or not, so a ring sampled around a
 /// component still finds real ground even where the whole map wears one material.</para>
@@ -135,17 +144,19 @@ public static class StructureFinder
         var builtCells = provenance is null
             ? new HashSet<(int X, int Z)>(topId.Where(entry => BlockRoles.IsBuilt(entry.Value)).Select(entry => entry.Key))
             : new HashSet<(int X, int Z)>(topId.Keys.Where(cell => provenance.LayerAt(cell.X, cell.Z) == ProvenanceLayer.Structure));
-        // A recorded extent needs no step discipline — the columns it names are the building, at whatever
-        // height they stand — so the flood is left free to join every one of them.
-        var effectiveMaximumStep = provenance is null ? maximumStep : int.MaxValue;
         var structures = new List<Structure>();
         var claimed = new Dictionary<(int X, int Z), int>();
 
-        var pending = new HashSet<(int X, int Z)>(builtCells);
-        while (pending.Count > 0)
+        // Provenance answers "whose claim is this" directly, so the candidates are partitioned by owner
+        // rather than flooded for adjacency; absent provenance, adjacency plus the step test is still the
+        // only signal there is.
+        var components = provenance is null
+            ? Flood(builtCells, topY, maximumStep)
+            : builtCells.GroupBy(cell => provenance.OwnerAt(cell.X, cell.Z) ?? WorldProvenance.NoOwner)
+                .Select(group => (IReadOnlyList<(int X, int Z)>)[.. group]);
+
+        foreach (var component in components)
         {
-            var seed = pending.First();
-            var component = Flood(seed, pending, topY, effectiveMaximumStep);
             if (component.Count < minimumArea) continue;
 
             var index = structures.Count;
@@ -217,11 +228,24 @@ public static class StructureFinder
             }
     }
 
+    /// <summary>Every connected component of built columns, material-and-step read: no provenance to name
+    /// which stamp a column belongs to, so adjacency is the only signal there is.</summary>
+    private static IEnumerable<IReadOnlyList<(int X, int Z)>> Flood(
+        HashSet<(int X, int Z)> builtCells, Dictionary<(int X, int Z), int> topY, int maximumStep)
+    {
+        var pending = new HashSet<(int X, int Z)>(builtCells);
+        while (pending.Count > 0)
+        {
+            var seed = pending.First();
+            yield return FloodOne(seed, pending, topY, maximumStep);
+        }
+    }
+
     /// <summary>One connected component of built columns, 8-neighbour so a diagonal corner still joins — but
     /// only across a step of <paramref name="maximumStep"/> or less, so a wall standing over a painted plaza
     /// of the same material breaks the flood instead of fusing the building to the ground it grows from.</summary>
-    private static List<(int X, int Z)> Flood((int X, int Z) seed, HashSet<(int X, int Z)> pending,
-                                               Dictionary<(int X, int Z), int> topY, int maximumStep)
+    private static List<(int X, int Z)> FloodOne((int X, int Z) seed, HashSet<(int X, int Z)> pending,
+                                                  Dictionary<(int X, int Z), int> topY, int maximumStep)
     {
         var component = new List<(int X, int Z)>();
         var queue = new Queue<(int X, int Z)>([seed]);
@@ -247,7 +271,7 @@ public static class StructureFinder
     /// <summary>Columns just outside a component — the ground it stands on, which its own roof hides. Sampled
     /// through <c>naturalY</c> rather than filtered by material, so a component still finds real ground when
     /// the whole map, floor included, wears one paint.</summary>
-    private static HashSet<(int X, int Z)> Ring(List<(int X, int Z)> component)
+    private static HashSet<(int X, int Z)> Ring(IReadOnlyList<(int X, int Z)> component)
     {
         var inside = new HashSet<(int X, int Z)>(component);
         var ring = new HashSet<(int X, int Z)>();

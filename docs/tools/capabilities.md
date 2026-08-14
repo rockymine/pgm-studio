@@ -563,6 +563,31 @@ cubes, two destroyable platforms, two goal markers, one iron cube), the largest 
 still governs a world with no recorded provenance — a scanned map, or one built before this recording
 existed — where material is the only signal there is, and it is unchanged from `B124`.
 
+**`B139` gives the claim an owner, because a layer alone still cannot separate two buildings that touch.**
+Every stamp already knows which thing it is stamping — a dressing prop carries its own `Id`, a wool cage
+belongs to a room, a spawn to a team, a destroyable or a core to its marker — and `WorldProvenance` now
+records that identity beside the layer (`WorldProvenance.OwnerAt`), defaulting to `WorldProvenance.NoOwner`
+for the rasterizer's own ground, which is not a "thing" a render would ever need to tell apart from the
+terrain beside it. `--structures` reads it directly: with a provenance record present, the candidate columns
+are **grouped by owner** instead of flooded for adjacency, so a terrace of houses that genuinely share a wall
+reads as one finding per house rather than one finding for the row. Two 3×3 buildings standing flush, same
+material, columns touching, make the case concrete — grouped by a shared (absent) owner they read as one
+18-cell blob exactly as the old flood would have read them; given two different owners for the same two
+buildings they read as two 9-cell findings, and nothing about the geometry changed to produce that. Rebuilding
+`quillon-barrow` end to end still reports **26** structures, unchanged from before `B139`, because none of its
+houses actually touch — the owner only changes the answer where a claim's neighbour is a different claim, and
+this board has none.
+
+The identity costs the sidecar real bytes, so it is written through a **small id table** rather than a string
+per cell: every distinct owner in the record gets one slot in an `owners` array, and a run carries an integer
+index into it rather than the string itself (`WorldProvenanceFile`'s `owner` field, omitted entirely for the
+common case of `NoOwner`). A run also now breaks on an owner change as well as a layer change, since two
+buildings that stand wall to wall are two runs even though both are `Structure` — the run-length encoding is
+what makes provenance safe to record at column granularity at all, and owner identity has to respect the same
+discipline or the format loses what made it cheap. On `quillon-barrow`, the id table costs 26 owner strings
+and the finer-grained runs it forces; the sidecar grows from roughly 33 KB to roughly 35 KB, an owner-per-claim
+identity for about 8% more bytes.
+
 **The prototypes** render the model rather than a map. `tools/relief` emits ten figures plus a topographic
 view, a blocks-from-an-angle view, a section and a step map, and `--corpus` measures real worlds into the
 same terms. `tools/compose` holds twenty-two galleries — boards, bodies, boxes, edges, mids, seeds, hubs —

@@ -191,16 +191,24 @@ public static class DressingScope
     /// and a column the stamper never claimed reads by material alone, which is exactly the eaves reading as
     /// foliage when a style's verge is a log. Trees, boulders and flora are absent on purpose: their
     /// material already reads unambiguously (a log, a leaf, a liquid), so provenance has nothing to correct
-    /// there — it exists for the Ground/Structure pair a material test can get wrong.</summary>
-    public static IEnumerable<(int X, int Z)> StructureFootprints(string layoutJson)
+    /// there — it exists for the Ground/Structure pair a material test can get wrong.
+    ///
+    /// <para>Grouped by owner, one entry per house per orbit image — the author's own <see cref="PlacedProp.Id"/>
+    /// plus the image number, since a mirrored copy of one authored house is a second, distinct building
+    /// standing somewhere else on the board, not the same claim repeated. Two authored houses that stand wall
+    /// to wall carry two different owners even though their stamped rings touch, which is what lets a reader
+    /// (<c>StructureFinder</c>) tell them apart without guessing from adjacency.</para></summary>
+    public static IEnumerable<(string Owner, IReadOnlyList<(int X, int Z)> Cells)> StructureFootprints(string layoutJson)
     {
         var symmetry = SymmetryOf(layoutJson);
         foreach (var prop in PropsOf(layoutJson))
         {
             if (prop is not HouseProp house) continue;
             for (var image = 0; image < symmetry.Order; image++)
-                foreach (var cell in StampedFootprint(house, symmetry, image))
-                    yield return cell;
+            {
+                var cells = StampedFootprint(house, symmetry, image).ToList();
+                if (cells.Count > 0) yield return ($"house:{house.Id}:{image}", cells);
+            }
         }
     }
 

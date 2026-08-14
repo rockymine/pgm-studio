@@ -477,6 +477,14 @@ on: two different passes claimed the two sets of cells, whatever either is made 
 claim no provenance at all — their material already answers the question a stage image asks of them (a log, a
 leaf, plain stone) without help.
 
+**Each claim carries an owner, not just the layer.** `StructureFootprints` returns one `(Owner, Cells)` pair
+per house per orbit image — `"house:{Id}:{image}"` — rather than a flat cell list, and `SketchWorldBuilder`
+claims each pair separately so the two images of one mirrored house are two identities, not one claim repeated
+at two positions. This is what lets a reader (`Render.StructureFinder`) tell two authored houses apart even
+when their stamped rings genuinely touch: a layer alone answers "is this built", and only the owner answers
+"built by which stamp" — a terrace of houses sharing a wall reads as one finding per house instead of one
+finding for the row it would otherwise flood into.
+
 **The claim is the stamp's own reach, not the rectangle someone dragged.** `StructureFootprints` used to fan
 `HouseProp.Footprint()` — the two-corner rectangle a style's walls stand on — and stop there. A roof reaches
 past that by its `overhang`, a `verge` is commonly a log, and a `BeamStyle`'s log ends run further still, so

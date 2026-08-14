@@ -4715,6 +4715,22 @@ these are the ones that shipped a map that could not be played as intended, and 
   than silently substituted. Verified on `quillon-barrow`: 46 points (23 authored trees × the map's `rot_180`
   symmetry), each a distinct, countable circle where the mass render showed solid clumps.
 
+- **A structure's claim is the stamper's own reach, and carries an owner (B139).** `HouseStamper.StampedCells`
+  now claims the exact union of cells a stamp writes — a roof ring — rather than a bounding box grown to
+  contain a corner beam's reach, which had been claiming a phantom ring between two neighbouring houses and
+  fusing them; `quillon-barrow` reports 26 structures again, the pre-fusion count, while keeping the eaves
+  reading as building. `WorldProvenance` then gives every `Structure` claim an owner alongside its layer —
+  the identity of whichever stamp made it: a dressing prop's own `Id` plus its orbit image
+  (`DressingScope.StructureFootprints`), a wool room or spawn's index, a destroyable's or core's marker —
+  defaulting to `WorldProvenance.NoOwner` for the rasterizer's own ground, which needs none. `StructureFinder`
+  reads it directly: with a provenance record present, candidate columns are grouped by owner instead of
+  flooded for adjacency, so two buildings that genuinely share a wall read as two findings rather than one —
+  proven on a synthetic pair of flush, same-material 3×3 buildings, which read as one 18-cell blob with no
+  owner recorded and as two 9-cell findings once each carries its own. `quillon-barrow`, whose houses do not
+  touch, still reports 26 end to end. The sidecar carries the identity through a small id table
+  (`WorldProvenanceFile`'s `owners` array) rather than a string per cell, with a run breaking on an owner
+  change as well as a layer change; on `quillon-barrow` the sidecar grows from about 33 KB to about 35 KB for
+  a full owner-per-claim identity.
 - **The capability handbook — what the system can be asked for, and where to say it (B91).** `docs/tools/capabilities.md`
   mapped the four documents a map is made of; it now also states the surface underneath the spec's shorthand, in
   pipeline order, every claim naming the type that carries it and the endpoint that answers it: the destroyable's

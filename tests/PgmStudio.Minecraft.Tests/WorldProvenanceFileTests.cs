@@ -73,4 +73,79 @@ public sealed class WorldProvenanceFileTests
         }
         finally { Directory.Delete(dir, recursive: true); }
     }
+
+    [Test]
+    public async Task A_written_owner_reads_back_unchanged()
+    {
+        var dir = TempDir();
+        try
+        {
+            var written = new WorldProvenance();
+            written.ClaimRect(0, 0, 3, 0, ProvenanceLayer.Structure, "house:d-h1:0");
+            WorldProvenanceFile.Write(written, dir);
+
+            var read = WorldProvenanceFile.TryRead(dir)!;
+            await Assert.That(read.OwnerAt(0, 0)).IsEqualTo("house:d-h1:0");
+            await Assert.That(read.OwnerAt(3, 0)).IsEqualTo("house:d-h1:0");
+        }
+        finally { Directory.Delete(dir, recursive: true); }
+    }
+
+    [Test]
+    public async Task Two_owners_touching_on_one_row_read_back_as_two_distinct_runs()
+    {
+        // Adjacent columns, both Structure, different owners — the encoder has to break the run on the
+        // owner change even though the layer never changes, or the two claims read back fused.
+        var dir = TempDir();
+        try
+        {
+            var written = new WorldProvenance();
+            written.ClaimRect(0, 0, 4, 0, ProvenanceLayer.Structure, "house:d-h1:0");
+            written.ClaimRect(5, 0, 9, 0, ProvenanceLayer.Structure, "house:d-h2:0");
+            WorldProvenanceFile.Write(written, dir);
+
+            var read = WorldProvenanceFile.TryRead(dir)!;
+            await Assert.That(read.OwnerAt(4, 0)).IsEqualTo("house:d-h1:0");
+            await Assert.That(read.OwnerAt(5, 0)).IsEqualTo("house:d-h2:0");
+            await Assert.That(read.LayerAt(4, 0)).IsEqualTo(ProvenanceLayer.Structure);
+            await Assert.That(read.LayerAt(5, 0)).IsEqualTo(ProvenanceLayer.Structure);
+        }
+        finally { Directory.Delete(dir, recursive: true); }
+    }
+
+    [Test]
+    public async Task A_column_with_no_owner_reads_back_as_WorldProvenance_NoOwner()
+    {
+        var dir = TempDir();
+        try
+        {
+            var written = new WorldProvenance();
+            written.Claim(0, 0, ProvenanceLayer.Ground);
+            WorldProvenanceFile.Write(written, dir);
+
+            var read = WorldProvenanceFile.TryRead(dir)!;
+            await Assert.That(read.OwnerAt(0, 0)).IsEqualTo(WorldProvenance.NoOwner);
+        }
+        finally { Directory.Delete(dir, recursive: true); }
+    }
+
+    [Test]
+    public async Task Every_owner_string_is_written_once_regardless_of_how_many_runs_repeat_it()
+    {
+        // A id-table encoding: the same owner claimed on two separate rows costs the string once, not once
+        // per run — the sidecar's own size discipline (B139).
+        var dir = TempDir();
+        try
+        {
+            var written = new WorldProvenance();
+            written.ClaimRect(0, 0, 2, 0, ProvenanceLayer.Structure, "house:d-h1:0");
+            written.ClaimRect(0, 5, 2, 5, ProvenanceLayer.Structure, "house:d-h1:0");   // same owner, a distant row
+            WorldProvenanceFile.Write(written, dir);
+
+            var json = File.ReadAllText(Path.Combine(dir, "provenance.json"));
+            var occurrences = System.Text.RegularExpressions.Regex.Matches(json, "house:d-h1:0").Count;
+            await Assert.That(occurrences).IsEqualTo(1);
+        }
+        finally { Directory.Delete(dir, recursive: true); }
+    }
 }

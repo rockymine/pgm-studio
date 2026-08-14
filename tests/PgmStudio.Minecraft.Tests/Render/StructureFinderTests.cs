@@ -134,6 +134,56 @@ public sealed class StructureFinderTests
         await Assert.That((result.Structures[0].MinX, result.Structures[0].MaxX)).IsEqualTo((2, 3));
     }
 
+    // Two 3x3 buildings, flush and in the same material, standing side by side with no gap between them —
+    // x 0..2 and x 3..5 share the x=2/x=3 boundary, so the columns genuinely touch. Neither elevation nor
+    // material can tell them apart; only a recorded owner can (B139).
+    private static VoxelWorld TwoAdjacentBuildings()
+    {
+        var world = new VoxelWorld();
+        for (var x = 0; x < 6; x++)
+            for (var z = 0; z < 3; z++)
+            {
+                world.SetBlock(x, 5, z, Blocks.Stone);
+                world.SetBlock(x, 6, z, 5);   // planks, flush across both buildings
+            }
+        return world;
+    }
+
+    [Test]
+    public async Task Without_an_owner_two_buildings_that_touch_still_read_as_one_structure()
+    {
+        // Reproduces the fault this record exists to close: a recorded extent with only a layer and no
+        // identity still cannot tell two buildings that genuinely touch apart, so the 18-cell footprint of
+        // two real 3x3 buildings reads as one finding — the case that must fail before the owner is trusted.
+        var provenance = new WorldProvenance();
+        provenance.ClaimRect(0, 0, 5, 2, ProvenanceLayer.Structure);   // no owner: both share WorldProvenance.NoOwner
+
+        var result = StructureFinder.Render(AnvilRegion.FromWorld(TwoAdjacentBuildings()), minimumArea: 1, provenance: provenance);
+
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.Structures.Count).IsEqualTo(1);
+        await Assert.That(result.Structures[0].Area).IsEqualTo(18);
+    }
+
+    [Test]
+    public async Task An_owner_per_building_separates_two_buildings_that_touch()
+    {
+        // The exact same 18 built columns as above, split into two claims that carry different owners —
+        // the only thing that changed is the identity recorded alongside the layer.
+        var provenance = new WorldProvenance();
+        provenance.ClaimRect(0, 0, 2, 2, ProvenanceLayer.Structure, "house:a:0");
+        provenance.ClaimRect(3, 0, 5, 2, ProvenanceLayer.Structure, "house:b:0");   // touches house:a at x=2/x=3
+
+        var result = StructureFinder.Render(AnvilRegion.FromWorld(TwoAdjacentBuildings()), minimumArea: 1, provenance: provenance);
+
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.Structures.Count).IsEqualTo(2);
+        var houseA = result.Structures.Single(structure => structure.MinX == 0);
+        var houseB = result.Structures.Single(structure => structure.MinX == 3);
+        await Assert.That((houseA.MinX, houseA.MaxX, houseA.Area)).IsEqualTo((0, 2, 9));
+        await Assert.That((houseB.MinX, houseB.MaxX, houseB.Area)).IsEqualTo((3, 5, 9));
+    }
+
     [Test]
     public async Task Run_appends_a_scale_legend_that_grows_the_written_png()
     {

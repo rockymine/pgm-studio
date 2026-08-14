@@ -348,4 +348,44 @@ public sealed class SketchWorldBuilderTests
         // Well away from the spawn cube it stamped, which IS Structure.
         await Assert.That(built.Provenance.LayerAt(30, -30)).IsEqualTo(ProvenanceLayer.Structure);
     }
+
+    // ── provenance owner (B139) ──────────────────────────────────────────────────────────────────────
+    // "A claim wants an owner" — every stamp that claims Structure names which thing it is claiming for,
+    // so a build with several stamped things records several distinct owners rather than one flat layer.
+
+    [Test]
+    public async Task Two_different_wool_rooms_claim_two_different_owners()
+    {
+        var built = SketchWorldBuilder.Build(Layout, SampleIntent());
+
+        var redOwner = built.Provenance.OwnerAt(-10, 10);    // red wool room
+        var blueOwner = built.Provenance.OwnerAt(10, 10);    // blue wool room
+
+        await Assert.That(redOwner).IsNotNull();
+        await Assert.That(redOwner).IsNotEqualTo(WorldProvenance.NoOwner);
+        await Assert.That(redOwner).IsNotEqualTo(blueOwner);
+    }
+
+    [Test]
+    public async Task A_wool_room_and_a_spawn_cube_claim_different_owners_even_though_both_are_structure()
+    {
+        var built = SketchWorldBuilder.Build(Layout, SampleIntent());
+
+        var woolOwner = built.Provenance.OwnerAt(-10, 10);   // red wool room
+        var spawnOwner = built.Provenance.OwnerAt(20, 0);    // blue's spawn cube
+
+        await Assert.That(built.Provenance.LayerAt(-10, 10)).IsEqualTo(ProvenanceLayer.Structure);
+        await Assert.That(built.Provenance.LayerAt(20, 0)).IsEqualTo(ProvenanceLayer.Structure);
+        await Assert.That(woolOwner).IsNotEqualTo(spawnOwner);
+    }
+
+    [Test]
+    public async Task Every_column_of_a_ground_claim_shares_the_no_owner_reading()
+    {
+        var built = SketchWorldBuilder.Build(Layout, SampleIntent());
+        // Terrain far from every stamp: still plain rasterized ground, so its owner is the shared "nothing
+        // identified" reading rather than a per-column identity nobody assigned it.
+        await Assert.That(built.Provenance.LayerAt(0, -30)).IsEqualTo(ProvenanceLayer.Ground);
+        await Assert.That(built.Provenance.OwnerAt(0, -30)).IsEqualTo(WorldProvenance.NoOwner);
+    }
 }

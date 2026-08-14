@@ -210,13 +210,14 @@ public sealed class DressingScopeTests
         await Assert.That(violations).IsEmpty();
     }
 
-    // ── provenance (B133): dressing-placed buildings claim Structure, everything else stays absent ──────
+    // ── provenance (B133/B139): dressing-placed buildings claim Structure with an owner, everything else
+    // stays absent ─────────────────────────────────────────────────────────────────────────────────────────
     [Test]
     public async Task A_dressing_placed_house_reports_its_whole_footprint()
     {
         var footprints = DressingScope.StructureFootprints(Layout(
             ",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"points\":[[0,0],[3,2]]}]}"))
-            .ToList();
+            .SelectMany(entry => entry.Cells).ToList();
 
         await Assert.That(footprints).Contains((0, 0));
         await Assert.That(footprints).Contains((2, 1));   // interior of the 3x2 footprint
@@ -230,7 +231,7 @@ public sealed class DressingScopeTests
         // fans the same way for the same reason — a stamped extent is symmetric wherever the building is).
         var footprints = DressingScope.StructureFootprints(Layout(
             ",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"points\":[[10,10],[13,12]]}]}"))
-            .ToList();
+            .SelectMany(entry => entry.Cells).ToList();
 
         await Assert.That(footprints).Contains((10, 10));
         await Assert.That(footprints).Contains((-10, -10));   // rot_180 image
@@ -247,7 +248,7 @@ public sealed class DressingScopeTests
         var footprints = DressingScope.StructureFootprints(Layout(
             ",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"points\":[[20,20],[23,22]],"
             + "\"style\":{\"overhang\":2}}]}"))
-            .ToHashSet();
+            .SelectMany(entry => entry.Cells).ToHashSet();
 
         // Inside the wall rectangle, as before.
         await Assert.That(footprints).Contains((20, 20));
@@ -260,6 +261,34 @@ public sealed class DressingScopeTests
 
         // And it stops where the overhang says it does — one cell further is genuinely open ground.
         await Assert.That(footprints).DoesNotContain((17, 21));
+    }
+
+    [Test]
+    public async Task Each_orbit_image_of_a_house_carries_its_own_owner()
+    {
+        // Two images of one authored house (rot_180) are two different buildings standing in two different
+        // places, not the same claim repeated — StructureFinder tells them apart by this owner alone.
+        var entries = DressingScope.StructureFootprints(Layout(
+            ",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"points\":[[10,10],[13,12]]}]}"))
+            .ToList();
+
+        await Assert.That(entries.Count).IsEqualTo(2);
+        var owners = entries.Select(entry => entry.Owner).ToList();
+        await Assert.That(owners.Distinct().Count()).IsEqualTo(2);
+        await Assert.That(owners).Contains("house:h1:0");
+        await Assert.That(owners).Contains("house:h1:1");
+    }
+
+    [Test]
+    public async Task Two_different_houses_never_share_an_owner()
+    {
+        var entries = DressingScope.StructureFootprints(Layout(
+            ",\"dressing\":{\"props\":["
+            + "{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"points\":[[0,0],[3,2]]},"
+            + "{\"kind\":\"house\",\"id\":\"h2\",\"seed\":1,\"points\":[[40,40],[43,42]]}]}"))
+            .ToList();
+
+        await Assert.That(entries.Select(entry => entry.Owner).Distinct().Count()).IsEqualTo(entries.Count);
     }
 
     // ── the point-and-radius foliage render's source ───────────────────────────────────────────────────
