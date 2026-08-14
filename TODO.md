@@ -91,6 +91,31 @@ which finds out whether the result actually answers.
     claim that every generated destroy map was unwinnable.
   - **A document that describes something unbuilt names its task id, or says nothing.**
 
+- [ ] **B140 — A map with no objective, no spawn and no team exports 200 and looks like a map.** Two boards
+  from the second authoring trial (`haiku-r2-canonical-8`, `haiku-r2-ctw-mid`) built a world, wrote region
+  files and a provenance sidecar, and exported clean. Their `map.xml` is **ten lines**: a name, an empty
+  `<version>`, a `<gamemode>`, an empty `<objective>`, one include and a hunger rule. No `<team>`, no
+  `<spawn>`, no `<destroyables>`, no `<wools>`, no `<cores>`, no regions, no filters.
+
+  **Every gate passed vacuously.** `OB17` asks whether a goal stands in void, `OB18`'s successor asks nothing
+  now, `OB19` asks whether a prop crowds a goal, and the traversability check asks whether spawn and wool
+  points reach each other. All four quantify over collections that are **empty**, so a board with nothing on
+  it satisfies all of them — the pipeline's whole refusal surface is built to catch a map that says something
+  wrong and none of it catches a map that says nothing at all. That is the more serious half of this entry: a
+  map cannot be played without a team and a spawn, so a map lacking both is not a rough map, it is not a map.
+
+  **The `ctw` label is the smaller half and has its own cause.** `MetaGenerator.DeclaredGamemode` derives the
+  label from what the intent carries and correctly yields the empty string for a map carrying none (`B131`),
+  but it only runs on the intent path — and these maps have no stored intent, so the export takes the plain
+  branch and the label survives from `docs/pgm/template.xml:5`, which hardcodes `<gamemode>ctw</gamemode>`.
+  So the template still asserts what `B131` stopped the generator asserting, on exactly the maps least able
+  to correct it.
+
+  What the refusal should ask is the question no current gate does: whether the map has an objective at all,
+  and a team and a spawn to contest it. It belongs with the others on the export composer, carrying a rule id,
+  and it wants stating in terms of the intent rather than the document, since the intent is what an author
+  actually failed to write.
+
 - [ ] **B136 — The two features that make a shape stop looking drawn are reached almost never.** Measured
   over the eleven maps in `pgm-studio-mapgen`, counting non-null uses in the authored specs rather than
   serialized nulls:
