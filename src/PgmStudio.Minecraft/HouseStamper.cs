@@ -36,12 +36,45 @@ public static class HouseStamper
     /// <c>HouseStamperTests</c> proves every block <see cref="Stamp(VoxelWorld,Footprint,int,HouseStyle,int,
     /// IReadOnlyList{RoomDoor})"/> actually places lands inside it, so a caller answering from the style's own
     /// fields never has to re-open the voxels to check.</para></summary>
+    /// <para>This is a <b>bound</b> and not a claim. A beam runs out from a corner only, so a rectangle wide
+    /// enough to hold the longest one also spans the middle of every edge, where nothing is written — and one
+    /// such phantom course is enough to touch the next building and merge two findings into one. What a caller
+    /// recording provenance wants is <see cref="StampedCells"/>, the union this rectangle is merely the
+    /// envelope of.</para></summary>
     public static (int MinX, int MinZ, int MaxX, int MaxZ) StampedExtent(
         (int MinX, int MinZ, int MaxX, int MaxZ) ground, HouseStyle style)
     {
-        var margin = Math.Max(1, Math.Max(Math.Max(0, style.Overhang),
-            style.Beams.Any ? Math.Max(0, style.Beams.Reach) : 0));
+        var margin = Math.Max(1, Math.Max(Math.Max(0, style.Overhang), BeamReach(style)));
         return (ground.MinX - margin, ground.MinZ - margin, ground.MaxX + margin, ground.MaxZ + margin);
+    }
+
+    /// <summary>How far past a corner this style's beams run, or 0 for a building without them. Mirrors
+    /// <see cref="LayBeams"/>'s own floor of one step, so the two cannot drift.</summary>
+    private static int BeamReach(HouseStyle style) =>
+        style.Beams.Any ? Math.Max(1, style.Beams.Reach) : 0;
+
+    /// <summary>The cells a caller recording provenance claims for a stamp of this style over
+    /// <paramref name="ground"/>: the wall plan grown by the roof's oversail, which is a true rectangle
+    /// because a roof covers all four sides.
+    ///
+    /// <para><b>A beam's arm is deliberately outside this, and it is a claim about ground rather than about
+    /// geometry.</b> <see cref="StampedExtent"/> bounds the arms because a bound must; a claim may not, for
+    /// two reasons that compound. A box wide enough for the longest arm also spans the middle of every edge,
+    /// where nothing is written — and one phantom course is enough to touch the next building and merge two
+    /// findings into one. Claiming the arms themselves is narrower and still wrong in practice: on a village
+    /// row of eleven houses, every cell an arm would have claimed held plain paving at every height, because
+    /// what a style's <c>Reach</c> asks for and what <see cref="LayBeams"/> leaves standing after the roof is
+    /// laid over it are not the same number. So the ring is claimed and the arms are not. The cost is a beam
+    /// end reading by material — a log at a corner classed as foliage — and the cost of the alternative is two
+    /// buildings losing their separate identities, which is the more expensive of the two by far.</para>
+    /// </summary>
+    public static IEnumerable<(int X, int Z)> StampedCells(
+        (int MinX, int MinZ, int MaxX, int MaxZ) ground, HouseStyle style)
+    {
+        var eaves = Math.Max(1, Math.Max(0, style.Overhang));
+        for (var x = ground.MinX - eaves; x <= ground.MaxX + eaves; x++)
+            for (var z = ground.MinZ - eaves; z <= ground.MaxZ + eaves; z++)
+                yield return (x, z);
     }
 
     /// <summary>Stamp a house over a resolved <see cref="RoomFrame"/> — its footprint, and its doors on the

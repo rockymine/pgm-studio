@@ -204,18 +204,18 @@ public static class DressingScope
         }
     }
 
-    /// <summary>One image of a house's stamped extent — the wall rectangle turned round the orbit and then
-    /// grown by <see cref="HouseStamper.StampedExtent"/>, in that order, so a quarter turn swaps width and
-    /// depth before the margin is added and a non-square house's eaves come out right on every image.</summary>
+    /// <summary>One image of the cells a house's stamp can write — the wall rectangle turned round the orbit
+    /// first and expanded by <see cref="HouseStamper.StampedCells"/> after, so a quarter turn swaps width and
+    /// depth before the eaves are added and a non-square house comes out right on every image. The cell union
+    /// rather than its bounding box, because a beam's corner arm is not a reason to claim the ground halfway
+    /// down the wall — that phantom course is what merged two houses with a clear column between them into
+    /// one structure.</summary>
     private static IEnumerable<(int X, int Z)> StampedFootprint(HouseProp house, DressingSymmetry symmetry, int image)
     {
         var corners = symmetry.ImageRing(house.Points, image);
-        if (new HouseProp { Points = corners }.Footprint() is not { } wall) yield break;
-        var (minX, minZ, maxX, maxZ) = HouseStamper.StampedExtent(
+        if (new HouseProp { Points = corners }.Footprint() is not { } wall) return [];
+        return HouseStamper.StampedCells(
             (wall.MinX, wall.MinZ, wall.MinX + wall.Width - 1, wall.MinZ + wall.Depth - 1), house.Style);
-        for (var z = minZ; z <= maxZ; z++)
-        for (var x = minX; x <= maxX; x++)
-            yield return (x, z);
     }
 
     /// <summary>Every dressing-placed tree's anchor and measured canopy radius, fanned across the map's

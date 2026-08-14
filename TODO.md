@@ -92,6 +92,12 @@ which finds out whether the result actually answers.
   - **A document that describes something unbuilt names its task id, or says nothing.**
 
 - [ ] **B139 — Provenance records a layer and not an identity, so two buildings that touch are one building.**
+  **The false-merge half is fixed; what remains is the identity.** A claim is now the roof ring alone
+  (`HouseStamper.StampedCells`) rather than a box grown to hold a beam, so `quillon-barrow` reports **26**
+  structures again — the pre-`B137` count — while keeping `B137`'s eaves fix, measured as the same 6,584
+  foliage pixels against 7,376 before it. What is still true is the sentence this entry opens with: nothing
+  distinguishes one claimed building from another, so two that genuinely abut would still read as one, and a
+  structure count over a dense settlement is a count of clusters. That wants an owner on the claim.
   `ProvenanceLayer` is `{ Ground, Structure }` and `WorldProvenance` maps a column to one of the two.
   `StructureFinder` then floods across contiguous `Structure` cells, so **any two stamped things whose claimed
   extents touch merge into a single finding.** Nothing distinguishes them, because nothing was recorded that
