@@ -4495,7 +4495,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   inside a goal's four-block clearance now refuses rather than exporting silently (`OB19`,
   `DressingScope.GoalClearanceViolations`) — fanned across the map's own symmetry, so a violation only one
   team's mirror carries is still caught, and ground cover is exempt throughout. All three answer 409 from the
-  one composer, so the studio and every headless driver are gated identically.
+  one composer, so the studio and every headless driver are gated identically. This supersedes `B101`, which asked for the deleted `tools/mapgen` `KeepOut` list to learn about destroyables: a refusal on the export gate reaches every driver rather than one tool, and names the prop and the goal rather than dropping the placement silently.
 - **The export path is a project, not a folder inside the web app (B119).** `SketchWorldBuilder`,
   `MapXmlComposer` and `MapExportComposer` — plus the four map-facing readers only they used
   (`DressingScope`, `TerrainThemeScope`, `TeamTerritory`, `RoomStyleScope`) — moved out of `Api/Services` into

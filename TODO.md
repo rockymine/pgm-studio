@@ -358,18 +358,6 @@ which finds out whether the result actually answers.
   is real, it is in the composer's seating or the compiler's build regions, and it is the more serious of the
   two. Do not fix either until the measurement says which.
 
-- [ ] **B101 — A destroy board's goal gets no dressing clearance at all.** `KeepOut` in `tools/mapgen`
-  builds its exclusion rectangles from `intent.Wools` and `intent.Spawns` and from nothing else, so a
-  destroyable and a core are invisible to it. On a capture board that is harmless, because the wool rooms are
-  the goals; on a destroy board `Retarget` empties `Wools`, and the only protected thing left is the spawn.
-  Nothing then stops the forest or the village planting a trunk against a monument's wall — two hand-designed
-  boards landed their nearest tree eleven blocks off the goal, but by the author's steering rather than by any
-  rule. `DressingScope` protects the ground a stamped structure stands on, which is why this has not produced
-  a tree *inside* a goal, but clearance is a wider question than overlap: a goal wants open ground around it
-  because that is what makes the approach legible, which is the whole method the review argues for. Add the
-  destroyables and cores to `KeepOut`, and say so in the README, whose "any objective piece — a room or a
-  spawn" reads as though it already covers them.
-
 - [ ] **B102 — A rebuild writes over a region directory it never clears, so a stale chunk survives.**
   `AnvilRegionWriter.Write` calls `Directory.CreateDirectory` and nothing else, so every `.mca` a previous
   build left is still there. A chunk the new build does not touch — because its geometry moved — is read back
