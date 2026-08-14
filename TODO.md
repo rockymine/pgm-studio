@@ -111,16 +111,28 @@ out whether the result actually answers.
   as a polygon for the shape it actually is — in two idioms, in two files, with nothing checking that the two
   agree. That is also where the void column came from: two boundaries that had to meet, drawn independently.
 
-  **`float` is not the missing field.** It is the air gap under the structure, four by default, and a
-  destroyable and a core float above the terrain **by design** (`approaches.md`, `[author]`). Inflating it to
-  raise a goal would spend a gameplay constant on an authoring problem and would still not move the ground.
+  **There is no second height field, and `float` is already the right concept measured from the wrong
+  thing.** `float` is the air gap under the structure — `ObjectiveDefaults.DestroyableFloat`, four — and a
+  destroyable and a core float above the terrain **by design** (`approaches.md`, `[author]`). That is an
+  offset over ground, which is exactly what a goal's height wants to be. What is wrong is the ground it
+  counts from: `piece.Surface`, the plan's flat nominal world. So the fix is not a new knob beside it but the
+  same knob measured from the **solved terrain** under the marker's column, and a second height concept would
+  be the "second accepted format" `CLAUDE.md` forbids.
 
-  **A marker states its own height, and the height resolves against the ground as built.** The stated value is
-  an **offset above the resolved ground beneath the anchor**, not an absolute world Y: an offset survives a
-  relief pass moving the ground under it, and it is what an author means by "the goal sits on the mesa". The
-  absolute reading is the one that has already cost a build — a relief mark's `h` is absolute, was read as a
-  lift, and put terrain at y4 on a board based at 41 while the export succeeded and the gate passed. A stated
-  height far outside the ground's range wants the same warning that mark does.
+  **The offset resolves against the ground as built, and it is configurable in both directions** — a goal can
+  stand higher or closer to the ground than the default. An offset is the right reading rather than an
+  absolute world Y because it survives a relief pass moving the ground under it, and because it is what an
+  author means by "the goal sits on the mesa". The absolute reading is the one that has already cost a build:
+  a relief mark's `h` is absolute, was read as a lift, and put terrain at y4 on a board based at 41 while the
+  export succeeded and the gate passed.
+
+  **What this buys is that the landform is authored once.** With the offset counted from solved ground, a
+  marker's x/z on an authored polygon is enough — the mesa stays a `raise` shape with its per-vertex anchors,
+  the goal on it rides whatever height the relief left, and no plan tier has to be manufactured to carry it.
+
+  The default stays in the band it is in — around five, and **four today**. That number is a gameplay
+  constant rather than an implementation detail, so it is not to be nudged while the offset's meaning is being
+  corrected; whether it moves from 4 to 5 is the author's to settle and is not part of this task.
 
   This is the authoring half of a defect the board already carries two other halves of, and it is filed apart
   from both because neither would surface it: `B105` is the correctness half — the compiler must stop reading
