@@ -1150,6 +1150,34 @@ the thing `B181` names, which makes the document upstream of the boards rather t
   flood-fill seal test, which passes happily on a roof with a hole in its body. Print the cut from the first
   line of the implementation, not the last.
 
+- [ ] **G177 — A placed building is two corners, so nothing can state a second wing and the stamper waits.**
+  This is `G172`'s open half, filed where its **remaining** work lives: not in the stamp, which is done, but in
+  the document an author writes. `HouseStamper.Stamp` takes a `Footprint` — one or more touching `Wing`
+  rectangles — and builds an L, a T or a U as **one house under one style**: the outline is walked as a single
+  landmass so an L answers six runs of wall and a T eight, a wall ends wherever the building turns, the cell
+  where two wings meet is an inner corner carrying its own post, each wing may stop short of the building's
+  height and override the roof form, pitch and slab, and a storey is the plan of the wings still standing there.
+  The roof is the union of the wing volumes, and both junctions are built: a wing that **projects** into another
+  cuts the roof it pushes into across its own span, and a wing whose gable end runs up against another
+  **marches** into it. `docs/world-export/structures.md` §"a building is one or more touching wings" and
+  `docs/tools/sketch.md` both describe all of it in the present tense, correctly.
+
+  **And a placed building is stored as exactly two corners.** So the dressing pass hands the stamper one
+  rectangle per prop, two buildings drawn touching are stamped as two buildings, and one whose footprint
+  overlaps ground an earlier prop claimed is **dropped** rather than joined to it. Every building on every one of
+  the twenty-one boards is therefore a rectangle with a roof form on it — not because the models lacked
+  imagination, but because a rectangle is the only thing the document can say.
+
+  The work is the prop shape and the pass that reads it: a building states a **list of touching rectangles**
+  rather than two corners, `Decorator` composes them into one `Footprint` and stamps once, and the overlap rule
+  learns the difference between *two props colliding* — still a drop, `MG7` — and *one prop with two wings*.
+  `sketch.md`'s Limits and its building section both name this gap and want correcting in the same commit.
+
+  Worth settling while here, because two documents disagree: `sketch.md` says a wing that projects into another
+  and stands mid-slope "wants the same plinth and wall as its neighbour, which nothing does yet", and `G172`
+  says the plinth and wall below the eave "are not alike and are not made alike, since no post belongs where a
+  wall runs straight on". One of those is wrong. Read the stamp and fix the other.
+
 - [ ] **G171 — A building's reported height is its reservation, not its highest block.** `TopLayerOver` adds
   up every storey's headroom and answers where the roof would sit, which is right for a building whose storeys
   are rooms and wrong for one whose top storey is a roof terrace (`structures.md` §7.6): a parapet storey
