@@ -638,6 +638,23 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **A dressing document that fails to parse refuses the export by name, rather than exporting bare (`B130`).**
+  `DressingJson.Deserialize`/`DeserializeProp` caught every `JsonException` and returned `DressingDoc.Empty` /
+  `null`, commented "a hand-edited blob must not fail an export" — so one unrecognized prop `kind` or one field
+  of the wrong shape discarded **every** prop on the map and the export still answered 200. A parse failure now
+  throws `DressingParseException`, naming the prop (by id, or by position when it never got one) and the field,
+  and `MapExportComposer` turns it into a **422** carrying the rule id `DR-DOC` — `{error, rule, message,
+  subject, field}` — on both `GET /xml` and `GET /export`, joining `OB17`'s traversability refusal rather than
+  falling through to the generic 500. One bad prop costs the *whole* document, not a silent partial list: a
+  fifty-prop map with one wrong `kind` refuses fifty-for-fifty rather than shipping forty-nine unannounced.
+  Two things travel with the fix. `AllowOutOfOrderMetadataProperties` removes the polymorphic `kind`
+  discriminator's first-key constraint (`PlacedProp` and the nested `TerrainMaterial` on `pave`/`bank`/`rock`
+  alike) — a hand-authored document has no reason to prefer one key order, so the reader no longer does either.
+  And a prop's own enum fields (`style`, `form`) already read case-insensitively regardless of the naming
+  policy they are written with, so the corpus writing `"Rough"`/`"Natural"` rather than the documented
+  `"rough"`/`"natural"` was never the actual fault — `sketch.md`'s Dressing section says so explicitly now,
+  since the theory that case broke parsing is exactly the kind of claim worth writing down as settled.
+  (`DressingJson.cs`, `DressingJsonTests.cs`; DR-DOC)
 - **One block volume, one type (`B33`).** `BlockBox` (`PgmStudio.Domain`) is the single inclusive integer
   AABB for every role a block volume plays — the region an author boxes for a scan, the volume a stamper
   fills, the casing `CoreSuggester` proposes — carrying the union of the helpers the two former copies had

@@ -853,13 +853,6 @@ public sealed class DecoratorTests
         return cells;
     }
 
-    [Test]
-    public async Task A_blob_of_json_the_reader_cannot_parse_dresses_nothing_rather_than_failing_an_export()
-    {
-        await Assert.That(DressingJson.Deserialize("{ not json").Props).IsEmpty();
-        await Assert.That(DressingJson.DeserializeProp("{\"kind\":\"unicorn\"}")).IsNull();
-    }
-
     // ── knobs out of range ─────────────────────────────────────────────────────────────────────────
     /// <summary>A prop's cost is superlinear in its reach, so an out-of-range knob is not a strange picture
     /// but a build that never returns — the failure a mis-parsed query value produced. The bounded readings

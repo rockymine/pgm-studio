@@ -70,10 +70,11 @@ public sealed class PropPreviewEndpoint : Endpoint<PropPreviewRequest, DressingP
 
     public override async Task HandleAsync(PropPreviewRequest req, CancellationToken ct)
     {
-        var prop = DressingJson.DeserializeProp(req.PropJson);
-        if (prop is null)
+        PlacedProp prop;
+        try { prop = DressingJson.DeserializeProp(req.PropJson); }
+        catch (DressingParseException ex)
         {
-            AddError("The prop JSON could not be read.");
+            AddError(ex.Message);
             await Send.ErrorsAsync(400, ct);
             return;
         }

@@ -546,6 +546,16 @@ opposite corners of its rectangle. `pave`, `bank` and `rock` are full terrain ma
 fourteen kinds in `library.md` may stand there; a building's `style` is a `HouseStyle` snapshot, and `{}`
 means the built-in shell.
 
+**Every word above is written in camelCase, and that is the canonical form** — what `POST .../sketch/finish`
+and the export always write back, and the form every example in this document is in. The reader is more
+forgiving than the writer: a prop's own enum fields (`style`, `form`) are matched case-insensitively, so
+`"Worn"` or `"WORN"` reads the same as `"worn"`, and `kind` — the discriminator that says which prop or which
+material an object is — no longer has to be an object's first key (`DR-DOC`). What `kind` cannot be is a word the
+reader does not know: `"boulderr"` or a missing `kind` both refuse the document by name rather than being
+silently misread. A document that fails to parse anywhere — one bad field, one unrecognized `kind` — refuses
+the whole export rather than exporting with fewer props than it was asked for; see *What it refuses* in
+`configure.md`, since the refusal fires at export, not while the sketch is merely saved.
+
 Dressing does not repaint the Blocks overlay, which shows the painter's surface colours — a prop adds blocks
 *above* the surface.
 
