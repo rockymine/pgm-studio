@@ -91,6 +91,37 @@ which finds out whether the result actually answers.
     claim that every generated destroy map was unwinnable.
   - **A document that describes something unbuilt names its task id, or says nothing.**
 
+- [ ] **B131 — Every map the studio writes says it is a capture map, whatever it is.** `MetaGenerator`
+  states it in its own docstring — "Version/gamemode are fixed for new **CTW** maps; the objective is
+  generated from the wool count" — and `Objective(intent)` returns `"Capture the wool!"` for one wool and
+  `"Capture the enemies' wools!"` for any other count, **zero included**. So a destroy board with two
+  monuments and no wool ships telling the player to capture wools that do not exist. Three boards authored in
+  the trial run carry that line, and the run found it only by reading the exported `map.xml`.
+
+  The objective text is the first thing a player reads and the only sentence the map gets to explain itself,
+  so a wrong one is not cosmetic. What it should say follows from what the intent actually carries — wools,
+  destroyables, cores, or a combination, which is the ordinary corpus board — and the intent knows all of it
+  already; nothing needs measuring. The declared `gamemode` wants the same treatment, and `MapParser` is the
+  reference for how a gamemode falls out of which objective modules are present rather than from a label.
+
+- [ ] **B132 — With no build area declared, nothing stops a player bridging the void.** `BuildGenerator.Apply`
+  returns at `if (b.Areas.Count == 0) return;` — before it reaches the `no-void` filter and the
+  `not-build-area` negative that carry void enforcement. So a map that declares no build area gets **no**
+  `block=no-void` rule at all, and every void on it becomes bridgeable from the first minute.
+
+  That is the exact inverse of what the void is for. `approaches.md` states it as settled law: **a void gap
+  with no build region over it is permanent** — nobody bridges it, and the approach it forces is *around*,
+  which is what makes a channel a control on flow rather than a delay. The same document makes crossability a
+  deliberate decision made in the intent rather than in the geometry, and this makes it accidentally, in the
+  permissive direction, for every board that never thought to declare an area. Both destroy boards in the
+  trial run had to declare a decoy land-only build zone purely to turn void enforcement back on, which is a
+  workaround for a default that is backwards.
+
+  The guard reads as "no areas, nothing to do", and the truth is the opposite: no areas is the case where the
+  **whole map** is not-build-area, so it is the case where void enforcement matters most. Note the ordering
+  constraint that already governs this code — the broad `no-void` rule allows editing any solid block and PGM
+  stops at the first matching rule, so build must be applied last (`IntentGenerator`) — and keep it.
+
 - [ ] **B130 — A malformed dressing document is discarded whole, and the export says 200.**
   `DressingJson.Deserialize` ends `catch (JsonException) { return DressingDoc.Empty; }`, commented "a
   hand-edited blob must not fail an export". So any parse error anywhere in the document — one prop's enum
