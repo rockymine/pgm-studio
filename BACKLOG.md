@@ -1027,20 +1027,24 @@ the thing `B181` names, which makes the document upstream of the boards rather t
 
   *found implementing `G183`, 2026-08-14 · `Wing` · `HouseProp.Wings` · `docs/tools/sketch.md`.*
 
-- [ ] **G185 — A wing that abuts its neighbour and one that overlaps it are different junctions, and only one
-  is exercised. Parked on a question.** Every junction fixture shares a row with its hall — the wing's last row
-  *is* the hall's first. A wing that merely **abuts**, sharing an edge and no ground, marches over the
-  neighbour's roof rather than opening into it: measured on a 5 × 5 wing at `z 1…5` against a hall at `z 5…9`
-  the loft is one space at every course, and on the same wing at `z 0…4` it is one space at the eave course and
-  two a course higher, where the hall's own slope rises between them. Both footprints are legal — `Footprint`
-  asks only that wings touch.
+- [ ] **G185 — A wing that abuts its neighbour keeps its loft one course too few. Parked on a question.**
+  Measured with the ridge axis held constant, a 5-wide wing of growing depth against a hall at `z 5…9`:
 
-  **The question for the author, and it is about what a building should be rather than what the code does:**
-  is an abutting wing a junction at all, or two rooms sharing a wall line? If it is a junction it wants the
-  same open loft, which means cutting the neighbour's roof under a march that has no plan of its own there. If
-  it is not, it wants saying so — and both `Ell()` fixtures abut, so the answer decides what they are.
+  | wing | overlap rows | cell past its gable end | joint | verges at ridge | lofts +5 +6 |
+  |---|---|---|---|---|---|
+  | `z 0…4` | **0** — abuts | `z 5`, the hall | march | 3 ✓ | 1 · **2** |
+  | `z 0…5` … `z 0…8` | 1 … 4 | `z 6` … `z 9`, the hall | march | 3 ✓ | 1 · 1 ✓ |
+  | `z 0…9` and beyond | 5 | `z 10`, outside | open end | 4 ✓ | 1 · 1 ✓ |
 
-  *observed implementing `G183`, 2026-08-14 · flood fill per course over abutting and overlapping variants.*
+  So abutting is **not** a broken junction generally: it marches, and its verge count is right. The single
+  difference is the loft a course above the eave — with no shared row there is no cell of the hall's roof for
+  the wing's field to overtop, so nothing is cut and the two lofts meet only where the roofs happen to leave a
+  gap. Both footprints are legal; `Footprint` asks only that wings touch.
+
+  **The question for the author, and it is about buildings rather than code:** is an abutting wing a junction
+  at all, or two rooms sharing a wall line? If it is a junction it wants the same open loft, which means
+  cutting a neighbour's roof under a march that has no plan of its own there. If it is not, it wants saying so
+  — and **both `Ell()` fixtures abut**, so the answer decides what they are.
 
 - [ ] **G178 — A wing has no doorway into its neighbour.** Where two wings meet the plan is simply open between
   them, which is right; where one projects into another its gable end is a wall from the ground up, which is

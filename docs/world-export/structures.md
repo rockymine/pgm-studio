@@ -359,9 +359,17 @@ wanted. `Wing.Ridge` overrides the proportions where an author needs the axis st
 span actually crossed, which is the point, since a ridge forced along the shorter side gives the longer one its
 slope.
 
-**Two joints, and they are not a mode — they are which rectangle was drawn.** Where a wing reaches an outside
-wall of another the crossing is a **valley**; where a wing **stops inside** another — a gable end landing
-between that wing's own two ends — it is a **cross-gable**.
+**One joint, and it is not a mode — it is which rectangle was drawn.** A wing's end marches wherever another
+wing holds the cell **one step past it**, and stands in the open wherever none does. That single question
+settles everything: a wing stopping at its neighbour's near wall marches, a wing carried half way through it
+marches too, and only a wing reaching the far wall *or beyond* has an end with nothing past it and therefore a
+second gable. Overlap is not what decides it — a wing that merely abuts, sharing an edge and no ground, still
+has the neighbour one step past its end and still marches.
+
+Measured against a hall at `z 5…9` with a 5-wide wing of growing depth, the ridge axis held constant: every
+depth from `z 0…4` through `z 0…8` marches and carries **three** gable faces, and `z 0…9` and beyond stand open
+and carry **four**. A gable end landing mid-slope inside another wing's roof is therefore a shape the stamper
+never builds, whatever the rectangles say.
 
 A meet is not left as two roofs abutting, because a wing that merely stops at the wall drops its ridge to the
 neighbour's eave and climbs again, which is a gutter cut across the middle of a roof. It **marches**: each

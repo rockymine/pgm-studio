@@ -1193,8 +1193,10 @@ public sealed class HouseStamperTests
         await Assert.That(checkedCells).IsGreaterThan(0);
     }
 
-    /// <summary>A cross-gable: the same hall, with the wing pushed <b>into</b> it rather than set against it,
-    /// so one of the wing's gable ends stands mid-slope inside the hall's roof.</summary>
+    /// <summary>The wing carried through to the hall's far wall, so the cell past its second gable end is
+    /// outside every wing and that end stands in the open — which is the only way a wing gets a second gable.
+    /// Carried anywhere short of the far wall it marches like any other end, whatever share of the hall it
+    /// covers, so a gable landing mid-slope is a shape the stamper never builds.</summary>
     private static Footprint Crossed() => new([new Wing(0, 5, 9, 9), new Wing(2, 0, 6, 9)]);
 
     /// <summary>
