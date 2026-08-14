@@ -325,7 +325,10 @@ if (floraIdx >= 0 && floraIdx + 2 < args.Length)
 
 // --buildings <regionDir> <outPng> --roof <id[:data],...> [--scale N] [--min-area N]: buildings found from
 // their roofs, kept only where a solid run reaches the terrain — a roofed structure hanging in the air is
-// not a building, whatever it is covered with.
+// not a building, whatever it is covered with. A region carrying a recorded WorldProvenance sidecar declines
+// this guess entirely rather than run it: --structures and --topdown --layer structure already read that
+// region's exact census, and a roof-material heuristic tuned for a corpus house has no reason to be trusted
+// over it on a world the studio built.
 var buildIdx = Array.IndexOf(args, "--buildings");
 if (buildIdx >= 0 && buildIdx + 2 < args.Length)
 {

@@ -4778,6 +4778,20 @@ these are the ones that shipped a map that could not be played as intended, and 
   the material estimate instead of crashing — and against the corpus: every `pgm-studio-mapgen` world with a
   current-shape sidecar (`marlstone-steps`, `tallow-kilnrow`, …) still reads `RECORDED PROVENANCE`, and every
   world with none (`ashen_quarry`, …) still reads the material estimate, unchanged.
+- **`--buildings` declines a town it did not build rather than undercount it (B149).** Its roof-material
+  heuristic is tuned against corpus houses — log-framed corners, a roof material distinct from any terrain
+  block, an exact `--roof` match — and a studio-generated theme can defeat all three without being wrong:
+  `marlstone-steps` roofs its houses in materials `IsTerrain` also reads as ground (`98`, `155`, `159`), so
+  the clearance gate finds the roof and the terrain at the same height and drops the building before any
+  other measure runs. A `--roof` spec spanning every material `--structures` shows the town's roofs actually
+  use (brick, stained clay, sandstone, quartz, stone brick) finds only the two all-brick-roofed houses of the
+  24 the sidecar records, for exactly that reason. Rather than report a partial count silently, `--buildings`
+  now reads the region's own `WorldProvenance` sidecar first and declines outright when one is present,
+  naming `--structures` (a per-building table, owner-grouped) and `--topdown --layer structure` (the
+  picture) as the census that already has the exact answer — the heuristic is not loosened, since it stays
+  correct for the corpus houses it was measured against; it simply no longer runs where a better answer is
+  free. A region with no sidecar is unaffected: `ashen_quarry` still finds its 18 spruce/dark-oak house
+  roofs, four of them full-cornered, exactly as before.
 - **The capability handbook — what the system can be asked for, and where to say it (B91).** `docs/tools/capabilities.md`
   mapped the four documents a map is made of; it now also states the surface underneath the spec's shorthand, in
   pipeline order, every claim naming the type that carries it and the endpoint that answers it: the destroyable's

@@ -23,6 +23,17 @@ namespace PgmStudio.RoundTrip;
 /// framed at all four corners because it is built like the houses around it, and the marker is framed at none
 /// because it is not a building at all. A caller who knows the map reads the pair; the tool states them and
 /// classifies without discarding, so a wrong call stays visible instead of becoming a missing row.</para>
+///
+/// <para><b>The reading is a guess tuned for a world the studio did not build.</b> The terrain vocabulary, the
+/// corner-post framing convention and the exact <c>--roof</c> match all assume a hand-built corpus house —
+/// which is exactly where every threshold above was measured — and a studio-generated theme can defeat all
+/// three at once: a roof painted from the shared terrain palette reads as ground before the clearance gate
+/// ever sees it, a post built from a material with no vertical log carries no corner stem, and a slab-surfaced
+/// roof is simply a different (id, data) pair than the one asked for. None of that makes the tool wrong for a
+/// real corpus house, so none of it is loosened; a world that already carries a recorded
+/// <see cref="WorldProvenance"/> is instead told to read that exact census — <c>--structures</c> or
+/// <c>--topdown --layer structure</c> — rather than be given a guess it does not need and should not
+/// trust.</para>
 /// </summary>
 internal static class BuildingFinder
 {
@@ -78,6 +89,21 @@ internal static class BuildingFinder
         if (roofSpec.Count == 0) { Console.Error.WriteLine("--buildings needs --roof <id[:data],...>"); return 1; }
         var mcas = Directory.GetFiles(regionDir, "*.mca");
         if (mcas.Length == 0) { Console.Error.WriteLine($"no region files in {regionDir}"); return 1; }
+
+        // A roof read from --roof/--rim is a guess dressed up as a rule: right for the corpus houses it was
+        // tuned against, and wrong in whatever way a studio-generated theme happens to differ — a stained-clay
+        // roof IsTerrain reads as ground, a quartz-pillar post CornerStems does not recognise, a slab surface
+        // --roof's exact match does not cover. A region a build wrote down carries the census this guesses at,
+        // with none of those failure modes, so the guess is not run at all rather than run and half-believed.
+        if (WorldProvenanceFile.TryRead(regionDir) is not null)
+        {
+            Console.Error.WriteLine($"{regionDir} carries a recorded WorldProvenance sidecar — the roof-material " +
+                "guess below answers a question this build already has an exact answer to. Read the recorded " +
+                "structure census instead: `--topdown --layer structure` for the picture, `--structures` for a " +
+                "table with one row per building, grouped by the owner the build itself stamped. --buildings " +
+                "stays for a world with no such record, where a roof guess is the only signal there is.");
+            return 1;
+        }
 
         var exact = new HashSet<(int Id, int Data)>(roofSpec.Where(entry => entry.Data >= 0));
         var anyData = new HashSet<int>(roofSpec.Where(entry => entry.Data < 0).Select(entry => entry.Id));

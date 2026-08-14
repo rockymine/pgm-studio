@@ -926,20 +926,6 @@ the thing `B181` names, which makes the document upstream of the boards rather t
 
   *`opus-run2` §1.3, §1.4, §5 #10 · `sonnet-run2` #1, #2, #6 · `opus5-run2` §2, §5 #5.*
 
-#### Bucket 9 — read-backs that answer a different question
-
-- [ ] **B149 — `--buildings` cannot see a town this studio built, and says nothing about why.** Three compounding
-  causes, all because it is built for worlds the studio did not build: the `--roof` filter is exact and misses a
-  slab-surfaced roof; `IsTerrain` includes `98`, `155` and `159`, so a cottage roofed in `159:14` is classified as
-  ground and dropped by the clearance gate; and `CornerStems` requires a vertical log, so quartz-pillar posts read
-  as corners: 0. Marlstone has 24 houses standing and `--buildings` finds 6, all of them the spawn.
-
-  The tool is not wrong for its purpose. What is wrong is that **it gave a number contradicting a top-down that
-  had already been rendered, and the number was believed.** Either it declines to answer for a provenance-carrying
-  world and points at `--layer structure`, or it says which gate dropped what.
-
-  *`opus5-run2` §3 and §5 #11.*
-
 #### Bucket 10 — a document describing nothing still answers 200
 
 - [ ] **B141 — A hand-authored shape missing `type`, `operation` or `floor` rasterizes to nothing, and every
