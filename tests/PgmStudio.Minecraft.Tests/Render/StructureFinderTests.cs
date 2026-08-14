@@ -88,6 +88,52 @@ public sealed class StructureFinderTests
         await Assert.That(plaza.RoofHigh).IsEqualTo(6);
     }
 
+    // A roof laid FLUSH with its own plaza — same top Y (6) throughout, same material (planks) throughout.
+    // The step test (however low it is set) cannot separate these because there is no step to measure: this
+    // is B124's own residual gap, closed by a recorded extent (B133).
+    private static VoxelWorld FlushPlazaWithRoom()
+    {
+        var world = new VoxelWorld();
+        for (var x = 0; x < 6; x++)
+            for (var z = 0; z < 6; z++)
+            {
+                world.SetBlock(x, 5, z, Blocks.Stone);
+                world.SetBlock(x, 6, z, 5);   // planks, flush across the whole plaza AND the "room" inside it
+            }
+        return world;
+    }
+
+    [Test]
+    public async Task A_flush_roof_still_fuses_with_its_plaza_when_read_by_material_and_step_alone()
+    {
+        // Reproduced first so the fix below is provably a fix rather than a restatement: with no provenance,
+        // the whole flat 36-cell plaza (room included) is one component whatever --max-step is set to.
+        var result = StructureFinder.Render(AnvilRegion.FromWorld(FlushPlazaWithRoom()), minimumArea: 1, maximumStep: 1);
+
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.Structures.Count).IsEqualTo(1);
+        await Assert.That(result.Structures[0].Area).IsEqualTo(36);
+    }
+
+    [Test]
+    public async Task A_recorded_extent_separates_the_same_flush_room_from_the_plaza_around_it()
+    {
+        // The build recorded only the 2×2 room as Structure; the rest of the identical, same-height,
+        // same-material plaza was never a candidate column at all.
+        var provenance = new WorldProvenance();
+        for (var x = 0; x < 6; x++)
+            for (var z = 0; z < 6; z++)
+                provenance.Claim(x, z, ProvenanceLayer.Ground);
+        provenance.ClaimRect(2, 2, 3, 3, ProvenanceLayer.Structure);
+
+        var result = StructureFinder.Render(AnvilRegion.FromWorld(FlushPlazaWithRoom()), minimumArea: 1, provenance: provenance);
+
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.Structures.Count).IsEqualTo(1);
+        await Assert.That(result.Structures[0].Area).IsEqualTo(4);
+        await Assert.That((result.Structures[0].MinX, result.Structures[0].MaxX)).IsEqualTo((2, 3));
+    }
+
     [Test]
     public async Task Run_appends_a_scale_legend_that_grows_the_written_png()
     {

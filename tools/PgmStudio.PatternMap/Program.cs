@@ -225,7 +225,9 @@ var slug = args.Length > 0 ? args[0] : "pattern_test";
 var outDir = args.Length > 1 ? args[1] : $"/media/sf_repos/CommunityMaps/ctw/{slug}";
 Directory.CreateDirectory(outDir);
 
-AnvilRegionWriter.Write(built.World, Path.Combine(outDir, "region"));
+var patternRegionDir = Path.Combine(outDir, "region");
+AnvilRegionWriter.Write(built.World, patternRegionDir);
+WorldProvenanceFile.Write(built.Provenance, patternRegionDir);
 LevelDatWriter.Write(outDir, slug, built.SpawnX, built.SpawnY, built.SpawnZ,
                      DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
 File.WriteAllText(Path.Combine(outDir, "map.xml"), xml);

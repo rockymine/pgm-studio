@@ -4555,7 +4555,8 @@ these are the ones that shipped a map that could not be played as intended, and 
   50..50` — perfectly flat — because a cottage roofed flush with the plaza's own paving height has no step to
   find, elevation or not; that is the stone-brick-cottage case the review named, and it is still lost. The fix
   is therefore partial, and a full separation would want the enclosed volume a room stamps rather than a
-  roof-height comparison. `Traversability`'s degenerate refusal — every point
+  roof-height comparison. **That residual gap is closed by B133**, which gives `--structures` a recorded
+  extent to read instead of a material-and-step guess wherever one is available. `Traversability`'s degenerate refusal — every point
   off-grid, so `main` stayed 0 and an isolated filter of `Component != main` matched none of them — reported
   "0 spawn/wool point(s) are not reachable" and named nobody, the one case an author most needs a name; the
   isolated filter now also catches `Component == 0` directly, and the all-off-grid message reads "no
@@ -4601,6 +4602,30 @@ these are the ones that shipped a map that could not be played as intended, and 
   swatch and both zone kinds — the two shades of blue that once let a generated board's central build zone be
   read as water on a map carrying none. The role/zone colour constants moved to the new public
   `PlanBoardPalette` so a test can check the real values rather than a copy of them.
+- **A cell's category is read from a recorded build, not guessed from its block, wherever one exists
+  (B133).** `RenderCategories`, `StructureFinder` and `--structures` all asked the same wrong question of the
+  same wrong source — "is this material one a world generates on its own" — which cannot separate a
+  stone-brick cottage wall from a stone-brick plaza it stands on, or from a mesa an author painted to read as
+  built: Ashen Quarry's town terrace and mesa hull both read solid Structure though neither is anything but
+  terrain, and ground under-reported by exactly that much. `PgmStudio.Minecraft.WorldProvenance` is the fix —
+  a per-column record of which pass claimed a cell, composited in placement order (`Ground` from the
+  rasterizer, `Structure` from every stamp and every dressing-placed building that follows it, a later claim
+  covering an earlier one) — built by `SketchWorldBuilder` alongside the voxels and persisted beside the
+  region files a build writes (`WorldProvenanceFile`, one run-length-encoded sidecar per region directory,
+  bundled into a downloaded world's zip too, since a block carries no provenance byte of its own).
+  `RenderCategories.Of(blockId, provenance)` reads a recorded claim as authoritative for the Ground/Structure
+  pair and falls back to the material estimate — the original single-argument overload, unchanged — when
+  none was recorded; `TopDownRender` and `StructureFinder`'s `Run(regionDir, …)` overloads pick the sidecar up
+  automatically, and the picture states which reading it used (`STRUCTURE READING: RECORDED PROVENANCE` /
+  `MATERIAL ESTIMATE (NO RECORDED PROVENANCE)`, baked into the same scale line every render already carries).
+  A world the studio only scanned carries no sidecar and keeps the material estimate, which stays the only
+  reading available for it. **Closes B124's residual gap**: `--structures` now reads a stamped building's
+  recorded extent instead of flooding by material-and-step, so a roof laid flush with its own plaza — the
+  case the step test could not reach — cannot fuse with it at all. Reproducing Ashen Quarry's own plan
+  through the current pipeline (its original build predates this recording) makes the size of the fix
+  concrete: read by material and step alone the whole board floods into three components, the largest 80,722
+  cells; read by recorded provenance the same world reports seven structures matching exactly what was
+  stamped, the largest 133 cells.
 
 - **The capability handbook — what the system can be asked for, and where to say it (B91).** `docs/tools/capabilities.md`
   mapped the four documents a map is made of; it now also states the surface underneath the spec's shorthand, in

@@ -160,43 +160,6 @@ which finds out whether the result actually answers.
   float. What is established is the mechanism and that the shipped pair sits exactly on the boundary where
   the dig vanishes, which is unlikely to be a chosen number.
 
-- [ ] **B133 — What a cell *is* cannot be read off the block that sits there, and three read-backs try.**
-  `RenderCategories.Classify` decides `Structure` with `BlockRoles.IsBuilt(blockId)`, `StructureFinder`
-  finds a building by material, and `--structures` fuses a house into the ground the moment the two share a
-  palette. All three ask the same question of the same wrong source: **a block does not know what placed
-  it.** Stone brick is stone brick whether it is a cottage wall, a paved plaza or a mesa the author painted
-  to read as built, so a material test cannot separate them and no refinement of the palette will.
-
-  The B98 render is the decisive evidence and it is worth stating precisely, because the picture looks like
-  a success. Foliage and water come out right. **Everything else is wrong in the same direction**: Ashen
-  Quarry's town terrace and the mesa hull both read solid orange as structures when both are terrain, and
-  ground correspondingly under-reports, because the town is painted in a built-looking material. A reader
-  who trusts that image concludes the board is half buildings. `B124` narrowed the same fault in
-  `--structures` with a step test and said in its own entry that a roof flush with the paving it stands on
-  still defeats it — which is the same limit reached from the other side.
-
-  **The system already knows the answer and throws it away.** A world the studio builds is built in passes:
-  the rasterizer lays base terrain, the stampers raise rooms, walls, iron cubes and objectives, and the
-  dressing pass places trees, boulders, buildings and flora at coordinates an author chose. Every one of
-  those passes knows the cells it claimed at the moment it claimed them — `DressingScope` already walks a
-  prop's `ClearanceFootprint` and a house's `Footprint` for exactly this reason — and none of it survives
-  into the finished voxels, so the renderers re-derive from blocks what the build could simply have
-  recorded.
-
-  So the model is **provenance carried as layers, resolved in placement order rather than by palette**: base
-  terrain, then structures, then props, each layer knowing which cells it owns, composited so a later layer
-  covers an earlier one. A render then colours by *which layer claimed the cell*, which makes a stone-brick
-  cottage on a stone-brick plaza two different things because two different passes put them there, and
-  makes a painted mesa terrain no matter what it is painted with. It also gives `--structures` a definition
-  that cannot fuse, since a stamped building's extent is recorded rather than flooded for.
-
-  Two things are worth settling as this is built. The layer record wants a home that survives the build —
-  beside the voxels rather than inside them, since a block cannot carry a provenance byte — and it wants to
-  be optional, because a world the studio **scanned** rather than built has no provenance and the
-  material-based reading stays the only one available for those. That split is real and should be named
-  rather than papered over: a built map gets the truth, an imported one gets the estimate, and a render
-  should say which it is showing.
-
 - [ ] **B131 — Every map the studio writes says it is a capture map, whatever it is.** `MetaGenerator`
   states it in its own docstring — "Version/gamemode are fixed for new **CTW** maps; the objective is
   generated from the wool count" — and `Objective(intent)` returns `"Capture the wool!"` for one wool and

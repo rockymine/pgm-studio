@@ -184,6 +184,23 @@ public static class DressingScope
         return null;
     }
 
+    /// <summary>Every dressing-placed building's footprint, fanned across the map's symmetry orbit — the
+    /// columns a stamped house occupies, for the build's provenance record (<c>SketchWorldBuilder</c>) to
+    /// claim as structure regardless of what the house is built from. Trees, boulders and flora are absent on
+    /// purpose: their material already reads unambiguously (a log, a leaf, a liquid), so provenance has
+    /// nothing to correct there — it exists for the Ground/Structure pair a material test can get wrong.</summary>
+    public static IEnumerable<(int X, int Z)> StructureFootprints(string layoutJson)
+    {
+        var symmetry = SymmetryOf(layoutJson);
+        foreach (var prop in PropsOf(layoutJson))
+        {
+            if (prop is not HouseProp) continue;
+            for (var image = 0; image < symmetry.Order; image++)
+                foreach (var cell in ClearanceFootprint(prop, symmetry, image))
+                    yield return cell;
+        }
+    }
+
     // The footprint each prop kind roots or covers, turned to one image of the orbit: a single point for a
     // tree or a boulder — the cell a trunk stands on is what matters here, the same resting cell Decorator's
     // own Seats reads, not the crown that may freely overhang a goal — and the whole rectangle for a building,

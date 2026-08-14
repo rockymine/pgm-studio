@@ -1,6 +1,9 @@
+using System.Text.Json;
 using PgmStudio.Export;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Render;
 using PgmStudio.Pgm.Authoring;
+using PgmStudio.Pgm.Sketch;
 
 namespace PgmStudio.Export.Tests;
 
@@ -278,5 +281,71 @@ public sealed class SketchWorldBuilderTests
         await Assert.That(built.World.GetBlock(48, 1, -2)).IsEqualTo((Blocks.RedstoneWire, 0));   // the corner turn
         await Assert.That(built.World.GetBlock(49, 1, 0).Id).IsEqualTo(Blocks.Air);
         await Assert.That(built.World.GetBlock(54, 1, 4).Id).IsEqualTo(Blocks.Air);
+    }
+
+    // ── provenance (B133) ────────────────────────────────────────────────────────────────────────────
+    // "A block does not know what placed it" — these prove the build itself records the answer instead,
+    // against the exact fault the bug report names: a stamped room reads Structure whatever it is built
+    // from, and terrain the painter finishes in a built-looking material stays Ground because nothing after
+    // the rasterizer claimed it.
+
+    [Test]
+    public async Task A_wool_rooms_footprint_is_claimed_structure_regardless_of_what_it_is_built_from()
+    {
+        var built = SketchWorldBuilder.Build(Layout, SampleIntent());
+
+        // The default 10×10 shell centred on the (snapped) red wool spawn (-10, 10) — well inside its frame.
+        await Assert.That(built.Provenance.LayerAt(-10, 10)).IsEqualTo(ProvenanceLayer.Structure);
+        await Assert.That(built.Provenance.LayerAt(20, 0)).IsEqualTo(ProvenanceLayer.Structure);   // blue's spawn cube
+    }
+
+    [Test]
+    public async Task Plain_terrain_the_painter_finishes_in_a_built_looking_material_stays_ground()
+    {
+        // A map-wide theme whose surface is stone brick (98) — exactly the material RenderCategories reads
+        // as Structure by default (RenderCategoriesTests), and exactly what a town terrace or a mesa hull is
+        // painted in on Ashen Quarry. Nothing stamps anything here: the whole board is one flat plaza.
+        var themedLayout = new SketchLayout
+        {
+            Setup = new SketchSetup { MirrorMode = "rot_180", Center = new SketchCenter { Cx = 0, Cz = 0 } },
+            Layout = new SketchShapes
+            {
+                Shapes = [new SketchShape
+                {
+                    Id = "a", Type = "rectangle", Operation = "add",
+                    MinX = -40, MinZ = -40, MaxX = 40, MaxZ = 40, BaseHeight = 4,
+                }],
+                Islands = [],
+            },
+            Themes = new Dictionary<string, JsonElement>
+            {
+                ["map"] = JsonSerializer.Deserialize<JsonElement>(
+                    TerrainThemeJson.Serialize(TerrainTheme.Default with { Surface = new TopBand(new SolidMaterial(98), 1) })),
+            },
+            MapTheme = "map",
+        }.ToJson();
+
+        var intent = new MapIntent
+        {
+            Teams = [new TeamDef { Id = "red", Color = "red" }],
+            Spawns = [new SpawnIntent { Team = "red", Point = new Pt(30, 4, -30), Yaw = 0 }],
+            Wools = [],
+            Observer = new ObserverIntent { Point = new Pt(0, 20, 0), Yaw = 0 },
+            Meta = new MetaIntent { Name = "Plaza", Authors = [] },
+        };
+        var built = SketchWorldBuilder.Build(themedLayout, intent);
+
+        // The material alone reads Structure — proving the theme actually painted the built-looking block.
+        // Surface top is y=4 (base_height 4), the one-block bedrock floor takes y=0, so the painted surface
+        // course — the one this theme names stone brick — is the topmost solid block, y=3.
+        var (blockId, _) = built.World.GetBlock(-20, 3, 20);
+        await Assert.That(blockId).IsEqualTo(98);
+        await Assert.That(RenderCategories.Of(blockId)).IsEqualTo(RenderCategory.Structure);
+
+        // The recorded provenance disagrees, correctly: nothing stamped this column, so it is Ground.
+        await Assert.That(built.Provenance.LayerAt(-20, 20)).IsEqualTo(ProvenanceLayer.Ground);
+
+        // Well away from the spawn cube it stamped, which IS Structure.
+        await Assert.That(built.Provenance.LayerAt(30, -30)).IsEqualTo(ProvenanceLayer.Structure);
     }
 }
