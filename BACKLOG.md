@@ -625,16 +625,34 @@ refused when it is posted, not silently built.
 
   *author, 2026-08-14 · `HouseStyle.cs:220` · swept over every layout in the repository.*
 
-- [ ] **B165 — A gable roof at `pitch: 2` is overridden by its own wall.** Reported by the author: a gable
+- [~] **B165 — A gable roof at `pitch: 2` is overridden by its own wall.** Reported by the author: a gable
   rising two blocks a step disagrees with the wall under it, and the wall wins where they conflict — so the roof
   the style asks for is not the roof that stands. Two of Corvid Hollow's houses carry `form: "gable"` with
-  `pitch: 2`, and all nine of Ashfall Scar's do, and two of Kilnrow's; the configuration is confirmed present,
-  and the block-level disagreement is the author's observation and the half still to be traced.
+  `pitch: 2`, and all nine of Ashfall Scar's do, and two of Kilnrow's.
+
+  **Traced and not yet found.** Two places a wall could plausibly outrank a roof were checked directly against
+  every block a stamp actually writes, compared cell by cell to `RoofField`'s own promise (its `Crown`,
+  `Underside`, `OnBorder`, `OnRidge`) rather than eyeballed: the roof's own sloped surface, and the gable fill
+  between the wall top and that surface (`HouseStamper`'s "walls climb to meet the roof" pass). Both matched
+  exactly, on Corvid Hollow's own `d2` house (single storey) and both of Kilnrow's `k3`/`k5` (two storeys, a
+  per-level wall override, a bound `Gable`), run through `Decorator.Decorate` rather than a bare `Stamp` call so
+  the real front-derived doorway and window seating were in play — and on 700 synthetic trials sweeping pitch
+  1–4, every roof form, overhang 0–2, wall extent 3–8, every front edge, a ridge cap on and off, and an unbound
+  `Gable` falling back to the wall's own top course. Nothing disagreed anywhere in that sweep.
+
+  So the mechanism is not a material one component wrote over another's cell: whatever the author saw, it is not
+  the roof surface or the gable triangle losing to a wall block in `HouseStamper`. What is still unchecked: the
+  window seating cutting into gable or roof territory at a steep pitch specifically (not swept), and whatever
+  the author was actually looking at — a real build's lighting or block orientation reading as "wall" where the
+  block id is in fact the roof's own, which a synthetic reproduction would not show. Re-open with the actual
+  in-game coordinates the observation was made at, or a screenshot, rather than re-sweeping the same space.
 
   Worth pairing with `B160` — both are a style stating something the stamper then does differently, with nothing
   reporting the divergence.
 
-  *author, 2026-08-14 · configuration confirmed in three layouts; mechanism not yet traced.*
+  *author, 2026-08-14 · configuration confirmed in three layouts.* Traced 2026-08-14: roof surface and gable
+  fill verified against `RoofField` on the real Corvid Hollow / Kilnrow houses and 700 fuzzed configurations;
+  no discrepancy found in either.
 
 - [ ] **B168 — A slab named as a roof material builds a see-through roof, and the correct construction is
   already a shipped preset.** Six Weirgate shed houses set `roof: 126` (Wooden Slab) at `pitch: 1` with
