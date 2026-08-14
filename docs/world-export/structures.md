@@ -331,18 +331,26 @@ between that wing's own two ends — it is a **cross-gable**.
 
 A meet is not left as two roofs abutting, because a wing that merely stops at the wall drops its ridge to the
 neighbour's eave and climbs again, which is a gutter cut across the middle of a roof. It **marches**: each
-course of the meeting wing steps on along its own ridge into the other until it hits a block, and stops. The
-courses nearest the ridge travel furthest and the ones nearest the eave stop at once, which is what draws the
-crossing as a diagonal valley. No overhang is carried in — an overhang is what a roof has outside a wall, and
-inside another wing there is no outside — so a marching end emits none of its own and the march takes those
-columns over. That is not only a rule about what an overhang means: with its own eave still in place, every
-course strikes a block at its first step and the march moves nothing.
+course of the meeting wing steps on along its own ridge into the other for as long as its own crown still
+stands taller than the neighbour's own roof does at that cell, and stops the moment the neighbour's surface
+would already be the higher of the two — the point a valley forms at. The courses nearest the ridge travel
+furthest and the ones nearest the eave stop at once, which is what draws the crossing as a diagonal valley. No
+overhang is carried in — an overhang is what a roof has outside a wall, and inside another wing there is no
+outside — so a marching end emits none of its own and the march takes those columns over.
+
+**A course also never marches further than its own distance from its own eave**, whatever it meets. That bound
+does not depend on meeting anything taller: a course this many blocks from its own wall is exactly as far as
+its own roof plane would still be climbing were nothing there to meet, so it cannot need more room than that to
+find a taller surface. Without it, a course whose crown never meets one — a steeper wing over a shallower hall,
+or any wing over a flat one, which has no rising surface to meet at all — would march the length of whatever it
+crosses and come out its far overhang, the shape of a wing drawn through rather than one that stopped at a
+wall. Bounded, such a course still marches a little way past the wall — the excursion a valley cannot avoid
+where the geometry says meet but the heights do not converge — and stops there rather than running on.
 
 There are only these two shapes. A wing either stops at its neighbour's wall or is drawn on through it, and
 which one it is, is the rectangle the author drew — never a mode. A wing whose roof is shallower than the one
-it meets marches until it hits and stops; one drawn through comes out the far side with its own gable and its
-own overhang, landing on the row the neighbour's overhang lands on. A roof taller than the one it crosses can
-only pass through, which is to say it can only be drawn through.
+it meets marches until the neighbour's own surface catches up and stops there; one drawn through comes out the
+far side with its own gable and its own overhang, landing on the row the neighbour's overhang lands on.
 
 **A wing's two gable ends carry the same triangle**, and that is what the acceptance test asserts: the end that
 closes the building and the end on the neighbour's far wall are the same gable, block for block, above the eave.

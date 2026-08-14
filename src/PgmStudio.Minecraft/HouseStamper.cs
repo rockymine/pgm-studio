@@ -213,10 +213,19 @@ public static class HouseStamper
 
         // <b>The march.</b> Where a wing's gable end runs up against another wing rather than into the open, its
         // roof does not simply stop at the wall: each course steps on along its own ridge into the other roof
-        // until it <b>hits a block, and stops</b>. The courses nearest the ridge travel furthest and the ones
-        // nearest the eave stop at once, which is what draws the crossing as a diagonal valley rather than as a
-        // wing abutting a wall. No overhang is carried in — an overhang is what a roof has outside a wall, and
-        // inside another wing there is no outside — so the march runs across the wing's own width alone.
+        // until the other roof already stands as tall, and stops there. The courses nearest the ridge travel
+        // furthest and the ones nearest the eave stop at once, which is what draws the crossing as a diagonal
+        // valley rather than as a wing abutting a wall. No overhang is carried in — an overhang is what a roof
+        // has outside a wall, and inside another wing there is no outside — so the march runs across the wing's
+        // own width alone.
+        //
+        // <b>A course also never marches further than its own distance from its own eave.</b> That bound does
+        // not depend on meeting anything: a course this many blocks from its own wall is exactly as far as its
+        // own roof plane would still be climbing were nothing there to meet, so it cannot need more room than
+        // that to find a taller surface. Without it a course whose crown never meets one — a steeper wing over a
+        // shallower hall, or any wing over a flat one, which has no rising surface to meet at all — marches
+        // clean across whatever it crosses and comes out its far overhang, the shape of a wing drawn through
+        // rather than one that stopped at a wall.
         foreach (var (wing, _, field, _, slab) in roofs)
         {
             var (low, high) = wing.GableEnds;
@@ -225,14 +234,17 @@ public static class HouseStamper
                 if (!Marches(wing, end, step)) continue;
                 var (acrossLo, acrossHi) = wing.RidgeAlongX ? (wing.MinZ, wing.MaxZ) : (wing.MinX, wing.MaxX);
                 for (var across = acrossLo; across <= acrossHi; across++)
-                    for (var reach = 1; ; reach++)
+                {
+                    var reachable = Math.Min(across - acrossLo, acrossHi - across);
+                    for (var reach = 1; reach <= reachable; reach++)
                     {
                         var along = end + step * reach;
                         var (x, z) = wing.RidgeAlongX ? (along, across) : (across, along);
-                        if (!body.Holds(x, z)) break;            // marched clean out of the building
-                        if (Struck(field, x, z)) break;          // hit a block, and stop
+                        if (!body.Holds(x, z)) break;                              // marched clean out of the building
+                        if (CoveringCrown(wing, x, z) >= field.Crown(x, z)) break;  // the other roof already stands this tall
                         Lay(field, x, z, body, slab);
                     }
+                }
             }
         }
 
@@ -489,14 +501,17 @@ public static class HouseStamper
             return false;
         }
 
-        /// <summary>Whether the column a marching course would write is already occupied — the block it stops
-        /// at. The other roof is laid in full before any march begins, so what a course meets is a surface
-        /// rather than a half-built one.</summary>
-        bool Struck(RoofField field, int x, int z)
+        /// <summary>The tallest surface any other wing's own roof already reaches at this cell, or a course
+        /// below every roof where none does — what the march may not draw over. Read from each wing's own field
+        /// directly rather than from what the primary pass actually placed, and a field asked for a cell outside
+        /// its own rectangle keeps answering the same formula it always did, which is what lets the comparison
+        /// hold all the way to the far wall rather than only where the roof's own plan happens to cover.</summary>
+        int CoveringCrown(Wing wing, int x, int z)
         {
-            for (var y = Math.Max(field.Underside(x, z), Covering(x, z) + 1); y <= field.Crown(x, z); y++)
-                if (y is > 0 and < VoxelWorld.MaxHeight && world.GetBlock(x, y, z).Id != Blocks.Air) return true;
-            return false;
+            var highest = int.MinValue;
+            foreach (var (other, _, otherField, _, _) in roofs)
+                if (!other.Equals(wing) && other.Holds(x, z)) highest = Math.Max(highest, otherField.Crown(x, z));
+            return highest;
         }
 
         /// <summary>The highest wall top of any wing standing on this cell, or a course below every roof where
