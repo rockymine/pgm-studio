@@ -492,14 +492,18 @@ over. The cursor shows in advance whether a spot will take it. A **building** is
 rectangle, because a stamper takes a box: it must be at least three by three to hold two walls and an inside,
 and no larger than 192 blocks of footprint, and a drag outside that range places nothing.
 
-**What a building is made of reaches further than what this phase can say.** A house is stamped against a
-`Footprint` (`src/PgmStudio.Minecraft/Footprint.cs`), and a footprint is **one or more touching rectangles** —
-wings. An L, a T or a U is therefore one house under one style rather than two standing beside each other: the
-outline is walked as a single landmass, so an L answers six runs of wall and a T eight, a wall ends wherever
-the building turns, and the cell where two wings meet is an inner corner carrying a post of its own. Each wing
-may stop short of the building's full height and may override the roof form, pitch and slab, and a storey is
-then its own plan over the wings still standing — which is how a one-storey hall with a two-storey cross wing
-gets the wall it needs against the hall's roof with no rule written for it.
+**A building prop states one or more touching rectangles.** Its `wings` field is a list of them, each the two
+opposite corners a drag always stored, and `HouseProp.Footprint()` composes them into a `Footprint`
+(`src/PgmStudio.Minecraft/Footprint.cs`) — **one or more touching rectangles**, the same shape `HouseStamper`
+has always taken. An L, a T or a U is therefore one house under one style rather than two standing beside each
+other: the outline is walked as a single landmass, so an L answers six runs of wall and a T eight, a wall ends
+wherever the building turns, and the cell where two wings meet is an inner corner carrying a post of its own.
+Each wing may stop short of the building's full height and may override the roof form, pitch and slab, and a
+storey is then its own plan over the wings still standing — which is how a one-storey hall with a two-storey
+cross wing gets the wall it needs against the hall's roof with no rule written for it. Each wing is still held
+to the three-block floor a single rectangle always needed, and the whole plan to `MaxFootprint` (192 blocks)
+measured over the ground the wings actually cover rather than the box drawn round them, so an L takes no more
+of the cap for reading larger on the corner it never stood on (`G177`).
 
 **The roof over a junction is built and has two behaviours.** A building's roof is the union of its wings'
 roofs, never a max of their crowns, because a max blends two surfaces into one and drags roof material down
@@ -507,13 +511,16 @@ the wall between wings of unequal height; each wing is extruded as the whole bui
 a wing **projects** into another, it cuts the roof it pushes into across its own span, so its verge has
 something to sit on instead of two surfaces lying over each other. Where a wing's gable end runs up against
 another wing rather than into the open, its roof **marches** — carried across the wing's own width with no
-overhang, since an overhang is what a roof has outside a wall and inside another wing there is no outside.
+overhang, since an overhang is what a roof has outside a wall and inside another wing there is no outside — and
+bounded by the marching course's own distance from its own eave, so a course whose crown never meets a
+shallower or flatter neighbour's still stops rather than running the neighbour's whole length (`G172`).
 
-What is missing is the authoring, not the stamp. A placed building is stored as exactly two corners, so
-nothing in the studio can state a second wing, and the dressing pass stamps one rectangle per prop: two
-buildings drawn touching are stamped as two buildings, and one whose footprint overlaps ground an earlier prop
-already claimed is dropped rather than joined to it. Composing several placed rectangles into one multi-wing
-footprint is the open half of `G172`; the stamper is waiting for it.
+**The overlap rule tells two buildings colliding from one building's own wings meeting.** Two props whose
+plans share a cell are still refused — the second is dropped rather than raised through the first's walls — but
+a plan's own wings never reach that test against each other, since the whole plan is composed and checked as
+one `Footprint` before anything is placed. The canvas still only ever drags one rectangle at a time: a second
+wing is something a hand-authored or agent-authored document can state today, and the drawing tool to add one
+on the canvas is not built (`S60`).
 
 The document is a flat list of what was placed, in placement order, each entry carrying its own knobs. One of
 each:
@@ -699,12 +706,10 @@ is not the Dressing phase's path tool and the two do different things: a `path` 
 into the ground and rasterized as a footprint, while a `path` **prop** repaints the surface it crosses and
 adds no cell. The tool exists for the prop; the shape has none.
 
-Placed buildings cannot be joined, though the stamper would take them joined. It builds a house from any
-number of touching wings and roofs the junctions properly, and this phase hands it one rectangle per prop, so
-an L or a T can only be drawn as separate buildings standing beside each other — and drawing them touching
-gets exactly that, or one building and a dropped prop where they overlap. The gap is `G172`'s open half: a way
-to state the second wing. One thing beyond it is genuinely unbuilt — a wing that projects into another and
-stands mid-slope wants the same plinth and wall as its neighbour, which nothing does yet.
+A placed building's `wings` can state an L, a T or a U, and `Decorator` composes them into one house under one
+style the way the stamper always could (`G177`) — but the canvas itself still only ever drags one rectangle, so
+reaching a second wing today means writing the document by hand or generating it. The drawing tool to add one
+on the canvas is `S60`'s open half.
 
 Symmetry here is a **preview and a mirror flag**, not a constraint. Shapes are drawn on one side and copied at
 export for every island that opted in; nothing stops an author drawing across the axis, and nothing checks that

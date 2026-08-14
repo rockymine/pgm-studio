@@ -77,22 +77,31 @@ public partial class SketchDressingList
         return count == 0 ? "" : $"{count} pts";
     }
 
-    /// <summary>A building's footprint in whole blocks. It is stored as two opposite corners rather than as a
-    /// traced outline, so a count of points says nothing about it — how much ground it covers does.</summary>
+    /// <summary>A building's footprint in whole blocks, over the box drawn round every wing it carries. Each
+    /// wing is stored as two opposite corners rather than as a traced outline, so a count of points says
+    /// nothing about it — how much ground the whole plan spans does. The box rather than the wings' own union
+    /// is what a one-line summary can afford; an L reads a little larger here than it actually stands on,
+    /// which is the same trade the canvas outline does not have to make.</summary>
     private static string Footprint(JsonElement prop)
     {
-        if (!prop.TryGetProperty("points", out var points) || points.ValueKind != JsonValueKind.Array
-            || points.GetArrayLength() < 2) return "";
-        JsonElement first = points[0], second = points[1];
-        if (first.ValueKind != JsonValueKind.Array || first.GetArrayLength() < 2
-            || second.ValueKind != JsonValueKind.Array || second.GetArrayLength() < 2) return "";
+        if (!prop.TryGetProperty("wings", out var wings) || wings.ValueKind != JsonValueKind.Array
+            || wings.GetArrayLength() == 0) return "";
 
-        var width = Blocks(first[0], second[0]);
-        var depth = Blocks(first[1], second[1]);
-        return $"{width} × {depth}";
-
-        static int Blocks(JsonElement one, JsonElement other)
-            => (int)Math.Abs(Math.Floor(other.GetDouble()) - Math.Floor(one.GetDouble())) + 1;
+        double minX = double.MaxValue, minZ = double.MaxValue, maxX = double.MinValue, maxZ = double.MinValue;
+        foreach (var wing in wings.EnumerateArray())
+        {
+            if (wing.ValueKind != JsonValueKind.Array) continue;
+            foreach (var corner in wing.EnumerateArray())
+            {
+                if (corner.ValueKind != JsonValueKind.Array || corner.GetArrayLength() < 2) continue;
+                var x = Math.Floor(corner[0].GetDouble());
+                var z = Math.Floor(corner[1].GetDouble());
+                minX = Math.Min(minX, x); maxX = Math.Max(maxX, x);
+                minZ = Math.Min(minZ, z); maxZ = Math.Max(maxZ, z);
+            }
+        }
+        if (minX > maxX || minZ > maxZ) return "";
+        return $"{(int)(maxX - minX) + 1} × {(int)(maxZ - minZ) + 1}";
     }
 
     private Task Select(string id)

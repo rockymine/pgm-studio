@@ -229,24 +229,30 @@ public sealed record FloraProp : PlacedProp
 }
 
 /// <summary>
-/// A building standing on the terrain: the rectangle an author dragged, and the shell to raise on it.
+/// A building standing on the terrain: one or more touching rectangles an author dragged, and the shell to
+/// raise on them.
 ///
 /// <para>It is the same <see cref="HouseStyle"/> a wool cage and a spawn cube are stamped with, and the same
 /// <see cref="HouseStamper"/> raises it — but nothing else is shared, and the difference is worth stating.
 /// A <b>room</b>'s footprint comes from its plan piece (WX1), it is stamped before the painter, and it carries
 /// a pad, monuments, chests and an entry contract because the map is played through it. A <b>prop</b>'s
-/// footprint is a rectangle someone drew, it is stamped after the painter with the rest of the dressing, and it
+/// footprint is rectangles someone drew, it is stamped after the painter with the rest of the dressing, and it
 /// carries none of those: it is scenery a player can walk into, not a room the objectives live in.</para>
 ///
-/// <para>The footprint is stored as its two opposite corners rather than as an origin and a size, so the fan
+/// <para><b>A wing is stored as its two opposite corners</b> rather than as an origin and a size, so the fan
 /// mirrors it as the <em>shape</em> it is — the rule an area prop's outline already follows. A rectangle turned
 /// through ninety degrees is a rectangle whose width and depth have swapped, and taking two corners round the
-/// orbit says that without the stamp having to know it happened.</para>
+/// orbit says that without the stamp having to know it happened. <see cref="Wings"/> is a list of these: one
+/// entry is the plain rectangle every board carried until <c>G177</c>, and more than one is an L, a T or a U —
+/// still one house under one style, the shape <see cref="HouseStamper"/> already takes as a
+/// <see cref="Minecraft.Footprint"/> of touching <see cref="Wing"/> rectangles.</para>
 /// </summary>
 public sealed record HouseProp : PlacedProp
 {
-    /// <summary>The dragged rectangle, as exactly two opposite <c>[x, z]</c> corners.</summary>
-    public IReadOnlyList<double[]> Points { get; init; } = [];
+    /// <summary>The dragged rectangles, each as exactly two opposite <c>[x, z]</c> corners. They are expected to
+    /// touch, the same expectation <see cref="Minecraft.Footprint"/> itself states — a wing standing clear of
+    /// the rest is not part of the outline the walls are painted against.</summary>
+    public IReadOnlyList<IReadOnlyList<double[]>> Wings { get; init; } = [];
 
     /// <summary>Which wall the door is cut through, or null to let the building choose the middle of a long
     /// side. A room's door is an entry contract derived from its frame; a prop has no contract to derive one
@@ -264,11 +270,13 @@ public sealed record HouseProp : PlacedProp
     ///
     /// <para>The unit is the room the map is actually played through. Scenery that covers more than a few times
     /// one of those stops reading as scenery and starts competing with the objectives for the ground; these are
-    /// maps of pieces and lanes, not a landscape with a town in it.</para>
+    /// maps of pieces and lanes, not a landscape with a town in it. A building of several wings is held to the
+    /// same number over the ground its wings actually cover, not over the box drawn round them — an L takes no
+    /// more of the map for reading larger on the corner it never stood on.</para>
     ///
     /// <para>It is an <b>area</b> rather than a side length so a long low building is as buildable as a square
     /// one. It bounds what a building costs and how much map it takes, and nothing else — <b>height is bounded
-    /// separately and by the roof</b>: every form's rise is measured over the building's shorter side
+    /// separately and by the roof</b>: every form's rise is measured over each wing's own shorter side
     /// (<see cref="RoofField"/>), which is what stops a hall carrying a lean-to as tall as it is long.</para>
     ///
     /// <para>The cap is the <b>prop's</b>, not the stamper's. A wool cage and a spawn cube go through the same
@@ -276,17 +284,28 @@ public sealed record HouseProp : PlacedProp
     /// geometry, and nothing a dressing limit has any business refusing.</para></summary>
     public const int MaxFootprint = 192;
 
-    /// <summary>The footprint in whole blocks, min inclusive, or null when the rectangle is no building — too
-    /// few corners, too small to hold two walls and an inside, or past <see cref="MaxFootprint"/>.</summary>
-    public (int MinX, int MinZ, int Width, int Depth)? Footprint()
+    /// <summary>The plan this prop stamps, or null when it is no building at all: no wings, a wing with too
+    /// few or too small corners, or a covered area — the actual cells the union of wings holds, not the box
+    /// drawn round them — past <see cref="MaxFootprint"/>.
+    ///
+    /// <para>Every wing is required to hold two walls and an inside on its own, the same three-block floor a
+    /// single rectangle always has: a wing composes with its neighbours below the eave, but nothing composes a
+    /// room out of a sliver with no width of its own.</para></summary>
+    public Minecraft.Footprint? Footprint()
     {
-        if (Points.Count < 2 || Points[0].Length < 2 || Points[1].Length < 2) return null;
-        int minX = (int)Math.Floor(Math.Min(Points[0][0], Points[1][0]));
-        int minZ = (int)Math.Floor(Math.Min(Points[0][1], Points[1][1]));
-        int maxX = (int)Math.Floor(Math.Max(Points[0][0], Points[1][0]));
-        int maxZ = (int)Math.Floor(Math.Max(Points[0][1], Points[1][1]));
-        int width = maxX - minX + 1, depth = maxZ - minZ + 1;
-        if (width < 3 || depth < 3) return null;
-        return width * depth > MaxFootprint ? null : (minX, minZ, width, depth);
+        if (Wings.Count == 0) return null;
+        var wings = new List<Wing>(Wings.Count);
+        foreach (var corners in Wings)
+        {
+            if (corners.Count < 2 || corners[0].Length < 2 || corners[1].Length < 2) return null;
+            int minX = (int)Math.Floor(Math.Min(corners[0][0], corners[1][0]));
+            int minZ = (int)Math.Floor(Math.Min(corners[0][1], corners[1][1]));
+            int maxX = (int)Math.Floor(Math.Max(corners[0][0], corners[1][0]));
+            int maxZ = (int)Math.Floor(Math.Max(corners[0][1], corners[1][1]));
+            if (maxX - minX + 1 < 3 || maxZ - minZ + 1 < 3) return null;
+            wings.Add(new Wing(minX, minZ, maxX, maxZ));
+        }
+        var plan = new Minecraft.Footprint(wings);
+        return plan.Cells().Count() > MaxFootprint ? null : plan;
     }
 }

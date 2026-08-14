@@ -220,6 +220,11 @@ public static class DressingJson
     /// <c>cell</c> pattern does. A stored cobbled path therefore becomes a cell material over the same grid it
     /// was already tiled by, and its style falls back to <c>solid</c> — the band it always paved. Any other
     /// style spent only the first block, so that is the solid it becomes.</para>
+    ///
+    /// <para><b>A house's <c>points</c> → <c>wings</c>.</b> A placed building was exactly two corners and is
+    /// now a list of one or more touching rectangles (`G177`); a stored one carries a single wing, so its own
+    /// two corners become that wing's own two corners, wrapped in the list they were always the only entry
+    /// of.</para>
     /// </summary>
     private static JsonNode Upgraded(string json)
     {
@@ -262,6 +267,12 @@ public static class DressingJson
                 : palette[0]!.DeepClone();
             if (cobbled) prop["style"] = "solid";
             prop.Remove("blocks");
+        }
+
+        if (kind == "house" && prop["wings"] is null && prop["points"] is JsonArray points)
+        {
+            prop["wings"] = new JsonArray(points.DeepClone());
+            prop.Remove("points");
         }
     }
 

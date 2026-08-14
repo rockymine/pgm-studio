@@ -185,6 +185,15 @@ highlight); these are the parked / dormant / deferred slices.
   slope-fit has the same problem and the same fix. Pairs with `S54`, since the 3-D preview is where a height
   edit is actually legible and it is a modal swap rather than a companion view.
 
+- [ ] **S60 — A building prop can state more than one wing; the canvas can still only drag one.** `HouseProp`
+  carries `wings`, a list of touching rectangles, and `Decorator` composes them into one `Footprint` and stamps
+  once (`G177`) — an L, a T or a U is authorable today by anyone writing the document directly. The dressing
+  tool itself still only ever drags a single rectangle: there is no way on the canvas to add a second wing to a
+  placed building, drag one of several independently, or see a proper L/T/U outline rather than one rectangle
+  per wing (`wingRings` in `dressing-render.js` draws each wing's own box rather than the traced silhouette a
+  build actually stamps). Wants a second interaction — add-a-wing, probably a drag that starts touching an
+  existing wing's edge — and a handle set that knows which wing a grip belongs to.
+
 ## Editor & canvas infrastructure (C / CV)
 
 Shared infra for **both** the Configure wizard (`/maps/{id}/configure`) and the frozen Edit editor
@@ -1066,117 +1075,12 @@ the thing `B181` names, which makes the document upstream of the boards rather t
   still has knobs whose *card* does not change when they are turned, which is the one thing the preview exists
   to prevent. Wants a larger sample footprint, and a card that is not the one view those knobs are invisible in.
 
-- [~] **G172 — A house on more than one rectangle: wings, and the roof where two of them meet.** A building is
-  one rectangle today, so an L, a T or a U can only be built as separate houses standing next to each other —
-  which is what the settlement investigation ran aground on. The shape that works is **one house, one style, a
-  footprint of touching rectangles**, each *wing* carrying its own ridge axis and its own storey count. Designed
-  and prototyped in scratch, not built; the prototype was thrown away deliberately (see the note at the end).
-
-  **The roof needs no new machinery, and that is the finding.** `RoofField` already answers a height per cell
-  for a rect, a base course, a form and a pitch — so a wing's roof is one of those, and a building's roof is
-  the **union of the wing volumes**. Not a max of crowns: a max blends two surfaces into one and drags roof
-  material down the wall between wings of different heights. `RoofField` itself needs no changes at all.
-
-  Six rules, each of which the prototype got wrong at least once. The first five held by the end of it; the
-  sixth is where it still fell short, below.
-
-  1. **Union of volumes, never a max of crowns.** Each wing is extruded as the whole building it would be
-     alone, and its riser — write down as far as the lowest neighbour — closes only against **itself**. A
-     surface does not thicken to reach one it merely stands beside.
-  2. **No roof block below the wall top of whatever covers that cell.** This is what makes a one-storey wing
-     stop against a two-storey one instead of pushing through it: under a wall is inside the building, and
-     that is not where a roof goes.
-  3. **A wing emits overhang only at its own ends.** Extending a roof plan along the ridge is what lets it run
-     on and find the other roof, but that extension belongs inside the footprint. Carried past the far wall of
-     a wing it ran into, it hangs a stub of roof in the air outside a wall it never touched.
-  4. **A gable face wherever a wing's roof plan ends** — on the building's outline or inside it. Filling only
-     on the outline is what leaves a wing that stops partway into another reading as roof pushed into roof.
-  5. **A wing's gable end is a wall from the ground up, wherever it stands.** Walls built only where *exposed*
-     never build this one, because a gable end inside another wing of the same height is exposed by nothing.
-  6. **Walls outrank roofs.** Lay the roofs first and the walls after, or a wing punching through another has
-     the other's slope written straight over its standing wall.
-
-  **Two joints, and they are not a mode — they are which rectangle was drawn.** Where a wing reaches an outside
-  wall its roof runs through and the crossing is a valley (*meet*); where it stops inside another, its gable
-  end stands mid-slope and it is a cross-gable (*project*). An author picking between them is redundant with
-  the geometry. Different storey heights admit only the first: the second would put roof inside a building.
-
-  *Meet* is a march rather than a formula. Build both roofs standalone, then step each course of the
-  perpendicular roof into the other until it **hits a block, and stop** — placing no overhang, since an
-  overhang is what a roof has outside a wall. What still needs settling is the inside: the result has to be one
-  continuous attic rather than a slice of the long roof hanging through it.
-
-  **The acceptance test, and it is worth more than the implementation.** A wing has two gable ends: one on the
-  outside of the building, one projected into the other wing's slope. At the same wall height *they are the
-  same gable* — same plinth, same wall, same gable face, same verge, same overhang, mirrored. The only
-  difference is that one sits mid-slope instead of ending a building. Assert the two profiles are identical,
-  comparing over the **wing's own width** (the neighbour's floor legitimately runs wider). It says nothing
-  about how a roof is assembled, so it outlives any implementation of one — and in the prototype it located a
-  missing wall in a single run and then pointed straight at an uncut roof with no ambiguity left.
-
-  Also needed, and cheap once the above holds: a projecting wing must **cut** the roof it pushes into across
-  its own span, or its verge has nowhere to sit and its overhang is simply missing.
-
-  **The footprint and everything below the eave are done** (`FEATURES.md`). `Footprint` is a union of touching
-  `Wing` rectangles that walks its own cells, splits its outline into `WallSegment` runs, and `Stamp` takes one
-  — so the sill, floor, walls, window runs, doorways, slab and beams all build an L or a T on its own outline.
-  Each wing carries **its own storey count** and a storey is the plan of the wings that reach it, so a taller
-  wing walls itself along the line a stopped neighbour shared with it. The roof is the **union of the wing
-  volumes**, with the three rules that carry it — a wing reaches its own overhang and no further, no roof block
-  below the wall top of whatever covers a cell, and walls laid after every volume.
-
-  **Both shapes are built and gated.** A wing stopping at its neighbour's wall marches into it until each
-  course hits a block; a wing drawn on through comes out the far side with its own gable and overhang. Those
-  are the only two — which one applies is the rectangle drawn, never a mode — and the acceptance test asserts
-  what it should: the two gable ends carry the **same triangle**. The plinth and wall below the eave are not
-  alike and are not made alike, since no post belongs where a wall runs straight on.
-
-  **Measured, and it is a defect: a wing whose roof rises above its neighbour's marches clean across it.**
-  Each course marches until it hits a block, and a course standing above everything in its way never hits one,
-  so it runs the whole length of the neighbour and stops only at the far overhang — the drawn-through result,
-  reached by a shape that stopped at the wall and did not ask for it. Two footprints show it: a wing at pitch 2
-  against a hall at pitch 1 on equal storeys, and a gabled wing against a **flat**-roofed hall, where there is
-  no ridge anywhere for a march to strike. A march needs a stop that does not depend on meeting something
-  taller. The obvious candidate — stop at the neighbour's ridge — is wrong for the flat roof, which has none.
-
-  **A wing has no doorway into its neighbour.** Where two wings meet the plan is simply open between them, which
-  is right; where one projects into another its gable end is now a wall from the ground up, which is also right
-  and leaves the projecting wing reachable only from outside. A doorway between wings is its own task — it wants
-  a run to sit in and a rule for which wall it is cut through — and belongs with the openings work rather than
-  with the roof.
-
-  **A note on method, because it cost most of a session.** Every defect above was invisible in an isometric and
-  obvious in a **printed cut** — a text grid of one plane, one letter per material. Two of them survived a
-  flood-fill seal test, which passes happily on a roof with a hole in its body. Print the cut from the first
-  line of the implementation, not the last.
-
-- [ ] **G177 — A placed building is two corners, so nothing can state a second wing and the stamper waits.**
-  This is `G172`'s open half, filed where its **remaining** work lives: not in the stamp, which is done, but in
-  the document an author writes. `HouseStamper.Stamp` takes a `Footprint` — one or more touching `Wing`
-  rectangles — and builds an L, a T or a U as **one house under one style**: the outline is walked as a single
-  landmass so an L answers six runs of wall and a T eight, a wall ends wherever the building turns, the cell
-  where two wings meet is an inner corner carrying its own post, each wing may stop short of the building's
-  height and override the roof form, pitch and slab, and a storey is the plan of the wings still standing there.
-  The roof is the union of the wing volumes, and both junctions are built: a wing that **projects** into another
-  cuts the roof it pushes into across its own span, and a wing whose gable end runs up against another
-  **marches** into it. `docs/world-export/structures.md` §"a building is one or more touching wings" and
-  `docs/tools/sketch.md` both describe all of it in the present tense, correctly.
-
-  **And a placed building is stored as exactly two corners.** So the dressing pass hands the stamper one
-  rectangle per prop, two buildings drawn touching are stamped as two buildings, and one whose footprint
-  overlaps ground an earlier prop claimed is **dropped** rather than joined to it. Every building on every one of
-  the twenty-one boards is therefore a rectangle with a roof form on it — not because the models lacked
-  imagination, but because a rectangle is the only thing the document can say.
-
-  The work is the prop shape and the pass that reads it: a building states a **list of touching rectangles**
-  rather than two corners, `Decorator` composes them into one `Footprint` and stamps once, and the overlap rule
-  learns the difference between *two props colliding* — still a drop, `MG7` — and *one prop with two wings*.
-  `sketch.md`'s Limits and its building section both name this gap and want correcting in the same commit.
-
-  Worth settling while here, because two documents disagree: `sketch.md` says a wing that projects into another
-  and stands mid-slope "wants the same plinth and wall as its neighbour, which nothing does yet", and `G172`
-  says the plinth and wall below the eave "are not alike and are not made alike, since no post belongs where a
-  wall runs straight on". One of those is wrong. Read the stamp and fix the other.
+- [ ] **G178 — A wing has no doorway into its neighbour.** Where two wings meet the plan is simply open between
+  them, which is right; where one projects into another its gable end is a wall from the ground up, which is
+  also right and leaves the projecting wing reachable only from outside. A doorway cut between two wings —
+  through the shared wall a projecting wing's gable end stands in, or through the wall a taller wing's storey
+  carries above a stopped neighbour (`structures.md` §7.6) — wants a run to sit in and a rule for which wall it
+  is cut through, and belongs with the openings work rather than with the roof (`G172`).
 
 - [ ] **G171 — A building's reported height is its reservation, not its highest block.** `TopLayerOver` adds
   up every storey's headroom and answers where the roof would sit, which is right for a building whose storeys

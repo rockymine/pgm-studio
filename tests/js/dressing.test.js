@@ -282,7 +282,8 @@ test("dragging a building keeps two corners however far the pointer wandered", (
 
   assert.equal(doc.props.length, 1);
   assert.equal(doc.props[0].kind, "house");
-  assert.equal(doc.props[0].points.length, 2);
+  assert.equal(doc.props[0].wings.length, 1);
+  assert.equal(doc.props[0].wings[0].length, 2);
   assert.deepEqual(rectFootprint(doc.props[0]), { minX: 2, minZ: 3, width: 11, depth: 7 });
 });
 
@@ -293,14 +294,19 @@ test("a building drag too small to stand up places nothing", () => {
 });
 
 test("a building moves as a whole, corners together", () => {
-  const moved = translateProp({ kind: "house", points: [[2, 3], [10, 9]] }, 5, -2);
-  assert.deepEqual(moved.points, [[7, 1], [15, 7]]);
+  const moved = translateProp({ kind: "house", wings: [[[2, 3], [10, 9]]] }, 5, -2);
+  assert.deepEqual(moved.wings, [[[7, 1], [15, 7]]]);
+});
+
+test("a building of several wings moves every wing by the same delta", () => {
+  const moved = translateProp({ kind: "house", wings: [[[0, 0], [10, 6]], [[0, 7], [6, 12]]] }, 5, -2);
+  assert.deepEqual(moved.wings, [[[5, -2], [15, 4]], [[5, 5], [11, 10]]]);
 });
 
 test("a building tool is a tool like any other", () => {
   assert.equal(DRESSING_TOOLS["dress:house"], "house");
   assert.equal(isMarker("house"), false);
-  assert.deepEqual(defaultProp("house").points, []);
+  assert.deepEqual(defaultProp("house").wings, []);
   assert.equal(defaultProp("house").front, null);
 });
 
@@ -316,4 +322,10 @@ test("a building drag past the cap places nothing", () => {
   const { doc, tools } = controller();
   drag(tools, "dress:house", [[0, 0], [40, 40]]);
   assert.equal(doc.props.length, 0);
+});
+
+test("a building of several wings anchors in the middle of the whole plan, not just the first wing", () => {
+  // An L: a hall along x, and a cross wing off its west end — the same shape HousePropTests.Ell() draws.
+  const ell = { kind: "house", wings: [[[0, 0], [10, 6]], [[0, 7], [6, 12]]] };
+  assert.deepEqual(propAnchor(ell), [5, 6]);   // middle of the box the whole plan spans, x:0-10, z:0-12
 });

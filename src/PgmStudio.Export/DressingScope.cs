@@ -212,18 +212,21 @@ public static class DressingScope
         }
     }
 
-    /// <summary>One image of the cells a house's stamp can write — the wall rectangle turned round the orbit
-    /// first and expanded by <see cref="HouseStamper.StampedCells"/> after, so a quarter turn swaps width and
-    /// depth before the eaves are added and a non-square house comes out right on every image. The cell union
-    /// rather than its bounding box, because a beam's corner arm is not a reason to claim the ground halfway
-    /// down the wall — that phantom course is what merged two houses with a clear column between them into
-    /// one structure.</summary>
+    /// <summary>One image of the cells a house's stamp can write — every wing's own rectangle turned round the
+    /// orbit first and expanded by <see cref="HouseStamper.StampedCells"/> after, so a quarter turn swaps each
+    /// wing's width and depth before the eaves are added and a non-square house comes out right on every image.
+    /// The union of each wing's own grown rectangle rather than the grown box round the whole plan, because an
+    /// L or a T has ground in its notch no wing's eave ever reaches, and claiming it as structure is exactly the
+    /// over-claim the single-rectangle case already refuses (a beam's corner arm is not a reason to claim the
+    /// ground halfway down the wall, which is what merged two houses with a clear column between them into one
+    /// structure).</summary>
     private static IEnumerable<(int X, int Z)> StampedFootprint(HouseProp house, DressingSymmetry symmetry, int image)
     {
-        var corners = symmetry.ImageRing(house.Points, image);
-        if (new HouseProp { Points = corners }.Footprint() is not { } wall) return [];
-        return HouseStamper.StampedCells(
-            (wall.MinX, wall.MinZ, wall.MinX + wall.Width - 1, wall.MinZ + wall.Depth - 1), house.Style);
+        if (house.Footprint() is not { } plan) return [];
+        var wall = Decorator.TurnedFootprint(plan, symmetry, image);
+        return wall.Wings
+            .SelectMany(wing => HouseStamper.StampedCells((wing.MinX, wing.MinZ, wing.MaxX, wing.MaxZ), house.Style))
+            .Distinct();
     }
 
     /// <summary>Every dressing-placed tree's anchor and measured canopy radius, fanned across the map's
@@ -266,11 +269,9 @@ public static class DressingScope
                 yield return symmetry.ImageCell(boulder.X, boulder.Z, image);
                 break;
             case HouseProp house:
-                var corners = symmetry.ImageRing(house.Points, image);
-                if (new HouseProp { Points = corners }.Footprint() is { } footprint)
-                    for (var z = footprint.MinZ; z < footprint.MinZ + footprint.Depth; z++)
-                    for (var x = footprint.MinX; x < footprint.MinX + footprint.Width; x++)
-                        yield return (x, z);
+                if (house.Footprint() is { } plan)
+                    foreach (var cell in Decorator.TurnedFootprint(plan, symmetry, image).Cells())
+                        yield return cell;
                 break;
         }
     }

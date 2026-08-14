@@ -286,7 +286,9 @@ public static class Decorator
     // ── boulders (DR-SC) ────────────────────────────────────────────────────────
     // ── buildings (DR-HO) ───────────────────────────────────────────────────────
     /// <summary>
-    /// Raise a building on the rectangle its author dragged, at every image of its orbit.
+    /// Raise a building on the rectangles its author dragged, at every image of its orbit — one or more touching
+    /// wings composed into the one <see cref="Footprint"/> <see cref="HouseStamper"/> takes, so an L or a T is
+    /// stamped once as one house rather than once per rectangle (G177).
     ///
     /// <para><b>It is not gated on the protected mask, and it never joins it.</b> That mask exists to keep a
     /// scatter off the cells the map is played through — a flower field is generated, so it has to be told
@@ -314,14 +316,14 @@ public static class Decorator
     {
         if (house.Footprint() is not { } plan) return 0;
 
-        var images = new List<((int MinX, int MinZ, int Width, int Depth) Plan, RoomEdge? Front, int FloorY)>(
-            context.Symmetry.Order);
+        var images = new List<(Footprint Plan, RoomEdge? Front, int FloorY)>(context.Symmetry.Order);
         for (var k = 0; k < context.Symmetry.Order; k++)
         {
-            // The rectangle goes round the orbit as the shape it is, so a quarter turn swaps its width and
-            // depth without the stamp being told; the door turns with it, or a mirrored pair open the same way.
-            var corners = context.Symmetry.ImageRing(house.Points, k);
-            if (new HouseProp { Points = corners }.Footprint() is not { } image) return 0;
+            if (TurnedFootprint(plan, context.Symmetry, k) is not { } image) return 0;
+            // Two authored rectangles that overlap are two buildings colliding (still MG7's drop); a wing that
+            // shares ground with its own prop's other wings is not a second building, and never reaches this
+            // set at all — the whole point of the plan being one Footprint rather than one Overlaps call per
+            // rectangle.
             if (Overlaps(image, taken)) return 0;
             var floorY = Ground(context, image);
             if (floorY is null) return 0;
@@ -333,54 +335,74 @@ public static class Decorator
         foreach (var (image, front, floorY) in images)
         {
             HouseStamper.Stamp(
-                world, image.MinX, image.MinZ, image.Width, image.Depth, floorY, house.Style,
+                world, image, floorY, house.Style,
                 doors: front is { } side ? Doorway(house.Style, image, side) : null);
 
-            for (var x = image.MinX; x < image.MinX + image.Width; x++)
-                for (var z = image.MinZ; z < image.MinZ + image.Depth; z++)
-                    taken.Add((x, z));
+            foreach (var (x, z) in image.Cells()) taken.Add((x, z));
         }
         return images.Count;
     }
 
-    /// <summary>Whether any cell of a footprint is already claimed — the building half of MG7's overlap rule,
-    /// tested over the whole rectangle rather than a resting subset because a building has no other level: the
-    /// floor it stamps covers every column of it.</summary>
-    private static bool Overlaps((int MinX, int MinZ, int Width, int Depth) plan, HashSet<(int X, int Z)> taken)
+    /// <summary>The <paramref name="image"/>-th image of a plan: every wing's own two corners turned round the
+    /// orbit and rebuilt as a <see cref="Wing"/>, so a quarter turn swaps each wing's width and depth exactly as
+    /// a single-rectangle building's always did — the shape is turned one wing at a time, not merely relocated.
+    /// Public so <c>DressingScope</c> reads the same turned plan a build actually stamps rather than re-deriving
+    /// it from the corners a second way.</summary>
+    public static Footprint TurnedFootprint(Footprint plan, DressingSymmetry symmetry, int image)
     {
-        for (var x = plan.MinX; x < plan.MinX + plan.Width; x++)
-            for (var z = plan.MinZ; z < plan.MinZ + plan.Depth; z++)
-                if (taken.Contains((x, z))) return true;
+        var wings = new List<Wing>(plan.Wings.Count);
+        foreach (var wing in plan.Wings)
+        {
+            var corners = symmetry.ImageRing(
+                [[wing.MinX, wing.MinZ], [wing.MaxX, wing.MaxZ]], image);
+            int minX = (int)Math.Floor(Math.Min(corners[0][0], corners[1][0]));
+            int minZ = (int)Math.Floor(Math.Min(corners[0][1], corners[1][1]));
+            int maxX = (int)Math.Floor(Math.Max(corners[0][0], corners[1][0]));
+            int maxZ = (int)Math.Floor(Math.Max(corners[0][1], corners[1][1]));
+            wings.Add(new Wing(minX, minZ, maxX, maxZ));
+        }
+        return new Footprint(wings);
+    }
+
+    /// <summary>Whether any cell of a plan is already claimed — the building half of MG7's overlap rule, tested
+    /// over the whole union of its wings rather than a resting subset, because a building has no other level:
+    /// the floor it stamps covers every column of it.</summary>
+    private static bool Overlaps(Footprint plan, HashSet<(int X, int Z)> taken)
+    {
+        foreach (var (x, z) in plan.Cells())
+            if (taken.Contains((x, z))) return true;
         return false;
     }
 
-    /// <summary>The course a building's floor sits at: one below the lowest ground its footprint covers, or
-    /// null where that footprint has no ground at all.</summary>
-    private static int? Ground(DressingContext context, (int MinX, int MinZ, int Width, int Depth) plan)
+    /// <summary>The course a building's floor sits at: one below the lowest ground its plan covers, or null
+    /// where that plan has no ground at all.</summary>
+    private static int? Ground(DressingContext context, Footprint plan)
     {
         var lowest = int.MaxValue;
-        for (var x = plan.MinX; x < plan.MinX + plan.Width; x++)
-            for (var z = plan.MinZ; z < plan.MinZ + plan.Depth; z++)
-                if (context.SurfaceTop.TryGetValue((x, z), out var top)) lowest = Math.Min(lowest, top);
+        foreach (var (x, z) in plan.Cells())
+            if (context.SurfaceTop.TryGetValue((x, z), out var top)) lowest = Math.Min(lowest, top);
         return lowest == int.MaxValue || lowest < 2 ? null : lowest - 1;
     }
 
-    /// <summary>The one doorway a chosen wall asks for: centred on that wall and clear of both corner posts,
-    /// which is what the building would cut for itself on a long side. Stated as a door rather than left to the
-    /// stamper because the stamper picks the <em>side</em> as well, and here the side is the author's.</summary>
-    private static IReadOnlyList<RoomDoor> Doorway(
-        HouseStyle style, (int MinX, int MinZ, int Width, int Depth) plan, RoomEdge front)
+    /// <summary>The one doorway a chosen wall asks for: centred on the run of wall the plan actually has facing
+    /// that way and clear of both corner posts, which is what the building would cut for itself on a long side.
+    /// Stated as a door rather than left to the stamper because the stamper picks the <em>side</em> as well, and
+    /// here the side is the author's. Reads the plan's own <see cref="WallSegment"/> rather than a width and a
+    /// depth, since on a plan of more than one wing the chosen wall is not the whole of that side.</summary>
+    private static IReadOnlyList<RoomDoor> Doorway(HouseStyle style, Footprint plan, RoomEdge front)
     {
-        var alongSpan = front is RoomEdge.NegZ or RoomEdge.PosZ ? plan.Width : plan.Depth;
-        var alongMin = front is RoomEdge.NegZ or RoomEdge.PosZ ? plan.MinX : plan.MinZ;
+        var about = front is RoomEdge.NegZ or RoomEdge.PosZ ? (plan.MinX + plan.MaxX) / 2 : (plan.MinZ + plan.MaxZ) / 2;
+        if (plan.WallFacing(front, about) is not { } wall) return [];
 
         // A block of wall clear of each corner post, the rule the stamper's own doors keep: an opening in the
         // very next cell still meets the post, and a door against the post reads as a hole knocked through the
-        // frame. Four blocks of the face go to the margins, so the opening narrows on a face that cannot spare
-        // the width asked for rather than growing back into them.
-        var seat = Math.Max(1, alongSpan - 4);
-        var width = Math.Clamp(Math.Max(2, style.DoorWidth), 1, seat);
-        return [new RoomDoor(front, alongMin + (alongSpan - width) / 2, width)];
+        // frame. Only a run too tight to spare the margin falls back to the bare run between its corners.
+        var (seatLo, seatHi) = wall.Seat;
+        var (runLo, runHi) = wall.BetweenCorners;
+        var (lo, hi) = seatHi >= seatLo ? (seatLo, seatHi) : (runLo, runHi);
+
+        var width = Math.Clamp(Math.Max(2, style.DoorWidth), 1, hi - lo + 1);
+        return [new RoomDoor(front, Math.Clamp(about - (width - 1) / 2, lo, hi - width + 1), width)];
     }
 
     private static int PlaceBoulder(VoxelWorld world, DressingContext context, BoulderProp boulder, HashSet<(int X, int Z)> taken)

@@ -33,10 +33,26 @@ public sealed class HousePropTests
     private static HouseProp House(int minX, int minZ, int maxX, int maxZ, RoomEdge? front = null) => new()
     {
         Id = "h1",
-        Points = [[minX, minZ], [maxX, maxZ]],
+        Wings = [[[minX, minZ], [maxX, maxZ]]],
         Front = front,
         Style = new HouseStyle { Door = DoorMaterial.Air },
     };
+
+    /// <summary>A building of several touching wings, each as its own two opposite corners.</summary>
+    private static HouseProp House(
+        string id, RoomEdge? front, HouseStyle? style, params (int MinX, int MinZ, int MaxX, int MaxZ)[] wings)
+        => new()
+        {
+            Id = id,
+            Wings = [.. wings.Select(wing => (IReadOnlyList<double[]>)
+                [new double[] { wing.MinX, wing.MinZ }, new double[] { wing.MaxX, wing.MaxZ }])],
+            Front = front,
+            Style = style ?? new HouseStyle { Door = DoorMaterial.Air },
+        };
+
+    private static HouseProp House(
+        string id, RoomEdge? front, params (int MinX, int MinZ, int MaxX, int MaxZ)[] wings)
+        => House(id, front, style: null, wings);
 
     /// <summary>How tall a column stands over the ground, or 0 where nothing was built.</summary>
     private static int Height(VoxelWorld world, int x, int z)
@@ -53,17 +69,33 @@ public sealed class HousePropTests
         // Two corners, four ways round: an author dragging up-left and one dragging down-right placed the
         // same building, and a stamp that took the points in order would build one of them backwards.
         var forward = House(4, 6, 12, 14).Footprint();
-        await Assert.That(forward).IsEqualTo((4, 6, 9, 9));
-        await Assert.That(House(12, 14, 4, 6).Footprint()).IsEqualTo(forward);
-        await Assert.That(House(12, 6, 4, 14).Footprint()).IsEqualTo(forward);
+        await Assert.That(forward).IsNotNull();
+        await Assert.That((forward!.MinX, forward.MinZ, forward.Width, forward.Depth)).IsEqualTo((4, 6, 9, 9));
+        await Assert.That(Plan(House(12, 14, 4, 6).Footprint())).IsEqualTo(Plan(forward));
+        await Assert.That(Plan(House(12, 6, 4, 14).Footprint())).IsEqualTo(Plan(forward));
     }
+
+    /// <summary>A footprint reduced to the tuple a value comparison can read, since <see cref="Footprint"/>
+    /// itself carries no equality of its own.</summary>
+    private static (int MinX, int MinZ, int Width, int Depth)? Plan(Footprint? footprint)
+        => footprint is null ? null : (footprint.MinX, footprint.MinZ, footprint.Width, footprint.Depth);
 
     [Test]
     public async Task A_rectangle_too_small_to_hold_two_walls_and_an_inside_is_no_footprint_at_all()
     {
         await Assert.That(House(0, 0, 1, 8).Footprint()).IsNull();     // two blocks across
         await Assert.That(House(0, 0, 2, 2).Footprint()).IsNotNull();  // the smallest house there is
-        await Assert.That(new HouseProp { Points = [[0, 0]] }.Footprint()).IsNull();
+        await Assert.That(new HouseProp { Wings = [[[0, 0]]] }.Footprint()).IsNull();
+        await Assert.That(new HouseProp { Wings = [] }.Footprint()).IsNull();
+    }
+
+    [Test]
+    public async Task A_second_wing_too_small_to_hold_two_walls_and_an_inside_is_no_footprint_either()
+    {
+        // The rule is per wing, not just over the plan as a whole: a sliver a room can never compose out of is
+        // no more a wing than it is a building on its own.
+        await Assert.That(House("h", null, (0, 0, 8, 8), (8, 8, 9, 16)).Footprint()).IsNull();
+        await Assert.That(House("h", null, (0, 0, 8, 8), (8, 8, 10, 16)).Footprint()).IsNotNull();
     }
 
     [Test]
@@ -78,6 +110,20 @@ public sealed class HousePropTests
         await Assert.That(House(0, 0, 13, 12).Footprint()).IsNotNull();   // 14x13 = 182, a different shape of it
         await Assert.That(House(0, 0, 11, 16).Footprint()).IsNull();      // 12x17 = 204
         await Assert.That(House(0, 0, 19, 29).Footprint()).IsNull();      // 20x30 = 600, a building, not scenery
+    }
+
+    [Test]
+    public async Task The_cap_is_the_ground_the_wings_actually_cover_not_the_box_drawn_round_them()
+    {
+        // A short, wide wing off the corner of a small one spans a box far past the cap — the box is 31x8 = 248
+        // — but the two wings themselves cover far less of it: the notch between them is ground the building
+        // never stands on, and a building of several wings is held to the same number as one, over the ground
+        // it actually claims rather than the rectangle drawn round the whole plan.
+        var oversizedBox = House("h", null, (0, 0, 5, 5), (5, 5, 30, 7));
+        var plan = oversizedBox.Footprint();
+        await Assert.That(plan).IsNotNull();
+        await Assert.That(plan!.Cells().Count()).IsLessThanOrEqualTo(HouseProp.MaxFootprint);
+        await Assert.That(plan.Cells().Count()).IsLessThan((30 - 0 + 1) * (7 - 0 + 1));
     }
 
     [Test]
@@ -110,6 +156,59 @@ public sealed class HousePropTests
         await Assert.That(Height(world, 2, 3)).IsGreaterThan(8);       // a corner of the rectangle
         await Assert.That(Height(world, 10, 9)).IsGreaterThan(8);      // the opposite one
         await Assert.That(Height(world, 12, 9)).IsEqualTo(0);          // two blocks past it, untouched
+    }
+
+    // ── a building of more than one wing (G177) ───────────────────────────────────────────────────────
+    [Test]
+    public async Task Two_touching_wings_of_one_prop_stand_as_one_house_rather_than_colliding()
+    {
+        // The overlap rule's other half: two authored rectangles that overlap are two buildings colliding
+        // (MG7), but a wing that shares its edge cells with its own prop's other wing is not a second building
+        // — it never reaches the taken set at all, since the whole plan is composed and checked once.
+        var (world, top) = Plateau();
+        var ell = House("h", null, (0, 0, 10, 6), (0, 7, 6, 12));
+        var tally = Decorator.Decorate(world, Context(top, [ell]));
+
+        await Assert.That(tally.Houses).IsEqualTo(1);
+        await Assert.That(Height(world, 5, 3)).IsGreaterThan(8);     // inside the hall
+        await Assert.That(Height(world, 3, 10)).IsGreaterThan(8);    // inside the cross wing
+        await Assert.That(Height(world, 3, 6)).IsGreaterThan(8);     // the crook where the two wings meet
+    }
+
+    [Test]
+    public async Task A_house_of_two_wings_placed_through_the_decorator_is_sealed_and_stands_on_six_posts()
+    {
+        // The stamp itself is proven closed and six-posted by HouseStamperTests; this is the round trip through
+        // the authoring shape and the symmetry turn, so a regression in how the Decorator composes and turns
+        // the plan is caught here rather than only at the stamper's own, narrower door.
+        var (world, top) = Plateau();
+        var ell = House("h", null, new HouseStyle { Door = DoorMaterial.StainedGlass }, (0, 0, 10, 6), (0, 7, 6, 12));
+        Decorator.Decorate(world, Context(top, [ell]));
+
+        var floorY = 7;   // Plateau's flat surface top (8) minus one — Ground seats the floor a course under it
+        var posts = 0;
+        for (var x = -1; x <= 11; x++)
+            for (var z = -1; z <= 13; z++)
+                if (world.GetBlock(x, floorY + 3, z).Id == Blocks.Log) posts++;
+        await Assert.That(posts).IsEqualTo(6);
+
+        // Started deep in the crook, the cell furthest from either wing's own straight run of wall.
+        var start = (3, floorY + 1, 4);
+        var seen = new HashSet<(int X, int Y, int Z)> { start };
+        var queue = new Queue<(int X, int Y, int Z)>([start]);
+        var escaped = false;
+        while (queue.Count > 0 && !escaped)
+        {
+            var (x, y, z) = queue.Dequeue();
+            if (x < -6 || x > 16 || z < -6 || z > 18 || y > 40) { escaped = true; break; }
+            foreach (var (dx, dy, dz) in new[] { (1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1) })
+            {
+                var next = (x + dx, y + dy, z + dz);
+                if (world.GetBlock(next.Item1, next.Item2, next.Item3).Id != Blocks.Air) continue;
+                if (seen.Add(next)) queue.Enqueue(next);
+            }
+        }
+        await Assert.That(escaped).IsFalse();
     }
 
     [Test]
@@ -192,11 +291,11 @@ public sealed class HousePropTests
         // rectangle whose width and depth have swapped, and taking the corners round the orbit says that
         // without the stamp having to be told it happened.
         var symmetry = new DressingSymmetry("rot_90", 0, 0);
-        var turned = new HouseProp { Points = symmetry.ImageRing(House(2, 2, 12, 6).Points, 1) }.Footprint();
+        var turned = new HouseProp { Wings = [symmetry.ImageRing(House(2, 2, 12, 6).Wings[0], 1)] }.Footprint();
 
         await Assert.That(turned).IsNotNull();
-        await Assert.That(turned!.Value.Width).IsEqualTo(5);           // was the depth
-        await Assert.That(turned.Value.Depth).IsEqualTo(11);           // was the width
+        await Assert.That(turned!.Width).IsEqualTo(5);           // was the depth
+        await Assert.That(turned.Depth).IsEqualTo(11);           // was the width
     }
 
     [Test]

@@ -347,16 +347,18 @@ as one house repeated: the presets cluster at 7–13 wide by 7–11 deep and eve
 them at the size they were designed at.
 
 `Footprint` (`Minecraft/Footprint.cs`) carries `Wings` — more than one touching rectangle walked as one
-landmass, its outline traced as a single ring so an L or a T stands under one roof with a cross-gable built
-where the wings meet, rather than as two buildings that happen to touch. `HouseStamper` already builds this;
-what is missing is a way to ask for it from a placed prop. `HouseProp.Points`
-(`Minecraft/Dressing/PlacedProp.cs`) is exactly two opposite corners, and every `new Footprint(...)` call in
-the tree — outside `Footprint.At`'s own per-storey slicing — is the single-rectangle constructor. So a
-wing-carrying `Footprint` is reachable by hand-building one in code and unreachable from dressing, including
-through `MapSpec`'s `layout` fragment: a `house` prop is a `HouseProp` verbatim, and `HouseProp` itself has no
-field to carry a second rectangle. Library previews exist for the pieces once a style is composed —
-`/room-styles/preview` and its `-snapshot`, `/roof-styles/preview`, `/porch-styles/preview`,
-`/storey-styles/preview` — so a building is checkable from four sides before it stands on a map.
+landmass, its outline traced as a single ring so an L or a T stands under one roof with a march or a
+cross-gable built where the wings meet, rather than as two buildings that happen to touch. `HouseStamper`
+builds this, and a placed prop can now ask for it: `HouseProp.Wings`
+(`Minecraft/Dressing/PlacedProp.cs`) is a list of rectangles rather than one, and `Decorator` composes them
+into a single `Footprint` and stamps once, the overlap rule refusing a second *prop* that collides while never
+testing one prop's own wings against each other (`G177`). That reaches `MapSpec`'s `layout` fragment too: a
+`house` prop is a `HouseProp` verbatim, so an agent authoring `dressing.props` directly can state an L or a T
+today. What is still missing is the canvas half — the dressing tool only ever drags one rectangle, so drawing
+a second wing onto a placed building has no tool of its own yet (`S60`). Library previews exist for the pieces
+once a style is composed — `/room-styles/preview` and its `-snapshot`, `/roof-styles/preview`,
+`/porch-styles/preview`, `/storey-styles/preview` — so a building is checkable from four sides before it
+stands on a map.
 
 ### Circulation is decided before dressing, not after it
 
