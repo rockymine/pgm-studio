@@ -191,48 +191,6 @@ which finds out whether the result actually answers.
   rather than papered over: a built map gets the truth, an imported one gets the estimate, and a render
   should say which it is showing.
 
-- [ ] **B132 — With no build area declared, nothing stops a player bridging the void.** `BuildGenerator.Apply`
-  returns at `if (b.Areas.Count == 0) return;` — before it reaches the `no-void` filter and the
-  `not-build-area` negative that carry void enforcement. So a map that declares no build area gets **no**
-  `block=no-void` rule at all, and every void on it becomes bridgeable from the first minute.
-
-  That is the exact inverse of what the void is for. `approaches.md` states it as settled law: **a void gap
-  with no build region over it is permanent** — nobody bridges it, and the approach it forces is *around*,
-  which is what makes a channel a control on flow rather than a delay. The same document makes crossability a
-  deliberate decision made in the intent rather than in the geometry, and this makes it accidentally, in the
-  permissive direction, for every board that never thought to declare an area. Both destroy boards in the
-  trial run had to declare a decoy land-only build zone purely to turn void enforcement back on, which is a
-  workaround for a default that is backwards.
-
-  **The corpus settles it, and the enforcing majority is large.** Over the 112 `dtcm` maps in
-  `CommunityMaps`: 102 declare a `maxbuildheight`, **68 enforce the void**, 82 carry a hard `block="never"`
-  region, and **100 of 112 carry one or the other**. Nearly every real destroy map restricts building
-  somewhere. Two earlier readings of this entry claimed the opposite from a grep that matched only
-  `no-void` and `<void/>` and missed **`deny(void)`**, which is the dominant spelling — 31 uses as
-  `block-place`, 25 as `block`. Both are withdrawn; the corpus agrees with the entry's original instinct.
-
-  **`alpine_mining_ii` is the idiom worth copying**, and it is more precise than "a build area":
-
-  ```xml
-  <complement id="build-filter"><everywhere/><union id="obs-spawn">…</union></complement>
-  <apply block-place="deny(void)" message="You may not build outside of the map!" region="build-filter"/>
-  ```
-
-  Enforcement is applied over **everywhere minus a small exclusion**, not over a drawn build rectangle, and
-  it is **`block-place`, not `block`** — so a player may still *break* a block hanging over the void, which
-  the map's own comment says is deliberate. Eighteen of the enforcing maps scope it through `everywhere` or
-  a complement like this. A build *area* and void enforcement are therefore two different decisions in the
-  corpus: the area says where the map is, and the void rule says you may not extend it.
-
-  So the defect is narrower and more useful than "the guard is backwards": **there is no way to ask for void
-  enforcement without declaring a build area**, because the two are welded together in one method that exits
-  early. An author who wants a permanent channel and no build restrictions otherwise has to invent a decoy
-  land-only zone — which is what both destroy boards in the run did. Decouple them: let the intent state
-  void enforcement, optionally scoped to a region the way the corpus does, independently of whether any
-  build area exists. Note the ordering constraint that already governs this code — the broad `no-void` rule
-  allows editing any solid block and PGM stops at the first matching rule, so build must be applied last
-  (`IntentGenerator`) — and keep it.
-
 - [ ] **B130 — A malformed dressing document is discarded whole, and the export says 200.**
   `DressingJson.Deserialize` ends `catch (JsonException) { return DressingDoc.Empty; }`, commented "a
   hand-edited blob must not fail an export". So any parse error anywhere in the document — one prop's enum
