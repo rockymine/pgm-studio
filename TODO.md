@@ -97,13 +97,36 @@ which finds out whether the result actually answers.
   extents touch merge into a single finding.** Nothing distinguishes them, because nothing was recorded that
   could.
 
-  It did not bite while a house claimed only its wall rectangle, since neighbouring houses stood a course or
-  two apart. `B137` grew a claim to the building's stamped extent — correctly, the eaves are the building —
-  and adjacent houses now abut. Measured on `quillon-barrow` rebuilt through the current pipeline: 26
-  structures before `B137`, **22** after, with `x −39..−3 z −84..−76` reported as one **36-block-wide**
-  structure that is really the left half of a village row, and its mirror at `x 3..39 z 76..84`. Individual
-  houses further along the same row survive as separate findings, so the fusion is wherever two overhangs meet
-  and nowhere else.
+  It did not bite while a house claimed only its wall rectangle. `B137` grew the claim to the building's
+  stamped extent — correctly, the eaves are the building — and `quillon-barrow` rebuilt through the current
+  pipeline fell from 26 structures to **22**, with `x −39..−3 z −84..−76` reported as one **36-block-wide**
+  structure that is really three houses of a village row, and its mirror at `x 3..39 z 76..84`.
+
+  **The bridge is not the eaves, and the difference matters for the fix.** Every house on that row carries
+  `overhang: 1`, and the roofs leave a clear column between them. What closes the gap is
+  `HouseStamper.StampedExtent` growing the whole rectangle by `Max(overhang, beam-reach)`, and two of the six
+  houses carry beams — so their margin is **2** where their neighbours' is 1:
+
+  | house | beam block | reach | margin | claimed x |
+  |---|---|---|---|---|
+  | `d-h1` | −1 (none) | 1 | 1 | −39..−30 |
+  | `d-h2` | 17 | 2 | **2** | **−29..−14** |
+  | `d-h3` | −1 (none) | 1 | 1 | −13..−3 |
+
+  `d-h2`'s margin of 2 lands exactly on both gap columns, fusing all three. The recorded provenance agrees
+  cell for cell — the run at `z −80` is `x −39..−3` — so nothing is mis-recording; the extent is simply
+  wider than what was built.
+
+  **A beam is a corner, and the extent is a box.** `LayBeams` runs an end out past each **corner** by `reach`;
+  it writes nothing along the middle of an edge. Growing the whole rectangle to contain the corner beams
+  therefore claims a full ring of ground that no block occupies, and it is that phantom ring which touches the
+  neighbour. So the claim wants to be the **union of what the stamper wrote** rather than a bounding box over
+  it — which is the same principle `B137` established and applied one level less precisely.
+
+  One authoring trap sits underneath and is worth stating because it cost a wrong diagnosis here.
+  `BeamStyle.Any` is a **computed** property — `Block >= 0 && Reach > 0` — so the `"any": false` a dressing
+  document may carry is read from JSON into nothing and has no effect. A style naming a beam block while
+  saying `any: false` gets beams regardless. Either the field is honoured or it should not round-trip.
 
   This is the fault `B133` was built to end, arriving from the other side. That entry's promise was that a
   recorded extent **cannot** fuse, and it holds against *ground* — a cottage no longer dissolves into the
