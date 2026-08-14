@@ -300,6 +300,18 @@ points named when traversability fails, and the same document would throw on a r
 preview and the download are blocked by it. A map with no stored intent — a corpus map — is not gated at all
 and exports unconditionally, because there is nothing to pre-flight.
 
+**A sketch-originated map's export also gates on its dressing document.** `DressingJson` reads every placed
+prop rather than reading what it can and dropping the rest — a document that fails to parse anywhere (an
+unrecognized `kind`, a field of the wrong shape) refuses the whole export rather than shipping the map with
+fewer props than it was asked for, since a bare board built from a document that quietly lost its dressing is
+worse than a refusal naming what broke. `GET /api/map/{slug}/xml` and `GET /api/map/{slug}/export` both answer
+**422** `{error, rule: "DR-DOC", message, subject, field}` — `subject` names the prop (by id, or by its position
+when it never got far enough to have one), `field` names the property inside it, and `message` reads as one
+sentence naming both, e.g. *"prop 'field-road' (#1): field 'kind' names kind 'boulderr', which is not one of
+path, water, tree, boulder, flora, house."* A prop's own enum fields (`style`, `form`) are read
+case-insensitively, so this never fires on a case difference — only on a `kind` the reader does not know, a
+`kind` missing outright, or a field of the wrong JSON shape (`docs/tools/sketch.md`'s Dressing section).
+
 **The gate cannot open on a map with no scanned world.** Without a world there are no surface or `y=0`
 columns, so buildability reports *skip* and traversability has no walkable ground to connect anything
 across — every spawn and wool reads as isolated whatever the build areas say. Measured on a hand-authored
@@ -348,8 +360,8 @@ writes: apart from the import and one island toggle, **Configure has exactly one
 |---|---|---|
 | `GET /map/{slug}/preflight` | `{intentMap, exportReady, checks[], log[], traversability}` | 404 |
 | `GET /map/{slug}/regions/tree` | the generated region tree, grouped | 404 |
-| `GET /map/{slug}/xml` | the `map.xml` | **409** `{error, message, isolated[]}` not traversable · 404 |
-| `GET /map/{slug}/export` | the world ZIP | non-2xx with a message |
+| `GET /map/{slug}/xml` | the `map.xml` | **409** `{error, message, isolated[]}` not traversable · **422** `{error, rule: "DR-DOC", message, subject, field}` dressing document invalid · 404 |
+| `GET /map/{slug}/export` | the world ZIP | the same 409 / 422 as `/xml`, plus non-2xx with a message on a zip/IO failure |
 
 ## Driving it without the UI
 

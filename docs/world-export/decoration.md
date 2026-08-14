@@ -442,6 +442,7 @@ and lands in the same realize seam.
 | Trees | the boulder's seating; `CatmullRom` for the limb splines | `TreeSkeleton`; `TreeCrown`; `SweptVolume`; the species rows | `DR-TR` |
 | Water | the §4 path stroke's band (channels); the §5 boulder blob + FBM edge (ponds); the §3 flora overlay (reeds) | `WaterBed` + `Decorator.PlaceWater` — the carve-and-level bed (shipped); depth shading, the shoreline band, ponds (G169) | `DR-WA` |
 | Buildings | `HouseStamper` + `HouseStyle` whole; the room-style library; `DressingSymmetry`'s outline fan | `HouseProp` + `Decorator.PlaceHouse`; the rectangle drag; `TurnEdge` for the door | `DR-HO` |
+| The document itself | — | `DressingParseException` — a parse failure anywhere in the stored document names the prop and the field rather than being read as though nothing had been placed; joins the export gate as a 422 (`docs/tools/configure.md`) | `DR-DOC` |
 
 Two neighbours bound the stage. G32-C (structures & elevation, the "second generator") is the sibling pass
 that gives a flat layout its heights; a boulder or tree seats on whatever surface that pass leaves, so the

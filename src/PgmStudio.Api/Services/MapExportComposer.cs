@@ -2,6 +2,7 @@ using System.Text;
 using PgmStudio.Analysis.Playability;
 using PgmStudio.Api.Endpoints;
 using PgmStudio.Data.Schema;
+using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Pgm.Authoring;
 
 namespace PgmStudio.Api.Services;
@@ -71,6 +72,19 @@ public static class MapExportComposer
 
             var xml = MapXmlComposer.Compose(doc, isIntent, surfacePalette, resources);
             return new(null, null, xml, null);
+        }
+        catch (DressingParseException ex)
+        {
+            // A malformed dressing document is an authoring error, not a reason to export the map bare —
+            // refused by name rather than silently read as though nothing had been placed.
+            return new(422, new Dict
+            {
+                ["error"] = "dressing document invalid",
+                ["rule"] = DressingParseException.Rule,
+                ["message"] = ex.Message,
+                ["subject"] = ex.Subject,
+                ["field"] = ex.Field,
+            }, null, null);
         }
         catch (Exception ex)
         {

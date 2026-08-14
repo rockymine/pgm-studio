@@ -44,6 +44,13 @@ public partial class ReviewXmlStep : IDisposable
                 blocked = doc.TryGetProperty("message", out var m) ? m.GetString() : "the spawn↔wool chain isn't connected";
                 Wizard.RegisterExport(false, null);
             }
+            else if ((int)resp.StatusCode == 422)
+            {
+                // A dressing document that failed to parse (DR-DOC) — named prop and field, not a codec crash.
+                var doc = await resp.Content.ReadFromJsonAsync<JsonElement>();
+                error = doc.TryGetProperty("message", out var m) ? m.GetString() : "the dressing document is invalid";
+                Wizard.RegisterExport(false, null);
+            }
             else
             {
                 error = $"export failed (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
