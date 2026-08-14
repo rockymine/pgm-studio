@@ -91,18 +91,61 @@ which finds out whether the result actually answers.
     claim that every generated destroy map was unwinnable.
   - **A document that describes something unbuilt names its task id, or says nothing.**
 
+- [ ] **B133 — What a cell *is* cannot be read off the block that sits there, and three read-backs try.**
+  `RenderCategories.Classify` decides `Structure` with `BlockRoles.IsBuilt(blockId)`, `StructureFinder`
+  finds a building by material, and `--structures` fuses a house into the ground the moment the two share a
+  palette. All three ask the same question of the same wrong source: **a block does not know what placed
+  it.** Stone brick is stone brick whether it is a cottage wall, a paved plaza or a mesa the author painted
+  to read as built, so a material test cannot separate them and no refinement of the palette will.
+
+  The B98 render is the decisive evidence and it is worth stating precisely, because the picture looks like
+  a success. Foliage and water come out right. **Everything else is wrong in the same direction**: Ashen
+  Quarry's town terrace and the mesa hull both read solid orange as structures when both are terrain, and
+  ground correspondingly under-reports, because the town is painted in a built-looking material. A reader
+  who trusts that image concludes the board is half buildings. `B124` narrowed the same fault in
+  `--structures` with a step test and said in its own entry that a roof flush with the paving it stands on
+  still defeats it — which is the same limit reached from the other side.
+
+  **The system already knows the answer and throws it away.** A world the studio builds is built in passes:
+  the rasterizer lays base terrain, the stampers raise rooms, walls, iron cubes and objectives, and the
+  dressing pass places trees, boulders, buildings and flora at coordinates an author chose. Every one of
+  those passes knows the cells it claimed at the moment it claimed them — `DressingScope` already walks a
+  prop's `ClearanceFootprint` and a house's `Footprint` for exactly this reason — and none of it survives
+  into the finished voxels, so the renderers re-derive from blocks what the build could simply have
+  recorded.
+
+  So the model is **provenance carried as layers, resolved in placement order rather than by palette**: base
+  terrain, then structures, then props, each layer knowing which cells it owns, composited so a later layer
+  covers an earlier one. A render then colours by *which layer claimed the cell*, which makes a stone-brick
+  cottage on a stone-brick plaza two different things because two different passes put them there, and
+  makes a painted mesa terrain no matter what it is painted with. It also gives `--structures` a definition
+  that cannot fuse, since a stamped building's extent is recorded rather than flooded for.
+
+  Two things are worth settling as this is built. The layer record wants a home that survives the build —
+  beside the voxels rather than inside them, since a block cannot carry a provenance byte — and it wants to
+  be optional, because a world the studio **scanned** rather than built has no provenance and the
+  material-based reading stays the only one available for those. That split is real and should be named
+  rather than papered over: a built map gets the truth, an imported one gets the estimate, and a render
+  should say which it is showing.
+
 - [ ] **B131 — Every map the studio writes says it is a capture map, whatever it is.** `MetaGenerator`
   states it in its own docstring — "Version/gamemode are fixed for new **CTW** maps; the objective is
   generated from the wool count" — and `Objective(intent)` returns `"Capture the wool!"` for one wool and
   `"Capture the enemies' wools!"` for any other count, **zero included**. So a destroy board with two
   monuments and no wool ships telling the player to capture wools that do not exist. Three boards authored in
-  the trial run carry that line, and the run found it only by reading the exported `map.xml`.
+  the trial run carry that line, and the run found it only by reading the exported `map.xml`. The map
+  `ashen_quarry` shipped with it too, so it predates the run rather than being something the run introduced.
 
-  The objective text is the first thing a player reads and the only sentence the map gets to explain itself,
-  so a wrong one is not cosmetic. What it should say follows from what the intent actually carries — wools,
-  destroyables, cores, or a combination, which is the ordinary corpus board — and the intent knows all of it
-  already; nothing needs measuring. The declared `gamemode` wants the same treatment, and `MapParser` is the
-  reference for how a gamemode falls out of which objective modules are present rather than from a label.
+  **It is cosmetic, and the severity is worth stating exactly so nobody prioritises it as a break.** PGM
+  loads the map and plays it correctly: the scoreboard resolves the real objective against the `<core>` and
+  `<destroyable>` elements themselves, so a destroy board scores as a destroy board. What is wrong is the
+  **first line of the scoreboard and the map description** — the sentence a map gets to explain itself with,
+  read by every player who joins, saying the wrong thing on every destroy map the studio has ever written.
+
+  What it should say follows from what the intent already carries — wools, destroyables, cores, or a
+  combination, which is the ordinary corpus board — so nothing needs measuring. The declared `gamemode` wants
+  the same treatment, and `MapParser` is the reference for how a gamemode falls out of which objective
+  modules are present rather than from a label.
 
 - [ ] **B132 — With no build area declared, nothing stops a player bridging the void.** `BuildGenerator.Apply`
   returns at `if (b.Areas.Count == 0) return;` — before it reaches the `no-void` filter and the
