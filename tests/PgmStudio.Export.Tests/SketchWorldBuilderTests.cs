@@ -388,4 +388,23 @@ public sealed class SketchWorldBuilderTests
         await Assert.That(built.Provenance.LayerAt(0, -30)).IsEqualTo(ProvenanceLayer.Ground);
         await Assert.That(built.Provenance.OwnerAt(0, -30)).IsEqualTo(WorldProvenance.NoOwner);
     }
+
+    [Test]
+    public async Task Every_slice_of_the_authored_intent_survives_the_resolve()
+    {
+        // The resolve rebuilds the intent to hand back snapped spawns and derived monuments. It named its
+        // fields once, and a named rebuild drops whatever was added to the record after it was written —
+        // WaterLanes was, so a lane an author stored reached the resolve and never left it, and the export
+        // clears the lane region before rewriting from this copy. Asserted over the whole record rather than
+        // over that one field, so the next slice added cannot go the same way unnoticed.
+        var intent = SampleIntent() with
+        {
+            WaterLanes = new WaterLaneIntent { Rects = [new Rect(-5, -5, 5, 5)] },
+        };
+
+        var built = SketchWorldBuilder.Build(Layout, intent);
+
+        await Assert.That(built.ResolvedIntent.WaterLanes).IsNotNull();
+        await Assert.That(built.ResolvedIntent.WaterLanes!.Rects.Count).IsEqualTo(1);
+    }
 }

@@ -235,20 +235,17 @@ public static class SketchWorldBuilder
             (spawnX, spawnY, spawnZ) = (gx, Surface(gx, gz) + 1, gz);
         }
 
-        var resolved = new MapIntent
+        // `with`, never a fresh MapIntent, for the reason SymmetryExpander already records: a rebuild that
+        // names its fields drops every slice added after it was written. This one had dropped WaterLanes —
+        // the export re-projects from this copy and the lane generator clears the document before writing, so
+        // a lane an author had stored was deleted and never rewritten, on every sketch-built map.
+        var resolved = intent with
         {
-            Teams = intent.Teams,
-            MaxPlayers = intent.MaxPlayers,
             Spawns = resolvedSpawns,
             Observer = resolvedObserver ?? intent.Observer,
-            Build = intent.Build,
             Wools = resolvedWools,
             Destroyables = resolvedDestroyables,
             Cores = resolvedCores,
-            Meta = intent.Meta,
-            Symmetry = intent.Symmetry,
-            IslandTeams = intent.IslandTeams,
-            Structures = intent.Structures,
         };
 
         return new SketchWorld(world, spawnX, spawnY, spawnZ, resolved, provenance);
