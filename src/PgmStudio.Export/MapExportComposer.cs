@@ -78,11 +78,6 @@ public static class MapExportComposer
 
                 IntentGenerator.Apply(doc, goals);
 
-                // OB18 — the kit actually written to the doc has to be able to break every destroyable and
-                // core the map ships. tools/mapgen was the only caller of this rule; a map exported from the
-                // studio was not checked at all.
-                if (RefuseUnwinnableGoals(doc, goals) is { } kitRefusal) return kitRefusal;
-
                 // OB19 — a tree, boulder or building may not stand inside a goal's clearance. Refused rather
                 // than dropped: these three are authored, and dropping one would silently discard a placement
                 // the author can see on the canvas.
@@ -161,23 +156,6 @@ public static class MapExportComposer
     // ObjectiveFootprint/ObjectivePlacement speak the stamper's inclusive block box; BlockRect's max is
     // exclusive (the same conversion PlanValidator's compile-time reading makes).
     private static BlockRect Rect(BlockBox box) => new(box.MinX, box.MinZ, box.MaxX + 1, box.MaxZ + 1);
-
-    // ── OB18 — the destroy kit has to be able to break every goal it defends ──────────────────────────────
-
-    private static ExportComposition? RefuseUnwinnableGoals(Dict doc, MapIntent goals)
-    {
-        var unbreakable = DestroyKitPairing.Unwinnable(goals, DestroyKitPairing.KitPickaxeMaterials(doc));
-        if (unbreakable.Count == 0) return null;
-
-        return new(409, new Dict
-        {
-            ["error"] = "unwinnable goal",
-            ["message"] = $"no tool in the kit can break {string.Join(", ", unbreakable)} — "
-                         + "a goal that cannot be mined cannot be won",
-            ["rule"] = DestroyKitPairing.Rule,
-            ["goals"] = unbreakable,
-        }, null, null);
-    }
 
     // ── OB19 — a tree, boulder or building may not stand inside a goal's clearance ────────────────────────
 

@@ -246,17 +246,16 @@ records why: DC1 calls obsidian "effectively universal" in the corpus and the ge
 attribute, relying on PGM's own default. Asking a core for a different casing is therefore not a gap in the
 spec — it is not expressible anywhere in the pipeline today.
 
-Turning the destroyable's knob is not free of consequence, because PGM enforces a hard invariant on the other
-side of it: **a tool has to be able to mine what it is sent to break.** An iron pickaxe does not mine
-obsidian at all — not slowly, not at all — so a destroyable left at its obsidian default needs a diamond
-pickaxe in the spawn kit, and the corpus never breaks that pairing (86 of 86 obsidian-goal maps carry one).
-Nothing in the generator ties the two together yet: `TeamsGenerator.GenerateKits` writes one fixed "Standard"
-kit for every map with spawns, an iron pickaxe among its tools, with no branch for a destroy objective or its
-material (`Pgm/Authoring/TeamsGenerator.cs`). So today, choosing anything other than a hand-edited kit leaves
-the default obsidian goal unbreakable, and choosing a softer material such as end stone does not fix that on
-its own — it only changes which pairing has to be checked by hand. `mapgen-review.md` MG18 and `TODO.md` B81 record
-this as the fault it is; until B81 lands, pairing the kit to the goal is the author's job, not the
-generator's.
+Turning the destroyable's knob has a consequence worth pairing the kit to, though not a legal one: **an iron
+pickaxe breaks obsidian, it just does not drop it**, so a destroyable left at its obsidian default is slow to
+finish against a mismatched kit, not unbreakable — the corpus itself never leaves that pairing to chance (86
+of 86 obsidian-goal maps carry a diamond pickaxe). `TeamsGenerator.GenerateKits` now ties the two together:
+the spawn kit's pickaxe comes from `DestroyKitPairing.RequiredPickaxe`, which upgrades the corpus-default iron
+to diamond whenever the map carries an obsidian destroyable or any core, and to iron for a softer material
+such as end stone. Choosing a material is therefore free of hand-editing the kit afterward — the pairing was
+the fault `mapgen-review.md` MG18 named and `B81` closed. An earlier version of this pairing also refused the
+export outright on a mismatch (`OB18`); `B134` found that premise false and removed the refusal, leaving the
+pairing as a generation choice rather than a gate.
 
 ### What the composer never asks for: a defence wall and a resource cube
 

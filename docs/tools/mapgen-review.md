@@ -61,7 +61,7 @@ built, loaded, and looked correct from above.
 
 | was | closed by | what it shipped |
 |---|---|---|
-| MG18 | `B81` | an obsidian goal against an iron pickaxe, so no monument could be broken |
+| MG18 | `B81` | every generated destroy board shipped the fixed iron-pickaxe kit regardless of goal material, believed at the time to make an obsidian monument unbreakable |
 | MG3 | `B82` | a goal standing over void, unreachable and unminable |
 | MG14, MG15, MG16, MG17 | `B80` | no `itemkeep`, `toolrepair`, `itemremove` or hunger rule, and `not-build-area` not last |
 | MG5 | `B83` | a relief solved under a sited room, cutting its floor |
@@ -69,6 +69,14 @@ built, loaded, and looked correct from above.
 | MG7 | `B85` | buildings inside buildings and trees through both |
 | MG26 | `B86` | a mirrored board whose dressing differed side to side |
 | MG20 | `B87` | wool-room chests turned into the wall |
+
+**MG18's row is corrected, not merely historical.** The entry judged an unpaired kit unwinnable; that
+judgment was wrong. An iron pickaxe breaks obsidian, it just does not drop it, and a destroy goal only
+requires the block gone — a mismatched kit makes a raid slow, not impossible. `B81` still closed a real fault
+(every generated destroy board shipped the same fixed iron pickaxe, obsidian goal or not), and its own kit
+derivation is still in place; what `B81` also shipped on top of the derivation — a hard refusal on a
+mismatch, later carried into the export gate as `OB18` (`B116`) — was built on the false premise and was
+removed by `B134`.
 
 Two more that were not faults but absences closed with them: a destroyable now stands on a one-block bedrock
 platform (MG23, `B88`) and every goal carries a marker above the build cap (MG24, `B89`).

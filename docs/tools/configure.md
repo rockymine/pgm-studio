@@ -312,7 +312,7 @@ across — every spawn and wool reads as isolated whatever the build areas say. 
 intent with no world: round-trip and mirror pass, buildability skips, traversability fails on both spawns, and
 `GET /xml` answers 409. Configure writes the XML for a world that exists; it cannot author one in a vacuum.
 
-**A sketch-origin map's export answers three more 409s, from `MapExportComposer` itself rather than from
+**A sketch-origin map's export answers two more 409s, from `MapExportComposer` itself rather than from
 pre-flight.** They exist because `Compose` already builds that map's world and holds its resolved
 intent, so it can ask them against the ground the rasterizer actually produced instead of the plan's
 rectangles — the case a subtract cut, a relief solve, or a post-compile sketch edit opens, none of which
@@ -321,17 +321,20 @@ re-enters the compile gate, and the case a map begun in Sketch never reaches at 
 - **`OB17` — objective placement**, asked again here the same way the compile gate asks it
   (`ObjectivePlacement.Check`, `destroyables-and-cores.md`): a destroyable or a core may not overhang the
   void, or reach into a spawn's or a wool room's frame.
-- **`OB18` — an unwinnable goal**: no material in the exported document's own kits can break a destroyable or
-  a core the map ships (`DestroyKitPairing.Unwinnable`). Reads the kit actually written to the doc, not the
-  derivation that built it, so a kitless map is still caught.
 - **`OB19` — a tree, a boulder or a building inside a goal's clearance** (`DressingScope.GoalClearanceViolations`,
   `world-export/decoration.md` §3.1), refused rather than dropped because those three are authored and a
   silent drop would discard a placement the author can see on the canvas. Ground cover is exempt.
 
+A third check, `OB18`, briefly refused a kit/material mismatch as an unwinnable goal (an obsidian destroyable
+against an iron pickaxe); the premise was false — an iron pickaxe breaks obsidian, it just does not drop it,
+so the mismatch made a raid slow, not impossible — and the refusal was removed (`destroyables-and-cores.md`
+§8). `TeamsGenerator` still pairs the generated kit's pickaxe to the goal's material, which is why the case
+is rare in practice, but a hand-edited kit that leaves the pairing off no longer blocks export.
+
 Each answers `{error, message, rule, …}`, the last field a named list scoped to the refusal — `findings` for
-OB17 (one per goal, each carrying its own `rule`/`message`/`subjects`), `goals` for OB18, `props` for OB19
-(`{kind, id, x, z}` each). None of the three apply to a map with no stored sketch layout: they read the
-sketch's own rasterized ground and dressing list, which only a sketch-origin map carries.
+OB17 (one per goal, each carrying its own `rule`/`message`/`subjects`), `props` for OB19 (`{kind, id, x, z}`
+each). Neither applies to a map with no stored sketch layout: they read the sketch's own rasterized ground
+and dressing list, which only a sketch-origin map carries.
 
 **Import refuses a folder with a `map.xml`** (422), a non-allowlisted host (403), an archive with no
 `region/*.mca` (422), and a slug already taken (409).
@@ -375,7 +378,7 @@ writes: apart from the import and one island toggle, **Configure has exactly one
 |---|---|---|
 | `GET /map/{slug}/preflight` | `{intentMap, exportReady, checks[], log[], traversability}` | 404 |
 | `GET /map/{slug}/regions/tree` | the generated region tree, grouped | 404 |
-| `GET /map/{slug}/xml` | the `map.xml` | **409** `{error, message, isolated[]}` not traversable · **409** `{error, message, findings[]}` OB17 · **409** `{error, message, rule, goals[]}` OB18 · **409** `{error, message, rule, props[]}` OB19 · 404 |
+| `GET /map/{slug}/xml` | the `map.xml` | **409** `{error, message, isolated[]}` not traversable · **409** `{error, message, findings[]}` OB17 · **409** `{error, message, rule, props[]}` OB19 · 404 |
 | `GET /map/{slug}/export` | the world ZIP | the same 409s as `/xml` (sketch-origin maps only), plus non-2xx with a message |
 
 ## Driving it without the UI
@@ -405,8 +408,8 @@ Two habits make this reliable. **Read the world before writing the intent**: `wo
 `monument-suggestions` say what colours and capture points actually exist, which is the difference between
 authoring a map and guessing at one. And **treat pre-flight as the answer for its four checks, not the XML**:
 it names which one failed and why, where `GET /xml` only says 409 — but on a sketch-origin map, a
-pre-flight-clean document can still 409 on `OB17`/`OB18`/`OB19` (*What it refuses*, above), since those three
-read the world `GET /xml` itself builds rather than anything pre-flight inspects.
+pre-flight-clean document can still 409 on `OB17`/`OB19` (*What it refuses*, above), since those two read the
+world `GET /xml` itself builds rather than anything pre-flight inspects.
 
 The map that goes with this document is any sketch-origin map in the corpus of built maps. On
 `no-blocks-placed-verify` — 2 teams, 4 wools — pre-flight reports 26 regions, 20 filters and 11 apply-rules,

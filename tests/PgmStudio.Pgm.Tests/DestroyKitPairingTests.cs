@@ -3,9 +3,9 @@ using PgmStudio.Pgm.Authoring;
 namespace PgmStudio.Pgm.Tests;
 
 /// <summary>
-/// The derivation behind a destroy map's kit pickaxe, and the guard that checks it held: what pickaxe a
-/// map needs (<see cref="DestroyKitPairing.RequiredPickaxe"/>) and which of its goals nothing in a given
-/// kit can break (<see cref="DestroyKitPairing.Unwinnable"/>).
+/// The derivation behind a destroy map's kit pickaxe: what pickaxe a map needs
+/// (<see cref="DestroyKitPairing.RequiredPickaxe"/>) to match every destroyable and core it defends —
+/// obsidian upgrading to diamond, anything softer staying at the corpus-default iron.
 /// </summary>
 public sealed class DestroyKitPairingTests
 {
@@ -49,105 +49,5 @@ public sealed class DestroyKitPairingTests
     {
         var intent = new MapIntent { Destroyables = [Destroyable("gold block"), Destroyable("obsidian", name: "second")] };
         await Assert.That(DestroyKitPairing.RequiredPickaxe(intent)).IsEqualTo("diamond pickaxe");
-    }
-
-    [Test]
-    public async Task Unwinnable_is_empty_when_the_kit_pickaxe_meets_every_goal()
-    {
-        var intent = new MapIntent { Destroyables = [Destroyable("obsidian")] };
-        var findings = DestroyKitPairing.Unwinnable(intent, ["diamond pickaxe"]);
-        await Assert.That(findings).IsEmpty();
-    }
-
-    [Test]
-    public async Task Unwinnable_names_a_destroyable_an_iron_pickaxe_cannot_break()
-    {
-        var intent = new MapIntent { Destroyables = [Destroyable("obsidian", owner: "red", name: "Red Monument")] };
-        var findings = DestroyKitPairing.Unwinnable(intent, ["iron pickaxe"]);
-        await Assert.That(findings).IsEquivalentTo(["Red Monument"]);
-    }
-
-    [Test]
-    public async Task Unwinnable_falls_back_to_the_owner_when_the_destroyable_has_no_name()
-    {
-        var intent = new MapIntent { Destroyables = [Destroyable("obsidian", owner: "red", name: "")] };
-        var findings = DestroyKitPairing.Unwinnable(intent, ["iron pickaxe"]);
-        await Assert.That(findings).IsEquivalentTo(["red"]);
-    }
-
-    [Test]
-    public async Task Unwinnable_flags_a_core_with_no_diamond_pickaxe_in_the_kit()
-    {
-        var intent = new MapIntent { Cores = [Core(owner: "blue", name: "")] };
-        var findings = DestroyKitPairing.Unwinnable(intent, ["iron pickaxe"]);
-        await Assert.That(findings).IsEquivalentTo(["blue"]);
-    }
-
-    [Test]
-    public async Task Unwinnable_is_empty_for_a_kitless_ctw_map_with_no_destroy_goal()
-    {
-        var findings = DestroyKitPairing.Unwinnable(new MapIntent(), []);
-        await Assert.That(findings).IsEmpty();
-    }
-
-    [Test]
-    public async Task A_kitless_destroy_map_is_flagged_unwinnable()
-    {
-        // No pickaxe material at all reaches Unwinnable the same way an insufficient one does.
-        var intent = new MapIntent { Destroyables = [Destroyable("obsidian", name: "Red Monument")] };
-        var findings = DestroyKitPairing.Unwinnable(intent, []);
-        await Assert.That(findings).IsEquivalentTo(["Red Monument"]);
-    }
-
-    [Test]
-    public async Task The_rule_id_is_OB18()
-    {
-        // The export gate's finding names this id (docs/pgm/destroyables-and-cores.md), so a caller can
-        // act on it rather than parse the sentence.
-        await Assert.That(DestroyKitPairing.Rule).IsEqualTo("OB18");
-    }
-
-    [Test]
-    public async Task KitPickaxeMaterials_reads_every_kit_items_material()
-    {
-        var doc = new Dictionary<string, object?>
-        {
-            ["kits"] = new List<object?>
-            {
-                new Dictionary<string, object?>
-                {
-                    ["id"] = "spawn-kit",
-                    ["items"] = new List<object?>
-                    {
-                        new Dictionary<string, object?> { ["slot"] = 0, ["material"] = "iron sword" },
-                        new Dictionary<string, object?> { ["slot"] = 2, ["material"] = "diamond pickaxe" },
-                    },
-                },
-                new Dictionary<string, object?>
-                {
-                    ["id"] = "reset-kit",
-                    // A force kit with no items — must not throw, just contribute nothing.
-                },
-            },
-        };
-        await Assert.That(DestroyKitPairing.KitPickaxeMaterials(doc)).IsEquivalentTo(["iron sword", "diamond pickaxe"]);
-    }
-
-    [Test]
-    public async Task KitPickaxeMaterials_is_empty_when_the_document_carries_no_kits()
-    {
-        await Assert.That(DestroyKitPairing.KitPickaxeMaterials(new Dictionary<string, object?>())).IsEmpty();
-    }
-
-    [Test]
-    public async Task A_kitless_document_read_back_still_reports_the_goal_it_cannot_break()
-    {
-        // The invariant the export gate leans on: reading a document with no kits at all back through
-        // KitPickaxeMaterials produces the same empty alphabet Unwinnable already treats as unbreakable —
-        // proving the two functions agree on what "no kit" means end to end.
-        var doc = new Dictionary<string, object?>();
-        var intent = new MapIntent { Destroyables = [Destroyable("obsidian", name: "Red Monument")] };
-        var findings = DestroyKitPairing.Unwinnable(intent, DestroyKitPairing.KitPickaxeMaterials(doc));
-        await Assert.That(findings).IsEquivalentTo(["Red Monument"]);
     }
 }

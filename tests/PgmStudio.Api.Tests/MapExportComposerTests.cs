@@ -5,13 +5,16 @@ using System.Text.Json;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// B116: the three export-time refusals <c>MapExportComposer</c> asks against a sketch-originated map's
-/// built world, over the ground the rasterizer actually produced — <c>OB17</c> (objective placement),
-/// <c>OB18</c> (a destroy kit that cannot break its own goal) and <c>OB19</c> (a tree, boulder or building
-/// standing inside a goal's clearance) — each answering <b>409</b> from the one composer, with the rule id
-/// a caller can act on. Every scenario here is one the compile gate never sees: none of these maps was
-/// authored through a plan, so <c>PlanValidator</c> never runs over them — proving the export gate is the
-/// only place that catches a destroy goal authored straight into Sketch.
+/// B116: the export-time refusals <c>MapExportComposer</c> asks against a sketch-originated map's built
+/// world, over the ground the rasterizer actually produced — <c>OB17</c> (objective placement) and
+/// <c>OB19</c> (a tree, boulder or building standing inside a goal's clearance) — each answering <b>409</b>
+/// from the one composer, with the rule id a caller can act on. Every scenario here is one the compile gate
+/// never sees: none of these maps was authored through a plan, so <c>PlanValidator</c> never runs over them —
+/// proving the export gate is the only place that catches a destroy goal authored straight into Sketch.
+/// <para>B116 also wired a third gate here, <c>OB18</c> — a kit/material mismatch, refusing an obsidian goal
+/// against an iron pickaxe as unwinnable. <c>B134</c> found the premise false (an iron pickaxe breaks
+/// obsidian, it just does not drop it, so the goal was winnable and merely slow) and removed it; the test
+/// below now asserts the export succeeds where it used to 409.</para>
 /// </summary>
 [NotInParallel("api-db")]
 public sealed class MapExportComposerTests
@@ -83,15 +86,16 @@ public sealed class MapExportComposerTests
     }
 
     [Test]
-    public async Task OB18_refuses_a_goal_nothing_in_the_kit_can_break()
+    public async Task A_kitless_obsidian_goal_no_longer_refuses_OB18_was_retired()
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
         var slug = await CreateFinishedSketchAsync(client, IslandLayout);
 
         // No spawns at all: TeamsGenerator only derives a kit when the map has one (GenerateKits gates on
-        // Spawns.Count > 0), so the exported document's kits carry no pickaxe whatsoever — the kitless
-        // destroy map MG18 records, reached here through a document the derivation never touched.
+        // Spawns.Count > 0), so the exported document's kits carry no pickaxe whatsoever. Before B134 this
+        // was the kitless destroy map MG18/OB18 refused as "unwinnable"; an iron pickaxe (or no pickaxe at
+        // all) still breaks obsidian, it just does not drop it, so the goal is winnable and the map exports.
         var intent = new
         {
             teams = new[] { new { id = "red", name = "Red", color = "red" } },
@@ -107,11 +111,10 @@ public sealed class MapExportComposerTests
         };
         await Assert.That((await client.PutAsJsonAsync($"/api/map/{slug}/intent", intent)).IsSuccessStatusCode).IsTrue();
 
-        var body = await Refuse409Async(client, slug);
-        await Assert.That(body.GetProperty("error").GetString()).IsEqualTo("unwinnable goal");
-        await Assert.That(body.GetProperty("rule").GetString()).IsEqualTo("OB18");
-        var goals = body.GetProperty("goals").EnumerateArray().Select(g => g.GetString()).ToList();
-        await Assert.That(goals).Contains("farmon");
+        var resp = await client.GetAsync($"/api/map/{slug}/xml");
+        await Assert.That(resp.IsSuccessStatusCode).IsTrue();
+        var xml = await resp.Content.ReadAsStringAsync();
+        await Assert.That(xml).Contains("farmon");
     }
 
     [Test]
@@ -121,8 +124,7 @@ public sealed class MapExportComposerTests
         using var client = ApiTestFactory.Shared.CreateClient();
         var slug = await CreateFinishedSketchAsync(client, IslandLayoutWithTree);
 
-        // Well clear of the tree/goal cluster at (10,10), and materials left unset so OB18 cannot also fire —
-        // this map is testing OB19 alone.
+        // Well clear of the tree/goal cluster at (10,10) — this map is testing OB19 alone.
         var intent = new
         {
             teams = new[] { new { id = "red", name = "Red", color = "red" } },
@@ -147,10 +149,10 @@ public sealed class MapExportComposerTests
         await Assert.That(props[0].GetProperty("id").GetString()).IsEqualTo("t1");
     }
 
-    /// <summary>The control: the same shape of map as the three refusals above, minus the fault each one
-    /// looks for, still exports clean — proving the new gate does not reject a map that was never wrong.</summary>
+    /// <summary>The control: the same shape of map as the refusals above, minus the fault each one looks
+    /// for, still exports clean — proving the gate does not reject a map that was never wrong.</summary>
     [Test]
-    public async Task A_map_with_none_of_the_three_faults_still_exports()
+    public async Task A_map_with_none_of_the_gated_faults_still_exports()
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();

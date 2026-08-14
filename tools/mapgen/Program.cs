@@ -145,15 +145,6 @@ static void Build(MapSpec spec, bool describeOnly, bool forceStages)
         Console.Error.WriteLine($"  ! {spec.Slug}: no kit — itemkeep/toolrepair/itemremove derive from the "
                                + "spawn kit and will be empty");
 
-    // A destroyable or core nothing in the kit can mine is not a rough edge, it is a map that cannot be won —
-    // the same failure the void refusal above guards against for a goal with no ground under it. Reads the
-    // kit actually written to the doc rather than trusting the derivation that built it (TeamsGenerator),
-    // so the check still catches a kitless destroy map (MG17 meets MG18).
-    var unbreakable = DestroyKitPairing.Unwinnable(built.ResolvedIntent, DestroyKitPairing.KitPickaxeMaterials(doc));
-    if (unbreakable.Count > 0)
-        throw new ArgumentException($"{spec.Slug}: no tool in the kit can break "
-                                   + $"{string.Join(", ", unbreakable)} — a goal that cannot be mined cannot be won");
-
     // Through the same path a saved map exports: CtwStandards' keep/repair/remove derivation, the water-lane
     // include, ore/structure renewables, and the not-build-area reordering that must decide last.
     var renewableCubes = SketchWorldBuilder.RenewableCubeFootprints(built.ResolvedIntent);

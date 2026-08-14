@@ -285,9 +285,12 @@ destroyable in the corpus** (riverbank's monuments are literally `<block>-4,9,30
 is the default; `cube-3` and `column-plus` are the alternatives. Bespoke sculpture above 4³ (DT4) is not
 reproduced.
 
-The material vocabulary is also what a team's kit has to be able to mine: an iron pickaxe does not break
-obsidian, so a destroy map's pickaxe is paired to the goal it ships (`MiningTiers`, `DestroyKitPairing`, and
-`docs/tools/mapgen-review.md` MG18 for the failure it prevents).
+The material vocabulary is also what a team's kit is paired to: an iron pickaxe breaks obsidian, it just does
+not drop it, so a destroy map's kit still upgrades its pickaxe to match the goal's material — obsidian to
+diamond, anything softer to iron (`MiningTiers`, `DestroyKitPairing.RequiredPickaxe`) — because that pairing
+is the corpus norm and a faster raid is a better one, not because a mismatch would make the map unwinnable.
+`docs/tools/mapgen-review.md` MG18 records the earlier, mistaken belief that it would, and `B134` is the
+correction.
 
 ### DT4 — the ender stone column
 
@@ -537,16 +540,19 @@ one — and the id is what makes the answer actionable to a caller that must the
 than merely diagnostic. Clicking the finding in the compile drawer closes the drawer and rings that marker on
 the board, so the refusal reads as a place rather than a sentence.
 
-**OB18 — the export gate also asks whether the kit can win the map it defends.** A destroyable or a core is
-placed correctly and still unwinnable if nothing in the standard kit can break its material — an obsidian
-monument against an iron pickaxe, the failure `MG18` records. `DestroyKitPairing.Unwinnable` reads the kit
-materials actually written to the exported document (never the derivation that built them, so a kitless map
-is still caught) against every goal's required tier, and the export gate refuses with `OB18` naming every goal
-nothing in the kit can break. `tools/mapgen` was this rule's only caller until the export gate asked it too —
-a map exported from the studio was not checked at all.
+**OB18 was retired — a kit/material mismatch is not a refusal.** `MG18`/`B81` asserted that an iron pickaxe
+does not mine obsidian at all, so a mismatched kit made a monument unwinnable, and `B116` wired that claim
+into the export gate as a hard 409 (`DestroyKitPairing.Unwinnable`, naming every goal it judged unbreakable).
+The premise is false: an iron pickaxe **breaks** obsidian, it just does not **drop** it, and a destroy
+objective only requires the block gone, so a mismatched kit makes a raid slow, never unwinnable — a design
+choice about raid length, not a broken map. `B134` removed the gate and the derivation behind it.
+`RequiredPickaxe` stays: the generated kit still upgrades its pickaxe to match the goal's material (obsidian
+to diamond, anything softer to iron) because that pairing is the corpus norm and a faster raid is still a
+better one — but it is a generation choice now, not a legality check, and the export gate is silent about a
+kit an author hand-edits away from it.
 
-A third export-time refusal, `OB19` — a tree, a boulder or a building standing inside a goal's clearance — is
-a dressing rule rather than an objective one, and its home is `world-export/decoration.md` §3.1.
+A second export-time refusal, `OB19` — a tree, a boulder or a building standing inside a goal's clearance —
+is a dressing rule rather than an objective one, and its home is `world-export/decoration.md` §3.1.
 
 ---
 

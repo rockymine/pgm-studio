@@ -1,12 +1,14 @@
 namespace PgmStudio.Domain;
 
 /// <summary>
-/// The minimum pickaxe tier vanilla Minecraft requires to break a PGM material match — covering the closed
-/// vocabulary a destroyable or core actually names (docs/pgm/destroyables-and-cores.md DT1: obsidian,
-/// emerald, gold, ender stone dominate). A miss means "this table cannot say", never "no tool needed" — the
-/// same partial-table convention <see cref="MaterialIds"/> follows, and for the same reason: a caller that
-/// wants to know whether a goal is breakable at all must treat an unresolved material as unconfirmed, not as
-/// safe.
+/// The minimum pickaxe tier vanilla Minecraft requires to <b>drop</b> a PGM material match as an item —
+/// covering the closed vocabulary a destroyable or core actually names (docs/pgm/destroyables-and-cores.md
+/// DT1: obsidian, emerald, gold, ender stone dominate). This is not the tier needed to <i>break</i> the block:
+/// vanilla breaks any block with any tool (or bare hands) given enough time — what a tool tier below this one
+/// changes is only whether the block drops, not whether it comes apart. A miss means "this table cannot say",
+/// never "no tool needed" — the same partial-table convention <see cref="MaterialIds"/> follows, and for the
+/// same reason: a caller that wants to know whether a goal drops loot at all must treat an unresolved material
+/// as unconfirmed, not as safe.
 /// </summary>
 public static class MiningTiers
 {

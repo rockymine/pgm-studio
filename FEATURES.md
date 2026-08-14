@@ -4432,13 +4432,15 @@ these are the ones that shipped a map that could not be played as intended, and 
   renewables; a kitless map now reports rather than silently dropping its loadout rules. The `unbreakable`
   question was settled on the corpus rather than assumed: of 301 maps carrying `<toolrepair>`, 291 (97%) also
   mark a kit tool unbreakable, so the generated kit keeps it.
-- **A destroy kit's pickaxe is paired to its goal, and an unbreakable goal refuses (B81).** An obsidian
-  monument against an iron pickaxe cannot be mined at all, so every destroy board in the batch was
-  unwinnable. The pickaxe now derives from the goal's material, the spec can name that material
-  (`objective_materials`, monuments only — a core's casing is not a knob), and two refusals close the loop: a
-  material no tool in the kit can break, and a material the stamper cannot build. The second matters because
+- **A destroy kit's pickaxe is paired to its goal (B81); the unbreakable-goal refusal it also shipped was
+  retired by `B134`.** An iron pickaxe breaks obsidian without dropping it, so the mismatch B81 guarded
+  against made a raid slow, never unwinnable — the premise it was filed against was wrong, though the fault
+  it fixed was real: every destroy board in the batch had shipped the same fixed iron pickaxe regardless of
+  goal material. What still stands: the pickaxe derives from the goal's material (obsidian → diamond,
+  anything softer → iron), the spec can name that material (`objective_materials`, monuments only — a core's
+  casing is not a knob), and the generator still refuses a material the stamper cannot build, because
   `DestroyableMaterials` silently falls back to obsidian while the generator writes the authored name
-  verbatim, which shipped a goal whose declared material matched nothing in its own region.
+  verbatim, which would otherwise ship a goal whose declared material matches nothing in its own region.
 - **A goal standing over void refuses the build (B82).** Checked against the ground already rasterized before
   dressing. It immediately caught three shipped `dtcm` specs whose cores stand in void (cause filed as B94).
 - **The relief holds a room's floor instead of carving through it (B83).** The task's premise was false and
@@ -4484,18 +4486,38 @@ these are the ones that shipped a map that could not be played as intended, and 
   along unconditionally: it measured room-to-edge within the monument's own piece and took the direction with
   the most room, so the three shipped specs that `B82` was refusing built with their cores on ground.
   (`Retarget` itself, and the whole reduced spec format it retargeted, is gone — deleted by `B118`.)
-- **The export gate asks the three questions `tools/mapgen` used to ask alone (B116).**
-  `MapExportComposer.ComposeAsync` already builds a sketch-originated map's world and holds its resolved
-  intent, so it re-asks `ObjectivePlacement.Check` — void, spawn, wool room — against the ground the
-  rasterizer actually produced rather than the plan's rectangles (`OB17`), the case a subtract cut, a relief
-  solve or a post-compile sketch edit opens and the compile gate never sees again, and the case a map begun
-  in Sketch never reaches at all. `DestroyKitPairing.Unwinnable` moves in behind it (`OB18`): the kit
-  actually written to the exported document has to break every destroyable and core the map ships, read back
-  rather than assumed, so a kitless destroy map is still caught. And a tree, boulder or building standing
-  inside a goal's four-block clearance now refuses rather than exporting silently (`OB19`,
-  `DressingScope.GoalClearanceViolations`) — fanned across the map's own symmetry, so a violation only one
-  team's mirror carries is still caught, and ground cover is exempt throughout. All three answer 409 from the
-  one composer, so the studio and every headless driver are gated identically. This supersedes `B101`, which asked for the deleted `tools/mapgen` `KeepOut` list to learn about destroyables: a refusal on the export gate reaches every driver rather than one tool, and names the prop and the goal rather than dropping the placement silently.
+- **The export gate asks the questions `tools/mapgen` used to ask alone (B116); a third one it added, `OB18`,
+  was retired by `B134`.** `MapExportComposer.ComposeAsync` already builds a sketch-originated map's world
+  and holds its resolved intent, so it re-asks `ObjectivePlacement.Check` — void, spawn, wool room — against
+  the ground the rasterizer actually produced rather than the plan's rectangles (`OB17`), the case a subtract
+  cut, a relief solve or a post-compile sketch edit opens and the compile gate never sees again, and the case
+  a map begun in Sketch never reaches at all. And a tree, boulder or building standing inside a goal's
+  four-block clearance refuses rather than exporting silently (`OB19`, `DressingScope.GoalClearanceViolations`)
+  — fanned across the map's own symmetry, so a violation only one team's mirror carries is still caught, and
+  ground cover is exempt throughout. `B116` also wired `DestroyKitPairing.Unwinnable` in behind `OB17` as a
+  third gate, `OB18` — a kit/material mismatch, refused as unwinnable on the premise that an iron pickaxe
+  cannot mine obsidian at all; `B134` found the premise false (it breaks obsidian, it just does not drop it)
+  and removed the gate, leaving the kit's pairing to `RequiredPickaxe`'s generation choice rather than a
+  legality check. The two surviving refusals answer 409 from the one composer, so the studio and every
+  headless driver are gated identically. This supersedes `B101`, which asked for the deleted `tools/mapgen`
+  `KeepOut` list to learn about destroyables: a refusal on the export gate reaches every driver rather than
+  one tool, and names the prop and the goal rather than dropping the placement silently.
+- **The obsidian-mining claim behind `OB18` was false, and the refusal it justified is gone (B134).**
+  `DestroyKitPairing`'s docstring asserted that an iron pickaxe does not mine obsidian at all, so a
+  kit/material mismatch was an unwinnable map; it is wrong. Vanilla breaks any block with any tool given
+  enough time — what a tool below the required tier changes is only whether the block *drops*, not whether it
+  *breaks* — so a destroy objective, which only asks for the block gone, is won either way, merely slower.
+  `MapExportComposer`'s `RefuseUnwinnableGoals` and `DestroyKitPairing.Unwinnable`/`KitPickaxeMaterials`/`Rule`
+  are deleted outright rather than downgraded to a warning: after the correction there is nothing wrong left
+  to warn about, and a warning surface for a non-defect would be new response-contract weight (`Contracts`,
+  `Client`) spent on noise. `tools/mapgen`'s matching hard throw is deleted with it. `RequiredPickaxe` is
+  unchanged and still upgrades a generated kit's pickaxe to match its goal's material (obsidian → diamond,
+  anything softer → iron) — the corpus norm for a fast raid, now stated as a generation choice rather than a
+  legality check. `MiningTiers`'s docstring is corrected to say what its table actually encodes: the tier
+  required to *drop* a material, not to break it. Every restatement of the false claim — `DestroyKitPairing`,
+  `MiningTiers`, `docs/pgm/destroyables-and-cores.md`, `docs/tools/capabilities.md`,
+  `docs/tools/configure.md`, `mapgen-review.md`'s `MG18` row, and this section's own `B81`/`B116` entries —
+  is corrected in the same commit.
 - **The export path is a project, not a folder inside the web app (B119).** `SketchWorldBuilder`,
   `MapXmlComposer` and `MapExportComposer` — plus the four map-facing readers only they used
   (`DressingScope`, `TerrainThemeScope`, `TeamTerritory`, `RoomStyleScope`) — moved out of `Api/Services` into

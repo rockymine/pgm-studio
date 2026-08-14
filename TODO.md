@@ -121,31 +121,6 @@ which finds out whether the result actually answers.
   curve without building a world; and the worked examples in the documents are rectangles, so the first thing
   a reader copies has straight edges and one height.
 
-- [ ] **B134 — "An iron pickaxe does not mine obsidian at all" is false, and a 409 now refuses maps on it.**
-  `DestroyKitPairing`'s docstring states the premise outright — *"an iron pickaxe does not mine obsidian at
-  all, so a mismatch is not a rough edge, it is an unwinnable map"* — and it is wrong. An iron pickaxe
-  **breaks** obsidian; what it does not do is **drop** it. A destroy objective only requires the block to be
-  gone, so an obsidian monument against an iron pickaxe is winnable, and slow, which is a design choice about
-  how long a raid should take rather than a broken map.
-
-  The claim entered as `mapgen-review.md` MG18, shipped as `B81`, and `B116` then wired
-  `DestroyKitPairing.Unwinnable` to the export gate as `OB18` — a **hard 409**. So the studio now refuses to
-  export a class of map that plays correctly, and the refusal names a rule id that asserts the false claim.
-  That is the worst direction for this error to travel: it began as a note, became a fix, and is now a gate.
-
-  **The severity is the gate, not the pairing.** `RequiredPickaxe` upgrading a kit to match its goals is
-  useful and stays. What has to go is the inference from *cannot drop* to *cannot break*, and with it `OB18`'s
-  standing as a refusal — a mismatch is at most a warning, and probably not even that.
-
-  **The author's rule for the pairing, which settles what it should do instead: the material defines the
-  kit.** Obsidian pairs with a diamond pickaxe; anything softer pairs with iron. That is a statement about
-  what the kit should be *generated* as, not about what is legal, so it belongs in `RequiredPickaxe` and
-  nowhere near a gate.
-
-  Grep the repository before calling this done: the false sentence is repeated in `DestroyKitPairing`'s
-  docstring, in `docs/pgm/destroyables-and-cores.md`, in `mapgen-review.md`'s MG18 row, and in whatever
-  `FEATURES.md` says `B81` and `B116` shipped. Each one reads as settled fact.
-
 - [ ] **B135 — The paired core defaults leak on the first break, with nothing to dig.** `ObjectiveDefaults`
   carries `CoreFloat = 6` and `CoreLeak = 5` and documents them as a pair (DC2). Read against PGM, that pair
   leaks immediately. `Core.java` builds a leak region whose top is `coreRegion.min.y − leakLevel` and sets
