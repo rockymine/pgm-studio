@@ -1071,8 +1071,40 @@ the thing `B181` names, which makes the document upstream of the boards rather t
   partial touch answers yes on one sample and then marches per column into ground that is not there. The
   refusal wants asking of the **whole edge**, not of a sample.
 
-  *author, 2026-08-14 · stated as intent, corrected on equal sizes; measured against `Footprint`,
-  `HouseProp.Footprint()`, `Marches` and both abutting pairs.*
+  **Which rectangle is the hall and which is the wing is derivable, and so is whether they join at all.** It
+  falls out of the shared edge and the two ridge axes, with no size comparison and nothing for an author to
+  name:
+
+  | the two ridges, against the shared edge | what it is | |
+  |---|---|---|
+  | one **parallel**, one **perpendicular** | a junction — the parallel one is the **hall**, the perpendicular one the **wing** | build it |
+  | both **parallel** | two ranges side by side, meeting in a gutter | refuse: `G182`'s shape |
+  | both **perpendicular** | two ranges end to end, which is one longer range | refuse: draw it as one rectangle |
+
+  **The one size rule is about height, not area, and it is measured.** A wing marches into a hall only where
+  its ridge is no taller than the hall's, and ridge height follows the span the slope crosses — for the wing,
+  its extent **along** the shared edge; for the hall, its extent **across** it. Against a 20 × 5 hall
+  (peak +8), wings of growing width abutting it:
+
+  | wing | its peak | hall's peak | |
+  |---|---|---|---|
+  | 3 wide | +7 | +8 | marches |
+  | 5 wide | +8 | +8 | marches — equal is fine |
+  | 7 wide and up | +9, +10, +11 … | +8 | **runs over**: the wing tops the hall and emerges the far side |
+
+  So the rule is **wing-along-the-edge ≤ hall-across-the-edge**, and it is what the author's 20 × 10 against
+  10 × 10 intuition measures out as: the 10 × 10 can only be the wing because a wider one would stand taller
+  than the roof it is supposed to run into. Equal heights meet exactly at the hall's ridge and are legal.
+
+  **The style question is already answered by the model, and the gap is only in reaching it.** A `HouseProp`
+  carries **one** `Style` and a list of wings, so one building is one style by construction. The differences
+  worth having per wing are already `Wing.Storeys` and `Wing.Form` — a two-storey hall with a one-storey cross
+  wing under one style is expressible today, which is the case the author set aside. Where two separately
+  styled rectangles are brought together, the **hall's** style is the one to keep: it is derivable, it is the
+  primary range, and the alternative is a silent style change on whichever rectangle moved.
+
+  *author, 2026-08-14 · stated as intent, corrected on equal sizes; hall/wing derivation and the height rule
+  measured against a 20 × 5 hall and wings of 3 to 13 wide.*
 
 - [ ] **G185 — A wing that abuts its neighbour keeps its loft one course too few. Parked on a question.**
   Measured with the ridge axis held constant, a 5-wide wing of growing depth against a hall at `z 5…9`:
