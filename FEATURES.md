@@ -4767,6 +4767,17 @@ these are the ones that shipped a map that could not be played as intended, and 
   closes) to 965 (4.9%) — the honest remainder, all four still genuinely outside the vocabulary: Quartz
   Pillar (e.g. `(8, 18, -89)`), Smooth Sandstone (`(31, 1, -75)`), Smooth Red Sandstone (`(20, 26, -68)`) and
   decorative Bedrock (`(33, 21, -57)`).
+- **A provenance sidecar from before the owner table falls back instead of throwing (B148).**
+  `WorldProvenanceFile.TryRead` guarded `File.Exists` but not the deserialize, so the pre-`B139` sidecar
+  shape — a bare JSON array of runs, not today's `{owners, runs}` object — failed to convert and raised an
+  unhandled `JsonException` out of every caller, taking `--topdown --layer structure` down with it on exactly
+  the older worlds a census is most useful for. `TryRead` now catches the conversion failure and also treats
+  a `runs`-less object the same way, both falling back to null exactly as its own doc comment already
+  promised for a missing file. Verified against the failure directly — a copied `tallow-kilnrow` region with
+  its sidecar replaced by the pre-owner array shape, by `{}`, and by non-JSON text all now render normally on
+  the material estimate instead of crashing — and against the corpus: every `pgm-studio-mapgen` world with a
+  current-shape sidecar (`marlstone-steps`, `tallow-kilnrow`, …) still reads `RECORDED PROVENANCE`, and every
+  world with none (`ashen_quarry`, …) still reads the material estimate, unchanged.
 - **The capability handbook — what the system can be asked for, and where to say it (B91).** `docs/tools/capabilities.md`
   mapped the four documents a map is made of; it now also states the surface underneath the spec's shorthand, in
   pipeline order, every claim naming the type that carries it and the endpoint that answers it: the destroyable's

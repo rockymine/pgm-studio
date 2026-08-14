@@ -928,14 +928,6 @@ the thing `B181` names, which makes the document upstream of the boards rather t
 
 #### Bucket 9 — read-backs that answer a different question
 
-- [ ] **B148 — A provenance sidecar written by an earlier revision throws instead of falling back.**
-  `--topdown --layer structure` exits 255 with a `JsonException` on any world built before `B139` changed the
-  sidecar to `{owners, runs}`. `WorldProvenanceFile.TryRead` guards `File.Exists` and not the deserialize, and
-  its own doc comment promises the fallback. This makes the best census instrument in the repository unusable on
-  exactly the older maps that most need one.
-
-  *`opus5-run2` §5 #12.*
-
 - [ ] **B149 — `--buildings` cannot see a town this studio built, and says nothing about why.** Three compounding
   causes, all because it is built for worlds the studio did not build: the `--roof` filter is exact and misses a
   slab-surfaced roof; `IsTerrain` includes `98`, `155` and `159`, so a cottage roofed in `159:14` is classified as
