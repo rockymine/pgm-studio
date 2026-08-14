@@ -39,7 +39,7 @@ holds them until one becomes the focus.
 
 ## Backend, pipeline & internals (B / P / A)
 
-**These three are the current run, in order.** They come out of one finding, and the finding is worth stating
+**These four are the current run, in order.** They come out of one finding, and the finding is worth stating
 once because every entry below inherits it: **`tools/` grew a second copy of the system.** A two-day
 experiment in whether an agent could drive the studio produced a CLI that reimplemented the parts it could
 not reach — its own goal-over-void refusal, its own prop clearance, its own forest and village samplers, its
@@ -49,8 +49,11 @@ second one, because the second one is what rots: it has no tests, no document th
 behind the thing it copies without anyone seeing (the relief fork sat 1614 cells off a settled solve for
 exactly that reason).
 
-**Take them in the order listed.** `B119` moves the boundary so the copying stops being necessary, `B118`
-undoes what was copied, and `B120` finds out whether the result actually answers.
+**Take them in the order listed.** `B119` moves the boundary so the copying stops being necessary and `B118`
+undoes what was copied. `B128` is the one entry here that is not about the second system at all: it is an
+authoring defect the boards exposed, and it comes before `B120` because every destroy map that run authors
+wants a goal at a chosen height and would otherwise reproduce the workaround once per map. Then `B120` finds
+out whether the result actually answers.
 
 - [ ] **B119 — The export path lives inside the web application.** `SketchWorldBuilder`, `MapXmlComposer` and
   `MapExportComposer` sit in `Api/Services/`, so anything that builds a world offline must reference
@@ -62,9 +65,9 @@ undoes what was copied, and `B120` finds out whether the result actually answers
   reaches, so no dependency edge is added and none is inverted. It is the same observation
   `project-structure.md` §6.1 makes about `Pgm` being two projects, one level up and never stated. What it
   buys is a nameable **export path** — the thing every driver needs and nothing else — instead of a folder
-  inside the web app, and a gate (`B116`) that lives where both the API and any CLI reach it without either
-  one owning it. `project-structure.md` gains the new project and `tools/` finally appears on that map at
-  all, which it does not today despite being 19,000 lines.
+  inside the web app, carrying the gate that shipped as `B116` where both the API and any CLI reach it
+  without either one owning it. `project-structure.md` gains the new project and `tools/` finally appears on
+  that map at all, which it does not today despite being 19,000 lines.
 
 - [ ] **B118 — `MapSpec` is a smaller system wearing the big one's clothes, and two of its knobs are
   actively harmful.** The spec format was invented rather than derived: it names a handful of fields and
@@ -92,6 +95,40 @@ undoes what was copied, and `B120` finds out whether the result actually answers
   the review: a destroyable needs no room, no lane and no protection region, so a retargeted wool puts every
   goal at the back of a corridor it never wanted. A destroy board is authored as a plan, not converted.
 
+- [ ] **B128 — A goal's height is authored by manufacturing a plan tier to carry it, and the landform then
+  exists twice.** A destroyable or a core states which piece it rides and where on it —
+  `DestroyablePlacement` and `CorePlacement` carry `{ id, piece, at, style, materials, float, name }` and **no
+  height field of any kind** — and `PlanCompiler` resolves the anchor as `new Pt(px, piece.Surface, pz)`
+  (lines 290 and 308; spawns and wool rooms take the same treatment at 205 and 260). So the only way to put a
+  goal high or low is to author a plan piece standing at that surface, whose purpose is not to be ground but
+  to be something for a marker to ride.
+
+  **The cost is visible on the one board that was authored this way.** Ashen Quarry's mesa was authored
+  correctly, as a `raise` shape tilted by per-vertex `anchor_heights`; to put the second destroyable on it the
+  mesa had to be pushed **back down into the plan** as a tier at surface 58 and then promoted to a polygon
+  again to recover the outline it already had. Its quarry is a plan tier at 24 for the same reason. Any
+  landform carrying an objective is therefore authored twice — once as a plan rectangle for the marker, once
+  as a polygon for the shape it actually is — in two idioms, in two files, with nothing checking that the two
+  agree. That is also where the void column came from: two boundaries that had to meet, drawn independently.
+
+  **`float` is not the missing field.** It is the air gap under the structure, four by default, and a
+  destroyable and a core float above the terrain **by design** (`approaches.md`, `[author]`). Inflating it to
+  raise a goal would spend a gameplay constant on an authoring problem and would still not move the ground.
+
+  **A marker states its own height, and the height resolves against the ground as built.** The stated value is
+  an **offset above the resolved ground beneath the anchor**, not an absolute world Y: an offset survives a
+  relief pass moving the ground under it, and it is what an author means by "the goal sits on the mesa". The
+  absolute reading is the one that has already cost a build — a relief mark's `h` is absolute, was read as a
+  lift, and put terrain at y4 on a board based at 41 while the export succeeded and the gate passed. A stated
+  height far outside the ground's range wants the same warning that mark does.
+
+  This is the authoring half of a defect the board already carries two other halves of, and it is filed apart
+  from both because neither would surface it: `B105` is the correctness half — the compiler must stop reading
+  a piece's `Surface` as a literal world Y for these four markers, since that is the flat-nominal mistake
+  wearing a different field — and `B107` is the canvas half, where a destroy objective's sketch presence is a
+  movable point with a stated height. What is missing between them is the **document** half: a field an author
+  or an agent can write, so that a landform carrying an objective is authored once, as the shape it is.
+
 - [ ] **B120 — Run the trial again, and find out whether the system now answers.** The point of the three
   entries above is that an agent can author a map by driving the real documents. That claim is untested. Take
   the brief `mapgen-review.md` already uses — *a destroy board, one connected island, the monument in the
@@ -108,7 +145,7 @@ undoes what was copied, and `B120` finds out whether the result actually answers
   - **No capability is added in `tools/`.** If the run needs something the system cannot do, it is built in
     `src/` where the studio and every driver get it, or it is filed and the map is authored without it. A
     tool may compose, drive and report; a refusal, a placement rule, a sampler or a validation that lives in
-    a tool is the exact defect `B116` and `B118` are undoing.
+    a tool is the exact defect `B116` undid and `B118` is undoing.
   - **No second format.** The run authors `PlanModel`, `SketchLayout` and `MapIntent` as they are. A
     convenience wrapper is allowed only where it expands into those documents and can be shown to.
   - **Nothing is scattered.** Every prop is placed because there is an answer to "why here". A run that
@@ -121,9 +158,9 @@ undoes what was copied, and `B120` finds out whether the result actually answers
     answers *whether* something came out and never *what* it is — the plan render colours by role, so its
     blue is a build zone and never water (`B95`).
   - **A question about how a map plays is asked, not derived.** `docs/gameplay/approaches.md` is the
-    document, its `[review]` claims are not yet law, and a claim marked `[author]` is settled. Inventing a
-    gameplay conclusion from a correct measurement is what produced a filed, committed, wrong claim that
-    every generated destroy map was unwinnable.
+    document, and every claim in it is now marked `[author]` and settled, so it is law rather than advice.
+    Inventing a gameplay conclusion from a correct measurement is what produced a filed, committed, wrong
+    claim that every generated destroy map was unwinnable.
   - **A document that describes something unbuilt names its task id, or says nothing.**
 
 - [ ] **B104 — A destroy goal is stamped above the build cap.** On `duskfell` the gold destroyable stands at
@@ -241,8 +278,8 @@ undoes what was copied, and `B120` finds out whether the result actually answers
 
   `docs/tools/capabilities.md` keeps the half `flow.md` deliberately leaves it: the **capability** reference —
   what the system can be asked for at each stage — which is a different question from how a map moves between
-  the tools. `flow.md` points at it rather than absorbing it. The gameplay claims in it are still the ones
-  the author flagged for review.
+  the tools. `flow.md` points at it rather than absorbing it. The gameplay claims in it are the author's and
+  settled, `approaches.md` having been read back in full.
 
   Then the deletions, which are the point of the exercise and wait until the set is complete: a document goes
   when a tool document owns its subject, which retires the plan, sketch and configure contract records but
