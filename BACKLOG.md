@@ -1063,27 +1063,61 @@ the thing `B181` names, which makes the document upstream of the boards rather t
 
   *author, 2026-08-14 · flood fill over every course of four stamped footprints.*
 
-- [ ] **G181 — A projected wing's verge closes a gable triangle that has to stay open.** The area beneath an
-  overhanging verge is empty in every column — that is what makes a gable end read as a triangle hanging over
-  the wall rather than as a filled panel. Probing the hall's west gable overhang column `x = −1` at the eave
-  course (+5), `z −2…14`, `V` verge and `.` air:
+- [ ] **G181 — An eave overhang is laid beneath a verge, and the gable triangle it should leave open closes.**
+  **Settled by the author, and the reason is what names the rule:** an eave is where water runs off a slope, so
+  an eave laid *under* a verge catches nothing — there is no slope above it to shed. **The triangle stays
+  open.** Where an eave overhang and a verge overhang claim the same cell, the **verge wins**.
 
-  | footprint | column | air |
-  |---|---|---|
-  | L, march | `.VVVVVVV....V....` | 4 open cells at `z 6…9` |
-  | L, project | `.VVVVVVVVVVVV....` | **0** — closed the whole way |
+  The two claims, each wing of the L stamped alone, reading the overhang column `x = −1` they share, courses
+  +5 to +8 over `z −2 … 12`:
 
-  The wing drawn through to `z 9` runs its own eave verge the full length at `x = −1`, and in doing so fills the
-  four cells the hall's own gable triangle needs open. The author reports the same defect closing the projected
-  side's own triangle as well, for **five** blocks too many in total; four are located above and the fifth is
-  not, which is the part of this entry to settle first.
+  ```
+  HALL alone  Wing(0,5,9,9)  ridge along x        WING alone  Wing(0,0,4,9)  ridge along z
+    +8   .........V.....                            +8   ...............
+    +7   ........V.V....                            +7   ...............
+    +6   .......V...V...                            +6   ...............
+    +5   ......V.....V..                            +5   .VVVVVVVVVVVV..
+  ```
 
-  **Open question for the author, and it must not be derived:** where a projected wing's eave overhang runs
-  alongside a hall it passes through, which of the two rules wins — the wing's eave overhang, which is solid
-  along its length, or the hall's gable overhang, which must stay open beneath? Both are correct for their own
-  wing in isolation. The answer decides the fix and nothing in the repository can settle it.
+  The hall draws a **verge** — a triangle that climbs, solid only on its two diagonals, open beneath. At the
+  eave course that is `z 4` and `z 10` alone, with `z 5…9` air. The wing draws an **eave** — one course, solid,
+  running its whole length. Union them and solid wins, which fills the five cells the hall's triangle needs
+  open.
 
-  *author, 2026-08-14 · column probe at `x = −1` across the eave course of four stamped footprints.*
+  **Five cells, `z 5…9`, measured against the hall stamped alone** — and the march closes one of them (`z 5`)
+  by the same mechanism, so this is not project-only. The extent differs; the defect does not.
+
+  **The acceptance figure**: at `x = −1`, course +5, the L must read verge at `z −1…4`, **air at `z 5…9`**,
+  verge at `z 10`. Today the project reads verge the whole way and the march reads verge to `z 5`.
+
+  Downstream of `G183`: nothing in the roof model distinguishes an eave from a verge, which is why one predicate
+  answered for both and this was invisible.
+
+  *author, 2026-08-14 · each wing stamped alone and their claims compared on the shared overhang column.*
+
+- [ ] **G183 — The roof model has no notion of an eave, so one predicate answers for both edges and the two
+  defects follow from that.** A pitched roof has three kinds of edge and they behave differently. The **ridge**
+  is where the slopes meet. An **eave** is the *bottom* edge of a slope, horizontal, at wall-top height, and its
+  overhang is **one solid course** running the length — it is what water runs off. A **verge** is the *sloping*
+  edge at a gable end, climbing eave to ridge, and its overhang is a **triangle open beneath** — nothing sits
+  under it because nothing sheds onto it.
+
+  The model has one word for all of it. `RoofField.OnBorder(x, z) => x == MinX || x == MaxX || z == MinZ ||
+  z == MaxZ` is a single predicate over the field's outermost ring, and `HouseStyle.Verge` is documented as
+  *"the roof's own border — its **eave course** and its two verges"* — one material for two edges that are not
+  the same thing. `CLAUDE.md`'s naming rule is the one this breaks: a name must not promise the wrong category.
+
+  **Both open roof defects are downstream of it.** `G179` stamps verge on a marched cell because `OnBorder`
+  cannot tell "the rim of my rectangle" from "the outer rim of the building". `G181` lays an eave under a verge
+  because neither the field nor the material knows which of the two it is holding. Distinguishing them — the
+  field answering *eave*, *verge*, *ridge* or *field* per cell, against the **building's** outline rather than
+  the wing's — is the fix both entries want, and it is worth doing before either.
+
+  Which edges are which is not fixed per wing either: `Wing.RidgeAlongX` pitches across the shorter side, so a
+  wing's eaves and verges swap when its proportions do, and a **square** wing takes the along-x ridge on the tie
+  (`G182`).
+
+  *author, 2026-08-14 · `RoofField.OnBorder` · `HouseStyle.Verge` docstring · the two defects it explains.*
 
 - [ ] **G182 — Every `Ell()` fixture has two parallel ridges, so no L junction is tested anywhere.** A march and
   a project only happen where one wing's gable end meets another wing whose ridge runs **across** it. Both L
