@@ -200,7 +200,8 @@ project exists: before `B119` both referenced the whole of `Api` — ASP.NET Cor
 the Blazor host — to reach `SketchWorldBuilder` and `MapXmlComposer`, which is what made a headless driver
 carry a web application it never started. That was the first of a pair of findings — `tools/` had grown a
 second copy of parts of the system precisely because reaching the real ones meant reaching `Api` — and `B119`
-is the fix for the reaching, not for the copy itself (`B118`, `TODO.md`).
+was the fix for the reaching; `B118` was the fix for the copy itself, deleting `tools/mapgen`'s own site
+sampler and reduced spec format in favour of the real documents `B119` had just made reachable.
 
 **The rest are file-based scripts** (`compose/`, `deriver/`, `objective-probe/`, `decorate/`, `palette/`,
 `tree-corpus/`) — no `.csproj`, no solution entry, each a `.cs` file opening with `#:project` directives that

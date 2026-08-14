@@ -149,13 +149,17 @@ test fixtures for the export, so none of the above is discoverable from it (`B10
 
 ## The capability surface
 
-`MapSpec` — the JSON `tools/mapgen` actually reads — is a reduction of the four documents above, not an
-addressing layer over them (`mapgen-review.md` MG29): it names a handful of knobs and hides the rest, so every one
-of the first fifteen boards came out with a rim, one theme, one relief style and the same wall wherever it
-met a drop. What follows is the surface underneath the reduction, by pipeline stage, so an author reaching
-for a description knows what it can become before reaching for the spec's shorthand instead. Everything
-below is built and shipping; where it is not reachable from `MapSpec`, that is a gap in the spec's
-vocabulary, not in the system.
+`MapSpec` — the JSON `tools/mapgen` actually reads — used to be a reduction of the four documents above rather
+than an addressing layer over them (`mapgen-review.md` MG29): it named a handful of knobs and hid the rest, so
+every one of the first fifteen boards came out with a rim, one theme, one relief style and the same wall
+wherever it met a drop. `B118` closed that gap: `plan`, `layout` and `intent` are now handed through the spec
+verbatim, and the convenience fields that remain (`theme`, `relief`, `room_shell`) are shorthand that expands
+into a fragment of one of those three. What follows is the surface underneath the convenience fields, by
+pipeline stage, so an author reaching for a description knows what it can become before reaching for the
+spec's shorthand instead — or, once the shorthand runs out, states the fragment directly through `layout` or
+`intent`. Everything below is built and shipping; where it is not reachable at all — not through a
+convenience field and not by handing a document fragment through — that is a gap in the system, not in the
+spec.
 
 ### A shape is not only ground — it is also an obstacle, and the cap is what makes it one
 
@@ -269,14 +273,17 @@ resolves it to a world column, fans it through the same orbit, and emits an `Iro
 `StructureStamper.StampIronCube` raises as a 4×4×4 block. Both are authored the same way a wool or a spawn
 is — write `walls`/`placements.iron` into the plan document (`PUT /map/{slug}/plan`) and compile it
 (`POST /plan/compile`) — and both round-trip through the editor's own tools (the plan editor's brick tool for
-a wall, the marker palette for iron). `Composer.cs` writes neither list, and `MapSpec` has no field for
-either, so a generated board carries no defence wall and no resource to fight over unless a person adds one
-by hand afterward.
+a wall, the marker palette for iron). `Composer.cs` writes neither list, so a `compose`-asked board carries
+neither unless the plan it produced is hand-edited before compiling — `tools/mapgen`'s `plan` field takes a
+literal plan document for exactly that — or unless `MapSpec`'s `intent` fragment adds a `structures.walls` or
+`structures.ironCubes` entry directly onto the compiled intent, in already-resolved world coordinates.
 
 ### The paint a theme can hold
 
-`MapSpec`'s `theme` block reduces `TerrainTheme` (`Minecraft/TerrainTheme.cs`) to four material words and
-one pattern name. The type underneath is five buckets, three of which carry their own geometry: `Rim` and
+`MapSpec`'s `theme` convenience field reduces `TerrainTheme` (`Minecraft/TerrainTheme.cs`) to four material
+words and one pattern name; the full type is reachable regardless, by adding a registry entry through the
+spec's `layout` fragment — a `SketchLayout`'s `themes` map, handed through verbatim. The type underneath is
+five buckets, three of which carry their own geometry: `Rim` and
 `Surface` are each a `TopBand` — a material plus its own depth and on/off toggle, so a one-block quartz edge
 and a three-block grass-over-dirt interior are independent knobs rather than one shared number — `Wall` and
 `Fill` are bare materials, and `Bedrock` and `RimEdges` (`Void`/`Drop`/`Boundary`, deciding which edges the
@@ -344,8 +351,9 @@ where the wings meet, rather than as two buildings that happen to touch. `HouseS
 what is missing is a way to ask for it from a placed prop. `HouseProp.Points`
 (`Minecraft/Dressing/PlacedProp.cs`) is exactly two opposite corners, and every `new Footprint(...)` call in
 the tree — outside `Footprint.At`'s own per-storey slicing — is the single-rectangle constructor. So a
-wing-carrying `Footprint` is reachable by hand-building one in code and unreachable from dressing, `village`,
-or `houses` in `MapSpec`. Library previews exist for the pieces once a style is composed —
+wing-carrying `Footprint` is reachable by hand-building one in code and unreachable from dressing, including
+through `MapSpec`'s `layout` fragment: a `house` prop is a `HouseProp` verbatim, and `HouseProp` itself has no
+field to carry a second rectangle. Library previews exist for the pieces once a style is composed —
 `/room-styles/preview` and its `-snapshot`, `/roof-styles/preview`, `/porch-styles/preview`,
 `/storey-styles/preview` — so a building is checkable from four sides before it stands on a map.
 

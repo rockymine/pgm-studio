@@ -47,39 +47,15 @@ own reduced document format — and the board began treating that CLI as product
 listing its refusals in `FEATURES.md`. A tool is allowed to *drive* the system. It is not allowed to *be* a
 second one, because the second one is what rots: it has no tests, no document that governs it, and it drifts
 behind the thing it copies without anyone seeing (the relief fork sat 1614 cells off a settled solve for
-exactly that reason). `B119` already moved the boundary so the copying stops being necessary — the export
-path is `PgmStudio.Export` now, not a folder inside the web app — which is what makes `B118` cheap.
+exactly that reason). `B119` moved the boundary so the copying stopped being necessary — the export path is
+`PgmStudio.Export` now, not a folder inside the web app — which is what made `B118` cheap: it deleted the
+copy, the site sampler and the reduced spec format both, in favour of the real documents `B119` had just made
+reachable.
 
-**Take them in the order listed.** `B118` undoes what was copied. `B128` is the one entry here that is not
-about the second system at all: it is an authoring defect the boards exposed, and it comes before `B120`
-because every destroy map that run authors wants a goal at a chosen height and would otherwise reproduce the
-workaround once per map. Then `B120` finds out whether the result actually answers.
-
-- [ ] **B118 — `MapSpec` is a smaller system wearing the big one's clothes, and two of its knobs are
-  actively harmful.** The spec format was invented rather than derived: it names a handful of fields and
-  hides everything the four real documents can say, so a shape became a footprint, a theme became four family
-  names, and all sixteen boards came out with a rim, one theme, one relief style and the same wall. This is
-  `mapgen-review.md` MG29, and its cost is measured there — a model given the spec reported five of six brief
-  requirements as impossible, two of which the README it was quoting from documents.
-
-  **Delete `trees`, `village` and `houses` outright**, with `Forest`, `Settle`, `Placed`, `KeepOut`, `Level`,
-  `Clear` and `FannedAround` in `Program.cs`. They are a site sampler, and the studio deliberately has none:
-  `sketch.md` states that dressing is authored and that there is no scatter, no density pass and no "fill
-  this island with forest", because a tree is cover and where cover stands is a gameplay decision. The
-  sampler contradicted the shipped design, MG9 files it as a fault, and it is what buried every generated
-  board under a canopy nobody chose.
-
-  **What replaces the format is a thin addressing layer**, which is MG29's own prescription: `plan`, `layout`
-  and `intent` handed through **verbatim** as the real document types, with the convenience fields kept only
-  as shorthand that expands into them rather than as the whole vocabulary. A spec must be able to say a
-  `SketchShape` with its own theme, floor, base height, anchor heights and `relief_scope`; a `TerrainTheme`
-  with its rim band and per-shape scope; a relief mark of any of the five kinds. Anything it cannot say is
-  then a gap in the system, which is reportable, rather than a gap in the format, which teaches an author
-  that the system cannot do it.
-
-  `Retarget` goes too. Rewriting a capture board's wool markers into monuments is MG1, the largest entry in
-  the review: a destroyable needs no room, no lane and no protection region, so a retargeted wool puts every
-  goal at the back of a corridor it never wanted. A destroy board is authored as a plan, not converted.
+**Two remain, in order.** `B128` is not about the second system at all: it is an authoring defect the boards
+exposed, and it comes before `B120` because every destroy map that run authors wants a goal at a chosen
+height and would otherwise reproduce the workaround once per map. Then `B120` finds out whether the result
+actually answers.
 
 - [ ] **B128 — A goal's height is authored by manufacturing a plan tier to carry it, and the landform then
   exists twice.** A destroyable or a core states which piece it rides and where on it —
@@ -143,7 +119,7 @@ workaround once per map. Then `B120` finds out whether the result actually answe
   - **No capability is added in `tools/`.** If the run needs something the system cannot do, it is built in
     `src/` where the studio and every driver get it, or it is filed and the map is authored without it. A
     tool may compose, drive and report; a refusal, a placement rule, a sampler or a validation that lives in
-    a tool is the exact defect `B116` undid and `B118` is undoing.
+    a tool is the exact defect `B116` and `B118` undid.
   - **No second format.** The run authors `PlanModel`, `SketchLayout` and `MapIntent` as they are. A
     convenience wrapper is allowed only where it expands into those documents and can be shown to.
   - **Nothing is scattered.** Every prop is placed because there is an answer to "why here". A run that

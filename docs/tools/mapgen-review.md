@@ -42,13 +42,10 @@ anchored** — an area marked with a rectangle and a sentence about what is wron
 today (a rect and a note is a rect and a note), so nothing blocks it; it is a question of the loop being
 built around it.
 
-Two entries below are what stand between the tool and that, and both belong at the top rather than buried:
+One entry below is what stands between the tool and that, and it belongs at the top rather than buried
+(the sibling entry, MG29, named the same gap in the spec format and closed with `B118`, which made the spec a
+thin addressing layer over the real documents instead of a reduction of them):
 
-- **MG29 — the spec format is a reduction of the system, not an addressing layer over it.** It invented a
-  small vocabulary and hid the rest, so a shape became a footprint, a theme became four family names, and
-  every board came out with a rim, one theme and the same wall — because those were the only things the
-  format could say. A description-driven author needs to reach the real documents, not a simplification of
-  them.
 - **MG30 / MG34 — a map was composed in one shot and judged at the end.** A layout is meant to be built up
   **layer by layer** — pieces, then their shaping in the sketch tool, then heights, then paint, then relief,
   then dressing — with each step looked at before the next is laid on it. Fifteen boards were emitted whole
@@ -96,15 +93,20 @@ navigates by.
 
 ## The board
 
-**MG1 — A destroy map needs a board drawn for it, not a capture board with its wool taken out.**
-`objective_mode` composes a capture-the-wool board and rewrites its markers: the wool placement the generator
-budgeted and sited becomes a monument, and for `dtcm` a core two cells along. The board underneath is
-unchanged — the same lanes, the same hub, the same two rooms at the same distance, sized by a budget that was
-solving for a wool run. That is not what a destroy map is. The corpus is the evidence and it was read for the
-wrong thing: `--island-study` was run over all 368 destroy worlds to count islands and never to look at their
-*shape*. The 320 readable ones are sitting there with their footprints, their monument sitings, their
-approach geometry and their build regions, and the way to a destroy board is to read them and compose for
-them. The retarget is a shortcut that produced fifteen capture boards wearing three different hats.
+**MG1 — closed by `B118`.** `objective_mode` used to compose a capture-the-wool board and rewrite its
+markers — the wool placement the generator budgeted and sited became a monument, and for `dtcm` a core two
+cells along, with the board underneath unchanged: the same lanes, the same hub, the same two rooms at the
+same distance, sized by a budget that was solving for a wool run. `Retarget` is gone, and `tools/mapgen` has
+no mechanism left that turns a wool marker into anything else — a destroy board is authored as its own
+`plan`, a destroyable or a core placed on whichever piece the design wants rather than the piece a wool
+budget sited.
+
+What MG1 also named and `B118` does not deliver is the other half: composing a board **for** a destroy
+objective's own topology (`MG32`) rather than requiring the whole plan to be drawn by hand. The corpus
+reading behind that stands as MG1 left it — `--island-study` was run over all 368 destroy worlds to count
+islands and never to look at their *shape*; the 320 readable ones are sitting there with their footprints,
+their monument sitings, their approach geometry and their build regions, unread for shape. That reading is
+`B106`'s starting point, and any future destroy-native composer's.
 
 **MG31 — Where a spawn and a goal sit relative to each other is already law, and a hand-built board must
 carry it too.** The composer never places a wool or a spawn freely, and the reasons are written down in
@@ -125,8 +127,8 @@ longer run back. In destroy the thing a team defends is its **own** monument: th
 back, the monument is a short walk forward of it, and the contested space is everything beyond. That single
 difference resizes the whole board — the run is shorter, the defended ground is smaller and closer, and the
 space between the two teams is correspondingly larger and emptier. Which is also why destroy maps have room
-for scenery that capture maps do not, and why retargeting a capture board (MG1) produces something that
-plays wrong even when every element is present.
+for scenery that capture maps do not, and why the retarget shortcut `MG1` closed played wrong even with every
+element present: it kept a capture board's topology under a destroy goal.
 
 ## The objectives
 
@@ -201,10 +203,16 @@ two abutting rectangles in the same style do not merge — they are stamped as t
 touch, with two roofs colliding. Reaching the wing model from the dressing path is the single change that
 turns a row of boxes into a village.
 
-**MG9 — A forest is placed, not scattered.** Trees are sampled uniformly over every ground cell that passes a
-filter, which is why they read as noise: no groves, no treeline, no clearing, nothing thicker where the map
-wants cover and nothing bare where it wants sightlines. Trees are cover, and cover is a gameplay decision. The
-same argument applies to buildings, which are currently dropped wherever the ground happens to be level.
+**MG9 — A forest is placed, not scattered.** `tools/mapgen` no longer samples trees or buildings onto the
+ground at all — `B118` deleted the sampler outright, along with `trees`/`village`/`houses` and the passes
+behind them, because the studio's own design carries no scatter (`docs/tools/sketch.md`). What replaced it is
+narrower than the fix this entry asks for: a tree or a building is now authored one at a time, an exact
+coordinate written into `dressing.props` through the `layout` fragment `MapSpec` hands through verbatim. That
+states *where*, deliberately, but nothing yet states *why* for a whole stand at once — no groves, no
+treeline, no clearing, nothing thicker where the map wants cover and nothing bare where it wants sightlines is
+composed on an author's behalf; each prop is still one line, placed by hand. Trees are cover, and cover is a
+gameplay decision — the composition half of that decision, for a group rather than a single prop, remains
+unbuilt.
 
 **MG33 — Every house is the same house.** The buildings on all fifteen boards read as one shape repeated,
 because they very nearly are: the presets cluster around 7–13 wide by 7–11 deep, the specs draw from a
@@ -249,23 +257,29 @@ is (a cliff face, a built retaining wall, the side of a platform).
 
 ## The tool itself
 
-**MG29 — `MapSpec` is a smaller system wearing the big one's clothes.** The spec format was invented rather
-than derived: it takes a handful of knobs, names them, and hides everything else the documents underneath can
-say. A shape becomes a footprint when it also carries its own theme, floor, base height, per-vertex anchor
-heights, `height_mode`, `skirt` and `relief_scope`. A theme becomes four family names and a pattern when
-`TerrainTheme` holds a rim band, a surface band with its own depth, a wall, a fill, and a per-shape scope. A
-relief becomes `scatter` when the mark vocabulary has five kinds. The tell is in the output: every one of the
-fifteen boards has a rim, one theme, one relief style and the same wall treatment, because those were the
-only shapes the format could express. The fix is not more knobs — it is that a spec should be a **thin
-addressing layer over the real documents**, able to hand through a `SketchShape` or a `TerrainTheme`
-verbatim, with the convenience fields as shorthand that expands into them rather than as the whole surface.
-That is also what a prose-described map needs: a description names intent — *a stepped plateau in coursed
-stone, natural ground falling away west* — and the author turns it into shapes, heights and themes. It cannot
-do that through a format whose whole vocabulary is one theme and a rim.
-`capabilities.md` beside this file is the reference that was missing, and `tools/seeds/ruediger.layout.json` is a
-hand-drawn map that uses the layout format to its width — three themes chosen per shape, ten `base_height`
-tiers stepping the ground with no relief block at all, Bézier outlines, a subtract, and the defence walls of
-MG21 actually authored.
+**MG29 — closed by `B118`.** `MapSpec` used to be a smaller system wearing the big one's clothes: a spec
+format invented rather than derived, naming a handful of knobs and hiding everything else the documents
+underneath could say — a shape reduced to a footprint though it also carries its own theme, floor, base
+height, per-vertex anchor heights, `height_mode`, `skirt` and `relief_scope`; a theme reduced to four family
+names and a pattern though `TerrainTheme` holds a rim band, a surface band with its own depth, a wall, a
+fill, and a per-shape scope; a relief reduced to `scatter` though the mark vocabulary has five kinds. The
+tell was in the output: every one of the fifteen boards had a rim, one theme, one relief style and the same
+wall treatment, because those were the only shapes the format could express.
+
+`B118` deleted the site sampler this reduction had grown alongside (`trees`/`village`/`houses`, MG9's own
+symptom) and made the spec a **thin addressing layer over the real documents** instead: `plan`, `layout` and
+`intent` are handed through verbatim, and the convenience fields that survive — `theme`, `relief`,
+`room_shell` — are shorthand that expands into a fragment of one of those three rather than the whole
+vocabulary. A spec can now add a `SketchShape` with its own theme, floor, base height, per-vertex anchor
+heights and `relief_scope`; a `TerrainTheme` with its rim band and per-shape scope; a relief mark of any of
+the five kinds; a `MapIntent` fragment reaching whatever the plan it compiled from did not carry. That is
+also what a prose-described map needs: a description names intent — *a stepped plateau in coursed stone,
+natural ground falling away west* — and the author turns it into shapes, heights and themes through the
+document that already has the words for them, not through a spec that renamed a handful.
+`capabilities.md` beside this file is the reference `MapSpec` should have been written against from the
+start, and `tools/seeds/ruediger.layout.json` is a hand-drawn map that uses the layout format to its width —
+three themes chosen per shape, ten `base_height` tiers stepping the ground with no relief block at all,
+Bézier outlines, a subtract, and the defence walls of MG21 actually authored.
 
 **MG34 — The sketch stage was skipped as an authoring step.** mapgen composes a plan, compiles it and builds
 the world, so whatever rectangles the compiler emitted are what got built. But the compiler emits
@@ -310,37 +324,41 @@ target section describes — a destroy board, the monument in the open, a forest
 east to bridge from, a village behind, a void channel twenty blocks in front — and told to author the spec,
 build it, look at the renders, and iterate. It took six passes and reported what it could not say.
 
-It reported five of the six as walls. **Two of the five are not walls, and the spec reaches both.** A hill at
-a stated place is one hand-written relief mark: `marks` is handed through the spec verbatim in the stored
-relief's own vocabulary, and the README lists all five kinds with their parameters in the paragraph directly
-beneath the block the run quoted from. A village behind the monument is the `houses` list, which places a
-named preset at a stated `x`/`z` with a stated facing, documented on the same page. Both were checked by
-building them: a `point` mark asked for at x −60, z −20 with radius 26 and height 14 lands its high band's
-centroid at x −59.5, z −20.3, its orbit image at x +59.0, z −20.4, and the surface histogram's two dominant
-bands are the two heights the marks stated; four buildings placed by hand all raised, none in void. The run
-reported these as impossible while quoting the documentation that describes them.
+It reported five of the six as walls. **Two of the five were not walls even in the format the run was handed
+— the old, reduced `MapSpec` this section predates `B118`'s fix.** A hill at a stated place was one
+hand-written relief mark, handed through the spec verbatim in the stored relief's own vocabulary, documented
+in the paragraph directly beneath the block the run quoted from. A village behind the monument was a list of
+placed buildings, each a named preset at a stated `x`/`z` with a stated facing, documented on the same page.
+Both were checked by building them: a `point` mark asked for at x −60, z −20 with radius 26 and height 14
+lands its high band's centroid at x −59.5, z −20.3, its orbit image at x +59.0, z −20.4, and the surface
+histogram's two dominant bands are the two heights the marks stated; four buildings placed by hand all
+raised, none in void. The run reported these as impossible while quoting the documentation that describes
+them.
 
-**Three are real, and none of them is a missing capability.** No spec field weights where trees go, so a
-forest cannot be leaned onto one flank — though the dressing document beneath places every tree at an
-explicit coordinate, which is what the spec's population form is a shorthand for. No spec field reaches a
-shape, so the paint cannot differ per shape (MG2) and a **void channel cannot be cut** — and that last is
-worth reading closely, because the run also named the wrong layer for it. A channel is not relief and no mark
-of any kind makes one: it is a **negative shape**, an outline carrying `operation: subtract` standing tall
-enough to take the whole column, which *removes* ground rather than lowering it. `ruediger.layout.json` cuts
-one with a rectangle at `base_height` 100 over `floor` 0, and it is the instrument this document names as the
-primary control on flow for a capture board. The run searched the relief block, because that is where the
-spec keeps elevation and the spec has no word for a shape at all.
+**Three were real, and none of them was a missing capability.** No spec field weighted where trees went, so a
+forest could not be leaned onto one flank — though the dressing document beneath placed every tree at an
+explicit coordinate, which is exactly what a spec's addressing layer needs to reach rather than replace. No
+spec field reached a shape, so the paint could not differ per shape (`MG2`, still open — the addressing layer
+`B118` shipped lets a spec **add** a themed shape but not retarget the theme of one the plan or the composer
+already produced) and a **void channel could not be cut** — and that last is worth reading closely, because
+the run also named the wrong layer for it. A channel is not relief and no mark of any kind makes one: it is a
+**negative shape**, an outline carrying `operation: subtract` standing tall enough to take the whole column,
+which *removes* ground rather than lowering it. `ruediger.layout.json` cuts one with a rectangle at
+`base_height` 100 over `floor` 0, and it is the instrument this document names as the primary control on flow
+for a capture board. The run searched the relief block, because that is where the spec kept elevation and the
+spec had no word for a shape at all — and now does: a subtract is a `layout` fragment's shape, added the same
+way any other is.
 
-So the honest reading is not that the system cannot say these things. **Everything in the brief is
-expressible**, and three of the six only one layer down, in documents `capabilities.md` maps and the studio's own
-tools author. What the run measured is narrower and more useful: **a surface that exposes a reduction teaches
-the reduction as the boundary.** Handed a format whose vocabulary was one theme, a scatter and a rim, an
-author took the vocabulary for the system — reporting a wall where a paragraph of the README stood, and
-reporting the absence of a shape against the feature next to it. That is the cost MG29 names, priced: not
-lost capability, but an author who cannot tell a capability that is missing from one that is merely out of
-reach, and who therefore stops asking. The fix it argues for is the same either way — a spec that is a thin
-addressing layer over the real documents, with the convenience fields as shorthand that expands into them —
-and the case for it is stronger, not weaker, for the capabilities having been there all along.
+So the honest reading was never that the system could not say these things. **Everything in the brief was
+expressible**, and three of the six only one layer down, in documents `capabilities.md` maps and the studio's
+own tools author. What the run measured is narrower and more useful, and it outlives the fix: **a surface
+that exposes a reduction teaches the reduction as the boundary.** Handed a format whose vocabulary was one
+theme, a scatter and a rim, an author took the vocabulary for the system — reporting a wall where a paragraph
+of the README stood, and reporting the absence of a shape against the feature next to it. That was the cost
+MG29 named, priced: not lost capability, but an author who cannot tell a capability that is missing from one
+that is merely out of reach, and who therefore stops asking. `B118` is that fix: `plan`, `layout` and
+`intent` handed through verbatim as the real documents, with the convenience fields kept only as shorthand
+that expands into them.
 
 **What it got wrong is worth more than what it got right.** Two faults were reported that a controlled rerun
 does not reproduce. A pass drawn `grown` with `whorled` was reported as building trunks with no crown; over

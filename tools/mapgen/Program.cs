@@ -19,8 +19,10 @@ using Dict = System.Collections.Generic.Dictionary<string, object?>;
 //   dotnet run --project tools/mapgen -- --describe <spec.json>   # compile only, report the board
 //   dotnet run --project tools/mapgen -- --stages <spec.json>     # force the stages/ image set on
 //
-// The spec says what the map is about; the generator answers the rest. Nothing here reaches past
-// SketchWorldBuilder, so a map it writes is a map an author could have drawn.
+// The spec is a thin addressing layer over PlanModel, SketchLayout and MapIntent (docs/tools/capabilities.md,
+// docs/tools/mapgen-review.md MG29) — a convenience field is shorthand for a fragment of one of those, and
+// `layout`/`intent` hand a fragment through verbatim where the convenience fields run out. Nothing here
+// reaches past SketchWorldBuilder, so a map it writes is a map an author could have drawn.
 
 var describe = args.Contains("--describe");
 var forceStages = args.Contains("--stages");
@@ -60,7 +62,6 @@ static void Build(MapSpec spec, bool describeOnly, bool forceStages)
     {
         plan = Composer.Compose(new ComposeRequest(
             ask.PlayersPerTeam, ask.Teams, ask.Symmetry, ask.Seed, ask.Cell));
-        Retarget(plan, ask.ObjectiveMode, ask.ObjectiveMaterials);
     }
     else if (spec.Plan is { } drawn)
     {
@@ -77,40 +78,38 @@ static void Build(MapSpec spec, bool describeOnly, bool forceStages)
     // ── the ground's shape ───────────────────────────────────────────────────────────────────────────────
     if (spec.Relief is { } relief) Elevate(layout, relief);
 
-    // ── what stands on it ────────────────────────────────────────────────────────────────────────────────
-    var props = new List<PlacedProp>();
-    // The ground as it will actually be built, each column's walking surface with it — read once, because
-    // everything that stands on the map has to be put somewhere that ground exists.
+    if (spec.RoomShell is { } shell) layout.RoomStyles = Shell(shell);
+
+    // ── the addressing layer: a document fragment, handed through verbatim ──────────────────────────────
+    // Merged after every convenience field above, so an author reaching for `layout`/`intent` can still see
+    // and extend what they produced — a second theme entry beside `theme`'s, a shape added to what the plan
+    // compiled, a destroyable's own defence wall.
+    if (spec.Layout is { } layoutOverlay)
+        layout = SketchLayout.Parse(DocumentOverlay.Merge(layout.ToJson(), layoutOverlay.GetRawText()))
+                 ?? throw new ArgumentException("the layout overlay did not parse");
+    if (spec.Intent is { } intentOverlay)
+        intent = JsonSerializer.Deserialize<MapIntent>(
+                     DocumentOverlay.Merge(JsonSerializer.Serialize(intent, IntentWire.Options), intentOverlay.GetRawText()),
+                     IntentWire.Options)
+                 ?? throw new ArgumentException("the intent overlay did not parse");
+
+    // The ground as it will actually be built, each column's walking surface with it — read once, because a
+    // goal's void check below needs the ground the layout (including any overlay) actually produces.
     var ground = new Dictionary<(int X, int Z), int>();
     foreach (var (x, z, _, top) in SketchRasterizer.RasterizeColumns(layout.ToJson()))
         ground[(x, z)] = Math.Max(ground.GetValueOrDefault((x, z), int.MinValue), top);
 
-    // The map's own mirror, read the way the dressing pass itself will read it (DressingScope.SymmetryOf) —
-    // so a site rejected here because it collides with an already-placed prop is rejected for the same
-    // reason Decorator would refuse it after fanning, not a looser guess that only checks a raw anchor.
-    var symmetry = new DressingSymmetry(
-        layout.Setup?.MirrorMode, layout.Setup?.Center?.Cx ?? 0, layout.Setup?.Center?.Cz ?? 0);
-
-    if (spec.Village is { Count: > 0 } village) props.AddRange(Settle(ground, intent, village, symmetry));
-    if (spec.Houses is { Count: > 0 } houses) props.AddRange(Placed(houses));
-    if (spec.Trees is { } trees) props.AddRange(Forest(ground, intent, trees, props, symmetry));
-    if (props.Count > 0)
-    {
-        var dressingJson = DressingJson.Serialize(new DressingDoc { Props = props });
-        layout.Dressing = JsonDocument.Parse(dressingJson).RootElement;
-        var readBack = DressingJson.Deserialize(dressingJson).Props.Count;
-        if (readBack != props.Count)
-            Console.Error.WriteLine($"  ! dressing round-trip lost props: wrote {props.Count}, read {readBack}");
-    }
-
-    if (spec.RoomShell is { } shell) layout.RoomStyles = Shell(shell);
+    // Read back rather than tracked, because a prop can arrive only through the layout overlay now: the
+    // studio has no sampler, so dressing is exactly what was authored (docs/tools/sketch.md).
+    var dressing = layout.Dressing is { } dressingJson
+        ? DressingJson.Deserialize(dressingJson.GetRawText()) : DressingDoc.Empty;
 
     var islandNames = layout.Layout.Islands.Select(i => i.Id ?? "?").ToList();
-    var asked = spec.Trees?.Count ?? 0;
-    var found = props.OfType<TreeProp>().Count();
     Console.WriteLine($"{spec.Slug}: {layout.Layout.Shapes.Count} shapes · {islandNames.Count} island(s) "
-                    + $"· {intent.Wools?.Count ?? 0} wool(s) · {intent.Spawns?.Count ?? 0} spawn(s) "
-                    + $"· {props.OfType<HouseProp>().Count()} building(s) · {found}/{asked} tree site(s)");
+                    + $"· {intent.Wools?.Count ?? 0} wool(s) · {intent.Destroyables?.Count ?? 0} destroyable(s) "
+                    + $"· {intent.Cores?.Count ?? 0} core(s) · {intent.Spawns?.Count ?? 0} spawn(s) "
+                    + $"· {dressing.Props.OfType<HouseProp>().Count()} building(s) "
+                    + $"· {dressing.Props.OfType<TreeProp>().Count()} tree(s)");
     if (describeOnly)
     {
         Console.WriteLine($"  islands: {string.Join(", ", islandNames)}");
@@ -195,89 +194,6 @@ static List<string> GoalsOverVoid(Dictionary<(int X, int Z), int> ground, MapInt
         if (!Grounded(core.Anchor))
             findings.Add(core.Name.Length > 0 ? core.Name : $"{core.Owner}'s core");
     return findings;
-}
-
-/// <summary>Turn the goals the generator placed into the kind of goal this map is played for.
-///
-/// <para>The markers are reused rather than resited, which is the shortcut this carries: a wool is walled at
-/// the end of a dead-end lane because an enemy must reach it and carry it back, while a destroyable is
-/// defended in the open and may stand on any piece where ground exists. What follows describes what the
-/// retarget does, not where a destroy goal belongs.</para>
-///
-/// <para>A wool room, a monument and a core occupy the same slot in a board: one team's thing to defend,
-/// sited where the generator's budget put it. So a destroy-the-monument map is the same composition with its
-/// markers retargeted, not a different generator — which is also why the corpus's destroy categories share a
-/// layout vocabulary with the capture ones.</para>
-///
-/// <para><c>dtcm</c> gives a team <b>both</b>, because that category is not one objective but the two shipped
-/// on one map: the monument keeps the goal the generator sited, and the core takes a slot beside it on the
-/// same piece. A map with only one of the two is a destroy-the-monument map or a destroy-the-core map, and
-/// both of those are already sayable.</para></summary>
-static void Retarget(PlanModel plan, string mode, string? materials)
-{
-    var word = mode.Trim().ToLowerInvariant();
-    if (word is "ctw" or "") return;
-    if (word is not ("dtm" or "dtcm"))
-        throw new ArgumentException($"no objective mode '{mode}' — have: ctw, dtm, dtcm");
-
-    // The stamper only knows how to build four materials (DestroyableMaterials.All) and silently falls back
-    // to obsidian for anything else, while the XML would still declare whatever was asked for verbatim — a
-    // goal whose declared material matches nothing in its own region. Refuse the mismatch here rather than
-    // build a map that ships it.
-    if (materials is { Length: > 0 } && !DestroyableMaterials.IsBuildable(materials))
-        throw new ArgumentException($"no destroyable material '{materials}' — the generator can only build: "
-                                   + string.Join(", ", DestroyableMaterials.All));
-
-    var goals = plan.Placements.Wools;
-    if (goals.Count == 0) return;
-
-    for (var index = 0; index < goals.Count; index++)
-    {
-        var goal = goals[index];
-        plan.Placements.Destroyables.Add(new DestroyablePlacement
-        {
-            Id = $"monument-{index}", Piece = goal.Piece, At = goal.At,
-            Materials = string.IsNullOrWhiteSpace(materials) ? null : materials,
-        });
-        if (word == "dtcm")
-            plan.Placements.Cores.Add(new CorePlacement
-            {
-                Id = $"core-{index}", Piece = goal.Piece, At = CoreOffset(plan, goal.Piece, goal.At),
-            });
-    }
-    plan.Placements.Wools = [];
-}
-
-/// <summary>Where a core lands relative to the monument it shares a piece with — up to two cells away, chosen
-/// against <b>that piece's own footprint</b> rather than stated as one fixed direction. The monument's piece
-/// is a wool room: a dead-end box the composer always finishes with a floor, so staying inside its rect is
-/// what guarantees ground. Stepping past its border is not: the fixed <c>+2</c> this replaces lands exactly
-/// on the seam where the room, its approach corridor and the hub all meet, and goldhollow/mourncrag/
-/// spinebreak's own refusals show that corner is not solid ground even though it sits inside a neighbouring
-/// piece's nominal rect — a shape need not fill its own bounding rect corner to corner. The four candidate
-/// directions are tried in the old offset's own order (+x, −x, +z, −z) so a piece roomy enough for the full
-/// two cells keeps landing exactly where it always did; only a piece too small for that trims the distance
-/// down to whatever room it actually has, which is what keeps these three specs off the void without giving
-/// up the "one place to defend" reading a same-piece core and monument have by construction.</summary>
-static double[] CoreOffset(PlanModel plan, string pieceId, double[] at)
-{
-    const double distance = 2.0;
-    const double wallClearance = 0.15;   // stays off the room's own wall rather than grazing it
-
-    var piece = plan.Pieces.FirstOrDefault(p => p.Id == pieceId);
-    if (piece is null) return [at[0] + distance, at[1]];
-
-    var room = new (double Available, double[] At)[]
-    {
-        (Math.Max(0, piece.Rect.Width - wallClearance - at[0]), [at[0] + distance, at[1]]),
-        (Math.Max(0, at[0] - wallClearance), [at[0] - distance, at[1]]),
-        (Math.Max(0, piece.Rect.Height - wallClearance - at[1]), [at[0], at[1] + distance]),
-        (Math.Max(0, at[1] - wallClearance), [at[0], at[1] - distance]),
-    };
-    var (available, direction) = room.MaxBy(candidate => candidate.Available);
-    var offset = Math.Min(distance, available);
-    var scale = offset / distance;
-    return [at[0] + (direction[0] - at[0]) * scale, at[1] + (direction[1] - at[1]) * scale];
 }
 
 /// <summary>The eight named stage images, into <c>stages/</c> beside <c>region/</c> and <c>map.xml</c> — the
@@ -448,136 +364,8 @@ static List<ReliefMarkJson>? Marks(ReliefSpec spec, SketchLayout layout, SketchI
     return marks.Count > 0 ? marks : null;
 }
 
-// ── what stands on the ground ────────────────────────────────────────────────────────────────────────────
-
-/// <summary>Trees over the board, kept off the objectives. A tree is scenery, and scenery that grows through
-/// a wool room is a bug the map only shows once it is walked.
-///
-/// <para>Placed against the <b>rasterized ground</b> rather than against an island's bounding box. A board's
-/// islands are polygons, and the box round one is mostly void: sampling the box puts most of a forest over
-/// the edge, where a tree has no surface to stand on and simply is not built. The rasterizer is also what
-/// knows each column's top, which is what lets a tree be kept off ground too steep to stand a trunk on.</para></summary>
-static List<PlacedProp> Forest(Dictionary<(int X, int Z), int> ground, MapIntent intent, TreeSpec spec,
-                               List<PlacedProp> standing, DressingSymmetry symmetry)
-{
-    var props = new List<PlacedProp>();
-    var woods = spec.Woods is { Count: > 0 } named ? named : ["oak", "birch", "spruce", "dark oak"];
-    var keepOut = KeepOut(intent, spec.Clearance);
-    var random = new Random(spec.Seed);
-
-    if (ground.Count == 0) return props;
-    // Sampled from one representative half of the orbit rather than the whole board. Drawing candidates from
-    // both halves independently is what let two unrelated trees pick sites that turned out to be *each
-    // other's* mirror image — a coincidence the old site-only check never saw and the new fanned one caught
-    // only after paying for it in rejected attempts. A canonical site's mirror is never sampled again: it is
-    // fanned, deterministically, into the same tree — so two different trees cannot collide with each
-    // other's reflection by chance, only a real neighbour can.
-    var cells = ground.Keys.Where(cell => symmetry.IsCanonical(cell.X, cell.Z)).ToList();
-    if (cells.Count == 0) cells = ground.Keys.ToList();
-
-    // Buildings are already placed, and a tree through a roof is the same fault as a tree through a room.
-    // Every image of every building counts, not just the one an author actually dragged — the dressing pass
-    // fans a building across the map's mirror, and a site only checked against the original rectangle can
-    // still land squarely on its mirrored copy.
-    var built = standing.OfType<HouseProp>()
-        .SelectMany(house => FannedAround(house, symmetry, margin: 4))
-        .ToList();
-
-    // A tree's height is held to 24: past that a grown crown is a volume the export spends real time filling,
-    // and a tree taller than the drop it stands on stops reading as scenery. A grown tree no longer needs a
-    // lower ceiling of its own (B78): Decorator.Seats used to drop a prop if any cell it occupied — at any
-    // height — fell on a protected column, and a grown crown is wide, so past height 14 a grown tree was more
-    // often absent than tall. Protection is now decided on the cells a tree actually rests on, the same
-    // footprint ground is decided on, and its crown is free to overhang the way a hand-built map's trees do.
-    var minHeight = Math.Clamp(spec.MinHeight, 5, 24);
-    var maxHeight = Math.Clamp(spec.MaxHeight, minHeight, 24);
-
-    var placed = 0;
-    for (var attempt = 0; attempt < spec.Count * 60 && placed < spec.Count; attempt++)
-    {
-        var (x, z) = cells[random.Next(cells.Count)];
-        if (keepOut.Any(rect => Inside(rect, x, z))) continue;
-        // Every image of this candidate has to clear the keepout too — a mirror board fans the site as well
-        // as the building, so a tree whose *reflection* lands on a roof is exactly as much a fault as one
-        // planted on the roof directly.
-        var candidateImages = FannedPoints(x, z, symmetry).ToList();
-        if (built.Any(rect => candidateImages.Any(image => Inside(rect, image.X, image.Z)))) continue;
-        // Only the raw site is checked for spacing, not its fanned images: candidates are already drawn from
-        // one canonical half (below), so two different trees' own reflections cannot collide with each
-        // other — only a canonical tree's mirror and a *different* canonical tree very near the mirror line
-        // itself could, a narrow edge case Decorator's own post-fan check still catches if it ever happens.
-        if (props.OfType<TreeProp>().Any(t => Math.Abs(t.X - x) < 5 && Math.Abs(t.Z - z) < 5)) continue;
-
-        var grown = spec.Form.Equals("grown", StringComparison.OrdinalIgnoreCase)
-                 || (spec.Form.Equals("mixed", StringComparison.OrdinalIgnoreCase) && random.Next(2) == 0);
-        var height = Math.Min(minHeight, maxHeight) + random.NextDouble() * Math.Max(0, maxHeight - minHeight);
-
-        // The disc is the tree's FOOT, not its crown. A prop seats on the cells at its lowest level, and a
-        // tree is narrow down there whatever it does higher up — a few blocks of stem — so sizing this off
-        // the crown asks for ground the tree never rests on and rejects most of a board's real estate.
-        if (!Clear(ground, x, z, grown ? 3 : 2, ground[(x, z)])) continue;
-        props.Add(grown
-            ? new TreeProp
-            {
-                X = x, Z = z, Form = TreeForm.Grown,
-                Wood = woods[random.Next(woods.Count)],
-                Height = Math.Round(height),
-                Stems = 1 + random.Next(3),
-                Levels = 2 + random.Next(2),
-                Leader = 0.35 + random.NextDouble() * 0.35,
-                Flow = 0.25 + random.NextDouble() * 0.4,
-                BranchAngle = 0.8 + random.NextDouble() * 0.6,
-                LeafSize = 0.45 + random.NextDouble() * 0.35,
-                Whorled = spec.Whorled ?? random.Next(3) == 0,
-            }
-            : new TreeProp
-            {
-                X = x, Z = z, Form = TreeForm.Template,
-                Species = woods[random.Next(woods.Count)],
-                Height = Math.Round(height),
-            });
-        placed++;
-    }
-    return props;
-}
-
-/// <summary>Whether a tree can stand at a site. Two different questions over two different discs, because the
-/// pass asks two different things.
-///
-/// <para><b>Ground must exist</b> under everything the crown rests on — that is the test that actually drops
-/// a prop, and it is why the disc is sized off the tree rather than off the trunk. <b>Levelness</b> is only
-/// asked close in: a prop seats on the lowest column beneath it, so a tree over falling ground sits into the
-/// slope rather than failing, and demanding a flat disc the width of a crown bans trees from every hillside
-/// on the map. Asking the wide disc to be level is what left two of the eight boards with no tree on
-/// them.</para></summary>
-static bool Clear(Dictionary<(int X, int Z), int> ground, int x, int z, int span, int here)
-{
-    for (var dz = -span; dz <= span; dz++)
-        for (var dx = -span; dx <= span; dx++)
-        {
-            if (dx * dx + dz * dz > span * span) continue;
-            if (!ground.TryGetValue((x + dx, z + dz), out var top)) return false;
-            if (dx * dx + dz * dz <= 4 && Math.Abs(top - here) > 2) return false;
-        }
-    return true;
-}
-
-/// <summary>The rectangles scenery must stay out of: every room and spawn piece, grown by a clearance.</summary>
-static List<Extent> KeepOut(MapIntent intent, int clearance)
-{
-    var boxes = new List<Extent>();
-    void Add(Rect? rect)
-    {
-        if (rect is not { } r) return;
-        boxes.Add(new Extent(r.MinX - clearance, r.MinZ - clearance, r.MaxX + clearance, r.MaxZ + clearance));
-    }
-    foreach (var wool in intent.Wools ?? []) { Add(wool.Piece); foreach (var room in wool.Room ?? []) Add(room); }
-    foreach (var spawn in intent.Spawns ?? []) Add(spawn.Piece);
-    return boxes;
-}
-
-/// <summary>A hash of a name that is the same in every process — what seeding needs and what
-/// <see cref="string.GetHashCode()"/> deliberately is not.</summary>
+/// <summary>A hash of a name that is the same in every process — what the relief scatter's per-island seed
+/// needs and what <see cref="string.GetHashCode()"/> deliberately is not.</summary>
 static int StableHash(string text)
 {
     var hash = 17;
@@ -585,97 +373,7 @@ static int StableHash(string text)
     return hash & 0x7fffffff;
 }
 
-/// <summary>Whether a cell falls inside a rectangle.</summary>
-static bool Inside(Extent rect, int x, int z) =>
-    x >= rect.MinX && x <= rect.MaxX && z >= rect.MinZ && z <= rect.MaxZ;
-
-/// <summary>Every image of a placed building's ground round the map's mirror, each grown by a margin. A
-/// site-selection check that only ever asked about the rectangle an author's own click landed on never saw
-/// the mirrored building standing on the other half of the map.</summary>
-static IEnumerable<Extent> FannedAround(HouseProp house, DressingSymmetry symmetry, int margin)
-{
-    for (var k = 0; k < symmetry.Order; k++)
-    {
-        var corners = symmetry.ImageRing(house.Points, k);
-        var (a, b) = (corners[0], corners[1]);
-        yield return new Extent(Math.Min(a[0], b[0]) - margin, Math.Min(a[1], b[1]) - margin,
-                                Math.Max(a[0], b[0]) + margin, Math.Max(a[1], b[1]) + margin);
-    }
-}
-
-/// <summary>Every image of a candidate site round the map's mirror — what a site's own reflection lands on,
-/// which a check against the raw anchor alone never sees. The dressing pass fans a prop's position exactly
-/// this way (<see cref="PgmStudio.Minecraft.Dressing.DressingSymmetry.ImageCell"/>), so a site-selection
-/// check that skips it is testing a different board than the one that gets built.</summary>
-static IEnumerable<(int X, int Z)> FannedPoints(int x, int z, DressingSymmetry symmetry)
-{
-    for (var k = 0; k < symmetry.Order; k++) yield return symmetry.ImageCell(x, z, k);
-}
-
-/// <summary>Buildings scattered onto ground flat enough to stand them on. A building is stamped as a
-/// rectangle and takes the lowest column under it, so unlike a tree it wants ground that is genuinely level:
-/// dropped on a slope it either buries its own doorway or stands on a plinth of fill.</summary>
-static List<PlacedProp> Settle(
-    Dictionary<(int X, int Z), int> ground, MapIntent intent, VillageSpec spec, DressingSymmetry symmetry)
-{
-    var props = new List<PlacedProp>();
-    if (ground.Count == 0) return props;
-
-    var names = spec.Presets is { Count: > 0 } chosen
-        ? chosen
-        : [.. HousePresets.Village.Select(house => house.Name)];
-    var keepOut = KeepOut(intent, spec.Clearance);
-    var random = new Random(spec.Seed);
-    // One representative half of the orbit, the same reason Forest() draws from it: a house's mirror is
-    // fanned from its own site, not sampled again as if it were an independent building, so two different
-    // houses cannot land on each other's reflection by chance.
-    var cells = ground.Keys.Where(cell => symmetry.IsCanonical(cell.X, cell.Z)).ToList();
-    if (cells.Count == 0) cells = ground.Keys.ToList();
-
-    var placed = 0;
-    for (var attempt = 0; attempt < spec.Count * 400 && placed < spec.Count; attempt++)
-    {
-        var name = names[random.Next(names.Count)];
-        var preset = Preset(name);
-        var (width, depth) = Footprint(preset.Width, preset.Depth);
-
-        var (x, z) = cells[random.Next(cells.Count)];
-        if (keepOut.Any(rect => Inside(rect, x, z))) continue;
-
-        // Level under the whole rectangle, plus a block of skirt, or the doorway ends up in a bank.
-        var here = ground[(x, z)];
-        var half = Math.Max(width, depth) / 2 + 1;
-        if (!Level(ground, x, z, half, here)) continue;
-        // Both sides of the check have to be fanned: an earlier house's mirrored copy is as real a building
-        // as the one drawn, and this candidate's own mirrored copy is as real a building as the one about to
-        // be accepted — a site-against-site test that only looked at raw anchors never sees either.
-        var candidateImages = FannedPoints(x, z, symmetry).ToList();
-        if (props.OfType<HouseProp>().Any(house => FannedAround(house, symmetry, margin: 6)
-                .Any(rect => candidateImages.Any(image => Inside(rect, image.X, image.Z)))))
-            continue;
-
-        double minX = x - width / 2.0, minZ = z - depth / 2.0;
-        props.Add(new HouseProp
-        {
-            Points = [[Math.Round(minX), Math.Round(minZ)],
-                      [Math.Round(minX) + width - 1, Math.Round(minZ) + depth - 1]],
-            Front = (RoomEdge)random.Next(4),
-            Style = preset.Style,
-        });
-        placed++;
-    }
-    return props;
-}
-
-/// <summary>Whether every column of a square is ground at the same height — what a stamped rectangle wants
-/// under it, as against the two blocks of slack a tree is happy with.</summary>
-static bool Level(Dictionary<(int X, int Z), int> ground, int x, int z, int half, int here)
-{
-    for (var dz = -half; dz <= half; dz++)
-        for (var dx = -half; dx <= half; dx++)
-            if (!ground.TryGetValue((x + dx, z + dz), out var top) || top != here) return false;
-    return true;
-}
+// ── the rooms ────────────────────────────────────────────────────────────────────────────────────────────
 
 /// <summary>One preset by name.</summary>
 static HousePresets.House Preset(string name)
@@ -686,46 +384,6 @@ static HousePresets.House Preset(string name)
             $"no house preset '{name}' — have: {string.Join(", ", HousePresets.All.Select(h => h.Name))}");
     return house;
 }
-
-/// <summary>A footprint held to 20 a side and to the 192 blocks a placed building is allowed. The two bind
-/// differently — 20×20 is 400 — so a shape has to satisfy both.</summary>
-static (int Width, int Depth) Footprint(int width, int depth)
-{
-    width = Math.Clamp(width, 3, 20);
-    depth = Math.Clamp(depth, 3, 20);
-    while (width * depth > 192) { if (width >= depth) width--; else depth--; }
-    return (width, depth);
-}
-
-/// <summary>The buildings the spec placed by hand, each held to what a placed building is allowed to cover.</summary>
-static List<PlacedProp> Placed(List<HouseSpec> specs)
-{
-    var props = new List<PlacedProp>();
-    foreach (var spec in specs)
-    {
-        var preset = Preset(spec.Preset);
-        var (width, depth) = Footprint(spec.Width ?? preset.Width, spec.Depth ?? preset.Depth);
-
-        double minX = spec.X - width / 2.0, minZ = spec.Z - depth / 2.0;
-        props.Add(new HouseProp
-        {
-            Points = [[Math.Round(minX), Math.Round(minZ)],
-                      [Math.Round(minX) + width - 1, Math.Round(minZ) + depth - 1]],
-            Front = Facing(spec.Front),
-            Style = preset.Style,
-        });
-    }
-    return props;
-}
-
-static RoomEdge? Facing(string? word) => word?.ToLowerInvariant() switch
-{
-    "negz" or "north" => RoomEdge.NegZ,
-    "posz" or "south" => RoomEdge.PosZ,
-    "negx" or "west"  => RoomEdge.NegX,
-    "posx" or "east"  => RoomEdge.PosX,
-    _ => null,
-};
 
 /// <summary>The buildings the wool and spawn rooms are stamped as, snapshotted onto the layout the way the
 /// studio's room-style step binds a library row — so editing the preset later can never rebuild a shipped
@@ -774,4 +432,12 @@ static Extent? Bounds(SketchShape shape)
     if (shape.MinX is { } minX && shape.MinZ is { } minZ && shape.MaxX is { } maxX && shape.MaxZ is { } maxZ)
         return new Extent(minX, minZ, maxX, maxZ);
     return null;
+}
+
+/// <summary>The <c>MapIntent</c> wire shape — the same Web-default options every other reader/writer of the
+/// artifact uses (`GET·PUT /map/{slug}/intent`), so an <see cref="MapSpec.Intent"/> overlay names its fields
+/// the way the studio itself would read or write them.</summary>
+static class IntentWire
+{
+    public static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
 }

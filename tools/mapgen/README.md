@@ -1,12 +1,13 @@
 # mapgen — a whole map from one JSON spec
 
 > `docs/tools/capabilities.md` maps the documents a map is made of and where each generator lives — read it
-> before writing anything against this tool's spec, which is a reduction of it (`mapgen-review.md` MG29).
+> before writing anything against this tool's spec, which is a thin addressing layer over it: `plan`,
+> `layout` and `intent` are handed through verbatim, and the convenience fields below are shorthand that
+> expands into a fragment of one of those three (`mapgen-review.md` MG29).
 >
 > `docs/tools/mapgen-review.md` records where the first fifteen maps fell short of what the corpus ships, as a
 > pool of `MG` entries. Read it before adding to the tool: several of the knobs documented here are the wrong
-> knobs, and the largest entry is that a destroy map needs a board composed for it rather than a capture board
-> with its wool retargeted.
+> knobs.
 >
 > `docs/gameplay/approaches.md` is what a map is composed *for*, and is the author's document rather than
 > this one's.
@@ -18,24 +19,24 @@ dotnet run --project tools/mapgen -- --describe <spec.json>    # compile only, r
 
 The spec says what a map is *about*; the generator answers the rest. Everything goes through
 `SketchWorldBuilder` and `IntentGenerator` — the same path the studio's own export takes — so a map this
-writes is a map an author could have drawn, and anything it cannot say is a gap in the system rather than a
-gap in the tool.
+writes is a map an author could have drawn, and anything neither the convenience fields nor a handed-through
+document fragment can say is a gap in the system rather than a gap in the tool.
+
+There is no sampler. `sketch.md` states the studio's own design: dressing is authored, and there is no
+scatter, no density pass and no "fill this island with forest", because a tree is cover and where cover
+stands is a gameplay decision. A prop reaches the map the same way here — one entry in `dressing.props`,
+written through the spec's `layout` fragment, at an exact coordinate the author chose.
 
 Each run writes `region/`, `level.dat` and `map.xml` into `out_dir`, then reports what actually reached the
-world: buildings raised, tree sites found, logs and leaves standing. Those counts are read out of the voxels
-rather than off the props that were requested, because a prop is a request — the dressing pass drops one that
-finds no ground or lands on a protected column — and the only honest report of a forest is the wood in it.
+world: shapes, islands, goals, spawns, and the buildings/trees read back out of the finished layout's own
+dressing. Buildings and trees are counted from what was authored (`dressing.props`), not from what landed —
+a prop is a request, and the dressing pass drops one that finds no ground or lands on a protected column, so
+look at `--stages`' `dressing.png` to see what actually stood.
 
-Builds are deterministic: the same spec rebuilds the same map, so two runs can be compared. Each `seed` is
-independent — `compose`, `relief`, `trees` and `village` do not need matching values, and giving them one
-changes nothing but the draws. **If two runs of one spec disagree, that is not the tool.** It is almost
-always a build racing another build: the projects share output, so a second `dotnet build` in the same tree
-can swap a DLL mid-run or leave `bin/` without its `runtimeconfig.json`. Build once, then run with
-`--no-build`, and never build while another agent is building.
-
-`objective_mode` does not affect anything below it. The same spec at `dtm` and at `dtcm` places the same
-buildings on the same ground and seats the same forest, to the block — it changes which goal is stamped, not
-where anything can stand. A forest that will not seat is never the objective's doing.
+Builds are deterministic: the same spec rebuilds the same map, so two runs can be compared. **If two runs of
+one spec disagree, that is not the tool.** It is almost always a build racing another build: the projects
+share output, so a second `dotnet build` in the same tree can swap a DLL mid-run or leave `bin/` without its
+`runtimeconfig.json`. Build once, then run with `--no-build`, and never build while another agent is building.
 
 ## The board
 
@@ -48,9 +49,7 @@ document, for a board that is drawn rather than generated).
   "teams": 2,                  // 2 or 4
   "symmetry": "rot_180",       // rot_180 | mirror_x | mirror_z for two teams; rot_90 for four
   "seed": 7,
-  "cell": 9,                   // blocks per plan cell — what decides how big the map is on the ground
-  "objective_mode": "ctw",     // ctw | dtm | dtcm
-  "objective_materials": ""    // dtm/dtcm only: obsidian | emerald block | gold block | ender stone
+  "cell": 9                    // blocks per plan cell — what decides how big the map is on the ground
 }
 ```
 
@@ -58,24 +57,23 @@ document, for a board that is drawn rather than generated).
 the map without changing its layout. At `cell: 5` a fifteen-a-side board lands around 70×120 blocks; the
 destroy-the-monument corpus runs a median 148×164, which `cell: 9` or `10` reaches.
 
-`objective_mode` retargets the goals the generator placed: `dtm` turns each into a destroyable and `dtcm`
-gives a team a destroyable and a core beside it.
+`compose` only ever asks for a capture-the-wool board — the generator has no destroy-native composer
+(`mapgen-review.md` MG1's still-open half). **A destroy board is authored as its own `plan`, not converted
+from one.** A wool room and a destroyable do not occupy the same slot in a board: a wool sits at the far end
+of a dead-end lane, inset about five, walled and entered from one side, because a wool is a thing an *enemy*
+has to reach and carry back. A destroyable is a thing a team **defends in the open**, and it may stand on
+**any piece of the plan** — in a field, on a plateau, on the frontline, anywhere ground exists. It needs no
+room, no lane and no protection region. Write `placements.destroyables`/`placements.cores` directly into the
+`plan` document — `DestroyablePlacement`/`CorePlacement` in `Pgm/Plan/PlanModel.cs`, each a `{ id, piece, at,
+style, materials, float, name }` — the same way a wool marker is authored, and the goal lands where the design
+put it rather than where a wool budget sited it.
 
-**That retarget is a shortcut, and it puts the goal in the wrong place.** A wool room and a destroyable do
-not occupy the same slot in a board. A wool sits at the far end of a dead-end lane, inset about five, walled
-and entered from one side, because a wool is a thing an *enemy* has to reach and carry back. A destroyable is
-a thing a team **defends in the open**, and it may stand on **any piece of the plan** — in a field, on a
-plateau, on the frontline, anywhere ground exists. It needs no room, no lane and no protection region.
-Retargeting a wool placement therefore inherits a cage the goal never wanted, and every board built this way
-has its monument at the back of a corridor. Authoring the destroyable's own placement in a `plan` document is
-the way to put it where the design wants it.
-
-`objective_materials` names what a monument is made of — one of the four the stamper can actually build
-(empty defaults to obsidian, over half the corpus). A core's casing is not a knob: it is always obsidian, the
-same as PGM's own default, so this affects monuments only. The spawn kit's pickaxe is paired to whatever this
-names — an obsidian goal ships a diamond pickaxe rather than the default iron — and a material the stamper
-cannot build, or a kit that still could not break the goal, refuses the map rather than shipping it silently
-unbreakable.
+`DestroyablePlacement.Materials` names what a monument is made of — one of the four the stamper can actually
+build (empty defaults to obsidian, over half the corpus): `obsidian`, `emerald block`, `gold block`, `ender
+stone` (`PgmStudio.Domain.DestroyableMaterials`). A core's casing is not a knob: it is always obsidian, the
+same as PGM's own default. The spawn kit's pickaxe has to be able to break whatever a `materials` names — an
+obsidian goal wants a diamond pickaxe rather than the default iron — and a kit that cannot break a goal it
+ships refuses the map rather than shipping it silently unbreakable.
 
 ## The paint
 
@@ -95,6 +93,13 @@ Families: `verdant` `spring` `turquoise` `loam` `dirt` `brick` `rust` `sand` `go
 A pattern reads a whole family and carries its fabric down the risers as well as across the ground, so a
 stepped surface does not streak vertically where it falls.
 
+`theme` paints the **whole map** with one registry entry — it is shorthand for one `TerrainTheme`
+(`Minecraft/TerrainTheme.cs`) written to `layout.themes.map` and bound as `layout.mapTheme`. The full type is
+five buckets (`rim`, `surface`, `wall`, `fill`, `bedrock`), three of which carry their own geometry, and it
+scopes **per shape** — a board can carry as many themes as it has shapes for, the way
+`tools/seeds/ruediger.layout.json` carries three. None of that is reachable through `theme`; it is reachable
+through `layout` (below), which hands a `themes` registry entry through verbatim.
+
 ## The ground's shape
 
 ```json
@@ -112,77 +117,11 @@ stepped surface does not streak vertically where it falls.
 `scatter` is the quick way to get ground that is not a table: it places ordinary point marks, so nothing it
 does reaches past what an author could draw. `marks` states them by hand instead — `point` (`at`, `r`, `h`),
 `line` (`points`, `h[]`, `width`), `area` (`ring`, `h`), `rim` (`h`, `depth`), `scarp` (`points`, `high`,
-`low`, `face`, `band`). A relief is bound to every island the board compiled to, because the island is the
-unit it is solved over.
+`low`, `face`, `band`) — the full five-kind vocabulary handed through verbatim either way. A relief is bound
+to every island the board compiled to, because the island is the unit it is solved over.
 
 Keep it gentle. The corpus walks 0–1 blocks over a median 72.6% of its ground; relief steep enough that the
 wall material paints most of the surface reads as a quarry rather than as terrain.
-
-## What stands on it
-
-```json
-"trees":   { "count": 60, "form": "mixed", "woods": ["oak","birch","spruce"],
-             "min_height": 8, "max_height": 20, "whorled": false, "seed": 4, "clearance": 12 },
-"village": { "count": 4, "presets": ["cottage","workshop"], "seed": 3, "clearance": 15 },
-"houses":  [ { "preset": "cottage", "x": 40, "z": 0, "front": "negz" } ]
-```
-
-`form` is `grown` (the recursive skeleton), `template` (vanilla), or `mixed`. Woods: `oak` `birch` `spruce`
-`jungle` `acacia` `dark oak`. `whorled` gathers a grown tree's branches into rings — the conifer against the
-broadleaf.
-
-**Reach for `grown` sparingly until its open faults land.** The recursive tree is the more expressive of the
-two and it is the less finished: it carries about twice an author's wood at mid heights (`G176`), a whorled
-one puts its bulk at mid-height rather than in the bottom third (`G173`), and its stem stops short of the
-topmost leaves so the crown sits on a stub rather than running through it (`review.md` MG28). A board drawn
-mostly `template` with `grown` used where a tree is meant to be looked at reads better today than one drawn
-`grown` throughout. Whichever form, the wood and the foliage have to name the same plant — the `template`
-form takes a **species**, which decides the timber and the canopy profile together, while `grown` takes a
-**wood**, and handing a species name to the wood field builds a tree whose silhouette and timber come from
-different plants (MG10).
-
-**Ask for two or three times the trees you want.** The dressing pass drops a prop if any cell it occupies
-falls on a protected column, and it is normal for well under half of a requested forest to seat on a
-generated board. The report says how many sites were found and how many leaves stand, which is how to tell
-the two apart: few *sites* means the ground was rejected as too steep or too near an objective, while many
-sites and few *leaves* means the pass dropped what was offered.
-
-Read the **leaves**, not the logs. A building's corner posts are logs too, so logs rise as soon as a village
-lands and say nothing about whether a tree did. Nothing but a tree lays a leaf.
-
-`clearance` is a distance in blocks, kept between a prop and any objective piece — a room or a spawn, grown
-by that much. Raising it pushes scenery further off the goals and leaves less ground to plant on.
-
-**Aim the leaf count, don't just clear a floor — but read it per tree.** A leaf count alone does not say
-whether a board is wooded or buried, and two measurements on the same map size settle it. A spruce forest at
-**17,600 leaves** over many sites rendered as one solid green mass, with the terrain, the buildings and the
-routes all lost underneath it. `thornwake` at **17,897 leaves** over **72** trees renders as a wood: the
-buildings, the wool rooms, the paths and the void channel all read, and a player walks between trunks. Nearly
-the same count; opposite maps. What separates them is how many trees the leaves are divided among — a few
-hundred leaves per tree is a canopy with gaps under it, and a few dozen is a blanket laid over the board.
-
-So the number to read is the count **and** the site count together, and the number that would actually settle
-it is neither: it is what share of the ground stands under a leaf (`B96`). Under a few hundred leaves is a
-bare map with a shrub on it whatever the site count. Density is a design decision, so read both numbers, look
-at the top-down, and adjust in either direction.
-
-**Relief and dressing compete for the same ground.** Steep terrain is not merely rougher, it is unplantable:
-a scarp at face 3 over a 9-block band left 113 of 520 tree sites standing and *none* of them seated, and the
-same map with the face lowered and the band widened to 16 carried 785 leaves. If a forest will not seat,
-suspect the relief before the trees.
-
-**A grown tree is no longer held below `max_height`.** It used to be capped at 14 blocks regardless of what
-the spec asked for, because the dressing pass dropped a whole tree if any cell it occupied — at any height —
-fell on a protected column, and a grown crown is wide enough that past 14 it was more often absent than tall.
-Protection is now decided on the cells a tree actually rests on, the same footprint ground is decided on
-(B78), so a grown tree's crown is free to overhang a monument or a spawn the way a hand-built map's trees
-overhang their own structures — only a trunk planted directly on protected ground is refused.
-
-`village` scatters buildings onto ground flat enough to stand them on; `houses` places one at a stated spot.
-Prefer `village` on a generated board — the ground is not known until the plan compiles, so a stated
-coordinate is a guess and a guess lands in the void. Presets: `alpine mining` `desert brick` `diorite pyramid`
-`townside` `townside on stilts` `cottage` `longhouse` `terrace` `counting house` `workshop`. Every footprint
-is held to 20 a side and to the 192 blocks a placed building is allowed.
 
 ## The rooms
 
@@ -190,12 +129,53 @@ is held to 20 a side and to the 192 blocks a placed building is allowed.
 "room_shell": { "wool": "cottage", "spawn": "terrace" }
 ```
 
-The buildings a wool room and a spawn room are raised as, named from the same presets. Absent leaves the
-built-in shell, which is a bedrock lid — it says "objective here" and nothing about the place it stands in.
-`"spawn": "open"` leaves the ground bare, which is right wherever the plateau itself is the room.
+The buildings a wool room and a spawn room are raised as, named from the house presets: `alpine mining`
+`desert brick` `diorite pyramid` `townside` `townside on stilts` `cottage` `longhouse` `terrace`
+`counting house` `workshop`. Absent leaves the built-in shell, which is a bedrock lid — it says "objective
+here" and nothing about the place it stands in. `"spawn": "open"` leaves the ground bare, which is right
+wherever the plateau itself is the room.
 
 Bedrock below this is normal and not a fault: every column of a map carries one at its base so players cannot
 dig out, and a wool foundation is laid in it too.
+
+## The addressing layer: `layout` and `intent`
+
+```json
+"layout": {
+  "themes": { "vault": { "closed": true,
+    "surface": { "material": { "kind": "solid", "id": 155, "data": 0 }, "depth": 3, "enabled": true },
+    "rim":     { "material": { "kind": "solid", "id": 41,  "data": 0 }, "depth": 2, "enabled": true } } },
+  "dressing": { "props": [ { "kind": "tree", "x": -5, "z": 20, "form": "template", "species": "spruce", "height": 14 } ] }
+},
+"intent": { "maxPlayers": 16 }
+```
+
+`layout` is a `SketchLayout` fragment, `intent` a `MapIntent` fragment — both handed through verbatim and
+merged onto whatever `compose`/`plan` produced (`DocumentOverlay.Merge`, `src/PgmStudio.Pgm/`), *after* every
+convenience field above has run. An object key present on both sides merges key by key, so naming one more
+theme does not erase the ones `theme` already wrote; an array key present on both sides is **appended to**,
+not replaced, so a shape, a destroyable, a prop or a wall adds to what the board already carries rather than
+overwriting it; anything else — a scalar, a key the base document does not have — the fragment's value
+replaces outright.
+
+This is where a prop is placed. There is no sampler (above), so `dressing.props` — the studio's own authored
+dressing document — is the *only* way a tree, a boulder, a path or a building reaches a generated board:
+`{"kind":"tree",...}` (`TreeProp`) is the simplest; `{"kind":"house",...}` (`HouseProp`) additionally needs a
+full `HouseStyle` in its `style` field, the same JSON `GET /room-styles/{id}` or `HouseStyleJson.Serialize`
+over a `HousePresets` row produces — there is no preset-by-name shorthand at this layer, since `layout` hands
+the document through exactly as the studio stores it. It is also where a shape the convenience
+fields cannot state goes — an extra `SketchShape` with its own `theme`, `floor`, `base_height`,
+`anchor_heights` and `relief_scope` — and where the full `TerrainTheme` a theme registry entry can carry
+(a rim band with its own depth, a per-shape scope) is reachable, since `layout.themes` is a plain dictionary
+an overlay key merges into. A `MapIntent` fragment reaches whatever the plan a board compiled from did not
+carry — `structures.walls`, `structures.ironCubes`, in already-resolved world coordinates.
+
+**One key limit, honestly stated: the overlay adds, it does not retarget.** An array is appended to, so a
+new shape can carry its own theme, but an *existing* shape the composer or the plan already produced cannot
+be repainted through `layout` — array-append has no way to reach into element `N` and change one field.
+Differing the paint per **compiled** shape (`mapgen-review.md` MG2) is still a gap in the system for a
+composed or plan-drawn board; it is reachable only by drawing the whole board's paint into the `plan`
+document's own pieces, or by hand-editing the sketch afterward in the studio.
 
 ## The rest
 
@@ -204,8 +184,7 @@ dig out, and a wool foundation is laid in it too.
 
 ## A whole one
 
-Everything above, as one spec that builds a map worth walking. `objective_mode` is omitted because `ctw` is
-the default; say it when the map is a destroy map.
+Everything above, as one spec that builds a map worth walking.
 
 ```json
 {
@@ -224,16 +203,22 @@ the default; say it when the map is a destroy map.
     "scatter": { "count": 12, "min_h": 3, "max_h": 12, "radius": 22, "seed": 11 }
   },
 
-  "trees":   { "count": 210, "form": "mixed", "woods": ["oak", "birch", "spruce", "dark oak"],
-               "min_height": 9, "max_height": 22, "seed": 11, "clearance": 11 },
-  "village": { "count": 4, "seed": 11, "clearance": 15 },
+  "room_shell": { "wool": "cottage", "spawn": "longhouse" },
 
-  "room_shell": { "wool": "cottage", "spawn": "longhouse" }
+  "layout": {
+    "dressing": { "props": [
+      { "kind": "tree", "x": -45, "z": -10, "form": "template", "species": "spruce", "height": 14 },
+      { "kind": "tree", "x": -45, "z": 20, "form": "template", "species": "birch", "height": 11 }
+    ] }
+  }
 }
 ```
 
-It reports `4 building(s) · 72/210 tree site(s)` and `17897 leaves` — a wood you can walk through, on ground
-that rises and falls, with four buildings on it and its two rooms raised as houses.
+It reports `8 shapes · 1 island(s) · 4 wool(s) · … · 0 building(s) · 2 tree(s)` at compile, and the finished
+build's census reads `162 logs · 304 leaves` — both trees standing, none dropped to a protected column or
+void. `--describe` is how the `x`/`z` above were found: it reports the compiled board's shape ids and
+bounds, so a prop's site is a stated coordinate rather than a guess even though the board is not known ahead
+of a `compose` call.
 
 ## Seeing it
 

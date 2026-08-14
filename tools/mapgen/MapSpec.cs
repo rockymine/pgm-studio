@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using PgmStudio.Pgm;
 
 namespace PgmStudio.MapGen;
 
@@ -7,12 +8,17 @@ namespace PgmStudio.MapGen;
 /// One map, said as JSON — the whole of what an author (or an agent) states, and nothing it would have to
 /// compute.
 ///
-/// <para>The spec is deliberately a layer <em>above</em> the plan document. A plan says where every piece and
-/// marker sits in cells; this says what the map is about and lets the generator answer the rest. The two ways
-/// in are <see cref="Compose"/>, which asks the layout generator for a board at a player count, and
-/// <see cref="Plan"/>, which carries a literal plan document for a board that is drawn rather than
-/// generated. Everything after that — the paint, the interior elevation, the trees and the buildings — is
-/// stated the same way whichever produced the ground.</para>
+/// <para>The spec is a thin addressing layer over the real documents (`docs/tools/capabilities.md`), not a
+/// reduction of them (`docs/tools/mapgen-review.md` MG29). The two ways to state the board are
+/// <see cref="Compose"/>, which asks the layout generator for a board at a player count, and
+/// <see cref="Plan"/>, which carries a literal <c>PlanModel</c> document for a board that is drawn rather
+/// than generated — a destroy board's destroyables and cores are authored here, on the plan, since the
+/// generator does not compose for a destroy objective. <see cref="Layout"/> and <see cref="Intent"/> carry
+/// a fragment of <c>SketchLayout</c> and <c>MapIntent</c> verbatim, merged onto whatever <see cref="Compose"/>
+/// or <see cref="Plan"/> produced (<see cref="DocumentOverlay"/>) — an extra shape with its own theme and
+/// height, a fuller theme than <see cref="Theme"/> can name, a defence wall, a hand-placed prop. Everything
+/// a convenience field below states is shorthand for a fragment of one of those two documents; anything a
+/// spec cannot say through either is a gap in the system, not in this format.</para>
 ///
 /// <para>Names, not block ids. A theme names a palette family and the tool resolves it, because the set of
 /// families is knowledge the tool already has and an id is knowledge the author would have to look up.</para>
@@ -43,20 +49,23 @@ public sealed class MapSpec
     /// is flat, which is the far end of what the corpus ships.</summary>
     [JsonPropertyName("relief")] public ReliefSpec? Relief { get; set; }
 
-    /// <summary>Trees scattered over the ground.</summary>
-    [JsonPropertyName("trees")] public TreeSpec? Trees { get; set; }
-
-    /// <summary>Buildings placed as scenery, each at a stated spot.</summary>
-    [JsonPropertyName("houses")] public List<HouseSpec>? Houses { get; set; }
-
-    /// <summary>Buildings scattered onto whatever ground will take them, the way <see cref="Trees"/> is a
-    /// population rather than a list. It is the form to reach for on a generated board: the ground is not
-    /// known until the plan compiles, so a stated coordinate is a guess and a guess lands in the void.</summary>
-    [JsonPropertyName("village")] public VillageSpec? Village { get; set; }
-
     /// <summary>The buildings a wool room and a spawn room are stamped as, named from the house presets.
     /// Absent leaves the built-in bedrock shell, which is a lid rather than a building.</summary>
     [JsonPropertyName("room_shell")] public RoomShellSpec? RoomShell { get; set; }
+
+    /// <summary>A <c>SketchLayout</c> fragment, verbatim, merged onto the compiled layout
+    /// (<see cref="DocumentOverlay"/>) after <see cref="Theme"/>, <see cref="Relief"/> and
+    /// <see cref="RoomShell"/> have been applied. This is where a shape the convenience fields cannot state
+    /// goes — an extra shape with its own theme, floor, base height, per-vertex anchor heights and
+    /// relief_scope; a theme carrying a rim band or a per-shape scope <see cref="Theme"/> has no field for;
+    /// dressing (there is no sampler — a prop is placed by writing <c>dressing.props</c> here, the studio's
+    /// own authored form, `docs/tools/sketch.md`).</summary>
+    [JsonPropertyName("layout")] public JsonElement? Layout { get; set; }
+
+    /// <summary>A <c>MapIntent</c> fragment, verbatim, merged onto the compiled intent
+    /// (<see cref="DocumentOverlay"/>) — a defence wall, an iron cube, or anything else the plan the board
+    /// compiled from did not carry.</summary>
+    [JsonPropertyName("intent")] public JsonElement? Intent { get; set; }
 
     /// <summary>Emit the named stage-image set (<c>plan</c>, <c>heightmap</c>, <c>surface</c>, <c>contour</c>,
     /// <c>dressing</c>, <c>traversability</c>, <c>structures</c>, <c>topdown</c>) into a <c>stages/</c> folder
@@ -89,25 +98,6 @@ public sealed class ComposeSpec
     [JsonPropertyName("symmetry")] public string? Symmetry { get; set; }
 
     [JsonPropertyName("seed")]     public ulong Seed { get; set; }
-
-    /// <summary>What the board is played for: <c>ctw</c> (the wools the generator places), <c>dtm</c> (each
-    /// of those goals becomes a monument to destroy), or <c>dtcm</c> (monuments and cores together, the way
-    /// the category's own corpus mixes them).
-    ///
-    /// <para>The retarget reuses the wool markers the generator placed, which is a shortcut rather than a
-    /// design: a wool sits walled at the end of a dead-end lane because an enemy has to reach it and carry it
-    /// back, while a destroyable is defended in the open and may stand on any piece where ground exists. A
-    /// board retargeted this way therefore keeps a cage its goal never wanted. Authoring the placement in a
-    /// plan document is how a destroy goal is put where the design wants it.</para></summary>
-    [JsonPropertyName("objective_mode")] public string ObjectiveMode { get; set; } = "ctw";
-
-    /// <summary>The goal material a destroy board's monuments are made of — one of <c>obsidian</c>,
-    /// <c>emerald block</c>, <c>gold block</c>, <c>ender stone</c> (the vocabulary the stamper can actually
-    /// build; <c>PgmStudio.Domain.DestroyableMaterials</c>). Empty defaults to obsidian, over half the
-    /// corpus. A core's casing is not a knob — it is always obsidian, the same as the corpus and PGM's own
-    /// default — so this affects destroyables only. The kit's pickaxe is paired to whatever this names, and
-    /// a name the stamper cannot build is refused rather than silently built as obsidian (MG18).</summary>
-    [JsonPropertyName("objective_materials")] public string? ObjectiveMaterials { get; set; }
 
     /// <summary>Blocks per plan cell — the scale the board is drawn at. The generator budgets in cells, so
     /// this is what decides how big the finished map is on the ground without changing its layout: the
@@ -177,30 +167,6 @@ public sealed class ScatterSpec
     [JsonPropertyName("seed")]   public int Seed { get; set; } = 1;
 }
 
-/// <summary>Trees scattered over the ground, stated as a population rather than one by one.</summary>
-public sealed class TreeSpec
-{
-    [JsonPropertyName("count")] public int Count { get; set; } = 40;
-
-    /// <summary><c>grown</c> (the recursive skeleton) or <c>template</c> (vanilla), or <c>mixed</c>.</summary>
-    [JsonPropertyName("form")] public string Form { get; set; } = "grown";
-
-    /// <summary>Woods to draw from: <c>oak</c>, <c>birch</c>, <c>spruce</c>, <c>jungle</c>, <c>acacia</c>,
-    /// <c>dark oak</c>.</summary>
-    [JsonPropertyName("woods")] public List<string>? Woods { get; set; }
-
-    [JsonPropertyName("min_height")] public double MinHeight { get; set; } = 8;
-    [JsonPropertyName("max_height")] public double MaxHeight { get; set; } = 20;
-
-    /// <summary>Whether the branches gather into whorls — the conifer against the broadleaf.</summary>
-    [JsonPropertyName("whorled")] public bool? Whorled { get; set; }
-
-    [JsonPropertyName("seed")] public int Seed { get; set; } = 1;
-
-    /// <summary>Keep trees this far from any objective marker, so scenery never grows through a room.</summary>
-    [JsonPropertyName("clearance")] public int Clearance { get; set; } = 10;
-}
-
 /// <summary>What the two rooms a map is played through are built as. Both take a house preset, because a
 /// wool cage and a spawn room are buildings a player walks into — the built-in shell is a bedrock lid, which
 /// says "objective here" and nothing about the place it stands in.</summary>
@@ -212,39 +178,4 @@ public sealed class RoomShellSpec
     /// <summary>The building stamped over a spawn. <c>open</c> leaves the ground bare, which is right where
     /// the plateau itself is the room.</summary>
     [JsonPropertyName("spawn")] public string? Spawn { get; set; }
-}
-
-/// <summary>A handful of buildings dropped onto ground flat enough to stand them on.</summary>
-public sealed class VillageSpec
-{
-    [JsonPropertyName("count")] public int Count { get; set; } = 4;
-
-    /// <summary>Presets to draw from. Absent takes the five cut from one masonry, which is what makes a
-    /// scatter of buildings read as one settlement rather than as a showroom.</summary>
-    [JsonPropertyName("presets")] public List<string>? Presets { get; set; }
-
-    [JsonPropertyName("seed")] public int Seed { get; set; } = 1;
-
-    /// <summary>Keep buildings this far from any objective.</summary>
-    [JsonPropertyName("clearance")] public int Clearance { get; set; } = 14;
-}
-
-/// <summary>One building placed as scenery: which preset, where, and which way its door faces.</summary>
-public sealed class HouseSpec
-{
-    /// <summary>A row in the house presets: <c>alpine mining</c>, <c>desert brick</c>, <c>diorite pyramid</c>,
-    /// <c>townside</c>, <c>townside on stilts</c>, <c>cottage</c>, <c>longhouse</c>, <c>terrace</c>,
-    /// <c>counting house</c>, <c>workshop</c>.</summary>
-    [JsonPropertyName("preset")] public string Preset { get; set; } = "cottage";
-
-    [JsonPropertyName("x")] public int X { get; set; }
-    [JsonPropertyName("z")] public int Z { get; set; }
-
-    /// <summary>Override the preset's own footprint. Held to 20 a side and to the 192 blocks a placed
-    /// building is allowed.</summary>
-    [JsonPropertyName("width")] public int? Width { get; set; }
-    [JsonPropertyName("depth")] public int? Depth { get; set; }
-
-    /// <summary><c>negz</c> / <c>posz</c> / <c>negx</c> / <c>posx</c>, or absent to let it choose.</summary>
-    [JsonPropertyName("front")] public string? Front { get; set; }
 }

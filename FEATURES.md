@@ -4480,9 +4480,10 @@ these are the ones that shipped a map that could not be played as intended, and 
   joins those columns to the navigable graph while tinting them so bridged void still reads as standing on
   nothing. A water lane stays unbridged by construction, since it carries no such rule and opens on a timer —
   a board connected only after 45 minutes is not a connected board. One measured board went from 7 components
-  with 2 isolated markers to 5 with none. Alongside it, `Retarget` no longer offsets a `dtcm` core two cells
-  along unconditionally: it measures room-to-edge within the monument's own piece and takes the direction with
-  the most room, so the three shipped specs that `B82` was refusing now build with their cores on ground.
+  with 2 isolated markers to 5 with none. Alongside it, `Retarget` no longer offset a `dtcm` core two cells
+  along unconditionally: it measured room-to-edge within the monument's own piece and took the direction with
+  the most room, so the three shipped specs that `B82` was refusing built with their cores on ground.
+  (`Retarget` itself, and the whole reduced spec format it retargeted, is gone — deleted by `B118`.)
 - **The export gate asks the three questions `tools/mapgen` used to ask alone (B116).**
   `MapExportComposer.ComposeAsync` already builds a sketch-originated map's world and holds its resolved
   intent, so it re-asks `ObjectivePlacement.Check` — void, spawn, wool room — against the ground the
@@ -4505,8 +4506,23 @@ these are the ones that shipped a map that could not be played as intended, and 
   of `PgmDb`/`FeatureData`; the DB reads that used to open the method stayed behind in `Api` as
   `MapExportLoader.ComposeAsync`, the only thing in the pipeline that still touches the store. `tools/mapgen`
   and `tools/PgmStudio.PatternMap` now reference `PgmStudio.Export` instead of the whole of `Api` — ASP.NET
-  Core, FastEndpoints and the DB layer along with it — which is what makes `B118`'s job cheap: a spec-driven
+  Core, FastEndpoints and the DB layer along with it — which is what made `B118`'s job cheap: a spec-driven
   map now goes through the one export path both the studio and a CLI reach, with nothing left to duplicate.
+- **`tools/mapgen`'s spec is an addressing layer over the real documents, not a reduction of them (B118).**
+  The site sampler is gone outright — `trees`, `village`, `houses` off `MapSpec` and `Forest`, `Settle`,
+  `Placed`, `KeepOut`, `Level`, `Clear`, `FannedAround` out of `Program.cs` — because the studio has none: a
+  tree is cover, and where cover stands is a gameplay decision no scatter pass gets to make
+  (`docs/tools/sketch.md`, `mapgen-review.md` MG9). `Retarget` is gone with it: a destroyable needs no room,
+  no lane and no protection region, so rewriting a capture board's wool markers into monuments (MG1, the
+  review's largest entry) put every goal at the back of a corridor it never wanted — a destroy board is now
+  authored as its own `plan`, `DestroyablePlacement`/`CorePlacement` placed on whichever piece the design
+  wants. What replaced both is a new `PgmStudio.Pgm.DocumentOverlay`: `layout` and `intent` hand a
+  `SketchLayout`/`MapIntent` fragment through **verbatim**, merged onto whatever `compose`/`plan` produced —
+  an object key on both sides merges key by key, an array key on both sides is appended to, anything else the
+  fragment replaces — so a spec can add a shape with its own theme, floor, base height, per-vertex anchor
+  heights and `relief_scope`, a `TerrainTheme` with its rim band and per-shape scope, or a `MapIntent`
+  fragment reaching a defence wall or an iron cube, none of which the surviving convenience fields
+  (`theme`, `relief`, `room_shell`) could say. Closes `mapgen-review.md` MG29 and MG1.
 - **A vertical section, textual and drawn (B121).** Every world read-back before this one looked straight
   down; `layered` exists to vary a material down a riser and nothing could check one. `ColumnReport`
   (`--column <regionDir> <x> <z> [x z ...]`) prints one or more columns bedrock to sky, every solid block
