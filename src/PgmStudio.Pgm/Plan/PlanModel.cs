@@ -283,6 +283,9 @@ public sealed class PlanBox
 /// and a marker was addressed only by its index in a list. That is enough to draw one and not enough to
 /// <em>refer</em> to one: a validator finding could name only the piece a marker sat on, and an agent holding
 /// "the second core" loses its reference the moment a different core is deleted.
+/// <para><see cref="Piece"/> is empty for a destroyable or a core placed by absolute board position (B128,
+/// <see cref="DestroyablePlacement"/>/<see cref="CorePlacement"/>) — the one exception to "the piece it
+/// stands on", since those two need not stand on a piece at all.</para>
 /// </summary>
 public interface IPlanMarker
 {
@@ -348,9 +351,16 @@ public sealed class IronPlacement : IPlanMarker
 /// A destroyable (DTM objective) marker on <see cref="Piece"/> at half-cell offset <see cref="At"/>, owned by
 /// the authored team-0 unit and fanned to one per orbit image — the wool marker's shape, since a destroyable is
 /// likewise a goal one team defends. The marker is the structure's <b>anchor column</b>; the box itself floats
-/// <see cref="Float"/> blocks above the surface it spans, so no Y is authored.
+/// <see cref="Float"/> blocks above the ground the relief actually leaves under that column, so no Y is
+/// authored.
+/// <para><see cref="Piece"/> may be empty (B128): a destroyable is the one marker kind that need not ride a
+/// plan piece at all. With a piece, <see cref="At"/> is a cell offset from its minimum corner, same as every
+/// other marker; with none, <see cref="At"/> is an absolute cell offset from the symmetry centre — the frame a
+/// piece's own <c>rect</c> is authored in — so a goal can stand on ground that exists only as an authored
+/// sketch shape, with no plan piece manufactured to carry it.</para>
 /// <para>Every structure parameter is optional and defaulted by the compiler, because the defaults are the
-/// corpus's own centre of mass — a bare <c>{ piece, at }</c> is a valid, typical destroyable.</para>
+/// corpus's own centre of mass — a bare <c>{ piece, at }</c> or <c>{ at }</c> is a valid, typical
+/// destroyable.</para>
 /// </summary>
 public sealed class DestroyablePlacement : IPlanMarker
 {
@@ -361,7 +371,9 @@ public sealed class DestroyablePlacement : IPlanMarker
     [JsonPropertyName("style")]     public string? Style { get; set; }
     /// <summary>A PGM material match; empty = obsidian, over half the corpus.</summary>
     [JsonPropertyName("materials")] public string? Materials { get; set; }
-    /// <summary>Blocks of air under the structure; null = 4.</summary>
+    /// <summary>Blocks of air between the ground the relief solves under this column and the structure's
+    /// underside; null = 4. An offset over the ground as built, not a plan-nominal height — it survives a
+    /// relief pass moving that ground, which an authored world Y would not.</summary>
     [JsonPropertyName("float")]     public int? Float { get; set; }
     /// <summary>Overrides the owner-and-index auto-name (<c>Red Monument</c>, <c>Red Monument 2</c>).</summary>
     [JsonPropertyName("name")]      public string? Name { get; set; }
@@ -370,7 +382,11 @@ public sealed class DestroyablePlacement : IPlanMarker
 /// <summary>
 /// A core (DTC objective) marker on <see cref="Piece"/> at half-cell offset <see cref="At"/> — the destroyable
 /// marker's shape, since a core is likewise one team's goal to defend, fanned to one per orbit image. The
-/// marker is the casing's anchor column; the box floats <see cref="Float"/> blocks above the surface.
+/// marker is the casing's anchor column; the box floats <see cref="Float"/> blocks above the ground the relief
+/// actually leaves under that column.
+/// <para><see cref="Piece"/> may be empty, the same absolute addressing a destroyable takes (B128): with a
+/// piece, <see cref="At"/> is a cell offset from its minimum corner; with none, an absolute cell offset from
+/// the symmetry centre, so a core can ride an authored sketch landform with no plan piece carrying it.</para>
 /// <para><see cref="Float"/> and <see cref="Leak"/> are one knob (DC2): escaping lava free-falls to the
 /// terrain at <c>B − float</c> while the core leaks at <c>y ≤ B − leak</c>, so together they say how far
 /// players must dig — <c>max(0, leak − float)</c>. Setting one without the other says nothing, so authoring
@@ -390,7 +406,9 @@ public sealed class CorePlacement : IPlanMarker
     /// <summary>Omit the cap so the lava sits flush with the rim; null = false — a real but minority style,
     /// so it is a flag rather than the default.</summary>
     [JsonPropertyName("openTop")]  public bool? OpenTop { get; set; }
-    /// <summary>Blocks of air under the casing; null = 6. Pairs with <see cref="Leak"/> (DC2).</summary>
+    /// <summary>Blocks of air between the ground the relief solves under this column and the casing's
+    /// underside; null = 6. An offset over the ground as built, not a plan-nominal height. Pairs with
+    /// <see cref="Leak"/> (DC2).</summary>
     [JsonPropertyName("float")]    public int? Float { get; set; }
     /// <summary>How far lava must fall below the casing to count as leaked; null = 5, PGM's own default.
     /// Pairs with <see cref="Float"/> (DC2).</summary>

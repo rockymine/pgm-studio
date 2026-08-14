@@ -52,56 +52,10 @@ exactly that reason). `B119` moved the boundary so the copying stopped being nec
 copy, the site sampler and the reduced spec format both, in favour of the real documents `B119` had just made
 reachable.
 
-**Two remain, in order.** `B128` is not about the second system at all: it is an authoring defect the boards
-exposed, and it comes before `B120` because every destroy map that run authors wants a goal at a chosen
-height and would otherwise reproduce the workaround once per map. Then `B120` finds out whether the result
-actually answers.
-
-- [ ] **B128 — A goal's height is authored by manufacturing a plan tier to carry it, and the landform then
-  exists twice.** A destroyable or a core states which piece it rides and where on it —
-  `DestroyablePlacement` and `CorePlacement` carry `{ id, piece, at, style, materials, float, name }` and **no
-  height field of any kind** — and `PlanCompiler` resolves the anchor as `new Pt(px, piece.Surface, pz)`
-  (lines 290 and 308; spawns and wool rooms take the same treatment at 205 and 260). So the only way to put a
-  goal high or low is to author a plan piece standing at that surface, whose purpose is not to be ground but
-  to be something for a marker to ride.
-
-  **The cost is visible on the one board that was authored this way.** Ashen Quarry's mesa was authored
-  correctly, as a `raise` shape tilted by per-vertex `anchor_heights`; to put the second destroyable on it the
-  mesa had to be pushed **back down into the plan** as a tier at surface 58 and then promoted to a polygon
-  again to recover the outline it already had. Its quarry is a plan tier at 24 for the same reason. Any
-  landform carrying an objective is therefore authored twice — once as a plan rectangle for the marker, once
-  as a polygon for the shape it actually is — in two idioms, in two files, with nothing checking that the two
-  agree. That is also where the void column came from: two boundaries that had to meet, drawn independently.
-
-  **There is no second height field, and `float` is already the right concept measured from the wrong
-  thing.** `float` is the air gap under the structure — `ObjectiveDefaults.DestroyableFloat`, four — and a
-  destroyable and a core float above the terrain **by design** (`approaches.md`, `[author]`). That is an
-  offset over ground, which is exactly what a goal's height wants to be. What is wrong is the ground it
-  counts from: `piece.Surface`, the plan's flat nominal world. So the fix is not a new knob beside it but the
-  same knob measured from the **solved terrain** under the marker's column, and a second height concept would
-  be the "second accepted format" `CLAUDE.md` forbids.
-
-  **The offset resolves against the ground as built, and it is configurable in both directions** — a goal can
-  stand higher or closer to the ground than the default. An offset is the right reading rather than an
-  absolute world Y because it survives a relief pass moving the ground under it, and because it is what an
-  author means by "the goal sits on the mesa". The absolute reading is the one that has already cost a build:
-  a relief mark's `h` is absolute, was read as a lift, and put terrain at y4 on a board based at 41 while the
-  export succeeded and the gate passed.
-
-  **What this buys is that the landform is authored once.** With the offset counted from solved ground, a
-  marker's x/z on an authored polygon is enough — the mesa stays a `raise` shape with its per-vertex anchors,
-  the goal on it rides whatever height the relief left, and no plan tier has to be manufactured to carry it.
-
-  The default stays in the band it is in — around five, and **four today**. That number is a gameplay
-  constant rather than an implementation detail, so it is not to be nudged while the offset's meaning is being
-  corrected; whether it moves from 4 to 5 is the author's to settle and is not part of this task.
-
-  This is the authoring half of a defect the board already carries two other halves of, and it is filed apart
-  from both because neither would surface it: `B105` is the correctness half — the compiler must stop reading
-  a piece's `Surface` as a literal world Y for these four markers, since that is the flat-nominal mistake
-  wearing a different field — and `B107` is the canvas half, where a destroy objective's sketch presence is a
-  movable point with a stated height. What is missing between them is the **document** half: a field an author
-  or an agent can write, so that a landform carrying an objective is authored once, as the shape it is.
+**One remains.** `B128` is done — a destroyable/core's `float` now counts from the ground the world build
+actually solves rather than the plan's flat nominal surface, and the marker itself may name no plan piece at
+all, so a goal can ride an authored sketch landform with no tier manufactured to carry it. That leaves `B120`,
+which finds out whether the result actually answers.
 
 - [ ] **B120 — Run the trial again, and find out whether the system now answers.** The point of the three
   entries above is that an agent can author a map by driving the real documents. That claim is untested. Take
@@ -199,10 +153,13 @@ actually answers.
   So: remove `Headroom` from `PlanGlobals` and everything reading it, add a stated maximum build height in
   its place, and keep **per-piece `Surface`** exactly as it is — that one is load-bearing and correct as a
   plan-space concept. Two things travel with it. The compiler must stop reading a piece's `Surface` as a
-  literal world Y for spawns, wool rooms, destroyables and cores (`PlanCompiler` lines 205, 260, 290, 308),
-  because that is the same flat-world mistake wearing a different field; the anchor wants resolving against
-  the ground as built. And the ceiling wants a sane relationship to the finished terrain rather than to the
-  plan's base, since a map whose highest ground is y20 and whose cap is y20 permits no building at all.
+  literal world Y for **spawns and wool rooms** (`PlanCompiler` lines 205, 260) — the destroyable/core half of
+  this is done (`B128`): `float` now counts from the ground the world build actually solves rather than
+  `piece.Surface`, and the marker itself may name no piece at all. Spawns and wool rooms still bake their
+  room floor from `piece.Surface` at compile time, the same flat-world mistake wearing a different field; the
+  anchor wants resolving against the ground as built. And the ceiling wants a sane relationship to the
+  finished terrain rather than to the plan's base, since a map whose highest ground is y20 and whose cap is
+  y20 permits no building at all.
 
 - [ ] **B106 — A destroy goal may stand anywhere, and three documents say otherwise.** A destroyable or a
   core can be placed on **any piece of a plan** — a field, a plateau, a frontline, anywhere ground exists. It
@@ -239,7 +196,9 @@ actually answers.
   point, unlike a spawn or a wool room — and that is correct rather than missing: neither has a footprint, and
   neither wants one. They sit anywhere terrain exists beneath them, floating a few blocks clear of it. So a
   sketch presence for them is a **movable point with a stated height**, not a rect to drag, and the height is
-  the interesting half because it is the one thing the plan cannot know before the relief runs.
+  the interesting half because it is the one thing the plan cannot know before the relief runs — `B128` landed
+  that half in the document (`float` counts from solved ground, and the marker itself may name no plan piece
+  at all); what is still missing is a way to draw and drag that point on the canvas.
 
   **Position, separately.** Moving a piece rather than raising it is `S25b`, and the design here deliberately
   leaves rect and position tracking the plan so that a recompile stays authoritative about *where* while the

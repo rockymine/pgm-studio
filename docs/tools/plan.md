@@ -98,6 +98,12 @@ from that piece's minimum corner, snapped to a half-cell lattice. It resolves to
 offset on a cell centre. A marker that rides no piece cannot exist: the canvas refuses to drop one over empty
 grid, and the validator errors on a hand-written marker whose piece is unknown or is a buffer.
 
+**A destroyable and a core are the one exception.** `piece` may be empty, and `at` then reads as an
+**absolute** cell offset from the symmetry centre — the same frame a piece's own `rect` is authored in — so a
+goal can stand on ground that exists only as an authored sketch shape, with no plan piece manufactured to
+carry it (`B128`). The canvas does not yet offer a way to draw this; a hand-written or agent-authored document
+can.
+
 ### Globals
 
 `globals` is set once and governs the whole board.
@@ -176,9 +182,13 @@ that spawn and is resolved beside the room — which is how an iron marker besid
 size of the spawn building. Elsewhere it stamps a standalone iron cube, renewing only if its piece is a spawn.
 
 A **destroyable** and a **core** are the DTM and DTC goals. Both are anchored on a marker with no Y: the
-structure floats a stated number of blocks above the surface it spans, which is the design — a core on the
-ground cannot leak, and a destroyable on the ground is trivially covered. Every structure field is optional and
-defaulted by the compiler, so a bare `{ piece, at }` is a valid, typical goal, and setting a field back to its
+structure floats `float` blocks above the ground the relief actually leaves under it, which is the design — a
+core on the ground cannot leak, and a destroyable on the ground is trivially covered. `float` is an offset over
+the ground **as built**, not the plan's flat nominal surface, and it is resolved where the ground is actually
+known — the world-export path, once the layout is rasterized and the relief solved — never at compile time,
+which only knows the plan's rectangles. That is also why `piece` may be empty for these two markers alone
+(above): the goal's Y was never the piece's to give. Every structure field is optional and defaulted by the
+compiler, so a bare `{ piece, at }` or `{ at }` is a valid, typical goal, and setting a field back to its
 default removes the key rather than freezing the number.
 
 | Marker | Optional fields | Defaults (`GET /api/objectives/vocabulary`) |
@@ -334,20 +344,24 @@ moving the example's destroyable onto the wool-room piece answers:
 ```
 
 **Structural errors** (`PlanValidator.Validate`) block a compile with 422. They are: overlapping pieces at
-different surfaces; a placement referencing an unknown piece, a buffer, or a position outside its piece; a core
-with `float` set without `leak` or the reverse; a core casing with no interior to hold lava; a destroyable style
-that names nothing; destroyables or cores on a symmetry that is not order 2; a wall on a pair that shares no
-land interface; a room-frame refusal on a role piece (too small for its shell, a non-square pad, a wool room
+different surfaces; a placement referencing an unknown piece, a buffer, or a position outside its piece — a
+destroyable or a core with an empty `piece` is not this error, since an absolute goal names no piece to be
+unknown or outside of; a core with `float` set without `leak` or the reverse; a core casing with no interior to
+hold lava; a destroyable style that names nothing; destroyables or cores on a symmetry that is not order 2; a
+wall on a pair that shares no land interface; a room-frame refusal on a role piece (too small for its shell, a
+non-square pad, a wool room
 with no entry, a spawn room that cannot seat every monument its team will capture); a wool unreachable from a
 capturing team's spawn; and a wool reachable only through a spawn piece.
 
 The goal-placement rules deserve naming separately, because they are judged on the structure's **footprint**
 rather than its marker, so a marker legally inside its piece can still be refused. A destroyable or a core may
-stand on any piece where ground exists — it needs no room, no dead-end lane and no protection region — but its
-footprint may not overhang the void, where the build slice's deny rule would make its blocks unbreakable; may
-not reach into a spawn room, whose protection denies breaking to every team including the attackers, making the
-map unwinnable with nothing anywhere reporting it; and may not reach into a wool room, whose own rules would
-cover it.
+stand on any piece where ground exists, or on none at all — it needs no room, no dead-end lane and no
+protection region — but its footprint may not overhang the void, where the build slice's deny rule would make
+its blocks unbreakable; may not reach into a spawn room, whose protection denies breaking to every team
+including the attackers, making the map unwinnable with nothing anywhere reporting it; and may not reach into a
+wool room, whose own rules would cover it. An absolutely-placed goal carries no plan-level ground truth to
+judge this against, so the compile gate is silent about it and the export gate — over the ground the
+rasterizer actually produced — is the one that answers.
 
 **Completeness** (`PlanValidator.Completeness`) asks whether the plan carries what a map cannot exist without,
 and is checked only at the compile gate — a plan under construction is legitimately incomplete. No generating

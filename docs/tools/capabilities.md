@@ -27,8 +27,10 @@ editor reaches it.
 | map.xml | `MapXml` | `Domain/MapModel.cs` | written by `XmlWriter`, parsed by `MapParser` |
 
 The **plan** is the smallest and the most semantic: pieces with rects and roles, and `placements` holding
-spawns, wools, iron, destroyables and cores as piece-relative half-cell offsets, authored for **team 0 only**
-and fanned by symmetry at compile. Beside them it carries `walls` — a defence wall named by the two pieces
+spawns, wools, iron, destroyables and cores as piece-relative half-cell offsets — a destroyable or a core alone
+may drop the piece and read its offset as an absolute board position instead (`B128`), so a goal can ride an
+authored sketch shape with no plan piece manufactured to carry it — authored for **team 0 only** and fanned by
+symmetry at compile. Beside them it carries `walls` — a defence wall named by the two pieces
 whose interface it stands on — and `globals` with the cell size, the symmetry and the player count. It is the
 right surface for an agent because it is small and because the validator and evaluator answer it with
 rule-ids.

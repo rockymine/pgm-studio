@@ -146,4 +146,27 @@ public sealed class PlanCoresTests
         var json = Json.Replace(Marker, """{ "piece": "bar-w", "at": [9, 9] }""");
         await Assert.That(Errors(Validate(json), "core")).IsTrue();
     }
+
+    // B128: a core is the destroyable's absolute-addressing exception, proved separately here because the two
+    // markers resolve through independent loops in `PlanCompiler` and a fix to one does not imply the other.
+    // Under the old code `d.Piece("")` returned null and the whole core was dropped from the compiled intent.
+    [Test]
+    public async Task A_core_with_no_piece_compiles_by_absolute_board_position()
+    {
+        var json = Json.Replace(Marker, """{ "piece": "", "at": [-2, 6] }""");
+        var c = Compile(json);
+
+        await Assert.That(c.Count).IsEqualTo(2);
+        await Assert.That(c[0].Anchor.X).IsEqualTo(-2.0 * 5);
+        await Assert.That(c[0].Anchor.Z).IsEqualTo(6.0 * 5);
+        await Assert.That(c[0].Anchor.X).IsEqualTo(-c[1].Anchor.X);
+        await Assert.That(c[0].Anchor.Z).IsEqualTo(-c[1].Anchor.Z);
+    }
+
+    [Test]
+    public async Task A_core_with_no_piece_is_not_a_dangling_reference()
+    {
+        var json = Json.Replace(Marker, """{ "piece": "", "at": [-2, 6] }""");
+        await Assert.That(Errors(Validate(json), "unknown piece")).IsFalse();
+    }
 }

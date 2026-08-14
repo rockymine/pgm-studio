@@ -88,12 +88,15 @@ public static class PlanValidator
             if (c.Kind == ContactKind.Overlap && c.SurfaceDelta != 0)
                 Error($"overlapping pieces '{c.A}' and '{c.B}' have different surfaces (delta {c.SurfaceDelta})", c.A, c.B);
 
-        // placements must reference a real piece and sit inside it (a wool's flat area is its piece footprint)
+        // placements must reference a real piece and sit inside it (a wool's flat area is its piece footprint).
+        // A destroyable/core is the one marker kind that may name no piece at all (B128): an empty piece reads
+        // `at` as an absolute board position, so `allowAbsolute` skips the reference check rather than flagging
+        // a dangling one.
         foreach (var s in plan.Placements.Spawns) CheckInside(d, "spawn", s.Piece, s.At, findings);
         foreach (var w in plan.Placements.Wools) CheckInside(d, "wool", w.Piece, w.At, findings);
         foreach (var ir in plan.Placements.Iron) CheckInside(d, "iron", ir.Piece, ir.At, findings);
-        foreach (var b in plan.Placements.Destroyables) CheckInside(d, "destroyable", b.Piece, b.At, findings);
-        foreach (var c in plan.Placements.Cores) CheckInside(d, "core", c.Piece, c.At, findings);
+        foreach (var b in plan.Placements.Destroyables) CheckInside(d, "destroyable", b.Piece, b.At, findings, allowAbsolute: true);
+        foreach (var c in plan.Placements.Cores) CheckInside(d, "core", c.Piece, c.At, findings, allowAbsolute: true);
 
         // DC2 — float and leak are one knob: together they say how far players must dig under the core
         // (max(0, leak − float)). Authoring one alone silently pairs it with the other's default, which is a
@@ -241,8 +244,14 @@ public static class PlanValidator
         _ => RoomEdge.NegZ,
     };
 
-    private static void CheckInside(ContactGraph d, string kind, string pieceId, double[] at, List<PlanFinding> findings)
+    private static void CheckInside(
+        ContactGraph d, string kind, string pieceId, double[] at, List<PlanFinding> findings, bool allowAbsolute = false)
     {
+        // No piece named, and this kind allows it: `at` is an absolute board position, resolved for real
+        // against solved terrain at export (PlanCompiler.ResolveGoalAnchor). There is no piece footprint to
+        // bound it against here — the placement's own OB17 gate is where a goal like this gets checked, and
+        // only once the ground it needs actually exists.
+        if (allowAbsolute && pieceId.Length == 0) return;
         var piece = d.Plan.Pieces.FirstOrDefault(p => p.Id == pieceId);
         if (piece is null) { findings.Add(new PlanFinding(PlanSeverity.Error, $"{kind} references unknown piece '{pieceId}'", null, [pieceId])); return; }
         // A buffer is reserved empty space — it produces no terrain, so nothing may be placed on it.
@@ -476,9 +485,11 @@ public static class PlanValidator
         }
     }
 
-    /// <summary>The block rect a marker's structure covers, or null when the marker names no piece —
-    /// <see cref="CheckInside"/> already reported the dangling reference and a second finding for the same
-    /// typo would only crowd the drawer.</summary>
+    /// <summary>The block rect a marker's structure covers, or null when the marker names no piece — either a
+    /// dangling reference <see cref="CheckInside"/> already reported (a second finding for the same typo would
+    /// only crowd the drawer), or, for a destroyable/core, a deliberate absolute placement (B128): the plan has
+    /// no ground truth for it yet, so the compile-time OB17 gate is silent and the export-time gate, which
+    /// reads the ground actually built, is the one that answers.</summary>
     private static BlockRect? Footprint(ContactGraph d, string pieceId, double[] at, int width, int depth)
     {
         var piece = d.Piece(pieceId);

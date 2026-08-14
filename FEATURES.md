@@ -4563,7 +4563,23 @@ these are the ones that shipped a map that could not be played as intended, and 
   in every `Points` list — but, following CLAUDE.md's playability-oracle rule, they do not gate `Connected`:
   a destroyable floats above its terrain and is broken from range by design, so reachability-like-a-wool is
   an open gameplay question left recorded (`docs/design-decisions.md`) rather than answered by fiat.
-
+- **A goal's height is an offset over solved ground, not a plan tier manufactured to carry it (B128).**
+  `PlanCompiler` used to bake a destroyable's or a core's `Anchor.Y` from `piece.Surface` — the plan's flat
+  nominal world — at compile time, before the layout was rasterized or the relief solved. Nothing downstream
+  ever read that Y (`ObjectiveStamper.DestroyableBox`/`CoreBox` already resolved a goal's real floor from the
+  world build's own `surfaceTop`, plus `float`), but authoring still had to chase the wrong ground: to give a
+  destroyable a chosen height, an author had to draw a plan piece standing at that surface, whose only purpose
+  was to give the marker something to ride — Ashen Quarry's mesa was pushed back into the plan as a flat tier
+  at 58 for exactly this reason, then promoted to a polygon again to recover the outline it already had, so
+  the landform existed twice, in two idioms, in two files, with nothing checking the two agreed. `float` is
+  now measured from the ground the world build actually solves, and a destroyable/core marker may name no
+  plan piece at all — `DestroyablePlacement.Piece`/`CorePlacement.Piece` empty reads `at` as an absolute board
+  position (`PlanCompiler.ResolveGoalAnchor`) rather than a piece-relative offset, so a goal can ride an
+  authored sketch landform with no tier manufactured to carry it, and `PlanValidator` no longer reports the
+  absent piece as a dangling reference for these two marker kinds. The default float stays at 4 — a gameplay
+  constant, not part of this fix. Leaves open: `B105` (the compiler still reads a piece's `Surface` as a
+  literal world Y for spawns and wool rooms, and this task does not touch that) and `B107` (the canvas has no
+  way to draw an absolutely-placed goal yet — only a hand-written or agent-authored plan can).
 - **The capability handbook — what the system can be asked for, and where to say it (B91).** `docs/tools/capabilities.md`
   mapped the four documents a map is made of; it now also states the surface underneath the spec's shorthand, in
   pipeline order, every claim naming the type that carries it and the endpoint that answers it: the destroyable's

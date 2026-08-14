@@ -139,6 +139,103 @@ public sealed class DestroyableWorldTests
         }
     }
 
+    // B128: the demonstration. A destroyable rides an authored landform that carries no plan piece at all —
+    // the mesa's own shape, added the way Sketch actually authors one, with the marker naming only an
+    // absolute board position. Under the old code this destroyable would not exist in the compiled intent
+    // (the piece lookup for an empty id returned null and the whole marker was dropped); here it lands at the
+    // height the "relief" left, not at any plan-nominal surface, because there is no piece to nominate one.
+    [Test]
+    public async Task A_destroyable_needs_no_plan_piece_when_it_rides_an_authored_landform()
+    {
+        const string json = """
+            {
+              "plan": 1,
+              "meta": { "name": "Mesa Probe" },
+              "globals": { "cell": 5, "symmetry": "rot_180", "surface": 9, "headroom": 11 },
+              "pieces": [],
+              "placements": {
+                "destroyables": [ { "piece": "", "at": [2, 2] } ]
+              }
+            }
+            """;
+
+        var plan = PlanModel.Parse(json)!;
+        var (_, intent) = PlanCompiler.Compile(plan);
+        await Assert.That(intent.Destroyables!.Count).IsEqualTo(2);
+
+        // The mesa: one polygon added by hand after compile, standing for a Sketch-authored `raise` shape —
+        // no plan piece behind it, no plan tier manufactured to carry the marker.
+        const string layoutJson = """
+            {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
+             "layout":{"shapes":[
+               {"id":"mesa","type":"rectangle","operation":"add",
+                "min_x":-30,"min_z":-30,"max_x":30,"max_z":30,"base_height":30}
+             ],"islands":[]}}
+            """;
+
+        var built = SketchWorldBuilder.Build(layoutJson, intent);
+        await Assert.That(built.ResolvedIntent.Destroyables!.Count).IsEqualTo(2);
+
+        foreach (var destroyable in built.ResolvedIntent.Destroyables!)
+        {
+            var box = destroyable.Box!.Value;
+            // The mesa's surface top is y=30 (its base_height); the default float is 4, so the goal floats
+            // at 34 — the offset counted from the ground actually solved there, not from any plan surface
+            // (the plan carried no piece, so it had none to offer).
+            await Assert.That(box.MinY).IsEqualTo(34);
+        }
+    }
+
+    // The same demonstration against Ashen Quarry's own geometry (specs/ashen_quarry/ashen_quarry.plan.json):
+    // its mesa is the map the review found this defect on — a `raise` shape pushed back into the plan as a
+    // rectangular tier at surface 58 purely so `destroyable-2` had a piece to ride, then promoted back to a
+    // polygon to recover the outline it already had. Here the mesa is never a plan piece at all: its rect and
+    // surface stand for the authored polygon directly, and the marker names only the absolute position it
+    // held on the mesa (`piece: "mesa", at: [25, 27]`, cell 1 → block (-93, -67)).
+    [Test]
+    public async Task Ashen_Quarrys_mesa_goal_needs_no_manufactured_tier()
+    {
+        const string json = """
+            {
+              "plan": 1,
+              "meta": { "name": "Ashen Quarry mesa probe" },
+              "globals": { "cell": 1, "symmetry": "rot_180", "surface": 41, "headroom": 28 },
+              "pieces": [],
+              "placements": {
+                "destroyables": [
+                  { "piece": "", "at": [-93, -67], "style": "cube-4", "materials": "gold block",
+                    "float": 4, "name": "Mesa Monument" }
+                ]
+              }
+            }
+            """;
+
+        var plan = PlanModel.Parse(json)!;
+        var (_, intent) = PlanCompiler.Compile(plan);
+        await Assert.That(intent.Destroyables!.Count).IsEqualTo(2);
+
+        // The mesa's own footprint and surface (`mesa`: rect [-118,-94,50,54] → block [-118,-94]..[-68,-40],
+        // surface 58), authored as the polygon it actually is rather than demoted into the plan.
+        const string layoutJson = """
+            {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
+             "layout":{"shapes":[
+               {"id":"mesa","type":"rectangle","operation":"add",
+                "min_x":-118,"min_z":-94,"max_x":-68,"max_z":-40,"base_height":58}
+             ],"islands":[]}}
+            """;
+
+        var built = SketchWorldBuilder.Build(layoutJson, intent);
+        await Assert.That(built.ResolvedIntent.Destroyables!.Count).IsEqualTo(2);
+
+        foreach (var mesaGoal in built.ResolvedIntent.Destroyables!)
+        {
+            await Assert.That(mesaGoal.Name).IsEqualTo("Mesa Monument");
+            // The mesa's surface, plus the default float — resolved from the polygon's own ground, with no
+            // plan piece in the picture at all.
+            await Assert.That(mesaGoal.Box!.Value.MinY).IsEqualTo(58 + 4);
+        }
+    }
+
     [Test]
     public async Task The_exported_xml_carries_the_destroyables_and_reads_back()
     {

@@ -268,6 +268,13 @@ public sealed record MonumentIntent
 /// compiler, so a consumer never re-decides them. <see cref="Anchor"/> is the marker column, not the
 /// structure's corner: the box is centred on it and floats <see cref="Float"/> blocks above the surface its
 /// footprint spans, so its Y is a function of the terrain rather than an authored number.</para>
+/// <para><see cref="Anchor"/>.Y carries the plan's flat nominal height (or the global surface, for a marker
+/// placed with no piece — B128) purely as information for a caller with no built world to read yet, such as
+/// the plan editor's own preview; it is never authoritative and no consumer downstream of the world build may
+/// read it. <see cref="Box"/>.MinY, once the world is built, is the real answer — resolved by
+/// <c>SketchWorldBuilder</c> from the terrain the relief actually solved under the column, plus
+/// <see cref="Float"/> — and the only place a compiled-but-unbuilt intent's height claim should be trusted at
+/// all is that it names the right ground column (Anchor.X/Z), not the right ground level.</para>
 /// </summary>
 public sealed record DestroyableIntent
 {
@@ -281,7 +288,9 @@ public sealed record DestroyableIntent
     /// <summary>A PGM material match — the goal is these blocks, not the region that holds them.</summary>
     public string Materials { get; init; } = "";
     public Pt Anchor { get; init; }
-    /// <summary>Blocks of air between the terrain and the structure's underside.</summary>
+    /// <summary>Blocks of air between the ground the world build solves under <see cref="Anchor"/>'s column and
+    /// the structure's underside — an offset over the ground as built, not the plan's flat nominal
+    /// surface.</summary>
     public int Float { get; init; }
 
     /// <summary>
@@ -302,6 +311,9 @@ public sealed record DestroyableIntent
 /// to it, so the generator emits no <c>material</c> attribute at all.</para>
 /// <para><see cref="Float"/> and <see cref="Leak"/> are one knob (DC2) — together they state how far players
 /// must dig under the core to make its lava leak (<see cref="DigDepth"/>). Neither means anything alone.</para>
+/// <para><see cref="Anchor"/>.Y is informational only, the same as a destroyable's (B128,
+/// <see cref="DestroyableIntent"/>) — the casing's real floor is <see cref="Box"/>.MinY, resolved from the
+/// terrain the world build actually solved under the column plus <see cref="Float"/>.</para>
 /// </summary>
 public sealed record CoreIntent
 {
@@ -317,6 +329,9 @@ public sealed record CoreIntent
     public int Shell { get; init; }
     /// <summary>Omit the cap layer so the lava reaches the casing rim.</summary>
     public bool OpenTop { get; init; }
+    /// <summary>Blocks of air between the ground the world build solves under <see cref="Anchor"/>'s column and
+    /// the casing's underside — an offset over the ground as built, not the plan's flat nominal surface.
+    /// Pairs with <see cref="Leak"/> (DC2).</summary>
     public int Float { get; init; }
     public int Leak { get; init; }
 

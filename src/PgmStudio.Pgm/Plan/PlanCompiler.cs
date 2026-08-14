@@ -277,17 +277,15 @@ public static class PlanCompiler
             for (var i = 0; i < plan.Placements.Destroyables.Count; i++)
             {
                 var b = plan.Placements.Destroyables[i];
-                var piece = d.Piece(b.Piece);
-                if (piece is null) continue;
-                var (bx, bz) = Resolve(piece.Value.Rect, b.At, d.Cell);
-                var (px, pz) = d.FanPoint(bx, bz, k);
+                if (ResolveGoalAnchor(plan, d, b.Piece, b.At) is not { } anchor) continue;
+                var (px, pz) = d.FanPoint(anchor.X, anchor.Z, k);
                 destroyables.Add(new DestroyableIntent
                 {
                     Owner = teams[k].Id,
                     Name = !string.IsNullOrEmpty(b.Name) ? b.Name : MonumentName(teams[k].Name, i),
                     Style = !string.IsNullOrEmpty(b.Style) ? b.Style : DestroyableStyles.Slug(ObjectiveDefaults.Style),
                     Materials = !string.IsNullOrEmpty(b.Materials) ? b.Materials : ObjectiveDefaults.Materials,
-                    Anchor = new Pt(px, piece.Value.Surface, pz),
+                    Anchor = new Pt(px, anchor.Surface, pz),
                     Float = b.Float ?? ObjectiveDefaults.DestroyableFloat,
                 });
             }
@@ -297,15 +295,13 @@ public static class PlanCompiler
         for (var k = 0; k < order && order == 2; k++)
             foreach (var c in plan.Placements.Cores)
             {
-                var piece = d.Piece(c.Piece);
-                if (piece is null) continue;
-                var (bx, bz) = Resolve(piece.Value.Rect, c.At, d.Cell);
-                var (px, pz) = d.FanPoint(bx, bz, k);
+                if (ResolveGoalAnchor(plan, d, c.Piece, c.At) is not { } anchor) continue;
+                var (px, pz) = d.FanPoint(anchor.X, anchor.Z, k);
                 cores.Add(new CoreIntent
                 {
                     Owner = teams[k].Id,
                     Name = c.Name ?? "",                 // empty is correct: PGM names a core itself
-                    Anchor = new Pt(px, piece.Value.Surface, pz),
+                    Anchor = new Pt(px, anchor.Surface, pz),
                     Size = c.Size ?? ObjectiveDefaults.CoreSize,
                     Height = c.Height ?? ObjectiveDefaults.CoreHeight,
                     Shell = c.Shell ?? ObjectiveDefaults.CoreShell,
@@ -568,6 +564,23 @@ public static class PlanCompiler
     // 2.5-block half-cell; downstream flooring/snapping is the export pipeline's job, so the raw value flows on.
     private static (double X, double Z) Resolve(BlockRect piece, double[] at, int cell) =>
         (piece.MinX + at[0] * cell, piece.MinZ + at[1] * cell);
+
+    // A destroyable's or a core's anchor — the one marker kind that may ride no piece at all (B128). A named
+    // piece resolves exactly as every other marker's does; an empty one reads `at` as an absolute cell offset
+    // from the symmetry centre, the same frame a piece's own rect is authored in, so a goal can stand on
+    // ground that exists only as an authored sketch shape with no plan piece behind it. `Surface` here is the
+    // plan's own flat nominal height — informational only, carried on the compiled intent for a caller with
+    // no built world to read yet — never the goal's real Y, which SketchWorldBuilder resolves later against
+    // the terrain the relief actually left (Float is what measures that gap; see DestroyableIntent.Float).
+    // Null when a named piece does not resolve — the validator has already reported the dangling reference.
+    private static (double X, double Z, int Surface)? ResolveGoalAnchor(PlanModel plan, ContactGraph d, string pieceId, double[] at)
+    {
+        if (string.IsNullOrEmpty(pieceId)) return (at[0] * d.Cell, at[1] * d.Cell, plan.Globals.Surface);
+        var piece = d.Piece(pieceId);
+        if (piece is null) return null;
+        var (x, z) = Resolve(piece.Value.Rect, at, d.Cell);
+        return (x, z, piece.Value.Surface);
+    }
 
     // The facing unit direction on the authored unit: absolute board directions (front = −z, back = +z,
     // left = −x, right = +x), the fixed reading the editor renders. Each orbit image fans this vector.

@@ -366,6 +366,18 @@ miss most real structures. Measured on the declared blocks themselves (not the c
 something**. Only 68 float 3–5. The floating pillar is the authored ideal; the corpus overwhelmingly seats its
 destroyables on terrain, a pedestal or a build.
 
+**The studio's `float` counts from the ground as built, not from a plan-nominal surface (`B128`).** A marker's
+plan-side `piece` (when it has one) states an `x`/`z` and, for spawns and wools, a Y — but a destroyable or a
+core is never given a Y at all: the structure floats `float` blocks over whatever the relief actually left
+under its column, resolved by the world-export path once the layout is rasterized and the relief solved, which
+is the only place that ground is known. `float` is an offset, not an authored world Y, so it survives a relief
+pass moving the ground under it — a goal placed "on the mesa" stays on the mesa however the mesa's own height
+is later solved. Because the plan compiler resolves nothing about height for these two markers, a destroyable
+or a core is also the one marker kind that may name no plan piece at all: its `at` reads as an absolute board
+position, and the ground it rides can be an authored sketch shape with no piece behind it — a landform is then
+authored once, as the shape it is, rather than twice: once as a plan rectangle purely to give a marker
+something to ride, and again as the polygon it actually is.
+
 ### DC1 — the core structure (default 5×5×5, shell 1, lava 3×3×3)
 
 The dominant real core casing is **5×5×5 obsidian** (57/255 = 22%; next 7×7×7 at 12%, 4×4×4 at 7%), the shell
@@ -478,10 +490,18 @@ reject most of the corpus.
 
 **OB17 — a goal may stand almost anywhere, and there are exactly three places it may not.** A destroyable and
 a core are unlike a wool in how freely they sit: no room, no per-team monument, nothing that binds them to a
-particular piece. What bounds them is where the map's own rules would make them unbreakable, and all three
-cases are decided by the structure's **footprint** rather than by its marker — which is why a marker legally
-inside its piece can still be wrong, and why the check needs the same footprint the stamper builds
-(`ObjectiveFootprint`, below both the plan layer and the stamper for exactly that reason).
+particular piece — and, since `B128`, not even a piece at all, for a marker placed by absolute board position.
+What bounds them is where the map's own rules would make them unbreakable, and all three cases are decided by
+the structure's **footprint** rather than by its marker — which is why a marker legally inside its piece can
+still be wrong, and why the check needs the same footprint the stamper builds (`ObjectiveFootprint`, below both
+the plan layer and the stamper for exactly that reason).
+
+An absolutely-placed goal has no plan-level footprint to judge in the first place — the plan carries no ground
+truth for it, only the sketch does, and the sketch is the one document the compiler never reads. The
+compile-time gate below is silent about it (`PlanValidator.Footprint` answers null, the same answer it gives a
+dangling piece reference, but for the opposite reason: there is deliberately no ground to check yet, not a typo
+to report); the export-time gate, over the ground the rasterizer actually produced, is where such a goal is
+checked for real, and it refuses a void placement exactly as it always has.
 
 *Over the void.* The build slice applies `block_place=deny(void)` to the complement of the build areas, so
 blocks hanging off the land cannot be broken and the objective can never be completed. A one-block pillar at

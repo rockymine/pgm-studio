@@ -101,6 +101,66 @@ public sealed class PlanDestroyablesTests
         await Assert.That(findings.Any(f => f.Severity == PlanSeverity.Error && f.Message.Contains("destroyable"))).IsTrue();
     }
 
+    // B128: a destroyable is the one marker kind that may ride no piece at all — an empty `piece` reads `at`
+    // as an absolute board position, so a goal can stand on ground that exists only as an authored sketch
+    // shape, with no plan piece manufactured to carry it. Under the old code this marker's piece lookup
+    // (`d.Piece("")`) returned null and the whole placement was silently dropped from the compiled intent.
+    [Test]
+    public async Task A_marker_with_no_piece_compiles_by_absolute_board_position()
+    {
+        var json = Json.Replace("""{ "piece": "bar-w", "at": [1, 1] }""", """{ "piece": "", "at": [3, -4] }""");
+        var d = Compile(json);
+
+        await Assert.That(d.Count).IsEqualTo(2);
+        // Absolute `at` resolves the same way a piece's own rect does: cells·globals.cell from the centre.
+        await Assert.That(d[0].Anchor.X).IsEqualTo(3.0 * 5);
+        await Assert.That(d[0].Anchor.Z).IsEqualTo(-4.0 * 5);
+        // Still fans across the orbit like every other destroyable.
+        await Assert.That(d[0].Anchor.X).IsEqualTo(-d[1].Anchor.X);
+        await Assert.That(d[0].Anchor.Z).IsEqualTo(-d[1].Anchor.Z);
+    }
+
+    // Omitting `piece` entirely is the same absolute placement — the field defaults to "".
+    [Test]
+    public async Task Omitting_piece_entirely_is_also_absolute()
+    {
+        var json = Json.Replace("""{ "piece": "bar-w", "at": [1, 1] }""", """{ "at": [2, 2] }""");
+        var d = Compile(json);
+        await Assert.That(d.Count).IsEqualTo(2);
+        await Assert.That(d[0].Anchor.X).IsEqualTo(2.0 * 5);
+        await Assert.That(d[0].Anchor.Z).IsEqualTo(2.0 * 5);
+    }
+
+    // B128: the compile-time gate has no ground truth for an absolute marker (the landform it will ride is
+    // sketch geometry the plan never sees), so it must not report the piece-required error the old validator
+    // raised for every marker naming an unknown/empty piece.
+    [Test]
+    public async Task A_marker_with_no_piece_is_not_a_dangling_reference()
+    {
+        var json = Json.Replace("""{ "piece": "bar-w", "at": [1, 1] }""", """{ "piece": "", "at": [3, -4] }""");
+        var findings = PlanValidator.Validate(PlanModel.Parse(json)!);
+        await Assert.That(findings.Any(f =>
+            f.Severity == PlanSeverity.Error && f.Message.Contains("unknown piece"))).IsFalse();
+    }
+
+    // The absolute exception is destroyable/core only — every other marker kind still requires a real piece
+    // (B105 is the system-wide question; this task narrows to the two goal markers).
+    [Test]
+    public async Task A_spawn_with_no_piece_is_still_a_dangling_reference()
+    {
+        var json = """
+            {
+              "plan": 1,
+              "globals": { "cell": 5, "symmetry": "rot_180", "surface": 9, "headroom": 11 },
+              "pieces": [ { "id": "bar-w", "role": "piece", "rect": [0, 0, 2, 2], "surface": 12 } ],
+              "placements": { "spawns": [ { "piece": "", "at": [1, 1], "facing": "front" } ] }
+            }
+            """;
+        var findings = PlanValidator.Validate(PlanModel.Parse(json)!);
+        await Assert.That(findings.Any(f =>
+            f.Severity == PlanSeverity.Error && f.Message.Contains("spawn references unknown piece"))).IsTrue();
+    }
+
     [Test]
     [Arguments("rot_90", 4)]
     [Arguments("none", 1)]
