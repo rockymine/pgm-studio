@@ -72,41 +72,55 @@ public static class TopDownRender
         int LowestY, int HighestY, int OverlayCount);
 
     /// <summary>Reads a built region directory from disk and renders it — the <c>RoundTrip</c> CLI's entry
-    /// point.</summary>
+    /// point. Picks up <see cref="WorldProvenanceFile"/>'s sidecar automatically when the region carries one;
+    /// a region with none (a scanned world, or one built before this recording existed) falls back to the
+    /// material estimate, which is <see cref="TopDownColorMode.Material"/>'s reading regardless.</summary>
     public static int Run(string regionDir, string outPng, MapXml? map, int scale, int? yMax,
         TopDownColorMode colorMode = TopDownColorMode.Category, TopDownLayer layer = TopDownLayer.Combined)
     {
         if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"no region dir: {regionDir}"); return 1; }
         var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(AnvilRegion.ReadChunks).ToList();
         if (chunks.Count == 0) { Console.Error.WriteLine($"no chunks in {regionDir}"); return 1; }
-        return Emit(chunks, outPng, map, scale, yMax, colorMode, layer,
+        return Emit(chunks, outPng, map, scale, yMax, colorMode, layer, WorldProvenanceFile.TryRead(regionDir),
             Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(regionDir)) ?? regionDir));
     }
 
     /// <summary>Renders a world still held in memory — no round trip through a region file. This is what lets
     /// a generator emit its own top-down the moment it finishes building, over the exact world it just made
-    /// rather than one re-read off disk.</summary>
+    /// rather than one re-read off disk. <paramref name="provenance"/> is the record the build itself kept
+    /// (<see cref="SketchWorld.Provenance"/> via <c>PgmStudio.Export</c>); null reads by the material estimate,
+    /// exactly as a caller with no world build behind it — a corpus scan — already does.</summary>
     public static int Run(VoxelWorld world, string outPng, MapXml? map, int scale, int? yMax, string name,
-        TopDownColorMode colorMode = TopDownColorMode.Category, TopDownLayer layer = TopDownLayer.Combined)
+        TopDownColorMode colorMode = TopDownColorMode.Category, TopDownLayer layer = TopDownLayer.Combined,
+        WorldProvenance? provenance = null)
     {
         var chunks = AnvilRegion.FromWorld(world).ToList();
         if (chunks.Count == 0) { Console.Error.WriteLine("world has no chunks"); return 1; }
-        return Emit(chunks, outPng, map, scale, yMax, colorMode, layer, name);
+        return Emit(chunks, outPng, map, scale, yMax, colorMode, layer, provenance, name);
     }
 
     private static int Emit(List<AnvilRegion.Chunk> chunks, string outPng, MapXml? map, int scale, int? yMax,
-        TopDownColorMode colorMode, TopDownLayer layer, string name)
+        TopDownColorMode colorMode, TopDownLayer layer, WorldProvenance? provenance, string name)
     {
-        var result = Render(chunks, map, yMax, colorMode, layer);
+        var result = Render(chunks, map, yMax, colorMode, layer, provenance);
         if (result is null) { Console.Error.WriteLine("no non-air columns"); return 1; }
+
+        // Whether the Ground/Structure split is a recorded fact or a material guess is the one thing a legend
+        // swatch cannot say on its own (B133), so it is baked into the picture itself rather than left to a
+        // caption an image reader never sees — the same reason the legend exists at all.
+        var provenanceState = colorMode != TopDownColorMode.Category ? null
+            : provenance is not null ? "STRUCTURE READING: RECORDED PROVENANCE"
+            : "STRUCTURE READING: MATERIAL ESTIMATE (NO RECORDED PROVENANCE)";
 
         var scaled = Raster.Upscale(result.Pixels, result.BlocksWide, result.BlocksHigh, scale);
         var withLegend = Legend.AppendBelow(scaled, result.BlocksWide * scale, result.BlocksHigh * scale,
             LegendEntries(colorMode, layer), out var legendHeight,
-            scaleLabel: $"SCALE: 1 BLOCK = {scale} PX - {result.BlocksWide} X {result.BlocksHigh} BLOCKS");
+            scaleLabel: $"SCALE: 1 BLOCK = {scale} PX - {result.BlocksWide} X {result.BlocksHigh} BLOCKS"
+                       + (provenanceState is null ? "" : $"  -  {provenanceState}"));
         PngWriter.Write(outPng, result.BlocksWide * scale, legendHeight, withLegend);
 
-        Console.WriteLine($"topdown {name} ({layer}/{colorMode}): {result.ColumnCount} columns over {result.BlocksWide}x{result.BlocksHigh} blocks, " +
+        Console.WriteLine($"topdown {name} ({layer}/{colorMode}{(provenanceState is null ? "" : $", {provenanceState}")}): " +
+            $"{result.ColumnCount} columns over {result.BlocksWide}x{result.BlocksHigh} blocks, " +
             $"surface y {result.LowestY}..{result.HighestY}");
         if (result.OverlayCount > 0) Console.WriteLine($"  overlay: {result.OverlayCount} box(es)");
         Console.WriteLine($"  wrote {outPng} ({result.BlocksWide * scale}x{legendHeight} px, {scale} px/block)");
@@ -157,9 +171,10 @@ public static class TopDownRender
     /// or console I/O, no legend baked in — what a caller that only wants the categorised pixels (a test, an
     /// HTTP endpoint composing its own page) pays for. <see cref="Emit"/> is what appends the key.</summary>
     public static Result? Render(IEnumerable<AnvilRegion.Chunk> chunks, MapXml? map, int? yMax,
-        TopDownColorMode colorMode = TopDownColorMode.Category, TopDownLayer layer = TopDownLayer.Combined)
+        TopDownColorMode colorMode = TopDownColorMode.Category, TopDownLayer layer = TopDownLayer.Combined,
+        WorldProvenance? provenance = null)
     {
-        var columns = ReadColumns(chunks.ToList(), yMax);
+        var columns = ReadColumns(chunks.ToList(), yMax, provenance);
         if (columns.Count == 0) return null;
 
         int minX = columns.Keys.Min(cell => cell.X), maxX = columns.Keys.Max(cell => cell.X);
@@ -178,13 +193,18 @@ public static class TopDownRender
     }
 
     /// <summary>Surface category + height per column, with water resolved to its bed for the depth reading
-    /// (the category stays <see cref="RenderCategory.Water"/> regardless of what the bed is made of).</summary>
-    private static Dictionary<(int X, int Z), Column> ReadColumns(List<AnvilRegion.Chunk> chunks, int? yMax)
+    /// (the category stays <see cref="RenderCategory.Water"/> regardless of what the bed is made of).
+    /// <paramref name="provenance"/> null reads every column by the material estimate, exactly the pre-B133
+    /// behaviour; non-null lets a recorded Ground claim override a built-looking material's own reading.</summary>
+    private static Dictionary<(int X, int Z), Column> ReadColumns(
+        List<AnvilRegion.Chunk> chunks, int? yMax, WorldProvenance? provenance)
     {
         var surface = LayerExtractors.Surface(chunks, maxBuildHeight: yMax).ToList();
         var byCell = new Dictionary<(int X, int Z), Column>(surface.Count);
         foreach (var block in surface)
-            byCell[(block.WorldX, block.WorldZ)] = new Column(block.WorldY, RenderCategories.Of(block.BlockId), block.BlockId, block.BlockData, 0);
+            byCell[(block.WorldX, block.WorldZ)] = new Column(block.WorldY,
+                RenderCategories.Of(block.BlockId, provenance?.LayerAt(block.WorldX, block.WorldZ)),
+                block.BlockId, block.BlockData, 0);
 
         // Only the water columns need the second, deeper read, so the bed lookup is built for those alone.
         var waterCells = surface

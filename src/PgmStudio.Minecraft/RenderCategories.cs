@@ -83,14 +83,38 @@ public static class RenderCategories
     public static readonly RenderCategory[] Visible =
         [RenderCategory.Ground, RenderCategory.Structure, RenderCategory.Foliage, RenderCategory.Water];
 
-    /// <summary>What a column's topmost recorded block reads as. Liquid outranks foliage and a built surface
-    /// outranks bare ground, the same priority every scan in this suite already gives a column's single
-    /// answer; a block that is none of those — bare dirt, stone, sand, a thin decoration like a torch or a
-    /// sign — is the ground itself.</summary>
+    /// <summary>What a column's topmost recorded block reads as, from material alone. Liquid outranks foliage
+    /// and a built surface outranks bare ground, the same priority every scan in this suite already gives a
+    /// column's single answer; a block that is none of those — bare dirt, stone, sand, a thin decoration like
+    /// a torch or a sign — is the ground itself.
+    ///
+    /// <para>This is the <b>estimate</b>: the only reading available for a world the studio scanned rather than
+    /// built, and the reason it is wrong for a built world is B133's own finding — stone brick is stone brick
+    /// whether it is a cottage wall or a plaza the painter finished. <see cref="Of(int, ProvenanceLayer?)"/> is
+    /// the answer a built world can give instead.</para></summary>
     public static RenderCategory Of(int blockId) =>
         blockId == 0 ? RenderCategory.Void
         : BlockRoles.IsLiquid(blockId) ? RenderCategory.Water
         : BlockRoles.IsTree(blockId) || BlockRoles.IsFlora(blockId) ? RenderCategory.Foliage
         : BlockRoles.IsBuilt(blockId) ? RenderCategory.Structure
         : RenderCategory.Ground;
+
+    /// <summary>What a column reads as when a build recorded which pass claimed it. Liquid, foliage and void
+    /// stay material questions — a log or a leaf is unambiguous by itself, and provenance was never asked
+    /// about either. The Ground/Structure boundary is where a material test can lie, so a recorded provenance
+    /// wins there outright: <paramref name="provenance"/> null falls back to the material estimate (a scanned
+    /// world, or a column the build never claimed at all), <see cref="ProvenanceLayer.Structure"/> reads as
+    /// built whatever the block is, and <see cref="ProvenanceLayer.Ground"/> reads as ground even over a block
+    /// <see cref="BlockRoles.IsBuilt"/> would call built — the case a plaza painted in a built-looking material
+    /// needs, and the case the material-only overload cannot make.</summary>
+    public static RenderCategory Of(int blockId, ProvenanceLayer? provenance) =>
+        blockId == 0 ? RenderCategory.Void
+        : BlockRoles.IsLiquid(blockId) ? RenderCategory.Water
+        : BlockRoles.IsTree(blockId) || BlockRoles.IsFlora(blockId) ? RenderCategory.Foliage
+        : provenance switch
+        {
+            ProvenanceLayer.Structure => RenderCategory.Structure,
+            ProvenanceLayer.Ground => RenderCategory.Ground,
+            _ => BlockRoles.IsBuilt(blockId) ? RenderCategory.Structure : RenderCategory.Ground,
+        };
 }

@@ -486,6 +486,30 @@ carries a legend baked into the image — swatch, name, one row per colour actua
 stating blocks-per-pixel, via `PgmStudio.Geom.Render.Legend`, so a reader never has to bring an outside key to
 the picture (`B98`, `B95`).
 
+**The Ground/Structure boundary is read from a recorded build, not from the block, whenever one is
+available (B133).** A material test cannot separate a cottage's stone-brick wall from a plaza paved in the
+same stone brick, or from a mesa an author painted to read as built, and no palette refinement fixes that — a
+block does not know what placed it. `PgmStudio.Minecraft.WorldProvenance` is what a built world carries
+instead: `SketchWorldBuilder` claims every rasterized column as `Ground` first, then each stamp — a room
+floor, a wool cage, a spawn cube, a wall, an iron cube, a redstone line, a destroyable, a core, a
+dressing-placed building — claims its own footprint as `Structure` over it, composited in placement order so
+a later claim covers an earlier one. `RenderCategories.Of(blockId, provenance)` reads a recorded claim as
+authoritative for the Ground/Structure pair (liquid, foliage and void stay material questions, which they
+already answer without ambiguity) and falls back to the material estimate — the single-argument overload —
+when no claim was ever recorded for that column. `--topdown`'s `Run(regionDir, …)` overload and
+`tools/mapgen --stages` pick up the recorded record automatically; `--material` is unaffected, since a
+material check is asking a different question on purpose. The picture states which reading it used: the
+scale line carries `STRUCTURE READING: RECORDED PROVENANCE` or `MATERIAL ESTIMATE (NO RECORDED PROVENANCE)`,
+because that is exactly the fact a colour alone cannot carry.
+
+**The split is real and is not papered over.** A world the studio *builds* gets the recorded truth: the
+record is written beside the region files a build writes (`PgmStudio.Minecraft.WorldProvenanceFile`, one
+run-length-encoded JSON file per region directory — a block still carries no provenance byte of its own, so
+the answer has to live somewhere the voxels do not), and travels inside a downloaded `.zip` the same way. A
+world the studio only *scanned* — the corpus, an imported map, anything built before this recording
+existed — carries no such file and stays on the material estimate, which is the only reading available for
+it and always will be.
+
 Every renderer above looks straight down. `--column <regionDir> <x> <z> [x z ...]` and
 `--section <regionDir> <outPng> --x <lo> <hi> --z <fixed>` (or the axes swapped) are the vertical
 complement: `--column` prints one or more columns bedrock to sky, every solid block named — the cheap
@@ -495,19 +519,32 @@ and a void column are all visible in one picture rather than inferred from a pla
 discarded Y. Both read `PgmStudio.Minecraft.Render.ColumnReport`/`SectionRender` exactly like the renderers
 above — a region directory or an in-memory `VoxelWorld`, no second load.
 
-`--structures` finds a building by the material on top of each column, because elevation alone cannot tell a
-hut from a boulder. That test used to be the *only* one: any two neighbouring built columns joined into one
-component whether or not either was made of the same thing, so a roof's edge touching the plaza it stands
-over fused into the plaza, and a themed map's own ground — painted in the same palette it built with — fused
-into whatever stood on it. The flood now also requires the two columns' tops to be within `--max-step` of
-each other (default 4, the same discipline `--buildings` already applies to a roof). Measured on Ashen
-Quarry: two roughly 9,000-cell "town square" components shed 1,550 cells of roof that had been touching the
-plaza directly, now reported as fourteen structures of their own — real separation, not a relabelling. What
-the step cannot reach is a roof laid flush with the plaza's own paving height: nothing steps between two
-flat surfaces of one material, so a stone-brick cottage roofed level with the stone-brick square around it
-stays fused, unchanged from before. The fix is a geometric improvement, not a full one, and this is exactly
-where it stops short — a full separation would want the enclosed volume a room stamps rather than a
-roof-height comparison, and two widely-stepped wings of one building can still read as two structures.
+`--structures` finds a building by the material on top of each column when no recorded provenance is
+available, because elevation alone cannot tell a hut from a boulder. That test used to be the *only* one: any
+two neighbouring built columns joined into one component whether or not either was made of the same thing, so
+a roof's edge touching the plaza it stands over fused into the plaza, and a themed map's own ground — painted
+in the same palette it built with — fused into whatever stood on it. `B124` narrowed that: the flood also
+requires the two columns' tops to be within `--max-step` of each other (default 4, the same discipline
+`--buildings` already applies to a roof), which measurably separated real structures on Ashen Quarry — two
+roughly 9,000-cell "town square" components shed 1,550 cells of roof that had been touching the plaza
+directly. What the step could not reach was its own stated limit: a roof laid flush with the plaza's own
+paving height, since nothing steps between two flat surfaces of one material.
+
+**`B133` closes that limit rather than narrowing it further.** When a `WorldProvenance` is available,
+`--structures` stops asking "built, and within a step of its neighbour" and asks "did a stamp claim this
+column" instead — a candidate column is one the build itself recorded as `Structure`, whatever it is made of
+and however level it sits against the paving beside it, so the step test is dropped entirely (a tall roof's
+eave and ridge can differ by more than any step without being cut into two components, since the recorded
+extent already says they are one building). A stone-brick cottage on a stone-brick plaza is two different
+things because two different passes put them there, and a roof flush with its own paving cannot fuse with it
+because the paving was never a candidate at all. Reproducing Ashen Quarry's own plan through the current
+pipeline (its original build predates this recording and cannot be retrofitted) makes the gap concrete: read
+by material and step alone, the whole board — town tier, mesa hull, quarry bowl — floods into three
+components, one of them 80,722 cells, because the entire board was painted in one stone-brick theme; read by
+recorded provenance, the same world reports seven structures matching exactly what was stamped (two spawn
+cubes, two destroyable platforms, two goal markers, one iron cube), the largest 133 cells. The step test
+still governs a world with no recorded provenance — a scanned map, or one built before this recording
+existed — where material is the only signal there is, and it is unchanged from `B124`.
 
 **The prototypes** render the model rather than a map. `tools/relief` emits ten figures plus a topographic
 view, a blocks-from-an-angle view, a section and a step map, and `--corpus` measures real worlds into the

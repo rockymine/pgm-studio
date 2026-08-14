@@ -433,6 +433,14 @@ The shell is a **snapshot** on the prop, not a library id — the rule a map's b
 (`structures.md` §9). Picking a style from the library copies its JSON in, so editing that row later cannot
 rebuild a map's scenery.
 
+**Its footprint claims provenance the same way a room's does, only later (B133).** `DressingScope.StructureFootprints`
+fans a dressing-placed house's footprint across the symmetry orbit — the same corners `ClearanceFootprint`
+already reads for `OB19` — and `SketchWorldBuilder` claims it as `WorldProvenance`'s `Structure` layer after
+`Decorate` runs, so a house standing on a plaza the painter finished in the same material as its own walls
+still reads as a building rather than fusing with the ground it stands on: two different passes claimed the
+two sets of cells, whatever either is made of. Trees, boulders and flora claim no provenance at all — their
+material already answers the question a stage image asks of them (a log, a leaf, plain stone) without help.
+
 ## 9. What it reuses, and what it adds
 
 The stage leans hard on machinery G157 and the sketch tools already shipped; the net-new surface is small

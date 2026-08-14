@@ -22,6 +22,15 @@ section, `B98`). Every other consumer named above — the picker, the previews, 
 this table unconditionally, because showing an author a false colour for the material they are about to place
 would be the opposite mistake.
 
+**The category a block reads as is itself an estimate, not a fact, for the Ground/Structure pair.** This
+table answers "what does block X look like", which is a question about the block alone; it cannot answer
+"was this column built or is it terrain", because the same block — stone brick, quartz, stained clay — is
+worn by a cottage wall, a paved plaza, and a hillside an author painted to read as built. A built world
+carries the real answer beside its voxels (`PgmStudio.Minecraft.WorldProvenance`, `docs/tools/capabilities.md`'s
+renderer section, `B133`), and `RenderCategories.Of(blockId, provenance)` reads that instead of the block
+whenever it is available; only a world the studio scanned rather than built — where nothing recorded what
+placed a block — falls back to this table's category guess for that pair.
+
 ## The lookup pipeline
 
 A lookup runs three steps, and stops at the first that answers.

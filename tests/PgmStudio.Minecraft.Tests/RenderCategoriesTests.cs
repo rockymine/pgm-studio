@@ -72,6 +72,48 @@ public sealed class RenderCategoriesTests
         await Assert.That(RenderCategories.Of(blockId)).IsEqualTo(expected);
     }
 
+    // ── the provenance-aware overload (B133) ────────────────────────────────────────────────────────
+    // "A block does not know what placed it" — these prove the overload actually answers a different
+    // question than the material-only one above, for the exact pair a material test cannot separate.
+
+    [Test]
+    public async Task A_structure_claim_reads_as_structure_whatever_the_material_is()
+    {
+        // Stone (1) reads Ground by material alone (see the table above) — the recorded claim overrides it.
+        await Assert.That(RenderCategories.Of(1, ProvenanceLayer.Structure)).IsEqualTo(RenderCategory.Structure);
+    }
+
+    [Test]
+    public async Task A_ground_claim_reads_as_ground_even_over_a_built_looking_material()
+    {
+        // Stone brick (98) reads Structure by material alone — this is B133's own finding, reproduced as the
+        // failing case the provenance overload exists to fix: a plaza painted in it is still ground once the
+        // build says so.
+        await Assert.That(RenderCategories.Of(98, null)).IsEqualTo(RenderCategory.Structure);
+        await Assert.That(RenderCategories.Of(98, ProvenanceLayer.Ground)).IsEqualTo(RenderCategory.Ground);
+    }
+
+    [Test]
+    public async Task No_provenance_falls_back_to_the_material_estimate()
+    {
+        // A scanned world, or a column the build never claimed — the overload has to answer exactly what the
+        // material-only method already does, so a caller with no recorded provenance loses nothing.
+        foreach (var blockId in new[] { 0, Blocks.Water, Blocks.Log, 37, 1, 5, 98 })
+            await Assert.That(RenderCategories.Of(blockId, null)).IsEqualTo(RenderCategories.Of(blockId));
+    }
+
+    [Test]
+    [Arguments(0, RenderCategory.Void)]
+    [Arguments(Blocks.Water, RenderCategory.Water)]
+    [Arguments(Blocks.Log, RenderCategory.Foliage)]
+    public async Task Void_liquid_and_foliage_are_never_overridden_by_a_structure_claim(int blockId, RenderCategory expected)
+    {
+        // Provenance answers the Ground/Structure question only; a column provenance never asked about
+        // (water, a tree) keeps reading by material even when a caller hands in a Structure claim for it —
+        // which should not happen in practice, but the priority order is worth pinning down.
+        await Assert.That(RenderCategories.Of(blockId, ProvenanceLayer.Structure)).IsEqualTo(expected);
+    }
+
     [Test]
     public async Task Ground_highlight_differs_from_grounds_own_backdrop_shade()
     {

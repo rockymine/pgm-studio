@@ -152,7 +152,11 @@ static void Build(MapSpec spec, bool describeOnly, bool forceStages)
 
     var outDir = spec.OutDir ?? $"/media/sf_repos/CommunityMaps/dtcm/{spec.Slug}";
     Directory.CreateDirectory(outDir);
-    AnvilRegionWriter.Write(built.World, Path.Combine(outDir, "region"));
+    var regionDir = Path.Combine(outDir, "region");
+    AnvilRegionWriter.Write(built.World, regionDir);
+    // Beside the voxels, not inside them (B133) — a block carries no provenance byte, so what claimed each
+    // column travels as this sidecar rather than being lost the moment the world round-trips through disk.
+    WorldProvenanceFile.Write(built.Provenance, regionDir);
     LevelDatWriter.Write(outDir, spec.Slug, built.SpawnX, built.SpawnY, built.SpawnZ,
                          DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
     File.WriteAllText(Path.Combine(outDir, "map.xml"), xml);
@@ -163,7 +167,7 @@ static void Build(MapSpec spec, bool describeOnly, bool forceStages)
     // Off by default (a batch run over many specs should not pay for pictures it will not look at); the spec
     // or the CLI's --stages flag turns it on. The world is already built and held in memory, so every world
     // read-back below draws over `built.World` itself — no second load off the region files just written.
-    if (spec.Stages || forceStages) EmitStages(outDir, plan, built.World, xml);
+    if (spec.Stages || forceStages) EmitStages(outDir, plan, built.World, built.Provenance, xml);
 }
 
 /// <summary>The goals — wool monuments, destroyables, cores — whose anchor has no rasterized column under it,
@@ -206,22 +210,23 @@ static List<string> GoalsOverVoid(Dictionary<(int X, int Z), int> ground, MapInt
 /// of the full picture by eye. <b>traversability</b> answers a question neither top-down can: whether the
 /// navigable ground actually joins spawn to every goal. <b>structures</b> is what the world stamped,
 /// independent of theme.</para></summary>
-static void EmitStages(string outDir, PlanModel plan, VoxelWorld world, string xml)
+static void EmitStages(string outDir, PlanModel plan, VoxelWorld world, WorldProvenance provenance, string xml)
 {
     var dir = Path.Combine(outDir, "stages");
     Directory.CreateDirectory(dir);
 
     File.WriteAllBytes(Path.Combine(dir, "plan.png"), PlanBoardPng.Render(plan));
 
-    TopDownRender.Run(world, Path.Combine(dir, "dressing.png"), map: null, scale: 3, yMax: null, name: "dressing");
+    TopDownRender.Run(world, Path.Combine(dir, "dressing.png"), map: null, scale: 3, yMax: null, name: "dressing",
+        provenance: provenance);
     HeightProfileRender.Run(world, Path.Combine(dir, "heightmap.png"), scale: 3, contourInterval: 0,
         greyscale: false, markWater: true, drawContours: false, name: "heightmap");
     HeightProfileRender.Run(world, Path.Combine(dir, "contour.png"), scale: 3, contourInterval: 0,
         greyscale: false, markWater: true, drawContours: true, name: "contour");
     SurfaceReport.Run(world, Path.Combine(dir, "surface.png"), scale: 3);
-    StructureFinder.Run(world, Path.Combine(dir, "structures.png"), scale: 3, minimumArea: 12);
+    StructureFinder.Run(world, Path.Combine(dir, "structures.png"), scale: 3, minimumArea: 12, provenance: provenance);
     TopDownRender.Run(world, Path.Combine(dir, "foliage.png"), map: null, scale: 3, yMax: null, name: "foliage",
-        layer: TopDownLayer.Foliage);
+        layer: TopDownLayer.Foliage, provenance: provenance);
 
     // The overlay reads the map document already built in memory — parsed back from the XML string rather
     // than the file just written, so this too costs no extra disk read.
@@ -230,9 +235,10 @@ static void EmitStages(string outDir, PlanModel plan, VoxelWorld world, string x
     catch (Exception error) { Console.Error.WriteLine($"  ! stages: map.xml overlay unavailable ({error.Message})"); }
 
     TraversabilityRender.Run(world, Path.Combine(dir, "traversability.png"), map, scale: 3);
-    TopDownRender.Run(world, Path.Combine(dir, "topdown.png"), map, scale: 3, yMax: null, name: "topdown");
+    TopDownRender.Run(world, Path.Combine(dir, "topdown.png"), map, scale: 3, yMax: null, name: "topdown",
+        provenance: provenance);
     TopDownRender.Run(world, Path.Combine(dir, "objectives.png"), map, scale: 3, yMax: null, name: "objectives",
-        layer: TopDownLayer.Objectives);
+        layer: TopDownLayer.Objectives, provenance: provenance);
 
     Console.WriteLine($"  stages → {dir}");
 }

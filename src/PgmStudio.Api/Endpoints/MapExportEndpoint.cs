@@ -66,6 +66,9 @@ public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, Feat
         {
             var regionDir = Path.Combine(tmp, "region");
             AnvilRegionWriter.Write(built.World, regionDir);
+            // Beside the voxels, not inside them (B133) — the sidecar travels in the same zip a downloaded
+            // world does, so a render taken from the download later still gets the recorded reading.
+            WorldProvenanceFile.Write(built.Provenance, regionDir);
             LevelDatWriter.Write(tmp, slug, built.SpawnX, built.SpawnY, built.SpawnZ,
                 DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
 
@@ -78,6 +81,9 @@ public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, Feat
                 AddFile(archive, Path.Combine(tmp, "level.dat"), $"{slug}/level.dat");
                 foreach (var mca in Directory.GetFiles(regionDir, "*.mca"))
                     AddFile(archive, mca, $"{slug}/region/{Path.GetFileName(mca)}");
+                var provenanceFile = Path.Combine(regionDir, "provenance.json");
+                if (File.Exists(provenanceFile))
+                    AddFile(archive, provenanceFile, $"{slug}/region/provenance.json");
             }
             return ms.ToArray();
         }

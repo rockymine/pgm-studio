@@ -210,6 +210,45 @@ public sealed class DressingScopeTests
         await Assert.That(violations).IsEmpty();
     }
 
+    // ── provenance (B133): dressing-placed buildings claim Structure, everything else stays absent ──────
+    [Test]
+    public async Task A_dressing_placed_house_reports_its_whole_footprint()
+    {
+        var footprints = DressingScope.StructureFootprints(Layout(
+            ",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"points\":[[0,0],[3,2]]}]}"))
+            .ToList();
+
+        await Assert.That(footprints).Contains((0, 0));
+        await Assert.That(footprints).Contains((2, 1));   // interior of the 3x2 footprint
+        await Assert.That(footprints.Count).IsGreaterThanOrEqualTo(6);
+    }
+
+    [Test]
+    public async Task A_house_fans_its_footprint_across_the_symmetry_orbit_like_any_other_prop()
+    {
+        // rot_180 about the origin: a house at (0,0)-(3,2) has a second image at (-3,-2)-(0,0) (GoalClearanceViolations
+        // fans the same way for the same reason — a stamped extent is symmetric wherever the building is).
+        var footprints = DressingScope.StructureFootprints(Layout(
+            ",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"points\":[[10,10],[13,12]]}]}"))
+            .ToList();
+
+        await Assert.That(footprints).Contains((10, 10));
+        await Assert.That(footprints).Contains((-10, -10));   // rot_180 image
+    }
+
+    [Test]
+    public async Task Trees_and_boulders_report_no_structure_footprint()
+    {
+        // Their material already reads unambiguously (a log, a leaf, plain stone) — provenance exists for
+        // the Ground/Structure pair a material test gets wrong, which neither of these is.
+        var footprints = DressingScope.StructureFootprints(Layout(
+            ",\"dressing\":{\"props\":["
+            + "{\"kind\":\"tree\",\"id\":\"t1\",\"seed\":1,\"x\":5,\"z\":5},"
+            + "{\"kind\":\"boulder\",\"id\":\"b1\",\"seed\":1,\"x\":8,\"z\":8}]}"));
+
+        await Assert.That(footprints).IsEmpty();
+    }
+
     [Test]
     public async Task Nothing_reaches_the_clearance_from_either_image_is_clean()
     {

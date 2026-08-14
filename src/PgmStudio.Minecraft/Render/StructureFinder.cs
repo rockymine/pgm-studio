@@ -23,16 +23,24 @@ namespace PgmStudio.Minecraft.Render;
 /// touching the plaza it stands over fuses to the plaza even in two different materials, and a themed map
 /// that paints its terrain in the palette it builds with — a stone-brick cottage on a stone-brick town
 /// square, a clay cage on a clay field — fuses doubly, since the two are not just both built but built
-/// alike. What separates a building from the ground either way is not material but the step between them: a
-/// wall or a roof stands several blocks over the ground it grows from, while a plaza's own surface is flat.
-/// The flood therefore joins two
+/// alike. Absent a recorded extent, what separates a building from the ground is not material but the step
+/// between them: a wall or a roof stands several blocks over the ground it grows from, while a plaza's own
+/// surface is flat. The flood therefore joins two
 /// neighbouring built columns only when their tops are within <c>maximumStep</c> of each other, the same
 /// discipline <c>--buildings</c> already applies to a roof — a pitch or a storey rises a block or two at a
-/// time, while a painted floor beside a wall sits three or more below the wall it touches. This is a
-/// geometric improvement, not a full one: an unroofed courtyard or unwalled porch at the ground's own
-/// height still reads as ground, and two wings of one building separated by more than the step still read
-/// as two structures. A full finder would want the enclosed volume a room stamps, which nothing records
-/// after the fact — see <c>docs/tools/capabilities.md</c>'s renderer section for what this stops short of.</para>
+/// time, while a painted floor beside a wall sits three or more below the wall it touches. That step test is
+/// a geometric improvement over material alone, not a full fix: a roof laid flush with the plaza's own
+/// paving height defeats it, since nothing steps between two flat surfaces of one material.</para>
+///
+/// <para><b>A recorded <see cref="WorldProvenance"/> closes that residual gap (B133), and is preferred
+/// whenever one is given.</b> A built map knows which columns a stamp claimed at the moment it claimed them,
+/// so "built" stops being read off the block on top and becomes a lookup: a column is a candidate only when
+/// the build itself recorded it as <see cref="ProvenanceLayer.Structure"/>, whatever it is made of and
+/// however level it sits against the paving beside it. A stamped building's extent is then recorded rather
+/// than flooded for, so a roof flush with its own plaza cannot fuse with it — the plaza was never a
+/// candidate at all — and the step test (which can still fragment one tall roof into two components by
+/// height alone) is dropped in favour of the recorded extent. A world with no provenance — a scanned map, or
+/// one built before this recording existed — keeps the step test, since material is the only signal it has.</para>
 ///
 /// <para>The natural ground a component is measured against is read the same way — <c>naturalY</c> looks
 /// past the paint to the terrain underneath at every column, built or not, so a ring sampled around a
@@ -63,21 +71,29 @@ public static class StructureFinder
 
     public sealed record Result(byte[] Pixels, int BlocksWide, int BlocksHigh, List<Structure> Structures);
 
+    /// <summary>Reads a built region directory from disk. Picks up <see cref="WorldProvenanceFile"/>'s
+    /// sidecar automatically when the region carries one; a region with none falls back to the step-tested
+    /// material reading, exactly as before B133.</summary>
     public static int Run(string regionDir, string outPng, int scale, int minimumArea, int maximumStep = DefaultMaximumStep)
     {
         if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"no region dir: {regionDir}"); return 1; }
         var mcas = Directory.GetFiles(regionDir, "*.mca");
         if (mcas.Length == 0) { Console.Error.WriteLine($"no region files in {regionDir}"); return 1; }
-        return Emit(mcas.SelectMany(AnvilRegion.ReadChunks), outPng, scale, minimumArea, maximumStep);
+        return Emit(mcas.SelectMany(AnvilRegion.ReadChunks), outPng, scale, minimumArea, maximumStep,
+            WorldProvenanceFile.TryRead(regionDir));
     }
 
-    /// <summary>Renders a world still held in memory, via <see cref="AnvilRegion.FromWorld"/>.</summary>
-    public static int Run(VoxelWorld world, string outPng, int scale, int minimumArea, int maximumStep = DefaultMaximumStep)
-        => Emit(AnvilRegion.FromWorld(world), outPng, scale, minimumArea, maximumStep);
+    /// <summary>Renders a world still held in memory, via <see cref="AnvilRegion.FromWorld"/>.
+    /// <paramref name="provenance"/> is the record the build kept (<see cref="SketchWorld.Provenance"/> via
+    /// <c>PgmStudio.Export</c>); null reads by the step-tested material estimate.</summary>
+    public static int Run(VoxelWorld world, string outPng, int scale, int minimumArea,
+        int maximumStep = DefaultMaximumStep, WorldProvenance? provenance = null)
+        => Emit(AnvilRegion.FromWorld(world), outPng, scale, minimumArea, maximumStep, provenance);
 
-    private static int Emit(IEnumerable<AnvilRegion.Chunk> chunks, string outPng, int scale, int minimumArea, int maximumStep)
+    private static int Emit(IEnumerable<AnvilRegion.Chunk> chunks, string outPng, int scale, int minimumArea,
+        int maximumStep, WorldProvenance? provenance)
     {
-        var result = Render(chunks, minimumArea, maximumStep);
+        var result = Render(chunks, minimumArea, maximumStep, provenance);
         if (result is null) { Console.Error.WriteLine("no columns decoded"); return 1; }
 
         Report(result.Structures);
@@ -88,17 +104,25 @@ public static class StructureFinder
             new("STRUCTURE (ONE ACCENT PER FINDING)", 0xFF7A1F),
             new("VOID", 0x0E0E12),
         ];
+        // Whether "structure" was read off a recorded extent or off material + step is exactly the fact
+        // capabilities.md's renderer section warns an image cannot carry by colour alone (B133) — so it goes
+        // into the scale line every render already bakes onto the picture.
+        var extentReading = provenance is not null ? "recorded provenance" : $"material + step (max {maximumStep})";
         var withLegend = Legend.AppendBelow(scaled, result.BlocksWide * scale, result.BlocksHigh * scale, entries,
             out var legendHeight,
-            scaleLabel: $"SCALE: 1 BLOCK = {scale} PX - {result.BlocksWide} X {result.BlocksHigh} BLOCKS");
+            scaleLabel: $"SCALE: 1 BLOCK = {scale} PX - {result.BlocksWide} X {result.BlocksHigh} BLOCKS" +
+                        $"  -  STRUCTURE EXTENT: {extentReading.ToUpperInvariant()}");
         PngWriter.Write(outPng, result.BlocksWide * scale, legendHeight, withLegend);
         Console.WriteLine($"  wrote {outPng} ({result.BlocksWide * scale}x{legendHeight} px, {scale} px/block), " +
-            $"{result.Structures.Count} structure(s) over the terrain");
+            $"{result.Structures.Count} structure(s) over the terrain, extent: {extentReading}");
         return 0;
     }
 
-    /// <summary>The pure render: chunks in, findings + an RGB pixel buffer out. No file or console I/O.</summary>
-    public static Result? Render(IEnumerable<AnvilRegion.Chunk> chunks, int minimumArea, int maximumStep = DefaultMaximumStep)
+    /// <summary>The pure render: chunks in, findings + an RGB pixel buffer out. No file or console I/O.
+    /// <paramref name="provenance"/> non-null makes a column's candidacy a recorded fact rather than a
+    /// material + step guess (see the class remarks); <paramref name="maximumStep"/> is then unused.</summary>
+    public static Result? Render(IEnumerable<AnvilRegion.Chunk> chunks, int minimumArea,
+        int maximumStep = DefaultMaximumStep, WorldProvenance? provenance = null)
     {
         var topId = new Dictionary<(int X, int Z), int>();
         var topData = new Dictionary<(int X, int Z), int>();
@@ -108,7 +132,12 @@ public static class StructureFinder
         foreach (var chunk in chunks) Scan(chunk, topId, topData, topY, baseY, naturalY);
         if (topY.Count == 0) return null;
 
-        var builtCells = new HashSet<(int X, int Z)>(topId.Where(entry => BlockRoles.IsBuilt(entry.Value)).Select(entry => entry.Key));
+        var builtCells = provenance is null
+            ? new HashSet<(int X, int Z)>(topId.Where(entry => BlockRoles.IsBuilt(entry.Value)).Select(entry => entry.Key))
+            : new HashSet<(int X, int Z)>(topId.Keys.Where(cell => provenance.LayerAt(cell.X, cell.Z) == ProvenanceLayer.Structure));
+        // A recorded extent needs no step discipline — the columns it names are the building, at whatever
+        // height they stand — so the flood is left free to join every one of them.
+        var effectiveMaximumStep = provenance is null ? maximumStep : int.MaxValue;
         var structures = new List<Structure>();
         var claimed = new Dictionary<(int X, int Z), int>();
 
@@ -116,7 +145,7 @@ public static class StructureFinder
         while (pending.Count > 0)
         {
             var seed = pending.First();
-            var component = Flood(seed, pending, topY, maximumStep);
+            var component = Flood(seed, pending, topY, effectiveMaximumStep);
             if (component.Count < minimumArea) continue;
 
             var index = structures.Count;

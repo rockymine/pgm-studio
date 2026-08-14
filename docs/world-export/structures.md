@@ -17,6 +17,9 @@ alike. Read alongside:
 - `docs/pgm/destroyables-and-cores.md` — the style-as-data precedent (§5 below).
 - `docs/tools/sketch.md` — the tool that binds the shells (its Rooms step) and stamps the same house as a
   dressing prop.
+- `docs/tools/capabilities.md`'s renderer section — every structural stamp here, and the house `decoration.md`
+  §8 stamps, claims `WorldProvenance`'s `Structure` layer as it is placed, which is what lets a stage image
+  and `--structures` read "built" from a recorded fact rather than from a block's material (`B133`).
 
 **Two stamp concepts, not one.** A *structural* stamp — the spawn building, the wool cage, the bedrock
 approach wall, an objective marker — is objective-defining and generator-emittable, so it is authored in the
