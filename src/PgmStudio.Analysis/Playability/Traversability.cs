@@ -10,6 +10,13 @@ using Dict = Dictionary<string, object?>;
 /// surface ∪ bridgeable buildable)? The navigable cells are split into 4-connected components
 /// (<see cref="GridComponents"/>) and every objective point is snapped to the component it sits in; the chain
 /// is traversable when they all share one.
+///
+/// <para>A destroyable and a core are read as navigation points too, and every <see cref="NavPoint"/> list
+/// this returns carries them — but they do not gate <see cref="Result.Connected"/>. A destroyable is broken
+/// from range and floats a few blocks above its terrain by design (the same design PGM has always had), so
+/// "reachable the way a wool is" is not a question this checker answers for one; it is reported so a caller
+/// can see whether a destroyable's own footprint sits on navigable ground, without the map being refused for
+/// it.</para>
 /// </summary>
 public static class Traversability
 {
@@ -49,7 +56,12 @@ public static class Traversability
             placed.Add(p with { Component = comp });
         }
 
-        var comps = placed.Where(p => p.Component > 0).Select(p => p.Component).ToList();
+        // Only spawns and wools gate the export refusal. A destroyable or core floats a few blocks above the
+        // terrain by design and is broken from range rather than walked to, so its reachability is not the
+        // same question a spawn/wool chain answers — it is reported here (in every Points list a caller
+        // reads) but does not, on its own, turn a map traversable.
+        var gating = placed.Where(p => p.Kind is "spawn" or "wool").ToList();
+        var comps = gating.Where(p => p.Component > 0).Select(p => p.Component).ToList();
         var distinct = comps.ToHashSet();
         // most-common component; ties broken by first appearance in `comps` (matches Counter.most_common)
         var main = 0;
@@ -59,13 +71,19 @@ public static class Traversability
             var maxCount = counts.Values.Max();
             main = comps.First(c => counts[c] == maxCount);
         }
-        var isolated = placed.Where(p => p.Component != main).Select(p => new IsolatedPoint(p.Kind, p.Name)).ToList();
-        var connected = distinct.Count <= 1 && !placed.Any(p => p.Component == 0);
+        // A point off the navigable grid entirely (Component == 0) is isolated whatever `main` came out to —
+        // including the degenerate case where every gating point is off-grid, so `main` itself stays 0 and a
+        // check against `!= main` alone would call zero points isolated despite none of them being reachable.
+        var isolated = gating.Where(p => p.Component == 0 || p.Component != main)
+            .Select(p => new IsolatedPoint(p.Kind, p.Name)).ToList();
+        var connected = distinct.Count <= 1 && !gating.Any(p => p.Component == 0);
 
         var severity = connected ? "ok" : "warning";
         var message = connected
             ? "spawn ↔ wool objective chain is traversable"
-            : $"{isolated.Count} spawn/wool point(s) are not reachable from the rest — check build regions / bridgeable gaps";
+            : comps.Count == 0
+                ? "no spawn/wool point is on navigable ground — check build regions / bridgeable gaps"
+                : $"{isolated.Count} spawn/wool point(s) are not reachable from the rest — check build regions / bridgeable gaps";
         return new Result(connected, distinct.Count, severity, message, haveLayers, placed, isolated);
     }
 
@@ -86,7 +104,8 @@ public static class Traversability
         return (minX, minZ, maxX, maxZ);
     }
 
-    // ── navigation points: spawn region centres + wool locations ──────────────────────
+    // ── navigation points: spawn region centres, wool locations, and — reported but not gating,
+    // see Check — destroyable/core region centres ─────────────────────────────────────
     private static List<NavPoint> NavigationPoints(Dict data, (double, double, double, double) bounds)
     {
         var regions = AsDict(data.GetValueOrDefault("regions"));
@@ -105,6 +124,21 @@ public static class Traversability
                 pts.Add(new NavPoint("wool", color, (int)lx, (int)lz, 0));
             else if (RegionCentre(regions.GetValueOrDefault(w.GetValueOrDefault("wool_room_region") as string ?? "") as Dict, regions, bounds) is { } c)
                 pts.Add(new NavPoint("wool", color, c.x, c.z, 0));
+        }
+        foreach (var d in AsList(data.GetValueOrDefault("destroyables")).OfType<Dict>())
+        {
+            if (d.GetValueOrDefault("show") is false) continue;   // not an objective — see Destroyable.IsObjective
+            var r = d.GetValueOrDefault("region");
+            var region = r is string s ? regions.GetValueOrDefault(s) as Dict : r as Dict;
+            if (RegionCentre(region, regions, bounds) is { } c)
+                pts.Add(new NavPoint("destroyable", d.GetValueOrDefault("name") as string ?? d.GetValueOrDefault("owner") as string ?? "", c.x, c.z, 0));
+        }
+        foreach (var core in AsList(data.GetValueOrDefault("cores")).OfType<Dict>())
+        {
+            var r = core.GetValueOrDefault("region");
+            var region = r is string s ? regions.GetValueOrDefault(s) as Dict : r as Dict;
+            if (RegionCentre(region, regions, bounds) is { } c)
+                pts.Add(new NavPoint("core", core.GetValueOrDefault("owner") as string ?? "", c.x, c.z, 0));
         }
         return pts;
     }

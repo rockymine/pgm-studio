@@ -113,6 +113,19 @@ public sealed class BlockPaletteTests
     }
 
     [Test]
+    public async Task The_plain_single_block_plant_is_named_Grass_not_Tall_Grass()
+    {
+        // 31:1 is the plain, single-block plant vanilla itself calls "Grass". Tall grass is the
+        // two-block plant at 175:2 ("Double Tall Grass") — naming 31:1 "Tall Grass" would answer
+        // every surface census and column probe with a different block than the one that is there.
+        await Assert.That(BlockPalette.Name(31, 1)).IsEqualTo("Grass");
+        await Assert.That(BlockPalette.Name(31, 1)).IsNotEqualTo(BlockPalette.Name(175, 2));
+        await Assert.That(BlockPalette.Name(175, 2)).IsEqualTo("Double Tall Grass");
+        // The "any variant" fallback for the family answers the same name, not the desert shrub's.
+        await Assert.That(BlockPalette.Name(31, -1)).IsEqualTo("Grass");
+    }
+
+    [Test]
     public async Task Every_block_in_the_supported_id_range_is_named_and_coloured()
     {
         // Ids 0–197 are the whole 1.8 block set: none of them may reach the unknown-block fallback.

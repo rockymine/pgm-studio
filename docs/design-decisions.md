@@ -68,6 +68,25 @@ gate's point→component resolver (`LabelAt`) already searches a radius-3 neighb
 - *Enforced:* `Analysis/Playability/Traversability.cs` (`NavigationPoints`, `LabelAt`),
   `Minecraft/PositionSnap.cs`.
 
+### A destroyable/core is a navigation point, but never gates traversability
+`Traversability.NavigationPoints` reads destroyable and core region centres alongside spawns and
+wools, and every `Points` list a caller reads carries them. But `Connected`/`Isolated` are computed
+from spawn/wool points only — a destroyable never flips a passing map to a 409, and an isolated one
+is never named as a refusal reason.
+
+- *Looks wrong:* a destroyable that stands over unreachable ground reads as a measurement gap — the
+  checker "knows" about it (it is in `Points`, with its own `Component`) yet says nothing when it is
+  off-grid, which looks like the value was computed and then dropped.
+- *Why it's deliberate, not a gap:* a destroyable and a core float a few blocks above the terrain **by
+  design** and are broken from range rather than walked to (see this file's "Gameplay decisions have a
+  human oracle" section in `CLAUDE.md` — the same shape of mistake, "reasoned from first principles",
+  produced a confident false claim once already). Whether a destroyable *should* be required reachable
+  the way a wool is remains an open, unanswered gameplay question; making it visible without making it a
+  refusal is the conservative reading until that question is answered by a human, not derived from the
+  code or the corpus.
+- *Enforced:* `Analysis/Playability/Traversability.cs` (`NavigationPoints` reads all four kinds;
+  `Check`'s `gating` list is spawn/wool only).
+
 ## Sketch world synthesis (P9)
 
 ### Spawn-cube monuments fill the back wall first; the door wall is unreachable at real wool counts

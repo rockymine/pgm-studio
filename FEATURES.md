@@ -4500,6 +4500,29 @@ these are the ones that shipped a map that could not be played as intended, and 
   is a diagonal notch, not a straight edge — missing columns at z26/27/28/29 run 5/23/42/60 wide (x −9..−5,
   −26..−4, −44..−3, −61..−2) and close to zero at z30, which is exactly the diagonal land-polygon boundary
   `AGENT-REPORT-2.md` describes.
+- **Three read-backs stopped misinforming (B124).** `BlockPalette.Name(31, 1)` answered "Tall Grass" for the
+  plain single-block plant vanilla itself calls "Grass" — tall grass is the two-block `175:2` — so every
+  surface census, decoration table and column probe told an author the opposite of what a `tallShare: 0`
+  setting had actually done; the family (base and `31:1`) is now named "Grass". `--structures` found a
+  building by material alone (`IsBuilt`, true/false, not identity), so any built column touching another —
+  a spruce roof's edge against the stone-brick plaza it stands over, the plaza against the stone-brick
+  cottage on it — joined the same component whatever either was made of. The flood now also requires two
+  neighbouring columns' tops to be within `--max-step` (default 4) of each other, the same discipline
+  `--buildings` already applies to a roof. Measured on Ashen Quarry (`--min-area 20`): 15 structures before,
+  31 after; the two ~9,000-cell town-square blobs shed exactly the 1,550 cells of spruce-wood-slab and
+  dark-oak-plank roof that had been touching the plaza directly, now split into fourteen 20–140-cell
+  structures of their own. What the step alone cannot reach: the remaining ~8,300-cell blobs read `roof y
+  50..50` — perfectly flat — because a cottage roofed flush with the plaza's own paving height has no step to
+  find, elevation or not; that is the stone-brick-cottage case the review named, and it is still lost. The fix
+  is therefore partial, and a full separation would want the enclosed volume a room stamps rather than a
+  roof-height comparison. `Traversability`'s degenerate refusal — every point
+  off-grid, so `main` stayed 0 and an isolated filter of `Component != main` matched none of them — reported
+  "0 spawn/wool point(s) are not reachable" and named nobody, the one case an author most needs a name; the
+  isolated filter now also catches `Component == 0` directly, and the all-off-grid message reads "no
+  spawn/wool point is on navigable ground". `NavigationPoints` also reads destroyables and cores now, visible
+  in every `Points` list — but, following CLAUDE.md's playability-oracle rule, they do not gate `Connected`:
+  a destroyable floats above its terrain and is broken from range by design, so reachability-like-a-wool is
+  an open gameplay question left recorded (`docs/design-decisions.md`) rather than answered by fiat.
 
 - **The capability handbook — what the system can be asked for, and where to say it (B91).** `docs/tools/capabilities.md`
   mapped the four documents a map is made of; it now also states the surface underneath the spec's shorthand, in

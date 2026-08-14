@@ -18,6 +18,26 @@ namespace PgmStudio.Minecraft.Render;
 /// from a path or a plaza, which are built surfaces with no height at all, and it is reported rather than
 /// used as a filter — a paved road is a real find, it is simply not a building.</para>
 ///
+/// <para><b>"Built" used to be the only test the flood applied, and it is a yes/no over every material at
+/// once.</b> Any two neighbouring built columns joined, whatever either was built <i>of</i> — a roof's edge
+/// touching the plaza it stands over fuses to the plaza even in two different materials, and a themed map
+/// that paints its terrain in the palette it builds with — a stone-brick cottage on a stone-brick town
+/// square, a clay cage on a clay field — fuses doubly, since the two are not just both built but built
+/// alike. What separates a building from the ground either way is not material but the step between them: a
+/// wall or a roof stands several blocks over the ground it grows from, while a plaza's own surface is flat.
+/// The flood therefore joins two
+/// neighbouring built columns only when their tops are within <c>maximumStep</c> of each other, the same
+/// discipline <c>--buildings</c> already applies to a roof — a pitch or a storey rises a block or two at a
+/// time, while a painted floor beside a wall sits three or more below the wall it touches. This is a
+/// geometric improvement, not a full one: an unroofed courtyard or unwalled porch at the ground's own
+/// height still reads as ground, and two wings of one building separated by more than the step still read
+/// as two structures. A full finder would want the enclosed volume a room stamps, which nothing records
+/// after the fact — see <c>docs/tools/capabilities.md</c>'s renderer section for what this stops short of.</para>
+///
+/// <para>The natural ground a component is measured against is read the same way — <c>naturalY</c> looks
+/// past the paint to the terrain underneath at every column, built or not, so a ring sampled around a
+/// component still finds real ground even where the whole map wears one material.</para>
+///
 /// <para>The render puts the findings over a desaturated height profile, because a structure's placement only
 /// means something against the terrain it was placed on. Nothing here reads what a material means (no
 /// per-theme roof/path spec, unlike <c>--buildings</c>/<c>--flora</c>), which is what makes it the stage
@@ -25,6 +45,11 @@ namespace PgmStudio.Minecraft.Render;
 /// </summary>
 public static class StructureFinder
 {
+    /// <summary>How far one column's top may step from its neighbour's and still belong to the same
+    /// structure — the same tolerance <c>--buildings</c> gives a roof pitch. Set low enough that a wall
+    /// standing over a painted plaza breaks the flood; a caller reading a taller building can widen it.</summary>
+    public const int DefaultMaximumStep = 4;
+
     /// <summary>What a structure's outline may be read through: nothing, and everything standing on the
     /// ground rather than being it.</summary>
     private static bool Skin(int id) => id == 0 || BlockRoles.SeenThrough(id);
@@ -38,21 +63,21 @@ public static class StructureFinder
 
     public sealed record Result(byte[] Pixels, int BlocksWide, int BlocksHigh, List<Structure> Structures);
 
-    public static int Run(string regionDir, string outPng, int scale, int minimumArea)
+    public static int Run(string regionDir, string outPng, int scale, int minimumArea, int maximumStep = DefaultMaximumStep)
     {
         if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"no region dir: {regionDir}"); return 1; }
         var mcas = Directory.GetFiles(regionDir, "*.mca");
         if (mcas.Length == 0) { Console.Error.WriteLine($"no region files in {regionDir}"); return 1; }
-        return Emit(mcas.SelectMany(AnvilRegion.ReadChunks), outPng, scale, minimumArea);
+        return Emit(mcas.SelectMany(AnvilRegion.ReadChunks), outPng, scale, minimumArea, maximumStep);
     }
 
     /// <summary>Renders a world still held in memory, via <see cref="AnvilRegion.FromWorld"/>.</summary>
-    public static int Run(VoxelWorld world, string outPng, int scale, int minimumArea)
-        => Emit(AnvilRegion.FromWorld(world), outPng, scale, minimumArea);
+    public static int Run(VoxelWorld world, string outPng, int scale, int minimumArea, int maximumStep = DefaultMaximumStep)
+        => Emit(AnvilRegion.FromWorld(world), outPng, scale, minimumArea, maximumStep);
 
-    private static int Emit(IEnumerable<AnvilRegion.Chunk> chunks, string outPng, int scale, int minimumArea)
+    private static int Emit(IEnumerable<AnvilRegion.Chunk> chunks, string outPng, int scale, int minimumArea, int maximumStep)
     {
-        var result = Render(chunks, minimumArea);
+        var result = Render(chunks, minimumArea, maximumStep);
         if (result is null) { Console.Error.WriteLine("no columns decoded"); return 1; }
 
         Report(result.Structures);
@@ -64,7 +89,7 @@ public static class StructureFinder
     }
 
     /// <summary>The pure render: chunks in, findings + an RGB pixel buffer out. No file or console I/O.</summary>
-    public static Result? Render(IEnumerable<AnvilRegion.Chunk> chunks, int minimumArea)
+    public static Result? Render(IEnumerable<AnvilRegion.Chunk> chunks, int minimumArea, int maximumStep = DefaultMaximumStep)
     {
         var topId = new Dictionary<(int X, int Z), int>();
         var topData = new Dictionary<(int X, int Z), int>();
@@ -82,7 +107,7 @@ public static class StructureFinder
         while (pending.Count > 0)
         {
             var seed = pending.First();
-            var component = Flood(seed, pending);
+            var component = Flood(seed, pending, topY, maximumStep);
             if (component.Count < minimumArea) continue;
 
             var index = structures.Count;
@@ -90,7 +115,7 @@ public static class StructureFinder
 
             var roofs = component.Select(cell => topY[cell]).OrderBy(y => y).ToList();
             var bases = component.Select(cell => baseY[cell]).OrderBy(y => y).ToList();
-            var ring = Ring(component, builtCells).Where(naturalY.ContainsKey).Select(cell => naturalY[cell]).OrderBy(y => y).ToList();
+            var ring = Ring(component).Where(naturalY.ContainsKey).Select(cell => naturalY[cell]).OrderBy(y => y).ToList();
             var materials = component.GroupBy(cell => BlockPalette.Name(topId[cell], topData[cell]))
                 .OrderByDescending(group => group.Count()).Take(3)
                 .Select(group => $"{group.Key} {group.Count() * 100 / component.Count}%");
@@ -154,8 +179,11 @@ public static class StructureFinder
             }
     }
 
-    /// <summary>One connected component of built columns, 8-neighbour so a diagonal corner still joins.</summary>
-    private static List<(int X, int Z)> Flood((int X, int Z) seed, HashSet<(int X, int Z)> pending)
+    /// <summary>One connected component of built columns, 8-neighbour so a diagonal corner still joins — but
+    /// only across a step of <paramref name="maximumStep"/> or less, so a wall standing over a painted plaza
+    /// of the same material breaks the flood instead of fusing the building to the ground it grows from.</summary>
+    private static List<(int X, int Z)> Flood((int X, int Z) seed, HashSet<(int X, int Z)> pending,
+                                               Dictionary<(int X, int Z), int> topY, int maximumStep)
     {
         var component = new List<(int X, int Z)>();
         var queue = new Queue<(int X, int Z)>([seed]);
@@ -167,15 +195,21 @@ public static class StructureFinder
             for (var dz = -1; dz <= 1; dz++)
                 for (var dx = -1; dx <= 1; dx++)
                 {
+                    if (dx == 0 && dz == 0) continue;
                     var next = (cell.X + dx, cell.Z + dz);
-                    if ((dx != 0 || dz != 0) && pending.Remove(next)) queue.Enqueue(next);
+                    if (!pending.Contains(next)) continue;
+                    if (Math.Abs(topY[next] - topY[cell]) > maximumStep) continue;
+                    pending.Remove(next);
+                    queue.Enqueue(next);
                 }
         }
         return component;
     }
 
-    /// <summary>Natural columns just outside a component — the ground it stands on, which its own roof hides.</summary>
-    private static HashSet<(int X, int Z)> Ring(List<(int X, int Z)> component, HashSet<(int X, int Z)> built)
+    /// <summary>Columns just outside a component — the ground it stands on, which its own roof hides. Sampled
+    /// through <c>naturalY</c> rather than filtered by material, so a component still finds real ground when
+    /// the whole map, floor included, wears one paint.</summary>
+    private static HashSet<(int X, int Z)> Ring(List<(int X, int Z)> component)
     {
         var inside = new HashSet<(int X, int Z)>(component);
         var ring = new HashSet<(int X, int Z)>();
@@ -184,7 +218,7 @@ public static class StructureFinder
                 for (var dx = -3; dx <= 3; dx++)
                 {
                     var next = (cell.X + dx, cell.Z + dz);
-                    if (!inside.Contains(next) && !built.Contains(next)) ring.Add(next);
+                    if (!inside.Contains(next)) ring.Add(next);
                 }
         return ring;
     }

@@ -40,7 +40,7 @@ stores only placement. The blocks that do carry a sub-type are these, and nothin
 | Blocks | Sub-type bits | What the other bits hold |
 |---|---|---|
 | Logs `17`, `162`; leaves `18`, `161` | `0–1` | Log axis (and the all-bark forms `12–15`); leaf persistence and decay-check flags |
-| Dirt `3`, sandstone `24`, red sandstone `179`, tall grass `31`, stone bricks `98`, prismarine `168` | `0–1` | — |
+| Dirt `3`, sandstone `24`, red sandstone `179`, grass `31`, stone bricks `98`, prismarine `168` | `0–1` | — |
 | Stone `1`, planks `5`, saplings `6`, silverfish blocks `97`, wood slabs `125`/`126`, red sandstone slabs `181`/`182` | `0–2` | Sapling growth stage; slab upper-half flag |
 | Stone slab `44`, double stone slab `43` | `0–2` | Slab upper-half flag; the double slab's seamless forms reuse `0–2`, landing each on its ordinary twin |
 | Sand `12`, sponge `19`, cobblestone wall `139` | `0` | — |
