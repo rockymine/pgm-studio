@@ -459,6 +459,15 @@ read equally from a region directory or an in-memory `VoxelWorld` (`AnvilRegion.
 lets `tools/mapgen` emit the same set itself, over the world it just built, with no second load off the
 region files it just wrote — see `README.md` beside this file.
 
+Every renderer above looks straight down. `--column <regionDir> <x> <z> [x z ...]` and
+`--section <regionDir> <outPng> --x <lo> <hi> --z <fixed>` (or the axes swapped) are the vertical
+complement: `--column` prints one or more columns bedrock to sky, every solid block named — the cheap
+textual form that verifies a `layered` material's stack, a wall's courses or a stamped room's floor; `--section`
+draws the same information as an axis-aligned slice, so a riser, a ramp's step heights, a building's storeys
+and a void column are all visible in one picture rather than inferred from a plan view that has already
+discarded Y. Both read `PgmStudio.Minecraft.Render.ColumnReport`/`SectionRender` exactly like the renderers
+above — a region directory or an in-memory `VoxelWorld`, no second load.
+
 **The prototypes** render the model rather than a map. `tools/relief` emits ten figures plus a topographic
 view, a blocks-from-an-angle view, a section and a step map, and `--corpus` measures real worlds into the
 same terms. `tools/compose` holds twenty-two galleries — boards, bodies, boxes, edges, mids, seeds, hubs —

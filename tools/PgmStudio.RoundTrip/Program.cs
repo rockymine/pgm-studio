@@ -169,6 +169,69 @@ if (heightIdx >= 0 && heightIdx + 2 < args.Length)
         args.Contains("--grey"), args.Contains("--water"));
 }
 
+// --column <regionDir> <x> <z> [x z ...]: one or more vertical columns, bedrock to sky, every solid block
+// named — the textual section read-back. What column-probe scripts have been hand-written for outside this
+// repo, because no renderer here answers "what stands at this exact point".
+var columnIdx = Array.IndexOf(args, "--column");
+if (columnIdx >= 0 && columnIdx + 3 < args.Length)
+{
+    var columns = new List<(int X, int Z)>();
+    var cursor = columnIdx + 2;
+    while (cursor + 1 < args.Length && int.TryParse(args[cursor], out var columnX) && int.TryParse(args[cursor + 1], out var columnZ))
+    {
+        columns.Add((columnX, columnZ));
+        cursor += 2;
+    }
+    return ColumnReport.Run(args[columnIdx + 1], columns);
+}
+
+// --section <regionDir> <outPng> --x <lo> <hi> --z <fixed> | --z <lo> <hi> --x <fixed> [--scale N] [--ymin Y]
+// [--ymax Y] [--ticks N]: a vertical slice through the world along one axis-aligned line, drawn as an image —
+// the picture half of the section read-back. A riser, a ramp's step heights, a building's storeys and a
+// goal's clearance over the ground are none of them visible in a plan view; this is the one renderer that
+// keeps Y. One of --x/--z takes two values (the range the cut runs along), the other takes one (where the
+// line sits on the fixed axis).
+var sectionIdx = Array.IndexOf(args, "--section");
+if (sectionIdx >= 0 && sectionIdx + 2 < args.Length)
+{
+    var xAt = Array.IndexOf(args, "--x");
+    var zAt = Array.IndexOf(args, "--z");
+
+    bool RangeAt(int at, out int low, out int high)
+    {
+        low = high = 0;
+        return at >= 0 && at + 2 < args.Length && int.TryParse(args[at + 1], out low) && int.TryParse(args[at + 2], out high);
+    }
+    bool FixedAt(int at, out int value)
+    {
+        value = 0;
+        return at >= 0 && at + 1 < args.Length && int.TryParse(args[at + 1], out value);
+    }
+
+    SectionAxis sectionAxis;
+    int sectionRangeMin, sectionRangeMax, sectionFixed;
+    if (RangeAt(xAt, out var xLow, out var xHigh) && FixedAt(zAt, out var zFixed))
+        (sectionAxis, sectionRangeMin, sectionRangeMax, sectionFixed) = (SectionAxis.AlongX, Math.Min(xLow, xHigh), Math.Max(xLow, xHigh), zFixed);
+    else if (RangeAt(zAt, out var zLow, out var zHigh) && FixedAt(xAt, out var xFixed))
+        (sectionAxis, sectionRangeMin, sectionRangeMax, sectionFixed) = (SectionAxis.AlongZ, Math.Min(zLow, zHigh), Math.Max(zLow, zHigh), xFixed);
+    else
+    {
+        Console.Error.WriteLine("--section needs a ranged --x plus a fixed --z, or a ranged --z plus a fixed --x");
+        return 1;
+    }
+
+    var sectionScaleAt = Array.IndexOf(args, "--scale");
+    var yMinAt = Array.IndexOf(args, "--ymin");
+    var yMaxAt = Array.IndexOf(args, "--ymax");
+    var ticksAt = Array.IndexOf(args, "--ticks");
+    return SectionRender.Run(
+        args[sectionIdx + 1], args[sectionIdx + 2], sectionAxis, sectionRangeMin, sectionRangeMax, sectionFixed,
+        sectionScaleAt >= 0 && sectionScaleAt + 1 < args.Length && int.TryParse(args[sectionScaleAt + 1], out var sectionScale) ? Math.Max(1, sectionScale) : 4,
+        yMinAt >= 0 && yMinAt + 1 < args.Length && int.TryParse(args[yMinAt + 1], out var sectionYMin) ? sectionYMin : null,
+        yMaxAt >= 0 && yMaxAt + 1 < args.Length && int.TryParse(args[yMaxAt + 1], out var sectionYMax) ? sectionYMax : null,
+        ticksAt >= 0 && ticksAt + 1 < args.Length && int.TryParse(args[ticksAt + 1], out var sectionTicks) ? Math.Max(1, sectionTicks) : 8);
+}
+
 // --traversability-map <regionDir> <outPng> [--map <mapXmlPath>] [--scale N]: spawn/wool/monument/core
 // connectivity over the navigable columns (ground + 2 blocks headroom, plus any void column the map's own
 // buildable-region apply rule opens to bridging — requires --map to read that wiring), 4-connected
@@ -185,18 +248,21 @@ if (travMapIdx >= 0 && travMapIdx + 2 < args.Length)
         scaleAt >= 0 && scaleAt + 1 < args.Length && int.TryParse(args[scaleAt + 1], out var travScale) ? Math.Max(1, travScale) : 3);
 }
 
-// --structures <regionDir> <outPng> [--scale N] [--min-area N]: built structures found by the material on
-// top of each column (not by elevation, which cannot tell a hut from a boulder), joined into components and
-// measured against the natural ground just outside their own footprint.
+// --structures <regionDir> <outPng> [--scale N] [--min-area N] [--max-step N]: built structures found by the
+// material on top of each column (not by elevation alone, which cannot tell a hut from a boulder), joined into
+// components across a step of at most --max-step so a wall does not fuse into a painted plaza of the same
+// material, and measured against the natural ground just outside their own footprint.
 var structIdx = Array.IndexOf(args, "--structures");
 if (structIdx >= 0 && structIdx + 2 < args.Length)
 {
     var scaleSlot = Array.IndexOf(args, "--scale");
     var areaSlot = Array.IndexOf(args, "--min-area");
+    var stepSlot = Array.IndexOf(args, "--max-step");
     return StructureFinder.Run(
         args[structIdx + 1], args[structIdx + 2],
         scaleSlot >= 0 && scaleSlot + 1 < args.Length && int.TryParse(args[scaleSlot + 1], out var structScale) ? Math.Max(1, structScale) : 3,
-        areaSlot >= 0 && areaSlot + 1 < args.Length && int.TryParse(args[areaSlot + 1], out var minArea) ? Math.Max(1, minArea) : 12);
+        areaSlot >= 0 && areaSlot + 1 < args.Length && int.TryParse(args[areaSlot + 1], out var minArea) ? Math.Max(1, minArea) : 12,
+        stepSlot >= 0 && stepSlot + 1 < args.Length && int.TryParse(args[stepSlot + 1], out var maxStep) ? Math.Max(1, maxStep) : StructureFinder.DefaultMaximumStep);
 }
 
 // --flora <regionDir> <outPng> --path <id[:data],...> [--scale N]: trees separated from structural timber by

@@ -4483,6 +4483,23 @@ these are the ones that shipped a map that could not be played as intended, and 
   with 2 isolated markers to 5 with none. Alongside it, `Retarget` no longer offsets a `dtcm` core two cells
   along unconditionally: it measures room-to-edge within the monument's own piece and takes the direction with
   the most room, so the three shipped specs that `B82` was refusing now build with their cores on ground.
+- **A vertical section, textual and drawn (B121).** Every world read-back before this one looked straight
+  down; `layered` exists to vary a material down a riser and nothing could check one. `ColumnReport`
+  (`--column <regionDir> <x> <z> [x z ...]`) prints one or more columns bedrock to sky, every solid block
+  named off the same `BlockPalette` table every other renderer reads. `SectionRender`
+  (`--section <regionDir> <outPng> --x <lo> <hi> --z <fixed>`, or the axes swapped) draws an axis-aligned
+  vertical slice as a PNG, with a horizontal scale ruled onto the image every N blocks (heavier every fifth)
+  so a riser, a ramp's step heights, a building's storeys or a void column are counted rather than guessed —
+  and two different kinds of "nothing" are drawn two different ways, a pale neutral for ordinary air inside a
+  loaded chunk against the near-black every other renderer already uses for a hole nothing covers. Both live
+  in `PgmStudio.Minecraft.Render` beside the plan-view renderers, reading a region directory or an in-memory
+  `VoxelWorld` the same way. Verified against the two `pgm-studio-mapgen` worlds: ClayClay's south approach
+  wall (bedrock, x17–29, z51–52, y11–15, a cobweb course at y16) stands proud of the flat clay field it grows
+  from by 3–4 blocks in the section image; a probed column at (20, 44) reads the map's layer stack top to
+  bottom (lime stained clay at y12 over clay to y1 over bedrock at y0); and Ashen Quarry's quarry-mouth void
+  is a diagonal notch, not a straight edge — missing columns at z26/27/28/29 run 5/23/42/60 wide (x −9..−5,
+  −26..−4, −44..−3, −61..−2) and close to zero at z30, which is exactly the diagonal land-polygon boundary
+  `AGENT-REPORT-2.md` describes.
 
 - **The capability handbook — what the system can be asked for, and where to say it (B91).** `docs/tools/capabilities.md`
   mapped the four documents a map is made of; it now also states the surface underneath the spec's shorthand, in
