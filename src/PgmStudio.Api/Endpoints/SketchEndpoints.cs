@@ -177,9 +177,8 @@ public sealed class SketchPutEndpoint(MapRepository repo, PgmDb db) : EndpointWi
 }
 
 /// <summary>The house-style gate a sketch's bound <c>roomStyles</c> runs through before the layout is stored —
-/// the wool cage against the universal checks, and the spawn against those <em>plus</em> the spawn-only
-/// window-plainness rule, since only a spawn is checked for that one
-/// (<see cref="HouseStyleValidation.SpawnFindings"/>'s own docs say why).</summary>
+/// the wool cage and the spawn against the same universal checks, since neither wears a rule the other
+/// doesn't.</summary>
 internal static class SketchRoomStyleGate
 {
     public static IReadOnlyList<HouseStyleFinding> Findings(string layoutJson)
@@ -195,10 +194,7 @@ internal static class SketchRoomStyleGate
         if (styles.Wool is { } wool)
             findings.AddRange(Prefixed("roomStyles.cage", HouseStyleValidation.Check(wool)));
         if (styles.Spawn is { } spawn)
-        {
             findings.AddRange(Prefixed("roomStyles.spawn", HouseStyleValidation.Check(spawn)));
-            findings.AddRange(Prefixed("roomStyles.spawn", HouseStyleValidation.SpawnFindings(spawn)));
-        }
         return findings;
     }
 

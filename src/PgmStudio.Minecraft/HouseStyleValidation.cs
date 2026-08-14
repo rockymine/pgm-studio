@@ -20,9 +20,6 @@ public static class HouseStyleRules
     /// half-course companion) or its family (a log or a ground material standing in for the roof or the
     /// verge).</summary>
     public const string RoofMaterial = "HS3";
-
-    /// <summary>A spawn's window is patterned rather than plain — air, glass, or nothing else.</summary>
-    public const string SpawnWindow = "HS4";
 }
 
 /// <summary>One thing wrong with a posted house style: which rule it breaks (<see cref="HouseStyleRules"/>),
@@ -35,16 +32,13 @@ public sealed record HouseStyleFinding(string Rule, string Field, string Message
 /// The gate a <see cref="HouseStyle"/> is checked against before it is stored — beside the style rather than in
 /// a driver, so a bad one is refused when it is posted instead of silently built.
 ///
-/// <para><see cref="Check"/> is the universal half: every fault a style's own geometry can name without knowing
-/// what the building is <em>for</em>. It is safe to run on any house, decorative or objective — none of the ten
-/// shipped presets in <see cref="HousePresets"/> trips it, including <see cref="HousePresets.Alpine"/> and
-/// <see cref="HousePresets.Workshop"/>, whose stair-lattice and slab-banded windows are built correctly.</para>
-///
-/// <para><see cref="SpawnFindings"/> is not universal, and is not run by <see cref="Check"/>. A patterned
-/// window is a defect only on the room a player spawns in, not a defect in <see cref="WindowForm.StairLattice"/>
-/// or <see cref="WindowForm.SlabBanded"/> themselves — both are shipped correctly elsewhere in this same file's
-/// presets — so it is a constraint a caller applies only once it knows a style is bound as a spawn, never a
-/// blanket rule on the type.</para>
+/// <para><see cref="Check"/> is safe to run on any house, decorative or objective, whatever it is built for:
+/// every fault it names is a property of the style's own geometry, never of what the building is <em>for</em>.
+/// None of the ten shipped presets in <see cref="HousePresets"/> trips it, including
+/// <see cref="HousePresets.Alpine"/> and <see cref="HousePresets.Workshop"/>, whose stair-lattice and
+/// slab-banded windows are built correctly — a window built from either form is allowed on any house, spawns
+/// included, so long as its block is the kind the form needs (<see cref="HouseStyleRules.BlockKind"/>); neither
+/// form is a defect to be refused on its own.</para>
 /// </summary>
 public static class HouseStyleValidation
 {
@@ -195,32 +189,5 @@ public static class HouseStyleValidation
             findings.Add(new HouseStyleFinding(HouseStyleRules.DoorClearance, "doorHeight",
                 $"the doorway clears {clear:0.0} blocks once its head is written in; a door must clear at " +
                 $"least {LeastDoorClearance:0.0}."));
-    }
-
-    // ── a spawn window is plain ────────────────────────────────────────────────────────────────────────────
-
-    /// <summary>Findings <see cref="Check"/> never raises, because they are not a property of the style — they
-    /// are a constraint on what a <b>spawn</b> may wear. A player-spawn window is either open air or glazed,
-    /// filled with a single block if it is filled at all, so a patterned form is refused here whatever block it
-    /// names: <see cref="WindowForm.StairLattice"/> and <see cref="WindowForm.SlabBanded"/> are both shipped
-    /// correctly in <see cref="HousePresets"/>, on houses that are not spawns. Call this only where a style is
-    /// about to be bound as the spawn shell.</summary>
-    public static IReadOnlyList<HouseStyleFinding> SpawnFindings(HouseStyle style)
-    {
-        var findings = new List<HouseStyleFinding>();
-        CheckPlainWindow("windows", style.Windows, findings);
-        CheckPlainWindow("gableWindows", style.GableWindows, findings);
-        for (var at = 0; at < style.Storeys.Count; at++)
-            if (style.Storeys[at].Windows is { } storeyWindows)
-                CheckPlainWindow($"storeys[{at}].windows", storeyWindows, findings);
-        return findings;
-    }
-
-    private static void CheckPlainWindow(string field, WindowStyle windows, List<HouseStyleFinding> findings)
-    {
-        if (windows.Form is WindowForm.StairLattice or WindowForm.SlabBanded)
-            findings.Add(new HouseStyleFinding(HouseStyleRules.SpawnWindow, field,
-                $"{field}.form ({windows.Form}) is a patterned window on a spawn. A spawn window is air or " +
-                "glass — if it is filled at all, it is filled with a single block."));
     }
 }

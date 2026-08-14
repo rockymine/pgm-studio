@@ -386,7 +386,8 @@ else depends on are protected, and the things nothing depends on are the author'
 `/roof-styles` verbs (over the roof and the verge — the two materials a roof part carries on their own) and the
 two `/storey-styles` verbs (over the storey's own window), and on the two other doors a `HouseStyle` snapshot
 enters the studio through: `PUT /map/{slug}/sketch`'s bound `roomStyles.cage` and `roomStyles.spawn`
-(`docs/tools/sketch.md`'s Refusals). Every finding names one of four stable rule ids
+(`docs/tools/sketch.md`'s Refusals) — the wool cage and the spawn checked identically, since nothing about a
+spawn asks for a different rule. Every finding names one of three stable rule ids
 (`PgmStudio.Minecraft.HouseStyleRules`), so a caller can act on `rule` rather than parsing `message`:
 
 - **`HS1` — a stair or a slab, unchecked.** `doorHead.block` must be a stair; its `fillBlock` under `upperSlab`
@@ -396,7 +397,10 @@ enters the studio through: `PUT /map/{slug}/sketch`'s bound `roomStyles.cage` an
   is a full cube regardless. Getting it wrong used to build silently — a solid lintel instead of an arch, a
   pane/air/pane stripe instead of a band — and now answers **400**
   `{error: "invalid house style", findings: [{rule, field, message}]}`, one finding per fault, naming the field
-  and the block that was wrong. Nothing is substituted for the author.
+  and the block that was wrong. Nothing is substituted for the author. The forms themselves are never refused:
+  a `stairLattice` window with a real stair and a `slabBanded` window with a real slab are both allowed on any
+  house, a spawn included — `HousePresets.Alpine` and `Workshop` build them correctly, and the author has
+  confirmed the forms are not the fault (`B161`'s finding was the block, not the pattern).
 - **`HS2` — a door too short to walk through.** A door head takes the doorway's top course, so a three-course
   door clears two full courses plus, if the fill is genuinely an upper slab, half of a third — 2.5 at the least
   a door may clear (author). A style whose fill only *claims* to be a slab, or is a solid beam by design, clears
@@ -404,12 +408,6 @@ enters the studio through: `PUT /map/{slug}/sketch`'s bound `roomStyles.cage` an
 - **`HS3` — a roof's own materials.** A slab named as the whole-block `roof` while `roofSlab` is unset builds a
   see-through roof at a whole block of rise; a log or a ground material named as `roof` or `verge` is refused
   outright, whichever role it is asked to fill.
-
-**`HS4` is not folded into that gate, because it is not a property of the style.** A spawn's window is either
-air or glass — a patterned form (a stair lattice, a slab band) is refused **only** when the style is the one
-bound as `roomStyles.spawn`; the same forms are shipped correctly on `Alpine` and `Workshop`, two of the ten
-built-in presets, which are not spawns. `HouseStyleValidation.SpawnFindings` is the standalone check for it,
-called nowhere `Check` is.
 
 Beyond that the library barely refuses. A save needs a name. A storey's clear floors at three. An unbound
 bucket that still paints is dropped rather than rejected. Nothing yet validates a *composition* as a whole — a

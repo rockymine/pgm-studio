@@ -565,14 +565,14 @@ The sketch has almost no gate, and that is deliberate: an unfinished drawing is 
 tool saves it. Six things nonetheless refuse.
 
 **A bound room style is checked before the layout is stored.** `PUT .../sketch` reads `roomStyles.cage` and
-`roomStyles.spawn` off the posted layout and runs each through the house-style gate (`docs/tools/library.md`'s
-Refusals, rule ids `HS1`–`HS3`) — a block named for a geometric role that is not that kind of block, a doorway
-that does not clear 2.5 blocks once its head is written in, or a roof whose own materials are wrong for its
-pitch or its family. The spawn shell is checked once more on its own (`HS4`): a patterned window (a stair
-lattice, a slab band) is refused there specifically, since a spawn window is air or glass and every other house
-is free to pattern one. Answers **400** `{error, findings}`, one finding per fault, and writes nothing. A
-layout with no `roomStyles`, or one whose snapshot does not parse as a house style at all, is not this gate's
-business and saves as it always did — only a well-formed style that is wrong is refused.
+`roomStyles.spawn` off the posted layout and runs each through the same house-style gate
+(`docs/tools/library.md`'s Refusals, rule ids `HS1`–`HS3`) — a block named for a geometric role that is not
+that kind of block, a doorway that does not clear 2.5 blocks once its head is written in, or a roof whose own
+materials are wrong for its pitch or its family. The cage and the spawn are checked identically: a stair
+lattice or a slab band window is allowed on either, as it is on any house, so long as its block is the kind the
+form needs. Answers **400** `{error, findings}`, one finding per fault, and writes nothing. A layout with no
+`roomStyles`, or one whose snapshot does not parse as a house style at all, is not this gate's business and
+saves as it always did — only a well-formed style that is wrong is refused.
 
 **Finish refuses an empty board.** `POST .../sketch/finish` answers 422 when there is no stored layout at all,
 and again when the layout rasterizes to no ground. It does *not* ask for two islands: an island is a connected

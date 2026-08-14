@@ -19,17 +19,28 @@ public sealed class HouseStyleValidationTests
     public static IEnumerable<HousePresets.House> Presets() => HousePresets.All;
 
     /// <summary>Alpine and Workshop are the two presets built on <see cref="WindowForm.StairLattice"/> and
-    /// <see cref="WindowForm.SlabBanded"/> respectively — the two forms the spawn-window rule refuses. They must
-    /// pass the universal gate (they are correct decorative houses) and fail only the spawn-specific one, which
-    /// is the whole reason that rule is not folded into <see cref="HouseStyleValidation.Check"/>.</summary>
+    /// <see cref="WindowForm.SlabBanded"/> respectively, and both pass clean — pinned on its own so the pattern
+    /// is not lost inside the loop over every preset. Neither form is a defect: the author has ruled both
+    /// allowed, on any house, and the corpus complaint was always the block handed to the form (a fence where a
+    /// stair goes, a pane where a slab goes — <see cref="HouseStyleRules.BlockKind"/>), never the pattern
+    /// itself.</summary>
     [Test]
-    public async Task A_stair_lattice_and_a_slab_band_pass_the_universal_gate_but_not_the_spawn_one()
+    public async Task A_stair_lattice_and_a_slab_band_pass_clean_with_the_right_block()
     {
         await Assert.That(HouseStyleValidation.Check(HousePresets.Alpine.Style)).IsEmpty();
         await Assert.That(HouseStyleValidation.Check(HousePresets.Workshop.Style)).IsEmpty();
+    }
 
-        await Assert.That(HouseStyleValidation.SpawnFindings(HousePresets.Alpine.Style)).IsNotEmpty();
-        await Assert.That(HouseStyleValidation.SpawnFindings(HousePresets.Workshop.Style)).IsNotEmpty();
+    /// <summary>The author's ruling, pinned on the one house type it was ever in question for: a spawn shell
+    /// built with a stair-lattice or a slab-banded window, real blocks throughout, passes clean. Nothing —
+    /// not <see cref="HouseStyleValidation.Check"/>, not any other gate — singles a spawn's window out.</summary>
+    [Test]
+    public async Task A_spawn_built_with_a_stair_lattice_or_a_slab_band_window_is_allowed()
+    {
+        var lattice = HouseStyle.Spawn with { Windows = WindowStyle.Lattice };
+        var band = HouseStyle.Spawn with { Windows = WindowStyle.Band };
+        await Assert.That(HouseStyleValidation.Check(lattice)).IsEmpty();
+        await Assert.That(HouseStyleValidation.Check(band)).IsEmpty();
     }
 
     // ── HS1 — a block named for a geometric role, never checked to be that kind of block ────────────────

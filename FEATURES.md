@@ -3707,11 +3707,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   clears two plus half a block only when the fill is *genuinely* an upper slab — `HouseStyleValidation.
   ClearDoorHeight` is that arithmetic (the author's own numbers, not re-derived), and `Check` refuses anything
   under **2.5** (rule `HS2`). Paired with a wrong fill block (`HS1`), a three-course door with a solid
-  cobblestone head clears a flat two, which is what two corpus boards actually built. A spawn's window carries
-  a rule (`HS4`) the universal gate does not run, because it is not a property of the style: `SpawnFindings`
-  refuses a patterned window (`stairLattice`, `slabBanded`) only on the style bound as `roomStyles.spawn` — the
-  same two forms are shipped correctly on `Alpine` and `Workshop`, two of the ten built-in presets, neither of
-  which is a spawn.
+  cobblestone head clears a flat two, which is what two corpus boards actually built. **The task's other half —
+  a spawn window must be plain (air or glass, no pattern) — is withdrawn by the author.** `stairLattice` and
+  `slabBanded` windows are allowed on any house, a spawn included; the corpus complaint was always the block
+  handed to the form (`B160`/`HS1`), never the form itself, which `HousePresets.Alpine` and `Workshop` already
+  built correctly. No code shipped for the withdrawn half.
 - **A building seated into terrain names its footing off, and the choice has a name (B164).**
   `HouseStyle.NoFooting` is `Sill` resolved to air — the mechanism was already there, since a sill resolving to
   air is a course `HouseStamper` skips like any other, and twelve of fourteen authored maps never reached for
