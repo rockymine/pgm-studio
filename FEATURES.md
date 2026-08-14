@@ -4518,6 +4518,16 @@ these are the ones that shipped a map that could not be played as intended, and 
   `MiningTiers`, `docs/pgm/destroyables-and-cores.md`, `docs/tools/capabilities.md`,
   `docs/tools/configure.md`, `mapgen-review.md`'s `MG18` row, and this section's own `B81`/`B116` entries —
   is corrected in the same commit.
+- **A destroy or core board no longer claims to be a capture map (B131).** `MetaGenerator.Objective` used to
+  branch only on wool count, defaulting the zero-wool case to `"Capture the enemies' wools!"` — so every
+  destroy or core board the studio ever generated shipped a scoreboard line and description naming an
+  objective it did not have. The objective text and the declared `<gamemode>` now both follow which of
+  wools/destroyables/cores the intent actually carries, phrased from corpus-sourced clauses ("capture the
+  wool(s)", "destroy the enemy's monument(s)", "leak the enemy's core(s)") joined when a board mixes more
+  than one, and the gamemode using the same derivation `Domain.Gamemodes.From` applies to a parsed map
+  (`destroyables-and-cores.md` OB7) rather than a fixed `"ctw"`. Cosmetic only, as the entry that filed it
+  said — PGM already resolved the real objective against the `<core>`/`<destroyable>` elements regardless of
+  what the scoreboard's first line claimed.
 - **The export path is a project, not a folder inside the web app (B119).** `SketchWorldBuilder`,
   `MapXmlComposer` and `MapExportComposer` — plus the four map-facing readers only they used
   (`DressingScope`, `TerrainThemeScope`, `TeamTerritory`, `RoomStyleScope`) — moved out of `Api/Services` into

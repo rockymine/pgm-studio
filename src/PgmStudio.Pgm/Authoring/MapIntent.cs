@@ -50,8 +50,9 @@ public sealed record MapIntent
     /// Null/empty leaves them untouched.</summary>
     public List<CoreIntent>? Cores { get; init; }
 
-    /// <summary>Map identity: name + authors/contributors. Version (1.0.0), proto (1.5.0), gamemode (ctw)
-    /// and the objective text are auto-derived by the generator, not authored.</summary>
+    /// <summary>Map identity: name + authors/contributors. Version (1.0.0) and proto (1.5.0) are fixed; the
+    /// gamemode and the objective text are auto-derived from which objective modules the intent carries
+    /// (<see cref="MetaGenerator"/>), not authored.</summary>
     public MetaIntent? Meta { get; init; }
 
     /// <summary>The confirmed symmetry of the map (docs/pgm/new-map-authoring.md §3). When set, the

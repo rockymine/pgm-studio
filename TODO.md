@@ -191,25 +191,6 @@ which finds out whether the result actually answers.
   rather than papered over: a built map gets the truth, an imported one gets the estimate, and a render
   should say which it is showing.
 
-- [ ] **B131 — Every map the studio writes says it is a capture map, whatever it is.** `MetaGenerator`
-  states it in its own docstring — "Version/gamemode are fixed for new **CTW** maps; the objective is
-  generated from the wool count" — and `Objective(intent)` returns `"Capture the wool!"` for one wool and
-  `"Capture the enemies' wools!"` for any other count, **zero included**. So a destroy board with two
-  monuments and no wool ships telling the player to capture wools that do not exist. Three boards authored in
-  the trial run carry that line, and the run found it only by reading the exported `map.xml`. The map
-  `ashen_quarry` shipped with it too, so it predates the run rather than being something the run introduced.
-
-  **It is cosmetic, and the severity is worth stating exactly so nobody prioritises it as a break.** PGM
-  loads the map and plays it correctly: the scoreboard resolves the real objective against the `<core>` and
-  `<destroyable>` elements themselves, so a destroy board scores as a destroy board. What is wrong is the
-  **first line of the scoreboard and the map description** — the sentence a map gets to explain itself with,
-  read by every player who joins, saying the wrong thing on every destroy map the studio has ever written.
-
-  What it should say follows from what the intent already carries — wools, destroyables, cores, or a
-  combination, which is the ordinary corpus board — so nothing needs measuring. The declared `gamemode` wants
-  the same treatment, and `MapParser` is the reference for how a gamemode falls out of which objective
-  modules are present rather than from a label.
-
 - [ ] **B132 — With no build area declared, nothing stops a player bridging the void.** `BuildGenerator.Apply`
   returns at `if (b.Areas.Count == 0) return;` — before it reaches the `no-void` filter and the
   `not-build-area` negative that carry void enforcement. So a map that declares no build area gets **no**
