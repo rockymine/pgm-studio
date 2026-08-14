@@ -91,6 +91,35 @@ which finds out whether the result actually answers.
     claim that every generated destroy map was unwinnable.
   - **A document that describes something unbuilt names its task id, or says nothing.**
 
+- [ ] **B139 — Provenance records a layer and not an identity, so two buildings that touch are one building.**
+  `ProvenanceLayer` is `{ Ground, Structure }` and `WorldProvenance` maps a column to one of the two.
+  `StructureFinder` then floods across contiguous `Structure` cells, so **any two stamped things whose claimed
+  extents touch merge into a single finding.** Nothing distinguishes them, because nothing was recorded that
+  could.
+
+  It did not bite while a house claimed only its wall rectangle, since neighbouring houses stood a course or
+  two apart. `B137` grew a claim to the building's stamped extent — correctly, the eaves are the building —
+  and adjacent houses now abut. Measured on `quillon-barrow` rebuilt through the current pipeline: 26
+  structures before `B137`, **22** after, with `x −39..−3 z −84..−76` reported as one **36-block-wide**
+  structure that is really the left half of a village row, and its mirror at `x 3..39 z 76..84`. Individual
+  houses further along the same row survive as separate findings, so the fusion is wherever two overhangs meet
+  and nowhere else.
+
+  This is the fault `B133` was built to end, arriving from the other side. That entry's promise was that a
+  recorded extent **cannot** fuse, and it holds against *ground* — a cottage no longer dissolves into the
+  plaza it stands on, which was the original defect and is still fixed. What it does not hold against is
+  another *structure*, because the record answers "was this built" rather than "by what".
+
+  **A claim wants an owner.** A column claimed by house `d-h1` and a column claimed by house `d-h2` are
+  different claims even where they abut, and every pass that stamps already knows which thing it is stamping —
+  a prop carries an `id`, a wool cage belongs to a room, a spawn to a team. Recording that alongside the layer
+  turns the flood into a grouping and removes the need for it to guess. Note the sidecar's size is a real
+  constraint: it is run-length encoded per region and an identity per column costs more than a two-value
+  enum, so the encoding wants a small id table rather than a string per cell.
+
+  Until it lands, a structure count over a village is a count of **clusters**, not of buildings, and
+  `--structures`' own report should say so rather than implying one finding is one thing.
+
 - [ ] **B136 — The two features that make a shape stop looking drawn are reached almost never.** Measured
   over the eleven maps in `pgm-studio-mapgen`, counting non-null uses in the authored specs rather than
   serialized nulls:
