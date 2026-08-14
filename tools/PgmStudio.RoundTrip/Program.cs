@@ -325,7 +325,10 @@ if (floraIdx >= 0 && floraIdx + 2 < args.Length)
 
 // --buildings <regionDir> <outPng> --roof <id[:data],...> [--scale N] [--min-area N]: buildings found from
 // their roofs, kept only where a solid run reaches the terrain — a roofed structure hanging in the air is
-// not a building, whatever it is covered with.
+// not a building, whatever it is covered with. A region carrying a recorded WorldProvenance sidecar declines
+// this guess entirely rather than run it: --structures and --topdown --layer structure already read that
+// region's exact census, and a roof-material heuristic tuned for a corpus house has no reason to be trusted
+// over it on a world the studio built.
 var buildIdx = Array.IndexOf(args, "--buildings");
 if (buildIdx >= 0 && buildIdx + 2 < args.Length)
 {
@@ -365,7 +368,8 @@ if (buildIdx >= 0 && buildIdx + 2 < args.Length)
 
 // --surface <regionDir> <outPng> [--scale N] [--top N]: what the ground is made of once decoration, water
 // and structure are set aside — the material histogram, what each decoration grows on, what lies under the
-// water, and whether each material was scattered or laid in fields.
+// water, whether each material was scattered or laid in fields, and which full cubes on the board the
+// terrain-paint vocabulary does not name at all (magenta on the image, counted rather than just shown).
 var surfIdx = Array.IndexOf(args, "--surface");
 if (surfIdx >= 0 && surfIdx + 2 < args.Length)
 {

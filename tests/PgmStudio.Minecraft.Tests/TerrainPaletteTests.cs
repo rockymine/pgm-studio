@@ -108,9 +108,26 @@ public sealed class TerrainPaletteTests
         await Assert.That(lime.Group).IsEqualTo("verdant");
         await Assert.That(lime.InFamily).IsTrue();
 
-        var white = TerrainPalette.Paintable.Single(block => block is { Id: Blocks.StainedClay, Data: 0 });
-        await Assert.That(white.Group).IsEqualTo("Stained clay");
+        // Stained glass names no tone at all — every shade still falls through to the plain shade row.
+        var white = TerrainPalette.Paintable.Single(block => block is { Id: Blocks.StainedGlass, Data: 0 });
+        await Assert.That(white.Group).IsEqualTo("Stained glass");
         await Assert.That(white.InFamily).IsFalse();
+    }
+
+    [Test]
+    public async Task Every_stained_clay_shade_resolves_to_a_tone_family()
+    {
+        // Half the ramp used to fall through to the plain "Stained clay" shade row — a themed board built on
+        // the other eight dyes painted mostly as unnamed magenta.
+        for (var data = 0; data < 16; data++)
+            await Assert.That(TerrainPalette.FamilyOf(Blocks.StainedClay, data)).IsNotNull();
+    }
+
+    [Test]
+    public async Task Hay_bale_and_packed_ice_resolve_to_a_tone_family()
+    {
+        await Assert.That(TerrainPalette.FamilyOf(170, 0)).IsNotNull(); // hay bale
+        await Assert.That(TerrainPalette.FamilyOf(174, 0)).IsNotNull(); // packed ice
     }
 
     [Test]

@@ -130,6 +130,52 @@ public sealed class WorldProvenanceFileTests
     }
 
     [Test]
+    public async Task A_sidecar_from_before_the_owner_table_falls_back_to_null_instead_of_throwing()
+    {
+        // The pre-B139 shape: a bare JSON array of runs, with no {owners, runs} wrapper at all. Deserializing
+        // it as the current object shape fails to convert rather than returning null on its own, so TryRead has
+        // to catch that itself — the file's own doc comment promises exactly this fallback.
+        var dir = TempDir();
+        try
+        {
+            Directory.CreateDirectory(dir);
+            File.WriteAllText(Path.Combine(dir, "provenance.json"),
+                """[{"Z":0,"MinX":0,"MaxX":5,"structure":true}]""");
+
+            await Assert.That(WorldProvenanceFile.TryRead(dir)).IsNull();
+        }
+        finally { Directory.Delete(dir, recursive: true); }
+    }
+
+    [Test]
+    public async Task A_sidecar_missing_the_runs_field_falls_back_to_null_instead_of_throwing()
+    {
+        var dir = TempDir();
+        try
+        {
+            Directory.CreateDirectory(dir);
+            File.WriteAllText(Path.Combine(dir, "provenance.json"), "{}");
+
+            await Assert.That(WorldProvenanceFile.TryRead(dir)).IsNull();
+        }
+        finally { Directory.Delete(dir, recursive: true); }
+    }
+
+    [Test]
+    public async Task A_sidecar_that_is_not_json_at_all_falls_back_to_null_instead_of_throwing()
+    {
+        var dir = TempDir();
+        try
+        {
+            Directory.CreateDirectory(dir);
+            File.WriteAllText(Path.Combine(dir, "provenance.json"), "not json");
+
+            await Assert.That(WorldProvenanceFile.TryRead(dir)).IsNull();
+        }
+        finally { Directory.Delete(dir, recursive: true); }
+    }
+
+    [Test]
     public async Task Every_owner_string_is_written_once_regardless_of_how_many_runs_repeat_it()
     {
         // A id-table encoding: the same owner claimed on two separate rows costs the string once, not once

@@ -4811,6 +4811,46 @@ these are the ones that shipped a map that could not be played as intended, and 
   (`WorldProvenanceFile`'s `owners` array) rather than a string per cell, with a run breaking on an owner
   change as well as a layer change; on `quillon-barrow` the sidecar grows from about 33 KB to about 35 KB for
   a full owner-per-claim identity.
+- **`--surface` names the rest of the stained-clay ramp, hay bale, and says what it still cannot (B147).**
+  `TerrainPalette.Families` covered stained-clay data `1, 3, 5, 9, 11, 12, 13, 15`; the other eight
+  (white, magenta, yellow, pink, gray, light gray, purple, red) now each join the tone family the fired
+  colour actually reads as — magenta and purple into `mauve`, next to the light blue clay already there;
+  yellow into `gold`, beside yellow wool; pink and gray into `brick` and `dark`; white, light gray and red
+  into `sand`, `dirt` and `rust`. Hay bale joins `gold` for the same ochre yellow wool already offers there;
+  packed ice already had a family. Nineteen hand-authored, light-to-dark-ordered families in total, unchanged
+  in count and order — only their membership grew. The renderer now states its own coverage the way
+  `--topdown` states which structure reading it used: a `SurfaceReport.Result.Unnamed` list of the full cubes
+  on the board no family names, folded into the `UNNAMED MATERIAL` legend swatch as
+  `UNNAMED MATERIAL (N BLOCKS NO FAMILY CLAIMS)` and printed as its own console section. On
+  `tallow-kilnrow`, unnamed ground fell from 6,624 columns (33.6%, mostly the eight stained-clay shades this
+  closes) to 965 (4.9%) — the honest remainder, all four still genuinely outside the vocabulary: Quartz
+  Pillar (e.g. `(8, 18, -89)`), Smooth Sandstone (`(31, 1, -75)`), Smooth Red Sandstone (`(20, 26, -68)`) and
+  decorative Bedrock (`(33, 21, -57)`).
+- **A provenance sidecar from before the owner table falls back instead of throwing (B148).**
+  `WorldProvenanceFile.TryRead` guarded `File.Exists` but not the deserialize, so the pre-`B139` sidecar
+  shape — a bare JSON array of runs, not today's `{owners, runs}` object — failed to convert and raised an
+  unhandled `JsonException` out of every caller, taking `--topdown --layer structure` down with it on exactly
+  the older worlds a census is most useful for. `TryRead` now catches the conversion failure and also treats
+  a `runs`-less object the same way, both falling back to null exactly as its own doc comment already
+  promised for a missing file. Verified against the failure directly — a copied `tallow-kilnrow` region with
+  its sidecar replaced by the pre-owner array shape, by `{}`, and by non-JSON text all now render normally on
+  the material estimate instead of crashing — and against the corpus: every `pgm-studio-mapgen` world with a
+  current-shape sidecar (`marlstone-steps`, `tallow-kilnrow`, …) still reads `RECORDED PROVENANCE`, and every
+  world with none (`ashen_quarry`, …) still reads the material estimate, unchanged.
+- **`--buildings` declines a town it did not build rather than undercount it (B149).** Its roof-material
+  heuristic is tuned against corpus houses — log-framed corners, a roof material distinct from any terrain
+  block, an exact `--roof` match — and a studio-generated theme can defeat all three without being wrong:
+  `marlstone-steps` roofs its houses in materials `IsTerrain` also reads as ground (`98`, `155`, `159`), so
+  the clearance gate finds the roof and the terrain at the same height and drops the building before any
+  other measure runs. A `--roof` spec spanning every material `--structures` shows the town's roofs actually
+  use (brick, stained clay, sandstone, quartz, stone brick) finds only the two all-brick-roofed houses of the
+  24 the sidecar records, for exactly that reason. Rather than report a partial count silently, `--buildings`
+  now reads the region's own `WorldProvenance` sidecar first and declines outright when one is present,
+  naming `--structures` (a per-building table, owner-grouped) and `--topdown --layer structure` (the
+  picture) as the census that already has the exact answer — the heuristic is not loosened, since it stays
+  correct for the corpus houses it was measured against; it simply no longer runs where a better answer is
+  free. A region with no sidecar is unaffected: `ashen_quarry` still finds its 18 spruce/dark-oak house
+  roofs, four of them full-cornered, exactly as before.
 - **The capability handbook — what the system can be asked for, and where to say it (B91).** `docs/tools/capabilities.md`
   mapped the four documents a map is made of; it now also states the surface underneath the spec's shorthand, in
   pipeline order, every claim naming the type that carries it and the endpoint that answers it: the destroyable's

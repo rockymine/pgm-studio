@@ -636,10 +636,11 @@ than a gate beside the style.
   and gravel, spread over the 92-block spawn approach.
 
   Three boards, three ways of being unreadable, and no measure that would have caught any of them. The nearest
-  thing that exists is `--surface`'s tone families, which `B147` shows cannot even name half the stained-clay
-  palette. **A board that reads as one material and a board whose materials fight are the same missing check
-  seen from two sides**, and the read-back that would answer it is a **distribution over tone families** rather
-  than a picture.
+  thing that exists is `--surface`'s tone families (`B147` closed the coverage gap that left half the
+  stained-clay ramp reading as unnamed magenta), but nothing yet turns the reading into a **distribution over
+  tone families** an author could check either failure against. **A board that reads as one material and a
+  board whose materials fight are the same missing check seen from two sides**, and that distribution — not a
+  picture — is the read-back that would answer it.
 
   Filed as composition rather than defect, with `B173`: nothing here should refuse, and what would move it is a
   measure an author can look at before building.
@@ -858,40 +859,6 @@ the thing `B181` names, which makes the document upstream of the boards rather t
   docstrings are right and nothing an author reads first carries them.
 
   *`opus-run2` §1.3, §1.4, §5 #10 · `sonnet-run2` #1, #2, #6 · `opus5-run2` §2, §5 #5.*
-
-#### Bucket 9 — read-backs that answer a different question
-
-- [ ] **B147 — `--surface` has no tone family for half the stained-clay palette, hay bale or packed ice.**
-  `TerrainPalette.Families` names nineteen families whose stained-clay members are `159:1,3,5,9,11,12,13,15` and
-  no others, so a board leaning on `159:0/7/8/14` renders mostly magenta "unnamed material" — and the author who
-  saw it briefly believed the paint had failed. Hay bale (`170`) and packed ice (`174`) fall through the same
-  way. `--surface` is the read-back a themed board most wants, and `B183` needs it to answer a distribution.
-
-  The renderer already states which reading it used (`STRUCTURE READING: RECORDED PROVENANCE` is printed on every
-  image). The same honesty about its colour vocabulary — *this board uses N blocks no family claims* — is most of
-  the fix.
-
-  *`opus-run2` §1.2 and §5 #2, #8 · `maps/tallow-kilnrow/renders/04-surface.png` against `04-material.png`.*
-
-- [ ] **B148 — A provenance sidecar written by an earlier revision throws instead of falling back.**
-  `--topdown --layer structure` exits 255 with a `JsonException` on any world built before `B139` changed the
-  sidecar to `{owners, runs}`. `WorldProvenanceFile.TryRead` guards `File.Exists` and not the deserialize, and
-  its own doc comment promises the fallback. This makes the best census instrument in the repository unusable on
-  exactly the older maps that most need one.
-
-  *`opus5-run2` §5 #12.*
-
-- [ ] **B149 — `--buildings` cannot see a town this studio built, and says nothing about why.** Three compounding
-  causes, all because it is built for worlds the studio did not build: the `--roof` filter is exact and misses a
-  slab-surfaced roof; `IsTerrain` includes `98`, `155` and `159`, so a cottage roofed in `159:14` is classified as
-  ground and dropped by the clearance gate; and `CornerStems` requires a vertical log, so quartz-pillar posts read
-  as corners: 0. Marlstone has 24 houses standing and `--buildings` finds 6, all of them the spawn.
-
-  The tool is not wrong for its purpose. What is wrong is that **it gave a number contradicting a top-down that
-  had already been rendered, and the number was believed.** Either it declines to answer for a provenance-carrying
-  world and points at `--layer structure`, or it says which gate dropped what.
-
-  *`opus5-run2` §3 and §5 #11.*
 
 #### Bucket 10 — a document describing nothing still answers 200
 

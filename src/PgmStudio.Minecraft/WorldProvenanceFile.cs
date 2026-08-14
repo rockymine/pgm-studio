@@ -40,22 +40,32 @@ public static class WorldProvenanceFile
         File.WriteAllText(Path.Combine(regionDir, FileName), JsonSerializer.Serialize(Encode(provenance)));
     }
 
-    /// <summary>Read the sidecar back, or null when the region carries none — a world the studio scanned
-    /// rather than built, or one written before this recording existed. A renderer reading null falls back to
-    /// the material estimate rather than treating an absent file as an error.</summary>
+    /// <summary>Read the sidecar back, or null when the region carries none a renderer can use — a world the
+    /// studio scanned rather than built, one written before this recording existed, or one written by an
+    /// earlier revision of this same file whose shape has since moved on (the sidecar has no version field of
+    /// its own to gate on, so an incompatible shape is read the same way a missing file is: as no record). A
+    /// renderer reading null falls back to the material estimate rather than treating either as an error.</summary>
     public static WorldProvenance? TryRead(string regionDir)
     {
         var path = Path.Combine(regionDir, FileName);
         if (!File.Exists(path)) return null;
 
-        var sidecar = JsonSerializer.Deserialize<Sidecar>(File.ReadAllText(path));
-        if (sidecar is null) return null;
+        // The record has no version field to gate on, so an incompatible shape is read the same way a missing
+        // file is: as no record. That covers both a parse failure outright (the pre-owner sidecar this file
+        // wrote before B139 was a bare JSON array, which fails to convert to this object shape and raises
+        // JsonException rather than returning null the way a mismatched shape normally would) and a shape that
+        // parses but is missing the one field this reader cannot proceed without.
+        Sidecar? sidecar;
+        try { sidecar = JsonSerializer.Deserialize<Sidecar>(File.ReadAllText(path)); }
+        catch (JsonException) { return null; }
+        if (sidecar?.Runs is null) return null;
 
+        var owners = sidecar.Owners ?? [];
         var provenance = new WorldProvenance();
         foreach (var run in sidecar.Runs)
         {
-            var owner = run.OwnerId > 0 && run.OwnerId <= sidecar.Owners.Count
-                ? sidecar.Owners[run.OwnerId - 1] : WorldProvenance.NoOwner;
+            var owner = run.OwnerId > 0 && run.OwnerId <= owners.Count
+                ? owners[run.OwnerId - 1] : WorldProvenance.NoOwner;
             provenance.ClaimRect(run.MinX, run.Z, run.MaxX, run.Z,
                 run.Structure ? ProvenanceLayer.Structure : ProvenanceLayer.Ground, owner);
         }
