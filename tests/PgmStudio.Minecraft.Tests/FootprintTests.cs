@@ -12,6 +12,9 @@ namespace PgmStudio.Minecraft.Tests;
 public sealed class FootprintTests
 {
     /// <summary>An L: a hall along −z with a wing running north off its west end.</summary>
+    /// <summary>An L in plan: a 10 × 5 hall with a 5 × 5 wing off one end. Both ridges run along x — a square
+    /// wing takes the along-x ridge on the tie (<see cref="Wing.RidgeAlongX"/>) — so this footprint exercises
+    /// the outline and nothing about a roof junction, which is all these tests ask of it.</summary>
     private static Footprint Ell() => new([new Wing(0, 0, 9, 4), new Wing(0, 5, 4, 9)]);
 
     /// <summary>A T: the same hall with the wing centred on it instead.</summary>

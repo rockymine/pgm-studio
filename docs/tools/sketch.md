@@ -506,14 +506,22 @@ measured over the ground the wings actually cover rather than the box drawn roun
 of the cap for reading larger on the corner it never stood on (`G177`).
 
 **The roof over a junction is built and has two behaviours.** A building's roof is the union of its wings'
-roofs, never a max of their crowns, because a max blends two surfaces into one and drags roof material down
-the wall between wings of unequal height; each wing is extruded as the whole building it would be alone. Where
-a wing **projects** into another, it cuts the roof it pushes into across its own span, so its verge has
-something to sit on instead of two surfaces lying over each other. Where a wing's gable end runs up against
-another wing rather than into the open, its roof **marches** — carried across the wing's own width with no
-overhang, since an overhang is what a roof has outside a wall and inside another wing there is no outside — and
-bounded by the marching course's own distance from its own eave, so a course whose crown never meets a
-shallower or flatter neighbour's still stops rather than running the neighbour's whole length (`G172`).
+roofs, and each wing is extruded as the whole building it would be alone; where their plans overlap, **only the
+highest surface over a cell is written**, so the lower one does not stand inside the higher as an obstruction in
+the attic. Where a wing's gable end runs up against another wing rather than into the open, its roof
+**marches** — carried across the wing's own width with no overhang, since an overhang is what a roof has
+outside a wall and inside another wing there is no outside — and bounded by the marching course's own distance
+from its own eave, so a course whose crown never meets a shallower or flatter neighbour's still stops rather
+than running the neighbour's whole length (`G172`).
+
+Three things follow from the junction being one building rather than two roofs in one place (`G179`–`G181`).
+The loft over it is **one space**: the side of a wing standing against a neighbour is a doorway rather than an
+outside face, so no gable rises there and a marching T carries **three** gable faces where a projecting one
+carries four. A **verge** climbs and an **eave** does not, so the cells beneath a verge overhang are air while
+an eave overhang is a solid course — and where the two meet the verge crowns higher and the eave gives way,
+which keeps a gable end reading as a roof hanging past its wall instead of a filled panel. And the **rim is the
+building's**: a verge is the outer edge of the roof plan as a whole, never the edge of whichever rectangle
+happened to lay the block.
 
 **The overlap rule tells two buildings colliding from one building's own wings meeting.** Two props whose
 plans share a cell are still refused — the second is dropped rather than raised through the first's walls — but

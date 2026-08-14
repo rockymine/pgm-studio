@@ -17,6 +17,16 @@ namespace PgmStudio.Minecraft;
 /// measured across the building get that for nothing; the two measured from the front wall are held to it, so
 /// a long hall carries a long roof rather than a tall one.</para>
 ///
+/// <para><b>A pitched roof has three kinds of edge and they do not behave alike.</b> The <b>ridge</b> is where
+/// the slopes meet. An <b>eave</b> is the bottom edge of a slope — level, at the wall's top, and where water
+/// leaves the roof — so its overhang is one solid course running the length. A <b>verge</b> is the raked edge
+/// at a gable end, climbing eave to ridge, and its overhang is a triangle that is <b>open beneath</b>: nothing
+/// stands under it, because nothing sheds onto it. Which of a wing's four sides are which follows from
+/// <see cref="Reach"/> — the slopes are taken across the shorter span, so the two edges that span it are the
+/// eaves and the two the ridge ends on are the verges. This type answers heights and leaves the edge a cell
+/// stands on to the stamper, which is the only place the <em>building's</em> outline is known: one rectangle's
+/// rim is not an L's, and a cell can be the edge of a wing and the middle of a house.</para>
+///
 /// <para><b>Distances are measured from the wall line, not from the roof's own edge, and are allowed to go
 /// negative.</b> That is what makes the overhang part of the slope: the course over the wall rests on the wall,
 /// and every course outward from there keeps falling at the same rate, so the eave hangs below its neighbour
@@ -191,11 +201,6 @@ public sealed class RoofField
 
     /// <summary>The lowest course the column occupies — what a wall climbs to meet.</summary>
     public int Underside(int x, int z) => Crown(x, z) - Riser(x, z) + 1;
-
-    /// <summary>The roof's own outermost ring — its eave course and its verges. This is the edge of the roof,
-    /// not the part of it that oversails the wall: a roof ending flush still has an edge, and it is the edge
-    /// that is trimmed.</summary>
-    public bool OnBorder(int x, int z) => x == MinX || x == MaxX || z == MinZ || z == MaxZ;
 
     /// <summary>The line the slopes meet on. A flat lid has none — every cell of it would answer yes, and a
     /// ridge that is the whole roof is not a ridge.</summary>

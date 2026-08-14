@@ -800,6 +800,11 @@ public sealed class HouseStamperTests
     // ── a house on more than one wing ───────────────────────────────────────────────────────────────
 
     /// <summary>An L: a hall along −z with a wing running north off its west end.</summary>
+    /// <summary>An L in <b>plan</b> — and nothing more than that. Its two wings are both wider than they are
+    /// deep, so both ridges run along x, and their rectangles do not overlap: no gable end lands in the other's
+    /// slope and no march or project ever fires on it. It is the right fixture for a sill, a post, a wall run or
+    /// a notch, and the wrong one for a roof junction, which is what <see cref="EllMarch"/> and
+    /// <see cref="EllProject"/> are for.</summary>
     private static Footprint Ell() => new([new Wing(0, 0, 10, 6), new Wing(0, 7, 6, 12)]);
 
     /// <summary>Everything below the eave follows the plan rather than the box drawn round it. The notch is the
@@ -965,41 +970,183 @@ public sealed class HouseStamperTests
     /// its gable ends against the hall and the other out in the open.</summary>
     private static Footprint Tee() => new([new Wing(0, 5, 9, 9), new Wing(2, 0, 6, 5)]);
 
+    /// <summary>An L on the same hall, with the wing set against its corner rather than its middle. Its ridge
+    /// runs across the hall's, which is what makes the meeting a junction at all — see <see cref="Ell"/>, whose
+    /// two ridges are parallel and which therefore exercises none of this.</summary>
+    private static Footprint EllMarch() => new([new Wing(0, 5, 9, 9), new Wing(0, 0, 4, 5)]);
+
+    /// <summary>The same L with the wing drawn through to the hall's far wall, so its second gable stands in
+    /// the open on the other side.</summary>
+    private static Footprint EllProject() => new([new Wing(0, 5, 9, 9), new Wing(0, 0, 4, 9)]);
+
     /// <summary>
-    /// <b>A wing's two gable ends are the same gable.</b> One ends the building and the other stands against
-    /// its neighbour, and above the eave there is nothing to tell them apart: same gable face, same slope over
-    /// it, same verge. Compared over the <b>wing's own width</b>, since the neighbour's floor legitimately runs
-    /// wider than the wing does.
+    /// <b>A wing's end that stands against its neighbour is not a gable.</b> It is a doorway between two halves
+    /// of one building — open at the storey, and open above it. Filled anyway it walls the wing's attic off
+    /// from the hall's, so a building that reads as one shape from outside comes out with two sealed lofts in
+    /// it. A marching T therefore carries <b>three</b> gable faces and a projecting one carries four, which is
+    /// the difference between the two junctions stated as something countable.
     ///
-    /// <para>It says nothing about how a roof is assembled, so it outlives any implementation of one. Asked of
-    /// the gable rather than of the whole end wall, because <b>below</b> the eave the two ends are not alike
-    /// and should not be: the open end is a corner the building turns away at and carries posts, while the end
-    /// against the hall is a wall running into the hall's own corner a cell further on. The stronger form —
-    /// the same plinth and wall too — belongs to a wing that <em>projects</em> into another and stands
-    /// mid-slope, which is not built (G172).</para>
+    /// <para>An earlier form of this test asserted the opposite — that the two ends are the same gable — and
+    /// passed while the attic was in two pieces. The end against the hall is the one thing about a wing that
+    /// its open end cannot stand in for.</para>
     /// </summary>
     [Test]
-    public async Task A_wings_two_gable_ends_are_the_same_gable()
+    public async Task A_wings_end_against_its_neighbour_carries_no_gable()
     {
-        var plan = Tee();
-        var wing = plan.Wings[1];
-        var style = new HouseStyle { Form = RoofForm.Gable, Pitch = 1 };
-        var world = new VoxelWorld();
-        HouseStamper.Stamp(world, plan, FloorY, style);
+        // The gable takes a material of its own, because the default style walls and roofs in the same block
+        // and a face cannot be told from a slope that is made of the same thing.
+        var style = new HouseStyle
+        {
+            Form = RoofForm.Gable, Pitch = 1, Gable = new SolidMaterial(Blocks.EndStone),
+        };
+        var world = Built(Tee(), style);
+        var wing = Tee().Wings[1];
 
-        var eave = FloorY + style.WallCourses;
-        var seen = 0;
+        var open = 0;
         for (var x = wing.MinX; x <= wing.MaxX; x++)
-            for (var y = eave + 1; y <= FloorY + 24; y++)
+            for (var y = FloorY + style.WallCourses + 1; y <= FloorY + 24; y++)
             {
-                var against = world.GetBlock(x, y, wing.MinZ);      // the end standing against the hall
-                var open = world.GetBlock(x, y, wing.MaxZ);         // the end out in the open
-                await Assert.That((x, y, against.Id, against.Data)).IsEqualTo((x, y, open.Id, open.Data));
-                if (against.Id != Blocks.Air) seen++;
+                // MaxZ is the end standing on the hall's wall; MinZ is the end out in the open.
+                if (world.GetBlock(x, y, wing.MinZ).Id == Blocks.EndStone) open++;
+                var against = world.GetBlock(x, y, wing.MaxZ).Id;
+                await Assert.That((x, y, against)).IsNotEqualTo((x, y, Blocks.EndStone));
             }
 
-        // A gable that is nowhere at all would pass the comparison and mean nothing.
-        await Assert.That(seen).IsGreaterThan(0);
+        // The open end does carry one, or the comparison above is measuring nothing.
+        await Assert.That(open).IsGreaterThan(0);
+    }
+
+    /// <summary>
+    /// <b>The attic over a junction is one space.</b> Above the eave only walls and gable faces rise, and the
+    /// roof at each course closes a single outline with them — so every course that has an attic at all has
+    /// exactly <b>one</b> pocket of air inside it. Two wings of one building share their loft; they do not each
+    /// get their own.
+    ///
+    /// <para>Counted by flood fill from outside the plan, which is the only reading that cannot be satisfied by
+    /// a roof with a hole in its body: a seal test passes on one, and this does not.</para>
+    /// </summary>
+    [Test]
+    [MethodDataSource(nameof(Junctions))]
+    public async Task An_attic_over_a_junction_is_one_space(string name, Footprint plan)
+    {
+        var style = new HouseStyle();
+        var world = Built(plan, style);
+        const int lo = -4, hi = 16;
+
+        var attics = 0;
+        for (var y = FloorY + style.WallCourses + 1; y <= FloorY + 24; y++)
+        {
+            bool Solid(int x, int z) => world.GetBlock(x, y, z).Id != Blocks.Air;
+            var seen = new HashSet<(int, int)>();
+            var outside = new Queue<(int X, int Z)>();
+            for (var x = lo; x <= hi; x++) { outside.Enqueue((x, lo)); outside.Enqueue((x, hi)); }
+            for (var z = lo; z <= hi; z++) { outside.Enqueue((lo, z)); outside.Enqueue((hi, z)); }
+            while (outside.Count > 0)
+            {
+                var (x, z) = outside.Dequeue();
+                if (x < lo || x > hi || z < lo || z > hi || Solid(x, z) || !seen.Add((x, z))) continue;
+                outside.Enqueue((x + 1, z)); outside.Enqueue((x - 1, z));
+                outside.Enqueue((x, z + 1)); outside.Enqueue((x, z - 1));
+            }
+
+            var pockets = 0;
+            var counted = new HashSet<(int, int)>();
+            for (var x = lo; x <= hi; x++)
+                for (var z = lo; z <= hi; z++)
+                {
+                    if (Solid(x, z) || seen.Contains((x, z)) || counted.Contains((x, z))) continue;
+                    pockets++;
+                    var fill = new Queue<(int X, int Z)>();
+                    fill.Enqueue((x, z));
+                    while (fill.Count > 0)
+                    {
+                        var (a, b) = fill.Dequeue();
+                        if (a < lo || a > hi || b < lo || b > hi || Solid(a, b) || !counted.Add((a, b))) continue;
+                        fill.Enqueue((a + 1, b)); fill.Enqueue((a - 1, b));
+                        fill.Enqueue((a, b + 1)); fill.Enqueue((a, b - 1));
+                    }
+                }
+
+            await Assert.That((name, y, pockets)).IsEqualTo((name, y, pockets == 0 ? 0 : 1));
+            if (pockets == 1) attics++;
+        }
+
+        // A building with no enclosed course at all would satisfy the loop and mean nothing.
+        await Assert.That(attics).IsGreaterThan(0);
+    }
+
+    public static IEnumerable<(string, Footprint)> Junctions() =>
+    [
+        ("T marched", Tee()), ("T projected", Crossed()),
+        ("L marched", EllMarch()), ("L projected", EllProject()),
+    ];
+
+    /// <summary>
+    /// <b>A verge is the outer rim of a roof, so no cell inside the outline is one.</b> A building of several
+    /// wings has a single outline however many rectangles drew it, and a march's first step lands exactly on
+    /// the wing's own overhang line — asked of the wing rather than of the building it stamps verge in the
+    /// middle of the roof it has just run into. Counted at the ridge course, where a gable's verge is one cell
+    /// per end that stands in the open: <b>three</b> on a marching T and four on a projecting one.
+    /// </summary>
+    [Test]
+    [Arguments("T marched", 3)]
+    [Arguments("T projected", 4)]
+    [Arguments("L marched", 3)]
+    [Arguments("L projected", 4)]
+    public async Task Verge_at_the_ridge_course_counts_the_ends_that_stand_open(string name, int ends)
+    {
+        var style = new HouseStyle();
+        var plan = Junctions().Single(pair => pair.Item1 == name).Item2;
+        var world = Built(plan, style);
+        var verge = (SolidMaterial)style.Verge;
+
+        var ridge = FloorY + style.WallCourses + 3;
+        var found = new List<(int X, int Z)>();
+        for (var x = -4; x <= 16; x++)
+            for (var z = -4; z <= 16; z++)
+            {
+                var (id, data) = world.GetBlock(x, ridge, z);
+                if (id == verge.Id && data == verge.Data) found.Add((x, z));
+            }
+
+        await Assert.That((name, found.Count)).IsEqualTo((name, ends));
+    }
+
+    /// <summary>
+    /// <b>An eave never fills the triangle a verge hangs open.</b> A verge climbs, so the cells under it are
+    /// air; an eave does not, so its overhang is one solid course running the length. Where a wing's eave
+    /// overhang reaches the column another wing's gable oversails, the verge stands higher and the eave gives
+    /// way — an eave under a verge has no slope above it to catch anything from.
+    ///
+    /// <para>Read against the hall stamped <b>alone</b>, which is the only oracle that does not beg the
+    /// question of how high its own gable stands there.</para>
+    /// </summary>
+    [Test]
+    public async Task An_eave_overhang_leaves_a_neighbours_verge_triangle_open()
+    {
+        var style = new HouseStyle();
+        var world = Built(EllProject(), style);
+
+        var lone = new VoxelWorld();
+        HouseStamper.Stamp(lone, new Footprint(0, 5, 9, 9), FloorY, style);
+
+        var checkedCells = 0;
+        for (var z = 5; z <= 9; z++)
+        {
+            var crown = FloorY - 1;
+            for (var y = FloorY + 24; y >= FloorY; y--)
+                if (lone.GetBlock(-1, y, z).Id != Blocks.Air) { crown = y; break; }
+            await Assert.That((z, crown)).IsEqualTo((z, crown));
+
+            for (var y = FloorY + style.WallCourses; y < crown; y++)
+            {
+                await Assert.That((z, y, world.GetBlock(-1, y, z).Id)).IsEqualTo((z, y, Blocks.Air));
+                checkedCells++;
+            }
+        }
+
+        // The hall's gable has to actually oversail this column, or nothing above was asserted.
+        await Assert.That(checkedCells).IsGreaterThan(0);
     }
 
     /// <summary>A cross-gable: the same hall, with the wing pushed <b>into</b> it rather than set against it,

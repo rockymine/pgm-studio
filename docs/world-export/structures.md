@@ -319,11 +319,35 @@ against itself. `RoofField` needs no changes to serve it, which is the finding t
 Three rules carry the rest. A wing's roof reaches **its own walls plus its own overhang and no further**, so no
 stub of roof hangs outside a wall it never touched. **No roof block sits below the wall top of whatever covers
 that cell** — under a wall is inside the building — which is what makes a one-storey wing stop against a
-two-storey one instead of pushing a slope through its standing wall, and what turns two abutting eaves into a
-valley rather than into each other's gutters. And **walls outrank roofs**: every volume is laid before any wall
-is, and the wall-top rule settles the rest, so a wing standing against another does not have the other's slope
-written over it. That shows on a building of one wing too — a steep eave's riser used to reach into the top
-course of its own wall, and the wall now keeps it.
+two-storey one instead of pushing a slope through its standing wall. And **walls outrank roofs**: every volume
+is laid before any wall is, so a wing standing against another does not have the other's slope written over it.
+That shows on a building of one wing too — a steep eave's riser used to reach into the top course of its own
+wall, and the wall now keeps it.
+
+**Only the highest roof over a cell is written there**, and that one comparison is what makes the union a
+building rather than two roofs in the same place. Where two wings' plans overlap the lower surface stands
+*inside* the higher one, and a roof block inside a building is not a roof — it is an obstruction in the attic.
+So a wing lays nothing at a cell another wing's field crowns higher. This is the cut a projecting wing makes in
+the roof it pushes into: the hall's eave course stops at the wing's opening instead of running over the room
+behind it, and the two lofts are one space. It is not a max of crowns — no surface is blended and no field is
+touched; each wing still answers for itself, and the comparison decides only which of them is the one showing.
+
+The same comparison keeps a gable's overhang open, which is the other thing it is for. **A verge climbs and an
+eave does not**: the cells beneath a verge overhang are air, because nothing sheds onto them, while an eave
+overhang is a solid course running the length. Where a wing's eave overhang reaches the column another wing's
+gable oversails, the verge crowns higher and the eave gives way. Laid the other way round — and it was — the
+eave fills the triangle and a gable end reads as a filled panel instead of a roof hanging past its wall.
+
+**A face rises only where the building is outside it.** The walls climbing to meet the roof are built on the
+**body's** perimeter, not on each wing's own rectangle: the side of a wing that stands against a neighbour is
+not an outside face but a doorway between two halves of one building, open at the storey and open above it.
+Filled anyway it walls the wing's loft off from the hall's. So **a marching T carries three gable faces and a
+projecting one carries four** — the difference between the two junctions, stated as something countable.
+
+**A verge is the outer rim of a roof, so no cell inside the outline is one.** A building of several wings has a
+single outline however many rectangles drew it, and the rim is read from the roof plan as a whole — a cell with
+a neighbour outside it. Read from the wing instead, a march's first step lands exactly on that wing's own
+overhang line and stamps verge in the middle of the roof it has just run into.
 
 **Two joints, and they are not a mode — they are which rectangle was drawn.** Where a wing reaches an outside
 wall of another the crossing is a **valley**; where a wing **stops inside** another — a gable end landing
