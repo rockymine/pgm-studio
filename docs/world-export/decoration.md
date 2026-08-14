@@ -24,7 +24,9 @@ variants, the boulder elevations, the grown tree, the forest scatter) is emitted
 not hand-drawn. Read it alongside this doc the way `showcase.cs` reads alongside `model.md`: when prose and
 prototype disagree, suspect the prose. Rule ids here are `DR*` (dressing), local to this file the way
 `structures.md` owns `WX*` and `terrain-painting.md` owns `TP*` — `rules.md` is compose-scoped and frozen,
-so decoration law lives in the world-export docs, not there.
+so decoration law lives in the world-export docs, not there. The one exception is §3.1's clearance refusal,
+`OB19`: it fires from this pass's own ground read but it is a claim about an *objective*, so it takes the
+`OB*` id `destroyables-and-cores.md` owns rather than minting a second family for one rule.
 
 A note on the name. In this codebase **"decorative"** already means two settled things — the non-playable
 floating masses the island detector prunes (dragons, birds), and the non-objective wool a map places for
@@ -166,12 +168,14 @@ comes from the box the stamper wrote wherever there is one, for the same reason 
 (OB8): the ground kept open is then the ground the structure occupies by construction, rather than by two
 derivations agreeing. `ObjectiveFootprint` answers for an intent that has not been through a world build.
 
-A tree, a boulder or a building inside that ground is a different case and is **not yet answered** (`B116`).
-Those three are authored rather than generated, so dropping one here would silently discard a placement the
-author can see on the canvas; the answer they are getting is a refusal at export under OB17, naming the prop
-and the goal. Until that lands, nothing stops a trunk standing against a monument. The clearance is why the
-refusal is wanted at all: an objective is the one thing on a map that wants its approach legible, so a
-defender can see what is coming and an attacker pays something visible for arriving.
+A tree, a boulder or a building inside that ground is a different case, and it is **refused rather than
+dropped** (`OB19`, `DressingScope.GoalClearanceViolations`). Those three are authored, so dropping one here
+would silently discard a placement the author can see on the canvas; instead `MapExportComposer` answers
+**409**, naming the prop's kind and id, its offending cell, and the goal it reaches into. The check fans each
+tree and boulder's anchor and each building's whole footprint across the map's own symmetry — the same images
+`Decorator` itself would stamp — so a violation only one team's mirror carries is still caught. The clearance
+is why the refusal is wanted at all: an objective is the one thing on a map that wants its approach legible,
+so a defender can see what is coming and an attacker pays something visible for arriving.
 
 ## 4. Paths — drag a line, replace the finish (`DR-PA`)
 

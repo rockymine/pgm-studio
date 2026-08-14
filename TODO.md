@@ -39,7 +39,7 @@ holds them until one becomes the focus.
 
 ## Backend, pipeline & internals (B / P / A)
 
-**These four are the current run, in order.** They come out of one finding, and the finding is worth stating
+**These three are the current run, in order.** They come out of one finding, and the finding is worth stating
 once because every entry below inherits it: **`tools/` grew a second copy of the system.** A two-day
 experiment in whether an agent could drive the studio produced a CLI that reimplemented the parts it could
 not reach — its own goal-over-void refusal, its own prop clearance, its own forest and village samplers, its
@@ -49,33 +49,8 @@ second one, because the second one is what rots: it has no tests, no document th
 behind the thing it copies without anyone seeing (the relief fork sat 1614 cells off a settled solve for
 exactly that reason).
 
-**Take them in the order listed.** `B116` is first because it is the only one that is a live defect — a map
-exported from the studio today is not checked for the three things the CLI checks for — and because it is
-independent of the rest; it lands in a file `B119` later moves, which costs nothing. `B119` then moves the
-boundary so the copying stops being necessary, `B118` undoes what was copied, and `B120` finds out whether
-the result actually answers.
-
-- [ ] **B116 — OB17 is asked at compile and not at export.** The rule now has one home
-  (`ObjectivePlacement`, `Pgm/Plan`) and one caller. The second caller is the export gate:
-  `MapExportComposer.ComposeAsync` already builds the world and holds the resolved intent, so it can ask the
-  same question against the ground the rasterizer produced rather than against the plan's rectangles.
-
-  **Why a second gate is not redundant.** The compile gate reads plan pieces, which is the board as *drawn*.
-  A subtract cut afterwards, a relief solved over it, or a sketch edited after its compile all change where
-  ground is, and none of them re-enters the compile gate — so a plan that passed can still export a goal
-  standing over a hole somebody carved later. A map begun in Sketch never passes the compile gate at all.
-  The export gate is the only place that sees the ground a player will actually stand on.
-
-  Two more refusals belong on that same gate and nowhere else. `DestroyKitPairing.Unwinnable` already answers
-  which goals no tool in the kit can break, and its only caller today is `tools/mapgen` — which is precisely
-  the fault this run is about: a map exported from the studio is not checked, and a map exported from a CLI
-  is. And a **tree, boulder or building inside a goal's clearance** (`DressingScope.GoalGroundAt`,
-  `decoration.md` §3.1) has to be refused rather than dropped, because those three are authored: dropping one
-  discards a placement the author can see on the canvas, where a refusal naming the prop and the goal can be
-  acted on. Ground cover is explicitly not refused — it is allowed over a goal, tall grass excepted.
-
-  All of them are 409s from the one composer, so the studio and every headless driver are gated identically.
-  Findings carry their rule id, so a caller can act on `OB17` rather than parse a sentence.
+**Take them in the order listed.** `B119` moves the boundary so the copying stops being necessary, `B118`
+undoes what was copied, and `B120` finds out whether the result actually answers.
 
 - [ ] **B119 — The export path lives inside the web application.** `SketchWorldBuilder`, `MapXmlComposer` and
   `MapExportComposer` sit in `Api/Services/`, so anything that builds a world offline must reference

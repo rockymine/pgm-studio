@@ -98,4 +98,56 @@ public sealed class DestroyKitPairingTests
         var findings = DestroyKitPairing.Unwinnable(intent, []);
         await Assert.That(findings).IsEquivalentTo(["Red Monument"]);
     }
+
+    [Test]
+    public async Task The_rule_id_is_OB18()
+    {
+        // The export gate's finding names this id (docs/pgm/destroyables-and-cores.md), so a caller can
+        // act on it rather than parse the sentence.
+        await Assert.That(DestroyKitPairing.Rule).IsEqualTo("OB18");
+    }
+
+    [Test]
+    public async Task KitPickaxeMaterials_reads_every_kit_items_material()
+    {
+        var doc = new Dictionary<string, object?>
+        {
+            ["kits"] = new List<object?>
+            {
+                new Dictionary<string, object?>
+                {
+                    ["id"] = "spawn-kit",
+                    ["items"] = new List<object?>
+                    {
+                        new Dictionary<string, object?> { ["slot"] = 0, ["material"] = "iron sword" },
+                        new Dictionary<string, object?> { ["slot"] = 2, ["material"] = "diamond pickaxe" },
+                    },
+                },
+                new Dictionary<string, object?>
+                {
+                    ["id"] = "reset-kit",
+                    // A force kit with no items — must not throw, just contribute nothing.
+                },
+            },
+        };
+        await Assert.That(DestroyKitPairing.KitPickaxeMaterials(doc)).IsEquivalentTo(["iron sword", "diamond pickaxe"]);
+    }
+
+    [Test]
+    public async Task KitPickaxeMaterials_is_empty_when_the_document_carries_no_kits()
+    {
+        await Assert.That(DestroyKitPairing.KitPickaxeMaterials(new Dictionary<string, object?>())).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_kitless_document_read_back_still_reports_the_goal_it_cannot_break()
+    {
+        // The invariant the export gate leans on: reading a document with no kits at all back through
+        // KitPickaxeMaterials produces the same empty alphabet Unwinnable already treats as unbreakable —
+        // proving the two functions agree on what "no kit" means end to end.
+        var doc = new Dictionary<string, object?>();
+        var intent = new MapIntent { Destroyables = [Destroyable("obsidian", name: "Red Monument")] };
+        var findings = DestroyKitPairing.Unwinnable(intent, DestroyKitPairing.KitPickaxeMaterials(doc));
+        await Assert.That(findings).IsEquivalentTo(["Red Monument"]);
+    }
 }

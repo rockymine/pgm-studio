@@ -142,6 +142,84 @@ public sealed class DressingScopeTests
         await Assert.That(goalGround(-6, -6)).IsFalse();
     }
 
+    // ── OB19: a tree, a boulder or a building inside a goal's clearance ───────────────────────────────
+    // A single-block destroyable at (20,20), so its GoalGroundAt clearance rect is exactly [16,16]-[24,24]
+    // (the footprint grown by GoalClearance = 4). Every test below is read against that one fixed goal.
+    private static MapIntent GoalAt20 => new()
+    {
+        Destroyables =
+        [
+            new DestroyableIntent
+            {
+                Owner = "red", Name = "red's monument", Style = "pillar-1", Materials = "obsidian",
+                Anchor = new Pt(20, 8, 20), Box = new BlockBox(20, 8, 20, 20, 8, 20),
+            },
+        ],
+    };
+
+    [Test]
+    public async Task A_boulder_directly_inside_the_clearance_is_flagged()
+    {
+        var violations = DressingScope.GoalClearanceViolations(
+            Layout(",\"dressing\":{\"props\":[{\"kind\":\"boulder\",\"id\":\"b1\",\"x\":18,\"z\":18,\"seed\":1}]}"), GoalAt20);
+
+        await Assert.That(violations.Count).IsEqualTo(1);
+        await Assert.That(violations[0].Kind).IsEqualTo("boulder");
+        await Assert.That(violations[0].PropId).IsEqualTo("b1");
+    }
+
+    [Test]
+    public async Task A_building_is_flagged_the_moment_its_footprint_overlaps_the_clearance()
+    {
+        // The anchor corners sit outside the clearance rect, but the 5×5 footprint they enclose reaches into
+        // its [16,16]-[24,24] corner — a building is checked as the whole floor it stamps, not a single point.
+        var violations = DressingScope.GoalClearanceViolations(
+            Layout(",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"points\":[[23,23],[27,27]]}]}"),
+            GoalAt20);
+
+        await Assert.That(violations.Count).IsEqualTo(1);
+        await Assert.That(violations[0].Kind).IsEqualTo("building");
+        await Assert.That(violations[0].PropId).IsEqualTo("h1");
+    }
+
+    [Test]
+    public async Task A_tree_only_its_mirror_reaches_the_clearance_is_still_flagged()
+    {
+        // Authored at (-20,-20) — nowhere near the goal at (20,20) — but the map is rot_180 about the origin,
+        // so its OTHER image lands at (19,19), inside the clearance rect. The check fans every prop across
+        // the same orbit Decorator itself stamps, so a violation only one team's mirror carries is still
+        // caught rather than missed because the authored half looks clean.
+        var violations = DressingScope.GoalClearanceViolations(
+            Layout(",\"dressing\":{\"props\":[{\"kind\":\"tree\",\"id\":\"t1\",\"seed\":1,\"x\":-20,\"z\":-20}]}"), GoalAt20);
+
+        await Assert.That(violations.Count).IsEqualTo(1);
+        await Assert.That(violations[0].Kind).IsEqualTo("tree");
+        await Assert.That(violations[0].X).IsEqualTo(19);
+        await Assert.That(violations[0].Z).IsEqualTo(19);
+    }
+
+    [Test]
+    public async Task Ground_cover_never_reaches_this_check()
+    {
+        // A flora field is generated, not authored the way a tree/boulder/building is — it is turned away
+        // only where it grows TALL, and only by AllowsCover inside Decorator itself (decoration.md §3.1). This
+        // refusal never sees it at all, whatever ground it covers.
+        var violations = DressingScope.GoalClearanceViolations(
+            Layout(",\"dressing\":{\"props\":[{\"kind\":\"flora\",\"id\":\"f1\",\"seed\":1,\"points\":[[16,16],[24,16],[24,24],[16,24]]}]}"),
+            GoalAt20);
+
+        await Assert.That(violations).IsEmpty();
+    }
+
+    [Test]
+    public async Task Nothing_reaches_the_clearance_from_either_image_is_clean()
+    {
+        var violations = DressingScope.GoalClearanceViolations(
+            Layout(",\"dressing\":{\"props\":[{\"kind\":\"tree\",\"id\":\"t1\",\"seed\":1,\"x\":0,\"z\":0}]}"), GoalAt20);
+
+        await Assert.That(violations).IsEmpty();
+    }
+
     /// <summary>A flat grass field over <paramref name="span"/> blocks from <paramref name="origin"/>, and the
     /// surface map that goes with it — the ground every mask question below is asked against.</summary>
     private static (VoxelWorld World, Dictionary<(int X, int Z), int> Surface) Ground(int origin, int span)

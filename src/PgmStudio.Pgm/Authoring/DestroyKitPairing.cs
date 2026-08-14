@@ -14,6 +14,10 @@ namespace PgmStudio.Pgm.Authoring;
 /// </summary>
 public static class DestroyKitPairing
 {
+    /// <summary>OB18 — the rule id carried on every unwinnable-goal finding, so a caller can act on the id
+    /// rather than parse the sentence (docs/pgm/destroyables-and-cores.md).</summary>
+    public const string Rule = "OB18";
+
     /// <summary>The corpus default pickaxe tier for a map with no destroy goal at all.</summary>
     private const string DefaultTier = "iron";
 
@@ -51,5 +55,21 @@ public static class DestroyKitPairing
             findings.AddRange(cores.Select(core => core.Name.Length > 0 ? core.Name : core.Owner));
 
         return findings;
+    }
+
+    /// <summary>Every pickaxe material named by every kit in an exported map document — the alphabet
+    /// <see cref="Unwinnable"/> checks a destroy goal's material against, read back from the kits actually
+    /// written rather than assumed. Shared by every caller that has already composed the doc's kits
+    /// (<c>tools/mapgen</c>, the studio's own export gate), so the reading is asked once.</summary>
+    public static List<string> KitPickaxeMaterials(Dictionary<string, object?> doc)
+    {
+        var materials = new List<string>();
+        if (doc.GetValueOrDefault("kits") is List<object?> kits)
+            foreach (var kit in kits.OfType<Dictionary<string, object?>>())
+                if (kit.GetValueOrDefault("items") is List<object?> items)
+                    foreach (var item in items.OfType<Dictionary<string, object?>>())
+                        if (item.GetValueOrDefault("material") is string material)
+                            materials.Add(material);
+        return materials;
     }
 }

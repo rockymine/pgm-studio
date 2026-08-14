@@ -4483,6 +4483,18 @@ these are the ones that shipped a map that could not be played as intended, and 
   with 2 isolated markers to 5 with none. Alongside it, `Retarget` no longer offsets a `dtcm` core two cells
   along unconditionally: it measures room-to-edge within the monument's own piece and takes the direction with
   the most room, so the three shipped specs that `B82` was refusing now build with their cores on ground.
+- **The export gate asks the three questions `tools/mapgen` used to ask alone (B116).**
+  `MapExportComposer.ComposeAsync` already builds a sketch-originated map's world and holds its resolved
+  intent, so it re-asks `ObjectivePlacement.Check` — void, spawn, wool room — against the ground the
+  rasterizer actually produced rather than the plan's rectangles (`OB17`), the case a subtract cut, a relief
+  solve or a post-compile sketch edit opens and the compile gate never sees again, and the case a map begun
+  in Sketch never reaches at all. `DestroyKitPairing.Unwinnable` moves in behind it (`OB18`): the kit
+  actually written to the exported document has to break every destroyable and core the map ships, read back
+  rather than assumed, so a kitless destroy map is still caught. And a tree, boulder or building standing
+  inside a goal's four-block clearance now refuses rather than exporting silently (`OB19`,
+  `DressingScope.GoalClearanceViolations`) — fanned across the map's own symmetry, so a violation only one
+  team's mirror carries is still caught, and ground cover is exempt throughout. All three answer 409 from the
+  one composer, so the studio and every headless driver are gated identically.
 
 - **The capability handbook — what the system can be asked for, and where to say it (B91).** `docs/tools/capabilities.md`
   mapped the four documents a map is made of; it now also states the surface underneath the spec's shorthand, in

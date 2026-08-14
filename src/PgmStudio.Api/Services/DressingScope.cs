@@ -136,4 +136,75 @@ public static class DressingScope
             return (minX - clearance, minZ - clearance, maxX + clearance, maxZ + clearance);
         }
     }
+
+    /// <summary>OB19 — the rule id carried on a goal-clearance finding, so a caller can act on the id rather
+    /// than parse the sentence (docs/world-export/decoration.md §3.1).</summary>
+    public const string Rule = "OB19";
+
+    /// <summary>Every tree, boulder or building whose footprint reaches into a goal's clearance
+    /// (<see cref="GoalGroundAt"/>), fanned across the map's own symmetry exactly as <see cref="Decorator"/>
+    /// places it. These three are refused rather than dropped, because they are authored: a caller needs the
+    /// one offending prop and the goal it collides with, not a silently discarded placement. Ground cover
+    /// crosses this ground freely and is never checked here — only the tall kind turns away from it, and only
+    /// inside <see cref="Decorator"/> itself.</summary>
+    public static List<(string Kind, string PropId, int X, int Z)> GoalClearanceViolations(
+        string layoutJson, MapIntent goals)
+    {
+        var isGoalGround = GoalGroundAt(goals);
+        var symmetry = SymmetryOf(layoutJson);
+        var violations = new List<(string Kind, string PropId, int X, int Z)>();
+
+        foreach (var prop in PropsOf(layoutJson))
+        {
+            var kind = ClearanceKind(prop);
+            if (kind is null) continue;
+            if (FirstClearanceHit(prop, symmetry, isGoalGround) is { } cell)
+                violations.Add((kind, prop.Id, cell.X, cell.Z));
+        }
+        return violations;
+    }
+
+    // The three prop kinds this refusal covers; everything else (a path, a channel, a flower field) is
+    // generated rather than authored the same way, and flora's own clearance rule already lives in Decorator.
+    private static string? ClearanceKind(PlacedProp prop) => prop switch
+    {
+        TreeProp => "tree",
+        BoulderProp => "boulder",
+        HouseProp => "building",
+        _ => null,
+    };
+
+    private static (int X, int Z)? FirstClearanceHit(
+        PlacedProp prop, DressingSymmetry symmetry, Func<int, int, bool> isGoalGround)
+    {
+        for (var image = 0; image < symmetry.Order; image++)
+            foreach (var cell in ClearanceFootprint(prop, symmetry, image))
+                if (isGoalGround(cell.X, cell.Z))
+                    return cell;
+        return null;
+    }
+
+    // The footprint each prop kind roots or covers, turned to one image of the orbit: a single point for a
+    // tree or a boulder — the cell a trunk stands on is what matters here, the same resting cell Decorator's
+    // own Seats reads, not the crown that may freely overhang a goal — and the whole rectangle for a building,
+    // since its floor covers every column beneath it.
+    private static IEnumerable<(int X, int Z)> ClearanceFootprint(PlacedProp prop, DressingSymmetry symmetry, int image)
+    {
+        switch (prop)
+        {
+            case TreeProp tree:
+                yield return symmetry.ImageCell(tree.X, tree.Z, image);
+                break;
+            case BoulderProp boulder:
+                yield return symmetry.ImageCell(boulder.X, boulder.Z, image);
+                break;
+            case HouseProp house:
+                var corners = symmetry.ImageRing(house.Points, image);
+                if (new HouseProp { Points = corners }.Footprint() is { } footprint)
+                    for (var z = footprint.MinZ; z < footprint.MinZ + footprint.Depth; z++)
+                    for (var x = footprint.MinX; x < footprint.MinX + footprint.Width; x++)
+                        yield return (x, z);
+                break;
+        }
+    }
 }

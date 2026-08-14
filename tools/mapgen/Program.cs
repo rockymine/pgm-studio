@@ -150,7 +150,7 @@ static void Build(MapSpec spec, bool describeOnly, bool forceStages)
     // the same failure the void refusal above guards against for a goal with no ground under it. Reads the
     // kit actually written to the doc rather than trusting the derivation that built it (TeamsGenerator),
     // so the check still catches a kitless destroy map (MG17 meets MG18).
-    var unbreakable = DestroyKitPairing.Unwinnable(built.ResolvedIntent, KitPickaxeMaterials(doc));
+    var unbreakable = DestroyKitPairing.Unwinnable(built.ResolvedIntent, DestroyKitPairing.KitPickaxeMaterials(doc));
     if (unbreakable.Count > 0)
         throw new ArgumentException($"{spec.Slug}: no tool in the kit can break "
                                    + $"{string.Join(", ", unbreakable)} — a goal that cannot be mined cannot be won");
@@ -195,20 +195,6 @@ static List<string> GoalsOverVoid(Dictionary<(int X, int Z), int> ground, MapInt
         if (!Grounded(core.Anchor))
             findings.Add(core.Name.Length > 0 ? core.Name : $"{core.Owner}'s core");
     return findings;
-}
-
-/// <summary>Every item material named by every kit in the document — the alphabet <see cref="DestroyKitPairing.Unwinnable"/>
-/// checks a destroy goal's material against, read back from the doc rather than assumed.</summary>
-static List<string> KitPickaxeMaterials(Dict doc)
-{
-    var materials = new List<string>();
-    if (doc.GetValueOrDefault("kits") is List<object?> kits)
-        foreach (var kit in kits.OfType<Dict>())
-            if (kit.GetValueOrDefault("items") is List<object?> items)
-                foreach (var item in items.OfType<Dict>())
-                    if (item.GetValueOrDefault("material") is string material)
-                        materials.Add(material);
-    return materials;
 }
 
 /// <summary>Turn the goals the generator placed into the kind of goal this map is played for.
