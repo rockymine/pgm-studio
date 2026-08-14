@@ -3,22 +3,46 @@ using PgmStudio.Geom.Render;
 
 namespace PgmStudio.Minecraft.Render;
 
+/// <summary>Which colours a top-down reads by. <see cref="Category"/> — the default — sorts every column into
+/// <see cref="RenderCategory"/> and paints the five-hue false-colour scheme; <see cref="Material"/> keeps the
+/// old per-block <see cref="BlockPalette"/> reading, for the rarer question of exactly which material was
+/// placed rather than what kind of thing is standing there. Legibility beats realism as the default
+/// (<c>docs/tools/capabilities.md</c>'s renderer section); a caller checking a theme's actual paint reaches
+/// for <see cref="Material"/> deliberately rather than getting it by default.</summary>
+public enum TopDownColorMode { Category, Material }
+
+/// <summary>Which slice of the map a top-down draws. <see cref="Combined"/> is the whole finished map, every
+/// category at once — the view that already existed. The rest isolate one question at a time: a category
+/// other than the one asked for reads as a flat, dim context tone rather than its own colour, so the requested
+/// layer is the only thing that stands out. <see cref="Objectives"/> carries no block categories at all — its
+/// terrain is uniformly the context tone, and only the <c>map.xml</c> overlay (goals, spawns, apply-rule
+/// boxes) is drawn on top, because the question it answers is purely "where do the declared goals sit",
+/// which the finished map's own colours only get in the way of.</summary>
+public enum TopDownLayer { Combined, Ground, Structure, Foliage, Objectives }
+
 /// <summary>
-/// A world's surface as a top-down PNG: one pixel block per column, coloured by the same
-/// <see cref="BlockPalette"/> table the studio's layer view and terrain picker read, so the image and the
-/// editor agree on what a block looks like.
+/// A world's surface as a top-down PNG: one pixel block per column. The default reading is a diagram, not a
+/// photograph — every column is sorted into <see cref="RenderCategory"/> and painted that category's
+/// false-coloured hue (<see cref="RenderCategories"/>), because a render meant to be reasoned from has to
+/// separate foliage from surface from structure at a glance, and the game's own materials do not: stone,
+/// stone brick, cobblestone, andesite and gravel are all some shade of grey, so painting each its own true
+/// colour paints one grey field. <see cref="TopDownColorMode.Material"/> keeps the old per-block reading for
+/// the caller checking a theme's actual paint rather than the map's shape.
 ///
-/// <para><b>Relief comes from the neighbour, not from the height.</b> Colouring a column by its absolute
-/// height would repaint terrain in a ramp that has nothing to do with the blocks, and a flat plateau would
-/// read as one dead field. Each column is instead lightened or darkened against the column one step north,
-/// which is what the game's own map item does: the shading then marks every edge — a wall, a trench, the lip
-/// of a plateau — while a flat region keeps its material colour exactly. A gentle absolute-height term is
-/// added on top, small enough that it separates a valley floor from a hilltop without tinting either.</para>
+/// <para><b>Relief still comes from the neighbour, not from the height.</b> Colouring a column by its
+/// absolute height would repaint terrain in a ramp that has nothing to do with the blocks, and a flat plateau
+/// would read as one dead field. Each column is lightened or darkened against the column one step north — the
+/// same read the game's own map item uses — which marks every edge (a wall, a trench, a plateau's lip) while
+/// a flat region keeps its category colour exactly; a gentle absolute-height term separates a valley floor
+/// from a hilltop on top of that. Shading a category's own hue this way is not the thing the false-colour
+/// scheme forbids — the rule is that <em>different</em> categories must separate by more than shade, not that
+/// one category may carry no shade at all.</para>
 ///
-/// <para><b>Water is drawn as depth, not as a surface.</b> The extractor answers the topmost non-air block,
-/// which over an ocean is the water surface and hides the bed entirely. A column whose top is water is
-/// therefore traced down to the first non-liquid block and drawn as that block's colour dimmed by how much
-/// water stands over it, so a shallow channel and a deep pit read differently and the shoreline shows.</para>
+/// <para><b>A layer is worth seeing alone.</b> The finished map draws every category and the declared goals
+/// at once, which is a search rather than a look when the question at hand is just "where is the foliage" or
+/// "where do the goals sit" — <see cref="TopDownLayer"/> isolates one question per image, each still keyed by
+/// its own legend (<see cref="Legend"/>) baked onto the PNG a caller actually gets, so the picture never needs
+/// a caption to be read correctly.</para>
 ///
 /// <para>The optional overlay draws what <c>map.xml</c> declares on top of the terrain — objective
 /// destroyables, spawns, and the boxes named by apply rules — because the question a render is usually asked
@@ -29,57 +53,111 @@ namespace PgmStudio.Minecraft.Render;
 /// </summary>
 public static class TopDownRender
 {
-    /// <summary>How dark the deepest water gets over its bed.</summary>
+    /// <summary>How dark the deepest water gets — a shade of its own category hue rather than a switch to the
+    /// bed's material, so every flooded column still reads as water at a glance and depth is legible as a
+    /// second, subordinate reading on top of it.</summary>
     private const double DeepWaterKeep = 0.35;
 
     /// <summary>Depth in blocks at which water stops getting darker.</summary>
     private const int FullDepth = 12;
 
-    private sealed record Column(int SurfaceY, int PackedRgb);
+    /// <summary>A column whose category is not the one <see cref="TopDownLayer"/> asked for — present, but
+    /// deliberately not the void colour, so "nothing recorded here" and "something recorded, just not this
+    /// layer's question" stay two different findings.</summary>
+    private const int ContextRgb = 0x2A2C33;
+
+    private sealed record Column(int SurfaceY, RenderCategory Category, int BlockId, int BlockData, int WaterDepth);
 
     public sealed record Result(byte[] Pixels, int BlocksWide, int BlocksHigh, int ColumnCount,
         int LowestY, int HighestY, int OverlayCount);
 
     /// <summary>Reads a built region directory from disk and renders it — the <c>RoundTrip</c> CLI's entry
     /// point.</summary>
-    public static int Run(string regionDir, string outPng, MapXml? map, int scale, int? yMax)
+    public static int Run(string regionDir, string outPng, MapXml? map, int scale, int? yMax,
+        TopDownColorMode colorMode = TopDownColorMode.Category, TopDownLayer layer = TopDownLayer.Combined)
     {
         if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"no region dir: {regionDir}"); return 1; }
         var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(AnvilRegion.ReadChunks).ToList();
         if (chunks.Count == 0) { Console.Error.WriteLine($"no chunks in {regionDir}"); return 1; }
-        return Emit(chunks, outPng, map, scale, yMax,
+        return Emit(chunks, outPng, map, scale, yMax, colorMode, layer,
             Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(regionDir)) ?? regionDir));
     }
 
     /// <summary>Renders a world still held in memory — no round trip through a region file. This is what lets
     /// a generator emit its own top-down the moment it finishes building, over the exact world it just made
     /// rather than one re-read off disk.</summary>
-    public static int Run(VoxelWorld world, string outPng, MapXml? map, int scale, int? yMax, string name)
+    public static int Run(VoxelWorld world, string outPng, MapXml? map, int scale, int? yMax, string name,
+        TopDownColorMode colorMode = TopDownColorMode.Category, TopDownLayer layer = TopDownLayer.Combined)
     {
         var chunks = AnvilRegion.FromWorld(world).ToList();
         if (chunks.Count == 0) { Console.Error.WriteLine("world has no chunks"); return 1; }
-        return Emit(chunks, outPng, map, scale, yMax, name);
+        return Emit(chunks, outPng, map, scale, yMax, colorMode, layer, name);
     }
 
-    private static int Emit(List<AnvilRegion.Chunk> chunks, string outPng, MapXml? map, int scale, int? yMax, string name)
+    private static int Emit(List<AnvilRegion.Chunk> chunks, string outPng, MapXml? map, int scale, int? yMax,
+        TopDownColorMode colorMode, TopDownLayer layer, string name)
     {
-        var result = Render(chunks, map, yMax);
+        var result = Render(chunks, map, yMax, colorMode, layer);
         if (result is null) { Console.Error.WriteLine("no non-air columns"); return 1; }
 
         var scaled = Raster.Upscale(result.Pixels, result.BlocksWide, result.BlocksHigh, scale);
-        PngWriter.Write(outPng, result.BlocksWide * scale, result.BlocksHigh * scale, scaled);
+        var withLegend = Legend.AppendBelow(scaled, result.BlocksWide * scale, result.BlocksHigh * scale,
+            LegendEntries(colorMode, layer), out var legendHeight,
+            scaleLabel: $"SCALE: 1 BLOCK = {scale} PX - {result.BlocksWide} X {result.BlocksHigh} BLOCKS");
+        PngWriter.Write(outPng, result.BlocksWide * scale, legendHeight, withLegend);
 
-        Console.WriteLine($"topdown {name}: {result.ColumnCount} columns over {result.BlocksWide}x{result.BlocksHigh} blocks, " +
+        Console.WriteLine($"topdown {name} ({layer}/{colorMode}): {result.ColumnCount} columns over {result.BlocksWide}x{result.BlocksHigh} blocks, " +
             $"surface y {result.LowestY}..{result.HighestY}");
         if (result.OverlayCount > 0) Console.WriteLine($"  overlay: {result.OverlayCount} box(es)");
-        Console.WriteLine($"  wrote {outPng} ({result.BlocksWide * scale}x{result.BlocksHigh * scale} px, {scale} px/block)");
+        Console.WriteLine($"  wrote {outPng} ({result.BlocksWide * scale}x{legendHeight} px, {scale} px/block)");
         return 0;
     }
 
+    /// <summary>The legend a caller's picture actually carries — one entry per colour <see cref="Paint"/> can
+    /// place under the given mode/layer, so a swatch on the image always has a name beside it.</summary>
+    private static List<Legend.Entry> LegendEntries(TopDownColorMode colorMode, TopDownLayer layer)
+    {
+        if (colorMode == TopDownColorMode.Material)
+            return [new Legend.Entry("REAL MATERIAL COLOUR", ContextRgb), new Legend.Entry("VOID", RenderCategories.VoidRgb)];
+
+        if (layer == TopDownLayer.Combined)
+            return
+            [
+                new Legend.Entry("GROUND", RenderCategories.GroundRgb),
+                new Legend.Entry("STRUCTURE", RenderCategories.StructureRgb),
+                new Legend.Entry("FOLIAGE", RenderCategories.FoliageRgb),
+                new Legend.Entry("WATER", RenderCategories.WaterRgb),
+                new Legend.Entry("VOID", RenderCategories.VoidRgb),
+            ];
+
+        if (layer == TopDownLayer.Objectives)
+            return
+            [
+                new Legend.Entry("TERRAIN (CONTEXT)", ContextRgb),
+                new Legend.Entry("GOAL/SPAWN - OWN TEAM COLOUR", 0xF5F5F0),
+                new Legend.Entry("VOID", RenderCategories.VoidRgb),
+            ];
+
+        var wanted = layer switch
+        {
+            TopDownLayer.Ground => RenderCategory.Ground,
+            TopDownLayer.Structure => RenderCategory.Structure,
+            TopDownLayer.Foliage => RenderCategory.Foliage,
+            _ => RenderCategory.Ground,
+        };
+        return
+        [
+            new Legend.Entry(RenderCategories.NameOf(wanted).ToUpperInvariant(), RenderCategories.HighlightOf(wanted)),
+            new Legend.Entry("OTHER (CONTEXT)", ContextRgb),
+            new Legend.Entry("VOID", RenderCategories.VoidRgb),
+        ];
+    }
+
     /// <summary>The pure render: columns in, an RGB pixel buffer (one pixel per block, unscaled) out. No file
-    /// or console I/O, so a caller that only wants the bytes — an HTTP endpoint, a batch of stage images — pays
-    /// nothing beyond the pixels themselves.</summary>
-    public static Result? Render(IEnumerable<AnvilRegion.Chunk> chunks, MapXml? map, int? yMax)
+    /// or console I/O, no legend baked in — what a caller that only wants the categorised pixels (a test, an
+    /// HTTP endpoint composing its own page) pays for. <see cref="Emit"/> is what appends the key.</summary>
+    public static Result? Render(IEnumerable<AnvilRegion.Chunk> chunks, MapXml? map, int? yMax,
+        TopDownColorMode colorMode = TopDownColorMode.Category, TopDownLayer layer = TopDownLayer.Combined)
     {
         var columns = ReadColumns(chunks.ToList(), yMax);
         if (columns.Count == 0) return null;
@@ -91,7 +169,7 @@ public static class TopDownRender
         var heights = columns.Values.Select(column => column.SurfaceY).ToList();
         int lowest = heights.Min(), highest = heights.Max();
 
-        var pixels = Paint(columns, minX, minZ, blocksWide, blocksHigh, lowest, highest);
+        var pixels = Paint(columns, minX, minZ, blocksWide, blocksHigh, lowest, highest, colorMode, layer);
 
         var overlays = map is null ? [] : Overlays(map);
         foreach (var overlay in overlays) DrawBox(pixels, blocksWide, blocksHigh, minX, minZ, overlay);
@@ -99,13 +177,14 @@ public static class TopDownRender
         return new Result(pixels, blocksWide, blocksHigh, columns.Count, lowest, highest, overlays.Count);
     }
 
-    /// <summary>Surface colour + height per column, with water resolved to its bed.</summary>
+    /// <summary>Surface category + height per column, with water resolved to its bed for the depth reading
+    /// (the category stays <see cref="RenderCategory.Water"/> regardless of what the bed is made of).</summary>
     private static Dictionary<(int X, int Z), Column> ReadColumns(List<AnvilRegion.Chunk> chunks, int? yMax)
     {
         var surface = LayerExtractors.Surface(chunks, maxBuildHeight: yMax).ToList();
         var byCell = new Dictionary<(int X, int Z), Column>(surface.Count);
         foreach (var block in surface)
-            byCell[(block.WorldX, block.WorldZ)] = new Column(block.WorldY, BlockPalette.PackedRgb(block.BlockId, block.BlockData));
+            byCell[(block.WorldX, block.WorldZ)] = new Column(block.WorldY, RenderCategories.Of(block.BlockId), block.BlockId, block.BlockData, 0);
 
         // Only the water columns need the second, deeper read, so the bed lookup is built for those alone.
         var waterCells = surface
@@ -115,8 +194,7 @@ public static class TopDownRender
         if (waterCells.Count == 0) return byCell;
 
         foreach (var (cell, bed, depth) in Beds(chunks, waterCells))
-            byCell[cell] = new Column(bed.Y, Raster.Scale(BlockPalette.PackedRgb(bed.BlockId, bed.BlockData),
-                1 - (1 - DeepWaterKeep) * Math.Min(1.0, depth / (double)FullDepth)));
+            byCell[cell] = new Column(bed.Y, RenderCategory.Water, bed.BlockId, bed.BlockData, depth);
         return byCell;
     }
 
@@ -143,9 +221,10 @@ public static class TopDownRender
         }
     }
 
-    /// <summary>Terrain colours with north-facing relief and a light absolute-height term.</summary>
+    /// <summary>Category (or material) colours with north-facing relief and a light absolute-height term.</summary>
     private static byte[] Paint(Dictionary<(int X, int Z), Column> columns, int minX, int minZ,
-                                int blocksWide, int blocksHigh, int lowest, int highest)
+                                int blocksWide, int blocksHigh, int lowest, int highest,
+                                TopDownColorMode colorMode, TopDownLayer layer)
     {
         var pixels = new byte[blocksWide * blocksHigh * 3];
         var span = Math.Max(1, highest - lowest);
@@ -156,7 +235,7 @@ public static class TopDownRender
                 if (!columns.TryGetValue((minX + col, minZ + row), out var column))
                 {
                     // Void: a flat near-black, so a hole in the world is obviously not terrain.
-                    Raster.Set(pixels, blocksWide, col, row, 0x0E0E0E);
+                    Raster.Set(pixels, blocksWide, col, row, RenderCategories.VoidRgb);
                     continue;
                 }
 
@@ -170,9 +249,28 @@ public static class TopDownRender
                 }
                 keep *= 0.88 + 0.24 * ((column.SurfaceY - lowest) / (double)span);
 
-                Raster.Set(pixels, blocksWide, col, row, Raster.Scale(column.PackedRgb, keep));
+                Raster.Set(pixels, blocksWide, col, row, Raster.Scale(BaseColor(column, colorMode, layer), keep));
             }
         return pixels;
+    }
+
+    private static int BaseColor(Column column, TopDownColorMode colorMode, TopDownLayer layer)
+    {
+        if (colorMode == TopDownColorMode.Material) return BlockPalette.PackedRgb(column.BlockId, column.BlockData);
+
+        var categoryRgb = column.Category == RenderCategory.Water
+            ? Raster.Scale(RenderCategories.WaterRgb, 1 - (1 - DeepWaterKeep) * Math.Min(1.0, column.WaterDepth / (double)FullDepth))
+            : RenderCategories.ColourOf(column.Category);
+
+        return layer switch
+        {
+            TopDownLayer.Combined => categoryRgb,
+            TopDownLayer.Objectives => ContextRgb,
+            TopDownLayer.Ground => column.Category == RenderCategory.Ground ? RenderCategories.HighlightOf(RenderCategory.Ground) : ContextRgb,
+            TopDownLayer.Structure => column.Category == RenderCategory.Structure ? RenderCategories.HighlightOf(RenderCategory.Structure) : ContextRgb,
+            TopDownLayer.Foliage => column.Category == RenderCategory.Foliage ? RenderCategories.HighlightOf(RenderCategory.Foliage) : ContextRgb,
+            _ => categoryRgb,
+        };
     }
 
     public sealed record Overlay(BlockBox Box, int PackedRgb, bool Filled, string Label);

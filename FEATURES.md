@@ -4523,6 +4523,27 @@ these are the ones that shipped a map that could not be played as intended, and 
   in every `Points` list — but, following CLAUDE.md's playability-oracle rule, they do not gate `Connected`:
   a destroyable floats above its terrain and is broken from range by design, so reachability-like-a-wool is
   an open gameplay question left recorded (`docs/design-decisions.md`) rather than answered by fiat.
+- **A stage image is a diagram now, not a photograph, and every one carries its own key (B98, B95).**
+  `--topdown` (and every stage image it feeds) used to colour a column by its real block — stone, stone brick,
+  cobblestone and andesite are all some shade of grey in the game, so the render painted one indistinguishable
+  grey field wherever those met, and a tree stood on ground close to its own colour. The default reading is
+  now `PgmStudio.Minecraft.RenderCategories`: five deliberately unrealistic hues — void near-black, water
+  cyan, foliage violet, structure orange, ground a muted grey — chosen for maximum separation on the wheel
+  rather than for resemblance to the material; `--material` switches back to the old per-block
+  `BlockPalette` reading for a caller checking a theme's actual paint. `--topdown --layer
+  ground|structure|foliage|objectives` isolates one question per image instead of drawing the combined view,
+  and `tools/mapgen --stages` now emits `foliage.png` and `objectives.png` alongside the existing set — ten
+  named images off six renderers. Every PNG this renderer, `--surface`, `--structures`, `--heightmap`/
+  `--contour` and `--traversability-map` write now carries a legend baked into the image itself
+  (`PgmStudio.Geom.Render.Legend`, backed by a hand-drawn `PixelFont`) — one swatch and name per colour
+  actually used, plus a scale line stating blocks-per-pixel, wrapping and shrinking its own text so a narrow
+  image never runs a label off the edge. The plan render (`PlanBoardSvg`/`PlanBoardPng`) carries the matching
+  fix: a build zone now paints pink rather than a second shade of blue (`#38bdf8` and `#2563eb` sat about 23°
+  apart on the hue wheel, both readable as "blue"; a build zone and the water-lane blue now sit over 45° apart)
+  and a water lane draws under a diagonal hatch on top of its own colour, with a legend naming every role
+  swatch and both zone kinds — the two shades of blue that once let a generated board's central build zone be
+  read as water on a map carrying none. The role/zone colour constants moved to the new public
+  `PlanBoardPalette` so a test can check the real values rather than a copy of them.
 
 - **The capability handbook — what the system can be asked for, and where to say it (B91).** `docs/tools/capabilities.md`
   mapped the four documents a map is made of; it now also states the surface underneath the spec's shorthand, in

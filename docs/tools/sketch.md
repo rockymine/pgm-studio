@@ -650,12 +650,14 @@ gets markup it must render to look at.
 
 **No picture of a sketch exists as an endpoint.** The API's only raster is the plan board —
 `GET /plans/{id}/png` beside its `/svg`, both off one shared scene so the two encodings cannot disagree
-(`B90`). The eight named stage images an agent can genuinely look at — **plan, heightmap, contour, surface,
-dressing, topdown, traversability, structures** — are written by `tools/mapgen --stages` off the `VoxelWorld`
-the build just produced, and the same read-backs are CLI flags on `tools/PgmStudio.RoundTrip` (`--topdown`,
-`--heightmap`, `--contour`, `--surface`, `--structures`, `--traversability-map`) over a built world. So an
-agent wanting to *see* a sketch has two honest options: render the data it already gets from the three reads
-above, or build the world and take the stage set.
+(`B90`). The named stage images an agent can genuinely look at — **plan, heightmap, contour, surface,
+dressing, topdown, foliage, objectives, traversability, structures** — are written by `tools/mapgen --stages`
+off the `VoxelWorld` the build just produced, and the same read-backs are CLI flags on
+`tools/PgmStudio.RoundTrip` (`--topdown`, `--heightmap`, `--contour`, `--surface`, `--structures`,
+`--traversability-map`) over a built world; `--topdown` also takes `--layer ground|structure|foliage|objectives`
+to isolate one of those questions instead of drawing the combined view. So an agent wanting to *see* a sketch
+has two honest options: render the data it already gets from the three reads above, or build the world and
+take the stage set.
 
 Two things are worth knowing before hand-writing a document. **Editor defaults and wire defaults are not the
 same numbers.** A mark placed in the editor is seeded from the client's own starting values; a hand-written
@@ -708,12 +710,11 @@ but a sketch answers only in data — palette runs, contour polylines, a numeric
 finish previews. An agent that wants to look at what it drew must render that data itself or build the world
 first. A `sketch/png` over the paint and relief it already computes would close the gap.
 
-**The pictures that do exist are not yet built to be read**, which bears on every one of them an agent
-reaches for. They imitate what a map looks like — grass green, leaves green, stone grey — and a green tree on
-green ground is invisible in a picture meant for reasoning; legibility beats realism here, and one image per
-layer in deliberate false colour would say more in a glance than an accurate render says in ten (`B98`).
-Nor does an image carry a key: the plan render colours by role and says so nowhere, and because blue is the
-universal code for water, a build zone has already been read as water on a map that carries none — an image
-that invites a confident wrong reading being worse than one that is merely unclear (`B95`). Until both land,
-the rule to work by is that **a render answers "did what was authored come out", not "what is this"**: it is
-a check against the document, never a source of meaning on its own.
+**The pictures that do exist are now built to be read.** They used to imitate what a map looks like — grass
+green, leaves green, stone grey — and a green tree on green ground was invisible in a picture meant for
+reasoning; the top-down world read-backs and their per-layer isolations (ground, structures, foliage,
+objectives) now paint deliberate false colour instead, one high-contrast hue per category, and the plan render
+carries a legend naming every role swatch and a build zone drawn in a hue no water ever wears rather than the
+two shades of blue that once let a build zone be read as water (`B90`'s pictures, `B98`/`B95`'s legibility and
+key). The rule to work by is unchanged either way: **a render answers "did what was authored come out", not
+"what is this"**: it is a check against the document, never a source of meaning on its own.

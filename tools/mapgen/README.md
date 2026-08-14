@@ -250,17 +250,23 @@ the world the build just produced rather than a second read of the region files 
 | `plan.png` | the board before it was built — pieces, zones and markers, off the compiled plan (`GET /plans/{id}/png`'s renderer, called directly) |
 | `heightmap.png` | ground shape alone — a hypsometric ramp under hillshade, no reference to what the ground is made of |
 | `contour.png` | the same read again with contour lines added — where `heightmap.png` says a slope exists, this says how much it climbs |
-| `surface.png` | what the paint actually laid, by material family — structure charcoal, water blue, an unnamed material magenta |
-| `dressing.png` | the finished terrain and props read from directly above, before the objective is drawn on top of it |
+| `surface.png` | what the paint actually laid, by terrain-paint family — structure charcoal, water blue, an unnamed material magenta |
+| `dressing.png` | the finished terrain and props read from directly above, before the objective is drawn on top of it — false-coloured by category (ground/structure/foliage/water), not by real material |
+| `foliage.png` | `dressing.png`'s categories again with only foliage highlighted, everything else a flat context tone |
 | `traversability.png` | whether the navigable ground (walkable surface, two blocks of headroom) actually joins spawn to every goal — one dominant colour through every marker is a connected board, a marker in a second colour is cut off |
 | `structures.png` | what the world stamped, found by material and independent of theme |
 | `topdown.png` | `dressing.png`'s view again with the map.xml goal boxes overlaid — a prop placed through a room shows up in the first, a goal standing over void shows up in the second |
+| `objectives.png` | the map.xml overlay alone, on a dim uniform backdrop — where the declared goals sit, with nothing else competing for the reader's eye |
 
-`heightmap.png`/`contour.png` are one renderer read twice, and `dressing.png`/`topdown.png` are the same
-top-down read before and after the objective overlay — eight files, six renderers. A top-down alone hides the
-third dimension (`review.md` MG13, MG30): read `heightmap.png` for whether a drop is walkable, `traversability.png`
-for whether a goal has ground that actually connects to spawn, and `structures.png` for whether a room's floor
-sits where the relief left it.
+`heightmap.png`/`contour.png` are one renderer read twice, and `dressing.png`/`topdown.png`/`foliage.png`/
+`objectives.png` are the same top-down renderer read four ways — the combined categorised view, that view
+with the goal overlay, and two single-question isolations. A top-down alone hides the third dimension
+(`review.md` MG13, MG30): read `heightmap.png` for whether a drop is walkable, `traversability.png` for
+whether a goal has ground that actually connects to spawn, and `structures.png` for whether a room's floor
+sits where the relief left it. Every PNG here carries a legend and a scale baked into the image itself
+(`B98`, `B95`) — the false colour is deliberate (foliage violet, structure orange, ground a muted grey, water
+cyan), chosen to separate categories rather than to depict them, and `--topdown`'s `--material` flag switches
+back to the real per-block colours for a caller checking a theme's actual paint rather than the map's shape.
 
 The same renderers are the `RoundTrip` harness's own picture-taking, callable directly against a built map
 already on disk:

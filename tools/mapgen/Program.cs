@@ -306,9 +306,13 @@ static double[] CoreOffset(PlanModel plan, string pieceId, double[] at)
 /// the paint actually laid, by material family rather than by height. <b>dressing</b> is the finished terrain
 /// and props read from directly above, before the objective is drawn on top of it — <b>topdown</b> is the same
 /// view again with the map.xml goal boxes overlaid, so a prop placed through a room shows up in the first and
-/// a goal standing over void shows up in the second. <b>traversability</b> answers a question neither top-down
-/// can: whether the navigable ground actually joins spawn to every goal. <b>structures</b> is what the world
-/// stamped, independent of theme.</para></summary>
+/// a goal standing over void shows up in the second; both are the false-coloured category reading
+/// (<see cref="TopDownColorMode.Category"/>), not the map's real materials, so foliage and structure separate
+/// from the ground at a glance. <b>foliage</b> and <b>objectives</b> isolate one question each out of that same
+/// combined view — where the canopy stands, and where the declared goals sit — so neither has to be picked out
+/// of the full picture by eye. <b>traversability</b> answers a question neither top-down can: whether the
+/// navigable ground actually joins spawn to every goal. <b>structures</b> is what the world stamped,
+/// independent of theme.</para></summary>
 static void EmitStages(string outDir, PlanModel plan, VoxelWorld world, string xml)
 {
     var dir = Path.Combine(outDir, "stages");
@@ -323,6 +327,8 @@ static void EmitStages(string outDir, PlanModel plan, VoxelWorld world, string x
         greyscale: false, markWater: true, drawContours: true, name: "contour");
     SurfaceReport.Run(world, Path.Combine(dir, "surface.png"), scale: 3);
     StructureFinder.Run(world, Path.Combine(dir, "structures.png"), scale: 3, minimumArea: 12);
+    TopDownRender.Run(world, Path.Combine(dir, "foliage.png"), map: null, scale: 3, yMax: null, name: "foliage",
+        layer: TopDownLayer.Foliage);
 
     // The overlay reads the map document already built in memory — parsed back from the XML string rather
     // than the file just written, so this too costs no extra disk read.
@@ -332,6 +338,8 @@ static void EmitStages(string outDir, PlanModel plan, VoxelWorld world, string x
 
     TraversabilityRender.Run(world, Path.Combine(dir, "traversability.png"), map, scale: 3);
     TopDownRender.Run(world, Path.Combine(dir, "topdown.png"), map, scale: 3, yMax: null, name: "topdown");
+    TopDownRender.Run(world, Path.Combine(dir, "objectives.png"), map, scale: 3, yMax: null, name: "objectives",
+        layer: TopDownLayer.Objectives);
 
     Console.WriteLine($"  stages → {dir}");
 }

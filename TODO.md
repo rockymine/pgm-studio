@@ -325,26 +325,6 @@ the result actually answers.
   gap. `DressingScope` already protects the ground under a stamped building, so nothing downstream needs
   teaching.
 
-- [ ] **B95 — A stage image has no key, and its colours are read as materials.** The plan render colours by
-  **role** — hub violet, spawn green, wool amber, frontline orange, anything else slate, and a zone in blue
-  (`#38bdf8` for a build zone, `#2563eb` for a water lane, separated only by shade, opacity and dash pattern).
-  Nothing on the image says any of that. Blue is the universal visual code for water, so a reader who has the
-  picture and not the key is handed a wrong answer rather than no answer: a generated board's central build
-  zone was read as water on a map that carries none, and the misreading was then used to explain away a
-  connectivity result. An image that invites a confident wrong reading is worse than one that is merely
-  unclear, and the pictures exist precisely so that things get read off them.
-
-  Two fixes, and the second matters more than the first. **A legend on the image** — the role swatches and the
-  two zone kinds named on the plan render, and a scale on every world read-back — costs little and removes the
-  guess. **A distinction that survives being looked at**: a build zone and a water lane are the same gap with
-  different crossing rules, one open from the first minute and one opening part-way through a match, and
-  encoding a difference that large as two shades of blue means it does not survive the render. Hatching, a
-  label, or an outright different hue would.
-
-  The general rule this teaches belongs beside the images in `docs/tools/capabilities.md`: **an image is a check, not a
-  source of meaning.** A render answers "did the thing that was authored actually come out", and the document
-  underneath answers "what is it". Reading semantics off pixels is how a build zone becomes water.
-
 - [ ] **B96 — Density wants measuring as canopy share, not as a leaf count.** The leaf count is the only
   honest measure of *whether a forest was planted* — nothing but a tree lays a leaf, and a building's corner
   posts are logs — but it is a poor measure of **how wooded a board reads**, and two measurements on one board
@@ -373,23 +353,6 @@ the result actually answers.
   — recording it is most of the work, and `DressingScope` is where a stamped thing's extent already lives.
   Worth doing with `B92`, which fills that same volume with a stated material and therefore has to describe it
   anyway.
-
-- [ ] **B98 — A stage image is a diagram, not a photograph.** The renders imitate what a map looks like —
-  grass green, leaves green, stone grey — and that is the one thing an image for reasoning must not do,
-  because a green tree on green ground is invisible in it. Legibility beats realism here: a reader, human or
-  model, needs to tell foliage from surface from structure at a glance, and the surest way is deliberate
-  false colour that no terrain would ever wear. Foliage in a vibrant purple against a muted ground says more
-  in one look than an accurate render says in ten.
-
-  Two things follow, and the second is the larger. **Contrast is the requirement**, so every render picks its
-  palette to separate the categories it is drawing rather than to depict them — the same reasoning `B95`
-  applies to the plan's role colours, applied to the world read-backs. And **a layer is worth seeing alone**:
-  the top-down today is the finished rasterized map with everything on it at once, including things a given
-  question does not want — the redstone lines marking a build region's edge in red, the observer platform
-  floating over the middle — so the reading is a search rather than a look. One image per layer (ground ·
-  relief · paint · structures · foliage · buildings · objectives), each in its own high-contrast scheme, plus
-  the combined view that already exists, makes each pass answerable on its own, which is what a pipeline that
-  is meant to be reviewed between stages actually needs. `B90` built the set; this is what makes it readable.
 
 - [ ] **B99 — An objective reads as cut off from the board, and it is not yet known whether it is.** Three
   `dtcm` specs built for the first time once `B94` landed, and `goldhollow` and `spinebreak` rendered four and

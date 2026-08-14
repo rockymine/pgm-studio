@@ -459,6 +459,24 @@ read equally from a region directory or an in-memory `VoxelWorld` (`AnvilRegion.
 lets `tools/mapgen` emit the same set itself, over the world it just built, with no second load off the
 region files it just wrote — see `README.md` beside this file.
 
+**`--topdown` reads by category, not by material, and the choice is a default rather than a rule.** A column's
+visible block sorts into one of five categories — void, water, foliage, structure, ground
+(`PgmStudio.Minecraft.RenderCategories`) — and each paints a fixed, saturated hue chosen for maximum pairwise
+separation on the wheel rather than for resemblance to the game's own colours: stone, stone brick, cobblestone
+and andesite are all some shade of grey in the game and would paint one indistinguishable field, so the
+category scheme reads them as one thing (ground) and gives foliage a violet no terrain wears and a built
+surface an orange no material shares with it. `--material` switches back to the old per-block `BlockPalette`
+reading for the caller checking a theme's actual paint rather than the map's shape. `--layer
+ground|structure|foliage|objectives` isolates one question per image instead of drawing the combined view: a
+category other than the one asked for reads as a flat context tone, and `objectives` carries no terrain
+reading at all — only the `map.xml` overlay, on a uniformly dim backdrop — because "where do the goals sit" is
+a question the finished map's own colours only get in the way of. `tools/mapgen --stages` now emits `foliage`
+and `objectives` alongside the eight `B90` named, and `dressing`/`topdown` draw the category reading by
+default rather than the realistic one. Every PNG this renderer (and every other world read-back below) writes
+carries a legend baked into the image — swatch, name, one row per colour actually used — and a scale line
+stating blocks-per-pixel, via `PgmStudio.Geom.Render.Legend`, so a reader never has to bring an outside key to
+the picture (`B98`, `B95`).
+
 Every renderer above looks straight down. `--column <regionDir> <x> <z> [x z ...]` and
 `--section <regionDir> <outPng> --x <lo> <hi> --z <fixed>` (or the axes swapped) are the vertical
 complement: `--column` prints one or more columns bedrock to sky, every solid block named — the cheap
@@ -493,9 +511,15 @@ checkable before it is drawn, and a forest is checkable in a heightmap rather th
 
 The rule that follows *that* one, because looking has its own failure mode: **an image is a check, not a
 source of meaning.** A render answers whether the thing that was authored came out; the document underneath
-answers what it is. The plan render in particular colours by **role** rather than by material — hub violet,
-spawn green, wool amber, frontline orange, and a zone in blue — so its blue is a build zone or a water lane
-and never water, and the two zone kinds are separated only by shade and dash (`B95`). A board whose central
-build zone was read as water off the picture, on a map carrying no water at all, is what that costs: the
-observation was right, the cause was invented, and the invented cause then explained away a real
-connectivity result. Read the picture for whether, read the document for what.
+answers what it is. Reading semantics off pixels is how a build zone becomes water, and both false-colour
+rules downstream of that principle now hold everywhere a stage image is drawn. **Contrast is the
+requirement**: every render picks its palette to separate the categories it draws rather than to depict them,
+which is why `--topdown`'s default is the five-hue category scheme above rather than the game's own greys, and
+why every render carries a legend rather than asking a reader to bring one. **A distinction that must survive
+being looked at gets more than a shade**: the plan render colours by **role** — hub violet, spawn green, wool
+amber, frontline orange — and a zone by **kind**, a build zone in pink and a water lane in blue with a
+diagonal hatch on top of it, because a build zone and a water lane are the same gap with different crossing
+rules and the two used to be told apart only by shade, opacity and dash (`B95`). A board whose central build
+zone was once read as water off the picture, on a map carrying no water at all, is what the old two-shades-of-
+blue scheme cost: the observation was right, the cause was invented, and the invented cause then explained
+away a real connectivity result. Read the picture for whether, read the document for what.

@@ -204,8 +204,10 @@ hide the forms it filters against — and resets when players or symmetry change
 request making different forms.
 
 **A card carries the board and its verdicts.** The picture is the whole fanned board, server-rendered from the
-same scene the PNG endpoint draws, coloured by role — hub violet, spawn green, wool amber, frontline orange,
-zones blue. Badges along the top are the structural read, which are the same tokens the filter chips use. The
+same scene the PNG endpoint draws, coloured by role — hub violet, spawn green, wool amber, frontline orange —
+with a build zone in pink and a water lane in blue under a diagonal hatch, and a legend along the bottom
+naming every one of them. Badges along the top are the structural read, which are the same tokens the filter
+chips use. The
 foot carries the evaluator score, the wool count, the seed, and the land spend. Opening a card gives the same
 in a drawer, with the score to two places, the per-box spend table, the top three soft terms by contribution,
 and the descriptor as copyable JSON.
@@ -343,6 +345,9 @@ the feed carries soft distance only.
 them again, so the denominator inflates across a long session of chip-toggling. The proportions stay right;
 the absolute number does not, and it is the number the confidence threshold reads.
 
-**The picture has no key.** The board render colours by role and says so nowhere, and blue is the universal
-visual code for water — a generated board's central build zone has already been read as water on a map that
-carries none. Until `B95` lands, a card answers *did this compose*, never *what is this*.
+**The picture now carries a key.** The board render colours by role, and used to say so nowhere; blue being
+the universal visual code for water is what let a generated board's central build zone be read as water on a
+map that carried none. The card now draws a legend naming every role swatch and the two zone kinds, and a
+build zone paints in a hue no water ever wears rather than a second shade of blue (`B95`) — a card still
+answers *did this compose*, never *what is this*, but a reader can no longer mistake the colours for an
+answer to the second question.
