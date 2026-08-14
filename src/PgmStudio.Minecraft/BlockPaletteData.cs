@@ -263,9 +263,12 @@ internal static class BlockPaletteData
         Block(173, "Coal Block", 0x191919);
 
         // ---- Plants ----------------------------------------------------------------------------------
-        Block(31, "Tall Grass", 0x6EA83E);
+        // Block 31 meta 1 is the plain single-block plant vanilla itself calls "Grass" — it is not tall
+        // grass. Tall grass is the two-block plant at 175:2, named "Double Tall Grass" below; giving 31:1
+        // that name would answer every surface census and column probe with the wrong block.
+        Block(31, "Grass", 0x6EA83E);
         Variant(31, 0, "Shrub", 0x7A6A3D);
-        Variant(31, 1, "Tall Grass", 0x6EA83E);
+        Variant(31, 1, "Grass", 0x6EA83E);
         Variant(31, 2, "Fern", 0x5E9B36);
         Block(32, "Dead Bush", 0x946428);
         Block(37, "Dandelion", 0xD3D82F);

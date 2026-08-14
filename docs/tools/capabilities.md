@@ -459,6 +459,29 @@ read equally from a region directory or an in-memory `VoxelWorld` (`AnvilRegion.
 lets `tools/mapgen` emit the same set itself, over the world it just built, with no second load off the
 region files it just wrote — see `README.md` beside this file.
 
+Every renderer above looks straight down. `--column <regionDir> <x> <z> [x z ...]` and
+`--section <regionDir> <outPng> --x <lo> <hi> --z <fixed>` (or the axes swapped) are the vertical
+complement: `--column` prints one or more columns bedrock to sky, every solid block named — the cheap
+textual form that verifies a `layered` material's stack, a wall's courses or a stamped room's floor; `--section`
+draws the same information as an axis-aligned slice, so a riser, a ramp's step heights, a building's storeys
+and a void column are all visible in one picture rather than inferred from a plan view that has already
+discarded Y. Both read `PgmStudio.Minecraft.Render.ColumnReport`/`SectionRender` exactly like the renderers
+above — a region directory or an in-memory `VoxelWorld`, no second load.
+
+`--structures` finds a building by the material on top of each column, because elevation alone cannot tell a
+hut from a boulder. That test used to be the *only* one: any two neighbouring built columns joined into one
+component whether or not either was made of the same thing, so a roof's edge touching the plaza it stands
+over fused into the plaza, and a themed map's own ground — painted in the same palette it built with — fused
+into whatever stood on it. The flood now also requires the two columns' tops to be within `--max-step` of
+each other (default 4, the same discipline `--buildings` already applies to a roof). Measured on Ashen
+Quarry: two roughly 9,000-cell "town square" components shed 1,550 cells of roof that had been touching the
+plaza directly, now reported as fourteen structures of their own — real separation, not a relabelling. What
+the step cannot reach is a roof laid flush with the plaza's own paving height: nothing steps between two
+flat surfaces of one material, so a stone-brick cottage roofed level with the stone-brick square around it
+stays fused, unchanged from before. The fix is a geometric improvement, not a full one, and this is exactly
+where it stops short — a full separation would want the enclosed volume a room stamps rather than a
+roof-height comparison, and two widely-stepped wings of one building can still read as two structures.
+
 **The prototypes** render the model rather than a map. `tools/relief` emits ten figures plus a topographic
 view, a blocks-from-an-angle view, a section and a step map, and `--corpus` measures real worlds into the
 same terms. `tools/compose` holds twenty-two galleries — boards, bodies, boxes, edges, mids, seeds, hubs —

@@ -106,4 +106,72 @@ public sealed class TraversabilityTests
         await Assert.That(res.Points[0].X).IsEqualTo(15);
         await Assert.That(res.Points[0].Z).IsEqualTo(25);
     }
+
+    [Test]
+    public async Task Every_gating_point_off_grid_is_named_isolated_rather_than_reported_as_zero()
+    {
+        // Both spawns sit outside the analysed bbox entirely, so every gating point comes back
+        // Component == 0 and `comps` (Component > 0 points) is empty. Before the fix, `main` stayed at
+        // its default 0 and an isolated filter of `Component != main` matched neither point (0 != 0 is
+        // false), so a fully-disconnected map reported "0 spawn/wool point(s) are not reachable" and
+        // named none of them — the one case an author most needs a name is the one the old check
+        // could not give.
+        var regions = new Dict
+        {
+            ["red"] = Rect(-500, -500, -496, -496),
+            ["blue"] = Rect(500, 500, 504, 504),
+        };
+        var data = new Dict
+        {
+            ["regions"] = regions,
+            ["spawns"] = new List<object?>
+            {
+                new Dict { ["team"] = "red", ["region"] = "red" },
+                new Dict { ["team"] = "blue", ["region"] = "blue" },
+            },
+            ["wools"] = new List<object?>(),
+        };
+
+        var res = Traversability.Check(data, null, null, bbox: (-10, -10, 10, 10));
+
+        await Assert.That(res.Connected).IsFalse();
+        await Assert.That(res.Isolated.Count).IsEqualTo(2);
+        await Assert.That(res.Isolated.Select(i => i.Name)).Contains("red");
+        await Assert.That(res.Isolated.Select(i => i.Name)).Contains("blue");
+        await Assert.That(res.Message).Contains("no spawn/wool point");
+    }
+
+    [Test]
+    public async Task A_destroyable_is_reported_but_never_gates_the_verdict()
+    {
+        // Spawn and wool sit on a connected surface (traversable on their own); a destroyable's region
+        // sits off in the void, floating above unnavigable terrain by design. It must appear in Points
+        // — the measurement is not blind to it — but must not flip Connected or add to Isolated: a
+        // destroyable is broken from range, not walked to, and CLAUDE.md's playability-oracle rule
+        // bars inventing a reachability requirement for one from first principles.
+        var regions = new Dict
+        {
+            ["spawn"] = Rect(0, 0, 4, 4),
+            ["destroyable"] = Rect(900, 900, 904, 904),
+        };
+        var data = new Dict
+        {
+            ["regions"] = regions,
+            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["region"] = "spawn" } },
+            ["wools"] = new List<object?> { new Dict { ["color"] = "red", ["location"] = Xz(2, 2) } },
+            ["destroyables"] = new List<object?>
+            {
+                new Dict { ["name"] = "core", ["owner"] = "blue", ["region"] = "destroyable" },
+            },
+        };
+        var surface = new HashSet<(int, int)>();
+        for (var x = 0; x < 4; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
+
+        var res = Traversability.Check(data, surface, null, bbox: (-10, -10, 20, 20));
+
+        await Assert.That(res.Connected).IsTrue();
+        await Assert.That(res.Isolated.Count).IsEqualTo(0);
+        var destroyable = res.Points.Single(p => p.Kind == "destroyable");
+        await Assert.That(destroyable.Component).IsEqualTo(0);   // off the navigable grid — visible, not gating
+    }
 }

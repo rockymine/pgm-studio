@@ -38,4 +38,53 @@ public sealed class StructureFinderTests
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.Structures.Count).IsEqualTo(0);
     }
+
+    // A themed map paints its ground the same material it builds with: a flat 6x6 planked plaza (top y6)
+    // with a 2x2 planked pillar (top y9) standing on it. Same material throughout — the one thing that
+    // separated them before the elevation-step flood was nothing.
+    private static VoxelWorld PlazaWithPillar()
+    {
+        var world = new VoxelWorld();
+        for (var x = 0; x < 6; x++)
+            for (var z = 0; z < 6; z++)
+            {
+                world.SetBlock(x, 5, z, Blocks.Stone);   // natural ground under the paint
+                world.SetBlock(x, 6, z, 5);              // the painted plaza floor, planks
+            }
+        for (var x = 2; x < 4; x++)
+            for (var z = 2; z < 4; z++)
+                for (var y = 7; y <= 9; y++)
+                    world.SetBlock(x, y, z, 5);          // the pillar, same material, standing over the plaza
+
+        return world;
+    }
+
+    [Test]
+    public async Task A_step_within_tolerance_still_merges_the_plaza_and_the_pillar_standing_on_it()
+    {
+        // With no step limit (a large maximumStep), material alone still decides — this is the old
+        // behaviour, reproduced here to prove the fix below actually changes something: without it,
+        // the flat plaza and the pillar on it read as one 40-cell blob that is neither.
+        var result = StructureFinder.Render(AnvilRegion.FromWorld(PlazaWithPillar()), minimumArea: 4, maximumStep: 1000);
+
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.Structures.Count).IsEqualTo(1);
+        await Assert.That(result.Structures[0].Area).IsEqualTo(36);
+    }
+
+    [Test]
+    public async Task A_step_over_tolerance_separates_the_pillar_from_the_plaza_it_shares_a_material_with()
+    {
+        // The pillar's roof (y9) stands 3 above the plaza floor it grows from (y6); a maximumStep of 2
+        // is too little to bridge that, so the flood reports the pillar and the surrounding plaza ring
+        // as two structures despite neither having a material to tell them apart.
+        var result = StructureFinder.Render(AnvilRegion.FromWorld(PlazaWithPillar()), minimumArea: 4, maximumStep: 2);
+
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.Structures.Count).IsEqualTo(2);
+        var pillar = result.Structures.Single(structure => structure.Area == 4);
+        var plaza = result.Structures.Single(structure => structure.Area == 32);
+        await Assert.That(pillar.RoofHigh).IsEqualTo(9);
+        await Assert.That(plaza.RoofHigh).IsEqualTo(6);
+    }
 }
