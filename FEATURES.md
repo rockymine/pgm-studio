@@ -5202,6 +5202,24 @@ these are the ones that shipped a map that could not be played as intended, and 
   method the class has not had for some time, now cites `Check`. It matters ahead of the bucketed audit work:
   four buckets add rules to this class, and an agent choosing a verb from four will not choose the same one
   twice.
+- **A read that is not a gate says so, and stops counting (B211).** `Producibility` was the last holder of a
+  bare `IReadOnlyList<Finding>`, and `PlanProducibility.IsProducible` asked whether the arrangement was
+  reachable by reading `Unit.Count == 0` — right only because every finding it made was passed through the
+  same `Complaint()` at both boundaries, so the severity was constant. `CLAUDE.md` names that exact shape as
+  the half-fix that bites, and four rule buckets were queued to add rules to this file, where what an agent
+  would have found is the shape the vocabulary was consolidated to remove. Both fields are `Findings` now and
+  `IsProducible` reads `Refuses`.
+
+  Renaming the read was not enough, because the severity was the thing hiding the question. A producibility
+  finding is the **reason the answer is no**, so inside the read it is a refusal — which is what gives
+  `Refuses` something true to see, and what makes a future remark about an arrangement (one that observes
+  something without putting it out of the composer's reach) safe to add as a complaint instead of a silent
+  flip to unproducible. It reaches a caller unchanged in every other respect through **`Findings.AsComplaints`**,
+  at the wire, because a plan the composer could not have made is still a plan that compiles and exports and
+  nothing here declines to build it. Two tests hold the halves apart: the read refuses internally, and every
+  finding on `/api/plan/feasibility` is a complaint on a 200. `Producibility`'s private `Refusals(...)` — the
+  emitters' own rejection reasons, a third meaning for the word — is `Rejections`, after `FillRejection`, which
+  is what it reads.
 - **A material is asked for by name, from one place both the studio and the tools reach (B209, tier B).**
   `MaterialRecipes` (`Minecraft`) resolves a tone family to the blocks that stack, one block out of a family,
   a family laid as wall stripes, the one course of grass that reads from above, and the five area patterns at

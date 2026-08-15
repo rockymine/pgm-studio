@@ -141,6 +141,13 @@ blocks it. Both kinds were being read the same way. Beside it, `Refusals` and `C
 bound twice onto one sketch reports `roomStyles.cage.doorHead.block` rather than a `doorHead.block` an author
 cannot place.
 
+`AsComplaints` is for the case that is not a gate at all. A **derivation** — the producibility read is the one —
+answers a question no compile depends on, and its findings are the reasons the answer is no. Inside it those
+are refusals, because that is the severity `Refuses` must see for the derivation to ask its own question by
+name; they are downgraded where they cross to a caller, who gets them on a 200 beside an answer rather than
+instead of one. Writing them as complaints at their source is what left `PlanProducibility` counting a list for
+a release, which is the shape this whole section exists to remove.
+
 An endpoint gates in one line — `if (await Refusals.StopAsync(http, 400, "invalid house style", findings, ct))
 return;` — which writes only the refusals, so a complaint never arrives dressed as one.
 

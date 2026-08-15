@@ -49,6 +49,30 @@ public sealed class PlanFeasibilityEndpointTests
         await Assert.That(unit.Any(f => f.GetProperty("rule").GetString() == "seats-within-separation-gap")).IsTrue();
     }
 
+    /// <summary>Everything a producibility read puts on the wire is a <b>complaint</b>, on both halves and on a
+    /// 200 — a plan the composer could not have made is still a plan that compiles and exports, so nothing here
+    /// may arrive dressed as something that stops the work. Inside the read the same findings are refusals,
+    /// which is how it answers <c>producible: false</c> without counting them; this is the boundary where that
+    /// stops being true, and the test that would fail if the downgrade were dropped.</summary>
+    [Test]
+    public async Task Every_finding_reaches_the_caller_as_a_complaint()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var resp = await client.PostAsync("/api/plan/feasibility",
+            new StringContent(ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"), Encoding.UTF8, "application/json"));
+        var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
+
+        await Assert.That(body.GetProperty("producible").GetBoolean()).IsFalse();
+
+        var findings = body.GetProperty("unit").EnumerateArray()
+            .Concat(body.GetProperty("boxes").EnumerateArray().SelectMany(b => b.GetProperty("findings").EnumerateArray()))
+            .ToList();
+        await Assert.That(findings).IsNotEmpty();
+        await Assert.That(findings.Select(f => f.GetProperty("severity").GetString()).Distinct())
+            .IsEquivalentTo(new[] { "complaint" });
+    }
+
     /// <summary>The nearest miss carries the differing cells as rects, which is what lets the canvas paint the
     /// discrepancy instead of only reporting a count.</summary>
     [Test]

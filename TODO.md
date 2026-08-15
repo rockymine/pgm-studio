@@ -87,14 +87,9 @@ built and checked. What a closer read of the sixth found:
   `Contracts` and `Geom` and cannot reach `MapIntent.Rect`. The same boundary makes `CoreAuthoring.Box` a
   field-identical copy of `BlockBox`. It is a leaf-placement problem, not sloppiness.
 
-Beside those, `Producibility` is the one gate still answering `IReadOnlyList<Finding>` and asking whether
-anything fired by `Count` — correct today only because its severity is constant, and the shape an agent adding
-a rule will copy (`B211`).
-
 **Buckets 4, 5, 7, 8, 11, 12 and 13 are unaffected and may run now.** `B212`'s author call has landed, so
 buckets 1 and 2 are free of it and bucket 3 is unblocked as soon as its bands are re-measured in the settled
-unit — which is now `B212` itself rather than a question. Bucket 6 still waits on `B37`'s record; bucket 10
-waits on `B211`.
+unit — which is now `B212` itself rather than a question. Bucket 6 still waits on `B37`'s record.
 
 ## Backend, pipeline & internals (B / P / A)
 

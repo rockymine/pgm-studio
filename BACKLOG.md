@@ -401,27 +401,6 @@ by `HousePropRules.PastCap` and is not filed.
   *found reviewing dispatch readiness, 2026-08-15 · `Evaluate/Terms/ObjectiveTerms.cs:5-10` ·
   `Geom/Cells.cs:48,77` · bucket 3's `B175`/`B179`/`B188`.*
 
-- [ ] **B211 — One gate still answers a bare list and asks its question by counting.** `B191`/`B192` gave
-  every gate one `Findings` and one `Refuses`, and `Producibility` did not move with them:
-  `BoxProducibility.Findings` and `PlanProducibility.Unit` are both `IReadOnlyList<Finding>`, and
-  `PlanProducibility.IsProducible` reads `Unit.Count == 0`.
-
-  **It is not currently wrong, and that is what makes it worth fixing before the rule buckets run.** Every
-  finding a producibility read emits is passed through `Complaint()` at both boundaries by construction — the
-  type's own docstring says a read is "**complaints**, never refusals" — so counting them is asking the right
-  question today only because the severity is constant. `CLAUDE.md` names this exact shape as the half-fix
-  that bites: *"every caller re-derived 'was anything refused' from a `Count`, which is right for a gate
-  reporting only refusals and silently wrong for one reporting complaints too."* Producibility is the mirror
-  case, one severity change away from the same silence.
-
-  Buckets 1, 2, 3 and 10 all add rules and one of them will reach this file. What an agent finds there is a
-  `List<Finding>` and a `Count`, which is the shape the vocabulary was consolidated to remove, and it will be
-  copied because it is what the surrounding code does. **Scope:** both fields become `Findings`, `IsProducible`
-  reads the question by name, `FeasibilityDto`'s `Unit` follows, and `Refusals.Dtos` keeps working unchanged.
-
-  *found reviewing the dispatch readiness of the rule buckets, 2026-08-15 ·
-  `Pgm/Compose/Producibility.cs:37,47,50,178`.*
-
 - [ ] **B189 — The authoring apparatus: art direction, named briefs, and a reviewer that is not the author.**
   Three runs asked three models for "a map of your own design" and got, three times over, one street of
   identical houses behind the spawn on a square board under a palette nobody checked. The brief is where that

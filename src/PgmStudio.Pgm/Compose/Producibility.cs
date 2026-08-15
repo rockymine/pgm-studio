@@ -17,11 +17,14 @@ public sealed record NearestMiss(
     string Label, int Cw, int DifferingCells,
     IReadOnlyList<CellRect> Extra, IReadOnlyList<CellRect> Missing);
 
-/// <summary>A producibility read is a list of <see cref="Finding"/>s, and they are <b>complaints</b> rather
-/// than refusals: a box the emitters cannot reproduce is still a box an author drew, and the read says why the
-/// composer's parameter space does not reach it. The rule is the finding's own slug, since it is the stable
-/// thing a caller keys on; the layout rule or gap it cites, where it cites one, is named in the sentence
-/// beside the measured numbers.</summary>
+/// <summary>A producibility read answers in <see cref="Findings"/>, the same shape every gate answers in, and
+/// its findings are the reasons the answer is no — so inside the read they are <b>refusals</b> and
+/// <see cref="Findings.Refuses"/> is a question this file can ask of itself. They leave as
+/// <b>complaints</b>: a box the emitters cannot reproduce is still a box an author drew, and the read says why
+/// the composer's parameter space does not reach it rather than declining to build it. That downgrade is
+/// <see cref="Findings.AsComplaints"/>, applied at the wire. The rule is the finding's own slug, since it is
+/// the stable thing a caller keys on; the layout rule or gap it cites, where it cites one, is named in the
+/// sentence beside the measured numbers.</summary>
 
 /// <summary>
 /// One box's producibility read: what the derivers see it as, whether any parameter tuple the production menus
@@ -34,7 +37,7 @@ public sealed record NearestMiss(
 public sealed record BoxProducibility(
     string BoxId, string Kind, string Identity,
     ProducibleAs? Producible, NearestMiss? Nearest,
-    IReadOnlyList<Finding> Findings)
+    Findings Findings)
 {
     public bool IsProducible => Producible is not null;
 }
@@ -44,10 +47,13 @@ public sealed record BoxProducibility(
 /// seat-separation law) rather than of any one box. Both halves are reported: a box can be unproducible on its
 /// own geometry <em>and</em> the unit unproducible in how it is arranged, and an author wants to see both.</summary>
 public sealed record PlanProducibility(
-    IReadOnlyList<BoxProducibility> Boxes, IReadOnlyList<Finding> Unit)
+    IReadOnlyList<BoxProducibility> Boxes, Findings Unit)
 {
-    /// <summary>True when every box reproduces and no unit-level rule stands in the way.</summary>
-    public bool IsProducible => Boxes.All(b => b.IsProducible || b.Kind == PlanBoxKinds.Mid) && Unit.Count == 0;
+    /// <summary>True when every box reproduces and no unit-level rule stands in the way. The second half asks
+    /// <see cref="Findings.Refuses"/> rather than counting, so a unit finding added as a remark — one that
+    /// observes something about the arrangement without putting it out of the composer's reach — does not
+    /// silently turn a producible plan unproducible.</summary>
+    public bool IsProducible => Boxes.All(b => b.IsProducible || b.Kind == PlanBoxKinds.Mid) && !Unit.Refuses;
 }
 
 /// <summary>
@@ -113,7 +119,7 @@ public static class Producibility
         plan.Boxes.Select(b => Read(plan, b)).ToList();
 
     /// <summary>Read the whole plan — every box plus the unit-level rules.</summary>
-    public static PlanProducibility ReadPlan(PlanModel plan) => new(Read(plan), Complaints(UnitFindings(plan)));
+    public static PlanProducibility ReadPlan(PlanModel plan) => new(Read(plan), UnitFindings(plan));
 
     /// <summary>
     /// The rules that are properties of the <b>arrangement</b>, not of one box: the parallel-fronts guard, the
@@ -169,16 +175,7 @@ public static class Producibility
         return patches;
     }
 
-    /// <summary>A producibility read is <b>complaints</b>, never refusals — a box the emitters cannot
-    /// reproduce is still a box an author drew, and the read says why the composer's parameter space does not
-    /// reach it rather than declining to build it. Stated here, at the two boundaries a read leaves by, so no
-    /// finding inside can be written at the wrong severity by omission.</summary>
-    private static Finding Complaint(Finding finding) => finding.AsComplaint();
-
-    private static IReadOnlyList<Finding> Complaints(IEnumerable<Finding> findings) =>
-        [.. findings.Select(Complaint)];
-
-    private static IReadOnlyList<Finding> UnitFindings(PlanModel plan)
+    private static Findings UnitFindings(PlanModel plan)
     {
         var findings = new List<Finding>();
         if (plan.Boxes.Count == 0) return findings;
@@ -245,7 +242,7 @@ public static class Producibility
         var members = PlanBoxes.MembersOf(plan, box);
         if (members.Count == 0)
             return new BoxProducibility(box.Id, box.Kind, "empty", null, null,
-                [Complaint(new Finding("box-empty", "The box groups no pieces."))]);
+                Findings.Of(new Finding("box-empty", "The box groups no pieces.")));
 
         var terrain = Mask(members.Where(p => p.Role == PlanRoles.Piece).Select(p => p.Rect));
         var roomPieces = members.Where(p => p.Role is PlanRoles.WoolRoom or PlanRoles.Spawn).ToList();
@@ -300,9 +297,9 @@ public static class Producibility
             if (ProportionGap(box.Kind, identity, nearest) is { } gap) findings.Add(gap);
         }
         else if (candidates.Count > 0)
-            findings.AddRange(Refusals(candidates, box.Rect));
+            findings.AddRange(Rejections(candidates, box.Rect));
 
-        return new BoxProducibility(box.Id, box.Kind, identity, null, nearest, Complaints(findings));
+        return new BoxProducibility(box.Id, box.Kind, identity, null, nearest, findings);
     }
 
     /// <summary>What the derivers read the box as — the approach family for a roomed box, the body compound for a
@@ -529,7 +526,7 @@ public static class Producibility
     /// the smallest box any form on the menu fits: four near-identical "below the minimum" lines (one per mouth
     /// orientation) tell the author nothing the smallest one doesn't. Other refusal kinds report distinct
     /// reasons.</summary>
-    private static IEnumerable<Finding> Refusals(IReadOnlyList<Candidate> candidates, CellRect rect)
+    private static IEnumerable<Finding> Rejections(IReadOnlyList<Candidate> candidates, CellRect rect)
     {
         var tooSmall = candidates
             .Select(c => c.Rejection).OfType<FillRejection.TooSmall>()

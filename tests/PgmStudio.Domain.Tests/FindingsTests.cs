@@ -86,6 +86,31 @@ public class FindingsTests
             .IsEqualTo("there is no land to build; nothing wins the match");
     }
 
+    /// <summary>A derivation whose findings are the reasons its answer is no writes them as refusals — that is
+    /// how it asks its own question — and hands them out as complaints, because nothing it says stops the work.
+    /// The downgrade must touch the severity and nothing else; a rule id or a subject list lost on the way out
+    /// would take the finding's whole point with it.</summary>
+    [Test]
+    public async Task Complaints_keep_everything_but_the_severity()
+    {
+        var refusal = new Finding("HJ2", "half on", Severity.Refusal, "wings", ["0", "1"], "G172");
+
+        var carried = Findings.Of(refusal).AsComplaints();
+
+        await Assert.That(carried.Refuses).IsFalse();
+        await Assert.That(carried[0]).IsEqualTo(refusal with { Severity = Severity.Complaint });
+    }
+
+    /// <summary>A complaint downgraded again is the same complaint, so a boundary crossed twice does not have to
+    /// know whether the one before it already ran.</summary>
+    [Test]
+    public async Task Downgrading_a_complaint_changes_nothing()
+    {
+        var already = Findings.Of(Complaint);
+
+        await Assert.That(already.AsComplaints()).IsEquivalentTo(already);
+    }
+
     /// <summary>A finding goes onto the wire under the keys <c>docs/refusals.md</c> states, and writes the
     /// optional ones only when it has something to say — so a reader never has to tell an absent subject from
     /// an empty one.</summary>

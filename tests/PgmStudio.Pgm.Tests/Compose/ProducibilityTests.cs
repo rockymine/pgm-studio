@@ -258,6 +258,24 @@ public sealed class ProducibilityTests
         await Assert.That(read.Boxes.First(b => b.Kind == PlanBoxKinds.Hub).Identity).Contains("G");
     }
 
+    /// <summary>Inside the read, an arrangement finding is a <b>refusal</b> — that is what lets
+    /// <c>IsProducible</c> ask <c>Findings.Refuses</c> instead of counting a list, and it is the whole of
+    /// <c>B211</c>. The severity is load-bearing rather than decorative: were these written as complaints at
+    /// their source, the question would have no name and the next remark added to <c>UnitFindings</c> would
+    /// silently turn a producible plan unproducible. They become complaints at the wire, which
+    /// <c>PlanFeasibilityEndpointTests</c> holds.</summary>
+    [Test]
+    public async Task An_arrangement_finding_refuses_inside_the_read()
+    {
+        var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"))!;
+
+        var read = Producibility.ReadPlan(plan);
+
+        await Assert.That(read.Unit).IsNotEmpty();
+        await Assert.That(read.Unit.Refuses).IsTrue();
+        await Assert.That(read.IsProducible).IsFalse();
+    }
+
     /// <summary>A face reaching across a bay must hold a corridor's width on <b>every</b> shoulder. One thinned to
     /// a sliver is a cantilever over the hole, and reports as such — the spanning dock's law, read back.</summary>
     [Test]

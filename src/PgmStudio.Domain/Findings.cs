@@ -44,6 +44,15 @@ public sealed class Findings : IReadOnlyList<Finding>
     /// <summary>One sentence for the whole list, for the <c>message</c> beside the findings on the wire.</summary>
     public string Summary => Finding.Summarize(findings);
 
+    /// <summary>The same findings, none of them stopping the work — how a derivation that answers a question
+    /// nobody's compile depends on hands its reasons to a caller. A producibility read is the case: inside it a
+    /// finding is why the answer is no, and that is the severity <see cref="Refuses"/> must see; on the wire it
+    /// rides along with a 200, because a plan the composer could not have made is still a plan that exports.
+    /// Downgrading at the boundary keeps both true, where writing every finding as a complaint at its source
+    /// left the derivation with no way to ask its own question except by counting.</summary>
+    public Findings AsComplaints() =>
+        Count == 0 ? this : new(findings.Select(finding => finding.AsComplaint()));
+
     /// <summary>Both gates' answers as one, for a caller asking two questions of one document.</summary>
     public Findings And(Findings other) =>
         Count == 0 ? other : other.Count == 0 ? this : new([.. findings, .. other.findings]);

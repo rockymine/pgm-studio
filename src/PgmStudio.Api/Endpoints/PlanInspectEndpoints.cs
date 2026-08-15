@@ -251,7 +251,9 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest
     }
 
     /// <summary>Map the derived read onto the wire DTO — a shape-for-shape projection; the service owns every
-    /// judgement, this owns only the serialization.</summary>
+    /// judgement, this owns only the serialization and the one severity change the wire needs. A producibility
+    /// finding is a refusal of producibility inside the read, which is how the read asks its own question; it
+    /// reaches a caller as a complaint, because nothing here declines to build the plan.</summary>
     internal static FeasibilityDto ToDto(PlanProducibility read) => new(
         read.IsProducible,
         read.Boxes.Select(b => new BoxFeasibilityDto(
@@ -260,7 +262,7 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest
             b.Nearest is null ? null : new NearestMissDto(
                 b.Nearest.Label, b.Nearest.Cw, b.Nearest.DifferingCells,
                 [.. b.Nearest.Extra.Select(r => r.ToArray())], [.. b.Nearest.Missing.Select(r => r.ToArray())]),
-            Refusals.Dtos(b.Findings))).ToList(),
-        Refusals.Dtos(read.Unit));
+            Refusals.Dtos(b.Findings.AsComplaints()))).ToList(),
+        Refusals.Dtos(read.Unit.AsComplaints()));
 
 }
