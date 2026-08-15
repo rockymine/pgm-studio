@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
 using System.Globalization;
@@ -206,8 +207,8 @@ Row CrossCheck(string stem, PlanModel? plan)
     row.Parsed = true;
     row.Symmetry = plan.Globals.Symmetry;
     var validate = PlanValidator.Validate(plan);
-    row.Errors = validate.Count(f => f.Severity == PlanSeverity.Error);
-    row.Lint = validate.Count(f => f.Severity == PlanSeverity.Lint);
+    row.Errors = validate.Count(f => f.Severity == Severity.Refusal);
+    row.Lint = validate.Count(f => f.Severity == Severity.Complaint);
     row.Findings = validate.Select(f => $"[{f.Severity}]{(f.Rule is null ? "" : " " + f.Rule)} {f.Message}").ToList();
     row.Buffers = plan.Pieces.Count(p => p.Role == PlanRoles.Buffer);
     // findings that actually implicate a buffer id — these should be zero (buffers are non-generating annotations)

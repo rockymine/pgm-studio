@@ -15,6 +15,6 @@ foreach (var path in Directory.GetFiles("tools/seeds", "*.plan.json").OrderBy(p 
         Console.WriteLine($"  {b.BoxId,-12} {b.Kind,-10} {b.Identity,-22} "
             + (b.Producible is { } p ? $"OK  {p.Label}"
                : $"NO  nearest {b.Nearest?.Label} ({b.Nearest?.DifferingCells} cells)")
-            + (b.Findings.Count == 0 ? "" : "  | " + string.Join("; ", b.Findings.Select(f => $"{f.Code}[{f.Cites}]"))));
-    foreach (var f in read.Unit) Console.WriteLine($"  UNIT {f.Code}[{f.Cites}] {f.Detail}");
+            + (b.Findings.Count == 0 ? "" : "  | " + string.Join("; ", b.Findings.Select(f => $"{f.Rule}[{f.Cites}]"))));
+    foreach (var f in read.Unit) Console.WriteLine($"  UNIT {f.Rule}[{f.Cites}] {f.Message}");
 }

@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
 using System.Globalization;
@@ -162,8 +163,8 @@ svg.Append("</svg>");
 
 // ── correctness cross-checks (stdout report) ──
 var validate = PlanValidator.Validate(plan);
-int errCount = validate.Count(f => f.Severity == PlanSeverity.Error);
-int lintCount = validate.Count(f => f.Severity == PlanSeverity.Lint);
+int errCount = validate.Count(f => f.Severity == Severity.Refusal);
+int lintCount = validate.Count(f => f.Severity == Severity.Complaint);
 
 // base-image bounds in CELLS (author's unit)
 int bMinX = plan.Pieces.Select(p => p.Rect[0]).Concat(plan.Zones.Select(z => z.Rect[0])).Min();

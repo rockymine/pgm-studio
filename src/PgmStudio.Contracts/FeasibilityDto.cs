@@ -1,11 +1,5 @@
 namespace PgmStudio.Contracts;
 
-/// <summary>One directed finding about producibility. <see cref="Code"/> is the stable slug (the machine-legible
-/// half — a panel styles off it and an agent branches on it); <see cref="Cites"/> is a <c>layout-rules.md</c> rule
-/// id or the id of the task that would unblock it (<c>"G123"</c>) when one applies, else null; <see cref="Detail"/>
-/// is the human half, carrying the measured numbers.</summary>
-public sealed record FeasibilityFindingDto(string Code, string? Cites, string Detail);
-
 /// <summary>The closest the emitters got when nothing reproduced a box: the candidate whose terrain differs in
 /// the fewest cells, and the cells that differ. <see cref="Extra"/> are cells the candidate emits that the box
 /// does not have; <see cref="Missing"/> are cells the box has that the candidate does not. Both are
@@ -20,13 +14,13 @@ public sealed record NearestMissDto(
 /// verdict</b>, since the classifiers read topology and a shape can be recognisably a ring while no ring is
 /// emittable at its wall widths. <see cref="ProducibleAs"/> names the parameter tuple that reproduces it exactly
 /// (null when none does), <see cref="Nearest"/> the closest candidate otherwise, and <see cref="Findings"/> the
-/// directed reasons.
+/// directed reasons, as complaints — a box the emitters cannot reproduce is still a box an author drew.
 /// </summary>
 public sealed record BoxFeasibilityDto(
     string BoxId, string Kind, string Identity,
     string? ProducibleAs, int? Cw,
     NearestMissDto? Nearest,
-    IReadOnlyList<FeasibilityFindingDto> Findings)
+    IReadOnlyList<FindingDto> Findings)
 {
     public bool Producible => ProducibleAs is not null;
 }
@@ -43,4 +37,4 @@ public sealed record BoxFeasibilityDto(
 /// author wants to see all of it rather than the first failure.</para>
 /// </summary>
 public sealed record FeasibilityDto(
-    bool Producible, IReadOnlyList<BoxFeasibilityDto> Boxes, IReadOnlyList<FeasibilityFindingDto> Unit);
+    bool Producible, IReadOnlyList<BoxFeasibilityDto> Boxes, IReadOnlyList<FindingDto> Unit);

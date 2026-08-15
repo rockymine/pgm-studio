@@ -337,13 +337,17 @@ A refusal comes back as a list of findings, each naming the rule where it has on
 moving the example's destroyable onto the wool-room piece answers:
 
 ```json
-{ "findings": [
-  { "severity": "error", "rule": null,
-    "message": "destroyable 'destroyable-1' on 'wool-room' is 3×3 and reaches into the wool room on 'wool-room' — the room's own rules would cover the goal",
-    "subjects": ["destroyable-1", "wool-room", "wool-room"] } ] }
+{ "error": "plan not compilable",
+  "message": "destroyable 'destroyable-1' on 'wool-room' is 3×3 and reaches into the wool room on 'wool-room' — the room's own rules would cover the goal",
+  "findings": [
+    { "rule": "OB17", "severity": "refusal",
+      "message": "destroyable 'destroyable-1' on 'wool-room' is 3×3 and reaches into the wool room on 'wool-room' — the room's own rules would cover the goal",
+      "subjects": ["destroyable-1", "wool-room", "wool-room"] } ] }
 ```
 
-**Structural errors** (`PlanValidator.Validate`) block a compile with 422. They are: overlapping pieces at
+Every gate in the studio answers in that shape, and the rule ids are catalogued in `docs/refusals.md`.
+
+**Structural errors** (`PlanValidator.Validate`) block a compile with 422, each citing a `PL*` rule where the check is the plan's own and the document's own id where it is not — `DC1`/`DC2` for a core, `OB14` for a two-team goal, `OB17` for a goal footprint, `WX*` for a room frame. They are: overlapping pieces at
 different surfaces; a placement referencing an unknown piece, a buffer, or a position outside its piece — a
 destroyable or a core with an empty `piece` is not this error, since an absolute goal names no piece to be
 unknown or outside of; a core with `float` set without `leak` or the reverse; a core casing with no interior to

@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 namespace PgmStudio.Export.Tests;
 
 using Dict = Dictionary<string, object?>;
@@ -24,8 +25,13 @@ public sealed class MapExportComposerGamemodeTests
         await Assert.That(result.IsError).IsTrue();
         await Assert.That(result.ErrorStatus).IsEqualTo(409);
         await Assert.That(result.ErrorBody!["error"]).IsEqualTo("unknown gamemode");
-        await Assert.That(result.ErrorBody!["rule"]).IsEqualTo("OB20");
-        await Assert.That((List<string>)result.ErrorBody!["ids"]!).IsEquivalentTo(new[] { "not-a-real-mode" });
+
+        // Every gate answers in the one refusal envelope: a label, a line, and the findings themselves.
+        var findings = (List<Dictionary<string, object?>>)result.ErrorBody!["findings"]!;
+        await Assert.That(findings.Single()["rule"]).IsEqualTo(ObjectiveRules.UnknownGamemode);
+        await Assert.That(findings.Single()["severity"]).IsEqualTo("refusal");
+        await Assert.That((IReadOnlyList<string>)findings.Single()["subjects"]!)
+            .IsEquivalentTo(new[] { "not-a-real-mode" });
     }
 
     // The exact B155 regression: two real modes must round-trip as two separate <gamemode> elements, neither

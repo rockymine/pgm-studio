@@ -26,6 +26,26 @@ public readonly record struct RoomPad(int MinX, int MinZ, int Size, bool Shifted
 /// pedestal hugs (which side its label sign hangs toward the room centre from).</summary>
 public readonly record struct MonumentSlot(int X, int Z, RoomEdge Wall);
 
+/// <summary>The room-frame rule ids a refusal cites, from the WX checklist in
+/// <c>docs/world-export/structures.md</c>. Stable names for what a refusal is about, the way <c>HS*</c> names
+/// a house-style rule and <c>PL*</c> a plan one — and kept apart from any task-tracking id, since a rule an
+/// author or another tool reads back off a refusal has to keep meaning the same thing long after the task
+/// that added it has left the board.</summary>
+public static class RoomFrameRules
+{
+    /// <summary>The piece cannot hold a shell of the least legal span once the clean ring is taken off it.</summary>
+    public const string PieceTooSmall = "WX2";
+
+    /// <summary>The marker's block-lattice parity differs between axes, and the pad is always square.</summary>
+    public const string MarkerParity = "WX3";
+
+    /// <summary>The interior has no room for the pad once the wall clearance is kept.</summary>
+    public const string NoPadRoom = "WX4";
+
+    /// <summary>A wool room with no seam and no abutting build zone has nothing to enter it by.</summary>
+    public const string RoomUnreachable = "WX6";
+}
+
 /// <summary>One iron marker's resolution beside a spawn room (WX8/WX9): the cube footprint min corner and
 /// <see cref="Size"/> (4 or 2 on a grid-line marker, 3 on a block centre, any of the three on a marker whose
 /// axes disagree), or — when no legal strip exists even after the room yields and the cube degrades — an
@@ -100,7 +120,7 @@ public static class RoomFrames
         double markerX, double markerZ,
         IReadOnlyList<(double MinX, double MinZ, double MaxX, double MaxZ)> entries,
         RoomEdge? spawnDoorEdge,
-        out string? refusal)
+        out Finding? refusal)
         => ResolveRoom(pieceMinX, pieceMinZ, pieceMaxX, pieceMaxZ, markerX, markerZ,
             entries, spawnDoorEdge, [], out refusal)?.Frame;
 
@@ -110,8 +130,8 @@ public static class RoomFrames
     /// build-zone interface segment; zero-thickness on the seam axis); pass a
     /// <paramref name="spawnDoorEdge"/> instead for a spawn room's single yaw-derived door.
     /// <paramref name="ironMarkers"/> resolve to cubes outside the shell (the shell yields, the cube
-    /// degrades — WX8) or to unplaceable markers (WX9). Null with a <paramref name="refusal"/> message when
-    /// a WX rule refuses — the same wording the validator reports.
+    /// degrades — WX8) or to unplaceable markers (WX9). Null with a <paramref name="refusal"/> naming the
+    /// <see cref="RoomFrameRules"/> id that refused — the same finding the validator reports.
     /// </summary>
     public static ResolvedRoom? ResolveRoom(
         int pieceMinX, int pieceMinZ, int pieceMaxX, int pieceMaxZ,
@@ -119,22 +139,24 @@ public static class RoomFrames
         IReadOnlyList<(double MinX, double MinZ, double MaxX, double MaxZ)> entries,
         RoomEdge? spawnDoorEdge,
         IReadOnlyList<(double X, double Z)> ironMarkers,
-        out string? refusal)
+        out Finding? refusal)
     {
         refusal = null;
         var pieceWidth = pieceMaxX - pieceMinX;
         var pieceDepth = pieceMaxZ - pieceMinZ;
         if (PieceTooSmall(pieceWidth, pieceDepth))
         {
-            refusal = $"piece {pieceWidth}×{pieceDepth} is too small to stamp a room: the shell would be "
+            refusal = new Finding(RoomFrameRules.PieceTooSmall,
+                $"piece {pieceWidth}×{pieceDepth} is too small to stamp a room: the shell would be "
                 + $"{pieceWidth - 2}×{pieceDepth - 2}, minimum {MinShellSpan}×{MinShellSpan} "
-                + $"(piece ≥ {MinPieceSpan}×{MinPieceSpan} blocks) (WX2)";
+                + $"(piece ≥ {MinPieceSpan}×{MinPieceSpan} blocks)");
             return null;
         }
         if (MixedParity(markerX, markerZ))
         {
-            refusal = "marker parity differs between axes; the pad is always square — place the marker on a "
-                + "cell corner, or on a cell centre in both axes (WX3)";
+            refusal = new Finding(RoomFrameRules.MarkerParity,
+                "marker parity differs between axes; the pad is always square — place the marker on a "
+                + "cell corner, or on a cell centre in both axes");
             return null;
         }
 
@@ -155,7 +177,8 @@ public static class RoomFrames
             maxX - 1 - PadWallClearance, maxZ - 1 - PadWallClearance);
         if (pad is null)
         {
-            refusal = "no room for the spawn/wool pad inside the interior (WX4)";
+            refusal = new Finding(RoomFrameRules.NoPadRoom,
+                "no room for the spawn/wool pad inside the interior");
             return null;
         }
 
@@ -187,7 +210,8 @@ public static class RoomFrames
             }
             if (doors.Count == 0)
             {
-                refusal = "wool room is unreachable: no land seam and no abutting build zone to enter by (WX6)";
+                refusal = new Finding(RoomFrameRules.RoomUnreachable,
+                    "wool room is unreachable: no land seam and no abutting build zone to enter by");
                 return null;
             }
         }

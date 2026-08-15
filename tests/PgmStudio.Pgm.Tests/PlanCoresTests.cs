@@ -28,11 +28,11 @@ public sealed class PlanCoresTests
     private static List<CoreIntent> Compile(string json) =>
         PlanCompiler.Compile(PlanModel.Parse(json)!).Intent.Cores!;
 
-    private static IReadOnlyList<PlanFinding> Validate(string json) =>
+    private static IReadOnlyList<Finding> Validate(string json) =>
         PlanValidator.Validate(PlanModel.Parse(json)!);
 
-    private static bool Errors(IReadOnlyList<PlanFinding> f, string contains) =>
-        f.Any(x => x.Severity == PlanSeverity.Error && x.Message.Contains(contains));
+    private static bool Errors(IReadOnlyList<Finding> f, string contains) =>
+        f.Any(x => x.Severity == Severity.Refusal && x.Message.Contains(contains));
 
     [Test]
     public async Task One_authored_marker_fans_to_one_core_per_team()

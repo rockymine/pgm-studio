@@ -3813,6 +3813,26 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   test cannot stand in for — a seal passes happily on a roof with a hole in its body. Both `Ell()` fixtures had
   two **parallel** ridges and therefore no junction to test, which is how all four shipped unnoticed (`G182`);
   `EllMarch`/`EllProject` are the ones with crossing ridges, and `G186` redrew the rest.
+- **Every gate in the studio says no in one shape (B191).** Seven finding types had grown, one per gate — a
+  plan finding, a house-style finding, a producibility finding, a joint fault tuple, an evaluator violation, a
+  parse exception's loose fields, and three dictionaries built inline at the export gate — and with them six
+  wire envelopes, so a panel rendering a refusal had to know which route it came from before it could read
+  one. The differences were never real: each was a rule, a sentence and a subject under different field names,
+  and `Violation`'s own docstring already said it carried "the same subject-id shape a `PlanFinding` carries".
+  One `Finding(Rule, Message, Severity, Field?, Subjects?, Cites?)` in **`Domain`** replaces all of them —
+  the lowest project every gate can reach, with the wire mirror in `Contracts` for the WASM client — and one
+  `{error, message, findings[]}` envelope replaces the six, written by `Refusals` (API) or `Finding.Wire` (an
+  untyped composer). What is genuinely not a finding stayed out: a `TermScore` is a distance that *carries*
+  one. Two concepts that had been conflated are now separate and both kept: **severity** makes "complaint" a
+  real thing rather than doc language (`PlanSeverity.Lint` had been the only non-blocking severity anywhere,
+  so the dressing tool's six "complaints" were hand-rolled refusals), and **cites** holds the layout rule or
+  the *open task* a finding points at, which must never share a field with a rule id — a rule is stable
+  forever and a task id is a debt with a due date. Every rule id moved into a `*Rules` class beside the rule
+  that fires it: `OB20` had been a bare string literal at its throw site and `OB19` had no id at all, while
+  `DC2`, `OB14`, `SP1` and four `WX` refusals named their rule in a comment or in prose and passed none of it
+  to the caller. Eleven `PL*` ids were minted for the plan's own structural errors, which had carried
+  `rule: null`. `docs/refusals.md` is the catalogue and the shape; the tool documents' endpoint tables cite it
+  rather than each describing an envelope of its own.
 - **Wings abut, the hall is derived, and the joint is the wing's own choice (G185, G186).** The author's model,
   in the author's vocabulary: two footprints **abut** when no block belongs to both and no gap lies between
   them, they **overlap** when blocks are shared, and only the first makes a building. Where they abut they

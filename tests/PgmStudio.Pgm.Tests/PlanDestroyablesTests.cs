@@ -90,7 +90,7 @@ public sealed class PlanDestroyablesTests
         var json = Json.Replace("""{ "piece": "bar-w", "at": [1, 1] }""",
             """{ "piece": "bar-w", "at": [1, 1], "style": "pyramid" }""");
         var findings = PlanValidator.Validate(PlanModel.Parse(json)!);
-        await Assert.That(findings.Any(f => f.Severity == PlanSeverity.Error && f.Message.Contains("pyramid"))).IsTrue();
+        await Assert.That(findings.Any(f => f.Severity == Severity.Refusal && f.Message.Contains("pyramid"))).IsTrue();
     }
 
     [Test]
@@ -98,7 +98,7 @@ public sealed class PlanDestroyablesTests
     {
         var json = Json.Replace("""{ "piece": "bar-w", "at": [1, 1] }""", """{ "piece": "bar-w", "at": [9, 9] }""");
         var findings = PlanValidator.Validate(PlanModel.Parse(json)!);
-        await Assert.That(findings.Any(f => f.Severity == PlanSeverity.Error && f.Message.Contains("destroyable"))).IsTrue();
+        await Assert.That(findings.Any(f => f.Severity == Severity.Refusal && f.Message.Contains("destroyable"))).IsTrue();
     }
 
     // B128: a destroyable is the one marker kind that may ride no piece at all — an empty `piece` reads `at`
@@ -140,7 +140,7 @@ public sealed class PlanDestroyablesTests
         var json = Json.Replace("""{ "piece": "bar-w", "at": [1, 1] }""", """{ "piece": "", "at": [3, -4] }""");
         var findings = PlanValidator.Validate(PlanModel.Parse(json)!);
         await Assert.That(findings.Any(f =>
-            f.Severity == PlanSeverity.Error && f.Message.Contains("unknown piece"))).IsFalse();
+            f.Severity == Severity.Refusal && f.Message.Contains("unknown piece"))).IsFalse();
     }
 
     // The absolute exception is destroyable/core only — every other marker kind still requires a real piece
@@ -158,7 +158,7 @@ public sealed class PlanDestroyablesTests
             """;
         var findings = PlanValidator.Validate(PlanModel.Parse(json)!);
         await Assert.That(findings.Any(f =>
-            f.Severity == PlanSeverity.Error && f.Message.Contains("spawn references unknown piece"))).IsTrue();
+            f.Severity == Severity.Refusal && f.Message.Contains("spawn references unknown piece"))).IsTrue();
     }
 
     [Test]
@@ -170,7 +170,7 @@ public sealed class PlanDestroyablesTests
         // one team there is nobody to break it. The editor hides the tool, but a hand-written plan can ask.
         var json = Json.Replace("\"symmetry\": \"rot_180\"", $"\"symmetry\": \"{mode}\"");
         var findings = PlanValidator.Validate(PlanModel.Parse(json)!);
-        await Assert.That(findings.Any(f => f.Severity == PlanSeverity.Error && f.Message.Contains("two-team"))).IsTrue();
+        await Assert.That(findings.Any(f => f.Severity == Severity.Refusal && f.Message.Contains("two-team"))).IsTrue();
         await Assert.That(Geom.Symmetry.Order(mode)).IsEqualTo(order);
 
         // And it compiles to nothing rather than to `order` shared goals. The structure preview compiles
@@ -186,7 +186,7 @@ public sealed class PlanDestroyablesTests
         {
             var json = Json.Replace("\"symmetry\": \"rot_180\"", $"\"symmetry\": \"{mode}\"");
             var findings = PlanValidator.Validate(PlanModel.Parse(json)!);
-            await Assert.That(findings.Any(f => f.Severity == PlanSeverity.Error && f.Message.Contains("two-team")))
+            await Assert.That(findings.Any(f => f.Severity == Severity.Refusal && f.Message.Contains("two-team")))
                 .IsFalse().Because($"{mode} is a two-team symmetry");
         }
     }

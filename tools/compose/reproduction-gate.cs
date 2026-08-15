@@ -37,9 +37,9 @@ foreach (var players in new[] { 6, 8, 12, 16, 20, 30 })
             foreach (var b in read.Boxes.Where(b => !b.IsProducible && b.Kind != PlanBoxKinds.Mid))
                 findings.Add($"p{players} {sym} s{seed} {b.BoxId} ({b.Kind}/{b.Identity}) "
                     + $"nearest {b.Nearest?.Label} {b.Nearest?.DifferingCells} cells"
-                    + (b.Findings.Count == 0 ? "" : " | " + string.Join("; ", b.Findings.Select(f => $"{f.Code}[{f.Cites}]"))));
+                    + (b.Findings.Count == 0 ? "" : " | " + string.Join("; ", b.Findings.Select(f => $"{f.Rule}[{f.Cites}]"))));
             foreach (var f in read.Unit)
-                findings.Add($"p{players} {sym} s{seed} UNIT {f.Code}[{f.Cites}] {f.Detail}");
+                findings.Add($"p{players} {sym} s{seed} UNIT {f.Rule}[{f.Cites}] {f.Message}");
         }
 
 Console.WriteLine($"composed {composed}/{boards}  threw {threw}");

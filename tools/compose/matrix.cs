@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
 using PgmStudio.Pgm.Compose;
@@ -17,7 +18,7 @@ foreach (var (p,t,s,seed) in cases)
     var name = $"p{p} t{t} {s} s{seed}";
     try {
         var plan = Composer.Compose(new ComposeRequest(p,t,s,seed,5));
-        var errs = PlanValidator.Validate(plan).Count(f => f.Severity == PlanSeverity.Error);
+        var errs = PlanValidator.Validate(plan).Count(f => f.Severity == Severity.Refusal);
         var holes = ClosureAnalysis.HoleSizes(plan).Count;
         Console.WriteLine($"{name,-24} {plan.Pieces.Count,4} {plan.Zones.Count,4} {errs,5} {holes,6}  no");
         ok++;

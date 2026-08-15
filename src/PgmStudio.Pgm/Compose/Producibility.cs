@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Shapes;
@@ -16,10 +17,11 @@ public sealed record NearestMiss(
     string Label, int Cw, int DifferingCells,
     IReadOnlyList<CellRect> Extra, IReadOnlyList<CellRect> Missing);
 
-/// <summary>One directed finding about a box's producibility. <see cref="Code"/> is a stable slug (the
-/// machine-legible half); <see cref="Cites"/> is the rule id or the gap's task id when one applies
-/// (<c>"G123"</c>); <see cref="Detail"/> is the human half, carrying measured numbers.</summary>
-public sealed record ProducibilityFinding(string Code, string? Cites, string Detail);
+/// <summary>A producibility read is a list of <see cref="Finding"/>s, and they are <b>complaints</b> rather
+/// than refusals: a box the emitters cannot reproduce is still a box an author drew, and the read says why the
+/// composer's parameter space does not reach it. The rule is the finding's own slug, since it is the stable
+/// thing a caller keys on; the layout rule or gap it cites, where it cites one, is named in the sentence
+/// beside the measured numbers.</summary>
 
 /// <summary>
 /// One box's producibility read: what the derivers see it as, whether any parameter tuple the production menus
@@ -32,7 +34,7 @@ public sealed record ProducibilityFinding(string Code, string? Cites, string Det
 public sealed record BoxProducibility(
     string BoxId, string Kind, string Identity,
     ProducibleAs? Producible, NearestMiss? Nearest,
-    IReadOnlyList<ProducibilityFinding> Findings)
+    IReadOnlyList<Finding> Findings)
 {
     public bool IsProducible => Producible is not null;
 }
@@ -42,7 +44,7 @@ public sealed record BoxProducibility(
 /// seat-separation law) rather than of any one box. Both halves are reported: a box can be unproducible on its
 /// own geometry <em>and</em> the unit unproducible in how it is arranged, and an author wants to see both.</summary>
 public sealed record PlanProducibility(
-    IReadOnlyList<BoxProducibility> Boxes, IReadOnlyList<ProducibilityFinding> Unit)
+    IReadOnlyList<BoxProducibility> Boxes, IReadOnlyList<Finding> Unit)
 {
     /// <summary>True when every box reproduces and no unit-level rule stands in the way.</summary>
     public bool IsProducible => Boxes.All(b => b.IsProducible || b.Kind == PlanBoxKinds.Mid) && Unit.Count == 0;
@@ -111,7 +113,7 @@ public static class Producibility
         plan.Boxes.Select(b => Read(plan, b)).ToList();
 
     /// <summary>Read the whole plan — every box plus the unit-level rules.</summary>
-    public static PlanProducibility ReadPlan(PlanModel plan) => new(Read(plan), UnitFindings(plan));
+    public static PlanProducibility ReadPlan(PlanModel plan) => new(Read(plan), Complaints(UnitFindings(plan)));
 
     /// <summary>
     /// The rules that are properties of the <b>arrangement</b>, not of one box: the parallel-fronts guard, the
@@ -167,9 +169,18 @@ public static class Producibility
         return patches;
     }
 
-    private static IReadOnlyList<ProducibilityFinding> UnitFindings(PlanModel plan)
+    /// <summary>A producibility read is <b>complaints</b>, never refusals — a box the emitters cannot
+    /// reproduce is still a box an author drew, and the read says why the composer's parameter space does not
+    /// reach it rather than declining to build it. Stated here, at the two boundaries a read leaves by, so no
+    /// finding inside can be written at the wrong severity by omission.</summary>
+    private static Finding Complaint(Finding finding) => finding.AsComplaint();
+
+    private static IReadOnlyList<Finding> Complaints(IEnumerable<Finding> findings) =>
+        [.. findings.Select(Complaint)];
+
+    private static IReadOnlyList<Finding> UnitFindings(PlanModel plan)
     {
-        var findings = new List<ProducibilityFinding>();
+        var findings = new List<Finding>();
         if (plan.Boxes.Count == 0) return findings;
 
         var symmetry = plan.Globals.Symmetry;
@@ -180,11 +191,11 @@ public static class Producibility
         // axis costs the band slack rather than making it impossible. The gate bounds that slack (BZ9).
         if (terrain.Count > 0 && MidCarver.LateralFlip(symmetry)
             && Composer.FrontHullSlackCells(frame, terrain) is var slack && slack > Composer.FrontSlackCapCells)
-            findings.Add(new ProducibilityFinding("front-hull-off-axis", "BZ9",
+            findings.Add(new Finding("front-hull-off-axis",
                 $"The unit's front faces sit off the symmetry axis, so the mid band — which spans the hull of " +
                 $"both images' faces — would reach {slack} cell(s) past the front it docks, over the " +
-                $"{Composer.FrontSlackCapCells}-cell cap. Centre the front on the axis, or widen it so its hull " +
-                "is symmetric; the legs within it need not be."));
+                $"{Composer.FrontSlackCapCells}-cell cap. Centre the front on the axis, or widen it so its " +
+                "hull is symmetric; the legs within it need not be.", Cites: "BZ9"));
 
         // the frontline's face: a sampled width seated anywhere along the hub's front edge, free to overhang it,
         // but every contact patch it makes with the hub's front terrain must be at least a lane wide — the
@@ -197,7 +208,7 @@ public static class Producibility
             var patches = FrontPatches(plan, hub, front, frame);
             var weakest = patches.Count == 0 ? 0 : patches.Min();
             if (weakest < UnitTuning.WoolLaneCells)
-                findings.Add(new ProducibilityFinding("frontline-shoulder-too-narrow", "G2",
+                findings.Add(new Finding("frontline-shoulder-too-narrow",
                     patches.Count == 0
                         ? $"The frontline's {f.VSpan}-cell face never meets the hub's front terrain, so its " +
                           "spine has nothing to dock through."
@@ -206,7 +217,7 @@ public static class Producibility
                           $"{weakest}, under the {UnitTuning.WoolLaneCells}-cell lane. A face may be " +
                           "narrower than the edge or overhang it, and may reach across a bay — but every " +
                           "shoulder it lands on has to be a corridor's width, or the face is cantilevered " +
-                          "over the hole."));
+                          "over the hole.", Cites: "G2"));
         }
 
         // the seat-separation law: no spawn/wool seats within the separation gap of another. The gap is the map's
@@ -218,11 +229,11 @@ public static class Producibility
         for (var i = 0; i < seats.Count; i++)
             for (var j = i + 1; j < seats.Count; j++)
                 if (SeatGeometry.TooClose(seats[i].Rect, seats[j].Rect, UnitTuning.WoolLaneCells))
-                    findings.Add(new ProducibilityFinding("seats-within-separation-gap", "WL7",
+                    findings.Add(new Finding("seats-within-separation-gap",
                         $"Boxes '{seats[i].Id}' and '{seats[j].Id}' sit within the {UnitTuning.WoolLaneCells}-cell " +
                         "separation gap, which the allocator never seats through. Measured on the box " +
                         "envelopes (corner-inclusive) — the emitted terrain may keep more room than the " +
-                        "envelopes suggest, which is the measurand question G124 parks."));
+                        "envelopes suggest, which is the measurand question G124 parks.", Cites: "WL7"));
 
         return findings;
     }
@@ -234,7 +245,7 @@ public static class Producibility
         var members = PlanBoxes.MembersOf(plan, box);
         if (members.Count == 0)
             return new BoxProducibility(box.Id, box.Kind, "empty", null, null,
-                [new ProducibilityFinding("box-empty", null, "The box groups no pieces.")]);
+                [Complaint(new Finding("box-empty", "The box groups no pieces."))]);
 
         var terrain = Mask(members.Where(p => p.Role == PlanRoles.Piece).Select(p => p.Rect));
         var roomPieces = members.Where(p => p.Role is PlanRoles.WoolRoom or PlanRoles.Spawn).ToList();
@@ -243,17 +254,17 @@ public static class Producibility
         all.UnionWith(roomCells);
 
         var identity = Identify(all, roomCells);
-        var findings = new List<ProducibilityFinding>();
+        var findings = new List<Finding>();
 
         // The measurement, against the same constant the emitter reads. Independent of the search: a corridor
         // narrower than any lane the vocabulary has is worth saying even when a nearest miss also fires.
         var cwFloor = box.Kind == PlanBoxKinds.Wool ? UnitTuning.WoolLaneCells : FillProfiles.HubWallCells;
         var measured = Cells.MinRunWidthRaw(all, all);
         if (measured < cwFloor)
-            findings.Add(new ProducibilityFinding("corridor-below-minimum", "G2",
+            findings.Add(new Finding("corridor-below-minimum",
                 $"Narrowest cross-section is {measured} cell(s); the emitters build at {cwFloor} " +
                 $"({(box.Kind == PlanBoxKinds.Wool ? "the wool lane" : "the hub/body wall")} width). " +
-                "Every part of this box would have to be at least that wide."));
+                "Every part of this box would have to be at least that wide.", Cites: "G2"));
 
         // enumerated lazily and kept as they come: an exact match ends the search, so the producible case — the
         // common one — never pays for the rest of the space. Only a real miss enumerates it all, to report against.
@@ -266,7 +277,7 @@ public static class Producibility
                     new ProducibleAs(c.Label, c.Cw), null, findings);
         }
         if (candidates.Count == 0)
-            findings.Add(new ProducibilityFinding("no-candidates", null,
+            findings.Add(new Finding("no-candidates",
                 $"No production menu covers a '{box.Kind}' box, so there is nothing to compare against."));
 
         // the terrain/room split: the corridor reproduces but the terminal room does not. Only reachable past
@@ -274,15 +285,16 @@ public static class Producibility
         if (roomPieces.Count > 0
             && candidates.FirstOrDefault(c => c.Mask is not null && c.Room is not null
                                               && TerrainOnly(c.Mask!, c.Room!.Value).SetEquals(terrain)) is { } roomMiss)
-            findings.Add(new ProducibilityFinding("room-not-replicable", "ST1",
+            findings.Add(new Finding("room-not-replicable",
                 $"The corridor is reproducible ({roomMiss.Label}) but the terminal room is not: the emitters " +
                 $"build a compact {ShapeEmitter.RoomDepthCells}-cell-deep room and this one differs. The room " +
-                "is not just terrain — the export stamps its bedrock floor and entrance line from it."));
+                "is not just terrain — the export stamps its bedrock floor and entrance line from it.",
+                Cites: "ST1"));
 
         var nearest = Nearest(candidates, all);
         if (nearest is not null)
         {
-            findings.Add(new ProducibilityFinding("no-parameters-reproduce", null,
+            findings.Add(new Finding("no-parameters-reproduce",
                 $"No parameter tuple on the production menus reproduces this box. Closest is {nearest.Label} " +
                 $"at cw {nearest.Cw}, differing in {nearest.DifferingCells} cell(s)."));
             if (ProportionGap(box.Kind, identity, nearest) is { } gap) findings.Add(gap);
@@ -290,7 +302,7 @@ public static class Producibility
         else if (candidates.Count > 0)
             findings.AddRange(Refusals(candidates, box.Rect));
 
-        return new BoxProducibility(box.Id, box.Kind, identity, null, nearest, findings);
+        return new BoxProducibility(box.Id, box.Kind, identity, null, nearest, Complaints(findings));
     }
 
     /// <summary>What the derivers read the box as — the approach family for a roomed box, the body compound for a
@@ -488,7 +500,7 @@ public static class Producibility
     /// data: it keys only off facts the search already produced (the box kind, the derived identity, the nearest
     /// form) and re-derives no geometry.</para>
     /// </summary>
-    private static ProducibilityFinding? ProportionGap(string kind, string identity, NearestMiss nearest)
+    private static Finding? ProportionGap(string kind, string identity, NearestMiss nearest)
     {
         if (FormToken(identity) is not { Length: > 0 } read || read != FormToken(nearest.Label)) return null;
         var (cites, owner) = kind switch
@@ -497,11 +509,11 @@ public static class Producibility
                 ("G105", "per-piece body widths and the asymmetric ring"),
             _ => ("G82", "approach entry widening"),
         };
-        return new ProducibilityFinding("proportions-outside-the-parameter-space", cites,
+        return new Finding("proportions-outside-the-parameter-space",
             $"The shape is one the emitters build — the closest candidate is a {read} too — so only its " +
             $"proportions are out of reach. Every emitter takes a single corridor width, so a part wider or " +
             $"narrower than the rest cannot be asked for: {owner} is the gap ({cites}), and corridor width as a " +
-            "per-part property rather than one board-wide constant is G129.");
+            "per-part property rather than one board-wide constant is G129.", Cites: cites);
     }
 
     /// <summary>The leading form name of an identity or candidate label (<c>"Ring"</c>, <c>"SpineArms"</c>,
@@ -517,20 +529,20 @@ public static class Producibility
     /// the smallest box any form on the menu fits: four near-identical "below the minimum" lines (one per mouth
     /// orientation) tell the author nothing the smallest one doesn't. Other refusal kinds report distinct
     /// reasons.</summary>
-    private static IEnumerable<ProducibilityFinding> Refusals(IReadOnlyList<Candidate> candidates, CellRect rect)
+    private static IEnumerable<Finding> Refusals(IReadOnlyList<Candidate> candidates, CellRect rect)
     {
         var tooSmall = candidates
             .Select(c => c.Rejection).OfType<FillRejection.TooSmall>()
             .OrderBy(t => t.MinW * t.MinH).ThenBy(t => t.MinW).FirstOrDefault();
         if (tooSmall is not null)
-            yield return new ProducibilityFinding("box-too-small", null,
+            yield return new Finding("box-too-small",
                 $"This box is {rect.Width}x{rect.Height} cells; the smallest footprint any form on the menu fits is " +
                 $"{tooSmall.MinW}x{tooSmall.MinH}. Nothing can be emitted into it.");
 
         foreach (var detail in candidates
                      .Select(c => c.Rejection).Where(r => r is not null and not FillRejection.TooSmall)
                      .Select(r => Describe(r!)).Distinct().Take(3))
-            yield return new ProducibilityFinding("every-form-refused", null, detail);
+            yield return new Finding("every-form-refused", detail);
     }
 
     /// <summary>The candidate whose emitted terrain differs from <paramref name="target"/> in the fewest cells,

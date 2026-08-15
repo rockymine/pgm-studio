@@ -606,7 +606,7 @@ tool saves it. Six things nonetheless refuse.
 that kind of block, a doorway that does not clear 2.5 blocks once its head is written in, or a roof whose own
 materials are wrong for its pitch or its family. The cage and the spawn are checked identically: a stair
 lattice or a slab band window is allowed on either, as it is on any house, so long as its block is the kind the
-form needs. Answers **400** `{error, findings}`, one finding per fault, and writes nothing. A layout with no
+form needs. Answers **400** `{error: "invalid house style", message, findings[]}` (`docs/refusals.md`), one finding per fault, and writes nothing. A layout with no
 `roomStyles`, or one whose snapshot does not parse as a house style at all, is not this gate's business and
 saves as it always did — only a well-formed style that is wrong is refused.
 

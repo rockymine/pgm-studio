@@ -341,7 +341,7 @@ intent with no world: round-trip and mirror pass, buildability skips, traversabi
 
 **Every export checks its declared `<gamemode>` first, regardless of origin.** `MapExportComposer` reads the
 document's own `gamemode` list before anything else in `Compose` — no world, no resolved intent, nothing
-sketch-specific — and answers **409** `{error, message, rule: "OB20", ids}` the moment one of the author's own
+sketch-specific — and answers **409** with an `OB20` finding the moment one of the author's own
 ids falls outside PGM's closed enum (`destroyables-and-cores.md` §1, `OB7`, which states it in full: PGM
 parses `<gamemode>` as a repeated element and fails the whole map to load on the first id `Gamemode.byId`
 cannot resolve). The studio's own generator never writes an id outside that set; the check exists for a
@@ -366,7 +366,7 @@ so the mismatch made a raid slow, not impossible — and the refusal was removed
 §8). `TeamsGenerator` still pairs the generated kit's pickaxe to the goal's material, which is why the case
 is rare in practice, but a hand-edited kit that leaves the pairing off no longer blocks export.
 
-Each answers `{error, message, rule, …}`, the last field a named list scoped to the refusal — `ids` for OB20
+Each answers the one refusal envelope — `{error, message, findings[]}`, `docs/refusals.md` — the gate named in `error` and the fault in the findings
 (every declared id PGM's enum did not recognize), `findings` for OB17 (one per goal, each carrying its own
 `rule`/`message`/`subjects`), `props` for OB19 (`{kind, id, x, z}`
 each). Neither applies to a map with no stored sketch layout: they read the sketch's own rasterized ground
@@ -414,7 +414,7 @@ writes: apart from the import and one island toggle, **Configure has exactly one
 |---|---|---|
 | `GET /map/{slug}/preflight` | `{intentMap, exportReady, checks[], log[], traversability}` | 404 |
 | `GET /map/{slug}/regions/tree` | the generated region tree, grouped | 404 |
-| `GET /map/{slug}/xml` | the `map.xml` | **409** `{error, message, rule, ids[]}` OB20 (every map, checked first) · **409** `{error, message, isolated[]}` not traversable · **409** `{error, message, findings[]}` OB17 · **409** `{error, message, rule, props[]}` OB19 · **422** `{error, rule: "DR-DOC", message, subject, field}` dressing document invalid · 404 |
+| `GET /map/{slug}/xml` | the `map.xml` | every refusal is `{error, message, findings[]}` (`docs/refusals.md`), the gate in `error`: **409** `unknown gamemode` OB20 (every map, checked first) · **409** `not traversable` EX1 · **409** `objective placement` OB17 · **409** `prop in goal clearance` OB19 · **422** `dressing document invalid` DR-DOC · 404 |
 | `GET /map/{slug}/export` | the world ZIP | the same 409s and 422 as `/xml` (OB17/OB19/DR-DOC sketch-origin maps only; OB20 and not-traversable apply regardless of origin), plus non-2xx with a message on a zip/IO failure |
 
 ## Driving it without the UI

@@ -83,7 +83,7 @@ public class WingJointsTests
         var joint = WingJoints.Between(Hall, wing);
 
         await Assert.That(joint.Fault).IsEqualTo(JointFault.Overlapping);
-        await Assert.That(WingJoints.RuleOf(joint.Fault)).IsEqualTo("HJ1");
+        await Assert.That(WingJoints.Refusal(joint)!.Rule).IsEqualTo(WingJointRules.Overlapping);
     }
 
     /// <summary>
@@ -100,7 +100,7 @@ public class WingJointsTests
         var joint = WingJoints.Between(hall, wing);
         await Assert.That(joint.Fault).IsEqualTo(JointFault.PartialEdge);
         await Assert.That(joint.Shared).IsEqualTo(3);
-        await Assert.That(WingJoints.RuleOf(joint.Fault)).IsEqualTo("HJ2");
+        await Assert.That(WingJoints.Refusal(joint)!.Rule).IsEqualTo(WingJointRules.PartialEdge);
     }
 
     /// <summary>
@@ -115,13 +115,13 @@ public class WingJointsTests
             new Wing(0, 5, 9, 9, Ridge: RidgeAxis.AlongX),
             new Wing(0, 0, 9, 4, Ridge: RidgeAxis.AlongX));
         await Assert.That(sideBySide.Fault).IsEqualTo(JointFault.SideBySide);
-        await Assert.That(WingJoints.RuleOf(sideBySide.Fault)).IsEqualTo("HJ3");
+        await Assert.That(WingJoints.Refusal(sideBySide)!.Rule).IsEqualTo(WingJointRules.SideBySide);
 
         var endToEnd = WingJoints.Between(
             new Wing(0, 5, 4, 9, Ridge: RidgeAxis.AlongZ),
             new Wing(0, 0, 4, 4, Ridge: RidgeAxis.AlongZ));
         await Assert.That(endToEnd.Fault).IsEqualTo(JointFault.EndToEnd);
-        await Assert.That(WingJoints.RuleOf(endToEnd.Fault)).IsEqualTo("HJ4");
+        await Assert.That(WingJoints.Refusal(endToEnd)!.Rule).IsEqualTo(WingJointRules.EndToEnd);
     }
 
     /// <summary>
@@ -143,17 +143,22 @@ public class WingJointsTests
         await Assert.That(WingJoints.Of(plan).Count).IsEqualTo(0);
     }
 
-    /// <summary>Every fault a plan can be refused for names a rule, and a joint that stands names none.</summary>
+    /// <summary>Every fault a plan can be refused for is a finding with a rule, a sentence and the two wings it
+    /// is about; a joint that stands is no finding at all. The gate reads <see cref="WingJoints.Refusals"/>
+    /// rather than the enum, so a fault added without a rule would refuse a plan and say nothing.</summary>
     [Test]
-    public async Task Every_fault_carries_a_rule_id_and_a_sentence()
+    public async Task Every_fault_is_a_finding_and_a_standing_joint_is_none()
     {
         foreach (var fault in Enum.GetValues<JointFault>())
         {
-            var id = WingJoints.RuleOf(fault);
-            var said = WingJoints.Explain(new WingJoint(0, 1, fault, -1, -1, true, 0, 4));
-            var expected = fault is JointFault.None or JointFault.Apart;
-            await Assert.That((fault, id.Length == 0)).IsEqualTo((fault, expected));
-            await Assert.That((fault, said.Length == 0)).IsEqualTo((fault, expected));
+            var refusal = WingJoints.Refusal(new WingJoint(0, 1, fault, -1, -1, true, 0, 4));
+            var stands = fault is JointFault.None or JointFault.Apart;
+            await Assert.That((fault, refusal is null)).IsEqualTo((fault, stands));
+            if (stands) continue;
+            await Assert.That((fault, refusal!.Rule.Length > 0, refusal.Message.Length > 0))
+                .IsEqualTo((fault, true, true));
+            await Assert.That(refusal.SubjectIds).IsEquivalentTo(new[] { "0", "1" });
+            await Assert.That(refusal.Refuses).IsTrue();
         }
     }
 }

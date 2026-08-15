@@ -64,7 +64,7 @@ document rather than what a reader is looking for.
 | `pgm/` | the map contract — destroyables/cores, water lanes, regions and filters, include resolution, what the studio refuses to read, the intent model, `template.xml`. |
 | `client/` | the browser half: the canvas JS layer, the component vocabulary, routing and how the client is served. |
 | `gameplay/` | what a map is played for — `approaches.md` (what the ground around an objective does, and the one document whose claims are the author's), the match-flow account, the traffic ground truth. |
-| root | whole-repo notes: `project-structure`, `design-decisions`, `cloud-setup`, `doc-status`. |
+| root | whole-repo notes: `project-structure`, `design-decisions`, `refusals` (how every gate says no, and the rule-id catalogue), `cloud-setup`, `doc-status`. |
 
 A document is deleted when a subject folder's document owns its subject; corpus **measurements** are kept even
 when the design around them has landed, because nothing else can re-derive them.

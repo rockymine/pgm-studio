@@ -1,3 +1,5 @@
+using PgmStudio.Domain;
+
 namespace PgmStudio.Minecraft;
 
 /// <summary>Why two wings of one plan do not make a building, or <see cref="None"/> where they do.</summary>
@@ -31,6 +33,28 @@ public enum JointFault
     WingOvertops,
 }
 
+/// <summary>The wing-joint rule ids a refusal cites, catalogued in <c>docs/world-export/structures.md</c>.
+/// Stable names for what a refusal is about, the way <c>HS*</c> names a house-style rule and <c>WX*</c> a
+/// room-frame one, and kept apart from any task-tracking id.</summary>
+public static class WingJointRules
+{
+    /// <summary>Two rectangles share blocks. A plan states its ground once.</summary>
+    public const string Overlapping = "HJ1";
+
+    /// <summary>They touch over part of an edge only, so neither joint can happen along it.</summary>
+    public const string PartialEdge = "HJ2";
+
+    /// <summary>Both ridges run along the shared edge — two ranges side by side, meeting in a gutter.</summary>
+    public const string SideBySide = "HJ3";
+
+    /// <summary>Both ridges run into it — one longer range, which wants drawing as one rectangle.</summary>
+    public const string EndToEnd = "HJ4";
+
+    /// <summary>The wing reaches further along the shared edge than the hall reaches across it, so its roof
+    /// stands taller than the one it is meant to run into.</summary>
+    public const string WingOvertops = "HJ5";
+}
+
 /// <summary>
 /// How two rectangles of one plan meet: which is the hall, which is the wing, along what edge, and whether the
 /// pair is a building at all.
@@ -62,37 +86,44 @@ public readonly record struct WingJoint(
 /// </summary>
 public static class WingJoints
 {
-    /// <summary>Rule ids a refusal carries, so an author is told which rule a plan broke rather than that it
-    /// broke one.</summary>
-    public static string RuleOf(JointFault fault) => fault switch
+    /// <summary>Why a pair is no building, as a <see cref="Finding"/> — or null where it is one. The rule id
+    /// is what an author or an agent acts on; the sentence is in the terms the rectangles were drawn in, and
+    /// the subjects are the two wings' own indices, so an editor highlights the pair it is about.</summary>
+    public static Finding? Refusal(WingJoint joint)
     {
-        JointFault.Overlapping => "HJ1",
-        JointFault.PartialEdge => "HJ2",
-        JointFault.SideBySide => "HJ3",
-        JointFault.EndToEnd => "HJ4",
-        JointFault.WingOvertops => "HJ5",
-        _ => "",
-    };
+        var (rule, said) = joint.Fault switch
+        {
+            JointFault.Overlapping => (WingJointRules.Overlapping,
+                "the two rectangles share blocks; wings touch and never overlap, because a joint is the edge "
+                + "between them and an overlap has none"),
+            JointFault.PartialEdge => (WingJointRules.PartialEdge,
+                $"they touch over {joint.Shared} blocks of edge but not over all of the shorter one, so part of "
+                + "the wing's end meets its neighbour and the rest hangs over open ground — neither joint can "
+                + "happen"),
+            JointFault.SideBySide => (WingJointRules.SideBySide,
+                "both ridges run along the edge they share, which is two ranges side by side meeting in a "
+                + "gutter rather than a valley; turn one of them across the other"),
+            JointFault.EndToEnd => (WingJointRules.EndToEnd,
+                "both ridges run into the edge they share, which is one longer range — draw it as one "
+                + "rectangle"),
+            JointFault.WingOvertops => (WingJointRules.WingOvertops,
+                "the wing stands taller than the hall it meets, so its roof runs over rather than into it; a "
+                + "wing reaches no further along the shared edge than the hall reaches across it"),
+            _ => ("", ""),
+        };
+        return rule.Length == 0 ? null : new Finding(rule, said, Field: "wings",
+            Subjects: [joint.A.ToString(), joint.B.ToString()]);
+    }
 
-    /// <summary>What a refusal says, in the terms an author drew the rectangles in.</summary>
-    public static string Explain(WingJoint joint) => joint.Fault switch
+    /// <summary>Every way a plan's wings fail to make a building, in the order the wings were given. Empty
+    /// where the plan is one — which is what a caller gates on.</summary>
+    public static IReadOnlyList<Finding> Refusals(Footprint plan)
     {
-        JointFault.Overlapping =>
-            "the two rectangles share blocks; wings touch and never overlap, because a joint is the edge "
-            + "between them and an overlap has none",
-        JointFault.PartialEdge =>
-            $"they touch over {joint.Shared} blocks of edge but not over all of the shorter one, so part of the "
-            + "wing's end meets its neighbour and the rest hangs over open ground — neither joint can happen",
-        JointFault.SideBySide =>
-            "both ridges run along the edge they share, which is two ranges side by side meeting in a gutter "
-            + "rather than a valley; turn one of them across the other",
-        JointFault.EndToEnd =>
-            "both ridges run into the edge they share, which is one longer range — draw it as one rectangle",
-        JointFault.WingOvertops =>
-            "the wing stands taller than the hall it meets, so its roof runs over rather than into it; a wing "
-            + "reaches no further along the shared edge than the hall reaches across it",
-        _ => "",
-    };
+        var refusals = new List<Finding>();
+        foreach (var joint in Of(plan))
+            if (Refusal(joint) is { } refusal) refusals.Add(refusal);
+        return refusals;
+    }
 
     /// <summary>Every pair of a plan's wings that touches or overlaps, in the order the wings were given. Pairs
     /// standing clear of each other are left out — they are not a joint to judge.</summary>

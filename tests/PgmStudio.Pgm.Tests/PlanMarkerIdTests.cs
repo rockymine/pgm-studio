@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Pgm.Plan;
 
 namespace PgmStudio.Pgm.Tests;
@@ -99,7 +100,7 @@ public sealed class PlanMarkerIdTests
           "placements":{ "cores":[ {"id":"heart","piece":"land","at":[19,10],"size":5} ] } }
         """);
         var finding = PlanValidator.Validate(plan)
-            .First(f => f.Severity == PlanSeverity.Error && f.Message.Contains("overhangs the void"));
+            .First(f => f.Severity == Severity.Refusal && f.Message.Contains("overhangs the void"));
         await Assert.That(finding.SubjectIds).Contains("heart");
         await Assert.That(finding.Message).Contains("'heart'");
     }

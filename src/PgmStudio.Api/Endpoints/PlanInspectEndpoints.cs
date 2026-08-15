@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using System.Text.Json;
 using FastEndpoints;
 using PgmStudio.Api.Services;
@@ -99,21 +100,17 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest
 
         SketchLayout layout;
         MapIntent intent;
-        IReadOnlyList<PlanFinding> completeness;
+        IReadOnlyList<Finding> completeness;
         try
         {
             // Two questions, both asked here because this is the one-way gate: is the plan coherent
             // (the structural validator), and does it carry what a map cannot exist without (completeness).
             completeness = PlanValidator.Completeness(plan);
             var errors = PlanValidator.Validate(plan).Concat(completeness)
-                .Where(f => f.Severity == PlanSeverity.Error).ToList();
+                .Where(finding => finding.Refuses).ToList();
             if (errors.Count > 0)
             {
-                var findings = errors.Select(f => new
-                {
-                    severity = "error", rule = f.Rule, message = f.Message, subjects = f.SubjectIds,
-                });
-                await Send.ResponseAsync(new { findings }, 422, ct);
+                await Send.ResponseAsync(Refusals.Of("plan not compilable", errors), 422, ct);
                 return;
             }
             (layout, intent) = PlanCompiler.Compile(plan);
@@ -137,10 +134,7 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest
 
         // Completeness complaints that did not block (today: no objective). Carried on the success response so
         // a compile that produced a playable-but-goalless map still says so rather than passing in silence.
-        var warnings = completeness.Where(f => f.Severity == PlanSeverity.Lint).Select(f => new
-        {
-            severity = "lint", rule = f.Rule, message = f.Message, subjects = f.SubjectIds,
-        });
+        var warnings = Refusals.Dtos(completeness.Where(finding => !finding.Refuses));
         await Send.OkAsync(new { layout = layoutEl, intent = intentEl, warnings }, ct);
     }
 }
@@ -200,8 +194,8 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest
         var violations = eval.Terms
             .Where(t => t.Violation is not null)
             .Select(t => new ViolationDto(
-                t.Violation!.TermId, t.Violation.RuleId, t.Kind == TermKind.Hard ? "hard" : "soft",
-                t.Distance, t.Violation.Message, t.Violation.Subjects,
+                t.Violation!.TermId, t.Kind == TermKind.Hard ? "hard" : "soft", t.Distance,
+                Refusals.Dto(t.Violation.Finding),
                 (t.Violation.Evidence ?? []).Select(MapEvidence).ToList()))
             .ToList();
         return new EvaluationDto(eval.Score, eval.IsValid, violations);
@@ -267,8 +261,7 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest
             b.Nearest is null ? null : new NearestMissDto(
                 b.Nearest.Label, b.Nearest.Cw, b.Nearest.DifferingCells,
                 [.. b.Nearest.Extra.Select(r => r.ToArray())], [.. b.Nearest.Missing.Select(r => r.ToArray())]),
-            b.Findings.Select(Finding).ToList())).ToList(),
-        read.Unit.Select(Finding).ToList());
+            Refusals.Dtos(b.Findings))).ToList(),
+        Refusals.Dtos(read.Unit));
 
-    private static FeasibilityFindingDto Finding(ProducibilityFinding f) => new(f.Code, f.Cites, f.Detail);
 }

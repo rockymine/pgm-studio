@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Pgm.Derive;
 using PgmStudio.Pgm.Plan;
 
@@ -5,7 +6,7 @@ namespace PgmStudio.Pgm.Evaluate;
 
 /// <summary>
 /// The derived-once context every term reads: the plan, its <see cref="ContactGraph"/> (the rect-layer
-/// adjacency), the structural <see cref="PlanFinding"/>s (parse/overlap/reachability), the raster-layer
+/// adjacency), the structural <see cref="Finding"/>s (parse/overlap/reachability), the raster-layer
 /// <see cref="BoardStructure"/> (islands, zone kinds, holes, lanes), and the authored metric bands. A term
 /// never re-derives any of these — it reads them here. <see cref="Board"/> is computed lazily, so a hard-only
 /// gate (which no ported term needs the board for) never pays for the raster derive on its resample loop.
@@ -14,13 +15,13 @@ public sealed class EvalContext
 {
     public PlanModel Plan { get; }
     public ContactGraph Contacts { get; }
-    public IReadOnlyList<PlanFinding> Findings { get; }
+    public IReadOnlyList<Finding> Findings { get; }
     public SeedEnvelopes Envelopes { get; }
 
     private readonly Lazy<BoardStructure> _board;
     public BoardStructure Board => _board.Value;
 
-    private EvalContext(PlanModel plan, ContactGraph contacts, IReadOnlyList<PlanFinding> findings, SeedEnvelopes envelopes)
+    private EvalContext(PlanModel plan, ContactGraph contacts, IReadOnlyList<Finding> findings, SeedEnvelopes envelopes)
     {
         Plan = plan;
         Contacts = contacts;

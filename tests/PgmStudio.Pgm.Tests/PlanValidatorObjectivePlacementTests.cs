@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Pgm.Plan;
 
 namespace PgmStudio.Pgm.Tests;
@@ -18,7 +19,7 @@ public sealed class PlanValidatorObjectivePlacementTests
     private static PlanModel Plan(string json) => PlanModel.Parse(json)!;
 
     private static bool Err(PlanModel plan, string needle) =>
-        PlanValidator.Validate(plan).Any(f => f.Severity == PlanSeverity.Error && f.Message.Contains(needle));
+        PlanValidator.Validate(plan).Any(f => f.Severity == Severity.Refusal && f.Message.Contains(needle));
 
     /// <summary>A 20×20 island with a two-team symmetry, so the objective tools are legal (OB14).</summary>
     private static string Land(string placements) => $$"""
@@ -139,7 +140,7 @@ public sealed class PlanValidatorObjectivePlacementTests
     {
         var plan = Plan(RoomBoard.Replace("CORE", """ "cores":[ {"piece":"home","at":[10,10],"size":5} ] """));
         var finding = PlanValidator.Validate(plan)
-            .First(f => f.Severity == PlanSeverity.Error && f.Message.Contains("reaches into the spawn"));
+            .First(f => f.Severity == Severity.Refusal && f.Message.Contains("reaches into the spawn"));
         await Assert.That(finding.SubjectIds).Contains("home");
     }
 }

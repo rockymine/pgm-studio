@@ -200,8 +200,8 @@
                       @foreach (var f in feasibility.Unit)
                       {
                         <div class="plan-feas-finding">
-                          @if (f.Cites is not null) { <span class="plan-lint-chip">@f.Cites</span> }
-                          <span class="plan-lint-msg">@f.Detail</span>
+                          <span class="plan-lint-chip">@f.Rule</span>
+                          <span class="plan-lint-msg">@f.Message</span>
                         </div>
                       }
                     </div>
@@ -233,8 +233,8 @@
                       @foreach (var f in b.Findings)
                       {
                         <div class="plan-feas-finding">
-                          @if (f.Cites is not null) { <span class="plan-lint-chip">@f.Cites</span> }
-                          <span class="plan-lint-msg">@f.Detail</span>
+                          <span class="plan-lint-chip">@f.Rule</span>
+                          <span class="plan-lint-msg">@f.Message</span>
                         </div>
                       }
                     </div>
@@ -270,8 +270,8 @@
                       var v = evaluation.Violations[i];
                       <button class="plan-lint-row @(selectedViolation == idx ? "plan-lint-row--active" : null)" @onclick="() => SelectViolation(idx)" title="Show only this rule's evidence on the canvas">
                         <span class="plan-lint-dot @(v.Kind == "hard" ? "plan-lint-dot--error" : "plan-lint-dot--lint")"></span>
-                        <span class="plan-lint-chip">@v.RuleId</span>
-                        <span class="plan-lint-msg">@v.Message</span>
+                        <span class="plan-lint-chip">@v.Finding.Rule</span>
+                        <span class="plan-lint-msg">@v.Finding.Message</span>
                         @if (v.Kind == "soft") { <span class="list-tag">@v.Distance.ToString("0.#")</span> }
                       </button>
                     }

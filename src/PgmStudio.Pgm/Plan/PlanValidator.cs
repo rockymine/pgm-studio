@@ -3,16 +3,47 @@ using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Plan;
 
-/// <summary>A single validation finding: its <see cref="Severity"/>, a message, (for lint) the rule id it
-/// cites from the layout-rules checklist, and the ids of the pieces/zones it implicates (for the editor to
-/// highlight on click).</summary>
-public sealed record PlanFinding(PlanSeverity Severity, string Message, string? Rule = null, IReadOnlyList<string>? Subjects = null)
+/// <summary>
+/// The plan rule ids a finding cites — the structural ones the validator owns itself. Rules it merely
+/// <em>enforces</em> for another document keep that document's own id instead: a core, a two-team goal and a
+/// goal footprint cite <see cref="ObjectiveRules"/>, a room frame cites <see cref="RoomFrameRules"/>, and the
+/// lint table cites the layout-rules checklist. Stable names, kept apart from any task-tracking id.
+/// </summary>
+public static class PlanRules
 {
-    /// <summary>The implicated piece/zone ids, never null.</summary>
-    public IReadOnlyList<string> SubjectIds => Subjects ?? [];
-}
+    /// <summary>No generating piece: there is no land, so there is nothing to build.</summary>
+    public const string NoLand = "PL1";
 
-public enum PlanSeverity { Error, Lint }
+    /// <summary>No spawn: PGM has nowhere to put a player and the map cannot be entered.</summary>
+    public const string NoSpawn = "PL2";
+
+    /// <summary>No objective of any kind — a complaint, since which goal a map carries is the author's.</summary>
+    public const string NoObjective = "PL3";
+
+    /// <summary>Two pieces claim the same ground at incompatible heights, so there is no coherent surface.</summary>
+    public const string SurfaceClash = "PL4";
+
+    /// <summary>A placement names a piece the plan does not have.</summary>
+    public const string UnknownPiece = "PL5";
+
+    /// <summary>A placement stands on a buffer, which is reserved empty space and produces no terrain.</summary>
+    public const string PlacementOnBuffer = "PL6";
+
+    /// <summary>A placement falls outside the piece it names.</summary>
+    public const string PlacementOutside = "PL7";
+
+    /// <summary>A spawn room cannot seat every monument its team will capture.</summary>
+    public const string MonumentSeats = "PL8";
+
+    /// <summary>A wool cannot be reached from a capturing team's spawn at all.</summary>
+    public const string WoolUnreachable = "PL9";
+
+    /// <summary>A destroyable style names something that is not a style.</summary>
+    public const string UnknownStyle = "PL10";
+
+    /// <summary>A wall is drawn on a pair of pieces that share no land interface.</summary>
+    public const string WallWithoutInterface = "PL11";
+}
 
 /// <summary>
 /// The plan validator: structural <b>errors</b> that block a compile (unreachable wool, a wool path only
@@ -25,18 +56,18 @@ public enum PlanSeverity { Error, Lint }
 /// </summary>
 public static class PlanValidator
 {
-    public static IReadOnlyList<PlanFinding> Validate(PlanModel plan)
+    public static IReadOnlyList<Finding> Validate(PlanModel plan)
     {
         var d = ContactGraph.Build(plan);
-        var findings = new List<PlanFinding>();
+        var findings = new List<Finding>();
         findings.AddRange(Errors(plan, d));
         foreach (var rule in LintRules) findings.AddRange(rule(plan, d));
         return findings;
     }
 
-    public static IReadOnlyList<PlanFinding> Errors(PlanModel plan) => Errors(plan, ContactGraph.Build(plan)).ToList();
+    public static IReadOnlyList<Finding> Errors(PlanModel plan) => Errors(plan, ContactGraph.Build(plan)).ToList();
 
-    public static bool HasErrors(PlanModel plan) => Validate(plan).Any(f => f.Severity == PlanSeverity.Error);
+    public static bool HasErrors(PlanModel plan) => Validate(plan).Any(f => f.Severity == Severity.Refusal);
 
     /// <summary>
     /// Whether the plan carries the things a map cannot exist without — a separate question from
@@ -46,47 +77,50 @@ public static class PlanValidator
     /// turns a plan into a map, not to the continuous validation the editor and the evaluator run.
     /// <para>Errors here block that gate; the lint is a complaint the author may ignore.</para>
     /// </summary>
-    public static IReadOnlyList<PlanFinding> Completeness(PlanModel plan)
+    public static IReadOnlyList<Finding> Completeness(PlanModel plan)
     {
-        var findings = new List<PlanFinding>();
+        var findings = new List<Finding>();
 
         // No generating piece: there is no land, so there is nothing to build. Reported alone because every
         // other complaint about a blank document is downstream of this one.
         if (!plan.Pieces.Any(pc => PlanRoles.IsGenerating(pc.Role)))
         {
-            findings.Add(new PlanFinding(PlanSeverity.Error, "this plan has no pieces — there is no land to build"));
+            findings.Add(new Finding(PlanRules.NoLand, "this plan has no pieces — there is no land to build"));
             return findings;
         }
 
         // No spawn: PGM has nowhere to put a player, so the finished map cannot be entered at all. The hard one.
         if (plan.Placements.Spawns.Count == 0)
-            findings.Add(new PlanFinding(PlanSeverity.Error,
+            findings.Add(new Finding(PlanRules.NoSpawn,
                 "this plan has no spawn — a map with nowhere to put a player cannot be loaded"));
 
         // No objective of any kind. A complaint, not a block: which goal a map carries is the author's, all
         // three are authorable here, and one can still be set downstream when the map is configured.
         var p = plan.Placements;
         if (p.Wools.Count == 0 && p.Destroyables.Count == 0 && p.Cores.Count == 0)
-            findings.Add(new PlanFinding(PlanSeverity.Lint,
-                "this plan has no objective — no wool, destroyable or core, so nothing wins the match"));
+            findings.Add(new Finding(PlanRules.NoObjective,
+                "this plan has no objective — no wool, destroyable or core, so nothing wins the match",
+                Severity.Complaint));
 
         return findings;
     }
 
     // ── errors (block the compile) ──────────────────────────────────────────────────────────────────────
 
-    private static IEnumerable<PlanFinding> Errors(PlanModel plan, ContactGraph d)
+    private static IEnumerable<Finding> Errors(PlanModel plan, ContactGraph d)
     {
-        var findings = new List<PlanFinding>();
-        void Error(string m, params string[] subjects) =>
-            findings.Add(new PlanFinding(PlanSeverity.Error, m, null, subjects.Length > 0 ? subjects : null));
+        var findings = new List<Finding>();
+        void Error(string rule, string message, params string[] subjects) =>
+            findings.Add(new Finding(rule, message, Subjects: subjects.Length > 0 ? subjects : null));
 
         // different-surface overlaps: two pieces claim the same ground at incompatible heights — no coherent
         // surface, a genuine structural error. (Narrow seams connect and are legal; corner contacts are author
         // judgment and lint, not errors — see PC-C.)
         foreach (var c in d.Contacts)
             if (c.Kind == ContactKind.Overlap && c.SurfaceDelta != 0)
-                Error($"overlapping pieces '{c.A}' and '{c.B}' have different surfaces (delta {c.SurfaceDelta})", c.A, c.B);
+                Error(PlanRules.SurfaceClash,
+                    $"overlapping pieces '{c.A}' and '{c.B}' have different surfaces (delta {c.SurfaceDelta})",
+                    c.A, c.B);
 
         // placements must reference a real piece and sit inside it (a wool's flat area is its piece footprint).
         // A destroyable/core is the one marker kind that may name no piece at all (B128): an empty piece reads
@@ -103,7 +137,8 @@ public static class PlanValidator
         // dig depth nobody chose — so ask for both or neither.
         foreach (var c in plan.Placements.Cores)
             if (c.Float is null != c.Leak is null)
-                Error($"core '{(c.Float is null ? "leak" : "float")}' was set without its pair — "
+                Error(ObjectiveRules.PairedKnobs,
+                    $"core '{(c.Float is null ? "leak" : "float")}' was set without its pair — "
                     + "float and leak only mean anything together (they set the dig depth)", c.Piece);
 
         // A casing needs room for lava inside it: at shell s, the interior is size − 2s across. At zero or
@@ -112,9 +147,10 @@ public static class PlanValidator
         {
             var (size, height, shell) = (c.Size ?? ObjectiveDefaults.CoreSize, c.Height ?? ObjectiveDefaults.CoreHeight,
                 c.Shell ?? ObjectiveDefaults.CoreShell);
-            if (shell < 1) Error($"core shell {shell} is not a casing (needs ≥ 1)", c.Piece);
+            if (shell < 1) Error(ObjectiveRules.Casing, $"core shell {shell} is not a casing (needs ≥ 1)", c.Piece);
             else if (size - 2 * shell < 1 || height - 2 * shell < 1)
-                Error($"core {size}×{height}×{size} with shell {shell} leaves no lava inside — "
+                Error(ObjectiveRules.Casing,
+                    $"core {size}×{height}×{size} with shell {shell} leaves no lava inside — "
                     + "a solid casing is a goal that can never leak", c.Piece);
         }
 
@@ -147,7 +183,9 @@ public static class PlanValidator
         // stamping a pillar where the author asked for a cube is worse than saying the word is not a style.
         foreach (var b in plan.Placements.Destroyables)
             if (!string.IsNullOrEmpty(b.Style) && !DestroyableStyles.IsKnown(b.Style))
-                Error($"destroyable style '{b.Style}' is not one of [{string.Join(", ", DestroyableStyles.All)}]", b.Piece);
+                Error(PlanRules.UnknownStyle,
+                    $"destroyable style '{b.Style}' is not one of [{string.Join(", ", DestroyableStyles.All)}]",
+                    b.Piece);
 
         // OB14 — a destroyable is one team's to defend and every other team's to break, which only means
         // something at two teams: PGM marks a goal shared exactly when the count is not 2, and what a shared
@@ -159,7 +197,8 @@ public static class PlanValidator
                          plan.Placements.Destroyables.Count > 0 ? "destroyables" : null,
                          plan.Placements.Cores.Count > 0 ? "cores" : null,
                      }.Where(k => k is not null))
-                Error($"{kind} need a two-team symmetry; '{plan.Globals.Symmetry}' has "
+                Error(ObjectiveRules.TwoTeamOnly,
+                    $"{kind} need a two-team symmetry; '{plan.Globals.Symmetry}' has "
                     + $"{Symmetry.Order(plan.Globals.Symmetry)} team(s)");
 
         // a wall mark must land on a real shared land interface (else there is no lane seam to build across)
@@ -167,7 +206,8 @@ public static class PlanValidator
         foreach (var c in d.LandInterfaces) { landPairs.Add((c.A, c.B)); landPairs.Add((c.B, c.A)); }
         foreach (var w in plan.Walls)
             if (!landPairs.Contains((w.A, w.B)))
-                Error($"wall '{w.A}'–'{w.B}' is not a shared land interface", w.A, w.B);
+                Error(PlanRules.WallWithoutInterface,
+                    $"wall '{w.A}'–'{w.B}' is not a shared land interface", w.A, w.B);
 
         // WX2/WX3/WX6 + capacity — the stamped-room rules (docs/world-export/structures.md): a role piece
         // must be big enough for its shell, the marker's pad must be square, a wool room must have an entry
@@ -182,7 +222,7 @@ public static class PlanValidator
 
     // The stamped-room refusals (WX2/WX3/WX6 + monument capacity). Only role pieces are checked: a marker
     // on a plain piece keeps the legacy marker-anchored default room, which cannot refuse.
-    private static IEnumerable<PlanFinding> RoomFrameErrors(PlanModel plan, ContactGraph d)
+    private static IEnumerable<Finding> RoomFrameErrors(PlanModel plan, ContactGraph d)
     {
         foreach (var w in plan.Placements.Wools)
         {
@@ -201,9 +241,9 @@ public static class PlanValidator
             var captured = plan.Placements.Wools.Count * Math.Max(1, d.Order - 1);
             var seats = RoomFrames.MonumentSlots(room.Frame, room.Frame.Doors[0]).Count;
             if (captured > seats)
-                yield return new PlanFinding(PlanSeverity.Error,
+                yield return new Finding(PlanRules.MonumentSeats,
                     $"spawn room on '{s.Piece}' seats {seats} monuments, {captured} captured wools need placing",
-                    null, [s.Piece]);
+                    Subjects: [s.Piece]);
         }
     }
 
@@ -212,7 +252,7 @@ public static class PlanValidator
     // (without) when the piece is plain or missing.
     private static ResolvedRoom? ResolveFrame(
         PlanModel plan, ContactGraph d, string kind, string pieceId, string role, double[] at,
-        RoomEdge? spawnDoorEdge, out List<PlanFinding> findings)
+        RoomEdge? spawnDoorEdge, out List<Finding> findings)
     {
         findings = [];
         var piece = d.Piece(pieceId);
@@ -231,7 +271,11 @@ public static class PlanValidator
         var room = RoomFrames.ResolveRoom(rect.MinX, rect.MinZ, rect.MaxX, rect.MaxZ,
             markerX, markerZ, entries, spawnDoorEdge, ironMarkers, out var refusal);
         if (refusal is not null)
-            findings.Add(new PlanFinding(PlanSeverity.Error, $"{kind} on '{pieceId}': {refusal}", null, [pieceId]));
+            findings.Add(refusal with
+            {
+                Message = $"{kind} on '{pieceId}': {refusal.Message}",
+                Subjects = [pieceId],
+            });
         return room;
     }
 
@@ -245,7 +289,7 @@ public static class PlanValidator
     };
 
     private static void CheckInside(
-        ContactGraph d, string kind, string pieceId, double[] at, List<PlanFinding> findings, bool allowAbsolute = false)
+        ContactGraph d, string kind, string pieceId, double[] at, List<Finding> findings, bool allowAbsolute = false)
     {
         // No piece named, and this kind allows it: `at` is an absolute board position, resolved for real
         // against solved terrain at export (PlanCompiler.ResolveGoalAnchor). There is no piece footprint to
@@ -253,20 +297,31 @@ public static class PlanValidator
         // only once the ground it needs actually exists.
         if (allowAbsolute && pieceId.Length == 0) return;
         var piece = d.Plan.Pieces.FirstOrDefault(p => p.Id == pieceId);
-        if (piece is null) { findings.Add(new PlanFinding(PlanSeverity.Error, $"{kind} references unknown piece '{pieceId}'", null, [pieceId])); return; }
+        if (piece is null)
+        {
+            findings.Add(new Finding(PlanRules.UnknownPiece, $"{kind} references unknown piece '{pieceId}'",
+                Subjects: [pieceId]));
+            return;
+        }
         // A buffer is reserved empty space — it produces no terrain, so nothing may be placed on it.
-        if (PlanRoles.IsAnnotation(piece.Role)) { findings.Add(new PlanFinding(PlanSeverity.Error, $"{kind} references non-generating buffer '{pieceId}'", null, [pieceId])); return; }
+        if (PlanRoles.IsAnnotation(piece.Role))
+        {
+            findings.Add(new Finding(PlanRules.PlacementOnBuffer,
+                $"{kind} references non-generating buffer '{pieceId}'", Subjects: [pieceId]));
+            return;
+        }
         double x = at[0], z = at[1];
         int w = piece.Rect.Width, h = piece.Rect.Height;
         if (x < 0 || z < 0 || x > w || z > h)
-            findings.Add(new PlanFinding(PlanSeverity.Error, $"{kind} at [{x},{z}] falls outside piece '{pieceId}' (0..{w}, 0..{h})", null, [pieceId]));
+            findings.Add(new Finding(PlanRules.PlacementOutside,
+                $"{kind} at [{x},{z}] falls outside piece '{pieceId}' (0..{w}, 0..{h})", Subjects: [pieceId]));
     }
 
     // Build the fanned piece graph (land + gap edges), then check each wool node is reachable from a capturing
     // team's spawn, and that some frontline path reaches it without passing through a spawn piece.
-    private static IEnumerable<PlanFinding> ReachabilityErrors(PlanModel plan, ContactGraph d)
+    private static IEnumerable<Finding> ReachabilityErrors(PlanModel plan, ContactGraph d)
     {
-        var findings = new List<PlanFinding>();
+        var findings = new List<Finding>();
         var spawnPieces = plan.Placements.Spawns.Select(s => s.Piece).ToList();
         var woolPieces = plan.Placements.Wools.Select(w => w.Piece).ToList();
         if (spawnPieces.Count == 0 || woolPieces.Count == 0) return findings;
@@ -286,15 +341,16 @@ public static class PlanValidator
                     if (captor == owner) continue;
                     var from = graph.Nodes.Where(n => n.Team == captor && spawnPieces.Contains(n.PieceId)).Select(n => n.Key);
                     if (!graph.Reachable(from, woolNode))
-                        findings.Add(new PlanFinding(PlanSeverity.Error,
-                            $"wool on '{wp}' (team {owner}) is unreachable from team {captor}'s spawn", null, [wp]));
+                        findings.Add(new Finding(PlanRules.WoolUnreachable,
+                            $"wool on '{wp}' (team {owner}) is unreachable from team {captor}'s spawn",
+                            Subjects: [wp]));
                 }
 
                 // SP1: the wool must be reachable from a frontline piece without crossing a spawn piece
                 var frontStarts = graph.Nodes.Where(n => graph.Frontline.Contains(n.Key) && !spawnNodes.Contains(n.Key)).Select(n => n.Key);
                 if (!graph.ReachableAvoiding(frontStarts, woolNode, spawnNodes))
-                    findings.Add(new PlanFinding(PlanSeverity.Error,
-                        $"wool on '{wp}' (team {owner}) is only reachable through a spawn piece (SP1)", null, [wp]));
+                    findings.Add(new Finding("SP1",
+                        $"wool on '{wp}' (team {owner}) is only reachable through a spawn piece", Subjects: [wp]));
             }
         return findings;
     }
@@ -302,19 +358,19 @@ public static class PlanValidator
     // ── lint (never blocks; each cites a rule id) ───────────────────────────────────────────────────────
 
     /// <summary>The lint table — one entry per checked rule; add a rule by appending a delegate.</summary>
-    public static readonly IReadOnlyList<Func<PlanModel, ContactGraph, IEnumerable<PlanFinding>>> LintRules =
+    public static readonly IReadOnlyList<Func<PlanModel, ContactGraph, IEnumerable<Finding>>> LintRules =
     [
         LintPcC, LintG2, LintG5, LintSp2, LintBz5, LintEl1, LintSt2, LintWx4, LintWx8, LintWl1,
     ];
 
-    private static PlanFinding Lint(string rule, string msg, params string[] subjects) =>
-        new(PlanSeverity.Lint, msg, rule, subjects.Length > 0 ? subjects : null);
+    private static Finding Lint(string rule, string msg, params string[] subjects) =>
+        new(rule, msg, Severity.Complaint, Subjects: subjects.Length > 0 ? subjects : null);
 
     // PC-C — a corner contact: two pieces meet at a single point. Per the Definitions a corner touch is never a
     // connection (no walkable corridor mouth). A corner as the pair's only relationship is a sneaky diagonal
     // between otherwise-separate areas; when the pieces already join the same land component through real
     // interfaces the corner is harmless, so it is suppressed.
-    private static IEnumerable<PlanFinding> LintPcC(PlanModel plan, ContactGraph d)
+    private static IEnumerable<Finding> LintPcC(PlanModel plan, ContactGraph d)
     {
         var comp = ComponentIndex(d);
         foreach (var c in d.Contacts)
@@ -336,7 +392,7 @@ public static class PlanValidator
         comp.TryGetValue(a, out var ca) && comp.TryGetValue(b, out var cb) && ca == cb;
 
     // G2 — minimum corridor width 10: a build zone narrower than the corridor minimum in either dimension.
-    private static IEnumerable<PlanFinding> LintG2(PlanModel plan, ContactGraph d)
+    private static IEnumerable<Finding> LintG2(PlanModel plan, ContactGraph d)
     {
         foreach (var z in plan.Zones)
         {
@@ -348,7 +404,7 @@ public static class PlanValidator
     }
 
     // G5 — void gaps between individual landmasses are 10–20 per hop.
-    private static IEnumerable<PlanFinding> LintG5(PlanModel plan, ContactGraph d)
+    private static IEnumerable<Finding> LintG5(PlanModel plan, ContactGraph d)
     {
         foreach (var g in d.GapLinks)
         {
@@ -359,7 +415,7 @@ public static class PlanValidator
     }
 
     // SP2 — spawn near the back of its lane (toward the map edge), not the front half.
-    private static IEnumerable<PlanFinding> LintSp2(PlanModel plan, ContactGraph d)
+    private static IEnumerable<Finding> LintSp2(PlanModel plan, ContactGraph d)
     {
         foreach (var s in plan.Placements.Spawns)
         {
@@ -378,7 +434,7 @@ public static class PlanValidator
     // BZ5 — zones never touch a spawn piece. Both kinds: a water lane reaching a spawn is the same fault
     // arriving later, and later is worse, because the defenders have already committed to the map they read
     // at the first tick.
-    private static IEnumerable<PlanFinding> LintBz5(PlanModel plan, ContactGraph d)
+    private static IEnumerable<Finding> LintBz5(PlanModel plan, ContactGraph d)
     {
         var spawnPieces = plan.Placements.Spawns.Select(s => s.Piece).ToHashSet();
         foreach (var z in plan.Zones)
@@ -394,7 +450,7 @@ public static class PlanValidator
     // WL1 — a water lane covers void, never terrain. The lane opens because water at y=0 stops the columns
     // reading as void; over a piece the columns already hold terrain, so that part of the lane changes nothing
     // and the drawn rect overstates the route it adds.
-    private static IEnumerable<PlanFinding> LintWl1(PlanModel plan, ContactGraph d)
+    private static IEnumerable<Finding> LintWl1(PlanModel plan, ContactGraph d)
     {
         foreach (var z in plan.WaterLanes)
         {
@@ -406,7 +462,7 @@ public static class PlanValidator
     }
 
     // EL1 — plateau step unit is 2: every piece surface delta from the base is a multiple of 2.
-    private static IEnumerable<PlanFinding> LintEl1(PlanModel plan, ContactGraph d)
+    private static IEnumerable<Finding> LintEl1(PlanModel plan, ContactGraph d)
     {
         foreach (var p in plan.Pieces)
         {
@@ -418,7 +474,7 @@ public static class PlanValidator
 
     // ST2 — when a spawn-role piece exists, every iron marker belongs inside a spawn piece (iron inside the
     // spawn region auto-renews in the export; iron elsewhere is dead resource).
-    private static IEnumerable<PlanFinding> LintSt2(PlanModel plan, ContactGraph d)
+    private static IEnumerable<Finding> LintSt2(PlanModel plan, ContactGraph d)
     {
         var spawnPieces = d.Pieces.Where(p => p.Role == PlanRoles.Spawn).ToList();
         if (spawnPieces.Count == 0) yield break;
@@ -435,7 +491,7 @@ public static class PlanValidator
 
     // WX4 — a pad shifted off its marker to keep the wall clearance. The export follows the pad (the
     // emitted spawn/wool point moves with it), so the author is told rather than surprised.
-    private static IEnumerable<PlanFinding> LintWx4(PlanModel plan, ContactGraph d)
+    private static IEnumerable<Finding> LintWx4(PlanModel plan, ContactGraph d)
     {
         foreach (var w in plan.Placements.Wools)
             if (ResolveFrame(plan, d, "wool", w.Piece, PlanRoles.WoolRoom, w.At, null, out _) is { Frame.Pad.Shifted: true })
@@ -448,7 +504,7 @@ public static class PlanValidator
     // WX8/WX9 — an iron marker on a spawn piece that resolves unplaceable: the room has priority and
     // stamps alone; the marker stays on the board and is flagged with the clearance requirement instead of
     // silently disappearing from the world.
-    private static IEnumerable<PlanFinding> LintWx8(PlanModel plan, ContactGraph d)
+    private static IEnumerable<Finding> LintWx8(PlanModel plan, ContactGraph d)
     {
         foreach (var s in plan.Placements.Spawns)
         {

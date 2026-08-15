@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -27,11 +28,16 @@ public sealed class DressingParseException(string subject, string? field, string
     : Exception(field is null ? $"{subject} {detail}." : $"{subject}: field '{field}' {detail}.")
 {
     /// <summary>The rule this refusal carries into the export gate, so a caller can act on the id rather than
-    /// parse the sentence — the same contract <see cref="Pgm.Plan.ObjectivePlacement.Rule"/> (OB17) carries.</summary>
+    /// parse the sentence.</summary>
     public const string Rule = "DR-DOC";
 
     public string Subject { get; } = subject;
     public string? Field { get; } = field;
+
+    /// <summary>The same refusal as a <see cref="Finding"/>, which is what the export gate answers in. Thrown
+    /// rather than returned because a parse cannot carry on to collect a second fault, and a finding rather
+    /// than a bare message because every other gate in the studio answers in one.</summary>
+    public Finding Finding => new(Rule, Message, Field: Field, Subjects: [Subject]);
 }
 
 /// <summary>

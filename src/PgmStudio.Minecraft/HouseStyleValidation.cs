@@ -1,3 +1,5 @@
+using PgmStudio.Domain;
+
 namespace PgmStudio.Minecraft;
 
 /// <summary>The house-style rule ids <see cref="HouseStyleValidation"/> cites — stable names for what a finding
@@ -22,12 +24,6 @@ public static class HouseStyleRules
     public const string RoofMaterial = "HS3";
 }
 
-/// <summary>One thing wrong with a posted house style: which rule it breaks (<see cref="HouseStyleRules"/>),
-/// the field that broke it, and a message naming what was wrong — never a silent substitution of the right
-/// block for the wrong one, so the author learns what to fix rather than getting a building that quietly
-/// stopped matching what they asked for.</summary>
-public sealed record HouseStyleFinding(string Rule, string Field, string Message);
-
 /// <summary>
 /// The gate a <see cref="HouseStyle"/> is checked against before it is stored — beside the style rather than in
 /// a driver, so a bad one is refused when it is posted instead of silently built.
@@ -47,9 +43,9 @@ public static class HouseStyleValidation
     /// <summary>Every fault in <paramref name="style"/> its own geometry can name: a block used for a
     /// geometric role that is not the kind that role needs, a doorway that does not clear the least height a
     /// door may, and a roof whose own materials are wrong for its pitch or its family.</summary>
-    public static IReadOnlyList<HouseStyleFinding> Check(HouseStyle style)
+    public static IReadOnlyList<Finding> Check(HouseStyle style)
     {
-        var findings = new List<HouseStyleFinding>();
+        var findings = new List<Finding>();
         CheckDoorHead(style.DoorHead, findings);
         CheckWindow("windows", style.Windows, findings);
         CheckWindow("gableWindows", style.GableWindows, findings);
@@ -63,48 +59,52 @@ public static class HouseStyleValidation
 
     // ── a block named for a geometric role, never checked to be that kind of block ────────────────────────
 
-    private static void CheckDoorHead(DoorHeadStyle head, List<HouseStyleFinding> findings)
+    private static void CheckDoorHead(DoorHeadStyle head, List<Finding> findings)
     {
         if (head.Form == DoorHeadForm.None) return;
 
         if (!BlockKinds.IsStair(head.Block))
-            findings.Add(new HouseStyleFinding(HouseStyleRules.BlockKind, "doorHead.block",
+            findings.Add(new Finding(HouseStyleRules.BlockKind,
                 $"doorHead.block ({head.Block}) is not a stair. An arched head turns its two corners by a " +
-                "stair's own facing; anything else lays a solid lintel across the doorway instead of an arch."));
+                "stair's own facing; anything else lays a solid lintel across the doorway instead of an arch.",
+                Field: "doorHead.block"));
 
         if (head.Fill == DoorHeadFill.UpperSlab && !BlockKinds.IsSlab(head.FillBlock))
-            findings.Add(new HouseStyleFinding(HouseStyleRules.BlockKind, "doorHead.fillBlock",
+            findings.Add(new Finding(HouseStyleRules.BlockKind,
                 $"doorHead.fillBlock ({head.FillBlock}) under upperSlab is not a single slab. The fill raises " +
                 "half of its own cube to read as one line with the corners; a block without a half — a double " +
-                "slab included — reads as a full cube instead."));
+                "slab included — reads as a full cube instead.",
+                Field: "doorHead.fillBlock"));
     }
 
     /// <summary>Whether <paramref name="windows"/>'s <see cref="WindowStyle.Block"/> is the kind its
     /// <see cref="WindowStyle.Form"/> needs, standalone — what a storey style checks itself with, off the same
     /// <see cref="WindowStyle"/> a house window is, before the storey has a house around it to compose
     /// into.</summary>
-    public static IReadOnlyList<HouseStyleFinding> CheckWindow(string field, WindowStyle windows)
+    public static IReadOnlyList<Finding> CheckWindow(string field, WindowStyle windows)
     {
-        var findings = new List<HouseStyleFinding>();
+        var findings = new List<Finding>();
         CheckWindow(field, windows, findings);
         return findings;
     }
 
-    private static void CheckWindow(string field, WindowStyle windows, List<HouseStyleFinding> findings)
+    private static void CheckWindow(string field, WindowStyle windows, List<Finding> findings)
     {
         switch (windows.Form)
         {
             case WindowForm.StairLattice or WindowForm.Arched when !BlockKinds.IsStair(windows.Block):
-                findings.Add(new HouseStyleFinding(HouseStyleRules.BlockKind, $"{field}.block",
+                findings.Add(new Finding(HouseStyleRules.BlockKind,
                     $"{field}.block ({windows.Block}) is not a stair. {FormName(windows.Form)} turns its " +
                     "corners by a stair's own facing; anything else builds without the diamond or the rounded " +
-                    "corners the form is named for."));
+                    "corners the form is named for.",
+                Field: $"{field}.block"));
                 break;
             case WindowForm.SlabBanded when !BlockKinds.IsSlab(windows.Block):
-                findings.Add(new HouseStyleFinding(HouseStyleRules.BlockKind, $"{field}.block",
+                findings.Add(new Finding(HouseStyleRules.BlockKind,
                     $"{field}.block ({windows.Block}) is not a single slab. A slab band raises half a cube for " +
                     "the sill and lowers half for the lintel; anything else — a double slab included — leaves " +
-                    "no half-block of clear air above the sill or below the lintel."));
+                    "no half-block of clear air above the sill or below the lintel.",
+                Field: $"{field}.block"));
                 break;
         }
     }
@@ -118,22 +118,24 @@ public static class HouseStyleValidation
 
     // ── a roof's own materials ─────────────────────────────────────────────────────────────────────────────
 
-    private static void CheckRoofMaterials(HouseStyle style, List<HouseStyleFinding> findings)
+    private static void CheckRoofMaterials(HouseStyle style, List<Finding> findings)
     {
         if (style.RoofSlab >= 0 && !BlockKinds.IsSlab(style.RoofSlab))
-            findings.Add(new HouseStyleFinding(HouseStyleRules.BlockKind, "roofSlab",
+            findings.Add(new Finding(HouseStyleRules.BlockKind,
                 $"roofSlab ({style.RoofSlab}) is not a single slab. A half-course roof steps in the slab's own " +
                 "half on every odd course; anything else — a double slab included — comes out a full cube and " +
-                "the slope stops climbing by halves."));
+                "the slope stops climbing by halves.",
+                Field: "roofSlab"));
 
         // A slab belongs in a roof only on a half-course rise (RoofSlab set). Naming one in Roof itself while
         // RoofSlab is unset asks for a whole block of rise in a material that only fills half its cube, which
         // is the see-through roof HouseStyle.Roof's own docstring warns about.
         if (style.RoofSlab < 0 && SolidId(style.Roof) is { } roofId && BlockKinds.IsSlab(roofId))
-            findings.Add(new HouseStyleFinding(HouseStyleRules.RoofMaterial, "roof",
+            findings.Add(new Finding(HouseStyleRules.RoofMaterial,
                 $"roof ({roofId}) is a slab and roofSlab is unset (-1). A course of slabs at a whole block of " +
                 "rise leaves an open half between every pair and the roof reads see-through — set roofSlab to " +
-                "a real slab and let roof carry the whole-block half, or choose a whole block for roof."));
+                "a real slab and let roof carry the whole-block half, or choose a whole block for roof.",
+                Field: "roof"));
 
         findings.AddRange(CheckRoofFamily(style.Roof, style.Verge));
     }
@@ -142,19 +144,19 @@ public static class HouseStyleValidation
     /// standalone, because a roof <em>part</em> in the library carries these two on their own, with no
     /// <see cref="HouseStyle.RoofSlab"/> alongside them to pair a slab against, so it is checked as far as it
     /// can be checked in isolation rather than not at all.</summary>
-    public static IReadOnlyList<HouseStyleFinding> CheckRoofFamily(TerrainMaterial roof, TerrainMaterial verge)
+    public static IReadOnlyList<Finding> CheckRoofFamily(TerrainMaterial roof, TerrainMaterial verge)
     {
-        var findings = new List<HouseStyleFinding>();
+        var findings = new List<Finding>();
         foreach (var (field, material) in new[] { ("roof", roof), ("verge", verge) })
         {
             if (SolidId(material) is not { } id) continue;
             if (BlockKinds.IsLog(id))
-                findings.Add(new HouseStyleFinding(HouseStyleRules.RoofMaterial, field,
-                    $"{field} ({id}) is a log. A log is never a roof or a verge material."));
+                findings.Add(new Finding(HouseStyleRules.RoofMaterial,
+                    $"{field} ({id}) is a log. A log is never a roof or a verge material.", Field: field));
             else if (BlockKinds.IsGround(id))
-                findings.Add(new HouseStyleFinding(HouseStyleRules.RoofMaterial, field,
+                findings.Add(new Finding(HouseStyleRules.RoofMaterial,
                     $"{field} ({id}) is a ground material. A ground material — what a building stands on — is " +
-                    "never a roof or a verge material."));
+                    "never a roof or a verge material.", Field: field));
         }
         return findings;
     }
@@ -182,12 +184,13 @@ public static class HouseStyleValidation
         return (style.DoorHeight - 1) + (genuineSlab ? 0.5m : 0m);
     }
 
-    private static void CheckDoorClearance(HouseStyle style, List<HouseStyleFinding> findings)
+    private static void CheckDoorClearance(HouseStyle style, List<Finding> findings)
     {
         var clear = ClearDoorHeight(style);
         if (clear < LeastDoorClearance)
-            findings.Add(new HouseStyleFinding(HouseStyleRules.DoorClearance, "doorHeight",
+            findings.Add(new Finding(HouseStyleRules.DoorClearance,
                 $"the doorway clears {clear:0.0} blocks once its head is written in; a door must clear at " +
-                $"least {LeastDoorClearance:0.0}."));
+                $"least {LeastDoorClearance:0.0}.",
+                Field: "doorHeight"));
     }
 }

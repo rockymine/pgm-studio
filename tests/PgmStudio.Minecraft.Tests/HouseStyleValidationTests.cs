@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>
@@ -198,7 +199,8 @@ public sealed class HouseStyleValidationTests
         var roofLog = HousePresets.Desert.Style with { Roof = new SolidMaterial(Blocks.Log2, 0) };
         var vergeLog = HousePresets.Desert.Style with { Verge = new SolidMaterial(Blocks.Log2, 0) };
         var roofFindings = HouseStyleValidation.Check(roofLog);
-        await Assert.That(roofFindings.Single()).IsEqualTo(new HouseStyleFinding(HouseStyleRules.RoofMaterial, "roof", roofFindings.Single().Message));
+        await Assert.That((roofFindings.Single().Rule, roofFindings.Single().Field))
+            .IsEqualTo((HouseStyleRules.RoofMaterial, "roof"));
         await Assert.That(HouseStyleValidation.Check(vergeLog).Single().Field).IsEqualTo("verge");
     }
 
@@ -220,7 +222,8 @@ public sealed class HouseStyleValidationTests
     {
         var style = HousePresets.Diorite.Style with { RoofSlab = Blocks.Cobblestone };
         var findings = HouseStyleValidation.Check(style);
-        await Assert.That(findings.Single()).IsEqualTo(new HouseStyleFinding(HouseStyleRules.BlockKind, "roofSlab", findings.Single().Message));
+        await Assert.That((findings.Single().Rule, findings.Single().Field))
+            .IsEqualTo((HouseStyleRules.BlockKind, "roofSlab"));
     }
 
     // ── the footing has a legible off switch ───────────────────────────────────────────────────────────

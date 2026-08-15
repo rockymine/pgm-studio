@@ -41,7 +41,7 @@ public sealed class RoomFramesTests
     {
         var frame = RoomFrames.Resolve(0, 0, 7, 7, 3.5, 3.5, [(0, 0, 7, 0)], null, out var refusal);
         await Assert.That(frame).IsNull();
-        await Assert.That(refusal!).Contains("WX2");
+        await Assert.That(refusal!.Rule).IsEqualTo("WX2");
     }
 
     // ── WX3/WX4/WX5 — the pad ───────────────────────────────────────────────────────────────────────────
@@ -81,7 +81,7 @@ public sealed class RoomFramesTests
     {
         var frame = RoomFrames.Resolve(0, 0, 10, 10, 5, 2.5, [FullTopEntry], null, out var refusal);
         await Assert.That(frame).IsNull();
-        await Assert.That(refusal!).Contains("WX3");
+        await Assert.That(refusal!.Rule).IsEqualTo("WX3");
     }
 
     // ── WX6/WX7 — entries and door widths ───────────────────────────────────────────────────────────────
@@ -91,7 +91,7 @@ public sealed class RoomFramesTests
     {
         var frame = RoomFrames.Resolve(0, 0, 10, 10, 5, 5, [], null, out var refusal);
         await Assert.That(frame).IsNull();
-        await Assert.That(refusal!).Contains("WX6");
+        await Assert.That(refusal!.Rule).IsEqualTo("WX6");
     }
 
     [Test]

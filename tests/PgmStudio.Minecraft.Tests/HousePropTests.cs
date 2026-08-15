@@ -115,8 +115,8 @@ public sealed class HousePropTests
         var prop = House("h", null, (0, 0, 10, 6), (minX, minZ, maxX, maxZ));
 
         await Assert.That((shape, prop.Footprint())).IsEqualTo((shape, (Footprint?)null));
-        await Assert.That((shape, prop.Fault()?.Rule)).IsEqualTo((shape, rule));
-        await Assert.That(prop.Fault()!.Value.Said).IsNotEmpty();
+        await Assert.That((shape, prop.Faults().SingleOrDefault()?.Rule)).IsEqualTo((shape, rule));
+        await Assert.That(prop.Faults().Single().Message).IsNotEmpty();
     }
 
     /// <summary>A plan that <em>is</em> a building says so by having nothing to say — the same L every other
@@ -124,8 +124,8 @@ public sealed class HousePropTests
     [Test]
     public async Task A_plan_whose_wings_make_a_building_carries_no_fault()
     {
-        await Assert.That(House("h", null, (0, 0, 10, 6), (0, 7, 5, 13)).Fault()).IsNull();
-        await Assert.That(House(0, 0, 8, 8).Fault()).IsNull();
+        await Assert.That(House("h", null, (0, 0, 10, 6), (0, 7, 5, 13)).Faults()).IsEmpty();
+        await Assert.That(House(0, 0, 8, 8).Faults()).IsEmpty();
     }
 
     [Test]

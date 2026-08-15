@@ -1,8 +1,9 @@
+using PgmStudio.Domain;
 using PgmStudio.Pgm.Plan;
 
 namespace PgmStudio.Pgm.Evaluate.Terms;
 
-/// <summary>Structural well-formedness: any <see cref="PlanSeverity.Error"/> the validator reports
+/// <summary>Structural well-formedness: any refusal the validator reports
 /// (different-surface overlap, a placement outside its piece, a wall off a real seam, a wool unreachable or
 /// only reachable through a spawn — SP1). These are the parse/topology errors <see cref="PlanValidator"/> owns;
 /// this term surfaces them as one hard violation so the same gate that scores layout rules also blocks a plan
@@ -18,7 +19,7 @@ public sealed class StructuralIntegrity : ILayoutTerm
 
     public TermScore Measure(EvalContext ctx)
     {
-        var errors = ctx.Findings.Where(f => f.Severity == PlanSeverity.Error).ToList();
+        var errors = ctx.Findings.Where(finding => finding.Refuses).ToList();
         if (errors.Count == 0) return TermScores.Clean(this);
 
         var subjects = errors.SelectMany(e => e.SubjectIds).Distinct().ToList();

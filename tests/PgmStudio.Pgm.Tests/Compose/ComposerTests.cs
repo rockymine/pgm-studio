@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Plan;
@@ -41,7 +42,7 @@ public sealed class ComposerTests
         {
             var plan = Composer.Compose(new ComposeRequest(players, seed: seed));
             var findings = PlanValidator.Validate(plan);
-            await Assert.That(findings.Any(f => f.Severity == PlanSeverity.Error)).IsFalse()
+            await Assert.That(findings.Any(f => f.Severity == Severity.Refusal)).IsFalse()
                 .Because($"errors @ {players}p seed {seed}");
             foreach (var rule in new[] { "PC-C", "G2", "G5" })
                 await Assert.That(findings.Any(f => f.Rule == rule)).IsFalse()

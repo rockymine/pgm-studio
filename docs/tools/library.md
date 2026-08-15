@@ -429,9 +429,9 @@ Every endpoint is anonymous, rooted at `/api`, and takes no map.
 | `GET /themes/{id}/json` | the painter-ready theme JSON — the form a map snapshots — as `{themeJson: "…"}`, the document itself being the **string** in that field |
 | `POST /themes/import` | lift a whole theme JSON in: one style per bucket plus a theme. 400, never 500, on bad JSON |
 | `DELETE /themes/{id}` | forget a theme; its bindings cascade, its styles stay |
-| `GET`·`POST`·`PUT`·`DELETE /roof-styles[/{id}]` · `…/storey-styles` · `…/porch-styles` | the three part libraries; each `POST …/preview` renders a draft on a sample building. `POST`/`PUT …/roof-styles` and `…/storey-styles` answer 400 `{error, findings}` when the house-style gate refuses the roof/verge or the window (Refusals, above); porches carry nothing the gate checks |
+| `GET`·`POST`·`PUT`·`DELETE /roof-styles[/{id}]` · `…/storey-styles` · `…/porch-styles` | the three part libraries; each `POST …/preview` renders a draft on a sample building. `POST`/`PUT …/roof-styles` and `…/storey-styles` answer 400 `{error, message, findings[]}` (`docs/refusals.md`) when the house-style gate refuses the roof/verge or the window (Refusals, above); porches carry nothing the gate checks |
 | `GET /room-styles` · `GET /room-styles/{id}` | the room library and one room style's parts and courses |
-| `POST /room-styles` · `PUT /room-styles/{id}` | compose a building from parts and styles. 400 `{error, findings}` when the composed shell fails the house-style gate |
+| `POST /room-styles` · `PUT /room-styles/{id}` | compose a building from parts and styles. 400 `{error, message, findings[]}` when the composed shell fails the house-style gate |
 | `GET /room-styles/doors` | the doors a room may be stamped with |
 | `GET /room-styles/{id}/json` | the stamper's own JSON — what a sketch binds and a building prop snapshots — as `{styleJson: "…"}`, likewise a string to unwrap |
 | `POST /room-styles/preview` · `POST /room-styles/preview-snapshot` | the shell a set of courses composes to, or the one a stored `HouseStyle` snapshot builds |

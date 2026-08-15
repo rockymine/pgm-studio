@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 namespace PgmStudio.Pgm.Plan;
 
 /// <summary>A goal and the ground it covers, in the units the placement rule compares — the footprint the
@@ -29,17 +30,17 @@ public static class ObjectivePlacement
 {
     /// <summary>The rule these refusals answer, carried on every finding so a caller can act on the id rather
     /// than parse the sentence.</summary>
-    public const string Rule = "OB17";
+    public const string Rule = ObjectiveRules.Placement;
 
     /// <summary>Every refusal the placement of <paramref name="goals"/> earns. Empty is the map that ships.
     /// <paramref name="isLand"/> answers whether one block column is ground — pieces at compile, rasterized
     /// columns at export — and <paramref name="keepOuts"/> is the stamped rooms, as frames rather than as the
     /// pieces holding them, since a spawn piece is often far larger than its room and refusing a goal at its
     /// far corner would be a refusal with no cause.</summary>
-    public static List<PlanFinding> Check(
+    public static List<Finding> Check(
         IEnumerable<PlacedGoal> goals, Func<int, int, bool> isLand, IReadOnlyCollection<GoalKeepOut> keepOuts)
     {
-        var findings = new List<PlanFinding>();
+        var findings = new List<Finding>();
 
         foreach (var goal in goals)
         {
@@ -89,6 +90,6 @@ public static class ObjectivePlacement
     /// <summary>The finding names the marker's own id ahead of the ground it stands on: a refusal that named
     /// only the piece is ambiguous the moment two goals share one, and the id is what makes the answer
     /// actionable to a caller that must then move one specific marker.</summary>
-    private static PlanFinding Refuse(string message, params string?[] subjects) =>
-        new(PlanSeverity.Error, message, Rule, [.. subjects.OfType<string>()]);
+    private static Finding Refuse(string message, params string?[] subjects) =>
+        new(Rule, message, Subjects: [.. subjects.OfType<string>()]);
 }

@@ -139,7 +139,7 @@ public static class DressingScope
 
     /// <summary>OB19 — the rule id carried on a goal-clearance finding, so a caller can act on the id rather
     /// than parse the sentence (docs/world-export/decoration.md §3.1).</summary>
-    public const string Rule = "OB19";
+    public const string Rule = ObjectiveRules.PropInClearance;
 
     /// <summary>Every tree, boulder or building whose footprint reaches into a goal's clearance
     /// (<see cref="GoalGroundAt"/>), fanned across the map's own symmetry exactly as <see cref="Decorator"/>

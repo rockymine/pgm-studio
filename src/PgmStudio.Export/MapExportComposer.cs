@@ -58,12 +58,11 @@ public static class MapExportComposer
         {
             var trav = Traversability.Check(doc, segments?.SurfaceColumns(), segments?.Y0Columns());
             if (!trav.Connected)
-                return new(409, new Dict
-                {
-                    ["error"] = "not traversable",
-                    ["message"] = trav.Message,
-                    ["isolated"] = trav.Isolated.Select(i => new Dict { ["kind"] = i.Kind, ["name"] = i.Name }).ToList(),
-                }, null, null);
+                return Refuse("not traversable",
+                [
+                    new Finding(ExportRules.NotTraversable, trav.Message,
+                        Subjects: [.. trav.Isolated.Select(isolated => $"{isolated.Kind} {isolated.Name}")]),
+                ]);
         }
 
         try
@@ -103,14 +102,7 @@ public static class MapExportComposer
         {
             // A malformed dressing document is an authoring error, not a reason to export the map bare —
             // refused by name rather than silently read as though nothing had been placed.
-            return new(422, new Dict
-            {
-                ["error"] = "dressing document invalid",
-                ["rule"] = DressingParseException.Rule,
-                ["message"] = ex.Message,
-                ["subject"] = ex.Subject,
-                ["field"] = ex.Field,
-            }, null, null);
+            return Refuse("dressing document invalid", [ex.Finding], 422);
         }
         catch (Exception ex)
         {
@@ -120,6 +112,27 @@ public static class MapExportComposer
 
     // ── OB20 — every declared <gamemode> must resolve against PGM's own closed enum ────────────────────────
 
+    /// <summary>The rule ids the export gate owns itself. The rest it enforces for another document and cites
+    /// that document's own id — <see cref="ObjectiveRules"/> for a goal, a gamemode or a prop in a clearance,
+    /// and <see cref="DressingParseException.Rule"/> for a dressing document that will not parse.</summary>
+    private static class ExportRules
+    {
+        /// <summary>Some part of the map cannot be walked to from the rest of it.</summary>
+        public const string NotTraversable = "EX1";
+    }
+
+    /// <summary>One refusal envelope, and the only one this gate answers in: a short label naming which gate
+    /// refused, the findings themselves, and their sentences joined into one <c>message</c> for a caller that
+    /// wants a line rather than a list. Every gate answering the same shape is what lets a client render a
+    /// refusal without first knowing which gate produced it.</summary>
+    private static ExportComposition Refuse(string error, IReadOnlyList<Finding> findings, int status = 409) =>
+        new(status, new Dict
+        {
+            ["error"] = error,
+            ["message"] = Finding.Summarize(findings),
+            ["findings"] = findings.Select(finding => finding.Wire()).ToList(),
+        }, null, null);
+
     private static ExportComposition? RefuseUnknownGamemode(Dict doc)
     {
         var declared = (doc.GetValueOrDefault("gamemode") as List<object?> ?? [])
@@ -127,13 +140,13 @@ public static class MapExportComposer
         var unknown = declared.Where(id => !Gamemodes.IsKnownId(id)).ToList();
         if (unknown.Count == 0) return null;
 
-        return new(409, new Dict
-        {
-            ["error"] = "unknown gamemode",
-            ["message"] = $"declares <gamemode> {string.Join(", ", unknown)}, which PGM's Gamemode enum does not recognize — the map would fail to load",
-            ["rule"] = "OB20",
-            ["ids"] = unknown,
-        }, null, null);
+        return Refuse("unknown gamemode",
+        [
+            new Finding(ObjectiveRules.UnknownGamemode,
+                $"declares <gamemode> {string.Join(", ", unknown)}, which PGM's Gamemode enum does not "
+                + "recognize — the map would fail to load",
+                Field: "gamemode", Subjects: unknown),
+        ]);
     }
 
     // ── OB17 — objective placement, over the ground the rasterizer actually produced ──────────────────────
@@ -145,15 +158,7 @@ public static class MapExportComposer
         var findings = ObjectivePlacement.Check(PlacedGoals(goals), IsLand, KeepOuts(goals));
         if (findings.Count == 0) return null;
 
-        return new(409, new Dict
-        {
-            ["error"] = "objective placement",
-            ["message"] = string.Join("; ", findings.Select(f => f.Message)),
-            ["findings"] = findings.Select(f => new Dict
-            {
-                ["rule"] = f.Rule, ["message"] = f.Message, ["subjects"] = f.Subjects,
-            }).ToList(),
-        }, null, null);
+        return Refuse("objective placement", findings);
     }
 
     // Every destroyable/core as ground rather than as a marker, from the resolved intent's own stamped box —
@@ -201,16 +206,12 @@ public static class MapExportComposer
         var violations = DressingScope.GoalClearanceViolations(layoutJson, goals);
         if (violations.Count == 0) return null;
 
-        return new(409, new Dict
-        {
-            ["error"] = "prop in goal clearance",
-            ["message"] = string.Join("; ", violations.Select(v =>
-                $"{v.Kind} '{v.PropId}' at ({v.X}, {v.Z}) stands inside a goal's clearance")),
-            ["rule"] = DressingScope.Rule,
-            ["props"] = violations.Select(v => new Dict
-            {
-                ["kind"] = v.Kind, ["id"] = v.PropId, ["x"] = v.X, ["z"] = v.Z,
-            }).ToList(),
-        }, null, null);
+        return Refuse("prop in goal clearance",
+        [
+            .. violations.Select(violation => new Finding(DressingScope.Rule,
+                $"{violation.Kind} '{violation.PropId}' at ({violation.X}, {violation.Z}) stands inside a "
+                + "goal's clearance",
+                Subjects: [violation.PropId])),
+        ]);
     }
 }

@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -181,7 +182,7 @@ public sealed class SketchPutEndpoint(MapRepository repo, PgmDb db) : EndpointWi
 /// doesn't.</summary>
 internal static class SketchRoomStyleGate
 {
-    public static IReadOnlyList<HouseStyleFinding> Findings(string layoutJson)
+    public static IReadOnlyList<Finding> Findings(string layoutJson)
     {
         // A layout the room-style shape does not parse against is not this gate's business — the blob is
         // authoring-source JSON of arbitrary shape, and only a well-formed roomStyles snapshot is checked, the
@@ -190,7 +191,7 @@ internal static class SketchRoomStyleGate
         try { styles = RoomStyleScope.StylesOf(layoutJson); }
         catch (JsonException) { return []; }
 
-        var findings = new List<HouseStyleFinding>();
+        var findings = new List<Finding>();
         if (styles.Wool is { } wool)
             findings.AddRange(Prefixed("roomStyles.cage", HouseStyleValidation.Check(wool)));
         if (styles.Spawn is { } spawn)
@@ -198,7 +199,7 @@ internal static class SketchRoomStyleGate
         return findings;
     }
 
-    private static IEnumerable<HouseStyleFinding> Prefixed(string root, IReadOnlyList<HouseStyleFinding> findings)
+    private static IEnumerable<Finding> Prefixed(string root, IReadOnlyList<Finding> findings)
         => findings.Select(finding => finding with { Field = $"{root}.{finding.Field}" });
 }
 

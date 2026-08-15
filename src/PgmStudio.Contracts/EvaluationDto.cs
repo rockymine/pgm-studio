@@ -20,13 +20,17 @@ public sealed record EvidenceDto(
     double? X = null, double? Z = null,
     string? Label = null);
 
-/// <summary>One fired rule, legible and actionable: the term id, the <c>layout-rules.md</c> id it cites, its
-/// <see cref="Kind"/> (<c>hard</c> well-formedness vs <c>soft</c> feel), the soft distance outside its authored
-/// band (0 for a hard fire), a human message, the piece/zone ids it indicts (click → highlight on canvas, same
-/// subject shape a lint finding carries), and its drawable <see cref="Evidence"/>.</summary>
+/// <summary>One fired rule: which term measured it, its <see cref="Kind"/> (<c>hard</c> well-formedness vs
+/// <c>soft</c> feel), the soft distance outside its authored band (0 for a hard fire), what it
+/// <see cref="Finding"/> is — the same shape every other gate answers in, so the canvas highlights an
+/// evaluator's subjects exactly as it highlights a validator's — and its drawable <see cref="Evidence"/>.
+///
+/// <para>The term id stays beside the finding rather than inside it: a rule is what an author broke and a term
+/// is which measurement noticed, and a scoring function may well grow a second term citing one rule.</para>
+/// </summary>
 public sealed record ViolationDto(
-    string TermId, string RuleId, string Kind, double Distance, string Message,
-    IReadOnlyList<string> Subjects, IReadOnlyList<EvidenceDto> Evidence);
+    string TermId, string Kind, double Distance, FindingDto Finding,
+    IReadOnlyList<EvidenceDto> Evidence);
 
 /// <summary>
 /// POST /api/plan/evaluate — the plan editor's live evaluator score + lint. <see cref="Score"/> is the summed
