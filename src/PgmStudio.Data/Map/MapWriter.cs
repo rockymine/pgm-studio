@@ -100,7 +100,7 @@ public sealed class MapWriter(PgmDb db)
         {
             var kitId = await db.InsertWithInt64IdentityAsync(new KitRow
             {
-                MapId = mapId, KitKey = kit.Id, Force = kit.Force,
+                MapId = mapId, KitKey = kit.Id, Force = kit.Force, Clear = kit.Clear,
                 EffectsJson = kit.Effects.Count == 0 ? null
                     : Json(kit.Effects.Select(e => (object?)new Dict { ["type"] = e.Type, ["duration"] = e.Duration, ["amplifier"] = e.Amplifier }).ToList()),
             });

@@ -45,6 +45,7 @@ public sealed class Kit
 {
     public string Id = "";
     public bool Force;                        // <kit force="true"> — re-applied every tick (reset kits)
+    public bool Clear;                        // <clear/> — empties inventory and armour before the kit is given
     public List<KitItem> Items = [];
     public List<KitArmor> Armor = [];
     public List<KitEffect> Effects = [];      // <effect duration=… amplifier=…>type</effect>

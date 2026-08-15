@@ -120,6 +120,56 @@ public sealed class XmlWriterTests
         await Assert.That(spawn.Effects.Single().Amplifier).IsEqualTo(100);
     }
 
+    [Test]
+    public async Task Kit_clear_leads_the_kit_and_appears_only_where_it_is_set()
+    {
+        var m = new MapXml
+        {
+            Name = "Test", Version = "1.0.0",
+            Kits =
+            [
+                new Kit
+                {
+                    Id = "spawn-kit",
+                    Clear = true,
+                    Items = [new KitItem { Slot = 0, Material = "iron sword" }],
+                    Armor = [new KitArmor { SlotName = "helmet", Material = "leather helmet" }],
+                },
+                new Kit
+                {
+                    Id = "reset-resistance-kit",
+                    Force = true,
+                    Effects = [new KitEffect { Type = "damage resistance", Duration = "0", Amplifier = 0 }],
+                },
+            ],
+        };
+        var xml = XmlWriter.ToXml(m);
+
+        // exactly one <clear/>, and it precedes the items it makes room for
+        await Assert.That(xml.Split("<clear/>").Length - 1).IsEqualTo(1);
+        await Assert.That(xml.IndexOf("<clear/>", StringComparison.Ordinal))
+            .IsLessThan(xml.IndexOf("<item ", StringComparison.Ordinal));
+
+        var back = MapParser.ParseXmlString(xml);
+        await Assert.That(back.Kits.Single(k => k.Id == "spawn-kit").Clear).IsTrue();
+        await Assert.That(back.Kits.Single(k => k.Id == "reset-resistance-kit").Clear).IsFalse();
+    }
+
+    // A kit whose whole job is to empty an inventory carries no item, armour or effect of its own. The parser
+    // drops an empty kit, so <clear/> has to be enough on its own to keep one.
+    [Test]
+    public async Task A_kit_that_only_clears_survives_a_parse()
+    {
+        var m = new MapXml
+        {
+            Name = "Test", Version = "1.0.0",
+            Kits = [new Kit { Id = "strip-kit", Clear = true }],
+        };
+        var back = MapParser.ParseXmlString(XmlWriter.ToXml(m));
+        await Assert.That(back.Kits.Single().Id).IsEqualTo("strip-kit");
+        await Assert.That(back.Kits.Single().Clear).IsTrue();
+    }
+
     // Authors nest <destroyables> groups to share attributes; a writer has nothing to share, so it emits
     // one flat block with every leaf carrying its own attributes. Round-trips are semantic, not textual.
     [Test]

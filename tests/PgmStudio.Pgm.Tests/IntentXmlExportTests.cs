@@ -59,6 +59,12 @@ public sealed class IntentXmlExportTests
         await Assert.That(xml).Contains("<kit id=\"reset-resistance-kit\" force=\"true\">");
         await Assert.That(xml).Contains("<apply kit=\"reset-resistance-kit\" region=\"not-spawns\"/>");
 
+        // the spawn kit empties the inventory before it fills it — once, and on that kit only (a clear on the
+        // force-applied reset kit would wipe the inventory every tick)
+        await Assert.That(xml.Split("<clear/>").Length - 1).IsEqualTo(1);
+        await Assert.That(xml.IndexOf("<clear/>", StringComparison.Ordinal))
+            .IsGreaterThan(xml.IndexOf("<kit id=\"spawn-kit\">", StringComparison.Ordinal));
+
         // re-parse the generated XML — proves it's well-formed and PGM-parseable
         var reparsed = Serializer.ToDict(MapParser.ParseXmlString(xml));
         await Assert.That(((List<object?>)reparsed["teams"]!).Count).IsEqualTo(2);

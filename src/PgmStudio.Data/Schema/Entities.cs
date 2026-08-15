@@ -54,6 +54,7 @@ public sealed class KitRow
     [Column("map_id"), NotNull] public long MapId { get; set; }
     [Column("kit_key"), NotNull] public string KitKey { get; set; } = "";
     [Column("force")] public bool? Force { get; set; }
+    [Column("clear")] public bool? Clear { get; set; }
     [Column("effects_json")] public string? EffectsJson { get; set; }   // [{type,duration,amplifier}]
 }
 

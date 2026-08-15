@@ -231,6 +231,9 @@ public static partial class XmlWriter
         foreach (var kit in kits)
         {
             var ke = new XElement("kit"); Set(ke, "id", kit.Id); if (kit.Force) Set(ke, "force", "true"); block.Add(ke);
+            // PGM applies <clear> before every other sub-kit whatever its position (KitParser), but the
+            // canonical shape puts it first, ahead of the items it makes room for.
+            if (kit.Clear) ke.Add(new XElement("clear"));
             foreach (var item in kit.Items)
             {
                 var e = new XElement("item"); Set(e, "slot", item.Slot.ToString()); Set(e, "material", item.Material);

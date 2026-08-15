@@ -127,6 +127,7 @@ public static class Serializer
     {
         ["id"] = k.Id,
         ["force"] = k.Force,
+        ["clear"] = k.Clear,
         ["items"] = k.Items.Select(EncodeKitItem).ToList<object?>(),
         ["armor"] = k.Armor.Select(EncodeKitArmor).ToList<object?>(),
         ["effects"] = k.Effects.Select(EncodeKitEffect).ToList<object?>(),

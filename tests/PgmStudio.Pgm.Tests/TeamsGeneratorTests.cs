@@ -194,9 +194,14 @@ public sealed class TeamsGeneratorTests
         var resist = effects.First(e => e["type"] as string == "damage resistance");
         await Assert.That(resist["duration"]).IsEqualTo("oo");
 
+        // the spawn kit empties what the last life left; the tick-by-tick reset kit must not, or it would wipe
+        // the inventory continuously
+        await Assert.That(kit["clear"] as bool?).IsTrue();
+
         // the reset kit force-strips that resistance (duration 0) once out of spawn
         var reset = kits.OfType<Dict>().Single(k => k.GetValueOrDefault("id") as string == "reset-resistance-kit");
         await Assert.That(reset["force"]).IsEqualTo(true);
+        await Assert.That(reset.GetValueOrDefault("clear") as bool? ?? false).IsFalse();
         var resetEff = ((List<object?>)reset["effects"]!).OfType<Dict>().Single();
         await Assert.That(resetEff["type"]).IsEqualTo("damage resistance");
         await Assert.That(resetEff["duration"]).IsEqualTo("0");

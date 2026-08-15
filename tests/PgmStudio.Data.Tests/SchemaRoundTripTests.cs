@@ -179,6 +179,7 @@ public sealed class SchemaRoundTripTests
                 new PgmStudio.Domain.Kit
                 {
                     Id = "spawn-kit",
+                    Clear = true,
                     Items = [new PgmStudio.Domain.KitItem { Slot = 0, Material = "iron sword" }],
                     Effects = [new PgmStudio.Domain.KitEffect { Type = "damage resistance", Duration = "oo", Amplifier = 100 }],
                 },
@@ -195,11 +196,13 @@ public sealed class SchemaRoundTripTests
         await Assert.That(m).IsNotNull();
         var spawn = m!.Kits.Single(k => k.Id == "spawn-kit");
         await Assert.That(spawn.Force).IsFalse();
+        await Assert.That(spawn.Clear).IsTrue();
         await Assert.That(spawn.Effects.Single().Duration).IsEqualTo("oo");
         await Assert.That(spawn.Effects.Single().Amplifier).IsEqualTo(100);
 
         var reset = m.Kits.Single(k => k.Id == "reset-resistance-kit");
         await Assert.That(reset.Force).IsTrue();
+        await Assert.That(reset.Clear).IsFalse();
         await Assert.That(reset.Effects.Single().Type).IsEqualTo("damage resistance");
         await Assert.That(reset.Effects.Single().Duration).IsEqualTo("0");
     }

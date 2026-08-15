@@ -193,6 +193,7 @@ public static class Deserializer
     {
         Id = Str(d, "id"),
         Force = AsBool(Val(d, "force"), false),
+        Clear = AsBool(Val(d, "clear"), false),
         Items = ListOf(d, "items").Select(i => DecodeKitItem(AsDict(i))).ToList(),
         Armor = ListOf(d, "armor").Select(a => DecodeKitArmor(AsDict(a))).ToList(),
         Effects = ListOf(d, "effects").Select(e => DecodeKitEffect(AsDict(e))).ToList(),

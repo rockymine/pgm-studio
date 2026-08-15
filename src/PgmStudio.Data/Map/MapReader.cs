@@ -93,6 +93,7 @@ public sealed class MapReader(PgmDb db)
             {
                 Id = kit.KitKey,
                 Force = kit.Force ?? false,
+                Clear = kit.Clear ?? false,
                 Items = items.Select(i => new KitItem { Slot = i.Slot ?? 0, Material = i.Material, Amount = i.Amount ?? 1, ItemDamage = i.Damage ?? 0, Unbreakable = i.Unbreakable ?? false, TeamColor = i.TeamColor ?? false, Enchantments = i.Enchantments ?? "" }).ToList(),
                 Armor = armor.Select(a => new KitArmor { SlotName = a.SlotName, Material = a.Material, Unbreakable = a.Unbreakable ?? false, TeamColor = a.TeamColor ?? false, Enchantments = a.Enchantments ?? "" }).ToList(),
                 Effects = ListOfDicts(kit.EffectsJson).Select(e => new KitEffect { Type = Str(e, "type"), Duration = Str(e, "duration"), Amplifier = Int(e, "amplifier") }).ToList(),

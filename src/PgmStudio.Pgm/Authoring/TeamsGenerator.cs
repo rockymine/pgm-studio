@@ -66,6 +66,9 @@ public static class TeamsGenerator
     private static Dict StandardSpawnKit(string id, string pickaxe) => new()
     {
         ["id"] = id,
+        // Empty what the last life left behind before handing out the kit. Only the spawn kit clears: the reset
+        // kit below is force-applied every tick, where a clear would wipe the inventory continuously.
+        ["clear"] = true,
         ["items"] = new List<object?>
         {
             // Slot layout follows docs/pgm/template.xml: hotbar 0–3 = tools/weapons, 4–5 = build blocks,
