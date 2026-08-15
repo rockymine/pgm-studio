@@ -608,6 +608,28 @@ than a gate beside the style.
   fill verified against `RoofField` on the real Corvid Hollow / Kilnrow houses and 700 fuzzed configurations;
   no discrepancy found in either.
 
+- [ ] **B195 — "Bands along a distance, the last repeating" is written three times, and the one that is not a
+  list is the one an author most wants to be.** A theme's `Rim` is a single `TopBand(Material, Depth)`, so a
+  shape can have an outer band and nothing inside it: a cobble rim, then two rings of stone brick, then a
+  grass field is not sayable. Reported by the author while theming a board.
+
+  **The shape it wants already exists twice.** `LayeredMaterial` is bands by depth from the top with the last
+  one repeating; `RoomPart` is bands by course from the base with the last one repeating, and its own docstring
+  says it follows "the rule `LayeredMaterial` already holds" — the same duplication-in-prose tell. The third is
+  `FloorSurface`, bands by **ring from the edge**, and it is the odd one out: not a list at all but
+  `Border`/`BorderWidth` + `Field` + `Inlay`/`InlayInset`, three fixed bands where the border is one material of
+  width N rather than a sequence, and the inlay is a centre rather than a ring. So the concentric case is not
+  expressible in the housing system either, only closer to it.
+
+  One **band stack** — an ordered list of `(material, thickness)` whose last entry repeats — read along
+  whichever distance the caller has: depth from the top, courses from the base, rings from the edge. Housing
+  floors and theme rims both get arbitrary concentric bands out of it, and `RoomPart` and `LayeredMaterial`
+  stop being two spellings of one rule. The theme half needs the missing input as well: a painted shape has no
+  ring derivation, where a `Footprint` has `Ring(x, z)`.
+
+  *found reading the house model after `B194`; the author had hit the theme half independently ·
+  `TerrainTheme` · `RoomPart` · `FloorSurface` · `docs/world-export/terrain-painting.md`.*
+
 - [ ] **B190 — A roof style cannot say which slab it steps in, so the see-through-roof check cannot run at the
   part level.** `HS3` refuses a `Roof` named as a slab while `RoofSlab` is unset — the fault that gave six
   Weirgate houses a roof you can see straight through — but it can only run where a **whole house style** is
