@@ -5220,6 +5220,27 @@ these are the ones that shipped a map that could not be played as intended, and 
   and a namespace of that name shadows it — `Blocks.Gravel` stops compiling the moment
   `PgmStudio.Minecraft.Blocks` exists. A folder name *is* a namespace, so it competes with every type name in
   the project, and the compiler resolves the namespace first.
+- **The worked example teaches the model it is read in (B217).** `tools/seeds/ruediger.layout.json` is the
+  file `docs/tools/plan.md` calls *"the one to read first"*, and all three of its themes were written in
+  shapes the model had retired: `closed` for the rim's mode, a `layers` list for a banded wall, and — the one
+  that cost something — a voronoi stated as a **`palette` of fills to pick between**. That model is gone; a
+  voronoi's `bands` are a **ramp measured inward from the cell boundary** (Worley F2−F1), band 0 drawing the
+  grid and the last taking each cell's middle. The upgrade can only carry the first palette entry across and
+  says so in its own docstring, so three materials became one flat band of sand and the map never showed the
+  pattern it was written to show. The same `[grass, coarse dirt, grass] → [{grass, depth 1}]` the Coldharbour
+  author measured, and read as the previewer being unable to draw a pattern.
+
+  It is re-authored rather than renamed, because the two models mean different things: the author's palette
+  order becomes the ramp order — sand on the boundary, sandstone the ring, birch planks the middle — over
+  **twelve-block cells with a two-deep rim**. The cell size is the part that matters. At the five the seed
+  carried, every band is one block wide and the surface resolves to noise with no cells in it at all; twelve
+  gives a rim, a ring and a middle, and two blocks of rim is thick enough that a cut through the three-course
+  surface reads as cells rather than as a hairline.
+
+  Two tests hold it, and both were run against the old seed first to prove they fail: every theme in the file
+  must read with **no unread fields** — the same walk `RQ3` reports on the wire (`B214`) — and the voronoi
+  must actually draw all three of its materials over a 120×120 sample. The first is the general guard: a seed
+  that needs an upgrade to load is a seed teaching a model that no longer exists.
 - **The build ceiling is measured off the terrain, and the goal markers hang five over it (B105, `G6`
   amendment 14).** The author's ruling, and the correction that closes `B104` and `B176`'s shared cause.
   `G6` asks for at least twenty blocks of build clearance above the island surface; what was never stated is

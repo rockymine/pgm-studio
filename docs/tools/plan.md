@@ -487,8 +487,18 @@ that was carried the whole way to a finished world, and it sits beside the two f
 `ruediger.layout.json` and `ruediger.intent.json`. Thirty-one pieces at ten surfaces, seven build zones, one
 spawn-role piece with a spawn marker facing `left`, one wool-room piece with a wool marker, one approach wall
 between `wool-a-t1` and `wool-a-t3`, `rot_180` at 30 players. It compiles to 25 shapes on one island framed
-`−70..70 × −130..130`, two teams, two spawns, two wools, a build ceiling of 20 over 14 build areas, the
-observer at y 24, and four structure directives — two room floors, two entrance redstone rows, two walls.
+`−70..70 × −130..130`, two teams, two spawns, two wools, 14 build areas, the observer at y 24, and four
+structure directives — two room floors, two entrance redstone rows, two walls. It states no build ceiling,
+because none of them do: that is measured off the terrain the world build produces.
+
+Its `ruediger.layout.json` is worth reading for the **theme** as much as the geometry, and it is the reason
+the two are kept together. All three of its themes were written in shapes the model has since retired, and
+one of them cost something: the surface voronoi stated a `palette` of fills to pick between, which the reader
+upgrades by carrying the first entry and dropping the rest, so a three-material surface painted one flat band
+of sand for as long as the file said so. Nothing failed — a stored document that needs an upgrade to load is
+exactly the thing that keeps loading. It now states its own bands: sand on the cell boundary, sandstone the
+ring, birch planks the middle, over twelve-block cells with a two-deep rim, which is what it takes for a ramp
+measured inward from the boundary to read as cells at all.
 
 That plan also shows what lint is worth. It carries **sixteen findings and no errors**: eleven `EL1` (its
 elevation steps in ones, not the twos the stepper defaults to), two `G2` (five-block zones) and one `G5` (a

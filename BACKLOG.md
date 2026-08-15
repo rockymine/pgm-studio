@@ -302,20 +302,6 @@ by `HousePropRules.PastCap` and is not filed.
   known at stamp time** and the tree renderers already read it to draw a crown and a base, so the record is a
   write rather than a derivation.
 
-- [ ] **B217 — The reference layout the plan doc sends readers to states a voronoi in the retired shape, and
-  keeps one third of it.** `tools/seeds/ruediger.layout.json:37` states `"palette"` on its voronoi and never
-  `"bands"`. **Corrected 2026-08-15**: `palette` is not dropped, as this entry first said — `TerrainThemeJson`
-  carries it, building `bands` from `rim`/`rimWidth` plus **the first palette entry only**, and its own
-  docstring says so ("the rest of the palette is dropped rather than guessed at" — deliberately, because a
-  random per-region fill is what the `cell` pattern is now for). So a three-material palette becomes one band
-  of depth 1, which is exactly the `[grass, coarse dirt, grass] → [{grass, depth 1}]` the Coldharbour author
-  measured and read as the previewer being unable to draw a pattern. `plan.md` names this file as *"the one to
-  read first"*, so the worked example teaches the retired shape and quietly keeps a third of what it asks for.
-  Upgrade the seed. Note what that costs: a voronoi's bands are measured **inward from the cell edge** (Worley
-  F2−F1), band 0 being each cell's rim and the last its middle, so it is a re-authoring against what the
-  pattern means and not a rename. `B214`'s unread-field warning does **not** catch this, correctly — the
-  upgrade claimed the field; losing entries 2..n is a different complaint and nobody makes it.
-
 - [ ] **B212 — Bucket 3's corpus bands are in the retired unit and must be re-measured.** **The author's call
   is in: a distance is the walk over the walkable surface, never the straight line** (`rules.md` amendment 13,
   2026-08-15). The reasoning is recorded there — the line is what a bow or an eye crosses, the walk is what a

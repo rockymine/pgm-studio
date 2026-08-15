@@ -18,7 +18,7 @@
         "relative": true,
         "value": 7
       },
-      "closed": true,
+      "rimEdges": "boundary",
       "wallOnTerrainFaces": true,
       "rim": {
         "material": {
@@ -33,22 +33,18 @@
         "material": {
           "kind": "voronoi",
           "seed": 1,
-          "cellSize": 5,
-          "palette": [
+          "cellSize": 12,
+          "bands": [
             {
-              "kind": "solid",
-              "id": 12,
-              "data": 0
+              "material": { "kind": "solid", "id": 12, "data": 0 },
+              "depth": 2
             },
             {
-              "kind": "solid",
-              "id": 24,
-              "data": 0
+              "material": { "kind": "solid", "id": 24, "data": 0 },
+              "depth": 2
             },
             {
-              "kind": "solid",
-              "id": 5,
-              "data": 2
+              "material": { "kind": "solid", "id": 5, "data": 2 }
             }
           ]
         },
@@ -57,28 +53,31 @@
       },
       "wall": {
         "kind": "layered",
-        "layers": [
-          {
-            "material": {
-              "kind": "solid",
-              "id": 1,
-              "data": 0
-            },
-            "thickness": 2
-          },
-          {
-            "material": {
-              "kind": "teamTint",
-              "blockId": 159,
-              "neutral": {
+        "stack": {
+          "bands": [
+            {
+              "material": {
                 "kind": "solid",
-                "id": 159,
-                "data": 9
-              }
+                "id": 1,
+                "data": 0
+              },
+              "thickness": 2
             },
-            "thickness": 4
-          }
-        ]
+            {
+              "material": {
+                "kind": "teamTint",
+                "blockId": 159,
+                "neutral": {
+                  "kind": "solid",
+                  "id": 159,
+                  "data": 9
+                }
+              },
+              "thickness": 4
+            }
+          ],
+          "ending": "repeat"
+        }
       },
       "wallEnabled": true,
       "fill": {
@@ -91,7 +90,7 @@
         "relative": true,
         "value": 7
       },
-      "closed": true,
+      "rimEdges": "boundary",
       "wallOnTerrainFaces": true,
       "rim": {
         "material": {
@@ -147,7 +146,7 @@
         "relative": true,
         "value": 7
       },
-      "closed": true,
+      "rimEdges": "boundary",
       "wallOnTerrainFaces": true,
       "rim": {
         "material": {
@@ -187,48 +186,51 @@
       },
       "wall": {
         "kind": "layered",
-        "layers": [
-          {
-            "material": {
-              "kind": "solid",
-              "id": 1,
-              "data": 5
+        "stack": {
+          "bands": [
+            {
+              "material": {
+                "kind": "solid",
+                "id": 1,
+                "data": 5
+              },
+              "thickness": 1
             },
-            "thickness": 1
-          },
-          {
-            "material": {
-              "kind": "solid",
-              "id": 98,
-              "data": 0
+            {
+              "material": {
+                "kind": "solid",
+                "id": 98,
+                "data": 0
+              },
+              "thickness": 2
             },
-            "thickness": 2
-          },
-          {
-            "material": {
-              "kind": "solid",
-              "id": 1,
-              "data": 5
+            {
+              "material": {
+                "kind": "solid",
+                "id": 1,
+                "data": 5
+              },
+              "thickness": 2
             },
-            "thickness": 2
-          },
-          {
-            "material": {
-              "kind": "solid",
-              "id": 49,
-              "data": 0
+            {
+              "material": {
+                "kind": "solid",
+                "id": 49,
+                "data": 0
+              },
+              "thickness": 1
             },
-            "thickness": 1
-          },
-          {
-            "material": {
-              "kind": "solid",
-              "id": 1,
-              "data": 5
-            },
-            "thickness": 1
-          }
-        ]
+            {
+              "material": {
+                "kind": "solid",
+                "id": 1,
+                "data": 5
+              },
+              "thickness": 1
+            }
+          ],
+          "ending": "repeat"
+        }
       },
       "wallEnabled": true,
       "fill": {
