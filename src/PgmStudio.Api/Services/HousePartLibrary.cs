@@ -114,7 +114,7 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
         Post = courses.Bound(RoomParts.Post),
         // What closes this storey where another stands on it. Unbound it is the house floor's own top
         // material, which is what every stored storey was before the slab had a name of its own.
-        Ceiling = courses.Bound(RoomParts.Ceiling),
+        Deck = courses.Bound(RoomParts.Deck),
         Windows = WindowOf(row),
         Surface = new FloorSurface
         {
@@ -260,11 +260,12 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
     };
 
     /// <summary>The building a storey is drawn as: one of itself, or <b>two</b> where it names a ceiling.
-    /// A slab is what a storey closes with when something stands on it, so the top storey never lays one and
-    /// a storey drawn alone is always a top storey — the picture would be of a building in which the knob
-    /// that was just turned does not exist, which is the one thing a preview is for preventing.</summary>
+    /// A deck is the plate a storey stands on, and the ground storey's is the building's own floor — so a
+    /// storey drawn alone never shows one, and the picture would be of a building in which the knob that was
+    /// just turned does not exist, which is the one thing a preview is for preventing. Drawn twice, the upper
+    /// copy stands on the plate it named.</summary>
     private static HouseStyle OnSample(Storey storey)
-        => StoreyBasis with { Storeys = storey.Ceiling is null ? [storey] : [storey, storey] };
+        => StoreyBasis with { Storeys = storey.Deck is null ? [storey] : [storey, storey] };
 
     /// <summary>What a porch is drawn against: the plain house, roof and all. A porch is a piece of the
     /// building's own footprint given up, its deck is the house's floor and its canopy is seated to clear the

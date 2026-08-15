@@ -181,9 +181,19 @@ public sealed record Storey
     /// <summary>How this storey's floor is divided in plan.</summary>
     public FloorSurface? Surface { get; init; }
 
-    /// <summary>The slab laid over this storey to carry the next, or null for the floor part's own top course.
-    /// The top storey has none: the roof is what closes it.</summary>
-    public TerrainMaterial? Ceiling { get; init; }
+    /// <summary>The plate this storey <b>stands on</b> — one course, infilled across the interior at a level
+    /// the walls already span, which is what a floor is when a building is put up rather than drawn.
+    ///
+    /// <para><b>One plate, one owner.</b> The course between two storeys is the ceiling of the lower seen from
+    /// below and the floor of the upper seen from above, and a block has only one identity — so it belongs to
+    /// the storey standing on it. Named the other way it had two: its material came from the storey below and
+    /// its zoning from the storey above, with the upper one winning wherever it bothered to speak. The preset
+    /// that set it wrote <c>// the deck underfoot</c> beside the word <c>Ceiling</c>, which is the whole
+    /// argument in one comment.</para>
+    ///
+    /// <para>The ground storey's deck is the building's own floor, so unset takes the floor part's top course.
+    /// Nothing is laid over the topmost storey: the roof is what closes it.</para></summary>
+    public TerrainMaterial? Deck { get; init; }
 
     /// <summary>Set only on the storey a plain shell resolves to — a building described by a wall height rather
     /// than by rooms. The distinction is real: a wall height is literal, so a two-course shed is two courses,
@@ -287,8 +297,13 @@ public sealed record HouseStyle
     public IReadOnlyList<Storey> Storeys { get; init; } = [];
 
     /// <summary>The storeys this building actually has, bottom up — the list where one was given, else the
-    /// single storey the flat parts describe. A storey that names no wall, windows or floor of its own falls
-    /// back to the building's, so a stack of identical storeys is a count rather than a repeated description.</summary>
+    /// single storey the flat parts describe. A storey that names no wall, windows, floor or deck of its own
+    /// falls back to the building's, so a stack of identical storeys is a count rather than a repeated
+    /// description.
+    ///
+    /// <para><b>Every fallback a storey has is here.</b> The deck's used to be resolved inline in the stamper
+    /// two hundred lines away and against a different default, so a reader of this list would have concluded a
+    /// deck had no fallback at all — which it does, and has always had.</para></summary>
     [JsonIgnore]
     public IReadOnlyList<Storey> Levels => Storeys.Count > 0
         ? [.. Storeys.Select(storey => storey with
@@ -297,11 +312,13 @@ public sealed record HouseStyle
             Post = storey.Post ?? Post,
             Windows = storey.Windows ?? Windows,
             Surface = storey.Surface ?? Surface,
+            Deck = storey.Deck ?? Floor.At(0).Material,
         })]
         : [new Storey
         {
             Shell = true, Clear = Wall.Extent,
             Wall = Wall, Post = Post, Windows = Windows, Surface = Surface,
+            Deck = Floor.At(0).Material,
         }];
 
     /// <summary>Courses of wall from the floor to the eave — every storey's headroom, plus one slab course

@@ -115,7 +115,7 @@ public sealed class HousePartLibraryEndpointsTests
         var plain = Storey("plain", 3, new RoomCourseDto(RoomParts.Wall, 0, timber, 1));
         var ceiled = Storey("ceiled", 3,
             new RoomCourseDto(RoomParts.Wall, 0, timber, 1),
-            new RoomCourseDto(RoomParts.Ceiling, 0, flags, 1));
+            new RoomCourseDto(RoomParts.Deck, 0, flags, 1));
 
         var without = (await (await client.PostAsJsonAsync("/api/storey-styles/preview", plain))
             .Content.ReadFromJsonAsync<RoomStylePreviewDto>())!;

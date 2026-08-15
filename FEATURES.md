@@ -3813,6 +3813,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   test cannot stand in for — a seal passes happily on a roof with a hole in its body. Both `Ell()` fixtures had
   two **parallel** ridges and therefore no junction to test, which is how all four shipped unnoticed (`G182`);
   `EllMarch`/`EllProject` are the ones with crossing ridges, and `G186` redrew the rest.
+- **A storey stands on a deck, and one plate has one owner (B194).** The course between two storeys is the
+  ceiling of the lower seen from below and the floor of the upper seen from above, and a block has only one
+  identity — but the model gave it two owners: its **material** came from the storey below (`Storey.Ceiling`)
+  and its **zoning**, the border and inlay a player actually walks on, from the storey above, with the upper
+  one winning wherever it bothered to speak. The preset that set it had written `// the deck underfoot` beside
+  the word `Ceiling`, and `structures.md` said outright that the course "is that storey's floor, not the
+  ceiling of the one below" in the paragraph after the one assigning its material downward. It is now
+  `Storey.Deck`, owned by the storey standing on it, with the ground storey's deck being the building's own
+  floor — so nothing a ground storey says reaches a plate at all. The fallback came home too: it had been
+  resolved inline in the stamper two hundred lines from `Levels` and against a different default, so a reader
+  of that list would have concluded a deck had none. Every preset, test and library row moved up one storey,
+  the same blocks stated by the storey that stands on them, and the world builds byte-identically.
 - **Block geometry is written in one place, and an arch is one shape (B193).** In this format a block's
   metadata *is* its geometry — two bits of facing and an upside-down flag on a stair, one bit of half on a slab
   — so turning one is arithmetic, and it was written out at five sites: the corner-stair expression three times

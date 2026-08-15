@@ -627,23 +627,26 @@ every storey and a taller ground floor does not slide the one above it. Windows 
 sill of two is two blocks over *this* floor whichever storey it is, and the seater needed nothing new for
 that, because it already takes a sill and a wall height and a storey is simply a shorter wall to it. Only the
 ground storey is told about the doorway; there is no door to avoid on the ones above. A storey may name its
-own wall, windows and floor zoning, and falls back to the building's where it does not — a stack of identical
-storeys is a count rather than a repeated description.
+own wall, windows, floor zoning and deck, and falls back to the building's where it does not — a stack of
+identical storeys is a count rather than a repeated description, and every one of those fallbacks is resolved
+in `HouseStyle.Levels` rather than at the point each is used.
 
-Each storey but the last is closed by a **slab** across its interior only, the perimeter being wall already.
-What it is laid in is that storey's own **ceiling**, so a building may close its shop floor in flagstone and
-the flat over it in boards; unbound it is the house floor's own top material, which is what every storey stack
-was before the slab had a name. The ceiling belongs to the storey below because that is the storey the slab
-closes — the top one names none, since the roof is what closes that one.
+Every storey stands on a **deck**: one course infilled across the interior, the perimeter being wall already.
+It is an infill rather than a lid — the walls already span that course, which is what a floor is when a
+building is put up rather than drawn — and it belongs to the storey standing on it. So a building may floor
+its shop in flagstone and the flat over it in boards; unbound, a deck is the house floor's own top material.
+The ground storey's deck is the building's floor, and the topmost storey has nothing over it, since the roof
+is what closes that one.
 
-The slab's top course is zoned by the storey **above** it, so an upper floor takes a border and an inlay
-exactly as the ground one does — it is that storey's floor, not the ceiling of the one below, and the author
-who divided the ground floor into a bordered field means the same thing one storey up. The two do not
-compete, and which decides which is what keeps the ceiling a single material rather than a stack: the ceiling
-says what the slab is made of and the zones above divide the one course of it a player actually stands on, so
-a stack here would be a second answer to a question already settled.
+**One plate, one owner**, and that is the whole of why the deck is named for the storey above rather than the
+one below. The course between two storeys is the ceiling of the lower seen from below and the floor of the
+upper seen from above, and a block has only one identity. Named the other way it had two: its material came
+from the storey below and its zoning — the border and inlay a player actually walks on — from the storey
+above, which won wherever it bothered to speak. Both now come from the storey standing there, so a deck stays
+a single material divided by that storey's own zones rather than two storeys answering a settled question
+twice.
 
-A slab needs a way through it or an upper storey is a sealed volume — a picture of a house rather than a
+A deck needs a way through it or an upper storey is a sealed volume — a picture of a house rather than a
 house. That way is a **ladder**, standing in the storey below and reaching the slab, so a player steps off it
 onto the new floor rather than into its underside. It hangs on the **door wall**, one cell along from an
 interior corner, and both halves of that are about what else claims those cells. The chests and the wool

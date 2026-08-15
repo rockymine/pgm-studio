@@ -408,23 +408,23 @@ public static class HouseStamper
 
             for (var level = 0; level < levels.Count - 1; level++)
             {
-                // The slab is the floor of the storey above as much as the ceiling of this one, so it is laid
-                // over that storey's plan: a wing that stops here is closed by its roof, not by a floor for a
-                // room nobody built.
+                // The plate is laid over the plan of the storey standing on it: a wing that stops here is
+                // closed by its roof, not by a floor for a room nobody built.
                 if (body.At(level + 1) is not { } plan) break;
                 var storey = levels[level];
                 var slabY = floorY + bases[level] + storey.Courses(topmost: false);
 
-                // Across the interior only, since the perimeter is wall. Its top course is zoned by the storey
-                // above it, so an upper floor takes a border and an inlay exactly as the ground one does.
+                // Across the interior only, since the perimeter is wall — an infill at a course the walls
+                // already span, rather than a lid laid over them. Both what it is made of and how it is zoned
+                // come from the storey standing on it, because it is that storey's floor and a block has one
+                // identity: read from below and zoned from above, the two answers fought and the upper won.
                 var above = levels[level + 1];
-                var ceiling = storey.Ceiling ?? style.Floor.At(0).Material;
                 foreach (var (x, z) in plan.Cells())
                 {
                     if (plan.OnPerimeter(x, z)) continue;         // the perimeter is wall
                     if (climb == (x, z)) continue;                // the way up
                     var surface = above.Surface?.At(plan.Ring(x, z));
-                    Put(x, slabY, z, surface ?? ceiling, plan);
+                    Put(x, slabY, z, surface ?? above.Deck!, plan);
                 }
 
                 // The ladder: it stands in the storey below the hole and reaches the floor above, so a player

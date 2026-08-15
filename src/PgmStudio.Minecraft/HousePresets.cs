@@ -513,10 +513,10 @@ public static class HousePresets
                     Form = WindowForm.Arched, Block = StoneBrickStairs,
                     Width = 2, Height = 3, Sill = 2, Spacing = 3,
                 },
-                Ceiling = new SolidMaterial(StoneSlab, StoneBrickSlab),   // the deck underfoot
             },
             new Storey
             {
+                Deck = new SolidMaterial(StoneSlab, StoneBrickSlab),   // the deck underfoot
                 Clear = 3,                                      // the least a storey may state
                 Wall = new RoomPart(
                 [
@@ -576,10 +576,10 @@ public static class HousePresets
                     Form = WindowForm.Arched, Block = StoneBrickStairs,
                     Width = 2, Height = 2, Sill = 2, Spacing = 3,
                 },
-                Ceiling = new SolidMaterial(Blocks.Planks, SprucePlanks),
             },
             new Storey
             {
+                Deck = new SolidMaterial(Blocks.Planks, SprucePlanks),
                 Clear = 3,
                 Wall = RoomPart.Of(Spruces, 3),
                 Windows = new WindowStyle
@@ -587,10 +587,10 @@ public static class HousePresets
                     Form = WindowForm.Pane, Block = StainedPane, Data = White,
                     Width = 2, Height = 2, Sill = 1, Spacing = 3,
                 },
-                Ceiling = new SolidMaterial(Blocks.Planks, SprucePlanks),
             },
             new Storey
             {
+                Deck = new SolidMaterial(Blocks.Planks, SprucePlanks),
                 Clear = 3,
                 Wall = RoomPart.Of(new SolidMaterial(Blocks.Sandstone, SmoothSandstone), 3),
                 Windows = new WindowStyle

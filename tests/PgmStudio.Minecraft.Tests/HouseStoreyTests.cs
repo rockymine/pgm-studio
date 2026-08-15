@@ -186,21 +186,25 @@ public sealed class HouseStoreyTests
         }
     }
 
-    // ── what a storey closes with ──────────────────────────────────────────────────────────────────
-    /// <summary>The slab over a storey is laid in that storey's own ceiling where it names one, so a building
-    /// may close its ground floor in one thing and the storey over it in another. Unbound it stays the house
-    /// floor's own top material, which is what every storey was before the slab had a name.</summary>
+    // ── what a storey stands on ────────────────────────────────────────────────────────────────────
+    /// <summary>
+    /// <b>A storey names the plate it stands on, not the one over it.</b> The course between two storeys is
+    /// the ceiling of the lower seen from below and the floor of the upper seen from above, and a block has
+    /// one identity — so the storey standing on it says what it is. Unbound it stays the house floor's own top
+    /// material, and the ground storey's is the building's floor, which is why nothing it says reaches a plate
+    /// at all.
+    /// </summary>
     [Test]
-    public async Task Each_storey_lays_its_own_ceiling_and_falls_back_to_the_floor()
+    public async Task Each_storey_names_the_plate_it_stands_on_and_falls_back_to_the_floor()
     {
         var style = Stacked(3) with
         {
             Floor = RoomPart.Of(new SolidMaterial(Blocks.Planks)),
             Storeys =
             [
-                new Storey { Clear = 3, Ceiling = new SolidMaterial(Blocks.Cobblestone) },
+                new Storey { Clear = 3 },                       // the ground storey stands on the floor
+                new Storey { Clear = 3, Deck = new SolidMaterial(Blocks.Cobblestone) },
                 new Storey { Clear = 3 },                       // unbound: the floor's own material
-                new Storey { Clear = 3 },                       // the top storey lays no slab at all
             ],
         };
         var world = House(11, 9, style);
@@ -215,20 +219,24 @@ public sealed class HouseStoreyTests
         await Assert.That(world.GetBlock(cell.X, firstSlab, cell.Z).Id).IsEqualTo(Blocks.Planks);
     }
 
-    /// <summary>The storey above's zoning still divides the slab it stands on: a ceiling is what the slab is
-    /// laid in, not a claim on the course a player walks on. Bound together, the zone wins where it reaches
-    /// and the ceiling fills the rest.</summary>
+    /// <summary>
+    /// <b>One storey divides the plate it stands on, and it is the one that named the material.</b> Its
+    /// surface zones the course a player walks on and its deck fills the rest — one owner, so there is no
+    /// question of which storey wins. Named the other way round the two came from different storeys and the
+    /// upper one silently overrode the lower wherever it bothered to speak.
+    /// </summary>
     [Test]
-    public async Task The_storey_above_zones_the_slab_its_ceiling_laid()
+    public async Task A_storey_zones_the_plate_it_stands_on()
     {
         var style = Stacked(2) with
         {
             Storeys =
             [
-                new Storey { Clear = 3, Ceiling = new SolidMaterial(Blocks.Cobblestone) },
+                new Storey { Clear = 3 },
                 new Storey
                 {
                     Clear = 3,
+                    Deck = new SolidMaterial(Blocks.Cobblestone),
                     Surface = new FloorSurface { Border = new SolidMaterial(Blocks.Bedrock), BorderWidth = 1 },
                 },
             ],
@@ -236,29 +244,29 @@ public sealed class HouseStoreyTests
         var world = House(11, 9, style);
         var slab = FloorY + style.Levels[0].Courses(topmost: false);
 
-        // Ring 1 is the border the upper storey asked for; the middle of the room is the ceiling's own.
+        // Ring 1 is the border this storey asked for; the middle of the room is its deck.
         await Assert.That(world.GetBlock(1, slab, 1).Id).IsEqualTo(Blocks.Bedrock);
         await Assert.That(world.GetBlock(7, slab, 6).Id).IsEqualTo(Blocks.Cobblestone);
     }
 
-    /// <summary>A ceiling survives the snapshot a map keeps of its bound style. It is a material rather than a
+    /// <summary>A deck survives the snapshot a map keeps of its bound style. It is a material rather than a
     /// number, so nothing carries it but the converter that carries the rest of them.</summary>
     [Test]
-    public async Task A_ceiling_survives_the_snapshot()
+    public async Task A_deck_survives_the_snapshot()
     {
         var style = Stacked(2) with
         {
             Storeys =
             [
-                new Storey { Clear = 3, Ceiling = new SolidMaterial(Blocks.Cobblestone) },
                 new Storey { Clear = 3 },
+                new Storey { Clear = 3, Deck = new SolidMaterial(Blocks.Cobblestone) },
             ],
         };
 
         var read = HouseStyleJson.Deserialize(HouseStyleJson.Serialize(style));
 
-        await Assert.That(read.Storeys[0].Ceiling).IsEqualTo(style.Storeys[0].Ceiling);
-        await Assert.That(read.Storeys[1].Ceiling).IsNull();
+        await Assert.That(read.Storeys[1].Deck).IsEqualTo(style.Storeys[1].Deck);
+        await Assert.That(read.Storeys[0].Deck).IsNull();
         await Assert.That(read).IsEqualTo(style);
     }
 }

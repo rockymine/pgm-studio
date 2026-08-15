@@ -131,11 +131,11 @@ public static class RoomParts
     /// <para>One material rather than a stack, and the plan zones are why: what a player actually stands on
     /// up there is the slab's top course, and that is already divided by the storey <em>above</em>'s border,
     /// field and inlay. A stack here would be a second answer to a question the zones have settled.</para></summary>
-    public const string Ceiling = "ceiling";
+    public const string Deck = "deck";
 
     /// <summary>The parts bottom-up, the order a shell is stamped in.</summary>
     public static readonly string[] All =
-        [Floor, Field, Border, Inlay, Wall, Ceiling, Gable, Roof, Post, Sill, Verge];
+        [Floor, Field, Border, Inlay, Wall, Deck, Gable, Roof, Post, Sill, Verge];
 }
 
 /// <summary>Which roof a stored style asks for — the wire words for <c>RoofForm</c>. Every one of them is a
