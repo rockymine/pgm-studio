@@ -262,7 +262,7 @@ Every endpoint is anonymous and rooted at `/api`.
 | `GET /compose?players=&symmetry=&cell=&seedStart=&count=` | `{cards, nextSeed, exhausted, scanned, observed}` — each card its descriptor, score, wool count, structural read, hard terms, top three soft terms, board SVG and land spend | 400 unsupported symmetry · 400 invalid parameters |
 | … `&maxScore=&woolMin=&woolMax=` | the same, sieved on the evaluator score and the wool count | — |
 | … `&wools=&hub=&front=` | the same, sieved structurally — `wools` must-include, `hub` and `front` any-of, all CSV | — |
-| `POST /compose/pin` | the stored `PlanDetail` — re-composes from the descriptor body, annotates its boxes, saves it as a generated row (idempotent by content hash) | 400 invalid descriptor · 422 composition failed |
+| `POST /compose/pin` | the stored `PlanDetail` — re-composes from a **descriptor body**, the same `{players, teams, symmetry, seed, …}` record `GET /compose` is queried with, annotates its boxes and saves it as a generated row (idempotent by content hash) | 400 invalid descriptor · 422 composition failed |
 | `GET /plans?origin=generated` | the hold tray: summaries newest-touched first, each with its descriptor and whether it is stale | — |
 | `GET /plans/{id}` | the row plus its `planJson` | 404 |
 | `GET /plans/{id}/svg` · `GET /plans/{id}/png` | the stored board as a thumbnail or as an image an image reader can open — both off one shared scene, so the encodings cannot disagree | 404 unknown · 422 unreadable plan |

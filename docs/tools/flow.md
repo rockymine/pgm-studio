@@ -168,6 +168,35 @@ Configure places the markers and draws the rooms; it cannot choose the building.
 **Kits** are nobody's. Every generated team gets one fixed preset, and the only kit control in the studio is a
 free-text box in Edit naming which kit a spawn grants — nothing states what a kit contains.
 
+## What a write endpoint takes
+
+**There are two conventions, and which one an endpoint follows is decided by what the endpoint is about.**
+Twenty-five of the studio's write endpoints take one shape and fourteen take the other, so an author guessing
+gets it right slightly more than half the time — and a wrong guess is silent, because an unknown property is
+dropped rather than reported. Posting `{"style": {…}}` where the body should be a bare style answers **200**
+with a preview of the defaults.
+
+**A document endpoint takes the document itself, unwrapped.** Anything whose subject is one of the studio's
+own documents — a plan, a sketch, an intent, a relief, a paint, a terrain material, a whole theme, a room
+style — is posted as that document and nothing else. `POST /plan/compile` takes a plan; `POST
+/terrain/material-preview` takes a material; `POST /room-styles/preview-snapshot` takes a `HouseStyle`. There
+is no envelope and no field to name.
+
+**A library endpoint takes a wrapper, because it carries more than the document.** Saving into the library
+needs a name and a kind beside the thing being saved, so those take a small record: `POST /styles` is
+`{name, kind, params}`, `POST /themes/import` is `{name, themeJson}`. Where such a wrapper carries a document,
+the document is a **string** in that field rather than an object — the mirror of the `GET` that returns it,
+which answers `{themeJson: "…"}` and `{styleJson: "…"}` the same way.
+
+**The rule for telling them apart**: if the endpoint is asking *about a document*, post the document; if it is
+asking to *file a document under a name*, post the record that names it. A document endpoint's own tool
+document says which document, in the table row.
+
+**A body that cannot be read is refused, never crashed.** An absent, empty or malformed document answers 400
+carrying `RQ1` and, where the reader knew one, the field — `roof.gableWindows` rather than a sentence to hunt
+through a document for. A missing wrapper field is refused the same way, and every missing field is named at
+once rather than one per round trip. `docs/refusals.md` has the envelope.
+
 ## Where to read next
 
 | Document | Read it for |

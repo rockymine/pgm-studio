@@ -414,7 +414,9 @@ document as the body and need no map, which is what lets a plan be checked befor
 | `POST /plans` | `{planJson, sourceId?}` | the saved row — an authored source is updated in place, a generated or imported one forks into a new authored row | 400 malformed plan |
 | `DELETE /plans/{id}` | — | 204; forks survive with a null parent | — |
 
-**Reading a plan**
+**Reading a plan.** All three take **the plan document itself as the body** — unwrapped, exactly the shape
+`GET /map/{slug}/plan` hands back — and store nothing, so they can be asked of a document that has never been
+posted anywhere. That is what makes them the cheapest way to find out whether a board is well formed.
 
 | Endpoint | Answers | Fails with |
 |---|---|---|

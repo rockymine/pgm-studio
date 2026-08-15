@@ -511,7 +511,9 @@ The system renders itself at every stage, and a generated map should be read at 
 one picture at the end (MG13, MG30). Three families exist.
 
 **The API previews** answer a document without building a world — thirteen endpoints, none of which the first
-fifteen maps used. `POST /terrain/theme-preview` and `/terrain/theme-map-preview` show a theme as it will
+fifteen maps used. **Each takes the document it previews as the body, unwrapped**: a theme, a material, a prop,
+a `HouseStyle`. There is no envelope and no field to name, and a wrapper posted to one is dropped in silence
+and previews the defaults — `flow.md` § *What a write endpoint takes* has the rule and its exceptions. `POST /terrain/theme-preview` and `/terrain/theme-map-preview` show a theme as it will
 paint, the second over a compiled plan; `/terrain/material-preview` shows one material; `/terrain/prop-preview`
 shows a tree, boulder or path before it is placed; `/room-styles/preview` and its `-snapshot`,
 `/roof-styles/preview`, `/porch-styles/preview` and `/storey-styles/preview` show a building from four sides;

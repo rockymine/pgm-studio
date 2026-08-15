@@ -195,8 +195,8 @@ a matching edit in the caller. Both endpoints answer **SVG text inside JSON**, s
 render to look at; the numbers — `landCells`, `slots`, and the rejection — are what can be read directly.
 
 The question this page does *not* answer is whether the composer could have produced a particular box. That is
-`POST /api/plan/feasibility`, which searches the declared menus by calling the real emitters and reports the
-nearest miss when nothing reproduces a box. `plan.md` has it.
+`POST /api/plan/feasibility`, which takes a plan document as its body, searches the declared menus by calling
+the real emitters, and reports the nearest miss when nothing reproduces a box. `plan.md` has it.
 
 ## Limits
 

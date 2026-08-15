@@ -398,7 +398,9 @@ writes: apart from the import and one island toggle, **Configure has exactly one
 | `GET /map/{slug}/scan-summary` · `/islands` · `/symmetry` | — | the detection brief, the island polygons, the detected symmetry | 404 |
 | `GET /configure/{slug}/state` · `PATCH /configure/{slug}/exclude-island` | `{island, excluded}` | the scan config; excluding re-runs symmetry without re-scanning | 404 |
 
-**Reading the world while authoring**
+**Reading the world while authoring.** These read the built world rather than a posted document, so all but
+one are `GET`. The exception is `wool-sources`, whose body is the rectangle to look inside —
+`{minX, minZ, maxX, maxZ}` — posted rather than queried because a box does not fit a query string legibly.
 
 | Endpoint | Answers |
 |---|---|

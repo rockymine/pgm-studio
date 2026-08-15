@@ -433,23 +433,23 @@ Every endpoint is anonymous, rooted at `/api`, and takes no map.
 | Endpoint | Does |
 |---|---|
 | `GET /styles[?kind=]` · `GET /styles/{id}` | the style library, newest first, each with its card picture |
-| `POST /styles` · `PUT /styles/{id}` | save a material recipe — `{name, kind, params}` |
+| `POST /styles` · `PUT /styles/{id}` | save a material recipe — body `{name, kind, params}`, where `params` is the material as a **string** |
 | `DELETE /styles/{id}` | 409 `{error, themes}` when something still binds it |
 | `GET /themes` · `GET /themes/{id}` | the theme library and one theme's bucket bindings |
-| `POST /themes` · `PUT /themes/{id}` | compose from existing styles — the knobs plus bucket→style bindings |
-| `POST /themes/preview` | what a set of bindings composes to, saving nothing |
+| `POST /themes` · `PUT /themes/{id}` | compose from existing styles — body `{name, rimEdges, …knobs, buckets[]}`, the knobs plus bucket→style bindings |
+| `POST /themes/preview` | what a set of bindings composes to, saving nothing — same body as `POST /themes` |
 | `GET /themes/{id}/json` | the painter-ready theme JSON — the form a map snapshots — as `{themeJson: "…"}`, the document itself being the **string** in that field |
-| `POST /themes/import` | lift a whole theme JSON in: one style per bucket plus a theme. 400, never 500, on bad JSON |
+| `POST /themes/import` | lift a whole theme JSON in: one style per bucket plus a theme. Body `{name?, themeJson}` — the **mirror of the `GET` above**, the theme being the *stringified* document in `themeJson` rather than an object, and `name` optional (an unnamed import becomes "Imported theme"). 400, never 500, on bad JSON |
 | `DELETE /themes/{id}` | forget a theme; its bindings cascade, its styles stay |
 | `GET`·`POST`·`PUT`·`DELETE /roof-styles[/{id}]` · `…/storey-styles` · `…/porch-styles` | the three part libraries; each `POST …/preview` renders a draft on a sample building. `POST`/`PUT …/roof-styles` and `…/storey-styles` answer 400 `{error, message, findings[]}` (`docs/refusals.md`) when the house-style gate refuses the roof/verge or the window (Refusals, above); porches carry nothing the gate checks |
 | `GET /room-styles` · `GET /room-styles/{id}` | the room library and one room style's parts and courses |
-| `POST /room-styles` · `PUT /room-styles/{id}` | compose a building from parts and styles. 400 `{error, message, findings[]}` when the composed shell fails the house-style gate |
+| `POST /room-styles` · `PUT /room-styles/{id}` | compose a building from parts and styles — body `{name, roofForm, …parts, courses[]}`. 400 `{error, message, findings[]}` when the composed shell fails the house-style gate |
 | `GET /room-styles/doors` | the doors a room may be stamped with |
 | `GET /room-styles/{id}/json` | the stamper's own JSON — what a sketch binds and a building prop snapshots — as `{styleJson: "…"}`, likewise a string to unwrap |
-| `POST /room-styles/preview` · `POST /room-styles/preview-snapshot` | the shell a set of courses composes to, or the one a stored `HouseStyle` snapshot builds |
+| `POST /room-styles/preview` · `POST /room-styles/preview-snapshot` | the shell a set of courses composes to, or the one a stored `HouseStyle` snapshot builds. **The two take different bodies**: `preview` takes the same record as `POST /room-styles`, `preview-snapshot` takes a **bare `HouseStyle`** — the document itself, unwrapped, exactly what `GET /room-styles/{id}/json` hands back once its string is unwrapped. A wrapper posted to it is dropped and previews the defaults |
 | `DELETE /room-styles/{id}` | forget a room style; its courses cascade, its styles stay |
 | `GET /terrain/blocks` · `GET /terrain/patterns` | the block palette, and every material kind with its fields, defaults and the cell facts it varies with |
-| `POST /terrain/material-preview` | one material drawn in plan and section |
+| `POST /terrain/material-preview` | one material drawn in plan and section — body is a **bare material**, `{kind, …}`, unwrapped. One column, not an area: a pattern cannot be judged from it |
 
 ## Driving it without the UI
 
