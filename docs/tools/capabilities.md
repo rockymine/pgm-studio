@@ -314,6 +314,14 @@ a `layered` stack pointed `inward` draws concentric rings and answers its fallba
 `voronoi` reads position alone and works anywhere. The list and the field names are read off the painter's own
 types, so a kind cannot be offered that the parser would reject.
 
+`reads` is also what the pictures route on. `/terrain/material-preview` answers a **plan** and a **section**,
+and a kind that varies along the perimeter and not across the ground is carded as the section, because an
+elevation is what a wall material is seen as. The plan swatch traces its own square through the same boundary
+walk a footprint gets, so the arc, the bend, the run and the inset a preview cell reports are the ones the
+world would hand it: a wall run in plan is a striped border round a flat middle, an inward stack is concentric
+rings, and a laid log — which varies the log's axis and never its colour — cannot be shown by a colour swatch
+at all, which the vocabulary says in its own prose.
+
 Before it, only six kinds were reachable through `MapSpec`'s `pattern` field and the other eight appeared
 solely inside a refusal message that listed their names — so a caller could learn that `turbulence` is a word
 the parser accepts and never what it takes or what it does. The measured effect was agents reaching for the

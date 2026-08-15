@@ -42,9 +42,9 @@ params cannot disagree.
 
 A style's card picture travels with the row rather than costing a request per card, because a library is
 browsed by what its entries look like. The editor previews two views of one material: a **plan**, one course
-seen from above, which is where a voronoi, a noise field and a wall run vary, and a **section**, one row of
-columns cut open downward, which is the axis a layer stack varies along. A stored style's `params` is exactly
-one of the nodes below, and a saved row is that node plus a name:
+seen from above, which is where a voronoi and the three noise fields vary, and a **section**, one row of
+columns cut open downward, which is the axis a layer stack varies along and the elevation a wall material is
+seen as. A stored style's `params` is exactly one of the nodes below, and a saved row is that node plus a name:
 
 ```json
 { "name": "quartz rim", "kind": "solid", "params": "{\"kind\":\"solid\",\"id\":155,\"data\":0}" }

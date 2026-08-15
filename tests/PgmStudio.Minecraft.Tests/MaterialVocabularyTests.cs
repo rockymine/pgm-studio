@@ -90,4 +90,69 @@ public sealed class MaterialVocabularyTests
         yield return (new WallDiagonalMaterial([new WallStripe(stone, 2)]), "wallDiagonal");
         yield return (new WallFrameMaterial(stone, stone), "wallFrame");
     }
+
+    /// <summary>
+    /// <b>What a kind reads is hand-written, so it is checked by experiment rather than trusted.</b> Every fact
+    /// is varied on its own against a material built to be sensitive to it, and a kind whose output moves is a
+    /// kind that reads it. Nothing may vary with a fact it does not name — an undeclared dependency is exactly
+    /// what leaves a caller with a swatch or a board that changed for a reason the vocabulary never mentioned.
+    ///
+    /// <para>It caught one on the day it was written: <c>wallFrame</c> was described as reading the arc and the
+    /// bend when it actually reads the bend, the depth and the height — which is why it is all edge seen from
+    /// above, and why the elevation is its view.</para>
+    /// </summary>
+    [Test]
+    public async Task Nothing_varies_with_a_fact_it_does_not_declare()
+    {
+        foreach (var (material, kind) in Sensitive())
+        {
+            var declared = MaterialVocabulary.Of(kind)!.Value.Reads;
+            foreach (var fact in Enum.GetValues<CellFact>())
+            {
+                if (Resolve(material, fact, low: true) == Resolve(material, fact, low: false) ) continue;
+                await Assert.That((kind, fact, declared.Contains(fact))).IsEqualTo((kind, fact, true));
+            }
+        }
+    }
+
+    /// <summary>The same material under one fact's two extremes, everything else held still.</summary>
+    private static (int Id, int Data) Resolve(TerrainMaterial material, CellFact fact, bool low)
+    {
+        var ctx = new BucketContext(4, 9, 4, TerrainBucket.Surface, DepthFromTop: 2, TeamData: -1,
+            PerimeterArc: 3, HeightFromBottom: 2, PerimeterTurn: 0, PerimeterRun: 0, Inset: 3);
+        ctx = fact switch
+        {
+            CellFact.Position => low ? ctx : ctx with { X = 37, Z = 51 },
+            CellFact.Depth => low ? ctx : ctx with { DepthFromTop = 0 },
+            CellFact.Inset => low ? ctx : ctx with { Inset = 0 },
+            CellFact.Arc => low ? ctx : ctx with { PerimeterArc = 4 },
+            CellFact.Bend => low ? ctx : ctx with { PerimeterTurn = 90, PerimeterRun = 2 },
+            CellFact.Height => low ? ctx : ctx with { Y = 3, HeightFromBottom = 0 },
+            CellFact.Team => low ? ctx : ctx with { TeamData = 14 },
+            _ => ctx,
+        };
+        return material.Resolve(ctx);
+    }
+
+    /// <summary>One instance per kind, each built so the facts it declares actually move it — a wall run of one
+    /// stripe or a checker of one colour would pass the assertion by saying nothing.</summary>
+    private static IEnumerable<(TerrainMaterial Material, string Kind)> Sensitive()
+    {
+        TerrainMaterial a = new SolidMaterial(1), b = new SolidMaterial(4);
+        yield return (new SolidMaterial(1), "solid");
+        yield return (new LayeredMaterial(new BandStack([new Band(a, 1), new Band(b, 1)])), "layered");
+        yield return (new LayeredMaterial(new BandStack([new Band(a, 1), new Band(b, 1)]), BandAxis.Inward), "layered");
+        yield return (new TeamTintedMaterial(159, a), "teamTint");
+        yield return (new VoronoiMaterial(1, 4, [new VoronoiBand(a, 1), new VoronoiBand(b, 1)]), "voronoi");
+        yield return (new CellMaterial(2, 4, 55, 4, [a, b]), "cell");
+        yield return (new NoiseMaterial(3, 6, 3, [a, b]), "noise");
+        yield return (new TurbulenceMaterial(4, 6, 3, [a, b]), "turbulence");
+        yield return (new ElectricMaterial(5, 6, 3, [a, b]), "electric");
+        yield return (new CheckerMaterial(1, a, b), "checker");
+        yield return (new LogCheckerMaterial(1, 17), "logChecker");
+        yield return (new LaidLogMaterial(17), "laidLog");
+        yield return (new WallRunMaterial([new WallStripe(a, 1), new WallStripe(b, 1)]), "wallRun");
+        yield return (new WallDiagonalMaterial([new WallStripe(a, 1), new WallStripe(b, 1)], 1), "wallDiagonal");
+        yield return (new WallFrameMaterial(a, b, 45, 1), "wallFrame");
+    }
 }

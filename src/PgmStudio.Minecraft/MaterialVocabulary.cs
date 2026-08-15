@@ -98,14 +98,20 @@ public static class MaterialVocabulary
             "The field ridged rather than folded, so the creases become bright veins running through it.",
             [CellFact.Position]),
         ("checker", "Checkerboard",
-            "Two materials alternating on a square of the given size, laid in the face it paints.",
-            [CellFact.Position]),
+            "Two materials alternating on a square of the given size, laid in the face it paints: on a wall the "
+          + "squares tile the arc and the height, so they read as squares to whoever is looking at it, and "
+          + "anywhere else they tile the two ground axes. That is why it reads position on open ground and the "
+          + "perimeter on a face — one pattern, two frames.",
+            [CellFact.Position, CellFact.Arc, CellFact.Height]),
         ("logChecker", "Log checkerboard",
             "A checkerboard of one log, turning it upright on one square and on its side on the next, so the "
-          + "board reads as grain rather than as colour.", [CellFact.Position]),
+          + "board reads as grain rather than as colour. Laid in the face it paints, like any checkerboard.",
+            [CellFact.Position, CellFact.Arc, CellFact.Height]),
         ("laidLog", "Laid log",
             "One log laid along the face it is painting — across a wall rather than up it, so a beam reads as "
-          + "a beam. Reads the direction the perimeter runs.", [CellFact.Bend]),
+          + "a beam, and standing upright where the wall turns. It varies the log's axis and never its "
+          + "material, so it is the one kind a colour swatch cannot show: the picture is the same block "
+          + "whichever way it is turned.", [CellFact.Bend]),
         ("wallRun", "Wall stripes",
             "Stripes wrapping the outer perimeter, each with its own width. Varies along the arc, so it "
           + "stripes a wall or a rim and is flat everywhere inside a plateau.", [CellFact.Arc]),
@@ -113,9 +119,11 @@ public static class MaterialVocabulary
             "The same stripes sheared by height, so they climb a wall at a slope instead of standing upright.",
             [CellFact.Arc, CellFact.Height]),
         ("wallFrame", "Wall frame",
-            "An edge material inked round a wall wherever it turns sharply enough, with a fill inside it — a "
-          + "panel with its corners drawn. Needs a traced outline: it reads the bend, not just the arc.",
-            [CellFact.Arc, CellFact.Bend]),
+            "An edge material inked round a wall wherever it turns sharply enough, with a fill panelled inside "
+          + "it — and its top and bottom courses inked too, so the panel is framed on all four sides. A wall "
+          + "material through and through: seen from directly above, one course deep, every cell is a top "
+          + "course and the whole swatch is edge. The elevation is the view that shows it.",
+            [CellFact.Depth, CellFact.Height, CellFact.Bend]),
     ];
 
     /// <summary>Every kind, in the order the pickers offer them: the plain ones, then the composites, then the

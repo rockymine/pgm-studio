@@ -26,27 +26,49 @@ public static class StylePreview
     /// <summary>The team a preview samples: red, on the same 0–15 damage scale a wool/clay tint reads.</summary>
     private const int SampleTeam = 14;
 
-    /// <summary>A material from above, one course deep. The left half samples neutral land and the right half a
-    /// team cell, so a tint shows both its colour and its neutral fallback; the perimeter arc is the x column, so
-    /// a wall run's stripes travel across the swatch.</summary>
+    /// <summary>
+    /// A material seen from above over a square of ground, one course deep. The left half samples neutral land
+    /// and the right half a team cell, so a tint shows both its colour and its neutral fallback.
+    ///
+    /// <para><b>The geometry is measured, not synthesised.</b> The square is traced and walked exactly as a
+    /// real island is — <see cref="Geometry"/> — so the arc, the bend, the run direction and the inset a cell
+    /// reports are the ones a footprint of that shape actually produces. It used to hand every cell a fake arc
+    /// (its x column) and nothing else, which drew a wall run as stripes marching across open ground it would
+    /// never stripe, and drew a frame and a laid log as nothing at all: both read the bend, which was always
+    /// zero. An honest swatch shows a wall material hugging the border and flat in the middle, which is the
+    /// fact about it worth knowing before it is built.</para></summary>
     public static string PlanSvg(TerrainMaterial material, TerrainBucket bucket = TerrainBucket.Surface,
         int columns = 32, int cell = 4)
-        => SvgRaster.Raster(columns, columns, cell, (x, z) =>
+    {
+        var (arc, turn, run, inset) = Geometry(columns);
+        return SvgRaster.Raster(columns, columns, cell, (x, z) =>
         {
-            var (id, data) = material.Resolve(
-                new BucketContext(x, 0, z, bucket, DepthFromTop: 0, TeamOf(x, columns), PerimeterArc: x,
-                    Inset: Inset(x, z, columns)));
+            var (id, data) = material.Resolve(new BucketContext(
+                x, 0, z, bucket, DepthFromTop: 0, TeamOf(x, columns),
+                arc.GetValueOrDefault((x, z), -1), HeightFromBottom: 0,
+                turn.GetValueOrDefault((x, z), 0), run.GetValueOrDefault((x, z), 0),
+                inset.GetValueOrDefault((x, z), -1)));
             return BlockPalette.Hex(id, data);
         });
+    }
 
-    /// <summary>How far in from the swatch's own edge a cell sits — the <b>real</b> inset of the square being
-    /// drawn, not a stand-in. A material read along the inward axis draws concentric rings, and left at the
-    /// off-the-footprint −1 it answered its fallback in every cell: a ring stack previewed as one flat colour,
-    /// which is not a less legible picture but a wrong one. The arc beside it <em>is</em> a stand-in (the x
-    /// column, so a wall run's stripes cross the swatch rather than hugging its border); the two differ because
-    /// a square swatch has a true inset and does not have a true perimeter walk.</summary>
-    private static int Inset(int x, int z, int columns)
-        => Math.Min(Math.Min(x, z), Math.Min(columns - 1 - x, columns - 1 - z));
+    /// <summary>The swatch square's own outline and inward walk, measured once per picture through the same
+    /// <see cref="Geom.Algorithms.GridBoundary"/> the painter's classifier reads — one derivation, so a swatch
+    /// cannot answer a cell differently from the world.</summary>
+    private static (Dictionary<(int X, int Z), int> Arc, Dictionary<(int X, int Z), int> Turn,
+                    Dictionary<(int X, int Z), int> Run, Dictionary<(int X, int Z), int> Inset) Geometry(int columns)
+    {
+        var cells = new HashSet<(int X, int Z)>();
+        for (var x = 0; x < columns; x++)
+            for (var z = 0; z < columns; z++) cells.Add((x, z));
+
+        var arc = Geom.Algorithms.GridBoundary.TracePerimeter(cells);
+        var window = Geom.Algorithms.GridBoundary.CornerWindow;
+        var turn = Geom.Algorithms.GridBoundary.Turns(arc, window)
+            .ToDictionary(entry => entry.Key, entry => (int)Math.Round(entry.Value));
+        var run = Geom.Algorithms.GridBoundary.Runs(arc, window);
+        return (arc, turn, run, Geom.Algorithms.GridBoundary.StepsInward(cells));
+    }
 
     /// <summary>A material cut open downward: each row is one course deeper into the band, so a layer stack's
     /// thicknesses are the bands they are. Same neutral | team split across the columns as the plan view.</summary>
@@ -54,11 +76,16 @@ public static class StylePreview
         int columns = 32, int courses = 10, int cell = 4)
         => SvgRaster.Raster(columns, courses, cell, (x, depth) =>
         {
-            // The inset across a cut is the distance to the nearer end of it, which is what a section through a
-            // ringed shape actually shows: the same bands mirrored from both sides.
-            var (id, data) = material.Resolve(
-                new BucketContext(x, courses - depth, 0, bucket, depth, TeamOf(x, columns), PerimeterArc: x,
-                    Inset: Math.Min(x, columns - 1 - x)));
+            // A section is a straight wall seen face on, so its geometry is honest by construction: walking
+            // along it the arc advances with x, it never bends, and it runs along x the whole way — which is
+            // what a laid log needs to lie down at all. The inset across a cut is the distance to its nearer
+            // end, the bands a ringed shape shows when it is sliced through the middle. The bottom row is
+            // height zero rather than one, so a material that inks its bottom course inks the picture's.
+            var (id, data) = material.Resolve(new BucketContext(
+                x, courses - 1 - depth, 0, bucket, depth, TeamOf(x, columns),
+                PerimeterArc: x, HeightFromBottom: courses - 1 - depth,
+                PerimeterTurn: 0, PerimeterRun: Geom.Algorithms.GridBoundary.RunAlongX,
+                Inset: Math.Min(x, columns - 1 - x)));
             return BlockPalette.Hex(id, data);
         });
 
@@ -70,10 +97,24 @@ public static class StylePreview
         kind is MaterialKind.Voronoi or MaterialKind.Cell
              or MaterialKind.Noise or MaterialKind.Turbulence or MaterialKind.Electric;
 
-    /// <summary>The one view that shows a given kind what it does: a layer stack only varies with depth, so it
-    /// gets the section; every other kind varies across the ground, so it gets the plan view.</summary>
+    /// <summary>The kinds that vary along the perimeter <em>rather than</em> across the ground — a wall run's
+    /// stripes, a frame's inked courses, a log lying along the face. Read off the vocabulary rather than listed
+    /// again, so a kind added to the painter lands in the right view without a second table agreeing to it.
+    /// Reading position as well disqualifies it: a checkerboard tiles the face on a wall and the ground
+    /// everywhere else, and the ground is the case worth showing.</summary>
+    private static bool IsWallPattern(string kind) =>
+        MaterialVocabulary.Of(kind) is { } info
+        && info.Reads.Any(fact => fact is CellFact.Arc or CellFact.Bend)
+        && !info.Reads.Contains(CellFact.Position);
+
+    /// <summary>The one view that shows a given kind what it does. A layer stack varies with depth, so it gets
+    /// the section. A wall pattern varies along a perimeter, so it gets the section too — <b>an elevation is
+    /// what a wall material is seen as</b>, and now that the plan swatch traces its square honestly, a wall run
+    /// drawn in plan is a striped border round a flat middle: true, and useless for choosing between two of
+    /// them. Everything else varies across the ground and gets the plan view.</summary>
     public static string CardSvg(string kind, TerrainMaterial material)
-        => kind == MaterialKind.Layered ? SectionSvg(material, columns: 24, courses: 12, cell: 5)
+        => kind == MaterialKind.Layered || IsWallPattern(kind)
+            ? SectionSvg(material, columns: 24, courses: 12, cell: 5)
          : IsAreaPattern(kind) ? PlanSvg(material, columns: 60, cell: 2)
          : PlanSvg(material, columns: 24, cell: 5);
 
