@@ -9,16 +9,16 @@ namespace PgmStudio.Minecraft.Tests;
 /// one and none of them may move; and a plan that turns a corner must read as <b>one</b> building — one
 /// outline, one closed ring, corners of both kinds in the right cells.
 /// </summary>
-public sealed class FootprintTests
+public sealed class BuildingPlanTests
 {
     /// <summary>An L: a hall along −z with a wing running north off its west end.</summary>
     /// <summary>An L in plan: a 10 × 5 hall with a 5 × 5 wing off one end. Both ridges run along x — a square
     /// wing takes the along-x ridge on the tie (<see cref="Wing.RidgeAlongX"/>) — so this footprint exercises
     /// the outline and nothing about a roof junction, which is all these tests ask of it.</summary>
-    private static Footprint Ell() => new([new Wing(0, 0, 9, 4), new Wing(0, 5, 4, 9)]);
+    private static BuildingPlan Ell() => new([new Wing(0, 0, 9, 4), new Wing(0, 5, 4, 9)]);
 
     /// <summary>A T: the same hall with the wing centred on it instead.</summary>
-    private static Footprint Tee() => new([new Wing(0, 0, 10, 4), new Wing(4, 5, 6, 9)]);
+    private static BuildingPlan Tee() => new([new Wing(0, 0, 10, 4), new Wing(4, 5, 6, 9)]);
 
     [Test]
     [Arguments(11, 9)]
@@ -27,7 +27,7 @@ public sealed class FootprintTests
     [Arguments(21, 9)]
     public async Task A_rectangle_answers_what_its_arithmetic_answered(int width, int depth)
     {
-        var plan = new Footprint(0, 0, width - 1, depth - 1);
+        var plan = new BuildingPlan(0, 0, width - 1, depth - 1);
 
         for (var x = -1; x <= width; x++)
             for (var z = -1; z <= depth; z++)
@@ -48,7 +48,7 @@ public sealed class FootprintTests
     [Test]
     public async Task A_rectangle_has_four_corners_and_no_inner_one()
     {
-        var plan = new Footprint(0, 0, 10, 6);
+        var plan = new BuildingPlan(0, 0, 10, 6);
         await Assert.That(plan.Cells().Count(cell => plan.OnCorner(cell.X, cell.Z))).IsEqualTo(4);
         await Assert.That(plan.Cells().Any(cell => plan.OnInnerCorner(cell.X, cell.Z))).IsFalse();
     }
@@ -103,7 +103,7 @@ public sealed class FootprintTests
     /// post, and a post is not something an arc places.</para></summary>
     [Test]
     [MethodDataSource(nameof(Plans))]
-    public async Task A_plan_that_turns_a_corner_has_one_closed_ring(Footprint plan)
+    public async Task A_plan_that_turns_a_corner_has_one_closed_ring(BuildingPlan plan)
     {
         var walked = plan.Cells()
             .Where(cell => plan.OnPerimeter(cell.X, cell.Z) && !plan.OnInnerCorner(cell.X, cell.Z)).ToList();
@@ -125,7 +125,7 @@ public sealed class FootprintTests
     /// beside it would read off the same cells.</summary>
     [Test]
     [MethodDataSource(nameof(Plans))]
-    public async Task A_plan_bends_where_the_walked_ring_does(Footprint plan)
+    public async Task A_plan_bends_where_the_walked_ring_does(BuildingPlan plan)
     {
         var ring = GridBoundary.TracePerimeter(plan.Cells());
         var walked = GridBoundary.Turns(ring, GridBoundary.CornerWindow);
@@ -173,7 +173,7 @@ public sealed class FootprintTests
     [Test]
     public async Task A_plan_stands_in_as_many_runs_of_wall_as_it_has_sides()
     {
-        await Assert.That(new Footprint(0, 0, 14, 10).Segments.Count).IsEqualTo(4);
+        await Assert.That(new BuildingPlan(0, 0, 14, 10).Segments.Count).IsEqualTo(4);
         await Assert.That(Ell().Segments.Count).IsEqualTo(6);
         await Assert.That(Tee().Segments.Count).IsEqualTo(8);
     }
@@ -183,7 +183,7 @@ public sealed class FootprintTests
     [Test]
     public async Task A_rectangle_stands_in_its_own_four_sides()
     {
-        var walls = new Footprint(0, 0, 14, 10).Segments;
+        var walls = new BuildingPlan(0, 0, 14, 10).Segments;
         await Assert.That(walls).IsEquivalentTo(new[]
         {
             new WallSegment(RoomEdge.NegZ, 0, 0, 14),
@@ -219,7 +219,7 @@ public sealed class FootprintTests
     /// unaccounted for, and nothing a run claims is off the outline.</summary>
     [Test]
     [MethodDataSource(nameof(Plans))]
-    public async Task Every_wall_cell_belongs_to_a_run_that_faces_open_ground(Footprint plan)
+    public async Task Every_wall_cell_belongs_to_a_run_that_faces_open_ground(BuildingPlan plan)
     {
         var seated = new HashSet<(int X, int Z)>();
         foreach (var wall in plan.Segments)
@@ -273,7 +273,7 @@ public sealed class FootprintTests
             .IsEqualTo(new WallSegment(RoomEdge.PosZ, 9, 0, 4));
 
         // A rectangle answers its one run whatever is asked of it.
-        var box = new Footprint(0, 0, 14, 10);
+        var box = new BuildingPlan(0, 0, 14, 10);
         await Assert.That(box.WallFacing(RoomEdge.NegZ, 7))
             .IsEqualTo(new WallSegment(RoomEdge.NegZ, 0, 0, 14));
     }
@@ -281,7 +281,7 @@ public sealed class FootprintTests
     // ── a storey of its own ─────────────────────────────────────────────────────────────────────────────
 
     /// <summary>A hall of two storeys with a wing of one running off it.</summary>
-    private static Footprint Unequal()
+    private static BuildingPlan Unequal()
         => new([new Wing(0, 0, 10, 6, new WingSpec(StoreysHigh: 2)), new Wing(0, 7, 6, 12, new WingSpec(StoreysHigh: 1))]);
 
     /// <summary>A plan loses wings on the way up and never gains one, so a storey is a plan in its own right —
@@ -331,5 +331,5 @@ public sealed class FootprintTests
         await Assert.That(plan.At(7)).IsSameReferenceAs(plan);
     }
 
-    public static IEnumerable<Func<Footprint>> Plans() => [Ell, Tee];
+    public static IEnumerable<Func<BuildingPlan>> Plans() => [Ell, Tee];
 }

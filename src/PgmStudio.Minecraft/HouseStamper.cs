@@ -33,7 +33,7 @@ public static class HouseStamper
     /// <para>This is the number a caller wanting to claim the ground a stamped house actually covers
     /// (the dressing pass's <c>StructureClaim</c>) reads, in place of the wall rectangle alone — the wall
     /// rectangle is what a plan piece or a dragged rectangle hands the stamper, not what the stamper writes.
-    /// <c>HouseStamperTests</c> proves every block <see cref="Stamp(VoxelWorld,Footprint,int,HouseStyle,int,
+    /// <c>HouseStamperTests</c> proves every block <see cref="Stamp(VoxelWorld,BuildingPlan,int,HouseStyle,int,
     /// IReadOnlyList{RoomDoor})"/> actually places lands inside it, so a caller answering from the style's own
     /// fields never has to re-open the voxels to check.</para></summary>
     /// <para>This is a <b>bound</b> and not a claim. A beam runs out from a corner only, so a rectangle wide
@@ -91,7 +91,7 @@ public static class HouseStamper
     /// <paramref name="doors"/> the house cuts one of its own through the middle of a long side.</summary>
     public static void Stamp(VoxelWorld world, int minX, int minZ, int width, int depth, int floorY,
                              HouseStyle style, int color = -1, IReadOnlyList<RoomDoor>? doors = null)
-        => Stamp(world, new Footprint(minX, minZ, minX + width - 1, minZ + depth - 1), floorY, style, color,
+        => Stamp(world, new BuildingPlan(minX, minZ, minX + width - 1, minZ + depth - 1), floorY, style, color,
                  doors);
 
     /// <summary>Stamp a house over a <paramref name="ground"/> plan of any shape, standing on
@@ -102,7 +102,7 @@ public static class HouseStamper
     /// <para>The roof is <b>one field over the plan's bounding box</b> and a porch is refused on a plan of more
     /// than one wing (G172). Both want a wing at a time — a building's roof is the union of the wing volumes —
     /// so until that lands, a plan that turns a corner is roofed as though it did not.</para></summary>
-    public static void Stamp(VoxelWorld world, Footprint ground, int floorY, HouseStyle style,
+    public static void Stamp(VoxelWorld world, BuildingPlan ground, int floorY, HouseStyle style,
                              int color = -1, IReadOnlyList<RoomDoor>? doors = null)
     {
         // No room for two walls and an inside: a plan whose every cell is wall is a plan with no room in it,
@@ -132,7 +132,7 @@ public static class HouseStamper
         // Air resolved out of a material is a gap left open, never a hole punched in what is already there:
         // a stack whose fourth course is air is a light slit, and skipping it keeps the pass from erasing a
         // stamp underneath. Only a doorway and a window write air, because those are openings cut on purpose.
-        void Put(int x, int y, int z, TerrainMaterial material, Footprint ring, int depth = 0)
+        void Put(int x, int y, int z, TerrainMaterial material, BuildingPlan ring, int depth = 0)
         {
             if (y is < 1 or >= VoxelWorld.MaxHeight) return;
             // A wall is a closed ring, so a pattern reads it exactly as it reads a plateau's outer edge: the
@@ -145,7 +145,7 @@ public static class HouseStamper
             world.SetBlock(x, y, z, id, data);
         }
 
-        void PutPart(int x, int y, int z, RoomPart part, int step, Footprint ring)
+        void PutPart(int x, int y, int z, RoomPart part, int step, BuildingPlan ring)
         {
             var (material, depth) = part.At(step);
             Put(x, y, z, material, ring, depth);
@@ -198,7 +198,7 @@ public static class HouseStamper
         {
             var top = WallTopOf(wing);
             var (minX, minZ, maxX, maxZ) = Roofed(wing, index);
-            var roofed = new Footprint(minX, minZ, maxX, maxZ);
+            var roofed = new BuildingPlan(minX, minZ, maxX, maxZ);
             var roof = wing.RoofOver(style.Roof.Form, pitch, style.Roof.Slab);
             var field = new RoofField(
                 roof.Form, minX, minZ, maxX, maxZ, overhang, top + 1,
@@ -306,7 +306,7 @@ public static class HouseStamper
         // Whether the wall at one cell of one storey resolves to the block a window wants to be cut into. The
         // wall is asked rather than inspected: it is resolved exactly as the pass that laid it resolved it,
         // same course, same arc, same run — so whatever pattern put a block there, a window finds it.
-        Func<WallSegment, int, bool>? Hosts(Footprint plan, RoomPart wall, WindowStyle windows, int storeyBase)
+        Func<WallSegment, int, bool>? Hosts(BuildingPlan plan, RoomPart wall, WindowStyle windows, int storeyBase)
         {
             if (windows.HostBlock < 0) return null;
             var course = Math.Max(1, windows.Sill);
@@ -356,7 +356,7 @@ public static class HouseStamper
         // One per face and centred, where a wall takes as many as its run will hold. A gable is a triangle:
         // its height runs out toward both ends, so the middle is the one place a window certainly fits, and
         // spreading them along the run would put half of them where there is no wall to cut.
-        void StampGableWindows(Footprint alone, RoofField field, int top)
+        void StampGableWindows(BuildingPlan alone, RoofField field, int top)
         {
             var windows = style.Roof.GableWindows;
             if (windows.Form == WindowForm.None) return;
@@ -445,14 +445,14 @@ public static class HouseStamper
         // Each shows its sawn end, which is the one place on a building where a cut face outward is the point —
         // it is the end of a log, and a log building leaves them long.
         // The highest storey any wing still stands at, which on a building of equal wings is the whole plan.
-        Footprint? TopPlan()
+        BuildingPlan? TopPlan()
         {
             for (var level = levels.Count - 1; level > 0; level--)
                 if (body.At(level) is { } plan) return plan;
             return body;
         }
 
-        void LayBeams(Footprint plan, int y)
+        void LayBeams(BuildingPlan plan, int y)
         {
             if (!style.Beams.Any || y is < 1 or >= VoxelWorld.MaxHeight) return;
             var reach = Math.Max(1, style.Beams.Reach);
@@ -475,7 +475,7 @@ public static class HouseStamper
 
         // One column of a roof: its tread and whatever riser it needs under it, bordered on the roof's own
         // outermost ring and capped along the ridge when the style asks for a capped one.
-        void Lay(RoofField field, int x, int z, Footprint ring, int slabBlock)
+        void Lay(RoofField field, int x, int z, BuildingPlan ring, int slabBlock)
         {
             var crown = field.Crown(x, z);
             // <b>The rim is the building's, not the wing's.</b> A verge and an eave are the outer edge of a
@@ -668,7 +668,7 @@ public static class HouseStamper
 
         // ── the porch ─────────────────────────────────────────────────────────────────────────────────
         // The strip the walls gave up, roofed and posted.
-        void StampPorch(Footprint porch, PorchStyle porchStyle)
+        void StampPorch(BuildingPlan porch, PorchStyle porchStyle)
         {
             // The deck's open side is the wall's own outward face: the strip was taken off that wall, so the
             // house stands behind the deck and the weather is in front of it.
@@ -755,7 +755,7 @@ public static class HouseStamper
 
     /// <summary>The wall a house fronts on: the one its doors are cut through, or — with none given — the long
     /// side the building would cut its own through.</summary>
-    private static RoomEdge FrontEdge(IReadOnlyList<RoomDoor>? doors, Footprint ground)
+    private static RoomEdge FrontEdge(IReadOnlyList<RoomDoor>? doors, BuildingPlan ground)
         => doors is { Count: > 0 } ? doors[0].Edge : DefaultFront(ground.Width, ground.Depth);
 
     /// <summary>The wall a house with no doors fronts on — the long side, which is where it cuts its own. Public
@@ -768,7 +768,7 @@ public static class HouseStamper
     /// no deck. <b>The porch is the part that gives way</b>: it is trimmed to whatever the room can spare
     /// beyond the three blocks that hold two walls and an inside, and where the room can spare nothing there
     /// is no porch. A style asked for a building and a porch, and half a building is neither.</summary>
-    private static (Footprint Body, Footprint? Deck) SplitPorch(Footprint ground, PorchStyle? porch, RoomEdge front)
+    private static (BuildingPlan Body, BuildingPlan? Deck) SplitPorch(BuildingPlan ground, PorchStyle? porch, RoomEdge front)
     {
         if (porch is null || porch.Depth <= 0) return (ground, null);
         // A deck is a strip the walls give up, and giving one up on a plan that turns a corner means taking
@@ -784,14 +784,14 @@ public static class HouseStamper
 
         return front switch
         {
-            RoomEdge.NegZ => (new Footprint(ground.MinX, ground.MinZ + depth, ground.MaxX, ground.MaxZ),
-                              new Footprint(ground.MinX + inset, ground.MinZ, ground.MaxX - inset, ground.MinZ + depth - 1)),
-            RoomEdge.PosZ => (new Footprint(ground.MinX, ground.MinZ, ground.MaxX, ground.MaxZ - depth),
-                              new Footprint(ground.MinX + inset, ground.MaxZ - depth + 1, ground.MaxX - inset, ground.MaxZ)),
-            RoomEdge.NegX => (new Footprint(ground.MinX + depth, ground.MinZ, ground.MaxX, ground.MaxZ),
-                              new Footprint(ground.MinX, ground.MinZ + inset, ground.MinX + depth - 1, ground.MaxZ - inset)),
-            _ => (new Footprint(ground.MinX, ground.MinZ, ground.MaxX - depth, ground.MaxZ),
-                  new Footprint(ground.MaxX - depth + 1, ground.MinZ + inset, ground.MaxX, ground.MaxZ - inset)),
+            RoomEdge.NegZ => (new BuildingPlan(ground.MinX, ground.MinZ + depth, ground.MaxX, ground.MaxZ),
+                              new BuildingPlan(ground.MinX + inset, ground.MinZ, ground.MaxX - inset, ground.MinZ + depth - 1)),
+            RoomEdge.PosZ => (new BuildingPlan(ground.MinX, ground.MinZ, ground.MaxX, ground.MaxZ - depth),
+                              new BuildingPlan(ground.MinX + inset, ground.MaxZ - depth + 1, ground.MaxX - inset, ground.MaxZ)),
+            RoomEdge.NegX => (new BuildingPlan(ground.MinX + depth, ground.MinZ, ground.MaxX, ground.MaxZ),
+                              new BuildingPlan(ground.MinX, ground.MinZ + inset, ground.MinX + depth - 1, ground.MaxZ - inset)),
+            _ => (new BuildingPlan(ground.MinX, ground.MinZ, ground.MaxX - depth, ground.MaxZ),
+                  new BuildingPlan(ground.MaxX - depth + 1, ground.MinZ + inset, ground.MaxX, ground.MaxZ - inset)),
         };
     }
 
@@ -801,7 +801,7 @@ public static class HouseStamper
     /// through the frame. A porch moves the wall its doors were cut in, and they are carried onto the new line
     /// with the same fit. Without a frame the house cuts its own, centred on the front.</summary>
     private static List<WallOpening> Doorways(
-        IReadOnlyList<RoomDoor>? doors, HouseStyle style, Footprint body, WallSegment? frontWall)
+        IReadOnlyList<RoomDoor>? doors, HouseStyle style, BuildingPlan body, WallSegment? frontWall)
     {
         if (doors is { Count: > 0 })
         {
@@ -823,7 +823,7 @@ public static class HouseStamper
     }
 
     /// <summary>The middle of the side a house fronts on, which is where it cuts its own door.</summary>
-    private static int FrontCentre(Footprint body, RoomEdge front)
+    private static int FrontCentre(BuildingPlan body, RoomEdge front)
         => front is RoomEdge.NegZ or RoomEdge.PosZ
             ? (body.MinX + body.MaxX) / 2
             : (body.MinZ + body.MaxZ) / 2;
@@ -858,7 +858,7 @@ public static class HouseStamper
 
     /// <summary>The deck's posts: one at each outer corner, and enough between them that no span of the eave
     /// runs more than five blocks unsupported.</summary>
-    private static List<(int X, int Z)> PorchPosts(Footprint porch, RoomEdge outer)
+    private static List<(int X, int Z)> PorchPosts(BuildingPlan porch, RoomEdge outer)
     {
         var alongX = outer is RoomEdge.NegZ or RoomEdge.PosZ;
         var (lo, hi) = alongX ? (porch.MinX, porch.MaxX) : (porch.MinZ, porch.MaxZ);
@@ -884,7 +884,7 @@ public static class HouseStamper
 
     /// <summary>The deck's open edges — the one facing away from the house and the two flanks running back to
     /// it. The edge against the wall is not one of them; the wall is already there.</summary>
-    private static IEnumerable<(int X, int Z)> PorchRail(Footprint porch, RoomEdge outer)
+    private static IEnumerable<(int X, int Z)> PorchRail(BuildingPlan porch, RoomEdge outer)
     {
         for (var x = porch.MinX; x <= porch.MaxX; x++)
             for (var z = porch.MinZ; z <= porch.MaxZ; z++)
@@ -903,7 +903,7 @@ public static class HouseStamper
 
     /// <summary>The gap a flat lid carries, or null for a roof that has none. Sloped forms never take one:
     /// they have a volume of their own and a hole in a slope is a leak rather than a light.</summary>
-    private static Footprint? RoofHole(HouseStyle style, Footprint body)
+    private static BuildingPlan? RoofHole(HouseStyle style, BuildingPlan body)
     {
         if (!style.Roof.Hole || style.Roof.Form != RoofForm.Flat) return null;
         int spanX = RoofHoleSpan(body.Width), spanZ = RoofHoleSpan(body.Depth);
@@ -911,7 +911,7 @@ public static class HouseStamper
         // symmetrically so the centre is the same either way.
         var minX = body.MinX + (body.Width - spanX) / 2;
         var minZ = body.MinZ + (body.Depth - spanZ) / 2;
-        return new Footprint(minX, minZ, minX + spanX - 1, minZ + spanZ - 1);
+        return new BuildingPlan(minX, minZ, minX + spanX - 1, minZ + spanZ - 1);
     }
 
     /// <summary>The hole a flat roof carries over a shell <paramref name="span"/> wide: proportional

@@ -14,7 +14,7 @@ public sealed class HouseWindowsTests
 
     /// <summary>The runs of wall a plain rectangle stands in — four, one per side.</summary>
     private static IReadOnlyList<WallSegment> Walls(int width = 15, int depth = 11)
-        => new Footprint(0, 0, width - 1, depth - 1).Segments;
+        => new BuildingPlan(0, 0, width - 1, depth - 1).Segments;
 
     /// <summary>One wall of a rectangle, named the way a rectangle lets it be named.</summary>
     private static WallSegment Wall(RoomEdge facing, int width = 15, int depth = 11)

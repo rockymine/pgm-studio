@@ -494,8 +494,8 @@ and no larger than 192 blocks of footprint, and a drag outside that range places
 
 **A building prop states one or more touching rectangles, and what each one is.** Its `wings` field is a list
 of entries — `corners`, the two opposite corners a drag always stored, and an optional `spec` holding
-everything the wing states about itself — and `HouseProp.Footprint()` composes them into a `Footprint`
-(`src/PgmStudio.Minecraft/Footprint.cs`) — **one or more touching rectangles**, the same shape `HouseStamper`
+everything the wing states about itself — and `HouseProp.Plan()` composes them into a `BuildingPlan`
+(`src/PgmStudio.Minecraft/BuildingPlan.cs`) — **one or more touching rectangles**, the same shape `HouseStamper`
 has always taken. An L, a T or a U is therefore one house under one style rather than two standing beside each
 other: the outline is walked as a single landmass, so an L answers six runs of wall and a T eight, a wall ends
 wherever the building turns, and the cell where two wings meet is an inner corner carrying a post of its own.
@@ -513,7 +513,7 @@ hall's runs along the shared edge and the wing's runs into it, both along it is 
 both into it is one longer range. A wing also reaches no further along that edge than the hall reaches across
 it, since a gable's height follows the span its slopes cross. `HouseProp.Fault()` names the rule a refused plan
 broke — `HJ1` overlapping, `HJ2` a partial touch, `HJ3` a gutter, `HJ4` one longer range, `HJ5` a wing standing
-taller than its hall — and `Footprint()` answers null for the same plans, so a build gets the plan or nothing.
+taller than its hall — and `Plan()` answers null for the same plans, so a build gets the plan or nothing.
 
 **The roof over a junction is built and has two behaviours.** A building's roof is the union of its wings'
 roofs, and each wing is extruded as the whole building it would be alone; where their volumes meet, **only the
@@ -563,7 +563,7 @@ happened to lay the block.
 **The overlap rule tells two buildings colliding from one building's own wings meeting.** Two props whose
 plans share a cell are still refused — the second is dropped rather than raised through the first's walls — but
 a plan's own wings never reach that test against each other, since the whole plan is composed and checked as
-one `Footprint` before anything is placed. The canvas still only ever drags one rectangle at a time: a second
+one `BuildingPlan` before anything is placed. The canvas still only ever drags one rectangle at a time: a second
 wing is something a hand-authored or agent-authored document can state today, and the drawing tool to add one
 on the canvas is not built (`S60`).
 
@@ -642,7 +642,7 @@ unstampable for its own size — a wing under 3 × 3, or a plan covering more th
 wings make no building, which is the joint model's five rules: `HJ1` two rectangles sharing blocks, `HJ2` a
 touch over part of an edge only, `HJ3` both ridges along the shared edge, `HJ4` both into it, `HJ5` a wing
 standing taller than the hall it meets. `HouseProp.Fault()` answers the id and a sentence in the terms the
-rectangles were drawn in; `Footprint()` answers null for the same plans, so a stamp gets the plan or nothing.
+rectangles were drawn in; `Plan()` answers null for the same plans, so a stamp gets the plan or nothing.
 The refusal is the prop's own and never the stamper's — a wool cage and a spawn cube go through the same
 `HouseStamper` from a plan piece's geometry, which no dressing limit has any business judging.
 

@@ -315,7 +315,7 @@ the eave's rise goes negative below the base plane and rounding those cells back
 the slope it belongs to. The slab is a block id rather than a material, for the reason a window's is: which
 half of its cube a slab fills is geometry.
 
-Every roof here is a height field over **one rectangle**, and a building is not always one. A `Footprint` is
+Every roof here is a height field over **one rectangle**, and a building is not always one. A `BuildingPlan` is
 one or more touching **wings**; everything below the eave — the foundation, the walls, the
 window runs, the doorways, the slab and the beams — reads the plan's own cells, so an L, a T or a U is built as
 one house on one outline. A wall stands wherever the plan is exposed, **diagonals included**: where two
@@ -410,7 +410,7 @@ a refused plan says which rule it broke rather than declining to stamp in silenc
 | `HJ4` | both ridges run into it — one longer range |
 | `HJ5` | the wing stands taller than the hall it meets |
 
-`HouseProp.Fault()` reports the id and a sentence in the terms the rectangles were drawn in; `Footprint()`
+`HouseProp.Fault()` reports the id and a sentence in the terms the rectangles were drawn in; `Plan()`
 answers null for the same plans, so a build gets the plan or nothing.
 
 **March and project are the wing's own choice, and it is the one thing about a joint the rectangles cannot

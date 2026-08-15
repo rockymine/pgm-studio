@@ -245,7 +245,7 @@ public sealed record FloraProp : PlacedProp
 /// orbit says that without the stamp having to know it happened. <see cref="Wings"/> is a list of these: one
 /// entry is the plain rectangle every board carried until <c>G177</c>, and more than one is an L, a T or a U —
 /// still one house under one style, the shape <see cref="HouseStamper"/> already takes as a
-/// <see cref="Minecraft.Footprint"/> of touching <see cref="Wing"/> rectangles.</para>
+/// <see cref="Minecraft.BuildingPlan"/> of touching <see cref="Wing"/> rectangles.</para>
 /// </summary>
 /// <summary>
 /// One wing as an author drew it: the two opposite corners of its rectangle, and everything it states about
@@ -321,10 +321,10 @@ public sealed record HouseProp : PlacedProp
     /// <para>Every wing is required to hold two walls and an inside on its own, the same three-block floor a
     /// single rectangle always has: a wing composes with its neighbours below the eave, but nothing composes a
     /// room out of a sliver with no width of its own.</para></summary>
-    public Minecraft.Footprint? Footprint() => Check().Refuses ? null : Read();
+    public Minecraft.BuildingPlan? Plan() => Check().Refuses ? null : Read();
 
     /// <summary>Why this prop is no building — every reason, not the first. Empty where it is one. Separate
-    /// from <see cref="Footprint"/> because the two callers want different halves: a build wants the plan or
+    /// from <see cref="Plan"/> because the two callers want different halves: a build wants the plan or
     /// nothing, and an author wants the sentences, since a plan silently declining to stamp is the failure
     /// this exists to replace.
     ///
@@ -365,7 +365,7 @@ public sealed record HouseProp : PlacedProp
     }
 
     /// <summary>The wings as drawn, with nothing judged — what both of the two above read.</summary>
-    private Minecraft.Footprint? Read()
+    private Minecraft.BuildingPlan? Read()
     {
         if (Wings.Count == 0) return null;
         var wings = new List<Wing>(Wings.Count);
@@ -376,7 +376,7 @@ public sealed record HouseProp : PlacedProp
             var (minX, minZ, maxX, maxZ) = Corners(corners);
             wings.Add(new Wing(minX, minZ, maxX, maxZ, authored.Spec));
         }
-        return new Minecraft.Footprint(wings);
+        return new Minecraft.BuildingPlan(wings);
     }
 
     private static (int MinX, int MinZ, int MaxX, int MaxZ) Corners(IReadOnlyList<double[]> corners) => (

@@ -5045,6 +5045,15 @@ these are the ones that shipped a map that could not be played as intended, and 
   count of what was asked for. Seven regression tests at the placement, the two that matter being a house
   dropped for overlapping one already standing and a house authored over void: both claim nothing.
   `StructureClaim`'s docstring states the rule for the passes that have not yet followed it (`B203`).
+- **The building plan and the relief landmass no longer share a name (B205).** `PgmStudio.Geom.Footprint` is
+  the ground a relief is solved over — a landmass as a dense grid of land cells. `PgmStudio.Minecraft.Footprint`
+  was a building's plan — wings, `OnPerimeter`, `OnCorner`, `Ring`, `Arc`. One name over two meanings rather
+  than two spellings of one, and `Minecraft` references `Geom`, so both were in scope in every file that meant
+  the second; `HouseProp` had already had to write `Minecraft.Footprint? Footprint()` to say which it meant,
+  which is the collision biting inside a single line. The building one is now **`BuildingPlan`** and its
+  accessor is `HouseProp.Plan()`, with the docstring carrying why. Renamed **before** the inward walk is lifted
+  out of it into `PgmStudio.Geom.Algorithms` (bucket 13), which is the moment the two names would otherwise
+  have met in one namespace with a sentence true of both.
 - **`PlanValidator` asks its one question through one verb (B206).** `B191`/`B192` shipped one `Finding`, one
   `Findings` and one verb, and `Errors(PlanModel)` and `HasErrors` were left behind beside `Check` — four
   public entry points to one class, of which `Errors` had no caller anywhere in `src/`, `tools/` or `tests/`

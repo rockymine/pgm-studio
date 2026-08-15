@@ -872,7 +872,7 @@ public sealed class HouseStamperTests
     /// the wing's end, which is what makes the pair a building at all
     /// (<see cref="WingJoints"/>). Nothing here asserts anything about the roof; the junction fixtures that do
     /// are <see cref="EllMarch"/> and <see cref="EllProject"/>.</summary>
-    private static Footprint Ell() => new([new Wing(0, 0, 10, 6), new Wing(0, 7, 5, 13)]);
+    private static BuildingPlan Ell() => new([new Wing(0, 0, 10, 6), new Wing(0, 7, 5, 13)]);
 
     /// <summary>Everything below the eave follows the plan rather than the box drawn round it. The notch is the
     /// cell that tells them apart: a pass reading a min and a max writes into it, and the building never stood
@@ -1016,7 +1016,7 @@ public sealed class HouseStamperTests
     public async Task A_plan_with_no_inside_is_refused()
     {
         var world = new VoxelWorld();
-        HouseStamper.Stamp(world, new Footprint(0, 0, 9, 1), FloorY, new HouseStyle());
+        HouseStamper.Stamp(world, new BuildingPlan(0, 0, 9, 1), FloorY, new HouseStyle());
         await Assert.That(world.GetBlock(0, FloorY, 0).Id).IsEqualTo(Blocks.Air);
     }
 
@@ -1027,7 +1027,7 @@ public sealed class HouseStamperTests
     [Test]
     public async Task A_storey_above_a_stopped_wing_walls_the_line_they_shared()
     {
-        var plan = new Footprint([new Wing(0, 0, 10, 6, new WingSpec(StoreysHigh: 2)), new Wing(0, 7, 6, 12, new WingSpec(StoreysHigh: 1))]);
+        var plan = new BuildingPlan([new Wing(0, 0, 10, 6, new WingSpec(StoreysHigh: 2)), new Wing(0, 7, 6, 12, new WingSpec(StoreysHigh: 1))]);
         var style = new HouseStyle
         {
             Storeys = [new Storey { Clear = 4 }, new Storey { Clear = 4 }],
@@ -1054,18 +1054,18 @@ public sealed class HouseStamperTests
     /// narrower than it is deep, so its ridge runs the other way from the hall's — which is what puts one of
     /// its gable ends against the hall and the other out in the open. The two <b>abut</b>: the wing's last row
     /// is the one before the hall's first, which is the whole of how a junction is drawn.</summary>
-    private static Footprint Tee() => new([new Wing(0, 6, 9, 10), new Wing(2, 0, 6, 5)]);
+    private static BuildingPlan Tee() => new([new Wing(0, 6, 9, 10), new Wing(2, 0, 6, 5)]);
 
     /// <summary>An L on the same hall, with the wing set against its corner rather than its middle. Its ridge
     /// runs across the hall's, which is what makes the meeting a junction at all — see <see cref="Ell"/>, whose
     /// two ridges are parallel and which therefore exercises none of this.</summary>
-    private static Footprint EllMarch() => new([new Wing(0, 6, 9, 10), new Wing(0, 0, 4, 5)]);
+    private static BuildingPlan EllMarch() => new([new Wing(0, 6, 9, 10), new Wing(0, 0, 4, 5)]);
 
     /// <summary>The same L, and the same two rectangles, with the wing asking to carry its roof across the hall
     /// instead of stopping in it — so its second gable stands in the open on the far side. <b>Nothing about the
     /// plan differs</b>: a projection is the one thing about a junction the rectangles cannot say, which is why
     /// the wing says it.</summary>
-    private static Footprint EllProject() =>
+    private static BuildingPlan EllProject() =>
         new([new Wing(0, 6, 9, 10), new Wing(0, 0, 4, 5, new WingSpec(Projects: true))]);
 
     /// <summary>
@@ -1116,7 +1116,7 @@ public sealed class HouseStamperTests
     /// </summary>
     [Test]
     [MethodDataSource(nameof(Junctions))]
-    public async Task An_attic_over_a_junction_is_one_space(string name, Footprint plan)
+    public async Task An_attic_over_a_junction_is_one_space(string name, BuildingPlan plan)
     {
         var style = new HouseStyle();
         var world = Built(plan, style);
@@ -1168,10 +1168,10 @@ public sealed class HouseStamperTests
     /// ties and takes the along-x ridge, which is the hall's, and the two roofs meet in a gutter. It shares the
     /// hall's near row exactly as the other junction fixtures do — a wing that merely abuts one has no ground in
     /// common with it to open through.</summary>
-    private static Footprint EllSquare() =>
+    private static BuildingPlan EllSquare() =>
         new([new Wing(0, 6, 9, 10), new Wing(0, 1, 4, 5, new WingSpec(Ridge: RidgeAxis.AlongZ))]);
 
-    public static IEnumerable<(string, Footprint)> Junctions() =>
+    public static IEnumerable<(string, BuildingPlan)> Junctions() =>
     [
         ("T marched", Tee()), ("T projected", Crossed()),
         ("L marched", EllMarch()), ("L projected", EllProject()),
@@ -1261,7 +1261,7 @@ public sealed class HouseStamperTests
         var world = Built(EllProject(), style);
 
         var lone = new VoxelWorld();
-        HouseStamper.Stamp(lone, new Footprint(0, 6, 9, 10), FloorY, style);
+        HouseStamper.Stamp(lone, new BuildingPlan(0, 6, 9, 10), FloorY, style);
 
         var checkedCells = 0;
         for (var z = 6; z <= 10; z++)
@@ -1286,7 +1286,7 @@ public sealed class HouseStamperTests
     /// outside every wing and that end stands in the open — which is the only way a wing gets a second gable.
     /// The roof reaches the hall's far wall or it does not project at all: a gable landing mid-slope is a shape
     /// the stamper never builds, because the extension is taken to that wall rather than to a distance.</summary>
-    private static Footprint Crossed() =>
+    private static BuildingPlan Crossed() =>
         new([new Wing(0, 6, 9, 10), new Wing(2, 0, 6, 5, new WingSpec(Projects: true))]);
 
     /// <summary>
@@ -1344,7 +1344,7 @@ public sealed class HouseStamperTests
         var style = new HouseStyle { Roof = new RoofStyle { Form = RoofForm.Gable, Pitch = 1 } };
         var eave = FloorY + style.WallCourses;
 
-        int Surface(Footprint plan, int x, int z)
+        int Surface(BuildingPlan plan, int x, int z)
         {
             var world = Built(plan, style);
             for (var y = FloorY + 20; y >= eave; y--)
@@ -1381,7 +1381,7 @@ public sealed class HouseStamperTests
     [Test]
     public async Task A_steeper_wings_march_stops_short_of_a_shallower_halls_far_wall()
     {
-        var plan = new Footprint([
+        var plan = new BuildingPlan([
             new Wing(0, 5, 9, 9, new WingSpec(Form: RoofForm.Gable, Pitch: 1)),
             new Wing(2, 0, 6, 5, new WingSpec(Form: RoofForm.Gable, Pitch: 2)),
         ]);
@@ -1391,7 +1391,7 @@ public sealed class HouseStamperTests
         // The hall exactly as it would have stood with no wing at all, to read what its own roof does on its
         // own — the only oracle that does not beg the question of what the march ought to leave behind.
         var lone = new VoxelWorld();
-        HouseStamper.Stamp(lone, new Footprint(0, 5, 9, 9), FloorY, style);
+        HouseStamper.Stamp(lone, new BuildingPlan(0, 5, 9, 9), FloorY, style);
 
         var wing = plan.Wings[1];
         var untouched = 0;
@@ -1421,7 +1421,7 @@ public sealed class HouseStamperTests
     [Test]
     public async Task A_march_against_a_flat_roofed_hall_stops_without_a_ridge_to_strike()
     {
-        var plan = new Footprint([
+        var plan = new BuildingPlan([
             new Wing(0, 5, 9, 9, new WingSpec(Form: RoofForm.Flat)),
             new Wing(2, 0, 6, 5, new WingSpec(Form: RoofForm.Gable, Pitch: 1)),
         ]);
@@ -1429,7 +1429,7 @@ public sealed class HouseStamperTests
         var world = Built(plan, style);
 
         var lone = new VoxelWorld();
-        HouseStamper.Stamp(lone, new Footprint(0, 5, 9, 9), FloorY, style with { Roof = style.Roof with { Form = RoofForm.Flat } });
+        HouseStamper.Stamp(lone, new BuildingPlan(0, 5, 9, 9), FloorY, style with { Roof = style.Roof with { Form = RoofForm.Flat } });
 
         var wing = plan.Wings[1];
         var untouched = 0;
@@ -1448,7 +1448,7 @@ public sealed class HouseStamperTests
         await Assert.That(untouched).IsGreaterThan(0);
     }
 
-    private static VoxelWorld Built(Footprint plan, HouseStyle style)
+    private static VoxelWorld Built(BuildingPlan plan, HouseStyle style)
     {
         var world = new VoxelWorld();
         HouseStamper.Stamp(world, plan, FloorY, style);
@@ -1503,7 +1503,7 @@ public sealed class HouseStamperTests
     [Test]
     public async Task A_shorter_wings_roof_stops_against_its_taller_neighbour()
     {
-        var plan = new Footprint([new Wing(0, 0, 10, 6, new WingSpec(StoreysHigh: 2)), new Wing(0, 7, 6, 12, new WingSpec(StoreysHigh: 1))]);
+        var plan = new BuildingPlan([new Wing(0, 0, 10, 6, new WingSpec(StoreysHigh: 2)), new Wing(0, 7, 6, 12, new WingSpec(StoreysHigh: 1))]);
         var style = new HouseStyle
         {
             Storeys = [new Storey { Clear = 4 }, new Storey { Clear = 4 }],

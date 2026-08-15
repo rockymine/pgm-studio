@@ -496,7 +496,7 @@ houses sharing a wall reads as one finding per house instead of one finding for 
 flood into.
 
 **The claim is the stamp's own reach, not the rectangle someone dragged.** The claim used to be
-`HouseProp.Footprint()` — the two-corner rectangle a style's walls stand on — and stop there. A roof reaches
+`HouseProp.Plan()` — the two-corner rectangle a style's walls stand on — and stop there. A roof reaches
 past that by its `overhang`, a `verge` is commonly a log, and a `BeamStyle`'s log ends run further still, so
 the ring of cells the eaves actually land on kept whatever claim the ground under it had before the house was
 placed and read `Foliage` by material — a village of eleven houses drew eleven rectangles outlined in

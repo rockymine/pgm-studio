@@ -72,7 +72,7 @@ public sealed class DressingJsonTests
         var house = (HouseProp)doc.Props[0];
 
         await Assert.That(house.Wings.Count).IsEqualTo(1);
-        var plan = house.Footprint();
+        var plan = house.Plan();
         await Assert.That(plan).IsNotNull();
         await Assert.That((plan!.MinX, plan.MinZ, plan.Width, plan.Depth)).IsEqualTo((0, 0, 11, 7));
     }
@@ -94,7 +94,7 @@ public sealed class DressingJsonTests
         await Assert.That(house.Wings[0].Spec).IsEqualTo(default(WingSpec));
         await Assert.That(house.Check()).IsEmpty();
 
-        var plan = house.Footprint()!;
+        var plan = house.Plan()!;
         await Assert.That(plan.Wings[1].Projects).IsFalse();
         await Assert.That(plan.Wings[1].Ridge).IsNull();
     }
@@ -115,7 +115,7 @@ public sealed class DressingJsonTests
                                                "ridge":"AlongZ","projects":true}}
             ]}]}
             """);
-        var wing = ((HouseProp)doc.Props[0]).Footprint()!.Wings[1];
+        var wing = ((HouseProp)doc.Props[0]).Plan()!.Wings[1];
 
         await Assert.That((wing.StoreysHigh, wing.Pitch, wing.RoofSlab)).IsEqualTo((2, 2, (int?)44));
         await Assert.That((wing.Form, wing.Ridge, wing.Projects))

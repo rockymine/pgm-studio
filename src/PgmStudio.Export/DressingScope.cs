@@ -224,7 +224,7 @@ public static class DressingScope
                 yield return symmetry.ImageCell(boulder.X, boulder.Z, image);
                 break;
             case HouseProp house:
-                if (house.Footprint() is { } plan)
+                if (house.Plan() is { } plan)
                     foreach (var cell in Decorator.TurnedFootprint(plan, symmetry, image).Cells())
                         yield return cell;
                 break;

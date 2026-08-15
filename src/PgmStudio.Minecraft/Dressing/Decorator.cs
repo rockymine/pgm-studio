@@ -313,7 +313,7 @@ public static class Decorator
     // ── buildings (DR-HO) ───────────────────────────────────────────────────────
     /// <summary>
     /// Raise a building on the rectangles its author dragged, at every image of its orbit — one or more touching
-    /// wings composed into the one <see cref="Footprint"/> <see cref="HouseStamper"/> takes, so an L or a T is
+    /// wings composed into the one <see cref="BuildingPlan"/> <see cref="HouseStamper"/> takes, so an L or a T is
     /// stamped once as one house rather than once per rectangle (G177).
     ///
     /// <para><b>It is not gated on the protected mask, and it never joins it.</b> That mask exists to keep a
@@ -340,15 +340,15 @@ public static class Decorator
     private static List<StructureClaim> PlaceHouse(
         VoxelWorld world, DressingContext context, HouseProp house, HashSet<(int X, int Z)> taken)
     {
-        if (house.Footprint() is not { } plan) return [];
+        if (house.Plan() is not { } plan) return [];
 
-        var images = new List<(Footprint Plan, RoomEdge? Front, int FloorY)>(context.Symmetry.Order);
+        var images = new List<(BuildingPlan Plan, RoomEdge? Front, int FloorY)>(context.Symmetry.Order);
         for (var k = 0; k < context.Symmetry.Order; k++)
         {
             if (TurnedFootprint(plan, context.Symmetry, k) is not { } image) return [];
             // Two authored rectangles that overlap are two buildings colliding (still MG7's drop); a wing that
             // shares ground with its own prop's other wings is not a second building, and never reaches this
-            // set at all — the whole point of the plan being one Footprint rather than one Overlaps call per
+            // set at all — the whole point of the plan being one BuildingPlan rather than one Overlaps call per
             // rectangle.
             if (Overlaps(image, taken)) return [];
             var floorY = Ground(context, image);
@@ -382,7 +382,7 @@ public static class Decorator
     /// the style's roof reaches past its walls, unioned. The union of the wings rather than one box round the
     /// whole plan, because an L or a T has ground in its notch no eave reaches and claiming it would merge two
     /// buildings with clear ground between them into one structure.</summary>
-    private static IReadOnlyList<(int X, int Z)> ClaimedCells(Footprint image, HouseStyle style) =>
+    private static IReadOnlyList<(int X, int Z)> ClaimedCells(BuildingPlan image, HouseStyle style) =>
         [.. image.Wings
             .SelectMany(wing => HouseStamper.StampedCells((wing.MinX, wing.MinZ, wing.MaxX, wing.MaxZ), style))
             .Distinct()];
@@ -398,7 +398,7 @@ public static class Decorator
     /// building rather than its placement. The ridge axis is the one of them that a quarter turn <em>changes</em>
     /// — a ridge along x comes out along z — and dropping it is what would turn a T into two ranges side by
     /// side, since it is the crossing of two ridges that makes a junction at all.</para></summary>
-    public static Footprint TurnedFootprint(Footprint plan, DressingSymmetry symmetry, int image)
+    public static BuildingPlan TurnedFootprint(BuildingPlan plan, DressingSymmetry symmetry, int image)
     {
         var wings = new List<Wing>(plan.Wings.Count);
         foreach (var wing in plan.Wings)
@@ -415,7 +415,7 @@ public static class Decorator
                 Spec = wing.Spec with { Ridge = TurnedRidge(wing.Ridge, symmetry, image) },
             });
         }
-        return new Footprint(wings);
+        return new BuildingPlan(wings);
     }
 
     /// <summary>A stated ridge axis under the same turn its wing takes, or null where the wing left it to its
@@ -430,7 +430,7 @@ public static class Decorator
     /// <summary>Whether any cell of a plan is already claimed — the building half of MG7's overlap rule, tested
     /// over the whole union of its wings rather than a resting subset, because a building has no other level:
     /// the floor it stamps covers every column of it.</summary>
-    private static bool Overlaps(Footprint plan, HashSet<(int X, int Z)> taken)
+    private static bool Overlaps(BuildingPlan plan, HashSet<(int X, int Z)> taken)
     {
         foreach (var (x, z) in plan.Cells())
             if (taken.Contains((x, z))) return true;
@@ -439,7 +439,7 @@ public static class Decorator
 
     /// <summary>The course a building's floor sits at: one below the lowest ground its plan covers, or null
     /// where that plan has no ground at all.</summary>
-    private static int? Ground(DressingContext context, Footprint plan)
+    private static int? Ground(DressingContext context, BuildingPlan plan)
     {
         var lowest = int.MaxValue;
         foreach (var (x, z) in plan.Cells())
@@ -452,7 +452,7 @@ public static class Decorator
     /// Stated as a door rather than left to the stamper because the stamper picks the <em>side</em> as well, and
     /// here the side is the author's. Reads the plan's own <see cref="WallSegment"/> rather than a width and a
     /// depth, since on a plan of more than one wing the chosen wall is not the whole of that side.</summary>
-    private static IReadOnlyList<RoomDoor> Doorway(HouseStyle style, Footprint plan, RoomEdge front)
+    private static IReadOnlyList<RoomDoor> Doorway(HouseStyle style, BuildingPlan plan, RoomEdge front)
     {
         var about = front is RoomEdge.NegZ or RoomEdge.PosZ ? (plan.MinX + plan.MaxX) / 2 : (plan.MinZ + plan.MaxZ) / 2;
         if (plan.WallFacing(front, about) is not { } wall) return [];

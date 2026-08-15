@@ -172,10 +172,17 @@ public readonly record struct Wing(int MinX, int MinZ, int MaxX, int MaxZ, WingS
 /// direction a wall-run material reads. A house has two of these once it has a porch (what the walls keep and
 /// what the deck took), which is why the ring a cell is painted against is passed rather than assumed.
 ///
-/// <para><b>A footprint is one or more touching rectangles</b>, so every question it answers is asked of the
+/// <para><b>A plan is one or more touching rectangles</b>, so every question it answers is asked of the
 /// cells rather than of a min and a max. A rectangle can answer most of them in closed form and a shape that
 /// turns a corner cannot, and keeping both would be two implementations of one idea — so there is one, and a
 /// single-rectangle building is the case where it happens to agree with arithmetic.</para>
+///
+/// <para><b>It is a plan and not a footprint, because <see cref="Geom.Footprint"/> is the other thing</b>: the
+/// ground a relief is solved over, a landmass held as a dense grid. Both were called <c>Footprint</c>, and
+/// <c>Minecraft</c> references <c>Geom</c>, so both were in scope in every file that meant this one — a name
+/// over two meanings rather than two spellings of one, which is the shape that reads correctly right up to
+/// the point where the two meet. <see cref="Dressing.HouseProp"/> had already had to write
+/// <c>Minecraft.Footprint? Footprint()</c> to say which it meant.</para>
 ///
 /// <para><b>The outline is walked</b> (<see cref="GridBoundary"/>), at the window the terrain painter measures
 /// its own edges over, so a wall and the plateau beside it cannot answer a wall-run material differently.</para>
@@ -186,12 +193,12 @@ public readonly record struct Wing(int MinX, int MinZ, int MaxX, int MaxZ, WingS
 /// four sides. Both carry a post, so an L stands on six; only an outer one throws a beam, since an inner one
 /// has no direction to throw it in that is not the building itself.</para>
 /// </summary>
-public sealed class Footprint
+public sealed class BuildingPlan
 {
     private readonly Wing[] wings;
 
     /// <summary>A building of one rectangle, whose walls occupy the cells between the two corners inclusive.</summary>
-    public Footprint(int minX, int minZ, int maxX, int maxZ)
+    public BuildingPlan(int minX, int minZ, int maxX, int maxZ)
         : this([new Wing(minX, minZ, maxX, maxZ)]) { }
 
     /// <summary>A building of one or more wings. They are expected to abut over a whole shared edge — the
@@ -200,7 +207,7 @@ public sealed class Footprint
     /// cage reach the stamper through this constructor with geometry a map's own layout decided, which no
     /// building rule has any business refusing. <see cref="WingJoints"/> is what judges a plan, and
     /// <c>HouseProp.Fault</c> is where an authored one is held to it.</summary>
-    public Footprint(IReadOnlyList<Wing> wings)
+    public BuildingPlan(IReadOnlyList<Wing> wings)
     {
         ArgumentOutOfRangeException.ThrowIfZero(wings.Count);
         this.wings = [.. wings];
@@ -224,7 +231,7 @@ public sealed class Footprint
     /// steps in from its wall — is then asked of that plan, and none of it knows it is above anything.</para>
     ///
     /// <para>Null where no wing reaches the storey. The ground is always the whole plan.</para></summary>
-    public Footprint? At(int level)
+    public BuildingPlan? At(int level)
     {
         if (level <= 0) return this;
         storeys ??= [];
@@ -235,7 +242,7 @@ public sealed class Footprint
         // runs measured on the ground serve every storey above it too.
         standing = reaching.Length == 0 ? null
             : reaching.Length == wings.Length ? this
-            : new Footprint(reaching);
+            : new BuildingPlan(reaching);
         storeys[level] = standing;
         return standing;
     }
@@ -434,7 +441,7 @@ public sealed class Footprint
     private PerimeterTrace? perimeter;
     private Dictionary<(int X, int Z), int>? inset;
     private WallSegment[]? segments;
-    private Dictionary<int, Footprint?>? storeys;
+    private Dictionary<int, BuildingPlan?>? storeys;
 
     /// <summary>The walked outline, measured once on first use. A wall reads its arc, bend and direction from
     /// the same walk of the same outline that a plateau's edge reads them from — one measurement, so a building

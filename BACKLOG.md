@@ -590,24 +590,6 @@ are Edit-specific. Full canvas spec: `docs/client/canvas-interaction.md`.
   manufactured to hold it — and **the one picture the plan layer offers cannot show what it produced**, so an
   agent authoring from the render has no way to see its own goal.
 
-- [ ] **B205 — Two different classes are called `Footprint`, and one project sees both.**
-  `PgmStudio.Geom.Footprint` is the ground a relief is solved over: a dense grid of land cells over a bounding
-  box, with `Inside`, `Land()` and `Rasterize`. `PgmStudio.Minecraft.Footprint` is a building's plan: wings,
-  `OnPerimeter`, `OnCorner`, `Ring`, `Arc`, `Near`. They share a name, a cell type and nothing else — one is a
-  landmass and the other is a house — and `Minecraft` references `Geom`, so both are in scope in every file of
-  the project that owns the second. Its own namespace wins today, which is why nothing has failed.
-
-  It is the `IsGround`/`IsNaturalGround` shape from `B203` one level up: not two spellings of one meaning but
-  **one name over two meanings**, where a reader has to know which project a call site is in before the type
-  tells them anything. It bites when the inward walk is lifted (`B200`, bucket 13), because that work moves a
-  method *off* the Minecraft class and *into* `Geom` — into the same namespace as the other `Footprint` — and
-  the sentence describing what it walks over will be true of both. Rename before that lands rather than after:
-  the relief one is a landmass and the building one is a plan, and both words are already used in their own
-  docstrings.
-
-  *found reading the two classes for `B204`, 2026-08-15 · `Geom/Relief/Footprint.cs:13` ·
-  `Minecraft/Footprint.cs:189`.*
-
 ### The mapgen audit's forty-eight, bucketed for dispatch
 
 Six agent runs authored nineteen loadable boards against the `B120` brief, and the author's review of twelve
@@ -657,7 +639,7 @@ reads it names the id.
 **The inward axis — bands read along a distance.** `B199`, `B200` and `B201` are one concept and were filed in
 bucket 4 because they mention materials. They are not block-kind rules: two of them are one walk asked for on
 two rasters, and the third is the same bands read along an axis that is continuous rather than stepped.
-`Footprint.Step()` in `PgmStudio.Minecraft` is a private 4-connected BFS inward from the
+`BuildingPlan.Step()` in `PgmStudio.Minecraft` is a private 4-connected BFS inward from the
 outline; `TerrainProfile` has no equivalent, though both already share `GridBoundary.TracePerimeter` for the
 arc — so the seed is common and only the inset is not. **Lands in** `PgmStudio.Geom.Algorithms` beside
 `GridBoundary`, with `ColumnProfile` carrying an `Inset` beside its `PerimeterArc` and `BandStack` read along
@@ -1417,7 +1399,7 @@ the thing `B181` names, which makes the document upstream of the boards rather t
 Three entries and one walk. They were filed under bucket 4 because each names materials, and they are not
 block-kind rules: a floor divided into concentric zones, a terrain top course banded inward from its rim, and
 a band stack whose axis is continuous are the same question asked on three rasters — **how far in from the
-edge does this cell stand, and which band claims that distance.** `Footprint.Step()` already answers it for a
+edge does this cell stand, and which band claims that distance.** `BuildingPlan.Step()` already answers it for a
 building's floor and nothing answers it for terrain, though `GridBoundary.TracePerimeter` is already shared by
 both. `B200`'s author call is **answered**, so nothing here is blocked.
 
@@ -1432,7 +1414,7 @@ each tread seeded its own ring 0.
   `Border`/`BorderWidth` + `Field` + `Inlay`/`InlayInset` — three fixed zones where the border is one material
   of width N rather than a sequence, and the inlay is measured from the opposite end. A cobble ring, then two
   rings of stone brick, then a grass field is not sayable on a house floor either. The traversal is the one
-  `BandStack` now owns (`B195`) and the input already exists — `Footprint.Ring(x, z)` — so what is missing is
+  `BandStack` now owns (`B195`) and the input already exists — `BuildingPlan.Ring(x, z)` — so what is missing is
   the *authored* shape: the border becomes a stack read by ring with `BandEnding.HandOver`, which is what its
   `At(ring)` returning null already means by hand.
 
@@ -1443,7 +1425,7 @@ each tread seeded its own ring 0.
   part *and an ordinal*, so a border of several bands is expressible without a migration.
 
   **It is the same concept as `B200`, on the other raster**: the top course of a plan divided into bands by how
-  far in from the edge a cell stands. The house has the axis (`Footprint.Ring`) and three fixed zones over it;
+  far in from the edge a cell stands. The house has the axis (`BuildingPlan.Ring`) and three fixed zones over it;
   the terrain has neither. Whichever lands first should leave the other holding a band stack read along an
   inset, and the two should be reviewed together rather than in sequence.
 
@@ -1456,12 +1438,12 @@ each tread seeded its own ring 0.
   while theming a board — cannot be said. This is theming of the **topmost course only**, walked inward; it is
   not the `Rim` bucket becoming concentric, and filing it that way was wrong.
 
-  **Nothing new has to be derived.** `Footprint.Step()` is the walk: seed a queue with every cell on the
+  **Nothing new has to be derived.** `BuildingPlan.Step()` is the walk: seed a queue with every cell on the
   outline, then flood inward one pass at a time over cells that are in the shape and not yet numbered — one
   pass catches the first ring, two catch the second. It is 4-connected BFS over `(x, z)` cells and reads
   nothing about houses. The terrain raster is the same kind of thing: `TerrainProfile` already classifies every
   paintable column from `surfaceTop` by looking at its N8 neighbours, and its void-edge test is
-  `Footprint.OnPerimeter` written a second time — *in the set, and some N8 neighbour is outside it*. So the
+  `BuildingPlan.OnPerimeter` written a second time — *in the set, and some N8 neighbour is outside it*. So the
   seed exists on both sides and the walk exists on one.
 
   **The shape of the fix, in three moves.** Lift the BFS into `PgmStudio.Geom.Algorithms` beside
@@ -1481,7 +1463,7 @@ each tread seeded its own ring 0.
   the geometric edge, not the `Rim` bucket's toggle: the walk starts "from the rim or if there is no rim".
 
   *reported by the author while theming a board; corrected 2026-08-15 after reading `TerrainProfile` ·
-  `Footprint.Step` · `GridBoundary` · `docs/world-export/terrain-painting.md`.*
+  `BuildingPlan.Step` · `GridBoundary` · `docs/world-export/terrain-painting.md`.*
 
 - [ ] **B201 — `VoronoiMaterial.Bands` is a band stack that cannot use the band stack.** Its element is
   `(material, depth)` — the same pair a `Band` is — but its axis is the **continuous** Worley `F2 − F1` gap

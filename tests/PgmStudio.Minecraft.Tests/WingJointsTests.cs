@@ -139,7 +139,7 @@ public class WingJointsTests
         var corner = WingJoints.Between(Hall, new Wing(12, 0, 16, 4, new WingSpec(Ridge: RidgeAxis.AlongZ)));
         await Assert.That(corner.Fault).IsEqualTo(JointFault.Apart);
 
-        var plan = new Footprint([Hall, new Wing(0, 0, 4, 3, new WingSpec(Ridge: RidgeAxis.AlongZ))]);
+        var plan = new BuildingPlan([Hall, new Wing(0, 0, 4, 3, new WingSpec(Ridge: RidgeAxis.AlongZ))]);
         await Assert.That(WingJoints.Of(plan).Count).IsEqualTo(0);
     }
 

@@ -217,7 +217,7 @@ ground was chosen to suit it.
 ## The dressing
 
 **MG8's document-model half shipped: an L or a T house is authorable now, not merely buildable (`G177`).**
-`HouseProp.Wings` states one or more touching rectangles and `Decorator` composes them into one `Footprint`
+`HouseProp.Wings` states one or more touching rectangles and `Decorator` composes them into one `BuildingPlan`
 before stamping, the same wing model `HouseStamper` has always walked as one landmass, roofing the junction
 with a march or — where the wing asks to project — a second gable on the hall's far wall (`G172`, `G186`). A generator authoring `dressing.props`
 directly can therefore write a joined building today — nothing in the document model still refuses it. What is
@@ -247,7 +247,7 @@ reads first is **aspect ratio and height**, not material.
 The system is modular far past what was used. A `HouseStyle` carries a roof form and pitch, an overhang and a
 verge, a wall built of stacked `Band`s, a floor, posts, a sill, window styles with their own form,
 width, height, sill and spacing, separate gable windows, a door head, beams, and a storey stack — and a
-`Footprint` carries wings, so a building can be an L or a T with its roofs merged (MG8). None of that varies
+`BuildingPlan` carries wings, so a building can be an L or a T with its roofs merged (MG8). None of that varies
 across the batch. Placing a village round a destroy map's monument (MG32) is the case that most wants it: a
 dozen buildings of one silhouette is a barracks, and a dozen of differing silhouette is a village.
 

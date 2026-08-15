@@ -68,25 +68,25 @@ public sealed class HousePropTests
     {
         // Two corners, four ways round: an author dragging up-left and one dragging down-right placed the
         // same building, and a stamp that took the points in order would build one of them backwards.
-        var forward = House(4, 6, 12, 14).Footprint();
+        var forward = House(4, 6, 12, 14).Plan();
         await Assert.That(forward).IsNotNull();
         await Assert.That((forward!.MinX, forward.MinZ, forward.Width, forward.Depth)).IsEqualTo((4, 6, 9, 9));
-        await Assert.That(Plan(House(12, 14, 4, 6).Footprint())).IsEqualTo(Plan(forward));
-        await Assert.That(Plan(House(12, 6, 4, 14).Footprint())).IsEqualTo(Plan(forward));
+        await Assert.That(Plan(House(12, 14, 4, 6).Plan())).IsEqualTo(Plan(forward));
+        await Assert.That(Plan(House(12, 6, 4, 14).Plan())).IsEqualTo(Plan(forward));
     }
 
-    /// <summary>A footprint reduced to the tuple a value comparison can read, since <see cref="Footprint"/>
+    /// <summary>A footprint reduced to the tuple a value comparison can read, since <see cref="BuildingPlan"/>
     /// itself carries no equality of its own.</summary>
-    private static (int MinX, int MinZ, int Width, int Depth)? Plan(Footprint? footprint)
+    private static (int MinX, int MinZ, int Width, int Depth)? Plan(BuildingPlan? footprint)
         => footprint is null ? null : (footprint.MinX, footprint.MinZ, footprint.Width, footprint.Depth);
 
     [Test]
     public async Task A_rectangle_too_small_to_hold_two_walls_and_an_inside_is_no_footprint_at_all()
     {
-        await Assert.That(House(0, 0, 1, 8).Footprint()).IsNull();     // two blocks across
-        await Assert.That(House(0, 0, 2, 2).Footprint()).IsNotNull();  // the smallest house there is
-        await Assert.That(new HouseProp { Wings = [new AuthoredWing([[0, 0]])] }.Footprint()).IsNull();
-        await Assert.That(new HouseProp { Wings = [] }.Footprint()).IsNull();
+        await Assert.That(House(0, 0, 1, 8).Plan()).IsNull();     // two blocks across
+        await Assert.That(House(0, 0, 2, 2).Plan()).IsNotNull();  // the smallest house there is
+        await Assert.That(new HouseProp { Wings = [new AuthoredWing([[0, 0]])] }.Plan()).IsNull();
+        await Assert.That(new HouseProp { Wings = [] }.Plan()).IsNull();
     }
 
     [Test]
@@ -95,8 +95,8 @@ public sealed class HousePropTests
         // The rule is per wing, not just over the plan as a whole: a sliver a room can never compose out of is
         // no more a wing than it is a building on its own. Both wings abut the hall's whole north edge, so the
         // only thing separating the two cases is the sliver's own width.
-        await Assert.That(House("h", null, (0, 0, 8, 8), (2, 9, 3, 16)).Footprint()).IsNull();
-        await Assert.That(House("h", null, (0, 0, 8, 8), (2, 9, 6, 16)).Footprint()).IsNotNull();
+        await Assert.That(House("h", null, (0, 0, 8, 8), (2, 9, 3, 16)).Plan()).IsNull();
+        await Assert.That(House("h", null, (0, 0, 8, 8), (2, 9, 6, 16)).Plan()).IsNotNull();
     }
 
     /// <summary>
@@ -114,7 +114,7 @@ public sealed class HousePropTests
     {
         var prop = House("h", null, (0, 0, 10, 6), (minX, minZ, maxX, maxZ));
 
-        await Assert.That((shape, prop.Footprint())).IsEqualTo((shape, (Footprint?)null));
+        await Assert.That((shape, prop.Plan())).IsEqualTo((shape, (BuildingPlan?)null));
         await Assert.That((shape, prop.Check().SingleOrDefault()?.Rule)).IsEqualTo((shape, rule));
         await Assert.That(prop.Check().Single().Message).IsNotEmpty();
     }
@@ -135,11 +135,11 @@ public sealed class HousePropTests
         // wool cage is stamped in, because scenery covering much more than a few of those competes with the
         // objectives for the ground. Area rather than a side length, so a long low building is as buildable as
         // a square one — height is the roof's business and is bounded over the shorter side.
-        await Assert.That(House(0, 0, 11, 15).Footprint()).IsNotNull();   // 12x16 = 192, the largest there is
-        await Assert.That(House(0, 0, 15, 11).Footprint()).IsNotNull();   // the same rectangle turned
-        await Assert.That(House(0, 0, 13, 12).Footprint()).IsNotNull();   // 14x13 = 182, a different shape of it
-        await Assert.That(House(0, 0, 11, 16).Footprint()).IsNull();      // 12x17 = 204
-        await Assert.That(House(0, 0, 19, 29).Footprint()).IsNull();      // 20x30 = 600, a building, not scenery
+        await Assert.That(House(0, 0, 11, 15).Plan()).IsNotNull();   // 12x16 = 192, the largest there is
+        await Assert.That(House(0, 0, 15, 11).Plan()).IsNotNull();   // the same rectangle turned
+        await Assert.That(House(0, 0, 13, 12).Plan()).IsNotNull();   // 14x13 = 182, a different shape of it
+        await Assert.That(House(0, 0, 11, 16).Plan()).IsNull();      // 12x17 = 204
+        await Assert.That(House(0, 0, 19, 29).Plan()).IsNull();      // 20x30 = 600, a building, not scenery
     }
 
     [Test]
@@ -150,7 +150,7 @@ public sealed class HousePropTests
         // building never stands on, and a building of several wings is held to the same number as one, over
         // the ground it actually claims rather than the rectangle drawn round the whole plan.
         var oversizedBox = House("h", null, (0, 0, 5, 11), (6, 0, 24, 3));
-        var plan = oversizedBox.Footprint();
+        var plan = oversizedBox.Plan();
         await Assert.That(plan).IsNotNull();
         await Assert.That(plan!.Cells().Count()).IsLessThanOrEqualTo(HouseProp.MaxFootprint);
         await Assert.That(plan.Cells().Count()).IsLessThan((24 - 0 + 1) * (11 - 0 + 1));
@@ -325,7 +325,7 @@ public sealed class HousePropTests
         var turned = new HouseProp
         {
             Wings = [new AuthoredWing(symmetry.ImageRing(House(2, 2, 12, 6).Wings[0].Corners, 1))],
-        }.Footprint();
+        }.Plan();
 
         await Assert.That(turned).IsNotNull();
         await Assert.That(turned!.Width).IsEqualTo(5);           // was the depth
@@ -343,7 +343,7 @@ public sealed class HousePropTests
     public async Task A_turned_wing_keeps_what_it_states_and_turns_its_ridge_with_it()
     {
         var symmetry = new DressingSymmetry("rot_90", 0, 0);
-        var plan = new Footprint([
+        var plan = new BuildingPlan([
             new Wing(0, 6, 9, 10),
             new Wing(0, 0, 4, 4, new WingSpec(StoreysHigh: 2, Form: RoofForm.Hip, Ridge: RidgeAxis.AlongZ, Projects: true)),
         ]);
@@ -361,7 +361,7 @@ public sealed class HousePropTests
         await Assert.That(round.Wings[1].Ridge).IsEqualTo(RidgeAxis.AlongZ);
 
         // A wing that left its ridge to its proportions has none to carry, and re-reads it from the turn.
-        var loose = Decorator.TurnedFootprint(new Footprint([new Wing(0, 0, 9, 4)]), symmetry, 1).Wings[0];
+        var loose = Decorator.TurnedFootprint(new BuildingPlan([new Wing(0, 0, 9, 4)]), symmetry, 1).Wings[0];
         await Assert.That(loose.Ridge).IsNull();
         await Assert.That(loose.RidgeAlongX).IsFalse();          // ten deep and five wide once turned
     }
