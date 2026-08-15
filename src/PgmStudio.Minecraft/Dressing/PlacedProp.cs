@@ -247,6 +247,22 @@ public sealed record FloraProp : PlacedProp
 /// still one house under one style, the shape <see cref="HouseStamper"/> already takes as a
 /// <see cref="Minecraft.Footprint"/> of touching <see cref="Wing"/> rectangles.</para>
 /// </summary>
+/// <summary>
+/// One wing as an author drew it: the two opposite corners of its rectangle, and everything it states about
+/// itself.
+///
+/// <para>The corners are <b>doubles in any order</b>, because that is what a drag produces — an author pulling
+/// up-left and one pulling down-right placed the same building — and they are floored and normalized on the
+/// way to a <see cref="Wing"/>. What the wing states is the very same <see cref="WingSpec"/> the model
+/// carries, rather than a second copy of its fields under the same names, so a wing cannot mean one thing in
+/// a document and another in the building raised from it.</para>
+/// </summary>
+/// <param name="Corners">Exactly two opposite <c>[x, z]</c> corners.</param>
+/// <param name="Spec">How tall, what roof, which way the ridge runs, and whether it projects. Every field
+/// optional: a wing that states nothing is a rectangle wearing the building's own everything, which is what
+/// every wing meant before there was anything else to say.</param>
+public sealed record AuthoredWing(IReadOnlyList<double[]> Corners, WingSpec Spec = default);
+
 /// <summary>The rule ids a placed building is refused by for its own shape, before the joint model
 /// (<see cref="WingJointRules"/>) is asked anything. Stable names, kept apart from any task-tracking id.</summary>
 public static class HousePropRules
@@ -263,11 +279,11 @@ public static class HousePropRules
 
 public sealed record HouseProp : PlacedProp
 {
-    /// <summary>The dragged rectangles, each as exactly two opposite <c>[x, z]</c> corners. They abut and never
-    /// overlap, and where they touch they share the edge whole — <see cref="Fault"/> holds them to it, since a
-    /// wing standing clear of the rest is not part of the outline the walls are painted against and a wing
-    /// half onto its neighbour is neither one building nor two.</summary>
-    public IReadOnlyList<IReadOnlyList<double[]>> Wings { get; init; } = [];
+    /// <summary>The rectangles the building stands on, each with whatever it states about itself. They abut and
+    /// never overlap, and where they touch they share the edge whole — <see cref="Check"/> holds them to it,
+    /// since a wing standing clear of the rest is not part of the outline the walls are painted against and a
+    /// wing half onto its neighbour is neither one building nor two.</summary>
+    public IReadOnlyList<AuthoredWing> Wings { get; init; } = [];
 
     /// <summary>Which wall the door is cut through, or null to let the building choose the middle of a long
     /// side. A room's door is an entry contract derived from its frame; a prop has no contract to derive one
@@ -325,7 +341,7 @@ public sealed record HouseProp : PlacedProp
                 "a building needs at least one rectangle", Field: "wings"));
         for (var index = 0; index < Wings.Count; index++)
         {
-            var corners = Wings[index];
+            var corners = Wings[index].Corners;
             var wing = index.ToString();
             if (corners.Count < 2 || corners[0].Length < 2 || corners[1].Length < 2)
                 return Findings.Of(new Finding(HousePropRules.WingShape,
@@ -353,11 +369,12 @@ public sealed record HouseProp : PlacedProp
     {
         if (Wings.Count == 0) return null;
         var wings = new List<Wing>(Wings.Count);
-        foreach (var corners in Wings)
+        foreach (var authored in Wings)
         {
+            var corners = authored.Corners;
             if (corners.Count < 2 || corners[0].Length < 2 || corners[1].Length < 2) return null;
             var (minX, minZ, maxX, maxZ) = Corners(corners);
-            wings.Add(new Wing(minX, minZ, maxX, maxZ));
+            wings.Add(new Wing(minX, minZ, maxX, maxZ, authored.Spec));
         }
         return new Minecraft.Footprint(wings);
     }

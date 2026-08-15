@@ -65,18 +65,21 @@ public enum RidgeAxis
     AlongZ,
 }
 
-/// <summary>One rectangle of a building's plan. A house of a single rectangle is one wing; an L, a T or a U is
-/// several touching ones, which is what lets a building turn a corner as one house under one style rather than
-/// as two houses standing beside each other.
+/// <summary>
+/// Everything a wing states about itself apart from where it stands — how tall, what roof, and how it meets
+/// its neighbour. <b>Stated once and read everywhere</b>: a <see cref="Wing"/> carries one, and so does the
+/// authored entry a dressing document draws one from, so the two cannot drift into different vocabularies for
+/// the same building.
 ///
-/// <para><b>Wings touch and never overlap</b> — the rule <see cref="WingJoints"/> holds a plan to. Two
-/// rectangles drawn a few blocks apart are two buildings; drawn edge to edge they are one, and the edge they
-/// share is the joint the building is made at. Where they merely graze — part of one end meeting the other and
-/// the rest hanging over open ground — they are neither, which is why the sharing has to be whole.</para>
+/// <para><see cref="StoreysHigh"/> is how many of the house's storeys stand on this wing, and <b>nought takes
+/// them all</b> — which is what a building whose wings are all of a height wants, and what one wing on its own
+/// can only mean. A hall of one storey with a two-storey cross wing is the shape that needs the number. It is
+/// deliberately not <c>Storeys</c>: <c>HouseStyle.Storeys</c> is the <em>list of storey styles</em> a building
+/// is made of, and one name over a count and a list of styles reads as the same thing twice.</para>
 ///
-/// <para><see cref="Storeys"/> is how many of the style's storeys stand on this wing, and <b>nought takes them
-/// all</b> — which is what a building whose wings are all of a height wants, and what one wing on its own can
-/// only mean. A hall of one storey with a two-storey cross wing is the shape that needs the number.</para>
+/// <para><see cref="Form"/>, <see cref="Pitch"/> and <see cref="RoofSlab"/> are the roof this wing wears where
+/// it does not simply wear the building's; naming a slab is what makes a roof climb in halves, so a
+/// half-stepping wing is one that names one. Unset takes the style's.</para>
 ///
 /// <para><b><see cref="Projects"/> is the one thing about a joint that the rectangles cannot say.</b> A wing
 /// running into a hall either <em>marches</em> — each course stepping on into the hall's roof until that roof
@@ -85,30 +88,58 @@ public enum RidgeAxis
 /// Both are buildings and neither is derivable: the same two rectangles make an L that closes and an L that
 /// pushes through. Marching is what a wing does unless it says otherwise, because it is the shape that reads as
 /// one house.</para></summary>
-public readonly record struct Wing(
-    int MinX, int MinZ, int MaxX, int MaxZ, int Storeys = 0,
-    RoofForm? Form = null, int Pitch = 0, int? RoofSlab = null, RidgeAxis? Ridge = null,
-    bool Projects = false)
+public readonly record struct WingSpec(
+    int StoreysHigh = 0, RoofForm? Form = null, int Pitch = 0, int? RoofSlab = null,
+    RidgeAxis? Ridge = null, bool Projects = false);
+
+/// <summary>One rectangle of a building's plan, and what it states about itself. A house of a single rectangle
+/// is one wing; an L, a T or a U is several touching ones, which is what lets a building turn a corner as one
+/// house under one style rather than as two houses standing beside each other.
+///
+/// <para><b>Wings touch and never overlap</b> — the rule <see cref="WingJoints"/> holds a plan to. Two
+/// rectangles drawn a few blocks apart are two buildings; drawn edge to edge they are one, and the edge they
+/// share is the joint the building is made at. Where they merely graze — part of one end meeting the other and
+/// the rest hanging over open ground — they are neither, which is why the sharing has to be whole.</para>
+///
+/// <para>What the wing states is a <see cref="WingSpec"/>, reached through this type's own properties so a
+/// reader asks the wing rather than reaching past it.</para></summary>
+public readonly record struct Wing(int MinX, int MinZ, int MaxX, int MaxZ, WingSpec Spec = default)
 {
+    /// <inheritdoc cref="WingSpec.StoreysHigh"/>
+    public int StoreysHigh => Spec.StoreysHigh;
+
+    /// <inheritdoc cref="WingSpec.Form"/>
+    public RoofForm? Form => Spec.Form;
+
+    /// <inheritdoc cref="WingSpec.Pitch"/>
+    public int Pitch => Spec.Pitch;
+
+    /// <inheritdoc cref="WingSpec.RoofSlab"/>
+    public int? RoofSlab => Spec.RoofSlab;
+
+    /// <inheritdoc cref="WingSpec.Ridge"/>
+    public RidgeAxis? Ridge => Spec.Ridge;
+
+    /// <inheritdoc cref="WingSpec.Projects"/>
+    public bool Projects => Spec.Projects;
+
     public int Width => MaxX - MinX + 1;
     public int Depth => MaxZ - MinZ + 1;
 
     public bool Holds(int x, int z) => x >= MinX && x <= MaxX && z >= MinZ && z <= MaxZ;
 
-    /// <summary>The roof this wing wears, where it does not simply wear the building's. A wing carries its own
-    /// form, its own rise per block, and its own slab — naming a slab is what makes a roof climb in halves, so
-    /// a half-stepping wing is one that names one. Unset takes the style's, which is what a building whose
-    /// wings are roofed alike wants and what one wing on its own can only mean.</summary>
-    public RoofForm FormOr(RoofForm fallback) => Form ?? fallback;
-
-    /// <inheritdoc cref="FormOr"/>
-    public int PitchOr(int fallback) => Pitch > 0 ? Pitch : fallback;
-
-    /// <inheritdoc cref="FormOr"/>
-    public int SlabOr(int fallback) => RoofSlab ?? fallback;
+    /// <summary>The roof this wing actually wears: its own form, rise and slab where it names them, the
+    /// building's where it does not.
+    ///
+    /// <para><b>One answer rather than three</b>, because they are one decision. Asked separately — a
+    /// <c>FormOr</c>, a <c>PitchOr</c> and a <c>SlabOr</c> at each site — two can be read from the wing and the
+    /// third from the style with nothing to say so, and the slab in particular was resolved twice at one call
+    /// site because it is needed both to build the field and to lay it.</para></summary>
+    public (RoofForm Form, int Pitch, int Slab) RoofOver(RoofForm form, int pitch, int slab) =>
+        (Form ?? form, Pitch > 0 ? Pitch : pitch, RoofSlab ?? slab);
 
     /// <summary>Whether this wing is still standing at a storey, counting from nought at the ground.</summary>
-    public bool Reaches(int level) => Storeys <= 0 || level < Storeys;
+    public bool Reaches(int level) => StoreysHigh <= 0 || level < StoreysHigh;
 
     /// <summary>Whether the ridge runs east–west. A roof is pitched across the <b>shorter</b> side, so by
     /// default the ridge lies along the longer one — the same choice <see cref="RoofField"/> makes, and the

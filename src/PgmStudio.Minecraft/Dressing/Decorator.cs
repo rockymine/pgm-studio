@@ -368,7 +368,7 @@ public static class Decorator
             wings.Add(wing with
             {
                 MinX = minX, MinZ = minZ, MaxX = maxX, MaxZ = maxZ,
-                Ridge = TurnedRidge(wing.Ridge, symmetry, image),
+                Spec = wing.Spec with { Ridge = TurnedRidge(wing.Ridge, symmetry, image) },
             });
         }
         return new Footprint(wings);

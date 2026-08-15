@@ -3813,6 +3813,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   test cannot stand in for — a seal passes happily on a roof with a hole in its body. Both `Ell()` fixtures had
   two **parallel** ridges and therefore no junction to test, which is how all four shipped unnoticed (`G182`);
   `EllMarch`/`EllProject` are the ones with crossing ridges, and `G186` redrew the rest.
+- **A wing states its own storeys, roof, ridge and joint from a document (G184).** Six fields existed on the
+  model and none reached an author: a `HouseProp` held two corners per wing, so every authored building
+  marched, the second gable was unreachable, and an author wanting a real valley had to be told to draw the
+  wing deeper than it is wide. A wing entry is now `corners` plus an optional `spec`. The six are declared
+  **once**, as `WingSpec`, carried by both the model's `Wing` and the document's `AuthoredWing` — three of
+  them (`form`, `pitch`, `roofSlab`) are the same three a `HouseStyle` names, so the wing's are overrides and
+  `Wing.RoofOver` resolves all three as **one** decision where a `FormOr`/`PitchOr`/`SlabOr` triple had
+  resolved them separately and read the slab twice at one call site. `Wing.Storeys` became `StoreysHigh`: it
+  is a **count** into the style's storey list while `HouseStyle.Storeys` is that list, and one name over both
+  read as the same thing twice. A stored wing that is a bare corner pair upgrades to an entry stating nothing,
+  which is exactly what it always meant.
 - **One verb and one answer, not just one type (B192).** Sharing `Finding` left seven names for the verb that
   produces one — `Faults`, `Check`, `Refusals`, `Validate`, `Findings`, `Errors`, `Completeness` — over three
   return types, and left every consumer working out for itself whether anything had been refused. That last

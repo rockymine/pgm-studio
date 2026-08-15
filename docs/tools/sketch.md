@@ -492,8 +492,9 @@ over. The cursor shows in advance whether a spot will take it. A **building** is
 rectangle, because a stamper takes a box: it must be at least three by three to hold two walls and an inside,
 and no larger than 192 blocks of footprint, and a drag outside that range places nothing.
 
-**A building prop states one or more touching rectangles.** Its `wings` field is a list of them, each the two
-opposite corners a drag always stored, and `HouseProp.Footprint()` composes them into a `Footprint`
+**A building prop states one or more touching rectangles, and what each one is.** Its `wings` field is a list
+of entries — `corners`, the two opposite corners a drag always stored, and an optional `spec` holding
+everything the wing states about itself — and `HouseProp.Footprint()` composes them into a `Footprint`
 (`src/PgmStudio.Minecraft/Footprint.cs`) — **one or more touching rectangles**, the same shape `HouseStamper`
 has always taken. An L, a T or a U is therefore one house under one style rather than two standing beside each
 other: the outline is walked as a single landmass, so an L answers six runs of wall and a T eight, a wall ends
@@ -528,12 +529,27 @@ reads as one house (`G172`, `G186`).
 
 Whether two wings make a junction at all is whether their **ridges cross**, and a wing's proportions cannot
 know that: a roof pitches across the shorter side, so a 10 × 5 hall and a 7 × 6 wing both ridge along x and
-meet in a gutter, and a **square** wing ties toward x and can never cross anything. `Wing.Ridge` states the
-axis where the proportions should not decide it. Every image of a building carries the same statements — a
+meet in a gutter, and a **square** wing ties toward x and can never cross anything. `ridge` states the axis
+where the proportions should not decide it. Every image of a building carries the same statements — a
 projecting wing still projects, a hipped wing is still hipped — and the ridge is the one of them a quarter turn
-changes, so it is turned with the rectangle rather than dropped. Note none of these is an authored field yet:
-a wing's ridge, roof form, pitch, slab, storey count and its choice to project are all model-only, and in the
-dressing document a wing is two corners and nothing else (`G184`).
+changes, so it is turned with the rectangle rather than dropped.
+
+**A wing's `spec` is the six things it can say about itself**, every one optional, and a wing that says nothing
+is a rectangle wearing the building's own everything — which is what every wing meant before there was
+anything else to say, and why a stored document whose wings are bare corner pairs reads unchanged.
+
+| Field | Is |
+|---|---|
+| `storeysHigh` | how many of the style's storeys stand on this wing; nought takes them all. Deliberately not `storeys`, which on a **style** is the list of storey styles a building is made of |
+| `form` · `pitch` · `roofSlab` | the roof this wing wears where it does not wear the building's — the same three the style names, resolved as one decision rather than three |
+| `ridge` | `AlongX` or `AlongZ`, where the wing's own proportions should not decide |
+| `projects` | whether the wing carries its roof across the hall instead of marching into it |
+
+```json
+{ "kind": "house", "id": "h1", "seed": 1, "wings": [
+  { "corners": [[0, 6], [9, 10]] },
+  { "corners": [[0, 0], [4, 5]], "spec": { "ridge": "AlongZ", "projects": true } } ] }
+```
 
 Three things follow from the junction being one building rather than two roofs in one place (`G179`–`G181`).
 The loft over it is **one space**: the side of a wing standing against a neighbour is a doorway rather than an

@@ -18,7 +18,7 @@ public class WingJointsTests
     [Test]
     public async Task The_hall_is_the_wing_whose_ridge_runs_along_the_shared_edge()
     {
-        var wing = new Wing(2, 0, 6, 4, Ridge: RidgeAxis.AlongZ);
+        var wing = new Wing(2, 0, 6, 4, new WingSpec(Ridge: RidgeAxis.AlongZ));
         var joint = WingJoints.Between(Hall, wing);
 
         await Assert.That(joint.Fault).IsEqualTo(JointFault.None);
@@ -43,7 +43,7 @@ public class WingJointsTests
     public async Task Equal_squares_join_where_their_ridges_cross()
     {
         var hall = new Wing(0, 5, 4, 9);                          // 5 x 5, ties toward x
-        var wing = new Wing(0, 0, 4, 4, Ridge: RidgeAxis.AlongZ);
+        var wing = new Wing(0, 0, 4, 4, new WingSpec(Ridge: RidgeAxis.AlongZ));
 
         var joint = WingJoints.Between(hall, wing);
         await Assert.That(joint.Fault).IsEqualTo(JointFault.None);
@@ -66,7 +66,7 @@ public class WingJointsTests
     {
         // A hall 5 deep, so a wing wider than 5 tops it. Drawn from x0 so the shorter edge always lies within.
         var hall = new Wing(0, 5, 19, 9);
-        var wing = new Wing(0, -1, width - 1, 4, Ridge: RidgeAxis.AlongZ);
+        var wing = new Wing(0, -1, width - 1, 4, new WingSpec(Ridge: RidgeAxis.AlongZ));
 
         await Assert.That((width, WingJoints.Between(hall, wing).Fault)).IsEqualTo((width, expected));
     }
@@ -79,7 +79,7 @@ public class WingJointsTests
     [Test]
     public async Task Rectangles_that_share_a_cell_are_refused()
     {
-        var wing = new Wing(2, 0, 6, 5, Ridge: RidgeAxis.AlongZ);   // z 0..5 against a hall at z 5..9
+        var wing = new Wing(2, 0, 6, 5, new WingSpec(Ridge: RidgeAxis.AlongZ));   // z 0..5 against a hall at z 5..9
         var joint = WingJoints.Between(Hall, wing);
 
         await Assert.That(joint.Fault).IsEqualTo(JointFault.Overlapping);
@@ -95,7 +95,7 @@ public class WingJointsTests
     public async Task A_partial_touch_is_refused()
     {
         var hall = new Wing(0, 5, 4, 9);
-        var wing = new Wing(2, 0, 6, 4, Ridge: RidgeAxis.AlongZ);   // shares x 2..4 of its own x 2..6
+        var wing = new Wing(2, 0, 6, 4, new WingSpec(Ridge: RidgeAxis.AlongZ));   // shares x 2..4 of its own x 2..6
 
         var joint = WingJoints.Between(hall, wing);
         await Assert.That(joint.Fault).IsEqualTo(JointFault.PartialEdge);
@@ -112,14 +112,14 @@ public class WingJointsTests
     public async Task Parallel_ridges_are_a_gutter_and_opposed_ones_are_a_single_range()
     {
         var sideBySide = WingJoints.Between(
-            new Wing(0, 5, 9, 9, Ridge: RidgeAxis.AlongX),
-            new Wing(0, 0, 9, 4, Ridge: RidgeAxis.AlongX));
+            new Wing(0, 5, 9, 9, new WingSpec(Ridge: RidgeAxis.AlongX)),
+            new Wing(0, 0, 9, 4, new WingSpec(Ridge: RidgeAxis.AlongX)));
         await Assert.That(sideBySide.Fault).IsEqualTo(JointFault.SideBySide);
         await Assert.That(WingJoints.Refusal(sideBySide)!.Rule).IsEqualTo(WingJointRules.SideBySide);
 
         var endToEnd = WingJoints.Between(
-            new Wing(0, 5, 4, 9, Ridge: RidgeAxis.AlongZ),
-            new Wing(0, 0, 4, 4, Ridge: RidgeAxis.AlongZ));
+            new Wing(0, 5, 4, 9, new WingSpec(Ridge: RidgeAxis.AlongZ)),
+            new Wing(0, 0, 4, 4, new WingSpec(Ridge: RidgeAxis.AlongZ)));
         await Assert.That(endToEnd.Fault).IsEqualTo(JointFault.EndToEnd);
         await Assert.That(WingJoints.Refusal(endToEnd)!.Rule).IsEqualTo(WingJointRules.EndToEnd);
     }
@@ -132,14 +132,14 @@ public class WingJointsTests
     [Test]
     public async Task Rectangles_standing_clear_or_meeting_at_a_corner_are_not_a_joint()
     {
-        var apart = WingJoints.Between(Hall, new Wing(0, 0, 4, 3, Ridge: RidgeAxis.AlongZ));
+        var apart = WingJoints.Between(Hall, new Wing(0, 0, 4, 3, new WingSpec(Ridge: RidgeAxis.AlongZ)));
         await Assert.That(apart.Fault).IsEqualTo(JointFault.Apart);
 
         // Diagonally placed: its z ends where the hall's begins, but their x runs never meet.
-        var corner = WingJoints.Between(Hall, new Wing(12, 0, 16, 4, Ridge: RidgeAxis.AlongZ));
+        var corner = WingJoints.Between(Hall, new Wing(12, 0, 16, 4, new WingSpec(Ridge: RidgeAxis.AlongZ)));
         await Assert.That(corner.Fault).IsEqualTo(JointFault.Apart);
 
-        var plan = new Footprint([Hall, new Wing(0, 0, 4, 3, Ridge: RidgeAxis.AlongZ)]);
+        var plan = new Footprint([Hall, new Wing(0, 0, 4, 3, new WingSpec(Ridge: RidgeAxis.AlongZ))]);
         await Assert.That(WingJoints.Of(plan).Count).IsEqualTo(0);
     }
 

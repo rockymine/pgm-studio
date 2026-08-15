@@ -33,7 +33,7 @@ public sealed class DressingJsonTests
                 new TreeProp { Id = "t", Seed = 3, X = 1, Z = 1 },
                 new BoulderProp { Id = "b", Seed = 4, X = 2, Z = 2 },
                 new FloraProp { Id = "f", Seed = 5, Points = [[0, 0], [10, 0], [10, 10]] },
-                new HouseProp { Id = "h", Seed = 6, Wings = [[[0, 0], [5, 5]]] },
+                new HouseProp { Id = "h", Seed = 6, Wings = [new AuthoredWing([[0, 0], [5, 5]])] },
             ],
         });
 
@@ -75,6 +75,55 @@ public sealed class DressingJsonTests
         var plan = house.Footprint();
         await Assert.That(plan).IsNotNull();
         await Assert.That((plan!.MinX, plan.MinZ, plan.Width, plan.Depth)).IsEqualTo((0, 0, 11, 7));
+    }
+
+    /// <summary>
+    /// <b>A wing that was a bare corner pair still builds the same house.</b> Every wing in every stored
+    /// document was two corners and nothing else, which meant "wear the building's own everything" — and that
+    /// is exactly what an entry stating nothing means now, so the upgrade is the corner pair moved under a
+    /// key rather than any change to what it builds.
+    /// </summary>
+    [Test]
+    public async Task A_wing_that_states_nothing_reads_as_a_wing_that_states_nothing()
+    {
+        var doc = DressingJson.Deserialize(
+            """{"props":[{"kind":"house","id":"h1","seed":1,"wings":[[[0,0],[10,6]],[[0,7],[5,13]]]}]}""");
+        var house = (HouseProp)doc.Props[0];
+
+        await Assert.That(house.Wings.Count).IsEqualTo(2);
+        await Assert.That(house.Wings[0].Spec).IsEqualTo(default(WingSpec));
+        await Assert.That(house.Check()).IsEmpty();
+
+        var plan = house.Footprint()!;
+        await Assert.That(plan.Wings[1].Projects).IsFalse();
+        await Assert.That(plan.Wings[1].Ridge).IsNull();
+    }
+
+    /// <summary>
+    /// <b>What a wing states reaches the building it raises.</b> The six are the whole of what a wing can say
+    /// about itself apart from where it stands, and until now none of them could be written down: a document
+    /// held two corners, so every authored building marched and the second gable was unreachable.
+    /// </summary>
+    [Test]
+    public async Task A_wing_states_its_own_storeys_roof_ridge_and_joint()
+    {
+        var doc = DressingJson.Deserialize(
+            """
+            {"props":[{"kind":"house","id":"h1","seed":1,"wings":[
+              {"corners":[[0,6],[9,10]]},
+              {"corners":[[0,0],[4,5]],"spec":{"storeysHigh":2,"form":"Hip","pitch":2,"roofSlab":44,
+                                               "ridge":"AlongZ","projects":true}}
+            ]}]}
+            """);
+        var wing = ((HouseProp)doc.Props[0]).Footprint()!.Wings[1];
+
+        await Assert.That((wing.StoreysHigh, wing.Pitch, wing.RoofSlab)).IsEqualTo((2, 2, (int?)44));
+        await Assert.That((wing.Form, wing.Ridge, wing.Projects))
+            .IsEqualTo(((RoofForm?)RoofForm.Hip, (RidgeAxis?)RidgeAxis.AlongZ, true));
+
+        // And the round trip is the document: what is written is what reads back.
+        var again = (HouseProp)DressingJson.Deserialize(DressingJson.Serialize(doc)).Props[0];
+        await Assert.That(again.Wings[1].Spec).IsEqualTo(((HouseProp)doc.Props[0]).Wings[1].Spec);
     }
 
     // ── enum case (B130) ───────────────────────────────────────────────────────────────────────────────

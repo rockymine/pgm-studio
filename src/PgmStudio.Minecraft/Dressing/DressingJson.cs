@@ -280,6 +280,14 @@ public static class DressingJson
             prop["wings"] = new JsonArray(points.DeepClone());
             prop.Remove("points");
         }
+
+        // A wing was two corners and is now a rectangle plus what it states about itself, so the older shape —
+        // the corner pair on its own — becomes an entry that states nothing and therefore wears the building's
+        // own everything, which is exactly what it meant before there was anything else to say.
+        if (kind == "house" && prop["wings"] is JsonArray wings)
+            for (var index = 0; index < wings.Count; index++)
+                if (wings[index] is JsonArray corners)
+                    wings[index] = new JsonObject { ["corners"] = corners.DeepClone() };
     }
 
     private static uint Seed(JsonObject prop)

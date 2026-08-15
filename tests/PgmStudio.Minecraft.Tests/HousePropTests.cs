@@ -33,7 +33,7 @@ public sealed class HousePropTests
     private static HouseProp House(int minX, int minZ, int maxX, int maxZ, RoomEdge? front = null) => new()
     {
         Id = "h1",
-        Wings = [[[minX, minZ], [maxX, maxZ]]],
+        Wings = [new AuthoredWing([[minX, minZ], [maxX, maxZ]])],
         Front = front,
         Style = new HouseStyle { Door = DoorMaterial.Air },
     };
@@ -44,8 +44,8 @@ public sealed class HousePropTests
         => new()
         {
             Id = id,
-            Wings = [.. wings.Select(wing => (IReadOnlyList<double[]>)
-                [new double[] { wing.MinX, wing.MinZ }, new double[] { wing.MaxX, wing.MaxZ }])],
+            Wings = [.. wings.Select(wing => new AuthoredWing(
+                [[wing.MinX, wing.MinZ], [wing.MaxX, wing.MaxZ]]))],
             Front = front,
             Style = style ?? new HouseStyle { Door = DoorMaterial.Air },
         };
@@ -85,7 +85,7 @@ public sealed class HousePropTests
     {
         await Assert.That(House(0, 0, 1, 8).Footprint()).IsNull();     // two blocks across
         await Assert.That(House(0, 0, 2, 2).Footprint()).IsNotNull();  // the smallest house there is
-        await Assert.That(new HouseProp { Wings = [[[0, 0]]] }.Footprint()).IsNull();
+        await Assert.That(new HouseProp { Wings = [new AuthoredWing([[0, 0]])] }.Footprint()).IsNull();
         await Assert.That(new HouseProp { Wings = [] }.Footprint()).IsNull();
     }
 
@@ -321,7 +321,10 @@ public sealed class HousePropTests
         // rectangle whose width and depth have swapped, and taking the corners round the orbit says that
         // without the stamp having to be told it happened.
         var symmetry = new DressingSymmetry("rot_90", 0, 0);
-        var turned = new HouseProp { Wings = [symmetry.ImageRing(House(2, 2, 12, 6).Wings[0], 1)] }.Footprint();
+        var turned = new HouseProp
+        {
+            Wings = [new AuthoredWing(symmetry.ImageRing(House(2, 2, 12, 6).Wings[0].Corners, 1))],
+        }.Footprint();
 
         await Assert.That(turned).IsNotNull();
         await Assert.That(turned!.Width).IsEqualTo(5);           // was the depth
@@ -341,13 +344,13 @@ public sealed class HousePropTests
         var symmetry = new DressingSymmetry("rot_90", 0, 0);
         var plan = new Footprint([
             new Wing(0, 6, 9, 10),
-            new Wing(0, 0, 4, 4, Storeys: 2, Form: RoofForm.Hip, Ridge: RidgeAxis.AlongZ, Projects: true),
+            new Wing(0, 0, 4, 4, new WingSpec(StoreysHigh: 2, Form: RoofForm.Hip, Ridge: RidgeAxis.AlongZ, Projects: true)),
         ]);
 
         var turned = Decorator.TurnedFootprint(plan, symmetry, 1).Wings[1];
 
         await Assert.That(turned.Ridge).IsEqualTo(RidgeAxis.AlongX);
-        await Assert.That((turned.Storeys, turned.Form, turned.Projects))
+        await Assert.That((turned.StoreysHigh, turned.Form, turned.Projects))
             .IsEqualTo((2, (RoofForm?)RoofForm.Hip, true));
 
         // Turned four times it is back where it started, ridge included — a quarter turn that only sometimes

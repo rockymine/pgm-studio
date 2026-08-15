@@ -97,7 +97,7 @@ static List<PlacedProp> Buildings()
         double minX = ox - house.Width / 2, minZ = oz - house.Depth / 2;
         props.Add(new HouseProp
         {
-            Wings = [[[minX, minZ], [minX + house.Width - 1, minZ + house.Depth - 1]]],
+            Wings = [new AuthoredWing([[minX, minZ], [minX + house.Width - 1, minZ + house.Depth - 1]])],
             Front = RoomEdge.NegZ,
             Style = house.Style,
         });

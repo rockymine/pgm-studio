@@ -942,7 +942,7 @@ public sealed class HouseStamperTests
     [Test]
     public async Task A_storey_above_a_stopped_wing_walls_the_line_they_shared()
     {
-        var plan = new Footprint([new Wing(0, 0, 10, 6, Storeys: 2), new Wing(0, 7, 6, 12, Storeys: 1)]);
+        var plan = new Footprint([new Wing(0, 0, 10, 6, new WingSpec(StoreysHigh: 2)), new Wing(0, 7, 6, 12, new WingSpec(StoreysHigh: 1))]);
         var style = new HouseStyle
         {
             Storeys = [new Storey { Clear = 4 }, new Storey { Clear = 4 }],
@@ -981,7 +981,7 @@ public sealed class HouseStamperTests
     /// plan differs</b>: a projection is the one thing about a junction the rectangles cannot say, which is why
     /// the wing says it.</summary>
     private static Footprint EllProject() =>
-        new([new Wing(0, 6, 9, 10), new Wing(0, 0, 4, 5, Projects: true)]);
+        new([new Wing(0, 6, 9, 10), new Wing(0, 0, 4, 5, new WingSpec(Projects: true))]);
 
     /// <summary>
     /// <b>A wing's end that stands against its neighbour is not a gable.</b> It is a doorway between two halves
@@ -1084,7 +1084,7 @@ public sealed class HouseStamperTests
     /// hall's near row exactly as the other junction fixtures do — a wing that merely abuts one has no ground in
     /// common with it to open through.</summary>
     private static Footprint EllSquare() =>
-        new([new Wing(0, 6, 9, 10), new Wing(0, 1, 4, 5, Ridge: RidgeAxis.AlongZ)]);
+        new([new Wing(0, 6, 9, 10), new Wing(0, 1, 4, 5, new WingSpec(Ridge: RidgeAxis.AlongZ))]);
 
     public static IEnumerable<(string, Footprint)> Junctions() =>
     [
@@ -1109,7 +1109,7 @@ public sealed class HouseStamperTests
         await Assert.That(square.RidgeAlongX).IsTrue();                       // 4 <= 4 — the tie
         await Assert.That(square.GableEnds).IsEqualTo((0, 4));                // its ±x walls
 
-        var stated = square with { Ridge = RidgeAxis.AlongZ };
+        var stated = square with { Spec = square.Spec with { Ridge = RidgeAxis.AlongZ } };
         await Assert.That(stated.RidgeAlongX).IsFalse();
         await Assert.That(stated.GableEnds).IsEqualTo((1, 5));                // now its ±z walls
 
@@ -1202,7 +1202,7 @@ public sealed class HouseStamperTests
     /// The roof reaches the hall's far wall or it does not project at all: a gable landing mid-slope is a shape
     /// the stamper never builds, because the extension is taken to that wall rather than to a distance.</summary>
     private static Footprint Crossed() =>
-        new([new Wing(0, 6, 9, 10), new Wing(2, 0, 6, 5, Projects: true)]);
+        new([new Wing(0, 6, 9, 10), new Wing(2, 0, 6, 5, new WingSpec(Projects: true))]);
 
     /// <summary>
     /// <b>A wing's two gable ends carry the same triangle.</b> A wing drawn
@@ -1297,8 +1297,8 @@ public sealed class HouseStamperTests
     public async Task A_steeper_wings_march_stops_short_of_a_shallower_halls_far_wall()
     {
         var plan = new Footprint([
-            new Wing(0, 5, 9, 9, Form: RoofForm.Gable, Pitch: 1),
-            new Wing(2, 0, 6, 5, Form: RoofForm.Gable, Pitch: 2),
+            new Wing(0, 5, 9, 9, new WingSpec(Form: RoofForm.Gable, Pitch: 1)),
+            new Wing(2, 0, 6, 5, new WingSpec(Form: RoofForm.Gable, Pitch: 2)),
         ]);
         var style = new HouseStyle();
         var world = Built(plan, style);
@@ -1337,8 +1337,8 @@ public sealed class HouseStamperTests
     public async Task A_march_against_a_flat_roofed_hall_stops_without_a_ridge_to_strike()
     {
         var plan = new Footprint([
-            new Wing(0, 5, 9, 9, Form: RoofForm.Flat),
-            new Wing(2, 0, 6, 5, Form: RoofForm.Gable, Pitch: 1),
+            new Wing(0, 5, 9, 9, new WingSpec(Form: RoofForm.Flat)),
+            new Wing(2, 0, 6, 5, new WingSpec(Form: RoofForm.Gable, Pitch: 1)),
         ]);
         var style = new HouseStyle();
         var world = Built(plan, style);
@@ -1418,7 +1418,7 @@ public sealed class HouseStamperTests
     [Test]
     public async Task A_shorter_wings_roof_stops_against_its_taller_neighbour()
     {
-        var plan = new Footprint([new Wing(0, 0, 10, 6, Storeys: 2), new Wing(0, 7, 6, 12, Storeys: 1)]);
+        var plan = new Footprint([new Wing(0, 0, 10, 6, new WingSpec(StoreysHigh: 2)), new Wing(0, 7, 6, 12, new WingSpec(StoreysHigh: 1))]);
         var style = new HouseStyle
         {
             Storeys = [new Storey { Clear = 4 }, new Storey { Clear = 4 }],

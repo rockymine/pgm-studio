@@ -197,11 +197,11 @@ public static class HouseStamper
             var top = WallTopOf(wing);
             var (minX, minZ, maxX, maxZ) = Roofed(wing, index);
             var roofed = new Footprint(minX, minZ, maxX, maxZ);
+            var roof = wing.RoofOver(style.Form, pitch, style.RoofSlab);
             var field = new RoofField(
-                wing.FormOr(style.Form), minX, minZ, maxX, maxZ, overhang, top + 1,
-                wing.PitchOr(pitch), front, wing.SlabOr(style.RoofSlab) >= 0, wing.RidgeAlongX);
-            return (Wing: wing, Index: index, Roofed: roofed, Field: field, Top: top,
-                    Slab: wing.SlabOr(style.RoofSlab));
+                roof.Form, minX, minZ, maxX, maxZ, overhang, top + 1,
+                roof.Pitch, front, roof.Slab >= 0, wing.RidgeAlongX);
+            return (Wing: wing, Index: index, Roofed: roofed, Field: field, Top: top, Slab: roof.Slab);
         }).ToList();
         var hole = RoofHole(style, body);
         var marched = Marched();
@@ -636,7 +636,7 @@ public static class HouseStamper
         /// reaches, the last of them counted as a top storey since a wing that stops carries no slab over it.</summary>
         int WallTopOf(Wing wing)
         {
-            var reaches = wing.Storeys <= 0 ? levels.Count : Math.Clamp(wing.Storeys, 1, levels.Count);
+            var reaches = wing.StoreysHigh <= 0 ? levels.Count : Math.Clamp(wing.StoreysHigh, 1, levels.Count);
             return floorY + bases[reaches - 1] + levels[reaches - 1].Courses(topmost: true);
         }
 

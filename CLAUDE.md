@@ -50,6 +50,46 @@ and inspectors, in a folder-matched namespace so host and bodies resolve each ot
 A body used by one tool lives with it; a body used by two moves to `Components/`. Name at the right altitude:
 `*Phase` for a whole phase, `*Step` for one step of a multi-step phase.
 
+## One concept, one shape — and the tell is prose
+**A concept gets one type, one verb and one wire shape across the whole repo, not one per feature.** The
+failure is never a decision to duplicate; it is a second feature quietly growing its own copy because reaching
+for the first one was one grep further away. Seven finding records, six refusal envelopes and seven names for
+the verb that produces one — `Faults`, `Check`, `Refusals`, `Validate`, `Findings`, `Errors`, `Completeness` —
+all arrived that way, over three return types, and nothing failed while they did.
+
+**The tell is a docstring comparing two types.** `Violation`'s said it carried "the same subject-id shape a
+`PlanFinding` carries, so the editor highlights them identically" — the duplication written down, in the
+codebase, and left there. When prose has to explain that this type is like that other type, that sentence *is*
+the finding. Grep for it before adding a type whose name ends in a noun another type already ends in
+(`*Finding`, `*Result`, `*Dto`, `*Rules`, `*Scope`), and read what is already there.
+
+**Share the smallest thing that is genuinely common — usually a value or an answer, rarely a base class, almost
+never an interface.** The gates take different inputs (`Check(plan)` against `Check(goals, isLand, keepOuts)`),
+so an interface over them would have forced the context-carrying ones to lie about what they read. What was
+actually common was what they *returned*, so that is what became a type. Ask what every case genuinely shares
+before asking what shape would let them share it; inheritance imposed on cases that differ is a second
+duplication wearing a hierarchy.
+
+**One type, one responsibility — and a shared field is not a shared responsibility.** Three of a wing's six
+statements (`Form`, `Pitch`, `RoofSlab`) are the same three a `HouseStyle` names, which reads at a glance like
+a wing being a small house. It is not: a wing has no walls, windows, doors, porch or beams, two of its six are
+things only a wing can say, and a third is a *count into* the style's storey list while the style's field of
+that name is the list itself. So the answer was not inheritance — a wing is not a kind of house — but
+composition of the smallest common thing, and one **resolve** where three had been asked separately. Look for
+the responsibility each type actually has before reaching for a hierarchy over the fields they share; sharing
+a field name is the weakest evidence there is, and where two things share a name and not a meaning
+(`Storeys` over both a count and a list of styles), the fix is the name.
+
+**Two things travel together and both must be shared.** A shared type with seven call verbs is half a fix, and
+the half left undone is where the bug lives: while `Finding` was shared but the verb was not, every caller
+re-derived "was anything refused" from a `Count`, which is right for a gate reporting only refusals and
+silently wrong for one reporting complaints too. **A shape is not consolidated until the callers ask it the
+same question by the same name.**
+
+Then the rules already stated apply: the shared unit goes in the **lowest project every consumer can reach**,
+and **every caller changes in the same commit** — there is no compatibility path, and a second accepted shape
+is what rots.
+
 ## Where docs go
 **Every folder under `docs/` is named for a subject, never for a form.** A new document joins the folder whose
 subject it is about; there is no bucket for "contracts" or "designs", because that names the shape of a

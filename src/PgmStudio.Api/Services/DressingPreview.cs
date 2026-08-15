@@ -227,15 +227,19 @@ public static class DressingPreview
     }
 
     /// <summary>The same recentring, over every wing at once: the delta is measured across all of them so a
-    /// multi-wing building keeps its own shape, and then every wing's own two corners are carried by it.</summary>
-    private static List<List<double[]>> RecentreWings(IReadOnlyList<IReadOnlyList<double[]>> wings, int x, int z)
+    /// multi-wing building keeps its own shape, and then every wing's own two corners are carried by it. What
+    /// each wing <em>states</em> is untouched — moving a building does not reroof it.</summary>
+    private static List<AuthoredWing> RecentreWings(IReadOnlyList<AuthoredWing> wings, int x, int z)
     {
         if (wings.Count == 0) return [];
-        var corners = wings.SelectMany(wing => wing).ToList();
+        var corners = wings.SelectMany(wing => wing.Corners).ToList();
         double minX = corners.Min(point => point[0]), maxX = corners.Max(point => point[0]);
         double minZ = corners.Min(point => point[1]), maxZ = corners.Max(point => point[1]);
         double dx = x - (minX + maxX) / 2, dz = z - (minZ + maxZ) / 2;
-        return [.. wings.Select(wing => wing.Select(point => new[] { point[0] + dx, point[1] + dz }).ToList())];
+        return [.. wings.Select(wing => wing with
+        {
+            Corners = [.. wing.Corners.Select(point => new[] { point[0] + dx, point[1] + dz })],
+        })];
     }
 
     /// <summary>A flat sample patch, painted and then dressed by the real passes. Flat on purpose: a preview is

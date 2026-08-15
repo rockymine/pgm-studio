@@ -282,7 +282,7 @@ public sealed class FootprintTests
 
     /// <summary>A hall of two storeys with a wing of one running off it.</summary>
     private static Footprint Unequal()
-        => new([new Wing(0, 0, 10, 6, Storeys: 2), new Wing(0, 7, 6, 12, Storeys: 1)]);
+        => new([new Wing(0, 0, 10, 6, new WingSpec(StoreysHigh: 2)), new Wing(0, 7, 6, 12, new WingSpec(StoreysHigh: 1))]);
 
     /// <summary>A plan loses wings on the way up and never gains one, so a storey is a plan in its own right —
     /// the ground over both wings, the storey above over the hall alone, and nothing at all above that.</summary>

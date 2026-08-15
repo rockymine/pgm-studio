@@ -1008,27 +1008,6 @@ the thing `B181` names, which makes the document upstream of the boards rather t
   still has knobs whose *card* does not change when they are turned, which is the one thing the preview exists
   to prevent. Wants a larger sample footprint, and a card that is not the one view those knobs are invisible in.
 
-- [ ] **G184 — A wing's six statements are model fields an authored document cannot reach.** `Wing` carries
-  its own `Storeys`, `Form`, `Pitch`, `RoofSlab`, `Ridge` and `Projects`, and every one of them is settable
-  only from C#. A `HouseProp` states its wings as `IReadOnlyList<IReadOnlyList<double[]>>` — two opposite
-  corners each and nothing else — so an author writing a dressing document gets the plan of an L, a T or a U
-  and none of the knobs that decide what stands on it.
-
-  Two of them make this urgent rather than tidy. `Ridge` decides whether two wings make a junction at all,
-  since that is whether their ridges cross, and proportions alone decide it today: a 10 × 5 hall beside a
-  7 × 6 wing gives two parallel ridges and is refused as a gutter, and a **square** wing ties toward x and can
-  never cross anything. An author who wants an L with a real valley has to be told to draw the wing deeper than
-  it is wide, which is a rule about arithmetic rather than about buildings. `Projects` is the whole of the
-  author's choice between the two joints (`G186`), so until it is on the wire every authored building marches
-  and the second gable is unreachable from a document.
-
-  Wanted as one change rather than five, since the wire shape is the work: a wing entry that carries its
-  rectangle **and** its overrides, the `DressingJson.Upgraded` migration extended, and `sketch.md`'s document
-  model saying what a wing may state. Worth doing with `S60`, the canvas half — a second wing is stated in the
-  document either way until that lands.
-
-  *found implementing `G183`, 2026-08-14 · `Wing` · `HouseProp.Wings` · `docs/tools/sketch.md`.*
-
 - [ ] **G178 — A wing has no doorway into its neighbour.** Where two wings meet the plan is simply open between
   them, which is right; where one projects into another its gable end is a wall from the ground up, which is
   also right and leaves the projecting wing reachable only from outside. A doorway cut between two wings —
