@@ -608,6 +608,65 @@ than a gate beside the style.
   fill verified against `RoofField` on the real Corvid Hollow / Kilnrow houses and 700 fuzzed configurations;
   no discrepancy found in either.
 
+- [ ] **B202 — Provenance claims a building the dressing pass declined to place.** `Decorator.PlaceHouse`
+  drops a house **whole** — every orbit image of it — when any image overlaps something already standing
+  (MG7's drop), when any image has no ground under it, or when a turn fails. `DressingScope.StructureFootprints`
+  rebuilds the same footprints from the layout JSON afterwards to make the provenance claim, and it takes
+  `layoutJson` alone: no world, no `taken` set, no ground. It cannot know what was dropped, so it claims
+  every authored house on every image regardless.
+
+  **Measured** (`scratchpad/claimcheck.cs`, flat stone plateau at y=8, two authored houses whose stamped
+  rings overlap, `mirror_mode: none`):
+
+  | | authored | placed | claimed |
+  |---|---|---|---|
+  | houses | 2 | **1** (`tally.Houses`) | **2** (`house:a:0`, `house:b:0`) |
+
+  | owner | cells claimed | with anything standing on them |
+  |---|---|---|
+  | `house:a:0` | 81 | 81 |
+  | `house:b:0` | 81 | **25** — and those 25 are `a`'s blocks in the overlap |
+
+  So 56 columns carry a `Structure` claim over bare ground. Three of them: `(18, 13)`, `(19, 13)`, `(20, 13)`
+  — top block stone (1), nothing above y=8.
+
+  **It matters because provenance is now preferred over the material estimate.** `StructureFinder` partitions
+  candidates by owner when a record exists and drops the material+step reading entirely; `TopDownRender` prints
+  "STRUCTURE READING: RECORDED PROVENANCE". So a stage image draws a building that is not there and the finder
+  reports a structure with no blocks — and both say they are certain.
+
+  **The fix is the direction of the derivation, not a filter.** `Decorator.Decorate` already knows exactly
+  which cells it stamped; it returns a `DressingTally` of *counts*. Have it report the placed footprints and
+  claim from those, rather than re-deriving the same fact from the author's intent — the record should come
+  from the placement, never beside it.
+
+  *found in the provenance dive, 2026-08-15 · `Decorator.PlaceHouse` · `DressingScope.StructureFootprints`.*
+
+- [ ] **B203 — "Which columns does this stamp own" has five answers, and "what kind of block is this" has
+  four tables.** Both are one question asked in several places, each place deriving it its own way.
+
+  **Which columns a stamp owns:** the stamper itself (it places the blocks); `provenance.ClaimRect` beside it
+  in `SketchWorldBuilder`; `DressingScope.ProtectedAt`'s keep-out mask; `TerrainProfile`'s paint gate (a column
+  whose top block *is not stone* is a structure); and `DressingScope.StructureFootprints` for houses (`B202`).
+  The room-floor case has the same rectangle converted from doubles twice, five lines apart, by two rules —
+  `(int)f.MinX` in the stamp against `Math.Floor`/`Math.Ceiling` in the claim. Latent rather than live, since
+  `PlanCompiler` fans integral rects today; `CLAUDE.md`'s own trap entry says this class has already cost hours.
+
+  **What kind of block this is:** `BlockRoles` (7 predicates, scan-side roles), `BlockKinds` (6 predicates,
+  what a house field may name), `DressingPalette.IsStamp` (what the dressing pass may not touch), and
+  `BlockPalette` (colour). `IsLog` is written in both of the first two — `blockId is 17 or 162` against
+  `Logs.Contains(id)`, agreeing today by coincidence of maintenance. `IsGround` and `IsNaturalGround` share a
+  stem and not a meaning: the first is a closed list of six earth ids a roof may not be laid in, the second is
+  everything left after built, liquid, log and grown are removed. A caller reaching for "is this ground" has to
+  know which, and nothing says so at the call site.
+
+  **The fix pattern is already in the repo, one scale down.** `DressingPalette.IsStamp`'s docstring: *"Stated
+  once, here, because two passes ask it... Two lists would drift and the drift would show as a road eating a
+  monument."* That is exactly right and exactly what the four tables above have not done.
+
+  *found in the provenance dive, 2026-08-15 · `BlockRoles` · `BlockKinds` · `TerrainProfile` ·
+  `DressingScope` · `SketchWorldBuilder`.*
+
 - [ ] **B199 — A floor's zoning is three named fields, so a floor cannot be concentric.** `FloorSurface` is
   `Border`/`BorderWidth` + `Field` + `Inlay`/`InlayInset` — three fixed zones where the border is one material
   of width N rather than a sequence, and the inlay is measured from the opposite end. A cobble ring, then two
