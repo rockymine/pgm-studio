@@ -62,7 +62,7 @@ var plaster = new SolidMaterial(Blocks.StainedClay, 0);
 var tile = new SolidMaterial(Blocks.StainedClay, 14);
 var basis = new HouseStyle
 {
-    Wall = new RoomPart([new RoomCourse(new SolidMaterial(Blocks.Cobblestone)), new RoomCourse(plaster)], 5),
+    Wall = new RoomPart(new BandStack([new Band(new SolidMaterial(Blocks.Cobblestone)), new Band(plaster)]), 5),
     Post = new SolidMaterial(Blocks.Log, 0),
     Sill = new SolidMaterial(Blocks.Cobblestone),
     Roof = tile,
@@ -169,7 +169,7 @@ foreach (var (porch, roof, name, blurb) in new (PorchStyle? Porch, RoofForm Roof
 {
     var tower = basis with
     {
-        Wall = new RoomPart([new RoomCourse(new SolidMaterial(Blocks.Cobblestone)), new RoomCourse(plaster)], 18),
+        Wall = new RoomPart(new BandStack([new Band(new SolidMaterial(Blocks.Cobblestone)), new Band(plaster)]), 18),
         Form = RoofForm.Hip,
         RidgeCap = true,
         Windows = WindowStyle.Lattice with { Block = 164, Sill = 2 },
@@ -476,7 +476,7 @@ foreach (var (gable, name, blurb) in new (TerrainMaterial? Gable, string Name, s
     var style = basis with
     {
         Form = RoofForm.Gable, Overhang = 0, RidgeCap = true, Gable = gable,
-        Wall = new RoomPart([new RoomCourse(new SolidMaterial(Blocks.Cobblestone)), new RoomCourse(plaster)], 5),
+        Wall = new RoomPart(new BandStack([new Band(new SolidMaterial(Blocks.Cobblestone)), new Band(plaster)]), 5),
     };
     var world = Build(13, 9, style);
     var top = FloorY + style.TopLayerOver(13, 9);

@@ -191,8 +191,8 @@ style-as-data pattern and stay anchor-based on purpose, a point structure rather
 
 ## 7. The room style
 
-A shell is **parts and overrides**. A wall and a foundation's plate are each a `RoomPart`: a stack of
-`RoomCourse` (material + how many courses it runs) plus an `Extent` saying how far the part goes. Over them go
+A shell is **parts and overrides**. A wall and a foundation's plate are each a `RoomPart`: a `BandStack` —
+bands of material and thickness, read along a distance — plus an `Extent` saying how far the part goes. Over them go
 the two things a style may not decide — the **pad**, because the exported wool/spawn location is derived from
 it (WX5), and the **doorway**, because it is the entry contract (WX6/WX7).
 
@@ -212,10 +212,22 @@ wall and a roof **upward**. The direction is the load-bearing part of the model.
 would lift the pad and move the exported point; walls indexed from the floor are what keep a band at eye level
 and a slit near the top when the room's height changes, where the layer indices they replace would have slid.
 
-The **last course repeats** past the end of the stack, the rule `LayeredMaterial` already holds, so `Extent`
-moves without the stack being re-authored: a taller wall grows in whatever its top course is. That is what
-makes height a knob at all — §4's note that room height stays out of G31 is answered here rather than through
-the frame.
+The **last band repeats** past the end of the stack, so `Extent` moves without the stack being re-authored: a
+taller wall grows in whatever its top course is. That is what makes height a knob at all — §4's note that room
+height stays out of G31 is answered here rather than through the frame.
+
+**Repeating is the stack's own statement, not the axis's.** Bands along a distance is one rule and the studio
+reads it along three: depth from the top of a bucket for a layer stack, courses from the part's own base for a
+room part, rings from the edge for a floor's zoning. What is *not* shared between those is what happens where
+the bands run out, and assuming it is repeating builds the other case wrong. Repeating is right where the
+stack **owns the whole space**, which is what a wall or a plate is: there is nothing under it to fall through
+to. Handing over is right where the stack is a band **inside** a larger space — a rim two blocks in and then
+the surface, rather than two blocks of rim and then rim forever. So a `BandStack` states its ending
+(`BandEnding`) and the caller states the axis, and neither is implied by the other.
+
+**A repeating band does not reseed a pattern.** A pattern's seed lives on the material and its field is
+sampled from world coordinates, so the second block of a repeat is one field read a step further along rather
+than a second field starting over.
 
 Three fixed layers are ordinary courses, and that is the whole simplification. The coloured band was layer 4
 and is a `TeamTintedMaterial` course; the light slit was a skipped layer 6 and is a course of air; and a wool
@@ -726,7 +738,7 @@ What a style never touches: the **platform** under a room (`StampFoundation`'s b
 
 A room style is a **library row**, browsed and composed the way a terrain theme is (M0012, `room_style` +
 `room_style_course`, served at `/api/room-styles`, authored on the `/library/rooms` tab). It binds the same
-`style` shelf a theme binds — a `RoomCourse`'s material *is* a `TerrainMaterial`, so the two libraries share
+`style` shelf a theme binds — a `Band`'s material *is* a `TerrainMaterial`, so the two libraries share
 their leaf rather than each keeping one — and the third tab exists because what is composed out of styles
 differs: a theme composes a terrain finish, a room style a shell.
 

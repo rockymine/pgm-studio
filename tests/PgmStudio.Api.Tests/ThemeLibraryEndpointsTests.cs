@@ -96,8 +96,8 @@ public sealed class ThemeLibraryEndpointsTests
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        var stack = TerrainThemeJson.Serialize(new LayeredMaterial(
-            [new MaterialLayer(new SolidMaterial(Blocks.Grass), 1), new MaterialLayer(new SolidMaterial(Blocks.Dirt), 2)]));
+        var stack = TerrainThemeJson.Serialize(new LayeredMaterial(new BandStack(
+            [new Band(new SolidMaterial(Blocks.Grass), 1), new Band(new SolidMaterial(Blocks.Dirt), 2)])));
         await client.PostAsJsonAsync("/api/styles", new StyleSaveRequest("meadow top", MaterialKind.Layered, stack));
 
         var styles = await client.GetFromJsonAsync<List<StyleDto>>("/api/styles");

@@ -41,9 +41,9 @@ internal static class Materials
     }
 
     /// <summary>One course of grass over dirt, and only one course — the one place a top-faced block reads.</summary>
-    internal static readonly TerrainMaterial Grass = new LayeredMaterial([
-        new MaterialLayer(new SolidMaterial(2, 0), 1),
-        new MaterialLayer(new SolidMaterial(3, 0), 2)]);
+    internal static readonly TerrainMaterial Grass = new LayeredMaterial(new BandStack([
+        new Band(new SolidMaterial(2, 0), 1),
+        new Band(new SolidMaterial(3, 0), 2)]));
 
     /// <summary>A family laid as a named pattern. Every pattern carries a <c>Rise</c>, so a wall wears the
     /// same fabric its surface does rather than streaking vertically where the ground steps.</summary>

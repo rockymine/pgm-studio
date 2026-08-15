@@ -3821,6 +3821,25 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   names none), that plate's **surface** zoning, and an optional **footing** ringing it a block proud, where
   absent is the state itself. Depth and material — the two things the author asked to vary — are the plate's.
   `HouseStyle.NoFooting` is deleted with the sentinel it named.
+- **Bands along a distance are one type, and how a stack ends is its own statement (B195).** "An ordered list
+  of (material, thickness), read along a distance" was written out twice under two names — `MaterialLayer` in
+  a `LayeredMaterial`, `RoomCourse` in a `RoomPart` — each with its own traversal loop and its own hand-written
+  `SequenceEqual`/hash, and `RoomPart`'s docstring said outright that it followed "the rule `LayeredMaterial`
+  already holds", which is the duplication written down and left there. One `BandStack` of `Band` now owns the
+  traversal, and both holders go back to generated equality. The two loops had also drifted: an **empty** stack
+  answered air in one and stone in the other. `At` answers null — nothing claimed it — and each caller keeps
+  its own answer, which is the honest split, since what is under a stack is not something the stack can see.
+- **How a band stack ends is not implied by the axis it is read along (B195, author).** Assuming "the last
+  band repeats" is part of the concept would build a rim wrong: repeating is right where the stack **owns the
+  whole space** (a wall, a plate — there is nothing under it to fall through to) and handing over is right
+  where the stack is a band **inside** one (a rim two blocks in and then the surface, not two blocks of cobble
+  and then cobble forever). `BandEnding` is stated on the stack; the axis stays the caller's, since the
+  distance is measured by whoever has it.
+- **A style's materials are read forward by the material walk, which they had not been (B195).**
+  `HouseStyleJson` never called `TerrainThemeJson.Upgrade`, so a house style carrying a pre-`bands` voronoi —
+  or anything else the material walk fixes — silently kept the shape it was stored in. It calls it now. This
+  is the second instance of one gap found in two days: an upgrade that exists but is not reached from every
+  place its subject is stored (the first was a house prop's whole style, `B197`).
 - **The way in is one part, and the wall it is cut through is not part of it (B198).** Four fields described
   the doorway — what fills it, the beam over it, and how wide and how tall it is — and they are now a
   `Doorway`. A fifth shared their prefix and does **not** belong to them: `DoorEdge` is the wall the whole

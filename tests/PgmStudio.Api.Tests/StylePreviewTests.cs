@@ -15,8 +15,8 @@ namespace PgmStudio.Api.Tests;
 /// </summary>
 public sealed class StylePreviewTests
 {
-    private static readonly TerrainMaterial GrassOverDirt = new LayeredMaterial(
-        [new MaterialLayer(new SolidMaterial(Blocks.Grass), 1), new MaterialLayer(new SolidMaterial(Blocks.Dirt), 2)]);
+    private static readonly TerrainMaterial GrassOverDirt = new LayeredMaterial(new BandStack(
+        [new Band(new SolidMaterial(Blocks.Grass), 1), new Band(new SolidMaterial(Blocks.Dirt), 2)]));
 
     /// <summary>The distinct fill colours an SVG uses — what "the picture shows more than one thing" means here.</summary>
     private static HashSet<string> Fills(string svg)

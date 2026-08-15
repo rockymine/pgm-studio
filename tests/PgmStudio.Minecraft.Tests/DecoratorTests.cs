@@ -811,9 +811,9 @@ public sealed class DecoratorTests
         Decorator.Decorate(world, Context(top, [new BoulderProp
         {
             Id = "b", X = 20, Z = 20, Size = 3, Mossy = false, Seed = 3,
-            Rock = new LayeredMaterial([
-                new MaterialLayer(new SolidMaterial(Blocks.Cobblestone), 1),
-                new MaterialLayer(new SolidMaterial(Blocks.Stone), 1)]),
+            Rock = new LayeredMaterial(new BandStack([
+                new Band(new SolidMaterial(Blocks.Cobblestone), 1),
+                new Band(new SolidMaterial(Blocks.Stone), 1)])),
         }]));
 
         var column = Column(world, 20, 20);

@@ -292,10 +292,10 @@ public sealed class HouseStamperTests
         // A stack longer than the wall it fills: the gable takes what actually tops the wall, not the course
         // the stack would have gone on to had the wall been taller. Naming the part changed nothing here — a
         // style that never binds it builds exactly what it always did.
-        var stack = new RoomPart(
-            [new RoomCourse(new SolidMaterial(Blocks.Cobblestone)),
-             new RoomCourse(new SolidMaterial(Blocks.QuartzBlock)),
-             new RoomCourse(new SolidMaterial(Blocks.Obsidian))], 2);
+        var stack = new RoomPart(new BandStack(
+            [new Band(new SolidMaterial(Blocks.Cobblestone)),
+             new Band(new SolidMaterial(Blocks.QuartzBlock)),
+             new Band(new SolidMaterial(Blocks.Obsidian))]), 2);
         var world = House(13, 9, new HouseStyle
         {
             Wall = stack,

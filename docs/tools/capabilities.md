@@ -333,8 +333,8 @@ off `alpine_mining_ii` block by block — and the style that follows says exactl
 turning a house from a paragraph into a `HouseStyle` needed inventing; it has been done ten times over, once
 per preset in `HousePresets.All`.
 
-The surface a description can reach is most of the building. A `RoomPart` wall is stacked from `RoomCourse`
-bands, each its own material and height counted up from the floor, so a stripe pinned at the fourth course
+The surface a description can reach is most of the building. A `RoomPart` wall is a `BandStack`, each `Band`
+its own material and thickness counted up from the floor, so a stripe pinned at the fourth course
 stays there as the wall grows. Around it: a `Roof` body and `Verge` border with their own `Form` (gable,
 flat, hip, gambrel, shed or saltbox), `Pitch`, and `Overhang`; a `Post` at the corners and a `Sill` the walls
 stand proud of; `Windows` with their own `Form`, `Width`, `Height`, `Sill` and `Spacing`, and a separate

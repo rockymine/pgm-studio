@@ -99,8 +99,8 @@ public sealed class RoomStyleTests
     [Test]
     public async Task A_stack_is_read_from_the_parts_own_base_and_its_last_course_repeats()
     {
-        var part = new RoomPart(
-            [new RoomCourse(new SolidMaterial(Blocks.Stone), 2), new RoomCourse(new SolidMaterial(Blocks.Dirt))], 6);
+        var part = new RoomPart(new BandStack(
+            [new Band(new SolidMaterial(Blocks.Stone), 2), new Band(new SolidMaterial(Blocks.Dirt))]), 6);
 
         await Assert.That(part.At(0).Material).IsEqualTo(new SolidMaterial(Blocks.Stone));
         await Assert.That(part.At(1)).IsEqualTo(((TerrainMaterial)new SolidMaterial(Blocks.Stone), 1));

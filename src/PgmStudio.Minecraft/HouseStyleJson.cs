@@ -104,6 +104,25 @@ public static class HouseStyleJson
             Carry(style, "doorHeight", doorway, "height");
             style["doorway"] = doorway;
         }
+
+        // A room part was a bare `courses` list, the third spelling of one rule. Its bands now sit under a
+        // stack of their own, and a course's height is a band's thickness — one word for one thing.
+        Restack(style["wall"]);
+        Restack((style["foundation"] as JsonObject)?["plate"]);
+        if (style["storeys"] is JsonArray storeys)
+            foreach (var storey in storeys) Restack((storey as JsonObject)?["wall"]);
+
+        // Every material in a style is a material like any other, so the material walk runs over a style too.
+        // It had not, which is why a style carrying a pre-`bands` voronoi never read forward.
+        TerrainThemeJson.Upgrade(style);
+    }
+
+    /// <summary>One room part read forward onto its band stack, if it is still written as a course list.</summary>
+    private static void Restack(JsonNode? node)
+    {
+        if (node is not JsonObject part || part["courses"] is not JsonArray courses) return;
+        part["stack"] = TerrainThemeJson.Stacked(courses, "height");
+        part.Remove("courses");
     }
 
     /// <summary>The fields the roof's shape was stated in before it was a part of its own. Any of them names

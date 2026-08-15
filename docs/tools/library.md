@@ -62,14 +62,17 @@ noise field, and a wall stripe can be a checkerboard. `id` and `data` are the bl
 { "kind": "solid", "id": 1, "data": 0 }
 ```
 
-**`layered` — a vertical stack claimed from the top of the bucket.** Grass over two dirt; a wall's banded
-riser. Each layer states its thickness in courses, and the last layer repeats past the stack's depth, so a
-band deeper than declared never falls through to nothing.
+**`layered` — a band stack read as depth from the top of the bucket.** Grass over two dirt; a wall's banded
+riser. Each band states its thickness in courses, and the stack states what it does where they run out: the
+bucket is the stack's whole space, so it `repeat`s and a band deeper than declared never falls through to
+nothing. The other ending, `handOver`, claims nothing past the last band and leaves whatever is under the
+stack showing — which is what a band *inside* a larger space wants, and is why the ending is stated rather
+than assumed.
 
 ```json
-{ "kind": "layered", "layers": [
+{ "kind": "layered", "stack": { "ending": "repeat", "bands": [
   { "material": { "kind": "solid", "id": 2 }, "thickness": 1 },
-  { "material": { "kind": "solid", "id": 3 }, "thickness": 2 } ] }
+  { "material": { "kind": "solid", "id": 3 }, "thickness": 2 } ] } }
 ```
 
 **`teamTint` — the block tinted by the team that owns the cell**, on the same 0–15 damage scale wool uses, so
@@ -228,9 +231,9 @@ a sketch stores in its `themes` registry, and the form the export consumes:
   "rimEdges": "drop",
   "wallOnTerrainFaces": true,
   "rim":     { "material": { "kind": "solid", "id": 155 }, "depth": 1, "enabled": true },
-  "surface": { "material": { "kind": "layered", "layers": [
+  "surface": { "material": { "kind": "layered", "stack": { "ending": "repeat", "bands": [
                  { "material": { "kind": "solid", "id": 2 }, "thickness": 1 },
-                 { "material": { "kind": "solid", "id": 3 }, "thickness": 2 } ] },
+                 { "material": { "kind": "solid", "id": 3 }, "thickness": 2 } ] } },
                "depth": 3, "enabled": true },
   "wall":    { "kind": "teamTint", "blockId": 159,
                "neutral": { "kind": "solid", "id": 159, "data": 8 } },
@@ -325,8 +328,8 @@ stamper takes, a sketch's Rooms step stores, and a placed building carries:
 ```json
 {
   "foundation": {
-    "plate": { "extent": 1, "courses": [
-        { "material": { "kind": "solid", "id": 24, "data": 0 }, "height": 1 } ] },
+    "plate": { "extent": 1, "stack": { "ending": "repeat", "bands": [
+        { "material": { "kind": "solid", "id": 24, "data": 0 }, "thickness": 1 } ] } },
     "surface": { "field": null, "border": null, "borderWidth": 1,
                  "inlay": null, "inlayInset": 2, "isPlain": true },
     "footing": null },
@@ -340,9 +343,9 @@ stamper takes, a sketch's Rooms step stores, and a placed building carries:
     "gableWindows": { "form": "none", "block": 102, "data": 0,
                       "hostBlock": -1, "hostData": 0,
                       "sill": 2, "width": 2, "height": 2, "spacing": 3 } },
-  "wall": { "extent": 7, "courses": [
-      { "material": { "kind": "solid", "id": 121, "data": 0 }, "height": 2 },
-      { "material": { "kind": "solid", "id": 24,  "data": 0 }, "height": 5 } ] },
+  "wall": { "extent": 7, "stack": { "ending": "repeat", "bands": [
+      { "material": { "kind": "solid", "id": 121, "data": 0 }, "thickness": 2 },
+      { "material": { "kind": "solid", "id": 24,  "data": 0 }, "thickness": 5 } ] } },
   "post": null,
   "windows": { "form": "stairLattice", "block": 135, "data": 0,
                "hostBlock": -1, "hostData": 0,
@@ -362,9 +365,10 @@ the footing round it and how the plate's top course is zoned; `roof` is everythi
 materials and the seven numbers that shape them; and `doorway` is the way in, its size, what fills it and the
 beam over it. None of the three appears as a field beside the rest. Which wall the doorway is cut through is
 **not** one of them: that is `front`, the wall the whole building fronts on and the one a shed roof falls
-toward, which is why it is the style's own. `wall` and the foundation's `plate` are **course stacks** — a material and how many courses it runs,
-counted up from the part's own base — while `post` and the roof's `body`, `verge` and `gable` are **single
-materials**, which is why the two end-stone-and-sandstone courses are a list and the brick roof is not.
+toward, which is why it is the style's own. `wall` and the foundation's `plate` are **band stacks** — a
+material and how many courses it runs, counted from the part's own base, with an `ending` saying what happens
+past the last band — while `post` and the roof's `body`, `verge` and `gable` are **single materials**, which
+is why the two end-stone-and-sandstone courses are a list and the brick roof is not.
 `post: null` is the absence of a part, not an empty one: this house has no frame, and `footing: null` says the
 same about the course a building normally stands proud of the ground on. `storeys` is empty because the shell
 is one room rather than a stack, and `porch` is null for the same reason.

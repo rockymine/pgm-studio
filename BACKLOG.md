@@ -608,50 +608,47 @@ than a gate beside the style.
   fill verified against `RoofField` on the real Corvid Hollow / Kilnrow houses and 700 fuzzed configurations;
   no discrepancy found in either.
 
-- [ ] **B195 — "Bands along a distance, the last repeating" is written three times, and the one that is not a
-  list is the one an author most wants to be.** A theme's `Rim` is a single `TopBand(Material, Depth)`, so a
-  shape can have an outer band and nothing inside it: a cobble rim, then two rings of stone brick, then a
-  grass field is not sayable. Reported by the author while theming a board.
+- [ ] **B199 — A floor's zoning is three named fields, so a floor cannot be concentric.** `FloorSurface` is
+  `Border`/`BorderWidth` + `Field` + `Inlay`/`InlayInset` — three fixed zones where the border is one material
+  of width N rather than a sequence, and the inlay is measured from the opposite end. A cobble ring, then two
+  rings of stone brick, then a grass field is not sayable on a house floor either. The traversal is the one
+  `BandStack` now owns (`B195`) and the input already exists — `Footprint.Ring(x, z)` — so what is missing is
+  the *authored* shape: the border becomes a stack read by ring with `BandEnding.HandOver`, which is what its
+  `At(ring)` returning null already means by hand.
 
-  **The shape it wants already exists twice.** `LayeredMaterial` is bands by depth from the top with the last
-  one repeating; `RoomPart` is bands by course from the base with the last one repeating, and its own docstring
-  says it follows "the rule `LayeredMaterial` already holds" — the same duplication-in-prose tell. The third is
-  `FloorSurface`, bands by **ring from the edge**, and it is the odd one out: not a list at all but
-  `Border`/`BorderWidth` + `Field` + `Inlay`/`InlayInset`, three fixed bands where the border is one material of
-  width N rather than a sequence, and the inlay is a centre rather than a ring. So the concentric case is not
-  expressible in the housing system either, only closer to it.
+  It was left out of `B195` on purpose: the three zones are **named**, and the whole part-binding vocabulary
+  binds courses by those names (`RoomParts.Border` / `Field` / `Inlay`), so this is a schema + DTO + editor
+  change across `room_style_course`, `RoomStyleSaveRequest`, `HousePartComposer` and `RoomStyleComposer` —
+  about thirteen files — rather than a traversal swap. The row schema may already carry it: a course names its
+  part *and an ordinal*, so a border of several bands is expressible without a migration.
 
-  One **band stack** — an ordered list of `(material, thickness)` — read along whichever distance the caller
-  has: depth from the top, courses from the base, rings from the edge. Housing floors and theme rims both get
-  arbitrary concentric bands out of it, and `RoomPart` and `LayeredMaterial` stop being two spellings of one
-  rule. The theme half needs the missing input as well: a painted shape has no ring derivation, where a
-  `Footprint` has `Ring(x, z)`.
+  *found reading the house model after `B194`; the extraction it waited on landed as `B195`.*
 
-  **"The last band repeats" is not part of the concept, and assuming it is would build the rim wrong.** How a
-  stack ends is a second, independent choice, and the repo already makes it both ways:
+- [ ] **B200 — A painted shape has no ring derivation, so a theme's rim cannot be concentric.** A theme's `Rim`
+  is a bucket decided by a per-column **edge test** (`ColumnProfile`), which is binary — this column is on an
+  edge or it is not — and its `Depth` counts *downward* from the top of the column, not inward from the edge.
+  So "a cobble rim, then two rings of stone brick, then a grass field" — the author's own words, reported
+  while theming a board — has no axis to be read along at all. A `Footprint` has `Ring(x, z)`; a painted shape
+  has nothing like it.
 
-  | Stack | Read along | Runs out → |
-  |---|---|---|
-  | `LayeredMaterial` | depth from the top | the last band repeats |
-  | `RoomPart` | courses from the base | the last band repeats |
-  | `VoronoiMaterial.Bands` | the cell's F2−F1 gap | the last band repeats |
-  | `FloorSurface` | rings from the edge | **null — whatever is under it shows** |
-  | a theme's `TopBand` | depth from the top | **the next bucket answers** (rim → surface → fill) |
+  The band stack this needs exists (`B195`) and so does the ending it wants (`BandEnding.HandOver`: a rim two
+  blocks in and then **the surface**, not two blocks of cobble and then cobble forever). What is missing is
+  the measure: how far in from the landmass edge a column stands, derived once per painted shape and read the
+  way `DepthFromTop` is. That is the whole of this task, and it is why the rim half could not ride along with
+  the extraction.
 
-  Repeating is right where the stack owns the whole space, which is what a wall or a floor plate is. Handing
-  over is right where the stack is a band *inside* a larger space, which is what a rim on a painted shape is:
-  a cobble rim two blocks in and then **the surface**, not two blocks of cobble and then cobble forever. So a
-  band stack states its axis and its ending, and neither is implied by the other.
+  *reported by the author while theming a board · `TerrainTheme.Rim` · `ColumnProfile` ·
+  `docs/world-export/terrain-painting.md`.*
 
-  **A repeating band does not reseed a pattern**, which is the other thing worth stating before anyone builds
-  on it. A pattern's seed is on the material, not on the band, and its field is sampled from world coordinates:
-  a `VoronoiMaterial` with `Rise: 0` reads `(x, z)` alone, so every block of a column gets one answer and a
-  repeat simply keeps asking the same field; with `Rise > 0` the field is sampled over the volume at a stated
-  vertical period, still one field. There is no arrangement in which two bands of one material draw two
-  different patterns.
+- [ ] **B201 — `VoronoiMaterial.Bands` is a band stack that cannot use the band stack.** Its element is
+  `(material, depth)` — the same pair a `Band` is — but its axis is the **continuous** Worley `F2 − F1` gap
+  rather than an integer step, and its last band's stated depth is deliberately ignored. So it reads as a
+  fourth copy of the rule and is not one: the same words over a different traversal. Either `BandStack.At`
+  grows a `double` axis, or the element is shared and the traversal is not, or it stays as it is and the
+  duplication is only in the naming (`VoronoiBand.Depth` against `Band.Thickness`). **Which of the three is a
+  design call, not a defect** — filed so the audit does not re-find it as one.
 
-  *found reading the house model after `B194`; the author had hit the theme half independently ·
-  `TerrainTheme` · `RoomPart` · `FloorSurface` · `docs/world-export/terrain-painting.md`.*
+  *found doing `B195` · `TerrainPatterns.VoronoiMaterial`.*
 
 - [ ] **B190 — A roof style cannot say which slab it steps in, so the see-through-roof check cannot run at the
   part level.** `HS3` refuses a `Roof` named as a slab while `RoofSlab` is unset — the fault that gave six

@@ -77,7 +77,30 @@ public static class TerrainThemeJson
             obj.Remove("palette"); obj.Remove("rim"); obj.Remove("rimWidth");
         }
 
+        // A layer stack was a bare `layers` list — one rule written out beside two others that read the same
+        // bands along a different distance. It is a `BandStack` now: the bands under a name of their own, plus
+        // what the stack does where they run out, which had been assumed rather than said.
+        if (obj["stack"] is null && obj["layers"] is JsonArray layers)
+        {
+            obj["stack"] = Stacked(layers, "thickness");
+            obj.Remove("layers");
+        }
+
         foreach (var (_, child) in obj.ToList()) Upgrade(child);
+    }
+
+    /// <summary>A stored list of bands as the stack it is now, reading each band's thickness from whichever key
+    /// that list spelled it with. Both lists this reads owned their whole space, so both repeat.</summary>
+    internal static JsonObject Stacked(JsonArray bands, string thickness)
+    {
+        var carried = new JsonArray();
+        foreach (var band in bands.OfType<JsonObject>())
+            carried.Add(new JsonObject
+            {
+                ["material"] = band["material"]?.DeepClone(),
+                ["thickness"] = band[thickness]?.DeepClone() ?? 1,
+            });
+        return new JsonObject { ["bands"] = carried, ["ending"] = "repeat" };
     }
 
     public static string Serialize(TerrainMaterial material) => JsonSerializer.Serialize(material, Options);

@@ -110,25 +110,25 @@ public static class HousePresets
         },
 
         Post = SpruceLog,
-        Wall = new RoomPart(
+        Wall = new RoomPart(new BandStack(
         [
             // Two courses of the plinth. The scale is 2 because the real one scatters nearly block by block —
             // at 3 a whole five-block face came out one stone and the mix was invisible. Rise 2 so the second
             // course is not a copy of the first, which is what the real wall does: its two courses of cobble
             // and andesite fall differently.
-            new RoomCourse(new NoiseMaterial(
+            new Band(new NoiseMaterial(
                 Seed: 0x5A17, Scale: 2, Octaves: 1,
                 Stops: [new SolidMaterial(Blocks.Cobblestone), new SolidMaterial(Blocks.Stone, Andesite)],
                 Rise: 2), 2),
 
             // Five of the banded run. The cycle wraps the whole perimeter rather than restarting per wall, so
             // a corner carries a band round it the way the real building does.
-            new RoomCourse(new WallRunMaterial(
+            new Band(new WallRunMaterial(
             [
                 new WallStripe(new LogCheckerMaterial(1, Blocks.Log2), 2),
                 new WallStripe(Spruces, 2),
             ]), 5),
-        ], Extent: 7),
+        ]), Extent: 7),
 
         // A stair lattice seated on the plinth: sill 3 is the first course above the two the plinth takes, so
         // the light starts where the stonework stops. Two courses tall, which is what a lattice is — four
@@ -180,11 +180,11 @@ public static class HousePresets
         },
 
         Post = null,                                            // no frame; the corners are wall
-        Wall = new RoomPart(
+        Wall = new RoomPart(new BandStack(
         [
-            new RoomCourse(new SolidMaterial(Blocks.EndStone), 2),
-            new RoomCourse(new SolidMaterial(Blocks.Sandstone), 5),
-        ], Extent: 7),
+            new Band(new SolidMaterial(Blocks.EndStone), 2),
+            new Band(new SolidMaterial(Blocks.Sandstone), 5),
+        ]), Extent: 7),
 
         // A course higher than the alpine house's, so the light sits above the end stone rather than on it.
         Windows = new WindowStyle
@@ -246,11 +246,11 @@ public static class HousePresets
             new Storey
             {
                 Clear = 5,
-                Wall = new RoomPart(
+                Wall = new RoomPart(new BandStack(
                 [
-                    new RoomCourse(new SolidMaterial(Blocks.Stone, PolishedDiorite)),
-                    new RoomCourse(new SolidMaterial(Blocks.Stone, PlainDiorite), 4),
-                ], Extent: 5),
+                    new Band(new SolidMaterial(Blocks.Stone, PolishedDiorite)),
+                    new Band(new SolidMaterial(Blocks.Stone, PlainDiorite), 4),
+                ]), Extent: 5),
             },
             new Storey
             {
@@ -311,18 +311,18 @@ public static class HousePresets
             new Storey
             {
                 Clear = 5,
-                Wall = new RoomPart(
+                Wall = new RoomPart(new BandStack(
                 [
-                    new RoomCourse(new NoiseMaterial(
+                    new Band(new NoiseMaterial(
                         Seed: 0x7C0E, Scale: 2, Octaves: 1,
                         Stops: [new SolidMaterial(Blocks.Cobblestone), new SolidMaterial(Blocks.Stone, Andesite)],
                         Rise: 2)),
-                    new RoomCourse(new SolidMaterial(Blocks.Planks, Oak), 4),
+                    new Band(new SolidMaterial(Blocks.Planks, Oak), 4),
 
                     // The sixth course is the seam the storeys meet on, and it is a log laid along the wall so
                     // its bark faces out — the beam the corner ends belong to, running through the masonry.
-                    new RoomCourse(new LaidLogMaterial(Blocks.Log, Oak)),
-                ], Extent: 6),
+                    new Band(new LaidLogMaterial(Blocks.Log, Oak)),
+                ]), Extent: 6),
                 Windows = new WindowStyle
                 {
                     Form = WindowForm.Pane, Block = StainedPane, Data = White,
@@ -367,11 +367,11 @@ public static class HousePresets
             {
                 // Air below and the beam course kept: the seam is what carries the floor above, and on a
                 // building with nothing under it that is the one course that has to be there.
-                Wall = new RoomPart(
+                Wall = new RoomPart(new BandStack(
                 [
-                    new RoomCourse(new SolidMaterial(Blocks.Air), 5),
-                    new RoomCourse(new LaidLogMaterial(Blocks.Log, Oak)),
-                ], Extent: 6),
+                    new Band(new SolidMaterial(Blocks.Air), 5),
+                    new Band(new LaidLogMaterial(Blocks.Log, Oak)),
+                ]), Extent: 6),
                 Windows = new WindowStyle(),          // there is no wall left to cut one through
             },
             Townside.Style.Storeys[1],
@@ -411,11 +411,11 @@ public static class HousePresets
         },
 
         Post = SpruceLog,
-        Wall = new RoomPart(
+        Wall = new RoomPart(new BandStack(
         [
-            new RoomCourse(Rubble, 2),
-            new RoomCourse(Masonry, 3),
-        ], Extent: 5),
+            new Band(Rubble, 2),
+            new Band(Masonry, 3),
+        ]), Extent: 5),
 
         Windows = new WindowStyle
         {
@@ -475,12 +475,12 @@ public static class HousePresets
         Front = RoomEdge.NegX,                               // the gable end: the long walls keep their rows
 
         Post = SpruceLog,
-        Wall = new RoomPart(
+        Wall = new RoomPart(new BandStack(
         [
-            new RoomCourse(Rubble, 1),
-            new RoomCourse(Masonry, 2),
-            new RoomCourse(Spruces, 3),
-        ], Extent: 6),
+            new Band(Rubble, 1),
+            new Band(Masonry, 2),
+            new Band(Spruces, 3),
+        ]), Extent: 6),
 
         // Cut into the spruce only, so the row sits in the boarding above the stonework rather than across the
         // line where the two meet — the seam is where an opening reads as damage.
@@ -541,12 +541,12 @@ public static class HousePresets
                 Clear = 5,
                 // The last course is the cornice: the deck's own line, said on the outside of the building.
                 // Without it a terrace is a grey box with a lip, and nothing tells a player where the floor is.
-                Wall = new RoomPart(
+                Wall = new RoomPart(new BandStack(
                 [
-                    new RoomCourse(Rubble, 1),
-                    new RoomCourse(Masonry, 4),
-                    new RoomCourse(new SolidMaterial(StoneBrickBlock), 1),
-                ], Extent: 6),
+                    new Band(Rubble, 1),
+                    new Band(Masonry, 4),
+                    new Band(new SolidMaterial(StoneBrickBlock), 1),
+                ]), Extent: 6),
                 Windows = new WindowStyle
                 {
                     Form = WindowForm.Arched, Block = StoneBrickStairs,
@@ -557,11 +557,11 @@ public static class HousePresets
             {
                 Deck = new SolidMaterial(StoneSlab, StoneBrickSlab),   // the deck underfoot
                 Clear = 3,                                      // the least a storey may state
-                Wall = new RoomPart(
+                Wall = new RoomPart(new BandStack(
                 [
-                    new RoomCourse(new SolidMaterial(CobblestoneWall), 1),
-                    new RoomCourse(new SolidMaterial(Blocks.Air), 2),
-                ], Extent: 3),
+                    new Band(new SolidMaterial(CobblestoneWall), 1),
+                    new Band(new SolidMaterial(Blocks.Air), 2),
+                ]), Extent: 3),
                 Post = new SolidMaterial(Blocks.Air),           // nothing standing on the deck
                 Windows = new WindowStyle(),                    // no wall left to cut one through
             },
@@ -618,7 +618,7 @@ public static class HousePresets
             new Storey
             {
                 Clear = 4,
-                Wall = new RoomPart([new RoomCourse(Rubble, 1), new RoomCourse(Masonry, 3)], Extent: 4),
+                Wall = new RoomPart(new BandStack([new Band(Rubble, 1), new Band(Masonry, 3)]), Extent: 4),
                 Windows = new WindowStyle
                 {
                     Form = WindowForm.Arched, Block = StoneBrickStairs,
@@ -697,12 +697,12 @@ public static class HousePresets
         },
 
         Post = SpruceLog,
-        Wall = new RoomPart(
+        Wall = new RoomPart(new BandStack(
         [
-            new RoomCourse(Rubble, 1),
-            new RoomCourse(Masonry, 2),
-            new RoomCourse(Spruces, 3),
-        ], Extent: 6),
+            new Band(Rubble, 1),
+            new Band(Masonry, 2),
+            new Band(Spruces, 3),
+        ]), Extent: 6),
 
         Windows = new WindowStyle
         {

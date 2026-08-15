@@ -132,6 +132,56 @@ public sealed class RoomStyleJsonTests
         await Assert.That(style.Wall.Extent).IsEqualTo(5);
     }
 
+    /// <summary>A room part was a bare course list and a layer stack a bare layer list, the same rule spelled
+    /// twice; both are a <see cref="BandStack"/> now, and a course's <c>height</c> is a band's
+    /// <c>thickness</c>. A stored style keeps every band of every part, in order and at its own thickness —
+    /// a stack that came back as one flat band would still stamp a building, just not the one that was
+    /// picked.</summary>
+    [Test]
+    public async Task A_style_stored_before_its_parts_were_band_stacks_reads_forward()
+    {
+        var stored = """
+            {"wall":{"courses":[
+                {"material":{"kind":"solid","id":98,"data":0},"height":3},
+                {"material":{"kind":"layered","layers":[
+                    {"material":{"kind":"solid","id":5,"data":0},"thickness":1},
+                    {"material":{"kind":"solid","id":4,"data":0},"thickness":2}]},"height":2}],"extent":7},
+             "foundation":{"plate":{"courses":[
+                {"material":{"kind":"solid","id":24,"data":0},"height":1}],"extent":2}}}
+            """;
+
+        var style = HouseStyleJson.Deserialize(stored);
+
+        await Assert.That(style.Wall.Extent).IsEqualTo(7);
+        await Assert.That(style.Wall.Stack.Bands.Count).IsEqualTo(2);
+        await Assert.That(style.Wall.Stack.Bands[0]).IsEqualTo(new Band(new SolidMaterial(98), 3));
+        await Assert.That(style.Wall.At(3).Material).IsEqualTo(style.Wall.Stack.Bands[1].Material);
+        await Assert.That(style.Foundation.Plate.Stack.Bands.Single().Thickness).IsEqualTo(1);
+
+        // The nested layer stack is a material like any other, and the material walk reaches it — which it did
+        // not before, since a style ran no material upgrade at all.
+        var nested = (LayeredMaterial)style.Wall.Stack.Bands[1].Material;
+        await Assert.That(nested.Stack.Bands.Select(band => band.Thickness)).IsEquivalentTo([1, 2]);
+        await Assert.That(nested.Stack.Ending).IsEqualTo(BandEnding.Repeat);
+    }
+
+    /// <summary>The material walk runs over a style, so a pattern stored before it had bands reads forward
+    /// inside a house exactly as it does inside a theme. It had not: a style ran no material upgrade at all,
+    /// which is the same gap a house prop's style had.</summary>
+    [Test]
+    public async Task A_material_stored_before_its_own_upgrade_reads_forward_inside_a_style()
+    {
+        var style = HouseStyleJson.Deserialize("""
+            {"wall":{"courses":[{"material":{"kind":"voronoi","seed":3,"cellSize":8,
+                "rim":{"kind":"solid","id":98,"data":0},"rimWidth":2,
+                "palette":[{"kind":"solid","id":1,"data":0}]},"height":1}],"extent":5}}
+            """);
+
+        var pattern = (VoronoiMaterial)style.Wall.At(0).Material;
+        await Assert.That(pattern.Bands.Count).IsEqualTo(2);
+        await Assert.That(pattern.Bands[0].Depth).IsEqualTo(2);
+    }
+
     /// <summary>The air material that used to stand in for no footing reads forward as the state it meant, so
     /// a building seated into terrain still meets the ground flush rather than on a course of air.</summary>
     [Test]
@@ -165,7 +215,7 @@ public sealed class RoomStyleJsonTests
         var json = HouseStyleJson.Serialize(HouseStyle.Wool);
         var wall = HouseStyleJson.Deserialize(json).Wall;
 
-        await Assert.That(wall.Courses.Count).IsEqualTo(HouseStyle.Wool.Wall.Courses.Count);
+        await Assert.That(wall.Stack.Bands.Count).IsEqualTo(HouseStyle.Wool.Wall.Stack.Bands.Count);
         await Assert.That(wall.Extent).IsEqualTo(7);
         await Assert.That(wall.At(3).Material).IsTypeOf<TeamTintedMaterial>();
         await Assert.That(wall.At(5).Material).IsEqualTo(new SolidMaterial(Blocks.Air));
@@ -207,19 +257,19 @@ public sealed class RoomStyleJsonTests
 
         static HouseStyle Stacked() => HouseStyle.Wool with
         {
-            Wall = new RoomPart(
+            Wall = new RoomPart(new BandStack(
             [
-                new RoomCourse(new LayeredMaterial(
+                new Band(new LayeredMaterial(new BandStack(
                 [
-                    new MaterialLayer(new SolidMaterial(Blocks.Stone), 1),
-                    new MaterialLayer(new SolidMaterial(Blocks.Dirt), 2),
-                ]), 3),
-                new RoomCourse(new WallRunMaterial(
+                    new Band(new SolidMaterial(Blocks.Stone), 1),
+                    new Band(new SolidMaterial(Blocks.Dirt), 2),
+                ])), 3),
+                new Band(new WallRunMaterial(
                 [
                     new WallStripe(new SolidMaterial(Blocks.QuartzBlock), 2),
                     new WallStripe(new SolidMaterial(Blocks.Bedrock), 1),
                 ])),
-            ], Extent: 7),
+            ]), Extent: 7),
         };
     }
 

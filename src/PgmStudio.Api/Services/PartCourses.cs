@@ -47,13 +47,13 @@ public sealed class PartCourses(IReadOnlyList<PartCourse> courses, IReadOnlyDict
             .Where(course => course.Part == part)
             .OrderBy(course => course.Ordinal)
             .Select(course => Material(course) is { } material
-                ? new RoomCourse(material, Math.Max(1, course.Height))
-                : (RoomCourse?)null)
-            .OfType<RoomCourse>()
+                ? new Band(material, Math.Max(1, course.Height))
+                : (Band?)null)
+            .OfType<Band>()
             .ToList();
         return stack.Count == 0
             ? fallback with { Extent = Math.Max(1, extent) }
-            : new RoomPart(stack, Math.Max(1, extent));
+            : new RoomPart(new BandStack(stack), Math.Max(1, extent));
     }
 
     /// <summary>The material one course resolves through, or null when it names a style the library no longer

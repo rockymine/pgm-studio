@@ -67,31 +67,14 @@ public sealed record SolidMaterial(int Id, int Data = 0) : TerrainMaterial
     public override (int Id, int Data) Resolve(in BucketContext ctx) => (Id, Data);
 }
 
-/// <summary>One layer of a <see cref="LayeredMaterial"/>: a material and how many courses deep it claims.</summary>
-public readonly record struct MaterialLayer(TerrainMaterial Material, int Thickness);
-
-/// <summary>A vertical stack claimed from the top of the bucket — grass over two dirt, a wall's banded riser
-/// (TP11). Each layer carries a thickness; the last layer repeats past the stack's depth so a deeper-than-
-/// declared band never falls through.</summary>
-public sealed record LayeredMaterial(IReadOnlyList<MaterialLayer> Layers) : TerrainMaterial
+/// <summary>A <see cref="BandStack"/> read as depth from the top of the bucket — grass over two dirt, a wall's
+/// banded riser (TP11). The bucket is the stack's whole space, so the bands repeat past their declared depth
+/// and a deeper-than-declared band never falls through; a stack with no bands at all is stone, the fill every
+/// unclaimed block already falls to.</summary>
+public sealed record LayeredMaterial(BandStack Stack) : TerrainMaterial
 {
     public override (int Id, int Data) Resolve(in BucketContext ctx)
-    {
-        var depth = ctx.DepthFromTop;
-        foreach (var (material, thickness) in Layers)
-        {
-            if (depth < thickness) return material.Resolve(in ctx);
-            depth -= thickness;
-        }
-        return Layers.Count > 0 ? Layers[^1].Material.Resolve(in ctx) : (Blocks.Stone, 0);
-    }
-
-    /// <summary>Layer for layer, not list for list: the generated equality compares the collection by
-    /// reference, so two stacks of the same materials — one built here, one read back from JSON — would come
-    /// out different.</summary>
-    public bool Equals(LayeredMaterial? other) => other is not null && Layers.SequenceEqual(other.Layers);
-
-    public override int GetHashCode() => MaterialHash.Of(Layers);
+        => Stack.At(ctx.DepthFromTop).Material?.Resolve(in ctx) ?? (Blocks.Stone, 0);
 }
 
 /// <summary>The hash a material holding a collection needs, once its equality walks that collection. Written
@@ -156,8 +139,8 @@ public sealed record BedrockSpec(bool Relative, int Value)
 public sealed record TerrainTheme
 {
     // grass over two dirt — the standard interior stack (TP11); its layer thicknesses sum to the surface depth.
-    private static readonly TerrainMaterial DefaultSurface = new LayeredMaterial(
-        [new MaterialLayer(new SolidMaterial(Blocks.Grass), 1), new MaterialLayer(new SolidMaterial(Blocks.Dirt), 2)]);
+    private static readonly TerrainMaterial DefaultSurface = new LayeredMaterial(new BandStack(
+        [new Band(new SolidMaterial(Blocks.Grass), 1), new Band(new SolidMaterial(Blocks.Dirt), 2)]));
 
     // ── geometry ──
     /// <summary>The bedrock floor thickness (TP8). Default one block.</summary>

@@ -115,9 +115,9 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
 
     private static IEnumerable<(string Part, TerrainMaterial Material)> PartCoursesOf(string part, RoomPart stack)
     {
-        if (stack.Courses.Count <= 1) { yield return (part, stack.At(0).Material); yield break; }
-        for (var at = 0; at < stack.Courses.Count; at++)
-            yield return ($"{part} {at + 1}", stack.Courses[at].Material);
+        if (stack.Stack.Bands.Count <= 1) { yield return (part, stack.At(0).Material); yield break; }
+        for (var at = 0; at < stack.Stack.Bands.Count; at++)
+            yield return ($"{part} {at + 1}", stack.Stack.Bands[at].Material);
     }
 
     private sealed class StyleIds
@@ -175,13 +175,13 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         }
 
         if (storey.Wall is { } wall)
-            for (var at = 0; at < wall.Courses.Count; at++)
+            for (var at = 0; at < wall.Stack.Bands.Count; at++)
             {
                 // Named exactly as the material was seeded — one course keeps the bare part name, a stack
                 // numbers its courses — and carrying each course's own height rather than the part's extent,
                 // which is a different number and belongs to the part.
-                var part = wall.Courses.Count <= 1 ? RoomParts.Wall : $"{RoomParts.Wall} {at + 1}";
-                Bind(part, wall.Courses[at].Material, at, wall.Courses[at].Height);
+                var part = wall.Stack.Bands.Count <= 1 ? RoomParts.Wall : $"{RoomParts.Wall} {at + 1}";
+                Bind(part, wall.Stack.Bands[at].Material, at, wall.Stack.Bands[at].Thickness);
             }
         Bind(RoomParts.Post, storey.Post);
         Bind(RoomParts.Field, storey.Surface?.Field);
@@ -257,9 +257,9 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
 
         void BindStack(string part, RoomPart stack)
         {
-            if (stack.Courses.Count <= 1) { Bind(part, stack.At(0).Material); return; }
-            for (var at = 0; at < stack.Courses.Count; at++)
-                Bind($"{part} {at + 1}", stack.Courses[at].Material, at, stack.Courses[at].Height);
+            if (stack.Stack.Bands.Count <= 1) { Bind(part, stack.At(0).Material); return; }
+            for (var at = 0; at < stack.Stack.Bands.Count; at++)
+                Bind($"{part} {at + 1}", stack.Stack.Bands[at].Material, at, stack.Stack.Bands[at].Thickness);
         }
 
         var windows = style.Windows;
@@ -387,7 +387,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
     private static bool CoursesMatch(RoomPart? mine, RoomPart? theirs)
         => mine is null || theirs is null
             ? ReferenceEquals(mine, theirs)
-            : mine.Courses.SequenceEqual(theirs.Courses);
+            : mine.Stack.Bands.SequenceEqual(theirs.Stack.Bands);
 
     /// <summary>The stored part a course name belongs to — a stack's courses are named with their position and
     /// all bind the same part.</summary>

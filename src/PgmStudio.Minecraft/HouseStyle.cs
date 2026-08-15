@@ -581,14 +581,14 @@ public sealed record HouseStyle
     /// <summary>The shipped wall: three courses of bedrock, a coloured band, bedrock, an open course, bedrock.
     /// The band and the slit are courses like any other, and a stack counts up from the floor, so the band
     /// stays at the fourth course whatever the wall's height becomes.</summary>
-    private static RoomPart Banded(int bandBlock) => new(
+    private static RoomPart Banded(int bandBlock) => new(new BandStack(
     [
-        new RoomCourse(new SolidMaterial(Blocks.Bedrock), 3),
-        new RoomCourse(new TeamTintedMaterial(bandBlock, new SolidMaterial(Blocks.Bedrock))),
-        new RoomCourse(new SolidMaterial(Blocks.Bedrock)),
-        new RoomCourse(new SolidMaterial(Blocks.Air)),
-        new RoomCourse(new SolidMaterial(Blocks.Bedrock)),
-    ], Extent: 7);
+        new Band(new SolidMaterial(Blocks.Bedrock), 3),
+        new Band(new TeamTintedMaterial(bandBlock, new SolidMaterial(Blocks.Bedrock))),
+        new Band(new SolidMaterial(Blocks.Bedrock)),
+        new Band(new SolidMaterial(Blocks.Air)),
+        new Band(new SolidMaterial(Blocks.Bedrock)),
+    ]), Extent: 7);
 }
 
 /// <summary>Courses above the floor this style can reach on a footprint of the given size — what a caller

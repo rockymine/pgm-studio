@@ -239,7 +239,7 @@ differ — a long low hall beside a tall narrow tower beside a squat outbuilding
 reads first is **aspect ratio and height**, not material.
 
 The system is modular far past what was used. A `HouseStyle` carries a roof form and pitch, an overhang and a
-verge, a wall built of stacked `RoomCourse` bands, a floor, posts, a sill, window styles with their own form,
+verge, a wall built of stacked `Band`s, a floor, posts, a sill, window styles with their own form,
 width, height, sill and spacing, separate gable windows, a door head, beams, and a storey stack — and a
 `Footprint` carries wings, so a building can be an L or a T with its roofs merged (MG8). None of that varies
 across the batch. Placing a village round a destroy map's monument (MG32) is the case that most wants it: a

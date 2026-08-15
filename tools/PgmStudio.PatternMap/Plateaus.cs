@@ -55,9 +55,9 @@ public static class Plateaus
         new VoronoiMaterial(7, 13, [new VoronoiBand(Shade(Clay, 15), 1), new VoronoiBand(inside, 1)], Rise: 8);
 
     /// <summary>One course of grass over dirt, and only one course — the only place a top-faced block reads.</summary>
-    private static readonly TerrainMaterial Grass = new LayeredMaterial([
-        new MaterialLayer(new SolidMaterial(2, 0), 1),
-        new MaterialLayer(new SolidMaterial(3, 0), 2)]);
+    private static readonly TerrainMaterial Grass = new LayeredMaterial(new BandStack([
+        new Band(new SolidMaterial(2, 0), 1),
+        new Band(new SolidMaterial(3, 0), 2)]));
 
     /// <summary>The plateaus in grid order: what it shows, the shape it is drawn as, and its paint.</summary>
     public static IReadOnlyList<(string Name, string Kind, TerrainMaterial Wall, TerrainMaterial? Surface)> All =>
@@ -72,8 +72,8 @@ public static class Plateaus
         // the plain kinds, and the board
         ("solid — grey stone",                   "rectangle", One("grey stone"), null),
         ("layered — verdant/loam/stone",         "rectangle",
-            new LayeredMaterial([new MaterialLayer(One("verdant"), 2), new MaterialLayer(One("loam"), 3),
-                                 new MaterialLayer(One("grey stone"), 1)]), null),
+            new LayeredMaterial(new BandStack([new Band(One("verdant"), 2), new Band(One("loam"), 3),
+                                 new Band(One("grey stone"), 1)])), null),
         ("team tint — clay by team",             "rectangle", new TeamTintedMaterial(Clay, One("ash")), null),
         ("checkerboard 1 — clay black/white",    "rectangle",
             new CheckerMaterial(1, Shade(Clay, 15), Shade(Clay, 0)),
