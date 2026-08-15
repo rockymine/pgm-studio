@@ -26,6 +26,18 @@ page with **every figure emitted by the real generator** (`dotnet run tools/comp
 Where the prose here and the showcase disagree, suspect the prose: the showcase cannot drift,
 because its figures are built by the code being described.
 
+**What this model deliberately cannot express, and will not learn to.** The vocabulary below — hubs,
+lanes, frontline boxes, approach families — is *one* way to think about a CTW board, and it aligns with
+the majority of the corpus once a map is broken down into a simplified rectilinear form. It is an
+**intentional abstraction whose product is a low-fidelity prototype of a layout**, drawn to be refined
+afterwards in the sketch tool. A map whose form is organic rather than rectilinear falls outside it: the
+Thunder series is the worked case — four teams owning several ribbon islands apiece with void between
+them, route structure being which island can be reached from where a player stands, and no hub, crossbar,
+lane grammar or frontline box anywhere in it (`pgm-studio-mapgen/reports/opus5-thunder-series.md` measures
+all four). **That is a limitation rather than a defect, it is the author's stated position, and it stays.**
+Such a map is still authorable with the tool — trace each island's outline as a polygon in the sketch tool
+— it simply is not reachable through this model, and no body should be invented to make it so.
+
 ---
 
 ## 1. The pipeline
