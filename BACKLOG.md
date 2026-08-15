@@ -61,16 +61,44 @@ highlight); these are the parked / dormant / deferred slices.
   the two halves **9 blocks** apart. Belongs with S46, which lands both passes; the fold itself needs no new
   machinery — `ReliefSolver.FoldBlocks` is the shape of it.
 
-- [ ] **S54 — The 3-D preview shows neither the relief nor an erected top.** The iso builds one prism per
-  shape at `floor + base_height` (`sketch-bridge.js` `isoSolids`), which was the whole truth when a shape's
-  thickness decided its column and is now two-thirds of it: an island's relief replaces those tops, and an
-  erected shape's is settled after the relief against the ground under it (`FEATURES.md`). So the one view
-  that exists to show height is the one view that does not show the height model — a mesa reads at its own
-  thickness and a hillside reads as a plate. The fix is to build the solids from the **rasterizer's columns**
-  rather than from the shapes, which is also what makes it agree with the export by construction instead of
-  by a second implementation; the cost is that a column set is bigger than a shape list and the iso would
-  want run-merging to stay cheap. Pre-dates the relief work — the iso never showed a relief — so this is a
-  gap widening rather than a regression.
+- [ ] **S54 — The 3-D preview models the world a second time and gets a third of it.** The iso builds one
+  prism per shape at `floor + base_height` (`sketch-bridge.js` `solidsForIso`), which was the whole truth
+  when a shape's thickness decided its column. The height model has three stages and the client knows one:
+  ground columns per layer, then the per-island relief solve (`SketchRasterizer.ReliefFields`) which replaces
+  those tops, then `Erect` — `level`/`raise`/`sink` read at the **median** of the ground the shape covers and
+  eased inward by a skirt. Neither of the last two is derivable client-side without a second copy of the
+  solver, so the one view that exists to show height is the one view that does not show the height model: a
+  mesa reads at its own thickness and a hillside reads as a plate. Three narrower divergences sit under it —
+  an anchored shape's TIN is built from the raw `vertices` rather than the Bézier-discretised ring, an
+  anchored shape is never carved by subtracts, and `anchor_heights` requires a `vertices` array, so a
+  rectangle carries no per-vertex height in the preview or in the rasterizer.
+
+  **The client stops deciding height; the server answers in run-encoded columns.** The pipeline already runs
+  for the paint overlay — `TerrainPreview.SketchPaintCells` rasterizes, solves, erects, builds the terrain and
+  paints it, then keeps only each column's top block, because resolving every block "was the bulk of this
+  call". What the preview wants is that widened to `SketchWorldBuilder.Build` over the live layout, read back
+  as per-`(x,z)` runs of `(yTop, yBottom, id, data)`. One structure answers three questions, because a run
+  boundary is where a solid span ends and where the material changes at once: a stacked layer's sky bridge
+  keeps both its segments, a wall shows its own courses instead of the surface colour smeared down it, and
+  water is a run like any other — stop at the topmost and it is an opaque blue surface, which is also the only
+  way this renderer can draw it (`iso-webgl.js`: a back-to-front sort is what the mirror image defeats).
+  Client-side that meshes as one quad per run top plus a side quad where a neighbour is lower, no bottom faces
+  while nothing is seen from below, and no `earClip` at all; per-vertex colour replaces `uColor`'s draw call
+  per material. The mirror draws in the terrain's own colours — the orbit copies are already in the columns —
+  and the 2-D canvas keeps `computeMirrorPreview`, which is where the distinction does work.
+
+  **The cost is the build, not the payload and not the triangles.** A board runs 130×130 to 280×130
+  (`seed-stats.md`), so tens of thousands of columns: a few hundred KB run-encoded, the order of the paint
+  overlay already fetched live, and a triangle count a static draw does not notice. Putting the whole world
+  back is what costs, so the refresh belongs on a button rather than on every edit — the picture does not
+  change between them. `SketchWorldBuilder.Build` also takes a `MapIntent`, and a map begun in Sketch has
+  none: the wool cages, spawn cubes, monuments, destroyables, cores, build region and observer platform are
+  then absent, which is exactly the set Sketch does not author. Terrain and dressing are unaffected —
+  `Decorator` reads the layout's own props — but dressing consults the goals to keep props off objective
+  ground, so with no intent a tree can stand where a monument will later go.
+
+  Pre-dates the relief work — the iso never showed a relief — so this is a gap widening rather than a
+  regression.
 
 - [ ] **S46 — Water reads the relief; a river on the axis is a canal.** A dressing path draping over whatever
   it crosses is **settled as correct** — it repaints the top block of each column and adds no cell, which is
@@ -363,6 +391,59 @@ by `HousePropRules.PastCap` and is not filed.
   Fix them, then take the four ids back out of `NoWarn` so the next one fails the build.
 
   *found turning on the documentation file for `B219`, 2026-08-15 · the five `<NoWarn>` lines name it.*
+
+- [ ] **B221 — A part editor previews the whole house, so the part being authored is the part to squint for.**
+  `RoomStylePreview.Views` stamps a whole `HouseStyle` into the fixed sample and takes `Outer(style)` — the
+  entire shell — whichever of the three part libraries is open, and all three compose a full house around the
+  draft (`ComposeRoofDraftAsync` → `RoofOver(row, courses, WallFor(row))`; the storey and porch drafts →
+  `OnSample(…)`). Nothing on that path asks which part is being edited, which is a default from when the house
+  was the only type: `RoofStyle`, `Storey`, `PorchStyle` and `Foundation` are records of their own now, and
+  `RoofStyle`'s own docstring records the split.
+
+  **The fix is a focus box and needs nothing from the stamper.** `WorldViews.Isometric` already takes a
+  `ViewBox` and draws what is in it, and the bands are public: a storey's is `LevelBases[i]` to `+ Clear`, a
+  roof's is `WallCourses` upward, and a porch is the `SplitPorch` deck — an XZ restriction rather than a band,
+  which is the one of the three that does not fall out of a Y range. Stamping the part alone is the other
+  design and is worse value: a roof's eave sits on the summed storey stack, a porch's posts fall back to the
+  ground storey's material, and the porch decides the front the body is split on, so an isolated part has to
+  synthesise the context that decides its geometry anyway.
+
+  **One trap.** `WorldViews.Isometric`'s `Opaque()` reads `world.GetBlock` unbounded, so a face at the cut
+  plane sees solid beyond it and is not drawn — a box restriction leaves the cut open unless out-of-box reads
+  as air. Whole-house stays the default view; the focus is what the open part editor frames.
+
+- [ ] **B222 — `RoomEdge` is a bare enum, so four switches and four inline predicates re-derive its axis.**
+  The enum carries nothing but its four names (`Domain/RoomFrames.cs`), so every caller that needs to know
+  which axis an edge runs along, which side of a rectangle it names, or which way it faces answers for itself.
+  In `HouseStamper` alone that is four 4-arm switches — `LadderFacing`, `SplitPorch`, `PorchPosts`,
+  `PorchRail` — and four inline `is NegZ or PosZ` tests standing in for "runs along X", in `SplitPorch`,
+  `FrontCentre` and `PorchPosts`. `WallSegment` already answers `AlongX` and `Inward`, so the fact exists on
+  one type and is recomputed on another.
+
+  The shared thing is a value and not a shape, so it goes on the enum in `Domain` where the enum is —
+  `AlongX`, the outward normal, the facing nibble — and the switches collapse into reads. `WoolChests`
+  (`CornerFacing`) and `PlanValidator` (`DoorEdge`) answer neighbouring questions outside this file, so the
+  sweep is what tells whether they are the same question or three that merely rhyme.
+
+  - [ ] **B223 — `HouseStamper`'s prose has drifted from its code in four places.** The method's own summary
+  says the roof is **one field over the plan's bounding box** and that "a plan that turns a corner is roofed
+  as though it did not" — but the body builds one `RoofField` per wing, with marching, projecting and
+  cross-gables, and `FEATURES.md` carries "A building's roof is the union of its wings' roofs". The docstring
+  claims a limitation the stamper does not have. Only the porch half of that sentence still holds, and
+  `SplitPorch` is where it holds. Both citations of the shipped id are also the banned kind — a task id in a
+  comment, cited as a gap rather than as provenance.
+
+  Three smaller ones travel with it. `LayBeams`'s four-line comment is stranded above `TopPlan`, with
+  `TopPlan`'s own one-liner appended to the end of it, leaving `LayBeams` undocumented. `StampedExtent`'s XML
+  doc closes `</summary>` twice with an orphan `<para>` between them. `PorchPosts` is built twice in
+  `StampPorch`, the second time only to be hashed. And two names promise a relation that is not there:
+  `Covering` is the highest **wall top** of any wing over a cell and `CoveringCrown` the highest **roof
+  crown** of every *other* wing, which read as one function and its variant.
+
+  *Left open deliberately:* `Overtopped` gates on `otherField.Covers` where `CoveringCrown` gates on
+  `otherRoofed.Holds` — rectangle against rectangle-plus-overhang. That may be exactly right, since an
+  overhang is roof and a march stands outside every rectangle. It wants `RoofField` read before it is called
+  either way.
 
 - [ ] **B189 — The authoring apparatus: art direction, named briefs, and a reviewer that is not the author.**
   Three runs asked three models for "a map of your own design" and got, three times over, one street of
@@ -1548,6 +1629,14 @@ each tread seeded its own ring 0.
   piece's 8×8 shell, which is small enough that a porch leaves little room behind it. The library therefore
   still has knobs whose *card* does not change when they are turned, which is the one thing the preview exists
   to prevent. Wants a larger sample footprint, and a card that is not the one view those knobs are invisible in.
+
+  **And one footprint is the wrong number, not merely a small one.** `Sample` is a single `static readonly`
+  field, so every style in the library is judged at 10×10 and at no other proportion — while a style states
+  nothing about the footprint it will be stamped over, only storey heights and a roof's pitch. That would be a
+  gap even if the shapes agreed, and they do not: `Wing.RidgeAlongX` derives the ridge from the rectangle's own
+  proportions, so one style on 10×10 and on 5×10 is two different roofs rather than one roof stretched, and an
+  author has no way to see the second. So the sample wants to be a parameter with a few proportions behind it —
+  square, long, narrow — rather than one bigger square.
 
 - [ ] **G178 — A wing has no doorway into its neighbour.** Where two wings meet the plan is simply open between
   them, which is right; where one projects into another its gable end is a wall from the ground up, which is
