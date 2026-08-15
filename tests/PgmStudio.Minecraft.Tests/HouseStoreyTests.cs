@@ -199,7 +199,7 @@ public sealed class HouseStoreyTests
     {
         var style = Stacked(3) with
         {
-            Floor = RoomPart.Of(new SolidMaterial(Blocks.Planks)),
+            Foundation = new Foundation { Plate = RoomPart.Of(new SolidMaterial(Blocks.Planks)) },
             Storeys =
             [
                 new Storey { Clear = 3 },                       // the ground storey stands on the floor

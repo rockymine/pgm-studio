@@ -141,8 +141,11 @@ public static class HousePresets
             HostBlock = Blocks.Planks, HostData = SprucePlanks,
         },
 
-        Floor = RoomPart.Of(Spruces),
-        Sill = HouseStyle.NoFooting,                    // it meets the ground flush; there is no footing
+        Foundation = new Foundation
+        {
+            Plate = RoomPart.Of(Spruces),
+            Footing = null,   // it meets the ground flush; there is no footing
+        },
         Door = DoorMaterial.Air,
         DoorWidth = 2,
         DoorHeight = 3,
@@ -187,8 +190,11 @@ public static class HousePresets
             Form = WindowForm.StairLattice, Block = BirchStairs, Sill = 4, Spacing = 3,
         },
 
-        Floor = RoomPart.Of(new SolidMaterial(Blocks.Sandstone)),
-        Sill = HouseStyle.NoFooting,
+        Foundation = new Foundation
+        {
+            Plate = RoomPart.Of(new SolidMaterial(Blocks.Sandstone)),
+            Footing = null,
+        },
         Door = DoorMaterial.Air,
         DoorWidth = 2,
         DoorHeight = 3,
@@ -251,8 +257,11 @@ public static class HousePresets
             Form = WindowForm.Open, Width = 2, Height = 2, Sill = 3, Spacing = 3,
         },
 
-        Floor = RoomPart.Of(new SolidMaterial(Blocks.Stone, PlainDiorite)),
-        Sill = HouseStyle.NoFooting,
+        Foundation = new Foundation
+        {
+            Plate = RoomPart.Of(new SolidMaterial(Blocks.Stone, PlainDiorite)),
+            Footing = null,
+        },
         Door = DoorMaterial.Air,
         DoorWidth = 2,
         DoorHeight = 3,
@@ -324,8 +333,11 @@ public static class HousePresets
             Form = WindowForm.Open, Width = 1, Height = 1, Sill = 2,
         },
 
-        Floor = RoomPart.Of(new SolidMaterial(Blocks.Planks, Oak)),
-        Sill = HouseStyle.NoFooting,
+        Foundation = new Foundation
+        {
+            Plate = RoomPart.Of(new SolidMaterial(Blocks.Planks, Oak)),
+            Footing = null,
+        },
         Door = DoorMaterial.Air,
         DoorWidth = 2,
         DoorHeight = 3,
@@ -401,8 +413,11 @@ public static class HousePresets
         },
         GableWindows = new WindowStyle { Form = WindowForm.Open, Width = 1, Height = 1, Sill = 2 },
 
-        Floor = RoomPart.Of(Spruces),
-        Sill = new SolidMaterial(Blocks.Cobblestone),
+        Foundation = new Foundation
+        {
+            Plate = RoomPart.Of(Spruces),
+            Footing = new SolidMaterial(Blocks.Cobblestone),
+        },
         Door = DoorMaterial.Air,
         DoorWidth = 2,
         DoorHeight = 3,
@@ -460,8 +475,11 @@ public static class HousePresets
             HostBlock = Blocks.Planks, HostData = SprucePlanks,
         },
 
-        Floor = RoomPart.Of(Spruces),
-        Sill = new SolidMaterial(Blocks.Cobblestone),
+        Foundation = new Foundation
+        {
+            Plate = RoomPart.Of(Spruces),
+            Footing = new SolidMaterial(Blocks.Cobblestone),
+        },
         Beams = new BeamStyle { Block = Blocks.Log, Data = Spruce, Reach = 1 },
         Door = DoorMaterial.Air,
         DoorWidth = 3,
@@ -528,8 +546,11 @@ public static class HousePresets
             },
         ],
 
-        Floor = RoomPart.Of(new SolidMaterial(StoneBrickBlock)),
-        Sill = new SolidMaterial(Blocks.Cobblestone),
+        Foundation = new Foundation
+        {
+            Plate = RoomPart.Of(new SolidMaterial(StoneBrickBlock)),
+            Footing = new SolidMaterial(Blocks.Cobblestone),
+        },
         Door = DoorMaterial.Air,
         DoorWidth = 2,
         DoorHeight = 3,
@@ -601,8 +622,11 @@ public static class HousePresets
             },
         ],
 
-        Floor = RoomPart.Of(new SolidMaterial(StoneBrickBlock)),
-        Sill = new SolidMaterial(Blocks.Cobblestone),
+        Foundation = new Foundation
+        {
+            Plate = RoomPart.Of(new SolidMaterial(StoneBrickBlock)),
+            Footing = new SolidMaterial(Blocks.Cobblestone),
+        },
         Door = DoorMaterial.Air,
         DoorWidth = 2,
         DoorHeight = 3,
@@ -662,14 +686,17 @@ public static class HousePresets
             RailBlock = SpruceFence,
         },
 
-        Floor = RoomPart.Of(Spruces),
-        Surface = new FloorSurface
+        Foundation = new Foundation
         {
-            Field = Spruces,
-            Border = new SolidMaterial(StoneBrickBlock),
-            BorderWidth = 1,
+            Plate = RoomPart.Of(Spruces),
+            Surface = new FloorSurface
+            {
+                Field = Spruces,
+                Border = new SolidMaterial(StoneBrickBlock),
+                BorderWidth = 1,
+            },
+            Footing = new SolidMaterial(Blocks.Cobblestone),
         },
-        Sill = new SolidMaterial(Blocks.Cobblestone),
         Door = DoorMaterial.Air,
         DoorWidth = 3,
         DoorHeight = 3,

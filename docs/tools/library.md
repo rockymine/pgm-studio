@@ -294,12 +294,12 @@ is a post all the way up — so only their first course is read. A part with no 
 finish, exactly as an unbound theme bucket does, which is what makes a room style that only changes its roof
 worth storing.
 
-**A building seated into terrain does not carry a footing** (author). `sill` is laid one block proud of the
-walls on every side by default — a footing a building meets the ground on — and the off switch is naming it
-**air**: a sill that resolves to air is a course the stamper skips like any other, so the walls meet the ground
-flush. `PgmStudio.Minecraft.HouseStyle.NoFooting` is that choice's name in the code the presets are built from,
-so an author reading the model finds "no footing" rather than rediscovering a bare air material from a comment.
-Bind an air-kind style to the `sill` part to reach the same choice from the library.
+**A building seated into terrain does not carry a footing** (author). A style's `foundation` is what it stands
+on: a `plate` claiming downward from the course players walk on, that plate's `surface` zoning, and a `footing`
+ringing it one block proud. The footing is the optional one — **absent** is no footing, so the walls meet the
+ground flush rather than standing on a course proud of it. It is a state rather than a block that happens to be
+air: naming air was how the choice used to be said, and a style stored that way reads forward as the state it
+meant. Leave the `sill` part unbound to reach the same choice from the library.
 
 **Windows and rails are picked as a block, not as a style**, and the reason is worth keeping: their metadata is
 *geometry* — which way a stair climbs, which half a slab fills — while a material resolves its own data from

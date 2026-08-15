@@ -131,7 +131,7 @@ public sealed class RoomStyleTests
     {
         // The pad is the exported point (WX5). A thicker floor that lifted it would move the spawn.
         var world = new VoxelWorld();
-        Shell(world, Baseline(), 64, HouseStyle.Wool with { Floor = RoomPart.Of(new SolidMaterial(Blocks.Stone), 3) });
+        Shell(world, Baseline(), 64, HouseStyle.Wool with { Foundation = new Foundation { Plate = RoomPart.Of(new SolidMaterial(Blocks.Stone), 3) } });
 
         await Assert.That(world.GetBlock(-1, 64, -1)).IsEqualTo((Blocks.Wool, Red));     // pad, unmoved
         await Assert.That(world.GetBlock(-4, 64, -4)).IsEqualTo((Blocks.Stone, 0));
@@ -188,7 +188,7 @@ public sealed class RoomStyleTests
         var world = new VoxelWorld();
         Shell(world, Baseline(), 64, new HouseStyle
         {
-            Floor = RoomPart.Of(new SolidMaterial(Blocks.Obsidian)),
+            Foundation = new Foundation { Plate = RoomPart.Of(new SolidMaterial(Blocks.Obsidian)) },
             Wall = RoomPart.Of(new SolidMaterial(Blocks.Obsidian), 7),
             Door = DoorMaterial.Air,
         });

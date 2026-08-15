@@ -215,8 +215,11 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
     private static readonly HouseStyle Plain = HouseStyle.Wool with
     {
         Wall = RoomPart.Of(new SolidMaterial(Blocks.Planks, 1), 5),
-        Sill = new SolidMaterial(Blocks.Cobblestone),
-        Floor = RoomPart.Of(new SolidMaterial(Blocks.Planks)),
+        Foundation = new Foundation
+        {
+            Plate = RoomPart.Of(new SolidMaterial(Blocks.Planks)),
+            Footing = new SolidMaterial(Blocks.Cobblestone),
+        },
         Form = RoofForm.Gable,
         Roof = new SolidMaterial(Blocks.Planks, 1),
         Verge = new SolidMaterial(Blocks.Planks, 5),

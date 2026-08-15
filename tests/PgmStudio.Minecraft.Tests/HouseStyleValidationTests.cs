@@ -228,19 +228,21 @@ public sealed class HouseStyleValidationTests
 
     // ── the footing has a legible off switch ───────────────────────────────────────────────────────────
 
+    /// <summary><b>No footing is a state, not a block that happens to be air.</b> It was a bare
+    /// <c>SolidMaterial(Air)</c> standing in for one, so "does this building have a footing" was a comparison
+    /// against a sentinel rather than a question the style could answer.</summary>
     [Test]
-    public async Task NoFooting_is_air_and_is_what_the_flush_presets_use()
+    public async Task A_building_seated_into_terrain_has_no_footing_at_all()
     {
-        await Assert.That(HouseStyle.NoFooting).IsEqualTo(new SolidMaterial(Blocks.Air));
         foreach (var house in new[] { HousePresets.Alpine, HousePresets.Desert, HousePresets.Diorite, HousePresets.Townside, HousePresets.Stilts })
-            await Assert.That(house.Style.Sill).IsEqualTo(HouseStyle.NoFooting);
+            await Assert.That((house.Name, house.Style.Foundation.Footing)).IsEqualTo((house.Name, (TerrainMaterial?)null));
     }
 
     [Test]
     public async Task The_village_row_keeps_its_plinth()
     {
         foreach (var house in HousePresets.Village)
-            await Assert.That(house.Style.Sill).IsNotEqualTo(HouseStyle.NoFooting);
+            await Assert.That(house.Style.Foundation.Footing).IsNotNull();
     }
 
     // ── BlockKinds ──────────────────────────────────────────────────────────────────────────────────────

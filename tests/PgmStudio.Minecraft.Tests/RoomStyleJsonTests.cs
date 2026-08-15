@@ -25,11 +25,51 @@ public sealed class RoomStyleJsonTests
 
         await Assert.That(members).IsEquivalentTo(new[]
         {
-            "Beams", "Door", "DoorEdge", "DoorHead", "DoorHeight", "DoorWidth", "Floor", "Form", "Gable",
-            "GableWindows", "Overhang", "Pitch",
-            "Porch", "Post", "RidgeCap", "Roof", "RoofHole", "RoofSlab", "RoofSlabData", "Sill", "Storeys",
-            "Surface", "Verge", "Wall", "Windows",
+            "Beams", "Door", "DoorEdge", "DoorHead", "DoorHeight", "DoorWidth", "Form", "Foundation",
+            "Gable", "GableWindows", "Overhang", "Pitch",
+            "Porch", "Post", "RidgeCap", "Roof", "RoofHole", "RoofSlab", "RoofSlabData", "Storeys",
+            "Verge", "Wall", "Windows",
         }.Order().ToList());
+    }
+
+    /// <summary>
+    /// <b>A snapshot outlives the shape it was written in.</b> A map keeps its bound style rather than a key
+    /// into the library, so every style ever stored is still out there in a layout blob — and the reader falls
+    /// back to the built-in shell on anything it cannot make sense of, which turns a shape change without an
+    /// upgrade into a map that quietly stops looking like itself rather than into an error.
+    ///
+    /// <para>The sill, the floor and its zoning were three fields beside everything else; they are the one
+    /// thing a building stands on. A sill resolving to air was how "no footing" was said before it was a
+    /// state, so it reads forward as one.</para>
+    /// </summary>
+    [Test]
+    public async Task A_style_stored_before_the_foundation_had_a_name_reads_forward()
+    {
+        var stored = """
+            {"sill":{"kind":"solid","id":4,"data":0},
+             "floor":{"courses":[{"material":{"kind":"solid","id":5,"data":0},"height":1}],"extent":3},
+             "surface":{"border":{"kind":"solid","id":98,"data":0},"borderWidth":2},
+             "wall":{"courses":[{"material":{"kind":"solid","id":5,"data":1},"height":1}],"extent":5}}
+            """;
+
+        var style = HouseStyleJson.Deserialize(stored);
+
+        await Assert.That(style.Foundation.Depth).IsEqualTo(3);
+        await Assert.That(style.Foundation.Deck).IsEqualTo(new SolidMaterial(5));
+        await Assert.That(style.Foundation.Footing).IsEqualTo(new SolidMaterial(Blocks.Cobblestone));
+        await Assert.That(style.Foundation.Surface.BorderWidth).IsEqualTo(2);
+        await Assert.That(style.Wall.Extent).IsEqualTo(5);          // everything beside it is untouched
+    }
+
+    /// <summary>The air material that used to stand in for no footing reads forward as the state it meant, so
+    /// a building seated into terrain still meets the ground flush rather than on a course of air.</summary>
+    [Test]
+    public async Task A_stored_air_sill_reads_forward_as_no_footing()
+    {
+        var style = HouseStyleJson.Deserialize(
+            """{"sill":{"kind":"solid","id":0,"data":0},"floor":{"courses":[],"extent":1}}""");
+
+        await Assert.That(style.Foundation.Footing).IsNull();
     }
 
     [Test]

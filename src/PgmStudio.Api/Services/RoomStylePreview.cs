@@ -77,7 +77,7 @@ public static class RoomStylePreview
     /// <summary>The box the outward views are taken over: the shell plus its margin of ground, from under the
     /// deepest floor to over the highest course of roof.</summary>
     private static ViewBox Outer(HouseStyle style) => new(
-        Sample.MinX - Margin, FloorY - style.Floor.Extent, Sample.MinZ - Margin,
+        Sample.MinX - Margin, FloorY - style.Foundation.Plate.Extent, Sample.MinZ - Margin,
         Sample.MaxX + Margin - 1, FloorY + style.TopLayerOver(Sample.Width, Sample.Depth, Sample.Doors[0].Edge), Sample.MaxZ + Margin - 1);
 
     /// <summary>The box the cutaway is drawn over — the shell itself, since a slice through the ground beside

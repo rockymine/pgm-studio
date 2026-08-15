@@ -315,13 +315,16 @@ public sealed class HouseStamperTests
     {
         var world = House(13, 13, new HouseStyle
         {
-            Surface = new FloorSurface
+            Foundation = new Foundation
             {
-                Border = new SolidMaterial(Blocks.Obsidian),
-                Field = new SolidMaterial(Blocks.QuartzBlock),
-                Inlay = new SolidMaterial(Blocks.GoldBlock),
-                BorderWidth = 2,
-                InlayInset = 4,
+                Surface = new FloorSurface
+                {
+                    Border = new SolidMaterial(Blocks.Obsidian),
+                    Field = new SolidMaterial(Blocks.QuartzBlock),
+                    Inlay = new SolidMaterial(Blocks.GoldBlock),
+                    BorderWidth = 2,
+                    InlayInset = 4,
+                },
             },
         });
 
@@ -336,7 +339,7 @@ public sealed class HouseStamperTests
     public async Task A_style_with_no_floor_zones_leaves_the_floor_part_showing()
     {
         var world = House(11, 9);
-        var (id, _) = new HouseStyle().Floor.At(0).Material.Resolve(
+        var (id, _) = new HouseStyle().Foundation.Deck.Resolve(
             new BucketContext(5, FloorY, 4, TerrainBucket.Fill, 0));
         await Assert.That(world.GetBlock(5, FloorY, 4).Id).IsEqualTo(id);
     }
@@ -476,7 +479,7 @@ public sealed class HouseStamperTests
             Door = DoorMaterial.StainedGlass,
             Windows = WindowStyle.Glazed,
             Porch = new PorchStyle { Depth = 2 },
-            Surface = new FloorSurface { Border = new SolidMaterial(Blocks.Obsidian) },
+            Foundation = new Foundation { Surface = new FloorSurface { Border = new SolidMaterial(Blocks.Obsidian) } },
         });
         await Assert.That(Leaks(world, 13, 11)).IsFalse();
     }

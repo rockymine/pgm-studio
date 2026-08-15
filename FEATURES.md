@@ -3813,6 +3813,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   test cannot stand in for — a seal passes happily on a roof with a hole in its body. Both `Ell()` fixtures had
   two **parallel** ridges and therefore no junction to test, which is how all four shipped unnoticed (`G182`);
   `EllMarch`/`EllProject` are the ones with crossing ridges, and `G186` redrew the rest.
+- **A building stands on a foundation, and a stored style reads forward into it (B196).** The sill, the floor
+  and its zoning were three fields sitting beside everything else in a 25-field record, and "no footing" was a
+  bare `SolidMaterial(Air)` sentinel — so asking whether a building had one was a comparison against a magic
+  material rather than a question the style could answer. `Foundation` is the one thing a building stands on:
+  a **plate** claiming downward (whose top course is the ground storey's deck, which is why a ground storey
+  names none), that plate's **surface** zoning, and an optional **footing** ringing it a block proud, where
+  absent is the state itself. Depth and material — the two things the author asked to vary — are the plate's.
+  `HouseStyle.NoFooting` is deleted with the sentinel it named.
+- **A house style can be migrated, which it could not be before (B196).** `DressingJson` has carried an upgrade
+  hook since it had props to carry; `HouseStyleJson` had none, and a map keeps its bound style rather than a
+  key into the library — so every style ever stored is still in a layout blob, and the reader falls back to the
+  built-in shell on anything it cannot parse. A shape change without a hook was therefore not an error but a
+  map that quietly stopped looking like itself, and `basalt-reach.styles.json` would have been the first. The
+  hook lands with the foundation riding on it, and the air sentinel reads forward as no footing.
 - **A storey stands on a deck, and one plate has one owner (B194).** The course between two storeys is the
   ceiling of the lower seen from below and the floor of the upper seen from above, and a block has only one
   identity — but the model gave it two owners: its **material** came from the storey below (`Storey.Ceiling`)

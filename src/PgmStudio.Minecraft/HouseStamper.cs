@@ -152,29 +152,31 @@ public static class HouseStamper
         }
 
         // ── the foundation ────────────────────────────────────────────────────────────────────────────
-        // The sill rings the whole footprint one block proud and the floor claims downward from the course
-        // players stand on — both over the ground the house was given, not over what its walls kept, so a
-        // porch stands on the same footing and the same floor as the room behind it.
+        // The plate claims downward from the course players stand on and the footing rings it one block proud
+        // — both over the ground the house was given, not over what its walls kept, so a porch stands on the
+        // same foundation as the room behind it.
+        var foundation = style.Foundation;
         for (var x = ground.MinX - 1; x <= ground.MaxX + 1; x++)
             for (var z = ground.MinZ - 1; z <= ground.MaxZ + 1; z++)
             {
                 if (!ground.Holds(x, z))
                 {
                     // One block proud of the building rather than everything the box holds: on a plan that
-                    // turns a corner the two are different, and a sill filling the notch is a doorstep across
-                    // ground the house never stood on.
-                    if (ground.Borders(x, z)) Put(x, floorY, z, style.Sill, ground);
+                    // turns a corner the two are different, and a footing filling the notch is a doorstep
+                    // across ground the house never stood on.
+                    if (foundation.Footing is { } footing && ground.Borders(x, z))
+                        Put(x, floorY, z, footing, ground);
                     continue;
                 }
-                for (var step = 0; step < Math.Max(1, style.Floor.Extent); step++)
-                    PutPart(x, floorY - step, z, style.Floor, step, ground);
+                for (var step = 0; step < foundation.Depth; step++)
+                    PutPart(x, floorY - step, z, foundation.Plate, step, ground);
             }
 
-        // The floor's own top course, zoned across the room it belongs to. The porch keeps the floor part
-        // showing: a deck is what the building stands on, not a room to lay a border round.
-        if (!style.Surface.IsPlain)
+        // The plate's own top course, zoned across the room it belongs to. The porch keeps the plate showing:
+        // a deck is what the building stands on, not a room to lay a border round.
+        if (!foundation.Surface.IsPlain)
             foreach (var (x, z) in body.Cells())
-                if (style.Surface.At(body.Ring(x, z)) is { } surface)
+                if (foundation.Surface.At(body.Ring(x, z)) is { } surface)
                     Put(x, floorY, z, surface, body);
 
         // ── the roof ──────────────────────────────────────────────────────────────────────────────────

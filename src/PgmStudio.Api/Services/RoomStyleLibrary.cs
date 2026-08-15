@@ -275,7 +275,6 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
         var builtIn = HouseStyle.Wool;
         return builtIn with
         {
-            Floor = stack.Stack(RoomParts.Floor, row.FloorDepth, builtIn.Floor),
             Wall = stack.Stack(RoomParts.Wall, row.WallHeight, builtIn.Wall),
             // A roof is one course, so its stack contributes only its first material and the stored thickness
             // is ignored. The eave was a two-valued overhang all along: flush is none, overlap is one block.
@@ -286,17 +285,22 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
             // Unbound the gable is the wall's top course carried up, which is what every stored style was
             // before the face had a name of its own.
             Gable = stack.Bound(RoomParts.Gable),
-            Sill = stack.Material(RoomParts.Sill, builtIn.Sill),
             Verge = stack.Material(RoomParts.Verge, stack.Material(RoomParts.Roof, builtIn.Roof)),
-            // The floor's top course in plan. Each zone is unbound until a course names it, and an unbound
-            // zone is not a zone: the floor part shows through, which is what every stored style was.
-            Surface = new FloorSurface
+            // What the building stands on: the plate, the footing round it, and how the plate's top course is
+            // divided in plan. Each zone is unbound until a course names it, and an unbound zone is not a
+            // zone: the plate shows through, which is what every stored style was.
+            Foundation = new Foundation
             {
-                Field = stack.Bound(RoomParts.Field),
-                Border = stack.Bound(RoomParts.Border),
-                BorderWidth = Math.Max(1, row.BorderWidth),
-                Inlay = stack.Bound(RoomParts.Inlay),
-                InlayInset = Math.Max(1, row.InlayInset),
+                Plate = stack.Stack(RoomParts.Floor, row.FloorDepth, builtIn.Foundation.Plate),
+                Footing = stack.Bound(RoomParts.Sill),
+                Surface = new FloorSurface
+                {
+                    Field = stack.Bound(RoomParts.Field),
+                    Border = stack.Bound(RoomParts.Border),
+                    BorderWidth = Math.Max(1, row.BorderWidth),
+                    Inlay = stack.Bound(RoomParts.Inlay),
+                    InlayInset = Math.Max(1, row.InlayInset),
+                },
             },
             Windows = WindowOf(row),
             Storeys = StoreysOf(row),

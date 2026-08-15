@@ -293,7 +293,7 @@ the slope it belongs to. The slab is a block id rather than a material, for the 
 half of its cube a slab fills is geometry.
 
 Every roof here is a height field over **one rectangle**, and a building is not always one. A `Footprint` is
-one or more touching **wings**; everything below the eave — the sill, the floor, the walls, the
+one or more touching **wings**; everything below the eave — the foundation, the walls, the
 window runs, the doorways, the slab and the beams — reads the plan's own cells, so an L, a T or a U is built as
 one house on one outline. A wall stands wherever the plan is exposed, **diagonals included**: where two
 wings meet, the two walls running into the turn touch along one vertical edge and nothing else, and the
@@ -460,7 +460,7 @@ through.
 ### 7.3 A porch is taken out of the footprint
 
 The footprint comes from the piece (WX1) and a style may never change it, so a porch that grew outward would
-be a style deciding a footprint. Taken inward it is not. The sill and the floor still cover the whole
+be a style deciding a footprint. Taken inward it is not. The foundation still covers the whole
 footprint; the walls stand `Depth` blocks back from one wall of it; and the strip they gave up is a deck
 carrying posts, a rail and its own canopy. `Inset` pulls the deck in from each end of that wall, which makes
 the porch a feature of the front rather than the front itself.
@@ -630,6 +630,16 @@ ground storey is told about the doorway; there is no door to avoid on the ones a
 own wall, windows, floor zoning and deck, and falls back to the building's where it does not — a stack of
 identical storeys is a count rather than a repeated description, and every one of those fallbacks is resolved
 in `HouseStyle.Levels` rather than at the point each is used.
+
+**A building stands on a foundation**, and it is one thing rather than three fields beside each other. The
+**plate** claims downward from the course players walk on, so a thicker one digs into the ground the house
+sits on rather than lifting its inside off it, and its top course is the ground storey's deck — which is why a
+ground storey names none of its own. The plate's **surface** divides that top course across the room, a border
+and a field and an inlay. The **footing** rings the plate one block proud on every side, and it is the
+optional one: absent, the walls meet the ground flush, which is what a building seated into finished terrain
+wants (author). Absent is a state and not a block that happens to be air — the air material that used to stand
+in for it made "does this building have a footing" a comparison against a sentinel rather than a question the
+style could answer.
 
 Every storey stands on a **deck**: one course infilled across the interior, the perimeter being wall already.
 It is an infill rather than a lid — the walls already span that course, which is what a floor is when a

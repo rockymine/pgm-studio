@@ -36,11 +36,14 @@ var oak = HouseStyle.Wool with
     Pitch = 1,
     Overhang = 1,
     Wall = RoomPart.Of(new SolidMaterial(5, 1), 5),        // spruce planks
-    Floor = RoomPart.Of(new SolidMaterial(5, 0)),          // oak planks
     Roof = new SolidMaterial(5, 1),
     Verge = new SolidMaterial(5, 5),                       // dark oak, so the roof reads an edge
     Post = new SolidMaterial(17, 0),                       // oak log at the corners: a house is framed
-    Sill = new SolidMaterial(4),                           // cobble footing
+    Foundation = new Foundation
+    {
+        Plate = RoomPart.Of(new SolidMaterial(5, 0)),      // oak planks
+        Footing = new SolidMaterial(4),                    // cobble
+    },
     RoofHole = false,
     DoorHeight = 3,
 };

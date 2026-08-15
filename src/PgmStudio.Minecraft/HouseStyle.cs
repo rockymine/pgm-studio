@@ -212,6 +212,45 @@ public sealed record Storey
 }
 
 /// <summary>
+/// What a building stands on: the plate under its floor, how that floor's top course is divided, and the
+/// footing that rings it.
+///
+/// <para><b>The plate is the floor.</b> It claims downward from the course players walk on, so a thicker one
+/// digs into the ground the house sits on rather than lifting its inside off it, and its top course is what a
+/// ground storey's feet are on — which is why a ground storey names no <see cref="Storey.Deck"/>: this is its
+/// deck. A house always has one, because a building with no floor is a building standing in a hole.</para>
+///
+/// <para><b>The footing is the foundation proper, and it is optional.</b> One course ringing the plate a block
+/// proud on every side, so the building meets the ground on something instead of stopping dead at it. Null is
+/// no footing — a real state rather than a bare air material standing in for one, which is what a building
+/// seated into terrain wants (author). <see cref="Depth"/> and what the plate is laid in are the two things
+/// that vary about it, and both are the plate's.</para>
+/// </summary>
+public sealed record Foundation
+{
+    /// <summary>Downward from the course players stand on. Its top course is the ground storey's deck.</summary>
+    public RoomPart Plate { get; init; } = RoomPart.Of(new SolidMaterial(Blocks.Planks));
+
+    /// <summary>How that top course is divided across the room — a border, a field, an inlay. Plain by
+    /// default, which is the plate showing through unchanged.</summary>
+    public FloorSurface Surface { get; init; } = FloorSurface.Plain;
+
+    /// <summary>The course ringing the plate one block proud, or null for a building that meets the ground
+    /// without one.</summary>
+    public TerrainMaterial? Footing { get; init; } = new SolidMaterial(Blocks.Cobblestone);
+
+    /// <summary>How far the plate claims downward — the whole of what "how deep is the foundation" means.</summary>
+    public int Depth => Math.Max(1, Plate.Extent);
+
+    /// <summary>What a ground storey stands on, and what a deck falls back to.</summary>
+    public TerrainMaterial Deck => Plate.At(0).Material;
+
+    /// <summary>A floor and nothing round it: the plate alone, which is what a building seated into finished
+    /// terrain wants.</summary>
+    public Foundation WithoutFooting() => this with { Footing = null };
+}
+
+/// <summary>
 /// How a house is finished: a part or a material per piece of it, and the few numbers that decide its
 /// proportions.
 ///
@@ -227,13 +266,8 @@ public sealed record HouseStyle
     private const int Oak = 0, Spruce = 1, DarkOak = 5;
     private const int Planks = Blocks.Planks;
 
-    /// <summary>The course the walls stand on, laid one block proud of them on every side, so the building
-    /// meets the ground on a footing instead of stopping dead at it.
-    ///
-    /// <para><b>A building seated into terrain does not carry one</b> (author). The off switch is
-    /// <see cref="NoFooting"/> — name it here rather than reinventing a bare air material, so the choice reads
-    /// as "no footing" wherever it is written instead of as one more block id among the others.</para></summary>
-    public TerrainMaterial Sill { get; init; } = new SolidMaterial(Blocks.Cobblestone);
+    /// <summary>What the building stands on: the floor plate, its zoning, and the footing that rings it.</summary>
+    public Foundation Foundation { get; init; } = new();
 
     /// <summary>The infill between the posts, upward from the floor. Its extent is the wall's height.</summary>
     public RoomPart Wall { get; init; } = RoomPart.Of(new SolidMaterial(Planks, Spruce), 5);
@@ -267,13 +301,6 @@ public sealed record HouseStyle
     /// flat; bordering it is what gives the slope an edge to end on.</summary>
     public TerrainMaterial Verge { get; init; } = new SolidMaterial(Planks, DarkOak);
 
-    /// <summary>Downward from the course players stand on, so a thicker floor digs into what the house sits
-    /// on rather than lifting its inside off it.</summary>
-    public RoomPart Floor { get; init; } = RoomPart.Of(new SolidMaterial(Planks, Oak));
-
-    /// <summary>How the top course of that floor is divided across the room — a border, a field, an inlay.
-    /// Plain by default, which is the floor part showing through unchanged.</summary>
-    public FloorSurface Surface { get; init; } = FloorSurface.Plain;
 
     /// <summary>The windows cut through the walls, or none.</summary>
     public WindowStyle Windows { get; init; } = new();
@@ -311,14 +338,14 @@ public sealed record HouseStyle
             Wall = storey.Wall ?? Wall,
             Post = storey.Post ?? Post,
             Windows = storey.Windows ?? Windows,
-            Surface = storey.Surface ?? Surface,
-            Deck = storey.Deck ?? Floor.At(0).Material,
+            Surface = storey.Surface ?? Foundation.Surface,
+            Deck = storey.Deck ?? Foundation.Deck,
         })]
         : [new Storey
         {
             Shell = true, Clear = Wall.Extent,
-            Wall = Wall, Post = Post, Windows = Windows, Surface = Surface,
-            Deck = Floor.At(0).Material,
+            Wall = Wall, Post = Post, Windows = Windows, Surface = Foundation.Surface,
+            Deck = Foundation.Deck,
         }];
 
     /// <summary>Courses of wall from the floor to the eave — every storey's headroom, plus one slab course
@@ -439,9 +466,9 @@ public sealed record HouseStyle
     /// made of, and a whole shell's worth of members would silently ride on it.</summary>
     public bool Equals(HouseStyle? other)
         => other is not null
-           && Sill == other.Sill && Wall == other.Wall && Post == other.Post && Gable == other.Gable
-           && Roof == other.Roof && Verge == other.Verge && Floor == other.Floor
-           && Surface == other.Surface && Windows == other.Windows
+           && Foundation == other.Foundation
+           && Wall == other.Wall && Post == other.Post && Gable == other.Gable
+           && Roof == other.Roof && Verge == other.Verge && Windows == other.Windows
            && GableWindows == other.GableWindows
            && Storeys.SequenceEqual(other.Storeys)
            && Porch == other.Porch && DoorEdge == other.DoorEdge && Form == other.Form
@@ -455,9 +482,8 @@ public sealed record HouseStyle
     public override int GetHashCode()
     {
         var hash = new HashCode();
-        hash.Add(Sill); hash.Add(Wall); hash.Add(Post); hash.Add(Gable);
-        hash.Add(Roof); hash.Add(Verge); hash.Add(Floor);
-        hash.Add(Surface); hash.Add(Windows); hash.Add(GableWindows);
+        hash.Add(Foundation); hash.Add(Wall); hash.Add(Post); hash.Add(Gable);
+        hash.Add(Roof); hash.Add(Verge); hash.Add(Windows); hash.Add(GableWindows);
         foreach (var storey in Storeys) hash.Add(storey);
         hash.Add(Porch); hash.Add(DoorEdge); hash.Add(Form);
         hash.Add(RidgeCap); hash.Add(RoofHole);
@@ -467,16 +493,9 @@ public sealed record HouseStyle
         return hash.ToHashCode();
     }
 
-    /// <summary>The <see cref="Sill"/> a building seated into terrain wants: no footing at all, so the walls
-    /// meet the ground flush instead of standing on a course proud of it. The mechanism is not new — a sill
-    /// resolving to air is a course <see cref="HouseStamper"/> skips like any other — this is only the name
-    /// for it, so an author turning the footing off writes a choice rather than rediscovering a bare
-    /// <see cref="SolidMaterial"/> of <see cref="Blocks.Air"/> from a comment on one preset.</summary>
-    public static readonly TerrainMaterial NoFooting = new SolidMaterial(Blocks.Air);
-
     /// <summary>The shipped wool structure: a flat bedrock shell, a wool band at the fourth course, a light
-    /// slit at the sixth, and a stained-glass-pane door. No posts and no sill — a shell's corners are wall
-    /// like the rest of it, and it meets the ground without a footing.</summary>
+    /// slit at the sixth, and a stained-glass-pane door. No posts and no footing — a shell's corners are wall
+    /// like the rest of it, and it meets the ground flush rather than standing on a course proud of it.</summary>
     public static HouseStyle Wool { get; } = Shell(Banded(Blocks.Wool));
 
     /// <summary>The shipped spawn structure: the same shell with a stained-clay band, and an open doorway a
@@ -495,11 +514,14 @@ public sealed record HouseStyle
     {
         Form = RoofForm.Flat,
         Wall = wall,
-        Floor = RoomPart.Of(new SolidMaterial(Blocks.Bedrock)),
+        Foundation = new Foundation
+        {
+            Plate = RoomPart.Of(new SolidMaterial(Blocks.Bedrock)),
+            Footing = null,                        // a shell meets the ground flush
+        },
         Roof = new SolidMaterial(Blocks.Bedrock),
         Verge = new SolidMaterial(Blocks.Bedrock),
         Post = null,
-        Sill = NoFooting,
         Overhang = 0,
         RoofHole = true,
         Door = DoorMaterial.StainedGlassPane,

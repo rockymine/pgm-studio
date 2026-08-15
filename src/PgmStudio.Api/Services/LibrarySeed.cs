@@ -86,16 +86,16 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
     /// stack. A stack's courses are numbered so two courses of one part keep distinct names.</summary>
     private static IEnumerable<(string Part, TerrainMaterial Material)> HouseMaterials(HouseStyle style)
     {
-        foreach (var entry in PartCoursesOf(RoomParts.Floor, style.Floor)) yield return entry;
+        foreach (var entry in PartCoursesOf(RoomParts.Floor, style.Foundation.Plate)) yield return entry;
         foreach (var entry in PartCoursesOf(RoomParts.Wall, style.Wall)) yield return entry;
         yield return (RoomParts.Roof, style.Roof);
         yield return (RoomParts.Verge, style.Verge);
-        yield return (RoomParts.Sill, style.Sill);
+        yield return (RoomParts.Sill, style.Foundation.Footing);
         if (style.Post is { } post) yield return (RoomParts.Post, post);
         if (style.Gable is { } gable) yield return (RoomParts.Gable, gable);
-        if (style.Surface.Field is { } field) yield return (RoomParts.Field, field);
-        if (style.Surface.Border is { } border) yield return (RoomParts.Border, border);
-        if (style.Surface.Inlay is { } inlay) yield return (RoomParts.Inlay, inlay);
+        if (style.Foundation.Surface.Field is { } field) yield return (RoomParts.Field, field);
+        if (style.Foundation.Surface.Border is { } border) yield return (RoomParts.Border, border);
+        if (style.Foundation.Surface.Inlay is { } inlay) yield return (RoomParts.Inlay, inlay);
 
         // A storey's own wall and posts are materials of the building too — the library stores them on a
         // storey style, but they are the same rows and are named per storey so two storeys keep theirs apart.
@@ -244,16 +244,16 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             if (ids.TryGetValue(key, out var id)) courses.Add(new RoomCourseDto(PartOf(part), ordinal, id, height));
         }
 
-        BindStack(RoomParts.Floor, style.Floor);
+        BindStack(RoomParts.Floor, style.Foundation.Plate);
         BindStack(RoomParts.Wall, style.Wall);
         Bind(RoomParts.Roof, style.Roof);
         Bind(RoomParts.Verge, style.Verge);
-        Bind(RoomParts.Sill, style.Sill);
+        Bind(RoomParts.Sill, style.Foundation.Footing);
         Bind(RoomParts.Post, style.Post);
         Bind(RoomParts.Gable, style.Gable);
-        Bind(RoomParts.Field, style.Surface.Field);
-        Bind(RoomParts.Border, style.Surface.Border);
-        Bind(RoomParts.Inlay, style.Surface.Inlay);
+        Bind(RoomParts.Field, style.Foundation.Surface.Field);
+        Bind(RoomParts.Border, style.Foundation.Surface.Border);
+        Bind(RoomParts.Inlay, style.Foundation.Surface.Inlay);
 
         void BindStack(string part, RoomPart stack)
         {
@@ -265,7 +265,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         var windows = style.Windows;
         return new RoomStyleSaveRequest(
             Name: house.Name,
-            FloorDepth: Math.Max(1, style.Floor.Extent),
+            FloorDepth: style.Foundation.Depth,
             WallHeight: Math.Max(1, style.Wall.Extent),
             RoofThickness: 1,
             RoofForm: RoofForms.Canonical(NameOf(style.Form)),
@@ -277,8 +277,8 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             StoreyClear: style.Storeys.Count > 0 ? style.Storeys[0].Clear : 0,
             Door: DoorMaterials.Slug(style.Door),
             DoorHeight: style.DoorHeight,
-            BorderWidth: style.Surface.BorderWidth,
-            InlayInset: style.Surface.InlayInset,
+            BorderWidth: style.Foundation.Surface.BorderWidth,
+            InlayInset: style.Foundation.Surface.InlayInset,
             Windows: WindowDto(windows),
             Porch: style.Porch is { } porch
                 ? new RoomPorchDto(porch.Depth, porch.Inset, PorchEdges.Canonical(NameOf(porch.Edge)),
@@ -337,13 +337,13 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         }
 
         Check("wall", preset.Wall, back.Wall);
-        Check("floor", preset.Floor, back.Floor);
+        Check("floor", preset.Foundation.Plate, back.Foundation.Plate);
         Check("roof", preset.Roof, back.Roof);
         Check("verge", preset.Verge, back.Verge);
-        Check("sill", preset.Sill, back.Sill);
+        Check("sill", preset.Foundation.Footing, back.Foundation.Footing);
         Check("post", preset.Post, back.Post);
         Check("gable", preset.Gable, back.Gable);
-        Check("surface", preset.Surface, back.Surface);
+        Check("surface", preset.Foundation.Surface, back.Foundation.Surface);
         Check("form", preset.Form, back.Form);
         Check("pitch", preset.Pitch, back.Pitch);
         Check("overhang", preset.Overhang, back.Overhang);
