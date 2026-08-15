@@ -10,6 +10,7 @@ namespace PgmStudio.Client.Features.Configure;
 
 using C = CoreAuthoring;
 using Ctx = AuthoringContext;
+using PgmStudio.Geom;
 
 // Cores · objectives. The ingest scan already found this map's cores — a lava volume sealed in obsidian is a
 // signature nothing but a core produces — and stored them in core_candidate, so the step's real job is
@@ -92,7 +93,7 @@ public partial class CoreObjectivesStep
             foreach (var s in arr.EnumerateArray())
             {
                 if (!s.TryGetProperty("box", out var bx) || bx.ValueKind != JsonValueKind.Object) continue;
-                var volume = new C.Box(Int(bx, "minX"), Int(bx, "minY"), Int(bx, "minZ"),
+                var volume = new BlockBox(Int(bx, "minX"), Int(bx, "minY"), Int(bx, "minZ"),
                                        Int(bx, "maxX"), Int(bx, "maxY"), Int(bx, "maxZ"));
                 detected.Add(new C.Core
                 {
@@ -170,7 +171,7 @@ public partial class CoreObjectivesStep
         {
             var baseY = restingY + core.Float;
             core.AnchorY = restingY;
-            core.Volume = new C.Box(minX, baseY, minZ, maxX, baseY + core.Height - 1, maxZ);
+            core.Volume = new BlockBox(minX, baseY, minZ, maxX, baseY + core.Height - 1, maxZ);
         }
         Add(core);
     }
@@ -208,7 +209,7 @@ public partial class CoreObjectivesStep
         await canvas.SetAuthorRegionsAsync(shapes);
     }
 
-    private static object Shape(string id, C.Box volume, string color, bool primary, string label) => new
+    private static object Shape(string id, BlockBox volume, string color, bool primary, string label) => new
     {
         id,
         type = "cuboid", primary, color, label,

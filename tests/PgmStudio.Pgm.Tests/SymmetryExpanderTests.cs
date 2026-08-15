@@ -3,6 +3,7 @@ using PgmStudio.Pgm.Authoring;
 namespace PgmStudio.Pgm.Tests;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Geom;
 
 /// <summary>
 /// Orbit-fill (declarative authoring §4): the author states one orbit unit + a symmetry, and

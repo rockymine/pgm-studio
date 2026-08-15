@@ -4,6 +4,7 @@ namespace PgmStudio.Pgm.Authoring;
 
 using PgmStudio.Pgm.Editing;
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Geom;
 
 /// <summary>
 /// The half a destroyable and a core generate identically: a cuboid region around the stamped structure, and

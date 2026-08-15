@@ -1,4 +1,5 @@
 using PgmStudio.Domain;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Authoring;
 
@@ -34,7 +35,7 @@ public static class ResourceRenewables
             var blocks = resourceBlocks.Where(b => b.Type == type).Select(b => (b.X, b.Y, b.Z)).ToList();
             if (blocks.Count == 0) continue;
             // Only ore that sits in a spawn is a renewable candidate; ignore the rest (ambiguous intent).
-            if (!blocks.Any(b => spawns.Any(s => Covers(s.Box, b.X, b.Z)))) continue;
+            if (!blocks.Any(b => spawns.Any(s => s.Box.Covers(b.X, b.Z)))) continue;
 
             var slug = type.Replace("_block", "");   // iron / gold / diamond
             var material = type.Replace('_', ' ');    // iron block / gold block / diamond block
@@ -53,7 +54,7 @@ public static class ResourceRenewables
     }
 
     // ── reuse the spawns union + relax its block protection to only the in-spawn resources ────────────
-    private static void RelaxSpawnProtection(MapXml m, List<(string Id, Box Box)> spawns, List<(string Slug, string Material)> inSpawn)
+    private static void RelaxSpawnProtection(MapXml m, List<(string Id, Rect Box)> spawns, List<(string Slug, string Material)> inSpawn)
     {
         if (!m.Regions.ContainsKey("spawns"))
             m.Regions["spawns"] = new Region { Id = "spawns", Type = "union", Children = spawns.Select(s => s.Id).ToList() };
@@ -85,17 +86,14 @@ public static class ResourceRenewables
     }
 
     // ── helpers ────────────────────────────────────────────────────────────────────────
-    private readonly record struct Box(double MinX, double MinZ, double MaxX, double MaxZ);
-
-    private static bool Covers(Box b, int x, int z) => x >= b.MinX && x <= b.MaxX && z >= b.MinZ && z <= b.MaxZ;
 
     // Spawn-protection regions = a rectangle (or a union of rectangles, for a multi-rect footprint)
     // referenced by an apply rule whose enter filter is only-<team> (the spawn enter rule; wool rooms use
     // not-<team>). The region id is the union (the renewable's region reference); each rect contributes a box.
-    private static List<(string Id, Box Box)> SpawnProtections(MapXml m)
+    private static List<(string Id, Rect Box)> SpawnProtections(MapXml m)
     {
         var seen = new HashSet<string>();
-        var result = new List<(string, Box)>();
+        var result = new List<(string, Rect)>();
         foreach (var rule in m.ApplyRules)
             if (rule.EnterFilter.StartsWith("only-") && seen.Add(rule.RegionId)
                 && m.Regions.TryGetValue(rule.RegionId, out var r))
@@ -105,17 +103,17 @@ public static class ResourceRenewables
     }
 
     // The block-footprint boxes of a protection region: a rectangle's own box, or a union's rectangle children.
-    private static IEnumerable<Box> RectBoxes(MapXml m, Region r)
+    private static IEnumerable<Rect> RectBoxes(MapXml m, Region r)
     {
         if (r.Type == "rectangle")
         {
-            if (r.MinX is { } a && r.MinZ is { } b && r.MaxX is { } c && r.MaxZ is { } d) yield return new Box(a, b, c, d);
+            if (r.MinX is { } a && r.MinZ is { } b && r.MaxX is { } c && r.MaxZ is { } d) yield return new Rect(a, b, c, d);
         }
         else if (r.Type == "union" && r.Children is { } children)
             foreach (var cid in children)
                 if (m.Regions.TryGetValue(cid, out var cr) && cr.Type == "rectangle"
                     && cr.MinX is { } a && cr.MinZ is { } b && cr.MaxX is { } c && cr.MaxZ is { } d)
-                    yield return new Box(a, b, c, d);
+                    yield return new Rect(a, b, c, d);
     }
 
     private static void AddMaterialFilter(MapXml m, string id, string material)

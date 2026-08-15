@@ -5,6 +5,7 @@ using PgmStudio.Pgm.Detect;
 namespace PgmStudio.Pgm.Tests;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Geom;
 
 /// <summary>
 /// Water-lane slice of the declarative generator (docs/pgm/water-lanes.md): the authored footprints

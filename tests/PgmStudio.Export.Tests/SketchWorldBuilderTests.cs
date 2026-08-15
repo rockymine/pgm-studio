@@ -4,6 +4,7 @@ using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Render;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Export.Tests;
 

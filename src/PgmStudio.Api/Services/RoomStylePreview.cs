@@ -2,6 +2,7 @@ using PgmStudio.Contracts;
 using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Views;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Api.Services;
 
@@ -76,13 +77,13 @@ public static class RoomStylePreview
 
     /// <summary>The box the outward views are taken over: the shell plus its margin of ground, from under the
     /// deepest floor to over the highest course of roof.</summary>
-    private static ViewBox Outer(HouseStyle style) => new(
+    private static BlockBox Outer(HouseStyle style) => new(
         Sample.MinX - Margin, FloorY - style.Foundation.Plate.Extent, Sample.MinZ - Margin,
         Sample.MaxX + Margin - 1, FloorY + style.TopLayerOver(Sample.Width, Sample.Depth, Sample.Doors[0].Edge), Sample.MaxZ + Margin - 1);
 
     /// <summary>The box the cutaway is drawn over — the shell itself, since a slice through the ground beside
     /// it is a slice through stone.</summary>
-    private static ViewBox Inner(HouseStyle style) => new(
+    private static BlockBox Inner(HouseStyle style) => new(
         Sample.MinX, FloorY - 1, Sample.MinZ,
         Sample.MaxX, FloorY + style.TopLayerOver(Sample.Width, Sample.Depth, Sample.Doors[0].Edge), Sample.MaxZ);
 
@@ -90,7 +91,7 @@ public static class RoomStylePreview
     /// storeys, since that is where the slab, the clear under it and the way through it are all visible at
     /// once — else one block inside the front wall, the busiest plane a single-storey shell has. Found by
     /// looking for the ladder rather than by working out where it ought to be.</summary>
-    private static int CutawayPlane(VoxelWorld world, ViewBox box)
+    private static int CutawayPlane(VoxelWorld world, BlockBox box)
     {
         for (var z = box.MinZ; z <= box.MaxZ; z++)
             for (var x = box.MinX; x <= box.MaxX; x++)

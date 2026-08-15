@@ -10,7 +10,7 @@ still hold. `B119` cut the first new one since the original shape settled: `PgmS
 world builder, the destroy/core/wool placement gate and the `map.xml` composer — pulled out of `Api/Services`
 into its own project, so a driver that only writes a region folder no longer has to reference ASP.NET Core,
 FastEndpoints and the DB layer to reach it. The friction elsewhere is no longer between projects but *inside*
-two of them: `Pgm` now holds two different things under one name, and `Minecraft` has grown 47 files at its
+two of them: `Pgm` now holds two different things under one name, and `Minecraft` has grown 58 files at its
 root. Both are internal folds, not boundary moves.
 
 ## 1. The dependency graph
@@ -25,14 +25,22 @@ Every arrow points at something the project is allowed to reach; read it bottom-
    ├── Export  ──> Domain, Analysis, Minecraft, Pgm       (the export path — world build + map.xml, no DB)
    ├── Pgm     ──> Domain, Geom
    ├── Analysis──> Domain, Geom
-   └── Minecraft ──> Domain, Geom
+   ├── Minecraft ──> Domain, Geom
+   └── Domain  ──> Geom                                  (the shapes its rules measure over)
 
   Import ──> Data, Pgm, Contracts, Migrations            (parquet → relational CLI)
 
   tools/mapgen ──> Export                                (the headless export-path driver — §7)
 
-  Pure leaves (no project references):  Geom   Domain   Contracts   Migrations
+  Pure leaves (no project references):  Geom   Contracts   Migrations
 ```
+
+**`Domain → Geom` is the one edge below the middle row, and `B210` added it.** `Domain` and `Geom` were both
+leaves, which read as two peers until a shape was needed on both sides of the client boundary: `BlockBox` — the
+inclusive 3-D block volume every objective, scan region and stamped volume is — sat in `Domain`, which the WASM
+client cannot see, so the Configure step that draws a core casing had grown a field-identical copy. The shape
+is geometry, so it moved to the leaf both halves reach, and `Domain` took the reference to keep reading it. The
+edge points the way the sentence does: what a shape *is*, below what a map *means*.
 
 **`Export` added no edge and inverted none.** Every project it reaches (`Domain`, `Analysis`, `Minecraft`,
 `Pgm`) was already reachable from `Api` — directly, or through `Data` — so the cut is free in graph terms: `Api`
@@ -54,7 +62,7 @@ Both are checked by the `.csproj` files rather than by convention: `Analysis` ha
 
 | Kind | Projects | Charter |
 |---|---|---|
-| **Pure leaves** | `Geom`, `Domain`, `Contracts`, `Migrations` | geometry algorithms · PGM entities and the rules over them · wire DTOs · the DB schema |
+| **Pure leaves** | `Geom`, `Contracts`, `Migrations` (and `Domain`, over `Geom` alone) | geometry algorithms and the shapes measured in them · wire DTOs · the DB schema · PGM entities and the rules over them |
 | **Format and domain logic** | `Pgm`, `Analysis`, `Minecraft` | the `map.xml` codec *and* the layout generator · NTS-backed derivations · Anvil world reading and writing |
 | **Persistence and ingest** | `Data`, `Import` | the DB codec, repositories and stores · the parquet→relational CLI |
 | **The export path** | `Export` | sketch layout + intent → voxel world + `map.xml`, DB-free — what every driver needs and nothing else |
@@ -70,18 +78,18 @@ above. It does mean `Domain` is "the PGM domain", not "the PGM data model".
 
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
-| `Geom` | 40 | 4,593 | `Algorithms/` 20 · `Relief/` 6 · `Render/` 2 · 12 at root |
-| `Domain` | 18 | 1,616 | flat |
-| `Contracts` | 12 | 898 | flat |
-| `Migrations` | 20 | 1,448 | `Migrations/` 19 |
-| `Minecraft` | 61 | 11,246 | **47 at root** · `Dressing/` 6 · `Render/` 5 · `Views/` 3 |
-| `Import` | 4 | 471 | flat |
-| `Pgm` | 133 | 20,085 | `Compose/` 42 · `Authoring/` 21 · `Evaluate/` 20 · `Shapes/` 10 · `Editing/` 10 · `Plan/` 6 · `Sketch/` 4 · `Derive/` 4 · `Render/` 3 · `Detect/` 1 · 12 at root |
-| `Analysis` | 16 | 2,577 | `Playability/` 7 · `Footprint/` 4 · `Region/` 3 · `Layer/` 2 |
-| `Data` | 13 | 2,223 | `Features/` 4 · `Theme/` 3 · `Map/` 3 · `Schema/` 2 · `Plan/` 1 |
-| `Export` | 7 | 1,042 | flat |
-| `Api` | 59 | 8,087 | `Endpoints/` 37 · `Services/` 19 · `Http/` 2 |
-| `Client` | 80 `.cs` + razor | 13,434 | `Features/<Tool>/` · `Components/` · `Pages/`, plus 11 JS layers |
+| `Geom` | 44 | 4,967 | `Algorithms/` 20 · `Relief/` 6 · `Render/` 4 · 14 at root |
+| `Domain` | 22 | 1,949 | flat |
+| `Contracts` | 13 | 965 | flat |
+| `Migrations` | 21 | 1,469 | `Migrations/` 20 |
+| `Minecraft` | 74 | 14,232 | **58 at root** · `Dressing/` 6 · `Render/` 7 · `Views/` 3 |
+| `Import` | 4 | 472 | flat |
+| `Pgm` | 137 | 20,641 | `Compose/` 42 · `Authoring/` 21 · `Evaluate/` 20 · `Shapes/` 10 · `Editing/` 10 · `Plan/` 7 · `Sketch/` 5 · `Derive/` 4 · `Render/` 4 · `Detect/` 1 · 13 at root |
+| `Analysis` | 16 | 2,609 | `Playability/` 7 · `Footprint/` 4 · `Region/` 3 · `Layer/` 2 |
+| `Data` | 13 | 2,230 | `Features/` 4 · `Theme/` 3 · `Map/` 3 · `Schema/` 2 · `Plan/` 1 |
+| `Export` | 7 | 1,171 | flat |
+| `Api` | 61 | 8,534 | `Endpoints/` 39 · `Services/` 19 · `Http/` 2 · 1 at root |
+| `Client` | 80 `.cs` + razor | 13,436 | `Features/<Tool>/` · `Components/` · `Pages/`, plus 11 JS layers |
 
 **`Pgm` is two projects wearing one name.** `CLAUDE.md` charters it as "`map.xml` parse/edit/generate", and
 that describes 48 files — the codec at the root, `Authoring/` (intent → map), `Editing/` (patch a parsed doc),
@@ -91,7 +99,7 @@ that describes 48 files — the codec at the root, `Authoring/` (intent → map)
 already respects is exactly the one it would get. Whether to split it is §7.1; what is not in question is that
 one charter sentence no longer covers the project.
 
-**`Minecraft` has 47 files at its root**, 8,220 lines — the shape `Pgm`, `Analysis` and `Data` were folded out
+**`Minecraft` has 58 files at its root**, 10,227 lines — the shape `Pgm`, `Analysis` and `Data` were folded out
 of. The concerns are visible from the filenames and separable without moving a boundary: world reading (Anvil,
 regions, chunks), stamping (rooms, cubes, objectives, houses), painting, and the suggesters that read a world
 back. It is the last unfolded project.

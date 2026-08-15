@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 namespace PgmStudio.Client.Features.Configure;
 
 using Ctx = AuthoringContext;
+using PgmStudio.Geom;
 
 // The core slice (intent.cores) the two Cores steps (Objectives / Casing) share, the wool slice's shape with
 // a smaller model: a core is defended by one team and breached by every other, so there is nothing to map
@@ -15,16 +16,6 @@ using Ctx = AuthoringContext;
 // world-export path stamps it, which is why the box rides through untouched instead of being invented here.
 public static class CoreAuthoring
 {
-    /// <summary>An inclusive block volume — the casing the stamper built or the detector measured.</summary>
-    public readonly record struct Box(int MinX, int MinY, int MinZ, int MaxX, int MaxY, int MaxZ)
-    {
-        public double CentreX => (MinX + MaxX + 1) / 2.0;
-        public double CentreZ => (MinZ + MaxZ + 1) / 2.0;
-        public int Width => MaxX - MinX + 1;
-        public int Height => MaxY - MinY + 1;
-        public int Depth => MaxZ - MinZ + 1;
-    }
-
     /// <summary>The casing numbers the generator defaults when a field is unauthored. Served by
     /// <c>GET /core-suggestions</c> so the one definition (<c>ObjectiveDefaults</c>) is not copied here.</summary>
     public sealed record Defaults(int Size, int Height, int Shell, int Float, int Leak)
@@ -40,7 +31,7 @@ public static class CoreAuthoring
         public int Size, Height, Shell, Float, Leak;
         public bool OpenTop;
         /// <summary>The resolved casing volume; null on a plan-authored core the world build has not stamped yet.</summary>
-        public Box? Volume;
+        public BlockBox? Volume;
         /// <summary>Enclosed lava blocks the detector counted — evidence for the author, never persisted.</summary>
         public int Lava;
 
@@ -110,8 +101,8 @@ public static class CoreAuthoring
     private static string Key(string owner, double x, double z)
         => $"{owner}|{Math.Floor(x)}|{Math.Floor(z)}";
 
-    private static Box? ParseBox(JsonObject? box) => box is null
+    private static BlockBox? ParseBox(JsonObject? box) => box is null
         ? null
-        : new Box(Ctx.I(box, "minX"), Ctx.I(box, "minY"), Ctx.I(box, "minZ"),
+        : new BlockBox(Ctx.I(box, "minX"), Ctx.I(box, "minY"), Ctx.I(box, "minZ"),
                   Ctx.I(box, "maxX"), Ctx.I(box, "maxY"), Ctx.I(box, "maxZ"));
 }

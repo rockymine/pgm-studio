@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 namespace PgmStudio.Domain;
 
 /// <summary>

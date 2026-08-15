@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using PgmStudio.Domain;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm;
 

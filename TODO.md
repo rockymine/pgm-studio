@@ -81,11 +81,10 @@ built and checked. What a closer read of the sixth found:
   `B188` has already discharged the corpus measurement it was waiting on. `IronResolution` is still the only
   instance, and the record composes with `StructureClaim` rather than replacing it. Now cross-referenced in all
   three places.
-- **The box surface is eighteen declarations, and three of them are settled (`B210`, rewritten).** `BlockBox`
-  (`B33`), `StructureBox` and `CellRect` stay as they are — `Compose/Boxes/Box.cs` already reads `CellRect`.
-  What duplicates is the 2-D double rect, **nine times**, six of them in `Client` — because `Client` sees only
-  `Contracts` and `Geom` and cannot reach `MapIntent.Rect`. The same boundary makes `CoreAuthoring.Box` a
-  field-identical copy of `BlockBox`. It is a leaf-placement problem, not sloppiness.
+- **The box surface was eighteen declarations, and the boundary made them (`B210`, shipped).** `Client` sees
+  only `Contracts` and `Geom`, so every shape it draws had grown a copy: seven of the world-XZ footprint and a
+  second `BlockBox`. Both now live in `Geom`, `Domain` references it, and `StructureBox` and `CellRect` stay as
+  they are. A bucket adding a rule over a box finds one declaration of each shape.
 
 **Buckets 4, 5, 7, 8, 11, 12 and 13 are unaffected and may run now.** `B212`'s author call has landed, so
 buckets 1 and 2 are free of it and bucket 3 is unblocked as soon as its bands are re-measured in the settled

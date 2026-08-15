@@ -4,6 +4,7 @@ using PgmStudio.Pgm.Authoring;
 namespace PgmStudio.Pgm.Tests;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Geom;
 
 /// <summary>
 /// The destroyable slice of the declarative generator: a resolved intent projects to a

@@ -5202,6 +5202,34 @@ these are the ones that shipped a map that could not be played as intended, and 
   method the class has not had for some time, now cites `Check`. It matters ahead of the bucketed audit work:
   four buckets add rules to this class, and an agent choosing a verb from four will not choose the same one
   twice.
+- **One declaration of a rectangle, one of a volume, in the leaf both halves of the studio reach (B210).**
+  Eighteen declarations of "a box with things in it" stood across `src/` and `tools/`, and the ones that
+  mattered were not sloppiness — a project boundary made them. `Client` is WASM and sees `Contracts` and
+  `Geom` alone, so `MapIntent.Rect` (in `Pgm`) was unreachable and **every Configure step that draws a
+  footprint had re-declared it**: `WoolAuthoring`, `WoolObjectivesStep`, `ProtectionStep`,
+  `ReviewPreflightStep`, beside `ResourceRenewables` in `Pgm` itself and `tools/mapgen`'s `Extent`. The same
+  boundary had produced `CoreAuthoring.Box`, field-identical to the `BlockBox` `B33` had already consolidated
+  in `Domain` — so `B33`'s shared type was shared everywhere except the half of the codebase that draws it.
+
+  Both shapes are in **`Geom`** now, which is the rule `CLAUDE.md` already states: the shape both sides need
+  goes in the leaf both sides reach. `Rect` is the world-XZ footprint, an inclusive fractional corner pair,
+  with `Covers` inclusive on both edges where `CellRect.Contains` is half-open; `BlockBox` moved out of
+  `Domain` and `Domain` took a `Geom` reference to keep reading it, the one edge below the leaf row and the
+  right way round — what a shape *is*, below what a map *means*. Seven copies of the first and two of the
+  second are gone.
+
+  Two more surfaced only because the move made the leaves meet. **`ViewBox`** (`Minecraft/Views`) was a third
+  `BlockBox` in a project that could always have reached the shared one — not forced by anything, and the
+  inventory had missed it. And **`Vec3` existed twice**, `Domain`'s a bare `(X, Y, Z)` and `Geom`'s the same
+  three fields with the arithmetic on them; the compiler reported it as an ambiguous reference the moment one
+  file saw both namespaces. `RectilinearUnion`'s private `Rect` — a min/max integer rect inside the leaf that
+  already exported `CellRect` under exactly that convention — reads `CellRect.FromBounds`.
+
+  What stays, and now says why: `StructureBox` is a drawing frame with exclusive maxes and a colour;
+  `BlockRect` (`Pgm/Derive`) is `CellRect`'s arithmetic one unit up, and they stay two types because a plan
+  cell is several blocks wide and one passed for the other is a map built at a fifth of its size with no error
+  anywhere. `CellRect`'s docstring used to open by saying it was "not to be confused with `Rect`" — the tell
+  `CLAUDE.md` names, prose explaining a duplication instead of removing it. `Rect` is its neighbour now.
 - **A read that is not a gate says so, and stops counting (B211).** `Producibility` was the last holder of a
   bare `IReadOnlyList<Finding>`, and `PlanProducibility.IsProducible` asked whether the arrangement was
   reachable by reading `Unit.Count == 0` — right only because every finding it made was passed through the

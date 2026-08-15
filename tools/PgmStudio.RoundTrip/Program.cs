@@ -873,8 +873,8 @@ static async Task<int> RunScanOut(string mapDir, string outRoot)
     // Monument-candidate gather (F9 suggester) over the whole world → monument_candidates.parquet (the one
     // world-derived dataset the live scan-world writes that the reference file set never had).
     var worldBox = chunks.Count == 0
-        ? new PgmStudio.Domain.BlockBox(0, 0, 0, 0, 0, 0)
-        : new PgmStudio.Domain.BlockBox(chunks.Min(c => c.ChunkX) * 16, 0, chunks.Min(c => c.ChunkZ) * 16,
+        ? new PgmStudio.Geom.BlockBox(0, 0, 0, 0, 0, 0)
+        : new PgmStudio.Geom.BlockBox(chunks.Min(c => c.ChunkX) * 16, 0, chunks.Min(c => c.ChunkZ) * 16,
             chunks.Max(c => c.ChunkX) * 16 + 15, 255, chunks.Max(c => c.ChunkZ) * 16 + 15);
     var monuments = PgmStudio.Minecraft.MonumentSuggester.Gather(chunks, worldBox);
     await WriteParquet(Path.Combine(outDir, "monument_candidates.parquet"), monuments.Select(c => new ScanMonumentRow
@@ -1179,7 +1179,7 @@ static SuggestEval EvalSuggest(string regionDir, string xmlDataPath, bool autoSt
     var suggestions = new Dictionary<(int, int, int), PgmStudio.Minecraft.MonumentSuggestion>();
     foreach (var cl in clusters)
     {
-        var box = new PgmStudio.Domain.BlockBox(
+        var box = new PgmStudio.Geom.BlockBox(
             cl.Min(q => q.x) - margin, cl.Min(q => q.y) - margin, cl.Min(q => q.z) - margin,
             cl.Max(q => q.x) + margin, cl.Max(q => q.y) + margin, cl.Max(q => q.z) + margin);
         var ped = autoStyle

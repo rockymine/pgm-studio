@@ -3,6 +3,7 @@ using PgmStudio.Pgm.Authoring;
 namespace PgmStudio.Pgm.Tests;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Geom;
 
 /// <summary>
 /// Build-slice generator (declarative authoring). Asserts the void-enforcement structure and the

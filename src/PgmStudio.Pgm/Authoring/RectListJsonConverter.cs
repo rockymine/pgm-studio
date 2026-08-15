@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Authoring;
 

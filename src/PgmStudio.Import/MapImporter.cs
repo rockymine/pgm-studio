@@ -10,6 +10,7 @@ using PgmStudio.Pgm;
 namespace PgmStudio.Import;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Geom;
 
 /// <summary>
 /// Imports a processed map output directory into MariaDB: xml_data.json → entity rows (via the

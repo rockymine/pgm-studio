@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Components;
 using PgmStudio.Client.Models;
 using PgmStudio.Contracts;
 using Sym = PgmStudio.Geom.Symmetry;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Client.Features.Configure;
 
@@ -170,11 +171,9 @@ public partial class ReviewPreflightStep
         return (Math.Min(x0, x1), Math.Min(z0, z1), Math.Abs(x1 - x0), Math.Abs(z1 - z0));
     }
 
-    private readonly record struct Box(double MinX, double MinZ, double MaxX, double MaxZ);
-
-    private async Task<List<(string Points, Box Bounds)>> LoadIslandsAsync()
+    private async Task<List<(string Points, Rect Bounds)>> LoadIslandsAsync()
     {
-        var result = new List<(string, Box)>();
+        var result = new List<(string, Rect)>();
         try
         {
             var arr = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Wizard.Slug}/islands");
@@ -191,8 +190,8 @@ public partial class ReviewPreflightStep
                 if (pts.Count < 3) continue;
                 var s = string.Join(" ", pts.Select(p => $"{F(p.Item1)},{F(p.Item2)}"));
                 var bx = isl.TryGetProperty("bounds", out var b) && b.GetArrayLength() >= 4
-                    ? new Box(b[0].GetDouble(), b[1].GetDouble(), b[2].GetDouble(), b[3].GetDouble())
-                    : new Box(pts.Min(p => p.Item1), pts.Min(p => p.Item2), pts.Max(p => p.Item1), pts.Max(p => p.Item2));
+                    ? new Rect(b[0].GetDouble(), b[1].GetDouble(), b[2].GetDouble(), b[3].GetDouble())
+                    : new Rect(pts.Min(p => p.Item1), pts.Min(p => p.Item2), pts.Max(p => p.Item1), pts.Max(p => p.Item2));
                 result.Add((s, bx));
             }
         }

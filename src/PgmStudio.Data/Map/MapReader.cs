@@ -7,6 +7,7 @@ using PgmStudio.Pgm;
 namespace PgmStudio.Data.Map;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Geom;
 
 /// <summary>
 /// Reconstructs a <see cref="MapXml"/> from the relational hybrid rows — the inverse of

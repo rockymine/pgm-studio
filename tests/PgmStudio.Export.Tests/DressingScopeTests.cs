@@ -4,6 +4,7 @@ using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Pgm.Authoring;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Export.Tests;
 

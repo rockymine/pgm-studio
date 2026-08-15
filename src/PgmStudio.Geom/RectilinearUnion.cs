@@ -13,8 +13,6 @@ namespace PgmStudio.Geom;
 /// </summary>
 public static class RectilinearUnion
 {
-    private readonly record struct Rect(int MinX, int MinZ, int MaxX, int MaxZ);
-
     /// <summary>Union the <paramref name="rects"/> (each <c>[minX, minZ, maxX, maxZ]</c>, integer, min &lt;
     /// max) into its disjoint outer boundary rings — one per connected covered patch, each an open list of
     /// <c>[x, z]</c> corner vertices (no repeated close), wound CCW, ordered largest patch first. Returns an
@@ -136,18 +134,21 @@ public static class RectilinearUnion
         return output;
     }
 
-    private static List<Rect> Real(IReadOnlyList<(int MinX, int MinZ, int MaxX, int MaxZ)> rects)
+    /// <summary>The rectangles with area, as <see cref="CellRect"/> — the same exclusive-max integer
+    /// convention this walk already works in, which is why the private copy it used to build was never a
+    /// different shape from the one the leaf already exported.</summary>
+    private static List<CellRect> Real(IReadOnlyList<(int MinX, int MinZ, int MaxX, int MaxZ)> rects)
         => [.. rects.Where(r => r.MaxX > r.MinX && r.MaxZ > r.MinZ)
-                    .Select(r => new Rect(r.MinX, r.MinZ, r.MaxX, r.MaxZ))];
+                    .Select(r => CellRect.FromBounds(r.MinX, r.MinZ, r.MaxX, r.MaxZ))];
 
     // The compressed grid: every edge of the union, plus the cutting rectangles' edges that fall strictly
     // inside its extent — an edge beyond it cannot split a cell within it, and keeping the grid to the
     // union's own extent is what makes every border cell outside it.
-    private static (int[] Xs, int[] Zs) Grid(List<Rect> real, List<Rect> cut)
+    private static (int[] Xs, int[] Zs) Grid(List<CellRect> real, List<CellRect> cut)
     {
-        return (Axis(r => r.MinX, r => r.MaxX), Axis(r => r.MinZ, r => r.MaxZ));
+        return (Axis(r => r.X, r => r.MaxX), Axis(r => r.Z, r => r.MaxZ));
 
-        int[] Axis(Func<Rect, int> lo, Func<Rect, int> hi)
+        int[] Axis(Func<CellRect, int> lo, Func<CellRect, int> hi)
         {
             var own = real.SelectMany(r => new[] { lo(r), hi(r) }).ToList();
             int min = own.Min(), max = own.Max();
@@ -156,10 +157,10 @@ public static class RectilinearUnion
         }
     }
 
-    private static bool Covers(List<Rect> rects, int[] xs, int[] zs, int i, int j)
+    private static bool Covers(List<CellRect> rects, int[] xs, int[] zs, int i, int j)
     {
         double mx = (xs[i] + xs[i + 1]) / 2.0, mz = (zs[j] + zs[j + 1]) / 2.0;
-        return rects.Any(r => r.MinX < mx && mx < r.MaxX && r.MinZ < mz && mz < r.MaxZ);
+        return rects.Any(r => r.X < mx && mx < r.MaxX && r.Z < mz && mz < r.MaxZ);
     }
 
     // Stitch the surviving directed edges head→tail into closed rings, merging collinear corners.

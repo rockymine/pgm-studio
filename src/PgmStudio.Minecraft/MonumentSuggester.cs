@@ -2,6 +2,7 @@ using System.Text;
 using fNbt;
 using PgmStudio.Domain;
 using static PgmStudio.Minecraft.Nbt;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Minecraft;
 

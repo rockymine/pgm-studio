@@ -3,6 +3,7 @@ using PgmStudio.Pgm.Authoring;
 namespace PgmStudio.Pgm.Tests;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Geom;
 
 /// <summary>
 /// The Review-phase pre-flight checks (<see cref="Preflight"/>): a generated map round-trips through the

@@ -10,6 +10,7 @@ using PgmStudio.Pgm.Sketch;
 namespace PgmStudio.Export;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Geom;
 
 /// <summary>The outcome of composing a map for export: either a structured error (HTTP status + JSON body)
 /// or the composed <c>map.xml</c>. For a sketch-originated map <see cref="World"/> also carries the

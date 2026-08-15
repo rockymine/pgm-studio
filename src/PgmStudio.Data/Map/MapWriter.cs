@@ -8,6 +8,7 @@ using PgmStudio.Pgm;
 namespace PgmStudio.Data.Map;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Geom;
 
 /// <summary>
 /// Writes a <see cref="MapXml"/> into the relational entity rows. Used both by the importer

@@ -7,6 +7,7 @@ namespace PgmStudio.Client.Features.Configure;
 
 using W = WoolAuthoring;
 using Ctx = AuthoringContext;
+using PgmStudio.Geom;
 
 // Wools · room step: draw the rectangle(s) a wool lives in. A room is a union of rectangles, listed flat
 // (one row per rectangle, with the generated region name + an authored/orbit badge, like the Spawn-points
@@ -28,7 +29,7 @@ public partial class WoolRoomStep
     private string? symMode; private double symCx, symCz;
     private string anchorTeam = "";
     private readonly List<RoomRect> authored = new();                 // authored wools' rects (stable ids, editable)
-    private readonly Dictionary<string, List<W.Rect>> ghosts = new(); // orbit copies per partner wool colour
+    private readonly Dictionary<string, List<Rect>> ghosts = new(); // orbit copies per partner wool colour
     private int nextId = 1;
     private string? selectedRegionId;
     private WorldCanvas? canvas;
@@ -155,7 +156,7 @@ public partial class WoolRoomStep
             var primary = CoveringFirst(grp.ToList(), wool.SpawnX, wool.SpawnZ);
             foreach (var set in OrbitAssignment.ByCoveredAnchorSet(primary, symMode, symCx, symCz, anchors))
                 if (set.Id != grp.Key)
-                    ghosts[set.Id] = set.Rects.Select(z => new W.Rect(z.MinX, z.MinZ, z.MaxX, z.MaxZ)).ToList();
+                    ghosts[set.Id] = set.Rects.Select(z => new Rect(z.MinX, z.MinZ, z.MaxX, z.MaxZ)).ToList();
         }
         Write();
     }
@@ -176,7 +177,7 @@ public partial class WoolRoomStep
     {
         foreach (var w in wools)
             w.Rooms = IsAuthored(w)
-                ? authored.Where(r => r.Color == w.Color).Select(r => new W.Rect(r.MinX, r.MinZ, r.MaxX, r.MaxZ)).ToList()
+                ? authored.Where(r => r.Color == w.Color).Select(r => new Rect(r.MinX, r.MinZ, r.MaxX, r.MaxZ)).ToList()
                 : ghosts.TryGetValue(w.Color, out var g) ? g.ToList() : new();
         W.WriteWools(Wizard.Intent, wools);
         Wizard.MarkDirty();

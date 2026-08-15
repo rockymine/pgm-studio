@@ -4,6 +4,7 @@ using PgmStudio.Client.Models;
 namespace PgmStudio.Client.Features.Configure;
 
 using Ctx = AuthoringContext;
+using PgmStudio.Geom;
 
 // The wool slice (intent.wools) the four Wools steps (Objectives / Spawn / Monuments / Room) share: each
 // parses it on init, mutates its part, writes it back and marks dirty. The teams / symmetry / islands every
@@ -13,9 +14,6 @@ using Ctx = AuthoringContext;
 public static class WoolAuthoring
 {
     public sealed class Monument { public string Team = ""; public double X, Y, Z; }
-
-    /// <summary>A footprint rectangle in world XZ (one piece of a multi-rect room).</summary>
-    public readonly record struct Rect(double MinX, double MinZ, double MaxX, double MaxZ);
 
     public sealed class Wool
     {

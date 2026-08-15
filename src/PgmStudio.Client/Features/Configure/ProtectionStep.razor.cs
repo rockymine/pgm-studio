@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using PgmStudio.Client.Models;
 using PgmStudio.Client.Components;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Client.Features.Configure;
 
@@ -21,7 +22,6 @@ public partial class ProtectionStep
     private sealed class Team { public string Id = ""; public string Name = ""; public string Color = ""; }
     private sealed class Spawn { public string Team = ""; public double X, Y, Z; }
     private sealed class ProtRect { public int Id; public double MinX, MinZ, MaxX, MaxZ; }   // an authored rect (stable id)
-    private readonly record struct Rect(double MinX, double MinZ, double MaxX, double MaxZ);
     // A list row: a rectangle (authored or orbit), its canvas region id, owning team, and the generated name.
     private sealed record Row(string RegionId, string Team, bool Authored, double MinX, double MinZ, double MaxX, double MaxZ, string Name);
 

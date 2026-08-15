@@ -2,6 +2,7 @@ using PgmStudio.Data.Features;
 using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
 using PgmStudio.Minecraft;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Data.Tests;
 

@@ -1,5 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <ItemGroup>
+    <!-- Geometry the domain rules measure over. Geom references nothing, so this stays the one-way edge
+         it reads as: what a shape is, below what a map means. -->
+    <ProjectReference Include="..\PgmStudio.Geom\PgmStudio.Geom.csproj" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

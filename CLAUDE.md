@@ -38,10 +38,13 @@ outgrown its shape, is `docs/project-structure.md`.
 only `Contracts` + `Geom`, so the wire DTOs must live where the rest cannot be dragged in. And `Analysis`
 must not see `Contracts` — DTOs depending on analysis depending on DTOs is a cycle of intent — so anything
 `Analysis` *and* the client both need is forced into a true leaf. That leaf is **`PgmStudio.Geom`**: pure
-algorithms (geometry, shapes, relief, generative layout), referencing **nothing**, not even `Domain`. Do not
-put an algorithm in `Contracts` — `Analysis` cannot reach it, which is what forced the old duplicated
-reflect/rotate. (It is `Geom`, not `Geometry`, because `Analysis` uses NetTopologySuite's `Geometry`
-everywhere and a sibling namespace would shadow it.)
+algorithms (geometry, shapes, relief, generative layout) **and the shapes they are measured in** — `CellRect`,
+`Rect`, `BlockBox`, `Vec3` — referencing **nothing**, not even `Domain`. `Domain` references *it*, because a
+shape both halves of the studio need has to sit where the client can reach it and `Domain` is not that place.
+Do not put an algorithm in `Contracts` — `Analysis` cannot reach it, which is what forced the old duplicated
+reflect/rotate, and the same boundary grew a second `BlockBox` and seven copies of `Rect` before `B210`. (It is
+`Geom`, not `Geometry`, because `Analysis` uses NetTopologySuite's `Geometry` everywhere and a sibling
+namespace would shadow it.)
 
 **Client folders, by role rather than by page.** `Pages/` holds standalone **routable** pages only;
 `Features/<Tool>/` is one bundle per tool — its routable `*Tool` host plus that tool's private phases, steps

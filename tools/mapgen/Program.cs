@@ -12,6 +12,7 @@ using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Render;
 using PgmStudio.Pgm.Sketch;
 using Dict = System.Collections.Generic.Dictionary<string, object?>;
+using PgmStudio.Geom;
 
 // mapgen: build a whole map from one JSON spec, through the export path a map is really built through.
 //
@@ -440,9 +441,9 @@ static JsonElement? Stamped(string? preset)
 
 // ── geometry the spec does not have to state ─────────────────────────────────────────────────────────────
 
-static Extent? IslandBounds(SketchLayout layout, SketchIsland island)
+static Rect? IslandBounds(SketchLayout layout, SketchIsland island)
 {
-    Extent? box = null;
+    Rect? box = null;
     foreach (var id in island.ShapeIds)
     {
         var shape = layout.Layout.Shapes.FirstOrDefault(s => s.Id == id);
@@ -450,22 +451,22 @@ static Extent? IslandBounds(SketchLayout layout, SketchIsland island)
         var bounds = Bounds(shape);
         if (bounds is not { } b) continue;
         box = box is { } have
-            ? new Extent(Math.Min(have.MinX, b.MinX), Math.Min(have.MinZ, b.MinZ),
+            ? new Rect(Math.Min(have.MinX, b.MinX), Math.Min(have.MinZ, b.MinZ),
                       Math.Max(have.MaxX, b.MaxX), Math.Max(have.MaxZ, b.MaxZ))
             : b;
     }
     return box;
 }
 
-static Extent? Bounds(SketchShape shape)
+static Rect? Bounds(SketchShape shape)
 {
     if (shape.Vertices is { Length: > 0 } vertices)
-        return new Extent(vertices.Min(v => v[0]), vertices.Min(v => v[1]),
+        return new Rect(vertices.Min(v => v[0]), vertices.Min(v => v[1]),
                        vertices.Max(v => v[0]), vertices.Max(v => v[1]));
     if (shape.CenterX is { } cx && shape.CenterZ is { } cz && shape.Radius is { } r)
-        return new Extent(cx - r, cz - r, cx + r, cz + r);
+        return new Rect(cx - r, cz - r, cx + r, cz + r);
     if (shape.MinX is { } minX && shape.MinZ is { } minZ && shape.MaxX is { } maxX && shape.MaxZ is { } maxZ)
-        return new Extent(minX, minZ, maxX, maxZ);
+        return new Rect(minX, minZ, maxX, maxZ);
     return null;
 }
 

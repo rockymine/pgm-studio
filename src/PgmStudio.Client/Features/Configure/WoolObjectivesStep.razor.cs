@@ -12,6 +12,7 @@ namespace PgmStudio.Client.Features.Configure;
 
 using W = WoolAuthoring;
 using Ctx = AuthoringContext;
+using PgmStudio.Geom;
 
 // Wools · objectives step. On entry the world is scanned: signed monuments ("Place the X Wool here!")
 // name the objective colours and give each capturing team (the island the monument sits on) → the wool's
@@ -24,11 +25,6 @@ public partial class WoolObjectivesStep
     [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
-
-    private sealed record Rect(double MinX, double MinZ, double MaxX, double MaxZ)
-    {
-        public bool Covers(double x, double z) => x >= MinX && x <= MaxX && z >= MinZ && z <= MaxZ;
-    }
 
     private sealed class Candidate
     {

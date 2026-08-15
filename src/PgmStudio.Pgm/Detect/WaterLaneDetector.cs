@@ -1,5 +1,6 @@
 using PgmStudio.Domain;
 using PgmStudio.Pgm.Authoring;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Detect;
 

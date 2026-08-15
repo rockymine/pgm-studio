@@ -4,6 +4,7 @@ using PgmStudio.Pgm.Authoring;
 namespace PgmStudio.Pgm.Tests;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Geom;
 
 /// <summary>
 /// Wool-slice generator (declarative authoring). Asserts the objective structure (wool + monuments +

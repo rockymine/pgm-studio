@@ -3,6 +3,7 @@ using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Export;
 

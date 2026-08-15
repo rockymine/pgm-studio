@@ -1,10 +1,10 @@
-namespace PgmStudio.Domain;
+namespace PgmStudio.Geom;
 
 /// <summary>
 /// An axis-aligned block volume in world coordinates, min and max both <b>inclusive</b>. One type covers
 /// every role a block volume plays — the region an author boxed for a scan, the volume a stamper fills,
-/// the casing a detector proposes — because they are the same six numbers under the same convention and
-/// splitting them by role only duplicated the helpers.
+/// the casing a detector proposes, the frame a view is drawn over — because they are the same six numbers
+/// under the same convention and splitting them by role only duplicated the helpers.
 /// <para>
 /// It is the single source of truth for both halves of an objective: the blocks that get placed, and the
 /// <c>&lt;region&gt;</c> emitted around them. The two must agree — PGM builds the goal from the blocks
@@ -12,12 +12,25 @@ namespace PgmStudio.Domain;
 /// zero-health goal with nothing but a warning. Compute it once and share it; never let the stamper and
 /// the region generator derive it independently.
 /// </para>
+/// <para>
+/// It sits in <c>Geom</c> rather than <c>Domain</c> because the Configure client is a consumer and, being
+/// WASM, reaches only <c>Contracts</c> and <c>Geom</c> — so a copy of it grew there under another name for
+/// as long as the shared one was somewhere the client could not see. The type is geometry; what an
+/// objective's box <i>means</i> is the paragraph above, and that travels with it.
+/// </para>
 /// </summary>
 public readonly record struct BlockBox(int MinX, int MinY, int MinZ, int MaxX, int MaxY, int MaxZ)
 {
     public int Width => MaxX - MinX + 1;
     public int Height => MaxY - MinY + 1;
     public int Depth => MaxZ - MinZ + 1;
+
+    /// <summary>The centre of the volume's footprint, on the block lattice's half-steps — a 5-wide casing
+    /// starting at x=0 is centred on 2.5, not on 2. What an objective's marker is placed at.</summary>
+    public double CentreX => (MinX + MaxX + 1) / 2.0;
+
+    /// <inheritdoc cref="CentreX"/>
+    public double CentreZ => (MinZ + MaxZ + 1) / 2.0;
 
     /// <summary>The exclusive max a PGM cuboid wants: a cuboid spans blocks <c>[min, max)</c>, so its
     /// <c>max</c> attribute is one past the last block on each axis.</summary>

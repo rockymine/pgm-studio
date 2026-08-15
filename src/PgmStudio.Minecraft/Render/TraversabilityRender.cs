@@ -1,6 +1,7 @@
 using PgmStudio.Domain;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Geom.Render;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Minecraft.Render;
 

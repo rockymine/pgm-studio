@@ -4,6 +4,7 @@ namespace PgmStudio.Pgm.Authoring;
 
 using PgmStudio.Pgm.Editing;
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Geom;
 
 /// <summary>
 /// Build slice of the declarative generator (new-map-authoring.md §5/§5b; docs/pgm/filter-region-wiring.md

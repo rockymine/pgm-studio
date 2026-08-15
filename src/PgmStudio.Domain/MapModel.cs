@@ -1,7 +1,6 @@
-namespace PgmStudio.Domain;
+using PgmStudio.Geom;
 
-/// <summary>A 3D point with finite components (wool/monument locations).</summary>
-public readonly record struct Vec3(double X, double Y, double Z);
+namespace PgmStudio.Domain;
 
 public sealed class Team
 {

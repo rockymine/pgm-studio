@@ -1,6 +1,7 @@
 using System.Text.Json;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Tests;
 

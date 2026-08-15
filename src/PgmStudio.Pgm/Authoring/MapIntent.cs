@@ -1,4 +1,5 @@
 using PgmStudio.Domain;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Authoring;
 
@@ -376,5 +377,3 @@ public sealed record CoreIntent
 /// <summary>A world point (spawn location).</summary>
 public readonly record struct Pt(double X, double Y, double Z);
 
-/// <summary>A footprint rectangle in world XZ.</summary>
-public readonly record struct Rect(double MinX, double MinZ, double MaxX, double MaxZ);

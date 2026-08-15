@@ -6,6 +6,7 @@ using PgmStudio.Analysis.Footprint;
 using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
 using PgmStudio.Minecraft;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Data.Features;
 

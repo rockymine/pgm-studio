@@ -2,6 +2,7 @@ namespace PgmStudio.Pgm.Authoring;
 
 using PgmStudio.Pgm.Editing;
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Geom;
 
 /// <summary>
 /// Forward generation for the Teams slice of the declarative authoring model

@@ -4,6 +4,7 @@ using PgmStudio.Pgm.Authoring;
 namespace PgmStudio.Pgm.Tests;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Geom;
 
 /// <summary>
 /// The core slice of the declarative generator: a resolved intent projects to a <c>&lt;core&gt;</c> plus the

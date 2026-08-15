@@ -7,6 +7,7 @@ using PgmStudio.Domain;
 namespace PgmStudio.Api.Endpoints;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Geom;
 
 /// <summary>
 /// GET /api/map/{slug}/core-suggestions[?box=x0,y0,z0,x1,y1,z1] — the cores the ingest scan proposed for this

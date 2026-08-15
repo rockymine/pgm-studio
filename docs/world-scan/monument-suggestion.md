@@ -21,7 +21,7 @@ the style lets the detector require a specific signature — the main lever for 
 ## Inputs
 
 ### `BlockBox`
-The shared inclusive world-coordinate box (`PgmStudio.Domain`): `(MinX, MinY, MinZ, MaxX, MaxY, MaxZ)`.
+The shared inclusive world-coordinate box (`PgmStudio.Geom`): `(MinX, MinY, MinZ, MaxX, MaxY, MaxZ)`.
 The author draws it around a monument cluster. It bounds both the block scan and the candidate anchors.
 Call `Suggest` **once per box** — if a map's monuments fall in separate groups, the author boxes (and the
 UI calls) each group. `Expand(margin)`, `Contains(x,y,z)` and `IntersectsChunk(chunkX, chunkZ)` are

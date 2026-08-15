@@ -8,6 +8,7 @@ using System.Text;
 using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Views;
+using PgmStudio.Geom;
 
 const int FloorY = 64;
 
@@ -31,23 +32,23 @@ VoxelWorld Build(int width, int depth, HouseStyle style)
 // wrong is worse than either being wrong alone — so there is one implementation and these are its local
 // spellings, taking the loose bounds the figures below are written in.
 string Iso(VoxelWorld world, int minX, int minZ, int maxX, int maxZ, int minY, int maxY, int scale = 10)
-    => WorldViews.Isometric(world, new ViewBox(minX, minY, minZ, maxX, maxY, maxZ), scale);
+    => WorldViews.Isometric(world, new BlockBox(minX, minY, minZ, maxX, maxY, maxZ), scale);
 
 /// The highest block of each column — what the roof does, its hole and its eave, and nothing else.
 string Plan(VoxelWorld world, int minX, int minZ, int maxX, int maxZ, int top, int cell = 9)
-    => WorldViews.Plan(world, new ViewBox(minX, FloorY - 1, minZ, maxX, top, maxZ), cell);
+    => WorldViews.Plan(world, new BlockBox(minX, FloorY - 1, minZ, maxX, top, maxZ), cell);
 
 /// The floor's own course seen from above — the one plan a roof would otherwise hide.
 string FloorPlan(VoxelWorld world, int minX, int minZ, int maxX, int maxZ, int cell = 9)
-    => WorldViews.Slice(world, new ViewBox(minX, FloorY, minZ, maxX, FloorY, maxZ), FloorY, cell);
+    => WorldViews.Slice(world, new BlockBox(minX, FloorY, minZ, maxX, FloorY, maxZ), FloorY, cell);
 
 /// The building projected onto its front, nearest block first and shaded by how far back it stands.
 string Section(VoxelWorld world, int minX, int minZ, int maxX, int maxZ, int top, int cell = 9)
-    => WorldViews.Section(world, new ViewBox(minX, FloorY - 2, minZ, maxX, top, maxZ), cell);
+    => WorldViews.Section(world, new BlockBox(minX, FloorY - 2, minZ, maxX, top, maxZ), cell);
 
 /// One wall at the scale of the pieces in it — the only render that draws a block as its own shape.
 string Elevation(VoxelWorld world, int fromX, int toX, int fromY, int toY, int z, int cell = 22)
-    => WorldViews.Elevation(world, new ViewBox(fromX, fromY, z, toX, toY, z), z, cell);
+    => WorldViews.Elevation(world, new BlockBox(fromX, fromY, z, toX, toY, z), z, cell);
 
 
 // ── the styles the page is about ──────────────────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ using PgmStudio.Domain;
 namespace PgmStudio.Pgm;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Geom;
 
 /// <summary>JSON object tree → MapXml; the inverse of <see cref="Serializer"/>.</summary>
 public static class Deserializer

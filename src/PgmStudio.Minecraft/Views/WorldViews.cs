@@ -1,17 +1,8 @@
 using System.Globalization;
 using System.Text;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Minecraft.Views;
-
-/// <summary>The box of world a view is taken over, inclusive on every side.</summary>
-public readonly record struct ViewBox(int MinX, int MinY, int MinZ, int MaxX, int MaxY, int MaxZ)
-{
-    public int Width => MaxX - MinX + 1;
-
-    public int Depth => MaxZ - MinZ + 1;
-
-    public int Height => MaxY - MinY + 1;
-}
 
 /// <summary>
 /// The four ways a stamped <see cref="VoxelWorld"/> is drawn: <b>isometric</b> for what a building looks like,
@@ -48,7 +39,7 @@ public static class WorldViews
     ///
     /// <para>Scale is even and every projected coordinate a multiple of half a tile, so the whole picture is
     /// integer arithmetic and no coordinate carries a decimal point.</para></summary>
-    public static string Isometric(VoxelWorld world, ViewBox box, int scale = 10)
+    public static string Isometric(VoxelWorld world, BlockBox box, int scale = 10)
     {
         int halfWide = Math.Max(2, scale), halfTall = halfWide / 2, side = halfWide;   // a 2:1 tile, one cell tall
 
@@ -124,7 +115,7 @@ public static class WorldViews
     // ── the flat reads ────────────────────────────────────────────────────────────────────────────────
     /// <summary>The highest block of each column: what the roof does, its hole and whether its eave oversails
     /// the walls, and nothing else.</summary>
-    public static string Plan(VoxelWorld world, ViewBox box, int cell = 9)
+    public static string Plan(VoxelWorld world, BlockBox box, int cell = 9)
         => SvgRaster.Raster(box.Width, box.Depth, cell, (column, row) =>
         {
             for (var y = box.MaxY; y >= box.MinY; y--)
@@ -137,7 +128,7 @@ public static class WorldViews
 
     /// <summary>One horizontal slice seen from above — the read a roof would otherwise hide, which is how a
     /// zoned floor is looked at.</summary>
-    public static string Slice(VoxelWorld world, ViewBox box, int y, int cell = 9)
+    public static string Slice(VoxelWorld world, BlockBox box, int y, int cell = 9)
         => SvgRaster.Raster(box.Width, box.Depth, cell, (column, row) =>
         {
             var (id, data) = world.GetBlock(box.MinX + column, y, box.MinZ + row);
@@ -147,7 +138,7 @@ public static class WorldViews
     /// <summary>The building projected onto its front, nearest block first and shaded by how far back it
     /// stands — so a doorway reads as an opening rather than as a hole in the picture. A projection rather
     /// than a cut, so a door on the near wall does not hide the wall behind it.</summary>
-    public static string Section(VoxelWorld world, ViewBox box, int cell = 9)
+    public static string Section(VoxelWorld world, BlockBox box, int cell = 9)
     {
         var view = BlockSideView.Project(world, box.MinX, box.MaxX, box.MinZ, box.MaxZ, box.MinY, box.MaxY);
         return SvgRaster.Raster(view.Columns, box.Height, cell, (column, row) =>
@@ -166,7 +157,7 @@ public static class WorldViews
     ///
     /// <para>Drawn on the plane <paramref name="z"/>, which makes it a cutaway when the plane is inside the
     /// building — the only view that shows a slab, the clear under it and the way through it at once.</para></summary>
-    public static string Elevation(VoxelWorld world, ViewBox box, int z, int cell = 22)
+    public static string Elevation(VoxelWorld world, BlockBox box, int z, int cell = 22)
     {
         var svg = new StringBuilder();
         int columns = box.Width, rows = box.Height;

@@ -316,47 +316,6 @@ by `HousePropRules.PastCap` and is not filed.
   pattern means and not a rename. `B214`'s unread-field warning does **not** catch this, correctly — the
   upgrade claimed the field; losing entries 2..n is a different complaint and nobody makes it.
 
-- [ ] **B210 — Eighteen declarations of "a box with things in it", and the two that matter are forced by a
-  project boundary.** Filed as "four rect types", which was too narrow and carried one wrong claim: `Geom`
-  **does** hold plan-space measures — `Cells.PathLength`, `ShortestPath`, `BoundingBox`, `MinRunWidth`, all on
-  `(int, int)` cell sets. The landing site exists. What is actually duplicated is the *shape*, and three of the
-  declarations are deliberate and settled and must stay that way.
-
-  **Already settled, do not touch.** `BlockBox` (`Domain`) is the one inclusive integer 3-D AABB for every role
-  a block volume plays (`B33`). `StructureBox` (`Api.Services`) is a drawing frame — exclusive maxes plus
-  `Kind`/`Color` — and `B33` and `B37` both record that it is deliberately not a third copy. `CellRect`
-  (`Geom`) is the 2-D integer plan rect, and the compose side already standardised on it: `Compose/Boxes/Box.cs`
-  carries `CellRect Rect` and `BoxKind`, so the partition scaffold, the plan model and the layout composer all
-  read one type.
-
-  **What is actually duplicated, in two groups.**
-
-  *The 2-D integer min/max rect, twice.* `BlockRect(MinX, MinZ, MaxX, MaxZ)` in `Pgm/Derive/ContactGraph.cs`,
-  and a field-identical **private** `Rect` inside `Geom/RectilinearUnion.cs` — a second min/max rect in the leaf
-  that already exports `CellRect`, which has `FromBounds`/`FromInclusive` and would have served.
-
-  *The 2-D double min/max rect, **nine** times.* `MapIntent.Rect` is the wire shape and is the one that should
-  survive; `ResourceRenewables.Box` is a private copy of it in the same project; `tools/mapgen/Extent` is a
-  third; and **six more live in `Client`** — `WoolAuthoring.Rect`, `WoolObjectivesStep.Rect`,
-  `ReviewPreflightStep.Box`, `BuildLayerStep.Box`, and `ProtectionStep` alone declaring `Rect`, `ProtRect` and
-  `Row` carrying the same four doubles three times in one file.
-
-  **The client copies are not sloppiness — the boundary forces them, and that is the finding.** `Client` is
-  WASM and references only `Contracts` and `Geom`, so `MapIntent.Rect` (in `Pgm`) is unreachable from it and
-  every configure step re-declares it. The same boundary produces `CoreAuthoring.Box(int MinX, MinY, MinZ,
-  MaxX, MaxY, MaxZ)` — field-identical to `BlockBox`, which `B33` consolidated in `Domain`, which `Client`
-  cannot see. So `B33`'s shared type is shared everywhere except the half of the codebase that draws it.
-  `CLAUDE.md`'s own rule names the fix: the shape both sides need goes in the leaf both sides reach, which is
-  **`PgmStudio.Geom`** — the same reasoning that put `Symmetry` there.
-
-  **Scope, smallest first:** the double 2-D rect into `Geom`, with `MapIntent.Rect` and all six client copies
-  reading it; `RectilinearUnion` using `CellRect`; `BlockRect` folded into `CellRect` or kept with its
-  relationship stated rather than implied; `CoreAuthoring.Box` reading a `Geom` 3-D box that `BlockBox` also
-  reads. **Not** a distance-measure task — that is `B37`, below.
-
-  *found reviewing dispatch readiness, corrected 2026-08-15 against `B33` and `Compose/Boxes/Box.cs` ·
-  18 declarations across `src/` and `tools/`.*
-
 - [ ] **B212 — Bucket 3's corpus bands are in the retired unit and must be re-measured.** **The author's call
   is in: a distance is the walk over the walkable surface, never the straight line** (`rules.md` amendment 13,
   2026-08-15). The reasoning is recorded there — the line is what a bow or an eye crosses, the walk is what a
@@ -2418,9 +2377,9 @@ long-tail so they stop competing with real work. Re-evaluate (or delete) when th
   Surface/Y0 = air-only) are the solid-policy. Still open: the byte-parity sub-question — a segment-derived
   surface would **not** be byte-parity with the reference (endpoint-only runs also can't honour user
   `exclude_blocks`). Pairs with A4.
-- [ ] **A7 — `Minecraft` is the last unfolded project: 47 files at its root.** Every other project has been
-  sub-foldered by concern (`Pgm`, `Analysis`, `Data` — A5/A6); `Minecraft` grew to 61 files and 11k lines with
-  47 of them flat at the root and only `Dressing/`, `Render/` and `Views/` broken out. The concerns are
+- [ ] **A7 — `Minecraft` is the last unfolded project: 58 files at its root.** Every other project has been
+  sub-foldered by concern (`Pgm`, `Analysis`, `Data` — A5/A6); `Minecraft` grew to 74 files and 14k lines with
+  58 of them flat at the root and only `Dressing/`, `Render/` and `Views/` broken out. The concerns are
   separable without touching a boundary and are visible from the filenames: **world reading** (Anvil regions,
   chunks, the block palette), **stamping** (rooms, cubes, objectives, houses and their frames), **painting**
   (the terrain painter and its profile/theme family), and the **suggesters** that read a built world back
