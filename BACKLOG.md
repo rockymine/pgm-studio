@@ -272,40 +272,73 @@ are Edit-specific. Full canvas spec: `docs/client/canvas-interaction.md`.
 
 ## Backend, pipeline & internals (B / P / A)
 
-- [ ] **B210 — Four types spell one rectangle, and the plan-space measure the rule buckets need is on the
-  wrong one.** Buckets 1, 2 and 3 are fourteen rules over four measures — how far a door stands from a void,
-  how far two islands stand apart, how large a piece may be, how far a goal stands from the other goals and
-  from each spawn — and the map above says the measure **lands in `PgmStudio.Geom`**. Nothing plan-space
-  measures anything in `Geom` today, and the reason is one layer down: there is no single rectangle for a
-  measure to be written against.
+- [ ] **B210 — Eighteen declarations of "a box with things in it", and the two that matter are forced by a
+  project boundary.** Filed as "four rect types", which was too narrow and carried one wrong claim: `Geom`
+  **does** hold plan-space measures — `Cells.PathLength`, `ShortestPath`, `BoundingBox`, `MinRunWidth`, all on
+  `(int, int)` cell sets. The landing site exists. What is actually duplicated is the *shape*, and three of the
+  declarations are deliberate and settled and must stay that way.
 
-  | type | shape | lives in |
-  |---|---|---|
-  | `CellRect` | `(int X, Z, Width, Height)`, with `FromBounds`/`FromInclusive` | `Geom` — the leaf every consumer can reach |
-  | `BlockRect` | `(int MinX, MinZ, MaxX, MaxZ)` | `Pgm/Derive/ContactGraph.cs` |
-  | `Rect` | `(double MinX, MinZ, MaxX, MaxZ)` | `Pgm/Authoring/MapIntent.cs` — the wire shape |
-  | `Rect` | `(int MinX, MinZ, MaxX, MaxZ)`, **private** | `Geom/RectilinearUnion.cs` — a second min/max rect inside the leaf itself |
-  | `Rect` | `(double MinX, MinZ, MaxX, MaxZ)` | `Client/Features/Configure/WoolAuthoring.cs` |
-  | `Rect` | `(double MinX, MinZ, MaxX, MaxZ)`, **private** | `Client/Features/Configure/ProtectionStep.razor.cs`, beside a `ProtRect` class and a `Row` record carrying the same four doubles a third time |
+  **Already settled, do not touch.** `BlockBox` (`Domain`) is the one inclusive integer 3-D AABB for every role
+  a block volume plays (`B33`). `StructureBox` (`Api.Services`) is a drawing frame — exclusive maxes plus
+  `Kind`/`Color` — and `B33` and `B37` both record that it is deliberately not a third copy. `CellRect`
+  (`Geom`) is the 2-D integer plan rect, and the compose side already standardised on it: `Compose/Boxes/Box.cs`
+  carries `CellRect Rect` and `BoxKind`, so the partition scaffold, the plan model and the layout composer all
+  read one type.
 
-  **The measure is where the type is, so it is in the wrong project.** `ContactGraph.NearestSegment(BlockRect,
-  BlockRect)` and its `Nearest1D` are the rect-to-rect distance the island-separation and goal-distance rules
-  want, and they sit in `Pgm.Derive` on `BlockRect`. `ComposeGeometry.SeparationOk` asks a third version in
-  `Pgm.Compose`, and `TriangleTerms.SpawnDistances`/`FrontDistances` ask a fourth in `Pgm.Evaluate` — which is
-  the closest thing that exists to "how far a goal stands from each spawn", the measure bucket 3 is about to
-  ask for. `ObjectivePlacement.Check` already reads goals against ground and rooms and measures **no distance
-  at all**, so the rule has nowhere to land beside its siblings.
+  **What is actually duplicated, in two groups.**
 
-  So an agent handed a distance rule cold picks one of six rects and writes a fifth measure, correctly and
-  locally, and that is precisely the failure the bucket map exists to stop. **This is a landing site the map
-  claims is built and is not.** Fix before dispatching buckets 1–3: one integer min/max rectangle in `Geom`
-  (or `CellRect` gaining the min/max constructors it half has), the rect-to-rect measure moved onto it, and
-  `ContactGraph`/`ComposeGeometry` reading it. `MapIntent.Rect` stays double and stays where it is — it is the
-  wire shape of an authored region, a different question — but the two client copies of it are copies.
+  *The 2-D integer min/max rect, twice.* `BlockRect(MinX, MinZ, MaxX, MaxZ)` in `Pgm/Derive/ContactGraph.cs`,
+  and a field-identical **private** `Rect` inside `Geom/RectilinearUnion.cs` — a second min/max rect in the leaf
+  that already exports `CellRect`, which has `FromBounds`/`FromInclusive` and would have served.
 
-  *found reviewing the dispatch readiness of buckets 1–3, 2026-08-15 · `Geom/CellRect.cs` ·
-  `Pgm/Derive/ContactGraph.cs:6,403,410` · `Pgm/Compose/ComposeGeometry.cs:64` ·
-  `Pgm/Evaluate/Terms/TriangleTerms.cs:139,161`.*
+  *The 2-D double min/max rect, **nine** times.* `MapIntent.Rect` is the wire shape and is the one that should
+  survive; `ResourceRenewables.Box` is a private copy of it in the same project; `tools/mapgen/Extent` is a
+  third; and **six more live in `Client`** — `WoolAuthoring.Rect`, `WoolObjectivesStep.Rect`,
+  `ReviewPreflightStep.Box`, `BuildLayerStep.Box`, and `ProtectionStep` alone declaring `Rect`, `ProtRect` and
+  `Row` carrying the same four doubles three times in one file.
+
+  **The client copies are not sloppiness — the boundary forces them, and that is the finding.** `Client` is
+  WASM and references only `Contracts` and `Geom`, so `MapIntent.Rect` (in `Pgm`) is unreachable from it and
+  every configure step re-declares it. The same boundary produces `CoreAuthoring.Box(int MinX, MinY, MinZ,
+  MaxX, MaxY, MaxZ)` — field-identical to `BlockBox`, which `B33` consolidated in `Domain`, which `Client`
+  cannot see. So `B33`'s shared type is shared everywhere except the half of the codebase that draws it.
+  `CLAUDE.md`'s own rule names the fix: the shape both sides need goes in the leaf both sides reach, which is
+  **`PgmStudio.Geom`** — the same reasoning that put `Symmetry` there.
+
+  **Scope, smallest first:** the double 2-D rect into `Geom`, with `MapIntent.Rect` and all six client copies
+  reading it; `RectilinearUnion` using `CellRect`; `BlockRect` folded into `CellRect` or kept with its
+  relationship stated rather than implied; `CoreAuthoring.Box` reading a `Geom` 3-D box that `BlockBox` also
+  reads. **Not** a distance-measure task — that is `B37`, below.
+
+  *found reviewing dispatch readiness, corrected 2026-08-15 against `B33` and `Compose/Boxes/Box.cs` ·
+  18 declarations across `src/` and `tools/`.*
+
+- [ ] **B212 — Two units are both called "blocks apart", and bucket 3 is calibrated in the one the code does
+  not use.** `WoolWoolDistance` (`WL7`, `Evaluate/Terms/ObjectiveTerms.cs`) is the studio's one implemented
+  separation rule, and its docstring states the measure outright: distance is **rectilinear traversal over the
+  walkable surface**, 4-connected, routing around voids — "and correspondingly higher than a straight-line
+  reading of `WL7`'s ~45".
+
+  Every number bucket 3 is calibrated against was read the other way. `B175`'s "at least 35 blocks" comes from
+  regions in a shipped `map.xml`; `B179`'s "nearest enemy goal at 95–110" from the same; `B188`'s whole
+  164-map table — spawn→own goal 49.4 median, ratio 2.9 — was parsed "from the XML alone", which is centres and
+  extents, not a walk. **And the sweep that produced that table is not in the repository**, so the metric behind
+  the one corpus band calibrating buckets 2 and 3 cannot be recovered from the code; it survives only as
+  numbers in a backlog entry.
+
+  So an agent handed `B175` does one of two things, and neither fails a test: writes a second, straight-line
+  measure beside the traversal one, or reaches for `Cells.PathLength` — correctly, it is right there in `Geom`
+  — and applies a threshold calibrated in the other unit. `B175` even points at the collision without seeing
+  it: "the rule shape exists on the wool side" is exactly `WL7`, and `WL7` is the measure that disagrees.
+
+  **Scope:** state the metric on every distance in buckets 2 and 3, decide which one the goal-separation rules
+  use (the author's call — a straight line and a walk answer different questions about a board), and re-derive
+  the corpus band in that unit with the sweep committed this time. `B188`'s own closing note is the reason not
+  to skip it: it concluded the ratio fault is board *shape* rather than goal placement, which is a claim about
+  what the number means and cannot be checked without knowing how it was taken.
+
+  *found reviewing dispatch readiness, 2026-08-15 · `Evaluate/Terms/ObjectiveTerms.cs:5-10` ·
+  `Geom/Cells.cs:48,77` · bucket 3's `B175`/`B179`/`B188`.*
 
 - [ ] **B211 — One gate still answers a bare list and asks its question by counting.** `B191`/`B192` gave
   every gate one `Findings` and one `Refuses`, and `Producibility` did not move with them:
@@ -980,6 +1013,12 @@ Three entries and one deriver. Two of them are the author's law; the third is th
 them, and it is the cheapest check available for a generated destroy board — two spawn points, one goal, one
 division, no build required.
 
+**This bucket is `B37`'s deferred half and is blocked on a unit, not on a measurement.** `B37` parks "the
+objective↔objective and objective↔monument minimum distances still to be drawn from the corpus"; `B188` below
+has drawn them. What is unsettled is that every number here is straight-line off `map.xml` regions while the
+studio's one implemented separation rule, `WL7`, measures walkable-surface traversal and says so — `B212`.
+Settle that before an agent opens these three, or it will write the second measure.
+
 - [ ] **B175 — Two goals of the same team may stand eight blocks apart, and one board does.** Haiku DTM Tower
   seats a destroyable and a core on one piece, both red's: `red-monument-region` ends at `x −9` and
   `red-core-region` begins at `x −1` — eight blocks of clear ground, ten centre to centre. Both carry their own
@@ -1164,6 +1203,12 @@ and closing it takes a column and a migration rather than a predicate — so the
 Four ways a thing is placed and the system says nothing. Three of them are silent skips and one is a silent
 build; all four want the same answer — **a placement report the export can refuse on**, rather than a document
 count standing in for what reached the world.
+
+**That report is `B37`'s resolved-stamp record**, wanted there for the separation rules and here for what
+reached the world — kind, footprint, whether it was placed, what asked for it. `IronResolution` is the only
+instance today. Whichever task builds it must be told about the other, and it composes with `StructureClaim`
+(`B202` — which columns a stamp owns) rather than replacing it: one says what was placed, the other what it
+covered.
 
 - [ ] **B142 — A prop authored over void is skipped, and the foliage read-back counts the document rather than
   the world.** A tree where no ground stands does not appear — no refusal, no warning, no count.
@@ -1680,6 +1725,28 @@ each tread seeded its own ring 0.
   `FEATURES.md`): markers carry a persisted id, a finding names one, and clicking that finding rings the
   marker on the board. What is left of the editor half is only its timing: structural findings do not run in
   the live feed (`G161`), so a refusal appears at Compile rather than as the marker is dragged.
+
+  **This entry is the parent of buckets 2, 3 and 6, and none of the three says so.** Read against the bucket
+  bodies rather than the titles:
+
+  - *The resolved-stamp record is bucket 6's own answer, filed independently.* Bucket 6's header asks for "a
+    placement report the export can refuse on, rather than a document count standing in for what reached the
+    world" — kind, footprint, whether it was placed, what asked for it. That is this entry's record, wanted for
+    a different reason. `IronResolution(MarkerX, MarkerZ, MinX, MinZ, Size, Placeable)` is still the only
+    instance and still has four consumers, all iron. Whichever of the two runs first builds it, and it must be
+    told about the other.
+  - *The distances are bucket 3, and the corpus half is no longer blocking.* This entry defers on "minimum
+    distances still to be drawn from the corpus"; `B188` has since drawn them over 164 of 313 `dtcm` maps.
+    What is blocking instead is which unit they are in — `B212`.
+  - *`StructureClaim` is adjacent and is not the same record.* `B202` shipped it as occupancy — which columns a
+    stamp owns, taken from the placement — and it answers "what was covered", where this record answers "what
+    was placed, and may it be". An agent building either meets the other; the two compose (a record carrying a
+    claim) rather than merging.
+
+  `G65` is the third thing in this neighbourhood and is genuinely separate: it reconciles `FannedGraph`
+  adjacency against `ContactGraph` for the *overlap* case, which is a question about whether two pieces touch,
+  not about how far apart two placements stand. It shares `ContactGraph` with the measures above and shares no
+  rule with them.
 
 - [ ] **B34 — The two map-list endpoints disagree on sort order, and the dashboard gets the noisy one.**
   `MapsListEndpoint` branches on the `stage` query param onto two differently-ordered repository methods:

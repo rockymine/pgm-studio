@@ -62,16 +62,34 @@ refusals, `StructureClaim` for occupancy, `BlockFamilies` for block kind, one `P
 the inward axis — shared by both rasters, with the author's crossing-an-elevation-step call built into it.
 Nothing paints from the inset yet; the authored shape that spends it is bucket 13's own work.
 
-**The forty in `BACKLOG.md` are dispatchable as they stand, with one correction.** Each bucket's concept, its
-landing site and the order it must run in are stated there under *What each bucket spends*. Five of the six
-landing sites are built and checked. The sixth — *extent and distance in plan space*, which buckets 1, 2 and 3
-all spend — **is not**: the map says the measure lands in `PgmStudio.Geom`, and `Geom` holds no plan-space
-measure because there is no single rectangle to write one against. Six types spell one rectangle across four
-projects, and the rect-to-rect distance the rules want sits on one of them in `Pgm.Derive` (`B210`). Beside it,
-`Producibility` is the one gate still answering `IReadOnlyList<Finding>` and asking whether anything fired by
-`Count` — correct today only because its severity is constant, and the shape an agent adding a rule will copy
-(`B211`). **Both land before buckets 1, 2, 3 and 10 are dispatched**; buckets 4–8 and 11–13 are unaffected and
-may run now.
+**The forty in `BACKLOG.md` are dispatchable with three corrections, and the sharpest is not a type.** Each
+bucket's concept and landing site are stated there under *What each bucket spends*, and five of the six are
+built and checked. What a closer read of the sixth found:
+
+- **The measure exists; the unit is what is unsettled (`B212`).** `Geom` does hold plan-space measures —
+  `Cells.PathLength`, `ShortestPath`, `BoundingBox`, `MinRunWidth` — and `WL7` (`WoolWoolDistance`) is a
+  working separation rule built on them, measuring **walkable-surface traversal**. Every number bucket 3 is
+  calibrated against is **straight-line off `map.xml` regions**, and the 164-map sweep behind `B188` is not in
+  the repository, so its metric cannot be recovered. An agent handed `B175` writes the second measure or
+  mis-applies the first, and neither fails a test. **The author's call**: a straight line and a walk answer
+  different questions about a board.
+- **`B37` is the parent of buckets 2, 3 and 6 and none of them said so.** Bucket 6's "placement report the
+  export can refuse on" *is* `B37`'s resolved-stamp record; bucket 3's distances are `B37`'s deferred half, and
+  `B188` has already discharged the corpus measurement it was waiting on. `IronResolution` is still the only
+  instance, and the record composes with `StructureClaim` rather than replacing it. Now cross-referenced in all
+  three places.
+- **The box surface is eighteen declarations, and three of them are settled (`B210`, rewritten).** `BlockBox`
+  (`B33`), `StructureBox` and `CellRect` stay as they are — `Compose/Boxes/Box.cs` already reads `CellRect`.
+  What duplicates is the 2-D double rect, **nine times**, six of them in `Client` — because `Client` sees only
+  `Contracts` and `Geom` and cannot reach `MapIntent.Rect`. The same boundary makes `CoreAuthoring.Box` a
+  field-identical copy of `BlockBox`. It is a leaf-placement problem, not sloppiness.
+
+Beside those, `Producibility` is the one gate still answering `IReadOnlyList<Finding>` and asking whether
+anything fired by `Count` — correct today only because its severity is constant, and the shape an agent adding
+a rule will copy (`B211`).
+
+**Buckets 4, 5, 7, 8, 11, 12 and 13 are unaffected and may run now.** Buckets 1, 2, 3 and 6 wait on `B212`'s
+author call and `B37`'s record; bucket 10 waits on `B211`.
 
 ## Backend, pipeline & internals (B / P / A)
 
