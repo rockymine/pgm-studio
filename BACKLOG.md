@@ -1690,6 +1690,14 @@ each tread seeded its own ring 0.
   still has knobs whose *card* does not change when they are turned, which is the one thing the preview exists
   to prevent. Wants a larger sample footprint, and a card that is not the one view those knobs are invisible in.
 
+  **And one footprint is the wrong number, not merely a small one.** `Sample` is a single `static readonly`
+  field, so every style in the library is judged at 10×10 and at no other proportion — while a style states
+  nothing about the footprint it will be stamped over, only storey heights and a roof's pitch. That would be a
+  gap even if the shapes agreed, and they do not: `Wing.RidgeAlongX` derives the ridge from the rectangle's own
+  proportions, so one style on 10×10 and on 5×10 is two different roofs rather than one roof stretched, and an
+  author has no way to see the second. So the sample wants to be a parameter with a few proportions behind it —
+  square, long, narrow — rather than one bigger square.
+
 - [ ] **G178 — A wing has no doorway into its neighbour.** Where two wings meet the plan is simply open between
   them, which is right; where one projects into another its gable end is a wall from the ground up, which is
   also right and leaves the projecting wing reachable only from outside. A doorway cut between two wings —
