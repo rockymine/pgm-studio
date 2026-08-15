@@ -99,7 +99,7 @@ public sealed class PlanMarkerIdTests
           "pieces":[ {"id":"land","role":"piece","rect":[0,0,20,20]} ],
           "placements":{ "cores":[ {"id":"heart","piece":"land","at":[19,10],"size":5} ] } }
         """);
-        var finding = PlanValidator.Validate(plan)
+        var finding = PlanValidator.Check(plan)
             .First(f => f.Severity == Severity.Refusal && f.Message.Contains("overhangs the void"));
         await Assert.That(finding.SubjectIds).Contains("heart");
         await Assert.That(finding.Message).Contains("'heart'");

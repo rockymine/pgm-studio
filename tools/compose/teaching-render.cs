@@ -162,7 +162,7 @@ svg.Append("</g>");
 svg.Append("</svg>");
 
 // ── correctness cross-checks (stdout report) ──
-var validate = PlanValidator.Validate(plan);
+var validate = PlanValidator.Check(plan);
 int errCount = validate.Count(f => f.Severity == Severity.Refusal);
 int lintCount = validate.Count(f => f.Severity == Severity.Complaint);
 

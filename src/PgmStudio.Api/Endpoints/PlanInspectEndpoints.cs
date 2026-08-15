@@ -100,17 +100,16 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest
 
         SketchLayout layout;
         MapIntent intent;
-        IReadOnlyList<Finding> completeness;
+        Findings completeness;
         try
         {
             // Two questions, both asked here because this is the one-way gate: is the plan coherent
             // (the structural validator), and does it carry what a map cannot exist without (completeness).
             completeness = PlanValidator.Completeness(plan);
-            var errors = PlanValidator.Validate(plan).Concat(completeness)
-                .Where(finding => finding.Refuses).ToList();
-            if (errors.Count > 0)
+            var checked_ = PlanValidator.Check(plan).And(completeness);
+            if (checked_.Refuses)
             {
-                await Send.ResponseAsync(Refusals.Of("plan not compilable", errors), 422, ct);
+                await Send.ResponseAsync(Refusals.Of("plan not compilable", checked_.Refusals), 422, ct);
                 return;
             }
             (layout, intent) = PlanCompiler.Compile(plan);
@@ -134,7 +133,7 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest
 
         // Completeness complaints that did not block (today: no objective). Carried on the success response so
         // a compile that produced a playable-but-goalless map still says so rather than passing in silence.
-        var warnings = Refusals.Dtos(completeness.Where(finding => !finding.Refuses));
+        var warnings = Refusals.Dtos(completeness.Complaints);
         await Send.OkAsync(new { layout = layoutEl, intent = intentEl, warnings }, ct);
     }
 }

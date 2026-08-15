@@ -132,6 +132,11 @@ public static class RoomFrames
     /// <paramref name="ironMarkers"/> resolve to cubes outside the shell (the shell yields, the cube
     /// degrades — WX8) or to unplaceable markers (WX9). Null with a <paramref name="refusal"/> naming the
     /// <see cref="RoomFrameRules"/> id that refused — the same finding the validator reports.
+    ///
+    /// <para>This answers a room <em>or</em> a refusal rather than a <see cref="Findings"/> list, and that is
+    /// the difference between a resolve and a gate: a gate reads a document and collects everything wrong with
+    /// it, while a resolve is producing a value and stops at the first thing that makes producing it
+    /// impossible. There is no second WX fault to report once the piece is too small to hold a shell.</para>
     /// </summary>
     public static ResolvedRoom? ResolveRoom(
         int pieceMinX, int pieceMinZ, int pieceMaxX, int pieceMaxZ,

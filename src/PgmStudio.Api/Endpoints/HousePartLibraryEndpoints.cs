@@ -87,7 +87,7 @@ public sealed class RoofStyleCreateEndpoint(HousePartStore store, HousePartLibra
     {
         var composed = await library.ComposeRoofDraftAsync(req, ct);
         var findings = HouseStyleValidation.CheckRoofFamily(composed.Roof, composed.Verge);
-        if (findings.Count > 0) { await Refusals.WriteAsync(HttpContext, 400, "invalid house style", findings, ct); return; }
+        if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = await store.CreateRoofAsync(
             HousePartLibrary.RowOf(req), HousePartLibrary.RoofCourseRowsOf(req), ct);
         await Send.OkAsync(HousePartMapping.ToDetail(id, req), ct);
@@ -104,7 +104,7 @@ public sealed class RoofStyleUpdateEndpoint(HousePartStore store, HousePartLibra
     {
         var composed = await library.ComposeRoofDraftAsync(req, ct);
         var findings = HouseStyleValidation.CheckRoofFamily(composed.Roof, composed.Verge);
-        if (findings.Count > 0) { await Refusals.WriteAsync(HttpContext, 400, "invalid house style", findings, ct); return; }
+        if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = Route<long>("id");
         var updated = await store.UpdateRoofAsync(
             id, HousePartLibrary.RowOf(req), HousePartLibrary.RoofCourseRowsOf(req), ct);
@@ -178,7 +178,7 @@ public sealed class StoreyStyleCreateEndpoint(HousePartStore store)
     public override async Task HandleAsync(StoreyStyleSaveRequest req, CancellationToken ct)
     {
         var findings = HouseStyleValidation.CheckWindow("windows", HousePartLibrary.WindowOf(HousePartLibrary.RowOf(req)));
-        if (findings.Count > 0) { await Refusals.WriteAsync(HttpContext, 400, "invalid house style", findings, ct); return; }
+        if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = await store.CreateStoreyAsync(
             HousePartLibrary.RowOf(req), HousePartLibrary.StoreyCourseRowsOf(req), ct);
         await Send.OkAsync(HousePartMapping.ToDetail(id, req), ct);
@@ -194,7 +194,7 @@ public sealed class StoreyStyleUpdateEndpoint(HousePartStore store)
     public override async Task HandleAsync(StoreyStyleSaveRequest req, CancellationToken ct)
     {
         var findings = HouseStyleValidation.CheckWindow("windows", HousePartLibrary.WindowOf(HousePartLibrary.RowOf(req)));
-        if (findings.Count > 0) { await Refusals.WriteAsync(HttpContext, 400, "invalid house style", findings, ct); return; }
+        if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = Route<long>("id");
         var updated = await store.UpdateStoreyAsync(
             id, HousePartLibrary.RowOf(req), HousePartLibrary.StoreyCourseRowsOf(req), ct);

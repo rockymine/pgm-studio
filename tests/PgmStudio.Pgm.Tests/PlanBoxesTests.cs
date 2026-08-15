@@ -124,8 +124,8 @@ public sealed class PlanBoxesTests
         await Assert.That(JsonSerializer.Serialize(layoutA, opts)).IsEqualTo(JsonSerializer.Serialize(layoutB, opts));
         await Assert.That(JsonSerializer.Serialize(intentA, opts)).IsEqualTo(JsonSerializer.Serialize(intentB, opts));
 
-        var findingsA = PlanValidator.Validate(withBoxes).Select(f => f.Message).ToList();
-        var findingsB = PlanValidator.Validate(without).Select(f => f.Message).ToList();
+        var findingsA = PlanValidator.Check(withBoxes).Select(f => f.Message).ToList();
+        var findingsB = PlanValidator.Check(without).Select(f => f.Message).ToList();
         await Assert.That(findingsA).IsEquivalentTo(findingsB);
     }
 }

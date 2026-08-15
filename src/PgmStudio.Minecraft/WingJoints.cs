@@ -117,7 +117,7 @@ public static class WingJoints
 
     /// <summary>Every way a plan's wings fail to make a building, in the order the wings were given. Empty
     /// where the plan is one — which is what a caller gates on.</summary>
-    public static IReadOnlyList<Finding> Refusals(Footprint plan)
+    public static Findings Check(Footprint plan)
     {
         var refusals = new List<Finding>();
         foreach (var joint in Of(plan))

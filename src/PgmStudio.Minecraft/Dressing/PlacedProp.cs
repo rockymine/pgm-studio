@@ -300,12 +300,12 @@ public sealed record HouseProp : PlacedProp
     public const int MaxFootprint = 192;
 
     /// <summary>The plan this prop stamps, or null when it is no building at all — the same answer
-    /// <see cref="Faults"/> gives the reasons for.
+    /// <see cref="Check"/> gives the reasons for.
     ///
     /// <para>Every wing is required to hold two walls and an inside on its own, the same three-block floor a
     /// single rectangle always has: a wing composes with its neighbours below the eave, but nothing composes a
     /// room out of a sliver with no width of its own.</para></summary>
-    public Minecraft.Footprint? Footprint() => Faults().Count == 0 ? Read() : null;
+    public Minecraft.Footprint? Footprint() => Check().Refuses ? null : Read();
 
     /// <summary>Why this prop is no building — every reason, not the first. Empty where it is one. Separate
     /// from <see cref="Footprint"/> because the two callers want different halves: a build wants the plan or
@@ -318,33 +318,34 @@ public sealed record HouseProp : PlacedProp
     /// read, because nothing further can be asked of corners that do not parse. The rest are the joint model's
     /// (<see cref="WingJoints"/>) and carry its <c>HJ</c> ids, and those are reported together: an author
     /// redrawing one bad joint wants to know about the other.</para></summary>
-    public IReadOnlyList<Finding> Faults()
+    public Findings Check()
     {
         if (Wings.Count == 0)
-            return [new Finding(HousePropRules.NoWings, "a building needs at least one rectangle", Field: "wings")];
+            return Findings.Of(new Finding(HousePropRules.NoWings,
+                "a building needs at least one rectangle", Field: "wings"));
         for (var index = 0; index < Wings.Count; index++)
         {
             var corners = Wings[index];
             var wing = index.ToString();
             if (corners.Count < 2 || corners[0].Length < 2 || corners[1].Length < 2)
-                return [new Finding(HousePropRules.WingShape,
+                return Findings.Of(new Finding(HousePropRules.WingShape,
                     "every wing is drawn as two opposite corners, each an x and a z",
-                    Field: "wings", Subjects: [wing])];
+                    Field: "wings", Subjects: [wing]));
             var (minX, minZ, maxX, maxZ) = Corners(corners);
             if (maxX - minX + 1 < 3 || maxZ - minZ + 1 < 3)
-                return [new Finding(HousePropRules.WingShape,
+                return Findings.Of(new Finding(HousePropRules.WingShape,
                     $"a wing holds two walls and an inside, so it is at least three blocks each way; this one "
-                    + $"is {maxX - minX + 1} × {maxZ - minZ + 1}", Field: "wings", Subjects: [wing])];
+                    + $"is {maxX - minX + 1} × {maxZ - minZ + 1}", Field: "wings", Subjects: [wing]));
         }
 
         var plan = Read()!;
         var covered = plan.Cells().Count();
         if (covered > MaxFootprint)
-            return [new Finding(HousePropRules.PastCap,
+            return Findings.Of(new Finding(HousePropRules.PastCap,
                 $"the wings cover {covered} blocks, past the {MaxFootprint} a placed building may take",
-                Field: "wings")];
+                Field: "wings"));
 
-        return WingJoints.Refusals(plan);
+        return WingJoints.Check(plan);
     }
 
     /// <summary>The wings as drawn, with nothing judged — what both of the two above read.</summary>

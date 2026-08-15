@@ -93,7 +93,7 @@ public sealed class RoomStyleCreateEndpoint(RoomStyleStore store, RoomStyleLibra
     public override async Task HandleAsync(RoomStyleSaveRequest req, CancellationToken ct)
     {
         var findings = HouseStyleValidation.Check(await library.ComposeDraftAsync(req, ct));
-        if (findings.Count > 0) { await Refusals.WriteAsync(HttpContext, 400, "invalid house style", findings, ct); return; }
+        if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = await store.CreateAsync(
             RoomStyleLibrary.RowOf(req), RoomStyleLibrary.CourseRowsOf(req),
             RoomStyleLibrary.StoreyRowsOf(req), ct);
@@ -111,7 +111,7 @@ public sealed class RoomStyleUpdateEndpoint(RoomStyleStore store, RoomStyleLibra
     public override async Task HandleAsync(RoomStyleSaveRequest req, CancellationToken ct)
     {
         var findings = HouseStyleValidation.Check(await library.ComposeDraftAsync(req, ct));
-        if (findings.Count > 0) { await Refusals.WriteAsync(HttpContext, 400, "invalid house style", findings, ct); return; }
+        if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = Route<long>("id");
         var updated = await store.UpdateAsync(
             id, RoomStyleLibrary.RowOf(req), RoomStyleLibrary.CourseRowsOf(req),

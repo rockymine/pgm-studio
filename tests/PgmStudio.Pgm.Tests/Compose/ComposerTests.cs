@@ -41,7 +41,7 @@ public sealed class ComposerTests
         foreach (var (players, seed) in Sweep())
         {
             var plan = Composer.Compose(new ComposeRequest(players, seed: seed));
-            var findings = PlanValidator.Validate(plan);
+            var findings = PlanValidator.Check(plan);
             await Assert.That(findings.Any(f => f.Severity == Severity.Refusal)).IsFalse()
                 .Because($"errors @ {players}p seed {seed}");
             foreach (var rule in new[] { "PC-C", "G2", "G5" })

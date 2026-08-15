@@ -19,7 +19,7 @@ public sealed class StructuralIntegrity : ILayoutTerm
 
     public TermScore Measure(EvalContext ctx)
     {
-        var errors = ctx.Findings.Where(finding => finding.Refuses).ToList();
+        var errors = ctx.Findings.Refusals.ToList();
         if (errors.Count == 0) return TermScores.Clean(this);
 
         var subjects = errors.SelectMany(e => e.SubjectIds).Distinct().ToList();

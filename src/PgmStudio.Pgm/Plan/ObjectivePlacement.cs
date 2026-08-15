@@ -37,7 +37,7 @@ public static class ObjectivePlacement
     /// columns at export — and <paramref name="keepOuts"/> is the stamped rooms, as frames rather than as the
     /// pieces holding them, since a spawn piece is often far larger than its room and refusing a goal at its
     /// far corner would be a refusal with no cause.</summary>
-    public static List<Finding> Check(
+    public static Findings Check(
         IEnumerable<PlacedGoal> goals, Func<int, int, bool> isLand, IReadOnlyCollection<GoalKeepOut> keepOuts)
     {
         var findings = new List<Finding>();

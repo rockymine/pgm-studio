@@ -113,10 +113,47 @@ And the building rules, which the dressing document and the room library are bot
 | `HS2` | a doorway does not clear the least height a door may |
 | `HS3` | a roof's materials are wrong for its pitch or its family |
 
+## How a gate is called
+
+**Every gate is `Check`, and answers `Findings`.** One verb, because seven — `Faults`, `Check`, `Refusals`,
+`Validate`, `Findings`, `Errors`, `Completeness` — is six too many for a caller to remember, and one return
+type, because the interesting question is not how many findings there are.
+
+| Gate | Call |
+|---|---|
+| a plan's structure | `PlanValidator.Check(plan)` · `.Completeness(plan)` |
+| a goal's ground | `ObjectivePlacement.Check(goals, isLand, keepOuts)` |
+| a house style | `HouseStyleValidation.Check(style)` |
+| a placed building | `house.Check()` |
+| how two wings meet | `WingJoints.Check(plan)` |
+| a sketch's bound room styles | `SketchRoomStyleGate.Check(layoutJson)` |
+
+A gate takes whatever it needs to answer — a plan alone, or goals plus the ground they stand on — so there is
+no interface, and forcing one would only make the context-carrying gates lie about what they read. What is
+uniform is the answer.
+
+**`Findings.Refuses` is the question, and `Count` is not.** A gate reporting only refusals answers an empty
+list for a clean document, so `Count > 0` reads as "refused" and happens to be right; a gate reporting
+complaints as well answers a non-empty list for a document that is perfectly good, and the same expression
+blocks it. Both kinds were being read the same way. Beside it, `Refusals` and `Complaints` split the list,
+`Summary` is every sentence, `And` joins two gates' answers, and `Under(root)` prefixes a field so a style
+bound twice onto one sketch reports `roomStyles.cage.doorHead.block` rather than a `doorHead.block` an author
+cannot place.
+
+An endpoint gates in one line — `if (await Refusals.StopAsync(http, 400, "invalid house style", findings, ct))
+return;` — which writes only the refusals, so a complaint never arrives dressed as one.
+
+**A gate never returns null and never throws.** The one exception is a document that will not parse, which
+cannot carry on to collect a second fault; it throws, and the exception carries its finding so the gate above
+it answers in this shape anyway. A **resolve** is a different thing again and keeps its own shape:
+`RoomFrames.ResolveRoom` answers a room *or* a refusal, because it is producing a value and stops at the first
+thing that makes producing it impossible, where a gate reads a document and collects everything wrong with it.
+
 ## Adding one
 
-A new gate writes findings; it does not write a shape. Put the rule id in the `*Rules` class beside the rule
-that fires it — never as a literal at the throw site, which is how `OB20` spent a release as a bare string and
-`OB19` with no id at all — give it a docstring saying what it refuses, add its row above, and answer through
-`Refusals.Of` (API) or `Finding.Wire` (an untyped composer). A rule about a map *as it is played* is the
+A new gate writes findings; it does not write a shape. Name it `Check`, return `Findings`, put the rule id in
+the `*Rules` class beside the rule that fires it — never as a literal at the throw site, which is how `OB20`
+spent a release as a bare string and `OB19` with no id at all — give it a docstring saying what it refuses, add
+its row above, and answer through `Refusals.StopAsync` (an endpoint), `Refusals.Of` (a typed body) or
+`Finding.Wire` (an untyped composer). A rule about a map *as it is played* is the
 author's to state before any of that: see the human-oracle rule in `CLAUDE.md`.

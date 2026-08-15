@@ -52,7 +52,7 @@ public sealed class FannedGraphTests
         // shared buildable regions that bridge one team's frontline to the next. With region-union connectivity
         // every cross-team wool is reachable (the per-zone model wrongly reported all 24 unreachable).
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("four-team-towers-big.plan.json"))!;
-        var reachErrors = PlanValidator.Validate(plan)
+        var reachErrors = PlanValidator.Check(plan)
             .Count(f => f.Severity == Severity.Refusal && f.Message.Contains("unreachable"));
         await Assert.That(reachErrors).IsEqualTo(0);
     }

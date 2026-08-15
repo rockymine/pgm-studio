@@ -43,7 +43,7 @@ public static class HouseStyleValidation
     /// <summary>Every fault in <paramref name="style"/> its own geometry can name: a block used for a
     /// geometric role that is not the kind that role needs, a doorway that does not clear the least height a
     /// door may, and a roof whose own materials are wrong for its pitch or its family.</summary>
-    public static IReadOnlyList<Finding> Check(HouseStyle style)
+    public static Findings Check(HouseStyle style)
     {
         var findings = new List<Finding>();
         CheckDoorHead(style.DoorHead, findings);
@@ -81,7 +81,7 @@ public static class HouseStyleValidation
     /// <see cref="WindowStyle.Form"/> needs, standalone — what a storey style checks itself with, off the same
     /// <see cref="WindowStyle"/> a house window is, before the storey has a house around it to compose
     /// into.</summary>
-    public static IReadOnlyList<Finding> CheckWindow(string field, WindowStyle windows)
+    public static Findings CheckWindow(string field, WindowStyle windows)
     {
         var findings = new List<Finding>();
         CheckWindow(field, windows, findings);
@@ -144,7 +144,7 @@ public static class HouseStyleValidation
     /// standalone, because a roof <em>part</em> in the library carries these two on their own, with no
     /// <see cref="HouseStyle.RoofSlab"/> alongside them to pair a slab against, so it is checked as far as it
     /// can be checked in isolation rather than not at all.</summary>
-    public static IReadOnlyList<Finding> CheckRoofFamily(TerrainMaterial roof, TerrainMaterial verge)
+    public static Findings CheckRoofFamily(TerrainMaterial roof, TerrainMaterial verge)
     {
         var findings = new List<Finding>();
         foreach (var (field, material) in new[] { ("roof", roof), ("verge", verge) })

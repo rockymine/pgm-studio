@@ -15,13 +15,13 @@ public sealed class EvalContext
 {
     public PlanModel Plan { get; }
     public ContactGraph Contacts { get; }
-    public IReadOnlyList<Finding> Findings { get; }
+    public Findings Findings { get; }
     public SeedEnvelopes Envelopes { get; }
 
     private readonly Lazy<BoardStructure> _board;
     public BoardStructure Board => _board.Value;
 
-    private EvalContext(PlanModel plan, ContactGraph contacts, IReadOnlyList<Finding> findings, SeedEnvelopes envelopes)
+    private EvalContext(PlanModel plan, ContactGraph contacts, Findings findings, SeedEnvelopes envelopes)
     {
         Plan = plan;
         Contacts = contacts;
@@ -35,7 +35,7 @@ public sealed class EvalContext
     public static EvalContext Build(PlanModel plan, SeedEnvelopes? envelopes = null)
     {
         var contacts = ContactGraph.Build(plan);
-        var findings = PlanValidator.Validate(plan);
+        var findings = PlanValidator.Check(plan);
         return new EvalContext(plan, contacts, findings, envelopes ?? SeedEnvelopes.Empty);
     }
 }

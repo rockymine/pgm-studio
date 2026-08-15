@@ -89,7 +89,7 @@ public sealed class PlanDestroyablesTests
     {
         var json = Json.Replace("""{ "piece": "bar-w", "at": [1, 1] }""",
             """{ "piece": "bar-w", "at": [1, 1], "style": "pyramid" }""");
-        var findings = PlanValidator.Validate(PlanModel.Parse(json)!);
+        var findings = PlanValidator.Check(PlanModel.Parse(json)!);
         await Assert.That(findings.Any(f => f.Severity == Severity.Refusal && f.Message.Contains("pyramid"))).IsTrue();
     }
 
@@ -97,7 +97,7 @@ public sealed class PlanDestroyablesTests
     public async Task A_marker_outside_its_piece_is_an_error()
     {
         var json = Json.Replace("""{ "piece": "bar-w", "at": [1, 1] }""", """{ "piece": "bar-w", "at": [9, 9] }""");
-        var findings = PlanValidator.Validate(PlanModel.Parse(json)!);
+        var findings = PlanValidator.Check(PlanModel.Parse(json)!);
         await Assert.That(findings.Any(f => f.Severity == Severity.Refusal && f.Message.Contains("destroyable"))).IsTrue();
     }
 
@@ -138,7 +138,7 @@ public sealed class PlanDestroyablesTests
     public async Task A_marker_with_no_piece_is_not_a_dangling_reference()
     {
         var json = Json.Replace("""{ "piece": "bar-w", "at": [1, 1] }""", """{ "piece": "", "at": [3, -4] }""");
-        var findings = PlanValidator.Validate(PlanModel.Parse(json)!);
+        var findings = PlanValidator.Check(PlanModel.Parse(json)!);
         await Assert.That(findings.Any(f =>
             f.Severity == Severity.Refusal && f.Message.Contains("unknown piece"))).IsFalse();
     }
@@ -156,7 +156,7 @@ public sealed class PlanDestroyablesTests
               "placements": { "spawns": [ { "piece": "", "at": [1, 1], "facing": "front" } ] }
             }
             """;
-        var findings = PlanValidator.Validate(PlanModel.Parse(json)!);
+        var findings = PlanValidator.Check(PlanModel.Parse(json)!);
         await Assert.That(findings.Any(f =>
             f.Severity == Severity.Refusal && f.Message.Contains("spawn references unknown piece"))).IsTrue();
     }
@@ -169,7 +169,7 @@ public sealed class PlanDestroyablesTests
         // OB14 — at four teams PGM treats every goal as shared, and what that plays like is undecided; at
         // one team there is nobody to break it. The editor hides the tool, but a hand-written plan can ask.
         var json = Json.Replace("\"symmetry\": \"rot_180\"", $"\"symmetry\": \"{mode}\"");
-        var findings = PlanValidator.Validate(PlanModel.Parse(json)!);
+        var findings = PlanValidator.Check(PlanModel.Parse(json)!);
         await Assert.That(findings.Any(f => f.Severity == Severity.Refusal && f.Message.Contains("two-team"))).IsTrue();
         await Assert.That(Geom.Symmetry.Order(mode)).IsEqualTo(order);
 
@@ -185,7 +185,7 @@ public sealed class PlanDestroyablesTests
         foreach (var mode in new[] { "rot_180", "mirror_x", "mirror_z" })
         {
             var json = Json.Replace("\"symmetry\": \"rot_180\"", $"\"symmetry\": \"{mode}\"");
-            var findings = PlanValidator.Validate(PlanModel.Parse(json)!);
+            var findings = PlanValidator.Check(PlanModel.Parse(json)!);
             await Assert.That(findings.Any(f => f.Severity == Severity.Refusal && f.Message.Contains("two-team")))
                 .IsFalse().Because($"{mode} is a two-team symmetry");
         }

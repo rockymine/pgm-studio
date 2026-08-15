@@ -56,7 +56,7 @@ public static class PlanRules
 /// </summary>
 public static class PlanValidator
 {
-    public static IReadOnlyList<Finding> Validate(PlanModel plan)
+    public static Findings Check(PlanModel plan)
     {
         var d = ContactGraph.Build(plan);
         var findings = new List<Finding>();
@@ -65,9 +65,9 @@ public static class PlanValidator
         return findings;
     }
 
-    public static IReadOnlyList<Finding> Errors(PlanModel plan) => Errors(plan, ContactGraph.Build(plan)).ToList();
+    public static Findings Errors(PlanModel plan) => new(Errors(plan, ContactGraph.Build(plan)));
 
-    public static bool HasErrors(PlanModel plan) => Validate(plan).Any(f => f.Severity == Severity.Refusal);
+    public static bool HasErrors(PlanModel plan) => Check(plan).Refuses;
 
     /// <summary>
     /// Whether the plan carries the things a map cannot exist without — a separate question from
@@ -77,7 +77,7 @@ public static class PlanValidator
     /// turns a plan into a map, not to the continuous validation the editor and the evaluator run.
     /// <para>Errors here block that gate; the lint is a complaint the author may ignore.</para>
     /// </summary>
-    public static IReadOnlyList<Finding> Completeness(PlanModel plan)
+    public static Findings Completeness(PlanModel plan)
     {
         var findings = new List<Finding>();
 

@@ -29,7 +29,7 @@ public sealed class PlanCoresTests
         PlanCompiler.Compile(PlanModel.Parse(json)!).Intent.Cores!;
 
     private static IReadOnlyList<Finding> Validate(string json) =>
-        PlanValidator.Validate(PlanModel.Parse(json)!);
+        PlanValidator.Check(PlanModel.Parse(json)!);
 
     private static bool Errors(IReadOnlyList<Finding> f, string contains) =>
         f.Any(x => x.Severity == Severity.Refusal && x.Message.Contains(contains));

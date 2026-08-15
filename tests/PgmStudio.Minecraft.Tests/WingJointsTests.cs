@@ -144,7 +144,7 @@ public class WingJointsTests
     }
 
     /// <summary>Every fault a plan can be refused for is a finding with a rule, a sentence and the two wings it
-    /// is about; a joint that stands is no finding at all. The gate reads <see cref="WingJoints.Refusals"/>
+    /// is about; a joint that stands is no finding at all. The gate reads <see cref="WingJoints.Check"/>
     /// rather than the enum, so a fault added without a rule would refuse a plan and say nothing.</summary>
     [Test]
     public async Task Every_fault_is_a_finding_and_a_standing_joint_is_none()

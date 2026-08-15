@@ -165,12 +165,8 @@ public sealed class SketchPutEndpoint(MapRepository repo, PgmDb db) : EndpointWi
         try { using var _ = JsonDocument.Parse(bytes); }   // reject non-JSON; don't store garbage
         catch { await Send.ResponseAsync(new { error = "invalid JSON" }, 400, ct); return; }
 
-        var findings = SketchRoomStyleGate.Findings(Encoding.UTF8.GetString(bytes));
-        if (findings.Count > 0)
-        {
-            await Send.ResponseAsync(new { error = "invalid house style", findings }, 400, ct);
-            return;
-        }
+        var findings = SketchRoomStyleGate.Check(Encoding.UTF8.GetString(bytes));
+        if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
 
         await SketchStore.SaveAsync(db, map.Id, bytes, ct);
         await Send.OkAsync(new { ok = true }, ct);
@@ -182,25 +178,23 @@ public sealed class SketchPutEndpoint(MapRepository repo, PgmDb db) : EndpointWi
 /// doesn't.</summary>
 internal static class SketchRoomStyleGate
 {
-    public static IReadOnlyList<Finding> Findings(string layoutJson)
+    public static Findings Check(string layoutJson)
     {
         // A layout the room-style shape does not parse against is not this gate's business — the blob is
         // authoring-source JSON of arbitrary shape, and only a well-formed roomStyles snapshot is checked, the
         // same leniency RoomStyleScope already gives export.
         (HouseStyle? Wool, HouseStyle? Spawn) styles;
         try { styles = RoomStyleScope.StylesOf(layoutJson); }
-        catch (JsonException) { return []; }
+        catch (JsonException) { return Findings.None; }
 
         var findings = new List<Finding>();
         if (styles.Wool is { } wool)
-            findings.AddRange(Prefixed("roomStyles.cage", HouseStyleValidation.Check(wool)));
+            findings.AddRange(HouseStyleValidation.Check(wool).Under("roomStyles.cage"));
         if (styles.Spawn is { } spawn)
-            findings.AddRange(Prefixed("roomStyles.spawn", HouseStyleValidation.Check(spawn)));
+            findings.AddRange(HouseStyleValidation.Check(spawn).Under("roomStyles.spawn"));
         return findings;
     }
 
-    private static IEnumerable<Finding> Prefixed(string root, IReadOnlyList<Finding> findings)
-        => findings.Select(finding => finding with { Field = $"{root}.{finding.Field}" });
 }
 
 /// <summary>PUT /api/map/{slug}/sketch/from-plan — replace the stored layout with one a plan compiled,

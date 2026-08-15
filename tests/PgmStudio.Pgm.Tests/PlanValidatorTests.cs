@@ -14,14 +14,14 @@ public sealed class PlanValidatorTests
 {
     private static PlanModel Plan(string json) => PlanModel.Parse(json)!;
     private static bool Err(PlanModel p, string needle) =>
-        PlanValidator.Validate(p).Any(f => f.Severity == Severity.Refusal && f.Message.Contains(needle));
+        PlanValidator.Check(p).Any(f => f.Severity == Severity.Refusal && f.Message.Contains(needle));
 
     /// <summary>Whether a plan is refused by a named rule. Preferred over <see cref="Err"/> wherever the rule
     /// has an id: a message is prose and may be reworded, and an id is the thing a caller acts on.</summary>
     private static bool Refused(PlanModel p, string rule) =>
-        PlanValidator.Validate(p).Any(f => f.Refuses && f.Rule == rule);
+        PlanValidator.Check(p).Any(f => f.Refuses && f.Rule == rule);
     private static bool Lint(PlanModel p, string rule) =>
-        PlanValidator.Validate(p).Any(f => f.Severity == Severity.Complaint && f.Rule == rule);
+        PlanValidator.Check(p).Any(f => f.Severity == Severity.Complaint && f.Rule == rule);
 
     // ── errors ──────────────────────────────────────────────────────────────────────────────────────────
 
@@ -34,7 +34,7 @@ public sealed class PlanValidatorTests
         { "plan":1, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,9]}, {"id":"b","role":"lane","rect":[10,0,10,10]} ] }
         """);
-        await Assert.That(PlanValidator.Validate(p).Any(f => f.Severity == Severity.Refusal)).IsFalse();
+        await Assert.That(PlanValidator.Check(p).Any(f => f.Severity == Severity.Refusal)).IsFalse();
         await Assert.That(Lint(p, "PC-S")).IsFalse();
     }
 
@@ -154,7 +154,7 @@ public sealed class PlanValidatorTests
         foreach (var name in new[] { "base-2island", "base-2wool", "base-4team" })
         {
             var plan = Plan(PlanTestSupport.ReadSeed($"{name}.plan.json"));
-            var errors = PlanValidator.Validate(plan).Where(f => f.Severity == Severity.Refusal).ToList();
+            var errors = PlanValidator.Check(plan).Where(f => f.Severity == Severity.Refusal).ToList();
             await Assert.That(errors).IsEmpty();
         }
     }
@@ -167,7 +167,7 @@ public sealed class PlanValidatorTests
         // contacts fold into components: no errors, no PC-S (retired), and no PC-C (the corners now sit inside
         // one land component and are suppressed).
         var plan = Plan(PlanTestSupport.ReadSeed("four-team-towers-big.plan.json"));
-        var findings = PlanValidator.Validate(plan);
+        var findings = PlanValidator.Check(plan);
         await Assert.That(findings.Any(f => f.Severity == Severity.Refusal)).IsFalse();
         await Assert.That(findings.Any(f => f.Rule == "PC-S")).IsFalse();
         await Assert.That(findings.Any(f => f.Rule == "PC-C")).IsFalse();
@@ -182,7 +182,7 @@ public sealed class PlanValidatorTests
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]}, {"id":"b","role":"mid","rect":[5,5,10,10],"surface":13} ],
           "zones":[ {"id":"z","rect":[0,20,8,20]} ] }
         """);
-        var all = PlanValidator.Validate(p);
+        var all = PlanValidator.Check(p);
 
         var overlap = all.First(f => f.Severity == Severity.Refusal && f.Message.Contains("different surfaces"));
         await Assert.That(overlap.SubjectIds).Contains("a");
@@ -206,7 +206,7 @@ public sealed class PlanValidatorTests
                      {"id":"buffer","role":"buffer","rect":[0,0,10,30]} ] }
         """);
         await Assert.That(Refused(p, PlanRules.SurfaceClash)).IsFalse();
-        await Assert.That(PlanValidator.Validate(p).Any(f => f.Severity == Severity.Refusal)).IsFalse();
+        await Assert.That(PlanValidator.Check(p).Any(f => f.Severity == Severity.Refusal)).IsFalse();
     }
 
     [Test]
@@ -416,7 +416,7 @@ public sealed class PlanValidatorTests
         { "plan":1, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]} ] }
         """);
-        await Assert.That(PlanValidator.Validate(p).Any(f => f.Severity == Severity.Refusal)).IsFalse();
+        await Assert.That(PlanValidator.Check(p).Any(f => f.Severity == Severity.Refusal)).IsFalse();
     }
 
     [Test]

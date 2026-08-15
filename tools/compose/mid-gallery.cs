@@ -206,7 +206,7 @@ Row CrossCheck(string stem, PlanModel? plan)
     if (plan is null) { row.Parsed = false; return row; }
     row.Parsed = true;
     row.Symmetry = plan.Globals.Symmetry;
-    var validate = PlanValidator.Validate(plan);
+    var validate = PlanValidator.Check(plan);
     row.Errors = validate.Count(f => f.Severity == Severity.Refusal);
     row.Lint = validate.Count(f => f.Severity == Severity.Complaint);
     row.Findings = validate.Select(f => $"[{f.Severity}]{(f.Rule is null ? "" : " " + f.Rule)} {f.Message}").ToList();

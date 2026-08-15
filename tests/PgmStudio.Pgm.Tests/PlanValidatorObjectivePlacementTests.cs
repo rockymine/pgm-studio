@@ -19,7 +19,7 @@ public sealed class PlanValidatorObjectivePlacementTests
     private static PlanModel Plan(string json) => PlanModel.Parse(json)!;
 
     private static bool Err(PlanModel plan, string needle) =>
-        PlanValidator.Validate(plan).Any(f => f.Severity == Severity.Refusal && f.Message.Contains(needle));
+        PlanValidator.Check(plan).Any(f => f.Severity == Severity.Refusal && f.Message.Contains(needle));
 
     /// <summary>A 20×20 island with a two-team symmetry, so the objective tools are legal (OB14).</summary>
     private static string Land(string placements) => $$"""
@@ -139,7 +139,7 @@ public sealed class PlanValidatorObjectivePlacementTests
     public async Task The_refusal_names_the_pieces_so_the_editor_can_point_at_them()
     {
         var plan = Plan(RoomBoard.Replace("CORE", """ "cores":[ {"piece":"home","at":[10,10],"size":5} ] """));
-        var finding = PlanValidator.Validate(plan)
+        var finding = PlanValidator.Check(plan)
             .First(f => f.Severity == Severity.Refusal && f.Message.Contains("reaches into the spawn"));
         await Assert.That(finding.SubjectIds).Contains("home");
     }
