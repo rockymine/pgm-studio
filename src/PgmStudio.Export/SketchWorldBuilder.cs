@@ -51,13 +51,19 @@ public static class SketchWorldBuilder
         // The shells this map is finished with — one for every cage, one for every spawn (structures.md §9).
         var (woolStyle, spawnStyle) = RoomStyleScope.StylesOf(layoutJson);
 
-        // The sky-marker floor every goal marker shares: the author's build-height cap plus clearance, or —
-        // when the map carries no explicit cap — comfortably above the tallest terrain actually built, so an
-        // unauthored ceiling still puts the marker out of easy reach rather than at a fixed low altitude.
-        var markerCap = intent.Build?.MaxHeight
-            ?? (terrain.SurfaceTop.Count > 0 ? terrain.SurfaceTop.Values.Max() : 1);
+        // ── The build ceiling, and the one altitude every goal marker hangs at ──────────────────────
+        // Both are the author's rule, and both are derived here because here is the first place that knows
+        // the answer: twenty blocks over the highest ground the map actually built (G6), and the markers five
+        // over that (BuildCeiling). The measurement is the point — SurfaceTop is the terrain the rasterizer
+        // laid, read before a single structure, house or tree is stamped on it, so nothing placed on the map
+        // can push its own ceiling up. It is written back onto the intent so the <max-build-height> the XML
+        // declares and the altitude these markers are stamped at are one number rather than two agreeing
+        // by habit.
+        var highestGround = terrain.SurfaceTop.Count > 0 ? terrain.SurfaceTop.Values.Max() : 0;
+        var maxBuildHeight = Math.Min(BuildCeiling.Of(highestGround), VoxelWorld.MaxHeight - 1);
+        intent = intent with { Build = (intent.Build ?? new BuildIntent()) with { MaxHeight = maxBuildHeight } };
         var markerFloor = Math.Clamp(
-            markerCap + GoalMarkerStamper.Clearance, 0, VoxelWorld.MaxHeight - GoalMarkerStamper.Size);
+            maxBuildHeight + BuildCeiling.MarkerOver, 0, VoxelWorld.MaxHeight - GoalMarkerStamper.Size);
 
         // ── Wool-room bedrock floors (ST1) ──────────────────────────────────────────────────────────
         // Ground, not dressing — the plan fills each wool-room piece solid from y=0 to the surface so the room

@@ -637,6 +637,22 @@ both corrected.)
     sweep committed this time rather than surviving as numbers in a backlog entry. `WL7`'s own
     46–143 band is unaffected: it was taken as traversal.
 
+14. **The build ceiling is measured, and measured on the terrain (2026-08-15).** Author's call, settling
+    `B221` and closing `B104`/`B176`'s shared cause. `G6` asks for **≥20 blocks of build clearance above the
+    island surface**; what was never stated is *which* surface, and every implementation so far had answered
+    with the plan's nominal `surface` — a flat number the relief solve abandons, which is how boards came out
+    with a ceiling under their own terrain and a destroy goal stamped above it. The rule is now: the cap is
+    **the highest terrain column the world actually builds, plus 20**, at the floor of `G6`'s band rather than
+    in the middle of it, for `G6`'s own second reason — a generous cap over flat terrain is the sky-layer
+    smell. **Terrain, not what stands on it**: a house, a tree, a wool cage and a stamped structure are all
+    excluded, or a taller shell would raise the ceiling that permits a taller shell.
+
+    Two things follow. A plan states no ceiling at all — `PlanGlobals` lost the field, because a plan-level
+    number would be a second source for one value and the one that gets overwritten. And **a goal marker's
+    floor is the cap plus 5**, one rule for every goal kind, replacing the per-kind reasoning about how tall a
+    destroyable's pillar or a core's casing happens to be. `G6`'s own observer note — "~5 above the build cap"
+    — is the same distance and is unchanged.
+
 ## Correction protocol
 
 Reply by rule id. **Frozen 2026-07-04 as the composer's v1 rule set.** Further corrections are

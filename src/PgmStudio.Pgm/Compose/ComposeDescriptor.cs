@@ -6,12 +6,14 @@ namespace PgmStudio.Pgm.Compose;
 /// <summary>The composer's output version. Stamped onto every generated plan's descriptor so a stored row is
 /// honest about which composer made it: a descriptor reproduces its plan exactly within one version, and only
 /// approximately across versions. Bump when a change to the pipeline alters the geometry a given
-/// (request, seed) produces — or, as <c>stated-ceiling-1</c> did, the document it is written into: the promise
-/// is that a descriptor reproduces its <b>plan</b>, and a plan whose globals spell a field differently is a
-/// different plan even when every rectangle in it is where it was.</summary>
+/// (request, seed) produces — or the document it is written into: the promise is that a descriptor reproduces
+/// its <b>plan</b>, and a plan whose globals carry a different set of fields is a different plan even when
+/// every rectangle in it is where it was. <c>measured-ceiling-1</c> is the second kind, twice over: the
+/// globals gained a stated build ceiling and then lost it again when the author's rule turned out to measure
+/// the built terrain instead.</summary>
 public static class ComposerVersion
 {
-    public const string Current = "stated-ceiling-1";
+    public const string Current = "measured-ceiling-1";
 }
 
 /// <summary>

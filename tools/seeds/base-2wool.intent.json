@@ -10,7 +10,6 @@
   ],
   "observer": { "point": { "x": 0, "y": 24, "z": 0 }, "yaw": 0 },
   "build": {
-    "maxHeight": 20,
     "areas": [
       { "minX": -15, "minZ": -25, "maxX": 15, "maxZ": 25 },
       { "minX": 15,  "minZ": 35,  "maxX": 25, "maxZ": 45 },

@@ -6,8 +6,8 @@ namespace PgmStudio.Export.Tests;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// EX2/EX3 (B140) — the export gate's two arithmetic questions: is the document about to be written a map at
-/// all, and is it the map the intent stated.
+/// EX2/EX3/EX4 — the export gate's questions about whether the document is a map: can anyone enter it, is it
+/// the map the intent stated, and is there anyone to contest what it puts up for winning.
 ///
 /// <para>The case that motivated them is a board with <b>nothing on it</b>. Every other gate here quantifies
 /// over a collection — a goal in void, a prop in a clearance, spawn and wool points reaching each other — and
@@ -78,9 +78,32 @@ public sealed class MapExportComposerPlayabilityTests
     [Test]
     public async Task A_kind_the_intent_never_stated_is_not_a_loss()
     {
-        var doc = Doc(("spawns", 2), ("wools", 2));
+        var doc = Doc(("spawns", 2), ("wools", 2), ("teams", 2));
 
         await Assert.That(MapExportComposer.Playable(Intent(spawns: 2), doc)).IsEmpty();
+    }
+
+    /// <summary>The author's ruling, and the only one in this gate: the three gamemodes the studio authors —
+    /// CTW, DTM, DTC — are played by teams, so a map that states something to win must state who contests it.
+    /// It is asked of the objectives rather than of the <c>&lt;gamemode&gt;</c> element, which is derived from
+    /// exactly those three lists and which PGM does not read to decide what runs.</summary>
+    [Test]
+    public async Task An_objective_with_no_team_has_nobody_to_contest_it()
+    {
+        var findings = MapExportComposer.Playable(null, Doc(("spawns", 2), ("wools", 2)));
+
+        var orphaned = findings.Single(finding => finding.Rule == "EX4");
+        await Assert.That(orphaned.Field).IsEqualTo("teams");
+        await Assert.That(orphaned.Message).Contains("2 objective");
+    }
+
+    /// <summary>A board with no objective at all is not asked. It is unfinished rather than wrong — which is
+    /// <c>PL3</c>'s to say, as a complaint — and refusing it here would refuse every map mid-authoring.
+    /// Asserted because the obvious way to write the rule above ("a map needs teams") would.</summary>
+    [Test]
+    public async Task A_board_with_nothing_to_win_is_not_asked_who_would_win_it()
+    {
+        await Assert.That(MapExportComposer.Playable(null, Doc(("spawns", 2)))).IsEmpty();
     }
 
     /// <summary>A corpus map is exempt, for the reason the traversability gate exempts one: <b>281 of the

@@ -9,6 +9,7 @@ using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Palette;
 using PgmStudio.Minecraft.Stamping;
+using PgmStudio.Domain;
 
 namespace PgmStudio.Export.Tests;
 
@@ -60,10 +61,10 @@ public sealed class SketchWorldBuilderTests
     [Test]
     public async Task Every_wool_room_carries_a_sky_marker_in_its_own_wool_colour()
     {
-        // B89: no Build intent is authored here, so the marker floor falls back to comfortably above the
-        // tallest terrain rather than an unset build cap — it still ends up well clear of the play surface.
+        // No Build intent is authored here and none is needed: the cap is measured off the terrain the world
+        // built (y=1 across this flat sketch), so it comes out at 21 and the markers five over that.
         var built = SketchWorldBuilder.Build(Layout, SampleIntent());
-        var floorY = 1 + GoalMarkerStamper.Clearance;   // terrain tops out at y=1 across this flat sketch
+        var floorY = BuildCeiling.Of(1) + BuildCeiling.MarkerOver;
 
         // The default 10×10 shell centres on the (snapped) wool spawn point for each room.
         await Assert.That(built.World.GetBlock(-10, floorY + 1, 10)).IsEqualTo((Blocks.Wool, 14));   // red room

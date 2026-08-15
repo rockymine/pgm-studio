@@ -29,13 +29,10 @@ public static class GoalMarkerStamper
     /// <summary>Cube edge / cross arm span, in blocks.</summary>
     public const int Size = 3;
 
-    /// <summary>Open air kept between the build-height cap and the marker's lowest block.</summary>
-    public const int Clearance = 4;
-
     /// <summary>Stamp the marker centred on (<paramref name="centerX"/>, <paramref name="centerZ"/>), its
     /// lowest block at <paramref name="floorY"/>, in <paramref name="woolDamage"/> wool. <paramref
-    /// name="floorY"/> is the caller's to place — normally the build-height cap plus <see cref="Clearance"/>,
-    /// clamped so the shape still fits under the world ceiling.</summary>
+    /// name="floorY"/> is the caller's to place — <see cref="BuildCeiling.MarkerOver"/> blocks over the
+    /// build-height cap, clamped so the shape still fits under the world ceiling.</summary>
     public static void Stamp(
         VoxelWorld world, int centerX, int centerZ, int floorY, int woolDamage,
         GoalMarkerShape shape = GoalMarkerShape.Cube)

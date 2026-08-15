@@ -116,14 +116,18 @@ public sealed class PlanCompilerTests
         await Assert.That(intent.Build!.Areas.Count).IsEqualTo(3);
     }
 
+    /// <summary>The observer's height still comes off the plan's nominal surface — it is a camera position on
+    /// a flat board, and there is no built terrain when this runs. The build ceiling deliberately does not:
+    /// it is left unset here, because the answer is twenty blocks over the ground the world build produces and
+    /// that ground does not exist yet. A number asserted here would be the one the export overwrites.</summary>
     [Test]
-    public async Task Observer_defaults_to_surface_plus_fifteen_and_max_height_to_surface_plus_headroom()
+    public async Task Observer_defaults_to_surface_plus_fifteen_and_the_ceiling_is_left_to_the_world_build()
     {
         var (_, intent) = PlanCompiler.Compile(Plan($$"""
-        { "plan":1, "globals":{"symmetry":"rot_180","surface":9,"headroom":11}, {{Unit}} }
+        { "plan":1, "globals":{"symmetry":"rot_180","surface":9}, {{Unit}} }
         """));
         await Assert.That(intent.Observer!.Point.Y).IsEqualTo(24);
-        await Assert.That(intent.Build!.MaxHeight).IsEqualTo(20);
+        await Assert.That(intent.Build!.MaxHeight).IsNull();
     }
 
     [Test]

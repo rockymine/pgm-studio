@@ -121,7 +121,7 @@ public sealed class ProducibilityTests
         var plan = new PlanModel
         {
             Meta = new PlanMeta { Name = "hub-probe" },
-            Globals = new PlanGlobals { Cell = 5, Symmetry = "none", MaxPlayers = 12, Surface = 9, MaxBuildHeight = 20 },
+            Globals = new PlanGlobals { Cell = 5, Symmetry = "none", MaxPlayers = 12, Surface = 9 },
             Boxes = [new PlanBox { Id = "hub", Kind = PlanBoxKinds.Hub, Rect = new(0, 0, w, h) }],
         };
         for (var i = 0; i < body.Pieces.Count; i++)
@@ -168,7 +168,7 @@ public sealed class ProducibilityTests
         var plan = new PlanModel
         {
             Meta = new PlanMeta { Name = "front-probe" },
-            Globals = new PlanGlobals { Cell = 5, Symmetry = "none", MaxPlayers = 12, Surface = 9, MaxBuildHeight = 20 },
+            Globals = new PlanGlobals { Cell = 5, Symmetry = "none", MaxPlayers = 12, Surface = 9 },
             Boxes = [new PlanBox { Id = box.Id, Kind = PlanBoxKinds.Frontline, Rect = box.Rect }],
         };
         foreach (var p in pieces)

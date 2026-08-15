@@ -311,9 +311,10 @@ public static class PlanCompiler
                 });
             }
 
+        // No MaxHeight: the ceiling is measured off the terrain the world build produces, not asserted from
+        // plan space, so this leaves it unset for SketchWorldBuilder to fill (BuildCeiling).
         var build = new BuildIntent
         {
-            MaxHeight = plan.Globals.MaxBuildHeight,
             Areas = FanRects(plan.BuildZones.Select(z => z.Rect), d),
             Holes = FanRects(plan.BuildZones.SelectMany(z => z.Holes), d),
         };

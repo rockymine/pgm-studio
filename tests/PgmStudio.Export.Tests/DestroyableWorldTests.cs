@@ -128,10 +128,12 @@ public sealed class DestroyableWorldTests
     [Test]
     public async Task Each_destroyable_carries_a_sky_marker_in_its_owning_teams_colour_above_the_build_cap()
     {
-        // MG24/B89: the marker floats clear of BuildIntent.MaxHeight (globals surface 9 + headroom 11 = 20
-        // here), out of build reach by construction.
+        // MG24/B89: the marker floats clear of the build cap, out of build reach by construction. The cap is
+        // the one the world build derived and wrote onto the intent, so this asserts the marker against what
+        // the map actually declares rather than against a number restated here — the two agreeing is the
+        // point. What the cap itself must be is asserted in BuildCeilingTests.
         var (world, resolved) = Build(Json);
-        var floorY = 20 + GoalMarkerStamper.Clearance;
+        var floorY = resolved.Build!.MaxHeight!.Value + BuildCeiling.MarkerOver;
 
         foreach (var destroyable in resolved.Destroyables!)
         {

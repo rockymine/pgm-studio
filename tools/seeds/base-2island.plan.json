@@ -7,8 +7,7 @@
     "cell": 5,
     "symmetry": "rot_180",
     "maxPlayers": 10,
-    "surface": 9,
-    "maxBuildHeight": 20
+    "surface": 9
   },
   "pieces": [
     {

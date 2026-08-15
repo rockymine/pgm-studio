@@ -137,7 +137,7 @@ public sealed class CoreWorldTests
         // MG24/B89: the marker floats clear of BuildIntent.MaxHeight (globals surface 9 + headroom 11 = 20
         // here) — above build height, so it cannot be reached or griefed.
         var (world, resolved) = Build(Json);
-        var floorY = 20 + GoalMarkerStamper.Clearance;
+        var floorY = resolved.Build!.MaxHeight!.Value + BuildCeiling.MarkerOver;
 
         foreach (var core in resolved.Cores!)
         {

@@ -142,6 +142,10 @@ public static class MapExportComposer
         /// <summary>What the intent declared is not in the document about to be written.</summary>
         /// <remarks>Nothing an author can do directly: the intent states this and the document does not carry it, which is a fault between the two. Check that the intent stored for the map is the one that was authored, and report it if it is.</remarks>
         public const string NotCarried = "EX3";
+
+        /// <summary>A map with something to win has nobody to win it: it declares an objective and no team.</summary>
+        /// <remarks>Add the teams. A wool, a destroyable and a core are each one team's to defend and the others' to take, so a map carrying one and no team has an objective nobody owns.</remarks>
+        public const string NoTeam = "EX4";
     }
 
     // ── EX2 · EX3 · EX4 — is this a map, and is it the map its author stated? ──────────────────────────────
@@ -160,13 +164,16 @@ public static class MapExportComposer
     /// export, which is a harder failure than an author writing nothing and is invisible to any gate reading
     /// one side alone. This is the last point that sees both, so it is where the two are compared.</para>
     ///
-    /// <para><b>Nothing here is a judgement about how a map plays.</b> A map with no spawn cannot be entered,
-    /// which is mechanical; a count that went in and did not come out is arithmetic. Whether a map needs an
-    /// objective is neither, and it is not asked again here: <c>PL3</c> already says a plan with no goal has
-    /// nothing to win, as a complaint because which goal a map carries is the author's, and a second copy of
-    /// one rule under an export id is the duplication the shared vocabulary exists to prevent. It is also the
-    /// half that could not be reported — this gate answers into a response whose body is XML or a zip, which
-    /// has nowhere for a complaint to ride, and a finding nobody can read is not a finding.</para>
+    /// <para><b>Almost nothing here is a judgement about how a map plays.</b> A map with no spawn cannot be
+    /// entered, which is mechanical; a count that went in and did not come out is arithmetic. The one ruling
+    /// is the author's and is stated as such: the three gamemodes the studio authors — CTW, DTM, DTC — are
+    /// played by teams, so a map that states an objective must state who contests it.</para>
+    ///
+    /// <para>Whether a map needs an objective <em>at all</em> is still not asked here. <c>PL3</c> already says
+    /// a plan with no goal has nothing to win, as a complaint because which goal a map carries is the
+    /// author's, and a second copy of one rule under an export id is the duplication the shared vocabulary
+    /// exists to prevent. It is also the half that could not be reported — this gate answers into a response
+    /// whose body is XML or a zip, which has nowhere for a complaint to ride.</para>
     /// </summary>
     /// <param name="intent">The resolved intent, where one is in hand. Null on a path that has only the
     /// document, which leaves the carried-through comparison unasked rather than guessed at.</param>
@@ -177,6 +184,18 @@ public static class MapExportComposer
         if (Entries(doc, "spawns").Count == 0)
             findings.Add(new Finding(ExportRules.NoSpawn,
                 "the map declares no spawn, so no player and no observer can enter it", Field: "spawns"));
+
+        // EX4 — the author's rule: the three gamemodes the studio authors are played by teams, so a map that
+        // states something to win must state who is contesting it. Asked of the objectives rather than of the
+        // <gamemode> element, because that element is derived from exactly these three lists and PGM does not
+        // read it to decide which modules run (OB7) — the objectives are what make it a CTW, DTM or DTC map.
+        // A board with no objective at all is not asked: it is unfinished rather than wrong, which is PL3's to
+        // say, and an FFA map is a shape the studio does not author.
+        var goals = Entries(doc, "wools").Count + Entries(doc, "destroyables").Count + Entries(doc, "cores").Count;
+        if (goals > 0 && Entries(doc, "teams").Count == 0)
+            findings.Add(new Finding(ExportRules.NoTeam,
+                $"the map declares {goals} objective(s) and no team, so there is nobody to defend or take them",
+                Field: "teams"));
 
         if (intent is not null)
             foreach (var (field, stated, written) in new[]

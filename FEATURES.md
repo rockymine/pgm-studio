@@ -5220,6 +5220,36 @@ these are the ones that shipped a map that could not be played as intended, and 
   and a namespace of that name shadows it — `Blocks.Gravel` stops compiling the moment
   `PgmStudio.Minecraft.Blocks` exists. A folder name *is* a namespace, so it competes with every type name in
   the project, and the compiler resolves the namespace first.
+- **The build ceiling is measured off the terrain, and the goal markers hang five over it (B105, `G6`
+  amendment 14).** The author's ruling, and the correction that closes `B104` and `B176`'s shared cause.
+  `G6` asks for at least twenty blocks of build clearance above the island surface; what was never stated is
+  *which* surface, and every implementation had answered with the plan's nominal `surface` — a flat number the
+  relief solve abandons. That is why boards came out with a ceiling under their own terrain and a destroy goal
+  stamped above it.
+
+  The cap is **the highest terrain column the world actually builds, plus 20**, derived in `SketchWorldBuilder`
+  at the first point that knows the answer and written back onto the resolved intent, so the
+  `<max-build-height>` the XML declares and the altitude the markers are stamped at are one number. It sits at
+  the floor of `G6`'s band rather than in the middle of it, for `G6`'s own second reason: a generous cap over
+  flat terrain is the sky-layer smell — players dig to bedrock, defend from above, and the match stalls into
+  coverless sky bow-fighting.
+
+  **Terrain, not what stands on it**, and that word is the whole ruling. `SurfaceTop` is read before a single
+  structure, cage, house or tree is stamped, so nothing placed on the map can raise its own ceiling —
+  otherwise a taller shell raises the ceiling that permits a taller shell. `BuildCeilingTests` pins exactly
+  that: on a flat plate at y=1 the cap is 21 with a wool cage standing well above the ground, and it is
+  strictly less than what a cap measured off the cage would have been.
+
+  **A goal marker's floor is the cap plus 5** — one rule for every goal kind, which is the simplification the
+  author asked for. `GoalMarkerStamper.Clearance` is gone, and with it the `max(maxHeight, tallestBuiltBlock)`
+  seat arithmetic `B176` had proposed: the marker does not reason about what was built under it, because the
+  cap it hangs off already cannot be pushed up by that.
+
+  **The plan states no ceiling at all.** `PlanGlobals` gained `maxBuildHeight` for exactly one commit and lost
+  it again: a plan-level number is a second source for one value, and the one that gets overwritten. The
+  compiler leaves `BuildIntent.MaxHeight` unset, which on the Configure path still means "no ceiling" and on
+  the sketch path means "measure it". `ComposeEnvelope` dropped it too, and the composer version is
+  `measured-ceiling-1` — the second document-shape bump in two commits, both recorded on the constant.
 - **A plan states its build ceiling instead of deriving one (B105).** `PlanGlobals.Headroom` was a slack over
   `Surface`, and `PlanCompiler` turned the pair into the map's only build cap with
   `plan.Globals.Surface + plan.Globals.Headroom`. Both halves of that sum are the plan's **flat nominal**
@@ -5240,11 +5270,10 @@ these are the ones that shipped a map that could not be played as intended, and 
   its plan exactly*, so the document changing is a version change even when the board does not, and the
   constant's docstring now says so. All 72 fingerprints re-recorded.
 
-  Two things it left, filed rather than guessed at. **`B221`**: the default 20 sits below `G6`, which asks for
-  ≥20 blocks of clearance *above* the surface — a cap of 29 at the default surface of 9 — and raising it is a
-  gameplay call, since `G6`'s own second half warns that a generous cap over flat terrain is the sky-layer
-  smell. **`B222`**: spawns and wool rooms still bake their floor from `piece.Surface` at compile time, the
-  same flat-world mistake wearing a different field, on the two marker kinds `B128` did not reach.
+  It left one open half, **`B222`**: spawns and wool rooms still bake their floor from `piece.Surface` at
+  compile time, the same flat-world mistake wearing a different field, on the two marker kinds `B128` did not
+  reach. The other — whether 20 was the right number and where it should be measured from — went to the
+  author, whose ruling landed the same day and is the entry below.
 - **Every rule the studio can cite, with what it means and what to do about it (B219).** A refusal carries an
   id and one sentence about the document it was refused over. The id is stable forever and outlives the task
   that added it, which is what makes it worth keying on — and nothing answered the other question a reader has
@@ -5281,6 +5310,16 @@ these are the ones that shipped a map that could not be played as intended, and 
   catalogue listed those two ids twice, so both are deleted and their call sites name `ObjectiveRules`
   directly. And four docstrings were **malformed XML** that truncated a member's entry in the emitted file
   (`ApproachSlots`, `HouseStamper`, `HouseWindows`, `TopDownRender`) — invisible until something read the file.
+- **A map that puts something up for winning must say who is contesting it (EX4).** The author's ruling: the
+  three gamemodes the studio authors — CTW, DTM, DTC — are played by teams, so a document declaring a wool, a
+  destroyable or a core and no `<team>` is refused at the export gate. It is asked of the **objectives** rather
+  than of the `<gamemode>` element, because that element is derived from exactly those three lists and PGM does
+  not read it to decide which modules run (`OB7`) — the objectives are what make it a CTW, DTM or DTC map.
+
+  A board with no objective at all is deliberately not asked. That is unfinished rather than wrong, `PL3`
+  already says it as a complaint, and refusing it here would refuse every map mid-authoring — which is what
+  the obvious phrasing of the rule ("a map needs teams") would have done, and is why there is a test for it.
+  The gate is intent-only, so the 281 corpus maps with no team are untouched.
 - **A board with nothing on it is refused, and so is one that lost what its author stated (B140).** Two boards
   from an authoring trial built a world, wrote region files and a provenance sidecar, and exported clean. Their
   `map.xml` was **ten lines** — a name, an empty `<version>`, a `<gamemode>`, an empty `<objective>`, one

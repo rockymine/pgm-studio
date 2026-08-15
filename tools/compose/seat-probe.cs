@@ -20,7 +20,7 @@ const int seeds = 200;
 
 foreach (var (label, players, land) in presets)
 {
-    var env = new ComposeEnvelope("mirror_z", Teams: 2, players, Cell: 5, Surface: 9, MaxBuildHeight: 20,
+    var env = new ComposeEnvelope("mirror_z", Teams: 2, players, Cell: 5, Surface: 9,
         BoardWidthBlocks: 300, BoardLengthBlocks: 300, land, UnitMinX: 0, UnitMinZ: 0, UnitMaxX: 60, UnitMaxZ: 60);
 
     int ok = 0, noAlloc = 0, noFill = 0, nbAbut = 0, flushMass = 0, flushMassNoFront = 0, noFront = 0, branchNoFront = 0;

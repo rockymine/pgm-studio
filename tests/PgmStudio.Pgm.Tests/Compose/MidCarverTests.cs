@@ -42,7 +42,7 @@ public sealed class MidCarverTests
 
     private static CellRect? Band(string symmetry, bool split, GrownUnit unit)
     {
-        var env = new ComposeEnvelope(symmetry, Teams: 2, PlayersPerTeam: 12, Cell: 5, Surface: 9, MaxBuildHeight: 20,
+        var env = new ComposeEnvelope(symmetry, Teams: 2, PlayersPerTeam: 12, Cell: 5, Surface: 9,
             BoardWidthBlocks: 300, BoardLengthBlocks: 300, LandPerTeam: 2800,
             UnitMinX: -40, UnitMinZ: -40, UnitMaxX: 40, UnitMaxZ: 40);
         var design = MidCarver.BandOnly(env) with { SplitBand = split };
@@ -55,7 +55,7 @@ public sealed class MidCarverTests
     [Test]
     public async Task A_leg_symmetric_face_can_be_crossed_by_two_parallel_bands()
     {
-        var h = MidCarver.BandOnly(new ComposeEnvelope("rot_180", 2, 12, 5, 9, 11, 300, 300, 2800, -40, -40, 40, 40))
+        var h = MidCarver.BandOnly(new ComposeEnvelope("rot_180", 2, 12, 5, 9, 300, 300, 2800, -40, -40, 40, 40))
             .HalfGapCells;
         // legs at x -5..-2 and 2..5 — equal width, mirror-paired, a 4-cell bay straddling the axis
         var face = Unit(h, (-5, 3), (2, 3));
@@ -75,7 +75,7 @@ public sealed class MidCarverTests
     [Test]
     public async Task The_split_is_a_request_the_face_can_grant_not_a_consequence_of_it()
     {
-        var h = MidCarver.BandOnly(new ComposeEnvelope("rot_180", 2, 12, 5, 9, 11, 300, 300, 2800, -40, -40, 40, 40))
+        var h = MidCarver.BandOnly(new ComposeEnvelope("rot_180", 2, 12, 5, 9, 300, 300, 2800, -40, -40, 40, 40))
             .HalfGapCells;
         var face = Unit(h, (-5, 3), (2, 3));
         await Assert.That(Band("rot_180", split: false, face)!.Value.Width)
@@ -88,7 +88,7 @@ public sealed class MidCarverTests
     [Test]
     public async Task An_unequal_legged_face_is_refused_the_split_and_keeps_one_band()
     {
-        var h = MidCarver.BandOnly(new ComposeEnvelope("rot_180", 2, 12, 5, 9, 11, 300, 300, 2800, -40, -40, 40, 40))
+        var h = MidCarver.BandOnly(new ComposeEnvelope("rot_180", 2, 12, 5, 9, 300, 300, 2800, -40, -40, 40, 40))
             .HalfGapCells;
         var lopsided = Unit(h, (-6, 4), (2, 3));   // 4 wide against 3 — not its own mirror
         await Assert.That(Band("rot_180", split: true, lopsided)!.Value.Width)
@@ -101,7 +101,7 @@ public sealed class MidCarverTests
     [Test]
     public async Task A_mirror_symmetry_never_splits_however_symmetric_the_face()
     {
-        var h = MidCarver.BandOnly(new ComposeEnvelope("mirror_z", 2, 12, 5, 9, 11, 300, 300, 2800, -40, -40, 40, 40))
+        var h = MidCarver.BandOnly(new ComposeEnvelope("mirror_z", 2, 12, 5, 9, 300, 300, 2800, -40, -40, 40, 40))
             .HalfGapCells;
         var face = Unit(h, (-5, 3), (2, 3));
         await Assert.That(Band("mirror_z", split: true, face)!.Value.Width)

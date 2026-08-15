@@ -61,7 +61,6 @@
     "yaw": 90
   },
   "build": {
-    "maxHeight": 20,
     "areas": [
       {
         "minX": -30,

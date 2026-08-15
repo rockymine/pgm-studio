@@ -522,11 +522,12 @@ by `HousePropRules.PastCap` and is not filed.
   y21–23 and `max_build_height` is 20; on `corvale` the emerald stands at y18–20 against the same cap. Blocks
   above the cap can still be broken, so this does not make the goal unbreakable — but a destroyable or a core
   belongs **below** the cap, and neither does. The cap itself is the cause rather than the placement: it is
-  the cap, and until `B105` it was `Surface + Headroom` — both halves of the plan's flat nominal world, so it
-  was computed from a ground level the relief later abandons and landed under the terrain it was supposed to
-  sit over. The cap is stated now (`maxBuildHeight`), which makes it the author's to raise; its default is the
-  same 20 those two boards were measured against, so **this entry's own numbers still stand**. What it owns is
-  the check that the goal ends up under whatever cap the plan states.
+  the cap, and it was `Surface + Headroom` — both halves of the plan's flat nominal world, so it was computed
+  from a ground level the relief later abandons and landed under the terrain it was supposed to sit over.
+  **That cause is closed** (`B105`, `rules.md` amendment 14): the cap is now the highest terrain column the
+  world actually builds plus 20, so on `duskfell` it is well above the y21–23 gold destroyable rather than
+  three blocks under it. What this entry still owns is the *check* — that a goal ends up under whatever cap
+  the map derives, asserted rather than assumed.
 
   **A floating goal is not the fault, and an earlier version of this entry said it was.** A destroyable and a
   core **float a few blocks above the terrain by design**, and have since PGM's beginning: a core that sits on
@@ -536,20 +537,6 @@ by `HousePropRules.PastCap` and is not filed.
   is correct too. What a goal needs beneath it is **terrain, somewhere below** — which is what `B82` already
   checks and checks correctly. The earlier claim that `B82` should compare the goal's height against the
   ground's was wrong and is withdrawn.
-
-- [ ] **B221 — The build ceiling's default is below the rule that governs it.** `B105` made the cap a stated
-  number and set its default to **20**, which is exactly what the old `surface 9 + headroom 11` produced, so no
-  board moved. But `G6` asks for **≥20 blocks of clearance above the island surface, up to ~40** — at the
-  default surface of 9 that is a cap of **29 at the very least**, and every one of the 49 seeds states 20.
-
-  So the shipped default has been below its own rule the whole time, and `B104` and `B176`'s measured symptoms
-  (a destroy goal stamped at y21–23 against a cap of 20) are what that looks like from underneath. Raising it
-  is **not a rename's call**: `G6`'s own second half says the cap is *calibrated to the terrain, not set
-  generously* — a low flat board under a tall cap is the sky-layer smell it warns about — so the number wants
-  the author, and the question is whether the default is one number at all or something the terrain answers.
-
-  *found retiring `headroom` in `B105`, 2026-08-15 · `rules.md` G6 · `PlanGlobals.MaxBuildHeight` · the 49
-  seeds under `tools/seeds/`.*
 
 - [ ] **B222 — Spawns and wool rooms still bake their floor from the plan's flat nominal world.** The other
   half of what `B104` named, and the half `B105` did not touch: `PlanCompiler` resolves a spawn's and a wool
@@ -1261,9 +1248,11 @@ covered.
   would have broken it. Withdrawn. The existing no-cap fallback does not help either way: it reads
   `terrain.SurfaceTop.Values.Max()`, which is terrain and excludes every stamped structure.
 
-  The cap here is 20, which was `Surface + Headroom` = 9 + 11 and is now the stated `maxBuildHeight` default
-  (`B105`). Making it stated does not raise it, so this is still the **third symptom of a cap below its own
-  terrain**, after `B104`; what would raise it is `B221`.
+  The cap here was 20 — `Surface + Headroom` = 9 + 11 — against a marker the rule wanted at y24–26. That was
+  the **third symptom of a cap below its own terrain**, after `B104`, and the cause is closed: the cap is
+  measured off the built terrain now and the marker is simply cap + 5, one rule for every goal kind
+  (`B105`, `rules.md` amendment 14). The seat arithmetic this entry proposed — `max(maxHeight, tallestBuilt)`
+  — is superseded by the author's ruling that the marker does not reason about what was built under it.
 
   *author, 2026-08-14 · `rules.md` ST7 · `SketchWorldBuilder.cs:48–54` · column-probed at `(−80, −25)`.*
 
