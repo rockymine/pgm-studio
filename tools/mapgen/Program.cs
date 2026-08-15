@@ -161,6 +161,13 @@ static void Build(MapSpec spec, bool describeOnly, bool forceStages)
         Console.Error.WriteLine($"  ! {spec.Slug}: no kit — itemkeep/toolrepair/itemremove derive from the "
                                + "spawn kit and will be empty");
 
+    // The gate the export runs at exactly this point, and the one this driver used to skip by calling the XML
+    // composer directly: is the document about to be written a map, and is it the map the intent stated. Two
+    // boards from an authoring trial wrote a ten-line map.xml here — no team, no spawn, no objective — from a
+    // plan carrying two spawns and two destroyables, and nothing anywhere said so (B140).
+    if (MapExportComposer.Playable(built.ResolvedIntent, doc) is { Refuses: true } unplayable)
+        throw new ArgumentException($"{spec.Slug}: {unplayable.Summary}");
+
     // Through the same path a saved map exports: CtwStandards' keep/repair/remove derivation, the water-lane
     // include, ore/structure renewables, and the not-build-area reordering that must decide last.
     var renewableCubes = SketchWorldBuilder.RenewableCubeFootprints(built.ResolvedIntent);

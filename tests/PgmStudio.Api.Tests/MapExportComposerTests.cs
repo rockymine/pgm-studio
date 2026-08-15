@@ -86,7 +86,7 @@ public sealed class MapExportComposerTests
     }
 
     [Test]
-    public async Task A_kitless_obsidian_goal_no_longer_refuses_OB18_was_retired()
+    public async Task A_kitless_obsidian_goal_is_not_refused_for_its_kit_OB18_was_retired()
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
@@ -111,10 +111,18 @@ public sealed class MapExportComposerTests
         };
         await Assert.That((await client.PutAsJsonAsync($"/api/map/{slug}/intent", intent)).IsSuccessStatusCode).IsTrue();
 
+        // The map is refused, and which rule refuses it is what this test is about. With no spawn and no
+        // observer there is nobody to put in it, which EX2 (B140) now says outright — but nothing here refuses
+        // on kit grounds, and that retirement is what is being pinned. Before B134 the same document came back
+        // as an unwinnable destroy map because its kits carried no diamond pickaxe.
         var resp = await client.GetAsync($"/api/map/{slug}/xml");
-        await Assert.That(resp.IsSuccessStatusCode).IsTrue();
-        var xml = await resp.Content.ReadAsStringAsync();
-        await Assert.That(xml).Contains("farmon");
+        var body = await resp.Content.ReadAsStringAsync();
+        await Assert.That(body).DoesNotContain("unwinnable");
+        await Assert.That(body).DoesNotContain("pickaxe");
+
+        var refused = JsonSerializer.Deserialize<JsonElement>(body);
+        await Assert.That(refused.GetProperty("findings").EnumerateArray()
+            .Select(finding => finding.GetProperty("rule").GetString())).IsEquivalentTo(new[] { "EX2" });
     }
 
     [Test]

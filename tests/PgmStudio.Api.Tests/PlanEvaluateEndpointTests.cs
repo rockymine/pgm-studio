@@ -70,6 +70,28 @@ public sealed class PlanEvaluateEndpointTests
         await Assert.That(evidence.EnumerateArray().Any(e => e.GetProperty("kind").GetString() == "measure")).IsTrue();
     }
 
+    /// <summary>A plan with no geometry is answered rather than refused — a 400 blanked the editor's score
+    /// panel on every fresh plan — but the answer was <c>score 0, valid: true</c>, which is the shape of a
+    /// perfect plan, about the emptiest document there is. <c>/plan/compile</c> refused the same body with
+    /// <c>PL1</c> the whole time. The two now say the same thing, and this asserts they do it in one
+    /// sentence: the finding is the validator's, not a second copy of it (B140).</summary>
+    [Test]
+    public async Task An_empty_plan_is_not_a_perfect_plan()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var resp = await client.PostAsync("/api/plan/evaluate",
+            new StringContent("""{"pieces": []}""", Encoding.UTF8, "application/json"));
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
+        await Assert.That(body.GetProperty("valid").GetBoolean()).IsFalse();
+        var violations = body.GetProperty("violations").EnumerateArray().ToList();
+        await Assert.That(violations.Any(v => v.GetProperty("termId").GetString() == "PL1")).IsTrue();
+        await Assert.That(violations.First(v => v.GetProperty("termId").GetString() == "PL1")
+            .GetProperty("finding").GetProperty("message").GetString()).IsNotNull();
+    }
+
     [Test]
     public async Task Malformed_body_is_a_400_not_a_500()
     {

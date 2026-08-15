@@ -391,6 +391,16 @@ demonstration: no structural error, and an evaluation of `score` 2002 with four 
 hard, `FR4` (frontline count 8 outside the authored band 1–7) and `LN1` (lane width 30 outside 10–20) soft.
 An agent should read the score as advice about a board's *shape* and the compile's 422 as the only refusal.
 
+**The one document they must not disagree about is the empty one.** `{"pieces": []}` used to come back
+`score 0, valid: true, violations: []` from the evaluator and `producible: true` from the feasibility read,
+while `/plan/compile` refused the same body outright with `PL1` — *this plan has no pieces, there is no land to
+build*. Every check in both reads quantifies over geometry, so with none they are all vacuously satisfied, and
+the shape of that answer is the shape of a perfect plan. Both now answer `PL1` in the validator's own sentence,
+cited rather than restated. It is `Completeness`'s finding rather than `Check`'s, and only that one: a plan
+under construction is legitimately missing a spawn and an objective, and saying so on every keystroke is what
+the split between the two exists to avoid. `PL1` is the finding that is not about being unfinished — it says
+the document is empty — and `Completeness` reports it alone, returning before it asks anything else.
+
 ## The API
 
 Every endpoint is anonymous and rooted at `/api`. Inspect, evaluate, feasibility and compile all take a plan
@@ -427,8 +437,8 @@ posted anywhere. That is what makes them the cheapest way to find out whether a 
 | Endpoint | Answers | Fails with |
 |---|---|---|
 | `POST /plan/inspect` | `{interfaces, gapLinks, frontline, structures}` — the derived geometry, already in block coordinates. Never withholds over structural errors; a compile failure degrades `structures` to empty rather than failing the feed | 400 malformed or unreadable |
-| `POST /plan/evaluate` | `{score, valid, violations[]}` — score summed and lower-is-better, `valid` true when no hard term fired, violations hard-first with subjects and drawable evidence. A plan with no generating piece answers an empty evaluation, not an error | 400 malformed |
-| `POST /plan/feasibility` | `{producible, boxes[], unit[]}` — per-box producibility, each naming the parameter tuple that reproduces it or the nearest miss and why. A plan without boxes reads empty | 400 malformed |
+| `POST /plan/evaluate` | `{score, valid, violations[]}` — score summed and lower-is-better, `valid` true when no hard term fired, violations hard-first with subjects and drawable evidence. A plan with no generating piece answers `valid: false` carrying `PL1`, not an error and not an empty evaluation | 400 malformed |
+| `POST /plan/feasibility` | `{producible, boxes[], unit[]}` — per-box producibility, each naming the parameter tuple that reproduces it or the nearest miss and why. A plan without boxes reads empty; a plan without pieces reads `producible: false` with `PL1` in `unit` | 400 malformed |
 | `GET /objectives/vocabulary` | the destroyable styles and materials, and every objective default | — |
 
 **Compiling and building**

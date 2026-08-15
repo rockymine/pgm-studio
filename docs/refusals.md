@@ -78,7 +78,7 @@ a rule that changed its name between the two would be two rules.
 | `HP*` | a placed building's shape | `Minecraft/Dressing/PlacedProp.cs` → `HousePropRules` |
 | `HJ*` | how two wings meet | `Minecraft/WingJoints.cs` → `WingJointRules` |
 | `DR-*` | a dressing document that will not parse | `Minecraft/Dressing/DressingJson.cs` |
-| `EX*` | the export gate's own | `Export/MapExportComposer.cs` → `ExportRules` |
+| `EX*` | the export gate's own — `EX1` not traversable, `EX2` no spawn to enter the map by, `EX3` what the intent stated and the document did not carry | `Export/MapExportComposer.cs` → `ExportRules` |
 | `RQ*` | the request itself — a document that could not be read, a field that went unread, and a fault that is the studio's own | `Api/Endpoints/Refusals.cs` → `RequestRules` |
 | `CT` `SP` `WL` `LN` `HB` `FR` `MD` `BZ` `EL` `G*` `PC-*` `ST*` | the layout-rules checklist, cited by the plan lint and the producibility read | `docs/generator/rules.md` |
 

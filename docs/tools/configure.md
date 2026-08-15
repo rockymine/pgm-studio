@@ -321,6 +321,19 @@ points named when traversability fails, and the same document would throw on a r
 preview and the download are blocked by it. A map with no stored intent — a corpus map — is not gated at all
 and exports unconditionally, because there is nothing to pre-flight.
 
+**And the export gate asks whether the document is a map at all.** Every other check it runs quantifies over a
+collection — a goal standing in void, a prop crowding one, spawn and wool points reaching each other — so a
+board with nothing on it satisfies all of them, and two authoring-trial boards exported a ten-line `map.xml`
+with no team, no spawn and no objective while every stage answered 200. **EX2** refuses a document declaring no
+spawn of any kind, team or observer: nobody can enter it. **EX3** compares what the resolved intent states
+against what the document carries and refuses when a kind went in and did not come out — the harder failure of
+the two, because those boards' plan carried two spawns and two destroyables that were lost somewhere between
+the plan and the export, which no gate reading one side alone can see. Both are arithmetic rather than a
+judgement about how a map plays; whether a map needs an objective at all is `PL3`'s to say, at the plan gate,
+as a complaint. EX2 applies to every intent-authored map and EX3 wherever a resolved intent is in hand; a
+corpus map is exempt from both, because 281 of the 1,616 maps in the two corpora declare no team and an FFA map
+with none is not a broken map.
+
 **A sketch-originated map's export also gates on its dressing document.** `DressingJson` reads every placed
 prop rather than reading what it can and dropping the rest — a document that fails to parse anywhere (an
 unrecognized `kind`, a field of the wrong shape) refuses the whole export rather than shipping the map with
@@ -423,8 +436,8 @@ as though they were top level; they are not.
 |---|---|---|
 | `GET /map/{slug}/preflight` | `{intentMap, exportReady, checks[], log[], traversability}` | 404 |
 | `GET /map/{slug}/regions/tree` | the generated region tree, grouped | 404 |
-| `GET /map/{slug}/xml` | the `map.xml` | every refusal is `{error, message, findings[]}` (`docs/refusals.md`), the gate in `error`: **409** `unknown gamemode` OB20 (every map, checked first) · **409** `not traversable` EX1 · **409** `objective placement` OB17 · **409** `prop in goal clearance` OB19 · **422** `dressing document invalid` DR-DOC · 404 |
-| `GET /map/{slug}/export` | the world ZIP | the same 409s and 422 as `/xml` (OB17/OB19/DR-DOC sketch-origin maps only; OB20 and not-traversable apply regardless of origin), plus non-2xx with a message on a zip/IO failure |
+| `GET /map/{slug}/xml` | the `map.xml` | every refusal is `{error, message, findings[]}` (`docs/refusals.md`), the gate in `error`: **409** `unknown gamemode` OB20 (every map, checked first) · **409** `not traversable` EX1 · **409** `objective placement` OB17 · **409** `prop in goal clearance` OB19 · **409** `not a playable map` EX2/EX3 · **422** `dressing document invalid` DR-DOC · 404 |
+| `GET /map/{slug}/export` | the world ZIP | the same 409s and 422 as `/xml` (OB17/OB19/DR-DOC/EX3 sketch-origin maps only; EX1/EX2 every intent-authored map; OB20 regardless of origin), plus non-2xx with a message on a zip/IO failure |
 
 ## Driving it without the UI
 

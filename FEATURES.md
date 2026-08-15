@@ -5202,6 +5202,52 @@ these are the ones that shipped a map that could not be played as intended, and 
   method the class has not had for some time, now cites `Check`. It matters ahead of the bucketed audit work:
   four buckets add rules to this class, and an agent choosing a verb from four will not choose the same one
   twice.
+- **A board with nothing on it is refused, and so is one that lost what its author stated (B140).** Two boards
+  from an authoring trial built a world, wrote region files and a provenance sidecar, and exported clean. Their
+  `map.xml` was **ten lines** — a name, an empty `<version>`, a `<gamemode>`, an empty `<objective>`, one
+  include and a hunger rule. No team, no spawn, no objective, no regions, no filters, and every stage answered
+  200. The cause is structural rather than a missing check: `OB17` asks whether a goal stands in void, `OB19`
+  whether a prop crowds one, the traversability gate whether spawn and wool points reach each other — all
+  three quantify over collections, so a board with **empty** collections satisfies every one of them. The
+  pipeline's whole refusal surface was built to catch a map that says something wrong, and none of it caught a
+  map that says nothing at all.
+
+  **`EX2`** refuses a document declaring no spawn of any kind — no team spawn and no observer, so nobody can
+  enter it. **`EX3`** is the half those boards actually needed: their plan carried **two spawns and two
+  destroyables**, so nothing was un-authored, it was lost between the plan and the export. That is invisible to
+  any gate reading one side, so the comparison happens at the one point that sees both — after the intent
+  slices have written the document, and before the XML is composed — and names the count per kind, because
+  "something is missing" does not say which stage to look at.
+
+  **Both are arithmetic, not a judgement about how a map plays.** A map with no spawn cannot be entered; a
+  count that went in and did not come out is subtraction. Whether a map needs an objective is neither, and is
+  not asked again here: `PL3` already says a plan with no goal has nothing to win, as a complaint because which
+  goal a map carries is the author's, and a second copy under an export id would be the duplication the shared
+  vocabulary exists to prevent. It is also the half that could not be reported — the export answers into a body
+  that is XML or a zip, with nowhere for a complaint to ride.
+
+  **A corpus map is exempt, measured rather than assumed.** 281 of the 1,616 maps in the two corpora declare no
+  `<team>` and three declare no `<spawn>` in their own file; an FFA map with neither is not a broken map, and
+  refusing it would be making the format fit. `EX2` applies to every intent-authored map, `EX3` wherever a
+  resolved intent is in hand.
+
+  **`tools/mapgen` was skipping the export gate entirely** — it called `MapXmlComposer` directly, so no
+  traversability check, no `OB17`, no `OB19` and no `EX2`/`EX3` ran on anything it wrote, which is how those
+  two boards reached disk. It now calls the same gate, which is why `Playable` is public.
+
+  **And the two plan reads stopped blessing the emptiest document there is.** `POST /plan/evaluate` answered
+  `score 0, valid: true, violations: []` to `{"pieces": []}` and `/plan/feasibility` answered
+  `producible: true`, while `/plan/compile` refused the same body with `PL1` — the advice surface and the gate
+  disagreeing, with the advice the encouraging one. Both now answer `PL1` in the validator's own sentence.
+  Specifically `Completeness`'s finding and only that one: a plan under construction is legitimately missing a
+  spawn and an objective, which is why that gate sits outside the continuous validation the editor runs, and
+  `PL1` is the finding that is not about being unfinished. This also closes the caveat `B21` was carrying for
+  it, so the MCP head needs no empty-placements check of its own.
+
+  The `ctw`-label half of the entry needed no code: `MetaGenerator.DeclaredGamemode` derives the label from
+  what the intent carries (`B131`), `mapgen` starts from an empty document rather than from
+  `docs/pgm/template.xml`, and nothing reads that template at runtime. Its own comment — *"no meta-only board
+  should reach export, but nothing here assumes it can't"* — is what `EX2` makes true.
 - **One declaration of a rectangle, one of a volume, in the leaf both halves of the studio reach (B210).**
   Eighteen declarations of "a box with things in it" stood across `src/` and `tools/`, and the ones that
   mattered were not sloppiness — a project boundary made them. `Client` is WASM and sees `Contracts` and

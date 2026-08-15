@@ -397,49 +397,6 @@ by `HousePropRules.PastCap` and is not filed.
   reviewer document loses a row. A reviewer still enforcing `B163` after `B163` ships is a second copy of the
   system, which is exactly the fault `B118` undid in `tools/`.
 
-- [ ] **B140 — A map with no objective, no spawn and no team exports 200 and looks like a map.** Two boards
-  from the second authoring trial (`haiku-r2-canonical-8`, `haiku-r2-ctw-mid`) built a world, wrote region
-  files and a provenance sidecar, and exported clean. Their `map.xml` is **ten lines**: a name, an empty
-  `<version>`, a `<gamemode>`, an empty `<objective>`, one include and a hunger rule. No `<team>`, no
-  `<spawn>`, no `<destroyables>`, no `<wools>`, no `<cores>`, no regions, no filters.
-
-  **Every gate passed vacuously.** `OB17` asks whether a goal stands in void, `OB18`'s successor asks nothing
-  now, `OB19` asks whether a prop crowds a goal, and the traversability check asks whether spawn and wool
-  points reach each other. All four quantify over collections that are **empty**, so a board with nothing on
-  it satisfies all of them — the pipeline's whole refusal surface is built to catch a map that says something
-  wrong and none of it catches a map that says nothing at all. That is the more serious half of this entry: a
-  map cannot be played without a team and a spawn, so a map lacking both is not a rough map, it is not a map.
-
-  **The `ctw` label is the smaller half and has its own cause.** `MetaGenerator.DeclaredGamemode` derives the
-  label from what the intent carries and correctly yields the empty string for a map carrying none (`B131`),
-  but it only runs on the intent path — and these maps have no stored intent, so the export takes the plain
-  branch and the label survives from `docs/pgm/template.xml:5`, which hardcodes `<gamemode>ctw</gamemode>`.
-  So the template still asserts what `B131` stopped the generator asserting, on exactly the maps least able
-  to correct it.
-
-  **It is not only the export gates, and the earlier half is the one an agent meets first.** The two calls a
-  plan document is meant to be checked with both bless an empty board: `POST /plan/evaluate` answers
-  `score 0, valid: true, violations: []` and `POST /plan/feasibility` answers `producible: true` to
-  `{"pieces": []}`, while `POST /plan/compile` refuses the same document outright with `PL1` — *this plan has
-  no pieces, there is no land to build*. So the advice surface and the gate disagree about the emptiest
-  document there is, and the advice is the encouraging one. Measured live, 2026-08-15. `B21` meets this as
-  its own caveat — a `plan_validate` whose feel terms are "vacuously green" over empty `placements` — and
-  that is this entry rather than a second one; a workaround in the MCP head would be the second copy.
-
-  What the refusal should ask is the question no current gate does: whether the map has an objective at all,
-  and a team and a spawn to contest it. It belongs with the others on the export composer, carrying a rule id,
-  and it wants stating in terms of the intent rather than the document, since the intent is what an author
-  actually failed to write. The two plan-level reads want the same question asked of a plan: an empty board is
-  not a board with a perfect score.
-
-  **This entry is understated on its own evidence, and the correction changes the fix.** It frames the empty
-  boards as a map whose author *failed to write* an intent. But `specs/haiku-r2-canonical-8/plan.json` carries
-  **two spawns and two destroyables**. The author did state them; they were **lost between the plan and the
-  export**, and every stage answered 200. That is a harder failure than an author writing nothing, and the
-  refusal proposed above — stated against the intent — would still not catch it, **because the intent was
-  never stored**. So the gate wants asking at the last point that can see both: what the plan declared, and
-  what the export is about to write. `B141` is the same family one level down, on the sketch document.
-
 - [ ] **B136 — The two features that make a shape stop looking drawn are reached almost never.** **The census
   below is stale and wants re-running before anything is concluded from it:** it covers **eleven** maps and
   there are now **nineteen**, and the two boards it does not see are the strongest ones — Opus 5's
@@ -1420,7 +1377,9 @@ the thing `B181` names, which makes the document upstream of the boards rather t
   the shape contributes no cells at all. `PUT …/sketch` answers `{"ok": true}`, `GET …/sketch` returns the
   document intact, and `POST …/sketch/relief/read` answers 200 with `{"islands": []}` — an empty array that
   points the reader at the relief rather than at the geometry that caused it. **A document whose entire purpose
-  is to describe geometry has no required-field validation.** Same family as `B140`.
+  is to describe geometry has no required-field validation.** Same family as `B140`, which is now shipped one
+  level up: the export gate compares what the intent stated against what the document carries, so a shape that
+  rasterizes to nothing is still silent here and reaches a refusal only if it costs the map its spawn.
 
   *`opus5-run2` §5 #1 · reproduce by deleting `"type"` from any shape in `specs/marlstone-steps/*.shapes.json`.*
 
@@ -1865,11 +1824,11 @@ each tread seeded its own ring 0.
   editing. So the sketch is exposed as **operations** (`from-plan`, `finish`) and never as a document
   parameter.
 
-  **One caveat above is not this task's, and is filed twice.** `plan_validate` having to flag empty
-  `placements` "which leave the feel terms vacuously green" is `B140` — a document passing every check by
-  being asked nothing. It is still live: `POST /plan/evaluate` answers `score 0, valid: true` to a plan with
-  no pieces, and `/plan/feasibility` answers `producible: true`, while `compile` refuses the same document
-  with `PL1`. Fixing it in `B140` fixes it here; working around it in the head would be the second copy.
+  **One caveat above was not this task's, and is now closed.** `plan_validate` having to flag empty
+  `placements` "which leave the feel terms vacuously green" was `B140` — a document passing every check by
+  being asked nothing — and it is fixed where it lived rather than worked around in the head: `/plan/evaluate`
+  and `/plan/feasibility` both answer `PL1` to a plan with no pieces, in the same sentence `compile` gives.
+  The head needs no empty-placements check of its own.
 
 **DTM / DTC objectives (destroyables + cores).** The contract is `docs/pgm/destroyables-and-cores.md`
 — it owns the XML surface, the **world-measured** structure families, the schema, and the two-team scope;

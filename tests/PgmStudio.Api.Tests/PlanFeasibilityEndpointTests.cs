@@ -108,6 +108,26 @@ public sealed class PlanFeasibilityEndpointTests
         await Assert.That(body.GetProperty("unit").GetArrayLength()).IsEqualTo(0);
     }
 
+    /// <summary>The emptiest document there is used to answer <c>producible: true</c>, while
+    /// <c>/plan/compile</c> refused it outright with <c>PL1</c> — so the advice surface and the gate disagreed
+    /// about a plan with nothing in it, and the advice was the encouraging one. With no pieces there are no
+    /// boxes, and every box-level question is vacuously satisfied; the read now answers in the structural
+    /// validator's own words instead (B140).</summary>
+    [Test]
+    public async Task An_empty_plan_is_not_producible_and_says_why()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var resp = await client.PostAsync("/api/plan/feasibility",
+            new StringContent("""{"pieces": []}""", Encoding.UTF8, "application/json"));
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
+        await Assert.That(body.GetProperty("producible").GetBoolean()).IsFalse();
+        await Assert.That(body.GetProperty("unit").EnumerateArray()
+            .Any(f => f.GetProperty("rule").GetString() == "PL1")).IsTrue();
+    }
+
     [Test]
     public async Task Malformed_body_is_a_400_not_a_500()
     {

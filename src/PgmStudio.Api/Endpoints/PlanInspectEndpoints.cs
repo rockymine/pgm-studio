@@ -163,12 +163,20 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest
         if (plan is null) { await Send.ResponseAsync(new { error = "Malformed plan JSON" }, 400, ct); return; }
 
         // A plan with nothing in it is a valid document, not a malformed one — the evaluator has no geometry
-        // to score, so the honest answer is an empty evaluation. Answering 400 here made the editor's score
-        // panel go blank on every fresh plan with no reason given, and said "invalid" about a plan the
-        // validator is perfectly able to describe (it reports "this plan has no pieces").
+        // to score, so it is answered rather than refused: a 400 here made the editor's score panel go blank on
+        // every fresh plan with no reason given. But an empty evaluation is `score 0, valid: true`, which is
+        // the shape of a perfect plan, and this endpoint was saying it about the emptiest document there is
+        // while /plan/compile refused the same one outright. What it answers instead is the validator's own
+        // finding, cited rather than restated, so the advice surface and the gate agree (B140).
+        //
+        // Completeness, not Check, and only in this branch. Completeness deliberately sits outside the
+        // continuous validation the editor runs — a plan under construction is legitimately missing a spawn
+        // and an objective, and saying so on every keystroke is what the split exists to avoid. PL1 is the one
+        // finding that is not about being unfinished: it says the document is empty, and Completeness reports
+        // it alone, returning before it asks anything else.
         if (!plan.Pieces.Any(pc => PlanRoles.IsGenerating(pc.Role)))
         {
-            await Send.OkAsync(ToDto(Evaluation.Empty), ct);
+            await Send.OkAsync(Structural(PlanValidator.Completeness(plan)), ct);
             return;
         }
 
@@ -185,6 +193,16 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest
 
         await Send.OkAsync(ToDto(eval), ct);
     }
+
+    /// <summary>An evaluation carrying the <b>structural</b> validator's refusals rather than the evaluator's
+    /// terms — what a plan with no geometry to score is answered with. The findings are `PlanValidator`'s, so
+    /// the sentence an author reads here is the one <c>/plan/compile</c> gives them; nothing is re-derived, and
+    /// a rule id that moves moves in one place.</summary>
+    internal static EvaluationDto Structural(Findings findings) => new(0, !findings.Refuses,
+    [
+        .. findings.Refusals.Select(finding =>
+            new ViolationDto(finding.Rule, "hard", 0, Refusals.Dto(finding), [])),
+    ]);
 
     /// <summary>Map the derived <see cref="Evaluation"/> onto the wire DTO: every fired term (hard-first, the
     /// registration order the evaluation already carries) with its kind, soft distance and flattened evidence.</summary>
@@ -235,6 +253,17 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest
         try { plan = string.IsNullOrWhiteSpace(body) ? null : PlanModel.Parse(body); }
         catch (JsonException) { plan = null; }
         if (plan is null) { await Send.ResponseAsync(new { error = "Malformed plan JSON" }, 400, ct); return; }
+
+        // The same emptiest-document case /plan/evaluate answers above, and for the same reason: with no
+        // geometry there are no boxes, every box-level question is vacuously satisfied, and `producible: true`
+        // is what came back. A plan the structural validator refuses is not a plan the composer could have
+        // produced, and it says so in the validator's own words (B140).
+        if (!plan.Pieces.Any(piece => PlanRoles.IsGenerating(piece.Role))
+            && PlanValidator.Completeness(plan) is { Refuses: true } structural)
+        {
+            await Send.OkAsync(new FeasibilityDto(false, [], Refusals.Dtos(structural.Refusals)), ct);
+            return;
+        }
 
         PlanProducibility read;
         try

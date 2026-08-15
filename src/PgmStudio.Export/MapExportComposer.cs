@@ -89,10 +89,23 @@ public static class MapExportComposer
                 // the author can see on the canvas.
                 if (RefuseGoalClearance(layoutJson, goals) is { } clearanceRefusal) return clearanceRefusal;
 
+                // EX2/EX3 — last, because it reads the document the slices have just written and compares it
+                // against the intent they were written from. Every gate above it quantifies over a collection
+                // and so passes a board with nothing on it.
+                if (Playable(goals, doc) is { Refuses: true } unplayable)
+                    return Refuse("not a playable map", [.. unplayable.Refusals]);
+
                 var renewCubes = SketchWorldBuilder.RenewableCubeFootprints(goals);
                 var sketchXml = MapXmlComposer.Compose(doc, isIntent: true, surfaceBlockIds: null, resources: [], renewCubes);
                 return new(null, null, sketchXml, built);
             }
+
+            // EX2 — asked of an intent-authored map that is not sketch-originated, where there is a document
+            // to read and no resolved intent to compare it against. A corpus map is exempt for the reason the
+            // traversability gate exempts it: 281 of the 1,616 maps in the two corpora declare no team at all,
+            // and an FFA map with none is not a broken map.
+            if (isIntent && Playable(null, doc) is { Refuses: true } unenterable)
+                return Refuse("not a playable map", [.. unenterable.Refusals]);
 
             // Other maps get plain XML (they already ship a world). Intent maps additionally get the cached
             // surface palette + spawn-ore renewables — cache-only, never triggering a world scan on export.
@@ -120,7 +133,72 @@ public static class MapExportComposer
     {
         /// <summary>Some part of the map cannot be walked to from the rest of it.</summary>
         public const string NotTraversable = "EX1";
+
+        /// <summary>Nobody can enter the map: it declares no spawn of any kind.</summary>
+        public const string NoSpawn = "EX2";
+
+        /// <summary>What the intent declared is not in the document about to be written.</summary>
+        public const string NotCarried = "EX3";
     }
+
+    // ── EX2 · EX3 · EX4 — is this a map, and is it the map its author stated? ──────────────────────────────
+
+    /// <summary>
+    /// Whether the document about to be written is a map at all, and whether it is the map the intent stated.
+    ///
+    /// <para><b>Every other gate here quantifies over a collection, so a board with nothing on it satisfies all
+    /// of them.</b> <c>OB17</c> asks whether a goal stands in void, <c>OB19</c> whether a prop crowds one, and
+    /// the traversability check whether spawn and wool points reach each other — over empty lists, each is
+    /// vacuously true. Two authoring-trial boards exported clean on exactly that: a ten-line <c>map.xml</c> with
+    /// a name, a gamemode, an empty objective and a hunger rule, and every stage answered 200.</para>
+    ///
+    /// <para><b>The second question is the one those boards actually needed.</b> Their plan carried two spawns
+    /// and two destroyables. The author did state them; they were lost somewhere between the plan and the
+    /// export, which is a harder failure than an author writing nothing and is invisible to any gate reading
+    /// one side alone. This is the last point that sees both, so it is where the two are compared.</para>
+    ///
+    /// <para><b>Nothing here is a judgement about how a map plays.</b> A map with no spawn cannot be entered,
+    /// which is mechanical; a count that went in and did not come out is arithmetic. Whether a map needs an
+    /// objective is neither, and it is not asked again here: <c>PL3</c> already says a plan with no goal has
+    /// nothing to win, as a complaint because which goal a map carries is the author's, and a second copy of
+    /// one rule under an export id is the duplication the shared vocabulary exists to prevent. It is also the
+    /// half that could not be reported — this gate answers into a response whose body is XML or a zip, which
+    /// has nowhere for a complaint to ride, and a finding nobody can read is not a finding.</para>
+    /// </summary>
+    /// <param name="intent">The resolved intent, where one is in hand. Null on a path that has only the
+    /// document, which leaves the carried-through comparison unasked rather than guessed at.</param>
+    public static Findings Playable(MapIntent? intent, Dict doc)
+    {
+        var findings = new List<Finding>();
+
+        if (Entries(doc, "spawns").Count == 0)
+            findings.Add(new Finding(ExportRules.NoSpawn,
+                "the map declares no spawn, so no player and no observer can enter it", Field: "spawns"));
+
+        if (intent is not null)
+            foreach (var (field, stated, written) in new[]
+                     {
+                         ("spawns", intent.Spawns.Count, Entries(doc, "spawns").Count),
+                         ("teams", intent.Teams?.Count ?? 0, Entries(doc, "teams").Count),
+                         ("wools", intent.Wools?.Count ?? 0, Entries(doc, "wools").Count),
+                         ("destroyables", intent.Destroyables?.Count ?? 0, Entries(doc, "destroyables").Count),
+                         ("cores", intent.Cores?.Count ?? 0, Entries(doc, "cores").Count),
+                     })
+            {
+                if (stated > 0 && written == 0)
+                    findings.Add(new Finding(ExportRules.NotCarried,
+                        $"the intent states {stated} {field} and the document carries none — they were lost "
+                        + "between what was authored and what is about to be written",
+                        Field: field));
+            }
+
+        return findings;
+    }
+
+    /// <summary>One of the document's top-level lists, or an empty one. A key that is absent and a key holding
+    /// an empty list are the same answer to every question above, so they are not distinguished.</summary>
+    private static List<object?> Entries(Dict doc, string key) =>
+        doc.GetValueOrDefault(key) as List<object?> ?? [];
 
     /// <summary>One refusal envelope, and the only one this gate answers in: a short label naming which gate
     /// refused, the findings themselves, and their sentences joined into one <c>message</c> for a caller that
