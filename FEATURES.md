@@ -3813,6 +3813,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   test cannot stand in for — a seal passes happily on a roof with a hole in its body. Both `Ell()` fixtures had
   two **parallel** ridges and therefore no junction to test, which is how all four shipped unnoticed (`G182`);
   `EllMarch`/`EllProject` are the ones with crossing ridges, and `G186` redrew the rest.
+- **One verb and one answer, not just one type (B192).** Sharing `Finding` left seven names for the verb that
+  produces one — `Faults`, `Check`, `Refusals`, `Validate`, `Findings`, `Errors`, `Completeness` — over three
+  return types, and left every consumer working out for itself whether anything had been refused. That last
+  part was a trap rather than untidiness: a gate reporting only refusals answers an empty list for a clean
+  document, so `Count > 0` reads as "refused" and happens to be right, while a gate reporting complaints as
+  well answers a non-empty list for a document that is perfectly good and the same expression blocks it. Both
+  kinds were read with `Count > 0`, correct only by accident of which gate an endpoint happened to call.
+  **`Findings`** (in `Domain`) is what every gate answers: `Refuses` is the question asked once, `Refusals` and
+  `Complaints` split the list, `Summary` is every sentence, `And` joins two gates' answers, `Under(root)`
+  prefixes a field so a style bound twice onto one sketch reports `roomStyles.cage.doorHead.block` rather than
+  a `doorHead.block` an author cannot place, and `None` makes nothing-wrong a value so a gate never returns
+  null. **Every gate is `Check`**, with no interface — a gate takes whatever it needs to answer, a plan alone
+  or goals plus the ground they stand on, and forcing one would make the context-carrying gates lie about what
+  they read; what is uniform is the answer. `Refusals.StopAsync` gates an endpoint in one line and writes only
+  the refusals, so a complaint never arrives dressed as one. Two shapes stay as they were and now say why: a
+  parse throws, because it cannot carry on to collect a second fault, and carries its finding so the gate above
+  answers in the shape anyway; `RoomFrames.ResolveRoom` answers a room *or* a refusal, because a resolve
+  produces a value and stops at the first thing making that impossible where a gate collects everything wrong.
 - **Every gate in the studio says no in one shape (B191).** Seven finding types had grown, one per gate — a
   plan finding, a house-style finding, a producibility finding, a joint fault tuple, an evaluator violation, a
   parse exception's loose fields, and three dictionaries built inline at the export gate — and with them six
