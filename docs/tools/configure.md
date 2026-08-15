@@ -399,8 +399,11 @@ writes: apart from the import and one island toggle, **Configure has exactly one
 | `GET /configure/{slug}/state` · `PATCH /configure/{slug}/exclude-island` | `{island, excluded}` | the scan config; excluding re-runs symmetry without re-scanning | 404 |
 
 **Reading the world while authoring.** These read the built world rather than a posted document, so all but
-one are `GET`. The exception is `wool-sources`, whose body is the rectangle to look inside —
-`{minX, minZ, maxX, maxZ}` — posted rather than queried because a box does not fit a query string legibly.
+one are `GET`. The exception is `wool-sources`, whose body is the rectangle to look inside, **nested under a
+`bounds` object**: `{"bounds": {"minX": 0, "minZ": 0, "maxX": 16, "maxZ": 16}}`. It is posted rather than
+queried because a box does not fit a query string legibly. The refusal it answers to anything else —
+*bounds {minX,minZ,maxX,maxZ} required* — names the four fields and not the object holding them, so it reads
+as though they were top level; they are not.
 
 | Endpoint | Answers |
 |---|---|

@@ -162,7 +162,13 @@ public sealed class WoolSourcesInRegionEndpoint(MapRepository repo, MapReader re
         var b = (JsonNode.Parse(await sr.ReadToEndAsync(ct)) as JsonObject)?["bounds"] as JsonObject;
         if (b?["minX"] is null || b["minZ"] is null || b["maxX"] is null || b["maxZ"] is null)
         {
-            await Send.ResponseAsync(new Dict { ["error"] = "bounds {minX,minZ,maxX,maxZ} required" }, 400, ct);
+            // Naming the four fields alone read as though they were the body; they are nested, and a caller
+            // posting them flat got this same sentence back and no way to tell the two apart.
+            await Send.ResponseAsync(new Dict
+            {
+                ["error"] = "the rectangle to search is required, as {\"bounds\": {\"minX\", \"minZ\", "
+                          + "\"maxX\", \"maxZ\"}} — the four corners nested under 'bounds', not beside it",
+            }, 400, ct);
             return;
         }
 
@@ -214,7 +220,13 @@ public sealed class ResourcesInRegionEndpoint(MapRepository repo, MapReader read
         {
             if (b["minX"] is null || b["minZ"] is null || b["maxX"] is null || b["maxZ"] is null)
             {
-                await Send.ResponseAsync(new Dict { ["error"] = "bounds {minX,minZ,maxX,maxZ} required" }, 400, ct);
+                // Here bounds is optional — omitting it reads the whole map — so this fires only for one
+                // that is present and short of a corner, which is a different fault from the one above.
+                await Send.ResponseAsync(new Dict
+                {
+                    ["error"] = "'bounds' was given but is missing a corner: it takes minX, minZ, maxX and "
+                              + "maxZ. Omit 'bounds' entirely to read the whole map",
+                }, 400, ct);
                 return;
             }
             bounds = (b["minX"]!.GetValue<double>(), b["minZ"]!.GetValue<double>(), b["maxX"]!.GetValue<double>(), b["maxZ"]!.GetValue<double>());
