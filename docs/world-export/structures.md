@@ -359,17 +359,45 @@ wanted. `Wing.Ridge` overrides the proportions where an author needs the axis st
 span actually crossed, which is the point, since a ridge forced along the shorter side gives the longer one its
 slope.
 
-**One joint, and it is not a mode — it is which rectangle was drawn.** A wing's end marches wherever another
-wing holds the cell **one step past it**, and stands in the open wherever none does. That single question
-settles everything: a wing stopping at its neighbour's near wall marches, a wing carried half way through it
-marches too, and only a wing reaching the far wall *or beyond* has an end with nothing past it and therefore a
-second gable. Overlap is not what decides it — a wing that merely abuts, sharing an edge and no ground, still
-has the neighbour one step past its end and still marches.
+**Wings touch and never overlap, and where they touch they share the edge whole.** A plan states its ground
+once, so two rectangles claiming the same cell have no account of whose walls stand there or whose roof covers
+it — and the joint a building is made at *is* the edge between them, which an overlap does not have. Two
+rectangles drawn a few blocks apart are two buildings. Drawn edge to edge they are one, provided the shorter
+edge lies within the longer: where they merely graze, part of the wing's end meets its neighbour and the rest
+hangs over open ground, and neither joint can happen along it.
 
-Measured against a hall at `z 5…9` with a 5-wide wing of growing depth, the ridge axis held constant: every
-depth from `z 0…4` through `z 0…8` marches and carries **three** gable faces, and `z 0…9` and beyond stand open
-and carry **four**. A gable end landing mid-slope inside another wing's roof is therefore a shape the stamper
-never builds, whatever the rectangles say.
+**Which rectangle is the hall follows from the ridges, and nothing is named by an author.** The hall's ridge
+runs *along* the shared edge and the wing's runs *into* it, which is what makes one of them a range and the
+other a cross wing. Both along it is two ranges side by side meeting in a gutter; both into it is one longer
+range that wants drawing as one rectangle. Neither is a junction. One more rule bounds the pair: **a wing
+reaches no further along the shared edge than the hall reaches across it**, because a gable's height follows
+the span its slopes cross, so a wing wider than the hall is deep stands taller than the roof it is meant to run
+into and comes out the far side instead of forming a valley. Equal is legal and meets exactly at the hall's own
+ridge — two 5 × 5 squares with crossing ridges are a building, and their plan is a single 5 × 10 box whose roof
+levels are what tell them apart.
+
+`WingJoints` derives all of that from the rectangles alone, and every way a pair can fail carries a rule id, so
+a refused plan says which rule it broke rather than declining to stamp in silence:
+
+| Rule | Refused |
+|---|---|
+| `HJ1` | the two rectangles share blocks |
+| `HJ2` | they touch over part of an edge only |
+| `HJ3` | both ridges run along the shared edge — two ranges side by side |
+| `HJ4` | both ridges run into it — one longer range |
+| `HJ5` | the wing stands taller than the hall it meets |
+
+`HouseProp.Fault()` reports the id and a sentence in the terms the rectangles were drawn in; `Footprint()`
+answers null for the same plans, so a build gets the plan or nothing.
+
+**March and project are the wing's own choice, and it is the one thing about a joint the rectangles cannot
+say.** The same two rectangles make an L that closes and an L that pushes through: a marching wing steps its
+roof into the hall's until that roof already stands as tall, and a projecting one carries its roof clean across
+the hall to the far wall and shows a second gable standing on it. `Wing.Projects` picks between them, and
+marching is what a wing does unless it says otherwise, because it is the shape that reads as one house. A
+projection lengthens the **roof** and not the walls — the far wall is the hall's, and the gable simply stands
+on it — and the lengthening runs along the wing's own ridge, which is the axis a gable's rise is not measured
+over, so the wing arrives over that wall at exactly the height it left its own.
 
 A meet is not left as two roofs abutting, because a wing that merely stops at the wall drops its ridge to the
 neighbour's eave and climbs again, which is a gutter cut across the middle of a roof. It **marches**: each
@@ -389,10 +417,16 @@ crosses and come out its far overhang, the shape of a wing drawn through rather 
 wall. Bounded, such a course still marches a little way past the wall — the excursion a valley cannot avoid
 where the geometry says meet but the heights do not converge — and stops there rather than running on.
 
-There are only these two shapes. A wing either stops at its neighbour's wall or is drawn on through it, and
-which one it is, is the rectangle the author drew — never a mode. A wing whose roof is shallower than the one
-it meets marches until the neighbour's own surface catches up and stops there; one drawn through comes out the
-far side with its own gable and its own overhang, landing on the row the neighbour's overhang lands on.
+**The march is solved before any roof is laid, because it is part of the answer to which roof is showing.** A
+course a wing marches into the hall is a course of the wing's roof standing over ground the hall's roof also
+covers, and only the highest roof over a cell is written there. Laid afterwards, the wing's ridge goes in over
+a hall course already written *under* it, and that course is a floor across the valley: it seals the wing's
+loft off from the hall's, which is the one thing a junction exists to prevent. Solved first, the comparison
+above can see it and the hall gives way.
+
+There are only these two shapes, and a wing whose roof is shallower than the one it meets marches until the
+neighbour's own surface catches up and stops there; one that projects comes out the far side with its own gable
+and its own overhang, landing on the row the neighbour's overhang lands on.
 
 **A wing's two gable ends carry the same triangle**, and that is what the acceptance test asserts: the end that
 closes the building and the end on the neighbour's far wall are the same gable, block for block, above the eave.

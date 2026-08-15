@@ -184,18 +184,29 @@ public static class HouseStamper
         // its own storey count, its own ridge axis from its own proportions — and the volumes are simply laid
         // one after another. A wing's roof reaches its own walls plus its own overhang and no further, which is
         // what keeps a stub of roof from hanging outside a wall it never touched.
-        var roofs = body.Wings.Select(wing =>
+        //
+        // <b>A projecting wing's roof is longer than its walls.</b> Marching and projecting are the two things
+        // a wing can do where it runs into a hall, and only the first stops at the seam: a projection carries
+        // the wing's roof across the hall to the hall's far wall and shows a second gable over it. The walls
+        // stay where the author drew them — the hall's far wall is the hall's, and the gable simply stands on
+        // it — so the extension is the roof's plan alone, taken along the wing's own ridge, which is the axis a
+        // gable's rise is not measured over and so lengthens the roof without raising it.
+        var joints = WingJoints.Of(body);
+        var roofs = body.Wings.Select((wing, index) =>
         {
             var top = WallTopOf(wing);
-            var alone = new Footprint(wing.MinX, wing.MinZ, wing.MaxX, wing.MaxZ);
+            var (minX, minZ, maxX, maxZ) = Roofed(wing, index);
+            var roofed = new Footprint(minX, minZ, maxX, maxZ);
             var field = new RoofField(
-                wing.FormOr(style.Form), wing.MinX, wing.MinZ, wing.MaxX, wing.MaxZ, overhang, top + 1,
+                wing.FormOr(style.Form), minX, minZ, maxX, maxZ, overhang, top + 1,
                 wing.PitchOr(pitch), front, wing.SlabOr(style.RoofSlab) >= 0, wing.RidgeAlongX);
-            return (Wing: wing, Alone: alone, Field: field, Top: top, Slab: wing.SlabOr(style.RoofSlab));
+            return (Wing: wing, Index: index, Roofed: roofed, Field: field, Top: top,
+                    Slab: wing.SlabOr(style.RoofSlab));
         }).ToList();
         var hole = RoofHole(style, body);
+        var marched = Marched();
 
-        foreach (var (wing, _, field, _, slab) in roofs)
+        foreach (var (wing, index, _, field, _, slab) in roofs)
             for (var x = field.MinX; x <= field.MaxX; x++)
                 for (var z = field.MinZ; z <= field.MaxZ; z++)
                 {
@@ -203,7 +214,7 @@ public static class HouseStamper
                     // A marching end carries no overhang of its own: the march is what fills those columns,
                     // stepping them on into the other roof, and a course that met its own eave first would
                     // strike a block at the first step and never move.
-                    if (BeyondMarch(wing, x, z)) continue;
+                    if (BeyondMarch(wing, index, x, z)) continue;
                     // <b>Only the highest roof over a cell is written there.</b> The union of two wings is the
                     // outside of both volumes, so where their plans overlap the lower surface is inside the
                     // higher one — and a roof block inside a building is not a roof, it is an obstruction in
@@ -223,13 +234,19 @@ public static class HouseStamper
                 }
 
 
-        // <b>The march.</b> Where a wing's gable end runs up against another wing rather than into the open, its
-        // roof does not simply stop at the wall: each course steps on along its own ridge into the other roof
-        // until the other roof already stands as tall, and stops there. The courses nearest the ridge travel
-        // furthest and the ones nearest the eave stop at once, which is what draws the crossing as a diagonal
-        // valley rather than as a wing abutting a wall. No overhang is carried in — an overhang is what a roof
-        // has outside a wall, and inside another wing there is no outside — so the march runs across the wing's
-        // own width alone.
+        // <b>The march.</b> Where a wing's gable end runs up against a hall rather than into the open, its roof
+        // does not simply stop at the wall: each course steps on along its own ridge into the other roof until
+        // that roof already stands as tall, and stops there. The courses nearest the ridge travel furthest and
+        // the ones nearest the eave stop at once, which is what draws the crossing as a diagonal valley rather
+        // than as a wing abutting a wall. No overhang is carried in — an overhang is what a roof has outside a
+        // wall, and inside another wing there is no outside — so the march runs across the wing's own width
+        // alone.
+        //
+        // <b>Which ends march is the joint model's answer, not a probe's</b> (<see cref="WingJoints"/>). An end
+        // marches where a hall abuts it over its whole width and the wing has not asked to project through
+        // instead; an end with open ground beyond it closes the building. Asking the rectangles one cell at a
+        // time cannot tell those apart from a partial touch, which answers yes and then builds a seam down half
+        // of a wall.
         //
         // <b>A course also never marches further than its own distance from its own eave.</b> That bound does
         // not depend on meeting anything: a course this many blocks from its own wall is exactly as far as its
@@ -238,27 +255,9 @@ public static class HouseStamper
         // shallower hall, or any wing over a flat one, which has no rising surface to meet at all — marches
         // clean across whatever it crosses and comes out its far overhang, the shape of a wing drawn through
         // rather than one that stopped at a wall.
-        foreach (var (wing, _, field, _, slab) in roofs)
-        {
-            var (low, high) = wing.GableEnds;
-            foreach (var (end, step) in new[] { (low, -1), (high, 1) })
-            {
-                if (!Marches(wing, end, step)) continue;
-                var (acrossLo, acrossHi) = wing.RidgeAlongX ? (wing.MinZ, wing.MaxZ) : (wing.MinX, wing.MaxX);
-                for (var across = acrossLo; across <= acrossHi; across++)
-                {
-                    var reachable = Math.Min(across - acrossLo, acrossHi - across);
-                    for (var reach = 1; reach <= reachable; reach++)
-                    {
-                        var along = end + step * reach;
-                        var (x, z) = wing.RidgeAlongX ? (along, across) : (across, along);
-                        if (!body.Holds(x, z)) break;                              // marched clean out of the building
-                        if (CoveringCrown(wing, x, z) >= field.Crown(x, z)) break;  // the other roof already stands this tall
-                        Lay(field, x, z, body, slab);
-                    }
-                }
-            }
-        }
+        foreach (var (_, index, _, field, _, slab) in roofs)
+            foreach (var (x, z) in marched[index].Keys)
+                Lay(field, x, z, body, slab);
 
         // ── the walls ─────────────────────────────────────────────────────────────────────────────────
         // Storey by storey, each counting its own courses up from its own floor — so a band written at a
@@ -336,8 +335,8 @@ public static class HouseStamper
         // the hall's, and a building whose roof reads as one shape from outside comes out with two sealed lofts
         // inside it. So the perimeter asked here is the <b>body's</b>, not the wing's: the same outline the
         // walls themselves were built on.
-        foreach (var (_, alone, field, top, _) in roofs)
-            foreach (var (x, z) in alone.Cells())
+        foreach (var (_, _, roofed, field, top, _) in roofs)
+            foreach (var (x, z) in roofed.Cells())
             {
                 if (!body.OnPerimeter(x, z)) continue;
                 for (var fill = top + 1; fill < field.Underside(x, z); fill++)
@@ -345,7 +344,7 @@ public static class HouseStamper
                     else PutPart(x, fill, z, topWall, topWall.Extent - 1, body);
             }
 
-        foreach (var (_, alone, field, top, _) in roofs) StampGableWindows(alone, field, top);
+        foreach (var (_, _, roofed, field, top, _) in roofs) StampGableWindows(roofed, field, top);
         StampDoors();
 
         if (deck is { } porchDeck && style.Porch is { } porchStyle) StampPorch(porchDeck, porchStyle);
@@ -503,26 +502,39 @@ public static class HouseStamper
                 world.SetBlock(x, crown, z, slabBlock, style.RoofSlabData & 0x7);
         }
 
-        /// <summary>Whether the cell lies past a gable end that marches — the overhang columns the march takes
-        /// over from.</summary>
-        bool BeyondMarch(Wing wing, int x, int z)
+        /// <summary>The rectangle a wing's roof draws over: its own walls, lengthened along its own ridge to the
+        /// far wall of every hall it <see cref="Wing.Projects"/> into. A wing that marches roofs its own
+        /// rectangle and nothing more, because the march is what carries it any further.
+        ///
+        /// <para>The lengthening runs along the ridge, which is the axis a gable's rise is <em>not</em> measured
+        /// over (<see cref="RoofField"/>), so a projection makes the roof longer without making it taller — the
+        /// wing arrives over the hall's far wall at exactly the height it left its own.</para></summary>
+        (int MinX, int MinZ, int MaxX, int MaxZ) Roofed(Wing wing, int index)
         {
-            var (low, high) = wing.GableEnds;
-            var along = wing.RidgeAlongX ? x : z;
-            return (along < low && Marches(wing, low, -1)) || (along > high && Marches(wing, high, 1));
+            var (minX, minZ, maxX, maxZ) = (wing.MinX, wing.MinZ, wing.MaxX, wing.MaxZ);
+            if (!wing.Projects) return (minX, minZ, maxX, maxZ);
+            foreach (var step in (int[])[-1, 1])
+            {
+                if (WingJoints.Past(joints, index, step) is not { } joint) continue;
+                var hall = body.Wings[joint.Hall];
+                if (wing.RidgeAlongX && step < 0) minX = Math.Min(minX, hall.MinX);
+                else if (wing.RidgeAlongX) maxX = Math.Max(maxX, hall.MaxX);
+                else if (step < 0) minZ = Math.Min(minZ, hall.MinZ);
+                else maxZ = Math.Max(maxZ, hall.MaxZ);
+            }
+            return (minX, minZ, maxX, maxZ);
         }
 
-        /// <summary>Whether a wing's gable end runs up against another wing, so its roof marches on into it
-        /// rather than stopping. An end with open ground beyond it closes the building and marches nowhere,
-        /// which is what makes a wing drawn <em>through</em> its neighbour simply a longer rectangle.</summary>
-        bool Marches(Wing wing, int end, int step)
+        /// <summary>Whether the cell lies past a gable end that marches — the overhang columns the march takes
+        /// over from. A projecting end has no march to take them over, and keeps the overhang it would have had
+        /// standing open anywhere else.</summary>
+        bool BeyondMarch(Wing wing, int index, int x, int z)
         {
-            var across = wing.RidgeAlongX ? (wing.MinZ + wing.MaxZ) / 2 : (wing.MinX + wing.MaxX) / 2;
-            var along = end + step;
-            var (x, z) = wing.RidgeAlongX ? (along, across) : (across, along);
-            foreach (var other in body.Wings)
-                if (!other.Equals(wing) && other.Holds(x, z)) return true;
-            return false;
+            if (wing.Projects) return false;
+            var (low, high) = wing.GableEnds;
+            var along = wing.RidgeAlongX ? x : z;
+            return (along < low && WingJoints.Past(joints, index, -1) is not null)
+                || (along > high && WingJoints.Past(joints, index, 1) is not null);
         }
 
         /// <summary>The tallest surface any other wing's own roof already reaches at this cell, or a course
@@ -533,20 +545,64 @@ public static class HouseStamper
         int CoveringCrown(Wing wing, int x, int z)
         {
             var highest = int.MinValue;
-            foreach (var (other, _, otherField, _, _) in roofs)
-                if (!other.Equals(wing) && other.Holds(x, z)) highest = Math.Max(highest, otherField.Crown(x, z));
+            foreach (var (other, _, otherRoofed, otherField, _, _) in roofs)
+                if (!other.Equals(wing) && otherRoofed.Holds(x, z))
+                    highest = Math.Max(highest, otherField.Crown(x, z));
             return highest;
+        }
+
+        /// <summary>Where every wing's roof marches, solved before any of it is laid: cell to the course the
+        /// marching wing's own roof tops out at there.
+        ///
+        /// <para><b>The march is part of the answer to which roof is showing, so it cannot be laid last.</b> A
+        /// course a wing marches into the hall is a course of the wing's roof standing over ground the hall's
+        /// roof also covers — and only the highest roof over a cell is written there. Laid afterwards the wing's
+        /// ridge goes in over a hall course that was already written under it, and that course is a floor across
+        /// the valley: it seals the wing's loft off from the hall's, which is the one thing a junction exists to
+        /// prevent. Solved first, <see cref="Overtopped"/> can see it and the hall gives way.</para></summary>
+        List<Dictionary<(int X, int Z), int>> Marched()
+        {
+            var spans = roofs.Select(_ => new Dictionary<(int X, int Z), int>()).ToList();
+            foreach (var (wing, index, _, field, _, _) in roofs)
+            {
+                if (wing.Projects) continue;
+                var (low, high) = wing.GableEnds;
+                foreach (var (end, step) in new[] { (low, -1), (high, 1) })
+                {
+                    if (WingJoints.Past(joints, index, step) is null) continue;
+                    var (acrossLo, acrossHi) = wing.RidgeAlongX ? (wing.MinZ, wing.MaxZ) : (wing.MinX, wing.MaxX);
+                    for (var across = acrossLo; across <= acrossHi; across++)
+                    {
+                        var reachable = Math.Min(across - acrossLo, acrossHi - across);
+                        for (var reach = 1; reach <= reachable; reach++)
+                        {
+                            var along = end + step * reach;
+                            var (x, z) = wing.RidgeAlongX ? (along, across) : (across, along);
+                            if (!body.Holds(x, z)) break;               // marched clean out of the building
+                            var crown = field.Crown(x, z);
+                            if (CoveringCrown(wing, x, z) >= crown) break;  // the other roof already stands this tall
+                            spans[index][(x, z)] = crown;
+                        }
+                    }
+                }
+            }
+            return spans;
         }
 
         /// <summary>Whether another wing's roof stands strictly higher over this cell, so this one's surface is
         /// inside it. Asked of the other wing's <b>field</b> rather than of its walls, because an overhang is
         /// roof too: the cells a gable oversails are exactly where a neighbour's eave would otherwise fill the
-        /// triangle that has to stay open under it.</summary>
+        /// triangle that has to stay open under it — and of its <see cref="Marched"/> span as well, which is
+        /// roof standing outside any field's rectangle.</summary>
         bool Overtopped(Wing wing, RoofField field, int x, int z)
         {
             var mine = field.Crown(x, z);
-            foreach (var (other, _, otherField, _, _) in roofs)
-                if (!other.Equals(wing) && otherField.Covers(x, z) && otherField.Crown(x, z) > mine) return true;
+            foreach (var (other, index, _, otherField, _, _) in roofs)
+            {
+                if (other.Equals(wing)) continue;
+                if (otherField.Covers(x, z) && otherField.Crown(x, z) > mine) return true;
+                if (marched[index].TryGetValue((x, z), out var crown) && crown > mine) return true;
+            }
             return false;
         }
 
@@ -554,7 +610,7 @@ public static class HouseStamper
         /// overhang together.</summary>
         bool InRoofPlan(int x, int z)
         {
-            foreach (var (_, _, field, _, _) in roofs)
+            foreach (var (_, _, _, field, _, _) in roofs)
                 if (field.Covers(x, z)) return true;
             return false;
         }

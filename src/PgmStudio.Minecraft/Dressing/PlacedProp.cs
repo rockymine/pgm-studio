@@ -249,9 +249,10 @@ public sealed record FloraProp : PlacedProp
 /// </summary>
 public sealed record HouseProp : PlacedProp
 {
-    /// <summary>The dragged rectangles, each as exactly two opposite <c>[x, z]</c> corners. They are expected to
-    /// touch, the same expectation <see cref="Minecraft.Footprint"/> itself states — a wing standing clear of
-    /// the rest is not part of the outline the walls are painted against.</summary>
+    /// <summary>The dragged rectangles, each as exactly two opposite <c>[x, z]</c> corners. They abut and never
+    /// overlap, and where they touch they share the edge whole — <see cref="Fault"/> holds them to it, since a
+    /// wing standing clear of the rest is not part of the outline the walls are painted against and a wing
+    /// half onto its neighbour is neither one building nor two.</summary>
     public IReadOnlyList<IReadOnlyList<double[]>> Wings { get; init; } = [];
 
     /// <summary>Which wall the door is cut through, or null to let the building choose the middle of a long
@@ -284,28 +285,60 @@ public sealed record HouseProp : PlacedProp
     /// geometry, and nothing a dressing limit has any business refusing.</para></summary>
     public const int MaxFootprint = 192;
 
-    /// <summary>The plan this prop stamps, or null when it is no building at all: no wings, a wing with too
-    /// few or too small corners, or a covered area — the actual cells the union of wings holds, not the box
-    /// drawn round them — past <see cref="MaxFootprint"/>.
+    /// <summary>The plan this prop stamps, or null when it is no building at all — the same answer
+    /// <see cref="Fault"/> gives a reason for.
     ///
     /// <para>Every wing is required to hold two walls and an inside on its own, the same three-block floor a
     /// single rectangle always has: a wing composes with its neighbours below the eave, but nothing composes a
     /// room out of a sliver with no width of its own.</para></summary>
-    public Minecraft.Footprint? Footprint()
+    public Minecraft.Footprint? Footprint() => Fault() is null ? Read() : null;
+
+    /// <summary>Why this prop is no building, or null where it is one. Separate from <see cref="Footprint"/>
+    /// because the two callers want different halves: a build wants the plan or nothing, and an author wants
+    /// the sentence — a plan silently declining to stamp is the failure this exists to replace.
+    ///
+    /// <para>Five of the refusals are the prop's own: no wings, a wing with too few or too short corners, a
+    /// wing thinner than a room, and a covered area — the cells the union of wings actually holds, not the box
+    /// drawn round them — past <see cref="MaxFootprint"/>. The rest are the joint model's
+    /// (<see cref="WingJoints"/>), and carry its <c>HJ</c> rule ids.</para></summary>
+    public (string Rule, string Said)? Fault()
+    {
+        if (Wings.Count == 0) return ("HJ0", "a building needs at least one rectangle");
+        foreach (var corners in Wings)
+        {
+            if (corners.Count < 2 || corners[0].Length < 2 || corners[1].Length < 2)
+                return ("HJ0", "every wing is drawn as two opposite corners, each an x and a z");
+            var (minX, minZ, maxX, maxZ) = Corners(corners);
+            if (maxX - minX + 1 < 3 || maxZ - minZ + 1 < 3)
+                return ("HJ0", "a wing holds two walls and an inside, so it is at least three blocks each way");
+        }
+
+        var plan = Read()!;
+        if (plan.Cells().Count() > MaxFootprint)
+            return ("HJ0", $"the wings cover more than the {MaxFootprint} blocks a placed building may take");
+
+        foreach (var joint in WingJoints.Of(plan))
+            if (!joint.Joins) return (WingJoints.RuleOf(joint.Fault), WingJoints.Explain(joint));
+        return null;
+    }
+
+    /// <summary>The wings as drawn, with nothing judged — what both of the two above read.</summary>
+    private Minecraft.Footprint? Read()
     {
         if (Wings.Count == 0) return null;
         var wings = new List<Wing>(Wings.Count);
         foreach (var corners in Wings)
         {
             if (corners.Count < 2 || corners[0].Length < 2 || corners[1].Length < 2) return null;
-            int minX = (int)Math.Floor(Math.Min(corners[0][0], corners[1][0]));
-            int minZ = (int)Math.Floor(Math.Min(corners[0][1], corners[1][1]));
-            int maxX = (int)Math.Floor(Math.Max(corners[0][0], corners[1][0]));
-            int maxZ = (int)Math.Floor(Math.Max(corners[0][1], corners[1][1]));
-            if (maxX - minX + 1 < 3 || maxZ - minZ + 1 < 3) return null;
+            var (minX, minZ, maxX, maxZ) = Corners(corners);
             wings.Add(new Wing(minX, minZ, maxX, maxZ));
         }
-        var plan = new Minecraft.Footprint(wings);
-        return plan.Cells().Count() > MaxFootprint ? null : plan;
+        return new Minecraft.Footprint(wings);
     }
+
+    private static (int MinX, int MinZ, int MaxX, int MaxZ) Corners(IReadOnlyList<double[]> corners) => (
+        (int)Math.Floor(Math.Min(corners[0][0], corners[1][0])),
+        (int)Math.Floor(Math.Min(corners[0][1], corners[1][1])),
+        (int)Math.Floor(Math.Max(corners[0][0], corners[1][0])),
+        (int)Math.Floor(Math.Max(corners[0][1], corners[1][1])));
 }

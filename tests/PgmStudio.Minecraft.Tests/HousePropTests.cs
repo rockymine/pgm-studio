@@ -93,9 +93,39 @@ public sealed class HousePropTests
     public async Task A_second_wing_too_small_to_hold_two_walls_and_an_inside_is_no_footprint_either()
     {
         // The rule is per wing, not just over the plan as a whole: a sliver a room can never compose out of is
-        // no more a wing than it is a building on its own.
-        await Assert.That(House("h", null, (0, 0, 8, 8), (8, 8, 9, 16)).Footprint()).IsNull();
-        await Assert.That(House("h", null, (0, 0, 8, 8), (8, 8, 10, 16)).Footprint()).IsNotNull();
+        // no more a wing than it is a building on its own. Both wings abut the hall's whole north edge, so the
+        // only thing separating the two cases is the sliver's own width.
+        await Assert.That(House("h", null, (0, 0, 8, 8), (2, 9, 3, 16)).Footprint()).IsNull();
+        await Assert.That(House("h", null, (0, 0, 8, 8), (2, 9, 6, 16)).Footprint()).IsNotNull();
+    }
+
+    /// <summary>
+    /// <b>A plan the joint model refuses is refused here, and says which rule it broke.</b> Two rectangles an
+    /// author dragged into each other, or half onto each other, or side by side with their ridges parallel are
+    /// each a shape no building is made of — and a prop that merely declined to stamp would leave the author
+    /// looking at bare ground with nothing said. The rule id is what carries across to a canvas or an agent.
+    /// </summary>
+    [Test]
+    [Arguments("overlapping", 6, 5, 10, 12, "HJ1")]
+    [Arguments("half on", 6, 7, 14, 12, "HJ2")]
+    [Arguments("side by side, ridges parallel", 0, 7, 10, 11, "HJ3")]
+    public async Task A_plan_whose_wings_make_no_building_is_refused_by_rule(
+        string shape, int minX, int minZ, int maxX, int maxZ, string rule)
+    {
+        var prop = House("h", null, (0, 0, 10, 6), (minX, minZ, maxX, maxZ));
+
+        await Assert.That((shape, prop.Footprint())).IsEqualTo((shape, (Footprint?)null));
+        await Assert.That((shape, prop.Fault()?.Rule)).IsEqualTo((shape, rule));
+        await Assert.That(prop.Fault()!.Value.Said).IsNotEmpty();
+    }
+
+    /// <summary>A plan that <em>is</em> a building says so by having nothing to say — the same L every other
+    /// test here builds on, and the one shape the three above are each a spoiled copy of.</summary>
+    [Test]
+    public async Task A_plan_whose_wings_make_a_building_carries_no_fault()
+    {
+        await Assert.That(House("h", null, (0, 0, 10, 6), (0, 7, 5, 13)).Fault()).IsNull();
+        await Assert.That(House(0, 0, 8, 8).Fault()).IsNull();
     }
 
     [Test]
@@ -115,15 +145,15 @@ public sealed class HousePropTests
     [Test]
     public async Task The_cap_is_the_ground_the_wings_actually_cover_not_the_box_drawn_round_them()
     {
-        // A short, wide wing off the corner of a small one spans a box far past the cap — the box is 31x8 = 248
-        // — but the two wings themselves cover far less of it: the notch between them is ground the building
-        // never stands on, and a building of several wings is held to the same number as one, over the ground
-        // it actually claims rather than the rectangle drawn round the whole plan.
-        var oversizedBox = House("h", null, (0, 0, 5, 5), (5, 5, 30, 7));
+        // A long, shallow wing off the end of a deeper one spans a box far past the cap — the box is 25x12 =
+        // 300 — but the two wings themselves cover far less of it: the notch between them is ground the
+        // building never stands on, and a building of several wings is held to the same number as one, over
+        // the ground it actually claims rather than the rectangle drawn round the whole plan.
+        var oversizedBox = House("h", null, (0, 0, 5, 11), (6, 0, 24, 3));
         var plan = oversizedBox.Footprint();
         await Assert.That(plan).IsNotNull();
         await Assert.That(plan!.Cells().Count()).IsLessThanOrEqualTo(HouseProp.MaxFootprint);
-        await Assert.That(plan.Cells().Count()).IsLessThan((30 - 0 + 1) * (7 - 0 + 1));
+        await Assert.That(plan.Cells().Count()).IsLessThan((24 - 0 + 1) * (11 - 0 + 1));
     }
 
     [Test]
@@ -166,7 +196,7 @@ public sealed class HousePropTests
         // (MG7), but a wing that shares its edge cells with its own prop's other wing is not a second building
         // — it never reaches the taken set at all, since the whole plan is composed and checked once.
         var (world, top) = Plateau();
-        var ell = House("h", null, (0, 0, 10, 6), (0, 7, 6, 12));
+        var ell = House("h", null, (0, 0, 10, 6), (0, 7, 5, 13));
         var tally = Decorator.Decorate(world, Context(top, [ell]));
 
         await Assert.That(tally.Houses).IsEqualTo(1);
@@ -182,7 +212,7 @@ public sealed class HousePropTests
         // the authoring shape and the symmetry turn, so a regression in how the Decorator composes and turns
         // the plan is caught here rather than only at the stamper's own, narrower door.
         var (world, top) = Plateau();
-        var ell = House("h", null, new HouseStyle { Door = DoorMaterial.StainedGlass }, (0, 0, 10, 6), (0, 7, 6, 12));
+        var ell = House("h", null, new HouseStyle { Door = DoorMaterial.StainedGlass }, (0, 0, 10, 6), (0, 7, 5, 13));
         Decorator.Decorate(world, Context(top, [ell]));
 
         var floorY = 7;   // Plateau's flat surface top (8) minus one — Ground seats the floor a course under it
@@ -296,6 +326,40 @@ public sealed class HousePropTests
         await Assert.That(turned).IsNotNull();
         await Assert.That(turned!.Width).IsEqualTo(5);           // was the depth
         await Assert.That(turned.Depth).IsEqualTo(11);           // was the width
+    }
+
+    /// <summary>
+    /// <b>A wing's own statements turn with it, and its ridge turns too.</b> Every image of a building is the
+    /// same building, so a wing that projects still projects and a wing roofed as a hip is still hipped — those
+    /// are what the building is, not where it stands. The ridge is the one of them a quarter turn <em>changes</em>:
+    /// stated along x it comes out along z, and dropped instead it re-reads from the turned proportions — which
+    /// on a square wing ties, turning a T into two ranges side by side and losing the junction entirely.
+    /// </summary>
+    [Test]
+    public async Task A_turned_wing_keeps_what_it_states_and_turns_its_ridge_with_it()
+    {
+        var symmetry = new DressingSymmetry("rot_90", 0, 0);
+        var plan = new Footprint([
+            new Wing(0, 6, 9, 10),
+            new Wing(0, 0, 4, 4, Storeys: 2, Form: RoofForm.Hip, Ridge: RidgeAxis.AlongZ, Projects: true),
+        ]);
+
+        var turned = Decorator.TurnedFootprint(plan, symmetry, 1).Wings[1];
+
+        await Assert.That(turned.Ridge).IsEqualTo(RidgeAxis.AlongX);
+        await Assert.That((turned.Storeys, turned.Form, turned.Projects))
+            .IsEqualTo((2, (RoofForm?)RoofForm.Hip, true));
+
+        // Turned four times it is back where it started, ridge included — a quarter turn that only sometimes
+        // swapped the axis would not close the orbit.
+        var round = plan;
+        for (var k = 0; k < 4; k++) round = Decorator.TurnedFootprint(round, symmetry, 1);
+        await Assert.That(round.Wings[1].Ridge).IsEqualTo(RidgeAxis.AlongZ);
+
+        // A wing that left its ridge to its proportions has none to carry, and re-reads it from the turn.
+        var loose = Decorator.TurnedFootprint(new Footprint([new Wing(0, 0, 9, 4)]), symmetry, 1).Wings[0];
+        await Assert.That(loose.Ridge).IsNull();
+        await Assert.That(loose.RidgeAlongX).IsFalse();          // ten deep and five wide once turned
     }
 
     [Test]

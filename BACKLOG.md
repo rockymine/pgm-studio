@@ -1008,17 +1008,19 @@ the thing `B181` names, which makes the document upstream of the boards rather t
   still has knobs whose *card* does not change when they are turned, which is the one thing the preview exists
   to prevent. Wants a larger sample footprint, and a card that is not the one view those knobs are invisible in.
 
-- [ ] **G184 — A wing's five overrides are model fields an authored document cannot reach.** `Wing` carries
-  its own `Storeys`, `Form`, `Pitch`, `RoofSlab` and now `Ridge`, and every one of them is settable only from
-  C#. A `HouseProp` states its wings as `IReadOnlyList<IReadOnlyList<double[]>>` — two opposite corners each and
-  nothing else — so an author writing a dressing document gets the plan of an L, a T or a U and none of the
-  knobs that decide what stands on it.
+- [ ] **G184 — A wing's six statements are model fields an authored document cannot reach.** `Wing` carries
+  its own `Storeys`, `Form`, `Pitch`, `RoofSlab`, `Ridge` and `Projects`, and every one of them is settable
+  only from C#. A `HouseProp` states its wings as `IReadOnlyList<IReadOnlyList<double[]>>` — two opposite
+  corners each and nothing else — so an author writing a dressing document gets the plan of an L, a T or a U
+  and none of the knobs that decide what stands on it.
 
-  `Ridge` is the one that makes this urgent rather than tidy. Whether two wings make a junction at all is
-  whether their ridges cross, and proportions alone decide that today: a 10 × 5 hall beside a 7 × 6 wing gives
-  two parallel ridges and a gutter, and a **square** wing ties toward x and can never cross anything. An author
-  who wants an L with a real valley has to be told to draw the wing deeper than it is wide, which is a rule
-  about arithmetic rather than about buildings.
+  Two of them make this urgent rather than tidy. `Ridge` decides whether two wings make a junction at all,
+  since that is whether their ridges cross, and proportions alone decide it today: a 10 × 5 hall beside a
+  7 × 6 wing gives two parallel ridges and is refused as a gutter, and a **square** wing ties toward x and can
+  never cross anything. An author who wants an L with a real valley has to be told to draw the wing deeper than
+  it is wide, which is a rule about arithmetic rather than about buildings. `Projects` is the whole of the
+  author's choice between the two joints (`G186`), so until it is on the wire every authored building marches
+  and the second gable is unreachable from a document.
 
   Wanted as one change rather than five, since the wire shape is the work: a wing entry that carries its
   rectangle **and** its overrides, the `DressingJson.Upgraded` migration extended, and `sketch.md`'s document
@@ -1026,104 +1028,6 @@ the thing `B181` names, which makes the document upstream of the boards rather t
   document either way until that lands.
 
   *found implementing `G183`, 2026-08-14 · `Wing` · `HouseProp.Wings` · `docs/tools/sketch.md`.*
-
-- [ ] **G186 — Wings should touch and never overlap, share a full edge, and let the author choose the joint.
-  The author's design, and the model does none of it.** Stated in the author's own vocabulary: two footprints
-  **abut** when no block belongs to both and there is no gap between them; they **overlap** when blocks are
-  shared. The intended model allows only the first.
-
-  | The rule (author) | Today |
-  |---|---|
-  | Footprints **never overlap** — they only touch | Overlap is allowed, and every shipped junction fixture **depends** on it |
-  | A touching wing shares its **full edge** with the larger rectangle, as the box model does | Nothing checks; a wing shifted two blocks along still builds |
-  | Rectangles not touching are **distinct houses** | Nothing checks; a wing three blocks clear builds as one prop with a gap in it |
-  | Equal rectangles join fine, **so long as their ridges cross** — the plan is one bounding box and the roof is a T | Works today; measured below |
-  | **March or project is the author's choice** per joint, defaulting to march | Derived from geometry — `G172` states outright that it is "not a mode, it is which rectangle was drawn" |
-
-  `Footprint`, `HouseProp` and `structures.md` all say wings are "expected to touch" in prose and **enforce it
-  nowhere**: `HouseProp.Footprint()` checks a 3 × 3 minimum per wing and a cell budget for the whole plan, and
-  nothing else.
-
-  **It is implementable, and the march is already the mechanism for both joints.** A march lays roof cells
-  beyond the wing's own rectangle into its neighbour and stops on a condition; a project under this model is
-  the same loop that does not stop, closing with a gable and an overhang where it leaves the far wall. What
-  changes is what *triggers* each — a stated choice on the joint rather than how far a rectangle was drawn —
-  and that the cut which opens one loft keys on the **shared edge** instead of on overlapped cells, which is
-  also the answer `G185` is parked on.
-
-  **What it costs, so the decision is made with the price attached.** `G172`'s "not a mode" doctrine is
-  overturned. `Crossed()` and every overlapping fixture stop describing a legal footprint and want redrawing as
-  abutting pairs with a stated joint. The four validation rules above want rule ids and refusals, since an
-  overlap or a partial touch would otherwise build something the model has no account of.
-
-  **Equal squares are legal and the earlier version of this entry was wrong to bar them.** Two 5 × 5s abutting
-  along their full edge, hall ridged along x and wing along z, build a proper T: the plan is a single 5 × 10
-  bounding box and what makes it a building is that the **roof levels differ** — the wing's ridge runs north to
-  south and meets the hall's running east to west. Measured: the shared edge is 5 of 5, the march fires, and
-  the ridge course carries **three** verge cells, which is a march exactly. Its only blemish is two lofts a
-  course up, which is `G185` and is the abutting cut, not the equal sizes.
-
-  **A shifted pair is the case to refuse, and it builds silently today.** The same two squares with the wing
-  moved two blocks along share only 3 of 5, and neither joint can happen: part of the wing's end meets the hall
-  and part hangs over open ground. What it builds is a ragged seam — the wing's overhang oversails nothing on
-  the far side, and the two roofs interpenetrate at the join. And the reason nothing notices is exact:
-  `Marches` samples the **middle cell** of the wing's across-span and asks whether the neighbour holds it, so a
-  partial touch answers yes on one sample and then marches per column into ground that is not there. The
-  refusal wants asking of the **whole edge**, not of a sample.
-
-  **Which rectangle is the hall and which is the wing is derivable, and so is whether they join at all.** It
-  falls out of the shared edge and the two ridge axes, with no size comparison and nothing for an author to
-  name:
-
-  | the two ridges, against the shared edge | what it is | |
-  |---|---|---|
-  | one **parallel**, one **perpendicular** | a junction — the parallel one is the **hall**, the perpendicular one the **wing** | build it |
-  | both **parallel** | two ranges side by side, meeting in a gutter | refuse: `G182`'s shape |
-  | both **perpendicular** | two ranges end to end, which is one longer range | refuse: draw it as one rectangle |
-
-  **The one size rule is about height, not area, and it is measured.** A wing marches into a hall only where
-  its ridge is no taller than the hall's, and ridge height follows the span the slope crosses — for the wing,
-  its extent **along** the shared edge; for the hall, its extent **across** it. Against a 20 × 5 hall
-  (peak +8), wings of growing width abutting it:
-
-  | wing | its peak | hall's peak | |
-  |---|---|---|---|
-  | 3 wide | +7 | +8 | marches |
-  | 5 wide | +8 | +8 | marches — equal is fine |
-  | 7 wide and up | +9, +10, +11 … | +8 | **runs over**: the wing tops the hall and emerges the far side |
-
-  So the rule is **wing-along-the-edge ≤ hall-across-the-edge**, and it is what the author's 20 × 10 against
-  10 × 10 intuition measures out as: the 10 × 10 can only be the wing because a wider one would stand taller
-  than the roof it is supposed to run into. Equal heights meet exactly at the hall's ridge and are legal.
-
-  **The style question is already answered by the model, and the gap is only in reaching it.** A `HouseProp`
-  carries **one** `Style` and a list of wings, so one building is one style by construction. The differences
-  worth having per wing are already `Wing.Storeys` and `Wing.Form` — a two-storey hall with a one-storey cross
-  wing under one style is expressible today, which is the case the author set aside. Where two separately
-  styled rectangles are brought together, the **hall's** style is the one to keep: it is derivable, it is the
-  primary range, and the alternative is a silent style change on whichever rectangle moved.
-
-  *author, 2026-08-14 · stated as intent, corrected on equal sizes; hall/wing derivation and the height rule
-  measured against a 20 × 5 hall and wings of 3 to 13 wide.*
-
-- [ ] **G185 — A wing that abuts its neighbour keeps its loft one course too few. Parked on a question.**
-  Measured with the ridge axis held constant, a 5-wide wing of growing depth against a hall at `z 5…9`:
-
-  | wing | overlap rows | cell past its gable end | joint | verges at ridge | lofts +5 +6 |
-  |---|---|---|---|---|---|
-  | `z 0…4` | **0** — abuts | `z 5`, the hall | march | 3 ✓ | 1 · **2** |
-  | `z 0…5` … `z 0…8` | 1 … 4 | `z 6` … `z 9`, the hall | march | 3 ✓ | 1 · 1 ✓ |
-  | `z 0…9` and beyond | 5 | `z 10`, outside | open end | 4 ✓ | 1 · 1 ✓ |
-
-  So abutting is **not** a broken junction generally: it marches, and its verge count is right. The single
-  difference is the loft a course above the eave — with no shared row there is no cell of the hall's roof for
-  the wing's field to overtop, so nothing is cut and the two lofts meet only where the roofs happen to leave a
-  gap. Both footprints are legal; `Footprint` asks only that wings touch.
-
-  **The question for the author, and it is about buildings rather than code:** is an abutting wing a junction
-  at all, or two rooms sharing a wall line? If it is a junction it wants the same open loft, which means
-  cutting a neighbour's roof under a march that has no plan of its own there. If it is not, it wants saying so
-  — and **both `Ell()` fixtures abut**, so the answer decides what they are.
 
 - [ ] **G178 — A wing has no doorway into its neighbour.** Where two wings meet the plan is simply open between
   them, which is right; where one projects into another its gable end is a wall from the ground up, which is

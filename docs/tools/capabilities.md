@@ -346,9 +346,11 @@ that is used twice the same way across the fifteen boards `mapgen-review.md` MG3
 as one house repeated: the presets cluster at 7–13 wide by 7–11 deep and every board draws from a handful of
 them at the size they were designed at.
 
-`Footprint` (`Minecraft/Footprint.cs`) carries `Wings` — more than one touching rectangle walked as one
-landmass, its outline traced as a single ring so an L or a T stands under one roof with a march or a
-valley built where the wings meet, rather than as two buildings that happen to touch. `HouseStamper`
+`Footprint` (`Minecraft/Footprint.cs`) carries `Wings` — more than one **abutting** rectangle walked as one
+landmass, its outline traced as a single ring so an L or a T stands under one roof with a valley built where
+the wings meet, rather than as two buildings that happen to touch. Which rectangle is the hall and which the
+cross wing is derived from their ridges, and a pair that overlaps, touches over part of an edge or ridges
+parallel is refused with the rule it broke (`HJ1`–`HJ5`, `G186`). `HouseStamper`
 builds this, and a placed prop can now ask for it: `HouseProp.Wings`
 (`Minecraft/Dressing/PlacedProp.cs`) is a list of rectangles rather than one, and `Decorator` composes them
 into a single `Footprint` and stamps once, the overlap rule refusing a second *prop* that collides while never

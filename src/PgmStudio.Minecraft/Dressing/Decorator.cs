@@ -347,7 +347,13 @@ public static class Decorator
     /// orbit and rebuilt as a <see cref="Wing"/>, so a quarter turn swaps each wing's width and depth exactly as
     /// a single-rectangle building's always did — the shape is turned one wing at a time, not merely relocated.
     /// Public so <c>DressingScope</c> reads the same turned plan a build actually stamps rather than re-deriving
-    /// it from the corners a second way.</summary>
+    /// it from the corners a second way.
+    ///
+    /// <para><b>Everything the wing states about itself is carried, and its ridge is turned with it.</b> A wing
+    /// keeps its storeys, its roof form, its pitch, its slab and its choice to project, because those are the
+    /// building rather than its placement. The ridge axis is the one of them that a quarter turn <em>changes</em>
+    /// — a ridge along x comes out along z — and dropping it is what would turn a T into two ranges side by
+    /// side, since it is the crossing of two ridges that makes a junction at all.</para></summary>
     public static Footprint TurnedFootprint(Footprint plan, DressingSymmetry symmetry, int image)
     {
         var wings = new List<Wing>(plan.Wings.Count);
@@ -359,9 +365,22 @@ public static class Decorator
             int minZ = (int)Math.Floor(Math.Min(corners[0][1], corners[1][1]));
             int maxX = (int)Math.Floor(Math.Max(corners[0][0], corners[1][0]));
             int maxZ = (int)Math.Floor(Math.Max(corners[0][1], corners[1][1]));
-            wings.Add(new Wing(minX, minZ, maxX, maxZ));
+            wings.Add(wing with
+            {
+                MinX = minX, MinZ = minZ, MaxX = maxX, MaxZ = maxZ,
+                Ridge = TurnedRidge(wing.Ridge, symmetry, image),
+            });
         }
         return new Footprint(wings);
+    }
+
+    /// <summary>A stated ridge axis under the same turn its wing takes, or null where the wing left it to its
+    /// own proportions — which turn with it and so need no correction.</summary>
+    private static RidgeAxis? TurnedRidge(RidgeAxis? ridge, DressingSymmetry symmetry, int image)
+    {
+        if (ridge is not { } axis) return null;
+        var along = symmetry.TurnEdge(axis == RidgeAxis.AlongX ? RoomEdge.PosX : RoomEdge.PosZ, image);
+        return along is RoomEdge.PosX or RoomEdge.NegX ? RidgeAxis.AlongX : RidgeAxis.AlongZ;
     }
 
     /// <summary>Whether any cell of a plan is already claimed — the building half of MG7's overlap rule, tested

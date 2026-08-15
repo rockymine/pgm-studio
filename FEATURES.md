@@ -3810,9 +3810,35 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   eave and a verge each are is written where the geometry is. Measured after: one enclosed loft per course on
   all four junctions, three verge cells at the ridge on a march and four on a project, and the hall's gable
   overhang open the whole way at `x = −1`, `z 5…9`. Nine tests carry it, including the flood fill that a seal
-  test cannot stand in for — a seal passes happily on a roof with a hole in its body. Both `Ell()` fixtures are
-  documented as what they are: L-shaped in plan, with two **parallel** ridges and no junction to test, which is
-  how all four shipped (`G182`); `EllMarch`/`EllProject` are the ones with crossing ridges.
+  test cannot stand in for — a seal passes happily on a roof with a hole in its body. Both `Ell()` fixtures had
+  two **parallel** ridges and therefore no junction to test, which is how all four shipped unnoticed (`G182`);
+  `EllMarch`/`EllProject` are the ones with crossing ridges, and `G186` redrew the rest.
+- **Wings abut, the hall is derived, and the joint is the wing's own choice (G185, G186).** The author's model,
+  in the author's vocabulary: two footprints **abut** when no block belongs to both and no gap lies between
+  them, they **overlap** when blocks are shared, and only the first makes a building. Where they abut they
+  share the edge **whole** — the shorter lying within the longer — because a partial touch leaves part of the
+  wing's end meeting its neighbour and the rest hanging over open ground. Which rectangle is the **hall** is
+  derived and never named: the hall's ridge runs *along* the shared edge and the wing's runs *into* it, both
+  along it is two ranges side by side and both into it is one longer range. A wing also reaches no further
+  along that edge than the hall reaches across it, since a gable's height follows the span its slopes cross —
+  measured against a 20 × 5 hall peaking at +8, a wing 3 wide reaches +7 and 5 wide reaches +8 and both march,
+  while 7 wide reaches +9 and runs clean over. Equal is legal: two 5 × 5 squares with crossing ridges are one
+  building whose plan is a single 5 × 10 box and whose roof levels are what tell them apart. `WingJoints`
+  derives all of it from the rectangles alone and every failure carries a rule id — `HJ1` overlapping, `HJ2` a
+  partial touch, `HJ3` a gutter, `HJ4` one longer range, `HJ5` a wing taller than its hall — which
+  `HouseProp.Fault()` reports as an id and a sentence where `Footprint()` answers null. **March and project
+  stop being read off the geometry and become `Wing.Projects`**, the one thing about a joint the rectangles
+  cannot say, defaulting to march: the same two rectangles make an L that closes and an L that pushes through.
+  A projection lengthens the **roof** and not the walls, along the wing's own ridge, so it arrives over the
+  hall's far wall at the height it left its own. Two things fell out. The old `Marches` sampled the **middle
+  cell** of the wing's across-span, so a partial touch answered yes and then built a ragged seam; the joint
+  model answers for the whole edge. And the march is now **solved before any roof is laid**, because a course
+  marched into the hall is a course of the wing's roof standing over ground the hall's roof also covers — laid
+  afterwards it left the hall's own course written *under* the wing's ridge as a floor across the valley, which
+  is `G185`'s two-lofts-on-an-abutting-wing exactly. `Decorator.TurnedFootprint` stopped dropping a wing's
+  statements at the orbit and now turns the ridge axis with the rectangle, without which a quarter turn of a T
+  came out as two ranges side by side. Every junction fixture was redrawn as an abutting pair, `Ell()` included,
+  since a gutter is a shape no document may state.
 - **A house on more than one wing closes at the turn, and stands on six posts (G172).** Where two wings meet,
   the wall of one runs into the wall of the other — and on a raster those two walls touch along a single
   vertical **edge** and nothing else. The cell behind that edge has building on all four sides of it, so a wall
@@ -3855,10 +3881,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   course below a wing's roof base *is* its wall top. The gate is the task's own acceptance test — **a wing's two
   gable ends are the same gable**, the one ending the building and the one standing against its neighbour,
   compared above the eave over the wing's own width. (G172)
-- **A wing may project into another, and the cross-gable is built (G172).** Two joints, and they are which
-  rectangle was drawn rather than a mode an author picks: a wing reaching an outside wall of another makes a
-  **valley**, which the union builds by itself, and a wing whose gable end lands between the other's own two
-  ends is standing mid-slope and makes a **cross-gable**. Three things follow for that one. Its buried gable end
+- **A wing may project into another, and the cross-gable is built (G172).** Two joints: a wing reaching an
+  outside wall of another makes a **valley**, which the union builds by itself, and a wing whose gable end
+  lands between the other's own two ends is standing mid-slope and makes a **cross-gable**. Which of the two a
+  joint gets was read off how far the rectangle was drawn, and is the wing's own choice under `G186`. Three things follow for that one. Its buried gable end
   is **a wall from the ground up**, posts and all — a face inside a neighbour of the same height is exposed by
   nothing, so a wall built only where the plan is exposed never builds it. Its gable face is drawn there by the
   same pass that draws the end closing the building, because a wing's roof plan ends on both. And it **cuts**

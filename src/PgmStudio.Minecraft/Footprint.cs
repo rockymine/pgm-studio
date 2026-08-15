@@ -55,13 +55,6 @@ public readonly record struct WallSegment(RoomEdge Facing, int Fixed, int Lo, in
 /// the same way.</summary>
 public readonly record struct WallOpening(WallSegment Wall, int Lo, int Width);
 
-/// <summary>One rectangle of a building's plan. A house of a single rectangle is one wing; an L, a T or a U is
-/// several touching ones, which is what lets a building turn a corner as one house under one style rather than
-/// as two houses standing beside each other.
-///
-/// <para><see cref="Storeys"/> is how many of the style's storeys stand on this wing, and <b>nought takes them
-/// all</b> — which is what a building whose wings are all of a height wants, and what one wing on its own can
-/// only mean. A hall of one storey with a two-storey cross wing is the shape that needs the number.</para></summary>
 /// <summary>Which way a wing's ridge runs, where its own proportions are not what should decide.</summary>
 public enum RidgeAxis
 {
@@ -72,9 +65,30 @@ public enum RidgeAxis
     AlongZ,
 }
 
+/// <summary>One rectangle of a building's plan. A house of a single rectangle is one wing; an L, a T or a U is
+/// several touching ones, which is what lets a building turn a corner as one house under one style rather than
+/// as two houses standing beside each other.
+///
+/// <para><b>Wings touch and never overlap</b> — the rule <see cref="WingJoints"/> holds a plan to. Two
+/// rectangles drawn a few blocks apart are two buildings; drawn edge to edge they are one, and the edge they
+/// share is the joint the building is made at. Where they merely graze — part of one end meeting the other and
+/// the rest hanging over open ground — they are neither, which is why the sharing has to be whole.</para>
+///
+/// <para><see cref="Storeys"/> is how many of the style's storeys stand on this wing, and <b>nought takes them
+/// all</b> — which is what a building whose wings are all of a height wants, and what one wing on its own can
+/// only mean. A hall of one storey with a two-storey cross wing is the shape that needs the number.</para>
+///
+/// <para><b><see cref="Projects"/> is the one thing about a joint that the rectangles cannot say.</b> A wing
+/// running into a hall either <em>marches</em> — each course stepping on into the hall's roof until that roof
+/// already stands as tall, which draws the crossing as a valley and closes the building — or it
+/// <em>projects</em>, carrying its roof clean across the hall to the far wall and showing a second gable there.
+/// Both are buildings and neither is derivable: the same two rectangles make an L that closes and an L that
+/// pushes through. Marching is what a wing does unless it says otherwise, because it is the shape that reads as
+/// one house.</para></summary>
 public readonly record struct Wing(
     int MinX, int MinZ, int MaxX, int MaxZ, int Storeys = 0,
-    RoofForm? Form = null, int Pitch = 0, int? RoofSlab = null, RidgeAxis? Ridge = null)
+    RoofForm? Form = null, int Pitch = 0, int? RoofSlab = null, RidgeAxis? Ridge = null,
+    bool Projects = false)
 {
     public int Width => MaxX - MinX + 1;
     public int Depth => MaxZ - MinZ + 1;
@@ -149,8 +163,12 @@ public sealed class Footprint
     public Footprint(int minX, int minZ, int maxX, int maxZ)
         : this([new Wing(minX, minZ, maxX, maxZ)]) { }
 
-    /// <summary>A building of one or more wings. They are expected to touch — the outline is walked as one
-    /// landmass, so a wing standing clear of the rest is not part of the ring the walls are painted against.</summary>
+    /// <summary>A building of one or more wings. They are expected to abut over a whole shared edge — the
+    /// outline is walked as one landmass, so a wing standing clear of the rest is not part of the ring the
+    /// walls are painted against. <b>Nothing is checked here</b>, and deliberately: a plan piece and a wool
+    /// cage reach the stamper through this constructor with geometry a map's own layout decided, which no
+    /// building rule has any business refusing. <see cref="WingJoints"/> is what judges a plan, and
+    /// <c>HouseProp.Fault</c> is where an authored one is held to it.</summary>
     public Footprint(IReadOnlyList<Wing> wings)
     {
         ArgumentOutOfRangeException.ThrowIfZero(wings.Count);

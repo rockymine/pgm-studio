@@ -799,13 +799,13 @@ public sealed class HouseStamperTests
 
     // ── a house on more than one wing ───────────────────────────────────────────────────────────────
 
-    /// <summary>An L: a hall along −z with a wing running north off its west end.</summary>
-    /// <summary>An L in <b>plan</b> — and nothing more than that. Its two wings are both wider than they are
-    /// deep, so both ridges run along x, and their rectangles do not overlap: no gable end lands in the other's
-    /// slope and no march or project ever fires on it. It is the right fixture for a sill, a post, a wall run or
-    /// a notch, and the wrong one for a roof junction, which is what <see cref="EllMarch"/> and
-    /// <see cref="EllProject"/> are for.</summary>
-    private static Footprint Ell() => new([new Wing(0, 0, 10, 6), new Wing(0, 7, 6, 12)]);
+    /// <summary>An L: a hall along −z with a wing running north off its west end, and the fixture every pass
+    /// <b>below the eave</b> is asked about — the sill, the posts, the wall runs, the notch and the floor. The
+    /// wing is deeper than it is wide, so its ridge runs across the hall's and the two abut over the whole of
+    /// the wing's end, which is what makes the pair a building at all
+    /// (<see cref="WingJoints"/>). Nothing here asserts anything about the roof; the junction fixtures that do
+    /// are <see cref="EllMarch"/> and <see cref="EllProject"/>.</summary>
+    private static Footprint Ell() => new([new Wing(0, 0, 10, 6), new Wing(0, 7, 5, 13)]);
 
     /// <summary>Everything below the eave follows the plan rather than the box drawn round it. The notch is the
     /// cell that tells them apart: a pass reading a min and a max writes into it, and the building never stood
@@ -895,7 +895,7 @@ public sealed class HouseStamperTests
         var posts = plan.Cells()
             .Where(cell => world.GetBlock(cell.X, FloorY + 3, cell.Z).Id == Blocks.Log).ToList();
         await Assert.That(posts.Count).IsEqualTo(6);
-        await Assert.That(posts).Contains((X: 6, Z: 6));      // the turn, where the two wings meet
+        await Assert.That(posts).Contains((X: 5, Z: 6));      // the turn, where the two wings meet
     }
 
     /// <summary>The building is closed <b>diagonally</b> as well as squarely, which is a different question from
@@ -967,17 +967,21 @@ public sealed class HouseStamperTests
 
     /// <summary>A T: a hall along −z with a cross wing running north out of the middle of it. The wing is
     /// narrower than it is deep, so its ridge runs the other way from the hall's — which is what puts one of
-    /// its gable ends against the hall and the other out in the open.</summary>
-    private static Footprint Tee() => new([new Wing(0, 5, 9, 9), new Wing(2, 0, 6, 5)]);
+    /// its gable ends against the hall and the other out in the open. The two <b>abut</b>: the wing's last row
+    /// is the one before the hall's first, which is the whole of how a junction is drawn.</summary>
+    private static Footprint Tee() => new([new Wing(0, 6, 9, 10), new Wing(2, 0, 6, 5)]);
 
     /// <summary>An L on the same hall, with the wing set against its corner rather than its middle. Its ridge
     /// runs across the hall's, which is what makes the meeting a junction at all — see <see cref="Ell"/>, whose
     /// two ridges are parallel and which therefore exercises none of this.</summary>
-    private static Footprint EllMarch() => new([new Wing(0, 5, 9, 9), new Wing(0, 0, 4, 5)]);
+    private static Footprint EllMarch() => new([new Wing(0, 6, 9, 10), new Wing(0, 0, 4, 5)]);
 
-    /// <summary>The same L with the wing drawn through to the hall's far wall, so its second gable stands in
-    /// the open on the other side.</summary>
-    private static Footprint EllProject() => new([new Wing(0, 5, 9, 9), new Wing(0, 0, 4, 9)]);
+    /// <summary>The same L, and the same two rectangles, with the wing asking to carry its roof across the hall
+    /// instead of stopping in it — so its second gable stands in the open on the far side. <b>Nothing about the
+    /// plan differs</b>: a projection is the one thing about a junction the rectangles cannot say, which is why
+    /// the wing says it.</summary>
+    private static Footprint EllProject() =>
+        new([new Wing(0, 6, 9, 10), new Wing(0, 0, 4, 5, Projects: true)]);
 
     /// <summary>
     /// <b>A wing's end that stands against its neighbour is not a gable.</b> It is a doorway between two halves
@@ -1080,7 +1084,7 @@ public sealed class HouseStamperTests
     /// hall's near row exactly as the other junction fixtures do — a wing that merely abuts one has no ground in
     /// common with it to open through.</summary>
     private static Footprint EllSquare() =>
-        new([new Wing(0, 5, 9, 9), new Wing(0, 1, 4, 5, Ridge: RidgeAxis.AlongZ)]);
+        new([new Wing(0, 6, 9, 10), new Wing(0, 1, 4, 5, Ridge: RidgeAxis.AlongZ)]);
 
     public static IEnumerable<(string, Footprint)> Junctions() =>
     [
@@ -1111,7 +1115,7 @@ public sealed class HouseStamperTests
 
         // The hall it stands against is wider than it is deep, so it keeps the along-x ridge either way, and
         // the two cross only because the wing said which way it runs.
-        await Assert.That(new Wing(0, 5, 9, 9).RidgeAlongX).IsTrue();
+        await Assert.That(new Wing(0, 6, 9, 10).RidgeAlongX).IsTrue();
 
         // A stated axis is what the roof is actually built on, not merely what the wing reports.
         var style = new HouseStyle();
@@ -1172,10 +1176,10 @@ public sealed class HouseStamperTests
         var world = Built(EllProject(), style);
 
         var lone = new VoxelWorld();
-        HouseStamper.Stamp(lone, new Footprint(0, 5, 9, 9), FloorY, style);
+        HouseStamper.Stamp(lone, new Footprint(0, 6, 9, 10), FloorY, style);
 
         var checkedCells = 0;
-        for (var z = 5; z <= 9; z++)
+        for (var z = 6; z <= 10; z++)
         {
             var crown = FloorY - 1;
             for (var y = FloorY + 24; y >= FloorY; y--)
@@ -1193,11 +1197,12 @@ public sealed class HouseStamperTests
         await Assert.That(checkedCells).IsGreaterThan(0);
     }
 
-    /// <summary>The wing carried through to the hall's far wall, so the cell past its second gable end is
+    /// <summary>The T's wing carrying its roof across the hall, so the cell past its second gable end is
     /// outside every wing and that end stands in the open — which is the only way a wing gets a second gable.
-    /// Carried anywhere short of the far wall it marches like any other end, whatever share of the hall it
-    /// covers, so a gable landing mid-slope is a shape the stamper never builds.</summary>
-    private static Footprint Crossed() => new([new Wing(0, 5, 9, 9), new Wing(2, 0, 6, 9)]);
+    /// The roof reaches the hall's far wall or it does not project at all: a gable landing mid-slope is a shape
+    /// the stamper never builds, because the extension is taken to that wall rather than to a distance.</summary>
+    private static Footprint Crossed() =>
+        new([new Wing(0, 6, 9, 10), new Wing(2, 0, 6, 5, Projects: true)]);
 
     /// <summary>
     /// <b>A wing's two gable ends carry the same triangle.</b> A wing drawn
@@ -1216,6 +1221,9 @@ public sealed class HouseStamperTests
     {
         var plan = Crossed();
         var wing = plan.Wings[1];
+        // A projecting wing's far gable stands on the hall's far wall, which its own rectangle stops well
+        // short of: the roof is what carries across, and the wall it arrives on is the hall's.
+        var farWall = plan.Wings[0].MaxZ;
         var style = new HouseStyle { Form = RoofForm.Gable, Pitch = 1 };
         var world = Built(plan, style);
         var eave = FloorY + style.WallCourses;
@@ -1224,7 +1232,7 @@ public sealed class HouseStamperTests
         for (var x = wing.MinX; x <= wing.MaxX; x++)
             for (var y = eave + 1; y <= FloorY + 24; y++)
             {
-                var through = world.GetBlock(x, y, wing.MaxZ);      // the end on the hall's far wall
+                var through = world.GetBlock(x, y, farWall);        // the end on the hall's far wall
                 var open = world.GetBlock(x, y, wing.MinZ);         // the end that closes the building
                 await Assert.That((x, y, through.Id, through.Data)).IsEqualTo((x, y, open.Id, open.Data));
                 if (through.Id != Blocks.Air) seen++;
@@ -1233,17 +1241,17 @@ public sealed class HouseStamperTests
 
         // And below it they part exactly where the building's own corners are, which is the corner columns.
         var turns = Enumerable.Range(wing.MinX, wing.Width)
-            .Where(x => world.GetBlock(x, eave, wing.MinZ) != world.GetBlock(x, eave, wing.MaxZ))
+            .Where(x => world.GetBlock(x, eave, wing.MinZ) != world.GetBlock(x, eave, farWall))
             .ToList();
         await Assert.That(turns).IsEquivalentTo(new[] { wing.MinX, wing.MaxX });
     }
 
     /// <summary>
-    /// <b>A wing that stops at the wall makes a T; one drawn through makes a +.</b> It is the same rule either
-    /// way and never a mode: the ridges are as long as the rectangles are, and where they cross the higher one
-    /// stands. A wing abutting the hall's wall marches into it only as far as the hall's own ridge and stops
-    /// there — nothing penetrates — so the tallest course reads as a T. The same wing drawn on to the hall's far
-    /// wall carries its ridge the whole way and the two cross, which reads as a +.
+    /// <b>A wing that marches makes a T; one that projects makes a +.</b> It is the same rule either way and
+    /// never a mode: where two ridges cross the higher one stands. A marching wing carries its ridge into the
+    /// hall only as far as the hall's own ridge and stops there — nothing penetrates — so the tallest course
+    /// reads as a T. The same two rectangles with the wing projecting carry its ridge the whole way to the
+    /// hall's far wall, and the two cross, which reads as a +.
     /// </summary>
     [Test]
     public async Task A_wing_stopping_short_makes_a_T_and_one_drawn_through_makes_a_plus()
@@ -1259,14 +1267,14 @@ public sealed class HouseStamperTests
             return -1;
         }
 
-        // The hall's ridge sits at z=7 and the wing's at x=4, both three courses over the eave.
-        const int hallRidge = 7, wingRidge = 4, top = 3;
+        // The hall's ridge sits at z=8 and the wing's at x=4, both three courses over the eave.
+        const int hallRidge = 8, wingRidge = 4, top = 3;
 
         // Stopped short: the wing's ridge reaches the hall's and goes no further.
         await Assert.That(Surface(Tee(), wingRidge, hallRidge)).IsEqualTo(top);
         await Assert.That(Surface(Tee(), wingRidge, hallRidge + 1)).IsEqualTo(top - 1);
 
-        // Drawn through: it carries on past, and out over the hall's own overhang.
+        // Projecting: it carries on past, and out over the hall's own overhang.
         await Assert.That(Surface(Crossed(), wingRidge, hallRidge + 1)).IsEqualTo(top);
         await Assert.That(Surface(Crossed(), wingRidge, hallRidge + 3)).IsEqualTo(top);
 

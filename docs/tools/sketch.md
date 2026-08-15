@@ -498,28 +498,42 @@ opposite corners a drag always stored, and `HouseProp.Footprint()` composes them
 has always taken. An L, a T or a U is therefore one house under one style rather than two standing beside each
 other: the outline is walked as a single landmass, so an L answers six runs of wall and a T eight, a wall ends
 wherever the building turns, and the cell where two wings meet is an inner corner carrying a post of its own.
-Each wing may stop short of the building's full height and may override the roof form, pitch and slab, and a
-storey is then its own plan over the wings still standing — which is how a one-storey hall with a two-storey
+Each wing may stop short of the building's full height and may override the roof form, pitch, slab and ridge
+axis, and a storey is then its own plan over the wings still standing — which is how a one-storey hall with a two-storey
 cross wing gets the wall it needs against the hall's roof with no rule written for it. Each wing is still held
 to the three-block floor a single rectangle always needed, and the whole plan to `MaxFootprint` (192 blocks)
 measured over the ground the wings actually cover rather than the box drawn round them, so an L takes no more
 of the cap for reading larger on the corner it never stood on (`G177`).
 
+**Wings touch and never overlap**, and where they touch they share the edge whole — the shorter edge lying
+within the longer. A pair standing clear is two buildings; a pair sharing blocks, or meeting over part of an
+edge only, is neither, and the plan is refused. Which of the two is the **hall** follows from the ridges: the
+hall's runs along the shared edge and the wing's runs into it, both along it is two ranges side by side and
+both into it is one longer range. A wing also reaches no further along that edge than the hall reaches across
+it, since a gable's height follows the span its slopes cross. `HouseProp.Fault()` names the rule a refused plan
+broke — `HJ1` overlapping, `HJ2` a partial touch, `HJ3` a gutter, `HJ4` one longer range, `HJ5` a wing standing
+taller than its hall — and `Footprint()` answers null for the same plans, so a build gets the plan or nothing.
+
 **The roof over a junction is built and has two behaviours.** A building's roof is the union of its wings'
-roofs, and each wing is extruded as the whole building it would be alone; where their plans overlap, **only the
-highest surface over a cell is written**, so the lower one does not stand inside the higher as an obstruction in
-the attic. Where a wing's gable end runs up against another wing rather than into the open, its roof
-**marches** — carried across the wing's own width with no overhang, since an overhang is what a roof has
-outside a wall and inside another wing there is no outside — and bounded by the marching course's own distance
-from its own eave, so a course whose crown never meets a shallower or flatter neighbour's still stops rather
-than running the neighbour's whole length (`G172`).
+roofs, and each wing is extruded as the whole building it would be alone; where their volumes meet, **only the
+highest surface over a cell is written**, so the lower one does not stand inside the higher as an obstruction
+in the attic. Which of the two behaviours a joint gets is the **wing's own choice** and the one thing about a
+joint the rectangles cannot say: a wing that **marches** carries each course of its roof on into the hall's
+until that roof already stands as tall — no overhang, since an overhang is what a roof has outside a wall and
+inside another wing there is no outside, and bounded by the marching course's own distance from its own eave,
+so a course whose crown never meets a shallower or flatter neighbour's still stops rather than running the
+neighbour's whole length. A wing that **projects** (`Wing.Projects`) carries its roof clean across the hall to
+the far wall and shows a second gable standing on it. Marching is the default, because it is the shape that
+reads as one house (`G172`, `G186`).
 
 Whether two wings make a junction at all is whether their **ridges cross**, and a wing's proportions cannot
 know that: a roof pitches across the shorter side, so a 10 × 5 hall and a 7 × 6 wing both ridge along x and
 meet in a gutter, and a **square** wing ties toward x and can never cross anything. `Wing.Ridge` states the
-axis where the proportions should not decide it. Note it is a **model** field rather than an authored one —
-none of a wing's overrides (its ridge, its roof form, its pitch, its slab, its storey count) reaches the
-dressing document yet, where a wing is two corners and nothing else (`G184`).
+axis where the proportions should not decide it. Every image of a building carries the same statements — a
+projecting wing still projects, a hipped wing is still hipped — and the ridge is the one of them a quarter turn
+changes, so it is turned with the rectangle rather than dropped. Note none of these is an authored field yet:
+a wing's ridge, roof form, pitch, slab, storey count and its choice to project are all model-only, and in the
+dressing document a wing is two corners and nothing else (`G184`).
 
 Three things follow from the junction being one building rather than two roofs in one place (`G179`–`G181`).
 The loft over it is **one space**: the side of a wing standing against a neighbour is a doorway rather than an
@@ -607,8 +621,14 @@ geometry, so a recompile that re-fuses the board does not merely move an island 
 and terrain authored against the old fusion has nowhere correct to land. `?force=true` accepts the loss and
 proceeds, which is the author's call and not the server's.
 
-**A building refuses a footprint it cannot stamp** (under 3×3, over 192 blocks), and **a marker refuses the
-void**, as above.
+**A building refuses a footprint it cannot stamp** and **a marker refuses the void**, as above. A footprint is
+unstampable for its own size — a wing under 3 × 3, or a plan covering more than 192 blocks — or because its
+wings make no building, which is the joint model's five rules: `HJ1` two rectangles sharing blocks, `HJ2` a
+touch over part of an edge only, `HJ3` both ridges along the shared edge, `HJ4` both into it, `HJ5` a wing
+standing taller than the hall it meets. `HouseProp.Fault()` answers the id and a sentence in the terms the
+rectangles were drawn in; `Footprint()` answers null for the same plans, so a stamp gets the plan or nothing.
+The refusal is the prop's own and never the stamper's — a wool cage and a spawn cube go through the same
+`HouseStamper` from a plan piece's geometry, which no dressing limit has any business judging.
 
 **Heights are clamped rather than refused**: a shape is never thinner than one block and its floor never dips
 below zero, whatever is asked for.
