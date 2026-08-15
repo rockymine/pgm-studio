@@ -18,7 +18,8 @@ namespace PgmStudio.Pgm.Shapes;
 /// a segment: <see cref="EntryRun"/>/<see cref="RoomRun"/> are the run a host docks vs the run leading to the
 /// terminal; <see cref="EntryBar"/>/<see cref="RoomBar"/> the same for a bar. A role is a <b>template slot, not
 /// a property of the rectangle</b> — a scythe's <c>entry-run</c> and a donut's <c>leg</c> can be the same
-/// rectangle in different slots. See the piece vocabulary in <c>docs/generator/model.md</c> §4.</summary>
+/// rectangle in different slots. See the piece vocabulary in <c>docs/generator/model.md</c> §4.</para>
+/// </summary>
 public static class ApproachSlots
 {
     // structural slots — the rectangle's role in the compound (shared by every designation)

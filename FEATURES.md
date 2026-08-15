@@ -5202,6 +5202,42 @@ these are the ones that shipped a map that could not be played as intended, and 
   method the class has not had for some time, now cites `Check`. It matters ahead of the bucketed audit work:
   four buckets add rules to this class, and an agent choosing a verb from four will not choose the same one
   twice.
+- **Every rule the studio can cite, with what it means and what to do about it (B219).** A refusal carries an
+  id and one sentence about the document it was refused over. The id is stable forever and outlives the task
+  that added it, which is what makes it worth keying on — and nothing answered the other question a reader has
+  on meeting one: *what is `SP7`*. The ids were spread across eight `*Rules` classes and one 644-line document,
+  and a reader who did not already know which family an id belonged to had nowhere to start. **`GET /api/rules`**
+  answers all 125, `?family=PL` narrows to one family and `?rule=SP7` to one rule; a name nothing matches is an
+  empty list rather than a 404, so a caller asking "is there a rule called that" does not have to tell an absent
+  rule from a mistyped route by the status code.
+
+  **Nothing in the answer is written twice, which is the whole design.** A gate rule's meaning is the
+  `<summary>` beside its own `const` and its fix is the `<remarks>` of the same docstring, read out of the XML
+  documentation file the compiler emits — so the sentence a caller is shown *is* the sentence in the source,
+  and there is no catalogue to fall out of step with it. The 66 layout rules come out of
+  `docs/generator/rules.md`, embedded in `PgmStudio.Domain` and parsed: that document is the rule law, amended
+  only by its own correction protocol, and copying its statements into C# would have made a second law that
+  drifts. Private and nested declarations are read too, since `ExportRules` is private inside
+  `MapExportComposer` and a rule missing because of where it happens to be declared is the failure this exists
+  to prevent.
+
+  **A layout rule has no fix, and that is a decision rather than a gap.** The gate rules are mechanical — a
+  doorway too short, a document that will not parse — so what to do about one follows from what it refuses.
+  The layout rules are claims about how a map is *played*, which are the author's to state and not this
+  repository's to infer. What they carry instead is the evidence tag `rules.md` already keeps — `corpus`,
+  `expert`, `open`, `guess` — which says how far to trust each one.
+
+  **Three checks keep it from going quietly incomplete**, because the endpoint names the assemblies it reads
+  (an assembly nothing has touched is not loaded, so sweeping the app domain would drop a family depending on
+  what the process happened to do first). A test sweeps every `PgmStudio` assembly that actually shipped, finds
+  every constant shaped like a rule id, and fails with the ones the endpoint did not answer; a second fails on
+  any rule listed without a description; a third on any gate rule listed without a fix.
+
+  Two things fell out of building it. `ObjectivePlacement.Rule` and `DressingScope.Rule` were **second `const`s
+  aliasing `OB17` and `OB19`** — no drift risk, since both already read the canonical constant, but the
+  catalogue listed those two ids twice, so both are deleted and their call sites name `ObjectiveRules`
+  directly. And four docstrings were **malformed XML** that truncated a member's entry in the emitted file
+  (`ApproachSlots`, `HouseStamper`, `HouseWindows`, `TopDownRender`) — invisible until something read the file.
 - **A board with nothing on it is refused, and so is one that lost what its author stated (B140).** Two boards
   from an authoring trial built a world, wrote region files and a provenance sidecar, and exported clean. Their
   `map.xml` was **ten lines** — a name, an empty `<version>`, a `<gamemode>`, an empty `<objective>`, one

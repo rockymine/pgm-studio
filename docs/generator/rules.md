@@ -642,3 +642,10 @@ both corrected.)
 Reply by rule id. **Frozen 2026-07-04 as the composer's v1 rule set.** Further corrections are
 **amendments**: applied in place, logged under *Resolved* with their round, and the composer
 re-validated against them.
+
+This file is **embedded in `PgmStudio.Domain`** and parsed, so `GET /api/rules` serves these rules rather than a
+transcription of them (`docs/refusals.md`). What the parser needs is the shape already used throughout: a rule
+begins at a `- **<id>` bullet and runs to the next one, its family comes from the `## <letters> — <name>`
+heading above it, and its `[corpus]`/`[expert]`/`[open]`/`[guess]` tag becomes the evidence a reader is shown.
+Amend freely inside that; a rule stated some other way is served with the wrong text or not at all, and the
+path is in `PgmStudio.Domain.csproj` rather than in code, so moving the file breaks the build.

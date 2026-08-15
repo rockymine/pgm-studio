@@ -34,15 +34,19 @@ public readonly record struct MonumentSlot(int X, int Z, RoomEdge Wall);
 public static class RoomFrameRules
 {
     /// <summary>The piece cannot hold a shell of the least legal span once the clean ring is taken off it.</summary>
+    /// <remarks>Enlarge the piece. A room is its piece inset by the clean ring, and what is left has to hold a shell of the least legal span in both axes.</remarks>
     public const string PieceTooSmall = "WX2";
 
     /// <summary>The marker's block-lattice parity differs between axes, and the pad is always square.</summary>
+    /// <remarks>Move the marker half a block on one axis. The pad is square, so both axes must round the same way off the block lattice.</remarks>
     public const string MarkerParity = "WX3";
 
     /// <summary>The interior has no room for the pad once the wall clearance is kept.</summary>
+    /// <remarks>Enlarge the piece or shrink the pad. The wall clearance is kept first, and the pad has to fit in what remains inside it.</remarks>
     public const string NoPadRoom = "WX4";
 
     /// <summary>A wool room with no seam and no abutting build zone has nothing to enter it by.</summary>
+    /// <remarks>Give the wool room a border with a neighbouring piece, or place a build zone against it. A room nothing abuts has no door that can be cut.</remarks>
     public const string RoomUnreachable = "WX6";
 }
 

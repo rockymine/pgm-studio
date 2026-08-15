@@ -12,36 +12,47 @@ namespace PgmStudio.Pgm.Plan;
 public static class PlanRules
 {
     /// <summary>No generating piece: there is no land, so there is nothing to build.</summary>
+    /// <remarks>Give the plan at least one piece whose role generates terrain — <c>piece</c>, <c>spawn</c> or <c>wool-room</c>. A <c>buffer</c> reserves space and produces none.</remarks>
     public const string NoLand = "PL1";
 
     /// <summary>No spawn: PGM has nowhere to put a player and the map cannot be entered.</summary>
+    /// <remarks>Add a spawn placement for each team: an entry in <c>placements.spawns</c> naming a piece and a fractional offset into it.</remarks>
     public const string NoSpawn = "PL2";
 
     /// <summary>No objective of any kind — a complaint, since which goal a map carries is the author's.</summary>
+    /// <remarks>Add a wool, destroyable or core placement. Nothing is blocked without one — the map compiles, builds and loads; it just cannot be won, so this is only worth acting on when the board is meant to be finished.</remarks>
     public const string NoObjective = "PL3";
 
     /// <summary>Two pieces claim the same ground at incompatible heights, so there is no coherent surface.</summary>
+    /// <remarks>The two pieces named in the finding overlap and give their shared cells different surface heights. Move one off the other, or set both to the same <c>surface</c> — a step between them wants two pieces that meet at an edge, not two that overlap.</remarks>
     public const string SurfaceClash = "PL4";
 
     /// <summary>A placement names a piece the plan does not have.</summary>
+    /// <remarks>The placement's <c>piece</c> is a piece id the plan does not declare. Fix the spelling, or add the piece.</remarks>
     public const string UnknownPiece = "PL5";
 
     /// <summary>A placement stands on a buffer, which is reserved empty space and produces no terrain.</summary>
+    /// <remarks>Point the placement at a generating piece. A buffer is reserved empty space, so anything standing on one stands on nothing.</remarks>
     public const string PlacementOnBuffer = "PL6";
 
     /// <summary>A placement falls outside the piece it names.</summary>
+    /// <remarks>The placement's <c>at</c> is a fraction of the named piece's rect, so both components belong in 0..1. A value outside that lands the marker off its own piece.</remarks>
     public const string PlacementOutside = "PL7";
 
     /// <summary>A spawn room cannot seat every monument its team will capture.</summary>
+    /// <remarks>Enlarge the spawn piece, or reduce how many wools this team captures. A spawn room seats one monument per wool its team will take, and the wall it seats them on is the room's interior span.</remarks>
     public const string MonumentSeats = "PL8";
 
     /// <summary>A wool cannot be reached from a capturing team's spawn at all.</summary>
+    /// <remarks>Nothing walkable connects the capturing team's spawn to this wool: add a piece bridging the gap, or widen a border narrower than a corridor. Distance here is the walk over the surface, not the straight line.</remarks>
     public const string WoolUnreachable = "PL9";
 
     /// <summary>A destroyable style names something that is not a style.</summary>
+    /// <remarks>Use one of the destroyable style ids the studio ships — <c>GET /api/destroyable-styles</c> lists them.</remarks>
     public const string UnknownStyle = "PL10";
 
     /// <summary>A wall is drawn on a pair of pieces that share no land interface.</summary>
+    /// <remarks>A wall is drawn between two pieces that share no walkable border, so there is nothing for it to divide. Move the pieces until they touch along an edge, or drop the wall.</remarks>
     public const string WallWithoutInterface = "PL11";
 }
 

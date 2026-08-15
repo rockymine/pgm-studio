@@ -268,12 +268,15 @@ public sealed record AuthoredWing(IReadOnlyList<double[]> Corners, WingSpec Spec
 public static class HousePropRules
 {
     /// <summary>No rectangles at all — there is no building to place.</summary>
+    /// <remarks>Give the building at least one rectangle. A building with none has no footprint to stand on.</remarks>
     public const string NoWings = "HP1";
 
     /// <summary>A wing is not two opposite corners, or is too thin to hold two walls and an inside.</summary>
+    /// <remarks>State each wing as two opposite corners, and at least as wide as a room. Anything thinner has no inside once its two walls are written.</remarks>
     public const string WingShape = "HP2";
 
     /// <summary>The wings cover more ground than a placed building may take.</summary>
+    /// <remarks>Shrink the wings, or split the building into two placements. The cap is what one placed building may take.</remarks>
     public const string PastCap = "HP3";
 }
 

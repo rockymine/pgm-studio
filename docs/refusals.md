@@ -192,11 +192,42 @@ it answers in this shape anyway. A **resolve** is a different thing again and ke
 `RoomFrames.ResolveRoom` answers a room *or* a refusal, because it is producing a value and stops at the first
 thing that makes producing it impossible, where a gate reads a document and collects everything wrong with it.
 
+## Looking one up
+
+`GET /api/rules` answers **every rule the studio can cite**, with what it means and what to do about it — the
+question a reader has on meeting an id in a refusal and the one nothing else answers. `?family=PL` narrows to
+one family, `?rule=SP7` to one rule; a name nothing matches is an empty list rather than a 404, so a caller
+asking "is there a rule called that" does not have to tell an absent rule from a mistyped route by the status
+code. Each row is `{rule, family, owner, means, fix, evidence}`, and `owner` is the file to read next.
+
+```json
+{
+  "rule": "PL9", "family": "PL", "owner": "PgmStudio.Pgm.Plan.PlanRules.WoolUnreachable",
+  "means": "A wool cannot be reached from a capturing team's spawn at all.",
+  "fix": "Nothing walkable connects the capturing team's spawn to this wool: add a piece bridging the gap, or widen a border narrower than a corridor. Distance here is the walk over the surface, not the straight line."
+}
+```
+
+**Nothing in that answer is written twice.** A gate rule's `means` is the `<summary>` beside its own `const`
+and its `fix` is the `<remarks>` of the same docstring, read out of the XML documentation file the compiler
+emits — so the sentence a caller is shown is the sentence in the source, and there is no catalogue to fall out
+of step with it. A layout rule comes out of `docs/generator/rules.md`, embedded in `PgmStudio.Domain` and
+parsed, because that document is the rule law and copying its statements into C# would have made a second law.
+
+**A layout rule has no `fix`, and that is not an omission.** The gate rules are mechanical — a doorway too
+short, a document that will not parse — so what to do about one follows from what it refuses. The layout rules
+are claims about how a map is *played*, which `CLAUDE.md` says are the author's to state and not this
+repository's to infer. What they carry instead is `evidence`: `corpus`, `expert`, `open` or `guess`, in
+`rules.md`'s own terms, which says how far to trust each one.
+
 ## Adding one
 
 A new gate writes findings; it does not write a shape. Name it `Check`, return `Findings`, put the rule id in
 the `*Rules` class beside the rule that fires it — never as a literal at the throw site, which is how `OB20`
-spent a release as a bare string and `OB19` with no id at all — give it a docstring saying what it refuses, add
-its row above, and answer through `Refusals.StopAsync` (an endpoint), `Refusals.Of` (a typed body) or
-`Finding.Wire` (an untyped composer). A rule about a map *as it is played* is the
+spent a release as a bare string and `OB19` with no id at all, and **never as a second `const` aliasing one
+that exists**, which is what `ObjectivePlacement.Rule` and `DressingScope.Rule` were until the catalogue listed
+their ids twice. Give it a **`<summary>` saying what it refuses and a `<remarks>` saying what to do about it** —
+those two are what `/api/rules` answers with, so a rule written with only the first is listed with no fix and
+`RulesEndpointTests` fails. Add its row above, and answer through `Refusals.StopAsync` (an endpoint),
+`Refusals.Of` (a typed body) or `Finding.Wire` (an untyped composer). A rule about a map *as it is played* is the
 author's to state before any of that: see the human-oracle rule in `CLAUDE.md`.

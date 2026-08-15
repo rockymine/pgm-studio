@@ -360,6 +360,24 @@ by `HousePropRules.PastCap` and is not filed.
   *found reviewing dispatch readiness, 2026-08-15 · `Evaluate/Terms/ObjectiveTerms.cs:5-10` ·
   `Geom/Cells.cs:48,77` · bucket 3's `B175`/`B179`/`B188`.*
 
+- [ ] **B220 — Forty doc-comment defects, silenced rather than fixed.** Turning
+  `GenerateDocumentationFile` on for the five projects `B219` reads (`Domain`, `Pgm`, `Minecraft`, `Export`,
+  `Api`) surfaced them: **CS1574** a `<see cref>` naming something that does not resolve, **CS1573** a method
+  documenting some of its parameters and not others, **CS1734** a `<paramref>` naming a parameter that was
+  renamed, **CS0419** a cref matching several overloads and silently resolving to one. They are all comments
+  written before anything read them, and each is a sentence pointing at something that is not there.
+
+  They are in `NoWarn` in every one of those five `.csproj` files, which is a debt with the usual due date —
+  turning the file on should not have turned forty warnings on with it, and fixing them was not `B219`'s work.
+  The genuinely broken ones were fixed rather than silenced: **CS1570/CS1584**, malformed XML that truncates a
+  member's entry in the emitted file, in `ApproachSlots`, `HouseStamper`, `HouseWindows` and `TopDownRender`
+  — those are what would corrupt what `/api/rules` reads. **CS1587** stays silenced on purpose: it is a
+  docstring on a local function, which the compiler never emits and which is harmless where it is.
+
+  Fix them, then take the four ids back out of `NoWarn` so the next one fails the build.
+
+  *found turning on the documentation file for `B219`, 2026-08-15 · the five `<NoWarn>` lines name it.*
+
 - [ ] **B189 — The authoring apparatus: art direction, named briefs, and a reviewer that is not the author.**
   Three runs asked three models for "a map of your own design" and got, three times over, one street of
   identical houses behind the spawn on a square board under a palette nobody checked. The brief is where that

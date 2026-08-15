@@ -28,10 +28,6 @@ public readonly record struct GoalKeepOut(string Kind, string Name, BlockRect Fr
 /// </summary>
 public static class ObjectivePlacement
 {
-    /// <summary>The rule these refusals answer, carried on every finding so a caller can act on the id rather
-    /// than parse the sentence.</summary>
-    public const string Rule = ObjectiveRules.Placement;
-
     /// <summary>Every refusal the placement of <paramref name="goals"/> earns. Empty is the map that ships.
     /// <paramref name="isLand"/> answers whether one block column is ground — pieces at compile, rasterized
     /// columns at export — and <paramref name="keepOuts"/> is the stamped rooms, as frames rather than as the
@@ -91,5 +87,5 @@ public static class ObjectivePlacement
     /// only the piece is ambiguous the moment two goals share one, and the id is what makes the answer
     /// actionable to a caller that must then move one specific marker.</summary>
     private static Finding Refuse(string message, params string?[] subjects) =>
-        new(Rule, message, Subjects: [.. subjects.OfType<string>()]);
+        new(ObjectiveRules.Placement, message, Subjects: [.. subjects.OfType<string>()]);
 }

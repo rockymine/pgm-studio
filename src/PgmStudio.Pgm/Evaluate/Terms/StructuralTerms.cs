@@ -11,6 +11,7 @@ namespace PgmStudio.Pgm.Evaluate.Terms;
 /// structural error set).</summary>
 public sealed class StructuralIntegrity : ILayoutTerm
 {
+    /// <remarks>Not a rule of its own: the id the evaluator gives a structural refusal the validator already made, so the score carries it. Read the finding's own <c>PL</c> id and fix that.</remarks>
     public const string Rule = "STRUCT";
 
     public string Id => "structural-integrity";

@@ -13,6 +13,15 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- The rule catalogue (GET /api/rules) reads each rule id's own docstring out of this file, so the
+         sentence an author is shown is the one beside the constant and there is no second copy to rot.
+         The doc-comment diagnostics are off with it: CS1591 is a demand to document every public member,
+         CS1573/1574/1734/0419 flag pre-existing defects in comments nothing read until now (B220), and CS1587 is
+         a docstring on a local function, which the compiler never emits and which is harmless where it is.
+         The genuinely broken ones — CS1570/1584, malformed XML that truncates a member's entry in the file —
+         were fixed rather than silenced, because those are what would corrupt what this reads. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573;CS1574;CS1734;CS0419;CS1587</NoWarn>
   </PropertyGroup>
 
 </Project>

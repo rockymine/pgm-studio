@@ -35,7 +35,7 @@ public static class HouseStamper
     /// rectangle is what a plan piece or a dragged rectangle hands the stamper, not what the stamper writes.
     /// <c>HouseStamperTests</c> proves every block <see cref="Stamp(VoxelWorld,BuildingPlan,int,HouseStyle,int,
     /// IReadOnlyList{RoomDoor})"/> actually places lands inside it, so a caller answering from the style's own
-    /// fields never has to re-open the voxels to check.</para></summary>
+    /// fields never has to re-open the voxels to check.</para>
     /// <para>This is a <b>bound</b> and not a claim. A beam runs out from a corner only, so a rectangle wide
     /// enough to hold the longest one also spans the middle of every edge, where nothing is written — and one
     /// such phantom course is enough to touch the next building and merge two findings into one. What a caller

@@ -96,6 +96,7 @@ internal static class RequestRules
 {
     /// <summary>A posted document could not be read — absent, empty, malformed, or naming a kind that does not
     /// exist. The caller's to fix, so it answers 400.</summary>
+    /// <remarks>Post a body. If one was posted, the finding's <c>field</c> names where the reader stopped — usually a <c>kind</c> that is not one of the names, or a property stated as <c>null</c> where the record cannot hold one.</remarks>
     public const string Unreadable = "RQ1";
 
     /// <summary><b>Not the caller's fault.</b> Something escaped an endpoint that no gate refused, which is a
@@ -103,6 +104,7 @@ internal static class RequestRules
     /// author looking for a mistake they did not make. What it buys is that the caller gets the one envelope
     /// every other refusal arrives in rather than a .NET stack trace, and the trace goes to the log where it
     /// belongs.</summary>
+    /// <remarks>Nothing an author can do: this is a defect in the studio, and seeing one is a bug report rather than an authoring problem. The stack trace is in the server log.</remarks>
     public const string Unhandled = "RQ2";
 
     /// <summary><b>A complaint, never a refusal.</b> The document carried a property the reader had nowhere to
@@ -110,5 +112,6 @@ internal static class RequestRules
     /// <c>warnings</c> because the work did succeed and the rest of the document was read; refusing it would
     /// refuse every snapshot written before the last shape change, since a stored document legitimately holds
     /// retired names an upgrade carries forward. See <see cref="Domain.DocumentShape"/>.</summary>
+    /// <remarks>Check the spelling of the field the finding names against the document shape the tool's document names. The work succeeded without it, so whatever that field was meant to say was not said.</remarks>
     public const string Unread = "RQ3";
 }

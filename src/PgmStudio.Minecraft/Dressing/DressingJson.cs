@@ -29,6 +29,7 @@ public sealed class DressingParseException(string subject, string? field, string
 {
     /// <summary>The rule this refusal carries into the export gate, so a caller can act on the id rather than
     /// parse the sentence.</summary>
+    /// <remarks>The finding names the prop and the field inside it. Fix that field: the usual causes are a <c>kind</c> the reader does not know, a <c>kind</c> missing outright, and a property of the wrong JSON shape.</remarks>
     public const string Rule = "DR-DOC";
 
     public string Subject { get; } = subject;

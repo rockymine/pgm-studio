@@ -12,15 +12,18 @@ public static class HouseStyleRules
     /// that kind of block: <c>doorHead.block</c>, its <c>fillBlock</c> under <c>upperSlab</c>, a window's
     /// <c>block</c> under <c>stairLattice</c>, <c>arched</c> or <c>slabBanded</c>, or <c>roofSlab</c>
     /// itself.</summary>
+    /// <remarks>Name a block of the kind the field means: a stair id where a stair is asked for, a slab where a slab is. The finding names the field; <c>GET /api/house-parts</c> lists what each one accepts.</remarks>
     public const string BlockKind = "HS1";
 
     /// <summary>A doorway does not clear the least height a door may, once its head is written into the top
     /// course.</summary>
+    /// <remarks>Raise the storey, or use a door head that does not eat a course. A doorway needs 3 clear blocks over 2 wide once its head is written into the top course.</remarks>
     public const string DoorClearance = "HS2";
 
     /// <summary>A roof's own materials are wrong for its pitch (a slab named as a whole-block roof with no
     /// half-course companion) or its family (a log or a ground material standing in for the roof or the
     /// verge).</summary>
+    /// <remarks>Match the roof material to its pitch and family: a 45° roof takes whole blocks and stairs, never slabs, and a log or a ground material is not a roof or a verge.</remarks>
     public const string RoofMaterial = "HS3";
 }
 

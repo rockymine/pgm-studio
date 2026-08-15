@@ -221,7 +221,7 @@ public static class Arch
             : (cornerBlock, BlockGeometry.CornerStair(alongX, atLowEnd: step == 0));
 }
 
-/// <summary>One window's place in a wall:/// <summary>One window's place in a wall: the <see cref="Wall"/> it is cut through, the low along-axis block
+/// <summary>One window's place in a wall: the <see cref="Wall"/> it is cut through, the low along-axis block
 /// coordinate along that run (x for a wall facing ±z, z for one facing ±x), and its size in blocks.
 /// <see cref="Sill"/> counts courses up from the floor, so it is the same number a style asked for. The seat
 /// carries the run rather than a facing, so it knows the line its wall stands on and needs no box to be cut

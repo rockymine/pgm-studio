@@ -93,8 +93,7 @@ public static class TopDownRender
     /// and measured crown radius. A caller reading a bare region directory has no dressing document to read it
     /// from, so this is null by construction here and the layer falls back to painting the leaf/log mass, the
     /// reading every layer already had. A caller that <em>does</em> hold the document (a studio export in
-    /// memory) passes it through the other <see cref="Run(VoxelWorld,string,MapXml?,int,int?,string,
-    /// TopDownColorMode,TopDownLayer,WorldProvenance?,IReadOnlyList{(int,int,double)}?)"/> overload.</para></summary>
+    /// memory) passes it through the <c>VoxelWorld</c> overload instead.</para></summary>
     public static int Run(string regionDir, string outPng, MapXml? map, int scale, int? yMax,
         TopDownColorMode colorMode = TopDownColorMode.Category, TopDownLayer layer = TopDownLayer.Combined,
         IReadOnlyList<(int X, int Z, double Radius)>? treePoints = null)

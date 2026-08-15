@@ -132,12 +132,15 @@ public static class MapExportComposer
     private static class ExportRules
     {
         /// <summary>Some part of the map cannot be walked to from the rest of it.</summary>
+        /// <remarks>The finding names what is cut off. Bridge it: add ground, widen a border, or move the isolated spawn or objective onto the reachable part of the map.</remarks>
         public const string NotTraversable = "EX1";
 
         /// <summary>Nobody can enter the map: it declares no spawn of any kind.</summary>
+        /// <remarks>Give the intent at least one spawn. An observer spawn is synthesised from the team spawns, so a map with no spawns at all has neither, and nobody can join it.</remarks>
         public const string NoSpawn = "EX2";
 
         /// <summary>What the intent declared is not in the document about to be written.</summary>
+        /// <remarks>Nothing an author can do directly: the intent states this and the document does not carry it, which is a fault between the two. Check that the intent stored for the map is the one that was authored, and report it if it is.</remarks>
         public const string NotCarried = "EX3";
     }
 
@@ -287,7 +290,7 @@ public static class MapExportComposer
 
         return Refuse("prop in goal clearance",
         [
-            .. violations.Select(violation => new Finding(DressingScope.Rule,
+            .. violations.Select(violation => new Finding(ObjectiveRules.PropInClearance,
                 $"{violation.Kind} '{violation.PropId}' at ({violation.X}, {violation.Z}) stands inside a "
                 + "goal's clearance",
                 Subjects: [violation.PropId])),
