@@ -621,11 +621,34 @@ than a gate beside the style.
   width N rather than a sequence, and the inlay is a centre rather than a ring. So the concentric case is not
   expressible in the housing system either, only closer to it.
 
-  One **band stack** — an ordered list of `(material, thickness)` whose last entry repeats — read along
-  whichever distance the caller has: depth from the top, courses from the base, rings from the edge. Housing
-  floors and theme rims both get arbitrary concentric bands out of it, and `RoomPart` and `LayeredMaterial`
-  stop being two spellings of one rule. The theme half needs the missing input as well: a painted shape has no
-  ring derivation, where a `Footprint` has `Ring(x, z)`.
+  One **band stack** — an ordered list of `(material, thickness)` — read along whichever distance the caller
+  has: depth from the top, courses from the base, rings from the edge. Housing floors and theme rims both get
+  arbitrary concentric bands out of it, and `RoomPart` and `LayeredMaterial` stop being two spellings of one
+  rule. The theme half needs the missing input as well: a painted shape has no ring derivation, where a
+  `Footprint` has `Ring(x, z)`.
+
+  **"The last band repeats" is not part of the concept, and assuming it is would build the rim wrong.** How a
+  stack ends is a second, independent choice, and the repo already makes it both ways:
+
+  | Stack | Read along | Runs out → |
+  |---|---|---|
+  | `LayeredMaterial` | depth from the top | the last band repeats |
+  | `RoomPart` | courses from the base | the last band repeats |
+  | `VoronoiMaterial.Bands` | the cell's F2−F1 gap | the last band repeats |
+  | `FloorSurface` | rings from the edge | **null — whatever is under it shows** |
+  | a theme's `TopBand` | depth from the top | **the next bucket answers** (rim → surface → fill) |
+
+  Repeating is right where the stack owns the whole space, which is what a wall or a floor plate is. Handing
+  over is right where the stack is a band *inside* a larger space, which is what a rim on a painted shape is:
+  a cobble rim two blocks in and then **the surface**, not two blocks of cobble and then cobble forever. So a
+  band stack states its axis and its ending, and neither is implied by the other.
+
+  **A repeating band does not reseed a pattern**, which is the other thing worth stating before anyone builds
+  on it. A pattern's seed is on the material, not on the band, and its field is sampled from world coordinates:
+  a `VoronoiMaterial` with `Rise: 0` reads `(x, z)` alone, so every block of a column gets one answer and a
+  repeat simply keeps asking the same field; with `Rise > 0` the field is sampled over the volume at a stated
+  vertical period, still one field. There is no arrangement in which two bands of one material draw two
+  different patterns.
 
   *found reading the house model after `B194`; the author had hit the theme half independently ·
   `TerrainTheme` · `RoomPart` · `FloorSurface` · `docs/world-export/terrain-painting.md`.*
