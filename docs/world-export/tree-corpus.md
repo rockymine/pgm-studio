@@ -35,7 +35,7 @@ Every leaf, filed by its strongest contact in its own 3×3×3 neighbourhood:
 | **edge-or-corner-to-leaf** | **10.6%** | **0.5%** |
 | nothing at all | 7 (0.03%) | 4 (0.02%) |
 
-The generated column is `CommunityMaps/ctw/pattern_test`, which mixes template and grown trees and cannot be
+The generated column is `pgm-studio-mapgen/maps/pattern_test`, which mixes template and grown trees and cannot be
 split by block alone — so it indicates rather than proves, and the grower sweep below is what proves. That
 map is now `library_map`, built from `tools/library-map.cs`'s spec (`B209`); the measurement is kept under the
 name it was taken at.
