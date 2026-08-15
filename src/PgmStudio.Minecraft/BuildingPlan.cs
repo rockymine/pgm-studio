@@ -468,26 +468,11 @@ public sealed class BuildingPlan
         return new PerimeterTrace(arc, turn, run);
     }
 
-    private Dictionary<(int X, int Z), int> Step()
-    {
-        var steps = new Dictionary<(int X, int Z), int>();
-        var queue = new Queue<(int X, int Z)>();
-        foreach (var (x, z) in Cells())
-            if (OnPerimeter(x, z)) { steps[(x, z)] = 0; queue.Enqueue((x, z)); }
-
-        while (queue.Count > 0)
-        {
-            var (x, z) = queue.Dequeue();
-            var next = steps[(x, z)] + 1;
-            foreach (var (nx, nz) in new[] { (x - 1, z), (x + 1, z), (x, z - 1), (x, z + 1) })
-                if (Holds(nx, nz) && !steps.ContainsKey((nx, nz)))
-                {
-                    steps[(nx, nz)] = next;
-                    queue.Enqueue((nx, nz));
-                }
-        }
-        return steps;
-    }
+    // Seeded from the outline and flooded four-connected inward — GridBoundary.StepsInward is that walk, and it
+    // seeds on the same eight-neighbour test OnPerimeter makes, over the same cells. Shared with the terrain
+    // raster rather than written twice: the arc a wall reads already comes from GridBoundary, and the inset is
+    // the other half of the same measurement.
+    private Dictionary<(int X, int Z), int> Step() => GridBoundary.StepsInward(Cells());
 
     /// <summary>One walk of an outline: which arc index each boundary cell holds, and the bend and direction
     /// measured at each of those indices.</summary>

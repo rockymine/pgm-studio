@@ -5080,6 +5080,30 @@ these are the ones that shipped a map that could not be played as intended, and 
   count of what was asked for. Seven regression tests at the placement, the two that matter being a house
   dropped for overlapping one already standing and a house authored over void: both claim nothing.
   `StructureClaim`'s docstring states the rule for the passes that have not yet followed it (`B203`).
+- **The inward axis is one walk, shared by both rasters (bucket 13's landing site).** A building's floor zones
+  are cut by how many steps in from its wall a cell stands, and `BuildingPlan` had that walk as a private
+  4-connected BFS seeded from its outline. The terrain raster had no equivalent, though the two already shared
+  `GridBoundary.TracePerimeter` for the arc — so the seed was common and only the inset was not, which is the
+  shape of a concept implemented once and not reached from the second place that needs it.
+  `GridBoundary.StepsInward` is that walk, lifted beside the trace it belongs with: seed every cell of a region
+  with an **eight**-neighbour outside it, then flood **four**-connected inward, multi-source so a cell in the
+  crook of two arms counts to the edge actually nearest it. Eight for the seed and four for the flood is the
+  building plan's own rule, kept exactly — a cell where two arms meet has four orthogonal neighbours inside the
+  region and is still on the outline. `ColumnProfile` now carries an `Inset` beside its `PerimeterArc`: how far
+  *in* from the void-facing edge a column stands against how far *round* it, measured in one pass over the same
+  landmass the perimeter is traced over.
+  **The walk crosses an elevation step**, which is the author's call and the one thing about it a flat board
+  cannot show: it runs over the whole footprint, seeding only from the geometric outer face, so a staircase of
+  plateaus gets one set of bands running across the treads and up the hill rather than a set per tread. Stated
+  in that direction so varying heights stay available; on flat ground, which is what the concept is reached for
+  most of the time, the two readings coincide. The region is the caller's, so a caller that ever wants a band
+  set per tread passes one tread — the walk itself knows nothing about elevation.
+  **Nothing paints from it, and that is checked rather than asserted.** The authored shape that spends the axis
+  is `B199`/`B200`. Verified three ways: six shapes — rectangle, L, T, holed, split and corner-touching —
+  compared cell for cell against the walk as it stood inside the building plan, kept in the suite as the oracle;
+  the band resolver handed profiles differing in nothing but `Inset` and answering identical bands; and a
+  painted staircase-plus-apron under all three rim modes together with an L-shaped house stamp at three
+  overhangs, hashed before and after the change and byte-identical (`38F79F3F…3BC9`).
 - **A claim covers what the stamp wrote and no more (B203, occupancy half).** The entry claimed four
   `ClaimRect` calls in `SketchWorldBuilder` re-derived a rect the stamper beside them had already computed.
   **Checked site by site, two did, and they were two different faults.** The wall, the goal box, the bedrock

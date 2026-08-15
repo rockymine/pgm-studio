@@ -13,10 +13,19 @@ namespace PgmStudio.Minecraft;
 /// drop's floor Y toward the void / toward lower terrain, or -1 when there is none — the wall's lower bound,
 /// split so the TP9 toggle can take the void one alone. <see cref="PerimeterArc"/> is the column's arc index
 /// along its landmass's outer void-facing perimeter (0-based around the loop), or -1 when the column is not on
-/// an outer boundary — what a wall-run pattern reads to wrap the perimeter (TP13).</summary>
+/// an outer boundary — what a wall-run pattern reads to wrap the perimeter (TP13).
+///
+/// <para><see cref="Inset"/> is the axis running the other way, measured in the same pass: how far <em>in</em>
+/// from the void-facing edge the column stands, 0 on the edge itself and -1 off the footprint. The arc says how
+/// far <em>round</em> the edge a cell sits and the inset how far in from it, which is the pair a band can be
+/// read along in either direction. <b>The walk crosses an elevation step</b> — it runs over the whole footprint,
+/// so a staircase of plateaus gets one set of bands running across the treads and up the hill rather than a set
+/// per tread. That is the author's call, made so the reading stays available on ground that is not flat; on flat
+/// ground, which is what the concept is reached for most of the time, the two readings coincide anyway. Nothing
+/// paints from it yet — the authored shape that spends it is `B199`/`B200`.</para></summary>
 public readonly record struct ColumnProfile(
     int SurfaceTop, bool VoidEdge, bool OpenEdge, bool ClosedEdge, int VoidDrop, int TerrainDrop,
-    int PerimeterArc = -1, int PerimeterTurn = 0, int PerimeterRun = 0);
+    int PerimeterArc = -1, int PerimeterTurn = 0, int PerimeterRun = 0, int Inset = -1);
 
 /// <summary>
 /// The shared core of terrain painting (docs/world-export/terrain-painting.md §5, stage 1): classifies every
@@ -38,6 +47,7 @@ public sealed class TerrainProfile
     private readonly Dictionary<(int, int), int> _perimeterArc = [];
     private readonly Dictionary<(int, int), int> _perimeterTurn = [];
     private readonly Dictionary<(int, int), int> _perimeterRun = [];
+    private readonly Dictionary<(int, int), int> _inset = [];
     private readonly Dictionary<(int, int), ColumnProfile> _columns = [];
 
     public TerrainProfile(VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop)
@@ -55,6 +65,13 @@ public sealed class TerrainProfile
             _facts[cell] = new CellFacts(top, structures.Contains(cell), plateaus[cell]);
 
         LabelPerimeter(surfaceTop.Keys);
+
+        // How far in from the void-facing edge each column stands, over the *whole* footprint — the same set
+        // the perimeter is traced over, so the two axes are measured against one landmass. Running it over the
+        // footprint rather than over one plateau is what carries the count across an elevation step and across
+        // a stamped structure, which is the author's reading: bands run up a staircase rather than restarting
+        // on every tread.
+        foreach (var (cell, step) in GridBoundary.StepsInward(surfaceTop.Keys)) _inset[cell] = step;
 
         foreach (var (cell, facts) in _facts)
         {
@@ -97,7 +114,8 @@ public sealed class TerrainProfile
         return new ColumnProfile(self.Top, voidEdge, openEdge, closedEdge, voidDrop, terrainDrop,
             _perimeterArc.GetValueOrDefault((x, z), -1),
             _perimeterTurn.GetValueOrDefault((x, z), 0),
-            _perimeterRun.GetValueOrDefault((x, z), 0));
+            _perimeterRun.GetValueOrDefault((x, z), 0),
+            _inset.GetValueOrDefault((x, z), -1));
     }
 
     // 4-connected components of equal surface top over the whole footprint (structures included, so a plateau

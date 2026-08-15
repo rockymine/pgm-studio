@@ -185,6 +185,46 @@ public sealed class TerrainPainterTests
         await Assert.That(border.VoidEdge).IsTrue();
     }
 
+    /// <summary>
+    /// <b>The inward walk crosses an elevation step</b> — the author's call, and the one thing about the inset
+    /// that a flat board cannot demonstrate. The same three-tread staircase: only its outer face seeds, so the
+    /// count runs across the treads and up the hill rather than restarting at each of them.
+    ///
+    /// <para>The middle column is what tells the two readings apart. Walked from the outer face alone it is
+    /// four steps in from the border; had every tread edge seeded its own ring 0 it would be one, since a tread
+    /// is three wide. Four and not one is the reading, so bands stay available on ground that is not flat.</para>
+    /// </summary>
+    [Test]
+    public async Task The_inward_walk_runs_across_a_tread_rather_than_restarting_on_it()
+    {
+        var columns = new List<(int, int, int, int)>();
+        for (var x = 0; x < 9; x++)
+        for (var z = 0; z < 9; z++)
+            columns.Add((x, z, 1, 9 + x / 3));       // three 3-wide treads at 9, 10 and 11
+        var terrain = SketchTerrainBuilder.Build(columns);
+        var profile = new TerrainProfile(terrain.World, terrain.SurfaceTop);
+
+        // The outer face is nought all the way round, whichever tread it falls on.
+        foreach (var cell in new[] { (0, 4), (8, 4), (4, 0), (4, 8) })
+        {
+            await Assert.That(profile.TryGetColumn(cell, out var edge)).IsTrue();
+            await Assert.That((cell, edge.Inset)).IsEqualTo((cell, 0));
+        }
+
+        // Straight in from the border, counting on past two tread boundaries (x = 2|3 and x = 5|6).
+        foreach (var (cell, expected) in new[] { (((int, int))(1, 4), 1), ((2, 4), 2), ((3, 4), 3), ((4, 4), 4) })
+        {
+            await Assert.That(profile.TryGetColumn(cell, out var column)).IsTrue();
+            await Assert.That((cell, column.Inset)).IsEqualTo((cell, expected));
+        }
+
+        // And the step itself is still an open edge — the inset is a second axis beside the edge tests, not a
+        // replacement for them, so nothing a rim mode reads has moved.
+        await Assert.That(profile.TryGetColumn((3, 4), out var tread)).IsTrue();
+        await Assert.That(tread.OpenEdge).IsTrue();
+        await Assert.That(tread.VoidEdge).IsFalse();
+    }
+
     // ── bucket toggles (TP12): fill is the required fallback down the chain ──────────────────────────────
 
     [Test]
@@ -374,6 +414,27 @@ public sealed class TerrainPainterTests
                 .IsEqualTo((top.Value.Id, top.Value.Data));
             // and it really is the column's top: nothing solid sits above it.
             await Assert.That(terrain.World.GetBlock(cell.X, top.Value.Y + 1, cell.Z).Id).IsEqualTo(0);
+        }
+    }
+
+    // ── the inset is carried and not yet spent ──────────────────────────────────────────────────────
+    /// <summary>The guarantee that adding the inward axis to <see cref="ColumnProfile"/> moved no paint: the
+    /// resolver is handed two profiles differing in nothing but <c>Inset</c> and answers the same bands. The
+    /// field is measured for the authored shape that will read it (`B199`/`B200`) and nothing reads it yet, so
+    /// a theme applied to a shape resolves exactly as it did before the axis existed.</summary>
+    [Test]
+    [Arguments(-1)]
+    [Arguments(0)]
+    [Arguments(1)]
+    [Arguments(7)]
+    public async Task A_theme_resolves_the_same_bands_whatever_the_inset_says(int inset)
+    {
+        foreach (var theme in new[] { TerrainTheme.Default })
+        foreach (var baseline in new[] { VoidEdge(9), Interior(9), TerrainStep(12, 9) })
+        {
+            var withInset = baseline with { Inset = inset };
+            await Assert.That((inset, TerrainPainter.Resolve(withInset, theme)))
+                .IsEquivalentTo((inset, TerrainPainter.Resolve(baseline, theme)));
         }
     }
 }

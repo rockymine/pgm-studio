@@ -57,10 +57,14 @@ rather than a sixth list. Bucket 13's author call is answered: **the walk crosse
 8, 11 and 12 share nothing and may run at once.
 
 **Every bucket now has its landing site built, and the landscape work is done.** `Findings`/`Check` for the
-refusals, `StructureClaim` for occupancy, `BlockFamilies` for block kind, one `PlanValidator` verb, and
-`BuildingPlan` renamed clear of `Geom.Footprint` so bucket 13's lift has somewhere to go. The one piece of
-shared machinery still to build is bucket 13's own: the inward walk lifted into `PgmStudio.Geom.Algorithms`
-with `ColumnProfile` carrying an `Inset` beside its `PerimeterArc`.
+refusals, `StructureClaim` for occupancy, `BlockFamilies` for block kind, one `PlanValidator` verb,
+`BuildingPlan` renamed clear of `Geom.Footprint`, and `GridBoundary.StepsInward` with `ColumnProfile.Inset` for
+the inward axis — shared by both rasters, with the author's crossing-an-elevation-step call built into it.
+Nothing paints from the inset yet; the authored shape that spends it is bucket 13's own work.
+
+**The forty in `BACKLOG.md` are dispatchable as they stand.** Each bucket's concept, its landing site and the
+order it must run in are stated there under *What each bucket spends*; nothing left in them needs a shared unit
+invented first.
 
 ## Backend, pipeline & internals (B / P / A)
 

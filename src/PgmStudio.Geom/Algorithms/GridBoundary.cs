@@ -184,4 +184,54 @@ public static class GridBoundary
         for (var index = 0; index < loop.Length; index++) runs[loop[index]] = RunAt(loop, index, window);
         return runs;
     }
+
+    /// <summary>
+    /// How many steps in from the edge each cell of <paramref name="region"/> stands: 0 on the edge itself,
+    /// 1 for the ring behind it, and so on inward. Cells outside the region are absent.
+    ///
+    /// <para><b>The seed is the same edge <see cref="TracePerimeter"/> walks, tested rather than traced</b>:
+    /// a cell is on the edge when it is in the region and any of its <b>eight</b> neighbours is not. Eight and
+    /// not four, for the reason a traced outline turns a corner at all — where two arms of a shape meet, the
+    /// cell in the crook has four orthogonal neighbours inside the region and is still on the outline, and a
+    /// four-neighbour test calls it interior. The flood inward is <b>four</b>-connected, because a step is a
+    /// step a walker could take and nothing steps diagonally.</para>
+    ///
+    /// <para>Multi-source: every edge cell starts at 0 together, so a cell in the crook of two arms counts to
+    /// the edge that is actually nearest it rather than to whichever arm was enumerated first. That also makes
+    /// the answer independent of the order <paramref name="region"/> yields its cells.</para>
+    ///
+    /// <para><b>The region is the caller's, and that is where the interesting choice lives.</b> This walks a
+    /// set of cells and knows nothing about what they carry — so whether the count runs across an elevation
+    /// step, a plateau boundary or a stamped structure is decided entirely by whether the caller puts those
+    /// cells in the region. A caller wanting bands that run up a staircase passes the whole footprint; one
+    /// wanting a band set per tread passes one tread.</para>
+    /// </summary>
+    public static Dictionary<(int X, int Z), int> StepsInward(IEnumerable<(int X, int Z)> region)
+    {
+        var cells = region as HashSet<(int X, int Z)> ?? [.. region];
+        var steps = new Dictionary<(int X, int Z), int>(cells.Count);
+        var queue = new Queue<(int X, int Z)>();
+
+        foreach (var (x, z) in cells)
+            foreach (var (dx, dz) in Cw)
+                if (!cells.Contains((x + dx, z + dz)))
+                {
+                    steps[(x, z)] = 0;
+                    queue.Enqueue((x, z));
+                    break;
+                }
+
+        while (queue.Count > 0)
+        {
+            var (x, z) = queue.Dequeue();
+            var next = steps[(x, z)] + 1;
+            foreach (var (nx, nz) in new[] { (x - 1, z), (x + 1, z), (x, z - 1), (x, z + 1) })
+                if (cells.Contains((nx, nz)) && !steps.ContainsKey((nx, nz)))
+                {
+                    steps[(nx, nz)] = next;
+                    queue.Enqueue((nx, nz));
+                }
+        }
+        return steps;
+    }
 }

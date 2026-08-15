@@ -227,10 +227,28 @@ are already non-stone columns, so "consult the stamps" is just "read the finishe
    sealed by a structure — TP6), its membership of all three nested rim-edge tests (void · open · closed, the
    three a theme's `rimEdges` chooses between), its void/terrain drop floors, and its
    **perimeter arc** — the index around its landmass's outer void-facing boundary that a wall-run reads (TP13).
-   The arc comes from splitting the footprint into connected landmasses and Moore-tracing each one's outline; it
-   is the only geometric fact the patterns added. Nothing here depends on a theme, so the same `TerrainProfile`
-   serves every theme, scope and pattern. **This is the shared core**, and it is the only stage that touches
-   geometry.
+   The arc comes from splitting the footprint into connected landmasses and Moore-tracing each one's outline.
+   Nothing here depends on a theme, so the same `TerrainProfile` serves every theme, scope and pattern. **This
+   is the shared core**, and it is the only stage that touches geometry.
+
+   The stage also measures the axis running the other way — the column's **inset**, how far *in* from the
+   void-facing edge it stands, 0 on the edge itself and −1 off the footprint. The arc says how far *round* the
+   edge a cell sits and the inset how far *in* from it: same pass, same struct, and the pair is what a band can
+   be read along in either direction. Both come from one place, `GridBoundary` — `TracePerimeter` for the arc
+   and `StepsInward` for the inset — which is the same pair a building's own plan reads for its wall runs and
+   its floor zones, so a wall and the plateau beside it cannot answer at different scales.
+
+   **The inward walk crosses an elevation step.** It runs over the whole footprint, seeding only from the
+   geometric outer face, so a staircase of plateaus gets one set of bands running across the treads and up the
+   hill rather than a set per tread. That is an authoring call rather than a derivation: the concept is reached
+   for on flat ground most of the time, where the two readings coincide, and it is stated in this direction so
+   that varying heights stay available rather than being ruled out by the seeding rule. The seed is the
+   *geometric* edge either way, not the `rimEdges` toggle — a rim mode chooses which drops a rim caps, which is
+   a different question asked further down the pipeline.
+
+   **Nothing paints from the inset yet.** It is measured for the authored shape that will spend it — a border
+   stated as a sequence of bands read by ring rather than one material of width N (`B199`, `B200`) — and no
+   band resolver reads it, so a theme applied to a shape resolves exactly as it did before the axis existed.
 
 2. **Theme resolution — the scope layer.** A `Theme` is a data row: the bedrock mode, the `rimEdges` and
    wall-face knobs, plus a `TopBand` per top bucket (its material, depth and toggle) and a material for the wall and

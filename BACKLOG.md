@@ -655,12 +655,12 @@ reads it names the id.
 **The inward axis — bands read along a distance.** `B199`, `B200` and `B201` are one concept and were filed in
 bucket 4 because they mention materials. They are not block-kind rules: two of them are one walk asked for on
 two rasters, and the third is the same bands read along an axis that is continuous rather than stepped.
-`BuildingPlan.Step()` in `PgmStudio.Minecraft` is a private 4-connected BFS inward from the
-outline; `TerrainProfile` has no equivalent, though both already share `GridBoundary.TracePerimeter` for the
-arc — so the seed is common and only the inset is not. **Lands in** `PgmStudio.Geom.Algorithms` beside
-`GridBoundary`, with `ColumnProfile` carrying an `Inset` beside its `PerimeterArc` and `BandStack` read along
-it. `B200` is blocked on one author call — whether the walk crosses an elevation step — and `B199` and `B201`
-should be settled with it rather than in sequence.
+**The axis has landed** (`FEATURES.md`): `GridBoundary.StepsInward` is the walk, beside `TracePerimeter` where
+the arc already came from, `BuildingPlan` reads it instead of the private copy it had, and `ColumnProfile`
+carries an `Inset` beside its `PerimeterArc`. The author's call is answered — the walk **crosses an elevation
+step** — so what is left in this bucket is the authored shape that spends the axis, and none of it is blocked.
+**Lands in** `BucketContext` (carrying the inset the way it already carries the arc), `BandStack` read along
+it, and the theme JSON and Theme phase that let a rim state a sequence rather than one material of width N.
 
 **Block kind by role.** What is left of bucket 4 (`B165`, `B190`) and all of bucket 5. **The table exists**:
 `BlockFamilies` names each id family once — stairs, single slabs, double slabs, panes, logs, leaves, soil —
@@ -1419,9 +1419,15 @@ the thing `B181` names, which makes the document upstream of the boards rather t
 Three entries and one walk. They were filed under bucket 4 because each names materials, and they are not
 block-kind rules: a floor divided into concentric zones, a terrain top course banded inward from its rim, and
 a band stack whose axis is continuous are the same question asked on three rasters — **how far in from the
-edge does this cell stand, and which band claims that distance.** `BuildingPlan.Step()` already answers it for a
-building's floor and nothing answers it for terrain, though `GridBoundary.TracePerimeter` is already shared by
-both. `B200`'s author call is **answered**, so nothing here is blocked.
+edge does this cell stand, and which band claims that distance.**
+
+**The axis itself is built and nothing here is blocked.** `GridBoundary.StepsInward` is the walk, beside
+`TracePerimeter` where the arc already came from; `BuildingPlan` reads it in place of the private copy it had,
+and `ColumnProfile` carries an `Inset` beside its `PerimeterArc` — how far *in* from the void-facing edge a
+column stands, against how far *round* it. Nothing paints from it yet, which is the whole of what is left
+here: the **authored shape** that spends the axis. `B199` is the house floor's border becoming a stack read by
+ring, and `B200` the terrain's top course banded inward — both a schema, DTO and editor change rather than a
+traversal, since the traversal now exists.
 
 **The walk crosses an elevation step** (author, 2026-08-15). One walk inward from the geometric outer edge,
 numbering across a tread rather than reseeding at it — `B200`'s `Void` reading, not `RimEdges.Drop`. The
@@ -1458,22 +1464,16 @@ each tread seeded its own ring 0.
   while theming a board — cannot be said. This is theming of the **topmost course only**, walked inward; it is
   not the `Rim` bucket becoming concentric, and filing it that way was wrong.
 
-  **Nothing new has to be derived.** `BuildingPlan.Step()` is the walk: seed a queue with every cell on the
-  outline, then flood inward one pass at a time over cells that are in the shape and not yet numbered — one
-  pass catches the first ring, two catch the second. It is 4-connected BFS over `(x, z)` cells and reads
-  nothing about houses. The terrain raster is the same kind of thing: `TerrainProfile` already classifies every
-  paintable column from `surfaceTop` by looking at its N8 neighbours, and its void-edge test is
-  `BuildingPlan.OnPerimeter` written a second time — *in the set, and some N8 neighbour is outside it*. So the
-  seed exists on both sides and the walk exists on one.
+  **The axis is built; what is missing is the authored shape that spends it.** `GridBoundary.StepsInward` is
+  the walk, shared with the house raster, and `ColumnProfile` carries an `Inset` beside its `PerimeterArc` —
+  how far *in* from the void-facing edge a column stands, against how far *round* it, measured in the same
+  pass over the same landmass (`FEATURES.md`). Nothing paints from it.
 
-  **The shape of the fix, in three moves.** Lift the BFS into `PgmStudio.Geom.Algorithms` beside
-  `GridBoundary.TracePerimeter` — which `Footprint` and `TerrainProfile` **already share**, so the arc is
-  common and only the inset is not. Give `ColumnProfile` an `Inset` beside its `PerimeterArc`: one says how far
-  *round* the edge a cell sits, the other how far *in* from it, same pass and same struct. Carry it on
-  `BucketContext` the way the arc already is, and the bands are then a `BandStack` read along it with
-  `BandEnding.HandOver` — cobble, two of stone brick, then nothing claimed and the surface shows. Restricting
-  it to the top course composes rather than needing a knob: a `layered` stack whose first band is the
-  ring-banded material and whose rest is dirt.
+  **What remains, in two moves.** Carry the inset on `BucketContext` the way the arc already is, and make the
+  bands a `BandStack` read along it with `BandEnding.HandOver` — cobble, two of stone brick, then nothing
+  claimed and the surface shows. Then the authoring: a `Rim` that states a sequence rather than one material of
+  width N, through the theme JSON and the Theme phase. Restricting it to the top course composes rather than
+  needing a knob — a `layered` stack whose first band is the ring-banded material and whose rest is dirt.
 
   **The walk crosses an elevation step, and that is settled** (author, 2026-08-15). Only the geometric outer
   face seeds; the numbering carries across a tread rather than restarting at it, so a staircase of plateaus
