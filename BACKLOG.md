@@ -426,15 +426,18 @@ by `HousePropRules.PastCap` and is not filed.
   — and applies a threshold calibrated in the other unit. `B175` even points at the collision without seeing
   it: "the rule shape exists on the wool side" is exactly `WL7`, and `WL7` is the measure that disagrees.
 
-  **Scope, now that the unit is settled:** re-measure `B175`'s "at least 35", `B179`'s "nearest enemy goal at
-  95–110" and `B188`'s 164-map table as traversal over the walkable surface, and **commit the sweep** so the
-  next reader can re-derive them instead of trusting a backlog entry. The band a rule cites and the sweep that
-  produced it belong in the repository together; that they did not is why this entry exists at all.
-  `B188`'s own closing note is the reason not to skip it: it concluded the ratio fault is board *shape* rather
-  than goal placement, which is a claim about what the number means and cannot be checked without knowing how
-  it was taken. The walkable mask and a 4-connected walk are both already available — `Analysis/Playability`
-  builds the mask the traversability read uses, and `Geom/Cells.ShortestPath` walks it — so this is a sweep to
-  write and record, not a measure to invent.
+  **Scope, and it is deliberately small: no corpus sweep.** The obvious move — re-measure `B175`'s "at least
+  35", `B179`'s 95–110 and `B188`'s 164-map table as traversal, committing the sweep — is **not being done**
+  (author, 2026-08-15). A re-derivation buys precision this project does not need yet and costs a sweep, its
+  harness and its upkeep, and the entry that would justify it is the same one that keeps growing. **Simple hard
+  rules instead**, stated by the author in the settled unit and tagged `[expert]` in `rules.md`, the way `WL7`
+  already carries a working minimum of ≈45 without anything re-deriving it per release.
+
+  What that leaves is bookkeeping rather than measurement: the three straight-line numbers must stop being
+  cited as if they were calibrated, because their unit is retired and the sweep behind `B188` is not in the
+  repository to re-run. Mark them at their citation sites as straight-line and unreproducible, and let a hard
+  rule replace each as the author states one. Nothing else here is blocking: the measure exists, the unit is
+  settled, and `Geom/Cells.ShortestPath` walks the mask if a number is ever wanted.
 
   **The flow read is already in the right unit, which narrows this.** `G127`'s prototype measures in proxy
   cells over the walkable mask (×5 = blocks) — `WL7`'s unit, not the corpus band's. So the two *derivations*
@@ -2333,6 +2336,18 @@ What stays here is the concrete non-design work on *imported* maps (island detec
   protection-aware reachability** from `scripts/generator/validate_play.py` to C# `Analysis/Playability`:
   today's `Traversability.Check` only tests connectivity, **not** spawn-protection-as-wall, so it passes maps
   the generator's Python validator would fail. Feed it into the `NVAL` / preflight gate.
+
+  **Protection is not the only thing that mask cannot see, and the second one is already solved next door.**
+  `Traversability.Check` takes any column holding any solid block as walkable (`SegmentIndex.SurfaceColumns`),
+  so a building is walkable ground and a route passes through a wall; `Minecraft.Render.TraversabilityRender`,
+  behind `--traversability-map`, asks the better question — ground with **two clear blocks of headroom** — and
+  does see one. Two masks, one concept, different answers, and the blinder of the two is the one that can
+  refuse an export. Every traversability figure in `pgm-studio-mapgen/reports/` came from the render.
+  Adopting the render's predicate costs nothing extra: the segment index the gate already loads holds the
+  vertical structure, and `SurfaceColumns` is discarding it — the same index already answers air-at-a-point
+  for monument obstruction. Worth doing with this entry rather than as its own, since both are the same mask
+  learning what stops a player. **Not urgent on its own**: `B172` keeps houses out of the one place they most
+  obstruct, and no corpus distance sweep depends on it (`B212`).
 
 - [ ] **G164 — interference: how much of one side's route the other side's route covers.** Every flow
   measure so far reads one traversal at a time, and a single route cannot express tension. Tension is two

@@ -71,9 +71,11 @@ built and checked. What a closer read of the sixth found:
   what a player carrying wool actually pays, and a separation rule is about the second. Logged as `rules.md`
   amendment 13, whose preamble had named the scale (blocks) and left the metric to be inferred, which it was,
   both ways. No code moves: `WL7` (`WoolWoolDistance`) already routes 4-connected around voids, `WL9`/`WL10`
-  already read "traversal", and `G127`'s flow prototype is already in that unit. What is left is that bucket
-  3's bands — `B175`, `B179`, `B188`'s 164-map table — were taken **straight-line off `map.xml` regions** and
-  must be re-measured, with the sweep committed this time rather than surviving as numbers in a backlog entry.
+  already read "traversal", and `G127`'s flow prototype is already in that unit. Bucket 3's bands — `B175`,
+  `B179`, `B188`'s 164-map table — were taken **straight-line off `map.xml` regions**, and they are **not being
+  re-measured**: the author's call is simple hard rules in the settled unit rather than a corpus sweep and the
+  harness behind it. What remains is to stop citing those three as calibrated, since their unit is retired and
+  the sweep behind `B188` is not in the repository to re-run.
 - **`B37` is the parent of buckets 2, 3 and 6 and none of them said so.** Bucket 6's "placement report the
   export can refuse on" *is* `B37`'s resolved-stamp record; bucket 3's distances are `B37`'s deferred half, and
   `B188` has already discharged the corpus measurement it was waiting on. `IronResolution` is still the only
