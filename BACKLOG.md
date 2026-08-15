@@ -1629,6 +1629,59 @@ each tread seeded its own ring 0.
   *found doing `B195` · `TerrainPatterns.VoronoiMaterial`.*
 
 
+- [ ] **B213 — A part editor previews the whole house, so the part being authored is the part to squint for.**
+  `RoomStylePreview.Views` stamps a whole `HouseStyle` into the fixed sample and takes `Outer(style)` — the
+  entire shell — whichever of the three part libraries is open, and all three compose a full house around the
+  draft (`ComposeRoofDraftAsync` → `RoofOver(row, courses, WallFor(row))`; the storey and porch drafts →
+  `OnSample(…)`). Nothing on that path asks which part is being edited, which is a default from when the house
+  was the only type: `RoofStyle`, `Storey`, `PorchStyle` and `Foundation` are records of their own now, and
+  `RoofStyle`'s own docstring records the split.
+
+  **The fix is a focus box and needs nothing from the stamper.** `WorldViews.Isometric` already takes a
+  `ViewBox` and draws what is in it, and the bands are public: a storey's is `LevelBases[i]` to `+ Clear`, a
+  roof's is `WallCourses` upward, and a porch is the `SplitPorch` deck — an XZ restriction rather than a band,
+  which is the one of the three that does not fall out of a Y range. Stamping the part alone is the other
+  design and is worse value: a roof's eave sits on the summed storey stack, a porch's posts fall back to the
+  ground storey's material, and the porch decides the front the body is split on, so an isolated part has to
+  synthesise the context that decides its geometry anyway.
+
+  **One trap.** `WorldViews.Isometric`'s `Opaque()` reads `world.GetBlock` unbounded, so a face at the cut
+  plane sees solid beyond it and is not drawn — a box restriction leaves the cut open unless out-of-box reads
+  as air. Whole-house stays the default view; the focus is what the open part editor frames.
+
+- [ ] **B214 — `RoomEdge` is a bare enum, so four switches and four inline predicates re-derive its axis.**
+  The enum carries nothing but its four names (`Domain/RoomFrames.cs`), so every caller that needs to know
+  which axis an edge runs along, which side of a rectangle it names, or which way it faces answers for itself.
+  In `HouseStamper` alone that is four 4-arm switches — `LadderFacing`, `SplitPorch`, `PorchPosts`,
+  `PorchRail` — and four inline `is NegZ or PosZ` tests standing in for "runs along X", in `SplitPorch`,
+  `FrontCentre` and `PorchPosts`. `WallSegment` already answers `AlongX` and `Inward`, so the fact exists on
+  one type and is recomputed on another.
+
+  The shared thing is a value and not a shape, so it goes on the enum in `Domain` where the enum is —
+  `AlongX`, the outward normal, the facing nibble — and the switches collapse into reads. `WoolChests`
+  (`CornerFacing`) and `PlanValidator` (`DoorEdge`) answer neighbouring questions outside this file, so the
+  sweep is what tells whether they are the same question or three that merely rhyme.
+
+- [ ] **B215 — `HouseStamper`'s prose has drifted from its code in four places.** The method's own summary
+  says the roof is **one field over the plan's bounding box** and that "a plan that turns a corner is roofed
+  as though it did not" — but the body builds one `RoofField` per wing, with marching, projecting and
+  cross-gables, and `FEATURES.md` carries "A building's roof is the union of its wings' roofs". The docstring
+  claims a limitation the stamper does not have. Only the porch half of that sentence still holds, and
+  `SplitPorch` is where it holds. Both citations of the shipped id are also the banned kind — a task id in a
+  comment, cited as a gap rather than as provenance.
+
+  Three smaller ones travel with it. `LayBeams`'s four-line comment is stranded above `TopPlan`, with
+  `TopPlan`'s own one-liner appended to the end of it, leaving `LayBeams` undocumented. `StampedExtent`'s XML
+  doc closes `</summary>` twice with an orphan `<para>` between them. `PorchPosts` is built twice in
+  `StampPorch`, the second time only to be hashed. And two names promise a relation that is not there:
+  `Covering` is the highest **wall top** of any wing over a cell and `CoveringCrown` the highest **roof
+  crown** of every *other* wing, which read as one function and its variant.
+
+  *Left open deliberately:* `Overtopped` gates on `otherField.Covers` where `CoveringCrown` gates on
+  `otherRoofed.Holds` — rectangle against rectangle-plus-overhang. That may be exactly right, since an
+  overhang is roof and a march stands outside every rectangle. It wants `RoofField` read before it is called
+  either way.
+
 - [~] **B70 — The room-style *card* cannot show a porch or a window.** The open editor draws four views now
   (B71), the cutaway among them, so a style's porch and its windows read there. A library **card** still
   carries the section alone, and a section projected onto the front wall shows a window as a patch of the same
