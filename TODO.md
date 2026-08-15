@@ -12,269 +12,123 @@ When this board drains, pull the next theme up from `BACKLOG.md`. Board rules li
 Task ids are a section letter + number (`S13`, `B10`, `G15`) — **globally unique and stable** across all
 three files. Moving a task between files never changes its id; never renumber or reuse.
 
-## The focus: a map an agent can author, and that a player can win
+## The focus: the seams, and which of them bite
 
-**The machinery answers, and the answer arrived with a bill.** Six agent runs across three models authored
-**nineteen loadable maps** and seven reports by driving the real documents end to end, with no human in the
-middle — which is what `B120` asked and is now settled. The author then reviewed twelve of those boards
-against the plans, the layouts and the built worlds, and every claim in that review re-measured: **forty-eight
-findings, and one of them fatal.** Three committed maps failed to parse at all, because a board carrying two
-objective kinds shipped `<gamemode>dtm dtc</gamemode>` against PGM's closed `Gamemode` enum — fixed (`B155`):
-the writer emits one `<gamemode>` element per mode, the reader keeps every one, and the export gate refuses a
-label PGM's own enum would reject before it ships.
+A **seam** is one concept implemented once and not reached from the second place that needs it. Four are known,
+and every one was found by following where a fact is stored or derived rather than by reading a type:
 
-**Twenty of the forty-eight enforce rules that are the author's**, stated rather than measured, and that
-nothing in the system checks: a spawn door stands 15 blocks off the void and opens onto 20×20 of clear ground
-it can climb back onto; a wool-room piece is at most 20×20 and a placed building at least 5×5; two islands sit
-15–40 apart; two goals of one team sit 35 apart; obsidian caps at three blocks; a grass course is exactly one
-block; a log is never a roof. They are law under `CLAUDE.md`'s oracle clause. **They are filed in
-`BACKLOG.md` as `B141`–`B188`, bucketed into thirteen dispatch groups** — each bucket one agent, one pass, one
-area of code — with the collisions between them stated (`B1`–`B3` all land in `PlanValidator`).
+- a house prop carries a whole style, and the dressing reader deserialized straight past the upgrade every
+  standalone style ran (`B197`);
+- a house style never ran the material walk at all, so a pattern stored inside one never read forward (`B195`);
+- the inward walk a floor's zones are cut by exists for the housing raster and not for the terrain one, though
+  both already share the perimeter trace beside it (`B200`);
+- a house the dressing pass **declined to place** still claims its footprint as structure, because the claim is
+  rebuilt from the author's intent instead of from the placement (`B202`).
 
-The `MG` entries stay in `docs/tools/mapgen-review.md` as evidence, the way `docs/generator/audit.md` holds the
-generator's; an entry **leaves it when its fix lands**. Two want reopening on the audit's measurement: `MG28`
-closed the whorled tree on a leaf count where the ratio is 1.26 leaves per log (`B174`), which is `B96`'s fault
-recurring on a different subject.
+**Only the last bites.** It is measured: two authored houses whose stamped rings overlap, one placed, two
+claimed, 56 columns carrying a `Structure` claim over bare ground — and provenance is now *preferred* over the
+material estimate, so a stage image draws a building that is not there and says it is certain. The other three
+were correct by coincidence of maintenance. That is the whole difficulty: nothing in the type, the tests or the
+documents separates a seam that bites from one that has not yet, and the four above did not fail a single test
+between them.
 
-**What the boards showed that no gate will fix.** Ten of twelve settlements are one street of identical houses
-behind the spawn; three boards are unreadable in opposite directions, one vanishing into its own rock and one
-clashing; every objective on the widest board sits in a six-block column. Those are composition rather than
-defect — no refusal is wanted — and they are why the next run is not the same run again. The authoring
-apparatus itself is the second half of this focus (`B189`): art direction, named map briefs, and a reviewer
-that is a separate agent from the author.
+`B203` maps the class rather than an instance — five answers to "which columns does this stamp own", four
+tables for "what kind of block is this", one predicate written twice and one name covering two meanings.
+
+**Where the next agent starts: `B204`.** The forty-eight bucketed in `BACKLOG.md` are grouped by *area of
+code*, which is what an agent needs in order to work and not what several agents need in order to agree. Every
+seam above lives between buckets. Dispatched as they stand, each agent fixes the instance in front of it —
+correctly, locally — and leaves the other copies differing deliberately rather than by neglect, which is
+strictly harder to find afterwards.
 
 ## Backend, pipeline & internals (B / P / A)
 
-**These three are the current run, in order.** They come out of one finding, and the finding is worth stating
-once because every entry below inherits it: **`tools/` grew a second copy of the system.** A two-day
-experiment in whether an agent could drive the studio produced a CLI that reimplemented the parts it could
-not reach — its own goal-over-void refusal, its own prop clearance, its own forest and village samplers, its
-own reduced document format — and the board began treating that CLI as product, filing bugs against it and
-listing its refusals in `FEATURES.md`. A tool is allowed to *drive* the system. It is not allowed to *be* a
-second one, because the second one is what rots: it has no tests, no document that governs it, and it drifts
-behind the thing it copies without anyone seeing (the relief fork sat 1614 cells off a settled solve for
-exactly that reason). `B119` moved the boundary so the copying stopped being necessary — the export path is
-`PgmStudio.Export` now, not a folder inside the web app — which is what made `B118` cheap: it deleted the
-copy, the site sampler and the reduced spec format both, in favour of the real documents `B119` had just made
-reachable.
+**Two findings and the pass that decides how the rest are dispatched.** `B202` is the live one and `B203` is
+the class it belongs to; `B204` is what has to happen before the bucketed forty-eight are handed out. The
+entries under them are the live-defect hunts already open against the same surfaces — a building that is solid
+behind its facade, leaves lying inside one, a stale chunk surviving a rebuild — plus the two names that still
+cover two meanings each.
 
-**That run is finished and `B120` with it.** `B128` landed — a destroyable/core's `float` now counts from the
-ground the world build actually solves rather than the plan's flat nominal surface, and the marker itself may
-name no plan piece at all, so a goal rides an authored sketch landform with no tier manufactured to carry it —
-and the trial that tested the result ran three times over three models. Nineteen maps, seven reports, and the
-forty-eight findings now in `BACKLOG.md`. What is on this board is what the trial made urgent, less the label
-PGM refused (`B155`, shipped): the authoring apparatus the next run needs, and the entries the audit corrected.
+- [ ] **B204 — Say which concept each bucket spends, before an agent is handed one.** The forty-eight in
+  `BACKLOG.md` are bucketed by area of code. That is what an agent needs in order to work; it is not what
+  several agents need in order to agree. Bucket 4 is five tasks that are all one rule — a block must be the
+  kind its role needs — and five agents each adding a predicate is a fifth and sixth block table shipped as
+  five green PRs (`B203` counts the four that already exist).
 
-- [ ] **B189 — The authoring apparatus: art direction, named briefs, and a reviewer that is not the author.**
-  Three runs asked three models for "a map of your own design" and got, three times over, one street of
-  identical houses behind the spawn on a square board under a palette nobody checked. The brief is where that
-  came from: it asked for a **visual identity you can name in a sentence** and then supplied no vocabulary for
-  saying one, so every model reached for the same defaults, and it asked each model to review its own work,
-  which is how a report came to describe two empty shells as "verified working with 2 destroyables".
+  Read each bucket's task bodies and label the bucket with the concept it spends and the shared unit that
+  concept must land in. The candidate set, derived from the bucket titles and the four seams rather than from
+  the bodies — which is exactly what this task is for:
 
-  The replacement is four documents in `pgm-studio-mapgen`. **`ART-DIRECTION.md`** is the visual law, and it is
-  deliberately **literal** — the last brief asked for "a visual identity you can name in a sentence" and
-  supplied no vocabulary for saying one, so it names blocks. It carries the nineteen hand-authored tone
-  families with their members, and the rule the boards all missed: **a pattern takes two or three members of a
-  family, never the whole family** — Kilnrow's `cell` over five near-identical whites is why that board reads
-  as clashing though every block in it is pale. It carries the material rules the audit measured (one course of
-  grass, a slab only on a half-course rise, no log in a roof, no footing on terrain, obsidian at three blocks),
-  and **five omissions nothing ever flagged because they were absences rather than mistakes**: nobody planned
-  the board's silhouette or aspect ratio before drawing; **no board in twenty-one has ever authored a path**,
-  which is the circulation diagram drawn and the thing that keeps the ground along a route clean; everybody
-  turned the rim on, including on relief-solved ground, where it terraces a rolling hill into contour lines;
-  landforms never flowed into each other, the named fault being a flat 20×20 pad butted against a hill with no
-  `skirt` and no tilt between them; and the only built thing any board has ever themed is a village behind the
-  spawn. It points at the ten shipped `HousePresets` as the starting point, since `Desert` and `Diorite` between
-  them model two of the most-broken rules.
+  | concept | buckets | where it has to land |
+  |---|---|---|
+  | distance and extent measures | 2, 3 | `PgmStudio.Geom` — `GridBoundary` is already shared, the inset is not (`B200`) |
+  | block-kind rules per role | 4, 5 | one role→allowed-set, not a predicate per site (`B203`) |
+  | occupancy — who owns a column | 1, 6, 7 | the provenance record, taken from placement (`B202`/`B203`) |
+  | the refusal vocabulary | any bucket that adds a rule | `Finding`/`Findings`/`Check` — which did not exist when these were written, so none of them says so |
+  | document drift | 8, 10 | nothing shared; genuinely parallel and dispatchable as they stand |
 
-  **`MAP-BRIEFS.md`** replaces "a map of your own design" with **named briefs** — each stating the tone families
-  to build from, the preset to fork, the routes to draw as paths, how its landforms meet, and the one thing it
-  tests. Two exist because they have never been attempted at all: a **desert** board, and a **four-team**
-  `rot_90` board, both fully expressible and neither ever authored. **`REVIEWER-BRIEF.md`** is a **second
-  agent**, given the board and not the author's intent, whose checklist is the author rules with their numbers
-  in it and whose output is a per-item table with coordinates. **`AUTHORING-BRIEF.md`** is the author's own
-  brief rewritten around the other three.
+  What it produces is a line per bucket naming its concept and its landing site — enough that a bucket can be
+  handed out without its agent having to discover the vocabulary first, and enough to say which buckets must
+  be ordered against each other rather than run at once.
 
-  What this entry owns is keeping them true. Every rule in `ART-DIRECTION.md` and every check in
-  `REVIEWER-BRIEF.md` is a `B141`–`B188` id that has not shipped yet, so **each one is a debt with a due
-  date**: when its bucket lands the check moves from the reviewer's list into the pipeline's refusals, and the
-  reviewer document loses a row. A reviewer still enforcing `B163` after `B163` ships is a second copy of the
-  system, which is exactly the fault `B118` undid in `tools/`.
+- [ ] **B202 — Provenance claims a building the dressing pass declined to place.** `Decorator.PlaceHouse`
+  drops a house **whole** — every orbit image of it — when any image overlaps something already standing
+  (MG7's drop), when any image has no ground under it, or when a turn fails. `DressingScope.StructureFootprints`
+  rebuilds the same footprints from the layout JSON afterwards to make the provenance claim, and it takes
+  `layoutJson` alone: no world, no `taken` set, no ground. It cannot know what was dropped, so it claims
+  every authored house on every image regardless.
 
-- [ ] **B140 — A map with no objective, no spawn and no team exports 200 and looks like a map.** Two boards
-  from the second authoring trial (`haiku-r2-canonical-8`, `haiku-r2-ctw-mid`) built a world, wrote region
-  files and a provenance sidecar, and exported clean. Their `map.xml` is **ten lines**: a name, an empty
-  `<version>`, a `<gamemode>`, an empty `<objective>`, one include and a hunger rule. No `<team>`, no
-  `<spawn>`, no `<destroyables>`, no `<wools>`, no `<cores>`, no regions, no filters.
+  **Measured** (`scratchpad/claimcheck.cs`, flat stone plateau at y=8, two authored houses whose stamped
+  rings overlap, `mirror_mode: none`):
 
-  **Every gate passed vacuously.** `OB17` asks whether a goal stands in void, `OB18`'s successor asks nothing
-  now, `OB19` asks whether a prop crowds a goal, and the traversability check asks whether spawn and wool
-  points reach each other. All four quantify over collections that are **empty**, so a board with nothing on
-  it satisfies all of them — the pipeline's whole refusal surface is built to catch a map that says something
-  wrong and none of it catches a map that says nothing at all. That is the more serious half of this entry: a
-  map cannot be played without a team and a spawn, so a map lacking both is not a rough map, it is not a map.
+  | | authored | placed | claimed |
+  |---|---|---|---|
+  | houses | 2 | **1** (`tally.Houses`) | **2** (`house:a:0`, `house:b:0`) |
 
-  **The `ctw` label is the smaller half and has its own cause.** `MetaGenerator.DeclaredGamemode` derives the
-  label from what the intent carries and correctly yields the empty string for a map carrying none (`B131`),
-  but it only runs on the intent path — and these maps have no stored intent, so the export takes the plain
-  branch and the label survives from `docs/pgm/template.xml:5`, which hardcodes `<gamemode>ctw</gamemode>`.
-  So the template still asserts what `B131` stopped the generator asserting, on exactly the maps least able
-  to correct it.
+  | owner | cells claimed | with anything standing on them |
+  |---|---|---|
+  | `house:a:0` | 81 | 81 |
+  | `house:b:0` | 81 | **25** — and those 25 are `a`'s blocks in the overlap |
 
-  What the refusal should ask is the question no current gate does: whether the map has an objective at all,
-  and a team and a spawn to contest it. It belongs with the others on the export composer, carrying a rule id,
-  and it wants stating in terms of the intent rather than the document, since the intent is what an author
-  actually failed to write.
+  So 56 columns carry a `Structure` claim over bare ground. Three of them: `(18, 13)`, `(19, 13)`, `(20, 13)`
+  — top block stone (1), nothing above y=8.
 
-  **This entry is understated on its own evidence, and the correction changes the fix.** It frames the empty
-  boards as a map whose author *failed to write* an intent. But `specs/haiku-r2-canonical-8/plan.json` carries
-  **two spawns and two destroyables**. The author did state them; they were **lost between the plan and the
-  export**, and every stage answered 200. That is a harder failure than an author writing nothing, and the
-  refusal proposed above — stated against the intent — would still not catch it, **because the intent was
-  never stored**. So the gate wants asking at the last point that can see both: what the plan declared, and
-  what the export is about to write. `B141` is the same family one level down, on the sketch document.
+  **It matters because provenance is now preferred over the material estimate.** `StructureFinder` partitions
+  candidates by owner when a record exists and drops the material+step reading entirely; `TopDownRender` prints
+  "STRUCTURE READING: RECORDED PROVENANCE". So a stage image draws a building that is not there and the finder
+  reports a structure with no blocks — and both say they are certain.
 
-- [ ] **B136 — The two features that make a shape stop looking drawn are reached almost never.** **The census
-  below is stale and wants re-running before anything is concluded from it:** it covers **eleven** maps and
-  there are now **nineteen**, and the two boards it does not see are the strongest ones — Opus 5's
-  `marlstone-steps` and `basalt-reach` move every row, **including the Bézier column it records as zero**.
-  Re-run it over all nineteen `specs/` folders first; the gradient below may or may not survive. Measured over
-  the eleven, counting non-null uses in the authored specs rather than serialized nulls:
+  **The fix is the direction of the derivation, not a filter.** `Decorator.Decorate` already knows exactly
+  which cells it stamped; it returns a `DressingTally` of *counts*. Have it report the placed footprints and
+  claim from those, rather than re-deriving the same fact from the author's intent — the record should come
+  from the placement, never beside it.
 
-  | | per-shape `theme` | `anchor_heights` | Bézier `controls` | `height_mode` | `skirt` | relief `marks` |
-  |---|---|---|---|---|---|---|
-  | Opus, three boards | 5 · 6 · 8 | 2 · 1 · 1 | **0 · 0 · 0** | 2 · 2 · 3 | 2 · 2 · 3 | 5 · 3 · 3 |
-  | Sonnet, three boards | 2 · 4 · 4 | **0 · 0 · 0** | **1 · 0 · 0** | **0 · 0 · 0** | **0 · 0 · 0** | 4 · 5 · 3 |
-  | Haiku, three boards | **0** | **0** | **0** | **0** | **0** | **0** |
-  | `ashen_quarry` (earlier run) | 1 | 2 | **0** | 1 | 2 | 6 |
+  *found in the provenance dive, 2026-08-15 · `Decorator.PlaceHouse` · `DressingScope.StructureFootprints`.*
 
-  **A Bézier curve has been authored once, on one shape, across every map this repository holds.** Per-vertex
-  `anchor_heights` — the slant control, where an outline's corners each take a height and the surface solves
-  between them — is used only by the strongest model and only once or twice a board. `height_mode` and
-  `skirt` follow the same line. Every other outline on every map is a straight-edged polygon at one height.
+- [ ] **B203 — "Which columns does this stamp own" has five answers, and "what kind of block is this" has
+  four tables.** Both are one question asked in several places, each place deriving it its own way.
 
-  The gradient is the finding. Per-shape themes and relief marks are reached by two models out of three and
-  are the features the documents lead with; the shape-level height and curvature controls are reached by one
-  model, barely, and the weakest model reaches **nothing** — its three boards are compiled plan rectangles
-  under a single blanket theme, which is the exact output the first fifteen generated boards had. So the
-  documents are not the binding constraint for the top of the range and are clearly binding at the bottom.
+  **Which columns a stamp owns:** the stamper itself (it places the blocks); `provenance.ClaimRect` beside it
+  in `SketchWorldBuilder`; `DressingScope.ProtectedAt`'s keep-out mask; `TerrainProfile`'s paint gate (a column
+  whose top block *is not stone* is a structure); and `DressingScope.StructureFootprints` for houses (`B202`).
+  The room-floor case has the same rectangle converted from doubles twice, five lines apart, by two rules —
+  `(int)f.MinX` in the stamp against `Math.Floor`/`Math.Ceiling` in the claim. Latent rather than live, since
+  `PlanCompiler` fans integral rects today; `CLAUDE.md`'s own trap entry says this class has already cost hours.
 
-  What this is **not** is a request for a new capability: all six columns are shipped, documented in
-  `capabilities.md` and `sketch.md`, and demonstrated on a committed map. It is a question about **reach** —
-  why a control that changes how a board looks more than any other is the one an author does not get to. The
-  candidates worth testing rather than assuming: the fields sit on `SketchShape` and a compile emits shapes
-  with them null, so an author edits a document rather than asking for a shape; nothing previews a slant or a
-  curve without building a world; and the worked examples in the documents are rectangles, so the first thing
-  a reader copies has straight edges and one height.
+  **What kind of block this is:** `BlockRoles` (7 predicates, scan-side roles), `BlockKinds` (6 predicates,
+  what a house field may name), `DressingPalette.IsStamp` (what the dressing pass may not touch), and
+  `BlockPalette` (colour). `IsLog` is written in both of the first two — `blockId is 17 or 162` against
+  `Logs.Contains(id)`, agreeing today by coincidence of maintenance. `IsGround` and `IsNaturalGround` share a
+  stem and not a meaning: the first is a closed list of six earth ids a roof may not be laid in, the second is
+  everything left after built, liquid, log and grown are removed. A caller reaching for "is this ground" has to
+  know which, and nothing says so at the call site.
 
-- [ ] **B135 — The paired core defaults leak on the first break, with nothing to dig.** `ObjectiveDefaults`
-  carries `CoreFloat = 6` and `CoreLeak = 5` and documents them as a pair (DC2). Read against PGM, that pair
-  leaks immediately. `Core.java` builds a leak region whose top is `coreRegion.min.y − leakLevel` and sets
-  `leakRequired = lavaRegion.min.y − max.y + 1`, so with the lava sitting at the casing's floor the lava must
-  descend **`leak + 1` = 6** blocks below itself to count as leaked. Six blocks of authored air sit under the
-  casing, so the lava falls exactly that far with no terrain in the way: the core leaks the moment it is
-  opened, and the dig that is supposed to be the second half of the task does not exist.
+  **The fix pattern is already in the repo, one scale down.** `DressingPalette.IsStamp`'s docstring: *"Stated
+  once, here, because two passes ask it... Two lists would drift and the drift would show as a road eating a
+  monument."* That is exactly right and exactly what the four tables above have not done.
 
-  **The corpus settles it, and a zero dig is legitimate — that half of the entry is withdrawn.** Ten `dtcm`
-  maps carrying cores use `leak` 3–6, median 5, so the studio's `CoreLeak = 5` is the corpus norm exactly.
-  Probing two of them with `--column` finds two opposite designs, both shipped:
-
-  | map | `leak` | casing floor | air beneath | dig required |
-  |---|---|---|---|---|
-  | `stone_fields` | 5 | y23 (obsidian), lava y24–26 | 4 (y19–22), chest y18, solid y17 | **2 blocks** |
-  | `fungi_grove` | 6 | y15 (obsidian), lava y16–19 | 11 (y4–14), floor y3 | **none** — it hangs over a chasm |
-
-  So a core that leaks the moment its casing opens is a real design: `fungi_grove` suspends one over a drop
-  and the whole task is breaking the shell. The studio's `float 6` / `leak 5` reproduces that pattern, which
-  makes it a **default**, not a defect.
-
-  **The "no way to ask for it" half is false and is withdrawn.** An earlier version of this entry said
-  `CoreFloat` and `CoreLeak` are paired to a single outcome "with no per-core control on the marker or the
-  intent … no way to ask for it". There is: `basalt-reach` authors `"float": 5, "leak": 8` on its core marker
-  and ships `leak="8"` in its `map.xml`, so per-core control exists on the plan marker, the intent, the
-  validator and the XML writer, and a board can express `stone_fields`' shell-then-dig today. The `const` pair
-  is a **default** that is reachable past, not a ceiling. What remains of this entry is the off-by-one below —
-  and it is not cosmetic, because it is what the studio *tells an author their dig is*: on `basalt-reach` the
-  studio reported 3 and the real dig is 4.
-
-  **And the arithmetic the studio shows an author is off by one.** `PlanTool` computes
-  `CoreDigDepth => Math.Max(0, CoreLeak - CoreFloat)`. PGM sets `leakRequired = lavaBottom − (coreBottom −
-  leak) + 1`, and the lava sits one course above the casing floor, so `leakRequired = leak + 2` and the lava
-  must reach `coreBottom − leak − 1`. The true depth is therefore **`leak + 1 − float`**. Both formulas give
-  0 at the shipped pair, so the error is invisible at the default and wrong everywhere else — at `leak 5`,
-  `float 4` the studio says 1 and `stone_fields` measures 2.
-
-
-- [ ] **B129 — The section renderer cuts one plane, so everything behind the cut is missing.**
-  `SectionRender` samples a **single one-block-thick slice** and paints each cell with the block that stands
-  exactly on the plane. That is the right reading for checking a `layered` material, which is what it was
-  built for, and it is the wrong one for looking at a map: a cut through solid ground is a solid slab,
-  because a solid slab is genuinely what sits on that plane. A cut through Ashen Quarry's town at z=60 is
-  two courses of stone brick over forty-seven of andesite over bedrock, measured by `--column` and rendered
-  faithfully — and it shows none of the buildings standing a few blocks either side of it, none of the room
-  interiors, and nothing of the town's silhouette. The picture is accurate and nearly uninformative, which
-  is a harder fault to notice than a wrong one.
-
-  **The studio already computes exactly the missing quantity, on the other side of the house.**
-  `Analysis/Layer/SideView.Build` projects a map's vertical solid segments onto a `(primary × y)` grid as a
-  **depth map** — for each cell, the distance from the viewer to the nearest solid along the perpendicular
-  axis, `0` nearest and `-1` for a cell nothing occupies — for four viewing directions (`nz`/`pz`/`nx`/`px`,
-  with the positive-side ones mirroring left-to-right). `GET /map/{slug}/segments` serves it and
-  `js/studio/canvas/sideview-canvas.js` paints it as a depth-tinted cross-section. So a section that shows
-  what stands behind the plane is not a new idea here; it is an existing one the block-level renderer never
-  reached, and the two want the same projection.
-
-  Two differences are real and have to be settled rather than glossed. `SideView` reads `layer_segments`
-  rows, which exist for a map the studio has **scanned**, while `SectionRender` reads a region directory or
-  a `VoxelWorld` — so the projection wants doing over voxels rather than over segments, and the shared thing
-  is the algorithm, not the input. And a depth map answers *how far* rather than *what*, so a depth-only
-  section loses the material identity that makes the current one worth having: the two are complementary
-  modes of one renderer, not a replacement.
-
-  **The existing instance is greyscale, and colour is the half it never got.**
-  `sideview-canvas.js` ramps nearest to farthest across light stone to very dark, so depth reads and category
-  does not. A block-level section drawing the same projection can carry both — distance as value, material or
-  category as hue — which is the pairing that makes a building behind the cut legible as a building rather
-  than as a lighter smudge.
-
-- [ ] **B104 — A destroy goal is stamped above the build cap.** On `duskfell` the gold destroyable stands at
-  y21–23 and `max_build_height` is 20; on `corvale` the emerald stands at y18–20 against the same cap. Blocks
-  above the cap can still be broken, so this does not make the goal unbreakable — but a destroyable or a core
-  belongs **below** the cap, and neither does. The cap itself is the cause rather than the placement: it is
-  `plan.Globals.Surface + Headroom`, both halves of the plan's flat nominal world, so it is computed from a
-  ground level the relief later abandons and lands under the terrain it is supposed to sit over. `B105` is the
-  fix; what this entry owns is the check that the goal ends up under whatever cap that produces.
-
-  **A floating goal is not the fault, and an earlier version of this entry said it was.** A destroyable and a
-  core **float a few blocks above the terrain by design**, and have since PGM's beginning: a core that sits on
-  the ground cannot leak, so attackers would have to mine the terrain out from under it first, and a
-  destroyable flat on the ground is trivially covered and hidden. The four-block gap measured under
-  `duskfell`'s goal is therefore correct behaviour, not a defect, and the same gap in the pre-existing build
-  is correct too. What a goal needs beneath it is **terrain, somewhere below** — which is what `B82` already
-  checks and checks correctly. The earlier claim that `B82` should compare the goal's height against the
-  ground's was wrong and is withdrawn.
-
-- [ ] **B105 — Retire `headroom`; a plan states a build ceiling, it does not derive one.** `PlanGlobals`
-  carries `Headroom` (board-wide, default 11 — not per piece, despite the field reading like one) and
-  `PlanCompiler` turns it into the map's only build cap with `plan.Globals.Surface + plan.Globals.Headroom`.
-  Both halves of that sum are the plan's **flat nominal** world, so the cap is computed from a ground level
-  the relief then abandons — which is the root `B104` names, and it produced boards whose ceiling sits below
-  their own terrain. Derivation is the wrong shape here regardless of the numbers: a build ceiling is a
-  decision about how high a player may build, and it should be **stated**, not inferred from a base plus a
-  slack. `MapIntent`'s `BuildIntent.MaxHeight` is already the real field and the export already honours it;
-  what is missing is a plan-level value that sets it, and an author or agent knowing it exists.
-
-  So: remove `Headroom` from `PlanGlobals` and everything reading it, add a stated maximum build height in
-  its place, and keep **per-piece `Surface`** exactly as it is — that one is load-bearing and correct as a
-  plan-space concept. Two things travel with it. The compiler must stop reading a piece's `Surface` as a
-  literal world Y for **spawns and wool rooms** (`PlanCompiler` lines 205, 260) — the destroyable/core half of
-  this is done (`B128`): `float` now counts from the ground the world build actually solves rather than
-  `piece.Surface`, and the marker itself may name no piece at all. Spawns and wool rooms still bake their
-  room floor from `piece.Surface` at compile time, the same flat-world mistake wearing a different field; the
-  anchor wants resolving against the ground as built. And the ceiling wants a sane relationship to the
-  finished terrain rather than to the plan's base, since a map whose highest ground is y20 and whose cap is
-  y20 permits no building at all.
+  *found in the provenance dive, 2026-08-15 · `BlockRoles` · `BlockKinds` · `TerrainProfile` ·
+  `DressingScope` · `SketchWorldBuilder`.*
 
 - [~] **B106 — Two different things in this codebase are called protection.** **The placement half of this
   entry has landed and its premise is stale.** It described `Retarget` reusing the wool markers so a destroy
@@ -292,57 +146,6 @@ PGM refused (`B155`, shipped): the authoring apparatus the next run needs, and t
   the first, and one word for both invites exactly the inference that a destroyable must live somewhere
   protected — which is the inference that produced the caged goals in the first place, and it survives the
   code that acted on it.
-
-- [~] **B107 — The sketch still cannot place or move an objective; only its height sticks.** The storage
-  question is settled and the backend half is landed (`FEATURES.md`): a structural shape's stated height now
-  survives a recompile, marked per field and carried by `intentRef`. What remains is the reach.
-
-  **The canvas half.** `sketch-canvas.js` documents structural pieces as render-only — never hit-tested,
-  never selected, never edited — so nothing can write the flag a user's correction would set. Unlocking
-  selection, a drag, and an inspector row for the stated height is its own slice of the canvas and render
-  layers, and it is what turns a proven mechanism into something an author can reach.
-
-  **The destroy objectives.** A destroyable and a core carry **no rect in the plan** — `Anchor` is a bare
-  point, unlike a spawn or a wool room — and that is correct rather than missing: neither has a footprint, and
-  neither wants one. They sit anywhere terrain exists beneath them, floating a few blocks clear of it. So a
-  sketch presence for them is a **movable point with a stated height**, not a rect to drag, and the height is
-  the interesting half because it is the one thing the plan cannot know before the relief runs — `B128` landed
-  that half in the document (`float` counts from solved ground, and the marker itself may name no plan piece
-  at all); what is still missing is a way to draw and drag that point on the canvas.
-
-  **Position, separately.** Moving a piece rather than raising it is `S25b`, and the design here deliberately
-  leaves rect and position tracking the plan so that a recompile stays authoritative about *where* while the
-  author stays authoritative about *how high*.
-
-  **And the raster does not draw an absolutely-placed goal at all**, which folds in here because this entry
-  owns the canvas half. `GET /plans/{id}/png` draws `tallow-mirefast`'s five pieces, both spawns and the
-  legend, and nothing at `(0, −50)` where the wardstone stands. `B128`'s empty-`piece` marker is the most
-  useful thing on the board for an agent — it is how a landform carries an objective without a tier
-  manufactured to hold it — and **the one picture the plan layer offers cannot show what it produced**, so an
-  agent authoring from the render has no way to see its own goal.
-
-- [ ] **B109 — Nothing checks a plan before it costs a build.** Authoring a plan by hand is arithmetic over
-  rectangles in cells, and the repository offers no way to ask whether the arithmetic worked short of running
-  the whole pipeline. Two pieces that overlap, a land interface too narrow to connect, a stray corner touch —
-  none of these is reported until a world has been built. An author writing two boards by hand had to
-  re-implement `ContactGraph.Classify` in a throwaway script to check adjacency before spending a build cycle,
-  which shortened iteration enough to be worth the detour and is a tool the repository should have.
-
-  **Half the premise is stale and the correction narrows the work.** `POST /plan/inspect` and
-  `POST /plan/evaluate` both exist and are documented at `plan.md:417`, so a plan *can* be asked about without
-  a build. What survives is that **nothing an author reaches calls them**: no driver invokes the validator
-  ahead of a build, and an agent authoring by hand found the endpoints only by reading source. That is reach,
-  not absence — the same shape as `B177`, where `SP2` and `SP7` are written law that nothing applies to an
-  authored plan.
-
-  **This entry is the home the audit's plan-space rules need, and it is why it is worth doing before them.**
-  Buckets 1–3 in `BACKLOG.md` are fourteen findings that are all geometry over plan rectangles — what a spawn
-  door faces (`B158` `B169` `B172` `B177` `B180`), how big a piece is and how far apart (`B156` `B157` `B167`
-  `B170` `B178` `B186`), how far apart the goals are (`B175` `B179` `B188`) — and each one is a rule with a
-  number in it that `PlanValidator` is the natural place for. Landing this entry first means those fourteen
-  are findings added to a reachable validator rather than fourteen separate checks looking for a home. The
-  findings name rules rather than describing symptoms, which is what an agent needs and what a human reviewer
-  can check a board against.
 
 - [~] **B111 — The deletions.**
   The set is complete: `docs/tools/plan.md`, `sketch.md`, `library.md`, `generator.md`, `shapes.md`,
@@ -428,18 +231,6 @@ PGM refused (`B155`, shipped): the authoring apparatus the next run needs, and t
   gap. `DressingScope` already protects the ground under a stamped building, so nothing downstream needs
   teaching.
 
-- [ ] **B96 — Density wants measuring as canopy share, not as a leaf count.** The leaf count is the only
-  honest measure of *whether a forest was planted* — nothing but a tree lays a leaf, and a building's corner
-  posts are logs — but it is a poor measure of **how wooded a board reads**, and two measurements on one board
-  size prove it: a spruce forest at 17,600 leaves over many sites rendered as one solid mass with the routes
-  buried, while `thornwake` at 17,897 leaves over 72 trees renders as a wood a player walks through. Nearly
-  the same count, opposite maps, because the leaves are divided among a tenth as many trees. The number that
-  would decide it is the share of ground columns standing under a leaf, which is a cheap read over the same
-  voxels the census already walks, and it is scale-free in a way a raw count is not — a 120×240 board and a
-  240×240 board do not want the same leaf count to read the same. Report it beside the leaf count and give the
-  README a band in those terms; the two numbers disagreeing is itself informative, since a high count at a low
-  share is a few enormous trees and a low count at a high share is scrub.
-
 - [ ] **B97 — Leaves may lie against a building and never inside it.** A prop already writes only into air —
   `Decorator` skips any unburied cell whose target is not `Blocks.Air`, so a tree can never replace a wall, a
   roof or a post, and a canopy resting against a house is correct and wanted. What that mask does not catch is
@@ -457,41 +248,6 @@ PGM refused (`B155`, shipped): the authoring apparatus the next run needs, and t
   Worth doing with `B92`, which fills that same volume with a stated material and therefore has to describe it
   anyway.
 
-- [ ] **B99 — An objective reads as cut off from the board, and it is not yet known whether it is.** Three
-  `dtcm` specs built for the first time once `B94` landed, and `goldhollow` and `spinebreak` rendered four and
-  eight objective markers isolated from the board's navigable component — real ground beneath them, no walkable
-  join. A goal nobody can reach is unwinnable exactly as a goal nobody can mine is, and it had been hidden
-  behind the void refusal.
-
-  A second run then found the same reading on **every** composed `dtm` board it tried — ten-plus seeds across
-  both symmetries, before touching anything — which changes what the likeliest explanation is. Ten broken
-  boards in a row is a worse hypothesis than one broken measurement, and there is a specific mechanism to
-  suspect: `TraversabilityRender` snaps a marker to the component under the goal's own block, and that block
-  is solid, so it is never itself navigable. A search that starts there can fail to find the component the
-  ground beside it belongs to. That would also explain why the corpus convention the composer follows — a goal
-  at the far end of a dead-end lane, inset about five — reads as isolation rather than as a dead end.
-
-  A hand-authored board then settled it further: its **wool** markers read isolated too, and rebuilding the
-  repository's own `tools/seeds/base-2wool.plan.json` through the same pipeline reported all four of *its*
-  wool markers isolated as well, on a seed nobody suspects. The land interface was flush and the floor under
-  the wool solid, so the reading is a property of the cage stamp against the renderer's strict two-cell
-  headroom test rather than of any board's geometry. That is a measurement fault on a second objective kind,
-  which makes the renderer the likely cause rather than a possibility.
-
-  So the first move is to tell the two apart, and the cheap way is to ask the question from the ground rather
-  than from the goal: take the walkable cells immediately around the marker and test whether *they* join the
-  spawn's component. If they do, the render is at fault and the fix is in the snap. If they do not, the fault
-  is real, it is in the composer's seating or the compiler's build regions, and it is the more serious of the
-  two. Do not fix either until the measurement says which.
-
-  **The measurement has now been made, without being asked for, and it points at the renderer.** Sonnet's
-  second run rendered `sable-marsh` and **two of its four wool markers read isolated — and they are exactly
-  the two walled rooms**; the two open ones read connected. A wall in front of a room is not a board fault, so
-  the discriminator this entry asks for has answered: the reading tracks the cage rather than the geometry,
-  which matches the ClayClay precedent and the strict two-cell headroom test named above. That is evidence
-  rather than proof — it is one board — but it is the right shape of evidence and it should be the first thing
-  reproduced when this is picked up.
-
 - [ ] **B102 — A rebuild writes over a region directory it never clears, so a stale chunk survives.**
   `AnvilRegionWriter.Write` calls `Directory.CreateDirectory` and nothing else, so every `.mca` a previous
   build left is still there. A chunk the new build does not touch — because its geometry moved — is read back
@@ -503,12 +259,3 @@ PGM refused (`B155`, shipped): the authoring apparatus the next run needs, and t
   writing it. Note this is a different hazard from the concurrent-build race `CLAUDE.md` already warns about:
   that one is two builds at once, this one is one build after another.
 
-- [ ] **B103 — The top-down leaves real ground blank on a narrow board.** On a board whose goal sits on a
-  narrow dead-end spur, `TopDownRender` drew that spur — the most important corner of the map — as empty
-  margin at every scale tried, while `HeightProfileRender` and `StructureFinder` showed real, populated
-  terrain there in the same build. The ground was confirmed present by reading the region files directly. A
-  renderer that omits ground is worse than one that is merely hard to read, because the omission is
-  indistinguishable from a board that genuinely has nothing there — and the top-down is the view everything
-  gets judged from first. Suspect the bounds computation rather than the drawing: the spur is at the extreme
-  of the board's extent, which is where an off-by-one or an early bbox clamp would bite. It is also a second
-  instance of the fault `mapgen-review.md` MG13 names, found on a newer renderer than the one that entry describes.
