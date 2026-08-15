@@ -324,6 +324,49 @@ are Edit-specific. Full canvas spec: `docs/client/canvas-interaction.md`.
   and a showcase that silently stops showing everything is worse than none. So the sweep stays as code, and
   what it should emit is the **spec**, not the world.
 
+  **Step one in detail: three tiers, not one move.** "Move the palette vocabulary to `src/`" was too coarse.
+  What the showcase touches sorts into three kinds of thing with three different authoring stories, and the
+  duplication sits in the middle one:
+
+  | tier | what | authored how | where it lives | an agent can reach it |
+  |---|---|---|---|---|
+  | **A · the block vocabulary** | 19 tone families — blocks grouped as one ground, an artist's colour set | hand-authored table, computed into families | `TerrainPalette`, `src/PgmStudio.Minecraft` | yes, `GET /api/terrain/blocks` |
+  | **B · the resolution layer** | family name → materials; pattern name → a material with its seed and scale | code | **`tools/mapgen/Materials.cs` and `tools/PgmStudio.PatternMap/Plateaus.cs`, twice** | **no** |
+  | **C · the reference sets** | 10 house presets; the showcase's 27 themes | presets hand-authored and DB-seeded; themes *automatic* | `HousePresets` + `LibrarySeed` / a tool | presets yes, themes no |
+
+  **Tier A is already right** and nothing moves. **Tier C splits**, and the split is the part worth being
+  careful about: the house presets are hand-authored and already seed rows, and the showcase's themes are
+  **not art** — they are automatic choices made to probe expressiveness, weighted heavily toward the wall run
+  (ten of the twenty-five are wall stripes, diagonals or frames). Seeding those into the library as if they
+  were a curated set would put test fixtures in front of an author as suggestions. The curated set is `G158`,
+  which is a different task and says so — *"a preset is just a library theme, so this is a seeding step, not a
+  second mechanism"*. So the showcase's themes stay **generated**, and what an agent should be able to reach
+  for is the thing underneath them: the pattern kinds and their knobs, as data rather than as a `switch`.
+
+  **Tier B is step one, and it is the only part that is unambiguously a move.** Which blocks a family holds is
+  already studio knowledge; which *materials* a family resolves to, and at what seed and scale a named pattern
+  is laid, is the same kind of knowledge and is currently reachable from neither the studio nor an agent —
+  only from two tool files that happen to agree. It belongs beside `TerrainPalette`.
+
+  **Two naming faults to settle in the same pass, because this is the code that carries them.**
+
+  *`Palette` means five things.* `TerrainPalette` (tone families), `BlockPalette` (id → colour and name),
+  `DressingPalette` (tree species, woods, and what a dressing pass may not touch), `TeamPalette` (team
+  colours), `PlanBoardPalette` (plan-render colours). Three are colour tables, one is a block vocabulary and
+  one is a prop catalogue. A reader meeting `Palette` learns nothing from the word.
+
+  *Pattern, theme and tone are used loosely for three real and different things*, and the tiers above are what
+  they actually are: a **tone family** is a set of blocks that read as one ground; a **pattern** is a way of
+  varying blocks across cells (voronoi, cell, noise, turbulence, electric, checker, wall-run, …), which is a
+  *kind of material*; a **theme** is the whole per-bucket assignment a shape refers to. `MapSpec.ThemeSpec`
+  currently has a `pattern` field holding the second and a class name saying the third.
+
+  **And one piece of stale prose, in code rather than in a document.** `LibrarySeed`'s class docstring opens
+  *"the materials the showcase paints its plateaus with, and the `HousePresets` the house row is built from"*.
+  It seeds only the second: `PresetMaterials()` walks `HousePresets.All` and stores each house's own parts as
+  `"{house} · {part}"`. No showcase terrain theme has ever been seeded — the sentence describes the
+  arrangement this task is proposing, written as though it already held.
+
   **The shape of the fix.** The palette vocabulary moves to `src/` and both tools read it. A grid-of-islands
   layout emitter is built where the composer lives, and mapgen gains the spec mode that asks for one. The
   showcase becomes a spec plus a small emitter that fills it from the catalogues, and stops carrying its own
