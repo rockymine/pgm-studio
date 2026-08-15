@@ -5026,6 +5026,35 @@ these are the ones that shipped a map that could not be played as intended, and 
   (`WorldProvenanceFile`'s `owners` array) rather than a string per cell, with a run breaking on an owner
   change as well as a layer change; on `quillon-barrow` the sidecar grows from about 33 KB to about 35 KB for
   a full owner-per-claim identity.
+- **A structure's claim is taken from the placement, never rebuilt beside it (B202).** The dressing pass drops
+  a building **whole** — every orbit image of it — when any image overlaps something already standing (MG7),
+  when any image has no ground under it, or when a turn fails, and the provenance claim was rebuilt afterwards
+  from the layout document by `DressingScope.StructureFootprints`, which took `layoutJson` alone: no world, no
+  `taken` set, no ground. It could not know what had been dropped, so it claimed every authored house on every
+  image regardless. Measured on a flat stone plateau with two authored houses whose stamped rings overlap: two
+  authored, **one placed, two claimed**, and 56 columns carrying a `Structure` claim over bare ground. It
+  mattered because provenance is *preferred* over the material estimate — `StructureFinder` partitions by owner
+  when a record exists and drops the material reading entirely, and `TopDownRender` prints "RECORDED
+  PROVENANCE" — so a stage image drew a building that was not there and both halves said they were certain.
+  The fix is the direction of the derivation rather than a filter: `Decorator.Decorate` reports a
+  `StructureClaim` per image it actually raised, built inside the same loop that stamps and from
+  `HouseStamper.StampedCells` on that image, so every early return leaves an empty list and a dropped building
+  claims nothing; `SketchWorldBuilder` records what the pass reported. `DressingScope.StructureFootprints` and
+  its private `StampedFootprint` are deleted — the second derivation is gone rather than corrected — and
+  `DressingTally` becomes `DressingPlacement`, since what the pass reports is now what landed rather than a
+  count of what was asked for. Seven regression tests at the placement, the two that matter being a house
+  dropped for overlapping one already standing and a house authored over void: both claim nothing.
+  `StructureClaim`'s docstring states the rule for the passes that have not yet followed it (`B203`).
+- **`PlanValidator` asks its one question through one verb (B206).** `B191`/`B192` shipped one `Finding`, one
+  `Findings` and one verb, and `Errors(PlanModel)` and `HasErrors` were left behind beside `Check` — four
+  public entry points to one class, of which `Errors` had no caller anywhere in `src/`, `tools/` or `tests/`
+  and `HasErrors` had one, in a test. Both are deleted: a caller asking whether a plan is refused reads
+  `Check(plan).Refuses`, and one wanting only the blocking half reads `Findings.Refusals`. `Completeness`
+  stays, because it genuinely asks a second question — whether the plan carries what a map cannot exist
+  without, as against whether what it says is coherent — and its docstring's `<see cref="Validate"/>`, a
+  method the class has not had for some time, now cites `Check`. It matters ahead of the bucketed audit work:
+  four buckets add rules to this class, and an agent choosing a verb from four will not choose the same one
+  twice.
 - **`--surface` names the rest of the stained-clay ramp, hay bale, and says what it still cannot (B147).**
   `TerrainPalette.Families` covered stained-clay data `1, 3, 5, 9, 11, 12, 13, 15`; the other eight
   (white, magenta, yellow, pink, gray, light gray, purple, red) now each join the tone family the fired

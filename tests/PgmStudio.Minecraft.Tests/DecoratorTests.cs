@@ -55,9 +55,9 @@ public sealed class DecoratorTests
     public async Task An_undressed_map_is_left_exactly_as_the_painter_left_it()
     {
         var (world, top) = Plateau();
-        var tally = Decorator.Decorate(world, Context(top, []));
+        var placed = Decorator.Decorate(world, Context(top, []));
 
-        await Assert.That(tally).IsEqualTo(new DressingTally());
+        await Assert.That(placed).IsEqualTo(new DressingPlacement());
         await Assert.That(Placed(world, top.Keys, 8, 40)).IsEmpty();
     }
 

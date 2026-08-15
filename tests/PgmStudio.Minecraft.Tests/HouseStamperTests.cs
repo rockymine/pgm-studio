@@ -560,7 +560,7 @@ public sealed class HouseStamperTests
         await Assert.That(ends).IsEqualTo(8);
     }
 
-    /// <summary>The claim <c>DressingScope.StructureFootprints</c> rests on: every block a stamp writes
+    /// <summary>The claim a dressing-placed building's <c>StructureClaim</c> rests on: every block a stamp writes
     /// lands inside <see cref="HouseStamper.StampedExtent"/>, over the overhang, the beam ends and the porch
     /// together — and the wall rectangle alone is <b>not</b> enough, which is the bug this guards against. Proved
     /// by construction rather than by one style: overhang, beam reach and a porch are each varied past the plain

@@ -38,10 +38,27 @@ public sealed record DressingContext(
     public bool AllowsCover(int x, int z) => IsGoalGround is null || !IsGoalGround(x, z);
 }
 
-/// <summary>What one pass placed, for a caller that wants to report or preview it rather than only write it.
-/// Counted as placed, images included — two mirrored boulders are two boulders.</summary>
-public readonly record struct DressingTally(
-    int Plants, int Boulders, int Trees, int PathCells, int WaterCells, int Houses);
+/// <summary>
+/// What one pass placed, for a caller that wants to report, claim or preview it rather than only write it.
+/// Counted as placed, images included — two mirrored boulders are two boulders.
+///
+/// <para><b>The buildings are reported as extents and everything else as a count</b>, because a building is
+/// the only prop whose columns something downstream has to own: provenance records which stamped thing claimed
+/// each column, and a tree or a boulder already separates from built ground by material
+/// (<see cref="BlockRoles"/>). Reporting them here is what makes the claim a product of the placement rather
+/// than a second derivation from the author's intent — see <see cref="StructureClaim"/> for why that
+/// direction is the whole point.</para>
+/// </summary>
+/// <param name="Claimed">The buildings raised, or null where none was. Read <see cref="Structures"/> instead,
+/// which never answers null — the same shape <see cref="Domain.Finding.Subjects"/> carries, so a caller never
+/// has to tell an absent list from an empty one.</param>
+public readonly record struct DressingPlacement(
+    int Plants = 0, int Boulders = 0, int Trees = 0, int PathCells = 0, int WaterCells = 0, int Houses = 0,
+    IReadOnlyList<StructureClaim>? Claimed = null)
+{
+    /// <summary>The buildings this pass actually raised, each with the columns it owns. Never null.</summary>
+    public IReadOnlyList<StructureClaim> Structures => Claimed ?? [];
+}
 
 /// <summary>
 /// The dressing pass: the third and last walk over a realized world (docs/world-export/decoration.md). The
@@ -68,9 +85,11 @@ public readonly record struct DressingTally(
 /// </summary>
 public static class Decorator
 {
-    /// <summary>Place everything the author placed, and report what landed. No props is a no-op, so a map that
-    /// never opened the dressing phase exports byte-for-byte as it did before.</summary>
-    public static DressingTally Decorate(VoxelWorld world, DressingContext context)
+    /// <summary>Place everything the author placed, and report what landed — <b>what landed</b>, not what was
+    /// asked for: a prop this pass declines is absent from the report, which is what lets a caller claim its
+    /// provenance from the return rather than re-deriving it from the document. No props is a no-op, so a map
+    /// that never opened the dressing phase exports byte-for-byte as it did before.</summary>
+    public static DressingPlacement Decorate(VoxelWorld world, DressingContext context)
     {
         // Order is what keeps the parts from growing through each other. Water goes first because it is the one
         // prop that carves the ground — everything after it seats on what it leaves. Then paths, which become
@@ -78,22 +97,29 @@ public static class Decorator
         // buildings, which are the largest exclusion there is, then the big props, each an exclusion for the
         // small ones, and cover last, into whatever is left.
         var taken = new HashSet<(int X, int Z)>();
-        var tally = new DressingTally();
+        var placed = new DressingPlacement();
+        var structures = new List<StructureClaim>();
 
         foreach (var prop in context.Props.OfType<WaterProp>())
-            tally = tally with { WaterCells = tally.WaterCells + PlaceWater(world, context, prop, taken) };
+            placed = placed with { WaterCells = placed.WaterCells + PlaceWater(world, context, prop, taken) };
         foreach (var prop in context.Props.OfType<PathProp>())
-            tally = tally with { PathCells = tally.PathCells + PlacePath(world, context, prop, taken) };
+            placed = placed with { PathCells = placed.PathCells + PlacePath(world, context, prop, taken) };
         foreach (var prop in context.Props.OfType<HouseProp>())
-            tally = tally with { Houses = tally.Houses + PlaceHouse(world, context, prop, taken) };
+        {
+            var raised = PlaceHouse(world, context, prop, taken);
+            structures.AddRange(raised);
+            placed = placed with { Houses = placed.Houses + raised.Count };
+        }
         foreach (var prop in context.Props.OfType<BoulderProp>())
-            tally = tally with { Boulders = tally.Boulders + PlaceBoulder(world, context, prop, taken) };
+            placed = placed with { Boulders = placed.Boulders + PlaceBoulder(world, context, prop, taken) };
         foreach (var prop in context.Props.OfType<TreeProp>())
-            tally = tally with { Trees = tally.Trees + PlaceTree(world, context, prop, taken) };
+            placed = placed with { Trees = placed.Trees + PlaceTree(world, context, prop, taken) };
         foreach (var prop in context.Props.OfType<FloraProp>())
-            tally = tally with { Plants = tally.Plants + PlaceFlora(world, context, prop, taken) };
+            placed = placed with { Plants = placed.Plants + PlaceFlora(world, context, prop, taken) };
 
-        return tally;
+        // Null rather than an empty list when nothing was raised, so a pass that placed nothing compares equal
+        // to a pass that was never asked to (the Finding.Subjects rule, for the same reason).
+        return placed with { Claimed = structures.Count > 0 ? structures : null };
     }
 
     // ── paths (DR-PA) ───────────────────────────────────────────────────────────
@@ -311,37 +337,55 @@ public static class Decorator
     /// a building does not stand on one side of a mirrored map and leave a hole where the other team's copy
     /// should be.</para>
     /// </summary>
-    private static int PlaceHouse(
+    private static List<StructureClaim> PlaceHouse(
         VoxelWorld world, DressingContext context, HouseProp house, HashSet<(int X, int Z)> taken)
     {
-        if (house.Footprint() is not { } plan) return 0;
+        if (house.Footprint() is not { } plan) return [];
 
         var images = new List<(Footprint Plan, RoomEdge? Front, int FloorY)>(context.Symmetry.Order);
         for (var k = 0; k < context.Symmetry.Order; k++)
         {
-            if (TurnedFootprint(plan, context.Symmetry, k) is not { } image) return 0;
+            if (TurnedFootprint(plan, context.Symmetry, k) is not { } image) return [];
             // Two authored rectangles that overlap are two buildings colliding (still MG7's drop); a wing that
             // shares ground with its own prop's other wings is not a second building, and never reaches this
             // set at all — the whole point of the plan being one Footprint rather than one Overlaps call per
             // rectangle.
-            if (Overlaps(image, taken)) return 0;
+            if (Overlaps(image, taken)) return [];
             var floorY = Ground(context, image);
-            if (floorY is null) return 0;
+            if (floorY is null) return [];
 
             var front = house.Front is { } edge ? context.Symmetry.TurnEdge(edge, k) : (RoomEdge?)null;
             images.Add((image, front, floorY.Value));
         }
 
-        foreach (var (image, front, floorY) in images)
+        var claims = new List<StructureClaim>(images.Count);
+        for (var k = 0; k < images.Count; k++)
         {
+            var (image, front, floorY) = images[k];
             HouseStamper.Stamp(
                 world, image, floorY, house.Style,
                 doors: front is { } side ? Doorway(house.Style, image, side) : null);
 
             foreach (var (x, z) in image.Cells()) taken.Add((x, z));
+
+            // The claim is made here, after the stamp and inside the same loop, so it cannot outlive a drop:
+            // every early return above leaves this list empty and the caller claims nothing. The cells are the
+            // stamped extent rather than the wall rectangle — a roof's overhang and verge reach past the walls
+            // and are as much the building as they are — and they come from HouseStamper's own function, so
+            // the claim and the stamp read one derivation instead of two that agree today.
+            claims.Add(new StructureClaim($"house:{house.Id}:{k}", ClaimedCells(image, house.Style)));
         }
-        return images.Count;
+        return claims;
     }
+
+    /// <summary>Every column one raised image of a building covers: each wing's own rectangle grown by what
+    /// the style's roof reaches past its walls, unioned. The union of the wings rather than one box round the
+    /// whole plan, because an L or a T has ground in its notch no eave reaches and claiming it would merge two
+    /// buildings with clear ground between them into one structure.</summary>
+    private static IReadOnlyList<(int X, int Z)> ClaimedCells(Footprint image, HouseStyle style) =>
+        [.. image.Wings
+            .SelectMany(wing => HouseStamper.StampedCells((wing.MinX, wing.MinZ, wing.MaxX, wing.MaxZ), style))
+            .Distinct()];
 
     /// <summary>The <paramref name="image"/>-th image of a plan: every wing's own two corners turned round the
     /// orbit and rebuilt as a <see cref="Wing"/>, so a quarter turn swaps each wing's width and depth exactly as

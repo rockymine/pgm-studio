@@ -210,87 +210,6 @@ public sealed class DressingScopeTests
         await Assert.That(violations).IsEmpty();
     }
 
-    // ── provenance (B133/B139): dressing-placed buildings claim Structure with an owner, everything else
-    // stays absent ─────────────────────────────────────────────────────────────────────────────────────────
-    [Test]
-    public async Task A_dressing_placed_house_reports_its_whole_footprint()
-    {
-        var footprints = DressingScope.StructureFootprints(Layout(
-            ",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"wings\":[[[0,0],[3,2]]]}]}"))
-            .SelectMany(entry => entry.Cells).ToList();
-
-        await Assert.That(footprints).Contains((0, 0));
-        await Assert.That(footprints).Contains((2, 1));   // interior of the 3x2 footprint
-        await Assert.That(footprints.Count).IsGreaterThanOrEqualTo(6);
-    }
-
-    [Test]
-    public async Task A_house_fans_its_footprint_across_the_symmetry_orbit_like_any_other_prop()
-    {
-        // rot_180 about the origin: a house at (0,0)-(3,2) has a second image at (-3,-2)-(0,0) (GoalClearanceViolations
-        // fans the same way for the same reason — a stamped extent is symmetric wherever the building is).
-        var footprints = DressingScope.StructureFootprints(Layout(
-            ",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"wings\":[[[10,10],[13,12]]]}]}"))
-            .SelectMany(entry => entry.Cells).ToList();
-
-        await Assert.That(footprints).Contains((10, 10));
-        await Assert.That(footprints).Contains((-10, -10));   // rot_180 image
-    }
-
-    [Test]
-    public async Task A_houses_stamped_extent_reaches_past_its_wall_rectangle_by_the_roofs_overhang()
-    {
-        // A 4x3 wall footprint at (20,20)-(23,22), overhang 2. Kept off the map's own centre (the
-        // fixture's rot_180 pivot) so the mirror image lands nowhere near it and cannot be mistaken for the
-        // eaves this test is actually checking. The wall rectangle alone (the old claim) is exactly the
-        // interior this test starts from; the eaves ring one cell further out is what a style's overhang and
-        // verge actually cover, and it has to be in the claim or it reads by material alone.
-        var footprints = DressingScope.StructureFootprints(Layout(
-            ",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"wings\":[[[20,20],[23,22]]],"
-            + "\"style\":{\"overhang\":2}}]}"))
-            .SelectMany(entry => entry.Cells).ToHashSet();
-
-        // Inside the wall rectangle, as before.
-        await Assert.That(footprints).Contains((20, 20));
-        await Assert.That(footprints).Contains((23, 22));
-
-        // The eaves ring, which the wall rectangle alone never claimed — the bug this test would have caught.
-        await Assert.That(footprints).Contains((18, 18));   // the corner, two out on both axes
-        await Assert.That(footprints).Contains((19, 21));   // one side, one block short of the corner's reach
-        await Assert.That(footprints).Contains((25, 24));   // the far corner
-
-        // And it stops where the overhang says it does — one cell further is genuinely open ground.
-        await Assert.That(footprints).DoesNotContain((17, 21));
-    }
-
-    [Test]
-    public async Task Each_orbit_image_of_a_house_carries_its_own_owner()
-    {
-        // Two images of one authored house (rot_180) are two different buildings standing in two different
-        // places, not the same claim repeated — StructureFinder tells them apart by this owner alone.
-        var entries = DressingScope.StructureFootprints(Layout(
-            ",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"wings\":[[[10,10],[13,12]]]}]}"))
-            .ToList();
-
-        await Assert.That(entries.Count).IsEqualTo(2);
-        var owners = entries.Select(entry => entry.Owner).ToList();
-        await Assert.That(owners.Distinct().Count()).IsEqualTo(2);
-        await Assert.That(owners).Contains("house:h1:0");
-        await Assert.That(owners).Contains("house:h1:1");
-    }
-
-    [Test]
-    public async Task Two_different_houses_never_share_an_owner()
-    {
-        var entries = DressingScope.StructureFootprints(Layout(
-            ",\"dressing\":{\"props\":["
-            + "{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"wings\":[[[0,0],[3,2]]]},"
-            + "{\"kind\":\"house\",\"id\":\"h2\",\"seed\":1,\"wings\":[[[40,40],[43,42]]]}]}"))
-            .ToList();
-
-        await Assert.That(entries.Select(entry => entry.Owner).Distinct().Count()).IsEqualTo(entries.Count);
-    }
-
     // ── the point-and-radius foliage render's source ───────────────────────────────────────────────────
     [Test]
     public async Task Every_tree_reports_its_anchor_and_a_positive_measured_radius()
@@ -300,7 +219,7 @@ public sealed class DressingScopeTests
             + "\"species\":\"oak\",\"height\":16}]}"));
 
         // The fixture's setup carries rot_180, so one authored tree fans to two images — the same order every
-        // other footprint here reads (StructureFootprints, GoalClearanceViolations).
+        // other footprint here reads (GoalClearanceViolations).
         await Assert.That(points.Count).IsEqualTo(2);
         var here = points.Single(point => point.X == 30 && point.Z == 30);
 
@@ -308,19 +227,6 @@ public sealed class DressingScopeTests
         // Both images of the same authored tree carry the same measured radius — the crown is a property of
         // the prop, not of where a particular image happens to land.
         await Assert.That(points.Select(point => point.Radius).Distinct()).Count().IsEqualTo(1);
-    }
-
-    [Test]
-    public async Task Trees_and_boulders_report_no_structure_footprint()
-    {
-        // Their material already reads unambiguously (a log, a leaf, plain stone) — provenance exists for
-        // the Ground/Structure pair a material test gets wrong, which neither of these is.
-        var footprints = DressingScope.StructureFootprints(Layout(
-            ",\"dressing\":{\"props\":["
-            + "{\"kind\":\"tree\",\"id\":\"t1\",\"seed\":1,\"x\":5,\"z\":5},"
-            + "{\"kind\":\"boulder\",\"id\":\"b1\",\"seed\":1,\"x\":8,\"z\":8}]}"));
-
-        await Assert.That(footprints).IsEmpty();
     }
 
     [Test]

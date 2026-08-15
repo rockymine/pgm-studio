@@ -608,25 +608,6 @@ are Edit-specific. Full canvas spec: `docs/client/canvas-interaction.md`.
   *found reading the two classes for `B204`, 2026-08-15 · `Geom/Relief/Footprint.cs:13` ·
   `Minecraft/Footprint.cs:189`.*
 
-- [ ] **B206 — `PlanValidator` answers one question through four public verbs, and one of them is dead.**
-  `B191` and `B192` shipped one `Finding`, one `Findings` and one verb — `Check` — and `CLAUDE.md` names the
-  seven verbs that consolidation retired, `Errors` and `Completeness` among them. Both are still public on
-  `PlanValidator`, beside `Check` and `HasErrors`.
-
-  `Errors(PlanModel)` has **no caller anywhere** — not `src/`, not `tools/`, not `tests/`. `HasErrors` has one,
-  in a test. `Completeness` is genuinely a second question (whether the plan carries what a map cannot exist
-  without, as against whether what it says is coherent) and `PlanInspectEndpoints` asks both on consecutive
-  lines, so it stays — but its own docstring cites `<see cref="Validate"/>`, a method this class does not have,
-  which is what a name left behind looks like after the thing it named was renamed.
-
-  So: delete `Errors` and its private overload's public face, keep `Check` and `Completeness` as the two
-  questions a plan is actually asked, and fix the stale cref. It matters more than a tidy-up because buckets 1,
-  2, 3 and 10 all add rules to this class, and an agent choosing a verb from four will not choose the same one
-  twice.
-
-  *found checking `B204`'s landing sites, 2026-08-15 · `Pgm/Plan/PlanValidator.cs:59–80` · callers grepped
-  across `src/`, `tools/` and `tests/`.*
-
 ### The mapgen audit's forty-eight, bucketed for dispatch
 
 Six agent runs authored nineteen loadable boards against the `B120` brief, and the author's review of twelve
@@ -1438,7 +1419,14 @@ block-kind rules: a floor divided into concentric zones, a terrain top course ba
 a band stack whose axis is continuous are the same question asked on three rasters — **how far in from the
 edge does this cell stand, and which band claims that distance.** `Footprint.Step()` already answers it for a
 building's floor and nothing answers it for terrain, though `GridBoundary.TracePerimeter` is already shared by
-both. `B200` carries the author call the other two wait on.
+both. `B200`'s author call is **answered**, so nothing here is blocked.
+
+**The walk crosses an elevation step** (author, 2026-08-15). One walk inward from the geometric outer edge,
+numbering across a tread rather than reseeding at it — `B200`'s `Void` reading, not `RimEdges.Drop`. The
+concept is reached for on flat ground most of the time, where the two readings coincide anyway, and the
+answer is stated so that varying heights are **not ruled out**: a staircase of plateaus gets bands running
+across the treads and up the hill, which is a shape an author may want and would have no way to ask for if
+each tread seeded its own ring 0.
 
 - [ ] **B199 — A floor's zoning is three named fields, so a floor cannot be concentric.** `FloorSurface` is
   `Border`/`BorderWidth` + `Field` + `Inlay`/`InlayInset` — three fixed zones where the border is one material
@@ -1485,11 +1473,12 @@ both. `B200` carries the author call the other two wait on.
   it to the top course composes rather than needing a knob: a `layered` stack whose first band is the
   ring-banded material and whose rest is dirt.
 
-  **Blocked on one author call.** Does the walk cross an elevation step? Under `RimEdges.Drop` every tread edge
-  is its own ring 0, so a staircase of plateaus gets a band set per tread; under `Void` only the outer face
-  seeds, so the bands run across the treads and up the hill. Both are coherent and they look completely
-  different. The seed is the *geometric* edge either way, not the `Rim` bucket's toggle — the author has said
-  the walk starts "from the rim or if there is no rim".
+  **The walk crosses an elevation step, and that is settled** (author, 2026-08-15). Only the geometric outer
+  face seeds; the numbering carries across a tread rather than restarting at it, so a staircase of plateaus
+  gets one band set running across the treads and up the hill rather than a set per tread. The flat case — what
+  the concept is reached for most of the time — reads the same either way, and the answer is stated in this
+  direction so that varying heights stay available rather than being ruled out by the seeding rule. The seed is
+  the geometric edge, not the `Rim` bucket's toggle: the walk starts "from the rim or if there is no rim".
 
   *reported by the author while theming a board; corrected 2026-08-15 after reading `TerrainProfile` ·
   `Footprint.Step` · `GridBoundary` · `docs/world-export/terrain-painting.md`.*

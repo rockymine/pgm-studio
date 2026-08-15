@@ -22,89 +22,55 @@ and every one was found by following where a fact is stored or derived rather th
 - a house style never ran the material walk at all, so a pattern stored inside one never read forward (`B195`);
 - the inward walk a floor's zones are cut by exists for the housing raster and not for the terrain one, though
   both already share the perimeter trace beside it (`B200`);
-- a house the dressing pass **declined to place** still claims its footprint as structure, because the claim is
-  rebuilt from the author's intent instead of from the placement (`B202`).
+- a house the dressing pass **declined to place** still claimed its footprint as structure, because the claim
+  was rebuilt from the author's intent instead of from the placement (`B202`, **shipped**).
 
-**Only the last bites.** It is measured: two authored houses whose stamped rings overlap, one placed, two
-claimed, 56 columns carrying a `Structure` claim over bare ground — and provenance is now *preferred* over the
-material estimate, so a stage image draws a building that is not there and says it is certain. The other three
-were correct by coincidence of maintenance. That is the whole difficulty: nothing in the type, the tests or the
-documents separates a seam that bites from one that has not yet, and the four above did not fail a single test
-between them.
+**Only the last bit, and it is fixed.** It was measured: two authored houses whose stamped rings overlap, one
+placed, two claimed, 56 columns carrying a `Structure` claim over bare ground — and provenance is *preferred*
+over the material estimate, so a stage image drew a building that was not there and said it was certain. The
+other three were correct by coincidence of maintenance. That is the whole difficulty: nothing in the type, the
+tests or the documents separates a seam that bites from one that has not yet, and the four did not fail a
+single test between them.
 
-`B203` maps the class rather than an instance — five answers to "which columns does this stamp own", four
-tables for "what kind of block is this", one predicate written twice and one name covering two meanings.
+**What `B202` leaves behind is the rule, written down where the next pass will meet it.** `StructureClaim` —
+a claim is taken from the placement, never rebuilt beside it — with the two regressions that hold it: a
+building dropped for overlapping one already standing, and a building authored over void. Both claim nothing.
+`B203` is the rest of the class, and it is now one answer shorter.
 
 **The dispatch pass is done, and it moved three tasks.** `B204` read the bucket bodies rather than their
 titles and labelled each with the concept it spends and the one place that concept may land; the map is in
 `BACKLOG.md` under *What each bucket spends*. Four of its five predicted labels were wrong in a way only the
-bodies show: bucket 4 held three tasks that are not block-kind rules at all but one walk asked for on three
-rasters, now **bucket 13**; bucket 10 is not document drift but the refusal vocabulary; bucket 9 has been
-finished since before the table was written; and `B177` asked for a rule that `PlanValidator.LintSp2` already
-implements, so an agent handed it as written would have shipped the second copy.
+bodies show: bucket 4 held three tasks that are not block-kind rules at all but one walk asked for on two
+rasters plus a continuous axis, now **bucket 13**; bucket 10 is not document drift but the refusal vocabulary;
+bucket 9 has been finished since before the table was written; and `B177` asked for a rule that
+`PlanValidator.LintSp2` already implements, so an agent handed it as written would have shipped the second copy.
 
-**What that leaves as the order.** Buckets 6 and 7 spend occupancy and wait on `B202` — dispatched before it
-they entrench the fault it names. Buckets 1, 2, 3 and 10 all land in `PlanValidator` and go to one agent or
-strictly in sequence. Buckets 4 and 5 share the block table. Bucket 13 wants its author call answered first.
-Buckets 8, 11 and 12 share nothing and may run at once.
+**What that leaves as the order.** Buckets 6 and 7 spend occupancy and were waiting on `B202`; that has
+landed, so they are dispatchable, and both should adopt `StructureClaim` rather than adding a claim of their
+own. Buckets 1, 2, 3 and 10 all land in `PlanValidator` and go to one agent or strictly in sequence — `B206`
+has cut that class to one verb so they do not each pick a different one. Buckets 4 and 5 share the block table
+and wait on `B203`. Bucket 13's author call is answered: **the walk crosses an elevation step.** Buckets 8, 11
+and 12 share nothing and may run at once.
 
 ## Backend, pipeline & internals (B / P / A)
 
-**Two findings, and the live-defect hunts against the same surfaces.** `B202` is the seam that bites and
-`B203` is the class it belongs to; both are now the gate on eight of the bucketed forty-eight rather than
-findings standing on their own. Under them: a building that is solid behind its facade, leaves lying inside
-one, a stale chunk surviving a rebuild, and the two names that still cover two meanings each.
+**One finding, and the live-defect hunts against the same surfaces.** `B203` is the class `B202` was an
+instance of, and it gates buckets 4 and 5. Under it: a building that is solid behind its facade, leaves lying
+inside one, a stale chunk surviving a rebuild, and the two names that still cover two meanings each.
 
-- [ ] **B202 — Provenance claims a building the dressing pass declined to place.** `Decorator.PlaceHouse`
-  drops a house **whole** — every orbit image of it — when any image overlaps something already standing
-  (MG7's drop), when any image has no ground under it, or when a turn fails. `DressingScope.StructureFootprints`
-  rebuilds the same footprints from the layout JSON afterwards to make the provenance claim, and it takes
-  `layoutJson` alone: no world, no `taken` set, no ground. It cannot know what was dropped, so it claims
-  every authored house on every image regardless.
-
-  **Measured** (`scratchpad/claimcheck.cs`, flat stone plateau at y=8, two authored houses whose stamped
-  rings overlap, `mirror_mode: none`):
-
-  | | authored | placed | claimed |
-  |---|---|---|---|
-  | houses | 2 | **1** (`tally.Houses`) | **2** (`house:a:0`, `house:b:0`) |
-
-  | owner | cells claimed | with anything standing on them |
-  |---|---|---|
-  | `house:a:0` | 81 | 81 |
-  | `house:b:0` | 81 | **25** — and those 25 are `a`'s blocks in the overlap |
-
-  So 56 columns carry a `Structure` claim over bare ground. Three of them: `(18, 13)`, `(19, 13)`, `(20, 13)`
-  — top block stone (1), nothing above y=8.
-
-  **It matters because provenance is now preferred over the material estimate.** `StructureFinder` partitions
-  candidates by owner when a record exists and drops the material+step reading entirely; `TopDownRender` prints
-  "STRUCTURE READING: RECORDED PROVENANCE". So a stage image draws a building that is not there and the finder
-  reports a structure with no blocks — and both say they are certain.
-
-  **The fix is the direction of the derivation, not a filter.** `Decorator.Decorate` already knows exactly
-  which cells it stamped; it returns a `DressingTally` of *counts*. Have it report the placed footprints and
-  claim from those, rather than re-deriving the same fact from the author's intent — the record should come
-  from the placement, never beside it.
-
-  **And the rule is already written down, one function above the defect.** `DressingScope.GoalGroundAt` takes a
-  goal's ground from *"the box the stamper wrote where there is one … by construction rather than by two
-  derivations agreeing"* — the right direction, stated in a docstring, in the same file as
-  `StructureFootprints`, which does the opposite. `SketchWorldBuilder` rebuilds a claim beside its stamp four
-  more times (the room floor, the wall, the redstone line, the goal box) and shares a footprint function with
-  its stamper exactly once, for the iron cube. So this is not a design that has to be invented, and the fix's
-  reach is the whole file rather than the house case: `B204` files it as the **occupancy** concept, which
-  buckets 6 and 7 both spend and neither may be dispatched before this lands.
-
-  *found in the provenance dive, 2026-08-15 · `Decorator.PlaceHouse` · `DressingScope.StructureFootprints`.*
-
-- [ ] **B203 — "Which columns does this stamp own" has five answers, and "what kind of block is this" has
+- [ ] **B203 — "Which columns does this stamp own" has four answers left, and "what kind of block is this" has
   four tables.** Both are one question asked in several places, each place deriving it its own way.
 
   **Which columns a stamp owns:** the stamper itself (it places the blocks); `provenance.ClaimRect` beside it
-  in `SketchWorldBuilder`; `DressingScope.ProtectedAt`'s keep-out mask; `TerrainProfile`'s paint gate (a column
-  whose top block *is not stone* is a structure); and `DressingScope.StructureFootprints` for houses (`B202`).
-  The room-floor case has the same rectangle converted from doubles twice, five lines apart, by two rules —
+  in `SketchWorldBuilder`; `DressingScope.ProtectedAt`'s keep-out mask; and `TerrainProfile`'s paint gate (a
+  column whose top block *is not stone* is a structure). The fifth — the house claim rebuilt from the layout —
+  is gone with `B202`, which also left the rule and the type the rest should adopt: **`StructureClaim`**, a
+  claim taken from the placement rather than beside it.
+
+  What is left in `SketchWorldBuilder` is five `ClaimRect` calls that each re-derive a rect the stamper beside
+  them already computed — the room floor, the wall, the redstone line, the goal box, the marker. Only the iron
+  cube reads its stamper's own `StructureStamper.IronCubeFootprint`, and it is the one that cannot drift. The
+  room-floor case is the sharp one: the same fractional rect converted twice, five lines apart, by two rules —
   `(int)f.MinX` in the stamp against `Math.Floor`/`Math.Ceiling` in the claim. Latent rather than live, since
   `PlanCompiler` fans integral rects today; `CLAUDE.md`'s own trap entry says this class has already cost hours.
 

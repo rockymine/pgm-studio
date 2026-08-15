@@ -469,23 +469,33 @@ The shell is a **snapshot** on the prop, not a library id — the rule a map's b
 (`structures.md` §9). Picking a style from the library copies its JSON in, so editing that row later cannot
 rebuild a map's scenery.
 
-**Its footprint claims provenance the same way a room's does, only later.** `DressingScope.StructureFootprints`
-fans a dressing-placed house's footprint across the symmetry orbit and `SketchWorldBuilder` claims it as
-`WorldProvenance`'s `Structure` layer after `Decorate` runs, so a house standing on a plaza the painter finished
-in the same material as its own walls still reads as a building rather than fusing with the ground it stands
-on: two different passes claimed the two sets of cells, whatever either is made of. Trees, boulders and flora
-claim no provenance at all — their material already answers the question a stage image asks of them (a log, a
-leaf, plain stone) without help.
+**Its footprint claims provenance the same way a room's does, only later.** `Decorate` reports a
+`StructureClaim` for every building it raises and `SketchWorldBuilder` records each as `WorldProvenance`'s
+`Structure` layer, so a house standing on a plaza the painter finished in the same material as its own walls
+still reads as a building rather than fusing with the ground it stands on: two different passes claimed the two
+sets of cells, whatever either is made of. Trees, boulders and flora claim no provenance at all — their
+material already answers the question a stage image asks of them (a log, a leaf, plain stone) without help.
 
-**Each claim carries an owner, not just the layer.** `StructureFootprints` returns one `(Owner, Cells)` pair
-per house per orbit image — `"house:{Id}:{image}"` — rather than a flat cell list, and `SketchWorldBuilder`
-claims each pair separately so the two images of one mirrored house are two identities, not one claim repeated
-at two positions. This is what lets a reader (`Render.StructureFinder`) tell two authored houses apart even
-when their stamped rings genuinely touch: a layer alone answers "is this built", and only the owner answers
-"built by which stamp" — a terrace of houses sharing a wall reads as one finding per house instead of one
-finding for the row it would otherwise flood into.
+**The claim comes from the placement, and that direction is the point.** The pass drops a building **whole**
+when any of its orbit images overlaps something already standing (MG7), stands over no ground, or fails its
+turn — so a claim rebuilt afterwards from the layout document cannot see any of it, and claims every authored
+house on every image regardless. That was the state of it until `B202`: on two authored houses whose stamped
+rings overlap, one placed and two claimed, 56 columns carried a `Structure` claim over bare ground, and because
+provenance is *preferred* over the material estimate a stage image drew a building that was not there and said
+it was certain. So the claim is now built inside the same loop that stamps, from the images that were actually
+raised: a dropped building leaves an empty list and nothing is claimed for it. The rule that names this —
+a claim is taken from the placement, never rebuilt beside it — is `StructureClaim`'s own docstring, and it is
+the rule `DressingScope.GoalGroundAt` had already been following for a goal's ground.
 
-**The claim is the stamp's own reach, not the rectangle someone dragged.** `StructureFootprints` used to fan
+**Each claim carries an owner, not just the layer.** There is one claim per house per orbit image —
+`"house:{Id}:{image}"` — rather than a flat cell list, and `SketchWorldBuilder` records each separately so the
+two images of one mirrored house are two identities, not one claim repeated at two positions. This is what lets
+a reader (`Render.StructureFinder`) tell two authored houses apart even when their stamped rings genuinely
+touch: a layer alone answers "is this built", and only the owner answers "built by which stamp" — a terrace of
+houses sharing a wall reads as one finding per house instead of one finding for the row it would otherwise
+flood into.
+
+**The claim is the stamp's own reach, not the rectangle someone dragged.** The claim used to be
 `HouseProp.Footprint()` — the two-corner rectangle a style's walls stand on — and stop there. A roof reaches
 past that by its `overhang`, a `verge` is commonly a log, and a `BeamStyle`'s log ends run further still, so
 the ring of cells the eaves actually land on kept whatever claim the ground under it had before the house was
@@ -494,8 +504,10 @@ tree-colour on the category render. `HouseStamper.StampedExtent(ground, style)` 
 reaches — the wall rectangle grown by the greatest of the overhang, the beam reach and the one-block sill that
 rings every footprint regardless of either — read straight off the style's own fields rather than re-derived
 from voxels, since `overhang`, `pitch` and `Beams.Reach` are exactly what the stamper itself reads to lay the
-roof and the beam ends. `StructureFootprints` calls it for every image of the orbit, in place of the bare
-rectangle, and that single formula is also what a stamped porch never needs its own case for: a porch is
+roof and the beam ends. The claim reads `HouseStamper.StampedCells` for each wing of the image it just
+stamped — the stamper's own function, so the claim and the stamp are one derivation rather than two that agree
+today — and the union of the wings rather than one box round the whole plan, because an L or a T has ground in
+its notch no eave reaches. That single formula is also what a stamped porch never needs its own case for: a porch is
 carved out of the footprint it was handed rather than added past it, so its own canopy overhangs by the same
 `Overhang` and never reaches further than the main roof already does.
 

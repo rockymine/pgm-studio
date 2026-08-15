@@ -184,51 +184,6 @@ public static class DressingScope
         return null;
     }
 
-    /// <summary>Every dressing-placed building's <b>stamped extent</b> — the wall footprint grown by
-    /// <see cref="HouseStamper.StampedExtent"/>, not the wall rectangle alone — fanned across the map's
-    /// symmetry orbit, for the build's provenance record (<c>SketchWorldBuilder</c>) to claim as structure
-    /// regardless of what the house is built from. A roof's overhang and a verge lay past the walls by design,
-    /// and a column the stamper never claimed reads by material alone, which is exactly the eaves reading as
-    /// foliage when a style's verge is a log. Trees, boulders and flora are absent on purpose: their
-    /// material already reads unambiguously (a log, a leaf, a liquid), so provenance has nothing to correct
-    /// there — it exists for the Ground/Structure pair a material test can get wrong.
-    ///
-    /// <para>Grouped by owner, one entry per house per orbit image — the author's own <see cref="PlacedProp.Id"/>
-    /// plus the image number, since a mirrored copy of one authored house is a second, distinct building
-    /// standing somewhere else on the board, not the same claim repeated. Two authored houses that stand wall
-    /// to wall carry two different owners even though their stamped rings touch, which is what lets a reader
-    /// (<c>StructureFinder</c>) tell them apart without guessing from adjacency.</para></summary>
-    public static IEnumerable<(string Owner, IReadOnlyList<(int X, int Z)> Cells)> StructureFootprints(string layoutJson)
-    {
-        var symmetry = SymmetryOf(layoutJson);
-        foreach (var prop in PropsOf(layoutJson))
-        {
-            if (prop is not HouseProp house) continue;
-            for (var image = 0; image < symmetry.Order; image++)
-            {
-                var cells = StampedFootprint(house, symmetry, image).ToList();
-                if (cells.Count > 0) yield return ($"house:{house.Id}:{image}", cells);
-            }
-        }
-    }
-
-    /// <summary>One image of the cells a house's stamp can write — every wing's own rectangle turned round the
-    /// orbit first and expanded by <see cref="HouseStamper.StampedCells"/> after, so a quarter turn swaps each
-    /// wing's width and depth before the eaves are added and a non-square house comes out right on every image.
-    /// The union of each wing's own grown rectangle rather than the grown box round the whole plan, because an
-    /// L or a T has ground in its notch no wing's eave ever reaches, and claiming it as structure is exactly the
-    /// over-claim the single-rectangle case already refuses (a beam's corner arm is not a reason to claim the
-    /// ground halfway down the wall, which is what merged two houses with a clear column between them into one
-    /// structure).</summary>
-    private static IEnumerable<(int X, int Z)> StampedFootprint(HouseProp house, DressingSymmetry symmetry, int image)
-    {
-        if (house.Footprint() is not { } plan) return [];
-        var wall = Decorator.TurnedFootprint(plan, symmetry, image);
-        return wall.Wings
-            .SelectMany(wing => HouseStamper.StampedCells((wing.MinX, wing.MinZ, wing.MaxX, wing.MaxZ), house.Style))
-            .Distinct();
-    }
-
     /// <summary>Every dressing-placed tree's anchor and measured canopy radius, fanned across the map's
     /// symmetry orbit — the authored points the point-and-radius foliage render draws (§6,
     /// <c>docs/world-export/decoration.md</c>) rather than the leaf mass a build writes. The radius is

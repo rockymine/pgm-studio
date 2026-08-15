@@ -408,4 +408,112 @@ public sealed class HousePropTests
         await Assert.That(openOnPosX).IsGreaterThan(0);
         await Assert.That(openOnNegX).IsEqualTo(0);
     }
+
+    // ── what the pass claims (B202): the claim is the placement's, not the document's ─────────────────
+    [Test]
+    public async Task A_building_that_was_raised_claims_its_whole_footprint()
+    {
+        var (world, top) = Plateau();
+        var placed = Decorator.Decorate(world, Context(top, [House(0, 0, 3, 2)]));
+
+        var cells = placed.Structures.SelectMany(claim => claim.Cells).ToList();
+        await Assert.That(cells).Contains((0, 0));
+        await Assert.That(cells).Contains((2, 1));            // interior of the 3x2 footprint
+        await Assert.That(cells.Count).IsGreaterThanOrEqualTo(6);
+    }
+
+    [Test]
+    public async Task A_building_claims_its_stamped_extent_and_not_its_wall_rectangle()
+    {
+        // The eaves ring is as much the building as the walls are: a roof's overhang and verge lay past the
+        // wall by design, and a column the stamper never claimed reads by material alone — which is the eaves
+        // reading as foliage where a style's verge is a log.
+        var (world, top) = Plateau(size: 96);
+        var overhung = new HouseStyle
+        {
+            Roof = new RoofStyle { Overhang = 2 },
+            Doorway = new Doorway { Door = DoorMaterial.Air },
+        };
+        var placed = Decorator.Decorate(
+            world, Context(top, [House("h1", null, overhung, (20, 20, 23, 22))]));
+
+        var cells = placed.Structures.SelectMany(claim => claim.Cells).ToHashSet();
+        await Assert.That(cells).Contains((20, 20));          // inside the wall rectangle
+        await Assert.That(cells).Contains((23, 22));
+        await Assert.That(cells).Contains((18, 18));          // the eaves corner, two out on both axes
+        await Assert.That(cells).Contains((25, 24));          // the far corner
+        await Assert.That(cells).DoesNotContain((17, 21));    // and it stops where the overhang says it does
+    }
+
+    [Test]
+    public async Task Each_orbit_image_of_a_building_carries_its_own_owner()
+    {
+        // Two images of one authored house are two buildings standing in two places, not one claim repeated —
+        // StructureFinder tells them apart by this owner alone.
+        var (world, top) = Plateau(size: 96);
+        var placed = Decorator.Decorate(
+            world, Context(top, [House(10, 10, 13, 12)], symmetry: "rot_180"));
+
+        await Assert.That(placed.Houses).IsEqualTo(2);
+        var owners = placed.Structures.Select(claim => claim.Owner).ToList();
+        await Assert.That(owners).Contains("house:h1:0");
+        await Assert.That(owners).Contains("house:h1:1");
+        await Assert.That(owners.Distinct().Count()).IsEqualTo(2);
+
+        var cells = placed.Structures.SelectMany(claim => claim.Cells).ToList();
+        await Assert.That(cells).Contains((10, 10));
+        await Assert.That(cells).Contains((-10, -10));        // the rot_180 image
+    }
+
+    [Test]
+    public async Task Two_different_buildings_never_share_an_owner()
+    {
+        var (world, top) = Plateau(size: 96);
+        var placed = Decorator.Decorate(world, Context(top,
+            [House("h1", null, (0, 0, 3, 2)), House("h2", null, (40, 40, 43, 42))]));
+
+        await Assert.That(placed.Structures.Select(claim => claim.Owner).Distinct().Count())
+            .IsEqualTo(placed.Structures.Count);
+    }
+
+    [Test]
+    public async Task Trees_and_boulders_claim_nothing()
+    {
+        // Their material already reads unambiguously (a log, a leaf, plain stone) — provenance exists for the
+        // Ground/Structure pair a material test gets wrong, which neither of these is.
+        var (world, top) = Plateau();
+        var placed = Decorator.Decorate(world, Context(top,
+            [new TreeProp { Id = "t1", X = 5, Z = 5, Seed = 1 },
+             new BoulderProp { Id = "b1", X = 18, Z = 18, Seed = 1 }]));
+
+        await Assert.That(placed.Structures).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_building_the_pass_declined_to_place_claims_nothing()
+    {
+        // The defect B202 names, as a test. Two authored houses whose stamped rings overlap: the first stands,
+        // the second is dropped whole by MG7, and a claim rebuilt from the author's intent would have claimed
+        // both — 56 columns of Structure over bare ground on the measured board, with a stage image drawing a
+        // building that is not there and saying it was certain.
+        var (world, top) = Plateau();
+        var placed = Decorator.Decorate(world, Context(top,
+            [House("a", null, (0, 0, 8, 8)), House("b", null, (6, 6, 14, 14))]));
+
+        await Assert.That(placed.Houses).IsEqualTo(1);
+        await Assert.That(placed.Structures.Count).IsEqualTo(1);
+        await Assert.That(placed.Structures.Single().Owner).IsEqualTo("house:a:0");
+    }
+
+    [Test]
+    public async Task A_building_over_void_claims_nothing()
+    {
+        // The other drop: no ground under the plan at all. Same rule, arrived at differently — a claim taken
+        // from the placement cannot outlive either refusal, which is the whole reason it is taken from there.
+        var (world, top) = Plateau();
+        var placed = Decorator.Decorate(world, Context(top, [House(100, 100, 108, 108)]));
+
+        await Assert.That(placed.Houses).IsEqualTo(0);
+        await Assert.That(placed.Structures).IsEmpty();
+    }
 }

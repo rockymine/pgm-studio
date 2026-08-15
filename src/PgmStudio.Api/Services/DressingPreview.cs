@@ -54,7 +54,7 @@ public static class DressingPreview
         // A marker is a few blocks across and an area is dozens, so one sample size would draw either a rock
         // as four pixels or a meadow cropped to a corner. The patch is sized to the prop.
         var span = SpanFor(prop);
-        var (world, tally) = Dressed([Centred(prop, span / 2, span / 2)], theme, span);
+        var (world, placed) = Dressed([Centred(prop, span / 2, span / 2)], theme, span);
         var (from, to) = Inside(span);
 
         // From above: each cell's highest block, so paving, plants, rock and canopy all show where they fall.
@@ -66,7 +66,7 @@ public static class DressingPreview
         var section = SectionSvg(view, TopCourse(view), cell);
 
         return new DressingPreviewDto(plan, section,
-            new DressingCountsDto(tally.Plants, tally.Boulders, tally.Trees, tally.PathCells, tally.WaterCells));
+            new DressingCountsDto(placed.Plants, placed.Boulders, placed.Trees, placed.PathCells, placed.WaterCells));
     }
 
     /// <summary>The six path styles at card size, each drawn by paving the same stroke — a picker showing
@@ -245,7 +245,7 @@ public static class DressingPreview
     /// <summary>A flat sample patch, painted and then dressed by the real passes. Flat on purpose: a preview is
     /// asking what a prop looks like, and terrain of its own would only confuse that with what the terrain
     /// does.</summary>
-    private static (VoxelWorld World, DressingTally Tally) Dressed(
+    private static (VoxelWorld World, DressingPlacement Placed) Dressed(
         IReadOnlyList<PlacedProp> props, TerrainTheme theme, int span = Span)
     {
         var world = new VoxelWorld();

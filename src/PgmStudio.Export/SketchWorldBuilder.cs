@@ -199,7 +199,7 @@ public static class SketchWorldBuilder
         // read against a goal is the ground its structure occupies rather than a second derivation of it
         // (OB8, and the reason this call sits after the two stamps).
         var goals = intent with { Destroyables = resolvedDestroyables, Cores = resolvedCores };
-        Decorator.Decorate(world, new DressingContext(
+        var dressed = Decorator.Decorate(world, new DressingContext(
             terrain.SurfaceTop,
             DressingScope.PropsOf(layoutJson),
             DressingScope.ProtectedAt(world, terrain.SurfaceTop, goals),
@@ -208,10 +208,14 @@ public static class SketchWorldBuilder
         // A dressing-placed building is a structure the author chose, not scenery the way a tree or a boulder
         // is (docs/world-export/decoration.md) — its footprint claims Structure last, over whatever ground
         // provenance the terrain under it carried, the same "later pass wins" rule every stamp above follows.
-        // One claim call per house per orbit image, so each keeps the owner that names it rather than all of
-        // them collapsing into one call with no identity of their own.
-        foreach (var (owner, cells) in DressingScope.StructureFootprints(layoutJson))
-            provenance.Claim(cells, ProvenanceLayer.Structure, owner);
+        // One claim per house per orbit image, so each keeps the owner that names it rather than all of them
+        // collapsing into one call with no identity of their own.
+        //
+        // Claimed from what the pass reported placing, never re-derived from the layout: the pass drops a
+        // building whole when any of its images overlaps something already standing, stands over no ground, or
+        // fails its turn, and a claim rebuilt from the author's intent cannot see any of that (B202).
+        foreach (var claim in dressed.Structures)
+            provenance.Claim(claim.Cells, ProvenanceLayer.Structure, claim.Owner);
 
         // ── Observer platform (floating at the authored Y) ───────────────────────────────────────────
         int spawnX, spawnY, spawnZ;

@@ -56,6 +56,14 @@ public static class PlanRules
 /// </summary>
 public static class PlanValidator
 {
+    /// <summary>
+    /// <b>Whether what the plan says is coherent</b> — the structural errors that block a compile and the lint
+    /// that rides along with it, in one answer. The only verb for that question: a caller asking whether the
+    /// plan is refused reads <see cref="Findings.Refuses"/> rather than counting, and a caller wanting only the
+    /// blocking half reads <see cref="Findings.Refusals"/>. Both were previously separate public methods, which
+    /// is how four entry points came to answer one question and how a rule added to this class could be reached
+    /// through whichever of them its author happened to find.
+    /// </summary>
     public static Findings Check(PlanModel plan)
     {
         var d = ContactGraph.Build(plan);
@@ -65,13 +73,9 @@ public static class PlanValidator
         return findings;
     }
 
-    public static Findings Errors(PlanModel plan) => new(Errors(plan, ContactGraph.Build(plan)));
-
-    public static bool HasErrors(PlanModel plan) => Check(plan).Refuses;
-
     /// <summary>
     /// Whether the plan carries the things a map cannot exist without — a separate question from
-    /// <see cref="Validate"/>, which asks only whether what the plan *says* is coherent and therefore passes a
+    /// <see cref="Check"/>, which asks only whether what the plan *says* is coherent and therefore passes a
     /// document that says nothing. Kept apart on purpose: a plan under construction is legitimately incomplete
     /// (the composer scores candidates before it has placed anything), so these belong to the one-way gate that
     /// turns a plan into a map, not to the continuous validation the editor and the evaluator run.

@@ -31,7 +31,7 @@ public static class HouseStamper
     /// name="ground"/>, so its reach never exceeds the main roof's.
     ///
     /// <para>This is the number a caller wanting to claim the ground a stamped house actually covers
-    /// (<c>DressingScope.StructureFootprints</c>) reads, in place of the wall rectangle alone — the wall
+    /// (the dressing pass's <c>StructureClaim</c>) reads, in place of the wall rectangle alone — the wall
     /// rectangle is what a plan piece or a dragged rectangle hands the stamper, not what the stamper writes.
     /// <c>HouseStamperTests</c> proves every block <see cref="Stamp(VoxelWorld,Footprint,int,HouseStyle,int,
     /// IReadOnlyList{RoomDoor})"/> actually places lands inside it, so a caller answering from the style's own

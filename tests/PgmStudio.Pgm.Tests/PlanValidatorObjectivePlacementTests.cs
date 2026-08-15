@@ -132,7 +132,7 @@ public sealed class PlanValidatorObjectivePlacementTests
         var inSpawn = Plan(RoomBoard.Replace("CORE", """ "cores":[ {"piece":"home","at":[10,10],"size":5} ] """));
 
         foreach (var plan in new[] { overVoid, inSpawn })
-            await Assert.That(PlanValidator.HasErrors(plan)).IsTrue();
+            await Assert.That(PlanValidator.Check(plan).Refuses).IsTrue();
     }
 
     [Test]
