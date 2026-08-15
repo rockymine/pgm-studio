@@ -511,10 +511,20 @@ by `HousePropRules.PastCap` and is not filed.
   So the template still asserts what `B131` stopped the generator asserting, on exactly the maps least able
   to correct it.
 
+  **It is not only the export gates, and the earlier half is the one an agent meets first.** The two calls a
+  plan document is meant to be checked with both bless an empty board: `POST /plan/evaluate` answers
+  `score 0, valid: true, violations: []` and `POST /plan/feasibility` answers `producible: true` to
+  `{"pieces": []}`, while `POST /plan/compile` refuses the same document outright with `PL1` — *this plan has
+  no pieces, there is no land to build*. So the advice surface and the gate disagree about the emptiest
+  document there is, and the advice is the encouraging one. Measured live, 2026-08-15. `B21` meets this as
+  its own caveat — a `plan_validate` whose feel terms are "vacuously green" over empty `placements` — and
+  that is this entry rather than a second one; a workaround in the MCP head would be the second copy.
+
   What the refusal should ask is the question no current gate does: whether the map has an objective at all,
   and a team and a spawn to contest it. It belongs with the others on the export composer, carrying a rule id,
   and it wants stating in terms of the intent rather than the document, since the intent is what an author
-  actually failed to write.
+  actually failed to write. The two plan-level reads want the same question asked of a plan: an empty board is
+  not a board with a perfect score.
 
   **This entry is understated on its own evidence, and the correction changes the fix.** It frames the empty
   boards as a map whose author *failed to write* an intent. But `specs/haiku-r2-canonical-8/plan.json` carries
@@ -1914,6 +1924,46 @@ each tread seeded its own ring 0.
   is the **author agent** only; the **analyst agent** (mine verdicts/reject logs for rule + envelope
   refinements — read-only `verdicts_export`/`rejects_query`) is a small follow-on once the corpus has
   data, not before.
+
+  **What the API audit settled about the head's shape (`B214`).** Four rulings, all of them about the
+  boundary rather than about the tools:
+
+  **The loop's stop condition is a rule id, and it now exists.** A submit→lint→fix loop only converges if
+  every failure is a finding — until `B214` nine endpoints answered a raw .NET stack trace and one returned
+  MariaDB's own error, which an agent can neither cite nor act on. The split the head reads is `RQ1` versus
+  `RQ2`: `RQ1` means the document is wrong, so fix and resubmit; `RQ2` means the studio broke, so **stop**,
+  because no amount of editing the plan will clear it. An agent that cannot tell those apart spends its whole
+  budget re-authoring against a server defect.
+
+  **No MCP parameter is ever a stringified document.** The HTTP surface has three body conventions —
+  twenty-five endpoints take a document unwrapped, and the rest take a record, some of which carry the
+  document as a *string* in a field (`{name, kind, params}`, `{name, themeJson}`). That last shape is the one
+  MCP makes strictly worse: a `string` parameter carries no schema, so the client validates nothing and the
+  agent double-encodes for no gain. **The head is where that encoding is absorbed** — a tool takes a typed
+  `plan` object and stringifies it on the way to `:7894` — which is also why the wire itself does not need
+  changing for this task's sake.
+
+  **The head exposes the document model only.** Where the library keeps a second model of the same thing —
+  `RoomStyleSaveRequest` has 28 fields against `HouseStyle`'s 46 and shares 11 names — the composed form
+  stays behind the head. That is safe rather than merely tidy: a map binds its room styles as a **snapshot**
+  rather than a library id, so an author agent never needs the library at all. The tool list above already
+  reflects this by carrying no library tools; this is the reason it is right.
+
+  **Tool schemas are generated from the request records**, never hand-written, for the reason
+  `GET /api/shapes/catalog` is preferred over the prose brief beside it: a hand-written schema is prose in
+  another notation and drifts from the endpoint the same way.
+
+  **And the plan layer is the agent surface for a measurable reason.** A `plan.json` is 1 500–6 000 bytes and
+  an `intent.json` about 4 000; a `layout.json` is **20 000–30 000**, five to twenty times the plan and almost
+  all of it geometry — polygons, Bézier controls, per-vertex heights — that an agent has no business hand
+  editing. So the sketch is exposed as **operations** (`from-plan`, `finish`) and never as a document
+  parameter.
+
+  **One caveat above is not this task's, and is filed twice.** `plan_validate` having to flag empty
+  `placements` "which leave the feel terms vacuously green" is `B140` — a document passing every check by
+  being asked nothing. It is still live: `POST /plan/evaluate` answers `score 0, valid: true` to a plan with
+  no pieces, and `/plan/feasibility` answers `producible: true`, while `compile` refuses the same document
+  with `PL1`. Fixing it in `B140` fixes it here; working around it in the head would be the second copy.
 
 **DTM / DTC objectives (destroyables + cores).** The contract is `docs/pgm/destroyables-and-cores.md`
 — it owns the XML surface, the **world-measured** structure families, the schema, and the two-team scope;
