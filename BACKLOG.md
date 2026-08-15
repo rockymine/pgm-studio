@@ -622,23 +622,45 @@ than a gate beside the style.
   about thirteen files — rather than a traversal swap. The row schema may already carry it: a course names its
   part *and an ordinal*, so a border of several bands is expressible without a migration.
 
+  **It is the same concept as `B200`, on the other raster**: the top course of a plan divided into bands by how
+  far in from the edge a cell stands. The house has the axis (`Footprint.Ring`) and three fixed zones over it;
+  the terrain has neither. Whichever lands first should leave the other holding a band stack read along an
+  inset, and the two should be reviewed together rather than in sequence.
+
   *found reading the house model after `B194`; the extraction it waited on landed as `B195`.*
 
-- [ ] **B200 — A painted shape has no ring derivation, so a theme's rim cannot be concentric.** A theme's `Rim`
-  is a bucket decided by a per-column **edge test** (`ColumnProfile`), which is binary — this column is on an
-  edge or it is not — and its `Depth` counts *downward* from the top of the column, not inward from the edge.
-  So "a cobble rim, then two rings of stone brick, then a grass field" — the author's own words, reported
-  while theming a board — has no axis to be read along at all. A `Footprint` has `Ring(x, z)`; a painted shape
-  has nothing like it.
+- [ ] **B200 — The top course of the terrain is not themeable inward, and the walk that would do it is
+  already written for houses.** A theme paints a column *downward*: the rim or the surface claims `Depth`
+  courses from the top, the wall takes the riser, fill takes the middle. There is no **plan-direction** axis at
+  all, so "a cobble rim, then two rings of stone brick, then a grass field" — the author's own words, reported
+  while theming a board — cannot be said. This is theming of the **topmost course only**, walked inward; it is
+  not the `Rim` bucket becoming concentric, and filing it that way was wrong.
 
-  The band stack this needs exists (`B195`) and so does the ending it wants (`BandEnding.HandOver`: a rim two
-  blocks in and then **the surface**, not two blocks of cobble and then cobble forever). What is missing is
-  the measure: how far in from the landmass edge a column stands, derived once per painted shape and read the
-  way `DepthFromTop` is. That is the whole of this task, and it is why the rim half could not ride along with
-  the extraction.
+  **Nothing new has to be derived.** `Footprint.Step()` is the walk: seed a queue with every cell on the
+  outline, then flood inward one pass at a time over cells that are in the shape and not yet numbered — one
+  pass catches the first ring, two catch the second. It is 4-connected BFS over `(x, z)` cells and reads
+  nothing about houses. The terrain raster is the same kind of thing: `TerrainProfile` already classifies every
+  paintable column from `surfaceTop` by looking at its N8 neighbours, and its void-edge test is
+  `Footprint.OnPerimeter` written a second time — *in the set, and some N8 neighbour is outside it*. So the
+  seed exists on both sides and the walk exists on one.
 
-  *reported by the author while theming a board · `TerrainTheme.Rim` · `ColumnProfile` ·
-  `docs/world-export/terrain-painting.md`.*
+  **The shape of the fix, in three moves.** Lift the BFS into `PgmStudio.Geom.Algorithms` beside
+  `GridBoundary.TracePerimeter` — which `Footprint` and `TerrainProfile` **already share**, so the arc is
+  common and only the inset is not. Give `ColumnProfile` an `Inset` beside its `PerimeterArc`: one says how far
+  *round* the edge a cell sits, the other how far *in* from it, same pass and same struct. Carry it on
+  `BucketContext` the way the arc already is, and the bands are then a `BandStack` read along it with
+  `BandEnding.HandOver` — cobble, two of stone brick, then nothing claimed and the surface shows. Restricting
+  it to the top course composes rather than needing a knob: a `layered` stack whose first band is the
+  ring-banded material and whose rest is dirt.
+
+  **Blocked on one author call.** Does the walk cross an elevation step? Under `RimEdges.Drop` every tread edge
+  is its own ring 0, so a staircase of plateaus gets a band set per tread; under `Void` only the outer face
+  seeds, so the bands run across the treads and up the hill. Both are coherent and they look completely
+  different. The seed is the *geometric* edge either way, not the `Rim` bucket's toggle — the author has said
+  the walk starts "from the rim or if there is no rim".
+
+  *reported by the author while theming a board; corrected 2026-08-15 after reading `TerrainProfile` ·
+  `Footprint.Step` · `GridBoundary` · `docs/world-export/terrain-painting.md`.*
 
 - [ ] **B201 — `VoronoiMaterial.Bands` is a band stack that cannot use the band stack.** Its element is
   `(material, depth)` — the same pair a `Band` is — but its axis is the **continuous** Worley `F2 − F1` gap
