@@ -1,5 +1,7 @@
 using System.Globalization;
+using System.Text.Json;
 using FastEndpoints;
+using PgmStudio.Domain;
 using PgmStudio.Api.Http;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
@@ -113,10 +115,53 @@ if (app.Environment.IsDevelopment())
 }
 app.UseStaticFiles(staticFileOptions);
 
+// Nothing leaves /api as a stack trace. Every gate in the studio answers in one shape
+// (docs/refusals.md), and a document that will not parse is supposed to arrive as a finding — but that
+// holds only for the faults an endpoint thought to catch, and each of them names `JsonException` alone.
+// Anything else escaped as a raw .NET or MySQL error: nine endpoints answered one to an empty body, one
+// of them returning the database's own "Column 'name' cannot be null" to the caller.
+//
+// So the envelope is guaranteed here rather than asked of 159 endpoint classes. A JsonException is the
+// document's fault and answers 400 in the canonical shape; anything else is the studio's own and stays a
+// 500, because dressing a bug as a bad request sends an author hunting a mistake they did not make. The
+// trace is logged, never sent. An endpoint that catches its own fault still answers first — this only
+// sees what got past one.
+app.Use(async (ctx, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex) when (ctx.Request.Path.StartsWithSegments("/api") && !ctx.Response.HasStarted)
+    {
+        var document = ex is JsonException;
+        if (!document)
+            ctx.RequestServices.GetRequiredService<ILoggerFactory>()
+               .CreateLogger("PgmStudio.Api.Unhandled")
+               .LogError(ex, "unhandled at {Method} {Path}", ctx.Request.Method, ctx.Request.Path);
+
+        await PgmStudio.Api.Endpoints.Refusals.WriteAsync(
+            ctx,
+            document ? 400 : 500,
+            document ? "unreadable document" : "unhandled fault",
+            [new Finding(
+                document ? PgmStudio.Api.Endpoints.RequestRules.Unreadable
+                         : PgmStudio.Api.Endpoints.RequestRules.Unhandled,
+                document
+                    ? ex.Message
+                    : "the studio failed to answer this request, and the fault is its own rather than the "
+                      + "document's — the detail is in the server log")],
+            ctx.RequestAborted);
+    }
+});
+
 // All API endpoints live under /api.
 app.UseFastEndpoints(c =>
 {
     c.Endpoints.RoutePrefix = "api";
+    // A field the DTO declares non-nullable and the body did not carry is refused by name before any handler
+    // reads it — see RequiredFields for why the annotation alone does not hold.
+    c.Endpoints.Configurator = ep => ep.PreProcessor<PgmStudio.Api.Endpoints.RequiredFields>(Order.Before);
     // Query/route/form values bind through the ambient culture unless told otherwise; this makes the
     // wire boundary itself invariant rather than leaning on the process-wide pin above.
     c.Binding.UseInvariantNumbers();

@@ -29,6 +29,11 @@ public static class TerrainThemeJson
 
     private static JsonNode Upgraded(string json)
     {
+        // A document that is absent reads the same way to an author as one that is empty, and both are the
+        // "will not parse" case docs/refusals.md describes. JsonNode.Parse raises ArgumentNullException on a
+        // null string rather than a JsonException, which is the one type every caller's catch does not name,
+        // so the fault escaped the gate above as a stack trace instead of arriving as a finding.
+        if (string.IsNullOrWhiteSpace(json)) throw new JsonException("no theme JSON was posted");
         var node = JsonNode.Parse(json) ?? throw new JsonException("empty theme JSON");
         // `closed` is a theme-level knob, so it is answered here rather than inside the material walk — a
         // material that happened to carry the word would otherwise grow a rim mode that means nothing to it.
@@ -104,6 +109,20 @@ public static class TerrainThemeJson
     }
 
     public static string Serialize(TerrainMaterial material) => JsonSerializer.Serialize(material, Options);
+
+    /// <summary>Read one material. A material is polymorphic on <c>kind</c>, and a kind that is missing or not
+    /// one of the names raises <see cref="NotSupportedException"/> rather than a <see cref="JsonException"/> —
+    /// a difference in how System.Text.Json reports it, not in what went wrong, so it is carried across here.
+    /// Without this a misspelled <c>kind</c> left the gate above as a stack trace while a misspelled field name
+    /// was accepted in silence, which is the wrong way round.</summary>
     public static TerrainMaterial DeserializeMaterial(string json)
-        => JsonSerializer.Deserialize<TerrainMaterial>(Upgraded(json), Options)!;
+    {
+        try { return JsonSerializer.Deserialize<TerrainMaterial>(Upgraded(json), Options)!; }
+        catch (NotSupportedException ex) { throw new JsonException(KindFault, ex); }
+    }
+
+    /// <summary>What a material whose <c>kind</c> cannot be resolved is refused with. Named once so the
+    /// endpoints and their tests read the same sentence.</summary>
+    internal const string KindFault =
+        "a material names no kind, or names one that does not exist — see GET /api/terrain/patterns";
 }

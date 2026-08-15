@@ -301,59 +301,52 @@ by `HousePropRules.PastCap` and is not filed.
   **export auto-extend it** to whatever the shape has become. Settle which before building; *(a)* is the
   smallest and *(b)* is the one that adds a capability.
 
-- [ ] **B214 — A stated `null` on a house-style part is a 500, and the gate that should refuse it crashes
-  first.** `HouseStyle` splits its parts two ways with nothing marking the difference: `Windows?`
-  (`HouseStyle.cs:179`) and `Porch?` (`:492`) are nullable, while `GableWindows` (`:339`), `Head` (`:361`),
-  `Roof` (`:413`), `Windows` (`:426`) and `Beams` (`:510`) are non-nullable with an initializer that a JSON
-  `null` bypasses. So a document reads as though stating `null` is how a style says "not this part" — and for
-  five fields it is an unhandled `NullReferenceException`.
+- [~] **B214 — Nine endpoints answer a stack trace where `refusals.md` says they answer a finding.** **The
+  boundary is fixed and the remaining slice is the documents.** No endpoint answers 5xx to a body it cannot
+  read; a missing field is refused by name before any handler runs; a style part stated as null names its own
+  path; `RQ1`/`RQ2` are in `refusals.md`. What is left is what the audit found beside the crashes: **the tool
+  documents do not carry the body shapes** — `library.md` names `POST /room-styles/preview-snapshot` and never
+  says the body is a bare `HouseStyle`, which is why a wrapper was posted and silently ignored — and an
+  unread field is still never reported, so a typo is accepted in silence. Filed
+  first as three entries — a house-style null crash, a silent-drop audit and one endpoint returning 500 —
+  which was three symptoms of one defect; `B215` and `B218` are folded in here and their ids retired to
+  provenance. **`docs/refusals.md` already specifies the whole pattern**, down to the sentence this entry
+  exists to make true: *"a document that will not parse … throws, and the exception carries its finding so the
+  gate above it answers in this shape anyway."* The gates obey it. The API boundary does not.
 
-  Worse than the report that found it knew: `HouseStyleValidation.cs:51` dereferences `style.Roof.GableWindows`,
-  so **the validator that exists to refuse a bad style is itself the thing that throws**, before it can name
-  anything. Grok wrote `"gableWindows": null` and `"doorHead": null` meaning "no gable windows, no door head",
-  which is exactly what two of the siblings accept. Previewing such a style answers 500 with a raw stack
-  trace; binding it as the cage style takes `GET /map/{slug}/export` down with a bare
-  `500 {"error":"Object reference not set to an instance of an object."}` — no rule id, no subject, no field,
-  on a map whose every other call answered 200. Either read a stated null as the default or refuse it by name
-  the way `DR-DOC` refuses a bad material; do not leave it half of each.
+  **Measured against the live API, empty body `{}` on every documented parameterless POST.** Nine answer
+  **500 with a raw .NET stack trace**: `/themes`, `/themes/preview`, `/themes/import`, `/room-styles`,
+  `/room-styles/preview`, `/roof-styles`, `/terrain/prop-preview`, `/terrain/material-preview`, and
+  `/styles` — the last leaking `MySqlException: Column 'name' cannot be null`, an unvalidated null carried
+  all the way into MariaDB and returned to the caller as the database's own error.
 
-- [ ] **B215 — Audit: where else does a call answer 200 on something that silently did not happen.** `B214`
-  is one instance of the class and the authoring runs found five more, each of which cost a rebuild cycle: a
-  rectangle carrying `x/z/w/h` where `SketchShape` reads `min_x/min_z/max_x/max_z` covers nothing; a `relief`
-  nested inside `layout` where the model reads it at the root is dropped whole; a relief in an invented
-  vocabulary keeps only its `base`; a voronoi's `palette` is dropped where the painter reads `bands`
-  (`B217`); a flora prop's outline written as `ring` where `FloraProp` reads `points` places nothing. Three of
-  the five are accepted with a `200`, and the one refusal that does arrive — `POST /sketch/finish`'s *"Nothing
-  is drawn"* — names the whole layout rather than the shape that came out empty.
+  **One root cause wearing four faces, and the first is the whole class.** `JsonNode.Parse(json)` throws
+  `ArgumentNullException` on a **null string**, and the guard beside it — `?? throw new JsonException("empty
+  house style JSON")` — only catches the JSON literal `null`. So `HouseStyleJson.Deserialize(null)` and
+  `TerrainThemeJson.Upgraded(null)` raise the one exception type the endpoints' `catch (JsonException)` does
+  not name, and a document that will not parse escapes as a 500 instead of arriving as a finding. The other
+  three: a null collection on a request DTO reaching LINQ (`ArgumentNullException … 'source'`), a bad
+  polymorphic discriminator (`"kynd"` for `"kind"` → `NotSupportedException`), and the `/styles` null name.
 
-  The shape of the fix is one question asked everywhere a document is read: **is an unknown or unreadable
-  field dropped, and if so does anything say so.** Sweep the document readers rather than patching the six;
-  `Findings`/`Check` is the landing site and `B211` is the gate-shape task beside it.
+  **The other half is silence, and it is the same boundary.** Nothing reports a field it did not read. A
+  posted `{"style":{…}}` where the body should be a bare `HouseStyle` is dropped whole and answers **200**
+  with a default preview; two invented fields answer 200; a voronoi stating `palette` where the painter reads
+  `bands` answers 200 and renders **456 bytes against the 110 432 the same pattern draws with real bands** —
+  a flat swatch, which is exactly what the Coldharbour author read as "the previewer cannot draw patterns"
+  before spending two source reads on it (`B217` is the seed that teaches it). A wrong field name is silent
+  and a misspelled discriminator is a 500, which is the wrong way round.
 
-- [ ] **B216 — Provenance records structures only, so nothing can prove a tree or a boulder landed.** The
-  sidecar lists what each pass placed for structures and (since `B139`) which prop placed it, and records
-  **no flora, no trees and no boulders at all**. The consequence is stated twice in the authoring reports:
-  `--column` is the only read that can prove ground cover exists, because the topdown will not show it, the
-  export will not refuse it and the sidecar does not carry it — which is how two flora props landed nothing
-  on Coldharbour with no diagnostic anywhere. Extend it to trees and boulders at least: **the placement is
-  known at stamp time** and the tree renderers already read it to draw a crown and a base, so the record is a
-  write rather than a derivation.
+  **What it wants.** A named refusal at the chokepoint — the document readers guard a null or blank document
+  and throw the carrying exception `refusals.md` describes, so every existing `catch` starts working — plus a
+  backstop at the API boundary so nothing escaping any of the 159 endpoint classes can leave as a stack
+  trace. The backstop must not dress a server fault as the caller's: a real bug stays a 500, in the canonical
+  envelope, with the trace logged rather than sent.
 
-- [ ] **B217 — The reference layout the plan doc sends readers to writes a field the painter drops.**
-  `tools/seeds/ruediger.layout.json:37` states `"palette"` on its voronoi and never `"bands"`;
-  `TerrainPatterns.cs`'s `VoronoiMaterial` reads `Bands`, so the seed asks for a mix it does not get and its
-  surface is not what it appears to request. `plan.md` names this file as *"the one to read first"*, so the
-  worked example teaches the broken field — an author who copies it gets a flat swatch and no reason.
-  Upgrade the seed to the current format. Note the second half of what that costs: a voronoi's bands are
-  measured **inward from the cell edge** (Worley F2−F1), band 0 being each cell's rim and the last its middle,
-  so this is a re-authoring against what the pattern means and not a rename.
+  **Two things this is not.** No route deletes a map (16 DELETEs, none for the map itself) — that is
+  **intended**, with archiving a later question. And `POST /plan/evaluate` and `/plan/feasibility` blessing an
+  empty plan (`valid: true`, `producible: true`) where `compile` refuses it with `PL1` belongs to `B140`,
+  which covers the export gates and should gain the two advice calls that pass vacuously one stage earlier.
 
-- [ ] **B218 — `POST /api/themes/import` answers 500 against the promise in its own docstring.**
-  `ThemeLibraryEndpoints.cs:228` catches `JsonException` only, so a missing or null `themeJson` throws
-  `ArgumentNullException` out of `ImportAsync` and escapes as a raw .NET stack trace — three lines under a
-  summary reading *"400, never 500, on invalid theme JSON."* The working body shape is also undocumented and
-  was found by mirroring the documented `GET /themes/{id}/json`: the theme goes in **stringified** in
-  `themeJson`, not as the object.
 
 - [ ] **B210 — Eighteen declarations of "a box with things in it", and the two that matter are forced by a
   project boundary.** Filed as "four rect types", which was too narrow and carried one wrong claim: `Geom`

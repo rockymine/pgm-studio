@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -30,10 +31,54 @@ public static class HouseStyleJson
 
     public static HouseStyle Deserialize(string json)
     {
+        // Absent and empty are the same fault to an author, and both are the "will not parse" case
+        // docs/refusals.md describes. JsonNode.Parse raises ArgumentNullException on a null string — the one
+        // type a caller's catch does not name — so this escaped the gate above as a stack trace.
+        if (string.IsNullOrWhiteSpace(json)) throw new JsonException("no house style JSON was posted");
         var node = JsonNode.Parse(json) ?? throw new JsonException("empty house style JSON");
         Upgrade(node);
+        RefuseStatedNulls(node, typeof(HouseStyle), "");
         return JsonSerializer.Deserialize<HouseStyle>(node, Options)!;
     }
+
+    /// <summary>
+    /// Refuse a part written as <c>null</c> where the record cannot hold one.
+    ///
+    /// <para>A style's parts split two ways with nothing in the document marking which: <c>porch</c> and
+    /// <c>doorEdge</c> are nullable and a null is how they say "not this part", while <c>roof</c>,
+    /// <c>windows</c>, <c>gableWindows</c>, <c>storeys</c> and a door's <c>head</c> are not — they carry an
+    /// initializer a JSON null bypasses, leaving the record holding a null the stamper dereferences. So a
+    /// document reads as though stating null were the way to drop any part, and for half of them it was an
+    /// unhandled <see cref="NullReferenceException"/> — raised inside the validation gate itself, which reads
+    /// <c>Roof.GableWindows</c> before it can name anything.</para>
+    ///
+    /// <para>Reading such a null as the default would be worse than the crash: an author writing
+    /// <c>"gableWindows": null</c> means <i>none</i>, and would silently be given the default pair. So it is
+    /// refused, by the field's own path, pointing at the form that says it safely. Nullable parts are
+    /// untouched — serialization emits their nulls, and refusing those would break every round trip.</para>
+    /// </summary>
+    private static void RefuseStatedNulls(JsonNode node, Type type, string path)
+    {
+        if (node is not JsonObject obj) return;
+        foreach (var (name, value) in obj)
+        {
+            var property = type.GetProperties().FirstOrDefault(
+                p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+            if (property is null) continue;
+            var where = path.Length == 0 ? name : $"{path}.{name}";
+            if (value is null)
+            {
+                if (Nullability.Create(property).ReadState is not NullabilityState.NotNull) continue;
+                throw new PgmStudio.Domain.DocumentFault(where,
+                    $"field '{where}' is stated as null, and this part of a style is always present — "
+                    + "drop it from the document, or say it is not wanted in the part's own words "
+                    + "(a window or a door head takes \"form\": \"none\")");
+            }
+            RefuseStatedNulls(value, property.PropertyType, where);
+        }
+    }
+
+    private static readonly NullabilityInfoContext Nullability = new();
 
     /// <summary>
     /// Carry a stored style forward onto the current record, in place.

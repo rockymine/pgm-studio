@@ -226,7 +226,7 @@ public sealed class ThemeImportEndpoint(ThemeLibrary library) : Endpoint<ThemeIm
     {
         long id;
         try { id = await library.ImportAsync(string.IsNullOrWhiteSpace(req.Name) ? "Imported theme" : req.Name, req.ThemeJson, ct); }
-        catch (JsonException) { await Send.ResponseAsync(new { error = "Malformed theme JSON" }, 400, ct); return; }
+        catch (JsonException ex) { await Refusals.UnreadableAsync(HttpContext, "malformed theme JSON", ex, ct); return; }
         await Send.OkAsync(new { id }, ct);
     }
 }

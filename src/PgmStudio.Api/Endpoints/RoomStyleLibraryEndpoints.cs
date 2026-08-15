@@ -158,7 +158,7 @@ public sealed class RoomStyleSnapshotPreviewEndpoint : EndpointWithoutRequest
     {
         var json = await RawBody.ReadAsync(HttpContext, ct);
         try { await Send.OkAsync(RoomStylePreview.Views(HouseStyleJson.Deserialize(json)), ct); }
-        catch (JsonException) { await Send.ResponseAsync(new { error = "invalid room style JSON" }, 400, ct); }
+        catch (JsonException ex) { await Refusals.UnreadableAsync(HttpContext, "invalid room style JSON", ex, ct); }
     }
 }
 

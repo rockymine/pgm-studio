@@ -79,6 +79,7 @@ a rule that changed its name between the two would be two rules.
 | `HJ*` | how two wings meet | `Minecraft/WingJoints.cs` → `WingJointRules` |
 | `DR-*` | a dressing document that will not parse | `Minecraft/Dressing/DressingJson.cs` |
 | `EX*` | the export gate's own | `Export/MapExportComposer.cs` → `ExportRules` |
+| `RQ*` | the request itself — a document that could not be read, and a fault that is the studio's own | `Api/Endpoints/Refusals.cs` → `RequestRules` |
 | `CT` `SP` `WL` `LN` `HB` `FR` `MD` `BZ` `EL` `G*` `PC-*` `ST*` | the layout-rules checklist, cited by the plan lint and the producibility read | `docs/generator/rules.md` |
 
 The structural plan rules, in full:
@@ -142,6 +143,28 @@ cannot place.
 
 An endpoint gates in one line — `if (await Refusals.StopAsync(http, 400, "invalid house style", findings, ct))
 return;` — which writes only the refusals, so a complaint never arrives dressed as one.
+
+## The two the edge asks
+
+`RQ1` and `RQ2` are not a gate's. A gate reads a document it understood and says what is wrong with the map;
+these two are about the **request**, and they exist because the shape above held everywhere except at the door.
+
+**`RQ1` — the document could not be read.** Absent, empty, malformed, or naming a kind that does not exist. It
+is 400, and it carries the field where the reader knew one: a part stated as `null` where the record cannot
+hold one reports `roof.gableWindows`, not a sentence an author has to search their document for. Two readers
+raise it that way — `HouseStyleJson` through `DocumentFault`, which subclasses `JsonException` so the thirteen
+call sites already catching that keep working, and `TerrainThemeJson`, which carries a polymorphic `kind`
+failure across because System.Text.Json reports that one as a `NotSupportedException` and the difference is in
+the reporting rather than in what went wrong.
+
+A **missing field** is the same rule asked earlier: `RequiredFields` refuses anything a request DTO declares
+non-nullable and the body did not supply, naming every one rather than the first, before any handler runs. Null
+alone counts — an empty list is a value and a blank name is a fault about the name, which is a gate's to judge.
+
+**`RQ2` — the fault is the studio's own.** Something escaped an endpoint that no gate refused. It stays a
+**500**, because dressing a defect as a bad request sends an author hunting a mistake they did not make; what
+it buys is that the caller gets this envelope instead of a .NET stack trace, and the trace goes to the log. It
+should never be seen, and one appearing is a bug report rather than an authoring problem.
 
 **A gate never returns null and never throws.** The one exception is a document that will not parse, which
 cannot carry on to collect a second fault; it throws, and the exception carries its finding so the gate above

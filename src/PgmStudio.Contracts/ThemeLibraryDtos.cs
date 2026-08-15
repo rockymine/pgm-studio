@@ -35,8 +35,13 @@ public sealed record ThemeSaveRequest(
     IReadOnlyList<ThemeBucketDto> Buckets);
 
 /// <summary>Import a whole theme JSON into the library (POST /api/themes/import): the painter's theme JSON is
-/// decomposed into one style per bucket + a composed theme. The response id is the new theme.</summary>
-public sealed record ThemeImportRequest(string Name, string ThemeJson);
+/// decomposed into one style per bucket + a composed theme. The response id is the new theme.
+///
+/// <para><paramref name="Name"/> is optional and the endpoint names an unnamed import "Imported theme"; it is
+/// declared nullable because that is what it is. A DTO that claims a field is required when the handler
+/// happily defaults it is a claim <see cref="Api.Endpoints.RequiredFields"/> now enforces, and the annotation
+/// is the only thing that says which fields those are.</para></summary>
+public sealed record ThemeImportRequest(string? Name, string ThemeJson);
 
 /// <summary>Both views of one material (POST /api/terrain/material-preview): <paramref name="Plan"/> is one
 /// course seen from above — where a voronoi, a noise field and a wall run vary — and <paramref name="Section"/>

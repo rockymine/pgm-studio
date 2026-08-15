@@ -73,7 +73,7 @@ public sealed class MaterialPreviewEndpoint : EndpointWithoutRequest
     {
         var json = await RawBody.ReadAsync(HttpContext, ct);
         try { await Send.OkAsync(StylePreview.Views(json), ct); }
-        catch (JsonException) { await Send.ResponseAsync(new { error = "invalid material JSON" }, 400, ct); }
+        catch (JsonException ex) { await Refusals.UnreadableAsync(HttpContext, "invalid material JSON", ex, ct); }
     }
 }
 
@@ -88,7 +88,7 @@ public sealed class ThemePreviewEndpoint : EndpointWithoutRequest
     {
         var json = await RawBody.ReadAsync(HttpContext, ct);
         try { await Send.OkAsync(StylePreview.ThemeViews(json), ct); }
-        catch (JsonException) { await Send.ResponseAsync(new { error = "invalid theme JSON" }, 400, ct); }
+        catch (JsonException ex) { await Refusals.UnreadableAsync(HttpContext, "invalid theme JSON", ex, ct); }
     }
 }
 

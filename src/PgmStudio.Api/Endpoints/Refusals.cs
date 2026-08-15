@@ -42,6 +42,20 @@ internal static class Refusals
         return http.Response.WriteAsJsonAsync(Of(error, findings), ct);
     }
 
+    /// <summary>
+    /// A document that would not parse, answered the way every other refusal is.
+    ///
+    /// <para>Each of these sites used to write a bare <c>{error}</c> and drop the exception, so the caller was
+    /// told <i>invalid room style JSON</i> and never which field — while the reader had gone to the trouble of
+    /// saying that a part was stated as null and which one. The sentence is the half an author can act on, so
+    /// it rides in <c>message</c> and in an <c>RQ1</c> finding like any other refusal.</para>
+    /// </summary>
+    public static Task UnreadableAsync(
+        HttpContext http, string error, Exception fault, CancellationToken ct) =>
+        WriteAsync(http, 400, error,
+            [new Finding(RequestRules.Unreadable, fault.Message,
+                Field: (fault as DocumentFault)?.Field)], ct);
+
     /// <summary>The whole gate in one line: <c>if (await Refusals.StopAsync(…)) return;</c>. True when the
     /// findings refuse and the response has been written; false when there was nothing to stop for, complaints
     /// included.
@@ -57,4 +71,25 @@ internal static class Refusals
         await WriteAsync(http, status, error, findings.Refusals, ct);
         return true;
     }
+}
+
+/// <summary>
+/// The two rules the API boundary itself fires, as opposed to a gate reading a document it understood.
+///
+/// <para>Every other family in <c>docs/refusals.md</c> is owned by the gate that asks it. These two are owned
+/// by the edge, because they are about the <b>request</b> rather than about the map: one document that could
+/// not be read at all, and one fault that is the studio's own.</para>
+/// </summary>
+internal static class RequestRules
+{
+    /// <summary>A posted document could not be read — absent, empty, malformed, or naming a kind that does not
+    /// exist. The caller's to fix, so it answers 400.</summary>
+    public const string Unreadable = "RQ1";
+
+    /// <summary><b>Not the caller's fault.</b> Something escaped an endpoint that no gate refused, which is a
+    /// defect in the studio; it answers 500 and stays a 500, because dressing a bug as a bad request sends the
+    /// author looking for a mistake they did not make. What it buys is that the caller gets the one envelope
+    /// every other refusal arrives in rather than a .NET stack trace, and the trace goes to the log where it
+    /// belongs.</summary>
+    public const string Unhandled = "RQ2";
 }
