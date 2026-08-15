@@ -61,16 +61,44 @@ highlight); these are the parked / dormant / deferred slices.
   the two halves **9 blocks** apart. Belongs with S46, which lands both passes; the fold itself needs no new
   machinery — `ReliefSolver.FoldBlocks` is the shape of it.
 
-- [ ] **S54 — The 3-D preview shows neither the relief nor an erected top.** The iso builds one prism per
-  shape at `floor + base_height` (`sketch-bridge.js` `isoSolids`), which was the whole truth when a shape's
-  thickness decided its column and is now two-thirds of it: an island's relief replaces those tops, and an
-  erected shape's is settled after the relief against the ground under it (`FEATURES.md`). So the one view
-  that exists to show height is the one view that does not show the height model — a mesa reads at its own
-  thickness and a hillside reads as a plate. The fix is to build the solids from the **rasterizer's columns**
-  rather than from the shapes, which is also what makes it agree with the export by construction instead of
-  by a second implementation; the cost is that a column set is bigger than a shape list and the iso would
-  want run-merging to stay cheap. Pre-dates the relief work — the iso never showed a relief — so this is a
-  gap widening rather than a regression.
+- [ ] **S54 — The 3-D preview models the world a second time and gets a third of it.** The iso builds one
+  prism per shape at `floor + base_height` (`sketch-bridge.js` `solidsForIso`), which was the whole truth
+  when a shape's thickness decided its column. The height model has three stages and the client knows one:
+  ground columns per layer, then the per-island relief solve (`SketchRasterizer.ReliefFields`) which replaces
+  those tops, then `Erect` — `level`/`raise`/`sink` read at the **median** of the ground the shape covers and
+  eased inward by a skirt. Neither of the last two is derivable client-side without a second copy of the
+  solver, so the one view that exists to show height is the one view that does not show the height model: a
+  mesa reads at its own thickness and a hillside reads as a plate. Three narrower divergences sit under it —
+  an anchored shape's TIN is built from the raw `vertices` rather than the Bézier-discretised ring, an
+  anchored shape is never carved by subtracts, and `anchor_heights` requires a `vertices` array, so a
+  rectangle carries no per-vertex height in the preview or in the rasterizer.
+
+  **The client stops deciding height; the server answers in run-encoded columns.** The pipeline already runs
+  for the paint overlay — `TerrainPreview.SketchPaintCells` rasterizes, solves, erects, builds the terrain and
+  paints it, then keeps only each column's top block, because resolving every block "was the bulk of this
+  call". What the preview wants is that widened to `SketchWorldBuilder.Build` over the live layout, read back
+  as per-`(x,z)` runs of `(yTop, yBottom, id, data)`. One structure answers three questions, because a run
+  boundary is where a solid span ends and where the material changes at once: a stacked layer's sky bridge
+  keeps both its segments, a wall shows its own courses instead of the surface colour smeared down it, and
+  water is a run like any other — stop at the topmost and it is an opaque blue surface, which is also the only
+  way this renderer can draw it (`iso-webgl.js`: a back-to-front sort is what the mirror image defeats).
+  Client-side that meshes as one quad per run top plus a side quad where a neighbour is lower, no bottom faces
+  while nothing is seen from below, and no `earClip` at all; per-vertex colour replaces `uColor`'s draw call
+  per material. The mirror draws in the terrain's own colours — the orbit copies are already in the columns —
+  and the 2-D canvas keeps `computeMirrorPreview`, which is where the distinction does work.
+
+  **The cost is the build, not the payload and not the triangles.** A board runs 130×130 to 280×130
+  (`seed-stats.md`), so tens of thousands of columns: a few hundred KB run-encoded, the order of the paint
+  overlay already fetched live, and a triangle count a static draw does not notice. Putting the whole world
+  back is what costs, so the refresh belongs on a button rather than on every edit — the picture does not
+  change between them. `SketchWorldBuilder.Build` also takes a `MapIntent`, and a map begun in Sketch has
+  none: the wool cages, spawn cubes, monuments, destroyables, cores, build region and observer platform are
+  then absent, which is exactly the set Sketch does not author. Terrain and dressing are unaffected —
+  `Decorator` reads the layout's own props — but dressing consults the goals to keep props off objective
+  ground, so with no intent a tree can stand where a monument will later go.
+
+  Pre-dates the relief work — the iso never showed a relief — so this is a gap widening rather than a
+  regression.
 
 - [ ] **S46 — Water reads the relief; a river on the axis is a canal.** A dressing path draping over whatever
   it crosses is **settled as correct** — it repaints the top block of each column and adds no cell, which is
