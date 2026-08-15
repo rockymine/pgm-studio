@@ -24,6 +24,7 @@
 // dependency, and a 16x16 non-interlaced PNG is a zlib stream plus five filter cases.
 using System.IO.Compression;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Palette;
 
 var mode = args.Length > 0 ? args[0] : "--help";
 var dir = args.Length > 1 ? args[1] : "";

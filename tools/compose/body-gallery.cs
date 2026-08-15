@@ -98,8 +98,8 @@ static HashSet<(int, int)> CellsOf(ShapeBody body)
 {
     var cells = new HashSet<(int, int)>();
     foreach (var (r, _) in body.Pieces)
-        for (var x = r[0]; x < r[0] + r[2]; x++)
-            for (var z = r[1]; z < r[1] + r[3]; z++) cells.Add((x, z));
+        for (var x = r.X; x < r.X + r.Width; x++)
+            for (var z = r.Z; z < r.Z + r.Height; z++) cells.Add((x, z));
     return cells;
 }
 
@@ -107,8 +107,8 @@ static HashSet<(int, int)> CellsOf(ShapeBody body)
 string RenderBody(ShapeBody body, int cw)
 {
     var rects = body.Pieces.Select(p => p.Rect).Concat(body.Vacancies.Select(v => v.Rect)).ToList();
-    int minX = rects.Min(r => r[0]), minZ = rects.Min(r => r[1]);
-    int maxX = rects.Max(r => r[0] + r[2]), maxZ = rects.Max(r => r[1] + r[3]);
+    int minX = rects.Min(r => r.X), minZ = rects.Min(r => r.Z);
+    int maxX = rects.Max(r => r.X + r.Width), maxZ = rects.Max(r => r.Z + r.Height);
     // one-cell margin
     minX -= 1; minZ -= 1; maxX += 1; maxZ += 1;
     int cellsW = maxX - minX, cellsH = maxZ - minZ;
@@ -134,9 +134,9 @@ string RenderBody(ShapeBody body, int cw)
     foreach (var v in body.Vacancies)
     {
         var r = v.Rect;
-        svg.Append($"<rect x=\"{N(PX(r[0]))}\" y=\"{N(PY(r[1]))}\" width=\"{N(r[2] * px)}\" height=\"{N(r[3] * px)}\" " +
+        svg.Append($"<rect x=\"{N(PX(r.X))}\" y=\"{N(PY(r.Z))}\" width=\"{N(r.Width * px)}\" height=\"{N(r.Height * px)}\" " +
                    $"fill=\"none\" stroke=\"{VoidStroke}\" stroke-width=\"1.2\" stroke-dasharray=\"4 3\"/>");
-        double vcx = (PX(r[0]) + PX(r[0] + r[2])) / 2, vcz = (PY(r[1]) + PY(r[1] + r[3])) / 2;
+        double vcx = (PX(r.X) + PX(r.X + r.Width)) / 2, vcz = (PY(r.Z) + PY(r.Z + r.Height)) / 2;
         svg.Append($"<text x=\"{N(vcx)}\" y=\"{N(vcz + 3.4)}\" font-size=\"9.5\" text-anchor=\"middle\" fill=\"{VoidStroke}\">{Esc(v.Kind)}</text>");
     }
 
@@ -144,13 +144,13 @@ string RenderBody(ShapeBody body, int cw)
     foreach (var (rect, slot) in body.Pieces)
     {
         var col = SlotColor(slot);
-        svg.Append($"<rect x=\"{N(PX(rect[0]))}\" y=\"{N(PY(rect[1]))}\" width=\"{N(rect[2] * px)}\" height=\"{N(rect[3] * px)}\" " +
+        svg.Append($"<rect x=\"{N(PX(rect.X))}\" y=\"{N(PY(rect.Z))}\" width=\"{N(rect.Width * px)}\" height=\"{N(rect.Height * px)}\" " +
                    $"fill=\"{col}\" fill-opacity=\"0.72\" stroke=\"{col}\" stroke-width=\"1.6\"/>");
     }
     svg.Append($"<g font-weight=\"600\" text-anchor=\"middle\" paint-order=\"stroke\" stroke=\"{BgCanvas}\" stroke-width=\"3\" stroke-linejoin=\"round\">");
     foreach (var (rect, slot) in body.Pieces)
     {
-        double cx = (PX(rect[0]) + PX(rect[0] + rect[2])) / 2, cz = (PY(rect[1]) + PY(rect[1] + rect[3])) / 2;
+        double cx = (PX(rect.X) + PX(rect.X + rect.Width)) / 2, cz = (PY(rect.Z) + PY(rect.Z + rect.Height)) / 2;
         svg.Append($"<text x=\"{N(cx)}\" y=\"{N(cz + 3.6)}\" font-size=\"10.5\" fill=\"{Ink}\">{Esc(slot)}</text>");
     }
     svg.Append("</g></svg>");

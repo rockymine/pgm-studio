@@ -8,6 +8,7 @@ using System.Text.Json;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Plan;
 using Sym = PgmStudio.Geom.Symmetry;
+using PgmStudio.Geom;
 
 var maxSeed = args.Length > 0 ? int.Parse(args[0]) : 600;
 int[] cohorts = [8, 12, 20];
@@ -39,7 +40,7 @@ foreach (var players in cohorts)
         if (!made.Label.StartsWith("SpineArms(")) continue;
         branch++;
         var arms = int.Parse(made.Label[10..made.Label.IndexOf(')')]);
-        var hubSpine = plan.Boxes.First(b => b.Kind == PlanBoxKinds.Hub).Rect[2];
+        var hubSpine = plan.Boxes.First(b => b.Kind == PlanBoxKinds.Hub).Rect.Width;
         spines[hubSpine] = spines.GetValueOrDefault(hubSpine) + 1;
         if (arms == 1) oneLeg++;
         if (arms != 2) continue;
@@ -74,8 +75,8 @@ foreach (var players in cohorts)
         {
             seed,
             players,
-            spine = hubBox.Rect[2],
-            depth = hubBox.Rect[3],
+            spine = hubBox.Rect.Width,
+            depth = hubBox.Rect.Height,
             legs = legs.Select(l => new { start = l.Start, width = l.Width }).ToList(),
             bay,
             widest = legs.Max(l => l.Width),
@@ -124,12 +125,12 @@ static string KindOf(string id) =>
     id.StartsWith("hub") ? "hub" : id.StartsWith("spawn") ? "spawn"
     : id.StartsWith("wool") ? "wool" : id.StartsWith("frontline") ? "frontline" : "other";
 
-static int[] Fan(int[] r, string[] axes, int k)
+static CellRect Fan(CellRect r, string[] axes, int k)
 {
     if (k == 0) return r;
     (double x, double z)[] corners =
-        [(r[0], r[1]), (r[0], r[1] + r[3]), (r[0] + r[2], r[1]), (r[0] + r[2], r[1] + r[3])];
+        [(r.X, r.Z), (r.X, r.Z + r.Height), (r.X + r.Width, r.Z), (r.X + r.Width, r.Z + r.Height)];
     var pts = corners.Select(c => Sym.Apply(c.x, c.z, axes[k - 1], 0, 0)).ToList();
     int x1 = (int)Math.Round(pts.Min(p => p.X)), z1 = (int)Math.Round(pts.Min(p => p.Z));
-    return [x1, z1, (int)Math.Round(pts.Max(p => p.X)) - x1, (int)Math.Round(pts.Max(p => p.Z)) - z1];
+    return new CellRect(x1, z1, (int)Math.Round(pts.Max(p => p.X)) - x1, (int)Math.Round(pts.Max(p => p.Z)) - z1);
 }

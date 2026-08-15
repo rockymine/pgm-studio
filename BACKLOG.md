@@ -425,25 +425,6 @@ by `HousePropRules.PastCap` and is not filed.
   plane sees solid beyond it and is not drawn — a box restriction leaves the cut open unless out-of-box reads
   as air. Whole-house stays the default view; the focus is what the open part editor frames.
 
-- [ ] **B227 — 35 of the 50 file-based tool scripts no longer compile, and nothing notices.**
-  A `#:project` script is not in `PgmStudio.slnx`, so `dotnet build` at the root is green while
-  `dotnet build tools/compose/showcase.cs` is not — and `showcase.cs` is the one `CLAUDE.md` calls `model.md`'s
-  live twin, the page that is supposed to be believed over the prose. Measured by building each script in turn:
-  15 build, 35 do not.
-
-  **Two causes, and only the second is a real API question.** The larger group — `tree-corpus/` (7),
-  `objective-probe/` (7), `deriver/` (2), `palette/`, `library-map.cs`, `compose/house-showcase.cs` — is
-  `A7`'s fold: they say `using PgmStudio.Minecraft;` and the types they name (`VoxelWorld`, `Blocks`,
-  `AnvilRegion`, `HouseStamper`, `Band`, `BuildMarkerStamper`, `SketchTerrainBuilder`) are in `Anvil/`,
-  `Palette/`, `Houses/`, `Painting/` and `Stamping/` now. That is a `using` line each and no thought. The
-  `compose/` group (17) predates it and is composer API drift — `showcase.cs` passes a `CellRect` where an int
-  is wanted and indexes something that is no longer indexable — so each needs reading against what the composer
-  takes now, and a script whose figure cannot be rebuilt is a figure that cannot be trusted either.
-
-  **The fix is the gate, not the 35.** Repairing them without one buys a green day; a `tools/build-scripts.sh`
-  that builds every `#:project` script and fails on the first error is what makes the repair hold, and it is
-  what would have caught `A7` on the commit that folded the namespaces.
-
 - [ ] **B225 — A march tests another wing's walls where the primary pass tests its whole roof.**
   `Overtopped` asks `otherField.Covers` — the wing's walls **plus its overhang** — while `OtherRoofCrownOver`,
   which decides where a march stops, asks `otherRoofed.Holds`, the walls alone. Reading `RoofField` settles

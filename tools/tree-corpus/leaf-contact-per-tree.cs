@@ -2,6 +2,7 @@
 // The same connectivity reading, taken tree by tree, so a world's worst crowns can be named rather than
 // averaged away.
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Anvil;
 
 var regionDir = args[0];
 var withCarpentry = args.Contains("--carpentry");

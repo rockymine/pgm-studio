@@ -1,5 +1,5 @@
-#:project /home/user/pgm-studio/src/PgmStudio.Minecraft/PgmStudio.Minecraft.csproj
-#:project /home/user/pgm-studio/src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
+#:project ../../src/PgmStudio.Minecraft/PgmStudio.Minecraft.csproj
+#:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 
 // Measures how discriminating the two objective signatures are, BEFORE any classifier exists.
 //
@@ -12,10 +12,13 @@
 // the world looks the same", which is the only thing that decides whether a detector is usable.
 
 using PgmStudio.Domain;
+using PgmStudio.Geom;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Suggest;
 using PgmStudio.Pgm;
 
-var roots = Directory.GetDirectories("/home/user/CommunityMaps")
+var roots = Directory.GetDirectories("/media/sf_repos/CommunityMaps")
     .Concat(Directory.Exists("/workspace/overcastcommunity/publicmaps")
         ? Directory.GetDirectories("/workspace/overcastcommunity/publicmaps") : [])
     .ToList();

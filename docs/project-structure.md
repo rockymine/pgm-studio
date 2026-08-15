@@ -232,6 +232,14 @@ dressing. **`dotnet run <script>.cs` caches the built app keyed on the script**,
 stale `src/` output with no error — `rm -rf ~/.local/share/dotnet/runfile/<script>-*` before trusting a
 measurement (`CLAUDE.md` *Traps*).
 
+**Not being in the solution is what makes them rot, so `tools/build-scripts.sh` builds all 51.** `dotnet build`
+at the root never compiles a `#:project` script, so a rename in `src/` leaves one uncompilable while the
+solution stays green and nothing anywhere says so. That is not hypothetical: 35 of the 51 were broken at once
+(`B227`) — `A7`'s namespace fold for one group, the composer's `int[]` → `CellRect` for another, and a
+handful still naming a cloud container's `/home/user` paths — including `showcase.cs`, the file this document
+calls `model.md`'s live twin. Run the gate after moving anything the scripts name; it retries a build once,
+because the shared folder produces the odd spurious NuGet failure and a gate that cries wolf is not one.
+
 **Three folders hold fixtures, not code** — `seeds/` (reusable sketch maps for the end-to-end world-export
 tests, `docs/world-export/sketch-world-export.md`), `traffic/` (recovered footprints + the traffic ground
 truth, `docs/gameplay/traffic-ground-truth.md`), `region-authoring-fixtures/` (captured region JSON for the

@@ -8,6 +8,7 @@
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Shapes;
+using PgmStudio.Geom;
 
 var presets = new[]
 {
@@ -84,7 +85,7 @@ foreach (var (label, players, land) in presets)
         {
             var edge = DockEdge(hub.Rect, nb.Rect);
             if (!runs.TryGetValue(edge, out var edgeRuns)) continue;
-            var edgeLen = edge is BoxEdge.Top or BoxEdge.Bottom ? hub.Rect[2] : hub.Rect[3];
+            var edgeLen = edge is BoxEdge.Top or BoxEdge.Bottom ? hub.Rect.Width : hub.Rect.Height;
             var (aStart, aLen) = Abut(hub.Rect, nb.Rect, edge, edgeLen);
             if (aLen <= 0) continue;
             if (Hosting(edgeRuns, aStart, aLen) is not { } run) continue;
@@ -115,11 +116,11 @@ foreach (var (label, players, land) in presets)
         // donut box dims (the min-box sliver check); clamp void depth below the wool (box depth minus the room)
         foreach (var nb in nbs.Where(b => b.Wool is { } wf))
         {
-            if (nb.Wool!.Family == ShapeFamily.Donut) donutDims.Add((nb.Rect[2], nb.Rect[3]));
+            if (nb.Wool!.Family == ShapeFamily.Donut) donutDims.Add((nb.Rect.Width, nb.Rect.Height));
             if (nb.Wool!.Family == ShapeFamily.Clamp)
             {
                 var dock = DockEdge(hub.Rect, nb.Rect);
-                var depth = dock is BoxEdge.Top or BoxEdge.Bottom ? nb.Rect[3] : nb.Rect[2];
+                var depth = dock is BoxEdge.Top or BoxEdge.Bottom ? nb.Rect.Height : nb.Rect.Width;
                 clampVoid.Add(depth - ShapeEmitter.RoomDepthCells);
             }
         }
@@ -155,9 +156,9 @@ static Dictionary<BoxEdge, List<(int Start, int Len)>> HubRuns(Box hub)
 
 // the box's actual abutment on the hub edge, in box-local along-coords: its along-extent clipped to the edge
 // (an overhanging dock reaches past the hub, and only the shared stretch is the interface)
-static (int Start, int Len) Abut(int[] hub, int[] nb, BoxEdge dock, int edgeLen)
+static (int Start, int Len) Abut(CellRect hub, CellRect nb, BoxEdge dock, int edgeLen)
 {
-    var (s, l) = dock is BoxEdge.Top or BoxEdge.Bottom ? (nb[0] - hub[0], nb[2]) : (nb[1] - hub[1], nb[3]);
+    var (s, l) = dock is BoxEdge.Top or BoxEdge.Bottom ? (nb.X - hub.X, nb.Width) : (nb.Z - hub.Z, nb.Height);
     int lo = Math.Max(s, 0), hi = Math.Min(s + l, edgeLen);
     return (lo, hi - lo);
 }
@@ -176,28 +177,28 @@ static (int Start, int Len)? Hosting(List<(int Start, int Len)> runs, int aStart
 }
 
 // which hub edge nb docks (the side of the hub's rect nb touches)
-static BoxEdge DockEdge(int[] hub, int[] nb) =>
-    nb[1] + nb[3] == hub[1] ? BoxEdge.Top
-    : nb[1] == hub[1] + hub[3] ? BoxEdge.Bottom
-    : nb[0] + nb[2] == hub[0] ? BoxEdge.Left
+static BoxEdge DockEdge(CellRect hub, CellRect nb) =>
+    nb.Z + nb.Height == hub.Z ? BoxEdge.Top
+    : nb.Z == hub.Z + hub.Height ? BoxEdge.Bottom
+    : nb.X + nb.Width == hub.X ? BoxEdge.Left
     : BoxEdge.Right;
 
 // rects touch: no area overlap but a shared boundary segment of positive length
-static bool Touches(int[] a, int[] b)
+static bool Touches(CellRect a, CellRect b)
 {
-    bool xOver = a[0] < b[0] + b[2] && b[0] < a[0] + a[2];
-    bool zOver = a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
-    bool xTouch = a[0] + a[2] == b[0] || b[0] + b[2] == a[0];
-    bool zTouch = a[1] + a[3] == b[1] || b[1] + b[3] == a[1];
+    bool xOver = a.X < b.X + b.Width && b.X < a.X + a.Width;
+    bool zOver = a.Z < b.Z + b.Height && b.Z < a.Z + a.Height;
+    bool xTouch = a.X + a.Width == b.X || b.X + b.Width == a.X;
+    bool zTouch = a.Z + a.Height == b.Z || b.Z + b.Height == a.Z;
     return (xTouch && zOver) || (zTouch && xOver);
 }
 
 // the hub piece touches the box on the axis PERPENDICULAR to the dock edge (lateral contact = flush mass)
-static bool LateralContact(int[] box, int[] piece, BoxEdge dock)
+static bool LateralContact(CellRect box, CellRect piece, BoxEdge dock)
 {
-    bool xOver = box[0] < piece[0] + piece[2] && piece[0] < box[0] + box[2];
-    bool zOver = box[1] < piece[1] + piece[3] && piece[1] < box[1] + box[3];
-    bool xTouch = box[0] + box[2] == piece[0] || piece[0] + piece[2] == box[0];
-    bool zTouch = box[1] + box[3] == piece[1] || piece[1] + piece[3] == box[1];
+    bool xOver = box.X < piece.X + piece.Width && piece.X < box.X + box.Width;
+    bool zOver = box.Z < piece.Z + piece.Height && piece.Z < box.Z + box.Height;
+    bool xTouch = box.X + box.Width == piece.X || piece.X + piece.Width == box.X;
+    bool zTouch = box.Z + box.Height == piece.Z || piece.Z + piece.Height == box.Z;
     return dock is BoxEdge.Top or BoxEdge.Bottom ? xTouch && zOver : zTouch && xOver;
 }

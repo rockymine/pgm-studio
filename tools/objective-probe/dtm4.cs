@@ -1,5 +1,5 @@
-#:project /home/user/pgm-studio/src/PgmStudio.Minecraft/PgmStudio.Minecraft.csproj
-#:project /home/user/pgm-studio/src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
+#:project ../../src/PgmStudio.Minecraft/PgmStudio.Minecraft.csproj
+#:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 
 // ISOLATION is the signal the earlier passes missed. The neighbourhood dump showed that 89% of declared
 // destroyables have ZERO blocks of their own material within 10 blocks — they are the only thing made of that
@@ -11,9 +11,10 @@
 
 using PgmStudio.Domain;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Pgm;
 
-var roots = Directory.GetDirectories("/home/user/CommunityMaps")
+var roots = Directory.GetDirectories("/media/sf_repos/CommunityMaps")
     .Concat(Directory.Exists("/workspace/overcastcommunity/publicmaps")
         ? Directory.GetDirectories("/workspace/overcastcommunity/publicmaps") : [])
     .ToList();

@@ -4,6 +4,9 @@
 // which is the export-side check that the marker survived the whole chain rather than only the stamper's unit.
 // Usage: dotnet run tools/deriver/world-marker-readback.cs <worldFolder>
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
+using PgmStudio.Minecraft.Stamping;
 
 if (args.Length == 0)
 {

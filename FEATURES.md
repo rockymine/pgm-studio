@@ -5203,6 +5203,40 @@ these are the ones that shipped a map that could not be played as intended, and 
   method the class has not had for some time, now cites `Check`. It matters ahead of the bucketed audit work:
   four buckets add rules to this class, and an agent choosing a verb from four will not choose the same one
   twice.
+- **Every file-based tool script builds, and a gate keeps them building (B227).** A `#:project` script is not
+  in `PgmStudio.slnx`, so `dotnet build` at the root was green while **35 of the 51** would not compile —
+  including `tools/compose/showcase.cs`, the page `docs/generator/model.md` is meant to be believed over. None
+  of it was noticed because nothing ever built them.
+
+  **Four causes, and each one a different kind of rot.** Eight scripts still named a cloud container's
+  `/home/user/pgm-studio` in their `#:project` line, and seven of those went on to read
+  `/home/user/CommunityMaps` — they now take the `../../src/…` relative form and the corpus path every other
+  tool in the tree uses. Three carried a `using` **above** their directives, which C# does not allow, so the
+  directive was never read; the stray line moved below it. Nineteen were `A7`'s namespace fold: they said
+  `using PgmStudio.Minecraft;` and every type they named had moved into `Anvil/`, `Palette/`, `Houses/`,
+  `Painting/`, `Stamping/` or `Suggest/`. Fifteen were the composer's `int[]` → `CellRect` (`B210`), still
+  indexing `rect[0]`; those became `.X/.Z/.Width/.Height` — an order `CellRect.ToArray` fixes, not one guessed
+  — and the local `Fan`/`Abut`/`SideOf` helpers were retyped from `int[]` to `CellRect`. **No byte of output
+  moves**: `CellRectJsonConverter` writes the same `[x, z, w, h]` the bare array did.
+
+  `house-showcase.cs` needed the most: it predated the `HouseStyle` parts split (`B196`), so its `Sill`,
+  `Floor` and `Surface` are the `Foundation`'s, its `Form`, `Pitch`, `Overhang`, `RidgeCap`, `Gable`, `Verge`
+  and `RoofHole` are the `RoofStyle`'s, and its `Door` is the `Doorway`'s. `nearest-seed.cs` indexed a rect by
+  a **variable** axis, which no member access replaces — it states `OnAxis(rect, axis)` now, because `CellRect`
+  withholds an indexer on purpose and reintroducing one would reopen exactly what the type closed.
+
+  **Verified by running them, not only by building.** Three carry their own invariant and all three pass:
+  `showcase.cs` reports *0 figure failures*, `board-gallery.cs` *0 disconnected boards* and `unit-gallery.cs`
+  *0 diagonal pinches* — the connectivity check in particular walks the rewritten `Fan`, `Rasterize` and
+  `Center`, which a `Width`/`Height` swap would break loudly. `figure-check.cs`, the gate `CLAUDE.md` names,
+  classifies all 23 figures. Every other script was run with real inputs; only `palette/texture-average.cs`
+  could not be, since it wants a 1.8 texture directory this machine has none of. Two stale defaults surfaced
+  and are fixed: `teaching-render.cs` defaulted to a seed that no longer exists.
+
+  **`tools/build-scripts.sh` is what makes the repair hold** — it builds all 51 and fails on the first that
+  does not, and it is in `CLAUDE.md`'s gate list beside `figure-check`. It retries a build once, because the
+  shared folder throws the occasional spurious NuGet resolution error and a gate that cries wolf gets ignored;
+  a real compile error fails both attempts, which was checked by breaking one on purpose.
 - **A wall's direction answers for itself, in the project every consumer reaches (B224).** `RoomEdge` carried
   nothing but its four names, so every caller that needed to know which axis a wall on it ran along, which side
   of a rectangle it named, or which way it looked worked it out again: four four-arm switches and four inline

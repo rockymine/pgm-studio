@@ -7,6 +7,7 @@
 using PgmStudio.Geom;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Anvil;
 
 var regionDir = args.Length > 0 && !args[0].StartsWith("--") ? args[0] : "tools/tree-corpus/tree-showcase/region";
 var logsOnly = args.Contains("--logs-only");          // drop the carpentry some families branch with

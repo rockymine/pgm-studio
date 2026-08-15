@@ -1,6 +1,8 @@
 #:project ../../src/PgmStudio.Minecraft/PgmStudio.Minecraft.csproj
 // Vertical probe: what actually stands in a named box, course by course.
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
 
 var regionAt = Array.IndexOf(args, "--region");
 var regionDir = regionAt >= 0 ? args[regionAt + 1]

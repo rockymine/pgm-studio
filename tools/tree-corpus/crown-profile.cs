@@ -3,6 +3,7 @@
 // reaches from the stem. A conifer widens downward in steps; a flat-crowned acacia carries everything in a
 // plate at the top. Both are visible in the per-course profile and in nothing measured before it.
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Anvil;
 
 var regionDir = args.Length > 0 ? args[0] : "tools/tree-corpus/tree-showcase/region";
 var world = new Dictionary<(int X, int Y, int Z), (int Id, int Data)>();

@@ -8,6 +8,7 @@ using System.Text.Json;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Plan;
 using Sym = PgmStudio.Geom.Symmetry;
+using PgmStudio.Geom;
 
 var players = args.Length > 0 ? int.Parse(args[0]) : 20;
 var maxSeed = args.Length > 1 ? int.Parse(args[1]) : 400;
@@ -44,7 +45,7 @@ for (ulong seed = 0; seed <= (ulong)maxSeed; seed++)
     double offset = 0;
     if (frontBox is not null)
     {
-        int hx = hubBox.Rect[0], hw = hubBox.Rect[2], fx = frontBox.Rect[0], fw = frontBox.Rect[2];
+        int hx = hubBox.Rect.X, hw = hubBox.Rect.Width, fx = frontBox.Rect.X, fw = frontBox.Rect.Width;
         var partial = fw < hw;
         var overhang = fx < hx || fx + fw > hx + hw;
         offset = (fx + fw / 2.0) - (hx + hw / 2.0);
@@ -105,12 +106,12 @@ static string KindOf(string id) =>
     id.StartsWith("hub") ? "hub" : id.StartsWith("spawn") ? "spawn"
     : id.StartsWith("wool") ? "wool" : id.StartsWith("frontline") ? "frontline" : "other";
 
-static int[] Fan(int[] r, string[] axes, int k)
+static CellRect Fan(CellRect r, string[] axes, int k)
 {
     if (k == 0) return r;
     (double x, double z)[] corners =
-        [(r[0], r[1]), (r[0], r[1] + r[3]), (r[0] + r[2], r[1]), (r[0] + r[2], r[1] + r[3])];
+        [(r.X, r.Z), (r.X, r.Z + r.Height), (r.X + r.Width, r.Z), (r.X + r.Width, r.Z + r.Height)];
     var pts = corners.Select(c => Sym.Apply(c.x, c.z, axes[k - 1], 0, 0)).ToList();
     int x1 = (int)Math.Round(pts.Min(p => p.X)), z1 = (int)Math.Round(pts.Min(p => p.Z));
-    return [x1, z1, (int)Math.Round(pts.Max(p => p.X)) - x1, (int)Math.Round(pts.Max(p => p.Z)) - z1];
+    return new CellRect(x1, z1, (int)Math.Round(pts.Max(p => p.X)) - x1, (int)Math.Round(pts.Max(p => p.Z)) - z1);
 }

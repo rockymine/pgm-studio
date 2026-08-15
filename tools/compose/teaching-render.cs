@@ -1,8 +1,8 @@
-using PgmStudio.Domain;
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
 using System.Globalization;
 using System.Text;
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Plan;
 
@@ -24,7 +24,9 @@ const string CBuffer    = "#f2792b"; // orange  (ROLE_COLORS.buffer — reserved
 const string CBand   = "#3b82f6";    // blue    (--accent)
 const string CBridge = "#f472b6";    // pink
 
-var planPath = args.Length > 0 ? args[0] : Path.Combine("tools", "seeds", "teaching", "frontline-dos-and-donts-rot-180-mirror.plan.json");
+// Any authored teaching plan may be named; the default is a mirror_z one, which is the symmetry the fan above
+// describes.
+var planPath = args.Length > 0 ? args[0] : Path.Combine("tools", "seeds", "teaching", "mirror-mid-examples.plan.json");
 var json = File.ReadAllText(planPath);
 
 var plan = PlanModel.Parse(json);
@@ -56,8 +58,8 @@ var zoneImgs = new List<(double X1, double Z1, double X2, double Z2, string Id, 
 
 foreach (var p in plan.Pieces)
 {
-    double x1 = p.Rect[0] * cell, z1 = p.Rect[1] * cell;
-    double x2 = (p.Rect[0] + p.Rect[2]) * cell, z2 = (p.Rect[1] + p.Rect[3]) * cell;
+    double x1 = p.Rect.X * cell, z1 = p.Rect.Z * cell;
+    double x2 = (p.Rect.X + p.Rect.Width) * cell, z2 = (p.Rect.Z + p.Rect.Height) * cell;
     for (int k = 0; k < order; k++)
     {
         var (a, b, cc, d) = Fan(x1, z1, x2, z2, axes, k);
@@ -66,8 +68,8 @@ foreach (var p in plan.Pieces)
 }
 foreach (var z in plan.Zones)
 {
-    double x1 = z.Rect[0] * cell, z1 = z.Rect[1] * cell;
-    double x2 = (z.Rect[0] + z.Rect[2]) * cell, z2 = (z.Rect[1] + z.Rect[3]) * cell;
+    double x1 = z.Rect.X * cell, z1 = z.Rect.Z * cell;
+    double x2 = (z.Rect.X + z.Rect.Width) * cell, z2 = (z.Rect.Z + z.Rect.Height) * cell;
     for (int k = 0; k < order; k++)
     {
         var (a, b, cc, d) = Fan(x1, z1, x2, z2, axes, k);
@@ -167,16 +169,16 @@ int errCount = validate.Count(f => f.Severity == Severity.Refusal);
 int lintCount = validate.Count(f => f.Severity == Severity.Complaint);
 
 // base-image bounds in CELLS (author's unit)
-int bMinX = plan.Pieces.Select(p => p.Rect[0]).Concat(plan.Zones.Select(z => z.Rect[0])).Min();
-int bMaxX = plan.Pieces.Select(p => p.Rect[0] + p.Rect[2]).Concat(plan.Zones.Select(z => z.Rect[0] + z.Rect[2])).Max();
-int bMinZ = plan.Pieces.Select(p => p.Rect[1]).Concat(plan.Zones.Select(z => z.Rect[1])).Min();
-int bMaxZ = plan.Pieces.Select(p => p.Rect[1] + p.Rect[3]).Concat(plan.Zones.Select(z => z.Rect[1] + z.Rect[3])).Max();
+int bMinX = plan.Pieces.Select(p => p.Rect.X).Concat(plan.Zones.Select(z => z.Rect.X)).Min();
+int bMaxX = plan.Pieces.Select(p => p.Rect.X + p.Rect.Width).Concat(plan.Zones.Select(z => z.Rect.X + z.Rect.Width)).Max();
+int bMinZ = plan.Pieces.Select(p => p.Rect.Z).Concat(plan.Zones.Select(z => z.Rect.Z)).Min();
+int bMaxZ = plan.Pieces.Select(p => p.Rect.Z + p.Rect.Height).Concat(plan.Zones.Select(z => z.Rect.Z + z.Rect.Height)).Max();
 
 // overlaps among base-image rects (cell units). categorised: piece∩piece, zone∩zone, piece∩zone.
-static double OvArea(int[] a, int[] b)
+static double OvArea(CellRect a, CellRect b)
 {
-    double ix = Math.Min(a[0] + a[2], b[0] + b[2]) - Math.Max(a[0], b[0]);
-    double iz = Math.Min(a[1] + a[3], b[1] + b[3]) - Math.Max(a[1], b[1]);
+    double ix = Math.Min(a.X + a.Width, b.X + b.Width) - Math.Max(a.X, b.X);
+    double iz = Math.Min(a.Z + a.Height, b.Z + b.Height) - Math.Max(a.Z, b.Z);
     return ix > 0 && iz > 0 ? ix * iz : 0;
 }
 var ppOv = new List<string>(); var zzOv = new List<string>(); var pzOv = new List<string>();

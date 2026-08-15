@@ -50,7 +50,7 @@ const int scanSeeds = 200;
 var extremes = new Dictionary<string, (double Val, string CardHtml)>();
 
 void Consider(string metric, double val, string preset, int seed, IReadOnlyList<GrownPiece> pieces,
-    string form, int[] hubRect, BoxEdge front, int landCells, double budgetCells, bool hasFrontline,
+    string form, CellRect hubRect, BoxEdge front, int landCells, double budgetCells, bool hasFrontline,
     string note, HashSet<(int X, int Z)>? highlight)
 {
     if (extremes.TryGetValue(metric, out var cur) && val <= cur.Val) return;
@@ -143,8 +143,8 @@ static HashSet<(int, int)> Mask(IReadOnlyList<GrownPiece> pieces)
 {
     var cells = new HashSet<(int, int)>();
     foreach (var p in pieces)
-        for (var x = p.Rect[0]; x < p.Rect[0] + p.Rect[2]; x++)
-            for (var z = p.Rect[1]; z < p.Rect[1] + p.Rect[3]; z++)
+        for (var x = p.Rect.X; x < p.Rect.X + p.Rect.Width; x++)
+            for (var z = p.Rect.Z; z < p.Rect.Z + p.Rect.Height; z++)
                 cells.Add((x, z));
     return cells;
 }
@@ -171,12 +171,12 @@ static string Color(BoxKind k) => k switch
 static string Fail(int seed, string why) =>
     $"<div class=card><div class=title>seed {seed}</div><div class=fail>{why}</div></div>";
 
-static string Card(int seed, IReadOnlyList<GrownPiece> pieces, string form, bool pinched, int[] hubRect, BoxEdge front,
+static string Card(int seed, IReadOnlyList<GrownPiece> pieces, string form, bool pinched, CellRect hubRect, BoxEdge front,
     int landCells, double budgetCells, bool hasFrontline,
     string? tag = null, string? note = null, HashSet<(int X, int Z)>? highlight = null)
 {
-    int minX = pieces.Min(p => p.Rect[0]), minZ = pieces.Min(p => p.Rect[1]);
-    int maxX = pieces.Max(p => p.Rect[0] + p.Rect[2]), maxZ = pieces.Max(p => p.Rect[1] + p.Rect[3]);
+    int minX = pieces.Min(p => p.Rect.X), minZ = pieces.Min(p => p.Rect.Z);
+    int maxX = pieces.Max(p => p.Rect.X + p.Rect.Width), maxZ = pieces.Max(p => p.Rect.Z + p.Rect.Height);
     int w = maxX - minX, h = maxZ - minZ;
     const int scale = 20, pad = 14;
     int vw = w * scale + 2 * pad, vh = h * scale + 2 * pad;
@@ -190,8 +190,8 @@ static string Card(int seed, IReadOnlyList<GrownPiece> pieces, string form, bool
 
     foreach (var p in pieces)
     {
-        int x = (p.Rect[0] - minX) * scale + pad, y = (p.Rect[1] - minZ) * scale + pad;
-        int pw = p.Rect[2] * scale, ph = p.Rect[3] * scale;
+        int x = (p.Rect.X - minX) * scale + pad, y = (p.Rect.Z - minZ) * scale + pad;
+        int pw = p.Rect.Width * scale, ph = p.Rect.Height * scale;
         var col = Color(p.Box?.Kind ?? BoxKind.Mid);
         var room = p.Role != PlanRoles.Piece;                 // wool / spawn rooms drawn solid
         svg.Append($"<rect x='{x}' y='{y}' width='{pw}' height='{ph}' rx='1.5' fill='{col}' "
@@ -276,8 +276,8 @@ static int FlatFrontRun(IReadOnlyList<GrownPiece> pieces, BoxEdge front)
 {
     var frontier = new Dictionary<int, int>();
     foreach (var p in pieces)
-        for (var x = p.Rect[0]; x < p.Rect[0] + p.Rect[2]; x++)
-            for (var z = p.Rect[1]; z < p.Rect[1] + p.Rect[3]; z++)
+        for (var x = p.Rect.X; x < p.Rect.X + p.Rect.Width; x++)
+            for (var z = p.Rect.Z; z < p.Rect.Z + p.Rect.Height; z++)
             {
                 var (along, o) = front switch
                 {
@@ -299,32 +299,32 @@ static int FlatFrontRun(IReadOnlyList<GrownPiece> pieces, BoxEdge front)
 }
 
 // the hub bounding-box front edge as a screen line, plus the plan-cell coordinate of that face
-static ((int X, int Y) A, (int X, int Y) B, int Face) FrontLine(int[] hub, BoxEdge front, int minX, int minZ, int scale, int pad)
+static ((int X, int Y) A, (int X, int Y) B, int Face) FrontLine(CellRect hub, BoxEdge front, int minX, int minZ, int scale, int pad)
 {
-    int hx0 = (hub[0] - minX) * scale + pad, hx1 = (hub[0] + hub[2] - minX) * scale + pad;
-    int hz0 = (hub[1] - minZ) * scale + pad, hz1 = (hub[1] + hub[3] - minZ) * scale + pad;
+    int hx0 = (hub.X - minX) * scale + pad, hx1 = (hub.X + hub.Width - minX) * scale + pad;
+    int hz0 = (hub.Z - minZ) * scale + pad, hz1 = (hub.Z + hub.Height - minZ) * scale + pad;
     return front switch
     {
-        BoxEdge.Top => ((hx0, hz0), (hx1, hz0), hub[1]),
-        BoxEdge.Bottom => ((hx0, hz1), (hx1, hz1), hub[1] + hub[3]),
-        BoxEdge.Left => ((hx0, hz0), (hx0, hz1), hub[0]),
-        _ => ((hx1, hz0), (hx1, hz1), hub[0] + hub[2]),
+        BoxEdge.Top => ((hx0, hz0), (hx1, hz0), hub.Z),
+        BoxEdge.Bottom => ((hx0, hz1), (hx1, hz1), hub.Z + hub.Height),
+        BoxEdge.Left => ((hx0, hz0), (hx0, hz1), hub.X),
+        _ => ((hx1, hz0), (hx1, hz1), hub.X + hub.Width),
     };
 }
 
 // a spawn/wool is flush when its own bounding-box front edge lands on the hub's front face
 static bool FlushFront(IReadOnlyList<GrownPiece> g, BoxEdge front, int face) => front switch
 {
-    BoxEdge.Top => g.Min(p => p.Rect[1]) == face,
-    BoxEdge.Bottom => g.Max(p => p.Rect[1] + p.Rect[3]) == face,
-    BoxEdge.Left => g.Min(p => p.Rect[0]) == face,
-    _ => g.Max(p => p.Rect[0] + p.Rect[2]) == face,
+    BoxEdge.Top => g.Min(p => p.Rect.Z) == face,
+    BoxEdge.Bottom => g.Max(p => p.Rect.Z + p.Rect.Height) == face,
+    BoxEdge.Left => g.Min(p => p.Rect.X) == face,
+    _ => g.Max(p => p.Rect.X + p.Rect.Width) == face,
 };
 
 static ((int X, int Y) A, (int X, int Y) B) NeighbourFrontLine(IReadOnlyList<GrownPiece> g, BoxEdge front, int minX, int minZ, int scale, int pad)
 {
-    int nx0 = (g.Min(p => p.Rect[0]) - minX) * scale + pad, nx1 = (g.Max(p => p.Rect[0] + p.Rect[2]) - minX) * scale + pad;
-    int nz0 = (g.Min(p => p.Rect[1]) - minZ) * scale + pad, nz1 = (g.Max(p => p.Rect[1] + p.Rect[3]) - minZ) * scale + pad;
+    int nx0 = (g.Min(p => p.Rect.X) - minX) * scale + pad, nx1 = (g.Max(p => p.Rect.X + p.Rect.Width) - minX) * scale + pad;
+    int nz0 = (g.Min(p => p.Rect.Z) - minZ) * scale + pad, nz1 = (g.Max(p => p.Rect.Z + p.Rect.Height) - minZ) * scale + pad;
     return front switch
     {
         BoxEdge.Top => ((nx0, nz0), (nx1, nz0)),

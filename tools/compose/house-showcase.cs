@@ -9,6 +9,10 @@ using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Views;
 using PgmStudio.Geom;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Houses;
+using PgmStudio.Minecraft.Painting;
+using PgmStudio.Minecraft.Palette;
 
 const int FloorY = 64;
 
@@ -65,11 +69,9 @@ var basis = new HouseStyle
 {
     Wall = new RoomPart(new BandStack([new Band(new SolidMaterial(Blocks.Cobblestone)), new Band(plaster)]), 5),
     Post = new SolidMaterial(Blocks.Log, 0),
-    Sill = new SolidMaterial(Blocks.Cobblestone),
-    Roof = tile,
-    Verge = darkOak,
-    Floor = RoomPart.Of(oak),
-    Door = DoorMaterial.Air,
+    Foundation = new Foundation { Footing = new SolidMaterial(Blocks.Cobblestone), Plate = RoomPart.Of(oak) },
+    Roof = new RoofStyle { Body = tile, Verge = darkOak },
+    Doorway = new Doorway { Door = DoorMaterial.Air },
 };
 
 var roofNotes = new (RoofForm Form, string Name, string Blurb)[]
@@ -88,7 +90,13 @@ var page = new StringBuilder();
 var roofFigures = new StringBuilder();
 foreach (var (form, name, blurb) in roofNotes)
 {
-    var style = basis with { Form = form, RoofHole = form == RoofForm.Flat, RidgeCap = form != RoofForm.Flat };
+    var style = basis with
+    {
+        Roof = basis.Roof with
+        {
+            Form = form, Hole = form == RoofForm.Flat, RidgeCap = form != RoofForm.Flat,
+        },
+    };
     var world = Build(15, 11, style);
     var top = FloorY + style.TopLayerOver(15, 11);
     roofFigures.Append($"<article class='card'><h3>{name}</h3>")
@@ -110,7 +118,13 @@ foreach (var (pitch, overhang, caption) in new[]
              (2, 3, "pitch 2 · eave 3"),
          })
 {
-    var style = basis with { Form = RoofForm.Gable, Pitch = pitch, Overhang = overhang, RidgeCap = true };
+    var style = basis with
+    {
+        Roof = basis.Roof with
+        {
+            Form = RoofForm.Gable, Pitch = pitch, Overhang = overhang, RidgeCap = true,
+        },
+    };
     var world = Build(13, 9, style);
     var top = FloorY + style.TopLayerOver(13, 9);
     pitchFigures.Append($"<figure><div class='fig'>{Section(world, -4, -4, 16, 12, top, 7)}</div>")
@@ -137,7 +151,11 @@ foreach (var (surface, name, blurb) in new (FloorSurface Surface, string Name, s
                  "The zones say where; a material says what. A checker is a pattern and stays a material, bound to the field."),
          })
 {
-    var world = Build(15, 13, basis with { Surface = surface, Form = RoofForm.Gable });
+    var world = Build(15, 13, basis with
+    {
+        Foundation = basis.Foundation with { Surface = surface },
+        Roof = basis.Roof with { Form = RoofForm.Gable },
+    });
     floorFigures.Append($"<article class='card card--tight'><h3>{name}</h3>")
         .Append($"<div class='fig'>{FloorPlan(world, 0, 0, 14, 12, 11)}</div>")
         .Append($"<p>{blurb}</p></article>");
@@ -157,7 +175,11 @@ foreach (var (porch, roof, name, blurb) in new (PorchStyle? Porch, RoofForm Roof
                  "The canopy is seated by its own lowest course clearing the doorway, so any form fronts the building at porch height without fighting the roof above it."),
          })
 {
-    var style = basis with { Porch = porch, Form = roof, RidgeCap = true, Windows = WindowStyle.Glazed };
+    var style = basis with
+    {
+        Porch = porch, Windows = WindowStyle.Glazed,
+        Roof = basis.Roof with { Form = roof, RidgeCap = true },
+    };
     var world = Build(15, 11, style);
     var top = FloorY + style.TopLayerOver(15, 11);
     porchFigures.Append($"<article class='card'><h3>{name}</h3>")
@@ -171,8 +193,7 @@ foreach (var (porch, roof, name, blurb) in new (PorchStyle? Porch, RoofForm Roof
     var tower = basis with
     {
         Wall = new RoomPart(new BandStack([new Band(new SolidMaterial(Blocks.Cobblestone)), new Band(plaster)]), 18),
-        Form = RoofForm.Hip,
-        RidgeCap = true,
+        Roof = basis.Roof with { Form = RoofForm.Hip, RidgeCap = true },
         Windows = WindowStyle.Lattice with { Block = 164, Sill = 2 },
         Porch = new PorchStyle { Depth = 2, Inset = 1 },
     };
@@ -197,7 +218,11 @@ foreach (var (windows, name, blurb) in new (WindowStyle Windows, string Name, st
                  "The ordinary window: glazed rather than open, and the only one of the three whose size is entirely the author's."),
          })
 {
-    var style = basis with { Windows = windows, Form = RoofForm.Gable, RidgeCap = true };
+    var style = basis with
+    {
+        Windows = windows,
+        Roof = basis.Roof with { Form = RoofForm.Gable, RidgeCap = true },
+    };
     var world = Build(17, 11, style);
     var top = FloorY + style.TopLayerOver(17, 11);
     // Cropped around a real seat rather than around a guess at where one lands, so the close-up is of the
@@ -218,9 +243,7 @@ foreach (var (windows, name, blurb) in new (WindowStyle Windows, string Name, st
 var storeyFigures = new StringBuilder();
 var storeyBasis = basis with
 {
-    Form = RoofForm.Gable,
-    RidgeCap = true,
-    Overhang = 1,
+    Roof = basis.Roof with { Form = RoofForm.Gable, RidgeCap = true, Overhang = 1 },
     Windows = WindowStyle.Glazed with { Block = Blocks.GlassPane, Sill = 2, Spacing = 4 },
 };
 
@@ -269,19 +292,19 @@ foreach (var (storeys, name, blurb) in new (Storey[] Storeys, string Name, strin
 // ── figure 7: one house wearing all of it ─────────────────────────────────────────────────────────────
 var finished = basis with
 {
-    Form = RoofForm.Saltbox,
-    Pitch = 1,
-    Overhang = 1,
-    RidgeCap = true,
+    Roof = basis.Roof with { Form = RoofForm.Saltbox, Pitch = 1, Overhang = 1, RidgeCap = true },
     Wall = RoomPart.Of(spruce, 6),
     Windows = WindowStyle.Lattice with { Sill = 2, Spacing = 4 },
     Porch = new PorchStyle { Depth = 3, Inset = 2, Roof = RoofForm.Shed },
-    Surface = new FloorSurface
+    Foundation = basis.Foundation with
     {
-        Border = darkOak,
-        Field = new CheckerMaterial(1, oak, spruce),
-        Inlay = new SolidMaterial(Blocks.Wool),
-        InlayInset = 4,
+        Surface = new FloorSurface
+        {
+            Border = darkOak,
+            Field = new CheckerMaterial(1, oak, spruce),
+            Inlay = new SolidMaterial(Blocks.Wool),
+            InlayInset = 4,
+        },
     },
 };
 var heroWorld = Build(17, 13, finished);
@@ -438,7 +461,7 @@ foreach (var (form, name, blurb) in new (RoofForm Form, string Name, string Blur
                  "A gable whose two slopes climb at different rates, so it is measured across the short side exactly as a gable is. The front decides which of them is the steep one and nothing about how high the roof stands."),
          })
 {
-    var style = basis with { Form = form, Overhang = 1, Pitch = 1 };
+    var style = basis with { Roof = basis.Roof with { Form = form, Overhang = 1, Pitch = 1 } };
     // The door on an end wall, which is what turns a shed's fall onto the long axis.
     var world = new VoxelWorld();
     for (var x = -3; x < 27; x++)
@@ -476,7 +499,7 @@ foreach (var (gable, name, blurb) in new (TerrainMaterial? Gable, string Name, s
 {
     var style = basis with
     {
-        Form = RoofForm.Gable, Overhang = 0, RidgeCap = true, Gable = gable,
+        Roof = basis.Roof with { Form = RoofForm.Gable, Overhang = 0, RidgeCap = true, Gable = gable },
         Wall = new RoomPart(new BandStack([new Band(new SolidMaterial(Blocks.Cobblestone)), new Band(plaster)]), 5),
     };
     var world = Build(13, 9, style);

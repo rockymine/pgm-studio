@@ -8,6 +8,7 @@
 // `--svg <path>` additionally writes the whole board as one picture, zones labelled with their line lengths.
 // Usage: dotnet run tools/deriver/build-marker-check.cs <plan.json> [<plan.json>…] [--svg <out.svg>]
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Stamping;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
 

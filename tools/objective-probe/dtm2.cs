@@ -1,5 +1,5 @@
-#:project /home/user/pgm-studio/src/PgmStudio.Minecraft/PgmStudio.Minecraft.csproj
-#:project /home/user/pgm-studio/src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
+#:project ../../src/PgmStudio.Minecraft/PgmStudio.Minecraft.csproj
+#:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 
 // The decisive question for DTM detection: is a declared destroyable a STANDALONE connected mass, or is it
 // fused into a larger structure of the same material?
@@ -13,9 +13,10 @@
 
 using PgmStudio.Domain;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Pgm;
 
-var roots = Directory.GetDirectories("/home/user/CommunityMaps")
+var roots = Directory.GetDirectories("/media/sf_repos/CommunityMaps")
     .Concat(Directory.Exists("/workspace/overcastcommunity/publicmaps")
         ? Directory.GetDirectories("/workspace/overcastcommunity/publicmaps") : [])
     .ToList();

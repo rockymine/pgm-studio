@@ -12,6 +12,7 @@
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Shapes;
+using PgmStudio.Geom;
 
 var planPath = args.Length > 0 ? args[0] : "tools/seeds/shifted-u-frontline-attach-hole-hub.plan.json";
 var maxSeed = args.Length > 1 ? int.Parse(args[1]) : 600;
@@ -114,7 +115,7 @@ sealed record Signature(
         // the frontline decides which way is "front"; every other side is named relative to it, so a plan drawn
         // on either side of the axis reads the same
         var (frontAxis, frontSign) = Facing(hub.Rect, front?.Rect);
-        string Side(int[] r) => SideOf(hub.Rect, r, frontAxis, frontSign);
+        string Side(CellRect r) => SideOf(hub.Rect, r, frontAxis, frontSign);
 
         // an approach's family reads off its terrain plus its terminal room — the emit↔derive mirror
         string Family(PlanBox b)
@@ -139,8 +140,8 @@ sealed record Signature(
         {
             // measure along the hub's front edge — the axis perpendicular to the facing direction
             var along = frontAxis == 1 ? 0 : 1;
-            int hs = hub.Rect[along], hl = hub.Rect[along + 2];
-            int fs = front.Rect[along], fl = front.Rect[along + 2];
+            var (hs, hl) = OnAxis(hub.Rect, along);
+            var (fs, fl) = OnAxis(front.Rect, along);
             offset = (fs + fl / 2.0) - (hs + hl / 2.0);
             face = (fs < hs || fs + fl > hs + hl) ? "overhang"
                  : Math.Abs(offset) >= 1 ? "shifted"
@@ -156,7 +157,7 @@ sealed record Signature(
             wools.Select(Family).OrderBy(f => f).ToList(),
             spawn is null ? "none" : Side(spawn.Rect),
             wools.Select(w => Side(w.Rect)).OrderBy(s => s).ToList(),
-            hub.Rect[2], hub.Rect[3]);
+            hub.Rect.Width, hub.Rect.Height);
     }
 
     private static HashSet<(int, int)> Cells(PlanModel plan, PlanBox box)
@@ -166,26 +167,35 @@ sealed record Signature(
         return cells;
     }
 
-    private static void Raster(int[] r, HashSet<(int, int)> into)
+    private static void Raster(CellRect r, HashSet<(int, int)> into)
     {
-        for (var x = r[0]; x < r[0] + r[2]; x++)
-            for (var z = r[1]; z < r[1] + r[3]; z++) into.Add((x, z));
+        for (var x = r.X; x < r.X + r.Width; x++)
+            for (var z = r.Z; z < r.Z + r.Height; z++) into.Add((x, z));
     }
 
+    // A rect's start and extent on one axis. The rect used to be an int[] and this was r[axis]/r[axis + 2];
+    // CellRect has no indexer on purpose, since reading [3] as a depth rather than a height compiled too.
+    private static (int Start, int Extent) OnAxis(CellRect r, int axis) =>
+        axis == 0 ? (r.X, r.Width) : (r.Z, r.Height);
+
     // which axis (0 = x, 1 = z) and direction the frontline sits from the hub; defaults to +z when there is none
-    private static (int Axis, int Sign) Facing(int[] hub, int[]? front)
+    private static (int Axis, int Sign) Facing(CellRect hub, CellRect? front)
     {
-        if (front is null) return (1, 1);
-        double dx = (front[0] + front[2] / 2.0) - (hub[0] + hub[2] / 2.0);
-        double dz = (front[1] + front[3] / 2.0) - (hub[1] + hub[3] / 2.0);
+        if (front is not { } face) return (1, 1);
+        double dx = (face.X + face.Width / 2.0) - (hub.X + hub.Width / 2.0);
+        double dz = (face.Z + face.Height / 2.0) - (hub.Z + hub.Height / 2.0);
         return Math.Abs(dx) > Math.Abs(dz) ? (0, Math.Sign(dx)) : (1, Math.Sign(dz) == 0 ? 1 : Math.Sign(dz));
     }
 
-    private static string SideOf(int[] hub, int[] r, int axis, int sign)
+    private static string SideOf(CellRect hub, CellRect r, int axis, int sign)
     {
-        double d = (r[axis] + r[axis + 2] / 2.0) - (hub[axis] + hub[axis + 2] / 2.0);
+        var (rs, re) = OnAxis(r, axis);
+        var (hubStart, hubExtent) = OnAxis(hub, axis);
+        double d = (rs + re / 2.0) - (hubStart + hubExtent / 2.0);
         var other = axis == 0 ? 1 : 0;
-        double o = (r[other] + r[other + 2] / 2.0) - (hub[other] + hub[other + 2] / 2.0);
+        var (rOther, rOtherExtent) = OnAxis(r, other);
+        var (hubOther, hubOtherExtent) = OnAxis(hub, other);
+        double o = (rOther + rOtherExtent / 2.0) - (hubOther + hubOtherExtent / 2.0);
         if (Math.Abs(d) >= Math.Abs(o)) return Math.Sign(d) == sign ? "front" : "back";
         return o < 0 ? "left" : "right";
     }

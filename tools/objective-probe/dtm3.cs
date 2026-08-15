@@ -1,5 +1,5 @@
-#:project /home/user/pgm-studio/src/PgmStudio.Minecraft/PgmStudio.Minecraft.csproj
-#:project /home/user/pgm-studio/src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
+#:project ../../src/PgmStudio.Minecraft/PgmStudio.Minecraft.csproj
+#:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 
 // Ranking, not gating. A confirm-in-UI flow does not need a candidate set that is mostly right; it needs the
 // right ones at the top. This measures recall@N per map for a score built from what the taxonomy showed
@@ -8,9 +8,10 @@
 
 using PgmStudio.Domain;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Pgm;
 
-var roots = Directory.GetDirectories("/home/user/CommunityMaps")
+var roots = Directory.GetDirectories("/media/sf_repos/CommunityMaps")
     .Concat(Directory.Exists("/workspace/overcastcommunity/publicmaps")
         ? Directory.GetDirectories("/workspace/overcastcommunity/publicmaps") : [])
     .ToList();

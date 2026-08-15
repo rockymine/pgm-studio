@@ -124,8 +124,8 @@ string BuildSvg(PlanModel plan)
     // pieces (all orbit images)
     foreach (var p in plan.Pieces)
     {
-        double x1 = p.Rect[0] * cell, z1 = p.Rect[1] * cell;
-        double x2 = (p.Rect[0] + p.Rect[2]) * cell, z2 = (p.Rect[1] + p.Rect[3]) * cell;
+        double x1 = p.Rect.X * cell, z1 = p.Rect.Z * cell;
+        double x2 = (p.Rect.X + p.Rect.Width) * cell, z2 = (p.Rect.Z + p.Rect.Height) * cell;
         for (int k = 0; k < order; k++)
         {
             var (a, b, cc, d) = Fan(x1, z1, x2, z2, axes, k);
@@ -135,15 +135,15 @@ string BuildSvg(PlanModel plan)
     // zones + holes (all orbit images)
     foreach (var z in plan.Zones)
     {
-        double x1 = z.Rect[0] * cell, z1 = z.Rect[1] * cell;
-        double x2 = (z.Rect[0] + z.Rect[2]) * cell, z2 = (z.Rect[1] + z.Rect[3]) * cell;
+        double x1 = z.Rect.X * cell, z1 = z.Rect.Z * cell;
+        double x2 = (z.Rect.X + z.Rect.Width) * cell, z2 = (z.Rect.Z + z.Rect.Height) * cell;
         for (int k = 0; k < order; k++)
         {
             var (a, b, cc, d) = Fan(x1, z1, x2, z2, axes, k);
             var holes = new List<(double, double, double, double)>();
             foreach (var h in z.Holes)
             {
-                double hx1 = h[0] * cell, hz1 = h[1] * cell, hx2 = (h[0] + h[2]) * cell, hz2 = (h[1] + h[3]) * cell;
+                double hx1 = h.X * cell, hz1 = h.Z * cell, hx2 = (h.X + h.Width) * cell, hz2 = (h.Z + h.Height) * cell;
                 holes.Add(Fan(hx1, hz1, hx2, hz2, axes, k));
             }
             zoneImgs.Add((a, b, cc, d, z.Id, k, holes));
@@ -159,7 +159,7 @@ string BuildSvg(PlanModel plan)
     foreach (var sp in plan.Placements.Spawns)
     {
         if (!pieceById.TryGetValue(sp.Piece, out var pc)) continue;
-        double bx = (pc.Rect[0] + sp.At[0]) * cell, bz = (pc.Rect[1] + sp.At[1]) * cell;
+        double bx = (pc.Rect.X + sp.At[0]) * cell, bz = (pc.Rect.Z + sp.At[1]) * cell;
         var (dx, dz) = facingDir(sp.Facing)[0];
         for (int k = 0; k < order; k++)
         {
@@ -173,7 +173,7 @@ string BuildSvg(PlanModel plan)
         foreach (var m in ms)
         {
             if (!pieceById.TryGetValue(m.Piece, out var pc)) continue;
-            double bx = (pc.Rect[0] + m.At[0]) * cell, bz = (pc.Rect[1] + m.At[1]) * cell;
+            double bx = (pc.Rect.X + m.At[0]) * cell, bz = (pc.Rect.Z + m.At[1]) * cell;
             for (int k = 0; k < order; k++)
             {
                 var (mx, mz) = k == 0 ? (bx, bz) : Symmetry.Apply(bx, bz, axes[k - 1], 0, 0);

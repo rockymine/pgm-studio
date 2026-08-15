@@ -13,6 +13,7 @@ using PgmStudio.Pgm.Evaluate;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Shapes;
 using Sym = PgmStudio.Geom.Symmetry;
+using PgmStudio.Geom;
 
 // ── palette (editor visual language: plan-doc.js / tokens.css / the board gallery) ─────────────────────
 const string BgCanvas = "#080f1a";
@@ -66,8 +67,8 @@ foreach (var boxId in unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Wool).Select
     var filled = new HashSet<(int, int)>();
     var roomCells = new HashSet<(int, int)>();
     foreach (var p in boxPieces)
-        for (var x = p.Rect[0]; x < p.Rect[0] + p.Rect[2]; x++)
-            for (var z = p.Rect[1]; z < p.Rect[1] + p.Rect[3]; z++)
+        for (var x = p.Rect.X; x < p.Rect.X + p.Rect.Width; x++)
+            for (var z = p.Rect.Z; z < p.Rect.Z + p.Rect.Height; z++)
             { filled.Add((x, z)); if (p.Id == room.Id) roomCells.Add((x, z)); }
     woolFamily[boxId] = ShapeClassifier.Classify(filled, roomCells).Family;
 }
@@ -102,7 +103,7 @@ for (var x = cMinX; x <= cMaxX; x++)
 var spawnPiece = unit.Pieces.First(p => p.Role == PlanRoles.Spawn);
 var spawnCentres = Enumerable.Range(0, order)
     .Select(k => FanRect(spawnPiece.Rect, k))
-    .Select(r => (r[0] + r[2] / 2, r[1] + r[3] / 2)).ToList();
+    .Select(r => (r.X + r.Width / 2, r.Z + r.Height / 2)).ToList();
 var reach = new HashSet<(int, int)>();
 if (cover.Contains(spawnCentres[0]))
 {
@@ -117,30 +118,30 @@ if (cover.Contains(spawnCentres[0]))
 }
 var connected = spawnCentres.All(reach.Contains);
 
-int[] FanRect(int[] r, int k)
+CellRect FanRect(CellRect r, int k)
 {
     if (k == 0) return r;
-    (double x, double z)[] corners = [(r[0], r[1]), (r[0], r[1] + r[3]), (r[0] + r[2], r[1]), (r[0] + r[2], r[1] + r[3])];
+    (double x, double z)[] corners = [(r.X, r.Z), (r.X, r.Z + r.Height), (r.X + r.Width, r.Z), (r.X + r.Width, r.Z + r.Height)];
     var pts = corners.Select(c => Sym.Apply(c.x, c.z, axes[k - 1], 0, 0)).ToList();
     var x1 = (int)Math.Round(pts.Min(p => p.X));
     var z1 = (int)Math.Round(pts.Min(p => p.Z));
-    return [x1, z1, (int)Math.Round(pts.Max(p => p.X)) - x1, (int)Math.Round(pts.Max(p => p.Z)) - z1];
+    return new CellRect(x1, z1, (int)Math.Round(pts.Max(p => p.X)) - x1, (int)Math.Round(pts.Max(p => p.Z)) - z1);
 }
-void RasterFan(int[] r, int k, HashSet<(int, int)> into)
+void RasterFan(CellRect r, int k, HashSet<(int, int)> into)
 {
     var f = FanRect(r, k);
-    for (var x = f[0]; x < f[0] + f[2]; x++)
-        for (var z = f[1]; z < f[1] + f[3]; z++) into.Add((x, z));
+    for (var x = f.X; x < f.X + f.Width; x++)
+        for (var z = f.Z; z < f.Z + f.Height; z++) into.Add((x, z));
 }
 
 // ── board-frame renderer (the hero strip) ──────────────────────────────────────────────────────────────
 // One fixed camera over the fanned board; each stage chooses what is HOT (full strength), what is faint
 // context, and which annotation layers to draw on top.
-var allRects = new List<int[]>();
+var allRects = new List<CellRect>();
 foreach (var p in unit.Pieces) for (var k = 0; k < order; k++) allRects.Add(FanRect(p.Rect, k));
 for (var k = 0; k < order; k++) allRects.Add(FanRect(stages.Mid.BandRect, k));
-int bMinX = allRects.Min(r => r[0]) - 2, bMinZ = allRects.Min(r => r[1]) - 2;
-int bMaxX = allRects.Max(r => r[0] + r[2]) + 2, bMaxZ = allRects.Max(r => r[1] + r[3]) + 2;
+int bMinX = allRects.Min(r => r.X) - 2, bMinZ = allRects.Min(r => r.Z) - 2;
+int bMaxX = allRects.Max(r => r.X + r.Width) + 2, bMaxZ = allRects.Max(r => r.Z + r.Height) + 2;
 const double S = 13.0;
 double VW = (bMaxX - bMinX) * S, VH = (bMaxZ - bMinZ) * S;
 double PX(double x) => (x - bMinX) * S;
@@ -203,7 +204,7 @@ string Frame(
         for (var k = 0; k < order; k++)
         {
             var b = FanRect(stages.Mid.BandRect, k);
-            svg.Append($"<rect x='{N(PX(b[0]))}' y='{N(PZ(b[1]))}' width='{N(b[2] * S)}' height='{N(b[3] * S)}' "
+            svg.Append($"<rect x='{N(PX(b.X))}' y='{N(PZ(b.Z))}' width='{N(b.Width * S)}' height='{N(b.Height * S)}' "
                 + $"fill='{CBand}' fill-opacity='{N(0.20 * bandOp)}' stroke='{CBand}' stroke-opacity='{N(0.7 * bandOp)}' "
                 + "stroke-width='1.2' stroke-dasharray='6 4'/>");
         }
@@ -220,7 +221,7 @@ string Frame(
             var r = FanRect(p.Rect, k);
             var op = tier * (k == 0 ? 1.0 : fanMul) * (isRoom ? 0.92 : 0.55);
             var sop = tier * (k == 0 ? 1.0 : fanMul);
-            svg.Append($"<rect x='{N(PX(r[0]))}' y='{N(PZ(r[1]))}' width='{N(r[2] * S)}' height='{N(r[3] * S)}' rx='1.5' "
+            svg.Append($"<rect x='{N(PX(r.X))}' y='{N(PZ(r.Z))}' width='{N(r.Width * S)}' height='{N(r.Height * S)}' rx='1.5' "
                 + $"fill='{col}' fill-opacity='{N(op)}' stroke='{col}' stroke-opacity='{N(sop)}' stroke-width='1'/>");
         }
     }
@@ -241,7 +242,7 @@ string Frame(
             if (k > 0 && !showFan) break;
             var r = FanRect(b.Rect, k);
             var op = opb * (k == 0 ? 1.0 : 0.4);
-            svg.Append($"<rect x='{N(PX(r[0]) - 1.5)}' y='{N(PZ(r[1]) - 1.5)}' width='{N(r[2] * S + 3)}' height='{N(r[3] * S + 3)}' "
+            svg.Append($"<rect x='{N(PX(r.X) - 1.5)}' y='{N(PZ(r.Z) - 1.5)}' width='{N(r.Width * S + 3)}' height='{N(r.Height * S + 3)}' "
                 + $"fill='none' stroke='{col}' stroke-opacity='{N(op)}' stroke-width='1.4' stroke-dasharray='5 3'/>");
         }
     }
@@ -256,10 +257,10 @@ string Frame(
             double x1, z1, x2, z2;
             switch (abutment.Edge)
             {
-                case BoxEdge.Top: x1 = a.Rect[0] + abutment.Start; x2 = x1 + abutment.WidthCells; z1 = z2 = a.Rect[1]; break;
-                case BoxEdge.Bottom: x1 = a.Rect[0] + abutment.Start; x2 = x1 + abutment.WidthCells; z1 = z2 = a.Rect[1] + a.Rect[3]; break;
-                case BoxEdge.Left: z1 = a.Rect[1] + abutment.Start; z2 = z1 + abutment.WidthCells; x1 = x2 = a.Rect[0]; break;
-                default: z1 = a.Rect[1] + abutment.Start; z2 = z1 + abutment.WidthCells; x1 = x2 = a.Rect[0] + a.Rect[2]; break;
+                case BoxEdge.Top: x1 = a.Rect.X + abutment.Start; x2 = x1 + abutment.WidthCells; z1 = z2 = a.Rect.Z; break;
+                case BoxEdge.Bottom: x1 = a.Rect.X + abutment.Start; x2 = x1 + abutment.WidthCells; z1 = z2 = a.Rect.Z + a.Rect.Height; break;
+                case BoxEdge.Left: z1 = a.Rect.Z + abutment.Start; z2 = z1 + abutment.WidthCells; x1 = x2 = a.Rect.X; break;
+                default: z1 = a.Rect.Z + abutment.Start; z2 = z1 + abutment.WidthCells; x1 = x2 = a.Rect.X + a.Rect.Width; break;
             }
             svg.Append($"<line x1='{N(PX(x1))}' y1='{N(PZ(z1))}' x2='{N(PX(x2))}' y2='{N(PZ(z2))}' "
                 + $"stroke='{Ink}' stroke-opacity='0.95' stroke-width='3' stroke-linecap='round'/>");
@@ -275,7 +276,7 @@ string Frame(
         foreach (var w in unit.Wools)
         {
             var pc = pieceById[w.Piece];
-            double wx = pc.Rect[0] + w.At[0], wz = pc.Rect[1] + w.At[1];
+            double wx = pc.Rect.X + w.At[0], wz = pc.Rect.Z + w.At[1];
             for (var k = 0; k < order; k++)
             {
                 var (mx, mz) = k == 0 ? (wx, wz) : Sym.Apply(wx, wz, axes[k - 1], 0, 0);
@@ -285,7 +286,7 @@ string Frame(
         }
         {
             var pc = pieceById[unit.Spawn.Piece];
-            double sx = pc.Rect[0] + unit.Spawn.At[0], sz = pc.Rect[1] + unit.Spawn.At[1];
+            double sx = pc.Rect.X + unit.Spawn.At[0], sz = pc.Rect.Z + unit.Spawn.At[1];
             (double dx, double dz) = unit.Spawn.Facing switch
             { "back" => (0.0, 1.0), "left" => (-1.0, 0.0), "right" => (1.0, 0.0), _ => (0.0, -1.0) };
             for (var k = 0; k < order; k++)
@@ -307,7 +308,7 @@ string Frame(
         foreach (var p in unit.Pieces.Where(p => p.Slot is not null && slotLabels(p)))
         {
             var dy = li++ % 2 == 0 ? -3.5 : 7.5;
-            svg.Append(Halo(PX(p.Rect[0] + p.Rect[2] / 2.0), PZ(p.Rect[1] + p.Rect[3] / 2.0) + dy, p.Slot!, Ink, 8.5));
+            svg.Append(Halo(PX(p.Rect.X + p.Rect.Width / 2.0), PZ(p.Rect.Z + p.Rect.Height / 2.0) + dy, p.Slot!, Ink, 8.5));
         }
     }
 
@@ -348,11 +349,11 @@ var frames = new List<(string Num, string Title, string Svg, string Caption)>
 
     ("03", "The boxes",
         Frame(hot: _ => false, ghost: 0.16, fanMul: 0.35, boxHot: _ => true, markerOp: 0,
-            notes: [(hubBox.Rect[0] + hubBox.Rect[2] / 2.0, hubBox.Rect[1] - 0.8, "hub", CHub),
-                    (boxById["spawn"].Rect[0] + boxById["spawn"].Rect[2] / 2.0, boxById["spawn"].Rect[1] + boxById["spawn"].Rect[3] + 1.2, "spawn · back", CSpawn),
-                    (boxById["wool-a"].Rect[0] + boxById["wool-a"].Rect[2] / 2.0, boxById["wool-a"].Rect[1] - 0.8, "wool-a · left", CWool),
-                    (boxById["wool-b"].Rect[0] + boxById["wool-b"].Rect[2] / 2.0, boxById["wool-b"].Rect[1] - 0.8, "wool-b · right", CWool),
-                    (boxById["frontline"].Rect[0] + boxById["frontline"].Rect[2] / 2.0, boxById["frontline"].Rect[1] - 0.8, "frontline · front", CFront)]),
+            notes: [(hubBox.Rect.X + hubBox.Rect.Width / 2.0, hubBox.Rect.Z - 0.8, "hub", CHub),
+                    (boxById["spawn"].Rect.X + boxById["spawn"].Rect.Width / 2.0, boxById["spawn"].Rect.Z + boxById["spawn"].Rect.Height + 1.2, "spawn · back", CSpawn),
+                    (boxById["wool-a"].Rect.X + boxById["wool-a"].Rect.Width / 2.0, boxById["wool-a"].Rect.Z - 0.8, "wool-a · left", CWool),
+                    (boxById["wool-b"].Rect.X + boxById["wool-b"].Rect.Width / 2.0, boxById["wool-b"].Rect.Z - 0.8, "wool-b · right", CWool),
+                    (boxById["frontline"].Rect.X + boxById["frontline"].Rect.Width / 2.0, boxById["frontline"].Rect.Z - 0.8, "frontline · front", CFront)]),
         "The budget draws a partition of <b>typed boxes</b> — envelopes, not fill targets: contents must touch the "
         + "edges and stay connected, but need not fill them solid. The allocator samples the <i>placement plan</i> "
         + "(which hub side each neighbour takes: spawn on the back, a wool left and right, the frontline reserved the "
@@ -363,7 +364,7 @@ var frames = new List<(string Num, string Title, string Svg, string Caption)>
     ("04", "The hub emits first",
         Frame(hot: p => In(p, "hub"), ghost: 0.12, fanMul: 0.3, boxHot: b => b.Kind == BoxKind.Hub,
             joints: true, slotLabels: p => In(p, "hub"),
-            notes: [(hubBox.Rect[0] + hubBox.Rect[2] / 2.0, hubBox.Rect[1] + hubBox.Rect[3] / 2.0, "ring", CHub)]),
+            notes: [(hubBox.Rect.X + hubBox.Rect.Width / 2.0, hubBox.Rect.Z + hubBox.Rect.Height / 2.0, "ring", CHub)]),
         "The hub is the <b>constraint source</b>, so it fills first. Here the sampled form is a <b>Ring</b> — two bars "
         + "and two legs around an enclosed hole (a big square-ish hub prefers negative space to solid area). Its edges "
         + "publish <b>offers</b>: on each free run, where a neighbour may dock and at what width. The bright ticks are "
@@ -399,7 +400,7 @@ var frames = new List<(string Num, string Title, string Svg, string Caption)>
     ("08", "The frontline join",
         Frame(hot: p => In(p, "frontline"), ghost: 0.12, fanMul: 0.3, boxHot: b => b.Kind == BoxKind.Frontline,
             slotLabels: p => In(p, "frontline"),
-            notes: [(0, boxById["frontline"].Rect[1] - 0.8, "face → axis", CFront)]),
+            notes: [(0, boxById["frontline"].Rect.Z - 0.8, "face → axis", CFront)]),
         "The frontline is a <b>join, not a placement</b>. Its body docks the hub with its spine and turns its "
         + "<b>arm-tips toward the axis as the face</b> — the edge the mid will meet. Here the sampled form is the "
         + "<b>twin</b>: two legs with a recess between them, so the face offers two separate intervals rather than one "
@@ -461,8 +462,8 @@ string Mini(IEnumerable<MiniEl> els, double? forceScale = null, double pad = 0.8
         + $"stroke-width='3' stroke-linejoin='round'>{Esc(text)}</text>";
 }
 
-MiniEl SlotEl((int[] Rect, string Slot) p, bool label = true) =>
-    new(p.Rect[0], p.Rect[1], p.Rect[2], p.Rect[3], SlotCol(p.Slot), 0.6, SlotCol(p.Slot), 1, 1.1, label ? p.Slot : null);
+MiniEl SlotEl((CellRect Rect, string Slot) p, bool label = true) =>
+    new(p.Rect.X, p.Rect.Z, p.Rect.Width, p.Rect.Height, SlotCol(p.Slot), 0.6, SlotCol(p.Slot), 1, 1.1, label ? p.Slot : null);
 
 // a family figure: emit → slot-coloured pieces + room + wool marker + vacancy tints. The box is the
 // composer's own sizing — the family's minimum box at the w2 wool lane (what the allocator seats via
@@ -477,16 +478,16 @@ string FamilyFig(ShapeFamily fam, int cw, RoomPlacement placement = RoomPlacemen
     var voidNotes = new List<(double X, double Z, string Text, string Color)>();
     foreach (var v in a.Vacancies.Where(v => v.Kind != "notch"))
     {
-        els.Add(new(v.Rect[0], v.Rect[1], v.Rect[2], v.Rect[3], CHole, 0.14, CHole, 0.55, 1, null, "3 3"));
-        voidNotes.Add((v.Rect[0] + v.Rect[2] / 2.0, v.Rect[1] + 0.68, v.Kind, CHole));
+        els.Add(new(v.Rect.X, v.Rect.Z, v.Rect.Width, v.Rect.Height, CHole, 0.14, CHole, 0.55, 1, null, "3 3"));
+        voidNotes.Add((v.Rect.X + v.Rect.Width / 2.0, v.Rect.Z + 0.68, v.Kind, CHole));
     }
     foreach (var t in a.Terrain)
-        els.Add(new(t.Rect[0], t.Rect[1], t.Rect[2], t.Rect[3], SlotCol(t.Slot), 0.6, SlotCol(t.Slot), 1, 1.1, t.Slot));
+        els.Add(new(t.Rect.X, t.Rect.Z, t.Rect.Width, t.Rect.Height, SlotCol(t.Slot), 0.6, SlotCol(t.Slot), 1, 1.1, t.Slot));
     var r = a.WoolRoom;
-    els.Add(new(r.Rect[0], r.Rect[1], r.Rect[2], r.Rect[3], SlotCol(ApproachSlots.Room), 0.75, SlotCol(ApproachSlots.Room), 1, 1.2, null));
-    var wx = r.Rect[0] + a.At[0]; var wz = r.Rect[1] + a.At[1];
+    els.Add(new(r.Rect.X, r.Rect.Z, r.Rect.Width, r.Rect.Height, SlotCol(ApproachSlots.Room), 0.75, SlotCol(ApproachSlots.Room), 1, 1.2, null));
+    var wx = r.Rect.X + a.At[0]; var wz = r.Rect.Z + a.At[1];
     els.Add(new(wx - 0.32, wz - 0.32, 0.64, 0.64, MkWool, 0.95, MkStroke, 1, 1, null));
-    voidNotes.Add((r.Rect[0] + r.Rect[2] / 2.0, r.Rect[1] + 0.62, "room", Ink));
+    voidNotes.Add((r.Rect.X + r.Rect.Width / 2.0, r.Rect.Z + 0.62, "room", Ink));
     return Mini(els, forceScale: FamilyScale, notes: voidNotes);
 }
 
@@ -526,7 +527,7 @@ string BodyFig(ShapeBody body, bool tintVoids = true)
     var els = new List<MiniEl>();
     if (tintVoids)
         foreach (var v in body.Vacancies)
-            els.Add(new(v.Rect[0], v.Rect[1], v.Rect[2], v.Rect[3], CHole, 0.13, CHole, 0.5, 1, v.Kind, "3 3"));
+            els.Add(new(v.Rect.X, v.Rect.Z, v.Rect.Width, v.Rect.Height, CHole, 0.13, CHole, 0.5, 1, v.Kind, "3 3"));
     foreach (var p in body.Pieces) els.Add(SlotEl(p));
     return Mini(els);
 }
@@ -534,11 +535,11 @@ string BodyFig(ShapeBody body, bool tintVoids = true)
 // a hub-form figure: fill on a canonical box, offers drawn as bright edge intervals
 string HubFig(CompoundRead form, int w, int h)
 {
-    var box = new Box("hub", BoxKind.Hub, [0, 0, w, h], 0, form);
+    var box = new Box("hub", BoxKind.Hub, new CellRect(0, 0, w, h), 0, form);
     var hub = HubBoxEmitter.Fill(box, form, FillProfiles.HubWallCells);
     if (hub is null) return "<div class='fig-missing'>too small</div>";
     var els = new List<MiniEl> { new(0, 0, w, h, "#000", 0, CHub, 0.5, 1.2, null, "4 3") };
-    foreach (var p in hub.Pieces) els.Add(new(p.Rect[0], p.Rect[1], p.Rect[2], p.Rect[3], CHub, 0.5, CHub, 1, 1.1, p.Slot));
+    foreach (var p in hub.Pieces) els.Add(new(p.Rect.X, p.Rect.Z, p.Rect.Width, p.Rect.Height, CHub, 0.5, CHub, 1, 1.1, p.Slot));
     foreach (var o in hub.Offers)
     {
         double x1, z1, x2, z2;
@@ -558,11 +559,11 @@ string HubFig(CompoundRead form, int w, int h)
 // a frontline-form figure: canonical frame (spine top, face bottom), face offers bright
 string FrontFig(CompoundRead form, int w, int h, int cw, OfferGrouping grouping)
 {
-    var box = new Box("front", BoxKind.Frontline, [0, 0, w, h], 0, form);
+    var box = new Box("front", BoxKind.Frontline, new CellRect(0, 0, w, h), 0, form);
     var ef = FrontlineBoxEmitter.Fill(box, form, cw, grouping, BoxEdge.Top);
     if (ef is null) return "<div class='fig-missing'>too small</div>";
     var els = new List<MiniEl> { new(0, 0, w, h, "#000", 0, CFront, 0.5, 1.2, null, "4 3") };
-    foreach (var p in ef.Pieces) els.Add(new(p.Rect[0], p.Rect[1], p.Rect[2], p.Rect[3], CFront, 0.5, CFront, 1, 1.1, p.Slot));
+    foreach (var p in ef.Pieces) els.Add(new(p.Rect.X, p.Rect.Z, p.Rect.Width, p.Rect.Height, CFront, 0.5, CFront, 1, 1.1, p.Slot));
     foreach (var o in ef.FaceOffers)
     {
         double x1 = o.Interval.Start, x2 = x1 + o.Interval.LengthCells;
@@ -691,17 +692,17 @@ var budgetRows = new StringBuilder();
 double totalFoot = 0, totalLand = 0;
 foreach (var b in part.Boxes)
 {
-    var foot = b.Rect[2] * b.Rect[3];
-    var land = unit.Pieces.Where(p => p.Box?.Id == b.Id).Sum(p => p.Rect[2] * p.Rect[3]);
+    var foot = b.Rect.Width * b.Rect.Height;
+    var land = unit.Pieces.Where(p => p.Box?.Id == b.Id).Sum(p => p.Rect.Width * p.Rect.Height);
     totalFoot += foot; totalLand += land;
     var pct = foot == 0 ? 0 : 100.0 * land / foot;
     budgetRows.Append($"<tr><td><span class='dotk' style='background:{KindCol(b.Kind)}'></span>{Esc(b.Id)}</td>"
-        + $"<td>{b.Rect[2]}×{b.Rect[3]}</td><td>{foot}</td><td>{land}</td>"
+        + $"<td>{b.Rect.Width}×{b.Rect.Height}</td><td>{foot}</td><td>{land}</td>"
         + $"<td><div class='barw'><div class='barf' style='width:{pct:0}%;background:{KindCol(b.Kind)}'></div></div>{pct:0}%</td></tr>");
 }
-var bandFoot = stages.Mid.BandRect[2] * stages.Mid.BandRect[3];
+var bandFoot = stages.Mid.BandRect.Width * stages.Mid.BandRect.Height;
 budgetRows.Append($"<tr><td><span class='dotk' style='background:{CBand}'></span>mid band</td>"
-    + $"<td>{stages.Mid.BandRect[2]}×{stages.Mid.BandRect[3]}</td><td>{bandFoot}</td><td>0</td>"
+    + $"<td>{stages.Mid.BandRect.Width}×{stages.Mid.BandRect.Height}</td><td>{bandFoot}</td><td>0</td>"
     + "<td><div class='barw'></div>0% — build costs footprint, never land</td></tr>");
 var landBudgetCells = env.LandPerTeam / (env.Cell * (double)env.Cell);
 

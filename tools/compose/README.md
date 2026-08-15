@@ -1,8 +1,9 @@
 # tools/compose
 
-Throwaway-but-maintained dev drivers for the composer. Both are file-based .NET 10
-scripts that reference `PgmStudio.Pgm` directly (via the `#:project` directive) and
-depend on `Composer.ComposeStages` / `Composer.Compose`.
+Throwaway-but-maintained dev drivers for the composer — file-based .NET 10 scripts that
+reference `PgmStudio.Pgm` directly (via the `#:project` directive). The two documented
+below are the ones worth knowing first; the rest of the folder is galleries and probes,
+and `showcase.cs` is `docs/generator/model.md`'s live twin.
 
 Run them from the **repo root**:
 
@@ -13,6 +14,10 @@ dotnet run tools/compose/gallery-gen.cs
 
 Builds on the shared-folder checkout are slow on a cold cache (allow several minutes
 for the first run).
+
+None of these are in `PgmStudio.slnx`, so `dotnet build` at the root does not compile
+them and a rename in `src/` can break one silently — `tools/build-scripts.sh` builds
+every script in `tools/` and is what catches that (`B227`).
 
 ## matrix.cs
 

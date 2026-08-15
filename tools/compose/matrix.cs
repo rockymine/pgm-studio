@@ -1,6 +1,6 @@
-using PgmStudio.Domain;
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
+using PgmStudio.Domain;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Plan;
 

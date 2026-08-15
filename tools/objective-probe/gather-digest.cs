@@ -1,4 +1,4 @@
-#:project /home/user/pgm-studio/src/PgmStudio.Minecraft/PgmStudio.Minecraft.csproj
+#:project ../../src/PgmStudio.Minecraft/PgmStudio.Minecraft.csproj
 
 // A stable digest of MonumentSuggester.Gather over real corpus worlds — the before/after equality check for
 // a refactor that touches the detector's box type. Gather needs only the world, so it runs without the scan
@@ -8,9 +8,12 @@
 using System.Security.Cryptography;
 using System.Text;
 using PgmStudio.Domain;
+using PgmStudio.Geom;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Suggest;
 
-var maps = Directory.GetDirectories("/home/user/CommunityMaps")
+var maps = Directory.GetDirectories("/media/sf_repos/CommunityMaps")
     .SelectMany(Directory.GetDirectories)
     .OrderBy(dir => dir, StringComparer.Ordinal)
     .Where(dir => Directory.Exists(Path.Combine(dir, "region")))

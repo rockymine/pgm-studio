@@ -1,4 +1,4 @@
-#:project /home/user/pgm-studio/src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
+#:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
 // stalemate probe (prototype): the deeper per-wool siege factors beyond the WL9/WL10 distance terms —
 // approach count (chokepoint routes into the wool's island), lane/entry width, proximity of a rotation
@@ -21,17 +21,17 @@ void Examine(string name, PlanModel plan)
     if (plan.Placements.Wools.Count < 2) return;
     var walk = new HashSet<(int, int)>();
     foreach (var p in plan.Pieces.Where(p => !PlanRoles.Annotations.Contains(p.Role)))
-        for (var x = p.Rect[0]; x < p.Rect[0] + p.Rect[2]; x++)
-            for (var z = p.Rect[1]; z < p.Rect[1] + p.Rect[3]; z++) walk.Add((x, z));
+        for (var x = p.Rect.X; x < p.Rect.X + p.Rect.Width; x++)
+            for (var z = p.Rect.Z; z < p.Rect.Z + p.Rect.Height; z++) walk.Add((x, z));
     foreach (var z0 in plan.Zones)
-        for (var x = z0.Rect[0]; x < z0.Rect[0] + z0.Rect[2]; x++)
-            for (var z = z0.Rect[1]; z < z0.Rect[1] + z0.Rect[3]; z++) walk.Add((x, z));
+        for (var x = z0.Rect.X; x < z0.Rect.X + z0.Rect.Width; x++)
+            for (var z = z0.Rect.Z; z < z0.Rect.Z + z0.Rect.Height; z++) walk.Add((x, z));
 
     (int, int)? Cell(string pieceId, double[] at)
     {
         var p = plan.Pieces.FirstOrDefault(q => q.Id == pieceId);
         if (p is null) return null;
-        var c = (p.Rect[0] + Math.Clamp((int)at[0], 0, p.Rect[2] - 1), p.Rect[1] + Math.Clamp((int)at[1], 0, p.Rect[3] - 1));
+        var c = (p.Rect.X + Math.Clamp((int)at[0], 0, p.Rect.Width - 1), p.Rect.Z + Math.Clamp((int)at[1], 0, p.Rect.Height - 1));
         return walk.Contains(c) ? c : null;
     }
 

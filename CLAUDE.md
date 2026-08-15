@@ -206,6 +206,10 @@ renamed or retired changes its `vocabulary.md` row in the same commit.
 - **`dotnet run tools/deriver/figure-check.cs`** gates `model.md`'s ASCII figures by pushing each one, parsed
   out of the doc itself, through the classifier that names that kind of thing. Run it after editing a figure
   or a classifier — a shape that reads as the wrong family cannot be spotted by eye.
+- **`./tools/build-scripts.sh`** builds the 51 file-based tool scripts, which are **not** in `PgmStudio.slnx`
+  and which `dotnet build` therefore never touches. Run it after renaming or moving anything in `src/` that a
+  script names: without it a rename leaves a script uncompilable while the solution stays green, which is how
+  35 of them — `showcase.cs` among them — came to be broken at once (`B227`).
 
 ## Tests
 TUnit, one test class per source unit, mirroring `src/`. Synthetic fixtures only; corpus and round-trip

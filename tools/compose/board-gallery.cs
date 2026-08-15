@@ -11,6 +11,7 @@ using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Evaluate;
 using PgmStudio.Pgm.Plan;
 using Sym = PgmStudio.Geom.Symmetry;
+using PgmStudio.Geom;
 
 const int seeds = 16;
 var disconnected = 0;
@@ -177,7 +178,7 @@ string BoardCard(int seed, PlanModel plan, string sym)
     var order = Sym.Order(sym);
     var axes = Sym.OrbitAxes(sym);
 
-    var fanned = new List<(int[] Rect, string Id, string Role, int K)>();
+    var fanned = new List<(CellRect Rect, string Id, string Role, int K)>();
     foreach (var p in plan.Pieces.Where(p => !PlanRoles.Annotations.Contains(p.Role)))
         for (var k = 0; k < order; k++)
             fanned.Add((Fan(p.Rect, axes, k), p.Id, p.Role, k));
@@ -199,24 +200,24 @@ string BoardCard(int seed, PlanModel plan, string sym)
 
 // a rect's k-th orbit image: identity for k=0, else the symmetry op about the axis line (rect in, rect out —
 // the ops are axis-aligned)
-static int[] Fan(int[] r, string[] axes, int k)
+static CellRect Fan(CellRect r, string[] axes, int k)
 {
     if (k == 0) return r;
-    (double x, double z)[] corners = [(r[0], r[1]), (r[0], r[1] + r[3]), (r[0] + r[2], r[1]), (r[0] + r[2], r[1] + r[3])];
+    (double x, double z)[] corners = [(r.X, r.Z), (r.X, r.Z + r.Height), (r.X + r.Width, r.Z), (r.X + r.Width, r.Z + r.Height)];
     var pts = corners.Select(c => Sym.Apply(c.x, c.z, axes[k - 1], 0, 0)).ToList();
     var x1 = (int)Math.Round(pts.Min(p => p.X));
     var z1 = (int)Math.Round(pts.Min(p => p.Z));
-    return [x1, z1, (int)Math.Round(pts.Max(p => p.X)) - x1, (int)Math.Round(pts.Max(p => p.Z)) - z1];
+    return new CellRect(x1, z1, (int)Math.Round(pts.Max(p => p.X)) - x1, (int)Math.Round(pts.Max(p => p.Z)) - z1);
 }
 
-static void Rasterize(int[] r, HashSet<(int, int)> into)
+static void Rasterize(CellRect r, HashSet<(int, int)> into)
 {
-    for (var x = r[0]; x < r[0] + r[2]; x++)
-        for (var z = r[1]; z < r[1] + r[3]; z++)
+    for (var x = r.X; x < r.X + r.Width; x++)
+        for (var z = r.Z; z < r.Z + r.Height; z++)
             into.Add((x, z));
 }
 
-static (int X, int Z) Center(int[] r) => (r[0] + r[2] / 2, r[1] + r[3] / 2);
+static (int X, int Z) Center(CellRect r) => (r.X + r.Width / 2, r.Z + r.Height / 2);
 
 static HashSet<(int, int)> Flood(HashSet<(int, int)> walk, (int X, int Z) start)
 {
@@ -243,29 +244,29 @@ static string PieceColor(string id) =>
 static string Fail(int seed, string why) =>
     $"<div class='card warn'><div class=title>seed {seed}</div><div class=fail>{why}</div></div>";
 
-static string Card(int seed, IReadOnlyList<(int[] Rect, string Id, string Role, int K)> fanned,
-    IReadOnlyList<int[]> bandImages, IReadOnlyList<(int X, int Z)> spawnCells, bool connected, IReadOnlyList<int> holes,
+static string Card(int seed, IReadOnlyList<(CellRect Rect, string Id, string Role, int K)> fanned,
+    IReadOnlyList<CellRect> bandImages, IReadOnlyList<(int X, int Z)> spawnCells, bool connected, IReadOnlyList<int> holes,
     string scoreLabel, IReadOnlyList<string> hardIds)
 {
     var all = fanned.Select(f => f.Rect).Concat(bandImages).ToList();
-    int minX = all.Min(r => r[0]), minZ = all.Min(r => r[1]);
-    int maxX = all.Max(r => r[0] + r[2]), maxZ = all.Max(r => r[1] + r[3]);
+    int minX = all.Min(r => r.X), minZ = all.Min(r => r.Z);
+    int maxX = all.Max(r => r.X + r.Width), maxZ = all.Max(r => r.Z + r.Height);
     int w = maxX - minX, h = maxZ - minZ;
     const int scale = 9, pad = 10;
     int vw = w * scale + 2 * pad, vh = h * scale + 2 * pad;
 
     var svg = new StringBuilder($"<svg viewBox='0 0 {vw} {vh}' width='{vw}' height='{vh}'>");
     foreach (var b in bandImages)
-        svg.Append($"<rect x='{(b[0] - minX) * scale + pad}' y='{(b[1] - minZ) * scale + pad}' "
-            + $"width='{b[2] * scale}' height='{b[3] * scale}' fill='#38bdf8' fill-opacity='0.18' "
+        svg.Append($"<rect x='{(b.X - minX) * scale + pad}' y='{(b.Z - minZ) * scale + pad}' "
+            + $"width='{b.Width * scale}' height='{b.Height * scale}' fill='#38bdf8' fill-opacity='0.18' "
             + "stroke='#38bdf8' stroke-opacity='0.5' stroke-width='1' stroke-dasharray='3 2'/>");
     foreach (var (r, id, role, k) in fanned)
     {
         var col = PieceColor(id);
         var room = role != PlanRoles.Piece;
         var op = (k == 0 ? (room ? 0.95 : 0.4) : (room ? 0.55 : 0.22)).ToString("0.##");
-        svg.Append($"<rect x='{(r[0] - minX) * scale + pad}' y='{(r[1] - minZ) * scale + pad}' "
-            + $"width='{r[2] * scale}' height='{r[3] * scale}' rx='1' fill='{col}' fill-opacity='{op}' "
+        svg.Append($"<rect x='{(r.X - minX) * scale + pad}' y='{(r.Z - minZ) * scale + pad}' "
+            + $"width='{r.Width * scale}' height='{r.Height * scale}' rx='1' fill='{col}' fill-opacity='{op}' "
             + $"stroke='{col}' stroke-opacity='{(k == 0 ? "1" : "0.4")}' stroke-width='0.8'/>");
     }
     foreach (var (sx, sz) in spawnCells)

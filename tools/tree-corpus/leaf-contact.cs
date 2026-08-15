@@ -4,6 +4,7 @@
 // chain of leaves reaches wood at all. Run over a hand-built world and a generated one, the two profiles
 // are directly comparable.
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Anvil;
 
 var regionDir = args[0];
 var withCarpentry = args.Contains("--carpentry");

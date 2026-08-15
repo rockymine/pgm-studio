@@ -1,8 +1,8 @@
-using PgmStudio.Domain;
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
 using System.Globalization;
 using System.Text;
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Plan;
 
@@ -62,8 +62,8 @@ string BuildSvg(PlanModel plan, string patId, bool dimMirror, double pxPerBlock,
 
     foreach (var p in plan.Pieces)
     {
-        double x1 = p.Rect[0] * cell, z1 = p.Rect[1] * cell;
-        double x2 = (p.Rect[0] + p.Rect[2]) * cell, z2 = (p.Rect[1] + p.Rect[3]) * cell;
+        double x1 = p.Rect.X * cell, z1 = p.Rect.Z * cell;
+        double x2 = (p.Rect.X + p.Rect.Width) * cell, z2 = (p.Rect.Z + p.Rect.Height) * cell;
         for (int k = 0; k < order; k++)
         {
             var (a, b, cc, d) = Fan(x1, z1, x2, z2, axes, k);
@@ -72,14 +72,14 @@ string BuildSvg(PlanModel plan, string patId, bool dimMirror, double pxPerBlock,
     }
     foreach (var z in plan.Zones)
     {
-        double x1 = z.Rect[0] * cell, z1 = z.Rect[1] * cell;
-        double x2 = (z.Rect[0] + z.Rect[2]) * cell, z2 = (z.Rect[1] + z.Rect[3]) * cell;
+        double x1 = z.Rect.X * cell, z1 = z.Rect.Z * cell;
+        double x2 = (z.Rect.X + z.Rect.Width) * cell, z2 = (z.Rect.Z + z.Rect.Height) * cell;
         for (int k = 0; k < order; k++)
         {
             var (a, b, cc, d) = Fan(x1, z1, x2, z2, axes, k);
             var holes = new List<(double, double, double, double)>();
             foreach (var h in z.Holes)
-                holes.Add(Fan(h[0] * cell, h[1] * cell, (h[0] + h[2]) * cell, (h[1] + h[3]) * cell, axes, k));
+                holes.Add(Fan(h.X * cell, h.Z * cell, (h.X + h.Width) * cell, (h.Z + h.Height) * cell, axes, k));
             zoneImgs.Add((a, b, cc, d, z, k, holes));
         }
     }
@@ -193,10 +193,10 @@ string BuildSvg(PlanModel plan, string patId, bool dimMirror, double pxPerBlock,
 }
 
 // ── overlap helper (cell units) ──
-static double OvArea(int[] a, int[] b)
+static double OvArea(CellRect a, CellRect b)
 {
-    double ix = Math.Min(a[0] + a[2], b[0] + b[2]) - Math.Max(a[0], b[0]);
-    double iz = Math.Min(a[1] + a[3], b[1] + b[3]) - Math.Max(a[1], b[1]);
+    double ix = Math.Min(a.X + a.Width, b.X + b.Width) - Math.Max(a.X, b.X);
+    double iz = Math.Min(a.Z + a.Height, b.Z + b.Height) - Math.Max(a.Z, b.Z);
     return ix > 0 && iz > 0 ? ix * iz : 0;
 }
 
@@ -216,10 +216,10 @@ Row CrossCheck(string stem, PlanModel? plan)
     row.BufferComplaints = validate.Count(f => f.SubjectIds.Any(bufIds.Contains) || bufIds.Any(id => f.Message.Contains($"'{id}'")));
     row.Pieces = plan.Pieces.Count - row.Buffers;
     row.Zones = plan.Zones.Count;
-    var xs0 = plan.Pieces.Select(p => p.Rect[0]).Concat(plan.Zones.Select(z => z.Rect[0]));
-    var xs1 = plan.Pieces.Select(p => p.Rect[0] + p.Rect[2]).Concat(plan.Zones.Select(z => z.Rect[0] + z.Rect[2]));
-    var zs0 = plan.Pieces.Select(p => p.Rect[1]).Concat(plan.Zones.Select(z => z.Rect[1]));
-    var zs1 = plan.Pieces.Select(p => p.Rect[1] + p.Rect[3]).Concat(plan.Zones.Select(z => z.Rect[1] + z.Rect[3]));
+    var xs0 = plan.Pieces.Select(p => p.Rect.X).Concat(plan.Zones.Select(z => z.Rect.X));
+    var xs1 = plan.Pieces.Select(p => p.Rect.X + p.Rect.Width).Concat(plan.Zones.Select(z => z.Rect.X + z.Rect.Width));
+    var zs0 = plan.Pieces.Select(p => p.Rect.Z).Concat(plan.Zones.Select(z => z.Rect.Z));
+    var zs1 = plan.Pieces.Select(p => p.Rect.Z + p.Rect.Height).Concat(plan.Zones.Select(z => z.Rect.Z + z.Rect.Height));
     row.MinX = xs0.Min(); row.MaxX = xs1.Max(); row.MinZ = zs0.Min(); row.MaxZ = zs1.Max();
 
     // overlaps among base rects, split into categories; buffer involvement flagged separately

@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Text;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Shapes;
+using PgmStudio.Geom;
 
 // ── edge/space palette: the wall-count escalation, cold → hot ────────────────────────────────────
 var kindColor = new Dictionary<NegativeSpaceKind, string>
@@ -25,7 +26,7 @@ const int Cw = 3;
 var failures = new List<string>();
 var cards = new List<(string Group, string Title, string Sub, string Svg, string Counts)>();
 
-void Add(string group, string title, string sub, Func<(IReadOnlyList<(int[] Rect, bool Room)> Pieces, EdgeClassification Read)> build)
+void Add(string group, string title, string sub, Func<(IReadOnlyList<(CellRect Rect, bool Room)> Pieces, EdgeClassification Read)> build)
 {
     try
     {
@@ -35,14 +36,14 @@ void Add(string group, string title, string sub, Func<(IReadOnlyList<(int[] Rect
     catch (Exception ex) { failures.Add($"{title}: {ex.GetType().Name}: {ex.Message}"); }
 }
 
-(IReadOnlyList<(int[], bool)>, EdgeClassification) Emission(ShapeFamily fam, int w, int h)
+(IReadOnlyList<(CellRect, bool)>, EdgeClassification) Emission(ShapeFamily fam, int w, int h)
 {
     var e = ShapeEmitter.Emit(fam, w, h, Cw);
     var pieces = e.Terrain.Select(p => (p.Rect, false)).Append((e.Room, true)).ToList();
     return (pieces, BodyEdges.Classify(e, BodyEdges.DefaultClearanceCells));
 }
 
-(IReadOnlyList<(int[], bool)>, EdgeClassification) Body(ShapeBody b) =>
+(IReadOnlyList<(CellRect, bool)>, EdgeClassification) Body(ShapeBody b) =>
     (b.Pieces.Select(p => (p.Rect, false)).ToList(), BodyEdges.Classify(b));
 
 // (1) the approach families as full emissions — the room takes part in the walls it forms
@@ -97,11 +98,11 @@ string CountChips(EdgeClassification read)
 
 // one shape, box-local, scaled to fit: pieces as muted fills, negative spaces tinted by class, and the
 // boundary edges stroked in their class colour — the read itself is the picture
-string Render(IReadOnlyList<(int[] Rect, bool Room)> pieces, EdgeClassification read)
+string Render(IReadOnlyList<(CellRect Rect, bool Room)> pieces, EdgeClassification read)
 {
     var rects = pieces.Select(p => p.Rect).ToList();
-    int minX = rects.Min(r => r[0]) - 1, minZ = rects.Min(r => r[1]) - 1;
-    int maxX = rects.Max(r => r[0] + r[2]) + 1, maxZ = rects.Max(r => r[1] + r[3]) + 1;
+    int minX = rects.Min(r => r.X) - 1, minZ = rects.Min(r => r.Z) - 1;
+    int maxX = rects.Max(r => r.X + r.Width) + 1, maxZ = rects.Max(r => r.Z + r.Height) + 1;
     int cellsW = maxX - minX, cellsH = maxZ - minZ;
     const double TargetW = 240, TargetH = 240;
     double px = Math.Min(TargetW / cellsW, TargetH / cellsH);
@@ -136,9 +137,9 @@ string Render(IReadOnlyList<(int[] Rect, bool Room)> pieces, EdgeClassification 
                 var pc = p.Guarded ? TerminalCol : kindColor[p.Kind];
                 var label = (p.Guarded ? "guard" : p.Kind.ToString().ToLowerInvariant())
                     + (pub.Contains(p) ? " ✓" : vetoed ? " ✗" : "");
-                svg.Append($"<rect x=\"{N(PX(p.Rect[0]))}\" y=\"{N(PY(p.Rect[1]))}\" width=\"{N(p.Rect[2] * px)}\" height=\"{N(p.Rect[3] * px)}\" " +
+                svg.Append($"<rect x=\"{N(PX(p.Rect.X))}\" y=\"{N(PY(p.Rect.Z))}\" width=\"{N(p.Rect.Width * px)}\" height=\"{N(p.Rect.Height * px)}\" " +
                            $"fill=\"{pc}\" fill-opacity=\"0.16\" stroke=\"{pc}\" stroke-opacity=\"0.55\" stroke-width=\"0.9\" stroke-dasharray=\"3 3\"/>");
-                double pcx = PX(p.Rect[0] + p.Rect[2] / 2.0), pcz = PY(p.Rect[1] + p.Rect[3] / 2.0);
+                double pcx = PX(p.Rect.X + p.Rect.Width / 2.0), pcz = PY(p.Rect.Z + p.Rect.Height / 2.0);
                 svg.Append($"<text x=\"{N(pcx)}\" y=\"{N(pcz + 3.4)}\" font-size=\"9\" text-anchor=\"middle\" fill=\"{pc}\" fill-opacity=\"0.9\">{label}</text>");
             }
             // the space's own compound identity — the void read as a body (a decomposed bay is a Π/U, not noise)
@@ -188,7 +189,7 @@ string Render(IReadOnlyList<(int[] Rect, bool Room)> pieces, EdgeClassification 
     foreach (var (rect, room) in pieces)
     {
         var col = room ? RoomFill : PieceFill;
-        svg.Append($"<rect x=\"{N(PX(rect[0]))}\" y=\"{N(PY(rect[1]))}\" width=\"{N(rect[2] * px)}\" height=\"{N(rect[3] * px)}\" " +
+        svg.Append($"<rect x=\"{N(PX(rect.X))}\" y=\"{N(PY(rect.Z))}\" width=\"{N(rect.Width * px)}\" height=\"{N(rect.Height * px)}\" " +
                    $"fill=\"{col}\" fill-opacity=\"{(room ? "0.55" : "0.45")}\"/>");
     }
 

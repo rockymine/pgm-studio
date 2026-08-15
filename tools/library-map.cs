@@ -22,9 +22,13 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using PgmStudio.Domain;
+using PgmStudio.Geom;
 using PgmStudio.MapGen;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Dressing;
+using PgmStudio.Minecraft.Houses;
+using PgmStudio.Minecraft.Painting;
+using PgmStudio.Minecraft.Palette;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
 
