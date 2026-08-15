@@ -272,6 +272,62 @@ are Edit-specific. Full canvas spec: `docs/client/canvas-interaction.md`.
 
 ## Backend, pipeline & internals (B / P / A)
 
+- [ ] **B210 — Four types spell one rectangle, and the plan-space measure the rule buckets need is on the
+  wrong one.** Buckets 1, 2 and 3 are fourteen rules over four measures — how far a door stands from a void,
+  how far two islands stand apart, how large a piece may be, how far a goal stands from the other goals and
+  from each spawn — and the map above says the measure **lands in `PgmStudio.Geom`**. Nothing plan-space
+  measures anything in `Geom` today, and the reason is one layer down: there is no single rectangle for a
+  measure to be written against.
+
+  | type | shape | lives in |
+  |---|---|---|
+  | `CellRect` | `(int X, Z, Width, Height)`, with `FromBounds`/`FromInclusive` | `Geom` — the leaf every consumer can reach |
+  | `BlockRect` | `(int MinX, MinZ, MaxX, MaxZ)` | `Pgm/Derive/ContactGraph.cs` |
+  | `Rect` | `(double MinX, MinZ, MaxX, MaxZ)` | `Pgm/Authoring/MapIntent.cs` — the wire shape |
+  | `Rect` | `(int MinX, MinZ, MaxX, MaxZ)`, **private** | `Geom/RectilinearUnion.cs` — a second min/max rect inside the leaf itself |
+  | `Rect` | `(double MinX, MinZ, MaxX, MaxZ)` | `Client/Features/Configure/WoolAuthoring.cs` |
+  | `Rect` | `(double MinX, MinZ, MaxX, MaxZ)`, **private** | `Client/Features/Configure/ProtectionStep.razor.cs`, beside a `ProtRect` class and a `Row` record carrying the same four doubles a third time |
+
+  **The measure is where the type is, so it is in the wrong project.** `ContactGraph.NearestSegment(BlockRect,
+  BlockRect)` and its `Nearest1D` are the rect-to-rect distance the island-separation and goal-distance rules
+  want, and they sit in `Pgm.Derive` on `BlockRect`. `ComposeGeometry.SeparationOk` asks a third version in
+  `Pgm.Compose`, and `TriangleTerms.SpawnDistances`/`FrontDistances` ask a fourth in `Pgm.Evaluate` — which is
+  the closest thing that exists to "how far a goal stands from each spawn", the measure bucket 3 is about to
+  ask for. `ObjectivePlacement.Check` already reads goals against ground and rooms and measures **no distance
+  at all**, so the rule has nowhere to land beside its siblings.
+
+  So an agent handed a distance rule cold picks one of six rects and writes a fifth measure, correctly and
+  locally, and that is precisely the failure the bucket map exists to stop. **This is a landing site the map
+  claims is built and is not.** Fix before dispatching buckets 1–3: one integer min/max rectangle in `Geom`
+  (or `CellRect` gaining the min/max constructors it half has), the rect-to-rect measure moved onto it, and
+  `ContactGraph`/`ComposeGeometry` reading it. `MapIntent.Rect` stays double and stays where it is — it is the
+  wire shape of an authored region, a different question — but the two client copies of it are copies.
+
+  *found reviewing the dispatch readiness of buckets 1–3, 2026-08-15 · `Geom/CellRect.cs` ·
+  `Pgm/Derive/ContactGraph.cs:6,403,410` · `Pgm/Compose/ComposeGeometry.cs:64` ·
+  `Pgm/Evaluate/Terms/TriangleTerms.cs:139,161`.*
+
+- [ ] **B211 — One gate still answers a bare list and asks its question by counting.** `B191`/`B192` gave
+  every gate one `Findings` and one `Refuses`, and `Producibility` did not move with them:
+  `BoxProducibility.Findings` and `PlanProducibility.Unit` are both `IReadOnlyList<Finding>`, and
+  `PlanProducibility.IsProducible` reads `Unit.Count == 0`.
+
+  **It is not currently wrong, and that is what makes it worth fixing before the rule buckets run.** Every
+  finding a producibility read emits is passed through `Complaint()` at both boundaries by construction — the
+  type's own docstring says a read is "**complaints**, never refusals" — so counting them is asking the right
+  question today only because the severity is constant. `CLAUDE.md` names this exact shape as the half-fix
+  that bites: *"every caller re-derived 'was anything refused' from a `Count`, which is right for a gate
+  reporting only refusals and silently wrong for one reporting complaints too."* Producibility is the mirror
+  case, one severity change away from the same silence.
+
+  Buckets 1, 2, 3 and 10 all add rules and one of them will reach this file. What an agent finds there is a
+  `List<Finding>` and a `Count`, which is the shape the vocabulary was consolidated to remove, and it will be
+  copied because it is what the surrounding code does. **Scope:** both fields become `Findings`, `IsProducible`
+  reads the question by name, `FeasibilityDto`'s `Unit` follows, and `Refusals.Dtos` keeps working unchanged.
+
+  *found reviewing the dispatch readiness of the rule buckets, 2026-08-15 ·
+  `Pgm/Compose/Producibility.cs:37,47,50,178`.*
+
 - [ ] **B207 — `doc-status.md`'s churn ranking was measured over three days and reads as if it were history.**
   The container that produced §3.4 saw 197 commits over three days, so every "last edited" date and every
   churn count in it is accurate only for that window: a document showing zero churn was not necessarily

@@ -62,9 +62,16 @@ refusals, `StructureClaim` for occupancy, `BlockFamilies` for block kind, one `P
 the inward axis — shared by both rasters, with the author's crossing-an-elevation-step call built into it.
 Nothing paints from the inset yet; the authored shape that spends it is bucket 13's own work.
 
-**The forty in `BACKLOG.md` are dispatchable as they stand.** Each bucket's concept, its landing site and the
-order it must run in are stated there under *What each bucket spends*; nothing left in them needs a shared unit
-invented first.
+**The forty in `BACKLOG.md` are dispatchable as they stand, with one correction.** Each bucket's concept, its
+landing site and the order it must run in are stated there under *What each bucket spends*. Five of the six
+landing sites are built and checked. The sixth — *extent and distance in plan space*, which buckets 1, 2 and 3
+all spend — **is not**: the map says the measure lands in `PgmStudio.Geom`, and `Geom` holds no plan-space
+measure because there is no single rectangle to write one against. Six types spell one rectangle across four
+projects, and the rect-to-rect distance the rules want sits on one of them in `Pgm.Derive` (`B210`). Beside it,
+`Producibility` is the one gate still answering `IReadOnlyList<Finding>` and asking whether anything fired by
+`Count` — correct today only because its severity is constant, and the shape an agent adding a rule will copy
+(`B211`). **Both land before buckets 1, 2, 3 and 10 are dispatched**; buckets 4–8 and 11–13 are unaffected and
+may run now.
 
 ## Backend, pipeline & internals (B / P / A)
 
