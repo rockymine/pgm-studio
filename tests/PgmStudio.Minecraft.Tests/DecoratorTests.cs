@@ -1,6 +1,10 @@
 using PgmStudio.Domain;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft.Dressing;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
+using PgmStudio.Minecraft.Houses;
+using PgmStudio.Minecraft.Painting;
 
 namespace PgmStudio.Minecraft.Tests;
 

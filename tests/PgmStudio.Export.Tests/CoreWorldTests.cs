@@ -10,6 +10,9 @@ using PgmStudio.Pgm.Sketch;
 namespace PgmStudio.Export.Tests;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
+using PgmStudio.Minecraft.Stamping;
 
 /// <summary>
 /// End-to-end DTC: a plan carrying a core marker → world + map.xml. The claims worth proving are that the

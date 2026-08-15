@@ -12,6 +12,7 @@ using PgmStudio.Pgm.Authoring;
 namespace PgmStudio.Api.Endpoints;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Minecraft.Palette;
 
 /// <summary>
 /// GET /api/map/{slug}/regions/authoring — the B4a authoring split (primitives + composed) plus the
@@ -129,7 +130,7 @@ public sealed class ScanSummaryEndpoint(MapRepository repo, PgmDb db) : Endpoint
                 {
                     ["color"] = slug,
                     ["name"] = TitleCase(slug),
-                    ["hex"] = WoolDamage.TryGetValue(slug, out var dmg) ? PgmStudio.Minecraft.BlockPalette.Hex(35, dmg) : "#888888",
+                    ["hex"] = WoolDamage.TryGetValue(slug, out var dmg) ? PgmStudio.Minecraft.Palette.BlockPalette.Hex(35, dmg) : "#888888",
                     ["count"] = g.Count,
                 };
             }).ToList();

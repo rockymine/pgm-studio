@@ -1,4 +1,7 @@
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
+using PgmStudio.Minecraft.Stamping;
 
 namespace PgmStudio.Minecraft.Tests;
 

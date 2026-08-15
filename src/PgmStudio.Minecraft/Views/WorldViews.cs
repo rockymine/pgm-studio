@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Text;
 using PgmStudio.Geom;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Minecraft.Views;
 

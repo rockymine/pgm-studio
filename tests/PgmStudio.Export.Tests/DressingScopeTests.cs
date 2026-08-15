@@ -5,6 +5,8 @@ using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Geom;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Export.Tests;
 

@@ -3,6 +3,8 @@ using PgmStudio.Api.Services;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Dressing;
+using PgmStudio.Minecraft.Painting;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Api.Tests;
 

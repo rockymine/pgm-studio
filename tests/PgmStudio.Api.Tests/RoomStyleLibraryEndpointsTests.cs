@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using System.Text.RegularExpressions;
 using PgmStudio.Contracts;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Painting;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Api.Tests;
 

@@ -1,4 +1,5 @@
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Suggest;
 
 namespace PgmStudio.Minecraft.Tests;
 

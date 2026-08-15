@@ -6,6 +6,7 @@ using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Suggest;
 
 namespace PgmStudio.Data.Tests;
 

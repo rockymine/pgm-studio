@@ -5,6 +5,7 @@ using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 using PgmStudio.Geom;
+using PgmStudio.Minecraft.Suggest;
 
 namespace PgmStudio.Data.Features;
 

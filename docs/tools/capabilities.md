@@ -20,9 +20,9 @@ editor reaches it.
 | plan | `PlanModel` | `Pgm/Plan/PlanModel.cs` | `GET /map/{slug}/plan`, `POST /plan/compile`, `/plans` store |
 | sketch layout | `SketchLayout` | `Pgm/Sketch/SketchLayout.cs` | `GET·PUT /map/{slug}/sketch` |
 | relief | `SketchReliefJson` | `Pgm/Sketch/SketchRelief.cs` | inside the layout under `relief`, keyed by island id |
-| themes | `TerrainTheme` | `Minecraft/TerrainTheme.cs` | inside the layout under `themes`; library at `/themes` |
+| themes | `TerrainTheme` | `Minecraft/Painting/TerrainTheme.cs` | inside the layout under `themes`; library at `/themes` |
 | dressing | `DressingDoc` | `Minecraft/Dressing/DressingJson.cs` | inside the layout under `dressing` |
-| room styles | `HouseStyle` | `Minecraft/HouseStyle.cs` | inside the layout under `roomStyles`; library at `/room-styles` |
+| room styles | `HouseStyle` | `Minecraft/Houses/HouseStyle.cs` | inside the layout under `roomStyles`; library at `/room-styles` |
 | intent | `MapIntent` | `Pgm/Authoring/MapIntent.cs` | `GET·PUT /map/{slug}/intent` |
 | map.xml | `MapXml` | `Domain/MapModel.cs` | written by `XmlWriter`, parsed by `MapParser` |
 
@@ -324,7 +324,7 @@ literal plan document for exactly that — or unless `MapSpec`'s `intent` fragme
 
 ### The paint a theme can hold
 
-`MapSpec`'s `theme` convenience field reduces `TerrainTheme` (`Minecraft/TerrainTheme.cs`) to four material
+`MapSpec`'s `theme` convenience field reduces `TerrainTheme` (`Minecraft/Painting/TerrainTheme.cs`) to four material
 words and one pattern name; the full type is reachable regardless, by adding a registry entry through the
 spec's `layout` fragment — a `SketchLayout`'s `themes` map, handed through verbatim. The type underneath is
 five buckets, three of which carry their own geometry: `Rim` and
@@ -336,11 +336,11 @@ which registry entry a given shape paints with, so one board carries as many the
 way `ruediger.layout.json` carries three.
 
 `pattern` in the spec reaches six of `TerrainMaterial`'s fourteen derived kinds — `solid`, `voronoi`, `cell`,
-`noise`, `turbulence`, `electric` (`Minecraft/TerrainPatterns.cs`) — leaving `layered`, `teamTint`,
+`noise`, `turbulence`, `electric` (`Minecraft/Painting/TerrainPatterns.cs`) — leaving `layered`, `teamTint`,
 `wallRun`, `wallDiagonal`, `checker`, `logChecker`, `laidLog` and `wallFrame` reachable only by writing the
 theme JSON directly, the way `ruediger`'s own `wall` bucket does with a `wallRun` over a `teamTint`. Each
 area pattern (voronoi, cell, noise, turbulence, electric) fills from a **palette**, and `TerrainPalette`
-(`Minecraft/TerrainPalette.cs`) names nineteen tone families — `verdant`, `spring`, `turquoise`, `loam`,
+(`Minecraft/Painting/TerrainPalette.cs`) names nineteen tone families — `verdant`, `spring`, `turquoise`, `loam`,
 `dirt`, `brick`, `rust`, `sand`, `gold`, `pale stone`, `ash`, `grey stone`, `cobble`, `mauve`, `azure`,
 `slate`, `dark`, `ice`, `bright` — each a curated set of blocks that read as one ground with a texture,
 grouped by what an author would reach for rather than by block taxonomy: gravel sits with cobble because
@@ -389,7 +389,7 @@ of generated boards is reaching for either instead of `scatter`.
 
 ### A building is described, then built — and its plan can turn a corner
 
-`HousePresets` (`Minecraft/HousePresets.cs`) is the proof this method already works: each preset's docstring
+`HousePresets` (`Minecraft/Houses/HousePresets.cs`) is the proof this method already works: each preset's docstring
 is the prose brief its `HouseStyle` was built from — "its walls run seven courses between spruce log posts
 that stand the full height… the bottom two courses are cobble and andesite mixed" for `Alpine`, read directly
 off `alpine_mining_ii` block by block — and the style that follows says exactly that in code. Nothing about
@@ -409,7 +409,7 @@ that is used twice the same way across the fifteen boards `mapgen-review.md` MG3
 as one house repeated: the presets cluster at 7–13 wide by 7–11 deep and every board draws from a handful of
 them at the size they were designed at.
 
-`Footprint` (`Minecraft/Footprint.cs`) carries `Wings` — more than one **abutting** rectangle walked as one
+`Footprint` (`Geom/Relief/Footprint.cs`) carries `Wings` — more than one **abutting** rectangle walked as one
 landmass, its outline traced as a single ring so an L or a T stands under one roof with a valley built where
 the wings meet, rather than as two buildings that happen to touch. Which rectangle is the hall and which the
 cross wing is derived from their ridges, and a pair that overlaps, touches over part of an edge or ridges
@@ -485,10 +485,10 @@ building for this instead of a shape.
 | rasterize | `Pgm/Sketch/SketchRasterizer.cs` | layout JSON → columns `(x, z, yFloor, yTop)` |
 | solve relief | `Geom/Relief/` | `ReliefSpec` → a surface per island |
 | build the world | `Export/SketchWorldBuilder.cs` | layout + intent → `VoxelWorld` + resolved intent |
-| paint | `Minecraft/TerrainPainter.cs` | raw stone → rim, wall, surface, fill |
+| paint | `Minecraft/Painting/TerrainPainter.cs` | raw stone → rim, wall, surface, fill |
 | dress | `Minecraft/Dressing/Decorator.cs` | props → trees, houses, boulders, paths, water, ground cover |
-| stamp buildings | `Minecraft/HouseStamper.cs` | `Footprint` + `HouseStyle` → walls, roof, openings |
-| stamp furniture | `Minecraft/StructureStamper.cs` | `StructureIntent` → floors, redstone, iron, walls |
+| stamp buildings | `Minecraft/Houses/HouseStamper.cs` | `Footprint` + `HouseStyle` → walls, roof, openings |
+| stamp furniture | `Minecraft/Stamping/StructureStamper.cs` | `StructureIntent` → floors, redstone, iron, walls |
 | write the goal | `Pgm/Authoring/IntentGenerator.cs` | resolved intent → the map document |
 | write the XML | `Export/MapXmlComposer.cs` → `Pgm/XmlWriter.cs` | document → `map.xml` |
 

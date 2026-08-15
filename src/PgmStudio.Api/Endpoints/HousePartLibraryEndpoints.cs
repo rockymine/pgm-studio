@@ -4,6 +4,7 @@ using PgmStudio.Contracts;
 using PgmStudio.Data.Schema;
 using PgmStudio.Data.Theme;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Houses;
 
 namespace PgmStudio.Api.Endpoints;
 

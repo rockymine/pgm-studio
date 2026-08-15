@@ -573,7 +573,7 @@ page.Append("""
 <tr><td>Storeys</td><td>The rooms stacked inside, each by its clear — never under three — with its own wall, windows and floor zoning where it wants them. Empty is the one storey the flat parts describe.</td></tr>
 </tbody></table></div>
 </section>
-<footer>Every figure stamped by <code>PgmStudio.Minecraft.HouseStamper</code> and read back out of the
+<footer>Every figure stamped by <code>PgmStudio.Minecraft.Houses.HouseStamper</code> and read back out of the
 <code>VoxelWorld</code> — colours from the export's own block palette. Regenerate with
 <code>dotnet run tools/compose/house-showcase.cs</code>.</footer>
 </div>

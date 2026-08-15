@@ -1,4 +1,6 @@
 using PgmStudio.Minecraft.Render;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Minecraft.Tests.Render;
 

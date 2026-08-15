@@ -1,4 +1,5 @@
 using PgmStudio.Geom.Algorithms;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Minecraft.Dressing;
 

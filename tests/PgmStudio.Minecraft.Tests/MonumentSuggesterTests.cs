@@ -2,6 +2,8 @@ using fNbt;
 using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 using PgmStudio.Geom;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Suggest;
 
 namespace PgmStudio.Minecraft.Tests;
 

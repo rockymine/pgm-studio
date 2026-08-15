@@ -1,3 +1,4 @@
+using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>

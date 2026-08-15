@@ -1,6 +1,8 @@
 using PgmStudio.Domain;
 using PgmStudio.Geom.Render;
 using PgmStudio.Geom;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Minecraft.Render;
 

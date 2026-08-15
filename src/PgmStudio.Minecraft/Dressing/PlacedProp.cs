@@ -1,6 +1,9 @@
 using System.Text.Json.Serialization;
 using PgmStudio.Domain;
 using PgmStudio.Geom.Algorithms;
+using PgmStudio.Minecraft.Houses;
+using PgmStudio.Minecraft.Painting;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Minecraft.Dressing;
 
@@ -55,7 +58,7 @@ public sealed record PathProp : PlacedProp
     /// <summary>What the path is paved with — a full terrain material, so a road is a solid, a cobbled fabric,
     /// a noise ramp or any pattern the painter offers. The style above shapes the <em>band</em>; this decides
     /// what fills it, and the two are independent: a worn cobble and a solid cobble are both sayable.</summary>
-    public TerrainMaterial Pave { get; init; } = new SolidMaterial(Minecraft.Blocks.Gravel);
+    public TerrainMaterial Pave { get; init; } = new SolidMaterial(Palette.Blocks.Gravel);
 }
 
 /// <summary>A channel of water: the line the author drew, and how wide and deep a bed is cut under it. Unlike a
@@ -70,9 +73,9 @@ public sealed record WaterProp : PlacedProp
     /// than one flat block or a smear of patches.</summary>
     private static readonly TerrainMaterial DefaultBank = new VoronoiMaterial(1, 5,
     [
-        new VoronoiBand(new SolidMaterial(Minecraft.Blocks.Gravel), 2),
-        new VoronoiBand(new SolidMaterial(Minecraft.Blocks.Dirt, 1), 1),
-        new VoronoiBand(new SolidMaterial(Minecraft.Blocks.Sand), 1),
+        new VoronoiBand(new SolidMaterial(Palette.Blocks.Gravel), 2),
+        new VoronoiBand(new SolidMaterial(Palette.Blocks.Dirt, 1), 1),
+        new VoronoiBand(new SolidMaterial(Palette.Blocks.Sand), 1),
     ]);
 
     /// <summary>The drawn centerline, as <c>[x, z]</c> pairs. Two points or more.</summary>
@@ -211,7 +214,7 @@ public sealed record BoulderProp : PlacedProp
     /// instead of sampling whatever the world pattern happens to say where each image landed. Its coordinates
     /// are therefore small (a boulder is a few blocks across), which is what a pattern's patch size has to be
     /// read against here.</summary>
-    public TerrainMaterial Rock { get; init; } = new SolidMaterial(Minecraft.Blocks.Stone);
+    public TerrainMaterial Rock { get; init; } = new SolidMaterial(Palette.Blocks.Stone);
 
     /// <summary>Whether moss creeps onto the sky-lit faces — the rock's own micro-flora, laid over whatever
     /// <see cref="Rock"/> resolved.</summary>
@@ -245,7 +248,7 @@ public sealed record FloraProp : PlacedProp
 /// orbit says that without the stamp having to know it happened. <see cref="Wings"/> is a list of these: one
 /// entry is the plain rectangle every board carried until <c>G177</c>, and more than one is an L, a T or a U —
 /// still one house under one style, the shape <see cref="HouseStamper"/> already takes as a
-/// <see cref="Minecraft.BuildingPlan"/> of touching <see cref="Wing"/> rectangles.</para>
+/// <see cref="Houses.BuildingPlan"/> of touching <see cref="Wing"/> rectangles.</para>
 /// </summary>
 /// <summary>
 /// One wing as an author drew it: the two opposite corners of its rectangle, and everything it states about
@@ -324,7 +327,7 @@ public sealed record HouseProp : PlacedProp
     /// <para>Every wing is required to hold two walls and an inside on its own, the same three-block floor a
     /// single rectangle always has: a wing composes with its neighbours below the eave, but nothing composes a
     /// room out of a sliver with no width of its own.</para></summary>
-    public Minecraft.BuildingPlan? Plan() => Check().Refuses ? null : Read();
+    public BuildingPlan? Plan() => Check().Refuses ? null : Read();
 
     /// <summary>Why this prop is no building — every reason, not the first. Empty where it is one. Separate
     /// from <see cref="Plan"/> because the two callers want different halves: a build wants the plan or
@@ -368,7 +371,7 @@ public sealed record HouseProp : PlacedProp
     }
 
     /// <summary>The wings as drawn, with nothing judged — what both of the two above read.</summary>
-    private Minecraft.BuildingPlan? Read()
+    private BuildingPlan? Read()
     {
         if (Wings.Count == 0) return null;
         var wings = new List<Wing>(Wings.Count);
@@ -379,7 +382,7 @@ public sealed record HouseProp : PlacedProp
             var (minX, minZ, maxX, maxZ) = Corners(corners);
             wings.Add(new Wing(minX, minZ, maxX, maxZ, authored.Spec));
         }
-        return new Minecraft.BuildingPlan(wings);
+        return new BuildingPlan(wings);
     }
 
     private static (int MinX, int MinZ, int MaxX, int MaxZ) Corners(IReadOnlyList<double[]> corners) => (

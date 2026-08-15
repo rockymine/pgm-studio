@@ -3,6 +3,8 @@ using PgmStudio.Data.Schema;
 using PgmStudio.Data.Theme;
 using PgmStudio.Domain;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Houses;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Api.Services;
 

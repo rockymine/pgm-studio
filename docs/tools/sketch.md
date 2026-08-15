@@ -495,7 +495,7 @@ and no larger than 192 blocks of footprint, and a drag outside that range places
 **A building prop states one or more touching rectangles, and what each one is.** Its `wings` field is a list
 of entries — `corners`, the two opposite corners a drag always stored, and an optional `spec` holding
 everything the wing states about itself — and `HouseProp.Plan()` composes them into a `BuildingPlan`
-(`src/PgmStudio.Minecraft/BuildingPlan.cs`) — **one or more touching rectangles**, the same shape `HouseStamper`
+(`src/PgmStudio.Minecraft/Houses/BuildingPlan.cs`) — **one or more touching rectangles**, the same shape `HouseStamper`
 has always taken. An L, a T or a U is therefore one house under one style rather than two standing beside each
 other: the outline is walked as a single landmass, so an L answers six runs of wall and a T eight, a wall ends
 wherever the building turns, and the cell where two wings meet is an inner corner carrying a post of its own.

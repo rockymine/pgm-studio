@@ -1,5 +1,6 @@
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Minecraft.Painting;
 
 namespace PgmStudio.Export;
 

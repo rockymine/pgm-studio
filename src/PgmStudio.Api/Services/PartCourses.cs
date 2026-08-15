@@ -1,6 +1,8 @@
 using PgmStudio.Contracts;
 using PgmStudio.Data.Schema;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Houses;
+using PgmStudio.Minecraft.Painting;
 
 namespace PgmStudio.Api.Services;
 

@@ -4,6 +4,7 @@ using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
 using PgmStudio.Geom;
+using PgmStudio.Minecraft.Anvil;
 
 namespace PgmStudio.Export;
 

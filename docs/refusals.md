@@ -74,9 +74,9 @@ a rule that changed its name between the two would be two rules.
 | `PL*` | the plan's own structure | `Pgm/Plan/PlanValidator.cs` → `PlanRules` |
 | `DC*` · `OB*` | destroyables, cores, goal placement, gamemodes | `Domain/ObjectiveRules.cs` |
 | `WX*` | room frames — the shell, the pad, the doors, the iron | `Domain/RoomFrames.cs` → `RoomFrameRules` |
-| `HS*` | a house style's own materials | `Minecraft/HouseStyleValidation.cs` → `HouseStyleRules` |
+| `HS*` | a house style's own materials | `Minecraft/Houses/HouseStyleValidation.cs` → `HouseStyleRules` |
 | `HP*` | a placed building's shape | `Minecraft/Dressing/PlacedProp.cs` → `HousePropRules` |
-| `HJ*` | how two wings meet | `Minecraft/WingJoints.cs` → `WingJointRules` |
+| `HJ*` | how two wings meet | `Minecraft/Houses/WingJoints.cs` → `WingJointRules` |
 | `DR-*` | a dressing document that will not parse | `Minecraft/Dressing/DressingJson.cs` |
 | `EX*` | the export gate's own — `EX1` not traversable, `EX2` no spawn to enter the map by, `EX3` what the intent stated and the document did not carry | `Export/MapExportComposer.cs` → `ExportRules` |
 | `RQ*` | the request itself — a document that could not be read, a field that went unread, and a fault that is the studio's own | `Api/Endpoints/Refusals.cs` → `RequestRules` |

@@ -10,8 +10,8 @@ still hold. `B119` cut the first new one since the original shape settled: `PgmS
 world builder, the destroy/core/wool placement gate and the `map.xml` composer — pulled out of `Api/Services`
 into its own project, so a driver that only writes a region folder no longer has to reference ASP.NET Core,
 FastEndpoints and the DB layer to reach it. The friction elsewhere is no longer between projects but *inside*
-two of them: `Pgm` now holds two different things under one name, and `Minecraft` has grown 58 files at its
-root. Both are internal folds, not boundary moves.
+two of them: `Pgm` holds two different things under one name, and `Minecraft` had grown 58 files at its root
+until `A7` folded them. Both are internal folds, not boundary moves.
 
 ## 1. The dependency graph
 
@@ -82,7 +82,7 @@ above. It does mean `Domain` is "the PGM domain", not "the PGM data model".
 | `Domain` | 22 | 1,949 | flat |
 | `Contracts` | 13 | 965 | flat |
 | `Migrations` | 21 | 1,469 | `Migrations/` 20 |
-| `Minecraft` | 74 | 14,232 | **58 at root** · `Dressing/` 6 · `Render/` 7 · `Views/` 3 |
+| `Minecraft` | 74 | 14,232 | `Stamping/` 16 · `Palette/` 11 · `Anvil/` 10 · `Houses/` 10 · `Painting/` 8 · `Render/` 7 · `Dressing/` 6 · `Views/` 3 · 1 at root |
 | `Import` | 4 | 472 | flat |
 | `Pgm` | 137 | 20,641 | `Compose/` 42 · `Authoring/` 21 · `Evaluate/` 20 · `Shapes/` 10 · `Editing/` 10 · `Plan/` 7 · `Sketch/` 5 · `Derive/` 4 · `Render/` 4 · `Detect/` 1 · 13 at root |
 | `Analysis` | 16 | 2,609 | `Playability/` 7 · `Footprint/` 4 · `Region/` 3 · `Layer/` 2 |
@@ -99,10 +99,20 @@ that describes 48 files — the codec at the root, `Authoring/` (intent → map)
 already respects is exactly the one it would get. Whether to split it is §7.1; what is not in question is that
 one charter sentence no longer covers the project.
 
-**`Minecraft` has 58 files at its root**, 10,227 lines — the shape `Pgm`, `Analysis` and `Data` were folded out
-of. The concerns are visible from the filenames and separable without moving a boundary: world reading (Anvil,
-regions, chunks), stamping (rooms, cubes, objectives, houses), painting, and the suggesters that read a world
-back. It is the last unfolded project.
+**`Minecraft` had 58 files at its root**, 10,227 lines — the shape `Pgm`, `Analysis` and `Data` were folded out
+of, and `A7` folded it the same way. Six folders, by what a file is *for* rather than by what it is:
+**`Anvil/`** reads and writes the world on disk (regions, chunks, `level.dat`, the provenance sidecar, the
+layer and feature extractors); **`Palette/`** is the block vocabulary (ids, families, geometry, roles,
+variants, the recipes and the material names); **`Stamping/`** writes structures into a world (rooms, cubes,
+objectives, chests, signs, markers, the claim each one records); **`Houses/`** is the building family, which is
+large enough to be its own subject (the plan, the style, the presets, the stamper, windows, roofs, wing
+joints); **`Painting/`** is the terrain painter and its profile/theme family; **`Suggest/`** reads a built
+world back and proposes monuments and cores. `Dressing/`, `Render/` and `Views/` were already broken out.
+
+The folder is `Palette/` rather than `Blocks/` for a reason worth recording: `Blocks.cs` declares a class
+called `Blocks`, and a namespace of that name shadows it — `Blocks.Gravel` stops compiling the moment
+`PgmStudio.Minecraft.Blocks` exists as a namespace. A folder name is a namespace, so it competes with every
+type name in the project.
 
 ## 4. Seven representations of "a map"
 
@@ -177,7 +187,7 @@ and the harness; its `FromJson` is the production codec.
 | `Domain` | **Earns its place**, now as the shared-rule leaf as much as the entity one (§2). | a header line saying so |
 | `Contracts` | **Earns its place** — the only model project `Client` can see. | a header line distinguishing it from `Domain` |
 | `Migrations` | **Clean** — one file per migration, in order. | none |
-| `Minecraft` | **Needs the fold the others got.** 47 root files across four separable concerns (§3). | an internal fold, folders-only |
+| `Minecraft` | **Folded (`A7`).** Six folders by what a file is for, plus the three already broken out (§3). | none |
 | `Import` | **Clean, identity blurred.** It is parquet→relational replay; it is *not* the world scan, which lives in `Data/Features/WorldFeatureWriter`. | the distinction stated in its own header |
 | `Pgm` | **Two charters in one project** (§3). Both halves are internally well-shaped. | the split decision, §7.1 |
 | `Analysis` | **Right internal shape** — `Region/`, `Layer/`, `Playability/`, `Footprint/`. | none |

@@ -1,6 +1,8 @@
 using PgmStudio.Geom.Relief;
 using Footprint = PgmStudio.Geom.Relief.Footprint;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Relief;
 

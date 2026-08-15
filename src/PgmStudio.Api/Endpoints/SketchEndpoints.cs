@@ -16,6 +16,7 @@ using PgmStudio.Export;
 using PgmStudio.Geom.Relief;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Minecraft.Houses;
 
 namespace PgmStudio.Api.Endpoints;
 

@@ -10,6 +10,7 @@ using PgmStudio.Minecraft;
 namespace PgmStudio.Api.Endpoints;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Minecraft.Palette;
 
 /// <summary>Shared surface-parquet → pixels / block-types projection (B4 + B9).</summary>
 internal static class LayerData

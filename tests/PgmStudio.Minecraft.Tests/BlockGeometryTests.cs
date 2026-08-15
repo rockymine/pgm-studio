@@ -1,6 +1,8 @@
 using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Views;
+using PgmStudio.Minecraft.Houses;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Minecraft.Tests;
 

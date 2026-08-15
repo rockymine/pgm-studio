@@ -1,4 +1,6 @@
 using PgmStudio.Minecraft.Dressing;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Minecraft.Tests;
 

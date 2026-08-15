@@ -1,3 +1,4 @@
+using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Minecraft.Views;
 
 /// <summary>One rectangle of the unit cube a block fills, measured from the cell's top-left in cell widths.

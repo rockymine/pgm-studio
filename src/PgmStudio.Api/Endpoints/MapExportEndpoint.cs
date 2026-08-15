@@ -13,6 +13,7 @@ using PgmStudio.Minecraft;
 namespace PgmStudio.Api.Endpoints;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Minecraft.Anvil;
 
 /// <summary>
 /// GET /api/map/{slug}/export — the Configure export action. For a <b>sketch-originated</b> map (one with a

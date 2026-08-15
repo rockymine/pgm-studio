@@ -4,6 +4,7 @@ using PgmStudio.Data.Features;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Minecraft.Painting;
 
 namespace PgmStudio.Api.Tests;
 

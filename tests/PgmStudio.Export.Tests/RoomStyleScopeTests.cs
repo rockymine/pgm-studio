@@ -1,6 +1,10 @@
 using PgmStudio.Export;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Authoring;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Houses;
+using PgmStudio.Minecraft.Painting;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Export.Tests;
 

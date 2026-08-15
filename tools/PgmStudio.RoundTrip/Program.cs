@@ -6,6 +6,8 @@ using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Render;
 using PgmStudio.Analysis.Footprint;
 using JP = System.Text.Json.Serialization.JsonPropertyNameAttribute;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Suggest;
 
 // Numbers are dot-separated whatever the host's regional settings say — the same pin the API and the client
 // hold. A harness that compared derivations under a comma-decimal locale would report differences that are
@@ -52,8 +54,8 @@ if (rwIdx >= 0 && rwIdx + 1 < args.Length)
     var counts = new Dictionary<int, long>();
     long total = 0;
     foreach (var mca in Directory.GetFiles(dir, "*.mca"))
-        foreach (var chunk in PgmStudio.Minecraft.AnvilRegion.ReadChunks(mca))
-            foreach (var blk in PgmStudio.Minecraft.AnvilRegion.Blocks(chunk))
+        foreach (var chunk in PgmStudio.Minecraft.Anvil.AnvilRegion.ReadChunks(mca))
+            foreach (var blk in PgmStudio.Minecraft.Anvil.AnvilRegion.Blocks(chunk))
             {
                 total++;
                 counts[blk.Id] = counts.GetValueOrDefault(blk.Id) + 1;
@@ -100,10 +102,10 @@ var dcbIdx = Array.IndexOf(args, "--dump-cleanbase");
 if (dcbIdx >= 0 && dcbIdx + 2 < args.Length)
 {
     var rd = Path.Combine(args[dcbIdx + 1], "region");
-    var ch = Directory.GetFiles(rd, "*.mca").SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks).ToList();
+    var ch = Directory.GetFiles(rd, "*.mca").SelectMany(PgmStudio.Minecraft.Anvil.AnvilRegion.ReadChunks).ToList();
     using var w = new StreamWriter(args[dcbIdx + 2]);
     w.WriteLine("x,z,baseY,blockId");
-    foreach (var c in PgmStudio.Minecraft.LayerExtractors.CleanBase(ch))
+    foreach (var c in PgmStudio.Minecraft.Anvil.LayerExtractors.CleanBase(ch))
         w.WriteLine($"{c.WorldX},{c.WorldZ},{c.WorldY},{c.BlockId}");
     Console.WriteLine($"dumped clean-base columns → {args[dcbIdx + 2]}");
     return 0;
@@ -752,7 +754,7 @@ static async Task<int> RunGoldens(string[] corpusRoots, string? featureRoot, boo
 static async Task<int> RunExtractParity(string regionDir, string oracleDir)
 {
     var mcas = Directory.GetFiles(regionDir, "*.mca");
-    IEnumerable<PgmStudio.Minecraft.AnvilRegion.Chunk> Chunks() => mcas.SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks);
+    IEnumerable<PgmStudio.Minecraft.Anvil.AnvilRegion.Chunk> Chunks() => mcas.SelectMany(PgmStudio.Minecraft.Anvil.AnvilRegion.ReadChunks);
 
     static string S(object? v) => v?.ToString() ?? "";
     static string N(object? v) => v is null ? "~" : Convert.ToInt64(v).ToString();
@@ -777,35 +779,35 @@ static async Task<int> RunExtractParity(string regionDir, string oracleDir)
     }
 
     // wools
-    var woolMine = PgmStudio.Minecraft.FeatureExtractors.Wools(Chunks())
+    var woolMine = PgmStudio.Minecraft.Anvil.FeatureExtractors.Wools(Chunks())
         .Select(w => $"{w.WorldX},{w.WorldZ},{w.WorldY},{w.Color}");
     var woolOra = (await TryRead(Path.Combine(oracleDir, "wools.parquet")))
         .Select(r => $"{N(r["world_x"])},{N(r["world_z"])},{N(r["world_y"])},{S(r["color"])}");
     Check("wools", woolMine, woolOra);
 
     // resources
-    var resMine = PgmStudio.Minecraft.FeatureExtractors.Resources(Chunks())
+    var resMine = PgmStudio.Minecraft.Anvil.FeatureExtractors.Resources(Chunks())
         .Select(r => $"{r.WorldX},{r.WorldZ},{r.WorldY},{r.ResourceType}");
     var resOra = (await TryRead(Path.Combine(oracleDir, "resources.parquet")))
         .Select(r => $"{N(r["world_x"])},{N(r["world_z"])},{N(r["world_y"])},{S(r["resource_type"])}");
     Check("resources", resMine, resOra);
 
     // chests
-    var chestMine = PgmStudio.Minecraft.FeatureExtractors.Chests(Chunks())
+    var chestMine = PgmStudio.Minecraft.Anvil.FeatureExtractors.Chests(Chunks())
         .Select(c => $"{c.WorldX},{c.WorldZ},{c.WorldY},{c.ChestType},{c.Slot},{c.ItemId},{c.ItemDamage},{c.Count}");
     var chestOra = (await TryRead(Path.Combine(oracleDir, "chests.parquet")))
         .Select(r => $"{N(r["world_x"])},{N(r["world_z"])},{N(r["world_y"])},{S(r["chest_type"])},{N(r["slot"])},{S(r["item_id"])},{N(r["item_damage"])},{N(r["count"])}");
     Check("chests", chestMine, chestOra);
 
     // spawners
-    var spMine = PgmStudio.Minecraft.FeatureExtractors.Spawners(Chunks())
+    var spMine = PgmStudio.Minecraft.Anvil.FeatureExtractors.Spawners(Chunks())
         .Select(s => $"{s.WorldX},{s.WorldZ},{s.WorldY}|{s.EntityId}|{(s.SpawnsWool ? "1" : "0")}|{s.SpawnItemId}|{Fmt(s.SpawnItemDamage)}|{Fmt(s.SpawnCount)}|{Fmt(s.SpawnRange)}|{Fmt(s.MinSpawnDelay)}|{Fmt(s.MaxSpawnDelay)}|{Fmt(s.RequiredPlayerRange)}|{Fmt(s.MaxNearbyEntities)}");
     var spOra = (await TryRead(Path.Combine(oracleDir, "spawners.parquet")))
         .Select(r => $"{N(r["world_x"])},{N(r["world_z"])},{N(r["world_y"])}|{S(r.GetValueOrDefault("entity_id"))}|{B(r["spawns_wool"])}|{S(r.GetValueOrDefault("spawn_item_id"))}|{N(r.GetValueOrDefault("spawn_item_damage"))}|{N(r.GetValueOrDefault("spawn_count"))}|{N(r.GetValueOrDefault("spawn_range"))}|{N(r.GetValueOrDefault("min_spawn_delay"))}|{N(r.GetValueOrDefault("max_spawn_delay"))}|{N(r.GetValueOrDefault("required_player_range"))}|{N(r.GetValueOrDefault("max_nearby_entities"))}");
     Check("spawners", spMine, spOra);
 
     // layer_segments
-    var segMine = PgmStudio.Minecraft.FeatureExtractors.Segments(Chunks())
+    var segMine = PgmStudio.Minecraft.Anvil.FeatureExtractors.Segments(Chunks())
         .Select(s => $"{s.WorldX},{s.WorldZ},{s.WorldYStart},{s.WorldYEnd}");
     var segOra = (await TryRead(Path.Combine(oracleDir, "layer_segments.parquet")))
         .Select(r => $"{N(r["world_x"])},{N(r["world_z"])},{N(r["world_y_start"])},{N(r["world_y_end"])}");
@@ -842,31 +844,31 @@ static async Task<int> RunScanOut(string mapDir, string outRoot)
     var sw = System.Diagnostics.Stopwatch.StartNew();
 
     // Materialise the world's chunks once — every extractor re-enumerates them (matches WorldFeatureWriter).
-    var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks).ToList();
+    var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(PgmStudio.Minecraft.Anvil.AnvilRegion.ReadChunks).ToList();
 
     // feature rows → parquet (column names match the importer + the reference output)
-    await WriteParquet(Path.Combine(outDir, "wools.parquet"), PgmStudio.Minecraft.FeatureExtractors.Wools(chunks)
+    await WriteParquet(Path.Combine(outDir, "wools.parquet"), PgmStudio.Minecraft.Anvil.FeatureExtractors.Wools(chunks)
         .Select(w => new ScanWoolRow { WorldX = w.WorldX, WorldZ = w.WorldZ, WorldY = w.WorldY, Color = w.Color }).ToList());
-    await WriteParquet(Path.Combine(outDir, "resources.parquet"), PgmStudio.Minecraft.FeatureExtractors.Resources(chunks)
+    await WriteParquet(Path.Combine(outDir, "resources.parquet"), PgmStudio.Minecraft.Anvil.FeatureExtractors.Resources(chunks)
         .Select(r => new ScanResourceRow { WorldX = r.WorldX, WorldZ = r.WorldZ, WorldY = r.WorldY, ResourceType = r.ResourceType }).ToList());
-    await WriteParquet(Path.Combine(outDir, "chests.parquet"), PgmStudio.Minecraft.FeatureExtractors.Chests(chunks)
+    await WriteParquet(Path.Combine(outDir, "chests.parquet"), PgmStudio.Minecraft.Anvil.FeatureExtractors.Chests(chunks)
         .Select(c => new ScanChestRow { WorldX = c.WorldX, WorldZ = c.WorldZ, WorldY = c.WorldY, ChestType = c.ChestType, Slot = c.Slot, ItemId = c.ItemId, ItemDamage = c.ItemDamage, Count = c.Count }).ToList());
-    await WriteParquet(Path.Combine(outDir, "spawners.parquet"), PgmStudio.Minecraft.FeatureExtractors.Spawners(chunks)
+    await WriteParquet(Path.Combine(outDir, "spawners.parquet"), PgmStudio.Minecraft.Anvil.FeatureExtractors.Spawners(chunks)
         .Select(s => new ScanSpawnerRow { WorldX = s.WorldX, WorldZ = s.WorldZ, WorldY = s.WorldY, EntityId = s.EntityId, SpawnsWool = s.SpawnsWool, SpawnItemId = s.SpawnItemId, SpawnItemDamage = s.SpawnItemDamage, SpawnCount = s.SpawnCount, SpawnRange = s.SpawnRange, MinSpawnDelay = s.MinSpawnDelay, MaxSpawnDelay = s.MaxSpawnDelay, RequiredPlayerRange = s.RequiredPlayerRange, MaxNearbyEntities = s.MaxNearbyEntities }).ToList());
-    await WriteParquet(Path.Combine(outDir, "layer_segments.parquet"), PgmStudio.Minecraft.FeatureExtractors.Segments(chunks)
+    await WriteParquet(Path.Combine(outDir, "layer_segments.parquet"), PgmStudio.Minecraft.Anvil.FeatureExtractors.Segments(chunks)
         .Select(s => new ScanSegmentRow { WorldX = s.WorldX, WorldZ = s.WorldZ, WorldYStart = s.WorldYStart, WorldYEnd = s.WorldYEnd }).ToList());
 
     // Surface layer → layer.parquet (the cached artifact + the bounding-box source)
-    var surface = PgmStudio.Minecraft.LayerExtractors.Surface(chunks).ToList();
+    var surface = PgmStudio.Minecraft.Anvil.LayerExtractors.Surface(chunks).ToList();
     await WriteParquet(Path.Combine(outDir, "layer.parquet"), surface
         .Select(s => new ScanLayerRow { WorldX = s.WorldX, WorldZ = s.WorldZ, WorldY = s.WorldY, BlockId = s.BlockId, BlockData = s.BlockData }).ToList());
 
     // Stair-aware islands on the cleaned columns, with the lazy y0 → bedrock fallback (matches
     // WorldFeatureWriter) → islands.json
-    static (int X, int Z, int Y) Cell(PgmStudio.Minecraft.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
-    var columns = PgmStudio.Minecraft.LayerExtractors.CleanColumns(chunks)
+    static (int X, int Z, int Y) Cell(PgmStudio.Minecraft.Anvil.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
+    var columns = PgmStudio.Minecraft.Anvil.LayerExtractors.CleanColumns(chunks)
         .Select(c => (c.WorldX, c.WorldZ, c.BaseY, c.Surfaces)).ToList();
-    var fallbacks = new[] { PgmStudio.Minecraft.LayerExtractors.Y0(chunks).Select(Cell), PgmStudio.Minecraft.LayerExtractors.Bedrock(chunks).Select(Cell) };
+    var fallbacks = new[] { PgmStudio.Minecraft.Anvil.LayerExtractors.Y0(chunks).Select(Cell), PgmStudio.Minecraft.Anvil.LayerExtractors.Bedrock(chunks).Select(Cell) };
     var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleanedStairAware(columns, fallbacks);
     await File.WriteAllTextAsync(Path.Combine(outDir, "islands.json"), PgmStudio.Analysis.Footprint.IslandDetector.SerializeJson(islands));
 
@@ -876,7 +878,7 @@ static async Task<int> RunScanOut(string mapDir, string outRoot)
         ? new PgmStudio.Geom.BlockBox(0, 0, 0, 0, 0, 0)
         : new PgmStudio.Geom.BlockBox(chunks.Min(c => c.ChunkX) * 16, 0, chunks.Min(c => c.ChunkZ) * 16,
             chunks.Max(c => c.ChunkX) * 16 + 15, 255, chunks.Max(c => c.ChunkZ) * 16 + 15);
-    var monuments = PgmStudio.Minecraft.MonumentSuggester.Gather(chunks, worldBox);
+    var monuments = PgmStudio.Minecraft.Suggest.MonumentSuggester.Gather(chunks, worldBox);
     await WriteParquet(Path.Combine(outDir, "monument_candidates.parquet"), monuments.Select(c => new ScanMonumentRow
     {
         CandX = c.X, CandY = c.Y, CandZ = c.Z, Source = c.Source,
@@ -932,11 +934,11 @@ static int RunIslandSketch(string mapDir, string outJson)
 {
     var regionDir = Path.Combine(mapDir, "region");
     if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"  no region/ at {regionDir}"); return 1; }
-    var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks).ToList();
-    static (int, int, int) ToCell(PgmStudio.Minecraft.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
-    var columns = PgmStudio.Minecraft.LayerExtractors.CleanColumns(chunks)
+    var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(PgmStudio.Minecraft.Anvil.AnvilRegion.ReadChunks).ToList();
+    static (int, int, int) ToCell(PgmStudio.Minecraft.Anvil.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
+    var columns = PgmStudio.Minecraft.Anvil.LayerExtractors.CleanColumns(chunks)
         .Select(c => (c.WorldX, c.WorldZ, c.BaseY, c.Surfaces)).ToList();
-    var fallbacks = new[] { PgmStudio.Minecraft.LayerExtractors.Y0(chunks).Select(ToCell), PgmStudio.Minecraft.LayerExtractors.Bedrock(chunks).Select(ToCell) };
+    var fallbacks = new[] { PgmStudio.Minecraft.Anvil.LayerExtractors.Y0(chunks).Select(ToCell), PgmStudio.Minecraft.Anvil.LayerExtractors.Bedrock(chunks).Select(ToCell) };
     var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleanedStairAware(columns, fallbacks);
 
     static List<double[]> Ring(NetTopologySuite.Geometries.LineString r) => r.Coordinates.Select(c => new[] { c.X, c.Y }).ToList();
@@ -977,18 +979,18 @@ static int RunIslandStairAware(string mapDir)
 {
     var regionDir = Path.Combine(mapDir, "region");
     if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"  no region/ at {regionDir}"); return 1; }
-    var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks).ToList();
+    var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(PgmStudio.Minecraft.Anvil.AnvilRegion.ReadChunks).ToList();
 
-    var baseCells = PgmStudio.Minecraft.LayerExtractors.CleanBase(chunks)
+    var baseCells = PgmStudio.Minecraft.Anvil.LayerExtractors.CleanBase(chunks)
         .Select(b => (b.WorldX, b.WorldZ, b.WorldY)).ToList();
     var fallbacks = new[]
     {
-        PgmStudio.Minecraft.LayerExtractors.Y0(chunks).Select(b => (b.WorldX, b.WorldZ, b.WorldY)),
-        PgmStudio.Minecraft.LayerExtractors.Bedrock(chunks).Select(b => (b.WorldX, b.WorldZ, b.WorldY)),
+        PgmStudio.Minecraft.Anvil.LayerExtractors.Y0(chunks).Select(b => (b.WorldX, b.WorldZ, b.WorldY)),
+        PgmStudio.Minecraft.Anvil.LayerExtractors.Bedrock(chunks).Select(b => (b.WorldX, b.WorldZ, b.WorldY)),
     };
     var old = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleaned(baseCells, fallbacks);
 
-    var columns = PgmStudio.Minecraft.LayerExtractors.CleanColumns(chunks)
+    var columns = PgmStudio.Minecraft.Anvil.LayerExtractors.CleanColumns(chunks)
         .Select(c => (c.WorldX, c.WorldZ, c.BaseY, c.Surfaces)).ToList();
     var neu = PgmStudio.Analysis.Footprint.IslandDetector.DetectStairAware(columns);
 
@@ -1016,7 +1018,7 @@ static async Task<int> RunMonumentSlices(string regionDir, string xmlDataPath, s
         slug = nm.GetString()!.ToLowerInvariant().Replace(' ', '_');
 
     static int Coord(System.Text.Json.JsonElement loc, string axis) => (int)Math.Floor(loc.GetProperty(axis).GetDouble());
-    var monuments = new List<PgmStudio.Minecraft.MonumentTarget>();
+    var monuments = new List<PgmStudio.Minecraft.Anvil.MonumentTarget>();
     if (jd.RootElement.TryGetProperty("wools", out var woolsEl))
         foreach (var wool in woolsEl.EnumerateArray())
         {
@@ -1026,7 +1028,7 @@ static async Task<int> RunMonumentSlices(string regionDir, string xmlDataPath, s
             foreach (var mon in mons.EnumerateArray())
             {
                 if (!mon.TryGetProperty("location", out var loc)) continue;
-                monuments.Add(new PgmStudio.Minecraft.MonumentTarget(
+                monuments.Add(new PgmStudio.Minecraft.Anvil.MonumentTarget(
                     slug, woolId, color,
                     mon.TryGetProperty("id", out var mid) ? mid.GetString() ?? "" : "",
                     mon.TryGetProperty("team", out var mt) ? mt.GetString() ?? "" : "",
@@ -1035,10 +1037,10 @@ static async Task<int> RunMonumentSlices(string regionDir, string xmlDataPath, s
         }
 
     var mcas = Directory.GetFiles(regionDir, "*.mca");
-    IEnumerable<PgmStudio.Minecraft.AnvilRegion.Chunk> Chunks() => mcas.SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks);
+    IEnumerable<PgmStudio.Minecraft.Anvil.AnvilRegion.Chunk> Chunks() => mcas.SelectMany(PgmStudio.Minecraft.Anvil.AnvilRegion.ReadChunks);
 
     Console.WriteLine($"{slug}: {monuments.Count} monument(s) over {mcas.Length} region file(s)");
-    var cells = PgmStudio.Minecraft.MonumentSliceExtractor.Extract(Chunks(), monuments);
+    var cells = PgmStudio.Minecraft.Anvil.MonumentSliceExtractor.Extract(Chunks(), monuments);
 
     var rows = cells.Select(MonumentSliceRow.From).ToList();
     Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outParquet))!);
@@ -1056,12 +1058,12 @@ static async Task<int> RunMonumentSlices(string regionDir, string xmlDataPath, s
     static string S(object? v) => v?.ToString() ?? "";
     static bool B(object? v) => v is not null && Convert.ToBoolean(v);
 
-    Require(back.Count == monuments.Count * PgmStudio.Minecraft.MonumentSliceExtractor.CellsPerMonument,
-        $"row count = {monuments.Count} monuments × {PgmStudio.Minecraft.MonumentSliceExtractor.CellsPerMonument} = {monuments.Count * PgmStudio.Minecraft.MonumentSliceExtractor.CellsPerMonument} (got {back.Count})");
+    Require(back.Count == monuments.Count * PgmStudio.Minecraft.Anvil.MonumentSliceExtractor.CellsPerMonument,
+        $"row count = {monuments.Count} monuments × {PgmStudio.Minecraft.Anvil.MonumentSliceExtractor.CellsPerMonument} = {monuments.Count * PgmStudio.Minecraft.Anvil.MonumentSliceExtractor.CellsPerMonument} (got {back.Count})");
 
     var byMon = back.GroupBy(r => S(r["monument_id"])).ToList();
     Require(byMon.Count == monuments.Count, $"{monuments.Count} distinct monuments present");
-    Require(byMon.All(g => g.Count() == PgmStudio.Minecraft.MonumentSliceExtractor.CellsPerMonument), "every monument has exactly 45 cells");
+    Require(byMon.All(g => g.Count() == PgmStudio.Minecraft.Anvil.MonumentSliceExtractor.CellsPerMonument), "every monument has exactly 45 cells");
 
     var centers = back.Where(r => B(r["is_monument"])).ToList();
     Require(centers.Count == monuments.Count, $"one centre cell per monument ({centers.Count})");
@@ -1130,8 +1132,8 @@ static async Task<int> RunMonumentSlices(string regionDir, string xmlDataPath, s
 }
 
 static SuggestEval EvalSuggest(string regionDir, string xmlDataPath, bool autoStyle,
-    PgmStudio.Minecraft.PedestalKind pedestal, PgmStudio.Minecraft.LabelKind label,
-    PgmStudio.Minecraft.CapKind cap, int margin)
+    PgmStudio.Minecraft.Suggest.PedestalKind pedestal, PgmStudio.Minecraft.Suggest.LabelKind label,
+    PgmStudio.Minecraft.Suggest.CapKind cap, int margin)
 {
     using var jd = System.Text.Json.JsonDocument.Parse(File.ReadAllText(xmlDataPath));
     static int Coord(System.Text.Json.JsonElement loc, string a) => (int)Math.Floor(loc.GetProperty(a).GetDouble());
@@ -1150,7 +1152,7 @@ static SuggestEval EvalSuggest(string regionDir, string xmlDataPath, bool autoSt
         }
 
     var mcas = Directory.GetFiles(regionDir, "*.mca");
-    var chunks = mcas.SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks).ToList();   // decode the world once
+    var chunks = mcas.SelectMany(PgmStudio.Minecraft.Anvil.AnvilRegion.ReadChunks).ToList();   // decode the world once
 
     // cluster monuments (Chebyshev ≤ 16) → one box per cluster (the author boxes each monument group).
     var clusters = new List<List<(int x, int y, int z)>>();
@@ -1167,16 +1169,16 @@ static SuggestEval EvalSuggest(string regionDir, string xmlDataPath, bool autoSt
     {
         var want = truth.SelectMany(t => new[] { (t.x, t.y - 1, t.z), (t.x, t.y + 1, t.z) }).ToHashSet();
         foreach (var ch in chunks)
-            foreach (var b in PgmStudio.Minecraft.AnvilRegion.Blocks(ch))
+            foreach (var b in PgmStudio.Minecraft.Anvil.AnvilRegion.Blocks(ch))
                 if (want.Contains((b.X, b.Y, b.Z))) adj[(b.X, b.Y, b.Z)] = b.Id;
     }
     // reuse the suggester's single id↔kind table, so auto-style can't drift from detection
-    PgmStudio.Minecraft.PedestalKind PedestalBelow(int x, int y, int z) =>
-        PgmStudio.Minecraft.MonumentSuggester.ClassifyPedestal(adj.GetValueOrDefault((x, y - 1, z), 0));
-    PgmStudio.Minecraft.CapKind CapAbove(int x, int y, int z) =>
-        PgmStudio.Minecraft.MonumentSuggester.ClassifyCap(adj.GetValueOrDefault((x, y + 1, z), 0));
+    PgmStudio.Minecraft.Suggest.PedestalKind PedestalBelow(int x, int y, int z) =>
+        PgmStudio.Minecraft.Suggest.MonumentSuggester.ClassifyPedestal(adj.GetValueOrDefault((x, y - 1, z), 0));
+    PgmStudio.Minecraft.Suggest.CapKind CapAbove(int x, int y, int z) =>
+        PgmStudio.Minecraft.Suggest.MonumentSuggester.ClassifyCap(adj.GetValueOrDefault((x, y + 1, z), 0));
 
-    var suggestions = new Dictionary<(int, int, int), PgmStudio.Minecraft.MonumentSuggestion>();
+    var suggestions = new Dictionary<(int, int, int), PgmStudio.Minecraft.Suggest.MonumentSuggestion>();
     foreach (var cl in clusters)
     {
         var box = new PgmStudio.Geom.BlockBox(
@@ -1188,7 +1190,7 @@ static SuggestEval EvalSuggest(string regionDir, string xmlDataPath, bool autoSt
         var cp = autoStyle
             ? cl.Select(q => CapAbove(q.x, q.y, q.z)).GroupBy(k => k).OrderByDescending(g => g.Count()).First().Key
             : cap;
-        foreach (var s in PgmStudio.Minecraft.MonumentSuggester.Suggest(chunks, box, new PgmStudio.Minecraft.MonumentStyle(ped, label, cp)))
+        foreach (var s in PgmStudio.Minecraft.Suggest.MonumentSuggester.Suggest(chunks, box, new PgmStudio.Minecraft.Suggest.MonumentStyle(ped, label, cp)))
             if (!suggestions.TryGetValue((s.X, s.Y, s.Z), out var prev) || prev.Confidence < s.Confidence)
                 suggestions[(s.X, s.Y, s.Z)] = s;
     }
@@ -1222,9 +1224,9 @@ static int RunSuggestMonuments(string[] args, string regionDir, string xmlDataPa
     string Flag(string name, string def) { var i = Array.IndexOf(args, name); return i >= 0 && i + 1 < args.Length ? args[i + 1] : def; }
     var margin = int.Parse(Flag("--margin", "8"));
     var autoStyle = args.Contains("--auto-style");
-    var pedestal = Enum.Parse<PgmStudio.Minecraft.PedestalKind>(Flag("--pedestal", "Any"), true);
-    var label = Enum.Parse<PgmStudio.Minecraft.LabelKind>(Flag("--label", "Any"), true);
-    var cap = Enum.Parse<PgmStudio.Minecraft.CapKind>(Flag("--cap", "Any"), true);
+    var pedestal = Enum.Parse<PgmStudio.Minecraft.Suggest.PedestalKind>(Flag("--pedestal", "Any"), true);
+    var label = Enum.Parse<PgmStudio.Minecraft.Suggest.LabelKind>(Flag("--label", "Any"), true);
+    var cap = Enum.Parse<PgmStudio.Minecraft.Suggest.CapKind>(Flag("--cap", "Any"), true);
     var slug = Path.GetFileName(Path.GetDirectoryName(Path.GetFullPath(regionDir).TrimEnd('/'))) ?? "map";
 
     var e = EvalSuggest(regionDir, xmlDataPath, autoStyle, pedestal, label, cap, margin);
@@ -1243,9 +1245,9 @@ static int RunSuggestMonumentsCorpus(string[] args, string[] corpusRoots, string
     string Flag(string name, string def) { var i = Array.IndexOf(args, name); return i >= 0 && i + 1 < args.Length ? args[i + 1] : def; }
     var margin = int.Parse(Flag("--margin", "8"));
     var autoStyle = args.Contains("--auto-style");
-    var pedestal = Enum.Parse<PgmStudio.Minecraft.PedestalKind>(Flag("--pedestal", "Any"), true);
-    var label = Enum.Parse<PgmStudio.Minecraft.LabelKind>(Flag("--label", "Any"), true);
-    var cap = Enum.Parse<PgmStudio.Minecraft.CapKind>(Flag("--cap", "Any"), true);
+    var pedestal = Enum.Parse<PgmStudio.Minecraft.Suggest.PedestalKind>(Flag("--pedestal", "Any"), true);
+    var label = Enum.Parse<PgmStudio.Minecraft.Suggest.LabelKind>(Flag("--label", "Any"), true);
+    var cap = Enum.Parse<PgmStudio.Minecraft.Suggest.CapKind>(Flag("--cap", "Any"), true);
 
     int maps = 0, truth = 0, tp = 0, fp = 0, fn = 0, colorOk = 0;
     foreach (var root in corpusRoots.Where(Directory.Exists))
@@ -1361,10 +1363,10 @@ static string RepoRoot()
 static async Task<int> RunIslandParity(string regionDir, string oracleDir)
 {
     var mcas = Directory.GetFiles(regionDir, "*.mca");
-    IEnumerable<PgmStudio.Minecraft.AnvilRegion.Chunk> Chunks() => mcas.SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks);
+    IEnumerable<PgmStudio.Minecraft.Anvil.AnvilRegion.Chunk> Chunks() => mcas.SelectMany(PgmStudio.Minecraft.Anvil.AnvilRegion.ReadChunks);
 
     // Surface layer: compare row count to layer.parquet (default ScanConfig: surface, no exclude/cap).
-    var surface = PgmStudio.Minecraft.LayerExtractors.Surface(Chunks()).ToList();
+    var surface = PgmStudio.Minecraft.Anvil.LayerExtractors.Surface(Chunks()).ToList();
     var layerOra = await TryRead(Path.Combine(oracleDir, "layer.parquet"));
     var surfOk = surface.Count == layerOra.Count;
     Console.WriteLine($"  {(surfOk ? "OK  " : "FAIL")} surface        mine={surface.Count} oracle={layerOra.Count}");
@@ -1402,15 +1404,15 @@ static async Task<int> RunIslandParity(string regionDir, string oracleDir)
 static int RunCleanBaseRender(string regionDir, string outSvg)
 {
     var chunks = Directory.GetFiles(regionDir, "*.mca")
-        .SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks).ToList();
-    static (int, int, int) ToCell(PgmStudio.Minecraft.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
+        .SelectMany(PgmStudio.Minecraft.Anvil.AnvilRegion.ReadChunks).ToList();
+    static (int, int, int) ToCell(PgmStudio.Minecraft.Anvil.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
 
-    var baseCells = PgmStudio.Minecraft.LayerExtractors.CleanBase(chunks).Select(ToCell).ToList();
+    var baseCells = PgmStudio.Minecraft.Anvil.LayerExtractors.CleanBase(chunks).Select(ToCell).ToList();
     // Deferred — only extracted/scanned if the cleaned base reads degenerately (the fallback path).
     var fallbacks = new[]
     {
-        PgmStudio.Minecraft.LayerExtractors.Y0(chunks).Select(ToCell),
-        PgmStudio.Minecraft.LayerExtractors.Bedrock(chunks).Select(ToCell),
+        PgmStudio.Minecraft.Anvil.LayerExtractors.Y0(chunks).Select(ToCell),
+        PgmStudio.Minecraft.Anvil.LayerExtractors.Bedrock(chunks).Select(ToCell),
     };
     var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleaned(baseCells, fallbacks);
 
@@ -1461,13 +1463,13 @@ static int RunCleanBaseRender(string regionDir, string outSvg)
 static int RunIslandStudy(string regionDir, string outJson, double tolerance)
 {
     var chunks = Directory.GetFiles(regionDir, "*.mca")
-        .SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks).ToList();
-    static (int, int, int) ToCell(PgmStudio.Minecraft.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
-    var baseCells = PgmStudio.Minecraft.LayerExtractors.CleanBase(chunks).Select(ToCell).ToList();
+        .SelectMany(PgmStudio.Minecraft.Anvil.AnvilRegion.ReadChunks).ToList();
+    static (int, int, int) ToCell(PgmStudio.Minecraft.Anvil.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
+    var baseCells = PgmStudio.Minecraft.Anvil.LayerExtractors.CleanBase(chunks).Select(ToCell).ToList();
     var fallbacks = new[]
     {
-        PgmStudio.Minecraft.LayerExtractors.Y0(chunks).Select(ToCell),
-        PgmStudio.Minecraft.LayerExtractors.Bedrock(chunks).Select(ToCell),
+        PgmStudio.Minecraft.Anvil.LayerExtractors.Y0(chunks).Select(ToCell),
+        PgmStudio.Minecraft.Anvil.LayerExtractors.Bedrock(chunks).Select(ToCell),
     };
     var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleaned(baseCells, fallbacks);
 
@@ -1517,13 +1519,13 @@ static int RunIslandStudy(string regionDir, string outJson, double tolerance)
 static int RunSkeletonStudy(string regionDir, string mapXml, string outJson, double tolerance)
 {
     var chunks = Directory.GetFiles(regionDir, "*.mca")
-        .SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks).ToList();
-    static (int, int, int) ToCell(PgmStudio.Minecraft.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
-    var baseCells = PgmStudio.Minecraft.LayerExtractors.CleanBase(chunks).Select(ToCell).ToList();
+        .SelectMany(PgmStudio.Minecraft.Anvil.AnvilRegion.ReadChunks).ToList();
+    static (int, int, int) ToCell(PgmStudio.Minecraft.Anvil.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
+    var baseCells = PgmStudio.Minecraft.Anvil.LayerExtractors.CleanBase(chunks).Select(ToCell).ToList();
     var fallbacks = new[]
     {
-        PgmStudio.Minecraft.LayerExtractors.Y0(chunks).Select(ToCell),
-        PgmStudio.Minecraft.LayerExtractors.Bedrock(chunks).Select(ToCell),
+        PgmStudio.Minecraft.Anvil.LayerExtractors.Y0(chunks).Select(ToCell),
+        PgmStudio.Minecraft.Anvil.LayerExtractors.Bedrock(chunks).Select(ToCell),
     };
     var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleaned(baseCells, fallbacks);
 
@@ -1683,7 +1685,7 @@ static Dictionary<string, object?> Semantic(PgmStudio.Domain.MapXml m) => new()
 
 readonly record struct SuggestEval(
     int Truth, int Tp, int Fp, int Fn, int ColorOk, int Clusters,
-    List<PgmStudio.Minecraft.MonumentSuggestion> Sites);
+    List<PgmStudio.Minecraft.Suggest.MonumentSuggestion> Sites);
 
 // Parquet shape for monument_slices.parquet (snake_case columns, one row per cell).
 // ── --scan-out parquet rows (column names match the importer + the reference pipeline output) ────────────
@@ -1797,7 +1799,7 @@ sealed class MonumentSliceRow
     [System.Text.Json.Serialization.JsonPropertyName("entity_ids")] public string? EntityIds { get; set; }
     [System.Text.Json.Serialization.JsonPropertyName("entity_nbt")] public string? EntityNbt { get; set; }
 
-    public static MonumentSliceRow From(PgmStudio.Minecraft.MonumentSliceCell c) => new()
+    public static MonumentSliceRow From(PgmStudio.Minecraft.Anvil.MonumentSliceCell c) => new()
     {
         Map = c.MapSlug, WoolId = c.WoolId, WoolColor = c.WoolColor, MonumentId = c.MonumentId, Team = c.Team,
         CenterX = c.CenterX, CenterY = c.CenterY, CenterZ = c.CenterZ,

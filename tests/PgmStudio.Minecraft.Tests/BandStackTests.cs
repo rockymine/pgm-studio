@@ -1,3 +1,6 @@
+using PgmStudio.Minecraft.Painting;
+using PgmStudio.Minecraft.Houses;
+using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>

@@ -1,4 +1,9 @@
 using PgmStudio.Domain;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Houses;
+using PgmStudio.Minecraft.Painting;
+using PgmStudio.Minecraft.Palette;
+using PgmStudio.Minecraft.Stamping;
 
 namespace PgmStudio.Minecraft.Tests;
 

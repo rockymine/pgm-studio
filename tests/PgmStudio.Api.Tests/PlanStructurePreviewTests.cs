@@ -4,6 +4,8 @@ using PgmStudio.Export;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Api.Tests;
 

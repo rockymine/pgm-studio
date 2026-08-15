@@ -10,6 +10,9 @@ using PgmStudio.Pgm.Sketch;
 namespace PgmStudio.Export.Tests;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
+using PgmStudio.Minecraft.Stamping;
 
 /// <summary>
 /// End-to-end DTM: a plan carrying a destroyable marker → world + map.xml. The claim worth proving is OB8 —

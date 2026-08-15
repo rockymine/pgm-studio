@@ -1,5 +1,7 @@
 using PgmStudio.Minecraft;
 using PgmStudio.Geom.Render;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.RoundTrip;
 

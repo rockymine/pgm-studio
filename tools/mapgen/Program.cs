@@ -13,6 +13,10 @@ using PgmStudio.Pgm.Render;
 using PgmStudio.Pgm.Sketch;
 using Dict = System.Collections.Generic.Dictionary<string, object?>;
 using PgmStudio.Geom;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Houses;
+using PgmStudio.Minecraft.Painting;
+using PgmStudio.Minecraft.Palette;
 
 // mapgen: build a whole map from one JSON spec, through the export path a map is really built through.
 //

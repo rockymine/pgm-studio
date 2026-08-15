@@ -1,6 +1,9 @@
 using PgmStudio.Contracts;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Views;
+using PgmStudio.Minecraft.Painting;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Api.Services;
 

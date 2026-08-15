@@ -1,4 +1,5 @@
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Painting;
 
 namespace PgmStudio.Minecraft.Tests;
 

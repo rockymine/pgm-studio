@@ -5202,6 +5202,24 @@ these are the ones that shipped a map that could not be played as intended, and 
   method the class has not had for some time, now cites `Check`. It matters ahead of the bucketed audit work:
   four buckets add rules to this class, and an agent choosing a verb from four will not choose the same one
   twice.
+- **`Minecraft` is folded, by what a file is for (A7).** Every other project had been sub-foldered by concern
+  (`Pgm`, `Analysis`, `Data` — `A5`/`A6`); `Minecraft` had grown to 74 files with **58 flat at its root** and
+  only `Dressing/`, `Render/` and `Views/` broken out. Six folders now, and the split is by purpose rather than
+  by type: **`Anvil/`** (10) reads and writes the world on disk — regions, chunks, `level.dat`, the provenance
+  sidecar, the layer and feature extractors; **`Palette/`** (11) is the block vocabulary — ids, families,
+  geometry, roles, variants, recipes, material names; **`Stamping/`** (16) writes structures into a world —
+  rooms, cubes, objectives, chests, signs, markers, and the claim each records; **`Houses/`** (10) is the
+  building family, large enough to be its own subject; **`Painting/`** (8) the terrain painter and its
+  profile/theme family; **`Suggest/`** (2) reads a built world back and proposes monuments and cores.
+
+  Folders-only and behaviour-preserving, the same discipline as `A5`/`A6`: namespaces match folders, and the
+  whole diff is namespace lines, `using` lines and four qualified names that had spelled a namespace out. All
+  2,413 tests green.
+
+  **`Palette/`, not `Blocks/`, and the reason is worth keeping.** `Blocks.cs` declares a class called `Blocks`,
+  and a namespace of that name shadows it — `Blocks.Gravel` stops compiling the moment
+  `PgmStudio.Minecraft.Blocks` exists. A folder name *is* a namespace, so it competes with every type name in
+  the project, and the compiler resolves the namespace first.
 - **A plan states its build ceiling instead of deriving one (B105).** `PlanGlobals.Headroom` was a slack over
   `Surface`, and `PlanCompiler` turned the pair into the map's only build cap with
   `plan.Globals.Surface + plan.Globals.Headroom`. Both halves of that sum are the plan's **flat nominal**

@@ -1,5 +1,6 @@
 using PgmStudio.Domain;
 using PgmStudio.Geom.Algorithms;
+using PgmStudio.Minecraft.Houses;
 
 namespace PgmStudio.Minecraft.Tests;
 

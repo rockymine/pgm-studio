@@ -5,6 +5,8 @@ using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Minecraft.Houses;
+using PgmStudio.Minecraft.Stamping;
 
 namespace PgmStudio.Api.Services;
 

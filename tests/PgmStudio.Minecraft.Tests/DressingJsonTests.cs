@@ -1,5 +1,8 @@
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft.Dressing;
+using PgmStudio.Minecraft.Houses;
+using PgmStudio.Minecraft.Painting;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Minecraft.Tests;
 

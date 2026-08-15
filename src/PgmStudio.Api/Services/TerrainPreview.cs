@@ -6,6 +6,10 @@ using PgmStudio.Minecraft.Views;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Painting;
+using PgmStudio.Minecraft.Palette;
+using PgmStudio.Minecraft.Stamping;
 
 namespace PgmStudio.Api.Services;
 

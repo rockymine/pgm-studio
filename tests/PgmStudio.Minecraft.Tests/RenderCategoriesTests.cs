@@ -1,3 +1,5 @@
+using PgmStudio.Minecraft.Palette;
+using PgmStudio.Minecraft.Anvil;
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>

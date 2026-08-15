@@ -66,7 +66,7 @@ gate's point→component resolver (`LabelAt`) already searches a radius-3 neighb
   check-then-mutate race — but the mutated fields are not the fields the gate certified, and
   sub-block movement is far inside the resolver's slack.
 - *Enforced:* `Analysis/Playability/Traversability.cs` (`NavigationPoints`, `LabelAt`),
-  `Minecraft/PositionSnap.cs`.
+  `Minecraft/Stamping/PositionSnap.cs`.
 
 ### A destroyable/core is a navigation point, but never gates traversability
 `Traversability.NavigationPoints` reads destroyable and core region centres alongside spawns and

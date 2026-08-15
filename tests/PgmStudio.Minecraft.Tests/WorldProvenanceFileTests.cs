@@ -1,3 +1,4 @@
+using PgmStudio.Minecraft.Anvil;
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>The sidecar that lets a recorded provenance survive a round trip through disk (B133) — written

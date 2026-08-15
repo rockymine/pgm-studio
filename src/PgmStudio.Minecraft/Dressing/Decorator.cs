@@ -4,6 +4,11 @@ using PgmStudio.Geom.Algorithms;
 // Geom's everywhere it says one.
 using RoomDoor = PgmStudio.Domain.RoomDoor;
 using RoomEdge = PgmStudio.Domain.RoomEdge;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Houses;
+using PgmStudio.Minecraft.Stamping;
+using PgmStudio.Minecraft.Painting;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Minecraft.Dressing;
 

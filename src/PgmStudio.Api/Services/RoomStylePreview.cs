@@ -3,6 +3,10 @@ using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Views;
 using PgmStudio.Geom;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Houses;
+using PgmStudio.Minecraft.Palette;
+using PgmStudio.Minecraft.Stamping;
 
 namespace PgmStudio.Api.Services;
 

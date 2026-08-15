@@ -1,4 +1,7 @@
 using PgmStudio.Geom.Algorithms;
+using PgmStudio.Minecraft.Painting;
+using PgmStudio.Minecraft.Palette;
+using PgmStudio.Minecraft.Stamping;
 
 namespace PgmStudio.Minecraft.Tests;
 

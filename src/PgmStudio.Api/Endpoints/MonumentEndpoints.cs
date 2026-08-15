@@ -13,6 +13,7 @@ using PgmStudio.Pgm;
 namespace PgmStudio.Api.Endpoints;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Minecraft.Suggest;
 
 /// <summary>
 /// GET /api/map/{slug}/monument-suggestions?box=x0,y0,z0,x1,y1,z1[&amp;style=pedestal,label,cap] — score the

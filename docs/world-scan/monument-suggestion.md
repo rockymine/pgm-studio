@@ -2,7 +2,7 @@
 
 *Spec — the authoring-flow **"which monument style? + box"** extractor: from a world, a box the author
 draws, and a declared monument style, suggest monument block positions with inferred wool colours, for
-the author to confirm. Status: **backend complete** (`src/PgmStudio.Minecraft/MonumentSuggester.cs`);
+the author to confirm. Status: **backend complete** (`src/PgmStudio.Minecraft/Suggest/MonumentSuggester.cs`);
 UI not built — this is the contract for the **Monuments** step of the Wools activity (`../pgm/new-map-authoring.md` §Wools). The pattern study behind it (no code) is `docs/world-scan/monument-patterns.md`
 (scripts in `scripts/`).*
 

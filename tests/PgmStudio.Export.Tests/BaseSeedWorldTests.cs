@@ -3,6 +3,9 @@ using PgmStudio.Export;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
+using PgmStudio.Minecraft.Stamping;
 
 namespace PgmStudio.Export.Tests;
 

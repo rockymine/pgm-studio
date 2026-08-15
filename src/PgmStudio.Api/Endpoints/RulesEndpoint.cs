@@ -5,6 +5,7 @@ using PgmStudio.Domain;
 using PgmStudio.Export;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Plan;
+using PgmStudio.Minecraft.Houses;
 
 namespace PgmStudio.Api.Endpoints;
 

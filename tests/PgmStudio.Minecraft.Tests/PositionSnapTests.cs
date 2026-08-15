@@ -1,5 +1,6 @@
 using PgmStudio.Domain;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Stamping;
 
 namespace PgmStudio.Minecraft.Tests;
 
