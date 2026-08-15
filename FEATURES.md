@@ -3813,6 +3813,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   test cannot stand in for — a seal passes happily on a roof with a hole in its body. Both `Ell()` fixtures had
   two **parallel** ridges and therefore no junction to test, which is how all four shipped unnoticed (`G182`);
   `EllMarch`/`EllProject` are the ones with crossing ridges, and `G186` redrew the rest.
+- **Block geometry is written in one place, and an arch is one shape (B193).** In this format a block's
+  metadata *is* its geometry — two bits of facing and an upside-down flag on a stair, one bit of half on a slab
+  — so turning one is arithmetic, and it was written out at five sites: the corner-stair expression three times
+  inside `HouseWindows.cs` alone, twice with the same explanatory comment beside it, plus the upper slab as a
+  band's lintel and again as a door head's fill. `BlockGeometry` is the writing half of what `Views/BlockShapes`
+  already read back to draw, and **nothing in it is named for what it is used on**: it sits beside `Blocks`, so
+  a terrain material banding a wall in upper slabs reaches the same vocabulary an opening does. The
+  `WindowForm.Arched` docstring had said outright that it was `DoorHeadForm.Arched` "doing its trick for a
+  window instead of a doorway"; both now go through one `Arch`, and the difference between them is the one
+  thing that is genuinely different — the `ArchSpan` across the middle, a beam where a head carries a wall and
+  open where a window has no wall to carry. Nine tests check the writer against the reader rather than against
+  a number, so a stair turned toward +x has to come back as one whose raised half draws on the right.
 - **A wing states its own storeys, roof, ridge and joint from a document (G184).** Six fields existed on the
   model and none reached an author: a `HouseProp` held two corners per wing, so every authored building
   marched, the second gable was unreachable, and an author wanting a real valley had to be told to draw the

@@ -580,6 +580,19 @@ keeps its whole row, and a hall is entered at the end anyway. Unset, the front i
 a building with nothing to say about it has always fronted on. A porch's own edge outranks it, since a porch
 names the wall it fronts; a frame's doors outrank both.
 
+**An arch is two upside-down stairs in the top corners of an opening, and one shape serves both holes.** Over
+a doorway the middle between them is spanned — a beam or an upside-down slab reading as one line with the
+raised halves either side of it — because the head is carrying a wall. Over a window it stays open, because
+there is no wall there to carry and the light runs the opening's width. That **span** is the whole of the
+difference, and `Arch` is the one place either is laid.
+
+Which way each stair faces is `BlockGeometry`, and nothing in it is named for what it is used on. A block's
+metadata *is* its geometry in this format — two bits of facing and an upside-down flag on a stair, one bit of
+half on a slab — so turning one is arithmetic, and arithmetic written at a call site is arithmetic written
+again at the next. It is the writing half of what `Views/BlockShapes` reads back to draw, and it sits beside
+`Blocks` rather than beside a window, so a terrain material banding a wall in upper slabs reaches the same
+vocabulary an opening does.
+
 Neither is the **head**, the beam that carries the wall over the opening. An arched one puts an upside-down
 stair in each corner of the doorway's top course, raised half outward so the quarter each is missing faces
 into the opening and the two of them round its top off — the upper half of a stair lattice doing the same

@@ -166,9 +166,8 @@ public sealed record DoorHeadStyle
 
     public int FillData { get; init; }
 
-    /// <summary>The narrowest opening a head is worth laying in: two corners and nothing else is already the
-    /// whole of it, and one cell cannot hold two corners.</summary>
-    public const int LeastWidth = 2;
+    /// <inheritdoc cref="Arch.LeastWidth"/>
+    public const int LeastWidth = Arch.LeastWidth;
 
     /// <summary>The shortest opening one may be laid in — under three courses the head would take the last of
     /// the clear and leave a doorway nobody walks through.</summary>
@@ -180,24 +179,49 @@ public sealed record DoorHeadStyle
 
     /// <summary>The block one cell of the head takes: a stair turned outward at each end, and the fill
     /// between. <paramref name="step"/> counts from the opening's low end.</summary>
-    public (int Id, int Data) Piece(bool alongX, int step, int width)
-    {
-        if (step > 0 && step < width - 1)
-            return Fill == DoorHeadFill.Solid
-                ? (FillBlock, FillData & 0xF)
-                : (FillBlock, (FillData & 0x7) | Blocks.SlabUpperHalf);
+    public (int Id, int Data) Piece(bool alongX, int step, int width) =>
+        Arch.Piece(alongX, step, width, Block, Spans);
 
-        // A stair's whole data value is geometry — two bits of facing and the upside-down flag — so there is no
-        // variant nibble to carry and <see cref="Data"/> is the fill's alone. Which wood a stair is, is which
-        // block it is.
-        var toward = alongX
-            ? step == 0 ? Blocks.StairWest : Blocks.StairEast
-            : step == 0 ? Blocks.StairNorth : Blocks.StairSouth;
-        return (Block, toward | Blocks.StairUpsideDown);
-    }
+    /// <summary>What this head puts across the middle of an opening wider than its two corners — a beam, since
+    /// a door head is carrying a wall over a doorway and has something to do there.</summary>
+    private ArchSpan Spans => Fill == DoorHeadFill.Solid
+        ? new ArchSpan(FillBlock, FillData & 0xF)
+        : new ArchSpan(FillBlock, BlockGeometry.Slab(FillData, upper: true));
 }
 
-/// <summary>One window's place in a wall: the <see cref="Wall"/> it is cut through, the low along-axis block
+/// <summary>What an arch lays across the middle of an opening wider than its two corners, or
+/// <see cref="Open"/> where it lays nothing.</summary>
+public readonly record struct ArchSpan(int Id, int Data)
+{
+    /// <summary>Nothing between the corners — the middle of the head stays light.</summary>
+    public static ArchSpan Open { get; } = new(Blocks.Air, 0);
+}
+
+/// <summary>
+/// <b>An arch is two upside-down stairs in the top corners of an opening</b>, each turned outward so the
+/// quarter it is missing faces into the hole, and whatever the head puts between them.
+///
+/// <para>One shape, two uses, and they differ in exactly one thing. Over a <b>doorway</b> the arch is carrying
+/// a wall, so the middle is spanned — a beam or an upside-down slab reading as one line with the raised halves
+/// either side of it. Over a <b>window</b> there is no wall to carry, so the middle stays open and the light
+/// runs the width of the opening. That difference is the <see cref="ArchSpan"/> and it is the whole of the
+/// difference; everything else about the two was written twice.</para>
+/// </summary>
+public static class Arch
+{
+    /// <summary>The narrowest opening an arch is worth laying in: two corners are already the whole of it, and
+    /// one cell cannot hold two corners.</summary>
+    public const int LeastWidth = 2;
+
+    /// <summary>The block one cell of an arch takes. <paramref name="step"/> counts from the opening's low
+    /// end, and everything that is not a corner is the span.</summary>
+    public static (int Id, int Data) Piece(bool alongX, int step, int width, int cornerBlock, ArchSpan span)
+        => step > 0 && step < width - 1
+            ? (span.Id, span.Data)
+            : (cornerBlock, BlockGeometry.CornerStair(alongX, atLowEnd: step == 0));
+}
+
+/// <summary>One window's place in a wall:/// <summary>One window's place in a wall: the <see cref="Wall"/> it is cut through, the low along-axis block
 /// coordinate along that run (x for a wall facing ±z, z for one facing ±x), and its size in blocks.
 /// <see cref="Sill"/> counts courses up from the floor, so it is the same number a style asked for. The seat
 /// carries the run rather than a facing, so it knows the line its wall stands on and needs no box to be cut
@@ -345,37 +369,27 @@ public static class HouseWindows
         switch (style.Form)
         {
             case WindowForm.StairLattice:
-            {
                 // Each stair keeps its raised half on the outside of the 2×2, so the quarter it is missing
-                // points at the group's centre and the four missing quarters meet there as the light.
-                var toward = alongX
-                    ? step == 0 ? Blocks.StairWest : Blocks.StairEast
-                    : step == 0 ? Blocks.StairNorth : Blocks.StairSouth;
-                // The upper pair hang their step below them, which is what turns the light from a slot into a
+                // points at the group's centre and the four missing quarters meet there as the light. The
+                // upper pair hang their step below them, which is what turns the light from a slot into a
                 // diamond: upright stairs alone would leave the gap open all the way to the lintel.
-                return (style.Block, course == 0 ? toward : toward | Blocks.StairUpsideDown);
-            }
+                return (style.Block,
+                    BlockGeometry.CornerStair(alongX, atLowEnd: step == 0, upsideDown: course > 0));
             case WindowForm.SlabBanded:
                 return course switch
                 {
-                    0 => (style.Block, variant),                              // the sill
-                    2 => (style.Block, variant | Blocks.SlabUpperHalf),       // the lintel
+                    0 => (style.Block, BlockGeometry.Slab(variant, upper: false)),   // the sill
+                    2 => (style.Block, BlockGeometry.Slab(variant, upper: true)),    // the lintel
                     _ => (Blocks.Air, 0),
                 };
             case WindowForm.Arched:
-            {
-                // Only the top course carries anything, and only at its two ends: the arch is the corners
-                // rounded off and everything under them is the light. A wider opening leaves the middle of the
-                // head open rather than spanning it — a window is not carrying a wall over a doorway, so there
-                // is nothing there for a beam to do.
-                if (course != seat.Height - 1 || (step > 0 && step < seat.Width - 1)) return (Blocks.Air, 0);
-                var facing = alongX
-                    ? step == 0 ? Blocks.StairWest : Blocks.StairEast
-                    : step == 0 ? Blocks.StairNorth : Blocks.StairSouth;
-                // A stair's whole data value is geometry — two bits of facing and the upside-down flag — so
-                // there is no variant nibble to carry, and which wood it is, is which block it is.
-                return (style.Block, facing | Blocks.StairUpsideDown);
-            }
+                // Only the top course carries anything: the arch is the corners rounded off and everything
+                // under them is the light. Its span is Open, because a window is not carrying a wall over a
+                // doorway and there is nothing there for a beam to do — which is the one way it differs from
+                // the same arch over a door.
+                return course != seat.Height - 1
+                    ? (Blocks.Air, 0)
+                    : Arch.Piece(alongX, step, seat.Width, style.Block, ArchSpan.Open);
             case WindowForm.Pane:
                 return (style.Block, style.Data & 0xF);
             default:
