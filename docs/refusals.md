@@ -79,7 +79,7 @@ a rule that changed its name between the two would be two rules.
 | `HJ*` | how two wings meet | `Minecraft/WingJoints.cs` → `WingJointRules` |
 | `DR-*` | a dressing document that will not parse | `Minecraft/Dressing/DressingJson.cs` |
 | `EX*` | the export gate's own | `Export/MapExportComposer.cs` → `ExportRules` |
-| `RQ*` | the request itself — a document that could not be read, and a fault that is the studio's own | `Api/Endpoints/Refusals.cs` → `RequestRules` |
+| `RQ*` | the request itself — a document that could not be read, a field that went unread, and a fault that is the studio's own | `Api/Endpoints/Refusals.cs` → `RequestRules` |
 | `CT` `SP` `WL` `LN` `HB` `FR` `MD` `BZ` `EL` `G*` `PC-*` `ST*` | the layout-rules checklist, cited by the plan lint and the producibility read | `docs/generator/rules.md` |
 
 The structural plan rules, in full:
@@ -160,6 +160,19 @@ the reporting rather than in what went wrong.
 A **missing field** is the same rule asked earlier: `RequiredFields` refuses anything a request DTO declares
 non-nullable and the body did not supply, naming every one rather than the first, before any handler runs. Null
 alone counts — an empty list is a value and a blank name is a fault about the name, which is a gate's to judge.
+
+**`RQ3` — a field went unread.** The document carried a property the reader had nowhere to keep. It is a
+**complaint**, so it rides on the success response under `warnings` and the work still happens: the readers
+upgrade stored documents in place and carry retired names forward, so a stored document legitimately holds
+properties the current record does not, and refusing an unknown one would refuse every snapshot written before
+the last shape change. What is left *after* the upgrade has run — a name no record has and no upgrade claimed
+— is the honest remainder, and that is what is reported, by path (`roof.pich`, `wings[1].ptch`).
+
+The walk goes down the **value** rather than the declared type, so a polymorphic member is checked against
+what it actually became. Two things are deliberately exempt, and both are false positives that would have made
+the warning worthless: a dictionary's keys, which are the author's words rather than the record's — a theme
+names its own buckets — and the **type discriminator**, which the serializer reads to choose the very type
+being walked and which no concrete record carries a property for.
 
 **`RQ2` — the fault is the studio's own.** Something escaped an endpoint that no gate refused. It stays a
 **500**, because dressing a defect as a bad request sends an author hunting a mistake they did not make; what

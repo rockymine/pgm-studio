@@ -46,12 +46,14 @@ public sealed record ThemeImportRequest(string? Name, string ThemeJson);
 /// <summary>Both views of one material (POST /api/terrain/material-preview): <paramref name="Plan"/> is one
 /// course seen from above — where a voronoi, a noise field and a wall run vary — and <paramref name="Section"/>
 /// is one row of columns cut open downward, the axis a layer stack varies along.</summary>
-public sealed record MaterialPreviewDto(string Plan, string Section);
+public sealed record MaterialPreviewDto(string Plan, string Section,
+    IReadOnlyList<FindingDto>? Warnings = null);
 
 /// <summary>A theme previewed (POST /api/terrain/theme-preview): <paramref name="Section"/> is a sample plateau
 /// painted with the theme and cut open — the buckets in their geometry — and <paramref name="Buckets"/> holds one
 /// top-down swatch per themeable bucket, keyed by <see cref="ThemeBuckets"/>.</summary>
-public sealed record ThemePreviewDto(string Section, IReadOnlyDictionary<string, string> Buckets);
+public sealed record ThemePreviewDto(string Section, IReadOnlyDictionary<string, string> Buckets,
+    IReadOnlyList<FindingDto>? Warnings = null);
 
 /// <summary>Why a style could not be forgotten (DELETE /api/styles/{id}, 409): the themes and room styles still
 /// binding it. A style is shared, so the refusal names what would break instead of surfacing a foreign-key
@@ -184,7 +186,8 @@ public sealed record RoomStyleSaveRequest(
 /// plane drawn at the scale of the pieces in it. A library <em>card</em> carries the section alone — the
 /// isometric is tens of kilobytes, which is nothing for the one style an editor has open and megabytes for a
 /// grid of them.</summary>
-public sealed record RoomStylePreviewDto(string Plan, string Section, string Iso, string Cutaway);
+public sealed record RoomStylePreviewDto(string Plan, string Section, string Iso, string Cutaway,
+    IReadOnlyList<FindingDto>? Warnings = null);
 
 /// <summary>One field of a material kind (<c>GET /api/terrain/patterns</c>), as the painter's deserializer
 /// will accept it. <paramref name="Type"/> is a wire type word — <c>int</c>, <c>bool</c>, <c>material</c>,

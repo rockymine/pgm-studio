@@ -41,6 +41,21 @@ public static class HouseStyleJson
         return JsonSerializer.Deserialize<HouseStyle>(node, Options)!;
     }
 
+    /// <summary>Read a style and say what of it went unread. The upgrade above removes every retired name it
+    /// carries forward, so anything still unmatched afterwards is a name no version of this record ever had —
+    /// a typo, or a field from a document this is not. Reported rather than refused: see
+    /// <see cref="PgmStudio.Domain.DocumentShape"/>.</summary>
+    public static HouseStyle Deserialize(string json, out IReadOnlyList<string> unread)
+    {
+        if (string.IsNullOrWhiteSpace(json)) throw new JsonException("no house style JSON was posted");
+        var node = JsonNode.Parse(json) ?? throw new JsonException("empty house style JSON");
+        Upgrade(node);
+        RefuseStatedNulls(node, typeof(HouseStyle), "");
+        var style = JsonSerializer.Deserialize<HouseStyle>(node, Options)!;
+        unread = PgmStudio.Domain.DocumentShape.Unread(node, style);
+        return style;
+    }
+
     /// <summary>
     /// Refuse a part written as <c>null</c> where the record cannot hold one.
     ///

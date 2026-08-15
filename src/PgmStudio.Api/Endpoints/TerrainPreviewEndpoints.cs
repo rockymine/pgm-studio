@@ -72,7 +72,11 @@ public sealed class MaterialPreviewEndpoint : EndpointWithoutRequest
     public override async Task HandleAsync(CancellationToken ct)
     {
         var json = await RawBody.ReadAsync(HttpContext, ct);
-        try { await Send.OkAsync(StylePreview.Views(json), ct); }
+        try
+        {
+            var material = TerrainThemeJson.DeserializeMaterial(json, out var unread);
+            await Send.OkAsync(StylePreview.Views(material) with { Warnings = Refusals.Unread(unread) }, ct);
+        }
         catch (JsonException ex) { await Refusals.UnreadableAsync(HttpContext, "invalid material JSON", ex, ct); }
     }
 }
@@ -87,7 +91,11 @@ public sealed class ThemePreviewEndpoint : EndpointWithoutRequest
     public override async Task HandleAsync(CancellationToken ct)
     {
         var json = await RawBody.ReadAsync(HttpContext, ct);
-        try { await Send.OkAsync(StylePreview.ThemeViews(json), ct); }
+        try
+        {
+            var theme = TerrainThemeJson.Deserialize(json, out var unread);
+            await Send.OkAsync(StylePreview.ThemeViews(theme) with { Warnings = Refusals.Unread(unread) }, ct);
+        }
         catch (JsonException ex) { await Refusals.UnreadableAsync(HttpContext, "invalid theme JSON", ex, ct); }
     }
 }

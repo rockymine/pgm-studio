@@ -56,6 +56,18 @@ internal static class Refusals
             [new Finding(RequestRules.Unreadable, fault.Message,
                 Field: (fault as DocumentFault)?.Field)], ct);
 
+    /// <summary>The fields a reader had nowhere to keep, as complaints to ride on a success response under
+    /// <c>warnings</c>. Null when the document was read whole, so a response carries the field only when there
+    /// is something in it to say.</summary>
+    public static IReadOnlyList<FindingDto>? Unread(IReadOnlyList<string> fields) =>
+        fields.Count == 0
+            ? null
+            : Dtos(fields.Select(field => new Finding(
+                RequestRules.Unread,
+                $"field '{field}' was not read — no part of this document has that name, and no upgrade "
+                + "claimed it, so whatever it was meant to say was not said",
+                Severity.Complaint, Field: field)));
+
     /// <summary>The whole gate in one line: <c>if (await Refusals.StopAsync(…)) return;</c>. True when the
     /// findings refuse and the response has been written; false when there was nothing to stop for, complaints
     /// included.
@@ -92,4 +104,11 @@ internal static class RequestRules
     /// every other refusal arrives in rather than a .NET stack trace, and the trace goes to the log where it
     /// belongs.</summary>
     public const string Unhandled = "RQ2";
+
+    /// <summary><b>A complaint, never a refusal.</b> The document carried a property the reader had nowhere to
+    /// keep — a typo, or a field from a document this is not. It rides on the success response under
+    /// <c>warnings</c> because the work did succeed and the rest of the document was read; refusing it would
+    /// refuse every snapshot written before the last shape change, since a stored document legitimately holds
+    /// retired names an upgrade carries forward. See <see cref="Domain.DocumentShape"/>.</summary>
+    public const string Unread = "RQ3";
 }

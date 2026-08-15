@@ -27,6 +27,16 @@ public static class TerrainThemeJson
     public static TerrainTheme Deserialize(string json)
         => JsonSerializer.Deserialize<TerrainTheme>(Upgraded(json), Options)!;
 
+    /// <summary>Read a theme and say what of it went unread — see
+    /// <see cref="PgmStudio.Domain.DocumentShape"/> for why that is a complaint and not a refusal.</summary>
+    public static TerrainTheme Deserialize(string json, out IReadOnlyList<string> unread)
+    {
+        var node = Upgraded(json);
+        var theme = JsonSerializer.Deserialize<TerrainTheme>(node, Options)!;
+        unread = PgmStudio.Domain.DocumentShape.Unread(node, theme);
+        return theme;
+    }
+
     private static JsonNode Upgraded(string json)
     {
         // A document that is absent reads the same way to an author as one that is empty, and both are the
@@ -119,6 +129,19 @@ public static class TerrainThemeJson
     {
         try { return JsonSerializer.Deserialize<TerrainMaterial>(Upgraded(json), Options)!; }
         catch (NotSupportedException ex) { throw new JsonException(KindFault, ex); }
+    }
+
+    /// <summary>Read one material and say what of it went unread. A material is polymorphic, so the walk goes
+    /// down the value rather than the declared type — a misspelled knob on a voronoi is checked against the
+    /// voronoi record, which a walk over <see cref="TerrainMaterial"/> alone could not do.</summary>
+    public static TerrainMaterial DeserializeMaterial(string json, out IReadOnlyList<string> unread)
+    {
+        var node = Upgraded(json);
+        TerrainMaterial material;
+        try { material = JsonSerializer.Deserialize<TerrainMaterial>(node, Options)!; }
+        catch (NotSupportedException ex) { throw new JsonException(KindFault, ex); }
+        unread = PgmStudio.Domain.DocumentShape.Unread(node, material);
+        return material;
     }
 
     /// <summary>What a material whose <c>kind</c> cannot be resolved is refused with. Named once so the

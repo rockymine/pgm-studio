@@ -3928,6 +3928,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   parse throws, because it cannot carry on to collect a second fault, and carries its finding so the gate above
   answers in the shape anyway; `RoomFrames.ResolveRoom` answers a room *or* a refusal, because a resolve
   produces a value and stops at the first thing making that impossible where a gate collects everything wrong.
+- **A field the reader could not use is reported (B214).** A misspelled property was dropped by the
+  deserializer and the request answered 200, so a style posted under a wrapper it does not have previewed the
+  defaults and read as working. `DocumentShape` walks the parsed document beside the **value** it deserialized
+  to — so a polymorphic member is checked against what it actually became — and names every property nothing
+  could keep, by path (`roof.pich`, `wings[1].ptch`). It is `RQ3`, a **complaint** on the success response
+  under `warnings`, never a refusal: the readers carry retired names forward and `Remove` each one they
+  consume, so what is left after an upgrade is the honest remainder, and refusing unknown properties outright
+  would refuse every snapshot written before the last shape change. Two exemptions keep it worth reading — a
+  dictionary's keys are the author's words, and the type discriminator is the serializer's, not the record's.
+  On `material-preview`, `theme-preview` and `room-styles/preview-snapshot`.
+
 - **The API boundary keeps the shape its gates already kept (B214).** Nine endpoints answered a raw .NET
   stack trace to a body they could not read — one of them MariaDB's own `Column 'name' cannot be null` —
   because every catch named `JsonException` alone while `JsonNode.Parse` raises `ArgumentNullException` on a
