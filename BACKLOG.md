@@ -337,6 +337,10 @@ are Edit-specific. Full canvas spec: `docs/client/canvas-interaction.md`.
   to skip it: it concluded the ratio fault is board *shape* rather than goal placement, which is a claim about
   what the number means and cannot be checked without knowing how it was taken.
 
+  **The flow read is already in the right unit, which narrows this.** `G127`'s prototype measures in proxy
+  cells over the walkable mask (×5 = blocks) — `WL7`'s unit, not the corpus band's. So the two *derivations*
+  agree and it is bucket 3's authored thresholds that stand alone in straight-line blocks.
+
   *found reviewing dispatch readiness, 2026-08-15 · `Evaluate/Terms/ObjectiveTerms.cs:5-10` ·
   `Geom/Cells.cs:48,77` · bucket 3's `B175`/`B179`/`B188`.*
 
@@ -2169,6 +2173,12 @@ What stays here is the concrete non-design work on *imported* maps (island detec
   (The corridor-width half was reconciled — `LandAdjacent` now accepts Narrow seams, matching `Components`.)
   Pick one rule for the overlap case and add a test; needs per-node surface carried into the fanned graph and
   validation against the traversability harness (`tools/PgmStudio.RoundTrip --traversability`).
+
+  **It gates route enumeration, which raises it from a consistency chore.** `G127`'s flow read counts attack
+  routes at piece fidelity — four on `p30-s374`, from two frontline legs × two wool doors — and a route count
+  is an enumeration over piece adjacency. While the two graphs disagree about what "adjacent" means for an
+  overlap, the count depends on which one was asked, and nothing at the call site would say so. Whichever
+  rule is picked, the route reader must name the graph it read.
 - [ ] **G2 — Protection-aware reachability port (memory stage S4).** `MapValidity` (every-wool-needs-a-monument)
   and the `NVAL` export gate (`PreflightEndpoint`) already shipped (`FEATURES.md`). The open slice is to **port
   protection-aware reachability** from `scripts/generator/validate_play.py` to C# `Analysis/Playability`:

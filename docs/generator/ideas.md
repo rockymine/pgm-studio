@@ -134,6 +134,42 @@ landed, the rest is the idea.
   > gives the composer vocabulary the distinction it currently cannot make: a straight approach against a
   > space-packing switchback against a defensible landing.
 
+  **The flow read exists as a prototype, and it settles three things about this entry** ("Flow in generated
+  boards", 210 boards from `Composer.ComposeStages` with `PlanBoxAnnotation.Apply`, hub bodies and wool
+  families off `StructureSummary.Derive`; the family census widened to 5200 boards / 9154 wools).
+
+  *It confirms the term order and supplies the numbers.* **Redundancy** reads **zero on 97% of boards** —
+  the only families bringing a second door onto the hub are U (0.79%), H (0.69%) and clamp (0.38%), and on
+  those the two doors sit **3 cells apart on every board in the corpus**, so one barrier covers both. The
+  term measures nothing until the spacing and the sampling weight move. **Spread** has a live distribution
+  today: over the 93 boards whose spawn→wool crossing has two ways, the long way is a median **1.40×** the
+  short, 22 exactly equal. `match-flow.md` §9 carries this.
+
+  *It enumerates routes at **piece** fidelity, not at the junction/lane substrate above — and that is the
+  open question.* Four attack routes on `p30-s374` (`band → front-t2 → front-t1 → hub-t1 → b-t2 → b-t1 →
+  b-t4 → b-room` at 15 cells, and three more at 18, 23 and 26) come from two forks multiplying: two
+  frontline legs × two doors into the wool. The count is a piece-adjacency fact; only the *lengths* are cell
+  fidelity. **That graph is the composer's own piece cut**, which is exactly what junction regions on the
+  unioned footprint exist to be independent of. On generated boards the cheap method is right, because the
+  composer named the pieces. On a board whose pieces an author cut — a traced CTW plan, which is where this
+  reading is most wanted — the same geometry cut differently gives a different route count. So the prototype
+  validates the *terms* on the other graph and leaves the substrate's reason for existing untouched.
+
+  *Three of its four measures need a primitive the repo does not have.* Traversal today is
+  `Cells.ShortestPath`/`PathLength` over `SurfaceNav.Walkable` — how far, and whether connected. The
+  **ribbon** (every cell on a route ≤130% of the shortest) needs the *distance field* `PathLength` computes
+  and throws away. The **choke** needs unit-capacity vertex max-flow, which exists nowhere. **Ways round a
+  void** has half of what it needs — `Cells.EnclosedVoid` finds the hole — and wants the ray-cut test.
+  Route enumeration wants piece adjacency, which `ContactGraph` is, and therefore inherits **`G65`**: while
+  `FannedGraph.LandAdjacent` and `ContactGraph` disagree on the overlap case, a route count depends on which
+  graph was asked.
+
+  *One negative result is worth carrying into the code when it lands.* Counting the connected components of
+  the minimum cut is **not** the ways-round test and gives opposite answers in both directions — it reported
+  that rotation between a team's objectives never splits on any ring board, where the homotopy test finds it
+  splits on **81 of 84**. Same corpus, opposite answer. `match-flow.md` §2 records the rule; the reimplementer
+  is the one who needs it.
+
   It is the derive side of a **third mirror**: the emit side assembles the intended story from the vocabulary
   (each form a known mini-graph — donut a cycle, ring hub a cycle with tangent runs, twin frontline two
   parallel band edges — glued at the joints), and a mismatch is itself the finding (square-on-square: the
