@@ -66,13 +66,14 @@ Nothing paints from the inset yet; the authored shape that spends it is bucket 1
 bucket's concept and landing site are stated there under *What each bucket spends*, and five of the six are
 built and checked. What a closer read of the sixth found:
 
-- **The measure exists; the unit is what is unsettled (`B212`).** `Geom` does hold plan-space measures —
-  `Cells.PathLength`, `ShortestPath`, `BoundingBox`, `MinRunWidth` — and `WL7` (`WoolWoolDistance`) is a
-  working separation rule built on them, measuring **walkable-surface traversal**. Every number bucket 3 is
-  calibrated against is **straight-line off `map.xml` regions**, and the 164-map sweep behind `B188` is not in
-  the repository, so its metric cannot be recovered. An agent handed `B175` writes the second measure or
-  mis-applies the first, and neither fails a test. **The author's call**: a straight line and a walk answer
-  different questions about a board.
+- **The unit is settled and the numbers are the work (`B212`).** The author's call: **a distance is the walk
+  over the walkable surface, never the straight line** — the line is what a bow or an eye crosses, the walk is
+  what a player carrying wool actually pays, and a separation rule is about the second. Logged as `rules.md`
+  amendment 13, whose preamble had named the scale (blocks) and left the metric to be inferred, which it was,
+  both ways. No code moves: `WL7` (`WoolWoolDistance`) already routes 4-connected around voids, `WL9`/`WL10`
+  already read "traversal", and `G127`'s flow prototype is already in that unit. What is left is that bucket
+  3's bands — `B175`, `B179`, `B188`'s 164-map table — were taken **straight-line off `map.xml` regions** and
+  must be re-measured, with the sweep committed this time rather than surviving as numbers in a backlog entry.
 - **`B37` is the parent of buckets 2, 3 and 6 and none of them said so.** Bucket 6's "placement report the
   export can refuse on" *is* `B37`'s resolved-stamp record; bucket 3's distances are `B37`'s deferred half, and
   `B188` has already discharged the corpus measurement it was waiting on. `IronResolution` is still the only
@@ -88,8 +89,10 @@ Beside those, `Producibility` is the one gate still answering `IReadOnlyList<Fin
 anything fired by `Count` — correct today only because its severity is constant, and the shape an agent adding
 a rule will copy (`B211`).
 
-**Buckets 4, 5, 7, 8, 11, 12 and 13 are unaffected and may run now.** Buckets 1, 2, 3 and 6 wait on `B212`'s
-author call and `B37`'s record; bucket 10 waits on `B211`.
+**Buckets 4, 5, 7, 8, 11, 12 and 13 are unaffected and may run now.** `B212`'s author call has landed, so
+buckets 1 and 2 are free of it and bucket 3 is unblocked as soon as its bands are re-measured in the settled
+unit — which is now `B212` itself rather than a question. Bucket 6 still waits on `B37`'s record; bucket 10
+waits on `B211`.
 
 ## Backend, pipeline & internals (B / P / A)
 

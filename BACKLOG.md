@@ -402,8 +402,14 @@ by `HousePropRules.PastCap` and is not filed.
   *found reviewing dispatch readiness, corrected 2026-08-15 against `B33` and `Compose/Boxes/Box.cs` ·
   18 declarations across `src/` and `tools/`.*
 
-- [ ] **B212 — Two units are both called "blocks apart", and bucket 3 is calibrated in the one the code does
-  not use.** `WoolWoolDistance` (`WL7`, `Evaluate/Terms/ObjectiveTerms.cs`) is the studio's one implemented
+- [ ] **B212 — Bucket 3's corpus bands are in the retired unit and must be re-measured.** **The author's call
+  is in: a distance is the walk over the walkable surface, never the straight line** (`rules.md` amendment 13,
+  2026-08-15). The reasoning is recorded there — the line is what a bow or an eye crosses, the walk is what a
+  player carrying wool actually pays, and a separation rule is about the second. **Nothing in the code moves**:
+  `WoolWoolDistance` already routes 4-connected around voids, `WL9`/`WL10` already read "traversal", and
+  `G127`'s flow prototype is already in that unit. What is left is the numbers.
+
+  **The original finding, which is why the numbers are the work:** `WoolWoolDistance` (`WL7`, `Evaluate/Terms/ObjectiveTerms.cs`) is the studio's one implemented
   separation rule, and its docstring states the measure outright: distance is **rectilinear traversal over the
   walkable surface**, 4-connected, routing around voids — "and correspondingly higher than a straight-line
   reading of `WL7`'s ~45".
@@ -420,11 +426,15 @@ by `HousePropRules.PastCap` and is not filed.
   — and applies a threshold calibrated in the other unit. `B175` even points at the collision without seeing
   it: "the rule shape exists on the wool side" is exactly `WL7`, and `WL7` is the measure that disagrees.
 
-  **Scope:** state the metric on every distance in buckets 2 and 3, decide which one the goal-separation rules
-  use (the author's call — a straight line and a walk answer different questions about a board), and re-derive
-  the corpus band in that unit with the sweep committed this time. `B188`'s own closing note is the reason not
-  to skip it: it concluded the ratio fault is board *shape* rather than goal placement, which is a claim about
-  what the number means and cannot be checked without knowing how it was taken.
+  **Scope, now that the unit is settled:** re-measure `B175`'s "at least 35", `B179`'s "nearest enemy goal at
+  95–110" and `B188`'s 164-map table as traversal over the walkable surface, and **commit the sweep** so the
+  next reader can re-derive them instead of trusting a backlog entry. The band a rule cites and the sweep that
+  produced it belong in the repository together; that they did not is why this entry exists at all.
+  `B188`'s own closing note is the reason not to skip it: it concluded the ratio fault is board *shape* rather
+  than goal placement, which is a claim about what the number means and cannot be checked without knowing how
+  it was taken. The walkable mask and a 4-connected walk are both already available — `Analysis/Playability`
+  builds the mask the traversability read uses, and `Geom/Cells.ShortestPath` walks it — so this is a sweep to
+  write and record, not a measure to invent.
 
   **The flow read is already in the right unit, which narrows this.** `G127`'s prototype measures in proxy
   cells over the walkable mask (×5 = blocks) — `WL7`'s unit, not the corpus band's. So the two *derivations*

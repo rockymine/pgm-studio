@@ -13,7 +13,9 @@ protocol. Tags:
 - **[open]** — awaiting the author's call (see *Open questions*).
 - **[guess]** — still mine.
 
-Rules are numbered for correction by id. Distances in blocks unless marked *cells*. "Front" =
+Rules are numbered for correction by id. Distances in blocks unless marked *cells*, and a distance
+between two things on a board is **the walk between them over the walkable surface** — 4-connected,
+rectilinear, routing around voids — never the straight line through the air (amendment 13). "Front" =
 toward the map centre / the enemy; "back" = toward the map edge.
 
 ## Definitions
@@ -622,6 +624,18 @@ both corrected.)
     surfaces meet; the only interface a plan authors on purpose is a wall. EL6's qualification
     survives as the reading `ReliefReadback` takes off a solved surface, and its corpus
     measurements are kept.
+13. **Distance is the walk, not the line (2026-08-15).** Author's call, settling `B212`: every distance
+    in these rules is traversal over the walkable surface. It changes no rule text — `WL9` and `WL10`
+    already read "traversal distances" and "by surface traversal", and `WoolWoolDistance`'s docstring
+    already states 4-connected rectilinear routing around voids — but it was nowhere stated for the
+    family, so the preamble named the scale (blocks) and left the metric to be inferred, and it was
+    inferred both ways. What it settles is which measure a *new* rule may be calibrated in. A straight
+    line and a walk answer different questions about a board: the line is what a bow or an eye crosses,
+    the walk is what a player carrying wool actually pays, and a separation rule is about the second.
+    The consequence is that the corpus bands calibrated off `map.xml` region geometry — bucket 3's
+    `B175`, `B179` and `B188`'s 164-map table — are in the wrong unit and must be re-measured, with the
+    sweep committed this time rather than surviving as numbers in a backlog entry. `WL7`'s own
+    46–143 band is unaffected: it was taken as traversal.
 
 ## Correction protocol
 
