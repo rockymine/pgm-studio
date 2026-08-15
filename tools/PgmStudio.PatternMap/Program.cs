@@ -4,6 +4,7 @@ using PgmStudio.Domain;
 using PgmStudio.Export;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Dressing;
+using PgmStudio.Minecraft.Render;
 using PgmStudio.Pgm;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
@@ -237,6 +238,17 @@ WorldProvenanceFile.Write(built.Provenance, patternRegionDir);
 LevelDatWriter.Write(outDir, slug, built.SpawnX, built.SpawnY, built.SpawnZ,
                      DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
 File.WriteAllText(Path.Combine(outDir, "map.xml"), xml);
+
+// A top-down of what was painted, in the map's **real block colours** rather than the category diagram: the
+// question this tool exists to answer is what a pattern looks like, and a category render answers "ground"
+// for every one of them. Off by default because it costs a full surface pass; `--render` turns it on.
+if (args.Contains("--render"))
+{
+    var png = Path.Combine(outDir, "topdown.png");
+    TopDownRender.Run(built.World, png, map: null, scale: 3, yMax: null, name: slug,
+        colorMode: TopDownColorMode.Material, provenance: built.Provenance);
+    Console.WriteLine($"wrote {png}");
+}
 
 Console.WriteLine($"\nwrote {outDir}\n");
 for (var index = 0; index < plateaus.Count; index++)

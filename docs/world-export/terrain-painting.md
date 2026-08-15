@@ -139,12 +139,61 @@ the blocks each bucket resolves to are a **preset** — the same style-as-data s
   enabled bucket took, so a theme is never partial (TP12).
 
 A bucket's material is a **spec** (`TerrainMaterial`), not necessarily a single id. Its forms: a single block
-(`SolidMaterial`); a **vertical layer stack** (`LayeredMaterial` — surface's grass-over-dirt, or a wall's banded
-riser, a run of materials each with a depth); the **team tint** (`TeamTintedMaterial`, below); and the
+(`SolidMaterial`); a **band stack** (`LayeredMaterial` — a run of materials each with a thickness, read along a
+stated axis, §3.1); the **team tint** (`TeamTintedMaterial`, below); and the
 **patterns** that vary the block across the bucket's cells (`VoronoiMaterial`, `CellMaterial`, `NoiseMaterial`,
 `TurbulenceMaterial`, `ElectricMaterial`, `WallRunMaterial` — TP13, §6). Each nests any material, so a pattern can embed a tint or another pattern. The quartz / clay /
 grass / stone in this document and the prototype are **examples**, chosen only to tell the buckets apart on
 sight — none is canonical.
+
+### 3.1 A band stack, and which way it is read
+
+`LayeredMaterial` is a `BandStack` — an ordered run of `(material, thickness)` — plus the **axis** it is read
+along. The stack states its bands and what happens where they run out, and deliberately not the distance,
+because the distance belongs to whoever is measuring it.
+
+| axis | the distance | what it draws |
+|---|---|---|
+| `depth` *(default)* | `BucketContext.DepthFromTop`, courses down from the top of the bucket | grass over two dirt; a wall's banded riser (TP11) |
+| `inward` | `BucketContext.Inset`, steps in from the landmass's void-facing edge | a cobble rim, two rings of stone brick, then a field |
+
+**One type with the axis named, not two types.** The bands, the thicknesses and the run-out rule are identical
+either way and only the distance differs, so a second material reading a different property would have been
+the same code twice. `depth` is what a layered material always meant and stays the default, which is why
+nothing already stored has to be rewritten.
+
+**`ending` decides what happens past the last band, and `beyond` says what shows there.** Under `repeat` the
+last band claims everything further along, which is right where the stack owns its whole space — a bucket. A
+ring stack usually does not own its whole space: it is meant to run a few rings in and then stop, so it ends
+`handOver` and `beyond` answers for everything past it. Unset, `beyond` is stone, the fill every unclaimed
+block already falls to. Off the footprint the inward axis is -1, which is not "past the last band" — there is
+no ring to be in, so the stack is never asked and `beyond` answers directly.
+
+**Restricting rings to the top course needs no knob, because the two axes compose.** A surface material that
+is a `depth` stack whose first band is one course thick and is *itself* an `inward` stack rings the top course
+and leaves the courses under it alone — which is also what keeps a grass ring one block thick rather than
+three (a palette that repeats grass down every course is the most-repeated authoring mistake in this repo).
+
+The author's own sequence — a rim, two rings of the next block, a checkered ring, five of a field, then the
+surface — stored:
+
+```json
+{"kind":"layered","axis":"inward","beyond":{"kind":"solid","id":2,"data":0},
+ "stack":{"ending":"handOver","bands":[
+   {"material":{"kind":"solid","id":4,"data":0},"thickness":1},
+   {"material":{"kind":"solid","id":98,"data":0},"thickness":2},
+   {"material":{"kind":"checker","size":1,"a":{"kind":"solid","id":159,"data":15},
+                "b":{"kind":"solid","id":159,"data":0}},"thickness":1},
+   {"material":{"kind":"voronoi","seed":11,"scale":7,"bands":[…]},"thickness":5}]}}
+```
+
+**What the schema gained is two optional fields on `layered`** — `axis` and `beyond` — and nothing else. A
+stored theme written before either existed reads as `axis: "depth"` with no `beyond`, which is exactly what it
+meant. `ending` is now written as `"repeat"`/`"handOver"` rather than 0/1, the way `rimEdges` and `axis` are:
+it had never been read by a person before, because nothing authored a stack that ends.
+
+`tools/PgmStudio.PatternMap` builds two plateaus from this — a disc and a cross — so the reading can be walked
+as well as read, and the cross is there because an inner corner seeds ring 0 as surely as an outer one does.
 
 **Team tint (built).** `TeamTintedMaterial(block, neutral)` stamps a colour-by-damage block (clay, wool,
 stained glass) with the owning team's colour — **the same 0–15 damage scale wool uses** (`BlockColors`), so a

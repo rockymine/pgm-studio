@@ -62,7 +62,7 @@ public static class TerrainPainter
             {
                 var (id, data) = material.Resolve(
                     new BucketContext(x, y, z, band.Bucket, band.HiY - 1 - y, teamDamage, column.PerimeterArc,
-                        y - band.LoY, column.PerimeterTurn, column.PerimeterRun));
+                        y - band.LoY, column.PerimeterTurn, column.PerimeterRun, column.Inset));
                 yield return (y, id, data);
             }
         }

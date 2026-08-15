@@ -8,6 +8,7 @@ public readonly record struct Band(TerrainMaterial Material, int Thickness = 1);
 /// What a stack answers where the distance runs past its last band. <b>Not implied by the axis</b>, which is
 /// why it is stated: the two are independent choices and the repo makes both.
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(BandEndingConverter))]
 public enum BandEnding
 {
     /// <summary>The last band claims everything beyond it. Right where the stack <b>owns the whole space</b>:
@@ -20,6 +21,13 @@ public enum BandEnding
     /// blocks of rim and then rim forever.</summary>
     HandOver,
 }
+
+/// <summary>Written as <c>"repeat"</c>/<c>"handOver"</c> rather than as 0/1, the way a theme's other enums
+/// are. It had never been read by a person before, because nothing authored a stack that ends — an inward
+/// stack is the first thing that does, and a stored theme saying <c>"ending":1</c> is a theme nobody can
+/// check by eye.</summary>
+public sealed class BandEndingConverter()
+    : System.Text.Json.Serialization.JsonStringEnumConverter<BandEnding>(System.Text.Json.JsonNamingPolicy.CamelCase);
 
 /// <summary>
 /// Bands along a distance: an ordered list of materials, each claiming a stated thickness, read by how far

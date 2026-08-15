@@ -437,4 +437,110 @@ public sealed class TerrainPainterTests
                 .IsEquivalentTo((inset, TerrainPainter.Resolve(baseline, theme)));
         }
     }
+
+    // ── a band stack read inward (B199/B200's axis) ─────────────────────────────────────────────────
+    /// <summary>A rim, two rings of the next block, a checkered ring, five of a field, and then nothing —
+    /// the author's own sequence, resolved straight off the axis. The stack is the same
+    /// <see cref="LayeredMaterial"/> a depth reading uses; only <see cref="BandAxis"/> differs.</summary>
+    private static LayeredMaterial RingStack() => new(
+        new BandStack(
+            [
+                new Band(new SolidMaterial(4, 0), 1),        // ring 0
+                new Band(new SolidMaterial(98, 0), 2),       // rings 1-2
+                new Band(new SolidMaterial(159, 15), 1),     // ring 3
+                new Band(new SolidMaterial(2, 0), 5),        // rings 4-8
+            ],
+            BandEnding.HandOver),
+        BandAxis.Inward,
+        Beyond: new SolidMaterial(3, 0));
+
+    [Test]
+    [Arguments(0, 4)]
+    [Arguments(1, 98)]
+    [Arguments(2, 98)]
+    [Arguments(3, 159)]
+    [Arguments(4, 2)]
+    [Arguments(8, 2)]
+    [Arguments(9, 3)]      // past the last band: handed over
+    [Arguments(30, 3)]
+    public async Task An_inward_stack_reads_the_ring_and_hands_over_past_its_last_band(int inset, int expected)
+    {
+        var ctx = new BucketContext(0, 9, 0, TerrainBucket.Surface, DepthFromTop: 0, Inset: inset);
+        await Assert.That((inset, RingStack().Resolve(ctx).Id)).IsEqualTo((inset, expected));
+    }
+
+    [Test]
+    public async Task An_inward_stack_ignores_the_depth_the_column_is_at()
+    {
+        // The axis is the point: two cells of one column, three courses apart, are in the same ring and answer
+        // the same block. A depth stack would have moved between bands over that distance.
+        var ring = RingStack();
+        var top = ring.Resolve(new BucketContext(0, 9, 0, TerrainBucket.Surface, DepthFromTop: 0, Inset: 1));
+        var lower = ring.Resolve(new BucketContext(0, 6, 0, TerrainBucket.Surface, DepthFromTop: 3, Inset: 1));
+        await Assert.That(lower).IsEqualTo(top);
+    }
+
+    [Test]
+    public async Task Off_the_footprint_an_inward_stack_answers_what_lies_beyond_it()
+    {
+        // Inset is -1 where there is no ring to be in, which is not the same as being past the last band —
+        // the stack is never asked, and a stack without a Beyond falls to stone the way every unclaimed
+        // block already does.
+        await Assert.That(RingStack().Resolve(
+            new BucketContext(0, 9, 0, TerrainBucket.Surface, 0, Inset: -1)).Id).IsEqualTo(3);
+        await Assert.That(new LayeredMaterial(new BandStack([new Band(new SolidMaterial(4, 0), 1)]), BandAxis.Inward)
+            .Resolve(new BucketContext(0, 9, 0, TerrainBucket.Surface, 0, Inset: -1)).Id).IsEqualTo(Blocks.Stone);
+    }
+
+    [Test]
+    public async Task A_depth_stack_is_unchanged_by_the_axis_existing()
+    {
+        // The default is what every layered material always meant, so an unmarked stack still reads downward.
+        var depth = new LayeredMaterial(new BandStack(
+            [new Band(new SolidMaterial(2, 0), 1), new Band(new SolidMaterial(3, 0), 2)]));
+        foreach (var (fromTop, expected) in new[] { (0, 2), (1, 3), (2, 3), (9, 3) })
+            await Assert.That((fromTop, depth.Resolve(
+                new BucketContext(0, 9, 0, TerrainBucket.Surface, fromTop, Inset: 0)).Id)).IsEqualTo((fromTop, expected));
+    }
+
+    [Test]
+    public async Task The_two_axes_compose_so_only_the_top_course_is_ringed()
+    {
+        // How a ring set is restricted to the top course without a knob: a depth stack whose first band is one
+        // course thick and is itself the inward stack, with dirt under it. The top course rings; the courses
+        // below it are dirt, which is what keeps a grass ring one block thick.
+        var surface = new LayeredMaterial(new BandStack(
+            [new Band(RingStack(), 1), new Band(new SolidMaterial(3, 0), 2)]));
+
+        await Assert.That(surface.Resolve(new BucketContext(0, 9, 0, TerrainBucket.Surface, 0, Inset: 0)).Id).IsEqualTo(4);
+        await Assert.That(surface.Resolve(new BucketContext(0, 8, 0, TerrainBucket.Surface, 1, Inset: 0)).Id).IsEqualTo(3);
+        await Assert.That(surface.Resolve(new BucketContext(0, 7, 0, TerrainBucket.Surface, 2, Inset: 0)).Id).IsEqualTo(3);
+    }
+
+    [Test]
+    public async Task An_inward_stack_round_trips_through_the_theme_json()
+    {
+        // The axis and the beyond are what the schema gained, so both have to survive being stored.
+        var theme = TerrainTheme.Default with { Surface = new TopBand(RingStack(), 1, Enabled: true) };
+        var json = TerrainThemeJson.Serialize(theme);
+
+        await Assert.That(json).Contains("\"axis\":\"inward\"");
+        await Assert.That(json).Contains("\"ending\":\"handOver\"");
+        await Assert.That(TerrainThemeJson.Deserialize(json)).IsEqualTo(theme);
+    }
+
+    [Test]
+    public async Task A_stored_theme_written_before_the_axis_existed_still_reads_as_depth()
+    {
+        // Purely additive: a layered material with no axis is the depth reading it always was, so nothing
+        // already stored has to be rewritten.
+        const string json = """
+            {"surface":{"material":{"kind":"layered","stack":{"bands":[{"material":{"kind":"solid","id":2,"data":0},"thickness":1}]}},"depth":1,"enabled":true}}
+            """;
+        var theme = TerrainThemeJson.Deserialize(json);
+        var layered = (LayeredMaterial)theme.Surface.Material;
+
+        await Assert.That(layered.Axis).IsEqualTo(BandAxis.Depth);
+        await Assert.That(layered.Beyond).IsNull();
+    }
 }

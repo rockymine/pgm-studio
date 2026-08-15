@@ -272,6 +272,38 @@ are Edit-specific. Full canvas spec: `docs/client/canvas-interaction.md`.
 
 ## Backend, pipeline & internals (B / P / A)
 
+- [ ] **B208 — Two tools write a world folder, and both spell out the same seven steps.** `tools/mapgen` and
+  `tools/PgmStudio.PatternMap` are the studio's two world generators, and where they genuinely differ is what
+  they generate — mapgen compiles a `MapSpec` into a plan, PatternMap hand-authors a grid of themed plateaus.
+  Where they do **not** differ is everything after `SketchWorldBuilder.Build` returns, which both write out
+  line for line:
+
+  | step | mapgen | PatternMap |
+  |---|---|---|
+  | build | `SketchWorldBuilder.Build(layout, intent)` | same |
+  | xml | `IntentGenerator.Apply(doc, built.ResolvedIntent)` then compose | same |
+  | dir | `Directory.CreateDirectory(outDir)` | same |
+  | region | `AnvilRegionWriter.Write(built.World, regionDir)` | same |
+  | provenance | `WorldProvenanceFile.Write(built.Provenance, regionDir)` | same |
+  | level | `LevelDatWriter.Write(outDir, slug, spawn…, UtcNow)` | same |
+  | map.xml | `File.WriteAllText(Path.Combine(outDir, "map.xml"), xml)` | same |
+
+  **What makes it worth extracting is not the line count — it is that the sequence has a rule in it.** The
+  provenance sidecar goes *beside* the voxels and in the same directory, because a block carries no provenance
+  byte; a reader that finds a region without one silently falls back to the material estimate. Only mapgen's
+  copy says so, in a comment. A third generator — or an endpoint that writes a downloadable world — is one
+  paste away from a region directory with no sidecar and no error.
+
+  **And a defect already lives in it.** `B102` is `AnvilRegionWriter.Write` never clearing the directory it
+  writes into, so a rebuild leaves stale `.mca` files from a build whose geometry has moved. Both tools inherit
+  it and it has to be fixed twice, or once in the shared step this task creates.
+
+  The asymmetry is the other half: mapgen emits a stage image set (`EmitStages`, six named renders) and
+  PatternMap emits one top-down, added late and by hand. Neither is wrong, but "what pictures a built world
+  writes" is the same question asked twice with different answers.
+
+  *found comparing the two while adding the inward-axis showcase to PatternMap, 2026-08-15 ·
+  `tools/mapgen/Program.cs:150-171` · `tools/PgmStudio.PatternMap/Program.cs:230-247`.*
 - [ ] **B207 — `doc-status.md`'s churn ranking was measured over three days and reads as if it were history.**
   The container that produced §3.4 saw 197 commits over three days, so every "last edited" date and every
   churn count in it is accurate only for that window: a document showing zero churn was not necessarily

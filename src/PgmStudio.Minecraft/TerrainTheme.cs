@@ -30,11 +30,38 @@ public sealed class RimEdgesConverter() : JsonStringEnumConverter<RimEdges>(Json
 /// arc says how far round the face a cell is and the turn how sharply the face bends; this says which way the
 /// face is <em>going</em>, which is what a block with a direction of its own needs. A log laid across a wall
 /// rather than along it points its cut end at whoever is looking.</param>
-public readonly record struct BucketContext(int X, int Y, int Z, TerrainBucket Bucket, int DepthFromTop, int TeamData = -1, int PerimeterArc = -1, int HeightFromBottom = 0, int PerimeterTurn = 0, int PerimeterRun = 0)
+/// <param name="Inset">How many steps <em>in</em> from the landmass's void-facing edge the column stands — 0 on
+/// the edge itself, -1 off the footprint. The plan-direction axis, and the companion to
+/// <paramref name="PerimeterArc"/>: the arc says how far <em>round</em> the edge a cell sits and this how far
+/// in from it, so a band stack can be read along either. The walk crosses an elevation step, so on a staircase
+/// the count runs across the treads and up the hill rather than restarting on each.</param>
+public readonly record struct BucketContext(int X, int Y, int Z, TerrainBucket Bucket, int DepthFromTop, int TeamData = -1, int PerimeterArc = -1, int HeightFromBottom = 0, int PerimeterTurn = 0, int PerimeterRun = 0, int Inset = -1)
 {
     /// <summary>Whether the cell belongs to a team (a colour is available for a team-tinted material).</summary>
     public bool HasTeam => TeamData >= 0;
 }
+
+/// <summary>
+/// Which distance a <see cref="BandStack"/> is read along. The stack states its bands and where they run out
+/// and deliberately not the axis — "the axis is the caller's" — so the material doing the reading is where the
+/// choice belongs, and stating it is what keeps one type from becoming two identical ones.
+/// </summary>
+[JsonConverter(typeof(BandAxisConverter))]
+public enum BandAxis
+{
+    /// <summary>Down from the top of the bucket: grass over two dirt, a wall's banded riser. The reading every
+    /// layered material had before there was a second one.</summary>
+    Depth,
+
+    /// <summary>In from the landmass's void-facing edge: a cobble rim, then two rings of stone brick, then a
+    /// field. Reads <see cref="BucketContext.Inset"/>, so bands run as concentric rings round a shape rather
+    /// than as courses down a column.</summary>
+    Inward,
+}
+
+/// <summary>Written as <c>"depth"</c>/<c>"inward"</c> rather than as a number, the way every other enum in a
+/// theme is — a stored theme is read by people as well as by the deserializer.</summary>
+public sealed class BandAxisConverter() : JsonStringEnumConverter<BandAxis>(JsonNamingPolicy.CamelCase);
 
 /// <summary>
 /// A bucket's material — the block(s) its cells resolve to (docs/world-export/terrain-painting.md §3). A single
@@ -67,14 +94,38 @@ public sealed record SolidMaterial(int Id, int Data = 0) : TerrainMaterial
     public override (int Id, int Data) Resolve(in BucketContext ctx) => (Id, Data);
 }
 
-/// <summary>A <see cref="BandStack"/> read as depth from the top of the bucket — grass over two dirt, a wall's
-/// banded riser (TP11). The bucket is the stack's whole space, so the bands repeat past their declared depth
-/// and a deeper-than-declared band never falls through; a stack with no bands at all is stone, the fill every
-/// unclaimed block already falls to.</summary>
-public sealed record LayeredMaterial(BandStack Stack) : TerrainMaterial
+/// <summary>
+/// A <see cref="BandStack"/> read along a distance — grass over two dirt, a wall's banded riser (TP11), or a
+/// cobble rim then two rings of stone brick then a field.
+///
+/// <para><b>The axis is stated rather than implied</b> (<see cref="BandAxis"/>). Down from the top of the
+/// bucket is what this always meant and stays the default; in from the landmass's edge is the same stack read
+/// along <see cref="BucketContext.Inset"/> instead. One type with the axis named, not two types differing in
+/// which property they read — the bands, the thicknesses and the run-out rule are identical and only the
+/// distance differs.</para>
+///
+/// <para><b><see cref="Beyond"/> is what shows where the stack claims nothing</b>, which is the half
+/// <see cref="BandEnding.HandOver"/> leaves to whoever holds the axis. Unset it is stone, the fill every
+/// unclaimed block already falls to — right for a depth stack, whose bucket is its whole space, and wrong for
+/// a ring stack that is meant to stop a few rings in and let the ground it sits on show. Under
+/// <see cref="BandEnding.Repeat"/> nothing is ever unclaimed and this is never reached.</para>
+/// </summary>
+public sealed record LayeredMaterial(
+    BandStack Stack,
+    BandAxis Axis = BandAxis.Depth,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TerrainMaterial? Beyond = null)
+    : TerrainMaterial
 {
     public override (int Id, int Data) Resolve(in BucketContext ctx)
-        => Stack.At(ctx.DepthFromTop).Material?.Resolve(in ctx) ?? (Blocks.Stone, 0);
+    {
+        var step = Axis == BandAxis.Inward ? ctx.Inset : ctx.DepthFromTop;
+        // Off the footprint the inward axis has no answer, which is not the same as being past the last band:
+        // there is no ring to be in, so the stack never gets asked.
+        if (step < 0) return Beyond?.Resolve(in ctx) ?? (Blocks.Stone, 0);
+        return Stack.At(step).Material?.Resolve(in ctx)
+            ?? Beyond?.Resolve(in ctx)
+            ?? (Blocks.Stone, 0);
+    }
 }
 
 /// <summary>The hash a material holding a collection needs, once its equality walks that collection. Written

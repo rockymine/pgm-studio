@@ -111,6 +111,68 @@ public static class Plateaus
                                  new WallStripe(Shade(Clay, 0), 2), new WallStripe(Turbulence(), 6)]), null),
     ];
 
+    // ── the inward axis: bands read as rings in from the edge rather than courses down a column ────────
+    //
+    // A band stack states its bands and where they run out and deliberately not the axis, so the material
+    // reading it names one (BandAxis). These plateaus are the same LayeredMaterial every other plateau uses,
+    // pointed inward — which is the whole argument for stating the axis rather than minting a second type.
+
+    /// <summary>The author's own sequence, as rings in from the outline: a rim, two rings of the next block, a
+    /// checkered ring, five of a grass voronoi, and then <b>nothing claimed</b> — the surface takes over.
+    ///
+    /// <para><see cref="BandEnding.HandOver"/> is what makes the last part sayable. Under <c>Repeat</c> the
+    /// voronoi would run to the middle of the island; handing over means the stack stops after ring 8 and
+    /// <c>Beyond</c> answers, which here is the plain grass the rest of the map is finished with.</para></summary>
+    private static TerrainMaterial Rings() =>
+        new LayeredMaterial(
+            new BandStack(
+                [
+                    new Band(new SolidMaterial(4, 0), 1),            // ring 0 — a cobble rim
+                    new Band(new SolidMaterial(98, 0), 2),          // rings 1-2 — stone brick
+                    new Band(new CheckerMaterial(1, Shade(Clay, 15), Shade(Clay, 0)), 1),   // ring 3
+                    new Band(GrassVoronoi(), 5),                    // rings 4-8
+                ],
+                BandEnding.HandOver),                               // ring 9 in — the surface shows
+            BandAxis.Inward,
+            Beyond: new SolidMaterial(2, 0));
+
+    /// <summary>Greens broken into cells, for the five rings that read as a field rather than as a course.
+    /// A voronoi rather than plain grass so the band is visibly a <em>pattern</em> nested inside a band of a
+    /// stack read along a different axis — every part of the model composing at once.</summary>
+    private static TerrainMaterial GrassVoronoi() =>
+        new VoronoiMaterial(11, 7,
+            [new VoronoiBand(new SolidMaterial(2, 0), 1), new VoronoiBand(Shade(Clay, 5), 1),
+             new VoronoiBand(Shade(Clay, 13), 1)], Rise: 8);
+
+    /// <summary>A theme whose <b>top course</b> is ringed and whose courses below it are not. The two axes
+    /// compose rather than competing: the surface material is an ordinary depth stack whose first band is one
+    /// course thick and is itself the inward stack, with dirt under it. Restricting rings to the top course
+    /// therefore needs no knob — and dirt below is what keeps the grass a single course (a palette that
+    /// repeats grass down every course is the most-repeated authoring mistake in this repo).
+    ///
+    /// <para>The rim bucket is <b>off</b>, so the top course of an edge column falls to the surface (TP12) and
+    /// the inward stack owns ring 0 itself. Left on, the rim would paint that ring first and the stack's own
+    /// first band would never be seen.</para></summary>
+    private static TerrainTheme RingTheme() => new()
+    {
+        Rim = new TopBand(One("ash", 2), 1, Enabled: false),
+        Surface = new TopBand(
+            new LayeredMaterial(new BandStack([new Band(Rings(), 1), new Band(new SolidMaterial(3, 0), 2)])),
+            3, Enabled: true),
+        Wall = One("grey stone"),
+        WallEnabled = true,
+        Fill = One("grey stone"),
+    };
+
+    /// <summary>The plateaus that show the inward axis. A disc first, because concentric rings on a round
+    /// island are the shape the reading is easiest to see in; then a cross, where the walk has to turn both
+    /// kinds of corner and every inner corner seeds ring 0 as surely as the outer ones do.</summary>
+    private static IReadOnlyList<(string Name, string Kind, TerrainTheme Theme)> Ringed =>
+    [
+        ("inward rings — disc, rim to field", "circle", RingTheme()),
+        ("inward rings — cross, both corners", "cross", RingTheme()),
+    ];
+
     /// <summary>Each plateau's paint as the layout stores it: a named theme, serialised through the same
     /// writer the studio uses, so the export reads them back exactly as it reads a real map's.</summary>
     public static (List<(string Name, string Kind, string ThemeId)> Plateaus,
@@ -119,23 +181,32 @@ public static class Plateaus
         var plateaus = new List<(string, string, string)>();
         var themes = new Dictionary<string, JsonElement>();
 
-        // The pattern plateaus, then the house row after them — one island per house, plain underfoot, since
-        // on that row the plateau is not the thing being shown.
-        var all = (IReadOnlyList<(string Name, string Kind, TerrainMaterial Wall, TerrainMaterial? Surface)>)
-            [.. All, .. HousePresets.All.Select(house =>
-                (house.Name, "rectangle", One("grey stone"), (TerrainMaterial?)Grass))];
-        for (var index = 0; index < all.Count; index++)
-        {
-            var (name, kind, wall, surface) = all[index];
-            var themeId = $"theme-{index}";
-            var theme = new TerrainTheme
+        // The pattern plateaus, then the inward-axis pair, then the house row — one island per house, plain
+        // underfoot, since on that row the plateau is not the thing being shown.
+        var all = (IReadOnlyList<(string Name, string Kind, TerrainTheme Theme)>)
+        [
+            .. All.Select(entry => (entry.Name, entry.Kind, new TerrainTheme
             {
                 Rim = new TopBand(One("ash", 2), 1, Enabled: true),
-                Surface = new TopBand(surface ?? Grass, 3, Enabled: true),
-                Wall = wall,
+                Surface = new TopBand(entry.Surface ?? Grass, 3, Enabled: true),
+                Wall = entry.Wall,
                 WallEnabled = true,
                 Fill = One("grey stone"),
-            };
+            })),
+            .. Ringed,
+            .. HousePresets.All.Select(house => (house.Name, "rectangle", new TerrainTheme
+            {
+                Rim = new TopBand(One("ash", 2), 1, Enabled: true),
+                Surface = new TopBand(Grass, 3, Enabled: true),
+                Wall = One("grey stone"),
+                WallEnabled = true,
+                Fill = One("grey stone"),
+            })),
+        ];
+        for (var index = 0; index < all.Count; index++)
+        {
+            var (name, kind, theme) = all[index];
+            var themeId = $"theme-{index}";
             themes[themeId] = JsonDocument.Parse(TerrainThemeJson.Serialize(theme)).RootElement.Clone();
             plateaus.Add((name, kind, themeId));
         }
