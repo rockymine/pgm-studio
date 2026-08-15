@@ -58,14 +58,8 @@ public static class SketchWorldBuilder
         // cannot be tunnelled into from below, and the building is then stamped on top of that. Which is why
         // it goes first: the fill's top block IS the floor course now that a room's floor sinks one course into
         // its platform (WX17), so laid afterwards it buries the floor and the wool pad standing on it.
-        StampRoomFloors(world, terrain.SurfaceTop, intent.Structures);
-        var roomFloors = intent.Structures?.RoomFloors ?? [];
-        for (var i = 0; i < roomFloors.Count; i++)
-        {
-            var floor = roomFloors[i];
-            provenance.ClaimRect((int)Math.Floor(floor.MinX), (int)Math.Floor(floor.MinZ),
-                (int)Math.Ceiling(floor.MaxX), (int)Math.Ceiling(floor.MaxZ), ProvenanceLayer.Structure, $"roomfloor:{i}");
-        }
+        foreach (var claim in StampRoomFloors(world, terrain.SurfaceTop, intent.Structures))
+            provenance.Claim(claim.Cells, ProvenanceLayer.Structure, claim.Owner);
 
         // ── Wool cages (framed by their plan piece + entries, or the marker-anchored default) ────────
         var resolvedWools = new List<WoolIntent>(wools.Count);
@@ -256,10 +250,25 @@ public static class SketchWorldBuilder
     }
 
     // The bedrock under every wool room, laid before the rooms themselves (see the call site).
-    private static void StampRoomFloors(VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surface, StructureIntent? s)
+    private static List<StructureClaim> StampRoomFloors(
+        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surface, StructureIntent? s)
     {
-        foreach (var f in s?.RoomFloors ?? [])
-            StructureStamper.StampFoundation(world, surface, (int)f.MinX, (int)f.MinZ, (int)f.MaxX, (int)f.MaxZ);
+        // The claim is the cells the foundation filled, walked from the same four integers the stamp took.
+        // It was a rect carried across by hand, and the two conventions did not match: the stamp's footprint
+        // is max-EXCLUSIVE and ClaimRect's is max-inclusive, so every room floor claimed a column past its own
+        // bedrock on each axis — 121 columns for a 10x10 floor that fills 100. The min end disagreed too,
+        // truncation against Math.Floor, which parts company on a negative fractional bound.
+        var claims = new List<StructureClaim>();
+        var floors = s?.RoomFloors ?? [];
+        for (var i = 0; i < floors.Count; i++)
+        {
+            var f = floors[i];
+            int minX = (int)f.MinX, minZ = (int)f.MinZ, maxX = (int)f.MaxX, maxZ = (int)f.MaxZ;
+            StructureStamper.StampFoundation(world, surface, minX, minZ, maxX, maxZ);
+            claims.Add(new StructureClaim($"roomfloor:{i}",
+                [.. StructureStamper.FoundationCells(minX, minZ, maxX, maxZ)]));
+        }
+        return claims;
     }
 
     // Stamp the plan-compiled layout structures (already resolved + fanned to block coords) onto the world.
@@ -295,9 +304,13 @@ public static class SketchWorldBuilder
         }
         for (var i = 0; i < s.RedstoneLines.Count; i++)
         {
+            // The run itself, from the stamper's own walk, rather than the bounding rect of its two ends. The
+            // two are the same set only while the run is axis-aligned — which is what EntranceRow produces and
+            // nothing states as a rule, so a diagonal run would have claimed its whole box.
             var line = s.RedstoneLines[i];
-            provenance.ClaimRect(Math.Min(line.X1, line.X2), Math.Min(line.Z1, line.Z2),
-                Math.Max(line.X1, line.X2), Math.Max(line.Z1, line.Z2), ProvenanceLayer.Structure, $"redstoneline:{i}");
+            provenance.Claim(
+                StructureStamper.RedstoneLineCells(line.X1, line.Z1, line.X2, line.Z2),
+                ProvenanceLayer.Structure, $"redstoneline:{i}");
         }
     }
 

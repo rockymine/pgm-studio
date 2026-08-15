@@ -35,7 +35,10 @@ single test between them.
 **What `B202` leaves behind is the rule, written down where the next pass will meet it.** `StructureClaim` —
 a claim is taken from the placement, never rebuilt beside it — with the two regressions that hold it: a
 building dropped for overlapping one already standing, and a building authored over void. Both claim nothing.
-`B203` is the rest of the class, and it is now one answer shorter.
+`B203` was the rest of the class and has followed it, with a second live instance found on the way out: a room
+floor's claim ran one column past its own bedrock on each axis, 169 claimed against 144 filled, on every wool
+room the studio has built. The entry's own text said that site was latent, on the grounds that `PlanCompiler`
+fans integral rects — which is exactly what made it live.
 
 **The dispatch pass is done, and it moved three tasks.** `B204` read the bucket bodies rather than their
 titles and labelled each with the concept it spends and the one place that concept may land; the map is in
@@ -53,39 +56,17 @@ and it exists: `BlockFamilies` names each id family once, so a rule about what a
 rather than a sixth list. Bucket 13's author call is answered: **the walk crosses an elevation step.** Buckets
 8, 11 and 12 share nothing and may run at once.
 
-**Every bucket now has its landing site built.** `Findings`/`Check` for the refusals, `StructureClaim` for
-occupancy, `BlockFamilies` for block kind, one `PlanValidator` verb, and `BuildingPlan` renamed clear of
-`Geom.Footprint` so bucket 13's lift has somewhere to go. What is left of the landscape is `B203`'s second
-half, which is latent rather than live.
+**Every bucket now has its landing site built, and the landscape work is done.** `Findings`/`Check` for the
+refusals, `StructureClaim` for occupancy, `BlockFamilies` for block kind, one `PlanValidator` verb, and
+`BuildingPlan` renamed clear of `Geom.Footprint` so bucket 13's lift has somewhere to go. The one piece of
+shared machinery still to build is bucket 13's own: the inward walk lifted into `PgmStudio.Geom.Algorithms`
+with `ColumnProfile` carrying an `Inset` beside its `PerimeterArc`.
 
 ## Backend, pipeline & internals (B / P / A)
 
-**One finding, and the live-defect hunts against the same surfaces.** `B203` is what remains of the class
-`B202` was an instance of — four claims still re-derived beside their stamp, none of them currently wrong.
-Under it: a building that is solid behind its facade, leaves lying inside one, a stale chunk surviving a
-rebuild, and the two names that still cover two meanings each.
-
-- [~] **B203 — Four `ClaimRect` calls still re-derive the rect the stamper beside them computed.** The block
-  half of this entry has shipped (`FEATURES.md`): `BlockFamilies` names each id family once, `BlockRoles`
-  composes from it, `BlockKinds` is gone and `IsGround` is `IsSoil`. What remains is the occupancy half, and
-  it now has somewhere to land — `StructureClaim` (`B202`), a claim taken from the placement rather than
-  beside it.
-
-  **Which columns a stamp owns** is still asked four ways: the stamper itself (it places the blocks);
-  `provenance.ClaimRect` beside it in `SketchWorldBuilder`; `DressingScope.ProtectedAt`'s keep-out mask; and
-  `TerrainProfile`'s paint gate (a column whose top block *is not stone* is a structure). The house claim
-  rebuilt from the layout was the fifth and is gone.
-
-  What is left in `SketchWorldBuilder` is four `ClaimRect` calls that each re-derive a rect the stamper beside
-  them already computed — the room floor, the wall, the redstone line and the goal box. Only the iron cube
-  reads its stamper's own `StructureStamper.IronCubeFootprint`, and it is the one that cannot drift, which is
-  the shape the other four want: the stamper answers what it covered and the caller claims that. **The
-  room-floor case is the sharp one**, and it is the same fractional rect converted twice, five lines apart, by
-  two rules — `(int)f.MinX` in the stamp against `Math.Floor`/`Math.Ceiling` in the claim. Latent rather than
-  live, since `PlanCompiler` fans integral rects today; `CLAUDE.md`'s own trap entry says this class has
-  already cost hours.
-
-  *found in the provenance dive, 2026-08-15 · `TerrainProfile` · `DressingScope` · `SketchWorldBuilder`.*
+**The live-defect hunts against the surfaces the seams ran through**: a building that is solid behind its
+facade, leaves lying inside one, a stale chunk surviving a rebuild, and the two names that still cover two
+meanings each.
 
 - [~] **B106 — Two different things in this codebase are called protection.** **The placement half of this
   entry has landed and its premise is stale.** It described `Retarget` reusing the wool markers so a destroy
@@ -103,68 +84,6 @@ rebuild, and the two names that still cover two meanings each.
   the first, and one word for both invites exactly the inference that a destroyable must live somewhere
   protected — which is the inference that produced the caged goals in the first place, and it survives the
   code that acted on it.
-
-- [~] **B111 — The deletions.**
-  The set is complete: `docs/tools/plan.md`, `sketch.md`, `library.md`, `generator.md`, `shapes.md`,
-  `configure.md` and `edit.md`, all to one shape — *what it is · what it writes · the document model, field by
-  field · what it compiles to · the phases and their steps · what it refuses · the API as an endpoint table
-  with failure codes · driving it without the UI · limits*. Two of those sections are conditional — a tool
-  with no gate needs no refusals section, a tool with no document of its own needs no model section — and the
-  rest are the spine. Written from the code in the present tense, and usable as agent input, which is what
-  puts the endpoints in them. `flow.md` is the eighth and the entry point: the four levels a map is described
-  at, which tool works at which, the five hand-offs and their merge rules, and pointers out. It describes only
-  the flow — no tool's own content is restated in it. **Author review pending.**
-
-  **A tool that authors nothing bends the spine rather than breaking it.** The generator has no document to
-  edit and no phases: its model section is the *request* (four numbers and a seed), its compile section is
-  *what a compose produces*, and its phase section is the single browse workspace. Where a tool is
-  statistical rather than authored, the description has to be **measured** — `generator.md` carries a
-  400-board-per-row census of what each player count actually produces, taken from the endpoint itself, because
-  prose about sampling weights cannot say whether a request makes rings.
-
-  **Every JSON shape gets a worked example, and the examples are checked by being run.** Each is extracted from
-  the document itself and posted to the live API — a plan that compiles clean, a layout that solves its relief
-  and paints, every material kind rendered, the seeded house compared against what the endpoint returns. A
-  document an agent authors from is wrong if its examples do not run, and only running them says they do.
-
-  `docs/tools/capabilities.md` keeps the half `flow.md` deliberately leaves it: the **capability** reference —
-  what the system can be asked for at each stage — which is a different question from how a map moves between
-  the tools. `flow.md` points at it rather than absorbing it. The gameplay claims in it are the author's and
-  settled, `approaches.md` having been read back in full.
-
-  Then the deletions, which are the point of the exercise and wait until the set is complete: a document goes
-  when a tool document owns its subject, which retires the plan, sketch and configure contract records but
-  keeps the corpus measurements, `docs/generator/`'s eight and the world-export set. **The generator set is
-  settled and its ninth file is gone.** `generator.md` and `shapes.md` own the two *surfaces* — browse and
-  catalog — which `docs/generator/` never covered, and they defer the model to `model.md` rather than
-  restating it, so none of the eight is retired by them. `wool-approach-read.md` is deleted: every id it
-  turned on has shipped or been retired, and what it argued for now stands as a plain rule in `model.md` §4.7
-  — the studio does not classify finished maps, because real maps differ too much. `audit.md` stays, with its
-  HB4/FR6 entry corrected: the wide frontline it recorded as unreachable is measurably the only outcome a
-  branch hub with a frontline produces.
-
-  **The world-export set is the detail behind the sketch, and now says so both ways.** `sketch-relief.md`
-  belonged with it rather than in `contracts/` — the pass that decides the ground the painter, the stampers
-  and the dressing pass all land on — so it is `world-export/relief.md`, rewritten to what shipped. And
-  `tools/sketch.md` cites the five of them from the phase that feeds each, which it did not before: a reader
-  wanting the elevation solver or the painter's bucket rules had nothing saying those documents existed. Two
-  documents are deleted outright: `sketch-creation-flow.md`, for naming four files and a route that are gone,
-  and `finishing-model.md`, whose §1 and §2 describe theming as a plan-side concern and then catalogue what
-  that arrangement breaks — a system that no longer exists and failures that can no longer occur. Its rationale
-  is kept where it is load-bearing: why the finish belongs on the sketch in `flow.md`, the two stamp concepts
-  in `structures.md`.
-
-  **`docs/contracts/` is gone, and its name was the finding.** Five of its eighteen documents were contracts;
-  the rest were a rationale record, corpus studies, PGM law, a UI build plan, a URL decision and a design — a
-  folder named for a form most of its contents did not have, which is why the census had to group by subject
-  to say anything. Every folder under `docs/` is now named for a subject: **`pgm/`** (the map contract),
-  **`world-scan/`** (what the studio reads out of a world, the mirror of `world-export/`, which writes one),
-  **`client/`**, **`gameplay/`**, with `project-structure.md` at the root beside the other whole-repo notes.
-  `CLAUDE.md` carries the map. Pure relocation — every citation followed, no prose rewritten — with the four
-  documents that need content work filed as **B112**–**B115** rather than fixed in the same pass.
-  `docs/doc-status.md` §2 says what is duplicated and §5 which tools are unserved; its churn ranking (§3.4)
-  **wants re-running against the full history**, since the container that produced it saw 197 commits over
-  three days and cannot see drift older than that.
 
 - [ ] **B92 — A building can be a solid volume behind its own facade.** `HouseStamper` raises walls, a roof
   and their openings, and the volume they enclose is left as air — "fill" appears in the house model only as a

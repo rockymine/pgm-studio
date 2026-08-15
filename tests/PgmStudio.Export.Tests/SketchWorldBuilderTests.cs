@@ -407,4 +407,65 @@ public sealed class SketchWorldBuilderTests
         await Assert.That(built.ResolvedIntent.WaterLanes).IsNotNull();
         await Assert.That(built.ResolvedIntent.WaterLanes!.Rects.Count).IsEqualTo(1);
     }
+
+    // ── a claim covers what the stamp wrote and no more (B203) ───────────────────────────────────────
+    /// <summary>A plateau and a single room floor, with no spawn or wool over it, so the only Structure claim
+    /// on the board is the foundation's own. <b>Probed at y=2</b>, not y=0: the world carries a bedrock floor
+    /// at y=0 everywhere, so the bottom course cannot tell a foundation from open ground. At y=2 a filled
+    /// column is bedrock and a natural one is the plateau's dirt.</summary>
+    private static SketchWorld RoomFloorOnly()
+    {
+        const string plateau =
+            """
+            {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},"layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":5}],"islands":[]}}
+            """;
+        return SketchWorldBuilder.Build(plateau, new MapIntent
+        {
+            Teams = [new TeamDef { Id = "red", Color = "red" }],
+            Observer = new ObserverIntent { Point = new Pt(0, 20, 0), Yaw = 0 },
+            Meta = new MetaIntent { Name = "Test", Authors = [new AuthorIntent { Name = "alice" }] },
+            Structures = new StructureIntent { RoomFloors = [new Rect(-16, 4, -4, 16)] },
+        });
+    }
+
+    [Test]
+    public async Task A_room_floors_claim_stops_where_its_bedrock_does()
+    {
+        // The stamp's footprint is max-EXCLUSIVE — StampFoundation fills [minX, maxX) — and ClaimRect's is
+        // max-inclusive, so a rect carried across by hand claimed one column past the bedrock on each axis.
+        // Live on every wool room, and the same fault B202 fixed for a house: a Structure claim over ground
+        // the pass never wrote.
+        var built = RoomFloorOnly();
+
+        // The last column inside the footprint carries the foundation and the claim that names it.
+        await Assert.That(built.World.GetBlock(-5, 2, 15).Id).IsEqualTo(Blocks.Bedrock);
+        await Assert.That(built.Provenance.OwnerAt(-5, 15)).IsEqualTo("roomfloor:0");
+
+        // One column further on either axis is past the max-exclusive bound: no foundation, and no claim.
+        foreach (var (x, z) in new[] { (-4, 15), (-5, 16), (-4, 16) })
+        {
+            await Assert.That((x, z, built.World.GetBlock(x, 2, z).Id)).IsNotEqualTo((x, z, Blocks.Bedrock));
+            await Assert.That((x, z, built.Provenance.OwnerAt(x, z))).IsNotEqualTo((x, z, "roomfloor:0"));
+        }
+    }
+
+    [Test]
+    public async Task A_room_floors_claim_names_only_columns_its_foundation_filled()
+    {
+        // The invariant behind the entry, over the whole footprint rather than at a corner: every column the
+        // claim names carries the foundation, and there are exactly as many as the stamp filled. A rect one
+        // wider on either axis fails this along the whole edge — 169 claimed against 144 filled.
+        var built = RoomFloorOnly();
+
+        var claimed = 0;
+        for (var x = -25; x <= 5; x++)
+        for (var z = -5; z <= 25; z++)
+        {
+            if (built.Provenance.OwnerAt(x, z) != "roomfloor:0") continue;
+            claimed++;
+            await Assert.That((x, z, built.World.GetBlock(x, 2, z).Id)).IsEqualTo((x, z, Blocks.Bedrock));
+        }
+
+        await Assert.That(claimed).IsEqualTo(12 * 12);   // [-16,-4) x [4,16), max-exclusive on both axes
+    }
 }

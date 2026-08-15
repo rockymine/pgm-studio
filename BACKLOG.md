@@ -272,6 +272,19 @@ are Edit-specific. Full canvas spec: `docs/client/canvas-interaction.md`.
 
 ## Backend, pipeline & internals (B / P / A)
 
+- [ ] **B207 — `doc-status.md`'s churn ranking was measured over three days and reads as if it were history.**
+  The container that produced §3.4 saw 197 commits over three days, so every "last edited" date and every
+  churn count in it is accurate only for that window: a document showing zero churn was not necessarily
+  untouched for months, and one showing high churn was not necessarily edited recently in the way the number
+  implies. §3.4 is the ranking a reader would use to decide which documents are drifting, and it cannot see
+  drift older than the window — which is most drift. The opening note says so, which stops it misleading a
+  careful reader and does not make the numbers usable.
+
+  Re-run it against the full history and restate §3.4. Worth doing when the ranking is next going to be acted
+  on rather than on its own, since the numbers only matter as an input to choosing what to fix.
+
+  *carried out of `B111`, where it was a trailing note on an otherwise finished task (board rule 6) ·
+  `docs/doc-status.md` §3.4 and its opening note.*
 - [ ] **B189 — The authoring apparatus: art direction, named briefs, and a reviewer that is not the author.**
   Three runs asked three models for "a map of your own design" and got, three times over, one street of
   identical houses behind the spawn on a square board under a palette nobody checked. The brief is where that
@@ -621,13 +634,16 @@ tasks out of bucket 4 and relabelled bucket 10.
 above the defect: `DressingScope.GoalGroundAt` takes a goal's ground from *"the box the stamper wrote where
 there is one … by construction rather than by two derivations agreeing"*, and `StructureFootprints` directly
 below it rebuilds a house's footprint from `layoutJson` instead. So nothing has to be designed, only applied —
-**a claim is taken from the placement, never rebuilt beside it.** `SketchWorldBuilder` rebuilds it beside the
-stamp four more times: the room floor (the same fractional rect converted twice, five lines apart, by two
-rules), the wall, the redstone line and the goal box. The iron cube alone reads
-`StructureStamper.IronCubeFootprint` — the same function its stamper reads — and is therefore the one claim in
-the file that cannot drift. Buckets 6 and 7 both add placements and both would add a sixth answer.
-**Lands in** `WorldProvenance`, fed from footprints the stampers return. `B202` is the live defect, `B203` the
-class.
+**a claim is taken from the placement, never rebuilt beside it.**
+
+**All of it has landed** (`B202`, `B203`, `FEATURES.md`), and a bucket adding a placement adopts it rather than
+inventing a claim: `StructureClaim` is the shape, and the stamper answers what it covered
+(`HouseStamper.StampedCells`, `StructureStamper.IronCubeFootprint`, `FoundationCells`, `RedstoneLineCells`).
+The count of sites was wrong when it was written and the correction is worth carrying: of the calls this
+paragraph listed, only the room floor and the redstone line derived their claim separately — the wall, the goal
+box, the platform and both room frames compute one value and hand it to the stamper and the claim alike, which
+was always right. **Lands in** `WorldProvenance`, fed from footprints the stampers return. Buckets 6 and 7 both
+add placements and are dispatchable.
 
 **Extent and distance in plan space.** Buckets 1, 2 and 3 are fourteen rules over four measures: how far a
 door stands from a void, how far two islands stand apart, how large a piece may be, and how far a goal stands

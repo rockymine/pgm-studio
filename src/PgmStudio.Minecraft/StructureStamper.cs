@@ -21,12 +21,22 @@ public static class StructureStamper
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
         int minX, int minZ, int maxX, int maxZ)
     {
-        for (var x = minX; x < maxX; x++)
-        for (var z = minZ; z < maxZ; z++)
+        foreach (var (x, z) in FoundationCells(minX, minZ, maxX, maxZ))
         {
             var top = surfaceTop.GetValueOrDefault((x, z), 1);   // topmost air cell; solid ends at top-1
             for (var y = 0; y < top; y++) world.SetBlock(x, y, z, Blocks.Bedrock);
         }
+    }
+
+    /// <summary>The columns <see cref="StampFoundation"/> fills, for a caller recording what it covered. Its
+    /// footprint is <b>max-exclusive</b> and a provenance rect is max-inclusive, so the two disagree by a
+    /// column on each axis wherever the bounds are carried across by hand rather than walked — which is what
+    /// this exists to stop.</summary>
+    public static IEnumerable<(int X, int Z)> FoundationCells(int minX, int minZ, int maxX, int maxZ)
+    {
+        for (var x = minX; x < maxX; x++)
+        for (var z = minZ; z < maxZ; z++)
+            yield return (x, z);
     }
 
     /// <summary>Lay a redstone-wire row on top of the surface between the two given block ends (inclusive),
@@ -37,19 +47,28 @@ public static class StructureStamper
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
         int x1, int z1, int x2, int z2)
     {
-        var dx = Math.Sign(x2 - x1);
-        var dz = Math.Sign(z2 - z1);
-        var steps = Math.Max(Math.Abs(x2 - x1), Math.Abs(z2 - z1));
-        for (var i = 0; i <= steps; i++)
+        var cells = RedstoneLineCells(x1, z1, x2, z2).ToList();
+        for (var i = 0; i < cells.Count; i++)
         {
-            var x = x1 + dx * i;
-            var z = z1 + dz * i;
+            var (x, z) = cells[i];
             var y = surfaceTop.GetValueOrDefault((x, z), 1);
-            if (i == 0 || i == steps)
+            if (i == 0 || i == cells.Count - 1)
                 world.SetBlock(x, y, z, Blocks.RedstoneTorch);
             else
                 world.SetBlock(x, y, z, Blocks.RedstoneWire, 15);
         }
+    }
+
+    /// <summary>The columns <see cref="StampRedstoneLine"/> writes: the run itself, end to end. A caller
+    /// recording what it covered walks this rather than the bounding rectangle of the two ends — the two are
+    /// the same set only while the run is axis-aligned, which is what <c>EntranceRow</c> happens to produce
+    /// and nothing states as a rule.</summary>
+    public static IEnumerable<(int X, int Z)> RedstoneLineCells(int x1, int z1, int x2, int z2)
+    {
+        var dx = Math.Sign(x2 - x1);
+        var dz = Math.Sign(z2 - z1);
+        var steps = Math.Max(Math.Abs(x2 - x1), Math.Abs(z2 - z1));
+        for (var i = 0; i <= steps; i++) yield return (x1 + dx * i, z1 + dz * i);
     }
 
     /// <summary>Place a 4×4×4 iron-block cube whose base rests on the surface its footprint spans and whose

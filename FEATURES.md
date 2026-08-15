@@ -4699,6 +4699,40 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   carry cannot silently mask a deliberate plan-side height change. It follows the `CarryRelief`/`CarryFinish`
   precedent in `SketchFromPlanEndpoint`, and is gated end to end: the test asserts the relief solve holds the
   surrounding ground at the carried height rather than that JSON round-trips.
+- **Every tool has one document, written to one shape, and `docs/` is filed by subject (B111, B112–B115).**
+  Eight documents in `docs/tools/` — `flow.md` as the entry point plus one each for plan, sketch, configure,
+  edit, generator, shapes and library — all to the same spine: *what it is · what it writes · the document
+  model field by field · what it compiles to · the phases and their steps · what it refuses · the API as an
+  endpoint table with failure codes · driving it without the UI · limits*. Two of those sections are
+  conditional (a tool with no gate needs no refusals section, one with no document of its own needs no model
+  section) and the rest are load-bearing. Written from the code in the present tense and usable as **agent**
+  input, which is what puts the endpoints in them; `flow.md` describes only the flow — the four levels a map
+  is described at, the five hand-offs and their merge rules — and restates no tool's own content.
+  **Every JSON shape carries a worked example and the examples were checked by being run**, extracted from the
+  document and posted to the live API, because an example that does not run is the fastest thing in a document
+  to go quietly wrong. Where a tool is statistical rather than authored the description is **measured**:
+  `generator.md` carries a 400-board-per-row census of what each player count actually produces, taken from
+  the endpoint, since prose about sampling weights cannot say whether a request makes rings.
+  **Then the deletions, which were the point.** A document goes when a tool document owns its subject:
+  `wool-approach-read.md` (every id it turned on shipped or retired; what it argued for is now a plain rule in
+  `model.md` §4.7), `sketch-creation-flow.md` (named four files and a route that are gone) and
+  `finishing-model.md` (described theming as a plan-side concern and catalogued what that arrangement breaks —
+  a system that no longer exists and failures that can no longer occur), with its load-bearing rationale kept
+  in `flow.md` and `structures.md`. `sketch-relief.md` moved to `world-export/relief.md`, where the pass that
+  decides the ground the painter, the stampers and the dressing pass all land on belongs, and `tools/sketch.md`
+  now cites the five world-export documents from the phase that feeds each.
+  **`docs/contracts/` is gone, and its name was the finding**: five of its eighteen documents were contracts
+  and the rest were a rationale record, corpus studies, PGM law, a UI build plan, a URL decision and a design —
+  a folder named for a *form* most of its contents did not have. Every folder under `docs/` is now named for a
+  **subject** (`pgm/`, `world-scan/`, `client/`, `gameplay/`, `tools/`, `world-export/`, `generator/`), the
+  rule `CLAUDE.md` now states. The move was pure relocation — fifty-seven files' citations followed by full
+  path plus the relative and bare ones — with the four documents needing content work filed rather than fixed
+  in the same pass and all four since landed: `client/routing-and-ia.md` cut to the four things only it says
+  (B112), `pgm/destroyables-and-cores.md` 693 → 533, losing the premise its own §3.2 disproved (B113),
+  `client/ui-conventions.md` 245 → 129, now the component vocabulary and the API rules (B114), and
+  `world-scan/monument-candidate-store.md` 361 → 185, keeping the hosting constraint the split was done for
+  (B115).
+
 ### Agent-drivable map generation — what sixteen agent-designed boards exposed (B78, B80–B90)
 
 Sixteen maps were designed by an agent driving the system end to end and every one of them built, which is
@@ -5046,6 +5080,35 @@ these are the ones that shipped a map that could not be played as intended, and 
   count of what was asked for. Seven regression tests at the placement, the two that matter being a house
   dropped for overlapping one already standing and a house authored over void: both claim nothing.
   `StructureClaim`'s docstring states the rule for the passes that have not yet followed it (`B203`).
+- **A claim covers what the stamp wrote and no more (B203, occupancy half).** The entry claimed four
+  `ClaimRect` calls in `SketchWorldBuilder` re-derived a rect the stamper beside them had already computed.
+  **Checked site by site, two did, and they were two different faults.** The wall, the goal box, the bedrock
+  platform, the wool frame and the spawn frame each compute one value and hand it to both the stamper and the
+  claim, which is the correct pattern and was never a duplication; the iron cube already shares
+  `StructureStamper.IronCubeFootprint`. Only the room floor and the redstone line derived their claim
+  separately, and the entry had them the wrong way round: it called the room floor **latent** on the grounds
+  that `PlanCompiler` fans integral rects, and integral rects are exactly what made it **live**.
+  **The room floor, measured.** `StampFoundation`'s footprint is **max-exclusive** — its own docstring says so,
+  it fills `[minX, maxX)` — and `WorldProvenance.ClaimRect` is max-inclusive. So every room floor claimed one
+  column past its own bedrock on each axis: a `(-16, 4)–(-4, 16)` piece fills 12 × 12 = 144 columns and claimed
+  13 × 13 = 169, leaving 25 columns of `Structure` over ground the foundation never wrote. That is `B202`'s
+  fault at a second site, and it was live on every wool room and spawn room the studio has ever built. The min
+  end disagreed too — `(int)f.MinX` truncates toward zero where `Math.Floor` does not — which parts company on
+  a negative fractional bound.
+  **The redstone line** stamped a run and claimed the bounding rectangle of its two ends. The two are the same
+  set only while the run is axis-aligned, which is what `EntranceRow` produces (it returns a degenerate rect,
+  one axis fixed) and nothing states as a rule — so this one was genuinely latent, and a diagonal run would
+  have claimed its whole box.
+  Both now take their claim from the stamper's own walk: `StructureStamper.FoundationCells` and
+  `RedstoneLineCells`, each used by the stamp itself so the two cannot answer differently, and each handed back
+  as a `StructureClaim` the way `B202` established. Two regression tests, and both were **run against the
+  pre-fix code and observed to fail** — 169 claimed against 144 filled, and a claim on a column carrying open
+  ground.
+  What the entry called four other answers to the same question are not: `DressingScope.ProtectedAt` is a
+  keep-out mask (what may not be *placed*, goal clearance included) and `TerrainProfile`'s paint gate is a
+  material estimate (a column whose top block is not stone). Both are different questions with different
+  inputs, and grouping them here is the over-grouping `B204` exists to catch, found in the entry `B204` itself
+  was filed from.
 - **A block family is written once, and the two vocabularies compose from it (B203, block half).** Four tables
   were counted as answering "what kind of block is this" and only two of them shared anything: `BlockRoles`
   asks what a block is *doing* in a world so a scan can tell the ground from what stands on it, and
