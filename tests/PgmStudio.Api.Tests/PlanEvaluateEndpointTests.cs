@@ -53,10 +53,15 @@ public sealed class PlanEvaluateEndpointTests
         var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
         await Assert.That(body.GetProperty("valid").GetBoolean()).IsFalse();
 
-        var wl2 = body.GetProperty("violations").EnumerateArray().First(v => v.GetProperty("ruleId").GetString() == "WL2");
+        // The rule and the subjects sit on the violation's finding, which is the shape every gate answers in;
+        // the term id and the hard/soft kind stay on the violation, because a term is which measurement
+        // noticed rather than what an author broke.
+        var wl2 = body.GetProperty("violations").EnumerateArray()
+            .First(v => v.GetProperty("finding").GetProperty("rule").GetString() == "WL2");
         await Assert.That(wl2.GetProperty("kind").GetString()).IsEqualTo("hard");
         // the offending pair is named for the canvas highlight
-        var subjects = wl2.GetProperty("subjects").EnumerateArray().Select(s => s.GetString()).ToList();
+        var subjects = wl2.GetProperty("finding").GetProperty("subjects").EnumerateArray()
+            .Select(s => s.GetString()).ToList();
         await Assert.That(subjects).Contains("spawn");
         await Assert.That(subjects).Contains("wool");
         // and it draws itself — a measure line carries the "10 < 20" label

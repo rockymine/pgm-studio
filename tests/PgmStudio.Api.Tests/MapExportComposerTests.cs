@@ -142,11 +142,14 @@ public sealed class MapExportComposerTests
 
         var body = await Refuse409Async(client, slug);
         await Assert.That(body.GetProperty("error").GetString()).IsEqualTo("prop in goal clearance");
-        await Assert.That(body.GetProperty("rule").GetString()).IsEqualTo("OB19");
-        var props = body.GetProperty("props");
-        await Assert.That(props.GetArrayLength()).IsEqualTo(1);
-        await Assert.That(props[0].GetProperty("kind").GetString()).IsEqualTo("tree");
-        await Assert.That(props[0].GetProperty("id").GetString()).IsEqualTo("t1");
+        // One finding per offending prop, in the shape every gate answers in: the rule id to act on, the
+        // sentence naming what stands where, and the prop's own id as the subject the canvas highlights.
+        var findings = body.GetProperty("findings");
+        await Assert.That(findings.GetArrayLength()).IsEqualTo(1);
+        await Assert.That(findings[0].GetProperty("rule").GetString()).IsEqualTo("OB19");
+        await Assert.That(findings[0].GetProperty("message").GetString()).Contains("tree 't1'");
+        var subjects = findings[0].GetProperty("subjects").EnumerateArray().Select(s => s.GetString()).ToList();
+        await Assert.That(subjects).Contains("t1");
     }
 
     /// <summary>The control: the same shape of map as the refusals above, minus the fault each one looks

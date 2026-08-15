@@ -53,7 +53,7 @@ public sealed class PlanCompileEndpointTests
 
         var findings = (await resp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("findings");
         await Assert.That(findings.GetArrayLength()).IsGreaterThan(0);
-        await Assert.That(findings.EnumerateArray().All(f => f.GetProperty("severity").GetString() == "error")).IsTrue();
+        await Assert.That(findings.EnumerateArray().All(f => f.GetProperty("severity").GetString() == "refusal")).IsTrue();
         var subjects = findings[0].GetProperty("subjects").EnumerateArray().Select(s => s.GetString()).ToList();
         await Assert.That(subjects).Contains("a");
         await Assert.That(subjects).Contains("b");

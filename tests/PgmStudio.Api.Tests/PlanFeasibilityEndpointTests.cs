@@ -46,7 +46,7 @@ public sealed class PlanFeasibilityEndpointTests
         var unit = body.GetProperty("unit").EnumerateArray().ToList();
         await Assert.That(unit).IsNotEmpty();
         await Assert.That(unit.All(f => !string.IsNullOrEmpty(f.GetProperty("cites").GetString()))).IsTrue();
-        await Assert.That(unit.Any(f => f.GetProperty("code").GetString() == "seats-within-separation-gap")).IsTrue();
+        await Assert.That(unit.Any(f => f.GetProperty("rule").GetString() == "seats-within-separation-gap")).IsTrue();
     }
 
     /// <summary>The nearest miss carries the differing cells as rects, which is what lets the canvas paint the
