@@ -34,9 +34,19 @@ public static class StylePreview
         => SvgRaster.Raster(columns, columns, cell, (x, z) =>
         {
             var (id, data) = material.Resolve(
-                new BucketContext(x, 0, z, bucket, DepthFromTop: 0, TeamOf(x, columns), PerimeterArc: x));
+                new BucketContext(x, 0, z, bucket, DepthFromTop: 0, TeamOf(x, columns), PerimeterArc: x,
+                    Inset: Inset(x, z, columns)));
             return BlockPalette.Hex(id, data);
         });
+
+    /// <summary>How far in from the swatch's own edge a cell sits — the <b>real</b> inset of the square being
+    /// drawn, not a stand-in. A material read along the inward axis draws concentric rings, and left at the
+    /// off-the-footprint −1 it answered its fallback in every cell: a ring stack previewed as one flat colour,
+    /// which is not a less legible picture but a wrong one. The arc beside it <em>is</em> a stand-in (the x
+    /// column, so a wall run's stripes cross the swatch rather than hugging its border); the two differ because
+    /// a square swatch has a true inset and does not have a true perimeter walk.</summary>
+    private static int Inset(int x, int z, int columns)
+        => Math.Min(Math.Min(x, z), Math.Min(columns - 1 - x, columns - 1 - z));
 
     /// <summary>A material cut open downward: each row is one course deeper into the band, so a layer stack's
     /// thicknesses are the bands they are. Same neutral | team split across the columns as the plan view.</summary>
@@ -44,8 +54,11 @@ public static class StylePreview
         int columns = 32, int courses = 10, int cell = 4)
         => SvgRaster.Raster(columns, courses, cell, (x, depth) =>
         {
+            // The inset across a cut is the distance to the nearer end of it, which is what a section through a
+            // ringed shape actually shows: the same bands mirrored from both sides.
             var (id, data) = material.Resolve(
-                new BucketContext(x, courses - depth, 0, bucket, depth, TeamOf(x, columns), PerimeterArc: x));
+                new BucketContext(x, courses - depth, 0, bucket, depth, TeamOf(x, columns), PerimeterArc: x,
+                    Inset: Math.Min(x, columns - 1 - x)));
             return BlockPalette.Hex(id, data);
         });
 

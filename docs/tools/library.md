@@ -448,7 +448,8 @@ Every endpoint is anonymous, rooted at `/api`, and takes no map.
 | `GET /room-styles/{id}/json` | the stamper's own JSON — what a sketch binds and a building prop snapshots — as `{styleJson: "…"}`, likewise a string to unwrap |
 | `POST /room-styles/preview` · `POST /room-styles/preview-snapshot` | the shell a set of courses composes to, or the one a stored `HouseStyle` snapshot builds |
 | `DELETE /room-styles/{id}` | forget a room style; its courses cascade, its styles stay |
-| `GET /terrain/blocks` · `POST /terrain/material-preview` | the block palette, and one material drawn in plan and section |
+| `GET /terrain/blocks` · `GET /terrain/patterns` | the block palette, and every material kind with its fields, defaults and the cell facts it varies with |
+| `POST /terrain/material-preview` | one material drawn in plan and section |
 
 ## Driving it without the UI
 

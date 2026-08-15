@@ -303,9 +303,21 @@ area pattern (voronoi, cell, noise, turbulence, electric) fills from a **palette
 grouped by what an author would reach for rather than by block taxonomy: gravel sits with cobble because
 both are laid where water edges the ground, not because both read grey. `GET /terrain/blocks` answers the
 whole vocabulary a picker offers; `POST /terrain/theme-preview` and `/terrain/theme-map-preview` show a
-theme as it will paint before a world is built. Nineteen families crossed with six spec-reachable patterns —
-and eight more kinds only reachable by hand — is a far larger surface than the one wall every generated
-board wore.
+theme as it will paint before a world is built. Nineteen families crossed with fourteen pattern kinds is a
+far larger surface than the one wall every generated board wore.
+
+**`GET /terrain/patterns` is how the fourteen are found.** It answers every kind with its `kind`
+discriminator, a sentence on what it draws, its fields with types and defaults, and — the field worth reading
+first — **`reads`**, the facts about a cell it varies with. That last one is what decides where a kind is
+legible at all: a `wallRun` varies along the perimeter arc and is one flat colour in the middle of a plateau,
+a `layered` stack pointed `inward` draws concentric rings and answers its fallback off a footprint, and a
+`voronoi` reads position alone and works anywhere. The list and the field names are read off the painter's own
+types, so a kind cannot be offered that the parser would reject.
+
+Before it, only six kinds were reachable through `MapSpec`'s `pattern` field and the other eight appeared
+solely inside a refusal message that listed their names — so a caller could learn that `turbulence` is a word
+the parser accepts and never what it takes or what it does. The measured effect was agents reaching for the
+same two or three patterns and leaving the rest unused.
 
 ### The relief mark vocabulary is constraints and pushes, not one shape of number
 

@@ -180,3 +180,21 @@ public sealed record RoomStyleSaveRequest(
 /// isometric is tens of kilobytes, which is nothing for the one style an editor has open and megabytes for a
 /// grid of them.</summary>
 public sealed record RoomStylePreviewDto(string Plan, string Section, string Iso, string Cutaway);
+
+/// <summary>One field of a material kind (<c>GET /api/terrain/patterns</c>), as the painter's deserializer
+/// will accept it. <paramref name="Type"/> is a wire type word — <c>int</c>, <c>bool</c>, <c>material</c>,
+/// <c>material[]</c>, <c>band[]</c>, <c>stripe[]</c>, <c>bandStack</c>, or an enum's name, in which case
+/// <paramref name="Choices"/> holds its values. A field with no <paramref name="Default"/> is
+/// <paramref name="Required"/> and has to be written.</summary>
+public sealed record MaterialFieldDto(
+    string Name, string Type, bool Required, object? Default, IReadOnlyList<string>? Choices);
+
+/// <summary>One material kind (<c>GET /api/terrain/patterns</c>): the <c>kind</c> discriminator a theme tags
+/// it with, the label a picker offers it under, a sentence on what it draws, and its fields.
+/// <para><paramref name="Reads"/> is which facts about a cell it varies with — <c>position</c>, <c>depth</c>,
+/// <c>inset</c>, <c>arc</c>, <c>bend</c>, <c>height</c>, <c>team</c> — and therefore where it is legible: a
+/// kind reading <c>arc</c> says nothing away from a perimeter, and one reading <c>inset</c> draws rings and
+/// falls back off a footprint.</para></summary>
+public sealed record MaterialKindDto(
+    string Kind, string Name, string Summary,
+    IReadOnlyList<string> Reads, IReadOnlyList<MaterialFieldDto> Fields);

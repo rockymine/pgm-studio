@@ -20,6 +20,37 @@ public sealed class TerrainBlocksEndpoint : EndpointWithoutRequest<List<PaintBlo
             .Select(b => new PaintBlockDto(b.Id, b.Data, b.Name, b.Group, b.Hex, b.InFamily)).ToList(), ct);
 }
 
+/// <summary>
+/// GET /api/terrain/patterns — every material kind a theme may be built from, with what it does, the facts
+/// about a cell it varies with, and its fields with their types and defaults
+/// (<see cref="MaterialVocabulary"/>).
+///
+/// <para>Served for the reason <c>GET /api/objectives/vocabulary</c> is: the authoritative list is a set of
+/// records in <c>PgmStudio.Minecraft</c>, which neither the Blazor client nor an agent can reach, and a copy
+/// on the far side of the wire is exactly the drift it would exist to prevent. Before this the fourteen kinds
+/// appeared only inside a refusal message, so a caller could learn that <c>turbulence</c> is a word the parser
+/// accepts and never what it takes or what it draws.</para>
+///
+/// <para><b><c>reads</c> is the field worth reading first.</b> It says which fact about a cell a kind varies
+/// with, and therefore where it is legible at all: a <c>wallRun</c> varies along the perimeter arc and is one
+/// flat colour in the middle of a plateau; a <c>layered</c> stack pointed inward draws rings and answers its
+/// fallback off a footprint; a <c>voronoi</c> reads position alone and works anywhere.</para>
+///
+/// <para>Map-independent and anonymous, like the block list beside it — choosing a pattern happens before
+/// there is a map to choose it for.</para>
+/// </summary>
+public sealed class TerrainPatternsEndpoint : EndpointWithoutRequest<List<MaterialKindDto>>
+{
+    public override void Configure() { Get("/terrain/patterns"); AllowAnonymous(); }
+
+    public override Task HandleAsync(CancellationToken ct)
+        => Send.OkAsync([.. MaterialVocabulary.All.Select(kind => new MaterialKindDto(
+            kind.Kind, kind.Name, kind.Summary,
+            [.. kind.Reads.Select(fact => char.ToLowerInvariant(fact.ToString()[0]) + fact.ToString()[1..])],
+            [.. kind.Fields.Select(f => new MaterialFieldDto(f.Name, f.Type, f.Required, f.Default, f.Choices))]))],
+            ct);
+}
+
 /// <summary>The preview endpoints take a raw JSON document as their body rather than a wrapper DTO — the body
 /// <em>is</em> the material / theme / plan the painter deserializes — so they read it as text.</summary>
 internal static class RawBody
