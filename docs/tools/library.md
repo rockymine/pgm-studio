@@ -451,6 +451,25 @@ Every endpoint is anonymous, rooted at `/api`, and takes no map.
 | `GET /terrain/blocks` · `GET /terrain/patterns` | the block palette, and every material kind with its fields, defaults and the cell facts it varies with |
 | `POST /terrain/material-preview` | one material drawn in plan and section — body is a **bare material**, `{kind, …}`, unwrapped. One column, not an area: a pattern cannot be judged from it |
 
+**Worked bodies.** Each block below is posted verbatim by `DocumentedBodyTests`, so an example that stops
+being accepted fails a test rather than misleading a reader.
+
+```json POST /api/styles
+{"name": "example-solid", "kind": "solid", "params": "{\"kind\":\"solid\",\"id\":1,\"data\":0}"}
+```
+
+```json POST /api/themes/import
+{"themeJson": "{\"rimEdges\":\"drop\"}"}
+```
+
+```json POST /api/terrain/material-preview
+{"kind": "solid", "id": 1, "data": 0}
+```
+
+```json POST /api/room-styles/preview-snapshot
+{"roof": {"form": "gable"}}
+```
+
 ## Driving it without the UI
 
 Composing a theme is three calls and a hand-off: `POST /styles` for each material the theme needs, `POST

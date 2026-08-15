@@ -45,9 +45,11 @@ server and mirrored by `plan-doc.js` on the client, which round-trip it identica
 unknown piece roles, box kinds and zone kinds fold to their canonical value, and every marker without an id
 is given one. A document written under an older vocabulary therefore loads cleanly rather than failing.
 
-Here is one carrying every element the format has, which compiles clean — no errors and no warnings:
+Here is one carrying every element the format has, which compiles clean — no errors and no warnings. That
+claim is a test: `DocumentedBodyTests` posts this block to the route named on its fence and fails if the
+compile ever answers anything else.
 
-```json
+```json POST /api/plan/compile
 {
   "plan": 1,
   "meta": { "name": "Example board" },
@@ -417,6 +419,10 @@ document as the body and need no map, which is what lets a plan be checked befor
 **Reading a plan.** All three take **the plan document itself as the body** — unwrapped, exactly the shape
 `GET /map/{slug}/plan` hands back — and store nothing, so they can be asked of a document that has never been
 posted anywhere. That is what makes them the cheapest way to find out whether a board is well formed.
+
+```json POST /api/plan/inspect
+{"globals": {"cell": 5, "symmetry": "rot_180"}, "pieces": []}
+```
 
 | Endpoint | Answers | Fails with |
 |---|---|---|

@@ -405,6 +405,10 @@ queried because a box does not fit a query string legibly. The refusal it answer
 *bounds {minX,minZ,maxX,maxZ} required* — names the four fields and not the object holding them, so it reads
 as though they were top level; they are not.
 
+```json POST /api/map/{slug}/wool-sources
+{"bounds": {"minX": 0, "minZ": 0, "maxX": 16, "maxZ": 16}}
+```
+
 | Endpoint | Answers |
 |---|---|
 | `GET /map/{slug}/column-floor?x=&z=` | the floor a marker seats on — what makes a placed point land on terrain |
