@@ -56,21 +56,36 @@ static void Build(MapSpec spec, bool describeOnly, bool forceStages)
     if (string.IsNullOrWhiteSpace(spec.Objective))
         throw new ArgumentException("the spec needs an 'objective' — PGM requires one and will not load the map without it");
 
-    // ── the board: generated, or drawn ───────────────────────────────────────────────────────────────────
-    PlanModel plan;
-    if (spec.Compose is { } ask)
+    // ── the board: generated, drawn, or laid out as a catalogue ─────────────────────────────────────────
+    // The first two produce a plan and compile it; a grid produces its layout directly, because a plot is a
+    // disc or a cross and a plan piece is a rectangle. A grid map therefore carries no plan at all, and every
+    // reader of one below is guarded rather than handed a manufactured stand-in.
+    PlanModel? plan = null;
+    SketchLayout layout;
+    MapIntent intent;
+    if (spec.Grid is { } grid)
     {
-        plan = Composer.Compose(new ComposeRequest(
-            ask.PlayersPerTeam, ask.Teams, ask.Symmetry, ask.Seed, ask.Cell));
+        if (spec.Compose is not null || spec.Plan is not null)
+            throw new ArgumentException("a spec states its board once: 'grid', 'compose' or 'plan', not two");
+        layout = IslandGrid.Lay(Plots(grid), new IslandGrid.Geometry(grid.Columns, grid.Pitch, grid.Floor, grid.Top));
+        intent = new MapIntent();
     }
-    else if (spec.Plan is { } drawn)
+    else
     {
-        plan = PlanModel.Parse(drawn.GetRawText())
-               ?? throw new ArgumentException("the plan document did not parse");
-    }
-    else throw new ArgumentException("the spec needs either a 'compose' or a 'plan'");
+        if (spec.Compose is { } ask)
+        {
+            plan = Composer.Compose(new ComposeRequest(
+                ask.PlayersPerTeam, ask.Teams, ask.Symmetry, ask.Seed, ask.Cell));
+        }
+        else if (spec.Plan is { } drawn)
+        {
+            plan = PlanModel.Parse(drawn.GetRawText())
+                   ?? throw new ArgumentException("the plan document did not parse");
+        }
+        else throw new ArgumentException("the spec needs a 'compose', a 'plan' or a 'grid'");
 
-    var (layout, intent) = PlanCompiler.Compile(plan);
+        (layout, intent) = PlanCompiler.Compile(plan);
+    }
 
     // ── the paint ────────────────────────────────────────────────────────────────────────────────────────
     if (spec.Theme is { } theme) Paint(layout, theme);
@@ -170,6 +185,15 @@ static void Build(MapSpec spec, bool describeOnly, bool forceStages)
     if (spec.Stages || forceStages) EmitStages(outDir, plan, built.World, built.Provenance, xml, layout.ToJson());
 }
 
+/// <summary>The spec's plots as the emitter's own, which is the whole of the translation: the spec names the
+/// shape vocabulary and the emitter draws it.</summary>
+static List<GridPlot> Plots(GridSpec grid)
+{
+    if (grid.Plots.Count == 0) throw new ArgumentException("a 'grid' needs at least one plot");
+    return [.. grid.Plots.Select(plot => new GridPlot(
+        plot.Kind, plot.Theme, plot.Name, plot.Width, plot.Depth, plot.Radius, plot.Vertices))];
+}
+
 /// <summary>The goals — wool monuments, destroyables, cores — whose anchor has no rasterized column under it,
 /// named for the refusal message. Every goal kind is checked the same way: a column either exists at the
 /// goal's (floored) XZ or it does not, which is all "stands over void" means.</summary>
@@ -211,13 +235,15 @@ static List<string> GoalsOverVoid(Dictionary<(int X, int Z), int> ground, MapInt
 /// <b>traversability</b> answers a question neither top-down can: whether the
 /// navigable ground actually joins spawn to every goal. <b>structures</b> is what the world stamped,
 /// independent of theme.</para></summary>
-static void EmitStages(string outDir, PlanModel plan, VoxelWorld world, WorldProvenance provenance, string xml,
+static void EmitStages(string outDir, PlanModel? plan, VoxelWorld world, WorldProvenance provenance, string xml,
     string layoutJson)
 {
     var dir = Path.Combine(outDir, "stages");
     Directory.CreateDirectory(dir);
 
-    File.WriteAllBytes(Path.Combine(dir, "plan.png"), PlanBoardPng.Render(plan));
+    // A grid map has no plan to draw — its layout is emitted rather than compiled — so the stage set is the
+    // other eight. Absent rather than blank: an empty board would read as a compile that produced nothing.
+    if (plan is { } board) File.WriteAllBytes(Path.Combine(dir, "plan.png"), PlanBoardPng.Render(board));
 
     TopDownRender.Run(world, Path.Combine(dir, "dressing.png"), map: null, scale: 3, yMax: null, name: "dressing",
         provenance: provenance);
@@ -290,12 +316,12 @@ static void Paint(SketchLayout layout, ThemeSpec spec)
     var theme = new TerrainTheme
     {
         Surface = new TopBand(Surface(spec), 3, Enabled: true),
-        Wall = Materials.Pattern(spec.Pattern, spec.Wall),
+        Wall = MaterialRecipes.Pattern(spec.Pattern, spec.Wall),
         WallEnabled = true,
-        Fill = Materials.One(spec.Fill),
+        Fill = MaterialRecipes.One(spec.Fill),
         Rim = spec.Rim is { Length: > 0 } rim
-            ? new TopBand(Materials.One(rim), 1, Enabled: true)
-            : new TopBand(Materials.One(spec.Wall), 1, Enabled: false),
+            ? new TopBand(MaterialRecipes.One(rim), 1, Enabled: true)
+            : new TopBand(MaterialRecipes.One(spec.Wall), 1, Enabled: false),
     };
     layout.Themes = new Dictionary<string, JsonElement>
     {
@@ -306,8 +332,8 @@ static void Paint(SketchLayout layout, ThemeSpec spec)
 
 static TerrainMaterial Surface(ThemeSpec spec) =>
     spec.Surface.Equals("grass", StringComparison.OrdinalIgnoreCase)
-        ? Materials.Grass
-        : Materials.Pattern(spec.Pattern, spec.Surface);
+        ? MaterialRecipes.Grass
+        : MaterialRecipes.Pattern(spec.Pattern, spec.Surface);
 
 // ── relief ───────────────────────────────────────────────────────────────────────────────────────────────
 

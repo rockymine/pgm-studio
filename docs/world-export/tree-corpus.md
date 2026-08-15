@@ -36,7 +36,9 @@ Every leaf, filed by its strongest contact in its own 3×3×3 neighbourhood:
 | nothing at all | 7 (0.03%) | 4 (0.02%) |
 
 The generated column is `CommunityMaps/ctw/pattern_test`, which mixes template and grown trees and cannot be
-split by block alone — so it indicates rather than proves, and the grower sweep below is what proves.
+split by block alone — so it indicates rather than proves, and the grower sweep below is what proves. That
+map is now `library_map`, built from `tools/library-map.cs`'s spec (`B209`); the measurement is kept under the
+name it was taken at.
 
 The row that carries the finding is **edge-or-corner-to-leaf: 10.6% against 0.5%**. A fifth of the author's
 foliage hangs on diagonally, because a hand-built crown is drawn as lace; a generated crown fills a solid

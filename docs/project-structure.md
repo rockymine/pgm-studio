@@ -29,16 +29,15 @@ Every arrow points at something the project is allowed to reach; read it bottom-
 
   Import ──> Data, Pgm, Contracts, Migrations            (parquet → relational CLI)
 
-  tools/mapgen, tools/PgmStudio.PatternMap ──> Export     (headless export-path drivers — §7)
+  tools/mapgen ──> Export                                (the headless export-path driver — §7)
 
   Pure leaves (no project references):  Geom   Domain   Contracts   Migrations
 ```
 
 **`Export` added no edge and inverted none.** Every project it reaches (`Domain`, `Analysis`, `Minecraft`,
 `Pgm`) was already reachable from `Api` — directly, or through `Data` — so the cut is free in graph terms: `Api`
-now reaches the same set of projects through one more hop, and `tools/mapgen`/`tools/PgmStudio.PatternMap`
-reach exactly the same code they did when they referenced the whole of `Api`, minus the web host they never
-used.
+now reaches the same set of projects through one more hop, and `tools/mapgen` reaches exactly the same code
+it did when it referenced the whole of `Api`, minus the web host it never used.
 
 **Two constraints are what force the shape**, and they are the reason there appear to be "two model projects":
 
@@ -185,20 +184,21 @@ and the harness; its `FromJson` is the production codec.
 It is not one thing: four are real `.csproj` projects the solution builds, most of the rest are single
 file-based scripts `dotnet run` builds on demand, and three folders hold no code at all.
 
-**The four project-based tools**, each a `ProjectReference` graph like any `src/` project and each listed in
+**The three project-based tools**, each a `ProjectReference` graph like any `src/` project and each listed in
 `PgmStudio.slnx`:
 
 | Tool | References | Is |
 |---|---|---|
 | `mapgen` | `Export` | builds a whole map from one JSON spec, through the real export path — the trial harness for `BACKLOG`/`TODO`'s generation track |
-| `PgmStudio.PatternMap` | `Export` | a smaller spec-to-world driver for hand-authored geometric pattern maps |
 | `PgmStudio.RoundTrip` | `Pgm`, `Analysis`, `Minecraft` | the corpus regression net (`--goldens`): the four map-level derivations over every corpus map, diffed against `corpus-goldens.json` |
 | `relief` (`PgmStudio.Relief`) | `Geom`, `Minecraft` | the relief solver's own measurement CLI — the solver stays dependency-free; only the Anvil-reading half needed `Minecraft` |
 
-`mapgen` and `PgmStudio.PatternMap` are `Export`'s two consumers beyond `Api` itself, and the reason the
-project exists: before `B119` both referenced the whole of `Api` — ASP.NET Core, FastEndpoints, the DB layer,
-the Blazor host — to reach `SketchWorldBuilder` and `MapXmlComposer`, which is what made a headless driver
-carry a web application it never started. That was the first of a pair of findings — `tools/` had grown a
+`mapgen` is `Export`'s one consumer beyond `Api` itself, and the reason the project exists: before `B119` it
+referenced the whole of `Api` — ASP.NET Core, FastEndpoints, the DB layer, the Blazor host — to reach
+`SketchWorldBuilder` and `MapXmlComposer`, which is what made a headless driver carry a web application it
+never started. `PgmStudio.PatternMap` was the second such consumer until `B209`: it wrote a world folder
+through the same seven steps mapgen does, and what it actually had to say — a grid of plots, a themes
+registry, a dressing document — is now a spec `mapgen` builds (`tools/library-map.cs`). That was the first of a pair of findings — `tools/` had grown a
 second copy of parts of the system precisely because reaching the real ones meant reaching `Api` — and `B119`
 was the fix for the reaching; `B118` was the fix for the copy itself, deleting `tools/mapgen`'s own site
 sampler and reduced spec format in favour of the real documents `B119` had just made reachable.

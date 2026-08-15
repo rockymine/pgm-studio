@@ -34,12 +34,19 @@ public sealed class MapSpec
     /// corpus, which is where a generated map goes to be looked at.</summary>
     [JsonPropertyName("out_dir")] public string? OutDir { get; set; }
 
-    /// <summary>Ask the layout generator for a board. Exclusive with <see cref="Plan"/>.</summary>
+    /// <summary>Ask the layout generator for a board. Exclusive with <see cref="Plan"/> and
+    /// <see cref="Grid"/>.</summary>
     [JsonPropertyName("compose")] public ComposeSpec? Compose { get; set; }
 
     /// <summary>A literal plan document, for a board that is drawn rather than generated. Exclusive with
-    /// <see cref="Compose"/>.</summary>
+    /// <see cref="Compose"/> and <see cref="Grid"/>.</summary>
     [JsonPropertyName("plan")] public JsonElement? Plan { get; set; }
+
+    /// <summary>A row of unrelated islands on a grid — a catalogue rather than a board, which is what a map
+    /// built to be looked at is. Exclusive with <see cref="Compose"/> and <see cref="Plan"/>, and the one of
+    /// the three that skips the plan entirely: a plot is a disc, an octagon or a cross, and a plan piece is a
+    /// rectangle, so this emits its <c>SketchLayout</c> directly.</summary>
+    [JsonPropertyName("grid")] public GridSpec? Grid { get; set; }
 
     /// <summary>What the ground is painted with. One theme paints the whole map unless a shape names its
     /// own; a map of one material reads as one place, which is what a theme is for.</summary>
@@ -103,6 +110,48 @@ public sealed class ComposeSpec
     /// this is what decides how big the finished map is on the ground without changing its layout: the
     /// destroy-the-monument corpus runs a median 148×164 blocks, which a five-block cell does not reach.</summary>
     [JsonPropertyName("cell")] public int Cell { get; set; } = 5;
+}
+
+/// <summary>A grid of plots, each an island of its own. The grid decides where they sit; each plot says only
+/// what it is and what paints it.</summary>
+public sealed class GridSpec
+{
+    /// <summary>Plots per row. They run left to right and then down, so the order stated is the order walked.</summary>
+    [JsonPropertyName("columns")] public int Columns { get; set; } = 5;
+
+    /// <summary>Centre-to-centre spacing in blocks. A plot reaching past half of it would join its neighbour,
+    /// which is refused.</summary>
+    [JsonPropertyName("pitch")] public int Pitch { get; set; } = 56;
+
+    /// <summary>The lowest course a plot's column is filled from, just above bedrock.</summary>
+    [JsonPropertyName("floor")] public int Floor { get; set; } = 1;
+
+    /// <summary>The course a player walks on, so every plot carries a wall of that height above the void.</summary>
+    [JsonPropertyName("top")] public int Top { get; set; } = 26;
+
+    [JsonPropertyName("plots")] public List<PlotSpec> Plots { get; set; } = [];
+}
+
+/// <summary>One plot: the outline, and the theme it is painted through. The theme is a key into the layout's
+/// own <c>themes</c> registry, which a <see cref="MapSpec.Layout"/> overlay is where you put.</summary>
+public sealed class PlotSpec
+{
+    /// <summary><c>rectangle</c> · <c>circle</c> · <c>polygon</c> — the sketch's own shape vocabulary.</summary>
+    [JsonPropertyName("kind")] public string Kind { get; set; } = "rectangle";
+
+    /// <summary>A theme id in the layout's registry. Absent leaves the plot painted by the map theme.</summary>
+    [JsonPropertyName("theme")] public string? Theme { get; set; }
+
+    /// <summary>What this plot is showing. Carried onto the island, so a report names it.</summary>
+    [JsonPropertyName("name")] public string? Name { get; set; }
+
+    [JsonPropertyName("width")]  public double Width { get; set; } = 34;
+    [JsonPropertyName("depth")]  public double Depth { get; set; } = 26;
+    [JsonPropertyName("radius")] public double Radius { get; set; } = 14;
+
+    /// <summary>A polygon's outline as <c>[dx, dz]</c> offsets from the plot's own centre, so one outline can
+    /// be laid at every plot without restating its coordinates.</summary>
+    [JsonPropertyName("vertices")] public double[][]? Vertices { get; set; }
 }
 
 /// <summary>The paint, named. Every field is a palette family name except <see cref="Surface"/>, which also

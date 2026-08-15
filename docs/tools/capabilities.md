@@ -163,6 +163,49 @@ spec's shorthand instead — or, once the shorthand runs out, states the fragmen
 convenience field and not by handing a document fragment through — that is a gap in the system, not in the
 spec.
 
+### Three ways to state a board, and one of them skips the plan
+
+`compose` asks the generator for a board and `plan` carries a drawn one; both produce a `PlanModel` and
+compile it. **`grid` is the third, and it is a catalogue rather than a board**: a list of plots laid on a
+regular grid, each its own island, none of them mirroring. It emits its `SketchLayout` directly instead of
+compiling one, because a plan piece is a rectangle on a cell grid and a plot is a disc, an octagon, a cross
+or a wedge — compiling one through a plan would either lose the outline or grow the plan a shape vocabulary
+with no gameplay use. A `grid` map therefore carries no plan at all, which is visible in exactly one place:
+the stage set is the other eight images, with no `plan.png`.
+
+A plot states only what it is; the grid decides where it sits. `kind` is the sketch's own vocabulary and no
+more of it — `rectangle` (reading `width`/`depth`), `circle` (`radius`), `polygon` (`vertices` as `[dx, dz]`
+offsets from the plot's own centre, so one outline lays at every plot without restating its coordinates) —
+plus a `theme` naming a key in the layout's own registry and a `name` carried onto the island. The grid
+carries `columns`, `pitch`, `floor` and `top`: plots run left to right and then down, so the order stated is
+the order walked, and the whole grid is centred on the origin however long it is.
+
+**A plot reaching past half the pitch is refused rather than drawn.** Two outlines that touch rasterize into
+one landmass, so a catalogue silently shows fewer things than it lists and nothing downstream says so — which
+is the one failure a catalogue map cannot tolerate, since not-showing-something is exactly what it is built
+to detect.
+
+```json
+{ "grid": { "columns": 5, "pitch": 56, "floor": 1, "top": 26,
+            "plots": [ { "kind": "rectangle", "theme": "striped", "name": "wall stripes", "width": 34, "depth": 26 },
+                       { "kind": "circle", "theme": "rings", "name": "inward rings", "radius": 14 },
+                       { "kind": "polygon", "theme": "rings", "name": "cross",
+                         "vertices": [[-5,-15],[5,-15],[5,-5],[15,-5],[15,5],[5,5],
+                                      [5,15],[-5,15],[-5,5],[-15,5],[-15,-5],[-5,-5]] } ] } }
+```
+
+`tools/library-map.cs` is the worked example and the reason the capability exists: the studio's catalogue map
+— every terrain pattern, the inward axis on a disc and a cross, a plot per house preset, a tree of every
+species and wood — written as a spec and built by `mapgen` like any other. It emits and builds nothing:
+
+```bash
+dotnet run tools/library-map.cs                                     # → tools/out/library-map.spec.json
+dotnet run --project tools/mapgen -- --stages tools/out/library-map.spec.json
+```
+
+The sweep stays as code because a frozen spec cannot notice that an eleventh house preset was added, and the
+spec is harness output rather than a checked-in seed for the same reason.
+
 ### A shape is not only ground — it is also an obstacle, and the cap is what makes it one
 
 The layout reads as a document about where land is, and most of what it does is that. It is also the coarsest

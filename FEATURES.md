@@ -5177,6 +5177,38 @@ these are the ones that shipped a map that could not be played as intended, and 
   method the class has not had for some time, now cites `Check`. It matters ahead of the bucketed audit work:
   four buckets add rules to this class, and an agent choosing a verb from four will not choose the same one
   twice.
+- **A material is asked for by name, from one place both the studio and the tools reach (B209, tier B).**
+  `MaterialRecipes` (`Minecraft`) resolves a tone family to the blocks that stack, one block out of a family,
+  a family laid as wall stripes, the one course of grass that reads from above, and the five area patterns at
+  the seeds and scales a *named* pattern means. It lived in `tools/mapgen/Materials.cs` and
+  `tools/PgmStudio.PatternMap/Plateaus.cs`, character for character down to those constants and to the
+  docstring explaining why grass, podzol and mycelium come out of a family read for a pattern — and being in
+  `tools/` twice, the studio itself could reach neither. The two copies had quietly diverged in the half that
+  matters when something is wrong: one refused an unknown family with the list of real ones and clamped an
+  index past a family's end, the other threw a bare index error. The surviving one keeps the first.
+- **A grid of islands is a board the studio can state (B209).** `IslandGrid` (`Pgm.Sketch`) lays a list of
+  plots — rectangle, circle or polygon, the sketch's own vocabulary — on a regular pitch, one shape and one
+  island each, none mirroring, the whole grid centred on the origin however long it is. It emits its
+  `SketchLayout` **directly rather than through a plan**, because a plan piece is a rectangle on a cell grid
+  and a plot is a disc, an octagon or a cross. `mapgen`'s spec gains it as `grid`, the third and last way to
+  state a board beside `compose` and `plan`, and the one that carries no plan at all — visible in exactly one
+  place, a stage set of the other eight images. A plot reaching past half the pitch is **refused**: two
+  outlines that touch rasterize into one landmass, so the catalogue silently shows fewer things than it lists
+  and nothing downstream would say so.
+- **The showcase map is a spec, and the second world builder is gone (B209, B208).** `tools/PgmStudio.PatternMap`
+  (597 lines over three files, its own `.csproj`) wrote a world folder through the same seven steps `mapgen`
+  does — build, xml, dir, region, provenance, level.dat, map.xml — and hand-authored a grid of themed plateaus
+  to do it. Everything it had to say is sayable in the documents the studio already has, so it is now
+  `tools/library-map.cs`: an emitter that fills a `MapSpec` from the catalogues — every terrain pattern, the
+  inward axis on a disc and a cross, a plot per house preset, a tree of every species and wood, the two wool
+  rooms and two spawns — and builds nothing. `mapgen` builds it like any other spec, which retires the
+  duplicated write sequence by deletion rather than by extraction. The sweep stays as code because a frozen
+  spec cannot notice an eleventh house preset, and the spec is harness output (`tools/out/`) rather than a
+  quarter-megabyte checked-in seed for the same reason. All **37 themes are byte-identical** to the retired
+  tool's, checked by building both and comparing the JSON a layout stores. One live defect came out of the
+  move: the emitter first wrote `roomStyles.wool`, and the wire word is `cage` — a key the reader does not
+  know falls back to the built-in bedrock lid without saying so, which is what the merged layout read back
+  showed and what the structure census confirmed (Bedrock 95% → Spruce Planks 85%).
 - **`--surface` names the rest of the stained-clay ramp, hay bale, and says what it still cannot (B147).**
   `TerrainPalette.Families` covered stained-clay data `1, 3, 5, 9, 11, 12, 13, 15`; the other eight
   (white, magenta, yellow, pink, gray, light gray, purple, red) now each join the tone family the fired
