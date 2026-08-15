@@ -24,7 +24,7 @@ var all = new StringBuilder();
 foreach (var sym in symmetries)
 foreach (var (label, players, land) in presets)
 {
-    var env = new ComposeEnvelope(sym, Teams: 2, players, Cell: 5, Surface: 9, Headroom: 11,
+    var env = new ComposeEnvelope(sym, Teams: 2, players, Cell: 5, Surface: 9, MaxBuildHeight: 20,
         BoardWidthBlocks: 300, BoardLengthBlocks: 300, land, UnitMinX: 0, UnitMinZ: 0, UnitMaxX: 60, UnitMaxZ: 60);
     var sb = new StringBuilder();
     int alloc = 0, filled = 0;

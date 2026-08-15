@@ -9,7 +9,7 @@ namespace PgmStudio.Pgm.Tests.Compose;
 public class TeamUnitAllocatorTests
 {
     private static ComposeEnvelope Env(int players = 8, double land = 1600) =>
-        new("mirror_z", Teams: 2, players, Cell: 5, Surface: 9, Headroom: 11,
+        new("mirror_z", Teams: 2, players, Cell: 5, Surface: 9, MaxBuildHeight: 20,
             BoardWidthBlocks: 200, BoardLengthBlocks: 200, land, UnitMinX: 0, UnitMinZ: 0, UnitMaxX: 40, UnitMaxZ: 40);
 
     [Test]

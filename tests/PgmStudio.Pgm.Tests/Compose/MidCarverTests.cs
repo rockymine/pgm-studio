@@ -42,7 +42,7 @@ public sealed class MidCarverTests
 
     private static CellRect? Band(string symmetry, bool split, GrownUnit unit)
     {
-        var env = new ComposeEnvelope(symmetry, Teams: 2, PlayersPerTeam: 12, Cell: 5, Surface: 9, Headroom: 11,
+        var env = new ComposeEnvelope(symmetry, Teams: 2, PlayersPerTeam: 12, Cell: 5, Surface: 9, MaxBuildHeight: 20,
             BoardWidthBlocks: 300, BoardLengthBlocks: 300, LandPerTeam: 2800,
             UnitMinX: -40, UnitMinZ: -40, UnitMaxX: 40, UnitMaxZ: 40);
         var design = MidCarver.BandOnly(env) with { SplitBand = split };

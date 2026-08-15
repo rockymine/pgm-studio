@@ -4991,7 +4991,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   position (`PlanCompiler.ResolveGoalAnchor`) rather than a piece-relative offset, so a goal can ride an
   authored sketch landform with no tier manufactured to carry it, and `PlanValidator` no longer reports the
   absent piece as a dangling reference for these two marker kinds. The default float stays at 4 — a gameplay
-  constant, not part of this fix. Leaves open: `B105` (the compiler still reads a piece's `Surface` as a
+  constant, not part of this fix. Leaves open: `B222` (the compiler still reads a piece's `Surface` as a
   literal world Y for spawns and wool rooms, and this task does not touch that) and `B107` (the canvas has no
   way to draw an absolutely-placed goal yet — only a hand-written or agent-authored plan can).
 - **A stage image is a diagram now, not a photograph, and every one carries its own key (B98, B95).**
@@ -5202,6 +5202,31 @@ these are the ones that shipped a map that could not be played as intended, and 
   method the class has not had for some time, now cites `Check`. It matters ahead of the bucketed audit work:
   four buckets add rules to this class, and an agent choosing a verb from four will not choose the same one
   twice.
+- **A plan states its build ceiling instead of deriving one (B105).** `PlanGlobals.Headroom` was a slack over
+  `Surface`, and `PlanCompiler` turned the pair into the map's only build cap with
+  `plan.Globals.Surface + plan.Globals.Headroom`. Both halves of that sum are the plan's **flat nominal**
+  world, so the ceiling was computed from a ground level the relief solve then abandons — which is the root
+  `B104` names, and it produced boards whose cap sat below their own terrain. The shape was wrong regardless of
+  the numbers: how high a player may build is a decision, and deriving it from a base plus a slack made it a
+  consequence of something else. **`maxBuildHeight`** is the world Y outright. Per-piece `Surface` stays exactly
+  as it was — that one is load-bearing and correct as a plan-space concept, and `B105` said so.
+
+  **Nothing moved.** The default is 20, which is what the old default pair produced, and all 49 plan seeds plus
+  22 other stored plan documents carried `surface 9 / headroom 11` — so every one of them restates the same
+  cap it always had. `MapIntent.BuildIntent.MaxHeight` was already the real field and the export already
+  honoured it; what was missing was a plan-level value that set it, and an author or agent knowing it exists.
+
+  **The composer version is bumped anyway, to `stated-ceiling-1`.** The geometry did not move — every rectangle
+  is where it was — but `ComposerFingerprint` digests the plan's serialized JSON, and a plan whose globals
+  spell a field differently is a different plan. The promise the version keeps is that *a descriptor reproduces
+  its plan exactly*, so the document changing is a version change even when the board does not, and the
+  constant's docstring now says so. All 72 fingerprints re-recorded.
+
+  Two things it left, filed rather than guessed at. **`B221`**: the default 20 sits below `G6`, which asks for
+  ≥20 blocks of clearance *above* the surface — a cap of 29 at the default surface of 9 — and raising it is a
+  gameplay call, since `G6`'s own second half warns that a generous cap over flat terrain is the sky-layer
+  smell. **`B222`**: spawns and wool rooms still bake their floor from `piece.Surface` at compile time, the
+  same flat-world mistake wearing a different field, on the two marker kinds `B128` did not reach.
 - **Every rule the studio can cite, with what it means and what to do about it (B219).** A refusal carries an
   id and one sentence about the document it was refused over. The id is stable forever and outlives the task
   that added it, which is what makes it worth keying on — and nothing answered the other question a reader has

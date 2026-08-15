@@ -522,9 +522,11 @@ by `HousePropRules.PastCap` and is not filed.
   y21–23 and `max_build_height` is 20; on `corvale` the emerald stands at y18–20 against the same cap. Blocks
   above the cap can still be broken, so this does not make the goal unbreakable — but a destroyable or a core
   belongs **below** the cap, and neither does. The cap itself is the cause rather than the placement: it is
-  `plan.Globals.Surface + Headroom`, both halves of the plan's flat nominal world, so it is computed from a
-  ground level the relief later abandons and lands under the terrain it is supposed to sit over. `B105` is the
-  fix; what this entry owns is the check that the goal ends up under whatever cap that produces.
+  the cap, and until `B105` it was `Surface + Headroom` — both halves of the plan's flat nominal world, so it
+  was computed from a ground level the relief later abandons and landed under the terrain it was supposed to
+  sit over. The cap is stated now (`maxBuildHeight`), which makes it the author's to raise; its default is the
+  same 20 those two boards were measured against, so **this entry's own numbers still stand**. What it owns is
+  the check that the goal ends up under whatever cap the plan states.
 
   **A floating goal is not the fault, and an earlier version of this entry said it was.** A destroyable and a
   core **float a few blocks above the terrain by design**, and have since PGM's beginning: a core that sits on
@@ -535,26 +537,32 @@ by `HousePropRules.PastCap` and is not filed.
   checks and checks correctly. The earlier claim that `B82` should compare the goal's height against the
   ground's was wrong and is withdrawn.
 
-- [ ] **B105 — Retire `headroom`; a plan states a build ceiling, it does not derive one.** `PlanGlobals`
-  carries `Headroom` (board-wide, default 11 — not per piece, despite the field reading like one) and
-  `PlanCompiler` turns it into the map's only build cap with `plan.Globals.Surface + plan.Globals.Headroom`.
-  Both halves of that sum are the plan's **flat nominal** world, so the cap is computed from a ground level
-  the relief then abandons — which is the root `B104` names, and it produced boards whose ceiling sits below
-  their own terrain. Derivation is the wrong shape here regardless of the numbers: a build ceiling is a
-  decision about how high a player may build, and it should be **stated**, not inferred from a base plus a
-  slack. `MapIntent`'s `BuildIntent.MaxHeight` is already the real field and the export already honours it;
-  what is missing is a plan-level value that sets it, and an author or agent knowing it exists.
+- [ ] **B221 — The build ceiling's default is below the rule that governs it.** `B105` made the cap a stated
+  number and set its default to **20**, which is exactly what the old `surface 9 + headroom 11` produced, so no
+  board moved. But `G6` asks for **≥20 blocks of clearance above the island surface, up to ~40** — at the
+  default surface of 9 that is a cap of **29 at the very least**, and every one of the 49 seeds states 20.
 
-  So: remove `Headroom` from `PlanGlobals` and everything reading it, add a stated maximum build height in
-  its place, and keep **per-piece `Surface`** exactly as it is — that one is load-bearing and correct as a
-  plan-space concept. Two things travel with it. The compiler must stop reading a piece's `Surface` as a
-  literal world Y for **spawns and wool rooms** (`PlanCompiler` lines 205, 260) — the destroyable/core half of
-  this is done (`B128`): `float` now counts from the ground the world build actually solves rather than
-  `piece.Surface`, and the marker itself may name no piece at all. Spawns and wool rooms still bake their
-  room floor from `piece.Surface` at compile time, the same flat-world mistake wearing a different field; the
-  anchor wants resolving against the ground as built. And the ceiling wants a sane relationship to the
-  finished terrain rather than to the plan's base, since a map whose highest ground is y20 and whose cap is
-  y20 permits no building at all.
+  So the shipped default has been below its own rule the whole time, and `B104` and `B176`'s measured symptoms
+  (a destroy goal stamped at y21–23 against a cap of 20) are what that looks like from underneath. Raising it
+  is **not a rename's call**: `G6`'s own second half says the cap is *calibrated to the terrain, not set
+  generously* — a low flat board under a tall cap is the sky-layer smell it warns about — so the number wants
+  the author, and the question is whether the default is one number at all or something the terrain answers.
+
+  *found retiring `headroom` in `B105`, 2026-08-15 · `rules.md` G6 · `PlanGlobals.MaxBuildHeight` · the 49
+  seeds under `tools/seeds/`.*
+
+- [ ] **B222 — Spawns and wool rooms still bake their floor from the plan's flat nominal world.** The other
+  half of what `B104` named, and the half `B105` did not touch: `PlanCompiler` resolves a spawn's and a wool
+  room's floor from `piece.Surface` at compile time, which is the plan's nominal ground and not the ground the
+  world build actually solves. The destroyable/core half is already done (`B128`) — `float` counts from the
+  built ground, and the marker may name no piece at all — so this is the same flat-world mistake wearing a
+  different field, on the two marker kinds that were left.
+
+  Resolve the anchor against the ground as built, the way `B128` did. `piece.Surface` itself stays: it is
+  load-bearing and correct as a plan-space concept, and `B105` kept it deliberately.
+
+  *carried out of `B105` when the `headroom` half shipped (board rule 6) · `PlanCompiler` around lines 205
+  and 260.*
 
 - [ ] **B109 — Nothing checks a plan before it costs a build.** Authoring a plan by hand is arithmetic over
   rectangles in cells, and the repository offers no way to ask whether the arithmetic worked short of running
@@ -1253,8 +1261,9 @@ covered.
   would have broken it. Withdrawn. The existing no-cap fallback does not help either way: it reads
   `terrain.SurfaceTop.Values.Max()`, which is terrain and excludes every stamped structure.
 
-  The cap here is `Surface + Headroom` = 9 + 11, so this is the **third symptom of `B105`'s derived ceiling**,
-  after `B104`.
+  The cap here is 20, which was `Surface + Headroom` = 9 + 11 and is now the stated `maxBuildHeight` default
+  (`B105`). Making it stated does not raise it, so this is still the **third symptom of a cap below its own
+  terrain**, after `B104`; what would raise it is `B221`.
 
   *author, 2026-08-14 · `rules.md` ST7 · `SketchWorldBuilder.cs:48–54` · column-probed at `(−80, −25)`.*
 

@@ -7,7 +7,7 @@ namespace PgmStudio.Client.Features.Plan;
 
 // Plan Info phase (map-backed plans only): two steps. Identity — the map's display name (saved to the map
 // metadata endpoint, since a plan is a map row) + username-verified authors via the shared AuthorsEditor.
-// Settings — the plan globals (symmetry + cell/surface/headroom/max-players), which live on the plan doc:
+// Settings — the plan globals (symmetry + cell/surface/max-build-height/max-players), which live on the plan doc:
 // the host owns the canvas bridge, so this phase renders them as parameters and raises change callbacks the
 // host forwards to the bridge (the same split the Sketch tool uses for its symmetry settings).
 public partial class PlanInfoPhase
@@ -23,14 +23,14 @@ public partial class PlanInfoPhase
     [Parameter] public double Cell { get; set; } = 5;
     [Parameter] public double Surface { get; set; } = 9;
     [Parameter] public double SurfaceStep { get; set; } = 2;
-    [Parameter] public double Headroom { get; set; } = 11;
+    [Parameter] public double MaxBuildHeight { get; set; } = 20;
     [Parameter] public double MaxPlayers { get; set; } = 12;
     [Parameter] public EventCallback<string> OnNameChanged { get; set; }
     [Parameter] public EventCallback<string> OnSymmetryChanged { get; set; }
     [Parameter] public EventCallback<double> OnCellChanged { get; set; }
     [Parameter] public EventCallback<double> OnSurfaceChanged { get; set; }
     [Parameter] public EventCallback<double> OnSurfaceStepChanged { get; set; }
-    [Parameter] public EventCallback<double> OnHeadroomChanged { get; set; }
+    [Parameter] public EventCallback<double> OnMaxBuildHeightChanged { get; set; }
     [Parameter] public EventCallback<double> OnMaxPlayersChanged { get; set; }
 
     private int step;   // 0 = Identity, 1 = Settings

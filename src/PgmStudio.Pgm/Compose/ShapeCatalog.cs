@@ -281,7 +281,7 @@ public static class ShapeCatalog
         var plan = new PlanModel
         {
             Meta = new PlanMeta { Name = name },
-            Globals = new PlanGlobals { Cell = 5, Symmetry = "none", MaxPlayers = 12, Surface = 9, Headroom = 11 },
+            Globals = new PlanGlobals { Cell = 5, Symmetry = "none", MaxPlayers = 12, Surface = 9, MaxBuildHeight = 20 },
         };
         foreach (var piece in pieces)
             plan.Pieces.Add(new PlanPiece { Id = piece.Id, Role = piece.Role, Rect = piece.Rect });

@@ -3,7 +3,7 @@
 
 @* Plan Info phase — two steps: Identity (display name + authors, saved to the map metadata via
    GET/PATCH api/map/{slug}, since plans are map rows) and Settings (the plan globals: symmetry mode +
-   cell/surface/headroom/max-players, which drive the live plan document through the host's callbacks).
+   cell/surface/max-build-height/max-players, which drive the live plan document through the host's callbacks).
    Continue on the last step advances to Draw. *@
 
 <div class="phase-body">
@@ -54,8 +54,8 @@
           <Field Label="Surface step (y)">
             <NumberField Value="SurfaceStep" ValueChanged="OnSurfaceStepChanged" Min="1" />
           </Field>
-          <Field Label="Headroom">
-            <NumberField Value="Headroom" ValueChanged="OnHeadroomChanged" Min="1" />
+          <Field Label="Max build height">
+            <NumberField Value="MaxBuildHeight" ValueChanged="OnMaxBuildHeightChanged" Min="1" />
           </Field>
           <Field Label="Max players">
             <NumberField Value="MaxPlayers" ValueChanged="OnMaxPlayersChanged" Min="2" Step="2" />

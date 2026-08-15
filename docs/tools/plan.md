@@ -53,7 +53,7 @@ compile ever answers anything else.
 {
   "plan": 1,
   "meta": { "name": "Example board" },
-  "globals": { "cell": 5, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9, "headroom": 11 },
+  "globals": { "cell": 5, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9, "maxBuildHeight": 20 },
   "pieces": [
     { "id": "spawn",      "role": "spawn",     "rect": [1, 9, 2, 2] },
     { "id": "lane",       "role": "piece",     "rect": [1, 5, 2, 4] },
@@ -116,12 +116,19 @@ can.
 | `symmetry` | `rot_180` | `rot_180`, `rot_90`, `mirror_x`, `mirror_z` or `none`. Decides the team count (the orbit order) and how the authored unit is fanned. |
 | `maxPlayers` | 12 | Carried into the intent; changeable again in Configure. |
 | `surface` | 9 | The base island height in blocks — the Y a piece stands at unless it overrides it. |
-| `headroom` | 11 | Added to `surface` to give the map's build ceiling. |
+| `maxBuildHeight` | 20 | The world Y a player may build up to. Stated outright, not derived from `surface`. |
 | `observerY` | `surface + 15` | The observer's height. No control writes it; it is honoured when hand-authored. |
 
-`headroom` is the current build cap and is the wrong shape for one: both halves of `surface + headroom` are
-the plan's flat nominal world, so the ceiling is computed from a ground level the relief later abandons.
-`B105` replaces it with a stated maximum build height.
+**The ceiling is stated, and used not to be.** It was `headroom`, a slack added to `surface`, so the cap was
+computed from the plan's flat nominal world — a ground level the relief solve then abandons, which produced
+boards whose ceiling sat below their own terrain. The shape was wrong regardless of the numbers: how high a
+player may build is a decision, and deriving it from a base plus a slack made it a consequence of something
+else. `surface` stays exactly as it was, per piece and global; it is load-bearing and correct as a plan-space
+concept.
+
+The default 20 is the cap the old default pair produced (`surface` 9 + `headroom` 11), so no board moved. Note
+that it sits below what `G6` asks for — the rule wants **≥20 blocks of clearance above the island surface**,
+which at `surface` 9 is a cap of 29 — and calibrating it is `B221`, an author's call rather than a rename's.
 
 ### Pieces
 
@@ -262,7 +269,7 @@ from the facing. Each wool fans team-outer, its room region the whole wool-room 
 land seams and build-zone frontages. Destroyables and cores fan the same way but **only at orbit order 2**:
 PGM marks a goal shared whenever the team count is not two, and what a shared DTM goal should play like is
 undecided, so outside order 2 the validator refuses the plan and the preview declines to draw it. The build
-intent carries `MaxHeight = surface + headroom` plus the fanned build-zone areas and holes; water lanes fan
+intent carries `MaxHeight = maxBuildHeight` plus the fanned build-zone areas and holes; water lanes fan
 into their own list and stay out of the build intent. The observer sits at `(0, observerY, 0)`.
 
 The intent also carries the **structure directives** the world export stamps verbatim, computed on the
@@ -278,7 +285,7 @@ its island, else a wool's owner, else neutral — so Configure opens pre-assigne
 Two steps, and only on the map-backed route. **Identity** is the display name and the authors, loaded once from
 `GET /api/map/{slug}` and saved with `PATCH /api/map/{slug}/metadata`; the name is live-synced into the plan
 document as it is typed because the compile reads it. **Settings** is the globals form — symmetry, cell size,
-base surface, surface step, headroom, max players — writing straight through to the live document. Continue on
+base surface, surface step, max build height, max players — writing straight through to the live document. Continue on
 the last step advances to Draw. A blank map-backed plan opens here (`?phase=info`); an existing one opens on
 Draw.
 

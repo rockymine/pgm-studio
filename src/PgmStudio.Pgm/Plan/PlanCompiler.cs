@@ -311,10 +311,9 @@ public static class PlanCompiler
                 });
             }
 
-        var maxHeight = plan.Globals.Surface + plan.Globals.Headroom;
         var build = new BuildIntent
         {
-            MaxHeight = maxHeight,
+            MaxHeight = plan.Globals.MaxBuildHeight,
             Areas = FanRects(plan.BuildZones.Select(z => z.Rect), d),
             Holes = FanRects(plan.BuildZones.SelectMany(z => z.Holes), d),
         };

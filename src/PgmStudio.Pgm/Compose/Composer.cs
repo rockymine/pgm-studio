@@ -130,7 +130,7 @@ public static class Composer
                 Symmetry = envelope.Symmetry,
                 MaxPlayers = request.PlayersPerTeam,
                 Surface = envelope.Surface,
-                Headroom = envelope.Headroom,
+                MaxBuildHeight = envelope.MaxBuildHeight,
             },
         };
 

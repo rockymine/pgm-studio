@@ -49,7 +49,7 @@ public sealed class ShapeCatalogTests
         var plan = new PlanModel
         {
             Meta = new PlanMeta { Name = "catalog" },
-            Globals = new PlanGlobals { Cell = 5, Symmetry = "none", MaxPlayers = 12, Surface = 9, Headroom = 11 },
+            Globals = new PlanGlobals { Cell = 5, Symmetry = "none", MaxPlayers = 12, Surface = 9, MaxBuildHeight = 20 },
         };
         (int, int)? wool = null;
         int pid = 0;

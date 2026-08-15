@@ -10,7 +10,8 @@ namespace PgmStudio.Pgm.Compose;
 /// directly rather than on the land budget (a third wool lane wants a big team, WL6).</param>
 /// <param name="Cell">Blocks per proxy cell.</param>
 /// <param name="Surface">Base island surface height.</param>
-/// <param name="Headroom">Build cap above <see cref="Surface"/>.</param>
+/// <param name="MaxBuildHeight">The world Y a player may build up to — stated, not <see cref="Surface"/>
+/// plus a slack.</param>
 /// <param name="BoardWidthBlocks">The fanned board's non-doubled-axis extent, in blocks.</param>
 /// <param name="BoardLengthBlocks">The fanned board's doubled-axis extent (the direction symmetry fans), in
 /// blocks. Equal to <see cref="BoardWidthBlocks"/> for the 4-team square board.</param>
@@ -23,7 +24,7 @@ public sealed record ComposeEnvelope(
     int PlayersPerTeam,
     int Cell,
     int Surface,
-    int Headroom,
+    int MaxBuildHeight,
     int BoardWidthBlocks,
     int BoardLengthBlocks,
     double LandPerTeam,
@@ -91,7 +92,7 @@ public static class Envelope
         var bounds = frame.ToRect(AxisMarginCells, uMax - AxisMarginCells, -vHalf, 2 * vHalf);
 
         return new ComposeEnvelope(
-            symmetry, request.Teams, request.PlayersPerTeam, cell, Surface: 9, Headroom: 11,
+            symmetry, request.Teams, request.PlayersPerTeam, cell, Surface: 9, MaxBuildHeight: 20,
             boardWidthBlocks, boardLengthBlocks, landPerTeam,
             bounds.X, bounds.Z, bounds.X + bounds.Width, bounds.Z + bounds.Height);
     }

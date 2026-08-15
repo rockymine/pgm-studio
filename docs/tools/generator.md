@@ -100,7 +100,7 @@ players under `rot_180`, exactly as `POST /api/compose/pin` stored it:
 {
   "plan": 1,
   "meta": { "name": "Composed p12 t2 #0" },
-  "globals": { "cell": 5, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9, "headroom": 11 },
+  "globals": { "cell": 5, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9, "maxBuildHeight": 20 },
   "pieces": [
     { "id": "hub-t1",       "role": "piece",     "rect": [-6, 6, 6, 4] },
     { "id": "spawn-t1",     "role": "piece",     "rect": [-7, 6, 1, 2] },

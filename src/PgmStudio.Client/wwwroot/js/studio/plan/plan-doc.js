@@ -68,7 +68,7 @@ export function emptyDoc() {
   return {
     plan: 1,
     meta: { name: "Untitled plan" },
-    globals: { cell: 5, symmetry: "rot_180", maxPlayers: 12, surface: 9, headroom: 11 },
+    globals: { cell: 5, symmetry: "rot_180", maxPlayers: 12, surface: 9, maxBuildHeight: 20 },
     pieces: [],
     zones: [],
     placements: { spawns: [], wools: [], iron: [], destroyables: [], cores: [] },
@@ -85,7 +85,7 @@ export function emptyDoc() {
 export function normalizeDoc(d) {
   const src = d || {};
   const g = src.globals || {};
-  const globals = { cell: g.cell ?? 5, symmetry: g.symmetry ?? "rot_180", maxPlayers: g.maxPlayers ?? 12, surface: g.surface ?? 9, headroom: g.headroom ?? 11 };
+  const globals = { cell: g.cell ?? 5, symmetry: g.symmetry ?? "rot_180", maxPlayers: g.maxPlayers ?? 12, surface: g.surface ?? 9, maxBuildHeight: g.maxBuildHeight ?? 20 };
   if (g.observerY != null) globals.observerY = g.observerY;
   const meta = { name: src.meta?.name ?? "Untitled plan" };
   if (src.meta?.notes != null) meta.notes = src.meta.notes;

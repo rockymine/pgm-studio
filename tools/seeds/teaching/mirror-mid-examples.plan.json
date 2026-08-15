@@ -8,7 +8,7 @@
     "symmetry": "mirror_z",
     "maxPlayers": 12,
     "surface": 9,
-    "headroom": 11
+    "maxBuildHeight": 20
   },
   "pieces": [
     {

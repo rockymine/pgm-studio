@@ -156,7 +156,7 @@ static string FormLabel(CompoundRead? form) => form is null ? "rect"
     : form.Form.ToString().ToLowerInvariant();
 
 static ComposeEnvelope Env(string sym, int players, double land) =>
-    new(sym, Teams: 2, players, Cell: 5, Surface: 9, Headroom: 11,
+    new(sym, Teams: 2, players, Cell: 5, Surface: 9, MaxBuildHeight: 20,
         BoardWidthBlocks: 300, BoardLengthBlocks: 300, land, UnitMinX: 0, UnitMinZ: 0, UnitMaxX: 60, UnitMaxZ: 60);
 
 static string Color(BoxKind k) => k switch

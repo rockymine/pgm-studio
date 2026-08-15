@@ -72,10 +72,10 @@
       {
         <PlanInfoPhase Slug="@Slug" OnNext="GoDraw"
                        Name="@planName" Symmetry="@symmetry" Cell="cell" Surface="surface"
-                       SurfaceStep="surfaceStep" Headroom="headroom" MaxPlayers="maxPlayers"
+                       SurfaceStep="surfaceStep" MaxBuildHeight="maxBuildHeight" MaxPlayers="maxPlayers"
                        OnNameChanged="OnNameChanged" OnSymmetryChanged="OnSymmetryChanged"
                        OnCellChanged="OnCell" OnSurfaceChanged="OnSurface" OnSurfaceStepChanged="OnSurfaceStep"
-                       OnHeadroomChanged="OnHeadroom" OnMaxPlayersChanged="OnMaxPlayers" />
+                       OnMaxBuildHeightChanged="OnMaxBuildHeight" OnMaxPlayersChanged="OnMaxPlayers" />
       }
       @* Draw stays mounted (hidden, not removed) so the plan-canvas bridge + zoom survive a trip to Info
          on a map-backed plan; SetPhase re-measures the canvas on return. The bare route has no Info phase. *@
@@ -126,8 +126,8 @@
               <Field Label="Surface step (y)">
                 <NumberField Value="surfaceStep" ValueChanged="OnSurfaceStep" Min="1" />
               </Field>
-              <Field Label="Headroom">
-                <NumberField Value="headroom" ValueChanged="OnHeadroom" Min="1" />
+              <Field Label="Max build height">
+                <NumberField Value="maxBuildHeight" ValueChanged="OnMaxBuildHeight" Min="1" />
               </Field>
               <Field Label="Max players">
                 <NumberField Value="maxPlayers" ValueChanged="OnMaxPlayers" Min="2" Step="2" />

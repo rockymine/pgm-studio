@@ -8,7 +8,7 @@
     "symmetry": "rot_180",
     "maxPlayers": 20,
     "surface": 9,
-    "headroom": 11
+    "maxBuildHeight": 20
   },
   "pieces": [
     {

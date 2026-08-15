@@ -181,16 +181,23 @@ public sealed class PlanReference
     [JsonPropertyName("opacity")] public double Opacity { get; set; } = 0.5;
 }
 
-/// <summary>Board-wide parameters. <see cref="Cell"/> is the blocks-per-proxy-cell scale; <see cref="Surface"/>
-/// is the base island height and <see cref="Headroom"/> the build cap above it (cap = surface + headroom).
-/// <see cref="ObserverY"/> overrides the derived observer height (default surface + 15).</summary>
+/// <summary>Board-wide parameters. <see cref="Cell"/> is the blocks-per-proxy-cell scale, <see cref="Surface"/>
+/// the base island height, and <see cref="MaxBuildHeight"/> the world Y a player may build up to.
+/// <see cref="ObserverY"/> overrides the derived observer height (default surface + 15).
+///
+/// <para><b>The ceiling is stated, not derived.</b> It used to be <c>headroom</c>, a slack added to
+/// <see cref="Surface"/> — so the cap was computed from the plan's <b>flat nominal</b> world, which the relief
+/// solve then abandons, and boards came out with a ceiling below their own terrain. Beyond the numbers it was
+/// the wrong shape: how high a player may build is a decision, and deriving it from a base plus a slack made
+/// it a consequence of something else. <see cref="Surface"/> stays exactly as it was — that one is
+/// load-bearing and correct as a plan-space concept.</para></summary>
 public sealed class PlanGlobals
 {
     [JsonPropertyName("cell")]       public int Cell { get; set; } = 5;
     [JsonPropertyName("symmetry")]   public string Symmetry { get; set; } = "rot_180";
     [JsonPropertyName("maxPlayers")] public int MaxPlayers { get; set; } = 12;
     [JsonPropertyName("surface")]    public int Surface { get; set; } = 9;
-    [JsonPropertyName("headroom")]   public int Headroom { get; set; } = 11;
+    [JsonPropertyName("maxBuildHeight")] public int MaxBuildHeight { get; set; } = 20;
     [JsonPropertyName("observerY")]  public int? ObserverY { get; set; }
 }
 

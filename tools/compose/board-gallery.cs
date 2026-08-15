@@ -39,7 +39,7 @@ foreach (var (label, players) in new[] { ("Small", 6), ("Mid", 8), ("Big", 12), 
 foreach (var (label, players, land) in new[]
     { ("Small", 6, 700.0), ("Mid", 8, 1600.0), ("Big", 12, 2800.0), ("Huge", 20, 3800.0), ("Giant", 30, 6000.0) })
 {
-    var env = new ComposeEnvelope("mirror_z", Teams: 2, players, Cell: 5, Surface: 9, Headroom: 11,
+    var env = new ComposeEnvelope("mirror_z", Teams: 2, players, Cell: 5, Surface: 9, MaxBuildHeight: 20,
         BoardWidthBlocks: 300, BoardLengthBlocks: 300, land, UnitMinX: 0, UnitMinZ: 0, UnitMaxX: 60, UnitMaxZ: 60);
     var crossing = MidCarver.BandOnly(env);
     var cards = new StringBuilder();
@@ -58,7 +58,7 @@ foreach (var (label, players, land) in new[]
             Globals = new PlanGlobals
             {
                 Cell = env.Cell, Symmetry = env.Symmetry, MaxPlayers = players,
-                Surface = env.Surface, Headroom = env.Headroom,
+                Surface = env.Surface, MaxBuildHeight = env.MaxBuildHeight,
             },
         };
         foreach (var piece in filled.Unit.Pieces)
