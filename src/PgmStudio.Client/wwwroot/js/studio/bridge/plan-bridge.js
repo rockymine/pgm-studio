@@ -14,7 +14,7 @@
 import { PlanCanvas } from "../canvas/plan-canvas.js";
 import {
   emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, cycleWall, defaultReference, ROLES, BOX_KINDS,
-  planIsoSolids, viewBounds, markerList, MARKER_KINDS, boxMembers, defaultThemeJson,
+  planIsoSolids, viewBounds, markerList, MARKER_KINDS, boxMembers,
 } from "../plan/plan-doc.js";
 import { parseOverlays } from "../plan/plan-inspect.js";
 import { fireTo } from "./fire.js";
@@ -250,62 +250,11 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     canvas.setDoc(doc);
     if (fit) canvas.fit();
     fire("OnMeta", metaJson());
-    fire("OnThemes", themesState());
     afterEdit();
     paintReference().then(painted => { if (fit && painted) canvas.fit(); });
   }
 
   function persistOverlays() { try { localStorage.setItem(OVERLAY_KEY, JSON.stringify(overlays)); } catch { /* private mode */ } }
-
-  // ── terrain-paint themes (TP10) ────────────────────────────────────────────
-  // The theme state the Theme rail reads: the registry, the map default, the generating pieces + boxes to
-  // assign, and the resolved per-piece / per-box theme (a later scope wins, boxes ordered before pieces so a
-  // piece override beats its box).
-  function themesState() {
-    const pieceThemes = {}, boxThemes = {};
-    for (const s of (doc.themeScopes || [])) {
-      if (s.box) boxThemes[s.box] = s.theme;
-      for (const pid of (s.pieces || [])) pieceThemes[pid] = s.theme;
-    }
-    return JSON.stringify({
-      themes: doc.themes || {},
-      mapTheme: doc.mapTheme || "",
-      pieces: (doc.pieces || []).filter(p => p.role !== "buffer").map(p => ({ id: p.id, role: p.role })),
-      boxes: (doc.boxes || []).map(b => ({ id: b.id, kind: b.kind, members: boxMembers(doc, b).map(p => p.id) })),
-      pieceThemes, boxThemes,
-    });
-  }
-  // Rebuild themeScopes so box scopes precede piece scopes (box < piece priority), and drop the empties.
-  function normalizeScopes() {
-    const all = (doc.themeScopes || []).filter(s => s.theme && (s.box || (s.pieces || []).length));
-    const ordered = [...all.filter(s => s.box), ...all.filter(s => !s.box)];
-    if (ordered.length) doc.themeScopes = ordered; else delete doc.themeScopes;
-  }
-  function afterThemeChange() {
-    normalizeScopes(); afterEdit(); fire("OnThemes", themesState());
-    if (themeApplyOn) scheduleThemePaint();   // keep the live paint overlay current with each assignment
-  }
-
-  // ── theme-apply canvas mode (G157) ──────────────────────────────────────────
-  // The Apply step turns the plan canvas into a read-only theme-assignment surface: pick shapes, assign a
-  // theme, and see the precise paint the export would place — the server's themed render, blitted in the plan's
-  // block frame and refreshed (debounced) on every assignment. Same painter as the old static preview, now live
-  // on the interactive canvas instead of a dead panel.
-  let themeApplyOn = false, themePaintTimer = null, themePaintSeq = 0;
-  function scheduleThemePaint() {
-    if (themePaintTimer) clearTimeout(themePaintTimer);
-    themePaintTimer = setTimeout(runThemePaint, 250);
-  }
-  async function runThemePaint() {
-    const seq = ++themePaintSeq;
-    let res;
-    try { res = await fetch("/api/terrain/theme-map-preview", { method: "POST", headers: { "Content-Type": "application/json" }, body: toJson(doc) }); }
-    catch { return; }                          // offline / transient — keep the last good overlay
-    if (seq !== themePaintSeq || !res.ok) return;
-    let data; try { data = await res.json(); } catch { return; }
-    if (seq !== themePaintSeq) return;
-    canvas.setThemePaint(data.svg, { minX: data.minX, minZ: data.minZ, spanX: data.spanX, spanZ: data.spanZ });
-  }
 
   // A fresh mount opens the blank document `doc` already is. What fills it is the host's route-specific
   // load — a map's artifact, or a plan row — and nothing else, so the editor shows the plan it names.
@@ -459,66 +408,6 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       try { canvas.setNearestMiss(JSON.parse(json)); } catch { canvas.setNearestMiss(null); }
     },
 
-    // ── terrain-paint themes (TP10) ──
-    getThemes() { return themesState(); },
-    defineTheme(name) {
-      if (!doc.themes) doc.themes = {};
-      const id = uniqueId(Object.keys(doc.themes), (name || "theme").trim() || "theme");
-      doc.themes[id] = defaultThemeJson();
-      afterThemeChange(); return id;
-    },
-    renameTheme(oldId, newId) {
-      if (!doc.themes || !doc.themes[oldId]) return oldId;
-      const id = uniqueId(Object.keys(doc.themes).filter(k => k !== oldId), (newId || oldId).trim() || oldId);
-      if (id === oldId) return oldId;
-      doc.themes[id] = doc.themes[oldId]; delete doc.themes[oldId];
-      if (doc.mapTheme === oldId) doc.mapTheme = id;
-      for (const s of (doc.themeScopes || [])) if (s.theme === oldId) s.theme = id;
-      afterThemeChange(); return id;
-    },
-    deleteTheme(id) {
-      if (!doc.themes || !doc.themes[id]) return;
-      delete doc.themes[id];
-      if (!Object.keys(doc.themes).length) delete doc.themes;
-      if (doc.mapTheme === id) delete doc.mapTheme;
-      if (doc.themeScopes) doc.themeScopes = doc.themeScopes.filter(s => s.theme !== id);
-      afterThemeChange();
-    },
-    // Replace a theme's material JSON (the raw TerrainTheme). Returns an error string on invalid JSON, else null.
-    setThemeJson(id, text) {
-      if (!doc.themes || !doc.themes[id]) return "No such theme.";
-      let parsed; try { parsed = JSON.parse(text); } catch (e) { return e?.message || "Invalid JSON"; }
-      doc.themes[id] = parsed; afterThemeChange(); return null;
-    },
-    setMapTheme(id) {
-      if (id && doc.themes && doc.themes[id]) doc.mapTheme = id; else delete doc.mapTheme;
-      afterThemeChange();
-    },
-    // Assign (or clear, with an empty themeId) a theme to one piece — a per-piece override, the top layer.
-    assignPiece(pieceId, themeId) {
-      doc.themeScopes = (doc.themeScopes || [])
-        .map(s => s.box ? s : ({ ...s, pieces: (s.pieces || []).filter(p => p !== pieceId) }));
-      if (themeId && doc.themes && doc.themes[themeId]) doc.themeScopes.push({ theme: themeId, pieces: [pieceId] });
-      afterThemeChange();
-    },
-    // Assign (or clear) a theme to a box — a collection layer under piece overrides.
-    assignBox(boxId, themeId) {
-      doc.themeScopes = (doc.themeScopes || []).filter(s => s.box !== boxId);
-      if (themeId && doc.themes && doc.themes[themeId]) doc.themeScopes.push({ theme: themeId, box: boxId });
-      afterThemeChange();
-    },
-
-    // Enter/leave the Apply step's read-only theme-assignment canvas mode (G157): select-only pointer, the live
-    // themed-paint overlay, and a first render. Leaving clears the overlay so the draw canvas paints normally.
-    themeApply(on) {
-      themeApplyOn = !!on;
-      canvas.setSelectOnly(themeApplyOn);
-      canvas.setThemeOverlay(themeApplyOn);
-      if (themeApplyOn) { canvas.setTool("select"); canvas.clearSelection(); scheduleThemePaint(); canvas.fit(); }
-      else canvas.setThemePaint(null, null);
-    },
-    // The current Ctrl-multi-selection (box/piece) as JSON — what a theme assignment applies to.
-    getThemeSelection() { return JSON.stringify(canvas.getMultiSelection()); },
     // Drive the canvas selection from the host (a panel row); empty kind clears.
     selectShape(kind, id) { canvas.select(kind ? { kind, id } : null); },
 

@@ -116,15 +116,6 @@ export class PlanCanvas extends CanvasBase {
   #overlayOn = { interfaces: true, labels: false, frontline: true, violations: true };
   #heightMap = false;               // fill pieces by a surface-height ramp + show the height inside each
 
-  // Theme-apply mode (G157): a read-only select surface — pick and Ctrl/⌘-multi-select shapes to assign a
-  // theme, with no drawing, moving or resizing. #selSet is the multi-selection (box/piece); #sel stays the
-  // primary (last-clicked). #themePaint is the server's precise themed render, blitted in the plan's own block
-  // frame as a lower layer so the Apply step shows the real paint while the shapes stay selectable outlines.
-  #selectOnly = false;
-  #selSet = [];
-  #themePaint = null;               // { image, bounds:{minX,minZ,spanX,spanZ} } — the world-aligned paint raster
-  #themePaintOn = false;
-
   // The world layers are PAINTED, not retained: `#painter` owns a <canvas> under the svg and redraws the
   // whole world each frame at the current scale. That is what keeps a zoom sharp — there is no cached
   // rasterization for the browser to stretch — and it is why `_onViewportChanged` repaints rather than
@@ -261,16 +252,6 @@ export class PlanCanvas extends CanvasBase {
   updateReference(cfg) { this.#refCfg = cfg || null; this.#paintWorld(); }
   clearReference() { this.setReference(null, null); }
 
-  // The precise themed-paint raster (G157), blitted in the plan's own block frame above the schematic piece
-  // fills so the Apply step shows the real paint while the boxes/pieces stay selectable outlines on top. The
-  // bounds are block-space, matching the canvas's identity world frame, so no centring/offset is needed.
-  #paintThemePaint(ctx) {
-    if (!this.#themePaintOn || !this.#themePaint) return;
-    const { image, bounds } = this.#themePaint;
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(image, bounds.minX, bounds.minZ, bounds.spanX, bounds.spanZ);
-  }
-
   /**
    * The tracing backdrop: the block PNG placed in the plan's own frame. The SVG version carried the
    * centring, offset and scale on a group transform; here the same numbers go on the context, and
@@ -310,39 +291,8 @@ export class PlanCanvas extends CanvasBase {
   }
 
   getSelection() { return this.#sel; }
-  select(sel) { this.#sel = sel; this.#selSet = sel ? [sel] : []; this.#refreshOverlay(); this.#fireSelect(); }
-  clearSelection() { this.#sel = null; this.#selSet = []; this.#refreshOverlay(); this.#fireSelect(); }
-
-  // ── theme-apply select-only mode (G157) ─────────────────────────────────────
-  // A read-only surface: keep click / Ctrl-click selection, drop moving, resizing and drawing. Used by the
-  // Theme rail's Apply step, which shows the plan to pick which shapes to theme rather than to edit them.
-  setSelectOnly(on) {
-    this.#selectOnly = !!on;
-    if (on) { this.#drag = null; this.#resize = null; } else this.#selSet = [];
-    this.#refreshOverlay();
-  }
-
-  // The multi-selection (box/piece) as {kind,id}[] — what the host assigns a theme to. Primary is getSelection().
-  getMultiSelection() { return this.#selSet.map(s => ({ kind: s.kind, id: s.id })); }
-  // Set the multi-selection from the host (e.g. a panel list): primary is the last entry.
-  selectMany(sels) {
-    this.#selSet = Array.isArray(sels) ? sels.slice() : [];
-    this.#sel = this.#selSet.length ? this.#selSet[this.#selSet.length - 1] : null;
-    this.#refreshOverlay();
-    this.#fireSelect();
-  }
-
-  // The precise themed-paint raster (server render) placed in the plan's block frame as a lower layer, and its
-  // on/off. `bounds` is {minX,minZ,spanX,spanZ} block-space; the SVG is decoded once to an <image> and blitted.
-  setThemeOverlay(on) { this.#themePaintOn = !!on; this.#paintWorld(); }
-  setThemePaint(svg, bounds) {
-    this.#themePaint = null;
-    if (svg && bounds && bounds.spanX > 0 && bounds.spanZ > 0) {
-      const img = new Image();
-      img.onload = () => { this.#themePaint = { image: img, bounds }; if (this.#themePaintOn) this.#paintWorld(); };
-      img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
-    } else this.#paintWorld();
-  }
+  select(sel) { this.#sel = sel; this.#refreshOverlay(); this.#fireSelect(); }
+  clearSelection() { this.#sel = null; this.#refreshOverlay(); this.#fireSelect(); }
 
   // Frame the working area (union'd with any tracing backdrop), leaving a margin of grid visible around
   // it. Deferred when the wrap has no layout box yet — the tool mounts this canvas while the Draw phase is
@@ -387,7 +337,6 @@ export class PlanCanvas extends CanvasBase {
     painter.layer("ghost",     () => this.#paintGhost());
     painter.layer("zone",      () => this.#paintZones());
     painter.layer("piece",     () => this.#paintPieces());
-    painter.layer("themePaint",(ctx) => this.#paintThemePaint(ctx));
     painter.layer("box",       () => this.#paintBoxes());
     painter.layer("inspect",   () => this.#paintInspect());
     painter.layer("violation", () => this.#paintViolations());
@@ -834,14 +783,12 @@ export class PlanCanvas extends CanvasBase {
           if (e.kind === "measure" && e.label)
             label(e.label, ((e.x1 + e.x2) / 2) * cell, ((e.z1 + e.z2) / 2) * cell, "var(--accent-light)");
 
-    // Selection outline(s). In theme-apply select-only the whole Ctrl-selected set is outlined and no resize
-    // handles are drawn; otherwise the single selection gets its box plus handles (markers show just a ring).
-    const sels = this.#selectOnly ? this.#selSet : (this.#sel ? [this.#sel] : []);
-    for (const sel of sels) this.#drawSelectionOutline(sel, layer, toS, cell, !this.#selectOnly);
+    // The selection outline: its box plus resize handles (a marker shows just a ring).
+    if (this.#sel) this.#drawSelectionOutline(this.#sel, layer, toS, cell, true);
   }
 
   // Draw one selection's screen-space outline: a ring for a marker, a dashed box for a piece/zone/box, with
-  // resize handles only when `handles` (never in select-only theme mode).
+  // resize handles only when `handles`.
   #drawSelectionOutline(sel, layer, toS, cell, handles) {
     if (!sel) return;
     if (sel.kind === "marker") {
@@ -884,9 +831,7 @@ export class PlanCanvas extends CanvasBase {
   #fireSelect() {
     const cb = this.#cb.onSelect;
     if (!cb) return;
-    // In theme-apply the payload also carries the whole Ctrl-selected set, so the host can theme all at once.
-    const multi = this.#selectOnly ? this.getMultiSelection() : undefined;
-    if (!this.#sel) { cb(multi && multi.length ? { kind: "multi", multi } : null); return; }
+    if (!this.#sel) { cb(null); return; }
     if (this.#sel.kind === "marker") {
       const m = markerAt(this.#doc, this.#sel.markerKind, this.#sel.index);
       const c = m && markerCell(this.#doc, m);
@@ -898,18 +843,17 @@ export class PlanCanvas extends CanvasBase {
         style: m?.style, materials: m?.materials,
         size: m?.size, height: m?.height, shell: m?.shell,
         float: m?.float, leak: m?.leak, openTop: m?.openTop,
-        multi,
       });
       return;
     }
     const item = this.#selItem();
-    if (!item) { cb(multi && multi.length ? { kind: "multi", multi } : null); return; }
-    if (this.#sel.kind === "piece") cb({ kind: "piece", id: item.id, role: item.role, rect: item.rect, surface: item.surface ?? this.#doc.globals.surface, surfaceSet: item.surface != null, mirrors: item.mirrors !== false, multi });
+    if (!item) { cb(null); return; }
+    if (this.#sel.kind === "piece") cb({ kind: "piece", id: item.id, role: item.role, rect: item.rect, surface: item.surface ?? this.#doc.globals.surface, surfaceSet: item.surface != null, mirrors: item.mirrors !== false });
     else if (this.#sel.kind === "box") cb({
       kind: "box", id: item.id, boxKind: item.kind, rect: item.rect,
-      members: boxMembers(this.#doc, item).map(p => p.id), membersNamed: Array.isArray(item.members) && item.members.length > 0, multi,
+      members: boxMembers(this.#doc, item).map(p => p.id), membersNamed: Array.isArray(item.members) && item.members.length > 0,
     });
-    else cb({ kind: "zone", id: item.id, zoneKind: canonicalZoneKind(item.kind), rect: item.rect, multi });
+    else cb({ kind: "zone", id: item.id, zoneKind: canonicalZoneKind(item.kind), rect: item.rect });
   }
 
   // ── CanvasBase hooks ────────────────────────────────────────────────────────
@@ -921,8 +865,7 @@ export class PlanCanvas extends CanvasBase {
     if (this._isoOn) return;          // iso preview is read-only
     const cell = this.#doc.globals.cell;
     const [cx, cz] = cellOfWorld(svgPt.x, svgPt.y, cell);
-    if (this.#selectOnly) return this.#selectDown(svgPt, cx, cz, e);   // theme-apply: pick only, never draw/move
-    if (this.#tool === "select") return this.#selectDown(svgPt, cx, cz, e);
+    if (this.#tool === "select") return this.#selectDown(svgPt, cx, cz);
     if (this.#tool === "wall") return this.#cycleWallAt(svgPt.x, svgPt.y);
     if (this.#tool === "piece" || this.#tool === "zone" || this.#tool === "box") { this.#drag = { mode: "draw", kind: this.#tool, a: [cx, cz], b: [cx, cz] }; this.#paintWorld(); return; }
     // Markers snap to the half-cell lattice — feed the fractional cell coordinate, not the floored cell.
@@ -986,21 +929,12 @@ export class PlanCanvas extends CanvasBase {
   // A piece the author drilled into stays grabbed while the press lands inside it, so drill-then-drag moves
   // that one piece instead of snapping back to its box — the precedence the sketch tool's `_hitMovable`
   // applies to a drilled shape under a selected island. Pressing anywhere else re-selects the box.
-  #selectDown(svgPt, cx, cz, e) {
+  #selectDown(svgPt, cx, cz) {
     const prev = this.#sel;
     let hit = pickAtWorld(this.#doc, svgPt.x, svgPt.y);
     if (prev?.kind === "piece" && hit?.kind === "box") {
       const drilled = this.#doc.pieces.find(p => p.id === prev.id);
       if (drilled && rectContainsCell(drilled.rect, cx, cz)) hit = prev;
-    }
-    // Theme-apply (G157): select-only, with Ctrl/⌘ toggling the hit into the multi-set. No move drag.
-    if (this.#selectOnly) {
-      if (hit && e && (e.ctrlKey || e.metaKey)) this.#toggleMulti(hit);
-      else this.#selSet = hit ? [hit] : [];
-      this.#sel = hit;
-      this.#refreshOverlay();
-      this.#fireSelect();
-      return;
     }
     this.#sel = hit;
     this.#refreshOverlay();
@@ -1008,13 +942,6 @@ export class PlanCanvas extends CanvasBase {
     // A box drag carries its members — resolve them now, before the envelope starts moving.
     const carried = hit?.kind === "box" ? boxMembers(this.#doc, boxById(this.#doc, hit.id) || { rect: [0, 0, 0, 0] }) : null;
     this.#drag = { mode: "move", sel: hit, grab: [cx, cz], moved: false, reselect: sameSelection(prev, hit), carried };
-  }
-
-  // Toggle a box/piece hit in/out of the Ctrl-multi-select set (theme-apply).
-  #toggleMulti(hit) {
-    const key = s => `${s.kind}:${s.id}`;
-    const i = this.#selSet.findIndex(s => key(s) === key(hit));
-    if (i >= 0) this.#selSet.splice(i, 1); else this.#selSet.push(hit);
   }
 
   #moveTo(cx, cz, fcx, fcz) {
@@ -1165,13 +1092,12 @@ export class PlanCanvas extends CanvasBase {
 
   #onDblClick = (e) => {
     if (this._isoOn || !this.#doc) return;
-    if (this.#tool !== "select" && !this.#selectOnly) return;
+    if (this.#tool !== "select") return;
     const p = this._clientToSvg(e.clientX, e.clientY);
     const hit = pickAtWorld(this.#doc, p.x, p.y, { drill: true });
     if (!hit) return;
     this.#drag = null;
     this.#sel = hit;
-    if (this.#selectOnly) this.#selSet = [hit];   // drill selects the single member (theme-apply)
     this.#refreshOverlay();
     this.#fireSelect();
   };

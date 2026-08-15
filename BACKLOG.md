@@ -129,14 +129,6 @@ highlight); these are the parked / dormant / deferred slices.
   open room displays as unpicked (harmless until the author touches it, since the save preserves what it
   loaded).
 
-- [ ] **S26 — Sweep the now-dead plan-side theme JS.** The Theme phase moved onto the sketch (`FEATURES.md`);
-  the plan tool's Theme UI + C# theme path are gone, but the plan **JS** theme code is still present as an
-  unreachable, self-consistent island: `plan-bridge.js` theme methods (`themesState`/`assignPiece`/`assignBox`/
-  `themeApply`/`getThemes`/… + the `defaultThemeJson` import), `plan-canvas.js` theme mode
-  (`setSelectOnly`/`setThemeOverlay`/`setThemePaint`/`getMultiSelection`/`#selSet`/`#themePaint`), and
-  `plan-doc.js` theme storage (`defaultThemeJson` — now duplicated in `theme/theme-model.js` — plus the
-  `themes`/`mapTheme`/`themeScopes` normalization). Remove them together (they cross-reference), keeping the
-  generic `uniqueId`. Check whether plan-canvas multi-select (`#selSet`) has any non-theme use before dropping it.
 - [ ] **S25b — Make the surfaced spawn/wool pieces movable, writing the move back to the intent.** S25 landed
   the pieces as **locked** read-only rectangles (`FEATURES.md`; `role`/`intentRef` on `SketchShape`, projected
   by `PlanCompiler`, skipped by the rasterizer, rendered as labelled boxes). The next slice makes them
@@ -430,19 +422,6 @@ by `HousePropRules.PastCap` and is not filed.
   *found reviewing the dispatch readiness of the rule buckets, 2026-08-15 ·
   `Pgm/Compose/Producibility.cs:37,47,50,178`.*
 
-- [ ] **B207 — `doc-status.md`'s churn ranking was measured over three days and reads as if it were history.**
-  The container that produced §3.4 saw 197 commits over three days, so every "last edited" date and every
-  churn count in it is accurate only for that window: a document showing zero churn was not necessarily
-  untouched for months, and one showing high churn was not necessarily edited recently in the way the number
-  implies. §3.4 is the ranking a reader would use to decide which documents are drifting, and it cannot see
-  drift older than the window — which is most drift. The opening note says so, which stops it misleading a
-  careful reader and does not make the numbers usable.
-
-  Re-run it against the full history and restate §3.4. Worth doing when the ranking is next going to be acted
-  on rather than on its own, since the numbers only matter as an input to choosing what to fix.
-
-  *carried out of `B111`, where it was a trailing note on an otherwise finished task (board rule 6) ·
-  `docs/doc-status.md` §3.4 and its opening note.*
 - [ ] **B189 — The authoring apparatus: art direction, named briefs, and a reviewer that is not the author.**
   Three runs asked three models for "a map of your own design" and got, three times over, one street of
   identical houses behind the spawn on a square board under a palette nobody checked. The brief is where that
@@ -2453,13 +2432,6 @@ long-tail so they stop competing with real work. Re-evaluate (or delete) when th
   rectangle's corner to sprout a Bézier handle that *implicitly* converts it to a polygon, it needs rect
   vertex/tangent handles in `sketch-edit-controller.js` (a UX decision on resize-handles vs vertex-handles).
   Low priority — explicit promotion already covers the need.
-- [ ] **P8 — Pipeline re-run on config change (parked escape hatch, world-present only).** A
-  parameterized re-scan honouring a bespoke `scan_layer`/`exclude_blocks` → re-detect islands → rewrite
-  **layer-tagged** `layer.parquet` / `islands.json`. The per-map scan-layer + custom block-exclusion UI
-  has been **removed** from both editors (detection is the fixed cleaned base; the world-scanning
-  endpoints are gone), so there is no longer a config-change to honour from the UI — this remains only as
-  a rare, local-only override path outside the hosted flow. (Island-exclusion →
-  symmetry re-run already works without a re-scan, B7.)
 - [ ] **P7 — [Deferred decision] Consolidate the layer extractors / scan passes.** **`ND2` settles the
   "consolidate vs keep" half: KEEP the exact per-layer extractors** — the World step uses them in distinct
   roles (cleaned `Base` = detection · `Surface` = visual aid · `Segments` = vertical), so they're a feature,

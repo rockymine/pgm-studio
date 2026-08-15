@@ -142,8 +142,12 @@ constraint the split was done for, the gather/score invariant, the measured rule
 may hold, and the orbit's separation from it — the DDL, the entity, the endpoint contracts and the change
 checklist are the migration, the type, `tools/configure.md` and history respectively. All four are done.
 
-**§3.4's churn ranking still wants re-running against the full history**, for the reason stated above: the
-container that produced it saw three days of commits.
+**§3.4's churn ranking will not be re-run**, and the reason is §0's rather than §3.4's own. The ranking is
+narrow because the container that produced it saw three days of commits, which was worth recording as a
+caveat; it is *unrepairable* because the tree it ranks no longer exists — two thirds of its rows name paths
+under `docs/contracts/`, a folder that has since been dissolved into the subject folders `CLAUDE.md` names.
+Re-measuring churn against the full history would produce a table of deleted documents measured accurately.
+The document is a snapshot of what motivated the rewrite, so the ranking stays as it was taken.
 
 ## 1. Inventory
 
