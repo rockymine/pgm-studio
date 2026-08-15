@@ -46,13 +46,13 @@ public sealed class BlockRolesTests
         // it, because the corner posts of a house are logs.
         foreach (var log in new[] { 17, 162 })
         {
-            await Assert.That(BlockRoles.IsLog(log)).IsTrue();
+            await Assert.That(BlockFamilies.IsLog(log)).IsTrue();
             await Assert.That(BlockRoles.StandsOnGround(log)).IsTrue();
             await Assert.That(BlockRoles.SeenThrough(log)).IsFalse();
         }
         foreach (var leaf in new[] { 18, 161 })
         {
-            await Assert.That(BlockRoles.IsLeaf(leaf)).IsTrue();
+            await Assert.That(BlockFamilies.IsLeaf(leaf)).IsTrue();
             await Assert.That(BlockRoles.StandsOnGround(leaf)).IsTrue();
             await Assert.That(BlockRoles.SeenThrough(leaf)).IsTrue();
         }

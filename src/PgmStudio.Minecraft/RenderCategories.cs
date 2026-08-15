@@ -103,7 +103,7 @@ public static class RenderCategories
     /// material questions, since neither is ever what a pass claimed a column *for*. Everything else defers to
     /// the record, because two of the three material tests below can lie about a built thing.
     /// <para>A <see cref="ProvenanceLayer.Structure"/> claim wins over the foliage test as well as the built
-    /// test, and the reason is <see cref="BlockRoles.IsLog"/>'s own: a log is the half of a tree that is also
+    /// test, and the reason is <see cref="BlockFamilies.IsLog"/>'s own: a log is the half of a tree that is also
     /// furniture, standing at the corner of a house as a post, so a building whose posts are spruce reads as a
     /// grove to a material test. A column a stamper or a dressing-placed building claimed is that building
     /// whatever block sits on top of it.</para>

@@ -46,8 +46,9 @@ public static class BlockRoles
     /// <summary>Water and lava, still and flowing.</summary>
     private static readonly HashSet<int> Liquids = [8, 9, 10, 11];
 
-    /// <summary>Logs and leaves, in both of their id pairs.</summary>
-    private static readonly HashSet<int> Trees = [17, 18, 161, 162];
+    /// <summary>Logs and leaves, in both of their id pairs — the two families, not a third list of the same
+    /// four ids (<see cref="BlockFamilies"/>).</summary>
+    private static readonly HashSet<int> Trees = [.. BlockFamilies.Logs, .. BlockFamilies.Leaves];
 
     /// <summary>What grows. A huge mushroom's cap and stem are not here: they are full cubes an author builds
     /// with, and the ground vocabulary already names the stem as pale stone.</summary>
@@ -119,14 +120,12 @@ public static class BlockRoles
         176, 177,                   // banner, wall banner
     ];
 
-    /// <summary>The materials that do not fill their cube. Only the singles are here: a double slab is a whole
-    /// block and keeps its own id, which is why 43, 125 and 181 are absent while 44, 126 and 182 are not.</summary>
+    /// <summary>The materials that do not fill their cube: the three families that are thinner than their
+    /// block, composed rather than relisted (<see cref="BlockFamilies"/>). Only the single slabs are in it —
+    /// a double slab is a whole block and keeps its own id, which is why <see cref="BlockFamilies.DoubleSlabs"/>
+    /// is not one of the three.</summary>
     private static readonly HashSet<int> PartialMaterials =
-    [
-        44, 126, 182,               // slabs: stone, wooden, red sandstone
-        53, 67, 108, 109, 114, 128, 134, 135, 136, 156, 163, 164, 180,   // stairs, every material
-        102, 160,                   // glass pane, stained glass pane
-    ];
+        [.. BlockFamilies.SingleSlabs, .. BlockFamilies.Stairs, .. BlockFamilies.Panes];
 
     /// <summary>The placed blocks that do fill their cube after all. Most decoration is thinner than its block —
     /// a fence, a torch, a carpet — but a dropper is a solid box with a face on it, and a pass asking about
@@ -161,13 +160,6 @@ public static class BlockRoles
     public static bool IsLiquid(int blockId) => Liquids.Contains(blockId);
     public static bool IsTree(int blockId) => Trees.Contains(blockId);
 
-    /// <summary>The wood of a tree, in both id pairs. Kept nameable apart from the leaves because it is the
-    /// half of a tree that is also furniture: an author stands a log at each corner of a house as a post, so a
-    /// pass reading a building's shape has to see one where a pass reading the ground steps past it.</summary>
-    public static bool IsLog(int blockId) => blockId is 17 or 162;
-
-    /// <summary>The leaves of a tree, in both id pairs.</summary>
-    public static bool IsLeaf(int blockId) => blockId is 18 or 161;
     public static bool IsFlora(int blockId) => Growing.Contains(blockId);
     public static bool IsDecoration(int blockId) => Placed.Contains(blockId);
 
@@ -183,7 +175,7 @@ public static class BlockRoles
     /// measure that tells a framed house from a shed. A pass reading the ground itself wants
     /// <see cref="StandsOnGround"/> instead, where a trunk is part of the tree it belongs to.</summary>
     public static bool SeenThrough(int blockId) =>
-        IsLeaf(blockId) || Growing.Contains(blockId) || Placed.Contains(blockId);
+        BlockFamilies.IsLeaf(blockId) || Growing.Contains(blockId) || Placed.Contains(blockId);
 
     /// <summary>Blocks a world does not put on its own surface — the material signature of something built.
     /// Deliberately excludes stone, cobblestone, andesite, gravel, sand and clay: all of those generate
@@ -206,5 +198,5 @@ public static class BlockRoles
     /// something built, not a liquid, and not a log — so a pass reading the natural surface steps past a
     /// building's own courses and the water over them to reach the ground underneath.</summary>
     public static bool IsNaturalGround(int blockId) =>
-        blockId != 0 && !SeenThrough(blockId) && !IsBuilt(blockId) && !IsLiquid(blockId) && !IsLog(blockId);
+        blockId != 0 && !SeenThrough(blockId) && !IsBuilt(blockId) && !IsLiquid(blockId) && !BlockFamilies.IsLog(blockId);
 }

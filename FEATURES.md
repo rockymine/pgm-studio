@@ -3694,9 +3694,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `block` under `stairLattice`, `arched` or `slabBanded` used to be trusted as whatever id a style named, so a
   cobblestone id where the arch's own docstring calls for a stair built a solid lintel with no arch in it, and a
   glass pane where a slab band calls for a slab built a pane/air/pane stripe — silently, on four authored
-  boards. `HouseStyleValidation.Check` and the classifier it reads, `BlockKinds` (the full stair set, the three
-  *single* slabs — a double slab does not count, since it ignores the half a window or a door head writes into
-  its data, and is the same fault as any other whole-block id), now run on every `POST`/`PUT` to `/room-styles`,
+  boards. `HouseStyleValidation.Check` and the classifier it reads (`BlockKinds` as shipped, `BlockFamilies`
+  since `B203`: the full stair set, the three *single* slabs — a double slab does not count, since it ignores
+  the half a window or a door head writes into its data, and is the same fault as any other whole-block id),
+  now run on every `POST`/`PUT` to `/room-styles`,
   `/roof-styles` and `/storey-styles`, and on a sketch's own bound `roomStyles.cage`/`roomStyles.spawn`
   (`PUT /map/{slug}/sketch`) — the door those snapshots actually enter the studio through. Answers **400**
   `{error: "invalid house style", findings: [{rule, field, message}]}`, one finding per fault, `rule` a stable
@@ -5045,6 +5046,31 @@ these are the ones that shipped a map that could not be played as intended, and 
   count of what was asked for. Seven regression tests at the placement, the two that matter being a house
   dropped for overlapping one already standing and a house authored over void: both claim nothing.
   `StructureClaim`'s docstring states the rule for the passes that have not yet followed it (`B203`).
+- **A block family is written once, and the two vocabularies compose from it (B203, block half).** Four tables
+  were counted as answering "what kind of block is this" and only two of them shared anything: `BlockRoles`
+  asks what a block is *doing* in a world so a scan can tell the ground from what stands on it, and
+  `BlockKinds` asked what geometry a block *carries* so a house field naming a stair gets a stair — different
+  questions, and merging them would have made one of them lie. What they had in common was the id lists
+  underneath, written out twice. Measured rather than eyeballed: `BlockRoles.PartialMaterials` was **exactly**
+  stairs ∪ single-slabs ∪ panes — the same eighteen ids, one class naming the three families and the other
+  spelling them as literals — `BlockRoles.Trees` was logs ∪ leaves as a third list of the same four ids, and
+  `IsLog` was written in both, once as a set and once as `blockId is 17 or 162`. Every one agreed, and agreed
+  by nobody having edited one of them.
+  `BlockFamilies` now names each family once — stairs, single slabs, double slabs, panes, logs, leaves, soil —
+  and `BlockRoles` composes `Trees` and `PartialMaterials` from it rather than restating them. `BlockKinds` is
+  deleted: five of its six predicates were family membership and are `BlockFamilies`', the sixth is the naming
+  fix. **`IsGround` is `IsSoil`**, because it was a closed list of six earth ids standing beside
+  `BlockRoles.IsNaturalGround`, which is the opposite kind of answer — everything left after built, liquid, log
+  and grown are taken away — and a caller reaching for "is this ground" had to know which and nothing at the
+  call site said so. `DressingPalette.IsStamp` and `BlockPalette` stay untouched and are not duplicates of
+  this: one is a closed list of what the stampers make, a claim about passes rather than blocks, and the other
+  is colour built from texture means.
+  Seven tests guard the crossings the composition now makes structural — a double slab is never a slab and
+  fills its cube where a single one does not, everything thinner than its block reads as not filling it, a
+  pass reading a build looks through a leaf and never through a log, soil is terrain and never a built
+  surface, and stone is natural ground while not being soil. The occupancy half of `B203` — the claim rects
+  `SketchWorldBuilder` re-derives beside four of its stamps — is still open and now has `StructureClaim`
+  (`B202`) to land in.
 - **The building plan and the relief landmass no longer share a name (B205).** `PgmStudio.Geom.Footprint` is
   the ground a relief is solved over — a landmass as a dense grid of land cells. `PgmStudio.Minecraft.Footprint`
   was a building's plan — wings, `OnPerimeter`, `OnCorner`, `Ring`, `Arc`. One name over two meanings rather

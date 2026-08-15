@@ -646,12 +646,16 @@ arc — so the seed is common and only the inset is not. **Lands in** `PgmStudio
 it. `B200` is blocked on one author call — whether the walk crosses an elevation step — and `B199` and `B201`
 should be settled with it rather than in sequence.
 
-**Block kind by role.** What is left of bucket 4 (`B165`, `B190`) and all of bucket 5. Four tables answer
-"what kind of block is this" — `BlockRoles`, `BlockKinds`, `DressingPalette.IsStamp`, `BlockPalette` — and
-`BlockRoles` is the one that already did this work properly: its docstring records the same question answered
-seven times, each render carrying its own negative list, fifteen blocks in no list at all. **Lands in one
-role→allowed-set**, stated positively, in the shape `BlockRoles` already has. `B190` additionally wants a
-`roof_slab` column and a migration, so it is not cheap and should go with other `roof_style` schema work.
+**Block kind by role.** What is left of bucket 4 (`B165`, `B190`) and all of bucket 5. **The table exists**:
+`BlockFamilies` names each id family once — stairs, single slabs, double slabs, panes, logs, leaves, soil —
+and `BlockRoles` composes from it rather than restating it (`B203`'s block half, `FEATURES.md`). So a rule
+about what a field may hold is a lookup against a family, and a bucket adding one **does not add a predicate
+of its own**; that is the failure this concept exists to stop, and it was already two-thirds of the way there
+before anyone noticed, since the two vocabularies' lists were byte-identical and agreed only by nobody having
+edited one. Two tables that were counted here are not duplicates and stay as they are:
+`DressingPalette.IsStamp` is a closed list of what the stampers make — a claim about passes, not blocks — and
+`BlockPalette` is colour built from texture means. `B190` additionally wants a `roof_slab` column and a
+migration, so it is not cheap and should go with other `roof_style` schema work.
 
 **The refusal vocabulary.** Every bucket that adds a rule. `Finding`, `Findings` and `Check` shipped as
 `B191`/`B192` **after** these forty-eight were written, so not one entry names them and an agent reading a

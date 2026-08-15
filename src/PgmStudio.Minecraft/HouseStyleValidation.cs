@@ -63,13 +63,13 @@ public static class HouseStyleValidation
     {
         if (head.Form == DoorHeadForm.None) return;
 
-        if (!BlockKinds.IsStair(head.Block))
+        if (!BlockFamilies.IsStair(head.Block))
             findings.Add(new Finding(HouseStyleRules.BlockKind,
                 $"doorHead.block ({head.Block}) is not a stair. An arched head turns its two corners by a " +
                 "stair's own facing; anything else lays a solid lintel across the doorway instead of an arch.",
                 Field: "doorHead.block"));
 
-        if (head.Fill == DoorHeadFill.UpperSlab && !BlockKinds.IsSlab(head.FillBlock))
+        if (head.Fill == DoorHeadFill.UpperSlab && !BlockFamilies.IsSlab(head.FillBlock))
             findings.Add(new Finding(HouseStyleRules.BlockKind,
                 $"doorHead.fillBlock ({head.FillBlock}) under upperSlab is not a single slab. The fill raises " +
                 "half of its own cube to read as one line with the corners; a block without a half — a double " +
@@ -92,14 +92,14 @@ public static class HouseStyleValidation
     {
         switch (windows.Form)
         {
-            case WindowForm.StairLattice or WindowForm.Arched when !BlockKinds.IsStair(windows.Block):
+            case WindowForm.StairLattice or WindowForm.Arched when !BlockFamilies.IsStair(windows.Block):
                 findings.Add(new Finding(HouseStyleRules.BlockKind,
                     $"{field}.block ({windows.Block}) is not a stair. {FormName(windows.Form)} turns its " +
                     "corners by a stair's own facing; anything else builds without the diamond or the rounded " +
                     "corners the form is named for.",
                 Field: $"{field}.block"));
                 break;
-            case WindowForm.SlabBanded when !BlockKinds.IsSlab(windows.Block):
+            case WindowForm.SlabBanded when !BlockFamilies.IsSlab(windows.Block):
                 findings.Add(new Finding(HouseStyleRules.BlockKind,
                     $"{field}.block ({windows.Block}) is not a single slab. A slab band raises half a cube for " +
                     "the sill and lowers half for the lintel; anything else — a double slab included — leaves " +
@@ -120,7 +120,7 @@ public static class HouseStyleValidation
 
     private static void CheckRoofMaterials(HouseStyle style, List<Finding> findings)
     {
-        if (style.Roof.Slab >= 0 && !BlockKinds.IsSlab(style.Roof.Slab))
+        if (style.Roof.Slab >= 0 && !BlockFamilies.IsSlab(style.Roof.Slab))
             findings.Add(new Finding(HouseStyleRules.BlockKind,
                 $"roofSlab ({style.Roof.Slab}) is not a single slab. A half-course roof steps in the slab's own " +
                 "half on every odd course; anything else — a double slab included — comes out a full cube and " +
@@ -130,7 +130,7 @@ public static class HouseStyleValidation
         // A slab belongs in a roof only on a half-course rise (RoofSlab set). Naming one in Roof itself while
         // RoofSlab is unset asks for a whole block of rise in a material that only fills half its cube, which
         // is the see-through roof HouseStyle.Roof's own docstring warns about.
-        if (style.Roof.Slab < 0 && SolidId(style.Roof.Body) is { } roofId && BlockKinds.IsSlab(roofId))
+        if (style.Roof.Slab < 0 && SolidId(style.Roof.Body) is { } roofId && BlockFamilies.IsSlab(roofId))
             findings.Add(new Finding(HouseStyleRules.RoofMaterial,
                 $"roof ({roofId}) is a slab and roofSlab is unset (-1). A course of slabs at a whole block of " +
                 "rise leaves an open half between every pair and the roof reads see-through — set roofSlab to " +
@@ -150,10 +150,10 @@ public static class HouseStyleValidation
         foreach (var (field, material) in new[] { ("roof", roof), ("verge", verge) })
         {
             if (SolidId(material) is not { } id) continue;
-            if (BlockKinds.IsLog(id))
+            if (BlockFamilies.IsLog(id))
                 findings.Add(new Finding(HouseStyleRules.RoofMaterial,
                     $"{field} ({id}) is a log. A log is never a roof or a verge material.", Field: field));
-            else if (BlockKinds.IsGround(id))
+            else if (BlockFamilies.IsSoil(id))
                 findings.Add(new Finding(HouseStyleRules.RoofMaterial,
                     $"{field} ({id}) is a ground material. A ground material — what a building stands on — is " +
                     "never a roof or a verge material.", Field: field));

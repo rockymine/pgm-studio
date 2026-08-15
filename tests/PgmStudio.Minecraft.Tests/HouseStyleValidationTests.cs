@@ -251,26 +251,26 @@ public sealed class HouseStyleValidationTests
             await Assert.That(house.Style.Foundation.Footing).IsNotNull();
     }
 
-    // ── BlockKinds ──────────────────────────────────────────────────────────────────────────────────────
+    // ── BlockFamilies ──────────────────────────────────────────────────────────────────────────────────────
 
     [Test]
     public async Task Cobblestone_is_neither_a_stair_nor_a_slab()
     {
-        await Assert.That(BlockKinds.IsStair(Blocks.Cobblestone)).IsFalse();
-        await Assert.That(BlockKinds.IsSlab(Blocks.Cobblestone)).IsFalse();
+        await Assert.That(BlockFamilies.IsStair(Blocks.Cobblestone)).IsFalse();
+        await Assert.That(BlockFamilies.IsSlab(Blocks.Cobblestone)).IsFalse();
     }
 
     [Test]
     public async Task Stone_brick_is_not_its_own_stair_id()
         // corvid-hollow's fault exactly: 98 is Stone Brick, 109 is Stone Brick Stairs.
-        => await Assert.That(BlockKinds.IsStair(98)).IsFalse();
+        => await Assert.That(BlockFamilies.IsStair(98)).IsFalse();
 
     [Test]
     [Arguments(44)]
     [Arguments(126)]
     [Arguments(182)]
     public async Task Single_slabs_are_slabs(int blockId)
-        => await Assert.That(BlockKinds.IsSlab(blockId)).IsTrue();
+        => await Assert.That(BlockFamilies.IsSlab(blockId)).IsTrue();
 
     [Test]
     [Arguments(43)]
@@ -278,17 +278,17 @@ public sealed class HouseStyleValidationTests
     [Arguments(181)]
     public async Task Double_slabs_are_not_slabs(int blockId)
     {
-        await Assert.That(BlockKinds.IsSlab(blockId)).IsFalse();
-        await Assert.That(BlockKinds.IsDoubleSlab(blockId)).IsTrue();
+        await Assert.That(BlockFamilies.IsSlab(blockId)).IsFalse();
+        await Assert.That(BlockFamilies.IsDoubleSlab(blockId)).IsTrue();
     }
 
     [Test]
     public async Task Logs_and_ground_are_named()
     {
-        await Assert.That(BlockKinds.IsLog(Blocks.Log)).IsTrue();
-        await Assert.That(BlockKinds.IsLog(Blocks.Log2)).IsTrue();
-        await Assert.That(BlockKinds.IsGround(2)).IsTrue();     // Grass Block
-        await Assert.That(BlockKinds.IsGround(3)).IsTrue();     // Dirt / Podzol
-        await Assert.That(BlockKinds.IsGround(Blocks.Cobblestone)).IsFalse();
+        await Assert.That(BlockFamilies.IsLog(Blocks.Log)).IsTrue();
+        await Assert.That(BlockFamilies.IsLog(Blocks.Log2)).IsTrue();
+        await Assert.That(BlockFamilies.IsSoil(2)).IsTrue();     // Grass Block
+        await Assert.That(BlockFamilies.IsSoil(3)).IsTrue();     // Dirt / Podzol
+        await Assert.That(BlockFamilies.IsSoil(Blocks.Cobblestone)).IsFalse();
     }
 }

@@ -49,45 +49,43 @@ bucket 9 has been finished since before the table was written; and `B177` asked 
 landed, so they are dispatchable, and both should adopt `StructureClaim` rather than adding a claim of their
 own. Buckets 1, 2, 3 and 10 all land in `PlanValidator` and go to one agent or strictly in sequence — `B206`
 has cut that class to one verb so they do not each pick a different one. Buckets 4 and 5 share the block table
-and wait on `B203`. Bucket 13's author call is answered: **the walk crosses an elevation step.** Buckets 8, 11
-and 12 share nothing and may run at once.
+and it exists: `BlockFamilies` names each id family once, so a rule about what a field may hold is a lookup
+rather than a sixth list. Bucket 13's author call is answered: **the walk crosses an elevation step.** Buckets
+8, 11 and 12 share nothing and may run at once.
+
+**Every bucket now has its landing site built.** `Findings`/`Check` for the refusals, `StructureClaim` for
+occupancy, `BlockFamilies` for block kind, one `PlanValidator` verb, and `BuildingPlan` renamed clear of
+`Geom.Footprint` so bucket 13's lift has somewhere to go. What is left of the landscape is `B203`'s second
+half, which is latent rather than live.
 
 ## Backend, pipeline & internals (B / P / A)
 
-**One finding, and the live-defect hunts against the same surfaces.** `B203` is the class `B202` was an
-instance of, and it gates buckets 4 and 5. Under it: a building that is solid behind its facade, leaves lying
-inside one, a stale chunk surviving a rebuild, and the two names that still cover two meanings each.
+**One finding, and the live-defect hunts against the same surfaces.** `B203` is what remains of the class
+`B202` was an instance of — four claims still re-derived beside their stamp, none of them currently wrong.
+Under it: a building that is solid behind its facade, leaves lying inside one, a stale chunk surviving a
+rebuild, and the two names that still cover two meanings each.
 
-- [ ] **B203 — "Which columns does this stamp own" has four answers left, and "what kind of block is this" has
-  four tables.** Both are one question asked in several places, each place deriving it its own way.
+- [~] **B203 — Four `ClaimRect` calls still re-derive the rect the stamper beside them computed.** The block
+  half of this entry has shipped (`FEATURES.md`): `BlockFamilies` names each id family once, `BlockRoles`
+  composes from it, `BlockKinds` is gone and `IsGround` is `IsSoil`. What remains is the occupancy half, and
+  it now has somewhere to land — `StructureClaim` (`B202`), a claim taken from the placement rather than
+  beside it.
 
-  **Which columns a stamp owns:** the stamper itself (it places the blocks); `provenance.ClaimRect` beside it
-  in `SketchWorldBuilder`; `DressingScope.ProtectedAt`'s keep-out mask; and `TerrainProfile`'s paint gate (a
-  column whose top block *is not stone* is a structure). The fifth — the house claim rebuilt from the layout —
-  is gone with `B202`, which also left the rule and the type the rest should adopt: **`StructureClaim`**, a
-  claim taken from the placement rather than beside it.
+  **Which columns a stamp owns** is still asked four ways: the stamper itself (it places the blocks);
+  `provenance.ClaimRect` beside it in `SketchWorldBuilder`; `DressingScope.ProtectedAt`'s keep-out mask; and
+  `TerrainProfile`'s paint gate (a column whose top block *is not stone* is a structure). The house claim
+  rebuilt from the layout was the fifth and is gone.
 
-  What is left in `SketchWorldBuilder` is five `ClaimRect` calls that each re-derive a rect the stamper beside
-  them already computed — the room floor, the wall, the redstone line, the goal box, the marker. Only the iron
-  cube reads its stamper's own `StructureStamper.IronCubeFootprint`, and it is the one that cannot drift. The
-  room-floor case is the sharp one: the same fractional rect converted twice, five lines apart, by two rules —
-  `(int)f.MinX` in the stamp against `Math.Floor`/`Math.Ceiling` in the claim. Latent rather than live, since
-  `PlanCompiler` fans integral rects today; `CLAUDE.md`'s own trap entry says this class has already cost hours.
+  What is left in `SketchWorldBuilder` is four `ClaimRect` calls that each re-derive a rect the stamper beside
+  them already computed — the room floor, the wall, the redstone line and the goal box. Only the iron cube
+  reads its stamper's own `StructureStamper.IronCubeFootprint`, and it is the one that cannot drift, which is
+  the shape the other four want: the stamper answers what it covered and the caller claims that. **The
+  room-floor case is the sharp one**, and it is the same fractional rect converted twice, five lines apart, by
+  two rules — `(int)f.MinX` in the stamp against `Math.Floor`/`Math.Ceiling` in the claim. Latent rather than
+  live, since `PlanCompiler` fans integral rects today; `CLAUDE.md`'s own trap entry says this class has
+  already cost hours.
 
-  **What kind of block this is:** `BlockRoles` (7 predicates, scan-side roles), `BlockKinds` (6 predicates,
-  what a house field may name), `DressingPalette.IsStamp` (what the dressing pass may not touch), and
-  `BlockPalette` (colour). `IsLog` is written in both of the first two — `blockId is 17 or 162` against
-  `Logs.Contains(id)`, agreeing today by coincidence of maintenance. `IsGround` and `IsNaturalGround` share a
-  stem and not a meaning: the first is a closed list of six earth ids a roof may not be laid in, the second is
-  everything left after built, liquid, log and grown are removed. A caller reaching for "is this ground" has to
-  know which, and nothing says so at the call site.
-
-  **The fix pattern is already in the repo, one scale down.** `DressingPalette.IsStamp`'s docstring: *"Stated
-  once, here, because two passes ask it... Two lists would drift and the drift would show as a road eating a
-  monument."* That is exactly right and exactly what the four tables above have not done.
-
-  *found in the provenance dive, 2026-08-15 · `BlockRoles` · `BlockKinds` · `TerrainProfile` ·
-  `DressingScope` · `SketchWorldBuilder`.*
+  *found in the provenance dive, 2026-08-15 · `TerrainProfile` · `DressingScope` · `SketchWorldBuilder`.*
 
 - [~] **B106 — Two different things in this codebase are called protection.** **The placement half of this
   entry has landed and its premise is stale.** It described `Retarget` reusing the wool markers so a destroy

@@ -384,7 +384,7 @@ public sealed record Doorway
         get
         {
             if (!Head.Fits(Width, Height)) return Height;
-            var genuineSlab = Head.Fill == DoorHeadFill.UpperSlab && BlockKinds.IsSlab(Head.FillBlock);
+            var genuineSlab = Head.Fill == DoorHeadFill.UpperSlab && BlockFamilies.IsSlab(Head.FillBlock);
             return (Height - 1) + (genuineSlab ? 0.5m : 0m);
         }
     }
