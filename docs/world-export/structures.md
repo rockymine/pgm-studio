@@ -191,10 +191,17 @@ style-as-data pattern and stay anchor-based on purpose, a point structure rather
 
 ## 7. The room style
 
-A shell is **parts and overrides**. Floor, walls and roof are each a `RoomPart`: a stack of `RoomCourse`
-(material + how many courses it runs) plus an `Extent` saying how far the part goes. Over them go the two
-things a style may not decide — the **pad**, because the exported wool/spawn location is derived from it
-(WX5), and the **doorway**, because it is the entry contract (WX6/WX7).
+A shell is **parts and overrides**. A wall and a foundation's plate are each a `RoomPart`: a stack of
+`RoomCourse` (material + how many courses it runs) plus an `Extent` saying how far the part goes. Over them go
+the two things a style may not decide — the **pad**, because the exported wool/spawn location is derived from
+it (WX5), and the **doorway**, because it is the entry contract (WX6/WX7).
+
+**A statement about one piece of the building lives on that piece.** What a building stands on is a
+`Foundation` and what stands above the eave is a `RoofStyle`, each one type carrying every statement about
+itself rather than a run of fields beside everything else — so a `HouseStyle` names a foundation, a roof, a
+wall, its posts, its windows, its storeys, its porch, its beams and its door, and a caller asking about the
+roof asks the roof. Where a piece has exactly one thing to say it stays a field: a post is a material and
+nothing else.
 
 A stack is read from its part's own base outward: a floor **downward** from the course players stand on, a
 wall and a roof **upward**. The direction is the load-bearing part of the model. A floor that grew upward
@@ -775,7 +782,7 @@ verge is one and the gable face is one. Each of a roof's three pieces is therefo
 editor offers one picker rather than a stack — offering a stack offered courses the stamper read the first of
 and dropped the rest of, which is a knob whose preview never moves.
 
-What the house keeps is what belongs to no part: its foundation — the sill and the floor's depth — and its
+What the house keeps is what belongs to no part: its foundation — the footing and the plate's depth — and its
 door. Everything else it names is a **fallback**. A bound part takes over from the columns on the house that
 describe the same part, and only those, which is what made the level free to add: a house that binds nothing is
 exactly the building its own columns always described, so no stored row had to move.

@@ -44,7 +44,7 @@ public static class HouseStamper
     public static (int MinX, int MinZ, int MaxX, int MaxZ) StampedExtent(
         (int MinX, int MinZ, int MaxX, int MaxZ) ground, HouseStyle style)
     {
-        var margin = Math.Max(1, Math.Max(Math.Max(0, style.Overhang), BeamReach(style)));
+        var margin = Math.Max(1, Math.Max(Math.Max(0, style.Roof.Overhang), BeamReach(style)));
         return (ground.MinX - margin, ground.MinZ - margin, ground.MaxX + margin, ground.MaxZ + margin);
     }
 
@@ -71,7 +71,7 @@ public static class HouseStamper
     public static IEnumerable<(int X, int Z)> StampedCells(
         (int MinX, int MinZ, int MaxX, int MaxZ) ground, HouseStyle style)
     {
-        var eaves = Math.Max(1, Math.Max(0, style.Overhang));
+        var eaves = Math.Max(1, Math.Max(0, style.Roof.Overhang));
         for (var x = ground.MinX - eaves; x <= ground.MaxX + eaves; x++)
             for (var z = ground.MinZ - eaves; z <= ground.MaxZ + eaves; z++)
                 yield return (x, z);
@@ -120,8 +120,8 @@ public static class HouseStamper
         var frontWall = body.WallFacing(front, FrontCentre(body, front));
         var openings = Doorways(doors, style, body, frontWall);
 
-        var overhang = Math.Max(0, style.Overhang);
-        var pitch = Math.Max(1, style.Pitch);
+        var overhang = Math.Max(0, style.Roof.Overhang);
+        var pitch = Math.Max(1, style.Roof.Pitch);
         var levels = style.Levels;
         var bases = style.LevelBases;
         var wallTop = floorY + style.WallCourses;                  // the eave course sits on this
@@ -199,7 +199,7 @@ public static class HouseStamper
             var top = WallTopOf(wing);
             var (minX, minZ, maxX, maxZ) = Roofed(wing, index);
             var roofed = new Footprint(minX, minZ, maxX, maxZ);
-            var roof = wing.RoofOver(style.Form, pitch, style.RoofSlab);
+            var roof = wing.RoofOver(style.Roof.Form, pitch, style.Roof.Slab);
             var field = new RoofField(
                 roof.Form, minX, minZ, maxX, maxZ, overhang, top + 1,
                 roof.Pitch, front, roof.Slab >= 0, wing.RidgeAlongX);
@@ -342,7 +342,7 @@ public static class HouseStamper
             {
                 if (!body.OnPerimeter(x, z)) continue;
                 for (var fill = top + 1; fill < field.Underside(x, z); fill++)
-                    if (style.Gable is { } gable) Put(x, fill, z, gable, body);
+                    if (style.Roof.Gable is { } gable) Put(x, fill, z, gable, body);
                     else PutPart(x, fill, z, topWall, topWall.Extent - 1, body);
             }
 
@@ -358,7 +358,7 @@ public static class HouseStamper
         // spreading them along the run would put half of them where there is no wall to cut.
         void StampGableWindows(Footprint alone, RoofField field, int top)
         {
-            var windows = style.GableWindows;
+            var windows = style.Roof.GableWindows;
             if (windows.Form == WindowForm.None) return;
             var (width, height) = windows.Normalized();
             var sill = Math.Max(1, windows.Sill);
@@ -484,9 +484,9 @@ public static class HouseStamper
             // the wing it would call a marched cell rim, because a march's first step lands exactly on the
             // wing's own overhang line, and stamp verge in the middle of the roof it just ran into: a T would
             // come out carrying four gables where it has three.
-            var material = OnRoofRim(x, z) || (style.RidgeCap && field.OnRidge(x, z))
-                ? style.Verge
-                : style.Roof;
+            var material = OnRoofRim(x, z) || (style.Roof.RidgeCap && field.OnRidge(x, z))
+                ? style.Roof.Verge
+                : style.Roof.Body;
 
             // <b>No roof block below the wall top of whatever covers this cell.</b> Under a wall is inside the
             // building, and that is not where a roof goes — it is what makes a one-storey wing stop against a
@@ -501,7 +501,7 @@ public static class HouseStamper
             for (var y = Math.Max(field.Underside(x, z), lowest); y <= (slab ? crown - 1 : crown); y++)
                 Put(x, y, z, material, ring);
             if (slab && crown >= lowest && crown is > 0 and < VoxelWorld.MaxHeight)
-                world.SetBlock(x, crown, z, slabBlock, style.RoofSlabData & 0x7);
+                world.SetBlock(x, crown, z, slabBlock, style.Roof.SlabData & 0x7);
         }
 
         /// <summary>The rectangle a wing's roof draws over: its own walls, lengthened along its own ridge to the
@@ -675,7 +675,7 @@ public static class HouseStamper
             var outer = front;
             var seated = new RoofField(
                 porchStyle.Roof, porch.MinX, porch.MinZ, porch.MaxX, porch.MaxZ, overhang, 0, pitch, outer,
-                style.RoofInHalves);
+                style.Roof.InHalves);
 
             // The canopy is seated by its own *lowest* course rather than by its ridge: that course has to
             // clear the doorway the porch fronts, and where it lands the ridge follows by however far the form
@@ -691,7 +691,7 @@ public static class HouseStamper
             for (var x = canopy.MinX; x <= canopy.MaxX; x++)
                 for (var z = canopy.MinZ; z <= canopy.MaxZ; z++)
                     if (!body.Holds(x, z))                    // the house roofs its own footprint
-                        Lay(canopy, x, z, porch, style.RoofSlab);
+                        Lay(canopy, x, z, porch, style.Roof.Slab);
 
             // A post stands on the deck, so it takes the ground storey's wall where the style names no post —
             // the storey it is actually beside, not the one at the top of the building.
@@ -905,7 +905,7 @@ public static class HouseStamper
     /// they have a volume of their own and a hole in a slope is a leak rather than a light.</summary>
     private static Footprint? RoofHole(HouseStyle style, Footprint body)
     {
-        if (!style.RoofHole || style.Form != RoofForm.Flat) return null;
+        if (!style.Roof.Hole || style.Roof.Form != RoofForm.Flat) return null;
         int spanX = RoofHoleSpan(body.Width), spanZ = RoofHoleSpan(body.Depth);
         // Measured on the walls rather than on the roof plane: it lights the room, and an overhang grows
         // symmetrically so the centre is the same either way.

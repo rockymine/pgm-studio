@@ -240,14 +240,107 @@ public sealed record Foundation
     public TerrainMaterial? Footing { get; init; } = new SolidMaterial(Blocks.Cobblestone);
 
     /// <summary>How far the plate claims downward — the whole of what "how deep is the foundation" means.</summary>
+    [JsonIgnore]
     public int Depth => Math.Max(1, Plate.Extent);
 
     /// <summary>What a ground storey stands on, and what a deck falls back to.</summary>
+    [JsonIgnore]
     public TerrainMaterial Deck => Plate.At(0).Material;
 
     /// <summary>A floor and nothing round it: the plate alone, which is what a building seated into finished
     /// terrain wants.</summary>
     public Foundation WithoutFooting() => this with { Footing = null };
+}
+
+/// <summary>
+/// The roof a building wears: its shape, how steep it climbs, how far it reaches past the walls, and what
+/// every part of it is laid in.
+///
+/// <para><b>The shape is <see cref="RoofField"/>'s and the finish is here.</b> That type answers what course
+/// each column tops out at, one formula per form over the same two distances; this says which form to ask
+/// for, at what pitch, and what to lay the answer in. Eleven fields sat loose in the house's own record — one
+/// arriving per feature over as many changes, so the record read as its own changelog — and they are one
+/// thing: everything above the eave.</para>
+///
+/// <para>A wing may override three of them for itself (<see cref="WingSpec"/>), which is why the form, the
+/// pitch and the slab resolve together as one decision rather than three.</para>
+/// </summary>
+public sealed record RoofStyle
+{
+    private const int Planks = Blocks.Planks;
+    private const int Spruce = 1, DarkOak = 5;
+
+    public RoofForm Form { get; init; } = RoofForm.Gable;
+
+    /// <summary>How steep the slope climbs per block travelled inward — courses on a roof laid in cubes, and
+    /// <em>half</em> courses on one that names a <see cref="Slab"/>. One is the vanilla pitch; two is a
+    /// steep alpine roof, or on a slab roof the same 45° a cube roof gets at one.</summary>
+    public int Pitch { get; init; } = 1;
+
+    /// <summary>The slab a roof steps in, or -1 for a roof laid in whole blocks.
+    ///
+    /// <para>Naming one puts the roof on <b>half courses</b>: it climbs half a block per block travelled and
+    /// lays this slab on every odd step, with the style's own <see cref="Body"/> filling the cubes between. It
+    /// is the gentler slope a slab is actually for — at a whole block of rise a course of slabs leaves an open
+    /// half between every pair and the roof can be seen straight through, which is why
+    /// <see cref="Body"/> documents stairs and slabs as different roofs.</para>
+    ///
+    /// <para>A block id rather than a material, for the reason a window's is: which half of its cube a slab
+    /// fills is <b>geometry</b>, and a material resolving that from where the cell sits would lay half of them
+    /// upside down.</para></summary>
+    public int Slab { get; init; } = -1;
+
+    /// <summary>That slab's own variant nibble — which wood, which stone. The half it fills is the stamper's
+    /// and is not part of this.</summary>
+    public int SlabData { get; init; }
+
+    /// <summary>How far the roof reaches past the walls. One block is an eave; zero ends the roof flush and
+    /// leaves the wall to carry the weather.</summary>
+    public int Overhang { get; init; } = 1;
+
+    /// <summary>Whether the line the slopes meet on is laid in the <see cref="Verge"/> rather than the roof's
+    /// own material — the capping course a real ridge is finished with. A flat lid has no ridge to cap.</summary>
+    public bool RidgeCap { get; init; }
+
+    /// <summary>Whether a flat roof carries a centred hole, the way the shipped shell does — the light a
+    /// windowless room otherwise has none of. A gable has its own volume and never takes one.</summary>
+    public bool Hole { get; init; }
+
+    /// <summary>The body of each roof slope.
+    ///
+    /// <para><b>A slope that climbs a whole block per block must be laid in whole blocks.</b> A slab fills only
+    /// the lower half of the cube it sits in, so a course of slabs stepping up a full block leaves an open half
+    /// between every pair and the roof can be seen straight through. Stairs are the other material that closes
+    /// a 45° step; slabs belong on a slope that rises half a block at a time, which is a different roof.</para></summary>
+    public TerrainMaterial Body { get; init; } = new SolidMaterial(Planks, Spruce);
+
+    /// <summary>The roof's own border — its eave course and its two verges. A roof laid in one material reads
+    /// flat; bordering it is what gives the slope an edge to end on.</summary>
+    public TerrainMaterial Verge { get; init; } = new SolidMaterial(Planks, DarkOak);
+
+    /// <summary>The triangle of wall a sloped roof leaves standing at each end, or null to carry the wall's own
+    /// top course up into it.
+    ///
+    /// <para>Its own material because the gable is the one piece of wall the <b>roof</b> shapes, and because a
+    /// wall's stack has nothing left to say about it: the courses run out at the wall's top, so a wall that
+    /// bands as it rises goes flat the moment it turns into a gable. Naming it separately is what makes the
+    /// timbered gable over a plain wall — the thing nearly every hand-built house on the corpus does — sayable
+    /// at all. Unset it is the wall's top course, which is what every shell was before there was a name for
+    /// it.</para></summary>
+    public TerrainMaterial? Gable { get; init; }
+
+    /// <summary>The window cut through each <see cref="Gable"/> face, or none.
+    ///
+    /// <para>Its own style rather than the walls', because a gable is not a wall: it is a triangle, its height
+    /// runs out toward both ends, and the one place a window certainly fits is the middle. So one is cut per
+    /// face and centred, where a wall takes as many as its run will hold. Its <see cref="WindowStyle.Sill"/> is
+    /// counted from the <b>wall top</b> — the course the gable starts at — since that is the datum an author is
+    /// looking at when they place it, and the floor is storeys away by then.</para></summary>
+    public WindowStyle GableWindows { get; init; } = new();
+
+    /// <summary>Whether the roof climbs half a block at a time, which is what naming a slab means.</summary>
+    [JsonIgnore]
+    public bool InHalves => Slab >= 0;
 }
 
 /// <summary>
@@ -269,6 +362,9 @@ public sealed record HouseStyle
     /// <summary>What the building stands on: the floor plate, its zoning, and the footing that rings it.</summary>
     public Foundation Foundation { get; init; } = new();
 
+    /// <summary>Everything above the eave: the roof's form, its pitch, its reach and its materials.</summary>
+    public RoofStyle Roof { get; init; } = new();
+
     /// <summary>The infill between the posts, upward from the floor. Its extent is the wall's height.</summary>
     public RoomPart Wall { get; init; } = RoomPart.Of(new SolidMaterial(Planks, Spruce), 5);
 
@@ -278,41 +374,9 @@ public sealed record HouseStyle
     /// unset.</summary>
     public TerrainMaterial? Post { get; init; } = new SolidMaterial(Blocks.Log, Oak);
 
-    /// <summary>The triangle of wall a sloped roof leaves standing at each end, or null to carry the wall's own
-    /// top course up into it.
-    ///
-    /// <para>Its own material because the gable is the one piece of wall the <b>roof</b> shapes, and because a
-    /// wall's stack has nothing left to say about it: the courses run out at the wall's top, so a wall that
-    /// bands as it rises goes flat the moment it turns into a gable. Naming it separately is what makes the
-    /// timbered gable over a plain wall — the thing nearly every hand-built house on the corpus does — sayable
-    /// at all. Unset it is the wall's top course, which is what every shell was before there was a name for
-    /// it.</para></summary>
-    public TerrainMaterial? Gable { get; init; }
-
-    /// <summary>The body of each roof slope.
-    ///
-    /// <para><b>A slope that climbs a whole block per block must be laid in whole blocks.</b> A slab fills only
-    /// the lower half of the cube it sits in, so a course of slabs stepping up a full block leaves an open half
-    /// between every pair and the roof can be seen straight through. Stairs are the other material that closes
-    /// a 45° step; slabs belong on a slope that rises half a block at a time, which is a different roof.</para></summary>
-    public TerrainMaterial Roof { get; init; } = new SolidMaterial(Planks, Spruce);
-
-    /// <summary>The roof's own border — its eave course and its two verges. A roof laid in one material reads
-    /// flat; bordering it is what gives the slope an edge to end on.</summary>
-    public TerrainMaterial Verge { get; init; } = new SolidMaterial(Planks, DarkOak);
-
 
     /// <summary>The windows cut through the walls, or none.</summary>
     public WindowStyle Windows { get; init; } = new();
-
-    /// <summary>The window cut through each <see cref="Gable"/> face, or none.
-    ///
-    /// <para>Its own style rather than the walls', because a gable is not a wall: it is a triangle, its height
-    /// runs out toward both ends, and the one place a window certainly fits is the middle. So one is cut per
-    /// face and centred, where a wall takes as many as its run will hold. Its <see cref="WindowStyle.Sill"/> is
-    /// counted from the <b>wall top</b> — the course the gable starts at — since that is the datum an author is
-    /// looking at when they place it, and the floor is storeys away by then.</para></summary>
-    public WindowStyle GableWindows { get; init; } = new();
 
     /// <summary>The storeys stacked inside the building, or empty for the single storey <see cref="Wall"/>,
     /// <see cref="Windows"/> and <see cref="Surface"/> describe on their own.
@@ -395,48 +459,10 @@ public sealed record HouseStyle
     /// <see cref="PorchStyle.Edge"/> wins too, since a porch names the wall it fronts.</para></summary>
     public RoomEdge? DoorEdge { get; init; }
 
-    public RoofForm Form { get; init; } = RoofForm.Gable;
 
-    /// <summary>Whether the line the slopes meet on is laid in the <see cref="Verge"/> rather than the roof's
-    /// own material — the capping course a real ridge is finished with. A flat lid has no ridge to cap.</summary>
-    public bool RidgeCap { get; init; }
-
-    /// <summary>Whether a flat roof carries a centred hole, the way the shipped shell does — the light a
-    /// windowless room otherwise has none of. A gable has its own volume and never takes one.</summary>
-    public bool RoofHole { get; init; }
-
-    /// <summary>How far the roof reaches past the walls. One block is an eave; zero ends the roof flush and
-    /// leaves the wall to carry the weather.</summary>
-    public int Overhang { get; init; } = 1;
-
-    /// <summary>How steep the slope climbs per block travelled inward — courses on a roof laid in cubes, and
-    /// <em>half</em> courses on one that names a <see cref="RoofSlab"/>. One is the vanilla pitch; two is a
-    /// steep alpine roof, or on a slab roof the same 45° a cube roof gets at one.</summary>
-    public int Pitch { get; init; } = 1;
 
     /// <summary>The logs that run out past the corners where two storeys meet, or none.</summary>
     public BeamStyle Beams { get; init; } = new();
-
-    /// <summary>The slab a roof steps in, or -1 for a roof laid in whole blocks.
-    ///
-    /// <para>Naming one puts the roof on <b>half courses</b>: it climbs half a block per block travelled and
-    /// lays this slab on every odd step, with the style's own <see cref="Roof"/> filling the cubes between. It
-    /// is the gentler slope a slab is actually for — at a whole block of rise a course of slabs leaves an open
-    /// half between every pair and the roof can be seen straight through, which is why
-    /// <see cref="Roof"/> documents stairs and slabs as different roofs.</para>
-    ///
-    /// <para>A block id rather than a material, for the reason a window's is: which half of its cube a slab
-    /// fills is <b>geometry</b>, and a material resolving that from where the cell sits would lay half of them
-    /// upside down.</para></summary>
-    public int RoofSlab { get; init; } = -1;
-
-    /// <summary>That slab's own variant nibble — which wood, which stone. The half it fills is the stamper's
-    /// and is not part of this.</summary>
-    public int RoofSlabData { get; init; }
-
-    /// <summary>Whether the roof climbs half a block at a time.</summary>
-    [JsonIgnore]
-    public bool RoofInHalves => RoofSlab >= 0;
 
     public DoorMaterial Door { get; init; } = DoorMaterial.Air;
 
@@ -466,15 +492,10 @@ public sealed record HouseStyle
     /// made of, and a whole shell's worth of members would silently ride on it.</summary>
     public bool Equals(HouseStyle? other)
         => other is not null
-           && Foundation == other.Foundation
-           && Wall == other.Wall && Post == other.Post && Gable == other.Gable
-           && Roof == other.Roof && Verge == other.Verge && Windows == other.Windows
-           && GableWindows == other.GableWindows
+           && Foundation == other.Foundation && Roof == other.Roof
+           && Wall == other.Wall && Post == other.Post && Windows == other.Windows
            && Storeys.SequenceEqual(other.Storeys)
-           && Porch == other.Porch && DoorEdge == other.DoorEdge && Form == other.Form
-           && RidgeCap == other.RidgeCap && RoofHole == other.RoofHole
-           && Overhang == other.Overhang && Pitch == other.Pitch
-           && RoofSlab == other.RoofSlab && RoofSlabData == other.RoofSlabData
+           && Porch == other.Porch && DoorEdge == other.DoorEdge
            && Beams == other.Beams
            && Door == other.Door && DoorHead == other.DoorHead
            && DoorWidth == other.DoorWidth && DoorHeight == other.DoorHeight;
@@ -482,12 +503,10 @@ public sealed record HouseStyle
     public override int GetHashCode()
     {
         var hash = new HashCode();
-        hash.Add(Foundation); hash.Add(Wall); hash.Add(Post); hash.Add(Gable);
-        hash.Add(Roof); hash.Add(Verge); hash.Add(Windows); hash.Add(GableWindows);
+        hash.Add(Foundation); hash.Add(Roof);
+        hash.Add(Wall); hash.Add(Post); hash.Add(Windows);
         foreach (var storey in Storeys) hash.Add(storey);
-        hash.Add(Porch); hash.Add(DoorEdge); hash.Add(Form);
-        hash.Add(RidgeCap); hash.Add(RoofHole);
-        hash.Add(Overhang); hash.Add(Pitch); hash.Add(RoofSlab); hash.Add(RoofSlabData);
+        hash.Add(Porch); hash.Add(DoorEdge);
         hash.Add(Beams);
         hash.Add(Door); hash.Add(DoorHead); hash.Add(DoorWidth); hash.Add(DoorHeight);
         return hash.ToHashCode();
@@ -512,18 +531,21 @@ public sealed record HouseStyle
 
     private static HouseStyle Shell(RoomPart wall) => new()
     {
-        Form = RoofForm.Flat,
         Wall = wall,
         Foundation = new Foundation
         {
             Plate = RoomPart.Of(new SolidMaterial(Blocks.Bedrock)),
             Footing = null,                        // a shell meets the ground flush
         },
-        Roof = new SolidMaterial(Blocks.Bedrock),
-        Verge = new SolidMaterial(Blocks.Bedrock),
+        Roof = new RoofStyle
+        {
+            Form = RoofForm.Flat,
+            Overhang = 0,
+            Hole = true,
+            Body = new SolidMaterial(Blocks.Bedrock),
+            Verge = new SolidMaterial(Blocks.Bedrock),
+        },
         Post = null,
-        Overhang = 0,
-        RoofHole = true,
         Door = DoorMaterial.StainedGlassPane,
         DoorHeight = 3,
     };
@@ -540,7 +562,6 @@ public sealed record HouseStyle
         new RoomCourse(new SolidMaterial(Blocks.Bedrock)),
     ], Extent: 7);
 }
-
 
 /// <summary>Courses above the floor this style can reach on a footprint of the given size — what a caller
 /// reserves headroom for and what a preview draws to. A flat lid is one course over the wall whatever the
@@ -559,12 +580,12 @@ public static class HouseHeights
     public static int TopLayerOver(this HouseStyle style, int width, int depth, RoomEdge? front = null)
     {
         var wallTop = style.WallCourses;
-        if (style.Form == RoofForm.Flat) return wallTop + 1;
+        if (style.Roof.Form == RoofForm.Flat) return wallTop + 1;
         var field = new RoofField(
-            style.Form, 0, 0, Math.Max(0, width - 1), Math.Max(0, depth - 1),
-            Math.Max(0, style.Overhang), wallTop + 1, Math.Max(1, style.Pitch),
+            style.Roof.Form, 0, 0, Math.Max(0, width - 1), Math.Max(0, depth - 1),
+            Math.Max(0, style.Roof.Overhang), wallTop + 1, Math.Max(1, style.Roof.Pitch),
             front ?? style.Porch?.Edge ?? style.DoorEdge ?? HouseStamper.DefaultFront(width, depth),
-            style.RoofInHalves);
+            style.Roof.InHalves);
         return field.Peak;
     }
 }

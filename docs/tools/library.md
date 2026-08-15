@@ -324,42 +324,47 @@ stamper takes, a sketch's Rooms step stores, and a placed building carries:
 
 ```json
 {
+  "foundation": {
+    "plate": { "extent": 1, "courses": [
+        { "material": { "kind": "solid", "id": 24, "data": 0 }, "height": 1 } ] },
+    "surface": { "field": null, "border": null, "borderWidth": 1,
+                 "inlay": null, "inlayInset": 2, "isPlain": true },
+    "footing": null },
+  "roof": {
+    "form": "gable", "pitch": 1, "overhang": 1,
+    "slab": -1, "slabData": 0,
+    "ridgeCap": false, "hole": false,
+    "body":   { "kind": "solid", "id": 45,  "data": 0 },
+    "verge":  { "kind": "solid", "id": 45,  "data": 0 },
+    "gable":  { "kind": "solid", "id": 121, "data": 0 },
+    "gableWindows": { "form": "none", "block": 102, "data": 0,
+                      "hostBlock": -1, "hostData": 0,
+                      "sill": 2, "width": 2, "height": 2, "spacing": 3 } },
   "wall": { "extent": 7, "courses": [
       { "material": { "kind": "solid", "id": 121, "data": 0 }, "height": 2 },
       { "material": { "kind": "solid", "id": 24,  "data": 0 }, "height": 5 } ] },
   "post": null,
-  "sill":   { "kind": "solid", "id": 0,   "data": 0 },
-  "gable":  { "kind": "solid", "id": 121, "data": 0 },
-  "roof":   { "kind": "solid", "id": 45,  "data": 0 },
-  "verge":  { "kind": "solid", "id": 45,  "data": 0 },
-  "floor":  { "extent": 1, "courses": [
-      { "material": { "kind": "solid", "id": 24, "data": 0 }, "height": 1 } ] },
-  "surface": { "field": null, "border": null, "borderWidth": 1,
-               "inlay": null, "inlayInset": 2, "isPlain": true },
   "windows": { "form": "stairLattice", "block": 135, "data": 0,
                "hostBlock": -1, "hostData": 0,
                "sill": 4, "width": 2, "height": 2, "spacing": 3 },
-  "gableWindows": { "form": "none", "block": 102, "data": 0,
-                    "hostBlock": -1, "hostData": 0,
-                    "sill": 2, "width": 2, "height": 2, "spacing": 3 },
-  "form": "gable", "pitch": 1, "overhang": 1,
-  "ridgeCap": false, "roofHole": false,
-  "roofSlab": -1, "roofSlabData": 0,
-  "beams": { "block": -1, "data": 0, "reach": 1, "any": false },
   "storeys": [], "porch": null, "doorEdge": null,
+  "beams": { "block": -1, "data": 0, "reach": 1, "any": false },
   "door": "air", "doorWidth": 2, "doorHeight": 3,
   "doorHead": { "form": "arched", "block": 135,
                 "fill": "upperSlab", "fillBlock": 126, "fillData": 2 }
 }
 ```
 
-Read it against the levels above and the whole model is visible in one object. `wall` and `floor` are **course
-stacks** — a material and how many courses it runs, counted up from the part's own base — while `post`,
-`sill`, `gable`, `roof` and `verge` are **single materials**, which is why the two end-stone-and-sandstone
-courses are a list and the brick roof is not. `post: null` is the absence of a part, not an empty one: this
-house has no frame. `storeys` is empty because the shell is one room rather than a stack, and `porch` is null
-for the same reason. Everything else is the geometry a material cannot carry — the roof's form and pitch, the
-window's lattice and spacing, the door's opening and its arched head.
+Read it against the levels above and the whole model is visible in one object. **A part the building has more
+than one statement about is an object of its own**: `foundation` is what the building stands on — its plate,
+the footing round it and how the plate's top course is zoned — and `roof` is everything above the eave, its
+three materials and the seven numbers that shape them, which is why neither appears as a field beside the
+rest. `wall` and the foundation's `plate` are **course stacks** — a material and how many courses it runs,
+counted up from the part's own base — while `post` and the roof's `body`, `verge` and `gable` are **single
+materials**, which is why the two end-stone-and-sandstone courses are a list and the brick roof is not.
+`post: null` is the absence of a part, not an empty one: this house has no frame, and `footing: null` says the
+same about the course a building normally stands proud of the ground on. `storeys` is empty because the shell
+is one room rather than a stack, and `porch` is null for the same reason.
 
 ## Tabs
 

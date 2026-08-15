@@ -46,20 +46,23 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
     public static HouseStyle RoofOver(RoofStyleRow row, PartCourses courses, HouseStyle? basis = null)
     {
         var house = basis ?? HouseStyle.Wool;
-        var body = courses.Material(RoomParts.Roof, house.Roof);
+        var body = courses.Material(RoomParts.Roof, house.Roof.Body);
         return house with
         {
-            Roof = body,
-            // Unbound, the verge is the roof's own material — a roof laid in one thing, which is what a plain
-            // lid is — and the gable is the wall's top course carried up, which is what a wall with no gable
-            // named was before the face had a name.
-            Verge = courses.Material(RoomParts.Verge, body),
-            Gable = courses.Bound(RoomParts.Gable),
-            Form = RoomStyleLibrary.FormOf(row.Form),
-            Pitch = Math.Max(1, row.Pitch),
-            Overhang = Math.Max(0, row.Overhang),
-            RoofHole = row.RoofHole,
-            RidgeCap = row.RidgeCap,
+            Roof = house.Roof with
+            {
+                Body = body,
+                // Unbound, the verge is the roof's own material — a roof laid in one thing, which is what a
+                // plain lid is — and the gable is the wall's top course carried up, which is what a wall with
+                // no gable named was before the face had a name.
+                Verge = courses.Material(RoomParts.Verge, body),
+                Gable = courses.Bound(RoomParts.Gable),
+                Form = RoomStyleLibrary.FormOf(row.Form),
+                Pitch = Math.Max(1, row.Pitch),
+                Overhang = Math.Max(0, row.Overhang),
+                Hole = row.RoofHole,
+                RidgeCap = row.RidgeCap,
+            },
         };
     }
 
@@ -220,11 +223,14 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
             Plate = RoomPart.Of(new SolidMaterial(Blocks.Planks)),
             Footing = new SolidMaterial(Blocks.Cobblestone),
         },
-        Form = RoofForm.Gable,
-        Roof = new SolidMaterial(Blocks.Planks, 1),
-        Verge = new SolidMaterial(Blocks.Planks, 5),
-        RoofHole = false,
-        Overhang = 1,
+        Roof = new RoofStyle
+        {
+            Form = RoofForm.Gable,
+            Overhang = 1,
+            Hole = false,
+            Body = new SolidMaterial(Blocks.Planks, 1),
+            Verge = new SolidMaterial(Blocks.Planks, 5),
+        },
         Door = DoorMaterial.Air,
     };
 
@@ -257,9 +263,7 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
     /// left in the picture is one room.</summary>
     private static readonly HouseStyle StoreyBasis = Plain with
     {
-        Form = RoofForm.Flat,
-        Overhang = 0,
-        RoofHole = false,
+        Roof = Plain.Roof with { Form = RoofForm.Flat, Overhang = 0, Hole = false },
     };
 
     /// <summary>The building a storey is drawn as: one of itself, or <b>two</b> where it names a ceiling.

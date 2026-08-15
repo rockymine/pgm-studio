@@ -3821,6 +3821,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   names none), that plate's **surface** zoning, and an optional **footing** ringing it a block proud, where
   absent is the state itself. Depth and material — the two things the author asked to vary — are the plate's.
   `HouseStyle.NoFooting` is deleted with the sentinel it named.
+- **Everything above the eave is one part (B197).** Eleven of a `HouseStyle`'s fields described the roof —
+  its form, pitch, overhang, half-course slab and that slab's variant, its hole and its ridge cap, and the
+  three materials it is laid in — and one of them was named `Roof` and held the material the other ten
+  describe the shape of, which is how a caller came to write `style.Roof` for a material and `style.Pitch` for
+  how steeply that material climbs. They are one piece of a building, so they are one type: `RoofStyle`, whose
+  `Body` is the material the old `Roof` field held. Nothing about what a roof builds changed; what changed is
+  that a caller asking about the roof asks the roof, and `InHalves` — "is this a slab roof" — is answered on
+  the part rather than re-derived from `Slab >= 0` at each of its call sites. The wire is untouched: a save
+  request is still the flat row a library editor posts, and only the **snapshot** moved, which is what the
+  upgrade below is for.
+- **One upgrade walk, called from both places a style is stored (B197).** `HouseStyleJson.Upgraded` was
+  private and took a string, so it ran only when a style was read on its own — and a house prop in a dressing
+  document carries a whole style, which `DressingJson` deserialized straight past it. `B196`'s foundation move
+  was therefore already being dropped for every placed building; the roof move would have been the second. The
+  walk is now `HouseStyleJson.Upgrade(JsonNode)`, in place and public, called by the standalone reader and by
+  the dressing reader's house prop alike — the shape `TerrainThemeJson.Upgrade` already had, for the reason a
+  second upgrade path is a second thing to forget. A stored style names only what it changes, so **any** of the
+  old flat fields alone identifies the old shape, which is what a trigger keyed on one field would have missed.
 - **A house style can be migrated, which it could not be before (B196).** `DressingJson` has carried an upgrade
   hook since it had props to carry; `HouseStyleJson` had none, and a map keeps its bound style rather than a
   key into the library — so every style ever stored is still in a layout blob, and the reader falls back to the

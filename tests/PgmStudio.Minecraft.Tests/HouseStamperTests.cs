@@ -52,7 +52,11 @@ public sealed class HouseStamperTests
     public async Task A_house_with_its_door_filled_is_sealed(int width, int depth, int pitch)
     {
         // A doorway is a hole on purpose, so closure is asked of a house whose door is glazed.
-        var world = House(width, depth, new HouseStyle { Pitch = pitch, Door = DoorMaterial.StainedGlass });
+        var world = House(width, depth, new HouseStyle
+        {
+            Door = DoorMaterial.StainedGlass,
+            Roof = new RoofStyle { Pitch = pitch },
+        });
         await Assert.That(Leaks(world, width, depth)).IsFalse();
     }
 
@@ -104,7 +108,7 @@ public sealed class HouseStamperTests
         // the overhang is part of the slope rather than a lip tacked onto the end of it. Levelling the last
         // course with the wall line — the obvious way to seat the roof on the wall — runs the edge flat and is
         // exactly the defect this catches.
-        var world = House(11, 9, new HouseStyle { Pitch = pitch, Overhang = overhang });
+        var world = House(11, 9, new HouseStyle { Roof = new RoofStyle { Pitch = pitch, Overhang = overhang } });
 
         int? RoofTop(int z)
         {
@@ -181,7 +185,8 @@ public sealed class HouseStamperTests
         // by trying to escape rather than by counting what was placed.
         var world = House(11, 9, new HouseStyle
         {
-            Form = form, Door = DoorMaterial.StainedGlass, RoofHole = false, Overhang = 2,
+            Door = DoorMaterial.StainedGlass,
+            Roof = new RoofStyle { Form = form, Hole = false, Overhang = 2 },
         });
         await Assert.That(Leaks(world, 11, 9)).IsFalse();
     }
@@ -196,7 +201,7 @@ public sealed class HouseStamperTests
     {
         // A caller clamps headroom against this and a preview draws to it, so a form whose reserved height and
         // built height disagree is a house cut off at the top of its own card.
-        var style = new HouseStyle { Form = form, Pitch = pitch };
+        var style = new HouseStyle { Roof = new RoofStyle { Form = form, Pitch = pitch } };
         var world = House(11, 9, style);
 
         await Assert.That(Highest(world, 11, 9) - FloorY).IsEqualTo(style.TopLayerOver(11, 9));
@@ -218,7 +223,7 @@ public sealed class HouseStamperTests
         // wall — on this footprint 11 one way and 9 the other. Reserving against a fixed edge is short by the
         // difference, and a roof reserved short is clipped at the world ceiling instead of lowered. The
         // symmetric forms are here to hold the other half of the claim: that the front changes nothing for them.
-        var style = new HouseStyle { Form = form, Pitch = 2 };
+        var style = new HouseStyle { Roof = new RoofStyle { Form = form, Pitch = 2 } };
         var world = new VoxelWorld();
         HouseStamper.Stamp(world, 0, 0, 11, 9, FloorY, style, doors: [new RoomDoor(front, 4, 2)]);
 
@@ -236,7 +241,7 @@ public sealed class HouseStamperTests
         // The same hall, roofed from an end wall and then from a side one. A gable, a hip and a gambrel are
         // measured across the shorter side and never saw the long one; a shed and a saltbox fall toward the
         // front, so before they were held to the short side the first of these stood three times the second.
-        var style = new HouseStyle { Form = form, Pitch = 2 };
+        var style = new HouseStyle { Roof = new RoofStyle { Form = form, Pitch = 2 } };
         var fromTheEnd = new VoxelWorld();
         HouseStamper.Stamp(fromTheEnd, 0, 0, 24, 8, FloorY, style, doors: [new RoomDoor(RoomEdge.NegX, 3, 2)]);
         var fromTheSide = new VoxelWorld();
@@ -269,8 +274,7 @@ public sealed class HouseStamperTests
         var world = House(13, 9, new HouseStyle
         {
             Wall = RoomPart.Of(new SolidMaterial(Blocks.QuartzBlock), 5),
-            Gable = new SolidMaterial(Blocks.Obsidian),
-            Overhang = 0,
+            Roof = new RoofStyle { Gable = new SolidMaterial(Blocks.Obsidian), Overhang = 0 },
         });
 
         // The triangle above the wall top is the gable's material...
@@ -292,7 +296,12 @@ public sealed class HouseStamperTests
             [new RoomCourse(new SolidMaterial(Blocks.Cobblestone)),
              new RoomCourse(new SolidMaterial(Blocks.QuartzBlock)),
              new RoomCourse(new SolidMaterial(Blocks.Obsidian))], 2);
-        var world = House(13, 9, new HouseStyle { Wall = stack, Post = null, Overhang = 0 });
+        var world = House(13, 9, new HouseStyle
+        {
+            Wall = stack,
+            Post = null,
+            Roof = new RoofStyle { Overhang = 0 },
+        });
 
         await Assert.That(world.GetBlock(0, FloorY + 2, 4).Id).IsEqualTo(Blocks.QuartzBlock);   // the wall's top
         await Assert.That(world.GetBlock(0, FloorY + 4, 4).Id).IsEqualTo(Blocks.QuartzBlock);   // the gable
@@ -302,8 +311,18 @@ public sealed class HouseStamperTests
     [Test]
     public async Task A_ridge_cap_lays_the_line_the_slopes_meet_on_in_the_verge()
     {
-        var capped = House(11, 9, new HouseStyle { RidgeCap = true, Verge = new SolidMaterial(Blocks.Obsidian) });
-        var plain = House(11, 9, new HouseStyle { Verge = new SolidMaterial(Blocks.Obsidian) });
+        var capped = House(11, 9, new HouseStyle
+        {
+            Roof = new RoofStyle
+            {
+                RidgeCap = true,
+                Verge = new SolidMaterial(Blocks.Obsidian),
+            },
+        });
+        var plain = House(11, 9, new HouseStyle
+        {
+            Roof = new RoofStyle { Verge = new SolidMaterial(Blocks.Obsidian) },
+        });
 
         var ridge = FloorY + new HouseStyle().TopLayerOver(11, 9);
         await Assert.That(capped.GetBlock(5, ridge, 4).Id).IsEqualTo(Blocks.Obsidian);
@@ -456,7 +475,8 @@ public sealed class HouseStamperTests
         var style = new HouseStyle
         {
             Wall = RoomPart.Of(new SolidMaterial(Blocks.Cobblestone), 24),
-            Form = RoofForm.Hip, Door = DoorMaterial.StainedGlass,
+            Door = DoorMaterial.StainedGlass,
+            Roof = new RoofStyle { Form = RoofForm.Hip },
         };
         var world = House(5, 5, style);
 
@@ -475,11 +495,11 @@ public sealed class HouseStamperTests
     {
         var world = House(13, 11, new HouseStyle
         {
-            Form = RoofForm.Gambrel,
             Door = DoorMaterial.StainedGlass,
             Windows = WindowStyle.Glazed,
             Porch = new PorchStyle { Depth = 2 },
             Foundation = new Foundation { Surface = new FloorSurface { Border = new SolidMaterial(Blocks.Obsidian) } },
+            Roof = new RoofStyle { Form = RoofForm.Gambrel },
         });
         await Assert.That(Leaks(world, 13, 11)).IsFalse();
     }
@@ -544,10 +564,10 @@ public sealed class HouseStamperTests
         const int width = 11, depth = 9;
         var style = new HouseStyle
         {
-            Overhang = overhang,
             Storeys = [new Storey { Clear = 3 }, new Storey { Clear = 3 }],
             Beams = beamReach > 0 ? new BeamStyle { Block = Blocks.Log, Reach = beamReach } : new BeamStyle { Block = -1 },
             Porch = porch ? new PorchStyle { Depth = 2 } : null,
+            Roof = new RoofStyle { Overhang = overhang },
         };
         var world = new VoxelWorld();
         HouseStamper.Stamp(world, 0, 0, width, depth, FloorY, style);
@@ -577,7 +597,11 @@ public sealed class HouseStamperTests
     {
         // The beams are the one thing a house lays past its own footprint, so a style naming none has to leave
         // the ring around it exactly as it found it — that is the invariant the rest of the stamper keeps.
-        var style = new HouseStyle { Storeys = [new Storey { Clear = 3 }, new Storey { Clear = 3 }], Overhang = 0 };
+        var style = new HouseStyle
+        {
+            Storeys = [new Storey { Clear = 3 }, new Storey { Clear = 3 }],
+            Roof = new RoofStyle { Overhang = 0 },
+        };
         var world = House(7, 9, style);
 
         for (var x = -1; x < 8; x++)
@@ -594,8 +618,13 @@ public sealed class HouseStamperTests
         // centred, where a wall takes as many as its run will hold.
         var style = new HouseStyle
         {
-            Form = RoofForm.Gable, Pitch = 2, Wall = RoomPart.Of(new SolidMaterial(Blocks.Planks), 5),
-            GableWindows = new WindowStyle { Form = WindowForm.Pane, Block = Blocks.GlassPane, Width = 2, Height = 2, Sill = 1 },
+            Wall = RoomPart.Of(new SolidMaterial(Blocks.Planks), 5),
+            Roof = new RoofStyle
+            {
+                Form = RoofForm.Gable,
+                Pitch = 2,
+                GableWindows = new WindowStyle { Form = WindowForm.Pane, Block = Blocks.GlassPane, Width = 2, Height = 2, Sill = 1 },
+            },
         };
         var world = House(11, 9, style);
         var wallTop = FloorY + 5;
@@ -620,11 +649,25 @@ public sealed class HouseStamperTests
         var open = new WindowStyle { Form = WindowForm.Open, Width = 1, Height = 1, Sill = 2 };
         var wallTop = FloorY + 5;
 
-        var small = House(7, 9, new HouseStyle { Form = RoofForm.Gable, Pitch = 1, Wall = wall, GableWindows = open });
+        var small = House(7, 9, new HouseStyle
+        {
+            Wall = wall,
+            Roof = new RoofStyle
+            {
+                Form = RoofForm.Gable,
+                Pitch = 1,
+                GableWindows = open,
+            },
+        });
         var large = House(7, 9, new HouseStyle
         {
-            Form = RoofForm.Gable, Pitch = 1, Wall = wall,
-            GableWindows = open with { Width = 2, Height = 2, Sill = 1 },
+            Wall = wall,
+            Roof = new RoofStyle
+            {
+                Form = RoofForm.Gable,
+                Pitch = 1,
+                GableWindows = open with { Width = 2, Height = 2, Sill = 1 },
+            },
         });
 
         // The one cell it does carry, dead centre of the triangle with gable either side of it.
@@ -645,8 +688,13 @@ public sealed class HouseStamperTests
         // the wall below where the gable would have been.
         var style = new HouseStyle
         {
-            Form = RoofForm.Hip, Pitch = 1, Wall = RoomPart.Of(new SolidMaterial(Blocks.Planks), 5),
-            GableWindows = new WindowStyle { Form = WindowForm.Pane, Block = Blocks.GlassPane, Width = 2, Height = 2, Sill = 1 },
+            Wall = RoomPart.Of(new SolidMaterial(Blocks.Planks), 5),
+            Roof = new RoofStyle
+            {
+                Form = RoofForm.Hip,
+                Pitch = 1,
+                GableWindows = new WindowStyle { Form = WindowForm.Pane, Block = Blocks.GlassPane, Width = 2, Height = 2, Sill = 1 },
+            },
         };
         var world = House(11, 9, style);
         var wallTop = FloorY + 5;
@@ -1004,7 +1052,7 @@ public sealed class HouseStamperTests
         // and a face cannot be told from a slope that is made of the same thing.
         var style = new HouseStyle
         {
-            Form = RoofForm.Gable, Pitch = 1, Gable = new SolidMaterial(Blocks.EndStone),
+            Roof = new RoofStyle { Form = RoofForm.Gable, Pitch = 1, Gable = new SolidMaterial(Blocks.EndStone) },
         };
         var world = Built(Tee(), style);
         var wing = Tee().Wings[1];
@@ -1149,7 +1197,7 @@ public sealed class HouseStamperTests
         var style = new HouseStyle();
         var plan = Junctions().Single(pair => pair.Item1 == name).Item2;
         var world = Built(plan, style);
-        var verge = (SolidMaterial)style.Verge;
+        var verge = (SolidMaterial)style.Roof.Verge;
 
         var ridge = FloorY + style.WallCourses + 3;
         var found = new List<(int X, int Z)>();
@@ -1227,7 +1275,7 @@ public sealed class HouseStamperTests
         // A projecting wing's far gable stands on the hall's far wall, which its own rectangle stops well
         // short of: the roof is what carries across, and the wall it arrives on is the hall's.
         var farWall = plan.Wings[0].MaxZ;
-        var style = new HouseStyle { Form = RoofForm.Gable, Pitch = 1 };
+        var style = new HouseStyle { Roof = new RoofStyle { Form = RoofForm.Gable, Pitch = 1 } };
         var world = Built(plan, style);
         var eave = FloorY + style.WallCourses;
 
@@ -1259,7 +1307,7 @@ public sealed class HouseStamperTests
     [Test]
     public async Task A_wing_stopping_short_makes_a_T_and_one_drawn_through_makes_a_plus()
     {
-        var style = new HouseStyle { Form = RoofForm.Gable, Pitch = 1 };
+        var style = new HouseStyle { Roof = new RoofStyle { Form = RoofForm.Gable, Pitch = 1 } };
         var eave = FloorY + style.WallCourses;
 
         int Surface(Footprint plan, int x, int z)
@@ -1347,7 +1395,7 @@ public sealed class HouseStamperTests
         var world = Built(plan, style);
 
         var lone = new VoxelWorld();
-        HouseStamper.Stamp(lone, new Footprint(0, 5, 9, 9), FloorY, style with { Form = RoofForm.Flat });
+        HouseStamper.Stamp(lone, new Footprint(0, 5, 9, 9), FloorY, style with { Roof = style.Roof with { Form = RoofForm.Flat } });
 
         var wing = plan.Wings[1];
         var untouched = 0;
@@ -1383,7 +1431,7 @@ public sealed class HouseStamperTests
     public async Task A_cross_gable_leaves_no_hole_where_it_cut()
     {
         var plan = Crossed();
-        var style = new HouseStyle { Form = RoofForm.Gable, Pitch = 1 };
+        var style = new HouseStyle { Roof = new RoofStyle { Form = RoofForm.Gable, Pitch = 1 } };
         var world = new VoxelWorld();
         HouseStamper.Stamp(world, plan, FloorY, style);
 
@@ -1401,11 +1449,11 @@ public sealed class HouseStamperTests
     public async Task No_roof_stands_further_out_than_a_wings_own_overhang()
     {
         var plan = Tee();
-        var style = new HouseStyle { Form = RoofForm.Gable, Pitch = 1 };
+        var style = new HouseStyle { Roof = new RoofStyle { Form = RoofForm.Gable, Pitch = 1 } };
         var world = new VoxelWorld();
         HouseStamper.Stamp(world, plan, FloorY, style);
 
-        var reach = Math.Max(0, style.Overhang);
+        var reach = Math.Max(0, style.Roof.Overhang);
         for (var x = plan.MinX - 4; x <= plan.MaxX + 4; x++)
             for (var z = plan.MinZ - 4; z <= plan.MaxZ + 4; z++)
             {
@@ -1425,7 +1473,7 @@ public sealed class HouseStamperTests
         var style = new HouseStyle
         {
             Storeys = [new Storey { Clear = 4 }, new Storey { Clear = 4 }],
-            Form = RoofForm.Gable, Pitch = 1,
+            Roof = new RoofStyle { Form = RoofForm.Gable, Pitch = 1 },
         };
         var world = new VoxelWorld();
         HouseStamper.Stamp(world, plan, FloorY, style);

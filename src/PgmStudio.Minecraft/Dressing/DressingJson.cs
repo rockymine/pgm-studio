@@ -288,6 +288,10 @@ public static class DressingJson
             for (var index = 0; index < wings.Count; index++)
                 if (wings[index] is JsonArray corners)
                     wings[index] = new JsonObject { ["corners"] = corners.DeepClone() };
+
+        // A house prop carries a whole style, so it is the second place a style is stored and has to be read
+        // forward by the same walk the standalone snapshot is.
+        if (kind == "house") HouseStyleJson.Upgrade(prop["style"]);
     }
 
     private static uint Seed(JsonObject prop)

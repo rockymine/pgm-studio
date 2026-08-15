@@ -25,10 +25,8 @@ public sealed class RoomStyleJsonTests
 
         await Assert.That(members).IsEquivalentTo(new[]
         {
-            "Beams", "Door", "DoorEdge", "DoorHead", "DoorHeight", "DoorWidth", "Form", "Foundation",
-            "Gable", "GableWindows", "Overhang", "Pitch",
-            "Porch", "Post", "RidgeCap", "Roof", "RoofHole", "RoofSlab", "RoofSlabData", "Storeys",
-            "Verge", "Wall", "Windows",
+            "Beams", "Door", "DoorEdge", "DoorHead", "DoorHeight", "DoorWidth", "Foundation",
+            "Porch", "Post", "Roof", "Storeys", "Wall", "Windows",
         }.Order().ToList());
     }
 
@@ -59,6 +57,55 @@ public sealed class RoomStyleJsonTests
         await Assert.That(style.Foundation.Footing).IsEqualTo(new SolidMaterial(Blocks.Cobblestone));
         await Assert.That(style.Foundation.Surface.BorderWidth).IsEqualTo(2);
         await Assert.That(style.Wall.Extent).IsEqualTo(5);          // everything beside it is untouched
+    }
+
+    /// <summary>The roof's statements were eleven fields beside everything else, and the one named <c>roof</c>
+    /// held the material the other ten describe the shape of — so the key changes meaning as well as depth,
+    /// from a material to the part that material is the body of. A style stored under the old shape keeps every
+    /// one of them, and a field it never named keeps taking the part's own default rather than the record's
+    /// old one.</summary>
+    [Test]
+    public async Task A_style_stored_before_the_roof_was_one_part_reads_forward()
+    {
+        var stored = """
+            {"form":"hip","pitch":2,"overhang":0,"roofHole":true,"ridgeCap":true,
+             "roofSlab":44,"roofSlabData":5,
+             "roof":{"kind":"solid","id":98,"data":0},
+             "verge":{"kind":"solid","id":4,"data":0},
+             "gable":{"kind":"solid","id":5,"data":5},
+             "gableWindows":{"form":"pane","block":102,"width":2,"height":2,"sill":1},
+             "wall":{"courses":[{"material":{"kind":"solid","id":5,"data":1},"height":1}],"extent":5}}
+            """;
+
+        var style = HouseStyleJson.Deserialize(stored);
+
+        await Assert.That(style.Roof.Form).IsEqualTo(RoofForm.Hip);
+        await Assert.That(style.Roof.Pitch).IsEqualTo(2);
+        await Assert.That(style.Roof.Overhang).IsEqualTo(0);
+        await Assert.That(style.Roof.Hole).IsTrue();
+        await Assert.That(style.Roof.RidgeCap).IsTrue();
+        await Assert.That(style.Roof.Slab).IsEqualTo(44);
+        await Assert.That(style.Roof.SlabData).IsEqualTo(5);
+        await Assert.That(style.Roof.Body).IsEqualTo(new SolidMaterial(98));
+        await Assert.That(style.Roof.Verge).IsEqualTo(new SolidMaterial(Blocks.Cobblestone));
+        await Assert.That(style.Roof.Gable).IsEqualTo(new SolidMaterial(5, 5));
+        await Assert.That(style.Roof.GableWindows.Width).IsEqualTo(2);
+        await Assert.That(style.Wall.Extent).IsEqualTo(5);          // everything beside it is untouched
+    }
+
+    /// <summary>A roof stored with none of its numbers named keeps the part's defaults rather than a zero for
+    /// each — the failure a blanket move would have: a pitch of nothing is a roof with no slope at all.
+    /// </summary>
+    [Test]
+    public async Task A_stored_roof_naming_only_its_material_keeps_the_rest_of_the_parts_defaults()
+    {
+        var style = HouseStyleJson.Deserialize("""{"roof":{"kind":"solid","id":98,"data":0}}""");
+
+        await Assert.That(style.Roof.Body).IsEqualTo(new SolidMaterial(98));
+        await Assert.That(style.Roof.Pitch).IsEqualTo(new RoofStyle().Pitch);
+        await Assert.That(style.Roof.Overhang).IsEqualTo(new RoofStyle().Overhang);
+        await Assert.That(style.Roof.Form).IsEqualTo(new RoofStyle().Form);
+        await Assert.That(style.Roof.Verge).IsEqualTo(new RoofStyle().Verge);
     }
 
     /// <summary>The air material that used to stand in for no footing reads forward as the state it meant, so
@@ -107,12 +154,13 @@ public sealed class RoomStyleJsonTests
         // nothing about which door a room has.
         var json = HouseStyleJson.Serialize(HouseStyle.Wool with
         {
-            Overhang = 1, Door = DoorMaterial.Web, RoofHole = false,
+            Door = DoorMaterial.Web,
+            Roof = HouseStyle.Wool.Roof with { Overhang = 1, Hole = false },
         });
 
         await Assert.That(json).Contains("\"overhang\":1");
         await Assert.That(json).Contains("\"door\":\"web\"");
-        await Assert.That(json).Contains("\"roofHole\":false");
+        await Assert.That(json).Contains("\"hole\":false");
         // And the derived height is not stored — it is the extents added up.
         await Assert.That(json).DoesNotContain("topLayer");
     }

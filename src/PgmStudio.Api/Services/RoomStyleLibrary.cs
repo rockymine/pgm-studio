@@ -278,14 +278,27 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
             Wall = stack.Stack(RoomParts.Wall, row.WallHeight, builtIn.Wall),
             // A roof is one course, so its stack contributes only its first material and the stored thickness
             // is ignored. The eave was a two-valued overhang all along: flush is none, overlap is one block.
-            Roof = stack.Material(RoomParts.Roof, builtIn.Roof),
+            // Unbound, the gable is the wall's top course carried up, which is what every stored style was
+            // before the face had a name of its own, and the verge is the roof's own material.
+            Roof = builtIn.Roof with
+            {
+                Body = stack.Material(RoomParts.Roof, builtIn.Roof.Body),
+                Gable = stack.Bound(RoomParts.Gable),
+                Verge = stack.Material(RoomParts.Verge, stack.Material(RoomParts.Roof, builtIn.Roof.Body)),
+                Form = FormOf(row.RoofForm),
+                Pitch = Math.Max(1, row.Pitch),
+                Overhang = Math.Max(0, row.Overhang),
+                Hole = row.RoofHole,
+                RidgeCap = row.RidgeCap,
+                // Half courses and a gable window are off by default, and off is what every stored style was,
+                // so a row saved before the row had columns for them builds exactly what it always did.
+                Slab = row.RoofSlab,
+                SlabData = row.RoofSlabData,
+                GableWindows = GableWindowOf(row),
+            },
             // A house's three: unbound they stay what a shell is — corners that are wall like the rest of it,
             // no footing, and a rim in the roof's own material.
             Post = stack.Bound(RoomParts.Post),
-            // Unbound the gable is the wall's top course carried up, which is what every stored style was
-            // before the face had a name of its own.
-            Gable = stack.Bound(RoomParts.Gable),
-            Verge = stack.Material(RoomParts.Verge, stack.Material(RoomParts.Roof, builtIn.Roof)),
             // What the building stands on: the plate, the footing round it, and how the plate's top course is
             // divided in plan. Each zone is unbound until a course names it, and an unbound zone is not a
             // zone: the plate shows through, which is what every stored style was.
@@ -305,23 +318,15 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
             Windows = WindowOf(row),
             Storeys = StoreysOf(row),
             Porch = PorchOf(row),
-            Form = FormOf(row.RoofForm),
-            Pitch = Math.Max(1, row.Pitch),
-            Overhang = Math.Max(0, row.Overhang),
-            RoofHole = row.RoofHole,
-            RidgeCap = row.RidgeCap,
             Door = DoorMaterials.TryParse(row.Door, out var door) ? door : DoorMaterial.StainedGlassPane,
             DoorHeight = Math.Max(1, row.DoorHeight),
 
-            // The trim M0019 gave the row a column for. Each is off by default and off is what every stored
-            // style was, so a row saved before them builds exactly what it always did.
-            RoofSlab = row.RoofSlab,
-            RoofSlabData = row.RoofSlabData,
+            // Trim the row carries columns for. Each is off by default and off is what every stored style was,
+            // so a row saved before them builds exactly what it always did.
             Beams = new BeamStyle
             {
                 Block = row.BeamBlock, Data = row.BeamData, Reach = Math.Max(1, row.BeamReach),
             },
-            GableWindows = GableWindowOf(row),
             DoorHead = DoorHeadOf(row),
         };
     }

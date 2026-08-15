@@ -29,22 +29,28 @@ public static class HouseStyleJson
     public static string Serialize(HouseStyle style) => JsonSerializer.Serialize(style, Options);
 
     public static HouseStyle Deserialize(string json)
-        => JsonSerializer.Deserialize<HouseStyle>(Upgraded(json), Options)!;
+    {
+        var node = JsonNode.Parse(json) ?? throw new JsonException("empty house style JSON");
+        Upgrade(node);
+        return JsonSerializer.Deserialize<HouseStyle>(node, Options)!;
+    }
 
     /// <summary>
-    /// A stored style read forward into the shape the record has now.
+    /// Carry a stored style forward onto the current record, in place.
     ///
     /// <para><b>A snapshot outlives the shape it was written in.</b> A map keeps its bound style rather than a
     /// key into the library, so every style ever stored is still out there in a layout blob, and a field that
     /// moves has to be carried rather than dropped — the reader falls back to the built-in shell on anything it
     /// cannot make sense of (<see cref="DeserializeOr"/>), so a shape change without an upgrade is not an error
-    /// but a map that quietly stops looking like itself. The dressing document has held this contract since it
-    /// had props to carry; a style is the other thing a map snapshots, and it had none.</para>
+    /// but a map that quietly stops looking like itself.</para>
+    ///
+    /// <para>In place and public because a style is snapshotted in <b>two</b> places: on its own, and inside a
+    /// house prop in a dressing document. Both readers call this one walk, the way both call
+    /// <see cref="TerrainThemeJson.Upgrade"/> — a second upgrade path is a second thing to forget.</para>
     /// </summary>
-    private static JsonNode Upgraded(string json)
+    public static void Upgrade(JsonNode? node)
     {
-        var node = JsonNode.Parse(json) ?? throw new JsonException("empty house style JSON");
-        if (node is not JsonObject style) return node;
+        if (node is not JsonObject style) return;
 
         // The sill, the floor and its zoning were three fields beside everything else; they are the one thing
         // a building stands on. A sill resolving to air was how "no footing" was said before it was a state.
@@ -59,8 +65,51 @@ public static class HouseStyleJson
         style.Remove("sill");
         style.Remove("floor");
         style.Remove("surface");
-        return style;
+
+        // The roof's eleven statements stood beside everything else, one of them named `roof` and holding the
+        // material the other ten describe the shape of. They are one part, so that material becomes the part's
+        // body and the shape moves in around it — read out before the key it sits under is written over. A
+        // stored style names only what it changes, so any one of the old fields alone is the old shape.
+        var stored = style["roof"];
+        var wasFlat = IsMaterial(stored);
+        if (wasFlat || RoofFields.Any(style.ContainsKey))
+        {
+            style.Remove("roof");                          // detached, so whichever it was can be re-seated
+            var roof = !wasFlat && stored is JsonObject part ? part : new JsonObject();
+            if (wasFlat) roof["body"] = stored;
+            Carry(style, "verge", roof, "verge");
+            Carry(style, "gable", roof, "gable");
+            Carry(style, "gableWindows", roof, "gableWindows");
+            Carry(style, "form", roof, "form");
+            Carry(style, "pitch", roof, "pitch");
+            Carry(style, "overhang", roof, "overhang");
+            Carry(style, "roofHole", roof, "hole");
+            Carry(style, "ridgeCap", roof, "ridgeCap");
+            Carry(style, "roofSlab", roof, "slab");
+            Carry(style, "roofSlabData", roof, "slabData");
+            style["roof"] = roof;
+        }
     }
+
+    /// <summary>The fields the roof's shape was stated in before it was a part of its own. Any of them names
+    /// the old shape, because a stored style writes only what it changes.</summary>
+    private static readonly string[] RoofFields =
+        ["verge", "gable", "gableWindows", "form", "pitch", "overhang", "roofHole", "ridgeCap",
+         "roofSlab", "roofSlabData"];
+
+    /// <summary>Moves one stored field onto the part it now belongs to, under the name it now has. A field the
+    /// style never named is left unnamed, so the part's own default stands where the record's always did.
+    /// </summary>
+    private static void Carry(JsonObject style, string from, JsonObject part, string to)
+    {
+        if (!style.ContainsKey(from)) return;
+        part[to] = style[from]?.DeepClone();
+        style.Remove(from);
+    }
+
+    /// <summary>Whether a stored value is a material rather than a group of fields — how a roof written before
+    /// its statements were one part is told from one written after.</summary>
+    private static bool IsMaterial(JsonNode? node) => node is JsonObject value && value.ContainsKey("kind");
 
     /// <summary>Whether a stored material is the bare air one that used to stand in for no footing.</summary>
     private static bool IsAir(JsonNode? material) =>

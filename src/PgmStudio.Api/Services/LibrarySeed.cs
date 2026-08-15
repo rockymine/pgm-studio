@@ -88,11 +88,11 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
     {
         foreach (var entry in PartCoursesOf(RoomParts.Floor, style.Foundation.Plate)) yield return entry;
         foreach (var entry in PartCoursesOf(RoomParts.Wall, style.Wall)) yield return entry;
-        yield return (RoomParts.Roof, style.Roof);
-        yield return (RoomParts.Verge, style.Verge);
+        yield return (RoomParts.Roof, style.Roof.Body);
+        yield return (RoomParts.Verge, style.Roof.Verge);
         yield return (RoomParts.Sill, style.Foundation.Footing);
         if (style.Post is { } post) yield return (RoomParts.Post, post);
-        if (style.Gable is { } gable) yield return (RoomParts.Gable, gable);
+        if (style.Roof.Gable is { } gable) yield return (RoomParts.Gable, gable);
         if (style.Foundation.Surface.Field is { } field) yield return (RoomParts.Field, field);
         if (style.Foundation.Surface.Border is { } border) yield return (RoomParts.Border, border);
         if (style.Foundation.Surface.Inlay is { } inlay) yield return (RoomParts.Inlay, inlay);
@@ -246,11 +246,11 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
 
         BindStack(RoomParts.Floor, style.Foundation.Plate);
         BindStack(RoomParts.Wall, style.Wall);
-        Bind(RoomParts.Roof, style.Roof);
-        Bind(RoomParts.Verge, style.Verge);
+        Bind(RoomParts.Roof, style.Roof.Body);
+        Bind(RoomParts.Verge, style.Roof.Verge);
         Bind(RoomParts.Sill, style.Foundation.Footing);
         Bind(RoomParts.Post, style.Post);
-        Bind(RoomParts.Gable, style.Gable);
+        Bind(RoomParts.Gable, style.Roof.Gable);
         Bind(RoomParts.Field, style.Foundation.Surface.Field);
         Bind(RoomParts.Border, style.Foundation.Surface.Border);
         Bind(RoomParts.Inlay, style.Foundation.Surface.Inlay);
@@ -268,11 +268,11 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             FloorDepth: style.Foundation.Depth,
             WallHeight: Math.Max(1, style.Wall.Extent),
             RoofThickness: 1,
-            RoofForm: RoofForms.Canonical(NameOf(style.Form)),
-            Pitch: style.Pitch,
-            Overhang: style.Overhang,
-            RoofHole: style.RoofHole,
-            RidgeCap: style.RidgeCap,
+            RoofForm: RoofForms.Canonical(NameOf(style.Roof.Form)),
+            Pitch: style.Roof.Pitch,
+            Overhang: style.Roof.Overhang,
+            RoofHole: style.Roof.Hole,
+            RidgeCap: style.Roof.RidgeCap,
             Storeys: Math.Max(1, style.Storeys.Count),
             StoreyClear: style.Storeys.Count > 0 ? style.Storeys[0].Clear : 0,
             Door: DoorMaterials.Slug(style.Door),
@@ -289,9 +289,9 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             PorchStyleId: null,
             StoreyStack: [],
             Beams: new RoomBeamDto(style.Beams.Block, style.Beams.Data, style.Beams.Reach),
-            RoofSlab: style.RoofSlab,
-            RoofSlabData: style.RoofSlabData,
-            GableWindows: WindowDto(style.GableWindows),
+            RoofSlab: style.Roof.Slab,
+            RoofSlabData: style.Roof.SlabData,
+            GableWindows: WindowDto(style.Roof.GableWindows),
             DoorHead: new RoomDoorHeadDto(
                 NameOf(style.DoorHead.Form), style.DoorHead.Block,
                 NameOf(style.DoorHead.Fill), style.DoorHead.FillBlock, style.DoorHead.FillData));
@@ -338,22 +338,22 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
 
         Check("wall", preset.Wall, back.Wall);
         Check("floor", preset.Foundation.Plate, back.Foundation.Plate);
-        Check("roof", preset.Roof, back.Roof);
-        Check("verge", preset.Verge, back.Verge);
+        Check("roof", preset.Roof.Body, back.Roof.Body);
+        Check("verge", preset.Roof.Verge, back.Roof.Verge);
         Check("sill", preset.Foundation.Footing, back.Foundation.Footing);
         Check("post", preset.Post, back.Post);
-        Check("gable", preset.Gable, back.Gable);
+        Check("gable", preset.Roof.Gable, back.Roof.Gable);
         Check("surface", preset.Foundation.Surface, back.Foundation.Surface);
-        Check("form", preset.Form, back.Form);
-        Check("pitch", preset.Pitch, back.Pitch);
-        Check("overhang", preset.Overhang, back.Overhang);
-        Check("ridgeCap", preset.RidgeCap, back.RidgeCap);
-        Check("roofHole", preset.RoofHole, back.RoofHole);
-        Check("roofSlab", preset.RoofSlab, back.RoofSlab);
-        Check("roofSlabData", preset.RoofSlabData, back.RoofSlabData);
+        Check("form", preset.Roof.Form, back.Roof.Form);
+        Check("pitch", preset.Roof.Pitch, back.Roof.Pitch);
+        Check("overhang", preset.Roof.Overhang, back.Roof.Overhang);
+        Check("ridgeCap", preset.Roof.RidgeCap, back.Roof.RidgeCap);
+        Check("roofHole", preset.Roof.Hole, back.Roof.Hole);
+        Check("roofSlab", preset.Roof.Slab, back.Roof.Slab);
+        Check("roofSlabData", preset.Roof.SlabData, back.Roof.SlabData);
         Check("beams", preset.Beams, back.Beams);
         Check("windows", preset.Windows, back.Windows);
-        Check("gableWindows", preset.GableWindows, back.GableWindows);
+        Check("gableWindows", preset.Roof.GableWindows, back.Roof.GableWindows);
         Check("doorHead", preset.DoorHead, back.DoorHead);
         Check("door", preset.Door, back.Door);
         Check("doorWidth", preset.DoorWidth, back.DoorWidth);

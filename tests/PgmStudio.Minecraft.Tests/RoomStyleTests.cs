@@ -148,7 +148,7 @@ public sealed class RoomStyleTests
         // two-valued eave is that number: flush is none, overlap is one.
         var frame = Baseline();
         var world = new VoxelWorld();
-        Shell(world, frame, 64, HouseStyle.Wool with { Overhang = 1 });
+        Shell(world, frame, 64, HouseStyle.Wool with { Roof = HouseStyle.Wool.Roof with { Overhang = 1 } });
 
         await Assert.That(world.GetBlock(frame.MinX - 1, 72, frame.MinZ - 1)).IsEqualTo((Blocks.Bedrock, 0));
         await Assert.That(world.GetBlock(frame.MaxX, 72, frame.MaxZ)).IsEqualTo((Blocks.Bedrock, 0));
@@ -163,7 +163,7 @@ public sealed class RoomStyleTests
         // A lid is one course, the way a slope's tread is: a roof is a material now, not a stack, so there is
         // no thickness left to ask for and nothing stands where a second course would have been.
         var world = new VoxelWorld();
-        Shell(world, Baseline(), 64, HouseStyle.Wool with { Roof = new SolidMaterial(Blocks.Bedrock) });
+        Shell(world, Baseline(), 64, HouseStyle.Wool with { Roof = HouseStyle.Wool.Roof with { Body = new SolidMaterial(Blocks.Bedrock) } });
 
         await Assert.That(world.GetBlock(-4, 72, -4)).IsEqualTo((Blocks.Bedrock, 0));
         await Assert.That(world.GetBlock(-4, 73, -4)).IsEqualTo((Blocks.Air, 0));
@@ -174,7 +174,7 @@ public sealed class RoomStyleTests
     public async Task A_style_may_close_the_roof()
     {
         var world = new VoxelWorld();
-        Shell(world, Baseline(), 64, HouseStyle.Wool with { RoofHole = false });
+        Shell(world, Baseline(), 64, HouseStyle.Wool with { Roof = HouseStyle.Wool.Roof with { Hole = false } });
 
         await Assert.That(world.GetBlock(-1, 72, -1)).IsEqualTo((Blocks.Bedrock, 0));
     }

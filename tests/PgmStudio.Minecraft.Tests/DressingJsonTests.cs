@@ -126,6 +126,29 @@ public sealed class DressingJsonTests
         await Assert.That(again.Wings[1].Spec).IsEqualTo(((HouseProp)doc.Props[0]).Wings[1].Spec);
     }
 
+    /// <summary>
+    /// <b>A style is snapshotted in two places, so it is read forward in both.</b> A house prop carries a
+    /// whole style, and a style read straight off a stored document rather than through its own upgrade keeps
+    /// whatever fields the record still happens to name and silently drops the rest — a building that quietly
+    /// stops looking like itself, which is the one failure a snapshot's upgrade exists to prevent.
+    /// </summary>
+    [Test]
+    public async Task A_house_props_style_is_read_forward_the_way_a_standalone_one_is()
+    {
+        var doc = DressingJson.Deserialize(
+            """
+            {"props":[{"kind":"house","id":"h1","seed":1,"wings":[[[0,0],[10,6]]],
+              "style":{"overhang":2,"form":"hip","roof":{"kind":"solid","id":98,"data":0},
+                       "sill":{"kind":"solid","id":4,"data":0}}}]}
+            """);
+        var style = ((HouseProp)doc.Props[0]).Style;
+
+        await Assert.That(style.Roof.Overhang).IsEqualTo(2);
+        await Assert.That(style.Roof.Form).IsEqualTo(RoofForm.Hip);
+        await Assert.That(style.Roof.Body).IsEqualTo((TerrainMaterial)new SolidMaterial(98));
+        await Assert.That(style.Foundation.Footing).IsEqualTo((TerrainMaterial?)new SolidMaterial(Blocks.Cobblestone));
+    }
+
     // ── enum case (B130) ───────────────────────────────────────────────────────────────────────────────
     [Test]
     public async Task An_enum_value_reads_in_any_case_the_converter_is_given()

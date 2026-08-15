@@ -14,8 +14,7 @@ public sealed class HouseStoreyTests
 
     private static HouseStyle Stacked(int count, int clear = 3, RoofForm form = RoofForm.Flat) => new()
     {
-        Form = form,
-        RoofHole = false,
+        Roof = new RoofStyle { Form = form, Hole = false },
         Storeys = [.. Enumerable.Range(0, count).Select(_ => new Storey { Clear = clear })],
     };
 

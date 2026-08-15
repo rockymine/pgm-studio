@@ -10,6 +10,14 @@ namespace PgmStudio.Minecraft.Tests;
 /// </summary>
 public sealed class HouseStyleValidationTests
 {
+    // A preset with one thing about its roof changed. The fixtures below are corpus faults reproduced on a
+    // shipped preset, so each names only the material or the number that is wrong and keeps the rest.
+    private static HouseStyle Roofed(HouseStyle style, TerrainMaterial? body = null, TerrainMaterial? verge = null)
+        => style with { Roof = style.Roof with { Body = body ?? style.Roof.Body, Verge = verge ?? style.Roof.Verge } };
+
+    private static HouseStyle Slabbed(HouseStyle style, int slab)
+        => style with { Roof = style.Roof with { Slab = slab } };
+
     // ── the shipped presets are clean ──────────────────────────────────────────────────────────────────
 
     [Test]
@@ -118,7 +126,13 @@ public sealed class HouseStyleValidationTests
     {
         var gableWrong = HousePresets.Alpine.Style with
         {
-            GableWindows = new WindowStyle { Form = WindowForm.Arched, Block = Blocks.OakFence, Width = 2, Height = 2 },
+            Roof = HousePresets.Alpine.Style.Roof with
+            {
+                GableWindows = new WindowStyle
+                {
+                    Form = WindowForm.Arched, Block = Blocks.OakFence, Width = 2, Height = 2,
+                },
+            },
         };
         await Assert.That(HouseStyleValidation.Check(gableWrong).Single().Field).IsEqualTo("gableWindows.block");
 
@@ -188,7 +202,7 @@ public sealed class HouseStyleValidationTests
     {
         // The Weirgate shed fault, inverted from Diorite's: roof is itself a slab id and roofSlab is -1, so the
         // roof is a course of slabs at a whole block of rise — see-through.
-        var style = HousePresets.Desert.Style with { Roof = new SolidMaterial(Blocks.WoodenSlab) };
+        var style = Roofed(HousePresets.Desert.Style, new SolidMaterial(Blocks.WoodenSlab));
         var findings = HouseStyleValidation.Check(style);
         await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.RoofMaterial && f.Field == "roof")).IsTrue();
     }
@@ -196,8 +210,8 @@ public sealed class HouseStyleValidationTests
     [Test]
     public async Task A_roof_or_a_verge_named_a_log_is_refused()
     {
-        var roofLog = HousePresets.Desert.Style with { Roof = new SolidMaterial(Blocks.Log2, 0) };
-        var vergeLog = HousePresets.Desert.Style with { Verge = new SolidMaterial(Blocks.Log2, 0) };
+        var roofLog = Roofed(HousePresets.Desert.Style, new SolidMaterial(Blocks.Log2, 0));
+        var vergeLog = Roofed(HousePresets.Desert.Style, verge: new SolidMaterial(Blocks.Log2, 0));
         var roofFindings = HouseStyleValidation.Check(roofLog);
         await Assert.That((roofFindings.Single().Rule, roofFindings.Single().Field))
             .IsEqualTo((HouseStyleRules.RoofMaterial, "roof"));
@@ -208,11 +222,7 @@ public sealed class HouseStyleValidationTests
     public async Task A_roof_or_a_verge_named_a_ground_material_is_refused()
     {
         // quillon-barrow: three houses roofed in Grass Block (2:0) over a Podzol (3:2) verge.
-        var style = HousePresets.Desert.Style with
-        {
-            Roof = new SolidMaterial(2, 0),
-            Verge = new SolidMaterial(3, 2),
-        };
+        var style = Roofed(HousePresets.Desert.Style, new SolidMaterial(2, 0), new SolidMaterial(3, 2));
         var findings = HouseStyleValidation.Check(style);
         await Assert.That(findings.Count(f => f.Rule == HouseStyleRules.RoofMaterial)).IsEqualTo(2);
     }
@@ -220,7 +230,7 @@ public sealed class HouseStyleValidationTests
     [Test]
     public async Task RoofSlab_itself_has_to_be_a_single_slab_when_set()
     {
-        var style = HousePresets.Diorite.Style with { RoofSlab = Blocks.Cobblestone };
+        var style = Slabbed(HousePresets.Diorite.Style, Blocks.Cobblestone);
         var findings = HouseStyleValidation.Check(style);
         await Assert.That((findings.Single().Rule, findings.Single().Field))
             .IsEqualTo((HouseStyleRules.BlockKind, "roofSlab"));

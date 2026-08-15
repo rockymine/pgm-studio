@@ -32,19 +32,22 @@ layout.Dressing = JsonDocument.Parse(
 // plateau, which is what a map wants wherever the ground itself is the room.
 var oak = HouseStyle.Wool with
 {
-    Form = RoofForm.Gable,
-    Pitch = 1,
-    Overhang = 1,
     Wall = RoomPart.Of(new SolidMaterial(5, 1), 5),        // spruce planks
-    Roof = new SolidMaterial(5, 1),
-    Verge = new SolidMaterial(5, 5),                       // dark oak, so the roof reads an edge
+    Roof = new RoofStyle
+    {
+        Form = RoofForm.Gable,
+        Pitch = 1,
+        Overhang = 1,
+        Hole = false,
+        Body = new SolidMaterial(5, 1),
+        Verge = new SolidMaterial(5, 5),                   // dark oak, so the roof reads an edge
+    },
     Post = new SolidMaterial(17, 0),                       // oak log at the corners: a house is framed
     Foundation = new Foundation
     {
         Plate = RoomPart.Of(new SolidMaterial(5, 0)),      // oak planks
         Footing = new SolidMaterial(4),                    // cobble
     },
-    RoofHole = false,
     DoorHeight = 3,
 };
 layout.RoomStyles = new SketchRoomStyles

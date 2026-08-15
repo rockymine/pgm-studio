@@ -48,7 +48,7 @@ public static class HouseStyleValidation
         var findings = new List<Finding>();
         CheckDoorHead(style.DoorHead, findings);
         CheckWindow("windows", style.Windows, findings);
-        CheckWindow("gableWindows", style.GableWindows, findings);
+        CheckWindow("gableWindows", style.Roof.GableWindows, findings);
         for (var at = 0; at < style.Storeys.Count; at++)
             if (style.Storeys[at].Windows is { } storeyWindows)
                 CheckWindow($"storeys[{at}].windows", storeyWindows, findings);
@@ -120,9 +120,9 @@ public static class HouseStyleValidation
 
     private static void CheckRoofMaterials(HouseStyle style, List<Finding> findings)
     {
-        if (style.RoofSlab >= 0 && !BlockKinds.IsSlab(style.RoofSlab))
+        if (style.Roof.Slab >= 0 && !BlockKinds.IsSlab(style.Roof.Slab))
             findings.Add(new Finding(HouseStyleRules.BlockKind,
-                $"roofSlab ({style.RoofSlab}) is not a single slab. A half-course roof steps in the slab's own " +
+                $"roofSlab ({style.Roof.Slab}) is not a single slab. A half-course roof steps in the slab's own " +
                 "half on every odd course; anything else — a double slab included — comes out a full cube and " +
                 "the slope stops climbing by halves.",
                 Field: "roofSlab"));
@@ -130,14 +130,14 @@ public static class HouseStyleValidation
         // A slab belongs in a roof only on a half-course rise (RoofSlab set). Naming one in Roof itself while
         // RoofSlab is unset asks for a whole block of rise in a material that only fills half its cube, which
         // is the see-through roof HouseStyle.Roof's own docstring warns about.
-        if (style.RoofSlab < 0 && SolidId(style.Roof) is { } roofId && BlockKinds.IsSlab(roofId))
+        if (style.Roof.Slab < 0 && SolidId(style.Roof.Body) is { } roofId && BlockKinds.IsSlab(roofId))
             findings.Add(new Finding(HouseStyleRules.RoofMaterial,
                 $"roof ({roofId}) is a slab and roofSlab is unset (-1). A course of slabs at a whole block of " +
                 "rise leaves an open half between every pair and the roof reads see-through — set roofSlab to " +
                 "a real slab and let roof carry the whole-block half, or choose a whole block for roof.",
                 Field: "roof"));
 
-        findings.AddRange(CheckRoofFamily(style.Roof, style.Verge));
+        findings.AddRange(CheckRoofFamily(style.Roof.Body, style.Roof.Verge));
     }
 
     /// <summary>Whether <paramref name="roof"/> or <paramref name="verge"/> is a log or a ground material —

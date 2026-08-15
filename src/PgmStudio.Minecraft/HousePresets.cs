@@ -96,16 +96,18 @@ public static class HousePresets
     /// </summary>
     public static House Alpine => new("alpine mining", new HouseStyle
     {
-        Form = RoofForm.Gable,
-        Pitch = 1,
-        Overhang = 1,
-        Roof = Spruces,
-        Verge = DarkOak,
-
-        // The face the slopes leave, in mushroom block — the one piece of this building that is a plain
-        // panel, and the reason the gable is nameable at all: unbound it carries the wall's top course up,
-        // and the top course here is the banded run.
-        Gable = new SolidMaterial(BrownMushroomBlock, AllCap),
+        Roof = new RoofStyle
+        {
+            Form = RoofForm.Gable,
+            Pitch = 1,
+            Overhang = 1,
+            Body = Spruces,
+            Verge = DarkOak,
+            // The face the slopes leave, in mushroom block — the one piece of this building that is a plain
+            // panel, and the reason the gable is nameable at all: unbound it carries the wall's top course up,
+            // and the top course here is the banded run.
+            Gable = new SolidMaterial(BrownMushroomBlock, AllCap),
+        },
 
         Post = SpruceLog,
         Wall = new RoomPart(
@@ -168,14 +170,16 @@ public static class HousePresets
     /// </summary>
     public static House Desert => new("desert brick", new HouseStyle
     {
-        Form = RoofForm.Gable,
-        Pitch = 1,
-        Overhang = 1,
-
-        // One material for the roof and its edge both: a roof laid in one thing, which is what a brick roof is.
-        Roof = new SolidMaterial(Brick),
-        Verge = new SolidMaterial(Brick),
-        Gable = new SolidMaterial(Blocks.EndStone),
+        Roof = new RoofStyle
+        {
+            Form = RoofForm.Gable,
+            Pitch = 1,
+            Overhang = 1,
+            // One material for the roof and its edge both: a roof laid in one thing, which is what a brick roof is.
+            Body = new SolidMaterial(Brick),
+            Verge = new SolidMaterial(Brick),
+            Gable = new SolidMaterial(Blocks.EndStone),
+        },
 
         Post = null,                                            // no frame; the corners are wall
         Wall = new RoomPart(
@@ -224,13 +228,16 @@ public static class HousePresets
     /// </summary>
     public static House Diorite => new("diorite pyramid", new HouseStyle
     {
-        Form = RoofForm.Hip,
-        Pitch = 1,                                              // one half-course per block: the slab slope
-        Overhang = 1,
-        RoofSlab = StoneSlab,
-        RoofSlabData = BrickSlab,
-        Roof = new SolidMaterial(Brick),
-        Verge = new SolidMaterial(Brick),
+        Roof = new RoofStyle
+        {
+            Form = RoofForm.Hip,
+            Pitch = 1,                                              // one half-course per block: the slab slope
+            Overhang = 1,
+            Slab = StoneSlab,
+            SlabData = BrickSlab,
+            Body = new SolidMaterial(Brick),
+            Verge = new SolidMaterial(Brick),
+        },
 
         Post = null,
         Storeys =
@@ -280,12 +287,22 @@ public static class HousePresets
     /// </summary>
     public static House Townside => new("townside", new HouseStyle
     {
-        Form = RoofForm.Gable,
-        Pitch = 1,
-        Overhang = 1,
-        Roof = new SolidMaterial(Blocks.Planks, Oak),
-        Verge = Spruces,
-        Gable = new SolidMaterial(StoneBrick),
+        Roof = new RoofStyle
+        {
+            Form = RoofForm.Gable,
+            Pitch = 1,
+            Overhang = 1,
+            Body = new SolidMaterial(Blocks.Planks, Oak),
+            Verge = Spruces,
+            Gable = new SolidMaterial(StoneBrick),
+            // A single air hole in each gable face, two courses up so it sits in the middle of the triangle. One
+            // by one because that is all a gable this size carries: the face is five cells at its base and three a
+            // course up, and anything wider would run into the slope with no gable left beside it.
+            GableWindows = new WindowStyle
+            {
+                Form = WindowForm.Open, Width = 1, Height = 1, Sill = 2,
+            },
+        },
 
         Post = new SolidMaterial(Blocks.Log, Oak),
         Beams = new BeamStyle { Block = Blocks.Log, Data = Oak, Reach = 1 },
@@ -324,14 +341,6 @@ public static class HousePresets
                 },
             },
         ],
-
-        // A single air hole in each gable face, two courses up so it sits in the middle of the triangle. One
-        // by one because that is all a gable this size carries: the face is five cells at its base and three a
-        // course up, and anything wider would run into the slope with no gable left beside it.
-        GableWindows = new WindowStyle
-        {
-            Form = WindowForm.Open, Width = 1, Height = 1, Sill = 2,
-        },
 
         Foundation = new Foundation
         {
@@ -392,13 +401,17 @@ public static class HousePresets
     /// </summary>
     public static House Cottage => new("cottage", new HouseStyle
     {
-        Form = RoofForm.Gable,
-        Pitch = 1,
-        Overhang = 1,
-        RidgeCap = true,
-        Roof = DarkOak,
-        Verge = Spruces,
-        Gable = Spruces,
+        Roof = new RoofStyle
+        {
+            Form = RoofForm.Gable,
+            Pitch = 1,
+            Overhang = 1,
+            RidgeCap = true,
+            Body = DarkOak,
+            Verge = Spruces,
+            Gable = Spruces,
+            GableWindows = new WindowStyle { Form = WindowForm.Open, Width = 1, Height = 1, Sill = 2 },
+        },
 
         Post = SpruceLog,
         Wall = new RoomPart(
@@ -411,7 +424,6 @@ public static class HousePresets
         {
             Form = WindowForm.Arched, Block = StoneBrickStairs, Width = 2, Height = 2, Sill = 3, Spacing = 3,
         },
-        GableWindows = new WindowStyle { Form = WindowForm.Open, Width = 1, Height = 1, Sill = 2 },
 
         Foundation = new Foundation
         {
@@ -450,14 +462,17 @@ public static class HousePresets
     /// </summary>
     public static House Longhouse => new("longhouse", new HouseStyle
     {
-        Form = RoofForm.Gable,
+        Roof = new RoofStyle
+        {
+            Form = RoofForm.Gable,
+            Pitch = 1,                                              // long and low; a hall is not a steeple
+            Overhang = 1,
+            RidgeCap = true,
+            Body = Spruces,
+            Verge = DarkOak,
+            Gable = DarkOak,
+        },
         DoorEdge = RoomEdge.NegX,                               // the gable end: the long walls keep their rows
-        Pitch = 1,                                              // long and low; a hall is not a steeple
-        Overhang = 1,
-        RidgeCap = true,
-        Roof = Spruces,
-        Verge = DarkOak,
-        Gable = DarkOak,
 
         Post = SpruceLog,
         Wall = new RoomPart(
@@ -507,10 +522,13 @@ public static class HousePresets
     /// </summary>
     public static House Terrace => new("terrace", new HouseStyle
     {
-        Form = RoofForm.Flat,
-        Overhang = 0,
-        Roof = new SolidMaterial(Blocks.Air),                   // no lid: the top of the stack is the sky
-        Verge = new SolidMaterial(Blocks.Air),
+        Roof = new RoofStyle
+        {
+            Form = RoofForm.Flat,
+            Overhang = 0,
+            Body = new SolidMaterial(Blocks.Air),                   // no lid: the top of the stack is the sky
+            Verge = new SolidMaterial(Blocks.Air),
+        },
 
         Post = new SolidMaterial(StoneBrickBlock),
         Storeys =
@@ -576,13 +594,16 @@ public static class HousePresets
     /// </summary>
     public static House Counting => new("counting house", new HouseStyle
     {
-        Form = RoofForm.Hip,
-        Pitch = 1,
-        Overhang = 1,
-        RoofSlab = StoneSlab,                                   // half courses: the slope a slab is for
-        RoofSlabData = StoneBrickSlab,
-        Roof = new SolidMaterial(StoneBrickBlock),
-        Verge = new SolidMaterial(StoneBrickBlock),
+        Roof = new RoofStyle
+        {
+            Form = RoofForm.Hip,
+            Pitch = 1,
+            Overhang = 1,
+            Slab = StoneSlab,                                   // half courses: the slope a slab is for
+            SlabData = StoneBrickSlab,
+            Body = new SolidMaterial(StoneBrickBlock),
+            Verge = new SolidMaterial(StoneBrickBlock),
+        },
 
         Post = SpruceLog,
         Beams = new BeamStyle { Block = Blocks.Log, Data = Spruce, Reach = 1 },
@@ -651,17 +672,20 @@ public static class HousePresets
     /// </summary>
     public static House Workshop => new("workshop", new HouseStyle
     {
-        Form = RoofForm.Shed,
-        Pitch = 1,
-        Overhang = 1,
-        // A shed climbs its whole shorter span where a gable climbs half of one, so on anything but a shallow
-        // building it comes out all roof — eleven courses over a six-course wall. Half courses are the lever:
-        // the slope travels one half per block instead of two, so the same lean-to costs half the height.
-        RoofSlab = Blocks.WoodenSlab,
-        RoofSlabData = SpruceSlab,
-        Roof = DarkOak,
-        Verge = Spruces,
-        Gable = Spruces,
+        Roof = new RoofStyle
+        {
+            Form = RoofForm.Shed,
+            Pitch = 1,
+            Overhang = 1,
+            // A shed climbs its whole shorter span where a gable climbs half of one, so on anything but a shallow
+            // building it comes out all roof — eleven courses over a six-course wall. Half courses are the lever:
+            // the slope travels one half per block instead of two, so the same lean-to costs half the height.
+            Slab = Blocks.WoodenSlab,
+            SlabData = SpruceSlab,
+            Body = DarkOak,
+            Verge = Spruces,
+            Gable = Spruces,
+        },
 
         Post = SpruceLog,
         Wall = new RoomPart(

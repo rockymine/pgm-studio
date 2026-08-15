@@ -86,7 +86,7 @@ public sealed class RoofStyleCreateEndpoint(HousePartStore store, HousePartLibra
     public override async Task HandleAsync(RoofStyleSaveRequest req, CancellationToken ct)
     {
         var composed = await library.ComposeRoofDraftAsync(req, ct);
-        var findings = HouseStyleValidation.CheckRoofFamily(composed.Roof, composed.Verge);
+        var findings = HouseStyleValidation.CheckRoofFamily(composed.Roof.Body, composed.Roof.Verge);
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = await store.CreateRoofAsync(
             HousePartLibrary.RowOf(req), HousePartLibrary.RoofCourseRowsOf(req), ct);
@@ -103,7 +103,7 @@ public sealed class RoofStyleUpdateEndpoint(HousePartStore store, HousePartLibra
     public override async Task HandleAsync(RoofStyleSaveRequest req, CancellationToken ct)
     {
         var composed = await library.ComposeRoofDraftAsync(req, ct);
-        var findings = HouseStyleValidation.CheckRoofFamily(composed.Roof, composed.Verge);
+        var findings = HouseStyleValidation.CheckRoofFamily(composed.Roof.Body, composed.Roof.Verge);
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = Route<long>("id");
         var updated = await store.UpdateRoofAsync(
