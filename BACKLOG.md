@@ -388,7 +388,20 @@ by `HousePropRules.PastCap` and is not filed.
   — those are what would corrupt what `/api/rules` reads. **CS1587** stays silenced on purpose: it is a
   docstring on a local function, which the compiler never emits and which is harmless where it is.
 
-  Fix them, then take the four ids back out of `NoWarn` so the next one fails the build.
+  Fix them, then take the four ids back out of `NoWarn` so the next one fails the build. `B223` did
+  `HouseStamper`'s four CS1574s as it passed — two `<see cref>` at `HouseStyle.Overhang`, a field that moved to
+  `RoofStyle` when the parts split, and two at `LayBeams`, a local function no cref can reach — leaving **36
+  sites over 26 files**.
+
+  **One member of the family no warning catches, and it is the one that misleads hardest.** Five docstrings
+  open two `<summary>` blocks on one member, the first describing something other than what follows it:
+  `Pgm/Compose/UnitRequests.cs` opens "What the unit needs hung off its hub" directly above the
+  `NeighbourRequest` record, `Client/Features/Sketch/SketchDressingInspector.razor.cs` documents `Pick` above
+  `SetForm` two methods early, and `UnitSeating.cs`, `Producibility.cs` and `Minecraft/Dressing/PlacedProp.cs`
+  are the same shape — a docstring left behind when the member under it went away. The XML is well formed, so
+  CS1570 says nothing; the compiler simply concatenates both into that member's entry and the tooltip leads
+  with a sentence about something else. Found by scanning `src/` for comment blocks whose `<summary>` opens and
+  closes do not pair, which is what to re-run: nothing else sees this one.
 
   *found turning on the documentation file for `B219`, 2026-08-15 · the five `<NoWarn>` lines name it.*
 
@@ -412,38 +425,35 @@ by `HousePropRules.PastCap` and is not filed.
   plane sees solid beyond it and is not drawn — a box restriction leaves the cut open unless out-of-box reads
   as air. Whole-house stays the default view; the focus is what the open part editor frames.
 
-- [ ] **B222 — `RoomEdge` is a bare enum, so four switches and four inline predicates re-derive its axis.**
-  The enum carries nothing but its four names (`Domain/RoomFrames.cs`), so every caller that needs to know
-  which axis an edge runs along, which side of a rectangle it names, or which way it faces answers for itself.
-  In `HouseStamper` alone that is four 4-arm switches — `LadderFacing`, `SplitPorch`, `PorchPosts`,
-  `PorchRail` — and four inline `is NegZ or PosZ` tests standing in for "runs along X", in `SplitPorch`,
-  `FrontCentre` and `PorchPosts`. `WallSegment` already answers `AlongX` and `Inward`, so the fact exists on
-  one type and is recomputed on another.
+- [ ] **B227 — 35 of the 50 file-based tool scripts no longer compile, and nothing notices.**
+  A `#:project` script is not in `PgmStudio.slnx`, so `dotnet build` at the root is green while
+  `dotnet build tools/compose/showcase.cs` is not — and `showcase.cs` is the one `CLAUDE.md` calls `model.md`'s
+  live twin, the page that is supposed to be believed over the prose. Measured by building each script in turn:
+  15 build, 35 do not.
 
-  The shared thing is a value and not a shape, so it goes on the enum in `Domain` where the enum is —
-  `AlongX`, the outward normal, the facing nibble — and the switches collapse into reads. `WoolChests`
-  (`CornerFacing`) and `PlanValidator` (`DoorEdge`) answer neighbouring questions outside this file, so the
-  sweep is what tells whether they are the same question or three that merely rhyme.
+  **Two causes, and only the second is a real API question.** The larger group — `tree-corpus/` (7),
+  `objective-probe/` (7), `deriver/` (2), `palette/`, `library-map.cs`, `compose/house-showcase.cs` — is
+  `A7`'s fold: they say `using PgmStudio.Minecraft;` and the types they name (`VoxelWorld`, `Blocks`,
+  `AnvilRegion`, `HouseStamper`, `Band`, `BuildMarkerStamper`, `SketchTerrainBuilder`) are in `Anvil/`,
+  `Palette/`, `Houses/`, `Painting/` and `Stamping/` now. That is a `using` line each and no thought. The
+  `compose/` group (17) predates it and is composer API drift — `showcase.cs` passes a `CellRect` where an int
+  is wanted and indexes something that is no longer indexable — so each needs reading against what the composer
+  takes now, and a script whose figure cannot be rebuilt is a figure that cannot be trusted either.
 
-  - [ ] **B223 — `HouseStamper`'s prose has drifted from its code in four places.** The method's own summary
-  says the roof is **one field over the plan's bounding box** and that "a plan that turns a corner is roofed
-  as though it did not" — but the body builds one `RoofField` per wing, with marching, projecting and
-  cross-gables, and `FEATURES.md` carries "A building's roof is the union of its wings' roofs". The docstring
-  claims a limitation the stamper does not have. Only the porch half of that sentence still holds, and
-  `SplitPorch` is where it holds. Both citations of the shipped id are also the banned kind — a task id in a
-  comment, cited as a gap rather than as provenance.
+  **The fix is the gate, not the 35.** Repairing them without one buys a green day; a `tools/build-scripts.sh`
+  that builds every `#:project` script and fails on the first error is what makes the repair hold, and it is
+  what would have caught `A7` on the commit that folded the namespaces.
 
-  Three smaller ones travel with it. `LayBeams`'s four-line comment is stranded above `TopPlan`, with
-  `TopPlan`'s own one-liner appended to the end of it, leaving `LayBeams` undocumented. `StampedExtent`'s XML
-  doc closes `</summary>` twice with an orphan `<para>` between them. `PorchPosts` is built twice in
-  `StampPorch`, the second time only to be hashed. And two names promise a relation that is not there:
-  `Covering` is the highest **wall top** of any wing over a cell and `CoveringCrown` the highest **roof
-  crown** of every *other* wing, which read as one function and its variant.
-
-  *Left open deliberately:* `Overtopped` gates on `otherField.Covers` where `CoveringCrown` gates on
-  `otherRoofed.Holds` — rectangle against rectangle-plus-overhang. That may be exactly right, since an
-  overhang is roof and a march stands outside every rectangle. It wants `RoofField` read before it is called
-  either way.
+- [ ] **B225 — A march tests another wing's walls where the primary pass tests its whole roof.**
+  `Overtopped` asks `otherField.Covers` — the wing's walls **plus its overhang** — while `OtherRoofCrownOver`,
+  which decides where a march stops, asks `otherRoofed.Holds`, the walls alone. Reading `RoofField` settles
+  what the difference is and not whether it is right: `Covers` is `Holds` grown by the overhang on all four
+  sides, so the two disagree only on the overhang ring, and the march never reaches that ring on its own
+  account because `Marched` breaks on `body.Holds` — the union of the *wall* rectangles. The one case that
+  survives is a ring lying over a third wing's walls, where that wing answers for itself with its own crown
+  and the overhanging wing's is never asked. Whether a course marching under a neighbour's verge should stop
+  there is a question about what a roof looks like, so it wants a built figure rather than an argument:
+  stamp a wing whose march runs beneath another's gable overhang and read the valley.
 
 - [ ] **B189 — The authoring apparatus: art direction, named briefs, and a reviewer that is not the author.**
   Three runs asked three models for "a map of your own design" and got, three times over, one street of
@@ -1253,7 +1263,7 @@ covered.
   building.** Corvid Hollow's spawn piece is `x −15…15, z −90…−75`; the house at `x −18…−6, z −74…−66` stands
   flush against its face with zero gap and carries `"overhang": 2`, putting its eaves at `z −76` — two blocks
   inside the spawn building's wall. Visible in `renders/05-structures.png` and not acted on. It is **not** the
-  same-style merge case the L/T-shape work (`G172`) will absorb: spawn is `hip`, the house is `gable`, and their
+  same-style merge case the L/T-shape work (`G172`) absorbed: spawn is `hip`, the house is `gable`, and their
   pieces stand two blocks apart in height.
 
   **The rule (author):** a building keeps at least **one block of clearance** from another, eaves included, and

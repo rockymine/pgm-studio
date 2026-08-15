@@ -28,14 +28,9 @@ public static class MonumentStamper
         // floorY + 2 is the placement cell and is left air — that is where the wool goes.
         world.SetBlock(x, floorY + 3, z, Blocks.StainedGlass, BlockColors.BlockDamage(woolSlug));
 
-        var (signDx, signDz, signFacing) = wall switch
-        {
-            RoomEdge.NegZ => (0, 1, RoomEdge.PosZ),
-            RoomEdge.PosZ => (0, -1, RoomEdge.NegZ),
-            RoomEdge.NegX => (1, 0, RoomEdge.PosX),
-            _ => (-1, 0, RoomEdge.NegX),
-        };
-        SignBuilder.PlaceWallSign(world, x + signDx, floorY + 1, z + signDz, signFacing, Label(woolSlug));
+        // The sign stands one cell off the wall the monument backs onto and looks away from it, into the room.
+        var (signDx, signDz) = wall.Inward();
+        SignBuilder.PlaceWallSign(world, x + signDx, floorY + 1, z + signDz, wall.Opposite(), Label(woolSlug));
 
         return new PlacedMonument(woolSlug, x, floorY + 2, z);
     }

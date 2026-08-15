@@ -1,9 +1,5 @@
 namespace PgmStudio.Domain;
 
-/// <summary>The outward direction a room wall faces: the wall on the low-Z side faces <see cref="NegZ"/>.
-/// Also the direction a spawn cube's door opens toward.</summary>
-public enum RoomEdge { NegZ, PosZ, NegX, PosX }
-
 /// <summary>A door opening cut into a room shell wall: the <see cref="Edge"/> it sits on, the low
 /// along-axis block coordinate <see cref="Lo"/> (x for a Z edge, z for an X edge), and its
 /// <see cref="Width"/> in blocks.</summary>
@@ -194,9 +190,10 @@ public static class RoomFrames
         List<RoomDoor> doors;
         if (spawnDoorEdge is { } doorEdge)
         {
-            var interiorAcross = doorEdge is RoomEdge.NegZ or RoomEdge.PosZ ? maxX - minX - 2 : maxZ - minZ - 2;
+            var alongX = doorEdge.AlongX();
+            var interiorAcross = alongX ? maxX - minX - 2 : maxZ - minZ - 2;
             var width = DoorWidth(interiorAcross);
-            var lo = doorEdge is RoomEdge.NegZ or RoomEdge.PosZ
+            var lo = alongX
                 ? minX + (maxX - minX - width) / 2
                 : minZ + (maxZ - minZ - width) / 2;
             doors = [new RoomDoor(doorEdge, lo, width)];
@@ -208,11 +205,11 @@ public static class RoomFrames
             {
                 if (ClassifyEntry(entry, pieceMinX, pieceMinZ, pieceMaxX, pieceMaxZ) is not { } placed) continue;
                 var (edge, intervalLo, intervalHi) = placed;
-                var alongZ = edge is RoomEdge.NegX or RoomEdge.PosX;
-                var interiorAcross = alongZ ? maxZ - minZ - 2 : maxX - minX - 2;
+                var alongX = edge.AlongX();
+                var interiorAcross = alongX ? maxX - minX - 2 : maxZ - minZ - 2;
                 var width = DoorWidth(interiorAcross);
                 // Centre the door on the entry interval, clamped onto the wall run between the ring corners.
-                var (runLo, runHi) = alongZ ? (minZ + 1, maxZ - 1) : (minX + 1, maxX - 1);
+                var (runLo, runHi) = alongX ? (minX + 1, maxX - 1) : (minZ + 1, maxZ - 1);
                 var ideal = (int)Math.Round((intervalLo + intervalHi) / 2.0 - width / 2.0, MidpointRounding.AwayFromZero);
                 var lo = Math.Min(Math.Max(ideal, runLo), runHi - width);
                 doors.Add(new RoomDoor(edge, lo, width));
@@ -307,17 +304,16 @@ public static class RoomFrames
     {
         // Work in a door-local reading: `along` runs along the door wall, `near` is the door wall's interior
         // row/column and `far` the opposite wall's. Mapping back out depends only on the door edge.
-        var alongZ = door.Edge is RoomEdge.NegX or RoomEdge.PosX;
-        var (alongLo, alongHi) = alongZ ? (frame.InteriorMinZ, frame.InteriorMaxZ) : (frame.InteriorMinX, frame.InteriorMaxX);
-        var (near, far, nearWall, farWall) = door.Edge switch
-        {
-            RoomEdge.NegZ => (frame.InteriorMinZ, frame.InteriorMaxZ - 1, RoomEdge.NegZ, RoomEdge.PosZ),
-            RoomEdge.PosZ => (frame.InteriorMaxZ - 1, frame.InteriorMinZ, RoomEdge.PosZ, RoomEdge.NegZ),
-            RoomEdge.NegX => (frame.InteriorMinX, frame.InteriorMaxX - 1, RoomEdge.NegX, RoomEdge.PosX),
-            _ => (frame.InteriorMaxX - 1, frame.InteriorMinX, RoomEdge.PosX, RoomEdge.NegX),
-        };
+        var alongX = door.Edge.AlongX();
+        var (alongLo, alongHi) = alongX ? (frame.InteriorMinX, frame.InteriorMaxX) : (frame.InteriorMinZ, frame.InteriorMaxZ);
+        // The two interior rows the door's own axis runs between, then which of them the door stands on.
+        var (lowRow, highRow) = alongX
+            ? (frame.InteriorMinZ, frame.InteriorMaxZ - 1)
+            : (frame.InteriorMinX, frame.InteriorMaxX - 1);
+        var (near, far) = door.Edge.Positive() ? (highRow, lowRow) : (lowRow, highRow);
+        var (nearWall, farWall) = (door.Edge, door.Edge.Opposite());
         MonumentSlot Seat(int along, int crossAxis, RoomEdge wall) =>
-            alongZ ? new MonumentSlot(crossAxis, along, wall) : new MonumentSlot(along, crossAxis, wall);
+            alongX ? new MonumentSlot(along, crossAxis, wall) : new MonumentSlot(crossAxis, along, wall);
         bool InDoorSpan(int along) => along >= door.Lo && along < door.Lo + door.Width;
 
         var slots = new List<MonumentSlot>

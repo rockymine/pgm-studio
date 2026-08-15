@@ -5203,6 +5203,51 @@ these are the ones that shipped a map that could not be played as intended, and 
   method the class has not had for some time, now cites `Check`. It matters ahead of the bucketed audit work:
   four buckets add rules to this class, and an agent choosing a verb from four will not choose the same one
   twice.
+- **A wall's direction answers for itself, in the project every consumer reaches (B224).** `RoomEdge` carried
+  nothing but its four names, so every caller that needed to know which axis a wall on it ran along, which side
+  of a rectangle it named, or which way it looked worked it out again: four four-arm switches and four inline
+  `is NegZ or PosZ` tests in `HouseStamper` alone, four more axis tests in `RoomFrames`, the outward normal
+  written out a third time in `BuildingPlan.SplitWalls` and a fourth as doubles in `DressingSymmetry`. The fact
+  is a **value and not a shape**, so it went on the enum in `Domain` where the enum is — `RoomEdges` answers
+  `AlongX`, `Positive`, `Outward`, `Inward` and `Opposite`, and the switches collapsed into reads. `RoomEdge`
+  itself moved out of `RoomFrames.cs` to sit beside them.
+
+  **The sweep is what said which questions were the same one.** Three neighbouring answers were left alone
+  because they only rhyme: `PlanValidator.DoorEdge` maps a marker's *word* to an edge, `BlockGeometry.Outward`
+  builds an edge from an axis and an end, and `Decorator`'s ridge test reads an edge as a **direction** rather
+  than as a wall, where the axis is the other one — which is why `AlongX`'s docstring says so in as many words.
+  Two genuinely were the same and merged: `MonumentStamper`'s sign step is `wall.Inward()` and its facing
+  `wall.Opposite()`, and `LadderFacing` turned out to be `SignBuilder.WallSignData` read backwards. That table
+  is not a sign's, so it moved to `BlockGeometry.Fronting` — north 2, south 3, west 4, east 5, the nibble a wall
+  sign, a ladder, a chest and a furnace all take — and the stair's own two bits, which count from a different
+  corner, are `StairFacing` rather than the generic `Facing` that invited the confusion. `WallSignData` is gone;
+  its three callers read the geometry directly.
+
+  `RoomEdgesTests` asserts the **relations** rather than transcribing the tables — an outward step is one block
+  on exactly one axis, `Inward` is it reversed, `Opposite` is an involution that reverses it, `AlongX` is the
+  axis the step leaves alone, `Positive` is its sign — because a copy of a table passes against a table copied
+  wrong, which is the failure this exists to prevent; each was run against a deliberately broken arm first. The
+  whole change is proved inert: a probe stamping all ten presets over four fronts, four rectangles and four
+  wing shapes, plus the room, monument and chest stampers over twelve frames, hashes **212 figures
+  byte-identically** against the same probe run on a `HEAD` worktree.
+- **`HouseStamper` says what it does (B223).** Its `Stamp(BuildingPlan)` summary claimed the roof was "one field
+  over the plan's bounding box" and that "a plan that turns a corner is roofed as though it did not" — a
+  limitation the stamper has not had since `G172`, which builds one `RoofField` per wing with marching,
+  projecting and cross-gables. Only the porch half of that sentence still held, so the porch is now stated where
+  it is true and the roof paragraph says what the code does. Both citations of the shipped id went with it: a
+  task id in a comment is banned outright, and these were the worse kind, cited as a gap rather than as
+  provenance.
+
+  Four smaller drifts travelled with it. `LayBeams`'s four-line comment was stranded above `TopPlan` with
+  `TopPlan`'s own one-liner appended to it, leaving `LayBeams` undocumented and `TopPlan` described as a beam.
+  `PorchPosts` was built twice in `StampPorch`, the second time only to be hashed. And two names promised a
+  relation that was not there — `Covering` is the highest **wall top** of any wing over a cell and
+  `CoveringCrown` the highest **roof crown** of every *other* wing, which read as one function and its variant;
+  they are `WallTopOver` and `OtherRoofCrownOver`, and the first now cites `WallTopOf`, which it genuinely is
+  the maximum of. `StampedExtent`'s malformed XML, the entry's third item, had already been fixed under `B220`
+  — but the file was pointing `<see cref>` at `HouseStyle.Overhang` twice, a field that moved to `RoofStyle`
+  when the parts split, and twice at `LayBeams`, which is a local function no cref can reach. All four were
+  silent, because `CS1574` is suppressed project-wide; the other 36 sites in the repo stay with `B220`.
 - **`Minecraft` is folded, by what a file is for (A7).** Every other project had been sub-foldered by concern
   (`Pgm`, `Analysis`, `Data` — `A5`/`A6`); `Minecraft` had grown to 74 files with **58 flat at its root** and
   only `Dressing/`, `Render/` and `Views/` broken out. Six folders now, and the split is by purpose rather than

@@ -27,10 +27,10 @@ public static class HouseStamper
 {
     /// <summary>The full rectangle a house stamped over <paramref name="ground"/> in this <paramref name="style"/>
     /// actually writes into — never <paramref name="ground"/> itself, which is only the walls. Three things
-    /// reach past it and this is their union: the roof's own <see cref="HouseStyle.Overhang"/>, the log ends a
+    /// reach past it and this is their union: the roof's own <see cref="RoofStyle.Overhang"/>, the log ends a
     /// <see cref="BeamStyle"/> runs past every corner, and the one-block sill that rings every footprint
     /// regardless of either. A porch reaches no further than this — its own canopy overhangs the strip the walls
-    /// gave up by the same <see cref="HouseStyle.Overhang"/>, and that strip is already inside <paramref
+    /// gave up by the same <see cref="RoofStyle.Overhang"/>, and that strip is already inside <paramref
     /// name="ground"/>, so its reach never exceeds the main roof's.
     ///
     /// <para>This is the number a caller wanting to claim the ground a stamped house actually covers
@@ -52,7 +52,7 @@ public static class HouseStamper
     }
 
     /// <summary>How far past a corner this style's beams run, or 0 for a building without them. Mirrors
-    /// <see cref="LayBeams"/>'s own floor of one step, so the two cannot drift.</summary>
+    /// <c>LayBeams</c>'s own floor of one step, so the two cannot drift.</summary>
     private static int BeamReach(HouseStyle style) =>
         style.Beams.Any ? Math.Max(1, style.Beams.Reach) : 0;
 
@@ -66,7 +66,7 @@ public static class HouseStamper
     /// where nothing is written — and one phantom course is enough to touch the next building and merge two
     /// findings into one. Claiming the arms themselves is narrower and still wrong in practice: on a village
     /// row of eleven houses, every cell an arm would have claimed held plain paving at every height, because
-    /// what a style's <c>Reach</c> asks for and what <see cref="LayBeams"/> leaves standing after the roof is
+    /// what a style's <c>Reach</c> asks for and what <c>LayBeams</c> leaves standing after the roof is
     /// laid over it are not the same number. So the ring is claimed and the arms are not. The cost is a beam
     /// end reading by material — a log at a corner classed as foliage — and the cost of the alternative is two
     /// buildings losing their separate identities, which is the more expensive of the two by far.</para>
@@ -102,9 +102,15 @@ public static class HouseStamper
     /// plan itself, so a building of more than one wing gets its sill, its floor, its walls, its windows and its
     /// doorways on its own outline.
     ///
-    /// <para>The roof is <b>one field over the plan's bounding box</b> and a porch is refused on a plan of more
-    /// than one wing (G172). Both want a wing at a time — a building's roof is the union of the wing volumes —
-    /// so until that lands, a plan that turns a corner is roofed as though it did not.</para></summary>
+    /// <para>The roof reads the plan too. <b>A building's roof is the union of its wings' roofs</b>: one
+    /// <see cref="RoofField"/> per wing, each extruded as the whole building it would be alone, and only the
+    /// highest of them written over any cell. Where a wing runs into another its gable end either marches its
+    /// courses on into that roof or projects its own across to the far wall, so a plan that turns a corner
+    /// comes out as one surface with a valley in it rather than as a lid over the bounding box.</para>
+    ///
+    /// <para><b>A porch is the one part that still wants a rectangle.</b> A deck is a strip the walls give up,
+    /// and giving one up on a shape that turns a corner is taking cells out of a shape rather than moving one
+    /// side of a rectangle in — so a plan of more than one wing is stamped without its porch.</para></summary>
     public static void Stamp(VoxelWorld world, BuildingPlan ground, int floorY, HouseStyle style,
                              int color = -1, IReadOnlyList<RoomDoor>? doors = null)
     {
@@ -443,10 +449,6 @@ public static class HouseStamper
             }
         }
 
-        // The log ends that run out past the corners where two storeys meet. In plan the seam reads as a hash:
-        // the walls are its middle and two ends carry on outward from every corner the building turns away at.
-        // Each shows its sawn end, which is the one place on a building where a cut face outward is the point —
-        // it is the end of a log, and a log building leaves them long.
         // The highest storey any wing still stands at, which on a building of equal wings is the whole plan.
         BuildingPlan? TopPlan()
         {
@@ -455,6 +457,10 @@ public static class HouseStamper
             return body;
         }
 
+        // The log ends that run out past the corners where two storeys meet. In plan the seam reads as a hash:
+        // the walls are its middle and two ends carry on outward from every corner the building turns away at.
+        // Each shows its sawn end, which is the one place on a building where a cut face outward is the point —
+        // it is the end of a log, and a log building leaves them long.
         void LayBeams(BuildingPlan plan, int y)
         {
             if (!style.Beams.Any || y is < 1 or >= VoxelWorld.MaxHeight) return;
@@ -495,7 +501,7 @@ public static class HouseStamper
             // building, and that is not where a roof goes — it is what makes a one-storey wing stop against a
             // two-storey one instead of pushing through it. A wing's own roof already starts above its own
             // wall, so on a building of one wing this decides nothing.
-            var lowest = Covering(x, z) + 1;
+            var lowest = WallTopOver(x, z) + 1;
 
             // On a half course the topmost cell is a slab rather than a cube — written straight, the way a
             // window's pieces are, because which half it fills is geometry and not something a material may
@@ -542,12 +548,13 @@ public static class HouseStamper
                 || (along > high && WingJoints.Past(joints, index, 1) is not null);
         }
 
-        /// <summary>The tallest surface any other wing's own roof already reaches at this cell, or a course
-        /// below every roof where none does — what the march may not draw over. Read from each wing's own field
-        /// directly rather than from what the primary pass actually placed, and a field asked for a cell outside
-        /// its own rectangle keeps answering the same formula it always did, which is what lets the comparison
-        /// hold all the way to the far wall rather than only where the roof's own plan happens to cover.</summary>
-        int CoveringCrown(Wing wing, int x, int z)
+        /// <summary>The tallest surface any <b>other</b> wing's own roof already reaches at this cell, or a
+        /// course below every roof where none does — what the march may not draw over. Read from each wing's own
+        /// field directly rather than from what the primary pass actually placed; and the marching wing's own
+        /// field, which this is compared against, keeps answering the same formula for cells outside its own
+        /// rectangle, which is what lets the comparison hold all the way to the far wall rather than only where
+        /// the marching roof's own plan happens to cover.</summary>
+        int OtherRoofCrownOver(Wing wing, int x, int z)
         {
             var highest = int.MinValue;
             foreach (var (other, _, otherRoofed, otherField, _, _) in roofs)
@@ -585,7 +592,7 @@ public static class HouseStamper
                             var (x, z) = wing.RidgeAlongX ? (along, across) : (across, along);
                             if (!body.Holds(x, z)) break;               // marched clean out of the building
                             var crown = field.Crown(x, z);
-                            if (CoveringCrown(wing, x, z) >= crown) break;  // the other roof already stands this tall
+                            if (OtherRoofCrownOver(wing, x, z) >= crown) break;  // that roof already stands this tall
                             spans[index][(x, z)] = crown;
                         }
                     }
@@ -627,9 +634,10 @@ public static class HouseStamper
             InRoofPlan(x, z) &&
             (!InRoofPlan(x - 1, z) || !InRoofPlan(x + 1, z) || !InRoofPlan(x, z - 1) || !InRoofPlan(x, z + 1));
 
-        /// <summary>The highest wall top of any wing standing on this cell, or a course below every roof where
-        /// none does — so a cell out past the walls is gated by nothing and keeps its overhang.</summary>
-        int Covering(int x, int z)
+        /// <summary>The highest <see cref="WallTopOf"/> of any wing standing on this cell, or a course below
+        /// every roof where none does — so a cell out past the walls is gated by nothing and keeps its
+        /// overhang.</summary>
+        int WallTopOver(int x, int z)
         {
             var highest = int.MinValue;
             foreach (var wing in body.Wings)
@@ -698,15 +706,16 @@ public static class HouseStamper
 
             // A post stands on the deck, so it takes the ground storey's wall where the style names no post —
             // the storey it is actually beside, not the one at the top of the building.
+            var posts = PorchPosts(porch, outer);
             var postMaterial = groundPost ?? groundWall.At(groundWall.Extent - 1).Material;
-            foreach (var (x, z) in PorchPosts(porch, outer))
+            foreach (var (x, z) in posts)
                 for (var y = floorY + 1; y < canopy.Underside(x, z); y++)
                     Put(x, y, z, postMaterial, porch);
 
             if (porchStyle.RailBlock <= 0) return;
-            var posts = PorchPosts(porch, outer).ToHashSet();
+            var posted = posts.ToHashSet();
             foreach (var (x, z) in PorchRail(porch, outer))
-                if (!posts.Contains((x, z)) && !FrontsDoor(x, z))
+                if (!posted.Contains((x, z)) && !FrontsDoor(x, z))
                     world.SetBlock(x, floorY + 1, z, porchStyle.RailBlock);
 
             // The way in. A rail that ran unbroken across the front would be a porch with a door behind it and
@@ -748,13 +757,7 @@ public static class HouseStamper
 
     /// <summary>The metadata a ladder on a wall takes: it faces <em>away</em> from the wall it hangs on, since
     /// the block behind it is what holds it up.</summary>
-    private static int LadderFacing(RoomEdge wall) => wall switch
-    {
-        RoomEdge.NegZ => 3,      // hung on the −z wall, facing +z
-        RoomEdge.PosZ => 2,
-        RoomEdge.NegX => 5,
-        _ => 4,
-    };
+    private static int LadderFacing(RoomEdge wall) => BlockGeometry.Fronting(wall.Opposite());
 
     /// <summary>The wall a house fronts on: the one its doors are cut through, or — with none given — the long
     /// side the building would cut its own through.</summary>
@@ -775,14 +778,14 @@ public static class HouseStamper
     {
         if (porch is null || porch.Depth <= 0) return (ground, null);
         // A deck is a strip the walls give up, and giving one up on a plan that turns a corner means taking
-        // cells out of a shape rather than moving one side of a rectangle in (G172).
+        // cells out of a shape rather than moving one side of a rectangle in.
         if (ground.Wings.Count > 1) return (ground, null);
-        var across = front is RoomEdge.NegZ or RoomEdge.PosZ ? ground.Depth : ground.Width;
+        var across = front.AlongX() ? ground.Depth : ground.Width;
         var depth = Math.Min(porch.Depth, across - 3);
         if (depth <= 0) return (ground, null);
 
         var inset = Math.Max(0, porch.Inset);
-        var along = front is RoomEdge.NegZ or RoomEdge.PosZ ? ground.Width : ground.Depth;
+        var along = front.AlongX() ? ground.Width : ground.Depth;
         if (2 * inset >= along) inset = 0;
 
         return front switch
@@ -827,9 +830,7 @@ public static class HouseStamper
 
     /// <summary>The middle of the side a house fronts on, which is where it cuts its own door.</summary>
     private static int FrontCentre(BuildingPlan body, RoomEdge front)
-        => front is RoomEdge.NegZ or RoomEdge.PosZ
-            ? (body.MinX + body.MaxX) / 2
-            : (body.MinZ + body.MaxZ) / 2;
+        => front.AlongX() ? (body.MinX + body.MaxX) / 2 : (body.MinZ + body.MaxZ) / 2;
 
     /// <summary>An opening of at most <paramref name="width"/> on one wall, as near <paramref name="about"/> as
     /// the wall allows, or null where the wall cannot carry one at all.
@@ -863,15 +864,11 @@ public static class HouseStamper
     /// runs more than five blocks unsupported.</summary>
     private static List<(int X, int Z)> PorchPosts(BuildingPlan porch, RoomEdge outer)
     {
-        var alongX = outer is RoomEdge.NegZ or RoomEdge.PosZ;
+        var alongX = outer.AlongX();
         var (lo, hi) = alongX ? (porch.MinX, porch.MaxX) : (porch.MinZ, porch.MaxZ);
-        var fixedAt = outer switch
-        {
-            RoomEdge.NegZ => porch.MinZ,
-            RoomEdge.PosZ => porch.MaxZ,
-            RoomEdge.NegX => porch.MinX,
-            _ => porch.MaxX,
-        };
+        // The line the open edge stands on: the deck's own low or high side of the axis the edge faces along.
+        var (sideLo, sideHi) = alongX ? (porch.MinZ, porch.MaxZ) : (porch.MinX, porch.MaxX);
+        var fixedAt = outer.Positive() ? sideHi : sideLo;
 
         const int longestSpan = 5;
         var run = hi - lo;
@@ -889,18 +886,18 @@ public static class HouseStamper
     /// it. The edge against the wall is not one of them; the wall is already there.</summary>
     private static IEnumerable<(int X, int Z)> PorchRail(BuildingPlan porch, RoomEdge outer)
     {
+        // The side against the house is the one across the deck from the open edge, and the line it stands on
+        // is that side's own end of the axis it faces along.
+        var wallSide = outer.Opposite();
+        var alongX = wallSide.AlongX();
+        var (sideLo, sideHi) = alongX ? (porch.MinZ, porch.MaxZ) : (porch.MinX, porch.MaxX);
+        var wallLine = wallSide.Positive() ? sideHi : sideLo;
+
         for (var x = porch.MinX; x <= porch.MaxX; x++)
             for (var z = porch.MinZ; z <= porch.MaxZ; z++)
             {
                 if (!porch.OnPerimeter(x, z)) continue;
-                var against = outer switch
-                {
-                    RoomEdge.NegZ => z == porch.MaxZ,
-                    RoomEdge.PosZ => z == porch.MinZ,
-                    RoomEdge.NegX => x == porch.MaxX,
-                    _ => x == porch.MinX,
-                };
-                if (!against) yield return (x, z);
+                if ((alongX ? z : x) != wallLine) yield return (x, z);
             }
     }
 

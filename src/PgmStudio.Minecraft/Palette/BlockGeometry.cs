@@ -23,8 +23,9 @@ namespace PgmStudio.Minecraft.Palette;
 public static class BlockGeometry
 {
     /// <summary>The two bits naming the side of its cube a stair's raised half sits on — the direction it
-    /// climbs <em>toward</em>.</summary>
-    public static int Facing(RoomEdge toward) => toward switch
+    /// climbs <em>toward</em>. A stair counts them from its own corner (east 0, west 1, south 2, north 3) and
+    /// shares them with nothing else, which is why <see cref="Fronting"/> is a separate four numbers.</summary>
+    public static int StairFacing(RoomEdge toward) => toward switch
     {
         RoomEdge.NegX => Blocks.StairWest,
         RoomEdge.PosX => Blocks.StairEast,
@@ -32,12 +33,28 @@ public static class BlockGeometry
         _ => Blocks.StairSouth,
     };
 
+    /// <summary>The nibble a block mounted with a front takes so that front looks <paramref name="toward"/> —
+    /// north 2, south 3, west 4, east 5. A wall sign, a ladder, a chest and a furnace all read the same four
+    /// numbers, so this is one table rather than one per block; a stair reads
+    /// <see cref="StairFacing"/> instead.
+    ///
+    /// <para>What a block hangs <em>on</em> is the opposite of what it looks toward — the block behind a
+    /// ladder is what holds it up — so a caller that has the wall rather than the view passes
+    /// <see cref="RoomEdges.Opposite"/>.</para></summary>
+    public static int Fronting(RoomEdge toward) => toward switch
+    {
+        RoomEdge.NegZ => 2,
+        RoomEdge.PosZ => 3,
+        RoomEdge.NegX => 4,
+        _ => 5,
+    };
+
     /// <summary>A stair turned to climb toward <paramref name="toward"/>, upright or hung upside down.
     ///
     /// <para>A stair's whole data value is geometry — two bits of facing and the upside-down flag — so it
     /// carries no variant nibble of its own, and which wood or stone it is, is which block id it is.</para></summary>
     public static int Stair(RoomEdge toward, bool upsideDown = false) =>
-        Facing(toward) | (upsideDown ? Blocks.StairUpsideDown : 0);
+        StairFacing(toward) | (upsideDown ? Blocks.StairUpsideDown : 0);
 
     /// <summary>A slab in the upper or lower half of its cube, keeping the three low bits that say what it is
     /// made of. An upper slab is the lintel over an opening and the underside of a course; a lower one is the

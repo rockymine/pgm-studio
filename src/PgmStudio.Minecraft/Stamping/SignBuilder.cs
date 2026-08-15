@@ -31,16 +31,6 @@ public static class SignBuilder
     public static string ChatColor(string woolSlug)
         => WoolChatColor.GetValueOrDefault(BlockColors.Normalize(woolSlug), "white");
 
-    /// <summary>The 1.8 wall-sign (id 68) block data for a sign whose front faces <paramref name="facing"/>.</summary>
-    public static int WallSignData(Facing facing) => facing switch
-    {
-        Facing.NegZ => 2,   // faces north
-        Facing.PosZ => 3,   // faces south
-        Facing.NegX => 4,   // faces west
-        Facing.PosX => 5,   // faces east
-        _ => 2,
-    };
-
     /// <summary>Serialise one line as a 1.8 JSON text component.</summary>
     public static string LineJson(SignLine line)
     {
@@ -71,7 +61,7 @@ public static class SignBuilder
     /// <paramref name="facing"/>.</summary>
     public static void PlaceWallSign(VoxelWorld world, int x, int y, int z, Facing facing, IReadOnlyList<SignLine> lines)
     {
-        world.SetBlock(x, y, z, Blocks.WallSign, WallSignData(facing));
+        world.SetBlock(x, y, z, Blocks.WallSign, BlockGeometry.Fronting(facing));
         world.AddTileEntity(x, z, Sign(x, y, z, lines));
     }
 }

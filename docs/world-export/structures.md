@@ -616,6 +616,12 @@ again at the next. It is the writing half of what `Views/BlockShapes` reads back
 `Blocks` rather than beside a window, so a terrain material banding a wall in upper slabs reaches the same
 vocabulary an opening does.
 
+A block with a **front** reads a second table, `Fronting`, and it is one table rather than one per block: the
+nibble a wall sign takes to look north is the nibble a ladder, a chest and a furnace take, and only the stair's
+two bits count from anywhere else. What a block hangs *on* is the opposite of what it looks toward — the block
+behind a ladder is what holds it up — so a caller holding the wall rather than the view passes the wall's
+opposite, which `RoomEdge` answers for itself.
+
 Neither is the **head**, the beam that carries the wall over the opening. An arched one puts an upside-down
 stair in each corner of the doorway's top course, raised half outward so the quarter each is missing faces
 into the opening and the two of them round its top off — the upper half of a stair lattice doing the same

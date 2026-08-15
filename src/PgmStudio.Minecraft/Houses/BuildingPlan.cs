@@ -17,7 +17,7 @@ namespace PgmStudio.Minecraft.Houses;
 public readonly record struct WallSegment(RoomEdge Facing, int Fixed, int Lo, int Hi)
 {
     /// <summary>Whether the wall runs east–west, so its along axis is x and the line it stands on is a z.</summary>
-    public bool AlongX => Facing is RoomEdge.NegZ or RoomEdge.PosZ;
+    public bool AlongX => RoomEdges.AlongX(Facing);
 
     /// <summary>How many blocks of wall the run holds, corner cells included.</summary>
     public int Length => Hi - Lo + 1;
@@ -30,13 +30,7 @@ public readonly record struct WallSegment(RoomEdge Facing, int Fixed, int Lo, in
 
     /// <summary>The step from a cell of this wall to the cell behind it — into the building, away from the
     /// weather. What something standing against the wall rather than in it is offset by.</summary>
-    public (int X, int Z) Inward => Facing switch
-    {
-        RoomEdge.NegZ => (0, 1),
-        RoomEdge.PosZ => (0, -1),
-        RoomEdge.NegX => (1, 0),
-        _ => (-1, 0),
-    };
+    public (int X, int Z) Inward => RoomEdges.Inward(Facing);
 
     /// <summary>The stretch of wall between the two corners, which is what is left once the cells the corners
     /// themselves take are off the table.</summary>
@@ -398,16 +392,10 @@ public sealed class BuildingPlan
         var found = new List<WallSegment>();
         foreach (var facing in new[] { RoomEdge.NegZ, RoomEdge.PosZ, RoomEdge.NegX, RoomEdge.PosX })
         {
-            var alongX = facing is RoomEdge.NegZ or RoomEdge.PosZ;
+            var alongX = facing.AlongX();
             var (lineLo, lineHi) = alongX ? (MinZ, MaxZ) : (MinX, MaxX);
             var (alongLo, alongHi) = alongX ? (MinX, MaxX) : (MinZ, MaxZ);
-            var (outX, outZ) = facing switch
-            {
-                RoomEdge.NegZ => (0, -1),
-                RoomEdge.PosZ => (0, 1),
-                RoomEdge.NegX => (-1, 0),
-                _ => (1, 0),
-            };
+            var (outX, outZ) = facing.Outward();
 
             for (var line = lineLo; line <= lineHi; line++)
             {

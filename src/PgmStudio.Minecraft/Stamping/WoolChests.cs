@@ -35,14 +35,13 @@ public static class WoolChests
     }
 
     // The wall a corner touches on the door's own axis decides the facing: away from that wall is always
-    // open room on the other side, whichever of the corner's two walls it turns out to be. Reuses
-    // SignBuilder's edge→data mapping rather than a second copy of the same four numbers.
+    // open room on the other side, whichever of the corner's two walls it turns out to be. A door wall that
+    // runs along x is a door whose own axis is z, so that is the axis the chest opens on.
     private static int CornerFacing(RoomFrame frame, RoomEdge doorEdge, int cornerX, int cornerZ)
     {
-        var doorAlongZ = doorEdge is RoomEdge.NegZ or RoomEdge.PosZ;
-        if (doorAlongZ)
-            return SignBuilder.WallSignData(cornerZ == frame.InteriorMinZ ? RoomEdge.PosZ : RoomEdge.NegZ);
-        return SignBuilder.WallSignData(cornerX == frame.InteriorMinX ? RoomEdge.PosX : RoomEdge.NegX);
+        if (doorEdge.AlongX())
+            return BlockGeometry.Fronting(cornerZ == frame.InteriorMinZ ? RoomEdge.PosZ : RoomEdge.NegZ);
+        return BlockGeometry.Fronting(cornerX == frame.InteriorMinX ? RoomEdge.PosX : RoomEdge.NegX);
     }
 
     private static void PlaceChest(VoxelWorld world, int x, int y, int z, int facing, IEnumerable<(int, NbtCompound)> items)

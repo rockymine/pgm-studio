@@ -67,14 +67,8 @@ public sealed record DressingSymmetry(string? Mode = null, double CenterX = 0, d
     public RoomEdge TurnEdge(RoomEdge edge, int k)
     {
         if (k == 0) return edge;
-        var (dx, dz) = edge switch
-        {
-            RoomEdge.NegZ => (0.0, -1.0),
-            RoomEdge.PosZ => (0.0, 1.0),
-            RoomEdge.NegX => (-1.0, 0.0),
-            _ => (1.0, 0.0),
-        };
-        var (tx, tz) = TurnOffset(dx, dz, k);
+        var (outX, outZ) = edge.Outward();
+        var (tx, tz) = TurnOffset(outX, outZ, k);
         return Math.Abs(tx) >= Math.Abs(tz)
             ? tx < 0 ? RoomEdge.NegX : RoomEdge.PosX
             : tz < 0 ? RoomEdge.NegZ : RoomEdge.PosZ;

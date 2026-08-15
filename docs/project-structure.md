@@ -69,7 +69,8 @@ Both are checked by the `.csproj` files rather than by convention: `Analysis` ha
 | **Presentation** | `Client`, `Api` | the Blazor UI · the FastEndpoints composition root |
 
 `Domain` has drifted past "entities" in a way worth naming: alongside `MapModel`, `Region` and `Filter` it now
-holds the **rules that several projects share** — `RoomFrames` (the stamped-room resolver), `ObjectiveFootprint`,
+holds the **rules that several projects share** — `RoomFrames` (the stamped-room resolver), `RoomEdges` (what a
+wall's outward direction *is*: its axis, its normal, its opposite), `ObjectiveFootprint`,
 `MiningTiers`, `DestroyableMaterials`, `DoorMaterials`, `Gamemodes`, `PhantomErasure`. That is correct rather
 than accidental: each is a pure function of the entities, and each has consumers in more than one project
 above. It does mean `Domain` is "the PGM domain", not "the PGM data model".
@@ -79,10 +80,10 @@ above. It does mean `Domain` is "the PGM domain", not "the PGM data model".
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Geom` | 44 | 4,967 | `Algorithms/` 20 · `Relief/` 6 · `Render/` 4 · 14 at root |
-| `Domain` | 22 | 1,949 | flat |
+| `Domain` | 25 | 2,252 | flat |
 | `Contracts` | 13 | 965 | flat |
 | `Migrations` | 21 | 1,469 | `Migrations/` 20 |
-| `Minecraft` | 74 | 14,232 | `Stamping/` 16 · `Palette/` 11 · `Anvil/` 10 · `Houses/` 10 · `Painting/` 8 · `Render/` 7 · `Dressing/` 6 · `Views/` 3 · 1 at root |
+| `Minecraft` | 74 | 14,307 | `Stamping/` 16 · `Palette/` 11 · `Anvil/` 10 · `Houses/` 10 · `Painting/` 8 · `Render/` 7 · `Dressing/` 6 · `Views/` 3 · 1 at root |
 | `Import` | 4 | 472 | flat |
 | `Pgm` | 137 | 20,641 | `Compose/` 42 · `Authoring/` 21 · `Evaluate/` 20 · `Shapes/` 10 · `Editing/` 10 · `Plan/` 7 · `Sketch/` 5 · `Derive/` 4 · `Render/` 4 · `Detect/` 1 · 13 at root |
 | `Analysis` | 16 | 2,609 | `Playability/` 7 · `Footprint/` 4 · `Region/` 3 · `Layer/` 2 |

@@ -4,6 +4,7 @@ using PgmStudio.Geom.Algorithms;
 // Geom's everywhere it says one.
 using RoomDoor = PgmStudio.Domain.RoomDoor;
 using RoomEdge = PgmStudio.Domain.RoomEdge;
+using static PgmStudio.Domain.RoomEdges;   // an alias does not carry extension methods; this does
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Houses;
 using PgmStudio.Minecraft.Stamping;
@@ -459,7 +460,7 @@ public static class Decorator
     /// depth, since on a plan of more than one wing the chosen wall is not the whole of that side.</summary>
     private static IReadOnlyList<RoomDoor> Doorway(HouseStyle style, BuildingPlan plan, RoomEdge front)
     {
-        var about = front is RoomEdge.NegZ or RoomEdge.PosZ ? (plan.MinX + plan.MaxX) / 2 : (plan.MinZ + plan.MaxZ) / 2;
+        var about = front.AlongX() ? (plan.MinX + plan.MaxX) / 2 : (plan.MinZ + plan.MaxZ) / 2;
         if (plan.WallFacing(front, about) is not { } wall) return [];
 
         // A block of wall clear of each corner post, the rule the stamper's own doors keep: an opening in the
