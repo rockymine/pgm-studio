@@ -301,13 +301,26 @@ by `HousePropRules.PastCap` and is not filed.
   **export auto-extend it** to whatever the shape has become. Settle which before building; *(a)* is the
   smallest and *(b)* is the one that adds a capability.
 
-- [~] **B214 — Nine endpoints answer a stack trace where `refusals.md` says they answer a finding.** **The
-  boundary is fixed and the remaining slice is the documents.** No endpoint answers 5xx to a body it cannot
-  read; a missing field is refused by name before any handler runs; a style part stated as null names its own
-  path; `RQ1`/`RQ2` are in `refusals.md`. What is left is what the audit found beside the crashes: **the tool
-  documents do not carry the body shapes** — `library.md` names `POST /room-styles/preview-snapshot` and never
-  says the body is a bare `HouseStyle`, which is why a wrapper was posted and silently ignored — and an
-  unread field is still never reported, so a typo is accepted in silence. Filed
+- [~] **B214 — A field the reader could not use is still never reported.** **Everything else in this entry has
+  shipped** (`FEATURES.md`): no endpoint answers 5xx to a body it cannot read, a missing field is refused by
+  name before any handler runs, a style part stated as null names its own path, `RQ1`/`RQ2` are in
+  `refusals.md`, the tool documents carry their body shapes, and eight of those bodies are posted out of the
+  markdown by `DocumentedBodyTests`.
+
+  **What remains is the silent half, and it is the one that cost an author two source reads.** Nothing reports
+  a property that was not read. `{"style": {…}}` posted where a bare `HouseStyle` belongs answers **200** with
+  a preview of the defaults; two invented fields answer 200; a voronoi stating `palette` where the painter
+  reads `bands` answers 200 and draws **456 bytes against the 110 432 the same pattern draws with real bands**
+  — a flat swatch, read at the time as "the previewer cannot draw patterns". Meanwhile a *misspelled
+  discriminator* is now a clean 400, so a wrong field name is silent while a wrong field *value* is named,
+  which is the wrong way round.
+
+  The awkward part is that strictness cannot simply be turned on. The readers upgrade stored documents in
+  place — `HouseStyleJson.Upgrade` and `TerrainThemeJson.Upgrade` carry retired field names forward — so a
+  document legitimately carries properties the current record does not have, and refusing unknown properties
+  outright would refuse every snapshot written before the last shape change. What is wanted is narrower: the
+  fields an upgrade did **not** claim, reported as complaints rather than refusals, so a typo is visible
+  without a stored map becoming unreadable. Filed
   first as three entries — a house-style null crash, a silent-drop audit and one endpoint returning 500 —
   which was three symptoms of one defect; `B215` and `B218` are folded in here and their ids retired to
   provenance. **`docs/refusals.md` already specifies the whole pattern**, down to the sentence this entry

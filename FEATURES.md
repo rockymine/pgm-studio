@@ -3928,6 +3928,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   parse throws, because it cannot carry on to collect a second fault, and carries its finding so the gate above
   answers in the shape anyway; `RoomFrames.ResolveRoom` answers a room *or* a refusal, because a resolve
   produces a value and stops at the first thing making that impossible where a gate collects everything wrong.
+- **The API boundary keeps the shape its gates already kept (B214).** Nine endpoints answered a raw .NET
+  stack trace to a body they could not read — one of them MariaDB's own `Column 'name' cannot be null` —
+  because every catch named `JsonException` alone while `JsonNode.Parse` raises `ArgumentNullException` on a
+  null string. The readers now guard an absent document and carry a polymorphic `kind` failure across, so
+  thirteen existing catches started working; `DocumentFault` subclasses `JsonException` so those sites keep
+  catching it, and carries the field, so a style part stated as null reports `roof.gableWindows`;
+  `RequiredFields` refuses anything a DTO declares non-nullable and the body omitted, naming every missing
+  field at once; and a backstop guarantees the envelope for all 159 endpoint classes, a parse fault answering
+  400 and anything else staying 500 with the trace logged rather than sent. `RQ1`/`RQ2` in `docs/refusals.md`.
+  Beside it the tool documents gained the body shapes they never carried — twenty-five endpoints take a
+  document unwrapped and the rest a record, and nothing had said which — with the rule in `flow.md` and eight
+  worked bodies posted straight out of the markdown by `DocumentedBodyTests`, including `plan.md`'s worked
+  plan, whose claim to compile with no warnings was an assertion nothing checked.
+
 - **Every gate in the studio says no in one shape (B191).** Seven finding types had grown, one per gate — a
   plan finding, a house-style finding, a producibility finding, a joint fault tuple, an evaluator violation, a
   parse exception's loose fields, and three dictionaries built inline at the export gate — and with them six
