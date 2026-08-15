@@ -590,6 +590,43 @@ are Edit-specific. Full canvas spec: `docs/client/canvas-interaction.md`.
   manufactured to hold it — and **the one picture the plan layer offers cannot show what it produced**, so an
   agent authoring from the render has no way to see its own goal.
 
+- [ ] **B205 — Two different classes are called `Footprint`, and one project sees both.**
+  `PgmStudio.Geom.Footprint` is the ground a relief is solved over: a dense grid of land cells over a bounding
+  box, with `Inside`, `Land()` and `Rasterize`. `PgmStudio.Minecraft.Footprint` is a building's plan: wings,
+  `OnPerimeter`, `OnCorner`, `Ring`, `Arc`, `Near`. They share a name, a cell type and nothing else — one is a
+  landmass and the other is a house — and `Minecraft` references `Geom`, so both are in scope in every file of
+  the project that owns the second. Its own namespace wins today, which is why nothing has failed.
+
+  It is the `IsGround`/`IsNaturalGround` shape from `B203` one level up: not two spellings of one meaning but
+  **one name over two meanings**, where a reader has to know which project a call site is in before the type
+  tells them anything. It bites when the inward walk is lifted (`B200`, bucket 13), because that work moves a
+  method *off* the Minecraft class and *into* `Geom` — into the same namespace as the other `Footprint` — and
+  the sentence describing what it walks over will be true of both. Rename before that lands rather than after:
+  the relief one is a landmass and the building one is a plan, and both words are already used in their own
+  docstrings.
+
+  *found reading the two classes for `B204`, 2026-08-15 · `Geom/Relief/Footprint.cs:13` ·
+  `Minecraft/Footprint.cs:189`.*
+
+- [ ] **B206 — `PlanValidator` answers one question through four public verbs, and one of them is dead.**
+  `B191` and `B192` shipped one `Finding`, one `Findings` and one verb — `Check` — and `CLAUDE.md` names the
+  seven verbs that consolidation retired, `Errors` and `Completeness` among them. Both are still public on
+  `PlanValidator`, beside `Check` and `HasErrors`.
+
+  `Errors(PlanModel)` has **no caller anywhere** — not `src/`, not `tools/`, not `tests/`. `HasErrors` has one,
+  in a test. `Completeness` is genuinely a second question (whether the plan carries what a map cannot exist
+  without, as against whether what it says is coherent) and `PlanInspectEndpoints` asks both on consecutive
+  lines, so it stays — but its own docstring cites `<see cref="Validate"/>`, a method this class does not have,
+  which is what a name left behind looks like after the thing it named was renamed.
+
+  So: delete `Errors` and its private overload's public face, keep `Check` and `Completeness` as the two
+  questions a plan is actually asked, and fix the stale cref. It matters more than a tidy-up because buckets 1,
+  2, 3 and 10 all add rules to this class, and an agent choosing a verb from four will not choose the same one
+  twice.
+
+  *found checking `B204`'s landing sites, 2026-08-15 · `Pgm/Plan/PlanValidator.cs:59–80` · callers grepped
+  across `src/`, `tools/` and `tests/`.*
+
 ### The mapgen audit's forty-eight, bucketed for dispatch
 
 Six agent runs authored nineteen loadable boards against the `B120` brief, and the author's review of twelve
@@ -608,27 +645,93 @@ here — and moves to `TODO.md` and then `FEATURES.md` on its own. What a bucket
 agent, in one pass, because they land in the same code and answer the same question.* A bucket is finished
 when every id in it has a `FEATURES.md` line and no document still names it as a gap.
 
-| # | Bucket | Ids | What one agent delivers | Lands in |
-|---|---|---|---|---|
-| **1** | What a spawn door faces | `B158` `B169` `B172` `B177` `B180` | one rectangle in front of a spawn, and five rules checked against it | `PlanValidator` |
-| **2** | How big a piece is, and how far apart | `B156` `B157` `B167` `B170` `B178` `B186` | size floors and ceilings, island separation, and the piece/building coupling broken | `PlanValidator` · `PlanCompiler` |
-| **3** | How far apart the goals are | `B175` `B179` `B188` | a spacing deriver over goals, spawns and the board extent, with the corpus band behind it | `PlanValidator` · `Analysis` |
-| **4** | A block must be the kind of block its role needs | `B165` | the stamper overriding a gable's own pitch, reported rather than silent — `B160`/`B161`/`B164`/`B168`, the gate beside the style, shipped (`FEATURES.md`) | `HouseStamper` |
-| **5** | What ground and a goal are made of | `B162` `B163` `B183` | a material checked against the depth and the role it is used at | `Themes` · `DestroyKitPairing` · read-back |
-| **6** | What may stand where | `B142` `B146` `B166` `B187` | a placement report the export refuses on, instead of four silent skips | `Decorator` · `DressingScope` · `HouseStamper` |
-| **7** | What the world build seats | `B145` `B159` `B176` `B184` `B185` | the marker, the plate, the chest, the shell and the paint under a stamped piece | `SketchWorldBuilder` · the stampers |
-| **8** | The documents that taught the fault | `B153` `B171` `B173` `B181` | four documents corrected, one of them law | `docs/gameplay/` · `docs/tools/` |
-| **9** | Read-backs that answer a different question | `B147` `B148` `B149` | three instruments that say what they cannot see instead of answering anyway | `tools/PgmStudio.RoundTrip` |
-| **10** | A document describing nothing still answers 200 | `B141` `B143` `B144` | required-field validation, a refusal that says what it means, and one overlap rule | `SketchLayout` · `PlanValidator` · the solver |
-| **11** | The evaluator over an authored board | `B150` `B151` | two terms that read the plan where the board is in the sketch | `ClosureTerms` · `G8` |
-| **12** | Four that stand alone | `B152` `B154` `B174` `B182` | four unrelated fixes, cheap, no shared file | scattered |
+#### What each bucket spends
 
-**Order and collision.** The label PGM refused shipped first and alone, ahead of every bucket below (`B155`
-— three committed maps had not parsed, and every other finding was reachable without a client while that one
-was not). `B1`, `B2` and `B3` all land in `PlanValidator` and
-must not run concurrently — hand the three to one agent, or run them in that order. `B4` and `B5` both touch
-what a layout is allowed to say and want the same posting-time gate, so they are adjacent rather than
-parallel. `B6` through `B12` are file-disjoint from each other and from everything above, and may run at once.
+A bucket names the code an agent opens. It does not name the **concept** the agent spends, and two buckets
+spending one concept cannot be dispatched at once however file-disjoint they look — each agent fixes the
+instance in front of it, correctly and locally, and leaves the other copies differing by neglect. Six concepts
+run across ten of the twelve buckets and each has one place it may land; buckets 11 and 12 share nothing with
+anything, which is a label too. Read against the bodies rather than the titles, which is what moved three
+tasks out of bucket 4 and relabelled bucket 10.
+
+**Occupancy — which columns a stamp owns.** The rule is already written down in this repository, one function
+above the defect: `DressingScope.GoalGroundAt` takes a goal's ground from *"the box the stamper wrote where
+there is one … by construction rather than by two derivations agreeing"*, and `StructureFootprints` directly
+below it rebuilds a house's footprint from `layoutJson` instead. So nothing has to be designed, only applied —
+**a claim is taken from the placement, never rebuilt beside it.** `SketchWorldBuilder` rebuilds it beside the
+stamp four more times: the room floor (the same fractional rect converted twice, five lines apart, by two
+rules), the wall, the redstone line and the goal box. The iron cube alone reads
+`StructureStamper.IronCubeFootprint` — the same function its stamper reads — and is therefore the one claim in
+the file that cannot drift. Buckets 6 and 7 both add placements and both would add a sixth answer.
+**Lands in** `WorldProvenance`, fed from footprints the stampers return. `B202` is the live defect, `B203` the
+class.
+
+**Extent and distance in plan space.** Buckets 1, 2 and 3 are fourteen rules over four measures: how far a
+door stands from a void, how far two islands stand apart, how large a piece may be, and how far a goal stands
+from the other goals and from each spawn. **Lands in `PgmStudio.Geom` for the measure and `PlanValidator` for
+the finding**, and that split is forced rather than stylistic: `Geom` references nothing and `Finding` lives in
+`Domain`, so a shared measure cannot make its own refusal. A measure answers a number or a rect; the rule that
+reads it names the id.
+
+**The inward axis — bands read along a distance.** `B199`, `B200` and `B201` are one concept and were filed in
+bucket 4 because they mention materials. They are not block-kind rules: two of them are one walk asked for on
+two rasters, and the third is the same bands read along an axis that is continuous rather than stepped.
+`Footprint.Step()` in `PgmStudio.Minecraft` is a private 4-connected BFS inward from the
+outline; `TerrainProfile` has no equivalent, though both already share `GridBoundary.TracePerimeter` for the
+arc — so the seed is common and only the inset is not. **Lands in** `PgmStudio.Geom.Algorithms` beside
+`GridBoundary`, with `ColumnProfile` carrying an `Inset` beside its `PerimeterArc` and `BandStack` read along
+it. `B200` is blocked on one author call — whether the walk crosses an elevation step — and `B199` and `B201`
+should be settled with it rather than in sequence.
+
+**Block kind by role.** What is left of bucket 4 (`B165`, `B190`) and all of bucket 5. Four tables answer
+"what kind of block is this" — `BlockRoles`, `BlockKinds`, `DressingPalette.IsStamp`, `BlockPalette` — and
+`BlockRoles` is the one that already did this work properly: its docstring records the same question answered
+seven times, each render carrying its own negative list, fifteen blocks in no list at all. **Lands in one
+role→allowed-set**, stated positively, in the shape `BlockRoles` already has. `B190` additionally wants a
+`roof_slab` column and a migration, so it is not cheap and should go with other `roof_style` schema work.
+
+**The refusal vocabulary.** Every bucket that adds a rule. `Finding`, `Findings` and `Check` shipped as
+`B191`/`B192` **after** these forty-eight were written, so not one entry names them and an agent reading a
+bucket cold will invent a return shape. **Lands in** `PgmStudio.Domain` — a gate answers `Findings`, never a
+bare list, never a count, and `Findings.Refuses` is the question rather than `Count > 0`. Two standing
+instructions above apply here and are the reason the vocabulary matters: a rule lands as a finding carrying a
+rule id, and nothing quietly moves an author's geometry to satisfy a check.
+
+**Document drift.** Bucket 8 alone — four prose documents, no shared unit, genuinely parallel and dispatchable
+as they stand. Bucket 10 is **not** document work despite its title: "document" there is the authored JSON, and
+`B141`/`B143`/`B144` are required-field validation, a refusal that misreports its own cause, and an overlap
+rule. It spends the refusal vocabulary and belongs beside buckets 1–3.
+
+| # | Bucket | Ids | Concept it spends | Lands in |
+|---|---|---|---|---|
+| **1** | What a spawn door faces | `B158` `B169` `B172` `B177` `B180` | extent and distance | `Geom` (the frontage rect) · `PlanValidator` (five rules over it) |
+| **2** | How big a piece is, and how far apart | `B156` `B157` `B167` `B170` `B178` `B186` | extent and distance | `PlanValidator` · `PlanCompiler` |
+| **3** | How far apart the goals are | `B175` `B179` `B188` | extent and distance | `Geom` (the spacing deriver) · `PlanValidator` · `Analysis` |
+| **4** | A block must be the kind of block its role needs | `B165` `B190` | block kind by role | `HouseStamper` · `HouseStyleValidation` + a `roof_style` migration |
+| **5** | What ground and a goal are made of | `B162` `B163` `B183` | block kind by role | `Themes` · `DestroyKitPairing` · read-back |
+| **6** | What may stand where | `B142` `B146` `B166` `B187` | occupancy | `WorldProvenance` from placement · `Decorator` · `DressingScope` |
+| **7** | What the world build seats | `B145` `B159` `B176` `B184` `B185` | occupancy | `WorldProvenance` from placement · `SketchWorldBuilder` · the stampers |
+| **8** | The documents that taught the fault | `B153` `B171` `B173` `B181` | document drift — no shared unit | `docs/gameplay/` · `docs/tools/` |
+| **10** | A document describing nothing still answers 200 | `B141` `B143` `B144` | the refusal vocabulary | `SketchLayout` · `PlanValidator` · the solver |
+| **11** | The evaluator over an authored board | `B150` `B151` | reads the plan where the board is in the sketch | `ClosureTerms` · `G8` |
+| **12** | Four that stand alone | `B152` `B154` `B174` `B182` | nothing shared | scattered |
+| **13** | The inward axis | `B199` `B200` `B201` | bands read along a distance | `Geom.Algorithms` · `ColumnProfile` · `BandStack` |
+
+**Bucket 9 is finished and its row is gone.** `B147`, `B148` and `B149` all carry a `FEATURES.md` line; the
+table listed them as work to hand out for as long as their section had already been deleted from the body.
+
+**Order and collision, by concept rather than by file.** The label PGM refused shipped first and alone, ahead
+of every bucket below (`B155` — three committed maps had not parsed, and every other finding was reachable
+without a client while that one was not). What follows is stated in bucket numbers; they are **not** task ids,
+and an earlier version of this paragraph wrote them as `B1`–`B12`, which are not ids that exist.
+
+- Buckets **1, 2, 3 and 10** all spend the refusal vocabulary and all land in `PlanValidator`. One agent, or
+  strictly in that order.
+- Buckets **6 and 7** both spend occupancy and both would add a claim rebuilt beside a stamp. They wait on
+  `B202`, which decides the direction of the derivation; dispatched before it they entrench the fault.
+- Buckets **4 and 5** share block-kind and want the same table. Adjacent rather than parallel.
+- Bucket **13** wants its author call answered first, and all three of its entries settled together.
+- Buckets **8, 11 and 12** share nothing with anything and may run at once.
 
 **These are written to be implemented by a Sonnet agent, and that shapes what an entry has to carry.** Every
 entry names its file and its line where the audit found one, states its rule with the number in it, and gives
@@ -721,10 +824,18 @@ reachable home.
   not enter: a contested resource nobody can contest.
 
   `docs/tools/mapgen-review.md` `MG31` already names both rules and states outright that they bind a hand-built
-  board and not only the composer. They are documented, cited in the review pool, and applied by nothing to an
-  authored plan — the same shape as `B109`, a validator that exists and is never reached.
+  board and not only the composer.
+
+  **The two halves are not the same fault, and the entry's original "nothing checks" was wrong about one of
+  them.** `SP2` **is** implemented — `PlanValidator.LintSp2` measures the spawn against the back half of its
+  piece and yields a finding. What it is not is *reached*: no `src/` caller runs the validator over a plan an
+  author posts, which is `B109` exactly, and a lint is a complaint an author may ignore even when it is. `SP7`
+  is the half with no code at all — it appears in `rules.md` and `mapgen-review.md` and nowhere in `src/`. An
+  agent handed this entry as first written adds a second `SP2` beside the first, which is the fifth-table
+  failure this bucketing exists to stop.
 
   *author, 2026-08-14 · `mapgen-review.md` MG31 · `rules.md` SP2/SP7 · plan, `map.xml` regions and probes.*
+  Premise corrected 2026-08-15 against `PlanValidator.LintSp2` and a grep of `SP7` across `src/`.
 
 - [ ] **B180 — A spawn opens onto a face players cannot climb back up.** Kilnrow's `crest` stands at y17 and
   the `works` it opens onto at y14 — probed at `(0, −76)` and `(0, −74)`. A player leaving spawn steps down
@@ -892,9 +1003,11 @@ The largest single class of visible fault in the repository, and it is one shape
 **block id** for a field whose geometry needs a particular **kind** of block, nothing checks, and the stamper
 builds something else. Four models made it on five boards. `B160`, `B161` and `B168` — the block-kind gate, the
 door's clear height, and a roof's own materials — shipped as the house-style gate (`FEATURES.md`); `B164`'s
-footing shipped beside them. `B165` is the shape this bucket does not yet cover: a style stating something the
-stamper then does differently, with nothing reporting the divergence, and it wants the stamper itself rather
-than a gate beside the style.
+footing shipped beside them. Two shapes are left. `B165` is a style stating something the stamper then does
+differently, with nothing reporting the divergence, and it wants the stamper itself rather than a gate beside
+the style. `B190` is the same rule the gate already enforces, unable to run where a roof is saved on its own,
+and closing it takes a column and a migration rather than a predicate — so the two are not one pass, and only
+`B165` is cheap.
 
 - [~] **B165 — A gable roof at `pitch: 2` is overridden by its own wall.** Reported by the author: a gable
   rising two blocks a step disagrees with the wall under it, and the wall wins where they conflict — so the roof
@@ -926,70 +1039,6 @@ than a gate beside the style.
   *author, 2026-08-14 · configuration confirmed in three layouts.* Traced 2026-08-14: roof surface and gable
   fill verified against `RoofField` on the real Corvid Hollow / Kilnrow houses and 700 fuzzed configurations;
   no discrepancy found in either.
-
-- [ ] **B199 — A floor's zoning is three named fields, so a floor cannot be concentric.** `FloorSurface` is
-  `Border`/`BorderWidth` + `Field` + `Inlay`/`InlayInset` — three fixed zones where the border is one material
-  of width N rather than a sequence, and the inlay is measured from the opposite end. A cobble ring, then two
-  rings of stone brick, then a grass field is not sayable on a house floor either. The traversal is the one
-  `BandStack` now owns (`B195`) and the input already exists — `Footprint.Ring(x, z)` — so what is missing is
-  the *authored* shape: the border becomes a stack read by ring with `BandEnding.HandOver`, which is what its
-  `At(ring)` returning null already means by hand.
-
-  It was left out of `B195` on purpose: the three zones are **named**, and the whole part-binding vocabulary
-  binds courses by those names (`RoomParts.Border` / `Field` / `Inlay`), so this is a schema + DTO + editor
-  change across `room_style_course`, `RoomStyleSaveRequest`, `HousePartComposer` and `RoomStyleComposer` —
-  about thirteen files — rather than a traversal swap. The row schema may already carry it: a course names its
-  part *and an ordinal*, so a border of several bands is expressible without a migration.
-
-  **It is the same concept as `B200`, on the other raster**: the top course of a plan divided into bands by how
-  far in from the edge a cell stands. The house has the axis (`Footprint.Ring`) and three fixed zones over it;
-  the terrain has neither. Whichever lands first should leave the other holding a band stack read along an
-  inset, and the two should be reviewed together rather than in sequence.
-
-  *found reading the house model after `B194`; the extraction it waited on landed as `B195`.*
-
-- [ ] **B200 — The top course of the terrain is not themeable inward, and the walk that would do it is
-  already written for houses.** A theme paints a column *downward*: the rim or the surface claims `Depth`
-  courses from the top, the wall takes the riser, fill takes the middle. There is no **plan-direction** axis at
-  all, so "a cobble rim, then two rings of stone brick, then a grass field" — the author's own words, reported
-  while theming a board — cannot be said. This is theming of the **topmost course only**, walked inward; it is
-  not the `Rim` bucket becoming concentric, and filing it that way was wrong.
-
-  **Nothing new has to be derived.** `Footprint.Step()` is the walk: seed a queue with every cell on the
-  outline, then flood inward one pass at a time over cells that are in the shape and not yet numbered — one
-  pass catches the first ring, two catch the second. It is 4-connected BFS over `(x, z)` cells and reads
-  nothing about houses. The terrain raster is the same kind of thing: `TerrainProfile` already classifies every
-  paintable column from `surfaceTop` by looking at its N8 neighbours, and its void-edge test is
-  `Footprint.OnPerimeter` written a second time — *in the set, and some N8 neighbour is outside it*. So the
-  seed exists on both sides and the walk exists on one.
-
-  **The shape of the fix, in three moves.** Lift the BFS into `PgmStudio.Geom.Algorithms` beside
-  `GridBoundary.TracePerimeter` — which `Footprint` and `TerrainProfile` **already share**, so the arc is
-  common and only the inset is not. Give `ColumnProfile` an `Inset` beside its `PerimeterArc`: one says how far
-  *round* the edge a cell sits, the other how far *in* from it, same pass and same struct. Carry it on
-  `BucketContext` the way the arc already is, and the bands are then a `BandStack` read along it with
-  `BandEnding.HandOver` — cobble, two of stone brick, then nothing claimed and the surface shows. Restricting
-  it to the top course composes rather than needing a knob: a `layered` stack whose first band is the
-  ring-banded material and whose rest is dirt.
-
-  **Blocked on one author call.** Does the walk cross an elevation step? Under `RimEdges.Drop` every tread edge
-  is its own ring 0, so a staircase of plateaus gets a band set per tread; under `Void` only the outer face
-  seeds, so the bands run across the treads and up the hill. Both are coherent and they look completely
-  different. The seed is the *geometric* edge either way, not the `Rim` bucket's toggle — the author has said
-  the walk starts "from the rim or if there is no rim".
-
-  *reported by the author while theming a board; corrected 2026-08-15 after reading `TerrainProfile` ·
-  `Footprint.Step` · `GridBoundary` · `docs/world-export/terrain-painting.md`.*
-
-- [ ] **B201 — `VoronoiMaterial.Bands` is a band stack that cannot use the band stack.** Its element is
-  `(material, depth)` — the same pair a `Band` is — but its axis is the **continuous** Worley `F2 − F1` gap
-  rather than an integer step, and its last band's stated depth is deliberately ignored. So it reads as a
-  fourth copy of the rule and is not one: the same words over a different traversal. Either `BandStack.At`
-  grows a `double` axis, or the element is shared and the traversal is not, or it stays as it is and the
-  duplication is only in the naming (`VoronoiBand.Depth` against `Band.Thickness`). **Which of the three is a
-  design call, not a defect** — filed so the audit does not re-find it as one.
-
-  *found doing `B195` · `TerrainPatterns.VoronoiMaterial`.*
 
 - [ ] **B190 — A roof style cannot say which slab it steps in, so the see-through-roof check cannot run at the
   part level.** `HS3` refuses a `Roof` named as a slab while `RoofSlab` is unset — the fault that gave six
@@ -1381,6 +1430,79 @@ the thing `B181` names, which makes the document upstream of the boards rather t
   forgot to fill in**, and the export composer is where that is caught.
 
   *author, 2026-08-14 · all 21 `map.xml` files swept · `PGM/…/core/CoreModule.java`.*
+
+#### Bucket 13 — the inward axis
+
+Three entries and one walk. They were filed under bucket 4 because each names materials, and they are not
+block-kind rules: a floor divided into concentric zones, a terrain top course banded inward from its rim, and
+a band stack whose axis is continuous are the same question asked on three rasters — **how far in from the
+edge does this cell stand, and which band claims that distance.** `Footprint.Step()` already answers it for a
+building's floor and nothing answers it for terrain, though `GridBoundary.TracePerimeter` is already shared by
+both. `B200` carries the author call the other two wait on.
+
+- [ ] **B199 — A floor's zoning is three named fields, so a floor cannot be concentric.** `FloorSurface` is
+  `Border`/`BorderWidth` + `Field` + `Inlay`/`InlayInset` — three fixed zones where the border is one material
+  of width N rather than a sequence, and the inlay is measured from the opposite end. A cobble ring, then two
+  rings of stone brick, then a grass field is not sayable on a house floor either. The traversal is the one
+  `BandStack` now owns (`B195`) and the input already exists — `Footprint.Ring(x, z)` — so what is missing is
+  the *authored* shape: the border becomes a stack read by ring with `BandEnding.HandOver`, which is what its
+  `At(ring)` returning null already means by hand.
+
+  It was left out of `B195` on purpose: the three zones are **named**, and the whole part-binding vocabulary
+  binds courses by those names (`RoomParts.Border` / `Field` / `Inlay`), so this is a schema + DTO + editor
+  change across `room_style_course`, `RoomStyleSaveRequest`, `HousePartComposer` and `RoomStyleComposer` —
+  about thirteen files — rather than a traversal swap. The row schema may already carry it: a course names its
+  part *and an ordinal*, so a border of several bands is expressible without a migration.
+
+  **It is the same concept as `B200`, on the other raster**: the top course of a plan divided into bands by how
+  far in from the edge a cell stands. The house has the axis (`Footprint.Ring`) and three fixed zones over it;
+  the terrain has neither. Whichever lands first should leave the other holding a band stack read along an
+  inset, and the two should be reviewed together rather than in sequence.
+
+  *found reading the house model after `B194`; the extraction it waited on landed as `B195`.*
+
+- [ ] **B200 — The top course of the terrain is not themeable inward, and the walk that would do it is
+  already written for houses.** A theme paints a column *downward*: the rim or the surface claims `Depth`
+  courses from the top, the wall takes the riser, fill takes the middle. There is no **plan-direction** axis at
+  all, so "a cobble rim, then two rings of stone brick, then a grass field" — the author's own words, reported
+  while theming a board — cannot be said. This is theming of the **topmost course only**, walked inward; it is
+  not the `Rim` bucket becoming concentric, and filing it that way was wrong.
+
+  **Nothing new has to be derived.** `Footprint.Step()` is the walk: seed a queue with every cell on the
+  outline, then flood inward one pass at a time over cells that are in the shape and not yet numbered — one
+  pass catches the first ring, two catch the second. It is 4-connected BFS over `(x, z)` cells and reads
+  nothing about houses. The terrain raster is the same kind of thing: `TerrainProfile` already classifies every
+  paintable column from `surfaceTop` by looking at its N8 neighbours, and its void-edge test is
+  `Footprint.OnPerimeter` written a second time — *in the set, and some N8 neighbour is outside it*. So the
+  seed exists on both sides and the walk exists on one.
+
+  **The shape of the fix, in three moves.** Lift the BFS into `PgmStudio.Geom.Algorithms` beside
+  `GridBoundary.TracePerimeter` — which `Footprint` and `TerrainProfile` **already share**, so the arc is
+  common and only the inset is not. Give `ColumnProfile` an `Inset` beside its `PerimeterArc`: one says how far
+  *round* the edge a cell sits, the other how far *in* from it, same pass and same struct. Carry it on
+  `BucketContext` the way the arc already is, and the bands are then a `BandStack` read along it with
+  `BandEnding.HandOver` — cobble, two of stone brick, then nothing claimed and the surface shows. Restricting
+  it to the top course composes rather than needing a knob: a `layered` stack whose first band is the
+  ring-banded material and whose rest is dirt.
+
+  **Blocked on one author call.** Does the walk cross an elevation step? Under `RimEdges.Drop` every tread edge
+  is its own ring 0, so a staircase of plateaus gets a band set per tread; under `Void` only the outer face
+  seeds, so the bands run across the treads and up the hill. Both are coherent and they look completely
+  different. The seed is the *geometric* edge either way, not the `Rim` bucket's toggle — the author has said
+  the walk starts "from the rim or if there is no rim".
+
+  *reported by the author while theming a board; corrected 2026-08-15 after reading `TerrainProfile` ·
+  `Footprint.Step` · `GridBoundary` · `docs/world-export/terrain-painting.md`.*
+
+- [ ] **B201 — `VoronoiMaterial.Bands` is a band stack that cannot use the band stack.** Its element is
+  `(material, depth)` — the same pair a `Band` is — but its axis is the **continuous** Worley `F2 − F1` gap
+  rather than an integer step, and its last band's stated depth is deliberately ignored. So it reads as a
+  fourth copy of the rule and is not one: the same words over a different traversal. Either `BandStack.At`
+  grows a `double` axis, or the element is shared and the traversal is not, or it stays as it is and the
+  duplication is only in the naming (`VoronoiBand.Depth` against `Band.Thickness`). **Which of the three is a
+  design call, not a defect** — filed so the audit does not re-find it as one.
+
+  *found doing `B195` · `TerrainPatterns.VoronoiMaterial`.*
 
 
 - [~] **B70 — The room-style *card* cannot show a porch or a window.** The open editor draws four views now

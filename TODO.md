@@ -35,41 +35,25 @@ between them.
 `B203` maps the class rather than an instance — five answers to "which columns does this stamp own", four
 tables for "what kind of block is this", one predicate written twice and one name covering two meanings.
 
-**Where the next agent starts: `B204`.** The forty-eight bucketed in `BACKLOG.md` are grouped by *area of
-code*, which is what an agent needs in order to work and not what several agents need in order to agree. Every
-seam above lives between buckets. Dispatched as they stand, each agent fixes the instance in front of it —
-correctly, locally — and leaves the other copies differing deliberately rather than by neglect, which is
-strictly harder to find afterwards.
+**The dispatch pass is done, and it moved three tasks.** `B204` read the bucket bodies rather than their
+titles and labelled each with the concept it spends and the one place that concept may land; the map is in
+`BACKLOG.md` under *What each bucket spends*. Four of its five predicted labels were wrong in a way only the
+bodies show: bucket 4 held three tasks that are not block-kind rules at all but one walk asked for on three
+rasters, now **bucket 13**; bucket 10 is not document drift but the refusal vocabulary; bucket 9 has been
+finished since before the table was written; and `B177` asked for a rule that `PlanValidator.LintSp2` already
+implements, so an agent handed it as written would have shipped the second copy.
+
+**What that leaves as the order.** Buckets 6 and 7 spend occupancy and wait on `B202` — dispatched before it
+they entrench the fault it names. Buckets 1, 2, 3 and 10 all land in `PlanValidator` and go to one agent or
+strictly in sequence. Buckets 4 and 5 share the block table. Bucket 13 wants its author call answered first.
+Buckets 8, 11 and 12 share nothing and may run at once.
 
 ## Backend, pipeline & internals (B / P / A)
 
-**Two findings and the pass that decides how the rest are dispatched.** `B202` is the live one and `B203` is
-the class it belongs to; `B204` is what has to happen before the bucketed forty-eight are handed out. The
-entries under them are the live-defect hunts already open against the same surfaces — a building that is solid
-behind its facade, leaves lying inside one, a stale chunk surviving a rebuild — plus the two names that still
-cover two meanings each.
-
-- [ ] **B204 — Say which concept each bucket spends, before an agent is handed one.** The forty-eight in
-  `BACKLOG.md` are bucketed by area of code. That is what an agent needs in order to work; it is not what
-  several agents need in order to agree. Bucket 4 is five tasks that are all one rule — a block must be the
-  kind its role needs — and five agents each adding a predicate is a fifth and sixth block table shipped as
-  five green PRs (`B203` counts the four that already exist).
-
-  Read each bucket's task bodies and label the bucket with the concept it spends and the shared unit that
-  concept must land in. The candidate set, derived from the bucket titles and the four seams rather than from
-  the bodies — which is exactly what this task is for:
-
-  | concept | buckets | where it has to land |
-  |---|---|---|
-  | distance and extent measures | 2, 3 | `PgmStudio.Geom` — `GridBoundary` is already shared, the inset is not (`B200`) |
-  | block-kind rules per role | 4, 5 | one role→allowed-set, not a predicate per site (`B203`) |
-  | occupancy — who owns a column | 1, 6, 7 | the provenance record, taken from placement (`B202`/`B203`) |
-  | the refusal vocabulary | any bucket that adds a rule | `Finding`/`Findings`/`Check` — which did not exist when these were written, so none of them says so |
-  | document drift | 8, 10 | nothing shared; genuinely parallel and dispatchable as they stand |
-
-  What it produces is a line per bucket naming its concept and its landing site — enough that a bucket can be
-  handed out without its agent having to discover the vocabulary first, and enough to say which buckets must
-  be ordered against each other rather than run at once.
+**Two findings, and the live-defect hunts against the same surfaces.** `B202` is the seam that bites and
+`B203` is the class it belongs to; both are now the gate on eight of the bucketed forty-eight rather than
+findings standing on their own. Under them: a building that is solid behind its facade, leaves lying inside
+one, a stale chunk surviving a rebuild, and the two names that still cover two meanings each.
 
 - [ ] **B202 — Provenance claims a building the dressing pass declined to place.** `Decorator.PlaceHouse`
   drops a house **whole** — every orbit image of it — when any image overlaps something already standing
@@ -102,6 +86,15 @@ cover two meanings each.
   which cells it stamped; it returns a `DressingTally` of *counts*. Have it report the placed footprints and
   claim from those, rather than re-deriving the same fact from the author's intent — the record should come
   from the placement, never beside it.
+
+  **And the rule is already written down, one function above the defect.** `DressingScope.GoalGroundAt` takes a
+  goal's ground from *"the box the stamper wrote where there is one … by construction rather than by two
+  derivations agreeing"* — the right direction, stated in a docstring, in the same file as
+  `StructureFootprints`, which does the opposite. `SketchWorldBuilder` rebuilds a claim beside its stamp four
+  more times (the room floor, the wall, the redstone line, the goal box) and shares a footprint function with
+  its stamper exactly once, for the iron cube. So this is not a design that has to be invented, and the fix's
+  reach is the whole file rather than the house case: `B204` files it as the **occupancy** concept, which
+  buckets 6 and 7 both spend and neither may be dispatched before this lands.
 
   *found in the provenance dive, 2026-08-15 · `Decorator.PlaceHouse` · `DressingScope.StructureFootprints`.*
 

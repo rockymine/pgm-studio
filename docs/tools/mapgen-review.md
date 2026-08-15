@@ -136,6 +136,12 @@ protection rectangle, so it is a contested resource nobody may contest — again
 they are cited here, and no gate applies them to an authored plan, which is the same shape as `B109`.
 `B177` carries this, and it supplies the rule id `B169`'s dead-ground entry was missing: SP2.
 
+**The two rules fail differently, and only one of them is missing.** SP2 is implemented — `PlanValidator`
+lints a spawn against the back half of its piece — and what fails is reach, since no `src/` caller runs the
+validator over a plan an author posts, and a lint is a complaint even where it runs. SP7 has no code at all:
+it appears in `rules.md` and here, and nowhere in `src/`. Anything acting on this entry writes the SP7 check
+and reaches the SP2 one; writing a second SP2 is the failure mode.
+
 **MG32 — A destroy board is not a capture board with a different goal; the topology is inverted.** In
 capture the thing a team wants is deep in *enemy* ground, so the board is built around a long run out and a
 longer run back. In destroy the thing a team defends is its **own** monument: the spawn sits remote at the
