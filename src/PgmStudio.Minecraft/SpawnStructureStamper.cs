@@ -50,7 +50,7 @@ public static class SpawnStructureStamper
 
         if (room.Shell is { } shell)
             HouseStamper.Stamp(world, frame, room.FloorY,
-                shell with { Door = DoorMaterial.Air }, room.TeamColor);
+                shell with { Doorway = shell.Doorway with { Door = DoorMaterial.Air } }, room.TeamColor);
 
         // After the shell, so the pad is the floor the spawn point sits on rather than whatever a style laid.
         var point = PlayerSpawnStamper.Place(world, frame.Pad, room.FloorY, room.TeamColor);

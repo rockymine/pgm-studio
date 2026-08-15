@@ -48,7 +48,7 @@ var oak = HouseStyle.Wool with
         Plate = RoomPart.Of(new SolidMaterial(5, 0)),      // oak planks
         Footing = new SolidMaterial(4),                    // cobble
     },
-    DoorHeight = 3,
+    Doorway = new Doorway { Height = 3 },
 };
 layout.RoomStyles = new SketchRoomStyles
 {

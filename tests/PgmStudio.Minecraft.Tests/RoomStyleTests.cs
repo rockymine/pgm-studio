@@ -190,7 +190,7 @@ public sealed class RoomStyleTests
         {
             Foundation = new Foundation { Plate = RoomPart.Of(new SolidMaterial(Blocks.Obsidian)) },
             Wall = RoomPart.Of(new SolidMaterial(Blocks.Obsidian), 7),
-            Door = DoorMaterial.Air,
+            Doorway = new Doorway { Door = DoorMaterial.Air },
         });
 
         await Assert.That(world.GetBlock(-1, 64, -1)).IsEqualTo((Blocks.Wool, Red));   // pad survives the floor

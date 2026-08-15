@@ -197,11 +197,15 @@ the two things a style may not decide — the **pad**, because the exported wool
 it (WX5), and the **doorway**, because it is the entry contract (WX6/WX7).
 
 **A statement about one piece of the building lives on that piece.** What a building stands on is a
-`Foundation` and what stands above the eave is a `RoofStyle`, each one type carrying every statement about
-itself rather than a run of fields beside everything else — so a `HouseStyle` names a foundation, a roof, a
-wall, its posts, its windows, its storeys, its porch, its beams and its door, and a caller asking about the
-roof asks the roof. Where a piece has exactly one thing to say it stays a field: a post is a material and
-nothing else.
+`Foundation`, what stands above the eave is a `RoofStyle`, and the way in is a `Doorway` — each one type
+carrying every statement about itself rather than a run of fields beside everything else, so a caller asking
+about the roof asks the roof. Where a piece has exactly one thing to say it stays a field: a post is a
+material and nothing else.
+
+**A field that only looks like part of one is the trap.** Which wall the doorway is cut through is the
+building's `Front`, not the doorway's: it is the same wall a `RoofForm.Shed` falls toward and a porch stands
+against, so filing it under the doorway would leave a roof asking the way in which way it falls. What decides
+a piece's home is the responsibility it answers to, never the prefix it shares.
 
 A stack is read from its part's own base outward: a floor **downward** from the course players stand on, a
 wall and a roof **upward**. The direction is the load-bearing part of the model. A floor that grew upward

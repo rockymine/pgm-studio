@@ -420,7 +420,7 @@ public static class Decorator
         var (runLo, runHi) = wall.BetweenCorners;
         var (lo, hi) = seatHi >= seatLo ? (seatLo, seatHi) : (runLo, runHi);
 
-        var width = Math.Clamp(Math.Max(2, style.DoorWidth), 1, hi - lo + 1);
+        var width = Math.Clamp(style.Doorway.CutWidth, 1, hi - lo + 1);
         return [new RoomDoor(front, Math.Clamp(about - (width - 1) / 2, lo, hi - width + 1), width)];
     }
 

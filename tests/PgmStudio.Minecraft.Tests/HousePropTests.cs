@@ -35,7 +35,7 @@ public sealed class HousePropTests
         Id = "h1",
         Wings = [new AuthoredWing([[minX, minZ], [maxX, maxZ]])],
         Front = front,
-        Style = new HouseStyle { Door = DoorMaterial.Air },
+        Style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } },
     };
 
     /// <summary>A building of several touching wings, each as its own two opposite corners.</summary>
@@ -47,7 +47,7 @@ public sealed class HousePropTests
             Wings = [.. wings.Select(wing => new AuthoredWing(
                 [[wing.MinX, wing.MinZ], [wing.MaxX, wing.MaxZ]]))],
             Front = front,
-            Style = style ?? new HouseStyle { Door = DoorMaterial.Air },
+            Style = style ?? new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } },
         };
 
     private static HouseProp House(
@@ -212,7 +212,8 @@ public sealed class HousePropTests
         // the authoring shape and the symmetry turn, so a regression in how the Decorator composes and turns
         // the plan is caught here rather than only at the stamper's own, narrower door.
         var (world, top) = Plateau();
-        var ell = House("h", null, new HouseStyle { Door = DoorMaterial.StainedGlass }, (0, 0, 10, 6), (0, 7, 5, 13));
+        var glazed = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.StainedGlass } };
+        var ell = House("h", null, glazed, (0, 0, 10, 6), (0, 7, 5, 13));
         Decorator.Decorate(world, Context(top, [ell]));
 
         var floorY = 7;   // Plateau's flat surface top (8) minus one — Ground seats the floor a course under it

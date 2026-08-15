@@ -347,19 +347,22 @@ stamper takes, a sketch's Rooms step stores, and a placed building carries:
   "windows": { "form": "stairLattice", "block": 135, "data": 0,
                "hostBlock": -1, "hostData": 0,
                "sill": 4, "width": 2, "height": 2, "spacing": 3 },
-  "storeys": [], "porch": null, "doorEdge": null,
-  "beams": { "block": -1, "data": 0, "reach": 1, "any": false },
-  "door": "air", "doorWidth": 2, "doorHeight": 3,
-  "doorHead": { "form": "arched", "block": 135,
-                "fill": "upperSlab", "fillBlock": 126, "fillData": 2 }
+  "doorway": {
+    "door": "air", "width": 2, "height": 3,
+    "head": { "form": "arched", "block": 135,
+              "fill": "upperSlab", "fillBlock": 126, "fillData": 2 } },
+  "storeys": [], "porch": null, "front": null,
+  "beams": { "block": -1, "data": 0, "reach": 1, "any": false }
 }
 ```
 
 Read it against the levels above and the whole model is visible in one object. **A part the building has more
 than one statement about is an object of its own**: `foundation` is what the building stands on — its plate,
-the footing round it and how the plate's top course is zoned — and `roof` is everything above the eave, its
-three materials and the seven numbers that shape them, which is why neither appears as a field beside the
-rest. `wall` and the foundation's `plate` are **course stacks** — a material and how many courses it runs,
+the footing round it and how the plate's top course is zoned; `roof` is everything above the eave, its three
+materials and the seven numbers that shape them; and `doorway` is the way in, its size, what fills it and the
+beam over it. None of the three appears as a field beside the rest. Which wall the doorway is cut through is
+**not** one of them: that is `front`, the wall the whole building fronts on and the one a shed roof falls
+toward, which is why it is the style's own. `wall` and the foundation's `plate` are **course stacks** — a material and how many courses it runs,
 counted up from the part's own base — while `post` and the roof's `body`, `verge` and `gable` are **single
 materials**, which is why the two end-stone-and-sandstone courses are a list and the brick roof is not.
 `post: null` is the absence of a part, not an empty one: this house has no frame, and `footing: null` says the

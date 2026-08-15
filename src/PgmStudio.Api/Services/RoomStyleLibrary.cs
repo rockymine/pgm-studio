@@ -318,16 +318,19 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
             Windows = WindowOf(row),
             Storeys = StoreysOf(row),
             Porch = PorchOf(row),
-            Door = DoorMaterials.TryParse(row.Door, out var door) ? door : DoorMaterial.StainedGlassPane,
-            DoorHeight = Math.Max(1, row.DoorHeight),
+            Doorway = new Doorway
+            {
+                Door = DoorMaterials.TryParse(row.Door, out var door) ? door : DoorMaterial.StainedGlassPane,
+                Height = Math.Max(1, row.DoorHeight),
+                // A head the row carries columns for. It is off by default and off is what every stored style
+                // was, so a row saved before them builds exactly what it always did.
+                Head = DoorHeadOf(row),
+            },
 
-            // Trim the row carries columns for. Each is off by default and off is what every stored style was,
-            // so a row saved before them builds exactly what it always did.
             Beams = new BeamStyle
             {
                 Block = row.BeamBlock, Data = row.BeamData, Reach = Math.Max(1, row.BeamReach),
             },
-            DoorHead = DoorHeadOf(row),
         };
     }
 

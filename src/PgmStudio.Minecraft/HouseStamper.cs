@@ -109,10 +109,10 @@ public static class HouseStamper
         // which is the same refusal a span under three blocks used to be and holds whatever shape it is.
         if (!ground.Cells().Any(cell => ground.Ring(cell.X, cell.Z) >= 1)) return;
 
-        var front = style.Porch?.Edge ?? style.DoorEdge ?? FrontEdge(doors, ground);
+        var front = style.Porch?.Edge ?? style.Front ?? FrontEdge(doors, ground);
         var (body, deck) = SplitPorch(ground, style.Porch, front);
         var doorHeight = Math.Min(
-            doors is { Count: > 0 } ? style.DoorHeight : Math.Max(3, style.DoorHeight),
+            doors is { Count: > 0 } ? style.Doorway.Height : Math.Max(3, style.Doorway.Height),
             Math.Max(1, style.Levels[0].Headroom));
         // The run of wall the building fronts on: what its own door is cut through, and what the way up stands
         // against. A rectangle has one run per side, so this is that side; a plan that turns a corner has to
@@ -647,19 +647,19 @@ public static class HouseStamper
         // purpose, not a gap a material declined to fill.
         void StampDoors()
         {
-            var choice = DoorMaterials.Of(style.Door);
+            var choice = DoorMaterials.Of(style.Doorway.Door);
             foreach (var door in openings)
             {
                 // The head takes the opening's <em>top</em> course where the style names one and the opening
                 // is big enough to spare it, so a three-course door becomes two of clear under a beam.
-                var head = style.DoorHead.Fits(door.Width, doorHeight) ? doorHeight : 0;
+                var head = style.Doorway.Head.Fits(door.Width, doorHeight) ? doorHeight : 0;
                 var alongX = door.Wall.AlongX;
                 for (var course = 1; course <= doorHeight; course++)
                     for (var step = 0; step < door.Width; step++)
                     {
                         var (x, z) = door.Wall.Cell(door.Lo + step);
                         var (id, data) = course == head
-                            ? style.DoorHead.Piece(alongX, step, door.Width)
+                            ? style.Doorway.Head.Piece(alongX, step, door.Width)
                             : (choice.BlockId, choice.Coloured && color >= 0 ? color : 0);
                         world.SetBlock(x, floorY + course, z, id, data);
                     }
@@ -817,7 +817,7 @@ public static class HouseStamper
         }
 
         if (frontWall is not { } face) return [];
-        return Fit(face, Math.Max(2, style.DoorWidth), FrontCentre(body, face.Facing)) is { } own
+        return Fit(face, style.Doorway.CutWidth, FrontCentre(body, face.Facing)) is { } own
             ? [new WallOpening(face, own.Lo, own.Width)]
             : [];
     }

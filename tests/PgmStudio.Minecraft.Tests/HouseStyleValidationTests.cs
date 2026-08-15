@@ -18,6 +18,10 @@ public sealed class HouseStyleValidationTests
     private static HouseStyle Slabbed(HouseStyle style, int slab)
         => style with { Roof = style.Roof with { Slab = slab } };
 
+    // A preset with one thing about the beam over its doorway changed.
+    private static HouseStyle Headed(HouseStyle style, Func<DoorHeadStyle, DoorHeadStyle> change)
+        => style with { Doorway = style.Doorway with { Head = change(style.Doorway.Head) } };
+
     // ── the shipped presets are clean ──────────────────────────────────────────────────────────────────
 
     [Test]
@@ -58,10 +62,8 @@ public sealed class HouseStyleValidationTests
     public async Task A_door_head_named_a_cobblestone_stair_is_refused()
     {
         // sable-marsh's spawn room, block for block: doorHead.block and fillBlock both Cobblestone (4).
-        var style = HousePresets.Desert.Style with
-        {
-            DoorHead = HousePresets.Desert.Style.DoorHead with { Block = Blocks.Cobblestone, FillBlock = Blocks.Cobblestone },
-        };
+        var style = Headed(HousePresets.Desert.Style,
+            head => head with { Block = Blocks.Cobblestone, FillBlock = Blocks.Cobblestone });
         // Wrecking both fields at once also drops the door's clear height below the line (HS2) — the same
         // fault sable-marsh's own spawn room carries, not a second problem this fixture introduced.
         var findings = HouseStyleValidation.Check(style);
@@ -154,25 +156,22 @@ public sealed class HouseStyleValidationTests
 
     [Test]
     public async Task A_three_course_door_with_a_genuine_upper_slab_head_clears_two_point_five()
-        => await Assert.That(HouseStyleValidation.ClearDoorHeight(HousePresets.Desert.Style)).IsEqualTo(2.5m);
+        => await Assert.That(HousePresets.Desert.Style.Doorway.Clearance).IsEqualTo(2.5m);
 
     [Test]
     public async Task The_same_door_with_a_solid_cube_where_the_fill_should_be_clears_only_two()
     {
         // The exact sable-marsh/corvid-hollow measurement: a genuine head with the fill block wrong drops the
         // reported clearance from 2.5 to a flat 2.0.
-        var style = HousePresets.Desert.Style with
-        {
-            DoorHead = HousePresets.Desert.Style.DoorHead with { FillBlock = Blocks.Cobblestone },
-        };
-        await Assert.That(HouseStyleValidation.ClearDoorHeight(style)).IsEqualTo(2.0m);
+        var style = Headed(HousePresets.Desert.Style, head => head with { FillBlock = Blocks.Cobblestone });
+        await Assert.That(style.Doorway.Clearance).IsEqualTo(2.0m);
         await Assert.That(HouseStyleValidation.Check(style).Select(f => f.Rule)).Contains(HouseStyleRules.DoorClearance);
     }
 
     [Test]
     public async Task A_door_with_no_head_clears_its_own_door_height()
     {
-        await Assert.That(HouseStyleValidation.ClearDoorHeight(HousePresets.Diorite.Style)).IsEqualTo(3m);
+        await Assert.That(HousePresets.Diorite.Style.Doorway.Clearance).IsEqualTo(3m);
         await Assert.That(HouseStyleValidation.Check(HousePresets.Diorite.Style)).IsEmpty();
     }
 
@@ -182,11 +181,8 @@ public sealed class HouseStyleValidationTests
         // Fill = Solid never gives back the half-block, whatever the block is, so a three-course door with a
         // solid-filled head cannot clear the line — this is not a defect in Solid, it is a door too short for
         // the head it wears.
-        var style = HousePresets.Desert.Style with
-        {
-            DoorHead = HousePresets.Desert.Style.DoorHead with { Fill = DoorHeadFill.Solid },
-        };
-        await Assert.That(HouseStyleValidation.ClearDoorHeight(style)).IsEqualTo(2.0m);
+        var style = Headed(HousePresets.Desert.Style, head => head with { Fill = DoorHeadFill.Solid });
+        await Assert.That(style.Doorway.Clearance).IsEqualTo(2.0m);
     }
 
     // ── HS3 — a roof's own materials ──────────────────────────────────────────────────────────────────

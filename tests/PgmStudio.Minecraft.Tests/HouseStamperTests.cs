@@ -54,8 +54,8 @@ public sealed class HouseStamperTests
         // A doorway is a hole on purpose, so closure is asked of a house whose door is glazed.
         var world = House(width, depth, new HouseStyle
         {
-            Door = DoorMaterial.StainedGlass,
             Roof = new RoofStyle { Pitch = pitch },
+            Doorway = new Doorway { Door = DoorMaterial.StainedGlass },
         });
         await Assert.That(Leaks(world, width, depth)).IsFalse();
     }
@@ -64,7 +64,7 @@ public sealed class HouseStamperTests
     public async Task An_open_doorway_is_the_only_way_out()
     {
         // The same house with the door open must leak, or the doorway was never cut.
-        var world = House(11, 9, new HouseStyle { Door = DoorMaterial.Air });
+        var world = House(11, 9, new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } });
         await Assert.That(Leaks(world, 11, 9)).IsTrue();
     }
 
@@ -185,8 +185,8 @@ public sealed class HouseStamperTests
         // by trying to escape rather than by counting what was placed.
         var world = House(11, 9, new HouseStyle
         {
-            Door = DoorMaterial.StainedGlass,
             Roof = new RoofStyle { Form = form, Hole = false, Overhang = 2 },
+            Doorway = new Doorway { Door = DoorMaterial.StainedGlass },
         });
         await Assert.That(Leaks(world, 11, 9)).IsFalse();
     }
@@ -386,7 +386,11 @@ public sealed class HouseStamperTests
     [Test]
     public async Task A_porch_carries_the_doorway_onto_the_wall_it_moved()
     {
-        var world = House(13, 11, new HouseStyle { Porch = new PorchStyle { Depth = 2 }, Door = DoorMaterial.Air });
+        var world = House(13, 11, new HouseStyle
+        {
+            Porch = new PorchStyle { Depth = 2 },
+            Doorway = new Doorway { Door = DoorMaterial.Air },
+        });
         var open = 0;
         for (var x = 1; x < 12; x++) if (world.GetBlock(x, FloorY + 1, 2).Id == Blocks.Air) open++;
         await Assert.That(open).IsEqualTo(2);
@@ -395,11 +399,15 @@ public sealed class HouseStamperTests
     [Test]
     public async Task A_porch_keeps_its_deck_walkable_and_its_rail_open_in_front_of_the_door()
     {
-        var style = new HouseStyle { Porch = new PorchStyle { Depth = 2 }, Door = DoorMaterial.Air };
+        var style = new HouseStyle
+        {
+            Porch = new PorchStyle { Depth = 2 },
+            Doorway = new Doorway { Door = DoorMaterial.Air },
+        };
         var world = House(13, 11, style);
 
         // The canopy clears the doorway it fronts rather than closing it.
-        for (var y = FloorY + 1; y <= FloorY + Math.Max(3, style.DoorHeight); y++)
+        for (var y = FloorY + 1; y <= FloorY + Math.Max(3, style.Doorway.Height); y++)
             await Assert.That(world.GetBlock(6, y, 0).Id).IsEqualTo(Blocks.Air);
 
         // The rail runs the deck's open edges and breaks where the door's own run crosses it.
@@ -415,7 +423,11 @@ public sealed class HouseStamperTests
         var deep = House(11, 9, new HouseStyle { Porch = new PorchStyle { Depth = 8 } });
         await Assert.That(deep.GetBlock(1, FloorY + 3, 6).Id).IsNotEqualTo(Blocks.Air);    // walls kept 3 blocks
 
-        var narrow = House(9, 3, new HouseStyle { Porch = new PorchStyle { Depth = 4 }, Door = DoorMaterial.StainedGlass });
+        var narrow = House(9, 3, new HouseStyle
+        {
+            Porch = new PorchStyle { Depth = 4 },
+            Doorway = new Doorway { Door = DoorMaterial.StainedGlass },
+        });
         await Assert.That(Leaks(narrow, 9, 3)).IsFalse();
         await Assert.That(narrow.GetBlock(1, FloorY + 2, 0).Id).IsNotEqualTo(Blocks.Air);  // front wall still there
     }
@@ -432,7 +444,7 @@ public sealed class HouseStamperTests
             {
                 Wall = RoomPart.Of(new SolidMaterial(Blocks.Cobblestone), wallExtent),
                 Porch = new PorchStyle { Depth = 2 },
-                Door = DoorMaterial.Air,
+                Doorway = new Doorway { Door = DoorMaterial.Air },
             });
             var top = 0;
             for (var x = 1; x < 12; x++)
@@ -459,7 +471,7 @@ public sealed class HouseStamperTests
             {
                 Wall = RoomPart.Of(new SolidMaterial(Blocks.Cobblestone), extent),
                 Porch = new PorchStyle { Depth = 2 },
-                Door = DoorMaterial.Air,
+                Doorway = new Doorway { Door = DoorMaterial.Air },
             });
             for (var z = 0; z <= 2; z++)                       // off the deck, across it, and the doorway itself
                 for (var y = FloorY + 1; y <= FloorY + 2; y++)
@@ -475,8 +487,8 @@ public sealed class HouseStamperTests
         var style = new HouseStyle
         {
             Wall = RoomPart.Of(new SolidMaterial(Blocks.Cobblestone), 24),
-            Door = DoorMaterial.StainedGlass,
             Roof = new RoofStyle { Form = RoofForm.Hip },
+            Doorway = new Doorway { Door = DoorMaterial.StainedGlass },
         };
         var world = House(5, 5, style);
 
@@ -495,11 +507,11 @@ public sealed class HouseStamperTests
     {
         var world = House(13, 11, new HouseStyle
         {
-            Door = DoorMaterial.StainedGlass,
             Windows = WindowStyle.Glazed,
             Porch = new PorchStyle { Depth = 2 },
             Foundation = new Foundation { Surface = new FloorSurface { Border = new SolidMaterial(Blocks.Obsidian) } },
             Roof = new RoofStyle { Form = RoofForm.Gambrel },
+            Doorway = new Doorway { Door = DoorMaterial.StainedGlass },
         });
         await Assert.That(Leaks(world, 13, 11)).IsFalse();
     }
@@ -509,7 +521,7 @@ public sealed class HouseStamperTests
     {
         // A single-width opening is a gap in a wall, not a door — a room an objective is carried out of has to
         // be walked through. Asking for less gets the floor, not the number asked for.
-        var world = House(11, 9, new HouseStyle { DoorWidth = 1, DoorHeight = 1 });
+        var world = House(11, 9, new HouseStyle { Doorway = new Doorway { Width = 1, Height = 1 } });
 
         var open = new List<(int X, int Y)>();
         for (var x = 1; x < 10; x++)
@@ -725,7 +737,11 @@ public sealed class HouseStamperTests
     public async Task A_self_cut_door_keeps_a_block_of_wall_clear_of_both_posts()
     {
         // A door hard against the corner post reads as a hole knocked through the frame rather than a way in.
-        var world = House(9, 7, new HouseStyle { Post = new SolidMaterial(Blocks.Log), DoorWidth = 2 });
+        var world = House(9, 7, new HouseStyle
+        {
+            Post = new SolidMaterial(Blocks.Log),
+            Doorway = new Doorway { Width = 2 },
+        });
 
         // The door is cut on a long side, so it runs along x. Its cells are air; the two beside the posts are
         // not.
@@ -740,7 +756,7 @@ public sealed class HouseStamperTests
     {
         // Five across leaves one cell once both margins are kept, so the opening narrows to it. The door is
         // what gives way, never the block of wall carrying the post — a narrow shed says it is narrow.
-        var world = House(5, 5, new HouseStyle { DoorWidth = 2 });
+        var world = House(5, 5, new HouseStyle { Doorway = new Doorway { Width = 2 } });
         var open = Enumerable.Range(0, 5).Where(x => world.GetBlock(x, FloorY + 1, 0).Id == Blocks.Air).ToList();
 
         await Assert.That(open).IsEquivalentTo(new[] { 2 });
@@ -755,7 +771,7 @@ public sealed class HouseStamperTests
         // longer side, and a door on the other wall would simply not be at z = 0 to look for.
         foreach (var width in new[] { 5, 6, 7, 9, 11 })
         {
-            var world = House(width, 5, new HouseStyle { DoorWidth = 2 });
+            var world = House(width, 5, new HouseStyle { Doorway = new Doorway { Width = 2 } });
             var open = Enumerable.Range(0, width)
                 .Where(x => world.GetBlock(x, FloorY + 1, 0).Id == Blocks.Air).ToList();
 
@@ -774,7 +790,7 @@ public sealed class HouseStamperTests
     [Arguments(11)]
     public async Task A_handed_in_door_clears_the_post_a_frame_knew_nothing_about(int width)
     {
-        var style = new HouseStyle { Post = new SolidMaterial(Blocks.Log), DoorWidth = 2 };
+        var style = new HouseStyle { Post = new SolidMaterial(Blocks.Log), Doorway = new Doorway { Width = 2 } };
         var world = new VoxelWorld();
         // Hard against the corner cell, which is where a frame that never heard of a post would put it.
         HouseStamper.Stamp(world, 0, 0, width, 7, FloorY, style, doors: [new RoomDoor(RoomEdge.NegZ, 1, 2)]);
@@ -833,7 +849,7 @@ public sealed class HouseStamperTests
     [Test]
     public async Task A_style_may_choose_the_wall_it_fronts_on()
     {
-        var hall = new HouseStyle { DoorEdge = RoomEdge.NegX, DoorWidth = 2 };
+        var hall = new HouseStyle { Front = RoomEdge.NegX, Doorway = new Doorway { Width = 2 } };
         var world = new VoxelWorld();
         HouseStamper.Stamp(world, 0, 0, 21, 9, FloorY, hall);
 
@@ -866,7 +882,13 @@ public sealed class HouseStamperTests
     {
         var plan = Ell();
         var world = new VoxelWorld();
-        HouseStamper.Stamp(world, plan, FloorY, new HouseStyle { Door = DoorMaterial.StainedGlass });
+        HouseStamper.Stamp(world, plan, FloorY, new HouseStyle
+        {
+            Doorway = new Doorway
+            {
+                Door = DoorMaterial.StainedGlass,
+            },
+        });
 
         // Deep in the notch, clear of the block of sill that legitimately rings the building.
         foreach (var (x, z) in new[] { (9, 11), (10, 12), (8, 12) })
@@ -912,7 +934,13 @@ public sealed class HouseStamperTests
     {
         var plan = Ell();
         var world = new VoxelWorld();
-        HouseStamper.Stamp(world, plan, FloorY, new HouseStyle { Door = DoorMaterial.StainedGlass });
+        HouseStamper.Stamp(world, plan, FloorY, new HouseStyle
+        {
+            Doorway = new Doorway
+            {
+                Door = DoorMaterial.StainedGlass,
+            },
+        });
 
         // Started in the crook, which is the cell furthest from any one wing's own walls.
         var start = (4, FloorY + 1, 5);
@@ -962,7 +990,13 @@ public sealed class HouseStamperTests
     {
         var plan = Ell();
         var world = new VoxelWorld();
-        HouseStamper.Stamp(world, plan, FloorY, new HouseStyle { Door = DoorMaterial.StainedGlass });
+        HouseStamper.Stamp(world, plan, FloorY, new HouseStyle
+        {
+            Doorway = new Doorway
+            {
+                Door = DoorMaterial.StainedGlass,
+            },
+        });
 
         var course = FloorY + 3;
         foreach (var (x, z) in plan.Cells())
@@ -997,7 +1031,7 @@ public sealed class HouseStamperTests
         var style = new HouseStyle
         {
             Storeys = [new Storey { Clear = 4 }, new Storey { Clear = 4 }],
-            Door = DoorMaterial.StainedGlass,
+            Doorway = new Doorway { Door = DoorMaterial.StainedGlass },
         };
         var world = new VoxelWorld();
         HouseStamper.Stamp(world, plan, FloorY, style);

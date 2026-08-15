@@ -89,6 +89,21 @@ public static class HouseStyleJson
             Carry(style, "roofSlabData", roof, "slabData");
             style["roof"] = roof;
         }
+
+        // The doorway's four were four fields beside everything else. `doorEdge` is not one of them and does
+        // not move: it is the wall the whole building fronts on — the one a shed roof falls toward and a porch
+        // stands against — so it becomes the style's own `front` rather than the doorway's.
+        if (style.ContainsKey("doorEdge")) Carry(style, "doorEdge", style, "front");
+        if (DoorFields.Any(style.ContainsKey))
+        {
+            var doorway = style["doorway"] as JsonObject ?? new JsonObject();
+            style.Remove("doorway");
+            Carry(style, "door", doorway, "door");
+            Carry(style, "doorHead", doorway, "head");
+            Carry(style, "doorWidth", doorway, "width");
+            Carry(style, "doorHeight", doorway, "height");
+            style["doorway"] = doorway;
+        }
     }
 
     /// <summary>The fields the roof's shape was stated in before it was a part of its own. Any of them names
@@ -96,6 +111,9 @@ public static class HouseStyleJson
     private static readonly string[] RoofFields =
         ["verge", "gable", "gableWindows", "form", "pitch", "overhang", "roofHole", "ridgeCap",
          "roofSlab", "roofSlabData"];
+
+    /// <summary>The fields the way in was stated in before it was a part of its own.</summary>
+    private static readonly string[] DoorFields = ["door", "doorHead", "doorWidth", "doorHeight"];
 
     /// <summary>Moves one stored field onto the part it now belongs to, under the name it now has. A field the
     /// style never named is left unnamed, so the part's own default stands where the record's always did.

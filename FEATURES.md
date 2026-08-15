@@ -3821,6 +3821,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   names none), that plate's **surface** zoning, and an optional **footing** ringing it a block proud, where
   absent is the state itself. Depth and material — the two things the author asked to vary — are the plate's.
   `HouseStyle.NoFooting` is deleted with the sentinel it named.
+- **The way in is one part, and the wall it is cut through is not part of it (B198).** Four fields described
+  the doorway — what fills it, the beam over it, and how wide and how tall it is — and they are now a
+  `Doorway`. A fifth shared their prefix and does **not** belong to them: `DoorEdge` is the wall the whole
+  building fronts on, the one a `RoofForm.Shed` falls toward and a porch stands against, so filing it under
+  the doorway would have left a roof asking the way in which way it falls. It is the style's own `Front`,
+  which is also the name `HouseProp` already used for the same thing. The verb travelled with the type: the
+  clear height a doorway actually leaves once its head is written into the top course was
+  `HouseStyleValidation.ClearDoorHeight(style)` — a gate re-deriving from three fields it did not own — and is
+  now `Doorway.Clearance`. `CutWidth` joins it, the never-under-two rule the docstring stated and two callers
+  each clamped for themselves.
 - **Everything above the eave is one part (B197).** Eleven of a `HouseStyle`'s fields described the roof —
   its form, pitch, overhang, half-course slab and that slab's variant, its hole and its ridge cap, and the
   three materials it is laid in — and one of them was named `Roof` and held the material the other ten

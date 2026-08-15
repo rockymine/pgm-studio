@@ -25,7 +25,7 @@ public sealed class RoomStyleJsonTests
 
         await Assert.That(members).IsEquivalentTo(new[]
         {
-            "Beams", "Door", "DoorEdge", "DoorHead", "DoorHeight", "DoorWidth", "Foundation",
+            "Beams", "Doorway", "Front", "Foundation",
             "Porch", "Post", "Roof", "Storeys", "Wall", "Windows",
         }.Order().ToList());
     }
@@ -108,6 +108,30 @@ public sealed class RoomStyleJsonTests
         await Assert.That(style.Roof.Verge).IsEqualTo(new RoofStyle().Verge);
     }
 
+    /// <summary>The way in was four fields beside everything else, and a fifth that only looked like one:
+    /// <c>doorEdge</c> is the wall the whole building fronts on — the one a shed roof falls toward and a porch
+    /// stands against — so it reads forward as the style's own <c>front</c> rather than into the doorway. A
+    /// stored style keeps both.</summary>
+    [Test]
+    public async Task A_style_stored_before_the_doorway_was_one_part_reads_forward()
+    {
+        var stored = """
+            {"door":"web","doorWidth":3,"doorHeight":4,"doorEdge":"negX",
+             "doorHead":{"form":"arched","block":135,"fill":"upperSlab","fillBlock":126,"fillData":2},
+             "wall":{"courses":[{"material":{"kind":"solid","id":5,"data":1},"height":1}],"extent":5}}
+            """;
+
+        var style = HouseStyleJson.Deserialize(stored);
+
+        await Assert.That(style.Doorway.Door).IsEqualTo(DoorMaterial.Web);
+        await Assert.That(style.Doorway.Width).IsEqualTo(3);
+        await Assert.That(style.Doorway.Height).IsEqualTo(4);
+        await Assert.That(style.Doorway.Head.Form).IsEqualTo(DoorHeadForm.Arched);
+        await Assert.That(style.Doorway.Head.FillBlock).IsEqualTo(126);
+        await Assert.That(style.Front).IsEqualTo(RoomEdge.NegX);    // the building's, not the doorway's
+        await Assert.That(style.Wall.Extent).IsEqualTo(5);
+    }
+
     /// <summary>The air material that used to stand in for no footing reads forward as the state it meant, so
     /// a building seated into terrain still meets the ground flush rather than on a course of air.</summary>
     [Test]
@@ -154,7 +178,7 @@ public sealed class RoomStyleJsonTests
         // nothing about which door a room has.
         var json = HouseStyleJson.Serialize(HouseStyle.Wool with
         {
-            Door = DoorMaterial.Web,
+            Doorway = HouseStyle.Wool.Doorway with { Door = DoorMaterial.Web },
             Roof = HouseStyle.Wool.Roof with { Overhang = 1, Hole = false },
         });
 

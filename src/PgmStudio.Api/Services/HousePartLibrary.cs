@@ -231,7 +231,7 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
             Body = new SolidMaterial(Blocks.Planks, 1),
             Verge = new SolidMaterial(Blocks.Planks, 5),
         },
-        Door = DoorMaterial.Air,
+        Doorway = new Doorway { Door = DoorMaterial.Air },
     };
 
     /// <summary>What a roof is stood on: unbroken wall and nothing else. No windows, no posts and no porch, so

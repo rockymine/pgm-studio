@@ -46,14 +46,14 @@ public static class HouseStyleValidation
     public static Findings Check(HouseStyle style)
     {
         var findings = new List<Finding>();
-        CheckDoorHead(style.DoorHead, findings);
+        CheckDoorHead(style.Doorway.Head, findings);
         CheckWindow("windows", style.Windows, findings);
         CheckWindow("gableWindows", style.Roof.GableWindows, findings);
         for (var at = 0; at < style.Storeys.Count; at++)
             if (style.Storeys[at].Windows is { } storeyWindows)
                 CheckWindow($"storeys[{at}].windows", storeyWindows, findings);
         CheckRoofMaterials(style, findings);
-        CheckDoorClearance(style, findings);
+        CheckDoorClearance(style.Doorway, findings);
         return findings;
     }
 
@@ -168,25 +168,9 @@ public static class HouseStyleValidation
 
     // ── a door's clear height ──────────────────────────────────────────────────────────────────────────────
 
-    /// <summary>The clear height, in blocks, the doorway this style cuts actually leaves once its
-    /// <see cref="HouseStyle.DoorHead"/> is written into the top course — the author's own arithmetic
-    /// (<see cref="DoorHeadStyle"/>'s own docstring: "a three-course door keeps two clear courses"), not a
-    /// re-derivation. A door with no head, or a head too small to fit, is not touched and clears its own
-    /// <see cref="HouseStyle.DoorHeight"/>; a head that fits takes the top course and gives back half of it only
-    /// when the fill is genuinely an upper slab — a claim <see cref="DoorHeadFill.UpperSlab"/> can make falsely
-    /// if <see cref="DoorHeadStyle.FillBlock"/> is not really a slab, which is why this checks the block and not
-    /// only the enum.</summary>
-    public static decimal ClearDoorHeight(HouseStyle style)
+    private static void CheckDoorClearance(Doorway doorway, List<Finding> findings)
     {
-        var head = style.DoorHead;
-        if (!head.Fits(style.DoorWidth, style.DoorHeight)) return style.DoorHeight;
-        var genuineSlab = head.Fill == DoorHeadFill.UpperSlab && BlockKinds.IsSlab(head.FillBlock);
-        return (style.DoorHeight - 1) + (genuineSlab ? 0.5m : 0m);
-    }
-
-    private static void CheckDoorClearance(HouseStyle style, List<Finding> findings)
-    {
-        var clear = ClearDoorHeight(style);
+        var clear = doorway.Clearance;
         if (clear < LeastDoorClearance)
             findings.Add(new Finding(HouseStyleRules.DoorClearance,
                 $"the doorway clears {clear:0.0} blocks once its head is written in; a door must clear at " +

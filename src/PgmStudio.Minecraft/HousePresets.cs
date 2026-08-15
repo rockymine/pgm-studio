@@ -148,9 +148,7 @@ public static class HousePresets
             Plate = RoomPart.Of(Spruces),
             Footing = null,   // it meets the ground flush; there is no footing
         },
-        Door = DoorMaterial.Air,
-        DoorWidth = 2,
-        DoorHeight = 3,
+        Doorway = new Doorway { Door = DoorMaterial.Air, Width = 2, Height = 3 },
         // Seven rather than five across: a two-wide door wants a block of wall clear of each corner post, and
         // a five-wide face has one cell left after those margins.
     }, Width: 7, Depth: 9);
@@ -199,16 +197,19 @@ public static class HousePresets
             Plate = RoomPart.Of(new SolidMaterial(Blocks.Sandstone)),
             Footing = null,
         },
-        Door = DoorMaterial.Air,
-        DoorWidth = 2,
-        DoorHeight = 3,
-        DoorHead = new DoorHeadStyle
+        Doorway = new Doorway
         {
-            Form = DoorHeadForm.Arched,
-            Block = BirchStairs,
-            Fill = DoorHeadFill.UpperSlab,
-            FillBlock = Blocks.WoodenSlab,
-            FillData = BirchSlab,
+            Door = DoorMaterial.Air,
+            Width = 2,
+            Height = 3,
+            Head = new DoorHeadStyle
+            {
+                Form = DoorHeadForm.Arched,
+                Block = BirchStairs,
+                Fill = DoorHeadFill.UpperSlab,
+                FillBlock = Blocks.WoodenSlab,
+                FillData = BirchSlab,
+            },
         },
     }, Width: 7, Depth: 9);
 
@@ -269,9 +270,7 @@ public static class HousePresets
             Plate = RoomPart.Of(new SolidMaterial(Blocks.Stone, PlainDiorite)),
             Footing = null,
         },
-        Door = DoorMaterial.Air,
-        DoorWidth = 2,
-        DoorHeight = 3,
+        Doorway = new Doorway { Door = DoorMaterial.Air, Width = 2, Height = 3 },
     }, Width: 7, Depth: 7);
 
     /// <summary>
@@ -347,9 +346,7 @@ public static class HousePresets
             Plate = RoomPart.Of(new SolidMaterial(Blocks.Planks, Oak)),
             Footing = null,
         },
-        Door = DoorMaterial.Air,
-        DoorWidth = 2,
-        DoorHeight = 3,
+        Doorway = new Doorway { Door = DoorMaterial.Air, Width = 2, Height = 3 },
     }, Width: 7, Depth: 9);
 
     /// <summary>
@@ -430,13 +427,16 @@ public static class HousePresets
             Plate = RoomPart.Of(Spruces),
             Footing = new SolidMaterial(Blocks.Cobblestone),
         },
-        Door = DoorMaterial.Air,
-        DoorWidth = 2,
-        DoorHeight = 3,
-        DoorHead = new DoorHeadStyle
+        Doorway = new Doorway
         {
-            Form = DoorHeadForm.Arched, Block = StoneBrickStairs,
-            Fill = DoorHeadFill.UpperSlab, FillBlock = StoneSlab, FillData = StoneBrickSlab,
+            Door = DoorMaterial.Air,
+            Width = 2,
+            Height = 3,
+            Head = new DoorHeadStyle
+            {
+                Form = DoorHeadForm.Arched, Block = StoneBrickStairs,
+                Fill = DoorHeadFill.UpperSlab, FillBlock = StoneSlab, FillData = StoneBrickSlab,
+            },
         },
     }, Width: 9, Depth: 11);
 
@@ -472,7 +472,7 @@ public static class HousePresets
             Verge = DarkOak,
             Gable = DarkOak,
         },
-        DoorEdge = RoomEdge.NegX,                               // the gable end: the long walls keep their rows
+        Front = RoomEdge.NegX,                               // the gable end: the long walls keep their rows
 
         Post = SpruceLog,
         Wall = new RoomPart(
@@ -496,13 +496,16 @@ public static class HousePresets
             Footing = new SolidMaterial(Blocks.Cobblestone),
         },
         Beams = new BeamStyle { Block = Blocks.Log, Data = Spruce, Reach = 1 },
-        Door = DoorMaterial.Air,
-        DoorWidth = 3,
-        DoorHeight = 4,                                         // a hall takes a cart, not a person
-        DoorHead = new DoorHeadStyle
+        Doorway = new Doorway
         {
-            Form = DoorHeadForm.Arched, Block = SpruceStairs,
-            Fill = DoorHeadFill.UpperSlab, FillBlock = Blocks.WoodenSlab, FillData = SpruceSlab,
+            Door = DoorMaterial.Air,
+            Width = 3,
+            Height = 4,                                         // a hall takes a cart, not a person
+            Head = new DoorHeadStyle
+            {
+                Form = DoorHeadForm.Arched, Block = SpruceStairs,
+                Fill = DoorHeadFill.UpperSlab, FillBlock = Blocks.WoodenSlab, FillData = SpruceSlab,
+            },
         },
     }, Width: 21, Depth: 9);
 
@@ -569,13 +572,16 @@ public static class HousePresets
             Plate = RoomPart.Of(new SolidMaterial(StoneBrickBlock)),
             Footing = new SolidMaterial(Blocks.Cobblestone),
         },
-        Door = DoorMaterial.Air,
-        DoorWidth = 2,
-        DoorHeight = 3,
-        DoorHead = new DoorHeadStyle
+        Doorway = new Doorway
         {
-            Form = DoorHeadForm.Arched, Block = StoneBrickStairs,
-            Fill = DoorHeadFill.UpperSlab, FillBlock = StoneSlab, FillData = StoneBrickSlab,
+            Door = DoorMaterial.Air,
+            Width = 2,
+            Height = 3,
+            Head = new DoorHeadStyle
+            {
+                Form = DoorHeadForm.Arched, Block = StoneBrickStairs,
+                Fill = DoorHeadFill.UpperSlab, FillBlock = StoneSlab, FillData = StoneBrickSlab,
+            },
         },
     }, Width: 11, Depth: 9);
 
@@ -648,13 +654,16 @@ public static class HousePresets
             Plate = RoomPart.Of(new SolidMaterial(StoneBrickBlock)),
             Footing = new SolidMaterial(Blocks.Cobblestone),
         },
-        Door = DoorMaterial.Air,
-        DoorWidth = 2,
-        DoorHeight = 3,
-        DoorHead = new DoorHeadStyle
+        Doorway = new Doorway
         {
-            Form = DoorHeadForm.Arched, Block = StoneBrickStairs,
-            Fill = DoorHeadFill.UpperSlab, FillBlock = StoneSlab, FillData = StoneBrickSlab,
+            Door = DoorMaterial.Air,
+            Width = 2,
+            Height = 3,
+            Head = new DoorHeadStyle
+            {
+                Form = DoorHeadForm.Arched, Block = StoneBrickStairs,
+                Fill = DoorHeadFill.UpperSlab, FillBlock = StoneSlab, FillData = StoneBrickSlab,
+            },
         },
     }, Width: 9, Depth: 9);
 
@@ -721,13 +730,16 @@ public static class HousePresets
             },
             Footing = new SolidMaterial(Blocks.Cobblestone),
         },
-        Door = DoorMaterial.Air,
-        DoorWidth = 3,
-        DoorHeight = 3,
-        DoorHead = new DoorHeadStyle
+        Doorway = new Doorway
         {
-            Form = DoorHeadForm.Arched, Block = SpruceStairs,
-            Fill = DoorHeadFill.UpperSlab, FillBlock = Blocks.WoodenSlab, FillData = SpruceSlab,
+            Door = DoorMaterial.Air,
+            Width = 3,
+            Height = 3,
+            Head = new DoorHeadStyle
+            {
+                Form = DoorHeadForm.Arched, Block = SpruceStairs,
+                Fill = DoorHeadFill.UpperSlab, FillBlock = Blocks.WoodenSlab, FillData = SpruceSlab,
+            },
         },
     }, Width: 13, Depth: 11);
 }

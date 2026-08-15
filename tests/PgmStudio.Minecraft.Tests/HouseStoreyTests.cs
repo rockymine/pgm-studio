@@ -162,7 +162,7 @@ public sealed class HouseStoreyTests
     [Arguments(RoofForm.Hip)]
     public async Task A_stacked_house_is_still_sealed(RoofForm form)
     {
-        var style = Stacked(3, form: form) with { Door = DoorMaterial.StainedGlass };
+        var style = Stacked(3, form: form) with { Doorway = new Doorway { Door = DoorMaterial.StainedGlass } };
         var world = House(11, 9, style);
 
         var seeds = style.LevelBases.Select(at => (5, FloorY + at + 1, 4)).ToList();

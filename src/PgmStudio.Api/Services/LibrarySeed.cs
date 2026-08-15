@@ -275,8 +275,8 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             RidgeCap: style.Roof.RidgeCap,
             Storeys: Math.Max(1, style.Storeys.Count),
             StoreyClear: style.Storeys.Count > 0 ? style.Storeys[0].Clear : 0,
-            Door: DoorMaterials.Slug(style.Door),
-            DoorHeight: style.DoorHeight,
+            Door: DoorMaterials.Slug(style.Doorway.Door),
+            DoorHeight: style.Doorway.Height,
             BorderWidth: style.Foundation.Surface.BorderWidth,
             InlayInset: style.Foundation.Surface.InlayInset,
             Windows: WindowDto(windows),
@@ -293,8 +293,8 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             RoofSlabData: style.Roof.SlabData,
             GableWindows: WindowDto(style.Roof.GableWindows),
             DoorHead: new RoomDoorHeadDto(
-                NameOf(style.DoorHead.Form), style.DoorHead.Block,
-                NameOf(style.DoorHead.Fill), style.DoorHead.FillBlock, style.DoorHead.FillData));
+                NameOf(style.Doorway.Head.Form), style.Doorway.Head.Block,
+                NameOf(style.Doorway.Head.Fill), style.Doorway.Head.FillBlock, style.Doorway.Head.FillData));
     }
 
     // ── what the store could not hold ─────────────────────────────────────────────────────────────────
@@ -354,10 +354,10 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         Check("beams", preset.Beams, back.Beams);
         Check("windows", preset.Windows, back.Windows);
         Check("gableWindows", preset.Roof.GableWindows, back.Roof.GableWindows);
-        Check("doorHead", preset.DoorHead, back.DoorHead);
-        Check("door", preset.Door, back.Door);
-        Check("doorWidth", preset.DoorWidth, back.DoorWidth);
-        Check("doorHeight", preset.DoorHeight, back.DoorHeight);
+        Check("doorHead", preset.Doorway.Head, back.Doorway.Head);
+        Check("door", preset.Doorway.Door, back.Doorway.Door);
+        Check("doorWidth", preset.Doorway.Width, back.Doorway.Width);
+        Check("doorHeight", preset.Doorway.Height, back.Doorway.Height);
         Check("porch", preset.Porch, back.Porch);
 
         // The stack storey by storey, not just how many there are. A room style stores a count and one clear,

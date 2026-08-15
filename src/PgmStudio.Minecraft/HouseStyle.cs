@@ -344,6 +344,53 @@ public sealed record RoofStyle
 }
 
 /// <summary>
+/// The way into a building: how big the opening is, what carries the wall over it, and what stands in it.
+///
+/// <para>Which wall it is cut through is <b>not</b> here. That is the building's <see cref="HouseStyle.Front"/>
+/// — the same wall a <see cref="RoofForm.Shed"/> falls toward and a porch stands on — so a roof asking which
+/// way it falls would otherwise have to ask the doorway.</para>
+/// </summary>
+public sealed record Doorway
+{
+    /// <summary>What fills the opening, and a closed set because the wool room's break rule whitelists it.
+    /// Separate from <see cref="Head"/>, which carries the wall over the opening and is never something a
+    /// player goes through.</summary>
+    public DoorMaterial Door { get; init; } = DoorMaterial.Air;
+
+    /// <summary>The beam over the opening, or a plain rectangular top where it names no form.</summary>
+    public DoorHeadStyle Head { get; init; } = new();
+
+    /// <summary>How wide the opening is asked for. A single-width opening is a gap in a wall rather than a
+    /// door, and a room a player carries an objective out of has to read as somewhere to walk through — so
+    /// what is actually cut is <see cref="CutWidth"/>.</summary>
+    public int Width { get; init; } = 2;
+
+    public int Height { get; init; } = 3;
+
+    /// <summary>The width an opening is actually cut at: never under two, however it is set.</summary>
+    [JsonIgnore]
+    public int CutWidth => Math.Max(2, Width);
+
+    /// <summary>The clear height, in blocks, this doorway actually leaves once its <see cref="Head"/> is
+    /// written into the top course — the author's own arithmetic (<see cref="DoorHeadStyle"/>'s own docstring:
+    /// "a three-course door keeps two clear courses"), not a re-derivation. A door with no head, or a head too
+    /// small to fit, is not touched and clears its own <see cref="Height"/>; a head that fits takes the top
+    /// course and gives back half of it only when the fill is genuinely an upper slab — a claim
+    /// <see cref="DoorHeadFill.UpperSlab"/> can make falsely if <see cref="DoorHeadStyle.FillBlock"/> is not
+    /// really a slab, which is why this checks the block and not only the enum.</summary>
+    [JsonIgnore]
+    public decimal Clearance
+    {
+        get
+        {
+            if (!Head.Fits(Width, Height)) return Height;
+            var genuineSlab = Head.Fill == DoorHeadFill.UpperSlab && BlockKinds.IsSlab(Head.FillBlock);
+            return (Height - 1) + (genuineSlab ? 0.5m : 0m);
+        }
+    }
+}
+
+/// <summary>
 /// How a house is finished: a part or a material per piece of it, and the few numbers that decide its
 /// proportions.
 ///
@@ -457,27 +504,13 @@ public sealed record HouseStyle
     /// <para>A frame's doors still win over it: where a room states its entries the entry contract is the
     /// frame's, and this is only what a building picks when nothing has picked for it. A
     /// <see cref="PorchStyle.Edge"/> wins too, since a porch names the wall it fronts.</para></summary>
-    public RoomEdge? DoorEdge { get; init; }
-
-
+    public RoomEdge? Front { get; init; }
 
     /// <summary>The logs that run out past the corners where two storeys meet, or none.</summary>
     public BeamStyle Beams { get; init; } = new();
 
-    public DoorMaterial Door { get; init; } = DoorMaterial.Air;
-
-    /// <summary>The beam over the doorway, or a plain rectangular opening where it names no form. Separate
-    /// from <see cref="Door"/> because they answer different questions: the door is what fills the opening and
-    /// is a closed set the wool room's break rule has to whitelist, while the head is what carries the wall
-    /// over it and is never something a player goes through.</summary>
-    public DoorHeadStyle DoorHead { get; init; } = new();
-
-    /// <summary>The doorway, which is never smaller than two blocks wide by three tall however it is set. A
-    /// single-width opening is a gap in a wall rather than a door, and a room a player carries an objective
-    /// out of has to read as somewhere to walk through.</summary>
-    public int DoorWidth { get; init; } = 2;
-
-    public int DoorHeight { get; init; } = 3;
+    /// <summary>The way in and what is in it.</summary>
+    public Doorway Doorway { get; init; } = new();
 
     /// <summary>The highest course a flat lid reaches, as a layer above the floor. A gable climbs with the
     /// footprint it spans, so ask <see cref="HouseHeights.TopLayerOver"/> for one of those. Derived, so a
@@ -495,10 +528,8 @@ public sealed record HouseStyle
            && Foundation == other.Foundation && Roof == other.Roof
            && Wall == other.Wall && Post == other.Post && Windows == other.Windows
            && Storeys.SequenceEqual(other.Storeys)
-           && Porch == other.Porch && DoorEdge == other.DoorEdge
-           && Beams == other.Beams
-           && Door == other.Door && DoorHead == other.DoorHead
-           && DoorWidth == other.DoorWidth && DoorHeight == other.DoorHeight;
+           && Porch == other.Porch && Front == other.Front
+           && Beams == other.Beams && Doorway == other.Doorway;
 
     public override int GetHashCode()
     {
@@ -506,9 +537,8 @@ public sealed record HouseStyle
         hash.Add(Foundation); hash.Add(Roof);
         hash.Add(Wall); hash.Add(Post); hash.Add(Windows);
         foreach (var storey in Storeys) hash.Add(storey);
-        hash.Add(Porch); hash.Add(DoorEdge);
-        hash.Add(Beams);
-        hash.Add(Door); hash.Add(DoorHead); hash.Add(DoorWidth); hash.Add(DoorHeight);
+        hash.Add(Porch); hash.Add(Front);
+        hash.Add(Beams); hash.Add(Doorway);
         return hash.ToHashCode();
     }
 
@@ -521,8 +551,7 @@ public sealed record HouseStyle
     /// player can walk straight out of.</summary>
     public static HouseStyle Spawn { get; } = Shell(Banded(Blocks.StainedClay)) with
     {
-        Door = DoorMaterial.Air,
-        DoorHeight = 4,
+        Doorway = new Doorway { Door = DoorMaterial.Air, Height = 4 },
     };
 
     /// <summary>The tallest shell the shipped styles build — what a caller clamps a floor against so a stamp
@@ -546,8 +575,7 @@ public sealed record HouseStyle
             Verge = new SolidMaterial(Blocks.Bedrock),
         },
         Post = null,
-        Door = DoorMaterial.StainedGlassPane,
-        DoorHeight = 3,
+        Doorway = new Doorway { Door = DoorMaterial.StainedGlassPane, Height = 3 },
     };
 
     /// <summary>The shipped wall: three courses of bedrock, a coloured band, bedrock, an open course, bedrock.
@@ -584,7 +612,7 @@ public static class HouseHeights
         var field = new RoofField(
             style.Roof.Form, 0, 0, Math.Max(0, width - 1), Math.Max(0, depth - 1),
             Math.Max(0, style.Roof.Overhang), wallTop + 1, Math.Max(1, style.Roof.Pitch),
-            front ?? style.Porch?.Edge ?? style.DoorEdge ?? HouseStamper.DefaultFront(width, depth),
+            front ?? style.Porch?.Edge ?? style.Front ?? HouseStamper.DefaultFront(width, depth),
             style.Roof.InHalves);
         return field.Peak;
     }
