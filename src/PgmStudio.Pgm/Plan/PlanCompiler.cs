@@ -202,6 +202,12 @@ public static class PlanCompiler
                 spawns.Add(new SpawnIntent
                 {
                     Team = teams[k].Id,
+                    // Y here is the plan's own flat nominal height, exactly as ResolveGoalAnchor's is:
+                    // informational, carried for a caller with no built world to read yet, and never the
+                    // spawn's real Y. SketchWorldBuilder resolves that against the terrain the relief
+                    // actually left — FrameFloor over the room's own footprint, and the exported point is the
+                    // pad it puts the player on (WX5). Reading this number as the answer is what B222 was
+                    // filed over; it is not read, and SpawnAndWoolAnchorTests holds that.
                     Point = new Pt(px, piece.Value.Surface, pz),
                     // Protect the whole spawn piece the marker sits on, not just the stamped spawn cube.
                     Protection = [new Rect(prot.MinX, prot.MinZ, prot.MaxX, prot.MaxZ)],
@@ -257,6 +263,8 @@ public static class PlanCompiler
                                 return new Rect(fanned.MinX, fanned.MinZ, fanned.MaxX, fanned.MaxZ);
                             })]
                         : [],
+                    // Nominal, like the spawn's above and the goal anchor's below: the wool's real Y is the
+                    // course its cage puts it on, over the ground SketchWorldBuilder measured.
                     Spawn = new Pt(px, piece.Value.Surface, pz),
                 });
                 if (isRoomPiece)

@@ -524,19 +524,6 @@ by `HousePropRules.PastCap` and is not filed.
   checks and checks correctly. The earlier claim that `B82` should compare the goal's height against the
   ground's was wrong and is withdrawn.
 
-- [ ] **B222 — Spawns and wool rooms still bake their floor from the plan's flat nominal world.** The other
-  half of what `B104` named, and the half `B105` did not touch: `PlanCompiler` resolves a spawn's and a wool
-  room's floor from `piece.Surface` at compile time, which is the plan's nominal ground and not the ground the
-  world build actually solves. The destroyable/core half is already done (`B128`) — `float` counts from the
-  built ground, and the marker may name no piece at all — so this is the same flat-world mistake wearing a
-  different field, on the two marker kinds that were left.
-
-  Resolve the anchor against the ground as built, the way `B128` did. `piece.Surface` itself stays: it is
-  load-bearing and correct as a plan-space concept, and `B105` kept it deliberately.
-
-  *carried out of `B105` when the `headroom` half shipped (board rule 6) · `PlanCompiler` around lines 205
-  and 260.*
-
 - [ ] **B109 — Nothing checks a plan before it costs a build.** Authoring a plan by hand is arithmetic over
   rectangles in cells, and the repository offers no way to ask whether the arithmetic worked short of running
   the whole pipeline. Two pieces that overlap, a land interface too narrow to connect, a stray corner touch —

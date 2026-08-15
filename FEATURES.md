@@ -4991,9 +4991,10 @@ these are the ones that shipped a map that could not be played as intended, and 
   position (`PlanCompiler.ResolveGoalAnchor`) rather than a piece-relative offset, so a goal can ride an
   authored sketch landform with no tier manufactured to carry it, and `PlanValidator` no longer reports the
   absent piece as a dangling reference for these two marker kinds. The default float stays at 4 — a gameplay
-  constant, not part of this fix. Leaves open: `B222` (the compiler still reads a piece's `Surface` as a
-  literal world Y for spawns and wool rooms, and this task does not touch that) and `B107` (the canvas has no
-  way to draw an absolutely-placed goal yet — only a hand-written or agent-authored plan can).
+  constant, not part of this fix. Leaves open `B107` — the canvas has no way to draw an absolutely-placed goal
+  yet, so only a hand-written or agent-authored plan can. (It also read as leaving the spawn and wool anchors
+  behind, filed as `B222`; measuring showed the world build had always resolved those against the terrain too,
+  and what was missing was the sentence saying so.)
 - **A stage image is a diagram now, not a photograph, and every one carries its own key (B98, B95).**
   `--topdown` (and every stage image it feeds) used to colour a column by its real block — stone, stone brick,
   cobblestone and andesite are all some shade of grey in the game, so the render painted one indistinguishable
@@ -5241,6 +5242,22 @@ these are the ones that shipped a map that could not be played as intended, and 
   must read with **no unread fields** — the same walk `RQ3` reports on the wire (`B214`) — and the voronoi
   must actually draw all three of its materials over a 120×120 sample. The first is the general guard: a seed
   that needs an upgrade to load is a seed teaching a model that no longer exists.
+- **A spawn and a wool room stand on the ground the world built, and now say so (B222).** The entry's premise
+  was stale, and measuring it is what showed that. `PlanCompiler` writes a Y onto both markers and it is the
+  piece's plan-space `Surface` — the flat nominal ground, the number the relief solve abandons — so the code
+  reads exactly like the mistake the build ceiling made. It is not that mistake: `SketchWorldBuilder` resolves
+  both anchors against the terrain it has just laid, through `FrameFloor` over the room's own footprint, the
+  same way `B128` resolved the destroyable and core anchors. Compiling a plan whose pieces sit at surfaces 30
+  and 24, then **replacing the carried Y with a lie before the world is built**, moves nothing.
+
+  What was actually missing was anyone saying so. `ResolveGoalAnchor` carries a paragraph explaining that its
+  `Surface` is informational and never the goal's real Y; the spawn and wool sites carried nothing, so a
+  reader met a plan-space surface being written into a world coordinate and drew the only conclusion
+  available. Both sites say it now, and `SpawnAndWoolAnchorTests` makes the paragraph checkable from two
+  sides: the resolved Y is **derived** — raise the ground and both anchors rise with it — and it is **not the
+  carried one** — replace that number and neither moves. Either test alone would pass on a version that still
+  read the plan's Y, which is why there are two. Both were run against a build patched to trust the carried
+  number, and the spawn half answers 9 there.
 - **The build ceiling is measured off the terrain, and the goal markers hang five over it (B105, `G6`
   amendment 14).** The author's ruling, and the correction that closes `B104` and `B176`'s shared cause.
   `G6` asks for at least twenty blocks of build clearance above the island surface; what was never stated is
@@ -5291,10 +5308,10 @@ these are the ones that shipped a map that could not be played as intended, and 
   its plan exactly*, so the document changing is a version change even when the board does not, and the
   constant's docstring now says so. All 72 fingerprints re-recorded.
 
-  It left one open half, **`B222`**: spawns and wool rooms still bake their floor from `piece.Surface` at
-  compile time, the same flat-world mistake wearing a different field, on the two marker kinds `B128` did not
-  reach. The other — whether 20 was the right number and where it should be measured from — went to the
-  author, whose ruling landed the same day and is the entry below.
+  It left one question open — whether 20 was the right number and where it should be measured from — which
+  went to the author, whose ruling landed the same day and is the entry below. The other thing it filed,
+  `B222`, turned out not to be a defect at all: the spawn and wool anchors were already resolved against the
+  built terrain, and only the sentence saying so was missing.
 - **Every rule the studio can cite, with what it means and what to do about it (B219).** A refusal carries an
   id and one sentence about the document it was refused over. The id is stable forever and outlives the task
   that added it, which is what makes it worth keying on — and nothing answered the other question a reader has
