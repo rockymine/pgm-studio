@@ -287,6 +287,22 @@ public static class DressingScope
         return points;
     }
 
+    /// <summary>Every cell the dressing decorates, fanned across the orbit — tree and boulder anchors and
+    /// building footprints, the same cells the clearance checks read. What the coverage measure calls
+    /// decorated ground: scenery a player at least looks at, whether or not a route passes it.</summary>
+    public static IReadOnlyList<(int X, int Z)> DecorCells(string layoutJson)
+    {
+        var symmetry = SymmetryOf(layoutJson);
+        var cells = new List<(int X, int Z)>();
+        foreach (var prop in PropsOf(layoutJson))
+        {
+            if (ClearanceKind(prop) is null) continue;
+            for (var image = 0; image < symmetry.Order; image++)
+                cells.AddRange(ClearanceFootprint(prop, symmetry, image));
+        }
+        return cells;
+    }
+
     // The footprint each prop kind roots or covers, turned to one image of the orbit: a single point for a
     // tree or a boulder — the cell a trunk stands on is what matters here, the same resting cell Decorator's
     // own Seats reads, not the crown that may freely overhang a goal — and the whole rectangle for a building,

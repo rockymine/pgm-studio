@@ -464,6 +464,31 @@ by `HousePropRules.PastCap` and is not filed.
   plane sees solid beyond it and is not drawn — a box restriction leaves the cut open unless out-of-box reads
   as air. Whole-house stays the default view; the focus is what the open part editor frames.
 
+**The piece-interface machinery (author, 2026-08-16) — one investigation, not six tasks.** `B157` (piece
+size caps), `B158` (spawn door vs void, island separation), `B167` (house footprint floor), `B186`'s
+remaining clauses, `B238` and `B239` below are all questions about **what happens along a piece edge** —
+its length, its height delta, its typed wall, the share of it the abutting build zones turn into frontline.
+The machinery exists in pieces: `BoardDeriver` classifies cell edges as frontline (surfaced in
+`/plan/inspect` but not per-piece-edge), the wool approach shapes and hubs already combine pieces, and
+`ContactGraph` knows every interface. The work is combining these into one per-interface read a validator
+rule or a lint can quantify over — start from how the approach shapes compose pieces, per the author. Do
+not implement these six separately; that is the duplication the buckets warned about.
+
+- [ ] **B238 — Build zones fragmenting a compact middle, and the frontline share of a piece edge.** Four
+  stitched zones over a 30-block middle (tanglewold) and two 10×20 funnels in an 80-block frontline
+  (sunspit) are invisible to players; the author's rule: **one zone for a compact middle**, several only
+  for a legged frontline or per-island flush zones (`frontline-dos-and-donts.plan.json`). The measurable:
+  the share of a piece edge the abutting zones turn into frontline (`BoardDeriver`'s cell-edge classes,
+  aggregated per piece edge — Sunspit reads ~½, too little), and a **frontline minimum width of 15** —
+  the cell-edge run, which correlates with but is not the piece width. Complaint, not refusal.
+
+- [ ] **B239 — A spawn's egress steps two levels and nothing says so.** Firnline and sunspit spawns stand
+  at Δ2 above the next piece with no ramp (`EL1` steps the palette by 2, so bare seams are un-walkable by
+  construction; bridgid-ii was hand-carved). The rule: from the spawn door outward, a piece seam at Δ≥2
+  with no ramp or `anchor_heights` join across it draws a complaint — "use 1-level steps or a ramp against
+  the spawn". The same per-interface height read informs the relief hard-edge note (an excluded piece
+  meeting relief at a straight face), which stays a note for now per the author.
+
 - [ ] **B229 — `map-layers` passes alone and fails in the suite, on state an earlier spec leaves behind.**
   `./tools/e2e.sh map-layers` is 18/18; `./tools/e2e.sh all` is 13/14, reproducibly, on an idle machine — so
   it is not the contention that makes a starved VM invent 30s route timeouts. The check that fails is *the
@@ -1023,34 +1048,12 @@ reachable home.
 
   *author, 2026-08-14 · compiled spawn piece against the built hall · same pattern on `sable-marsh` (90) and `tallow-weirgate` (80 platform).*
 
-- [ ] **B186 — A bedrock wall has no stated geometry, and one board's can be walked around.**
-  `quillon-saltworks`' wall runs `x −65…−55, z −56…−54` — 10 wide — while the room it defends is
-  `x −80…−65, z −80…−65` with its entry on the east face at `x −65`. The wall stands perpendicular to that
-  entry, about ten blocks north of the room, so a player walks around its western end. It is also buried in the
-  terrain rather than standing clear of it.
-
-  **The rules (author):** a bedrock wall **spans the full piece intersection it bars**, is at least **10** and
-  at most **20** blocks wide, and stands about **15 blocks in front of** the wool room's entrance. Today
-  `PlanCompiler` derives the footprint from the declared wall interface and nothing checks that the result
-  actually separates the two sides. `docs/gameplay/approaches.md` §85 and `match-flow.md` §168–177 describe what
-  the device is *for* — a pre-built bedrock line defenders hold and build on — and `match-flow.md` §383 measures
-  its effect (rush rate 6.3% with a bedrock line against 18.1% without). Neither states a geometry, which is the
-  gap.
-
-  *author, 2026-08-14 · wall and room rects from `specs/quillon-saltworks/*.intent.json`.*
-
-#### Bucket 3 — how far apart the goals are
-
-Two entries and one deriver, both the author's law; the corpus band that used to calibrate them shipped as
-`GO1`'s authored walk band (`goal-spawn-ratio`).
-
-**This bucket is `B37`'s deferred half and is blocked on a unit, not on a measurement.** `B37` parks "the
-objective↔objective and objective↔monument minimum distances still to be drawn from the corpus"; `B188` drew
-them (its 164-map sweep is kept in `docs/generator/seed-stats.md`, marked straight-line — the retired unit)
-and closed as `GO1`'s authored walk band. What is unsettled for the remaining two is that their numbers are
-straight-line off `map.xml` regions while the studio's one implemented separation rule, `WL7`, measures
-walkable-surface traversal and says so — `B212`. Settle that before an agent opens them, or it will write
-the second measure.
+- [~] **B186 — A bedrock wall's remaining geometry: full span, width 10–20, ~15 blocks in front of the
+  entrance.** The wool-room-interface half shipped as `PL13` (a wall on the wool's own edge refuses with the
+  fix in the sentence). What remains is the author's other three clauses: a wall **spans the full piece
+  intersection it bars**, is **10–20 blocks wide**, and stands **about 15 blocks in front of** the wool
+  room's entrance — `PlanCompiler` derives the footprint from the declared interface and nothing yet checks
+  that the result separates the two sides. Part of the piece-interface machinery below.
 
 - [ ] **B175 — Two goals of the same team may stand eight blocks apart, and one board does.** Haiku DTM Tower
   seats a destroyable and a core on one piece, both red's: `red-monument-region` ends at `x −9` and

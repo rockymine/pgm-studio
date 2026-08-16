@@ -55,6 +55,11 @@ public static class PlanRules
     /// <remarks>A wall is drawn between two pieces that share no walkable border, so there is nothing for it to divide. Move the pieces until they touch along an edge, or drop the wall.</remarks>
     public const string WallWithoutInterface = "PL11";
 
+    /// <summary>A bedrock wall is drawn on the wool room's own interface, so the wall and the room stand
+    /// through each other and the room can barely be entered. The wool's own edge is never a wall seat.</summary>
+    /// <remarks>Bedrock wall may not interface with the wool room piece: place down the bedrock wall around 15 blocks away from the room — on the approach piece's outer interface, where the approach meets the board.</remarks>
+    public const string WallOnWoolRoom = "PL13";
+
     /// <summary>A connected landmass mixes fanned and non-fanned pieces, so it has no coherent orbit image.</summary>
     /// <remarks>The symmetry fan copies whole islands, so every piece of one connected landmass must agree about <c>mirrors</c>. A non-fanned piece is for an isolated on-axis island; a mid that touches team land is authored as half its ground and completed by the fan.</remarks>
     public const string MixedMirrors = "PL12";
@@ -240,6 +245,15 @@ public static class PlanValidator
             if (!landPairs.Contains((w.A, w.B)))
                 Error(PlanRules.WallWithoutInterface,
                     $"wall '{w.A}'–'{w.B}' is not a shared land interface", w.A, w.B);
+
+        // and never on the wool room's own edge: the wall and the room stamp through each other there, and
+        // the device belongs an approach out, not against the room it defends
+        var roleOf = plan.Pieces.ToDictionary(piece => piece.Id, piece => piece.Role);
+        foreach (var w in plan.Walls)
+            if (roleOf.GetValueOrDefault(w.A) == PlanRoles.WoolRoom || roleOf.GetValueOrDefault(w.B) == PlanRoles.WoolRoom)
+                Error(PlanRules.WallOnWoolRoom,
+                    $"bedrock wall '{w.A}'–'{w.B}' may not interface with the wool room piece — place it "
+                    + "around 15 blocks away from the room", w.A, w.B);
 
         // WX2/WX3/WX6 + capacity — the stamped-room rules (docs/world-export/structures.md): a role piece
         // must be big enough for its shell, the marker's pad must be square, a wool room must have an entry

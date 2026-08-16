@@ -101,6 +101,31 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
+    public async Task A_wall_on_the_wool_rooms_own_interface_is_refused_and_one_an_approach_out_is_not()
+    {
+        // The wall and the room stamp through each other on the wool's own edge, and the room can barely be
+        // entered (the author's ruling): the device belongs an approach out. Same geometry, wall moved one
+        // interface back — legal.
+        var onTheRoom = Plan("""
+        { "plan":1, "globals":{"cell":5,"symmetry":"none"},
+          "pieces":[ {"id":"wool","role":"wool-room","rect":[0,0,2,2]},
+                     {"id":"approach","role":"piece","rect":[2,0,4,2]},
+                     {"id":"hub","role":"piece","rect":[6,0,4,2]} ],
+          "walls":[ {"a":"wool","b":"approach"} ] }
+        """);
+        var anApproachOut = Plan("""
+        { "plan":1, "globals":{"cell":5,"symmetry":"none"},
+          "pieces":[ {"id":"wool","role":"wool-room","rect":[0,0,2,2]},
+                     {"id":"approach","role":"piece","rect":[2,0,4,2]},
+                     {"id":"hub","role":"piece","rect":[6,0,4,2]} ],
+          "walls":[ {"a":"approach","b":"hub"} ] }
+        """);
+
+        await Assert.That(Refused(onTheRoom, PlanRules.WallOnWoolRoom)).IsTrue();
+        await Assert.That(Refused(anApproachOut, PlanRules.WallOnWoolRoom)).IsFalse();
+    }
+
+    [Test]
     public async Task Placement_outside_its_piece_is_an_error()
     {
         var p = Plan("""

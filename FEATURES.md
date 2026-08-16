@@ -660,6 +660,22 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   the band the author stated off the two shipped boards (3.0, 3.9); the band lives on the term
   (`SoftTerm.AuthoredBand` — a ruling, not a learned envelope), and the old 164-map straight-line table
   moved to `seed-stats.md` marked as the retired unit.
+- **The ground-coverage measure: where a map is lived on, and where it is dead (`B241`).** Every ground
+  cell classed reached (inside the corridor a waypoint-pair walk claims, or a waypoint's ring), decorated
+  (within a prop's fringe) or dead — with the dead clustered into patches named by area, centroid and walk
+  to the nearest used ground. `GET /map/{slug}/coverage` (JSON rows + `?format=png`), a summary line on
+  every `tools/mapgen` build, and a `coverage.png` stage; the corridors ride `Cells.ShortestPath` over the
+  same navigable set the traversability gate reads. A measurement — nothing refuses on it yet
+  (`docs/world-scan/ground-coverage.md`).
+- **A bedrock wall never sits on the wool room's own interface (`PL13`, `B186`'s first clause).** The wall
+  and the room stamp through each other there and the room can barely be entered; the compiler refuses with
+  the fix in the sentence — place it ~15 blocks out, on the approach piece's outer interface.
+- **The author element is complained for, and a bare model name is the form (`B242`).** `tools/mapgen` warns
+  when a spec carries no `authors`; the pipeline already writes a name-only author as PGM's pseudonym form
+  (`<author>Fable 5</author>`, no uuid attribute), so the fix is one spec field.
+- **A tree on bare stone is complained for (`B240`).** After a build, every fanned tree whose ground is not
+  soil (dirt, grass, sand or snow — the author's list) gets one line naming its coordinates; the tree
+  stands, the line names the ground to repaint.
 - **A door's approach and a goal's ring are kept open (`B235`, closing `B172`).** `OB21` refuses a tree or a
   building standing in the twenty blocks in front of a spawn room's door or the ten in front of each
   wool-room entry — measured from the stamped building's own face, not the protection region, via the same

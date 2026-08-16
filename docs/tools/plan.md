@@ -76,7 +76,7 @@ compile ever answers anything else.
     "cores":        [ { "id": "core-1", "piece": "approach", "at": [1, 5],
                         "size": 5, "height": 5, "shell": 1, "float": 6, "leak": 5 } ]
   },
-  "walls":  [ { "a": "approach", "b": "wool-room", "side": "a" } ],
+  "walls":  [ { "a": "approach", "b": "bridgehead", "side": "a" } ],
   "boxes":  [ { "id": "wool-box", "kind": "wool", "rect": [-4, 3, 4, 10] } ]
 }
 ```
@@ -221,7 +221,9 @@ wall: a bedrock barrier two blocks thick and three courses tall across the full 
 the attack side, which slows a wool raid and gives the defence a prepared line. `side` names which of the
 wall's two faces carries its defence chests, as the piece id that face looks out at — the wall is two blocks
 thick so exactly one face can be opened, and a piece id is the only reference that survives being reflected.
-Absent means `a`. A wall on a pair that shares no land interface is an error.
+Absent means `a`. A wall on a pair that shares no land interface is an error (`PL11`), and so is a wall on
+the wool room's own interface (`PL13`) — the wall and the room would stamp through each other, so the device
+belongs an approach out, around 15 blocks from the room.
 
 ### Boxes
 

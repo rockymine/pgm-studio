@@ -15,7 +15,10 @@ using PgmStudio.Geom;
 /// <summary>The outcome of composing a map for export: either a structured error (HTTP status + JSON body)
 /// or the composed <c>map.xml</c>. For a sketch-originated map <see cref="World"/> also carries the
 /// synthesised voxel world so the caller can bundle its region files.</summary>
-public sealed record ExportComposition(int? ErrorStatus, Dict? ErrorBody, string? Xml, SketchWorld? World)
+/// <param name="Doc">The composed map document, on success — what the XML was written from, and what a
+/// post-export read (the coverage measure, a headless driver's own analysis) consumes without re-parsing
+/// the XML it just wrote.</param>
+public sealed record ExportComposition(int? ErrorStatus, Dict? ErrorBody, string? Xml, SketchWorld? World, Dict? Doc = null)
 {
     public bool IsError => ErrorStatus is not null;
 }
@@ -134,7 +137,7 @@ public static class MapExportComposer
 
         var renewCubes = SketchWorldBuilder.RenewableCubeFootprints(goals);
         var sketchXml = MapXmlComposer.Compose(doc, isIntent: true, surfaceBlockIds: null, resources: [], renewCubes);
-        return new(null, null, sketchXml, built);
+        return new(null, null, sketchXml, built, doc);
     }
 
     // ── OB20 — every declared <gamemode> must resolve against PGM's own closed enum ────────────────────────

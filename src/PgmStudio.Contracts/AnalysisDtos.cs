@@ -18,6 +18,16 @@ public sealed record TraversabilityDto(
     bool Connected, int ComponentCount, string Severity, string Message, bool HaveLayers,
     IReadOnlyList<NavPointDto> Points, IReadOnlyList<IsolatedPointDto> Isolated);
 
+/// <summary>GET /api/map/{slug}/coverage — where the ground is lived on and where it is dead: the class of
+/// every ground cell as digit rows (indexes into <c>Classes</c>), the shares, and the dead patches worth
+/// naming, largest first, each with the coordinates to check it in-game.</summary>
+public sealed record CoveragePatchDto(int Area, int CentroidX, int CentroidZ, int NearestReachedBlocks);
+public sealed record CoverageDto(
+    BoundsDto Bbox, int Width, int Height,
+    IReadOnlyList<string> Classes, IReadOnlyDictionary<string, string> Colors, IReadOnlyList<string> Rows,
+    int GroundCells, int ReachedCells, int DecoratedCells, int DeadCells, double DeadShare,
+    IReadOnlyList<CoveragePatchDto> DeadPatches, int UnnamedDeadPatches, bool HaveRoutes);
+
 /// <summary>One Review pre-flight finding. <c>Status</c> ∈ <c>"pass"</c> | <c>"fail"</c> | <c>"skip"</c>.</summary>
 public sealed record PreflightCheckDto(string Key, string Label, string Status, string Detail);
 

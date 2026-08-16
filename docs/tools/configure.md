@@ -442,7 +442,8 @@ as though they were top level; they are not.
 |---|---|---|
 | `GET /map/{slug}/preflight` | `{intentMap, exportReady, checks[], log[], traversability}` | 404 |
 | `GET /map/{slug}/regions/tree` | the generated region tree, grouped | 404 |
-| `GET /map/{slug}/xml` | the `map.xml` | every refusal is `{error, message, findings[]}` (`docs/refusals.md`), the gate in `error`: **409** `unknown gamemode` OB20 (every map, checked first) · **409** `not traversable` EX1 · **409** `objective placement` OB17 · **409** `prop in goal clearance` OB19 · **409** `not a playable map` EX2/EX3/EX4 · **422** `dressing document invalid` DR-DOC · 404 |
+| `GET /map/{slug}/coverage` | where the ground is lived on: every ground cell classed reached/decorated/dead (digit rows + legend), the shares, and each dead patch with its area, centroid and walk to the nearest used ground — the corridors between every waypoint pair, widened `GroundCoverage.CorridorMargin`, plus each waypoint's `PoiRadius` ring and each prop's `PropRadius` fringe. `?format=png` answers the same grid as a picture. A measurement, not a gate — nothing refuses on it yet | 404 |
+| `GET /map/{slug}/xml` | the `map.xml` | every refusal is `{error, message, findings[]}` (`docs/refusals.md`), the gate in `error`: **409** `unknown gamemode` OB20 (every map, checked first) · **409** `not traversable` EX1 · **409** `objective placement` OB17 · **409** `prop blocks a goal or an approach` OB19/OB21 · **409** `not a playable map` EX2/EX3/EX4 · **422** `dressing document invalid` DR-DOC · 404 |
 | `GET /map/{slug}/export` | the world ZIP | the same 409s and 422 as `/xml` (OB17/OB19/DR-DOC/EX3/EX4 sketch-origin maps only; EX1/EX2 every intent-authored map; OB20 regardless of origin), plus non-2xx with a message on a zip/IO failure |
 
 ## Driving it without the UI

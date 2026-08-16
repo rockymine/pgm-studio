@@ -99,6 +99,7 @@ The structural plan rules, in full:
 | `PL10` | a destroyable style names something that is not a style |
 | `PL11` | a wall is drawn on a pair sharing no land interface |
 | `PL12` | a connected landmass mixes fanned and non-fanned pieces, so it has no coherent orbit image |
+| `PL13` | a bedrock wall is drawn on the wool room's own interface — the wall and the room stamp through each other; place it ~15 blocks out, on the approach piece's outer interface |
 
 And the building rules, which the dressing document and the room library are both held to:
 

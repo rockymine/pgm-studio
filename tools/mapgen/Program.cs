@@ -1,4 +1,5 @@
 using System.Text.Json;
+using PgmStudio.Analysis.Playability;
 using PgmStudio.Domain;
 using PgmStudio.Export;
 using PgmStudio.MapGen;
@@ -150,6 +151,13 @@ static void Build(MapSpec spec, bool describeOnly, bool forceStages)
         if (doc.GetValueOrDefault("kits") is not List<object?> { Count: > 0 })
             Console.Error.WriteLine($"  ! {spec.Slug}: no kit — itemkeep/toolrepair/itemremove derive from "
                                    + "the spawn kit and will be empty");
+
+        // The author element is how a map is sorted later, and a model that omits it makes its maps
+        // unattributable. A bare name is what belongs there — the writer emits <author>Name</author> with no
+        // uuid attribute, which is exactly the pseudonym form PGM reads — never an invented uuid.
+        if (spec.Authors is not { Count: > 0 })
+            Console.Error.WriteLine($"  ! {spec.Slug}: no author — add \"authors\": [\"<your model name>\"] "
+                                   + "to the spec (a bare name, e.g. \"Fable 5\"; never a uuid)");
     });
     if (composition.IsError)
         throw new ArgumentException(
@@ -167,17 +175,56 @@ static void Build(MapSpec spec, bool describeOnly, bool forceStages)
     DressingReportFile.Write(built.DroppedProps, regionDir);
     foreach (var drop in built.DroppedProps ?? [])
         Console.Error.WriteLine($"  ! {spec.Slug}: dropped {drop.Kind} '{drop.Id}' — {drop.Reason}");
+
+    // A tree wants soil — dirt, grass, sand or snow, never bare stone (the author's rule). A complaint
+    // rather than a drop: the tree stands and the line names the ground to repaint.
+    foreach (var (treeX, treeZ, _) in DressingScope.TreeFootprints(layout.ToJson()))
+    {
+        var groundId = GroundBlockAt(built.World, treeX, treeZ);
+        if (groundId is { } id && id != Blocks.Log && id != Blocks.Log2
+            && DressingPalette.SoilShare(id, 0) == 0 && id != 78 && id != 80)   // 78/80: snow layer/block — soil to a tree
+            Console.Error.WriteLine($"  ! {spec.Slug}: tree at ({treeX}, {treeZ}) stands on block {id}, "
+                                   + "not soil — trees want dirt, grass, sand or snow beneath them");
+    }
     LevelDatWriter.Write(outDir, spec.Slug, built.SpawnX, built.SpawnY, built.SpawnZ,
                          DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
     File.WriteAllText(Path.Combine(outDir, "map.xml"), xml);
 
     Console.WriteLine($"  → {outDir}  (spawn {built.SpawnX},{built.SpawnY},{built.SpawnZ})  {Census(built.World)}");
 
+    // ── the coverage read — where the ground is lived on, and where it is dead ───────────────────────────
+    // Printed on every build rather than only with the stages, because the dead share is the number that says
+    // whether a board is too big for what it plays, and a driver should see it before anyone loads the map.
+    var (surfaceColumns, y0Columns) = WorldColumns.Of(built.World);
+    var coverage = GroundCoverage.Read(
+        composition.Doc!, surfaceColumns, y0Columns, DressingScope.DecorCells(layout.ToJson()));
+    Console.WriteLine(
+        $"  coverage: {Share(coverage.ReachedCells)} reached · {Share(coverage.DecoratedCells)} decorated · "
+        + $"{Share(coverage.DeadCells)} dead over {coverage.GroundCells} ground cells");
+    foreach (var patch in coverage.DeadPatches.Take(5))
+        Console.WriteLine($"    dead: {patch.Area} cells at ({patch.CentroidX}, {patch.CentroidZ}), "
+                        + $"{patch.NearestReachedBlocks} blocks off the match");
+    string Share(int cells) => coverage.GroundCells == 0 ? "0%" : $"{100.0 * cells / coverage.GroundCells:0}%";
+
     // ── one named picture per stage ──────────────────────────────────────────────────────────────────────
     // Off by default (a batch run over many specs should not pay for pictures it will not look at); the spec
     // or the CLI's --stages flag turns it on. The world is already built and held in memory, so every world
     // read-back below draws over `built.World` itself — no second load off the region files just written.
-    if (spec.Stages || forceStages) EmitStages(outDir, plan, built.World, built.Provenance, xml, layout.ToJson());
+    if (spec.Stages || forceStages)
+        EmitStages(outDir, plan, built.World, built.Provenance, xml, layout.ToJson(), coverage);
+}
+
+/// <summary>The block a column's ground shows just under a tree's trunk base — the highest non-air block
+/// that is not the tree's own wood.</summary>
+static int? GroundBlockAt(VoxelWorld world, int x, int z)
+{
+    for (var y = VoxelWorld.MaxHeight - 1; y >= 1; y--)
+    {
+        var (id, _) = world.GetBlock(x, y, z);
+        if (id == 0 || id is Blocks.Log or Blocks.Log2 or Blocks.Leaves or Blocks.Leaves2) continue;
+        return id;
+    }
+    return null;
 }
 
 /// <summary>The spec's plots as the emitter's own, which is the whole of the translation: the spec names the
@@ -210,7 +257,7 @@ static List<GridPlot> Plots(GridSpec grid)
 /// navigable ground actually joins spawn to every goal. <b>structures</b> is what the world stamped,
 /// independent of theme.</para></summary>
 static void EmitStages(string outDir, PlanModel? plan, VoxelWorld world, WorldProvenance provenance, string xml,
-    string layoutJson)
+    string layoutJson, GroundCoverage.Result coverage)
 {
     var dir = Path.Combine(outDir, "stages");
     Directory.CreateDirectory(dir);
@@ -239,6 +286,9 @@ static void EmitStages(string outDir, PlanModel? plan, VoxelWorld world, WorldPr
     catch (Exception error) { Console.Error.WriteLine($"  ! stages: map.xml overlay unavailable ({error.Message})"); }
 
     TraversabilityRender.Run(world, Path.Combine(dir, "traversability.png"), map, scale: 3);
+    // The coverage stage draws the measure's own grid — the corridors the match walks, the rings the fights
+    // claim, the decorated fringe, and the dead ground the numbers above already named.
+    File.WriteAllBytes(Path.Combine(dir, "coverage.png"), CoverageRender.Png(coverage));
     TopDownRender.Run(world, Path.Combine(dir, "topdown.png"), map, scale: 3, yMax: null, name: "topdown",
         provenance: provenance);
     TopDownRender.Run(world, Path.Combine(dir, "objectives.png"), map, scale: 3, yMax: null, name: "objectives",

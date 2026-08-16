@@ -36,12 +36,26 @@ public static class Traversability
     public sealed record Result(bool Connected, int ComponentCount, string Severity, string Message,
         bool HaveLayers, List<NavPoint> Points, List<IsolatedPoint> Isolated);
 
-    public static Result Check(Dict data, HashSet<(int, int)>? surfaceColumns, HashSet<(int, int)>? y0Columns,
-        (int, int, int, int)? bbox = null, int margin = 16)
+    /// <summary>The grid every playability read shares: its box, and which cells a player can cross —
+    /// buildable or bridgeable by the map's rules, or standing terrain. One derivation, so the traversability
+    /// verdict and the coverage read cannot disagree about what ground is.</summary>
+    internal sealed record NavigableGround(int MinX, int MinZ, int Nx, int Nz, bool[] Cells)
     {
-        // Size the grid to the walkable terrain, not just the region AABB. Objectives on terrain that
-        // extends past the build regions (a wool far out on an island) would otherwise fall outside the
-        // grid and read as isolated regardless of how the terrain/build layer actually connects them.
+        public int Length => Cells.Length;
+        public HashSet<(int X, int Z)> Set()
+        {
+            var cells = new HashSet<(int X, int Z)>();
+            for (var i = 0; i < Cells.Length; i++)
+                if (Cells[i]) cells.Add((MinX + i % Nx, MinZ + i / Nx));
+            return cells;
+        }
+    }
+
+    /// <summary>Compute the shared navigable grid. Sized to the walkable terrain, not just the region AABB:
+    /// objectives on terrain past the build regions would otherwise fall outside it.</summary>
+    internal static NavigableGround Ground(Dict data, HashSet<(int, int)>? surfaceColumns,
+        HashSet<(int, int)>? y0Columns, (int, int, int, int)? bbox, int margin)
+    {
         var grid = bbox ?? TerrainInclusiveBbox(data, surfaceColumns, y0Columns, margin);
         var b = Buildability.Compute(data, y0Columns, grid, margin);
         int nx = b.Width, nz = b.Height, minX = b.MinX, minZ = b.MinZ, n = nx * nz;
@@ -54,12 +68,21 @@ public static class Traversability
                 int ix = x - minX, iz = z - minZ;
                 if (ix >= 0 && ix < nx && iz >= 0 && iz < nz) navigable[iz * nx + ix] = true;  // walkable surface
             }
+        return new NavigableGround(minX, minZ, nx, nz, navigable);
+    }
+
+    public static Result Check(Dict data, HashSet<(int, int)>? surfaceColumns, HashSet<(int, int)>? y0Columns,
+        (int, int, int, int)? bbox = null, int margin = 16)
+    {
+        var ground = Ground(data, surfaceColumns, y0Columns, bbox, margin);
+        var (minX, minZ, nx, nz, navigable) = (ground.MinX, ground.MinZ, ground.Nx, ground.Nz, ground.Cells);
+        var n = nx * nz;
         var haveLayers = surfaceColumns is { Count: > 0 };
 
         var labels = LabelComponents(navigable, nx, nz);
         var navigableCells = new HashSet<(int X, int Z)>();
         for (var i = 0; i < n; i++) if (navigable[i]) navigableCells.Add((i % nx, i / nx));
-        var owned = NavigationPoints(data, (b.MinX, b.MinZ, b.MaxX, b.MaxZ));
+        var owned = NavigationPoints(data, (minX, minZ, minX + nx, minZ + nz));
 
         var placed = new List<NavPoint>();
         foreach (var (p, _) in owned)
@@ -133,10 +156,10 @@ public static class Traversability
     /// <summary>A navigation point with the team it belongs to — a spawn's own team, a goal's defending
     /// owner. The owner is what the per-team pass asks (an attacker contests every goal it does not own);
     /// the public <see cref="NavPoint"/> stays team-less because the whole-map verdict is.</summary>
-    private sealed record OwnedPoint(NavPoint Point, string Owner);
+    internal sealed record OwnedPoint(NavPoint Point, string Owner);
 
     // ── navigation points: spawn region centres, wool locations, destroyable/core region centres ─────────
-    private static List<OwnedPoint> NavigationPoints(Dict data, (double, double, double, double) bounds)
+    internal static List<OwnedPoint> NavigationPoints(Dict data, (double, double, double, double) bounds)
     {
         var regions = AsDict(data.GetValueOrDefault("regions"));
         var pts = new List<OwnedPoint>();
@@ -255,7 +278,7 @@ public static class Traversability
         if (value == "never") return false;
         if (filters.GetValueOrDefault(value) is not Dict filter) return true;
 
-        return filter.GetValueOrDefault("type") as string switch
+        return (filter.GetValueOrDefault("type") as string) switch
         {
             "team" => filter.GetValueOrDefault("team") as string == team,
             "not" => !AllowsTeam(filter.GetValueOrDefault("child") as string ?? "", filters, team, seen),

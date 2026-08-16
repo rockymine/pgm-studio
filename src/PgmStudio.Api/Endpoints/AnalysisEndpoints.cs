@@ -1,3 +1,4 @@
+using PgmStudio.Export;
 using System.Text.Json.Nodes;
 using FastEndpoints;
 using PgmStudio.Analysis.Playability;
@@ -84,6 +85,44 @@ public sealed class TraversabilityEndpoint(MapRepository repo, MapReader reader,
             res.Connected, res.ComponentCount, res.Severity, res.Message, res.HaveLayers,
             res.Points.Select(p => new NavPointDto(p.Kind, p.Name, p.X, p.Z, p.Component)).ToList(),
             res.Isolated.Select(i => new IsolatedPointDto(i.Kind, i.Name, i.For)).ToList()), ct);
+    }
+}
+
+/// <summary>GET /api/map/{slug}/coverage — where the ground is lived on and where it is dead: the traffic
+/// corridors between every pair of waypoints, each waypoint's own ring, the prop-decorated fringe, and the
+/// dead patches named with coordinates. <c>?format=png</c> answers the same grid as the coverage picture.</summary>
+public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, FeatureData feature, PgmDb db) : EndpointWithoutRequest
+{
+    public override void Configure() { Get("/map/{slug}/coverage"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var loaded = await AnalysisLoad.LoadAsync(repo, reader, Route<string>("slug")!, ct);
+        if (loaded is null) { await Send.NotFoundAsync(ct); return; }
+        var (map, doc) = loaded.Value;
+
+        var segs = await feature.SegmentsAsync(map.Id, ct);
+        var layoutBytes = await SketchStore.LoadAsync(db, map.Id, ct);
+        var decor = layoutBytes is null
+            ? []
+            : DressingScope.DecorCells(System.Text.Encoding.UTF8.GetString(layoutBytes));
+        var res = GroundCoverage.Read(doc, segs?.SurfaceColumns() ?? [], segs?.Y0Columns(), decor);
+
+        if (PngAnswer.Wanted(HttpContext))
+        {
+            await PngAnswer.WriteAsync(HttpContext, CoverageRender.Png(res), ct);
+            return;
+        }
+
+        var rows = Enumerable.Range(0, res.Height)
+            .Select(iz => string.Concat(Enumerable.Range(0, res.Width)
+                .Select(ix => (char)('0' + res.Cells[iz * res.Width + ix])))).ToList();
+        await Send.OkAsync(new CoverageDto(
+            new BoundsDto(res.MinX, res.MinZ, res.MinX + res.Width, res.MinZ + res.Height),
+            res.Width, res.Height, GroundCoverage.Classes, GroundCoverage.ClassColors, rows,
+            res.GroundCells, res.ReachedCells, res.DecoratedCells, res.DeadCells, res.DeadShare,
+            res.DeadPatches.Select(p => new CoveragePatchDto(p.Area, p.CentroidX, p.CentroidZ, p.NearestReachedBlocks)).ToList(),
+            res.UnnamedDeadPatches, res.HaveRoutes), ct);
     }
 }
 
