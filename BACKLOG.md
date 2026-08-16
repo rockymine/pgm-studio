@@ -974,42 +974,48 @@ The largest single class of visible fault in the repository, and it is one shape
 **block id** for a field whose geometry needs a particular **kind** of block, nothing checks, and the stamper
 builds something else. Four models made it on five boards. `B160`, `B161` and `B168` — the block-kind gate, the
 door's clear height, and a roof's own materials — shipped as the house-style gate (`FEATURES.md`); `B164`'s
-footing shipped beside them. Two shapes are left. `B165` is a style stating something the stamper then does
-differently, with nothing reporting the divergence, and it wants the stamper itself rather than a gate beside
-the style. `B190` is the same rule the gate already enforces, unable to run where a roof is saved on its own,
-and closing it takes a column and a migration rather than a predicate — so the two are not one pass, and only
-`B165` is cheap.
+footing shipped beside them. Two shapes are left, and only one of them is still block-kind. `B165` turned out
+not to be a gate at all — it is two passes resolving the same courses in opposite directions, so it lands in
+`HouseStamper` and wants no predicate beside the style. `B190` is the rule the gate already enforces, unable
+to run where a roof is saved on its own, and closing it takes a column and a migration — so the two are not
+one pass, and only `B165` is cheap.
 
-- [~] **B165 — A gable roof at `pitch: 2` is overridden by its own wall.** Reported by the author: a gable
-  rising two blocks a step disagrees with the wall under it, and the wall wins where they conflict — so the roof
-  the style asks for is not the roof that stands. Two of Corvid Hollow's houses carry `form: "gable"` with
-  `pitch: 2`, and all nine of Ashfall Scar's do, and two of Kilnrow's.
+- [ ] **B165 — A steep roof's eave course comes out in the wall's material, so the long wall shows through
+  under the eave.** Reported by the author and, after one wrong trace, **found**: on a gable at `pitch: 2` the
+  top course of the long wall is wall material where the roof should already have come down to it, and at
+  `pitch: 3` two courses are. The roof is not missing — the wall fills the space, so the building is
+  watertight — but from outside the eave reads as wall standing above the eave line instead of as roof meeting
+  it, which is the "the wall wins where they conflict" the author saw.
 
-  **Traced and not yet found.** Two places a wall could plausibly outrank a roof were checked directly against
-  every block a stamp actually writes, compared cell by cell to `RoofField`'s own promise (its `Crown`,
-  `Underside`, `OnBorder`, `OnRidge`) rather than eyeballed: the roof's own sloped surface, and the gable fill
-  between the wall top and that surface (`HouseStamper`'s "walls climb to meet the roof" pass). Both matched
-  exactly, on Corvid Hollow's own `d2` house (single storey) and both of Kilnrow's `k3`/`k5` (two storeys, a
-  per-level wall override, a bound `Gable`), run through `Decorator.Decorate` rather than a bare `Stamp` call so
-  the real front-derived doorway and window seating were in play — and on 700 synthetic trials sweeping pitch
-  1–4, every roof form, overhang 0–2, wall extent 3–8, every front edge, a ridge cap on and off, and an unbound
-  `Gable` falling back to the wall's own top course. Nothing disagreed anywhere in that sweep.
+  **The mechanism, measured on a built house** (12×9 wing, ridge along x, `overhang: 1`, wall 5 courses on a
+  floor at y8, so the wall's top course is y12):
 
-  So the mechanism is not a material one component wrote over another's cell: whatever the author saw, it is not
-  the roof surface or the gable triangle losing to a wall block in `HouseStamper`. What is still unchecked: the
-  window seating cutting into gable or roof territory at a steep pitch specifically (not swept), and whatever
-  the author was actually looking at — a real build's lighting or block orientation reading as "wall" where the
-  block id is in fact the roof's own, which a synthetic reproduction would not show. Re-open with the actual
-  in-game coordinates the observation was made at, or a screenshot, rather than re-sweeping the same space.
+  | `pitch` | wall top | roof `Crown` | `Riser` | `Underside` | courses the roof and the wall both claim |
+  |---|---|---|---|---|---|
+  | 1 | y12 | y13 | 1 | y13 | **0** — clean |
+  | 2 | y12 | y13 | 2 | y12 | **1** (y12) |
+  | 3 | y12 | y13 | 3 | y11 | **2** (y11–y12) |
 
-  Worth pairing with the house-style gate (`FEATURES.md`, `B160`/`B161`/`B168`) — both are a style stating
-  something the stamper then does differently, with nothing reporting the divergence, though this one is the
-  stamper overriding a value it was given rather than a block of the wrong kind, so it belongs in
-  `HouseStamper.cs` rather than in the gate beside the style.
+  `Riser` is the drop to the deepest neighbour the roof also covers, and at the eave column that neighbour is
+  the **overhang**, which sits `pitch` courses lower — so the eave column's riser is `pitch` deep and its
+  `Underside` reaches `pitch − 1` courses **down into the wall the roof stands on**. The wall is already there,
+  and `HouseStamper`'s last pass is deliberately *walls outrank roofs* (it runs after every volume so a wing
+  standing against another does not get the other's slope written over it). So the overlap resolves to wall,
+  every time, and it grows with the pitch. Probed at `(7, 12, 2)` on the pitch-2 build and `(7, 11, 2)` /
+  `(7, 12, 2)` on the pitch-3 build: white wool where the roof's own band claims those courses.
 
-  *author, 2026-08-14 · configuration confirmed in three layouts.* Traced 2026-08-14: roof surface and gable
-  fill verified against `RoofField` on the real Corvid Hollow / Kilnrow houses and 700 fuzzed configurations;
-  no discrepancy found in either.
+  **The fix (author): those courses take the roof's material.** The narrow form does not touch the ordering
+  the comment defends — a roof beats **its own wing's** wall inside `[Underside, Crown]`, while the cross-wing
+  case (`Overtopped` / `OtherRoofCrownOver`) is left exactly as it is, since that is where "walls outrank
+  roofs" was earned. Worth settling at the same time whether the **eave itself** should descend by `pitch`
+  courses below the roof line at all: the overhang tip drops to y11 at pitch 2 and y10 at pitch 3 while the
+  wall top stays at y12, so a steeper roof reaches *further down* the wall rather than sitting on it.
+
+  *author, 2026-08-14 · configuration confirmed in three layouts.* The 2026-08-14 trace checked the roof
+  surface and the gable triangle against `RoofField` and found no disagreement — correctly, because neither is
+  where this happens: it is the **eave column's riser** against the wall's top courses, which that sweep never
+  compared. Diagnosed 2026-08-16 off a built house rendered isometrically with the wall, roof body, verge and
+  gable in deliberately distinct materials · `RoofField.Riser`/`Underside` · `HouseStamper.cs:349-356`.
 
 - [ ] **B190 — A roof style cannot say which slab it steps in, so the see-through-roof check cannot run at the
   part level.** `HS3` refuses a `Roof` named as a slab while `RoofSlab` is unset — the fault that gave six
