@@ -10,7 +10,19 @@
  */
 
 import { createRequire } from "node:module";
-import { execFileSync } from "node:child_process";
+import { execSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+
+/**
+ * Where the run writes what it produces — the seed fixtures and every screenshot — with a trailing
+ * separator, so a caller appends a filename to it.
+ *
+ * Through `fileURLToPath` rather than a URL's `pathname`, which is not a filesystem path: on Windows it
+ * keeps the leading slash of `/C:/...` and leaves spaces percent-encoded, so the seed step built
+ * `C:\C:\Users\Michael%20Ganske\...` and died on the mkdir. One constant rather than the same
+ * expression in six specs, because six copies is how five of them stay wrong after one is fixed.
+ */
+export const TMP_DIR = fileURLToPath(new URL("../../../.tmp/", import.meta.url));
 
 /**
  * Playwright, however it happens to be installed. The repo carries no npm dependencies on purpose, so
@@ -22,7 +34,12 @@ async function loadPlaywright() {
   if (process.env.PLAYWRIGHT_PACKAGE) tries.push(process.env.PLAYWRIGHT_PACKAGE);
   tries.push("playwright");
   try {
-    const root = execFileSync("npm", ["root", "-g"], { encoding: "utf8" }).trim();
+    // Through a shell, which is the only way to ask npm on Windows: there is no extensionless `npm` to
+    // spawn (ENOENT), and Node refuses to spawn the `npm.cmd` that does exist without one (EINVAL, since
+    // the .bat/.cmd argument-injection fix). So the global install this exists to find was unreachable on
+    // Windows and the suite reported playwright missing while it sat there installed. A fixed command
+    // string rather than a shell plus an argument array, which Node deprecates.
+    const root = execSync("npm root -g", { encoding: "utf8" }).trim();
     if (root) tries.push(`${root}/playwright`);
   } catch { /* npm not on PATH — the plain import may still work */ }
 
@@ -121,7 +138,7 @@ export class Checks {
 /** The seed fixtures written by seed.mjs. */
 export async function readSeed() {
   const { readFile } = await import("node:fs/promises");
-  const path = process.env.E2E_SEED ?? new URL("../../../.tmp/e2e-seed.json", import.meta.url).pathname;
+  const path = process.env.E2E_SEED ?? `${TMP_DIR}e2e-seed.json`;
   try { return JSON.parse(await readFile(path, "utf8")); }
   catch { throw new Error(`no seed fixtures at ${path} — run tests/e2e/seed.mjs first (tools/e2e.sh does)`); }
 }

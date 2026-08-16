@@ -2239,6 +2239,13 @@ so the labeled corpus cannot be contaminated after the fact. Browse votes (absol
   so the first thing to find is what the editor sends that the stored document does not, and the finding
   ids in the 422 body name the rule.
 
+  **It does not reproduce on the Windows host** (2026-08-16): `./tools/e2e.sh all` is green there end to end,
+  `map-layers` included at 18/18, on the first run the harness was able to make (the seed step could not run
+  on Windows at all until the path and npm-lookup fixes landed). That does not clear the task — the VM is
+  where it was seen and where it should be re-checked — but a break that one platform reproduces and the
+  other never sees is a timing one, which fits a click that times out at 30s rather than a plan the validator
+  genuinely refuses. Worth re-reading the 422 claim against a run on each.
+
 ## Lower priority / parked
 
 Existing-Edit (`/maps/{id}/edit`) authoring features — **not** used by the intent generator (which

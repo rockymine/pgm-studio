@@ -14,7 +14,7 @@
  */
 
 import { mkdir, writeFile } from "node:fs/promises";
-import { api, BASE } from "./lib/harness.mjs";
+import { api, BASE, TMP_DIR } from "./lib/harness.mjs";
 
 const REQUEST = "players=12&symmetry=rot_180&cell=5&count=1";
 
@@ -64,7 +64,7 @@ async function main() {
     planJson: plan.planJson,
   };
 
-  const dir = new URL("../../.tmp/", import.meta.url).pathname;
+  const dir = TMP_DIR;
   await mkdir(dir, { recursive: true });
   await writeFile(`${dir}e2e-seed.json`, JSON.stringify(seed, null, 2));
   console.log(`  → ${dir}e2e-seed.json`);

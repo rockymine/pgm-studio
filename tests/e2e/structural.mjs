@@ -10,12 +10,13 @@
  *      carries that same compiled layout), so the surfaced pieces can be seen where the terrain has fused.
  */
 
-import { openBrowser, newPage, clearFaults, Checks, readSeed, api, BASE } from "./lib/harness.mjs";
+import { openBrowser, newPage, clearFaults, Checks, readSeed, api, BASE, TMP_DIR }
+  from "./lib/harness.mjs";
 import { mkdir } from "node:fs/promises";
 
 const seed = await readSeed();
 const checks = new Checks("structural (S25)");
-const OUT = new URL("../../.tmp/", import.meta.url).pathname;
+const OUT = TMP_DIR;
 await mkdir(OUT, { recursive: true });
 
 // ── 1. the compiled layout carries the surfaced pieces ────────────────────────────────────────────────

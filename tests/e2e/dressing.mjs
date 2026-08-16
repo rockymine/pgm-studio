@@ -8,12 +8,13 @@
  *   3. UI — the phase renders with its four placing tools, and dragging on the canvas actually places a prop.
  */
 
-import { openBrowser, newPage, clearFaults, Checks, readSeed, api, BASE } from "./lib/harness.mjs";
+import { openBrowser, newPage, clearFaults, Checks, readSeed, api, BASE, TMP_DIR }
+  from "./lib/harness.mjs";
 import { mkdir } from "node:fs/promises";
 
 const seed = await readSeed();
 const checks = new Checks("dressing (decoration.md)");
-const OUT = new URL("../../.tmp/", import.meta.url).pathname;
+const OUT = TMP_DIR;
 await mkdir(OUT, { recursive: true });
 
 // ── 1. placed props round-trip ────────────────────────────────────────────────────────────────────────

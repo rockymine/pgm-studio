@@ -8,12 +8,13 @@
  *      plus the theme controls), both screenshotted and clean.
  */
 
-import { openBrowser, newPage, clearFaults, Checks, readSeed, api, BASE } from "./lib/harness.mjs";
+import { openBrowser, newPage, clearFaults, Checks, readSeed, api, BASE, TMP_DIR }
+  from "./lib/harness.mjs";
 import { mkdir } from "node:fs/promises";
 
 const seed = await readSeed();
 const checks = new Checks("theming (finishing-model §4)");
-const OUT = new URL("../../.tmp/", import.meta.url).pathname;
+const OUT = TMP_DIR;
 await mkdir(OUT, { recursive: true });
 
 // ── 1. themes round-trip through the sketch layout ────────────────────────────────────────────────────

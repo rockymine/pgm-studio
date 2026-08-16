@@ -9,10 +9,10 @@
  * colours against the stone the rest is built from.
  */
 
-import { openBrowser, newPage, clearFaults, Checks, api, BASE } from "./lib/harness.mjs";
+import { openBrowser, newPage, clearFaults, Checks, api, BASE, TMP_DIR } from "./lib/harness.mjs";
 import { mkdir } from "node:fs/promises";
 
-const OUT = new URL("../../.tmp/", import.meta.url).pathname;
+const OUT = TMP_DIR;
 await mkdir(OUT, { recursive: true });
 const checks = new Checks("theming · per-shape (finishing-model §4)");
 
