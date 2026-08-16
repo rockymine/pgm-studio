@@ -479,7 +479,8 @@ styles in the material already chosen, `/terrain/boulder-forms?rock=…` the fou
 stone, `/terrain/water-forms` the three channels as actual dug beds, `/terrain/species` every vanilla tree
 built, and `/terrain/woods` the six woods on the tree currently being edited — so the question answered is
 "what would mine look like", not "what does the catalogue contain". `POST /terrain/prop-preview` renders one
-before it is placed.
+before it is placed — and a building whose wings make no building is refused there with the same `HJ*`/`HP*`
+findings the build acts on, rather than drawn as though it would stand.
 
 Two knobs are bounded rather than free, and it is load-bearing: a tree's height is held to 5–40 and its leaf
 cluster to 0.2–1, and a boulder's size to 1–7. Cost is superlinear in reach — a grown crown is filled by

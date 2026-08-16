@@ -37,6 +37,23 @@ public sealed class DressingPreviewTests
     }
 
     [Test]
+    public async Task A_house_the_build_would_refuse_is_refused_by_the_preview_with_the_same_finding()
+    {
+        // Two wings sharing a row are HJ1 — the dressing pass drops that prop silently, so the preview
+        // certifying it as a drawing would be worse than no preview at all.
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var prop = """
+        {"propJson": "{\"kind\":\"house\",\"id\":\"h\",\"seed\":1,\"wings\":[{\"corners\":[[0,0],[7,7]]},{\"corners\":[[0,7],[3,9]]}],\"style\":{}}"}
+        """;
+        var resp = await client.PostAsync("/api/terrain/prop-preview",
+            new StringContent(prop, System.Text.Encoding.UTF8, "application/json"));
+
+        await Assert.That((int)resp.StatusCode).IsEqualTo(400);
+        var body = await resp.Content.ReadAsStringAsync();
+        await Assert.That(body).Contains("HJ1");
+    }
+
+    [Test]
     public async Task A_prop_is_re_centred_on_the_sample_so_a_card_shows_it_wherever_it_was_placed()
     {
         // A tree placed at (900, -400) on a real map must still be the thing in the middle of its own card.

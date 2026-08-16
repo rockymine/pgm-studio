@@ -128,6 +128,16 @@ public sealed class PropPreviewEndpoint : Endpoint<PropPreviewRequest, DressingP
             await Send.ErrorsAsync(400, ct);
             return;
         }
+
+        // A building whose wings make no building is refused here with the same HJ/HP findings the build
+        // acts on — a preview that draws what the dressing pass then silently drops would certify exactly
+        // the prop most in need of the warning.
+        if (prop is HouseProp house && house.Check() is { Refuses: true } faults)
+        {
+            await Refusals.WriteAsync(HttpContext, 400, "prop is no building", faults.Refusals, ct);
+            return;
+        }
+
         await Send.OkAsync(DressingPreview.Views(prop, theme), ct);
     }
 }
