@@ -145,8 +145,9 @@ public sealed class DressingScopeTests
     }
 
     // ── OB19: a tree, a boulder or a building inside a goal's clearance ───────────────────────────────
-    // A single-block destroyable at (20,20), so its GoalGroundAt clearance rect is exactly [16,16]-[24,24]
-    // (the footprint grown by GoalClearance = 4). Every test below is read against that one fixed goal.
+    // A single-block destroyable at (20,20): its GoalGroundAt clearance rect is [16,16]-[24,24] (the
+    // footprint grown by GoalClearance = 4), and the prop keep-out reaches further — GoalStandoff = 10 from
+    // the marker, so [10,10]-[30,30]. Every test below is read against that one fixed goal.
     private static MapIntent GoalAt20 => new()
     {
         Destroyables =
@@ -198,6 +199,83 @@ public sealed class DressingScopeTests
         await Assert.That(violations[0].Kind).IsEqualTo("tree");
         await Assert.That(violations[0].X).IsEqualTo(19);
         await Assert.That(violations[0].Z).IsEqualTo(19);
+    }
+
+    [Test]
+    public async Task The_markers_standoff_reaches_past_the_structures_own_clearance()
+    {
+        // A tree at (28,20): outside the box-grown clearance (ends at 24) but inside the marker's ten-block
+        // standoff (ends at 30) — the author's radius, measured from the marker rather than from however
+        // wide the structure under it happens to be. One block past the standoff is clean.
+        var inside = DressingScope.GoalClearanceViolations(
+            Layout(",\"dressing\":{\"props\":[{\"kind\":\"tree\",\"id\":\"t1\",\"seed\":1,\"x\":28,\"z\":20}]}"), GoalAt20);
+        await Assert.That(inside.Count).IsEqualTo(1);
+
+        var past = DressingScope.GoalClearanceViolations(
+            Layout(",\"dressing\":{\"props\":[{\"kind\":\"tree\",\"id\":\"t1\",\"seed\":1,\"x\":31,\"z\":20}]}"), GoalAt20);
+        await Assert.That(past).IsEmpty();
+    }
+
+    // ── OB21: a tree, a boulder or a building in a door's approach ────────────────────────────────────
+    // A spawn at (0,0) with yaw 0 faces +Z, and with no piece it resolves the legacy marker-anchored room
+    // ([-5,5] on both axes) — so the approach lane is that face's width, twenty blocks out: z 6..25.
+    private static MapIntent SpawnFacingPosZ => new()
+    {
+        Spawns = [new SpawnIntent { Team = "red", Point = new Pt(0, 8, 0), Yaw = 0 }],
+    };
+
+    [Test]
+    public async Task A_tree_in_front_of_the_spawn_door_is_flagged_and_one_behind_is_not()
+    {
+        var ahead = DressingScope.ApproachViolations(
+            Layout(",\"dressing\":{\"props\":[{\"kind\":\"tree\",\"id\":\"t1\",\"seed\":1,\"x\":0,\"z\":15}]}"),
+            SpawnFacingPosZ);
+        await Assert.That(ahead.Count).IsEqualTo(1);
+        await Assert.That(ahead[0].Kind).IsEqualTo("tree");
+
+        // Behind, and off-axis enough that the rot_180 mirror stays out of the lane too.
+        var behind = DressingScope.ApproachViolations(
+            Layout(",\"dressing\":{\"props\":[{\"kind\":\"tree\",\"id\":\"t2\",\"seed\":1,\"x\":10,\"z\":-15}]}"),
+            SpawnFacingPosZ);
+        await Assert.That(behind).IsEmpty();
+
+        var past = DressingScope.ApproachViolations(
+            Layout(",\"dressing\":{\"props\":[{\"kind\":\"tree\",\"id\":\"t3\",\"seed\":1,\"x\":0,\"z\":30}]}"),
+            SpawnFacingPosZ);
+        await Assert.That(past).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_boulder_may_stand_in_the_approach_because_low_cover_keeps_the_sightline()
+    {
+        // The author's frontage rule permits boulders and fauna in the lane — what it forbids is what cuts
+        // the line from the door to the objective, and a rock does not.
+        var violations = DressingScope.ApproachViolations(
+            Layout(",\"dressing\":{\"props\":[{\"kind\":\"boulder\",\"id\":\"b1\",\"seed\":1,\"x\":0,\"z\":15}]}"),
+            SpawnFacingPosZ);
+        await Assert.That(violations).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_house_in_front_of_a_wool_rooms_entry_is_flagged_at_the_shorter_reach()
+    {
+        // A legacy wool at (0,0) resolves the default cage with a door on every wall, so each face carries a
+        // ten-block approach — a house at z 8..12 stands in the south one; at z 17+ it is past it.
+        var wool = new MapIntent
+        {
+            Wools = [new WoolIntent { Owner = "blue", Color = "blue", Spawn = new Pt(0, 8, 0) }],
+        };
+
+        var blocking = DressingScope.ApproachViolations(
+            Layout(",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"wings\":[[[-2,8],[2,12]]]}]}"),
+            wool);
+        await Assert.That(blocking.Count).IsEqualTo(1);
+        await Assert.That(blocking[0].Kind).IsEqualTo("building");
+
+        var clear = DressingScope.ApproachViolations(
+            Layout(",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h2\",\"seed\":1,\"wings\":[[[-2,17],[2,21]]]}]}"),
+            wool);
+        await Assert.That(clear).IsEmpty();
     }
 
     [Test]

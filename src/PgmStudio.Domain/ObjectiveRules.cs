@@ -30,7 +30,8 @@ public static class ObjectiveRules
     /// <remarks>Move the goal onto ground and out of every spawn and wool room. The finding names which of the three it hit; a goal over void has nothing to stand on, and one inside a room stands where the map's own rules make its blocks unbreakable.</remarks>
     public const string Placement = "OB17";
 
-    /// <summary>A tree, boulder or building stands inside a goal's clearance.</summary>
+    /// <summary>A tree, boulder or building stands inside a goal's clearance: the ground its structure covers
+    /// grown by four blocks, and never nearer than ten blocks to the marker itself (the author's numbers).</summary>
     /// <remarks>Move the tree, boulder or building the finding names, or move the goal. Nothing is dropped for you, because a prop deleted silently is a placement the author can still see on the canvas.</remarks>
     public const string PropInClearance = "OB19";
 
@@ -38,4 +39,12 @@ public static class ObjectiveRules
     /// however clean everything else is.</summary>
     /// <remarks>Use an id from PGM's own enum. The studio derives this from what the intent carries, so the usual cause is a hand-edited document — remove the element and let the generator write it.</remarks>
     public const string UnknownGamemode = "OB20";
+
+    /// <summary>A tree or building stands in a door's approach: the ground in front of a spawn room's door —
+    /// twenty blocks out from the stamped building's own face, the wall's width — or in front of a wool
+    /// room's entries, ten blocks out (the author's numbers). The lane players walk out through is part of
+    /// what the door is for, and a prop standing in it turns the way out into an ambush. A boulder is
+    /// permitted: low cover leaves the sightline the rule protects.</summary>
+    /// <remarks>Move the tree or building out of the approach lane the finding names, or turn the spawn so its door faces open ground. The approach is measured from the stamped room's face — the building, not the protection region around it.</remarks>
+    public const string ApproachBlocked = "OB21";
 }

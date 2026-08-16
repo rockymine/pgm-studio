@@ -173,7 +173,20 @@ would silently discard a placement the author can see on the canvas; instead `Ma
 tree and boulder's anchor and each building's whole footprint across the map's own symmetry — the same images
 `Decorator` itself would stamp — so a violation only one team's mirror carries is still caught. The clearance
 is why the refusal is wanted at all: an objective is the one thing on a map that wants its approach legible,
-so a defender can see what is coming and an attacker pays something visible for arriving.
+so a defender can see what is coming and an attacker pays something visible for arriving. For those three
+props the kept-open ground reaches further than the cover clearance: never nearer than **ten blocks to the
+goal's marker** (`DressingScope.GoalStandoff`, the author's radius) — the ring a fight happens on, measured
+from the marker rather than from however wide the structure under it happens to be.
+
+**A door's approach is kept open the same way (`OB21`, `DressingScope.ApproachViolations`).** The ground in
+front of a spawn room's door — **twenty blocks** out from the stamped building's own face, the wall's width —
+and in front of each wool-room entry — **ten blocks** — refuses a tree or a building at export with the same
+409 shape. A boulder is deliberately permitted in the lane (the author's frontage rule allows boulders and
+fauna): low cover leaves the sightline the rule protects, and the sightline is the point. The lane is
+measured from the room resolution the stamper actually builds
+(`SketchWorldBuilder.SpawnRoom`/`WoolFrame`), deliberately not from the protection region projected around
+it: the ruling is about the building and the way players walk out of it. A legacy wool cage with a door per
+wall keeps the lane on all four faces.
 
 ## 4. Paths — drag a line, replace the finish (`DR-PA`)
 
@@ -458,6 +471,16 @@ What it does need is ground, and that is physics rather than policy: it seats on
 own footprint, one course down, so it settles into a slope instead of standing on stilts over the low side. An
 image with no ground under it at all raises nothing.
 
+**It must leave a way past itself (`DR-PASS`).** Beside a building there must be **five blocks** of passable
+ground along at least one of its four sides — the whole run of that side, extended one step past each
+corner, which is the cell a player turns in from and exactly what separates a flank that can be entered from
+one walled off at both ends. The failure this closes was generated for real: a house across the full width
+of a land leg, void on both flanks, so the only way to the other side was through the building. A house
+against the map's own edge is fine — a coast house is a house — as long as the other side keeps the passage.
+Passable means terrain with nothing *built* on it: a road or a channel alongside the wall still counts as a
+way past, an earlier building does not. A breach declines the whole prop with the rule id in its census
+reason, decided once for the orbit like every other refusal here.
+
 **It carves the slope out of its own rooms.** Seating on the lowest column means that on a hillside or a
 relief mark the higher ground runs exactly where the rooms will be — and the stamper deliberately never cuts
 terrain (air resolved out of a material is a gap left open, never a hole punched), so without a carve the
@@ -493,8 +516,9 @@ The shell is a **snapshot** on the prop, not a library id — the rule a map's b
 rebuild a map's scenery.
 
 **Every whole-prop decline is reported with its reason.** A house whose wings make no building, a house
-whose ground something already claimed, a house over no ground, a tree or a boulder whose site finds no
-ground, lands on a protected or claimed column, or breaks its kind's road standoff — each appends one entry to
+whose ground something already claimed, a house over no ground or with no way past it, a tree or a boulder
+whose site finds no ground, lands on a protected or claimed column, or breaks its kind's road standoff —
+each appends one entry to
 `DressingPlacement.Dropped` (`{id, kind, reason}`, the reason naming the cell where the cause is a place),
 where the same silent empty return used to mean all five. Nothing new refuses: the pass places what it can
 exactly as before, and the report makes the rest visible — as `region/dressing-report.json` beside the

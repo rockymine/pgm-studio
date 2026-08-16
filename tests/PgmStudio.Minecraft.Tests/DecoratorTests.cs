@@ -703,6 +703,53 @@ public sealed class DecoratorTests
     }
 
     [Test]
+    public async Task A_house_that_corks_its_leg_is_refused_and_a_coast_house_stands()
+    {
+        // The generation failure this rule closes: a house across the full width of a land leg, void on both
+        // flanks — players would have to dig through the building to reach the other side. Beside a house
+        // there must be five blocks of passable ground along at least one side (the author's number). A
+        // house against the map's own edge is fine as long as the other side keeps the passage.
+        var leg = new VoxelWorld();
+        var legTop = new Dictionary<(int X, int Z), int>();
+        for (var z = 0; z < 40; z++)
+        for (var x = 10; x < 19; x++)   // a nine-wide leg running north-south, void either side
+        {
+            for (var y = 0; y < 7; y++) leg.SetBlock(x, y, z, Blocks.Stone);
+            leg.SetBlock(x, 7, z, Blocks.Grass);
+            legTop[(x, z)] = 8;
+        }
+
+        var corked = Decorator.Decorate(leg, Context(legTop,
+            [new HouseProp { Id = "h", Wings = [new AuthoredWing([[10, 16], [18, 24]])], Style = new HouseStyle
+            {
+                Doorway = new Doorway
+                {
+                    Door = DoorMaterial.Air,
+                },
+            } }]));
+        await Assert.That(corked.Houses).IsEqualTo(0);
+        var drop = corked.Dropped!.Single();
+        await Assert.That(drop.Reason).Contains("no way past");
+        await Assert.That(drop.Reason).Contains("(DR-PASS)");
+
+        // The same house on the same leg, hugging the west edge: the east flank keeps a five-block passage.
+        var (coast, coastTop) = Plateau();
+        for (var z = 0; z < 40; z++)
+        for (var x = 0; x < 10; x++) coastTop.Remove((x, z));   // void west of x=10
+
+        var seated = Decorator.Decorate(coast, Context(coastTop,
+            [new HouseProp { Id = "h", Wings = [new AuthoredWing([[10, 16], [18, 24]])], Style = new HouseStyle
+            {
+                Doorway = new Doorway
+                {
+                    Door = DoorMaterial.Air,
+                },
+            } }]));
+        await Assert.That(seated.Houses).IsEqualTo(1);
+        await Assert.That(seated.Dropped).IsNull();
+    }
+
+    [Test]
     public async Task A_second_building_does_not_stand_where_the_first_one_does()
     {
         // Two authored rectangles that overlap are two buildings colliding, not one winning a race to write

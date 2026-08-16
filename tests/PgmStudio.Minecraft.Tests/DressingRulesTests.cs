@@ -22,6 +22,16 @@ public sealed class DressingRulesTests
     }
 
     [Test]
+    public async Task DR_PASSs_catalogue_sentence_states_the_width_the_check_keeps()
+    {
+        var passAround = RuleCatalog.Read([typeof(DressingRules).Assembly])
+            .Single(rule => rule.Rule == DressingRules.PassAround);
+
+        await Assert.That(passAround.Means).Contains($"{DressingRules.PassAroundWidth} blocks of passable ground");
+        await Assert.That(passAround.Fix).IsNotNull();
+    }
+
+    [Test]
     public async Task A_standoff_drop_cites_the_rule_id_the_catalogue_answers()
     {
         // The census is prose, so the id in the reason is what connects a drop to GET /api/rules. The same

@@ -12,6 +12,16 @@ public static class DressingRules
     /// the paved edge — measured to the spline the band actually follows, not the drawn polyline. The whole
     /// prop is declined and the census names the offending cell, so the drop can be checked on the canvas.</remarks>
     public const string RoadStandoff = "DR-ROAD";
+
+    /// <summary>A building leaves no way past itself: none of its four sides has 5 blocks of passable ground
+    /// alongside its whole run (the author's number). A house may stand against the map's own edge on one
+    /// side — a coast house is a house — but a house with too little ground on every side corks the leg it
+    /// stands on, and a route players must dig through a building to walk is not a route.</summary>
+    /// <remarks>Move the building so at least one side keeps a five-block passage alongside its whole length — including one step past each corner, which is where the passage turns in from — or widen the ground it stands on. Passable here means terrain with nothing built on it; a road or a channel beside the wall still counts as a way past.</remarks>
+    public const string PassAround = "DR-PASS";
+
+    /// <summary>The passage's width in blocks — <see cref="PassAround"/>'s one number.</summary>
+    public const int PassAroundWidth = 5;
 }
 
 /// <summary>What kind of thing claimed a cell of ground during the dressing pass. The kind is what lets one
@@ -50,6 +60,12 @@ public sealed class GroundClaims
     /// question, asked with <see cref="ClaimKind.Route"/>: pavement never blocks a house.</summary>
     public bool HoldsOtherThan(int x, int z, ClaimKind kind) =>
         cells.TryGetValue((x, z), out var held) && held != kind;
+
+    /// <summary>Whether exactly <paramref name="kind"/> holds the cell — the passage check's question, asked
+    /// with <see cref="ClaimKind.Structure"/>: only something built blocks a way past, while a road or a
+    /// channel alongside a wall is still ground a player crosses.</summary>
+    public bool HoldsKind(int x, int z, ClaimKind kind) =>
+        cells.TryGetValue((x, z), out var held) && held == kind;
 
     /// <summary>The nearest cell of <paramref name="kind"/> strictly nearer than <paramref name="standoff"/>
     /// blocks (Chebyshev) of the given cell, or null where the standoff is kept. Walked in growing square

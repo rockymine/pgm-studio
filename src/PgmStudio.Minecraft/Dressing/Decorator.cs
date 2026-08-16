@@ -403,6 +403,13 @@ public static class Decorator
                 dropped.Add(new DroppedProp(house.Id, "house", "no ground under any of its cells"));
                 return [];
             }
+            if (!HasPassage(context, claims, image))
+            {
+                dropped.Add(new DroppedProp(house.Id, "house",
+                    $"no way past it: fewer than {DressingRules.PassAroundWidth} blocks of passable ground "
+                    + $"beside every side ({DressingRules.PassAround})"));
+                return [];
+            }
 
             var front = house.Front is { } edge ? context.Symmetry.TurnEdge(edge, k) : (RoomEdge?)null;
             images.Add((image, front, floorY.Value));
@@ -486,6 +493,36 @@ public static class Decorator
         foreach (var (x, z) in plan.Cells())
             if (claims.HoldsOtherThan(x, z, ClaimKind.Route)) return (x, z);
         return null;
+    }
+
+    /// <summary>Whether a building leaves a way past itself: at least one of its four sides carries a band of
+    /// passable ground <see cref="DressingRules.PassAroundWidth"/> blocks deep along its whole run — extended
+    /// one step past each corner, because that step is where the passage turns in from, and it is exactly the
+    /// cell that separates a flank a player can enter from a flank walled off at both ends. A house corking a
+    /// leg fails all four: its flanks are void, and the ground beyond its gable ends fails the corner step.
+    /// Passable is terrain with nothing <em>built</em> on it — a road or a channel alongside the wall is
+    /// still a way past, an earlier building is not. Measured over the plan's bounding box: the notch of an L
+    /// is the building's own ground, not a public route through it.</summary>
+    private static bool HasPassage(DressingContext context, GroundClaims claims, BuildingPlan plan)
+    {
+        int minX = plan.MinX, minZ = plan.MinZ, maxX = plan.MaxX, maxZ = plan.MaxZ;
+        var depth = DressingRules.PassAroundWidth;
+
+        return Band(maxX + 1, maxX + depth, minZ - 1, maxZ + 1)      // east flank
+            || Band(minX - depth, minX - 1, minZ - 1, maxZ + 1)      // west flank
+            || Band(minX - 1, maxX + 1, maxZ + 1, maxZ + depth)      // south flank
+            || Band(minX - 1, maxX + 1, minZ - depth, minZ - 1);     // north flank
+
+        bool Band(int fromX, int toX, int fromZ, int toZ)
+        {
+            for (var z = fromZ; z <= toZ; z++)
+            for (var x = fromX; x <= toX; x++)
+            {
+                if (!context.SurfaceTop.ContainsKey((x, z))) return false;
+                if (claims.HoldsKind(x, z, ClaimKind.Structure)) return false;
+            }
+            return true;
+        }
     }
 
     /// <summary>The course a building's floor sits at: one below the lowest ground its plan covers, or null

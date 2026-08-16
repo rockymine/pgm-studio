@@ -139,16 +139,98 @@ public static class DressingScope
         }
     }
 
+    /// <summary>How far a tree, boulder or building keeps from a goal's <b>marker</b>, beyond the
+    /// footprint-grown <see cref="GoalClearance"/> that turns cover away: ten blocks (the author's number).
+    /// A goal is a small floating thing, so the ground that makes it playable is the ring a fight happens
+    /// on, and that ring is measured from the marker rather than from however wide the structure under it
+    /// happens to be.</summary>
+    public const int GoalStandoff = 10;
+
+    /// <summary>How far the ground in front of a spawn room's door stays clear of props: twenty blocks out
+    /// from the stamped building's own face (the author's number) — the building, deliberately not the
+    /// protection region projected around it. The lane players walk out through is part of what the door is
+    /// for.</summary>
+    public const int SpawnApproach = 20;
+
+    /// <summary>The wool room's version of <see cref="SpawnApproach"/>: ten blocks out from each entry face
+    /// (the author's number) — shorter because a wool's approach is meant to be contested, and what is being
+    /// kept is legibility rather than a safe walk.</summary>
+    public const int WoolApproach = 10;
+
+    /// <summary>The ground a tree, boulder or building may not take in front of a door: one rectangle per
+    /// doored face, the face's own width, reaching <see cref="SpawnApproach"/> out from a spawn room and
+    /// <see cref="WoolApproach"/> from each wool entry. Read from the same room resolution the stamper
+    /// builds (<see cref="SketchWorldBuilder.SpawnRoom"/>/<see cref="SketchWorldBuilder.WoolFrame"/>), so
+    /// the approach is measured from the building that actually stands, not from a second derivation.</summary>
+    public static Func<int, int, bool> ApproachAt(MapIntent intent)
+    {
+        var rects = new List<(int MinX, int MinZ, int MaxX, int MaxZ)>();
+
+        foreach (var spawn in intent.Spawns)
+            AddFrontages(rects, SketchWorldBuilder.SpawnRoom(spawn).Frame, SpawnApproach);
+        foreach (var wool in intent.Wools ?? [])
+            AddFrontages(rects, SketchWorldBuilder.WoolFrame(wool), WoolApproach);
+
+        return (x, z) => rects.Any(r => x >= r.MinX && x <= r.MaxX && z >= r.MinZ && z <= r.MaxZ);
+    }
+
+    // One frontage rect per doored face: the face's full width, `reach` blocks outward. Per face rather than
+    // per door, because the approach is the lane in front of the wall, not a corridor the width of the cut.
+    private static void AddFrontages(
+        List<(int MinX, int MinZ, int MaxX, int MaxZ)> rects, RoomFrame frame, int reach)
+    {
+        foreach (var edge in frame.Doors.Select(door => door.Edge).Distinct())
+            rects.Add(edge switch
+            {
+                RoomEdge.PosX => (frame.MaxX + 1, frame.MinZ, frame.MaxX + reach, frame.MaxZ),
+                RoomEdge.NegX => (frame.MinX - reach, frame.MinZ, frame.MinX - 1, frame.MaxZ),
+                RoomEdge.PosZ => (frame.MinX, frame.MaxZ + 1, frame.MaxX, frame.MaxZ + reach),
+                _ => (frame.MinX, frame.MinZ - reach, frame.MaxX, frame.MinZ - 1),
+            });
+    }
+
     /// <summary>Every tree, boulder or building whose footprint reaches into a goal's clearance
-    /// (<see cref="GoalGroundAt"/>), fanned across the map's own symmetry exactly as <see cref="Decorator"/>
-    /// places it. These three are refused rather than dropped, because they are authored: a caller needs the
-    /// one offending prop and the goal it collides with, not a silently discarded placement. Ground cover
-    /// crosses this ground freely and is never checked here — only the tall kind turns away from it, and only
-    /// inside <see cref="Decorator"/> itself.</summary>
+    /// (<see cref="GoalGroundAt"/>, plus the marker's own <see cref="GoalStandoff"/>), fanned across the
+    /// map's own symmetry exactly as <see cref="Decorator"/> places it. These three are refused rather than
+    /// dropped, because they are authored: a caller needs the one offending prop and the goal it collides
+    /// with, not a silently discarded placement. Ground cover crosses this ground freely and is never
+    /// checked here — only the tall kind turns away from it, and only at the narrower
+    /// <see cref="GoalClearance"/>, inside <see cref="Decorator"/> itself.</summary>
     public static List<(string Kind, string PropId, int X, int Z)> GoalClearanceViolations(
         string layoutJson, MapIntent goals)
+        => Violations(layoutJson, KeepOut(GoalGroundAt(goals), GoalDiscsAt(goals)));
+
+    /// <summary>Every tree or building standing in a door's approach (<see cref="ApproachAt"/>), fanned like
+    /// <see cref="GoalClearanceViolations"/> and refused for the same reason: the offending prop is authored
+    /// and the author needs it named. A boulder is deliberately not checked — the author's frontage rule
+    /// permits boulders and fauna in the lane, because low cover leaves the sightline the rule protects.</summary>
+    public static List<(string Kind, string PropId, int X, int Z)> ApproachViolations(
+        string layoutJson, MapIntent intent)
+        => [.. Violations(layoutJson, ApproachAt(intent)).Where(violation => violation.Kind != "boulder")];
+
+    // The marker-centred half of a goal's prop keep-out: a GoalStandoff square around each anchor.
+    private static Func<int, int, bool> GoalDiscsAt(MapIntent intent)
     {
-        var isGoalGround = GoalGroundAt(goals);
+        var rects = new List<(int MinX, int MinZ, int MaxX, int MaxZ)>();
+        foreach (var destroyable in intent.Destroyables ?? [])
+            rects.Add(Disc(destroyable.Anchor));
+        foreach (var core in intent.Cores ?? [])
+            rects.Add(Disc(core.Anchor));
+        return (x, z) => rects.Any(r => x >= r.MinX && x <= r.MaxX && z >= r.MinZ && z <= r.MaxZ);
+
+        static (int, int, int, int) Disc(Pt anchor)
+        {
+            int anchorX = (int)Math.Floor(anchor.X), anchorZ = (int)Math.Floor(anchor.Z);
+            return (anchorX - GoalStandoff, anchorZ - GoalStandoff, anchorX + GoalStandoff, anchorZ + GoalStandoff);
+        }
+    }
+
+    private static Func<int, int, bool> KeepOut(Func<int, int, bool> first, Func<int, int, bool> second)
+        => (x, z) => first(x, z) || second(x, z);
+
+    private static List<(string Kind, string PropId, int X, int Z)> Violations(
+        string layoutJson, Func<int, int, bool> keepOut)
+    {
         var symmetry = SymmetryOf(layoutJson);
         var violations = new List<(string Kind, string PropId, int X, int Z)>();
 
@@ -156,7 +238,7 @@ public static class DressingScope
         {
             var kind = ClearanceKind(prop);
             if (kind is null) continue;
-            if (FirstClearanceHit(prop, symmetry, isGoalGround) is { } cell)
+            if (FirstClearanceHit(prop, symmetry, keepOut) is { } cell)
                 violations.Add((kind, prop.Id, cell.X, cell.Z));
         }
         return violations;

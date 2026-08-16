@@ -672,7 +672,7 @@ by `HousePropRules.PastCap` and is not filed.
 
   **This entry is the home the audit's plan-space rules need, and it is why it is worth doing before them.**
   Buckets 1–3 in `BACKLOG.md` are fourteen findings that are all geometry over plan rectangles — what a spawn
-  door faces (`B158` `B169` `B172` `B177` `B180`), how big a piece is and how far apart (`B156` `B157` `B167`
+  door faces (`B158` `B169` `B177` `B180`), how big a piece is and how far apart (`B156` `B157` `B167`
   `B170` `B178` `B186`), how far apart the goals are (`B175` `B179`) — and each one is a rule with a
   number in it that `PlanValidator` is the natural place for. Landing this entry first means those fourteen
   are findings added to a reachable validator rather than fourteen separate checks looking for a home. The
@@ -820,7 +820,7 @@ rule. It spends the refusal vocabulary and belongs beside buckets 1–3.
 
 | # | Bucket | Ids | Concept it spends | Lands in |
 |---|---|---|---|---|
-| **1** | What a spawn door faces | `B158` `B169` `B172` `B177` `B180` | extent and distance | `Geom` (the frontage rect) · `PlanValidator` (five rules over it) |
+| **1** | What a spawn door faces | `B158` `B169` `B177` `B180` | extent and distance | `Geom` (the frontage rect) · `PlanValidator` (five rules over it) |
 | **2** | How big a piece is, and how far apart | `B156` `B157` `B167` `B170` `B178` `B186` | extent and distance | `PlanValidator` · `PlanCompiler` |
 | **3** | How far apart the goals are | `B175` `B179` | extent and distance | `Geom` (the spacing deriver) · `PlanValidator` · `Analysis` |
 | **4** | A block must be the kind of block its role needs | `B165` `B190` | block kind by role | `HouseStamper` · `HouseStyleValidation` + a `roof_style` migration |
@@ -910,7 +910,7 @@ reachable home.
   not about a width limit; the 15-block figure is a rule of thumb for the common case rather than the rule.
   Mirefast's at least carries nine houses and two ramps, which is the distinction the correction draws. It has
   a rule id already: **`SP2`** in `rules.md`, "a spawn sits near the back of its lane, because the space behind
-  a spawn is dead space". It composes with `B157` (bounds the building) and `B172` (requires the first 20×20 of
+  a spawn is dead space". It composes with `B157` (bounds the building) and the shipped `B172` (requires the first 20×20 of
   that ground to be open), and between them the question becomes *what is this ground for* rather than *how
   wide is it*.
 
@@ -919,18 +919,6 @@ reachable home.
   generated spawns sit 5–15 out, squarely normal. This entry stands on the author's judgment, not on that sweep.
 
   *author, 2026-08-14, corrected 2026-08-14 · `yard` and `steading` shapes against their compiled spawn pieces.*
-
-- [ ] **B172 — The ground in front of a spawn must be open 20×20, and nothing checks what stands there.**
-  Mirefast's clear corridor is **12 blocks wide**: `h3` occupies `x −15…−8` and `h4` `x 4…14`, both at
-  `z −84…−80`, inside the required box. The axis itself is clear, which is why that board has the sightline to
-  its monument the author singles out as important — and the other boards do not: Sable Marsh opens onto void,
-  Weirgate onto a `subtract`, Corvid Hollow has a house against the door.
-
-  **The rule (author):** at least **20 × 20** of open ground in front of a spawn. The only props permitted are
-  a single tree at the edge of that area, boulders and fauna. **No houses.** A clear line from the spawn to the
-  objective is what the rule protects.
-
-  *author, 2026-08-14 · house props measured against the compiled spawn piece and yaw.*
 
 - [ ] **B177 — `SP2` and `SP7` are written law, `MG31` says a hand-built board must carry them, and nothing
   checks.** Haiku CTW Rush's spawn piece is 40×30 with the spawn point 11 blocks from its back edge and 19 from
@@ -961,10 +949,10 @@ reachable home.
   is sixteen blocks off the centre line and nobody leaving the door meets it.
 
   **The rule (author):** the ground a spawn opens onto is reachable again from where a player lands, and the
-  way up is where players actually leave. It joins `B158` and `B172` as the third thing nothing checks about
+  way up is where players actually leave. It joins `B158` (and `B172`, whose prop half has since shipped) as the third thing nothing checks about
   what is directly in front of a spawn door, and all three want checking against the same rectangle. Rotating a
   spawn to meet its stair is **not** the fix: on Basalt both objectives sit forward on opposite flanks and
-  turning the door toward the ramp would put one behind the player, costing the clear view of both that `B172`
+  turning the door toward the ramp would put one behind the player, costing the clear view of both that `B172` (shipped)
   exists to protect. The route moves to the door.
 
   *author, 2026-08-14 · probed across the `crest`/`works` interface on Kilnrow and `back`/`works` on Basalt.*
@@ -1089,7 +1077,7 @@ the second measure.
   **The author's reading, recorded as a reading:** goals this close are likely to produce a stalemate rather
   than a rush, and the board is too large for what it uses. That is a gameplay judgment and is the author's
   under `CLAUDE.md`; the numbers are the measurement it rests on and do not by themselves establish it. The good
-  half is real and worth preserving in any fix — the goals are visible from spawn, which `B172` exists to
+  half is real and worth preserving in any fix — the goals are visible from spawn, which `B172` (shipped) exists to
   protect. The fault is that they are visible and nineteen blocks away on an empty line.
 
   *author, 2026-08-14 · `map.xml` objective regions · board extent from the layout's shape vertices.*
@@ -1408,7 +1396,7 @@ the thing `B181` names, which makes the document upstream of the boards rather t
   This is a **composition gap rather than a defect** — no refusal is wanted. What would move it is a worked
   example of a building placed for a reason other than "the village goes here", and it connects to `B92`, which
   wants a scenery building that is a mass rather than a place: a watchtower and a sealed edge-of-board run are
-  the two things that entry is for. Note the tension with `B172`, which bars houses from the 20×20 in front of
+  the two things that entry is for. Note the tension with `B172` (shipped as `OB21`), which bars houses from the 20×20 in front of
   the spawn — the street has to move, not merely spread.
 
   *author, 2026-08-14 · all house props on all 21 folders, grouped by position and facing.*
@@ -2245,7 +2233,7 @@ What stays here is the concrete non-design work on *imported* maps (island detec
   Adopting the render's predicate costs nothing extra: the segment index the gate already loads holds the
   vertical structure, and `SurfaceColumns` is discarding it — the same index already answers air-at-a-point
   for monument obstruction. Worth doing with this entry rather than as its own, since both are the same mask
-  learning what stops a player. **Not urgent on its own**: `B172` keeps houses out of the one place they most
+  learning what stops a player. **Not urgent on its own**: `B172` (shipped as `OB21`) keeps houses out of the one place they most
   obstruct, and no corpus distance sweep depends on it (`B212`).
 
 - [ ] **G164 — interference: how much of one side's route the other side's route covers.** Every flow

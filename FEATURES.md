@@ -660,6 +660,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   the band the author stated off the two shipped boards (3.0, 3.9); the band lives on the term
   (`SoftTerm.AuthoredBand` — a ruling, not a learned envelope), and the old 164-map straight-line table
   moved to `seed-stats.md` marked as the retired unit.
+- **A door's approach and a goal's ring are kept open (`B235`, closing `B172`).** `OB21` refuses a tree or a
+  building standing in the twenty blocks in front of a spawn room's door or the ten in front of each
+  wool-room entry — measured from the stamped building's own face, not the protection region, via the same
+  room resolution the stamper builds; boulders stay permitted (the author's frontage rule: low cover keeps
+  the sightline). And `OB19`'s prop keep-out now reaches ten blocks from a goal's *marker*
+  (`DressingScope.GoalStandoff`) beyond the footprint-grown clearance the cover rule keeps.
+- **A building must leave a way past itself (`B236`, `DR-PASS`).** At least one of a house's four sides must
+  carry five blocks of passable ground along its whole run, one step past each corner included — the rule
+  that stops a house corking a land leg with void on both flanks, while a coast house against the map's own
+  edge still stands. A road or channel beside the wall counts as passage; an earlier building does not.
 - **Protection regions gate traversability per team (`B230`).** Where an `enter` rule provably denies a team
   entry somewhere, that team walks its own navigable set — the shared one minus its denied cells — from its
   spawns to every goal it does not own, so a goal tucked behind an oversized spawn protection refuses with
