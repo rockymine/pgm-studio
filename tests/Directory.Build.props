@@ -13,6 +13,8 @@
 
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)TUnitUsings.cs" />
+    <!-- The culture the product pins at startup, pinned for the test host too — see InvariantCulture.cs. -->
+    <Compile Include="$(MSBuildThisFileDirectory)InvariantCulture.cs" />
   </ItemGroup>
 
 </Project>
