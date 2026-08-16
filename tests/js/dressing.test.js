@@ -9,6 +9,8 @@ import { DressingDoc, defaultProp, isMarker, isRect, MAX_FOOTPRINT, propAnchor, 
   from "../../src/PgmStudio.Client/wwwroot/js/studio/dressing/dressing-doc.js";
 import { DressingController, DRESSING_TOOLS }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/controllers/dressing-controller.js";
+import { paintDressing } from "../../src/PgmStudio.Client/wwwroot/js/studio/render/dressing-render.js";
+import { recordingPainter } from "./_painter-stub.js";
 
 // No handle layer and no viewport: the point grips are the one DOM-bearing part of the controller, and
 // `refreshHandles` is a no-op without a layer — so everything below exercises the interaction, not the SVG.
@@ -283,7 +285,9 @@ test("dragging a building keeps two corners however far the pointer wandered", (
   assert.equal(doc.props.length, 1);
   assert.equal(doc.props[0].kind, "house");
   assert.equal(doc.props[0].wings.length, 1);
-  assert.equal(doc.props[0].wings[0].length, 2);
+  // A wing is stored as the server reads it — an AuthoredWing, corners under their own key, so the wing has
+  // somewhere to state its storeys, roof and ridge.
+  assert.equal(doc.props[0].wings[0].corners.length, 2);
   assert.deepEqual(rectFootprint(doc.props[0]), { minX: 2, minZ: 3, width: 11, depth: 7 });
 });
 
@@ -294,13 +298,23 @@ test("a building drag too small to stand up places nothing", () => {
 });
 
 test("a building moves as a whole, corners together", () => {
-  const moved = translateProp({ kind: "house", wings: [[[2, 3], [10, 9]]] }, 5, -2);
-  assert.deepEqual(moved.wings, [[[7, 1], [15, 7]]]);
+  const moved = translateProp({ kind: "house", wings: [{ corners: [[2, 3], [10, 9]] }] }, 5, -2);
+  assert.deepEqual(moved.wings, [{ corners: [[7, 1], [15, 7]] }]);
+});
+
+test("moving a building keeps what each wing states about itself", () => {
+  // The corners move; the spec is the wing's own statement and has nothing to do with where it stands.
+  const moved = translateProp(
+    { kind: "house", wings: [{ corners: [[0, 0], [8, 6]], spec: { ridge: "AlongZ", storeysHigh: 2 } }] }, 3, 3);
+  assert.deepEqual(moved.wings[0].corners, [[3, 3], [11, 9]]);
+  assert.deepEqual(moved.wings[0].spec, { ridge: "AlongZ", storeysHigh: 2 });
 });
 
 test("a building of several wings moves every wing by the same delta", () => {
-  const moved = translateProp({ kind: "house", wings: [[[0, 0], [10, 6]], [[0, 7], [6, 12]]] }, 5, -2);
-  assert.deepEqual(moved.wings, [[[5, -2], [15, 4]], [[5, 5], [11, 10]]]);
+  const moved = translateProp(
+    { kind: "house", wings: [{ corners: [[0, 0], [10, 6]] }, { corners: [[0, 7], [6, 12]] }] }, 5, -2);
+  assert.deepEqual(moved.wings,
+    [{ corners: [[5, -2], [15, 4]] }, { corners: [[5, 5], [11, 10]] }]);
 });
 
 test("a building tool is a tool like any other", () => {
@@ -326,6 +340,34 @@ test("a building drag past the cap places nothing", () => {
 
 test("a building of several wings anchors in the middle of the whole plan, not just the first wing", () => {
   // An L: a hall along x, and a cross wing off its west end — the same shape HousePropTests.Ell() draws.
-  const ell = { kind: "house", wings: [[[0, 0], [10, 6]], [[0, 7], [6, 12]]] };
+  const ell = { kind: "house", wings: [{ corners: [[0, 0], [10, 6]] }, { corners: [[0, 7], [6, 12]] }] };
   assert.deepEqual(propAnchor(ell), [5, 6]);   // middle of the box the whole plan spans, x:0-10, z:0-12
+});
+
+// ── the dressing layer draws, whatever a prop turns out to hold ────────────────
+// The layer is painted in one pass, so one prop that throws takes every other prop down with it — which is
+// how a wing shape the canvas did not recognise made the trees and boulders disappear along with the houses.
+
+test("a stored building paints its wings, one ring each", () => {
+  const painter = recordingPainter();
+  const ell = { id: "h1", kind: "house", front: "posZ",
+                wings: [{ corners: [[0, 0], [10, 6]] }, { corners: [[0, 7], [6, 12]], spec: { ridge: "AlongZ" } }] };
+
+  paintDressing(painter, [ell]);
+
+  // Two wings, so two outlines — a plan drawn as one merged blob would be the wrong picture of an L.
+  const rings = painter.of("ring");
+  assert.equal(rings.length, 2);
+  // Each ring is the four corners of its own wing, spanning the whole blocks it covers.
+  assert.deepEqual(rings[0][0], [[0, 0], [11, 0], [11, 7], [0, 7]]);
+  assert.deepEqual(rings[1][0], [[0, 7], [7, 7], [7, 13], [0, 13]]);
+});
+
+test("a prop the canvas cannot read is skipped, and the props beside it still paint", () => {
+  const painter = recordingPainter();
+  const broken = { id: "bad", kind: "house", wings: [{ nonsense: true }] };
+  const tree = { id: "t1", kind: "tree", x: 20, z: 20, height: 6 };
+
+  assert.doesNotThrow(() => paintDressing(painter, [broken, tree]));
+  assert.ok(painter.calls.length > 0, "the tree beside the unreadable building still drew");
 });

@@ -13,7 +13,7 @@
  */
 
 import { pathRing, pathCenterline } from "../geometry/path.js";
-import { isMarker, isRect, MAX_FOOTPRINT, propAnchor, propReach, rectFootprint, rectPlan }
+import { isMarker, isRect, MAX_FOOTPRINT, propAnchor, propReach, rectFootprint, rectPlan, wingCorners }
   from "../dressing/dressing-doc.js";
 
 // One colour family per kind, so a glance separates a route from a stand of trees without reading a label.
@@ -137,7 +137,7 @@ function rectRing(points) {
  *  carries, more for an L, a T or a U (G177). */
 function wingRings(prop) {
   const wings = prop?.wings ?? (prop?.points ? [prop.points] : []);
-  return wings.map(rectRing).filter(ring => ring.length >= 3);
+  return wings.map(wing => rectRing(wingCorners(wing) ?? [])).filter(ring => ring.length >= 3);
 }
 
 function disc(cx, cz, radius) {

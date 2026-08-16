@@ -67,6 +67,20 @@ export const isMarker = (propOrKind) => {
 export const isRect = (propOrKind) =>
   (typeof propOrKind === "string" ? propOrKind : propOrKind?.kind) === "house";
 
+/** One wing's two opposite corners. A stored wing is `AuthoredWing` — `{corners, spec?}` — because a wing
+ *  states its own storeys, roof and ridge alongside its rectangle; everything here reads its corners through
+ *  this one accessor so the rest of the canvas never has to know the wrapper is there, and so the wrapper can
+ *  gain fields without every reader learning about them. Anything that is not a pair of corners reads as no
+ *  wing at all rather than as a crash: a drawn layer must not be taken down by one malformed prop. */
+export const wingCorners = (wing) => {
+  const corners = wing?.corners ?? wing;
+  return Array.isArray(corners) && corners.length >= 2
+      && Array.isArray(corners[0]) && Array.isArray(corners[1]) ? corners : null;
+};
+
+/** A wing carrying the given corners, keeping whatever else it states. */
+export const withCorners = (wing, corners) => ({ ...(wing ?? {}), corners });
+
 /** The largest footprint a placed building may cover, in blocks — three times the 8x8 shell a wool cage is
  *  stamped in, so a 12x16 house is buildable and a 20x30 one is not. Restated here rather than served because
  *  it is a rule the *canvas* has to apply while a drag is still in the pointer, before anything could be asked
@@ -87,10 +101,11 @@ export function rectFootprint(prop) {
 
 /** The rectangle two corners bound, whatever its size — what a drag in progress is, before it is judged. Takes
  *  either an in-progress trace (`{points: [c1, c2]}`, the shape a rectangle drag builds before it is placed) or
- *  a stored building (`{wings: [[c1, c2], ...]}`), reading its first wing — the one the canvas actually drags. */
+ *  a stored building (`{wings: [{corners: [c1, c2]}, ...]}`), reading its first wing — the one the canvas
+ *  actually drags. */
 export function rectPlan(prop) {
-  const points = prop?.wings?.[0] ?? prop?.points ?? [];
-  if (points.length < 2) return null;
+  const points = prop?.wings ? wingCorners(prop.wings[0]) : wingCorners(prop?.points);
+  if (!points) return null;
   const minX = Math.floor(Math.min(points[0][0], points[1][0]));
   const minZ = Math.floor(Math.min(points[0][1], points[1][1]));
   const maxX = Math.floor(Math.max(points[0][0], points[1][0]));
@@ -104,7 +119,9 @@ export function rectPlan(prop) {
  *  alone. */
 export function propAnchor(prop) {
   if (isMarker(prop)) return [prop.x, prop.z];
-  const points = isRect(prop) ? (prop?.wings ?? []).flat() : (prop?.points ?? []);
+  const points = isRect(prop)
+    ? (prop?.wings ?? []).flatMap(wing => wingCorners(wing) ?? [])
+    : (prop?.points ?? []);
   if (!points.length) return [0, 0];
   const xs = points.map(([x]) => x), zs = points.map(([, z]) => z);
   return [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...zs) + Math.max(...zs)) / 2];
@@ -122,7 +139,13 @@ export function propReach(prop) {
 export function translateProp(prop, dx, dz) {
   if (isMarker(prop)) return { ...prop, x: Math.round(prop.x + dx), z: Math.round(prop.z + dz) };
   const shift = ([x, z]) => [Math.round(x + dx), Math.round(z + dz)];
-  if (isRect(prop)) return { ...prop, wings: (prop.wings ?? []).map(wing => wing.map(shift)) };
+  if (isRect(prop)) {
+    // A wing moves by its corners and keeps everything else it states.
+    return { ...prop, wings: (prop.wings ?? []).map(wing => {
+      const corners = wingCorners(wing);
+      return corners ? withCorners(wing, corners.map(shift)) : wing;
+    }) };
+  }
   return { ...prop, points: (prop.points ?? []).map(shift) };
 }
 
