@@ -1,5 +1,19 @@
 namespace PgmStudio.Minecraft.Dressing;
 
+/// <summary>The dressing pass's own placement rules — the ids its census reasons cite, served by
+/// <c>GET /api/rules</c> from the docstrings here the way every gate family's are.</summary>
+public static class DressingRules
+{
+    /// <summary>A prop rests nearer to the road than its kind's standoff allows: a tree 3 blocks, a boulder 2,
+    /// measured from its resting cells to the nearest paved cell (Chebyshev; exactly-at-distance stands). The
+    /// numbers are each kind's own <see cref="PlacedProp.RouteStandoff"/> — the author's ruling, stated on the
+    /// type so there is exactly one place they live.</summary>
+    /// <remarks>Move the tree or boulder until its trunk or resting footprint keeps its kind's distance from
+    /// the paved edge — measured to the spline the band actually follows, not the drawn polyline. The whole
+    /// prop is declined and the census names the offending cell, so the drop can be checked on the canvas.</remarks>
+    public const string RoadStandoff = "DR-ROAD";
+}
+
 /// <summary>What kind of thing claimed a cell of ground during the dressing pass. The kind is what lets one
 /// rule differ by claimant where the rules genuinely differ: a building collides with water and with another
 /// building but never with a road (a road is meant to run to its porch), and a prop's standoff is stated

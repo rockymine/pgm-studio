@@ -195,14 +195,14 @@ inside its walls, and the path simply ends where the wall does. What the claim w
 above the buildings: a trunk, a rock or tall cover in the middle of the route is still refused, because a
 route with a tree in it is not a route.
 
-**The road reaches further than its pavement: a standoff, stated per prop kind.** A trunk against the kerb
-reads as trees in the road rather than a road through trees, so a tree keeps **three blocks** of clear ground
-between its resting cells and the nearest paved cell, and a boulder — no canopy, but still a wall beside the
-route — keeps **two** (the author's numbers). The rule is the kind's, not the path's:
+**The road reaches further than its pavement: a standoff, stated per prop kind (`DR-ROAD`).** A trunk against
+the kerb reads as trees in the road rather than a road through trees, so a tree keeps **three blocks** of
+clear ground between its resting cells and the nearest paved cell, and a boulder — no canopy, but still a
+wall beside the route — keeps **two** (the author's numbers). The rule is the kind's, not the path's:
 `PlacedProp.RouteStandoff` names each kind's distance, `GroundClaims.NearerThan` measures it (Chebyshev,
 strictly-nearer-than, so a trunk exactly three off stands), and the seat check refuses a breach with the
-offending cell named in the drop report. Everything else — cover, water, buildings — states zero and may run
-right up to the pavement.
+offending cell and the rule id in the drop report, so `GET /api/rules?rule=DR-ROAD` answers what the census
+cited. Everything else — cover, water, buildings — states zero and may run right up to the pavement.
 
 The single solid band is the boring case; the imperfect paths are the point, and all five of them are the same
 distance field with one extra gate (`Geom.PathStroke`):

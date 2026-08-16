@@ -760,7 +760,8 @@ public static class Decorator
             }
             if (routeStandoff > 0 && claims.NearerThan(ground.X, ground.Z, ClaimKind.Route, routeStandoff) is { } road)
             {
-                declineReason = $"({ground.X}, {ground.Z}) is nearer than {routeStandoff} blocks to the road at ({road.X}, {road.Z})";
+                declineReason = $"({ground.X}, {ground.Z}) is nearer than {routeStandoff} blocks to the road "
+                    + $"at ({road.X}, {road.Z}) ({DressingRules.RoadStandoff})";
                 return false;
             }
             if (!context.SurfaceTop.TryGetValue(ground, out var top))

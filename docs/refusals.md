@@ -77,7 +77,7 @@ a rule that changed its name between the two would be two rules.
 | `HS*` | a house style's own materials | `Minecraft/Houses/HouseStyleValidation.cs` → `HouseStyleRules` |
 | `HP*` | a placed building's shape | `Minecraft/Dressing/PlacedProp.cs` → `HousePropRules` |
 | `HJ*` | how two wings meet | `Minecraft/Houses/WingJoints.cs` → `WingJointRules` |
-| `DR-*` | a dressing document that will not parse | `Minecraft/Dressing/DressingJson.cs` |
+| `DR-*` | the dressing pass's own — `DR-DOC` a document that will not parse, `DR-ROAD` a prop resting nearer to the road than its kind's standoff (the numbers live on `PlacedProp.RouteStandoff`, cited by the census reason) | `Minecraft/Dressing/DressingJson.cs` · `Minecraft/Dressing/GroundClaims.cs` → `DressingRules` |
 | `EX*` | the export gate's own — `EX1` not traversable, `EX2` no spawn to enter the map by, `EX3` what the intent stated and the document did not carry, `EX4` an objective with no team to contest it | `Export/MapExportComposer.cs` → `ExportRules` |
 | `SK*` | the sketch endpoints' own — `SK1` a recompile fused the board differently, so an island the author had drawn relief onto no longer exists to carry it | `Api/Endpoints/SketchEndpoints.cs` → `SketchRules` |
 | `RQ*` | the request itself — a document that could not be read, a field that went unread, and a fault that is the studio's own | `Api/Endpoints/Refusals.cs` → `RequestRules` |
@@ -221,6 +221,16 @@ short, a document that will not parse — so what to do about one follows from w
 are claims about how a map is *played*, which `CLAUDE.md` says are the author's to state and not this
 repository's to infer. What they carry instead is `evidence`: `corpus`, `expert`, `open` or `guess`, in
 `rules.md`'s own terms, which says how far to trust each one.
+
+**The numbers have their own endpoint.** `GET /api/rules/terms` answers every evaluator term with the band it
+is scoring against right now — `{term, rule, kind, band, bandSource, learnsFromTraced}` — read through the
+same resolution the scorer uses, so the number served is the number enforced. `bandSource` says where a band
+came from: `authored` (a ruling stated on the term itself, e.g. `goal-spawn-ratio`'s `[3.0, 4.0]`),
+`envelope` (learned from the teaching seeds by `envelope-stats`), or `none` (a dormant soft term, or a hard
+term, which refuses rather than scores). The one authored number that is not a term — the road standoff — is
+`DR-ROAD`'s, whose catalogue sentence carries the per-kind values from `PlacedProp.RouteStandoff` and is
+drift-pinned to them by `DressingRulesTests`, as `GO1`'s prose is pinned to its term's band by
+`RuleBandDriftTests`.
 
 ## Adding one
 

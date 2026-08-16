@@ -660,6 +660,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   the band the author stated off the two shipped boards (3.0, 3.9); the band lives on the term
   (`SoftTerm.AuthoredBand` — a ruling, not a learned envelope), and the old 164-map straight-line table
   moved to `seed-stats.md` marked as the retired unit.
+- **Every band and standoff is answerable through the rules API (`B234`).** `GET /api/rules/terms` serves
+  each evaluator term with the band it is scoring against right now and where it came from
+  (`authored`/`envelope`/`none`), read through the scorer's own resolution so the served number is the
+  enforced one. The road standoff got its citable id (`DR-ROAD`, cited by the census reason, catalogue
+  sentence carrying the per-kind values), and two drift gates pin the prose to the code: GO1's stated band
+  to `GoalSpawnRatio.AuthoredBand`, DR-ROAD's sentence to `PlacedProp.RouteStandoff`.
 - **Typed ground claims and the road standoff (`B232`).** The dressing pass's claim set carries who claimed
   each cell (`GroundClaims`: water/route/structure/scatter), which is what lets a building ignore pavement
   while colliding with everything else — and lets a prop kind state a standoff from the road:
