@@ -44,7 +44,7 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
         {
-            await Send.ResponseAsync(new { error = "Invalid plan structure" }, 400, ct);
+            await Send.ResponseAsync(new { error = "Invalid plan structure", message = ex.Message }, 400, ct);
             return;
         }
 
@@ -116,7 +116,7 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
         {
-            await Send.ResponseAsync(new { error = "Invalid plan structure" }, 400, ct);
+            await Send.ResponseAsync(new { error = "Invalid plan structure", message = ex.Message }, 400, ct);
             return;
         }
 
@@ -187,7 +187,7 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
         {
-            await Send.ResponseAsync(new { error = "Invalid plan structure" }, 400, ct);
+            await Send.ResponseAsync(new { error = "Invalid plan structure", message = ex.Message }, 400, ct);
             return;
         }
 
@@ -272,7 +272,7 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
         {
-            await Send.ResponseAsync(new { error = "Invalid plan structure" }, 400, ct);
+            await Send.ResponseAsync(new { error = "Invalid plan structure", message = ex.Message }, 400, ct);
             return;
         }
 

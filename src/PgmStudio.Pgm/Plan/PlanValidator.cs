@@ -54,6 +54,10 @@ public static class PlanRules
     /// <summary>A wall is drawn on a pair of pieces that share no land interface.</summary>
     /// <remarks>A wall is drawn between two pieces that share no walkable border, so there is nothing for it to divide. Move the pieces until they touch along an edge, or drop the wall.</remarks>
     public const string WallWithoutInterface = "PL11";
+
+    /// <summary>A connected landmass mixes fanned and non-fanned pieces, so it has no coherent orbit image.</summary>
+    /// <remarks>The symmetry fan copies whole islands, so every piece of one connected landmass must agree about <c>mirrors</c>. A non-fanned piece is for an isolated on-axis island; a mid that touches team land is authored as half its ground and completed by the fan.</remarks>
+    public const string MixedMirrors = "PL12";
 }
 
 /// <summary>
@@ -136,6 +140,19 @@ public static class PlanValidator
                 Error(PlanRules.SurfaceClash,
                     $"overlapping pieces '{c.A}' and '{c.B}' have different surfaces (delta {c.SurfaceDelta})",
                     c.A, c.B);
+
+        // a connected landmass must agree about mirroring: the fan copies whole islands, so a component that
+        // is half fanned and half not has no coherent orbit image. The compiler throws on the same condition;
+        // refusing it here is what lets the gate name the pieces instead of answering an anonymous 400.
+        foreach (var component in d.Components)
+        {
+            var members = component.Select(id => d.Piece(id)!.Value).ToList();
+            if (members.Select(p => p.Mirrors).Distinct().Count() > 1)
+                Error(PlanRules.MixedMirrors,
+                    $"landmass [{string.Join(", ", component)}] mixes mirrored and non-mirrored pieces — " +
+                    "a non-fanned piece must form its own island",
+                    [.. component]);
+        }
 
         // placements must reference a real piece and sit inside it (a wool's flat area is its piece footprint).
         // A destroyable/core is the one marker kind that may name no piece at all (B128): an empty piece reads

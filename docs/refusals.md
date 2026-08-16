@@ -97,6 +97,7 @@ The structural plan rules, in full:
 | `PL9` | a wool cannot be reached from a capturing team's spawn |
 | `PL10` | a destroyable style names something that is not a style |
 | `PL11` | a wall is drawn on a pair sharing no land interface |
+| `PL12` | a connected landmass mixes fanned and non-fanned pieces, so it has no coherent orbit image |
 
 And the building rules, which the dressing document and the room library are both held to:
 

@@ -82,6 +82,25 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
+    public async Task Mixed_mirroring_within_one_landmass_is_an_error()
+    {
+        // the fan copies whole islands, so a landmass half fanned and half not has no coherent orbit image;
+        // the compiler throws on it, and the validator must refuse it first so the gate can name the pieces.
+        var mixed = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]},
+                     {"id":"b","role":"mid","rect":[0,10,10,10],"mirrors":false} ] }
+        """);
+        var apart = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]},
+                     {"id":"b","role":"mid","rect":[0,15,10,10],"mirrors":false} ] }
+        """);
+        await Assert.That(Refused(mixed, PlanRules.MixedMirrors)).IsTrue();
+        await Assert.That(Refused(apart, PlanRules.MixedMirrors)).IsFalse();
+    }
+
+    [Test]
     public async Task Placement_outside_its_piece_is_an_error()
     {
         var p = Plan("""

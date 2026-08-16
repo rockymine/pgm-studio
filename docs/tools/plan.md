@@ -362,7 +362,9 @@ different surfaces; a placement referencing an unknown piece, a buffer, or a pos
 destroyable or a core with an empty `piece` is not this error, since an absolute goal names no piece to be
 unknown or outside of; a core with `float` set without `leak` or the reverse; a core casing with no interior to
 hold lava; a destroyable style that names nothing; destroyables or cores on a symmetry that is not order 2; a
-wall on a pair that shares no land interface; a room-frame refusal on a role piece (too small for its shell, a
+wall on a pair that shares no land interface; a connected landmass mixing fanned and non-fanned pieces — the
+fan copies whole islands, so a `mirrors: false` piece must form its own island rather than touch mirrored
+land; a room-frame refusal on a role piece (too small for its shell, a
 non-square pad, a wool room
 with no entry, a spawn room that cannot seat every monument its team will capture); a wool unreachable from a
 capturing team's spawn; and a wool reachable only through a spawn piece.
