@@ -638,6 +638,22 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **The fast-track pass (2026-08-16): one distance canon, one gate chain, and the silences opened.** Seven
+  moves landed in one session, each grounded in the board's own findings. `Geom.Cells` gained the
+  multi-target walk and the canonical square-ring snap, retiring the evaluator's hand-rolled BFS and
+  converging four snap implementations at radii 2/3/4/6. A destroy goal now gates export traversability
+  like a wool (the author's ruling), and `POST /plan/inspect` answers each goal's walk to its own and the
+  enemy's spawn with the enemy÷own ratio — a measurement surface until the author states the band (B188's
+  fast half; B212's unit discipline). `tools/mapgen` builds through `MapExportComposer.ComposeSketch`, the
+  export's own sketch leg, so a headless build passes OB17 (wool monuments now included), OB19 and the
+  playability judgement instead of shipping past them. The refusal envelope's one shape moved to
+  `Finding.Envelope` in `Domain` beside `Finding.Wire`, and the orphaned-relief 409 speaks it (`SK1`).
+  `POST /plan/evaluate` carries the validator's whole lint table as `lint[]` — an unplaceable iron (`WX9`)
+  or a mid-lane spawn (`SP2`) is visible on the loop an agent actually drives (B109/B177's reach half).
+  And the task board's
+  collapsed headings were repaired so its own structure stops misleading the next reader. Earlier the same
+  session: `PL12` (mixed fanned/non-fanned landmass refused by name), the prop preview refusing `HJ*`/`HP*`
+  compositions the build would drop, and the per-team objective line.
 - **A dressing document that fails to parse refuses the export by name, rather than exporting bare (`B130`).**
   `DressingJson.Deserialize`/`DeserializeProp` caught every `JsonException` and returned `DressingDoc.Empty` /
   `null`, commented "a hand-edited blob must not fail an export" — so one unrecognized prop `kind` or one field
