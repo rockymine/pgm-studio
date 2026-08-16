@@ -290,6 +290,45 @@ are Edit-specific. Full canvas spec: `docs/client/canvas-interaction.md`.
   genuinely share — the rest of their apparent repetition is per-tool document semantics and should stay
   separate.
 
+- [~] **B107 — The sketch still cannot place or move an objective; only its height sticks.** The storage
+  question is settled and the backend half is landed (`FEATURES.md`): a structural shape's stated height now
+  survives a recompile, marked per field and carried by `intentRef`. What remains is the reach.
+
+  **The canvas half.** `sketch-canvas.js` documents structural pieces as render-only — never hit-tested,
+  never selected, never edited — so nothing can write the flag a user's correction would set. Unlocking
+  selection, a drag, and an inspector row for the stated height is its own slice of the canvas and render
+  layers, and it is what turns a proven mechanism into something an author can reach.
+
+  **The destroy objectives.** A destroyable and a core carry **no rect in the plan** — `Anchor` is a bare
+  point, unlike a spawn or a wool room — and that is correct rather than missing: neither has a footprint, and
+  neither wants one. They sit anywhere terrain exists beneath them, floating a few blocks clear of it. So a
+  sketch presence for them is a **movable point with a stated height**, not a rect to drag, and the height is
+  the interesting half because it is the one thing the plan cannot know before the relief runs — `B128` landed
+  that half in the document (`float` counts from solved ground, and the marker itself may name no plan piece
+  at all); what is still missing is a way to draw and drag that point on the canvas.
+
+  **Position, separately.** Moving a piece rather than raising it is `S25b`, and the design here deliberately
+  leaves rect and position tracking the plan so that a recompile stays authoritative about *where* while the
+  author stays authoritative about *how high*.
+
+  **And the raster does not draw an absolutely-placed goal at all**, which folds in here because this entry
+  owns the canvas half. `GET /plans/{id}/png` draws `tallow-mirefast`'s five pieces, both spawns and the
+  legend, and nothing at `(0, −50)` where the wardstone stands. `B128`'s empty-`piece` marker is the most
+  useful thing on the board for an agent — it is how a landform carries an objective without a tier
+  manufactured to hold it — and **the one picture the plan layer offers cannot show what it produced**, so an
+  agent authoring from the render has no way to see its own goal.
+
+- [ ] **CV16 — the authoring canvases have no frame budget, only habits.** The zoom stall (fixed in
+  `FEATURES.md`) was two unrelated per-event costs that happened to land on the same handler, and neither was
+  visible until measured: a grid rebuild whose memo was written for pan, and a `.NET` interop call per wheel
+  tick. Both are the same class of mistake — doing work per *input event* rather than per *frame* — and
+  nothing in the canvases prevents the next one. Two guards worth having: a debug overlay (or an e2e probe)
+  that reports main-thread ms per interaction burst, so a regression shows up as a number rather than as
+  someone noticing the picture go soft; and a rule that anything crossing into Blazor from a canvas handler
+  goes through the frame coalescer, since interop is the expensive edge and its cost is invisible from the JS
+  side. The screenshot approach does **not** work for this class of bug — `page.screenshot()` forces a fresh
+  raster, so a transient compositor artifact never appears in the capture; measure the handler, not the pixels.
+
 ## Backend, pipeline & internals (B / P / A)
 
 **The six below came out of the mapgen authoring runs** — `pgm-studio-mapgen/reports/`, Grok run 1 and the
@@ -696,35 +735,8 @@ by `HousePropRules.PastCap` and is not filed.
   gets judged from first. Suspect the bounds computation rather than the drawing: the spur is at the extreme
   of the board's extent, which is where an off-by-one or an early bbox clamp would bite. It is also a second
   instance of the fault `mapgen-review.md` MG13 names, found on a newer renderer than the one that entry describes.
-- [~] **B107 — The sketch still cannot place or move an objective; only its height sticks.** The storage
-  question is settled and the backend half is landed (`FEATURES.md`): a structural shape's stated height now
-  survives a recompile, marked per field and carried by `intentRef`. What remains is the reach.
 
-  **The canvas half.** `sketch-canvas.js` documents structural pieces as render-only — never hit-tested,
-  never selected, never edited — so nothing can write the flag a user's correction would set. Unlocking
-  selection, a drag, and an inspector row for the stated height is its own slice of the canvas and render
-  layers, and it is what turns a proven mechanism into something an author can reach.
-
-  **The destroy objectives.** A destroyable and a core carry **no rect in the plan** — `Anchor` is a bare
-  point, unlike a spawn or a wool room — and that is correct rather than missing: neither has a footprint, and
-  neither wants one. They sit anywhere terrain exists beneath them, floating a few blocks clear of it. So a
-  sketch presence for them is a **movable point with a stated height**, not a rect to drag, and the height is
-  the interesting half because it is the one thing the plan cannot know before the relief runs — `B128` landed
-  that half in the document (`float` counts from solved ground, and the marker itself may name no plan piece
-  at all); what is still missing is a way to draw and drag that point on the canvas.
-
-  **Position, separately.** Moving a piece rather than raising it is `S25b`, and the design here deliberately
-  leaves rect and position tracking the plan so that a recompile stays authoritative about *where* while the
-  author stays authoritative about *how high*.
-
-  **And the raster does not draw an absolutely-placed goal at all**, which folds in here because this entry
-  owns the canvas half. `GET /plans/{id}/png` draws `tallow-mirefast`'s five pieces, both spawns and the
-  legend, and nothing at `(0, −50)` where the wardstone stands. `B128`'s empty-`piece` marker is the most
-  useful thing on the board for an agent — it is how a landform carries an objective without a tier
-  manufactured to hold it — and **the one picture the plan layer offers cannot show what it produced**, so an
-  agent authoring from the render has no way to see its own goal.
-
-### The mapgen audit's forty-eight, bucketed for dispatch
+### The mapgen audit's forty-four, bucketed for dispatch
 
 Six agent runs authored nineteen loadable boards against the `B120` brief, and the author's review of twelve
 of them — with every claim re-measured against the plans, the layouts and the built worlds — produced
@@ -1452,6 +1464,8 @@ the thing `B181` names, which makes the document upstream of the boards rather t
 
   *`opus-run2` §1.3, §1.4, §5 #10 · `sonnet-run2` #1, #2, #6 · `opus5-run2` §2, §5 #5.*
 
+Bucket 9 is not listed here — it was finished before this table was written.
+
 #### Bucket 10 — a document describing nothing still answers 200
 
 - [ ] **B141 — A hand-authored shape missing `type`, `operation` or `floor` rasterizes to nothing, and every
@@ -1633,6 +1647,7 @@ each tread seeded its own ring 0.
 
   *found doing `B195` · `TerrainPatterns.VoronoiMaterial`.*
 
+### Other backend, pipeline & internals work
 
 - [~] **B70 — The room-style *card* cannot show a porch or a window.** The open editor draws four views now
   (B71), the cutaway among them, so a style's porch and its windows read there. A library **card** still
@@ -1649,25 +1664,6 @@ each tread seeded its own ring 0.
   proportions, so one style on 10×10 and on 5×10 is two different roofs rather than one roof stretched, and an
   author has no way to see the second. So the sample wants to be a parameter with a few proportions behind it —
   square, long, narrow — rather than one bigger square.
-
-- [ ] **G178 — A wing has no doorway into its neighbour.** Where two wings meet the plan is simply open between
-  them, which is right; where one projects into another its gable end is a wall from the ground up, which is
-  also right and leaves the projecting wing reachable only from outside. A doorway cut between two wings —
-  through the shared wall a projecting wing's gable end stands in, or through the wall a taller wing's storey
-  carries above a stopped neighbour (`structures.md` §7.6) — wants a run to sit in and a rule for which wall it
-  is cut through, and belongs with the openings work rather than with the roof (`G172`).
-
-- [ ] **G171 — A building's reported height is its reservation, not its highest block.** `TopLayerOver` adds
-  up every storey's headroom and answers where the roof would sit, which is right for a building whose storeys
-  are rooms and wrong for one whose top storey is a roof terrace (`structures.md` §7.6): a parapet storey
-  states the clear of three a storey may not go under, writes one course of wall and leaves two courses of air,
-  and the answer overshoots the highest block laid by exactly those two. Nothing is stamped up there, so the
-  building is correct — what is wrong is every consumer of the number. The dressing prop clamps its placement
-  against the world ceiling with it, so a tall terraced building is refused a little sooner than it needs to
-  be, and the preview views frame to it, so a terrace is drawn with a band of empty sky over it. The fix is to
-  answer from what the stamp would actually write rather than from what the stack reserves — the wall stack
-  already knows which of its courses resolve to air — which also makes the number right for the stilt house,
-  whose ground storey is air for the same reason.
 
 - [ ] **B72 — Two roof-thickness columns nothing reads.** `room_style.roof_thickness` (M0012) and
   `roof_style.thickness` (M0018) are written, clamped and round-tripped through the DTOs, and no stamper has
@@ -1997,16 +1993,26 @@ import diagnostic (`B24e`), detection (`B26`), and the island-floor work the pha
   stained-clay / stained-glass remainder must stay out — admitting wool takes the candidate set from 15,488
   clusters to 439,440, because a CTW map is made of wool.
 
-- [ ] **CV16 — the authoring canvases have no frame budget, only habits.** The zoom stall (fixed in
-  `FEATURES.md`) was two unrelated per-event costs that happened to land on the same handler, and neither was
-  visible until measured: a grid rebuild whose memo was written for pan, and a `.NET` interop call per wheel
-  tick. Both are the same class of mistake — doing work per *input event* rather than per *frame* — and
-  nothing in the canvases prevents the next one. Two guards worth having: a debug overlay (or an e2e probe)
-  that reports main-thread ms per interaction burst, so a regression shows up as a number rather than as
-  someone noticing the picture go soft; and a rule that anything crossing into Blazor from a canvas handler
-  goes through the frame coalescer, since interop is the expensive edge and its cost is invisible from the JS
-  side. The screenshot approach does **not** work for this class of bug — `page.screenshot()` forces a fresh
-  raster, so a transient compositor artifact never appears in the capture; measure the handler, not the pixels.
+## Layout generation (G)
+
+- [ ] **G178 — A wing has no doorway into its neighbour.** Where two wings meet the plan is simply open between
+  them, which is right; where one projects into another its gable end is a wall from the ground up, which is
+  also right and leaves the projecting wing reachable only from outside. A doorway cut between two wings —
+  through the shared wall a projecting wing's gable end stands in, or through the wall a taller wing's storey
+  carries above a stopped neighbour (`structures.md` §7.6) — wants a run to sit in and a rule for which wall it
+  is cut through, and belongs with the openings work rather than with the roof (`G172`).
+
+- [ ] **G171 — A building's reported height is its reservation, not its highest block.** `TopLayerOver` adds
+  up every storey's headroom and answers where the roof would sit, which is right for a building whose storeys
+  are rooms and wrong for one whose top storey is a roof terrace (`structures.md` §7.6): a parapet storey
+  states the clear of three a storey may not go under, writes one course of wall and leaves two courses of air,
+  and the answer overshoots the highest block laid by exactly those two. Nothing is stamped up there, so the
+  building is correct — what is wrong is every consumer of the number. The dressing prop clamps its placement
+  against the world ceiling with it, so a tall terraced building is refused a little sooner than it needs to
+  be, and the preview views frame to it, so a terrace is drawn with a band of empty sky over it. The fix is to
+  answer from what the stamp would actually write rather than from what the stack reserves — the wall stack
+  already knows which of its courses resolve to air — which also makes the number right for the stilt house,
+  whose ground storey is air for the same reason.
 
 - [ ] **G158 — seed the library with a curated set.** An author can now build a style once and reuse it, and a
   theme that binds only the buckets it changes (`FEATURES.md`), but a fresh install's library is empty — so the

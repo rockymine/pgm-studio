@@ -62,7 +62,7 @@ refusals, `StructureClaim` for occupancy, `BlockFamilies` for block kind, one `P
 the inward axis — shared by both rasters, with the author's crossing-an-elevation-step call built into it.
 Nothing paints from the inset yet; the authored shape that spends it is bucket 13's own work.
 
-**The forty in `BACKLOG.md` are dispatchable with three corrections, and the sharpest is not a type.** Each
+**The forty-four in `BACKLOG.md` are dispatchable with three corrections, and the sharpest is not a type.** Each
 bucket's concept and landing site are stated there under *What each bucket spends*, and five of the six are
 built and checked. What a closer read of the sixth found:
 

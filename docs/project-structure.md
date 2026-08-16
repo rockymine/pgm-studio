@@ -89,7 +89,7 @@ above. It does mean `Domain` is "the PGM domain", not "the PGM data model".
 | `Analysis` | 16 | 2,609 | `Playability/` 7 · `Footprint/` 4 · `Region/` 3 · `Layer/` 2 |
 | `Data` | 13 | 2,230 | `Features/` 4 · `Theme/` 3 · `Map/` 3 · `Schema/` 2 · `Plan/` 1 |
 | `Export` | 7 | 1,171 | flat |
-| `Api` | 61 | 8,534 | `Endpoints/` 39 · `Services/` 19 · `Http/` 2 · 1 at root |
+| `Api` | 62 | 8,675 | `Endpoints/` 40 · `Services/` 19 · `Http/` 2 · 1 at root |
 | `Client` | 80 `.cs` + razor | 13,436 | `Features/<Tool>/` · `Components/` · `Pages/`, plus 11 JS layers |
 
 **`Pgm` is two projects wearing one name.** `CLAUDE.md` charters it as "`map.xml` parse/edit/generate", and
@@ -194,7 +194,7 @@ and the harness; its `FromJson` is the production codec.
 | `Analysis` | **Right internal shape** — `Region/`, `Layer/`, `Playability/`, `Footprint/`. | none |
 | `Data` | **Right internal shape** — `Schema/`, `Map/`, `Features/`, and since then `Theme/` and `Plan/` for the library and plan stores. | none |
 | `Export` | **New (`B119`), flat and small.** Seven files — the sketch world builder, the destroy/core/wool scope readers, and the `map.xml` composer — with no DB reference, so `Api` and a headless CLI reach it identically. | none yet; a fold if it grows the way `Minecraft` did |
-| `Api` | **Acceptable for a composition root**, though 37 endpoint files and 19 services is where feature folders start to pay. | optional grouping |
+| `Api` | **Acceptable for a composition root**, though 40 endpoint files and 19 services is where feature folders start to pay. | optional grouping |
 | `Client` | **Well organized** — `Pages/` for routable pages, `Features/<Tool>/` for a tool's own bodies, `Components/` for the shared vocabulary, and 11 JS layers under `wwwroot/js/studio/`. | none |
 
 ## 6. `tools/` — drivers, dev harnesses and fixtures
