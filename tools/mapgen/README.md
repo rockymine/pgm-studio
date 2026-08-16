@@ -33,8 +33,10 @@ written through the spec's `layout` fragment, at an exact coordinate the author 
 Each run writes `region/`, `level.dat` and `map.xml` into `out_dir`, then reports what actually reached the
 world: shapes, islands, goals, spawns, and the buildings/trees read back out of the finished layout's own
 dressing. Buildings and trees are counted from what was authored (`dressing.props`), not from what landed —
-a prop is a request, and the dressing pass drops one that finds no ground or lands on a protected column, so
-look at `--stages`' `dressing.png` to see what actually stood.
+a prop is a request, and the dressing pass declines one that finds no ground or lands on a protected column.
+Every whole-prop decline is reported: one stderr line per drop (`! <slug>: dropped <kind> '<id>' — <reason>`)
+and, when anything dropped, `region/dressing-report.json` beside the provenance sidecar — absence means
+everything authored stood. `--stages`' `dressing.png` remains the picture the report is checked against.
 
 Builds are deterministic: the same spec rebuilds the same map, so two runs can be compared. **If two runs of
 one spec disagree, that is not the tool.** It is almost always a build racing another build: the projects

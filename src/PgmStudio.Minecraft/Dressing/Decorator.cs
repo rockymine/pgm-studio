@@ -58,13 +58,27 @@ public sealed record DressingContext(
 /// <param name="Claimed">The buildings raised, or null where none was. Read <see cref="Structures"/> instead,
 /// which never answers null — the same shape <see cref="Domain.Finding.Subjects"/> carries, so a caller never
 /// has to tell an absent list from an empty one.</param>
+/// <param name="Dropped">Every whole-prop decline this pass made, or null where nothing was declined — the
+/// same null-when-empty convention <paramref name="Claimed"/> carries, for the same reason: a pass that
+/// dropped nothing compares equal to one that placed a board with nothing to drop. A path's own per-cell
+/// skips are not here — those are the ordinary shape of a route crossing protected ground, not a decision an
+/// author needs restated one cell at a time — only the five whole-prop causes B146/B142/B187 found silent: a
+/// house whose wings make no building, a house that collides with something already standing, a house with
+/// no ground under any of its cells, and a tree or a boulder whose site finds no ground or lands on a
+/// protected or already-claimed column.</param>
 public readonly record struct DressingPlacement(
     int Plants = 0, int Boulders = 0, int Trees = 0, int PathCells = 0, int WaterCells = 0, int Houses = 0,
-    IReadOnlyList<StructureClaim>? Claimed = null)
+    IReadOnlyList<StructureClaim>? Claimed = null, IReadOnlyList<DroppedProp>? Dropped = null)
 {
     /// <summary>The buildings this pass actually raised, each with the columns it owns. Never null.</summary>
     public IReadOnlyList<StructureClaim> Structures => Claimed ?? [];
 }
+
+/// <summary>One whole prop the pass declined to place, and why — the report <see cref="DressingPlacement.Dropped"/>
+/// carries. <see cref="Id"/> and <see cref="Kind"/> are the prop's own, so a caller can point back at the
+/// document; <see cref="Reason"/> is one factual sentence naming the cause and, where the cause is a place, the
+/// cell it happened at, so the drop can be checked against the canvas rather than taken on faith.</summary>
+public sealed record DroppedProp(string Id, string Kind, string Reason);
 
 /// <summary>
 /// The dressing pass: the third and last walk over a realized world (docs/world-export/decoration.md). The
@@ -105,6 +119,7 @@ public static class Decorator
         var taken = new HashSet<(int X, int Z)>();
         var placed = new DressingPlacement();
         var structures = new List<StructureClaim>();
+        var dropped = new List<DroppedProp>();
 
         foreach (var prop in context.Props.OfType<WaterProp>())
             placed = placed with { WaterCells = placed.WaterCells + PlaceWater(world, context, prop, taken) };
@@ -112,20 +127,25 @@ public static class Decorator
             placed = placed with { PathCells = placed.PathCells + PlacePath(world, context, prop, taken) };
         foreach (var prop in context.Props.OfType<HouseProp>())
         {
-            var raised = PlaceHouse(world, context, prop, taken);
+            var raised = PlaceHouse(world, context, prop, taken, dropped);
             structures.AddRange(raised);
             placed = placed with { Houses = placed.Houses + raised.Count };
         }
         foreach (var prop in context.Props.OfType<BoulderProp>())
-            placed = placed with { Boulders = placed.Boulders + PlaceBoulder(world, context, prop, taken) };
+            placed = placed with { Boulders = placed.Boulders + PlaceBoulder(world, context, prop, taken, dropped) };
         foreach (var prop in context.Props.OfType<TreeProp>())
-            placed = placed with { Trees = placed.Trees + PlaceTree(world, context, prop, taken) };
+            placed = placed with { Trees = placed.Trees + PlaceTree(world, context, prop, taken, dropped) };
         foreach (var prop in context.Props.OfType<FloraProp>())
             placed = placed with { Plants = placed.Plants + PlaceFlora(world, context, prop, taken) };
 
-        // Null rather than an empty list when nothing was raised, so a pass that placed nothing compares equal
-        // to a pass that was never asked to (the Finding.Subjects rule, for the same reason).
-        return placed with { Claimed = structures.Count > 0 ? structures : null };
+        // Null rather than an empty list when nothing was raised or dropped, so a pass that placed a board
+        // with nothing to report compares equal to a pass that was never asked to (the Finding.Subjects rule,
+        // for the same reason).
+        return placed with
+        {
+            Claimed = structures.Count > 0 ? structures : null,
+            Dropped = dropped.Count > 0 ? dropped : null,
+        };
     }
 
     // ── paths (DR-PA) ───────────────────────────────────────────────────────────
@@ -344,9 +364,17 @@ public static class Decorator
     /// should be.</para>
     /// </summary>
     private static List<StructureClaim> PlaceHouse(
-        VoxelWorld world, DressingContext context, HouseProp house, HashSet<(int X, int Z)> taken)
+        VoxelWorld world, DressingContext context, HouseProp house, HashSet<(int X, int Z)> taken,
+        List<DroppedProp> dropped)
     {
-        if (house.Plan() is not { } plan) return [];
+        if (house.Plan() is not { } plan)
+        {
+            // Check() never disagrees with Plan()'s own refusal — Plan() is Check().Refuses ? null : Read() —
+            // so the first finding here is always the reason this prop just failed to read.
+            var findings = house.Check();
+            dropped.Add(new DroppedProp(house.Id, "house", $"its wings make no building: {findings[0].Message}"));
+            return [];
+        }
 
         var images = new List<(BuildingPlan Plan, RoomEdge? Front, int FloorY)>(context.Symmetry.Order);
         for (var k = 0; k < context.Symmetry.Order; k++)
@@ -354,11 +382,21 @@ public static class Decorator
             if (TurnedFootprint(plan, context.Symmetry, k) is not { } image) return [];
             // Two authored rectangles that overlap are two buildings colliding (still MG7's drop); a wing that
             // shares ground with its own prop's other wings is not a second building, and never reaches this
-            // set at all — the whole point of the plan being one BuildingPlan rather than one Overlaps call per
-            // rectangle.
-            if (Overlaps(image, taken)) return [];
+            // set at all — the whole point of the plan being one BuildingPlan rather than one FirstOverlap call
+            // per rectangle. Reported once for the whole prop, at whichever image and cell collided first — an
+            // author redrawing a second orbit image's clash does not need it named twice.
+            if (FirstOverlap(image, taken) is { } collision)
+            {
+                dropped.Add(new DroppedProp(house.Id, "house",
+                    $"ground already claimed at ({collision.X}, {collision.Z})"));
+                return [];
+            }
             var floorY = Ground(context, image);
-            if (floorY is null) return [];
+            if (floorY is null)
+            {
+                dropped.Add(new DroppedProp(house.Id, "house", "no ground under any of its cells"));
+                return [];
+            }
 
             var front = house.Front is { } edge ? context.Symmetry.TurnEdge(edge, k) : (RoomEdge?)null;
             images.Add((image, front, floorY.Value));
@@ -433,14 +471,14 @@ public static class Decorator
         return along is RoomEdge.PosX or RoomEdge.NegX ? RidgeAxis.AlongX : RidgeAxis.AlongZ;
     }
 
-    /// <summary>Whether any cell of a plan is already claimed — the building half of MG7's overlap rule, tested
-    /// over the whole union of its wings rather than a resting subset, because a building has no other level:
-    /// the floor it stamps covers every column of it.</summary>
-    private static bool Overlaps(BuildingPlan plan, HashSet<(int X, int Z)> taken)
+    /// <summary>The first cell of a plan already claimed by something else, or null where nothing collides —
+    /// the building half of MG7's overlap rule, tested over the whole union of its wings rather than a resting
+    /// subset, because a building has no other level: the floor it stamps covers every column of it.</summary>
+    private static (int X, int Z)? FirstOverlap(BuildingPlan plan, HashSet<(int X, int Z)> taken)
     {
         foreach (var (x, z) in plan.Cells())
-            if (taken.Contains((x, z))) return true;
-        return false;
+            if (taken.Contains((x, z))) return (x, z);
+        return null;
     }
 
     /// <summary>The course a building's floor sits at: one below the lowest ground its plan covers, or null
@@ -474,10 +512,12 @@ public static class Decorator
         return [new RoomDoor(front, Math.Clamp(about - (width - 1) / 2, lo, hi - width + 1), width)];
     }
 
-    private static int PlaceBoulder(VoxelWorld world, DressingContext context, BoulderProp boulder, HashSet<(int X, int Z)> taken)
+    private static int PlaceBoulder(
+        VoxelWorld world, DressingContext context, BoulderProp boulder, HashSet<(int X, int Z)> taken,
+        List<DroppedProp> dropped)
     {
         var lobes = BoulderShapes.Of(boulder.Form, boulder.Reach);
-        return Fan(world, context, (boulder.X, boulder.Z), BoulderCells(lobes, boulder), taken);
+        return Fan(world, context, (boulder.X, boulder.Z), BoulderCells(lobes, boulder), taken, boulder.Id, "boulder", dropped);
     }
 
     /// <summary>A boulder as offsets from its own anchor, before it knows where on the map it goes. The rock's
@@ -517,8 +557,10 @@ public static class Decorator
     }
 
     // ── trees (DR-TR) ───────────────────────────────────────────────────────────
-    private static int PlaceTree(VoxelWorld world, DressingContext context, TreeProp tree, HashSet<(int X, int Z)> taken)
-        => Fan(world, context, (tree.X, tree.Z), TreeCells(tree), taken);
+    private static int PlaceTree(
+        VoxelWorld world, DressingContext context, TreeProp tree, HashSet<(int X, int Z)> taken,
+        List<DroppedProp> dropped)
+        => Fan(world, context, (tree.X, tree.Z), TreeCells(tree), taken, tree.Id, "tree", dropped);
 
     /// <summary>How far this tree's crown actually reaches from its own trunk — the farthest a leaf cell of
     /// <see cref="TemplateTree"/> or <see cref="GrownTree"/> stands from the anchor, horizontally. This is the
@@ -605,7 +647,7 @@ public static class Decorator
     /// one side of a mirrored board and vanish from the other — the difference a player would actually notice
     /// is not "the edges are a little thinner", it is "the two halves disagree".</summary>
     private static int Fan(VoxelWorld world, DressingContext context, (int X, int Z) site,
-        List<PropCell> prop, HashSet<(int X, int Z)> taken)
+        List<PropCell> prop, HashSet<(int X, int Z)> taken, string id, string kind, List<DroppedProp> dropped)
     {
         if (prop.Count == 0) return 0;
 
@@ -619,7 +661,14 @@ public static class Decorator
                 return cell with { X = tx, Z = tz };
             }).ToList();
 
-            if (!Seats(context, anchor, turned, taken, out var baseY)) return 0;
+            // Decided once for the whole orbit, so the report is too: whichever image seats first refuses the
+            // whole prop, and that is the one image and cell named — a second orbit image failing the same
+            // way is not a second entry.
+            if (!Seats(context, anchor, turned, taken, out var baseY, out var declineReason))
+            {
+                dropped.Add(new DroppedProp(id, kind, declineReason));
+                return 0;
+            }
             images.Add((anchor, turned, baseY));
         }
 
@@ -635,7 +684,9 @@ public static class Decorator
         return images.Count;
     }
 
-    /// <summary>Whether a prop can stand at an anchor, and the Y its own origin sits at.
+    /// <summary>Whether a prop can stand at an anchor, and the Y its own origin sits at — plus, where it
+    /// cannot, one sentence naming which resting cell failed and why, for <see cref="Fan"/> to report against
+    /// the prop that asked.
     ///
     /// <para>One footprint decides all of it. Ground, occupancy and protection are every one of them asked
     /// only where the prop <b>rests</b> — the cells at its lowest level, a trunk's few blocks or a boulder's
@@ -655,17 +706,30 @@ public static class Decorator
     /// too — so the crown is free to reach wherever it would over open ground.</para></summary>
     private static bool Seats(
         DressingContext context, (int X, int Z) anchor, List<PropCell> prop, HashSet<(int X, int Z)> taken,
-        out int baseY)
+        out int baseY, out string declineReason)
     {
         baseY = int.MaxValue;
+        declineReason = "";
         var restsAt = prop.Count == 0 ? 0 : prop.Min(cell => cell.Y);
         foreach (var cell in prop)
         {
             if (cell.Y != restsAt) continue;
             var ground = (X: anchor.X + cell.X, Z: anchor.Z + cell.Z);
-            if (context.IsProtected(ground.X, ground.Z)) return false;
-            if (taken.Contains(ground)) return false;
-            if (!context.SurfaceTop.TryGetValue(ground, out var top)) return false;
+            if (context.IsProtected(ground.X, ground.Z))
+            {
+                declineReason = $"the column at ({ground.X}, {ground.Z}) is protected";
+                return false;
+            }
+            if (taken.Contains(ground))
+            {
+                declineReason = $"ground already claimed at ({ground.X}, {ground.Z})";
+                return false;
+            }
+            if (!context.SurfaceTop.TryGetValue(ground, out var top))
+            {
+                declineReason = $"no ground at ({ground.X}, {ground.Z})";
+                return false;
+            }
             baseY = Math.Min(baseY, top);
         }
         return baseY != int.MaxValue;

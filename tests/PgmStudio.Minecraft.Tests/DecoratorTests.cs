@@ -65,6 +65,54 @@ public sealed class DecoratorTests
         await Assert.That(Placed(world, top.Keys, 8, 40)).IsEmpty();
     }
 
+    // ── every whole-prop decline is reported with its reason ───────────────────────────────────────
+    [Test]
+    public async Task A_house_the_path_claimed_is_reported_dropped_with_the_colliding_cell()
+    {
+        // The B146 silence: the path's band claims the ground first, the house declines, and the same empty
+        // list used to mean five different things. The report names the prop and the first colliding cell.
+        var (world, top) = Plateau();
+        var tally = Decorator.Decorate(world, Context(top,
+        [
+            new PathProp
+            {
+                Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5,
+                Pave = new SolidMaterial(Blocks.Gravel),
+            },
+            new HouseProp
+            {
+                Id = "h", Wings = [new AuthoredWing([[10, 16], [18, 24]])],
+                Style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } },
+            },
+        ]));
+
+        await Assert.That(tally.Houses).IsEqualTo(0);
+        await Assert.That(tally.Dropped).IsNotNull();
+        var drop = tally.Dropped!.Single(d => d.Id == "h");
+        await Assert.That(drop.Kind).IsEqualTo("house");
+        await Assert.That(drop.Reason).Contains("ground already claimed at (");
+    }
+
+    [Test]
+    public async Task A_tree_over_the_void_is_reported_dropped_and_a_seated_one_reports_nothing()
+    {
+        // One tree on the plateau, one clicked past its edge: the seated one stands, the void one is a
+        // reported decline rather than a silently smaller count — and a board with no drops answers null.
+        var (world, top) = Plateau();
+        var seated = Decorator.Decorate(world, Context(top,
+            [new TreeProp { Id = "t-on", X = 14, Z = 20, Species = "oak", Height = 16, Seed = 5 }]));
+        await Assert.That(seated.Trees).IsEqualTo(1);
+        await Assert.That(seated.Dropped).IsNull();
+
+        var (world2, top2) = Plateau();
+        var dropped = Decorator.Decorate(world2, Context(top2,
+            [new TreeProp { Id = "t-off", X = 200, Z = 200, Species = "oak", Height = 16, Seed = 5 }]));
+        await Assert.That(dropped.Trees).IsEqualTo(0);
+        var drop = dropped.Dropped!.Single(d => d.Id == "t-off");
+        await Assert.That(drop.Kind).IsEqualTo("tree");
+        await Assert.That(drop.Reason).Contains("no ground at (");
+    }
+
     // ── a prop stands where it was placed ──────────────────────────────────────────────────────────
     [Test]
     public async Task A_tree_grows_where_it_was_placed_and_nowhere_else()

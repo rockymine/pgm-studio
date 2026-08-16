@@ -68,6 +68,7 @@ public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, Feat
             // Beside the voxels, not inside them (B133) — the sidecar travels in the same zip a downloaded
             // world does, so a render taken from the download later still gets the recorded reading.
             WorldProvenanceFile.Write(built.Provenance, regionDir);
+            DressingReportFile.Write(built.DroppedProps, regionDir);
             LevelDatWriter.Write(tmp, slug, built.SpawnX, built.SpawnY, built.SpawnZ,
                 DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
 

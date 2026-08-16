@@ -20,7 +20,8 @@ namespace PgmStudio.Export;
 /// (<see cref="WorldProvenanceFile"/>) so a render reading the region back gets the same recorded answer a
 /// render taken right after the build already would.</summary>
 public sealed record SketchWorld(
-    VoxelWorld World, int SpawnX, int SpawnY, int SpawnZ, MapIntent ResolvedIntent, WorldProvenance Provenance);
+    VoxelWorld World, int SpawnX, int SpawnY, int SpawnZ, MapIntent ResolvedIntent, WorldProvenance Provenance,
+    IReadOnlyList<DroppedProp>? DroppedProps = null);
 
 /// <summary>
 /// Assembles a playable Anvil world for a sketch-originated map from its sketch layout + authoring intent
@@ -258,7 +259,7 @@ public static class SketchWorldBuilder
             Cores = resolvedCores,
         };
 
-        return new SketchWorld(world, spawnX, spawnY, spawnZ, resolved, provenance);
+        return new SketchWorld(world, spawnX, spawnY, spawnZ, resolved, provenance, dressed.Dropped);
     }
 
     // The bedrock under every wool room, laid before the rooms themselves (see the call site).

@@ -466,6 +466,17 @@ The shell is a **snapshot** on the prop, not a library id — the rule a map's b
 (`structures.md` §9). Picking a style from the library copies its JSON in, so editing that row later cannot
 rebuild a map's scenery.
 
+**Every whole-prop decline is reported with its reason.** A house whose wings make no building, a house
+whose ground something already claimed, a house over no ground, a tree or a boulder whose site finds no
+ground or lands on a protected or claimed column — each appends one entry to
+`DressingPlacement.Dropped` (`{id, kind, reason}`, the reason naming the cell where the cause is a place),
+where the same silent empty return used to mean all five. Nothing new refuses: the pass places what it can
+exactly as before, and the report makes the rest visible — as `region/dressing-report.json` beside the
+provenance sidecar (written only when something dropped, deleted on a rebuild that dropped nothing) and as
+one stderr line per drop from `tools/mapgen`. A path's per-cell skips stay unreported; a route crossing
+protected ground one cell at a time is the ordinary shape of a path, not a decision an author needs
+restated.
+
 **Its footprint claims provenance the same way a room's does, only later.** `Decorate` reports a
 `StructureClaim` for every building it raises and `SketchWorldBuilder` records each as `WorldProvenance`'s
 `Structure` layer, so a house standing on a plaza the painter finished in the same material as its own walls

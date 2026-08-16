@@ -650,7 +650,8 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `Finding.Envelope` in `Domain` beside `Finding.Wire`, and the orphaned-relief 409 speaks it (`SK1`).
   `POST /plan/evaluate` carries the validator's whole lint table as `lint[]` — an unplaceable iron (`WX9`)
   or a mid-lane spawn (`SP2`) is visible on the loop an agent actually drives (B109/B177's reach half).
-  And the task board's
+  The dressing pass reports every whole-prop decline with a reason (`region/dressing-report.json`, the
+  mapgen stderr lines) — B37's report-first slice over B146/B142/B187's silences. And the task board's
   collapsed headings were repaired so its own structure stops misleading the next reader. Earlier the same
   session: `PL12` (mixed fanned/non-fanned landmass refused by name), the prop preview refusing `HJ*`/`HP*`
   compositions the build would drop, and the per-team objective line.

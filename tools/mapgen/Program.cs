@@ -164,6 +164,9 @@ static void Build(MapSpec spec, bool describeOnly, bool forceStages)
     // Beside the voxels, not inside them (B133) — a block carries no provenance byte, so what claimed each
     // column travels as this sidecar rather than being lost the moment the world round-trips through disk.
     WorldProvenanceFile.Write(built.Provenance, regionDir);
+    DressingReportFile.Write(built.DroppedProps, regionDir);
+    foreach (var drop in built.DroppedProps ?? [])
+        Console.Error.WriteLine($"  ! {spec.Slug}: dropped {drop.Kind} '{drop.Id}' — {drop.Reason}");
     LevelDatWriter.Write(outDir, spec.Slug, built.SpawnX, built.SpawnY, built.SpawnZ,
                          DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
     File.WriteAllText(Path.Combine(outDir, "map.xml"), xml);
