@@ -9,7 +9,7 @@ namespace PgmStudio.Minecraft.Anvil;
 /// declined to place, with the reason (<see cref="DressingPlacement.Dropped"/>). Written only when something
 /// was dropped: absence means everything authored stood, so a reader never has to tell an empty report from a
 /// world built before the report existed. The provenance sidecar answers what <em>landed</em>; this one
-/// answers what did not, which is the half of the census B146-class silences hid.
+/// answers what did not, which is the half of the census the silent declines hid.
 /// </summary>
 public static class DressingReportFile
 {

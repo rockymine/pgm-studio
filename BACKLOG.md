@@ -464,6 +464,22 @@ by `HousePropRules.PastCap` and is not filed.
   plane sees solid beyond it and is not drawn — a box restriction leaves the cut open unless out-of-box reads
   as air. Whole-house stays the default view; the focus is what the open part editor frames.
 
+- [ ] **B230 — Per-team, protection-aware traversability: a goal behind an oversized spawn protection.**
+  The one way a monument or core genuinely becomes unreachable (the author, 2026-08-16): the objective sits
+  inside — or behind — a spawn's protection region, which bars the attacking team the way a wool room's
+  protection bars its defenders. Today's gate judges one navigability map for both teams and reads no
+  protection regions, so this case passes. The fix is per-team: subtract the regions that deny *that* team
+  from its navigable set before the component check — spawn protections against attackers, wool-room
+  protections against defenders — and gate each team's walk to the goals it must reach. Needs the
+  region→team filter semantics read out of the intent (`deny` filters naming a team), not guessed from names.
+
+- [ ] **B231 — Preview endpoints answer PNG, not only SVG.** `GET /terrain/patterns`, `/shapes/probe`,
+  the prop preview and the surface report all render for an agent-driven loop, and an agent reads a PNG
+  directly while an SVG needs a rasterizer it may not have (the author's suggestion; the surface reports
+  already answer PNG). Offer `?format=png` on the SVG preview endpoints — one shared SVG→bitmap leg or a
+  direct bitmap render where the SVG is itself derived — keeping SVG the default so the client's inline
+  rendering is untouched.
+
 - [ ] **B229 — `map-layers` passes alone and fails in the suite, on state an earlier spec leaves behind.**
   `./tools/e2e.sh map-layers` is 18/18; `./tools/e2e.sh all` is 13/14, reproducibly, on an idle machine — so
   it is not the contention that makes a starved VM invent 30s route timeouts. The check that fails is *the
@@ -825,7 +841,7 @@ rule. It spends the refusal vocabulary and belongs beside buckets 1–3.
 | **3** | How far apart the goals are | `B175` `B179` `B188` | extent and distance | `Geom` (the spacing deriver) · `PlanValidator` · `Analysis` |
 | **4** | A block must be the kind of block its role needs | `B165` `B190` | block kind by role | `HouseStamper` · `HouseStyleValidation` + a `roof_style` migration |
 | **5** | What ground and a goal are made of | `B162` `B163` `B183` | block kind by role | `Themes` · `DestroyKitPairing` · read-back |
-| **6** | What may stand where | `B142` `B146` `B166` `B187` | occupancy | `WorldProvenance` from placement · `Decorator` · `DressingScope` |
+| **6** | What may stand where | `B142` `B166` `B187` | occupancy | `WorldProvenance` from placement · `Decorator` · `DressingScope` |
 | **7** | What the world build seats | `B145` `B159` `B176` `B184` `B185` | occupancy | `WorldProvenance` from placement · `SketchWorldBuilder` · the stampers |
 | **8** | The documents that taught the fault | `B153` `B171` `B173` `B181` | document drift — no shared unit | `docs/gameplay/` · `docs/tools/` |
 | **10** | A document describing nothing still answers 200 | `B141` `B143` `B144` | the refusal vocabulary | `SketchLayout` · `PlanValidator` · the solver |
@@ -1261,17 +1277,6 @@ covered.
   half is the read-back telling the truth; the real half is the placement report.
 
   *`opus5-run2` §5 #4 · `basalt-reach` `s1` at `(−46, 74)`, 0 solid blocks.*
-
-- [ ] **B146 — A path's claimed band drops any building touching it, silently.** Four of five houses on
-  `basalt-reach`'s first build vanished because they touched a path band — on both orbit images, with no refusal
-  and no warning. Three commits landed during that same run about what a building claims — its eaves, its roof
-  ring, two buildings that touch — and none touched the path side of the question.
-
-  It has been misattributed once already: Sonnet run 1 filed the same symptom as a camelCase enum-parsing fault.
-  That is the durable kind of error, because the symptom keeps confirming the wrong cause — a 53-prop village
-  that shipped zero props still reads as evidence for it.
-
-  *`opus5-run2` §5 #3 · coordinates for all four houses in the report.*
 
 - [ ] **B166 — Nothing complains when two buildings touch, or when a roof overhang reaches inside another
   building.** Corvid Hollow's spawn piece is `x −15…15, z −90…−75`; the house at `x −18…−6, z −74…−66` stands

@@ -655,6 +655,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   collapsed headings were repaired so its own structure stops misleading the next reader. Earlier the same
   session: `PL12` (mixed fanned/non-fanned landmass refused by name), the prop preview refusing `HJ*`/`HP*`
   compositions the build would drop, and the per-team objective line.
+- **A path's band never drops a building — the road runs to the porch (`B146`).** Paths are laid first, and
+  their claim holds only against the scatter above the buildings: a house drawn across the pavement stands,
+  its floor takes the ground inside its walls, and the path ends at the wall (the author's ruling). Trees,
+  boulders and tall cover are still kept off the route, and a trunk on the band is a reported drop with its
+  colliding cell, not a silence.
 - **A dressing document that fails to parse refuses the export by name, rather than exporting bare (`B130`).**
   `DressingJson.Deserialize`/`DeserializeProp` caught every `JsonException` and returned `DressingDoc.Empty` /
   `null`, commented "a hand-edited blob must not fail an export" — so one unrecognized prop `kind` or one field

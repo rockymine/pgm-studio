@@ -189,6 +189,12 @@ route is a finish laid over ground that already exists, so it can run over a slo
 and a bridge across a void stays the draw phase's job. Its cells become bare ground as they are laid, so
 nothing grows through the road.
 
+**The band's claim holds against the scatter, never against a building.** Paths are laid first, and a road is
+meant to run to a porch or a door — so a house drawn across the pavement stands, its floor takes the ground
+inside its walls, and the path simply ends where the wall does. What the claim was ever for is the props
+above the buildings: a trunk, a rock or tall cover in the middle of the route is still refused, because a
+route with a tree in it is not a route.
+
 The single solid band is the boring case; the imperfect paths are the point, and all five of them are the same
 distance field with one extra gate (`Geom.PathStroke`):
 
@@ -435,7 +441,9 @@ where not to grow — a flora field is generated, so it needs the instruction. A
 someone drew this rectangle here, and a refusal would silently drop a placement they can see on the canvas.
 Its cells do join the pass's running claim, which is a different mechanism entirely — the rule that keeps grass
 from growing through the walls, exactly as a path's cells claim the road. In the ordering that puts buildings
-after paths and before the props that scatter around them.
+after paths and before the props that scatter around them — and the path's own claim is the one a building
+does not check, because a road is meant to run to a porch (§4): a house collides with water or with another
+house, never with pavement.
 
 What it does need is ground, and that is physics rather than policy: it seats on the **lowest** column of its
 own footprint, one course down, so it settles into a slope instead of standing on stilts over the low side. An

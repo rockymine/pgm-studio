@@ -83,6 +83,41 @@ with the same `EX1` an isolated wool does.
 - *Enforced:* `Analysis/Playability/Traversability.cs` (`NavigationPoints` reads all four kinds;
   `Check`'s `gating` list is spawn/wool/destroyable/core).
 
+### A water lane is not a route; an open build zone over void is
+Before the lane timer fills it, a water lane is a void a player falls into — the water arrives
+(y0→y1) at the 45-minute mark, and a map that needs the lane to reach an objective would be
+unplayable for the whole match a public server actually runs. The navigability map already says
+this without a special case: a lane's columns have no Y=0 ground and its `deny(void)` rule makes
+them `void_denied`, which is not navigable, so a lane-only route reads disconnected and refuses.
+The same gap with no rule over it reads navigable on purpose — a bare build zone over void is
+*meant* to be crossed, block by placed block.
+
+- *Looks wrong:* an unwired map (no `apply_rules`) reads its void gaps as navigable and passes.
+  That is truthful, not lax: without a deny rule PGM lets players bridge the gap, so the map as
+  wired genuinely connects. The wiring, not the gate, is what such a map is missing.
+- *The author's ruling (2026-08-16):* a lane counted traversable pre-timer would ship a map that
+  is never loaded on a public server; lane-only routes must refuse.
+- *Enforced:* `Buildability.Compute` (`void` rules over the Y=0 mask), `Traversability.Check`
+  (navigable = buildable | restricted, never `void_denied`), pinned by
+  `TraversabilityTests.A_water_lane_under_a_void_deny_is_not_a_route_but_an_open_build_zone_over_void_is`.
+
+### Intended-gameplay walls and climbs are not traversability faults
+A bedrock wall, a climb-up, a drop into a pit around a goal — obstacles a defender is meant to
+hold and an attacker is meant to break or build past — are PGM's nature: block place and block
+break are the game's verbs, so ground that costs blocks to cross is still ground. The
+traversability gate therefore judges *connectivity of navigable ground*, never route comfort: it
+refuses only what genuinely blocks — a protection region in front of a wool, a goal off the
+navigable grid, a lane-only route — and no score or refusal penalizes an intended wall as a
+"climb". A ten-block drop or climb as the only way to a goal is bad *relief design*, which is the
+relief tooling's concern to surface, not a playability failure to refuse.
+
+- *The author's ruling (2026-08-16):* wool rooms and spawns gate because their protection regions
+  genuinely bar a team; monuments and cores are small floating objectives incapable of making
+  ground non-traversable, so gating the walk *toward* them is right and gating anything more
+  would refuse intended maps.
+- *Enforced:* by absence, deliberately — nothing in `Analysis/Playability` measures climb cost,
+  and nothing should without a new ruling.
+
 ## Sketch world synthesis (P9)
 
 ### Spawn-cube monuments fill the back wall first; the door wall is unreachable at real wool counts

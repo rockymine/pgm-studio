@@ -62,7 +62,7 @@ public sealed record DressingContext(
 /// same null-when-empty convention <paramref name="Claimed"/> carries, for the same reason: a pass that
 /// dropped nothing compares equal to one that placed a board with nothing to drop. A path's own per-cell
 /// skips are not here — those are the ordinary shape of a route crossing protected ground, not a decision an
-/// author needs restated one cell at a time — only the five whole-prop causes B146/B142/B187 found silent: a
+/// author needs restated one cell at a time — only the five whole-prop causes that used to be silent: a
 /// house whose wings make no building, a house that collides with something already standing, a house with
 /// no ground under any of its cells, and a tree or a boulder whose site finds no ground or lands on a
 /// protected or already-claimed column.</param>
@@ -117,20 +117,26 @@ public static class Decorator
         // buildings, which are the largest exclusion there is, then the big props, each an exclusion for the
         // small ones, and cover last, into whatever is left.
         var taken = new HashSet<(int X, int Z)>();
+        var pathTaken = new HashSet<(int X, int Z)>();
         var placed = new DressingPlacement();
         var structures = new List<StructureClaim>();
         var dropped = new List<DroppedProp>();
 
         foreach (var prop in context.Props.OfType<WaterProp>())
             placed = placed with { WaterCells = placed.WaterCells + PlaceWater(world, context, prop, taken) };
+        // A path claims its band against the props above it and never against a building: paths are laid
+        // first and a road is meant to run to a porch or a door, so a house standing over pavement wins the
+        // ground and the path simply ends at its wall (the author's ruling). The band still keeps trees,
+        // boulders and cover off the route, which is what the claim was ever for.
         foreach (var prop in context.Props.OfType<PathProp>())
-            placed = placed with { PathCells = placed.PathCells + PlacePath(world, context, prop, taken) };
+            placed = placed with { PathCells = placed.PathCells + PlacePath(world, context, prop, pathTaken) };
         foreach (var prop in context.Props.OfType<HouseProp>())
         {
             var raised = PlaceHouse(world, context, prop, taken, dropped);
             structures.AddRange(raised);
             placed = placed with { Houses = placed.Houses + raised.Count };
         }
+        taken.UnionWith(pathTaken);
         foreach (var prop in context.Props.OfType<BoulderProp>())
             placed = placed with { Boulders = placed.Boulders + PlaceBoulder(world, context, prop, taken, dropped) };
         foreach (var prop in context.Props.OfType<TreeProp>())

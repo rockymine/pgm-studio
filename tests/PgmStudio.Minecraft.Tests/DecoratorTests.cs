@@ -67,10 +67,12 @@ public sealed class DecoratorTests
 
     // ── every whole-prop decline is reported with its reason ───────────────────────────────────────
     [Test]
-    public async Task A_house_the_path_claimed_is_reported_dropped_with_the_colliding_cell()
+    public async Task A_house_stands_over_the_path_and_the_road_still_keeps_a_tree_off_the_route()
     {
-        // The B146 silence: the path's band claims the ground first, the house declines, and the same empty
-        // list used to mean five different things. The report names the prop and the first colliding cell.
+        // The path is laid first and a road is meant to run to a porch or a door, so a house drawn across the
+        // pavement wins the ground and the path simply ends at its wall — a band that dropped the building was
+        // the old silent decline read backwards. The band's claim still holds against the props above the buildings:
+        // a trunk in the middle of the route is refused, with the colliding cell named.
         var (world, top) = Plateau();
         var tally = Decorator.Decorate(world, Context(top,
         [
@@ -84,13 +86,17 @@ public sealed class DecoratorTests
                 Id = "h", Wings = [new AuthoredWing([[10, 16], [18, 24]])],
                 Style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } },
             },
+            new TreeProp { Id = "t", X = 30, Z = 20, Species = "oak", Height = 14, Seed = 5 },
         ]));
 
-        await Assert.That(tally.Houses).IsEqualTo(0);
-        await Assert.That(tally.Dropped).IsNotNull();
-        var drop = tally.Dropped!.Single(d => d.Id == "h");
-        await Assert.That(drop.Kind).IsEqualTo("house");
+        await Assert.That(tally.Houses).IsEqualTo(1);
+        await Assert.That(tally.Trees).IsEqualTo(0);
+        var drop = tally.Dropped!.Single(d => d.Id == "t");
+        await Assert.That(drop.Kind).IsEqualTo("tree");
         await Assert.That(drop.Reason).Contains("ground already claimed at (");
+        // The road survives up to the wall and the house's floor owns the ground inside it.
+        await Assert.That(world.GetBlock(25, 7, 20).Id).IsEqualTo(Blocks.Gravel);
+        await Assert.That(world.GetBlock(14, 7, 20).Id).IsNotEqualTo(Blocks.Gravel);
     }
 
     [Test]
