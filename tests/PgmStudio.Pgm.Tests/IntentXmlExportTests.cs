@@ -72,7 +72,8 @@ public sealed class IntentXmlExportTests
         await Assert.That(((List<object?>)reparsed["spawns"]!).Count).IsEqualTo(2);
         await Assert.That(((List<object?>)reparsed["wools"]!).Count).IsEqualTo(2);
         await Assert.That(((List<object?>)reparsed["spawners"]!).Count).IsEqualTo(2);
-        await Assert.That(reparsed["objective"]).IsEqualTo("Capture the enemies' wools!");
+        // two teams, one wool each: the objective line counts per team, so it reads singular
+        await Assert.That(reparsed["objective"]).IsEqualTo("Capture the wool!");
         // build void enforcement + the spawn-leave reset complement survived
         await Assert.That(((Dict)reparsed["regions"]!).ContainsKey("not-build-area")).IsTrue();
         await Assert.That(((Dict)reparsed["regions"]!).ContainsKey("not-spawns")).IsTrue();
