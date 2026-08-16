@@ -563,6 +563,38 @@ svg.lucide { width: var(--icon-md); height: var(--icon-md); }
   user-select: none;
 }
 
+/* The 3-D preview while its world is being built. The view swaps at once and fills in when the columns land,
+   so this covers an empty scene for about a second — long enough that its absence would read as a dead click,
+   short enough that a progress bar would be worse than a word. */
+.canvas-iso-busy {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  pointer-events: none;
+  user-select: none;
+}
+
+.canvas-iso-busy::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--text-muted);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: canvas-iso-spin 0.7s linear infinite;
+}
+
+@keyframes canvas-iso-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas-iso-busy::before { animation: none; }
+}
+
 .canvas-round-btn {
   width: 30px;
   height: 30px;

@@ -81,7 +81,6 @@ canvas layer can then reuse or test it.
 | `geometry/boolean.js` | island booleans over `polygon-clipping` — the one sketch-domain geometry layer |
 | `geometry/decompose-cut.js` | lane decomposition: lasso enclosure, edge markers, splitting a piece at two seams |
 | `geometry/symmetry.js` | the JS twin of `PgmStudio.Geom.Symmetry` (see the warning in `CLAUDE.md`) |
-| `geometry/triangulation.js` | ear clipping — the JS twin of `Geom.Triangulation.EarClip` |
 | `geometry/islands.js`, `region-convert.js` | GeoJSON coercion; PGM `+1`-rule bounds conversions |
 | `plan/plan-doc.js` | the plan document model + its geometry (pure; the wire format lives here) |
 | `plan/plan-inspect.js` | derived-structure overlay helpers for the plan inspect layer |
@@ -92,6 +91,7 @@ canvas layer can then reuse or test it.
 | `render/shape-render.js`, `sketch-render.js`, `symmetry-render.js`, `block-render.js` | shared stateless painting for primitives, sketch overlays, symmetry axes, block PNGs |
 | `render/primitive-style.js` | the one place a primitive's fill/stroke style is decided, across all four editors |
 | `render/iso-webgl.js` | the depth-buffered 3-D preview, on raw WebGL, lazily imported |
+| `render/column-mesh.js` | the server's per-column runs → the triangles that preview draws; decides which faces are seen |
 | `canvas/canvas-base.js` | the shared pan/zoom/drag machinery (§3) |
 | `canvas/world-canvas.js` | the shared engine behind Edit + Configure (§1) |
 | `canvas/plan-canvas.js`, `sketch-canvas.js`, `sideview-canvas.js` | the plan grid, the sketch surface, the depth cross-section (all painted; the first two hybrid, the third painted throughout) |
@@ -220,6 +220,5 @@ longer exists.
 Changing how something *looks* → `render/`, and check `primitive-style.js` first, since it may already own
 the decision. Changing how something *behaves under the pointer* → the relevant `controllers/` module, or
 `canvas-base.js` if it affects every surface. Adding maths → `geometry/`, never a canvas class. Changing
-what crosses to C# → the surface's bridge, and remember hot paths stay in JS. Touching symmetry or
-triangulation → read the twin-implementation warnings in `CLAUDE.md` first; those two have canonical C#
-counterparts that must stay in step.
+what crosses to C# → the surface's bridge, and remember hot paths stay in JS. Touching symmetry → read the
+twin-implementation warning in `CLAUDE.md` first; it has a canonical C# counterpart that must stay in step.

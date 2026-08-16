@@ -716,11 +716,6 @@ downstream, and per-pool water levels in place of one lowest-surface line.
 **A path's height does not vary along it** (`S56`). The path primitive takes one `base_height` over its whole
 band, so a causeway is one thickness end to end and a ramp cannot be drawn as the ramp it is.
 
-**The 3-D preview shows neither the relief nor an erected top** (`S54`). The isometric view builds one prism per
-shape at `floor + base_height`, which was the whole truth when a shape's thickness decided its column: an
-island's relief replaces those tops, so the one view that exists to show height is the one view that does not
-show the height model.
-
 **A budget for pressure** (`S47`). §12 supplies the numbers, on the right surface: a terrain-only reading of 105
 maps. What is still missing is the shape of the rule — a median is not a target, and a map at the 25th
 percentile for walkable share is not thereby worse than one at the 75th. What a budget needs is which of these

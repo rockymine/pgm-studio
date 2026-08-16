@@ -257,9 +257,22 @@ aimed plane from three — rounding to blocks, so a slope reads as the neat stra
 Six overlays sit above the canvas: **Shapes** (the draw primitives over the fused islands), **Mirror** (the
 symmetry copies), **Chunks** (the 16-block grid), **Blocks** (the rasterized footprint — the exact cells an
 export would fill), **Relief** (the height contours of whatever relief the islands carry) and **Snap**. A
-read-only isometric preview extrudes every shape to its own height, carves it with the subtracts that apply,
-mirrors it per orbit axis and depth-buffers the result, so where footprints overlap the taller column occludes;
-it rotates in 90° steps and disables itself where WebGL is unavailable.
+read-only isometric preview draws **the world the export builds**: entering it posts the live layout to
+`sketch/columns`, which runs the real build and answers every column's solid runs, and the browser meshes
+those into triangles. So the picture carries the terrain's own materials, the relief the islands were solved
+to, the structures stamped on them and the goal markers hanging over the build ceiling — none of which the
+browser can derive. It rotates in 90° steps and disables itself where WebGL is unavailable.
+
+**Height is why it works this way.** A column's top is settled in three stages — the rasterized ground, then
+the per-island relief solve, then whatever an erected shape says about levelling, raising or sinking — and
+only the first is knowable client-side. A preview that extruded each shape to its own thickness drew stage one
+and called it the answer, so a mesa read at its own thickness and a hillside read as a plate. Asking the
+server is what makes the one view that exists to show height show the height model.
+
+The build is the cost, not the payload: on a full board it is around a second against forty milliseconds to
+read the columns back out. Nothing is drawn in 3-D, so the fetch happens on **entering** the preview rather
+than on every edit — the view swaps at once and fills in when the columns land. Rotating redraws the mesh
+already in hand, and re-entering an untouched board draws it again rather than rebuilding.
 
 The sidebar carries the layer list and the island→shape tree; the inspector on the right edits whatever is
 selected.
@@ -669,14 +682,28 @@ Every endpoint is anonymous and rooted at `/api`.
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure` | 422 no layout, or no ground |
 | `DELETE /map/{slug}/sketch/discard-if-empty` | — | `{discarded}` — drops a draft still at its default name with no authors and nothing drawn | — |
 
-**Previews over a live layout.** All three take the working document as the body rather than reading the stored
-blob, so they track unsaved edits, and all three answer 400 rather than 500 on a layout they cannot process.
+**Previews over a live layout.** All four take the working document as the body rather than reading the stored
+blob, so they track unsaved edits, and all four answer 400 rather than 500 on a layout they cannot process.
 
 | Endpoint | Answers |
 |---|---|
 | `POST /map/{slug}/sketch/paint` | the painted surface as palette-indexed block pixels — the real painter's output, with team tints resolved from the stored intent |
 | `POST /map/{slug}/sketch/relief[?interval=]` | `{interval, islands[]}` — per island its height range, its bounds and its traced contour lines, from the build's own solver |
 | `POST /map/{slug}/sketch/relief/read` | `{islands[]}` — per island the cell count, low/high/relief, steps, tiers, the first twelve faces and the total, cliffs, crossings in X and Z, and the symmetry error |
+| `POST /map/{slug}/sketch/columns` | `{palette, cols, min_x, min_z, max_x, max_z}` — the whole built world as per-column runs, which the 3-D preview meshes |
+
+**The column payload** is one flat integer array walked by its own counts:
+`cols = [x, z, runCount, (yTop, yBottom, paletteIndex) × runCount, …]`, with `palette` a list of `#rrggbb`.
+A run is a span that is solid throughout and one material throughout, listed top first, and `yTop`/`yBottom`
+are both inclusive. Air is never sent, and a column holding nothing is absent rather than empty. One structure
+answers three questions, because a run boundary is where a solid span ends *and* where the material changes:
+a sky bridge over ground keeps both its segments, a wall reports its own courses instead of the surface colour
+smeared down it, and water is a run like any other. The client decides what is *visible* — only it knows where
+the camera is — so nothing is culled here. A board of forty thousand columns runs about a megabyte.
+
+A map begun in Sketch has no intent, and an empty one is the right answer rather than a gap: it states no
+objectives, so a preview showing none is showing what is there. A prop standing where a goal is later placed
+is `OB19`'s to refuse at export, by name and without dropping it, so this preview needs no rule of its own.
 
 **The finish libraries**, all map-independent and all `library.md`'s to describe. `/styles` and `/themes` are
 the terrain-paint library a theme is pulled from or pushed to; `/room-styles` is the shell library the Rooms
@@ -707,14 +734,16 @@ Everything below runs on the **working layout posted as the body**, so a sketch 
 saved and without a browser. What matters for an agent is which of them answer in numbers, which answer in a
 drawing, and which answer in a raster it can actually open.
 
-**Three read the sketch itself.** `POST .../sketch/paint` runs the real painter and answers the surface as
+**Four read the sketch itself.** `POST .../sketch/paint` runs the real painter and answers the surface as
 palette-indexed runs — the exact colour of every footprint cell, which is how a Voronoi reads as its cells
 rather than as an average. `POST .../sketch/relief[?interval=]` answers the traced contour lines per island
 from the build's own solver, as flat `[x, z, x, z, …]` runs. `POST .../sketch/relief/read` answers the terrain
 in **numbers**: per island the cell count, low, high and relief, the step count and tiers, the faces with
 cliffs qualified, crossings measured in both directions, and the symmetry error. That last one is the one to
 reach for first, because it is the only preview that says whether terrain is any *good* without an eye — it is
-what makes a relief correctable by a generator.
+what makes a relief correctable by a generator. `POST .../sketch/columns` answers the whole built world as
+per-column runs; it is the heaviest of the four (it builds the map) and the only one that reports what stands
+*above* the surface, so it is the read for asking what a structure or a marker actually occupies.
 
 **The finish previews draw, in SVG — or as PNG on request.** `POST /terrain/material-preview` and
 `/terrain/theme-preview` answer a material and a theme as they will paint — the theme as a cut-open sample

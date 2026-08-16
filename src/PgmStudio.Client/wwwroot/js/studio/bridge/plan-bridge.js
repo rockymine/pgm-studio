@@ -14,7 +14,7 @@
 import { PlanCanvas } from "../canvas/plan-canvas.js";
 import {
   emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, cycleWall, defaultReference, ROLES, BOX_KINDS,
-  planIsoSolids, viewBounds, markerList, MARKER_KINDS, boxMembers,
+  viewBounds, markerList, MARKER_KINDS, boxMembers,
 } from "../plan/plan-doc.js";
 import { parseOverlays } from "../plan/plan-inspect.js";
 import { fireTo } from "./fire.js";
@@ -27,14 +27,46 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   let doc = emptyDoc();
   const fire = (name, ...args) => fireTo(dotnetRef, name, ...args);
 
-  // Read-only 3-D height preview (G27): "2d" | "iso", with a user-rotatable yaw. Rebuilt from the plan
-  // pieces/surfaces whenever the document changes while the preview is showing. The stamped structures
-  // (G73) ride along from the inspect feed — the server derives them, so they trail an edit by one
-  // debounce and refresh in place when they land.
+  // Read-only 3-D preview: "2d" | "iso", with a user-rotatable yaw. It draws the world the plan compiles to
+  // — the ground its pieces build and the structures standing on it — rather than an extrusion of the pieces,
+  // so what it shows is what the map will be. A compiled plan carries a full intent, which is why the cages,
+  // spawn cubes and monuments are in this picture and not in the sketch tool's.
+  //
+  // The compile and build cost about a second, so it happens on entering the preview. Nothing is drawn in
+  // 3-D, so there is nothing to keep up with while it is open; the mesh is kept against the document it came
+  // from, and re-entering an untouched plan draws it again instead of rebuilding.
   let view = "2d";
   let isoYaw = 30;
-  let structures = [];
-  function refreshIso() { if (view === "iso") canvas.showIso(planIsoSolids(doc, structures), isoYaw, viewBounds(doc)); }
+  let isoMesh = null, isoStamp = null, isoSeq = 0;
+  function refreshIso() { if (view === "iso" && isoMesh) canvas.drawIso(isoMesh, isoYaw, viewBounds(doc)); }
+  function dropIsoMesh() { isoMesh = null; isoStamp = null; }
+
+  async function enterIso() {
+    const ok = await canvas.enterIso();
+    if (ok === false) { view = "2d"; fire("OnIsoUnavailable"); return; }
+    view = "iso";
+
+    const state = toJson(doc);
+    if (isoMesh && isoStamp === state) { canvas.drawIso(isoMesh, isoYaw, viewBounds(doc)); return; }
+
+    const seq = ++isoSeq;
+    const mesh = await fetchColumns(state);
+    if (seq !== isoSeq || view !== "iso") return;
+    if (!mesh) { canvas.hideIso(); view = "2d"; fire("OnIsoUnavailable"); return; }
+    isoMesh = mesh; isoStamp = state;
+    canvas.drawIso(mesh, isoYaw, viewBounds(doc));
+  }
+
+  async function fetchColumns(state) {
+    try {
+      const res = await fetch("/api/plan/columns", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: state,
+      });
+      if (!res.ok) return null;
+      const { meshColumns } = await import("../render/column-mesh.js");
+      return meshColumns(await res.json());
+    } catch { return null; }
+  }
 
   const canvas = new PlanCanvas(svgEl, wrapEl, {
     cursorEl,
@@ -132,7 +164,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
 
   function afterEdit() {
     scheduleInspect();
-    refreshIso();   // keep the read-only 3-D preview current with inspector-driven surface/geometry edits
+    dropIsoMesh();   // the 3-D preview is of a world this edit has just changed; it is rebuilt on re-entry
   }
 
   // ── live inspect + evaluate (debounced POSTs; stale responses ignored) ──
@@ -168,16 +200,12 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     if (seq !== inspectSeq) return;            // a newer edit already fired
     if (!res.ok) {                             // malformed plan (400) — clear the derived overlay
       canvas.setInspect({ interfaces: [], gapLinks: [], frontline: [] });
-      structures = [];
-      refreshIso();
       return;
     }
     let data;
     try { data = await res.json(); } catch { return; }
     if (seq !== inspectSeq) return;            // re-check after the awaited body
     canvas.setInspect({ interfaces: data.interfaces || [], gapLinks: data.gapLinks || [], frontline: data.frontline || [] });
-    structures = data.structures || [];
-    refreshIso();
   }
 
   // The evaluator feed: the plan's score + every fired rule (hard-first) with cell-space evidence. The evidence
@@ -273,15 +301,11 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     fit() { canvas.fit(); },
     resize() { canvas.resize(); },
 
-    // Read-only 3-D height preview (G27): swap between the 2-D top-down view and the iso extrusion of the
-    // pieces' surfaces. showIso resolves false when WebGL/the preview module is unavailable — stay in 2-D
-    // and tell the host so it can disable the toggle.
+    // Swap between the 2-D top-down view and the 3-D one. enterIso tells the host when the preview cannot
+    // run — no WebGL, or a build that did not come back — so it can disable the toggle.
     setView(v) {
       if (v !== "iso") { view = "2d"; canvas.hideIso(); return; }
-      canvas.showIso(planIsoSolids(doc, structures), isoYaw, viewBounds(doc)).then(ok => {
-        view = ok === false ? "2d" : "iso";
-        if (ok === false) fire("OnIsoUnavailable");
-      });
+      enterIso();
     },
     rotateIso() { isoYaw = (isoYaw + 90) % 360; refreshIso(); },
 

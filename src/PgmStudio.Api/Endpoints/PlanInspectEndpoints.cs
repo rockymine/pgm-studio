@@ -121,6 +121,48 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest
     }
 }
 
+/// <summary>POST /api/plan/columns — the world a plan builds, as per-column runs, which is what the plan
+/// tool's 3-D preview draws (docs/tools/plan.md). The body is the plan document itself.
+///
+/// <para>A compiled plan carries a full intent, so unlike the sketch side this shows the wool cages, spawn
+/// cubes, monuments and build region as well as the ground: the preview is the compiled map, not a schematic
+/// of the pieces. The compile is <see cref="PlanWorld"/>'s, the same one the painted render goes through, so
+/// the two pictures cannot disagree about what the plan means.</para>
+///
+/// <para>It does not gate. <c>/plan/compile</c> is where a plan is refused; a preview of an incoherent plan is
+/// still a useful thing to look at, and a picture that vanishes when a validator fires teaches nothing about
+/// why. 400 only when the document cannot be read or built at all.</para></summary>
+public sealed class PlanColumnsEndpoint : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/plan/columns"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        using var reader = new StreamReader(HttpContext.Request.Body);
+        var body = await reader.ReadToEndAsync(ct);
+
+        Dictionary<string, object?> payload;
+        try
+        {
+            if (PlanWorld.Compile(body) is not { } compiled)
+            {
+                await Send.ResponseAsync(new { error = "Malformed plan JSON" }, 400, ct);
+                return;
+            }
+            var built = SketchWorldBuilder.Build(compiled.LayoutJson, compiled.Intent);
+            payload = WorldColumnPayload.Of(built.World);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException
+                                      or IndexOutOfRangeException or JsonException)
+        {
+            await Send.ResponseAsync(new { error = "Invalid plan structure" }, 400, ct);
+            return;
+        }
+
+        await Send.OkAsync(payload, ct);
+    }
+}
+
 /// <summary>
 /// POST /api/plan/compile — compile a plan wire document one-way into the pair the draft pipeline consumes:
 /// <c>{ layout: &lt;SketchLayout&gt;, intent: &lt;MapIntent&gt; }</c>. Structural validator <b>errors</b> block the

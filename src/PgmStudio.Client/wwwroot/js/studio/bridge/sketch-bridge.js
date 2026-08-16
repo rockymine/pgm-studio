@@ -6,14 +6,12 @@
 // getState() returns the layout for the host to PATCH (persistence wiring = S2d).
 
 import { SketchCanvas } from "../canvas/sketch-canvas.js";
-import { computeIslands, assignShapesToIslands, computeMirrorPreview, restoreIslandMeta, shapeToMultiPoly } from "../geometry/boolean.js";
+import { computeIslands, assignShapesToIslands, computeMirrorPreview, restoreIslandMeta } from "../geometry/boolean.js";
 import { rectToPolygon, translateShape, rotateShape, boundsOfShapes, splitShape } from "../geometry/shape.js";
 import { surfaceHeights } from "../geometry/slope.js";
-import { applySymmetry, orbitAxes } from "../geometry/symmetry.js";
 import { defaultThemeJson, uniqueScopeId } from "../theme/theme-model.js";
 import { isPush, pushAmounts, pushAmountPatch } from "../relief/relief-doc.js";
 import { fireTo } from "./fire.js";
-import polygonClipping from "../vendor/polygon-clipping.js";
 
 // Default footprint = 2-team landscape (120×80), framed about the origin. CTW maps fit a ~120-block long
 // axis with 10–15-wide lanes; a tight default keeps the canvas at a scale where those read true.
@@ -217,78 +215,62 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     refreshMirror();
     pushLayout();
     pushLayers();
-    refreshIso();
+    dropIsoMesh();
     refreshPaint();   // the geometry moved, so the paint on it has too (no-op unless the overlay is on)
     // A relief is solved over the island's own footprint, so moving the geometry re-shapes the ground under
     // it — and a re-fused island can change which relief applies at all.
     refreshRelief();
   }
 
-  // Build the iso "solids" for every layer: one solid PER SHAPE so per-shape heights are visible (a
-  // per-island prism would collapse to the island's tallest shape and hide the rest). Each add shape
-  // becomes a flat prism spanning [floor, floor + height] (floor = elevation, height = thickness) —
-  // carved by the layer's subtract shapes so holes/moats
-  // show (subtracts are not solids themselves) — or, if it carries per-vertex anchor_heights, sloped
-  // terrain (S5c). Carving follows the rasterizer's order: a normal subtract cuts normal adds, an
-  // override subtract cuts everything. All shifted by the layer's base_y, with a mirror copy per orbit
-  // axis for shapes whose island opts in (default: mirror). The renderer depth-buffers them on the GPU,
-  // so where shapes overlap the taller one occludes — matching the rasterizer's taller-surface-wins rule.
-  // (Per-anchor terrain shapes aren't carved — a TIN-with-holes top isn't modelled in the preview yet.)
-  function solidsForIso() {
-    syncActive();
-    const { cx = 0, cz = 0 } = setup.center ?? {};
-    const axes = (mirrorVisible && setup.mirror_mode) ? orbitAxes(setup.mirror_mode) : [];
-    const out = [];
-    const hasAnchors = s => Array.isArray(s.anchor_heights) && s.vertices && s.anchor_heights.length === s.vertices.length;
-    const mirrorRing = (ring, axis) => ring.map(([x, z]) => applySymmetry(x, z, axis, cx, cz));
+  // ── the 3-D preview ────────────────────────────────────────────────────────
+  // The picture is the world the export builds, not a second guess at it: the live layout goes to
+  // `sketch/columns`, which runs the real build over it and answers every column's solid runs, and
+  // `column-mesh.js` turns those into triangles. The client decides nothing about height — which is the
+  // point, because it cannot: a shape's top is settled by the per-island relief solve and then again by
+  // whatever the shape says about being erected, and neither is derivable here without a second copy of the
+  // solver. What the browser used to extrude was the first of those three stages on its own.
+  //
+  // The build is the cost — around a second on a full board against forty milliseconds to read the columns
+  // out of it — so it happens on entering the preview rather than on every edit. Nothing is drawn in 3-D, so
+  // there is no edit to keep up with; the mesh is kept against the layout it was built from, and re-entering
+  // an untouched board draws the cached one instead of asking again.
+  let isoMesh = null, isoStamp = null, isoSeq = 0;
 
-    for (const L of layers) {
-      // A shape mirrors unless its island says otherwise; ungrouped shapes default to mirroring.
-      const mirrorOf = new Map();
-      for (const isl of (L.islands ?? [])) for (const sid of (isl.shapeIds ?? [])) mirrorOf.set(sid, isl.mirrors !== false);
+  function refreshIso() { if (view === "iso" && isoMesh) canvas.drawIso(isoMesh, isoYaw, setup.bbox); }
 
-      // Subtract footprints, split by override (normal subs spare override adds; override subs cut all).
-      const subs = L.shapes.filter(s => s.operation === "subtract");
-      const normalSubMP   = subs.filter(s => !s.override).map(shapeToMultiPoly).filter(p => p.length);
-      const overrideSubMP = subs.filter(s =>  s.override).map(shapeToMultiPoly).filter(p => p.length);
+  // An edit invalidates the picture. A stale mesh redrawn on rotate would show the board as it was two edits
+  // ago and give no sign of it.
+  function dropIsoMesh() { isoMesh = null; isoStamp = null; }
 
-      // floor = elevation (base_y + shape floor); a vertex's top = floor + its thickness (anchor_heights).
-      const terrainOf = (s, verts, mirror) => {
-        const fl = L.baseY + clampFloor(s.floor);
-        return { vertices: verts, heights: s.anchor_heights.map(hh => fl + hh), floor: fl, mirror };
-      };
+  // Enter the preview, then fill it. Two steps so the toggle answers the click at once and the wait is a
+  // spinner over the 3-D surface rather than a frozen 2-D one.
+  async function enterIso() {
+    const ok = await canvas.enterIso();
+    if (ok === false) { view = "2d"; fire("OnIsoUnavailable"); return; }
+    view = "iso";
 
-      for (const s of L.shapes) {
-        if (s.operation === "subtract") continue;            // carves land; not a solid
-        const doMirror = mirrorOf.get(s.id) !== false;
-        if (hasAnchors(s)) {
-          out.push(terrainOf(s, s.vertices.map(v => [v[0], v[1]]), false));
-          if (doMirror) for (const axis of axes) out.push(terrainOf(s, mirrorRing(s.vertices, axis), true));
-          continue;
-        }
-        const floor = L.baseY + clampFloor(s.floor), top = floor + clampHeight(s.base_height);
-        const clippers = s.override ? overrideSubMP : normalSubMP.concat(overrideSubMP);
-        for (const { exterior, holes } of carveFootprint(s, clippers)) {     // add − subs → exterior + holes
-          out.push({ exterior, holes, top, floor, mirror: false });
-          if (doMirror) for (const axis of axes)
-            out.push({ exterior: mirrorRing(exterior, axis), holes: holes.map(h => mirrorRing(h, axis)), top, floor, mirror: true });
-        }
-      }
-    }
-    return out;
+    const state = JSON.stringify(handle.getState());
+    if (isoMesh && isoStamp === state) { canvas.drawIso(isoMesh, isoYaw, setup.bbox); return; }
+
+    const seq = ++isoSeq;
+    const mesh = await fetchColumns(state);
+    if (seq !== isoSeq || view !== "iso") return;   // left the preview, or a newer entry overtook this one
+    if (!mesh) { canvas.hideIso(); view = "2d"; fire("OnIsoUnavailable"); return; }
+    isoMesh = mesh; isoStamp = state;
+    canvas.drawIso(mesh, isoYaw, setup.bbox);
   }
 
-  // Carve an add shape's footprint with the given subtract MultiPolygons (reusing the same boolean the
-  // 2-D islands use). Returns one {exterior, holes} per resulting polygon (a subtract can split or hole it).
-  function carveFootprint(shape, clippers) {
-    const mp = shapeToMultiPoly(shape);
-    if (!mp.length) return [];
-    let result = mp;
-    if (clippers.length) { try { result = polygonClipping.difference(mp, ...clippers); } catch { result = mp; } }
-    return result.map(poly => ({ exterior: poly[0], holes: poly.slice(1) }));
+  async function fetchColumns(state) {
+    if (!slug) return null;
+    try {
+      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/sketch/columns`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: state,
+      });
+      if (!res.ok) return null;
+      const { meshColumns } = await import("../render/column-mesh.js");
+      return meshColumns(await res.json());
+    } catch { return null; }   // offline or mid-navigation — the caller drops back to 2-D
   }
-
-  function refreshIso() { if (view === "iso") canvas.showIso(solidsForIso(), isoYaw, setup.bbox); }
 
   function refreshMirror() {
     if (!mirrorVisible || !setup.mirror_mode) { canvas.setMirrorPolygons([]); return; }
@@ -354,7 +336,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   function renameLayer(id, name) { const L = layers.find(l => l.id === id); if (!L) return; L.name = name; pushLayers(); markDirty(); }
-  function setLayerBaseY(id, y) { const L = layers.find(l => l.id === id); if (!L) return; L.baseY = y; pushLayers(); refreshIso(); markDirty(); }
+  function setLayerBaseY(id, y) { const L = layers.find(l => l.id === id); if (!L) return; L.baseY = y; pushLayers(); dropIsoMesh(); markDirty(); }
 
   // Arrow-key nudge (Shift = 16) of the selected island (all its shapes) or the selected shape.
   const onKey = (e) => {
@@ -596,14 +578,11 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // the shapes are still moving, and painting the layout is server work worth not doing there at all.
     setPaintPreview(on) { paintPhase = !!on; syncPaint(); },
     setSnap(v)         { canvas.setSnapEnabled(v); },
+    // enterIso tells the host when the preview cannot run — no WebGL, or a build that did not come back —
+    // so it can disable the toggle and drop back to 2-D rather than leave an empty surface up.
     setView(v)         {
       if (v !== "iso") { view = "2d"; canvas.hideIso(); return; }
-      // showIso resolves false if the WebGL preview can't initialise — stay in 2-D and tell the host
-      // so it can disable the toggle (this also keeps recompute()'s refreshIso from retrying).
-      canvas.showIso(solidsForIso(), isoYaw, setup.bbox).then(ok => {
-        view = ok === false ? "2d" : "iso";
-        if (ok === false) fire("OnIsoUnavailable");
-      });
+      enterIso();
     },
     rotateIso()        { isoYaw = (isoYaw + 90) % 360; refreshIso(); },
     setHeight(id, base, floor) {
@@ -611,7 +590,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (base  !== null && base  !== undefined) s.base_height = clampHeight(base);   // >= 1
       if (floor !== null && floor !== undefined) s.floor = clampFloor(floor);         // >= 0
       canvas.updateShape(s);   // refresh vertex labels (default = base height)
-      pushLayout(); refreshIso(); markDirty();
+      pushLayout(); dropIsoMesh(); markDirty();
     },
     // Set one vertex's height (S5b). Materialises anchor_heights (length = vertices, default = base) on first use.
     setVertexHeight(id, idx, h) {
@@ -622,7 +601,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         s.anchor_heights = s.vertices.map((_, i) => clampHeight(s.anchor_heights?.[i] ?? base));
       s.anchor_heights[idx] = clampHeight(h);   // a vertex is a height too — never below 1
       canvas.updateShape(s);   // re-render the vertex labels
-      pushLayout(); refreshIso(); markDirty();
+      pushLayout(); dropIsoMesh(); markDirty();
     },
     // Fit a tilted plane through the 2–3 control vertices (each `{idx, height}`) and read every vertex's
     // height off it → the shape's whole top becomes a flat slope (2 controls = a ramp, 3 = an aimed plane).
@@ -639,7 +618,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (!heights) return;   // fewer than 2 distinct control positions — nothing to fit
       s.anchor_heights = heights.map(clampHeight);
       canvas.updateShape(s);
-      pushLayout(); refreshIso(); markDirty();
+      pushLayout(); dropIsoMesh(); markDirty();
     },
 
     // The band a path stands for: its half-width, how its edges are drawn, and the seed a rough edge wanders
@@ -651,7 +630,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (edge) s.path_edge = edge;
       if (seed !== null && seed !== undefined) s.path_seed = Math.max(0, Math.round(seed));
       canvas.updateShape(s);
-      recompute(); pushLayout(); refreshIso(); markDirty();
+      recompute(); pushLayout(); dropIsoMesh(); markDirty();
     },
 
     // How a shape's top is decided once its island carries a relief, and how far in it eases into the ground
@@ -662,14 +641,14 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (!s) return;
       if (mode === "level" || mode === "raise" || mode === "sink") s.height_mode = mode;
       else delete s.height_mode;                    // absent, not empty: a shape without the word IS ground
-      pushLayout(); refreshIso(); markDirty();
+      pushLayout(); dropIsoMesh(); markDirty();
     },
 
     setSkirt(id, blocks) {
       const s = canvas.getShape(id);
       if (!s) return;
       s.skirt = Math.max(0, Math.round(blocks ?? 0));
-      pushLayout(); refreshIso(); markDirty();
+      pushLayout(); dropIsoMesh(); markDirty();
     },
 
     // Whether the shape's ground joins its island's relief. Solved on the server, so nothing here recomputes

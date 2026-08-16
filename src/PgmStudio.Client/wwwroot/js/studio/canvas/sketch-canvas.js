@@ -365,10 +365,12 @@ export class SketchCanvas extends CanvasBase {
   get hasRelief() { return this.#relief !== null; }
 
   // ── isometric preview (S6) ─────────────────────────────────────────────────────
-  // Swap the top-down viewport for a read-only iso render of the extruded islands. Lazily loads and
-  // creates the WebGL renderer on first use; returns false (leaving the 2-D viewport untouched) if the
-  // preview module can't load or WebGL is unavailable, so the caller can fall back gracefully.
-  showIso(islands, yawDeg, bbox) { return this._showIso(islands, yawDeg, bbox); }
+  // Swap the top-down viewport for a read-only 3-D render of the world the export builds. Entering and
+  // drawing are two steps because the world comes from the server: `enterIso` shows the surface waiting and
+  // returns false (leaving the 2-D viewport untouched) if the module can't load or WebGL is unavailable, so
+  // the caller can fall back gracefully; `drawIso` puts the meshed columns in it when they land.
+  enterIso() { return this._enterIso(); }
+  drawIso(mesh, yawDeg, bbox) { this._drawIso(mesh, yawDeg, bbox); }
   hideIso() { this._hideIso(); }
 
   _isoTag() { return "sketch"; }

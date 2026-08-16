@@ -1,48 +1,48 @@
 /**
- * WebGL isometric preview of the sketch — a depth-buffered 3-D renderer built directly on the WebGL
- * API (no scene-graph library). Occlusion is resolved per-pixel by the GPU z-buffer rather than a
- * painter's algorithm, so overlapping masses and the rot_180 mirror image stay mutually consistent
- * (a depth-key sort cannot, because per-object keys don't commute with the mirror's depth reflection).
- * Read-only.
+ * WebGL isometric preview — a depth-buffered 3-D renderer built directly on the WebGL API (no scene-graph
+ * library). Occlusion is resolved per-pixel by the GPU z-buffer rather than a painter's algorithm, so
+ * overlapping masses and the rot_180 mirror image stay mutually consistent (a depth-key sort cannot, because
+ * per-object keys don't commute with the mirror's depth reflection). Read-only.
  *
- * Consumes the same "solids" the bridge already builds (one per shape, plus rot/mirror copies):
- *   - prism:   { exterior, top, floor, mirror } — footprint extruded floor→top (caps + wall quads).
- *   - terrain: { vertices, heights, floor, mirror } — per-anchor: TIN top + walls following heights.
- * Either may add `color` (0xRRGGBB) to opt out of the island/mirror pair and draw in its own material —
- * one draw call per distinct colour. Everything stays opaque: translucency would need a back-to-front
- * sort, which is exactly what the mirror image defeats.
+ * It draws the world the export builds, meshed from the server's per-column runs by `column-mesh.js`: three
+ * parallel arrays of positions, normals and per-vertex colours, ready to hand to the GPU. Everything the
+ * picture knows arrives that way — the terrain's own materials, the structures standing on it, and the
+ * mirror copies, which are columns like any other rather than a second pass with a paler colour.
+ *
+ * Per-vertex colour is what lets a whole board draw in one call. Everything stays opaque: translucency would
+ * need a back-to-front sort, which is exactly what the mirror image defeats — and it is also why water is an
+ * opaque blue surface here rather than something to see through.
+ *
  * World (x,z) map to scene (x,z); height maps to scene y. An orthographic camera at a fixed isometric
- * elevation (yaw is user-rotatable) keeps it a true axonometric view. A single owned WebGL context,
- * one shader program, and two vertex buffers are reused across renders.
+ * elevation (yaw is user-rotatable) keeps it a true axonometric view. A single owned WebGL context, one
+ * shader program, and three vertex buffers are reused across renders.
  */
 
-import { earClip, earClipWithHoles } from "../geometry/triangulation.js";
-
 const ELEV = Math.atan(1 / Math.SQRT2);   // true-isometric elevation (~35.26°)
-const COL = {          // 0xRRGGBB, as `solids` name their colours — hexRgb'd at the draw call
-  island: 0x6d7ce8,
-  mirror: 0xaab1dd,
-  ground: 0xccd4e6,
-};
+const GROUND = [0.8, 0.83, 0.90];         // the datum plane under everything, drawn unlit and translucent
 
 const VERT_SRC = `
   attribute vec3 aPos;
   attribute vec3 aNormal;
+  attribute vec3 aColor;
   uniform mat4 uMVP;
   varying vec3 vNormal;
+  varying vec3 vColor;
   void main() {
     vNormal = aNormal;
+    vColor = aColor;
     gl_Position = uMVP * vec4(aPos, 1.0);
   }`;
 
-// Flat Lambert: a key light from the upper-right + a soft fill + ambient, so walls read two-tone
-// (lit from above) without per-face shading code. Normals are flipped toward the camera (uViewDir is
-// the constant camera-forward of the orthographic view) so both sides of a double-wound face light
-// correctly — the equivalent of a two-sided material. Intensities are tuned for the preview, not a
-// physical match. The ground plane is drawn unlit (uUnlit) and translucent (uOpacity).
+// Flat Lambert over the vertex colour: a key light from the upper-right + a soft fill + ambient, so a wall
+// reads darker than the ground it stands on without per-face shading code. Normals are flipped toward the
+// camera (uViewDir is the constant camera-forward of the orthographic view) so both sides of a face light
+// correctly — the equivalent of a two-sided material. Intensities are tuned for the preview, not a physical
+// match. The ground plane is drawn unlit (uUnlit) in uColor at uOpacity.
 const FRAG_SRC = `
   precision mediump float;
   varying vec3 vNormal;
+  varying vec3 vColor;
   uniform vec3 uColor;
   uniform vec3 uViewDir;
   uniform float uUnlit;
@@ -54,12 +54,12 @@ const FRAG_SRC = `
     vec3 keyDir  = normalize(vec3( 2.5, 4.0,  1.2));
     vec3 fillDir = normalize(vec3(-2.0, 1.5, -1.5));
     float lit = 0.55 + 0.60 * max(dot(n, keyDir), 0.0) + 0.14 * max(dot(n, fillDir), 0.0);
-    gl_FragColor = vec4(uColor * lit, 1.0);
+    gl_FragColor = vec4(vColor * lit, 1.0);
   }`;
 
 export class IsoScene {
-  #wrap; #canvas; #gl; #prog; #posBuf; #nrmBuf;
-  #aPos; #aNrm; #uMVP; #uColor; #uViewDir; #uUnlit; #uOpacity;
+  #wrap; #canvas; #gl; #prog; #posBuf; #nrmBuf; #colBuf;
+  #aPos; #aNrm; #aCol; #uMVP; #uColor; #uViewDir; #uUnlit; #uOpacity;
 
   constructor(wrapEl) {
     this.#wrap = wrapEl;
@@ -76,6 +76,7 @@ export class IsoScene {
     this.#prog = linkProgram(gl, VERT_SRC, FRAG_SRC);
     this.#aPos = gl.getAttribLocation(this.#prog, "aPos");
     this.#aNrm = gl.getAttribLocation(this.#prog, "aNormal");
+    this.#aCol = gl.getAttribLocation(this.#prog, "aColor");
     this.#uMVP = gl.getUniformLocation(this.#prog, "uMVP");
     this.#uColor = gl.getUniformLocation(this.#prog, "uColor");
     this.#uViewDir = gl.getUniformLocation(this.#prog, "uViewDir");
@@ -83,6 +84,7 @@ export class IsoScene {
     this.#uOpacity = gl.getUniformLocation(this.#prog, "uOpacity");
     this.#posBuf = gl.createBuffer();
     this.#nrmBuf = gl.createBuffer();
+    this.#colBuf = gl.createBuffer();
 
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
@@ -96,12 +98,16 @@ export class IsoScene {
     const gl = this.#gl;
     gl.deleteBuffer(this.#posBuf);
     gl.deleteBuffer(this.#nrmBuf);
+    gl.deleteBuffer(this.#colBuf);
     gl.deleteProgram(this.#prog);
     this.#canvas.remove();
   }
 
-  /** Rebuild the scene from `solids` and render at `w×h`, framed to `bbox`, rotated by `yawDeg`. */
-  render(solids, w, h, yawDeg, bbox) {
+  /**
+   * Draw a meshed world at `w×h`, rotated by `yawDeg`, over a ground plane spanning `bbox`.
+   * `mesh` is `column-mesh.js`'s output: positions, normals, colors and the extent they cover.
+   */
+  render(mesh, w, h, yawDeg, bbox) {
     const gl = this.#gl;
     const ratio = Math.min(globalThis.devicePixelRatio || 1, 2);
     this.#canvas.width = Math.max(1, Math.floor(w * ratio));
@@ -109,32 +115,21 @@ export class IsoScene {
     gl.viewport(0, 0, this.#canvas.width, this.#canvas.height);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // Split the triangle soup by colour (one draw each) and track the scene extents for framing. A solid may
-    // name its own `color` (an 0xRRGGBB int — the plan view's structure materials); the rest fall back to the
-    // island/mirror pair.
-    const batches = new Map();
     let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity, maxY = 0;
     const grow = (x, z, y) => { if (x < minX) minX = x; if (x > maxX) maxX = x; if (z < minZ) minZ = z; if (z > maxZ) maxZ = z; if (y > maxY) maxY = y; };
 
-    for (const s of (solids || [])) {
-      const pos = s.vertices ? terrainPositions(s) : prismPositions(s);
-      if (!pos) continue;
-      const key = s.color ?? (s.mirror ? COL.mirror : COL.island);
-      let batch = batches.get(key);
-      if (!batch) batches.set(key, batch = []);
-      batch.push(...pos);
-      const ring = s.vertices || s.exterior;
-      const top = s.vertices ? Math.max(...s.heights) : s.top;
-      for (const [x, z] of ring) grow(x, z, top);
+    if (mesh && mesh.positions?.length) {
+      grow(mesh.minX, mesh.minZ, mesh.maxY);
+      grow(mesh.maxX, mesh.maxZ, mesh.maxY);
     }
 
     let ground = null;
     if (bbox) {
       for (const [x, z] of [[bbox.min_x, bbox.min_z], [bbox.max_x, bbox.max_z]]) grow(x, z, 0);
-      ground = [
+      ground = new Float32Array([
         bbox.min_x, 0, bbox.min_z,  bbox.max_x, 0, bbox.min_z,  bbox.max_x, 0, bbox.max_z,
         bbox.min_x, 0, bbox.min_z,  bbox.max_x, 0, bbox.max_z,  bbox.min_x, 0, bbox.max_z,
-      ];
+      ]);
     }
 
     if (!isFinite(minX)) return;   // nothing to draw
@@ -148,35 +143,42 @@ export class IsoScene {
     // depth write off) so it blends against whatever is in front of it.
     gl.disable(gl.BLEND);
     gl.depthMask(true);
-    for (const [hex, pos] of batches) this.#draw(pos, hexRgb(hex), false, 1);
+    if (mesh?.positions?.length) this.#draw(mesh.positions, mesh.normals, mesh.colors, null, 1);
     if (ground) {
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.depthMask(false);
-      this.#draw(ground, hexRgb(COL.ground), true, 0.5);
+      this.#draw(ground, null, null, GROUND, 0.5);
       gl.depthMask(true);
       gl.disable(gl.BLEND);
     }
   }
 
-  #draw(pos, color, unlit, opacity) {
-    if (!pos.length) return;
+  /** One draw call. `flat` set means unlit in that colour (the ground); otherwise the vertex colours light. */
+  #draw(positions, normals, colors, flat, opacity) {
+    if (!positions.length) return;
     const gl = this.#gl;
-    const p = new Float32Array(pos);
+    const zeros = flat ? new Float32Array(positions.length) : null;
+
     gl.bindBuffer(gl.ARRAY_BUFFER, this.#posBuf);
-    gl.bufferData(gl.ARRAY_BUFFER, p, gl.DYNAMIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.DYNAMIC_DRAW);
     gl.enableVertexAttribArray(this.#aPos);
     gl.vertexAttribPointer(this.#aPos, 3, gl.FLOAT, false, 0, 0);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, this.#nrmBuf);
-    gl.bufferData(gl.ARRAY_BUFFER, unlit ? new Float32Array(p.length) : flatNormals(p), gl.DYNAMIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, normals ?? zeros, gl.DYNAMIC_DRAW);
     gl.enableVertexAttribArray(this.#aNrm);
     gl.vertexAttribPointer(this.#aNrm, 3, gl.FLOAT, false, 0, 0);
 
-    gl.uniform3fv(this.#uColor, color);
-    gl.uniform1f(this.#uUnlit, unlit ? 1 : 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.#colBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, colors ?? zeros, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(this.#aCol);
+    gl.vertexAttribPointer(this.#aCol, 3, gl.FLOAT, false, 0, 0);
+
+    gl.uniform3fv(this.#uColor, flat ?? GROUND);
+    gl.uniform1f(this.#uUnlit, flat ? 1 : 0);
     gl.uniform1f(this.#uOpacity, opacity);
-    gl.drawArrays(gl.TRIANGLES, 0, p.length / 3);
+    gl.drawArrays(gl.TRIANGLES, 0, positions.length / 3);
   }
 
   // Place the orthographic camera at the iso angle, fit its frustum to the scene, and return the
@@ -206,72 +208,6 @@ export class IsoScene {
 
     return { mvp: multiply(proj, view), viewDir: [-dir[0], -dir[1], -dir[2]] };
   }
-}
-
-// ── geometry builders (world x→x, z→z, height→y) — flat triangle soup ─────────────
-
-function prismPositions(s) {
-  const ext = openRing(s.exterior);
-  if (ext.length < 3) return null;
-  const holes = (s.holes ?? []).map(openRing).filter(h => h.length >= 3);
-  const top = s.top ?? 0, floor = s.floor ?? 0;
-  const pos = [];
-  // Caps: triangulate the footprint MINUS its holes (a subtract carved into this shape), top + floor.
-  const cap = holes.length
-    ? earClipWithHoles(ext, holes)
-    : earClip(ext).map(([a, b, c]) => [ext[a], ext[b], ext[c]]);
-  for (const [a, b, c] of cap) {
-    pos.push(a[0], top, a[1], b[0], top, b[1], c[0], top, c[1]);
-    pos.push(a[0], floor, a[1], c[0], floor, c[1], b[0], floor, b[1]);
-  }
-  // Walls: a top→floor quad per edge of the outer ring and of every hole (the inner walls of the well).
-  for (const ring of [ext, ...holes]) {
-    for (let i = 0, n = ring.length; i < n; i++) {
-      const j = (i + 1) % n;
-      const xi = ring[i][0], zi = ring[i][1], xj = ring[j][0], zj = ring[j][1];
-      pos.push(xi, top, zi, xj, top, zj, xj, floor, zj);
-      pos.push(xi, top, zi, xj, floor, zj, xi, floor, zi);
-    }
-  }
-  return pos;
-}
-
-function terrainPositions(s) {
-  const V = s.vertices, H = s.heights, n = V.length, floor = s.floor ?? 0;
-  if (n < 3) return null;
-  const pos = [];
-  const tri = (ax, ay, az, bx, by, bz, cx, cy, cz) => pos.push(ax, ay, az, bx, by, bz, cx, cy, cz);
-  // Sloped TIN top.
-  for (const [a, b, c] of earClip(V)) tri(V[a][0], H[a], V[a][1], V[b][0], H[b], V[b][1], V[c][0], H[c], V[c][1]);
-  // Walls: each footprint edge from its vertex heights down to the floor (two windings so the wall
-  // shows regardless of ring orientation).
-  for (let i = 0; i < n; i++) {
-    const j = (i + 1) % n;
-    const xi = V[i][0], zi = V[i][1], xj = V[j][0], zj = V[j][1];
-    tri(xi, H[i], zi, xj, H[j], zj, xj, floor, zj);
-    tri(xi, H[i], zi, xj, floor, zj, xi, floor, zi);
-  }
-  return pos;
-}
-
-// Per-face (flat) normals: each triangle's three vertices share its geometric normal.
-function flatNormals(pos) {
-  const nrm = new Float32Array(pos.length);
-  for (let i = 0; i < pos.length; i += 9) {
-    const ux = pos[i + 3] - pos[i], uy = pos[i + 4] - pos[i + 1], uz = pos[i + 5] - pos[i + 2];
-    const vx = pos[i + 6] - pos[i], vy = pos[i + 7] - pos[i + 1], vz = pos[i + 8] - pos[i + 2];
-    let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
-    const len = Math.hypot(nx, ny, nz) || 1; nx /= len; ny /= len; nz /= len;
-    for (let k = 0; k < 9; k += 3) { nrm[i + k] = nx; nrm[i + k + 1] = ny; nrm[i + k + 2] = nz; }
-  }
-  return nrm;
-}
-
-// Drop a trailing closing-vertex duplicate so the ring is a clean open loop.
-function openRing(r) {
-  if (!r || r.length < 3) return r || [];
-  const a = r[0], b = r[r.length - 1];
-  return (a[0] === b[0] && a[1] === b[1]) ? r.slice(0, -1) : r;
 }
 
 // ── minimal column-major mat4 / vec3 math ────────────────────────────────────────
@@ -308,8 +244,6 @@ function multiply(a, b) {
 const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const norm = (a) => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
-
-function hexRgb(h) { return [((h >> 16) & 255) / 255, ((h >> 8) & 255) / 255, (h & 255) / 255]; }
 
 // ── WebGL program helpers ────────────────────────────────────────────────────────
 

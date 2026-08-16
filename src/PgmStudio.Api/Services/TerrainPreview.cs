@@ -34,10 +34,8 @@ public static class TerrainPreview
     /// is above the scan window and excluded. Returns the render and the block AABB it spans.</summary>
     public static MapPaint MapSvg(string planJson)
     {
-        var plan = PlanModel.Parse(planJson);
-        if (plan is null) return EmptyPaint("bad plan");
-        var (layout, intent) = PlanCompiler.Compile(plan);
-        var layoutJson = JsonSerializer.Serialize(layout, SketchLayout.Json);
+        if (PlanWorld.Compile(planJson) is not { } compiled) return EmptyPaint("bad plan");
+        var (layoutJson, intent) = compiled;
 
         var surface = new Dictionary<(int X, int Z), int>();
         foreach (var (x, z, _, top) in SketchRasterizer.RasterizeColumns(layoutJson))

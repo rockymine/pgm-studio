@@ -4294,6 +4294,26 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **The 3-D preview draws the world the export builds (S54).** It used to extrude one prism per shape to
+  `floor + base_height` in the browser — stage one of a three-stage height model, and the two stages that
+  *replace* those tops (the per-island relief solve, then `level`/`raise`/`sink` read at the median of the
+  ground a shape covers) are not derivable client-side without a second copy of the solver. So a mesa read at
+  its own thickness and a hillside read as a plate: the one view that exists to show height was the one view
+  that did not show the height model. Now entering the preview posts the live document to
+  `POST /map/{slug}/sketch/columns` (or `POST /plan/columns`, which compiles first), which runs the real build
+  and answers **per-column runs** — `WorldColumnRuns.Of` walks the `VoxelWorld`'s chunk sections directly, one
+  dictionary lookup per column rather than per block, and the allocated chunks settle the extent so nothing
+  guesses a bounding box. One structure answers three questions, because a run boundary is where a solid span
+  ends *and* where the material changes: a sky bridge keeps both segments, a wall shows its own courses instead
+  of the surface colour smeared down it, and water is a run like any other. `column-mesh.js` meshes it —
+  one quad per run top with air above, one per span a neighbour leaves open, no undersides and no
+  triangulation at all — and per-vertex colour retires the draw-call-per-material split, so a whole board is
+  one call. Measured on a 40,310-column board: build ~0.9 s, column read ~35 ms, payload ~1.1 MB; the build is
+  the cost, so the fetch is on entering the preview, the view swaps at once behind a spinner, rotation redraws
+  the mesh in hand, and an untouched board re-enters from cache. The plan tool shares all of it and gains the
+  cages, spawn cubes, monuments and build region a compiled intent carries. Net client code is negative:
+  `solidsForIso`, `carveFootprint`, `planIsoSolids`, `prismPositions`, `terrainPositions` and the whole of
+  `triangulation.js` are gone. (`WorldColumnRunsTests`, `tests/js/column-mesh.test.js`)
 - **Grid-aligned sketch — block-accurate WYSIWYG (S23).** The sketch is now honest about the voxelized world
   it produces. Every stored shape is **block-integer**: `snapShape` (geometry/shape.js) rounds all coordinates
   to the grid, enforced at the `addShape`/`updateShape` chokepoint, so no edit path — vertex drag, midpoint

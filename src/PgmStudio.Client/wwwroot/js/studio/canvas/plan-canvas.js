@@ -215,12 +215,14 @@ export class PlanCanvas extends CanvasBase {
     this.#refreshOverlay();
   }
 
-  // ── isometric preview (G27) ─────────────────────────────────────────────────
-  // Swap the top-down viewport for a read-only iso render of the pieces extruded to their surface
-  // heights, so elevation reads spatially while planning. Reuses the sketch tool's WebGL renderer
-  // (render/iso-webgl.js), lazily loaded on first use; returns false (leaving the 2-D viewport
-  // untouched) if the module can't load or WebGL is unavailable, so the host can fall back gracefully.
-  showIso(solids, yawDeg, bbox) { return this._showIso(solids, yawDeg, bbox); }
+  // ── isometric preview ───────────────────────────────────────────────────────
+  // Swap the top-down viewport for a read-only 3-D render of the world the plan compiles to — the ground it
+  // builds and the structures standing on it, not an extrusion of the pieces. Same renderer as the sketch
+  // tool's (render/iso-webgl.js), lazily loaded on first use. Entering and drawing are two steps because the
+  // world comes from the server: `enterIso` returns false (leaving the 2-D viewport untouched) if the module
+  // can't load or WebGL is unavailable, so the host can fall back gracefully.
+  enterIso() { return this._enterIso(); }
+  drawIso(mesh, yawDeg, bbox) { this._drawIso(mesh, yawDeg, bbox); }
   hideIso() { this._hideIso(); }
 
   _isoTag() { return "plan"; }

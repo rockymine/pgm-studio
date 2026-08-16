@@ -330,9 +330,16 @@ reproduces paints its nearest miss — the cells a candidate emits that the box 
 has that it does not. Each panel owns its overlay and drops it on leaving. All three feeds are debounced by
 300 ms after an edit and guard against stale responses.
 
-A read-only 3-D preview extrudes each generating piece from `y=0` to its surface, adds the stamped structures
-from the inspect feed, and can be rotated in 90° steps. It falls back to 2-D and disables itself where WebGL
-is unavailable.
+A read-only 3-D preview draws **the world the plan compiles to**, not an extrusion of its pieces: entering it
+posts the document to `/api/plan/columns`, which compiles and builds it and answers every column's solid runs,
+and the browser meshes those. A compiled plan carries a full intent, so the wool cages, spawn cubes, monuments
+and build region stand in the picture along with the painted ground — a plan's preview shows more than a
+sketch's, because a sketch states no objectives to show. It can be rotated in 90° steps, and falls back to 2-D
+and disables itself where WebGL is unavailable.
+
+The compile and build cost about a second, so the fetch happens on entering the preview rather than on every
+edit; the view swaps at once and fills in when the columns land. It shares its renderer and its payload with
+the sketch tool's, which `sketch.md` describes.
 
 The compile drawer is the exit. It posts the document to `/api/plan/compile` and shows the plan, the compiled
 layout and the compiled intent as downloadable panes, or the structural findings that blocked it — each
@@ -459,6 +466,7 @@ posted anywhere. That is what makes them the cheapest way to find out whether a 
 | `POST /plan/inspect` | `{interfaces, gapLinks, frontline, frontages, frontlineRuns, islandGaps, structures, goalDistances}` — the derived geometry, already in block coordinates: each interface with its `delta` (the surface step across it) and wall mark; the per-piece-side `frontages` (exposed blocks, frontline blocks, share — FR8's read); the `frontlineRuns` with widths in blocks (the open absolute-width question's raw data); the `islandGaps` (each bridged pair's strait in blocks, `direct` when no third landmass shares the region — CT12's read); plus each destroy goal's walk to its own and the enemy's spawn (blocks over the fanned closure, with the enemy÷own ratio) — the same numbers `goal-spawn-ratio` scores against GO1's authored band [3.0, 4.0]. Never withholds over structural errors; a failure degrades `structures` and the board aggregations to empty rather than failing the feed | 400 malformed or unreadable |
 | `POST /plan/evaluate` | `{score, valid, violations[], lint[]}` — score summed and lower-is-better, `valid` true when no hard term fired, violations hard-first with subjects and drawable evidence, and `lint` the structural validator's complaints (an unplaceable iron `WX8`, a mid-lane spawn `SP2`, an odd elevation step `EL1`, …), which never move the score. A plan with no generating piece answers `valid: false` carrying `PL1`, not an error and not an empty evaluation | 400 malformed |
 | `POST /plan/feasibility` | `{producible, boxes[], unit[]}` — per-box producibility, each naming the parameter tuple that reproduces it or the nearest miss and why. A plan without boxes reads empty; a plan without pieces reads `producible: false` with `PL1` in `unit` | 400 malformed |
+| `POST /plan/columns` | `{palette, cols, min_x, min_z, max_x, max_z}` — the world the plan compiles to, as per-column runs, in the encoding `sketch.md` documents. It compiles and builds, so it is the heaviest read here and the only one that answers what stands above the ground. It does not gate: `/plan/compile` is where a plan is refused, and a preview of an incoherent plan is still worth looking at | 400 malformed or unbuildable |
 | `GET /objectives/vocabulary` | the destroyable styles and materials, and every objective default | — |
 
 **Compiling and building**

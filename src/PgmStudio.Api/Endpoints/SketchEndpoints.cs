@@ -279,6 +279,44 @@ public sealed class SketchPaintEndpoint(MapRepository repo, PgmDb db) : Endpoint
     }
 }
 
+/// <summary>POST /api/map/{slug}/sketch/columns — the whole built world as per-column runs, which is what the
+/// 3-D preview draws (docs/tools/sketch.md). The body is the <em>live</em> layout, the same as the paint and
+/// contour previews take, and the stored intent rides along so the structures a map has stated are standing in
+/// the picture.
+///
+/// <para>This is the paint overlay widened from the surface to the whole column. That preview resolves every
+/// block and then keeps only each column's top because resolving the rest was the bulk of the call; here the
+/// rest is the answer, so nothing is thrown away. The cost is the build rather than the payload — measured at
+/// roughly a second on a full board against forty milliseconds to read the columns out of it — which is why
+/// the client fetches this on entering the preview and not on every edit.</para>
+///
+/// <para>A map begun in Sketch has no intent, and an empty one is the right answer rather than a gap: it
+/// states no objectives, so a preview showing none is showing what is there. 400 on a layout that cannot be
+/// built.</para></summary>
+public sealed class SketchColumnsEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/map/{slug}/sketch/columns"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
+        if (map is null) { await Send.NotFoundAsync(ct); return; }
+
+        using var reader = new StreamReader(HttpContext.Request.Body);
+        var layoutJson = await reader.ReadToEndAsync(ct);
+
+        Dictionary<string, object?> payload;
+        try
+        {
+            var built = SketchWorldBuilder.Build(layoutJson, await IntentStore.LoadAsync(db, map.Id, ct));
+            payload = WorldColumnPayload.Of(built.World);
+        }
+        catch { await Send.ResponseAsync(new { error = "could not build layout" }, 400, ct); return; }
+
+        await Send.OkAsync(payload, ct);
+    }
+}
+
 /// <summary>POST /api/map/{slug}/sketch/relief — the contour overlay for whatever relief the posted layout
 /// carries, one entry per relief-bearing island: its traced lines, its height range, and its bounds. The body
 /// is the <em>live</em> layout, the same as the paint preview takes, so the overlay tracks unsaved edits.

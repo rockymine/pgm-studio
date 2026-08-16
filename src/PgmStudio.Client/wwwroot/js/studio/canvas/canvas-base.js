@@ -32,7 +32,8 @@ export class CanvasBase {
   #ro           = null;   // ResizeObserver on the wrap (see _observeResize)
   #chromeFrame  = 0;      // pending rAF for the viewport-chrome repaint (see _applyViewportTransform)
   #pendingZoom  = null;   // scale awaiting report on that frame (see _reportZoom)
-  #iso          = null;   // lazily-created WebGL iso renderer (see _showIso)
+  #iso          = null;   // lazily-created WebGL iso renderer (see _enterIso)
+  #isoBusy      = null;   // the "still building" overlay, created with it
   _isoOn        = false;
   _fitPending   = false;  // a fit asked for while the wrap had no layout box; run once it gets one
   _viewSize     = null;   // last measurement (see _size) — per-frame paths read this, not the DOM
@@ -248,7 +249,12 @@ export class CanvasBase {
   /** Called just before entering the preview, for whatever in-progress interaction to drop. */
   _onIsoEnter() {}
 
-  async _showIso(solids, yawDeg, bbox) {
+  /**
+   * Swap to the 3-D surface and wait there. The world it draws comes from the server, so the view is entered
+   * before there is anything to put in it: the click is answered at once and the picture arrives after.
+   * Resolves false when the preview cannot run at all, which is the caller's cue to stay in 2-D.
+   */
+  async _enterIso() {
     if (!this.#iso) {
       try {
         const { IsoScene } = await import("../render/iso-webgl.js");
@@ -260,15 +266,35 @@ export class CanvasBase {
     }
     this._isoOn = true;
     this._onIsoEnter();
-    const { w, h } = this._size();
     showLayers(this._isoLayers(), false);
     this.#iso.show();
-    this.#iso.render(solids, w, h, yawDeg, bbox);
+    this._isoBusy(true);
     return true;
+  }
+
+  /** Draw a meshed world into the preview, which stops it waiting. */
+  _drawIso(mesh, yawDeg, bbox) {
+    if (!this.#iso || !this._isoOn) return;
+    this._isoBusy(false);
+    const { w, h } = this._size();
+    this.#iso.render(mesh, w, h, yawDeg, bbox);
+  }
+
+  /** The "still building" overlay, created on first use and left in the wrap thereafter. */
+  _isoBusy(on) {
+    if (!this.#isoBusy) {
+      if (!on) return;
+      this.#isoBusy = document.createElement("div");
+      this.#isoBusy.className = "canvas-iso-busy";
+      this.#isoBusy.textContent = "Building the world…";
+      this._wrap.appendChild(this.#isoBusy);
+    }
+    this.#isoBusy.style.display = on ? "" : "none";
   }
 
   _hideIso() {
     this._isoOn = false;
+    this._isoBusy(false);
     this.#iso?.hide();
     showLayers(this._isoLayers(), true);
   }
@@ -278,6 +304,7 @@ export class CanvasBase {
     if (this.#chromeFrame) { cancelAnimationFrame(this.#chromeFrame); this.#chromeFrame = 0; }
     this.#ro?.disconnect(); this.#ro = null;
     this.#iso?.dispose(); this.#iso = null;
+    this.#isoBusy?.remove(); this.#isoBusy = null;
   }
 
   // ── event setup ────────────────────────────────────────────────────────────
