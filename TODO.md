@@ -20,8 +20,9 @@ and every one was found by following where a fact is stored or derived rather th
 - a house prop carries a whole style, and the dressing reader deserialized straight past the upgrade every
   standalone style ran (`B197`);
 - a house style never ran the material walk at all, so a pattern stored inside one never read forward (`B195`);
-- the inward walk a floor's zones are cut by exists for the housing raster and not for the terrain one, though
-  both already share the perimeter trace beside it (`B200`);
+- the inward walk a floor's zones are cut by existed for the housing raster and not for the terrain one, though
+  both already shared the perimeter trace beside it (`B200`, **the model half shipped**: one walk, and
+  `LayeredMaterial` reads its stack along either axis);
 - a house the dressing pass **declined to place** still claimed its footprint as structure, because the claim
   was rebuilt from the author's intent instead of from the placement (`B202`, **shipped**).
 
@@ -48,6 +49,14 @@ rasters plus a continuous axis, now **bucket 13**; bucket 10 is not document dri
 bucket 9 has been finished since before the table was written; and `B177` asked for a rule that
 `PlanValidator.LintSp2` already implements, so an agent handed it as written would have shipped the second copy.
 
+**A second read of the pool (2026-08-16) removed nine more entries, and the two ways out are worth keeping
+apart.** Four had **shipped** without their entries being retired — `B142`, `B152`, `B180` (as `SP8`) and
+`B201` (answered by `B195`'s ruling) — and five were **never studio tasks**: `B153`, `B170`, `B173`, `B182`
+and `B183` are composition law, and they live as numbered rules in `pgm-studio-mapgen`'s `ART-DIRECTION.md`
+and `REVIEWER-BRIEF.md`. The rest were reworded down to what actually remains, which in three cases (`B159`,
+`B176`, `B185`) is a fraction of what the entry claimed and in two (`B162`, `B190`) is the whole of it —
+believing a task had shipped and finding it had not is the same reading either way.
+
 **What that leaves as the order.** Buckets 6 and 7 spend occupancy and were waiting on `B202`; that has
 landed, so they are dispatchable, and both should adopt `StructureClaim` rather than adding a claim of their
 own. Buckets 1, 2, 3 and 10 all land in `PlanValidator` and go to one agent or strictly in sequence — `B206`
@@ -58,9 +67,11 @@ rather than a sixth list. Bucket 13's author call is answered: **the walk crosse
 
 **Every bucket now has its landing site built, and the landscape work is done.** `Findings`/`Check` for the
 refusals, `StructureClaim` for occupancy, `BlockFamilies` for block kind, one `PlanValidator` verb,
-`BuildingPlan` renamed clear of `Geom.Footprint`, and `GridBoundary.StepsInward` with `ColumnProfile.Inset` for
-the inward axis — shared by both rasters, with the author's crossing-an-elevation-step call built into it.
-Nothing paints from the inset yet; the authored shape that spends it is bucket 13's own work.
+`BuildingPlan` renamed clear of `Geom.Footprint`, `GridBoundary.StepsInward` with `ColumnProfile.Inset` for
+the inward axis — shared by both rasters, with the author's crossing-an-elevation-step call built into it —
+and `PieceInterfaces` for every distance a spawn door or an island seam is measured along. The inset is
+painted from too (`BandAxis.Inward`); what bucket 13 has left is the **editor** that lets a band sequence be
+authored at all.
 
 **The forty-four in `BACKLOG.md` are dispatchable with three corrections, and the sharpest is not a type.** Each
 bucket's concept and landing site are stated there under *What each bucket spends*, and five of the six are
@@ -79,8 +90,9 @@ built and checked. What a closer read of the sixth found:
 - **`B37` is the parent of buckets 2, 3 and 6 and none of them said so.** Bucket 6's "placement report the
   export can refuse on" *is* `B37`'s resolved-stamp record; bucket 3's distances are `B37`'s deferred half, and
   `B188` has already discharged the corpus measurement it was waiting on. `IronResolution` is still the only
-  instance, and the record composes with `StructureClaim` rather than replacing it. Now cross-referenced in all
-  three places.
+  instance carrying `Placeable`, and the record composes with `StructureClaim` rather than replacing it. Now
+  cross-referenced in all three places. Bucket 6's *reporting* half has since shipped separately (`B142`): the
+  dressing pass names every decline with a reason, which is the report without the record.
 - **The box surface was eighteen declarations, and the boundary made them (`B210`, shipped).** `Client` sees
   only `Contracts` and `Geom`, so every shape it draws had grown a copy: seven of the world-XZ footprint and a
   second `BlockBox`. Both now live in `Geom`, `Domain` references it, and `StructureBox` and `CellRect` stay as

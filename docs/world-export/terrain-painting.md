@@ -296,9 +296,11 @@ are already non-stone columns, so "consult the stamps" is just "read the finishe
    *geometric* edge either way, not the `rimEdges` toggle — a rim mode chooses which drops a rim caps, which is
    a different question asked further down the pipeline.
 
-   **Nothing paints from the inset yet.** It is measured for the authored shape that will spend it — a border
-   stated as a sequence of bands read by ring rather than one material of width N (`B199`, `B200`) — and no
-   band resolver reads it, so a theme applied to a shape resolves exactly as it did before the axis existed.
+   **What reads the inset is `LayeredMaterial` under `BandAxis.Inward`**, described in full under *A band
+   stack and its axis* above: a theme that names no axis resolves exactly as it did before the axis existed,
+   and one that names `inward` reads its bands as rings. What is still missing is the *editor* — a rim stated
+   as a sequence of bands rather than one material of width N is expressible in the theme JSON and not yet in
+   the Theme phase (`B200`), and the house floor's three named zones are still three fields (`B199`).
 
 2. **Theme resolution — the scope layer.** A `Theme` is a data row: the bedrock mode, the `rimEdges` and
    wall-face knobs, plus a `TopBand` per top bucket (its material, depth and toggle) and a material for the wall and

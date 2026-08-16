@@ -651,10 +651,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `POST /plan/evaluate` carries the validator's whole lint table as `lint[]` — an unplaceable iron (`WX9`)
   or a mid-lane spawn (`SP2`) is visible on the loop an agent actually drives (B109/B177's reach half).
   The dressing pass reports every whole-prop decline with a reason (`region/dressing-report.json`, the
-  mapgen stderr lines) — B37's report-first slice over B146/B142/B187's silences. And the task board's
-  collapsed headings were repaired so its own structure stops misleading the next reader. Earlier the same
-  session: `PL12` (mixed fanned/non-fanned landmass refused by name), the prop preview refusing `HJ*`/`HP*`
-  compositions the build would drop, and the per-team objective line.
+  mapgen stderr lines) — B37's report-first slice, and what **closes B142**: a tree over void is now a named
+  drop with its coordinates rather than a document count reporting 34 trees when one of them stood nowhere.
+  (B187's silence is not closed by it — a house needs ground under *one* cell, so a partly-hung building is
+  still stamped.) And the task board's collapsed headings were repaired so its own structure stops misleading
+  the next reader. Earlier the same session: `PL12` (mixed fanned/non-fanned landmass refused by name), the
+  prop preview refusing `HJ*`/`HP*` compositions the build would drop, and **the per-team objective line
+  (`B152`)** — `MetaGenerator.Objective` divides by the team count, so one destroyable per team reads
+  "destroy the enemy's monument" rather than pluralizing across the fanned list.
 - **The destroy-goal spawn ratio is banded: GO1, [3.0, 4.0] by walk (`B188`).** The `goal-spawn-ratio` soft
   term scores each goal's enemy÷own spawn walk (via `GoalDistances`, the fanned-closure traversal) against
   the band the author stated off the two shipped boards (3.0, 3.9); the band lives on the term
@@ -671,7 +675,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   rule `B156` filed).** The wall and the room stamp through each other there and the room can barely be
   entered; the compiler refuses with the fix in the sentence — place it ~15 blocks out, on the approach
   piece's outer interface.
-- **The piece-interface machinery: one read, seven lints (`B238` `B239` `B158` `B157` `B167` `B186`'s
+- **The piece-interface machinery: one read, seven lints (`B238` `B239` `B158` `B180` `B157` `B167` `B186`'s
   remaining clauses).** `PieceInterfaces` aggregates the contact graph and the board deriver into the three
   per-edge populations — every land seam with its height delta and typed wall, each piece side's frontline
   share, the straits between bridged islands — served raw on `POST /plan/inspect` (`frontages`,
@@ -682,7 +686,8 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   rectangular region, `FR8` a crossing turned into frontline over less than ⅓ of its face, `CT12` a
   two-team wool board's direct team-island strait outside 15–40. Calibrated against both populations
   before landing (rules.md amendment 17); frontline runs carry their bounding boxes so a finding has
-  coordinates.
+  coordinates. `SP8` is what closes `B180` — a spawn opening onto a face three blocks down that a player
+  cannot climb back up is a Δ≥2 seam ahead of the door, and the lint names the seam.
 - **A placed building has a floor: 5×5 blocks (`DR-SIZE`, `B167`).** A four-deep footprint is a wall with a
   roof; the dressing pass declines it before asking for ground, and the census names the footprint.
 - **The author element is complained for, and a bare model name is the form (`B242`).** `tools/mapgen` warns
@@ -3929,6 +3934,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   where the stack is a band **inside** one (a rim two blocks in and then the surface, not two blocks of cobble
   and then cobble forever). `BandEnding` is stated on the stack; the axis stays the caller's, since the
   distance is measured by whoever has it.
+- **A terrain band stack reads inward as readily as downward (`B200`'s model half).** `BandAxis` states the
+  axis on the reader rather than growing a second type: `LayeredMaterial(Stack, Axis, Beyond)` takes
+  `BucketContext.Inset` under `inward` and `DepthFromTop` under `depth`, so "a cobble rim, then two rings of
+  stone brick, then a grass field" — the author's own words while theming a board — is one `layered` material
+  with `"axis": "inward"`. `Beyond` answers what shows where the stack claims nothing, which is the half
+  `BandEnding.HandOver` deliberately leaves open, and an off-footprint inset of −1 falls to it rather than to
+  the last band, because "there is no ring here" is not "past the last ring". The walk under it is
+  `GridBoundary.StepsInward`, seeded only from the geometric outer face and numbering **across** an elevation
+  step rather than reseeding at it (author, 2026-08-15), so a staircase of plateaus takes one band set running
+  over the treads and up the hill. `docs/world-export/terrain-painting.md` carries the axis table and a worked
+  example. **The Theme phase's material editor does not offer it yet** — that is what is left of `B200`.
+- **A voronoi's bands stay their own type, and the reason is recorded on it (`B201`, answered by `B195`).**
+  `VoronoiMaterial.Bands` carries the same `(material, depth)` pair a `Band` does, which read as a fourth copy
+  of the rule. It is not one: a `BandStack` is read along an integer step and states only where its bands run
+  out, while a voronoi's axis is the **continuous** Worley `F2 − F1` gap and its last band claims the remainder
+  rather than repeating or handing over. `B195` had already settled the principle — the axis is the caller's
+  and only the ending is the stack's — so sharing the element without the traversal would put one name on two
+  rules. `VoronoiBand`'s docstring now says so, which is what stops the audit re-finding it as a defect.
 - **A style's materials are read forward by the material walk, which they had not been (B195).**
   `HouseStyleJson` never called `TerrainThemeJson.Upgrade`, so a house style carrying a pre-`bands` voronoi —
   or anything else the material walk fixes — silently kept the shape it was stored in. It calls it now. This

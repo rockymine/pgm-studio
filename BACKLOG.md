@@ -434,27 +434,6 @@ board scale decides it and the example boards were never sized honestly; FR8 lan
 the widths are served raw. Remaining under this machinery: the per-interface *height* read against relief
 hard edges stays a note per the author (an excluded piece meeting relief at a straight face).
 
-- [ ] **B229 — `map-layers` passes alone and fails in the suite, on state an earlier spec leaves behind.**
-  `./tools/e2e.sh map-layers` is 18/18; `./tools/e2e.sh all` is 13/14, reproducibly, on an idle machine — so
-  it is not the contention that makes a starved VM invent 30s route timeouts. The check that fails is *the
-  confirmation checks ran*, and the last one to pass is *the button names a rebuild, not a build*: the label
-  reads correctly off `.plan-compile-draft button`, and then `page.click('button:has-text("Rebuild this
-  map")')` times out at 30s. A button whose text is readable but which cannot be clicked is present and
-  **not actionable** — disabled or covered — rather than missing, and a `422` from `/api/plan/compile` is
-  recorded on the page beside it. The likely shape is that the compile behind that draft is refused in the
-  suite's state, leaving the draft rendered but its button dead.
-
-  What differs between the two runs is only the database: `all` seeds once and then runs
-  `configure-objectives`, `controls`, `draw-tools`, `dressing` and `icons` before this spec, and two of those
-  work on `seed.mapSlug` — the very map whose plan is recompiled here. **The suspect is a spec mutating that
-  map's plan into one that no longer compiles**, against this spec's assumption that it does. Find it by
-  running the five in order against one seed and compiling `seed.mapSlug`'s plan after each.
-
-  Two things not to be fooled by while chasing it. The fixed `waitForTimeout(1500)` further down (line 122)
-  is a genuine latent flake but is **not** this: the failing click is above it and that code never runs. And
-  `smoke` dropping to 33/39 with 30s `page.goto` timeouts *is* pure load — it was green in the same suite
-  before and after, on a quieter machine.
-
 - [ ] **B225 — A march tests another wing's walls where the primary pass tests its whole roof.**
   `Overtopped` asks `otherField.Covers` — the wing's walls **plus its overhang** — while `OtherRoofCrownOver`,
   which decides where a march stops, asks `otherRoofed.Holds`, the walls alone. Reading `RoofField` settles
@@ -497,11 +476,20 @@ hard edges stays a note per the author (an excluded piece meeting relief at a st
   in it and whose output is a per-item table with coordinates. **`AUTHORING-BRIEF.md`** is the author's own
   brief rewritten around the other three.
 
-  What this entry owns is keeping them true. Every rule in `ART-DIRECTION.md` and every check in
-  `REVIEWER-BRIEF.md` is a `B141`–`B188` id that has not shipped yet, so **each one is a debt with a due
-  date**: when its bucket lands the check moves from the reviewer's list into the pipeline's refusals, and the
-  reviewer document loses a row. A reviewer still enforcing `B163` after `B163` ships is a second copy of the
-  system, which is exactly the fault `B118` undid in `tools/`.
+  What this entry owns is keeping them true, and the rule for that has a second half now that some of those
+  documents have become the **only** home a rule has. A rule that will one day be a refusal is a debt with a
+  due date: when its bucket lands, the check moves from the reviewer's list into the pipeline's refusals and
+  the reviewer document loses a row — a reviewer still enforcing `B163` after `B163` ships is a second copy of
+  the system, exactly the fault `B118` undid in `tools/`. But a rule the studio is **not** going to enforce
+  never had a due date, and five of them (`B153`, `B170`, `B173`, `B182`, `B183`) left this board precisely
+  because they are composition law rather than gates. Their rows stay permanently, and citing a `B` id there is
+  provenance rather than a promise. So the discipline is: a row citing an id that is **open on this board** is
+  a debt; a row citing one that left the board as law is not, and the two are told apart by grepping the id
+  here.
+
+  Two rows already carry the other kind of debt and are worth naming: `AD-S5` marks `B166` and `B187` as
+  *unenforced* in so many words, which is the document doing this correctly — when either ships, that
+  parenthesis comes out in the same commit.
 
 - [ ] **B136 — The two features that make a shape stop looking drawn are reached almost never.** **The census
   below is stale and wants re-running before anything is concluded from it:** it covers **eleven** maps and
@@ -642,8 +630,8 @@ hard edges stays a note per the author (an excluded piece meeting relief at a st
 
   **This entry is the home the audit's plan-space rules need, and it is why it is worth doing before them.**
   Buckets 1–3 in `BACKLOG.md` are findings that are all geometry over plan rectangles — what a spawn
-  door faces (`B169` `B177` `B180`; `B158` shipped as SP9/CT12), how big a piece is and how far apart
-  (`B170` `B178`; `B156`/`B157`/`B167`/`B186` shipped as PL13/ST9/DR-SIZE/ST8), how far apart the goals are
+  door faces (`B169` `B177`; `B158`/`B180` shipped as SP8/SP9), how big a piece is and how far apart
+  (`B178`; `B156`/`B157`/`B167`/`B186` shipped as PL13/ST9/DR-SIZE/ST8), how far apart the goals are
   (`B175` `B179`) — and each one is a rule with a
   number in it that `PlanValidator` is the natural place for. Landing this entry first means those findings
   are findings added to a reachable validator rather than fourteen separate checks looking for a home. The
@@ -756,15 +744,14 @@ the finding**, and that split is forced rather than stylistic: `Geom` references
 `Domain`, so a shared measure cannot make its own refusal. A measure answers a number or a rect; the rule that
 reads it names the id.
 
-**The inward axis — bands read along a distance.** `B199`, `B200` and `B201` are one concept and were filed in
-bucket 4 because they mention materials. They are not block-kind rules: two of them are one walk asked for on
-two rasters, and the third is the same bands read along an axis that is continuous rather than stepped.
-**The axis has landed** (`FEATURES.md`): `GridBoundary.StepsInward` is the walk, beside `TracePerimeter` where
-the arc already came from, `BuildingPlan` reads it instead of the private copy it had, and `ColumnProfile`
-carries an `Inset` beside its `PerimeterArc`. The author's call is answered — the walk **crosses an elevation
-step** — so what is left in this bucket is the authored shape that spends the axis, and none of it is blocked.
-**Lands in** `BucketContext` (carrying the inset the way it already carries the arc), `BandStack` read along
-it, and the theme JSON and Theme phase that let a rim state a sequence rather than one material of width N.
+**The inward axis — bands read along a distance.** `B199` and `B200` are one concept and were filed in
+bucket 4 because they mention materials. They are not block-kind rules: they are one walk asked for on two
+rasters. **The walk and the painter over it have both landed**: `GridBoundary.StepsInward` beside
+`TracePerimeter` where the arc came from, `ColumnProfile` carrying an `Inset` beside its `PerimeterArc`,
+`BucketContext` carrying it through, and `LayeredMaterial` reading its stack along either axis (`BandAxis`)
+with `Beyond` for what shows where nothing is claimed. The author's call is answered — the walk **crosses an
+elevation step**. **What is left in this bucket is authoring**, and it lands in the editors rather than in the
+model: the Theme phase's material editor for `B200`, and `room_style_course` + `RoomStyleComposer` for `B199`.
 
 **Block kind by role.** What is left of bucket 4 (`B165`, `B190`) and all of bucket 5. **The table exists**:
 `BlockFamilies` names each id family once — stairs, single slabs, double slabs, panes, logs, leaves, soil —
@@ -791,21 +778,31 @@ rule. It spends the refusal vocabulary and belongs beside buckets 1–3.
 
 | # | Bucket | Ids | Concept it spends | Lands in |
 |---|---|---|---|---|
-| **1** | What a spawn door faces | `B169` `B177` `B180` (`B158` shipped) | extent and distance | `Geom` (the frontage rect) · `PlanValidator` (five rules over it) |
-| **2** | How big a piece is, and how far apart | `B170` `B178` (`B156` `B157` `B167` `B186` shipped) | extent and distance | `PlanValidator` · `PlanCompiler` |
-| **3** | How far apart the goals are | `B175` `B179` | extent and distance | `Geom` (the spacing deriver) · `PlanValidator` · `Analysis` |
+| **1** | What a spawn door faces | `B169` `B177` (`B158` `B180` shipped) | extent and distance | `PieceInterfaces` (the ray) · `PlanValidator` |
+| **2** | How big a piece is, and how far apart | `B178` (`B156` `B157` `B167` `B186` shipped) | extent and distance | `PlanValidator` · `PlanCompiler` |
+| **3** | How far apart the goals are | `B175` `B179` | extent and distance | `GoalDistances` (the goal↔goal walk) · `SoftTerm.AuthoredBand` |
 | **4** | A block must be the kind of block its role needs | `B165` `B190` | block kind by role | `HouseStamper` · `HouseStyleValidation` + a `roof_style` migration |
-| **5** | What ground and a goal are made of | `B162` `B163` `B183` | block kind by role | `Themes` · `DestroyKitPairing` · read-back |
-| **6** | What may stand where | `B142` `B166` `B187` | occupancy | `WorldProvenance` from placement · `Decorator` · `DressingScope` |
-| **7** | What the world build seats | `B145` `B159` `B176` `B184` `B185` | occupancy | `WorldProvenance` from placement · `SketchWorldBuilder` · the stampers |
-| **8** | The documents that taught the fault | `B153` `B171` `B173` `B181` | document drift — no shared unit | `docs/gameplay/` · `docs/tools/` |
+| **5** | What ground and a goal are made of | `B162` `B163` | block kind by role | `DestroyableMaterials` · `ObjectiveStamper` · `Themes` |
+| **6** | What may stand where | `B166` `B187` (`B142` shipped) | occupancy | `GroundClaims` · `Decorator` |
+| **7** | What the world build seats | `B145` `B159` `B176` `B184` `B185` | occupancy | `BuildCeiling` · `SketchWorldBuilder` · the stampers |
+| **8** | The documents that taught the fault | `B171` `B181` | document drift — no shared unit | `docs/gameplay/` · `docs/tools/` |
 | **10** | A document describing nothing still answers 200 | `B141` `B143` `B144` | the refusal vocabulary | `SketchLayout` · `PlanValidator` · the solver |
 | **11** | The evaluator over an authored board | `B150` `B151` | reads the plan where the board is in the sketch | `ClosureTerms` · `G8` |
-| **12** | Four that stand alone | `B152` `B154` `B174` `B182` | nothing shared | scattered |
-| **13** | The inward axis | `B199` `B200` `B201` | bands read along a distance | `Geom.Algorithms` · `ColumnProfile` · `BandStack` |
+| **12** | Two that stand alone | `B154` `B174` | nothing shared | scattered |
+| **13** | The inward axis | `B199` `B200` | bands read along a distance | `MaterialEditor` · `RoomStyleComposer` |
 
 **Bucket 9 is finished and its row is gone.** `B147`, `B148` and `B149` all carry a `FEATURES.md` line; the
 table listed them as work to hand out for as long as their section had already been deleted from the body.
+
+**Nine entries have left this pool since it was written, and how they left is worth keeping.** Four
+**shipped** — `B142` (the dressing pass reports every decline), `B152` (the per-team objective line), `B180`
+(`SP8`) and `B201` (answered by `B195`'s ruling, recorded on `VoronoiBand`). Five were **never tasks for this
+board**: `B153`, `B170`, `B173`, `B182` and `B183` are authoring law rather than studio work, and they live in
+`pgm-studio-mapgen` — `ART-DIRECTION.md`'s numbered rules (`AD-P` the palette, `AD-S` settlement placement,
+`AD-M8` the goal name) and `REVIEWER-BRIEF.md`'s checklist (`M7`/`M8`/`C7`/`L4`/`P5`), with `B170`'s shared
+middle additionally permitted by construction now that `CT12` judges only the *direct* strait. A rule an agent
+is told to follow is not the same object as a gate the pipeline enforces, and filing one as the other is what
+kept them here.
 
 **Order and collision, by concept rather than by file.** The label PGM refused shipped first and alone, ahead
 of every bucket below (`B155` — three committed maps had not parsed, and every other finding was reachable
@@ -851,10 +848,11 @@ instructions follow from that, and they are not optional:
 
 #### Bucket 1 — what a spawn door faces
 
-Five rules about the same rectangle: the ground immediately in front of a spawn door, in the direction the
-spawn's yaw points. Nothing checks any of them, and four separate boards broke a different one. They want one
-derivation — *the frontage rect* — and five findings over it, in `PlanValidator` where `B109` already wants a
-reachable home.
+Rules about the same rectangle: the ground immediately in front of a spawn door, in the direction the
+spawn's yaw points. **The derivation is built and three of the five findings have shipped** — `PieceInterfaces`
+gives every seam its height delta, `LintSp8` walks the seams ahead of the door and `LintSp9` the ray out of it
+(`B158`, `B180`, 2026-08-16), and `B172` shipped as `OB21`. What is left reads the same ray and is filed
+below.
 
 - [ ] **B169 — The ground under a spawn has no size relationship to the spawn, and came out 80 blocks wide for
   a 20-block building.** Weirgate's `yard` spans `x −40…40` against a spawn piece of `x −10…10` — sixty blocks
@@ -877,58 +875,30 @@ reachable home.
 
   *author, 2026-08-14, corrected 2026-08-14 · `yard` and `steading` shapes against their compiled spawn pieces.*
 
-- [ ] **B177 — `SP2` and `SP7` are written law, `MG31` says a hand-built board must carry them, and nothing
-  checks.** Haiku CTW Rush's spawn piece is 40×30 with the spawn point 11 blocks from its back edge and 19 from
-  its front — against `SP2`. Its iron cube stands at `(−10, −65)`, five blocks *behind* the spawn point —
-  against `SP7`, "iron goes beside or ahead of a spawn, since players face forward". And the map's own
-  `red-spawn` rectangle (`−20,−70` to `20,−40`) encloses that iron, so it sits inside the region the enemy may
-  not enter: a contested resource nobody can contest.
+- [ ] **B177 — `SP7` has no code, so nothing checks which side of a spawn its iron stands on.** Haiku CTW
+  Rush's iron cube stands at `(−10, −65)`, five blocks *behind* the spawn point — against `SP7`, "iron goes
+  beside or ahead of a spawn, since players face forward". The map's own `red-spawn` rectangle
+  (`−20,−70` to `20,−40`) then encloses that iron, so the one contested resource on the board sits inside the
+  region the enemy may not enter: a resource nobody can contest.
 
-  `docs/tools/mapgen-review.md` `MG31` already names both rules and states outright that they bind a hand-built
-  board and not only the composer.
+  **The `SP2` half of this entry is closed and is not the work.** `PlanValidator.LintSp2` measures the spawn
+  against the back half of its piece and yields a finding, and since 2026-08-16 `POST /plan/evaluate` answers
+  the whole lint table as `lint[]`, so the one call an authoring loop already makes carries it. `SP7` is the
+  half with no code at all: it is written in `rules.md`, served as prose by `GET /api/rules?rule=SP7`, and
+  matches nothing in `src/`. An agent handed the entry as first written adds a second `SP2` beside the first,
+  which is the fifth-table failure this bucketing exists to stop.
 
-  **The two halves are not the same fault, and the entry's original "nothing checks" was wrong about one of
-  them.** `SP2` **is** implemented — `PlanValidator.LintSp2` measures the spawn against the back half of its
-  piece and yields a finding — and since 2026-08-16 it is *reached*: `POST /plan/evaluate` answers the whole
-  lint table as `lint[]` beside the score, so the one call an authoring loop already makes carries it. A lint
-  is still a complaint an author may ignore. `SP7` is the half with no code at all — it appears in `rules.md`
-  and `mapgen-review.md` and nowhere in `src/`. An agent handed this entry as first written adds a second
-  `SP2` beside the first, which is the fifth-table failure this bucketing exists to stop.
+  **The ray it needs is already walked.** `LintSp8` and `LintSp9` take a spawn's `Facing` through
+  `DoorDirection` and step out of the piece along it; `SP7` is that same ray asked of the **iron marker**
+  rather than of the ground — the iron's offset along the door's axis, complained about when it is negative.
+  The region half is a different question and belongs with `WX9` placeability rather than here: an iron cube
+  inside the spawn's own protection union is what `IronResolution.Placeable` exists to answer, and it does not
+  answer it today.
 
-  *author, 2026-08-14 · `mapgen-review.md` MG31 · `rules.md` SP2/SP7 · plan, `map.xml` regions and probes.*
-  Premise corrected 2026-08-15 against `PlanValidator.LintSp2` and a grep of `SP7` across `src/`.
-
-- [ ] **B180 — A spawn opens onto a face players cannot climb back up.** Kilnrow's `crest` stands at y17 and
-  the `works` it opens onto at y14 — probed at `(0, −76)` and `(0, −74)`. A player leaving spawn steps down
-  three blocks and cannot return without placing them. Basalt Reach does the same and adds the other half:
-  probed out of its door at `z 75`, three walkable blocks at y17 then `works` at y14, a three-block fall three
-  blocks ahead — and its stair `ramp-back` runs `x 16…28` while the spawn occupies `x −10…10`, so the route out
-  is sixteen blocks off the centre line and nobody leaving the door meets it.
-
-  **The rule (author):** the ground a spawn opens onto is reachable again from where a player lands, and the
-  way up is where players actually leave. It joins the shipped `B158` (SP9) and `B172` as door-frontage rules; this one nothing yet checks about
-  what is directly in front of a spawn door, and all three want checking against the same rectangle. Rotating a
-  spawn to meet its stair is **not** the fix: on Basalt both objectives sit forward on opposite flanks and
-  turning the door toward the ramp would put one behind the player, costing the clear view of both that `B172` (shipped)
-  exists to protect. The route moves to the door.
-
-  *author, 2026-08-14 · probed across the `crest`/`works` interface on Kilnrow and `back`/`works` on Basalt.*
+  *author, 2026-08-14 · `rules.md` SP7 · plan, `map.xml` regions and probes.* Premise corrected 2026-08-15
+  against `PlanValidator.LintSp2`; the `SP2` half retired 2026-08-16 and the entry narrowed to `SP7`.
 
 #### Bucket 2 — how big a piece is, and how far apart
-
-- [ ] **B170 — A contested middle island is the best composition any run invented, and it merged with the
-  approach it should have been separated from.** Weirgate's `flat` spans `x −70…70` at `z ≈ −13…13`, sitting
-  across the symmetry axis so neither team owns it — nothing else in twenty-one boards does this. But
-  `causeway` ends at `z −10` while `flat`'s wavy north edge runs `z −13…−9`, so they overlap; probing `x = −35`
-  from `z −14` to `−8` finds solid ground the whole way and no gap at all. Mirefast has the same shape of
-  fault: `fen` spans `z −70…+8`, so its `rot_180` image overlaps it across a 16-block band at mid.
-
-  Filed separately from `B158` because the fix is not "add a gap" generically: **a deliberately shared middle is
-  a shape the island rule has to permit while still requiring separation on both of its sides.** Recording the
-  intent matters as much as the fault — this is the one composition an agent invented that the author wants
-  kept. Work it with the Mirefast half; the two are the same entry seen twice.
-
-  *author, 2026-08-14 · shape vertices plus six column probes across the seam.*
 
 - [ ] **B178 — A spawn building's size is its plan piece's size, and an author cannot say otherwise.** Ashfall
   Scar's spawn piece is `x −40…40` — 80 blocks — so the hall is 80 blocks. The piece is doing two jobs at once:
@@ -950,10 +920,19 @@ reachable home.
 
   **The rule (author):** where a team carries two destroyables or cores, at least **35 blocks** between them. It
   is the destroy-side counterpart of `WL7`, which already requires a measured separation between a team's wools
-  — so the rule shape exists on the wool side and is simply absent for goals. Two well-spaced boards give the
-  band it should sit against: `tallow-kilnrow` 70, `basalt-reach` 74.3.
+  — so the rule shape exists on the wool side and is simply absent for goals.
 
-  *author, 2026-08-14 · regions read from the shipped `map.xml`, both goals column-probed.*
+  **The measure is now built, and only the rule and its number are missing.** `GoalDistances` is the
+  measurement surface every destroy-goal distance is read through — the rectilinear walk over the fanned
+  closure, which is the unit `B212` settled — and it answers goal→spawn only; a goal↔goal walk is that same
+  traversal with a different target, and `Geom.Cells` already carries the multi-target walk and the square-ring
+  snap it would need. `SoftTerm.AuthoredBand` is how a stated band lives on a term with no corpus sweep behind
+  it (`GO1`), which is the shape this wants. **What is not settled is the number**: the 35, and the 70 /
+  74.3 the two well-spaced boards give, are straight-line readings of a shipped `map.xml` and their unit is
+  retired (`B212`), so the author restates the minimum as a walk before anything enforces it.
+
+  *author, 2026-08-14 · regions read from the shipped `map.xml`, both goals column-probed.* Machinery
+  re-checked 2026-08-16 against `GoalDistances` and `Geom.Cells`.
 
 - [ ] **B179 — Nothing states how far opposing goals stand apart, or how much of a board the contest has to
   use.** On a board measuring 240 × 190, every Ashfall Scar objective sits on `x = 0` and the whole objective
@@ -971,7 +950,16 @@ reachable home.
   half is real and worth preserving in any fix — the goals are visible from spawn, which `B172` (shipped) exists to
   protect. The fault is that they are visible and nineteen blocks away on an empty line.
 
+  **Both halves are expressible now, on machinery that shipped since.** The opposing-goal distance is
+  `B175`'s goal↔goal walk read across the axis instead of within a team — one traversal serves both, and
+  `GoalDistances` already fans the closure so a route may cross the boundary. The spread-against-the-board half
+  has an answer waiting in `GroundCoverage` (`B241`): it already classes every ground cell reached, decorated
+  or dead and clusters the dead into named patches, which is "how much of this board is the contest using"
+  measured rather than inferred from a bounding box. As with `B175` the numbers are the open part — 95–110 is a
+  straight-line reading in the retired unit (`B212`) and wants restating as a walk.
+
   *author, 2026-08-14 · `map.xml` objective regions · board extent from the layout's shape vertices.*
+  Machinery re-checked 2026-08-16 against `GoalDistances` and `GroundCoverage`.
 
 #### Bucket 4 — a block must be the kind of block its role needs
 
@@ -1054,9 +1042,21 @@ and closing it takes a column and a migration rather than a predicate — so the
   violations are an agent choosing a larger style and carrying the default material along unchanged, which
   nothing questions. It belongs beside `DestroyKitPairing`, which already reasons about a goal's material.
 
-  Also worth deleting while here: the bedrock centre a cube can be filled with is unreachable — see `B176`.
+  **Still unimplemented as of 2026-08-16, and the check is emptier than the entry implies.** There is no
+  style↔material pairing anywhere in `src/`, and `DestroyableMaterials.IsBuildable` — the one predicate that
+  reasons about a destroyable's material at all — **has no callers**: the intent path writes the declared
+  string into the XML while `BlockId` silently falls back to obsidian. So this bucket adds the first material
+  rule a destroyable has ever had, and the buildable check wants reaching at the same time.
+
+  **The bedrock centre is the second half, and the ruling has flipped.** `ObjectiveStamper.StampDestroyable`
+  takes `bool bedrockCentre = false`, fills a cube's 1×1×1 (`cube-3`) or 2×2×2 (`cube-4`) inset with bedrock,
+  and its only caller — `SketchWorldBuilder.cs:354` — never passes it, so no agent can author it. `B176` filed
+  that as unreachable code to delete; the author's call is the opposite: **a `cube-3` or larger destroyable
+  should carry the bedrock centre**, which is also what makes a 27-block cube an honest three-block goal. So the
+  work is wiring it — decided by style rather than by a knob — not removing it.
 
   *author, 2026-08-14 · swept over all 21 folders by parsing the intent JSON · probed on all three offending maps.*
+  Re-checked 2026-08-16: no pairing rule exists, `IsBuildable` is uncalled, `bedrockCentre` is still unreached.
 
 - [ ] **B163 — A surface material that is not layered repeats down every course, so a palette holding grass
   stacks it.** `rookwood` sets `surface.material.kind: "cell"` at `depth: 3` over a palette including grass. A
@@ -1076,70 +1076,57 @@ and closing it takes a column and a migration rather than a predicate — so the
 
   *author, 2026-08-14 · swept over every layout · column-probed on two maps.*
 
-- [ ] **B183 — A board's palette is unchecked in both directions, and the two worst boards fail opposite ways.**
-  **Basalt Reach vanishes**: all five themes sit on Stone (1:0) or Andesite (1:5), and three of its five houses
-  are walled in Stone with an Andesite roof and Polished Andesite verge — built from the same rock as the ground
-  under them. **Tallow Kilnrow clashes**: `kiln-stack` is a `cell` over Quartz, Chiselled Quartz, White Clay,
-  Smooth Sandstone and Light Grey Clay, with Red Sandstone two blocks away and a Red Stained Clay boulder in it.
-  **Tallow Mirefast checkerboards**: `mire-timber`'s top layer is `{"kind":"checker","size":2}` in coarse dirt
-  and gravel, spread over the 92-block spawn approach.
-
-  Three boards, three ways of being unreadable, and no measure that would have caught any of them. The nearest
-  thing that exists is `--surface`'s tone families (`B147` closed the coverage gap that left half the
-  stained-clay ramp reading as unnamed magenta), but nothing yet turns the reading into a **distribution over
-  tone families** an author could check either failure against. **A board that reads as one material and a
-  board whose materials fight are the same missing check seen from two sides**, and that distribution — not a
-  picture — is the read-back that would answer it.
-
-  Filed as composition rather than defect, with `B173`: nothing here should refuse, and what would move it is a
-  measure an author can look at before building.
-
-  *author, 2026-08-14 · themes and house styles read from three layouts, cross-checked against column probes.*
-
 #### Bucket 6 — what may stand where
 
-Four ways a thing is placed and the system says nothing. Three of them are silent skips and one is a silent
-build; all four want the same answer — **a placement report the export can refuse on**, rather than a document
-count standing in for what reached the world.
+Two ways a thing is placed and the system says nothing. **The silence itself is closed** (`B142`,
+`FEATURES.md`): the dressing pass reports every whole-prop decline with its reason, as
+`region/dressing-report.json` and as a stderr line per drop, and `PlacedCounts` is the placement report the
+count used to stand in for. What is left is two placement *rules* over the claims that report is made of.
 
-**That report is `B37`'s resolved-stamp record**, wanted there for the separation rules and here for what
-reached the world — kind, footprint, whether it was placed, what asked for it. `IronResolution` is the only
-instance today. Whichever task builds it must be told about the other, and it composes with `StructureClaim`
+**The uniform resolved-stamp record is still `B37`'s** — kind, footprint, whether it was placed, what asked
+for it. `IronResolution` remains the only instance carrying `Placeable`. It composes with `StructureClaim`
 (`B202` — which columns a stamp owns) rather than replacing it: one says what was placed, the other what it
 covered.
-
-- [ ] **B142 — A prop authored over void is skipped, and the foliage read-back counts the document rather than
-  the world.** A tree where no ground stands does not appear — no refusal, no warning, no count.
-  `--topdown --layer foliage --dressing` reported "34 tree(s)" from the dressing document while one of them
-  stood nowhere. `OB19` refuses a prop inside a goal's clearance; nothing refuses a prop over nothing. The cheap
-  half is the read-back telling the truth; the real half is the placement report.
-
-  *`opus5-run2` §5 #4 · `basalt-reach` `s1` at `(−46, 74)`, 0 solid blocks.*
 
 - [ ] **B166 — Nothing complains when two buildings touch, or when a roof overhang reaches inside another
   building.** Corvid Hollow's spawn piece is `x −15…15, z −90…−75`; the house at `x −18…−6, z −74…−66` stands
   flush against its face with zero gap and carries `"overhang": 2`, putting its eaves at `z −76` — two blocks
-  inside the spawn building's wall. Visible in `renders/05-structures.png` and not acted on. It is **not** the
-  same-style merge case the L/T-shape work (`G172`) absorbed: spawn is `hip`, the house is `gable`, and their
-  pieces stand two blocks apart in height.
+  inside the spawn building's wall. It is **not** the same-style merge case the L/T-shape work (`G172`)
+  absorbed: spawn is `hip`, the house is `gable`, and their pieces stand two blocks apart in height.
 
   **The rule (author):** a building keeps at least **one block of clearance** from another, eaves included, and
-  a placement breaking it draws a complaint rather than a silent build. The geometry is already computed —
-  `DressingScope` holds a stamped building's extent and `B137` taught a building to claim the eaves past its
-  walls. What is missing is comparing two claims and refusing.
+  a placement breaking it draws a complaint rather than a silent build.
 
-  *author, 2026-08-14 · plan piece `spawn` against the third house prop.*
+  **A house claims ground now, which leaves this a two-line change on a claim set that already exists.**
+  `GroundClaims` carries a typed claim per cell (`B232`) and `Decorator.PlaceHouse` refuses a footprint landing
+  on one — but on **two counts it is not this rule**. It joins the claims as `image.Cells()`, the *wall*
+  rectangles, while the eave-grown extent is computed one line below as `ClaimedCells(image, house.Style)` and
+  used only for provenance — so two buildings whose verges overlap collide in the world and not in the claims.
+  And `FirstOverlap` refuses on **overlap**, where the author's rule is a **one-block gap**. Claim the cells
+  the stamp actually writes, and test the ring one block out from them.
+
+  *author, 2026-08-14 · plan piece `spawn` against the third house prop.* Re-checked 2026-08-16 against
+  `Decorator.PlaceHouse` / `ClaimedCells` / `FirstOverlap`.
 
 - [ ] **B187 — A house may be stamped over void, and eight of one building's eleven columns stand on nothing.**
   `quillon-saltworks`' `h1` spans `x −80…−70, z −60…−55`. Probed at `(−78,−58)`, `(−75,−58)` and `(−78,−56)`:
   two solid blocks each — the house's own floor with no terrain under it. Ground does not begin until about
   `x −72`.
 
-  Distinct from `B142`, where a prop over void is silently *skipped*. Here the building is **fully stamped and
-  hangs**. A stamped structure needs the same ground test a prop gets, and it needs it as a **refusal** rather
-  than a skip, since half a building on solid ground is a worse outcome than none.
+  A stamped structure needs the ground test a prop gets, and it needs it as a **refusal** rather than a skip,
+  since half a building on solid ground is a worse outcome than none.
 
-  *author, 2026-08-14 · five column probes across the footprint.*
+  **The test that exists asks the wrong quantifier, and the line is nameable.** `Decorator.Ground` takes the
+  **lowest** column its plan covers and answers null only when *no* cell has ground at all, so a building with
+  one column on land and ten over void seats on that one column and hangs. The neighbouring rules do not
+  cover it either: `DR-PASS` walks the bands *outside* the footprint, and `B233`'s excavation skips a missing
+  column rather than refusing it. The fix is a quantifier — every cell of the footprint, or a stated share —
+  and a `DroppedProp` reason naming the first bare column, which is the shape every other decline already takes.
+  `pgm-studio-mapgen`'s `ART-DIRECTION.md` AD-S5 states the rule for authors and marks it *unenforced*, so
+  closing this deletes that parenthesis.
+
+  *author, 2026-08-14 · five column probes across the footprint.* Re-checked 2026-08-16 against
+  `Decorator.Ground`.
 
 #### Bucket 7 — what the world build seats
 
@@ -1154,44 +1141,47 @@ covered.
 
   *`opus5-run2` §5 #10 · `opus-run2` §1.6 · two earlier runs · re-probed this session.*
 
-- [ ] **B159 — A goal's sky marker is seated on the build cap, so any building taller than the cap swallows
-  it.** `ST7` floats a goal marker clear of `BuildIntent.MaxHeight` "so it sits out of build reach by
-  construction", and `SketchWorldBuilder.cs:51` does exactly that. The premise fails on a **stamped building**,
-  which is authored geometry and not subject to the cap: on `sable-marsh` the cap is 20, the marker seats at
-  y24–26, and the wool building's roof is at y31 — the marker is five blocks *inside* the room it is meant to
-  advertise.
+- [ ] **B159 — Nothing checks a room style's own height against the cap its marker hangs over.** `ST7` floats
+  a goal marker clear of the map's build ceiling "so it sits out of build reach by construction", and the
+  original fault was a marker five blocks *inside* the wool building it was meant to advertise: on
+  `sable-marsh` the cap was 20, the marker seated at y24–26, and the building's roof stood at y31.
 
-  **The fix (author), corrected:** a floating marker must clear **both** — it stays above `BuildIntent.MaxHeight`
-  so players cannot build to it, *and* above what was actually built over the goal's footprint, roof included.
-  So the seat is `max(maxHeight, tallestBuiltBlock) + clearance`, **not either one alone**. An earlier version of
-  this entry proposed replacing the cap with the built height, which would have put the marker back in reach on
-  a low building — Corvid Hollow's marker satisfies the rule today at y24–26 against a cap of 20, and that fix
-  would have broken it. Withdrawn. The existing no-cap fallback does not help either way: it reads
-  `terrain.SurfaceTop.Values.Max()`, which is terrain and excludes every stamped structure.
+  **The cause is closed and most of the entry with it.** The cap is no longer `Surface + Headroom` off a flat
+  nominal world — it is the highest terrain column the world actually builds plus 20, and the marker is cap + 5,
+  one rule for every goal kind (`B105`, `rules.md` amendment 14). Against that ceiling the reach is closed by
+  construction for everything the author enumerated: a tree is configured to stay under it, and a tree may
+  stand in neither a monument's nor a core's clearance anyway, so **no destroy goal's marker can be reached at
+  all**. The seat arithmetic this entry once proposed — `max(maxHeight, tallestBuilt) + clearance` — is
+  superseded by the author's ruling that the marker does not reason about what was built under it, and is
+  withdrawn.
 
-  The cap here was 20 — `Surface + Headroom` = 9 + 11 — against a marker the rule wanted at y24–26. That was
-  the **third symptom of a cap below its own terrain**, after `B104`, and the cause is closed: the cap is
-  measured off the built terrain now and the marker is simply cap + 5, one rule for every goal kind
-  (`B105`, `rules.md` amendment 14). The seat arithmetic this entry proposed — `max(maxHeight, tallestBuilt)`
-  — is superseded by the author's ruling that the marker does not reason about what was built under it.
+  **What is left is the one case construction does not cover: a wool room.** A wool building's shell is
+  authored geometry, is not subject to the cap, and a multi-storey room style can stand more than 25 courses
+  over its floor — at which point it swallows its own marker again. Nothing compares the two: `SafeFloor`
+  clamps a shell against the *world ceiling* (255) via `HouseStyle.TopLayerOver`, and no gate reads that same
+  number against `BuildCeiling.Of(highestGround)`. That comparison is the whole of the remaining work, and it
+  is a refusal at bind time rather than a correction at stamp time.
 
-  *author, 2026-08-14 · `rules.md` ST7 · `SketchWorldBuilder.cs:48–54` · column-probed at `(−80, −25)`.*
+  *author, 2026-08-14 · `rules.md` ST7 · column-probed at `(−80, −25)`.* Narrowed 2026-08-16 to the wool-room
+  case against `BuildCeiling` / `SketchWorldBuilder.SafeFloor` (author's construction argument).
 
-- [ ] **B176 — Bedrock is the spawn room's fallback, and a second bedrock feature is unreachable dead code.**
-  **The live half:** both Haiku boards build the spawn as a bedrock floor with a bedrock lid eight courses above
-  it — probed at `(−10, −50)` and `(−10, −45)` on DTM Tower and `(−10, −60)` on CTW Rush. DTM Tower *did* author
-  room styles (`specs/haiku-dtm-tower/spawn.json` describes stone-brick walls under a plank roof) and the world
-  is bedrock anyway, so either they never reached the stamper or they were ignored. Whichever it is, the fallback
-  when nothing binds is bedrock, and **a bedrock box is never a wanted outcome**: it should refuse, or fall back
-  to a plain shell in the map's own palette.
+- [ ] **B176 — The bedrock cube centre is unreachable, and it is wanted rather than deletable.**
+  `ObjectiveStamper.StampDestroyable` takes `bool bedrockCentre = false` and fills a cube's inset with bedrock —
+  1×1×1 under `cube-3`, 2×2×2 under `cube-4`. Its only caller, `SketchWorldBuilder.cs:354`, never passes it, so
+  it is not a default and no agent can author it. **This entry filed that as dead code to delete; the author's
+  call is the opposite** — a `cube-3` or larger destroyable should carry it — so the work is wiring it, and it
+  belongs with `B162`, whose block-count rule it is the other half of.
 
-  **The dead half, worth stating because it changes the work.** `ObjectiveStamper.StampDestroyable`'s
-  `bool bedrockCentre = false` fills a cube's inset with bedrock. Its only caller — `SketchWorldBuilder.cs:324`
-  — never passes it. So it is not a default and no agent can author it; that half is **deleting unreachable
-  code**, not changing a behaviour. (Confirmed against `basalt-reach`: probed at the cube's own centre there is
-  no bedrock, only 27 obsidian, which is `B162`.)
+  **The spawn half is closed.** The entry's live fault was that both Haiku boards built the spawn as a bedrock
+  floor under a bedrock lid, "the fallback when nothing binds is bedrock". It is not: `SpawnStructure.Shell`
+  defaults to `HouseStyle.Spawn` — the shipped stained-clay banded shell with an open doorway — and
+  `WoolStructure.Shell` to `HouseStyle.Wool`. The bedrock that remains under both is
+  `StructureStamper.StampFoundation`, which fills the footprint from y0 to the surface so the building cannot
+  be tunnelled into from below (`ST1`), and is documented and intended. Conflating the two is what `B145`
+  warns about.
 
-  *author, 2026-08-14 · `ObjectiveStamper.cs:50,60` · callers grepped · both boards probed.*
+  *author, 2026-08-14 · `ObjectiveStamper.cs:53,63` · callers grepped · both boards probed.* Spawn half
+  retired 2026-08-16 against `SpawnStructureStamper` / `HouseStyle.Spawn`; the dead half re-aimed per the author.
 
 - [ ] **B184 — The goal's bedrock plate sits one course down and wants three, and the space that opens up is
   where its defence chest goes.** `StructureStamper.StampPlatform` lays a fixed 5×5 bedrock plate
@@ -1214,9 +1204,11 @@ covered.
 
 - [ ] **B185 — A wall's defence chest can open into the wool room it seals, and one map does it.** The mechanism
   is deliberate and mostly works: `WallStructure.ChestOnMinFace` picks which of the wall's two faces is opened —
-  the wall is two thick precisely so one face can be cut while the other stays solid — and
-  `PlanCompiler.cs:446–449` recomputes it per orbit image, since a reflection swaps the faces. Swept over every
-  board with a wall, three of four are right:
+  the wall is two thick precisely so one face can be cut while the other stays solid — and `PlanCompiler`
+  recomputes it per orbit image from an authored **piece id** (`ContactGraph.WallChestPiece`), since a
+  reflection swaps which face carries the smaller coordinate and only the piece it looks out at is invariant.
+  So the face can be *stated* and it survives the orbit. Swept over every board with a wall, three of four are
+  right:
 
   | board | wall | chest | room | |
   |---|---|---|---|---|
@@ -1227,40 +1219,32 @@ covered.
 
   On Weirgate the supply sits inside the sealed cage rather than on the side a defence is held from.
 
-  **The rule (author):** where a wall stands on a wool room, its chest face is rotated the same way the room's
-  door faces, so a defender arriving at the door meets it. Today the face is derived from the wall's own
-  geometry (`PlanWall.Side` fanned per orbit) and never consulted against the room's `entries`, which is why it
-  can come out backwards without anything noticing.
+  **The rule (author), and it is all that is left here:** where a wall stands on a wool room, its chest face is
+  rotated the same way the room's door faces, so a defender arriving at the door meets it. The face defaults to
+  the wall's own `c.A` and is never consulted against the room's declared `entries`, so it can come out
+  backwards without anything noticing — and an author who never states `chestPiece` gets whichever piece the
+  contact happened to name first. Derive it from the entry, and complain when an authored one contradicts it.
 
-  *author, 2026-08-14 · all intents swept, wall faces computed against each room's declared entry.*
+  **The other half of this entry is closed and is not the work.** A wall sitting on the wool room's own
+  interface — where the wall and the room stamp through each other and the room can barely be entered — is
+  refused at compile as `PL13` (`B186`'s first clause, `FEATURES.md`), and `ST8` lints the wall's interface
+  width and its standoff from the entrance.
+
+  *author, 2026-08-14 · all intents swept, wall faces computed against each room's declared entry.* Narrowed
+  2026-08-16 to the chest-face rule; `PL13`/`ST8` closed the placement half.
 
 #### Bucket 8 — the documents that taught the fault
 
-Four documents, and the first of them is **law**. An agent reading `approaches.md` today is being told to build
-the thing `B181` names, which makes the document upstream of the boards rather than a description of them.
+- [ ] **B181 — Nothing measures how much of an approach a `subtract` cuts away, or what passage it leaves.**
+  A `subtract` that separates the two teams and a `subtract` that cuts across one team's own approach are the
+  same operation, and no check distinguishes them. Two numbers would: **how much of the board's width the cut
+  takes**, and **how much passable ground it leaves around itself** — both computable from the layout before a
+  build. Kilnrow is the worked case: `flue` subtracts `x −44…44` at `z −39…−16` and its mirror — 88 blocks of a
+  136-block board, 65% of its width — leaving two 24-wide side channels, while `z −16…16`, where the two sides
+  actually meet, is solid ground.
 
-- [ ] **B181 — The void is drawn across the approach instead of between the teams, and `approaches.md` is what
-  taught it.** Kilnrow's `flue` subtracts `x −44…44` — 88 blocks of a 136-block board, 65% of its width — at
-  `z −39…−16` and its mirror, sitting between the objectives and the middle and leaving two 24-wide side
-  channels. Meanwhile `z −16…16`, where the two sides actually meet, is solid ground. **The hole is where the
-  join belongs and the join is where the hole belongs.**
-
-  **The doc change is done.** `approaches.md` now withdraws the middle-of-terrain hole for `dtm`/`dtc` boards
-  and replaces it with a **depression or a pond**, keeps void at the seam between the two teams' lands, and
-  carries the overshoot warning Basalt Reach supplies — four holes around a connected middle draw play into the
-  centre and leave the flanks unused, so where the void goes is a composition decision about which ground
-  should be contested rather than a geometry one about how much board is missing. Its claims carry the
-  `[author]` mark and are settled, so that was an amendment to law and it was the first thing to change: the
-  author notes the fault as a recurring Opus habit rather than a one-board slip, which makes the document the
-  cause rather than the model.
-
-  **What remains is that nothing measures it.** A `subtract` that separates the two teams and a `subtract` that
-  cuts across one team's own approach are the same operation, and no check distinguishes them — the question is
-  which side of the symmetry axis the cut sits on and what it disconnects, both computable from the layout
-  before a build. Whether `tallow-kilnrow` is restated against the new law is an authoring decision, not this
-  task.
-
-  *author, 2026-08-14 · shape extents against the board bbox and the compiled objectives.*
+  *author, 2026-08-14 · shape extents against the board bbox and the compiled objectives.* Narrowed
+  2026-08-16 to the measurement: the composition law it rests on is settled in `approaches.md`.
 
 - [ ] **B171 — Nothing tells an author how a wool approach attaches to a hub, so the dock was tucked into the
   wrong neighbour.** Weirgate's `dock-w` touches only `front` (the `weir-silt` sand/clay/gravel piece) and
@@ -1274,39 +1258,6 @@ the thing `B181` names, which makes the document upstream of the boards rather t
 
   *author, 2026-08-14 · piece adjacency computed from the plan; themes matched to the author's description.*
 
-- [ ] **B173 — Every board builds one street of identical houses behind its spawn, and nothing else.** Swept over
-  twelve maps with three or more houses, ten put every house on **two or three z-rows** while spreading freely
-  across x — Weirgate 14 houses on 2 rows, Mirefast 9 on 2, Kilnrow 7 on 2 with a single orientation, Basalt 5 on
-  2 with a single orientation, Ashfall 9 identical houses on 2. Only `sonnet-cinderreach` and `sonnet-holdfast`
-  vary, and they are the same two boards that turned off the building footing in `B164`.
-
-  **The observation (author):** the houses are always in a line, always the same orientation, always on a "town
-  square" themed area, and always clustered behind the spawn. There is never a watchtower in a field, never a
-  barn away from the town. The building vocabulary and its placement are both one idiom repeated.
-
-  This is a **composition gap rather than a defect** — no refusal is wanted. What would move it is a worked
-  example of a building placed for a reason other than "the village goes here", and it connects to `B92`, which
-  wants a scenery building that is a mass rather than a place: a watchtower and a sealed edge-of-board run are
-  the two things that entry is for. Note the tension with `B172` (shipped as `OB21`), which bars houses from the 20×20 in front of
-  the spawn — the street has to move, not merely spread.
-
-  *author, 2026-08-14 · all house props on all 21 folders, grouped by position and facing.*
-
-- [ ] **B153 — Six fields an author got wrong because the unit or the scope lives only in the source.** Each cost
-  a build cycle, on three different runs. `branchAngle` is **radians** and clamped to `[0.2, 1.5]`, so `40`
-  becomes a plausible-looking wrong tree rather than a refusal (`sketch.md:463` names the field and gives no
-  unit). `bedrock.relative: true` means "keep the top N blocks as terrain", not "N blocks of bedrock". `sink`
-  reads the **median** ground under its footprint, so a pit straddling two tiers is shallower than asked.
-  `voidEnforcement`'s "independent" was read as "safely additive" and denied void inside a declared build area.
-  Bézier `controls` are **absolute** and keyed by vertex index, `out` bending the edge that *leaves*. And
-  `voidEnforcement` appears in neither `plan.md` nor `capabilities.md` — the two documents the `B120` brief
-  pushes hardest — so two separate runs filed it as missing.
-
-  One documentation pass, six fields. **Every one is stated correctly at the source**, which is the finding: the
-  docstrings are right and nothing an author reads first carries them.
-
-  *`opus-run2` §1.3, §1.4, §5 #10 · `sonnet-run2` #1, #2, #6 · `opus5-run2` §2, §5 #5.*
-
 Bucket 9 is not listed here — it was finished before this table was written.
 
 #### Bucket 10 — a document describing nothing still answers 200
@@ -1319,6 +1270,15 @@ Bucket 9 is not listed here — it was finished before this table was written.
   is to describe geometry has no required-field validation.** Same family as `B140`, which is now shipped one
   level up: the export gate compares what the intent stated against what the document carries, so a shape that
   rasterizes to nothing is still silent here and reaches a refusal only if it costs the map its spawn.
+
+  **Re-probed against the running API, 2026-08-16, and every clause still holds.** A layout carrying one
+  well-formed rectangle and one shape with no `type`: `PUT …/sketch` → `200 {"ok":true}`, `GET …/sketch` →
+  the document intact, `POST …/sketch/relief/read` → `200 {"islands":[]}`, and `POST …/sketch/finish` →
+  **`200`** with a `configureUrl`, because the good shape rasterizes and the broken one simply contributes
+  nothing. The only refusal anywhere on the path is `finish`'s 422 *"Nothing is drawn"*, and it fires only when
+  the whole layout is empty — so a document is silently short a shape whenever it still has one that works,
+  which is every real case. `RequiredFields` (`B214`) does not reach this: it refuses a **DTO** field the body
+  omitted, and the sketch blob is posted as raw JSON to an `EndpointWithoutRequest`.
 
   *`opus5-run2` §5 #1 · reproduce by deleting `"type"` from any shape in `specs/marlstone-steps/*.shapes.json`.*
 
@@ -1361,12 +1321,6 @@ Bucket 9 is not listed here — it was finished before this table was written.
 
 #### Bucket 12 — four that stand alone
 
-- [ ] **B152 — The objective line pluralizes across both teams.** One destroyable per team gives
-  `intent.Destroyables.Count == 2`, so `MetaGenerator.Objective` writes "monument**s**" on a board where each team
-  destroys one. There is no per-team divisor. Cosmetic — and it is the first line a player reads.
-
-  *`opus5-run2` §5 #8 · `basalt-reach/map.xml`.*
-
 - [ ] **B154 — `species: "dark_oak"` builds a tree from oak blocks.** `basalt-reach` at `(−60, 12)` reads `17:12`
   log and `18:4` leaves under a nine-block trunk and a broad crown, so the species selects the right template and
   the wrong material. Filed as measured rather than diagnosed — `docs/world-export/tree-corpus.md` was not read and
@@ -1394,35 +1348,26 @@ Bucket 9 is not listed here — it was finished before this table was written.
 
   *author, 2026-08-14 · block census over both groves in `maps/tallow-mirefast/region`.*
 
-- [ ] **B182 — A literal `<Team>` placeholder ships to players on five maps, and nothing substitutes or refuses
-  it.** Swept over every board: `basalt-reach` ("Stack", "Sump"), `quillon-barrow` ("Barrow"), `quillon-foundry`
-  ("Furnace", "Gantry Stack"), `tallow-kilnrow` ("Lime Kiln", "Slake Pit") and `tallow-mirefast` ("Wardstone") all
-  ship `name="&lt;Team&gt; …"`. **Every one is Opus, across three separate runs** — an idiom of one model rather
-  than a general mistake.
-
-  There is no substitution anywhere and there was never meant to be: PGM reads the attribute verbatim
-  (`CoreModule.java:113–123`), and when it is absent names the core "Core", then "Core 2". So players see the
-  literal text, on both teams, identically. The studio's own fallbacks are already what the author asks for —
-  `PlanCompiler` writes "Red Monument" for an unnamed destroyable and passes the empty string for a core so PGM
-  names it. Nothing is missing but a refusal: **a goal name containing `<` or `>` is a placeholder an author
-  forgot to fill in**, and the export composer is where that is caught.
-
-  *author, 2026-08-14 · all 21 `map.xml` files swept · `PGM/…/core/CoreModule.java`.*
-
 #### Bucket 13 — the inward axis
 
-Three entries and one walk. They were filed under bucket 4 because each names materials, and they are not
-block-kind rules: a floor divided into concentric zones, a terrain top course banded inward from its rim, and
-a band stack whose axis is continuous are the same question asked on three rasters — **how far in from the
-edge does this cell stand, and which band claims that distance.**
+Two entries and one walk. They were filed under bucket 4 because each names materials, and they are not
+block-kind rules: a floor divided into concentric zones and a terrain top course banded inward from its rim are
+the same question asked on two rasters — **how far in from the edge does this cell stand, and which band claims
+that distance.**
 
-**The axis itself is built and nothing here is blocked.** `GridBoundary.StepsInward` is the walk, beside
+**The axis is built, and so now is the painter over it.** `GridBoundary.StepsInward` is the walk, beside
 `TracePerimeter` where the arc already came from; `BuildingPlan` reads it in place of the private copy it had,
-and `ColumnProfile` carries an `Inset` beside its `PerimeterArc` — how far *in* from the void-facing edge a
-column stands, against how far *round* it. Nothing paints from it yet, which is the whole of what is left
-here: the **authored shape** that spends the axis. `B199` is the house floor's border becoming a stack read by
-ring, and `B200` the terrain's top course banded inward — both a schema, DTO and editor change rather than a
-traversal, since the traversal now exists.
+`ColumnProfile` carries an `Inset` beside its `PerimeterArc`, and `LayeredMaterial` reads the stack along
+either axis (`BandAxis`) with `Beyond` for what shows where nothing is claimed. **What is left in both entries
+is the authoring** — the schema, DTO and editor that let a shape be *stated* — not a traversal and not a
+material. `B199` is the house floor's border becoming a stack read by ring; `B200` is the terrain's top course,
+where the model landed and the Theme phase's material editor did not follow.
+
+The third entry filed here, `B201`, was a design call rather than a defect — whether `VoronoiMaterial.Bands`
+should become the shared `BandStack` — and `B195` answered it: **the axis stays the caller's and only the
+ending is the stack's**, so a stack read along a continuous Worley gap is a different traversal wearing the
+same words, and it stays as it is. The reason is recorded on `VoronoiBand` itself so the audit does not
+re-find it.
 
 **The walk crosses an elevation step** (author, 2026-08-15). One walk inward from the geometric outer edge,
 numbering across a tread rather than reseeding at it — `B200`'s `Void` reading, not `RimEdges.Drop`. The
@@ -1452,43 +1397,32 @@ each tread seeded its own ring 0.
 
   *found reading the house model after `B194`; the extraction it waited on landed as `B195`.*
 
-- [ ] **B200 — The top course of the terrain is not themeable inward, and the walk that would do it is
-  already written for houses.** A theme paints a column *downward*: the rim or the surface claims `Depth`
-  courses from the top, the wall takes the riser, fill takes the middle. There is no **plan-direction** axis at
-  all, so "a cobble rim, then two rings of stone brick, then a grass field" — the author's own words, reported
-  while theming a board — cannot be said. This is theming of the **topmost course only**, walked inward; it is
-  not the `Rim` bucket becoming concentric, and filing it that way was wrong.
+- [~] **B200 — The inward-banded top course is built, and no editor can author one.** A theme could only paint
+  a column *downward* — the rim or the surface claiming `Depth` courses from the top — so "a cobble rim, then
+  two rings of stone brick, then a grass field", the author's own words while theming a board, could not be
+  said.
 
-  **The axis is built; what is missing is the authored shape that spends it.** `GridBoundary.StepsInward` is
-  the walk, shared with the house raster, and `ColumnProfile` carries an `Inset` beside its `PerimeterArc` —
-  how far *in* from the void-facing edge a column stands, against how far *round* it, measured in the same
-  pass over the same landmass (`FEATURES.md`). Nothing paints from it.
+  **The model half has landed and is documented.** `BandAxis` names the axis on the stack's reader —
+  `LayeredMaterial(Stack, Axis, Beyond)` reads `BucketContext.Inset` under `BandAxis.Inward` and
+  `DepthFromTop` under `Depth`, one type with the axis stated rather than two differing in which property they
+  read. `Beyond` answers what shows where the stack claims nothing, which is the half `BandEnding.HandOver`
+  leaves open, and an off-footprint inset of −1 falls to it rather than to the last band. The walk under it is
+  `GridBoundary.StepsInward`, seeded only from the geometric outer face and numbering **across** an elevation
+  step rather than reseeding at it (author, 2026-08-15), and `ColumnProfile` carries the `Inset` beside its
+  `PerimeterArc`. `docs/world-export/terrain-painting.md` carries the axis table and a worked
+  `{"kind":"layered","axis":"inward","beyond":…}` example.
 
-  **What remains, in two moves.** Carry the inset on `BucketContext` the way the arc already is, and make the
-  bands a `BandStack` read along it with `BandEnding.HandOver` — cobble, two of stone brick, then nothing
-  claimed and the surface shows. Then the authoring: a `Rim` that states a sequence rather than one material of
-  width N, through the theme JSON and the Theme phase. Restricting it to the top course composes rather than
-  needing a knob — a `layered` stack whose first band is the ring-banded material and whose rest is dirt.
-
-  **The walk crosses an elevation step, and that is settled** (author, 2026-08-15). Only the geometric outer
-  face seeds; the numbering carries across a tread rather than restarting at it, so a staircase of plateaus
-  gets one band set running across the treads and up the hill rather than a set per tread. The flat case — what
-  the concept is reached for most of the time — reads the same either way, and the answer is stated in this
-  direction so that varying heights stay available rather than being ruled out by the seeding rule. The seed is
-  the geometric edge, not the `Rim` bucket's toggle: the walk starts "from the rim or if there is no rim".
+  **What is left is the editor, and only the editor.** `Components/Terrain/MaterialEditor.razor`'s `Layered`
+  case offers a list of layers and one number per layer captioned *Courses*; there is no axis control, no
+  `beyond` slot and no ending control, and its own help text still states the depth reading as the only one
+  ("a stack claimed downward from the top of the band … the last layer repeats"). `ThemeVocabulary.NewMaterial`
+  seeds a layered node with `kind` and `layers` and nothing else. So the JSON accepts a ring stack, the painter
+  draws it, and the only way to author one is to edit the document by hand — which is the same reach fault
+  `B136` names about the sketch's height controls.
 
   *reported by the author while theming a board; corrected 2026-08-15 after reading `TerrainProfile` ·
-  `BuildingPlan.Step` · `GridBoundary` · `docs/world-export/terrain-painting.md`.*
-
-- [ ] **B201 — `VoronoiMaterial.Bands` is a band stack that cannot use the band stack.** Its element is
-  `(material, depth)` — the same pair a `Band` is — but its axis is the **continuous** Worley `F2 − F1` gap
-  rather than an integer step, and its last band's stated depth is deliberately ignored. So it reads as a
-  fourth copy of the rule and is not one: the same words over a different traversal. Either `BandStack.At`
-  grows a `double` axis, or the element is shared and the traversal is not, or it stays as it is and the
-  duplication is only in the naming (`VoronoiBand.Depth` against `Band.Thickness`). **Which of the three is a
-  design call, not a defect** — filed so the audit does not re-find it as one.
-
-  *found doing `B195` · `TerrainPatterns.VoronoiMaterial`.*
+  `BuildingPlan.Step` · `GridBoundary`.* Model half verified landed 2026-08-16 (`BandAxis`,
+  `LayeredMaterial.Beyond`); narrowed to the Theme phase's material editor.
 
 ### Other backend, pipeline & internals work
 
@@ -1573,64 +1507,42 @@ each tread seeded its own ring 0.
   than returning a wrong status code, and `--authoring` is a manual harness, not a gate. Note the
   neighbours prove the standard is reachable: `MapParser` 92.9%, `XmlWriter` 88.1%, `RegionCategorizer`
   91.4%. Cover the type-specific region/filter branches first — that is where the uncovered lines are.
-- [ ] **B37 — Objective separation via WX9 placeability: unify the resolutions, not the stampers.** The
+- [ ] **B37 — Every family's resolver should answer one resolved-stamp record, and only iron does.** The
   stamped-structure placeability attribute (`docs/world-export/structures.md` WX9, shipped for spawn iron)
-  generalizes to the objectives: a **core or destroyable too close to a wool monument** merges structures
-  that must read apart, and one **inside a spawn piece** is worse than ugly — the spawn's protection region
-  makes an enemy goal unbreakable, so the map is silently unwinnable. The intended shape: the stampers stay
-  heterogeneous (their inputs are irreducibly different — a wall owns a seam, a room a piece + marker +
-  entries, an objective a marker + style), but every family's resolver produces one **resolved-stamp
-  record** — kind, footprint box, `Placeable`, source marker — the uniform currency the pairwise separation
-  rules run over (minimum distances to be decided from the corpus). `IronResolution` is the first instance;
-  the preview's `StructureBox` is the drawing-side proof of the shape and would consume the record instead
-  of assembling its own (placeability then reaches the iso view for free; `StructureBox` stays a separate
-  type from `BlockBox` — exclusive maxes plus `Kind`/`Color`, a drawing frame rather than a volume). Stamp only placeable structures, flag the rest with the same
-  marker-stays-visible discipline. Editor half: surface unplaceable markers on the plan canvas (the
-  highlight ring the validation tab already uses for pieces), not only in the findings list.
-  **Measured since filing.** The unwinnable case is worse than "unbreakable by the enemy": spawn protection
-  emits `block="never"` on the shared `spawns` union (`TeamsGenerator`), so an objective inside it cannot be
-  broken by *anyone*, the attacking team included. The wool path already solves exactly this —
-  `WoolGenerator.SubtractMonumentsFromSpawns` folds each monument block out of the union so capturing a wool
-  does not trip the rule — and cores and destroyables have no equivalent, which is why they need the
-  separation rule rather than a fold: a goal inside enemy spawn is a design error, not a case to work
-  around. `Placeable` still exists only on `IronResolution` (four consumers, all iron), and **preflight
-  checks round-trip, mirror, buildability and traversability only** — so the Configure path, which can now
-  author a core (`N12`), has no separation check at all while the plan path at least errors at compile.
-  Three pieces landed since that make the record cheaper to build: `BlockBox` is now the one inclusive AABB
-  (`B33`), a core's footprint is genuinely variable so a rule may no longer assume 5×5 (`G160`), and
-  `CoreIntent.Box`/`DestroyableIntent.Box` are populated on **both** orbit images (`B53`), so a rule reading
-  the expanded intent sees the real pair. **The objective half of the separation rules has since shipped as
-  `OB17`** (`FEATURES.md`) — void, spawn room and wool room, as compile-blocking errors over a shared
-  `ObjectiveFootprint`. What that leaves for B37 is the part it was really about: the uniform
-  resolved-stamp record every family's resolver produces (`OB17` computes footprints inline rather than
-  through one), the objective↔objective and objective↔monument minimum distances still to be drawn from the
-  corpus, `StructureBox` consuming the record instead of assembling its own, and the editor half — an
-  unplaceable marker outlined on the plan canvas — **which has since shipped end to end** (`B59`, `C44`,
-  `FEATURES.md`): markers carry a persisted id, a finding names one, and clicking that finding rings the
-  marker on the board. What is left of the editor half is only its timing: structural findings do not run in
-  the live feed (`G161`), so a refusal appears at Compile rather than as the marker is dragged.
+  generalizes to the objectives: a **core or destroyable too close to a wool monument** merges structures that
+  must read apart, and one **inside a spawn piece** is worse than ugly — the spawn's protection region emits
+  `block="never"` on the shared `spawns` union (`TeamsGenerator`), so an objective inside it cannot be broken
+  by *anyone*, the attacking team included, and the map is silently unwinnable. The wool path already solves
+  exactly that case by folding each monument block out of the union (`WoolGenerator.SubtractMonumentsFromSpawns`);
+  cores and destroyables have no equivalent and want the separation rule rather than a fold, because a goal
+  inside enemy spawn is a design error and not a case to work around.
 
-  **This entry is the parent of buckets 2, 3 and 6, and none of the three says so.** Read against the bucket
-  bodies rather than the titles:
+  **The shape, unchanged:** the stampers stay heterogeneous — their inputs are irreducibly different, a wall
+  owns a seam, a room a piece + marker + entries, an objective a marker + style — but every family's resolver
+  produces one **resolved-stamp record**: kind, footprint box, `Placeable`, source marker. That is the uniform
+  currency the pairwise separation rules run over, and the preview's `StructureBox` would consume it instead of
+  assembling its own, which reaches placeability into the iso view for free. `StructureBox` stays a separate
+  type from `BlockBox` — exclusive maxes plus `Kind`/`Color`, a drawing frame rather than a volume.
 
-  - *The resolved-stamp record is bucket 6's own answer, filed independently.* Bucket 6's header asks for "a
-    placement report the export can refuse on, rather than a document count standing in for what reached the
-    world" — kind, footprint, whether it was placed, what asked for it. That is this entry's record, wanted for
-    a different reason. `IronResolution(MarkerX, MarkerZ, MinX, MinZ, Size, Placeable)` is still the only
-    instance and still has four consumers, all iron. Whichever of the two runs first builds it, and it must be
-    told about the other.
-  - *The distances are bucket 3, and the corpus half is no longer blocking.* This entry defers on "minimum
-    distances still to be drawn from the corpus"; `B188` has since drawn them over 164 of 313 `dtcm` maps.
-    What is blocking instead is which unit they are in — `B212`.
-  - *`StructureClaim` is adjacent and is not the same record.* `B202` shipped it as occupancy — which columns a
-    stamp owns, taken from the placement — and it answers "what was covered", where this record answers "what
-    was placed, and may it be". An agent building either meets the other; the two compose (a record carrying a
-    claim) rather than merging.
+  **Three neighbouring things have landed, and none of them is this record.** The **occupancy** half is
+  `StructureClaim` (`B202`/`B203`): which columns a stamp owns, taken from the placement rather than rebuilt
+  beside it. The **report-first** half is the dressing pass's decline list (`B142`): what was placed and what
+  was declined, with a reason, as `region/dressing-report.json`. And the **objective placement** half is `OB17`:
+  void, spawn room and wool room refused at compile over a shared `ObjectiveFootprint`. What is still missing is
+  the record the three would hang off — `IronResolution(MarkerX, MarkerZ, MinX, MinZ, Size, Placeable)` remains
+  the only instance carrying `Placeable`, with four consumers, all iron — and the objective↔objective and
+  objective↔monument **minimum distances**, which are bucket 3's `B175`/`B179` seen from the placement side and
+  wait on the same thing they do: the author restating a threshold in the walk unit (`B212`). A record carrying
+  a claim composes; neither replaces the other.
+
+  **The editor half shipped end to end** (`B59`, `C44`, `FEATURES.md`): markers carry a persisted id, a finding
+  names one, and clicking that finding rings the marker on the board. What is left of it is only its timing —
+  structural findings do not run in the live feed (`G161`), so a refusal appears at Compile rather than as the
+  marker is dragged.
 
   `G65` is the third thing in this neighbourhood and is genuinely separate: it reconciles `FannedGraph`
   adjacency against `ContactGraph` for the *overlap* case, which is a question about whether two pieces touch,
-  not about how far apart two placements stand. It shares `ContactGraph` with the measures above and shares no
-  rule with them.
+  not about how far apart two placements stand.
 
 - [ ] **B34 — The two map-list endpoints disagree on sort order, and the dashboard gets the noisy one.**
   `MapsListEndpoint` branches on the `stage` query param onto two differently-ordered repository methods:
@@ -2226,25 +2138,47 @@ so the labeled corpus cannot be contaminated after the fact. Browse votes (absol
   per-bucket ranking (Bradley-Terry/Elo-style) derived at analysis time. A separate dataset from the
   browse votes by design.
 
-- [ ] **B79 — `map-layers` e2e: the plan editor's Compile button never arrives (13/14).** The suite drives to
-  `/maps/{slug}/plan` on the seed's built map, then clicks `button:has-text("Compile")` to check that a
-  *rebuild* states the trade before replacing a board someone has worked on. The click times out at 30s and
-  the page records `HTTP 422 /api/plan/compile`, so the confirmation half of the suite never runs. **Not a
-  regression from the island gate or the author fix**: it reproduces identically at `f42ec58`, the commit
-  before either landed, and it is not the corpus either — re-running with `MapsRoots` pointed at an empty
-  directory fails the same way, so the 15 generated maps under `CommunityMaps/ctw` are not the cause. It is
-  also not contention: it reproduces with the suite run alone and no dev server up. It did pass once, on the
-  first post-merge run, which is what makes it worth a task rather than a revert. The 422 is the plan
-  **validator** refusing what the page posts, while the same map's stored plan compiles 200 through curl —
-  so the first thing to find is what the editor sends that the stored document does not, and the finding
-  ids in the 422 body name the rule.
+- [ ] **B79 — The plan tool will compile a document it has not loaded yet, and answers `PL1` for it.**
+  Diagnosed 2026-08-16; the entry is rewritten around what it turned out to be.
 
-  **It does not reproduce on the Windows host** (2026-08-16): `./tools/e2e.sh all` is green there end to end,
-  `map-layers` included at 18/18, on the first run the harness was able to make (the seed step could not run
-  on Windows at all until the path and npm-lookup fixes landed). That does not clear the task — the VM is
-  where it was seen and where it should be re-checked — but a break that one platform reproduces and the
-  other never sees is a timing one, which fits a click that times out at 30s rather than a plan the validator
-  genuinely refuses. Worth re-reading the 422 claim against a run on each.
+  **What happens.** The plan tool is reached by an SPA hop — the Configuring list's row carries a *Plan* link —
+  and its canvas element is in the DOM before the plan document has been fetched into it. Click **Compile** in
+  that window and the tool posts an empty document: `POST /api/plan/compile` with `pieces: 0` and no spawns,
+  which the validator correctly refuses — `422`, `PL1`, *"this plan has no pieces — there is no land to
+  build"*. The drawer opens anyway, because its tabs render the source document rather than the compile, and
+  the draft button still reads **Rebuild this map**, because `BuildLabel` is derived from the map and not from
+  the compile. But it is `Disabled="@(compiledLayout is null || draftBusy)"`, so it is present, correctly
+  labelled and **not actionable** — which is why a `page.click` on it waits the full 30s and times out.
+
+  **This is the product's fault, not the suite's**, and that is the correction that matters: a user who clicks
+  Compile quickly enough gets a refusal saying their board has no land, about a board with land. The tool
+  should not offer Compile — or should not post — until the document it would compile has arrived.
+
+  **The suite half is one missing wait, and the spec already knows the rule.** `map-layers.mjs` waits for
+  `.map-canvas-svg` before the first Compile, which is the element that exists too early; forty lines further
+  down, before the *second* compile, it waits 1500 ms with the comment *"the svg exists before the plan
+  document has been fetched into it, and compiling an empty plan is a 422 refusal by design — so settle before
+  asking"*. The settle was added there and never here. Fixing the tool makes both unnecessary; until then the
+  wait wants to be on the loaded document rather than on a clock (`waitForTimeout(1500)` is the latent flake
+  the old entry already flagged at line 122).
+
+  **Reproduced here, which retires the platform theory.** In a cloud container on Linux: `./tools/e2e.sh all`
+  → `map-layers` 13/14 with exactly the recorded symptom, `./tools/e2e.sh map-layers` alone → 18/18, and
+  `smoke` 39/39 in the same run, so it is not load. Two of three platforms reproduce it and Windows wins the
+  race — which is what a race looks like, not what a platform difference looks like. The earlier readings all
+  hold and are consistent with this: it is not the island gate, not the corpus, not contention, and it passed
+  once.
+
+  **`B229` was this same failure filed a second time and is folded in here.** Its hypothesis — that one of the
+  five specs running before `map-layers` mutates `seed.mapSlug`'s plan into one that no longer compiles — is
+  **disproved**: after a full `all` run, that map's stored plan compiles `200`, and driving the page by
+  `goto` compiles `200` while driving it by the row's *Plan* link compiles `422` against the same database.
+  The difference is the navigation, not the state. Its one surviving correct observation is the
+  `waitForTimeout(1500)` further down the spec, which is a genuine latent flake and is not this.
+
+  *diagnosed 2026-08-16 by intercepting the editor's own `POST /api/plan/compile` under both navigations ·
+  `PlanTool.razor:673` (the `Disabled` binding) · `map-layers.mjs:75` (the wait that returns too early) and
+  `:122` (the settle added for the second compile only).*
 
 ## Lower priority / parked
 

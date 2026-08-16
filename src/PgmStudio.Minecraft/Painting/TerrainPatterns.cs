@@ -23,7 +23,14 @@ namespace PgmStudio.Minecraft.Painting;
 public readonly record struct WallStripe(TerrainMaterial Material, int Width);
 
 /// <summary>One band of a <see cref="VoronoiMaterial"/>: a material and how many blocks inward from the cell
-/// boundary it runs. The last band's depth is ignored — it takes whatever is left of the cell.</summary>
+/// boundary it runs. The last band's depth is ignored — it takes whatever is left of the cell.
+///
+/// <para><b>Deliberately not a <see cref="Band"/>, though it carries the same pair.</b> A
+/// <see cref="BandStack"/> is read along an integer step and states only where its bands run out; this is read
+/// along the <em>continuous</em> Worley <c>F2 − F1</c> gap, and its last band claims the remainder rather than
+/// repeating or handing over. Sharing the element without the traversal would put one name on two rules, which
+/// is the failure the stack was extracted to stop — so the resemblance is in the words and not in the
+/// reading.</para></summary>
 public readonly record struct VoronoiBand(TerrainMaterial Material, int Depth);
 
 /// <summary>

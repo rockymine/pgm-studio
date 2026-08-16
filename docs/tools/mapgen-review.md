@@ -132,15 +132,15 @@ corpus reading is where the destroy-side numbers come from.
 **Measured, and nothing carries them across.** A hand-authored board broke both of the spawn rules named
 here: Haiku CTW Rush's spawn point sits 11 blocks from its piece's back edge and 19 from its front, against
 SP2, and its iron cube stands five blocks *behind* the spawn point — and inside the map's own `red-spawn`
-protection rectangle, so it is a contested resource nobody may contest — against SP7. The rules are written,
-they are cited here, and no gate applies them to an authored plan, which is the same shape as `B109`.
-`B177` carries this, and it supplies the rule id `B169`'s dead-ground entry was missing: SP2.
+protection rectangle, so it is a contested resource nobody may contest — against SP7. `B177` carries this,
+and it supplies the rule id `B169`'s dead-ground entry was missing: SP2.
 
-**The two rules fail differently, and only one of them is missing.** SP2 is implemented — `PlanValidator`
-lints a spawn against the back half of its piece — and what fails is reach, since no `src/` caller runs the
-validator over a plan an author posts, and a lint is a complaint even where it runs. SP7 has no code at all:
-it appears in `rules.md` and here, and nowhere in `src/`. Anything acting on this entry writes the SP7 check
-and reaches the SP2 one; writing a second SP2 is the failure mode.
+**The two rules fail differently, and only one of them is still missing.** SP2 is implemented —
+`PlanValidator` lints a spawn against the back half of its piece — and it is now reached: `POST
+/plan/evaluate` answers the whole lint table as `lint[]` beside the score, so the one call an authoring loop
+already makes carries it. A lint is still a complaint an author may ignore. SP7 has no code at all: it appears
+in `rules.md`, is served as prose by `GET /api/rules?rule=SP7`, and matches nothing in `src/`. Anything acting
+on this entry writes the SP7 check; writing a second SP2 is the failure mode.
 
 **MG32 — A destroy board is not a capture board with a different goal; the topology is inverted.** In
 capture the thing a team wants is deep in *enemy* ground, so the board is built around a long run out and a
