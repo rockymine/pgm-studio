@@ -92,8 +92,8 @@ fuse into single polygons, so what arrives in Sketch is a board rather than a gr
 themes, room shells, dressing and any author-corrected structural height are carried onto the fresh geometry.
 Relief is the exception — it is keyed by island id and island identity is derived from the geometry, so a
 recompile that re-fuses the board produces different islands and hand-authored terrain has nowhere correct to
-land. That case answers **409** listing the islands it would orphan, and `?force=true` accepts the loss. It is
-the author's call, not the server's.
+land. That case answers **409** in the refusal envelope, one `SK1` finding per island it would orphan, and
+`?force=true` accepts the loss. It is the author's call, not the server's.
 
 **Intent onto a map.** `PUT /api/map/{slug}/intent/from-plan` carries much less: the map's **authors and
 contributors**, and nothing else. The plan owns the map's structure, so a rebuild is meant to replace its

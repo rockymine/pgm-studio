@@ -80,4 +80,25 @@ public sealed record Finding(
     /// with nothing to say gets an empty string rather than a sentence about having nothing to say.</summary>
     public static string Summarize(IEnumerable<Finding> findings) =>
         string.Join("; ", findings.Select(finding => finding.Message));
+
+    /// <summary>
+    /// The refusal envelope, for a composer below the API layer that cannot see <c>Contracts</c> and so
+    /// cannot render <c>RefusalDto</c> — the gate's short label, the findings' wire form, and their sentences
+    /// joined into the same <c>message</c> a typed caller gets. Three keys, in this order: <c>error</c>,
+    /// <c>message</c>, <c>findings</c>.
+    ///
+    /// <para>This is the one wire shape a refusal takes below <c>Api</c>. <c>Api.Endpoints.Refusals.Of</c>
+    /// renders the identical shape one layer up, as typed DTOs for the HTTP surface, and the two must not
+    /// drift apart — a client reading a refusal should never be able to tell which of the two produced it.</para>
+    /// </summary>
+    public static Dictionary<string, object?> Envelope(string error, IEnumerable<Finding> findings)
+    {
+        var findingList = findings as IReadOnlyList<Finding> ?? findings.ToList();
+        return new Dictionary<string, object?>
+        {
+            ["error"] = error,
+            ["message"] = Summarize(findingList),
+            ["findings"] = findingList.Select(finding => finding.Wire()).ToList(),
+        };
+    }
 }

@@ -12,7 +12,6 @@ using PgmStudio.Minecraft;
 
 namespace PgmStudio.Api.Endpoints;
 
-using Dict = Dictionary<string, object?>;
 using PgmStudio.Minecraft.Anvil;
 
 /// <summary>
@@ -47,11 +46,10 @@ public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, Feat
             return;
         }
 
-        // Sketch-originated: bundle the synthesised world with the XML. Guard the write/zip so an IO or
-        // region-encoding failure surfaces as a structured error rather than an unhandled 500.
-        byte[] zip;
-        try { zip = BuildWorldZip(slug, result.Xml!, result.World); }
-        catch (Exception ex) { await Send.ResponseAsync(new Dict { ["error"] = ex.Message }, 500, ct); return; }
+        // Sketch-originated: bundle the synthesised world with the XML. An IO or region-encoding failure
+        // here escapes to Program.cs's unhandled-fault middleware, which answers the same envelope every
+        // other refusal does (RQ2) rather than a raw exception.
+        var zip = BuildWorldZip(slug, result.Xml!, result.World);
 
         HttpContext.Response.ContentType = "application/zip";
         HttpContext.Response.Headers.ContentDisposition = ContentDispositionHeader.Attachment($"{slug}.zip");

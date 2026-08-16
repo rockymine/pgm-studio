@@ -698,9 +698,10 @@ against the old fusion has nowhere correct to land. Neither of the alternatives 
 id would keep the key alive while the ground under it changed shape, which is worse than losing it, because the
 terrain would still be applied. Re-binding by footprint overlap decides by area what the author decided by
 intent, and the case it gets wrong — one island split in two, most of the relief landing on the larger half — is
-exactly the case that matters. So `PUT /map/{slug}/sketch/from-plan` answers **409**, naming the islands whose
-relief it cannot place, and writes nothing; `?force=true` accepts the loss. Discarding hours of terrain is a
-decision, and it belongs to the author.
+exactly the case that matters. So `PUT /map/{slug}/sketch/from-plan` answers **409** in the refusal envelope,
+one `SK1` finding per island whose relief it cannot place — the island id riding as the finding's subject —
+and writes nothing; `?force=true` accepts the loss. Discarding hours of terrain is a decision, and it belongs
+to the author.
 
 ## 16. What is open
 

@@ -26,7 +26,12 @@ internal static class Refusals
     /// <summary>A whole list, in order.</summary>
     public static IReadOnlyList<FindingDto> Dtos(IEnumerable<Finding> findings) => [.. findings.Select(Dto)];
 
-    /// <summary>The refusal body: the gate's label, the findings, and their sentences joined into one line.</summary>
+    /// <summary>The refusal body: the gate's label, the findings, and their sentences joined into one line.
+    ///
+    /// <para>This is the same shape one level down as <see cref="Finding.Envelope"/> — the untyped
+    /// <c>Dictionary&lt;string, object?&gt;</c> a composer below <c>Api</c> builds by hand because it cannot
+    /// see <c>Contracts</c>. Same three keys in the same order (<c>error</c>, <c>message</c>, <c>findings</c>),
+    /// rendered here as typed DTOs for the HTTP surface instead; the two must not drift apart.</para></summary>
     public static RefusalDto Of(string error, IEnumerable<Finding> findings)
     {
         var dtos = Dtos(findings);

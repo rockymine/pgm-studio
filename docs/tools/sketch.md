@@ -632,11 +632,12 @@ and again when the layout rasterizes to no ground. It does *not* ask for two isl
 landmass rather than a side, and one continent both teams stand on is a common and correct shape. Symmetry
 decides whether a board has two sides, and it is stated in the setup rather than counted in the ground.
 
-**A recompile refuses to orphan a relief.** `PUT .../sketch/from-plan` answers **409**, listing the islands
-whose relief the new geometry has no home for, and writes nothing. Island identity is derived from the
-geometry, so a recompile that re-fuses the board does not merely move an island — it produces a different one,
-and terrain authored against the old fusion has nowhere correct to land. `?force=true` accepts the loss and
-proceeds, which is the author's call and not the server's.
+**A recompile refuses to orphan a relief.** `PUT .../sketch/from-plan` answers **409** in the refusal envelope
+(`docs/refusals.md`) — one `SK1` finding per island the new geometry has no home for, the island id riding as
+the finding's subject — and writes nothing. Island identity is derived from the geometry, so a recompile that
+re-fuses the board does not merely move an island — it produces a different one, and terrain authored against
+the old fusion has nowhere correct to land. `?force=true` accepts the loss and proceeds, which is the author's
+call and not the server's.
 
 **A building refuses a footprint it cannot stamp** and **a marker refuses the void**, as above. A footprint is
 unstampable for its own size — a wing under 3 × 3, or a plan covering more than 192 blocks — or because its
@@ -664,7 +665,7 @@ Every endpoint is anonymous and rooted at `/api`.
 | `POST /sketch` | `{name?, width?, depth?, mode?, centerX?, centerZ?}` | `{slug}` — a `map` row at `stage=sketch`. A frame seeds the `setup`; without one the layout is `{}` and the editor uses its 120×80 `rot_180` default | — |
 | `GET /map/{slug}/sketch` | — | the stored layout, or `{}` | 404 |
 | `PUT /map/{slug}/sketch` | the layout | `{ok: true}` — a **verbatim replace**, which is what makes a deletion stick | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · 404 |
-| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{ok, orphaned}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry | 409 `{islands}` orphaned relief (`?force=true`) · 400 · 404 |
+| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{ok, orphaned}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry | 409 `{findings}` one `SK1` per orphaned island (`?force=true`) · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure` | 422 no layout, or no ground |
 | `DELETE /map/{slug}/sketch/discard-if-empty` | — | `{discarded}` — drops a draft still at its default name with no authors and nothing drawn | — |
 

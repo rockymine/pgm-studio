@@ -208,9 +208,9 @@ internal static class SketchRoomStyleGate
 /// island, and island identity is derived from the geometry — so a recompile that re-fuses the board does not
 /// merely move an island, it produces a different one, and terrain authored against the old fusion has
 /// nowhere correct to land. Losing that is losing hours of hand work with no warning, so the endpoint answers
-/// <b>409</b> listing the islands whose relief would be orphaned and does not write. Sending
-/// <c>?force=true</c> accepts the loss and proceeds, which is the author's call to make and not the
-/// server's.</para>
+/// <b>409</b> — one <c>SK1</c> finding per orphaned island, the island id riding as the finding's subject —
+/// and does not write. Sending <c>?force=true</c> accepts the loss and proceeds, which is the author's call to
+/// make and not the server's.</para>
 ///
 /// <para><b>A structural piece's stated height is carried a third way</b>
 /// (<see cref="SketchLayout.CarryStructuralHeight"/>): matched by <c>intentRef</c>, not by shape id or
@@ -238,12 +238,11 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, PgmDb db) : Endpo
         var orphans = SketchLayout.OrphanedRelief(compiled, storedJson);
         if (orphans.Count > 0 && Query<bool>("force", isRequired: false) != true)
         {
-            await Send.ResponseAsync(new
-            {
-                error = "relief would be orphaned",
-                islands = orphans,
-                hint = "the recompiled board has no island for this authored terrain; retry with ?force=true to discard it",
-            }, 409, ct);
+            await Refusals.WriteAsync(HttpContext, 409, "relief would be orphaned",
+            [.. orphans.Select(island => new Finding(SketchRules.ReliefOrphaned,
+                $"the recompiled board has no island for the terrain authored on island {island}; retry "
+                + "with ?force=true to discard it",
+                Subjects: [island]))], ct);
             return;
         }
 
@@ -486,4 +485,17 @@ public sealed class SketchDiscardIfEmptyEndpoint(MapRepository repo, PgmDb db) :
            && el.TryGetProperty("layout", out var layout) && layout.ValueKind == JsonValueKind.Object
            && layout.TryGetProperty("shapes", out var shapes) && shapes.ValueKind == JsonValueKind.Array
            && shapes.GetArrayLength() > 0;
+}
+
+/// <summary>The rules the sketch endpoints ask on their own account, as opposed to a gate reading a document
+/// they understood.</summary>
+internal static class SketchRules
+{
+    /// <summary>A recompile fused the board differently, so an island the author had drawn relief onto no
+    /// longer exists to carry it.</summary>
+    /// <remarks>Island identity is derived from the geometry, so a recompile that re-fuses the board produces
+    /// a different island rather than moving the old one — the relief has nowhere correct to land. Retry with
+    /// <c>?force=true</c> to accept the loss and proceed, or redraw the plan so the same landmass survives the
+    /// compile.</remarks>
+    public const string ReliefOrphaned = "SK1";
 }

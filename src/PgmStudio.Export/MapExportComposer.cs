@@ -233,17 +233,11 @@ public static class MapExportComposer
     private static List<object?> Entries(Dict doc, string key) =>
         doc.GetValueOrDefault(key) as List<object?> ?? [];
 
-    /// <summary>One refusal envelope, and the only one this gate answers in: a short label naming which gate
-    /// refused, the findings themselves, and their sentences joined into one <c>message</c> for a caller that
-    /// wants a line rather than a list. Every gate answering the same shape is what lets a client render a
-    /// refusal without first knowing which gate produced it.</summary>
+    /// <summary>One refusal envelope, and the only one this gate answers in — <see cref="Finding.Envelope"/>,
+    /// the one shape every gate in the studio refuses in, rendered here because this composer sits below
+    /// <c>Api</c> and cannot reach the typed <c>RefusalDto</c> the HTTP endpoints answer with.</summary>
     private static ExportComposition Refuse(string error, IReadOnlyList<Finding> findings, int status = 409) =>
-        new(status, new Dict
-        {
-            ["error"] = error,
-            ["message"] = Finding.Summarize(findings),
-            ["findings"] = findings.Select(finding => finding.Wire()).ToList(),
-        }, null, null);
+        new(status, Finding.Envelope(error, findings), null, null);
 
     private static ExportComposition? RefuseUnknownGamemode(Dict doc)
     {

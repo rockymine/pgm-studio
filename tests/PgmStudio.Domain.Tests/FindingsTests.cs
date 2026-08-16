@@ -127,4 +127,18 @@ public class FindingsTests
         await Assert.That(full["severity"]).IsEqualTo("complaint");
         await Assert.That(full["cites"]).IsEqualTo("G172");
     }
+
+    /// <summary>The envelope a composer below <c>Api</c> builds by hand is the same three keys — <c>error</c>,
+    /// <c>message</c>, <c>findings</c> — <c>Api.Endpoints.Refusals.Of</c> renders as typed DTOs one layer up,
+    /// and the summarized sentence is the same one <see cref="Finding.Summarize"/> answers.</summary>
+    [Test]
+    public async Task The_envelope_is_the_three_keys_with_a_summarized_message()
+    {
+        var envelope = Finding.Envelope("not traversable", [Refusal, Complaint]);
+
+        await Assert.That(envelope.Keys.Order()).IsEquivalentTo(new[] { "error", "findings", "message" });
+        await Assert.That(envelope["error"]).IsEqualTo("not traversable");
+        await Assert.That(envelope["message"]).IsEqualTo("there is no land to build; nothing wins the match");
+        await Assert.That(((List<Dictionary<string, object?>>)envelope["findings"]!).Count).IsEqualTo(2);
+    }
 }

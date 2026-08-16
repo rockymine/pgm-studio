@@ -79,6 +79,7 @@ a rule that changed its name between the two would be two rules.
 | `HJ*` | how two wings meet | `Minecraft/Houses/WingJoints.cs` → `WingJointRules` |
 | `DR-*` | a dressing document that will not parse | `Minecraft/Dressing/DressingJson.cs` |
 | `EX*` | the export gate's own — `EX1` not traversable, `EX2` no spawn to enter the map by, `EX3` what the intent stated and the document did not carry, `EX4` an objective with no team to contest it | `Export/MapExportComposer.cs` → `ExportRules` |
+| `SK*` | the sketch endpoints' own — `SK1` a recompile fused the board differently, so an island the author had drawn relief onto no longer exists to carry it | `Api/Endpoints/SketchEndpoints.cs` → `SketchRules` |
 | `RQ*` | the request itself — a document that could not be read, a field that went unread, and a fault that is the studio's own | `Api/Endpoints/Refusals.cs` → `RequestRules` |
 | `CT` `SP` `WL` `LN` `HB` `FR` `MD` `BZ` `EL` `G*` `PC-*` `ST*` | the layout-rules checklist, cited by the plan lint and the producibility read | `docs/generator/rules.md` |
 
@@ -230,5 +231,6 @@ that exists**, which is what `ObjectivePlacement.Rule` and `DressingScope.Rule` 
 their ids twice. Give it a **`<summary>` saying what it refuses and a `<remarks>` saying what to do about it** —
 those two are what `/api/rules` answers with, so a rule written with only the first is listed with no fix and
 `RulesEndpointTests` fails. Add its row above, and answer through `Refusals.StopAsync` (an endpoint),
-`Refusals.Of` (a typed body) or `Finding.Wire` (an untyped composer). A rule about a map *as it is played* is the
+`Refusals.Of` (a typed body) or `Finding.Envelope` (the same shape, built by hand for a composer below `Api`
+that cannot reach `Contracts`). A rule about a map *as it is played* is the
 author's to state before any of that: see the human-oracle rule in `CLAUDE.md`.
