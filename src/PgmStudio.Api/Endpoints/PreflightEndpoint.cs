@@ -121,7 +121,7 @@ public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, Feat
     {
         if (trav.Connected)
             return new("traversability", "Traversability", "pass",
-                trav.HaveLayers ? "spawn ↔ wool chain connected across the build geometry" : "spawn ↔ wool chain connected (region centres)");
+                trav.HaveLayers ? "spawn ↔ objective chain connected across the build geometry" : "spawn ↔ objective chain connected (region centres)");
         var isolated = string.Join(" · ", trav.Isolated.Select(i => i.Name).Take(6));
         return new("traversability", "Traversability", "fail",
             isolated.Length > 0 ? $"not connected — isolated: {isolated}. Add a bridge in Build" : trav.Message);

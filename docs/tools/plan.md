@@ -446,7 +446,7 @@ posted anywhere. That is what makes them the cheapest way to find out whether a 
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `POST /plan/inspect` | `{interfaces, gapLinks, frontline, structures}` — the derived geometry, already in block coordinates. Never withholds over structural errors; a compile failure degrades `structures` to empty rather than failing the feed | 400 malformed or unreadable |
+| `POST /plan/inspect` | `{interfaces, gapLinks, frontline, structures, goalDistances}` — the derived geometry, already in block coordinates, plus each destroy goal's walk to its own and the enemy's spawn (blocks over the fanned closure, with the enemy÷own ratio) — a measurement, not a rule; the band a rule would hold the ratio to is the author's to state. Never withholds over structural errors; a compile failure degrades `structures` to empty rather than failing the feed | 400 malformed or unreadable |
 | `POST /plan/evaluate` | `{score, valid, violations[]}` — score summed and lower-is-better, `valid` true when no hard term fired, violations hard-first with subjects and drawable evidence. A plan with no generating piece answers `valid: false` carrying `PL1`, not an error and not an empty evaluation | 400 malformed |
 | `POST /plan/feasibility` | `{producible, boxes[], unit[]}` — per-box producibility, each naming the parameter tuple that reproduces it or the nearest miss and why. A plan without boxes reads empty; a plan without pieces reads `producible: false` with `PL1` in `unit` | 400 malformed |
 | `GET /objectives/vocabulary` | the destroyable styles and materials, and every objective default | — |

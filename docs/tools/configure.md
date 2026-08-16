@@ -291,8 +291,9 @@ blocking and two advisory:
 | Traversability | is the spawn↔wool chain connected across terrain and build geometry | yes |
 
 They are drawn as check rows over a single static top-down picture of the map — real island geometry, the
-orbit-filled build bridges, and the spawn↔wool nodes in their team and dye colours — which is the playability
-question in one image. A failed traversability links back to Build, because a bridge is the fix.
+orbit-filled build bridges, and the spawn and objective nodes in their team and dye colours — which is the
+playability question in one image. Every objective gates: a destroyable or core whose approach ground the
+spawns cannot reach fails the same check an unreachable wool does. A failed traversability links back to Build, because a bridge is the fix.
 
 **Pre-flight's `exportReady` is not the whole export gate on a sketch-origin map.** The four checks above run
 against the stored document and the scanned/cached surface; they do not build a world and so cannot see the

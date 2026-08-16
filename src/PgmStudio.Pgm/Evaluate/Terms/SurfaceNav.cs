@@ -32,11 +32,18 @@ internal static class SurfaceNav
     }
 
     /// <summary>The walkable cell a marker sits on: its piece origin + offset, floored, snapped to the nearest
-    /// walkable cell (a marker sits on its own filled piece; this fixes the odd off-by-one). Null if the piece
-    /// is unknown or no walkable cell is within reach.</summary>
+    /// walkable cell (a marker sits on its own filled piece; this fixes the odd off-by-one). A marker naming
+    /// no piece reads its offset as an absolute cell position from the symmetry centre — the one shape a
+    /// destroyable or core may take. Null if a named piece is unknown or no walkable cell is within reach.</summary>
     public static (int, int)? MarkerCell(EvalContext ctx, string pieceId, double[] at, IReadOnlySet<(int, int)> walkable)
+        => MarkerCell(ctx.Plan, pieceId, at, walkable);
+
+    /// <summary>As above, straight off the plan — for a reader that has no <see cref="EvalContext"/>.</summary>
+    public static (int, int)? MarkerCell(PlanModel plan, string pieceId, double[] at, IReadOnlySet<(int, int)> walkable)
     {
-        var piece = ctx.Plan.Pieces.FirstOrDefault(p => p.Id == pieceId);
+        if (string.IsNullOrEmpty(pieceId))
+            return Snap(((int)Math.Floor(at[0]), (int)Math.Floor(at[1])), walkable);
+        var piece = plan.Pieces.FirstOrDefault(p => p.Id == pieceId);
         if (piece is null) return null;
         return Snap(((int)Math.Floor(piece.Rect.X + at[0]), (int)Math.Floor(piece.Rect.Z + at[1])), walkable);
     }

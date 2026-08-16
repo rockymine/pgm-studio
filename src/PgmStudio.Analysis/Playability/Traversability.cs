@@ -12,12 +12,10 @@ using Dict = Dictionary<string, object?>;
 /// (<see cref="GridComponents"/>) and every objective point is snapped to the component it sits in; the chain
 /// is traversable when they all share one.
 ///
-/// <para>A destroyable and a core are read as navigation points too, and every <see cref="NavPoint"/> list
-/// this returns carries them — but they do not gate <see cref="Result.Connected"/>. A destroyable is broken
-/// from range and floats a few blocks above its terrain by design (the same design PGM has always had), so
-/// "reachable the way a wool is" is not a question this checker answers for one; it is reported so a caller
-/// can see whether a destroyable's own footprint sits on navigable ground, without the map being refused for
-/// it.</para>
+/// <para>A destroyable and a core gate <see cref="Result.Connected"/> exactly as a spawn and a wool do (the
+/// author's ruling). The goal itself floats a few blocks above its terrain by design, so the point judged is
+/// the nearest navigable ground around it rather than its own column — what the gate refuses is a goal whose
+/// approach ground the spawns cannot reach, which is a match nobody can finish.</para>
 /// </summary>
 public static class Traversability
 {
@@ -59,11 +57,12 @@ public static class Traversability
             placed.Add(p with { Component = comp });
         }
 
-        // Only spawns and wools gate the export refusal. A destroyable or core floats a few blocks above the
-        // terrain by design and is broken from range rather than walked to, so its reachability is not the
-        // same question a spawn/wool chain answers — it is reported here (in every Points list a caller
-        // reads) but does not, on its own, turn a map traversable.
-        var gating = placed.Where(p => p.Kind is "spawn" or "wool").ToList();
+        // Every goal gates the export refusal, destroyables and cores included (the author's ruling). The
+        // goal itself floats a few blocks above the terrain by design, so what is judged is not its own
+        // column but the ground around it — the snap below reads the nearest navigable cell — and a goal
+        // whose approach ground is cut off from the spawns is a match nobody can finish, exactly as an
+        // unreachable wool is.
+        var gating = placed.Where(p => p.Kind is "spawn" or "wool" or "destroyable" or "core").ToList();
         var comps = gating.Where(p => p.Component > 0).Select(p => p.Component).ToList();
         var distinct = comps.ToHashSet();
         // most-common component; ties broken by first appearance in `comps` (matches Counter.most_common)
@@ -83,10 +82,10 @@ public static class Traversability
 
         var severity = connected ? "ok" : "warning";
         var message = connected
-            ? "spawn ↔ wool objective chain is traversable"
+            ? "spawn ↔ objective chain is traversable"
             : comps.Count == 0
-                ? "no spawn/wool point is on navigable ground — check build regions / bridgeable gaps"
-                : $"{isolated.Count} spawn/wool point(s) are not reachable from the rest — check build regions / bridgeable gaps";
+                ? "no spawn or objective point is on navigable ground — check build regions / bridgeable gaps"
+                : $"{isolated.Count} spawn/objective point(s) are not reachable from the rest — check build regions / bridgeable gaps";
         return new Result(connected, distinct.Count, severity, message, haveLayers, placed, isolated);
     }
 
@@ -107,8 +106,7 @@ public static class Traversability
         return (minX, minZ, maxX, maxZ);
     }
 
-    // ── navigation points: spawn region centres, wool locations, and — reported but not gating,
-    // see Check — destroyable/core region centres ─────────────────────────────────────
+    // ── navigation points: spawn region centres, wool locations, destroyable/core region centres ─────────
     private static List<NavPoint> NavigationPoints(Dict data, (double, double, double, double) bounds)
     {
         var regions = AsDict(data.GetValueOrDefault("regions"));

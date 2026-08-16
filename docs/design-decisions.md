@@ -68,24 +68,20 @@ gate's point→component resolver (`LabelAt`) already searches a radius-3 neighb
 - *Enforced:* `Analysis/Playability/Traversability.cs` (`NavigationPoints`, `LabelAt`),
   `Minecraft/Stamping/PositionSnap.cs`.
 
-### A destroyable/core is a navigation point, but never gates traversability
+### A destroyable/core gates traversability the way a wool does
 `Traversability.NavigationPoints` reads destroyable and core region centres alongside spawns and
-wools, and every `Points` list a caller reads carries them. But `Connected`/`Isolated` are computed
-from spawn/wool points only — a destroyable never flips a passing map to a 409, and an isolated one
-is never named as a refusal reason.
+wools, and every goal kind gates `Connected`/`Isolated`: an isolated destroyable refuses the export
+with the same `EX1` an isolated wool does.
 
-- *Looks wrong:* a destroyable that stands over unreachable ground reads as a measurement gap — the
-  checker "knows" about it (it is in `Points`, with its own `Component`) yet says nothing when it is
-  off-grid, which looks like the value was computed and then dropped.
-- *Why it's deliberate, not a gap:* a destroyable and a core float a few blocks above the terrain **by
-  design** and are broken from range rather than walked to (see this file's "Gameplay decisions have a
-  human oracle" section in `CLAUDE.md` — the same shape of mistake, "reasoned from first principles",
-  produced a confident false claim once already). Whether a destroyable *should* be required reachable
-  the way a wool is remains an open, unanswered gameplay question; making it visible without making it a
-  refusal is the conservative reading until that question is answered by a human, not derived from the
-  code or the corpus.
+- *History:* the gate was spawn/wool-only for one release, held open deliberately because whether a
+  destroy goal *should* be required reachable the way a wool is was a gameplay question the corpus and
+  the code could not answer. The author answered it (2026-08-16): an unreachable goal is a match nobody
+  can finish, so it refuses — a hard 409, not a warning.
+- *What is judged:* not the goal's own column — a destroyable and a core float a few blocks above the
+  terrain by design — but the nearest navigable ground around its centre (the snap radius in `LabelAt`),
+  which is the approach ground an attacker actually needs.
 - *Enforced:* `Analysis/Playability/Traversability.cs` (`NavigationPoints` reads all four kinds;
-  `Check`'s `gating` list is spawn/wool only).
+  `Check`'s `gating` list is spawn/wool/destroyable/core).
 
 ## Sketch world synthesis (P9)
 

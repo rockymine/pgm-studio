@@ -138,17 +138,15 @@ public sealed class TraversabilityTests
         await Assert.That(res.Isolated.Count).IsEqualTo(2);
         await Assert.That(res.Isolated.Select(i => i.Name)).Contains("red");
         await Assert.That(res.Isolated.Select(i => i.Name)).Contains("blue");
-        await Assert.That(res.Message).Contains("no spawn/wool point");
+        await Assert.That(res.Message).Contains("no spawn or objective point");
     }
 
     [Test]
-    public async Task A_destroyable_is_reported_but_never_gates_the_verdict()
+    public async Task An_unreachable_destroyable_gates_the_verdict_like_a_wool()
     {
-        // Spawn and wool sit on a connected surface (traversable on their own); a destroyable's region
-        // sits off in the void, floating above unnavigable terrain by design. It must appear in Points
-        // — the measurement is not blind to it — but must not flip Connected or add to Isolated: a
-        // destroyable is broken from range, not walked to, and CLAUDE.md's playability-oracle rule
-        // bars inventing a reachability requirement for one from first principles.
+        // Spawn and wool sit on a connected surface; a destroyable's region sits off in the void with no
+        // navigable ground anywhere near it. The author's ruling (2026-08-16): every goal gates — a match
+        // whose goal nobody can approach cannot be finished, so the map refuses rather than shipping.
         var regions = new Dict
         {
             ["spawn"] = Rect(0, 0, 4, 4),
@@ -169,9 +167,9 @@ public sealed class TraversabilityTests
 
         var res = Traversability.Check(data, surface, null, bbox: (-10, -10, 20, 20));
 
-        await Assert.That(res.Connected).IsTrue();
-        await Assert.That(res.Isolated.Count).IsEqualTo(0);
+        await Assert.That(res.Connected).IsFalse();
+        await Assert.That(res.Isolated.Select(i => i.Kind)).Contains("destroyable");
         var destroyable = res.Points.Single(p => p.Kind == "destroyable");
-        await Assert.That(destroyable.Component).IsEqualTo(0);   // off the navigable grid — visible, not gating
+        await Assert.That(destroyable.Component).IsEqualTo(0);   // off the navigable grid — and gating
     }
 }

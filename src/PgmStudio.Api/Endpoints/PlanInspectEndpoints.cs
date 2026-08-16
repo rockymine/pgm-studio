@@ -7,6 +7,7 @@ using PgmStudio.Export;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Evaluate;
+using PgmStudio.Pgm.Derive;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
 
@@ -73,7 +74,15 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest
             structures = [];
         }
 
-        await Send.OkAsync(new { interfaces, gapLinks, frontline, structures }, ct);
+        // The destroy-goal walks: own-spawn, enemy-spawn and the ratio, in blocks over the fanned closure.
+        // A measurement, not a rule — the band a rule would hold the ratio to is the author's to state.
+        var goalDistances = GoalDistances.Read(plan).Select(walk => new
+        {
+            id = walk.Id, kind = walk.Kind,
+            ownSpawnBlocks = walk.OwnSpawnBlocks, enemySpawnBlocks = walk.EnemySpawnBlocks, ratio = walk.Ratio,
+        });
+
+        await Send.OkAsync(new { interfaces, gapLinks, frontline, structures, goalDistances }, ct);
     }
 }
 
