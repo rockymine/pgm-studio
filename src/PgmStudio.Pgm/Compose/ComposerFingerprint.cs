@@ -66,8 +66,11 @@ public static class ComposerFingerprint
     /// <summary>The recorded digest, relative to the repo root.</summary>
     public static readonly string[] FilePath = ["tools", "compose", "composer-fingerprints.json"];
 
+    /// <summary>How the record is written. <c>NewLine</c> is pinned because this file is committed: left to
+    /// <see cref="Environment.NewLine"/> it would rewrite every line the first time it was regenerated from a
+    /// different platform, burying the digests that actually moved in a whole-file diff.</summary>
     public static readonly JsonSerializerOptions Json =
-        new(JsonSerializerDefaults.Web) { WriteIndented = true };
+        new(JsonSerializerDefaults.Web) { WriteIndented = true, NewLine = "\n" };
 }
 
 /// <summary>The recorded digest: the composer version it was taken under, and one entry per request.</summary>

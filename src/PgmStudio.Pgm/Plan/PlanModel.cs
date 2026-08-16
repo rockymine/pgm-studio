@@ -116,9 +116,17 @@ public sealed class PlanModel
     /// They export as the lane region plus the shared include, and take no part in the starting board.</summary>
     [JsonIgnore] public IEnumerable<PlanZone> WaterLanes => Zones.Where(z => z.IsWaterLane);
 
+    /// <summary>How a plan is written, byte for byte, on every machine that writes one.
+    ///
+    /// <para><c>NewLine</c> is pinned for the same reason <c>Program.cs</c> pins the culture: a plan is a wire
+    /// format and a stored artifact, and neither may depend on the host it was written from. Indented output
+    /// defaults to <see cref="Environment.NewLine"/>, so the same plan serialized on Windows and on Linux
+    /// differs in every line ending while meaning exactly the same thing — enough to make one plan two
+    /// documents to anything comparing or digesting the bytes.</para></summary>
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = true,
+        NewLine = "\n",
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 

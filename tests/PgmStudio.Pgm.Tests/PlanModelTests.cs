@@ -120,4 +120,23 @@ public sealed class PlanModelTests
             await Assert.That(plan.Placements.Spawns.Count).IsGreaterThan(0);
         }
     }
+
+    /// <summary>A plan serializes to the same bytes on every machine that writes one.
+    ///
+    /// <para>Indented JSON takes its line ending from <see cref="Environment.NewLine"/> unless told otherwise,
+    /// so without a pinned one the same plan is CRLF on Windows and LF elsewhere. That is not cosmetic: a plan
+    /// is stored as an artifact and digested by <c>ComposerFingerprint</c>, so a host-dependent byte makes one
+    /// plan two documents — and made every composer fingerprint on a Windows checkout disagree with a record
+    /// taken on Linux, which reads as the composer's geometry having moved when nothing had.</para></summary>
+    [Test]
+    public async Task A_plan_writes_the_same_line_ending_everywhere()
+    {
+        var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("base-2wool.plan.json"))!;
+        var json = plan.ToJson();
+
+        await Assert.That(json).Contains("\n")
+            .Because("the plan is written indented, so it has line endings");
+        await Assert.That(json).DoesNotContain("\r")
+            .Because("a plan's bytes may not depend on the host that wrote them");
+    }
 }
