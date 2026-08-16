@@ -796,13 +796,20 @@ table listed them as work to hand out for as long as their section had already b
 
 **Nine entries have left this pool since it was written, and how they left is worth keeping.** Four
 **shipped** — `B142` (the dressing pass reports every decline), `B152` (the per-team objective line), `B180`
-(`SP8`) and `B201` (answered by `B195`'s ruling, recorded on `VoronoiBand`). Five were **never tasks for this
-board**: `B153`, `B170`, `B173`, `B182` and `B183` are authoring law rather than studio work, and they live in
+(`SP8`) and `B201` (answered by `B195`'s ruling, recorded on `VoronoiBand`). Four were **never tasks for this
+board**: `B170`, `B173`, `B182` and `B183` are authoring law rather than studio work, and they live in
 `pgm-studio-mapgen` — `ART-DIRECTION.md`'s numbered rules (`AD-P` the palette, `AD-S` settlement placement,
 `AD-M8` the goal name) and `REVIEWER-BRIEF.md`'s checklist (`M7`/`M8`/`C7`/`L4`/`P5`), with `B170`'s shared
 middle additionally permitted by construction now that `CT12` judges only the *direct* strait. A rule an agent
 is told to follow is not the same object as a gate the pipeline enforces, and filing one as the other is what
 kept them here.
+
+The ninth, **`B153`, was retired by the author** rather than by either route, and the note is left because the
+grep does not agree with it: the six fields it named — `branchAngle`'s radians and its `[0.2, 1.5]` clamp,
+`bedrock.relative`, `sink`'s median, `voidEnforcement`, Bézier `controls` — are still stated only in their
+docstrings, and `voidEnforcement` still appears in neither `plan.md` nor `capabilities.md`. The API side is
+the author's to settle; if the answer turns out to be that these belong written down after all, they come back
+as a new id rather than as this one.
 
 **Order and collision, by concept rather than by file.** The label PGM refused shipped first and alone, ahead
 of every bucket below (`B155` — three committed maps had not parsed, and every other finding was reachable
