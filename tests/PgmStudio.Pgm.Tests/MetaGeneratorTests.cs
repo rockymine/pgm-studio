@@ -87,6 +87,25 @@ public sealed class MetaGeneratorTests
         await Assert.That(doc["objective"]).IsEqualTo("Destroy the enemy's monuments!");
     }
 
+    // The sentence is read by one player about the goals they attack: a monument per team fans to two
+    // entries, and counting the fanned list said "monuments" on every symmetric one-goal board.
+    [Test]
+    public async Task One_destroyable_per_team_reads_singular_across_the_fanned_list()
+    {
+        var doc = new Dict();
+        MetaGenerator.Apply(doc, new MapIntent
+        {
+            Meta = new MetaIntent { Name = "M" },
+            Teams =
+            [
+                new TeamDef { Id = "red-team", Name = "Red", Color = "dark red" },
+                new TeamDef { Id = "blue-team", Name = "Blue", Color = "blue" },
+            ],
+            Destroyables = [Destroyable(name: "Red Cairn"), Destroyable(name: "Blue Cairn")],
+        });
+        await Assert.That(doc["objective"]).IsEqualTo("Destroy the enemy's monument!");
+    }
+
     [Test]
     public async Task A_core_board_declares_dtc_and_the_leak_line()
     {

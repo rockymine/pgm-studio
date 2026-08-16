@@ -47,9 +47,15 @@ public static class MetaGenerator
     // export) gets the empty string rather than a claim about an objective it does not have.
     private static string Objective(MapIntent intent)
     {
-        var wools = intent.Wools?.Count ?? 0;
-        var destroyables = intent.Destroyables?.Count ?? 0;
-        var cores = intent.Cores?.Count ?? 0;
+        // The sentence is read by one player about the goals *they* attack, so each kind is counted per
+        // team rather than over the fanned list — one monument per team is "the enemy's monument", not
+        // "monuments". A count that does not divide evenly still reads as at least one.
+        var teams = Math.Max(1, intent.Teams?.Count ?? 0);
+        int PerTeam(int total) => total == 0 ? 0 : Math.Max(1, total / teams);
+
+        var wools = PerTeam(intent.Wools?.Count ?? 0);
+        var destroyables = PerTeam(intent.Destroyables?.Count ?? 0);
+        var cores = PerTeam(intent.Cores?.Count ?? 0);
 
         var clauses = new List<string>();
         if (wools == 1) clauses.Add("capture the wool");
