@@ -393,7 +393,14 @@ minimum), `G5` (a void hop outside 10–20), `SP2` (a spawn not near the back of
 either kind touching a spawn piece), `WL1` (a water lane covering terrain instead of void), `EL1` (a piece's
 surface delta from the base not a multiple of 2), `ST2` (iron outside the spawn piece on a board that has one), `WX4` (a pad
 shifted inward for wall clearance, moving the exported point with it) and `WX8` (an iron marker beside a spawn
-room that cannot be placed at all). The whole lint table now rides `/api/plan/evaluate`'s response as `lint[]` beside
+room that cannot be placed at all). The piece-interface set quantifies over one shared read
+(`PieceInterfaces`, aggregating the contact graph and the board deriver) rather than private geometry:
+`SP8` (a spawn egress stepping Δ≥2 ahead of the door), `SP9` (a door with under 15 blocks of ground or
+bridgeable zone before the void), `ST8` (an approach wall over an interface outside 10–20 blocks, or seated
+outside ~15 in front of the wool room's entrance), `ST9` (a wool-room or spawn piece over 20×20 blocks),
+`BZ11` (several zones stitching one rectangular region a single zone would have drawn), `FR8` (a crossing
+turned into frontline over less than a third of the face it docks against) and `CT12` (a two-team wool
+board's direct team-island strait outside 15–40 blocks). The whole lint table now rides `/api/plan/evaluate`'s response as `lint[]` beside
 the scored terms — the compile endpoint returns errors alone, so the one call an authoring loop already makes
 is where every complaint, an unplaceable iron included, becomes visible.
 
@@ -449,7 +456,7 @@ posted anywhere. That is what makes them the cheapest way to find out whether a 
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `POST /plan/inspect` | `{interfaces, gapLinks, frontline, structures, goalDistances}` — the derived geometry, already in block coordinates, plus each destroy goal's walk to its own and the enemy's spawn (blocks over the fanned closure, with the enemy÷own ratio) — the same numbers `goal-spawn-ratio` scores against GO1's authored band [3.0, 4.0]. Never withholds over structural errors; a compile failure degrades `structures` to empty rather than failing the feed | 400 malformed or unreadable |
+| `POST /plan/inspect` | `{interfaces, gapLinks, frontline, frontages, frontlineRuns, islandGaps, structures, goalDistances}` — the derived geometry, already in block coordinates: each interface with its `delta` (the surface step across it) and wall mark; the per-piece-side `frontages` (exposed blocks, frontline blocks, share — FR8's read); the `frontlineRuns` with widths in blocks (the open absolute-width question's raw data); the `islandGaps` (each bridged pair's strait in blocks, `direct` when no third landmass shares the region — CT12's read); plus each destroy goal's walk to its own and the enemy's spawn (blocks over the fanned closure, with the enemy÷own ratio) — the same numbers `goal-spawn-ratio` scores against GO1's authored band [3.0, 4.0]. Never withholds over structural errors; a failure degrades `structures` and the board aggregations to empty rather than failing the feed | 400 malformed or unreadable |
 | `POST /plan/evaluate` | `{score, valid, violations[], lint[]}` — score summed and lower-is-better, `valid` true when no hard term fired, violations hard-first with subjects and drawable evidence, and `lint` the structural validator's complaints (an unplaceable iron `WX8`, a mid-lane spawn `SP2`, an odd elevation step `EL1`, …), which never move the score. A plan with no generating piece answers `valid: false` carrying `PL1`, not an error and not an empty evaluation | 400 malformed |
 | `POST /plan/feasibility` | `{producible, boxes[], unit[]}` — per-box producibility, each naming the parameter tuple that reproduces it or the nearest miss and why. A plan without boxes reads empty; a plan without pieces reads `producible: false` with `PL1` in `unit` | 400 malformed |
 | `GET /objectives/vocabulary` | the destroyable styles and materials, and every objective default | — |

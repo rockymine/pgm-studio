@@ -105,6 +105,16 @@ toward the map centre / the enemy; "back" = toward the map edge.
   mid and must see it. Iron *behind* the spawn is a bad smell (unseen, dead space). Corpus: 3
   beside, 2 ahead, none behind. (An earlier "violation" on `four-team-wool-two-sided` was a
   measurement artifact of the facing-semantics bug — the spawn points straight at its iron.)
+- **SP8 [author]** A spawn's **egress steps by 1 level or takes a ramp**: a seam at **Δ≥2** ahead
+  of the door is un-walkable bare (EL1's palette steps by 2, so bare seams are un-walkable by
+  construction; bridgid-ii was hand-carved). Lint over the spawn piece's forward land seams; a
+  cliff at the spawn's *back* is a legitimate wall and is not the egress. Note the corpus carries
+  Δ2 spawn ledges on four seeds — the built form of each wants its ramp carved, which is the
+  complaint's point.
+- **SP9 [author]** A spawn door stands **≥15 blocks from bare void**, measured along the door's
+  own line. A **build zone counts as ground** — the gap-only spawn (SP6) whose door opens onto its
+  egress bridge is an authored motif; a *buffer* is exactly the declared emptiness this keeps off
+  the doorstep (the `entrance-void` fault: a 25-deep drop at the door face).
 
 ## WL — Wool room
 
@@ -218,6 +228,12 @@ toward the map centre / the enemy; "back" = toward the map edge.
   `band-5b` z0–2). Under **rot_180** the images rotate so each team owns one short + one long
   approach; under **mirror** it leaves one permanently-short approach players always pick — so use
   it only for rot_180. Sibling to FR5 (asymmetric heights per lane).
+- **FR8 [author]** **A crossing spans the face it docks against.** Measured per piece side as the
+  **frontline share** of the exposed run: authored crossing faces read **1.00** across the corpus
+  (the BZ8/BZ9 fit), the worst incidental partial **0.40**, and the funnel fault **0.25** — a
+  10-block zone on an 80-block face, invisible to players as a front. Lint fires below **⅓** on a
+  real crossing (≥10 frontline blocks). How wide a front must be in **absolute** blocks is
+  deliberately open — the board's scale decides it, and `/plan/inspect` serves the run widths raw.
 
 ## MD — Mid / stepping stones
 
@@ -379,8 +395,12 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
   island, a v-symmetric pair → two (the `ex-10` form). Images that merely **abut or coincide** at the
   axis are one physical island, not a clearance breach; only **interior overlap** (a stone off *both*
   axes under rot_90) stays forbidden.
-
-## BZ — Build zones
+- **CT12 [author]** **The CTW strait is 15–40 blocks.** On a two-team wool board, the **direct
+  crossing** between the two team islands — a build region carrying the pair with no third landmass
+  in it — spans 15–40 blocks (the walk over the empty cells). Closer is two halves all but merged
+  (the flush-fan fault produced literally one landmass); farther is a crossing nobody bridges.
+  Chains over stepping stones are **not** straits — each hop is G5's — and a mid island between the
+  teams makes the crossing indirect by construction, so complex mids are out of this rule's reach.
 
 - **BZ1 [expert]** Superseded by FR1+FR2: zones are authored precisely in the plan editor;
   terrain overlap is permitted, not meaningful.
@@ -434,6 +454,12 @@ the stat corpus.
   bands (`ex-7`) are acceptable only when **short**; a long frontline-band group degrades back into
   `ex-0`/`1`/`12`. BZ9 governs the band's width across the gap; BZ10 governs its depth from mid to
   frontline.
+- **BZ11 [author]** **One zone for a compact middle.** Several zones merging into one region whose
+  union is itself a **plain rectangle** are a stitch one zone would have drawn — the author reads
+  one crossing, the player a patchwork (the four-zones-over-a-30-block-middle fault). An **L/T-shaped
+  union is not stitching**: rectangles are the only shape a zone comes in, so a region that turns a
+  corner needs several. Several zones are otherwise right only as **separate regions** — one per leg
+  of a legged frontline, one flush zone per mid island (`frontline-dos-and-donts` teaching sketch).
 
 ## EL — Elevation
 
@@ -577,6 +603,16 @@ the stat corpus.
   already-fanned goal entry — a wool room, a destroyable, a core are each one list entry per
   symmetry-orbit image (`PlanCompiler` fans team-outer) — so a mirrored board's markers match without
   the stamper (`GoalMarkerStamper`) doing any orbit math of its own.
+- **ST8 [author]** *Approach wall geometry*: the interface a wall bars is a **10–20 block lane
+  mouth** (a wall across a 30-block face bars a room, not a lane), and the wall stands **about 15
+  blocks in front of** the wool room's entrance — judged against the **nearest parallel** entry seam,
+  since a wall on a side interface defends a flank and its entry distance means nothing. The
+  full-span clause needs no check: the compiler builds every wall across its whole interface. A wall
+  pair that includes the wool room itself is `PL13`'s refusal, not this lint's.
+- **ST9 [author]** *Role-piece cap*: a wool-room or spawn piece is at most **20×20 blocks** — the
+  stamped building is sized by its piece, so piece size *is* building size, and a 90-block piece is
+  a 90-block hall. The cap is the workaround for the piece/building coupling (`B178`) until that is
+  broken. The floor at the other end is the dressing pass's `DR-SIZE` (a placed building ≥ 5×5).
 
 ## Facing semantics [expert]
 
@@ -680,6 +716,19 @@ both corrected.)
     has keyed the `wool-ringed-hole` sanction on the wool room's id prefix all along, but the contract was
     discoverable only by tripping the hard term — a hand author renaming `south-rim` to `wool-south-rim`
     found it the expensive way. WL8's text now states it.
+
+17. **The piece-interface set: SP8, SP9, ST8, ST9, BZ11, FR8, CT12 added (2026-08-16).** Seven author
+    rulings from the generated-board reviews, all lint (never a block), all quantifying over one
+    per-interface read (`PieceInterfaces` over `ContactGraph` + the board deriver) rather than seven
+    private derivations. Calibrated against both populations before landing: the corpus seeds and
+    teaching sketches stay quiet except for Δ2 spawn ledges (SP8, four seeds — each built form wants its
+    ramp), one-cell wall standoffs on cell-5 miniatures (ST8), and the traced board's 30-long spawn
+    ground (ST9/SP9); the generated fault boards each fire on their measured fault (the foreshore funnel
+    at share 0.25, the 90×15 hall, the flush strait, the void doorstep). FR8's absolute minimum front
+    width is deliberately **left open** — the author's call is that the board's scale decides it and the
+    example boards were never sized honestly — so FR8 lands as the share rule and the run widths are
+    served raw by `POST /plan/inspect`. No existing rule changed; G5 (hop gaps) and CT12 (the strait)
+    measure different things and coexist.
 
 ## Correction protocol
 

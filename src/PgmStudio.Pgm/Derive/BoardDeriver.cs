@@ -484,9 +484,10 @@ public static class BoardDeriver
 
     // group frontline segments into runs — a run is one island's contiguous void-facing face (segments joined by
     // a shared endpoint on the same island). Per run: the owning team (the island's orbit image), the face width
-    // (the longer extent of its bounding box, in cells), and whether it is straight (all segments colinear on one
-    // line) or offset (the face steps in and out).
-    private static List<(int Team, int Width, string Profile)> GroupFrontlineRuns(
+    // (the longer extent of its bounding box, in cells), whether it is straight (all segments colinear on one
+    // line) or offset (the face steps in and out), and the bounding box itself (cells) so a finding over a run
+    // can say where it is.
+    private static List<(int Team, int Width, string Profile, int X1, int Z1, int X2, int Z2)> GroupFrontlineRuns(
         List<(int X1, int Z1, int X2, int Z2)> edges, List<int> islandOfEdge, int[] islandTeam)
     {
         int n = edges.Count;
@@ -501,7 +502,7 @@ public static class BoardDeriver
         var comp = new Dictionary<int, List<int>>();
         for (var i = 0; i < n; i++) (comp.TryGetValue(Find(i), out var l) ? l : comp[Find(i)] = new()).Add(i);
 
-        var runs = new List<(int Team, int Width, string Profile)>();
+        var runs = new List<(int Team, int Width, string Profile, int X1, int Z1, int X2, int Z2)>();
         foreach (var segs in comp.Values)
         {
             bool colinV = segs.All(i => edges[i].X1 == edges[i].X2) && segs.Select(i => edges[i].X1).Distinct().Count() == 1;
@@ -509,7 +510,8 @@ public static class BoardDeriver
             var xs = segs.SelectMany(i => new[] { edges[i].X1, edges[i].X2 }).ToList();
             var zs = segs.SelectMany(i => new[] { edges[i].Z1, edges[i].Z2 }).ToList();
             int width = Math.Max(xs.Max() - xs.Min(), zs.Max() - zs.Min());
-            runs.Add((islandTeam[islandOfEdge[segs[0]]], width, colinV || colinH ? "straight" : "offset"));
+            runs.Add((islandTeam[islandOfEdge[segs[0]]], width, colinV || colinH ? "straight" : "offset",
+                xs.Min(), zs.Min(), xs.Max(), zs.Max()));
         }
         return runs;
     }

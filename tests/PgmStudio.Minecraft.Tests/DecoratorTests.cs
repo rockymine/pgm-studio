@@ -703,6 +703,29 @@ public sealed class DecoratorTests
     }
 
     [Test]
+    public async Task A_house_under_the_footprint_floor_is_refused_and_a_five_by_five_stands()
+    {
+        // Eight of fourteen corpus-run houses came out four blocks deep — a wall with a roof. The floor is
+        // 5×5 on the plan's box (DR-SIZE); exactly at the floor stands.
+        var (world, top) = Plateau();
+        var shallow = Decorator.Decorate(world, Context(top,
+            [new HouseProp { Id = "h", Wings = [new AuthoredWing([[10, 10], [19, 13]])], Style = new HouseStyle
+            {
+                Doorway = new Doorway { Door = DoorMaterial.Air },
+            } }]));
+        await Assert.That(shallow.Houses).IsEqualTo(0);
+        await Assert.That(shallow.Dropped!.Single().Reason).Contains("(DR-SIZE)");
+
+        var (world2, top2) = Plateau();
+        var atFloor = Decorator.Decorate(world2, Context(top2,
+            [new HouseProp { Id = "h", Wings = [new AuthoredWing([[10, 10], [14, 14]])], Style = new HouseStyle
+            {
+                Doorway = new Doorway { Door = DoorMaterial.Air },
+            } }]));
+        await Assert.That(atFloor.Houses).IsEqualTo(1);
+    }
+
+    [Test]
     public async Task A_house_that_corks_its_leg_is_refused_and_a_coast_house_stands()
     {
         // The generation failure this rule closes: a house across the full width of a land leg, void on both

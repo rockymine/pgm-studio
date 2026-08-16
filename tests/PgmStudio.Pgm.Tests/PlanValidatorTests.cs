@@ -463,6 +463,171 @@ public sealed class PlanValidatorTests
         await Assert.That(PlanValidator.Check(p).Any(f => f.Severity == Severity.Refusal)).IsFalse();
     }
 
+    // ── the piece-interface lints (SP8/SP9/ST8/ST9/BZ11/FR8/CT12) ───────────────────────────────────────
+
+    private static int LintCount(PlanModel p, string rule) =>
+        PlanValidator.Check(p).Count(f => f.Severity == Severity.Complaint && f.Rule == rule);
+
+    [Test]
+    public async Task A_spawn_egress_stepping_two_fires_SP8_forward_only()
+    {
+        // the seam ahead of the door steps 2 (un-walkable bare) → SP8; the identical step behind the spawn
+        // is a legitimate back wall and is not the egress
+        var p = Plan("""
+        { "plan":1, "globals":{"cell":1,"surface":9},
+          "pieces":[ {"id":"s","role":"spawn","rect":[0,10,10,10],"surface":11},
+                     {"id":"ahead","role":"lane","rect":[0,0,10,10],"surface":9},
+                     {"id":"behind","role":"lane","rect":[0,20,10,10],"surface":9} ],
+          "placements":{ "spawns":[ {"piece":"s","at":[5,5],"facing":"front"} ] } }
+        """);
+        await Assert.That(LintCount(p, "SP8")).IsEqualTo(1);
+
+        var flat = Plan("""
+        { "plan":1, "globals":{"cell":1,"surface":9},
+          "pieces":[ {"id":"s","role":"spawn","rect":[0,10,10,10],"surface":11},
+                     {"id":"ahead","role":"lane","rect":[0,0,10,10],"surface":11} ],
+          "placements":{ "spawns":[ {"piece":"s","at":[5,5],"facing":"front"} ] } }
+        """);
+        await Assert.That(LintCount(flat, "SP8")).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task A_door_onto_near_void_fires_SP9_and_a_bridgeable_zone_counts_as_ground()
+    {
+        // five blocks of apron then nothing → SP9; the same doorstep opening onto a build zone is the
+        // gap-only spawn's egress bridge and stands
+        var shortApron = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"s","role":"spawn","rect":[0,10,10,10]},
+                     {"id":"apron","role":"lane","rect":[0,5,10,5]} ],
+          "placements":{ "spawns":[ {"piece":"s","at":[5,5],"facing":"front"} ] } }
+        """);
+        await Assert.That(Lint(shortApron, "SP9")).IsTrue();
+
+        var bridged = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"s","role":"spawn","rect":[0,10,10,10]} ],
+          "zones":[ {"id":"egress","rect":[0,-5,10,15]} ],
+          "placements":{ "spawns":[ {"piece":"s","at":[5,5],"facing":"front"} ] } }
+        """);
+        await Assert.That(Lint(bridged, "SP9")).IsFalse();
+    }
+
+    [Test]
+    public async Task A_wall_too_close_to_the_entrance_or_over_a_wide_interface_fires_ST8()
+    {
+        // the wall seat 15 out from the room's entry, over a 10-block mouth — the author's geometry, clean
+        var seated = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"w","role":"wool-room","rect":[0,0,10,10]},
+                     {"id":"a","role":"lane","rect":[0,10,10,15]},
+                     {"id":"h","role":"lane","rect":[0,25,10,10]} ],
+          "walls":[ {"a":"a","b":"h"} ] }
+        """);
+        await Assert.That(Lint(seated, "ST8")).IsFalse();
+
+        // the same wall with a four-deep approach stands 4 from the entrance → too close
+        var close = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"w","role":"wool-room","rect":[0,0,10,10]},
+                     {"id":"a","role":"lane","rect":[0,10,10,4]},
+                     {"id":"h","role":"lane","rect":[0,14,10,10]} ],
+          "walls":[ {"a":"a","b":"h"} ] }
+        """);
+        await Assert.That(Lint(close, "ST8")).IsTrue();
+
+        // a 30-block interface is a room face, not a lane mouth
+        var wide = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"lane","rect":[0,10,30,15]},
+                     {"id":"h","role":"lane","rect":[0,25,30,10]} ],
+          "walls":[ {"a":"a","b":"h"} ] }
+        """);
+        await Assert.That(Lint(wide, "ST8")).IsTrue();
+    }
+
+    [Test]
+    public async Task A_role_piece_over_the_cap_fires_ST9()
+    {
+        var oversized = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"w","role":"wool-room","rect":[0,0,30,30]} ] }
+        """);
+        await Assert.That(Lint(oversized, "ST9")).IsTrue();
+
+        var atCap = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"w","role":"wool-room","rect":[0,0,20,20]} ] }
+        """);
+        await Assert.That(Lint(atCap, "ST9")).IsFalse();
+    }
+
+    [Test]
+    public async Task Zones_tiling_a_rectangle_fire_BZ11_and_an_L_decomposition_does_not()
+    {
+        // two zones whose union is a plain rectangle: one zone would have drawn it → stitched
+        var stitched = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "zones":[ {"id":"za","rect":[0,0,10,5]}, {"id":"zb","rect":[0,5,10,5]} ] }
+        """);
+        await Assert.That(Lint(stitched, "BZ11")).IsTrue();
+
+        // an L-shaped region needs two rectangles — that is decomposition, not stitching
+        var elbow = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "zones":[ {"id":"za","rect":[0,0,10,5]}, {"id":"zb","rect":[0,5,5,5]} ] }
+        """);
+        await Assert.That(Lint(elbow, "BZ11")).IsFalse();
+    }
+
+    [Test]
+    public async Task A_zone_funnelling_through_a_slice_of_a_wide_face_fires_FR8()
+    {
+        // an 80-block front face where the zone and its fanned twin dock 20: share 0.25, the measured fault
+        // (sunspit's foreshore read exactly this). The spawn anchors the island to its team — an un-anchored
+        // crossing reads as a team's own internal bridge, not a front.
+        var funnel = Plan("""
+        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180"},
+          "pieces":[ {"id":"front","role":"lane","rect":[-8,-4,16,3]} ],
+          "zones":[ {"id":"dock","rect":[-8,-1,2,2]} ],
+          "placements":{ "spawns":[ {"piece":"front","at":[8,1],"facing":"front"} ] } }
+        """);
+        await Assert.That(Lint(funnel, "FR8")).IsTrue();
+
+        // the same face with the zone spanning it: share 1.00 → the fit every authored board shows
+        var spanning = Plan("""
+        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180"},
+          "pieces":[ {"id":"front","role":"lane","rect":[-8,-4,16,3]} ],
+          "zones":[ {"id":"dock","rect":[-8,-1,16,2]} ],
+          "placements":{ "spawns":[ {"piece":"front","at":[8,1],"facing":"front"} ] } }
+        """);
+        await Assert.That(Lint(spanning, "FR8")).IsFalse();
+    }
+
+    [Test]
+    public async Task Team_islands_bridged_across_a_narrow_strait_fire_CT12()
+    {
+        // rot_180 fans the authored team island opposite itself: a 10-block strait under one zone → too close
+        var narrow = Plan("""
+        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180"},
+          "pieces":[ {"id":"home","role":"spawn","rect":[-2,-3,4,2]} ],
+          "zones":[ {"id":"strait","rect":[-2,-1,4,2]} ],
+          "placements":{ "spawns":[ {"piece":"home","at":[2,1],"facing":"front"} ],
+                         "wools":[ {"piece":"home","at":[1,1]} ] } }
+        """);
+        await Assert.That(Lint(narrow, "CT12")).IsTrue();
+
+        // the same board pushed out to a 30-block strait sits inside the band
+        var banded = Plan("""
+        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180"},
+          "pieces":[ {"id":"home","role":"spawn","rect":[-2,-5,4,2]} ],
+          "zones":[ {"id":"strait","rect":[-2,-3,4,6]} ],
+          "placements":{ "spawns":[ {"piece":"home","at":[2,1],"facing":"front"} ],
+                         "wools":[ {"piece":"home","at":[1,1]} ] } }
+        """);
+        await Assert.That(Lint(banded, "CT12")).IsFalse();
+    }
+
     [Test]
     public async Task Every_seed_plan_is_a_complete_map_plan()
     {

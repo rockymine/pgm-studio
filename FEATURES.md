@@ -667,9 +667,24 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   every `tools/mapgen` build, and a `coverage.png` stage; the corridors ride `Cells.ShortestPath` over the
   same navigable set the traversability gate reads. A measurement — nothing refuses on it yet
   (`docs/world-scan/ground-coverage.md`).
-- **A bedrock wall never sits on the wool room's own interface (`PL13`, `B186`'s first clause).** The wall
-  and the room stamp through each other there and the room can barely be entered; the compiler refuses with
-  the fix in the sentence — place it ~15 blocks out, on the approach piece's outer interface.
+- **A bedrock wall never sits on the wool room's own interface (`PL13`, `B186`'s first clause; the same
+  rule `B156` filed).** The wall and the room stamp through each other there and the room can barely be
+  entered; the compiler refuses with the fix in the sentence — place it ~15 blocks out, on the approach
+  piece's outer interface.
+- **The piece-interface machinery: one read, seven lints (`B238` `B239` `B158` `B157` `B167` `B186`'s
+  remaining clauses).** `PieceInterfaces` aggregates the contact graph and the board deriver into the three
+  per-edge populations — every land seam with its height delta and typed wall, each piece side's frontline
+  share, the straits between bridged islands — served raw on `POST /plan/inspect` (`frontages`,
+  `frontlineRuns`, `islandGaps`, per-interface `delta`) and quantified over by the lint table: `SP8` a spawn
+  egress stepping Δ≥2 ahead of the door, `SP9` a door with under 15 blocks before bare void (a build zone
+  counts as ground — the gap-only spawn's bridge), `ST8` a wall over an interface outside 10–20 blocks or
+  seated outside ~15 from the entrance, `ST9` a role piece over 20×20, `BZ11` zones stitching one
+  rectangular region, `FR8` a crossing turned into frontline over less than ⅓ of its face, `CT12` a
+  two-team wool board's direct team-island strait outside 15–40. Calibrated against both populations
+  before landing (rules.md amendment 17); frontline runs carry their bounding boxes so a finding has
+  coordinates.
+- **A placed building has a floor: 5×5 blocks (`DR-SIZE`, `B167`).** A four-deep footprint is a wall with a
+  roof; the dressing pass declines it before asking for ground, and the census names the footprint.
 - **The author element is complained for, and a bare model name is the form (`B242`).** `tools/mapgen` warns
   when a spec carries no `authors`; the pipeline already writes a name-only author as PGM's pseudonym form
   (`<author>Fable 5</author>`, no uuid attribute), so the fix is one spec field.

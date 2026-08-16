@@ -382,6 +382,18 @@ public static class Decorator
             return [];
         }
 
+        // A footprint below the floor is a wall with a roof, not a building — declined before any ground
+        // is asked about, because no seat makes a 4-deep box a house.
+        var footprintX = plan.MaxX - plan.MinX + 1;
+        var footprintZ = plan.MaxZ - plan.MinZ + 1;
+        if (Math.Min(footprintX, footprintZ) < DressingRules.FootprintMin)
+        {
+            dropped.Add(new DroppedProp(house.Id, "house",
+                $"footprint {footprintX}×{footprintZ} is under {DressingRules.FootprintMin}×"
+                + $"{DressingRules.FootprintMin} ({DressingRules.FootprintFloor})"));
+            return [];
+        }
+
         var images = new List<(BuildingPlan Plan, RoomEdge? Front, int FloorY)>(context.Symmetry.Order);
         for (var k = 0; k < context.Symmetry.Order; k++)
         {

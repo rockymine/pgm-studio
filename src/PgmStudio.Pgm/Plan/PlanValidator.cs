@@ -1,5 +1,6 @@
 using PgmStudio.Domain;
 using PgmStudio.Geom;
+using PgmStudio.Pgm.Derive;
 
 namespace PgmStudio.Pgm.Plan;
 
@@ -407,6 +408,7 @@ public static class PlanValidator
     public static readonly IReadOnlyList<Func<PlanModel, ContactGraph, IEnumerable<Finding>>> LintRules =
     [
         LintPcC, LintG2, LintG5, LintSp2, LintBz5, LintEl1, LintSt2, LintWx4, LintWx8, LintWl1,
+        LintSp8, LintSp9, LintSt8, LintSt9, LintBz11, LintBoardEdges,
     ];
 
     private static Finding Lint(string rule, string msg, params string[] subjects) =>
@@ -562,6 +564,200 @@ public static class PlanValidator
                     + $"leaves {RoomFrames.IronGap} block clear of the shell for even the smallest cube — "
                     + "the room has priority and stamps alone", s.Piece);
         }
+    }
+
+    // SP8 — a spawn's egress steps two or more blocks and nothing bridges it: a Δ≥2 seam cannot be walked
+    // up, so a player leaving the door cannot come back (and at Δ≥2 down, may not get out at all). Only the
+    // seams ahead of the door are the egress; a cliff at the spawn's back is a legitimate wall.
+    private static IEnumerable<Finding> LintSp8(PlanModel plan, ContactGraph d)
+    {
+        var seams = PieceInterfaces.Seams(d);
+        foreach (var s in plan.Placements.Spawns)
+        {
+            var piece = d.Piece(s.Piece);
+            if (piece is null) continue;
+            var (dirX, dirZ) = DoorDirection(s.Facing);
+            foreach (var seam in seams)
+            {
+                if (seam.A != s.Piece && seam.B != s.Piece) continue;
+                var other = d.Piece(seam.A == s.Piece ? seam.B : seam.A);
+                if (other is null) continue;
+                var forward = (other.Value.Rect.CenterX - piece.Value.Rect.CenterX) * dirX
+                            + (other.Value.Rect.CenterZ - piece.Value.Rect.CenterZ) * dirZ;
+                if (forward <= 0) continue;
+                var delta = Math.Abs(other.Value.Surface - piece.Value.Surface);
+                if (delta >= 2)
+                    yield return Lint("SP8",
+                        $"spawn egress steps {delta} blocks at '{seam.A}'–'{seam.B}' — use 1-level steps or "
+                        + "a ramp against the spawn", seam.A, seam.B);
+            }
+        }
+    }
+
+    // SP9 — the ground a spawn door opens onto: at least 15 blocks before bare void, measured along the
+    // door's own line, because that is where every player leaving the spawn walks first. A build zone
+    // counts as ground here — a gap-only spawn whose door opens onto its egress bridge is an authored
+    // motif — while a buffer is exactly the declared emptiness this rule exists to keep off the doorstep.
+    private static IEnumerable<Finding> LintSp9(PlanModel plan, ContactGraph d)
+    {
+        const int minAhead = 15;
+        var zoneRects = plan.BuildZones.Select(z => ContactGraph.ToBlock(z.Rect, d.Cell)).ToList();
+        foreach (var s in plan.Placements.Spawns)
+        {
+            var piece = d.Piece(s.Piece);
+            if (piece is null) continue;
+            var (dirX, dirZ) = DoorDirection(s.Facing);
+            var (markerX, markerZ) = ResolveBlock(piece.Value.Rect, s.At, d.Cell);
+
+            // walk the ray out of the spawn piece, then count crossable ground until the first bare block
+            double x = markerX, z = markerZ;
+            var rect = piece.Value.Rect;
+            while (x >= rect.MinX && x < rect.MaxX && z >= rect.MinZ && z < rect.MaxZ) { x += dirX; z += dirZ; }
+            var ahead = 0;
+            bool Covers(BlockRect r) => x >= r.MinX && x < r.MaxX && z >= r.MinZ && z < r.MaxZ;
+            while (ahead < minAhead && (d.Pieces.Any(p => Covers(p.Rect)) || zoneRects.Any(Covers)))
+            { ahead++; x += dirX; z += dirZ; }
+            if (ahead < minAhead)
+                yield return Lint("SP9",
+                    $"spawn door on '{s.Piece}' faces void {ahead} blocks out — a door wants at least "
+                    + $"{minAhead} blocks of ground or bridgeable zone ahead", s.Piece);
+        }
+    }
+
+    // ST8 — an approach wall's geometry: the interface it bars is a 10–20 block lane mouth (a wall across a
+    // 30-block face bars a room, not a lane), and it stands about 15 blocks in front of the wool room's
+    // entrance. The full-span clause needs no check: the compiler builds the wall across the whole interface.
+    private static IEnumerable<Finding> LintSt8(PlanModel plan, ContactGraph d)
+    {
+        var seams = PieceInterfaces.Seams(d);
+        foreach (var wall in seams.Where(seam => seam.Wall))
+        {
+            // a wall pair that includes the wool room itself is PL13's refusal — piling this lint on top of
+            // that error would say one fault twice in two vocabularies
+            if (wall.RoleA == PlanRoles.WoolRoom || wall.RoleB == PlanRoles.WoolRoom) continue;
+
+            if (wall.Length < 10 || wall.Length > 20)
+                yield return Lint("ST8",
+                    $"approach wall '{wall.A}'–'{wall.B}' bars a {wall.Length}-block interface — "
+                    + "a wall wants a 10–20 block lane mouth", wall.A, wall.B);
+
+            // the entrance it defends: the nearest wool-room seam of either walled piece (an approach
+            // touching two rooms defends the near one; the far room's distance means nothing). Only a wall
+            // parallel to the entry stands "in front of" it — a wall barring a side interface of the same
+            // approach defends a flank.
+            int? nearest = null;
+            foreach (var entry in seams)
+            {
+                if (entry.RoleA != PlanRoles.WoolRoom && entry.RoleB != PlanRoles.WoolRoom) continue;
+                var approach = entry.RoleA == PlanRoles.WoolRoom ? entry.B : entry.A;
+                if (approach != wall.A && approach != wall.B) continue;
+                if ((wall.X1 == wall.X2) != (entry.X1 == entry.X2)) continue;   // perpendicular: a flank wall
+                var standoff = SegmentGap(wall.X1, wall.Z1, wall.X2, wall.Z2, entry.X1, entry.Z1, entry.X2, entry.Z2);
+                if (nearest is null || standoff < nearest) nearest = standoff;
+            }
+            if (nearest is { } gap && (gap < 10 || gap > 20))
+                yield return Lint("ST8",
+                    $"approach wall '{wall.A}'–'{wall.B}' stands {gap} blocks from the wool room's "
+                    + "entrance — about 15 in front is the seat", wall.A, wall.B);
+        }
+    }
+
+    // ST9 — a role piece is at most 20×20 blocks: the stamped building is sized by its piece, so piece size
+    // IS building size, and a 90-block piece is a 90-block hall.
+    private static IEnumerable<Finding> LintSt9(PlanModel plan, ContactGraph d)
+    {
+        const int cap = 20;
+        foreach (var piece in d.Pieces)
+            if (piece.Role is PlanRoles.WoolRoom or PlanRoles.Spawn
+                && (piece.Rect.Width > cap || piece.Rect.Depth > cap))
+                yield return Lint("ST9",
+                    $"{piece.Role} piece '{piece.Id}' is {piece.Rect.Width}×{piece.Rect.Depth} blocks — a role "
+                    + $"piece is at most {cap}×{cap}, because the stamped building is the piece", piece.Id);
+    }
+
+    // BZ11 — one zone for a compact middle: several zones merging into one region whose union is itself a
+    // plain rectangle is a stitched funnel one zone would have drawn — the author reads one crossing, the
+    // player reads a patchwork. An L- or T-shaped union is a different thing: rectangles are the only shape
+    // a zone comes in, so a non-rectangular region NEEDS several, and that decomposition is not stitching.
+    private static IEnumerable<Finding> LintBz11(PlanModel plan, ContactGraph d)
+    {
+        foreach (var region in d.BuildRegions)
+        {
+            if (region.ZoneIds.Count < 2) continue;
+            var zones = plan.BuildZones.Where(z => region.ZoneIds.Contains(z.Id)).ToList();
+            var covered = new HashSet<(int X, int Z)>();
+            foreach (var zone in zones)
+                for (var cx = zone.Rect.X; cx < zone.Rect.X + zone.Rect.Width; cx++)
+                    for (var cz = zone.Rect.Z; cz < zone.Rect.Z + zone.Rect.Height; cz++)
+                        covered.Add((cx, cz));
+            var bboxArea = (zones.Max(z => z.Rect.X + z.Rect.Width) - zones.Min(z => z.Rect.X))
+                         * (zones.Max(z => z.Rect.Z + z.Rect.Height) - zones.Min(z => z.Rect.Z));
+            if (covered.Count == bboxArea)
+                yield return Lint("BZ11",
+                    $"zones [{string.Join(", ", region.ZoneIds)}] stitch into one rectangular region — one "
+                    + "zone draws this crossing; several belong only where the region genuinely turns a "
+                    + "corner, or as separate regions (one per frontline leg, one flush zone per island)",
+                    [.. region.ZoneIds]);
+        }
+    }
+
+    // FR8 + CT12 — the two reads that need the fanned raster board: every frontline run at least 15 blocks
+    // wide (a narrower funnel is invisible to players), and every bridged pair of islands 15–40 blocks
+    // apart on a wool board. One delegate so the board is derived once; a plan the deriver cannot read
+    // simply yields no board lint — the structural errors already name what is wrong with it.
+    private static IEnumerable<Finding> LintBoardEdges(PlanModel plan, ContactGraph d)
+    {
+        BoardStructure board;
+        try { board = BoardDeriver.Derive(plan); }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException
+                                       or NullReferenceException or IndexOutOfRangeException or KeyNotFoundException)
+        { yield break; }
+
+        // A crossing spans the face it docks against on every authored board (shares read 1.00, worst
+        // incidental partial 0.40); the funnel fault reads 0.25 — a 10-block zone on an 80-block face. The
+        // floor sits between the two populations. How wide a front must be in absolute blocks is
+        // deliberately not ruled on: the board's scale decides it, and the runs are served raw instead.
+        const int realCrossing = 10;
+        const double shareFloor = 1.0 / 3;
+        foreach (var face in PieceInterfaces.Frontages(board))
+            if (face.FrontlineBlocks >= realCrossing && face.FrontlineShare < shareFloor)
+                yield return Lint("FR8",
+                    $"piece '{face.Piece}' side {face.Side}: the zones turn {face.FrontlineBlocks} of its "
+                    + $"{face.ExposedBlocks} exposed blocks into frontline ({face.FrontlineShare:0.00}) — a "
+                    + "crossing wants to span the face it docks against, not funnel through a slice of it",
+                    face.Piece);
+
+        // CT12 judges the CTW strait: the direct crossing between the two team islands of a two-team wool
+        // board. Chains over stepping stones are not straits (each hop is G5's), and a mid island between
+        // the teams makes the crossing indirect by construction.
+        if (plan.Placements.Wools.Count > 0 && Symmetry.Order(plan.Globals.Symmetry) == 2)
+            foreach (var gap in PieceInterfaces.IslandGaps(board))
+            {
+                if (!gap.Direct || gap.RoleA != "team" || gap.RoleB != "team") continue;
+                if (gap.Blocks is >= 15 and <= 40) continue;
+                yield return Lint("CT12",
+                    $"team islands [{string.Join(", ", gap.PiecesA)}] and [{string.Join(", ", gap.PiecesB)}] "
+                    + $"stand {gap.Blocks} blocks apart — the CTW strait wants 15–40",
+                    [.. gap.PiecesA.Concat(gap.PiecesB)]);
+            }
+    }
+
+    // The board direction a door's facing opens toward (front = −z, the reading the editor renders).
+    private static (int X, int Z) DoorDirection(string facing) => facing switch
+    {
+        "back" => (0, 1),
+        "left" => (-1, 0),
+        "right" => (1, 0),
+        _ => (0, -1),
+    };
+
+    // The rectilinear gap between two axis-aligned segments: the interval gap per axis, largest axis wins —
+    // for parallel segments that overlap laterally this is exactly the perpendicular standoff.
+    private static int SegmentGap(int ax1, int az1, int ax2, int az2, int bx1, int bz1, int bx2, int bz2)
+    {
+        var gapX = Math.Max(0, Math.Max(Math.Min(bx1, bx2) - Math.Max(ax1, ax2), Math.Min(ax1, ax2) - Math.Max(bx1, bx2)));
+        var gapZ = Math.Max(0, Math.Max(Math.Min(bz1, bz2) - Math.Max(az1, az2), Math.Min(az1, az2) - Math.Max(bz1, bz2)));
+        return Math.Max(gapX, gapZ);
     }
 
     // ── objective footprints (OB17) ─────────────────────────────────────────────────────────────────────

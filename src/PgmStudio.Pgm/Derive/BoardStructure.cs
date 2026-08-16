@@ -24,4 +24,4 @@ public sealed record BoardStructure(
     HashSet<(int, int)> LaneCells,
     List<(int X1, int Z1, int X2, int Z2)> RedstoneEdges,
     List<(HashSet<(int, int)> Cells, bool Declared, string Class, int CrossRoutes)> Voids,
-    List<(int Team, int Width, string Profile)> FrontlineRuns);
+    List<(int Team, int Width, string Profile, int X1, int Z1, int X2, int Z2)> FrontlineRuns);

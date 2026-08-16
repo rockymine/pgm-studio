@@ -417,11 +417,11 @@ public sealed class HousePropTests
     public async Task A_building_that_was_raised_claims_its_whole_footprint()
     {
         var (world, top) = Plateau();
-        var placed = Decorator.Decorate(world, Context(top, [House(0, 0, 3, 2)]));
+        var placed = Decorator.Decorate(world, Context(top, [House(0, 0, 4, 4)]));
 
         var cells = placed.Structures.SelectMany(claim => claim.Cells).ToList();
         await Assert.That(cells).Contains((0, 0));
-        await Assert.That(cells).Contains((2, 1));            // interior of the 3x2 footprint
+        await Assert.That(cells).Contains((2, 1));            // interior of the 5x5 footprint
         await Assert.That(cells.Count).IsGreaterThanOrEqualTo(6);
     }
 
@@ -438,13 +438,13 @@ public sealed class HousePropTests
             Doorway = new Doorway { Door = DoorMaterial.Air },
         };
         var placed = Decorator.Decorate(
-            world, Context(top, [House("h1", null, overhung, (20, 20, 23, 22))]));
+            world, Context(top, [House("h1", null, overhung, (20, 20, 24, 24))]));
 
         var cells = placed.Structures.SelectMany(claim => claim.Cells).ToHashSet();
         await Assert.That(cells).Contains((20, 20));          // inside the wall rectangle
         await Assert.That(cells).Contains((23, 22));
         await Assert.That(cells).Contains((18, 18));          // the eaves corner, two out on both axes
-        await Assert.That(cells).Contains((25, 24));          // the far corner
+        await Assert.That(cells).Contains((26, 26));          // the far corner
         await Assert.That(cells).DoesNotContain((17, 21));    // and it stops where the overhang says it does
     }
 
@@ -455,7 +455,7 @@ public sealed class HousePropTests
         // StructureFinder tells them apart by this owner alone.
         var (world, top) = Plateau(size: 96);
         var placed = Decorator.Decorate(
-            world, Context(top, [House(10, 10, 13, 12)], symmetry: "rot_180"));
+            world, Context(top, [House(10, 10, 14, 14)], symmetry: "rot_180"));
 
         await Assert.That(placed.Houses).IsEqualTo(2);
         var owners = placed.Structures.Select(claim => claim.Owner).ToList();

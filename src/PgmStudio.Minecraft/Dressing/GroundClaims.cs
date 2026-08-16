@@ -22,6 +22,16 @@ public static class DressingRules
 
     /// <summary>The passage's width in blocks — <see cref="PassAround"/>'s one number.</summary>
     public const int PassAroundWidth = 5;
+
+    /// <summary>A building's box is smaller than 5×5 blocks: a footprint four blocks deep is a wall with a
+    /// roof, not a building anyone enters, and a corpus run produced eight of fourteen that way. Measured on
+    /// the plan's bounding box, so a multi-wing building is judged as the one building it is.</summary>
+    /// <remarks>Draw the building at least 5×5 blocks — both dimensions. The whole prop is declined and the
+    /// census names the footprint, so the drop can be checked against the layout.</remarks>
+    public const string FootprintFloor = "DR-SIZE";
+
+    /// <summary>The footprint minimum in blocks — <see cref="FootprintFloor"/>'s one number.</summary>
+    public const int FootprintMin = 5;
 }
 
 /// <summary>What kind of thing claimed a cell of ground during the dressing pass. The kind is what lets one

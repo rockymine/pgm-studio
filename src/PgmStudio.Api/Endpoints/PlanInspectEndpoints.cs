@@ -16,9 +16,12 @@ namespace PgmStudio.Api.Endpoints;
 /// <summary>
 /// POST /api/plan/inspect — the live derived-geometry feed for the plan editor's canvas overlays. The request
 /// body is a plan wire document (<c>*.plan.json</c>); the response carries everything already resolved to block
-/// coordinates so the canvas draws it directly: <c>interfaces</c> (land/narrow/corner contacts as segments),
-/// <c>gapLinks</c> (zone-spanning connectors with the hop distance), <c>frontline</c> (piece edges facing a
-/// zone) and <c>structures</c> (the boxes the world build will stamp — see <see cref="PlanStructurePreview"/> —
+/// coordinates so the canvas draws it directly: <c>interfaces</c> (land/narrow/corner contacts as segments,
+/// each with the surface <c>delta</c> across it), <c>gapLinks</c> (zone-spanning connectors with the hop
+/// distance), <c>frontline</c> (piece edges facing a zone), the <see cref="PieceInterfaces"/> aggregations —
+/// <c>frontages</c> (per piece side, the frontline share of the exposed run), <c>frontlineRuns</c> (widths in
+/// blocks) and <c>islandGaps</c> (each bridged pair's strait) — and <c>structures</c> (the boxes the world
+/// build will stamp — see <see cref="PlanStructurePreview"/> —
 /// which the iso view draws). Rule findings/violations are the <c>/plan/evaluate</c> endpoint's job (the
 /// evaluator is the single source). This is the derivation the Blazor client can't run itself, and the feed for
 /// anything needing live geometry mid-edit: unlike <c>/plan/compile</c> it never withholds its answer over
@@ -49,10 +52,13 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest
             return;
         }
 
+        // the surface step across each pair, so the interface feed carries what the seam read knows
+        var deltas = d.Contacts.ToDictionary(c => (c.A, c.B), c => c.SurfaceDelta);
         var interfaces = d.InterfaceSegments.Select(s => new
         {
             a = s.A, b = s.B, kind = s.Kind.ToString().ToLowerInvariant(),
             x1 = s.X1, z1 = s.Z1, x2 = s.X2, z2 = s.Z2, length = s.Length,
+            delta = deltas.GetValueOrDefault((s.A, s.B)),
             woolRoom = s.WoolRoom, wall = s.Wall, wallChest = s.WallChestPiece,
         });
 
@@ -63,6 +69,35 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest
         });
 
         var frontline = d.FrontlineEdges.Select(f => new { piece = f.Piece, x1 = f.X1, z1 = f.Z1, x2 = f.X2, z2 = f.Z2 });
+
+        // The per-interface reads over the fanned raster board: each authored piece side's frontline share,
+        // the frontline runs with their widths, and the straits between bridged islands — the aggregations
+        // the interface lints (FR8, CT12) quantify over, served raw so a caller sees the numbers behind
+        // them. A board the deriver cannot read degrades to empty reads, same as structures below.
+        object frontages, frontlineRuns, islandGaps;
+        try
+        {
+            var board = BoardDeriver.Derive(plan);
+            frontages = PieceInterfaces.Frontages(board).Select(f => new
+            {
+                piece = f.Piece, side = f.Side,
+                exposedBlocks = f.ExposedBlocks, frontlineBlocks = f.FrontlineBlocks, frontlineShare = f.FrontlineShare,
+            }).ToList();
+            frontlineRuns = PieceInterfaces.Runs(board).Select(r => new
+            {
+                team = r.Team, widthBlocks = r.WidthBlocks, profile = r.Profile,
+                x1 = r.X1, z1 = r.Z1, x2 = r.X2, z2 = r.Z2,
+            }).ToList();
+            islandGaps = PieceInterfaces.IslandGaps(board).Select(g => new
+            {
+                piecesA = g.PiecesA, piecesB = g.PiecesB, roleA = g.RoleA, roleB = g.RoleB, blocks = g.Blocks,
+            }).ToList();
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException
+                                       or IndexOutOfRangeException or KeyNotFoundException)
+        {
+            frontages = Array.Empty<object>(); frontlineRuns = Array.Empty<object>(); islandGaps = Array.Empty<object>();
+        }
 
         // The boxes the world build will stamp (the iso view draws them). A plan mid-edit is routinely
         // incomplete, so a compile failure degrades to no structures rather than failing the whole feed —
@@ -82,7 +117,7 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest
             ownSpawnBlocks = walk.OwnSpawnBlocks, enemySpawnBlocks = walk.EnemySpawnBlocks, ratio = walk.Ratio,
         });
 
-        await Send.OkAsync(new { interfaces, gapLinks, frontline, structures, goalDistances }, ct);
+        await Send.OkAsync(new { interfaces, gapLinks, frontline, frontages, frontlineRuns, islandGaps, structures, goalDistances }, ct);
     }
 }
 

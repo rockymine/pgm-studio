@@ -464,30 +464,13 @@ by `HousePropRules.PastCap` and is not filed.
   plane sees solid beyond it and is not drawn — a box restriction leaves the cut open unless out-of-box reads
   as air. Whole-house stays the default view; the focus is what the open part editor frames.
 
-**The piece-interface machinery (author, 2026-08-16) — one investigation, not six tasks.** `B157` (piece
-size caps), `B158` (spawn door vs void, island separation), `B167` (house footprint floor), `B186`'s
-remaining clauses, `B238` and `B239` below are all questions about **what happens along a piece edge** —
-its length, its height delta, its typed wall, the share of it the abutting build zones turn into frontline.
-The machinery exists in pieces: `BoardDeriver` classifies cell edges as frontline (surfaced in
-`/plan/inspect` but not per-piece-edge), the wool approach shapes and hubs already combine pieces, and
-`ContactGraph` knows every interface. The work is combining these into one per-interface read a validator
-rule or a lint can quantify over — start from how the approach shapes compose pieces, per the author. Do
-not implement these six separately; that is the duplication the buckets warned about.
-
-- [ ] **B238 — Build zones fragmenting a compact middle, and the frontline share of a piece edge.** Four
-  stitched zones over a 30-block middle (tanglewold) and two 10×20 funnels in an 80-block frontline
-  (sunspit) are invisible to players; the author's rule: **one zone for a compact middle**, several only
-  for a legged frontline or per-island flush zones (`frontline-dos-and-donts.plan.json`). The measurable:
-  the share of a piece edge the abutting zones turn into frontline (`BoardDeriver`'s cell-edge classes,
-  aggregated per piece edge — Sunspit reads ~½, too little), and a **frontline minimum width of 15** —
-  the cell-edge run, which correlates with but is not the piece width. Complaint, not refusal.
-
-- [ ] **B239 — A spawn's egress steps two levels and nothing says so.** Firnline and sunspit spawns stand
-  at Δ2 above the next piece with no ramp (`EL1` steps the palette by 2, so bare seams are un-walkable by
-  construction; bridgid-ii was hand-carved). The rule: from the spawn door outward, a piece seam at Δ≥2
-  with no ramp or `anchor_heights` join across it draws a complaint — "use 1-level steps or a ramp against
-  the spawn". The same per-interface height read informs the relief hard-edge note (an excluded piece
-  meeting relief at a straight face), which stays a note for now per the author.
+**The piece-interface machinery shipped (2026-08-16)** as `PieceInterfaces` over `ContactGraph` + the
+board deriver, with the grouped rules as lint — `SP8`/`SP9`/`ST8`/`ST9`/`BZ11`/`FR8`/`CT12` (rules.md
+amendment 17) — and the raw reads on `POST /plan/inspect` (`frontages`, `frontlineRuns`, `islandGaps`,
+per-interface `delta`). The absolute minimum front width is deliberately open: the author's call is that
+board scale decides it and the example boards were never sized honestly; FR8 lands as the share rule and
+the widths are served raw. Remaining under this machinery: the per-interface *height* read against relief
+hard edges stays a note per the author (an excluded piece meeting relief at a straight face).
 
 - [ ] **B229 — `map-layers` passes alone and fails in the suite, on state an earlier spec leaves behind.**
   `./tools/e2e.sh map-layers` is 18/18; `./tools/e2e.sh all` is 13/14, reproducibly, on an idle machine — so
@@ -696,10 +679,11 @@ not implement these six separately; that is the duplication the buckets warned a
   endpoints only by reading source. That is reach, not absence — the same shape as `B177`.
 
   **This entry is the home the audit's plan-space rules need, and it is why it is worth doing before them.**
-  Buckets 1–3 in `BACKLOG.md` are fourteen findings that are all geometry over plan rectangles — what a spawn
-  door faces (`B158` `B169` `B177` `B180`), how big a piece is and how far apart (`B156` `B157` `B167`
-  `B170` `B178` `B186`), how far apart the goals are (`B175` `B179`) — and each one is a rule with a
-  number in it that `PlanValidator` is the natural place for. Landing this entry first means those fourteen
+  Buckets 1–3 in `BACKLOG.md` are findings that are all geometry over plan rectangles — what a spawn
+  door faces (`B169` `B177` `B180`; `B158` shipped as SP9/CT12), how big a piece is and how far apart
+  (`B170` `B178`; `B156`/`B157`/`B167`/`B186` shipped as PL13/ST9/DR-SIZE/ST8), how far apart the goals are
+  (`B175` `B179`) — and each one is a rule with a
+  number in it that `PlanValidator` is the natural place for. Landing this entry first means those findings
   are findings added to a reachable validator rather than fourteen separate checks looking for a home. The
   findings name rules rather than describing symptoms, which is what an agent needs and what a human reviewer
   can check a board against.
@@ -845,8 +829,8 @@ rule. It spends the refusal vocabulary and belongs beside buckets 1–3.
 
 | # | Bucket | Ids | Concept it spends | Lands in |
 |---|---|---|---|---|
-| **1** | What a spawn door faces | `B158` `B169` `B177` `B180` | extent and distance | `Geom` (the frontage rect) · `PlanValidator` (five rules over it) |
-| **2** | How big a piece is, and how far apart | `B156` `B157` `B167` `B170` `B178` `B186` | extent and distance | `PlanValidator` · `PlanCompiler` |
+| **1** | What a spawn door faces | `B169` `B177` `B180` (`B158` shipped) | extent and distance | `Geom` (the frontage rect) · `PlanValidator` (five rules over it) |
+| **2** | How big a piece is, and how far apart | `B170` `B178` (`B156` `B157` `B167` `B186` shipped) | extent and distance | `PlanValidator` · `PlanCompiler` |
 | **3** | How far apart the goals are | `B175` `B179` | extent and distance | `Geom` (the spacing deriver) · `PlanValidator` · `Analysis` |
 | **4** | A block must be the kind of block its role needs | `B165` `B190` | block kind by role | `HouseStamper` · `HouseStyleValidation` + a `roof_style` migration |
 | **5** | What ground and a goal are made of | `B162` `B163` `B183` | block kind by role | `Themes` · `DestroyKitPairing` · read-back |
@@ -910,20 +894,6 @@ spawn's yaw points. Nothing checks any of them, and four separate boards broke a
 derivation — *the frontage rect* — and five findings over it, in `PlanValidator` where `B109` already wants a
 reachable home.
 
-- [ ] **B158 — Nothing checks what a spawn door faces, or how far two CTW islands stand apart.**
-  `sable-marsh`'s spawn sits at `(0, 12, −90)` with yaw 0, so it faces `+z` — and the `entrance-void` buffer
-  occupies `x −15…15, z −80…−55`, starting at the door face. A player leaving spawn walks into a 25-deep void
-  with zero blocks of ground. Separately `hub-ring` spans `z −55…0` and fans under `rot_180` to `z 0…55`, so
-  the two halves meet flush and the board is one landmass.
-
-  **Two rules (author):** a spawn door stands at least **15 blocks** from the nearest void; and on a CTW board
-  two islands sit at least **15** and at most **40** blocks apart. Both are plan-space geometry over
-  rectangles. Note that a whole island assigned to a single team is the *right* shape for CTW and is not a
-  finding — assignment is downstream of separation, so an agent measuring island ownership on a board with no
-  gap will find one island holding both teams and file this entry under a second, wrong name.
-
-  *author, 2026-08-14 · plan pieces `spawn`, `entrance-void`, `hub-ring`.*
-
 - [ ] **B169 — The ground under a spawn has no size relationship to the spawn, and came out 80 blocks wide for
   a 20-block building.** Weirgate's `yard` spans `x −40…40` against a spawn piece of `x −10…10` — sixty blocks
   of platform nothing stands on and nothing contests. Mirefast's `steading` is 92 wide for the same 20-block
@@ -935,7 +905,7 @@ reachable home.
   not about a width limit; the 15-block figure is a rule of thumb for the common case rather than the rule.
   Mirefast's at least carries nine houses and two ramps, which is the distinction the correction draws. It has
   a rule id already: **`SP2`** in `rules.md`, "a spawn sits near the back of its lane, because the space behind
-  a spawn is dead space". It composes with `B157` (bounds the building) and the shipped `B172` (requires the first 20×20 of
+  a spawn is dead space". It composes with the shipped `B157` cap (`ST9`) and the shipped `B172` (requires the first 20×20 of
   that ground to be open), and between them the question becomes *what is this ground for* rather than *how
   wide is it*.
 
@@ -974,7 +944,7 @@ reachable home.
   is sixteen blocks off the centre line and nobody leaving the door meets it.
 
   **The rule (author):** the ground a spawn opens onto is reachable again from where a player lands, and the
-  way up is where players actually leave. It joins `B158` (and `B172`, whose prop half has since shipped) as the third thing nothing checks about
+  way up is where players actually leave. It joins the shipped `B158` (SP9) and `B172` as door-frontage rules; this one nothing yet checks about
   what is directly in front of a spawn door, and all three want checking against the same rectangle. Rotating a
   spawn to meet its stair is **not** the fix: on Basalt both objectives sit forward on opposite flanks and
   turning the door toward the ramp would put one behind the player, costing the clear view of both that `B172` (shipped)
@@ -983,43 +953,6 @@ reachable home.
   *author, 2026-08-14 · probed across the `crest`/`works` interface on Kilnrow and `back`/`works` on Basalt.*
 
 #### Bucket 2 — how big a piece is, and how far apart
-
-- [ ] **B156 — A wall may be authored across a wool room's only entry, and the compiler builds it.** A `walls`
-  entry naming a wool-room piece and its neighbour seats the wall on their shared interface — which for a wool
-  room *is* its `entries` face, because a room has exactly one. On `sable-marsh` the wall runs `x −66…−64` over
-  `z −40…−10` to `topY 11` and the declared entry is `x = −65, z −40…−10`: complete coverage, and the room is
-  sealed.
-
-  **The rule (author):** a defence wall may never sit on the interface between a wool-room piece and the piece
-  next to it. It belongs at the next joint out — on this board `approach-a │ hub-ring` at `x −55`, ten blocks
-  further, taking the wool-to-wall run from 15 to 25 and putting the wall across a 10-block lane mouth instead
-  of a 30-block room face. Distance was never the problem: 15 blocks is close to the corpus median of thirteen
-  that `match-flow.md` §6.2 records. The board is wrong about *which* boundary, not about how far. Refuse it at
-  authoring time in `PlanValidator` with a rule id: a wall whose two pieces include a wool room is invalid.
-
-  *author, 2026-08-14 · measured against `specs/sable-marsh/*.plan.json` and `*.intent.json`.*
-
-- [ ] **B157 — A plan piece has no maximum size, so a wool room came out 30 × 30 and a spawn hall 90 × 15.** A
-  stamped building is sized by its plan piece, so piece size *is* building size and nothing bounds it.
-  `sable-marsh`'s wool rooms are 6 × 6 cells at cell 5 — 30 × 30 blocks — and its spawn piece is 18 × 3 cells,
-  a 90-block hall.
-
-  **The rule (author):** **20 × 20 blocks maximum** for a wool-room piece and for a spawn piece, for now. A
-  ceiling in `PlanValidator`, stated in blocks and checked after the cell multiply, since an author writes cells
-  and the limit is about the building. It is the workaround for `B178` until that coupling is broken, and it
-  pairs with `B167`'s floor.
-
-  *author, 2026-08-14 · `wool-a [−19,−8,6,6]`, `spawn [−9,−19,18,3]`, cell 5.*
-
-- [ ] **B167 — A placed building's footprint has no minimum, and eight of fourteen came out four blocks
-  deep.** Seeds 60–67 on `tallow-weirgate` measure 10×4, 9×4, 11×4, 9×4, 9×4, 11×4, 9×4 and 10×4; the remaining
-  six are 5 deep, so the same run produced both on one board.
-
-  **The rule (author):** a placed building is at least **5 × 5** blocks. It pairs with `B157`'s ceiling —
-  together they bound a building at both ends, which is what a prop validation wants to check when the dressing
-  document is posted rather than after a build.
-
-  *author, 2026-08-14 · all 14 house props measured from `specs/tallow-weirgate/*.layout.json`.*
 
 - [ ] **B170 — A contested middle island is the best composition any run invented, and it merged with the
   approach it should have been separated from.** Weirgate's `flat` spans `x −70…70` at `z ≈ −13…13`, sitting
@@ -1042,18 +975,11 @@ reachable home.
 
   **The class (author):** the same fault as the iron marker's relationship to a spawn piece — something welded
   to a plan rectangle drawn for a different purpose. The building wants its own stated footprint, with the piece
-  describing only the ground. Distinct from `B157` and both are wanted: that entry caps the piece at 20×20,
+  describing only the ground. Distinct from the shipped `B157` cap (`ST9`, 20×20) and both are wanted: the cap
   suppressing the symptom by forbidding large pieces; this one breaks the coupling so a large piece stops
   implying a large building. The cap is the workaround until it is.
 
   *author, 2026-08-14 · compiled spawn piece against the built hall · same pattern on `sable-marsh` (90) and `tallow-weirgate` (80 platform).*
-
-- [~] **B186 — A bedrock wall's remaining geometry: full span, width 10–20, ~15 blocks in front of the
-  entrance.** The wool-room-interface half shipped as `PL13` (a wall on the wool's own edge refuses with the
-  fix in the sentence). What remains is the author's other three clauses: a wall **spans the full piece
-  intersection it bars**, is **10–20 blocks wide**, and stands **about 15 blocks in front of** the wool
-  room's entrance — `PlanCompiler` derives the footprint from the declared interface and nothing yet checks
-  that the result separates the two sides. Part of the piece-interface machinery below.
 
 - [ ] **B175 — Two goals of the same team may stand eight blocks apart, and one board does.** Haiku DTM Tower
   seats a destroyable and a core on one piece, both red's: `red-monument-region` ends at `x −9` and
@@ -1381,7 +1307,7 @@ the thing `B181` names, which makes the document upstream of the boards rather t
 
   **The direction (author):** an agent placing a wool approach **reads the shapes endpoint** for the valid base
   shapes and how each attaches to a hub, and authors from that. **It does not run the generator.** This is reach
-  rather than capability, and it is upstream of `B156`: a dock seated against the hub has a face to wall that is
+  rather than capability, and it is upstream of `B156` (shipped as `PL13`): a dock seated against the hub has a face to wall that is
   not its own door, so getting the attachment right removes the wall fault as a side effect.
 
   *author, 2026-08-14 · piece adjacency computed from the plan; themes matched to the author's description.*

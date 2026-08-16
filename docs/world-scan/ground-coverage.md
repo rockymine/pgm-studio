@@ -42,5 +42,9 @@ over `Traversability.Ground`'s navigable set, and the picture off the measure's 
 
 Routes are shortest walks; players also wander, so the corridor margin is doing the work of everything a
 shortest path underestimates. Iron cubes are not yet waypoints (they live in the intent's structures, not
-the map document the measure reads). What acts on the dead share — a complaint band, a score term — is
-deliberately undecided until the measure has been read against enough boards.
+the map document the measure reads). The navigable set is the whole-map one — walkable terrain plus
+buildable and bridgeable cells, so a cross-map route bridges through the build zones exactly as the
+traversability gate's does — but the gate's per-team half (an `enter` rule barring one team somewhere) is
+not applied here: a corridor may cross ground one team cannot enter, which slightly overstates reached
+ground around oversized protection regions. What acts on the dead share — a complaint band, a score term —
+is deliberately undecided until the measure has been read against enough boards.
