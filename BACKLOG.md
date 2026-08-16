@@ -425,6 +425,27 @@ by `HousePropRules.PastCap` and is not filed.
   plane sees solid beyond it and is not drawn — a box restriction leaves the cut open unless out-of-box reads
   as air. Whole-house stays the default view; the focus is what the open part editor frames.
 
+- [ ] **B229 — `map-layers` passes alone and fails in the suite, on state an earlier spec leaves behind.**
+  `./tools/e2e.sh map-layers` is 18/18; `./tools/e2e.sh all` is 13/14, reproducibly, on an idle machine — so
+  it is not the contention that makes a starved VM invent 30s route timeouts. The check that fails is *the
+  confirmation checks ran*, and the last one to pass is *the button names a rebuild, not a build*: the label
+  reads correctly off `.plan-compile-draft button`, and then `page.click('button:has-text("Rebuild this
+  map")')` times out at 30s. A button whose text is readable but which cannot be clicked is present and
+  **not actionable** — disabled or covered — rather than missing, and a `422` from `/api/plan/compile` is
+  recorded on the page beside it. The likely shape is that the compile behind that draft is refused in the
+  suite's state, leaving the draft rendered but its button dead.
+
+  What differs between the two runs is only the database: `all` seeds once and then runs
+  `configure-objectives`, `controls`, `draw-tools`, `dressing` and `icons` before this spec, and two of those
+  work on `seed.mapSlug` — the very map whose plan is recompiled here. **The suspect is a spec mutating that
+  map's plan into one that no longer compiles**, against this spec's assumption that it does. Find it by
+  running the five in order against one seed and compiling `seed.mapSlug`'s plan after each.
+
+  Two things not to be fooled by while chasing it. The fixed `waitForTimeout(1500)` further down (line 122)
+  is a genuine latent flake but is **not** this: the failing click is above it and that code never runs. And
+  `smoke` dropping to 33/39 with 30s `page.goto` timeouts *is* pure load — it was green in the same suite
+  before and after, on a quieter machine.
+
 - [ ] **B225 — A march tests another wing's walls where the primary pass tests its whole roof.**
   `Overtopped` asks `otherField.Covers` — the wing's walls **plus its overhang** — while `OtherRoofCrownOver`,
   which decides where a march stops, asks `otherRoofed.Holds`, the walls alone. Reading `RoofField` settles

@@ -16,13 +16,23 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { api, BASE } from "./lib/harness.mjs";
 
-const DESCRIPTOR = { players: 12, teams: 2, symmetry: "rot_180", seed: 0, cell: 5 };
+const REQUEST = "players=12&symmetry=rot_180&cell=5&count=1";
 
-/** Pin a composed board so it exists as a stored candidate, then commit it to authoring. */
+/**
+ * Pin a composed board so it exists as a stored candidate, then commit it to authoring.
+ *
+ * The descriptor is taken from a browsed card rather than written out here. A descriptor carries the
+ * composer's own version and schema, and a hand-built one goes stale the next time either moves — which is
+ * what a pin refuses on (`RQ1`), leaving the whole gate unable to seed. Browsing first is also what the
+ * studio does, so the seed exercises the path a user takes.
+ */
 async function composedPlanMap() {
-  const pinned = await api("/compose/pin", { method: "POST", body: DESCRIPTOR });
+  const { cards } = await api(`/compose?${REQUEST}`);
+  if (!cards?.length) throw new Error(`/compose?${REQUEST} returned no cards to pin`);
+  const descriptor = cards[0].descriptor;
+  const pinned = await api("/compose/pin", { method: "POST", body: descriptor });
   const { slug } = await api(`/plan/${pinned.id}/author`, { method: "POST" });
-  return { slug, planJson: pinned.planJson, planId: pinned.id };
+  return { slug, planJson: pinned.planJson, planId: pinned.id, descriptor };
 }
 
 async function main() {
@@ -47,7 +57,7 @@ async function main() {
 
   const seed = {
     base: BASE,
-    descriptor: DESCRIPTOR,
+    descriptor: plan.descriptor,
     planSlug: plan.slug,
     sketchSlug: draft.slug,
     mapSlug: finished.slug,

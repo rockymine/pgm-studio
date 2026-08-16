@@ -131,7 +131,8 @@ checks.section("the Rooms step binds a shell");
 // what makes a style that only changes its geometry a legal one.
 const style = await api("/room-styles", { method: "POST", body: {
   name: "e2e-tall", floorDepth: 1, wallHeight: 11, roofThickness: 1,
-  eave: "flush", roofHole: true, door: "stained-glass-pane", doorHeight: 3,
+  roofForm: "flat", roofHole: true, door: "stained-glass-pane", doorHeight: 3,
+  windows: { form: "none", block: 0, data: 0, sill: 0, width: 0, height: 0, spacing: 0 },
   storeyStack: [], courses: [] } });
 checks.add("a room style exists to bind", style?.id > 0, `id=${style?.id}`);
 

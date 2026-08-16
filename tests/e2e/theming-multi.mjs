@@ -23,7 +23,10 @@ const terrainShapes = (l) => (l?.layers?.[0]?.layout?.shapes ?? l?.layout?.shape
 // ── build a multi-shape sketch from a height-randomized generator plan ─────────────────────────────────
 checks.section("a height-randomized plan compiles to several themeable shapes");
 
-const pinned = await api("/compose/pin", { method: "POST", body: { players: 12, teams: 2, symmetry: "rot_180", seed: 0, cell: 5 } });
+// The descriptor comes from a browsed card: it carries the composer's own version and schema, and a
+// hand-built one is refused (RQ1) the next time either moves.
+const { cards } = await api("/compose?players=12&symmetry=rot_180&cell=5&count=1");
+const pinned = await api("/compose/pin", { method: "POST", body: cards[0].descriptor });
 const plan = JSON.parse(pinned.planJson);
 plan.pieces.forEach((p, i) => { p.surface = 9 + (i % 3) * 6; });   // 9 / 15 / 21 — distinct plateaus, so pieces don't all fuse
 const compiled = await api("/plan/compile", { method: "POST", body: JSON.stringify(plan) });
