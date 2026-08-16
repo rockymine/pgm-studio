@@ -66,9 +66,11 @@ public static class ComposerFingerprint
     /// <summary>The recorded digest, relative to the repo root.</summary>
     public static readonly string[] FilePath = ["tools", "compose", "composer-fingerprints.json"];
 
-    /// <summary>How the record is written. <c>NewLine</c> is pinned because this file is committed: left to
-    /// <see cref="Environment.NewLine"/> it would rewrite every line the first time it was regenerated from a
-    /// different platform, burying the digests that actually moved in a whole-file diff.</summary>
+    /// <summary>How the record is written. <c>NewLine</c> is pinned so the writer emits what the repository
+    /// stores: <c>.gitattributes</c> holds this file at LF and would normalise it anyway, so this is not what
+    /// keeps the committed bytes right — it only spares a regeneration on Windows from leaving a file that
+    /// reads as modified with an empty diff. The pin that matters is <c>PlanModel.Json</c>'s, which git never
+    /// sees, because the digest below hashes a string rather than a file.</summary>
     public static readonly JsonSerializerOptions Json =
         new(JsonSerializerDefaults.Web) { WriteIndented = true, NewLine = "\n" };
 }

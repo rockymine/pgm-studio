@@ -122,7 +122,12 @@ public sealed class PlanModel
     /// format and a stored artifact, and neither may depend on the host it was written from. Indented output
     /// defaults to <see cref="Environment.NewLine"/>, so the same plan serialized on Windows and on Linux
     /// differs in every line ending while meaning exactly the same thing — enough to make one plan two
-    /// documents to anything comparing or digesting the bytes.</para></summary>
+    /// documents to anything comparing or digesting the bytes.</para>
+    ///
+    /// <para>The repository's <c>eol=lf</c> does not cover this. That governs files git tracks; a plan is
+    /// hashed as a string and stored as a database artifact, and neither passes through git to be normalised.
+    /// Left unpinned it took every composer fingerprint on a Windows checkout out of step with a record taken
+    /// on Linux.</para></summary>
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = true,
