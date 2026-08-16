@@ -391,8 +391,9 @@ minimum), `G5` (a void hop outside 10–20), `SP2` (a spawn not near the back of
 either kind touching a spawn piece), `WL1` (a water lane covering terrain instead of void), `EL1` (a piece's
 surface delta from the base not a multiple of 2), `ST2` (iron outside the spawn piece on a board that has one), `WX4` (a pad
 shifted inward for wall clearance, moving the exported point with it) and `WX8` (an iron marker beside a spawn
-room that cannot be placed at all). These findings are the evaluator's context rather than a response of their
-own: the compile endpoint returns errors, and the scored rules reach the editor through `/api/plan/evaluate`.
+room that cannot be placed at all). The whole lint table now rides `/api/plan/evaluate`'s response as `lint[]` beside
+the scored terms — the compile endpoint returns errors alone, so the one call an authoring loop already makes
+is where every complaint, an unplaceable iron included, becomes visible.
 
 **The evaluator's `valid` is not the compile's.** `/api/plan/evaluate` is a critic built to rank composed
 candidates, and it promotes some of the lint above to hard terms — so a board that compiles cleanly can come
@@ -447,7 +448,7 @@ posted anywhere. That is what makes them the cheapest way to find out whether a 
 | Endpoint | Answers | Fails with |
 |---|---|---|
 | `POST /plan/inspect` | `{interfaces, gapLinks, frontline, structures, goalDistances}` — the derived geometry, already in block coordinates, plus each destroy goal's walk to its own and the enemy's spawn (blocks over the fanned closure, with the enemy÷own ratio) — a measurement, not a rule; the band a rule would hold the ratio to is the author's to state. Never withholds over structural errors; a compile failure degrades `structures` to empty rather than failing the feed | 400 malformed or unreadable |
-| `POST /plan/evaluate` | `{score, valid, violations[]}` — score summed and lower-is-better, `valid` true when no hard term fired, violations hard-first with subjects and drawable evidence. A plan with no generating piece answers `valid: false` carrying `PL1`, not an error and not an empty evaluation | 400 malformed |
+| `POST /plan/evaluate` | `{score, valid, violations[], lint[]}` — score summed and lower-is-better, `valid` true when no hard term fired, violations hard-first with subjects and drawable evidence, and `lint` the structural validator's complaints (an unplaceable iron `WX8`, a mid-lane spawn `SP2`, an odd elevation step `EL1`, …), which never move the score. A plan with no generating piece answers `valid: false` carrying `PL1`, not an error and not an empty evaluation | 400 malformed |
 | `POST /plan/feasibility` | `{producible, boxes[], unit[]}` — per-box producibility, each naming the parameter tuple that reproduces it or the nearest miss and why. A plan without boxes reads empty; a plan without pieces reads `producible: false` with `PL1` in `unit` | 400 malformed |
 | `GET /objectives/vocabulary` | the destroyable styles and materials, and every objective default | — |
 
@@ -457,7 +458,7 @@ posted anywhere. That is what makes them the cheapest way to find out whether a 
 |---|---|---|---|
 | `POST /plan/compile` | the document | `{layout, intent, warnings}`, each half serialized with its consumer's options so both can be posted on verbatim | 422 `{findings}` structural or completeness errors · 400 malformed |
 | `POST /sketch` | `{name}` | `{slug}` — originates a map; only needed off the bare route | — |
-| `PUT /map/{slug}/sketch/from-plan` | the compiled `layout` | `{ok}` — merges rather than replaces: the sketch's themes, room shells and dressing are carried onto the new board, and a structural piece's author-corrected height is carried by `intentRef` | 409 listing islands whose relief would be orphaned (`?force=true` accepts the loss) · 400 · 404 |
+| `PUT /map/{slug}/sketch/from-plan` | the compiled `layout` | `{ok}` — merges rather than replaces: the sketch's themes, room shells and dressing are carried onto the new board, and a structural piece's author-corrected height is carried by `intentRef` | 409 one `SK1` finding per orphaned island, subject = island id (`?force=true` accepts the loss) · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes the layout into world geometry and moves the map to `stage=configure` | 422 the layout rasterizes to no ground |
 | `PUT /map/{slug}/intent/from-plan` | the compiled `intent` | the projected map — carries the stored **authors and contributors** onto it and nothing else. `symmetry` and `islandTeams` are deliberately not carried, so a rebuild clears both | 404 |
 | `GET /map/{slug}/export` | — | the world ZIP | non-2xx with a message |

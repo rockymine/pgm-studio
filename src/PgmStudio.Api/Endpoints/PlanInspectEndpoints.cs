@@ -190,9 +190,14 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest
         }
 
         Evaluation eval;
+        IReadOnlyList<FindingDto> lint;
         try
         {
-            eval = LayoutEvaluator.Evaluate(plan, EvaluationProfile.Default);
+            var ctx = EvalContext.Build(plan, SeedEnvelopes.Default);
+            eval = LayoutEvaluator.Evaluate(ctx, EvaluationProfile.Default);
+            // The validator's complaints ride along: computed by the same Check the context already ran, and
+            // this response is the one surface the authoring loop actually reads them from.
+            lint = Refusals.Dtos(ctx.Findings.Complaints);
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
         {
@@ -200,7 +205,7 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest
             return;
         }
 
-        await Send.OkAsync(ToDto(eval), ct);
+        await Send.OkAsync(ToDto(eval) with { Lint = lint }, ct);
     }
 
     /// <summary>An evaluation carrying the <b>structural</b> validator's refusals rather than the evaluator's

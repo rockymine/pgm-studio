@@ -665,10 +665,10 @@ by `HousePropRules.PastCap` and is not filed.
 
   **Half the premise is stale and the correction narrows the work.** `POST /plan/inspect` and
   `POST /plan/evaluate` both exist and are documented at `plan.md:417`, so a plan *can* be asked about without
-  a build. What survives is that **nothing an author reaches calls them**: no driver invokes the validator
-  ahead of a build, and an agent authoring by hand found the endpoints only by reading source. That is reach,
-  not absence — the same shape as `B177`, where `SP2` and `SP7` are written law that nothing applies to an
-  authored plan.
+  a build — and since 2026-08-16 evaluate also answers the validator's whole lint table as `lint[]` and
+  inspect answers each destroy goal's spawn walks, so the loop that asks is no longer blind to either. What
+  survives is that no *driver* invokes them ahead of a build, and an agent authoring by hand found the
+  endpoints only by reading source. That is reach, not absence — the same shape as `B177`.
 
   **This entry is the home the audit's plan-space rules need, and it is why it is worth doing before them.**
   Buckets 1–3 in `BACKLOG.md` are fourteen findings that are all geometry over plan rectangles — what a spawn
@@ -944,11 +944,11 @@ reachable home.
 
   **The two halves are not the same fault, and the entry's original "nothing checks" was wrong about one of
   them.** `SP2` **is** implemented — `PlanValidator.LintSp2` measures the spawn against the back half of its
-  piece and yields a finding. What it is not is *reached*: no `src/` caller runs the validator over a plan an
-  author posts, which is `B109` exactly, and a lint is a complaint an author may ignore even when it is. `SP7`
-  is the half with no code at all — it appears in `rules.md` and `mapgen-review.md` and nowhere in `src/`. An
-  agent handed this entry as first written adds a second `SP2` beside the first, which is the fifth-table
-  failure this bucketing exists to stop.
+  piece and yields a finding — and since 2026-08-16 it is *reached*: `POST /plan/evaluate` answers the whole
+  lint table as `lint[]` beside the score, so the one call an authoring loop already makes carries it. A lint
+  is still a complaint an author may ignore. `SP7` is the half with no code at all — it appears in `rules.md`
+  and `mapgen-review.md` and nowhere in `src/`. An agent handed this entry as first written adds a second
+  `SP2` beside the first, which is the fifth-table failure this bucketing exists to stop.
 
   *author, 2026-08-14 · `mapgen-review.md` MG31 · `rules.md` SP2/SP7 · plan, `map.xml` regions and probes.*
   Premise corrected 2026-08-15 against `PlanValidator.LintSp2` and a grep of `SP7` across `src/`.
