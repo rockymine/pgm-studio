@@ -385,8 +385,8 @@ by `HousePropRules.PastCap` and is not filed.
   regions in a shipped `map.xml`; `B179`'s "nearest enemy goal at 95–110" from the same; `B188`'s whole
   164-map table — spawn→own goal 49.4 median, ratio 2.9 — was parsed "from the XML alone", which is centres and
   extents, not a walk. **And the sweep that produced that table is not in the repository**, so the metric behind
-  the one corpus band calibrating buckets 2 and 3 cannot be recovered from the code; it survives only as
-  numbers in a backlog entry.
+  the one corpus band calibrating buckets 2 and 3 cannot be recovered from the code; the table survives in
+  `docs/generator/seed-stats.md`, marked as the retired unit (`B188` itself closed as `GO1`'s walk band).
 
   So an agent handed `B175` does one of two things, and neither fails a test: writes a second, straight-line
   measure beside the traversal one, or reaches for `Cells.PathLength` — correctly, it is right there in `Geom`
@@ -411,7 +411,7 @@ by `HousePropRules.PastCap` and is not filed.
   agree and it is bucket 3's authored thresholds that stand alone in straight-line blocks.
 
   *found reviewing dispatch readiness, 2026-08-15 · `Evaluate/Terms/ObjectiveTerms.cs:5-10` ·
-  `Geom/Cells.cs:48,77` · bucket 3's `B175`/`B179`/`B188`.*
+  `Geom/Cells.cs:48,77` · bucket 3's `B175`/`B179` (and `B188`, since closed as `GO1`).*
 
 - [ ] **B220 — Forty doc-comment defects, silenced rather than fixed.** Turning
   `GenerateDocumentationFile` on for the five projects `B219` reads (`Domain`, `Pgm`, `Minecraft`, `Export`,
@@ -689,7 +689,7 @@ by `HousePropRules.PastCap` and is not filed.
   **This entry is the home the audit's plan-space rules need, and it is why it is worth doing before them.**
   Buckets 1–3 in `BACKLOG.md` are fourteen findings that are all geometry over plan rectangles — what a spawn
   door faces (`B158` `B169` `B172` `B177` `B180`), how big a piece is and how far apart (`B156` `B157` `B167`
-  `B170` `B178` `B186`), how far apart the goals are (`B175` `B179` `B188`) — and each one is a rule with a
+  `B170` `B178` `B186`), how far apart the goals are (`B175` `B179`) — and each one is a rule with a
   number in it that `PlanValidator` is the natural place for. Landing this entry first means those fourteen
   are findings added to a reachable validator rather than fourteen separate checks looking for a home. The
   findings name rules rather than describing symptoms, which is what an agent needs and what a human reviewer
@@ -838,7 +838,7 @@ rule. It spends the refusal vocabulary and belongs beside buckets 1–3.
 |---|---|---|---|---|
 | **1** | What a spawn door faces | `B158` `B169` `B172` `B177` `B180` | extent and distance | `Geom` (the frontage rect) · `PlanValidator` (five rules over it) |
 | **2** | How big a piece is, and how far apart | `B156` `B157` `B167` `B170` `B178` `B186` | extent and distance | `PlanValidator` · `PlanCompiler` |
-| **3** | How far apart the goals are | `B175` `B179` `B188` | extent and distance | `Geom` (the spacing deriver) · `PlanValidator` · `Analysis` |
+| **3** | How far apart the goals are | `B175` `B179` | extent and distance | `Geom` (the spacing deriver) · `PlanValidator` · `Analysis` |
 | **4** | A block must be the kind of block its role needs | `B165` `B190` | block kind by role | `HouseStamper` · `HouseStyleValidation` + a `roof_style` migration |
 | **5** | What ground and a goal are made of | `B162` `B163` `B183` | block kind by role | `Themes` · `DestroyKitPairing` · read-back |
 | **6** | What may stand where | `B142` `B166` `B187` | occupancy | `WorldProvenance` from placement · `Decorator` · `DressingScope` |
@@ -1069,15 +1069,16 @@ reachable home.
 
 #### Bucket 3 — how far apart the goals are
 
-Three entries and one deriver. Two of them are the author's law; the third is the corpus band that calibrates
-them, and it is the cheapest check available for a generated destroy board — two spawn points, one goal, one
-division, no build required.
+Two entries and one deriver, both the author's law; the corpus band that used to calibrate them shipped as
+`GO1`'s authored walk band (`goal-spawn-ratio`).
 
 **This bucket is `B37`'s deferred half and is blocked on a unit, not on a measurement.** `B37` parks "the
-objective↔objective and objective↔monument minimum distances still to be drawn from the corpus"; `B188` below
-has drawn them. What is unsettled is that every number here is straight-line off `map.xml` regions while the
-studio's one implemented separation rule, `WL7`, measures walkable-surface traversal and says so — `B212`.
-Settle that before an agent opens these three, or it will write the second measure.
+objective↔objective and objective↔monument minimum distances still to be drawn from the corpus"; `B188` drew
+them (its 164-map sweep is kept in `docs/generator/seed-stats.md`, marked straight-line — the retired unit)
+and closed as `GO1`'s authored walk band. What is unsettled for the remaining two is that their numbers are
+straight-line off `map.xml` regions while the studio's one implemented separation rule, `WL7`, measures
+walkable-surface traversal and says so — `B212`. Settle that before an agent opens them, or it will write
+the second measure.
 
 - [ ] **B175 — Two goals of the same team may stand eight blocks apart, and one board does.** Haiku DTM Tower
   seats a destroyable and a core on one piece, both red's: `red-monument-region` ends at `x −9` and
@@ -1108,32 +1109,6 @@ Settle that before an agent opens these three, or it will write the second measu
   protect. The fault is that they are visible and nineteen blocks away on an empty line.
 
   *author, 2026-08-14 · `map.xml` objective regions · board extent from the layout's shape vertices.*
-
-- [ ] **B188 — A destroy goal should sit about three times as far from the enemy's spawn as from its own, and
-  three boards are near 1.25.** Swept across the `dtcm` corpus — 164 of 313 maps parsed from `CommunityMaps` and
-  `PublicMaps`, 149 skipped where a spawn or goal region could not be resolved from the XML alone:
-
-  | Measure | p10 | median | p90 |
-  |---|---|---|---|
-  | Board width | 54 | 118 | 242 |
-  | Board depth | 68 | 149 | 279 |
-  | Spawn → own goal | 25.5 | 49.4 | 81.4 |
-  | Enemy spawn → that goal | 85.1 | 135.2 | 233.7 |
-  | **Ratio (enemy ÷ own)** | **1.4** | **2.9** | **5.0** |
-  | Same-team goal separation (64 maps) | 16 | 48.9 | 95.4 |
-  | Spawn to nearest board edge | 1.5 | 7.5 | 23 |
-
-  Only 27 of 164 maps fall under 2.0. The generated boards split cleanly along it: `quillon-barrow` 3.22,
-  `tallow-mirefast` 3.50 and `tallow-kilnrow` 3.24 sit at the corpus median; `quillon-foundry` 1.41 is at p10,
-  and `corvid-hollow` and `ashfall-scar` are 1.25, below it. **Those are the same three boards judged worst on
-  play, arrived at independently** — which makes the author's reading and 164 published maps agree.
-
-  **The likely cause is board shape rather than goal placement.** Six of the eight `minuyo` boards have one
-  dimension under 90 — a destroy board is a **lane**. Every generated board is roughly square (240×190, 170×220,
-  136×190), and on a square board every goal is nearly equidistant from both spawns, so a flat ratio is what the
-  geometry produces. Fixing the ratio by moving goals on a square board treats the symptom.
-
-  *2026-08-14 · 164 of 313 `dtcm` maps parsed from `CommunityMaps` and `PublicMaps`.*
 
 #### Bucket 4 — a block must be the kind of block its role needs
 

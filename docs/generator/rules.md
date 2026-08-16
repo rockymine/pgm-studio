@@ -130,7 +130,12 @@ toward the map centre / the enemy; "back" = toward the map edge.
   **46–143** blocks (46.1 / 58.3 / 64 / 70 / 75 / 85.6 / 95.5 / 143). Working minimum ≈**45**.
 - **WL8 [expert, new]** Wool approach routes: the default is a **single chokepoint route**;
   real maps sometimes add **alternative routes** to the wool (and then a build zone may touch the
-  wool room — see BZ5). **[seed-needed]**
+  wool room — see BZ5). **[seed-needed]** The `wool-ringed-hole` sanction is a **naming contract**
+  (amendment 2026-08-16): a hole ringed around a wool passes only when the ring reads as the wool's
+  own box — its leg pieces share the wool room's **id prefix**, with at most one foreign sealing
+  piece (`ClosureAnalysis.AnyHoleRingedBy`). `south-rim` beside room `wool-south` fires the hard
+  term; renamed `wool-south-rim`, the same geometry is sanctioned. Name approach pieces after
+  their room.
 - **WL9 [author]** **Spawn↔wool balance.** A team's wools sit **comparably far from the spawn**: the
   spread (max − min) of the per-wool spawn→wool traversal distances stays modest. A large spread means
   one wool is trivially defended (the spawn on its doorstep) while another is left to fend for itself.
@@ -471,6 +476,19 @@ the stat corpus.
   prevents tunneling to the wool. A gentler alternative to placing a build-zone gap hard against
   the room.
 
+## GO — Destroy goals
+
+- **GO1 [author; amendment 2026-08-16]** **A destroy goal sits three to four times as far from the
+  enemy's spawn as from its own, by walk.** Per goal: the traversal from the owning team's nearest
+  spawn and from the enemy's, both over the fanned closure (pieces ∪ build zones — the cross-team
+  leg crosses the axis, so the un-fanned surface would cut it), ratio enemy ÷ own held to
+  **[3.0, 4.0]**. Under the band the goal falls to a rush before a defence can form; over it the
+  attack is a march across the whole board into a set defence. Calibrated by the author on the two
+  shipped boards (3.0 and 3.9 by walk); the older 164-map 2.9-median table was straight-line off
+  region centroids — the retired unit (amendment 13) — and does not bind this band. Scored by
+  `goal-spawn-ratio` against the authored band, worst goal counted; a goal with **no** route is not
+  this rule's business but the traversability gate's, which refuses the export outright.
+
 ## PC — Pieces are anonymous
 
 - **PC-S retired [expert]** The old per-seam *sliver* lint (PC-S — a shared border below the corridor
@@ -651,6 +669,17 @@ both corrected.)
     floor is the cap plus 5**, one rule for every goal kind, replacing the per-kind reasoning about how tall a
     destroyable's pillar or a core's casing happens to be. `G6`'s own observer note — "~5 above the build cap"
     — is the same distance and is unchanged.
+
+15. **GO1 added (2026-08-16).** The destroy-goal spawn ratio, banded. The measurement shipped first
+    (`GoalDistances`, the fanned-closure walk, amendment 13's unit) and the author stated the band off it:
+    **[3.0, 4.0]**, fitting the two boards built to feel right (3.0, 3.9). New rule, new family (`GO`),
+    no existing rule changed. The band lives on the term (`GoalSpawnRatio.AuthoredBand`), not in the
+    generated envelopes — it is a ruling, not a distribution.
+
+16. **WL8's sanction contract written in (2026-08-16).** No behaviour change: `ClosureAnalysis.AnyHoleRingedBy`
+    has keyed the `wool-ringed-hole` sanction on the wool room's id prefix all along, but the contract was
+    discoverable only by tripping the hard term — a hand author renaming `south-rim` to `wool-south-rim`
+    found it the expensive way. WL8's text now states it.
 
 ## Correction protocol
 

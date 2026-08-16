@@ -195,6 +195,15 @@ inside its walls, and the path simply ends where the wall does. What the claim w
 above the buildings: a trunk, a rock or tall cover in the middle of the route is still refused, because a
 route with a tree in it is not a route.
 
+**The road reaches further than its pavement: a standoff, stated per prop kind.** A trunk against the kerb
+reads as trees in the road rather than a road through trees, so a tree keeps **three blocks** of clear ground
+between its resting cells and the nearest paved cell, and a boulder — no canopy, but still a wall beside the
+route — keeps **two** (the author's numbers). The rule is the kind's, not the path's:
+`PlacedProp.RouteStandoff` names each kind's distance, `GroundClaims.NearerThan` measures it (Chebyshev,
+strictly-nearer-than, so a trunk exactly three off stands), and the seat check refuses a breach with the
+offending cell named in the drop report. Everything else — cover, water, buildings — states zero and may run
+right up to the pavement.
+
 The single solid band is the boring case; the imperfect paths are the point, and all five of them are the same
 distance field with one extra gate (`Geom.PathStroke`):
 
@@ -449,6 +458,15 @@ What it does need is ground, and that is physics rather than policy: it seats on
 own footprint, one course down, so it settles into a slope instead of standing on stilts over the low side. An
 image with no ground under it at all raises nothing.
 
+**It carves the slope out of its own rooms.** Seating on the lowest column means that on a hillside or a
+relief mark the higher ground runs exactly where the rooms will be — and the stamper deliberately never cuts
+terrain (air resolved out of a material is a gap left open, never a hole punched), so without a carve the
+relief stands inside the house. The building wins the ground it was drawn on, the same rule that keeps a
+trunk from rooting in one: before the stamp, every footprint column is cleared from the floor's course up to
+its old surface, so the house sinks into the slope with its interior intact. Only the wall plan is carved —
+the ground under the eaves is outside the building, and a hill leaning against the wall is the look the seat
+rule exists to produce — and a column whose surface carries a stamp is left whole, as everywhere.
+
 **A building is bounded at both ends.** The floor is the stamper's own — three blocks a side, two walls and an
 inside — and the ceiling is the prop's: **192 blocks of footprint**, three times the 8×8 shell a wool cage is
 stamped in, so a 12×16 or a 14×13 house is buildable and a 20×30 one is not. The unit is deliberately the room
@@ -476,7 +494,7 @@ rebuild a map's scenery.
 
 **Every whole-prop decline is reported with its reason.** A house whose wings make no building, a house
 whose ground something already claimed, a house over no ground, a tree or a boulder whose site finds no
-ground or lands on a protected or claimed column — each appends one entry to
+ground, lands on a protected or claimed column, or breaks its kind's road standoff — each appends one entry to
 `DressingPlacement.Dropped` (`{id, kind, reason}`, the reason naming the cell where the cause is a place),
 where the same silent empty return used to mean all five. Nothing new refuses: the pass places what it can
 exactly as before, and the report makes the rest visible — as `region/dressing-report.json` beside the

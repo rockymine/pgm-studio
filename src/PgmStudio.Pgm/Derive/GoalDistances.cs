@@ -10,10 +10,10 @@ namespace PgmStudio.Pgm.Derive;
 /// line. A destroy goal is defended by the team it belongs to and attacked from the other spawn, so the pair
 /// of walks and their ratio are what the board's shape actually charges each side.
 ///
-/// <para>This is a <b>measurement surface, not a rule</b>: no band is enforced here, because the corpus
-/// number that used to be quoted for the ratio was straight-line between region centroids — the retired
-/// unit — and the band a rule would hold this to is the author's to state in walk blocks. Until it is
-/// stated, the read reports and a caller judges.</para>
+/// <para>This is a <b>measurement surface</b>: it reports and never judges. The judging lives in one place —
+/// <see cref="Evaluate.Terms.GoalSpawnRatio"/> holds the ratio to the author's stated band (GO1) — and it
+/// reads its numbers from here, so the score and the inspect response can never disagree about what a
+/// board's walks are.</para>
 /// </summary>
 public static class GoalDistances
 {

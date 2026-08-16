@@ -100,6 +100,43 @@ public sealed class DecoratorTests
     }
 
     [Test]
+    public async Task A_trunk_keeps_three_blocks_off_the_road_and_a_rock_keeps_two()
+    {
+        // The author's ruling: a road may pass a forest, but a trunk against the kerb reads as trees in the
+        // road. The path here paves z 18–21 (radius 2 on the z=20 line), so a trunk at z=23 stands two blocks
+        // off the pavement — inside a tree's three-block standoff — and one at z=25 keeps it. A rock's
+        // standoff is the shorter two: one resting against the kerb is refused, one well clear seats.
+        PathProp Road() => new()
+        {
+            Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5,
+            Pave = new SolidMaterial(Blocks.Gravel),
+        };
+
+        var (near, nearTop) = Plateau();
+        var refused = Decorator.Decorate(near, Context(nearTop,
+            [Road(), new TreeProp { Id = "t", X = 20, Z = 23, Species = "oak", Height = 14, Seed = 5 }]));
+        await Assert.That(refused.Trees).IsEqualTo(0);
+        var drop = refused.Dropped!.Single(d => d.Id == "t");
+        await Assert.That(drop.Reason).Contains("nearer than 3 blocks to the road at (");
+
+        var (clear, clearTop) = Plateau();
+        var seated = Decorator.Decorate(clear, Context(clearTop,
+            [Road(), new TreeProp { Id = "t", X = 20, Z = 25, Species = "oak", Height = 14, Seed = 5 }]));
+        await Assert.That(seated.Trees).IsEqualTo(1);
+        await Assert.That(seated.Dropped).IsNull();
+
+        var (rocky, rockyTop) = Plateau();
+        var rocks = Decorator.Decorate(rocky, Context(rockyTop,
+        [
+            Road(),
+            new BoulderProp { Id = "b-near", X = 10, Z = 22, Size = 1, Mossy = false, Seed = 3 },
+            new BoulderProp { Id = "b-clear", X = 28, Z = 27, Size = 1, Mossy = false, Seed = 3 },
+        ]));
+        await Assert.That(rocks.Boulders).IsEqualTo(1);
+        await Assert.That(rocks.Dropped!.Single().Id).IsEqualTo("b-near");
+    }
+
+    [Test]
     public async Task A_tree_over_the_void_is_reported_dropped_and_a_seated_one_reports_nothing()
     {
         // One tree on the plateau, one clicked past its edge: the seated one stands, the void one is a
@@ -629,6 +666,40 @@ public sealed class DecoratorTests
         await Assert.That(tally.Trees).IsEqualTo(0);
         var logsInsideTheHouse = Placed(world, [(20, 20)], 8, 20).Where(b => b.Id == Blocks.Log);
         await Assert.That(logsInsideTheHouse).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_house_on_a_hillside_carves_the_slope_out_of_its_rooms()
+    {
+        // A building seats on the lowest column of its footprint, so a relief mark running through it used
+        // to stand inside the rooms: the stamper deliberately never cuts terrain, and nothing else did
+        // either. The building wins the ground it was drawn on (the author's ruling) — the slope inside the
+        // footprint is carved to air down to the floor, and the hill outside the walls keeps its height.
+        var (world, top) = Plateau();
+        for (var x = 16; x <= 30; x++)
+        for (var z = 16; z <= 24; z++)
+        {
+            for (var y = 8; y <= 13; y++) world.SetBlock(x, y, z, Blocks.Stone);
+            top[(x, z)] = 14;
+        }
+
+        var tally = Decorator.Decorate(world, Context(top,
+            [new HouseProp { Id = "h", Wings = [new AuthoredWing([[14, 14], [26, 26]])], Style = new HouseStyle
+            {
+                Doorway = new Doorway
+                {
+                    Door = DoorMaterial.Air,
+                },
+            } }]));
+
+        await Assert.That(tally.Houses).IsEqualTo(1);
+        await Assert.That(tally.Dropped).IsNull();
+        // The mound is gone from the interior: the column that stood six courses over the floor is open air.
+        for (var y = 9; y <= 13; y++)
+            await Assert.That(world.GetBlock(20, y, 20).Id).IsEqualTo(Blocks.Air);
+        // The floor still owns its course under the carve, and the hill outside the footprint is untouched.
+        await Assert.That(world.GetBlock(20, 7, 20).Id).IsNotEqualTo(Blocks.Air);
+        await Assert.That(world.GetBlock(28, 13, 18).Id).IsEqualTo(Blocks.Stone);
     }
 
     [Test]

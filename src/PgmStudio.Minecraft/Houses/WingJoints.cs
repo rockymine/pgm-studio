@@ -112,8 +112,11 @@ public static class WingJoints
                 "both ridges run into the edge they share, which is one longer range — draw it as one "
                 + "rectangle"),
             JointFault.WingOvertops => (WingJointRules.WingOvertops,
-                "the wing stands taller than the hall it meets, so its roof runs over rather than into it; a "
-                + "wing reaches no further along the shared edge than the hall reaches across it"),
+                $"the wing (rectangle {joint.Wing}) stands taller than the hall (rectangle {joint.Hall}) it "
+                + "meets, so its roof runs over rather than into it; a wing reaches no further along the shared "
+                + "edge than the hall reaches across it — and which rectangle is the wing follows from the "
+                + "ridges (the wing's runs into the shared edge), so a stated ridge can swap the roles the "
+                + "drawing suggests"),
             _ => ("", ""),
         };
         return rule.Length == 0 ? null : new Finding(rule, said, Field: "wings",

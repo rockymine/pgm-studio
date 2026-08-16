@@ -73,6 +73,24 @@ public class WingJointsTests
     }
 
     /// <summary>
+    /// <b>The refusal names which rectangle it derived as which.</b> The roles follow from the ridges — the
+    /// wing's runs into the shared edge — so a stated ridge can swap them from what the drawing suggests, and
+    /// an author checking the clauses against the rectangle they <em>drew</em> as the wing reads a firing HJ5
+    /// as satisfied. Naming the derived roles in the sentence is what makes the refusal diagnosable.
+    /// </summary>
+    [Test]
+    public async Task An_overtopping_wing_is_named_by_the_role_the_ridges_derived()
+    {
+        var hall = new Wing(0, 5, 19, 9);
+        var wing = new Wing(0, -1, 6, 4, new WingSpec(Ridge: RidgeAxis.AlongZ));
+        var refusal = WingJoints.Refusal(WingJoints.Between(hall, wing))!;
+
+        await Assert.That(refusal.Rule).IsEqualTo(WingJointRules.WingOvertops);
+        await Assert.That(refusal.Message).Contains("the wing (rectangle 1)");
+        await Assert.That(refusal.Message).Contains("the hall (rectangle 0)");
+    }
+
+    /// <summary>
     /// <b>Wings touch and never overlap.</b> A plan states its ground once, so two rectangles claiming the same
     /// cell have no account of whose walls stand there or whose roof covers it — and the joint a building is
     /// made at is the edge between them, which an overlap does not have.

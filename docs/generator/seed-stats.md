@@ -381,3 +381,27 @@ components = holes. Two passes: terrain only, and terrain ∪ zones (the closure
 always in orbit multiples; sizes 2–72 cells. The three formation mechanisms are in CT8
 (layout-rules.md). Author: the holes are the rotation device — loops around them give routes
 between lanes that don't retreat through a chokepoint.
+
+## Destroy-goal spawn distances (dtcm corpus sweep, 2026-08-14 — straight-line, retired unit)
+
+The 164-map sweep behind GO1's calibration context: 164 of 313 `dtcm` maps parsed from
+`CommunityMaps` and `PublicMaps`, 149 skipped where a spawn or goal region could not be resolved
+from the XML alone. **Every number is straight-line between region centroids — the retired unit
+(rules.md amendment 13) — and the sweep script is not in the repository**, so the table is kept
+here as the measurement it was, not as a band anything is held to; GO1's authored band [3.0, 4.0]
+is walk-based and does not derive from it.
+
+| Measure | p10 | median | p90 |
+|---|---|---|---|
+| Board width | 54 | 118 | 242 |
+| Board depth | 68 | 149 | 279 |
+| Spawn → own goal | 25.5 | 49.4 | 81.4 |
+| Enemy spawn → that goal | 85.1 | 135.2 | 233.7 |
+| **Ratio (enemy ÷ own)** | **1.4** | **2.9** | **5.0** |
+| Same-team goal separation (64 maps) | 16 | 48.9 | 95.4 |
+| Spawn to nearest board edge | 1.5 | 7.5 | 23 |
+
+Only 27 of 164 maps fall under a 2.0 ratio. The shape observation that travelled with the sweep:
+six of the eight `minuyo` boards have one dimension under 90 — a destroy board is a **lane** — so
+a square generated board produces a flat ratio by geometry, and moving goals on one treats the
+symptom (the destroy-native composer's concern, not GO1's).

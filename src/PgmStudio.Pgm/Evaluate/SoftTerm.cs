@@ -24,6 +24,12 @@ public abstract class SoftTerm : ILayoutTerm
     /// exceed the cap do not silently license it.</summary>
     public virtual bool LearnsFromTraced => true;
 
+    /// <summary>A band the author stated outright, taking precedence over anything the envelope generator
+    /// learned. Null for the ordinary term whose band is a distribution observed over the seeds; a term whose
+    /// band is a <em>ruling</em> — a number the author said, not one any corpus taught — states it here, so
+    /// the constant lives in the term beside the metric it bounds and no generated file can drift it.</summary>
+    public virtual Band? AuthoredBand => null;
+
     /// <summary>The piece/zone ids the metric implicates (for editor highlight); empty by default.</summary>
     protected virtual IReadOnlyList<string> Subjects(EvalContext ctx) => [];
 
@@ -35,8 +41,8 @@ public abstract class SoftTerm : ILayoutTerm
         var value = Value(ctx);
         if (value is null) return TermScores.Clean(this);
 
-        var band = ctx.Envelopes[Id];
-        if (band is null) return TermScores.Clean(this);   // no authored band yet → dormant, not a violation
+        var band = AuthoredBand ?? ctx.Envelopes[Id];
+        if (band is null) return TermScores.Clean(this);   // no band yet → dormant, not a violation
 
         var distance = band.Value.Distance(value.Value);
         if (distance <= 0.0) return TermScores.Clean(this);

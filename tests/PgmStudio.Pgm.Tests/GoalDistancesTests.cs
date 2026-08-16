@@ -5,9 +5,9 @@ namespace PgmStudio.Pgm.Tests;
 
 /// <summary>
 /// The destroy-goal walk read: own-spawn and enemy-spawn distances in blocks over the fanned closure, and
-/// the enemy÷own ratio. A measurement surface with no band of its own — what is asserted here is the
-/// geometry: the walk is the rectilinear traversal, the enemy leg crosses the axis onto the fanned image,
-/// and a goal the closure cannot reach answers null rather than a straight-line invention.
+/// the enemy÷own ratio. A measurement surface — the judging is GoalSpawnRatio's (GO1) — so what is asserted
+/// here is the geometry: the walk is the rectilinear traversal, the enemy leg crosses the axis onto the
+/// fanned image, and a goal the closure cannot reach answers null rather than a straight-line invention.
 /// </summary>
 public sealed class GoalDistancesTests
 {

@@ -37,6 +37,13 @@ public abstract record PlacedProp
     /// <summary>The seed every field this prop rolls is keyed on. Two props of the same kind and knobs at
     /// different seeds differ; the same prop always re-exports identically.</summary>
     public uint Seed { get; init; }
+
+    /// <summary>The clear ground this kind of prop keeps between its resting cells and the nearest road
+    /// cell, in blocks — a rule of the kind rather than a knob, which is why it is a property of the type
+    /// and not a stored field. Zero for most props: a road is a finish, and cover, water and buildings may
+    /// run right up to one. A tree and a boulder state their own (the author's ruling), because a trunk
+    /// against the kerb reads as the road growing through the forest rather than the road passing it.</summary>
+    public virtual int RouteStandoff => 0;
 }
 
 /// <summary>A route across the ground: the line the author drew and how wide a strip of it is paved. A path
@@ -192,6 +199,11 @@ public sealed record TreeProp : PlacedProp
     public TreeWood Timber => Form == TreeForm.Template
         ? DressingPalette.SpeciesNamed(Species).Wood
         : DressingPalette.WoodNamed(Wood);
+
+    /// <summary>A trunk stands off the road by three blocks (the author's ruling): nearer and the canopy
+    /// closes over the route, which stops reading as a road through trees and starts reading as trees in
+    /// the road.</summary>
+    public override int RouteStandoff => 3;
 }
 
 /// <summary>One boulder, half-buried where it was placed.</summary>
@@ -219,6 +231,11 @@ public sealed record BoulderProp : PlacedProp
     /// <summary>Whether moss creeps onto the sky-lit faces — the rock's own micro-flora, laid over whatever
     /// <see cref="Rock"/> resolved.</summary>
     public bool Mossy { get; init; } = true;
+
+    /// <summary>A rock keeps two blocks off the road (the author's ruling) — less than a tree because a rock
+    /// carries no canopy, more than zero because a boulder against the kerb narrows the route it was placed
+    /// beside.</summary>
+    public override int RouteStandoff => 2;
 }
 
 /// <summary>A stretch of ground that grows cover. The ring is drawn; what fills it is the density field of

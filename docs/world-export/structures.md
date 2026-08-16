@@ -408,7 +408,7 @@ a refused plan says which rule it broke rather than declining to stamp in silenc
 | `HJ2` | they touch over part of an edge only |
 | `HJ3` | both ridges run along the shared edge — two ranges side by side |
 | `HJ4` | both ridges run into it — one longer range |
-| `HJ5` | the wing stands taller than the hall it meets |
+| `HJ5` | the wing stands taller than the hall it meets — the refusal names which rectangle it derived as which, because the roles follow from the ridges (the wing's runs *into* the shared edge) and a stated `ridge` can swap them from what the drawing suggests |
 
 `HouseProp.Fault()` reports the id and a sentence in the terms the rectangles were drawn in; `Plan()`
 answers null for the same plans, so a build gets the plan or nothing.

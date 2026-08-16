@@ -643,7 +643,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   multi-target walk and the canonical square-ring snap, retiring the evaluator's hand-rolled BFS and
   converging four snap implementations at radii 2/3/4/6. A destroy goal now gates export traversability
   like a wool (the author's ruling), and `POST /plan/inspect` answers each goal's walk to its own and the
-  enemy's spawn with the enemy÷own ratio — a measurement surface until the author states the band (B188's
+  enemy's spawn with the enemy÷own ratio — banded the same day as GO1 [3.0, 4.0] (B188's
   fast half; B212's unit discipline). `tools/mapgen` builds through `MapExportComposer.ComposeSketch`, the
   export's own sketch leg, so a headless build passes OB17 (wool monuments now included), OB19 and the
   playability judgement instead of shipping past them. The refusal envelope's one shape moved to
@@ -655,6 +655,20 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   collapsed headings were repaired so its own structure stops misleading the next reader. Earlier the same
   session: `PL12` (mixed fanned/non-fanned landmass refused by name), the prop preview refusing `HJ*`/`HP*`
   compositions the build would drop, and the per-team objective line.
+- **The destroy-goal spawn ratio is banded: GO1, [3.0, 4.0] by walk (`B188`).** The `goal-spawn-ratio` soft
+  term scores each goal's enemy÷own spawn walk (via `GoalDistances`, the fanned-closure traversal) against
+  the band the author stated off the two shipped boards (3.0, 3.9); the band lives on the term
+  (`SoftTerm.AuthoredBand` — a ruling, not a learned envelope), and the old 164-map straight-line table
+  moved to `seed-stats.md` marked as the retired unit.
+- **Typed ground claims and the road standoff (`B232`).** The dressing pass's claim set carries who claimed
+  each cell (`GroundClaims`: water/route/structure/scatter), which is what lets a building ignore pavement
+  while colliding with everything else — and lets a prop kind state a standoff from the road:
+  `PlacedProp.RouteStandoff`, tree 3, boulder 2, everything else 0 (the author's numbers). A breach is a
+  reported drop naming the offending cell.
+- **A building carves the relief out of its own rooms (`B233`).** A house seats on the lowest column of its
+  footprint, and any terrain rising above that floor inside the footprint is excavated before the stamp —
+  so a house on a hillside or a relief mark sinks into the slope with its interior intact instead of the
+  hill standing through the rooms. Eave ring untouched, stamped columns left whole.
 - **A path's band never drops a building — the road runs to the porch (`B146`).** Paths are laid first, and
   their claim holds only against the scatter above the buildings: a house drawn across the pavement stands,
   its floor takes the ground inside its walls, and the path ends at the wall (the author's ruling). Trees,
