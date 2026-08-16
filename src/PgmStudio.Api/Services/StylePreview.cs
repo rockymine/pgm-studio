@@ -42,9 +42,15 @@ public static class StylePreview
     /// fact about it worth knowing before it is built.</para></summary>
     public static string PlanSvg(TerrainMaterial material, TerrainBucket bucket = TerrainBucket.Surface,
         int columns = 32, int cell = 4)
+        => PlanRaster(material, bucket, columns, cell).Svg();
+
+    /// <summary>The plan view as the picture it is, before an encoding is chosen — <see cref="CellRaster"/>
+    /// is what lets the SVG a card shows and the PNG an agent asks for be one derivation.</summary>
+    public static CellRaster PlanRaster(TerrainMaterial material, TerrainBucket bucket = TerrainBucket.Surface,
+        int columns = 32, int cell = 4)
     {
         var (arc, turn, run, inset) = Geometry(columns);
-        return SvgRaster.Raster(columns, columns, cell, (x, z) =>
+        return new CellRaster(columns, columns, cell, (x, z) =>
         {
             var (id, data) = material.Resolve(new BucketContext(
                 x, 0, z, bucket, DepthFromTop: 0, TeamOf(x, columns),
@@ -77,7 +83,12 @@ public static class StylePreview
     /// thicknesses are the bands they are. Same neutral | team split across the columns as the plan view.</summary>
     public static string SectionSvg(TerrainMaterial material, TerrainBucket bucket = TerrainBucket.Surface,
         int columns = 32, int courses = 10, int cell = 4)
-        => SvgRaster.Raster(columns, courses, cell, (x, depth) =>
+        => SectionRaster(material, bucket, columns, courses, cell).Svg();
+
+    /// <summary>The cut-open view as its raster, the <see cref="PlanRaster"/> sibling.</summary>
+    public static CellRaster SectionRaster(TerrainMaterial material, TerrainBucket bucket = TerrainBucket.Surface,
+        int columns = 32, int courses = 10, int cell = 4)
+        => new(columns, courses, cell, (x, depth) =>
         {
             // A section is a straight wall seen face on, so its geometry is honest by construction: walking
             // along it the arc advances with x, it never bends, and it runs along x the whole way — which is
@@ -150,6 +161,10 @@ public static class StylePreview
     /// <see cref="TerrainPainter.ColumnBlocks"/> the export writes from, so a rim depth, a disabled wall or a
     /// bedrock floor moves the picture exactly as it moves the world.</summary>
     public static string ThemeSectionSvg(TerrainTheme theme, int cell = 8)
+        => ThemeSectionRaster(theme, cell).Svg();
+
+    /// <summary>The theme's cut plateau as its raster, the <see cref="PlanRaster"/> sibling.</summary>
+    public static CellRaster ThemeSectionRaster(TerrainTheme theme, int cell = 8)
     {
         var courses = new string?[SampleTerrain.Width, SampleTerrain.Height];
         for (var x = 0; x < SampleTerrain.Width; x++)
@@ -160,9 +175,36 @@ public static class StylePreview
                 if (y >= 0 && y < SampleTerrain.Height) courses[x, y] = BlockPalette.Hex(id, data);
         }
         // The raster's rows run downward and a course index runs upward, so the top row is the tallest course.
-        return SvgRaster.Raster(SampleTerrain.Width, SampleTerrain.Height, cell,
+        return new CellRaster(SampleTerrain.Width, SampleTerrain.Height, cell,
             (x, row) => courses[x, SampleTerrain.Height - 1 - row]);
     }
+
+    /// <summary>One view of a material as PNG bytes, or null for a view name that is not one — the same two
+    /// views <see cref="Views(TerrainMaterial)"/> answers as SVG, at the same sizes.</summary>
+    public static byte[]? MaterialPng(TerrainMaterial material, string view)
+    {
+        var wide = IsAreaPattern(TerrainThemeComposer.KindOf(material));
+        return view switch
+        {
+            "plan" => (wide ? PlanRaster(material, columns: 72, cell: 2) : PlanRaster(material)).Png(),
+            "section" => (wide
+                ? SectionRaster(material, columns: 72, courses: 24, cell: 2)
+                : SectionRaster(material)).Png(),
+            _ => null,
+        };
+    }
+
+    /// <summary>One view of a theme as PNG bytes — <c>section</c> for the cut plateau, or a bucket name for
+    /// its swatch — or null for a view name that is neither.</summary>
+    public static byte[]? ThemePng(TerrainTheme theme, string view) => view switch
+    {
+        "section" => ThemeSectionRaster(theme).Png(),
+        ThemeBuckets.Rim => PlanRaster(theme.MaterialFor(TerrainBucket.Rim), TerrainBucket.Rim).Png(),
+        ThemeBuckets.Surface => PlanRaster(theme.MaterialFor(TerrainBucket.Surface), TerrainBucket.Surface).Png(),
+        ThemeBuckets.Wall => PlanRaster(theme.MaterialFor(TerrainBucket.Wall), TerrainBucket.Wall).Png(),
+        ThemeBuckets.Fill => PlanRaster(theme.MaterialFor(TerrainBucket.Fill), TerrainBucket.Fill).Png(),
+        _ => null,
+    };
 
     // The right half of any preview is team-owned land, the left neutral.
     private static int TeamOf(int x, int columns) => x < columns / 2 ? -1 : SampleTeam;

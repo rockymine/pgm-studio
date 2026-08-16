@@ -716,13 +716,17 @@ cliffs qualified, crossings measured in both directions, and the symmetry error.
 reach for first, because it is the only preview that says whether terrain is any *good* without an eye — it is
 what makes a relief correctable by a generator.
 
-**The finish previews draw, in SVG.** `POST /terrain/material-preview` and `/terrain/theme-preview` answer a
-material and a theme as they will paint — the theme as a cut-open sample plateau plus a top-down swatch per
-bucket. `POST /terrain/prop-preview` and the five card sets (`/terrain/path-styles`, `/water-forms`,
-`/boulder-forms`, `/species`, `/woods`) answer a prop as it will be built. `POST /room-styles/preview`, its
-`-snapshot` twin, and `/roof-styles/preview`, `/storey-styles/preview`, `/porch-styles/preview` answer a
-building in plan, section, isometric and cutaway. All of them return **SVG text inside JSON**, so an agent
-gets markup it must render to look at.
+**The finish previews draw, in SVG — or as PNG on request.** `POST /terrain/material-preview` and
+`/terrain/theme-preview` answer a material and a theme as they will paint — the theme as a cut-open sample
+plateau plus a top-down swatch per bucket. `POST /terrain/prop-preview` and the five card sets
+(`/terrain/path-styles`, `/water-forms`, `/boulder-forms`, `/species`, `/woods`) answer a prop as it will be
+built. `POST /room-styles/preview`, its `-snapshot` twin, and `/roof-styles/preview`, `/storey-styles/preview`,
+`/porch-styles/preview` answer a building in plan, section, isometric and cutaway. The default is **SVG text
+inside JSON**, which the client renders inline — and the three finish previews also answer
+**`?format=png&view=…`** with one named view as raw `image/png` bytes, the form an agent saves and looks at:
+`view=plan|section` on `material-preview` and `prop-preview`, `view=section|rim|surface|wall|fill` on
+`theme-preview`. Both encodings come off one `CellRaster` per picture, so they cannot disagree; a view name an
+endpoint does not have is a 400 naming the ones it does.
 
 **After Finish**, the map holds rasterized world geometry and three more reads open up:
 `GET /map/{slug}/layers/top-surface` for the per-column surface colours, `GET /map/{slug}/segments` and

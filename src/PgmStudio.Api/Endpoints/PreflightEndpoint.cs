@@ -71,7 +71,7 @@ public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, Feat
         var travDto = new TraversabilityDto(
             trav.Connected, trav.ComponentCount, trav.Severity, trav.Message, trav.HaveLayers,
             trav.Points.Select(p => new NavPointDto(p.Kind, p.Name, p.X, p.Z, p.Component)).ToList(),
-            trav.Isolated.Select(i => new IsolatedPointDto(i.Kind, i.Name)).ToList());
+            trav.Isolated.Select(i => new IsolatedPointDto(i.Kind, i.Name, i.For)).ToList());
 
         await Send.OkAsync(new PreflightDto(
             true, exportReady,
@@ -122,7 +122,7 @@ public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, Feat
         if (trav.Connected)
             return new("traversability", "Traversability", "pass",
                 trav.HaveLayers ? "spawn ↔ objective chain connected across the build geometry" : "spawn ↔ objective chain connected (region centres)");
-        var isolated = string.Join(" · ", trav.Isolated.Select(i => i.Name).Take(6));
+        var isolated = string.Join(" · ", trav.Isolated.Select(i => i.For is { } team ? $"{i.Name} (for {team})" : i.Name).Take(6));
         return new("traversability", "Traversability", "fail",
             isolated.Length > 0 ? $"not connected — isolated: {isolated}. Add a bridge in Build" : trav.Message);
     }

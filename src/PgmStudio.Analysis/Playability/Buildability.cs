@@ -98,15 +98,7 @@ public static class Buildability
         bool[]? Mask(object? refVal)
         {
             if (refVal is null) { var all = new bool[n]; Array.Fill(all, true); return all; }
-            var region = refVal is string s ? regions.GetValueOrDefault(s) as Dict : refVal as Dict;
-            var geom = RegionGeometry2d.ToGeometry(region, boundsD, regions);
-            if (geom is null || geom.IsEmpty) return null;
-            var prep = PreparedGeometryFactory.Prepare(geom);
-            var mask = new bool[n];
-            for (var iz = 0; iz < nz; iz++)
-            for (var ix = 0; ix < nx; ix++)
-                mask[iz * nx + ix] = prep.CoversCell(minX + ix, minZ + iz);
-            return mask;
+            return RegionMask(refVal, regions, boundsD, minX, minZ, nx, nz);
         }
 
         foreach (var rule in rules)
@@ -136,6 +128,23 @@ public static class Buildability
         var counts = new Dictionary<string, int>();
         for (byte c = 0; c < Classes.Length; c++) counts[Classes[c]] = verdict.Count(v => v == c);
         return new Result(minX, minZ, maxX, maxZ, nx, nz, verdict, counts, hasY0);
+    }
+
+    /// <summary>One region's footprint over a grid, as a cell mask — the rasterization every apply-rule reader
+    /// shares, so an enter rule and a block rule cannot disagree about which cells a region covers. Null where
+    /// the reference resolves to no geometry.</summary>
+    internal static bool[]? RegionMask(object? refVal, Dict regions,
+        (double, double, double, double) bounds, int minX, int minZ, int nx, int nz)
+    {
+        var region = refVal is string s ? regions.GetValueOrDefault(s) as Dict : refVal as Dict;
+        var geom = RegionGeometry2d.ToGeometry(region, bounds, regions);
+        if (geom is null || geom.IsEmpty) return null;
+        var prep = PreparedGeometryFactory.Prepare(geom);
+        var mask = new bool[nx * nz];
+        for (var iz = 0; iz < nz; iz++)
+        for (var ix = 0; ix < nx; ix++)
+            mask[iz * nx + ix] = prep.CoversCell(minX + ix, minZ + iz);
+        return mask;
     }
 
     private static Dict AsDict(object? o) => o as Dict ?? new Dict();

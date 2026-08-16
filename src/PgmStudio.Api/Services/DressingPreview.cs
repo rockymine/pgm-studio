@@ -54,6 +54,23 @@ public static class DressingPreview
     /// happens to stand.</summary>
     public static DressingPreviewDto Views(PlacedProp prop, TerrainTheme theme, int cell = 5)
     {
+        var (plan, section, counts) = Rasters(prop, theme, cell);
+        return new DressingPreviewDto(plan.Svg(), section.Svg(), counts);
+    }
+
+    /// <summary>One view of a placed prop as PNG bytes — <c>plan</c> from above, <c>section</c> from the
+    /// side — or null for a view name that is neither. The same dressed patch <see cref="Views"/> draws.</summary>
+    public static byte[]? Png(PlacedProp prop, TerrainTheme theme, string view, int cell = 5)
+    {
+        var (plan, section, _) = Rasters(prop, theme, cell);
+        return view switch { "plan" => plan.Png(), "section" => section.Png(), _ => null };
+    }
+
+    /// <summary>Both views as the pictures they are, encoding unchosen — plus what the pass placed. One
+    /// dressed patch feeds both, so the two encodings can never disagree about what stood on it.</summary>
+    private static (CellRaster Plan, CellRaster Section, DressingCountsDto Counts) Rasters(
+        PlacedProp prop, TerrainTheme theme, int cell)
+    {
         // A marker is a few blocks across and an area is dozens, so one sample size would draw either a rock
         // as four pixels or a meadow cropped to a corner. The patch is sized to the prop.
         var span = SpanFor(prop);
@@ -61,14 +78,14 @@ public static class DressingPreview
         var (from, to) = Inside(span);
 
         // From above: each cell's highest block, so paving, plants, rock and canopy all show where they fall.
-        var plan = SvgRaster.Raster(to - from + 1, to - from + 1, cell, (x, z) => Highest(world, from + x, from + z));
+        var plan = new CellRaster(to - from + 1, to - from + 1, cell, (x, z) => Highest(world, from + x, from + z));
 
         // Seen from the side, cropped to what is actually there — a fixed sky would draw a path as one grey
         // line under forty courses of nothing, and the point of the view is the prop's proportions.
         var view = BlockSideView.Project(world, from, to, from, to, GroundFrom, GroundTop + SkyCourses);
-        var section = SectionSvg(view, TopCourse(view), cell);
+        var section = SectionRaster(view, TopCourse(view), cell);
 
-        return new DressingPreviewDto(plan, section,
+        return (plan, section,
             new DressingCountsDto(placed.Plants, placed.Boulders, placed.Trees, placed.PathCells, placed.WaterCells));
     }
 
@@ -199,7 +216,10 @@ public static class DressingPreview
     /// <summary>One side view as an SVG, drawn top course down. The raster's rows run down and a course runs
     /// up, which is the one flip in the whole view.</summary>
     private static string SectionSvg(SideViewProjection view, int top, int cell)
-        => SvgRaster.Raster(view.Columns, top - GroundFrom + 1, cell, (column, screenRow) =>
+        => SectionRaster(view, top, cell).Svg();
+
+    private static CellRaster SectionRaster(SideViewProjection view, int top, int cell)
+        => new(view.Columns, top - GroundFrom + 1, cell, (column, screenRow) =>
             view.At(view.FromX + column, top - screenRow) is { } block
                 ? BlockPalette.Hex(block.Id, block.Data, block.Depth)
                 : null);

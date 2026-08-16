@@ -13,6 +13,7 @@ namespace PgmStudio.Api.Tests;
 /// rather than by the bytes it drew. <see cref="PgmStudio.Export.Tests.DressingScopeTests"/> is the sibling
 /// for what an author placed, what the pass must leave bare, and how the map is mirrored.
 /// </summary>
+[NotInParallel("api-db")]
 public sealed class DressingPreviewTests
 {
     private static HashSet<string> Fills(string svg)
@@ -34,6 +35,46 @@ public sealed class DressingPreviewTests
         // generic plant green.
         await Assert.That(Fills(views.Plan)).Contains(BlockPalette.Hex(DressingPalette.RedFlower, 0));
         await Assert.That(Fills(views.Plan)).Contains(BlockPalette.Hex(DressingPalette.YellowFlower, 0));
+    }
+
+    [Test]
+    public async Task A_preview_can_be_asked_for_as_a_png_of_either_view()
+    {
+        // format=png answers one named view as image/png bytes — the form an agent saves and looks at —
+        // while the JSON-of-SVGs default stays what the client renders inline. The bytes are checked by the
+        // PNG signature, which is what says an image and not an error envelope came back.
+        using var client = ApiTestFactory.Shared.CreateClient();
+        const string prop = """
+        {"propJson": "{\"kind\":\"tree\",\"id\":\"t\",\"seed\":5,\"x\":0,\"z\":0,\"species\":\"oak\",\"height\":14}"}
+        """;
+
+        foreach (var view in (string[])["plan", "section"])
+        {
+            var resp = await client.PostAsync($"/api/terrain/prop-preview?format=png&view={view}",
+                new StringContent(prop, System.Text.Encoding.UTF8, "application/json"));
+            await Assert.That(resp.StatusCode).IsEqualTo(System.Net.HttpStatusCode.OK);
+            await Assert.That(resp.Content.Headers.ContentType!.MediaType).IsEqualTo("image/png");
+            var bytes = await resp.Content.ReadAsByteArrayAsync();
+            await Assert.That(bytes.Take(4)).IsEquivalentTo(new byte[] { 0x89, (byte)'P', (byte)'N', (byte)'G' });
+        }
+
+        // a view the endpoint does not have is a 400, not a guess
+        var bad = await client.PostAsync("/api/terrain/prop-preview?format=png&view=sideways",
+            new StringContent(prop, System.Text.Encoding.UTF8, "application/json"));
+        await Assert.That(bad.StatusCode).IsEqualTo(System.Net.HttpStatusCode.BadRequest);
+    }
+
+    [Test]
+    public async Task A_material_preview_can_be_asked_for_as_a_png()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var resp = await client.PostAsync("/api/terrain/material-preview?format=png&view=section",
+            new StringContent("""{"kind":"solid","id":1,"data":0}""", System.Text.Encoding.UTF8, "application/json"));
+
+        await Assert.That(resp.StatusCode).IsEqualTo(System.Net.HttpStatusCode.OK);
+        await Assert.That(resp.Content.Headers.ContentType!.MediaType).IsEqualTo("image/png");
+        var bytes = await resp.Content.ReadAsByteArrayAsync();
+        await Assert.That(bytes.Take(4)).IsEquivalentTo(new byte[] { 0x89, (byte)'P', (byte)'N', (byte)'G' });
     }
 
     [Test]

@@ -138,7 +138,9 @@ public static class CorpusGoldens
     private static string DescribeTraversability(Traversability.Result r)
     {
         var detail = r.Points.Select(p => $"{p.Kind}\t{p.Name}\t{p.X},{p.Z}\tc{p.Component}")
-            .Concat(r.Isolated.Select(p => $"isolated\t{p.Kind}\t{p.Name}"))
+            .Concat(r.Isolated.Select(p => p.For is { } team
+                ? $"isolated\t{p.Kind}\t{p.Name}\tfor:{team}"
+                : $"isolated\t{p.Kind}\t{p.Name}"))
             .Append($"layers={r.HaveLayers}").Append(r.Message);
         return Digest(string.Join("\n", detail),
             $"connected={r.Connected} components={r.ComponentCount} points={r.Points.Count} {r.Severity}");

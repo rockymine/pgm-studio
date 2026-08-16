@@ -179,6 +179,91 @@ public sealed class TraversabilityTests
     }
 
     [Test]
+    public async Task A_goal_behind_an_oversized_spawn_protection_refuses_for_the_team_it_bars()
+    {
+        // The one way a small floating goal genuinely becomes unreachable (the author's ruling): the ground
+        // its approach crosses carries an enter rule barring the attacking team. The whole-map navigability
+        // cannot see it — the surface connects — so the per-team pass walks red's own map, with the cells
+        // blue's protection denies red taken out, and finds the wool cut off.
+        var regions = new Dict
+        {
+            ["red-spawn"] = Rect(0, 0, 4, 4),
+            ["blue-prot"] = Rect(24, -5, 34, 15),
+        };
+        Dict Data(bool withProtection) => new()
+        {
+            ["regions"] = regions,
+            ["filters"] = new Dict { ["only-blue"] = new Dict { ["type"] = "team", ["team"] = "blue" } },
+            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["region"] = "red-spawn" } },
+            ["wools"] = new List<object?>
+            {
+                new Dict { ["color"] = "blue", ["team"] = "blue", ["location"] = Xz(30, 2) },
+            },
+            ["apply_rules"] = withProtection
+                ? new List<object?> { new Dict { ["region"] = "blue-prot", ["enter"] = "only-blue" } }
+                : new List<object?>(),
+        };
+        var surface = new HashSet<(int, int)>();
+        for (var x = 0; x < 34; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
+
+        var open = Traversability.Check(Data(withProtection: false), surface, null, bbox: (-5, -5, 40, 15));
+        await Assert.That(open.Connected).IsTrue();
+
+        var barred = Traversability.Check(Data(withProtection: true), surface, null, bbox: (-5, -5, 40, 15));
+        await Assert.That(barred.Connected).IsFalse();
+        var wool = barred.Isolated.Single();
+        await Assert.That(wool.Kind).IsEqualTo("wool");
+        await Assert.That(wool.For).IsEqualTo("red");
+        await Assert.That(barred.Message).Contains("enter rule");
+    }
+
+    [Test]
+    public async Task A_teams_own_protections_are_never_its_own_fault()
+    {
+        // The two denials every properly wired map carries: a wool room barring its defender (enter=not-owner)
+        // and a spawn protection admitting only its own team. Neither is a fault — the defender is never
+        // required to reach its own wool, and a team is not barred by its own protection — so the verdict
+        // holds connected with both rules live.
+        var regions = new Dict
+        {
+            ["red-spawn"] = Rect(0, 0, 4, 4),
+            ["blue-spawn"] = Rect(8, 0, 12, 4),
+            ["wool-room"] = Rect(28, 0, 33, 4),
+        };
+        var data = new Dict
+        {
+            ["regions"] = regions,
+            ["filters"] = new Dict
+            {
+                ["only-red"] = new Dict { ["type"] = "team", ["team"] = "red" },
+                ["only-blue"] = new Dict { ["type"] = "team", ["team"] = "blue" },
+                ["not-blue"] = new Dict { ["type"] = "not", ["child"] = "only-blue" },
+            },
+            ["spawns"] = new List<object?>
+            {
+                new Dict { ["team"] = "red", ["region"] = "red-spawn" },
+                new Dict { ["team"] = "blue", ["region"] = "blue-spawn" },
+            },
+            ["wools"] = new List<object?>
+            {
+                new Dict { ["color"] = "blue", ["team"] = "blue", ["location"] = Xz(30, 2) },
+            },
+            ["apply_rules"] = new List<object?>
+            {
+                new Dict { ["region"] = "wool-room", ["enter"] = "not-blue" },
+                new Dict { ["region"] = "red-spawn", ["enter"] = "only-red" },
+            },
+        };
+        var surface = new HashSet<(int, int)>();
+        for (var x = 0; x < 34; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
+
+        var res = Traversability.Check(data, surface, null, bbox: (-5, -5, 40, 15));
+
+        await Assert.That(res.Connected).IsTrue();
+        await Assert.That(res.Isolated).IsEmpty();
+    }
+
+    [Test]
     public async Task An_unreachable_destroyable_gates_the_verdict_like_a_wool()
     {
         // Spawn and wool sit on a connected surface; a destroyable's region sits off in the void with no

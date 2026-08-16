@@ -357,7 +357,9 @@ a `layered` stack pointed `inward` draws concentric rings and answers its fallba
 `voronoi` reads position alone and works anywhere. The list and the field names are read off the painter's own
 types, so a kind cannot be offered that the parser would reject.
 
-`reads` is also what the pictures route on. `/terrain/material-preview` answers a **plan** and a **section**,
+`reads` is also what the pictures route on. `/terrain/material-preview` answers a **plan** and a **section**
+(SVG in JSON by default; `?format=png&view=plan|section` answers one view as an `image/png` an agent can save
+and look at, and `theme-preview`/`prop-preview` take the same query),
 and a kind that varies along the perimeter and not across the ground is carded as the section, because an
 elevation is what a wall material is seen as. The plan swatch traces its own square through the same boundary
 walk a footprint gets, so the arc, the bend, the run and the inset a preview cell reports are the ones the

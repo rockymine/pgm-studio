@@ -464,22 +464,6 @@ by `HousePropRules.PastCap` and is not filed.
   plane sees solid beyond it and is not drawn — a box restriction leaves the cut open unless out-of-box reads
   as air. Whole-house stays the default view; the focus is what the open part editor frames.
 
-- [ ] **B230 — Per-team, protection-aware traversability: a goal behind an oversized spawn protection.**
-  The one way a monument or core genuinely becomes unreachable (the author, 2026-08-16): the objective sits
-  inside — or behind — a spawn's protection region, which bars the attacking team the way a wool room's
-  protection bars its defenders. Today's gate judges one navigability map for both teams and reads no
-  protection regions, so this case passes. The fix is per-team: subtract the regions that deny *that* team
-  from its navigable set before the component check — spawn protections against attackers, wool-room
-  protections against defenders — and gate each team's walk to the goals it must reach. Needs the
-  region→team filter semantics read out of the intent (`deny` filters naming a team), not guessed from names.
-
-- [ ] **B231 — Preview endpoints answer PNG, not only SVG.** `GET /terrain/patterns`, `/shapes/probe`,
-  the prop preview and the surface report all render for an agent-driven loop, and an agent reads a PNG
-  directly while an SVG needs a rasterizer it may not have (the author's suggestion; the surface reports
-  already answer PNG). Offer `?format=png` on the SVG preview endpoints — one shared SVG→bitmap leg or a
-  direct bitmap render where the SVG is itself derived — keeping SVG the default so the client's inline
-  rendering is untouched.
-
 - [ ] **B229 — `map-layers` passes alone and fails in the suite, on state an earlier spec leaves behind.**
   `./tools/e2e.sh map-layers` is 18/18; `./tools/e2e.sh all` is 13/14, reproducibly, on an idle machine — so
   it is not the contention that makes a starved VM invent 30s route timeouts. The check that fails is *the

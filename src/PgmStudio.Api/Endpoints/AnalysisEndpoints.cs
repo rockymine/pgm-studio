@@ -83,7 +83,7 @@ public sealed class TraversabilityEndpoint(MapRepository repo, MapReader reader,
         await Send.OkAsync(new TraversabilityDto(
             res.Connected, res.ComponentCount, res.Severity, res.Message, res.HaveLayers,
             res.Points.Select(p => new NavPointDto(p.Kind, p.Name, p.X, p.Z, p.Component)).ToList(),
-            res.Isolated.Select(i => new IsolatedPointDto(i.Kind, i.Name)).ToList()), ct);
+            res.Isolated.Select(i => new IsolatedPointDto(i.Kind, i.Name, i.For)).ToList()), ct);
     }
 }
 

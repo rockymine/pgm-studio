@@ -9,7 +9,9 @@ public sealed record BuildabilityDto(
     IReadOnlyDictionary<string, int> Counts, IReadOnlyList<string> Rows, bool HasY0);
 
 public sealed record NavPointDto(string Kind, string Name, int X, int Z, int Component);
-public sealed record IsolatedPointDto(string Kind, string Name);
+/// <summary><c>For</c> names the team an entry denial cut the point off from, where that is the cause —
+/// null where the whole map's navigability fails to reach it, whoever walks.</summary>
+public sealed record IsolatedPointDto(string Kind, string Name, string? For = null);
 
 /// <summary>GET /api/map/{slug}/traversability — spawn↔wool connectivity over the navigability map.</summary>
 public sealed record TraversabilityDto(

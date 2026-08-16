@@ -660,6 +660,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   the band the author stated off the two shipped boards (3.0, 3.9); the band lives on the term
   (`SoftTerm.AuthoredBand` — a ruling, not a learned envelope), and the old 164-map straight-line table
   moved to `seed-stats.md` marked as the retired unit.
+- **Protection regions gate traversability per team (`B230`).** Where an `enter` rule provably denies a team
+  entry somewhere, that team walks its own navigable set — the shared one minus its denied cells — from its
+  spawns to every goal it does not own, so a goal tucked behind an oversized spawn protection refuses with
+  the barred team named (`IsolatedPoint.For`, carried through the DTO, the preflight line, the `EX1`
+  subjects and the goldens). A defender barred from its own wool room is by design and never required
+  there; an unresolvable filter denies nobody, so exotic wiring can only under-refuse.
+- **The finish previews answer PNG (`B231`).** `?format=png&view=…` on `material-preview`, `theme-preview`
+  and `prop-preview` returns one named view as raw `image/png` — the form an agent saves and looks at —
+  encoded by the studio's own `PngWriter` off the same `CellRaster` the SVG comes from, so the two
+  encodings are one picture by construction.
 - **Every band and standoff is answerable through the rules API (`B234`).** `GET /api/rules/terms` serves
   each evaluator term with the band it is scoring against right now and where it came from
   (`authored`/`envelope`/`none`), read through the scorer's own resolution so the served number is the

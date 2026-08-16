@@ -64,9 +64,29 @@ internal static class RawBody
     }
 }
 
+/// <summary>The <c>?format=png&amp;view=…</c> half every preview endpoint shares: SVG-in-JSON is the default
+/// the client renders inline, and <c>format=png</c> answers one named view as <c>image/png</c> bytes instead —
+/// the form an agent saves and looks at. The view names are each endpoint's own; a name it does not have is a
+/// 400 naming the ones it does.</summary>
+internal static class PngAnswer
+{
+    public static bool Wanted(HttpContext http) =>
+        string.Equals(http.Request.Query["format"], "png", StringComparison.OrdinalIgnoreCase);
+
+    public static string View(HttpContext http, string fallback) =>
+        http.Request.Query["view"].FirstOrDefault() ?? fallback;
+
+    public static async Task WriteAsync(HttpContext http, byte[] png, CancellationToken ct)
+    {
+        http.Response.ContentType = "image/png";
+        await http.Response.Body.WriteAsync(png, ct);
+    }
+}
+
 /// <summary>POST /api/terrain/material-preview — body is one serialized <c>TerrainMaterial</c>; returns both
 /// views of it (top-down and cut open). What a style editor re-renders on every edit — see
-/// <see cref="StylePreview"/> for why one material needs two views.</summary>
+/// <see cref="StylePreview"/> for why one material needs two views. <c>?format=png&amp;view=plan|section</c>
+/// answers that one view as PNG bytes instead.</summary>
 public sealed class MaterialPreviewEndpoint : EndpointWithoutRequest
 {
     public override void Configure() { Post("/terrain/material-preview"); AllowAnonymous(); }
@@ -77,6 +97,17 @@ public sealed class MaterialPreviewEndpoint : EndpointWithoutRequest
         try
         {
             var material = TerrainThemeJson.DeserializeMaterial(json, out var unread);
+            if (PngAnswer.Wanted(HttpContext))
+            {
+                if (StylePreview.MaterialPng(material, PngAnswer.View(HttpContext, "plan")) is not { } png)
+                {
+                    AddError("view must be plan or section");
+                    await Send.ErrorsAsync(400, ct);
+                    return;
+                }
+                await PngAnswer.WriteAsync(HttpContext, png, ct);
+                return;
+            }
             await Send.OkAsync(StylePreview.Views(material) with { Warnings = Refusals.Unread(unread) }, ct);
         }
         catch (JsonException ex) { await Refusals.UnreadableAsync(HttpContext, "invalid material JSON", ex, ct); }
@@ -96,6 +127,17 @@ public sealed class ThemePreviewEndpoint : EndpointWithoutRequest
         try
         {
             var theme = TerrainThemeJson.Deserialize(json, out var unread);
+            if (PngAnswer.Wanted(HttpContext))
+            {
+                if (StylePreview.ThemePng(theme, PngAnswer.View(HttpContext, "section")) is not { } png)
+                {
+                    AddError("view must be section or a bucket name (rim, surface, wall, fill)");
+                    await Send.ErrorsAsync(400, ct);
+                    return;
+                }
+                await PngAnswer.WriteAsync(HttpContext, png, ct);
+                return;
+            }
             await Send.OkAsync(StylePreview.ThemeViews(theme) with { Warnings = Refusals.Unread(unread) }, ct);
         }
         catch (JsonException ex) { await Refusals.UnreadableAsync(HttpContext, "invalid theme JSON", ex, ct); }
@@ -138,6 +180,17 @@ public sealed class PropPreviewEndpoint : Endpoint<PropPreviewRequest, DressingP
             return;
         }
 
+        if (PngAnswer.Wanted(HttpContext))
+        {
+            if (DressingPreview.Png(prop, theme, PngAnswer.View(HttpContext, "plan")) is not { } png)
+            {
+                AddError("view must be plan or section");
+                await Send.ErrorsAsync(400, ct);
+                return;
+            }
+            await PngAnswer.WriteAsync(HttpContext, png, ct);
+            return;
+        }
         await Send.OkAsync(DressingPreview.Views(prop, theme), ct);
     }
 }

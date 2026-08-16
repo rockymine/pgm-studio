@@ -62,7 +62,9 @@ public static class MapExportComposer
                 return Refuse("not traversable",
                 [
                     new Finding(ExportRules.NotTraversable, trav.Message,
-                        Subjects: [.. trav.Isolated.Select(isolated => $"{isolated.Kind} {isolated.Name}")]),
+                        Subjects: [.. trav.Isolated.Select(isolated => isolated.For is { } team
+                            ? $"{isolated.Kind} {isolated.Name} (for {team})"
+                            : $"{isolated.Kind} {isolated.Name}")]),
                 ]);
         }
 

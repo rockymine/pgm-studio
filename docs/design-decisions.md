@@ -83,6 +83,24 @@ with the same `EX1` an isolated wool does.
 - *Enforced:* `Analysis/Playability/Traversability.cs` (`NavigationPoints` reads all four kinds;
   `Check`'s `gating` list is spawn/wool/destroyable/core).
 
+### Protection regions gate traversability per team
+One navigability map cannot see the one way a small floating goal genuinely becomes unreachable: an
+`enter` rule barring the attacking team from the ground its approach crosses — a goal tucked behind an
+oversized spawn protection (the author's ruling; the same conversation that settled goal gating). So
+where a map's apply rules provably deny a team entry somewhere, `Traversability.Check` walks that team's
+own navigable set — the shared one minus its denied cells — from its spawns to every goal it does not
+own, and an unreached goal refuses with the team named (`IsolatedPoint.For`).
+
+- *Two denials every properly wired map carries are not faults:* a wool room barring its own defender
+  (`enter=not-<owner>`) — the defender is never required to reach its own wool — and a spawn protection
+  admitting only its own team, which cannot cut off the team it admits.
+- *The filter reader is deliberately permissive:* a team filter answers by its team, the boolean wrappers
+  compose, and anything unresolvable answers "allowed" — an exotic wiring can only under-refuse, never
+  invent a barred region that is not there.
+- *Enforced:* `Traversability.TeamIsolations` + `AllowsTeam`; the entry-denial rasterization is
+  `Buildability.RegionMask`, the same one the block rules read, so two rule readers cannot disagree about
+  which cells a region covers.
+
 ### A water lane is not a route; an open build zone over void is
 Before the lane timer fills it, a water lane is a void a player falls into — the water arrives
 (y0→y1) at the 45-minute mark, and a map that needs the lane to reach an objective would be
