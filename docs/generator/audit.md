@@ -8,11 +8,12 @@ An entry **leaves this file when its fix lands** (the commit references its id).
 rule kind (`model.md` §7, *Every rule is one kind*) the fix belongs to, because most of these are not bugs in a mechanism
 — they are **missing rules that the taxonomy already has an address for**.
 
-**Provenance.** The frequency measurements come from a 4-preset × 200-seed probe of
-`Allocate → Fill` (small/mid/big/huge, as in `tools/compose/unit-gallery.cs`), run by
-`tools/compose/seat-probe.cs` — **re-run it to re-measure**. Measurements are dated; the structural
-claims below were re-verified against the code on 2026-07-27. Before trusting a number, check the
-date and re-run.
+**Provenance.** The frequency measurements come from a 4-preset × 200-seed probe of `Allocate → Fill`
+(small/mid/big/huge), swept over `Composer` and counted per finding — a scratch pass, not a checked-in
+harness, so **re-measuring means writing it again against today's code**, which is the point: a number
+re-derived from a stale script is worse than one re-derived from scratch. Measurements are dated; the
+structural claims below were re-verified against the code on 2026-07-27. Before trusting a number, check the
+date and re-measure.
 
 ---
 
@@ -79,7 +80,7 @@ means no runtime path rejects a pinch, and `CornerClearanceCells = 0` is the con
 ## 4. Laws the placement does not honour
 
 Measured over 400 seeds × 4 presets on the **placed rooms** (not the boxes), in blocks. *Measured
-2026-07-22 — re-run `seat-probe.cs` before citing.*
+2026-07-22 — re-measure before citing.*
 
 - **WL7 — wool↔wool separation. Systematically violated.** The law records a corpus of 46–143 blocks
   with a working minimum ≈45. The composer produced **min 21, median 41–55, max 87–98**, with

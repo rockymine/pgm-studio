@@ -113,8 +113,7 @@ unchanged at 35 — and, because a frame candidate sets `anchored`, killing the 
 **Bound the geometry pass — it is a genuine last resort.** The `LabelKind.None` fallback iterates every
 non-air block, which is fine over an author's box and catastrophic over a whole world: untuned, thunder
 gathered **2193** candidates, about 99% of them exposed stained-clay terrain. Two bounds fix it, both
-corpus-validated at **zero real-monument loss** over 593 monuments across 145 maps
-(`scripts/monument_pedestal_rule.py`).
+corpus-validated at **zero real-monument loss** over 593 monuments across 145 maps.
 
 *Skip geometry entirely when the map has anchors* — an `IsMonumentLabel` sign, or a wool-head or named armour
 stand. Geometry is only ever scored for `Label=None`, which no author declares on a labelled map. This alone

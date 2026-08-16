@@ -32,9 +32,8 @@ public readonly record struct WaterCell(int X, int Z, int Depth);
 /// </summary>
 public static class WaterBed
 {
-    // These are the decoration prototype's own channel constants (tools/decorate/prototype.html §5). Parity with
-    // it is the contract: the width and shore laws below are its `drawChannel`/`shoreWidth`, so the bed and beach
-    // the export cuts are the ones the prototype draws.
+    // The channel constants the bed and beach are cut to, stated once here because the width and shore laws
+    // below all read them (`docs/world-export/decoration.md` §5).
     private const double StreamBeat = 0.42;    // radians of the width sine per block of arc — a pinch every ~π/beat ≈ 7.5 blocks
     private const double StreamDepth = 0.6;    // a stream runs this much of a canal's depth throughout
     private const int WidthNoiseScale = 5;     // blocks per wander of the natural/stream edge wobble

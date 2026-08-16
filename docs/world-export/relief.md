@@ -13,8 +13,8 @@ owns no rule-id family of its own: the elevation law a relief is measured agains
 **EL1–EL7**, the way `terrain-painting.md` owns `TP*` and `structures.md` owns `WX*`.
 
 The model was worked out against a live prototype, `tools/relief`, whose every figure is rendered by the
-algorithms described here. Read it alongside this document the way `tools/decorate/prototype.html` reads
-alongside `decoration.md`: when the prose and the prototype disagree, suspect the prose. Every number quoted
+algorithms described here. Read it alongside this document: when the prose and the prototype disagree,
+suspect the prose. Every number quoted
 below is printed by that tool, at the footprint sizes maps are actually built at — a 45×30 room, a 90×135 team
 board, a 192×128 whole map.
 

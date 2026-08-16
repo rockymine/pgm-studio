@@ -736,8 +736,9 @@ it found it.
 What a style never touches: the **platform** under a room (`StampFoundation`'s bedrock column, ST1) and the
 **entrance redstone line** (ST1) belong to the plan-derived structures, not to a shell.
 
-`tools/compose/house-showcase.cs` is this section's live twin — every figure in it is stamped by the real
-`HouseStamper` and read back out of the world, so when the prose and the showcase disagree, suspect the prose.
+Check this section against the studio: the house-part library previews stamp a draft through the real
+`HouseStamper` and read it back out of the world, so where the prose here and the preview disagree, suspect
+the prose.
 
 
 ## 8. The library
@@ -774,8 +775,8 @@ an isometric runs tens of kilobytes, which is nothing for the one style an edito
 grid of them. The four views are drawn for the open editor only.
 
 The renderers themselves live in `PgmStudio.Minecraft.Views`, below both things that draw with them: the
-studio's library previews and `tools/compose/house-showcase.cs`. They have to agree about what a building looks
-like, and a picture one gets right and the other gets wrong is worse than either being wrong alone.
+studio's library previews. Anything else drawing a building draws with them too — a picture one renderer gets
+right and another gets wrong is worse than either being wrong alone.
 
 The door picker is **served, never restated** (`/api/room-styles/doors` from `Domain.DoorMaterials`). A
 client-side copy of the four choices is the one way a door could come to be offered that the wool-room filter

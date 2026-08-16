@@ -544,9 +544,8 @@ the stat corpus.
   touching only at a corner come out as a single unbroken staircase. A pocket ringed by regions that
   merely stand around it is outlined too, a side at a time, each side cut back by the clearance to the
   region diagonally beside it. The rule is scale-free — every length follows the zone and the board's
-  cell size. Evidence: the teaching seed `tools/seeds/teaching/build-region-examples.plan.json`;
-  `dotnet run tools/deriver/build-marker-check.cs <plan.json> [--svg out.svg]` draws what a plan would
-  export.
+  cell size. Evidence: the teaching seed `tools/seeds/teaching/build-region-examples.plan.json`, whose
+  markers are what a plan of that shape exports.
 - **ST6 [author]** *Destroyable platform*: a **5×5, one-block-thick bedrock plate**, seated **one
   course beneath the ground's own surface block** under each destroyable — never thicker, which
   would read as a wall grown out of the floor rather than a plate under it. It stops the goal being

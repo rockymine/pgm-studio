@@ -101,8 +101,8 @@ anyway. Anything engine-specific has to be checked on a real machine; `tools/pai
 ## If you don't need the DB
 Much of the analysis work needs **no database**. `tools/PgmStudio.RoundTrip` runs DB-free:
 `--island-sketch`, `--skeleton-study`, `--island-study`, plus the parity/analysis harnesses.
-The Python analysis/visualization lives in **`scripts/generator/`** (see its README); deps
-(`numpy` / `scikit-image` / `scipy`) are usually already installed.
+Analysis beyond that is a scratch pass rather than a checked-in harness (`CLAUDE.md`, *Investigation stays
+local*) — write it against the JSON `RoundTrip` emits, keep the finding, drop the script.
 
 ## Data (corpus maps + real output)
 - **Real output data** lives in its own repo: **`rockymine/pgm-studio-output`** — clone it when you need the

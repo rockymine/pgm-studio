@@ -180,8 +180,6 @@ exercises the plans it produces.
 | `docs/tools/mapgen-review.md` | 425 | Pool of `MG`-tagged findings from reviewing the first fifteen `tools/mapgen` boards. |
 | `tools/compose/README.md` | 42 | Usage for 2 of the 23 dev-driver scripts in `tools/compose/`; see §3.5. |
 | `scripts/generator/README.md` | 44 | Python corpus-analysis scripts, table covers all 8 files present. |
-| `tools/deriver/lanes/README.md` | 56 | Hand-labelled wool-lane fixture format and the training-harness check. |
-| `tools/deriver/shapes/README.md` | 18 | The 17-file base wool-approach shape catalog fixtures. |
 | `tools/seeds/README.md` | 53 | Documents 3 of 48 plan documents under `tools/seeds/`; see §3.5 and the filed `B108`. |
 | `tools/seeds/teaching/SHOPPING-LIST.md` | 33 | Feature/rule-id tracker for the teaching-seed set; names roughly 10 of 17 files. |
 
@@ -235,8 +233,8 @@ about Configure-era authoring superseded for new maps. See §5.
 | `docs/contracts/terrain-ground-truth.md` | 88 | What island detection counts as ground when scanning a world bottom-up. |
 | `docs/contracts/traffic-ground-truth.md` | 108 | Player-traffic log format and derivation, self-contained. |
 | `docs/contracts/block-palette.md` | 103 | Legacy-block-id-to-colour lookup shared by every top-down render. |
-| `tools/decorate/README.md` | 36 | Dressing-pass prototype (`prototype.html`, `dress-map.cs`). |
-| `tools/tree-corpus/README.md` | 100 | Tree-corpus measurement harness, covers all 10 scripts present. |
+| `tools/decorate/README.md` | 33 | Dressing-pass prototype (`prototype.html`) and the board it dresses. |
+| `tools/tree-corpus/README.md` | 26 | The 75-tree hand-built measurement fixture; the findings are `tree-corpus.md`. |
 | `tools/traffic/README.md` | 47 | Recovered-footprint + traffic-graph pairs (ingwaz). |
 
 ### Cross-cutting or whole-repo (no single tool)
@@ -391,12 +389,10 @@ move explicitly ("`A5`... relocated `RegionCategorizer` → `Pgm/Authoring/`"). 
 deleted, so this is a stale pointer rather than dead content, but it is exactly the kind of small drift
 the date-based ranking is meant to catch and, in this instance, did not (see §3.4).
 
-`tools/deriver/lanes/README.md` similarly cites `WoolLaneShape` (`src/PgmStudio.Pgm/Plan/WoolLaneShape.cs`)
-as the classifier its fixtures calibrate. `WoolLaneShape` is retired — `docs/generator/model.md` now
-describes it as "the retired `WoolLaneShape`... a thin adapter" over `ShapeClassifier.ClassifyOpen`,
-which is what `tools/deriver/lane-audit.cs` (the tool the README documents) actually calls. The README's
-format description and the check command are still accurate; only the classifier name in its header
-and in its "Current vocabulary" section heading are stale.
+A second instance of the same drift sat in `tools/deriver/lanes/README.md`, which named `WoolLaneShape` as
+the classifier its fixtures calibrated after that class had been retired in favour of
+`ShapeClassifier.ClassifyOpen`. `B228` resolved it by removing the fixtures: nothing read them, and the
+classifier they calibrated no longer existed.
 
 ### 3.4 The numeric ranking
 
@@ -451,15 +447,10 @@ specific claims in the document moved.
 addressed here. It is not the only README in this shape, and one other case is a larger gap by file
 count:
 
-- **`tools/compose/README.md` documents 2 of the 23 scripts in `tools/compose/`** — `matrix.cs` and
-  `gallery-gen.cs`. Undocumented: `showcase.cs`, which `CLAUDE.md` itself names as "`model.md`'s live
-  twin" and a load-bearing verification tool; `seat-probe.cs` and `unit-gallery.cs`, both cited by
-  `docs/generator/audit.md` as the source of its measured frequencies; `house-showcase.cs`,
-  `body-gallery.cs`, `box-gallery.cs`, `edge-gallery.cs`, `mid-gallery.cs`, `board-gallery.cs`,
-  `seed-showcase.cs`, `u-hub-showcase.cs`, `stalemate-probe.cs`, `sweep-saturation.cs`,
-  `teaching-render.cs`, `compare-seeds.cs`, `nearest-seed.cs`, `exemplar-feasibility.cs`,
-  `reproduction-gate.cs`, `unit-fingerprint.cs`, `fingerprints.cs`. This is the largest coverage gap
-  found in the set — a reader pointed at this README to find `showcase.cs` would not learn it exists.
+- **`tools/compose/README.md` documented 2 of the 23 scripts then in `tools/compose/`** — the largest
+  coverage gap in the set. `B228` closed it from the other end: the folder holds three gates now, and the
+  README covers all three. The finding is worth keeping for its shape, which recurred — a README documenting
+  a fraction of its folder is a README a reader cannot use to find anything.
 - **`tools/seeds/teaching/SHOPPING-LIST.md`** names files inconsistently: some rows cite a filename
   directly (`build-interface-dos-and-donts.plan.json`, `mirror-mid-examples.plan.json`) or a wildcard
   (`rot-90-mid-example-*`, covering 8 files), but seven of the directory's 17 plan files —
@@ -467,11 +458,8 @@ count:
   `double-band-middle-void-no-steps`, `double-frontline-pocket-mid-internal-crossing`,
   `double-frontline-pocket-mid-rotation-stone`, `overstretched-middle-void` — appear in no row at all.
 
-By contrast, `scripts/generator/README.md`, `tools/deriver/lanes/README.md`,
-`tools/deriver/shapes/README.md`, `tools/relief/README.md`, `tools/decorate/README.md`,
-`tools/tree-corpus/README.md`, and `tools/traffic/README.md` were checked against their directories
-and each accounts for every file present — `tools/relief/README.md` even carries a file-by-file table.
-The gap is specific to `tools/seeds/` and `tools/compose/`, not systemic.
+By contrast, `tools/relief/README.md` was checked against its directory and accounts for every file present,
+carrying a file-by-file table. The gap is specific to `tools/seeds/`, not systemic.
 
 ## 4. The `docs/generator/` ninth file — resolved, deleted
 
@@ -546,9 +534,6 @@ none crossed it:
   built than it says, not gone.
 - **`docs/contracts/region-categorization.md`** cites a moved file path (§3.3); `RegionCategorizer`
   itself is very much present at its new location.
-- **`tools/deriver/lanes/README.md`** names a retired class, `WoolLaneShape` (§3.3), but the fixture
-  format and the check command it documents (`tools/deriver/lane-audit.cs`) are live and were run
-  successfully as part of this review.
 - **`data-model.md`** and **`layout-rules.md`**, cited by seven documents combined, do not exist
   anywhere in the tree and have no trace in the visible git history (§2). But neither is itself one of
   the 62 documents under review — they are dangling citations inside otherwise-live documents, which

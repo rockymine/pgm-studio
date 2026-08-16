@@ -2,9 +2,8 @@
 
 The complete contract for player-traffic ground truth. **Input: one zip of raw log files per
 map.** Everything else — the traffic graph, the emergent footprint, flow priors — derives inside
-this repo; no external analysis project is consulted. Validated end-to-end on ingwaz
-(`tools/traffic/`): the logs-only pipeline reproduces the reference graph's islands 6/6 and its
-void cells at recall 1.0.
+this repo; no external analysis project is consulted. Validated end-to-end on ingwaz: the logs-only pipeline
+reproduces the reference graph's islands 6/6 and its void cells at recall 1.0.
 
 ## 1. Input contract: the per-map log zip
 
@@ -70,13 +69,13 @@ Event codes (inferred from data and validated on ingwaz — no plugin source nee
 ```
 
 Only nodes with any traffic exist; `island_id` partitions the land nodes into terrain islands.
-The ingwaz file in `tools/traffic/` is the reference instance (produced by the original
-pipeline); a regenerated file may differ by a few `occupation` counts from filtering details —
-`island_id`/POI/edge semantics are the load-bearing parts.
+The ingwaz graph is the reference instance, produced by the original pipeline; a regenerated file may differ
+by a few `occupation` counts from filtering details — `island_id`/POI/edge semantics are the load-bearing
+parts.
 
 ## 4. Logs-only derivation (no map knowledge)
 
-Validated against the ingwaz reference (see `tools/traffic/README.md` for the numbers):
+Validated against the ingwaz reference, whose numbers are quoted per step below:
 
 1. **Cells + occupancy + edges** — bucket standing position samples (event 5, y ≥ 2) on the
    grid; edges from consecutive samples of the same player life crossing cells.
@@ -97,8 +96,8 @@ Validated against the ingwaz reference (see `tools/traffic/README.md` for the nu
 
 ## 5. Uses (and the boundary)
 
-- **Recovered footprints** — land + emergent void zones as CT test articles (validated pairs
-  like `tools/traffic/ingwaz.*`).
+- **Recovered footprints** — land + emergent void zones as CT test articles, as validated
+  plan/traffic-graph pairs.
 - **Flow priors** — per-map scalars scoring composer candidates: occupancy split over the
   mid/transition/team distance thirds, approach usage shares, void-vs-land occupancy, the
   kill/death frontline band.

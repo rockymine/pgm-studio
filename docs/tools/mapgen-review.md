@@ -260,9 +260,9 @@ that is richer on one side is a competitive advantage rather than decoration.
 but its stem stops short, so the crown sits on a stub rather than running through it: the trunk never reaches
 below the topmost leaves and the tree reads as a bush balanced on a post. A conifer's whole silhouette is a
 continuous stem with rings of branches getting shorter up it. This is in the grower rather than in mapgen —
-`TreeSkeleton` and `TreeCrown` in `PgmStudio.Geom` — and it is measurable the same way `B78` is, through
-`tools/tree-corpus/grower-gate.cs`, which already scores limb angle and reach against the 75 hand-built
-trees and would score stem extent beside them.
+`TreeSkeleton` and `TreeCrown` in `PgmStudio.Geom` — and it is measurable the same way `B78` is, by scoring a
+grown tree against the 75 hand-built ones: limb angle and reach are what `tree-corpus.md` already scores, and
+stem extent goes beside them.
 
 **Reopened, and the note that closed it counted the wrong thing.** This entry was marked *does not
 reproduce* on the evidence that "whorled lands 1136 leaves" over sixty sites. An absolute leaf count cannot

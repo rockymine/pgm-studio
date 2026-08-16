@@ -222,28 +222,30 @@ second copy of parts of the system precisely because reaching the real ones mean
 was the fix for the reaching; `B118` was the fix for the copy itself, deleting `tools/mapgen`'s own site
 sampler and reduced spec format in favour of the real documents `B119` had just made reachable.
 
-**The rest are file-based scripts** (`compose/`, `deriver/`, `objective-probe/`, `decorate/`, `palette/`,
-`tree-corpus/`) — no `.csproj`, no solution entry, each a `.cs` file opening with `#:project` directives that
-name the `src/` projects it needs and run directly as `dotnet run tools/<folder>/<script>.cs`. They are dev
-harnesses and one-off probes rather than product: `compose/` renders the generator's own galleries (`showcase.cs`
-is `docs/generator/model.md`'s live twin), `deriver/` recomputes corpus-derived constants and gates the model
-doc's figures, `objective-probe/` and `decorate/` are throwaway-but-maintained prototypes for detection and
-dressing. **`dotnet run <script>.cs` caches the built app keyed on the script**, so an unchanged script re-runs
-stale `src/` output with no error — `rm -rf ~/.local/share/dotnet/runfile/<script>-*` before trusting a
-measurement (`CLAUDE.md` *Traps*).
+**The rest are file-based scripts** — no `.csproj`, no solution entry, each a `.cs` file opening with
+`#:project` directives that name the `src/` projects it needs and running as `dotnet run
+tools/<folder>/<script>.cs`. **There are seven, and the count is the point** (`CLAUDE.md`, *Investigation
+stays local*): three gates over the composer in `compose/` (`reproduction-gate`, `fingerprints`,
+`unit-fingerprint`), two in `deriver/` (`figure-check` gates `model.md`'s figures, `envelope-stats` writes
+`seed-envelopes.md`), and two operational tools at the root (`seed-library` seeds the database,
+`library-map` builds the spec `mapgen` consumes). A script that is not re-run does not live here; the reading
+it took belongs in `docs/` or in the code, and the script belongs in a scratchpad.
 
-**Not being in the solution is what makes them rot, so `tools/build-scripts.sh` builds all 51.** `dotnet build`
-at the root never compiles a `#:project` script, so a rename in `src/` leaves one uncompilable while the
-solution stays green and nothing anywhere says so. That is not hypothetical: 35 of the 51 were broken at once
-(`B227`) — `A7`'s namespace fold for one group, the composer's `int[]` → `CellRect` for another, and a
-handful still naming a cloud container's `/home/user` paths — including `showcase.cs`, the file this document
-calls `model.md`'s live twin. Run the gate after moving anything the scripts name; it retries a build once,
-because the shared folder produces the odd spurious NuGet failure and a gate that cries wolf is not one.
+**`dotnet run <script>.cs` caches the built app keyed on the script**, so an unchanged script re-runs stale
+`src/` output with no error — `rm -rf ~/.local/share/dotnet/runfile/<script>-*` before trusting a measurement
+(`CLAUDE.md` *Traps*). And because none of them is in the solution, `dotnet build` at the root never compiles
+one: a rename in `src/` leaves a script uncompilable while the solution stays green and nothing says so, which
+is what `tools/build-scripts.sh` exists to catch (`B227`). Run it after moving anything a script names; it
+retries a build once, because the shared folder produces the odd spurious NuGet failure and a gate that cries
+wolf is not one.
 
-**Three folders hold fixtures, not code** — `seeds/` (reusable sketch maps for the end-to-end world-export
-tests, `docs/world-export/sketch-world-export.md`), `traffic/` (recovered footprints + the traffic ground
-truth, `docs/gameplay/traffic-ground-truth.md`), `region-authoring-fixtures/` (captured region JSON for the
-editor's own tests). None references a project; they are data other tools and `tests/` read.
+**One folder holds fixtures, not code**: `seeds/` — the checked-in plan, intent and layout documents that
+22 test files across `Pgm`, `Export` and `Minecraft` read, including the traced real maps `envelope-stats`
+learns the evaluator's bands from. It references no project.
+
+The bar is the same one the scripts face, asked the other way: a fixture stays if it is **read** and could not
+be produced again. A capture taken to look at once is investigation like any other, and a corpus nothing in
+the repo reads belongs beside the corpus repositories rather than inside this one.
 
 ## 7. Open decisions
 

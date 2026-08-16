@@ -356,11 +356,10 @@ label, so for now they fall into residual; carving those out the same way a wool
 The deriver *proposes* every label; the author *corrects* only the few it gets wrong (a `labels` override
 channel — an optional side-fixture, not part of a normal plan). So an ambiguous label is never a decision the
 author must make up front. The corrections are the **test set for the deriver itself** — the disagreements are
-the only labels ever produced by hand. **First instance, live:** the wool-lane-shape training set in
-`tools/deriver/lanes/` — hand-authored `mirror=none` single-lane examples + a free-form `labels.json`, checked
-by `tools/deriver/lane-audit.cs` against the shared `WoolLaneShape` classifier (author ↔ deriver diff, a `FIX`
-list of every mismatch). Where the author's label has no matching classifier term, that mismatch is the signal
-to extend the vocabulary (§6c-shape).
+the only labels ever produced by hand, and where an author's label has no matching classifier term, that
+mismatch is the signal to extend the vocabulary (§6c-shape). The shape reading is where this landed:
+`ShapeClassifier` names a family and `ShapeCatalogTests` asserts the catalog against it, so the corrections
+live as test cases rather than as a labelled side-corpus.
 
 **Payoff:** every existing seed and every future hand-drawing becomes a labeled example with *zero*
 annotation — draw geometry, drop two markers, mark deliberate holes, run the deriver. And the deriver is
@@ -453,8 +452,7 @@ produced. Do not encode a shape whitelist in the evaluator — that is the enume
 
 1. ~~**Tile reading**~~ — **landed**: `plan.json` rasterized to the cell field.
 2. ~~**Deriver**~~ — **landed in `src/`**: `ContactGraph` (rect layer) + `BoardDeriver` → `BoardStructure`
-   (raster layer), in `PgmStudio.Pgm/Derive/`; `tools/deriver/derive-gallery.cs` is now render-only.
-   Known-rough: the branch/residual cutoff over-calls residual on big/wide boards — the §5.3 knob, still
+   (raster layer), in `PgmStudio.Pgm/Derive/`. Known-rough: the branch/residual cutoff over-calls residual on big/wide boards — the §5.3 knob, still
    the first thing to settle.
 3. ~~**Property terms**~~ — **landed**: `ILayoutTerm` implementations in `PgmStudio.Pgm/Evaluate/Terms/`,
    each citing one `rules.md` id and returning a distance + violation record.

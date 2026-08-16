@@ -7,8 +7,7 @@ the flat-plane model never touches, and the fifth tool. One idea per few lines, 
 track** (continuing G157/G161), **preserved** — an id here is never reused; pull one onto `BACKLOG.md` when
 it becomes the focus. Same discipline as `docs/generator/ideas.md`, for the world-export/dressing track.
 
-Everything here is **designed, not built** — the prototype is `tools/decorate/prototype.html`, and the model
-is `decoration.md`. Where an idea depends on a pass that does not exist yet (the elevation pass, G32-C), it
+Everything here is **designed, not built** — the model is `decoration.md`. Where an idea depends on a pass that does not exist yet (the elevation pass, G32-C), it
 says so.
 
 ## Correctness — a competitive map cannot ship without these

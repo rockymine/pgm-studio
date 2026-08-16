@@ -300,10 +300,10 @@ the card count**: a strict conjunction returning three cards from four hundred s
 request, not about the run.
 
 The composer is also reachable without the server. `tools/compose/` holds file-based scripts that reference
-`PgmStudio.Pgm` directly — `matrix.cs` composes a fixed grid of cases and prints a verification matrix,
-`gallery-gen.cs` renders a curated set to one HTML page, `reproduction-gate.cs` and `fingerprints.cs` are the
-determinism gate. They build the project rather than talking to the API, which makes them the right tool for
-measuring a change to composition and the wrong one for fetching a board. Their cache is keyed on the
+`PgmStudio.Pgm` directly — `reproduction-gate.cs` checks every composed board reads back as producible, and
+`fingerprints.cs` with `unit-fingerprint.cs` are the determinism gate. They build the project rather than
+talking to the API, which makes them the right tool for measuring a change to composition and the wrong one
+for fetching a board. Their cache is keyed on the
 *script*, so an unchanged script re-runs its old binary against old project output and reports pre-change
 numbers with no error — `CLAUDE.md`'s runfile note is load-bearing before any before/after measurement.
 

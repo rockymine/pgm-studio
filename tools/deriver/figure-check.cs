@@ -4,8 +4,8 @@
 // A body figure must read as its Compound (ClassifyBody), a family figure as its ShapeFamily
 // (ShapeClassifier.Classify), a negative-space figure as its NegativeSpaceKind (BodyEdges.Classify).
 //
-// The figures are READ FROM THE DOC, never duplicated here, so this cannot drift from what a reader sees —
-// the same reason tools/compose/showcase.cs renders the real generator. Three of the figures were wrong when
+// The figures are READ FROM THE DOC, never duplicated here, so this cannot drift from what a reader sees.
+// Three of the figures were wrong when
 // this was first run (a three-armed spine whose baseline stopped a cell short of its third arm read as two
 // arms; a Z that doubled back read as a Scythe; an L whose wool was a cut cell read as a Clamp), and none of
 // it was catchable by eye.

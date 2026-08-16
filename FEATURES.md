@@ -5203,6 +5203,43 @@ these are the ones that shipped a map that could not be played as intended, and 
   method the class has not had for some time, now cites `Check`. It matters ahead of the bucketed audit work:
   four buckets add rules to this class, and an agent choosing a verb from four will not choose the same one
   twice.
+- **`tools/` holds seven scripts, and the rule that keeps it at seven (B228).** It held 51. Forty-four of them
+  had each been run once — a corpus measured, a world probed, a board rendered to see what it looked like —
+  and then stayed, because nothing said they should not. `CLAUDE.md` said only where a harness *lives*
+  (`tools/`, not `tests/`), never what earns a place there or when one leaves, so every investigation ended in
+  a commit. That is the rule that changed: **investigation stays local, and only the result is committed** —
+  the finding goes in `docs/` beside the figure it produced or straight into the code as a rule, a constant or
+  a test, and the script that took the reading goes in the scratchpad.
+
+  A script now earns `tools/` only by being **re-run**: a gate that fails (`reproduction-gate`,
+  `figure-check`), a generator of a committed artifact (`fingerprints` writes `composer-fingerprints.json`,
+  `envelope-stats` writes `seed-envelopes.md`, `unit-fingerprint` is the hash a refactor must not move), or an
+  operational tool the product needs (`seed-library` seeds the database, `library-map` builds the spec
+  `mapgen` consumes). *"It might be useful again"* is not one of them, and it is the sentence that produced
+  all forty-four: a fresh throwaway against today's `src/` beats a restored one against last year's, which
+  `B227` had just finished proving over a day of repairs.
+
+  **Data is judged the other way round, but the bar is the same one asked backwards**: a fixture stays if it
+  is *read* and could not be produced again. The lane labels and the shape plans stay — an author's intent
+  and the `model.md` catalog materialised, both read by `tests/`. Everything else went with the scripts,
+  because nothing in the repo read it: the 75-tree `tree-showcase` world and its readings, the ingwaz traffic
+  reference pair, the dressing prototype page and the board it dresses, and the region-authoring review
+  artifacts — which were never an input at all, but `RoundTrip --authoring-fixture`'s *output*, committed
+  because it landed in a tracked path. It writes under the ignored `tools/out/` now.
+
+  **`scripts/` went with them, entire.** Twenty-five files of Python corpus analysis — monument, sign-text,
+  island, wool-objective and approach studies, the clean-base renders, and `scripts/generator/`, whose own
+  README recorded that its producers had been retired and it had "no live input". Every finding is in
+  `docs/world-scan/`. The four documents citing "reproduce with the scripts in `scripts/`" now say what to
+  read and against what, which is the durable half of that sentence.
+
+  **The model doc has no live twin now, and the reason it had one is gone.** A script rendering the generator
+  to a checked-in HTML page answered a real need while the studio could not draw one; the studio draws them —
+  `GET /shapes/catalog` returns every card with its SVG, `/shapes/probe` renders a single emission, and the
+  compose page shows as many boards as anyone asks for. A second renderer beside the app is a copy free to
+  disagree with it, and the app is the thing being described. `model.md`, `structures.md` and `decoration.md`
+  now point a reader at the running studio instead. Every one of the 44 names was grepped out of `docs/`,
+  `CLAUDE.md` and the READMEs in the same commit; both surviving gates were run.
 - **Every file-based tool script builds, and a gate keeps them building (B227).** A `#:project` script is not
   in `PgmStudio.slnx`, so `dotnet build` at the root was green while **35 of the 51** would not compile —
   including `tools/compose/showcase.cs`, the page `docs/generator/model.md` is meant to be believed over. None

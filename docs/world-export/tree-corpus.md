@@ -2,10 +2,10 @@
 
 The tree-showcase world holds 75 author-built trees, one per 19×19 platform, sorted into 14 families by
 platform band plus a single wool tree. It is the first measured ground truth for the grown tree of
-`decoration.md` §6, and it says the grower is wrong in three specific, separable ways. The world is committed
-at `tools/tree-corpus/tree-showcase` as a measurement fixture, and the harness that produced every number
-here is `tools/tree-corpus` — each figure below is reproduced by re-running the script that owns it, named
-in that folder's README.
+`decoration.md` §6, and it says the grower is wrong in three specific, separable ways. The world is a
+measurement fixture kept outside the repo — it ships with nothing and no runtime path reads it — so the
+numbers below are the artifact, and re-taking a reading means a scratch pass over that world against today's
+code (`CLAUDE.md`, *Investigation stays local*).
 
 The world is worth describing before the numbers, because its layout is what makes them clean. Every tree
 body fits entirely inside its own platform and no crown reaches across a gap, so a plain connected-component
@@ -18,8 +18,8 @@ of 3082, branches included — so the flora tool's trunk marker carries no infor
 vertical run of three same-species logs reaches only 52 of the 75 trees: 14 of them hover a course above their
 platform, 8 have trunks that lean or spiral so no column ever stacks three, and one is built of wool and has
 no logs at all. The other property is that **carpentry is structural**: one family builds its branches out of
-dark oak slabs, so any reading that counts only logs as wood reports that family's foliage as unsupported.
-`leaf-contact.cs --carpentry` exists for exactly that.
+dark oak slabs, so any reading that counts only logs as wood reports that family's foliage as unsupported —
+a leaf-contact measurement has to count carpentry as wood, or it is measuring the wrong thing.
 
 ## Leaf attachment is the discriminating measure
 
@@ -101,8 +101,7 @@ whorled.
 ## The wood on its own: how a branch is joined, and where it thins
 
 Dropping the foliage leaves the thing a generator actually has to lay out — 4,044 blocks of trunk and branch,
-3,082 of them logs, 270 the wool tree, and 692 the carpentry one family branches with. Read as a network
-(`wood-skeleton.cs`), that wood is decomposed the way the wool tree's colours already decompose it: rooted at
+3,082 of them logs, 270 the wool tree, and 692 the carpentry one family branches with. Read as a network, that wood is decomposed the way the wool tree's colours already decompose it: rooted at
 the lowest block, a shortest-path tree over the 3×3×3 neighbourhood gives every block a parent, the **stem**
 is the chain that carries the most wood at every fork, and a **limb** is a chain leaving it. A chain that
 never gets more than a corner's reach from the limb it leaves is that limb doubled — the second column of a
@@ -255,10 +254,10 @@ below about **9**. The corpus sits at 99.95%, 30.3% and 6.2; the grower sat at 9
 
 ## What the grower does with it
 
-Every finding above is now law in the code, and the same harnesses measure the result.
-`tools/tree-corpus/grower-gate.cs` grows and foliates a tree exactly as the dressing pass does and scores it
-on every measure the corpus supplies — eight heights, three leaf sizes, eight seeds, at the knobs a placed
-tree ships with:
+Every finding above is now law in the code, and the figures below are the same measures taken off the grower
+rather than off the corpus: a tree grown and foliated exactly as the dressing pass does, scored on every
+measure the corpus supplies — eight heights, three leaf sizes, eight seeds, at the knobs a placed tree ships
+with:
 
 | | before | after | corpus |
 |---|---|---|---|

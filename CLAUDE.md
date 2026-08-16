@@ -124,8 +124,11 @@ when the design around them has landed, because nothing else can re-derive them.
 | `seed-stats.md` · `seed-envelopes.md` | measured corpus data | envelopes is generated — never hand-edited |
 | `ideas.md` | the G-track idea pool | ids preserved; pull one onto the board when it becomes the focus |
 
-**`tools/compose/showcase.cs` is `model.md`'s live twin**: the same model as one HTML page, every figure
-emitted by the real generator, so when prose and showcase disagree, suspect the prose.
+**`model.md` has no live twin, and does not want one.** A script rendering the model to a checked-in HTML page
+was a reasonable answer while the studio could not draw one; the studio draws them now — `GET /shapes/catalog`
+returns every card with its SVG, `/shapes/probe` renders a single emission, and the compose page shows as many
+boards as anyone cares to ask for. A second renderer beside them is a copy free to disagree with the app, and
+the app is the thing being described. Check a figure against the running studio.
 
 **Do not describe unbuilt machinery in the present tense.** A doc that says a type exists when it does not is
 worse than a gap; the whole `WoolApproachShape`/`FamilyDock`/`ComposeTargets` class of drift came from exactly
@@ -206,14 +209,39 @@ renamed or retired changes its `vocabulary.md` row in the same commit.
 - **`dotnet run tools/deriver/figure-check.cs`** gates `model.md`'s ASCII figures by pushing each one, parsed
   out of the doc itself, through the classifier that names that kind of thing. Run it after editing a figure
   or a classifier — a shape that reads as the wrong family cannot be spotted by eye.
-- **`./tools/build-scripts.sh`** builds the 51 file-based tool scripts, which are **not** in `PgmStudio.slnx`
-  and which `dotnet build` therefore never touches. Run it after renaming or moving anything in `src/` that a
+- **`./tools/build-scripts.sh`** builds the file-based tool scripts, which are **not** in `PgmStudio.slnx` and
+  which `dotnet build` therefore never touches. Run it after renaming or moving anything in `src/` that a
   script names: without it a rename leaves a script uncompilable while the solution stays green, which is how
-  35 of them — `showcase.cs` among them — came to be broken at once (`B227`).
+  35 of the then-51 came to be broken at once (`B227`).
+
+## Investigation stays local — only the result is committed
+**A script written to answer a question is not an artifact; the answer is.** Measuring a corpus, probing a
+world, rendering a board to see what it looks like, sweeping seeds to find where something breaks — all of
+that is work, and none of it is product. The finding goes in `docs/` beside the figure it produced, or it goes
+**straight into the code** as a rule, a constant or a test. The script that took the reading goes in the
+scratchpad and is not committed.
+
+This rule was learned expensively. `tools/` had accumulated **51** one-off scripts, of which 44 had each been
+run once, years of investigation frozen at whatever `src/` looked like that afternoon: 35 of them no longer
+compiled and nobody knew, because nothing built them (`B227`, `B228`). Restoring them cost a day and bought
+nothing, since every finding they held was already written down.
+
+So a script earns a place in `tools/` only by being **re-run**, which is one of three things:
+
+- a **gate** that fails — `reproduction-gate`, `figure-check`, the fingerprints;
+- a **generator of a committed artifact** — `envelope-stats` writes `seed-envelopes.md`, `fingerprints` writes
+  `composer-fingerprints.json`;
+- an **operational tool** the product needs — `seed-library` seeds the database, `library-map` builds a spec
+  `mapgen` consumes.
+
+Nothing else. **"It might be useful again" is not one of them** — it is the sentence that produced all 44, and
+a fresh throwaway against today's `src/` beats a restored one against 2026's every time. Data is judged the
+other way round: a hand-built world, a hand-labelled fixture, a traced plan is a *result* and is committed,
+because nothing can re-derive it.
 
 ## Tests
 TUnit, one test class per source unit, mirroring `src/`. Synthetic fixtures only; corpus and round-trip
-harnesses live under `tools/`, not `tests/`.
+harnesses live under `tools/`, not `tests/` — and only where they meet the bar above.
 
 - **Test the invariant, not the contents** — assert what must hold (fullness, a constant fall, an ordering),
   and prove the test fails on the old behaviour before trusting it.

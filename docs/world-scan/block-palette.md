@@ -110,17 +110,13 @@ than markup can take `PackedRgb` and skip the string entirely.
 
 ## Checking the table against real assets
 
-`tools/palette/texture-average.cs` reads a directory of 1.8 block textures, decodes each PNG (with no image
-dependency — a non-interlaced 16×16 PNG is a zlib stream plus five filter cases), and computes the same
-alpha-masked first-frame mean the table is authored from.
+Most of the table's colours *are* their texture's mean, so they are checkable against a directory of 1.8
+block textures: decode each PNG and take the same **alpha-masked first-frame mean** the entry was authored
+from. No image dependency is needed — a non-interlaced 16×16 PNG is a zlib stream plus five filter cases —
+and the reading is a scratch pass rather than a checked-in tool (`CLAUDE.md`, *Investigation stays local*),
+since it needs an asset directory the repo does not carry and cannot.
 
-```
-dotnet run tools/palette/texture-average.cs -- --dump  <textureDir>   # every texture's mean
-dotnet run tools/palette/texture-average.cs -- --rows  <textureDir>   # palette rows, ready to paste
-dotnet run tools/palette/texture-average.cs -- --check <textureDir>   # diff the shipped table, non-zero on drift
-```
-
-`--check` covers the entries whose colour *is* their texture mean, which is most of the table; it names the
-texture each entry reads, so an unmapped entry is visible as a gap rather than a silent pass. The tinted,
-accented and face-chosen entries above are outside its map by definition — they are decisions, not
-measurements, and a tool that averaged them would report drift on every one.
+Two things make the check honest. It has to name the texture each entry reads, so an entry nothing maps to
+shows as a gap rather than a silent pass. And the tinted, accented and face-chosen entries above are outside
+it by definition — they are decisions, not measurements, and averaging them would report drift on every
+one.

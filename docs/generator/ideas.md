@@ -104,8 +104,7 @@ landed, the rest is the idea.
 - **G60** *(partial)* — the soft-term leftovers (cramming, approach count, height terms), the
   keep-lowest-scoring hunt loop, the ranking harness + minimal-pair negatives.
 - **G69** — deriver primitives for dense mids (crossing-corridor read, rotation-that-means-rotation, robust
-  stone classification) — the prerequisites of the cramming term. The stalemate probe
-  (`tools/compose/stalemate-probe.cs`) is the first cut of (b).
+  stone classification) — the prerequisites of the cramming term.
 - **G66 / G67 / G68** — rule visualization (illustrated rule catalog + reject inspector), fill-time slot
   invariants, evaluator-side slot terms.
 - **G43** — the composer↔teaching-set conformance sweep (aggregate soft distance per term).
@@ -226,11 +225,6 @@ landed, the rest is the idea.
 
 ## Docs & hygiene
 
-- **G138** — integrate the showcase into the studio. `tools/compose/showcase.cs` is the only
-  generator artifact that cannot drift (every figure emitted by the real code), and it is a
-  standalone script producing a file nobody sees. Serve it — or its figure renderers — from the
-  Generator tool, so the model explainer is a page in the app and the figures are reused by the
-  browse/verdict surfaces instead of duplicated.
 - **G139** — the seat-separation law has **no rule id**. It is a live, load-bearing composer law
   (`model.md` §5, *What keeps neighbours apart*, enforced in the allocator's seat step, surfaced
   through `Producibility` and a

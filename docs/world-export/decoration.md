@@ -18,11 +18,9 @@ map plays, and a decision about how a map plays belongs to the person making it 
 field. So every part of this stage is a thing put somewhere: a route is dragged, an area of cover is traced,
 a tree and a rock are clicked into place, and each carries its own knobs. The fields that remain are the ones
 *inside* a drawn area — which blade of grass, which cobble — where placing them one at a time would be data
-entry rather than authoring. The model was worked out against a live prototype —
-`tools/decorate/prototype.html`, one self-contained page whose every figure (the noise fields, the path
-variants, the boulder elevations, the grown tree, the forest scatter) is emitted by the real algorithm,
-not hand-drawn. Read it alongside this doc the way `showcase.cs` reads alongside `model.md`: when prose and
-prototype disagree, suspect the prose. Rule ids here are `DR*` (dressing), local to this file the way
+entry rather than authoring. The model was worked out against a live prototype whose every figure — the noise fields, the path variants,
+the boulder elevations, the grown tree, the forest scatter — was emitted by the real algorithm rather than
+hand-drawn; what it settled is stated here, and the C# is the authority for all of it. Rule ids here are `DR*` (dressing), local to this file the way
 `structures.md` owns `WX*` and `terrain-painting.md` owns `TP*` — `rules.md` is compose-scoped and frozen,
 so decoration law lives in the world-export docs, not there. The one exception is §3.1's clearance refusal,
 `OB19`: it fires from this pass's own ground read but it is a claim about an *objective*, so it takes the
@@ -386,9 +384,8 @@ by default a cellular voronoi of gravel, coarse dirt and sand, the same pattern 
 and edited by the same `MaterialEditor`. So the floor the shallows show through and the shore the water meets
 read as one ground, drawn from one palette.
 
-Channels take a **form**, and it drives both the water and the land. The three laws are the decoration
-prototype's own (`tools/decorate/prototype.html` §5 `drawChannel`), carried into `WaterBed` verbatim so the bed
-and beach the export cuts are the ones the prototype draws. A clean-banked **canal** holds a uniform width. A
+Channels take a **form**, and it drives both the water and the land. The three laws live in `WaterBed`, which
+cuts the bed and the beach together so they cannot disagree. A clean-banked **canal** holds a uniform width. A
 **natural** edge wobbles its width off the nominal by a value field (± the *bank roughness* knob, in blocks). A
 **stream beads**: its width runs a rectified sine along the *arc* — pinching to half the radius and swelling
 back to it on a fixed beat, never wider than the nominal — so it narrows and widens down its length into a

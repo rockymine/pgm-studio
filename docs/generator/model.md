@@ -21,10 +21,10 @@ matching it. **What it defers:**
 | `ideas.md` | The G-track idea pool: open work not on the board. |
 | `../tools/plan.md` | The field-level `*.plan.json` schema and the editor that writes it (the Plan tool). |
 
-**The live twin.** `tools/compose/showcase.cs` renders this same model as one self-contained HTML
-page with **every figure emitted by the real generator** (`dotnet run tools/compose/showcase.cs`).
-Where the prose here and the showcase disagree, suspect the prose: the showcase cannot drift,
-because its figures are built by the code being described.
+**Where to check this against the code.** The studio is the twin: the Generator tool composes a board on
+demand, `GET /shapes/catalog` returns every shape card with its SVG, and `GET /shapes/probe` renders a single
+emission through the real `BoxFiller`. Where the prose here and the running studio disagree, suspect the
+prose — the studio's figures are drawn by the code being described, and this document is not.
 
 **What this model deliberately cannot express, and will not learn to.** The vocabulary below — hubs,
 lanes, frontline boxes, approach families — is *one* way to think about a CTW board, and it aligns with
@@ -782,8 +782,9 @@ through is the human oracle's, deliberately not automated.
 The check runs in `tests/PgmStudio.Pgm.Tests/Shapes/`: emit every family × size × width, read back,
 assert equality with no overlap, and assert that the emitted slot sequence equals
 `ApproachSlots.Template`. A companion set pushes each family's pieces to extremes at a fixed width, so
-every one must still read its own family — the width-independence proof. The nine-family catalog
-itself is checked in as fixtures under `tools/deriver/shapes/*.plan.json`.
+every one must still read its own family — the width-independence proof. The nine-family catalog itself is
+inline in `ShapeCatalogTests` as the `t`/`v`/`w` grids this document states, so the doc and the assertion are
+read side by side and there is no third copy to drift.
 
 **Three readings are checked this way, not one.** The family reading is the one just described. The
 **slot** reading is a second: `SlotAssignment` re-derives each piece's slot from topology alone — path
@@ -1463,7 +1464,7 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | Piece | Path | What |
 |---|---|---|
 | `ContactGraph` | `Derive/ContactGraph.cs` | connectivity primitives (rect layer): `ContactKind`, `Contact`, `BuildRegion` (with `Holes`), `GapLink`, `InterfaceSegment`, `FrontlineEdge`, islands. |
-| `BoardDeriver` | `Derive/BoardDeriver.cs` → `BoardStructure` | the board reader (raster layer): hole classes, build-zone kinds, intra/self, wool lanes, the CT mid-form. `derive-gallery.cs` renders it → `out/derive-gallery.html`. |
+| `BoardDeriver` | `Derive/BoardDeriver.cs` → `BoardStructure` | the board reader (raster layer): hole classes, build-zone kinds, intra/self, wool lanes, the CT mid-form. |
 | `FannedGraph` | `Plan/FannedGraph.cs` | fanned-board reachability (looser than the straight-span gap links; its `LandAdjacent` differs from `ContactGraph` on different-surface overlaps — reconcile pending). |
 
 **The composer**
@@ -1498,19 +1499,15 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | `ComposeGeometry` | `Compose/ComposeGeometry.cs` | fanning + the fanned-separation invariant. |
 | `PlanModel` · `PlanRoles` | `Plan/PlanModel.cs` | the plan format + the authored role set. |
 
-**Harnesses and galleries** (`dotnet run <path>` — a file-based script; see `CLAUDE.md` on the
-runfile cache before measuring a `src/` change)
+**Gates** (`dotnet run <path>` — a file-based script; see `CLAUDE.md` on the runfile cache before
+measuring a `src/` change). Looking at a composed board is the studio's job, not a script's.
 
 | Piece | Path | What |
 |---|---|---|
 | the shape mirror | `tests/PgmStudio.Pgm.Tests/Shapes/` | emit↔derive + slot-template + width-independence, as tests (§4, *Derivation and classification*). |
-| `showcase.cs` | `tools/compose/showcase.cs` | **the explainer** — this document's live twin, every figure emitted by the real generator. |
-| `unit-gallery.cs` · `box-gallery.cs` · `board-gallery.cs` | `tools/compose/` | composed units / box partitions / whole boards, rendered. |
-| `body-gallery.cs` · `edge-gallery.cs` | `tools/compose/` | the terminal-free bodies; the edge taxonomy read off them. |
-| `seat-probe.cs` | `tools/compose/seat-probe.cs` | the 4-preset × 200-seed `Allocate → Fill` probe behind `audit.md`. |
-| `reproduction-gate.cs` · `fingerprints.cs` | `tools/compose/` | the determinism gate + the recorded composer fingerprints. |
-| `derive-gallery.cs` | `tools/deriver/derive-gallery.cs` | `BoardStructure` rendered → `out/derive-gallery.html`. |
-| `lane-audit.cs` | `tools/deriver/lane-audit.cs` | the `ClassifyOpen`/`LaneName` derive-then-override training harness. |
+| `reproduction-gate.cs` | `tools/compose/` | every composed board reads back as producible — no box the emitters cannot reproduce. |
+| `fingerprints.cs` · `unit-fingerprint.cs` | `tools/compose/` | the recorded composer fingerprints; and the allocate→fill hash a refactor must leave bit-identical. |
+| `figure-check.cs` | `tools/deriver/` | pushes this document's own ASCII figures back through the classifier that names them. |
 
 ---
 

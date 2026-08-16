@@ -426,10 +426,9 @@ if (sgIdx >= 0 && sgIdx + 2 < args.Length)
 
 // --authoring-fixture [slug ...] [--out <dir>]: write the *readable* region-authoring split for a
 // map — primitives vs composed, each node trimmed to id/type/category/subtype/member_ids/wiring
-// (geometry omitted as noise). A review artifact (mirror of the reference
-// tools/gen_region_authoring_oracle.py), not a parity check; needs only map.xml — no islands.json or
-// pipeline run. Defaults to the region-authoring test maps; output dir defaults to
-// tools/region-authoring-fixtures/.
+// (geometry omitted as noise). A review artifact, not a parity check; needs only map.xml — no islands.json
+// or pipeline run. Defaults to the region-authoring test maps, writing under tools/out/ — which is ignored,
+// because a review artifact is read once and never diffed (`CLAUDE.md`, *Investigation stays local*).
 var afIdx = Array.IndexOf(args, "--authoring-fixture");
 if (afIdx >= 0)
     return RunAuthoringFixture(args, defaultRoots);
@@ -1280,7 +1279,7 @@ static int RunAuthoringFixture(string[] args, string[] corpusRoots)
     var outIdx = Array.IndexOf(args, "--out");
     var outDir = outIdx >= 0 && outIdx + 1 < args.Length
         ? args[outIdx + 1]
-        : Path.Combine(RepoRoot(), "tools", "region-authoring-fixtures");
+        : Path.Combine(RepoRoot(), "tools", "out", "region-authoring");
 
     var slugs = new List<string>();
     for (int i = 0; i < args.Length; i++)
