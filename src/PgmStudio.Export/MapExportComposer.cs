@@ -71,34 +71,7 @@ public static class MapExportComposer
             // Sketch-originated: synthesise the world, re-project the resolved intent so the XML agrees with
             // it, then compose (no scanned surface/resources for a sketch map).
             if (layoutBytes is not null)
-            {
-                var layoutJson = Encoding.UTF8.GetString(layoutBytes);
-                var built = SketchWorldBuilder.Build(layoutJson, intent!);
-                var goals = built.ResolvedIntent;
-
-                // OB17 — asked again here against the ground the rasterizer actually produced, not the plan's
-                // rectangles: a subtract cut, a relief solve, or a sketch edited after its compile all move
-                // where ground is, and none of them re-enters the compile gate. A map begun in Sketch never
-                // passes that gate at all, so this is the only place every export is checked.
-                if (RefuseObjectivePlacement(layoutJson, goals) is { } placementRefusal) return placementRefusal;
-
-                IntentGenerator.Apply(doc, goals);
-
-                // OB19 — a tree, boulder or building may not stand inside a goal's clearance. Refused rather
-                // than dropped: these three are authored, and dropping one would silently discard a placement
-                // the author can see on the canvas.
-                if (RefuseGoalClearance(layoutJson, goals) is { } clearanceRefusal) return clearanceRefusal;
-
-                // EX2/EX3 — last, because it reads the document the slices have just written and compares it
-                // against the intent they were written from. Every gate above it quantifies over a collection
-                // and so passes a board with nothing on it.
-                if (Playable(goals, doc) is { Refuses: true } unplayable)
-                    return Refuse("not a playable map", [.. unplayable.Refusals]);
-
-                var renewCubes = SketchWorldBuilder.RenewableCubeFootprints(goals);
-                var sketchXml = MapXmlComposer.Compose(doc, isIntent: true, surfaceBlockIds: null, resources: [], renewCubes);
-                return new(null, null, sketchXml, built);
-            }
+                return ComposeSketch(doc, Encoding.UTF8.GetString(layoutBytes), intent!);
 
             // EX2 — asked of an intent-authored map that is not sketch-originated, where there is a document
             // to read and no resolved intent to compare it against. A corpus map is exempt for the reason the
@@ -122,6 +95,44 @@ public static class MapExportComposer
         {
             return new(500, new Dict { ["error"] = ex.Message }, null, null);
         }
+    }
+
+    /// <summary>The sketch leg of the export, one chain shared by the HTTP export and the headless mapgen
+    /// driver so neither can drift past the other's gates: build the world, gate the goals against the ground
+    /// the rasterizer actually produced, project the resolved intent, judge the document, compose the XML.
+    /// <paramref name="decorate"/> runs after the intent is projected and before the document is judged —
+    /// where a driver states identity the intent does not carry (name, version, objective, authors).
+    /// Exceptions propagate; <see cref="Compose"/> is the caller that turns them into structured errors, and
+    /// a headless driver keeps its own crash semantics.</summary>
+    public static ExportComposition ComposeSketch(
+        Dict doc, string layoutJson, MapIntent intent, Action<Dict>? decorate = null)
+    {
+        var built = SketchWorldBuilder.Build(layoutJson, intent);
+        var goals = built.ResolvedIntent;
+
+        // OB17 — asked against the ground the rasterizer actually produced, not the plan's rectangles: a
+        // subtract cut, a relief solve, or a sketch edited after its compile all move where ground is, and
+        // none of them re-enters the compile gate. A map begun in Sketch never passes that gate at all, so
+        // this is the only place every export is checked.
+        if (RefuseObjectivePlacement(layoutJson, goals) is { } placementRefusal) return placementRefusal;
+
+        IntentGenerator.Apply(doc, goals);
+        decorate?.Invoke(doc);
+
+        // OB19 — a tree, boulder or building may not stand inside a goal's clearance. Refused rather than
+        // dropped: these three are authored, and dropping one would silently discard a placement the author
+        // can see on the canvas.
+        if (RefuseGoalClearance(layoutJson, goals) is { } clearanceRefusal) return clearanceRefusal;
+
+        // EX2/EX3 — last, because it reads the document the slices have just written and compares it against
+        // the intent they were written from. Every gate above it quantifies over a collection and so passes a
+        // board with nothing on it.
+        if (Playable(goals, doc) is { Refuses: true } unplayable)
+            return Refuse("not a playable map", [.. unplayable.Refusals]);
+
+        var renewCubes = SketchWorldBuilder.RenewableCubeFootprints(goals);
+        var sketchXml = MapXmlComposer.Compose(doc, isIntent: true, surfaceBlockIds: null, resources: [], renewCubes);
+        return new(null, null, sketchXml, built);
     }
 
     // ── OB20 — every declared <gamemode> must resolve against PGM's own closed enum ────────────────────────
@@ -256,7 +267,19 @@ public static class MapExportComposer
     {
         var groundColumns = SketchRasterizer.RasterizeColumns(layoutJson).Select(c => (c.X, c.Z)).ToHashSet();
         bool IsLand(int x, int z) => groundColumns.Contains((x, z));
-        var findings = ObjectivePlacement.Check(PlacedGoals(goals), IsLand, KeepOuts(goals));
+        var findings = ObjectivePlacement.Check(PlacedGoals(goals), IsLand, KeepOuts(goals)).ToList();
+
+        // A wool monument over the void the same way: it is not a PlacedGoal — its room is its own keep-out,
+        // which the footprint check would misread as the goal reaching into it — but a monument with no
+        // column under it can be neither reached nor won, and only this gate sees the resolved location.
+        foreach (var wool in goals.Wools ?? [])
+            foreach (var monument in wool.Monuments)
+                if (!IsLand((int)Math.Floor(monument.Location.X), (int)Math.Floor(monument.Location.Z)))
+                    findings.Add(new Finding(ObjectiveRules.Placement,
+                        $"{monument.Team}'s monument on {wool.Owner}'s wool stands over the void — a goal "
+                        + "with nothing under it cannot be won",
+                        Subjects: [wool.Owner]));
+
         if (findings.Count == 0) return null;
 
         return Refuse("objective placement", findings);

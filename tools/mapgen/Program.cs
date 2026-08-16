@@ -113,12 +113,6 @@ static void Build(MapSpec spec, bool describeOnly, bool forceStages)
                      IntentWire.Options)
                  ?? throw new ArgumentException("the intent overlay did not parse");
 
-    // The ground as it will actually be built, each column's walking surface with it — read once, because a
-    // goal's void check below needs the ground the layout (including any overlay) actually produces.
-    var ground = new Dictionary<(int X, int Z), int>();
-    foreach (var (x, z, _, top) in SketchRasterizer.RasterizeColumns(layout.ToJson()))
-        ground[(x, z)] = Math.Max(ground.GetValueOrDefault((x, z), int.MinValue), top);
-
     // Read back rather than tracked, because a prop can arrive only through the layout overlay now: the
     // studio has no sampler, so dressing is exactly what was authored (docs/tools/sketch.md).
     var dressing = layout.Dressing is { } dressingJson
@@ -138,44 +132,30 @@ static void Build(MapSpec spec, bool describeOnly, bool forceStages)
         return;
     }
 
-    // ── build it the way the export does ─────────────────────────────────────────────────────────────────
-    var built = SketchWorldBuilder.Build(layout.ToJson(), intent);
+    // ── build it through the export's own chain ──────────────────────────────────────────────────────────
+    // One call, the same gate order the HTTP export runs — OB17 over the rasterized ground (wool monuments
+    // included), OB19 goal clearance, and the playability judgement (B140) — so this driver cannot ship a
+    // map the studio's own export would refuse. The decoration hook is where the spec states the identity
+    // the intent does not carry.
+    var composition = MapExportComposer.ComposeSketch(new Dict(), layout.ToJson(), intent, doc =>
+    {
+        doc["name"] = string.IsNullOrWhiteSpace(spec.Name) ? spec.Slug : spec.Name;
+        doc["version"] = "1.0.0";
+        if (!string.IsNullOrWhiteSpace(spec.Objective)) doc["objective"] = spec.Objective;
+        if (spec.Authors is { Count: > 0 } authors)
+            doc["authors"] = authors.Select(a => (object?)new Dict { ["name"] = a }).ToList();
 
-    // A goal with no ground under it cannot be reached or mined: there is nothing to stand on and nothing to
-    // break through. Silent otherwise — the map builds and loads — so it is refused here rather than shipped.
-    // The wool monument location is only known once the world is built (SketchWorldBuilder resolves it), so
-    // every goal kind is checked together against the same rasterized ground the build itself stood on.
-    var overVoid = GoalsOverVoid(ground, built.ResolvedIntent);
-    if (overVoid.Count > 0)
-        throw new ArgumentException($"{spec.Slug}: {string.Join(", ", overVoid)} "
-                                   + $"stand{(overVoid.Count == 1 ? "s" : "")} over void — a goal with nothing "
-                                   + "under it cannot be won");
-
-    var doc = new Dict();
-    IntentGenerator.Apply(doc, built.ResolvedIntent);
-    doc["name"] = string.IsNullOrWhiteSpace(spec.Name) ? spec.Slug : spec.Name;
-    doc["version"] = "1.0.0";
-    if (!string.IsNullOrWhiteSpace(spec.Objective)) doc["objective"] = spec.Objective;
-    if (spec.Authors is { Count: > 0 } authors)
-        doc["authors"] = authors.Select(a => (object?)new Dict { ["name"] = a }).ToList();
-
-    // Everything CtwStandards derives (itemkeep/toolrepair/itemremove) sits behind a kit; a map with none
-    // still exports, but with its loadout rules silently empty rather than missing outright.
-    if (doc.GetValueOrDefault("kits") is not List<object?> { Count: > 0 })
-        Console.Error.WriteLine($"  ! {spec.Slug}: no kit — itemkeep/toolrepair/itemremove derive from the "
-                               + "spawn kit and will be empty");
-
-    // The gate the export runs at exactly this point, and the one this driver used to skip by calling the XML
-    // composer directly: is the document about to be written a map, and is it the map the intent stated. Two
-    // boards from an authoring trial wrote a ten-line map.xml here — no team, no spawn, no objective — from a
-    // plan carrying two spawns and two destroyables, and nothing anywhere said so (B140).
-    if (MapExportComposer.Playable(built.ResolvedIntent, doc) is { Refuses: true } unplayable)
-        throw new ArgumentException($"{spec.Slug}: {unplayable.Summary}");
-
-    // Through the same path a saved map exports: CtwStandards' keep/repair/remove derivation, the water-lane
-    // include, ore/structure renewables, and the not-build-area reordering that must decide last.
-    var renewableCubes = SketchWorldBuilder.RenewableCubeFootprints(built.ResolvedIntent);
-    var xml = MapXmlComposer.Compose(doc, isIntent: true, surfaceBlockIds: null, resources: [], renewableCubes);
+        // Everything CtwStandards derives (itemkeep/toolrepair/itemremove) sits behind a kit; a map with
+        // none still exports, but with its loadout rules silently empty rather than missing outright.
+        if (doc.GetValueOrDefault("kits") is not List<object?> { Count: > 0 })
+            Console.Error.WriteLine($"  ! {spec.Slug}: no kit — itemkeep/toolrepair/itemremove derive from "
+                                   + "the spawn kit and will be empty");
+    });
+    if (composition.IsError)
+        throw new ArgumentException(
+            $"{spec.Slug}: {composition.ErrorBody?.GetValueOrDefault("message") ?? composition.ErrorBody?.GetValueOrDefault("error")}");
+    var built = composition.World!;
+    var xml = composition.Xml!;
 
     var outDir = spec.OutDir ?? $"/media/sf_repos/CommunityMaps/dtcm/{spec.Slug}";
     Directory.CreateDirectory(outDir);
@@ -204,27 +184,6 @@ static List<GridPlot> Plots(GridSpec grid)
     if (grid.Plots.Count == 0) throw new ArgumentException("a 'grid' needs at least one plot");
     return [.. grid.Plots.Select(plot => new GridPlot(
         plot.Kind, plot.Theme, plot.Name, plot.Width, plot.Depth, plot.Radius, plot.Vertices))];
-}
-
-/// <summary>The goals — wool monuments, destroyables, cores — whose anchor has no rasterized column under it,
-/// named for the refusal message. Every goal kind is checked the same way: a column either exists at the
-/// goal's (floored) XZ or it does not, which is all "stands over void" means.</summary>
-static List<string> GoalsOverVoid(Dictionary<(int X, int Z), int> ground, MapIntent intent)
-{
-    bool Grounded(Pt point) => ground.ContainsKey(((int)Math.Floor(point.X), (int)Math.Floor(point.Z)));
-
-    var findings = new List<string>();
-    foreach (var wool in intent.Wools ?? [])
-        foreach (var monument in wool.Monuments)
-            if (!Grounded(monument.Location))
-                findings.Add($"{monument.Team}'s monument on {wool.Owner}'s wool");
-    foreach (var destroyable in intent.Destroyables ?? [])
-        if (!Grounded(destroyable.Anchor))
-            findings.Add(destroyable.Name.Length > 0 ? destroyable.Name : destroyable.Owner);
-    foreach (var core in intent.Cores ?? [])
-        if (!Grounded(core.Anchor))
-            findings.Add(core.Name.Length > 0 ? core.Name : $"{core.Owner}'s core");
-    return findings;
 }
 
 /// <summary>The eight named stage images, into <c>stages/</c> beside <c>region/</c> and <c>map.xml</c> — the

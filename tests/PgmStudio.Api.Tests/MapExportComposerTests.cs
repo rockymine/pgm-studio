@@ -55,6 +55,62 @@ public sealed class MapExportComposerTests
         return await resp.Content.ReadFromJsonAsync<JsonElement>();
     }
 
+    // ComposeSketch is the one chain the HTTP export and the headless mapgen driver both run, so what it
+    // refuses and where the decoration lands are contract, not plumbing.
+    [Test]
+    public async Task ComposeSketch_decorates_the_document_between_projection_and_judgement()
+    {
+        var intent = new PgmStudio.Pgm.Authoring.MapIntent
+        {
+            Teams = [new PgmStudio.Pgm.Authoring.TeamDef { Id = "red-team", Name = "Red", Color = "dark red" }],
+            Spawns = [new PgmStudio.Pgm.Authoring.SpawnIntent { Team = "red-team", Point = new PgmStudio.Pgm.Authoring.Pt(10, 0, 10) }],
+            Destroyables =
+            [
+                new PgmStudio.Pgm.Authoring.DestroyableIntent
+                {
+                    Owner = "red-team", Name = "Farmon", Style = "pillar-1", Materials = "obsidian",
+                    Anchor = new PgmStudio.Pgm.Authoring.Pt(20, 0, 20), Float = 4,
+                },
+            ],
+        };
+        var result = PgmStudio.Export.MapExportComposer.ComposeSketch(
+            [], IslandLayout, intent, doc =>
+            {
+                doc["name"] = "Chainproof";
+                doc["version"] = "1.0.0";
+                doc["objective"] = "Prove the chain.";
+            });
+
+        await Assert.That(result.IsError).IsFalse();
+        await Assert.That(result.World).IsNotNull();
+        await Assert.That(result.Xml!).Contains("Chainproof");
+        await Assert.That(result.Xml!).Contains("Prove the chain.");
+    }
+
+    [Test]
+    public async Task ComposeSketch_refuses_a_goal_over_the_void_with_the_export_gate_finding()
+    {
+        var intent = new PgmStudio.Pgm.Authoring.MapIntent
+        {
+            Teams = [new PgmStudio.Pgm.Authoring.TeamDef { Id = "red-team", Name = "Red", Color = "dark red" }],
+            Spawns = [new PgmStudio.Pgm.Authoring.SpawnIntent { Team = "red-team", Point = new PgmStudio.Pgm.Authoring.Pt(10, 0, 10) }],
+            Destroyables =
+            [
+                new PgmStudio.Pgm.Authoring.DestroyableIntent
+                {
+                    Owner = "red-team", Name = "Farmon", Style = "pillar-1", Materials = "obsidian",
+                    Anchor = new PgmStudio.Pgm.Authoring.Pt(500, 0, 500), Float = 4,
+                },
+            ],
+        };
+        var result = PgmStudio.Export.MapExportComposer.ComposeSketch([], IslandLayout, intent);
+
+        await Assert.That(result.IsError).IsTrue();
+        await Assert.That(result.ErrorStatus!.Value).IsEqualTo(409);
+        var body = System.Text.Json.JsonSerializer.Serialize(result.ErrorBody);
+        await Assert.That(body).Contains("OB17");
+    }
+
     [Test]
     public async Task OB17_refuses_a_destroyable_that_overhangs_the_void()
     {

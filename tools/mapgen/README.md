@@ -17,10 +17,13 @@ dotnet run --project tools/mapgen -- <spec.json> [more.json ...]
 dotnet run --project tools/mapgen -- --describe <spec.json>    # compile only, report the board
 ```
 
-The spec says what a map is *about*; the generator answers the rest. Everything goes through
-`SketchWorldBuilder` and `IntentGenerator` — the same path the studio's own export takes — so a map this
-writes is a map an author could have drawn, and anything neither the convenience fields nor a handed-through
-document fragment can say is a gap in the system rather than a gap in the tool.
+The spec says what a map is *about*; the generator answers the rest. The build runs through
+`MapExportComposer.ComposeSketch` — literally the studio export's own sketch leg, gates included — so a map
+this writes is a map an author could have drawn, a map the HTTP export would also have shipped, and one it
+would have refused fails here with the same findings (`OB17` objective placement over the rasterized ground,
+wool monuments included; `OB19` goal clearance; the `B140` playability judgement). Anything neither the
+convenience fields nor a handed-through document fragment can say is a gap in the system rather than a gap
+in the tool.
 
 There is no sampler. `sketch.md` states the studio's own design: dressing is authored, and there is no
 scatter, no density pass and no "fill this island with forest", because a tree is cover and where cover
