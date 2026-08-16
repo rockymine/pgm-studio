@@ -1,6 +1,7 @@
 namespace PgmStudio.Analysis.Playability;
 
 using PgmStudio.Analysis.Region;
+using PgmStudio.Geom;
 
 using Dict = Dictionary<string, object?>;
 
@@ -41,6 +42,8 @@ public static class KitReach
         var cost = new int[n];
         for (var i = 0; i < n; i++)
             cost[i] = walkable[i] ? 0 : (b.Verdict[i] == 0 || b.Verdict[i] == 3) ? 1 : -1;
+        var navigableCells = new HashSet<(int X, int Z)>();
+        for (var i = 0; i < n; i++) if (cost[i] >= 0) navigableCells.Add((i % nx, i / nx));
 
         var kitBudgets = KitBudgets(data);
         var regions = AsDict(data.GetValueOrDefault("regions"));
@@ -54,12 +57,12 @@ public static class KitReach
             var (budget, water) = kitBudgets.GetValueOrDefault(kitId, (0, false));
 
             var start = RegionCell(SpawnRegion(sp, regions), regions, bounds, minX, minZ, nx, nz);
-            var dist = start is { } s ? BridgeCost(cost, nx, nz, s.ix, s.iz) : null;
+            var dist = start is { } s ? BridgeCost(cost, nx, nz, s.ix, s.iz, navigableCells) : null;
 
             var wools = new List<WoolReach>();
             foreach (var (color, wx, wz) in WoolPoints(data, regions, bounds))
             {
-                var target = NearestNavigable(cost, nx, nz, wx - minX, wz - minZ);
+                var target = NearestNavigable(navigableCells, wx - minX, wz - minZ);
                 var need = (dist is not null && target is { } t) ? dist[t.iz * nx + t.ix] : Unreachable;
                 var reachable = need != Unreachable;
                 var within = reachable && need <= budget;
@@ -154,11 +157,11 @@ public static class KitReach
         => (ix >= 0 && ix < nx && iz >= 0 && iz < nz) ? (ix, iz) : null;
 
     // ── 0-1 BFS: min blocks placed to reach every navigable cell from a start ───────────────────
-    private static int[] BridgeCost(int[] cost, int nx, int nz, int sx, int sz)
+    private static int[] BridgeCost(int[] cost, int nx, int nz, int sx, int sz, IReadOnlySet<(int X, int Z)> navigableCells)
     {
         var dist = new int[nx * nz];
         Array.Fill(dist, Unreachable);
-        var start = NearestNavigable(cost, nx, nz, sx, sz);
+        var start = NearestNavigable(navigableCells, sx, sz);
         if (start is not { } s) return dist;
         var si = s.iz * nx + s.ix;
         dist[si] = cost[si];                       // standing-cost of the start cell (0 if walkable)
@@ -187,17 +190,8 @@ public static class KitReach
     private static readonly (int, int)[] Neigh = [(-1, 0), (1, 0), (0, -1), (0, 1)];
 
     // snap a point to the nearest navigable (cost ≥ 0) cell within a small radius
-    private static (int ix, int iz)? NearestNavigable(int[] cost, int nx, int nz, int ix, int iz, int snap = 4)
-    {
-        for (var r = 0; r <= snap; r++)
-            for (var dz = -r; dz <= r; dz++)
-                for (var dx = -r; dx <= r; dx++)
-                {
-                    int x = ix + dx, z = iz + dz;
-                    if (x >= 0 && x < nx && z >= 0 && z < nz && cost[z * nx + x] >= 0) return (x, z);
-                }
-        return null;
-    }
+    private static (int ix, int iz)? NearestNavigable(IReadOnlySet<(int X, int Z)> navigableCells, int ix, int iz, int snap = 4) =>
+        Cells.SnapToWalkable((ix, iz), navigableCells, snap) is { } cell ? (cell.X, cell.Z) : null;
 
     private static string Normalize(string s) => s.Trim().ToLowerInvariant().Replace('_', ' ');
     private static bool Truthy(object? v) => v is true || (v is string s && s is "true" or "1");

@@ -77,6 +77,54 @@ public static class Cells
     public static int? PathLength((int, int) from, (int, int) to, IReadOnlySet<(int, int)> within) =>
         ShortestPath(from, to, within) is { } path ? path.Count - 1 : null;
 
+    /// <summary>The step count of the shortest 4-connected path from <paramref name="from"/> to the
+    /// <b>nearest</b> cell of <paramref name="targets"/>, through <paramref name="within"/> — the same
+    /// traversal <see cref="ShortestPath"/> walks (cardinal steps only, hugging any obstacle's border), but
+    /// stopping at whichever target a single BFS reaches first. Returns null when <paramref name="from"/> is
+    /// outside the set or no target is reachable. Agrees with <see cref="PathLength"/> when <paramref
+    /// name="targets"/> holds a single cell.</summary>
+    public static int? PathLengthToAny((int X, int Z) from, IReadOnlySet<(int X, int Z)> targets, IReadOnlySet<(int X, int Z)> within)
+    {
+        if (!within.Contains(from)) return null;
+        if (targets.Contains(from)) return 0;
+
+        var seen = new HashSet<(int X, int Z)> { from };
+        var q = new Queue<((int X, int Z) Cell, int Steps)>();
+        q.Enqueue((from, 0));
+        while (q.Count > 0)
+        {
+            var (cell, steps) = q.Dequeue();
+            foreach (var n in N4(cell))
+            {
+                if (!within.Contains(n) || !seen.Add(n)) continue;
+                if (targets.Contains(n)) return steps + 1;
+                q.Enqueue((n, steps + 1));
+            }
+        }
+        return null;
+    }
+
+    /// <summary>Snaps <paramref name="cell"/> onto <paramref name="within"/>: the cell itself when it is
+    /// already a member, otherwise the nearest member found by searching outward ring by ring, up to
+    /// <paramref name="radius"/> rings, using the <b>square</b> (Chebyshev) ring — every cell at
+    /// <c>max(|dx|, |dz|) == ring</c> — rather than the diamond (Manhattan) ring, so a reachable diagonal
+    /// neighbour is found at the same ring a cardinal one is. Ties within a ring break deterministically by
+    /// increasing Z then increasing X. Returns null when nothing in <paramref name="within"/> falls within
+    /// <paramref name="radius"/> rings.</summary>
+    public static (int X, int Z)? SnapToWalkable((int X, int Z) cell, IReadOnlySet<(int X, int Z)> within, int radius)
+    {
+        if (within.Contains(cell)) return cell;
+        for (var ring = 1; ring <= radius; ring++)
+            for (var dz = -ring; dz <= ring; dz++)
+                for (var dx = -ring; dx <= ring; dx++)
+                {
+                    if (Math.Max(Math.Abs(dx), Math.Abs(dz)) != ring) continue;
+                    var candidate = (cell.X + dx, cell.Z + dz);
+                    if (within.Contains(candidate)) return candidate;
+                }
+        return null;
+    }
+
     /// <summary>Number of 4-connected components of a cell set.</summary>
     public static int Components(IReadOnlySet<(int, int)> cells)
     {

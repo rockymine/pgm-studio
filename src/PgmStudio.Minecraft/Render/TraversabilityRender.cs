@@ -223,11 +223,12 @@ public static class TraversabilityRender
                 Raster.Set(pixels, blocksWide, col, row, 0x0E0E12);
             }
 
+        var navigableCells = new HashSet<(int X, int Z)>(labelOf.Keys);
         var isolated = 0;
         foreach (var marker in markers)
         {
             var centre = (X: (marker.Box.MinX + marker.Box.MaxX) / 2, Z: (marker.Box.MinZ + marker.Box.MaxZ) / 2);
-            var component = ComponentNear(labelOf, centre, blocksWide, blocksHigh, minX, minZ);
+            var component = ComponentNear(navigableCells, labelOf, centre);
             var connected = component == main;
             if (!connected) isolated++;
             DrawMarker(pixels, blocksWide, blocksHigh, minX, minZ, marker.Box, connected ? 0xf5f5f0 : 0xef4444);
@@ -239,18 +240,9 @@ public static class TraversabilityRender
     /// <summary>The component nearest a point, searching a small ring outward — an objective box's centre can
     /// itself be a wall/room-floor cell (not navigable ground), so the nearest navigable neighbour is what
     /// answers which component it opens onto.</summary>
-    private static int ComponentNear(Dictionary<(int X, int Z), int> labelOf, (int X, int Z) at,
-        int blocksWide, int blocksHigh, int minX, int minZ, int snap = 6)
-    {
-        for (var radius = 0; radius <= snap; radius++)
-            for (var dz = -radius; dz <= radius; dz++)
-                for (var dx = -radius; dx <= radius; dx++)
-                {
-                    var cell = (at.X + dx, at.Z + dz);
-                    if (labelOf.TryGetValue(cell, out var label)) return label;
-                }
-        return -1;
-    }
+    private static int ComponentNear(IReadOnlySet<(int X, int Z)> navigableCells, Dictionary<(int X, int Z), int> labelOf,
+        (int X, int Z) at, int snap = 6) =>
+        Cells.SnapToWalkable(at, navigableCells, snap) is { } cell ? labelOf[cell] : -1;
 
     private static void DrawMarker(byte[] pixels, int blocksWide, int blocksHigh, int minX, int minZ, BlockBox box, int rgb)
     {

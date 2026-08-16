@@ -155,4 +155,66 @@ public sealed class CellsTests
         await Assert.That(path[^1]).IsEqualTo((0, 3));
         await Assert.That(path.Count).IsEqualTo(4);
     }
+
+    [Test]
+    public async Task PathLengthToAny_agrees_with_PathLength_for_a_single_target()
+    {
+        var within = Rect(0, 0, 8, 8);
+        var single = Set((3, 4));
+        await Assert.That(Cells.PathLengthToAny((0, 0), single, within))
+            .IsEqualTo(Cells.PathLength((0, 0), (3, 4), within));
+    }
+
+    [Test]
+    public async Task PathLengthToAny_returns_the_nearest_of_several_targets()
+    {
+        var within = Rect(0, 0, 10, 1);
+        var targets = Set((7, 0), (2, 0), (9, 0));      // nearest is (2, 0), 2 steps away
+        await Assert.That(Cells.PathLengthToAny((0, 0), targets, within)).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task PathLengthToAny_picks_the_nearer_target_by_walked_distance_not_straight_line()
+    {
+        // a U of walkable cells, wall down the middle column (same shape as the ShortestPath detour test).
+        // (3, 4) sits across the wall — straight-line distance 2, but 10 walked steps around it — while
+        // (0, 0) is open ground on the same side at 5 walked steps. BFS must return the walked-nearer one.
+        var u = Rect(0, 0, 5, 5);
+        for (var z = 1; z <= 4; z++) u.Remove((2, z));
+        var targets = Set((3, 4), (0, 0));
+        await Assert.That(Cells.PathLengthToAny((1, 4), targets, u)).IsEqualTo(5);
+    }
+
+    [Test]
+    public async Task SnapToWalkable_returns_the_cell_itself_when_already_walkable()
+    {
+        var within = Rect(0, 0, 3, 3);
+        await Assert.That(Cells.SnapToWalkable((1, 1), within, radius: 2)).IsEqualTo((1, 1));
+    }
+
+    [Test]
+    public async Task SnapToWalkable_finds_the_nearest_ring_cell_by_the_documented_tie_break()
+    {
+        // both (0, -1) and (-1, 0) sit at Chebyshev ring 1 from the origin. The tie-break is increasing Z
+        // then increasing X, and (0, -1) has the lesser Z, so it wins even though (-1, 0) has the lesser X.
+        var within = Set((0, -1), (-1, 0));
+        await Assert.That(Cells.SnapToWalkable((0, 0), within, radius: 2)).IsEqualTo((0, -1));
+    }
+
+    [Test]
+    public async Task SnapToWalkable_prefers_a_diagonal_corner_over_a_farther_cardinal_cell_by_chebyshev_ring()
+    {
+        // (1, 1) is at Chebyshev ring 1 (a diagonal corner); (2, 0) is at ring 2. The square ring reaches
+        // the corner first, unlike a Manhattan ring which would have ranked them the other way (both at
+        // Manhattan distance 2).
+        var within = Set((1, 1), (2, 0));
+        await Assert.That(Cells.SnapToWalkable((0, 0), within, radius: 2)).IsEqualTo((1, 1));
+    }
+
+    [Test]
+    public async Task SnapToWalkable_is_null_past_the_radius()
+    {
+        var within = Set((5, 5));
+        await Assert.That(Cells.SnapToWalkable((0, 0), within, radius: 2)).IsNull();
+    }
 }

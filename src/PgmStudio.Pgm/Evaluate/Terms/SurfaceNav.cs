@@ -41,16 +41,11 @@ internal static class SurfaceNav
         return Snap(((int)Math.Floor(piece.Rect.X + at[0]), (int)Math.Floor(piece.Rect.Z + at[1])), walkable);
     }
 
-    private static (int, int)? Snap((int, int) cell, IReadOnlySet<(int, int)> walkable)
-    {
-        if (walkable.Contains(cell)) return cell;
-        for (var r = 1; r <= 2; r++)
-            for (var dx = -r; dx <= r; dx++)
-                for (var dz = -r; dz <= r; dz++)
-                    if (Math.Abs(dx) + Math.Abs(dz) == r && walkable.Contains((cell.Item1 + dx, cell.Item2 + dz)))
-                        return (cell.Item1 + dx, cell.Item2 + dz);
-        return null;
-    }
+    // Snaps onto the canonical square (Chebyshev) ring rather than the diamond (Manhattan) ring this used to
+    // walk itself — the square ring is a superset at every radius, so a marker that only a diagonal-corner
+    // cell would reach (one the Manhattan ring refused) can now snap where it previously read unreachable.
+    private static (int, int)? Snap((int, int) cell, IReadOnlySet<(int, int)> walkable) =>
+        Cells.SnapToWalkable(cell, walkable, radius: 2);
 
     /// <summary>Evidence for a distance violation between two markers: the two endpoints, a labelled measure, and
     /// the rectilinear route itself (collinear runs merged into segments — the path the number came from).</summary>

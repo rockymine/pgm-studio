@@ -166,28 +166,7 @@ internal static class Triangle
         return ctx.Plan.Placements.Wools.Select(w =>
         {
             if (band.Count == 0 || SurfaceNav.MarkerCell(ctx, w.Piece, w.At, walkable) is not { } wc) return (double?)null;
-            return ToSet(wc, band, walkable) is { } steps ? steps * (double)cell : null;
+            return Cells.PathLengthToAny(wc, band, walkable) is { } steps ? steps * (double)cell : null;
         }).ToList();
-    }
-
-    // breadth-first over the walkable surface from `start` to the nearest cell of `targets`, in steps
-    private static int? ToSet((int, int) start, HashSet<(int, int)> targets, HashSet<(int, int)> walkable)
-    {
-        if (!walkable.Contains(start)) return null;
-        if (targets.Contains(start)) return 0;
-        var seen = new HashSet<(int, int)> { start };
-        var q = new Queue<((int X, int Z) C, int D)>();
-        q.Enqueue((start, 0));
-        while (q.Count > 0)
-        {
-            var ((x, z), d) = q.Dequeue();
-            foreach (var n in new[] { (x + 1, z), (x - 1, z), (x, z + 1), (x, z - 1) })
-            {
-                if (!walkable.Contains(n) || !seen.Add(n)) continue;
-                if (targets.Contains(n)) return d + 1;
-                q.Enqueue((n, d + 1));
-            }
-        }
-        return null;
     }
 }

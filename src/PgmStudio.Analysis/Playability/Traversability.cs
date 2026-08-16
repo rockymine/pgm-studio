@@ -1,6 +1,7 @@
 namespace PgmStudio.Analysis.Playability;
 
 using PgmStudio.Analysis.Region;
+using PgmStudio.Geom;
 using PgmStudio.Geom.Algorithms;
 
 using Dict = Dictionary<string, object?>;
@@ -46,13 +47,15 @@ public static class Traversability
         var haveLayers = surfaceColumns is { Count: > 0 };
 
         var labels = LabelComponents(navigable, nx, nz);
+        var navigableCells = new HashSet<(int X, int Z)>();
+        for (var i = 0; i < n; i++) if (navigable[i]) navigableCells.Add((i % nx, i / nx));
         var points = NavigationPoints(data, (b.MinX, b.MinZ, b.MaxX, b.MaxZ));
 
         var placed = new List<NavPoint>();
         foreach (var p in points)
         {
             int ix = p.X - minX, iz = p.Z - minZ;
-            var comp = (ix >= 0 && ix < nx && iz >= 0 && iz < nz) ? LabelAt(labels, navigable, nx, nz, ix, iz) : 0;
+            var comp = (ix >= 0 && ix < nx && iz >= 0 && iz < nz) ? LabelAt(labels, navigableCells, nx, ix, iz) : 0;
             placed.Add(p with { Component = comp });
         }
 
@@ -188,17 +191,10 @@ public static class Traversability
         return labels;
     }
 
-    private static int LabelAt(int[] labels, bool[] navigable, int nx, int nz, int ix, int iz, int snap = 3)
-    {
-        for (var r = 0; r <= snap; r++)
-            for (var dz = -r; dz <= r; dz++)
-                for (var dx = -r; dx <= r; dx++)
-                {
-                    int x = ix + dx, z = iz + dz;
-                    if (x >= 0 && x < nx && z >= 0 && z < nz && navigable[z * nx + x]) return labels[z * nx + x];
-                }
-        return 0;
-    }
+    // The component id of the nearest navigable cell within a small radius — an objective point's own cell
+    // can land off the navigable grid (a wool marker a block into a wall), so the snap finds what it opens onto.
+    private static int LabelAt(int[] labels, IReadOnlySet<(int X, int Z)> navigableCells, int nx, int ix, int iz, int snap = 3) =>
+        Cells.SnapToWalkable((ix, iz), navigableCells, snap) is { } cell ? labels[cell.Z * nx + cell.X] : 0;
 
     private static Dict AsDict(object? o) => o as Dict ?? new Dict();
     private static List<object?> AsList(object? o) => o as List<object?> ?? [];
