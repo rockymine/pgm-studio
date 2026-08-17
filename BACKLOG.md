@@ -654,26 +654,31 @@ what a library shows back, where the model has outgrown the editor. The three sh
 
 ### Symmetry: two mirror centres, and a picture that hides which is which
 
-- [ ] **B250 — The terrain and the stamps mirror about centres one block apart.** Measured on two committed
-  worlds: **every stamped structure is an exact rot_180 image about the origin** — offset `(0,0)`, cell sets
-  identical, no exceptions — while the terrain's best centre is `(-1,-1)`, the cell corner. So relative to the
-  ground it stands on, every building, spawn and goal sits one block off its own mirror. That is what an
-  author sees in game as a house offset by a block across the axis, and it is not the stamper's fault: the
-  stamp is perfect about its centre and the terrain is perfect about a different one. Settle which centre is
-  the board's — a rot_180 about a cell **centre** and about a cell **corner** are both defensible, and only
-  one can be right for a given extent — then make the rasterizer and `PlanCompiler`'s fanning agree.
+- [ ] **B250 — Stamp families disagree with the terrain, and with each other, about where the mirror centre
+  is.** The board's extent is **even** on both axes — `firnline` x −45..44 / z −100..99, `basalt-reach`
+  x −75..74 / z −102..101 — so the centre is a **cell boundary**, and the rot_180 image of cell `x` is
+  `−1−x`. The terrain keeps that. Several stamp families do not: they mirror about the **origin**, one block
+  off, so relative to the ground it stands on the stamp sits a block from its own image. Settle the centre
+  once, then make every fanning site read it.
 
-  **The terrain also has a residual the centre does not explain.** At its own best centre, `firnline` still
-  leaves **164 of 10,986** terrain columns (1.5%) without a mirror image and `basalt-reach` **260 of 19,014**
-  (1.4%). Worth a second look once the centre is settled, because a rounding that survives the fix is a
-  different bug.
+  | family | centre its images actually pair about |
+  |---|---|
+  | house, spawn room, destroyable, core | **origin** |
+  | spawn iron cube, redstone line | **corner** (the terrain's) |
+  | wool room floor, approach wall | neither — pair under no candidate |
+  | terrain | corner, with a residual (below) |
 
-  *measured 2026-08-16 over `pgm-studio-mapgen/maps/{firnline,basalt-reach}/region` with the provenance
-  sidecar separating stamp from terrain. Structure pairs: firnline `destroyable` `house:h1..h3` `spawn`;
-  basalt-reach `core` `destroyable` `house:w1..w5` `spawn` — all offset `(0,0)`, all shapes identical.
-  Terrain by candidate centre, firnline: `(-1,-1)` 164 · `(0,-1)` 314 · `(-1,0)` 270 · `(0,0)` 371.
-  Surface **materials** differ on 1,755 terrain columns and are expected to: a pattern samples world
-  coordinates and is not mirrored.*
+  **The terrain also has a residual the centre does not explain**: at its own best centre `firnline` leaves
+  **164 of 10,986** terrain columns (1.5%) without an image and `basalt-reach` **260 of 19,014** (1.4%). A
+  rounding that survives the centre fix is a different bug.
+
+  *measured 2026-08-16 over `pgm-studio-mapgen/maps/{firnline,basalt-reach,sunspit}/region`, pairing each
+  stamp with whichever stamp its rotated image actually lands on — **not** by owner id, because a provenance
+  owner's suffix is an index into the fanned list (`wool:{i}`, `spawn:{i}`, `destroyable:{i}`) and only
+  `house:{id}:{k}` carries an orbit index. Two limits worth knowing before acting: **provenance records
+  structures only** (`B216`), so trees, boulders, water and the relief are not in this reading at all; and
+  `kerbstone`/`tanglewold` pair under neither candidate for every family, which is more likely a different
+  symmetry mode than a fault and was not chased.*
 
 - [ ] **B251 — A mirrored board cannot be read off the stage images, because neither render survives a
   rotation.** Rendered a synthetic world that is exactly rot_180 symmetric — 1,681 columns, **zero**
