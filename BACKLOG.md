@@ -652,6 +652,47 @@ what a library shows back, where the model has outgrown the editor. The three sh
   build actually stamps). Wants a second interaction — add-a-wing, probably a drag that starts touching an
   existing wing's edge — and a handle set that knows which wing a grip belongs to.
 
+### Symmetry: two mirror centres, and a picture that hides which is which
+
+- [ ] **B250 — The terrain and the stamps mirror about centres one block apart.** Measured on two committed
+  worlds: **every stamped structure is an exact rot_180 image about the origin** — offset `(0,0)`, cell sets
+  identical, no exceptions — while the terrain's best centre is `(-1,-1)`, the cell corner. So relative to the
+  ground it stands on, every building, spawn and goal sits one block off its own mirror. That is what an
+  author sees in game as a house offset by a block across the axis, and it is not the stamper's fault: the
+  stamp is perfect about its centre and the terrain is perfect about a different one. Settle which centre is
+  the board's — a rot_180 about a cell **centre** and about a cell **corner** are both defensible, and only
+  one can be right for a given extent — then make the rasterizer and `PlanCompiler`'s fanning agree.
+
+  **The terrain also has a residual the centre does not explain.** At its own best centre, `firnline` still
+  leaves **164 of 10,986** terrain columns (1.5%) without a mirror image and `basalt-reach` **260 of 19,014**
+  (1.4%). Worth a second look once the centre is settled, because a rounding that survives the fix is a
+  different bug.
+
+  *measured 2026-08-16 over `pgm-studio-mapgen/maps/{firnline,basalt-reach}/region` with the provenance
+  sidecar separating stamp from terrain. Structure pairs: firnline `destroyable` `house:h1..h3` `spawn`;
+  basalt-reach `core` `destroyable` `house:w1..w5` `spawn` — all offset `(0,0)`, all shapes identical.
+  Terrain by candidate centre, firnline: `(-1,-1)` 164 · `(0,-1)` 314 · `(-1,0)` 270 · `(0,0)` 371.
+  Surface **materials** differ on 1,755 terrain columns and are expected to: a pattern samples world
+  coordinates and is not mirrored.*
+
+- [ ] **B251 — A mirrored board cannot be read off the stage images, because neither render survives a
+  rotation.** Rendered a synthetic world that is exactly rot_180 symmetric — 1,681 columns, **zero**
+  unmirrored — and both pictures come out asymmetric: `sym-structures` differs from its own 180° image on
+  1,568 of 26,896 pixels, `sym-topdown` on 896. Neither is an offset: the two houses' drawn bounding boxes
+  are exact images of each other (`x 24..51, y 40..67` against the same reflected). Two causes, both
+  cosmetic and both defeating the one thing an author checks these pictures for.
+
+  **`StructureFinder` gives every structure its own accent colour**, so a structure and its mirror image are
+  drawn in different hues and the two halves read as holding different things. On a symmetric board the
+  accent wants to be per **owner-without-its-orbit-index** — `house:w1:0` and `house:w1:1` are one building
+  seen twice — so a mirrored pair shares a colour and a genuinely unpaired structure stands out.
+
+  **Both renders shade against the north neighbour only**, which cannot survive a 180° rotation by
+  construction. Correct as a lighting cue and wrong as the only cue: a reader comparing halves sees a
+  gradient that flips. Worth a symmetry-aware mode, or an overlay that draws the axis and the mirror
+  residual directly rather than leaving it to the eye — which is what `B250` needed and could not get from a
+  picture.
+
 ### The author's override: building a board the gates refuse
 
 - [ ] **B249 — An author can force a compile and an export past its refusals; an agent cannot.** The gates
