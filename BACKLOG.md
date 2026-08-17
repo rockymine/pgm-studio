@@ -252,33 +252,25 @@ are Edit-specific. Full canvas spec: `docs/client/canvas-interaction.md`.
   genuinely share — the rest of their apparent repetition is per-tool document semantics and should stay
   separate.
 
-- [~] **B107 — The sketch still cannot place or move an objective; only its height sticks.** The storage
-  question is settled and the backend half is landed (`FEATURES.md`): a structural shape's stated height now
-  survives a recompile, marked per field and carried by `intentRef`. What remains is the reach.
+- [~] **B107 — Make a structural piece selectable on the sketch canvas, and draw an absolutely-placed goal.**
+  The backend half is landed (`FEATURES.md`): a structural shape's stated height survives a recompile, marked
+  per field and carried by `intentRef`. Three reaches are missing, all in the canvas and render layers.
 
-  **The canvas half.** `sketch-canvas.js` documents structural pieces as render-only — never hit-tested,
-  never selected, never edited — so nothing can write the flag a user's correction would set. Unlocking
-  selection, a drag, and an inspector row for the stated height is its own slice of the canvas and render
-  layers, and it is what turns a proven mechanism into something an author can reach.
+  **Selection.** `sketch-canvas.js` documents structural pieces as render-only — never hit-tested, never
+  selected, never edited — so nothing can write the flag a correction would set. It wants selection, a drag,
+  and an inspector row for the stated height.
 
-  **The destroy objectives.** A destroyable and a core carry **no rect in the plan** — `Anchor` is a bare
-  point, unlike a spawn or a wool room — and that is correct rather than missing: neither has a footprint, and
-  neither wants one. They sit anywhere terrain exists beneath them, floating a few blocks clear of it. So a
-  sketch presence for them is a **movable point with a stated height**, not a rect to drag, and the height is
-  the interesting half because it is the one thing the plan cannot know before the relief runs — `B128` landed
-  that half in the document (`float` counts from solved ground, and the marker itself may name no plan piece
-  at all); what is still missing is a way to draw and drag that point on the canvas.
+  **The destroy goals.** A destroyable and a core carry **no rect in the plan** — `Anchor` is a bare point,
+  and that is correct: neither has a footprint. So their sketch presence is a **movable point with a stated
+  height**, not a rect. The height is the interesting half, being the one thing the plan cannot know before
+  the relief runs.
 
-  **Position, separately.** Moving a piece rather than raising it is `S25b`, and the design here deliberately
-  leaves rect and position tracking the plan so that a recompile stays authoritative about *where* while the
-  author stays authoritative about *how high*.
+  **The raster.** `GET /plans/{id}/png` draws `tallow-mirefast`'s five pieces, both spawns and the legend, and
+  nothing at `(0, −50)` where the wardstone stands. `B128`'s empty-`piece` marker is how a landform carries an
+  objective without a tier manufactured to hold it, and the one picture the plan layer offers cannot show it.
 
-  **And the raster does not draw an absolutely-placed goal at all**, which folds in here because this entry
-  owns the canvas half. `GET /plans/{id}/png` draws `tallow-mirefast`'s five pieces, both spawns and the
-  legend, and nothing at `(0, −50)` where the wardstone stands. `B128`'s empty-`piece` marker is the most
-  useful thing on the board for an agent — it is how a landform carries an objective without a tier
-  manufactured to hold it — and **the one picture the plan layer offers cannot show what it produced**, so an
-  agent authoring from the render has no way to see its own goal.
+  *Moving a piece rather than raising it is `S25b`: rect and position keep tracking the plan, so a recompile
+  stays authoritative about where while the author stays authoritative about how high.*
 
 - [ ] **CV16 — the authoring canvases have no frame budget, only habits.** The zoom stall (fixed in
   `FEATURES.md`) was two unrelated per-event costs that happened to land on the same handler, and neither was
@@ -298,20 +290,17 @@ three Opus 5 authoring records. Each was reproduced against the tree rather than
 finding those reports carry (a house past `HouseProp.MaxFootprint` dropped in silence) is **already fixed**
 by `HousePropRules.PastCap` and is not filed.
 
-- [ ] **B213 — A wall is anchored to a plan seam that the sketch tool is free to move out from under it.**
-  A wall's rect is fixed at compile from the interface its two plan pieces share; nothing afterwards keeps
-  that seam intact. Resize or re-bow either shape in the sketch tool and the wall does not follow, so it can
-  end up spanning less than the lane it was drawn across — and there is **no refusal and no warning**. The
-  measured instance is in `opus5-coldharbour-v2-authoring.md` §6: an organic pass bowed a wool lane's coasts
-  out past both ends of its wall, players could walk round it, every call answered 200, and the only symptom
-  was traversability moving from 2 isolated markers to **0** — the direction that reads as an improvement
-  while meaning the wall had stopped working. The workaround there was to veto any edge within 10 blocks of
-  a wall rect, read out of `POST /plan/inspect`'s structures feed.
+- [ ] **B213 — Keep a wall's seam intact, or make the wall follow the shape.** A wall's rect is fixed at
+  compile from the interface its two plan pieces share, and nothing afterwards holds that seam: resize or
+  re-bow either shape in the sketch tool and the wall stays where it was, spanning less than the lane it was
+  drawn across, with no refusal and no warning. A wall slows an attack and gives defenders a base to build on
+  **without players tunnelling around it** (author) — both halves need the bedrock line cutting its lane in
+  full, so a shortened wall is a gameplay failure, not a cosmetic one.
 
-  **What the wall is for, settled** — it slows an attack and it gives defenders a base to build a defensive
-  wall on top of **without having to worry that players tunnel around it**. Both halves depend on the bedrock
-  line cutting its lane in full, which is why a shortened wall is a gameplay failure rather than a cosmetic
-  one.
+  *`opus5-coldharbour-v2-authoring.md` §6: an organic pass bowed a wool lane's coasts past both ends of its
+  wall, players could walk round it, every call answered 200, and the only symptom was traversability moving
+  from 2 isolated markers to **0** — the direction that reads as an improvement. The workaround was to veto
+  any edge within 10 blocks of a wall rect, read out of `POST /plan/inspect`'s structures feed.*
 
   **Four ways out, all the author's, and they compose rather than compete.** *(a)* Stop fusing plan pieces
   into one sketch shape when a wall sits on the seam between them, even at equal height — the fusion is what
@@ -331,108 +320,83 @@ by `HousePropRules.PastCap` and is not filed.
   known at stamp time** and the tree renderers already read it to draw a crown and a base, so the record is a
   write rather than a derivation.
 
-- [ ] **B212 — Bucket 3's corpus bands are in the retired unit and must be re-measured.** **The author's call
-  is in: a distance is the walk over the walkable surface, never the straight line** (`rules.md` amendment 13,
-  2026-08-15). The reasoning is recorded there — the line is what a bow or an eye crosses, the walk is what a
-  player carrying wool actually pays, and a separation rule is about the second. **Nothing in the code moves**:
-  `WoolWoolDistance` already routes 4-connected around voids, `WL9`/`WL10` already read "traversal", and
-  `G127`'s flow prototype is already in that unit. What is left is the numbers.
+- [ ] **B212 — Mark the three straight-line thresholds as uncalibrated at their citation sites, and let the
+  author replace each with a walk.** The unit is settled — a distance is the **walk over the walkable
+  surface, never the straight line** (`rules.md` amendment 13) — and no code moves for it: `WL7`, `WL9`/`WL10`
+  and `G127` are already in that unit, and `GoalDistances` and `GroundCoverage` have since been built on top
+  of it. What is not settled is three numbers that read as if they were measured: `B175`'s **35 blocks**,
+  `B179`'s **95–110**, and `B188`'s 164-map table. All three were read straight-line off `map.xml` region
+  centroids, and the sweep behind the table is not in the repository to re-run.
 
-  **The original finding, which is why the numbers are the work:** `WoolWoolDistance` (`WL7`, `Evaluate/Terms/ObjectiveTerms.cs`) is the studio's one implemented
-  separation rule, and its docstring states the measure outright: distance is **rectilinear traversal over the
-  walkable surface**, 4-connected, routing around voids — "and correspondingly higher than a straight-line
-  reading of `WL7`'s ~45".
+  **No corpus sweep** (author, 2026-08-15): a re-derivation buys precision this project does not need and
+  costs a harness and its upkeep. Simple hard rules instead, stated in the settled unit and tagged `[expert]`
+  in `rules.md`, the way `WL7` already carries a working minimum of ≈45. So the work is small: say at each
+  citation site that the number is straight-line and unreproducible, and retire it as the author states its
+  replacement.
 
-  Every number bucket 3 is calibrated against was read the other way. `B175`'s "at least 35 blocks" comes from
-  regions in a shipped `map.xml`; `B179`'s "nearest enemy goal at 95–110" from the same; `B188`'s whole
-  164-map table — spawn→own goal 49.4 median, ratio 2.9 — was parsed "from the XML alone", which is centres and
-  extents, not a walk. **And the sweep that produced that table is not in the repository**, so the metric behind
-  the one corpus band calibrating buckets 2 and 3 cannot be recovered from the code; the table survives in
-  `docs/generator/seed-stats.md`, marked as the retired unit (`B188` itself closed as `GO1`'s walk band).
+  *`seed-stats.md:385` already carries the mark; `B175` and `B179` do not. Note for whoever states the
+  replacements that the surface under them moved after this was filed: `Cells.SnapToWalkable` now walks the
+  **square** (Chebyshev) ring rather than the diamond, so a marker only a diagonal cell reaches now snaps
+  where it used to read unreachable — walks that were null are numbers now.*
 
-  So an agent handed `B175` does one of two things, and neither fails a test: writes a second, straight-line
-  measure beside the traversal one, or reaches for `Cells.PathLength` — correctly, it is right there in `Geom`
-  — and applies a threshold calibrated in the other unit. `B175` even points at the collision without seeing
-  it: "the rule shape exists on the wool side" is exactly `WL7`, and `WL7` is the measure that disagrees.
+- [ ] **B220 — Fix the doc-comment defects, then take the four ids out of `NoWarn` so the next one fails the
+  build.** Each is a sentence pointing at something that is not there, and each is silenced in all five
+  `.csproj` that emit a documentation file (`Domain`, `Pgm`, `Minecraft`, `Export`, `Api`):
 
-  **Scope, and it is deliberately small: no corpus sweep.** The obvious move — re-measure `B175`'s "at least
-  35", `B179`'s 95–110 and `B188`'s 164-map table as traversal, committing the sweep — is **not being done**
-  (author, 2026-08-15). A re-derivation buys precision this project does not need yet and costs a sweep, its
-  harness and its upkeep, and the entry that would justify it is the same one that keeps growing. **Simple hard
-  rules instead**, stated by the author in the settled unit and tagged `[expert]` in `rules.md`, the way `WL7`
-  already carries a working minimum of ≈45 without anything re-deriving it per release.
+  | id | the defect | what to look for |
+  |---|---|---|
+  | **CS1573** | a method documents some parameters and not others | a `<param>` list shorter than the signature — usually a parameter added later |
+  | **CS1574** | a `<see cref>` names something that does not resolve | a member that was renamed or moved to another type |
+  | **CS0419** | a cref matches several overloads and silently picks one | `<see cref="Foo"/>` where `Foo` has more than one signature |
+  | **CS1734** | a `<paramref>` names a parameter that was renamed | the name in the prose against the name in the signature |
 
-  What that leaves is bookkeeping rather than measurement: the three straight-line numbers must stop being
-  cited as if they were calibrated, because their unit is retired and the sweep behind `B188` is not in the
-  repository to re-run. Mark them at their citation sites as straight-line and unreproducible, and let a hard
-  rule replace each as the author states one. Nothing else here is blocking: the measure exists, the unit is
-  settled, and `Geom/Cells.ShortestPath` walks the mask if a number is ever wanted.
+  **One member of the family no warning catches, and it misleads hardest.** Five docstrings open **two
+  `<summary>` blocks on one member**, the first describing something other than what follows it — a docstring
+  left behind when the member under it went away. The XML is well formed, so `CS1570` says nothing; the
+  compiler concatenates both into that member's entry and the tooltip leads with a sentence about something
+  else. Found by scanning `src/` for comment blocks with more than one `<summary>` open, which is what to
+  re-run: `UnitRequests.cs:6`, `UnitSeating.cs:6`, `Producibility.cs:124`,
+  `SketchDressingInspector.razor.cs:263`, `PlacedProp.cs:251`.
 
-  **The flow read is already in the right unit, which narrows this.** `G127`'s prototype measures in proxy
-  cells over the walkable mask (×5 = blocks) — `WL7`'s unit, not the corpus band's. So the two *derivations*
-  agree and it is bucket 3's authored thresholds that stand alone in straight-line blocks.
+  *measured 2026-08-16 by dropping the four ids from `NoWarn` and rebuilding clean: **148 distinct sites over
+  55 files** — 90 CS1573, 34 CS1574, 14 CS0419, 10 CS1734. The entry's earlier count of 36 over 26 files was
+  the tail of one project, not the sweep. Worst files: `TerrainTheme.cs` (9), `SpawnBoxEmitter.cs` (7),
+  `FrontlineBoxEmitter.cs` (7), `MapExportComposer.cs` (7). `CS1587` stays silenced on purpose — a docstring
+  on a local function, which the compiler never emits.*
 
-  *found reviewing dispatch readiness, 2026-08-15 · `Evaluate/Terms/ObjectiveTerms.cs:5-10` ·
-  `Geom/Cells.cs:48,77` · bucket 3's `B175`/`B179` (and `B188`, since closed as `GO1`).*
+- [ ] **B221 — The style libraries preview a stamped world, and a part editor frames a section of it.**
+  Authoring a **whole style** — a house, a wool cage, a spawn shell — wants the building as it will stand, so
+  the library builds a small world with the house in it and draws that: the path `B165` was found down, and
+  now that the 3-D preview draws the world the export builds (`S54`) the library can show the real thing
+  rather than a stamp of a fixed 10×10 sample. Authoring a **part** — `RoofStyle`, `Storey`, `PorchStyle`,
+  `Foundation`, each a record of its own — wants a **section** through that world at the part, because the
+  part is currently lost inside the whole: `RoomStylePreview.Views` takes `Outer(style)`, the entire shell,
+  whichever of the three part libraries is open, and nothing on that path asks which part is being edited.
 
-- [ ] **B220 — Forty doc-comment defects, silenced rather than fixed.** Turning
-  `GenerateDocumentationFile` on for the five projects `B219` reads (`Domain`, `Pgm`, `Minecraft`, `Export`,
-  `Api`) surfaced them: **CS1574** a `<see cref>` naming something that does not resolve, **CS1573** a method
-  documenting some of its parameters and not others, **CS1734** a `<paramref>` naming a parameter that was
-  renamed, **CS0419** a cref matching several overloads and silently resolving to one. They are all comments
-  written before anything read them, and each is a sentence pointing at something that is not there.
+  Where a Y range is the right cut the bands are public: a storey is `LevelBases[i]` to `+ Clear`, a roof is
+  `WallCourses` upward; a porch is an XZ restriction instead. Stamping the part alone is the wrong design — a
+  roof's eave sits on the summed storey stack and the porch decides the front the body is split on, so an
+  isolated part synthesises the context that decides its geometry anyway.
 
-  They are in `NoWarn` in every one of those five `.csproj` files, which is a debt with the usual due date —
-  turning the file on should not have turned forty warnings on with it, and fixing them was not `B219`'s work.
-  The genuinely broken ones were fixed rather than silenced: **CS1570/CS1584**, malformed XML that truncates a
-  member's entry in the emitted file, in `ApproachSlots`, `HouseStamper`, `HouseWindows` and `TopDownRender`
-  — those are what would corrupt what `/api/rules` reads. **CS1587** stays silenced on purpose: it is a
-  docstring on a local function, which the compiler never emits and which is harmless where it is.
+  *One trap: `WorldViews.Isometric`'s `Opaque()` reads `world.GetBlock` unbounded, so a face at the cut plane
+  sees solid beyond it and is not drawn — a box restriction leaves the cut open unless out-of-box reads as
+  air.*
 
-  Fix them, then take the four ids back out of `NoWarn` so the next one fails the build. `B223` did
-  `HouseStamper`'s four CS1574s as it passed — two `<see cref>` at `HouseStyle.Overhang`, a field that moved to
-  `RoofStyle` when the parts split, and two at `LayBeams`, a local function no cref can reach — leaving **36
-  sites over 26 files**.
+- [ ] **B243 — Set the absolute minimum width of a frontline crossing.** `FR8` lands the *share* rule — a
+  crossing covering under a third of the face it docks against — and deliberately states no absolute width,
+  because board scale decides it and the example boards were never sized honestly (author). So a 10-block
+  crossing on a 30-block face passes the share and is still a funnel nobody reads as a crossing. The width is
+  a number the author states; `PieceInterfaces.Frontages` already serves `FrontlineBlocks` raw on
+  `POST /plan/inspect`, so the rule is one comparison once the number exists.
 
-  **One member of the family no warning catches, and it is the one that misleads hardest.** Five docstrings
-  open two `<summary>` blocks on one member, the first describing something other than what follows it:
-  `Pgm/Compose/UnitRequests.cs` opens "What the unit needs hung off its hub" directly above the
-  `NeighbourRequest` record, `Client/Features/Sketch/SketchDressingInspector.razor.cs` documents `Pick` above
-  `SetForm` two methods early, and `UnitSeating.cs`, `Producibility.cs` and `Minecraft/Dressing/PlacedProp.cs`
-  are the same shape — a docstring left behind when the member under it went away. The XML is well formed, so
-  CS1570 says nothing; the compiler simply concatenates both into that member's entry and the tooltip leads
-  with a sentence about something else. Found by scanning `src/` for comment blocks whose `<summary>` opens and
-  closes do not pair, which is what to re-run: nothing else sees this one.
-
-  *found turning on the documentation file for `B219`, 2026-08-15 · the five `<NoWarn>` lines name it.*
-
-- [ ] **B221 — A part editor previews the whole house, so the part being authored is the part to squint for.**
-  `RoomStylePreview.Views` stamps a whole `HouseStyle` into the fixed sample and takes `Outer(style)` — the
-  entire shell — whichever of the three part libraries is open, and all three compose a full house around the
-  draft (`ComposeRoofDraftAsync` → `RoofOver(row, courses, WallFor(row))`; the storey and porch drafts →
-  `OnSample(…)`). Nothing on that path asks which part is being edited, which is a default from when the house
-  was the only type: `RoofStyle`, `Storey`, `PorchStyle` and `Foundation` are records of their own now, and
-  `RoofStyle`'s own docstring records the split.
-
-  **The fix is a focus box and needs nothing from the stamper.** `WorldViews.Isometric` already takes a
-  `ViewBox` and draws what is in it, and the bands are public: a storey's is `LevelBases[i]` to `+ Clear`, a
-  roof's is `WallCourses` upward, and a porch is the `SplitPorch` deck — an XZ restriction rather than a band,
-  which is the one of the three that does not fall out of a Y range. Stamping the part alone is the other
-  design and is worse value: a roof's eave sits on the summed storey stack, a porch's posts fall back to the
-  ground storey's material, and the porch decides the front the body is split on, so an isolated part has to
-  synthesise the context that decides its geometry anyway.
-
-  **One trap.** `WorldViews.Isometric`'s `Opaque()` reads `world.GetBlock` unbounded, so a face at the cut
-  plane sees solid beyond it and is not drawn — a box restriction leaves the cut open unless out-of-box reads
-  as air. Whole-house stays the default view; the focus is what the open part editor frames.
-
-**The piece-interface machinery shipped (2026-08-16)** as `PieceInterfaces` over `ContactGraph` + the
-board deriver, with the grouped rules as lint — `SP8`/`SP9`/`ST8`/`ST9`/`BZ11`/`FR8`/`CT12` (rules.md
-amendment 17) — and the raw reads on `POST /plan/inspect` (`frontages`, `frontlineRuns`, `islandGaps`,
-per-interface `delta`). The absolute minimum front width is deliberately open: the author's call is that
-board scale decides it and the example boards were never sized honestly; FR8 lands as the share rule and
-the widths are served raw. Remaining under this machinery: the per-interface *height* read against relief
-hard edges stays a note per the author (an excluded piece meeting relief at a straight face).
+- [ ] **B244 — Lint a piece interface whose relief leaves a straight face dropping two or more blocks.**
+  `SP8` already refuses a **spawn** egress stepping Δ≥2 ahead of its door. The same read wants generalising to
+  every interface: take each land seam's height delta from `PieceInterfaces.Seams`, keep the Δ≥2 ones, and
+  ask whether the **relief** smooths across it. Where it does, the step is a slope and nothing is wrong;
+  where it does not, the two pieces meet at a straight cliff face and a player walks up to a wall — which is
+  what an excluded piece meeting relief produces and what an agent reading a plan cannot see. List those
+  interfaces, and lint the ones the relief does not carry, so the finding says the terrain drops N blocks at a
+  straight edge rather than falling away.
 
 - [ ] **B225 — A march tests another wing's walls where the primary pass tests its whole roof.**
   `Overtopped` asks `otherField.Covers` — the wing's walls **plus its overhang** — while `OtherRoofCrownOver`,
@@ -457,37 +421,33 @@ hard edges stays a note per the author (an excluded piece meeting relief at a st
   ten corpus `dtcm` maps use `leak` 3–6, median 5, and `fungi_grove` suspends its core over a chasm so the
   whole task is breaking the shell.*
 
-- [ ] **B129 — The section renderer cuts one plane, so everything behind the cut is missing.**
-  `SectionRender` samples a **single one-block-thick slice** and paints each cell with the block that stands
-  exactly on the plane. That is the right reading for checking a `layered` material, which is what it was
-  built for, and it is the wrong one for looking at a map: a cut through solid ground is a solid slab,
-  because a solid slab is genuinely what sits on that plane. A cut through Ashen Quarry's town at z=60 is
-  two courses of stone brick over forty-seven of andesite over bedrock, measured by `--column` and rendered
-  faithfully — and it shows none of the buildings standing a few blocks either side of it, none of the room
-  interiors, and nothing of the town's silhouette. The picture is accurate and nearly uninformative, which
-  is a harder fault to notice than a wrong one.
+- [ ] **B129 — Give the section renderer a depth-projected mode, so what stands behind the cut is in the
+  picture.** `SectionRender` samples a **single one-block-thick slice**, which is right for checking a
+  `layered` material and useless for looking at a map: a cut through solid ground is a solid slab, because a
+  solid slab is genuinely what sits on that plane. The projection it wants already exists on the other side of
+  the house — `Analysis/Layer/SideView.Build` reduces a map's vertical solid segments to a depth map per
+  viewing direction (`nz`/`pz`/`nx`/`px`), and `sideview-canvas.js` paints it. Add it as a **mode of the
+  existing renderer**, not a second one: the two answer different questions and both are worth having.
 
-  **The studio already computes exactly the missing quantity, on the other side of the house.**
-  `Analysis/Layer/SideView.Build` projects a map's vertical solid segments onto a `(primary × y)` grid as a
-  **depth map** — for each cell, the distance from the viewer to the nearest solid along the perpendicular
-  axis, `0` nearest and `-1` for a cell nothing occupies — for four viewing directions (`nz`/`pz`/`nx`/`px`,
-  with the positive-side ones mirroring left-to-right). `GET /map/{slug}/segments` serves it and
-  `js/studio/canvas/sideview-canvas.js` paints it as a depth-tinted cross-section. So a section that shows
-  what stands behind the plane is not a new idea here; it is an existing one the block-level renderer never
-  reached, and the two want the same projection.
+  Two things to settle. `SideView` reads `layer_segments` rows, which exist only for a **scanned** map, while
+  `SectionRender` reads a region directory or a `VoxelWorld` — so the projection wants doing over voxels and
+  the shared thing is the algorithm, not the input. And a depth map answers *how far* rather than *what*, so
+  the mode should carry both: **distance as value, material or category as hue**, which is what makes a
+  building behind the cut read as a building rather than a lighter smudge. The existing side view is greyscale
+  and never got the colour half.
 
-  Two differences are real and have to be settled rather than glossed. `SideView` reads `layer_segments`
-  rows, which exist for a map the studio has **scanned**, while `SectionRender` reads a region directory or
-  a `VoxelWorld` — so the projection wants doing over voxels rather than over segments, and the shared thing
-  is the algorithm, not the input. And a depth map answers *how far* rather than *what*, so a depth-only
-  section loses the material identity that makes the current one worth having: the two are complementary
-  modes of one renderer, not a replacement.
+  *a cut through Ashen Quarry's town at z=60 is two courses of stone brick over forty-seven of andesite over
+  bedrock — accurate, and it shows none of the buildings a few blocks either side, no room interiors, and
+  nothing of the town's silhouette.*
 
-  **The existing instance is greyscale, and colour is the half it never got.**
-  `sideview-canvas.js` ramps nearest to farthest across light stone to very dark, so depth reads and category
-  does not. A block-level section drawing the same projection can carry both — distance as value, material or
-  category as hue — which is the pairing that makes a building behind the cut legible as a building rather
-  than as a lighter smudge.
+- [ ] **B245 — `mapgen --help` should say what each render answers, not just how to invoke it.** The tool
+  prints one usage line (`Program.cs:38`); an agent choosing between `--topdown --layer …`, `--section`,
+  `--heightmap`, `--surface`, `--traversability-map`, `--structures` and `--column` has nothing in the tool
+  saying which question each one answers or where each is known to mislead. That knowledge exists — the table
+  in `pgm-studio-mapgen/REVIEWER-BRIEF.md` carries it, caveats included (`B99` on isolated markers, `B149` on
+  `--buildings` under-counting a studio-built town, `B129` on the one-plane cut) — but it lives in a brief an
+  agent may not have been given, beside the repository that owns the commands. Put one line per read in
+  `--help`: what it draws, and what it is known not to show.
 
 - [ ] **B104 — Cap a destroy goal's float at 12 blocks, and refuse a goal box that reaches over the build
   height.** Two numbers, one entry. `ObjectiveDefaults.DestroyableFloat = 4` is a **minimum** — enough that a
@@ -961,42 +921,24 @@ raster of a plan* into **`B107`**, and *a walled wool room reading as an isolate
   than returning a wrong status code, and `--authoring` is a manual harness, not a gate. Note the
   neighbours prove the standard is reachable: `MapParser` 92.9%, `XmlWriter` 88.1%, `RegionCategorizer`
   91.4%. Cover the type-specific region/filter branches first — that is where the uncovered lines are.
-- [ ] **B37 — Every family's resolver should answer one resolved-stamp record, and only iron does.** The
-  stamped-structure placeability attribute (`docs/world-export/structures.md` WX9, shipped for spawn iron)
-  generalizes to the objectives: a **core or destroyable too close to a wool monument** merges structures that
-  must read apart, and one **inside a spawn piece** is worse than ugly — the spawn's protection region emits
-  `block="never"` on the shared `spawns` union (`TeamsGenerator`), so an objective inside it cannot be broken
-  by *anyone*, the attacking team included, and the map is silently unwinnable. The wool path already solves
-  exactly that case by folding each monument block out of the union (`WoolGenerator.SubtractMonumentsFromSpawns`);
-  cores and destroyables have no equivalent and want the separation rule rather than a fold, because a goal
-  inside enemy spawn is a design error and not a case to work around.
+- [ ] **B37 — Every family's resolver should answer one resolved-stamp record, and only iron does.**
+  `IronResolution(MarkerX, MarkerZ, MinX, MinZ, Size, Placeable)` is the shape and the only instance, with
+  four consumers, all iron; the wall, the rooms and the objectives each resolve their placement inline. The
+  record wanted is **kind, footprint box, `Placeable`, source marker**, produced by each family's resolver.
+  The stampers stay heterogeneous — a wall owns a seam, a room a piece + marker + entries, an objective a
+  marker + style — which is why the *resolution* is the thing to share and not the stamping.
 
-  **The shape, unchanged:** the stampers stay heterogeneous — their inputs are irreducibly different, a wall
-  owns a seam, a room a piece + marker + entries, an objective a marker + style — but every family's resolver
-  produces one **resolved-stamp record**: kind, footprint box, `Placeable`, source marker. That is the uniform
-  currency the pairwise separation rules run over, and the preview's `StructureBox` would consume it instead of
-  assembling its own, which reaches placeability into the iso view for free. `StructureBox` stays a separate
-  type from `BlockBox` — exclusive maxes plus `Kind`/`Color`, a drawing frame rather than a volume.
+  Two things need it. `PlanStructurePreview.StructureBox` assembles its own boxes for iron, destroyables and
+  cores; consuming the record instead reaches placeability into the iso view for free. And the
+  objective↔objective and objective↔monument **minimum distances** — a core merging with a wool monument they
+  must read apart from — have nowhere to live until every placement answers in one shape.
 
-  **Three neighbouring things have landed, and none of them is this record.** The **occupancy** half is
-  `StructureClaim` (`B202`/`B203`): which columns a stamp owns, taken from the placement rather than rebuilt
-  beside it. The **report-first** half is the dressing pass's decline list (`B142`): what was placed and what
-  was declined, with a reason, as `region/dressing-report.json`. And the **objective placement** half is `OB17`:
-  void, spawn room and wool room refused at compile over a shared `ObjectiveFootprint`. What is still missing is
-  the record the three would hang off — `IronResolution(MarkerX, MarkerZ, MinX, MinZ, Size, Placeable)` remains
-  the only instance carrying `Placeable`, with four consumers, all iron — and the objective↔objective and
-  objective↔monument **minimum distances**, which are bucket 3's `B175`/`B179` seen from the placement side and
-  wait on the same thing they do: the author restating a threshold in the walk unit (`B212`). A record carrying
-  a claim composes; neither replaces the other.
-
-  **The editor half shipped end to end** (`B59`, `C44`, `FEATURES.md`): markers carry a persisted id, a finding
-  names one, and clicking that finding rings the marker on the board. What is left of it is only its timing —
-  structural findings do not run in the live feed (`G161`), so a refusal appears at Compile rather than as the
-  marker is dragged.
-
-  `G65` is the third thing in this neighbourhood and is genuinely separate: it reconciles `FannedGraph`
-  adjacency against `ContactGraph` for the *overlap* case, which is a question about whether two pieces touch,
-  not about how far apart two placements stand.
+  *Not this: `OB17` already refuses a goal in void, in a spawn room or in a wool room over a shared
+  `ObjectiveFootprint`, the unwinnable `block="never"` case included; `StructureClaim` (`B202`) answers which
+  columns a stamp owns; `B142` answers what the dressing pass declined. The editor half shipped (`B59`,
+  `C44`) and what remains of it is timing — structural findings do not run in the live feed (`G161`), so a
+  refusal appears at Compile rather than as the marker is dragged. `G65` is adjacent and separate: whether two
+  pieces touch, not how far apart two placements stand.*
 
 - [ ] **B34 — The two map-list endpoints disagree on sort order, and the dashboard gets the noisy one.**
   `MapsListEndpoint` branches on the `stage` query param onto two differently-ordered repository methods:
@@ -1125,14 +1067,14 @@ raster of a plan* into **`B107`**, and *a walled wool room reading as an isolate
   and `/plan/feasibility` both answer `PL1` to a plan with no pieces, in the same sentence `compile` gives.
   The head needs no empty-placements check of its own.
 
-**DTM / DTC objectives (destroyables + cores).** The contract is `docs/pgm/destroyables-and-cores.md`
-— it owns the XML surface, the **world-measured** structure families, the schema, and the two-team scope;
-its rule ids (`OB*`/`DT*`/`DC*`) are cited below. Filed here (not `N`/`G`) because the bulk of each is
-pipeline — parser, writer, schema, intent, stamper — with the plan-editor placement as the last mile.
-**Both objectives now author end to end** (`FEATURES.md`): parse/write/codec, the schema, the world stamps,
-and plan → intent → world → `map.xml` for destroyables (`B24`) and cores (`B25`). What is left below is the
-import diagnostic (`B24e`), detection (`B26`), and the island-floor work the phantom classifier unblocked
-(`B31`). The other thing it unblocked — water lanes — has shipped (`FEATURES.md`, `docs/pgm/water-lanes.md`).
+### DTM / DTC objectives — destroyables and cores
+
+The contract is `docs/pgm/destroyables-and-cores.md`: the XML surface, the **world-measured** structure
+families, the schema, the two-team scope, and the `OB*`/`DT*`/`DC*` rule ids cited below. Filed here rather
+than under `N`/`G` because the bulk of each is pipeline — parser, writer, schema, intent, stamper — with the
+plan-editor placement as the last mile. Both objectives author end to end (`FEATURES.md`); what is left is
+the import diagnostic (`B24e`), detection (`B26`), and the island-floor work the phantom classifier
+unblocked (`B31`).
 
 - [ ] **B24e — Flag an *imported* map whose objective region holds none of its material (a warning, not a
   gate).** Scoped down: the authored half of this is **already covered by tests** — `DestroyableWorldTests`
