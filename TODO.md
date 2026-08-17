@@ -108,8 +108,10 @@ that already exists in the map contract.
 
 An agent driving the studio meets one of these on every loop, and they share a cause: the same answer is
 given a different shape at each surface, so nothing downstream can read all of them. Fable's run-3 review
-named the layer and re-verified it after its own fixes landed; the counts below are re-measured against
-today's tree and two of them are worse than that reading.
+named the layer and re-verified it after its own fixes landed
+(`pgm-studio-mapgen/reports/fable-run3-architecture.md`, with the author's follow-up ask recorded in this
+repo's history); the counts below are re-measured against today's tree, and two of them are worse than that
+reading.
 
 - [ ] **RP1 — One typed artifact store, replacing five copies and 34 raw touches.** `IntentStore`,
   `SketchStore`, `PlanStore`, `ConfigureStore` and `RegionDraftStore` are copy-shaped, and three say so in
