@@ -30,7 +30,7 @@ public sealed class DressingProvenanceTests
 
     private static DressingContext Context(
         Dictionary<(int X, int Z), int> top, IReadOnlyList<PlacedProp> props, string? symmetry = null)
-        => new(top, props, (_, _) => false, new DressingSymmetry(symmetry, 0, 0));
+        => new(top, props, (_, _) => null, new DressingSymmetry(symmetry, 0, 0));
 
     private static DressingPlacement Dress(IReadOnlyList<PlacedProp> props, string? symmetry = null)
     {
@@ -95,13 +95,13 @@ public sealed class DressingProvenanceTests
         // The case the record exists to make visible: no claim at all, rather than a claim over bare ground.
         var (world, top) = Plateau();
         var blocked = new DressingContext(top, [new TreeProp { Id = "t1", X = 4, Z = 4, Seed = 5 }],
-                                          (_, _) => true, DressingSymmetry.None);
+                                          (_, _) => KeepOut.Spawn, DressingSymmetry.None);
 
         var placed = Decorator.Decorate(world, blocked);
 
         await Assert.That(placed.Trees).IsEqualTo(0);
         await Assert.That(placed.Placements).IsEmpty();
-        await Assert.That(placed.Dropped).IsNotNull();
+        await Assert.That(placed.Declines.Single().Rule).IsEqualTo(DressingRules.KeptClear);
     }
 
     [Test]

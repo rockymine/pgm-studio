@@ -30,8 +30,8 @@ public sealed class HousePropTests
 
     private static DressingContext Context(
         Dictionary<(int X, int Z), int> top, IReadOnlyList<PlacedProp> props,
-        Func<int, int, bool>? isProtected = null, string? symmetry = null)
-        => new(top, props, isProtected ?? ((_, _) => false), new DressingSymmetry(symmetry, 0, 0));
+        Func<int, int, KeepOut?>? keptClear = null, string? symmetry = null)
+        => new(top, props, keptClear ?? ((_, _) => null), new DressingSymmetry(symmetry, 0, 0));
 
     private static HouseProp House(int minX, int minZ, int maxX, int maxZ, RoomEdge? front = null) => new()
     {
@@ -246,16 +246,27 @@ public sealed class HousePropTests
     }
 
     [Test]
-    public async Task An_authored_building_is_never_refused_by_the_protected_mask()
+    public async Task A_building_stands_through_the_keep_out_mask_but_never_through_a_doors_approach()
     {
-        // The mask keeps a *scatter* off the cells the map is played through, because a scatter is generated
-        // and has to be told where not to grow. Someone drew this rectangle here on purpose, and a refusal
-        // would silently drop a placement they can see on the canvas.
+        // A room's own margin is not a reason to lose a building someone drew: the mask keeps the small props
+        // off the cells the map is played through, and a rectangle drawn on the canvas is not one of those.
         var (world, top) = Plateau();
-        var tally = Decorator.Decorate(world, Context(top, [House(2, 3, 10, 9)], isProtected: (_, _) => true));
+        var tally = Decorator.Decorate(world, Context(top, [House(2, 3, 10, 9)], keptClear: (_, _) => KeepOut.Spawn));
 
         await Assert.That(tally.Houses).IsEqualTo(1);
         await Assert.That(Height(world, 2, 3)).IsGreaterThan(8);
+
+        // The lane in front of a door is the exception, and the one piece of played-through ground a building
+        // is big enough to close entirely. Declined and named, rather than refusing the whole export.
+        var (lane, laneTop) = Plateau();
+        var blocked = Decorator.Decorate(lane, Context(laneTop, [House(2, 3, 10, 9)],
+            keptClear: (_, z) => z >= 3 ? KeepOut.Approach : null));
+
+        await Assert.That(blocked.Houses).IsEqualTo(0);
+        var decline = blocked.Declines.Single();
+        await Assert.That(decline.Rule).IsEqualTo(DressingRules.KeptClear);
+        await Assert.That(decline.Message).Contains("approach in front of a door");
+        await Assert.That(decline.SubjectIds).IsEquivalentTo(new[] { "h1" });
     }
 
     [Test]

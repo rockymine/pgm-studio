@@ -690,7 +690,7 @@ blob, so they track unsaved edits, and all four answer 400 rather than 500 on a 
 | `POST /map/{slug}/sketch/paint` | the painted surface as palette-indexed block pixels — the real painter's output, with team tints resolved from the stored intent |
 | `POST /map/{slug}/sketch/relief[?interval=]` | `{interval, islands[]}` — per island its height range, its bounds and its traced contour lines, from the build's own solver |
 | `POST /map/{slug}/sketch/relief/read` | `{islands[]}` — per island the cell count, low/high/relief, steps, tiers, the first twelve faces and the total, cliffs, crossings in X and Z, and the symmetry error |
-| `POST /map/{slug}/sketch/columns` | `{palette, cols, min_x, min_z, max_x, max_z}` — the whole built world as per-column runs, which the 3-D preview meshes |
+| `POST /map/{slug}/sketch/columns` | `{palette, cols, min_x, min_z, max_x, max_z, warnings}` — the whole built world as per-column runs, which the 3-D preview meshes, plus every prop the dressing pass declined as a `DR-*` finding (`warnings`, complaints on a success: the world built and those props are not in it) |
 
 **The column payload** is one flat integer array walked by its own counts:
 `cols = [x, z, runCount, (yTop, yBottom, paletteIndex) × runCount, …]`, with `palette` a list of `#rrggbb`.

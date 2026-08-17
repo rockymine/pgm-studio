@@ -429,7 +429,7 @@ what a library shows back, where the model has outgrown the editor. The three sh
 - [ ] **B166 — A house claims its stamped extent grown one block outward, and the claim excludes everything.**
   Every other placement already reserves ground around itself: a goal keeps props 10 blocks from its marker
   and out of its footprint clearance (`OB19`, `DressingScope.GoalStandoff`), a spawn door keeps its first 20
-  blocks open and a wool entry its first 10 (`OB21`), a tree stands 3 blocks off the road and a boulder 2
+  blocks open and a wool entry its first 10 (`DressingScope.ApproachAt`), a tree stands 3 blocks off the road and a boulder 2
   (`DR-ROAD`). A house reserves nothing: `Decorator.PlaceHouse` joins the claims as `image.Cells()` — the
   **wall** rectangles — while the extent the stamp actually writes is computed one line below as
   `ClaimedCells(image, house.Style)` and used only for provenance. So a verge overhangs ground the pass
@@ -981,14 +981,14 @@ place.
   spans `z −37 … 38`, and opposing monuments stand 19 blocks apart with no obstacle between them. The author's
   reading — a stalemate rather than a rush, and a board too large for what it uses — is a gameplay judgment and
   is the author's; the numbers are what it rests on. The goals being visible from spawn is the good half and
-  `OB21` protects it.*
+  the door's approach keep-out protects it.*
 
 - [ ] **B169 — Complain about spawn ground that carries nothing and contests nothing.** Raw size is not the
   test (author): a spawn seated on a large rectangle that *is* the map is fine, and Mirefast's 92-wide
   `steading` at least carries nine houses and two ramps. What fails is flat dead area around a spawn placed at
   the back. The rule id exists — **`SP2`**, "a spawn sits near the back of its lane, because the space behind
-  a spawn is dead space" — and it composes with `ST9` (piece ≤ 20×20) and `OB21` (the first 20×20 in front of
-  the door left open), so the measure to add is *what is this ground for*, not how wide it is. The 15-block
+  a spawn is dead space" — and it composes with `ST9` (piece ≤ 20×20) and the door's approach (the first
+  20×20 in front of the door kept clear), so the measure to add is *what is this ground for*, not how wide it is. The 15-block
   figure is a rule of thumb for the common case, not the rule.
 
   **`GroundCoverage` answers this directly once it is honest.** *Dead* is already exactly "ground with no
@@ -1092,7 +1092,7 @@ place.
   Adopting the render's predicate costs nothing extra: the segment index the gate already loads holds the
   vertical structure, and `SurfaceColumns` is discarding it — the same index already answers air-at-a-point
   for monument obstruction. Worth doing with this entry rather than as its own, since both are the same mask
-  learning what stops a player. **Not urgent on its own**: `B172` (shipped as `OB21`) keeps houses out of the one
+  learning what stops a player. **Not urgent on its own**: `B172` (shipped as the door's approach keep-out) keeps houses out of the one
   place they most obstruct, and no corpus distance sweep depends on it (`B212`).
 
 - [ ] **G164 — interference: how much of one side's route the other side's route covers.** Every flow

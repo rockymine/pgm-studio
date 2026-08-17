@@ -32,6 +32,44 @@ public static class DressingRules
 
     /// <summary>The footprint minimum in blocks — <see cref="FootprintFloor"/>'s one number.</summary>
     public const int FootprintMin = 5;
+
+    /// <summary>A prop rests on a column the map keeps clear of everything: a spawn point or its room, a wool
+    /// room or its monument, a structure the plan stated, a column whose surface is built rather than terrain,
+    /// or the lane in front of a spawn or wool-room door. The finding names which of those it was and the cell
+    /// it happened at.</summary>
+    /// <remarks>Move the prop off the cell the finding names. A door's approach reaches twenty blocks out from a spawn room's face and ten from a wool room's, measured from the stamped building — that lane is what the door is for, so nothing stands in it.</remarks>
+    public const string KeptClear = "DR-KEEP";
+
+    /// <summary>A prop rests on ground something already standing has claimed — a channel, a road, a building
+    /// or an earlier prop. The pass places in priority order and the first claimant keeps the cell, so this is
+    /// the collision itself rather than a near miss; the finding names the cell and what holds it.</summary>
+    /// <remarks>Move the prop off the claimed ground, or move whatever holds it. Two authored things wanting the same cell is the author's to resolve — the pass never shifts a placement to make room.</remarks>
+    public const string GroundTaken = "DR-CLAIM";
+
+    /// <summary>A prop has no ground to rest on: one of the cells it rests at is off the map's terrain
+    /// altogether, so there is no column to seat it in.</summary>
+    /// <remarks>Move the prop onto drawn ground. A prop whose orbit image falls off the board fails this way too — the whole prop is declined at the first image that finds no ground, since a rock standing on one half of a mirrored map and missing from the other is worse than neither.</remarks>
+    public const string NoGround = "DR-SITE";
+}
+
+/// <summary>Why a cell is kept clear of everything the dressing pass places — the answer a decline names, so
+/// a dropped prop says <em>what</em> stopped it rather than only that something did. The sibling of
+/// <see cref="ClaimKind"/>: that says what another prop took, this says what the map itself is holding.</summary>
+public enum KeepOut
+{
+    /// <summary>A spawn point, or the protection area authored around it.</summary>
+    Spawn,
+    /// <summary>A wool room, its spawn or one of its monuments.</summary>
+    WoolRoom,
+    /// <summary>A structure the plan stated: a room floor, an iron cube, a wall, a redstone line.</summary>
+    Structure,
+    /// <summary>A column whose surface block is built rather than terrain — a stamp of some kind, whatever
+    /// placed it. Read from the finished world rather than from the intent, which is what makes it catch what
+    /// the intent does not name.</summary>
+    Built,
+    /// <summary>The lane in front of a spawn room's door or a wool room's entry — the ground players walk out
+    /// through, which is part of what the door is for.</summary>
+    Approach,
 }
 
 /// <summary>What kind of thing claimed a cell of ground during the dressing pass. The kind is what lets one
@@ -58,9 +96,16 @@ public enum ClaimKind
 /// </summary>
 public sealed class GroundClaims
 {
-    private readonly Dictionary<(int X, int Z), ClaimKind> cells = [];
+    private readonly Dictionary<(int X, int Z), (ClaimKind Kind, string Owner)> cells = [];
 
-    public void Claim(int x, int z, ClaimKind kind) => cells.TryAdd((x, z), kind);
+    /// <summary>Record that <paramref name="owner"/> — the prop's own id — took this cell as
+    /// <paramref name="kind"/>. The owner rides along so a later prop refused here can name what holds the
+    /// ground rather than only that something does.</summary>
+    public void Claim(int x, int z, ClaimKind kind, string owner) => cells.TryAdd((x, z), (kind, owner));
+
+    /// <summary>What holds the cell, or null where nothing does — the half a decline needs to be actionable.</summary>
+    public (ClaimKind Kind, string Owner)? At(int x, int z) =>
+        cells.TryGetValue((x, z), out var held) ? held : null;
 
     /// <summary>Whether anything at all holds the cell — the occupancy question every prop asks before
     /// resting on it, and the gate that keeps cover from growing through a road or a wall.</summary>
@@ -69,13 +114,13 @@ public sealed class GroundClaims
     /// <summary>Whether the cell is held by something other than <paramref name="kind"/> — the building's
     /// question, asked with <see cref="ClaimKind.Route"/>: pavement never blocks a house.</summary>
     public bool HoldsOtherThan(int x, int z, ClaimKind kind) =>
-        cells.TryGetValue((x, z), out var held) && held != kind;
+        cells.TryGetValue((x, z), out var held) && held.Kind != kind;
 
     /// <summary>Whether exactly <paramref name="kind"/> holds the cell — the passage check's question, asked
     /// with <see cref="ClaimKind.Structure"/>: only something built blocks a way past, while a road or a
     /// channel alongside a wall is still ground a player crosses.</summary>
     public bool HoldsKind(int x, int z, ClaimKind kind) =>
-        cells.TryGetValue((x, z), out var held) && held == kind;
+        cells.TryGetValue((x, z), out var held) && held.Kind == kind;
 
     /// <summary>The nearest cell of <paramref name="kind"/> strictly nearer than <paramref name="standoff"/>
     /// blocks (Chebyshev) of the given cell, or null where the standoff is kept. Walked in growing square
@@ -88,7 +133,7 @@ public sealed class GroundClaims
                 {
                     if (Math.Max(Math.Abs(dx), Math.Abs(dz)) != ring) continue;
                     var candidate = (x + dx, z + dz);
-                    if (cells.TryGetValue(candidate, out var held) && held == kind) return candidate;
+                    if (cells.TryGetValue(candidate, out var held) && held.Kind == kind) return candidate;
                 }
         return null;
     }

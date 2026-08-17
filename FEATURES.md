@@ -638,6 +638,22 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **A door's approach keeps props out instead of refusing the map, and every decline says why (WE1, B106).**
+  `DressingScope.ApproachAt` was read only by the export gate, so a tree in a spawn door's lane was built,
+  drawn in the 3-D preview, and then refused at export by `OB21` — three answers to one question. The
+  approach is now part of the keep-out mask: the prop never lands, the world builds, and `OB21` is gone with
+  the boulder exemption it carried (a boulder is tall enough that the low-cover sightline argument does not
+  hold). A building obeys the lane too — it is the one prop big enough to close one — while the rest of the
+  mask still leaves an authored rectangle alone.
+  Every whole-prop decline is now a `Finding` rather than a `DroppedProp(Id, Kind, Reason)`: `DR-KEEP`,
+  `DR-CLAIM`, `DR-SITE` beside the `DR-ROAD`/`DR-PASS`/`DR-SIZE` that existed, at `Severity.Complaint` with
+  the prop's id as its subject. The sentence names **what** stopped it — `KeepOut` says whether a cell is held
+  for a spawn, a wool room, a structure, built ground or an approach, and `GroundClaims` now carries each
+  claim's owner, so a collision reads *claimed by the path 'p'*. The declines come back from
+  `POST /map/{slug}/sketch/columns` and `POST /plan/columns` under `warnings` — the loop an agent drives —
+  as well as in `region/dressing-report.json` and mapgen's stderr. And the two things called protection are
+  two names again: the mask is `KeptClearAt`/`IsKeptClear`, leaving `protection` to the region rule in the
+  map contract that says what a player may enter and break.
 - **One store answers for every map artifact (RP1).** `map_artifact` is one row per `(map_id, kind)`, and it
   was read five different ways — `IntentStore`, `SketchStore`, `MapPlanStore`, `ConfigureStore` and
   `RegionDraftStore`, three of them saying *"Mirrors …"* in their own docstrings — plus 34 raw `db.Artifacts`
@@ -660,7 +676,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `POST /plan/evaluate` carries the validator's whole lint table as `lint[]` — an unplaceable iron (`WX9`)
   or a mid-lane spawn (`SP2`) is visible on the loop an agent actually drives (B109/B177's reach half).
   The dressing pass reports every whole-prop decline with a reason (`region/dressing-report.json`, the
-  mapgen stderr lines) — B37's report-first slice, and what **closes B142**: a tree over void is now a named
+  mapgen stderr lines; `WE1` later made each a `DR-*` finding and returned them from the build endpoints) — B37's report-first slice, and what **closes B142**: a tree over void is now a named
   drop with its coordinates rather than a document count reporting 34 trees when one of them stood nowhere.
   (B187's silence is not closed by it — a house needs ground under *one* cell, so a partly-hung building is
   still stamped.) And the task board's collapsed headings were repaired so its own structure stops misleading
@@ -705,11 +721,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **A tree on bare stone is complained for (`B240`).** After a build, every fanned tree whose ground is not
   soil (dirt, grass, sand or snow — the author's list) gets one line naming its coordinates; the tree
   stands, the line names the ground to repaint.
-- **A door's approach and a goal's ring are kept open (`B235`, closing `B172`).** `OB21` refuses a tree or a
-  building standing in the twenty blocks in front of a spawn room's door or the ten in front of each
-  wool-room entry — measured from the stamped building's own face, not the protection region, via the same
-  room resolution the stamper builds; boulders stay permitted (the author's frontage rule: low cover keeps
-  the sightline). And `OB19`'s prop keep-out now reaches ten blocks from a goal's *marker*
+- **A door's approach and a goal's ring are kept open (`B235`, closing `B172`).** The twenty blocks in front
+  of a spawn room's door and the ten in front of each wool-room entry are kept clear of props — measured from
+  the stamped building's own face, not the protection region, via the same room resolution the stamper
+  builds. (It shipped as `OB21`, an export refusal exempting boulders; `WE1` turned it into a keep-out that
+  stops the prop instead of the map and dropped the exemption.) And `OB19`'s prop keep-out now reaches ten
+  blocks from a goal's *marker*
   (`DressingScope.GoalStandoff`) beyond the footprint-grown clearance the cover rule keeps.
 - **A building must leave a way past itself (`B236`, `DR-PASS`).** At least one of a house's four sides must
   carry five blocks of passable ground along its whole run, one step past each corner included — the rule
@@ -5357,7 +5374,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   as a `StructureClaim` the way `B202` established. Two regression tests, and both were **run against the
   pre-fix code and observed to fail** — 169 claimed against 144 filled, and a claim on a column carrying open
   ground.
-  What the entry called four other answers to the same question are not: `DressingScope.ProtectedAt` is a
+  What the entry called four other answers to the same question are not: `DressingScope.KeptClearAt` is a
   keep-out mask (what may not be *placed*, goal clearance included) and `TerrainProfile`'s paint gate is a
   material estimate (a column whose top block is not stone). Both are different questions with different
   inputs, and grouping them here is the over-grouping `B204` exists to catch, found in the entry `B204` itself

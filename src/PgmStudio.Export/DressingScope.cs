@@ -33,45 +33,52 @@ public static class DressingScope
         return new DressingSymmetry(setup?.MirrorMode, setup?.Center?.Cx ?? 0, setup?.Center?.Cz ?? 0);
     }
 
-    /// <summary>Cells the pass must leave bare. Two sources, and both matter for different reasons: the
-    /// <b>intent</b> names what the map is played through — spawns, objectives, the structures stamped for them
-    /// — and a prop there would block a route or bury a goal; the <b>world</b> shows what is already standing,
-    /// and a column whose surface is not the terrain's own is a structure the pass has no business planting on.
+    /// <summary>What the pass must leave bare, and what each cell is being kept for. Three sources, and each
+    /// matters for its own reason: the <b>intent</b> names what the map is played through — spawns,
+    /// objectives, the structures stamped for them — and a prop there would block a route or bury a goal; the
+    /// <b>world</b> shows what is already standing, and a column whose surface is not the terrain's own is a
+    /// structure the pass has no business planting on; and the <b>approach</b> in front of every door is the
+    /// lane players walk out through (<see cref="ApproachAt"/>), which is part of what the door is for.
     /// <para>Read from the finished world rather than re-derived, which is the same argument that puts the pass
-    /// after the painter: the answer is already there to be looked at.</para></summary>
-    public static Func<int, int, bool> ProtectedAt(
+    /// after the painter: the answer is already there to be looked at.</para>
+    /// <para>Not the map contract's <c>protection</c>. That is a region rule about what a player may enter and
+    /// break; this is a keep-out with no gameplay meaning of its own, and one word for both is what invited the
+    /// inference that a goal must stand somewhere protected. It <em>reads</em> a spawn's protection areas,
+    /// because ground a player may not enter is ground a prop has no business standing on — but what it
+    /// answers is the other thing.</para></summary>
+    public static Func<int, int, KeepOut?> KeptClearAt(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, MapIntent intent, int margin = 2)
     {
-        var blocked = new HashSet<(int X, int Z)>();
+        var blocked = new Dictionary<(int X, int Z), KeepOut>();
 
-        void Keep(int x, int z)
+        void Keep(int x, int z, KeepOut why)
         {
             for (var dz = -margin; dz <= margin; dz++)
             for (var dx = -margin; dx <= margin; dx++)
-                blocked.Add((x + dx, z + dz));
+                blocked[(x + dx, z + dz)] = why;
         }
 
-        void KeepRect(int minX, int minZ, int maxX, int maxZ)
+        void KeepRect(int minX, int minZ, int maxX, int maxZ, KeepOut why)
         {
             for (var z = minZ - margin; z <= maxZ + margin; z++)
             for (var x = minX - margin; x <= maxX + margin; x++)
-                blocked.Add((x, z));
+                blocked[(x, z)] = why;
         }
 
-        void KeepArea(Rect rect)
+        void KeepArea(Rect rect, KeepOut why)
             => KeepRect((int)Math.Floor(rect.MinX), (int)Math.Floor(rect.MinZ),
-                        (int)Math.Ceiling(rect.MaxX), (int)Math.Ceiling(rect.MaxZ));
+                        (int)Math.Ceiling(rect.MaxX), (int)Math.Ceiling(rect.MaxZ), why);
 
         foreach (var spawn in intent.Spawns)
         {
-            Keep((int)spawn.Point.X, (int)spawn.Point.Z);
-            foreach (var area in spawn.Protection) KeepArea(area);
+            Keep((int)spawn.Point.X, (int)spawn.Point.Z, KeepOut.Spawn);
+            foreach (var area in spawn.Protection) KeepArea(area, KeepOut.Spawn);
         }
         foreach (var wool in intent.Wools ?? [])
         {
-            Keep((int)wool.Spawn.X, (int)wool.Spawn.Z);
-            foreach (var area in wool.Room) KeepArea(area);
-            foreach (var monument in wool.Monuments) Keep((int)monument.Location.X, (int)monument.Location.Z);
+            Keep((int)wool.Spawn.X, (int)wool.Spawn.Z, KeepOut.WoolRoom);
+            foreach (var area in wool.Room) KeepArea(area, KeepOut.WoolRoom);
+            foreach (var monument in wool.Monuments) Keep((int)monument.Location.X, (int)monument.Location.Z, KeepOut.WoolRoom);
         }
         // A destroyable and a core are deliberately absent from this mask. They are not ground the pass must
         // avoid — grass and flowers belong under a floating monument as much as anywhere — and what they do
@@ -79,18 +86,24 @@ public static class DressingScope
 
         if (intent.Structures is { } structures)
         {
-            foreach (var floor in structures.RoomFloors) KeepArea(floor.Area);
-            foreach (var cube in structures.IronCubes) KeepRect(cube.X - 2, cube.Z - 2, cube.X + 2, cube.Z + 2);
-            foreach (var wall in structures.Walls) KeepRect(wall.MinX, wall.MinZ, wall.MaxX, wall.MaxZ);
-            foreach (var line in structures.RedstoneLines) KeepRect(Math.Min(line.X1, line.X2), Math.Min(line.Z1, line.Z2), Math.Max(line.X1, line.X2), Math.Max(line.Z1, line.Z2));
+            foreach (var floor in structures.RoomFloors) KeepArea(floor.Area, KeepOut.Structure);
+            foreach (var cube in structures.IronCubes) KeepRect(cube.X - 2, cube.Z - 2, cube.X + 2, cube.Z + 2, KeepOut.Structure);
+            foreach (var wall in structures.Walls) KeepRect(wall.MinX, wall.MinZ, wall.MaxX, wall.MaxZ, KeepOut.Structure);
+            foreach (var line in structures.RedstoneLines) KeepRect(Math.Min(line.X1, line.X2), Math.Min(line.Z1, line.Z2), Math.Max(line.X1, line.X2), Math.Max(line.Z1, line.Z2), KeepOut.Structure);
         }
 
         // A column whose top block is not terrain is a stamp — a room floor, an approach wall, a monument. The
         // painter skips those for the same reason (TP6), and the dressing pass has even less business there.
         foreach (var (cell, top) in surfaceTop)
-            if (top <= 1 || DressingPalette.IsStamp(world.GetBlock(cell.X, top - 1, cell.Z).Id)) Keep(cell.X, cell.Z);
+            if (top <= 1 || DressingPalette.IsStamp(world.GetBlock(cell.X, top - 1, cell.Z).Id)) Keep(cell.X, cell.Z, KeepOut.Built);
 
-        return (x, z) => blocked.Contains((x, z));
+        // The doors' approaches, held as rects rather than expanded: a board has a handful of doored faces and
+        // each covers hundreds of cells, so the question is asked per candidate cell rather than per lane block.
+        var approach = ApproachAt(intent);
+
+        return (x, z) => blocked.TryGetValue((x, z), out var why) ? why
+            : approach(x, z) ? KeepOut.Approach
+            : null;
     }
 
     /// <summary>How far cover must stay off a goal, beyond the ground the structure itself covers. An
@@ -107,7 +120,7 @@ public static class DressingScope
     /// construction rather than by two derivations agreeing. <see cref="ObjectiveFootprint"/> answers for an
     /// intent that has not been through the world build, which is the plan-side and preview case.</para>
     ///
-    /// <para>Separate from <see cref="ProtectedAt"/> because it answers a different question. That mask says
+    /// <para>Separate from <see cref="KeptClearAt"/> because it answers a different question. That mask says
     /// what may not be <em>placed</em>; this says what may not be <em>hidden behind</em>, so ground cover
     /// crosses it freely and only cover is turned away.</para></summary>
     public static Func<int, int, bool> GoalGroundAt(MapIntent intent, int clearance = GoalClearance)
@@ -157,11 +170,14 @@ public static class DressingScope
     /// kept is legibility rather than a safe walk.</summary>
     public const int WoolApproach = 10;
 
-    /// <summary>The ground a tree, boulder or building may not take in front of a door: one rectangle per
-    /// doored face, the face's own width, reaching <see cref="SpawnApproach"/> out from a spawn room and
-    /// <see cref="WoolApproach"/> from each wool entry. Read from the same room resolution the stamper
-    /// builds (<see cref="SketchWorldBuilder.SpawnRoom"/>/<see cref="SketchWorldBuilder.WoolFrame"/>), so
-    /// the approach is measured from the building that actually stands, not from a second derivation.</summary>
+    /// <summary>The ground no prop may take in front of a door: one rectangle per doored face, the face's own
+    /// width, reaching <see cref="SpawnApproach"/> out from a spawn room and <see cref="WoolApproach"/> from
+    /// each wool entry. Read from the same room resolution the stamper builds
+    /// (<see cref="SketchWorldBuilder.SpawnRoom"/>/<see cref="SketchWorldBuilder.WoolFrame"/>), so the approach
+    /// is measured from the building that actually stands, not from a second derivation.
+    /// <para>Part of <see cref="KeptClearAt"/>, which is what makes it a keep-out rather than a refusal: a prop
+    /// authored into a lane does not land, and the pass says so. Every kind is turned away, boulders included —
+    /// a boulder is tall enough that the low-cover sightline argument does not hold for it.</para></summary>
     public static Func<int, int, bool> ApproachAt(MapIntent intent)
     {
         var rects = new List<(int MinX, int MinZ, int MaxX, int MaxZ)>();
@@ -192,21 +208,13 @@ public static class DressingScope
     /// <summary>Every tree, boulder or building whose footprint reaches into a goal's clearance
     /// (<see cref="GoalGroundAt"/>, plus the marker's own <see cref="GoalStandoff"/>), fanned across the
     /// map's own symmetry exactly as <see cref="Decorator"/> places it. These three are refused rather than
-    /// dropped, because they are authored: a caller needs the one offending prop and the goal it collides
-    /// with, not a silently discarded placement. Ground cover crosses this ground freely and is never
+    /// dropped, because a goal is what the map is for: a caller needs the one offending prop and the goal it
+    /// collides with named, not a silently discarded placement. Ground cover crosses this ground freely and is never
     /// checked here — only the tall kind turns away from it, and only at the narrower
     /// <see cref="GoalClearance"/>, inside <see cref="Decorator"/> itself.</summary>
     public static List<(string Kind, string PropId, int X, int Z)> GoalClearanceViolations(
         string layoutJson, MapIntent goals)
-        => Violations(layoutJson, KeepOut(GoalGroundAt(goals), GoalDiscsAt(goals)));
-
-    /// <summary>Every tree or building standing in a door's approach (<see cref="ApproachAt"/>), fanned like
-    /// <see cref="GoalClearanceViolations"/> and refused for the same reason: the offending prop is authored
-    /// and the author needs it named. A boulder is deliberately not checked — the author's frontage rule
-    /// permits boulders and fauna in the lane, because low cover leaves the sightline the rule protects.</summary>
-    public static List<(string Kind, string PropId, int X, int Z)> ApproachViolations(
-        string layoutJson, MapIntent intent)
-        => [.. Violations(layoutJson, ApproachAt(intent)).Where(violation => violation.Kind != "boulder")];
+        => Violations(layoutJson, EitherOf(GoalGroundAt(goals), GoalDiscsAt(goals)));
 
     // The marker-centred half of a goal's prop keep-out: a GoalStandoff square around each anchor.
     private static Func<int, int, bool> GoalDiscsAt(MapIntent intent)
@@ -225,7 +233,7 @@ public static class DressingScope
         }
     }
 
-    private static Func<int, int, bool> KeepOut(Func<int, int, bool> first, Func<int, int, bool> second)
+    private static Func<int, int, bool> EitherOf(Func<int, int, bool> first, Func<int, int, bool> second)
         => (x, z) => first(x, z) || second(x, z);
 
     private static List<(string Kind, string PropId, int X, int Z)> Violations(

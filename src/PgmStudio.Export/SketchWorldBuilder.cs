@@ -20,9 +20,13 @@ namespace PgmStudio.Export;
 /// carry the answer itself — a caller writing the world to disk persists it alongside
 /// (<see cref="WorldProvenanceFile"/>) so a render reading the region back gets the same recorded answer a
 /// render taken right after the build already would.</summary>
+/// <param name="Declines">Every prop the dressing pass did not place, and why — a <c>DR-*</c> finding each,
+/// carrying the prop's id as its subject. Complaints rather than refusals: the world was built, and some of
+/// what was authored is not standing in it, which is a thing the caller that asked for the build has to be
+/// told rather than something to go looking for in a sidecar.</param>
 public sealed record SketchWorld(
     VoxelWorld World, int SpawnX, int SpawnY, int SpawnZ, MapIntent ResolvedIntent, WorldProvenance Provenance,
-    IReadOnlyList<DroppedProp>? DroppedProps = null);
+    IReadOnlyList<Finding>? Declines = null);
 
 /// <summary>
 /// Assembles a playable Anvil world for a sketch-originated map from its sketch layout + authoring intent
@@ -257,7 +261,7 @@ public static class SketchWorldBuilder
         var dressed = Decorator.Decorate(world, new DressingContext(
             terrain.SurfaceTop,
             DressingScope.PropsOf(layoutJson),
-            DressingScope.ProtectedAt(world, terrain.SurfaceTop, goals),
+            DressingScope.KeptClearAt(world, terrain.SurfaceTop, goals),
             DressingScope.SymmetryOf(layoutJson),
             DressingScope.GoalGroundAt(goals)));
         // A dressing-placed building is a structure the author chose, not scenery the way a tree or a boulder
@@ -308,7 +312,7 @@ public static class SketchWorldBuilder
             Cores = resolvedCores,
         };
 
-        return new SketchWorld(world, spawnX, spawnY, spawnZ, resolved, provenance, dressed.Dropped);
+        return new SketchWorld(world, spawnX, spawnY, spawnZ, resolved, provenance, dressed.Declined);
     }
 
     // The bedrock under every wool room, laid before the rooms themselves (see the call site).

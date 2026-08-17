@@ -20,12 +20,16 @@ namespace PgmStudio.Minecraft.Dressing;
 /// <param name="SurfaceTop">The first air Y above each column, the same grid the painter and every stamper
 /// read.</param>
 /// <param name="Props">What the author placed, in the order they were placed.</param>
-/// <param name="IsProtected">Cells nothing may be placed on: spawns, rooms, structures. A prop that landed
-/// here would break play or read wrong, so the mask is consulted before anything else.</param>
+/// <param name="KeptClearAt">What keeps a cell clear of everything, or null where nothing does: a spawn, a
+/// wool room, a stated structure, a built surface, or a door's approach. A prop that landed on one would break
+/// play or read wrong, so the mask is consulted before anything else — and it answers <em>which</em>, because
+/// a decline that cannot name what stopped it is one nobody can act on. Not the map contract's
+/// <c>protection</c>, which is a region rule about what a player may enter and break; this is a keep-out with
+/// no gameplay meaning of its own.</param>
 /// <param name="Symmetry">How the map is mirrored, which decides where every prop's other images go and how
 /// each one is turned to get there.</param>
 /// <param name="IsGoalGround">The ground a destroyable or a core stands on, grown by its clearance — a
-/// narrower mask than <paramref name="IsProtected"/> and a different question. A goal's ground is not
+/// narrower mask than <paramref name="KeptClearAt"/> and a different question. A goal's ground is not
 /// forbidden, it is <b>kept open</b>: grass, fern and flowers grow across it and under a floating monument
 /// the way they grow anywhere, because none of them changes what a player can see or reach. What may not
 /// stand there is <b>cover</b> — the two-block grass that hides a footstep among it, since an objective is
@@ -35,12 +39,15 @@ namespace PgmStudio.Minecraft.Dressing;
 public sealed record DressingContext(
     IReadOnlyDictionary<(int X, int Z), int> SurfaceTop,
     IReadOnlyList<PlacedProp> Props,
-    Func<int, int, bool> IsProtected,
+    Func<int, int, KeepOut?> KeptClearAt,
     DressingSymmetry Symmetry,
     Func<int, int, bool>? IsGoalGround = null)
 {
     public DressingContext(IReadOnlyDictionary<(int X, int Z), int> surfaceTop, IReadOnlyList<PlacedProp> props)
-        : this(surfaceTop, props, (_, _) => false, DressingSymmetry.None) { }
+        : this(surfaceTop, props, (_, _) => null, DressingSymmetry.None) { }
+
+    /// <summary>Whether the cell is held clear, for the passes that only need the fact.</summary>
+    public bool IsKeptClear(int x, int z) => KeptClearAt(x, z) is not null;
 
     /// <summary>Whether cover may stand on a cell — everything except the ground a goal is read against.</summary>
     public bool AllowsCover(int x, int z) => IsGoalGround is null || !IsGoalGround(x, z);
@@ -61,32 +68,32 @@ public sealed record DressingContext(
 /// <param name="Claimed">Every prop that landed anything, or null where none did. Read <see cref="Placements"/>
 /// instead, which never answers null — the same shape <see cref="Domain.Finding.Subjects"/> carries, so a
 /// caller never has to tell an absent list from an empty one.</param>
-/// <param name="Dropped">Every whole-prop decline this pass made, or null where nothing was declined — the
+/// <param name="Declined">Every whole-prop decline this pass made, or null where nothing was declined — the
 /// same null-when-empty convention <paramref name="Claimed"/> carries, for the same reason: a pass that
 /// dropped nothing compares equal to one that placed a board with nothing to drop. A path's own per-cell
-/// skips are not here — those are the ordinary shape of a route crossing protected ground, not a decision an
-/// author needs restated one cell at a time — only the whole-prop causes that used to be silent: a house
-/// whose wings make no building, a house that collides with something already standing, a house with no
-/// ground under any of its cells, and a tree or a boulder whose site finds no ground, lands on a protected
-/// or already-claimed column, or stands nearer to the road than its own kind's standoff allows.</param>
+/// skips are not here — those are the ordinary shape of a route crossing ground the map keeps clear, not a
+/// decision an author needs restated one cell at a time — only the whole-prop causes that used to be silent:
+/// a house whose wings make no building, a house that collides with something already standing, a house with
+/// no ground under any of its cells, and a tree or a boulder whose site finds no ground, lands on a column
+/// kept clear or already claimed, or stands nearer to the road than its own kind's standoff allows.
+/// <para>Each is a <see cref="Finding"/> like every other thing this studio says is wrong: a
+/// <c>DR-*</c> rule, one sentence carrying the cell and the cause, the prop's id as its subject, and
+/// <see cref="Severity.Complaint"/> — the world was built, and some props are not standing in it.</para></param>
 public readonly record struct DressingPlacement(
     int Plants = 0, int Boulders = 0, int Trees = 0, int PathCells = 0, int WaterCells = 0, int Houses = 0,
-    IReadOnlyList<PlacementClaim>? Claimed = null, IReadOnlyList<DroppedProp>? Dropped = null)
+    IReadOnlyList<PlacementClaim>? Claimed = null, IReadOnlyList<Finding>? Declined = null)
 {
     /// <summary>Everything this pass actually put down, each with the columns it owns. Never null.</summary>
     public IReadOnlyList<PlacementClaim> Placements => Claimed ?? [];
+
+    /// <summary>Every prop that did not land, and why. Never null.</summary>
+    public IReadOnlyList<Finding> Declines => Declined ?? [];
 
     /// <summary>Just the buildings — what a caller asking about <em>built</em> things wants, now that the
     /// report carries the trees and the roads beside them.</summary>
     public IEnumerable<PlacementClaim> Structures =>
         Placements.Where(claim => claim.Layer == ProvenanceLayer.Structure);
 }
-
-/// <summary>One whole prop the pass declined to place, and why — the report <see cref="DressingPlacement.Dropped"/>
-/// carries. <see cref="Id"/> and <see cref="Kind"/> are the prop's own, so a caller can point back at the
-/// document; <see cref="Reason"/> is one factual sentence naming the cause and, where the cause is a place, the
-/// cell it happened at, so the drop can be checked against the canvas rather than taken on faith.</summary>
-public sealed record DroppedProp(string Id, string Kind, string Reason);
 
 /// <summary>
 /// The dressing pass: the third and last walk over a realized world (docs/world-export/decoration.md). The
@@ -129,7 +136,7 @@ public static class Decorator
         var claims = new GroundClaims();
         var placed = new DressingPlacement();
         var structures = new List<PlacementClaim>();
-        var dropped = new List<DroppedProp>();
+        var declined = new List<Finding>();
 
         // Every pass reports what it covered, and every prop gets a claim of its own — a tree, a boulder, a
         // road and a bed of flora as much as a building. Material can say what a block is; only this can say
@@ -162,20 +169,20 @@ public static class Decorator
         }
         foreach (var prop in context.Props.OfType<HouseProp>())
         {
-            var raised = PlaceHouse(world, context, prop, claims, dropped);
+            var raised = PlaceHouse(world, context, prop, claims, declined);
             structures.AddRange(raised);
             placed = placed with { Houses = placed.Houses + raised.Count };
         }
         foreach (var prop in context.Props.OfType<BoulderProp>())
         {
-            var result = PlaceBoulder(world, context, prop, claims, dropped);
+            var result = PlaceBoulder(world, context, prop, claims, declined);
             Cover(result, "boulder", prop.Id);
             placed = placed with { Boulders = placed.Boulders + result.Count };
             propIndex++;
         }
         foreach (var prop in context.Props.OfType<TreeProp>())
         {
-            var result = PlaceTree(world, context, prop, claims, dropped);
+            var result = PlaceTree(world, context, prop, claims, declined);
             Cover(result, "tree", prop.Id);
             placed = placed with { Trees = placed.Trees + result.Count };
             propIndex++;
@@ -194,7 +201,7 @@ public static class Decorator
         return placed with
         {
             Claimed = structures.Count > 0 ? structures : null,
-            Dropped = dropped.Count > 0 ? dropped : null,
+            Declined = declined.Count > 0 ? declined : null,
         };
     }
 
@@ -229,7 +236,7 @@ public static class Decorator
         foreach (var cell in stroke)
         {
             var (x, z) = context.Symmetry.ImageCell(cell.X, cell.Z, k);
-            if (context.IsProtected(x, z)) continue;
+            if (context.IsKeptClear(x, z)) continue;
             if (!context.SurfaceTop.TryGetValue((x, z), out var top) || top < 1) continue;
 
             // A stamp's own block is not a road's to take: the painter only writes terrain, so anything else
@@ -240,7 +247,7 @@ public static class Decorator
             // so a cobbled road is a cell pattern at a small patch size rather than a mode of the stroke.
             var (id, data) = path.Pave.Resolve(new BucketContext(x, top - 1, z, TerrainBucket.Surface, 0));
             world.SetBlock(x, top - 1, z, id, data);
-            claims.Claim(x, z, ClaimKind.Route);
+            claims.Claim(x, z, ClaimKind.Route, path.Id);
             cells.Add((x, z));
         }
         images.Add(cells);
@@ -284,7 +291,7 @@ public static class Decorator
             foreach (var cell in bed)
             {
                 var (x, z) = context.Symmetry.ImageCell(cell.X, cell.Z, image);
-                if (context.IsProtected(x, z)) continue;
+                if (context.IsKeptClear(x, z)) continue;
                 if (!context.SurfaceTop.TryGetValue((x, z), out var top) || top < 2) continue;
                 var surfaceSolid = top - 1;
                 // Water no more takes a stamp's own block than a path does: the painter writes only terrain, so
@@ -306,7 +313,7 @@ public static class Decorator
                     world.SetBlock(x, y, z, y <= waterLevel ? Blocks.StationaryWater : Blocks.Air);
                 // The bank floor the shallows show through, laid where terrain already stood.
                 if (bedFloor >= 1) { var (id, data) = Bank(x, bedFloor, z); world.SetBlock(x, bedFloor, z, id, data); }
-                claims.Claim(x, z, ClaimKind.Water);
+                claims.Claim(x, z, ClaimKind.Water, water.Id);
                 covered.Add((x, z));
             }
         }
@@ -317,14 +324,14 @@ public static class Decorator
             foreach (var cell in shore)
             {
                 var (x, z) = context.Symmetry.ImageCell(cell.X, cell.Z, image);
-                if (claims.Holds(x, z) || context.IsProtected(x, z)) continue;
+                if (claims.Holds(x, z) || context.IsKeptClear(x, z)) continue;
                 if (!context.SurfaceTop.TryGetValue((x, z), out var top) || top < 1) continue;
                 var surfaceSolid = top - 1;
                 if (DressingPalette.IsStamp(world.GetBlock(x, surfaceSolid, z).Id)) continue;
 
                 var (id, data) = Bank(x, surfaceSolid, z);
                 world.SetBlock(x, surfaceSolid, z, id, data);
-                claims.Claim(x, z, ClaimKind.Water);
+                claims.Claim(x, z, ClaimKind.Water, water.Id);
                 if (image < images.Count) images[image].Add((x, z));   // the bank is the channel's, too
             }
         return new Placed(images.Sum(cells => cells.Count), images);
@@ -345,7 +352,7 @@ public static class Decorator
         var cells = new List<(int X, int Z)>();
         foreach (var (x, z) in Inside(ring, context.Symmetry, k))
         {
-            if (claims.Holds(x, z) || context.IsProtected(x, z)) continue;
+            if (claims.Holds(x, z) || context.IsKeptClear(x, z)) continue;
             if (!context.SurfaceTop.TryGetValue((x, z), out var top)) continue;
             if (world.GetBlock(x, top, z).Id != Blocks.Air) continue;   // something is already there
 
@@ -447,14 +454,18 @@ public static class Decorator
     /// </summary>
     private static List<PlacementClaim> PlaceHouse(
         VoxelWorld world, DressingContext context, HouseProp house, GroundClaims claims,
-        List<DroppedProp> dropped)
+        List<Finding> declined)
     {
         if (house.Plan() is not { } plan)
         {
             // Check() never disagrees with Plan()'s own refusal — Plan() is Check().Refuses ? null : Read() —
-            // so the first finding here is always the reason this prop just failed to read.
-            var findings = house.Check();
-            dropped.Add(new DroppedProp(house.Id, "house", $"its wings make no building: {findings[0].Message}"));
+            // so the first finding here is always the reason this prop just failed to read. It keeps its own
+            // rule id rather than being restated under a DR-* one: the fault is the building's shape, and the
+            // id an author looks up is the one that names it.
+            var refusal = house.Check()[0];
+            declined.Add(new Finding(refusal.Rule,
+                $"building '{house.Id}' makes no building: {refusal.Message}",
+                Severity.Complaint, Subjects: [house.Id]));
             return [];
         }
 
@@ -464,9 +475,10 @@ public static class Decorator
         var footprintZ = plan.MaxZ - plan.MinZ + 1;
         if (Math.Min(footprintX, footprintZ) < DressingRules.FootprintMin)
         {
-            dropped.Add(new DroppedProp(house.Id, "house",
-                $"footprint {footprintX}×{footprintZ} is under {DressingRules.FootprintMin}×"
-                + $"{DressingRules.FootprintMin} ({DressingRules.FootprintFloor})"));
+            declined.Add(new Finding(DressingRules.FootprintFloor,
+                $"building '{house.Id}' has a footprint of {footprintX}×{footprintZ}, under "
+                + $"{DressingRules.FootprintMin}×{DressingRules.FootprintMin}",
+                Severity.Complaint, Subjects: [house.Id]));
             return [];
         }
 
@@ -479,23 +491,40 @@ public static class Decorator
             // set at all — the whole point of the plan being one BuildingPlan rather than one FirstOverlap call
             // per rectangle. Reported once for the whole prop, at whichever image and cell collided first — an
             // author redrawing a second orbit image's clash does not need it named twice.
+            // A door's approach turns a building away like it turns a tree away. The rest of the mask does
+            // not reach a building — someone drew that rectangle where it is, and a room's own margin is not
+            // a reason to lose it — but the lane in front of a door is the one piece of ground the map is
+            // played through that a building is big enough to close entirely.
+            if (FirstInApproach(image, context) is { } lane)
+            {
+                declined.Add(new Finding(DressingRules.KeptClear,
+                    $"building '{house.Id}' stands on ({lane.X}, {lane.Z}), "
+                    + KeptFor(KeepOut.Approach),
+                    Severity.Complaint, Subjects: [house.Id]));
+                return [];
+            }
             if (FirstOverlap(image, claims) is { } collision)
             {
-                dropped.Add(new DroppedProp(house.Id, "house",
-                    $"ground already claimed at ({collision.X}, {collision.Z})"));
+                declined.Add(new Finding(DressingRules.GroundTaken,
+                    $"building '{house.Id}' stands on ({collision.X}, {collision.Z}), "
+                    + Claimant(claims.At(collision.X, collision.Z)),
+                    Severity.Complaint, Subjects: [house.Id]));
                 return [];
             }
             var floorY = Ground(context, image);
             if (floorY is null)
             {
-                dropped.Add(new DroppedProp(house.Id, "house", "no ground under any of its cells"));
+                declined.Add(new Finding(DressingRules.NoGround,
+                    $"building '{house.Id}' has no ground under any of its cells",
+                    Severity.Complaint, Subjects: [house.Id]));
                 return [];
             }
             if (!HasPassage(context, claims, image))
             {
-                dropped.Add(new DroppedProp(house.Id, "house",
-                    $"no way past it: fewer than {DressingRules.PassAroundWidth} blocks of passable ground "
-                    + $"beside every side ({DressingRules.PassAround})"));
+                declined.Add(new Finding(DressingRules.PassAround,
+                    $"building '{house.Id}' leaves no way past it: fewer than "
+                    + $"{DressingRules.PassAroundWidth} blocks of passable ground beside every side",
+                    Severity.Complaint, Subjects: [house.Id]));
                 return [];
             }
 
@@ -512,7 +541,7 @@ public static class Decorator
                 world, image, floorY, house.Style,
                 doors: front is { } side ? Doorway(house.Style, image, side) : null);
 
-            foreach (var (x, z) in image.Cells()) claims.Claim(x, z, ClaimKind.Structure);
+            foreach (var (x, z) in image.Cells()) claims.Claim(x, z, ClaimKind.Structure, house.Id);
 
             // The claim is made here, after the stamp and inside the same loop, so it cannot outlive a drop:
             // every early return above leaves this list empty and the caller claims nothing. The cells are the
@@ -579,6 +608,14 @@ public static class Decorator
     {
         foreach (var (x, z) in plan.Cells())
             if (claims.HoldsOtherThan(x, z, ClaimKind.Route)) return (x, z);
+        return null;
+    }
+
+    // The first cell of a building's footprint standing in a door's approach, or null where it stands clear.
+    private static (int X, int Z)? FirstInApproach(BuildingPlan plan, DressingContext context)
+    {
+        foreach (var (x, z) in plan.Cells())
+            if (context.KeptClearAt(x, z) == KeepOut.Approach) return (x, z);
         return null;
     }
 
@@ -668,10 +705,10 @@ public static class Decorator
 
     private static Placed PlaceBoulder(
         VoxelWorld world, DressingContext context, BoulderProp boulder, GroundClaims claims,
-        List<DroppedProp> dropped)
+        List<Finding> declined)
     {
         var lobes = BoulderShapes.Of(boulder.Form, boulder.Reach);
-        return Fan(world, context, (boulder.X, boulder.Z), BoulderCells(lobes, boulder), claims, boulder.RouteStandoff, boulder.Id, "boulder", dropped);
+        return Fan(world, context, (boulder.X, boulder.Z), BoulderCells(lobes, boulder), claims, boulder.RouteStandoff, boulder.Id, "boulder", declined);
     }
 
     /// <summary>A boulder as offsets from its own anchor, before it knows where on the map it goes. The rock's
@@ -713,8 +750,8 @@ public static class Decorator
     // ── trees (DR-TR) ───────────────────────────────────────────────────────────
     private static Placed PlaceTree(
         VoxelWorld world, DressingContext context, TreeProp tree, GroundClaims claims,
-        List<DroppedProp> dropped)
-        => Fan(world, context, (tree.X, tree.Z), TreeCells(tree), claims, tree.RouteStandoff, tree.Id, "tree", dropped);
+        List<Finding> declined)
+        => Fan(world, context, (tree.X, tree.Z), TreeCells(tree), claims, tree.RouteStandoff, tree.Id, "tree", declined);
 
     /// <summary>How far this tree's crown actually reaches from its own trunk — the farthest a leaf cell of
     /// <see cref="TemplateTree"/> or <see cref="GrownTree"/> stands from the anchor, horizontally. This is the
@@ -801,7 +838,7 @@ public static class Decorator
     /// one side of a mirrored board and vanish from the other — the difference a player would actually notice
     /// is not "the edges are a little thinner", it is "the two halves disagree".</summary>
     private static Placed Fan(VoxelWorld world, DressingContext context, (int X, int Z) site,
-        List<PropCell> prop, GroundClaims claims, int routeStandoff, string id, string kind, List<DroppedProp> dropped)
+        List<PropCell> prop, GroundClaims claims, int routeStandoff, string id, string kind, List<Finding> declined)
     {
         if (prop.Count == 0) return Placed.None;
 
@@ -818,9 +855,9 @@ public static class Decorator
             // Decided once for the whole orbit, so the report is too: whichever image seats first refuses the
             // whole prop, and that is the one image and cell named — a second orbit image failing the same
             // way is not a second entry.
-            if (!Seats(context, anchor, turned, claims, routeStandoff, out var baseY, out var declineReason))
+            if (!Seats(context, anchor, turned, claims, routeStandoff, id, kind, out var baseY, out var decline))
             {
-                dropped.Add(new DroppedProp(id, kind, declineReason));
+                declined.Add(decline!);
                 return Placed.None;
             }
             images.Add((anchor, turned, baseY));
@@ -836,7 +873,7 @@ public static class Decorator
                 if (wy is < 1 or >= VoxelWorld.MaxHeight) continue;
                 if (!cell.Buried && world.GetBlock(wx, wy, wz).Id != Blocks.Air) continue;
                 world.SetBlock(wx, wy, wz, cell.Id, cell.Data);
-                claims.Claim(wx, wz, ClaimKind.Scatter);
+                claims.Claim(wx, wz, ClaimKind.Scatter, id);
                 cells.Add((wx, wz));        // a column, once, however many of the prop's blocks stand in it
             }
             covered.Add([.. cells]);
@@ -869,38 +906,70 @@ public static class Decorator
     /// too — so the crown is free to reach wherever it would over open ground.</para></summary>
     private static bool Seats(
         DressingContext context, (int X, int Z) anchor, List<PropCell> prop, GroundClaims claims,
-        int routeStandoff, out int baseY, out string declineReason)
+        int routeStandoff, string id, string kind, out int baseY, out Finding? decline)
     {
         baseY = int.MaxValue;
-        declineReason = "";
+        decline = null;
         var restsAt = prop.Count == 0 ? 0 : prop.Min(cell => cell.Y);
         foreach (var cell in prop)
         {
             if (cell.Y != restsAt) continue;
             var ground = (X: anchor.X + cell.X, Z: anchor.Z + cell.Z);
-            if (context.IsProtected(ground.X, ground.Z))
+            if (context.KeptClearAt(ground.X, ground.Z) is { } keptFor)
             {
-                declineReason = $"the column at ({ground.X}, {ground.Z}) is protected";
+                decline = Declined(DressingRules.KeptClear, id, kind,
+                    $"rests on ({ground.X}, {ground.Z}), {KeptFor(keptFor)}");
                 return false;
             }
             if (claims.Holds(ground.X, ground.Z))
             {
-                declineReason = $"ground already claimed at ({ground.X}, {ground.Z})";
+                decline = Declined(DressingRules.GroundTaken, id, kind,
+                    $"rests on ({ground.X}, {ground.Z}), {Claimant(claims.At(ground.X, ground.Z))}");
                 return false;
             }
             if (routeStandoff > 0 && claims.NearerThan(ground.X, ground.Z, ClaimKind.Route, routeStandoff) is { } road)
             {
-                declineReason = $"({ground.X}, {ground.Z}) is nearer than {routeStandoff} blocks to the road "
-                    + $"at ({road.X}, {road.Z}) ({DressingRules.RoadStandoff})";
+                decline = Declined(DressingRules.RoadStandoff, id, kind,
+                    $"rests on ({ground.X}, {ground.Z}), nearer than {routeStandoff} blocks to the road "
+                    + $"at ({road.X}, {road.Z})");
                 return false;
             }
             if (!context.SurfaceTop.TryGetValue(ground, out var top))
             {
-                declineReason = $"no ground at ({ground.X}, {ground.Z})";
+                decline = Declined(DressingRules.NoGround, id, kind, $"has no ground at ({ground.X}, {ground.Z})");
                 return false;
             }
             baseY = Math.Min(baseY, top);
         }
-        return baseY != int.MaxValue;
+        if (baseY != int.MaxValue) return true;
+        decline = Declined(DressingRules.NoGround, id, kind, "rests on nothing: it has no cells at its own base");
+        return false;
     }
+
+    /// <summary>One decline, in the shape everything else in the studio says something is wrong in: the rule,
+    /// the prop named by kind and id, what happened, and the prop's id as the subject an editor highlights. A
+    /// complaint rather than a refusal — the world was built, and this prop is not standing in it.</summary>
+    private static Finding Declined(string rule, string id, string kind, string what) =>
+        new(rule, $"{kind} '{id}' {what}", Severity.Complaint, Subjects: [id]);
+
+    // What the map is holding a cell for, as the decline's own words.
+    private static string KeptFor(KeepOut keptFor) => keptFor switch
+    {
+        KeepOut.Spawn => "which is kept clear for a spawn",
+        KeepOut.WoolRoom => "which is kept clear for a wool room",
+        KeepOut.Structure => "which is kept clear for a stated structure",
+        KeepOut.Approach => "which is kept clear as the approach in front of a door",
+        _ => "which is built ground rather than terrain",
+    };
+
+    // What already holds a cell, as the decline's own words: the kind of thing, and which one.
+    private static string Claimant((ClaimKind Kind, string Owner)? claim) => claim is not { } held
+        ? "which is already claimed"
+        : held.Kind switch
+        {
+            ClaimKind.Water => $"claimed by the channel '{held.Owner}'",
+            ClaimKind.Route => $"claimed by the path '{held.Owner}'",
+            ClaimKind.Structure => $"claimed by the building '{held.Owner}'",
+            _ => $"claimed by the prop '{held.Owner}'",
+        };
 }

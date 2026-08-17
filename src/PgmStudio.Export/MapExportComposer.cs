@@ -322,7 +322,7 @@ public static class MapExportComposer
     // exclusive (the same conversion PlanValidator's compile-time reading makes).
     private static BlockRect Rect(BlockBox box) => new(box.MinX, box.MinZ, box.MaxX + 1, box.MaxZ + 1);
 
-    // ── OB19/OB21 — a tree, boulder or building may not crowd a goal or stand in a door's approach ────────
+    // ── OB19 — a tree, boulder or building may not crowd a goal ──────────────────────────────────────────
 
     private static ExportComposition? RefuseGoalClearance(string layoutJson, MapIntent goals)
     {
@@ -332,12 +332,7 @@ public static class MapExportComposer
                 $"{violation.Kind} '{violation.PropId}' at ({violation.X}, {violation.Z}) stands inside a "
                 + "goal's clearance",
                 Subjects: [violation.PropId])));
-        findings.AddRange(DressingScope.ApproachViolations(layoutJson, goals)
-            .Select(violation => new Finding(ObjectiveRules.ApproachBlocked,
-                $"{violation.Kind} '{violation.PropId}' at ({violation.X}, {violation.Z}) stands in the "
-                + "approach in front of a spawn or wool-room door",
-                Subjects: [violation.PropId])));
 
-        return findings.Count == 0 ? null : Refuse("prop blocks a goal or an approach", findings);
+        return findings.Count == 0 ? null : Refuse("prop blocks a goal", findings);
     }
 }

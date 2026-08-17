@@ -205,7 +205,7 @@ public sealed class MapExportComposerTests
         await Assert.That((await client.PutAsJsonAsync($"/api/map/{slug}/intent", intent)).IsSuccessStatusCode).IsTrue();
 
         var body = await Refuse409Async(client, slug);
-        await Assert.That(body.GetProperty("error").GetString()).IsEqualTo("prop blocks a goal or an approach");
+        await Assert.That(body.GetProperty("error").GetString()).IsEqualTo("prop blocks a goal");
         // One finding per offending prop, in the shape every gate answers in: the rule id to act on, the
         // sentence naming what stands where, and the prop's own id as the subject the canvas highlights.
         var findings = body.GetProperty("findings");

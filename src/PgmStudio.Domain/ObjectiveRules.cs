@@ -40,11 +40,4 @@ public static class ObjectiveRules
     /// <remarks>Use an id from PGM's own enum. The studio derives this from what the intent carries, so the usual cause is a hand-edited document — remove the element and let the generator write it.</remarks>
     public const string UnknownGamemode = "OB20";
 
-    /// <summary>A tree or building stands in a door's approach: the ground in front of a spawn room's door —
-    /// twenty blocks out from the stamped building's own face, the wall's width — or in front of a wool
-    /// room's entries, ten blocks out (the author's numbers). The lane players walk out through is part of
-    /// what the door is for, and a prop standing in it turns the way out into an ambush. A boulder is
-    /// permitted: low cover leaves the sightline the rule protects.</summary>
-    /// <remarks>Move the tree or building out of the approach lane the finding names, or turn the spawn so its door faces open ground. The approach is measured from the stamped room's face — the building, not the protection region around it.</remarks>
-    public const string ApproachBlocked = "OB21";
 }

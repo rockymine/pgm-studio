@@ -172,9 +172,9 @@ static void Build(MapSpec spec, bool describeOnly, bool forceStages)
     // Beside the voxels, not inside them — a block carries no provenance byte, so what claimed each
     // column travels as this sidecar rather than being lost the moment the world round-trips through disk.
     WorldProvenanceFile.Write(built.Provenance, regionDir);
-    DressingReportFile.Write(built.DroppedProps, regionDir);
-    foreach (var drop in built.DroppedProps ?? [])
-        Console.Error.WriteLine($"  ! {spec.Slug}: dropped {drop.Kind} '{drop.Id}' — {drop.Reason}");
+    DressingReportFile.Write(built.Declines, regionDir);
+    foreach (var decline in built.Declines ?? [])
+        Console.Error.WriteLine($"  ! {spec.Slug}: {decline.Rule} {decline.Message}");
 
     // A tree wants soil — dirt, grass, sand or snow, never bare stone (the author's rule). A complaint
     // rather than a drop: the tree stands and the line names the ground to repaint.

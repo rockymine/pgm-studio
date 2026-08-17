@@ -66,50 +66,6 @@ thresholds stated in it want restating before anything enforces them.
 
   *moved here by the human because it sounds related and no other category fits*
 
-### The keep-out mask: what it stops, what it says, and what it is called
-
-One mask decides where the dressing pass may put anything, and all three questions about it are open: it
-does not stop everything it should, it cannot say why it stopped, and it is named after a different concept
-that already exists in the map contract.
-
-- [ ] **WE1 — A declined prop is invisible to the surface that asked for it, and the approach lets one land
-  that it will then refuse.** Two halves, one answer.
-
-  **The approach protects.** `DressingScope.ApproachAt` — 20 blocks out from a spawn's doored face,
-  `WoolApproach` 10 from a wool entry — is read only by `MapExportComposer`, never by the build's protection
-  mask, so a tree in a door's approach is built, drawn in the 3-D preview, and refused at export by `OB21`.
-  The author's ruling is that it protects as well: the prop never lands. The boulder exemption goes with it —
-  a boulder is large enough that the low-cover sightline argument does not hold, and the carve-out costs an
-  agent more than it buys. `OB21` then stops being reachable by an authored prop.
-
-  **The decline is reported, in the shape everything else refuses in.** `DroppedProp(Id, Kind, Reason)` is an
-  eighth finding record that never joined the consolidation. Two of its four reasons — *"the column at (x, z)
-  is protected"*, *"ground already claimed at (x, z)"* — name a cell and neither the rule nor what claimed
-  the ground, though `GroundClaims` holds the `ClaimKind` and a `PlacementClaim` now holds the owner. Make a
-  decline a `Finding`: a `DR-*` rule from `docs/refusals.md`, `Subjects: [propId]`, `Severity.Complaint`.
-  Then return it from the build endpoints beside the payload — `/sketch/columns` and `/plan/columns` hold
-  `SketchWorld.DroppedProps` today and discard it — so an agent learns **why, where and what** on the loop it
-  actually drives, instead of unzipping `dressing-report.json`.
-
-  **A decline is a complaint on a 200, not a refusal**, so it never touches the refusal envelope: the world
-  built, and some props did not land in it. The shape already exists and wants reusing rather than inventing
-  — `/plan/inspect` returns `warnings`, `/plan/evaluate` returns `lint`, and `FeasibilityDto` carries `Unit`,
-  each a `FindingDto[]` beside a success payload. Three names for one shape is its own small drift; pick one
-  and use it here rather than minting a fourth.
-
-- [ ] **B106 — Rename one of the two things called protection.** One is the XML region rule that stops a
-  player entering a spawn or a wool room and restricts what may be broken or placed inside it — a gameplay
-  contract. The other is `Decorator.IsProtected`, "cells nothing may be placed on", a dressing keep-out with
-  no gameplay meaning. A goal that needs the second does not need the first, and one word for both invites the
-  inference that a destroyable must live somewhere protected — which is what produced the caged goals, and it
-  survives the code that acted on it.
-
-  `DressingScope.ProtectedAt` makes the collision concrete: it *reads* `SpawnIntent.Protection` — the XML
-  region — to build the mask that means the other thing, so one word names both the source and the derived
-  set. The internal verb is already right (`KeepRect`, `KeepArea`), so `KeptClearAt` / `IsKeptClear` reads
-  with the code that builds it and leaves `Protection` to the contract. Lands with `WE1`, which changes what
-  goes into that mask and what it says when it stops something.
-
 ### The API layer: one envelope, one gate chain
 
 An agent driving the studio meets one of these on every loop, and they share a cause: the same answer is
@@ -162,14 +118,18 @@ driven, and a decision on whether the one driver belongs in `pgm-studio` beside 
 - [ ] **B249 — An author can force a compile and an export past its refusals; an agent cannot.** The gates
   are right to refuse an agent — an unenterable board or a wall through a wool room is a defect it cannot see
   — but they also refuse **an author doing something deliberately off the norm**, and there is no way past
-  them. Two boards in `pgm-studio-mapgen` already cannot be rebuilt against today's tree for exactly that
-  reason, both by gates that shipped after they were authored: `firnline` on `OB21` (a house in a spawn door's
-  approach, `B235`) and `sunspit` on `PL13` (a wall on the wool room's interface, `B186`). Both worlds load
-  and play; only the pipeline that made them now says no.
+  them. `sunspit` in `pgm-studio-mapgen` cannot be rebuilt against today's tree for exactly that reason —
+  `PL13`, a wall on the wool room's interface (`B186`) — and `firnline` now rebuilds without the house it was
+  authored with, which the keep-out mask declines as `DR-KEEP` (a house in a spawn door's approach). Both
+  worlds load and play; only the pipeline that made them disagrees.
+
+  **So the override reaches the keep-out mask as well as the refusals.** A decline is not a refusal, but it
+  is the same question one layer down: the author placed the thing deliberately, and there is no way to say
+  so.
 
   **The shape: a per-call override that names what it is waiving, not a global off switch.** It reaches the
   two places a refusal is raised — `PlanCompiler` (a `PL*` refusal) and `MapExportComposer` (`OB17`, `OB19`,
-  `OB21`, the playability judgement) — and every waived finding is still **reported**, as a warning carrying
+  the playability judgement) — and every waived finding is still **reported**, as a warning carrying
   its rule id, so a forced build says what it forced rather than going quiet. A refusal about the `map.xml`
   contract itself is not waivable: PGM has to be able to read the result.
 

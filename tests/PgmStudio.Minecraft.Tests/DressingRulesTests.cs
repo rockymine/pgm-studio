@@ -32,10 +32,11 @@ public sealed class DressingRulesTests
     }
 
     [Test]
-    public async Task A_standoff_drop_cites_the_rule_id_the_catalogue_answers()
+    public async Task A_standoff_drop_carries_the_rule_id_the_catalogue_answers()
     {
-        // The census is prose, so the id in the reason is what connects a drop to GET /api/rules. The same
-        // geometry as the decorator standoff test: a trunk two blocks off a z=20, radius-2 road.
+        // A decline is a finding, so the rule id is a field rather than a phrase inside a sentence — which is
+        // what connects a drop to GET /api/rules. The same geometry as the decorator standoff test: a trunk
+        // two blocks off a z=20, radius-2 road.
         var world = new Anvil.VoxelWorld();
         var top = new Dictionary<(int X, int Z), int>();
         for (var z = 0; z < 40; z++)
@@ -56,6 +57,9 @@ public sealed class DressingRulesTests
             new TreeProp { Id = "t", X = 20, Z = 23, Species = "oak", Height = 14, Seed = 5 },
         ]));
 
-        await Assert.That(tally.Dropped!.Single().Reason).Contains($"({DressingRules.RoadStandoff})");
+        var decline = tally.Declines.Single();
+        await Assert.That(decline.Rule).IsEqualTo(DressingRules.RoadStandoff);
+        await Assert.That(decline.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(decline.SubjectIds).IsEquivalentTo(new[] { "t" });
     }
 }

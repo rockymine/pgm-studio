@@ -54,13 +54,13 @@ A generated layout compiles into a `SketchLayout` (geometry) and a `MapIntent` (
 turns the geometry into a stone `VoxelWorld`; the stampers seat rooms, cubes and objectives on it; the
 painter rewrites the stone surface into grass, dirt, quartz, clay. Every one is a pass in *realize*, and
 they run in that order for one reason: each reads what the last produced. The dressing pass is the next
-link — it reads the finished, **painted** world and the plan's protected regions, and it runs **last**,
+link — it reads the finished, **painted** world and the ground the map keeps clear, and it runs **last**,
 after `TerrainPainter.Paint` in `SketchWorldBuilder.Build`.
 
 Running after the painter is what makes the whole stage tractable. The painter has already decided, per
 cell, what the surface *is* — and the single fact the dressing pass needs is exactly that: soil accepts
 flora, quartz does not; grass can be replaced by a path, a monument's wool cannot. So the pass reads the
-top block of each column and the plan's protected regions, and never has to re-derive either. The one
+top block of each column and the ground the map keeps clear, and never has to re-derive either. The one
 elevation model it needs is the same `SketchTerrain.SurfaceTop` (`Dictionary<(int X,int Z),int>`, the
 first air Y above each column) the painter and every stamper already read.
 
@@ -81,8 +81,11 @@ one stage rather than four:
   and trees into groves; a per-cell `Unit` is the dice a worn path rolls. Deterministic hash-from-cell,
   **never RNG** — the discipline `terrain-painting.md` §5 already holds, so a map re-exports identically.
 - **Mask.** Eligibility from the painted surface (soil vs. quartz, read from the top block) and from the
-  plan's protected regions (spawns, wool rooms, structures) as exclusion zones. Nothing lands where it would
-  break play or read wrong. A path's own cells join the mask as it is laid, so nothing grows through a road.
+  **keep-out** `DressingScope.KeptClearAt` builds: spawns, wool rooms, stated structures, built columns and
+  every door's approach. Nothing lands where it would break play or read wrong, and the mask answers *which*
+  of those held a cell (`KeepOut`), because a decline that cannot name what stopped it is one nobody can act
+  on. This is not the map contract's `protection`, which is a region rule about what a player may enter and
+  break; it reads a spawn's protection areas but what it answers is the other thing. A path's own cells join the mask as it is laid, so nothing grows through a road.
   A destroyable and a core are **not** in that mask, and what they ask for instead is §3.1.
 - **Placement.** A **point** for the props that stand somewhere (a tree, a boulder), a **drawn outline** for
   the ones that cover a stretch (a route along a line, cover inside a ring), and a **dragged rectangle** for
@@ -101,7 +104,7 @@ one stage rather than four:
 - **Stamp.** A 3-D volume seated on `SurfaceTop` and written cell-by-cell with `SetBlock` — the
   shape-mask-in-a-box `ObjectiveStamper` already uses for destroyables and cores. A prop seats on the
   *lowest* column of its own footprint, so it sits into a slope rather than floating over the low side, and
-  it refuses ground that is missing or protected rather than half-placing itself. What it *rests* on needs
+  it refuses ground that is missing or kept clear rather than half-placing itself. What it *rests* on needs
   real ground; what it merely reaches over does not — a crown or a boulder lobe may overhang a drop or a void,
   which is why a marker can seat at an island's edge and still lean out past it.
 - **The fan (G162).** Every prop is placed once and stamped at **every image of its orbit**, in the prop's own
@@ -118,7 +121,7 @@ one stage rather than four:
   turned, which is why every generator here answers in a local frame. An offset is a delta between cells,
   and the delta between two mirrored cells is just the mirrored delta — so the turn is a plain rotation with
   no half-cell correction, which the anchor's own mirroring has already applied. A stamp is all-or-nothing
-  per image: if one image's ground is missing or protected, that image is skipped rather than clipped.
+  per image: if one image's ground is missing or kept clear, that image is skipped rather than clipped.
 
 ## 3. Flora overlay — the paint-aware overlay (`DR-FL`)
 
@@ -178,15 +181,22 @@ props the kept-open ground reaches further than the cover clearance: never neare
 goal's marker** (`DressingScope.GoalStandoff`, the author's radius) — the ring a fight happens on, measured
 from the marker rather than from however wide the structure under it happens to be.
 
-**A door's approach is kept open the same way (`OB21`, `DressingScope.ApproachViolations`).** The ground in
-front of a spawn room's door — **twenty blocks** out from the stamped building's own face, the wall's width —
-and in front of each wool-room entry — **ten blocks** — refuses a tree or a building at export with the same
-409 shape. A boulder is deliberately permitted in the lane (the author's frontage rule allows boulders and
-fauna): low cover leaves the sightline the rule protects, and the sightline is the point. The lane is
-measured from the room resolution the stamper actually builds
+**A door's approach is kept clear, and it stops a prop rather than refusing a map**
+(`DressingScope.ApproachAt`, part of `KeptClearAt`). The ground in front of a spawn room's door — **twenty
+blocks** out from the stamped building's own face, the wall's width — and in front of each wool-room entry —
+**ten blocks** — is in the keep-out mask, so a prop authored into a lane never lands: the pass declines it and
+says so (`DR-KEEP`), and the world builds. Every kind is turned away, boulders included; the earlier
+low-cover carve-out for a boulder does not survive the size a boulder actually reaches, and a mask that reads
+a prop's kind before deciding whether a lane is a lane is a rule nobody driving the studio can predict. The
+lane is measured from the room resolution the stamper actually builds
 (`SketchWorldBuilder.SpawnRoom`/`WoolFrame`), deliberately not from the protection region projected around
 it: the ruling is about the building and the way players walk out of it. A legacy wool cage with a door per
 wall keeps the lane on all four faces.
+
+**A building obeys the approach and nothing else in the mask.** The rest of what is kept clear — a spawn's
+own margin, a wool room, a stated structure, a stamped column — never turns a building away, because someone
+drew that rectangle where it is and a room's margin is not a reason to lose it. The lane is the exception,
+and the reason is size: a building is the one prop big enough to close a door's approach entirely.
 
 ## 4. Paths — drag a line, replace the finish (`DR-PA`)
 
@@ -458,9 +468,10 @@ direction, so it goes round the orbit the way an offset does (`DressingSymmetry.
 rectangle alone would put a copy on the far side of the map with its door still on the same compass side, so a
 mirrored pair would face the same way and one team would walk out toward the other's half.
 
-**It is not gated on the protected mask, and it never joins it.** That mask exists so a *scatter* can be told
-where not to grow — a flora field is generated, so it needs the instruction. A building is not generated:
-someone drew this rectangle here, and a refusal would silently drop a placement they can see on the canvas.
+**It obeys one part of the keep-out mask, the approach, and never joins the mask itself.** A building is not
+generated the way a flora field is: someone drew this rectangle here, and a spawn's own margin is not a reason
+to lose it. A door's approach is the exception, because a building is the one prop big enough to close a lane
+entirely (§3.1); the decline is reported like every other, so nothing is dropped silently.
 Its cells do join the pass's running claim, which is a different mechanism entirely — the rule that keeps grass
 from growing through the walls, exactly as a path's cells claim the road. In the ordering that puts buildings
 after paths and before the props that scatter around them — and the path's own claim is the one a building
@@ -515,17 +526,26 @@ The shell is a **snapshot** on the prop, not a library id — the rule a map's b
 (`structures.md` §9). Picking a style from the library copies its JSON in, so editing that row later cannot
 rebuild a map's scenery.
 
-**Every whole-prop decline is reported with its reason.** A house whose wings make no building, a house
-whose ground something already claimed, a house over no ground or with no way past it, a tree or a boulder
-whose site finds no ground, lands on a protected or claimed column, or breaks its kind's road standoff —
-each appends one entry to
-`DressingPlacement.Dropped` (`{id, kind, reason}`, the reason naming the cell where the cause is a place),
-where the same silent empty return used to mean all five. Nothing new refuses: the pass places what it can
-exactly as before, and the report makes the rest visible — as `region/dressing-report.json` beside the
-provenance sidecar (written only when something dropped, deleted on a rebuild that dropped nothing) and as
-one stderr line per drop from `tools/mapgen`. A path's per-cell skips stay unreported; a route crossing
-protected ground one cell at a time is the ordinary shape of a path, not a decision an author needs
-restated.
+**Every whole-prop decline is a `Finding`, in the shape everything else says no in.** A house whose wings
+make no building, a house whose ground something already claimed, a house over no ground, with no way past it
+or standing in a door's approach, a tree or a boulder whose site finds no ground, lands on a column the map
+keeps clear or one already claimed, or breaks its kind's road standoff — each appends one finding to
+`DressingPlacement.Declined`: a rule id (`DR-KEEP`, `DR-CLAIM`, `DR-SITE`, `DR-ROAD`, `DR-PASS`, `DR-SIZE`, or
+the building rule that refused a plan), one sentence naming the prop, the cell and the cause, the prop's id
+as its subject, and `Severity.Complaint` — the world was built, and some of what was authored is not standing
+in it.
+
+The sentence names **what** stopped the prop, not merely that something did: `KeepOut` says whether a cell is
+held for a spawn, a wool room, a stated structure, built ground or a door's approach, and `GroundClaims`
+carries the *owner* of every claim, so a collision reads `claimed by the path 'p'` rather than `already
+claimed`. The first claimant keeps a cell, so that owner is the one that actually holds the ground.
+
+The declines travel three ways: back from `POST /map/{slug}/sketch/columns` and `POST /plan/columns` under
+`warnings` beside the payload, which is the loop an agent actually drives; as `region/dressing-report.json`
+beside the provenance sidecar (written only when something dropped, deleted on a rebuild that dropped
+nothing); and as one stderr line per decline from `tools/mapgen`. A path's per-cell skips stay unreported; a
+route crossing kept-clear ground one cell at a time is the ordinary shape of a path, not a decision an author
+needs restated.
 
 **Its footprint claims provenance the same way a room's does, only later.** `Decorate` reports a
 `PlacementClaim` for every building it raises and `SketchWorldBuilder` records each as `WorldProvenance`'s
@@ -648,8 +668,8 @@ there:
   everything is placed by hand; it stays for the auto-placement ideas of `ideas.md`, which will want it.
 
 **`PgmStudio.Minecraft/Dressing` — the world-writing pass.** `Decorator`, sibling to `ObjectiveStamper` and
-`TerrainPainter`: it takes a `DressingContext` (the surface, the placed props, the protected set, the
-symmetry) and writes blocks via `SetBlock`. It reaches `Geom` for the algorithms and `DressingSymmetry` for
+`TerrainPainter`: it takes a `DressingContext` (the surface, the placed props, the keep-out mask and what
+each cell is held for, the symmetry) and writes blocks via `SetBlock`. It reaches `Geom` for the algorithms and `DressingSymmetry` for
 the orbit fan. The props themselves (`PathProp`, `WaterProp`, `FloraProp`, `HouseProp`, `TreeProp`,
 `BoulderProp` under one `PlacedProp` discriminator) and the block palette live here beside
 `Blocks`/`BlockPalette`. A building's own stamper is **not** here — `HouseStamper` sits a folder up, where the

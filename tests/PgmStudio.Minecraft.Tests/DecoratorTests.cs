@@ -36,8 +36,8 @@ public sealed class DecoratorTests
 
     private static DressingContext Context(
         Dictionary<(int X, int Z), int> top, IReadOnlyList<PlacedProp> props,
-        Func<int, int, bool>? isProtected = null, string? symmetry = null, double centerX = 0, double centerZ = 0)
-        => new(top, props, isProtected ?? ((_, _) => false), new DressingSymmetry(symmetry, centerX, centerZ));
+        Func<int, int, KeepOut?>? keptClear = null, string? symmetry = null, double centerX = 0, double centerZ = 0)
+        => new(top, props, keptClear ?? ((_, _) => null), new DressingSymmetry(symmetry, centerX, centerZ));
 
     private static IEnumerable<(int X, int Y, int Z, int Id, int Data)> Placed(
         VoxelWorld world, IEnumerable<(int X, int Z)> cells, int fromY, int toY)
@@ -91,9 +91,12 @@ public sealed class DecoratorTests
 
         await Assert.That(tally.Houses).IsEqualTo(1);
         await Assert.That(tally.Trees).IsEqualTo(0);
-        var drop = tally.Dropped!.Single(d => d.Id == "t");
-        await Assert.That(drop.Kind).IsEqualTo("tree");
-        await Assert.That(drop.Reason).Contains("ground already claimed at (");
+        var drop = tally.Declines.Single(d => d.SubjectIds.Contains("t"));
+        await Assert.That(drop.Rule).IsEqualTo(DressingRules.GroundTaken);
+        await Assert.That(drop.Message).Contains("tree 't' rests on (");
+        // The road got there first and keeps the cell, so that is what the decline names — the record says
+        // who holds the ground, not merely that something does.
+        await Assert.That(drop.Message).Contains("claimed by the path 'p'");
         // The road survives up to the wall and the house's floor owns the ground inside it.
         await Assert.That(world.GetBlock(25, 7, 20).Id).IsEqualTo(Blocks.Gravel);
         await Assert.That(world.GetBlock(14, 7, 20).Id).IsNotEqualTo(Blocks.Gravel);
@@ -116,14 +119,15 @@ public sealed class DecoratorTests
         var refused = Decorator.Decorate(near, Context(nearTop,
             [Road(), new TreeProp { Id = "t", X = 20, Z = 23, Species = "oak", Height = 14, Seed = 5 }]));
         await Assert.That(refused.Trees).IsEqualTo(0);
-        var drop = refused.Dropped!.Single(d => d.Id == "t");
-        await Assert.That(drop.Reason).Contains("nearer than 3 blocks to the road at (");
+        var drop = refused.Declines.Single(d => d.SubjectIds.Contains("t"));
+        await Assert.That(drop.Rule).IsEqualTo(DressingRules.RoadStandoff);
+        await Assert.That(drop.Message).Contains("nearer than 3 blocks to the road at (");
 
         var (clear, clearTop) = Plateau();
         var seated = Decorator.Decorate(clear, Context(clearTop,
             [Road(), new TreeProp { Id = "t", X = 20, Z = 25, Species = "oak", Height = 14, Seed = 5 }]));
         await Assert.That(seated.Trees).IsEqualTo(1);
-        await Assert.That(seated.Dropped).IsNull();
+        await Assert.That(seated.Declines).IsEmpty();
 
         var (rocky, rockyTop) = Plateau();
         var rocks = Decorator.Decorate(rocky, Context(rockyTop,
@@ -133,7 +137,7 @@ public sealed class DecoratorTests
             new BoulderProp { Id = "b-clear", X = 28, Z = 27, Size = 1, Mossy = false, Seed = 3 },
         ]));
         await Assert.That(rocks.Boulders).IsEqualTo(1);
-        await Assert.That(rocks.Dropped!.Single().Id).IsEqualTo("b-near");
+        await Assert.That(rocks.Declines.Single().SubjectIds).IsEquivalentTo(new[] { "b-near" });
     }
 
     [Test]
@@ -145,15 +149,16 @@ public sealed class DecoratorTests
         var seated = Decorator.Decorate(world, Context(top,
             [new TreeProp { Id = "t-on", X = 14, Z = 20, Species = "oak", Height = 16, Seed = 5 }]));
         await Assert.That(seated.Trees).IsEqualTo(1);
-        await Assert.That(seated.Dropped).IsNull();
+        await Assert.That(seated.Declines).IsEmpty();
 
         var (world2, top2) = Plateau();
         var dropped = Decorator.Decorate(world2, Context(top2,
             [new TreeProp { Id = "t-off", X = 200, Z = 200, Species = "oak", Height = 16, Seed = 5 }]));
         await Assert.That(dropped.Trees).IsEqualTo(0);
-        var drop = dropped.Dropped!.Single(d => d.Id == "t-off");
-        await Assert.That(drop.Kind).IsEqualTo("tree");
-        await Assert.That(drop.Reason).Contains("no ground at (");
+        var drop = dropped.Declines.Single(d => d.SubjectIds.Contains("t-off"));
+        await Assert.That(drop.Rule).IsEqualTo(DressingRules.NoGround);
+        await Assert.That(drop.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(drop.Message).Contains("tree 't-off' has no ground at (");
     }
 
     // ── a prop stands where it was placed ──────────────────────────────────────────────────────────
@@ -598,7 +603,7 @@ public sealed class DecoratorTests
             new TreeProp { Id = "t", X = 20, Z = 20, Seed = 5 },
             new BoulderProp { Id = "b", X = 20, Z = 20, Size = 3, Seed = 3 },
             new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(Coverage: 1.0), Seed = 7 },
-        ], isProtected: (x, z) => Math.Abs(x - 20) < 8 && Math.Abs(z - 20) < 8));
+        ], keptClear: (x, z) => Math.Abs(x - 20) < 8 && Math.Abs(z - 20) < 8 ? KeepOut.Structure : null));
 
         await Assert.That(tally.Trees).IsEqualTo(0);
         await Assert.That(tally.Boulders).IsEqualTo(0);
@@ -633,13 +638,13 @@ public sealed class DecoratorTests
         // and the tree still stands, because its trunk never leaves the unprotected core.
         var (overhung, overhungTop) = Plateau(20);
         var overhanging = Decorator.Decorate(overhung, Context(overhungTop, [stand],
-            isProtected: (x, z) => x is < 9 or > 11 || z is < 9 or > 11));
+            keptClear: (x, z) => x is < 9 or > 11 || z is < 9 or > 11 ? KeepOut.Spawn : null));
         await Assert.That(overhanging.Trees).IsEqualTo(1);
 
         // But a trunk asked to root on the protected column itself is still refused.
         var (rooted, rootedTop) = Plateau(20);
         var onProtection = Decorator.Decorate(rooted, Context(rootedTop, [stand],
-            isProtected: (x, z) => x == 10 && z == 10));
+            keptClear: (x, z) => x == 10 && z == 10 ? KeepOut.Spawn : null));
         await Assert.That(onProtection.Trees).IsEqualTo(0);
     }
 
@@ -693,7 +698,7 @@ public sealed class DecoratorTests
             } }]));
 
         await Assert.That(tally.Houses).IsEqualTo(1);
-        await Assert.That(tally.Dropped).IsNull();
+        await Assert.That(tally.Declines).IsEmpty();
         // The mound is gone from the interior: the column that stood six courses over the floor is open air.
         for (var y = 9; y <= 13; y++)
             await Assert.That(world.GetBlock(20, y, 20).Id).IsEqualTo(Blocks.Air);
@@ -714,7 +719,7 @@ public sealed class DecoratorTests
                 Doorway = new Doorway { Door = DoorMaterial.Air },
             } }]));
         await Assert.That(shallow.Houses).IsEqualTo(0);
-        await Assert.That(shallow.Dropped!.Single().Reason).Contains("(DR-SIZE)");
+        await Assert.That(shallow.Declines.Single().Rule).IsEqualTo(DressingRules.FootprintFloor);
 
         var (world2, top2) = Plateau();
         var atFloor = Decorator.Decorate(world2, Context(top2,
@@ -751,9 +756,9 @@ public sealed class DecoratorTests
                 },
             } }]));
         await Assert.That(corked.Houses).IsEqualTo(0);
-        var drop = corked.Dropped!.Single();
-        await Assert.That(drop.Reason).Contains("no way past");
-        await Assert.That(drop.Reason).Contains("(DR-PASS)");
+        var drop = corked.Declines.Single();
+        await Assert.That(drop.Message).Contains("no way past");
+        await Assert.That(drop.Rule).IsEqualTo(DressingRules.PassAround);
 
         // The same house on the same leg, hugging the west edge: the east flank keeps a five-block passage.
         var (coast, coastTop) = Plateau();
@@ -769,7 +774,7 @@ public sealed class DecoratorTests
                 },
             } }]));
         await Assert.That(seated.Houses).IsEqualTo(1);
-        await Assert.That(seated.Dropped).IsNull();
+        await Assert.That(seated.Declines).IsEmpty();
     }
 
     [Test]
@@ -892,7 +897,7 @@ public sealed class DecoratorTests
         var (world, top) = Plateau(80, from: -40);
         var tally = Decorator.Decorate(world, Context(top,
             [new BoulderProp { Id = "b", X = 12, Z = 9, Size = 3, Seed = 3 }],
-            isProtected: (x, z) => Math.Abs(x - 12) < 3 && Math.Abs(z - 9) < 3,
+            keptClear: (x, z) => Math.Abs(x - 12) < 3 && Math.Abs(z - 9) < 3 ? KeepOut.Spawn : null,
             symmetry: "rot_180"));
 
         await Assert.That(tally.Boulders).IsEqualTo(0);

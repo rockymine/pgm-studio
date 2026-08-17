@@ -266,7 +266,12 @@ public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore art
 ///
 /// <para>A map begun in Sketch has no intent, and an empty one is the right answer rather than a gap: it
 /// states no objectives, so a preview showing none is showing what is there. 400 on a layout that cannot be
-/// built.</para></summary>
+/// built.</para>
+///
+/// <para><b>What did not land comes back with what did</b>, under <c>warnings</c>: every prop the dressing
+/// pass declined, as a <c>DR-*</c> finding naming the rule, the cell and the prop. The build succeeded, so
+/// these are complaints rather than refusals — but a caller looking at a preview with no tree in it needs to
+/// be told the tree was declined, not left to notice.</para></summary>
 public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure() { Post("/map/{slug}/sketch/columns"); AllowAnonymous(); }
@@ -284,6 +289,7 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
         {
             var built = SketchWorldBuilder.Build(layoutJson, await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct));
             payload = WorldColumnPayload.Of(built.World);
+            payload["warnings"] = Refusals.Dtos(built.Declines);
         }
         catch { await Send.ResponseAsync(new { error = "could not build layout" }, 400, ct); return; }
 

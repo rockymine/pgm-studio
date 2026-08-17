@@ -79,13 +79,14 @@ public sealed class DressingScopeTests
             Spawns = [new SpawnIntent { Team = "red", Point = new Pt(5, 8, 5) }],
             Wools = [new WoolIntent { Owner = "red", Color = "red", Spawn = new Pt(20, 8, 20) }],
         };
-        var isProtected = DressingScope.ProtectedAt(world, surface, intent);
+        var keptClear = DressingScope.KeptClearAt(world, surface, intent);
 
-        await Assert.That(isProtected(5, 5)).IsTrue();      // the spawn
-        await Assert.That(isProtected(6, 6)).IsTrue();      // and its margin
-        await Assert.That(isProtected(20, 20)).IsTrue();    // the wool
-        await Assert.That(isProtected(30, 30)).IsTrue();    // the column a stamp stands on
-        await Assert.That(isProtected(15, 34)).IsFalse();   // plain terrain
+        // And the mask says WHAT each cell is held for, which is what a decline has to name.
+        await Assert.That(keptClear(5, 5)).IsEqualTo(KeepOut.Spawn);       // the spawn
+        await Assert.That(keptClear(6, 6)).IsEqualTo(KeepOut.Spawn);       // and its margin
+        await Assert.That(keptClear(20, 20)).IsEqualTo(KeepOut.WoolRoom);  // the wool
+        await Assert.That(keptClear(30, 30)).IsEqualTo(KeepOut.Built);     // the column a stamp stands on
+        await Assert.That(keptClear(15, 34)).IsNull();                     // plain terrain
     }
 
     [Test]
@@ -100,7 +101,7 @@ public sealed class DressingScopeTests
             Cores = [new CoreIntent { Owner = "red", Anchor = new Pt(20, 8, 20), Size = 7, Height = 7, Shell = 1 }],
         };
 
-        await Assert.That(DressingScope.ProtectedAt(world, surface, core)(20, 20)).IsFalse();
+        await Assert.That(DressingScope.KeptClearAt(world, surface, core)(20, 20)).IsNull();
     }
 
     [Test]
@@ -216,7 +217,7 @@ public sealed class DressingScopeTests
         await Assert.That(past).IsEmpty();
     }
 
-    // ── OB21: a tree, a boulder or a building in a door's approach ────────────────────────────────────
+    // ── a door's approach is part of the keep-out mask ────────────────────────────────────────────────
     // A spawn at (0,0) with yaw 0 faces +Z, and with no piece it resolves the legacy marker-anchored room
     // ([-5,5] on both axes) — so the approach lane is that face's width, twenty blocks out: z 6..25.
     private static MapIntent SpawnFacingPosZ => new()
@@ -225,57 +226,42 @@ public sealed class DressingScopeTests
     };
 
     [Test]
-    public async Task A_tree_in_front_of_the_spawn_door_is_flagged_and_one_behind_is_not()
+    public async Task The_ground_in_front_of_a_spawn_door_is_kept_clear_and_the_ground_behind_it_is_not()
     {
-        var ahead = DressingScope.ApproachViolations(
-            Layout(",\"dressing\":{\"props\":[{\"kind\":\"tree\",\"id\":\"t1\",\"seed\":1,\"x\":0,\"z\":15}]}"),
-            SpawnFacingPosZ);
-        await Assert.That(ahead.Count).IsEqualTo(1);
-        await Assert.That(ahead[0].Kind).IsEqualTo("tree");
+        var (world, surface) = Ground(-40, 80);
+        var keptClear = DressingScope.KeptClearAt(world, surface, SpawnFacingPosZ);
 
-        // Behind, and off-axis enough that the rot_180 mirror stays out of the lane too.
-        var behind = DressingScope.ApproachViolations(
-            Layout(",\"dressing\":{\"props\":[{\"kind\":\"tree\",\"id\":\"t2\",\"seed\":1,\"x\":10,\"z\":-15}]}"),
-            SpawnFacingPosZ);
-        await Assert.That(behind).IsEmpty();
-
-        var past = DressingScope.ApproachViolations(
-            Layout(",\"dressing\":{\"props\":[{\"kind\":\"tree\",\"id\":\"t3\",\"seed\":1,\"x\":0,\"z\":30}]}"),
-            SpawnFacingPosZ);
-        await Assert.That(past).IsEmpty();
+        await Assert.That(keptClear(0, 15)).IsEqualTo(KeepOut.Approach);   // in the lane
+        await Assert.That(keptClear(0, -15)).IsNull();                     // behind the room
+        await Assert.That(keptClear(0, 30)).IsNull();                      // past the lane's reach
     }
 
     [Test]
-    public async Task A_boulder_may_stand_in_the_approach_because_low_cover_keeps_the_sightline()
+    public async Task The_mask_turns_every_kind_away_from_the_approach_boulders_included()
     {
-        // The author's frontage rule permits boulders and fauna in the lane — what it forbids is what cuts
-        // the line from the door to the objective, and a rock does not.
-        var violations = DressingScope.ApproachViolations(
-            Layout(",\"dressing\":{\"props\":[{\"kind\":\"boulder\",\"id\":\"b1\",\"seed\":1,\"x\":0,\"z\":15}]}"),
-            SpawnFacingPosZ);
-        await Assert.That(violations).IsEmpty();
+        // The old export-time refusal exempted boulders on a low-cover argument. A boulder is tall enough
+        // that the sightline argument does not hold for it, and a mask that reads the prop's kind before
+        // deciding whether a lane is a lane is a carve-out nobody driving the studio can predict.
+        var (world, surface) = Ground(-40, 80);
+        var keptClear = DressingScope.KeptClearAt(world, surface, SpawnFacingPosZ);
+
+        await Assert.That(keptClear(0, 15)).IsEqualTo(KeepOut.Approach);
     }
 
     [Test]
-    public async Task A_house_in_front_of_a_wool_rooms_entry_is_flagged_at_the_shorter_reach()
+    public async Task A_wool_rooms_entry_keeps_the_shorter_lane_clear()
     {
         // A legacy wool at (0,0) resolves the default cage with a door on every wall, so each face carries a
-        // ten-block approach — a house at z 8..12 stands in the south one; at z 17+ it is past it.
+        // ten-block approach — z 8..12 stands in the south one; z 17+ is past it.
         var wool = new MapIntent
         {
             Wools = [new WoolIntent { Owner = "blue", Color = "blue", Spawn = new Pt(0, 8, 0) }],
         };
+        var (world, surface) = Ground(-40, 80);
+        var keptClear = DressingScope.KeptClearAt(world, surface, wool);
 
-        var blocking = DressingScope.ApproachViolations(
-            Layout(",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"wings\":[[[-2,8],[2,12]]]}]}"),
-            wool);
-        await Assert.That(blocking.Count).IsEqualTo(1);
-        await Assert.That(blocking[0].Kind).IsEqualTo("building");
-
-        var clear = DressingScope.ApproachViolations(
-            Layout(",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h2\",\"seed\":1,\"wings\":[[[-2,17],[2,21]]]}]}"),
-            wool);
-        await Assert.That(clear).IsEmpty();
+        await Assert.That(keptClear(0, 10)).IsEqualTo(KeepOut.Approach);
+        await Assert.That(keptClear(0, 21)).IsNull();
     }
 
     [Test]

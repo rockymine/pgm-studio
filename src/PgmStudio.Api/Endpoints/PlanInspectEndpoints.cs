@@ -132,7 +132,11 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest
 ///
 /// <para>It does not gate. <c>/plan/compile</c> is where a plan is refused; a preview of an incoherent plan is
 /// still a useful thing to look at, and a picture that vanishes when a validator fires teaches nothing about
-/// why. 400 only when the document cannot be read or built at all.</para></summary>
+/// why. 400 only when the document cannot be read or built at all.</para>
+///
+/// <para><b>What did not land comes back with what did</b>, under <c>warnings</c>: every prop the dressing
+/// pass declined, as a <c>DR-*</c> finding naming the rule, the cell and the prop. Complaints on a success —
+/// the world was built and some of what was authored is not standing in it.</para></summary>
 public sealed class PlanColumnsEndpoint : EndpointWithoutRequest
 {
     public override void Configure() { Post("/plan/columns"); AllowAnonymous(); }
@@ -152,6 +156,7 @@ public sealed class PlanColumnsEndpoint : EndpointWithoutRequest
             }
             var built = SketchWorldBuilder.Build(compiled.LayoutJson, compiled.Intent);
             payload = WorldColumnPayload.Of(built.World);
+            payload["warnings"] = Refusals.Dtos(built.Declines);
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException
                                       or IndexOutOfRangeException or JsonException)
