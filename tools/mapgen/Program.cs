@@ -173,7 +173,7 @@ static void Build(MapSpec spec, bool describeOnly, bool forceStages)
     // column travels as this sidecar rather than being lost the moment the world round-trips through disk.
     WorldProvenanceFile.Write(built.Provenance, regionDir);
     DressingReportFile.Write(built.Declines, regionDir);
-    foreach (var decline in built.Declines ?? [])
+    foreach (var decline in built.Declines)
         Console.Error.WriteLine($"  ! {spec.Slug}: {decline.Rule} {decline.Message}");
 
     // A tree wants soil — dirt, grass, sand or snow, never bare stone (the author's rule). A complaint

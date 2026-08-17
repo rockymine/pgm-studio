@@ -20,13 +20,20 @@ namespace PgmStudio.Export;
 /// carry the answer itself — a caller writing the world to disk persists it alongside
 /// (<see cref="WorldProvenanceFile"/>) so a render reading the region back gets the same recorded answer a
 /// render taken right after the build already would.</summary>
-/// <param name="Declines">Every prop the dressing pass did not place, and why — a <c>DR-*</c> finding each,
+/// <param name="Declined">Every prop the dressing pass did not place, and why — a <c>DR-*</c> finding each,
 /// carrying the prop's id as its subject. Complaints rather than refusals: the world was built, and some of
 /// what was authored is not standing in it, which is a thing the caller that asked for the build has to be
-/// told rather than something to go looking for in a sidecar.</param>
+/// told rather than something to go looking for in a sidecar.
+/// <para>Null when nothing was declined, the same convention the pass itself answers in — read
+/// <see cref="Declines"/>, which never is.</para></param>
 public sealed record SketchWorld(
     VoxelWorld World, int SpawnX, int SpawnY, int SpawnZ, MapIntent ResolvedIntent, WorldProvenance Provenance,
-    IReadOnlyList<Finding>? Declines = null);
+    IReadOnlyList<Finding>? Declined = null)
+{
+    /// <summary>Every prop that did not land, and why. Never null — a caller spreading this into a list of
+    /// warnings must not have to tell an absent list from an empty one.</summary>
+    public IReadOnlyList<Finding> Declines => Declined ?? [];
+}
 
 /// <summary>
 /// Assembles a playable Anvil world for a sketch-originated map from its sketch layout + authoring intent

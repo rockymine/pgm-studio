@@ -39,6 +39,37 @@ public sealed class SketchEndpointTests
     }
 
     [Test]
+    public async Task The_3D_preview_answers_a_clean_board_with_an_empty_warning_list()
+    {
+        // The regression this exists for: the declines the preview carries are null when nothing was
+        // declined, and spreading that null threw straight into the endpoint's catch-all — so every board
+        // with nothing wrong answered 400 "could not build layout" and the 3-D preview went blank. Nothing
+        // in this suite posted to /sketch/columns, which is why it shipped.
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Clean board" }))
+            .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
+
+        const string layout = """
+            {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
+             "layers":[{"base_y":0,"layout":{
+               "shapes":[{"id":"s1","type":"rectangle","operation":"add",
+                          "min_x":-20,"max_x":20,"min_z":-20,"max_z":20,"floor":8,"base_height":12}],
+               "islands":[{"id":"i","name":"I","shapeIds":["s1"]}]}}]}
+            """;
+        var body = new StringContent(layout, Encoding.UTF8, "application/json");
+
+        var columns = await client.PostAsync($"/api/map/{slug}/sketch/columns", body);
+        await Assert.That(columns.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var payload = await columns.Content.ReadFromJsonAsync<JsonElement>();
+        await Assert.That(payload.GetProperty("cols").GetArrayLength()).IsGreaterThan(0);
+        // The field is always there and empty, so a caller reads one shape whether or not anything was said.
+        await Assert.That(payload.GetProperty("warnings").GetArrayLength()).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task Create_with_a_frame_seeds_the_working_setup()
     {
         await ApiTestFactory.ResetSchemaAsync();
