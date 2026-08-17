@@ -186,21 +186,30 @@ the wrapping label is the clickable thing.
 ## 7. What is tested, and what is not
 
 `npm test` (or `tools/js-test.sh`) runs Node's built-in runner over `tests/js/` — no `node_modules`, so it
-works from the shared folder. 188 tests pass.
+works from the shared folder. 333 tests over 19 files pass.
 
-Coverage splits cleanly along the DOM line. The seventeen modules the tests import average **92.0%** lines,
-several at 100% (`transform`, `symmetry`, `islands`, `polygon`, `plan-inspect`, `decompose-cut`,
-`shape-render`); `canvas-painter` is the one DOM-adjacent module under test, via a small context stub. The
-other **28 files, roughly 7,000 lines, are never imported by a test at all** — every canvas, every bridge,
-every controller, `iso-webgl` and `studio.js`. Note that `node --test --experimental-test-coverage` reports
+Coverage splits cleanly along the DOM line. The modules the tests import average around 92% lines, several
+at 100% (`transform`, `symmetry`, `islands`, `polygon`, `plan-inspect`, `decompose-cut`, `shape-render`);
+`canvas-painter` is the one DOM-adjacent module under test, via a small context stub. Of the 55 studio
+modules (12,694 lines), the tests reach 28 — the other **27 files, 8,017 lines, are never imported by a test
+at all**: every canvas, every bridge (`sketch-bridge` 904 lines, `plan-bridge` 449), every controller,
+`iso-webgl` and `studio.js`. Note that `node --test --experimental-test-coverage` reports
 such files as *absent*, not as zero, so the report reads healthier than the tree is.
 
 This is a coherent split rather than neglect: pure logic is tested, DOM-bound code is not. The painted
 render layer sits on the tested side of it because a stateless painter takes a stand-in — `_painter-stub.js`
 records what was drawn, so `shape-render`, `symmetry-render` and the style vocabulary are asserted on
-without a canvas. The way to reach the rest is not to mock a canvas but to keep extracting decidable logic
-— hit-testing, snapping, viewport maths, selection resolution — down into the pure layers where the
-existing harness already reaches (**CV12**).
+without a canvas. For the canvases and controllers the way in is still to keep extracting decidable logic —
+hit-testing, snapping, viewport maths, selection resolution — down into the pure layers the existing harness
+already reaches (**CV12**).
+
+**The bridges are the exception, and the split has hidden it.** A bridge is not DOM-bound in the way a canvas
+is: `mount()` is handed its canvas and its elements, and the only other thing it touches is `fetch`. Both are
+already stubbable with what `tests/js/` has — `_dom-stub.js` and `_painter-stub.js` are precedent — so
+`enterIso`/`fetchColumns` can be driven directly, with the canvas a recorder and `fetch` answering a canned
+payload or a refusal. That matters because `enterIso` is the most stateful function in the untested set: an
+await, a race guard, a cache stamp and two failure paths, and a rename inside it shipped a
+`ReferenceError` to the browser that neither the C# build nor the 333 JS tests could see.
 
 Above the unit line, `tests/e2e/paint.mjs` is the one check that a painted surface actually paints. A blank
 canvas raises no error and leaves no elements behind, so it is exactly as "clean" as a working one to the

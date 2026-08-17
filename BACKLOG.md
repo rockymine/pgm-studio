@@ -1332,6 +1332,11 @@ feature section.
   marginal cost per endpoint is one happy path plus its error contract; these are cheap tests, not a
   redesign. Prioritise the ones that write: import, configure, region and map-plan.
 
+  **What the gap costs, measured once:** `POST .../sketch/columns` had no test, and a change to what it
+  returns beside the payload shipped a null spread that answered **400 for every board with nothing wrong
+  with it** — the 3-D preview blank studio-wide, found by starting the app rather than by the suite. The test
+  that now covers it is nine lines.
+
 - [ ] **B36 — The region/filter authoring-and-editing path is half covered.** A coherent cluster sits
   around 40–58% while its neighbours are high: `RegionAuthoringEncoder` 43.8% (370 uncovered lines),
   `RegionParser` 52.0% (295), `RegionEditor` 57.5% (180), `FilterParser` 48.9%, `RegionGeometry2d` 39.5%,
@@ -1341,7 +1346,7 @@ feature section.
   neighbours prove the standard is reachable: `MapParser` 92.9%, `XmlWriter` 88.1%, `RegionCategorizer`
   91.4%. Cover the type-specific region/filter branches first — that is where the uncovered lines are.
 
-  - [~] **C28 — The client's remaining test layers (smoke has landed).** The **smoke layer + runner shipped**
+- [~] **C28 — The client's remaining test layers (smoke has landed).** The **smoke layer + runner shipped**
   as `C31` (`tools/e2e.sh`, `tests/e2e/`) — every route is swept for "renders and raises nothing", seeded
   from a composed board; `icons.mjs` (C30) added the first *positive* render assertion on top of it.
   `PgmStudio.Client` is still **absent from the coverage report** (no test project
@@ -1356,16 +1361,24 @@ feature section.
   those rot; extract the decidable logic instead (`CV12`). A bUnit project for the phase/step state machines
   is still worth considering, and is independent of the above.
 
-- [ ] **CV12 — Two thirds of the JS layer is never loaded by a test.** `npm test --
-  --experimental-test-coverage` reports 82.8% over the 15 modules the 148 tests import (several at 100%:
-  `transform`, `symmetry`, `islands`, `polygon`, `plan-inspect`), but **26 of 41 files / ~6,900 lines are
-  absent from the report** — they are never imported, which the coverage output shows as silence rather
-  than zero. The untested set is the whole interactive layer: every canvas (`world-canvas` 1046,
-  `plan-canvas` 1017, `sketch-canvas` 871, `sideview-canvas`, `canvas-base`), every bridge, every
-  controller, `iso-webgl`, and `studio.js`. The split is coherent — pure geometry is tested, DOM/canvas
-  code is not — so the win is not "test the canvases" wholesale but **extracting the decidable logic they
-  contain** (hit-testing, snapping, viewport/transform maths, selection resolution) into pure modules the
-  existing `node --test` setup can reach without a DOM. Pairs with the JS consolidation review.
+- [ ] **CV12 — Two thirds of the JS layer is never loaded by a test, and the bridges are the reachable
+  third.** Of 55 studio modules (12,694 lines), the 333 tests in `tests/js/` reach 28 (4,677 lines); the
+  other **27 files / 8,017 lines are never imported**, which `--experimental-test-coverage` reports as
+  *absent* rather than zero, so the report reads healthier than the tree is. The untested set is the whole
+  interactive layer: every canvas (`world-canvas` 1046, `plan-canvas` 1017, `sketch-canvas` 871,
+  `canvas-base`, `sideview-canvas`), every bridge, every controller, `iso-webgl` and `studio.js`.
+
+  **Two slices, and the cheap one is not extraction.** A bridge is not DOM-bound the way a canvas is:
+  `mount()` is handed its canvas and elements, and the only other thing it touches is `fetch` — both
+  stubbable with what `tests/js/` already has (`_dom-stub.js`, `_painter-stub.js`). Drive
+  `enterIso`/`fetchColumns` with a recording canvas and a canned `fetch`: the most stateful function in the
+  untested set (an await, a race guard, a cache stamp, two failure paths, and now a decoded refusal
+  envelope), in the file where a rename shipped a `ReferenceError` to the browser that neither the C# build
+  nor the JS suite could see. `sketch-bridge` is 904 lines, `plan-bridge` 449, and they are near-twins.
+
+  For the canvases and controllers the answer is unchanged: keep **extracting the decidable logic** —
+  hit-testing, snapping, viewport maths, selection resolution — into pure modules the existing harness
+  reaches. Pairs with the JS consolidation review.
 
 ## Future
 
