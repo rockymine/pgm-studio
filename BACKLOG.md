@@ -652,6 +652,26 @@ what a library shows back, where the model has outgrown the editor. The three sh
   build actually stamps). Wants a second interaction — add-a-wing, probably a drag that starts touching an
   existing wing's edge — and a handle set that knows which wing a grip belongs to.
 
+### The author's override: building a board the gates refuse
+
+- [ ] **B249 — An author can force a compile and an export past its refusals; an agent cannot.** The gates
+  are right to refuse an agent — an unenterable board or a wall through a wool room is a defect it cannot see
+  — but they also refuse **an author doing something deliberately off the norm**, and there is no way past
+  them. Two boards in `pgm-studio-mapgen` already cannot be rebuilt against today's tree for exactly that
+  reason, both by gates that shipped after they were authored: `firnline` on `OB21` (a house in a spawn door's
+  approach, `B235`) and `sunspit` on `PL13` (a wall on the wool room's interface, `B186`). Both worlds load
+  and play; only the pipeline that made them now says no.
+
+  **The shape: a per-call override that names what it is waiving, not a global off switch.** It reaches the
+  two places a refusal is raised — `PlanCompiler` (a `PL*` refusal) and `MapExportComposer` (`OB17`, `OB19`,
+  `OB21`, the playability judgement) — and every waived finding is still **reported**, as a warning carrying
+  its rule id, so a forced build says what it forced rather than going quiet. A refusal about the `map.xml`
+  contract itself is not waivable: PGM has to be able to read the result.
+
+  **It stays out of the agent's vocabulary.** Not in `docs/tools/capabilities.md`, not in the endpoint tables
+  the briefs hand an agent, not in `mapgen`'s `--help` (`B245`). The authoring briefs already tell an agent
+  that a refusal is a fault to fix; an override an agent knows about is an override an agent will reach for.
+
 ### World import: reading a map the studio did not build
 
 The scan is the one path where the studio is a **reader** rather than an author, and it is judged against maps
