@@ -39,7 +39,7 @@ public sealed class MirrorReportTests
     [Test]
     public async Task A_board_built_about_the_origin_is_reported_unpaired_throughout()
     {
-        // The B250 defect, as a board: every column mirrored to -x instead of -1-x. It is exactly the case an
+        // The defect, as a board: every column mirrored to -x instead of -1-x. It is exactly the case an
         // eye cannot see and this render exists for, so it must not come back clean.
         var world = new VoxelWorld();
         for (var z = 1; z <= 6; z++)

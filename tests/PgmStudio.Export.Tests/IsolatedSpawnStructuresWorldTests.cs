@@ -57,7 +57,7 @@ public sealed class IsolatedSpawnStructuresWorldTests
 
         // ST1 — a wool-room footprint is solid bedrock from the floor up through the surface block.
         var floor = s.RoomFloors[0];
-        int fx = (int)floor.MinX, fz = (int)floor.MinZ;
+        int fx = (int)floor.Area.MinX, fz = (int)floor.Area.MinZ;
         await Assert.That(w.GetBlock(fx, 0, fz).Id).IsEqualTo(Blocks.Bedrock);
         await Assert.That(w.GetBlock(fx, Surf(fx, fz) - 1, fz).Id).IsEqualTo(Blocks.Bedrock);
 

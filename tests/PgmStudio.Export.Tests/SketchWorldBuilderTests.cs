@@ -97,7 +97,7 @@ public sealed class SketchWorldBuilderTests
                     Monuments = [new MonumentIntent { Team = "blue" }],
                 },
             ],
-            Structures = new StructureIntent { RoomFloors = [piece] },
+            Structures = new StructureIntent { RoomFloors = [new RoomFloor(piece, new StampId("roomfloor", "r0", 0))] },
         };
 
         var built = SketchWorldBuilder.Build(plateau, intent);
@@ -289,7 +289,7 @@ public sealed class SketchWorldBuilderTests
         await Assert.That(built.World.GetBlock(54, 1, 4).Id).IsEqualTo(Blocks.Air);
     }
 
-    // ── provenance (B133) ────────────────────────────────────────────────────────────────────────────
+    // ── provenance ────────────────────────────────────────────────────────────────────────────
     // "A block does not know what placed it" — these prove the build itself records the answer instead,
     // against the exact fault the bug report names: a stamped room reads Structure whatever it is built
     // from, and terrain the painter finishes in a built-looking material stays Ground because nothing after
@@ -355,7 +355,7 @@ public sealed class SketchWorldBuilderTests
         await Assert.That(built.Provenance.LayerAt(30, -30)).IsEqualTo(ProvenanceLayer.Structure);
     }
 
-    // ── provenance owner (B139) ──────────────────────────────────────────────────────────────────────
+    // ── provenance owner ──────────────────────────────────────────────────────────────────────
     // "A claim wants an owner" — every stamp that claims Structure names which thing it is claiming for,
     // so a build with several stamped things records several distinct owners rather than one flat layer.
 
@@ -367,9 +367,10 @@ public sealed class SketchWorldBuilderTests
         var redOwner = built.Provenance.OwnerAt(-10, 10);    // red wool room
         var blueOwner = built.Provenance.OwnerAt(10, 10);    // blue wool room
 
+        // Both rooms are identified, and the two are different things rather than two entries of one.
         await Assert.That(redOwner).IsNotNull();
-        await Assert.That(redOwner).IsNotEqualTo(WorldProvenance.NoOwner);
-        await Assert.That(redOwner).IsNotEqualTo(blueOwner);
+        await Assert.That(blueOwner).IsNotNull();
+        await Assert.That(redOwner!.Value.Identity).IsNotEqualTo(blueOwner!.Value.Identity);
     }
 
     [Test]
@@ -392,7 +393,7 @@ public sealed class SketchWorldBuilderTests
         // Terrain far from every stamp: still plain rasterized ground, so its owner is the shared "nothing
         // identified" reading rather than a per-column identity nobody assigned it.
         await Assert.That(built.Provenance.LayerAt(0, -30)).IsEqualTo(ProvenanceLayer.Ground);
-        await Assert.That(built.Provenance.OwnerAt(0, -30)).IsEqualTo(WorldProvenance.NoOwner);
+        await Assert.That(built.Provenance.OwnerAt(0, -30)).IsNull();
     }
 
     [Test]
@@ -414,7 +415,7 @@ public sealed class SketchWorldBuilderTests
         await Assert.That(built.ResolvedIntent.WaterLanes!.Rects.Count).IsEqualTo(1);
     }
 
-    // ── a claim covers what the stamp wrote and no more (B203) ───────────────────────────────────────
+    // ── a claim covers what the stamp wrote and no more ───────────────────────────────────────
     /// <summary>A plateau and a single room floor, with no spawn or wool over it, so the only Structure claim
     /// on the board is the foundation's own. <b>Probed at y=2</b>, not y=0: the world carries a bedrock floor
     /// at y=0 everywhere, so the bottom course cannot tell a foundation from open ground. At y=2 a filled
@@ -430,7 +431,10 @@ public sealed class SketchWorldBuilderTests
             Teams = [new TeamDef { Id = "red", Color = "red" }],
             Observer = new ObserverIntent { Point = new Pt(0, 20, 0), Yaw = 0 },
             Meta = new MetaIntent { Name = "Test", Authors = [new AuthorIntent { Name = "alice" }] },
-            Structures = new StructureIntent { RoomFloors = [new Rect(-16, 4, -4, 16)] },
+            Structures = new StructureIntent
+            {
+                RoomFloors = [new RoomFloor(new Rect(-16, 4, -4, 16), new StampId("roomfloor", "r0", 0))],
+            },
         });
     }
 
@@ -439,19 +443,19 @@ public sealed class SketchWorldBuilderTests
     {
         // The stamp's footprint is max-EXCLUSIVE — StampFoundation fills [minX, maxX) — and ClaimRect's is
         // max-inclusive, so a rect carried across by hand claimed one column past the bedrock on each axis.
-        // Live on every wool room, and the same fault B202 fixed for a house: a Structure claim over ground
+        // Live on every wool room, and the same fault already fixed for a house: a Structure claim over ground
         // the pass never wrote.
         var built = RoomFloorOnly();
 
         // The last column inside the footprint carries the foundation and the claim that names it.
         await Assert.That(built.World.GetBlock(-5, 2, 15).Id).IsEqualTo(Blocks.Bedrock);
-        await Assert.That(built.Provenance.OwnerAt(-5, 15)).IsEqualTo("roomfloor:0");
+        await Assert.That(built.Provenance.OwnerAt(-5, 15)?.Kind).IsEqualTo("roomfloor");
 
         // One column further on either axis is past the max-exclusive bound: no foundation, and no claim.
         foreach (var (x, z) in new[] { (-4, 15), (-5, 16), (-4, 16) })
         {
             await Assert.That((x, z, built.World.GetBlock(x, 2, z).Id)).IsNotEqualTo((x, z, Blocks.Bedrock));
-            await Assert.That((x, z, built.Provenance.OwnerAt(x, z))).IsNotEqualTo((x, z, "roomfloor:0"));
+            await Assert.That((x, z, built.Provenance.OwnerAt(x, z)?.Kind)).IsNotEqualTo((x, z, "roomfloor"));
         }
     }
 
@@ -467,7 +471,7 @@ public sealed class SketchWorldBuilderTests
         for (var x = -25; x <= 5; x++)
         for (var z = -5; z <= 25; z++)
         {
-            if (built.Provenance.OwnerAt(x, z) != "roomfloor:0") continue;
+            if (built.Provenance.OwnerAt(x, z) is not { Kind: "roomfloor" }) continue;
             claimed++;
             await Assert.That((x, z, built.World.GetBlock(x, 2, z).Id)).IsEqualTo((x, z, Blocks.Bedrock));
         }

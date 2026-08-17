@@ -86,7 +86,7 @@ public sealed record MapIntent
 public sealed record StructureIntent
 {
     /// <summary>Wool-room footprints stamped as solid bedrock from y=0 to the surface (ST1).</summary>
-    public List<Rect> RoomFloors { get; init; } = new();
+    public List<RoomFloor> RoomFloors { get; init; } = new();
 
     /// <summary>Wool-room entrance redstone lines: a wire row with an end torch each side (ST1).</summary>
     public List<RedstoneLine> RedstoneLines { get; init; } = new();
@@ -104,12 +104,16 @@ public sealed record StructureIntent
 
 /// <summary>An entrance redstone line: a straight wire row between the two block ends (inclusive), a torch at
 /// each end, laid on top of the surface.</summary>
-public readonly record struct RedstoneLine(int X1, int Z1, int X2, int Z2);
+public readonly record struct RedstoneLine(int X1, int Z1, int X2, int Z2, StampId Stamp = default);
+
+/// <summary>A wool room's bedrock foundation: the footprint filled from y=0 to the surface, and which room it
+/// belongs to.</summary>
+public readonly record struct RoomFloor(Rect Area, StampId Stamp = default);
 
 /// <summary>An iron cube anchored on a (whole-block) marker; a 4×4×4 iron structure resting on the surface.
 /// <see cref="Renew"/> flags a marker inside a spawn-role piece — its cube regrows via the map.xml renewables
 /// wiring (ST2).</summary>
-public readonly record struct IronCube(int X, int Z, bool Renew);
+public readonly record struct IronCube(int X, int Z, bool Renew, StampId Stamp = default);
 
 /// <summary>A pre-built bedrock approach wall: a min-inclusive/max-exclusive footprint (two thick across the
 /// seam, full interface width along it) rising from y=0 up to <see cref="TopY"/> inclusive, capped by one
@@ -121,7 +125,7 @@ public readonly record struct IronCube(int X, int Z, bool Renew);
 /// have the smaller coordinate. Recomputed per orbit image, because a reflection swaps the two faces.</para>
 /// </summary>
 public readonly record struct WallStructure(
-    int MinX, int MinZ, int MaxX, int MaxZ, int TopY, bool ChestOnMinFace = true);
+    int MinX, int MinZ, int MaxX, int MaxZ, int TopY, bool ChestOnMinFace = true, StampId Stamp = default);
 
 /// <summary>The confirmed map symmetry: a <see cref="Mode"/> (<c>mirror_x</c>/<c>mirror_z</c>/
 /// <c>mirror_d1</c>/<c>mirror_d2</c>/<c>rot_180</c>/<c>rot_90</c>) about the centre (<see cref="CenterX"/>,
@@ -223,6 +227,11 @@ public sealed record TeamDef
 /// (not author-selectable yet — see <c>TeamsGenerator</c>), so it isn't part of the intent.</summary>
 public sealed record SpawnIntent
 {
+    /// <summary>Which authored unit this is an image of, and which image — set by whoever fanned the orbit,
+    /// carried through to the stamper, and recorded as the column's owner. The stamper cannot derive it: it
+    /// receives an entry out of an already-fanned list and can only count.</summary>
+    public StampId Stamp { get; init; }
+
     public string Team { get; init; } = "";
     public Pt Point { get; init; }
     /// <summary>The anti-grief zone around the spawn, as a union of rectangles (empty = unprotected). A
@@ -257,6 +266,11 @@ public sealed record ObserverIntent
 /// the teams in <see cref="Monuments"/> (one each, the non-owners).</summary>
 public sealed record WoolIntent
 {
+    /// <summary>Which authored unit this is an image of, and which image — set by whoever fanned the orbit,
+    /// carried through to the stamper, and recorded as the column's owner. The stamper cannot derive it: it
+    /// receives an entry out of an already-fanned list and can only count.</summary>
+    public StampId Stamp { get; init; }
+
     public string Owner { get; init; } = "";
     /// <summary>Dye colour (slug, e.g. <c>light_blue</c>). Empty → defaults to the owner team's colour.</summary>
     public string Color { get; init; } = "";
@@ -297,7 +311,7 @@ public sealed record MonumentIntent
 /// structure's corner: the box is centred on it and floats <see cref="Float"/> blocks above the surface its
 /// footprint spans, so its Y is a function of the terrain rather than an authored number.</para>
 /// <para><see cref="Anchor"/>.Y carries the plan's flat nominal height (or the global surface, for a marker
-/// placed with no piece — B128) purely as information for a caller with no built world to read yet, such as
+/// placed with no piece) purely as information for a caller with no built world to read yet, such as
 /// the plan editor's own preview; it is never authoritative and no consumer downstream of the world build may
 /// read it. <see cref="Box"/>.MinY, once the world is built, is the real answer — resolved by
 /// <c>SketchWorldBuilder</c> from the terrain the relief actually solved under the column, plus
@@ -306,6 +320,11 @@ public sealed record MonumentIntent
 /// </summary>
 public sealed record DestroyableIntent
 {
+    /// <summary>Which authored unit this is an image of, and which image — set by whoever fanned the orbit,
+    /// carried through to the stamper, and recorded as the column's owner. The stamper cannot derive it: it
+    /// receives an entry out of an already-fanned list and can only count.</summary>
+    public StampId Stamp { get; init; }
+
     /// <summary>The DEFENDING team — the same meaning as <see cref="WoolIntent.Owner"/>.</summary>
     public string Owner { get; init; } = "";
     /// <summary>Required by PGM, which rejects a nameless destroyable; the compiler auto-names from the owner
@@ -339,12 +358,17 @@ public sealed record DestroyableIntent
 /// to it, so the generator emits no <c>material</c> attribute at all.</para>
 /// <para><see cref="Float"/> and <see cref="Leak"/> are one knob (DC2) — together they state how far players
 /// must dig under the core to make its lava leak (<see cref="DigDepth"/>). Neither means anything alone.</para>
-/// <para><see cref="Anchor"/>.Y is informational only, the same as a destroyable's (B128,
-/// <see cref="DestroyableIntent"/>) — the casing's real floor is <see cref="Box"/>.MinY, resolved from the
+/// <para><see cref="Anchor"/>.Y is informational only, the same as a destroyable's
+/// (<see cref="DestroyableIntent"/>) — the casing's real floor is <see cref="Box"/>.MinY, resolved from the
 /// terrain the world build actually solved under the column plus <see cref="Float"/>.</para>
 /// </summary>
 public sealed record CoreIntent
 {
+    /// <summary>Which authored unit this is an image of, and which image — set by whoever fanned the orbit,
+    /// carried through to the stamper, and recorded as the column's owner. The stamper cannot derive it: it
+    /// receives an entry out of an already-fanned list and can only count.</summary>
+    public StampId Stamp { get; init; }
+
     /// <summary>The DEFENDING team. Emitted as the XML's <c>team</c> attribute, not <c>owner</c> — a PGM
     /// inconsistency we mirror in the XML while naming the field for what it means.</summary>
     public string Owner { get; init; } = "";

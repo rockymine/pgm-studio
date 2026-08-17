@@ -42,35 +42,6 @@ them.
 
 ### Provenance: A per-column record of which pass claimed the column last
 
-- [ ] **B252 — A provenance owner id means two different things, so nothing can pair a stamp with its own
-  mirror.** `house:{propId}:{k}` carries the **orbit image** in `k`, while `spawn:{i}`, `wool:{i}`,
-  `destroyable:{i}`, `core:{i}`, `wall:{i}`, `roomfloor:{i}`, `redstoneline:{i}` and `ironcube:{i}` carry a
-  running index into the **already-fanned** list. Both images of one thing are separate entries with nothing
-  saying which thing they are two of, and `spawn:0` / `spawn:1` are indistinguishable in form from
-  `house:h1:0` / `house:h1:1` while meaning something else. Give every claim the same pair — **what it is, and
-  which image of it this is** — so a reader can group by identity and pair by image without guessing.
-
-  `StructureFinder` already groups by owner to tell two touching buildings apart, so the identity half is
-  load-bearing today; the image half is what `B250` had to recover by matching cell sets geometrically,
-  which is how the first reading of it came out wrong.
-
-- [ ] **B216 — Provenance records structures only; it should record every pass that places something.**
-The sidecar carries `Ground` and `Structure` and nothing else — **no trees, no boulders, no paths, no
-water**. Its own docstring argues they need no record because they separate from built ground by material;
-the author's ruling is the other way: **provenance carries them too**. Material tells you what a block is,
-not that a pass put it there or which prop it belonged to, and that is what a read-back has to be able to
-prove.
-
-The consequence is stated twice in the authoring reports: `--column` is the only read that can prove ground
-cover exists, because the top-down will not show it, the export will not refuse it and the sidecar does not
-carry it — which is how two flora props landed nothing on Coldharbour with no diagnostic anywhere. A
-provenance-blind read is not the whole answer either: `stages/mirror.png` covers a tree and a boulder because
-it reads the blocks, but it can only say a column is unpaired, never which prop the column belonged to.
-**The placement is
-known at stamp time** and the tree renderers already read it to draw a crown and a base, so this is a write
-rather than a derivation. It lands with `B252`'s owner shape, since a new claimant needs an identity a
-reader can group on.
-
 - [ ] **B37 — Every family's resolver should answer one resolved-stamp record, and only iron does.**
   `IronResolution(MarkerX, MarkerZ, MinX, MinZ, Size, Placeable)` is the shape and the only instance, with
   four consumers, all iron; the wall, the rooms and the objectives each resolve their placement inline. The
@@ -83,8 +54,14 @@ reader can group on.
   objective↔objective and objective↔monument **minimum distances** — a core merging with a wool monument they
   must read apart from — have nowhere to live until every placement answers in one shape.
 
+  **It is the same rule one layer up.** `PlanStructurePreview.StructureBox` re-derives iron, destroyable and
+  core boxes the builder already computes, which is a second derivation of one geometry — the failure
+  `PlacementClaim` names for a claim and that has now cost two fixes, the goal anchor and the spawn room's
+  claim rect. A resolver answering one record is what lets the preview *read* the placement instead. Every
+  entry already carries a `StampId`, so the record has an identity to travel under.
+
   *Not this: `OB17` already refuses a goal in void, in a spawn room or in a wool room over a shared
-  `ObjectiveFootprint`, the unwinnable `block="never"` case included; `StructureClaim` (`B202`) answers which
+  `ObjectiveFootprint`, the unwinnable `block="never"` case included; `PlacementClaim` answers which
   columns a stamp owns; `B142` answers what the dressing pass declined. The editor half shipped (`B59`,
   `C44`) and what remains of it is timing — structural findings do not run in the live feed (`G161`), so a
   refusal appears at Compile rather than as the marker is dragged. `G65` is adjacent and separate: whether two

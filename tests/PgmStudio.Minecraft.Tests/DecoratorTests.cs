@@ -9,7 +9,7 @@ using PgmStudio.Minecraft.Painting;
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>
-/// The dressing pass (G161, docs/world-export/decoration.md): the third walk over a realized world, adding the
+/// The dressing pass (docs/world-export/decoration.md): the third walk over a realized world, adding the
 /// terrain's life on top of the paint. The cases that matter are the ones a preview cannot show — that a prop
 /// lands where it was placed and nowhere else, that a path repaints rather than builds, that the paint
 /// underneath really gates flora, that protected ground is really left alone, and above all that a prop lands
@@ -619,7 +619,7 @@ public sealed class DecoratorTests
     [Test]
     public async Task A_trees_crown_may_overhang_something_protected_but_its_trunk_may_not_root_in_it()
     {
-        // Protection is decided on the same footprint ground and occupancy are (B78): the cells a tree
+        // Protection is decided on the same footprint ground and occupancy are: the cells a tree
         // actually rests on, not the whole volume a tall crown happens to pass over. A trunk on a monument is
         // the fault; a canopy reaching over one at height is not — a hand-built map's trees overhang its
         // structures too, and testing the whole volume would make a tree taller by refusing to build it: a
@@ -643,12 +643,12 @@ public sealed class DecoratorTests
         await Assert.That(onProtection.Trees).IsEqualTo(0);
     }
 
-    // ── nothing stands inside anything else (B85) ──────────────────────────────────────────────────
+    // ── nothing stands inside anything else ──────────────────────────────────────────────────
     [Test]
     public async Task A_tree_does_not_root_where_a_building_already_stands()
     {
         // The building is placed first, so its cells are already claimed by the time the tree is considered.
-        // Before B85 the pass only skipped the individual wood/leaf cells that landed on a non-air block,
+        // The pass used to skip only the individual wood/leaf cells that landed on a non-air block,
         // which still let the rest of the tree stand half inside the walls; now the whole tree is refused.
         var (world, top) = Plateau();
         var house = new HouseProp { Id = "h", Wings = [new AuthoredWing([[16, 16], [24, 24]])], Style = new HouseStyle
@@ -816,7 +816,7 @@ public sealed class DecoratorTests
     public async Task A_trees_canopy_may_still_overhang_a_building_it_does_not_root_in()
     {
         // Overlap is decided on the cells a prop *rests* on, the same footprint protection is decided on
-        // (B78) — not on everything a tall crown happens to pass over. A trunk planted clear of a low building
+        // — not on everything a tall crown happens to pass over. A trunk planted clear of a low building
         // still gets to spread its canopy over the roof, the way a real tree overhangs a shed beside it.
         var (world, top) = Plateau();
         var house = new HouseProp { Id = "h", Wings = [new AuthoredWing([[24, 16], [30, 24]])], Style = new HouseStyle
@@ -834,7 +834,7 @@ public sealed class DecoratorTests
         await Assert.That(tally.Trees).IsEqualTo(1);
     }
 
-    // ── fairness (G162) ────────────────────────────────────────────────────────────────────────────
+    // ── fairness ────────────────────────────────────────────────────────────────────────────
     [Test]
     public async Task A_prop_lands_identically_for_every_team()
     {
@@ -944,7 +944,13 @@ public sealed class DecoratorTests
         var one = Decorator.Decorate(first.World, Context(first.SurfaceTop, props));
         var two = Decorator.Decorate(again.World, Context(again.SurfaceTop, props));
 
-        await Assert.That(one).IsEqualTo(two);
+        // The counts, then the claims by value — the report holds lists now, and a record comparison over
+        // those is reference equality, which would pass for two runs that agreed about nothing.
+        await Assert.That(one with { Claimed = null }).IsEqualTo(two with { Claimed = null });
+        await Assert.That(one.Placements.Select(claim => (claim.Owner, claim.Layer, claim.Cells.Count)))
+            .IsEquivalentTo(two.Placements.Select(claim => (claim.Owner, claim.Layer, claim.Cells.Count)));
+        await Assert.That(one.Placements.SelectMany(claim => claim.Cells))
+            .IsEquivalentTo(two.Placements.SelectMany(claim => claim.Cells));
         await Assert.That(Placed(first.World, first.SurfaceTop.Keys, 1, 40))
             .IsEquivalentTo(Placed(again.World, again.SurfaceTop.Keys, 1, 40));
     }

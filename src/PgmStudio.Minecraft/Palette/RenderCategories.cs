@@ -90,7 +90,7 @@ public static class RenderCategories
     /// a torch or a sign — is the ground itself.
     ///
     /// <para>This is the <b>estimate</b>: the only reading available for a world the studio scanned rather than
-    /// built, and the reason it is wrong for a built world is B133's own finding — stone brick is stone brick
+    /// built, and the reason it is wrong for a built world is the finding the record exists for — stone brick is stone brick
     /// whether it is a cottage wall or a plaza the painter finished. <see cref="Of(int, ProvenanceLayer?)"/> is
     /// the answer a built world can give instead.</para></summary>
     public static RenderCategory Of(int blockId) =>
@@ -120,7 +120,12 @@ public static class RenderCategories
         : provenance switch
         {
             ProvenanceLayer.Structure => RenderCategory.Structure,
-            ProvenanceLayer.Ground => Grown(blockId) ? RenderCategory.Foliage : RenderCategory.Ground,
+            // A prop and the ground both answer the material test, and answer it correctly: a tree's leaves
+            // read as foliage, a road's cobble and a boulder's stone read as ground. The layer is what says a
+            // pass put them there, which is a provenance question rather than a colour one — so the two share
+            // a branch on purpose, and a picture that wanted to draw props apart would key on the claim's kind.
+            ProvenanceLayer.Prop or ProvenanceLayer.Ground =>
+                Grown(blockId) ? RenderCategory.Foliage : RenderCategory.Ground,
             _ => Grown(blockId) ? RenderCategory.Foliage
                 : BlockRoles.IsBuilt(blockId) ? RenderCategory.Structure
                 : RenderCategory.Ground,

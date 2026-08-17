@@ -571,21 +571,28 @@ trunk, the measured figure rather than a species-nominal guess, read off the cro
 needed to measure it. `TopDownRender` plots each as a softly-tinted circle grown to its radius with a solid
 trunk mark on top, so a cluster of overlapping crowns still shows one dot per tree. It is a mode of the
 isolated foliage layer alone — the combined view keeps painting the mass, since a player's cover is the leaves
-and not the centres — and it needs the **dressing document**, never `WorldProvenance`, which carries no tree
-claim at all (the paragraph below is why: a log and a leaf already answer the question provenance exists to
-correct). `tools/mapgen --stages` passes the build's own document automatically; `PgmStudio.RoundTrip --topdown
+and not the centres — and it reads the **dressing document** rather than `WorldProvenance`: the record now carries a tree claim, but
+it answers which columns a prop covered, not where a crown's centre stands or how far it reaches, which is what
+a point-and-radius drawing needs. `tools/mapgen --stages` passes the build's own document automatically; `PgmStudio.RoundTrip --topdown
 --layer foliage` takes it as an optional `--dressing <layout.json>`, and a scanned world — which carries
 neither a dressing document nor a `WorldProvenance` sidecar — falls back to the mass reading it always had,
 stated on the console rather than silently swapped (`docs/world-export/decoration.md` §6.1).
 
-**The Ground/Structure boundary is read from a recorded build, not from the block, whenever one is
-available (B133).** A material test cannot separate a cottage's stone-brick wall from a plaza paved in the
+**Which pass claimed a column is read from a recorded build, not from the block, whenever one is
+available.** A material test cannot separate a cottage's stone-brick wall from a plaza paved in the
 same stone brick, or from a mesa an author painted to read as built, and no palette refinement fixes that — a
 block does not know what placed it. `PgmStudio.Minecraft.WorldProvenance` is what a built world carries
 instead: `SketchWorldBuilder` claims every rasterized column as `Ground` first, then each stamp — a room
 floor, a wool cage, a spawn cube, a wall, an iron cube, a redstone line, a destroyable, a core, a
-dressing-placed building — claims its own footprint as `Structure` over it, composited in placement order so
-a later claim covers an earlier one. `RenderCategories.Of(blockId, provenance)` reads a recorded claim as
+dressing-placed building — claims its own footprint as `Structure` over it, and the dressing pass's other
+placements — a tree, a boulder, a road, a water course, a bed of flora — claim theirs as `Prop`; all of it
+composited in placement order so a later claim covers an earlier one.
+
+Every claim also carries a **`StampId`**: what kind of thing it is, which authored *unit* it came from, and
+which orbit *image* of that unit this is. Two images of one thing therefore share an identity and differ only
+in the image, which is what lets a reader pair the two halves of a mirrored board by asking rather than by
+matching cell sets, and what lets a read-back prove that a named prop landed nothing at all. The sidecar
+writes the three fields into an id table, so the shape survives the trip through disk. `RenderCategories.Of(blockId, provenance)` reads a recorded claim as
 authoritative for the Ground/Structure pair (liquid, foliage and void stay material questions, which they
 already answer without ambiguity) and falls back to the material estimate — the single-argument overload —
 when no claim was ever recorded for that column. `--topdown`'s `Run(regionDir, …)` overload and

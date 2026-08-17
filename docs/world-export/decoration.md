@@ -528,11 +528,20 @@ protected ground one cell at a time is the ordinary shape of a path, not a decis
 restated.
 
 **Its footprint claims provenance the same way a room's does, only later.** `Decorate` reports a
-`StructureClaim` for every building it raises and `SketchWorldBuilder` records each as `WorldProvenance`'s
+`PlacementClaim` for every building it raises and `SketchWorldBuilder` records each as `WorldProvenance`'s
 `Structure` layer, so a house standing on a plaza the painter finished in the same material as its own walls
 still reads as a building rather than fusing with the ground it stands on: two different passes claimed the two
-sets of cells, whatever either is made of. Trees, boulders and flora claim no provenance at all — their
-material already answers the question a stage image asks of them (a log, a leaf, plain stone) without help.
+sets of cells, whatever either is made of.
+
+**Every other prop claims too, on the `Prop` layer.** A tree, a boulder, a road, a water course and a bed of
+flora each report the columns they covered, under a claim of their own. The record used to stop at the
+buildings, on the argument that the rest separate from built ground by material already. They do — what
+material cannot say is that a *pass* put them there, or which prop they belonged to, and those are the two
+things a read-back has to be able to prove: a flora prop that landed nothing looks exactly like one that was
+never authored, which is how two of them once landed nothing with no diagnostic anywhere. The layer keeps the
+distinction a reader needs in the other direction as well: `StructureFinder` asks for `Structure` and is
+therefore never handed a tree, however that tree's blocks happen to read. It changes no picture — a claimed
+prop still draws by its own material, so leaves stay foliage and a road's gravel stays ground.
 
 **The claim comes from the placement, and that direction is the point.** The pass drops a building **whole**
 when any of its orbit images overlaps something already standing (MG7), stands over no ground, or fails its
@@ -542,16 +551,30 @@ rings overlap, one placed and two claimed, 56 columns carried a `Structure` clai
 provenance is *preferred* over the material estimate a stage image drew a building that was not there and said
 it was certain. So the claim is now built inside the same loop that stamps, from the images that were actually
 raised: a dropped building leaves an empty list and nothing is claimed for it. The rule that names this —
-a claim is taken from the placement, never rebuilt beside it — is `StructureClaim`'s own docstring, and it is
+a claim is taken from the placement, never rebuilt beside it — is `PlacementClaim`'s own docstring, and it is
 the rule `DressingScope.GoalGroundAt` had already been following for a goal's ground.
 
-**Each claim carries an owner, not just the layer.** There is one claim per house per orbit image —
-`"house:{Id}:{image}"` — rather than a flat cell list, and `SketchWorldBuilder` records each separately so the
-two images of one mirrored house are two identities, not one claim repeated at two positions. This is what lets
-a reader (`Render.StructureFinder`) tell two authored houses apart even when their stamped rings genuinely
-touch: a layer alone answers "is this built", and only the owner answers "built by which stamp" — a terrace of
-houses sharing a wall reads as one finding per house instead of one finding for the row it would otherwise
-flood into.
+**Each claim carries an owner, not just the layer, and the owner says which image it is.** The owner is a
+`StampId` — `kind`, the authored `unit`, and which orbit `image` of that unit this claim is — and there is one
+claim per unit per image rather than a flat cell list. This is what lets a reader (`Render.StructureFinder`)
+tell two authored houses apart even when their stamped rings genuinely touch: a layer alone answers "is this
+built", and only the owner answers "built by which stamp" — a terrace of houses sharing a wall reads as one
+finding per house instead of one finding for the row it would otherwise flood into.
+
+Splitting the unit from the image is what makes a mirrored board readable. The owner used to be a string each
+stamp site built for itself, and the sites did not agree about the number in it: a house put its orbit image
+there while a spawn, a wool and a destroyable put a running index into the *already-fanned* list. So two
+entries of one form meant different things, both images of one thing were separate entries with nothing saying
+which thing they were two of, and a reader wanting to pair a stamp with its own mirror had to recover the
+pairing geometrically — and got it wrong. Now two images of one unit share an `Identity` and differ only in
+`Image`, so the structure render colours a mirrored pair as one thing and a genuinely unpaired structure is
+what stands out.
+
+The id is minted **where the fan happens** rather than where the blocks land: `PlanCompiler` sets it as it
+fans a plan's placements, `SymmetryExpander` sets it as it fills an intent that carries only one unit, and
+`SketchWorldBuilder` gives a list index to anything that arrived without one. A stamper receiving an entry out
+of an already-fanned list cannot know which authored unit it came from and can only count, which is exactly
+the ambiguity this replaced.
 
 **The claim is the stamp's own reach, not the rectangle someone dragged.** The claim used to be
 `HouseProp.Plan()` — the two-corner rectangle a style's walls stand on — and stop there. A roof reaches

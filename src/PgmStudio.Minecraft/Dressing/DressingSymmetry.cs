@@ -7,8 +7,9 @@ namespace PgmStudio.Minecraft.Dressing;
 /// <summary>
 /// How a map is mirrored, and the two things the dressing pass does about it.
 ///
-/// <para>Fanning a <em>site</em> across the orbit is not enough, and the difference is the whole of G162. Place
-/// the same boulder at a cell and at its mirror and the two rocks occupy mirrored <em>positions</em> but the
+/// <para>Fanning a <em>site</em> across the orbit is not enough, and the difference is the whole reason this
+/// type exists. Place the same boulder at a cell and at its mirror and the two rocks occupy mirrored
+/// <em>positions</em> but the
 /// same <em>shape</em> — so one team's rock bulges east and the other's bulges east too, and the cover each
 /// gives differs cell by cell. What has to be fanned is the prop: generated once on the authored unit, then
 /// placed at each image <b>turned by that image's transform</b>, exactly as the layout's own geometry is. That

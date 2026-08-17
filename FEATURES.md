@@ -3328,6 +3328,27 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   read 167 mirrored columns at the cell boundary against 262 at the origin before, and the regressions now
   pin the boxes, the built voxels and the transform itself. (`SymmetryCellTests`, `MirrorCentreWorldTests`,
   `HousePropTests`)
+- **A provenance claim says what it is and which image of it it is (B252).** The owner used to be a string
+  each stamp site built for itself, and the sites disagreed about the number in it: `house:{id}:{k}` put the
+  orbit image last while `spawn:{i}`, `wool:{i}`, `destroyable:{i}` and the rest put a running index into the
+  *already-fanned* list there. Two entries of one form meant different things, both images of one thing were
+  separate entries with nothing saying which thing they were two of, and pairing a stamp with its own mirror
+  had to be recovered geometrically — which is how `B250`'s first reading came out wrong. `StampId(Kind, Unit,
+  Image)` replaces it: two images of one unit share an `Identity` and differ only in `Image`. It is minted
+  where the fan happens — `PlanCompiler` as it fans a plan, `SymmetryExpander` as it fills a one-unit intent,
+  `SketchWorldBuilder` as a fallback for anything assembled by hand — because a stamper handed an entry out of
+  a fanned list can only count. The sidecar writes the three fields into its id table, and
+  `StructureFinder`'s string heuristic is gone in favour of the field. (`StampIdTests`)
+- **Provenance records every pass that places something, not only the built ones (B216).** The record carried
+  `Ground` and `Structure` and stopped, on the argument that a tree separates from built ground by material
+  already. It does — what material cannot say is that a *pass* put it there or which prop it belonged to, and
+  those are what a read-back has to prove: a flora prop that landed nothing looked exactly like one that was
+  never authored. A tree, a boulder, a road, a water course and a bed of flora now each claim the columns they
+  covered on a third `Prop` layer, one claim per orbit image, with the prop's own authored id as the unit. The
+  claim is the placement's own answer — every pass reports what it covered rather than being re-derived — so a
+  prop the pass declined claims nothing at all. It changes no picture: a claimed prop still draws by its
+  material, so leaves stay foliage and a road's gravel stays ground. `StructureClaim` is `PlacementClaim` now,
+  since a type called after structures was carrying trees. (`DressingProvenanceTests`)
 - **A stage image that answers whether the board is really mirrored (B251).** Every other picture draws what
   is standing and leaves the comparison to an eye, which cannot hold two halves against each other a block at
   a time — and the ones carrying a structure's extent draw it from provenance, so a claim that is wrong about

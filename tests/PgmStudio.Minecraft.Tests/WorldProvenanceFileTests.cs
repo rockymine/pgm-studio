@@ -1,7 +1,8 @@
+using PgmStudio.Domain;
 using PgmStudio.Minecraft.Anvil;
 namespace PgmStudio.Minecraft.Tests;
 
-/// <summary>The sidecar that lets a recorded provenance survive a round trip through disk (B133) — written
+/// <summary>The sidecar that lets a recorded provenance survive a round trip through disk — written
 /// beside the region files a build writes, read back by anything reading that same directory later.</summary>
 public sealed class WorldProvenanceFileTests
 {
@@ -82,12 +83,12 @@ public sealed class WorldProvenanceFileTests
         try
         {
             var written = new WorldProvenance();
-            written.ClaimRect(0, 0, 3, 0, ProvenanceLayer.Structure, "house:d-h1:0");
+            written.ClaimRect(0, 0, 3, 0, ProvenanceLayer.Structure, new StampId("house", "d-h1", 0));
             WorldProvenanceFile.Write(written, dir);
 
             var read = WorldProvenanceFile.TryRead(dir)!;
-            await Assert.That(read.OwnerAt(0, 0)).IsEqualTo("house:d-h1:0");
-            await Assert.That(read.OwnerAt(3, 0)).IsEqualTo("house:d-h1:0");
+            await Assert.That(read.OwnerAt(0, 0)).IsEqualTo(new StampId("house", "d-h1", 0));
+            await Assert.That(read.OwnerAt(3, 0)).IsEqualTo(new StampId("house", "d-h1", 0));
         }
         finally { Directory.Delete(dir, recursive: true); }
     }
@@ -101,13 +102,13 @@ public sealed class WorldProvenanceFileTests
         try
         {
             var written = new WorldProvenance();
-            written.ClaimRect(0, 0, 4, 0, ProvenanceLayer.Structure, "house:d-h1:0");
-            written.ClaimRect(5, 0, 9, 0, ProvenanceLayer.Structure, "house:d-h2:0");
+            written.ClaimRect(0, 0, 4, 0, ProvenanceLayer.Structure, new StampId("house", "d-h1", 0));
+            written.ClaimRect(5, 0, 9, 0, ProvenanceLayer.Structure, new StampId("house", "d-h2", 0));
             WorldProvenanceFile.Write(written, dir);
 
             var read = WorldProvenanceFile.TryRead(dir)!;
-            await Assert.That(read.OwnerAt(4, 0)).IsEqualTo("house:d-h1:0");
-            await Assert.That(read.OwnerAt(5, 0)).IsEqualTo("house:d-h2:0");
+            await Assert.That(read.OwnerAt(4, 0)).IsEqualTo(new StampId("house", "d-h1", 0));
+            await Assert.That(read.OwnerAt(5, 0)).IsEqualTo(new StampId("house", "d-h2", 0));
             await Assert.That(read.LayerAt(4, 0)).IsEqualTo(ProvenanceLayer.Structure);
             await Assert.That(read.LayerAt(5, 0)).IsEqualTo(ProvenanceLayer.Structure);
         }
@@ -115,7 +116,7 @@ public sealed class WorldProvenanceFileTests
     }
 
     [Test]
-    public async Task A_column_with_no_owner_reads_back_as_WorldProvenance_NoOwner()
+    public async Task A_column_with_no_owner_reads_back_with_no_owner()
     {
         var dir = TempDir();
         try
@@ -125,7 +126,7 @@ public sealed class WorldProvenanceFileTests
             WorldProvenanceFile.Write(written, dir);
 
             var read = WorldProvenanceFile.TryRead(dir)!;
-            await Assert.That(read.OwnerAt(0, 0)).IsEqualTo(WorldProvenance.NoOwner);
+            await Assert.That(read.OwnerAt(0, 0)).IsEqualTo(null);
         }
         finally { Directory.Delete(dir, recursive: true); }
     }
@@ -133,7 +134,7 @@ public sealed class WorldProvenanceFileTests
     [Test]
     public async Task A_sidecar_from_before_the_owner_table_falls_back_to_null_instead_of_throwing()
     {
-        // The pre-B139 shape: a bare JSON array of runs, with no {owners, runs} wrapper at all. Deserializing
+        // An earlier shape: a bare JSON array of runs, with no {owners, runs} wrapper at all. Deserializing
         // it as the current object shape fails to convert rather than returning null on its own, so TryRead has
         // to catch that itself — the file's own doc comment promises exactly this fallback.
         var dir = TempDir();
@@ -180,17 +181,19 @@ public sealed class WorldProvenanceFileTests
     public async Task Every_owner_string_is_written_once_regardless_of_how_many_runs_repeat_it()
     {
         // A id-table encoding: the same owner claimed on two separate rows costs the string once, not once
-        // per run — the sidecar's own size discipline (B139).
+        // per run — the sidecar's own size discipline.
         var dir = TempDir();
         try
         {
             var written = new WorldProvenance();
-            written.ClaimRect(0, 0, 2, 0, ProvenanceLayer.Structure, "house:d-h1:0");
-            written.ClaimRect(0, 5, 2, 5, ProvenanceLayer.Structure, "house:d-h1:0");   // same owner, a distant row
+            written.ClaimRect(0, 0, 2, 0, ProvenanceLayer.Structure, new StampId("house", "d-h1", 0));
+            written.ClaimRect(0, 5, 2, 5, ProvenanceLayer.Structure, new StampId("house", "d-h1", 0));   // same owner, a distant row
             WorldProvenanceFile.Write(written, dir);
 
             var json = File.ReadAllText(Path.Combine(dir, "provenance.json"));
-            var occurrences = System.Text.RegularExpressions.Regex.Matches(json, "house:d-h1:0").Count;
+            // The unit is written once into the id table however many runs carry it, which is the whole
+            // point of the table — two distant rows of one building cost one entry, not two.
+            var occurrences = System.Text.RegularExpressions.Regex.Matches(json, "d-h1").Count;
             await Assert.That(occurrences).IsEqualTo(1);
         }
         finally { Directory.Delete(dir, recursive: true); }

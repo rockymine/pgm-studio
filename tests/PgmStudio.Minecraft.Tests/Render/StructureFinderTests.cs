@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Minecraft.Render;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Palette;
@@ -92,7 +93,7 @@ public sealed class StructureFinderTests
 
     // A roof laid FLUSH with its own plaza — same top Y (6) throughout, same material (planks) throughout.
     // The step test (however low it is set) cannot separate these because there is no step to measure: this
-    // is B124's own residual gap, closed by a recorded extent (B133).
+    // is the step test's own residual gap, closed by a recorded extent.
     private static VoxelWorld FlushPlazaWithRoom()
     {
         var world = new VoxelWorld();
@@ -138,7 +139,7 @@ public sealed class StructureFinderTests
 
     // Two 3x3 buildings, flush and in the same material, standing side by side with no gap between them —
     // x 0..2 and x 3..5 share the x=2/x=3 boundary, so the columns genuinely touch. Neither elevation nor
-    // material can tell them apart; only a recorded owner can (B139).
+    // material can tell them apart; only a recorded owner can.
     private static VoxelWorld TwoAdjacentBuildings()
     {
         var world = new VoxelWorld();
@@ -173,8 +174,8 @@ public sealed class StructureFinderTests
         // The exact same 18 built columns as above, split into two claims that carry different owners —
         // the only thing that changed is the identity recorded alongside the layer.
         var provenance = new WorldProvenance();
-        provenance.ClaimRect(0, 0, 2, 2, ProvenanceLayer.Structure, "house:a:0");
-        provenance.ClaimRect(3, 0, 5, 2, ProvenanceLayer.Structure, "house:b:0");   // touches house:a at x=2/x=3
+        provenance.ClaimRect(0, 0, 2, 2, ProvenanceLayer.Structure, new StampId("house", "a", 0));
+        provenance.ClaimRect(3, 0, 5, 2, ProvenanceLayer.Structure, new StampId("house", "b", 0));   // touches at x=2/x=3
 
         var result = StructureFinder.Render(AnvilRegion.FromWorld(TwoAdjacentBuildings()), minimumArea: 1, provenance: provenance);
 

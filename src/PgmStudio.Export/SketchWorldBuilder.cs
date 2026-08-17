@@ -1,3 +1,4 @@
+using System.Globalization;
 using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Dressing;
@@ -16,7 +17,7 @@ namespace PgmStudio.Export;
 /// with spawn/wool positions snapped to the structures the world actually places and each monument's
 /// location filled in from its in-cube air cell, so the exported <c>map.xml</c> agrees with the world.
 /// <see cref="Provenance"/> is which pass claimed each column, kept beside the voxels because a block cannot
-/// carry the answer itself (B133) — a caller writing the world to disk persists it alongside
+/// carry the answer itself — a caller writing the world to disk persists it alongside
 /// (<see cref="WorldProvenanceFile"/>) so a render reading the region back gets the same recorded answer a
 /// render taken right after the build already would.</summary>
 public sealed record SketchWorld(
@@ -31,14 +32,53 @@ public sealed record SketchWorld(
 /// </summary>
 public static class SketchWorldBuilder
 {
+
+    /// <summary>
+    /// Give every entry that will be stamped an id a reader can group on, where nothing upstream did.
+    ///
+    /// <para>An intent compiled from a plan carries one on every entry, minted as the compiler fanned it, so
+    /// this leaves those alone. Everything else reaching a build lands here: an intent the Configure wizard
+    /// stored — where the orbit copies are <em>real, hand-correctable entries</em> rather than derived ones, so
+    /// nothing recorded says entry 1 is entry 0's mirror — and one assembled by hand in a fixture or a
+    /// one-off driver. Both get their list index as the unit and image 0, which is the honest reading of a
+    /// list that was never an orbit: separate things, not images of one thing.</para>
+    ///
+    /// <para>Note that <c>SymmetryExpander</c> also seeds an id as it fans, and that seeding never reaches a
+    /// world: the expander runs inside <c>IntentGenerator.Apply</c>, which <c>MapExportComposer</c> calls
+    /// <em>after</em> this build. It is the map.xml projection's own path, and the projection does not read the
+    /// id at all.</para>
+    /// </summary>
+    private static MapIntent WithStampIds(MapIntent intent)
+    {
+        static StampId Seed(StampId stamp, string kind, int index)
+            => !string.IsNullOrEmpty(stamp.Kind) ? stamp
+             : new StampId(kind, index.ToString(CultureInfo.InvariantCulture), 0);
+
+        return intent with
+        {
+            Spawns = intent.Spawns?.Select((s, i) => s with { Stamp = Seed(s.Stamp, "spawn", i) }).ToList(),
+            Wools = intent.Wools?.Select((w, i) => w with { Stamp = Seed(w.Stamp, "wool", i) }).ToList(),
+            Destroyables = intent.Destroyables?.Select((d, i) => d with { Stamp = Seed(d.Stamp, "destroyable", i) }).ToList(),
+            Cores = intent.Cores?.Select((c, i) => c with { Stamp = Seed(c.Stamp, "core", i) }).ToList(),
+            Structures = intent.Structures is not { } structures ? null : new StructureIntent
+            {
+                RoomFloors = [.. structures.RoomFloors.Select((f, i) => f with { Stamp = Seed(f.Stamp, "roomfloor", i) })],
+                RedstoneLines = [.. structures.RedstoneLines.Select((l, i) => l with { Stamp = Seed(l.Stamp, "redstoneline", i) })],
+                IronCubes = [.. structures.IronCubes.Select((c, i) => c with { Stamp = Seed(c.Stamp, "ironcube", i) })],
+                Walls = [.. structures.Walls.Select((w, i) => w with { Stamp = Seed(w.Stamp, "wall", i) })],
+            },
+        };
+    }
+
     public static SketchWorld Build(string layoutJson, MapIntent intent)
     {
+        intent = WithStampIds(intent);
         var columns = SketchRasterizer.RasterizeColumns(layoutJson);
         var terrain = SketchTerrainBuilder.Build(columns);
         var world = terrain.World;
         int Surface(int x, int z) => PositionSnap.SurfaceY((x, z), terrain.SurfaceTop, 1);
 
-        // ── Provenance (B133) — which pass claimed each column, composited in placement order ────────
+        // ── Provenance — which pass claimed each column, composited in placement order ────────
         // The rasterizer's own ground claims every column first; every stamp below claims its footprint as
         // Structure over it, so the final answer at a column is whichever pass touched it last. Claimed here
         // rather than derived from the finished blocks, which is exactly what a material-only read cannot do:
@@ -54,7 +94,7 @@ public static class SketchWorldBuilder
 
         // ── The build ceiling, and the one altitude every goal marker hangs at ──────────────────────
         // Both are the author's rule, and both are derived here because here is the first place that knows
-        // the answer: twenty blocks over the highest ground the map actually built (G6), and the markers five
+        // the answer: twenty blocks over the highest ground the map actually built, and the markers five
         // over that (BuildCeiling). The measurement is the point — SurfaceTop is the terrain the rasterizer
         // laid, read before a single structure, house or tree is stamped on it, so nothing placed on the map
         // can push its own ceiling up. It is written back onto the intent so the <max-build-height> the XML
@@ -72,7 +112,7 @@ public static class SketchWorldBuilder
         // it goes first: the fill's top block IS the floor course now that a room's floor sinks one course into
         // its platform (WX17), so laid afterwards it buries the floor and the wool pad standing on it.
         foreach (var claim in StampRoomFloors(world, terrain.SurfaceTop, intent.Structures))
-            provenance.Claim(claim.Cells, ProvenanceLayer.Structure, claim.Owner);
+            provenance.Claim(claim.Cells, claim.Layer, claim.Owner);
 
         // ── Wool cages (framed by their plan piece + entries, or the marker-anchored default) ────────
         var resolvedWools = new List<WoolIntent>(wools.Count);
@@ -88,18 +128,17 @@ public static class SketchWorldBuilder
             {
                 Frame = frame, FloorY = fy, WoolSlug = slug, Ground = terrain.SurfaceTop, Shell = woolStyle,
             });
-            var woolOwner = $"wool:{i}";
             // The cells the shell actually filled, walked from the stamper's own function. A RoomFrame's
             // bounds are grid lines — its Width is MaxX − MinX — so carrying them into a max-inclusive
             // provenance rect claims a row and a column of ground the room never touched, on the +x/+z side
             // of every image alike, which no rotation maps onto its partner.
             provenance.Claim(StructureStamper.FoundationCells(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ),
-                             ProvenanceLayer.Structure, woolOwner);
+                             ProvenanceLayer.Structure, w.Stamp);
             // One marker per wool room — the room is already one entry per orbit image (PlanCompiler fans
             // team-outer), so no orbit math is needed here to keep a mirrored board's markers matching.
             GoalMarkerStamper.Stamp(world, (frame.MinX + frame.MaxX) / 2, (frame.MinZ + frame.MaxZ) / 2,
                 markerFloor, BlockColors.BlockDamage(slug), GoalMarkerShape.Cube);
-            provenance.Claim((frame.MinX + frame.MaxX) / 2, (frame.MinZ + frame.MaxZ) / 2, ProvenanceLayer.Structure, woolOwner);
+            provenance.Claim((frame.MinX + frame.MaxX) / 2, (frame.MinZ + frame.MaxZ) / 2, ProvenanceLayer.Structure, w.Stamp);
             woolFrame[i] = frame;
             woolFloor[i] = fy;
             resolvedWools.Add(w);   // monuments filled in below, once spawn cubes place them
@@ -124,7 +163,7 @@ public static class SketchWorldBuilder
                 CapturedWools = [.. captured.Select(x => ColorSlug(x.w, teams))], Shell = spawnStyle,
             }).Monuments;
             provenance.Claim(StructureStamper.FoundationCells(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ),
-                             ProvenanceLayer.Structure, $"spawn:{spawnIndex}");
+                             ProvenanceLayer.Structure, s.Stamp);
 
             for (var k = 0; k < placed.Count && k < captured.Count; k++)
                 monLoc[(captured[k].i, s.Team)] = new Pt(placed[k].X, placed[k].Y, placed[k].Z);
@@ -138,7 +177,10 @@ public static class SketchWorldBuilder
                 {
                     StructureStamper.StampIronCubeAt(world, terrain.SurfaceTop, iron.MinX, iron.MinZ, iron.Size);
                     provenance.ClaimRect(iron.MinX, iron.MinZ, iron.MinX + iron.Size - 1, iron.MinZ + iron.Size - 1,
-                        ProvenanceLayer.Structure, $"spawn:{spawnIndex}:iron:{ironIndex++}");
+                        ProvenanceLayer.Structure,
+                        // The spawn's own unit, qualified by which of its cubes this is: one room's iron is
+                        // one thing per marker, and both images of it share the unit the room's stamp names.
+                        new StampId("ironcube", $"{s.Stamp.Unit}:{ironIndex++}", s.Stamp.Image));
                 }
 
             resolvedSpawns.Add(new SpawnIntent
@@ -225,10 +267,11 @@ public static class SketchWorldBuilder
         // collapsing into one call with no identity of their own.
         //
         // Claimed from what the pass reported placing, never re-derived from the layout: the pass drops a
-        // building whole when any of its images overlaps something already standing, stands over no ground, or
-        // fails its turn, and a claim rebuilt from the author's intent cannot see any of that (B202).
-        foreach (var claim in dressed.Structures)
-            provenance.Claim(claim.Cells, ProvenanceLayer.Structure, claim.Owner);
+        // prop whole when any of its images overlaps something already standing, stands over no ground, or
+        // fails its turn, and a claim rebuilt from the author's intent cannot see any of that. Every
+        // prop, not only the buildings — each carries the layer that says which pass it was.
+        foreach (var claim in dressed.Placements)
+            provenance.Claim(claim.Cells, claim.Layer, claim.Owner);
 
         // ── Observer platform (floating at the authored Y) ───────────────────────────────────────────
         int spawnX, spawnY, spawnZ;
@@ -269,7 +312,7 @@ public static class SketchWorldBuilder
     }
 
     // The bedrock under every wool room, laid before the rooms themselves (see the call site).
-    private static List<StructureClaim> StampRoomFloors(
+    private static List<PlacementClaim> StampRoomFloors(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surface, StructureIntent? s)
     {
         // The claim is the cells the foundation filled, walked from the same four integers the stamp took.
@@ -277,14 +320,14 @@ public static class SketchWorldBuilder
         // is max-EXCLUSIVE and ClaimRect's is max-inclusive, so every room floor claimed a column past its own
         // bedrock on each axis — 121 columns for a 10x10 floor that fills 100. The min end disagreed too,
         // truncation against Math.Floor, which parts company on a negative fractional bound.
-        var claims = new List<StructureClaim>();
+        var claims = new List<PlacementClaim>();
         var floors = s?.RoomFloors ?? [];
         for (var i = 0; i < floors.Count; i++)
         {
             var f = floors[i];
-            int minX = (int)f.MinX, minZ = (int)f.MinZ, maxX = (int)f.MaxX, maxZ = (int)f.MaxZ;
+            int minX = (int)f.Area.MinX, minZ = (int)f.Area.MinZ, maxX = (int)f.Area.MaxX, maxZ = (int)f.Area.MaxZ;
             StructureStamper.StampFoundation(world, surface, minX, minZ, maxX, maxZ);
-            claims.Add(new StructureClaim($"roomfloor:{i}",
+            claims.Add(new PlacementClaim(f.Stamp, ProvenanceLayer.Structure,
                 [.. StructureStamper.FoundationCells(minX, minZ, maxX, maxZ)]));
         }
         return claims;
@@ -314,12 +357,12 @@ public static class SketchWorldBuilder
         for (var i = 0; i < s.Walls.Count; i++)
         {
             var w = s.Walls[i];
-            provenance.ClaimRect(w.MinX, w.MinZ, w.MaxX, w.MaxZ, ProvenanceLayer.Structure, $"wall:{i}");
+            provenance.ClaimRect(w.MinX, w.MinZ, w.MaxX, w.MaxZ, ProvenanceLayer.Structure, w.Stamp);
         }
         for (var i = 0; i < s.IronCubes.Count; i++)
         {
             var (minX, minZ, maxX, maxZ) = StructureStamper.IronCubeFootprint(s.IronCubes[i].X, s.IronCubes[i].Z);
-            provenance.ClaimRect(minX, minZ, maxX, maxZ, ProvenanceLayer.Structure, $"ironcube:{i}");
+            provenance.ClaimRect(minX, minZ, maxX, maxZ, ProvenanceLayer.Structure, s.IronCubes[i].Stamp);
         }
         for (var i = 0; i < s.RedstoneLines.Count; i++)
         {
@@ -329,7 +372,7 @@ public static class SketchWorldBuilder
             var line = s.RedstoneLines[i];
             provenance.Claim(
                 StructureStamper.RedstoneLineCells(line.X1, line.Z1, line.X2, line.Z2),
-                ProvenanceLayer.Structure, $"redstoneline:{i}");
+                ProvenanceLayer.Structure, s.RedstoneLines[i].Stamp);
         }
     }
 
@@ -354,7 +397,7 @@ public static class SketchWorldBuilder
         {
             var b = destroyables[i];
             if (!DestroyableStyles.TryParse(b.Style, out var style)) continue;
-            var owner = $"destroyable:{i}";
+            var owner = b.Stamp;
             // The same anchor→cell rule the compiler fanned this anchor with, so the stamp lands on the
             // block the plan validator measured and on the mirror of its own orbit image.
             var (ax, az) = ObjectiveFootprint.AnchorCell(b.Anchor.X, b.Anchor.Z);
@@ -394,7 +437,7 @@ public static class SketchWorldBuilder
         for (var i = 0; i < cores.Count; i++)
         {
             var c = cores[i];
-            var owner = $"core:{i}";
+            var owner = c.Stamp;
             var (ax, az) = ObjectiveFootprint.AnchorCell(c.Anchor.X, c.Anchor.Z);
             var box = ObjectiveStamper.CoreBox(surface, ax, az, c.Size, c.Height, c.Float);
             ObjectiveStamper.StampCore(world, box, Blocks.Obsidian, c.Shell, c.OpenTop);

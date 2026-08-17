@@ -1,3 +1,5 @@
+using System.Globalization;
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Geom.Algorithms;
 // Named one by one rather than by namespace: Domain and Geom both carry a Vec3, and this file already means
@@ -48,16 +50,17 @@ public sealed record DressingContext(
 /// What one pass placed, for a caller that wants to report, claim or preview it rather than only write it.
 /// Counted as placed, images included — two mirrored boulders are two boulders.
 ///
-/// <para><b>The buildings are reported as extents and everything else as a count</b>, because a building is
-/// the only prop whose columns something downstream has to own: provenance records which stamped thing claimed
-/// each column, and a tree or a boulder already separates from built ground by material
-/// (<see cref="BlockRoles"/>). Reporting them here is what makes the claim a product of the placement rather
-/// than a second derivation from the author's intent — see <see cref="StructureClaim"/> for why that
-/// direction is the whole point.</para>
+/// <para><b>Every prop is reported as extents as well as a count</b>, buildings and the rest alike. It used to
+/// be buildings only, on the argument that a tree or a boulder separates from built ground by material
+/// (<see cref="BlockRoles"/>) and so needs no record. It does separate — what material cannot say is that a
+/// <em>pass</em> put it there, or which prop it belonged to, and those are the two things a read-back has to
+/// prove: a flora prop that landed nothing looks exactly like one that was never authored. Reporting the
+/// extents here is what makes the claim a product of the placement rather than a second derivation from the
+/// author's intent — see <see cref="PlacementClaim"/> for why that direction is the whole point.</para>
 /// </summary>
-/// <param name="Claimed">The buildings raised, or null where none was. Read <see cref="Structures"/> instead,
-/// which never answers null — the same shape <see cref="Domain.Finding.Subjects"/> carries, so a caller never
-/// has to tell an absent list from an empty one.</param>
+/// <param name="Claimed">Every prop that landed anything, or null where none did. Read <see cref="Placements"/>
+/// instead, which never answers null — the same shape <see cref="Domain.Finding.Subjects"/> carries, so a
+/// caller never has to tell an absent list from an empty one.</param>
 /// <param name="Dropped">Every whole-prop decline this pass made, or null where nothing was declined — the
 /// same null-when-empty convention <paramref name="Claimed"/> carries, for the same reason: a pass that
 /// dropped nothing compares equal to one that placed a board with nothing to drop. A path's own per-cell
@@ -68,10 +71,15 @@ public sealed record DressingContext(
 /// or already-claimed column, or stands nearer to the road than its own kind's standoff allows.</param>
 public readonly record struct DressingPlacement(
     int Plants = 0, int Boulders = 0, int Trees = 0, int PathCells = 0, int WaterCells = 0, int Houses = 0,
-    IReadOnlyList<StructureClaim>? Claimed = null, IReadOnlyList<DroppedProp>? Dropped = null)
+    IReadOnlyList<PlacementClaim>? Claimed = null, IReadOnlyList<DroppedProp>? Dropped = null)
 {
-    /// <summary>The buildings this pass actually raised, each with the columns it owns. Never null.</summary>
-    public IReadOnlyList<StructureClaim> Structures => Claimed ?? [];
+    /// <summary>Everything this pass actually put down, each with the columns it owns. Never null.</summary>
+    public IReadOnlyList<PlacementClaim> Placements => Claimed ?? [];
+
+    /// <summary>Just the buildings — what a caller asking about <em>built</em> things wants, now that the
+    /// report carries the trees and the roads beside them.</summary>
+    public IEnumerable<PlacementClaim> Structures =>
+        Placements.Where(claim => claim.Layer == ProvenanceLayer.Structure);
 }
 
 /// <summary>One whole prop the pass declined to place, and why — the report <see cref="DressingPlacement.Dropped"/>
@@ -120,13 +128,38 @@ public static class Decorator
         // ones and each keeping its own stated standoff from the road, and cover last, into whatever is left.
         var claims = new GroundClaims();
         var placed = new DressingPlacement();
-        var structures = new List<StructureClaim>();
+        var structures = new List<PlacementClaim>();
         var dropped = new List<DroppedProp>();
 
+        // Every pass reports what it covered, and every prop gets a claim of its own — a tree, a boulder, a
+        // road and a bed of flora as much as a building. Material can say what a block is; only this can say
+        // that a pass put it there and which prop it belonged to, which is what a read-back has to prove
+        // Recorded in placement order, so a later prop over an earlier one reads as the later one.
+        var propIndex = 0;
+        void Cover(Placed result, string kind, string id)
+        {
+            for (var image = 0; image < result.Images.Count; image++)
+                if (result.Images[image].Count > 0)
+                    structures.Add(new PlacementClaim(new StampId(kind, IdOf(id, propIndex), image),
+                                                      ProvenanceLayer.Prop, result.Images[image]));
+        }
+        static string IdOf(string id, int index) =>
+            string.IsNullOrEmpty(id) ? index.ToString(CultureInfo.InvariantCulture) : id;
+
         foreach (var prop in context.Props.OfType<WaterProp>())
-            placed = placed with { WaterCells = placed.WaterCells + PlaceWater(world, context, prop, claims) };
+        {
+            var result = PlaceWater(world, context, prop, claims);
+            Cover(result, "water", prop.Id);
+            placed = placed with { WaterCells = placed.WaterCells + result.Count };
+            propIndex++;
+        }
         foreach (var prop in context.Props.OfType<PathProp>())
-            placed = placed with { PathCells = placed.PathCells + PlacePath(world, context, prop, claims) };
+        {
+            var result = PlacePath(world, context, prop, claims);
+            Cover(result, "path", prop.Id);
+            placed = placed with { PathCells = placed.PathCells + result.Count };
+            propIndex++;
+        }
         foreach (var prop in context.Props.OfType<HouseProp>())
         {
             var raised = PlaceHouse(world, context, prop, claims, dropped);
@@ -134,11 +167,26 @@ public static class Decorator
             placed = placed with { Houses = placed.Houses + raised.Count };
         }
         foreach (var prop in context.Props.OfType<BoulderProp>())
-            placed = placed with { Boulders = placed.Boulders + PlaceBoulder(world, context, prop, claims, dropped) };
+        {
+            var result = PlaceBoulder(world, context, prop, claims, dropped);
+            Cover(result, "boulder", prop.Id);
+            placed = placed with { Boulders = placed.Boulders + result.Count };
+            propIndex++;
+        }
         foreach (var prop in context.Props.OfType<TreeProp>())
-            placed = placed with { Trees = placed.Trees + PlaceTree(world, context, prop, claims, dropped) };
+        {
+            var result = PlaceTree(world, context, prop, claims, dropped);
+            Cover(result, "tree", prop.Id);
+            placed = placed with { Trees = placed.Trees + result.Count };
+            propIndex++;
+        }
         foreach (var prop in context.Props.OfType<FloraProp>())
-            placed = placed with { Plants = placed.Plants + PlaceFlora(world, context, prop, claims) };
+        {
+            var result = PlaceFlora(world, context, prop, claims);
+            Cover(result, "flora", prop.Id);
+            placed = placed with { Plants = placed.Plants + result.Count };
+            propIndex++;
+        }
 
         // Null rather than an empty list when nothing was raised or dropped, so a pass that placed a board
         // with nothing to report compares equal to a pass that was never asked to (the Finding.Subjects rule,
@@ -150,17 +198,34 @@ public static class Decorator
         };
     }
 
+    /// <summary>What one prop put down: the number it contributes to its own tally — a tree or a boulder
+    /// counts its orbit <em>images</em> where a path, a channel or a bed of flora counts <em>cells</em>, which
+    /// is the split <see cref="DressingPlacement"/> already reports — and every column it covers, which is what
+    /// becomes its claim. Returned together because the claim has to be the placement's own answer rather than
+    /// a second walk over the same ground.
+    ///
+    /// <para>Cells are grouped <b>per orbit image</b>, not pooled: a prop and its own mirror are two images of
+    /// one authored thing, and a record that merged them could say a prop landed somewhere without saying
+    /// which half. One claim per image is what a building already answers, and what lets a reader pair the two
+    /// halves of a board by asking rather than by matching cell sets.</para></summary>
+    private readonly record struct Placed(int Count, IReadOnlyList<List<(int X, int Z)>> Images)
+    {
+        public static Placed None => new(0, []);
+    }
+
     // ── paths (DR-PA) ───────────────────────────────────────────────────────────
     /// <summary>Repaint the ground a stroke covers. A path adds no cell: it swaps the top block of each column
     /// it crosses, which is why it can run over a slope without becoming a ramp and why a bridge is still the
     /// draw phase's job. Its cells become bare ground, so nothing grows through the road.</summary>
-    private static int PlacePath(VoxelWorld world, DressingContext context, PathProp path, GroundClaims claims)
+    private static Placed PlacePath(VoxelWorld world, DressingContext context, PathProp path, GroundClaims claims)
     {
-        if (path.Points.Count < 2) return 0;
-        var placed = 0;
+        if (path.Points.Count < 2) return Placed.None;
+        var images = new List<List<(int X, int Z)>>();
         var stroke = PathStroke.Cells(path.Points, path.Radius, path.Style, path.Coverage, path.Seed).ToList();
 
         for (var k = 0; k < context.Symmetry.Order; k++)
+        {
+        var cells = new List<(int X, int Z)>();
         foreach (var cell in stroke)
         {
             var (x, z) = context.Symmetry.ImageCell(cell.X, cell.Z, k);
@@ -176,9 +241,11 @@ public static class Decorator
             var (id, data) = path.Pave.Resolve(new BucketContext(x, top - 1, z, TerrainBucket.Surface, 0));
             world.SetBlock(x, top - 1, z, id, data);
             claims.Claim(x, z, ClaimKind.Route);
-            placed++;
+            cells.Add((x, z));
         }
-        return placed;
+        images.Add(cells);
+        }
+        return new Placed(images.Sum(cells => cells.Count), images);
     }
 
     // ── water (DR-WA) ───────────────────────────────────────────────────────────
@@ -191,11 +258,11 @@ public static class Decorator
     /// a hollow keeps the hollow. The water line is the lowest surface the channel crosses, which is what keeps
     /// the fill from floating above ground it did not cut: every column's surface is at or above the line, so
     /// every block written sits at or below terrain that was there before.</para></summary>
-    private static int PlaceWater(VoxelWorld world, DressingContext context, WaterProp water, GroundClaims claims)
+    private static Placed PlaceWater(VoxelWorld world, DressingContext context, WaterProp water, GroundClaims claims)
     {
-        if (water.Points.Count < 2 || water.Radius <= 0 || water.Depth <= 0) return 0;
+        if (water.Points.Count < 2 || water.Radius <= 0 || water.Depth <= 0) return Placed.None;
         var bed = WaterBed.Cells(water.Points, water.Radius, water.Depth, water.Form, water.Edge, water.Seed).ToList();
-        if (bed.Count == 0) return 0;
+        if (bed.Count == 0) return Placed.None;
         var shore = WaterBed.ShoreCells(water.Points, water.Radius, water.Form, water.Shore, water.Edge, water.ShoreWander, water.Seed).ToList();
 
         // The bank is a full terrain material, so the bed floor and the beach are a voronoi patchwork or any
@@ -205,9 +272,13 @@ public static class Decorator
         // The water first, every image: carve each bed and fill it to that image's own level line. The columns
         // it wets are remembered so the beach, which comes after, never lays sand over open water where the two
         // overlap across the symmetry fan.
-        var placed = 0;
+        var images = new List<List<(int X, int Z)>>();
         for (var image = 0; image < context.Symmetry.Order; image++)
         {
+            // Added before the channel is walked and kept even where it finds nothing, so the list index is
+            // the orbit image and the beach below can reach the right one.
+            var covered = new List<(int X, int Z)>();
+            images.Add(covered);
             var cells = new List<(int X, int Z, int SurfaceSolid, int Depth)>(bed.Count);
             var waterLevel = int.MaxValue;
             foreach (var cell in bed)
@@ -236,39 +307,42 @@ public static class Decorator
                 // The bank floor the shallows show through, laid where terrain already stood.
                 if (bedFloor >= 1) { var (id, data) = Bank(x, bedFloor, z); world.SetBlock(x, bedFloor, z, id, data); }
                 claims.Claim(x, z, ClaimKind.Water);
-                placed++;
+                covered.Add((x, z));
             }
         }
 
         // Then the beach, every image: the bank material on the surface just past the water, wherever the water
         // met carvable land. A shore column that a channel elsewhere already filled with water is left as water.
         for (var image = 0; image < context.Symmetry.Order; image++)
-        foreach (var cell in shore)
-        {
-            var (x, z) = context.Symmetry.ImageCell(cell.X, cell.Z, image);
-            if (claims.Holds(x, z) || context.IsProtected(x, z)) continue;
-            if (!context.SurfaceTop.TryGetValue((x, z), out var top) || top < 1) continue;
-            var surfaceSolid = top - 1;
-            if (DressingPalette.IsStamp(world.GetBlock(x, surfaceSolid, z).Id)) continue;
+            foreach (var cell in shore)
+            {
+                var (x, z) = context.Symmetry.ImageCell(cell.X, cell.Z, image);
+                if (claims.Holds(x, z) || context.IsProtected(x, z)) continue;
+                if (!context.SurfaceTop.TryGetValue((x, z), out var top) || top < 1) continue;
+                var surfaceSolid = top - 1;
+                if (DressingPalette.IsStamp(world.GetBlock(x, surfaceSolid, z).Id)) continue;
 
-            var (id, data) = Bank(x, surfaceSolid, z);
-            world.SetBlock(x, surfaceSolid, z, id, data);
-            claims.Claim(x, z, ClaimKind.Water);
-        }
-        return placed;
+                var (id, data) = Bank(x, surfaceSolid, z);
+                world.SetBlock(x, surfaceSolid, z, id, data);
+                claims.Claim(x, z, ClaimKind.Water);
+                if (image < images.Count) images[image].Add((x, z));   // the bank is the channel's, too
+            }
+        return new Placed(images.Sum(cells => cells.Count), images);
     }
 
     // ── flora (DR-FL) ───────────────────────────────────────────────────────────
     /// <summary>Grow cover inside a drawn area. One block per cell, in the air above the surface, and only
     /// where the paint beneath accepts it — a plant occupies its own cell and nothing around it, so it needs no
     /// local frame and no turning.</summary>
-    private static int PlaceFlora(VoxelWorld world, DressingContext context, FloraProp area, GroundClaims claims)
+    private static Placed PlaceFlora(VoxelWorld world, DressingContext context, FloraProp area, GroundClaims claims)
     {
-        if (area.Points.Count < 3) return 0;
+        if (area.Points.Count < 3) return Placed.None;
         var ring = area.Points.Select(point => new[] { point[0], point[1] }).ToList();
-        var placed = 0;
+        var images = new List<List<(int X, int Z)>>();
 
         for (var k = 0; k < context.Symmetry.Order; k++)
+        {
+        var cells = new List<(int X, int Z)>();
         foreach (var (x, z) in Inside(ring, context.Symmetry, k))
         {
             if (claims.Holds(x, z) || context.IsProtected(x, z)) continue;
@@ -287,9 +361,11 @@ public static class Decorator
             world.SetBlock(x, top, z, plant.Id, plant.Data);
             if (plant.Tall && top + 1 < VoxelWorld.MaxHeight)
                 world.SetBlock(x, top + 1, z, plant.Id, DressingPalette.DoublePlantUpper);
-            placed++;
+            cells.Add((x, z));
         }
-        return placed;
+        images.Add(cells);
+        }
+        return new Placed(images.Sum(cells => cells.Count), images);
     }
 
     // The cells of one image of a drawn ring. The ring is mirrored point by point rather than the cells being
@@ -342,7 +418,7 @@ public static class Decorator
     /// <summary>
     /// Raise a building on the rectangles its author dragged, at every image of its orbit — one or more touching
     /// wings composed into the one <see cref="BuildingPlan"/> <see cref="HouseStamper"/> takes, so an L or a T is
-    /// stamped once as one house rather than once per rectangle (G177).
+    /// stamped once as one house rather than once per rectangle.
     ///
     /// <para><b>It is not gated on the protected mask, and it never joins it.</b> That mask exists to keep a
     /// scatter off the cells the map is played through — a flower field is generated, so it has to be told
@@ -369,7 +445,7 @@ public static class Decorator
     /// a building does not stand on one side of a mirrored map and leave a hole where the other team's copy
     /// should be.</para>
     /// </summary>
-    private static List<StructureClaim> PlaceHouse(
+    private static List<PlacementClaim> PlaceHouse(
         VoxelWorld world, DressingContext context, HouseProp house, GroundClaims claims,
         List<DroppedProp> dropped)
     {
@@ -427,7 +503,7 @@ public static class Decorator
             images.Add((image, front, floorY.Value));
         }
 
-        var raised = new List<StructureClaim>(images.Count);
+        var raised = new List<PlacementClaim>(images.Count);
         for (var k = 0; k < images.Count; k++)
         {
             var (image, front, floorY) = images[k];
@@ -443,7 +519,8 @@ public static class Decorator
             // stamped extent rather than the wall rectangle — a roof's overhang and verge reach past the walls
             // and are as much the building as they are — and they come from HouseStamper's own function, so
             // the claim and the stamp read one derivation instead of two that agree today.
-            raised.Add(new StructureClaim($"house:{house.Id}:{k}", ClaimedCells(image, house.Style)));
+            raised.Add(new PlacementClaim(new StampId("house", house.Id, k), ProvenanceLayer.Structure,
+                                          ClaimedCells(image, house.Style)));
         }
         return raised;
     }
@@ -589,7 +666,7 @@ public static class Decorator
         return [new RoomDoor(front, Math.Clamp(about - (width - 1) / 2, lo, hi - width + 1), width)];
     }
 
-    private static int PlaceBoulder(
+    private static Placed PlaceBoulder(
         VoxelWorld world, DressingContext context, BoulderProp boulder, GroundClaims claims,
         List<DroppedProp> dropped)
     {
@@ -634,7 +711,7 @@ public static class Decorator
     }
 
     // ── trees (DR-TR) ───────────────────────────────────────────────────────────
-    private static int PlaceTree(
+    private static Placed PlaceTree(
         VoxelWorld world, DressingContext context, TreeProp tree, GroundClaims claims,
         List<DroppedProp> dropped)
         => Fan(world, context, (tree.X, tree.Z), TreeCells(tree), claims, tree.RouteStandoff, tree.Id, "tree", dropped);
@@ -723,10 +800,10 @@ public static class Decorator
     /// block nearer a protected column, or on ground the relief left slightly steeper, does not get to stand on
     /// one side of a mirrored board and vanish from the other — the difference a player would actually notice
     /// is not "the edges are a little thinner", it is "the two halves disagree".</summary>
-    private static int Fan(VoxelWorld world, DressingContext context, (int X, int Z) site,
+    private static Placed Fan(VoxelWorld world, DressingContext context, (int X, int Z) site,
         List<PropCell> prop, GroundClaims claims, int routeStandoff, string id, string kind, List<DroppedProp> dropped)
     {
-        if (prop.Count == 0) return 0;
+        if (prop.Count == 0) return Placed.None;
 
         var images = new List<((int X, int Z) Anchor, List<PropCell> Turned, int BaseY)>(context.Symmetry.Order);
         for (var k = 0; k < context.Symmetry.Order; k++)
@@ -744,12 +821,15 @@ public static class Decorator
             if (!Seats(context, anchor, turned, claims, routeStandoff, out var baseY, out var declineReason))
             {
                 dropped.Add(new DroppedProp(id, kind, declineReason));
-                return 0;
+                return Placed.None;
             }
             images.Add((anchor, turned, baseY));
         }
 
+        var covered = new List<List<(int X, int Z)>>();
         foreach (var (anchor, turned, baseY) in images)
+        {
+            var cells = new HashSet<(int X, int Z)>();
             foreach (var cell in turned)
             {
                 var (wx, wy, wz) = (anchor.X + cell.X, baseY + cell.Y, anchor.Z + cell.Z);
@@ -757,8 +837,11 @@ public static class Decorator
                 if (!cell.Buried && world.GetBlock(wx, wy, wz).Id != Blocks.Air) continue;
                 world.SetBlock(wx, wy, wz, cell.Id, cell.Data);
                 claims.Claim(wx, wz, ClaimKind.Scatter);
+                cells.Add((wx, wz));        // a column, once, however many of the prop's blocks stand in it
             }
-        return images.Count;
+            covered.Add([.. cells]);
+        }
+        return new Placed(images.Count, covered);
     }
 
     /// <summary>Whether a prop can stand at an anchor, and the Y its own origin sits at — plus, where it

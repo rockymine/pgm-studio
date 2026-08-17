@@ -148,7 +148,7 @@ public sealed class PlanCoresTests
         await Assert.That(Errors(Validate(json), "core")).IsTrue();
     }
 
-    // B128: a core is the destroyable's absolute-addressing exception, proved separately here because the two
+    // A core is the destroyable's absolute-addressing exception, proved separately here because the two
     // markers resolve through independent loops in `PlanCompiler` and a fix to one does not imply the other.
     // Under the old code `d.Piece("")` returned null and the whole core was dropped from the compiled intent.
     [Test]

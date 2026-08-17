@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom.Render;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Palette;
@@ -34,7 +35,7 @@ namespace PgmStudio.Minecraft.Render;
 /// a geometric improvement over material alone, not a full fix: a roof laid flush with the plaza's own
 /// paving height defeats it, since nothing steps between two flat surfaces of one material.</para>
 ///
-/// <para><b>A recorded <see cref="WorldProvenance"/> closes that residual gap (B133), and is preferred
+/// <para><b>A recorded <see cref="WorldProvenance"/> closes that residual gap, and is preferred
 /// whenever one is given.</b> A built map knows which columns a stamp claimed at the moment it claimed them,
 /// so "built" stops being read off the block on top and becomes a lookup: a column is a candidate only when
 /// the build itself recorded it as <see cref="ProvenanceLayer.Structure"/>, whatever it is made of and
@@ -49,9 +50,10 @@ namespace PgmStudio.Minecraft.Render;
 /// an owner and the candidates are partitioned by it directly: every column a given owner claimed is one
 /// finding, whether or not it happens to neighbour a column another owner claimed. Two houses that stand
 /// wall to wall read as two structures for exactly the reason a flood could never give — the columns were
-/// never one claim to begin with. A column whose claim carries no owner (<see cref="WorldProvenance.NoOwner"/>)
-/// groups with every other column that also carries none, which is the degraded reading for an unidentified
-/// claim rather than a case this reader tries to recover from.</para>
+/// never one claim to begin with. A column whose claim carries no id groups with every other column that also
+/// carries none, which is the degraded reading for an unidentified claim rather than a case this reader tries
+/// to recover from. Where an id <em>is</em> carried it names the unit and the orbit image separately, so a
+/// building and its own mirror are one identity seen twice and are coloured as one thing.</para>
 ///
 /// <para>The natural ground a component is measured against is read the same way — <c>naturalY</c> looks
 /// past the paint to the terrain underneath at every column, built or not, so a ring sampled around a
@@ -80,37 +82,23 @@ public static class StructureFinder
     public sealed record Structure(int MinX, int MaxX, int MinZ, int MaxZ, int Area, int RoofLow, int RoofHigh,
                                     int GroundAround, int GroundSpread, int BaseOffset, string Materials);
 
-    /// <summary>
-    /// What a claim <em>is</em>, with which image of it this one happens to be dropped: the owner minus every
-    /// wholly numeric segment. <c>house:w1:0</c> and <c>house:w1:1</c> are one building seen twice and answer
-    /// <c>house:w1</c>; <c>spawn:0</c> and <c>spawn:1</c> answer <c>spawn</c>.
-    ///
-    /// <para>Reading it off the string is what the owner shape currently allows, and it is why the answer is
-    /// coarser for some families than others: a numeric segment is an orbit index on a house and a running
-    /// index into the already-fanned list everywhere else, so four wool rooms collapse to one identity where
-    /// three houses stay three. Giving every claim the same what-it-is/which-image pair is <c>B252</c>, and
-    /// this reads exactly as well as that shape lets it.</para>
-    /// </summary>
-    public static string Identity(string owner) => string.IsNullOrEmpty(owner)
-        ? owner
-        : string.Join(':', owner.Split(':').Where(part => part.Length > 0 && !part.All(char.IsAsciiDigit)));
-
-    /// <summary>An accent slot per finding, equal for findings that share an <see cref="Identity"/>. Slots are
+    /// <summary>An accent slot per finding, equal for findings that share a <see cref="StampId.Identity"/>. Slots are
     /// handed out in the identities' own sorted order rather than in discovery order, so the same board draws
     /// the same colours twice and a mirrored pair matches whichever half is found first. A finding with no
     /// identity at all — every one of them on a world with no provenance to read — keeps a slot of its own,
     /// because nothing there says which two findings are one thing.</summary>
-    private static int[] AccentSlots(IReadOnlyList<string> identities)
+    private static int[] AccentSlots(IReadOnlyList<(string Kind, string Unit)?> identities)
     {
-        var order = identities.Where(identity => identity.Length > 0).Distinct()
-                              .OrderBy(identity => identity, StringComparer.Ordinal)
+        var order = identities.OfType<(string Kind, string Unit)>().Distinct()
+                              .OrderBy(identity => identity.Kind, StringComparer.Ordinal)
+                              .ThenBy(identity => identity.Unit, StringComparer.Ordinal)
                               .Select((identity, slot) => (identity, slot))
                               .ToDictionary(entry => entry.identity, entry => entry.slot);
 
         var slots = new int[identities.Count];
         var next = order.Count;
         for (var i = 0; i < identities.Count; i++)
-            slots[i] = identities[i].Length > 0 ? order[identities[i]] : next++;
+            slots[i] = identities[i] is { } identity ? order[identity] : next++;
         return slots;
     }
 
@@ -118,7 +106,7 @@ public static class StructureFinder
 
     /// <summary>Reads a built region directory from disk. Picks up <see cref="WorldProvenanceFile"/>'s
     /// sidecar automatically when the region carries one; a region with none falls back to the step-tested
-    /// material reading, exactly as before B133.</summary>
+    /// material reading, exactly as a world carrying no record does.</summary>
     public static int Run(string regionDir, string outPng, int scale, int minimumArea, int maximumStep = DefaultMaximumStep)
     {
         if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"no region dir: {regionDir}"); return 1; }
@@ -150,7 +138,7 @@ public static class StructureFinder
             new("VOID", 0x0E0E12),
         ];
         // Whether "structure" was read off a recorded extent or off material + step is exactly the fact
-        // capabilities.md's renderer section warns an image cannot carry by colour alone (B133) — so it goes
+        // capabilities.md's renderer section warns an image cannot carry by colour alone — so it goes
         // into the scale line every render already bakes onto the picture.
         var extentReading = provenance is not null ? "recorded provenance" : $"material + step (max {maximumStep})";
         var withLegend = Legend.AppendBelow(scaled, result.BlocksWide * scale, result.BlocksHigh * scale, entries,
@@ -187,13 +175,13 @@ public static class StructureFinder
         // rather than flooded for adjacency; absent provenance, adjacency plus the step test is still the
         // only signal there is.
         var components = provenance is null
-            ? Flood(builtCells, topY, maximumStep).Select(cells => (Owner: WorldProvenance.NoOwner, Cells: cells))
-            : builtCells.GroupBy(cell => provenance.OwnerAt(cell.X, cell.Z) ?? WorldProvenance.NoOwner)
+            ? Flood(builtCells, topY, maximumStep).Select(cells => (Owner: (StampId?)null, Cells: cells))
+            : builtCells.GroupBy(cell => provenance.OwnerAt(cell.X, cell.Z))
                 .Select(group => (Owner: group.Key, Cells: (IReadOnlyList<(int X, int Z)>)[.. group]));
 
         // What each finding is, as opposed to which image of it this one is — the key the accent is chosen
         // by, so a structure and its mirror come out the same colour and a genuinely unpaired one stands out.
-        var identityOf = new List<string>();
+        var identityOf = new List<(string Kind, string Unit)?>();
 
         foreach (var (owner, component) in components)
         {
@@ -201,7 +189,7 @@ public static class StructureFinder
 
             var index = structures.Count;
             foreach (var cell in component) claimed[cell] = index;
-            identityOf.Add(Identity(owner));
+            identityOf.Add(owner?.Identity);
 
             var roofs = component.Select(cell => topY[cell]).OrderBy(y => y).ToList();
             var bases = component.Select(cell => baseY[cell]).OrderBy(y => y).ToList();

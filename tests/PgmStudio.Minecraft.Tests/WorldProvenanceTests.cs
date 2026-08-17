@@ -1,7 +1,8 @@
+using PgmStudio.Domain;
 using PgmStudio.Minecraft.Anvil;
 namespace PgmStudio.Minecraft.Tests;
 
-/// <summary>The build-pass provenance record (B133): which layer claimed each column, last, so a renderer
+/// <summary>The build-pass provenance record: which layer claimed each column, last, so a renderer
 /// can answer Ground/Structure from a recorded fact rather than from the block's own material.</summary>
 public sealed class WorldProvenanceTests
 {
@@ -73,47 +74,47 @@ public sealed class WorldProvenanceTests
     }
 
     [Test]
-    public async Task A_claim_with_no_owner_answers_WorldProvenance_NoOwner_not_null()
+    public async Task A_claim_with_no_owner_answers_null_while_its_layer_still_answers()
     {
         // NoOwner is a real, recorded answer — the column was claimed, by nothing identified — and has to
         // read differently from a column nothing ever claimed at all.
         var provenance = new WorldProvenance();
         provenance.Claim(5, 5, ProvenanceLayer.Ground);
-        await Assert.That(provenance.OwnerAt(5, 5)).IsEqualTo(WorldProvenance.NoOwner);
+        await Assert.That(provenance.OwnerAt(5, 5)).IsEqualTo(null);
     }
 
     [Test]
     public async Task A_claim_carries_the_owner_it_was_given()
     {
         var provenance = new WorldProvenance();
-        provenance.Claim(5, 5, ProvenanceLayer.Structure, "house:d-h1:0");
-        await Assert.That(provenance.OwnerAt(5, 5)).IsEqualTo("house:d-h1:0");
+        provenance.Claim(5, 5, ProvenanceLayer.Structure, new StampId("house", "d-h1", 0));
+        await Assert.That(provenance.OwnerAt(5, 5)).IsEqualTo(new StampId("house", "d-h1", 0));
     }
 
     [Test]
     public async Task A_later_claim_overwrites_an_earlier_claims_owner_too()
     {
         var provenance = new WorldProvenance();
-        provenance.Claim(5, 5, ProvenanceLayer.Structure, "house:d-h1:0");
-        provenance.Claim(5, 5, ProvenanceLayer.Structure, "house:d-h2:0");
-        await Assert.That(provenance.OwnerAt(5, 5)).IsEqualTo("house:d-h2:0");
+        provenance.Claim(5, 5, ProvenanceLayer.Structure, new StampId("house", "d-h1", 0));
+        provenance.Claim(5, 5, ProvenanceLayer.Structure, new StampId("house", "d-h2", 0));
+        await Assert.That(provenance.OwnerAt(5, 5)).IsEqualTo(new StampId("house", "d-h2", 0));
     }
 
     [Test]
     public async Task ClaimRect_gives_every_column_in_it_the_same_owner()
     {
         var provenance = new WorldProvenance();
-        provenance.ClaimRect(0, 0, 2, 2, ProvenanceLayer.Structure, "wool:0");
-        await Assert.That(provenance.OwnerAt(0, 0)).IsEqualTo("wool:0");
-        await Assert.That(provenance.OwnerAt(2, 2)).IsEqualTo("wool:0");
+        provenance.ClaimRect(0, 0, 2, 2, ProvenanceLayer.Structure, new StampId("wool", "0", 0));
+        await Assert.That(provenance.OwnerAt(0, 0)).IsEqualTo(new StampId("wool", "0", 0));
+        await Assert.That(provenance.OwnerAt(2, 2)).IsEqualTo(new StampId("wool", "0", 0));
     }
 
     [Test]
     public async Task Claim_over_a_cell_set_gives_every_cell_the_same_owner()
     {
         var provenance = new WorldProvenance();
-        provenance.Claim([(0, 0), (1, 0)], ProvenanceLayer.Structure, "house:d-h1:0");
-        await Assert.That(provenance.OwnerAt(0, 0)).IsEqualTo("house:d-h1:0");
-        await Assert.That(provenance.OwnerAt(1, 0)).IsEqualTo("house:d-h1:0");
+        provenance.Claim([(0, 0), (1, 0)], ProvenanceLayer.Structure, new StampId("house", "d-h1", 0));
+        await Assert.That(provenance.OwnerAt(0, 0)).IsEqualTo(new StampId("house", "d-h1", 0));
+        await Assert.That(provenance.OwnerAt(1, 0)).IsEqualTo(new StampId("house", "d-h1", 0));
     }
 }

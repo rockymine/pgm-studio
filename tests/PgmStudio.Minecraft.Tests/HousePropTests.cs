@@ -191,7 +191,7 @@ public sealed class HousePropTests
         await Assert.That(Height(world, 12, 9)).IsEqualTo(0);          // two blocks past it, untouched
     }
 
-    // ── a building of more than one wing (G177) ───────────────────────────────────────────────────────
+    // ── a building of more than one wing ───────────────────────────────────────────────────────
     [Test]
     public async Task Two_touching_wings_of_one_prop_stand_as_one_house_rather_than_colliding()
     {
@@ -436,7 +436,7 @@ public sealed class HousePropTests
         await Assert.That(openOnNegX).IsEqualTo(0);
     }
 
-    // ── what the pass claims (B202): the claim is the placement's, not the document's ─────────────────
+    // ── what the pass claims: the claim is the placement's, not the document's ─────────────────
     [Test]
     public async Task A_building_that_was_raised_claims_its_whole_footprint()
     {
@@ -482,10 +482,13 @@ public sealed class HousePropTests
             world, Context(top, [House(10, 10, 14, 14)], symmetry: "rot_180"));
 
         await Assert.That(placed.Houses).IsEqualTo(2);
+        // Two claims that are one identity seen twice: same unit, different image — which is what lets a
+        // reader pair a building with its own mirror instead of matching cell sets and hoping.
         var owners = placed.Structures.Select(claim => claim.Owner).ToList();
-        await Assert.That(owners).Contains("house:h1:0");
-        await Assert.That(owners).Contains("house:h1:1");
-        await Assert.That(owners.Distinct().Count()).IsEqualTo(2);
+        await Assert.That(owners.Select(owner => owner.Identity).Distinct().Count()).IsEqualTo(1);
+        await Assert.That(owners.Select(owner => owner.Image).Order()).IsEquivalentTo(new[] { 0, 1 });
+        await Assert.That(owners).Contains(new StampId("house", "h1", 0));
+        await Assert.That(owners).Contains(new StampId("house", "h1", 1));
 
         var cells = placed.Structures.SelectMany(claim => claim.Cells).ToList();
         await Assert.That(cells).Contains((10, 10));
@@ -500,7 +503,7 @@ public sealed class HousePropTests
             [House("h1", null, (0, 0, 3, 2)), House("h2", null, (40, 40, 43, 42))]));
 
         await Assert.That(placed.Structures.Select(claim => claim.Owner).Distinct().Count())
-            .IsEqualTo(placed.Structures.Count);
+            .IsEqualTo(placed.Structures.Count());
     }
 
     [Test]
@@ -519,7 +522,7 @@ public sealed class HousePropTests
     [Test]
     public async Task A_building_the_pass_declined_to_place_claims_nothing()
     {
-        // The defect B202 names, as a test. Two authored houses whose stamped rings overlap: the first stands,
+        // The defect, as a test. Two authored houses whose stamped rings overlap: the first stands,
         // the second is dropped whole by MG7, and a claim rebuilt from the author's intent would have claimed
         // both — 56 columns of Structure over bare ground on the measured board, with a stage image drawing a
         // building that is not there and saying it was certain.
@@ -529,7 +532,7 @@ public sealed class HousePropTests
 
         await Assert.That(placed.Houses).IsEqualTo(1);
         await Assert.That(placed.Structures.Count).IsEqualTo(1);
-        await Assert.That(placed.Structures.Single().Owner).IsEqualTo("house:a:0");
+        await Assert.That(placed.Structures.Single().Owner).IsEqualTo(new StampId("house", "a", 0));
     }
 
     [Test]

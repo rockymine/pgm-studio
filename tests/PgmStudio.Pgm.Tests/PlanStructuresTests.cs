@@ -44,8 +44,12 @@ public sealed class PlanStructuresTests
     {
         var s = Structures();
         // team-0 room footprint = the wool piece rect in blocks, plus its rot_180 image.
-        await Assert.That(s.RoomFloors).Contains(new Rect(0, 20, 10, 30));
-        await Assert.That(s.RoomFloors).Contains(new Rect(-10, -30, 0, -20));
+        await Assert.That(s.RoomFloors.Select(floor => floor.Area)).Contains(new Rect(0, 20, 10, 30));
+        await Assert.That(s.RoomFloors.Select(floor => floor.Area)).Contains(new Rect(-10, -30, 0, -20));
+
+        // And the pair is one room seen twice rather than two rooms: same unit, one image each.
+        await Assert.That(s.RoomFloors.Select(floor => floor.Stamp.Identity).Distinct().Count()).IsEqualTo(1);
+        await Assert.That(s.RoomFloors.Select(floor => floor.Stamp.Image).Order()).IsEquivalentTo(new[] { 0, 1 });
     }
 
     [Test]
@@ -53,10 +57,13 @@ public sealed class PlanStructuresTests
     {
         var s = Structures();
         // seam at z=20 (wool's front), the last room row; ends where the torches sit.
-        await Assert.That(s.RedstoneLines).Contains(new RedstoneLine(0, 20, 9, 20));
+        // The row, not the whole record: the stamp id on it is a different claim, asserted where it belongs.
+        await Assert.That(s.RedstoneLines.Select(line => (line.X1, line.Z1, line.X2, line.Z2)))
+                    .Contains((0, 20, 9, 20));
         // the orbit image lands one row inside the mirrored room too: a block at index c maps to −c−1,
         // so the rot_180 row sits at z=−21 spanning the room's x — not one block off, outside the room.
-        await Assert.That(s.RedstoneLines).Contains(new RedstoneLine(-10, -21, -1, -21));
+        await Assert.That(s.RedstoneLines.Select(line => (line.X1, line.Z1, line.X2, line.Z2)))
+                    .Contains((-10, -21, -1, -21));
     }
 
     [Test]

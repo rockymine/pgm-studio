@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -24,13 +25,24 @@ public static class WorldProvenanceFile
 {
     private const string FileName = "provenance.json";
 
-    // OwnerId 0 is reserved for WorldProvenance.NoOwner and never appears in the id table — every claim
-    // shares that reading without needing a table slot, since it is one value rather than one per pass.
-    private sealed record Run(int Z, int MinX, int MaxX, [property: JsonPropertyName("structure")] bool Structure,
+    // OwnerId 0 is reserved for a claim with no id and never appears in the table — every such claim shares
+    // that reading without needing a slot, since it is one value rather than one per pass. `layer` likewise
+    // defaults away: Ground is the commonest claim on any board by a wide margin, so writing it only where it
+    // is something else keeps the file to the runs that say something.
+    private sealed record Run(int Z, int MinX, int MaxX,
+        [property: JsonPropertyName("layer"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] int Layer,
         [property: JsonPropertyName("owner"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] int OwnerId);
 
+    /// <summary>One entry of the id table: a stamp's three fields, written once however many runs carry it.
+    /// Fields rather than one packed string, because the reader groups on the pair and pairs on the image, and
+    /// a string it had to split back apart would be the ambiguity the id exists to remove.</summary>
+    private sealed record OwnerEntry(
+        [property: JsonPropertyName("kind")] string Kind,
+        [property: JsonPropertyName("unit")] string Unit,
+        [property: JsonPropertyName("image")] int Image);
+
     private sealed record Sidecar(
-        [property: JsonPropertyName("owners")] List<string> Owners,
+        [property: JsonPropertyName("owners")] List<OwnerEntry> Owners,
         [property: JsonPropertyName("runs")] List<Run> Runs);
 
     /// <summary>Write the sidecar into <paramref name="regionDir"/>, creating it if needed.</summary>
@@ -52,7 +64,7 @@ public static class WorldProvenanceFile
 
         // The record has no version field to gate on, so an incompatible shape is read the same way a missing
         // file is: as no record. That covers both a parse failure outright (the pre-owner sidecar this file
-        // wrote before B139 was a bare JSON array, which fails to convert to this object shape and raises
+        // wrote in an earlier revision was a bare JSON array, which fails to convert to this object shape and raises
         // JsonException rather than returning null the way a mismatched shape normally would) and a shape that
         // parses but is missing the one field this reader cannot proceed without.
         Sidecar? sidecar;
@@ -65,24 +77,24 @@ public static class WorldProvenanceFile
         foreach (var run in sidecar.Runs)
         {
             var owner = run.OwnerId > 0 && run.OwnerId <= owners.Count
-                ? owners[run.OwnerId - 1] : WorldProvenance.NoOwner;
-            provenance.ClaimRect(run.MinX, run.Z, run.MaxX, run.Z,
-                run.Structure ? ProvenanceLayer.Structure : ProvenanceLayer.Ground, owner);
+                ? new StampId(owners[run.OwnerId - 1].Kind, owners[run.OwnerId - 1].Unit, owners[run.OwnerId - 1].Image)
+                : (StampId?)null;
+            provenance.ClaimRect(run.MinX, run.Z, run.MaxX, run.Z, (ProvenanceLayer)run.Layer, owner);
         }
         return provenance;
     }
 
     /// <summary>Every claimed column, grouped into maximal same-layer, same-owner runs along X within each Z
-    /// row, with every distinct owner string collapsed to one id-table slot.</summary>
+    /// row, with every distinct stamp collapsed to one id-table slot.</summary>
     private static Sidecar Encode(WorldProvenance provenance)
     {
-        var ownerIds = new Dictionary<string, int>();
-        int OwnerId(string owner)
+        var ownerIds = new Dictionary<StampId, int>();
+        int OwnerId(StampId? owner)
         {
-            if (owner == WorldProvenance.NoOwner) return 0;
-            if (ownerIds.TryGetValue(owner, out var id)) return id;
+            if (owner is not { } stamp) return 0;
+            if (ownerIds.TryGetValue(stamp, out var id)) return id;
             id = ownerIds.Count + 1;
-            ownerIds[owner] = id;
+            ownerIds[stamp] = id;
             return id;
         }
 
@@ -99,17 +111,17 @@ public static class WorldProvenanceFile
             {
                 var (cell, layer, owner) = sorted[i];
                 if (cell.X == previousX + 1 && layer == runLayer && owner == runOwner) { previousX = cell.X; continue; }
-                runs.Add(new Run(row.Key, runStartX, previousX, runLayer == ProvenanceLayer.Structure, OwnerId(runOwner)));
+                runs.Add(new Run(row.Key, runStartX, previousX, (int)runLayer, OwnerId(runOwner)));
                 runStartX = cell.X;
                 runLayer = layer;
                 runOwner = owner;
                 previousX = cell.X;
             }
-            runs.Add(new Run(row.Key, runStartX, previousX, runLayer == ProvenanceLayer.Structure, OwnerId(runOwner)));
+            runs.Add(new Run(row.Key, runStartX, previousX, (int)runLayer, OwnerId(runOwner)));
         }
 
-        var owners = new string[ownerIds.Count];
-        foreach (var (owner, id) in ownerIds) owners[id - 1] = owner;
+        var owners = new OwnerEntry[ownerIds.Count];
+        foreach (var (owner, id) in ownerIds) owners[id - 1] = new OwnerEntry(owner.Kind, owner.Unit, owner.Image);
         return new Sidecar([.. owners], runs);
     }
 }

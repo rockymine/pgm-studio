@@ -169,7 +169,7 @@ static void Build(MapSpec spec, bool describeOnly, bool forceStages)
     Directory.CreateDirectory(outDir);
     var regionDir = Path.Combine(outDir, "region");
     AnvilRegionWriter.Write(built.World, regionDir);
-    // Beside the voxels, not inside them (B133) — a block carries no provenance byte, so what claimed each
+    // Beside the voxels, not inside them — a block carries no provenance byte, so what claimed each
     // column travels as this sidecar rather than being lost the moment the world round-trips through disk.
     WorldProvenanceFile.Write(built.Provenance, regionDir);
     DressingReportFile.Write(built.DroppedProps, regionDir);

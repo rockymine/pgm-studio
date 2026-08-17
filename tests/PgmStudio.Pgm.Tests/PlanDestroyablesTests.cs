@@ -103,7 +103,7 @@ public sealed class PlanDestroyablesTests
         await Assert.That(findings.Any(f => f.Severity == Severity.Refusal && f.Message.Contains("destroyable"))).IsTrue();
     }
 
-    // B128: a destroyable is the one marker kind that may ride no piece at all — an empty `piece` reads `at`
+    // A destroyable is the one marker kind that may ride no piece at all — an empty `piece` reads `at`
     // as an absolute board position, so a goal can stand on ground that exists only as an authored sketch
     // shape, with no plan piece manufactured to carry it. Under the old code this marker's piece lookup
     // (`d.Piece("")`) returned null and the whole placement was silently dropped from the compiled intent.
@@ -133,7 +133,7 @@ public sealed class PlanDestroyablesTests
         await Assert.That(d[0].Anchor.Z).IsEqualTo(2.0 * 5);
     }
 
-    // B128: the compile-time gate has no ground truth for an absolute marker (the landform it will ride is
+    // The compile-time gate has no ground truth for an absolute marker (the landform it will ride is
     // sketch geometry the plan never sees), so it must not report the piece-required error the old validator
     // raised for every marker naming an unknown/empty piece.
     [Test]
@@ -146,7 +146,7 @@ public sealed class PlanDestroyablesTests
     }
 
     // The absolute exception is destroyable/core only — every other marker kind still requires a real piece
-    // (B105 is the system-wide question; this task narrows to the two goal markers).
+    // (the system-wide question is wider; this narrows to the two goal markers).
     [Test]
     public async Task A_spawn_with_no_piece_is_still_a_dangling_reference()
     {

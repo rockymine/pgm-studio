@@ -40,7 +40,7 @@ public static class PlanCompiler
     }
 
     // Project a plan's placed structural piece — a spawn building or a wool room — into the layout as a
-    // locked annotation rectangle (S25), so refining a plan in the sketch keeps it visible instead of letting
+    // locked annotation rectangle, so refining a plan in the sketch keeps it visible instead of letting
     // it dissolve into the fused island polygon. The piece rect is the whole story: it is the
     // protection/room region, it sizes the stamped foundation, and the marker sits relative to it, so the
     // rectangle alone re-secures the link back to the intent entity. Role-tagged, so the rasterizer skips it
@@ -191,8 +191,9 @@ public static class PlanCompiler
 
         var spawns = new List<SpawnIntent>();
         for (var k = 0; k < order; k++)
-            foreach (var s in plan.Placements.Spawns)
+            for (var spawnIndex = 0; spawnIndex < plan.Placements.Spawns.Count; spawnIndex++)
             {
+                var s = plan.Placements.Spawns[spawnIndex];
                 var piece = d.Piece(s.Piece);
                 if (piece is null) continue;
                 var (bx, bz) = Resolve(piece.Value.Rect, s.At, d.Cell);
@@ -202,6 +203,7 @@ public static class PlanCompiler
                 spawns.Add(new SpawnIntent
                 {
                     Team = teams[k].Id,
+                    Stamp = Stamp("spawn", s.Id, spawnIndex, k),
                     // Y here is the plan's own flat nominal height, exactly as ResolveGoalAnchor's is:
                     // informational, carried for a caller with no built world to read yet, and never the
                     // spawn's real Y. SketchWorldBuilder resolves that against the terrain the relief
@@ -252,6 +254,7 @@ public static class PlanCompiler
                 wools.Add(new WoolIntent
                 {
                     Owner = teams[k].Id,
+                    Stamp = Stamp("wool", w.Id, i, k),
                     Color = color,
                     // The room region is the whole wool-room piece the marker sits on, not just the stamped cage.
                     Room = [new Rect(room.MinX, room.MinZ, room.MaxX, room.MaxZ)],
@@ -292,6 +295,7 @@ public static class PlanCompiler
                 destroyables.Add(new DestroyableIntent
                 {
                     Owner = teams[k].Id,
+                    Stamp = Stamp("destroyable", b.Id, i, k),
                     Name = !string.IsNullOrEmpty(b.Name) ? b.Name : MonumentName(teams[k].Name, i),
                     Style = !string.IsNullOrEmpty(b.Style) ? b.Style : DestroyableStyles.Slug(ObjectiveDefaults.Style),
                     Materials = !string.IsNullOrEmpty(b.Materials) ? b.Materials : ObjectiveDefaults.Materials,
@@ -303,13 +307,15 @@ public static class PlanCompiler
         // cores: the destroyable's fan with the casing's own knobs. Order-2 only, for the same reason (OB14).
         var cores = new List<CoreIntent>();
         for (var k = 0; k < order && order == 2; k++)
-            foreach (var c in plan.Placements.Cores)
+            for (var i = 0; i < plan.Placements.Cores.Count; i++)
             {
+                var c = plan.Placements.Cores[i];
                 if (ResolveGoalAnchor(plan, d, c.Piece, c.At) is not { } anchor) continue;
                 var (px, pz) = ObjectiveFootprint.ImageAnchor(anchor.X, anchor.Z, d.Mode, 0, 0, k);
                 cores.Add(new CoreIntent
                 {
                     Owner = teams[k].Id,
+                    Stamp = Stamp("core", c.Id, i, k),
                     Name = c.Name ?? "",                 // empty is correct: PGM names a core itself
                     Anchor = new Pt(px, anchor.Surface, pz),
                     Size = c.Size ?? ObjectiveDefaults.CoreSize,
@@ -373,7 +379,8 @@ public static class PlanCompiler
             {
                 var r = d.FanRect(piece.Rect, k);
                 if (floorSeen.Add((r.MinX, r.MinZ, r.MaxX, r.MaxZ)))
-                    s.RoomFloors.Add(new Rect(r.MinX, r.MinZ, r.MaxX, r.MaxZ));
+                    s.RoomFloors.Add(new RoomFloor(new Rect(r.MinX, r.MinZ, r.MaxX, r.MaxZ),
+                                                   new StampId("roomfloor", piece.Id, k)));
             }
 
         // ST1 entrance redstone — the last block row inside the room along each entry interface: every
@@ -394,8 +401,9 @@ public static class PlanCompiler
             if (piece?.Role == PlanRoles.WoolRoom)
                 entranceSegments.Add((piece.Value.Rect, edge.X1, edge.Z1, edge.X2, edge.Z2));
         }
-        foreach (var (roomRect, sx1, sz1, sx2, sz2) in entranceSegments)
+        for (var entrance = 0; entrance < entranceSegments.Count; entrance++)
         {
+            var (roomRect, sx1, sz1, sx2, sz2) = entranceSegments[entrance];
             var (ex1, ez1, ex2, ez2) = EntranceRow(roomRect, sx1, sz1, sx2, sz2);
             // Fan the row as a block-region rect, not as its two endpoints: a block at index c occupies
             // [c, c+1), so it mirrors to block −c−1, not −c. Reflecting the endpoint points lands a mirror
@@ -410,7 +418,8 @@ public static class PlanCompiler
                 var r = d.FanRect(row, k);
                 int x1 = r.MinX, z1 = r.MinZ, x2 = r.MaxX - 1, z2 = r.MaxZ - 1;
                 if (lineSeen.Add((x1, z1, x2, z2)) && lineSeen.Add((x2, z2, x1, z1)))
-                    s.RedstoneLines.Add(new RedstoneLine(x1, z1, x2, z2));
+                    s.RedstoneLines.Add(new RedstoneLine(x1, z1, x2, z2,
+                        new StampId("redstoneline", entrance.ToString(System.Globalization.CultureInfo.InvariantCulture), k)));
             }
         }
 
@@ -420,8 +429,9 @@ public static class PlanCompiler
         var framedSpawnPieces = plan.Placements.Spawns
             .Select(s => s.Piece).Where(id => d.Piece(id)?.Role == PlanRoles.Spawn).ToHashSet();
         var ironSeen = new HashSet<(int, int)>();
-        foreach (var ir in plan.Placements.Iron)
+        for (var ironIndex = 0; ironIndex < plan.Placements.Iron.Count; ironIndex++)
         {
+            var ir = plan.Placements.Iron[ironIndex];
             if (framedSpawnPieces.Contains(ir.Piece)) continue;
             var piece = d.Piece(ir.Piece);
             if (piece is null) continue;
@@ -432,15 +442,18 @@ public static class PlanCompiler
                 var (px, pz) = d.FanPoint(bx, bz, k);
                 int ax = (int)Math.Round(px, MidpointRounding.AwayFromZero);
                 int az = (int)Math.Round(pz, MidpointRounding.AwayFromZero);
-                if (ironSeen.Add((ax, az))) s.IronCubes.Add(new IronCube(ax, az, renew));
+                if (ironSeen.Add((ax, az)))
+                    s.IronCubes.Add(new IronCube(ax, az, renew, Stamp("ironcube", ir.Id, ironIndex, k)));
             }
         }
 
         // ST4 approach walls — a bedrock barrier over each marked wool-lane interface, on the attack side.
         var wallSeen = new HashSet<(int, int, int, int)>();
         var dist = WoolWalkDistances(plan, d);
-        foreach (var c in d.WallInterfaces)
+        var wallInterfaces = d.WallInterfaces.ToList();
+        for (var wallIndex = 0; wallIndex < wallInterfaces.Count; wallIndex++)
         {
+            var c = wallInterfaces[wallIndex];
             var (approach, _) = ApproachSide(d, dist, c);
             var pieceA = d.Piece(c.A)!.Value;
             var pieceB = d.Piece(c.B)!.Value;
@@ -456,7 +469,8 @@ public static class PlanCompiler
                 var face = d.FanRect(chestRect, k);
                 var thinAlongX = r.MaxX - r.MinX <= r.MaxZ - r.MinZ;
                 var onMinFace = thinAlongX ? face.MaxX <= r.MinX + 1 : face.MaxZ <= r.MinZ + 1;
-                s.Walls.Add(new WallStructure(r.MinX, r.MinZ, r.MaxX, r.MaxZ, topY, onMinFace));
+                s.Walls.Add(new WallStructure(r.MinX, r.MinZ, r.MaxX, r.MaxZ, topY, onMinFace,
+                    new StampId("wall", wallIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), k)));
             }
         }
 
@@ -570,12 +584,20 @@ public static class PlanCompiler
         return areas;
     }
 
+
+    /// <summary>The identity a placement carries into the world: its own id where the author gave it one, its
+    /// index in the authored list where they did not, and which orbit image this fan is producing. Minted here
+    /// because here is where both halves are known — the stamper receives an already-fanned list and can only
+    /// count, which is what made two images of one thing unpairable.</summary>
+    private static StampId Stamp(string kind, string authoredId, int index, int image)
+        => new(kind, string.IsNullOrEmpty(authoredId) ? index.ToString(System.Globalization.CultureInfo.InvariantCulture) : authoredId, image);
+
     // Piece-relative half-cell offset → block coordinate (piece origin + offset·cell). A .5 offset lands on a
     // 2.5-block half-cell; downstream flooring/snapping is the export pipeline's job, so the raw value flows on.
     private static (double X, double Z) Resolve(BlockRect piece, double[] at, int cell) =>
         (piece.MinX + at[0] * cell, piece.MinZ + at[1] * cell);
 
-    // A destroyable's or a core's anchor — the one marker kind that may ride no piece at all (B128). A named
+    // A destroyable's or a core's anchor — the one marker kind that may ride no piece at all. A named
     // piece resolves exactly as every other marker's does; an empty one reads `at` as an absolute cell offset
     // from the symmetry centre, the same frame a piece's own rect is authored in, so a goal can stand on
     // ground that exists only as an authored sketch shape with no plan piece behind it. `Surface` here is the

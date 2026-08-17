@@ -121,11 +121,21 @@ public static class SymmetryExpander
     }
 
     // ── spawns ──────────────────────────────────────────────────────────────────────────
+
+    /// <summary>The identity an authored entry carries into its orbit. An intent compiled from a plan already
+    /// has one; one authored in Configure does not, so it is given its list index here — <b>before</b> the
+    /// fan, because after it the images are exactly what cannot be told apart. Every image then differs from
+    /// the authored unit only in <see cref="StampId.Image"/>.</summary>
+    private static StampId Seed(StampId stamp, string kind, int index)
+        => !string.IsNullOrEmpty(stamp.Kind) ? stamp
+         : new StampId(kind, index.ToString(System.Globalization.CultureInfo.InvariantCulture), 0);
+
     private static List<SpawnIntent> FillSpawns(List<SpawnIntent> authored, List<TeamDef> teams, SymmetryIntent sym, int order)
     {
-        var result = new List<SpawnIntent>(authored);
-        var have = new HashSet<string>(authored.Select(s => s.Team));
-        foreach (var src in authored)
+        var seeded = authored.Select((s, index) => s with { Stamp = Seed(s.Stamp, "spawn", index) }).ToList();
+        var result = new List<SpawnIntent>(seeded);
+        var have = new HashSet<string>(seeded.Select(s => s.Team));
+        foreach (var src in seeded)
         {
             var i = IndexOfTeam(teams, src.Team);
             if (i < 0) continue;
@@ -136,6 +146,7 @@ public static class SymmetryExpander
                 result.Add(src with
                 {
                     Team = target,
+                    Stamp = src.Stamp.At(k),
                     Point = TransformPt(src.Point, sym, k),
                     Protection = src.Protection.Select(r => TransformRect(r, sym, k)).ToList(),
                     Yaw = TransformYaw(src.Yaw, sym, k),
@@ -149,9 +160,10 @@ public static class SymmetryExpander
     private static List<WoolIntent>? FillWools(List<WoolIntent>? authored, List<TeamDef> teams, SymmetryIntent sym, int order)
     {
         if (authored is null) return null;
-        var result = new List<WoolIntent>(authored);
-        var have = new HashSet<string>(authored.Select(w => w.Owner));
-        foreach (var src in authored)
+        var seeded = authored.Select((w, index) => w with { Stamp = Seed(w.Stamp, "wool", index) }).ToList();
+        var result = new List<WoolIntent>(seeded);
+        var have = new HashSet<string>(seeded.Select(w => w.Owner));
+        foreach (var src in seeded)
         {
             var i = IndexOfTeam(teams, src.Owner);
             if (i < 0) continue;
@@ -162,6 +174,7 @@ public static class SymmetryExpander
                 result.Add(src with
                 {
                     Owner = owner.Id,
+                    Stamp = src.Stamp.At(k),
                     Color = "",   // orbit copies default to the new owner team's colour (WoolGenerator.ColorSlug)
                     Room = src.Room.Select(r => TransformRect(r, sym, k)).ToList(),
                     Spawn = TransformPt(src.Spawn, sym, k),
@@ -191,9 +204,10 @@ public static class SymmetryExpander
         List<DestroyableIntent>? authored, List<TeamDef> teams, SymmetryIntent sym, int order)
     {
         if (authored is null) return null;
-        var result = new List<DestroyableIntent>(authored);
-        var have = new HashSet<string>(authored.Select(d => d.Owner));
-        foreach (var src in authored)
+        var seeded = authored.Select((d, index) => d with { Stamp = Seed(d.Stamp, "destroyable", index) }).ToList();
+        var result = new List<DestroyableIntent>(seeded);
+        var have = new HashSet<string>(seeded.Select(d => d.Owner));
+        foreach (var src in seeded)
         {
             var index = IndexOfTeam(teams, src.Owner);
             if (index < 0) continue;
@@ -204,6 +218,7 @@ public static class SymmetryExpander
                 result.Add(src with
                 {
                     Owner = owner.Id,
+                    Stamp = src.Stamp.At(k),
                     // PGM rejects a nameless destroyable, and one name for both teams reads as one goal —
                     // so the copy takes its new owner's, the same form the plan compiler mints.
                     Name = $"{owner.Name} Monument",
@@ -219,9 +234,10 @@ public static class SymmetryExpander
         List<CoreIntent>? authored, List<TeamDef> teams, SymmetryIntent sym, int order)
     {
         if (authored is null) return null;
-        var result = new List<CoreIntent>(authored);
-        var have = new HashSet<string>(authored.Select(core => core.Owner));
-        foreach (var src in authored)
+        var seeded = authored.Select((c, index) => c with { Stamp = Seed(c.Stamp, "core", index) }).ToList();
+        var result = new List<CoreIntent>(seeded);
+        var have = new HashSet<string>(seeded.Select(core => core.Owner));
+        foreach (var src in seeded)
         {
             var index = IndexOfTeam(teams, src.Owner);
             if (index < 0) continue;
@@ -234,6 +250,7 @@ public static class SymmetryExpander
                 result.Add(src with
                 {
                     Owner = owner.Id,
+                    Stamp = src.Stamp.At(k),
                     Anchor = TransformPt(src.Anchor, sym, k),
                     Box = TransformBox(src.Box, sym, k),
                 });
