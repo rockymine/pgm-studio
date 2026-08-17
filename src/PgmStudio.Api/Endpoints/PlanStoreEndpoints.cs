@@ -79,7 +79,12 @@ public sealed class PlanSaveEndpoint(PlanStore store) : Endpoint<PlanSaveRequest
         PlanModel? plan;
         try { plan = string.IsNullOrWhiteSpace(req.PlanJson) ? null : PlanModel.Parse(req.PlanJson); }
         catch (JsonException) { plan = null; }
-        if (plan is null) { await Send.ResponseAsync(new { error = "Malformed plan JSON" }, 400, ct); return; }
+        if (plan is null)
+        {
+            await Refusals.UnreadableAsync(HttpContext, "malformed plan JSON",
+                "the body is not a plan document: it is empty, or it is not JSON the plan reader accepts", ct);
+            return;
+        }
 
         var row = await store.SaveFromEditorAsync(req.PlanJson, req.SourceId, ct);
         await Send.OkAsync(PlanStoreMapping.ToDetail(row), ct);

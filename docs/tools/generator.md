@@ -234,9 +234,10 @@ already held, then commits the candidate to a map and navigates to `/maps/{slug}
 The generator has almost no gate, because the gate it needs already ran inside the compose. Three things
 nonetheless refuse.
 
-**An unsupported symmetry is 400.** `rot_90` and `mirror_x` answer
-`{"error": "unsupported symmetry 'rot_90'"}` rather than composing something wrong, and the page renders those
-two chips disabled with the reason on the tooltip. An invalid parameter combination — a bad team count, a
+**An unsupported symmetry is 400.** `rot_90` and `mirror_x` answer the refusal envelope every gate answers in
+— `{"error": "unsupported symmetry", "message", "findings": [{"rule": "RQ1", "field": "symmetry", …}]}` —
+rather than composing something wrong, and the page renders those two chips disabled with the reason on the
+tooltip. An invalid parameter combination — a bad team count, a
 symmetry that team count cannot fan — is 400 the same way, thrown where the request is made rather than
 surfacing deep inside generation.
 

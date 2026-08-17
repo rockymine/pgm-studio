@@ -61,6 +61,19 @@ internal static class Refusals
             [new Finding(RequestRules.Unreadable, fault.Message,
                 Field: (fault as DocumentFault)?.Field)], ct);
 
+    /// <summary>
+    /// The same refusal where the endpoint has a sentence rather than an exception: a body that is not the
+    /// document the route takes, a required parameter absent, a value outside a closed set. All of them are
+    /// <c>RQ1</c> — the request itself could not be acted on — and all of them answer <b>400</b>, because the
+    /// caller is the one who can fix it.
+    /// <para>The sentence is the half that makes it actionable, so it says what was expected rather than that
+    /// something was wrong; <paramref name="field"/> names the parameter where one is nameable, which is what
+    /// lets a client put the message beside the input rather than at the top of the page.</para>
+    /// </summary>
+    public static Task UnreadableAsync(
+        HttpContext http, string error, string message, CancellationToken ct, string? field = null) =>
+        WriteAsync(http, 400, error, [new Finding(RequestRules.Unreadable, message, Field: field)], ct);
+
     /// <summary>The fields a reader had nowhere to keep, as complaints to ride on a success response under
     /// <c>warnings</c>. Null when the document was read whole, so a response carries the field only when there
     /// is something in it to say.</summary>

@@ -638,6 +638,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **A request fault answers the one envelope, whichever route it arrived at (RP2, first half).** 24 sites
+  hand-rolled a bare `{error}` — six *malformed plan JSON*, five *invalid plan structure*, three *invalid
+  JSON*, and a dozen parameter faults each phrased its own way — so a caller could not write one parser for
+  the studio's own front door. All of them are one fault, *the request could not be acted on*, so all of them
+  are now `RQ1` at 400 through `Refusals.UnreadableAsync`, carrying `error`, `message` and `findings[]` like
+  every gate, with `field` naming the parameter where it has a name (`symmetry`, `bounds`, `box`, `axis`,
+  `center`, `family`, `confirmed_type`). The sentence says what was expected rather than that something was
+  wrong, and where an exception carried the detail it is the exception's own message rather than a swallowed
+  `catch { }`.
 - **A door's approach keeps props out instead of refusing the map, and every decline says why (WE1, B106).**
   `DressingScope.ApproachAt` was read only by the export gate, so a tree in a spawn door's lane was built,
   drawn in the 3-D preview, and then refused at export by `OB21` — three answers to one question. The

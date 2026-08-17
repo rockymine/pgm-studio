@@ -95,7 +95,8 @@ public sealed class MapPlanPutEndpoint(MapRepository repo, MapArtifactStore arti
         await HttpContext.Request.Body.CopyToAsync(ms, ct);
         var bytes = ms.ToArray();
         try { using var _ = JsonDocument.Parse(bytes); }   // reject non-JSON; don't store garbage
-        catch { await Send.ResponseAsync(new { error = "invalid JSON" }, 400, ct); return; }
+        catch (JsonException fault)
+        { await Refusals.UnreadableAsync(HttpContext, "invalid JSON", fault.Message, ct); return; }
 
         await artifacts.SaveAsync(map.Id, ArtifactKind.PlanJson, bytes, ct);
         await Send.OkAsync(new { ok = true }, ct);

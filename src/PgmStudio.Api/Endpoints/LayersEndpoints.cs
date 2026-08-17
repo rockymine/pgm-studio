@@ -218,7 +218,8 @@ public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWit
         if (string.IsNullOrEmpty(axis)) axis = "nz";
         if (axis is not ("x" or "z" or "nz" or "pz" or "nx" or "px"))
         {
-            await Send.ResponseAsync(new Dict { ["error"] = "axis must be one of nz/pz/nx/px (or legacy x/z)" }, 400, ct);
+            await Refusals.UnreadableAsync(HttpContext, "invalid axis",
+                "axis must be one of nz/pz/nx/px (or the legacy x/z)", ct, field: "axis");
             return;
         }
 
@@ -266,7 +267,11 @@ public sealed class ColumnFloorEndpoint(MapRepository repo, PgmDb db) : Endpoint
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
         if (map is null) { await Send.NotFoundAsync(ct); return; }
         if (!int.TryParse(HttpContext.Request.Query["x"], out var x) || !int.TryParse(HttpContext.Request.Query["z"], out var z))
-        { await Send.ResponseAsync(new Dict { ["error"] = "x and z are required" }, 400, ct); return; }
+        {
+            await Refusals.UnreadableAsync(HttpContext, "column not named",
+                "a column is asked for by its x and z, and one of them is missing", ct);
+            return;
+        }
         var refY = int.TryParse(HttpContext.Request.Query["y"], out var ry) ? ry : int.MaxValue;
 
         var tops = await db.LayerSegments

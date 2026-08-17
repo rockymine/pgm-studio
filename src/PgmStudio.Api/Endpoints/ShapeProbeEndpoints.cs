@@ -27,7 +27,8 @@ public sealed class ShapeProbeEndpoint : EndpointWithoutRequest
         if (!Enum.TryParse<ShapeFamily>(familyToken, ignoreCase: true, out var family) ||
             family == ShapeFamily.Isolated)
         {
-            await Send.ResponseAsync(new { error = $"unknown family '{familyToken}'" }, 400, ct);
+            await Refusals.UnreadableAsync(HttpContext, "unknown family",
+                $"'{familyToken}' is not one of the shape families this probe renders", ct, field: "family");
             return;
         }
 

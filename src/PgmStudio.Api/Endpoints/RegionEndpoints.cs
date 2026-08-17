@@ -76,7 +76,12 @@ public sealed class RegionCounterpartEndpoint(MapRepository repo, MapReader read
             if (symRow is not null) { cx ??= symRow.CenterX; cz ??= symRow.CenterZ; }
         }
         if (cx is null || cz is null)
-        { await Send.ResponseAsync(new Dict { ["error"] = "center {cx,cz} required (absent from body and symmetry)" }, 400, ct); return; }
+        {
+            await Refusals.UnreadableAsync(HttpContext, "no centre to mirror about",
+                "the centre is taken from the body as {cx, cz} or from the map's confirmed symmetry, and "
+                + "neither carries one", ct, field: "center");
+            return;
+        }
 
         var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, slug,
             doc => SymmetryAuthoring.CreateCounterpart(doc, regionId, mode, cx.Value, cz.Value), ct);

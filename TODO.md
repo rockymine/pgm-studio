@@ -75,13 +75,22 @@ named the layer and re-verified it after its own fixes landed
 repo's history); the counts below are re-measured against today's tree. The store it named is settled — one
 `MapArtifactStore` keyed on the artifact kind — and what is left is the envelope and the chain.
 
-- [ ] **RP2 — The refusal envelope still has three anonymous shapes beside the typed one.** `Refusals.Of`,
-  `WriteAsync` and `StopAsync` are the envelope, and `RefusalDto` + `Finding.Envelope` are the deliberate
-  pair carrying the drift warning. Beside them sit **31** hand-rolled sites in three sub-shapes — 24
-  `new { error }`, 4 `new { error, message = ex.Message }`, 3 `new { error, used }` — plus a bare `{error}`
-  `Dict` in `MapExportComposer`'s exception path. A caller cannot write one parser for that. Convert each
-  onto the envelope; the only non-mechanical part is giving each its rule id from `docs/refusals.md`, which
-  is the work that makes the conversion worth doing rather than a rename.
+- [~] **RP2 — Twenty hand-rolled refusals are left, and each needs a rule id nobody has ruled on.** The
+  request faults are converted (24 sites, all `RQ1`). What remains is five groups, and every one of them is a
+  question rather than a rename:
+
+  **The work failed on a document that read.** `could not paint layout`, `could not build layout`, `could not
+  solve relief` (×2), `could not render plan`, `composition failed for this descriptor` — a catch-all around a
+  posted document that parsed. `RQ1` says *could not be read*, which these are not, and `RQ2` is a 500. Either
+  a new id, or the ruling that they are the studio's own fault and belong at 500.
+
+  **Two are real sketch gates** and want `SK*` ids beside `SK1`: *No sketch layout to finish* and *Nothing is
+  drawn: the layout rasterizes to no ground*. **The stored artifact is the unreadable one** in `stored plan is
+  unreadable` (×2, 422): the row will not parse, which is nobody's request. **A library part is in use** (×3, 409, carrying `used`) — the library has no rule
+  family. **Import** answers through one `Fail(code, msg)` helper at 20 sites across 400/403/409/413/415/422/
+  500/502, which wants an import family of its own. **And the edges**: three 404s with a sentence,
+  `WriteEndpoints`' `EditException` pass-through, and `MapExportComposer`'s 500 `Dict` — which cannot reach
+  `Api`'s `RequestRules` at all, so `RQ2` would have to move to `Domain` beside `Finding.Envelope`.
 
 - [ ] **RP3 — The gate chain's completeness depends on which entry point a caller came through.**
   `MapExportComposer.Compose` runs `OB20` (`RefuseUnknownGamemode`) and the traversability judgement before

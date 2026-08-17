@@ -40,7 +40,12 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest
         PlanModel? plan;
         try { plan = string.IsNullOrWhiteSpace(body) ? null : PlanModel.Parse(body); }
         catch (JsonException) { plan = null; }
-        if (plan is null) { await Send.ResponseAsync(new { error = "Malformed plan JSON" }, 400, ct); return; }
+        if (plan is null)
+        {
+            await Refusals.UnreadableAsync(HttpContext, "malformed plan JSON",
+                "the body is not a plan document: it is empty, or it is not JSON the plan reader accepts", ct);
+            return;
+        }
 
         ContactGraph d;
         try
@@ -49,7 +54,7 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
         {
-            await Send.ResponseAsync(new { error = "Invalid plan structure", message = ex.Message }, 400, ct);
+            await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex.Message, ct);
             return;
         }
 
@@ -151,7 +156,8 @@ public sealed class PlanColumnsEndpoint : EndpointWithoutRequest
         {
             if (PlanWorld.Compile(body) is not { } compiled)
             {
-                await Send.ResponseAsync(new { error = "Malformed plan JSON" }, 400, ct);
+                await Refusals.UnreadableAsync(HttpContext, "malformed plan JSON",
+                    "the body is not a plan document: it is empty, or it is not JSON the plan reader accepts", ct);
                 return;
             }
             var built = SketchWorldBuilder.Build(compiled.LayoutJson, compiled.Intent);
@@ -161,7 +167,7 @@ public sealed class PlanColumnsEndpoint : EndpointWithoutRequest
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException
                                       or IndexOutOfRangeException or JsonException)
         {
-            await Send.ResponseAsync(new { error = "Invalid plan structure" }, 400, ct);
+            await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex.Message, ct);
             return;
         }
 
@@ -188,7 +194,12 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest
         PlanModel? plan;
         try { plan = string.IsNullOrWhiteSpace(body) ? null : PlanModel.Parse(body); }
         catch (JsonException) { plan = null; }
-        if (plan is null) { await Send.ResponseAsync(new { error = "Malformed plan JSON" }, 400, ct); return; }
+        if (plan is null)
+        {
+            await Refusals.UnreadableAsync(HttpContext, "malformed plan JSON",
+                "the body is not a plan document: it is empty, or it is not JSON the plan reader accepts", ct);
+            return;
+        }
 
         SketchLayout layout;
         MapIntent intent;
@@ -208,7 +219,7 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
         {
-            await Send.ResponseAsync(new { error = "Invalid plan structure", message = ex.Message }, 400, ct);
+            await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex.Message, ct);
             return;
         }
 
@@ -252,7 +263,12 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest
         PlanModel? plan;
         try { plan = string.IsNullOrWhiteSpace(body) ? null : PlanModel.Parse(body); }
         catch (JsonException) { plan = null; }
-        if (plan is null) { await Send.ResponseAsync(new { error = "Malformed plan JSON" }, 400, ct); return; }
+        if (plan is null)
+        {
+            await Refusals.UnreadableAsync(HttpContext, "malformed plan JSON",
+                "the body is not a plan document: it is empty, or it is not JSON the plan reader accepts", ct);
+            return;
+        }
 
         // A plan with nothing in it is a valid document, not a malformed one — the evaluator has no geometry
         // to score, so it is answered rather than refused: a 400 here made the editor's score panel go blank on
@@ -284,7 +300,7 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
         {
-            await Send.ResponseAsync(new { error = "Invalid plan structure", message = ex.Message }, 400, ct);
+            await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex.Message, ct);
             return;
         }
 
@@ -349,7 +365,12 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest
         PlanModel? plan;
         try { plan = string.IsNullOrWhiteSpace(body) ? null : PlanModel.Parse(body); }
         catch (JsonException) { plan = null; }
-        if (plan is null) { await Send.ResponseAsync(new { error = "Malformed plan JSON" }, 400, ct); return; }
+        if (plan is null)
+        {
+            await Refusals.UnreadableAsync(HttpContext, "malformed plan JSON",
+                "the body is not a plan document: it is empty, or it is not JSON the plan reader accepts", ct);
+            return;
+        }
 
         // The same emptiest-document case /plan/evaluate answers above, and for the same reason: with no
         // geometry there are no boxes, every box-level question is vacuously satisfied, and `producible: true`
@@ -369,7 +390,7 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
         {
-            await Send.ResponseAsync(new { error = "Invalid plan structure", message = ex.Message }, 400, ct);
+            await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex.Message, ct);
             return;
         }
 

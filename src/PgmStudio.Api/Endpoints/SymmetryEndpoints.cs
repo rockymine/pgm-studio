@@ -188,7 +188,8 @@ public sealed class SymmetryPatchEndpoint(MapRepository repo, PgmDb db) : Endpoi
             var confirmedType = ctNode.GetValue<string>();
             if (!SymmetrySupport.ValidTypes.Contains(confirmedType))
             {
-                await Send.ResponseAsync(new Dict { ["error"] = $"Invalid symmetry type: {confirmedType}" }, 400, ct);
+                await Refusals.UnreadableAsync(HttpContext, "invalid symmetry type",
+                    $"'{confirmedType}' is not a symmetry type the studio knows", ct, field: "confirmed_type");
                 return;
             }
             row.PrimaryType = confirmedType; row.PrimaryConfidence = 1.0; row.PrimaryUserOverride = true;

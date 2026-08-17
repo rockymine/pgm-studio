@@ -203,11 +203,9 @@ public sealed class WoolSourcesInRegionEndpoint(MapRepository repo, MapReader re
         {
             // Naming the four fields alone read as though they were the body; they are nested, and a caller
             // posting them flat got this same sentence back and no way to tell the two apart.
-            await Send.ResponseAsync(new Dict
-            {
-                ["error"] = "the rectangle to search is required, as {\"bounds\": {\"minX\", \"minZ\", "
-                          + "\"maxX\", \"maxZ\"}} — the four corners nested under 'bounds', not beside it",
-            }, 400, ct);
+            await Refusals.UnreadableAsync(HttpContext, "no rectangle given",
+                "the rectangle to search is required, as {\"bounds\": {\"minX\", \"minZ\", \"maxX\", "
+                + "\"maxZ\"}} — the four corners nested under 'bounds', not beside it", ct, field: "bounds");
             return;
         }
 
@@ -261,11 +259,9 @@ public sealed class ResourcesInRegionEndpoint(MapRepository repo, MapReader read
             {
                 // Here bounds is optional — omitting it reads the whole map — so this fires only for one
                 // that is present and short of a corner, which is a different fault from the one above.
-                await Send.ResponseAsync(new Dict
-                {
-                    ["error"] = "'bounds' was given but is missing a corner: it takes minX, minZ, maxX and "
-                              + "maxZ. Omit 'bounds' entirely to read the whole map",
-                }, 400, ct);
+                await Refusals.UnreadableAsync(HttpContext, "rectangle missing a corner",
+                    "'bounds' was given but is missing a corner: it takes minX, minZ, maxX and maxZ. Omit "
+                    + "'bounds' entirely to read the whole map", ct, field: "bounds");
                 return;
             }
             bounds = (b["minX"]!.GetValue<double>(), b["minZ"]!.GetValue<double>(), b["maxX"]!.GetValue<double>(), b["maxZ"]!.GetValue<double>());

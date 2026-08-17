@@ -171,6 +171,14 @@ A **missing field** is the same rule asked earlier: `RequiredFields` refuses any
 non-nullable and the body did not supply, naming every one rather than the first, before any handler runs. Null
 alone counts — an empty list is a value and a blank name is a fault about the name, which is a gate's to judge.
 
+**A route's own parameters are the same rule again**, and they arrive through `Refusals.UnreadableAsync` with
+a sentence rather than an exception: a query parameter a route cannot work without (`box`, `bounds`, the `x`
+and `z` of a column), a value outside a closed set (`symmetry=rot_90` where the composer builds two, a shape
+family that is not one), a body that is not the document the route takes. All of them are one fault — *the
+request could not be acted on* — so all of them are `RQ1`, at 400, with `field` naming the parameter where it
+has a name. Twenty-four sites hand-rolled a bare `{error}` for exactly this until they were converted; a
+caller writing one parser for the studio is the whole point of there being one envelope.
+
 **`RQ3` — a field went unread.** The document carried a property the reader had nowhere to keep. It is a
 **complaint**, so it rides on the success response under `warnings` and the work still happens: the readers
 upgrade stored documents in place and carry retired names forward, so a stored document legitimately holds

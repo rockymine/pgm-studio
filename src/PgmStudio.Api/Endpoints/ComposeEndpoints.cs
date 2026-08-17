@@ -46,7 +46,9 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest
 
         if (!Supported.Contains(symmetry))
         {
-            await Send.ResponseAsync(new { error = $"unsupported symmetry '{symmetry}'" }, 400, ct);
+            await Refusals.UnreadableAsync(HttpContext, "unsupported symmetry",
+                $"'{symmetry}' is not a symmetry the composer builds for; it takes "
+                + $"{string.Join(" or ", Supported)}", ct, field: "symmetry");
             return;
         }
 
@@ -68,7 +70,8 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest
 
             ComposeRequest request;
             try { request = new ComposeRequest(players, 2, symmetry, s, cell); }
-            catch (ArgumentException) { await Send.ResponseAsync(new { error = "invalid request parameters" }, 400, ct); return; }
+            catch (ArgumentException fault)
+            { await Refusals.UnreadableAsync(HttpContext, "invalid request parameters", fault.Message, ct); return; }
 
             ComposedStages stages;
             try { stages = Composer.ComposeStages(request); }
@@ -186,7 +189,8 @@ public sealed class ComposePinEndpoint(PlanStore store) : Endpoint<ComposeReques
     {
         ComposeRequest request;
         try { request = new ComposeRequest(req.Players, req.Teams, req.Symmetry, req.Seed, req.Cell); }
-        catch (ArgumentException) { await Send.ResponseAsync(new { error = "invalid descriptor" }, 400, ct); return; }
+        catch (ArgumentException fault)
+        { await Refusals.UnreadableAsync(HttpContext, "invalid descriptor", fault.Message, ct); return; }
 
         ComposedStages stages;
         try { stages = Composer.ComposeStages(request); }

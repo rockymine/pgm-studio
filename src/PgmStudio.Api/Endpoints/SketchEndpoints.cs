@@ -138,7 +138,8 @@ public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artif
         await HttpContext.Request.Body.CopyToAsync(ms, ct);
         var bytes = ms.ToArray();
         try { using var _ = JsonDocument.Parse(bytes); }   // reject non-JSON; don't store garbage
-        catch { await Send.ResponseAsync(new { error = "invalid JSON" }, 400, ct); return; }
+        catch (JsonException fault)
+        { await Refusals.UnreadableAsync(HttpContext, "invalid JSON", fault.Message, ct); return; }
 
         var findings = SketchRoomStyleGate.Check(Encoding.UTF8.GetString(bytes));
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
@@ -204,7 +205,8 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
         using var reader = new StreamReader(HttpContext.Request.Body);
         var compiled = await reader.ReadToEndAsync(ct);
         try { using var _ = JsonDocument.Parse(compiled); }   // reject non-JSON; don't store garbage
-        catch { await Send.ResponseAsync(new { error = "invalid JSON" }, 400, ct); return; }
+        catch (JsonException fault)
+        { await Refusals.UnreadableAsync(HttpContext, "invalid JSON", fault.Message, ct); return; }
 
         var stored = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
         var storedJson = stored is null ? null : Encoding.UTF8.GetString(stored);

@@ -21,7 +21,8 @@ public sealed class PlayerLookupEndpoint(MojangClient mojang) : EndpointWithoutR
         var query = !string.IsNullOrEmpty(uuid) ? uuid : name;
         if (string.IsNullOrEmpty(query))
         {
-            await Send.ResponseAsync(new Dict { ["error"] = "name or uuid required" }, 400, ct);
+            await Refusals.UnreadableAsync(HttpContext, "no player named",
+                "a lookup takes either a name or a uuid, and neither was given", ct);
             return;
         }
         try
