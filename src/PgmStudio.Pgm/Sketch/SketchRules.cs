@@ -14,13 +14,17 @@ public static class SketchRules
     public const string ReliefOrphaned = "SK1";
 
     /// <summary>The board spans more ground than the studio will realize: the extent every shape and its
-    /// symmetry images cover, measured in columns, is over four million. Refused before anything is built,
-    /// because the cost is paid per column of the extent whether or not ground is drawn there — a board that
-    /// large does not fail, it takes the machine with it.</summary>
-    /// <remarks>Draw the board smaller, or move the shapes toward the symmetry centre — the extent is measured across every orbit image, so a shape far out on one side widens the board by twice its distance. Four million columns is 2000×2000, and a normal board is a few hundred a side.</remarks>
+    /// symmetry images cover, measured in columns, is past what a build can walk. Refused before anything is
+    /// built, because the cost is paid per column of the extent whether or not ground is drawn there — a
+    /// board that large does not fail, it takes the machine with it.</summary>
+    /// <remarks>Draw the board smaller, or move the shapes toward the symmetry centre — the extent is measured across every orbit image, so a shape far out on one side widens the board by twice its distance. The finding carries the span that was measured; a normal board is a few hundred columns a side, which is nowhere near this.</remarks>
     public const string BoardTooLarge = "SK2";
 
-    /// <summary>The extent, in columns, that <see cref="BoardTooLarge"/> refuses past.</summary>
+    /// <summary>The extent, in columns, that <see cref="BoardTooLarge"/> refuses past.
+    /// <para><b>Deliberately unpublished.</b> It appears in no message, no rule sentence and no tool
+    /// document: a stated ceiling is a target, and an agent told it may draw up to this will draw up to this.
+    /// What a refusal says instead is the span it measured, which is the half the author has to act on.
+    /// <c>SketchLayoutCheckTests</c> holds the message to that rather than the other way round.</para></summary>
     public const int MaxBoardColumns = 4_000_000;
 
     /// <summary>The document names something that is not there — a shape kind nobody has, a mirror mode

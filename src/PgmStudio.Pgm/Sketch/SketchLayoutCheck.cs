@@ -119,8 +119,8 @@ public static class SketchLayoutCheck
         if (extent.MaxX > extent.MinX && Columns(extent) is { } columns && columns > SketchRules.MaxBoardColumns)
             findings.Insert(0, new Finding(SketchRules.BoardTooLarge,
                 $"the board spans {Span(extent.MaxX - extent.MinX)}×{Span(extent.MaxZ - extent.MinZ)} columns "
-                + $"({columns:N0}) across its symmetry orbit, past the {SketchRules.MaxBoardColumns:N0} the "
-                + "studio will realize"));
+                + $"({columns:N0}) across its symmetry orbit, more ground than the studio will realize — draw "
+                + "it smaller, or nearer the symmetry centre"));
 
         return findings;
     }

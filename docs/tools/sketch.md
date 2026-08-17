@@ -665,9 +665,11 @@ The refusal is the prop's own and never the stamper's — a wool cage and a spaw
 **A board too large to realize is refused** (`SK2`, **422** `board too large`). A board costs one walk per
 column of its **extent**, drawn or not, so a 4000×4000 board does not fail slowly — it takes the machine with
 it. The extent is measured across the symmetry orbit, because a shape far out on one side widens the board by
-twice its distance, and the cap is **four million columns** (2000×2000; an authored board is a few hundred a
-side). Asked where the layout is stored, where it is previewed, and in the export's shared sketch leg, so a
-headless driver meets the same measure the studio does.
+twice its distance. **The ceiling itself is not published** — not in the finding, not in the rule's own
+sentence, not here: a stated ceiling is a target, and an agent told what it may draw up to will draw up to it.
+What the refusal carries is the span it measured, which is the half an author acts on; an authored board is a
+few hundred columns a side and nowhere near it. Asked where the layout is stored, where it is previewed, and
+in the export's shared sketch leg, so a headless driver meets the same measure the studio does.
 
 **What the document names and does not have is said rather than swallowed.** The rasterizer is set algebra
 over shapes, so a shape it cannot read contributes no ground instead of failing — which means a defect in the

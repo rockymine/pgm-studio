@@ -4420,8 +4420,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   shape drawing no ground, `SK5` a column the world cannot hold — each carrying the document path in `field`
   and the shape id as its subject, returned under `warnings` from `PUT .../sketch`, `POST .../sketch/columns`
   and `POST /plan/columns`.
-  One thing refuses: `SK2`, a board whose extent across the symmetry orbit is past **four million columns**
-  (2000×2000). A 4000×4000 board never failed — it walked 16 million columns and took the machine with it —
+  One thing refuses: `SK2`, a board whose extent across the symmetry orbit is past what a build can walk. The
+  ceiling is a constant and is deliberately in no message and no document — a stated one is a target — so the
+  finding carries the span it measured instead. A 4000×4000 board never failed: it walked 16 million columns
+  and took the machine with it, and
   and the cost is paid per column of the extent whether ground is drawn there or not. Asked where the layout
   is stored, at every preview that walks the board, and in `ComposeSketch`, so a headless driver meets the
   same measure. `SK*` moved to `Pgm/Sketch/SketchRules.cs` so the family has one home, and a malformed

@@ -67,10 +67,10 @@ public sealed class SketchLayoutCheckTests
     [Test]
     public async Task A_relief_keyed_to_an_island_that_is_not_there_is_named()
     {
-        var findings = SketchLayoutCheck.Check(Layout(Rect, ""","relief":{"nope":{"kind":"hills"}}"""));
+        var findings = SketchLayoutCheck.Check(Layout(Rect, ""","relief":{"island-2":{"kind":"hills"}}"""));
 
         var finding = findings.Single();
-        await Assert.That(finding.Field).IsEqualTo("relief.nope");
+        await Assert.That(finding.Field).IsEqualTo("relief.island-2");
         await Assert.That(finding.Message).Contains("is not built");
     }
 
@@ -98,7 +98,11 @@ public sealed class SketchLayoutCheckTests
         await Assert.That(huge.Refuses).IsTrue();
         var refusal = huge.Refusals.Single();
         await Assert.That(refusal.Rule).IsEqualTo(SketchRules.BoardTooLarge);
-        await Assert.That(refusal.Message).Contains("4,000,000");
+        // It says the span it measured — the board the author actually drew.
+        await Assert.That(refusal.Message).Contains("4,000×4,000");
+        // And never the ceiling: a stated one is a target, so an agent reading this learns that it drew too
+        // much and not how much it may draw. The number lives in the constant and nowhere a caller reads.
+        await Assert.That(refusal.Message).DoesNotContain(SketchRules.MaxBoardColumns.ToString("N0"));
 
         // 1000×1000 is a million columns — four times the size of anything authored, and it stands.
         var big = SketchLayoutCheck.Check(Layout(
