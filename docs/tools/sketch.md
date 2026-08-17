@@ -628,7 +628,8 @@ Dressing does not repaint the Blocks overlay, which shows the painter's surface 
 ## Refusals and complaints
 
 The sketch has almost no gate, and that is deliberate: an unfinished drawing is a legitimate state, and the
-tool saves it. Six things nonetheless refuse.
+tool saves it. Seven things nonetheless refuse — and beside them sits a second list, of what the document says
+that the build cannot honour, which **complains** rather than refusing because the board still builds.
 
 **A bound room style is checked before the layout is stored.** `PUT .../sketch` reads `roomStyles.cage` and
 `roomStyles.spawn` off the posted layout and runs each through the same house-style gate
@@ -661,8 +662,26 @@ rectangles were drawn in; `Plan()` answers null for the same plans, so a stamp g
 The refusal is the prop's own and never the stamper's — a wool cage and a spawn cube go through the same
 `HouseStamper` from a plan piece's geometry, which no dressing limit has any business judging.
 
+**A board too large to realize is refused** (`SK2`, **422** `board too large`). A board costs one walk per
+column of its **extent**, drawn or not, so a 4000×4000 board does not fail slowly — it takes the machine with
+it. The extent is measured across the symmetry orbit, because a shape far out on one side widens the board by
+twice its distance, and the cap is **four million columns** (2000×2000; an authored board is a few hundred a
+side). Asked where the layout is stored, where it is previewed, and in the export's shared sketch leg, so a
+headless driver meets the same measure the studio does.
+
+**What the document names and does not have is said rather than swallowed.** The rasterizer is set algebra
+over shapes, so a shape it cannot read contributes no ground instead of failing — which means a defect in the
+document reads exactly like a smaller drawing. `SketchLayoutCheck` says so, as complaints riding on the
+success under `warnings`: `SK3` for a name that matches nothing — a shape kind nobody has, a **mirror mode**
+nobody has (which fans the board onto itself, so a map stating two halves stands on one), an island listing a
+shape id the layout does not carry, a relief keyed to an island that does not exist — `SK4` for a shape that
+draws no ground (a polygon under three vertices, a circle or path of no width, a rectangle of no area), and
+`SK5` for a column the world cannot hold. Each carries the document path that named nothing in its `field`
+and the shape's id as its subject.
+
 **Heights are clamped rather than refused**: a shape is never thinner than one block and its floor never dips
-below zero, whatever is asked for.
+below zero, whatever is asked for — and since the clamp means what stands is not what was asked for, `SK5`
+says so on the way past.
 
 And two things are silently **dropped on load** rather than carried: a prop whose kind the client does not
 know, and a relief mark whose kind it cannot draw. A shape nothing can edit is worse than an absence.
@@ -677,7 +696,7 @@ Every endpoint is anonymous and rooted at `/api`.
 |---|---|---|---|
 | `POST /sketch` | `{name?, width?, depth?, mode?, centerX?, centerZ?}` | `{slug}` — a `map` row at `stage=sketch`. A frame seeds the `setup`; without one the layout is `{}` and the editor uses its 120×80 `rot_180` default | — |
 | `GET /map/{slug}/sketch` | — | the stored layout, or `{}` | 404 |
-| `PUT /map/{slug}/sketch` | the layout | `{ok: true}` — a **verbatim replace**, which is what makes a deletion stick | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · 404 |
+| `PUT /map/{slug}/sketch` | the layout | `{ok: true, warnings}` — a **verbatim replace**, which is what makes a deletion stick; `warnings` is what the document names and does not have (`SK3`/`SK4`/`SK5`) | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · 422 `board too large` `SK2` · 404 |
 | `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{ok, orphaned}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry | 409 `{findings}` one `SK1` per orphaned island (`?force=true`) · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure` | 422 no layout, or no ground |
 | `DELETE /map/{slug}/sketch/discard-if-empty` | — | `{discarded}` — drops a draft still at its default name with no authors and nothing drawn | — |
@@ -690,7 +709,7 @@ blob, so they track unsaved edits, and all four answer 400 rather than 500 on a 
 | `POST /map/{slug}/sketch/paint` | the painted surface as palette-indexed block pixels — the real painter's output, with team tints resolved from the stored intent |
 | `POST /map/{slug}/sketch/relief[?interval=]` | `{interval, islands[]}` — per island its height range, its bounds and its traced contour lines, from the build's own solver |
 | `POST /map/{slug}/sketch/relief/read` | `{islands[]}` — per island the cell count, low/high/relief, steps, tiers, the first twelve faces and the total, cliffs, crossings in X and Z, and the symmetry error |
-| `POST /map/{slug}/sketch/columns` | `{palette, cols, min_x, min_z, max_x, max_z, warnings}` — the whole built world as per-column runs, which the 3-D preview meshes, plus every prop the dressing pass declined as a `DR-*` finding (`warnings`, complaints on a success: the world built and those props are not in it) |
+| `POST /map/{slug}/sketch/columns` | `{palette, cols, min_x, min_z, max_x, max_z, warnings}` — the whole built world as per-column runs, which the 3-D preview meshes; `warnings` carries every prop the dressing pass declined (`DR-*`) beside what the document names and does not have (`SK3`/`SK4`/`SK5`), complaints on a success: the world built and those things are not in it | 400 `RQ1` a body that is not a layout · 422 `board too large` `SK2` · 422 `dressing document invalid` `DR-DOC` · 404 |
 
 **The column payload** is one flat integer array walked by its own counts:
 `cols = [x, z, runCount, (yTop, yBottom, paletteIndex) × runCount, …]`, with `palette` a list of `#rrggbb`.

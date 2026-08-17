@@ -162,7 +162,10 @@ public sealed class PlanColumnsEndpoint : EndpointWithoutRequest
             }
             var built = SketchWorldBuilder.Build(compiled.LayoutJson, compiled.Intent);
             payload = WorldColumnPayload.Of(built.World);
-            payload["warnings"] = Refusals.Dtos(built.Declines);
+            // The compiled layout's own complaints ride with the dressing's: a plan that compiles to a board
+            // naming something the studio does not have is still a plan whose picture is missing it.
+            payload["warnings"] = Refusals.Dtos(
+                [.. SketchLayoutCheck.Check(compiled.LayoutJson).Complaints, .. built.Declines]);
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException
                                       or IndexOutOfRangeException or JsonException)

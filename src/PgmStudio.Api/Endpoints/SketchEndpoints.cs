@@ -17,6 +17,7 @@ using PgmStudio.Geom.Relief;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Minecraft.Houses;
 
 namespace PgmStudio.Api.Endpoints;
@@ -141,11 +142,18 @@ public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artif
         catch (JsonException fault)
         { await Refusals.UnreadableAsync(HttpContext, "invalid JSON", fault.Message, ct); return; }
 
-        var findings = SketchRoomStyleGate.Check(Encoding.UTF8.GetString(bytes));
+        var layoutJson = Encoding.UTF8.GetString(bytes);
+        var findings = SketchRoomStyleGate.Check(layoutJson);
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
 
+        // The document's own gate: a board too large to realize is refused here, where it is stored, rather
+        // than at the preview that would have to walk it. What it merely names and does not have rides back
+        // on the success as complaints — the layout is saved, and the author is told what will not be built.
+        var document = SketchLayoutCheck.Check(layoutJson);
+        if (await Refusals.StopAsync(HttpContext, 422, "board too large", document, ct)) return;
+
         await artifacts.SaveAsync(map.Id, ArtifactKind.SketchLayoutJson, bytes, ct);
-        await Send.OkAsync(new { ok = true }, ct);
+        await Send.OkAsync(new { ok = true, warnings = Refusals.Dtos(document.Complaints) }, ct);
     }
 }
 
@@ -247,6 +255,9 @@ public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore art
         using var reader = new StreamReader(HttpContext.Request.Body);
         var layoutJson = await reader.ReadToEndAsync(ct);
 
+        if (await Refusals.StopAsync(HttpContext, 422, "board too large",
+                SketchLayoutCheck.Check(layoutJson), ct)) return;
+
         IReadOnlyList<SurfaceCell> cells;
         try { cells = TerrainPreview.SketchPaintCells(layoutJson, await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct)); }
         catch { await Send.ResponseAsync(new { error = "could not paint layout" }, 400, ct); return; }
@@ -286,13 +297,23 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
         using var reader = new StreamReader(HttpContext.Request.Body);
         var layoutJson = await reader.ReadToEndAsync(ct);
 
+        Findings document;
+        try { document = SketchLayoutCheck.Check(layoutJson); }
+        catch (JsonException fault)
+        { await Refusals.UnreadableAsync(HttpContext, "invalid layout", fault.Message, ct); return; }
+        if (await Refusals.StopAsync(HttpContext, 422, "board too large", document, ct)) return;
+
         Dictionary<string, object?> payload;
         try
         {
             var built = SketchWorldBuilder.Build(layoutJson, await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct));
             payload = WorldColumnPayload.Of(built.World);
-            payload["warnings"] = Refusals.Dtos(built.Declines);
+            payload["warnings"] = Refusals.Dtos([.. document.Complaints, .. built.Declines]);
         }
+        // A dressing document that will not read is refused by name, exactly as the export refuses it — the
+        // preview and the export cannot disagree about what a malformed prop list is.
+        catch (DressingParseException fault)
+        { await Refusals.WriteAsync(HttpContext, 422, "dressing document invalid", [fault.Finding], ct); return; }
         catch { await Send.ResponseAsync(new { error = "could not build layout" }, 400, ct); return; }
 
         await Send.OkAsync(payload, ct);
@@ -333,6 +354,9 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
         // Each island resumes from the surface its last preview settled on. The relaxation stops when the
         // field stops moving and discards a resume that fails to reach that tolerance, so this can only ever
         // save sweeps — never change the answer, which is what keeps a previewed surface the built one.
+        if (await Refusals.StopAsync(HttpContext, 422, "board too large",
+                SketchLayoutCheck.Check(layoutJson), ct)) return;
+
         Dictionary<string, HeightField> fields;
         try
         {
@@ -386,6 +410,9 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
 
         using var reader = new StreamReader(HttpContext.Request.Body);
         var layoutJson = await reader.ReadToEndAsync(ct);
+
+        if (await Refusals.StopAsync(HttpContext, 422, "board too large",
+                SketchLayoutCheck.Check(layoutJson), ct)) return;
 
         Dictionary<string, HeightField> fields;
         SketchLayout? state;
@@ -507,15 +534,3 @@ public sealed class SketchDiscardIfEmptyEndpoint(MapRepository repo, PgmDb db, M
            && shapes.GetArrayLength() > 0;
 }
 
-/// <summary>The rules the sketch endpoints ask on their own account, as opposed to a gate reading a document
-/// they understood.</summary>
-internal static class SketchRules
-{
-    /// <summary>A recompile fused the board differently, so an island the author had drawn relief onto no
-    /// longer exists to carry it.</summary>
-    /// <remarks>Island identity is derived from the geometry, so a recompile that re-fuses the board produces
-    /// a different island rather than moving the old one — the relief has nowhere correct to land. Retry with
-    /// <c>?force=true</c> to accept the loss and proceed, or redraw the plan so the same landmass survives the
-    /// compile.</remarks>
-    public const string ReliefOrphaned = "SK1";
-}

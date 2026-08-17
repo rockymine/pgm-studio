@@ -1,0 +1,44 @@
+namespace PgmStudio.Pgm.Sketch;
+
+/// <summary>The sketch document's own rule ids — what a layout is refused for, and what it is told about a
+/// layout that builds but does not build what it says. Served by <c>GET /api/rules</c> from the docstrings
+/// here, the way every gate family's are.</summary>
+public static class SketchRules
+{
+    /// <summary>A recompile fused the board differently, so an island the author had drawn relief onto no
+    /// longer exists to carry it.</summary>
+    /// <remarks>Island identity is derived from the geometry, so a recompile that re-fuses the board produces
+    /// a different island rather than moving the old one — the relief has nowhere correct to land. Retry with
+    /// <c>?force=true</c> to accept the loss and proceed, or redraw the plan so the same landmass survives the
+    /// compile.</remarks>
+    public const string ReliefOrphaned = "SK1";
+
+    /// <summary>The board spans more ground than the studio will realize: the extent every shape and its
+    /// symmetry images cover, measured in columns, is over four million. Refused before anything is built,
+    /// because the cost is paid per column of the extent whether or not ground is drawn there — a board that
+    /// large does not fail, it takes the machine with it.</summary>
+    /// <remarks>Draw the board smaller, or move the shapes toward the symmetry centre — the extent is measured across every orbit image, so a shape far out on one side widens the board by twice its distance. Four million columns is 2000×2000, and a normal board is a few hundred a side.</remarks>
+    public const string BoardTooLarge = "SK2";
+
+    /// <summary>The extent, in columns, that <see cref="BoardTooLarge"/> refuses past.</summary>
+    public const int MaxBoardColumns = 4_000_000;
+
+    /// <summary>The document names something that is not there — a shape kind nobody has, a mirror mode
+    /// nobody has, an island listing a shape id the layout does not carry, a relief keyed to an island that
+    /// does not exist. A complaint rather than a refusal: the board still builds, and it builds without
+    /// whatever the name was for, which is the thing worth saying out loud.</summary>
+    /// <remarks>Correct the name the finding's <c>field</c> points at. A shape kind is one of rectangle, circle, polygon, lasso or path; a mirror mode is one of none, mirror_x, mirror_z, mirror_d1, mirror_d2, rot_90 or rot_180 — an unknown one leaves the board unmirrored rather than refusing, so half the map quietly goes missing.</remarks>
+    public const string NamesNothing = "SK3";
+
+    /// <summary>A shape draws no ground: a polygon or lasso with fewer than three vertices, a circle or path
+    /// of no width, a rectangle with no area. The shape is in the document and contributes nothing to the
+    /// board, which reads exactly like a shape that was never drawn.</summary>
+    /// <remarks>Give the shape a size, or delete it. A polygon needs three vertices before it encloses anything, and a circle or a path needs a radius above zero.</remarks>
+    public const string DrawsNothing = "SK4";
+
+    /// <summary>A shape states a column the world cannot hold: a floor below bedrock, a top above the world
+    /// roof, or a thickness that is negative. The build clamps it into the world rather than refusing, so
+    /// what stands is not what the document asked for.</summary>
+    /// <remarks>Bring the shape's floor and base_height inside 0..255 — a Minecraft world is 256 blocks tall, and a column stated past either end is silently cut to fit.</remarks>
+    public const string UnbuildableHeight = "SK5";
+}

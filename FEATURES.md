@@ -4410,6 +4410,23 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **The document says what it names and does not have, and a board too large is refused (TS14).** The
+  rasterizer is set algebra over shapes, so a shape it cannot read contributes no ground rather than failing —
+  which meant a defect in the document read exactly like a smaller drawing. Measured against the real build:
+  a shape kind nobody has, a polygon of two vertices, a circle of no radius, an island listing a shape id the
+  layout does not carry, a relief keyed to an island that is not there and a **mirror mode nobody has** (which
+  fans the board onto itself, so a map stating two halves stands on one) all produced a world, silently.
+  `SketchLayoutCheck` now answers them as complaints on the success — `SK3` a name matching nothing, `SK4` a
+  shape drawing no ground, `SK5` a column the world cannot hold — each carrying the document path in `field`
+  and the shape id as its subject, returned under `warnings` from `PUT .../sketch`, `POST .../sketch/columns`
+  and `POST /plan/columns`.
+  One thing refuses: `SK2`, a board whose extent across the symmetry orbit is past **four million columns**
+  (2000×2000). A 4000×4000 board never failed — it walked 16 million columns and took the machine with it —
+  and the cost is paid per column of the extent whether ground is drawn there or not. Asked where the layout
+  is stored, at every preview that walks the board, and in `ComposeSketch`, so a headless driver meets the
+  same measure. `SK*` moved to `Pgm/Sketch/SketchRules.cs` so the family has one home, and a malformed
+  dressing document now answers `DR-DOC` at the preview exactly as it does at export, rather than being
+  swallowed into *could not build layout*.
 - **The 3-D preview draws the world the export builds (S54).** It used to extrude one prism per shape to
   `floor + base_height` in the browser — stage one of a three-stage height model, and the two stages that
   *replace* those tops (the per-island relief solve, then `level`/`raise`/`sink` read at the median of the

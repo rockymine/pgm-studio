@@ -81,8 +81,10 @@ repo's history); the counts below are re-measured against today's tree. The stor
 
   **The work failed on a document that read.** `could not paint layout`, `could not build layout`, `could not
   solve relief` (×2), `could not render plan`, `composition failed for this descriptor` — a catch-all around a
-  posted document that parsed. `RQ1` says *could not be read*, which these are not, and `RQ2` is a 500. Either
-  a new id, or the ruling that they are the studio's own fault and belong at 500.
+  posted document that parsed. Measured (`TS14`): the only authored thing that reaches them is a malformed
+  dressing document, which now answers `DR-DOC` by name, so what is left in the catch is a studio bug wearing
+  a 400. `RQ1` says *could not be read*, which these are not; `RQ2` says the fault is the studio's and answers
+  500. The ruling wanted is whether they become that.
 
   **Two are real sketch gates** and want `SK*` ids beside `SK1`: *No sketch layout to finish* and *Nothing is
   drawn: the layout rasterizes to no ground*. **The stored artifact is the unreadable one** in `stored plan is
