@@ -691,7 +691,7 @@ both corrected.)
     46–143 band is unaffected: it was taken as traversal.
 
 14. **The build ceiling is measured, and measured on the terrain (2026-08-15).** Author's call, settling
-    `B221` and closing `B104`/`B176`'s shared cause. `G6` asks for **≥20 blocks of build clearance above the
+    `B221` and closing `B104`'s cause. `G6` asks for **≥20 blocks of build clearance above the
     island surface**; what was never stated is *which* surface, and every implementation so far had answered
     with the plan's nominal `surface` — a flat number the relief solve abandons, which is how boards came out
     with a ceiling under their own terrain and a destroy goal stamped above it. The rule is now: the cap is

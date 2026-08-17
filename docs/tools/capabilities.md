@@ -439,7 +439,7 @@ One consequence is worth keeping here because it is about what the stamper does 
 prop writes only into air, so a tree can never replace a wall, a roof or a post, and leaves resting
 **against** a house are correct — an author pastes a tree beside a building masked against the building's own
 blocks and expects exactly that. What nothing does yet is clear the leaves that landed **inside** a building
-through its roof (`B97`). A tree rooted inside a structure is a fault; a canopy leaning on one is not.
+through its roof (`B166`). A tree rooted inside a structure is a fault; a canopy leaning on one is not.
 
 ### What these combine into, which is where the width actually is
 

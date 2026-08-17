@@ -316,6 +316,14 @@ Tasks flow left → right: **`BACKLOG.md` → `TODO.md` → `FEATURES.md`**.
    section, not the backend section.
 9. **Deferred *decisions* are parked** in `BACKLOG.md`, clearly marked with the blocking question — not
    interleaved with actionable tasks.
+10. **A task is a task, and it is short.** Aim for **≈150 words**; over **250** the entry is not a task yet
+    and wants investigating until it is. What earns its place: **what to build**, **where it lands** (the
+    type, the file, the line), **the number** where the author has stated one, and **one evidence line**
+    carrying the coordinates a reader confirms at. What does not: which half already shipped, what an earlier
+    trace got wrong, when a premise was corrected, what a re-check found on which date. An implementer does
+    not need an entry's history to do the entry, and a reader scanning for work should not skip three
+    paragraphs to learn whether there is any. **File it concrete or do not file it** — a finding written from
+    a symptom, unmeasured, is what grows into five paragraphs nobody can act on.
 
 ## Gameplay decisions have a human oracle — ask before filing one
 A rule about the map *as it is played* is not derivable from this repository. The corpus shows what authors
