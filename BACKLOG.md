@@ -386,13 +386,19 @@ or the plan model — everything else from that pool has moved to the heading it
   *`sonnet-run2` #5 · `sable-marsh`'s first plan: adding one `zones` entry cleared all eight findings on a
   board whose geometry never changed.*
 
-- [ ] **B150 — `G8` fill-ratio must see a layout `subtract`.** The term reads the plan's rectangles, so holes
-  cut in the sketch are invisible to it and the one number describing how much board there is describes a
-  different board. Settle it before any evaluator score is trusted on a sketch-authored map, which is every map
-  an agent authors through the documented loop.
+- [ ] **B150 — `G8` fill-ratio measures the plan's rectangles, not the board that gets built.**
+  `FillRatio.Value` reads `ctx.Board` — `BoardStructure`, derived from the `PlanModel` — and answers
+  `Filled.Count / bbox`, in **plan cells**. The sketch is where a board's ground actually is: its organic
+  `add` shapes push the coast well past the plan pieces and its `subtract` cuts the holes, and none of that
+  reaches the term. So the one number describing how much board there is describes a different board, and it
+  is not only the holes that are missing — the additions are too. Settle it before any evaluator score is
+  trusted on a sketch-authored map, which is every map an agent authors through the documented loop.
 
-  *`opus5-run2` §5 #7 · `basalt-reach` evaluates at **0.811** — near-solid — over a built board carrying two
-  large void channels.*
+  *measured on `basalt-reach`, 2026-08-16: the plan is **five pieces tiling edge to edge with no hole at all**
+  — 522 filled cells over a 30×21 cell bbox, **G8 = 0.829** — while its sketch carries **eleven shapes, ten
+  `add` and one `subtract`**. The plan's bbox is **150 × 105 blocks**; the built world is **150 × 204**, with
+  23,417 ground columns (0.77 of its own frame) and a void hole through the lower middle. The term is
+  describing half the board.*
 
 - [ ] **B151 — Decide whether `WL8` is a hard term or the rule document is wrong.** `ClosureTerms.cs:5–9`
   makes wool-ringed-hole hard; `rules.md` § "Function is read from the hole's ring" describes the same
@@ -646,6 +652,114 @@ what a library shows back, where the model has outgrown the editor. The three sh
   build actually stamps). Wants a second interaction — add-a-wing, probably a drag that starts touching an
   existing wing's edge — and a handle set that knows which wing a grip belongs to.
 
+### World import: reading a map the studio did not build
+
+The scan is the one path where the studio is a **reader** rather than an author, and it is judged against maps
+whose authors never met it. So the failures are all of one kind: a block that means something to a person and
+nothing to the extractor, a derivation that was tuned before stair-awareness landed, and a ranker left half
+finished. Diagnostics rather than gates — telling an author their imported map is broken is the value;
+refusing to re-export it is the studio overreaching. Include resolution sits here for the same reason: an
+`<include>` is something the reader must follow to see the map a server actually plays.
+
+- [ ] **B57 — `layer_segment` counts a build-region marker as solid ground.** Island detection now separates
+  terrain from markers and from what a map erases before play (`FEATURES.md`,
+  `docs/world-scan/terrain-ground-truth.md`), but that runs on `CleanColumns` → `islands_json` only. The other
+  ingest derivation, `FeatureExtractors.Segments` → `layer_segment`, has its own exclusion set and applies
+  neither rule, so a floor sheet at `y=0` persists as a solid span. Everything reading it at query time
+  (`SegmentIndex.BaseColumns` → `IslandDetector.CleanedBaseFootprint`) therefore walks on a marker. Narrower
+  than it sounds — that path feeds kit-reach, not the island picture the configure tool draws — which is why
+  it is filed rather than fixed alongside. The two derivations should agree on what ground is, and the fix is
+  to route the floor-marker rule through both. **Blocked in practice by re-import**: `layer_segment` is
+  written once at ingest from a world that is then discarded, so changing it reaches existing maps only when
+  a map can be re-imported.
+
+- [ ] **G9 — Re-scan the corpus with stair-aware detection (remaining slice).** The over-split
+  **detection fix landed** (`FEATURES.md`: `CleanColumns` + `DetectStairAware`), as did the review
+  flag + role classifier. What remains: (a) **re-scan the corpus** so the stored `islands.json` /
+  `island_sketch_json` reflect stair-aware (the live DB + `pgm-studio-output` were generated with the legacy
+  detection — needs the source worlds, `OvercastCommunity/CommunityMaps`+`PublicMaps` `ctw/`), and decide
+  whether to refresh the `--islands` Python-parity oracle to match; (b) the residual `a_new_day` **isolated
+  raised-decor specks** (≈37-block grid bits with no walkable connection — correctly `small` via
+  `IslandClassifier`, but a per-island prune could drop them); (c) any **under-split / merged** read beyond
+  `abstract` (whose stained-glass build-floor is now excluded — `FEATURES.md`): `LooksUnderSplit` is the
+  catch-all flag; the residual lever if one is found is to fall through to surface-based detection when a
+  cleaned-base component is a map-spanning low-Y slab. Serves the shipped island-health / analysis
+  features; the decompose-queue UI slice was dropped with the corpus-mining flywheel.
+
+- [ ] **G12 — Re-prune flying blobs above terrain (stair-aware regression).** Stair-aware connectivity fixed
+  the over-split (disconnected islands) but **re-introduced** the stark-y-jump / flying-island problem:
+  decorative masses floating above the map (dragons/birds) now merge back into the islands when a near-vertical
+  surface chain bridges them (e.g. **Duality**, **mame_i_shrunk_the_pvpers**). Re-add a guard: stop joining
+  across a **really big y-increase**, and/or identify & **prune blobs whose base sits well above the terrain
+  band** (the old float-prune did this on `DetectHeightAware`; the stair surfaces now leak past it).
+  **`max_build_height`** is a natural cut/prune ceiling — anything whose mass is above it is non-playable
+  decor. Re-validate the over-split fixes (a_new_day/thunder) still hold after re-adding the ceiling.
+
+- [~] **B58 — Finish the destroyable ranker.** The core half has shipped — gathered at ingest, stored in
+  `core_candidate`, and confirmed in the Cores phase (`FEATURES.md`). What remains is the other objective,
+  and it is measured but unbuilt (`docs/world-scan/objective-suggestion.md`).
+  **Destroyables: the discriminating signals are measured, the detector is not written.** They are not
+  identified by anything about the structure — size spans 1 to 31,105 blocks and fill is uninformative — but by
+  their **neighbourhood**, dumped 10 blocks outward and down to `y=0` for all 614 declared structures.
+  *Isolation*: a declared destroyable has a median of 6 same-material blocks within 10, against 65+ for a false
+  cluster, because decoration repeats and a goal is placed once. *Elevation*: it sits a median +5 blocks above
+  the surrounding terrain, against −2 for false clusters. Together, with **no size cap and no air-face test**
+  (both of which were discarding truth), `same ≤ 8 & elevation ≥ +2` keeps 553 of 1,062 true clusters against
+  600 false — 48% precision at 52% recall, a four-fold precision gain on the previous best. `same ≤ 0 &
+  elevation ≥ +2` reaches 65.6% precision if a stricter list is wanted.
+  Build the detector at those operating points, gather at ingest into a `destroyable_candidate` table beside
+  `core_candidate`, and validate the same two ways cores are (corpus + a composed plan). **Scope honestly to
+  84%**: obsidian, emerald, gold and ender stone carry that share of declared destroyables, and the wool /
+  stained-clay / stained-glass remainder must stay out — admitting wool takes the candidate set from 15,488
+  clusters to 439,440, because a CTW map is made of wool.
+
+- [ ] **B24e — Flag an *imported* map whose objective region holds none of its material (a warning, not a
+  gate).** Scoped down: the authored half of this is **already covered by tests** — `DestroyableWorldTests`
+  and `CoreWorldTests` walk each emitted region with PGM's `[min, max)` and count the blocks, which is
+  exactly the assertion this task was filed to add. For a generated map the region *is* the stamper's box
+  (OB8), so a runtime gate would re-check something true by construction. **What has no cover is the import
+  side**: the corpus sweep found **10 destroyables whose region contains none of its declared material**.
+  Those are the author's own maps, already broken before we touched them — so this is a **diagnostic on
+  import**, not a block on re-export. Blocking someone's export over a pre-existing dud is the studio
+  overreaching; telling them is the value.
+  Never "the region is full": by OB12 a region is legitimately mostly air (a 3×3×3 region holding a 1×3×1
+  pillar is correct and common), so anything stricter flags most of the corpus.
+  **Note the category difference** before extending `MapValidity`: its one existing rule (a wool needs a
+  monument) is *"PGM refuses to load this map"* — an `InvalidXMLException`, so the map is unloadable. This
+  one is *"PGM loads it fine and the goal has zero health"*, which PGM itself only logs a warning for. Two
+  different severities of truth; do not blur them into one list without saying which is which. World access
+  is **not** the blocker it was originally filed as — 14 test files already read blocks out of a built
+  world. (OB3, OB11, OB12)
+
+- [ ] **B55 — Decide which API paths read a map *as played*, then wire `Includes:Root`.** `IncludeLibrary`
+  and the resolved parse are in and gated by tests (`FEATURES.md`), and the harness uses them
+  (`--resolve-includes`, `--water-lanes --includes-dir`). The API does not, because which reading each
+  endpoint wants is a real question and the wrong answer corrupts data: **a resolved document must never be
+  written back** (the include references are still emitted, so the fragments' content would be applied
+  twice). Safe by construction today — nothing in the API passes a library — and the work is to choose per
+  path rather than flip a global. Rule-level analysis (region categorisation, filter wiring, apply-rule
+  order) wants resolved; anything that saves, exports or re-emits a document wants written; geometry
+  (islands, layout, the seed corpus) does not care, since maps declare their own regions. Add
+  `Includes:Root` beside `MapsRoots` in `Program.cs`, thread it only to the chosen paths, and make the
+  distinction unmissable at the call site. (`docs/pgm/include-resolution.md` §2)
+
+- [ ] **B56 — Parse `<score>` and `<flags>` so an include-supplied objective is actually read.** Include
+  resolution landed (`FEATURES.md`) and measured its own limit: **82 corpus maps take their objective from a
+  fragment** (`bridge`, `touchdown`, `ffb`, `flag-battles`, `5cp`), and resolving them changes nothing about
+  what the studio reports, because `<score>` (TDM) and `<flags>` (CTF) have no parser here. Splicing is not
+  what closes that; a parser is. Until one exists those maps read as objective-less — which the
+  supported-range gate deliberately tolerates, since a module arriving from a fragment round-trips through the
+  include reference and cannot be silently lost. Add each tag to `ParsedObjectiveModules` as its parser lands.
+  (`docs/pgm/include-resolution.md` §4)
+
+- [ ] **P7 — [Deferred decision] Consolidate the layer extractors / scan passes.** **`ND2` settles the
+  "consolidate vs keep" half: KEEP the exact per-layer extractors** — the World step uses them in distinct
+  roles (cleaned `Base` = detection · `Surface` = visual aid · `Segments` = vertical), so they're a feature,
+  not duplication; their per-layer default ignored-block sets (`Base` gets the expanded ND2 noise set;
+  Surface/Y0 = air-only) are the solid-policy. Still open: the byte-parity sub-question — a segment-derived
+  surface would **not** be byte-parity with the reference (endpoint-only runs also can't honour user
+  `exclude_blocks`). Pairs with A4.
+
 ### The plan model: pieces, and the edges between them
 
 `PieceInterfaces` turned every seam between two plan pieces into a read — its height delta, its typed wall,
@@ -879,8 +993,11 @@ read paints, the detour factor a relief budget would need — comes from one der
 `Cells.ShortestPath`, an **unweighted 4-connected BFS** over a navigable set that is *does this column hold
 any block*. The Y is discarded before the walk sees it (`WorldColumns.Of` answers membership, not height), and
 props never leave the set at all. So a route climbs a 20-block scarp at the cost of flat ground and walks
-through a house, and every rule stated in "the walk" is really stated in a flat Manhattan proxy for it. The
-entries below share that cause and want reading together.
+through a house, and every rule stated in "the walk" is really stated in a flat Manhattan proxy for it.
+
+The entries below share that cause and want reading together — the walk itself, the sets it runs over, the
+rules stated in it, and the one endpoint whose cost is the reason a cheaper read was reached for in the first
+place.
 
 - [ ] **B246 — Give the walk column heights and a step cost, so a climb is charged and a detour exists.**
   Two moves. **Carry the height**: `WorldColumnRuns` already answers what every column is made of, top to
@@ -1025,6 +1142,57 @@ entries below share that cause and want reading together.
 
   *Filed under `S` and living here because the measure is what blocks it; the id does not move with the
   heading.*
+
+- [ ] **G65 — FannedGraph ↔ ContactGraph adjacency reconcile (deferred from G59).** `FannedGraph.LandAdjacent`
+  (reachability) still diverges from the rect-layer authority `ContactGraph` on one count: any area overlap
+  connects regardless of surface delta, while `Components` unions an overlap only at `SurfaceDelta == 0`.
+  (The corridor-width half was reconciled — `LandAdjacent` now accepts Narrow seams, matching `Components`.)
+  Pick one rule for the overlap case and add a test; needs per-node surface carried into the fanned graph and
+  validation against the traversability harness (`tools/PgmStudio.RoundTrip --traversability`).
+
+  **It gates route enumeration, which raises it from a consistency chore.** `G127`'s flow read counts attack
+  routes at piece fidelity — four on `p30-s374`, from two frontline legs × two wool doors — and a route count
+  is an enumeration over piece adjacency. While the two graphs disagree about what "adjacent" means for an
+  overlap, the count depends on which one was asked, and nothing at the call site would say so. Whichever
+  rule is picked, the route reader must name the graph it read.
+
+- [ ] **G2 — Protection-aware reachability port (memory stage S4).** `MapValidity` (every-wool-needs-a-monument)
+  and the `NVAL` export gate (`PreflightEndpoint`) already shipped (`FEATURES.md`). The open slice is to **port
+  protection-aware reachability** from `scripts/generator/validate_play.py` to C# `Analysis/Playability`:
+  today's `Traversability.Check` only tests connectivity, **not** spawn-protection-as-wall, so it passes maps
+  the generator's Python validator would fail. Feed it into the `NVAL` / preflight gate.
+
+  **Protection is not the only thing that mask cannot see, and the second one is already solved next door.**
+  `Traversability.Check` takes any column holding any solid block as walkable (`SegmentIndex.SurfaceColumns`),
+  so a building is walkable ground and a route passes through a wall; `Minecraft.Render.TraversabilityRender`,
+  behind `--traversability-map`, asks the better question — ground with **two clear blocks of headroom** — and
+  does see one. Two masks, one concept, different answers, and the blinder of the two is the one that can
+  refuse an export. Every traversability figure in `pgm-studio-mapgen/reports/` came from the render.
+  Adopting the render's predicate costs nothing extra: the segment index the gate already loads holds the
+  vertical structure, and `SurfaceColumns` is discarding it — the same index already answers air-at-a-point
+  for monument obstruction. Worth doing with this entry rather than as its own, since both are the same mask
+  learning what stops a player. **Not urgent on its own**: `B172` (shipped as `OB21`) keeps houses out of the one place they most
+  obstruct, and no corpus distance sweep depends on it (`B212`).
+
+- [ ] **G164 — interference: how much of one side's route the other side's route covers.** Every flow
+  measure so far reads one traversal at a time, and a single route cannot express tension. Tension is two
+  corridors laid over each other: the attacker pushing from a captured wool room toward the remaining
+  objective, and the defender travelling from spawn to the same objective. The measurable is the fraction of
+  the defender's corridor that the attacker's corridor also covers, computed on the cell mask the same way
+  the corridors already are. Measured over 453 two-wool boards at `marker-id-1`: median **34%**, half or more
+  on 27%, and **no board reaches zero** — passing the reinforcement lane is unavoidable on generated output.
+  This is the term that gives a hub void a purpose the ways-round-a-void count cannot: on a holed hub the
+  near way leaves 76% interference and the far way 37%, and the far way measurably reduces the collision on
+  74% of the boards offering one, so a layout whose two ways collide equally has bought nothing. Derive side
+  belongs beside `BoardDeriver`; the term belongs in `Evaluate/Terms`. It reads a pair of routes rather than
+  one, so the origin "a captured wool room" comes from G168's post-capture state — until that exists,
+  computing it once per wool treated as captured is the honest stand-in. Background and the full numbers:
+  `docs/gameplay/match-flow.md` §2, §4.9.
+
+- [ ] **A3 — Buildability endpoint perf (verify, then optimise if needed).** Per-cell NTS over the grid
+  was flagged slow; the endpoint is now live and user-visible (`N03`'s buildability overlay landed).
+  **First profile it under the Configure overlay** — only optimise (spatial index / batch) if it's
+  actually slow in use; otherwise close.
 
 ### Other backend, pipeline & internals work
 
@@ -1232,83 +1400,6 @@ entries below share that cause and want reading together.
   and `/plan/feasibility` both answer `PL1` to a plan with no pieces, in the same sentence `compile` gives.
   The head needs no empty-placements check of its own.
 
-### DTM / DTC objectives — destroyables and cores
-
-The contract is `docs/pgm/destroyables-and-cores.md`: the XML surface, the **world-measured** structure
-families, the schema, the two-team scope, and the `OB*`/`DT*`/`DC*` rule ids cited below. Filed here rather
-than under `N`/`G` because the bulk of each is pipeline — parser, writer, schema, intent, stamper — with the
-plan-editor placement as the last mile. Both objectives author end to end (`FEATURES.md`); what is left is
-the import diagnostic (`B24e`), detection (`B26`), and the island-floor work the phantom classifier
-unblocked (`B31`).
-
-- [ ] **B24e — Flag an *imported* map whose objective region holds none of its material (a warning, not a
-  gate).** Scoped down: the authored half of this is **already covered by tests** — `DestroyableWorldTests`
-  and `CoreWorldTests` walk each emitted region with PGM's `[min, max)` and count the blocks, which is
-  exactly the assertion this task was filed to add. For a generated map the region *is* the stamper's box
-  (OB8), so a runtime gate would re-check something true by construction. **What has no cover is the import
-  side**: the corpus sweep found **10 destroyables whose region contains none of its declared material**.
-  Those are the author's own maps, already broken before we touched them — so this is a **diagnostic on
-  import**, not a block on re-export. Blocking someone's export over a pre-existing dud is the studio
-  overreaching; telling them is the value.
-  Never "the region is full": by OB12 a region is legitimately mostly air (a 3×3×3 region holding a 1×3×1
-  pillar is correct and common), so anything stricter flags most of the corpus.
-  **Note the category difference** before extending `MapValidity`: its one existing rule (a wool needs a
-  monument) is *"PGM refuses to load this map"* — an `InvalidXMLException`, so the map is unloadable. This
-  one is *"PGM loads it fine and the goal has zero health"*, which PGM itself only logs a warning for. Two
-  different severities of truth; do not blur them into one list without saying which is which. World access
-  is **not** the blocker it was originally filed as — 14 test files already read blocks out of a built
-  world. (OB3, OB11, OB12)
-- [ ] **B57 — `layer_segment` counts a build-region marker as solid ground.** Island detection now separates
-  terrain from markers and from what a map erases before play (`FEATURES.md`,
-  `docs/world-scan/terrain-ground-truth.md`), but that runs on `CleanColumns` → `islands_json` only. The other
-  ingest derivation, `FeatureExtractors.Segments` → `layer_segment`, has its own exclusion set and applies
-  neither rule, so a floor sheet at `y=0` persists as a solid span. Everything reading it at query time
-  (`SegmentIndex.BaseColumns` → `IslandDetector.CleanedBaseFootprint`) therefore walks on a marker. Narrower
-  than it sounds — that path feeds kit-reach, not the island picture the configure tool draws — which is why
-  it is filed rather than fixed alongside. The two derivations should agree on what ground is, and the fix is
-  to route the floor-marker rule through both. **Blocked in practice by re-import**: `layer_segment` is
-  written once at ingest from a world that is then discarded, so changing it reaches existing maps only when
-  a map can be re-imported.
-
-- [ ] **B55 — Decide which API paths read a map *as played*, then wire `Includes:Root`.** `IncludeLibrary`
-  and the resolved parse are in and gated by tests (`FEATURES.md`), and the harness uses them
-  (`--resolve-includes`, `--water-lanes --includes-dir`). The API does not, because which reading each
-  endpoint wants is a real question and the wrong answer corrupts data: **a resolved document must never be
-  written back** (the include references are still emitted, so the fragments' content would be applied
-  twice). Safe by construction today — nothing in the API passes a library — and the work is to choose per
-  path rather than flip a global. Rule-level analysis (region categorisation, filter wiring, apply-rule
-  order) wants resolved; anything that saves, exports or re-emits a document wants written; geometry
-  (islands, layout, the seed corpus) does not care, since maps declare their own regions. Add
-  `Includes:Root` beside `MapsRoots` in `Program.cs`, thread it only to the chosen paths, and make the
-  distinction unmissable at the call site. (`docs/pgm/include-resolution.md` §2)
-
-- [ ] **B56 — Parse `<score>` and `<flags>` so an include-supplied objective is actually read.** Include
-  resolution landed (`FEATURES.md`) and measured its own limit: **82 corpus maps take their objective from a
-  fragment** (`bridge`, `touchdown`, `ffb`, `flag-battles`, `5cp`), and resolving them changes nothing about
-  what the studio reports, because `<score>` (TDM) and `<flags>` (CTF) have no parser here. Splicing is not
-  what closes that; a parser is. Until one exists those maps read as objective-less — which the
-  supported-range gate deliberately tolerates, since a module arriving from a fragment round-trips through the
-  include reference and cannot be silently lost. Add each tag to `ParsedObjectiveModules` as its parser lands.
-  (`docs/pgm/include-resolution.md` §4)
-
-- [~] **B58 — Finish the destroyable ranker.** The core half has shipped — gathered at ingest, stored in
-  `core_candidate`, and confirmed in the Cores phase (`FEATURES.md`). What remains is the other objective,
-  and it is measured but unbuilt (`docs/world-scan/objective-suggestion.md`).
-  **Destroyables: the discriminating signals are measured, the detector is not written.** They are not
-  identified by anything about the structure — size spans 1 to 31,105 blocks and fill is uninformative — but by
-  their **neighbourhood**, dumped 10 blocks outward and down to `y=0` for all 614 declared structures.
-  *Isolation*: a declared destroyable has a median of 6 same-material blocks within 10, against 65+ for a false
-  cluster, because decoration repeats and a goal is placed once. *Elevation*: it sits a median +5 blocks above
-  the surrounding terrain, against −2 for false clusters. Together, with **no size cap and no air-face test**
-  (both of which were discarding truth), `same ≤ 8 & elevation ≥ +2` keeps 553 of 1,062 true clusters against
-  600 false — 48% precision at 52% recall, a four-fold precision gain on the previous best. `same ≤ 0 &
-  elevation ≥ +2` reaches 65.6% precision if a stricter list is wanted.
-  Build the detector at those operating points, gather at ingest into a `destroyable_candidate` table beside
-  `core_candidate`, and validate the same two ways cores are (corpus + a composed plan). **Scope honestly to
-  84%**: obsidian, emerald, gold and ender stone carry that share of declared destroyables, and the wool /
-  stained-clay / stained-glass remainder must stay out — admitting wool takes the candidate set from 15,488
-  clusters to 439,440, because a CTW map is made of wool.
-
 ## Layout generation (G)
 
 - [ ] **G158 — seed the library with a curated set.** An author can now build a style once and reuse it, and a
@@ -1483,71 +1574,6 @@ unblocked (`B31`).
 
 What stays here is the concrete non-design work on *imported* maps (island detection + playability):
 
-- [ ] **G9 — Re-scan the corpus with stair-aware detection (remaining slice).** The over-split
-  **detection fix landed** (`FEATURES.md`: `CleanColumns` + `DetectStairAware`), as did the review
-  flag + role classifier. What remains: (a) **re-scan the corpus** so the stored `islands.json` /
-  `island_sketch_json` reflect stair-aware (the live DB + `pgm-studio-output` were generated with the legacy
-  detection — needs the source worlds, `OvercastCommunity/CommunityMaps`+`PublicMaps` `ctw/`), and decide
-  whether to refresh the `--islands` Python-parity oracle to match; (b) the residual `a_new_day` **isolated
-  raised-decor specks** (≈37-block grid bits with no walkable connection — correctly `small` via
-  `IslandClassifier`, but a per-island prune could drop them); (c) any **under-split / merged** read beyond
-  `abstract` (whose stained-glass build-floor is now excluded — `FEATURES.md`): `LooksUnderSplit` is the
-  catch-all flag; the residual lever if one is found is to fall through to surface-based detection when a
-  cleaned-base component is a map-spanning low-Y slab. Serves the shipped island-health / analysis
-  features; the decompose-queue UI slice was dropped with the corpus-mining flywheel.
-- [ ] **G12 — Re-prune flying blobs above terrain (stair-aware regression).** Stair-aware connectivity fixed
-  the over-split (disconnected islands) but **re-introduced** the stark-y-jump / flying-island problem:
-  decorative masses floating above the map (dragons/birds) now merge back into the islands when a near-vertical
-  surface chain bridges them (e.g. **Duality**, **mame_i_shrunk_the_pvpers**). Re-add a guard: stop joining
-  across a **really big y-increase**, and/or identify & **prune blobs whose base sits well above the terrain
-  band** (the old float-prune did this on `DetectHeightAware`; the stair surfaces now leak past it).
-  **`max_build_height`** is a natural cut/prune ceiling — anything whose mass is above it is non-playable
-  decor. Re-validate the over-split fixes (a_new_day/thunder) still hold after re-adding the ceiling.
-- [ ] **G65 — FannedGraph ↔ ContactGraph adjacency reconcile (deferred from G59).** `FannedGraph.LandAdjacent`
-  (reachability) still diverges from the rect-layer authority `ContactGraph` on one count: any area overlap
-  connects regardless of surface delta, while `Components` unions an overlap only at `SurfaceDelta == 0`.
-  (The corridor-width half was reconciled — `LandAdjacent` now accepts Narrow seams, matching `Components`.)
-  Pick one rule for the overlap case and add a test; needs per-node surface carried into the fanned graph and
-  validation against the traversability harness (`tools/PgmStudio.RoundTrip --traversability`).
-
-  **It gates route enumeration, which raises it from a consistency chore.** `G127`'s flow read counts attack
-  routes at piece fidelity — four on `p30-s374`, from two frontline legs × two wool doors — and a route count
-  is an enumeration over piece adjacency. While the two graphs disagree about what "adjacent" means for an
-  overlap, the count depends on which one was asked, and nothing at the call site would say so. Whichever
-  rule is picked, the route reader must name the graph it read.
-- [ ] **G2 — Protection-aware reachability port (memory stage S4).** `MapValidity` (every-wool-needs-a-monument)
-  and the `NVAL` export gate (`PreflightEndpoint`) already shipped (`FEATURES.md`). The open slice is to **port
-  protection-aware reachability** from `scripts/generator/validate_play.py` to C# `Analysis/Playability`:
-  today's `Traversability.Check` only tests connectivity, **not** spawn-protection-as-wall, so it passes maps
-  the generator's Python validator would fail. Feed it into the `NVAL` / preflight gate.
-
-  **Protection is not the only thing that mask cannot see, and the second one is already solved next door.**
-  `Traversability.Check` takes any column holding any solid block as walkable (`SegmentIndex.SurfaceColumns`),
-  so a building is walkable ground and a route passes through a wall; `Minecraft.Render.TraversabilityRender`,
-  behind `--traversability-map`, asks the better question — ground with **two clear blocks of headroom** — and
-  does see one. Two masks, one concept, different answers, and the blinder of the two is the one that can
-  refuse an export. Every traversability figure in `pgm-studio-mapgen/reports/` came from the render.
-  Adopting the render's predicate costs nothing extra: the segment index the gate already loads holds the
-  vertical structure, and `SurfaceColumns` is discarding it — the same index already answers air-at-a-point
-  for monument obstruction. Worth doing with this entry rather than as its own, since both are the same mask
-  learning what stops a player. **Not urgent on its own**: `B172` (shipped as `OB21`) keeps houses out of the one place they most
-  obstruct, and no corpus distance sweep depends on it (`B212`).
-
-- [ ] **G164 — interference: how much of one side's route the other side's route covers.** Every flow
-  measure so far reads one traversal at a time, and a single route cannot express tension. Tension is two
-  corridors laid over each other: the attacker pushing from a captured wool room toward the remaining
-  objective, and the defender travelling from spawn to the same objective. The measurable is the fraction of
-  the defender's corridor that the attacker's corridor also covers, computed on the cell mask the same way
-  the corridors already are. Measured over 453 two-wool boards at `marker-id-1`: median **34%**, half or more
-  on 27%, and **no board reaches zero** — passing the reinforcement lane is unavoidable on generated output.
-  This is the term that gives a hub void a purpose the ways-round-a-void count cannot: on a holed hub the
-  near way leaves 76% interference and the far way 37%, and the far way measurably reduces the collision on
-  74% of the boards offering one, so a layout whose two ways collide equally has bought nothing. Derive side
-  belongs beside `BoardDeriver`; the term belongs in `Evaluate/Terms`. It reads a pair of routes rather than
-  one, so the origin "a captured wool room" comes from G168's post-capture state — until that exists,
-  computing it once per wool treated as captured is the honest stand-in. Background and the full numbers:
-  `docs/gameplay/match-flow.md` §2, §4.9.
-
 - [ ] **G165 — dock arrangement belongs in the structure summary.** Which face of the hub each box seats on
   is a board property with measured consequences and no representation anywhere: it is not the hub's body
   form and not the approach family. With the compass rotated so the frontline is *front*, generated boards
@@ -1679,13 +1705,6 @@ long-tail so they stop competing with real work. Re-evaluate (or delete) when th
   rectangle's corner to sprout a Bézier handle that *implicitly* converts it to a polygon, it needs rect
   vertex/tangent handles in `sketch-edit-controller.js` (a UX decision on resize-handles vs vertex-handles).
   Low priority — explicit promotion already covers the need.
-- [ ] **P7 — [Deferred decision] Consolidate the layer extractors / scan passes.** **`ND2` settles the
-  "consolidate vs keep" half: KEEP the exact per-layer extractors** — the World step uses them in distinct
-  roles (cleaned `Base` = detection · `Surface` = visual aid · `Segments` = vertical), so they're a feature,
-  not duplication; their per-layer default ignored-block sets (`Base` gets the expanded ND2 noise set;
-  Surface/Y0 = air-only) are the solid-policy. Still open: the byte-parity sub-question — a segment-derived
-  surface would **not** be byte-parity with the reference (endpoint-only runs also can't honour user
-  `exclude_blocks`). Pairs with A4.
 - [ ] **A8 — [Decision, parked] Should the layout generator be its own project?** `Pgm` holds two charters:
   the `map.xml` codec (48 files) and the layout generator (`Compose`/`Evaluate`/`Shapes`/`Derive`/`Plan`, 85
   files and 11.5k lines, touching no XML). The generator references only `Domain` and `Geom`, so
@@ -1697,10 +1716,6 @@ long-tail so they stop competing with real work. Re-evaluate (or delete) when th
   generator next needs a structural change; doing it as a standalone refactor buys nothing today.
   See `docs/project-structure.md` §6.1.
 
-- [ ] **A3 — Buildability endpoint perf (verify, then optimise if needed).** Per-cell NTS over the grid
-  was flagged slow; the endpoint is now live and user-visible (`N03`'s buildability overlay landed).
-  **First profile it under the Configure overlay** — only optimise (spatial index / batch) if it's
-  actually slow in use; otherwise close.
 - [ ] **A4 — [Consider, not perf] Vector-boolean island outlines (drop the rasterize→polygon round-trip).**
   Today island outlines come from a pixel round-trip: vector shapes → rasterize to cells → BFS → `BlocksToPolygon`
   (cells back to a polygon), done only to **avoid a C# polygon-boolean lib**. We
