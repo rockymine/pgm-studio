@@ -34,6 +34,25 @@ them.
 
 ## Backend, pipeline & internals (B / P / A)
 
+- [ ] **B253 — How a model actually drives the studio: read the six drivers and the fifteen reports, then
+  decide what the one driver is.** Nobody authored a map the same way twice. `pgm-studio-mapgen` carries
+  **six** independent drivers — `tools/drive.ps1` (a thin poster, hand-authored layouts), `tools/drive.py`
+  (compiles the plan through the API, then patches the compiled layout by tier height), two per-spec
+  `assemble.ps1`, and `build.py`/`reconstruct.py` under `coldharbour`, `coldharbour_v2`, `quernstone` and
+  `thunder-series` — plus `tools/build.cs` and `world-build.cs`, against `tools/mapgen` in this repo. Two
+  point at different ports. Each was written because the one before it did not fit, and none of that reached
+  a document.
+
+  **Read them against the `reports/` (15) and `review/` (29) records** and answer three things. *What every
+  driver had to do itself* — the call order, the fanning, the `@style` resolution, the wait-and-look step —
+  is the shape of the driver the studio should ship. *What each model reached for and could not find* is
+  where the endpoints are unreachable rather than absent, which is `B109`'s and `B245`'s subject. *What a
+  driver had to know that no document says* is the gap `AUTHORING-BRIEF.md` should close.
+
+  The output is a finding, not a refactor: one written account of the authoring loop as it is actually
+  driven, and a decision on whether the one driver belongs in `pgm-studio` beside `tools/mapgen` or in
+  `pgm-studio-mapgen` beside the specs. Worth doing before `B245` and `B249`, which both assume an answer.
+
 - [ ] **B106 — Rename one of the two things called protection.** One is the XML region rule that stops a
   player entering a spawn or a wool room and restricts what may be broken or placed inside it — a gameplay
   contract. The other is `Decorator.IsProtected`, "cells nothing may be placed on", a dressing keep-out with

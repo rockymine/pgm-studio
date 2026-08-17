@@ -273,14 +273,20 @@ says what a concentric house floor would have; and four folded into a neighbour 
 into `B166`, an absolutely-placed goal invisible in a plan raster into `B107`, and a walled wool room reading
 as an isolated marker into `B99`.
 
-- [ ] **B216 — Provenance records structures only, so nothing can prove a tree or a boulder landed.** The
-  sidecar lists what each pass placed for structures and (since `B139`) which prop placed it, and records
-  **no flora, no trees and no boulders at all**. The consequence is stated twice in the authoring reports:
-  `--column` is the only read that can prove ground cover exists, because the topdown will not show it, the
-  export will not refuse it and the sidecar does not carry it — which is how two flora props landed nothing
-  on Coldharbour with no diagnostic anywhere. Extend it to trees and boulders at least: **the placement is
-  known at stamp time** and the tree renderers already read it to draw a crown and a base, so the record is a
-  write rather than a derivation.
+- [ ] **B216 — Provenance records structures only; it should record every pass that places something.**
+  The sidecar carries `Ground` and `Structure` and nothing else — **no trees, no boulders, no paths, no
+  water**. Its own docstring argues they need no record because they separate from built ground by material;
+  the author's ruling is the other way: **provenance carries them too**. Material tells you what a block is,
+  not that a pass put it there or which prop it belonged to, and that is what a read-back has to be able to
+  prove.
+
+  The consequence is stated twice in the authoring reports: `--column` is the only read that can prove ground
+  cover exists, because the top-down will not show it, the export will not refuse it and the sidecar does not
+  carry it — which is how two flora props landed nothing on Coldharbour with no diagnostic anywhere. It also
+  left `B250`'s symmetry reading silent on exactly the families an author checks first. **The placement is
+  known at stamp time** and the tree renderers already read it to draw a crown and a base, so this is a write
+  rather than a derivation. It lands with `B252`'s owner shape, since a new claimant needs an identity a
+  reader can group on.
 
 - [ ] **B220 — Fix the doc-comment defects, then take the four ids out of `NoWarn` so the next one fails the
   build.** Each is a sentence pointing at something that is not there, and each is silenced in all five
@@ -697,6 +703,18 @@ what a library shows back, where the model has outgrown the editor. The three sh
   gradient that flips. Worth a symmetry-aware mode, or an overlay that draws the axis and the mirror
   residual directly rather than leaving it to the eye — which is what `B250` needed and could not get from a
   picture.
+
+- [ ] **B252 — A provenance owner id means two different things, so nothing can pair a stamp with its own
+  mirror.** `house:{propId}:{k}` carries the **orbit image** in `k`, while `spawn:{i}`, `wool:{i}`,
+  `destroyable:{i}`, `core:{i}`, `wall:{i}`, `roomfloor:{i}`, `redstoneline:{i}` and `ironcube:{i}` carry a
+  running index into the **already-fanned** list. Both images of one thing are separate entries with nothing
+  saying which thing they are two of, and `spawn:0` / `spawn:1` are indistinguishable in form from
+  `house:h1:0` / `house:h1:1` while meaning something else. Give every claim the same pair — **what it is, and
+  which image of it this is** — so a reader can group by identity and pair by image without guessing.
+
+  `StructureFinder` already groups by owner to tell two touching buildings apart, so the identity half is
+  load-bearing today; the image half is what `B250` had to recover by matching cell sets geometrically,
+  which is how the first reading of it came out wrong.
 
 ### The author's override: building a board the gates refuse
 
