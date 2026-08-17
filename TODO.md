@@ -14,93 +14,37 @@ three files. Moving a task between files never changes its id; never renumber or
 
 ## The focus: the seams, and which of them bite
 
-A **seam** is one concept implemented once and not reached from the second place that needs it. Four are known,
-and every one was found by following where a fact is stored or derived rather than by reading a type:
+A **seam** is one concept implemented once and not reached from the second place that needs it. Four were
+found by following where a fact is stored or derived rather than by reading a type, and all four are closed:
+a house prop's style deserialized past the upgrade every standalone style ran (`B197`); a house style never
+ran the material walk (`B195`); the inward walk existed for the housing raster and not the terrain one
+(`B200`, model half); and a house the dressing pass **declined to place** still claimed its footprint,
+because the claim was rebuilt from the author's intent instead of from the placement (`B202`).
 
-- a house prop carries a whole style, and the dressing reader deserialized straight past the upgrade every
-  standalone style ran (`B197`);
-- a house style never ran the material walk at all, so a pattern stored inside one never read forward (`B195`);
-- the inward walk a floor's zones are cut by existed for the housing raster and not for the terrain one, though
-  both already shared the perimeter trace beside it (`B200`, **the model half shipped**: one walk, and
-  `LayeredMaterial` reads its stack along either axis);
-- a house the dressing pass **declined to place** still claimed its footprint as structure, because the claim
-  was rebuilt from the author's intent instead of from the placement (`B202`, **shipped**).
+Only the last one bit, and it was measured: two authored houses whose stamped rings overlap, one placed, two
+claimed, 56 columns carrying a `Structure` claim over bare ground — and provenance is *preferred* over the
+material estimate, so a stage image drew a building that was not there and said it was certain. The other
+three were correct by coincidence of maintenance. Nothing in the type, the tests or the documents separates a
+seam that bites from one that has not yet, and the four did not fail a single test between them.
 
-**Only the last bit, and it is fixed.** It was measured: two authored houses whose stamped rings overlap, one
-placed, two claimed, 56 columns carrying a `Structure` claim over bare ground — and provenance is *preferred*
-over the material estimate, so a stage image drew a building that was not there and said it was certain. The
-other three were correct by coincidence of maintenance. That is the whole difficulty: nothing in the type, the
-tests or the documents separates a seam that bites from one that has not yet, and the four did not fail a
-single test between them.
+**The rule that came out of it, written where the next pass meets it:** `StructureClaim` — *a claim is taken
+from the placement, never rebuilt beside it* — with two regressions holding it, a building dropped for
+overlapping one already standing and a building authored over void, both claiming nothing. `B203` was the
+rest of the class and found a second live instance on the way out: a room floor's claim ran one column past
+its own bedrock on each axis, 169 claimed against 144 filled, on every wool room the studio has built.
 
-**What `B202` leaves behind is the rule, written down where the next pass will meet it.** `StructureClaim` —
-a claim is taken from the placement, never rebuilt beside it — with the two regressions that hold it: a
-building dropped for overlapping one already standing, and a building authored over void. Both claim nothing.
-`B203` was the rest of the class and has followed it, with a second live instance found on the way out: a room
-floor's claim ran one column past its own bedrock on each axis, 169 claimed against 144 filled, on every wool
-room the studio has built. The entry's own text said that site was latent, on the grounds that `PlanCompiler`
-fans integral rects — which is exactly what made it live.
-
-**The dispatch pass is done, and it moved three tasks.** `B204` read the bucket bodies rather than their
-titles and labelled each with the concept it spends and the one place that concept may land; the map is in
-`BACKLOG.md` under *What each bucket spends*. Four of its five predicted labels were wrong in a way only the
-bodies show: bucket 4 held three tasks that are not block-kind rules at all but one walk asked for on two
-rasters plus a continuous axis, now **bucket 13**; bucket 10 is not document drift but the refusal vocabulary;
-bucket 9 has been finished since before the table was written; and `B177` asked for a rule that
-`PlanValidator.LintSp2` already implements, so an agent handed it as written would have shipped the second copy.
-
-**A second read of the pool (2026-08-16) removed nine more entries, and the two ways out are worth keeping
-apart.** Four had **shipped** without their entries being retired — `B142`, `B152`, `B180` (as `SP8`) and
-`B201` (answered by `B195`'s ruling) — and five were **never studio tasks**: `B153`, `B170`, `B173`, `B182`
-and `B183` are composition law, and they live as numbered rules in `pgm-studio-mapgen`'s `ART-DIRECTION.md`
-and `REVIEWER-BRIEF.md`. The rest were reworded down to what actually remains, which in three cases (`B159`,
-`B176`, `B185`) is a fraction of what the entry claimed and in two (`B162`, `B190`) is the whole of it —
-believing a task had shipped and finding it had not is the same reading either way.
-
-**What that leaves as the order.** Buckets 6 and 7 spend occupancy and were waiting on `B202`; that has
-landed, so they are dispatchable, and both should adopt `StructureClaim` rather than adding a claim of their
-own. Buckets 1, 2, 3 and 10 all land in `PlanValidator` and go to one agent or strictly in sequence — `B206`
-has cut that class to one verb so they do not each pick a different one. Buckets 4 and 5 share the block table
-and it exists: `BlockFamilies` names each id family once, so a rule about what a field may hold is a lookup
-rather than a sixth list. Bucket 13's author call is answered: **the walk crosses an elevation step.** Buckets
-8, 11 and 12 share nothing and may run at once.
-
-**Every bucket now has its landing site built, and the landscape work is done.** `Findings`/`Check` for the
+**The audit's buckets are dispatchable and their landing sites are built.** `Findings`/`Check` for the
 refusals, `StructureClaim` for occupancy, `BlockFamilies` for block kind, one `PlanValidator` verb,
-`BuildingPlan` renamed clear of `Geom.Footprint`, `GridBoundary.StepsInward` with `ColumnProfile.Inset` for
-the inward axis — shared by both rasters, with the author's crossing-an-elevation-step call built into it —
-and `PieceInterfaces` for every distance a spawn door or an island seam is measured along. The inset is
-painted from too (`BandAxis.Inward`); what bucket 13 has left is the **editor** that lets a band sequence be
-authored at all.
+`PieceInterfaces` for every distance a spawn door or an island seam is measured along, and
+`GridBoundary.StepsInward` with `ColumnProfile.Inset` for the inward axis. The grouping, the order and what
+each bucket lands in are in `BACKLOG.md` under *The mapgen audit's forty-four*.
 
-**The forty-four in `BACKLOG.md` are dispatchable with three corrections, and the sharpest is not a type.** Each
-bucket's concept and landing site are stated there under *What each bucket spends*, and five of the six are
-built and checked. What a closer read of the sixth found:
-
-- **The unit is settled and the numbers are the work (`B212`).** The author's call: **a distance is the walk
-  over the walkable surface, never the straight line** — the line is what a bow or an eye crosses, the walk is
-  what a player carrying wool actually pays, and a separation rule is about the second. Logged as `rules.md`
-  amendment 13, whose preamble had named the scale (blocks) and left the metric to be inferred, which it was,
-  both ways. No code moves: `WL7` (`WoolWoolDistance`) already routes 4-connected around voids, `WL9`/`WL10`
-  already read "traversal", and `G127`'s flow prototype is already in that unit. Bucket 3's bands — `B175`,
-  `B179`, `B188`'s 164-map table — were taken **straight-line off `map.xml` regions**, and they are **not being
-  re-measured**: the author's call is simple hard rules in the settled unit rather than a corpus sweep and the
-  harness behind it. What remains is to stop citing those three as calibrated, since their unit is retired and
-  the sweep behind `B188` is not in the repository to re-run.
-- **`B37` is the parent of buckets 2, 3 and 6 and none of them said so.** Bucket 6's "placement report the
-  export can refuse on" *is* `B37`'s resolved-stamp record; bucket 3's distances are `B37`'s deferred half, and
-  `B188` has already discharged the corpus measurement it was waiting on. `IronResolution` is still the only
-  instance carrying `Placeable`, and the record composes with `StructureClaim` rather than replacing it. Now
-  cross-referenced in all three places. Bucket 6's *reporting* half has since shipped separately (`B142`): the
-  dressing pass names every decline with a reason, which is the report without the record.
-- **The box surface was eighteen declarations, and the boundary made them (`B210`, shipped).** `Client` sees
-  only `Contracts` and `Geom`, so every shape it draws had grown a copy: seven of the world-XZ footprint and a
-  second `BlockBox`. Both now live in `Geom`, `Domain` references it, and `StructureBox` and `CellRect` stay as
-  they are. A bucket adding a rule over a box finds one declaration of each shape.
-
-**Buckets 4, 5, 7, 8, 11, 12 and 13 are unaffected and may run now.** `B212`'s author call has landed, so
-buckets 1 and 2 are free of it and bucket 3 is unblocked as soon as its bands are re-measured in the settled
-unit — which is now `B212` itself rather than a question. Bucket 6 still waits on `B37`'s record.
+**One open question governs bucket 3, and it is the author's.** `B212`: a distance is the **walk over the
+walkable surface, never the straight line** (`rules.md` amendment 13). No code moves — `WL7`, `WL9`/`WL10`
+and `G127` are already in that unit — but bucket 3's thresholds (`B175`'s 35 blocks, `B179`'s 95–110) were
+read straight-line off `map.xml` regions and are **not being re-measured**: the author's call is simple hard
+rules in the settled unit rather than a corpus sweep and the harness behind it. Those three numbers want
+restating before anything enforces them.
 
 ## Backend, pipeline & internals (B / P / A)
 
@@ -108,70 +52,41 @@ unit — which is now `B212` itself rather than a question. Bucket 6 still waits
 facade, leaves lying inside one, a stale chunk surviving a rebuild, and the two names that still cover two
 meanings each.
 
-- [~] **B106 — Two different things in this codebase are called protection.** **The placement half of this
-  entry has landed and its premise is stale.** It described `Retarget` reusing the wool markers so a destroy
-  goal could only stand where a wool budget put one, and the three documents stating that conflation as a
-  principle. `Retarget` was **deleted by `B118`**, the README sentence is corrected, and `B128` shipped the
-  replacement: a destroyable or a core may name an **empty `piece`** and give `at` as an absolute board
-  position, its height resolving from the solved terrain plus `float`. Goals authored that way ship on three
-  committed maps. Nothing of that half is left to do.
+- [ ] **B106 — Rename one of the two things called protection.** One is the XML region rule that stops a
+  player entering a spawn or a wool room and restricts what may be broken or placed inside it — a gameplay
+  contract. The other is `Decorator.IsProtected`, "cells nothing may be placed on", a dressing keep-out with
+  no gameplay meaning. A goal that needs the second does not need the first, and one word for both invites the
+  inference that a destroyable must live somewhere protected — which is what produced the caged goals, and it
+  survives the code that acted on it.
 
-  What remains is the naming problem underneath it, and is worth fixing while here, because it is the likeliest reason the
-  conflation felt right: **two different things in this codebase are called protection.** One is the XML
-  region rule that stops a player entering a spawn or a wool room and restricts what may be broken or placed
-  inside it — a gameplay contract. The other is `Decorator.IsProtected`, "cells nothing may be placed on",
-  which is a dressing keep-out and has no gameplay meaning at all. A goal that needs the second does not need
-  the first, and one word for both invites exactly the inference that a destroyable must live somewhere
-  protected — which is the inference that produced the caged goals in the first place, and it survives the
-  code that acted on it.
+- [ ] **B92 — Give `HouseStyle` a fill material, so a building can be a mass rather than a place.**
+  `HouseStamper` leaves the volume its walls enclose as air, which is right for a village and wrong for a
+  scenery building that is not enterable and for a run of buildings sealing the edge of the board — the only
+  way scenery does the work of a boundary in a mode where nothing may be placed. **The facade is kept**: the
+  windows and door stay where they are and the fill sits *behind* them, so a window reads as an unlit interior
+  rather than a hole into rock. A dark fill (black wool) is the idiom, which is why it is a knob and not a
+  constant. A style field rather than a stamper flag, so a style carries whether it is a place or a mass.
 
-- [ ] **B92 — A building can be a solid volume behind its own facade.** `HouseStamper` raises walls, a roof
-  and their openings, and the volume they enclose is left as air — "fill" appears in the house model only as a
-  wall's infill between posts and as the gable's, never as the interior. That makes every building somewhere
-  to walk into, which is right for a village and wrong for the two things a building is also good for: a
-  **scenery building inside the map that is not enterable**, and a **run of buildings sealing the edge of the
-  board**, which is how scenery does the work of a boundary — and the only way it can do that work at all in a
-  mode where nothing may be placed.
+  Two things to settle: whether the fill respects the storey stack (a building filled to its top course and one
+  filled to its first floor are different buildings), and how deep behind an opening the fill starts (flush and
+  one course back read differently through the gap). `DressingScope` already protects the ground under a
+  stamped building, so nothing downstream needs teaching.
 
-  **The facade is kept, and that is the whole trick.** A filled building is not a solid block wearing a
-  house's outline: its windows and its door stay exactly where they were, because they are what makes it read
-  as a building rather than as a lump, and the fill sits **behind** them. The idiom is a dark fill — black
-  wool being the obvious one — so a window reads as an unlit interior rather than as a hole into rock, which
-  is a house with its lights off and is what an eye expects at the edge of a map. So the fill material is a
-  knob rather than a constant, and the openings are untouched by it.
+- [ ] **B97 — Drop a prop's cells that fall inside a structure's enclosed volume.** `B85` implemented two
+  thirds of the rule: a prop may not **root** inside a structure (done) and may not **replace** its blocks
+  (done — `Decorator` skips any unburied cell whose target is not air, so a canopy resting against a house is
+  correct and wanted). The third is missing: a building's interior is air, so a crown overhanging a roof drops
+  leaves through it and the room becomes a room with a tree in it. The authoring convention being imitated is
+  exact — paste a tree beside a house masked against the house's own blocks, then remove the leaves that
+  landed inside it. Wants the volume a stamped building encloses, which `HouseStamper` knows at stamp time and
+  nothing records afterwards; recording it is most of the work, and `DressingScope` is where a stamped thing's
+  extent already lives. Do it with `B92`, which has to describe that volume anyway.
 
-  It wants to be a `HouseStyle` field rather than a stamper flag, so a style carries whether it is a place or
-  a mass. What still has to be settled: whether the fill respects the storey stack, since a building filled to
-  its top course and one filled only to its first floor are different buildings; and how deep behind a door or
-  window the fill starts, since flush against the opening and one course back read differently through the
-  gap. `DressingScope` already protects the ground under a stamped building, so nothing downstream needs
-  teaching.
-
-- [ ] **B97 — Leaves may lie against a building and never inside it.** A prop already writes only into air —
-  `Decorator` skips any unburied cell whose target is not `Blocks.Air`, so a tree can never replace a wall, a
-  roof or a post, and a canopy resting against a house is correct and wanted. What that mask does not catch is
-  the **enclosed volume**: a building's interior is air, so a crown overhanging a roof drops leaves through it
-  into the room below, and the room is then a room with a tree in it. The authoring convention this is
-  imitating is exact — a map author pastes a tree beside a house masked against the house's own blocks and
-  then **removes the leaves that landed inside it**, so the building stays empty. Only the second half is
-  missing here.
-
-  So the rule is three-way rather than two-way, and `B85` implemented only two thirds of it: a prop may not
-  **root** inside a structure (done), a prop may not **replace** a structure's blocks (done), and a prop's
-  cells falling in a structure's **enclosed interior** are dropped rather than written. The last wants the
-  volume a stamped building encloses, which `HouseStamper` knows at stamp time and nothing records afterwards
-  — recording it is most of the work, and `DressingScope` is where a stamped thing's extent already lives.
-  Worth doing with `B92`, which fills that same volume with a stated material and therefore has to describe it
-  anyway.
-
-- [ ] **B102 — A rebuild writes over a region directory it never clears, so a stale chunk survives.**
-  `AnvilRegionWriter.Write` calls `Directory.CreateDirectory` and nothing else, so every `.mca` a previous
-  build left is still there. A chunk the new build does not touch — because its geometry moved — is read back
-  as part of the new map. That is not a cosmetic problem: it makes a rebuild into an existing `out_dir`
-  untrustworthy, which is exactly what iterating on a spec does, and it silently contradicts the README's own
-  promise that "the same spec rebuilds the same map, so two runs can be compared" — true only into a directory
-  nothing has written before. It cost a design session real time, presenting as building counts that could not
-  be reconciled until the directory was deleted by hand. The fix is to clear the region directory before
-  writing it. Note this is a different hazard from the concurrent-build race `CLAUDE.md` already warns about:
+- [ ] **B102 — Clear the region directory before a rebuild writes it.** `AnvilRegionWriter.Write` calls
+  `Directory.CreateDirectory` and nothing else, so every `.mca` a previous build left is still there and a
+  chunk the new build does not touch — because its geometry moved — is read back as part of the new map. That
+  makes rebuilding into an existing `out_dir` untrustworthy, which is exactly what iterating on a spec does,
+  and contradicts the README's promise that "the same spec rebuilds the same map, so two runs can be
+  compared". It cost a design session real time, presenting as building counts that could not be reconciled
+  until the directory was deleted by hand. Distinct from the concurrent-build race `CLAUDE.md` warns about:
   that one is two builds at once, this one is one build after another.
-
