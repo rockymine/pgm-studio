@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using PgmStudio.Domain;
 using PgmStudio.Geom;
 
@@ -139,11 +141,57 @@ public sealed record SymmetryIntent
 }
 
 /// <summary>An authored author/contributor: a Minecraft <b>username</b> plus an optional contribution
-/// note; the endpoint resolves the username to a uuid via <c>MojangClient</c> before saving.</summary>
+/// note; the endpoint resolves the username to a uuid via <c>MojangClient</c> before saving.
+/// <para>Reads a bare string as the name it always was — see <see cref="AuthorIntentJson"/>.</para></summary>
+[JsonConverter(typeof(AuthorIntentJson))]
 public sealed record AuthorIntent
 {
     public string Name { get; init; } = "";
     public string? Contribution { get; init; }
+}
+
+/// <summary>
+/// Reads an author written before the note existed. A stored intent from then carries
+/// <c>"authors": ["rockymine", "Ruediger_LP"]</c> — the username alone — and today's record is an object, so
+/// the whole document failed to deserialize: not the intent endpoint, not the 3-D preview's build, not the
+/// export. One map's authors made everything else about it unreadable.
+///
+/// <para>Upgrading on read is the discipline this studio already keeps for stored documents
+/// (<c>HouseStyleJson.Upgrade</c>, <c>TerrainThemeJson.Upgrade</c>, and the reason <c>RQ3</c> is a complaint
+/// rather than a refusal): a snapshot outlives the shape it was written in, and the alternative is a
+/// migration that fixes the rows in one database and still cannot read a document exported before it. Writing
+/// is unchanged — the object goes out, so a document is stored in today's shape the first time it is saved.</para>
+/// </summary>
+public sealed class AuthorIntentJson : JsonConverter<AuthorIntent>
+{
+    public override AuthorIntent Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.String)
+            return new AuthorIntent { Name = reader.GetString() ?? "" };
+
+        string name = "", contribution = "";
+        var depth = reader.CurrentDepth;
+        while (reader.Read() && !(reader.TokenType == JsonTokenType.EndObject && reader.CurrentDepth == depth))
+        {
+            if (reader.TokenType != JsonTokenType.PropertyName) continue;
+            var property = reader.GetString();
+            reader.Read();
+            if (string.Equals(property, "name", StringComparison.OrdinalIgnoreCase))
+                name = reader.TokenType == JsonTokenType.String ? reader.GetString() ?? "" : "";
+            else if (string.Equals(property, "contribution", StringComparison.OrdinalIgnoreCase))
+                contribution = reader.TokenType == JsonTokenType.String ? reader.GetString() ?? "" : "";
+            else reader.Skip();
+        }
+        return new AuthorIntent { Name = name, Contribution = contribution.Length > 0 ? contribution : null };
+    }
+
+    public override void Write(Utf8JsonWriter writer, AuthorIntent value, JsonSerializerOptions options)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("name", value.Name);
+        if (value.Contribution is { Length: > 0 } note) writer.WriteString("contribution", note);
+        writer.WriteEndObject();
+    }
 }
 
 /// <summary>Authored map identity.</summary>

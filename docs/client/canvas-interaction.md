@@ -168,6 +168,14 @@ it persists nothing — saving is the host's, on the author's word), `sketch-bri
 bridges look repetitive but are not: each owns different document semantics. What they genuinely share is
 only the invoke wrapper, which is inconsistent today (**CV15**).
 
+**A preview that cannot run says which of the two reasons it was.** `enterIso` fails for two unrelated
+causes — the browser has no WebGL, or the server would not build the board — and for a long time both crossed
+to C# as one bare `OnIsoUnavailable()`, so the canvas answered *no WebGL* on browsers that plainly had it and
+the reader went looking in the wrong place entirely. The bridges now carry a reason: an empty string is WebGL
+itself, and anything else is the sentence the build answered with, read out of the refusal envelope
+(`message`, then `error`, then the bare status). The host shows *no WebGL* for the first and the build's own
+words for the second. A failure with a sentence available should never be reported as a different failure.
+
 **Three interop details cost an afternoon each the first time.** `InvokeVoidAsync(name, params object?[])`
 **spreads** an array argument, so passing one whole array means boxing it — `(object)ids.ToArray()` — or the
 JS side receives the elements as separate parameters. A Razor markup lambda cannot contain a `"` literal, so

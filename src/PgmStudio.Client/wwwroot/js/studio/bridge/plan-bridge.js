@@ -43,29 +43,38 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
 
   async function enterIso() {
     const ok = await canvas.enterIso();
-    if (ok === false) { view = "2d"; fire("OnIsoUnavailable"); return; }
+    if (ok === false) { view = "2d"; fire("OnIsoUnavailable", ""); return; }
     view = "iso";
 
     const state = toJson(doc);
     if (isoMesh && isoStamp === state) { canvas.drawIso(isoMesh, isoYaw, viewBounds(doc)); return; }
 
     const seq = ++isoSeq;
-    const mesh = await fetchColumns(state);
+    const built = await fetchColumns(state);
     if (seq !== isoSeq || view !== "iso") return;
-    if (!mesh) { canvas.hideIso(); view = "2d"; fire("OnIsoUnavailable"); return; }
-    isoMesh = mesh; isoStamp = state;
-    canvas.drawIso(mesh, isoYaw, viewBounds(doc));
+    if (!built.mesh) { canvas.hideIso(); view = "2d"; fire("OnIsoUnavailable", built.error); return; }
+    isoMesh = built.mesh; isoStamp = state;
+    canvas.drawIso(isoMesh, isoYaw, viewBounds(doc));
   }
 
+  // Answers {mesh} or {error} — see the sketch bridge: a refused build carries a sentence worth showing,
+  // and throwing it away is what made every failure read as "no WebGL".
   async function fetchColumns(state) {
     try {
       const res = await fetch("/api/plan/columns", {
         method: "POST", headers: { "Content-Type": "application/json" }, body: state,
       });
-      if (!res.ok) return null;
+      if (!res.ok) return { error: await refusalText(res) };
       const { meshColumns } = await import("../render/column-mesh.js");
-      return meshColumns(await res.json());
-    } catch { return null; }
+      return { mesh: meshColumns(await res.json()) };
+    } catch { return { error: "the build could not be reached" }; }
+  }
+
+  async function refusalText(res) {
+    try {
+      const body = await res.json();
+      return body?.message || body?.error || `the build answered ${res.status}`;
+    } catch { return `the build answered ${res.status}`; }
   }
 
   const canvas = new PlanCanvas(svgEl, wrapEl, {

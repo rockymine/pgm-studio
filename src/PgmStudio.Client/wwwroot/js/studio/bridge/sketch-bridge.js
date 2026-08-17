@@ -246,30 +246,41 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // spinner over the 3-D surface rather than a frozen 2-D one.
   async function enterIso() {
     const ok = await canvas.enterIso();
-    if (ok === false) { view = "2d"; fire("OnIsoUnavailable"); return; }
+    if (ok === false) { view = "2d"; fire("OnIsoUnavailable", ""); return; }
     view = "iso";
 
     const state = JSON.stringify(handle.getState());
     if (isoMesh && isoStamp === state) { canvas.drawIso(isoMesh, isoYaw, setup.bbox); return; }
 
     const seq = ++isoSeq;
-    const mesh = await fetchColumns(state);
+    const built = await fetchColumns(state);
     if (seq !== isoSeq || view !== "iso") return;   // left the preview, or a newer entry overtook this one
-    if (!mesh) { canvas.hideIso(); view = "2d"; fire("OnIsoUnavailable"); return; }
-    isoMesh = mesh; isoStamp = state;
-    canvas.drawIso(mesh, isoYaw, setup.bbox);
+    if (!built.mesh) { canvas.hideIso(); view = "2d"; fire("OnIsoUnavailable", built.error); return; }
+    isoMesh = built.mesh; isoStamp = state;
+    canvas.drawIso(isoMesh, isoYaw, setup.bbox);
   }
 
+  // Answers {mesh} or {error}: the reason travels because the host shows it. A refused build carries the
+  // studio's own envelope — a rule id and a sentence — and dropping that on the floor is what made every
+  // failure read as "no WebGL", including on a browser that has it.
   async function fetchColumns(state) {
-    if (!slug) return null;
+    if (!slug) return { error: "this sketch has no map to build" };
     try {
       const res = await fetch(`/api/map/${encodeURIComponent(slug)}/sketch/columns`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: state,
       });
-      if (!res.ok) return null;
+      if (!res.ok) return { error: await refusalText(res) };
       const { meshColumns } = await import("../render/column-mesh.js");
-      return meshColumns(await res.json());
-    } catch { return null; }   // offline or mid-navigation — the caller drops back to 2-D
+      return { mesh: meshColumns(await res.json()) };
+    } catch { return { error: "the build could not be reached" }; }   // offline or mid-navigation
+  }
+
+  // The sentence out of a refusal envelope {error, message, findings[]}, or the status when a body is not one.
+  async function refusalText(res) {
+    try {
+      const body = await res.json();
+      return body?.message || body?.error || `the build answered ${res.status}`;
+    } catch { return `the build answered ${res.status}`; }
   }
 
   function refreshMirror() {
@@ -578,8 +589,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // the shapes are still moving, and painting the layout is server work worth not doing there at all.
     setPaintPreview(on) { paintPhase = !!on; syncPaint(); },
     setSnap(v)         { canvas.setSnapEnabled(v); },
-    // enterIso tells the host when the preview cannot run — no WebGL, or a build that did not come back —
-    // so it can disable the toggle and drop back to 2-D rather than leave an empty surface up.
+    // enterIso tells the host when the preview cannot run, and which of the two it was: an empty reason is
+    // WebGL itself, and any other is the sentence the build answered with. The host says which, because
+    // "no WebGL" on a browser that has it sends the reader to the wrong place entirely.
     setView(v)         {
       if (v !== "iso") { view = "2d"; canvas.hideIso(); return; }
       enterIso();

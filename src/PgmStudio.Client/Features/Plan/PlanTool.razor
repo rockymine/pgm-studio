@@ -316,10 +316,10 @@
             }
             @if (isoUnavailable)
             {
-              <span class="canvas-note" title="The 3-D height preview needs WebGL, which this browser can't provide.">no WebGL</span>
+              <span class="canvas-note" title="@IsoNoteTitle">@IsoNote</span>
             }
             <ViewModeToggle ThreeD="threeD" Disabled="@isoUnavailable"
-                            Title="@(isoUnavailable ? "3-D preview needs WebGL, which isn't available in this browser" : "Isometric height preview (read-only)")"
+                            Title="@(isoUnavailable ? IsoNoteTitle : "Isometric height preview (read-only)")"
                             OnClick="Toggle3D" />
           </CanvasLayerBar>
 

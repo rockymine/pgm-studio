@@ -108,10 +108,11 @@ public partial class PlanTool
     private string? dbError;
     private List<PlanSummary> dbPlans = [];
 
-    // Read-only 3-D height preview (G27): whether the iso view is on, and whether it couldn't initialise
-    // (no WebGL / the preview module failed to load) so the toggle is disabled.
+    // Read-only 3-D height preview (G27): whether the iso view is on, whether it couldn't be shown (so the
+    // toggle is disabled), and why — the build's own sentence, or null when WebGL itself is missing.
     private bool threeD;
     private bool isoUnavailable;
+    private string? isoUnavailableWhy;
 
     // The left panel is a rail-selected activity — "settings" (plan name / globals / reference / overlays)
     // or "validation" (the evaluator score + fired rules) — plus a collapse flag. Each rail icon toggles its
@@ -1101,15 +1102,24 @@ public partial class PlanTool
     [JSInvokable]
     public void OnTool(string t) { tool = t; StateHasChanged(); }
 
-    /// <summary>The bridge couldn't initialise the read-only 3-D preview (WebGL unavailable, or the
-    /// preview module failed to load); fall back to 2-D and disable the toggle.</summary>
+    /// <summary>The bridge couldn't show the read-only 3-D preview; fall back to 2-D and disable the toggle.
+    /// <paramref name="reason"/> is empty when WebGL itself is missing and the build's own sentence when the
+    /// board would not build — two different things to do about it, so the note says which.</summary>
     [JSInvokable]
-    public void OnIsoUnavailable()
+    public void OnIsoUnavailable(string? reason)
     {
         threeD = false;
         isoUnavailable = true;
+        isoUnavailableWhy = string.IsNullOrWhiteSpace(reason) ? null : reason;
         StateHasChanged();
     }
+
+    /// <summary>The chip beside the toggle: what stopped the preview, in two words.</summary>
+    private string IsoNote => isoUnavailableWhy is null ? "no WebGL" : "3-D unavailable";
+
+    /// <summary>The whole sentence, on hover.</summary>
+    private string IsoNoteTitle => isoUnavailableWhy
+        ?? "The 3-D height preview needs WebGL, which this browser can't provide.";
 
     [JSInvokable]
     public void OnZoom(int pct) { zoomLabel = $"{pct}%"; StateHasChanged(); }

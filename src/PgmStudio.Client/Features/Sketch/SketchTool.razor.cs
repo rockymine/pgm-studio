@@ -29,7 +29,8 @@ public partial class SketchTool
     private bool reliefOn = false;   // the height contours of whatever relief the islands carry
     private bool snapOn = true;
     private bool threeD = false;
-    private bool isoUnavailable = false;   // 3-D preview couldn't initialise (no WebGL / module load failed)
+    private bool isoUnavailable = false;   // 3-D preview couldn't be shown (no WebGL, or the build refused)
+    private string? isoUnavailableWhy;     // the build's own sentence; null when WebGL itself is missing
     private string islandLabel = "";
 
     // ── Phases (rail): Info (Identity + Settings steps) · Draw (the canvas). Draw stays mounted while
@@ -373,15 +374,24 @@ public partial class SketchTool
     [JSInvokable]
     public void OnRelief(string json) { reliefJson = json; reliefRevision++; StateHasChanged(); }
 
-    /// <summary>The bridge couldn't initialise the read-only 3-D preview (WebGL unavailable, or the
-    /// preview module failed to load); fall back to 2-D and disable the toggle.</summary>
+    /// <summary>The bridge couldn't show the read-only 3-D preview; fall back to 2-D and disable the toggle.
+    /// <paramref name="reason"/> is empty when WebGL itself is missing and the build's own sentence when the
+    /// board would not build — two different things to do about it, so the note says which.</summary>
     [JSInvokable]
-    public void OnIsoUnavailable()
+    public void OnIsoUnavailable(string? reason)
     {
         threeD = false;
         isoUnavailable = true;
+        isoUnavailableWhy = string.IsNullOrWhiteSpace(reason) ? null : reason;
         StateHasChanged();
     }
+
+    /// <summary>The chip beside the toggle: what stopped the preview, in two words.</summary>
+    private string IsoNote => isoUnavailableWhy is null ? "no WebGL" : "3-D unavailable";
+
+    /// <summary>The whole sentence, on hover.</summary>
+    private string IsoNoteTitle => isoUnavailableWhy
+        ?? "The 3-D height preview needs WebGL, which this browser can't provide.";
 
     /// <summary>The bridge pushed the current island→shape tree (on every layout change).</summary>
     [JSInvokable]

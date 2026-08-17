@@ -229,6 +229,27 @@ asks whether the islands are bridged. `Traversability.Check` does, and `GET /map
 for an intent-authored map whose spawn↔wool chain is not connected. It is scoped to intent maps on purpose:
 a corpus map has no intent, may have no scan layers, and exports unconditionally.
 
+## 6a. A stored intent outlives the shape it was written in
+
+The intent is an artifact on the map row, so a document written months ago is read by today's record — and a
+record that has since gained a field cannot read what came before it. That already happened once, silently:
+`meta.authors` was a list of usernames before an author could carry a contribution note, and today's
+`AuthorIntent` is an object, so every intent from then failed to deserialize **whole**. One map's authors made
+everything about that map unreadable — `GET /map/{slug}/intent` answered 400, `POST .../sketch/columns`
+answered *could not build layout*, and the sketch canvas reported "no WebGL" for it. Sixteen of the
+forty-three stored intents in the development database were in that state.
+
+So the intent reads the retired shape and writes the current one — a bare string is the name it always was
+(`AuthorIntentJson`). This is the discipline the studio already keeps for stored documents:
+`HouseStyleJson.Upgrade` and `TerrainThemeJson.Upgrade` carry retired names forward, and `RQ3` is a complaint
+rather than a refusal for the same reason (`docs/refusals.md`). A migration would have fixed the rows in one
+database and still failed on the next document exported before the change; upgrading on read fixes both, and
+the document is stored in today's shape the first time it is saved.
+
+**This is not a second accepted format on the wire.** Nothing writes the old shape, no endpoint accepts it as
+an alternative, and the writer emits one thing. It is a reader that can still read what the studio itself
+wrote.
+
 ## 7. Scope
 
 **New maps only.** No migration of existing maps to the intent model, and no intent inferred from a finished

@@ -1466,6 +1466,21 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   (`IslandSketchArtifact`). Used to land the stair-aware re-detect across the corpus (348 maps updated).
 
 ## New-map authoring — intent model (backend) ★ headline direction
+- **A stored intent outlives the shape it was written in (PG1).** `meta.authors` was a list of usernames
+  before an author could carry a contribution note, and today's `AuthorIntent` is an object — so every intent
+  written before that change failed to deserialize **whole**, and one map's authors made everything about
+  that map unreadable: `GET /map/{slug}/intent` answered 400, `POST .../sketch/columns` answered *could not
+  build layout*, `POST .../sketch/paint` answered *could not paint layout*, and the canvas reported **"no
+  WebGL"** for it on a browser that had WebGL. Sixteen of the forty-three intents in the dev database were in
+  that state — every hand-authored map from before the change.
+  `AuthorIntentJson` reads a bare string as the name it always was and writes today's object, so a document
+  is stored in the current shape the first time it is saved. This is the discipline the studio already keeps
+  for stored documents (`HouseStyleJson.Upgrade`, `TerrainThemeJson.Upgrade`, and why `RQ3` is a complaint) —
+  not a second accepted format: nothing writes the old shape and no endpoint takes it as an alternative.
+  Beside it, the client stopped lying about the cause: `enterIso` fails either because the browser has no
+  WebGL or because the build refused, and both crossed as one bare `OnIsoUnavailable()`. The bridges now
+  carry the reason, and the chip shows *no WebGL* only when that is what happened — otherwise the build's own
+  sentence out of the refusal envelope.
 The forward path (**meaning → structure**): the author states intent and the generator emits the
 region/filter/apply-rule graph. Backend landed + unit-tested; the **wizard shell UI + intent wiring are
 landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: `docs/pgm/new-map-authoring.md`.
