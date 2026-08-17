@@ -18,25 +18,22 @@ files. The prefix names the document the task must leave correct, catalogued in 
 about which group the entry sits in. Moving a task between files or groups never changes its id, and the
 retired prefixes on entries here (`B`, `S`, `N`, `CV`, `P`, `A`) stay exactly as they are.
 
-## The focus: the seams, and which of them bite
+## The focus: one shape per concept, and the surfaces that still disagree
 
-A **seam** is one concept implemented once and not reached from the second place that needs it. Four were
-found by following where a fact is stored or derived rather than by reading a type, and all four are closed —
-`B197`, `B195`, `B200`'s model half, and `B202`. Only the last bit: two authored houses whose stamped rings
-overlap, one placed, two claimed, 56 columns carrying a `Structure` claim over bare ground — and provenance
-is *preferred* over the material estimate, so a stage image drew a building that was not there and said it
-was certain. The other three were correct by coincidence of maintenance, and the four did not fail a single
-test between them.
+A **seam** is one concept implemented once and not reached from the second place that needs it, and the last
+run of them closed the same way: by following where a fact is stored or derived rather than by reading a
+type. `StructureClaim` — now `PlacementClaim` — carries the rule the whole family produced: *a claim is taken
+from the placement, never rebuilt beside it*. It has since caught the same defect twice more, in a goal's
+anchor and in a room's claim rectangle, neither of which failed a test while it was wrong.
 
-**The rule that came out of it**, written where the next pass meets it: `StructureClaim` — *a claim is taken
-from the placement, never rebuilt beside it* — held by two regressions, a building dropped for overlapping
-one already standing and a building authored over void, both claiming nothing.
+The board's open work is the same shape one layer out. A prop the dressing pass declines, a refusal crossing
+the API, an artifact read from the database, a gate in the export chain — each is one concept given a
+different form at each surface that touches it, so nothing downstream can read all of them. That is what the
+first three groups below are, and the reason an agent driving the studio meets one on every loop.
 
-`BACKLOG.md` groups the open work by the concept it spends — the house, distance, the audit's remainder —
-and every group's landing site is built. The one open question that governs a whole group is the author's
-(`B212`): a distance is the **walk over the walkable surface, never the straight line**, and the walk under
-every measure is still flat (`B246`), so the thresholds stated in it want restating before anything enforces
-them.
+The one open question that governs a whole group is the author's (`B212`): a distance is the **walk over the
+walkable surface, never the straight line**, and the walk under every measure is still flat (`B246`), so the
+thresholds stated in it want restating before anything enforces them.
 
 ## Task groups
 
@@ -68,6 +65,76 @@ them.
   pieces touch, not how far apart two placements stand.*
 
   *moved here by the human because it sounds related and no other category fits*
+
+### The keep-out mask: what it stops, what it says, and what it is called
+
+One mask decides where the dressing pass may put anything, and all three questions about it are open: it
+does not stop everything it should, it cannot say why it stopped, and it is named after a different concept
+that already exists in the map contract.
+
+- [ ] **WE1 — A declined prop is invisible to the surface that asked for it, and the approach lets one land
+  that it will then refuse.** Two halves, one answer.
+
+  **The approach protects.** `DressingScope.ApproachAt` — 20 blocks out from a spawn's doored face,
+  `WoolApproach` 10 from a wool entry — is read only by `MapExportComposer`, never by the build's protection
+  mask, so a tree in a door's approach is built, drawn in the 3-D preview, and refused at export by `OB21`.
+  The author's ruling is that it protects as well: the prop never lands. The boulder exemption goes with it —
+  a boulder is large enough that the low-cover sightline argument does not hold, and the carve-out costs an
+  agent more than it buys. `OB21` then stops being reachable by an authored prop.
+
+  **The decline is reported, in the shape everything else refuses in.** `DroppedProp(Id, Kind, Reason)` is an
+  eighth finding record that never joined the consolidation. Two of its four reasons — *"the column at (x, z)
+  is protected"*, *"ground already claimed at (x, z)"* — name a cell and neither the rule nor what claimed
+  the ground, though `GroundClaims` holds the `ClaimKind` and a `PlacementClaim` now holds the owner. Make a
+  decline a `Finding`: a `DR-*` rule from `docs/refusals.md`, `Subjects: [propId]`, `Severity.Complaint`.
+  Then return it from the build endpoints beside the payload — `/sketch/columns` and `/plan/columns` hold
+  `SketchWorld.DroppedProps` today and discard it — so an agent learns **why, where and what** on the loop it
+  actually drives, instead of unzipping `dressing-report.json`.
+
+- [ ] **B106 — Rename one of the two things called protection.** One is the XML region rule that stops a
+  player entering a spawn or a wool room and restricts what may be broken or placed inside it — a gameplay
+  contract. The other is `Decorator.IsProtected`, "cells nothing may be placed on", a dressing keep-out with
+  no gameplay meaning. A goal that needs the second does not need the first, and one word for both invites the
+  inference that a destroyable must live somewhere protected — which is what produced the caged goals, and it
+  survives the code that acted on it.
+
+  `DressingScope.ProtectedAt` makes the collision concrete: it *reads* `SpawnIntent.Protection` — the XML
+  region — to build the mask that means the other thing, so one word names both the source and the derived
+  set. The internal verb is already right (`KeepRect`, `KeepArea`), so `KeptClearAt` / `IsKeptClear` reads
+  with the code that builds it and leaves `Protection` to the contract. Lands with `WE1`, which changes what
+  goes into that mask and what it says when it stops something.
+
+### The API layer: one envelope, one store, one gate chain
+
+An agent driving the studio meets one of these on every loop, and they share a cause: the same answer is
+given a different shape at each surface, so nothing downstream can read all of them. Fable's run-3 review
+named the layer and re-verified it after its own fixes landed; the counts below are re-measured against
+today's tree and two of them are worse than that reading.
+
+- [ ] **RP1 — One typed artifact store, replacing five copies and 34 raw touches.** `IntentStore`,
+  `SketchStore`, `PlanStore`, `ConfigureStore` and `RegionDraftStore` are copy-shaped, and three say so in
+  their own docstrings — *"Mirrors `RegionDraftStore`"*, *"Mirrors `SketchStore`"*, *"Mirrors
+  `IntentStore`"* — which is exactly the tell `CLAUDE.md` names: the duplication written down and left
+  there. They do not even cover what they exemplify: `db.Artifacts` is touched **raw at 34 sites across 15
+  files**, so most artifact access bypasses the stores entirely. One typed store keyed on the artifact kind
+  replaces all of it. No design question in it, and the cleanest one-concept-one-shape candidate left.
+
+- [ ] **RP2 — The refusal envelope still has three anonymous shapes beside the typed one.** `Refusals.Of`,
+  `WriteAsync` and `StopAsync` are the envelope, and `RefusalDto` + `Finding.Envelope` are the deliberate
+  pair carrying the drift warning. Beside them sit **31** hand-rolled sites in three sub-shapes — 24
+  `new { error }`, 4 `new { error, message = ex.Message }`, 3 `new { error, used }` — plus a bare `{error}`
+  `Dict` in `MapExportComposer`'s exception path. A caller cannot write one parser for that. Convert each
+  onto the envelope; the only non-mechanical part is giving each its rule id from `docs/refusals.md`, which
+  is the work that makes the conversion worth doing rather than a rename.
+
+- [ ] **RP3 — The gate chain's completeness depends on which entry point a caller came through.**
+  `MapExportComposer.Compose` runs `OB20` (`RefuseUnknownGamemode`) and the traversability judgement before
+  handing on; `ComposeSketch` runs the rest. `tools/mapgen` calls `ComposeSketch` directly
+  (`Program.cs:141`) and so skips both. It cannot trip `OB20` today — it writes no gamemodes — so this is
+  shape rather than a live defect, but a gate that fires on one of two entry points is one nobody can
+  reason about, and it is the residue of the finding that `mapgen` shipped maps the HTTP export would
+  refuse. Move both down into `ComposeSketch` so the chain is caller-independent, leaving `Compose` the
+  doc-assembly leg it already reads as.
 
 ### Agentic Map Authoring
 
@@ -109,91 +176,3 @@ driven, and a decision on whether the one driver belongs in `pgm-studio` beside 
   **It stays out of the agent's vocabulary.** Not in `docs/tools/capabilities.md`, not in the endpoint tables
   the briefs hand an agent, not in `mapgen`'s `--help` (`B245`). The authoring briefs already tell an agent
   that a refusal is a fault to fix; an override an agent knows about is an override an agent will reach for.
-
-### Other tasks and quick wins
-
-- [ ] **G163 — `map-layers`' rebuild-confirmation step flakes about one run in three.** The step drives
-  Compile on a freshly-opened plan and reads the drawer; when the plan document has not reached the client
-  yet it compiles an empty plan, which is a 422 by design, so the drawer never opens and the following
-  `page.click` times out at 30s. The spec guards it with a fixed `waitForTimeout(1500)` — a duration
-  standing in for a condition, and the wrong guess about a third of the time. Measured 1-in-3 both with and
-  without the `OB17` rule, so it is timing rather than validation. Waiting on the first piece id label
-  (`.map-canvas-svg text`, the overlay's proof the document arrived) was tried and did **not** fix it, so
-  the stall is later than the document load. **A caught failure now names the click, and it is not the one
-  the paragraph above blames.** The step got as far as reading the drawer's button label ("the button names
-  a rebuild" passed on `Rebuild this map`) and then timed out on `page.click("Rebuild this map")` — the
-  *second* click, on a compile that answered 200, long before the empty-plan compile the 1500ms guard is
-  aimed at. The recorded 422 is an earlier fault on the same page, not this one. A 30s timeout on a button
-  whose text was just read means the element was found but never became actionable, which points at a
-  drawer that keeps re-rendering rather than at a document that has not arrived — so the fix is a wait on
-  the drawer settling, and the 1500ms guard may be guarding nothing. A flake in the browser gate costs more
-  than the step is worth, because it makes every unrelated run ambiguous.
-
-- [ ] **G154 — one plan editor, two bindings, two different tools.** `PlanTool` serves `/plan-editor` and
-`/maps/{slug}/plan` from a single component through five `@if (MapBacked)` branches, and the two render as
-different products. Map-backed gets the phase rail (Info · Draw), the flow bar, and the three panels as chips;
-the bare route gets no flow bar, no phases, the same three panels as **rail buttons**, and a collapsible
-sidebar the map-backed one cannot have (`SidebarOpen => MapBacked || leftOpen`). Same panels, two navigation
-models, one file — the thing the tool-consistency alignment exists to prevent.
-Unify on the phase-rail + flow-bar + chips structure and keep the collapsible sidebar for both. The route may
-change **only** the topbar — its crumbs and which actions exist — because that is where the binding genuinely
-differs: a map-backed plan saves into its map's artifact, while a plan row saves as a row and forks when it
-was generated or imported. Rename the bare route to `/plans/{id}` (and `/plans/new`), which says what it is
-bound to where `/plan-editor` says nothing, updating the generator hand-off, the smoke sweep's route list and
-the plan schema doc with it.
-**Do not delete the route.** It is the only surface that opens a **plan row**, which is what the generator
-hands a candidate off as and what `G119`'s fork-on-edit rule operates on; routing candidates through
-`/maps/{slug}/plan` would mint a map per candidate looked at, and New, Import, Open and the origin badge have
-no home on a map-backed plan.
-
-- [ ] **B79 — The plan tool must not offer Compile before the document it would compile has loaded.**
-Reached by the SPA hop from the Configuring list, the tool's canvas is in the DOM before its plan document
-is. Click **Compile** in that window and it posts `pieces: 0`, the validator correctly answers `422` `PL1`
-*"this plan has no pieces — there is no land to build"*, and the drawer opens anyway because its tabs render
-the source document. The draft button still reads **Rebuild this map** — `BuildLabel` comes from the map —
-and is `Disabled="@(compiledLayout is null || draftBusy)"`: present, correctly labelled, not actionable. A
-user who clicks quickly is told their board has no land, about a board with land. Gate the button, or the
-post, on the document having arrived.
-
-The suite half is one missing wait. `map-layers.mjs:75` waits for `.map-canvas-svg`, the element that exists
-too early; at `:122`, before the *second* compile, it waits 1500 ms with a comment saying exactly why.
-Fixing the tool makes both unnecessary.
-
-*diagnosed 2026-08-16 by intercepting the editor's own `POST /api/plan/compile` under both navigations:
-same database, `goto` → **200**, row-link → **422**. `./tools/e2e.sh all` gives `map-layers` 13/14 with
-`smoke` 39/39 in the same run; `./tools/e2e.sh map-layers` alone is 18/18. `B229` was this filed a second
-time — its hypothesis, that an earlier spec breaks the stored plan, is disproved by the same test.*
-
-- [ ] **B34 — The two map-list endpoints disagree on sort order, and the dashboard gets the noisy one.**
-  `MapsListEndpoint` branches on the `stage` query param onto two differently-ordered repository methods:
-  `MapRepository.ListAsync` sorts `OrderBy(Slug)`, `ListByStageAsync` sorts
-  `OrderByDescending(UpdatedAt).ThenBy(Slug)`. The dashboard always requests `?stage=…`, so it always gets
-  recency order — and on the imported Edit corpus `updated_at` records when the *pipeline* last wrote the
-  row, not when the author last worked on the map, so it carries no authoring signal. The 349 Edit rows hold
-  only 29 distinct timestamps (a re-processing pass stamped them in ~22-map batches a second apart), so the
-  list renders as 29 alphabetical runs concatenated — it reads as scrambled, with the three maps outside the
-  supported range (`3084`, `allure`, `lost_haven`, never re-processed) parked at the bottom. Recency earns
-  its keep on Sketches/Plans/Configuring, where the timestamps are real edits and the lists are short.
-  Preferred fix: slug order for the Edit stage, recency for the other three (one line); alternatives are
-  slug everywhere, or leave it and let recency come good once maps are edited in the studio. Cosmetic — no
-  data is wrong, and both orders are deterministic.
-
-- [ ] **B102 — Clear the region directory before a rebuild writes it.** `AnvilRegionWriter.Write` calls
-  `Directory.CreateDirectory` and nothing else, so every `.mca` a previous build left is still there and a
-  chunk the new build does not touch — because its geometry moved — is read back as part of the new map. That
-  makes rebuilding into an existing `out_dir` untrustworthy, which is exactly what iterating on a spec does,
-  and contradicts the README's promise that "the same spec rebuilds the same map, so two runs can be
-  compared". It cost a design session real time, presenting as building counts that could not be reconciled
-  until the directory was deleted by hand. Distinct from the concurrent-build race `CLAUDE.md` warns about:
-  that one is two builds at once, this one is one build after another.
-
-- [ ] **CV21 — the world canvas has a `build` layer nothing paints into.** Stating the layer stack once
-(`CV19`) surfaced two layers with no content. One was removed there — a `block-highlight` rect created
-`visibility:hidden` whose only handle was assigned and never read. This is the other: the `build` group is
-created empty, no painter ever appends to it, and its toggle `setBuildVisible` has no caller outside the
-class — not the bridge, not any of the sixteen hosts. So it is an empty group with a visibility switch
-nobody throws. Removing it takes `setBuildVisible`, `#showBuild`, `#paintBuildRegion` and one line of the
-documented public surface with it, which is why it was left in place rather than swept during a
-behaviour-preserving refactor. Check first whether a Build phase was *meant* to fill it (the name suggests
-the Build-Regions work) — if so the task is to wire it, not delete it, and that is a different task in the
-feature section.

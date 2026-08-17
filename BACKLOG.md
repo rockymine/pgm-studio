@@ -1119,6 +1119,56 @@ place.
 
 ### User Experience and Graphical User Interface
 
+
+- [ ] **G154 — one plan editor, two bindings, two different tools.** `PlanTool` serves `/plan-editor` and
+`/maps/{slug}/plan` from a single component through five `@if (MapBacked)` branches, and the two render as
+different products. Map-backed gets the phase rail (Info · Draw), the flow bar, and the three panels as chips;
+the bare route gets no flow bar, no phases, the same three panels as **rail buttons**, and a collapsible
+sidebar the map-backed one cannot have (`SidebarOpen => MapBacked || leftOpen`). Same panels, two navigation
+models, one file — the thing the tool-consistency alignment exists to prevent.
+Unify on the phase-rail + flow-bar + chips structure and keep the collapsible sidebar for both. The route may
+change **only** the topbar — its crumbs and which actions exist — because that is where the binding genuinely
+differs: a map-backed plan saves into its map's artifact, while a plan row saves as a row and forks when it
+was generated or imported. Rename the bare route to `/plans/{id}` (and `/plans/new`), which says what it is
+bound to where `/plan-editor` says nothing, updating the generator hand-off, the smoke sweep's route list and
+the plan schema doc with it.
+**Do not delete the route.** It is the only surface that opens a **plan row**, which is what the generator
+hands a candidate off as and what `G119`'s fork-on-edit rule operates on; routing candidates through
+`/maps/{slug}/plan` would mint a map per candidate looked at, and New, Import, Open and the origin badge have
+no home on a map-backed plan.
+
+- [ ] **B79 — The plan tool must not offer Compile before the document it would compile has loaded.**
+Reached by the SPA hop from the Configuring list, the tool's canvas is in the DOM before its plan document
+is. Click **Compile** in that window and it posts `pieces: 0`, the validator correctly answers `422` `PL1`
+*"this plan has no pieces — there is no land to build"*, and the drawer opens anyway because its tabs render
+the source document. The draft button still reads **Rebuild this map** — `BuildLabel` comes from the map —
+and is `Disabled="@(compiledLayout is null || draftBusy)"`: present, correctly labelled, not actionable. A
+user who clicks quickly is told their board has no land, about a board with land. Gate the button, or the
+post, on the document having arrived.
+
+The suite half is one missing wait. `map-layers.mjs:75` waits for `.map-canvas-svg`, the element that exists
+too early; at `:122`, before the *second* compile, it waits 1500 ms with a comment saying exactly why.
+Fixing the tool makes both unnecessary.
+
+*diagnosed 2026-08-16 by intercepting the editor's own `POST /api/plan/compile` under both navigations:
+same database, `goto` → **200**, row-link → **422**. `./tools/e2e.sh all` gives `map-layers` 13/14 with
+`smoke` 39/39 in the same run; `./tools/e2e.sh map-layers` alone is 18/18. `B229` was this filed a second
+time — its hypothesis, that an earlier spec breaks the stored plan, is disproved by the same test.*
+
+- [ ] **B34 — The two map-list endpoints disagree on sort order, and the dashboard gets the noisy one.**
+  `MapsListEndpoint` branches on the `stage` query param onto two differently-ordered repository methods:
+  `MapRepository.ListAsync` sorts `OrderBy(Slug)`, `ListByStageAsync` sorts
+  `OrderByDescending(UpdatedAt).ThenBy(Slug)`. The dashboard always requests `?stage=…`, so it always gets
+  recency order — and on the imported Edit corpus `updated_at` records when the *pipeline* last wrote the
+  row, not when the author last worked on the map, so it carries no authoring signal. The 349 Edit rows hold
+  only 29 distinct timestamps (a re-processing pass stamped them in ~22-map batches a second apart), so the
+  list renders as 29 alphabetical runs concatenated — it reads as scrambled, with the three maps outside the
+  supported range (`3084`, `allure`, `lost_haven`, never re-processed) parked at the bottom. Recency earns
+  its keep on Sketches/Plans/Configuring, where the timestamps are real edits and the lists are short.
+  Preferred fix: slug order for the Edit stage, recency for the other three (one line); alternatives are
+  slug everywhere, or leave it and let recency come good once maps are edited in the studio. Cosmetic — no
+  data is wrong, and both orders are deterministic.
+
 - [ ] **B47 — The library has no search, and the sketch's theme names are its own.** Two small gaps the
   library page left open, worth doing once it has enough rows to hurt. The style browser filters by kind but
   not by name, so a library of forty styles is a scroll; the theme half has no filter at all. And a theme
@@ -1152,6 +1202,27 @@ confirmation already covers a mis-click at a fraction of the cost. This is the b
 braces, worth having once the studio is used by someone who did not write it.
 
 ### Refactoring and cleanup
+
+
+- [ ] **CV21 — the world canvas has a `build` layer nothing paints into.** Stating the layer stack once
+(`CV19`) surfaced two layers with no content. One was removed there — a `block-highlight` rect created
+`visibility:hidden` whose only handle was assigned and never read. This is the other: the `build` group is
+created empty, no painter ever appends to it, and its toggle `setBuildVisible` has no caller outside the
+class — not the bridge, not any of the sixteen hosts. So it is an empty group with a visibility switch
+nobody throws. Removing it takes `setBuildVisible`, `#showBuild`, `#paintBuildRegion` and one line of the
+documented public surface with it, which is why it was left in place rather than swept during a
+behaviour-preserving refactor. Check first whether a Build phase was *meant* to fill it (the name suggests
+the Build-Regions work) — if so the task is to wire it, not delete it, and that is a different task in the
+feature section.
+
+- [ ] **B102 — Clear the region directory before a rebuild writes it.** `AnvilRegionWriter.Write` calls
+  `Directory.CreateDirectory` and nothing else, so every `.mca` a previous build left is still there and a
+  chunk the new build does not touch — because its geometry moved — is read back as part of the new map. That
+  makes rebuilding into an existing `out_dir` untrustworthy, which is exactly what iterating on a spec does,
+  and contradicts the README's promise that "the same spec rebuilds the same map, so two runs can be
+  compared". It cost a design session real time, presenting as building counts that could not be reconciled
+  until the directory was deleted by hand. Distinct from the concurrent-build race `CLAUDE.md` warns about:
+  that one is two builds at once, this one is one build after another.
 
 - [ ] **B220 — Fix the doc-comment defects, then take the four ids out of `NoWarn` so the next one fails the
   build.** Each is a sentence pointing at something that is not there, and each is silenced in all five
@@ -1195,13 +1266,6 @@ braces, worth having once the studio is used by someone who did not write it.
   registry into styles + themes + bindings, deduping identical materials — today a map themed without pushing
   anything out keeps its blob and the library cannot see it.
 
-- [ ] **B106 — Rename one of the two things called protection.** One is the XML region rule that stops a
-  player entering a spawn or a wool room and restricts what may be broken or placed inside it — a gameplay
-  contract. The other is `Decorator.IsProtected`, "cells nothing may be placed on", a dressing keep-out with
-  no gameplay meaning. A goal that needs the second does not need the first, and one word for both invites the
-  inference that a destroyable must live somewhere protected — which is what produced the caged goals, and it
-  survives the code that acted on it.
-
 - [~] **C12 — The last of the component vocabulary: the icon, the generator, the inline styles.** The
   vocabulary is built and adopted — the atoms, `Section`, the shell and the workspace shells are across every
   production surface, with two raw `action-btn`s and two raw `list-row`s left as genuine exceptions
@@ -1240,6 +1304,24 @@ braces, worth having once the studio is used by someone who did not write it.
   Low priority — explicit promotion already covers the need.
 
 ### Test coverage
+
+
+- [ ] **G163 — `map-layers`' rebuild-confirmation step flakes about one run in three.** The step drives
+  Compile on a freshly-opened plan and reads the drawer; when the plan document has not reached the client
+  yet it compiles an empty plan, which is a 422 by design, so the drawer never opens and the following
+  `page.click` times out at 30s. The spec guards it with a fixed `waitForTimeout(1500)` — a duration
+  standing in for a condition, and the wrong guess about a third of the time. Measured 1-in-3 both with and
+  without the `OB17` rule, so it is timing rather than validation. Waiting on the first piece id label
+  (`.map-canvas-svg text`, the overlay's proof the document arrived) was tried and did **not** fix it, so
+  the stall is later than the document load. **A caught failure now names the click, and it is not the one
+  the paragraph above blames.** The step got as far as reading the drawer's button label ("the button names
+  a rebuild" passed on `Rebuild this map`) and then timed out on `page.click("Rebuild this map")` — the
+  *second* click, on a compile that answered 200, long before the empty-plan compile the 1500ms guard is
+  aimed at. The recorded 422 is an earlier fault on the same page, not this one. A 30s timeout on a button
+  whose text was just read means the element was found but never became actionable, which points at a
+  drawer that keeps re-rendering rather than at a document that has not arrived — so the fix is a wait on
+  the drawer settling, and the 1500ms guard may be guarding nothing. A flake in the browser gate costs more
+  than the step is worth, because it makes every unrelated run ambiguous.
 
 - [ ] **B35 — Endpoint coverage: half the API is exercised by nothing.** `PgmStudio.Api` sits at **42.8%**
   lines (`tools/coverage.sh`), and the shortfall is not spread evenly — a long tail of endpoint files is

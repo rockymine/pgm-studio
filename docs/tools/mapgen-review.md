@@ -114,7 +114,8 @@ objective's own topology (`MG32`) rather than requiring the whole plan to be dra
 reading behind that stands as MG1 left it — `--island-study` was run over all 368 destroy worlds to count
 islands and never to look at their *shape*; the 320 readable ones are sitting there with their footprints,
 their monument sitings, their approach geometry and their build regions, unread for shape. That reading is
-`B106`'s starting point, and any future destroy-native composer's.
+where a destroy-native composer starts. It carried a task id here until that id came to name something else
+entirely; `MG32` above is the standing fault, and the work has no open entry of its own.
 
 **MG31 — Where a spawn and a goal sit relative to each other is already law, and a hand-built board must
 carry it too.** The composer never places a wool or a spawn freely, and the reasons are written down in
