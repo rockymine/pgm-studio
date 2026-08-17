@@ -6,13 +6,21 @@ shipped capabilities are in **`FEATURES.md`** (the Done column). Flow: **`BACKLO
 
 **Holds only open work:** `[ ]` to-do, `[~]` started-but-parked — **never `[x]`.** A task lives in
 exactly **one** of the three files; pull one up into `TODO.md` when it becomes now/next (its id does not
-change). Sections + ids match `TODO.md` — a task slots into the same section wherever it lives. Parked /
-deferred items stay here, flagged inline. Board rules live in `CLAUDE.md` (§ "Status & task board").
+change). Parked and deferred items stay here, flagged inline. Board rules live in `CLAUDE.md`
+(§ "Status & task board").
 
-Task ids are a section letter + number, **globally unique and stable** across all three files; never
-renumber or reuse.
+**The sections below are concepts, not categories.** Each heading names one foundation — the house, the walk
+every distance is taken with, what a gate fails to say — and gathers whatever entries spend it, whatever
+their ids say. That is also how they are emptied: read the shared ground for duplication first, fix that, and
+the entries above it come apart into work that fits in a paragraph. Pull a whole group up into `TODO.md`, not
+a task at a time.
 
-## Authoring (N) — the new-map intent editor (`/maps/{id}/configure`, new maps only)
+Task ids are a prefix + number, **globally unique and stable** across all three files; never renumber or
+reuse. The prefix names the document the task must leave correct, catalogued in `CLAUDE.md`, and says nothing
+about which section the entry sits in — the retired prefixes still on entries here (`B`, `S`, `N`, `C`, `CV`,
+`P`, `A`) keep theirs untouched.
+
+## The configure wizard: a map built from what an author states it is
 
 The guided wizard at `/maps/{id}/configure` (UI label **Configure**) that builds a map from declarative
 intent (`docs/pgm/new-map-authoring.md`; backend + every page-order step are landed —
@@ -51,10 +59,10 @@ the focus-integration polish remains.
   `B58`: unlike a core, a destroyable has no signature of its own, so the phase should offer manual
   placement first and adopt candidates when that ranker lands.
 
-## Sketch tool (S) — parked slices
+## The sketch tool: shapes, islands, and the ground they become
 
-The Sketch depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection
-highlight); these are the parked / dormant / deferred slices.
+The depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection highlight);
+what is gathered here is the parked and dormant slices of the same surface.
 
 - [ ] **S42 — Relief: the carve and the graded road fold too.** The solve folds, and so now does the stair cut
   (`FEATURES.md`) — the first later pass to land, and the one that showed the rule is real rather than
@@ -150,11 +158,11 @@ highlight); these are the parked / dormant / deferred slices.
   and it now draws the built world (`FEATURES.md`), but it is a modal swap rather than a companion view, so it
   confirms an edit after the fact rather than while it is being made.
 
-## Editor & canvas infrastructure (C / CV)
+## The canvas: what every tool draws through
 
-Shared infra for **both** the Configure wizard (`/maps/{id}/configure`) and the frozen Edit editor
-(`/maps/{id}/edit`). `C12`/`C14` are cross-cutting (serve both surfaces); `C9`/`C11`
-are Edit-specific. Full canvas spec: `docs/client/canvas-interaction.md`.
+The shared browser half, serving **both** the Configure wizard (`/maps/{id}/configure`) and the frozen Edit
+editor (`/maps/{id}/edit`). `C12`/`C14` are cross-cutting; `C9`/`C11` are Edit's own. Full canvas spec:
+`docs/client/canvas-interaction.md`.
 
 - [ ] **C9 — Kits editing UI (Teams) + per-activity status dots.** Spawn `kit` is read/sent but has no
   edit UI; there is no status-dot system. *(Two sub-items — split if priorities diverge.)*
@@ -912,23 +920,22 @@ counted rather than eyeballed — and two are the material a species is supposed
 Every distance the studio reports — a goal's walk to a spawn, a wool separation, the corridors the coverage
 read paints, the detour factor a relief budget would need — comes from one derivation:
 `Cells.ShortestPath`, an **unweighted 4-connected BFS** over a navigable set that is *does this column hold
-any block*. The Y is discarded before the walk sees it (`WorldColumns.Of` answers membership, not height), and
-props never leave the set at all. So a route climbs a 20-block scarp at the cost of flat ground and walks
-through a house, and every rule stated in "the walk" is really stated in a flat Manhattan proxy for it.
+any block*. The Y is discarded before the walk sees it — `WorldColumns.Membership` and `SegmentIndex` each
+project their spans down to a set of columns — and props never leave the set at all. So a route climbs a
+20-block scarp at the cost of flat ground and walks through a house, and every rule stated in "the walk" is
+really stated in a flat Manhattan proxy for it.
 
 The entries below share that cause and want reading together — the walk itself, the sets it runs over, the
 rules stated in it, and the one endpoint whose cost is the reason a cheaper read was reached for in the first
 place.
 
-- [ ] **B246 — Give the walk column heights and a step cost, so a climb is charged and a detour exists.**
-  Two moves. **Carry the height**: `WorldColumnRuns` already answers what every column is made of, top to
-  bottom, with `YTop`/`YBottom` per run — a strict superset of `WorldColumns.Of`'s membership sets, which can
-  be derived from it and retired (its own docstring already names the distinction). **Charge the step**:
-  `KitReach.BridgeCost` is a 0-1 BFS over a deque — 0 where a cell is walkable, 1 where a block must be
-  placed, `< 0` impassable — and it is the right algorithm with the wrong cost. Read the cost off the height
-  delta instead: **Δ≤1 free, Δ≥2 costs the block a player places to climb it**, void impassable unless
-  bridgeable. That gives a walk that prefers ground you can run up, still finds the steep way, and returns a
-  number that says how much building the route cost.
+- [~] **B246 — Charge the walk for a climb, so a detour exists.** The height is in hand: `WorldColumns`
+  carries every column's runs with `YTop`/`YBottom`, and `Membership` is the one place it is dropped. What
+  remains is the cost. `KitReach.BridgeCost` is a 0-1 BFS over a deque — 0 where a cell is walkable, 1 where a
+  block must be placed, `< 0` impassable — and it is the right algorithm with the wrong cost. Read the cost
+  off the height delta instead: **Δ≤1 free, Δ≥2 costs the block a player places to climb it**, void impassable
+  unless bridgeable. That gives a walk that prefers ground you can run up, still finds the steep way, and
+  returns a number that says how much building the route cost.
 
   **Move it into `Geom.Cells` beside `ShortestPath`**, because five callers want it at once: `GoalDistances`,
   `WoolWoolDistance` (`WL7`), `GoalSpawnRatio` (`GO1`), `GroundCoverage`'s corridors, and `S47`'s detour
@@ -936,6 +943,10 @@ place.
   `CorridorMargin` anyway and players optimise their own routes, so an 8-connected walk there is closer to the
   truth than the axis-aligned staircase the picture shows (the author's call). A separation rule that reports
   a walk should keep whichever connectivity its number was stated in.
+
+  *Both producers of the walk's set can already answer the height without a new read: `WorldColumns.Of` for a
+  world held in memory, `SegmentIndex`'s own spans for one scanned off region files. What they lack is one
+  shape to answer it in — the sets are the only thing they agree on today.*
 
 - [ ] **B247 — Void that no apply rule covers reads bridgeable, so routes cross holes nobody can cross.**
   `Buildability.Compute` starts `verdict` at `0` = **buildable** and only ever writes `Never`, `Void` or
@@ -1036,8 +1047,8 @@ place.
   navigable. Use the one predicate on both sides.
 
   **This is the renderer only.** The gate (`Analysis.Playability.Traversability`) navigates on
-  `WorldColumns.Of`, which is any solid block with no headroom test, so it never saw this — which is why a
-  board reads isolated in `traversability.png` and passes preflight.
+  `WorldColumns.Membership`, which is any solid block with no headroom test, so it never saw this — which is
+  why a board reads isolated in `traversability.png` and passes preflight.
 
   *measured on a 60 × 20 plateau: plain, **1200 navigable, 1 component**. Cut by an ST4 approach wall (3
   courses of bedrock + its cobweb cap), **1160 navigable, 2 components** — the board splits. The same wall
@@ -1124,7 +1135,7 @@ place.
   **First profile it under the Configure overlay** — only optimise (spatial index / batch) if it's
   actually slow in use; otherwise close.
 
-## Other backend, pipeline & internals work
+## The remainder: work no concept above has claimed
 
 ### User Experience and Graphical User Interface
 

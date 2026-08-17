@@ -4,14 +4,16 @@ using PgmStudio.Minecraft.Anvil;
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>
-/// Reading a built world back as per-column runs. The invariant under every case: a run covers a span that is
-/// solid throughout and one material throughout, and the runs of a column partition exactly the solid blocks
-/// in it — so what these assert is where the boundaries fall, not how many there happen to be.
+/// Reading a built world back as per-column runs, and the two membership sets projected off them. The
+/// invariant under every run case: a run covers a span that is solid throughout and one material throughout,
+/// and the runs of a column partition exactly the solid blocks in it — so what these assert is where the
+/// boundaries fall, not how many there happen to be. The membership cases assert the projection rather than a
+/// second walk: what is in a set follows from the runs the same world reports.
 /// </summary>
-public sealed class WorldColumnRunsTests
+public sealed class WorldColumnsTests
 {
     private static IReadOnlyList<ColumnRun> At(VoxelWorld world, int x, int z, BlockBox? within = null)
-        => WorldColumnRuns.Of(world, within).Where(column => column.X == x && column.Z == z)
+        => WorldColumns.Of(world, within).Where(column => column.X == x && column.Z == z)
                        .Select(column => column.Runs).FirstOrDefault() ?? [];
 
     [Test]
@@ -102,7 +104,7 @@ public sealed class WorldColumnRunsTests
     [Test]
     public async Task An_empty_world_reads_as_no_columns()
     {
-        await Assert.That(WorldColumnRuns.Of(new VoxelWorld()).Any()).IsFalse();
+        await Assert.That(WorldColumns.Of(new VoxelWorld()).Any()).IsFalse();
     }
 
     [Test]
@@ -112,7 +114,7 @@ public sealed class WorldColumnRunsTests
         var world = new VoxelWorld();
         world.SetBlock(0, 10, 0, 1);
 
-        var columns = WorldColumnRuns.Of(world).ToList();
+        var columns = WorldColumns.Of(world).ToList();
 
         await Assert.That(columns.Count).IsEqualTo(1);
         await Assert.That(columns[0].X).IsEqualTo(0);
@@ -126,7 +128,7 @@ public sealed class WorldColumnRunsTests
         world.SetBlock(-1, 5, -1, 1);
         world.SetBlock(-20, 5, -33, 1);
 
-        var positions = WorldColumnRuns.Of(world).Select(column => (column.X, column.Z)).ToList();
+        var positions = WorldColumns.Of(world).Select(column => (column.X, column.Z)).ToList();
 
         await Assert.That(positions).Contains((-1, -1));
         await Assert.That(positions).Contains((-20, -33));
@@ -139,7 +141,7 @@ public sealed class WorldColumnRunsTests
         world.SetBlock(0, 10, 0, 1);
         world.SetBlock(30, 10, 30, 1);
 
-        var inside = WorldColumnRuns.Of(world, new BlockBox(0, 0, 0, 15, 255, 15))
+        var inside = WorldColumns.Of(world, new BlockBox(0, 0, 0, 15, 255, 15))
                                  .Select(column => (column.X, column.Z)).ToList();
 
         await Assert.That(inside.Count).IsEqualTo(1);
@@ -164,8 +166,8 @@ public sealed class WorldColumnRunsTests
         var world = new VoxelWorld();
         foreach (var (x, z) in new[] { (40, 40), (-16, 8), (0, 0), (17, -3) }) world.SetBlock(x, 10, z, 1);
 
-        var first = WorldColumnRuns.Of(world).Select(column => (column.X, column.Z)).ToList();
-        var second = WorldColumnRuns.Of(world).Select(column => (column.X, column.Z)).ToList();
+        var first = WorldColumns.Of(world).Select(column => (column.X, column.Z)).ToList();
+        var second = WorldColumns.Of(world).Select(column => (column.X, column.Z)).ToList();
 
         await Assert.That(first).IsEquivalentTo(second);
     }
@@ -190,5 +192,58 @@ public sealed class WorldColumnRunsTests
 
         await Assert.That(covered.Count).IsEqualTo(solid.Count);          // nothing counted twice
         await Assert.That(covered.ToHashSet()).IsEquivalentTo(solid);     // and nothing missed
+    }
+
+    [Test]
+    public async Task Surface_holds_exactly_the_columns_the_runs_report()
+    {
+        // The projection invariant: the membership set cannot know about a column the run read does not
+        // yield, and cannot miss one it does.
+        var world = new VoxelWorld();
+        foreach (var (x, z, y) in new[] { (0, 0, 10), (-5, 12, 0), (33, -7, 200), (16, 16, 64) })
+            world.SetBlock(x, y, z, 1);
+
+        var (surface, _) = WorldColumns.Membership(world);
+
+        await Assert.That(surface).IsEquivalentTo(
+            WorldColumns.Of(world).Select(column => (column.X, column.Z)).ToHashSet());
+    }
+
+    [Test]
+    public async Task A_column_that_does_not_reach_the_floor_is_surface_but_not_Y0()
+    {
+        // The case that separates the two sets: a mass floating over void carries a surface a player stands
+        // on and no block on the layer the void filter reads.
+        var world = new VoxelWorld();
+        for (var y = 40; y <= 44; y++) world.SetBlock(2, y, 3, 1);
+
+        var (surface, y0) = WorldColumns.Membership(world);
+
+        await Assert.That(surface).Contains((2, 3));
+        await Assert.That(y0).DoesNotContain((2, 3));
+    }
+
+    [Test]
+    public async Task A_column_grounded_under_a_gap_is_in_both_sets()
+    {
+        // Reading the topmost run would answer the bridge and miss the floor; the lowest run is what says
+        // whether the column reaches Y=0 at all.
+        var world = new VoxelWorld();
+        for (var y = 0; y <= 30; y++) world.SetBlock(8, y, 9, 1);      // ground from the floor up
+        for (var y = 55; y <= 57; y++) world.SetBlock(8, y, 9, 1);     // and a bridge over it
+
+        var (surface, y0) = WorldColumns.Membership(world);
+
+        await Assert.That(surface).Contains((8, 9));
+        await Assert.That(y0).Contains((8, 9));
+    }
+
+    [Test]
+    public async Task An_empty_world_has_no_columns_in_either_set()
+    {
+        var (surface, y0) = WorldColumns.Membership(new VoxelWorld());
+
+        await Assert.That(surface.Count).IsEqualTo(0);
+        await Assert.That(y0.Count).IsEqualTo(0);
     }
 }

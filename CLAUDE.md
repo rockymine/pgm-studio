@@ -291,6 +291,14 @@ Three files, three Kanban columns — keep them current, **never duplicate a tas
 
 Tasks flow left → right: **`BACKLOG.md` → `TODO.md` → `FEATURES.md`**.
 
+**The board is emptied concept by concept, not task by task.** A group's entries are gathered because they
+spend the same foundation, so the work begins by reading that foundation for duplication — two types that are
+one concept, one verb under seven names, a fact derived a second time beside where it is stored — and fixing
+*that* is what makes the entries small enough to do. `Distance, and the walk every measure is taken with` is
+the worked example: the walk, the sets it runs over and the rules stated in it were one cause, and naming the
+cause is what turned an unreadable pile into a group whose entries each fit in a paragraph. A group is
+emptied when its ground is settled, not when its entries have each been done in turn.
+
 **Task-board rules** (the board kept exploding; these keep it honest):
 1. **A task lives in exactly ONE file.** Never duplicate it across `BACKLOG`/`TODO`/`FEATURES` (two stale
    copies is the failure mode). Neither `BACKLOG.md` nor `TODO.md` ever holds `[x]`. Tasks that are retired
@@ -299,22 +307,26 @@ Tasks flow left → right: **`BACKLOG.md` → `TODO.md` → `FEATURES.md`**.
    (its message references the id), the task **leaves `TODO.md`**, one line is added to `FEATURES.md` if it's
    a shipped capability, and **every document naming that id as a gap is fixed in the same commit** — grep it
    across `docs/` before calling the task done (see *Documents rot silently*).
-3. **`TODO.md` is the current focus, kept small.** Only the active theme's now/next tasks (soft cap ~6–12).
-   Pull the next theme **up from `BACKLOG.md`** when it drains; if `TODO.md` bloats, push items back down. New
-   tasks land in `BACKLOG.md` (or `TODO.md` if they ARE the focus).
-4. **Ids are section-letter+number, GLOBALLY unique + stable across all three files.** Moving a task between
-   files **never** changes its id; never renumber or reuse (`grep <id> TODO.md BACKLOG.md` must hit exactly
-   once — commits + memory reference ids).
-5. **Same sections, same order in `TODO.md` and `BACKLOG.md`** so a task slots into the matching section
-   wherever it lives. Sections (few + stable — don't spin up a new category for one task): Authoring (`N`),
-   Sketch tool (`S`), Editor/canvas infra (`C`/`CV`), Backend/pipeline/internals (`B`/`P`/`A`), Layout
-   generation (`G`), Lower-priority/parked.
+3. **`TODO.md` is the current focus, kept small.** Only the active group's now/next tasks (soft cap ~6–12).
+   Pull the next **group** up from `BACKLOG.md` when it drains — a whole concept, not a task at a time; if
+   `TODO.md` bloats, push items back down. New tasks land in `BACKLOG.md` (or `TODO.md` if they ARE the
+   focus).
+4. **Ids are a prefix + number, GLOBALLY unique + stable across all three files.** Moving a task between
+   files **never** changes its id; never renumber or reuse — commits and memory cite ids, so
+   `grep <id> TODO.md BACKLOG.md docs/generator/ideas.md` must hit exactly once. The prefix names the
+   **document the task is obliged to leave correct** (catalogued below). It is not a section name and does not
+   move when the board is regrouped, which is the whole reason it can be stable.
+5. **Both boards group by concept, and a heading names one** — "The house: what it stamps, where it stands",
+   "Painting: the theme a document states is not what lands". A group gathers whatever entries share a
+   foundation, whatever their prefixes, and orders them the way a reader meets them rather than the way the
+   ids run. **Never head a group with a letter**: the prefix lives in the id and nowhere else. Keep groups
+   few, and let one that has drained to a single entry fold into its neighbour.
 6. **No trailing "Next:/Remaining:/Deferred:" notes inside a task.** Future work is its **own** `[ ]` task in
-   the right section (in `BACKLOG.md` if not immediate), not a footnote on a (near-)done one.
+   the right group (in `BACKLOG.md` if not immediate), not a footnote on a (near-)done one.
 7. **`[~]` describes only what REMAINS.** When a task is partly landed, reword it down to the open slice; the
    landed part moves to `FEATURES.md`.
-8. **File a task where its REMAINING work lives.** Backend done + only UI left ⇒ it belongs in the feature/UI
-   section, not the backend section.
+8. **File a task in the group whose foundation its REMAINING work touches.** Backend done and only the UI
+   left ⇒ it moves to the group that owns the surface. Its id does not change with it.
 9. **Deferred *decisions* are parked** in `BACKLOG.md`, clearly marked with the blocking question — not
    interleaved with actionable tasks.
 10. **A task is a task, and it is short.** Aim for **≈150 words**; over **250** the entry is not a task yet
@@ -325,6 +337,39 @@ Tasks flow left → right: **`BACKLOG.md` → `TODO.md` → `FEATURES.md`**.
     not need an entry's history to do the entry, and a reader scanning for work should not skip three
     paragraphs to learn whether there is any. **File it concrete or do not file it** — a finding written from
     a symptom, unmeasured, is what grows into five paragraphs nobody can act on.
+
+**The prefix catalogue.** A prefix is the subject under `docs/` whose document the task must leave correct —
+the taxonomy the documentation already has, so the id itself says what rots if the commit skips it. A task
+that ships without touching its prefix's document is the failure *Documents rot silently* describes, and the
+id is where that obligation is written down.
+
+| prefix | the document it obliges |
+|---|---|
+| `TN` | `docs/tools/plan.md` — the plan tool. Its second letter, because `TP` is terrain-painting law |
+| `TS` | `docs/tools/sketch.md` |
+| `TC` | `docs/tools/configure.md` |
+| `TE` | `docs/tools/edit.md` |
+| `TG` | `docs/tools/generator.md` |
+| `TH` | `docs/tools/shapes.md` |
+| `TL` | `docs/tools/library.md` |
+| `G` | `docs/generator/` — the layout-generation track, under its own stricter rules |
+| `C` | `docs/client/` — the canvas JS layer, the component vocabulary, routing |
+| `WE` | `docs/world-export/` — what the export writes into a world |
+| `WS` | `docs/world-scan/` — what the studio reads out of a world it did not build |
+| `PG` | `docs/pgm/` — the `map.xml` contract |
+| `GP` | `docs/gameplay/` — what a map is played for; the author's oracle governs it |
+| `RP` | the root documents, and work no subject document owns |
+
+**A tool's UX belongs to the tool, not to the client.** `docs/client/` is the shared browser half — the
+canvas layer, the component vocabulary, how the client is routed and served — so `C` is what every tool draws
+*through*. A phase, a step or a refusal belongs to the tool that has it, and that tool's document has a
+section for exactly those, so it takes the tool's prefix. Where a task genuinely rewrites both, it takes the
+prefix of the document it rewrites more, and the same-commit rule still fixes the other.
+
+**No longer issued, and never renamed on the entries that carry them**: `B` — backend/pipeline/internals, 70
+of the 114 open entries when this was written, which is the reason a prefix now names a document rather than
+a layer — and `N` (→ `TC`), `S` (→ `TS`), `CV` (→ `C`), `P`, `A`, `M`. An id is a handle: renaming one breaks
+every commit that cites it, so old entries keep theirs and only new ids follow the table.
 
 ## Gameplay decisions have a human oracle — ask before filing one
 A rule about the map *as it is played* is not derivable from this repository. The corpus shows what authors

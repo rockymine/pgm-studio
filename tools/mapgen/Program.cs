@@ -195,7 +195,7 @@ static void Build(MapSpec spec, bool describeOnly, bool forceStages)
     // ── the coverage read — where the ground is lived on, and where it is dead ───────────────────────────
     // Printed on every build rather than only with the stages, because the dead share is the number that says
     // whether a board is too big for what it plays, and a driver should see it before anyone loads the map.
-    var (surfaceColumns, y0Columns) = WorldColumns.Of(built.World);
+    var (surfaceColumns, y0Columns) = WorldColumns.Membership(built.World);
     var coverage = GroundCoverage.Read(
         composition.Doc!, surfaceColumns, y0Columns, DressingScope.DecorCells(layout.ToJson()));
     Console.WriteLine(

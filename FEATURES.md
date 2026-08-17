@@ -4324,7 +4324,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   its own thickness and a hillside read as a plate: the one view that exists to show height was the one view
   that did not show the height model. Now entering the preview posts the live document to
   `POST /map/{slug}/sketch/columns` (or `POST /plan/columns`, which compiles first), which runs the real build
-  and answers **per-column runs** — `WorldColumnRuns.Of` walks the `VoxelWorld`'s chunk sections directly, one
+  and answers **per-column runs** — `WorldColumns.Of` walks the `VoxelWorld`'s chunk sections directly, one
   dictionary lookup per column rather than per block, and the allocated chunks settle the extent so nothing
   guesses a bounding box. One structure answers three questions, because a run boundary is where a solid span
   ends *and* where the material changes: a sky bridge keeps both segments, a wall shows its own courses instead
@@ -4336,7 +4336,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the mesh in hand, and an untouched board re-enters from cache. The plan tool shares all of it and gains the
   cages, spawn cubes, monuments and build region a compiled intent carries. Net client code is negative:
   `solidsForIso`, `carveFootprint`, `planIsoSolids`, `prismPositions`, `terrainPositions` and the whole of
-  `triangulation.js` are gone. (`WorldColumnRunsTests`, `tests/js/column-mesh.test.js`)
+  `triangulation.js` are gone. (`WorldColumnsTests`, `tests/js/column-mesh.test.js`)
 - **Grid-aligned sketch — block-accurate WYSIWYG (S23).** The sketch is now honest about the voxelized world
   it produces. Every stored shape is **block-integer**: `snapShape` (geometry/shape.js) rounds all coordinates
   to the grid, enforced at the `addShape`/`updateShape` chokepoint, so no edit path — vertex drag, midpoint

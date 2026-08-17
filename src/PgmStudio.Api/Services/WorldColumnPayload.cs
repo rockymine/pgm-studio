@@ -29,7 +29,7 @@ public static class WorldColumnPayload
         var cols = new List<int>();
         int minX = int.MaxValue, minZ = int.MaxValue, maxX = int.MinValue, maxZ = int.MinValue;
 
-        foreach (var (x, z, runs) in WorldColumnRuns.Of(world, within))
+        foreach (var (x, z, runs) in WorldColumns.Of(world, within))
         {
             cols.Add(x); cols.Add(z); cols.Add(runs.Count);
             foreach (var run in runs)
