@@ -185,7 +185,7 @@ internal static class LayerData
 /// returns parallel xs/zs/colors arrays + the bounds. Mirrors the reference <c>layer_top_surface</c>;
 /// unblocks the "Blocks" canvas overlay (C6).
 /// </summary>
-public sealed class TopSurfaceEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+public sealed class TopSurfaceEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure() { Get("/map/{slug}/layers/top-surface"); AllowAnonymous(); }
 
@@ -194,11 +194,10 @@ public sealed class TopSurfaceEndpoint(MapRepository repo, PgmDb db) : EndpointW
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
         if (map is null) { await Send.NotFoundAsync(ct); return; }
 
-        var art = await db.Artifacts.FirstOrDefaultAsync(
-            a => a.MapId == map.Id && a.Kind == ArtifactKind.LayerParquet, ct);
-        if (art is null) { await Send.NotFoundAsync(ct); return; }
+        var layer = await artifacts.LoadAsync(map.Id, ArtifactKind.LayerParquet, ct);
+        if (layer is null) { await Send.NotFoundAsync(ct); return; }
 
-        var cells = await SurfaceLayer.ReadAsync(art.Data);
+        var cells = await SurfaceLayer.ReadAsync(layer);
         if (cells.Count == 0) { await Send.NotFoundAsync(ct); return; }
         await Send.OkAsync(LayerData.Pixels(cells), ct);
     }

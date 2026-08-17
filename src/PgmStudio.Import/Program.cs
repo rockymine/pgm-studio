@@ -56,7 +56,8 @@ if (args.Contains("--migrate-only"))
 }
 
 await using var db = new PgmDb(PgmDataOptions.ForConnectionString(connectionString));
-var importer = new MapImporter(db);
+var artifacts = new MapArtifactStore(db);
+var importer = new MapImporter(db, artifacts);
 
 // --refresh-xml: re-derive each existing map's XML entities (regions/filters/teams/wools/…) from the
 // current map.xml under the corpus roots, via the editor write path (SaveDocAsync) — preserves the
@@ -131,16 +132,15 @@ if (args.Contains("--islands-only"))
         if (map is null) { iskip++; continue; }
 
         var data = await File.ReadAllBytesAsync(Path.Combine(dir, "islands.json"));
-        await db.Artifacts.Where(a => a.MapId == map.Id && a.Kind == ArtifactKind.IslandsJson).DeleteAsync();
-        await db.InsertAsync(new MapArtifactRow { MapId = map.Id, Kind = ArtifactKind.IslandsJson, Data = data });
+        await artifacts.SaveAsync(map.Id, ArtifactKind.IslandsJson, data);
 
         // refresh the derived sketch so island-sketch readers see the new outlines (drop a now-stale one)
-        await db.Artifacts.Where(a => a.MapId == map.Id && a.Kind == ArtifactKind.IslandSketchJson).DeleteAsync();
         if (IslandSketchArtifact.FromIslandsJson(data) is { } sketch)
         {
-            await db.InsertAsync(new MapArtifactRow { MapId = map.Id, Kind = ArtifactKind.IslandSketchJson, Data = sketch });
+            await artifacts.SaveAsync(map.Id, ArtifactKind.IslandSketchJson, sketch);
             isketch++;
         }
+        else await artifacts.DeleteAsync(map.Id, ArtifactKind.IslandSketchJson);
         iok++;
     }
     Console.WriteLine($"islands-only: updated {iok} map(s) ({isketch} with a sketch); {iskip} dir(s) not in DB");
@@ -155,12 +155,11 @@ if (args.Contains("--store-island-sketch"))
     int sok = 0, sskip = 0;
     foreach (var map in maps2)
     {
-        var art = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == map.Id && a.Kind == ArtifactKind.IslandsJson);
-        if (art?.Data is null) { sskip++; continue; }
-        var bytes = IslandSketchArtifact.FromIslandsJson(art.Data);
+        var islandsJson = await artifacts.LoadAsync(map.Id, ArtifactKind.IslandsJson);
+        if (islandsJson is null) { sskip++; continue; }
+        var bytes = IslandSketchArtifact.FromIslandsJson(islandsJson);
         if (bytes is null) { sskip++; continue; }
-        await db.Artifacts.Where(a => a.MapId == map.Id && a.Kind == ArtifactKind.IslandSketchJson).DeleteAsync();
-        await db.InsertAsync(new MapArtifactRow { MapId = map.Id, Kind = ArtifactKind.IslandSketchJson, Data = bytes });
+        await artifacts.SaveAsync(map.Id, ArtifactKind.IslandSketchJson, bytes);
         sok++;
     }
     Console.WriteLine($"island-sketch: stored for {sok} map(s); {sskip} skipped (no islands)");

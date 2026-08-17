@@ -1,6 +1,4 @@
 using FastEndpoints;
-using LinqToDB;
-using LinqToDB.Async;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
@@ -22,7 +20,7 @@ namespace PgmStudio.Api.Endpoints;
 /// tool the map has been through directly rather than walking a map back one stage at a time. One artifact
 /// query serves the flags and the layer filter alike.</para>
 /// </summary>
-public sealed class MapsListEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<List<MapSummary>>
+public sealed class MapsListEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<List<MapSummary>>
 {
     public override void Configure()
     {
@@ -38,17 +36,11 @@ public sealed class MapsListEndpoint(MapRepository repo, PgmDb db) : EndpointWit
             ? await repo.ListAsync(ct)
             : await repo.ListByStageAsync(stage!, ct);
 
-        var owned = await db.Artifacts
-            .Where(a => a.Kind == ArtifactKind.LayerParquet
-                        || a.Kind == ArtifactKind.SketchLayoutJson
-                        || a.Kind == ArtifactKind.PlanJson)
-            .Select(a => new { a.MapId, a.Kind }).Distinct().ToListAsync(ct);
-        var owners = owned.GroupBy(a => a.Kind)
-            .ToDictionary(g => g.Key, g => g.Select(a => a.MapId).ToHashSet());
-        HashSet<long> Owners(string kind) => owners.GetValueOrDefault(kind, []);
-        var withSurface = Owners(ArtifactKind.LayerParquet);
-        var withSketch = Owners(ArtifactKind.SketchLayoutJson);
-        var withPlan = Owners(ArtifactKind.PlanJson);
+        var owners = await artifacts.HoldersAsync(
+            [ArtifactKind.LayerParquet, ArtifactKind.SketchLayoutJson, ArtifactKind.PlanJson], ct);
+        var withSurface = owners[ArtifactKind.LayerParquet];
+        var withSketch = owners[ArtifactKind.SketchLayoutJson];
+        var withPlan = owners[ArtifactKind.PlanJson];
 
         if (layer)
         {
@@ -67,7 +59,7 @@ public sealed class MapsListEndpoint(MapRepository repo, PgmDb db) : EndpointWit
 
 /// <summary>GET /api/maps/stage-counts — the landing cards' tallies, each counting exactly what its list
 /// shows: sketches by the layer a map holds, the other two by the stage a map stands at.</summary>
-public sealed class MapStageCountsEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<MapStageCounts>
+public sealed class MapStageCountsEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<MapStageCounts>
 {
     public override void Configure()
     {
@@ -78,9 +70,7 @@ public sealed class MapStageCountsEndpoint(MapRepository repo, PgmDb db) : Endpo
     public override async Task HandleAsync(CancellationToken ct)
     {
         var c = await repo.StageCountsAsync(ct);
-        var sketched = await db.Artifacts
-            .Where(a => a.Kind == ArtifactKind.SketchLayoutJson)
-            .Select(a => a.MapId).Distinct().CountAsync(ct);
+        var sketched = await artifacts.HolderCountAsync(ArtifactKind.SketchLayoutJson, ct);
         await Send.OkAsync(new MapStageCounts(
             sketched,
             c.GetValueOrDefault(MapStage.Configure),

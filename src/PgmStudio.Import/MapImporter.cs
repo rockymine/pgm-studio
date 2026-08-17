@@ -17,7 +17,7 @@ using PgmStudio.Geom;
 /// validated codec), feature parquet → feature rows, and raw layer.parquet + the side JSON files
 /// → map_artifact blobs. Re-importing a slug replaces it (FK cascade).
 /// </summary>
-public sealed class MapImporter(PgmDb db)
+public sealed class MapImporter(PgmDb db, MapArtifactStore artifacts)
 {
     private static readonly JsonSerializerOptions JsonOpts = new() { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never };
 
@@ -116,7 +116,7 @@ public sealed class MapImporter(PgmDb db)
         {
             var path = Path.Combine(dir, file);
             if (!File.Exists(path)) continue;
-            await db.InsertAsync(new MapArtifactRow { MapId = mapId, Kind = kind, Data = await File.ReadAllBytesAsync(path) });
+            await artifacts.SaveAsync(mapId, kind, await File.ReadAllBytesAsync(path));
             n++;
         }
         return n;

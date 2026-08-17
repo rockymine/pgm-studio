@@ -1,8 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using FastEndpoints;
-using LinqToDB;
-using LinqToDB.Async;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Pgm.Editing;
@@ -17,33 +15,26 @@ using Dict = Dictionary<string, object?>;
 /// save path (MapWriter deletes+recreates region rows on every edit, so a per-region column would be lost),
 /// and is never part of the PGM map document the codec/categorizer see. Pruned against live regions on read.
 /// </summary>
-internal static class RegionDraftStore
+internal static class RegionDrafts
 {
-    public static async Task<Dictionary<string, string>> LoadAsync(PgmDb db, long mapId, CancellationToken ct)
-    {
-        var art = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == mapId && a.Kind == ArtifactKind.RegionDraftsJson, ct);
-        return art is null ? new() : JsonSerializer.Deserialize<Dictionary<string, string>>(art.Data) ?? new();
-    }
+    public static Task<Dictionary<string, string>> LoadAsync(MapArtifactStore artifacts, long mapId, CancellationToken ct)
+        => artifacts.LoadJsonOrEmptyAsync<Dictionary<string, string>>(mapId, ArtifactKind.RegionDraftsJson, ct);
 
-    public static async Task SaveAsync(PgmDb db, long mapId, Dictionary<string, string> drafts, CancellationToken ct)
+    /// <summary>Record that the given region keys were drawn in <paramref name="step"/> (teams/objective/build).
+    /// A map with nothing left in draft carries no artifact at all rather than an empty one.</summary>
+    public static async Task TagAsync(
+        MapArtifactStore artifacts, long mapId, string step, IEnumerable<string> regionKeys, CancellationToken ct)
     {
-        await db.Artifacts.Where(a => a.MapId == mapId && a.Kind == ArtifactKind.RegionDraftsJson).DeleteAsync(ct);
-        if (drafts.Count > 0)
-            await db.InsertAsync(new MapArtifactRow { MapId = mapId, Kind = ArtifactKind.RegionDraftsJson, Data = JsonSerializer.SerializeToUtf8Bytes(drafts) }, token: ct);
-    }
-
-    /// <summary>Record that the given region keys were drawn in <paramref name="step"/> (teams/objective/build).</summary>
-    public static async Task TagAsync(PgmDb db, long mapId, string step, IEnumerable<string> regionKeys, CancellationToken ct)
-    {
-        var drafts = await LoadAsync(db, mapId, ct);
+        var drafts = await LoadAsync(artifacts, mapId, ct);
         foreach (var k in regionKeys) if (!string.IsNullOrEmpty(k)) drafts[k] = step;
-        await SaveAsync(db, mapId, drafts, ct);
+        if (drafts.Count == 0) await artifacts.DeleteAsync(mapId, ArtifactKind.RegionDraftsJson, ct);
+        else await artifacts.SaveJsonAsync(mapId, ArtifactKind.RegionDraftsJson, drafts, ct);
     }
 }
 
 /// <summary>POST /api/map/{slug}/regions — create a primitive region (optionally tagged with the
 /// editor <c>draft_step</c> so it shows in that activity until it's wired — E10).</summary>
-public sealed class RegionCreateEndpoint(MapRepository repo, MapReader reader, MapWriter writer, PgmDb db) : EndpointWithoutRequest
+public sealed class RegionCreateEndpoint(MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure() { Post("/map/{slug}/regions"); AllowAnonymous(); }
     public override async Task HandleAsync(CancellationToken ct)
@@ -54,7 +45,7 @@ public sealed class RegionCreateEndpoint(MapRepository repo, MapReader reader, M
 
         if (s == 200 && p.GetValueOrDefault("draft_step") is string step && step.Length > 0
             && (b as Dict)?.GetValueOrDefault("id") is string newId && await repo.GetBySlugAsync(slug, ct) is { } map)
-            await RegionDraftStore.TagAsync(db, map.Id, step, [newId], ct);
+            await RegionDrafts.TagAsync(artifacts, map.Id, step, [newId], ct);
 
         await Send.ResponseAsync(b!, s, ct);
     }
@@ -102,7 +93,7 @@ public sealed class RegionCounterpartEndpoint(MapRepository repo, MapReader read
 /// Body: {category?}; mode + centre come from the confirmed symmetry artifact. If the map has no
 /// confirmed symmetry this is a no-op (200 {created:[]}) so the draw flow works on asymmetric maps too.
 /// </summary>
-public sealed class RegionOrbitEndpoint(MapRepository repo, MapReader reader, MapWriter writer, PgmDb db) : EndpointWithoutRequest
+public sealed class RegionOrbitEndpoint(MapRepository repo, MapReader reader, MapWriter writer, PgmDb db, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure() { Post("/map/{slug}/regions/{regionId}/orbit"); AllowAnonymous(); }
     public override async Task HandleAsync(CancellationToken ct)
@@ -131,7 +122,7 @@ public sealed class RegionOrbitEndpoint(MapRepository repo, MapReader reader, Ma
         // the orbit counterparts are unwired too — tag them with the same draft step so they appear
         // alongside the source in the activity until wiring derives their real category (E10).
         if (s == 200 && !string.IsNullOrEmpty(step) && (b as Dict)?.GetValueOrDefault("created") is List<object?> created)
-            await RegionDraftStore.TagAsync(db, map.Id, step, created.OfType<string>(), ct);
+            await RegionDrafts.TagAsync(artifacts, map.Id, step, created.OfType<string>(), ct);
 
         await Send.ResponseAsync(b!, s, ct);
     }

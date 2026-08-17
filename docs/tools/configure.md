@@ -26,8 +26,8 @@ object.
 
 ## What it writes
 
-**One artifact: `map_intent_json` on the map row** (`IntentStore`,
-`src/PgmStudio.Api/Endpoints/AuthoringIntentEndpoints.cs`). It sits outside the entity-replace codec that
+**One artifact: `map_intent_json` on the map row**, read and written through `MapArtifactStore`
+(`src/PgmStudio.Data/Map/MapArtifactStore.cs`), the one store every map artifact goes through. It sits outside the entity-replace codec that
 carries the rest of a map, exactly as the plan and sketch artifacts do, so saving the map's document cannot
 destroy it.
 

@@ -31,8 +31,8 @@ below from the phase that feeds it.
 
 ## What it writes
 
-One artifact: the `sketch_layout_json` blob on the map row (`SketchStore`,
-`src/PgmStudio.Api/Endpoints/SketchEndpoints.cs`). It is stored **verbatim** as the browser produced it —
+One artifact: the `sketch_layout_json` blob on the map row, read and written through `MapArtifactStore`
+like every other artifact. It is stored **verbatim** as the browser produced it —
 authoring source rather than a canonical document — which is why the editor's own save replaces the whole blob
 and a deletion therefore sticks. Only the plan-compile path merges (below).
 

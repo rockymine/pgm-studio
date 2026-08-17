@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 using PgmStudio.Api.Endpoints;
-using PgmStudio.Data.Schema;
+using PgmStudio.Data.Map;
 
 namespace PgmStudio.Api.Services;
 
@@ -16,9 +16,9 @@ using Dict = Dictionary<string, object?>;
 internal static class MapBounds
 {
     public static async Task<((double, double, double, double) bounds, Dict dict)?> ResolveAsync(
-        PgmDb db, long mapId, CancellationToken ct)
+        MapArtifactStore artifacts, long mapId, CancellationToken ct)
     {
-        var cfg = await ConfigureStore.LoadAsync(db, mapId, ct);
+        var cfg = await ScanConfig.LoadAsync(artifacts, mapId, ct);
         if (cfg["bounding_box"] is JsonObject b
             && b["min_x"] is { } mnx && b["min_z"] is { } mnz && b["max_x"] is { } mxx && b["max_z"] is { } mxz)
         {
@@ -28,6 +28,6 @@ internal static class MapBounds
                 new Dict { ["min_x"] = minX, ["min_z"] = minZ, ["max_x"] = maxX, ["max_z"] = maxZ });
         }
         // No stored surface bbox → the detected-islands AABB (the prior behaviour).
-        return await RegionsAuthoringEndpoint.IslandsBboxAsync(db, mapId, ct);
+        return await RegionsAuthoringEndpoint.IslandsBboxAsync(artifacts, mapId, ct);
     }
 }

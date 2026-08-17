@@ -1,6 +1,4 @@
 using FastEndpoints;
-using LinqToDB;
-using LinqToDB.Async;
 using NetTopologySuite.Geometries;
 using PgmStudio.Analysis.Footprint;
 using PgmStudio.Api.Services;
@@ -17,7 +15,7 @@ namespace PgmStudio.Api.Endpoints;
 /// <c>RegionCategorizer</c> build geometry as GeoJSON). Reuses <see cref="IslandRoleClassifier"/>;
 /// reflects the new detection only on maps re-scanned through it.
 /// </summary>
-public sealed class IslandRolesEndpoint(MapRepository repo, MapReader reader, PgmDb db) : EndpointWithoutRequest
+public sealed class IslandRolesEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure() { Get("/map/{slug}/island-roles"); AllowAnonymous(); }
 
@@ -27,8 +25,7 @@ public sealed class IslandRolesEndpoint(MapRepository repo, MapReader reader, Pg
         var map = await repo.GetBySlugAsync(slug, ct);
         if (map is null) { await Send.NotFoundAsync(ct); return; }
 
-        var art = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == map.Id && a.Kind == ArtifactKind.IslandsJson, ct);
-        var islands = IslandRoleData.ParseIslands(art?.Data);
+        var islands = IslandRoleData.ParseIslands(await artifacts.LoadAsync(map.Id, ArtifactKind.IslandsJson, ct));
         var geoms = islands.Select(i => i.Geom).ToList();
 
         // Roles/anchors/build need the map doc; without it (xml-only / not-yet-imported) report islands only.

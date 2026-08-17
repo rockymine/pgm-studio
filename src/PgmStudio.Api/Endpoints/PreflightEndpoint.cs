@@ -24,7 +24,7 @@ using Dict = Dictionary<string, object?>;
 /// connected (else it returns 409); mirror + buildability are advisory. Scoped to intent-authored maps —
 /// a corpus map (no intent blob) has nothing to pre-flight and reports <c>IntentMap=false</c>.
 /// </summary>
-public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, FeatureData feature, PgmDb db)
+public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, FeatureData feature, MapArtifactStore artifacts)
     : EndpointWithoutRequest<PreflightDto>
 {
     private const byte Void = 2;   // Buildability verdict for an open-void column (no ground)
@@ -38,12 +38,12 @@ public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, Feat
         var slug = map.Slug;
         var doc = await reader.ReadDocAsync(map, ct);
 
-        if (!await IntentStore.HasAsync(db, map.Id, ct))
+        if (!await artifacts.HasAsync(map.Id, ArtifactKind.MapIntentJson, ct))
         {
             await Send.OkAsync(new PreflightDto(false, false, [], ["this map was not authored from intent — nothing to pre-flight"], null), ct);
             return;
         }
-        var intent = await IntentStore.LoadAsync(db, map.Id, ct);
+        var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
 
         var log = new List<string>
         {

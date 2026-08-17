@@ -17,8 +17,6 @@ namespace PgmStudio.Api.Endpoints;
 /// </summary>
 public static class IslandReview
 {
-    internal static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-
     public sealed class Flag
     {
         /// <summary>"ok" · "suspect" · "fixed" — free-form but these three drive the queue badge.</summary>
@@ -27,15 +25,12 @@ public static class IslandReview
         public string? At { get; set; }
     }
 
-    public static async Task<Flag?> LoadAsync(PgmDb db, long mapId, CancellationToken ct)
-    {
-        var art = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == mapId && a.Kind == ArtifactKind.IslandReviewJson, ct);
-        return art is null ? null : JsonSerializer.Deserialize<Flag>(art.Data, Json);
-    }
+    public static Task<Flag?> LoadAsync(MapArtifactStore artifacts, long mapId, CancellationToken ct)
+        => artifacts.LoadJsonAsync<Flag>(mapId, ArtifactKind.IslandReviewJson, ct);
 }
 
 /// <summary>GET /api/map/{slug}/island-review — the reviewer flag, or {} when none is set.</summary>
-public sealed class IslandReviewGetEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+public sealed class IslandReviewGetEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure() { Get("/map/{slug}/island-review"); AllowAnonymous(); }
 
@@ -43,13 +38,13 @@ public sealed class IslandReviewGetEndpoint(MapRepository repo, PgmDb db) : Endp
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
         if (map is null) { await Send.NotFoundAsync(ct); return; }
-        var flag = await IslandReview.LoadAsync(db, map.Id, ct);
+        var flag = await IslandReview.LoadAsync(artifacts, map.Id, ct);
         await Send.OkAsync((object?)flag ?? new { }, ct);
     }
 }
 
 /// <summary>PUT /api/map/{slug}/island-review — set (or with status "ok"/empty, clear) the reviewer flag.</summary>
-public sealed class IslandReviewPutEndpoint(MapRepository repo, PgmDb db) : Endpoint<IslandReview.Flag>
+public sealed class IslandReviewPutEndpoint(MapRepository repo, MapArtifactStore artifacts) : Endpoint<IslandReview.Flag>
 {
     public override void Configure() { Put("/map/{slug}/island-review"); AllowAnonymous(); }
 
@@ -58,16 +53,15 @@ public sealed class IslandReviewPutEndpoint(MapRepository repo, PgmDb db) : Endp
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
         if (map is null) { await Send.NotFoundAsync(ct); return; }
 
-        await db.Artifacts.Where(a => a.MapId == map.Id && a.Kind == ArtifactKind.IslandReviewJson).DeleteAsync(ct);
         // "ok"/blank status means "nothing to review" → leave the flag cleared (drops it from the queue).
-        if (!string.IsNullOrWhiteSpace(req.Status) && req.Status != "ok")
+        if (string.IsNullOrWhiteSpace(req.Status) || req.Status == "ok")
+        {
+            await artifacts.DeleteAsync(map.Id, ArtifactKind.IslandReviewJson, ct);
+        }
+        else
         {
             req.At = DateTime.UtcNow.ToString("O");
-            await db.InsertAsync(new MapArtifactRow
-            {
-                MapId = map.Id, Kind = ArtifactKind.IslandReviewJson,
-                Data = JsonSerializer.SerializeToUtf8Bytes(req, IslandReview.Json),
-            }, token: ct);
+            await artifacts.SaveJsonAsync(map.Id, ArtifactKind.IslandReviewJson, req, ct);
         }
         await Send.OkAsync(new { ok = true }, ct);
     }
@@ -80,7 +74,7 @@ public sealed class IslandReviewPutEndpoint(MapRepository repo, PgmDb db) : Endp
 /// the fallback for anchorless maps, and whether the map looks <b>under-split</b> (a symmetric N-team map
 /// that resolved into fewer than N major landmasses → likely merged teams).
 /// </summary>
-public sealed class IslandHealthEndpoint(MapRepository repo, MapReader reader, PgmDb db) : EndpointWithoutRequest
+public sealed class IslandHealthEndpoint(MapRepository repo, MapReader reader, PgmDb db, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure() { Get("/map/{slug}/island-health"); AllowAnonymous(); }
 
@@ -90,8 +84,7 @@ public sealed class IslandHealthEndpoint(MapRepository repo, MapReader reader, P
         var map = await repo.GetBySlugAsync(slug, ct);
         if (map is null) { await Send.NotFoundAsync(ct); return; }
 
-        var art = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == map.Id && a.Kind == ArtifactKind.IslandsJson, ct);
-        var islands = IslandRoleData.ParseIslands(art?.Data);
+        var islands = IslandRoleData.ParseIslands(await artifacts.LoadAsync(map.Id, ArtifactKind.IslandsJson, ct));
         var teams = await db.Teams.CountAsync(t => t.MapId == map.Id, ct);
 
         // Size buckets (always available) + the under-split signal.

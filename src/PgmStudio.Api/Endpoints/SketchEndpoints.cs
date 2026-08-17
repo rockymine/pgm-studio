@@ -15,44 +15,18 @@ using PgmStudio.Data.Schema;
 using PgmStudio.Export;
 using PgmStudio.Geom.Relief;
 using PgmStudio.Minecraft;
+using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
 using PgmStudio.Minecraft.Houses;
 
 namespace PgmStudio.Api.Endpoints;
-
-/// <summary>
-/// Sketch tool persistence (docs/tools/sketch.md): the <c>sketch_layout_json</c>
-/// artifact that backs a draft map. Mirrors <see cref="IntentStore"/> — it lives outside the
-/// entity-replace codec, so it survives <c>MapWriter.SaveDocAsync</c>. The blob is the browser's
-/// JS-origin layout ({setup, layout:{shapes, islands}}), stored verbatim (authoring source, not the
-/// canonical document), so it is kept as raw bytes here rather than parsed into typed C#.
-/// </summary>
-internal static class SketchStore
-{
-    public static async Task<byte[]?> LoadAsync(PgmDb db, long mapId, CancellationToken ct)
-    {
-        var art = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == mapId && a.Kind == ArtifactKind.SketchLayoutJson, ct);
-        return art?.Data;
-    }
-
-    /// <summary>Whether the map has a sketch layout — the durable "was a sketch" signal (the stage advances
-    /// to <c>configure</c> on finish, so it can't distinguish origin).</summary>
-    public static Task<bool> HasAsync(PgmDb db, long mapId, CancellationToken ct) =>
-        db.Artifacts.AnyAsync(a => a.MapId == mapId && a.Kind == ArtifactKind.SketchLayoutJson, ct);
-
-    public static async Task SaveAsync(PgmDb db, long mapId, byte[] data, CancellationToken ct)
-    {
-        await db.Artifacts.Where(a => a.MapId == mapId && a.Kind == ArtifactKind.SketchLayoutJson).DeleteAsync(ct);
-        await db.InsertAsync(new MapArtifactRow { MapId = mapId, Kind = ArtifactKind.SketchLayoutJson, Data = data }, token: ct);
-    }
-}
 
 /// <summary>POST /api/sketch — originate a sketch: create a draft (geometry-less) map + its layout artifact.
 /// Returns the slug; the client navigates to <c>/maps/{slug}/sketch</c>. Body: optional {name} and an
 /// optional working frame {width, depth, mode, centerX, centerZ}. When a frame is given the layout is seeded
 /// with a <c>setup</c> (origin-centred bbox + symmetry centre + mode) so the editor frames the canvas on
 /// open; without one the layout is empty {} and the editor falls back to its landscape default on load.</summary>
-public sealed class SketchCreateEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure() { Post("/sketch"); AllowAnonymous(); }
 
@@ -92,7 +66,7 @@ public sealed class SketchCreateEndpoint(MapRepository repo, PgmDb db) : Endpoin
         var mapId = await repo.InsertAsync(new MapRow { Slug = slug, Name = name, Gamemode = "ctw", Stage = MapStage.Sketch, CreatedAt = now, UpdatedAt = now });
         // Seed so GET works immediately: a framed create writes its setup; a frameless one stays empty {}.
         var seed = hasFrame ? SeedSetup(Math.Max(16, width), Math.Max(16, depth), mode, centerX, centerZ) : "{}"u8.ToArray();
-        await SketchStore.SaveAsync(db, mapId, seed, ct);
+        await artifacts.SaveAsync(mapId, ArtifactKind.SketchLayoutJson, seed, ct);
         await Send.OkAsync(new { slug }, ct);
     }
 
@@ -134,7 +108,7 @@ internal static class SketchSlug
 }
 
 /// <summary>GET /api/map/{slug}/sketch — the stored sketch layout (the JS-origin blob), or {} if none.</summary>
-public sealed class SketchGetEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+public sealed class SketchGetEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure() { Get("/map/{slug}/sketch"); AllowAnonymous(); }
 
@@ -142,7 +116,7 @@ public sealed class SketchGetEndpoint(MapRepository repo, PgmDb db) : EndpointWi
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
         if (map is null) { await Send.NotFoundAsync(ct); return; }
-        var data = await SketchStore.LoadAsync(db, map.Id, ct);
+        var data = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
         await Send.OkAsync(JsonSerializer.Deserialize<JsonElement>(data ?? "{}"u8.ToArray()), ct);
     }
 }
@@ -151,7 +125,7 @@ public sealed class SketchGetEndpoint(MapRepository repo, PgmDb db) : EndpointWi
 /// `{error, findings}` when a bound <c>roomStyles.cage</c> or <c>roomStyles.spawn</c> fails
 /// <see cref="HouseStyleValidation"/> — this is where those snapshots actually enter the studio, so it is where
 /// a wrong block or a see-through roof is refused rather than silently stamped at export.</summary>
-public sealed class SketchPutEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure() { Put("/map/{slug}/sketch"); AllowAnonymous(); }
 
@@ -169,7 +143,7 @@ public sealed class SketchPutEndpoint(MapRepository repo, PgmDb db) : EndpointWi
         var findings = SketchRoomStyleGate.Check(Encoding.UTF8.GetString(bytes));
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
 
-        await SketchStore.SaveAsync(db, map.Id, bytes, ct);
+        await artifacts.SaveAsync(map.Id, ArtifactKind.SketchLayoutJson, bytes, ct);
         await Send.OkAsync(new { ok = true }, ct);
     }
 }
@@ -218,7 +192,7 @@ internal static class SketchRoomStyleGate
 /// team/owner:colour identity across a recompile. Only a shape the author actually corrected
 /// (<c>height_authored</c>) carries forward — an untouched piece keeps tracking the plan's own
 /// <c>surface</c>, so this never masks a deliberate plan-side height change.</para></summary>
-public sealed class SketchFromPlanEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure() { Put("/map/{slug}/sketch/from-plan"); AllowAnonymous(); }
 
@@ -232,7 +206,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, PgmDb db) : Endpo
         try { using var _ = JsonDocument.Parse(compiled); }   // reject non-JSON; don't store garbage
         catch { await Send.ResponseAsync(new { error = "invalid JSON" }, 400, ct); return; }
 
-        var stored = await SketchStore.LoadAsync(db, map.Id, ct);
+        var stored = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
         var storedJson = stored is null ? null : Encoding.UTF8.GetString(stored);
 
         var orphans = SketchLayout.OrphanedRelief(compiled, storedJson);
@@ -248,7 +222,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, PgmDb db) : Endpo
 
         var merged = SketchLayout.CarryStructuralHeight(
             SketchLayout.CarryRelief(SketchLayout.CarryFinish(compiled, storedJson), storedJson), storedJson);
-        await SketchStore.SaveAsync(db, map.Id, Encoding.UTF8.GetBytes(merged), ct);
+        await artifacts.SaveAsync(map.Id, ArtifactKind.SketchLayoutJson, Encoding.UTF8.GetBytes(merged), ct);
         await Send.OkAsync(new { ok = true, orphaned = orphans }, ct);
     }
 }
@@ -259,7 +233,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, PgmDb db) : Endpo
 /// bridge's <c>getState()</c>, not the stored blob — so the overlay tracks unsaved edits; the stored intent
 /// supplies team ownership, which is what a team-tinted material reads. Empty payload when nothing is
 /// drawn; 400 on unparseable JSON.</summary>
-public sealed class SketchPaintEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure() { Post("/map/{slug}/sketch/paint"); AllowAnonymous(); }
 
@@ -272,7 +246,7 @@ public sealed class SketchPaintEndpoint(MapRepository repo, PgmDb db) : Endpoint
         var layoutJson = await reader.ReadToEndAsync(ct);
 
         IReadOnlyList<SurfaceCell> cells;
-        try { cells = TerrainPreview.SketchPaintCells(layoutJson, await IntentStore.LoadAsync(db, map.Id, ct)); }
+        try { cells = TerrainPreview.SketchPaintCells(layoutJson, await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct)); }
         catch { await Send.ResponseAsync(new { error = "could not paint layout" }, 400, ct); return; }
 
         await Send.OkAsync(cells.Count == 0 ? LayerData.EmptyPixels() : LayerData.PalettePixels(cells), ct);
@@ -293,7 +267,7 @@ public sealed class SketchPaintEndpoint(MapRepository repo, PgmDb db) : Endpoint
 /// <para>A map begun in Sketch has no intent, and an empty one is the right answer rather than a gap: it
 /// states no objectives, so a preview showing none is showing what is there. 400 on a layout that cannot be
 /// built.</para></summary>
-public sealed class SketchColumnsEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure() { Post("/map/{slug}/sketch/columns"); AllowAnonymous(); }
 
@@ -308,7 +282,7 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, PgmDb db) : Endpoi
         Dictionary<string, object?> payload;
         try
         {
-            var built = SketchWorldBuilder.Build(layoutJson, await IntentStore.LoadAsync(db, map.Id, ct));
+            var built = SketchWorldBuilder.Build(layoutJson, await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct));
             payload = WorldColumnPayload.Of(built.World);
         }
         catch { await Send.ResponseAsync(new { error = "could not build layout" }, 400, ct); return; }
@@ -450,7 +424,7 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
 /// one, so the commonest shape in that category — one continent both teams stand on — is exactly what a
 /// two-island floor rejected. Symmetry decides whether a board has two sides, and it is stated in the setup
 /// rather than counted in the ground.</para></summary>
-public sealed class SketchFinishEndpoint(MapRepository repo, PgmDb db, WorldFeatureWriter writer) : EndpointWithoutRequest
+public sealed class SketchFinishEndpoint(MapRepository repo, MapArtifactStore artifacts, WorldFeatureWriter writer) : EndpointWithoutRequest
 {
     public override void Configure() { Post("/map/{slug}/sketch/finish"); AllowAnonymous(); }
 
@@ -459,7 +433,7 @@ public sealed class SketchFinishEndpoint(MapRepository repo, PgmDb db, WorldFeat
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
         if (map is null) { await Send.NotFoundAsync(ct); return; }
 
-        var data = await SketchStore.LoadAsync(db, map.Id, ct);
+        var data = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
         if (data is null) { await Send.ResponseAsync(new { error = "No sketch layout to finish." }, 422, ct); return; }
 
         var cells = SketchRasterizer.RasterizeColumns(Encoding.UTF8.GetString(data));
@@ -481,7 +455,7 @@ public sealed class SketchFinishEndpoint(MapRepository repo, PgmDb db, WorldFeat
 /// Sketch tool. Discards only a draft that is genuinely untouched: sketch stage, still carrying the default
 /// name, no authors, and nothing drawn — anything else is real work and is left alone. Returns
 /// <c>{discarded}</c>; a missing map or a non-pristine one is a no-op success.</summary>
-public sealed class SketchDiscardIfEmptyEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+public sealed class SketchDiscardIfEmptyEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure() { Delete("/map/{slug}/sketch/discard-if-empty"); AllowAnonymous(); }
 
@@ -493,7 +467,7 @@ public sealed class SketchDiscardIfEmptyEndpoint(MapRepository repo, PgmDb db) :
         var pristine = map.Stage == MapStage.Sketch
             && string.Equals(map.Name?.Trim(), SketchCreateEndpoint.DefaultName, StringComparison.Ordinal)
             && !await db.Authors.AnyAsync(a => a.MapId == map.Id, ct)
-            && !await SketchHasShapesAsync(db, map.Id, ct);
+            && !await SketchHasShapesAsync(artifacts, map.Id, ct);
 
         if (pristine) await repo.DeleteMapAsync(map.Id, ct);   // FK cascade removes the layout artifact
         await Send.OkAsync(new { discarded = pristine }, ct);
@@ -501,9 +475,9 @@ public sealed class SketchDiscardIfEmptyEndpoint(MapRepository repo, PgmDb db) :
 
     // The layout blob is {setup?, layers:[{layout:{shapes,islands}}]} (or a legacy single {layout:{…}}, or
     // {} / setup-only for a fresh draft). "Empty" = no shapes in any layer.
-    private static async Task<bool> SketchHasShapesAsync(PgmDb db, long mapId, CancellationToken ct)
+    private static async Task<bool> SketchHasShapesAsync(MapArtifactStore artifacts, long mapId, CancellationToken ct)
     {
-        var data = await SketchStore.LoadAsync(db, mapId, ct);
+        var data = await artifacts.LoadAsync(mapId, ArtifactKind.SketchLayoutJson, ct);
         if (data is null || data.Length == 0) return false;
         try { using var doc = JsonDocument.Parse(data); return HasShapes(doc.RootElement); }
         catch { return false; }

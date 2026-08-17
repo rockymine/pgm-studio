@@ -110,22 +110,14 @@ that already exists in the map contract.
   with the code that builds it and leaves `Protection` to the contract. Lands with `WE1`, which changes what
   goes into that mask and what it says when it stops something.
 
-### The API layer: one envelope, one store, one gate chain
+### The API layer: one envelope, one gate chain
 
 An agent driving the studio meets one of these on every loop, and they share a cause: the same answer is
 given a different shape at each surface, so nothing downstream can read all of them. Fable's run-3 review
 named the layer and re-verified it after its own fixes landed
 (`pgm-studio-mapgen/reports/fable-run3-architecture.md`, with the author's follow-up ask recorded in this
-repo's history); the counts below are re-measured against today's tree, and two of them are worse than that
-reading.
-
-- [ ] **RP1 — One typed artifact store, replacing five copies and 34 raw touches.** `IntentStore`,
-  `SketchStore`, `PlanStore`, `ConfigureStore` and `RegionDraftStore` are copy-shaped, and three say so in
-  their own docstrings — *"Mirrors `RegionDraftStore`"*, *"Mirrors `SketchStore`"*, *"Mirrors
-  `IntentStore`"* — which is exactly the tell `CLAUDE.md` names: the duplication written down and left
-  there. They do not even cover what they exemplify: `db.Artifacts` is touched **raw at 34 sites across 15
-  files**, so most artifact access bypasses the stores entirely. One typed store keyed on the artifact kind
-  replaces all of it. No design question in it, and the cleanest one-concept-one-shape candidate left.
+repo's history); the counts below are re-measured against today's tree. The store it named is settled — one
+`MapArtifactStore` keyed on the artifact kind — and what is left is the envelope and the chain.
 
 - [ ] **RP2 — The refusal envelope still has three anonymous shapes beside the typed one.** `Refusals.Of`,
   `WriteAsync` and `StopAsync` are the envelope, and `RefusalDto` + `Finding.Envelope` are the deliberate

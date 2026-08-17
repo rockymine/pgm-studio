@@ -134,7 +134,7 @@ internal static class SymmetryStore
 /// symmetry_json artifact, or computes it on demand from the islands_json artifact (excluding the
 /// Configure-excluded islands) and caches it with status "unconfirmed".
 /// </summary>
-public sealed class SymmetryGetEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+public sealed class SymmetryGetEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure() { Get("/map/{slug}/symmetry"); AllowAnonymous(); }
 
@@ -146,24 +146,17 @@ public sealed class SymmetryGetEndpoint(MapRepository repo, PgmDb db) : Endpoint
         var existing = await SymmetryStore.LoadAsync(db, map.Id, ct);
         if (existing is not null) { await Send.OkAsync(SymmetryStore.ToJson(existing), ct); return; }
 
-        var islandsArt = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == map.Id && a.Kind == ArtifactKind.IslandsJson, ct);
-        if (islandsArt is null) { await Send.NotFoundAsync(ct); return; }
+        var islandsJson = await artifacts.LoadAsync(map.Id, ArtifactKind.IslandsJson, ct);
+        if (islandsJson is null) { await Send.NotFoundAsync(ct); return; }
 
-        var exclude = await ExcludedIslandsAsync(map.Id, ct);
-        var islands = SymmetrySupport.ParseIslands(islandsArt.Data, exclude);
+        var exclude = await ScanConfig.ExcludedIslandsAsync(artifacts, map.Id, ct);
+        var islands = SymmetrySupport.ParseIslands(islandsJson, exclude);
         var result = SymmetryDetector.Detect(islands);
         var row = SymmetryStore.FromDetection(map.Id, result, "unconfirmed");
         await SymmetryStore.SaveAsync(db, row, ct);
         await Send.OkAsync(SymmetryStore.ToJson(row), ct);
     }
 
-    private async Task<HashSet<int>> ExcludedIslandsAsync(long mapId, CancellationToken ct)
-    {
-        var cfg = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == mapId && a.Kind == ArtifactKind.MapConfigJson, ct);
-        if (cfg is null) return [];
-        var node = JsonNode.Parse(cfg.Data);
-        return node?["exclude_islands"]?.AsArray().Select(n => n!.GetValue<int>()).ToHashSet() ?? [];
-    }
 }
 
 /// <summary>

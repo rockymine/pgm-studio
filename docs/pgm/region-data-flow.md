@@ -95,7 +95,7 @@ drawn in**, without faking the derived category, the editor keeps a small **side
 - **Store:** a `region_drafts_json` **`map_artifact`** blob = `{region_key: editor_step}` where
   `editor_step ∈ {teams, objective, build}`. It lives **outside** the entity-replace codec, so it
   **survives `SaveDocAsync`** (`DeleteEntitiesAsync` keeps artifacts) and is **never** part of the PGM
-  document the codec/categorizer see. `RegionDraftStore` (in `RegionEndpoints.cs`) reads/writes it.
+  document the codec/categorizer see. `RegionDrafts` (in `RegionEndpoints.cs`) reads and tags it, over `MapArtifactStore`.
 - **Write:** `POST /regions` (and the F3 `/orbit` follow-up) carry `draft_step`; after the edit, the
   endpoint tags `{newKey: step}` (and each orbit counterpart) into the blob.
 - **Read:** `/regions/tree` loads the blob, **prunes** keys whose region no longer exists, and attaches

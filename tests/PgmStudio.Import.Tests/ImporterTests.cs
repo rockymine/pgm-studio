@@ -2,6 +2,7 @@ using System.Text.Json;
 using LinqToDB;
 using LinqToDB.Async;
 using MySqlConnector;
+using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Import;
 using PgmStudio.Migrations;
@@ -52,7 +53,7 @@ public sealed class ImporterTests
                 JsonSerializer.Serialize(Serializer.ToDict(m)));
 
             await using var db = new PgmDb(PgmDataOptions.ForConnectionString(ConnectionString));
-            await new MapImporter(db).ImportDirAsync("synthetic", dir);
+            await new MapImporter(db, new MapArtifactStore(db)).ImportDirAsync("synthetic", dir);
 
             var map = await db.Maps.FirstOrDefaultAsync(x => x.Slug == "synthetic");
             await Assert.That(map).IsNotNull();

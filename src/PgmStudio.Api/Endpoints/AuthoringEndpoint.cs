@@ -20,7 +20,7 @@ using PgmStudio.Minecraft.Palette;
 /// <c>get_regions_authoring</c> route: <see cref="RegionAuthoringEncoder"/> over the reconstructed
 /// doc + derived categories, with the bbox taken from the map's <c>islands_json</c> artifact.
 /// </summary>
-public sealed class RegionsAuthoringEndpoint(MapRepository repo, MapReader reader, PgmDb db) : EndpointWithoutRequest
+public sealed class RegionsAuthoringEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure() { Get("/map/{slug}/regions/authoring"); AllowAnonymous(); }
 
@@ -33,7 +33,7 @@ public sealed class RegionsAuthoringEndpoint(MapRepository repo, MapReader reade
         var regions = doc.GetValueOrDefault("regions") as Dict ?? new();
         var applyRules = doc.GetValueOrDefault("apply_rules") as List<object?>;
         var cats = RegionCategorizer.Categorize(doc);
-        var bbox = await MapBounds.ResolveAsync(db, map.Id, ct);
+        var bbox = await MapBounds.ResolveAsync(artifacts, map.Id, ct);
 
         var split = RegionAuthoringEncoder.EncodeAuthoring(regions, cats, applyRules, bbox?.bounds);
         split["bounding_box"] = bbox?.dict;
@@ -41,11 +41,12 @@ public sealed class RegionsAuthoringEndpoint(MapRepository repo, MapReader reade
     }
 
     /// <summary>Bounding box over the map's detected islands (from the islands_json artifact), or null.</summary>
-    internal static async Task<((double, double, double, double) bounds, Dict dict)?> IslandsBboxAsync(PgmDb db, long mapId, CancellationToken ct)
+    internal static async Task<((double, double, double, double) bounds, Dict dict)?> IslandsBboxAsync(
+        MapArtifactStore artifacts, long mapId, CancellationToken ct)
     {
-        var art = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == mapId && a.Kind == ArtifactKind.IslandsJson, ct);
-        if (art is null) return null;
-        using var jd = JsonDocument.Parse(art.Data);
+        var data = await artifacts.LoadAsync(mapId, ArtifactKind.IslandsJson, ct);
+        if (data is null) return null;
+        using var jd = JsonDocument.Parse(data);
         var arr = jd.RootElement;
         if (arr.ValueKind != JsonValueKind.Array || arr.GetArrayLength() == 0) return null;
 
@@ -62,7 +63,7 @@ public sealed class RegionsAuthoringEndpoint(MapRepository repo, MapReader reade
 }
 
 /// <summary>GET /api/map/{slug}/regions/tree — category-grouped nested region tree (canvas render input).</summary>
-public sealed class RegionsTreeEndpoint(MapRepository repo, MapReader reader, PgmDb db) : EndpointWithoutRequest
+public sealed class RegionsTreeEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure() { Get("/map/{slug}/regions/tree"); AllowAnonymous(); }
 
@@ -75,10 +76,10 @@ public sealed class RegionsTreeEndpoint(MapRepository repo, MapReader reader, Pg
         var regions = doc.GetValueOrDefault("regions") as Dict ?? new();
         var cats = RegionCategorizer.Categorize(doc);
         var facets = RegionCategorizer.DeriveFacets(doc);
-        var bbox = await MapBounds.ResolveAsync(db, map.Id, ct);
+        var bbox = await MapBounds.ResolveAsync(artifacts, map.Id, ct);
 
         // editor drafts (E10), pruned to regions that still exist (entity-replace keeps keys stable).
-        var allDrafts = await RegionDraftStore.LoadAsync(db, map.Id, ct);
+        var allDrafts = await RegionDrafts.LoadAsync(artifacts, map.Id, ct);
         var drafts = allDrafts.Where(kv => regions.ContainsKey(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
 
         await Send.OkAsync(new Dict
@@ -90,7 +91,7 @@ public sealed class RegionsTreeEndpoint(MapRepository repo, MapReader reader, Pg
 }
 
 /// <summary>GET /api/map/{slug}/islands — the detected island polygons (from the islands_json artifact).</summary>
-public sealed class IslandsEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+public sealed class IslandsEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure() { Get("/map/{slug}/islands"); AllowAnonymous(); }
 
@@ -98,10 +99,10 @@ public sealed class IslandsEndpoint(MapRepository repo, PgmDb db) : EndpointWith
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
         if (map is null) { await Send.NotFoundAsync(ct); return; }
-        var art = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == map.Id && a.Kind == ArtifactKind.IslandsJson, ct);
-        if (art is null) { await Send.NotFoundAsync(ct); return; }
+        var data = await artifacts.LoadAsync(map.Id, ArtifactKind.IslandsJson, ct);
+        if (data is null) { await Send.NotFoundAsync(ct); return; }
 
-        using var jd = JsonDocument.Parse(art.Data);
+        using var jd = JsonDocument.Parse(data);
         await Send.OkAsync(jd.RootElement.Clone(), ct);
     }
 }

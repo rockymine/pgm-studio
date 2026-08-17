@@ -24,8 +24,8 @@ building, which writes both onto a map and rasterizes the layout into world geom
 
 ## What it writes
 
-A map-backed plan is a `map` row at `stage=plan` whose `plan_json` artifact holds the document
-(`MapPlanStore`, `src/PgmStudio.Api/Endpoints/MapPlanEndpoints.cs`). It sits outside the entity-replace codec
+A map-backed plan is a `map` row at `stage=plan` whose `plan_json` artifact holds the document, read and
+written through `MapArtifactStore` like every other artifact. It sits outside the entity-replace codec
 that carries the rest of a map, exactly as the sketch layout does. A candidate is a row in the separate `plan`
 table with an origin of `generated`, `authored` or `imported`, its composer descriptor, and its own copy of
 the same document.

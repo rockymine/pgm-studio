@@ -21,7 +21,7 @@ namespace PgmStudio.Api.Endpoints;
 /// bridged), and this is the only check that catches it. Corpus maps have no intent and export
 /// unconditionally (unchanged).</para>
 /// </summary>
-public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, FeatureData feature, PgmDb db) : EndpointWithoutRequest
+public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, FeatureData feature, PgmDb db, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure() { Get("/map/{slug}/xml"); AllowAnonymous(); }
 
@@ -32,8 +32,8 @@ public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, Feature
         if (map is null) { await Send.NotFoundAsync(ct); return; }
 
         var doc = await reader.ReadDocAsync(map, ct);
-        var layoutBytes = await SketchStore.LoadAsync(db, map.Id, ct);
-        var result = await MapExportLoader.ComposeAsync(map.Id, doc, layoutBytes, feature, db, ct);
+        var layoutBytes = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
+        var result = await MapExportLoader.ComposeAsync(map.Id, doc, layoutBytes, feature, artifacts, ct);
         if (result.IsError) { await Send.ResponseAsync(result.ErrorBody!, result.ErrorStatus!.Value, ct); return; }
 
         HttpContext.Response.ContentType = "application/xml; charset=utf-8";

@@ -87,7 +87,7 @@ above. It does mean `Domain` is "the PGM domain", not "the PGM data model".
 | `Import` | 4 | 472 | flat |
 | `Pgm` | 137 | 20,641 | `Compose/` 42 · `Authoring/` 21 · `Evaluate/` 20 · `Shapes/` 10 · `Editing/` 10 · `Plan/` 7 · `Sketch/` 5 · `Derive/` 4 · `Render/` 4 · `Detect/` 1 · 13 at root |
 | `Analysis` | 16 | 2,609 | `Playability/` 7 · `Footprint/` 4 · `Region/` 3 · `Layer/` 2 |
-| `Data` | 13 | 2,230 | `Features/` 4 · `Theme/` 3 · `Map/` 3 · `Schema/` 2 · `Plan/` 1 |
+| `Data` | 14 | 2,316 | `Features/` 4 · `Map/` 4 · `Theme/` 3 · `Schema/` 2 · `Plan/` 1 |
 | `Export` | 7 | 1,171 | flat |
 | `Api` | 69 | 8,675 | `Endpoints/` 41 · `Services/` 21 · `Http/` 2 · 1 at root |
 | `Client` | 80 `.cs` + razor | 13,436 | `Features/<Tool>/` · `Components/` · `Pages/`, plus 11 JS layers |
@@ -139,6 +139,13 @@ variant would be a schema per type. Block data splits the same way by volume rat
 `layer_segment`), while the raw `layer.parquet` — around 7,700 rows for a single map — stays a regenerable
 cached artifact in a `map_artifact` blob rather than a row per block. `PgmStudio.Import` replays parquet into
 those rows, so migrating an existing map needs no world re-scan; only importing a new one does.
+
+Every artifact — the cached layer, the detected islands, the scan configuration, the authoring intent, the
+sketch and plan blobs, the editor's region drafts — is one row keyed by `(map_id, kind)`, and one store keyed
+on that kind answers for all of them: `Data/Map/MapArtifactStore.cs` is the only place the table is queried.
+A caller asks for bytes, for a deserialized document, or for the artifact's mere presence — which is what
+"is this map intent-authored / sketch-origin / scanned" each reduce to. What stays per-kind is only what
+genuinely differs: the type a blob deserializes to, and the default a map with no such artifact reads as.
 
 The flow between them is the one `docs/tools/flow.md` describes from the map's side:
 

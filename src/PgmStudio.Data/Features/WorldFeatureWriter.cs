@@ -3,6 +3,7 @@ using LinqToDB;
 using LinqToDB.Data;
 using Parquet.Serialization;
 using PgmStudio.Analysis.Footprint;
+using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
 using PgmStudio.Minecraft;
@@ -17,7 +18,7 @@ namespace PgmStudio.Data.Features;
 /// writes the resulting feature rows for a map — the world-import half of the pipeline (the xml
 /// half is the importer / map editors). Replaces any existing feature rows for the map.
 /// </summary>
-public sealed class WorldFeatureWriter(PgmDb db)
+public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
 {
     public readonly record struct Counts(int WoolBlocks, int ResourceBlocks, int ChestItems, int SpawnerBlocks, int LayerSegments, int Islands, int MonumentCandidates, int CoreCandidates);
 
@@ -180,12 +181,12 @@ public sealed class WorldFeatureWriter(PgmDb db)
         return islands.Count;
     }
 
-    private async Task StoreArtifactAsync(long mapId, string kind, byte[] data, CancellationToken ct)
-    {
-        await db.Artifacts.Where(a => a.MapId == mapId && a.Kind == kind).DeleteAsync(ct);
-        if (data.Length > 0)
-            await db.InsertAsync(new MapArtifactRow { MapId = mapId, Kind = kind, Data = data }, token: ct);
-    }
+    // A scan that produced nothing for a kind clears it rather than storing an empty blob — an absent
+    // artifact is what every reader takes as "this map has none".
+    private Task StoreArtifactAsync(long mapId, string kind, byte[] data, CancellationToken ct)
+        => data.Length > 0
+            ? artifacts.SaveAsync(mapId, kind, data, ct)
+            : artifacts.DeleteAsync(mapId, kind, ct);
 
     // The surface-layer extent (min/max of the scanned surface cells) — the canonical map bounding box,
     // saved at scan and read back as the canvas frame + the analysis clip box. Null when there are no cells.

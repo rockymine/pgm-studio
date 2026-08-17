@@ -2,6 +2,7 @@ using LinqToDB;
 using LinqToDB.Async;
 using PgmStudio.Analysis.Layer;
 using PgmStudio.Analysis.Playability;
+using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
 
@@ -10,16 +11,16 @@ namespace PgmStudio.Api.Services;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>Loads a map's relational feature rows into the analysis layer's input shapes.</summary>
-public sealed class FeatureData(PgmDb db)
+public sealed class FeatureData(PgmDb db, MapArtifactStore artifacts)
 {
     /// <summary>True when the map was world-scanned (has a cached raw layer artifact).</summary>
     public Task<bool> HasScanAsync(long mapId, CancellationToken ct = default)
-        => db.Artifacts.AnyAsync(a => a.MapId == mapId && a.Kind == ArtifactKind.LayerParquet, ct);
+        => artifacts.HasAsync(mapId, ArtifactKind.LayerParquet, ct);
 
     /// <summary>The canonical map bounding box (surface-layer extent saved at scan, islands-AABB fallback) —
     /// the finite clip box for unbounded <c>half</c>/<c>negative</c> regions. Null when neither is available.</summary>
     public Task<((double, double, double, double) bounds, Dict dict)?> MapBboxAsync(long mapId, CancellationToken ct = default)
-        => MapBounds.ResolveAsync(db, mapId, ct);
+        => MapBounds.ResolveAsync(artifacts, mapId, ct);
 
     public async Task<SegmentIndex?> SegmentsAsync(long mapId, CancellationToken ct = default)
     {

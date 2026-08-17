@@ -1,8 +1,6 @@
 using System.Text;
 using System.Text.Json;
 using FastEndpoints;
-using LinqToDB;
-using LinqToDB.Async;
 using PgmStudio.Api.Services;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
@@ -12,48 +10,16 @@ namespace PgmStudio.Api.Endpoints;
 
 using Dict = Dictionary<string, object?>;
 
-/// <summary>
-/// Declarative authoring intent store (docs/pgm/new-map-authoring.md): the <c>map_intent_json</c>
-/// artifact that is the source of truth for a new map. Mirrors <see cref="RegionDraftStore"/> — it lives
-/// outside the entity-replace codec so it survives <c>MapWriter.SaveDocAsync</c>.
-/// </summary>
-internal static class IntentStore
-{
-    // Web defaults = camelCase + case-insensitive, so the blob matches what the Blazor client sends.
-    internal static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-
-    public static async Task<MapIntent> LoadAsync(PgmDb db, long mapId, CancellationToken ct)
-    {
-        var art = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == mapId && a.Kind == ArtifactKind.MapIntentJson, ct);
-        return art is null ? new MapIntent() : JsonSerializer.Deserialize<MapIntent>(art.Data, Json) ?? new MapIntent();
-    }
-
-    /// <summary>True iff the map was authored through the declarative intent model (has a stored intent
-    /// blob). The export gate uses this to scope the traversability check to intent maps only — corpus
-    /// maps have no intent and keep exporting unconditionally.</summary>
-    public static Task<bool> HasAsync(PgmDb db, long mapId, CancellationToken ct) =>
-        db.Artifacts.AnyAsync(a => a.MapId == mapId && a.Kind == ArtifactKind.MapIntentJson, ct);
-
-    public static async Task SaveAsync(PgmDb db, long mapId, MapIntent intent, CancellationToken ct)
-    {
-        await db.Artifacts.Where(a => a.MapId == mapId && a.Kind == ArtifactKind.MapIntentJson).DeleteAsync(ct);
-        await db.InsertAsync(new MapArtifactRow
-        {
-            MapId = mapId, Kind = ArtifactKind.MapIntentJson,
-            Data = JsonSerializer.SerializeToUtf8Bytes(intent, Json),
-        }, token: ct);
-    }
-}
-
-/// <summary>GET /api/map/{slug}/intent — the map's declarative authoring intent (empty if none yet).</summary>
-public sealed class IntentGetEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+/// <summary>GET /api/map/{slug}/intent — the map's declarative authoring intent
+/// (docs/pgm/new-map-authoring.md), empty if none yet.</summary>
+public sealed class IntentGetEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure() { Get("/map/{slug}/intent"); AllowAnonymous(); }
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
         if (map is null) { await Send.NotFoundAsync(ct); return; }
-        await Send.OkAsync(await IntentStore.LoadAsync(db, map.Id, ct), ct);
+        await Send.OkAsync(await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct), ct);
     }
 }
 
@@ -68,12 +34,12 @@ public sealed class IntentGetEndpoint(MapRepository repo, PgmDb db) : EndpointWi
 internal static class IntentWrite
 {
     public static async Task<(int Status, object? Body)> StoreAndProjectAsync(
-        MapRepository repo, MapReader reader, MapWriter writer, PgmDb db, MojangClient mojang,
+        MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, MojangClient mojang,
         string slug, long mapId, string body, CancellationToken ct)
     {
-        var intent = (string.IsNullOrWhiteSpace(body) ? null : JsonSerializer.Deserialize<MapIntent>(body, IntentStore.Json)) ?? new MapIntent();
+        var intent = (string.IsNullOrWhiteSpace(body) ? null : JsonSerializer.Deserialize<MapIntent>(body, MapArtifactStore.Json)) ?? new MapIntent();
 
-        await IntentStore.SaveAsync(db, mapId, intent, ct);
+        await artifacts.SaveJsonAsync(mapId, ArtifactKind.MapIntentJson, intent, ct);
         // Authors/contributors are usernames → resolve to uuids here (async, outside the pure generator).
         var authors = await ResolveAuthorsAsync(mojang, intent, ct);
         return await WriteSupport.RunEditAsync(repo, reader, writer, slug,
@@ -111,7 +77,7 @@ internal static class IntentWrite
 
 /// <summary>PUT /api/map/{slug}/intent — store the intent the author edited and regenerate the map from
 /// it. Replaces the stored intent wholesale, which is what makes a deletion in Configure stick.</summary>
-public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapWriter writer, PgmDb db, MojangClient mojang) : EndpointWithoutRequest
+public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, MojangClient mojang) : EndpointWithoutRequest
 {
     public override void Configure() { Put("/map/{slug}/intent"); AllowAnonymous(); }
 
@@ -124,7 +90,7 @@ public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapW
         using var sr = new StreamReader(HttpContext.Request.Body);
         var body = await sr.ReadToEndAsync(ct);
 
-        var (status, resp) = await IntentWrite.StoreAndProjectAsync(repo, reader, writer, db, mojang, slug, map.Id, body, ct);
+        var (status, resp) = await IntentWrite.StoreAndProjectAsync(repo, reader, writer, artifacts, mojang, slug, map.Id, body, ct);
         await Send.ResponseAsync(resp!, status, ct);
     }
 }
@@ -142,7 +108,7 @@ public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapW
 /// clears both and Configure's World and Teams phases are walked again. The layout write is the same shape for
 /// a different reason (<c>…/sketch/from-plan</c>), where the finish does ride across.</para>
 /// </summary>
-public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader, MapWriter writer, PgmDb db, MojangClient mojang) : EndpointWithoutRequest
+public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, MojangClient mojang) : EndpointWithoutRequest
 {
     public override void Configure() { Put("/map/{slug}/intent/from-plan"); AllowAnonymous(); }
 
@@ -155,11 +121,10 @@ public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader,
         using var sr = new StreamReader(HttpContext.Request.Body);
         var compiled = await sr.ReadToEndAsync(ct);
 
-        var stored = await db.Artifacts
-            .FirstOrDefaultAsync(a => a.MapId == map.Id && a.Kind == ArtifactKind.MapIntentJson, ct);
-        var merged = IntentCarry.CarryAuthored(compiled, stored is null ? null : Encoding.UTF8.GetString(stored.Data));
+        var stored = await artifacts.LoadAsync(map.Id, ArtifactKind.MapIntentJson, ct);
+        var merged = IntentCarry.CarryAuthored(compiled, stored is null ? null : Encoding.UTF8.GetString(stored));
 
-        var (status, resp) = await IntentWrite.StoreAndProjectAsync(repo, reader, writer, db, mojang, slug, map.Id, merged, ct);
+        var (status, resp) = await IntentWrite.StoreAndProjectAsync(repo, reader, writer, artifacts, mojang, slug, map.Id, merged, ct);
         await Send.ResponseAsync(resp!, status, ct);
     }
 }

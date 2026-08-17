@@ -91,7 +91,7 @@ public sealed class TraversabilityEndpoint(MapRepository repo, MapReader reader,
 /// <summary>GET /api/map/{slug}/coverage — where the ground is lived on and where it is dead: the traffic
 /// corridors between every pair of waypoints, each waypoint's own ring, the prop-decorated fringe, and the
 /// dead patches named with coordinates. <c>?format=png</c> answers the same grid as the coverage picture.</summary>
-public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, FeatureData feature, PgmDb db) : EndpointWithoutRequest
+public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, FeatureData feature, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure() { Get("/map/{slug}/coverage"); AllowAnonymous(); }
 
@@ -102,7 +102,7 @@ public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, Featu
         var (map, doc) = loaded.Value;
 
         var segs = await feature.SegmentsAsync(map.Id, ct);
-        var layoutBytes = await SketchStore.LoadAsync(db, map.Id, ct);
+        var layoutBytes = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
         var decor = layoutBytes is null
             ? []
             : DressingScope.DecorCells(System.Text.Encoding.UTF8.GetString(layoutBytes));

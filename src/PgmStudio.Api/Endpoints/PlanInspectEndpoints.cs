@@ -1,3 +1,4 @@
+using PgmStudio.Data.Map;
 using PgmStudio.Domain;
 using System.Text.Json;
 using FastEndpoints;
@@ -215,7 +216,7 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest
         // Serialize each half with its own consumer's options (snake_case shape fields for the sketch blob;
         // Web camelCase for the intent) so the editor can post the raw sub-objects straight to the pipeline.
         var layoutEl = JsonSerializer.SerializeToElement(layout, SketchLayout.Json);
-        var intentEl = JsonSerializer.SerializeToElement(intent, IntentStore.Json);
+        var intentEl = JsonSerializer.SerializeToElement(intent, MapArtifactStore.Json);
 
         // Completeness complaints that did not block (today: no objective). Carried on the success response so
         // a compile that produced a playable-but-goalless map still says so rather than passing in silence.

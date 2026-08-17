@@ -638,6 +638,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **One store answers for every map artifact (RP1).** `map_artifact` is one row per `(map_id, kind)`, and it
+  was read five different ways — `IntentStore`, `SketchStore`, `MapPlanStore`, `ConfigureStore` and
+  `RegionDraftStore`, three of them saying *"Mirrors …"* in their own docstrings — plus 34 raw `db.Artifacts`
+  touches across 15 files that bypassed all five. `MapArtifactStore` (`Data/Map/`) is now the only place the
+  table is queried: bytes, a deserialized document, an empty-document default, mere presence, the kinds a map
+  holds, and the maps holding a kind. What stays per-kind is only what genuinely differs — the type a blob
+  carries and the default an absent one reads as — so `ScanConfig`, `RegionDrafts` and `IslandReview` keep
+  their documents' defaults and lost their copies of the query. Of the 32 classes that now take the store, 22
+  hold no `PgmDb` at all, and the three copies of the web-defaults `JsonSerializerOptions` became one.
 - **The fast-track pass (2026-08-16): one distance canon, one gate chain, and the silences opened.** Seven
   moves landed in one session, each grounded in the board's own findings. `Geom.Cells` gained the
   multi-target walk and the canonical square-ring snap, retiring the evaluator's hand-rolled BFS and
