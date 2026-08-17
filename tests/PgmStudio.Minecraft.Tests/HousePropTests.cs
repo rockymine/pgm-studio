@@ -369,6 +369,30 @@ public sealed class HousePropTests
         await Assert.That(loose.RidgeAlongX).IsFalse();          // ten deep and five wide once turned
     }
 
+    /// <summary>
+    /// A wing is a rectangle of <b>cells</b>, so its half-turn image is the rectangle on the far side of the
+    /// boundary the board turns about — its low edge pairing with the image's high edge at <c>-1</c>. Turning
+    /// its corners as if they were positions lands the image one block short, which is a building standing a
+    /// block from its own mirror on ground that mirrors exactly.
+    /// </summary>
+    [Test]
+    public async Task A_turned_wing_and_its_image_straddle_the_boundary_the_board_turns_about()
+    {
+        var symmetry = new DressingSymmetry("rot_180", 0, 0);
+        var wing = new Wing(25, 66, 34, 78);
+
+        var image = Decorator.TurnedFootprint(new BuildingPlan([wing]), symmetry, 1).Wings[0];
+
+        await Assert.That(wing.MinX + image.MaxX).IsEqualTo(-1);
+        await Assert.That(wing.MaxX + image.MinX).IsEqualTo(-1);
+        await Assert.That(wing.MinZ + image.MaxZ).IsEqualTo(-1);
+        await Assert.That(wing.MaxZ + image.MinZ).IsEqualTo(-1);
+
+        // And it covers the same ground it did, which is what a re-floored corner quietly costs.
+        await Assert.That(image.MaxX - image.MinX).IsEqualTo(wing.MaxX - wing.MinX);
+        await Assert.That(image.MaxZ - image.MinZ).IsEqualTo(wing.MaxZ - wing.MinZ);
+    }
+
     [Test]
     [Arguments("mirror_x", RoomEdge.NegX, RoomEdge.PosX)]
     [Arguments("mirror_z", RoomEdge.NegZ, RoomEdge.PosZ)]

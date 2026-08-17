@@ -473,12 +473,10 @@ public static class Decorator
         var wings = new List<Wing>(plan.Wings.Count);
         foreach (var wing in plan.Wings)
         {
-            var corners = symmetry.ImageRing(
-                [[wing.MinX, wing.MinZ], [wing.MaxX, wing.MaxZ]], image);
-            int minX = (int)Math.Floor(Math.Min(corners[0][0], corners[1][0]));
-            int minZ = (int)Math.Floor(Math.Min(corners[0][1], corners[1][1]));
-            int maxX = (int)Math.Floor(Math.Max(corners[0][0], corners[1][0]));
-            int maxZ = (int)Math.Floor(Math.Max(corners[0][1], corners[1][1]));
+            // A wing's rectangle is cells, so it takes the cell transform: reflecting its corners as
+            // positions and flooring puts the image one block off the ground it is mirrored against.
+            var (minX, minZ, maxX, maxZ) =
+                symmetry.ImageCellRect(wing.MinX, wing.MinZ, wing.MaxX, wing.MaxZ, image);
             wings.Add(wing with
             {
                 MinX = minX, MinZ = minZ, MaxX = maxX, MaxZ = maxZ,

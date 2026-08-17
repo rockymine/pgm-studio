@@ -3316,6 +3316,25 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **A footprint turns as a cell, so a stamp lands on the ground's own mirror (B250).** A board of even extent
+  turns about a **cell boundary**, so the image of cell `x` is `−1−x`; reflecting a footprint's corners as
+  *positions* and flooring them lands it on `−x`, one block from where the terrain puts it. Houses,
+  destroyables and cores each did that, by two different routes — a wing rectangle through the dressing
+  pass's outline transform, a goal anchor through the plan compiler's point fan — while terrain, spawn rooms,
+  iron cubes, redstone lines, room floors, walls and wool rooms were already right. Both routes now run
+  through one machinery: `Symmetry.Cell`/`Symmetry.CellRect` in the canonical `Geom` leaf, with
+  `ObjectiveFootprint.AnchorCell` the single anchor→cell conversion the compiler's fan and the world's
+  stamper share so the two cannot round apart. Measured over `firnline`/`sunspit`/`basalt-reach`: a house box
+  read 167 mirrored columns at the cell boundary against 262 at the origin before, and the regressions now
+  pin the boxes, the built voxels and the transform itself. (`SymmetryCellTests`, `MirrorCentreWorldTests`,
+  `HousePropTests`)
+- **The structure render colours by identity, so a mirrored pair shares a hue (B251).** The accent was
+  `accents[index % 6]` over discovery order, so a building and its own image came out in different colours
+  and the two halves read as holding different things — defeating the one question the picture is opened to
+  answer. `StructureFinder.Identity` drops a claim's per-image indices (`house:w1:0` and `house:w1:1` are one
+  building seen twice), slots are handed out in the identities' sorted order so a board draws the same
+  colours twice, and a finding with no owner at all — every one of them on a scanned world — keeps its own
+  slot rather than collapsing the board to a single colour. (`StructureFinderIdentityTests`)
 - **A whole map from one JSON spec.** `tools/mapgen` (`README.md`) takes a spec — the board, the paint, the
   interior elevation, the trees, the buildings, and the houses the wool and spawn rooms are raised as — and
   writes `region/` + `level.dat` + `map.xml` through `SketchWorldBuilder`/`IntentGenerator`, so it can only

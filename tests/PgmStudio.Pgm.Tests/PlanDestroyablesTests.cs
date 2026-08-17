@@ -35,9 +35,11 @@ public sealed class PlanDestroyablesTests
         await Assert.That(d.Count).IsEqualTo(2);
         await Assert.That(d.Select(x => x.Owner)).IsEquivalentTo(new[] { "red", "blue" });
 
-        // The orbit image is the team-0 anchor rotated a half turn about the centre, not a copy of it.
-        await Assert.That(d[0].Anchor.X).IsEqualTo(-d[1].Anchor.X);
-        await Assert.That(d[0].Anchor.Z).IsEqualTo(-d[1].Anchor.Z);
+        // The orbit image is the team-0 anchor rotated a half turn about the centre, not a copy of it —
+        // and an anchor names a block, so the pair straddles the boundary the board turns about rather than
+        // summing to zero the way two positions would.
+        await Assert.That(d[0].Anchor.X + d[1].Anchor.X).IsEqualTo(-1);
+        await Assert.That(d[0].Anchor.Z + d[1].Anchor.Z).IsEqualTo(-1);
     }
 
     [Test]
@@ -115,9 +117,9 @@ public sealed class PlanDestroyablesTests
         // Absolute `at` resolves the same way a piece's own rect does: cells·globals.cell from the centre.
         await Assert.That(d[0].Anchor.X).IsEqualTo(3.0 * 5);
         await Assert.That(d[0].Anchor.Z).IsEqualTo(-4.0 * 5);
-        // Still fans across the orbit like every other destroyable.
-        await Assert.That(d[0].Anchor.X).IsEqualTo(-d[1].Anchor.X);
-        await Assert.That(d[0].Anchor.Z).IsEqualTo(-d[1].Anchor.Z);
+        // Still fans across the orbit like every other destroyable, as blocks rather than as positions.
+        await Assert.That(d[0].Anchor.X + d[1].Anchor.X).IsEqualTo(-1);
+        await Assert.That(d[0].Anchor.Z + d[1].Anchor.Z).IsEqualTo(-1);
     }
 
     // Omitting `piece` entirely is the same absolute placement — the field defaults to "".

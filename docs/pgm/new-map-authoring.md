@@ -89,6 +89,17 @@ nothing at all.
 **The canvases only draw.** The JS ghosts — `plan-doc`'s mirror images, the sketch mirror layer, the editor's
 `setAuthorMirror` — are previews. They store nothing and decide nothing.
 
+**A position and a cell do not turn the same way, and the leaf answers both.** A board whose extent is even
+turns about a **cell boundary**, not about a block: the rot_180 image of the position `x` is `−x`, but the
+image of the *cell* `x` — the unit square from `x` to `x+1` — is the cell `−1−x`. Anything with a footprint
+therefore takes `Symmetry.Cell`/`Symmetry.CellRect`, which reflect the cell's middle and floor, while
+`Symmetry.Point`/`Symmetry.Rect` stay for what is genuinely a position: a prop's offset from its own anchor, a
+drawn outline, a facing. Reflecting a footprint as a position and flooring the result afterwards lands its
+image one block short of where the terrain puts it — the ground mirrors and the stamp does not, nothing fails,
+and the map is a block asymmetric in play. That is what a goal's anchor and a building's wing rectangle each
+did until `B250`; both now convert to the cell first and turn the cell, and `ObjectiveFootprint.AnchorCell` is
+the one conversion the compiler's fan and the world's stamper share so the two cannot round apart.
+
 The rule that keeps this coherent is that **coverage is a property of the entity, not of the tier**. Every
 objective orbits in all three, or the answer to "is this map fair?" changes depending on which tool the author
 happened to use. That rule was broken once and cost a whole class of map: `Expand` rebuilt the intent by

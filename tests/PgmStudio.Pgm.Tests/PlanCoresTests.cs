@@ -40,8 +40,9 @@ public sealed class PlanCoresTests
         var c = Compile(Json);
         await Assert.That(c.Count).IsEqualTo(2);
         await Assert.That(c.Select(x => x.Owner)).IsEquivalentTo(new[] { "red", "blue" });
-        await Assert.That(c[0].Anchor.X).IsEqualTo(-c[1].Anchor.X);
-        await Assert.That(c[0].Anchor.Z).IsEqualTo(-c[1].Anchor.Z);
+        // An anchor names a block, so a pair of orbit images straddles the boundary the board turns about.
+        await Assert.That(c[0].Anchor.X + c[1].Anchor.X).IsEqualTo(-1);
+        await Assert.That(c[0].Anchor.Z + c[1].Anchor.Z).IsEqualTo(-1);
     }
 
     [Test]
@@ -159,8 +160,9 @@ public sealed class PlanCoresTests
         await Assert.That(c.Count).IsEqualTo(2);
         await Assert.That(c[0].Anchor.X).IsEqualTo(-2.0 * 5);
         await Assert.That(c[0].Anchor.Z).IsEqualTo(6.0 * 5);
-        await Assert.That(c[0].Anchor.X).IsEqualTo(-c[1].Anchor.X);
-        await Assert.That(c[0].Anchor.Z).IsEqualTo(-c[1].Anchor.Z);
+        // An anchor names a block, so a pair of orbit images straddles the boundary the board turns about.
+        await Assert.That(c[0].Anchor.X + c[1].Anchor.X).IsEqualTo(-1);
+        await Assert.That(c[0].Anchor.Z + c[1].Anchor.Z).IsEqualTo(-1);
     }
 
     [Test]

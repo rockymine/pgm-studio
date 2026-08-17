@@ -80,6 +80,40 @@ public static class StructureFinder
     public sealed record Structure(int MinX, int MaxX, int MinZ, int MaxZ, int Area, int RoofLow, int RoofHigh,
                                     int GroundAround, int GroundSpread, int BaseOffset, string Materials);
 
+    /// <summary>
+    /// What a claim <em>is</em>, with which image of it this one happens to be dropped: the owner minus every
+    /// wholly numeric segment. <c>house:w1:0</c> and <c>house:w1:1</c> are one building seen twice and answer
+    /// <c>house:w1</c>; <c>spawn:0</c> and <c>spawn:1</c> answer <c>spawn</c>.
+    ///
+    /// <para>Reading it off the string is what the owner shape currently allows, and it is why the answer is
+    /// coarser for some families than others: a numeric segment is an orbit index on a house and a running
+    /// index into the already-fanned list everywhere else, so four wool rooms collapse to one identity where
+    /// three houses stay three. Giving every claim the same what-it-is/which-image pair is <c>B252</c>, and
+    /// this reads exactly as well as that shape lets it.</para>
+    /// </summary>
+    public static string Identity(string owner) => string.IsNullOrEmpty(owner)
+        ? owner
+        : string.Join(':', owner.Split(':').Where(part => part.Length > 0 && !part.All(char.IsAsciiDigit)));
+
+    /// <summary>An accent slot per finding, equal for findings that share an <see cref="Identity"/>. Slots are
+    /// handed out in the identities' own sorted order rather than in discovery order, so the same board draws
+    /// the same colours twice and a mirrored pair matches whichever half is found first. A finding with no
+    /// identity at all — every one of them on a world with no provenance to read — keeps a slot of its own,
+    /// because nothing there says which two findings are one thing.</summary>
+    private static int[] AccentSlots(IReadOnlyList<string> identities)
+    {
+        var order = identities.Where(identity => identity.Length > 0).Distinct()
+                              .OrderBy(identity => identity, StringComparer.Ordinal)
+                              .Select((identity, slot) => (identity, slot))
+                              .ToDictionary(entry => entry.identity, entry => entry.slot);
+
+        var slots = new int[identities.Count];
+        var next = order.Count;
+        for (var i = 0; i < identities.Count; i++)
+            slots[i] = identities[i].Length > 0 ? order[identities[i]] : next++;
+        return slots;
+    }
+
     public sealed record Result(byte[] Pixels, int BlocksWide, int BlocksHigh, List<Structure> Structures);
 
     /// <summary>Reads a built region directory from disk. Picks up <see cref="WorldProvenanceFile"/>'s
@@ -112,7 +146,7 @@ public static class StructureFinder
         List<Legend.Entry> entries =
         [
             new("NATURAL GROUND (SHADED BY HEIGHT)", 0x5B5E66),
-            new("STRUCTURE (ONE ACCENT PER FINDING)", 0xFF7A1F),
+            new("STRUCTURE (ONE ACCENT PER IDENTITY - A MIRRORED PAIR SHARES ONE)", 0xFF7A1F),
             new("VOID", 0x0E0E12),
         ];
         // Whether "structure" was read off a recorded extent or off material + step is exactly the fact
@@ -153,16 +187,21 @@ public static class StructureFinder
         // rather than flooded for adjacency; absent provenance, adjacency plus the step test is still the
         // only signal there is.
         var components = provenance is null
-            ? Flood(builtCells, topY, maximumStep)
+            ? Flood(builtCells, topY, maximumStep).Select(cells => (Owner: WorldProvenance.NoOwner, Cells: cells))
             : builtCells.GroupBy(cell => provenance.OwnerAt(cell.X, cell.Z) ?? WorldProvenance.NoOwner)
-                .Select(group => (IReadOnlyList<(int X, int Z)>)[.. group]);
+                .Select(group => (Owner: group.Key, Cells: (IReadOnlyList<(int X, int Z)>)[.. group]));
 
-        foreach (var component in components)
+        // What each finding is, as opposed to which image of it this one is — the key the accent is chosen
+        // by, so a structure and its mirror come out the same colour and a genuinely unpaired one stands out.
+        var identityOf = new List<string>();
+
+        foreach (var (owner, component) in components)
         {
             if (component.Count < minimumArea) continue;
 
             var index = structures.Count;
             foreach (var cell in component) claimed[cell] = index;
+            identityOf.Add(Identity(owner));
 
             var roofs = component.Select(cell => topY[cell]).OrderBy(y => y).ToList();
             var bases = component.Select(cell => baseY[cell]).OrderBy(y => y).ToList();
@@ -183,7 +222,7 @@ public static class StructureFinder
                 groundLevel, spread, bases[bases.Count / 2] - groundLevel, string.Join(", ", materials)));
         }
 
-        var pixels = Draw(topY, naturalY, claimed, out var blocksWide, out var blocksHigh);
+        var pixels = Draw(topY, naturalY, claimed, AccentSlots(identityOf), out var blocksWide, out var blocksHigh);
         return new Result(pixels, blocksWide, blocksHigh, structures);
     }
 
@@ -316,7 +355,8 @@ public static class StructureFinder
     /// <summary>Findings over a desaturated height profile: a structure's placement only means something
     /// against the terrain it was placed on.</summary>
     private static byte[] Draw(Dictionary<(int X, int Z), int> topY, Dictionary<(int X, int Z), int> naturalY,
-                               Dictionary<(int X, int Z), int> claimed, out int blocksWide, out int blocksHigh)
+                               Dictionary<(int X, int Z), int> claimed, int[] accentSlots,
+                               out int blocksWide, out int blocksHigh)
     {
         int minX = topY.Keys.Min(cell => cell.X), maxX = topY.Keys.Max(cell => cell.X);
         int minZ = topY.Keys.Min(cell => cell.Z), maxZ = topY.Keys.Max(cell => cell.Z);
@@ -326,7 +366,9 @@ public static class StructureFinder
         int lowest = terrain.Count > 0 ? terrain.Min() : 0, highest = terrain.Count > 0 ? terrain.Max() : 0;
         var span = Math.Max(1, highest - lowest);
 
-        // Structures far enough apart never share a colour, and the cycle is short enough to stay readable.
+        // One accent per identity rather than per finding, so a structure and its mirror image come out the
+        // same colour and an unpaired one is the thing that stands out — which is the single question these
+        // pictures are looked at to answer on a mirrored board.
         int[] accents = [0xFF7A1F, 0x35D6C4, 0xFFD400, 0xFF4FA3, 0x7CFF4F, 0x9B7BFF];
 
         var pixels = new byte[blocksWide * blocksHigh * 3];
@@ -342,7 +384,7 @@ public static class StructureFinder
                 var onEdge = Enumerable.Range(0, 4)
                     .Select(side => (cell.Item1 + (side == 0 ? 1 : side == 1 ? -1 : 0), cell.Item2 + (side == 2 ? 1 : side == 3 ? -1 : 0)))
                     .Any(neighbour => !claimed.TryGetValue(neighbour, out var other) || other != index);
-                Raster.Over(pixels, blocksWide, col, row, accents[index % accents.Length], onEdge ? 1.0 : 0.62);
+                Raster.Over(pixels, blocksWide, col, row, accents[accentSlots[index] % accents.Length], onEdge ? 1.0 : 0.62);
             }
         return pixels;
     }

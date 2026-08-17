@@ -30,14 +30,13 @@ public sealed record DressingSymmetry(string? Mode = null, double CenterX = 0, d
     /// <summary>Whether a cell is the representative of its own orbit — the test a generator loops on.</summary>
     public bool IsCanonical(int x, int z) => Canonical(x, z) == (x, z);
 
-    /// <summary>The <paramref name="k"/>-th image of a cell, as a cell. Positions are mirrored about the cell's
-    /// middle, since a cell's corner lands on the boundary between two cells.</summary>
-    public (int X, int Z) ImageCell(int x, int z, int k)
-    {
-        if (k == 0) return (x, z);
-        var (px, pz) = Symmetry.Point(x + 0.5, z + 0.5, Mode, CenterX, CenterZ, k);
-        return ((int)Math.Floor(px), (int)Math.Floor(pz));
-    }
+    /// <summary>The <paramref name="k"/>-th image of a cell, as a cell.</summary>
+    public (int X, int Z) ImageCell(int x, int z, int k) => Symmetry.Cell(x, z, Mode, CenterX, CenterZ, k);
+
+    /// <summary>The <paramref name="k"/>-th image of an inclusive rectangle of cells — a wing's own rectangle,
+    /// and the transform a footprint takes rather than the one an outline takes.</summary>
+    public (int MinX, int MinZ, int MaxX, int MaxZ) ImageCellRect(int minX, int minZ, int maxX, int maxZ, int k)
+        => Symmetry.CellRect(minX, minZ, maxX, maxZ, Mode, CenterX, CenterZ, k);
 
     /// <summary>The <paramref name="k"/>-th image of an offset from a prop's own anchor: the same turn, taken
     /// about the origin rather than the map's centre, because an offset is a direction and a direction has no

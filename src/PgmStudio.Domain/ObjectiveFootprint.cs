@@ -1,3 +1,5 @@
+using PgmStudio.Geom;
+
 namespace PgmStudio.Domain;
 
 /// <summary>
@@ -29,6 +31,29 @@ public static class ObjectiveFootprint
 
     /// <summary>A core's casing is square in plan, so its footprint is its size both ways.</summary>
     public static (int Width, int Depth) Core(int size) => (size, size);
+
+    /// <summary>
+    /// The cell a goal's anchor stands in. An anchor is authored as a position — a piece-relative half-cell
+    /// offset resolves to whole or half values — and every rule that reads a goal reads the block it lands
+    /// on, so the two are one conversion and it lives here with the footprint it feeds.
+    ///
+    /// <para>It is also the only honest place to fan one from. A cell's orbit image is
+    /// <see cref="Symmetry.Cell"/>'s, not <see cref="Symmetry.Point"/>'s; converting first and fanning the
+    /// cell is what keeps a goal and its mirror the same distance from the centre, where fanning the position
+    /// and converting afterwards rounds the two images toward opposite sides and lands them a block
+    /// apart.</para>
+    /// </summary>
+    public static (int X, int Z) AnchorCell(double anchorX, double anchorZ)
+        => ((int)Math.Round(anchorX, MidpointRounding.AwayFromZero),
+            (int)Math.Round(anchorZ, MidpointRounding.AwayFromZero));
+
+    /// <summary>The <paramref name="k"/>-th orbit image of a goal's anchor, as the anchor of that image:
+    /// the cell it stands in, mirrored as a cell.</summary>
+    public static (int X, int Z) ImageAnchor(double anchorX, double anchorZ, string? mode, double cx, double cz, int k)
+    {
+        var (cellX, cellZ) = AnchorCell(anchorX, anchorZ);
+        return Symmetry.Cell(cellX, cellZ, mode, cx, cz, k);
+    }
 
     /// <summary>
     /// The block rect (inclusive) a structure of <paramref name="width"/>×<paramref name="depth"/> occupies

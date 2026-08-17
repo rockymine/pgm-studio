@@ -286,7 +286,9 @@ public static class PlanCompiler
             {
                 var b = plan.Placements.Destroyables[i];
                 if (ResolveGoalAnchor(plan, d, b.Piece, b.At) is not { } anchor) continue;
-                var (px, pz) = d.FanPoint(anchor.X, anchor.Z, k);
+                // The cell first, then the cell's orbit image: a goal is anchored on a block, and fanning the
+                // position instead lands the two images a block apart on ground that mirrors exactly.
+                var (px, pz) = ObjectiveFootprint.ImageAnchor(anchor.X, anchor.Z, d.Mode, 0, 0, k);
                 destroyables.Add(new DestroyableIntent
                 {
                     Owner = teams[k].Id,
@@ -304,7 +306,7 @@ public static class PlanCompiler
             foreach (var c in plan.Placements.Cores)
             {
                 if (ResolveGoalAnchor(plan, d, c.Piece, c.At) is not { } anchor) continue;
-                var (px, pz) = d.FanPoint(anchor.X, anchor.Z, k);
+                var (px, pz) = ObjectiveFootprint.ImageAnchor(anchor.X, anchor.Z, d.Mode, 0, 0, k);
                 cores.Add(new CoreIntent
                 {
                     Owner = teams[k].Id,

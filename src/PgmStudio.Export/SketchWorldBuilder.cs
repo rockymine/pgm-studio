@@ -349,7 +349,9 @@ public static class SketchWorldBuilder
             var b = destroyables[i];
             if (!DestroyableStyles.TryParse(b.Style, out var style)) continue;
             var owner = $"destroyable:{i}";
-            var (ax, az) = PositionSnap.SnapXZ(b.Anchor.X, b.Anchor.Z);
+            // The same anchor→cell rule the compiler fanned this anchor with, so the stamp lands on the
+            // block the plan validator measured and on the mirror of its own orbit image.
+            var (ax, az) = ObjectiveFootprint.AnchorCell(b.Anchor.X, b.Anchor.Z);
             var box = ObjectiveStamper.DestroyableBox(surface, ax, az, style, b.Float);
             ObjectiveStamper.StampDestroyable(world, box, style, DestroyableMaterials.BlockId(b.Materials));
             provenance.ClaimRect(box.MinX, box.MinZ, box.MaxX, box.MaxZ, ProvenanceLayer.Structure, owner);
@@ -387,7 +389,7 @@ public static class SketchWorldBuilder
         {
             var c = cores[i];
             var owner = $"core:{i}";
-            var (ax, az) = PositionSnap.SnapXZ(c.Anchor.X, c.Anchor.Z);
+            var (ax, az) = ObjectiveFootprint.AnchorCell(c.Anchor.X, c.Anchor.Z);
             var box = ObjectiveStamper.CoreBox(surface, ax, az, c.Size, c.Height, c.Float);
             ObjectiveStamper.StampCore(world, box, Blocks.Obsidian, c.Shell, c.OpenTop);
             provenance.ClaimRect(box.MinX, box.MinZ, box.MaxX, box.MaxZ, ProvenanceLayer.Structure, owner);

@@ -40,51 +40,25 @@ them.
 
 ## Task groups
 
-### Symmetry: two mirror centres, and a picture that hides which is which
+### Symmetry: the centre is settled, and the picture that still cannot show it
 
-- [ ] **B250 — Stamp families disagree with the terrain, and with each other, about where the mirror centre
-  is.** The board's extent is **even** on both axes — `firnline` x −45..44 / z −100..99, `basalt-reach`
-  x −75..74 / z −102..101 — so the centre is a **cell boundary**, and the rot_180 image of cell `x` is
-  `−1−x`. The terrain keeps that. Several stamp families do not: they mirror about the **origin**, one block
-  off, so relative to the ground it stands on the stamp sits a block from its own image. Settle the centre
-  once, then make every fanning site read it.
+- [~] **B251 — A stage image still cannot prove a board is mirrored: the shading flips, and a claim can lie
+  about where its blocks are.** The accent half is fixed — a structure and its own image share a hue
+  (`FEATURES.md`) — and two causes remain.
 
-  | family | centre its images actually pair about |
-  |---|---|
-  | house, spawn room, destroyable, core | **origin** |
-  | spawn iron cube, redstone line | **corner** (the terrain's) |
-  | wool room floor, approach wall | neither — pair under no candidate |
-  | terrain | corner, with a residual (below) |
+  **`TopDownRender` shades each column against the one step north** (`TopDownRender.cs:354`), which cannot
+  survive a 180° rotation by construction: a reader comparing halves sees a gradient that flips. Correct as a
+  lighting cue and wrong as the only cue. Worth a symmetry-aware mode, or an overlay that draws the axis and
+  the mirror residual directly rather than leaving it to the eye — which is what `B250` needed and could not
+  get from a picture.
 
-  **The terrain also has a residual the centre does not explain**: at its own best centre `firnline` leaves
-  **164 of 10,986** terrain columns (1.5%) without an image and `basalt-reach` **260 of 19,014** (1.4%). A
-  rounding that survives the centre fix is a different bug.
-
-  *measured 2026-08-16 over `pgm-studio-mapgen/maps/{firnline,basalt-reach,sunspit}/region`, pairing each
-  stamp with whichever stamp its rotated image actually lands on — **not** by owner id, because a provenance
-  owner's suffix is an index into the fanned list (`wool:{i}`, `spawn:{i}`, `destroyable:{i}`) and only
-  `house:{id}:{k}` carries an orbit index. Two limits worth knowing before acting: **provenance records
-  structures only** (`B216`), so trees, boulders, water and the relief are not in this reading at all; and
-  `kerbstone`/`tanglewold` pair under neither candidate for every family, which is more likely a different
-  symmetry mode than a fault and was not chased.*
-
-- [ ] **B251 — A mirrored board cannot be read off the stage images, because neither render survives a
-  rotation.** Rendered a synthetic world that is exactly rot_180 symmetric — 1,681 columns, **zero**
-  unmirrored — and both pictures come out asymmetric: `sym-structures` differs from its own 180° image on
-  1,568 of 26,896 pixels, `sym-topdown` on 896. Neither is an offset: the two houses' drawn bounding boxes
-  are exact images of each other (`x 24..51, y 40..67` against the same reflected). Two causes, both
-  cosmetic and both defeating the one thing an author checks these pictures for.
-
-  **`StructureFinder` gives every structure its own accent colour**, so a structure and its mirror image are
-  drawn in different hues and the two halves read as holding different things. On a symmetric board the
-  accent wants to be per **owner-without-its-orbit-index** — `house:w1:0` and `house:w1:1` are one building
-  seen twice — so a mirrored pair shares a colour and a genuinely unpaired structure stands out.
-
-  **Both renders shade against the north neighbour only**, which cannot survive a 180° rotation by
-  construction. Correct as a lighting cue and wrong as the only cue: a reader comparing halves sees a
-  gradient that flips. Worth a symmetry-aware mode, or an overlay that draws the axis and the mirror
-  residual directly rather than leaving it to the eye — which is what `B250` needed and could not get from a
-  picture.
+  **A claim rectangle is not always its partner's mirror, even where the blocks are.** On `firnline` the two
+  spawn rooms are mirror-exact in the world — x −12..7 / z 87..102, **320/320** columns — while `spawn:0`'s
+  claim x −5..4 / z 91..99 reflects to x −5..4 / z −100..−92 against `spawn:1`'s actual x −4..5 / z −99..−91.
+  So the render draws a building a block from where it stands and the world is right. What wants settling is
+  `SpawnRoom`'s frame: it is handed to `ClaimRect` as a rectangle of cells and mirrors as though its bounds
+  were grid lines, and `StructureClaim`'s rule (`B202`) is that a claim comes from the placement rather than
+  being rebuilt beside it.
 
 ### Provenance: A per-column record of which pass claimed the column last
 
@@ -156,6 +130,26 @@ driver had to know that no document says* is the gap `AUTHORING-BRIEF.md` should
 The output is a finding, not a refactor: one written account of the authoring loop as it is actually
 driven, and a decision on whether the one driver belongs in `pgm-studio` beside `tools/mapgen` or in
 `pgm-studio-mapgen` beside the specs. Worth doing before `B245` and `B249`, which both assume an answer.
+
+### The author's override: building a board the gates refuse
+
+- [ ] **B249 — An author can force a compile and an export past its refusals; an agent cannot.** The gates
+  are right to refuse an agent — an unenterable board or a wall through a wool room is a defect it cannot see
+  — but they also refuse **an author doing something deliberately off the norm**, and there is no way past
+  them. Two boards in `pgm-studio-mapgen` already cannot be rebuilt against today's tree for exactly that
+  reason, both by gates that shipped after they were authored: `firnline` on `OB21` (a house in a spawn door's
+  approach, `B235`) and `sunspit` on `PL13` (a wall on the wool room's interface, `B186`). Both worlds load
+  and play; only the pipeline that made them now says no.
+
+  **The shape: a per-call override that names what it is waiving, not a global off switch.** It reaches the
+  two places a refusal is raised — `PlanCompiler` (a `PL*` refusal) and `MapExportComposer` (`OB17`, `OB19`,
+  `OB21`, the playability judgement) — and every waived finding is still **reported**, as a warning carrying
+  its rule id, so a forced build says what it forced rather than going quiet. A refusal about the `map.xml`
+  contract itself is not waivable: PGM has to be able to read the result.
+
+  **It stays out of the agent's vocabulary.** Not in `docs/tools/capabilities.md`, not in the endpoint tables
+  the briefs hand an agent, not in `mapgen`'s `--help` (`B245`). The authoring briefs already tell an agent
+  that a refusal is a fault to fix; an override an agent knows about is an override an agent will reach for.
 
 ### Other tasks and quick wins
 

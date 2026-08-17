@@ -75,8 +75,49 @@ public static class Symmetry
         _ => Normal(mode) is { } n ? ReflectPoint(x, z, n.Nx, n.Nz, cx, cz) : (x, z),
     };
 
+    /// <summary>
+    /// The <c>k</c>-th orbit image of a <b>cell</b> — the transform every site that fans a footprint owes,
+    /// and the one <see cref="Point"/> cannot give it.
+    ///
+    /// <para>A cell is a unit square, not a position: cell <c>x</c> covers <c>[x, x+1)</c>, so under a
+    /// rot_180 about the grid line at 0 its image is the square <c>(-x-1, -x]</c> — cell <c>-1-x</c>, not
+    /// <c>-x</c>. Reflecting the cell's index as if it were a point and flooring the result lands one block
+    /// short, which is a stamp standing a block from its own mirror image on ground that mirrors correctly.
+    /// Reflecting the cell's <em>middle</em> is what makes a corner land on the boundary between two cells
+    /// rather than inside one of them.</para>
+    /// </summary>
+    public static (int X, int Z) Cell(int x, int z, string? mode, double cx, double cz, int k)
+    {
+        if (k == 0) return (x, z);
+        var (px, pz) = Point(x + 0.5, z + 0.5, mode, cx, cz, k);
+        return ((int)Math.Floor(px), (int)Math.Floor(pz));
+    }
+
+    /// <summary>The <c>k</c>-th orbit image of an inclusive rectangle <b>of cells</b>: every corner cell taken
+    /// through <see cref="Cell"/> and re-bounded, so the image covers exactly as many cells as the source and
+    /// a quarter turn swaps its width and depth. The cell twin of <see cref="Rect"/>, which is for a rectangle
+    /// whose bounds are positions.</summary>
+    public static (int MinX, int MinZ, int MaxX, int MaxZ) CellRect(
+        int minX, int minZ, int maxX, int maxZ, string? mode, double cx, double cz, int k)
+    {
+        (int x, int z)[] corners =
+        [
+            Cell(minX, minZ, mode, cx, cz, k), Cell(minX, maxZ, mode, cx, cz, k),
+            Cell(maxX, minZ, mode, cx, cz, k), Cell(maxX, maxZ, mode, cx, cz, k),
+        ];
+        int nx = int.MaxValue, nz = int.MaxValue, xx = int.MinValue, xz = int.MinValue;
+        foreach (var (x, z) in corners)
+        {
+            nx = Math.Min(nx, x); nz = Math.Min(nz, z);
+            xx = Math.Max(xx, x); xz = Math.Max(xz, z);
+        }
+        return (nx, nz, xx, xz);
+    }
+
     /// <summary>The <c>k</c>-th orbit image of an axis-aligned rectangle: transform the four corners and
-    /// re-bound (a rotation becomes a new AABB). Raw — the caller rounds.</summary>
+    /// re-bound (a rotation becomes a new AABB). Raw — the caller rounds. For a rectangle of <em>cells</em>
+    /// use <see cref="CellRect"/>: flooring this one's output is the off-by-one <see cref="Cell"/>
+    /// describes.</summary>
     public static (double MinX, double MinZ, double MaxX, double MaxZ) Rect(
         double minX, double minZ, double maxX, double maxZ, string? mode, double cx, double cz, int k)
     {
