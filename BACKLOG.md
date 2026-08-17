@@ -87,19 +87,6 @@ highlight); these are the parked / dormant / deferred slices.
   compose on top as they do for any other shape, so a sunk tilted path is a cutting and a raised one an
   embankment.
 
-- [ ] **S47 — A pressure budget for relief.** S43 measures what terrain charges; nothing says how much
-  charging is too much. The dressing stage has the identical gap (`world-export/ideas.md` G167) and the two
-  should share an answer. The materials exist — the share of the board at each passability tier, the detour
-  factor between key places, the ford count and direction on a barrier, the reachable share per team side —
-  and the corpus pass has now run on the right surface (`world-export/relief.md` §12, 105 maps, natural ground):
-  body relief median **19 blocks**, walk median **72.6%**, barrier median **18.3%**, largest walkable place
-  median **29.4%**, **8** cliffs. Filtering the architecture out made the terrain read *steeper*, not gentler
-  — a building's flat roof was smoothing the reading — so the tier shares were never the distorted numbers;
-  the **cliff count** was, and heavily (Alpine Mining II: 36 cliffs off the built surface, 13 off natural
-  ground). What is still missing is the shape of a rule: a median is not a target, and a map at the 25th
-  percentile for walkable share is not thereby worse than one at the 75th. That needs labelled examples of a
-  *bad* map rather than more measurement.
-
 - [ ] **S34 — Reuse a sketch paint's column classification across the edits of one drag.** `TerrainProfile`
   construction is what a paint now costs — ~60 ms of the ~164 ms a 40k-cell board takes (S33, `FEATURES.md`),
   and roughly 35 ms of that is its two `GridComponents.Label` passes: one flood fill for plateaus, a second for
@@ -320,25 +307,6 @@ by `HousePropRules.PastCap` and is not filed.
   known at stamp time** and the tree renderers already read it to draw a crown and a base, so the record is a
   write rather than a derivation.
 
-- [ ] **B212 — Mark the three straight-line thresholds as uncalibrated at their citation sites, and let the
-  author replace each with a walk.** The unit is settled — a distance is the **walk over the walkable
-  surface, never the straight line** (`rules.md` amendment 13) — and no code moves for it: `WL7`, `WL9`/`WL10`
-  and `G127` are already in that unit, and `GoalDistances` and `GroundCoverage` have since been built on top
-  of it. What is not settled is three numbers that read as if they were measured: `B175`'s **35 blocks**,
-  `B179`'s **95–110**, and `B188`'s 164-map table. All three were read straight-line off `map.xml` region
-  centroids, and the sweep behind the table is not in the repository to re-run.
-
-  **No corpus sweep** (author, 2026-08-15): a re-derivation buys precision this project does not need and
-  costs a harness and its upkeep. Simple hard rules instead, stated in the settled unit and tagged `[expert]`
-  in `rules.md`, the way `WL7` already carries a working minimum of ≈45. So the work is small: say at each
-  citation site that the number is straight-line and unreproducible, and retire it as the author states its
-  replacement.
-
-  *`seed-stats.md:385` already carries the mark; `B175` and `B179` do not. Note for whoever states the
-  replacements that the surface under them moved after this was filed: `Cells.SnapToWalkable` now walks the
-  **square** (Chebyshev) ring rather than the diamond, so a marker only a diagonal cell reaches now snaps
-  where it used to read unreachable — walks that were null are numbers now.*
-
 - [ ] **B220 — Fix the doc-comment defects, then take the four ids out of `NoWarn` so the next one fails the
   build.** Each is a sentence pointing at something that is not there, and each is silenced in all five
   `.csproj` that emit a documentation file (`Domain`, `Pgm`, `Minecraft`, `Export`, `Api`):
@@ -487,23 +455,6 @@ by `HousePropRules.PastCap` and is not filed.
   README a band in those terms; the two numbers disagreeing is itself informative, since a high count at a low
   share is a few enormous trees and a low count at a high share is scrub.
 
-- [ ] **B99 — `TraversabilityRender` must look through decoration for headroom as it already does for
-  ground.** `Scan` walks down for the first block that is not air, not liquid and not
-  `BlockRoles.StandsOnGround` — then tests headroom with `ids[y+1] == 0 && ids[y+2] == 0`, strict air. The
-  same block is therefore *not ground* and *in the way*, and any column carrying decoration reads as not
-  navigable. Use the one predicate on both sides.
-
-  **This is the renderer only.** The gate (`Analysis.Playability.Traversability`) navigates on
-  `WorldColumns.Of`, which is any solid block with no headroom test, so it never saw this — which is why a
-  board reads isolated in `traversability.png` and passes preflight.
-
-  *measured on a 60 × 20 plateau: plain, **1200 navigable, 1 component**. Cut by an ST4 approach wall (3
-  courses of bedrock + its cobweb cap), **1160 navigable, 2 components** — the board splits. The same wall
-  with the cobweb course removed, **1200 navigable, 1 component**: it is the web, not the bedrock, and the web
-  is `Placed` decoration the ground search steps past. With tall grass on a third of the columns, **800
-  navigable, 26 components** on flat ground. The wall is meant to be crossed — its own stamper says an
-  attacker bridges to the top and cuts the web with the shears every kit carries.*
-
 - [ ] **B103 — Bound the top-down on ground, not on every column carrying a block.**
   `TopDownRender.ReadColumns` takes `LayerExtractors.Surface` with no exclusions and derives the frame from
   `columns.Keys.Min/Max`, so a column whose only block is a **floor marker** at y≤2 counts as extent. The
@@ -535,13 +486,14 @@ concept, so one agent takes them together or each grows its own copy of the answ
 
 | # | Bucket | Ids | Lands in |
 |---|---|---|---|
-| **1** | Plan-space rules, and the document that describes nothing | `B141` `B143` `B144` `B169` `B175` `B177` `B178` `B179` | `PlanValidator` · `GoalDistances` · `SketchLayout` |
+| **1** | Plan-space rules, and the document that describes nothing | `B141` `B143` `B144` `B169` `B177` `B178` | `PlanValidator` · `SketchLayout` |
 | **2** | A block must be the kind its role needs | `B162` `B163` `B165` `B190` | `HouseStamper` · `DestroyableMaterials` · `Themes` |
 | **3** | What may stand where, and what the build seats | `B145` `B159` `B166` `B184` `B185` `B187` | `GroundClaims` · `Decorator` · the stampers |
 | **4** | The evaluator, the documents and the strays | `B150` `B151` `B154` `B171` `B174` `B181` `B200` | `ClosureTerms` · `G8` · `docs/` · `MaterialEditor` |
 
-Bucket 1 goes first: fourteen rules over plan rectangles that all want one reachable home, which is what
-`B109` is for. Buckets 2 and 3 share the block table (`BlockFamilies`) and the claim set (`StructureClaim`),
+Bucket 1 goes first: rules over plan rectangles that all want one reachable home, which is what `B109` is
+for. The goal-separation entries that were filed with it — `B175`, `B179` — have moved to *Distance, and the
+walk every measure is taken with*, because what blocks them is the measure and not the validator. Buckets 2 and 3 share the block table (`BlockFamilies`) and the claim set (`StructureClaim`),
 so they are adjacent rather than parallel. Bucket 4 shares nothing with anything and may run at any time.
 
 **What has left this pool, so nobody refiles it.** Bucket 9 (`B147` `B148` `B149`) and `B142` `B152` `B155`
@@ -597,19 +549,6 @@ raster of a plan* into **`B107`**, and *a walled wool room reading as an isolate
   `steading` is 92 wide for a 20-block spawn. The corpus does not support a spawn-isolation rule: `dtcm` puts a
   spawn a median 7.5 blocks from the board edge and the generated ones sit 5–15 out.*
 
-- [ ] **B175 — Add a goal↔goal walk to `GoalDistances`, and a rule over it for a team's own goals.**
-  `GoalDistances` already walks the fanned closure to each spawn in the settled unit; the goal↔goal walk is the
-  same traversal with a different target, and `Geom.Cells` carries the multi-target walk and the ring snap.
-  The band lives on the term as `SoftTerm.AuthoredBand`, the way `GO1` does. **The number is the open part**:
-  the author's minimum is 35 blocks, read straight-line off a shipped `map.xml`, and its unit is retired
-  (`B212`) — so it wants restating as a walk before anything enforces it. It is the destroy-side counterpart
-  of `WL7`, which already separates a team's wools.
-
-  *author, 2026-08-14 · Haiku DTM Tower seats a destroyable and a core on one piece, `red-monument-region`
-  ending at `x −9` and `red-core-region` starting at `x −1` — eight blocks of clear ground, both sky markers
-  ten apart. Two well-spaced boards read 70 (`tallow-kilnrow`) and 74.3 (`basalt-reach`) in the same retired
-  unit.*
-
 - [ ] **B177 — Implement `SP7`: a spawn's iron stands beside or ahead of it, never behind.** No code anywhere
   matches `SP7` — it is written in `rules.md` and served as prose by `GET /api/rules?rule=SP7`. The ray is
   already walked: `LintSp8`/`LintSp9` take a spawn's `Facing` through `DoorDirection` and step out of the
@@ -629,20 +568,6 @@ raster of a plan* into **`B107`**, and *a walled wool room reading as an isolate
 
   *author, 2026-08-14 · Ashfall Scar's spawn piece `x −40…40` builds an 80-block hall; same on `sable-marsh`
   (90) and `tallow-weirgate` (80).*
-
-- [ ] **B179 — State how far opposing goals stand apart, and how much of the board the contest uses.** The
-  first is `B175`'s walk read across the axis instead of within a team — one traversal serves both, and
-  `GoalDistances` already fans the closure so a route may cross the boundary. The second is `GroundCoverage`
-  (`B241`), which already classes every ground cell reached, decorated or dead: "how much of this board is the
-  contest using" is measurable there rather than inferable from a bounding box. As with `B175` the numbers are
-  the open part — the author's target of 95–110 blocks to the nearest enemy goal is straight-line and wants
-  restating as a walk.
-
-  *author, 2026-08-14 · on a 240 × 190 board every Ashfall Scar objective sits on `x = 0`, the objective set
-  spans `z −37 … 38`, and opposing monuments stand 19 blocks apart with no obstacle between them. The author's
-  reading — a stalemate rather than a rush, and a board too large for what it uses — is a gameplay judgment and
-  is the author's; the numbers are what it rests on. The goals being visible from spawn is the good half and
-  `OB21` protects it.*
 
 #### Bucket 2 — a block must be the kind of block its role needs
 
@@ -837,6 +762,142 @@ raster of a plan* into **`B107`**, and *a walled wool room reading as an isolate
 
   *reported by the author while theming a board — "a cobble rim, then two rings of stone brick, then a grass
   field". The worked JSON is in `docs/world-export/terrain-painting.md`.*
+
+### Distance, and the walk every measure is taken with
+
+Every distance the studio reports — a goal's walk to a spawn, a wool separation, the corridors the coverage
+read paints, the detour factor a relief budget would need — comes from one derivation:
+`Cells.ShortestPath`, an **unweighted 4-connected BFS** over a navigable set that is *does this column hold
+any block*. The Y is discarded before the walk sees it (`WorldColumns.Of` answers membership, not height), and
+props never leave the set at all. So a route climbs a 20-block scarp at the cost of flat ground and walks
+through a house, and every rule stated in "the walk" is really stated in a flat Manhattan proxy for it. The
+entries below share that cause and want reading together.
+
+- [ ] **B246 — Give the walk column heights and a step cost, so a climb is charged and a detour exists.**
+  Two moves. **Carry the height**: `WorldColumnRuns` already answers what every column is made of, top to
+  bottom, with `YTop`/`YBottom` per run — a strict superset of `WorldColumns.Of`'s membership sets, which can
+  be derived from it and retired (its own docstring already names the distinction). **Charge the step**:
+  `KitReach.BridgeCost` is a 0-1 BFS over a deque — 0 where a cell is walkable, 1 where a block must be
+  placed, `< 0` impassable — and it is the right algorithm with the wrong cost. Read the cost off the height
+  delta instead: **Δ≤1 free, Δ≥2 costs the block a player places to climb it**, void impassable unless
+  bridgeable. That gives a walk that prefers ground you can run up, still finds the steep way, and returns a
+  number that says how much building the route cost.
+
+  **Move it into `Geom.Cells` beside `ShortestPath`**, because five callers want it at once: `GoalDistances`,
+  `WoolWoolDistance` (`WL7`), `GoalSpawnRatio` (`GO1`), `GroundCoverage`'s corridors, and `S47`'s detour
+  factor. The 4-connected rule can go with it for the coverage read — the corridor is widened by
+  `CorridorMargin` anyway and players optimise their own routes, so an 8-connected walk there is closer to the
+  truth than the axis-aligned staircase the picture shows (the author's call). A separation rule that reports
+  a walk should keep whichever connectivity its number was stated in.
+
+- [ ] **B247 — Void that no apply rule covers reads bridgeable, so routes cross holes nobody can cross.**
+  `Buildability.Compute` starts `verdict` at `0` = **buildable** and only ever writes `Never`, `Void` or
+  `Restricted` where a rule's region covers a cell. `Traversability.Ground` then takes `verdict 0 or 3` as
+  navigable. So every cell outside every apply rule is walkable, ground or not — and the traversability
+  **gate** shares that set, so a board can pass "all objectives connected" over void it cannot cross. A
+  generated board is partly saved by `BuildGenerator` writing `deny(void)` over its build region; the margins
+  and a hand-authored board with sparse rules are not. Default an uncovered cell to *not bridgeable* and
+  require a rule to open it.
+
+  *measured: a document with one region and no apply rules, over a 40×40 grid where only 100 cells carry a
+  world-floor block — `Buildability` returns **buildable 1600 / 1600**, and all 1600 read navigable.
+  `TraversabilityRender` derives bridgeable the honest way, off the map's own `deny(void)` apply rule
+  (`BridgeableColumns`), so the picture and the gate disagree about the same board.*
+
+- [ ] **B248 — The coverage image needs the vocabulary the read already has.** `CoverageRender.Png` is eight
+  lines: it paints a class colour per cell and nothing else — no legend and no scale bar, which every other
+  stage image carries through `Legend.AppendBelow`. Three things it should say and does not:
+
+  **A waypoint's kind.** `Traversability.NavigationPoints` returns `NavPoint.Kind` as exactly
+  `spawn`/`wool`/`destroyable`/`core`, and `GroundCoverage.Read` discards it — every waypoint is the same
+  white 3×3. Give each kind its canonical colour, shared with the other overlays, and draw the marker large
+  enough to find in a scaled-down picture.
+
+  **The route.** It is a one-cell line in a pale green, painted **last and unconditionally**, so it also
+  overwrites cells that are not ground (`B247`). Too faint to read at stage scale and not trustworthy where it
+  is readable: either drop it and let the corridor's own green carry the traffic, or draw it as a marked
+  polyline that never covers a cell the read classed void.
+
+- [ ] **B175 — Add a goal↔goal walk to `GoalDistances`, and a rule over it for a team's own goals.**
+  `GoalDistances` already walks the fanned closure to each spawn in the settled unit; the goal↔goal walk is the
+  same traversal with a different target, and `Geom.Cells` carries the multi-target walk and the ring snap.
+  The band lives on the term as `SoftTerm.AuthoredBand`, the way `GO1` does. **The number is the open part**:
+  the author's minimum is 35 blocks, read straight-line off a shipped `map.xml`, and its unit is retired
+  (`B212`) — so it wants restating as a walk before anything enforces it. It is the destroy-side counterpart
+  of `WL7`, which already separates a team's wools.
+
+  *author, 2026-08-14 · Haiku DTM Tower seats a destroyable and a core on one piece, `red-monument-region`
+  ending at `x −9` and `red-core-region` starting at `x −1` — eight blocks of clear ground, both sky markers
+  ten apart. Two well-spaced boards read 70 (`tallow-kilnrow`) and 74.3 (`basalt-reach`) in the same retired
+  unit.*
+
+- [ ] **B179 — State how far opposing goals stand apart, and how much of the board the contest uses.** The
+  first is `B175`'s walk read across the axis instead of within a team — one traversal serves both, and
+  `GoalDistances` already fans the closure so a route may cross the boundary. The second is `GroundCoverage`
+  (`B241`), which already classes every ground cell reached, decorated or dead: "how much of this board is the
+  contest using" is measurable there rather than inferable from a bounding box. As with `B175` the numbers are
+  the open part — the author's target of 95–110 blocks to the nearest enemy goal is straight-line and wants
+  restating as a walk.
+
+  *author, 2026-08-14 · on a 240 × 190 board every Ashfall Scar objective sits on `x = 0`, the objective set
+  spans `z −37 … 38`, and opposing monuments stand 19 blocks apart with no obstacle between them. The author's
+  reading — a stalemate rather than a rush, and a board too large for what it uses — is a gameplay judgment and
+  is the author's; the numbers are what it rests on. The goals being visible from spawn is the good half and
+  `OB21` protects it.*
+
+- [ ] **B212 — Mark the three straight-line thresholds as uncalibrated at their citation sites, and let the
+  author replace each with a walk.** The unit is settled — a distance is the **walk over the walkable
+  surface, never the straight line** (`rules.md` amendment 13) — and no code moves for it: `WL7`, `WL9`/`WL10`
+  and `G127` are already in that unit, and `GoalDistances` and `GroundCoverage` have since been built on top
+  of it. What is not settled is three numbers that read as if they were measured: `B175`'s **35 blocks**,
+  `B179`'s **95–110**, and `B188`'s 164-map table. All three were read straight-line off `map.xml` region
+  centroids, and the sweep behind the table is not in the repository to re-run.
+
+  **No corpus sweep** (author, 2026-08-15): a re-derivation buys precision this project does not need and
+  costs a harness and its upkeep. Simple hard rules instead, stated in the settled unit and tagged `[expert]`
+  in `rules.md`, the way `WL7` already carries a working minimum of ≈45. So the work is small: say at each
+  citation site that the number is straight-line and unreproducible, and retire it as the author states its
+  replacement.
+
+  *`seed-stats.md:385` already carries the mark; `B175` and `B179` do not. Note for whoever states the
+  replacements that the surface under them moved after this was filed: `Cells.SnapToWalkable` now walks the
+  **square** (Chebyshev) ring rather than the diamond, so a marker only a diagonal cell reaches now snaps
+  where it used to read unreachable — walks that were null are numbers now.*
+
+- [ ] **B99 — `TraversabilityRender` must look through decoration for headroom as it already does for
+  ground.** `Scan` walks down for the first block that is not air, not liquid and not
+  `BlockRoles.StandsOnGround` — then tests headroom with `ids[y+1] == 0 && ids[y+2] == 0`, strict air. The
+  same block is therefore *not ground* and *in the way*, and any column carrying decoration reads as not
+  navigable. Use the one predicate on both sides.
+
+  **This is the renderer only.** The gate (`Analysis.Playability.Traversability`) navigates on
+  `WorldColumns.Of`, which is any solid block with no headroom test, so it never saw this — which is why a
+  board reads isolated in `traversability.png` and passes preflight.
+
+  *measured on a 60 × 20 plateau: plain, **1200 navigable, 1 component**. Cut by an ST4 approach wall (3
+  courses of bedrock + its cobweb cap), **1160 navigable, 2 components** — the board splits. The same wall
+  with the cobweb course removed, **1200 navigable, 1 component**: it is the web, not the bedrock, and the web
+  is `Placed` decoration the ground search steps past. With tall grass on a third of the columns, **800
+  navigable, 26 components** on flat ground. The wall is meant to be crossed — its own stamper says an
+  attacker bridges to the top and cuts the web with the shears every kit carries.*
+
+- [ ] **S47 — A pressure budget for relief.** S43 measures what terrain charges; nothing says how much
+  charging is too much. The dressing stage has the identical gap (`world-export/ideas.md` G167) and the two
+  should share an answer. The materials exist — the share of the board at each passability tier, the detour
+  factor between key places, the ford count and direction on a barrier, the reachable share per team side —
+  and the corpus pass has now run on the right surface (`world-export/relief.md` §12, 105 maps, natural ground):
+  body relief median **19 blocks**, walk median **72.6%**, barrier median **18.3%**, largest walkable place
+  median **29.4%**, **8** cliffs. Filtering the architecture out made the terrain read *steeper*, not gentler
+  — a building's flat roof was smoothing the reading — so the tier shares were never the distorted numbers;
+  the **cliff count** was, and heavily (Alpine Mining II: 36 cliffs off the built surface, 13 off natural
+  ground). What is still missing is the shape of a rule: a median is not a target, and a map at the 25th
+  percentile for walkable share is not thereby worse than one at the 75th. That needs labelled examples of a
+  *bad* map rather than more measurement — and the **detour factor between key places**, which is the
+  material most likely to separate them, cannot be measured until `B246` lands: today's walk is flat, so the
+  factor reads ≈1 on any solid board however steep it is.
+
+  *Filed under `S` and living here because the measure is what blocks it; the id does not move with the
+  heading.*
 
 ### Other backend, pipeline & internals work
 
