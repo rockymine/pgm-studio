@@ -96,28 +96,6 @@ highlight); these are the parked / dormant / deferred slices.
   pass could be merged out of the first. Whether the rest is worth an incremental cache depends on a number
   nobody has: a typical board is ~93 ms end to end now, so this is the 200×200 case, not the common one.
 
-- [ ] **S40 — Offer "no building" in the Rooms step.** A bound room style has three answers — a style, absent
-  (the built-in shell), and an explicit null meaning the pad stands on open ground with nothing over it
-  (`docs/world-export/structures.md` §9). The export reads all three and the stampers have always accepted
-  the third, but the step can only *bind* or *clear*, and clearing means the built-in rather than none. So a
-  map can be authored open only by writing its layout by hand. The step needs a third control per kind, and
-  `ReadBindings` needs to tell a null snapshot from a missing one — today the bridge state drops both, so an
-  open room displays as unpicked (harmless until the author touches it, since the save preserves what it
-  loaded).
-
-- [ ] **S25b — Make the surfaced spawn/wool pieces movable, writing the move back to the intent.** S25 landed
-  the pieces as **locked** read-only rectangles (`FEATURES.md`; `role`/`intentRef` on `SketchShape`, projected
-  by `PlanCompiler`, skipped by the rasterizer, rendered as labelled boxes). The next slice makes them
-  draggable: a move writes the new rect back to the intent's `Piece`, from which `Protection`/`Room`/marker
-  re-derive, so the sketch and the intent don't diverge. **Resize stays deferred** even here — a spawn/wool's
-  `at` is a fractional offset into the piece rect, so resizing shifts the marker and needs its own handling.
-  Needs a write path (sketch → intent); the read projection already exists. Then extend beyond spawn/wool to
-  the other intent entities (protection / build / monuments / iron) as they each earn a sketch surface.
-- [ ] **S9b — Angle/parallel snapping + droppable guide lines (parked).** S9 landed **position** alignment
-  (edges/centres snap to other shapes + the symmetry centre, with guides). The remaining picture-editor bits:
-  **angle/parallel** snapping (rotate a shape so its edges run parallel to another's — "hold two lanes
-  parallel"), and **manually droppable** guide lines shapes snap to (vs the current auto-from-shapes). Both
-  are their own work; park until needed.
 - [ ] **S12 — Pin the Islands tree to the top of the sketch sidebar (UI polish, parked).** Most of the weight
   the original review named is gone: the shape palette was retired outright and Setup moved into its own Info
   phase, so the only panel still above **Islands** is **Layers**. Collapse it behind a `<details>` accordion,
@@ -153,15 +131,6 @@ highlight); these are the parked / dormant / deferred slices.
   slope-fit has the same problem and the same fix. The 3-D preview is where a height edit is actually legible
   and it now draws the built world (`FEATURES.md`), but it is a modal swap rather than a companion view, so it
   confirms an edit after the fact rather than while it is being made.
-
-- [ ] **S60 — A building prop can state more than one wing; the canvas can still only drag one.** `HouseProp`
-  carries `wings`, a list of touching rectangles, and `Decorator` composes them into one `Footprint` and stamps
-  once (`G177`) — an L, a T or a U is authorable today by anyone writing the document directly. The dressing
-  tool itself still only ever drags a single rectangle: there is no way on the canvas to add a second wing to a
-  placed building, drag one of several independently, or see a proper L/T/U outline rather than one rectangle
-  per wing (`wingRings` in `dressing-render.js` draws each wing's own box rather than the traced silhouette a
-  build actually stamps). Wants a second interaction — add-a-wing, probably a drag that starts touching an
-  existing wing's edge — and a handle set that knows which wing a grip belongs to.
 
 ## Editor & canvas infrastructure (C / CV)
 
@@ -332,24 +301,6 @@ by `HousePropRules.PastCap` and is not filed.
   `FrontlineBoxEmitter.cs` (7), `MapExportComposer.cs` (7). `CS1587` stays silenced on purpose — a docstring
   on a local function, which the compiler never emits.*
 
-- [ ] **B221 — The style libraries preview a stamped world, and a part editor frames a section of it.**
-  Authoring a **whole style** — a house, a wool cage, a spawn shell — wants the building as it will stand, so
-  the library builds a small world with the house in it and draws that: the path `B165` was found down, and
-  now that the 3-D preview draws the world the export builds (`S54`) the library can show the real thing
-  rather than a stamp of a fixed 10×10 sample. Authoring a **part** — `RoofStyle`, `Storey`, `PorchStyle`,
-  `Foundation`, each a record of its own — wants a **section** through that world at the part, because the
-  part is currently lost inside the whole: `RoomStylePreview.Views` takes `Outer(style)`, the entire shell,
-  whichever of the three part libraries is open, and nothing on that path asks which part is being edited.
-
-  Where a Y range is the right cut the bands are public: a storey is `LevelBases[i]` to `+ Clear`, a roof is
-  `WallCourses` upward; a porch is an XZ restriction instead. Stamping the part alone is the wrong design — a
-  roof's eave sits on the summed storey stack and the porch decides the front the body is split on, so an
-  isolated part synthesises the context that decides its geometry anyway.
-
-  *One trap: `WorldViews.Isometric`'s `Opaque()` reads `world.GetBlock` unbounded, so a face at the cut plane
-  sees solid beyond it and is not drawn — a box restriction leaves the cut open unless out-of-box reads as
-  air.*
-
 - [ ] **B243 — Set the absolute minimum width of a frontline crossing.** `FR8` lands the *share* rule — a
   crossing covering under a third of the face it docks against — and deliberately states no absolute width,
   because board scale decides it and the example boards were never sized honestly (author). So a 10-block
@@ -365,17 +316,6 @@ by `HousePropRules.PastCap` and is not filed.
   what an excluded piece meeting relief produces and what an agent reading a plan cannot see. List those
   interfaces, and lint the ones the relief does not carry, so the finding says the terrain drops N blocks at a
   straight edge rather than falling away.
-
-- [ ] **B225 — A march tests another wing's walls where the primary pass tests its whole roof.**
-  `Overtopped` asks `otherField.Covers` — the wing's walls **plus its overhang** — while `OtherRoofCrownOver`,
-  which decides where a march stops, asks `otherRoofed.Holds`, the walls alone. Reading `RoofField` settles
-  what the difference is and not whether it is right: `Covers` is `Holds` grown by the overhang on all four
-  sides, so the two disagree only on the overhang ring, and the march never reaches that ring on its own
-  account because `Marched` breaks on `body.Holds` — the union of the *wall* rectangles. The one case that
-  survives is a ring lying over a third wing's walls, where that wing answers for itself with its own crown
-  and the overhanging wing's is never asked. Whether a course marching under a neighbour's verge should stop
-  there is a question about what a roof looks like, so it wants a built figure rather than an argument:
-  stamp a wing whose march runs beneath another's gable overhang and read the valley.
 
 - [ ] **B135 — `PlanTool.CoreDigDepth` is off by one, so the studio misreports the dig it asks for.** It
   computes `max(0, leak − float)`. PGM sets `leakRequired = lavaBottom − (coreBottom − leak) + 1` and the lava
@@ -468,45 +408,37 @@ by `HousePropRules.PastCap` and is not filed.
   cells of redstone wire (id 55) at y1**, running z −12..11 at each end. The top-down reports its surface span
   as y 1..53 where the height profile reports y 9..53.*
 
-### The mapgen audit's forty-four, bucketed for dispatch
+### The mapgen audit's remaining findings
 
 Six agent runs authored nineteen loadable boards against the `B120` brief, and the author's review of twelve
-of them produced the findings filed here as `B141`–`B188`. Every claim was re-measured against the plans, the
+of them produced the findings filed as `B141`–`B188`. Every claim was re-measured against the plans, the
 layouts and the built worlds, so each entry names its file or its coordinates and an implementer confirms
-rather than re-derives.
+rather than re-derives. Two whole concepts have since been lifted out of this pool into headings of their own
+— everything about a **house** and everything about a **distance** — because that is what the entries were
+actually about; what is left is grouped below by the concept it spends.
 
-**Three standing instructions.** *Do not re-derive an author's number* — 20×20, 12 blocks, three obsidian, one
-course of grass are stated under `CLAUDE.md`'s oracle clause, and a figure computed from the corpus instead
-has substituted a measurement for law. *A rule lands as a finding carrying its rule id*, never as a silent
-correction: the pipeline refuses or complains, and nothing here quietly moves an author's geometry. *The fix
-goes in `src/`, never in `tools/`* — a refusal living in a driver is the defect `B116` and `B118` undid.
+**Three standing instructions.** *Do not re-derive an author's number* — the figures here are stated under
+`CLAUDE.md`'s oracle clause, and one computed from the corpus instead has substituted a measurement for law.
+*A rule lands as a finding carrying its rule id*, never as a silent correction. *The fix goes in `src/`, never
+in `tools/`* — a refusal living in a driver is the defect `B116` and `B118` undid.
 
-**A bucket is one agent's pass**, not a second board: these entries land in the same code and spend the same
-concept, so one agent takes them together or each grows its own copy of the answer.
-
-| # | Bucket | Ids | Lands in |
+| # | Group | Ids | Lands in |
 |---|---|---|---|
-| **1** | Plan-space rules, and the document that describes nothing | `B141` `B143` `B144` `B169` `B177` `B178` | `PlanValidator` · `SketchLayout` |
-| **2** | A block must be the kind its role needs | `B162` `B163` `B165` `B190` | `HouseStamper` · `DestroyableMaterials` · `Themes` |
-| **3** | What may stand where, and what the build seats | `B145` `B159` `B166` `B184` `B185` `B187` | `GroundClaims` · `Decorator` · the stampers |
-| **4** | The evaluator, the documents and the strays | `B150` `B151` `B154` `B171` `B174` `B181` `B200` | `ClosureTerms` · `G8` · `docs/` · `MaterialEditor` |
-
-Bucket 1 goes first: rules over plan rectangles that all want one reachable home, which is what `B109` is
-for. The goal-separation entries that were filed with it — `B175`, `B179` — have moved to *Distance, and the
-walk every measure is taken with*, because what blocks them is the measure and not the validator. Buckets 2 and 3 share the block table (`BlockFamilies`) and the claim set (`StructureClaim`),
-so they are adjacent rather than parallel. Bucket 4 shares nothing with anything and may run at any time.
+| **1** | A document that describes nothing still answers 200 | `B141` `B143` `B144` | `SketchLayout` · `PlanValidator` · the rasterizer |
+| **2** | What a thing is made of, and what grows on it | `B145` `B154` `B162` `B163` `B174` | `Themes` · `DestroyableMaterials` · the tree corpus |
+| **3** | What the export seats beside an objective | `B177` `B184` `B185` | `IronResolution` · `StructureStamper` · `PlanCompiler` |
+| **4** | The evaluator, and the documents that taught a fault | `B150` `B151` `B171` `B181` `B200` | `ClosureTerms` · `G8` · `docs/` · `MaterialEditor` |
 
 **What has left this pool, so nobody refiles it.** Bucket 9 (`B147` `B148` `B149`) and `B142` `B152` `B155`
 `B156` `B157` `B158` `B160` `B161` `B164` `B167` `B168` `B172` `B180` `B186` `B188` `B201` all carry a
 `FEATURES.md` line. `B136`, `B153`, `B170`, `B173`, `B182` and `B183` are composition law rather than studio
-work and live as numbered rules in `pgm-studio-mapgen` (`ART-DIRECTION.md`, `REVIEWER-BRIEF.md`), which
-`B189` was filed to keep true and is withdrawn with them. `B199` is withdrawn too — the surface's inward band
-(`B200`) already says what a concentric house floor would have. Four entries folded into a neighbour rather
-than filing twice: `B176`'s bedrock cube centre into **`B162`**, `B97`'s prop-inside-a-building into
-**`B166`** (which keeps them out by claiming the ground), *an absolutely-placed goal invisible in the only
-raster of a plan* into **`B107`**, and *a walled wool room reading as an isolated marker* into **`B99`**.
+work and live as numbered rules in `pgm-studio-mapgen` (`ART-DIRECTION.md`, `REVIEWER-BRIEF.md`), which `B189`
+was filed to keep true and is withdrawn with them. `B199` is withdrawn — the surface's inward band (`B200`)
+already says what a concentric house floor would have. Four folded into a neighbour rather than filed twice:
+`B176` into **`B162`**, `B97` into **`B166`**, *an absolutely-placed goal invisible in the only raster of a
+plan* into **`B107`**, and *a walled wool room reading as an isolated marker* into **`B99`**.
 
-#### Bucket 1 — plan-space rules
+#### 1 — a document that describes nothing still answers 200
 
 - [ ] **B141 — Validate a sketch shape's required fields, so a shape that rasterizes to nothing is refused.**
   `SketchShape.Type` defaults to `""` and `RingOf` returns `[]` for an unknown type, so the shape contributes
@@ -537,39 +469,22 @@ raster of a plan* into **`B107`**, and *a walled wool room reading as an isolate
   *`opus5-run2` §5 #2 · re-probed on `marlstone-steps` against the committed region files: `(0, 58)` is
   sandstone at y21 where `(0, 70)` — the same shelf at the same height — is quartz.*
 
-- [ ] **B169 — Complain about spawn ground that carries nothing and contests nothing.** Raw size is not the
-  test (author): a spawn seated on a large rectangle that *is* the map is fine, and Mirefast's 92-wide
-  `steading` at least carries nine houses and two ramps. What fails is flat dead area around a spawn placed at
-  the back. The rule id exists — **`SP2`**, "a spawn sits near the back of its lane, because the space behind
-  a spawn is dead space" — and it composes with `ST9` (piece ≤ 20×20) and `OB21` (the first 20×20 in front of
-  the door left open), so the measure to add is *what is this ground for*, not how wide it is. The 15-block
-  figure is a rule of thumb for the common case, not the rule.
+#### 2 — what a thing is made of, and what grows on it
 
-  *author, 2026-08-14 · Weirgate's `yard` spans `x −40…40` against a spawn piece of `x −10…10`; Mirefast's
-  `steading` is 92 wide for a 20-block spawn. The corpus does not support a spawn-isolation rule: `dtcm` puts a
-  spawn a median 7.5 blocks from the board edge and the generated ones sit 5–15 out.*
+- [ ] **B145 — Paint a spawn or wool shape's interior with its theme.** The shape is simply unthemed — not the
+  known bedrock case, and conflating them is why it keeps being dismissed:
+  `WoolStructureStamper.StampFoundation` filling a wool-room piece with bedrock from y0 is documented and
+  intended, and here there is no foundation at all. Two mechanisms, one symptom, and the second has no owner.
 
-- [ ] **B177 — Implement `SP7`: a spawn's iron stands beside or ahead of it, never behind.** No code anywhere
-  matches `SP7` — it is written in `rules.md` and served as prose by `GET /api/rules?rule=SP7`. The ray is
-  already walked: `LintSp8`/`LintSp9` take a spawn's `Facing` through `DoorDirection` and step out of the
-  piece along it, so this is that ray asked of the **iron marker** — the offset along the door's axis,
-  complained about when negative. Separately, an iron cube enclosed by the spawn's own protection union is a
-  resource nobody may contest; that is `WX9` placeability's question and `IronResolution.Placeable` is where it
-  is answered.
+  *re-probed on `marlstone-steps`: the column under the red wool at `(0, 85)` is raw `1:0` Stone from y24 down
+  to y1, on a board whose `crest` theme is quartz. Reported independently by four runs.*
 
-  *author, 2026-08-14 · Haiku CTW Rush's iron at `(−10, −65)`, five blocks behind the spawn point and inside
-  the map's `red-spawn` rectangle `(−20,−70)`–`(20,−40)`.*
+- [ ] **B154 — `species: "dark_oak"` must build a dark oak tree.** The species selects the right template and
+  the wrong material. Filed as measured rather than diagnosed — `docs/world-export/tree-corpus.md` was not read
+  and it may be intended. Cheap to settle.
 
-- [ ] **B178 — Give a spawn building its own stated footprint, so the plan piece describes only the ground.**
-  The piece does two jobs at once — the ground a spawn stands on, and the building raised on it — so an author
-  who wants a wide platform and a small hall cannot ask. Same class as the iron marker: something welded to a
-  plan rectangle drawn for a different purpose. The `ST9` cap (20×20) suppresses the symptom by forbidding
-  large pieces and is the workaround until this lands; both are wanted.
-
-  *author, 2026-08-14 · Ashfall Scar's spawn piece `x −40…40` builds an 80-block hall; same on `sable-marsh`
-  (90) and `tallow-weirgate` (80).*
-
-#### Bucket 2 — a block must be the kind of block its role needs
+  *`opus5-run2` §5 #9 · `basalt-reach` at `(−60, 12)` reads `17:12` log and `18:4` leaves under a nine-block
+  trunk and a broad crown.*
 
 - [ ] **B162 — Pair a destroyable's style with its material, and fill a cube's centre with bedrock.** Two
   halves, one file each. **The pairing:** obsidian caps at **three blocks** (author), so only the pillar styles
@@ -596,71 +511,33 @@ raster of a plan* into **`B107`**, and *a walled wool room reading as an isolate
   `(−55, −5)` on Corvid and `(30, −35)` on Weirgate — grass at all three courses in each. The same map's
   `hollow-turf` uses `layered` with grass at thickness 1 and is correct.*
 
-- [ ] **B165 — At the eave, the roof's own riser courses must beat the wall they reach into.** `Riser` is the
-  drop to the deepest neighbour the roof covers, and at the eave column that neighbour is the **overhang**,
-  `pitch` courses lower — so the eave column's `Underside` reaches `pitch − 1` courses down into the wall.
-  `HouseStamper`'s last pass is deliberately *walls outrank roofs*, so the overlap resolves to wall material
-  every time and grows with the pitch: the long wall shows through under the eave instead of the roof coming
-  down to it. Nothing is missing — the wall makes it watertight — so no gate catches it. **The fix (author):
-  those courses take the roof's material**, narrowly enough that the cross-wing ordering (`Overtopped` /
-  `OtherRoofCrownOver`) is untouched, since that is what the rule was written for. Settle at the same time
-  whether the eave should descend by `pitch` at all — the overhang tip drops a course per unit of pitch while
-  the wall top stays put, so a steeper roof reaches further down the wall rather than sitting on it.
+- [ ] **B174 — Reopen `G173`/`MG28`: the whorled tree is four parts wood to one part leaf.** Over one board,
+  one species, one build:
 
-  *author, 2026-08-14 · measured on a 12×9 wing, `overhang: 1`, wall 5 courses on a floor at y8 (wall top y12,
-  `Crown` y13): pitch 1 overlaps 0 courses, pitch 2 overlaps 1 (y12), pitch 3 overlaps 2 (y11–y12). Probed at
-  `(7, 12, 2)` and `(7, 11, 2)`. `RoofField.Riser`/`Underside` · `HouseStamper.cs:349-356`.*
+  | form | trees | logs | leaves | leaves per log |
+  |---|---|---|---|---|
+  | `grown` + `whorled` | 5 | 228 | 287 | **1.26** |
+  | template spruce | 3 | 42 | 222 | 5.29 |
 
-- [ ] **B190 — Add `roof_slab` to `roof_style`, so `HS3` can run where a roof is saved on its own.** `HS3`
-  refuses a `Roof` named as a slab while `RoofSlab` is unset — the fault that gave six Weirgate houses a roof
-  you can see straight through — but it can only run where a **whole house style** is posted, because
-  `RoofStyleRow` has no column for the field it reads. Only `CheckRoofFamily`'s log/ground half runs at the
-  part level today. Pairing the two without the column would false-positive on a roof meant to pair with a
-  `RoofSlab` set on the house later. Wants a column and a migration; do it with other `roof_style` schema work.
+  Forty-six logs per whorled tree against fourteen per template one. `MG28` closed the trunks-with-no-crown
+  report as "does not reproduce" because "whorled lands 1136 leaves" — but an absolute leaf count cannot
+  distinguish a leafy tree from a wooden one, which is `B96`'s fault recurring on a different subject. **Neither
+  closes again on a leaf count.**
 
-  *found implementing `B168`, 2026-08-14 · `RoofStyleRow` · `HouseStyleValidation.CheckRoofFamily`.*
+  *author, 2026-08-14 · block census over both groves in `maps/tallow-mirefast/region`.*
 
-#### Bucket 3 — what may stand where, and what the build seats
+#### 3 — what the export seats beside an objective
 
-- [ ] **B145 — Paint a spawn or wool shape's interior with its theme.** The shape is simply unthemed — not the
-  known bedrock case, and conflating them is why it keeps being dismissed:
-  `WoolStructureStamper.StampFoundation` filling a wool-room piece with bedrock from y0 is documented and
-  intended, and here there is no foundation at all. Two mechanisms, one symptom, and the second has no owner.
+- [ ] **B177 — Implement `SP7`: a spawn's iron stands beside or ahead of it, never behind.** No code anywhere
+  matches `SP7` — it is written in `rules.md` and served as prose by `GET /api/rules?rule=SP7`. The ray is
+  already walked: `LintSp8`/`LintSp9` take a spawn's `Facing` through `DoorDirection` and step out of the
+  piece along it, so this is that ray asked of the **iron marker** — the offset along the door's axis,
+  complained about when negative. Separately, an iron cube enclosed by the spawn's own protection union is a
+  resource nobody may contest; that is `WX9` placeability's question and `IronResolution.Placeable` is where it
+  is answered.
 
-  *re-probed on `marlstone-steps`: the column under the red wool at `(0, 85)` is raw `1:0` Stone from y24 down
-  to y1, on a board whose `crest` theme is quartz. Reported independently by four runs.*
-
-- [ ] **B159 — Refuse a bound room style whose shell stands taller than the map's build ceiling.** A goal
-  marker hangs at `BuildCeiling.Of(highestGround) + 5` (`ST7`), and a wool building's shell is authored
-  geometry not subject to that cap — so a multi-storey room style over 25 courses swallows its own marker.
-  Nothing compares the two: `SketchWorldBuilder.SafeFloor` clamps a shell against the *world* ceiling (255) via
-  `HouseStyle.TopLayerOver`, and no gate reads that number against `BuildCeiling`. A refusal at bind time, not
-  a correction at stamp time.
-
-  *author's construction argument: terrain, trees and monuments cannot reach the marker — a tree stays under
-  the cap and may stand in neither a monument's nor a core's clearance — so the wool room is the only case
-  left. The original symptom (`sable-marsh`, cap 20, marker y24–26, roof y31) had a different cause, closed by
-  `B105`.*
-
-- [ ] **B166 — A house claims its stamped extent grown one block outward, and the claim excludes everything.**
-  Every other placement already reserves ground around itself: a goal keeps props 10 blocks from its marker
-  and out of its footprint clearance (`OB19`, `DressingScope.GoalStandoff`), a spawn door keeps its first 20
-  blocks open and a wool entry its first 10 (`OB21`), a tree stands 3 blocks off the road and a boulder 2
-  (`DR-ROAD`). A house reserves nothing: `Decorator.PlaceHouse` joins the claims as `image.Cells()` — the
-  **wall** rectangles — while the extent the stamp actually writes is computed one line below as
-  `ClaimedCells(image, house.Style)` and used only for provenance. So a verge overhangs ground the pass
-  believes is free, and the next prop seats under it.
-
-  Claim the cells the stamp writes, **grown one block outward** (the author's number), as `ClaimKind.Structure`.
-  One change, three consequences: two buildings keep a block of clearance, eaves included, rather than merely
-  not overlapping; a tree can no longer root close enough to drop its crown through a roof into the room
-  below; and the claim the census reports is the ground the building really holds. A breach is a complaint
-  naming the cell, not a silent build.
-
-  *author, 2026-08-14 · Corvid Hollow's spawn piece `x −15…15, z −90…−75` against the house at
-  `x −18…−6, z −74…−66`: flush, and `"overhang": 2` puts its eaves at `z −76`, two blocks inside the spawn
-  building's wall. Not the same-style merge `G172` absorbs — spawn is `hip`, the house `gable`, two blocks
-  apart in height.*
+  *author, 2026-08-14 · Haiku CTW Rush's iron at `(−10, −65)`, five blocks behind the spawn point and inside
+  the map's `red-spawn` rectangle `(−20,−70)`–`(20,−40)`.*
 
 - [ ] **B184 — Seat the goal's bedrock plate three blocks below the ground, and put a defence chest in the
   space that opens.** `StructureStamper.StampPlatform` lays its 5×5 plate at `plateY = groundTop − 2`, one
@@ -683,20 +560,7 @@ raster of a plan* into **`B107`**, and *a walled wool room reading as an isolate
   Three of four are right; `tallow-weirgate`'s wall `x −51…−49` opens its chest at `x −51`, inside the room
   `x −70…−50` it seals.*
 
-- [ ] **B187 — Refuse a building whose footprint is not wholly on ground.** `Decorator.Ground` takes the
-  **lowest** column its plan covers and answers null only when *no* cell has ground, so a house with one column
-  on land and ten over void seats on that one and hangs. Nothing else covers it: `DR-PASS` walks the bands
-  *outside* the footprint, and `B233`'s excavation skips a missing column rather than refusing it. Change the
-  quantifier — every cell, or a stated share — and drop the prop with a `DroppedProp` reason naming the first
-  bare column, the shape every other decline takes. A refusal rather than a skip: half a building on solid
-  ground is worse than none. `ART-DIRECTION.md` AD-S5 marks this *unenforced*; closing it deletes that
-  parenthesis.
-
-  *author, 2026-08-14 · `quillon-saltworks`' `h1` spans `x −80…−70, z −60…−55`; probed at `(−78,−58)`,
-  `(−75,−58)` and `(−78,−56)` — two solid blocks each, the house's own floor with no terrain under it. Ground
-  begins about `x −72`.*
-
-#### Bucket 4 — the evaluator, the documents and the strays
+#### 4 — the evaluator, and the documents that taught a fault
 
 - [ ] **B150 — `G8` fill-ratio must see a layout `subtract`.** The term reads the plan's rectangles, so holes
   cut in the sketch are invisible to it and the one number describing how much board there is describes a
@@ -713,13 +577,6 @@ raster of a plan* into **`B107`**, and *a walled wool room reading as an isolate
 
   *`opus-run2` §1.7 and §5 #7.*
 
-- [ ] **B154 — `species: "dark_oak"` must build a dark oak tree.** The species selects the right template and
-  the wrong material. Filed as measured rather than diagnosed — `docs/world-export/tree-corpus.md` was not read
-  and it may be intended. Cheap to settle.
-
-  *`opus5-run2` §5 #9 · `basalt-reach` at `(−60, 12)` reads `17:12` log and `18:4` leaves under a nine-block
-  trunk and a broad crown.*
-
 - [ ] **B171 — Document how a wool approach attaches to a hub, in the shapes endpoint's terms.** An agent
   placing one **reads `GET /shapes/catalog`** for the valid base shapes and how each attaches, and authors from
   that; it does not run the generator (author). Reach rather than capability, and upstream of `PL13`: a dock
@@ -728,21 +585,6 @@ raster of a plan* into **`B107`**, and *a walled wool room reading as an isolate
 
   *author, 2026-08-14 · Weirgate's `dock-w` touches only `front` and `lane-w`; `hub` is a lane away, and the
   dock's south edge sits flush on the build region's northern line at `z −20`.*
-
-- [ ] **B174 — Reopen `G173`/`MG28`: the whorled tree is four parts wood to one part leaf.** Over one board,
-  one species, one build:
-
-  | form | trees | logs | leaves | leaves per log |
-  |---|---|---|---|---|
-  | `grown` + `whorled` | 5 | 228 | 287 | **1.26** |
-  | template spruce | 3 | 42 | 222 | 5.29 |
-
-  Forty-six logs per whorled tree against fourteen per template one. `MG28` closed the trunks-with-no-crown
-  report as "does not reproduce" because "whorled lands 1136 leaves" — but an absolute leaf count cannot
-  distinguish a leafy tree from a wooden one, which is `B96`'s fault recurring on a different subject. **Neither
-  closes again on a leaf count.**
-
-  *author, 2026-08-14 · block census over both groves in `maps/tallow-mirefast/region`.*
 
 - [ ] **B181 — Measure what a `subtract` cuts away and what passage it leaves.** A cut that separates the two
   teams and a cut across one team's own approach are the same operation and no check distinguishes them. Two
@@ -762,6 +604,207 @@ raster of a plan* into **`B107`**, and *a walled wool room reading as an isolate
 
   *reported by the author while theming a board — "a cobble rim, then two rings of stone brick, then a grass
   field". The worked JSON is in `docs/world-export/terrain-painting.md`.*
+
+### The house: what it stamps, where it stands, and what an author can say
+
+One object with three unfinished sides. The **stamper** decides what blocks come out, and two passes still
+resolve the same courses against each other; **placement** decides where a building may stand and what it
+reserves, which is the half the dressing pass answers loosest; and **authoring** is what a style can state and
+what a library shows back, where the model has outgrown the editor. The three share `HouseStyle`,
+`HouseStamper` and `BuildingPlan`, so a pass over any one of them opens the others.
+
+**The stamper.**
+
+- [ ] **B165 — At the eave, the roof's own riser courses must beat the wall they reach into.** `Riser` is the
+  drop to the deepest neighbour the roof covers, and at the eave column that neighbour is the **overhang**,
+  `pitch` courses lower — so the eave column's `Underside` reaches `pitch − 1` courses down into the wall.
+  `HouseStamper`'s last pass is deliberately *walls outrank roofs*, so the overlap resolves to wall material
+  every time and grows with the pitch: the long wall shows through under the eave instead of the roof coming
+  down to it. Nothing is missing — the wall makes it watertight — so no gate catches it. **The fix (author):
+  those courses take the roof's material**, narrowly enough that the cross-wing ordering (`Overtopped` /
+  `OtherRoofCrownOver`) is untouched, since that is what the rule was written for. Settle at the same time
+  whether the eave should descend by `pitch` at all — the overhang tip drops a course per unit of pitch while
+  the wall top stays put, so a steeper roof reaches further down the wall rather than sitting on it.
+
+  *author, 2026-08-14 · measured on a 12×9 wing, `overhang: 1`, wall 5 courses on a floor at y8 (wall top y12,
+  `Crown` y13): pitch 1 overlaps 0 courses, pitch 2 overlaps 1 (y12), pitch 3 overlaps 2 (y11–y12). Probed at
+  `(7, 12, 2)` and `(7, 11, 2)`. `RoofField.Riser`/`Underside` · `HouseStamper.cs:349-356`.*
+
+- [ ] **B225 — A march tests another wing's walls where the primary pass tests its whole roof.**
+  `Overtopped` asks `otherField.Covers` — the wing's walls **plus its overhang** — while `OtherRoofCrownOver`,
+  which decides where a march stops, asks `otherRoofed.Holds`, the walls alone. Reading `RoofField` settles
+  what the difference is and not whether it is right: `Covers` is `Holds` grown by the overhang on all four
+  sides, so the two disagree only on the overhang ring, and the march never reaches that ring on its own
+  account because `Marched` breaks on `body.Holds` — the union of the *wall* rectangles. The one case that
+  survives is a ring lying over a third wing's walls, where that wing answers for itself with its own crown
+  and the overhanging wing's is never asked. Whether a course marching under a neighbour's verge should stop
+  there is a question about what a roof looks like, so it wants a built figure rather than an argument:
+  stamp a wing whose march runs beneath another's gable overhang and read the valley.
+
+- [ ] **B190 — Add `roof_slab` to `roof_style`, so `HS3` can run where a roof is saved on its own.** `HS3`
+  refuses a `Roof` named as a slab while `RoofSlab` is unset — the fault that gave six Weirgate houses a roof
+  you can see straight through — but it can only run where a **whole house style** is posted, because
+  `RoofStyleRow` has no column for the field it reads. Only `CheckRoofFamily`'s log/ground half runs at the
+  part level today. Pairing the two without the column would false-positive on a roof meant to pair with a
+  `RoofSlab` set on the house later. Wants a column and a migration; do it with other `roof_style` schema work.
+
+  *found implementing `B168`, 2026-08-14 · `RoofStyleRow` · `HouseStyleValidation.CheckRoofFamily`.*
+
+- [ ] **G171 — A building's reported height is its reservation, not its highest block.** `TopLayerOver` adds
+  up every storey's headroom and answers where the roof would sit, which is right for a building whose storeys
+  are rooms and wrong for one whose top storey is a roof terrace (`structures.md` §7.6): a parapet storey
+  states the clear of three a storey may not go under, writes one course of wall and leaves two courses of air,
+  and the answer overshoots the highest block laid by exactly those two. Nothing is stamped up there, so the
+  building is correct — what is wrong is every consumer of the number. The dressing prop clamps its placement
+  against the world ceiling with it, so a tall terraced building is refused a little sooner than it needs to
+  be, and the preview views frame to it, so a terrace is drawn with a band of empty sky over it. The fix is to
+  answer from what the stamp would actually write rather than from what the stack reserves — the wall stack
+  already knows which of its courses resolve to air — which also makes the number right for the stilt house,
+  whose ground storey is air for the same reason.
+
+- [ ] **B92 — Give `HouseStyle` a fill material, so a building can be a mass rather than a place.**
+  `HouseStamper` leaves the volume its walls enclose as air, which is right for a village and wrong for a
+  scenery building that is not enterable and for a run of buildings sealing the edge of the board — the only
+  way scenery does the work of a boundary in a mode where nothing may be placed. **The facade is kept**: the
+  windows and door stay where they are and the fill sits *behind* them, so a window reads as an unlit interior
+  rather than a hole into rock. A dark fill (black wool) is the idiom, which is why it is a knob and not a
+  constant. A style field rather than a stamper flag, so a style carries whether it is a place or a mass.
+
+  Two things to settle: whether the fill respects the storey stack (a building filled to its top course and one
+  filled to its first floor are different buildings), and how deep behind an opening the fill starts (flush and
+  one course back read differently through the gap). `DressingScope` already protects the ground under a
+  stamped building, so nothing downstream needs teaching.
+
+**Placement — where a building may stand, and what it reserves.**
+
+- [ ] **B166 — A house claims its stamped extent grown one block outward, and the claim excludes everything.**
+  Every other placement already reserves ground around itself: a goal keeps props 10 blocks from its marker
+  and out of its footprint clearance (`OB19`, `DressingScope.GoalStandoff`), a spawn door keeps its first 20
+  blocks open and a wool entry its first 10 (`OB21`), a tree stands 3 blocks off the road and a boulder 2
+  (`DR-ROAD`). A house reserves nothing: `Decorator.PlaceHouse` joins the claims as `image.Cells()` — the
+  **wall** rectangles — while the extent the stamp actually writes is computed one line below as
+  `ClaimedCells(image, house.Style)` and used only for provenance. So a verge overhangs ground the pass
+  believes is free, and the next prop seats under it.
+
+  Claim the cells the stamp writes, **grown one block outward** (the author's number), as `ClaimKind.Structure`.
+  One change, three consequences: two buildings keep a block of clearance, eaves included, rather than merely
+  not overlapping; a tree can no longer root close enough to drop its crown through a roof into the room
+  below; and the claim the census reports is the ground the building really holds. A breach is a complaint
+  naming the cell, not a silent build.
+
+  *author, 2026-08-14 · Corvid Hollow's spawn piece `x −15…15, z −90…−75` against the house at
+  `x −18…−6, z −74…−66`: flush, and `"overhang": 2` puts its eaves at `z −76`, two blocks inside the spawn
+  building's wall. Not the same-style merge `G172` absorbs — spawn is `hip`, the house `gable`, two blocks
+  apart in height.*
+
+- [ ] **B187 — Refuse a building whose footprint is not wholly on ground.** `Decorator.Ground` takes the
+  **lowest** column its plan covers and answers null only when *no* cell has ground, so a house with one column
+  on land and ten over void seats on that one and hangs. Nothing else covers it: `DR-PASS` walks the bands
+  *outside* the footprint, and `B233`'s excavation skips a missing column rather than refusing it. Change the
+  quantifier — every cell, or a stated share — and drop the prop with a `DroppedProp` reason naming the first
+  bare column, the shape every other decline takes. A refusal rather than a skip: half a building on solid
+  ground is worse than none. `ART-DIRECTION.md` AD-S5 marks this *unenforced*; closing it deletes that
+  parenthesis.
+
+  *author, 2026-08-14 · `quillon-saltworks`' `h1` spans `x −80…−70, z −60…−55`; probed at `(−78,−58)`,
+  `(−75,−58)` and `(−78,−56)` — two solid blocks each, the house's own floor with no terrain under it. Ground
+  begins about `x −72`.*
+
+- [ ] **B159 — Refuse a bound room style whose shell stands taller than the map's build ceiling.** A goal
+  marker hangs at `BuildCeiling.Of(highestGround) + 5` (`ST7`), and a wool building's shell is authored
+  geometry not subject to that cap — so a multi-storey room style over 25 courses swallows its own marker.
+  Nothing compares the two: `SketchWorldBuilder.SafeFloor` clamps a shell against the *world* ceiling (255) via
+  `HouseStyle.TopLayerOver`, and no gate reads that number against `BuildCeiling`. A refusal at bind time, not
+  a correction at stamp time.
+
+  *author's construction argument: terrain, trees and monuments cannot reach the marker — a tree stays under
+  the cap and may stand in neither a monument's nor a core's clearance — so the wool room is the only case
+  left. The original symptom (`sable-marsh`, cap 20, marker y24–26, roof y31) had a different cause, closed by
+  `B105`.*
+
+- [ ] **B178 — Give a spawn building its own stated footprint, so the plan piece describes only the ground.**
+  The piece does two jobs at once — the ground a spawn stands on, and the building raised on it — so an author
+  who wants a wide platform and a small hall cannot ask. Same class as the iron marker: something welded to a
+  plan rectangle drawn for a different purpose. The `ST9` cap (20×20) suppresses the symptom by forbidding
+  large pieces and is the workaround until this lands; both are wanted.
+
+  *author, 2026-08-14 · Ashfall Scar's spawn piece `x −40…40` builds an 80-block hall; same on `sable-marsh`
+  (90) and `tallow-weirgate` (80).*
+
+**Authoring — what a style can say, and what a library shows back.**
+
+- [ ] **B221 — The style libraries preview a stamped world, and a part editor frames a section of it.**
+  Authoring a **whole style** — a house, a wool cage, a spawn shell — wants the building as it will stand, so
+  the library builds a small world with the house in it and draws that: the path `B165` was found down, and
+  now that the 3-D preview draws the world the export builds (`S54`) the library can show the real thing
+  rather than a stamp of a fixed 10×10 sample. Authoring a **part** — `RoofStyle`, `Storey`, `PorchStyle`,
+  `Foundation`, each a record of its own — wants a **section** through that world at the part, because the
+  part is currently lost inside the whole: `RoomStylePreview.Views` takes `Outer(style)`, the entire shell,
+  whichever of the three part libraries is open, and nothing on that path asks which part is being edited.
+
+  Where a Y range is the right cut the bands are public: a storey is `LevelBases[i]` to `+ Clear`, a roof is
+  `WallCourses` upward; a porch is an XZ restriction instead. Stamping the part alone is the wrong design — a
+  roof's eave sits on the summed storey stack and the porch decides the front the body is split on, so an
+  isolated part synthesises the context that decides its geometry anyway.
+
+  *One trap: `WorldViews.Isometric`'s `Opaque()` reads `world.GetBlock` unbounded, so a face at the cut plane
+  sees solid beyond it and is not drawn — a box restriction leaves the cut open unless out-of-box reads as
+  air.*
+
+- [~] **B70 — The room-style *card* cannot show a porch or a window.** The open editor draws four views now
+  (B71), the cutaway among them, so a style's porch and its windows read there. A library **card** still
+  carries the section alone, and a section projected onto the front wall shows a window as a patch of the same
+  colour as the wall around it. The sample is the other half: `RoomStylePreview` stamps the shipped 10×10
+  piece's 8×8 shell, which is small enough that a porch leaves little room behind it. The library therefore
+  still has knobs whose *card* does not change when they are turned, which is the one thing the preview exists
+  to prevent. Wants a larger sample footprint, and a card that is not the one view those knobs are invisible in.
+
+  **And one footprint is the wrong number, not merely a small one.** `Sample` is a single `static readonly`
+  field, so every style in the library is judged at 10×10 and at no other proportion — while a style states
+  nothing about the footprint it will be stamped over, only storey heights and a roof's pitch. That would be a
+  gap even if the shapes agreed, and they do not: `Wing.RidgeAlongX` derives the ridge from the rectangle's own
+  proportions, so one style on 10×10 and on 5×10 is two different roofs rather than one roof stretched, and an
+  author has no way to see the second. So the sample wants to be a parameter with a few proportions behind it —
+  square, long, narrow — rather than one bigger square.
+
+- [ ] **B72 — Two roof-thickness columns nothing reads.** `room_style.roof_thickness` (M0012) and
+  `roof_style.thickness` (M0018) are written, clamped and round-tripped through the DTOs, and no stamper has
+  ever read either: a roof's depth at a cell comes from the height field's own step down to its neighbours
+  (`RoofField.Riser`), so there is nothing for a stored number to say. The composer offers no knob for it,
+  which is the only reason it has not misled an author yet. Drop both columns and their DTO fields, or give
+  the number a meaning under B69 — but not leave a third state where a row carries it and nothing looks.
+
+- [ ] **S40 — Offer "no building" in the Rooms step.** A bound room style has three answers — a style, absent
+  (the built-in shell), and an explicit null meaning the pad stands on open ground with nothing over it
+  (`docs/world-export/structures.md` §9). The export reads all three and the stampers have always accepted
+  the third, but the step can only *bind* or *clear*, and clearing means the built-in rather than none. So a
+  map can be authored open only by writing its layout by hand. The step needs a third control per kind, and
+  `ReadBindings` needs to tell a null snapshot from a missing one — today the bridge state drops both, so an
+  open room displays as unpicked (harmless until the author touches it, since the save preserves what it
+  loaded).
+
+- [ ] **S25b — Make the surfaced spawn/wool pieces movable, writing the move back to the intent.** S25 landed
+  the pieces as **locked** read-only rectangles (`FEATURES.md`; `role`/`intentRef` on `SketchShape`, projected
+  by `PlanCompiler`, skipped by the rasterizer, rendered as labelled boxes). The next slice makes them
+  draggable: a move writes the new rect back to the intent's `Piece`, from which `Protection`/`Room`/marker
+  re-derive, so the sketch and the intent don't diverge. **Resize stays deferred** even here — a spawn/wool's
+  `at` is a fractional offset into the piece rect, so resizing shifts the marker and needs its own handling.
+  Needs a write path (sketch → intent); the read projection already exists. Then extend beyond spawn/wool to
+  the other intent entities (protection / build / monuments / iron) as they each earn a sketch surface.
+- [ ] **S9b — Angle/parallel snapping + droppable guide lines (parked).** S9 landed **position** alignment
+  (edges/centres snap to other shapes + the symmetry centre, with guides). The remaining picture-editor bits:
+  **angle/parallel** snapping (rotate a shape so its edges run parallel to another's — "hold two lanes
+  parallel"), and **manually droppable** guide lines shapes snap to (vs the current auto-from-shapes). Both
+  are their own work; park until needed.
+
+- [ ] **S60 — A building prop can state more than one wing; the canvas can still only drag one.** `HouseProp`
+  carries `wings`, a list of touching rectangles, and `Decorator` composes them into one `Footprint` and stamps
+  once (`G177`) — an L, a T or a U is authorable today by anyone writing the document directly. The dressing
+  tool itself still only ever drags a single rectangle: there is no way on the canvas to add a second wing to a
+  placed building, drag one of several independently, or see a proper L/T/U outline rather than one rectangle
+  per wing (`wingRings` in `dressing-render.js` draws each wing's own box rather than the traced silhouette a
+  build actually stamps). Wants a second interaction — add-a-wing, probably a drag that starts touching an
+  existing wing's edge — and a handle set that knows which wing a grip belongs to.
 
 ### Distance, and the walk every measure is taken with
 
@@ -845,6 +888,24 @@ entries below share that cause and want reading together.
   is the author's; the numbers are what it rests on. The goals being visible from spawn is the good half and
   `OB21` protects it.*
 
+- [ ] **B169 — Complain about spawn ground that carries nothing and contests nothing.** Raw size is not the
+  test (author): a spawn seated on a large rectangle that *is* the map is fine, and Mirefast's 92-wide
+  `steading` at least carries nine houses and two ramps. What fails is flat dead area around a spawn placed at
+  the back. The rule id exists — **`SP2`**, "a spawn sits near the back of its lane, because the space behind
+  a spawn is dead space" — and it composes with `ST9` (piece ≤ 20×20) and `OB21` (the first 20×20 in front of
+  the door left open), so the measure to add is *what is this ground for*, not how wide it is. The 15-block
+  figure is a rule of thumb for the common case, not the rule.
+
+  **`GroundCoverage` answers this directly once it is honest.** *Dead* is already exactly "ground with no
+  route through it, no objective near it and nothing on it", named per patch with an area, a centroid and a
+  walk to the nearest used ground — which is the measure this entry asks for, phrased as the picture rather
+  than as a width. It wants `B246` and `B247` first: today's walk is flat and crosses void, so the corridors
+  it draws claim ground a player could not reach and the dead share reads low.
+
+  *author, 2026-08-14 · Weirgate's `yard` spans `x −40…40` against a spawn piece of `x −10…10`; Mirefast's
+  `steading` is 92 wide for a 20-block spawn. The corpus does not support a spawn-isolation rule: `dtcm` puts a
+  spawn a median 7.5 blocks from the board edge and the generated ones sit 5–15 out.*
+
 - [ ] **B212 — Mark the three straight-line thresholds as uncalibrated at their citation sites, and let the
   author replace each with a walk.** The unit is settled — a distance is the **walk over the walkable
   surface, never the straight line** (`rules.md` amendment 13) — and no code moves for it: `WL7`, `WL9`/`WL10`
@@ -900,29 +961,6 @@ entries below share that cause and want reading together.
   heading.*
 
 ### Other backend, pipeline & internals work
-
-- [~] **B70 — The room-style *card* cannot show a porch or a window.** The open editor draws four views now
-  (B71), the cutaway among them, so a style's porch and its windows read there. A library **card** still
-  carries the section alone, and a section projected onto the front wall shows a window as a patch of the same
-  colour as the wall around it. The sample is the other half: `RoomStylePreview` stamps the shipped 10×10
-  piece's 8×8 shell, which is small enough that a porch leaves little room behind it. The library therefore
-  still has knobs whose *card* does not change when they are turned, which is the one thing the preview exists
-  to prevent. Wants a larger sample footprint, and a card that is not the one view those knobs are invisible in.
-
-  **And one footprint is the wrong number, not merely a small one.** `Sample` is a single `static readonly`
-  field, so every style in the library is judged at 10×10 and at no other proportion — while a style states
-  nothing about the footprint it will be stamped over, only storey heights and a roof's pitch. That would be a
-  gap even if the shapes agreed, and they do not: `Wing.RidgeAlongX` derives the ridge from the rectangle's own
-  proportions, so one style on 10×10 and on 5×10 is two different roofs rather than one roof stretched, and an
-  author has no way to see the second. So the sample wants to be a parameter with a few proportions behind it —
-  square, long, narrow — rather than one bigger square.
-
-- [ ] **B72 — Two roof-thickness columns nothing reads.** `room_style.roof_thickness` (M0012) and
-  `roof_style.thickness` (M0018) are written, clamped and round-tripped through the DTOs, and no stamper has
-  ever read either: a roof's depth at a cell comes from the height field's own step down to its neighbours
-  (`RoofField.Riser`), so there is nothing for a stored number to say. The composer offers no knob for it,
-  which is the only reason it has not misled an author yet. Drop both columns and their DTO fields, or give
-  the number a meaning under B69 — but not leave a third state where a row carries it and nothing looks.
 
 - [ ] **B54 — A rebuild has no undo.** The rebuild now carries the finish and the credits across (B49, B52)
   and says what it trades before it runs (S39), so what it still replaces is replaced *on purpose*: the
@@ -1213,18 +1251,6 @@ unblocked (`B31`).
   through the shared wall a projecting wing's gable end stands in, or through the wall a taller wing's storey
   carries above a stopped neighbour (`structures.md` §7.6) — wants a run to sit in and a rule for which wall it
   is cut through, and belongs with the openings work rather than with the roof (`G172`).
-
-- [ ] **G171 — A building's reported height is its reservation, not its highest block.** `TopLayerOver` adds
-  up every storey's headroom and answers where the roof would sit, which is right for a building whose storeys
-  are rooms and wrong for one whose top storey is a roof terrace (`structures.md` §7.6): a parapet storey
-  states the clear of three a storey may not go under, writes one course of wall and leaves two courses of air,
-  and the answer overshoots the highest block laid by exactly those two. Nothing is stamped up there, so the
-  building is correct — what is wrong is every consumer of the number. The dressing prop clamps its placement
-  against the world ceiling with it, so a tall terraced building is refused a little sooner than it needs to
-  be, and the preview views frame to it, so a terrace is drawn with a band of empty sky over it. The fix is to
-  answer from what the stamp would actually write rather than from what the stack reserves — the wall stack
-  already knows which of its courses resolve to air — which also makes the number right for the stilt house,
-  whose ground storey is air for the same reason.
 
 - [ ] **G158 — seed the library with a curated set.** An author can now build a style once and reuse it, and a
   theme that binds only the buckets it changes (`FEATURES.md`), but a fresh install's library is empty — so the

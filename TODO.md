@@ -26,10 +26,11 @@ test between them.
 from the placement, never rebuilt beside it* — held by two regressions, a building dropped for overlapping
 one already standing and a building authored over void, both claiming nothing.
 
-The audit pool is bucketed for dispatch in `BACKLOG.md`, and every bucket's landing site is built. One open
-question governs bucket 1 and it is the author's (`B212`): a distance is the **walk over the walkable
-surface, never the straight line**, so bucket 1's thresholds — `B175`'s 35 blocks, `B179`'s 95–110 — were
-read in a retired unit and want restating before anything enforces them.
+`BACKLOG.md` groups the open work by the concept it spends — the house, distance, the audit's remainder —
+and every group's landing site is built. The one open question that governs a whole group is the author's
+(`B212`): a distance is the **walk over the walkable surface, never the straight line**, and the walk under
+every measure is still flat (`B246`), so the thresholds stated in it want restating before anything enforces
+them.
 
 ## Backend, pipeline & internals (B / P / A)
 
@@ -39,19 +40,6 @@ read in a retired unit and want restating before anything enforces them.
   no gameplay meaning. A goal that needs the second does not need the first, and one word for both invites the
   inference that a destroyable must live somewhere protected — which is what produced the caged goals, and it
   survives the code that acted on it.
-
-- [ ] **B92 — Give `HouseStyle` a fill material, so a building can be a mass rather than a place.**
-  `HouseStamper` leaves the volume its walls enclose as air, which is right for a village and wrong for a
-  scenery building that is not enterable and for a run of buildings sealing the edge of the board — the only
-  way scenery does the work of a boundary in a mode where nothing may be placed. **The facade is kept**: the
-  windows and door stay where they are and the fill sits *behind* them, so a window reads as an unlit interior
-  rather than a hole into rock. A dark fill (black wool) is the idiom, which is why it is a knob and not a
-  constant. A style field rather than a stamper flag, so a style carries whether it is a place or a mass.
-
-  Two things to settle: whether the fill respects the storey stack (a building filled to its top course and one
-  filled to its first floor are different buildings), and how deep behind an opening the fill starts (flush and
-  one course back read differently through the gap). `DressingScope` already protects the ground under a
-  stamped building, so nothing downstream needs teaching.
 
 - [ ] **B102 — Clear the region directory before a rebuild writes it.** `AnvilRegionWriter.Write` calls
   `Directory.CreateDirectory` and nothing else, so every `.mca` a previous build left is still there and a
