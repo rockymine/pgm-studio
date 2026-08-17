@@ -25,6 +25,7 @@ the focus-integration polish remains.
   (lift it off y=0 onto terrain); (b) **per-side focus** — `FocusSection` is still a `/concepts` mockup;
   the canvas **fit-island** exists but not per-team quadrant framing — refine the concept so the author
   can frame one team's quadrant while working its unit. (`FocusSection`)
+
 - [ ] **N09 — Team id should track the team's colour.** The team id is seeded from the colour first picked
   (`Id = colour.Replace(' ','-')`), but `TeamAssignStep.SetColor` only updates the colour — so recolouring a
   team (e.g. red → purple) leaves `id="red"` and every id derived from it (`only-red`, `red-spawn-point`,
@@ -32,12 +33,14 @@ the focus-integration polish remains.
   Re-derive the id on colour change and **cascade the rename** across the intent — `teams`, `islandTeams`,
   and `spawns[].team` / `wools[].owner` / `wools[].monuments[].team` — with a guard to skip the rename (just
   recolour) when the new colour-derived id would collide with another team's.
+
 - [~] **N11 — Monument Y must seat on terrain; coord-input moves must re-snap.** The **point tool** now
   seats every spawn it places — team spawns + orbit copies, the observer, and wool spawns — on the target
   column's floor via the shared `ColumnFloor` helper. Still open: monuments aren't seated at all; and moving
   a spawn (team or wool) via the **coord inputs** rewrites X/Z without re-snapping Y to the new column, so
   only the point tool re-seats. Pairs with `N08` (monument Y editing) and `CV11` (the side-view clamp side
   of the same problem).
+
 - [~] **N12 — Configure has no destroyable phase.** Wools and Cores each have one and the objective phases
   are a group sharing one gate (`FEATURES.md`), so this is now the third phase slotting into machinery that
   already exists: add `destroyables` to `ConfigurePhases` + `IsObjective`, a `DestroyableAuthoring` slice
@@ -155,73 +158,10 @@ are Edit-specific. Full canvas spec: `docs/client/canvas-interaction.md`.
 
 - [ ] **C9 — Kits editing UI (Teams) + per-activity status dots.** Spawn `kit` is read/sent but has no
   edit UI; there is no status-dot system. *(Two sub-items — split if priorities diverge.)*
+
 - [ ] **C11 — Wire + verify inspector edits across activities.** `OnDelete`/`OnRename` are wired only
   in Build Regions; the Regions/Teams/Objective inspectors are **unwired** (rename/delete silently
   no-op). Wire all three + verify rename/delete/coord-patch end-to-end.
-- [~] **C12 — The last of the component vocabulary: the icon, the generator, the inline styles.** The
-  vocabulary is built and adopted — the atoms, `Section`, the shell and the workspace shells are across every
-  production surface, with two raw `action-btn`s and two raw `list-row`s left as genuine exceptions
-  (`FEATURES.md`; the reference is `docs/client/ui-conventions.md`). Three slices remain, and `/design` is the
-  zero-visual-diff oracle for all of them since a component emits the classes the markup did.
-
-  **`Icon` is built and unadopted.** `Components/Primitives/Icon.razor` centralizes the lucide reconciler
-  gotcha — recreate on a glyph change rather than patch a node lucide has already replaced with an `<svg>` —
-  and **156 raw `<i data-lucide>` still stand**. Adopt incrementally: the icon-bearing components
-  (`Button`/`DetailHeader`/`Chip`) first, then the page sites that re-render. High churn, subtle benefit, so
-  parked by choice rather than blocked.
-
-  **The `gen-*` set is the last real drift**, and the largest thing left here: `/generator`'s filter rail, card
-  grid, candidate cards, badges, tray and census tables are around forty classes in `generator.css`
-  re-implementing `workspace-sidebar`, `card-grid`, `badge` and `filter-chip` under their own names. The atoms
-  inside them have been picked up where they fit; the layout has not.
-
-  **Polish**: fold the one `section-heading` use into `SectionHeader`, and drop the 84 inline `style=`
-  occurrences now expressible as component params (`Fill`, `Full`, a modifier `Class`).
-
-- [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
-  (Build/Objective/Teams) + the `Index`/`CollectDescendants` region-tree walkers (3–4 activities) →
-  a shared `MapApiClient` and/or `EditorActivityBase` / static `RegionNode` helpers.
-- [~] **C28 — The client's remaining test layers (smoke has landed).** The **smoke layer + runner shipped**
-  as `C31` (`tools/e2e.sh`, `tests/e2e/`) — every route is swept for "renders and raises nothing", seeded
-  from a composed board; `icons.mjs` (C30) added the first *positive* render assertion on top of it.
-  `PgmStudio.Client` is still **absent from the coverage report** (no test project
-  references it), and two layers are still open:
-  **(a) mount/interop** — per canvas tool, assert the bridge mounted and the surface has a real size; this
-  is the C29 class of bug (a canvas at 45% of its workspace for weeks, in two tools) and it is assertable
-  without knowing user intent.
-  **(b) scenarios** — one flow per tool, specifically *the path that creates the artifact*, where a break is
-  unrecoverable rather than cosmetic: Sketch `New → name → draw → Finish → Configure`; Plan
-  `New → globals → piece → Compile`. The seed already proves that chain works headlessly.
-  Deliberately **not** e2e: field-level inspector behaviour and anything asserting where geometry lands —
-  those rot; extract the decidable logic instead (`CV12`). A bUnit project for the phase/step state machines
-  is still worth considering, and is independent of the above.
-- [ ] **CV12 — Two thirds of the JS layer is never loaded by a test.** `npm test --
-  --experimental-test-coverage` reports 82.8% over the 15 modules the 148 tests import (several at 100%:
-  `transform`, `symmetry`, `islands`, `polygon`, `plan-inspect`), but **26 of 41 files / ~6,900 lines are
-  absent from the report** — they are never imported, which the coverage output shows as silence rather
-  than zero. The untested set is the whole interactive layer: every canvas (`world-canvas` 1046,
-  `plan-canvas` 1017, `sketch-canvas` 871, `sideview-canvas`, `canvas-base`), every bridge, every
-  controller, `iso-webgl`, and `studio.js`. The split is coherent — pure geometry is tested, DOM/canvas
-  code is not — so the win is not "test the canvases" wholesale but **extracting the decidable logic they
-  contain** (hit-testing, snapping, viewport/transform maths, selection resolution) into pure modules the
-  existing `node --test` setup can reach without a DOM. Pairs with the JS consolidation review.
-- [ ] **CV21 — the world canvas has a `build` layer nothing paints into.** Stating the layer stack once
-  (`CV19`) surfaced two layers with no content. One was removed there — a `block-highlight` rect created
-  `visibility:hidden` whose only handle was assigned and never read. This is the other: the `build` group is
-  created empty, no painter ever appends to it, and its toggle `setBuildVisible` has no caller outside the
-  class — not the bridge, not any of the sixteen hosts. So it is an empty group with a visibility switch
-  nobody throws. Removing it takes `setBuildVisible`, `#showBuild`, `#paintBuildRegion` and one line of the
-  documented public surface with it, which is why it was left in place rather than swept during a
-  behaviour-preserving refactor. Check first whether a Build phase was *meant* to fill it (the name suggests
-  the Build-Regions work) — if so the task is to wire it, not delete it, and that is a different task in the
-  feature section.
-
-- [ ] **CV15 — The bridge invoke wrapper is inconsistent.** `plan-bridge` and `sketch-bridge` wrap
-  `dotnetRef.invokeMethodAsync` in a local `fire()` that swallows the throw when the host hasn't wired a
-  callback; `world-bridge` calls it unguarded, so an unwired callback surfaces as a console error instead
-  of a no-op. Settle on one helper next to `fetch-json.js`. Tiny, but it is the only thing the five bridges
-  genuinely share — the rest of their apparent repetition is per-tool document semantics and should stay
-  separate.
 
 - [~] **B107 — Make a structural piece selectable on the sketch canvas, and draw an absolutely-placed goal.**
   The backend half is landed (`FEATURES.md`): a structural shape's stated height survives a recompile, marked
@@ -254,7 +194,7 @@ are Edit-specific. Full canvas spec: `docs/client/canvas-interaction.md`.
   side. The screenshot approach does **not** work for this class of bug — `page.screenshot()` forces a fresh
   raster, so a transient compositor artifact never appears in the capture; measure the handler, not the pixels.
 
-## Backend, pipeline & internals (B / P / A)
+## Mapgen authoring tasks
 
 **The six below came out of the mapgen authoring runs** — `pgm-studio-mapgen/reports/`, Grok run 1 and the
 three Opus 5 authoring records. Each was reproduced against the tree rather than taken from the report; one
@@ -272,46 +212,6 @@ keep true and is withdrawn with them; `B199` is withdrawn because the surface's 
 says what a concentric house floor would have; and four folded into a neighbour — `B176` into `B162`, `B97`
 into `B166`, an absolutely-placed goal invisible in a plan raster into `B107`, and a walled wool room reading
 as an isolated marker into `B99`.
-
-- [ ] **B216 — Provenance records structures only; it should record every pass that places something.**
-  The sidecar carries `Ground` and `Structure` and nothing else — **no trees, no boulders, no paths, no
-  water**. Its own docstring argues they need no record because they separate from built ground by material;
-  the author's ruling is the other way: **provenance carries them too**. Material tells you what a block is,
-  not that a pass put it there or which prop it belonged to, and that is what a read-back has to be able to
-  prove.
-
-  The consequence is stated twice in the authoring reports: `--column` is the only read that can prove ground
-  cover exists, because the top-down will not show it, the export will not refuse it and the sidecar does not
-  carry it — which is how two flora props landed nothing on Coldharbour with no diagnostic anywhere. It also
-  left `B250`'s symmetry reading silent on exactly the families an author checks first. **The placement is
-  known at stamp time** and the tree renderers already read it to draw a crown and a base, so this is a write
-  rather than a derivation. It lands with `B252`'s owner shape, since a new claimant needs an identity a
-  reader can group on.
-
-- [ ] **B220 — Fix the doc-comment defects, then take the four ids out of `NoWarn` so the next one fails the
-  build.** Each is a sentence pointing at something that is not there, and each is silenced in all five
-  `.csproj` that emit a documentation file (`Domain`, `Pgm`, `Minecraft`, `Export`, `Api`):
-
-  | id | the defect | what to look for |
-  |---|---|---|
-  | **CS1573** | a method documents some parameters and not others | a `<param>` list shorter than the signature — usually a parameter added later |
-  | **CS1574** | a `<see cref>` names something that does not resolve | a member that was renamed or moved to another type |
-  | **CS0419** | a cref matches several overloads and silently picks one | `<see cref="Foo"/>` where `Foo` has more than one signature |
-  | **CS1734** | a `<paramref>` names a parameter that was renamed | the name in the prose against the name in the signature |
-
-  **One member of the family no warning catches, and it misleads hardest.** Five docstrings open **two
-  `<summary>` blocks on one member**, the first describing something other than what follows it — a docstring
-  left behind when the member under it went away. The XML is well formed, so `CS1570` says nothing; the
-  compiler concatenates both into that member's entry and the tooltip leads with a sentence about something
-  else. Found by scanning `src/` for comment blocks with more than one `<summary>` open, which is what to
-  re-run: `UnitRequests.cs:6`, `UnitSeating.cs:6`, `Producibility.cs:124`,
-  `SketchDressingInspector.razor.cs:263`, `PlacedProp.cs:251`.
-
-  *measured 2026-08-16 by dropping the four ids from `NoWarn` and rebuilding clean: **148 distinct sites over
-  55 files** — 90 CS1573, 34 CS1574, 14 CS0419, 10 CS1734. The entry's earlier count of 36 over 26 files was
-  the tail of one project, not the sweep. Worst files: `TerrainTheme.cs` (9), `SpawnBoxEmitter.cs` (7),
-  `FrontlineBoxEmitter.cs` (7), `MapExportComposer.cs` (7). `CS1587` stays silenced on purpose — a docstring
-  on a local function, which the compiler never emits.*
 
 - [ ] **B129 — Give the section renderer a depth-projected mode, so what stands behind the cut is in the
   picture.** `SectionRender` samples a **single one-block-thick slice**, which is right for checking a
@@ -340,17 +240,6 @@ as an isolated marker into `B99`.
   `--buildings` under-counting a studio-built town, `B129` on the one-plane cut) — but it lives in a brief an
   agent may not have been given, beside the repository that owns the commands. Put one line per read in
   `--help`: what it draws, and what it is known not to show.
-
-- [ ] **B109 — Give the authoring loop a driver that checks a plan before it costs a build.**
-  `POST /plan/inspect` and `POST /plan/evaluate` both answer a plan without building it — evaluate carries the
-  validator's whole lint table as `lint[]`, inspect answers each destroy goal's spawn walks — and nothing
-  *invokes* them ahead of a build. An agent authoring two boards by hand found them only by reading source,
-  and re-implemented `ContactGraph.Classify` in a throwaway script to check adjacency rather than spend a
-  build cycle. So this is reach, not absence: a driver step, before the world is built, that posts the plan
-  and prints what came back.
-
-  *`docs/tools/plan.md:417` documents both endpoints. It is worth landing before buckets 1–3, which are
-  fourteen rules over plan rectangles that all want the same reachable home.*
 
 - [ ] **B103 — Bound the top-down on ground, not on every column carrying a block.**
   `TopDownRender.ReadColumns` takes `LayerExtractors.Surface` with no exclusions and derives the frame from
@@ -658,64 +547,6 @@ what a library shows back, where the model has outgrown the editor. The three sh
   build actually stamps). Wants a second interaction — add-a-wing, probably a drag that starts touching an
   existing wing's edge — and a handle set that knows which wing a grip belongs to.
 
-### Symmetry: two mirror centres, and a picture that hides which is which
-
-- [ ] **B250 — Stamp families disagree with the terrain, and with each other, about where the mirror centre
-  is.** The board's extent is **even** on both axes — `firnline` x −45..44 / z −100..99, `basalt-reach`
-  x −75..74 / z −102..101 — so the centre is a **cell boundary**, and the rot_180 image of cell `x` is
-  `−1−x`. The terrain keeps that. Several stamp families do not: they mirror about the **origin**, one block
-  off, so relative to the ground it stands on the stamp sits a block from its own image. Settle the centre
-  once, then make every fanning site read it.
-
-  | family | centre its images actually pair about |
-  |---|---|
-  | house, spawn room, destroyable, core | **origin** |
-  | spawn iron cube, redstone line | **corner** (the terrain's) |
-  | wool room floor, approach wall | neither — pair under no candidate |
-  | terrain | corner, with a residual (below) |
-
-  **The terrain also has a residual the centre does not explain**: at its own best centre `firnline` leaves
-  **164 of 10,986** terrain columns (1.5%) without an image and `basalt-reach` **260 of 19,014** (1.4%). A
-  rounding that survives the centre fix is a different bug.
-
-  *measured 2026-08-16 over `pgm-studio-mapgen/maps/{firnline,basalt-reach,sunspit}/region`, pairing each
-  stamp with whichever stamp its rotated image actually lands on — **not** by owner id, because a provenance
-  owner's suffix is an index into the fanned list (`wool:{i}`, `spawn:{i}`, `destroyable:{i}`) and only
-  `house:{id}:{k}` carries an orbit index. Two limits worth knowing before acting: **provenance records
-  structures only** (`B216`), so trees, boulders, water and the relief are not in this reading at all; and
-  `kerbstone`/`tanglewold` pair under neither candidate for every family, which is more likely a different
-  symmetry mode than a fault and was not chased.*
-
-- [ ] **B251 — A mirrored board cannot be read off the stage images, because neither render survives a
-  rotation.** Rendered a synthetic world that is exactly rot_180 symmetric — 1,681 columns, **zero**
-  unmirrored — and both pictures come out asymmetric: `sym-structures` differs from its own 180° image on
-  1,568 of 26,896 pixels, `sym-topdown` on 896. Neither is an offset: the two houses' drawn bounding boxes
-  are exact images of each other (`x 24..51, y 40..67` against the same reflected). Two causes, both
-  cosmetic and both defeating the one thing an author checks these pictures for.
-
-  **`StructureFinder` gives every structure its own accent colour**, so a structure and its mirror image are
-  drawn in different hues and the two halves read as holding different things. On a symmetric board the
-  accent wants to be per **owner-without-its-orbit-index** — `house:w1:0` and `house:w1:1` are one building
-  seen twice — so a mirrored pair shares a colour and a genuinely unpaired structure stands out.
-
-  **Both renders shade against the north neighbour only**, which cannot survive a 180° rotation by
-  construction. Correct as a lighting cue and wrong as the only cue: a reader comparing halves sees a
-  gradient that flips. Worth a symmetry-aware mode, or an overlay that draws the axis and the mirror
-  residual directly rather than leaving it to the eye — which is what `B250` needed and could not get from a
-  picture.
-
-- [ ] **B252 — A provenance owner id means two different things, so nothing can pair a stamp with its own
-  mirror.** `house:{propId}:{k}` carries the **orbit image** in `k`, while `spawn:{i}`, `wool:{i}`,
-  `destroyable:{i}`, `core:{i}`, `wall:{i}`, `roomfloor:{i}`, `redstoneline:{i}` and `ironcube:{i}` carry a
-  running index into the **already-fanned** list. Both images of one thing are separate entries with nothing
-  saying which thing they are two of, and `spawn:0` / `spawn:1` are indistinguishable in form from
-  `house:h1:0` / `house:h1:1` while meaning something else. Give every claim the same pair — **what it is, and
-  which image of it this is** — so a reader can group by identity and pair by image without guessing.
-
-  `StructureFinder` already groups by owner to tell two touching buildings apart, so the identity half is
-  load-bearing today; the image half is what `B250` had to recover by matching cell sets geometrically,
-  which is how the first reading of it came out wrong.
-
 ### The author's override: building a board the gates refuse
 
 - [ ] **B249 — An author can force a compile and an export past its refusals; an agent cannot.** The gates
@@ -1012,6 +843,12 @@ plate and its chest are, and what an author is allowed to ask for.
   feed so every rule reports where the edit happened. The second is the general fix and covers the
   destroyable style and float/leak rules too.
 
+*moved here by the author*
+
+- **G76** — the marker inspector exposes a structure's knobs (destroyable styles, core size/shell,
+  wool colour) instead of silently defaulting.
+- **G77** — `bedrockCentre` is a stamp no authoring path can reach: thread it through.
+
 ### Trees: what a species means, and what a grown one is made of
 
 The template trees select a material and a profile together; a grown tree is a recursive skeleton whose shape
@@ -1224,8 +1061,17 @@ place.
   material most likely to separate them, cannot be measured until `B246` lands: today's walk is flat, so the
   factor reads ≈1 on any solid board however steep it is.
 
-  *Filed under `S` and living here because the measure is what blocks it; the id does not move with the
-  heading.*
+  *Filed under `S` and living here because the measure is what blocks it; the id does not move with the heading.*
+
+- [ ] **B109 — Give the authoring loop a driver that checks a plan before it costs a build.**
+  `POST /plan/inspect` and `POST /plan/evaluate` both answer a plan without building it — evaluate carries the
+  validator's whole lint table as `lint[]`, inspect answers each destroy goal's spawn walks — and nothing
+  *invokes* them ahead of a build. An agent authoring two boards by hand found them only by reading source,
+  and re-implemented `ContactGraph.Classify` in a throwaway script to check adjacency rather than spend a
+  build cycle. So this is reach, not absence: a driver step, before the world is built, that posts the plan
+  and prints what came back. `docs/tools/plan.md:417` documents both endpoints.
+
+  *placed here by the human because it might be answered already*
 
 - [ ] **G65 — FannedGraph ↔ ContactGraph adjacency reconcile (deferred from G59).** `FannedGraph.LandAdjacent`
   (reachability) still diverges from the rect-layer authority `ContactGraph` on one count: any area overlap
@@ -1255,8 +1101,8 @@ place.
   Adopting the render's predicate costs nothing extra: the segment index the gate already loads holds the
   vertical structure, and `SurfaceColumns` is discarding it — the same index already answers air-at-a-point
   for monument obstruction. Worth doing with this entry rather than as its own, since both are the same mask
-  learning what stops a player. **Not urgent on its own**: `B172` (shipped as `OB21`) keeps houses out of the one place they most
-  obstruct, and no corpus distance sweep depends on it (`B212`).
+  learning what stops a player. **Not urgent on its own**: `B172` (shipped as `OB21`) keeps houses out of the one
+  place they most obstruct, and no corpus distance sweep depends on it (`B212`).
 
 - [ ] **G164 — interference: how much of one side's route the other side's route covers.** Every flow
   measure so far reads one traversal at a time, and a single route cannot express tension. Tension is two
@@ -1278,32 +1124,9 @@ place.
   **First profile it under the Configure overlay** — only optimise (spatial index / batch) if it's
   actually slow in use; otherwise close.
 
-### Other backend, pipeline & internals work
+## Other backend, pipeline & internals work
 
-- [ ] **B54 — A rebuild has no undo.** The rebuild now carries the finish and the credits across (B49, B52)
-  and says what it trades before it runs (S39), so what it still replaces is replaced *on purpose*: the
-  board, and the teams/spawns/wools/build zones the plan states. What is missing is a way back from a
-  deliberate press that turns out to have been wrong. The mechanism is cheap, because both authored blobs
-  are already rows in `map_artifact` keyed by a 64-char `kind` with no unique constraint: before each
-  from-plan write, copy the current blob to a `…_prior` kind, and add a restore that puts both back and
-  re-runs the pipeline from them (restore layout → `sketch/finish` → restore intent, the same chain the
-  build uses, so the world cannot end up disagreeing with the layout). The finish step wants extracting out
-  of `SketchFinishEndpoint` first so both callers share it. Surface it where the loss would be noticed: a
-  one-shot *Undo this rebuild* in the plan editor's success panel. Deliberately not built with S39 — with
-  the carries landed, the remaining exposure is a mis-click rather than silent data loss, and the
-  confirmation already covers a mis-click at a fraction of the cost. This is the belt to that pair of
-  braces, worth having once the studio is used by someone who did not write it.
-
-- [~] **B44 — Theme + style library: the map's applied theme is still an inline blob.** The tables, the HTTP
-  surface, the `/library` page and the sketch's pull/push bridge all shipped (`FEATURES.md`); two slices
-  remain. **(1) Apply-as-snapshot** — a map's *applied* theme is still the sketch document's own registry, so
-  "the library holds the reusable copy, the map holds a frozen one" is true only by convention: pulling a
-  library theme into a sketch copies its JSON and nothing links them, but there is no snapshot record saying
-  *which* library theme a map's paint came from, and no way to re-pull one when the library moves on. Give the
-  map's scope store a forked instance with a `parent_id` back-reference, the same doctrine the generator's plan
-  persistence uses. **(2) A data migration** lifting the themes inlined in a map's own `sketch_layout_json`
-  registry into styles + themes + bindings, deduping identical materials — today a map themed without pushing
-  anything out keeps its blob and the library cannot see it.
+### User Experience and Graphical User Interface
 
 - [ ] **B47 — The library has no search, and the sketch's theme names are its own.** Two small gaps the
   library page left open, worth doing once it has enough rows to hurt. The style browser filters by kind but
@@ -1322,6 +1145,111 @@ place.
   islands by id, and spawns/wools are world coordinates); flag the author when the island set changes so a
   stale `islandTeams` mapping can be re-checked. (Manual procedure today: copy the `map_intent_json`
   artifact + re-scan, then `PUT /map/{slug}/intent`.)
+
+- [ ] **B54 — A rebuild has no undo.** The rebuild now carries the finish and the credits across (B49, B52)
+and says what it trades before it runs (S39), so what it still replaces is replaced *on purpose*: the
+board, and the teams/spawns/wools/build zones the plan states. What is missing is a way back from a
+deliberate press that turns out to have been wrong. The mechanism is cheap, because both authored blobs
+are already rows in `map_artifact` keyed by a 64-char `kind` with no unique constraint: before each
+from-plan write, copy the current blob to a `…_prior` kind, and add a restore that puts both back and
+re-runs the pipeline from them (restore layout → `sketch/finish` → restore intent, the same chain the
+build uses, so the world cannot end up disagreeing with the layout). The finish step wants extracting out
+of `SketchFinishEndpoint` first so both callers share it. Surface it where the loss would be noticed: a
+one-shot *Undo this rebuild* in the plan editor's success panel. Deliberately not built with S39 — with
+the carries landed, the remaining exposure is a mis-click rather than silent data loss, and the
+confirmation already covers a mis-click at a fraction of the cost. This is the belt to that pair of
+braces, worth having once the studio is used by someone who did not write it.
+
+### Refactoring and cleanup
+
+- [ ] **B220 — Fix the doc-comment defects, then take the four ids out of `NoWarn` so the next one fails the
+  build.** Each is a sentence pointing at something that is not there, and each is silenced in all five
+  `.csproj` that emit a documentation file (`Domain`, `Pgm`, `Minecraft`, `Export`, `Api`):
+
+  | id | the defect | what to look for |
+  |---|---|---|
+  | **CS1573** | a method documents some parameters and not others | a `<param>` list shorter than the signature — usually a parameter added later |
+  | **CS1574** | a `<see cref>` names something that does not resolve | a member that was renamed or moved to another type |
+  | **CS0419** | a cref matches several overloads and silently picks one | `<see cref="Foo"/>` where `Foo` has more than one signature |
+  | **CS1734** | a `<paramref>` names a parameter that was renamed | the name in the prose against the name in the signature |
+
+  **One member of the family no warning catches, and it misleads hardest.** Five docstrings open **two
+  `<summary>` blocks on one member**, the first describing something other than what follows it — a docstring
+  left behind when the member under it went away. The XML is well formed, so `CS1570` says nothing; the
+  compiler concatenates both into that member's entry and the tooltip leads with a sentence about something
+  else. Found by scanning `src/` for comment blocks with more than one `<summary>` open, which is what to
+  re-run: `UnitRequests.cs:6`, `UnitSeating.cs:6`, `Producibility.cs:124`,
+  `SketchDressingInspector.razor.cs:263`, `PlacedProp.cs:251`.
+
+  *measured 2026-08-16 by dropping the four ids from `NoWarn` and rebuilding clean: **148 distinct sites over
+  55 files** — 90 CS1573, 34 CS1574, 14 CS0419, 10 CS1734. The entry's earlier count of 36 over 26 files was
+  the tail of one project, not the sweep. Worst files: `TerrainTheme.cs` (9), `SpawnBoxEmitter.cs` (7),
+  `FrontlineBoxEmitter.cs` (7), `MapExportComposer.cs` (7). `CS1587` stays silenced on purpose — a docstring
+  on a local function, which the compiler never emits.*
+
+- [ ] **Comment hygiene sweep — the task ids.** Code comments must describe behaviour only, and the
+  attribution half is done (B43 swept every "port of X.py" / "matches Python" reference out of `src/` and
+  `tests/`). What remains is **implementation-phase and task ids** (`NS`, `N00`, `B8`, `P5`, `ND2`, …) in
+  about nineteen places — a comment that says *when* something was built rather than what it does, which
+  reads as noise to anyone who was not there. New code already follows the rule (`CLAUDE.md`).
+
+- [~] **B44 — Theme + style library: the map's applied theme is still an inline blob.** The tables, the HTTP
+  surface, the `/library` page and the sketch's pull/push bridge all shipped (`FEATURES.md`); two slices
+  remain. **(1) Apply-as-snapshot** — a map's *applied* theme is still the sketch document's own registry, so
+  "the library holds the reusable copy, the map holds a frozen one" is true only by convention: pulling a
+  library theme into a sketch copies its JSON and nothing links them, but there is no snapshot record saying
+  *which* library theme a map's paint came from, and no way to re-pull one when the library moves on. Give the
+  map's scope store a forked instance with a `parent_id` back-reference, the same doctrine the generator's plan
+  persistence uses. **(2) A data migration** lifting the themes inlined in a map's own `sketch_layout_json`
+  registry into styles + themes + bindings, deduping identical materials — today a map themed without pushing
+  anything out keeps its blob and the library cannot see it.
+
+- [ ] **B106 — Rename one of the two things called protection.** One is the XML region rule that stops a
+  player entering a spawn or a wool room and restricts what may be broken or placed inside it — a gameplay
+  contract. The other is `Decorator.IsProtected`, "cells nothing may be placed on", a dressing keep-out with
+  no gameplay meaning. A goal that needs the second does not need the first, and one word for both invites the
+  inference that a destroyable must live somewhere protected — which is what produced the caged goals, and it
+  survives the code that acted on it.
+
+- [~] **C12 — The last of the component vocabulary: the icon, the generator, the inline styles.** The
+  vocabulary is built and adopted — the atoms, `Section`, the shell and the workspace shells are across every
+  production surface, with two raw `action-btn`s and two raw `list-row`s left as genuine exceptions
+  (`FEATURES.md`; the reference is `docs/client/ui-conventions.md`). Three slices remain, and `/design` is the
+  zero-visual-diff oracle for all of them since a component emits the classes the markup did.
+
+  **`Icon` is built and unadopted.** `Components/Primitives/Icon.razor` centralizes the lucide reconciler
+  gotcha — recreate on a glyph change rather than patch a node lucide has already replaced with an `<svg>` —
+  and **156 raw `<i data-lucide>` still stand**. Adopt incrementally: the icon-bearing components
+  (`Button`/`DetailHeader`/`Chip`) first, then the page sites that re-render. High churn, subtle benefit, so
+  parked by choice rather than blocked.
+
+  **The `gen-*` set is the last real drift**, and the largest thing left here: `/generator`'s filter rail, card
+  grid, candidate cards, badges, tray and census tables are around forty classes in `generator.css`
+  re-implementing `workspace-sidebar`, `card-grid`, `badge` and `filter-chip` under their own names. The atoms
+  inside them have been picked up where they fit; the layout has not.
+
+  **Polish**: fold the one `section-heading` use into `SectionHeader`, and drop the 84 inline `style=`
+  occurrences now expressible as component params (`Fill`, `Full`, a modifier `Class`).
+
+- [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
+  (Build/Objective/Teams) + the `Index`/`CollectDescendants` region-tree walkers (3–4 activities) →
+  a shared `MapApiClient` and/or `EditorActivityBase` / static `RegionNode` helpers.
+
+- [ ] **CV15 — The bridge invoke wrapper is inconsistent.** `plan-bridge` and `sketch-bridge` wrap
+  `dotnetRef.invokeMethodAsync` in a local `fire()` that swallows the throw when the host hasn't wired a
+  callback; `world-bridge` calls it unguarded, so an unwired callback surfaces as a console error instead
+  of a no-op. Settle on one helper next to `fetch-json.js`. Tiny, but it is the only thing the five bridges
+  genuinely share — the rest of their apparent repetition is per-tool document semantics and should stay
+  separate.
+
+  - [ ] **S10 — Auto-promote rectangles on Bézier (parked, optional).** Today S4 promotes via the inspector
+  button / `P`; a rectangle keeps its 8-handle resize and has no Bézier affordance. If we ever want a
+  rectangle's corner to sprout a Bézier handle that *implicitly* converts it to a polygon, it needs rect
+  vertex/tangent handles in `sketch-edit-controller.js` (a UX decision on resize-handles vs vertex-handles).
+  Low priority — explicit promotion already covers the need.
+
+### Test coverage
+
 - [ ] **B35 — Endpoint coverage: half the API is exercised by nothing.** `PgmStudio.Api` sits at **42.8%**
   lines (`tools/coverage.sh`), and the shortfall is not spread evenly — a long tail of endpoint files is
   effectively untouched while the tested ones are fine: `PreflightEndpoint` 2.6%, `ImportEndpoints` 3.6%,
@@ -1330,6 +1258,7 @@ place.
   13.0%, `RegionEndpoints` 15.6%. `ApiTestFactory` (B20) already gives schema-isolated MariaDB, so the
   marginal cost per endpoint is one happy path plus its error contract; these are cheap tests, not a
   redesign. Prioritise the ones that write: import, configure, region and map-plan.
+
 - [ ] **B36 — The region/filter authoring-and-editing path is half covered.** A coherent cluster sits
   around 40–58% while its neighbours are high: `RegionAuthoringEncoder` 43.8% (370 uncovered lines),
   `RegionParser` 52.0% (295), `RegionEditor` 57.5% (180), `FilterParser` 48.9%, `RegionGeometry2d` 39.5%,
@@ -1338,72 +1267,34 @@ place.
   than returning a wrong status code, and `--authoring` is a manual harness, not a gate. Note the
   neighbours prove the standard is reachable: `MapParser` 92.9%, `XmlWriter` 88.1%, `RegionCategorizer`
   91.4%. Cover the type-specific region/filter branches first — that is where the uncovered lines are.
-- [ ] **B37 — Every family's resolver should answer one resolved-stamp record, and only iron does.**
-  `IronResolution(MarkerX, MarkerZ, MinX, MinZ, Size, Placeable)` is the shape and the only instance, with
-  four consumers, all iron; the wall, the rooms and the objectives each resolve their placement inline. The
-  record wanted is **kind, footprint box, `Placeable`, source marker**, produced by each family's resolver.
-  The stampers stay heterogeneous — a wall owns a seam, a room a piece + marker + entries, an objective a
-  marker + style — which is why the *resolution* is the thing to share and not the stamping.
 
-  Two things need it. `PlanStructurePreview.StructureBox` assembles its own boxes for iron, destroyables and
-  cores; consuming the record instead reaches placeability into the iso view for free. And the
-  objective↔objective and objective↔monument **minimum distances** — a core merging with a wool monument they
-  must read apart from — have nowhere to live until every placement answers in one shape.
+  - [~] **C28 — The client's remaining test layers (smoke has landed).** The **smoke layer + runner shipped**
+  as `C31` (`tools/e2e.sh`, `tests/e2e/`) — every route is swept for "renders and raises nothing", seeded
+  from a composed board; `icons.mjs` (C30) added the first *positive* render assertion on top of it.
+  `PgmStudio.Client` is still **absent from the coverage report** (no test project
+  references it), and two layers are still open:
+  **(a) mount/interop** — per canvas tool, assert the bridge mounted and the surface has a real size; this
+  is the C29 class of bug (a canvas at 45% of its workspace for weeks, in two tools) and it is assertable
+  without knowing user intent.
+  **(b) scenarios** — one flow per tool, specifically *the path that creates the artifact*, where a break is
+  unrecoverable rather than cosmetic: Sketch `New → name → draw → Finish → Configure`; Plan
+  `New → globals → piece → Compile`. The seed already proves that chain works headlessly.
+  Deliberately **not** e2e: field-level inspector behaviour and anything asserting where geometry lands —
+  those rot; extract the decidable logic instead (`CV12`). A bUnit project for the phase/step state machines
+  is still worth considering, and is independent of the above.
 
-  *Not this: `OB17` already refuses a goal in void, in a spawn room or in a wool room over a shared
-  `ObjectiveFootprint`, the unwinnable `block="never"` case included; `StructureClaim` (`B202`) answers which
-  columns a stamp owns; `B142` answers what the dressing pass declined. The editor half shipped (`B59`,
-  `C44`) and what remains of it is timing — structural findings do not run in the live feed (`G161`), so a
-  refusal appears at Compile rather than as the marker is dragged. `G65` is adjacent and separate: whether two
-  pieces touch, not how far apart two placements stand.*
+- [ ] **CV12 — Two thirds of the JS layer is never loaded by a test.** `npm test --
+  --experimental-test-coverage` reports 82.8% over the 15 modules the 148 tests import (several at 100%:
+  `transform`, `symmetry`, `islands`, `polygon`, `plan-inspect`), but **26 of 41 files / ~6,900 lines are
+  absent from the report** — they are never imported, which the coverage output shows as silence rather
+  than zero. The untested set is the whole interactive layer: every canvas (`world-canvas` 1046,
+  `plan-canvas` 1017, `sketch-canvas` 871, `sideview-canvas`, `canvas-base`), every bridge, every
+  controller, `iso-webgl`, and `studio.js`. The split is coherent — pure geometry is tested, DOM/canvas
+  code is not — so the win is not "test the canvases" wholesale but **extracting the decidable logic they
+  contain** (hit-testing, snapping, viewport/transform maths, selection resolution) into pure modules the
+  existing `node --test` setup can reach without a DOM. Pairs with the JS consolidation review.
 
-- [ ] **B34 — The two map-list endpoints disagree on sort order, and the dashboard gets the noisy one.**
-  `MapsListEndpoint` branches on the `stage` query param onto two differently-ordered repository methods:
-  `MapRepository.ListAsync` sorts `OrderBy(Slug)`, `ListByStageAsync` sorts
-  `OrderByDescending(UpdatedAt).ThenBy(Slug)`. The dashboard always requests `?stage=…`, so it always gets
-  recency order — and on the imported Edit corpus `updated_at` records when the *pipeline* last wrote the
-  row, not when the author last worked on the map, so it carries no authoring signal. The 349 Edit rows hold
-  only 29 distinct timestamps (a re-processing pass stamped them in ~22-map batches a second apart), so the
-  list renders as 29 alphabetical runs concatenated — it reads as scrambled, with the three maps outside the
-  supported range (`3084`, `allure`, `lost_haven`, never re-processed) parked at the bottom. Recency earns
-  its keep on Sketches/Plans/Configuring, where the timestamps are real edits and the lists are short.
-  Preferred fix: slug order for the Edit stage, recency for the other three (one line); alternatives are
-  slug everywhere, or leave it and let recency come good once maps are edited in the studio. Cosmetic — no
-  data is wrong, and both orders are deterministic.
-- [ ] **B40 — The three dock styles are implicit; make them a type.** `Seat` picks between three seating
-  rules using three *different discriminators* — `d.Wool is { } rich && Overhangs(rich.Family)` (shape
-  family), `d.Kind == BoxKind.Frontline` (box kind), and falling through (everything else) — so there is
-  nowhere in the code to ask which style a demand uses. The asymmetry runs deeper than the selector:
-  two styles are named functions and the third is ~30 lines of inline loop body with no name; and the three
-  are at different altitudes — `SeatOverhang`/`SeatFront` return a placed `(CellRect, BoxInterface)` while
-  `SeatInRuns` returns a bare `int?` seat, leaving the caller to build the rect and the joint. That is why
-  `boxes.Add`/`joints.Add` is written out three times with different arguments.
-  **Scope:** (a) extract `SeatFullMouth` returning `(CellRect, BoxInterface)?` like its siblings, then (b)
-  add an explicit `DockStyle { FullMouth, Overhang, ContactPatch }` **derived** from the demand — it is never
-  sampled, it follows from the family roll — and dispatch on it. **Leave the failure policies alone**: they
-  genuinely differ in kind (overhang demotes via `Compact`, the frontline kills the attempt, a wool may be
-  dropped if another remains), and flattening them into flags loses more than it gains.
-  The doc comment writes itself, because the three styles are indexed by *how much is known about the
-  shape's entries*: full mouth knows nothing (require the whole mouth on one run and every entry lands —
-  which is why the two-entry `U`/`H`/`Clamp` dock here); overhang knows there is exactly one and where it
-  is; contact patch has no entry at all because a frontline is a face, not a corridor.
-  **Oracle + the real constraint:** `ComposerFingerprint` + `ComposerVersionTests` must stay byte-identical.
-  All three styles consume `rng`, so the invariant is not "does it compile" but **does the draw order
-  survive** — hoisting one call above another moves the stream and every fingerprint goes red.
-
-- [~] **B41 — Should a host's published capacity bound the grant it hands out?** The naming half has landed
-  (`FEATURES.md`): `BoxJoint.Grant` is now distinct from a host's `EdgeOffer`, and the docstrings state the
-  split — an offer's `WidthClass` is a *capacity* derived from the run's length, a grant's is a *selection*
-  made per consumer kind. What remains is the behaviour question the rename deliberately did not answer.
-  Today the two are entirely unlinked: `Seat` reads the hub's offers, keeps only `(Start, LengthCells)` as its
-  **runs** and drops the published width, then `HubJoint` grants a width taken from the demand's kind
-  (`WoolLaneCells` for a wool, `w` otherwise). So a hub can grant a corridor **wider than the run it sits on
-  claims to support** and nothing objects. Either that is intended — capacity is advisory, the consumer knows
-  its own lane — or the grant should be clamped to the offer, in which case a narrow run would demote a
-  consumer's `cw` and some docks that succeed today would not.
-  **Measure before deciding**: how often does the granted width actually exceed the published capacity of the
-  run it lands on? If never, this is documentation; if often, it is a real gate the composer is missing.
-  Changes what the filler builds, so it needs a before/after gallery and will move fingerprints.
+## Future
 
 - [ ] **B21 — MCP server: agent-drivable map authoring over the plan layer.** A thin MCP head (official
   C# SDK, `ModelContextProtocol` NuGet; new `PgmStudio.Mcp` project or a proxy over the running `:7894`
@@ -1484,311 +1375,12 @@ place.
   and `/plan/feasibility` both answer `PL1` to a plan with no pieces, in the same sentence `compile` gives.
   The head needs no empty-placements check of its own.
 
-## Layout generation (G)
-
-- [ ] **G158 — seed the library with a curated set.** An author can now build a style once and reuse it, and a
-  theme that binds only the buckets it changes (`FEATURES.md`), but a fresh install's library is empty — so the
-  first desert or snowfield is still built by hand. Ship a curated set of styles and themes as seed rows: the
-  shipping finish decomposed, plus a handful of biomes (desert, tundra, mesa, nether) each reusing the same rim
-  and fill. A preset is just a library theme, so this is a seeding step, not a second mechanism — the open
-  question is only *when* it seeds (a migration, or a "restore the starter set" action that cannot clobber
-  edits).
-
-- [ ] **G163 — `map-layers`' rebuild-confirmation step flakes about one run in three.** The step drives
-  Compile on a freshly-opened plan and reads the drawer; when the plan document has not reached the client
-  yet it compiles an empty plan, which is a 422 by design, so the drawer never opens and the following
-  `page.click` times out at 30s. The spec guards it with a fixed `waitForTimeout(1500)` — a duration
-  standing in for a condition, and the wrong guess about a third of the time. Measured 1-in-3 both with and
-  without the `OB17` rule, so it is timing rather than validation. Waiting on the first piece id label
-  (`.map-canvas-svg text`, the overlay's proof the document arrived) was tried and did **not** fix it, so
-  the stall is later than the document load. **A caught failure now names the click, and it is not the one
-  the paragraph above blames.** The step got as far as reading the drawer's button label ("the button names
-  a rebuild" passed on `Rebuild this map`) and then timed out on `page.click("Rebuild this map")` — the
-  *second* click, on a compile that answered 200, long before the empty-plan compile the 1500ms guard is
-  aimed at. The recorded 422 is an earlier fault on the same page, not this one. A 30s timeout on a button
-  whose text was just read means the element was found but never became actionable, which points at a
-  drawer that keeps re-rendering rather than at a document that has not arrived — so the fix is a wait on
-  the drawer settling, and the 1500ms guard may be guarding nothing. A flake in the browser gate costs more
-  than the step is worth, because it makes every unrelated run ambiguous.
-
-- [ ] **G150 — stamp a catalog shape into a drawn box.** The plan editor can draw a typed box and then ask
-  whether the composer could have produced what is in it (G125's feasibility panel), but there is no way to
-  go the other direction and *place* something known-producible: nothing in `Features/Plan/` references the
-  catalog or the emitters. So an author hand-cuts rectangles and finds out afterwards. Give a selected box a
-  **family picker** — the in-mix tier of `GET /api/shapes/catalog` (G144), which is exactly the set the
-  composer really samples — plus the knobs `GET /api/shapes/probe` already serves per family, and stamp the
-  emission into the box as its members. Producible **by construction**, so the feasibility panel goes green
-  without the author aiming at it.
-  Most of this exists. The probe endpoint already emits through `BoxFiller` (profile check and docking gate
-  included) and answers with the shape or a directed `FillRejection`; `/api/shapes/probe/schema` already
-  serves the per-family knob surface and minimum box in the dock frame. What is new is the *stamp*: writing
-  the emission into an existing plan's box rather than returning a standalone `symmetry:none` plan, which
-  means placing pieces at the box's origin, giving them ids under the box, and replacing whatever was there.
-  This is the editor half of **B21's `emit_family`** — build it here and the MCP tool wraps it rather than
-  reimplementing it. It also pairs with G149: placing known-producible shapes and watching the G148 land
-  readout move is the most direct way to find out what the budget is actually worth.
-
-- [ ] **G151 — a box's rect should be the bounding box of its members.** The members inspector offers
-  "Fix these members" / "Follow containment", and the fixed half behaves oddly on purpose-built-for-something-
-  else grounds: named membership (`PlanBoxes.MembersOf`, the `Members` list) ignores geometry entirely, so a
-  piece can be dragged *out* of its box and still be carried when the box moves (`plan-canvas.js`, the box
-  drag translates `d.carried` in both modes). That is not an authoring mode — named membership exists for
-  **provenance**, so a pinned board can record the grouping that actually produced it off `BoxPartition.KeyOf`
-  rather than having it re-derived approximately. Exposing it as a toggle asks the author to edit with a
-  mechanism built to preserve history.
-  The fix is not a third mode, it is separating two questions that are currently one button. **Which pieces
-  are members** is legitimately two modes (named vs containment) and both should stay. **What the rect is**
-  should not be a mode at all: it should always be the bounding box of the members. That is not a new rule —
-  `BoxPartition.Of` already computes a box's rect as `Bbox(members)`, and `Box`'s own contract says a box's
-  contents "must touch its edges", which is the same statement. So dragging a member extends the box,
-  dragging the box moves its members, and a member outside its own box becomes unrepresentable rather than
-  merely strange. One case to decide: an empty box has no bounding box — keep its drawn rect until it has a
-  member, which also leaves the draw-then-fill flow working as it does now.
-
-- [ ] **G153 — the feasibility read is per box and is reached through a list.** `G125` computes producibility
-  **per box** and renders it in a left-panel list, so after clicking a box on the canvas the author has to find
-  that same box again, by name, in a sidebar — for a read that is already about the thing under the cursor. The
-  inspector on the right already opens on that box with its id, kind and members; the verdict belongs there,
-  beside them: the parameter tuple that reproduces it or the nearest candidate, its directed findings, and the
-  rule or task id each finding cites, with the click that paints the missing/extra cells kept as it is. The
-  unit-level arrangement findings are genuinely **not** per box (parallel fronts, the frontline's pinned face,
-  seat separation) and stay in the left panel, which leaves that panel one coherent job instead of a mixed list.
-
-- [ ] **G154 — one plan editor, two bindings, two different tools.** `PlanTool` serves `/plan-editor` and
-  `/maps/{slug}/plan` from a single component through five `@if (MapBacked)` branches, and the two render as
-  different products. Map-backed gets the phase rail (Info · Draw), the flow bar, and the three panels as chips;
-  the bare route gets no flow bar, no phases, the same three panels as **rail buttons**, and a collapsible
-  sidebar the map-backed one cannot have (`SidebarOpen => MapBacked || leftOpen`). Same panels, two navigation
-  models, one file — the thing the tool-consistency alignment exists to prevent.
-  Unify on the phase-rail + flow-bar + chips structure and keep the collapsible sidebar for both. The route may
-  change **only** the topbar — its crumbs and which actions exist — because that is where the binding genuinely
-  differs: a map-backed plan saves into its map's artifact, while a plan row saves as a row and forks when it
-  was generated or imported. Rename the bare route to `/plans/{id}` (and `/plans/new`), which says what it is
-  bound to where `/plan-editor` says nothing, updating the generator hand-off, the smoke sweep's route list and
-  the plan schema doc with it.
-  **Do not delete the route.** It is the only surface that opens a **plan row**, which is what the generator
-  hands a candidate off as and what `G119`'s fork-on-edit rule operates on; routing candidates through
-  `/maps/{slug}/plan` would mint a map per candidate looked at, and New, Import, Open and the origin badge have
-  no home on a map-backed plan.
-
-- [ ] **G149 — the land budget is a number the composer reads and then overshoots.** The first thing the
-  G148 readout showed, measured over 40 boards at 12 players/team (budget 50 cells): land runs **63% to 222%**
-  of budget, median **115%**, and **28 of 40 boards are over**. So the budget is not a cap — it is an input
-  the allocator consults for its decisions (lane width, whether there is a frontline, the hub caps, the wool
-  count — `TeamUnitAllocator.cs:46-52`, `UnitTuning.WoolCount`) and then nothing reconciles the result
-  against it. `BoxFiller.WithinLandTarget` exists and no production path calls it.
-  Nothing caught this because nothing measures it: the only land-ish term is `fill-ratio` (G8), which is land
-  over the board's **bounding box**, not land against the **budget** — a different quantity that can sit
-  happily in its band while the unit is at double its target.
-  Decide what the budget means before changing anything, because both readings are defensible: either it is a
-  target the fill should be reconciled against (then something must spend the overshoot down — the
-  two-currency accounting says fragment converts surplus land to build, so the question is whether fragment
-  ever runs), or it is only a sizing heuristic (then rename it, drop the "budget" framing, and stop implying
-  a contract that does not exist). What is not defensible is the current state, where a number named budget is
-  exceeded by half again on a typical board and nothing says so. Note G138 is adjacent but distinct: that one
-  is about the composer taking the first acceptable plan rather than ranking; this is about the plan it takes
-  not honouring its own sizing input.
-
-- [ ] **G147 — verdict coverage on the catalog: which buckets has nobody judged?** *(sequenced after G118 —
-  there is nothing to count until verdicts exist.)* The browse feed hands the author whatever the composer
-  samples, so collection is passive: the corpus ends up shaped like the sampler, and the parts of the space
-  the sampler rarely visits stay permanently unjudged. The measured skew makes that concrete — the donut is
-  73 of the 89 wool cards while U, H and L are one apiece (G144) — so scrolling will produce a donut corpus
-  and silence everywhere else, which is exactly the wrong input for rule refinement.
-  The fix is to show the denominator. A `StructureNames.Canonical()` key is a triple
-  (`wools:… | hub:… | front:…`) and the catalog already renders each component of that triple as a card, over
-  a space now small enough to enumerate: 81 wool classes up to rotation/reflection, 7 hub forms, 3 frontline
-  forms. So add a third filter facet beside *kind* and *reach* — **coverage** — with three states: *judged*
-  (this bucket has verdicts), *thin* (one or two, not enough to trust), *unjudged* (nobody has ever looked at
-  a board shaped like this). "Find me something nobody has judged" then becomes a chip click, and collection
-  turns from an infinite scroll into covering a space with visible edges.
-  Needs one query — verdict counts grouped by the structure key — which is a `GROUP BY` on the column G118
-  already stores, so **design it with G118's schema rather than bolting it on after**. The UI is small: a chip
-  row and a count badge over the same tally plumbing the catalog's `ByTier`/`ByFamily`/`ByKind` already use.
-  **A card is a component of a bucket, not a bucket** — a board reading `wools:donut,l` touches both the donut
-  and the L card — so per-card coverage is an aggregate over every bucket that card participates in. Build the
-  aggregate first (cheap, and enough to spot a blind spot); add a per-bucket drill-down only if the aggregate
-  proves too coarse to act on.
-
-- [ ] **G145 — five emitter knobs are unreachable from the composer.** `ShapeEmitter.Emit` takes
-  `attachments`, `woolExtend`, `entryShift`, `woolShift` and `attachmentOffset`, and `WoolBoxEmitter.Emit`
-  passes all five through — but `WoolBoxEmitter.Fill`, the only path `BoxFiller` and therefore the whole
-  compose pipeline uses, forwards none of them (`WoolBoxEmitter.cs`, the `ShapeEmitter.Emit` call inside
-  `Fill`). Their only callers in the tree are `tools/compose/box-gallery.cs` (the two-attachment and
-  moved-attachment donut cards). So the two-attachment donut, the extended-wool donut and both scythe
-  endpoint shifts are built, tested, drawn in the galleries, and **cannot appear on a generated board**.
-  Decide per knob rather than in bulk: the donut's second attachment is a genuine multi-access shape the
-  hub could dock twice and is the strongest candidate to plumb; the scythe shifts are moot until the
-  scythe itself is admitted (G146). Plumbing one means widening `WoolFill` (it already carries
-  `AttachmentWidth` and `RingWalls`, so the shape of the change is settled) and giving `UnitRequests` a
-  draw for it. **Do not "fix" this by deleting the knobs** — `EmitterPlacementKnobTests` gates them and
-  `model.md` §4 describes them; the gap is the plumbing, not the geometry.
-
-- [ ] **G146 — two families are in the vocabulary but never on a board.** The emitter builds eight
-  terminal-capped families; the composer puts six on boards. **Z** is listed in
-  `FillMenu.ProductionFamilies` and `BoxFiller` fills it happily, but `UnitRequests.WoolRequest` never
-  draws it — the rich branch picks donut, then U/H/clamp, else L, and the fallbacks are I. The only caller
-  that could reach it is the roll-indexed `BoxFiller.Fill(box, mouth, cw, roll, …)` overload, which has no
-  caller in `src/` at all. So the menu advertises a family the sampler cannot produce, and the browse
-  tool's own filter chip for it can never match. **Scythe** is the honest case: excluded from
-  `ProductionFamilies` with a stated reason (its bay's mouth is its docking edge, so a flush dock seals it
-  into WL8's forbidden enclosed void), with the elevation-stage alternative already parked as G81.
-  Two separate decisions: either give the sampler a Z draw or drop Z from `ProductionFamilies` so the menu
-  stops advertising it (the second is a one-line honesty fix and should not wait on the first); and leave
-  the scythe out until G81 lands. Either way the catalog page (G144) will render both under a
-  *reachable* / *emitter-only* badge, so the gap becomes visible rather than folklore.
-
-- [ ] **G138 — The composer accepts, it never chooses: a soft score has nowhere to act.** `Composer` takes
-  the **first** plan that clears the gate and `break`s (`Composer.cs:59-84`) — no ranking, no comparison, no
-  best-of-K. It contains zero references to `Evaluate` or `Score`, only `Gate`, and `Gate` runs hard terms
-  only (`LayoutEvaluator.cs:86`). Worse, the compose path builds its context as `EvalContext.Build(plan)`
-  with no envelopes, which defaults to `SeedEnvelopes.**Empty**` (`EvalContext.cs:34-38`) — so every soft
-  term looks its band up, gets null, and stays dormant by design. **The authored envelopes have no causal
-  influence on generated output whatsoever**; they only score plans after the fact, via the
-  `Evaluate(PlanModel, …)` overload the API endpoints and galleries call.
-  So any soft rule derived from `G118`'s verdicts is **inert until this lands**: generate K candidates,
-  score all K, return the best. The loop already generates and discards candidates, so the change is small —
-  but it converts the composer from *first-acceptable* to *best-of-K*, which is a real behaviour change and
-  will move every fingerprint.
-  **Sequence it after the bands are calibrated, not before.** Measured over 560 composed plans, a ranking
-  today would be almost entirely a `spawn-wool-ratio` contest (outside its band on 44% of applicable plans
-  at median distance 1.64) while four terms score nothing at all — see the `LEARNING.md` debt entry.
-  Ranking before recalibration just amplifies one badly-fitted band. Order: `G118` collect → calibrate /
-  gate the vacuous terms → this → soft rules become causal.
-
-What stays here is the concrete non-design work on *imported* maps (island detection + playability):
-
-- [ ] **G165 — dock arrangement belongs in the structure summary.** Which face of the hub each box seats on
-  is a board property with measured consequences and no representation anywhere: it is not the hub's body
-  form and not the approach family. With the compass rotated so the frontline is *front*, generated boards
-  split **canonical** (spawn *back*, wools *left*+*right*) 27% against **lopsided** (spawn lateral, one wool
-  on *back*) 73%, and the split predicts two things — the median spawn-distance imbalance is 0.18 against
-  0.40, and the second-wool rotation runs within ten blocks of the spawn on 63% of canonical boards against
-  2% of lopsided ones. The faces fall straight out of the mouth positions the box read already computes, so
-  the work is small: add them to `StructureSummary` and to `StructureSummary.Canonical()`, which makes the
-  arrangement a browse-sieve filter and a verdict/duel bucket key for free. **Land it before verdicts
-  accumulate**: `Canonical()` is persisted on a pinned plan as that bucket key, so extending the string
-  reshapes every bucket already stored, and a later change needs a key version rather than an edit.
-
-- [ ] **G166 — seating should prefer the canonical arrangement.** `UnitSeating` chooses which hub edge each
-  neighbour request seats on, and takes no view on the combination; the result is that three boards in four
-  come out lopsided (G165). Prefer the spawn on the edge opposite the frontline with the wools on the two
-  lateral edges — the arrangement built maps converge on. The measured payoff is the imbalance halving (0.40
-  → 0.18) and the restoration of the rotation-past-spawn dynamic that the lopsided arrangement removes. This
-  changes where boxes sit, so it is a geometry change: composer version bump, re-recorded fingerprints, and a
-  before/after gallery. Constraining the seat choice can only raise the rejection rate, so measure that
-  alongside the arrangement split rather than assuming it stays flat.
-
-- [ ] **G167 — a holed hub should seat its docks across the hole.** A ring, double-hole, P or G hub only
-  offers two ways across when the two docks straddle its void, and today that is left to chance: ring hubs
-  deliver two ways on 163 of 224 spawn-to-wool crossings, and the ones that do not are dead by seating rather
-  than by shape — the same body form with both docks on one side is a wide room with a decorative hole in it.
-  When the sampled hub body encloses a void, prefer opposite walls for the two docks. The value is not the
-  extra distance but what G164 measures: the far way round drops interference from 76% to 37%, which is
-  the difference between an alternative and an alternative worth taking. Geometry change, so the same
-  fingerprint and gallery costs as G166, and the two should land together or in a known order since both
-  touch the same seat choice.
-
-- [ ] **G168 — a board is worth evaluating in two game states.** A two-wool map is not one arrangement but
-  two in sequence: before the first capture both objectives are defended from the spawn, and after it one
-  room is the attacking team's forward node — a place worth travelling to for the chest gear the generator
-  emits — and the wool-to-wool route becomes the live one. Terms that are vacuous in the first state carry
-  the whole second phase, so evaluating only the opening scores half a match. This is a change to the
-  evaluator's shape rather than a new term: `EvalContext` carries which state is being read, and the terms
-  that only apply post-capture (G164's interference, rotation between objectives) declare it. Decide
-  early whether the two states produce two scores or one combined figure — a single number that averages a
-  strong opening against a hopeless second phase describes neither. The played account is in
-  `docs/gameplay/match-flow.md` §4.8.
-
-### The generator in the studio (G117–G120) — parked while the authoring loop is the focus
-
-The box pipeline is **the** composer and the emitted layouts are good enough to work *with*, so the
-bottleneck sits in the feedback loop rather than in the grammar. This slice integrates the generator into
-the studio itself — compose interactively, filter what to see, and **collect annotated keep/discard
-verdicts** that become the labeled positive/negative corpus every later refinement feeds on. The showcase
-(G121), the persistence foundation (G119), browse mode (G117), its structural sieve (G128) and the shape
-catalog page (G144) have shipped (`FEATURES.md`); verdicts are next when the theme resumes.
-
-**Persistence doctrine for the whole slice: the feed is ephemeral; only human attention persists.** A plan
-enters the database exactly when it is voted on, pinned, or saved from the editor — never while scrolling.
-Generated rows are **immutable**: editing one forks a new `authored` row with a `parent_id` back-reference,
-so the labeled corpus cannot be contaminated after the fact. Browse votes (absolute) and duel results
-(pairwise preference) are **separate datasets**, unified only at analysis time.
-
-- [~] **G159 — a composed plan should carry its voids before it is compiled.** The compiler declares them on
-  every compile (`PlanVoids`, `FEATURES.md`), so a board's holes are correct wherever it is built. What a
-  freshly composed plan does not yet carry is the declaration itself: `Composer.Compose` returns pieces only,
-  and the buffers appear when something compiles it. Running the same step at the end of `Composer.Assemble`
-  makes a generated plan self-describing from birth — one line, no new geometry, and it cannot disagree with
-  the compiler because it is the same step. The cost is the reason it is not folded in already: the composer
-  fingerprint digests the plan JSON, so every board's digest moves, which means a `ComposerVersion` bump and a
-  re-record of `tools/compose/composer-fingerprints.json`. Worth doing on the next version bump rather than
-  spending one on annotation.
-
-- [ ] **G118 — Verdict collection.** Tap-chip annotation tags (large toggleable pills, multi-select —
-  never checkboxes) available on both vote directions, both optional; the tag set seeded from the
-  layout-rules vocabulary (wools-too-close · wools/spawns-should-swap · flat-front · crammed-mid ·
-  no-rotation · great-hub · …, extendable), each tag carrying its rule id where one exists — a
-  downvote tagged with a rule whose term did *not* fire is a ready-made evaluator bug report. Persist
-  {plan ref, descriptor, verdict, tags, free-text note, evaluator score + per-term snapshot, evaluator
-  version} via G119; JSONL export so the labeled examples drive rule refinement, envelope
-  regeneration, and AI-assisted analysis.
-
-- [ ] **G120 — Duel mode (the tournament).** Bucket-scoped side-by-side comparison: a **bucket** is a
-  filter combination (e.g. 2 wools · F frontline · double-hole hub · one L + one donut), so both
-  boards made broadly the same structural decisions — the closest thing to a controlled comparison,
-  and a minimal-pair factory for the evaluator's labeled set. Two big renders, pick the better; the
-  result is a **preference pair** `(winner, loser, bucket)` — never converted into a downvote — with a
-  per-bucket ranking (Bradley-Terry/Elo-style) derived at analysis time. A separate dataset from the
-  browse votes by design.
-
-- [ ] **B79 — The plan tool must not offer Compile before the document it would compile has loaded.**
-  Reached by the SPA hop from the Configuring list, the tool's canvas is in the DOM before its plan document
-  is. Click **Compile** in that window and it posts `pieces: 0`, the validator correctly answers `422` `PL1`
-  *"this plan has no pieces — there is no land to build"*, and the drawer opens anyway because its tabs render
-  the source document. The draft button still reads **Rebuild this map** — `BuildLabel` comes from the map —
-  and is `Disabled="@(compiledLayout is null || draftBusy)"`: present, correctly labelled, not actionable. A
-  user who clicks quickly is told their board has no land, about a board with land. Gate the button, or the
-  post, on the document having arrived.
-
-  The suite half is one missing wait. `map-layers.mjs:75` waits for `.map-canvas-svg`, the element that exists
-  too early; at `:122`, before the *second* compile, it waits 1500 ms with a comment saying exactly why.
-  Fixing the tool makes both unnecessary.
-
-  *diagnosed 2026-08-16 by intercepting the editor's own `POST /api/plan/compile` under both navigations:
-  same database, `goto` → **200**, row-link → **422**. `./tools/e2e.sh all` gives `map-layers` 13/14 with
-  `smoke` 39/39 in the same run; `./tools/e2e.sh map-layers` alone is 18/18. `B229` was this filed a second
-  time — its hypothesis, that an earlier spec breaks the stored plan, is disproved by the same test.*
-
 ## Lower priority / parked
-
-Existing-Edit (`/maps/{id}/edit`) authoring features — **not** used by the intent generator (which
-auto-wires), and Edit is frozen. Resume when the existing-map authoring path is picked up. Their
-*backends* are done (`FEATURES.md`).
 
 - [ ] **Wire-after-group + filter-wiring UI** (ex-`N4` + ex-`F1`). Group regions in Edit → apply
   a wiring template by role; cross-step carve-out (complement) detection; canvas Ctrl-click
   multi-select. The wiring backend (`FilterWiring` appliers + `POST /wiring/apply`) is done.
-- [ ] **Symmetry counterpart accept/reject UI + IoU equivalence** (ex-`F3` + ex-`A2`). Canvas
-  preview/confirm for orbit-created counterparts + `regions_equivalent`/`is_counterpart` detection for
-  dedup + symmetry-violation review. The counterpart + orbit-fill backend is done (the authoring
-  generator already uses orbit-fill automatically).
-- [ ] **3D / side-depth selection view** (ex-`F8` 3D half). The flat side-view slice is done (→ `N08`);
-  a true 3D selection view (monument point/block + cuboid Y) needs design. Later.
-- [ ] **Comment hygiene sweep — the task ids.** Code comments must describe behaviour only, and the
-  attribution half is done (B43 swept every "port of X.py" / "matches Python" reference out of `src/` and
-  `tests/`). What remains is **implementation-phase and task ids** (`NS`, `N00`, `B8`, `P5`, `ND2`, …) in
-  about nineteen places — a comment that says *when* something was built rather than what it does, which
-  reads as noise to anyone who was not there. New code already follows the rule (`CLAUDE.md`).
 
-**Deprioritized — may be dropped in a later pass.** Optional/deferred slices parked out of the active
-long-tail so they stop competing with real work. Re-evaluate (or delete) when their area is next touched.
-
-- [ ] **S10 — Auto-promote rectangles on Bézier (parked, optional).** Today S4 promotes via the inspector
-  button / `P`; a rectangle keeps its 8-handle resize and has no Bézier affordance. If we ever want a
-  rectangle's corner to sprout a Bézier handle that *implicitly* converts it to a polygon, it needs rect
-  vertex/tangent handles in `sketch-edit-controller.js` (a UX decision on resize-handles vs vertex-handles).
-  Low priority — explicit promotion already covers the need.
 - [ ] **A8 — [Decision, parked] Should the layout generator be its own project?** `Pgm` holds two charters:
   the `map.xml` codec (48 files) and the layout generator (`Compose`/`Evaluate`/`Shapes`/`Derive`/`Plan`, 85
   files and 11.5k lines, touching no XML). The generator references only `Domain` and `Geom`, so
@@ -1799,13 +1391,3 @@ long-tail so they stop competing with real work. Re-evaluate (or delete) when th
   whether `PlanCompiler` belongs to the generator or to authoring**, and that is answerable only when the
   generator next needs a structural change; doing it as a standalone refactor buys nothing today.
   See `docs/project-structure.md` §6.1.
-
-- [ ] **A4 — [Consider, not perf] Vector-boolean island outlines (drop the rasterize→polygon round-trip).**
-  Today island outlines come from a pixel round-trip: vector shapes → rasterize to cells → BFS → `BlocksToPolygon`
-  (cells back to a polygon), done only to **avoid a C# polygon-boolean lib**. We
-  already depend on NTS, so the sketch-finish island polygons *could* be computed by NTS vector boolean
-  directly off the shapes (union adds, difference subs), dropping `BlocksToPolygon` + the BFS for the
-  *polygon*. **Not a perf task** — the row-run fix already removed the hotspot, and the cell rasterize must
-  still run for `layer_segment`/`layer.parquet` (Configure height side-view + analysis). Payoff is cleanliness
-  + exact (smooth) outlines; cost is NTS boolean on the authoring path and a **staircase→smooth** outline
-  divergence from scanned maps. Weigh before doing.

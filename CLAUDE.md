@@ -293,7 +293,8 @@ Tasks flow left → right: **`BACKLOG.md` → `TODO.md` → `FEATURES.md`**.
 
 **Task-board rules** (the board kept exploding; these keep it honest):
 1. **A task lives in exactly ONE file.** Never duplicate it across `BACKLOG`/`TODO`/`FEATURES` (two stale
-   copies is the failure mode). Neither `BACKLOG.md` nor `TODO.md` ever holds `[x]`.
+   copies is the failure mode). Neither `BACKLOG.md` nor `TODO.md` ever holds `[x]`. Tasks that are retired
+   for the moment can live inside `docs/<project>/ideas.md`.
 2. **Done = a line in `FEATURES.md`, and no doc still calling it open.** When a task ships a commit lands
    (its message references the id), the task **leaves `TODO.md`**, one line is added to `FEATURES.md` if it's
    a shipped capability, and **every document naming that id as a gap is fixed in the same commit** — grep it

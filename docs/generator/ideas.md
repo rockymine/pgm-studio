@@ -10,24 +10,6 @@ pull it back onto the board by id.
 Status markers: *(obsolete)* = described the retired grower path and is settled or moot; *(partial)* = part
 landed, the rest is the idea.
 
-## Retired with the old grower *(obsolete — recorded so the ids stay accounted for)*
-
-- **G41-A** — route the production arms through `BoxFiller`: done by construction — the filler is the only
-  fill path now; the bespoke `SolveDepth`/`SolveWidth`/`spawnLen` solvers were deleted with the grower.
-- **G63-C** — the switch itself (fill the partition, retire the grower, re-baseline): **done** except the
-  C.2 richness residue, which lives on below (hub forms, floors, invariants).
-- **G44 / G87** — budget→length lane bloat + the fill-to-target directed repair: the growing/stretching
-  machinery they policed is gone. The surviving principle: surplus budget buys *structure or count, never
-  length*; a box grows only when below its family minimum.
-- **G45** — the parallel-lane third wool anti-pattern: the `wool-lane-c` squeeze it banned no longer exists;
-  the surviving half (a third wool as a *real route*, e.g. in a hub bay) merges into G41-D + G113.
-- **G42** — spawn submerged into the merged land: the box path docks by construction.
-- **G36** — residual old-composer polish (off-centre band, over-grown spawn L, frontline-count variety):
-  the first two are structurally impossible now; frontline-count variety is a live evaluator/menu idea.
-- **G39 / G40** — band full-face dock + hole-size caps: delivered by the hull-exact flush band and the
-  WL8/CT8 gate terms; residual question (cap the extent of a bay a frontline wraps) folds into the
-  frontline-form menu work.
-- **G38** — parallel mid bands: superseded by **G116**'s split-band wording below.
 
 ## Mid enrichment (the crossing vocabulary, back on the box path)
 
@@ -184,42 +166,6 @@ landed, the rest is the idea.
 
 ## Realize & world
 
-- **G32-C** — structures & elevation (the "second generator": stairs, climbs, heights, walls). The missing
-  soul once layouts read valid-but-flat. The composer leaves `walls` empty for this pass, and
-  the `EL` laws in `rules.md` are already measured, so what is missing is the pass itself, not its rules.
-  The intended vocabulary: a per-shape floor or base height (plateaus); **cut + raise** — splitting a shape
-  along a seam and offsetting one piece, which at plan level refines one piece into two joined by a `land`
-  interface carrying a height delta; anchor-height gradients (ramps); and stacked layers. It attaches to
-  **roles and interfaces, not to geometry** — a raised spawn for overview, a stepped approach climbing
-  toward a wool room, a low frontline so bridges launch low and defenders hold the high ground, and a
-  `cliff` interface where flow should go one way only. The binding constraint is that steps along any
-  `land` path stay walkable unless the plan explicitly says `cliff`. G81 (the declared-bay scythe) is
-  blocked on this pass existing. The **authoring** half of the same question — a height field stated
-  inside a shape rather than at its outline, and what it costs to walk — is designed and measured in
-  `docs/world-export/relief.md` (tasks S41–S46, prototype `tools/relief`); the two meet at one data
-  model, so what this pass emits from roles and interfaces is what a hand places by dragging.
-- **G142** — the **roughen pass**: turn the plan's clean rectilinear geometry into an organic read. It would
-  run last, inside realize, over the realized polygons of the **authored unit only** — symmetry re-fans the
-  images, plan meaning is frozen, and objective placements are pinned — emitting ordinary `SketchShape`s so
-  every intermediate stays hand-editable. The operators: anchor jitter (displace vertices by bounded noise);
-  edge subdivision and displacement (insert mid-edge anchors, push along the normal, one or two fractal
-  levels — organic outlines with no topology change); pull-to-polygon (one strong displacement breaking a
-  rectangle into a believable quad); a width profile varying a lane's width along its length; a 45° chamfer
-  softening right-angle corners; and a few degrees of piece shear or rotation. Each operator has to preserve
-  the minimum corridor width by an offset test, introduce no self-intersection, keep placements interior with
-  margin, hold `gap` spans inside the bridgeable range, and leave interfaces covered so distorted neighbours
-  still overlap their shared interval. No code exists for any of it.
-- **G32-D** — gates, goldens, emit: freeze fixed-RNG goldens *after* the churn settles. (The author has
-  deprioritized golden stability — layouts are expected to keep evolving — so this is a
-  release-discipline idea, not a near-term gate.)
-- **G34** — theming & styling rules (material palettes + prop stamps); the intended home is
-  `docs/world-export/` (G31, now on the board, defines the preset seam it attaches to). The **terrain**
-  slice is carved out as **G157** — `docs/world-export/terrain-painting.md` (walls/rims/plateaus over the
-  raw stone); the **prop-stamps** slice shipped as **G161** — `docs/world-export/decoration.md` (the dressing
-  pass: flora, paths, boulders and trees; water alone remains, as G169 in `docs/world-export/ideas.md`).
-  G34 remains the umbrella for structure themes.
-- **G29 / G24** — climb profiling on lane chains; junction-region derivation + hubs overlay.
-- **G33** — traffic ground truth from pgmlogger parquet (flow priors to score candidates).
 - **G82 / G83** — entry widening for Z along its bar interface; wool-approach budget law (per-slot caps /
   total path length). Reworded for the box path: the knob is `AttachmentWidth`, the law binds at allocation.
 
@@ -231,13 +177,261 @@ landed, the rest is the idea.
   Contracts DTO) that `rules.md` does not mention, so nothing can cite it and no evaluator term
   scores it. Give it an id in the LN or WL family, or state why it is mechanism rather than law.
   (G124 is the sibling question — what the law *measures*; this one is whether it is a law at all.)
-- **G140** — the corner law is asserted, never gated. `Cells.HasDiagonalPinch` is invoked only from
-  tests and the unit gallery — no `src/` path rejects a pinch at compose time (`audit.md` §3).
-  Decide: gate it in the seat step, or state the by-construction argument in `model.md` and keep the
-  test as the proof.
 
-## Marker & objective knobs (plan editor)
 
-- **G76** — the marker inspector exposes a structure's knobs (destroyable styles, core size/shell,
-  wool colour) instead of silently defaulting.
-- **G77** — `bedrockCentre` is a stamp no authoring path can reach: thread it through or delete it.
+## Layout generation (G)
+
+- [ ] **G158 — seed the library with a curated set.** An author can now build a style once and reuse it, and a
+  theme that binds only the buckets it changes (`FEATURES.md`), but a fresh install's library is empty — so the
+  first desert or snowfield is still built by hand. Ship a curated set of styles and themes as seed rows: the
+  shipping finish decomposed, plus a handful of biomes (desert, tundra, mesa, nether) each reusing the same rim
+  and fill. A preset is just a library theme, so this is a seeding step, not a second mechanism — the open
+  question is only *when* it seeds (a migration, or a "restore the starter set" action that cannot clobber
+  edits).
+
+- [ ] **G150 — stamp a catalog shape into a drawn box.** The plan editor can draw a typed box and then ask
+  whether the composer could have produced what is in it (G125's feasibility panel), but there is no way to
+  go the other direction and *place* something known-producible: nothing in `Features/Plan/` references the
+  catalog or the emitters. So an author hand-cuts rectangles and finds out afterwards. Give a selected box a
+  **family picker** — the in-mix tier of `GET /api/shapes/catalog` (G144), which is exactly the set the
+  composer really samples — plus the knobs `GET /api/shapes/probe` already serves per family, and stamp the
+  emission into the box as its members. Producible **by construction**, so the feasibility panel goes green
+  without the author aiming at it.
+  Most of this exists. The probe endpoint already emits through `BoxFiller` (profile check and docking gate
+  included) and answers with the shape or a directed `FillRejection`; `/api/shapes/probe/schema` already
+  serves the per-family knob surface and minimum box in the dock frame. What is new is the *stamp*: writing
+  the emission into an existing plan's box rather than returning a standalone `symmetry:none` plan, which
+  means placing pieces at the box's origin, giving them ids under the box, and replacing whatever was there.
+  This is the editor half of **B21's `emit_family`** — build it here and the MCP tool wraps it rather than
+  reimplementing it. It also pairs with G149: placing known-producible shapes and watching the G148 land
+  readout move is the most direct way to find out what the budget is actually worth.
+
+- [ ] **G151 — a box's rect should be the bounding box of its members.** The members inspector offers
+  "Fix these members" / "Follow containment", and the fixed half behaves oddly on purpose-built-for-something-
+  else grounds: named membership (`PlanBoxes.MembersOf`, the `Members` list) ignores geometry entirely, so a
+  piece can be dragged *out* of its box and still be carried when the box moves (`plan-canvas.js`, the box
+  drag translates `d.carried` in both modes). That is not an authoring mode — named membership exists for
+  **provenance**, so a pinned board can record the grouping that actually produced it off `BoxPartition.KeyOf`
+  rather than having it re-derived approximately. Exposing it as a toggle asks the author to edit with a
+  mechanism built to preserve history.
+  The fix is not a third mode, it is separating two questions that are currently one button. **Which pieces
+  are members** is legitimately two modes (named vs containment) and both should stay. **What the rect is**
+  should not be a mode at all: it should always be the bounding box of the members. That is not a new rule —
+  `BoxPartition.Of` already computes a box's rect as `Bbox(members)`, and `Box`'s own contract says a box's
+  contents "must touch its edges", which is the same statement. So dragging a member extends the box,
+  dragging the box moves its members, and a member outside its own box becomes unrepresentable rather than
+  merely strange. One case to decide: an empty box has no bounding box — keep its drawn rect until it has a
+  member, which also leaves the draw-then-fill flow working as it does now.
+
+- [ ] **G153 — the feasibility read is per box and is reached through a list.** `G125` computes producibility
+  **per box** and renders it in a left-panel list, so after clicking a box on the canvas the author has to find
+  that same box again, by name, in a sidebar — for a read that is already about the thing under the cursor. The
+  inspector on the right already opens on that box with its id, kind and members; the verdict belongs there,
+  beside them: the parameter tuple that reproduces it or the nearest candidate, its directed findings, and the
+  rule or task id each finding cites, with the click that paints the missing/extra cells kept as it is. The
+  unit-level arrangement findings are genuinely **not** per box (parallel fronts, the frontline's pinned face,
+  seat separation) and stay in the left panel, which leaves that panel one coherent job instead of a mixed list.
+
+- [ ] **G149 — the land budget is a number the composer reads and then overshoots.** The first thing the
+  G148 readout showed, measured over 40 boards at 12 players/team (budget 50 cells): land runs **63% to 222%**
+  of budget, median **115%**, and **28 of 40 boards are over**. So the budget is not a cap — it is an input
+  the allocator consults for its decisions (lane width, whether there is a frontline, the hub caps, the wool
+  count — `TeamUnitAllocator.cs:46-52`, `UnitTuning.WoolCount`) and then nothing reconciles the result
+  against it. `BoxFiller.WithinLandTarget` exists and no production path calls it.
+  Nothing caught this because nothing measures it: the only land-ish term is `fill-ratio` (G8), which is land
+  over the board's **bounding box**, not land against the **budget** — a different quantity that can sit
+  happily in its band while the unit is at double its target.
+  Decide what the budget means before changing anything, because both readings are defensible: either it is a
+  target the fill should be reconciled against (then something must spend the overshoot down — the
+  two-currency accounting says fragment converts surplus land to build, so the question is whether fragment
+  ever runs), or it is only a sizing heuristic (then rename it, drop the "budget" framing, and stop implying
+  a contract that does not exist). What is not defensible is the current state, where a number named budget is
+  exceeded by half again on a typical board and nothing says so. Note G138 is adjacent but distinct: that one
+  is about the composer taking the first acceptable plan rather than ranking; this is about the plan it takes
+  not honouring its own sizing input.
+
+- [ ] **G147 — verdict coverage on the catalog: which buckets has nobody judged?** *(sequenced after G118 —
+  there is nothing to count until verdicts exist.)* The browse feed hands the author whatever the composer
+  samples, so collection is passive: the corpus ends up shaped like the sampler, and the parts of the space
+  the sampler rarely visits stay permanently unjudged. The measured skew makes that concrete — the donut is
+  73 of the 89 wool cards while U, H and L are one apiece (G144) — so scrolling will produce a donut corpus
+  and silence everywhere else, which is exactly the wrong input for rule refinement.
+  The fix is to show the denominator. A `StructureNames.Canonical()` key is a triple
+  (`wools:… | hub:… | front:…`) and the catalog already renders each component of that triple as a card, over
+  a space now small enough to enumerate: 81 wool classes up to rotation/reflection, 7 hub forms, 3 frontline
+  forms. So add a third filter facet beside *kind* and *reach* — **coverage** — with three states: *judged*
+  (this bucket has verdicts), *thin* (one or two, not enough to trust), *unjudged* (nobody has ever looked at
+  a board shaped like this). "Find me something nobody has judged" then becomes a chip click, and collection
+  turns from an infinite scroll into covering a space with visible edges.
+  Needs one query — verdict counts grouped by the structure key — which is a `GROUP BY` on the column G118
+  already stores, so **design it with G118's schema rather than bolting it on after**. The UI is small: a chip
+  row and a count badge over the same tally plumbing the catalog's `ByTier`/`ByFamily`/`ByKind` already use.
+  **A card is a component of a bucket, not a bucket** — a board reading `wools:donut,l` touches both the donut
+  and the L card — so per-card coverage is an aggregate over every bucket that card participates in. Build the
+  aggregate first (cheap, and enough to spot a blind spot); add a per-bucket drill-down only if the aggregate
+  proves too coarse to act on.
+
+- [ ] **G145 — five emitter knobs are unreachable from the composer.** `ShapeEmitter.Emit` takes
+  `attachments`, `woolExtend`, `entryShift`, `woolShift` and `attachmentOffset`, and `WoolBoxEmitter.Emit`
+  passes all five through — but `WoolBoxEmitter.Fill`, the only path `BoxFiller` and therefore the whole
+  compose pipeline uses, forwards none of them (`WoolBoxEmitter.cs`, the `ShapeEmitter.Emit` call inside
+  `Fill`). Their only callers in the tree are `tools/compose/box-gallery.cs` (the two-attachment and
+  moved-attachment donut cards). So the two-attachment donut, the extended-wool donut and both scythe
+  endpoint shifts are built, tested, drawn in the galleries, and **cannot appear on a generated board**.
+  Decide per knob rather than in bulk: the donut's second attachment is a genuine multi-access shape the
+  hub could dock twice and is the strongest candidate to plumb; the scythe shifts are moot until the
+  scythe itself is admitted (G146). Plumbing one means widening `WoolFill` (it already carries
+  `AttachmentWidth` and `RingWalls`, so the shape of the change is settled) and giving `UnitRequests` a
+  draw for it. **Do not "fix" this by deleting the knobs** — `EmitterPlacementKnobTests` gates them and
+  `model.md` §4 describes them; the gap is the plumbing, not the geometry.
+
+- [ ] **G146 — two families are in the vocabulary but never on a board.** The emitter builds eight
+  terminal-capped families; the composer puts six on boards. **Z** is listed in
+  `FillMenu.ProductionFamilies` and `BoxFiller` fills it happily, but `UnitRequests.WoolRequest` never
+  draws it — the rich branch picks donut, then U/H/clamp, else L, and the fallbacks are I. The only caller
+  that could reach it is the roll-indexed `BoxFiller.Fill(box, mouth, cw, roll, …)` overload, which has no
+  caller in `src/` at all. So the menu advertises a family the sampler cannot produce, and the browse
+  tool's own filter chip for it can never match. **Scythe** is the honest case: excluded from
+  `ProductionFamilies` with a stated reason (its bay's mouth is its docking edge, so a flush dock seals it
+  into WL8's forbidden enclosed void), with the elevation-stage alternative already parked as G81.
+  Two separate decisions: either give the sampler a Z draw or drop Z from `ProductionFamilies` so the menu
+  stops advertising it (the second is a one-line honesty fix and should not wait on the first); and leave
+  the scythe out until G81 lands. Either way the catalog page (G144) will render both under a
+  *reachable* / *emitter-only* badge, so the gap becomes visible rather than folklore.
+
+- [ ] **G138 — The composer accepts, it never chooses: a soft score has nowhere to act.** `Composer` takes
+  the **first** plan that clears the gate and `break`s (`Composer.cs:59-84`) — no ranking, no comparison, no
+  best-of-K. It contains zero references to `Evaluate` or `Score`, only `Gate`, and `Gate` runs hard terms
+  only (`LayoutEvaluator.cs:86`). Worse, the compose path builds its context as `EvalContext.Build(plan)`
+  with no envelopes, which defaults to `SeedEnvelopes.**Empty**` (`EvalContext.cs:34-38`) — so every soft
+  term looks its band up, gets null, and stays dormant by design. **The authored envelopes have no causal
+  influence on generated output whatsoever**; they only score plans after the fact, via the
+  `Evaluate(PlanModel, …)` overload the API endpoints and galleries call.
+  So any soft rule derived from `G118`'s verdicts is **inert until this lands**: generate K candidates,
+  score all K, return the best. The loop already generates and discards candidates, so the change is small —
+  but it converts the composer from *first-acceptable* to *best-of-K*, which is a real behaviour change and
+  will move every fingerprint.
+  **Sequence it after the bands are calibrated, not before.** Measured over 560 composed plans, a ranking
+  today would be almost entirely a `spawn-wool-ratio` contest (outside its band on 44% of applicable plans
+  at median distance 1.64) while four terms score nothing at all — see the `LEARNING.md` debt entry.
+  Ranking before recalibration just amplifies one badly-fitted band. Order: `G118` collect → calibrate /
+  gate the vacuous terms → this → soft rules become causal.
+
+- [ ] **G165 — dock arrangement belongs in the structure summary.** Which face of the hub each box seats on
+  is a board property with measured consequences and no representation anywhere: it is not the hub's body
+  form and not the approach family. With the compass rotated so the frontline is *front*, generated boards
+  split **canonical** (spawn *back*, wools *left*+*right*) 27% against **lopsided** (spawn lateral, one wool
+  on *back*) 73%, and the split predicts two things — the median spawn-distance imbalance is 0.18 against
+  0.40, and the second-wool rotation runs within ten blocks of the spawn on 63% of canonical boards against
+  2% of lopsided ones. The faces fall straight out of the mouth positions the box read already computes, so
+  the work is small: add them to `StructureSummary` and to `StructureSummary.Canonical()`, which makes the
+  arrangement a browse-sieve filter and a verdict/duel bucket key for free. **Land it before verdicts
+  accumulate**: `Canonical()` is persisted on a pinned plan as that bucket key, so extending the string
+  reshapes every bucket already stored, and a later change needs a key version rather than an edit.
+
+- [ ] **G166 — seating should prefer the canonical arrangement.** `UnitSeating` chooses which hub edge each
+  neighbour request seats on, and takes no view on the combination; the result is that three boards in four
+  come out lopsided (G165). Prefer the spawn on the edge opposite the frontline with the wools on the two
+  lateral edges — the arrangement built maps converge on. The measured payoff is the imbalance halving (0.40
+  → 0.18) and the restoration of the rotation-past-spawn dynamic that the lopsided arrangement removes. This
+  changes where boxes sit, so it is a geometry change: composer version bump, re-recorded fingerprints, and a
+  before/after gallery. Constraining the seat choice can only raise the rejection rate, so measure that
+  alongside the arrangement split rather than assuming it stays flat.
+
+- [ ] **G167 — a holed hub should seat its docks across the hole.** A ring, double-hole, P or G hub only
+  offers two ways across when the two docks straddle its void, and today that is left to chance: ring hubs
+  deliver two ways on 163 of 224 spawn-to-wool crossings, and the ones that do not are dead by seating rather
+  than by shape — the same body form with both docks on one side is a wide room with a decorative hole in it.
+  When the sampled hub body encloses a void, prefer opposite walls for the two docks. The value is not the
+  extra distance but what G164 measures: the far way round drops interference from 76% to 37%, which is
+  the difference between an alternative and an alternative worth taking. Geometry change, so the same
+  fingerprint and gallery costs as G166, and the two should land together or in a known order since both
+  touch the same seat choice.
+
+- [ ] **G168 — a board is worth evaluating in two game states.** A two-wool map is not one arrangement but
+  two in sequence: before the first capture both objectives are defended from the spawn, and after it one
+  room is the attacking team's forward node — a place worth travelling to for the chest gear the generator
+  emits — and the wool-to-wool route becomes the live one. Terms that are vacuous in the first state carry
+  the whole second phase, so evaluating only the opening scores half a match. This is a change to the
+  evaluator's shape rather than a new term: `EvalContext` carries which state is being read, and the terms
+  that only apply post-capture (G164's interference, rotation between objectives) declare it. Decide
+  early whether the two states produce two scores or one combined figure — a single number that averages a
+  strong opening against a hopeless second phase describes neither. The played account is in
+  `docs/gameplay/match-flow.md` §4.8.
+
+### The generator in the studio (G117–G120) — parked while the authoring loop is the focus
+
+The box pipeline is **the** composer and the emitted layouts are good enough to work *with*, so the
+bottleneck sits in the feedback loop rather than in the grammar. This slice integrates the generator into
+the studio itself — compose interactively, filter what to see, and **collect annotated keep/discard
+verdicts** that become the labeled positive/negative corpus every later refinement feeds on. The showcase
+(G121), the persistence foundation (G119), browse mode (G117), its structural sieve (G128) and the shape
+catalog page (G144) have shipped (`FEATURES.md`); verdicts are next when the theme resumes.
+
+**Persistence doctrine for the whole slice: the feed is ephemeral; only human attention persists.** A plan
+enters the database exactly when it is voted on, pinned, or saved from the editor — never while scrolling.
+Generated rows are **immutable**: editing one forks a new `authored` row with a `parent_id` back-reference,
+so the labeled corpus cannot be contaminated after the fact. Browse votes (absolute) and duel results
+(pairwise preference) are **separate datasets**, unified only at analysis time.
+
+- [~] **G159 — a composed plan should carry its voids before it is compiled.** The compiler declares them on
+  every compile (`PlanVoids`, `FEATURES.md`), so a board's holes are correct wherever it is built. What a
+  freshly composed plan does not yet carry is the declaration itself: `Composer.Compose` returns pieces only,
+  and the buffers appear when something compiles it. Running the same step at the end of `Composer.Assemble`
+  makes a generated plan self-describing from birth — one line, no new geometry, and it cannot disagree with
+  the compiler because it is the same step. The cost is the reason it is not folded in already: the composer
+  fingerprint digests the plan JSON, so every board's digest moves, which means a `ComposerVersion` bump and a
+  re-record of `tools/compose/composer-fingerprints.json`. Worth doing on the next version bump rather than
+  spending one on annotation.
+
+- [ ] **G118 — Verdict collection.** Tap-chip annotation tags (large toggleable pills, multi-select —
+  never checkboxes) available on both vote directions, both optional; the tag set seeded from the
+  layout-rules vocabulary (wools-too-close · wools/spawns-should-swap · flat-front · crammed-mid ·
+  no-rotation · great-hub · …, extendable), each tag carrying its rule id where one exists — a
+  downvote tagged with a rule whose term did *not* fire is a ready-made evaluator bug report. Persist
+  {plan ref, descriptor, verdict, tags, free-text note, evaluator score + per-term snapshot, evaluator
+  version} via G119; JSONL export so the labeled examples drive rule refinement, envelope
+  regeneration, and AI-assisted analysis.
+
+- [ ] **G120 — Duel mode (the tournament).** Bucket-scoped side-by-side comparison: a **bucket** is a
+  filter combination (e.g. 2 wools · F frontline · double-hole hub · one L + one donut), so both
+  boards made broadly the same structural decisions — the closest thing to a controlled comparison,
+  and a minimal-pair factory for the evaluator's labeled set. Two big renders, pick the better; the
+  result is a **preference pair** `(winner, loser, bucket)` — never converted into a downvote — with a
+  per-bucket ranking (Bradley-Terry/Elo-style) derived at analysis time. A separate dataset from the
+  browse votes by design.
+
+  - [ ] **B40 — The three dock styles are implicit; make them a type.** `Seat` picks between three seating
+  rules using three *different discriminators* — `d.Wool is { } rich && Overhangs(rich.Family)` (shape
+  family), `d.Kind == BoxKind.Frontline` (box kind), and falling through (everything else) — so there is
+  nowhere in the code to ask which style a demand uses. The asymmetry runs deeper than the selector:
+  two styles are named functions and the third is ~30 lines of inline loop body with no name; and the three
+  are at different altitudes — `SeatOverhang`/`SeatFront` return a placed `(CellRect, BoxInterface)` while
+  `SeatInRuns` returns a bare `int?` seat, leaving the caller to build the rect and the joint. That is why
+  `boxes.Add`/`joints.Add` is written out three times with different arguments.
+  **Scope:** (a) extract `SeatFullMouth` returning `(CellRect, BoxInterface)?` like its siblings, then (b)
+  add an explicit `DockStyle { FullMouth, Overhang, ContactPatch }` **derived** from the demand — it is never
+  sampled, it follows from the family roll — and dispatch on it. **Leave the failure policies alone**: they
+  genuinely differ in kind (overhang demotes via `Compact`, the frontline kills the attempt, a wool may be
+  dropped if another remains), and flattening them into flags loses more than it gains.
+  The doc comment writes itself, because the three styles are indexed by *how much is known about the
+  shape's entries*: full mouth knows nothing (require the whole mouth on one run and every entry lands —
+  which is why the two-entry `U`/`H`/`Clamp` dock here); overhang knows there is exactly one and where it
+  is; contact patch has no entry at all because a frontline is a face, not a corridor.
+  **Oracle + the real constraint:** `ComposerFingerprint` + `ComposerVersionTests` must stay byte-identical.
+  All three styles consume `rng`, so the invariant is not "does it compile" but **does the draw order
+  survive** — hoisting one call above another moves the stream and every fingerprint goes red.
+
+- [~] **B41 — Should a host's published capacity bound the grant it hands out?** The naming half has landed
+  (`FEATURES.md`): `BoxJoint.Grant` is now distinct from a host's `EdgeOffer`, and the docstrings state the
+  split — an offer's `WidthClass` is a *capacity* derived from the run's length, a grant's is a *selection*
+  made per consumer kind. What remains is the behaviour question the rename deliberately did not answer.
+  Today the two are entirely unlinked: `Seat` reads the hub's offers, keeps only `(Start, LengthCells)` as its
+  **runs** and drops the published width, then `HubJoint` grants a width taken from the demand's kind
+  (`WoolLaneCells` for a wool, `w` otherwise). So a hub can grant a corridor **wider than the run it sits on
+  claims to support** and nothing objects. Either that is intended — capacity is advisory, the consumer knows
+  its own lane — or the grant should be clamped to the offer, in which case a narrow run would demote a
+  consumer's `cw` and some docks that succeed today would not.
+  **Measure before deciding**: how often does the granted width actually exceed the published capacity of the
+  run it lands on? If never, this is documentation; if often, it is a real gate the composer is missing.
+  Changes what the filler builds, so it needs a before/after gallery and will move fingerprints.

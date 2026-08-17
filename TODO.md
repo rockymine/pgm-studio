@@ -32,33 +32,192 @@ and every group's landing site is built. The one open question that governs a wh
 every measure is still flat (`B246`), so the thresholds stated in it want restating before anything enforces
 them.
 
-## Backend, pipeline & internals (B / P / A)
+## Task groups
+
+### Symmetry: two mirror centres, and a picture that hides which is which
+
+- [ ] **B250 — Stamp families disagree with the terrain, and with each other, about where the mirror centre
+  is.** The board's extent is **even** on both axes — `firnline` x −45..44 / z −100..99, `basalt-reach`
+  x −75..74 / z −102..101 — so the centre is a **cell boundary**, and the rot_180 image of cell `x` is
+  `−1−x`. The terrain keeps that. Several stamp families do not: they mirror about the **origin**, one block
+  off, so relative to the ground it stands on the stamp sits a block from its own image. Settle the centre
+  once, then make every fanning site read it.
+
+  | family | centre its images actually pair about |
+  |---|---|
+  | house, spawn room, destroyable, core | **origin** |
+  | spawn iron cube, redstone line | **corner** (the terrain's) |
+  | wool room floor, approach wall | neither — pair under no candidate |
+  | terrain | corner, with a residual (below) |
+
+  **The terrain also has a residual the centre does not explain**: at its own best centre `firnline` leaves
+  **164 of 10,986** terrain columns (1.5%) without an image and `basalt-reach` **260 of 19,014** (1.4%). A
+  rounding that survives the centre fix is a different bug.
+
+  *measured 2026-08-16 over `pgm-studio-mapgen/maps/{firnline,basalt-reach,sunspit}/region`, pairing each
+  stamp with whichever stamp its rotated image actually lands on — **not** by owner id, because a provenance
+  owner's suffix is an index into the fanned list (`wool:{i}`, `spawn:{i}`, `destroyable:{i}`) and only
+  `house:{id}:{k}` carries an orbit index. Two limits worth knowing before acting: **provenance records
+  structures only** (`B216`), so trees, boulders, water and the relief are not in this reading at all; and
+  `kerbstone`/`tanglewold` pair under neither candidate for every family, which is more likely a different
+  symmetry mode than a fault and was not chased.*
+
+- [ ] **B251 — A mirrored board cannot be read off the stage images, because neither render survives a
+  rotation.** Rendered a synthetic world that is exactly rot_180 symmetric — 1,681 columns, **zero**
+  unmirrored — and both pictures come out asymmetric: `sym-structures` differs from its own 180° image on
+  1,568 of 26,896 pixels, `sym-topdown` on 896. Neither is an offset: the two houses' drawn bounding boxes
+  are exact images of each other (`x 24..51, y 40..67` against the same reflected). Two causes, both
+  cosmetic and both defeating the one thing an author checks these pictures for.
+
+  **`StructureFinder` gives every structure its own accent colour**, so a structure and its mirror image are
+  drawn in different hues and the two halves read as holding different things. On a symmetric board the
+  accent wants to be per **owner-without-its-orbit-index** — `house:w1:0` and `house:w1:1` are one building
+  seen twice — so a mirrored pair shares a colour and a genuinely unpaired structure stands out.
+
+  **Both renders shade against the north neighbour only**, which cannot survive a 180° rotation by
+  construction. Correct as a lighting cue and wrong as the only cue: a reader comparing halves sees a
+  gradient that flips. Worth a symmetry-aware mode, or an overlay that draws the axis and the mirror
+  residual directly rather than leaving it to the eye — which is what `B250` needed and could not get from a
+  picture.
+
+### Provenance: A per-column record of which pass claimed the column last
+
+- [ ] **B252 — A provenance owner id means two different things, so nothing can pair a stamp with its own
+  mirror.** `house:{propId}:{k}` carries the **orbit image** in `k`, while `spawn:{i}`, `wool:{i}`,
+  `destroyable:{i}`, `core:{i}`, `wall:{i}`, `roomfloor:{i}`, `redstoneline:{i}` and `ironcube:{i}` carry a
+  running index into the **already-fanned** list. Both images of one thing are separate entries with nothing
+  saying which thing they are two of, and `spawn:0` / `spawn:1` are indistinguishable in form from
+  `house:h1:0` / `house:h1:1` while meaning something else. Give every claim the same pair — **what it is, and
+  which image of it this is** — so a reader can group by identity and pair by image without guessing.
+
+  `StructureFinder` already groups by owner to tell two touching buildings apart, so the identity half is
+  load-bearing today; the image half is what `B250` had to recover by matching cell sets geometrically,
+  which is how the first reading of it came out wrong.
+
+- [ ] **B216 — Provenance records structures only; it should record every pass that places something.**
+The sidecar carries `Ground` and `Structure` and nothing else — **no trees, no boulders, no paths, no
+water**. Its own docstring argues they need no record because they separate from built ground by material;
+the author's ruling is the other way: **provenance carries them too**. Material tells you what a block is,
+not that a pass put it there or which prop it belonged to, and that is what a read-back has to be able to
+prove.
+
+The consequence is stated twice in the authoring reports: `--column` is the only read that can prove ground
+cover exists, because the top-down will not show it, the export will not refuse it and the sidecar does not
+carry it — which is how two flora props landed nothing on Coldharbour with no diagnostic anywhere. It also
+left `B250`'s symmetry reading silent on exactly the families an author checks first. **The placement is
+known at stamp time** and the tree renderers already read it to draw a crown and a base, so this is a write
+rather than a derivation. It lands with `B252`'s owner shape, since a new claimant needs an identity a
+reader can group on.
+
+- [ ] **B37 — Every family's resolver should answer one resolved-stamp record, and only iron does.**
+  `IronResolution(MarkerX, MarkerZ, MinX, MinZ, Size, Placeable)` is the shape and the only instance, with
+  four consumers, all iron; the wall, the rooms and the objectives each resolve their placement inline. The
+  record wanted is **kind, footprint box, `Placeable`, source marker**, produced by each family's resolver.
+  The stampers stay heterogeneous — a wall owns a seam, a room a piece + marker + entries, an objective a
+  marker + style — which is why the *resolution* is the thing to share and not the stamping.
+
+  Two things need it. `PlanStructurePreview.StructureBox` assembles its own boxes for iron, destroyables and
+  cores; consuming the record instead reaches placeability into the iso view for free. And the
+  objective↔objective and objective↔monument **minimum distances** — a core merging with a wool monument they
+  must read apart from — have nowhere to live until every placement answers in one shape.
+
+  *Not this: `OB17` already refuses a goal in void, in a spawn room or in a wool room over a shared
+  `ObjectiveFootprint`, the unwinnable `block="never"` case included; `StructureClaim` (`B202`) answers which
+  columns a stamp owns; `B142` answers what the dressing pass declined. The editor half shipped (`B59`,
+  `C44`) and what remains of it is timing — structural findings do not run in the live feed (`G161`), so a
+  refusal appears at Compile rather than as the marker is dragged. `G65` is adjacent and separate: whether two
+  pieces touch, not how far apart two placements stand.*
+
+  *moved here by the human because it sounds related and no other category fits*
+
+### Agentic Map Authoring
 
 - [ ] **B253 — How a model actually drives the studio: read the six drivers and the fifteen reports, then
-  decide what the one driver is.** Nobody authored a map the same way twice. `pgm-studio-mapgen` carries
-  **six** independent drivers — `tools/drive.ps1` (a thin poster, hand-authored layouts), `tools/drive.py`
-  (compiles the plan through the API, then patches the compiled layout by tier height), two per-spec
-  `assemble.ps1`, and `build.py`/`reconstruct.py` under `coldharbour`, `coldharbour_v2`, `quernstone` and
-  `thunder-series` — plus `tools/build.cs` and `world-build.cs`, against `tools/mapgen` in this repo. Two
-  point at different ports. Each was written because the one before it did not fit, and none of that reached
-  a document.
+decide what the one driver is.** Nobody authored a map the same way twice. The `pgm-studio-mapgen` repository carries
+**six** independent drivers — `tools/drive.ps1` (a thin poster, hand-authored layouts), `tools/drive.py`
+(compiles the plan through the API, then patches the compiled layout by tier height), two per-spec
+`assemble.ps1`, and `build.py`/`reconstruct.py` under `coldharbour`, `coldharbour_v2`, `quernstone` and
+`thunder-series` — plus `tools/build.cs` and `world-build.cs`, against `tools/mapgen` in this repo. Two
+point at different ports. Each was written because the one before it did not fit, and none of that reached
+a document.
 
-  **Read them against the `reports/` (15) and `review/` (29) records** and answer three things. *What every
-  driver had to do itself* — the call order, the fanning, the `@style` resolution, the wait-and-look step —
-  is the shape of the driver the studio should ship. *What each model reached for and could not find* is
-  where the endpoints are unreachable rather than absent, which is `B109`'s and `B245`'s subject. *What a
-  driver had to know that no document says* is the gap `AUTHORING-BRIEF.md` should close.
+**Read them against the `reports/` (15) and `review/` (29) records** and answer three things. *What every
+driver had to do itself* — the call order, the fanning, the `@style` resolution, the wait-and-look step —
+is the shape of the driver the studio should ship. *What each model reached for and could not find* is
+where the endpoints are unreachable rather than absent, which is `B109`'s and `B245`'s subject. *What a
+driver had to know that no document says* is the gap `AUTHORING-BRIEF.md` should close.
 
-  The output is a finding, not a refactor: one written account of the authoring loop as it is actually
-  driven, and a decision on whether the one driver belongs in `pgm-studio` beside `tools/mapgen` or in
-  `pgm-studio-mapgen` beside the specs. Worth doing before `B245` and `B249`, which both assume an answer.
+The output is a finding, not a refactor: one written account of the authoring loop as it is actually
+driven, and a decision on whether the one driver belongs in `pgm-studio` beside `tools/mapgen` or in
+`pgm-studio-mapgen` beside the specs. Worth doing before `B245` and `B249`, which both assume an answer.
 
-- [ ] **B106 — Rename one of the two things called protection.** One is the XML region rule that stops a
-  player entering a spawn or a wool room and restricts what may be broken or placed inside it — a gameplay
-  contract. The other is `Decorator.IsProtected`, "cells nothing may be placed on", a dressing keep-out with
-  no gameplay meaning. A goal that needs the second does not need the first, and one word for both invites the
-  inference that a destroyable must live somewhere protected — which is what produced the caged goals, and it
-  survives the code that acted on it.
+### Other tasks and quick wins
+
+- [ ] **G163 — `map-layers`' rebuild-confirmation step flakes about one run in three.** The step drives
+  Compile on a freshly-opened plan and reads the drawer; when the plan document has not reached the client
+  yet it compiles an empty plan, which is a 422 by design, so the drawer never opens and the following
+  `page.click` times out at 30s. The spec guards it with a fixed `waitForTimeout(1500)` — a duration
+  standing in for a condition, and the wrong guess about a third of the time. Measured 1-in-3 both with and
+  without the `OB17` rule, so it is timing rather than validation. Waiting on the first piece id label
+  (`.map-canvas-svg text`, the overlay's proof the document arrived) was tried and did **not** fix it, so
+  the stall is later than the document load. **A caught failure now names the click, and it is not the one
+  the paragraph above blames.** The step got as far as reading the drawer's button label ("the button names
+  a rebuild" passed on `Rebuild this map`) and then timed out on `page.click("Rebuild this map")` — the
+  *second* click, on a compile that answered 200, long before the empty-plan compile the 1500ms guard is
+  aimed at. The recorded 422 is an earlier fault on the same page, not this one. A 30s timeout on a button
+  whose text was just read means the element was found but never became actionable, which points at a
+  drawer that keeps re-rendering rather than at a document that has not arrived — so the fix is a wait on
+  the drawer settling, and the 1500ms guard may be guarding nothing. A flake in the browser gate costs more
+  than the step is worth, because it makes every unrelated run ambiguous.
+
+- [ ] **G154 — one plan editor, two bindings, two different tools.** `PlanTool` serves `/plan-editor` and
+`/maps/{slug}/plan` from a single component through five `@if (MapBacked)` branches, and the two render as
+different products. Map-backed gets the phase rail (Info · Draw), the flow bar, and the three panels as chips;
+the bare route gets no flow bar, no phases, the same three panels as **rail buttons**, and a collapsible
+sidebar the map-backed one cannot have (`SidebarOpen => MapBacked || leftOpen`). Same panels, two navigation
+models, one file — the thing the tool-consistency alignment exists to prevent.
+Unify on the phase-rail + flow-bar + chips structure and keep the collapsible sidebar for both. The route may
+change **only** the topbar — its crumbs and which actions exist — because that is where the binding genuinely
+differs: a map-backed plan saves into its map's artifact, while a plan row saves as a row and forks when it
+was generated or imported. Rename the bare route to `/plans/{id}` (and `/plans/new`), which says what it is
+bound to where `/plan-editor` says nothing, updating the generator hand-off, the smoke sweep's route list and
+the plan schema doc with it.
+**Do not delete the route.** It is the only surface that opens a **plan row**, which is what the generator
+hands a candidate off as and what `G119`'s fork-on-edit rule operates on; routing candidates through
+`/maps/{slug}/plan` would mint a map per candidate looked at, and New, Import, Open and the origin badge have
+no home on a map-backed plan.
+
+- [ ] **B79 — The plan tool must not offer Compile before the document it would compile has loaded.**
+Reached by the SPA hop from the Configuring list, the tool's canvas is in the DOM before its plan document
+is. Click **Compile** in that window and it posts `pieces: 0`, the validator correctly answers `422` `PL1`
+*"this plan has no pieces — there is no land to build"*, and the drawer opens anyway because its tabs render
+the source document. The draft button still reads **Rebuild this map** — `BuildLabel` comes from the map —
+and is `Disabled="@(compiledLayout is null || draftBusy)"`: present, correctly labelled, not actionable. A
+user who clicks quickly is told their board has no land, about a board with land. Gate the button, or the
+post, on the document having arrived.
+
+The suite half is one missing wait. `map-layers.mjs:75` waits for `.map-canvas-svg`, the element that exists
+too early; at `:122`, before the *second* compile, it waits 1500 ms with a comment saying exactly why.
+Fixing the tool makes both unnecessary.
+
+*diagnosed 2026-08-16 by intercepting the editor's own `POST /api/plan/compile` under both navigations:
+same database, `goto` → **200**, row-link → **422**. `./tools/e2e.sh all` gives `map-layers` 13/14 with
+`smoke` 39/39 in the same run; `./tools/e2e.sh map-layers` alone is 18/18. `B229` was this filed a second
+time — its hypothesis, that an earlier spec breaks the stored plan, is disproved by the same test.*
+
+- [ ] **B34 — The two map-list endpoints disagree on sort order, and the dashboard gets the noisy one.**
+  `MapsListEndpoint` branches on the `stage` query param onto two differently-ordered repository methods:
+  `MapRepository.ListAsync` sorts `OrderBy(Slug)`, `ListByStageAsync` sorts
+  `OrderByDescending(UpdatedAt).ThenBy(Slug)`. The dashboard always requests `?stage=…`, so it always gets
+  recency order — and on the imported Edit corpus `updated_at` records when the *pipeline* last wrote the
+  row, not when the author last worked on the map, so it carries no authoring signal. The 349 Edit rows hold
+  only 29 distinct timestamps (a re-processing pass stamped them in ~22-map batches a second apart), so the
+  list renders as 29 alphabetical runs concatenated — it reads as scrambled, with the three maps outside the
+  supported range (`3084`, `allure`, `lost_haven`, never re-processed) parked at the bottom. Recency earns
+  its keep on Sketches/Plans/Configuring, where the timestamps are real edits and the lists are short.
+  Preferred fix: slug order for the Edit stage, recency for the other three (one line); alternatives are
+  slug everywhere, or leave it and let recency come good once maps are edited in the studio. Cosmetic — no
+  data is wrong, and both orders are deterministic.
 
 - [ ] **B102 — Clear the region directory before a rebuild writes it.** `AnvilRegionWriter.Write` calls
   `Directory.CreateDirectory` and nothing else, so every `.mca` a previous build left is still there and a
@@ -68,3 +227,14 @@ them.
   compared". It cost a design session real time, presenting as building counts that could not be reconciled
   until the directory was deleted by hand. Distinct from the concurrent-build race `CLAUDE.md` warns about:
   that one is two builds at once, this one is one build after another.
+
+- [ ] **CV21 — the world canvas has a `build` layer nothing paints into.** Stating the layer stack once
+(`CV19`) surfaced two layers with no content. One was removed there — a `block-highlight` rect created
+`visibility:hidden` whose only handle was assigned and never read. This is the other: the `build` group is
+created empty, no painter ever appends to it, and its toggle `setBuildVisible` has no caller outside the
+class — not the bridge, not any of the sixteen hosts. So it is an empty group with a visibility switch
+nobody throws. Removing it takes `setBuildVisible`, `#showBuild`, `#paintBuildRegion` and one line of the
+documented public surface with it, which is why it was left in place rather than swept during a
+behaviour-preserving refactor. Check first whether a Build phase was *meant* to fill it (the name suggests
+the Build-Regions work) — if so the task is to wire it, not delete it, and that is a different task in the
+feature section.
