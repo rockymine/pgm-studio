@@ -91,6 +91,12 @@ that already exists in the map contract.
   `SketchWorld.DroppedProps` today and discard it — so an agent learns **why, where and what** on the loop it
   actually drives, instead of unzipping `dressing-report.json`.
 
+  **A decline is a complaint on a 200, not a refusal**, so it never touches the refusal envelope: the world
+  built, and some props did not land in it. The shape already exists and wants reusing rather than inventing
+  — `/plan/inspect` returns `warnings`, `/plan/evaluate` returns `lint`, and `FeasibilityDto` carries `Unit`,
+  each a `FindingDto[]` beside a success payload. Three names for one shape is its own small drift; pick one
+  and use it here rather than minting a fourth.
+
 - [ ] **B106 — Rename one of the two things called protection.** One is the XML region rule that stops a
   player entering a spawn or a wool room and restricts what may be broken or placed inside it — a gameplay
   contract. The other is `Decorator.IsProtected`, "cells nothing may be placed on", a dressing keep-out with
