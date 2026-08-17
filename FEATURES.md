@@ -3328,6 +3328,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   read 167 mirrored columns at the cell boundary against 262 at the origin before, and the regressions now
   pin the boxes, the built voxels and the transform itself. (`SymmetryCellTests`, `MirrorCentreWorldTests`,
   `HousePropTests`)
+- **A stage image that answers whether the board is really mirrored (B251).** Every other picture draws what
+  is standing and leaves the comparison to an eye, which cannot hold two halves against each other a block at
+  a time — and the ones carrying a structure's extent draw it from provenance, so a claim that is wrong about
+  where its blocks are draws a building where none stands. `stages/mirror.png` reads neither the record nor
+  the intent: it takes each column's own solid spans, takes the column its orbit lands on through the build's
+  own `Symmetry.Cell`, and paints red the ones that do not match, with the count in the caption and the
+  symmetry centre marked. Material is deliberately not compared — the two halves of a themed board differ by
+  design — so what is measured is the shape, which is the claim a mirrored board actually makes. On the
+  pre-fix `firnline` it names 704 of 11,848 columns and draws them exactly on the six houses and both
+  destroyables. (`MirrorReportTests`)
+- **A room's claim is the ground its shell filled, not the frame's own numbers (B251).** A `RoomFrame`'s
+  bounds are grid lines — its `Width` is `MaxX − MinX` — so carrying them into a max-inclusive provenance
+  rect claimed a row and a column of ground the room never touched, on the `+x`/`+z` side of *both* orbit
+  images, which no rotation maps onto its partner. So a spawn room whose blocks mirror exactly drew a block
+  out of place in every provenance-backed picture. Spawn and wool rooms now claim
+  `StructureStamper.FoundationCells`, the stamper's own walk — the same fix the room floors already carried,
+  and `StructureClaim`'s rule that a claim is taken from the placement rather than rebuilt beside it. A
+  9×9 claim over an 8×8 shell became 8×8, and the two spawns' claims became exact mirrors.
 - **The structure render colours by identity, so a mirrored pair shares a hue (B251).** The accent was
   `accents[index % 6]` over discovery order, so a building and its own image came out in different colours
   and the two halves read as holding different things — defeating the one question the picture is opened to

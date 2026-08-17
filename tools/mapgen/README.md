@@ -244,7 +244,8 @@ the world the build just produced rather than a second read of the region files 
 | `dressing.png` | the finished terrain and props read from directly above, before the objective is drawn on top of it — false-coloured by category (ground/structure/foliage/water), not by real material |
 | `foliage.png` | `dressing.png`'s categories again with only foliage highlighted, everything else a flat context tone |
 | `traversability.png` | whether the navigable ground (walkable surface, two blocks of headroom) actually joins spawn to every goal — one dominant colour through every marker is a connected board, a marker in a second colour is cut off |
-| `structures.png` | what the world stamped, found by material and independent of theme |
+| `structures.png` | what the world stamped, found by material and independent of theme — one accent per structure *identity*, so a mirrored pair shares a colour and an unpaired one stands out |
+| `mirror.png` | whether the board is actually the shape its symmetry says it is: every column against the column its own orbit lands on, read off the blocks rather than off any record. Red is a column whose image does not match it, and the caption counts them — the one picture that answers "is this half really the other half" without asking an eye to compare two halves a block at a time |
 | `topdown.png` | `dressing.png`'s view again with the map.xml goal boxes overlaid — a prop placed through a room shows up in the first, a goal standing over void shows up in the second |
 | `objectives.png` | the map.xml overlay alone, on a dim uniform backdrop — where the declared goals sit, with nothing else competing for the reader's eye |
 
@@ -257,6 +258,18 @@ sits where the relief left it. Every PNG here carries a legend and a scale baked
 (`B98`, `B95`) — the false colour is deliberate (foliage violet, structure orange, ground a muted grey, water
 cyan), chosen to separate categories rather than to depict them, and `--topdown`'s `--material` flag switches
 back to the real per-block colours for a caller checking a theme's actual paint rather than the map's shape.
+
+**The greys are three different readings, and which one a picture uses says what it is asking.** The
+top-down four shade each column against the column one step *north* — a signed step, so a wall, a trench and
+a plateau's lip each mark themselves while flat ground keeps its category colour exactly, with a gentle
+absolute-height term separating a valley floor from a hilltop on top of it. `structures.png` and `mirror.png`
+shade by absolute height alone: there the grey is a backdrop and the accent or the red is the signal, so a
+ramp saying where the ground is high is worth more than one saying where it steps. `heightmap.png` and
+`contour.png` light the ground from a fixed north-west sun, the conventional hypsometric reading. Only the
+first of the three is direction-dependent, and it is so on purpose — the sign is what separates ground that
+falls away from something standing up. It does mean that reading is the one that flips under a half turn,
+which is why whether a board is mirrored is `mirror.png`'s question and not something to judge off a shaded
+picture.
 
 The same renderers are the `RoundTrip` harness's own picture-taking, callable directly against a built map
 already on disk:

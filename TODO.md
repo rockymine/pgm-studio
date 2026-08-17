@@ -40,26 +40,6 @@ them.
 
 ## Task groups
 
-### Symmetry: the centre is settled, and the picture that still cannot show it
-
-- [~] **B251 — A stage image still cannot prove a board is mirrored: the shading flips, and a claim can lie
-  about where its blocks are.** The accent half is fixed — a structure and its own image share a hue
-  (`FEATURES.md`) — and two causes remain.
-
-  **`TopDownRender` shades each column against the one step north** (`TopDownRender.cs:354`), which cannot
-  survive a 180° rotation by construction: a reader comparing halves sees a gradient that flips. Correct as a
-  lighting cue and wrong as the only cue. Worth a symmetry-aware mode, or an overlay that draws the axis and
-  the mirror residual directly rather than leaving it to the eye — which is what `B250` needed and could not
-  get from a picture.
-
-  **A claim rectangle is not always its partner's mirror, even where the blocks are.** On `firnline` the two
-  spawn rooms are mirror-exact in the world — x −12..7 / z 87..102, **320/320** columns — while `spawn:0`'s
-  claim x −5..4 / z 91..99 reflects to x −5..4 / z −100..−92 against `spawn:1`'s actual x −4..5 / z −99..−91.
-  So the render draws a building a block from where it stands and the world is right. What wants settling is
-  `SpawnRoom`'s frame: it is handed to `ClaimRect` as a rectangle of cells and mirrors as though its bounds
-  were grid lines, and `StructureClaim`'s rule (`B202`) is that a claim comes from the placement rather than
-  being rebuilt beside it.
-
 ### Provenance: A per-column record of which pass claimed the column last
 
 - [ ] **B252 — A provenance owner id means two different things, so nothing can pair a stamp with its own
@@ -83,8 +63,10 @@ prove.
 
 The consequence is stated twice in the authoring reports: `--column` is the only read that can prove ground
 cover exists, because the top-down will not show it, the export will not refuse it and the sidecar does not
-carry it — which is how two flora props landed nothing on Coldharbour with no diagnostic anywhere. It also
-left `B250`'s symmetry reading silent on exactly the families an author checks first. **The placement is
+carry it — which is how two flora props landed nothing on Coldharbour with no diagnostic anywhere. A
+provenance-blind read is not the whole answer either: `stages/mirror.png` covers a tree and a boulder because
+it reads the blocks, but it can only say a column is unpaired, never which prop the column belonged to.
+**The placement is
 known at stamp time** and the tree renderers already read it to draw a crown and a base, so this is a write
 rather than a derivation. It lands with `B252`'s owner shape, since a new claimant needs an identity a
 reader can group on.

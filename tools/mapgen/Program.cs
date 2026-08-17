@@ -274,6 +274,12 @@ static void EmitStages(string outDir, PlanModel? plan, VoxelWorld world, WorldPr
         greyscale: false, markWater: true, drawContours: true, name: "contour");
     SurfaceReport.Run(world, Path.Combine(dir, "surface.png"), scale: 3);
     StructureFinder.Run(world, Path.Combine(dir, "structures.png"), scale: 3, minimumArea: 12, provenance: provenance);
+    // The one stage read off the blocks alone. Every other picture of a structure draws its extent from the
+    // provenance record, so a claim that is wrong about where its blocks are draws a building where none
+    // stands; this compares each column against the column its own orbit lands on and says which do not
+    // match, which is the question a mirrored board is checked for and the one an eye cannot answer.
+    MirrorReport.Run(world, Path.Combine(dir, "mirror.png"), scale: 3,
+        mode: plan?.Globals.Symmetry, centerX: 0, centerZ: 0);
     // The point-and-radius reading comes straight off the dressing document, not the world, so this caller
     // reaches for the layout it already holds rather than anything the build produced.
     TopDownRender.Run(world, Path.Combine(dir, "foliage.png"), map: null, scale: 3, yMax: null, name: "foliage",

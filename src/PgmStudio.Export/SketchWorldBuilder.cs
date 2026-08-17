@@ -89,7 +89,12 @@ public static class SketchWorldBuilder
                 Frame = frame, FloorY = fy, WoolSlug = slug, Ground = terrain.SurfaceTop, Shell = woolStyle,
             });
             var woolOwner = $"wool:{i}";
-            provenance.ClaimRect(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ, ProvenanceLayer.Structure, woolOwner);
+            // The cells the shell actually filled, walked from the stamper's own function. A RoomFrame's
+            // bounds are grid lines — its Width is MaxX − MinX — so carrying them into a max-inclusive
+            // provenance rect claims a row and a column of ground the room never touched, on the +x/+z side
+            // of every image alike, which no rotation maps onto its partner.
+            provenance.Claim(StructureStamper.FoundationCells(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ),
+                             ProvenanceLayer.Structure, woolOwner);
             // One marker per wool room — the room is already one entry per orbit image (PlanCompiler fans
             // team-outer), so no orbit math is needed here to keep a mirrored board's markers matching.
             GoalMarkerStamper.Stamp(world, (frame.MinX + frame.MaxX) / 2, (frame.MinZ + frame.MaxZ) / 2,
@@ -118,7 +123,8 @@ public static class SketchWorldBuilder
                 Frame = frame, FloorY = fy, TeamColor = WoolDataForTeam(s.Team, teams),
                 CapturedWools = [.. captured.Select(x => ColorSlug(x.w, teams))], Shell = spawnStyle,
             }).Monuments;
-            provenance.ClaimRect(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ, ProvenanceLayer.Structure, $"spawn:{spawnIndex}");
+            provenance.Claim(StructureStamper.FoundationCells(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ),
+                             ProvenanceLayer.Structure, $"spawn:{spawnIndex}");
 
             for (var k = 0; k < placed.Count && k < captured.Count; k++)
                 monLoc[(captured[k].i, s.Team)] = new Pt(placed[k].X, placed[k].Y, placed[k].Z);
