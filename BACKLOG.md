@@ -1037,6 +1037,12 @@ place.
   navigable, 26 components** on flat ground. The wall is meant to be crossed — its own stamper says an
   attacker bridges to the top and cuts the web with the shears every kit carries.*
 
+  *And over a real run rather than a fixture: across `pgm-studio-mapgen`'s twelve run-4 boards, **every
+  board carrying an approach wall reads isolated** except the one whose wool lane has a second land seam —
+  `hollowbank` 2 markers of 2, `sonnet-compass` 12 of 12, `sonnet-reedcut` 2 of 2, `wheal-hazel` 0 of 2. All
+  five passed the export gate. The cost is a reviewer filing a defect that is not there; one run's author
+  nearly redesigned a correct board around it.*
+
 - [ ] **S47 — A pressure budget for relief.** S43 measures what terrain charges; nothing says how much
   charging is too much. The dressing stage has the identical gap (`world-export/ideas.md` G167) and the two
   should share an answer. The materials exist — the share of the board at each passability tier, the detour
