@@ -221,6 +221,32 @@ public sealed class PlanSvgEndpoint(PlanStore store) : EndpointWithoutRequest
     }
 }
 
+/// <summary>GET /api/plans/{id}/ascii — the same fanned board as a grid of characters, one per proxy cell.
+///
+/// <para>A plan is a list of rectangles measured in cells, and most of what goes wrong with one is a
+/// <b>relation between two of them</b> — a landform wider than the band that reaches it, a wall on the only
+/// throat. A picture of the built world cannot show a relation between two rectangles, because by then they
+/// are terrain; a grid puts them on the same rows. It is also the one render a caller with no image reader
+/// can act on, which is why it answers <c>text/plain</c> rather than a JSON wrapper.</para>
+///
+/// <para><c>?every=N</c> draws one character per N cells, for a board wider than a terminal. 404 when the
+/// plan is missing, 422 when the stored document cannot be read.</para></summary>
+public sealed class PlanAsciiEndpoint(PlanStore store) : EndpointWithoutRequest
+{
+    public override void Configure() { Get("/plans/{id}/ascii"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var row = await store.GetByIdAsync(Route<long>("id"), ct);
+        if (row is null) { await Send.NotFoundAsync(ct); return; }
+        var plan = PlanModel.Parse(row.PlanJson);
+        if (plan is null) { await Send.ResponseAsync(new { error = "stored plan is unreadable" }, 422, ct); return; }
+
+        HttpContext.Response.ContentType = "text/plain; charset=utf-8";
+        await HttpContext.Response.WriteAsync(PlanBoardAscii.Render(plan, every: Query<int?>("every", false) ?? 1), ct);
+    }
+}
+
 /// <summary>GET /api/plans/{id}/png — the same fanned board as <see cref="PlanSvgEndpoint"/>, rasterized: a
 /// picture an image reader can actually open, where the vector card cannot be. Draws off
 /// <see cref="PlanBoardScene"/>, the geometry the SVG endpoint shares, so the two can never disagree about

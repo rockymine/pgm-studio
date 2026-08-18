@@ -442,6 +442,7 @@ document as the body and need no map, which is what lets a plan be checked befor
 | `GET /map/{slug}/plan` | — | the stored document, or `{}` | 404 unknown map |
 | `PUT /map/{slug}/plan` | the document | `{ok: true}` | 400 non-JSON · 404 unknown map |
 | `GET /map/{slug}/layers` | — | `{plan, sketch, world, intent}` — which layers the map holds | 404 |
+| `GET /map/{slug}/plan/ascii[?every=N]` | — | `text/plain` — the fanned board as a grid of characters, one per proxy cell, with a key. `every` draws one character per N cells for a board wider than a terminal | 404 unknown map or no plan · 422 stored plan unreadable |
 | `GET /map/{slug}` · `PATCH /map/{slug}/metadata` | `{name, authors[]}` | the map's identity | 404 |
 
 **The candidate pool** (the bare `/plan-editor` route)
@@ -450,8 +451,17 @@ document as the body and need no map, which is what lets a plan be checked befor
 |---|---|---|---|
 | `GET /plans[?origin=generated\|authored\|imported]` | — | summaries, newest touched first, each with its composer descriptor and whether that descriptor still reproduces it | — |
 | `GET /plans/{id}` | — | the row plus its `planJson` | 404 |
+| `GET /plans/{id}/ascii[?every=N]` | — | the same grid for a candidate, by id rather than slug | 404 · 422 |
 | `POST /plans` | `{planJson, sourceId?}` | the saved row — an authored source is updated in place, a generated or imported one forks into a new authored row | 400 malformed plan |
 | `DELETE /plans/{id}` | — | 204; forks survive with a null parent | — |
+
+**The grid.** A plan is a list of rectangles measured in cells, and most of what goes wrong with one is a
+relation between two of them — a landform wider than the band that reaches it, a wall on the only throat, a
+room whose door opens onto its own apron. A render of the built world cannot show a relation between two
+rectangles, because by then they are terrain; a grid puts them on the same rows and the relation is one
+glance. `GET /map/{slug}/plan/ascii` answers it as `text/plain`, which is also the one render a caller with
+no image reader can act on. Terrain takes a letter per piece, a build zone is `+`, a water lane `~`, an
+enclosed void `o`, open void a space, and markers overprint their ground.
 
 **Reading a plan.** All three take **the plan document itself as the body** — unwrapped, exactly the shape
 `GET /map/{slug}/plan` hands back — and store nothing, so they can be asked of a document that has never been

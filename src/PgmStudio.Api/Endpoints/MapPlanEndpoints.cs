@@ -6,6 +6,8 @@ using LinqToDB.Async;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Pgm.Plan;
+using PgmStudio.Pgm.Render;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -78,6 +80,29 @@ public sealed class MapPlanGetEndpoint(MapRepository repo, MapArtifactStore arti
         if (map is null) { await Send.NotFoundAsync(ct); return; }
         var data = await artifacts.LoadAsync(map.Id, ArtifactKind.PlanJson, ct);
         await Send.OkAsync(JsonSerializer.Deserialize<JsonElement>(data ?? "{}"u8.ToArray()), ct);
+    }
+}
+
+/// <summary>GET /api/map/{slug}/plan/ascii — the stored plan as a grid of characters, one per proxy cell.
+/// The map-scoped twin of <c>GET /plans/{id}/ascii</c>: the same render, reached by the slug an authoring
+/// driver already holds rather than by a candidate id. <c>?every=N</c> downsamples. 404 when the map or its
+/// plan is missing, 422 when the stored document cannot be read.</summary>
+public sealed class MapPlanAsciiEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
+{
+    public override void Configure() { Get("/map/{slug}/plan/ascii"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
+        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        var data = await artifacts.LoadAsync(map.Id, ArtifactKind.PlanJson, ct);
+        if (data is null) { await Send.NotFoundAsync(ct); return; }
+
+        var plan = PlanModel.Parse(Encoding.UTF8.GetString(data));
+        if (plan is null) { await Send.ResponseAsync(new { error = "stored plan is unreadable" }, 422, ct); return; }
+
+        HttpContext.Response.ContentType = "text/plain; charset=utf-8";
+        await HttpContext.Response.WriteAsync(PlanBoardAscii.Render(plan, every: Query<int?>("every", false) ?? 1), ct);
     }
 }
 
