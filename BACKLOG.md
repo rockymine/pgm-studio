@@ -953,6 +953,32 @@ place.
   `TraversabilityRender` derives bridgeable the honest way, off the map's own `deny(void)` apply rule
   (`BridgeableColumns`), so the picture and the gate disagree about the same board.*
 
+- [ ] **WS1 — A corridor is a ribbon, not one path fattened.** `GroundCoverage.Read` takes a single
+  `Cells.ShortestPath` per waypoint pair and dilates it by `CorridorMargin`. `match-flow.md` §2 defines the
+  corridor as **every cell on a route no more than 30% longer than the shortest** — a set, not a line — and
+  the difference is not cosmetic: one geodesic must commit to one side of a hole, so the other side reads
+  dead, which penalises the one feature §3.2 measures as most valuable. Build it as two primitives in
+  `Geom.Cells` beside `ShortestPath`: `DistanceField(targets, within, cost)` and
+  `Corridor(from, to, within, slack = 0.30)` = the cells where `dFrom + dTo ≤ 1.3 × dist`. Fields are the
+  right shape because they are reused — k POIs is k fields, and any extra origin is one more. Then swap
+  `GroundCoverage`'s corridor to it. Cost comes from `B246`/`B247`; unit cost until they land.
+
+  *`ring` and `double-hole` are 63% of hubs at `players=32` (400-board census). The flow read behind
+  `docs/gameplay/match-flow.md` computed the ribbon over the plan's proxy-cell mask and found two ways round
+  on 73% of ring spawn→wool crossings and 96% of wool↔wool; every solid hub form, 0%.*
+
+- [ ] **WS2 — Routes are wanted from the middle and from any cell, not only between goals.**
+  `Traversability.NavigationPoints` returns `spawn`/`wool`/`destroyable`/`core` and nothing else, so
+  `GroundCoverage` walks goal pairs only. Two origins are missing and both are asked for (author): the
+  **mid band**, because the attacker's route that decides a game starts there rather than at a goal, and an
+  **arbitrary cell** — "the west edge of the mid stone to an enemy wool" — so a specific way can be asked
+  about rather than only the standard set. With `WS1`'s fields the second is one extra BFS against fields
+  already built, so this is a demand-set change, not an algorithm. Add the band's cells as an origin in the
+  pair walk, and expose `POST /map/{slug}/route` taking a cell and a target.
+
+  *`match-flow.md` §4: "The route that decides a game is not the defender walking to their own objective — it
+  is the attacker crossing from the mid band."*
+
 - [ ] **B248 — The coverage image needs the vocabulary the read already has.** `CoverageRender.Png` is eight
   lines: it paints a class colour per cell and nothing else — no legend and no scale bar, which every other
   stage image carries through `Legend.AppendBelow`. Three things it should say and does not:
@@ -1111,6 +1137,24 @@ place.
   for monument obstruction. Worth doing with this entry rather than as its own, since both are the same mask
   learning what stops a player. **Not urgent on its own**: `B172` (shipped as the door's approach keep-out) keeps houses out of the one
   place they most obstruct, and no corpus distance sweep depends on it (`B212`).
+
+- [ ] **G187 — Plan-tier flow: the cut, the ways round a hole, and the terms over them.** Every route
+  measure in the repo runs on a built world; `ContactGraph.CorridorMin` is a contact-width threshold and not
+  a corridor, so a plan is evaluated with no flow read at all. The inputs are already here —
+  `PlanBoxAnnotation.Apply`, `StructureSummary.Derive`, `PlanModel.Boxes` and `ContactGraph`'s proxy-cell
+  mask — and `WS1` supplies the ribbon. What is missing is two more `Geom.Cells` primitives:
+  **`MinVertexCut`** (unit-capacity vertex max-flow, the funnel capacity `match-flow.md` §2 asks for) and
+  **`WaysRound`** (the ray-cut connectivity test). Then a flow derive beside `BoardDeriver`, which makes
+  `G164` a short consumer rather than a project, and lets a dead-share term fire at `POST /plan/evaluate` —
+  the first call in the loop, before a map row exists.
+
+  **Do not count the connected components of the minimum cut for ways-round.** That was tried and it gave
+  the opposite answer on the same corpus: "rotation never splits on any ring board" against "splits on
+  nearly all of them". An uncuttable door cell inside a single barrier splits it into two fragments with no
+  second route, and a real second way is missed whenever the cheapest cut lies elsewhere.
+
+  *Two-legged frontlines: 265 objectives, **97%** reachable more than one way; a plain bar, 375 objectives,
+  **38%**. Second ways are a median 1.31× the first and never worse than 1.92× — routes, not escape hatches.*
 
 - [ ] **G164 — interference: how much of one side's route the other side's route covers.** Every flow
   measure so far reads one traversal at a time, and a single route cannot express tension. Tension is two
