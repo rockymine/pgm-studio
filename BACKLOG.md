@@ -976,6 +976,34 @@ place.
   void to bridge: on `pirates_i` it is one layer of water with lily pads, walkable, and charging for it makes
   the read worse (ρ 0.232 free against 0.208 charged).*
 
+- [ ] **WS3 — A board has fork points, plural, and `RouteFork` reports one.** `PlanRoutes.Fork` takes the last
+  cell common to *every* option and the first common to every option from the target, so a journey with two
+  independent decision points lands a split between them and describes neither. Compute a branch point **per
+  option pair** instead — the last cell that pair shares — and report the set, each with the pair it separates
+  and how long the choice is live.
+
+  *measured: townside's per-team lateral spread across the attack runs 41 · 49 | 5 · 5 · 11 · 3 | 14 · 41 · 33
+  | 7 — wide, narrow, wide, which is two forks with a committed lane between them. The author names both: the
+  `piece-11`↔`piece` interface out of spawn, and `piece-9`-or-`piece-6` at the wool. The single split reads
+  (3,−8), inside the narrow stretch that is neither.*
+
+  **The narrow middle is not a funnel and must not be scored as one.** The two teams' median lines run 35–50
+  blocks apart through it and converge only at the objective: the crossing carries two ways and neither team
+  chooses between them, the same one-per-team partition ingwaz shows. Per-team spread cannot separate *one
+  way* from *two ways, one each*, so whatever reports a fork has to say which demand set it was read over.
+
+- [ ] **WS4 — No traced plan states a height, and the walk would discard it anyway.** `PlanPiece.Surface`
+  exists and is used — `bridgid-ii` sets it on 33 of 36 pieces — and **all nineteen traced maps leave it
+  unset**, flat at `globals.surface = 9`. So the plan cannot express the ground that decides a route, and
+  `PlanNav` has no surface to read even where one is written. Two halves: carry the per-piece surface into
+  `PlanNav` as a per-cell height, and charge `PlanRouteCost` for the climb — `B246`'s rule at this tier
+  (Δ≤1 free, Δ≥2 costs the block a player places), which is why the two want doing together.
+
+  *evidence: on `townside` the choice between the two middle crossings is a height choice — `piece-3` drops to
+  ≈3 blocks and `piece-2` sits higher, and the attack takes the low entry (author). On `pirates_i`, whose base
+  elevations differ across the board, the flat walk scores ρ **0.049** against recorded traffic where the same
+  walk scores 0.446–0.561 on boards that are level.*
+
 - [ ] **WS2 — Routes are wanted from the middle and from any cell, not only between goals.**
   `Traversability.NavigationPoints` returns `spawn`/`wool`/`destroyable`/`core` and nothing else, so
   `GroundCoverage` walks goal pairs only. Two origins are missing and both are asked for (author): the
