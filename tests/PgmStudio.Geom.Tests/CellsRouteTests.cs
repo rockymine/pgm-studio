@@ -174,6 +174,42 @@ public sealed class CellsRouteTests
     }
 
     [Test]
+    public async Task A_step_cost_can_charge_a_direction_a_cell_cost_cannot()
+    {
+        // Two parallel lanes; crossing between them costs one way and not the other.
+        var pair = Grid(
+            "#########",
+            "#########");
+        int Step((int X, int Z) from, (int X, int Z) to) => from.Z == 0 && to.Z == 1 ? 20 : 1;
+
+        // going down into the lower lane is dear, so a walk along it starts by staying up
+        var down = Cells.CheapestPath((0, 0), (8, 1), pair, Step)!;
+        await Assert.That(down.Count(c => c.Z == 1)).IsEqualTo(1).Because("it drops at the last moment");
+
+        var up = Cells.CheapestPath((0, 1), (8, 0), pair, Step)!;
+        await Assert.That(up.Count(c => c.Z == 1)).IsGreaterThan(1).Because("rising costs nothing here");
+    }
+
+    [Test]
+    public async Task The_cell_cost_forms_are_the_step_forms_with_the_direction_ignored()
+    {
+        var ring = Ring();
+        int Cost((int X, int Z) c) => c.Z == 0 ? 5 : 1;
+
+        var byCell = Cells.CheapestPath((0, 3), (8, 3), ring, Cost)!;
+        var byStep = Cells.CheapestPath((0, 3), (8, 3), ring, (_, to) => Cost(to))!;
+        await Assert.That(byStep.SequenceEqual(byCell)).IsTrue();
+
+        var fieldCell = Cells.CostField([(0, 3)], ring, Cost);
+        var fieldStep = Cells.CostField([(0, 3)], ring, (_, to) => Cost(to));
+        await Assert.That(fieldStep.Count).IsEqualTo(fieldCell.Count);
+        foreach (var (cell, spent) in fieldCell) await Assert.That(fieldStep[cell]).IsEqualTo(spent);
+
+        await Assert.That(Cells.CostCorridor((0, 3), (8, 3), ring, (_, to) => Cost(to)))
+            .IsEquivalentTo(Cells.CostCorridor((0, 3), (8, 3), ring, Cost));
+    }
+
+    [Test]
     public async Task RayCut_runs_from_the_hole_to_the_bound_on_the_side_asked_for()
     {
         var ring = Ring();

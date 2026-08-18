@@ -257,7 +257,15 @@ public static class Cells
     /// more steps to avoid dear ground — which is the point: a step is not the only thing a journey spends.
     /// Returns the cell sequence including both ends, or null when the target cannot be reached.</summary>
     public static List<(int X, int Z)>? CheapestPath((int X, int Z) from, (int X, int Z) to,
-        IReadOnlySet<(int X, int Z)> within, Func<(int X, int Z), int> cost)
+        IReadOnlySet<(int X, int Z)> within, Func<(int X, int Z), int> cost) =>
+        CheapestPath(from, to, within, (_, next) => cost(next));
+
+    /// <summary>The same walk under a <b>step</b> cost — what it costs to move from one cell to the next,
+    /// rather than what it costs to be somewhere. A climb is the reason the distinction matters: the price of
+    /// a scarp is paid crossing it and not standing beside it, and a per-cell charge cannot tell those
+    /// apart.</summary>
+    public static List<(int X, int Z)>? CheapestPath((int X, int Z) from, (int X, int Z) to,
+        IReadOnlySet<(int X, int Z)> within, Func<(int X, int Z), (int X, int Z), int> step)
     {
         if (!within.Contains(from) || !within.Contains(to)) return null;
         var best = new Dictionary<(int X, int Z), int> { [from] = 0 };
@@ -278,7 +286,7 @@ public static class Cells
             foreach (var n in N4(cell))
             {
                 if (!within.Contains(n)) continue;
-                var next = spent + Math.Max(1, cost(n));
+                var next = spent + Math.Max(1, step(cell, n));
                 if (next >= best.GetValueOrDefault(n, int.MaxValue)) continue;
                 best[n] = next;
                 prev[n] = cell;
@@ -291,7 +299,15 @@ public static class Cells
     /// <summary>The cheapest-walk cost from every reachable cell to the nearest of <paramref name="targets"/>
     /// — <see cref="DistanceField"/> under a cost, and the half of a weighted corridor that is reused.</summary>
     public static Dictionary<(int X, int Z), int> CostField(IEnumerable<(int X, int Z)> targets,
-        IReadOnlySet<(int X, int Z)> within, Func<(int X, int Z), int> cost)
+        IReadOnlySet<(int X, int Z)> within, Func<(int X, int Z), int> cost) =>
+        CostField(targets, within, (_, next) => cost(next));
+
+    /// <summary>The field under a step cost. Walked outward from the targets, so the step is evaluated in the
+    /// direction the field grows — for a symmetric cost that is the same number either way, and for a climb it
+    /// is the descent. A caller wanting the ascent reads the field from the other end, which is what
+    /// <see cref="CostCorridor"/> does by building both.</summary>
+    public static Dictionary<(int X, int Z), int> CostField(IEnumerable<(int X, int Z)> targets,
+        IReadOnlySet<(int X, int Z)> within, Func<(int X, int Z), (int X, int Z), int> step)
     {
         var best = new Dictionary<(int X, int Z), int>();
         var queue = new PriorityQueue<(int X, int Z), int>();
@@ -304,7 +320,7 @@ public static class Cells
             foreach (var n in N4(cell))
             {
                 if (!within.Contains(n)) continue;
-                var next = spent + Math.Max(1, cost(n));
+                var next = spent + Math.Max(1, step(cell, n));
                 if (next >= best.GetValueOrDefault(n, int.MaxValue)) continue;
                 best[n] = next;
                 queue.Enqueue(n, next);
@@ -318,19 +334,29 @@ public static class Cells
     /// fraction of the <em>cost</em>, so on a board where one way round is safe and the other is under fire
     /// the ribbon carries the safe one and not both.</summary>
     public static HashSet<(int X, int Z)> CostCorridor((int X, int Z) from, (int X, int Z) to,
-        IReadOnlySet<(int X, int Z)> within, Func<(int X, int Z), int> cost, double slack = 0.30)
+        IReadOnlySet<(int X, int Z)> within, Func<(int X, int Z), int> cost, double slack = 0.30) =>
+        CostCorridor(from, to, within, (_, next) => cost(next), slack);
+
+    /// <summary>The corridor under a step cost. The two fields are grown from opposite ends, so an asymmetric
+    /// step — a climb, which costs going up and not coming down — is charged in the direction each half is
+    /// actually walked.</summary>
+    public static HashSet<(int X, int Z)> CostCorridor((int X, int Z) from, (int X, int Z) to,
+        IReadOnlySet<(int X, int Z)> within, Func<(int X, int Z), (int X, int Z), int> step, double slack = 0.30)
     {
         var ribbon = new HashSet<(int X, int Z)>();
-        var fromField = CostField([from], within, cost);
+        var fromField = CostField([from], within, step);
         if (!fromField.TryGetValue(to, out var cheapest)) return ribbon;
-        var toField = CostField([to], within, cost);
+        var toField = CostField([to], within, step);
 
-        // Both fields charge for entering a cell, so a cell on the route is counted twice; subtracting its own
-        // cost once puts the sum on the same scale as the end-to-end cheapest.
+        // Both halves charge for the last step into a cell, so a cell on the route is counted twice; taking
+        // the cheaper of its two entry costs off once puts the sum on the same scale as the end-to-end walk.
         var budget = cheapest * (1.0 + slack);
         foreach (var (cell, near) in fromField)
-            if (toField.TryGetValue(cell, out var far) && near + far - Math.Max(1, cost(cell)) <= budget)
-                ribbon.Add(cell);
+        {
+            if (!toField.TryGetValue(cell, out var far)) continue;
+            var own = N4(cell).Where(within.Contains).Select(n => Math.Max(1, step(n, cell))).DefaultIfEmpty(1).Min();
+            if (near + far - own <= budget) ribbon.Add(cell);
+        }
         return ribbon;
     }
 

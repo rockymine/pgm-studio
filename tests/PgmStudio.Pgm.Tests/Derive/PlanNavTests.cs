@@ -127,6 +127,29 @@ public sealed class PlanNavTests
     }
 
     [Test]
+    public async Task Surface_is_the_pieces_own_height_where_it_states_one()
+    {
+        var plan = Strait(null);
+        plan.Pieces[0].Surface = 4;                      // left island sits low
+        plan.Pieces[1].Surface = 12;                     // right island sits high
+        var nav = PlanNav.Of(plan);
+
+        await Assert.That(nav.SurfaceAt[(-4, 0)]).IsEqualTo(4);
+        await Assert.That(nav.SurfaceAt[(1, 0)]).IsEqualTo(12);
+        await Assert.That(nav.SurfaceAt[(-1, 0)]).IsEqualTo(plan.Globals.Surface)
+            .Because("a build zone states no height of its own, so it takes the plan's");
+    }
+
+    [Test]
+    public async Task A_piece_with_no_surface_takes_the_plans_own()
+    {
+        var plan = Strait(null);
+        plan.Globals.Surface = 7;
+        var nav = PlanNav.Of(plan);
+        await Assert.That(nav.SurfaceAt.Values.Distinct()).IsEquivalentTo(new[] { 7 });
+    }
+
+    [Test]
     public async Task An_empty_plan_reads_as_nothing_rather_than_throwing()
     {
         var nav = PlanNav.Of(new PlanModel { Globals = new PlanGlobals { Cell = 5, Symmetry = "rot_180" } });

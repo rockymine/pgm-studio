@@ -7,16 +7,25 @@ namespace PgmStudio.Pgm.Derive;
 ///
 /// <para><see cref="CorridorWidth"/> is how wide a lane a player wants under them; half of it is the
 /// clearance a route is charged for missing, so a walk down the middle of a band pays nothing and one
-/// hugging its border pays the most. <see cref="BowRange"/> is how far a held position reaches.</para></summary>
+/// hugging its border pays the most. <see cref="BowRange"/> is how far a held position reaches.</para>
+///
+/// <para><see cref="ClimbWeight"/> is what a block of climb costs. A step up of one is free — a player walks
+/// it — and anything steeper is paid per block, because that is the ground they have to place under
+/// themselves to get up. Coming down is free at any height.</para></summary>
 public sealed record RouteCosts(
     int CorridorWidth = 20,
     int EdgeWeight = 3,
     int BridgeWeight = 2,
     int ThreatWeight = 12,
-    int BowRange = 30)
+    int BowRange = 30,
+    int ClimbWeight = 2)
 {
     /// <summary>Nothing charged but the step — the plain walk, for comparing against.</summary>
-    public static readonly RouteCosts Flat = new(0, 0, 0, 0, 0);
+    public static readonly RouteCosts Flat = new(0, 0, 0, 0, 0, 0);
+
+    /// <summary>How far a player steps up for nothing. One block is a walk; two is a jump onto ground you
+    /// first have to make.</summary>
+    public const int FreeRise = 1;
 }
 
 /// <summary>
@@ -71,11 +80,32 @@ public static class PlanRouteCost
         return extra;
     }
 
-    /// <summary>A cost function over <paramref name="nav"/> ready for the weighted walk.</summary>
+    /// <summary>A per-cell cost function over <paramref name="nav"/> — everything but the climb, which is a
+    /// property of a step rather than of a place. Use <see cref="StepOf"/> to charge that too.</summary>
     public static Func<(int X, int Z), int> Of(PlanNav nav, PlanModel plan, RouteCosts costs)
     {
         var extra = Build(nav, plan, costs);
         return c => 1 + extra.GetValueOrDefault(c, 0);
+    }
+
+    /// <summary>The full cost, as a <b>step</b>: what a cell costs to be in, plus what the rise into it cost.
+    /// A step up of <see cref="RouteCosts.FreeRise"/> or less is free and so is any descent; a steeper rise is
+    /// charged per block over that, because those are the blocks a player places to get up. This is
+    /// <c>B246</c>'s rule read at the plan tier, where the height comes from the piece's stated surface rather
+    /// than from a built world's columns.</summary>
+    public static Func<(int X, int Z), (int X, int Z), int> StepOf(PlanNav nav, PlanModel plan, RouteCosts costs)
+    {
+        var extra = Build(nav, plan, costs);
+        var surface = nav.SurfaceAt;
+        var climb = costs.ClimbWeight;
+        return (from, to) =>
+        {
+            var cost = 1 + extra.GetValueOrDefault(to, 0);
+            if (climb <= 0) return cost;
+            if (!surface.TryGetValue(from, out var was) || !surface.TryGetValue(to, out var now)) return cost;
+            var rise = now - was;
+            return rise <= RouteCosts.FreeRise ? cost : cost + climb * (rise - RouteCosts.FreeRise);
+        };
     }
 
     /// <summary>The cells a declared wall covers: everything within <paramref name="bowCells"/> of the seam

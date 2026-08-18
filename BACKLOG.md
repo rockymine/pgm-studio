@@ -992,17 +992,17 @@ place.
   chooses between them, the same one-per-team partition ingwaz shows. Per-team spread cannot separate *one
   way* from *two ways, one each*, so whatever reports a fork has to say which demand set it was read over.
 
-- [ ] **WS4 — No traced plan states a height, and the walk would discard it anyway.** `PlanPiece.Surface`
-  exists and is used — `bridgid-ii` sets it on 33 of 36 pieces — and **all nineteen traced maps leave it
-  unset**, flat at `globals.surface = 9`. So the plan cannot express the ground that decides a route, and
-  `PlanNav` has no surface to read even where one is written. Two halves: carry the per-piece surface into
-  `PlanNav` as a per-cell height, and charge `PlanRouteCost` for the climb — `B246`'s rule at this tier
-  (Δ≤1 free, Δ≥2 costs the block a player places), which is why the two want doing together.
+- [~] **WS4 — Height is read now; what remains is stating it, and finding what the climb is worth.**
+  `PlanNav.SurfaceAt` carries each cell's height (a piece's own `surface`, else the plan's) and
+  `PlanRouteCost.StepOf` charges the rise into a cell — `B246`'s rule at this tier, free to one block and
+  paid per block above it, free coming down. Verified to work: on `townside-height-trace` a heavy climb
+  weight drops the steepest step from 5 blocks to 1 and routes via the staircase instead of the scarp.
 
-  *evidence: on `townside` the choice between the two middle crossings is a height choice — `piece-3` drops to
-  ≈3 blocks and `piece-2` sits higher, and the attack takes the low entry (author). On `pirates_i`, whose base
-  elevations differ across the board, the flat walk scores ρ **0.049** against recorded traffic where the same
-  walk scores 0.446–0.561 on boards that are level.*
+  **What is open is the number and the traces.** The climb weight does not improve prediction at any value
+  tried — ρ 0.321 without it, 0.316 at weight 2, 0.313 at 6 — and only one plan in the repository states a
+  height at all. So: state surfaces on the traced maps (18 of 19 are flat at `globals.surface = 9`), and settle
+  what a block of climb is worth against a board where it changes an answer, rather than shipping the default
+  of 2 on one board's evidence.
 
 - [ ] **WS2 — Routes are wanted from the middle and from any cell, not only between goals.**
   `Traversability.NavigationPoints` returns `spawn`/`wool`/`destroyable`/`core` and nothing else, so

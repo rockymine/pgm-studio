@@ -42,6 +42,15 @@ public sealed class PlanNav
     /// said aloud as a piece sequence rather than as a list of coordinates.</summary>
     public IReadOnlyDictionary<(int X, int Z), string> PieceAt { get; }
 
+    /// <summary>The ground height under each navigable cell, in blocks — a piece's own <c>surface</c> where
+    /// it states one, the plan's global surface where it does not. A build zone takes the height of whatever
+    /// it is bridging between, which is not stated anywhere, so it reads the global default too.
+    ///
+    /// <para>This is the input a flat walk throws away. A route that only counts steps climbs a scarp at the
+    /// price of level ground, and on a board whose halves sit at different heights that is most of what
+    /// decides where players go.</para></summary>
+    public IReadOnlyDictionary<(int X, int Z), int> SurfaceAt { get; }
+
     /// <summary>The authored role behind each name in <see cref="PieceAt"/> — spawn, wool room, piece — so a
     /// reader can group by what a piece <em>is</em> before reading which one it is.</summary>
     public IReadOnlyDictionary<string, string> RoleOf { get; }
@@ -61,9 +70,10 @@ public sealed class PlanNav
 
     private PlanNav(HashSet<(int X, int Z)> ground, HashSet<(int X, int Z)> bridge,
         HashSet<(int X, int Z)> lane, Dictionary<(int X, int Z), string> pieceAt,
-        Dictionary<string, string> roleOf, List<HashSet<(int X, int Z)>> holes,
-        List<PlanPoi> pois, CellRect bounds, int cell)
+        Dictionary<string, string> roleOf, Dictionary<(int X, int Z), int> surfaceAt,
+        List<HashSet<(int X, int Z)>> holes, List<PlanPoi> pois, CellRect bounds, int cell)
     {
+        SurfaceAt = surfaceAt;
         Ground = ground;
         Bridge = bridge;
         Lane = lane;
@@ -88,19 +98,23 @@ public sealed class PlanNav
         var lane = new HashSet<(int X, int Z)>();
         var pieceAt = new Dictionary<(int X, int Z), string>();
         var roleOf = new Dictionary<string, string>();
+        var surfaceAt = new Dictionary<(int X, int Z), int>();
         var pois = new List<PlanPoi>();
+        var surfaceOf = plan.Pieces.ToDictionary(p => p.Id, p => p.Surface ?? plan.Globals.Surface);
 
         if (scene is null)
-            return new PlanNav(ground, bridge, lane, pieceAt, roleOf, [], pois, new CellRect(0, 0, 0, 0), plan.Globals.Cell);
+            return new PlanNav(ground, bridge, lane, pieceAt, roleOf, surfaceAt, [], pois,
+                new CellRect(0, 0, 0, 0), plan.Globals.Cell);
 
         foreach (var piece in scene.Pieces)
         {
             var name = piece.K == 0 ? piece.Id : $"{piece.Id}#{piece.K}";
             roleOf[name] = piece.Role;
+            var height = surfaceOf.GetValueOrDefault(piece.Id, plan.Globals.Surface);
             foreach (var cell in CellsOf(piece.Rect))
             {
                 ground.Add(cell);
-                pieceAt.TryAdd(cell, name);
+                if (pieceAt.TryAdd(cell, name)) surfaceAt[cell] = height;
             }
         }
 
@@ -110,13 +124,14 @@ public sealed class PlanNav
             {
                 if (zone.Lane) lane.Add(cell);
                 if (zone.Lane && !lanesNavigable) continue;
-                if (!ground.Contains(cell)) bridge.Add(cell);
+                if (!ground.Contains(cell) && bridge.Add(cell)) surfaceAt.TryAdd(cell, plan.Globals.Surface);
             }
         }
 
         // A declared hole is void however it is covered — the zone rect that contains it is not a crossing
         // there, and the ground under it was never stated.
-        foreach (var cell in scene.ZoneHoles) { bridge.Remove(cell); ground.Remove(cell); lane.Remove(cell); pieceAt.Remove(cell); }
+        foreach (var cell in scene.ZoneHoles)
+        { bridge.Remove(cell); ground.Remove(cell); lane.Remove(cell); pieceAt.Remove(cell); surfaceAt.Remove(cell); }
 
         foreach (var marker in scene.Markers)
             pois.Add(new PlanPoi(marker.Id, marker.Kind, marker.K,
@@ -130,7 +145,7 @@ public sealed class PlanNav
         foreach (var pocket in Pockets(navigable, bounds)) holes.Add(pocket);
         holes.Sort((a, b) => b.Count.CompareTo(a.Count));
 
-        return new PlanNav(ground, bridge, lane, pieceAt, roleOf, holes, pois, bounds, plan.Globals.Cell);
+        return new PlanNav(ground, bridge, lane, pieceAt, roleOf, surfaceAt, holes, pois, bounds, plan.Globals.Cell);
     }
 
     /// <summary>Snap a cell onto the navigable set — a marker sits on a piece by construction, but a place an
