@@ -120,6 +120,20 @@ repo's history); the counts below are re-measured against today's tree. The stor
   `x 15..24, z 58..62` against a goal anchored `(5, 47)`; the keep-out is a 10-block square about the anchor
   tested against the footprint plus its eaves, and neither cycle was predictable before the build.*
 
+- [ ] **TC1 — The analysis reads an author needs before an export are prose, not endpoint tables.** The API
+  carries 66 `/map/{slug}` routes; `docs/tools/`'s tables carry a fraction of them, and three of the ones an
+  author reaches for hardest appear in **no table at all**: `GET /map/{slug}/traversability` (mentioned in
+  prose 12 times), `/buildability` (3) and `/symmetry` (67). Ten more path segments — `island-health`,
+  `island-review`, `island-roles`, `kit-reach`, `monument-obstruction`, `monument-orbit`, `resources`,
+  `scan-world`, `wool-availability`, `wool-suggestions` — appear nowhere in `docs/tools/` under any form.
+  A table is the surface an agent scans; prose in a paragraph about something else is not. Add the live
+  analysis reads to `configure.md`'s API table beside `preflight` and `coverage`, with what each answers and
+  what it fails with, and name the ones that belong to a scanned world rather than an authored one.
+
+  *Evidence: run 4's Sonnet agent used `GET /map/{slug}/traversability` to confirm all four of its boards
+  connected before export — and filed it as a missing document, having found the route by other means. That
+  is the cheapest possible check on a board and it is not on the page an author reads.*
+
 ### The author's override: building a board the gates refuse
 
 - [ ] **B249 — An author can force a compile and an export past its refusals; an agent cannot.** The gates
