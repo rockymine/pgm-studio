@@ -49,8 +49,16 @@ is confined to.
 ## 2. What a route is measured by
 
 **The corridor.** Drawing one path through a space ten cells wide is a lie about where traffic goes. The
-corridor is every cell a player could stand on while walking a route no more than 30% longer than the
-shortest, brightest along the quickest line. It is what the figures render as a ribbon.
+corridor is every cell a player could stand on while walking a route within a slack of the shortest,
+brightest along the quickest line. It is what the figures render as a ribbon.
+
+The **slack is a width, not a ratio**, and the figures above were taken at 30% because that is what the
+original flow read used. Measured against recorded play the ratio does not survive the plan tier: 30% of a
+41-cell walk is twelve cells of slack on a board twenty-six cells across, and on the same board with only the
+width changing the share of ground no journey covers runs 26.1% (geodesics), 13.7% (5%), and **0% at both 15%
+and 30%**. A ribbon that admits everything measures nothing. `GroundCoverage` reads an absolute six blocks
+instead, and the two definitions differ by twenty points of dead ground on one board; settling them on one
+absolute width is `WS1`.
 
 **The choke.** The minimum vertex cut between two ends — the cheapest set of cells that, if held, separates
 them. Its position says where a clash happens; its **size is the funnel capacity**, which is the more

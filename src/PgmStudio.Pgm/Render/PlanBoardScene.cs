@@ -13,10 +13,12 @@ internal static class PlanBoardScene
 {
     internal readonly record struct PieceFan(CellRect Rect, string Id, string Role, int K);
     internal readonly record struct ZoneFan(CellRect Rect, bool Lane);
-    internal readonly record struct MarkerFan(double X, double Z, string Kind, string? Color, int K);
+    internal readonly record struct MarkerFan(string Id, double X, double Z, string Kind, string? Color, int K);
 
+    /// <summary><see cref="ZoneHoles"/> are the cells a zone declares no-build — void whatever rect covers
+    /// them, which a picture may ignore and a walk may not.</summary>
     internal sealed record Scene(List<PieceFan> Pieces, List<ZoneFan> Zones, List<MarkerFan> Markers,
-        int MinX, int MinZ, int Width, int Height);
+        HashSet<(int X, int Z)> ZoneHoles, int MinX, int MinZ, int Width, int Height);
 
     /// <summary>Null when the plan has no drawable geometry at all — both renderers fall back to an empty
     /// canvas in that case.</summary>
@@ -38,8 +40,18 @@ internal static class PlanBoardScene
             for (var k = 0; k < order; k++) pieces.Add(new PieceFan(Fan(p.Rect, axes, k), p.Id, p.Role, k));
         }
         var zones = new List<ZoneFan>();
+        var zoneHoles = new HashSet<(int X, int Z)>();
         foreach (var z in plan.Zones)
-            for (var k = 0; k < order; k++) zones.Add(new ZoneFan(Fan(z.Rect, axes, k), z.IsWaterLane));
+            for (var k = 0; k < order; k++)
+            {
+                zones.Add(new ZoneFan(Fan(z.Rect, axes, k), z.IsWaterLane));
+                foreach (var hole in z.Holes)
+                {
+                    var r = Fan(hole, axes, k);
+                    for (var x = r.X; x < r.X + r.Width; x++)
+                        for (var cz = r.Z; cz < r.Z + r.Height; cz++) zoneHoles.Add((x, cz));
+                }
+            }
 
         var rects = pieces.Select(f => f.Rect).Concat(zones.Select(z => z.Rect)).ToList();
         if (rects.Count == 0) return null;
@@ -48,11 +60,13 @@ internal static class PlanBoardScene
         int maxX = rects.Max(r => r.X + r.Width), maxZ = rects.Max(r => r.Z + r.Height);
 
         var markers = new List<MarkerFan>();
-        foreach (var m in plan.Placements.Iron) FanMarker(markers, pieceRect, m.Piece, m.At, axes, order, "iron", null);
-        foreach (var m in plan.Placements.Wools) FanMarker(markers, pieceRect, m.Piece, m.At, axes, order, "wool", m.Color);
-        foreach (var m in plan.Placements.Spawns) FanMarker(markers, pieceRect, m.Piece, m.At, axes, order, "spawn", null);
+        foreach (var m in plan.Placements.Iron) FanMarker(markers, pieceRect, m, axes, order, "iron", null);
+        foreach (var m in plan.Placements.Wools) FanMarker(markers, pieceRect, m, axes, order, "wool", m.Color);
+        foreach (var m in plan.Placements.Spawns) FanMarker(markers, pieceRect, m, axes, order, "spawn", null);
+        foreach (var m in plan.Placements.Destroyables) FanMarker(markers, pieceRect, m, axes, order, "destroyable", null);
+        foreach (var m in plan.Placements.Cores) FanMarker(markers, pieceRect, m, axes, order, "core", null);
 
-        return new Scene(pieces, zones, markers, minX, minZ, maxX - minX, maxZ - minZ);
+        return new Scene(pieces, zones, markers, zoneHoles, minX, minZ, maxX - minX, maxZ - minZ);
     }
 
     // a rect's k-th orbit image (identity at k=0; else the axis-aligned symmetry op about the axis line)
@@ -67,16 +81,22 @@ internal static class PlanBoardScene
     }
 
     private static void FanMarker(List<MarkerFan> markers, IReadOnlyDictionary<string, CellRect> pieceRect,
-        string pieceId, double[] at, string[] axes, int order, string kind, string? color)
+        IPlanMarker marker, string[] axes, int order, string kind, string? color)
     {
-        if (at.Length < 2 || !pieceRect.TryGetValue(pieceId, out var rect)) return;
+        var at = marker.At;
+        if (at.Length < 2) return;
         // absolute base-unit cell = host piece origin + the marker's offset (markerCell); no half-cell nudge,
-        // so a centred marker (At = [1,1] on a 2×2 piece) lands dead centre.
-        double bx = rect.X + at[0], bz = rect.Z + at[1];
+        // so a centred marker (At = [1,1] on a 2×2 piece) lands dead centre. A destroyable or a core may name
+        // no piece at all (B128), in which case `At` is already absolute about the symmetry centre.
+        double bx, bz;
+        if (marker.Piece.Length == 0) { bx = at[0]; bz = at[1]; }
+        else if (pieceRect.TryGetValue(marker.Piece, out var rect)) { bx = rect.X + at[0]; bz = rect.Z + at[1]; }
+        else return;
+
         for (var k = 0; k < order; k++)
         {
             var (px, pz) = k == 0 ? (bx, bz) : Symmetry.Apply(bx, bz, axes[k - 1], 0, 0);
-            markers.Add(new MarkerFan(px, pz, kind, color, k));
+            markers.Add(new MarkerFan(marker.Id, px, pz, kind, color, k));
         }
     }
 

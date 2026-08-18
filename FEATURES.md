@@ -638,6 +638,27 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **A plan is walkable ground, and a journey across it can be read before anything is built (WS1, WS2).**
+  Every gate that ran before a build answered over pieces — `ContactGraph` classifies whether two rectangles
+  touch, `FannedGraph` whether one reaches another — and neither could say how far apart two places are, how
+  wide the way between them is, or whether there is more than one. `PlanNav` fans the plan to a navigable cell
+  set (ground · bridged zone · water lane · enclosed holes · markers) off the same `PlanBoardScene` the two
+  picture renderers read, and `PlanRoutes` answers one journey over it: the walk, the corridor, the distinct
+  ways, and the `RouteFork` that names where a choice opens and closes again. The substrate is five new
+  `Geom.Cells` primitives — `DistanceField`, `Corridor` (the ribbon, a set rather than one path fattened, so
+  both sides of a hole are carried), `Clearance`, `CheapestPath`/`CostField`/`CostCorridor` (the weighted twins),
+  and `WaysRound`/`RayCut` (the topological two-ways test `match-flow.md` §2 specifies, which is *not* a
+  min-cut component count).
+- **A step can cost more than a step (WS1).** `PlanRouteCost` charges the edge — a walk that only minimises
+  length hugs every border it passes, and on these boards a border is void — plus bridged ground and the reach
+  of a held wall over it. Widths are stated in blocks and divided by the plan's cell, so one set of numbers
+  reads at any trace scale. Calibrated against 12.9 M recorded position samples on six traced maps: the edge
+  term is the main win, the threat term fires only where the ribbon is wide enough to hold the alternative,
+  and a walkable build zone must not be charged.
+- **A plan renders as a grid of characters (WS1).** `PlanBoardAscii` draws the same fanned board the PNG and
+  SVG do, one character per cell, with an overlay channel for a route or a corridor and a `Compare` that lays
+  two cell sets on the same rows. A plan is a list of rectangles and most of what goes wrong with one is a
+  relation between two of them; a render of the built world cannot show that, and a grid is one glance.
 - **How a model actually drives the studio, written down, and the one driver (B253).** Six independent
   drivers existed across `pgm-studio-mapgen` and none of them printed a finding: every one read the status
   code and dropped the `warnings[]` the pipeline had been answering with for several runs, which is why each

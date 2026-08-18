@@ -104,6 +104,236 @@ public static class Cells
         return null;
     }
 
+    /// <summary>The 4-connected step count from every reachable cell of <paramref name="within"/> to the
+    /// <b>nearest</b> of <paramref name="targets"/> — one multi-source BFS, so the whole field costs what a
+    /// single walk costs. Cells the targets cannot reach are absent from the result.
+    ///
+    /// <para>A field is the reusable half of a walk. Asking "how far is A from B" k times over one board is k
+    /// searches; asking it as two fields is two, and every further origin is one more — which is what makes a
+    /// corridor (<see cref="Corridor"/>), a per-pair attribution and an arbitrary-origin route affordable at
+    /// once rather than one traversal at a time.</para></summary>
+    public static Dictionary<(int X, int Z), int> DistanceField(
+        IEnumerable<(int X, int Z)> targets, IReadOnlySet<(int X, int Z)> within)
+    {
+        var field = new Dictionary<(int X, int Z), int>();
+        var queue = new Queue<(int X, int Z)>();
+        foreach (var target in targets)
+            if (within.Contains(target) && field.TryAdd(target, 0)) queue.Enqueue(target);
+
+        while (queue.Count > 0)
+        {
+            var cell = queue.Dequeue();
+            var next = field[cell] + 1;
+            foreach (var neighbour in N4(cell))
+            {
+                if (!within.Contains(neighbour) || !field.TryAdd(neighbour, next)) continue;
+                queue.Enqueue(neighbour);
+            }
+        }
+        return field;
+    }
+
+    /// <summary>Every cell a player could stand on while walking a route no more than
+    /// <paramref name="slack"/> longer than the shortest — the <b>ribbon</b>, not one geodesic fattened.
+    /// Computed as the two distance fields' sum: a cell is in the corridor when
+    /// <c>d(from,cell) + d(cell,to) &lt;= (1 + slack) * d(from,to)</c>. Empty when the two ends do not connect.
+    ///
+    /// <para>The difference from a dilated path is not cosmetic. One geodesic must commit to one side of a
+    /// hole, so the other side reads unused however many players take it; the ribbon carries both sides, which
+    /// is the whole point of a board that offers a way round.</para></summary>
+    public static HashSet<(int X, int Z)> Corridor(
+        (int X, int Z) from, (int X, int Z) to, IReadOnlySet<(int X, int Z)> within, double slack = 0.30)
+    {
+        var ribbon = new HashSet<(int X, int Z)>();
+        var fromField = DistanceField([from], within);
+        if (!fromField.TryGetValue(to, out var shortest)) return ribbon;
+        var toField = DistanceField([to], within);
+
+        var budget = shortest * (1.0 + slack);
+        foreach (var (cell, near) in fromField)
+            if (toField.TryGetValue(cell, out var far) && near + far <= budget) ribbon.Add(cell);
+        return ribbon;
+    }
+
+    /// <summary>Whether a route from <paramref name="from"/> to <paramref name="to"/> may pass on
+    /// <b>either</b> side of <paramref name="hole"/>, or must commit to one — the topological test, not a cut
+    /// count. A ray is cast from the hole to the set's boundary on one side and the ends are asked whether they
+    /// still connect; anything reaching past that ray has to cross it, so surviving the cut means a route exists
+    /// on the <em>other</em> side. Repeated with the ray on the opposite side. Returns how many of the two
+    /// survive: <b>2</b> is a genuine choice, <b>1</b> is one committed way, <b>0</b> is unreachable.
+    ///
+    /// <para>Counting the connected components of a minimum cut is <b>not</b> this test and answers wrong in
+    /// both directions — an uncuttable cell inside a single barrier splits it into fragments with no second
+    /// route, and a real second way is missed whenever the cheapest cut lies elsewhere.</para>
+    ///
+    /// <para>The ray runs along <paramref name="hole"/>'s median row (its median column when
+    /// <paramref name="horizontal"/> is false), so a hole wider than it is tall is cut the short way. An
+    /// endpoint standing on a ray is kept, since removing it would answer "unreachable" about the cut rather
+    /// than about the board.</para></summary>
+    public static int WaysRound((int X, int Z) from, (int X, int Z) to,
+        IReadOnlyCollection<(int X, int Z)> hole, IReadOnlySet<(int X, int Z)> within, bool horizontal = true)
+    {
+        if (hole.Count == 0 || !within.Contains(from) || !within.Contains(to)) return 0;
+        var bounds = BoundingBox([.. within, .. hole]);
+        var ways = 0;
+        foreach (var forward in (bool[])[true, false])
+        {
+            var cut = RayCut(hole, bounds, horizontal, forward);
+            cut.Remove(from);
+            cut.Remove(to);
+            var open = new HashSet<(int X, int Z)>(within);
+            open.ExceptWith(cut);
+            if (PathLength(from, to, open) is not null) ways++;
+        }
+        return ways;
+    }
+
+    /// <summary>The cells of the ray <see cref="WaysRound"/> cuts with — from the hole's far edge along its
+    /// median line out to <paramref name="bounds"/>. Exposed so a render can draw the cut it was asked about
+    /// rather than a reader having to trust it.</summary>
+    public static HashSet<(int X, int Z)> RayCut(
+        IReadOnlyCollection<(int X, int Z)> hole, CellRect bounds, bool horizontal, bool forward)
+    {
+        var cut = new HashSet<(int X, int Z)>();
+        if (hole.Count == 0) return cut;
+
+        if (horizontal)
+        {
+            var row = Median([.. hole.Select(c => c.Z)]);
+            var onRow = hole.Where(c => c.Z == row).Select(c => c.X).ToList();
+            if (onRow.Count == 0) return cut;
+            if (forward) for (var x = onRow.Max() + 1; x < bounds.MaxX; x++) cut.Add((x, row));
+            else for (var x = onRow.Min() - 1; x >= bounds.X; x--) cut.Add((x, row));
+        }
+        else
+        {
+            var column = Median([.. hole.Select(c => c.X)]);
+            var onColumn = hole.Where(c => c.X == column).Select(c => c.Z).ToList();
+            if (onColumn.Count == 0) return cut;
+            if (forward) for (var z = onColumn.Max() + 1; z < bounds.MaxZ; z++) cut.Add((column, z));
+            else for (var z = onColumn.Min() - 1; z >= bounds.Z; z--) cut.Add((column, z));
+        }
+        return cut;
+
+        static int Median(List<int> values) { values.Sort(); return values[values.Count / 2]; }
+    }
+
+    /// <summary>How deep inside <paramref name="region"/> each of its cells lies — the 4-connected distance
+    /// to the nearest cell that is <b>not</b> in the region, counting anything outside
+    /// <paramref name="bounds"/> as not in it. A cell on the border answers 1, one step in answers 2.
+    ///
+    /// <para>This is the measure of how much room a route has either side of it. A walk that only minimises
+    /// length hugs every border it passes, because the border is the short way round — and on a board whose
+    /// borders are void, the short way is the exposed one. Charging for missing clearance is what pulls a
+    /// route onto the middle of the ground it is crossing.</para></summary>
+    public static Dictionary<(int X, int Z), int> Clearance(IReadOnlySet<(int X, int Z)> region, CellRect bounds)
+    {
+        var depth = new Dictionary<(int X, int Z), int>();
+        var queue = new Queue<(int X, int Z)>();
+
+        // Seed with every region cell that touches a non-region cell (or the bound), at depth 1.
+        foreach (var cell in region)
+        {
+            var edge = false;
+            foreach (var n in N4(cell))
+                if (!region.Contains(n)) { edge = true; break; }
+            if (!edge)
+                edge = cell.X <= bounds.X || cell.X >= bounds.MaxX - 1 || cell.Z <= bounds.Z || cell.Z >= bounds.MaxZ - 1;
+            if (edge) { depth[cell] = 1; queue.Enqueue(cell); }
+        }
+
+        while (queue.Count > 0)
+        {
+            var cell = queue.Dequeue();
+            var next = depth[cell] + 1;
+            foreach (var n in N4(cell))
+                if (region.Contains(n) && depth.TryAdd(n, next)) queue.Enqueue(n);
+        }
+        return depth;
+    }
+
+    /// <summary>The cheapest 4-connected walk from <paramref name="from"/> to <paramref name="to"/>, where
+    /// <paramref name="cost"/> is what entering a cell costs (never below 1). Dijkstra, so a route may take
+    /// more steps to avoid dear ground — which is the point: a step is not the only thing a journey spends.
+    /// Returns the cell sequence including both ends, or null when the target cannot be reached.</summary>
+    public static List<(int X, int Z)>? CheapestPath((int X, int Z) from, (int X, int Z) to,
+        IReadOnlySet<(int X, int Z)> within, Func<(int X, int Z), int> cost)
+    {
+        if (!within.Contains(from) || !within.Contains(to)) return null;
+        var best = new Dictionary<(int X, int Z), int> { [from] = 0 };
+        var prev = new Dictionary<(int X, int Z), (int X, int Z)>();
+        var queue = new PriorityQueue<(int X, int Z), int>();
+        queue.Enqueue(from, 0);
+
+        while (queue.TryDequeue(out var cell, out var spent))
+        {
+            if (spent > best.GetValueOrDefault(cell, int.MaxValue)) continue;
+            if (cell == to)
+            {
+                var path = new List<(int X, int Z)>();
+                for (var p = to; ; p = prev[p]) { path.Add(p); if (p == from) break; }
+                path.Reverse();
+                return path;
+            }
+            foreach (var n in N4(cell))
+            {
+                if (!within.Contains(n)) continue;
+                var next = spent + Math.Max(1, cost(n));
+                if (next >= best.GetValueOrDefault(n, int.MaxValue)) continue;
+                best[n] = next;
+                prev[n] = cell;
+                queue.Enqueue(n, next);
+            }
+        }
+        return null;
+    }
+
+    /// <summary>The cheapest-walk cost from every reachable cell to the nearest of <paramref name="targets"/>
+    /// — <see cref="DistanceField"/> under a cost, and the half of a weighted corridor that is reused.</summary>
+    public static Dictionary<(int X, int Z), int> CostField(IEnumerable<(int X, int Z)> targets,
+        IReadOnlySet<(int X, int Z)> within, Func<(int X, int Z), int> cost)
+    {
+        var best = new Dictionary<(int X, int Z), int>();
+        var queue = new PriorityQueue<(int X, int Z), int>();
+        foreach (var target in targets)
+            if (within.Contains(target) && best.TryAdd(target, 0)) queue.Enqueue(target, 0);
+
+        while (queue.TryDequeue(out var cell, out var spent))
+        {
+            if (spent > best.GetValueOrDefault(cell, int.MaxValue)) continue;
+            foreach (var n in N4(cell))
+            {
+                if (!within.Contains(n)) continue;
+                var next = spent + Math.Max(1, cost(n));
+                if (next >= best.GetValueOrDefault(n, int.MaxValue)) continue;
+                best[n] = next;
+                queue.Enqueue(n, next);
+            }
+        }
+        return best;
+    }
+
+    /// <summary>The corridor under a cost — every cell whose cheapest through-route costs no more than
+    /// <paramref name="slack"/> over the cheapest, the weighted twin of <see cref="Corridor"/>. Slack is a
+    /// fraction of the <em>cost</em>, so on a board where one way round is safe and the other is under fire
+    /// the ribbon carries the safe one and not both.</summary>
+    public static HashSet<(int X, int Z)> CostCorridor((int X, int Z) from, (int X, int Z) to,
+        IReadOnlySet<(int X, int Z)> within, Func<(int X, int Z), int> cost, double slack = 0.30)
+    {
+        var ribbon = new HashSet<(int X, int Z)>();
+        var fromField = CostField([from], within, cost);
+        if (!fromField.TryGetValue(to, out var cheapest)) return ribbon;
+        var toField = CostField([to], within, cost);
+
+        // Both fields charge for entering a cell, so a cell on the route is counted twice; subtracting its own
+        // cost once puts the sum on the same scale as the end-to-end cheapest.
+        var budget = cheapest * (1.0 + slack);
+        foreach (var (cell, near) in fromField)
+            if (toField.TryGetValue(cell, out var far) && near + far - Math.Max(1, cost(cell)) <= budget)
+                ribbon.Add(cell);
+        return ribbon;
+    }
+
     /// <summary>Snaps <paramref name="cell"/> onto <paramref name="within"/>: the cell itself when it is
     /// already a member, otherwise the nearest member found by searching outward ring by ring, up to
     /// <paramref name="radius"/> rings, using the <b>square</b> (Chebyshev) ring — every cell at

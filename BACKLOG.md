@@ -953,19 +953,28 @@ place.
   `TraversabilityRender` derives bridgeable the honest way, off the map's own `deny(void)` apply rule
   (`BridgeableColumns`), so the picture and the gate disagree about the same board.*
 
-- [ ] **WS1 — A corridor is a ribbon, not one path fattened.** `GroundCoverage.Read` takes a single
-  `Cells.ShortestPath` per waypoint pair and dilates it by `CorridorMargin`. `match-flow.md` §2 defines the
-  corridor as **every cell on a route no more than 30% longer than the shortest** — a set, not a line — and
-  the difference is not cosmetic: one geodesic must commit to one side of a hole, so the other side reads
-  dead, which penalises the one feature §3.2 measures as most valuable. Build it as two primitives in
-  `Geom.Cells` beside `ShortestPath`: `DistanceField(targets, within, cost)` and
-  `Corridor(from, to, within, slack = 0.30)` = the cells where `dFrom + dTo ≤ 1.3 × dist`. Fields are the
-  right shape because they are reused — k POIs is k fields, and any extra origin is one more. Then swap
-  `GroundCoverage`'s corridor to it. Cost comes from `B246`/`B247`; unit cost until they land.
+- [ ] **WS1 — The corridor has two definitions twenty points apart, and the studio needs the absolute one.**
+  `match-flow.md` §2 defines a corridor as every cell on a route no more than 30% longer than the shortest;
+  `GroundCoverage.Read` dilates a single `Cells.ShortestPath` by `CorridorMargin = 6` **blocks**. Those are
+  not the same measure and at plan scale they are not close — 30% of a 41-cell walk is twelve cells of slack
+  on a board twenty-six cells across, so the ribbon covers nearly everything.
 
-  *`ring` and `double-hole` are 63% of hubs at `players=32` (400-board census). The flow read behind
-  `docs/gameplay/match-flow.md` computed the ribbon over the plan's proxy-cell mask and found two ways round
-  on 73% of ring spawn→wool crossings and 96% of wool↔wool; every solid hub form, 0%.*
+  **Measured, same boards and same journeys, only the width changing** (share of navigable cells no journey
+  covers): geodesics 26.1% · slack 5% 13.7% · slack 15% 0% · slack 30% 0% · one path +1 cell 20.6%. The 30%
+  ribbon erases the measure. So the primitive is right and the parameter is not: **keep the corridor as a
+  ribbon — a set, not a fattened line, which is what carries both sides of a hole — and read it at a
+  small absolute width, not a ratio.** ≈20 blocks is the author's figure for a board of kanto's size, and it
+  wants restating relative to the lane actually available where a map runs thinner (author).
+
+  The ribbon primitives shipped (`Cells.DistanceField` · `Corridor` · `CostCorridor`, `PlanRouteCost`). What
+  is open here is the **swap**: point `GroundCoverage`'s corridor at them, at the settled width, and restate
+  §2 so one number is quoted in one place.
+
+  *Two things not to carry over. The `reached`/`dead` classification is a coarse gate, not a score — real
+  dead ground on played maps is 1.0% (kanto), 3.4% (outback), 3.2% (townside), while the busiest cell runs
+  20–166× the quietest, so intensity is the signal and membership is not. And a build zone is not always
+  void to bridge: on `pirates_i` it is one layer of water with lily pads, walkable, and charging for it makes
+  the read worse (ρ 0.232 free against 0.208 charged).*
 
 - [ ] **WS2 — Routes are wanted from the middle and from any cell, not only between goals.**
   `Traversability.NavigationPoints` returns `spawn`/`wool`/`destroyable`/`core` and nothing else, so
