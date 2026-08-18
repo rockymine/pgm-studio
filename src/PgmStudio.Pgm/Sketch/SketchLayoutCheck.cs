@@ -123,7 +123,7 @@ public static class SketchLayoutCheck
                 (missing.TryGetValue(named, out var on) ? on : missing[named] = []).Add(shape.Id);
         foreach (var (named, on) in missing)
             findings.Add(new Finding(SketchRules.NamesNothing,
-                $"{on.Count} shape{(on.Count == 1 ? "" : "s")} paint with theme '{named}', which the layout's "
+                $"{on.Count} shape{(on.Count == 1 ? " paints" : "s paint")} with theme '{named}', which the layout's "
                 + $"registry does not carry{(themes.Count == 0 ? " (it states no themes at all)" : "")} — those "
                 + "cells take the map default instead",
                 Severity.Complaint, Field: "themes", Subjects: [.. on.Where(id => id.Length > 0)]));
