@@ -674,6 +674,33 @@ width profile, the co-presence concentration and the piece-level traffic shares 
 a generated board by the same code, which is what would let a generated layout and a built one be compared
 on identical terms.
 
+### 6.12 What the corpus cannot answer: the price of a climb
+
+A route model wants to know what terrain costs to cross, and the recorded traffic cannot say. Two things
+stand in the way and neither is a sampling problem.
+
+**Most of the standing play is not on the map.** Measured against each world's own top surface, the share of
+standing samples sitting on ground the map shipped with is `kanto` 58.5%, `outback` 53.1%, `townside` 73.9%,
+`ingwaz` 71.7% — so on the two long-running boards **nearly half of all play is on structure the players
+built**, a median 14 and 17 blocks above the terrain. The height a sample stands at is mostly a fact about
+what has been built under it.
+
+**And the terrain does not survive the match either.** §6.2 measures 32% of the cells that ever see a
+sub-surface position as actively dug, with completeness peaking at 0.83 ten to nineteen blocks from a wool
+room. Ground is removed as well as added. A scarp the plan states is not the scarp a player at minute thirty
+meets, in either direction.
+
+So a climb cost can be *written* — `PlanRouteCost` charges the rise into a cell, free to a block and paid per
+block above it — and it cannot be **priced** from this data: any weight fitted to recorded movement is
+fitted to a surface the players themselves authored. The measurement bears that out. On the one traced plan
+carrying heights, the climb term moves the rank correlation against recorded traffic from 0.321 to 0.316 at
+weight 2 and 0.313 at 6, and scoring against ground-only samples makes every board **worse** by 0.06 to 0.22
+— because the sky network follows the ground corridors (§5), so removing it removes the most route-shaped
+half of the traffic.
+
+The term stays, unvalidated and marked so, because the rule it encodes is the author's and not the corpus's.
+What would settle it is a board played without building, which this mode does not have.
+
 ## 7. What a plan answers today
 
 | Measure | Reading |

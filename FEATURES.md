@@ -649,6 +649,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   both sides of a hole are carried), `Clearance`, `CheapestPath`/`CostField`/`CostCorridor` (the weighted twins),
   and `WaysRound`/`RayCut` (the topological two-ways test `match-flow.md` §2 specifies, which is *not* a
   min-cut component count).
+- **The walk can read the ground's height, and charge the climb (WS4, part).** `PlanNav.SurfaceAt` carries
+  each cell's height — a piece's own `surface` where it states one, the plan's global where it does not — and
+  `PlanRouteCost.StepOf` charges the rise into a cell: free to one block, paid per block above it, free coming
+  down, which is `B246`'s rule read at the plan tier. It needed the weighted reads generalised from a per-cell
+  cost to a **step** cost, since the price of a scarp is paid crossing it and not standing beside it; the
+  per-cell forms remain as wrappers. Demonstrated on the `townside` height trace: a heavy climb weight drops
+  the steepest step from five blocks to one and routes by the staircase instead of the scarp. **The weight
+  itself is uncalibrated and cannot be calibrated from this corpus** — see `docs/gameplay/match-flow.md` §6.12.
 - **A step can cost more than a step (WS1).** `PlanRouteCost` charges the edge — a walk that only minimises
   length hugs every border it passes, and on these boards a border is void — plus bridged ground and the reach
   of a held wall over it. Widths are stated in blocks and divided by the plan's cell, so one set of numbers

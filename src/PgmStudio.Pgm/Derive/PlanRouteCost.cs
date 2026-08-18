@@ -11,7 +11,13 @@ namespace PgmStudio.Pgm.Derive;
 ///
 /// <para><see cref="ClimbWeight"/> is what a block of climb costs. A step up of one is free — a player walks
 /// it — and anything steeper is paid per block, because that is the ground they have to place under
-/// themselves to get up. Coming down is free at any height.</para></summary>
+/// themselves to get up. Coming down is free at any height.</para>
+///
+/// <para><b>The climb weight is uncalibrated and cannot be calibrated from recorded play.</b> Nearly half the
+/// standing samples on a long match sit on structure the players built, and the terrain is dug out as well as
+/// built on, so any weight fitted to movement is fitted to a surface the players authored rather than to the
+/// map's. The rule it encodes is the author's; the number is a placeholder. `docs/gameplay/match-flow.md`
+/// §6.12 carries the measurement and the reasoning.</para></summary>
 public sealed record RouteCosts(
     int CorridorWidth = 20,
     int EdgeWeight = 3,

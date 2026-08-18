@@ -976,33 +976,31 @@ place.
   void to bridge: on `pirates_i` it is one layer of water with lily pads, walkable, and charging for it makes
   the read worse (ρ 0.232 free against 0.208 charged).*
 
-- [ ] **WS3 — A board has fork points, plural, and `RouteFork` reports one.** `PlanRoutes.Fork` takes the last
-  cell common to *every* option and the first common to every option from the target, so a journey with two
-  independent decision points lands a split between them and describes neither. Compute a branch point **per
-  option pair** instead — the last cell that pair shares — and report the set, each with the pair it separates
-  and how long the choice is live.
+- [ ] **WS3 — A board has fork points, plural, they belong to a demand set, and `RouteFork` reports one.**
+  `PlanRoutes.Fork` takes the last cell common to *every* option and the first common to every option from the
+  target, so a journey with several decision points lands a split between them and describes none of them.
+  Compute a branch point **per option pair** — the last cell that pair shares — and report the set, each with
+  the pair it separates and how long the choice is live.
+
+  **And a fork is not a property of the board.** townside carries three (author): one leaving spawn, round the
+  hole the build zone frames; one at the second hole by the wool; and a third at *that same hole* for the run
+  back out with the wool, which is a different choice over the same ground. So a fork has to be reported
+  against the demand set it was read for — attack, defend, or the back-run — and the same hole can answer
+  differently for each.
 
   *measured: townside's per-team lateral spread across the attack runs 41 · 49 | 5 · 5 · 11 · 3 | 14 · 41 · 33
-  | 7 — wide, narrow, wide, which is two forks with a committed lane between them. The author names both: the
-  `piece-11`↔`piece` interface out of spawn, and `piece-9`-or-`piece-6` at the wool. The single split reads
-  (3,−8), inside the narrow stretch that is neither.*
+  | 7 — wide, narrow, wide. The single split reads (3,−8), inside the narrow stretch that is neither of the
+  two the attack actually has.*
 
   **The narrow middle is not a funnel and must not be scored as one.** The two teams' median lines run 35–50
   blocks apart through it and converge only at the objective: the crossing carries two ways and neither team
   chooses between them, the same one-per-team partition ingwaz shows. Per-team spread cannot separate *one
-  way* from *two ways, one each*, so whatever reports a fork has to say which demand set it was read over.
+  way* from *two ways, one each*.
 
-- [~] **WS4 — Height is read now; what remains is stating it, and finding what the climb is worth.**
-  `PlanNav.SurfaceAt` carries each cell's height (a piece's own `surface`, else the plan's) and
-  `PlanRouteCost.StepOf` charges the rise into a cell — `B246`'s rule at this tier, free to one block and
-  paid per block above it, free coming down. Verified to work: on `townside-height-trace` a heavy climb
-  weight drops the steepest step from 5 blocks to 1 and routes via the staircase instead of the scarp.
-
-  **What is open is the number and the traces.** The climb weight does not improve prediction at any value
-  tried — ρ 0.321 without it, 0.316 at weight 2, 0.313 at 6 — and only one plan in the repository states a
-  height at all. So: state surfaces on the traced maps (18 of 19 are flat at `globals.surface = 9`), and settle
-  what a block of climb is worth against a board where it changes an answer, rather than shipping the default
-  of 2 on one board's evidence.
+  *Blocks the same-road read: `d(defender→fuse) + d(fuse→wool)` equals the defender's own walk on townside
+  (210 = 165 + 45) and exceeds it on kanto (115 against 95), which is the difference between the two sides
+  sharing an approach and the defender arriving from behind the objective. That test rests on a fuse position
+  this entry says is wrong on townside, so it wants re-checking once the forks are per pair.*
 
 - [ ] **WS2 — Routes are wanted from the middle and from any cell, not only between goals.**
   `Traversability.NavigationPoints` returns `spawn`/`wool`/`destroyable`/`core` and nothing else, so
